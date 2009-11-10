@@ -1,0 +1,118 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{725AE3B6-F1CE-42B3-BA06-F919DCE3AB46}</ProjectGuid>
+			<ProjectVersion>12.0</ProjectVersion>
+			<MainSource>ChatClient.dpr</MainSource>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_DependencyCheckOutputName>..\..\bin\ChatClient.exe</DCC_DependencyCheckOutputName>
+			<DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
+			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_UsePackage>rtl;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DataSnapServer;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;vcl;dbrtl;vcldb;dbxcds;vclx;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;dsnap;Rave76VCL;bdertl;vclactnband;dsnapcon;TeeUI;TeeDB;Tee;adortl;vclib;ibxpress;IndyCore;IndySystem;IndyProtocols;xmlrtl;inet;VclSmp;vclie;soaprtl;inetdbbde;inetdbxpress;vclribbon;PerlRegExD2009;SnapDataset;ipstudiowingrid;ZComponent;ZDbc;ZPlain;ZCore;ZParseSql;JclVcl;Jcl;JvCoreD12R;JvSystemD12R;JvStdCtrlsD12R;JvAppFrmD12R;JvBandsD12R;JvCmpD12R;JvCryptD12R;JvCtrlsD12R;JvCustomD12R;JvDBD12R;JvDlgsD12R;JvDockingD12R;JvDotNetCtrlsD12R;JvGlobusD12R;JvHMID12R;JvInterpreterD12R;JvJansD12R;JvManagedThreadsD12R;JvMMD12R;JvNetD12R;JvPageCompsD12R;JvPluginD12R;JvPrintPreviewD12R;JvRuntimeDesignD12R;JvTimeFrameworkD12R;JvValidatorsD12R;JvWizardD12R;JvXPCtrlsD12R;FIBPlus2009;FIBDBMidas2009;TMSSmoothControlsPackPkgD2009;JazzMVP;JazzOPF;JazzVTF;dacvcl120;dac120;ibdacvcl120;ibdac120;JazzOPFFirebird;JazzMVPVCL;JazzDBAdapter;CRControls120;DotNet4Delphi_2009;JazzOPFADO;JazzOPFIBX;DeHL_Package;webdsnap;VirtualTreesD12</DCC_UsePackage>
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_Platform>x86</DCC_Platform>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="ChatClient.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="MainFormClient.pas">
+				<Form>Form5</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\StompClient.pas"/>
+			<DCCReference Include="..\..\..\StompTypes.pas"/>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Debug">
+				<Key>Cfg_2</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+			<BuildConfiguration Include="Release">
+				<Key>Cfg_1</Key>
+				<CfgParent>Base</CfgParent>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">ChatClient.dpr</Source>
+					</Source>
+					<Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
+						<VersionInfo Name="MajorVer">1</VersionInfo>
+						<VersionInfo Name="MinorVer">0</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Build">0</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">1040</VersionInfo>
+						<VersionInfo Name="CodePage">1252</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="FileDescription"/>
+						<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName"/>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName"/>
+						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+					<Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclbde120.bpl">CodeGear BDE DB Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclIntraweb_100_120.bpl">VCL for the Web 10.0  Design Package for CodeGear RAD Studio</Excluded_Packages>
+						<Excluded_Packages Name="C:\Users\Public\Documents\RAD Studio\6.0\Bpl\ListDatasets.bpl">(untitled)</Excluded_Packages>
+						<Excluded_Packages Name="C:\Users\Public\Documents\RAD Studio\6.0\Bpl\AlMailSlot.bpl">(untitled)</Excluded_Packages>
+						<Excluded_Packages Name="C:\Users\Public\Documents\RAD Studio\6.0\Bpl\MailSlot.bpl">(untitled)</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclwebsnap120.bpl">CodeGear WebSnap Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\Bin\dclibdac120.bpl">Devart InterBase Data Access Components</Excluded_Packages>
+						<Excluded_Packages Name="C:\Users\Public\Documents\RAD Studio\6.0\Bpl\JazzOPFDBX.bpl">Jazz Persistent Framework - dbExpress</Excluded_Packages>
+						<Excluded_Packages Name="C:\Users\Public\Documents\RAD Studio\6.0\Bpl\tiOPFGUIDsgn2009.bpl">TechInsite Object Persistence Framework (tiOPF) GUI Controls</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k120.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclofficexp120.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+					</Excluded_Packages>
+				</Delphi.Personality>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>

@@ -1,0 +1,48 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{33B5385D-189E-40DC-8B9C-E0CD730BC24D}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="GlobalDemo.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Receiver.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="GlobalDemo">
+			<MSBuild Projects="GlobalDemo.dproj"/>
+		</Target>
+		<Target Name="GlobalDemo:Clean">
+			<MSBuild Targets="Clean" Projects="GlobalDemo.dproj"/>
+		</Target>
+		<Target Name="GlobalDemo:Make">
+			<MSBuild Targets="Make" Projects="GlobalDemo.dproj"/>
+		</Target>
+		<Target Name="Receiver">
+			<MSBuild Projects="Receiver.dproj"/>
+		</Target>
+		<Target Name="Receiver:Clean">
+			<MSBuild Targets="Clean" Projects="Receiver.dproj"/>
+		</Target>
+		<Target Name="Receiver:Make">
+			<MSBuild Targets="Make" Projects="Receiver.dproj"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="GlobalDemo;Receiver"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="GlobalDemo:Clean;Receiver:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="GlobalDemo:Make;Receiver:Make"/>
+		</Target>
+		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+	</Project>
