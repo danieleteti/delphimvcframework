@@ -1,2 +1,2 @@
 @call rsvars.bat
-@msbuild GlobalDemo.dproj /target:Build /p:config=Release
+@msbuild GlobalDemo.dproj /target:Build /p:config="Release Build"
