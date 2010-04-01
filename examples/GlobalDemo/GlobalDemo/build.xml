@@ -1,0 +1,9 @@
+<project name="MyProject" default="compile" basedir=".">
+  <target name="compile" description="Compiling..." >
+    <exec executable="cmd">
+      <arg value="/c"/>
+      <arg value="runmsbuild.bat"/>
+      <arg value="-p"/>
+    </exec>  
+  </target>
+</project>
