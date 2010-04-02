@@ -23,7 +23,7 @@ end;
 
 procedure TTestStompClient.TestAssertTrue;
 begin
-  CheckTrue(true);
+  CheckTrue(False);
 end;
 
 initialization
