@@ -9,7 +9,6 @@ program TestStompClient;
   default.
 
 }
-
 {$IFDEF CONSOLE_TESTRUNNER}
 {$APPTYPE CONSOLE}
 {$ENDIF}
@@ -20,16 +19,23 @@ uses
   GUITestRunner,
   TextTestRunner,
   TestStompClientU in 'TestStompClientU.pas',
-  XMLTestRunner in 'C:\Program Files\Embarcadero\RAD Studio\7.0\source\dUnit\Contrib\XMLReporting\XMLTestRunner.pas';
-
+  HudsonTestRunner in
+  'C:\Program Files\Embarcadero\RAD Studio\7.0\source\dUnit\Contrib\HudsonReporting\HudsonTestRunner.pas';
 {$R *.RES}
+
+var
+  ExCode: Cardinal;
 
 begin
   Application.Initialize;
   if IsConsole then
-    with XMLTestRunner.RunRegisteredTests do
+    with HudsonTestRunner.RunRegisteredTests do
+    begin
+      ExCode := THudsonTestListener.GetErrorCount;
       Free
-  else
-    GUITestRunner.RunRegisteredTests;
-end.
+    end
+    else
+      GUITestRunner.RunRegisteredTests;
+  Halt(ExCode);
 
+end.
