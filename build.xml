@@ -7,7 +7,7 @@
     <exec dir="." failonerror="true" searchpath="true" executable="msbuild.exe">
       <arg value="examples\Chat\ChatClient\ChatClient.dproj"/>
     </exec>
-    <exec failonerror="true" searchpath="true" command="pasdoc.exe --output ${base}\docs --name DelphiMSBuild2 --write-uses-list -S pasdocfiles.txt">
+    <exec dir="." failonerror="true" searchpath="true" command="C:\tools\pasdoc\pasdoc.exe --output ${base}\docs --name DelphiMSBuild2 --write-uses-list -S pasdocfiles.txt">
     </exec>             
   </target>
 </project>
