@@ -2,7 +2,7 @@
   <property name="docs" value="C:\Users\Daniele\.hudson\jobs\delphimsbuild2\workspace\GlobalDemo\docs"/>  
   <target name="compile" description="Compiling..." >
     <exec searchpath="true" executable="msbuild.exe">
-      <arg value="GlobalDemo.dproj"/>
+      <arg value="GlobalDemo\GlobalDemo.dproj"/>
     </exec>
     <!--
     <exec executable="cmd">
