@@ -20,12 +20,12 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_TypedAtParameter>true</DCC_TypedAtParameter>
 			<DCC_DependencyCheckOutputName>TestStompClient.exe</DCC_DependencyCheckOutputName>
 			<DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_Define>CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
 			<DCC_DcuOutput>.</DCC_DcuOutput>
 			<DCC_Description>InstantObjects BDE Design-Time Support (Delphi 2010)</DCC_Description>
-			<DCC_TypedAtParameter>true</DCC_TypedAtParameter>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
 			<DllSuffix>_D14</DllSuffix>

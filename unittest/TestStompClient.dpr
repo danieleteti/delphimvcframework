@@ -1,5 +1,4 @@
 program TestStompClient;
-
 {$IFDEF CONSOLE_TESTRUNNER}
 {$APPTYPE CONSOLE}
 {$ENDIF}
@@ -15,7 +14,8 @@ uses
 {$R *.RES}
 
 var
-  ExCode: Cardinal;
+  ExCode: Integer;
+
 begin
   Application.Initialize;
   if IsConsole then
@@ -27,5 +27,9 @@ begin
     else
       GUITestRunner.RunRegisteredTests;
   if ExCode > 0 then
+  begin
     ExitCode := -1;
+    Halt(1);
+  end;
+
 end.
