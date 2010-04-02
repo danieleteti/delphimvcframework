@@ -6,7 +6,10 @@
       <arg value="-p"/>
     </exec>
     <exec executable="pasdoc.exe">
-      <arg value="--output docs --name DelphiMSBuild2 --write-uses-list MainForm.pas ReceiverForm.pas"/>
+      <arg value="--output docs"/>
+      <arg value="--name DelphiMSBuild2"/>
+      <arg value="--write-uses-list"/>
+      <arg value="MainForm.pas ReceiverForm.pas"/>
     </exec>             
   </target>
 </project>
