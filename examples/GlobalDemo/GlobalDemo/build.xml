@@ -4,6 +4,9 @@
       <arg value="/c"/>
       <arg value="runmsbuild.bat"/>
       <arg value="-p"/>
-    </exec>  
+    </exec>
+    <exec executable="pasdoc.exe">
+      <arg value="--output docs --name DelphiMSBuild2 --write-uses-list MainForm.pas ReceiverForm.pas"/>
+    </exec>             
   </target>
 </project>
