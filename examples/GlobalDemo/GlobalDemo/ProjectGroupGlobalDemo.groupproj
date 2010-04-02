@@ -3,10 +3,10 @@
 			<ProjectGuid>{33B5385D-189E-40DC-8B9C-E0CD730BC24D}</ProjectGuid>
 		</PropertyGroup>
 		<ItemGroup>
-			<Projects Include="GlobalDemo.dproj">
+			<Projects Include="Receiver.dproj">
 				<Dependencies/>
 			</Projects>
-			<Projects Include="Receiver.dproj">
+			<Projects Include="GlobalDemo.dproj">
 				<Dependencies/>
 			</Projects>
 		</ItemGroup>
@@ -17,15 +17,6 @@
 				<Default.Personality/>
 			</BorlandProject>
 		</ProjectExtensions>
-		<Target Name="GlobalDemo">
-			<MSBuild Projects="GlobalDemo.dproj"/>
-		</Target>
-		<Target Name="GlobalDemo:Clean">
-			<MSBuild Targets="Clean" Projects="GlobalDemo.dproj"/>
-		</Target>
-		<Target Name="GlobalDemo:Make">
-			<MSBuild Targets="Make" Projects="GlobalDemo.dproj"/>
-		</Target>
 		<Target Name="Receiver">
 			<MSBuild Projects="Receiver.dproj"/>
 		</Target>
@@ -35,14 +26,23 @@
 		<Target Name="Receiver:Make">
 			<MSBuild Targets="Make" Projects="Receiver.dproj"/>
 		</Target>
+		<Target Name="GlobalDemo">
+			<MSBuild Projects="GlobalDemo.dproj"/>
+		</Target>
+		<Target Name="GlobalDemo:Clean">
+			<MSBuild Targets="Clean" Projects="GlobalDemo.dproj"/>
+		</Target>
+		<Target Name="GlobalDemo:Make">
+			<MSBuild Targets="Make" Projects="GlobalDemo.dproj"/>
+		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="GlobalDemo;Receiver"/>
+			<CallTarget Targets="Receiver;GlobalDemo"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="GlobalDemo:Clean;Receiver:Clean"/>
+			<CallTarget Targets="Receiver:Clean;GlobalDemo:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="GlobalDemo:Make;Receiver:Make"/>
+			<CallTarget Targets="Receiver:Make;GlobalDemo:Make"/>
 		</Target>
 		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 	</Project>
