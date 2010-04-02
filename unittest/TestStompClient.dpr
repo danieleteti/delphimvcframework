@@ -36,6 +36,6 @@ begin
     end
     else
       GUITestRunner.RunRegisteredTests;
-  Halt(ExCode);
-
+  if ExCode > 0 then
+    Halt(1);
 end.
