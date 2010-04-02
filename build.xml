@@ -1,5 +1,4 @@
-<project name="MyProject" default="compile" basedir=".">
-  <property name="base" value="C:\Users\Daniele\.hudson\jobs\delphimsbuild2\workspace"/>  
+<project name="MyProject" default="compile" basedir=".">   
   <target name="compile" description="Compiling..." >
     <exec dir="." failonerror="true" searchpath="true" executable="msbuild.exe">
       <arg value="examples\GlobalDemo\GlobalDemo\GlobalDemo.dproj"/>

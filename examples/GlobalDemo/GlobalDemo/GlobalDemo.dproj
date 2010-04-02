@@ -20,9 +20,9 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DependencyCheckOutputName>..\bin\GlobalDemo.exe</DCC_DependencyCheckOutputName>
-			<DCC_ExeOutput>..\bin</DCC_ExeOutput>
-			<DCC_DcuOutput>..\dcu</DCC_DcuOutput>
+			<DCC_DependencyCheckOutputName>..\..\bin\GlobalDemo.exe</DCC_DependencyCheckOutputName>
+			<DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
+			<DCC_DcuOutput>..\..\dcu</DCC_DcuOutput>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_UsePackage>rtl;dbexpress;DbxCommonDriver;DataSnapIndy10ServerTransport;DataSnapProviderClient;DataSnapServer;DbxClientDriver;DBXInterBaseDriver;DBXMySQLDriver;vcl;dbrtl;vcldb;dbxcds;vclx;DBXSybaseASEDriver;DBXSybaseASADriver;DBXOracleDriver;DBXMSSQLDriver;DBXInformixDriver;DBXDb2Driver;dsnap;Rave76VCL;bdertl;vclactnband;dsnapcon;TeeUI;TeeDB;Tee;adortl;vclib;ibxpress;IndyCore;IndySystem;IndyProtocols;xmlrtl;inet;VclSmp;vclie;soaprtl;inetdbbde;inetdbxpress;vclribbon;PerlRegExD2009;SnapDataset;ipstudiowingrid;ZComponent;ZDbc;ZPlain;ZCore;ZParseSql;JclVcl;Jcl;JvCoreD12R;JvSystemD12R;JvStdCtrlsD12R;JvAppFrmD12R;JvBandsD12R;JvCmpD12R;JvCryptD12R;JvCtrlsD12R;JvCustomD12R;JvDBD12R;JvDlgsD12R;JvDockingD12R;JvDotNetCtrlsD12R;JvGlobusD12R;JvHMID12R;JvInterpreterD12R;JvJansD12R;JvManagedThreadsD12R;JvMMD12R;JvNetD12R;JvPageCompsD12R;JvPluginD12R;JvPrintPreviewD12R;JvRuntimeDesignD12R;JvTimeFrameworkD12R;JvValidatorsD12R;JvWizardD12R;JvXPCtrlsD12R;FIBPlus2009;FIBDBMidas2009;TMSSmoothControlsPackPkgD2009;JazzMVP;JazzOPF;JazzVTF;dacvcl120;dac120;ibdacvcl120;ibdac120;JazzOPFFirebird;JazzMVPVCL;JazzDBAdapter;CRControls120;DotNet4Delphi_2009;JazzOPFADO;JazzOPFIBX;DeHL_Package;webdsnap;VirtualTreesD12</DCC_UsePackage>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
