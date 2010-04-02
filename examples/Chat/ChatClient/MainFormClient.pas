@@ -42,8 +42,6 @@ procedure TForm5.Button1Click(Sender: TObject);
 begin
   roomname := '/topic/' + Edit2.Text;
   stomp := TStompClient.Create;
-  stomp.EnableReceipts := false;
-  stomp.Timeout := 10;
   stomp.Connect(Edit1.Text);
 
   //Setup for reading messages
@@ -62,10 +60,10 @@ end;
 procedure TForm5.Button2Click(Sender: TObject);
 begin
   stomp.Send(roomname, Memo2.Lines.Text,
-    StompUtils.StompHeaders
+    StompUtils.NewHeaders
       .Add('sender', Edit3.Text)
       .Add('datetime', formatdatetime('yyyy/mm/dd hh:nn:ss', now))
-      .Add(shPersistent)
+      .Add(TStompHeaders.NewPersistentHeader(true))
       );
   Memo2.Lines.Clear;
 end;
@@ -81,13 +79,13 @@ end;
 
 procedure TForm5.tmrTimer(Sender: TObject);
 var
-  f: TStompFrame;
+  f: IStompFrame;
   fw: FLASHWINFO;
 begin
   f := stomp.Receive;
   if assigned(f) then
   begin
-    Memo1.Lines.Add('[' + f.Headers.Value('datetime') + ' ' + f.Headers.Value('sender') + ']' + sLineBreak + f.Body);
+    Memo1.Lines.Add('[' + f.GetHeaders.Value('datetime') + ' ' + f.GetHeaders.Value('sender') + ']' + sLineBreak + f.GetBody);
     if (WindowState = wsMinimized) or (Application.ActiveFormHandle <> self.Handle) then
     begin
       fw.cbSize := SizeOf(FLASHWINFO);
