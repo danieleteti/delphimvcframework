@@ -9,7 +9,7 @@
     <exec dir="." failonerror="true" searchpath="true" executable="msbuild.exe">
       <arg value="unittest\TestStompClient.dproj"/>
     </exec>
-    <exec dir="." failonerror="true" searchpath="true" executable="TestStompClient.exe">
+    <exec dir="." failonerror="true" searchpath="true" executable="unittest\TestStompClient.exe">
     </exec>            
     <exec dir="." failonerror="true" searchpath="true" command="C:\tools\pasdoc\pasdoc.exe --output docs --name DelphiMSBuild2 --write-uses-list -S pasdocfiles.txt">
     </exec>             
