@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="ISO-8859-1" standalone="yes" ?>
+<TestRun>
+<TestSuite name="TestStompClient.exe">
+<TestSuite name="TTestStompClient">
+<Test name="TestAssertTrue" result="PASS">
+</Test>
+<Test name="TestAssertFalse" result="FAILS">
+<FailureType>ETestFailure</FailureType>
+<Location></Location>
+<Message>expected: &lt;True&gt; but was: &lt;False&gt;</Message>
+</Test>
+</TestSuite>
+</TestSuite>
+<Statistics>
+<Stat name="Tests" result="2" />
+<Stat name="Failures" result="1" />
+<Stat name="Errors" result="0" />
+<Stat name="Success Rate" result="50%" />
+<Stat name="Finished At" result="02/04/2010 14.05.32" />
+<Stat name="Runtime" result="0.00.00" />
+</Statistics>
+</TestRun>
