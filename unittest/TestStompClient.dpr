@@ -25,7 +25,6 @@ uses
 
 var
   ExCode: Cardinal;
-
 begin
   Application.Initialize;
   if IsConsole then
@@ -37,5 +36,5 @@ begin
     else
       GUITestRunner.RunRegisteredTests;
   if ExCode > 0 then
-    Halt(-1);
+    ExitCode := 1;
 end.
