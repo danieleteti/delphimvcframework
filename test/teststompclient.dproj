@@ -101,10 +101,9 @@
 			<DelphiCompile Include="teststompclient.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="StompTypes.pas"/>
-			<DCCReference Include="StompClient.pas"/>
 			<DCCReference Include="MainU.pas"/>
-			<DCCReference Include="StopWatch.pas"/>
+			<DCCReference Include="..\StompClient.pas"/>
+			<DCCReference Include="..\StompTypes.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

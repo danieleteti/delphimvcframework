@@ -3,11 +3,10 @@ program teststompclient;
 {$APPTYPE CONSOLE}
 
 uses
-  StompTypes in 'StompTypes.pas',
-  StompClient in 'StompClient.pas',
   MainU in 'MainU.pas',
   SysUtils,
-  StopWatch in 'StopWatch.pas';
+  StompClient in '..\StompClient.pas',
+  StompTypes in '..\StompTypes.pas';
 
 begin
   try
