@@ -26,9 +26,6 @@ begin
     end
     else
       GUITestRunner.RunRegisteredTests;
-  if ExCode > 0 then
-  begin
-    ExitCode := -1;
-    Halt(1);
-  end;
+  Halt(ExCode);
+
 end.
