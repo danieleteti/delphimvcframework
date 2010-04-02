@@ -1,17 +1,10 @@
 <project name="MyProject" default="compile" basedir=".">
-  <property name="docs" value="C:\Users\Daniele\.hudson\jobs\delphimsbuild2\workspace\GlobalDemo\docs"/>  
+  <property name="base" value="C:\Users\Daniele\.hudson\jobs\delphimsbuild2\workspace\GlobalDemo"/>  
   <target name="compile" description="Compiling..." >
     <exec failonerror="true" searchpath="true" executable="msbuild.exe">
-      <arg value="GlobalDemo\GlobalDemo.dproj"/>
+      <arg value="${base}\GlobalDemo.dproj"/>
     </exec>
-    <!--
-    <exec executable="cmd">
-      <arg value="/c"/>
-      <arg value="runmsbuild.bat"/>
-      <arg value="-p"/>
-    </exec>
-    -->
-    <exec command="pasdoc.exe --output ${docs} --name DelphiMSBuild2 --write-uses-list -S pasdocfiles.txt">
+    <exec failonerror="true" searchpath="true" command="pasdoc.exe --output ${base}\docs --name DelphiMSBuild2 --write-uses-list -S pasdocfiles.txt">
     </exec>             
   </target>
 </project>
