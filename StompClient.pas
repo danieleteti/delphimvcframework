@@ -105,12 +105,14 @@ implementation
 
 const
   CHAR0 = #0;
+
 {$ELSE}
 
 uses
   Windows,
   IdGlobal,
   Character;
+
 {$ENDIF}
 { TStompClient }
 
@@ -204,6 +206,7 @@ begin
     Init;
 {$IFDEF USESYNAPSE}
     FSynapseTCP.Connect(Host, intToStr(Port));
+    FSynapseConnected:=true;
 {$ELSE}
     FTCP.Connect(Host, Port);
     FTCP.IOHandler.MaxLineLength := MaxInt;
@@ -280,6 +283,7 @@ begin
     SendFrame(Frame);
 {$IFDEF USESYNAPSE}
     FSynapseTCP.CloseSocket;
+    FSynapseConnected:=false;
 {$ELSE}
     FTCP.Disconnect;
 {$ENDIF}
@@ -333,100 +337,116 @@ begin
 end;
 
 function TStompClient.Receive(ATimeout: Integer): IStompFrame;
-{$IFDEF USESYNAPSE}
-  function receiveChar: char;
-  begin
-    Result := Chr(FSynapseTCP.RecvByte(ATimeout));
-    // if FSynapseTCP.LastError = WSAETIMEDOUT
-    // then
-    // raise ESynapseTimeout.Create(FSynapseTCP.LastErrorDesc);
-  end;
-{$ENDIF}
 
-var
-  c: char;
 {$IFDEF USESYNAPSE}
-  s: string;
-{$ELSE}
-  sb: TStringBuilder;
-{$ENDIF}
-  tout: boolean;
-begin
-  tout := False;
-  Result := nil;
-  try
-    try
-{$IFDEF USESYNAPSE}
-      FSynapseTCP.SetRecvTimeout(ATimeout);
-      s := '';
-{$ELSE}
-      sb := TStringBuilder.Create(1024);
-      FTCP.ReadTimeout := ATimeout;
-{$ENDIF}
-      try
-        // Gaspary FTCP.IOHandler.CheckForDataOnSource(1);
-        while True do
-        begin
-{$IFDEF USESYNAPSE}
-          c := receiveChar;
-          if FSynapseTCP.LastError = WSAETIMEDOUT then
-            raise ESynapseTimeout.Create(FSynapseTCP.LastErrorDesc);
-{$ELSE}
-          c := FTCP.IOHandler.ReadChar;
-{$ENDIF}
-          if c <> CHAR0 then
-{$IFDEF USESYNAPSE}
-            s := s + c
-{$ELSE}
-            sb.Append(c)
-{$ENDIF}
-          else
-          begin
-{$IFDEF USESYNAPSE}
-            receiveChar;
-            if FSynapseTCP.LastError = WSAETIMEDOUT then
-              raise ESynapseTimeout.Create('' { FSynapseTCP.LastErrorDesc } );
-{$ELSE}
-            FTCP.IOHandler.ReadChar;
-{$ENDIF}
-            Break;
+  function InternalReceiveSynapse(ATimeout: Integer): IStompFrame;
+  var
+     c: char;
+     s: string;
+     tout: boolean;
+  begin
+       tout := False;
+       Result := nil;
+       try
+          try
+             FSynapseTCP.SetRecvTimeout(ATimeout);
+             s := '';
+             try
+                while True do
+                begin
+                     c := Chr(FSynapseTCP.RecvByte(ATimeout));
+                     if FSynapseTCP.LastError = WSAETIMEDOUT then
+                        raise ESynapseTimeout.Create(FSynapseTCP.LastErrorDesc);
+                     if c <> CHAR0 then
+                        s := s + c
+                     else
+                     begin
+                          c := Chr(FSynapseTCP.RecvByte(ATimeout));
+                          if FSynapseTCP.LastError = WSAETIMEDOUT then
+                             raise ESynapseTimeout.Create('' { FSynapseTCP.LastErrorDesc } );
+                          Break;
+                     end;
+                end;
+            except
+              on E: ESynapseTimeout do
+                 begin
+                      tout := True;
+                 end;
+              on E: Exception do
+                 begin
+                      raise ;
+                 end;
+            end;
+            if not tout then
+            begin
+                 Result := StompUtils.CreateFrame(s + CHAR0);
+            end;
+          finally
+                 s:='';
           end;
+       except
+            on E: Exception do
+            begin
+                 raise ;
+            end;
+       end;
+  end;
+{$ELSE}
+  function InternalReceiveINDY(ATimeout: Integer): IStompFrame;
+  var
+    c: char;
+    sb: TStringBuilder;
+    tout: boolean;
+  begin
+      tout := False;
+      Result := nil;
+    try
+      try
+        sb := TStringBuilder.Create(1024);
+        FTCP.ReadTimeout := ATimeout;
+        try
+           FTCP.IOHandler.CheckForDataOnSource(1);
+           while True do
+           begin
+               c := FTCP.IOHandler.ReadChar;
+               if c <> CHAR0 then
+                  sb.Append(c)
+               else
+               begin
+                    FTCP.IOHandler.ReadChar;
+                    Break;
+               end;
+           end;
+        except
+              on E: EIdReadTimeout do
+              begin tout := True;
+              end;
+              on E: Exception do
+              begin
+                   raise ;
+              end;
         end;
-      except
-{$IFDEF USESYNAPSE}
-        on E: ESynapseTimeout do
-{$ELSE}
-          on E: EIdReadTimeout do
-{$ENDIF}
-          begin tout := True;
-      end;
-      on E: Exception
-      do
+        if not tout then
+        begin
+             Result := StompUtils.CreateFrame(sb.ToString + CHAR0);
+        end;
+    finally
+           sb.Free;
+    end;
+    except
+      on E: Exception do
       begin
-        raise ;
+           raise ;
       end;
     end;
-    if not tout then
-    begin
-      Result := StompUtils.CreateFrame(
+  end;
+{$ENDIF}
+begin
 {$IFDEF USESYNAPSE}
-        s
+      result:=InternalReceiveSynapse(ATimeout);
 {$ELSE}
-        sb.ToString
+      result:=InternalReceiveINDY(ATimeout);
 {$ENDIF}
-        + #0);
-    end;
-  finally
-{$IFNDEF USESYNAPSE}
-    sb.Free;
-{$ENDIF}
-  end;
-  except
-    on E: Exception do
-    begin
-      raise ;
-    end;
-  end;
 end;
 
 function TStompClient.Receive: IStompFrame;

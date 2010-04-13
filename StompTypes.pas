@@ -84,7 +84,7 @@ type
     /// ////////////
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
-    function SetReceiveTimeout(const AMilliSeconds: cardinal {gaspary UInt32}): IStompClient;
+    function SetReceiveTimeout(const AMilliSeconds: cardinal): IStompClient;
     function Connected: Boolean;
   end;
 
