@@ -20,6 +20,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_UnitSearchPath>..\..\..\lib\synapse;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>..\..\bin\Receiver.exe</DCC_DependencyCheckOutputName>
 			<DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
 			<DCC_DcuOutput>..\..\dcu</DCC_DcuOutput>

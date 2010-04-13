@@ -21,7 +21,7 @@ unit StompClient;
 {$ENDIF}
 // For Delphi users:
 // Decomment following line to use synapse also in Delphi
-{$DEFINE USESYNAPSE}
+{.$DEFINE USESYNAPSE}
 
 interface
 
