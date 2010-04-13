@@ -8,24 +8,27 @@ uses
   TestFramework,
   GUITestRunner,
   TextTestRunner,
-  TestStompClientU in 'TestStompClientU.pas',
-  HudsonTestRunner in
-  'C:\Program Files\Embarcadero\RAD Studio\7.0\source\dUnit\Contrib\HudsonReporting\HudsonTestRunner.pas';
+  TestStompClientU in 'TestStompClientU.pas';
+
 {$R *.RES}
 
 var
   ExCode: Integer;
+  TestResult: TTestResult;
 
 begin
+  ExCode := 0;
   Application.Initialize;
   if IsConsole then
-    with HudsonTestRunner.RunRegisteredTests do
-    begin
-      ExCode := THudsonTestListener.GetErrorCount;
-      Free
-    end
-    else
-      GUITestRunner.RunRegisteredTests;
+  begin
+    TestResult := TextTestRunner.RunRegisteredTests;
+    try
+      ExCode := TestResult.ErrorCount + TestResult.FailureCount;
+    finally
+      TestResult.Free;
+    end;
+  end
+  else
+    GUITestRunner.RunRegisteredTests;
   Halt(ExCode);
-
 end.

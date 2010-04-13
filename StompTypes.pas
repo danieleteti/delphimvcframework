@@ -1,15 +1,21 @@
 { ******************************************************* }
 {                                                         }
-{ Stomp Client for Embarcadero Delphi                     }
+{ Stomp Client for Embarcadero Delphi & FreePascal        }
 { Tested With ApacheMQ 5.2/5.3                            }
 { Copyright (c) 2009-2009 Daniele Teti                    }
 {                                                         }
+{ Contributors:                                           }
+{ Daniel Gaspary: dgaspary@gmail.com                      }
 {                                                         }
 { WebSite: www.danieleteti.it                             }
 { email:d.teti@bittime.it                                 }
 { ******************************************************* }
 
 unit StompTypes;
+
+{$ifdef FPC}
+   {$MODE DELPHI}
+{$endif}
 
 interface
 
@@ -78,7 +84,7 @@ type
     /// ////////////
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
-    function SetReceiveTimeout(const AMilliSeconds: UInt32): IStompClient;
+    function SetReceiveTimeout(const AMilliSeconds: cardinal {gaspary UInt32}): IStompClient;
     function Connected: Boolean;
   end;
 

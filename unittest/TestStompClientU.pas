@@ -18,7 +18,7 @@ implementation
 
 procedure TTestStompClient.TestAssertFalse;
 begin
-  CheckTrue(true);
+  CheckTrue(false);
 end;
 
 procedure TTestStompClient.TestAssertTrue;

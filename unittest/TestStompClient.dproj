@@ -46,7 +46,6 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="TestStompClientU.pas"/>
-			<DCCReference Include="C:\Program Files\Embarcadero\RAD Studio\7.0\source\dUnit\Contrib\HudsonReporting\HudsonTestRunner.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

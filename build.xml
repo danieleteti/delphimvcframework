@@ -2,6 +2,9 @@
   <target name="compile" description="Compiling..." >
     <exec dir="." failonerror="true" searchpath="true" executable="msbuild.exe">
       <arg value="examples\GlobalDemo\GlobalDemo\GlobalDemo.dproj"/>
+      <arg value="/nologo"/>
+      <arg value="/t:rebuild"/>
+      <arg value="/p:config=Release"/>            
     </exec>
     <exec dir="." failonerror="true" searchpath="true" executable="msbuild.exe">
       <arg value="examples\Chat\ChatClient\ChatClient.dproj"/>
