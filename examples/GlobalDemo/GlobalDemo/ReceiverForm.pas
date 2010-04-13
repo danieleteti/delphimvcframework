@@ -101,6 +101,7 @@ end;
 procedure TForm1.OnMessage(StompFrame: IStompFrame);
 begin
   Caption := DateTimeToStr(StompUtils.TimestampAsDateTime(StompFrame.GetHeaders.Value('timestamp')));
+  Memo1.Lines.Add(StompFrame.GetBody);
 end;
 
 end.

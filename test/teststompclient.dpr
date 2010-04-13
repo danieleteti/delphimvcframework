@@ -1,5 +1,4 @@
 program teststompclient;
-
 {$APPTYPE CONSOLE}
 
 uses
@@ -10,14 +9,14 @@ uses
 
 begin
   try
-//    Main;
+    // Main;
     MainWithTransaction;
-//    Test_Unicode_Chars; //Non passa
-    Writeln('DONE');
+    // Test_Unicode_Chars; //Non passa
+    Writeln('ALL TESTS OK');
   except
     on E: Exception do
-      Writeln(E.Classname, ': ', E.Message);
+      Writeln(E.Classname, ': ', E.message);
   end;
-  readln;
-end.
 
+  // readln;
+end.
