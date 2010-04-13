@@ -15,15 +15,6 @@ uses
   StompTypes,
   Diagnostics;
 
-function NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-  ClientID: string = ''): IStompClient;
-begin
-  Result := TStompClient.Create;
-  Result.SetUserName('guest');
-  Result.SetPassword('guest');
-  Result.Connect(Host, Port, ClientID);
-end;
-
 procedure Test_Unicode_Chars(serveraddress: string);
 var
   stomp: IStompClient;
@@ -33,7 +24,7 @@ const
   SVEDESE = 'Vad är Unicode';
   ITALIANO = 'Cos''è Unicode';
 begin
-  stomp := NewStomp(serveraddress);
+  stomp := StompUtils.NewStomp(serveraddress);
   stomp.Subscribe('/topic/unicode');
   stomp.Send('/topic/unicode', ITALIANO);
   stomp.Send('/topic/unicode', SERBO);
@@ -64,8 +55,8 @@ const
   BODY3 = 'Hello World 3';
   BODY4 = 'Hello World 4';
 begin
-  stomp := NewStomp;
-  recv := NewStomp;
+  stomp := StompUtils.NewStomp;
+  recv := StompUtils.NewStomp;
 
   stomp.Subscribe(TOPIC);
   recv.Subscribe(TOPIC);
@@ -103,65 +94,58 @@ end;
 
 procedure Main(serveraddress: string = 'localhost');
 var
-  stomp: TStompClient;
+  stomp: IStompClient;
   frame: IStompFrame;
   i, c: Integer;
   msgcount: Cardinal;
-  sw: TStopWatch;
+  sw, sw1: TStopWatch;
   message_data: string;
 const
-  MSG = 1000;
-  MSG_SIZE = 1000;
+  MSG = 5000;
+  MSG_SIZE = 300;
 begin
+  sw1 := TStopWatch.StartNew;
   message_data := StringOfChar('X', MSG_SIZE);
-  WriteLn('TEST MESSAGE (', length(message_data) * sizeof(char), ' bytes):', #13#10, '"',
+  WriteLn('TEST MESSAGE IS (', length(message_data) * sizeof(char), ' bytes):', #13#10, '"',
     message_data, '"'#13#10#13#10);
-  stomp := TStompClient.Create;
-  try
-    stomp.SetUserName('Daniele');
-    stomp.SetPassword('Paperino');
-    stomp.Connect(serveraddress);
-    stomp.Subscribe('/topic/foo.bar');
+  stomp := StompUtils.NewStomp(serveraddress, DEFAULT_STOMP_PORT, '', 'Daniele', 'Teti');
+  stomp.Subscribe('/topic/foo.bar');
 
-    for c := 1 to 10 do
+  for c := 1 to 6 do
+  begin
+    WriteLn;
+    WriteLn('= STATS LOOP ', c, '=======================================');
+    sw := TStopWatch.StartNew;
+    for i := 1 to MSG do
+      stomp.Send('/topic/foo.bar', message_data,
+        StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true)));
+    WriteLn('Queued ', MSG, ' messages in ', sw.ElapsedMilliseconds, ' ms');
+    WriteLn('Now dequeuing...');
+
+    msgcount := 0;
+    sw := TStopWatch.StartNew;
+    while msgcount < MSG do
     begin
-      WriteLn;
-      WriteLn('= STATS LOOP ', c, '=======================================');
-      for i := 1 to MSG do
+      frame := stomp.Receive;
+      if assigned(frame) then
       begin
-        stomp.Send('/topic/foo.bar', message_data,
-          StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true)));
-        // '01234567890123456789012345678901234567890123456789'
-        if i mod 1000 = 0 then
-          WriteLn('Queued ', i, ' messages');
-      end;
-
-      msgcount := 0;
-      sw.start;
-      while msgcount < MSG do
-      begin
-        frame := stomp.Receive;
-        if assigned(frame) then
-        begin
-          inc(msgcount);
-          frame := nil;
-        end
-      end;
-      sw.Stop;
-      WriteLn(msgcount, ' in ', sw.ElapsedMilliseconds, ' milliseconds and ', sw.ElapsedTicks,
-        ' ticks');
-      WriteLn('Throughput: ');
-      WriteLn(FormatFloat('###,##0.000', sw.ElapsedMilliseconds / msgcount), ' ms/msg');
-      WriteLn(FormatFloat('###,##0.000', msgcount / sw.ElapsedMilliseconds), ' msg/ms');
-      WriteLn('= END LOOP ', c, '========================================='#13#10);
+        inc(msgcount);
+        assert(frame.GetBody = message_data);
+        frame := nil;
+      end
     end;
-
-    stomp.Unsubscribe('/topic/foo.bar');
-    stomp.Disconnect;
-    write('test finished...');
-  finally
-    stomp.Free;
+    sw.Stop;
+    WriteLn('Dequeued ', msgcount, ' stomp messages in ', sw.ElapsedMilliseconds, ' ms');
+    WriteLn('Throughput: ',
+      FormatFloat('###,##0.000', sw.ElapsedMilliseconds / msgcount), ' ms/msg (',
+      FormatFloat('###,##0.000', msgcount / sw.ElapsedMilliseconds), ' msg/ms)');
+    // WriteLn('= END LOOP ', c, '========================================='#13#10);
   end;
+  stomp.Unsubscribe('/topic/foo.bar');
+  stomp.Disconnect;
+  sw.Stop;
+  WriteLn('SPEED TEST FINISHED IN ', FormatFloat('###,##0.000', sw1.ElapsedMilliseconds / 1000),
+    ' seconds');
 end;
 
 end.

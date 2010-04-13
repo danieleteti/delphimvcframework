@@ -1,21 +1,20 @@
 { ******************************************************* }
-{                                                         }
-{ Stomp Client for Embarcadero Delphi & FreePascal        }
-{ Tested With ApacheMQ 5.2/5.3                            }
-{ Copyright (c) 2009-2009 Daniele Teti                    }
-{                                                         }
-{ Contributors:                                           }
-{ Daniel Gaspary: dgaspary@gmail.com                      }
-{                                                         }
-{ WebSite: www.danieleteti.it                             }
-{ email:d.teti@bittime.it                                 }
+{ }
+{ Stomp Client for Embarcadero Delphi & FreePascal }
+{ Tested With ApacheMQ 5.2/5.3 }
+{ Copyright (c) 2009-2009 Daniele Teti }
+{ }
+{ Contributors: }
+{ Daniel Gaspary: dgaspary@gmail.com }
+{ }
+{ WebSite: www.danieleteti.it }
+{ email:d.teti@bittime.it }
 { ******************************************************* }
 
 unit StompTypes;
-
-{$ifdef FPC}
-   {$MODE DELPHI}
-{$endif}
+{$IFDEF FPC}
+{$MODE DELPHI}
+{$ENDIF}
 
 interface
 
@@ -49,8 +48,8 @@ type
     function Remove(Key: string): IStompHeaders;
     function IndexOf(Key: string): Integer;
     function Count: Cardinal;
-    function GetAt(const Index: Integer): TKeyValue;
-    function Output: String;
+    function GetAt(const index: Integer): TKeyValue;
+    function Output: string;
   end;
 
   IStompFrame = interface
@@ -72,9 +71,11 @@ type
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613; ClientID: string = '');
     procedure Disconnect;
-    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto; Headers: IStompHeaders = nil);
+    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
+      Headers: IStompHeaders = nil);
     procedure Unsubscribe(Queue: string);
-    procedure Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders = nil); overload;
+    procedure Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders = nil);
+      overload;
     procedure Send(QueueOrTopicName: string; TextMessage: string; TransactionIdentifier: string;
       Headers: IStompHeaders = nil); overload;
     procedure Ack(const MessageID: string; const TransactionIdentifier: string = '');
@@ -84,7 +85,7 @@ type
     /// ////////////
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
-    function SetReceiveTimeout(const AMilliSeconds: cardinal): IStompClient;
+    function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
     function Connected: Boolean;
   end;
 
@@ -95,9 +96,9 @@ type
     procedure SetItems(index: Cardinal; const Value: TKeyValue);
 
   public
-    class function NewDurableSubscriptionHeader(const SubscriptionName: String): TKeyValue;
+    class function NewDurableSubscriptionHeader(const SubscriptionName: string): TKeyValue;
     class function NewPersistentHeader(const Value: Boolean): TKeyValue;
-    class function NewReplyToHeader(const DestinationName: String): TKeyValue;
+    class function NewReplyToHeader(const DestinationName: string): TKeyValue;
     /// /////////////////////////////////////////////7
     function Add(Key, Value: string): IStompHeaders; overload;
     function Add(HeaderItem: TKeyValue): IStompHeaders; overload;
@@ -105,10 +106,10 @@ type
     function Remove(Key: string): IStompHeaders;
     function IndexOf(Key: string): Integer;
     function Count: Cardinal;
-    function GetAt(const Index: Integer): TKeyValue;
+    function GetAt(const index: Integer): TKeyValue;
     constructor Create;
     destructor Destroy; override;
-    function Output: String;
+    function Output: string;
     property Items[index: Cardinal]: TKeyValue read GetItems write SetItems; default;
   end;
 
@@ -166,15 +167,29 @@ type
     class function AckModeToStr(AckMode: TAckMode): string;
     class function NewHeaders: IStompHeaders;
     class function NewFrame: IStompFrame;
-    class function TimestampAsDateTime(const HeaderValue: String): TDateTime;
+    class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
+    class function NewStomp(Host: string = '127.0.0.1';
+      Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = ''; const UserName: string = 'guest';
+      const Password: string = 'guest'): IStompClient;
   end;
 
 implementation
 
 uses
-  Dateutils;
+  Dateutils, StompClient;
 
-class function TStompHeaders.NewDurableSubscriptionHeader(const SubscriptionName: String): TKeyValue;
+class function StompUtils.NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
+  ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest')
+  : IStompClient;
+begin
+  Result := TStompClient.Create;
+  Result.SetUserName(UserName);
+  Result.SetPassword(Password);
+  Result.Connect(Host, Port, ClientID);
+end;
+
+class function TStompHeaders.NewDurableSubscriptionHeader(const SubscriptionName: string)
+  : TKeyValue;
 begin
   Result.Key := 'activemq.subscriptionName';
   Result.Value := SubscriptionName;
@@ -186,7 +201,7 @@ begin
   Result.Value := LowerCase(BoolToStr(Value, true));
 end;
 
-class function TStompHeaders.NewReplyToHeader(const DestinationName: String): TKeyValue;
+class function TStompHeaders.NewReplyToHeader(const DestinationName: string): TKeyValue;
 begin
   Result.Key := 'reply-to';
   Result.Value := DestinationName;
@@ -197,7 +212,7 @@ begin
   Result := TStompHeaders.Create;
 end;
 
-class function StompUtils.TimestampAsDateTime(const HeaderValue: String): TDateTime;
+class function StompUtils.TimestampAsDateTime(const HeaderValue: string): TDateTime;
 begin
   Result := EncodeDateTime(1970, 1, 1, 0, 0, 0, 0) + StrToInt64(HeaderValue) / 86400000;
 end;
@@ -241,7 +256,7 @@ begin
   Result := FHeaders;
 end;
 
-function TStompFrame.Output: String;
+function TStompFrame.Output: string;
 begin
   Result := FCommand + LINE_END + FHeaders.Output + LINE_END + FBody + LINE_END + COMMAND_END;
 end;
@@ -314,7 +329,7 @@ begin
       Value := Copy(line, p + 1, Length(line) - p);
       Result.Headers.Add(Key, Value);
     end;
-    other := Copy(Buf, i, High(Integer));
+    other := Copy(Buf, i, high(Integer));
     sContLen := Result.Headers.Value('content-length');
     if (sContLen <> '') then
     begin
@@ -344,7 +359,7 @@ begin
     on e: Exception do
     begin
       Result.Free;
-      raise EStomp.Create(e.Message);
+      raise EStomp.Create(e.message);
     end;
   end;
 end;
@@ -394,9 +409,9 @@ begin
   inherited;
 end;
 
-function TStompHeaders.GetAt(const Index: Integer): TKeyValue;
+function TStompHeaders.GetAt(const index: Integer): TKeyValue;
 begin
-  Result := GetItems(Index)
+  Result := GetItems(index)
 end;
 
 function TStompHeaders.GetItems(index: Cardinal): TKeyValue;
@@ -419,7 +434,7 @@ begin
   end;
 end;
 
-function TStompHeaders.Output: String;
+function TStompHeaders.Output: string;
 var
   i: Integer;
   kv: TKeyValue;
@@ -471,7 +486,8 @@ end;
 
 { TStompListener }
 
-constructor TStompClientListener.Create(StompClient: IStompClient; StompClientListener: IStompClientListener);
+constructor TStompClientListener.Create(StompClient: IStompClient;
+  StompClientListener: IStompClientListener);
 begin
   inherited Create(true);
   FStompClientListener := StompClientListener;

@@ -9,7 +9,7 @@ uses
 
 begin
   try
-    // Main;
+    Main;
     MainWithTransaction;
     // Test_Unicode_Chars; //Non passa
     Writeln('ALL TESTS OK');
@@ -18,5 +18,5 @@ begin
       Writeln(E.Classname, ': ', E.message);
   end;
 
-  // readln;
+  readln;
 end.
