@@ -45,8 +45,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainFormClient"/>
-        <CursorPos X="35" Y="123"/>
-        <TopLine Value="112"/>
+        <CursorPos X="7" Y="10"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="24"/>
         <Loaded Value="True"/>
@@ -55,8 +55,8 @@
         <Filename Value="../../../StompClient.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="StompClient"/>
-        <CursorPos X="15" Y="252"/>
-        <TopLine Value="504"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="5"/>
         <UsageCount Value="24"/>
         <Loaded Value="True"/>
@@ -104,7 +104,7 @@
         <CursorPos X="37" Y="1286"/>
         <TopLine Value="1405"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit8>
     </Units>
@@ -235,7 +235,7 @@
     <Version Value="8"/>
     <SearchPaths>
       <IncludeFiles Value="../../../;$(ProjOutDir)/"/>
-      <OtherUnitFiles Value="../../../;../../../../../../../synapse/"/>
+      <OtherUnitFiles Value="../../../;../../../lib/synapse/"/>
       <UnitOutputDirectory Value="output"/>
     </SearchPaths>
     <Linking>

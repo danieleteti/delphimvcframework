@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="7"/>
+    <General>
+      <MainUnit Value="0"/>
+      <TargetFileExt Value=""/>
+      <Icon Value="0"/>
+      <ActiveEditorIndexAtStart Value="3"/>
+    </General>
+    <VersionInfo>
+      <ProjectVersion Value=""/>
+    </VersionInfo>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="4">
+      <Unit0>
+        <Filename Value="GlobalDemo.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="27" Y="9"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="MainForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmMain"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainForm"/>
+        <CursorPos X="52" Y="69"/>
+        <TopLine Value="58"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../../../StompClient.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="StompClient"/>
+        <CursorPos X="1" Y="27"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../../../StompTypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="StompTypes"/>
+        <CursorPos X="37" Y="210"/>
+        <TopLine Value="194"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit3>
+    </Units>
+    <JumpHistory Count="13" HistoryIndex="12">
+      <Position1>
+        <Filename Value="../../../StompClient.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="../../../StompClient.pas"/>
+        <Caret Line="36" Column="3" TopLine="11"/>
+      </Position2>
+      <Position3>
+        <Filename Value="../../../StompClient.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position3>
+      <Position4>
+        <Filename Value="../../../StompClient.pas"/>
+        <Caret Line="3" Column="1" TopLine="1"/>
+      </Position4>
+      <Position5>
+        <Filename Value="GlobalDemo.lpr"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position5>
+      <Position6>
+        <Filename Value="GlobalDemo.lpr"/>
+        <Caret Line="10" Column="1" TopLine="1"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="8" Column="3" TopLine="1"/>
+      </Position7>
+      <Position8>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="41" Column="3" TopLine="39"/>
+      </Position8>
+      <Position9>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="67" Column="24" TopLine="61"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="168" Column="30" TopLine="152"/>
+      </Position10>
+      <Position11>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="82" Column="44" TopLine="60"/>
+      </Position11>
+      <Position12>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="84" Column="3" TopLine="60"/>
+      </Position12>
+      <Position13>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="41" Column="3" TopLine="39"/>
+      </Position13>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="8"/>
+    <SearchPaths>
+      <IncludeFiles Value="../../../;$(ProjOutDir)/"/>
+      <OtherUnitFiles Value="../../../;../../../lib/synapse/"/>
+      <UnitOutputDirectory Value="output"/>
+    </SearchPaths>
+    <Other>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

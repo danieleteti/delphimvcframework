@@ -1,7 +1,7 @@
 object Form5: TForm5
-  Left = 483
+  Left = 258
   Height = 435
-  Top = 198
+  Top = 190
   Width = 511
   ActiveControl = Button1
   Caption = 'Delphi Stomp Client - CHAT DEMO - www.danieleteti.it'

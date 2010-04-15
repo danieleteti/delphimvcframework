@@ -1,0 +1,199 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="7"/>
+    <General>
+      <MainUnit Value="0"/>
+      <TargetFileExt Value=""/>
+      <Icon Value="0"/>
+      <ActiveEditorIndexAtStart Value="2"/>
+    </General>
+    <VersionInfo>
+      <ProjectVersion Value=""/>
+    </VersionInfo>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="5">
+      <Unit0>
+        <Filename Value="Receiver.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="11" Y="8"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="ReceiverForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="ReceiverForm"/>
+        <CursorPos X="25" Y="74"/>
+        <TopLine Value="69"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../../../StompClient.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="StompClient"/>
+        <CursorPos X="1" Y="23"/>
+        <TopLine Value="21"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../../../StompTypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="StompTypes"/>
+        <CursorPos X="25" Y="166"/>
+        <TopLine Value="157"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../../../../../../../../../../usr/share/fpcsrc/2.2.4/rtl/objpas/classes/classesh.inc"/>
+        <CursorPos X="13" Y="1357"/>
+        <TopLine Value="1341"/>
+        <UsageCount Value="10"/>
+      </Unit4>
+    </Units>
+    <JumpHistory Count="22" HistoryIndex="21">
+      <Position1>
+        <Filename Value="../../../StompClient.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="Receiver.lpr"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position2>
+      <Position3>
+        <Filename Value="Receiver.lpr"/>
+        <Caret Line="11" Column="1" TopLine="1"/>
+      </Position3>
+      <Position4>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="78" Column="20" TopLine="62"/>
+      </Position4>
+      <Position5>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="80" Column="19" TopLine="62"/>
+      </Position5>
+      <Position6>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="79" Column="1" TopLine="63"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="491" Column="1" TopLine="475"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="19" Column="32" TopLine="1"/>
+      </Position8>
+      <Position9>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="80" Column="19" TopLine="62"/>
+      </Position9>
+      <Position10>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="79" Column="1" TopLine="63"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="491" Column="1" TopLine="475"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="492" Column="9" TopLine="476"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="489" Column="28" TopLine="476"/>
+      </Position13>
+      <Position14>
+        <Filename Value="Receiver.lpr"/>
+        <Caret Line="8" Column="11" TopLine="1"/>
+      </Position14>
+      <Position15>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="78" Column="21" TopLine="62"/>
+      </Position15>
+      <Position16>
+        <Filename Value="ReceiverForm.pas"/>
+        <Caret Line="79" Column="1" TopLine="63"/>
+      </Position16>
+      <Position17>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="491" Column="1" TopLine="475"/>
+      </Position17>
+      <Position18>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="492" Column="1" TopLine="476"/>
+      </Position18>
+      <Position19>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="493" Column="1" TopLine="477"/>
+      </Position19>
+      <Position20>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="494" Column="1" TopLine="478"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="489" Column="27" TopLine="479"/>
+      </Position21>
+      <Position22>
+        <Filename Value="../../../StompTypes.pas"/>
+        <Caret Line="166" Column="25" TopLine="157"/>
+      </Position22>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="8"/>
+    <SearchPaths>
+      <IncludeFiles Value="../../../;$(ProjOutDir)/"/>
+      <OtherUnitFiles Value="../../../;../../../lib/synapse/"/>
+      <UnitOutputDirectory Value="output"/>
+    </SearchPaths>
+    <Other>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="4">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+      <Item4>
+        <Name Value="Unknown"/>
+      </Item4>
+    </Exceptions>
+  </Debugging>
+</CONFIG>
