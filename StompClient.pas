@@ -21,7 +21,7 @@ unit StompClient;
 {$ENDIF}
 // For Delphi users:
 // Decomment following line to use synapse also in Delphi
-{.$DEFINE USESYNAPSE}
+{ .$DEFINE USESYNAPSE }
 
 interface
 
@@ -354,7 +354,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
             if FSynapseTCP.LastError = WSAETIMEDOUT then
               raise ESynapseTimeout.Create(FSynapseTCP.LastErrorDesc);
             if c <> CHAR0 then
-              s := s + c  //should be improved with a string buffer (daniele.teti)
+              s := s + c // should be improved with a string buffer (daniele.teti)
             else
             begin
               c := Chr(FSynapseTCP.RecvByte(ATimeout));
@@ -397,8 +397,8 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     tout := False;
     Result := nil;
     try
+      sb := TStringBuilder.Create(1024);
       try
-        sb := TStringBuilder.Create(1024);
         FTCP.ReadTimeout := ATimeout;
         try
           FTCP.IOHandler.CheckForDataOnSource(1);

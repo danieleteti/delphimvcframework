@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, stompclient;
+  Dialogs, StdCtrls, ExtCtrls, stompclient, StompTypes;
 
 type
   TForm5 = class(TForm)
@@ -21,7 +21,7 @@ type
     procedure Button2Click(Sender: TObject);
     procedure Memo2KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
-    stomp: TStompClient;
+    stomp: IStompClient;
     roomname: string;
   public
     { Public declarations }
@@ -31,9 +31,6 @@ var
   Form5: TForm5;
 
 implementation
-
-uses
-  StompTypes;
 
 
 {$R *.dfm}
