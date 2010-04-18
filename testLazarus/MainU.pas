@@ -125,7 +125,7 @@ begin
          headers.Add(TStompHeaders.NewPersistentHeader(true));
          stomp.Send('/topic/foo.bar', message_data, headers);
     end;
-    WriteLn('Queued ', MSG, ' messages in ', MilliSecondSpan(partialtime, now), ' ms');
+    WriteLn('Queued ', MSG, ' messages in ', FormatFloat('##0,000.00',MilliSecondSpan(partialtime, now)), ' ms');
     WriteLn('Now dequeuing...');
 
     msgcount := 0;
@@ -141,7 +141,7 @@ begin
       end
     end;
     partial:=MilliSecondSpan(partialtime, now);
-    WriteLn('Dequeued ', msgcount, ' stomp messages in ', partial, ' ms');
+    WriteLn('Dequeued ', msgcount, ' stomp messages in ', FormatFloat('##0,000.00',partial), ' ms');
     WriteLn('Throughput: ',
       FormatFloat('###,##0.000', partial / msgcount), ' ms/msg (',
       FormatFloat('###,##0.000', msgcount / partial), ' msg/ms)');
