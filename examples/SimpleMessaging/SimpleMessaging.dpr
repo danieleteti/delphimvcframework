@@ -1,7 +1,15 @@
 program SimpleMessaging;
+{$IFDEF FPC}
+{$mode delphi}{$H+}
+{$ELSE}
 {$APPTYPE CONSOLE}
-
+{$ENDIF}
 uses
+  {$IFDEF FPC}
+  {$IFDEF UNIX}
+  cthreads,
+  {$ENDIF}
+  {$ENDIF}
   SysUtils, StompClient, StompTypes;
 
 procedure Example_Pub_Subscriber;
