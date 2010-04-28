@@ -202,7 +202,10 @@ begin
   try
     Init;
 {$IFDEF USESYNAPSE}
+    FSynapseConnected := False;
     FSynapseTCP.Connect(Host, intToStr(Port));
+    if FSynapseTCP.LastError <> 0 then
+      raise Exception.Create(FSynapseTCP.LastErrorDesc);
     FSynapseConnected := True;
 {$ELSE}
     FTCP.Connect(Host, Port);
