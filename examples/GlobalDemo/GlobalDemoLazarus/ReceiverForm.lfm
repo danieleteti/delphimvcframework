@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 340
+  Left = 153
   Height = 299
-  Top = 292
+  Top = 215
   Width = 750
   ActiveControl = Edit1
   BorderIcons = [biSystemMenu]
@@ -16,7 +16,7 @@ object Form1: TForm1
   Visible = True
   object Edit1: TEdit
     Left = 8
-    Height = 25
+    Height = 23
     Top = 22
     Width = 144
     Font.Height = -13

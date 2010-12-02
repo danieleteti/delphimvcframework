@@ -45,7 +45,7 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainFormClient"/>
-        <CursorPos X="7" Y="10"/>
+        <CursorPos X="13" Y="8"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="24"/>
@@ -233,10 +233,13 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
+    <Target>
+      <Filename Value="../../bin/ChatClient"/>
+    </Target>
     <SearchPaths>
       <IncludeFiles Value="../../../;$(ProjOutDir)/"/>
       <OtherUnitFiles Value="../../../;../../../lib/synapse/"/>
-      <UnitOutputDirectory Value="output"/>
+      <UnitOutputDirectory Value="../../ppu"/>
     </SearchPaths>
     <Linking>
       <Debugging>

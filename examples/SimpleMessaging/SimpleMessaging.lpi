@@ -33,7 +33,7 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="SimpleMessaging"/>
         <CursorPos X="22" Y="13"/>
-        <TopLine Value="3"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -76,12 +76,12 @@
   <CompilerOptions>
     <Version Value="8"/>
     <Target>
-      <Filename Value="SimpleMessaging"/>
+      <Filename Value="../bin/SimpleMessaging"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)/"/>
       <OtherUnitFiles Value="../../;../../lib/synapse/"/>
-      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="../ppu"/>
     </SearchPaths>
     <Other>
       <CompilerPath Value="$(CompPath)"/>
