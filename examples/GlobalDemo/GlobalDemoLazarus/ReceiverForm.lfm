@@ -16,7 +16,7 @@ object Form1: TForm1
   Visible = True
   object Edit1: TEdit
     Left = 8
-    Height = 23
+    Height = 25
     Top = 22
     Width = 144
     Font.Height = -13

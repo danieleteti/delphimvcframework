@@ -106,6 +106,5 @@ end;
 
 initialization
   {$i ReceiverForm.lrs}
-  {$i ReceiverForm.lrs}
 
 end.

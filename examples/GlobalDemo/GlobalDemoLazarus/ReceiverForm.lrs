@@ -6,7 +6,7 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +'nu'#0#7'Caption'#6#13'Receiver Form'#12'ClientHeight'#3'+'#1#11'ClientWidth'
   +#3#238#2#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#7'OnClose'#7#9'FormC'
   +'lose'#8'OnCreate'#7#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#7'Visible'#9#0
-  +#5'TEdit'#5'Edit1'#4'Left'#2#8#6'Height'#2#23#3'Top'#2#22#5'Width'#3#144#0#11
+  +#5'TEdit'#5'Edit1'#4'Left'#2#8#6'Height'#2#25#3'Top'#2#22#5'Width'#3#144#0#11
   +'Font.Height'#2#243#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#10
   +'ParentFont'#8#8'TabOrder'#2#0#4'Text'#6#14'/topic/mytopic'#0#0#7'TButton'#7
   +'Button1'#4'Left'#3#8#1#6'Height'#2#25#3'Top'#2#22#5'Width'#2'\'#7'Caption'#6
