@@ -39,9 +39,7 @@ uses
   Classes;
 
 type
-{$IFDEF USESYNAPSE}
-  ESynapseTimeout = Exception;
-{$ENDIF}
+  { TStompClient }
 
   TStompClient = class(TInterfacedObject, IStompClient)
   private
@@ -62,6 +60,10 @@ type
     procedure SetReceiptTimeout(const Value: Integer);
 
   protected
+{$IFDEF USESYNAPSE}
+    procedure SynapseSocketCallBack(Sender: TObject; Reason: THookSocketReason;
+      const Value: string);
+{$ENDIF}
     procedure Init;
     procedure DeInit;
     procedure MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
@@ -204,8 +206,6 @@ begin
 {$IFDEF USESYNAPSE}
     FSynapseConnected := False;
     FSynapseTCP.Connect(Host, intToStr(Port));
-    if FSynapseTCP.LastError <> 0 then
-      raise Exception.Create(FSynapseTCP.LastErrorDesc);
     FSynapseConnected := True;
 {$ELSE}
     FTCP.Connect(Host, Port);
@@ -296,11 +296,27 @@ begin
   DeInit;
 {$IFDEF USESYNAPSE}
   FSynapseTCP := TTCPBlockSocket.Create;
+  FSynapseTCP.OnStatus:=SynapseSocketCallBack;
+  FSynapseTCP.RaiseExcept:=true;
 {$ELSE}
   FTCP := TIdTCPClient.Create(nil);
 {$ENDIF}
   FTransactions := TStringList.Create;
 end;
+
+{$IFDEF USESYNAPSE}
+procedure TStompClient.SynapseSocketCallBack(Sender: TObject;
+  Reason: THookSocketReason; const Value: string);
+begin
+  //As seen at TBlockSocket.ExceptCheck procedure, it SEEMS safe to say
+  //when an error occurred and is not a Timeout, the connection is broken
+  if (Reason = HR_Error) and (FSynapseTCP.LastError <> WSAETIMEDOUT)
+  then
+  begin
+    FSynapseConnected:=false;
+  end;
+end;
+{$ENDIF}
 
 procedure TStompClient.MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
 var
@@ -354,22 +370,21 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
           while True do
           begin
             c := Chr(FSynapseTCP.RecvByte(ATimeout));
-            if FSynapseTCP.LastError = WSAETIMEDOUT then
-              raise ESynapseTimeout.Create(FSynapseTCP.LastErrorDesc);
             if c <> CHAR0 then
               s := s + c // should be improved with a string buffer (daniele.teti)
             else
             begin
               c := Chr(FSynapseTCP.RecvByte(ATimeout));
-              if FSynapseTCP.LastError = WSAETIMEDOUT then
-                raise ESynapseTimeout.Create('' { FSynapseTCP.LastErrorDesc } );
               Break;
             end;
           end;
         except
-          on E: ESynapseTimeout do
+          on E: ESynapseError do
           begin
-            tout := True;
+            if E.ErrorCode = WSAETIMEDOUT then
+              tout := True
+            else
+              raise ;
           end;
           on E: Exception do
           begin
