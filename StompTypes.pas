@@ -1,15 +1,13 @@
-{ ******************************************************* }
-{ }
-{ Stomp Client for Embarcadero Delphi & FreePascal }
-{ Tested With ApacheMQ 5.2/5.3 }
-{ Copyright (c) 2009-2009 Daniele Teti }
-{ }
-{ Contributors: }
-{ Daniel Gaspary: dgaspary@gmail.com }
-{ }
-{ WebSite: www.danieleteti.it }
-{ email:d.teti@bittime.it }
-{ ******************************************************* }
+// Stomp Client for Embarcadero Delphi & FreePascal
+// Tested With ApacheMQ 5.2/5.3
+// Copyright (c) 2009-2009 Daniele Teti
+//
+// Contributors:
+// Daniel Gaspary: dgaspary@gmail.com
+// Oliver Marr: oliver.sn@wmarr.de
+// WebSite: www.danieleteti.it
+// email:d.teti@bittime.it
+// *******************************************************
 
 unit StompTypes;
 {$IFDEF FPC}
@@ -176,7 +174,8 @@ type
 implementation
 
 uses
-  Dateutils, StompClient;
+  Dateutils,
+  StompClient;
 
 class function StompUtils.NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
   ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest')
@@ -258,7 +257,7 @@ end;
 
 function TStompFrame.Output: string;
 begin
-  Result := FCommand + LINE_END + FHeaders.Output + LINE_END + FBody + LINE_END + COMMAND_END;
+  Result := FCommand + LINE_END + FHeaders.Output + LINE_END + FBody + COMMAND_END;
 end;
 
 procedure TStompFrame.SetBody(const Value: string);
@@ -346,8 +345,7 @@ begin
       p := Pos(COMMAND_END, other);
       if (p = 0) then
         raise EStomp.Create('frame no ending');
-      Result.Body := Copy(other, 1, p - 2);
-      // Buf := Copy(other, p + 2, High(Integer));
+      Result.Body := Copy(other, 1, p - 1);
     end;
   except
     on EStomp do
@@ -404,7 +402,7 @@ var
 begin
   if FList.Count > 0 then
     for i := 0 to FList.Count - 1 do
-      FreeMem(PKeyValue(FList[i]));
+      Dispose(PKeyValue(FList[i]));
   FList.Free;
   inherited;
 end;
@@ -446,8 +444,8 @@ begin
       kv := Items[i];
       Result := Result + kv.Key + ':' + kv.Value + LINE_END;
     end
-    else
-      Result := LINE_END;
+  else
+    Result := LINE_END;
 end;
 
 function TStompHeaders.Remove(Key: string): IStompHeaders;
@@ -455,7 +453,7 @@ var
   p: Integer;
 begin
   p := IndexOf(Key);
-  FreeMem(PKeyValue(FList[p]));
+  Dispose(PKeyValue(FList[p]));
   FList.Delete(p);
   Result := self;
 end;

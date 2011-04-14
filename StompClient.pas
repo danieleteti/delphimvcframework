@@ -1,15 +1,13 @@
-{ ******************************************************* }
-{ }
-{ Stomp Client for Embarcadero Delphi & FreePascal }
-{ Tested With ApacheMQ 5.2/5.3 }
-{ Copyright (c) 2009-2009 Daniele Teti }
-{ }
-{ Contributors: }
-{ Daniel Gaspary: dgaspary@gmail.com }
-{ }
-{ WebSite: www.danieleteti.it }
-{ email:d.teti@bittime.it }
-{ ******************************************************* }
+// Stomp Client for Embarcadero Delphi & FreePascal
+// Tested With ApacheMQ 5.2/5.3
+// Copyright (c) 2009-2009 Daniele Teti
+//
+// Contributors:
+// Daniel Gaspary: dgaspary@gmail.com
+// Oliver Marr: oliver.sn@wmarr.de
+// WebSite: www.danieleteti.it
+// email:d.teti@bittime.it
+// *******************************************************
 
 unit StompClient;
 

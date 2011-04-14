@@ -11,7 +11,7 @@ begin
   try
     Main;
     MainWithTransaction;
-    // Test_Unicode_Chars; //Non passa
+//    Test_Unicode_Chars; //Non passa
     Writeln('ALL TESTS OK');
   except
     on E: Exception do
