@@ -1,6 +1,6 @@
 // Stomp Client for Embarcadero Delphi & FreePascal
-// Tested With ApacheMQ 5.2/5.3
-// Copyright (c) 2009-2009 Daniele Teti
+// Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2
+// Copyright (c) 2009-2012 Daniele Teti
 //
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
@@ -55,6 +55,9 @@ type
     FInTransaction: boolean;
     FTransactions: TStringList;
     FReceiptTimeout: Integer;
+    FServerProtocolVersion: string;
+    FClientAcceptProtocolVersion: TStompAcceptProtocol;
+    FServer: string;
     procedure SetReceiptTimeout(const Value: Integer);
 
   protected
@@ -75,7 +78,7 @@ type
     function Receive(ATimeout: Integer): IStompFrame; overload;
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-      ClientID: string = '');
+      ClientID: string = ''; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
@@ -93,7 +96,9 @@ type
     destructor Destroy; override;
     function Connected: boolean;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
-    property Session: string read FSession;
+    function GetProtocolVersion: String;
+    function GetServer: String;
+    function GetSession: string;
     property ReceiptTimeout: Integer read FReceiptTimeout write SetReceiptTimeout;
     property Transactions: TStringList read FTransactions;
   end;
@@ -102,9 +107,11 @@ implementation
 
 {$IFDEF FPC}
 
+
 const
   CHAR0 = #0;
 {$ELSE}
+
 
 uses
   Windows,
@@ -195,7 +202,8 @@ begin
       [TransactionIdentifier]);
 end;
 
-procedure TStompClient.Connect(Host: string; Port: Integer; ClientID: string);
+procedure TStompClient.Connect(Host: string; Port: Integer; ClientID: string;
+  AcceptVersion: TStompAcceptProtocol);
 var
   Frame: IStompFrame;
 begin
@@ -211,6 +219,14 @@ begin
 {$ENDIF}
     Frame := TStompFrame.Create;
     Frame.SetCommand('CONNECT');
+
+    FClientAcceptProtocolVersion := AcceptVersion;
+    if STOMP_Version_1_1 in [FClientAcceptProtocolVersion] then
+    begin
+      Frame.GetHeaders.Add('heart-beat', '0,1000'); // stomp 1.1
+      Frame.GetHeaders.Add('accept-version', '1.1'); // stomp 1.1
+    end;
+
     Frame.GetHeaders.Add('login', FUserName).Add('passcode', FPassword);
     if ClientID <> '' then
       Frame.GetHeaders.Add('client-id', ClientID);
@@ -223,6 +239,8 @@ begin
     if Frame.GetCommand = 'CONNECTED' then
     begin
       FSession := Frame.GetHeaders.Value('session');
+      FServerProtocolVersion := Frame.GetHeaders.Value('version'); // stomp 1.1
+      FServer := Frame.GetHeaders.Value('server'); // stomp 1.1
     end;
     { todo: 'Call event?' }
   except
@@ -289,13 +307,28 @@ begin
   DeInit;
 end;
 
+function TStompClient.GetProtocolVersion: String;
+begin
+  Result := FServerProtocolVersion;
+end;
+
+function TStompClient.GetServer: String;
+begin
+  Result := FServer;
+end;
+
+function TStompClient.GetSession: string;
+begin
+  Result := FSession;
+end;
+
 procedure TStompClient.Init;
 begin
   DeInit;
 {$IFDEF USESYNAPSE}
   FSynapseTCP := TTCPBlockSocket.Create;
-  FSynapseTCP.OnStatus:=SynapseSocketCallBack;
-  FSynapseTCP.RaiseExcept:=true;
+  FSynapseTCP.OnStatus := SynapseSocketCallBack;
+  FSynapseTCP.RaiseExcept := True;
 {$ELSE}
   FTCP := TIdTCPClient.Create(nil);
 {$ENDIF}
@@ -303,18 +336,21 @@ begin
 end;
 
 {$IFDEF USESYNAPSE}
+
+
 procedure TStompClient.SynapseSocketCallBack(Sender: TObject;
   Reason: THookSocketReason; const Value: string);
 begin
-  //As seen at TBlockSocket.ExceptCheck procedure, it SEEMS safe to say
-  //when an error occurred and is not a Timeout, the connection is broken
+  // As seen at TBlockSocket.ExceptCheck procedure, it SEEMS safe to say
+  // when an error occurred and is not a Timeout, the connection is broken
   if (Reason = HR_Error) and (FSynapseTCP.LastError <> WSAETIMEDOUT)
   then
   begin
-    FSynapseConnected:=false;
+    FSynapseConnected := False;
   end;
 end;
 {$ENDIF}
+
 
 procedure TStompClient.MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
 var
@@ -382,11 +418,11 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
             if E.ErrorCode = WSAETIMEDOUT then
               tout := True
             else
-              raise ;
+              raise;
           end;
           on E: Exception do
           begin
-            raise ;
+            raise;
           end;
         end;
         if not tout then
@@ -399,7 +435,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     except
       on E: Exception do
       begin
-        raise ;
+        raise;
       end;
     end;
   end;
@@ -409,23 +445,28 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     c: char;
     sb: TStringBuilder;
     tout: boolean;
+    FirstValidChar: boolean;
   begin
     tout := False;
     Result := nil;
     try
-      sb := TStringBuilder.Create(1024);
+      sb := TStringBuilder.Create(1024 * 4);
       try
         FTCP.ReadTimeout := ATimeout;
         try
-          FTCP.IOHandler.CheckForDataOnSource(1);
+          FirstValidChar := False;
+          FTCP.Socket.CheckForDataOnSource(1);
           while True do
           begin
-            c := FTCP.IOHandler.ReadChar;
+            c := FTCP.Socket.ReadChar(TEncoding.UTF8);
+            if (not FirstValidChar) and (c = LF) then
+              Continue;
+            FirstValidChar := True;
             if c <> CHAR0 then
               sb.Append(c)
             else
             begin
-              FTCP.IOHandler.ReadChar;
+              // FTCP.IOHandler.ReadChar(TEncoding.UTF8);
               Break;
             end;
           end;
@@ -436,12 +477,17 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
           end;
           on E: Exception do
           begin
-            raise ;
+            if sb.Length > 0 then
+              raise EStomp.Create(E.message + sLineBreak + sb.toString)
+            else
+              raise;
           end;
         end;
         if not tout then
         begin
-          Result := StompUtils.CreateFrame(sb.ToString + CHAR0);
+          Result := StompUtils.CreateFrame(sb.toString + CHAR0);
+          if Result.GetCommand = 'ERROR' then
+            raise EStomp.Create(Result.GetHeaders.Value('message'));
         end;
       finally
         sb.Free;
@@ -449,11 +495,12 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     except
       on E: Exception do
       begin
-        raise ;
+        raise;
       end;
     end;
   end;
 {$ENDIF}
+
 
 begin
 {$IFDEF USESYNAPSE}
@@ -499,7 +546,8 @@ begin
 {$IFDEF USESYNAPSE}
   FSynapseTCP.SendString(AFrame.output);
 {$ELSE}
-  FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
+  // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
+  FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
 {$ENDIF}
 end;
 

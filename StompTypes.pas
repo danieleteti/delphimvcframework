@@ -26,7 +26,9 @@ const
   DEFAULT_STOMP_PORT = 61613;
 
 type
-  TAckMode = (amAuto, amClient);
+  TAckMode = (amAuto, amClient, amClientIndividual { STOMP 1.1 } );
+
+  TStompAcceptProtocol = (STOMP_Version_1_0, STOMP_Version_1_1);
 
   EStomp = class(Exception)
   end;
@@ -67,7 +69,8 @@ type
     function Receive: IStompFrame; overload;
     function Receive(ATimeout: Integer): IStompFrame; overload;
     procedure Receipt(const ReceiptID: string);
-    procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613; ClientID: string = '');
+    procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613; ClientID: string = '';
+      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
@@ -85,6 +88,9 @@ type
     function SetUserName(const Value: string): IStompClient;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
     function Connected: Boolean;
+    function GetProtocolVersion: String;
+    function GetServer: String;
+    function GetSession: String;
   end;
 
   TStompHeaders = class(TInterfacedObject, IStompHeaders)
@@ -143,12 +149,19 @@ type
 
   TAddresses = array of TAddress;
 
-  IStompClientListener = interface
-    ['{C4C0D932-8994-43FB-9D32-A03FE86AEFE4}']
-    procedure OnMessage(StompFrame: IStompFrame);
+  IStompListener = interface
+    ['{CB3EB297-8616-408E-A0B2-7CCC11224DBC}']
+    procedure StopListening;
   end;
 
-  TStompClientListener = class(TThread)
+  IStompClientListener = interface
+    ['{C4C0D932-8994-43FB-9D32-A03FE86AEFE4}']
+    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
+      var StompListening: Boolean);
+    procedure OnStopListen(StompClient: IStompClient);
+  end;
+
+  TStompClientListener = class(TThread, IStompListener)
   strict protected
     FStompClientListener: IStompClientListener;
     FStompClient: IStompClient;
@@ -157,6 +170,10 @@ type
   public
     constructor Create(StompClient: IStompClient; StompClientListener: IStompClientListener);
     procedure StopListening;
+    function QueryInterface(const IID: TGUID; out Obj): HRESULT; stdcall;
+    function _AddRef: Integer; stdcall;
+    function _Release: Integer; stdcall;
+
   end;
 
 type
@@ -168,7 +185,8 @@ type
     class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
     class function NewStomp(Host: string = '127.0.0.1';
       Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = ''; const UserName: string = 'guest';
-      const Password: string = 'guest'): IStompClient;
+      const Password: string = 'guest'; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0)
+      : IStompClient;
   end;
 
 implementation
@@ -178,13 +196,14 @@ uses
   StompClient;
 
 class function StompUtils.NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-  ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest')
+  ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest';
+  AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0)
   : IStompClient;
 begin
   Result := TStompClient.Create;
   Result.SetUserName(UserName);
   Result.SetPassword(Password);
-  Result.Connect(Host, Port, ClientID);
+  Result.Connect(Host, Port, ClientID, AcceptVersion);
 end;
 
 class function TStompHeaders.NewDurableSubscriptionHeader(const SubscriptionName: string)
@@ -223,8 +242,10 @@ begin
       Result := 'auto';
     amClient:
       Result := 'client';
-  else
-    raise EStomp.Create('Unknown AckMode');
+    amClientIndividual:
+      Result := 'client-individual'; // stomp 1.1
+    else
+      raise EStomp.Create('Unknown AckMode');
   end;
 end;
 
@@ -316,7 +337,7 @@ begin
   i := 1;
   try
     Result.Command := GetLine(Buf, i);
-    while (true) do
+    while true do
     begin
       line := GetLine(Buf, i);
       if (line = '') then
@@ -496,18 +517,43 @@ end;
 procedure TStompClientListener.Execute;
 var
   frame: IStompFrame;
+  StopListen: Boolean;
 begin
+  StopListen := False;
   while not terminated do
   begin
     if FStompClient.Receive(frame, 2000) then
-      FStompClientListener.OnMessage(frame);
+    begin
+      FStompClientListener.OnMessage(FStompClient, frame, StopListen);
+      if StopListen then
+      begin
+        FStompClientListener.OnStopListen(FStompClient);
+        StopListening;
+      end;
+    end;
   end;
+end;
+
+function TStompClientListener.QueryInterface(const IID: TGUID; out Obj): HRESULT;
+begin
+
 end;
 
 procedure TStompClientListener.StopListening;
 begin
   Terminate;
-  WaitFor;
+  Free;
+  // WaitFor;
+end;
+
+function TStompClientListener._AddRef: Integer;
+begin
+
+end;
+
+function TStompClientListener._Release: Integer;
+begin
+
 end;
 
 end.
