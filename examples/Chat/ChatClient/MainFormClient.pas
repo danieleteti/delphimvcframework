@@ -79,7 +79,7 @@ var
   f: IStompFrame;
   fw: FLASHWINFO;
 begin
-  f := stomp.Receive;
+  f := stomp.Receive(100);  //this should be done in a secondary thread
   if assigned(f) then
   begin
     Memo1.Lines.Add('[' + f.GetHeaders.Value('datetime') + ' ' + f.GetHeaders.Value('sender') + ']' + sLineBreak + f.GetBody);

@@ -446,7 +446,9 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     sb: TStringBuilder;
     tout: boolean;
     FirstValidChar: boolean;
+    UTF8Encoding: TEncoding;
   begin
+    UTF8Encoding := TEncoding.UTF8;
     tout := False;
     Result := nil;
     try
@@ -458,8 +460,8 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
           FTCP.Socket.CheckForDataOnSource(1);
           while True do
           begin
-            c := FTCP.Socket.ReadChar(TEncoding.UTF8);
-            if (not FirstValidChar) and (c = LF) then
+            c := FTCP.Socket.ReadChar(UTF8Encoding);
+            if (c = LF) and (not FirstValidChar) then
               Continue;
             FirstValidChar := True;
             if c <> CHAR0 then
