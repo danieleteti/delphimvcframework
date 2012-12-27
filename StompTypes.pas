@@ -80,6 +80,8 @@ type
     procedure Send(QueueOrTopicName: string; TextMessage: string; TransactionIdentifier: string;
       Headers: IStompHeaders = nil); overload;
     procedure Ack(const MessageID: string; const TransactionIdentifier: string = '');
+    { STOMP 1.1 }
+    procedure Nack(const MessageID: string; const TransactionIdentifier: string = '');
     procedure BeginTransaction(const TransactionIdentifier: string);
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);

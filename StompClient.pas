@@ -39,6 +39,8 @@ uses
 type
   { TStompClient }
 
+  TSenderFrameEvent = procedure (AFrame: IStompFrame) of object;
+
   TStompClient = class(TInterfacedObject, IStompClient)
   private
 {$IFDEF USESYNAPSE}
@@ -58,6 +60,8 @@ type
     FServerProtocolVersion: string;
     FClientAcceptProtocolVersion: TStompAcceptProtocol;
     FServer: string;
+    FOnBeforeSendFrame: TSenderFrameEvent;
+    FOnAfterSendFrame: TSenderFrameEvent;
     procedure SetReceiptTimeout(const Value: Integer);
 
   protected
@@ -88,6 +92,8 @@ type
     procedure Send(QueueOrTopicName: string; TextMessage: string; TransactionIdentifier: string;
       Headers: IStompHeaders = nil); overload;
     procedure Ack(const MessageID: string; const TransactionIdentifier: string = '');
+    { STOMP 1.1 }
+    procedure Nack(const MessageID: string; const TransactionIdentifier: string = '');
     procedure BeginTransaction(const TransactionIdentifier: string);
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);
@@ -101,6 +107,9 @@ type
     function GetSession: string;
     property ReceiptTimeout: Integer read FReceiptTimeout write SetReceiptTimeout;
     property Transactions: TStringList read FTransactions;
+    //* Manage Events
+    property OnBeforeSendFrame: TSenderFrameEvent read FOnBeforeSendFrame write FOnBeforeSendFrame;
+    property OnAfterSendFrame: TSenderFrameEvent read FOnAfterSendFrame write FOnAfterSendFrame;
   end;
 
 implementation
@@ -366,6 +375,18 @@ begin
       end;
 end;
 
+procedure TStompClient.Nack(const MessageID, TransactionIdentifier: string);
+var
+  Frame: IStompFrame;
+begin
+  Frame := TStompFrame.Create;
+  Frame.SetCommand('NACK');
+  Frame.GetHeaders.Add('message-id', MessageID);
+  if TransactionIdentifier <> '' then
+    Frame.GetHeaders.Add('transaction', TransactionIdentifier);
+  SendFrame(Frame);
+end;
+
 procedure TStompClient.Receipt(const ReceiptID: string);
 var
   Frame: IStompFrame;
@@ -546,10 +567,14 @@ end;
 procedure TStompClient.SendFrame(AFrame: IStompFrame);
 begin
 {$IFDEF USESYNAPSE}
+  if Assigned(FOnBeforeSendFrame) then FOnBeforeSendFrame(AFrame);
   FSynapseTCP.SendString(AFrame.output);
+  if Assigned(FOnAfterSendFrame) then FOnAfterSendFrame(AFrame);
 {$ELSE}
   // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
+  if Assigned(FOnBeforeSendFrame) then FOnBeforeSendFrame(AFrame);
   FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+  if Assigned(FOnAfterSendFrame) then FOnAfterSendFrame(AFrame);
 {$ENDIF}
 end;
 
