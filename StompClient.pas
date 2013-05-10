@@ -5,6 +5,7 @@
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
 // Oliver Marr: oliver.sn@wmarr.de
+// Marco Mottadelli: mottadelli75@gmail.com
 // WebSite: www.danieleteti.it
 // email:d.teti@bittime.it
 // *******************************************************
@@ -123,7 +124,7 @@ const
 
 
 uses
-  Windows,
+  // Windows,   // Remove windows unit for compiling on ios
   IdGlobal,
   Character;
 {$ENDIF}
@@ -467,9 +468,11 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     sb: TStringBuilder;
     tout: boolean;
     FirstValidChar: boolean;
-    UTF8Encoding: TEncoding;
+    // UTF8Encoding: TEncoding;
+    UTF8Encoding: IIdTextEncoding;
   begin
-    UTF8Encoding := TEncoding.UTF8;
+    // UTF8Encoding := TEncoding.UTF8;
+    UTF8Encoding := enUTF8;
     tout := False;
     Result := nil;
     try
@@ -573,7 +576,8 @@ begin
 {$ELSE}
   // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
   if Assigned(FOnBeforeSendFrame) then FOnBeforeSendFrame(AFrame);
-  FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+  //FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+  FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
   if Assigned(FOnAfterSendFrame) then FOnAfterSendFrame(AFrame);
 {$ENDIF}
 end;

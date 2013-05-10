@@ -75,7 +75,14 @@ procedure TSendMessageMainForm.Send;
 begin
   StompClient.Connect;
   try
-    StompClient.Send(QueueEdit.Text,QueueMemo.Lines.Text);
+    try
+      StompClient.Send(QueueEdit.Text,QueueMemo.Lines.Text);
+    except
+      on e: exception do
+      begin
+        LogMemo.Lines.Add('ERROR: '+e.Message);
+      end;
+    end;
   finally
     StompClient.Disconnect;
   end;
