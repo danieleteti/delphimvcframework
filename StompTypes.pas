@@ -72,11 +72,9 @@ type
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613; ClientID: string = '';
       AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
     procedure Disconnect;
-    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
-      Headers: IStompHeaders = nil);
+    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto; Headers: IStompHeaders = nil);
     procedure Unsubscribe(Queue: string);
-    procedure Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders = nil);
-      overload;
+    procedure Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders = nil); overload;
     procedure Send(QueueOrTopicName: string; TextMessage: string; TransactionIdentifier: string;
       Headers: IStompHeaders = nil); overload;
     procedure Ack(const MessageID: string; const TransactionIdentifier: string = '');
@@ -158,8 +156,7 @@ type
 
   IStompClientListener = interface
     ['{C4C0D932-8994-43FB-9D32-A03FE86AEFE4}']
-    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-      var StompListening: Boolean);
+    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame; var StompListening: Boolean);
     procedure OnStopListen(StompClient: IStompClient);
   end;
 
@@ -180,15 +177,15 @@ type
 
 type
   StompUtils = class
+    class function StripLastChar(Buf: String; LastChar: char): String;
     class function CreateFrame(Buf: string): TStompFrame;
     class function AckModeToStr(AckMode: TAckMode): string;
     class function NewHeaders: IStompHeaders;
     class function NewFrame: IStompFrame;
     class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
-    class function NewStomp(Host: string = '127.0.0.1';
-      Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = ''; const UserName: string = 'guest';
-      const Password: string = 'guest'; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0)
-      : IStompClient;
+    class function NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
+      const UserName: string = 'guest'; const Password: string = 'guest';
+      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
   end;
 
 implementation
@@ -199,8 +196,7 @@ uses
 
 class function StompUtils.NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
   ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest';
-  AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0)
-  : IStompClient;
+  AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
 begin
   Result := TStompClient.Create;
   Result.SetUserName(UserName);
@@ -208,8 +204,17 @@ begin
   Result.Connect(Host, Port, ClientID, AcceptVersion);
 end;
 
-class function TStompHeaders.NewDurableSubscriptionHeader(const SubscriptionName: string)
-  : TKeyValue;
+class function StompUtils.StripLastChar(Buf: String; LastChar: char): String;
+var
+  p: Integer;
+begin
+  p := Pos(COMMAND_END, Buf);
+  if (p = 0) then
+    raise EStomp.Create('frame no ending');
+  Result := Copy(Buf, 1, p - 1);
+end;
+
+class function TStompHeaders.NewDurableSubscriptionHeader(const SubscriptionName: string): TKeyValue;
 begin
   Result.Key := 'activemq.subscriptionName';
   Result.Value := SubscriptionName;
@@ -246,8 +251,8 @@ begin
       Result := 'client';
     amClientIndividual:
       Result := 'client-individual'; // stomp 1.1
-    else
-      raise EStomp.Create('Unknown AckMode');
+  else
+    raise EStomp.Create('Unknown AckMode');
   end;
 end;
 
@@ -355,20 +360,17 @@ begin
     sContLen := Result.Headers.Value('content-length');
     if (sContLen <> '') then
     begin
+      if other[Length(other)] <> #0 then
+        raise EStomp.Create('frame no ending');
       contLen := StrToInt(sContLen);
-      if Length(other) < contLen + 2 then
+      other := StripLastChar(other, COMMAND_END);
+      if Length(other) <> contLen then // there is still the command_end
         raise EStomp.Create('frame too short');
-      if Copy(other, contLen + 1, 2) <> COMMAND_END + LINE_END then
-        raise Exception.Create('frame ending error');
-      Result.Body := Copy(other, 1, contLen);
-      // Buf := Copy(other, contLen + 3, High(Integer));
+      Result.Body := other;
     end
     else
     begin
-      p := Pos(COMMAND_END, other);
-      if (p = 0) then
-        raise EStomp.Create('frame no ending');
-      Result.Body := Copy(other, 1, p - 1);
+      Result.Body := StripLastChar(other, COMMAND_END)
     end;
   except
     on EStomp do
@@ -507,8 +509,7 @@ end;
 
 { TStompListener }
 
-constructor TStompClientListener.Create(StompClient: IStompClient;
-  StompClientListener: IStompClientListener);
+constructor TStompClientListener.Create(StompClient: IStompClient; StompClientListener: IStompClientListener);
 begin
   inherited Create(true);
   FStompClientListener := StompClientListener;

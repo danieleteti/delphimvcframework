@@ -22,8 +22,8 @@ object Form1: TForm1
   TextHeight = 13
   object Edit1: TEdit
     Left = 8
-    Top = 22
-    Width = 144
+    Top = 90
+    Width = 225
     Height = 24
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -37,7 +37,7 @@ object Form1: TForm1
   end
   object Button1: TButton
     Left = 239
-    Top = 22
+    Top = 90
     Width = 75
     Height = 25
     Caption = 'Subscribe'
@@ -46,7 +46,7 @@ object Form1: TForm1
   end
   object Button5: TButton
     Left = 320
-    Top = 22
+    Top = 90
     Width = 113
     Height = 25
     Caption = 'Durable Subscribe'
@@ -55,9 +55,9 @@ object Form1: TForm1
   end
   object Memo1: TMemo
     Left = 8
-    Top = 53
+    Top = 120
     Width = 734
-    Height = 238
+    Height = 171
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -71,7 +71,7 @@ object Form1: TForm1
   end
   object Button3: TButton
     Left = 439
-    Top = 22
+    Top = 90
     Width = 75
     Height = 25
     Caption = 'Unsubscribe'
@@ -80,20 +80,60 @@ object Form1: TForm1
   end
   object Button4: TButton
     Left = 520
-    Top = 22
+    Top = 90
     Width = 75
     Height = 25
     Caption = 'Disconnect'
     TabOrder = 5
     OnClick = Button4Click
   end
-  object Button6: TButton
-    Left = 158
-    Top = 22
-    Width = 75
-    Height = 25
-    Caption = 'Connect'
+  object pnlConnection: TPanel
+    Left = 8
+    Top = 8
+    Width = 537
+    Height = 57
     TabOrder = 6
-    OnClick = Button6Click
+    object Button2: TButton
+      Left = 441
+      Top = 17
+      Width = 75
+      Height = 25
+      Caption = 'Connect'
+      TabOrder = 0
+      OnClick = Button2Click
+    end
+    object edtUserName: TLabeledEdit
+      Left = 187
+      Top = 19
+      Width = 121
+      Height = 21
+      EditLabel.Width = 49
+      EditLabel.Height = 13
+      EditLabel.Caption = 'UserName'
+      TabOrder = 1
+      Text = 'admin'
+    end
+    object edtPassword: TLabeledEdit
+      Left = 314
+      Top = 19
+      Width = 121
+      Height = 21
+      EditLabel.Width = 46
+      EditLabel.Height = 13
+      EditLabel.Caption = 'Password'
+      TabOrder = 2
+      Text = 'password'
+    end
+    object edtHostNameAndPort: TLabeledEdit
+      Left = 8
+      Top = 19
+      Width = 173
+      Height = 21
+      EditLabel.Width = 72
+      EditLabel.Height = 13
+      EditLabel.Caption = 'Hostname:port'
+      TabOrder = 3
+      Text = 'localhost:61613'
+    end
   end
 end
