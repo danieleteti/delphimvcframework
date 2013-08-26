@@ -73,8 +73,15 @@ begin
   port := Copy(s, Pos(':', s) + 1, length(s));
   stomp.SetUserName(edtUserName.Text);
   stomp.SetPassword(edtPassword.Text);
-  stomp.Connect('localhost', 61613, 'myclientid', TStompAcceptProtocol.STOMP_Version_1_0);
-  th := TStompClientListener.Create(stomp, Self);
+  try
+    stomp.Connect('localhost', 61613, 'myclientid', TStompAcceptProtocol.STOMP_Version_1_0);
+    th := TStompClientListener.Create(stomp, Self);
+  except
+    on E: Exception do
+    begin
+      ShowMessage(E.ClassName + sLineBreak + E.Message);
+    end;
+  end;
 end;
 
 procedure TForm1.Button3Click(Sender: TObject);

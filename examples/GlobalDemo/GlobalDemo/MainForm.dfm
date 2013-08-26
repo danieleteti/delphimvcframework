@@ -138,7 +138,7 @@ object frmMain: TfrmMain
       Left = 8
       Top = 72
       Width = 340
-      Height = 69
+      Height = 161
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
       Font.Height = -13
