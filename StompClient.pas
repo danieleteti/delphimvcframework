@@ -14,10 +14,12 @@ unit StompClient;
 
 // For FreePascal users:
 // Automatically selected synapse tcp library
+
 {$IFDEF FPC}
 {$MODE DELPHI}
 {$DEFINE USESYNAPSE}
 {$ENDIF}
+
 // For Delphi users:
 // Decomment following line to use synapse also in Delphi
 { .$DEFINE USESYNAPSE }
@@ -27,49 +29,65 @@ interface
 uses
   StompTypes,
   SysUtils,
-{$IFNDEF USESYNAPSE}
+
+  {$IFNDEF USESYNAPSE}
+
   IdTCPClient,
   IdException,
   IdExceptionCore,
-{$ELSE}
+
+  {$ELSE}
+
   synsock,
   blcksock,
-{$ENDIF}
+
+  {$ENDIF}
+
   Classes;
 
 type
   { TStompClient }
 
-  TSenderFrameEvent = procedure (AFrame: IStompFrame) of object;
+  TSenderFrameEvent = procedure(AFrame: IStompFrame) of object;
 
   TStompClient = class(TInterfacedObject, IStompClient)
   private
-{$IFDEF USESYNAPSE}
-    FSynapseTCP: TTCPBlockSocket;
+
+    {$IFDEF USESYNAPSE}
+
+    FSynapseTCP      : TTCPBlockSocket;
     FSynapseConnected: boolean;
-{$ELSE}
+
+    {$ELSE}
+
     FTCP: TIdTCPClient;
-{$ENDIF}
-    FHeaders: IStompHeaders;
-    FPassword: string;
-    FUserName: string;
-    FTimeout: Integer;
-    FSession: string;
-    FInTransaction: boolean;
-    FTransactions: TStringList;
-    FReceiptTimeout: Integer;
-    FServerProtocolVersion: string;
+
+    {$ENDIF}
+
+    FHeaders                    : IStompHeaders;
+    FPassword                   : string;
+    FUserName                   : string;
+    FTimeout                    : Integer;
+    FSession                    : string;
+    FInTransaction              : boolean;
+    FTransactions               : TStringList;
+    FReceiptTimeout             : Integer;
+    FServerProtocolVersion      : string;
     FClientAcceptProtocolVersion: TStompAcceptProtocol;
-    FServer: string;
-    FOnBeforeSendFrame: TSenderFrameEvent;
-    FOnAfterSendFrame: TSenderFrameEvent;
+    FServer                     : string;
+    FOnBeforeSendFrame          : TSenderFrameEvent;
+    FOnAfterSendFrame           : TSenderFrameEvent;
     procedure SetReceiptTimeout(const Value: Integer);
 
   protected
-{$IFDEF USESYNAPSE}
+
+    {$IFDEF USESYNAPSE}
+
     procedure SynapseSocketCallBack(Sender: TObject; Reason: THookSocketReason;
       const Value: string);
-{$ENDIF}
+
+    {$ENDIF}
+
     procedure Init;
     procedure DeInit;
     procedure MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
@@ -103,12 +121,12 @@ type
     destructor Destroy; override;
     function Connected: boolean;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
-    function GetProtocolVersion: String;
-    function GetServer: String;
+    function GetProtocolVersion: string;
+    function GetServer: string;
     function GetSession: string;
     property ReceiptTimeout: Integer read FReceiptTimeout write SetReceiptTimeout;
     property Transactions: TStringList read FTransactions;
-    //* Manage Events
+    // * Manage Events
     property OnBeforeSendFrame: TSenderFrameEvent read FOnBeforeSendFrame write FOnBeforeSendFrame;
     property OnAfterSendFrame: TSenderFrameEvent read FOnAfterSendFrame write FOnAfterSendFrame;
   end;
@@ -120,21 +138,24 @@ implementation
 
 const
   CHAR0 = #0;
+
 {$ELSE}
 
 
 uses
   // Windows,   // Remove windows unit for compiling on ios
-  IdGlobal,
+    IdGlobal,
   Character;
+
 {$ENDIF}
+
 { TStompClient }
 
 procedure TStompClient.AbortTransaction(const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
 begin
-  if FTransactions.IndexOf(TransactionIdentifier) > -1 then
+  if FTransactions.IndexOf(TransactionIdentifier) > - 1 then
   begin
     Frame := TStompFrame.Create;
     Frame.SetCommand('ABORT');
@@ -164,7 +185,7 @@ procedure TStompClient.BeginTransaction(const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
 begin
-  if FTransactions.IndexOf(TransactionIdentifier) = -1 then
+  if FTransactions.IndexOf(TransactionIdentifier) = - 1 then
   begin
     Frame := TStompFrame.Create;
     Frame.SetCommand('BEGIN');
@@ -198,7 +219,7 @@ procedure TStompClient.CommitTransaction(const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
 begin
-  if FTransactions.IndexOf(TransactionIdentifier) > -1 then
+  if FTransactions.IndexOf(TransactionIdentifier) > - 1 then
   begin
     Frame := TStompFrame.Create;
     Frame.SetCommand('COMMIT');
@@ -219,14 +240,20 @@ var
 begin
   try
     Init;
-{$IFDEF USESYNAPSE}
+
+    {$IFDEF USESYNAPSE}
+
     FSynapseConnected := False;
     FSynapseTCP.Connect(Host, intToStr(Port));
     FSynapseConnected := True;
-{$ELSE}
+
+    {$ELSE}
+
     FTCP.Connect(Host, Port);
     FTCP.IOHandler.MaxLineLength := MaxInt;
-{$ENDIF}
+
+    {$ENDIF}
+
     Frame := TStompFrame.Create;
     Frame.SetCommand('CONNECT');
 
@@ -263,11 +290,17 @@ end;
 
 function TStompClient.Connected: boolean;
 begin
-{$IFDEF USESYNAPSE}
+
+  {$IFDEF USESYNAPSE}
+
   Result := Assigned(FSynapseTCP) and FSynapseConnected;
-{$ELSE}
+
+  {$ELSE}
+
   Result := Assigned(FTCP) and FTCP.Connected;
-{$ENDIF}
+
+  {$ENDIF}
+
 end;
 
 constructor TStompClient.Create;
@@ -284,16 +317,23 @@ end;
 
 procedure TStompClient.DeInit;
 begin
-{$IFDEF USESYNAPSE}
+
+  {$IFDEF USESYNAPSE}
+
   FreeAndNil(FSynapseTCP);
-{$ELSE}
+
+  {$ELSE}
+
   FreeAndNil(FTCP);
-{$ENDIF}
+
+  {$ENDIF}
+
   FreeAndNil(FTransactions);
 end;
 
 destructor TStompClient.Destroy;
 begin
+  Disconnect;
   DeInit;
   inherited;
 end;
@@ -307,22 +347,28 @@ begin
     Frame := TStompFrame.Create;
     Frame.SetCommand('DISCONNECT');
     SendFrame(Frame);
-{$IFDEF USESYNAPSE}
+
+    {$IFDEF USESYNAPSE}
+
     FSynapseTCP.CloseSocket;
     FSynapseConnected := False;
-{$ELSE}
+
+    {$ELSE}
+
     FTCP.Disconnect;
-{$ENDIF}
+
+    {$ENDIF}
+
   end;
   DeInit;
 end;
 
-function TStompClient.GetProtocolVersion: String;
+function TStompClient.GetProtocolVersion: string;
 begin
   Result := FServerProtocolVersion;
 end;
 
-function TStompClient.GetServer: String;
+function TStompClient.GetServer: string;
 begin
   Result := FServer;
 end;
@@ -335,13 +381,19 @@ end;
 procedure TStompClient.Init;
 begin
   DeInit;
-{$IFDEF USESYNAPSE}
+
+  {$IFDEF USESYNAPSE}
+
   FSynapseTCP := TTCPBlockSocket.Create;
   FSynapseTCP.OnStatus := SynapseSocketCallBack;
   FSynapseTCP.RaiseExcept := True;
-{$ELSE}
+
+  {$ELSE}
+
   FTCP := TIdTCPClient.Create(nil);
-{$ENDIF}
+
+  {$ENDIF}
+
   FTransactions := TStringList.Create;
 end;
 
@@ -359,6 +411,7 @@ begin
     FSynapseConnected := False;
   end;
 end;
+
 {$ENDIF}
 
 
@@ -409,11 +462,13 @@ begin
 end;
 
 function TStompClient.Receive(ATimeout: Integer): IStompFrame;
+
 {$IFDEF USESYNAPSE}
+
   function InternalReceiveSynapse(ATimeout: Integer): IStompFrame;
   var
-    c: char;
-    s: string;
+    c   : char;
+    s   : string;
     tout: boolean;
   begin
     tout := False;
@@ -461,18 +516,20 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
       end;
     end;
   end;
+
 {$ELSE}
+
   function InternalReceiveINDY(ATimeout: Integer): IStompFrame;
   var
-    c: char;
-    sb: TStringBuilder;
-    tout: boolean;
+    c             : char;
+    sb            : TStringBuilder;
+    tout          : boolean;
     FirstValidChar: boolean;
     // UTF8Encoding: TEncoding;
     UTF8Encoding: IIdTextEncoding;
   begin
     // UTF8Encoding := TEncoding.UTF8;
-    UTF8Encoding := enUTF8;
+    UTF8Encoding := IndyTextEncoding_UTF8();
     tout := False;
     Result := nil;
     try
@@ -525,15 +582,22 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
       end;
     end;
   end;
+
 {$ENDIF}
 
 
 begin
-{$IFDEF USESYNAPSE}
+
+  {$IFDEF USESYNAPSE}
+
   Result := InternalReceiveSynapse(ATimeout);
-{$ELSE}
+
+  {$ELSE}
+
   Result := InternalReceiveINDY(ATimeout);
-{$ENDIF}
+
+  {$ENDIF}
+
 end;
 
 function TStompClient.Receive: IStompFrame;
@@ -569,17 +633,27 @@ end;
 
 procedure TStompClient.SendFrame(AFrame: IStompFrame);
 begin
-{$IFDEF USESYNAPSE}
-  if Assigned(FOnBeforeSendFrame) then FOnBeforeSendFrame(AFrame);
+
+  {$IFDEF USESYNAPSE}
+
+  if Assigned(FOnBeforeSendFrame) then
+    FOnBeforeSendFrame(AFrame);
   FSynapseTCP.SendString(AFrame.output);
-  if Assigned(FOnAfterSendFrame) then FOnAfterSendFrame(AFrame);
-{$ELSE}
+  if Assigned(FOnAfterSendFrame) then
+    FOnAfterSendFrame(AFrame);
+
+  {$ELSE}
+
   // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
-  if Assigned(FOnBeforeSendFrame) then FOnBeforeSendFrame(AFrame);
-  //FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+  if Assigned(FOnBeforeSendFrame) then
+    FOnBeforeSendFrame(AFrame);
+  // FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
   FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
-  if Assigned(FOnAfterSendFrame) then FOnAfterSendFrame(AFrame);
-{$ENDIF}
+  if Assigned(FOnAfterSendFrame) then
+    FOnAfterSendFrame(AFrame);
+
+  {$ENDIF}
+
 end;
 
 function TStompClient.SetPassword(const Value: string): IStompClient;
