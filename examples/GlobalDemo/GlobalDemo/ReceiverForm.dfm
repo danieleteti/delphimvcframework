@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 0
   BorderIcons = [biSystemMenu]
   Caption = 'Receiver Form'
-  ClientHeight = 299
+  ClientHeight = 291
   ClientWidth = 750
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,7 +17,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   DesignSize = (
     750
-    299)
+    291)
   PixelsPerInch = 96
   TextHeight = 13
   object Edit1: TEdit
@@ -57,7 +57,7 @@ object Form1: TForm1
     Left = 8
     Top = 120
     Width = 734
-    Height = 171
+    Height = 163
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -68,6 +68,7 @@ object Form1: TForm1
     ReadOnly = True
     TabOrder = 3
     WordWrap = False
+    ExplicitHeight = 171
   end
   object Button3: TButton
     Left = 439
@@ -135,5 +136,18 @@ object Form1: TForm1
       TabOrder = 3
       Text = 'localhost:61613'
     end
+  end
+  object ListBox1: TListBox
+    Left = 551
+    Top = 8
+    Width = 191
+    Height = 57
+    ItemHeight = 13
+    TabOrder = 7
+  end
+  object ApplicationEvents1: TApplicationEvents
+    OnIdle = ApplicationEvents1Idle
+    Left = 368
+    Top = 152
   end
 end

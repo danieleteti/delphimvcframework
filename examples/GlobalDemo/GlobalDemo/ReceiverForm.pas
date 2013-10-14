@@ -15,7 +15,8 @@ uses
   StdCtrls,
   StompClient,
   StompTypes,
-  ExtCtrls;
+  ExtCtrls,
+  Vcl.AppEvnts;
 
 type
   TForm1 = class(TForm, IStompClientListener)
@@ -30,6 +31,8 @@ type
     edtUserName: TLabeledEdit;
     edtPassword: TLabeledEdit;
     edtHostNameAndPort: TLabeledEdit;
+    ApplicationEvents1: TApplicationEvents;
+    ListBox1: TListBox;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure Button1Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
@@ -37,13 +40,15 @@ type
     procedure Button3Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 
   private
     stomp: IStompClient;
-    th: TStompClientListener;
+    th   : TStompClientListener;
 
   public
-    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame; var StompListening: Boolean);
+    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
+      var StompListening: Boolean);
     procedure OnStopListen(StompClient: IStompClient);
 
   end;
@@ -55,7 +60,19 @@ implementation
 
 uses
   DateUtils;
+
 {$R *.dfm}
+
+procedure TForm1.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
+begin
+  ListBox1.Items.BeginUpdate;
+  try
+    ListBox1.Clear;
+    ListBox1.Items.Values['CONNECTED'] := booltostr(stomp.Connected, true);
+  finally
+    ListBox1.Items.EndUpdate;
+  end;
+end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
@@ -64,9 +81,9 @@ end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 var
-  s: string;
+  s       : string;
   hostname: string;
-  port: string;
+  port    : string;
 begin
   s := edtHostNameAndPort.Text;
   hostname := Copy(s, 1, Pos(':', s) - 1);
@@ -98,21 +115,18 @@ end;
 
 procedure TForm1.Button5Click(Sender: TObject);
 begin
-  stomp.Subscribe(Edit1.Text, amAuto, StompUtils.NewHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader('pippo')));
+  stomp.Subscribe(Edit1.Text, amAuto,
+    StompUtils.NewHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader('pippo')));
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if assigned(stomp) then
+  if assigned(th) then
   begin
-    if assigned(th) then
-    begin
-      th.StopListening;
-      th.Free;
-    end;
-    stomp.Disconnect;
-    stomp := nil;
+    th.StopListening;
+    FreeAndNil(th);
   end;
+  stomp := nil;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -120,7 +134,8 @@ begin
   stomp := TStompClient.Create;
 end;
 
-procedure TForm1.OnMessage(StompClient: IStompClient; StompFrame: IStompFrame; var StompListening: Boolean);
+procedure TForm1.OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
+  var StompListening: Boolean);
 begin
   TThread.Synchronize(nil,
     procedure

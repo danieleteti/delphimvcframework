@@ -1,6 +1,6 @@
 // Stomp Client for Embarcadero Delphi & FreePascal
-// Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2
-// Copyright (c) 2009-2012 Daniele Teti
+// Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2/1.6
+// Copyright (c) 2009-2013 Daniele Teti
 //
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
@@ -102,7 +102,7 @@ type
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
       ClientID: string = ''; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
-    procedure Disconnect;
+    procedure Disconnect(WithoutSendingFrame: boolean = false);
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
     procedure Unsubscribe(Queue: string);
@@ -161,7 +161,7 @@ begin
     Frame.SetCommand('ABORT');
     Frame.GetHeaders.Add('transaction', TransactionIdentifier);
     SendFrame(Frame);
-    FInTransaction := False;
+    FInTransaction := false;
     FTransactions.Delete(FTransactions.IndexOf(TransactionIdentifier));
   end
   else
@@ -200,21 +200,6 @@ begin
       [TransactionIdentifier]);
 end;
 
-// procedure TStompClient.CheckReceipt(Frame: TStompFrame);
-// var
-// ReceiptID: string;
-// begin
-// if FEnableReceipts then
-// begin
-// ReceiptID := inttostr(GetTickCount);
-// Frame.GetHeaders.Add('receipt', ReceiptID);
-// SendFrame(Frame);
-// Receipt(ReceiptID);
-// end
-// else
-// SendFrame(Frame);
-// end;
-
 procedure TStompClient.CommitTransaction(const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
@@ -225,7 +210,7 @@ begin
     Frame.SetCommand('COMMIT');
     Frame.GetHeaders.Add('transaction', TransactionIdentifier);
     SendFrame(Frame);
-    FInTransaction := False;
+    FInTransaction := false;
     FTransactions.Delete(FTransactions.IndexOf(TransactionIdentifier));
   end
   else
@@ -243,7 +228,7 @@ begin
 
     {$IFDEF USESYNAPSE}
 
-    FSynapseConnected := False;
+    FSynapseConnected := false;
     FSynapseTCP.Connect(Host, intToStr(Port));
     FSynapseConnected := True;
 
@@ -306,7 +291,7 @@ end;
 constructor TStompClient.Create;
 begin
   inherited;
-  FInTransaction := False;
+  FInTransaction := false;
   FSession := '';
   FUserName := 'guest';
   FPassword := 'guest';
@@ -333,28 +318,39 @@ end;
 
 destructor TStompClient.Destroy;
 begin
-  Disconnect;
+  try
+    Disconnect(false);
+  except
+  end;
   DeInit;
   inherited;
 end;
 
-procedure TStompClient.Disconnect;
+procedure TStompClient.Disconnect(WithoutSendingFrame: boolean);
 var
   Frame: IStompFrame;
 begin
   if Connected then
   begin
-    Frame := TStompFrame.Create;
-    Frame.SetCommand('DISCONNECT');
-    SendFrame(Frame);
+    if not WithoutSendingFrame then
+    begin
+      try
+        Frame := TStompFrame.Create;
+        Frame.SetCommand('DISCONNECT');
+        SendFrame(Frame);
+      except
+        // socket could be already dead
+      end;
+    end;
 
     {$IFDEF USESYNAPSE}
 
     FSynapseTCP.CloseSocket;
-    FSynapseConnected := False;
+    FSynapseConnected := false;
 
     {$ELSE}
 
+    FTCP.Socket.Close;
     FTCP.Disconnect;
 
     {$ENDIF}
@@ -408,7 +404,7 @@ begin
   if (Reason = HR_Error) and (FSynapseTCP.LastError <> WSAETIMEDOUT)
   then
   begin
-    FSynapseConnected := False;
+    FSynapseConnected := false;
   end;
 end;
 
@@ -471,7 +467,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     s   : string;
     tout: boolean;
   begin
-    tout := False;
+    tout := false;
     Result := nil;
     try
       try
@@ -530,14 +526,14 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
   begin
     // UTF8Encoding := TEncoding.UTF8;
     UTF8Encoding := IndyTextEncoding_UTF8();
-    tout := False;
+    tout := false;
     Result := nil;
     try
       sb := TStringBuilder.Create(1024 * 4);
       try
         FTCP.ReadTimeout := ATimeout;
         try
-          FirstValidChar := False;
+          FirstValidChar := false;
           FTCP.Socket.CheckForDataOnSource(1);
           while True do
           begin
@@ -570,7 +566,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
         begin
           Result := StompUtils.CreateFrame(sb.toString + CHAR0);
           if Result.GetCommand = 'ERROR' then
-            raise EStomp.Create(Result.GetHeaders.Value('message'));
+            raise EStompDisconnectionError.Create(Result.GetHeaders.Value('message'));
         end;
       finally
         sb.Free;
@@ -587,16 +583,27 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 
 
 begin
+  try
 
-  {$IFDEF USESYNAPSE}
+    {$IFDEF USESYNAPSE}
 
-  Result := InternalReceiveSynapse(ATimeout);
+    Result := InternalReceiveSynapse(ATimeout);
 
-  {$ELSE}
+    {$ELSE}
 
-  Result := InternalReceiveINDY(ATimeout);
+    Result := InternalReceiveINDY(ATimeout);
 
-  {$ENDIF}
+    {$ENDIF}
+
+  except
+    on E: EStompDisconnectionError do
+    begin
+      Disconnect;
+      raise;
+    end;
+    on E: Exception do
+      raise;
+  end
 
 end;
 
@@ -633,6 +640,8 @@ end;
 
 procedure TStompClient.SendFrame(AFrame: IStompFrame);
 begin
+  if not Connected then
+    raise EStomp.Create('StompClient not connected');
 
   {$IFDEF USESYNAPSE}
 
