@@ -1,6 +1,6 @@
 // Stomp Client for Embarcadero Delphi & FreePascal
 // Tested With ApacheMQ 5.2/5.3
-// Copyright (c) 2009-2013 Daniele Teti
+// Copyright (c) 2009-2009 Daniele Teti
 //
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
@@ -32,10 +32,6 @@ type
   TStompAcceptProtocol = (STOMP_Version_1_0, STOMP_Version_1_1);
 
   EStomp = class(Exception)
-  end;
-
-  EStompDisconnectionError = class(EStomp)
-
   end;
 
   TKeyValue = record
@@ -76,7 +72,7 @@ type
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613; ClientID: string = '';
       AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
-    procedure Disconnect(WithoutSendingFrame: Boolean = false);
+    procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
     procedure Unsubscribe(Queue: string);
@@ -110,7 +106,12 @@ type
     class function NewDurableSubscriptionHeader(const SubscriptionName: string): TKeyValue;
     class function NewPersistentHeader(const Value: Boolean): TKeyValue;
     class function NewReplyToHeader(const DestinationName: string): TKeyValue;
+
     /// /////////////////////////////////////////////7
+  const
+    MESSAGE_ID: string = 'message-id';
+    TRANSACTION: string = 'transaction';
+    /// /
     function Add(Key, Value: string): IStompHeaders; overload;
     function Add(HeaderItem: TKeyValue): IStompHeaders; overload;
     function Value(Key: string): string;
@@ -533,26 +534,16 @@ var
   frame     : IStompFrame;
   StopListen: Boolean;
 begin
-  StopListen := false;
-  while (not terminated) and (not StopListen) do
+  StopListen := False;
+  while not terminated do
   begin
-    try
-      if FStompClient.Receive(frame, 2000) then
+    if FStompClient.Receive(frame, 2000) then
+    begin
+      FStompClientListener.OnMessage(FStompClient, frame, StopListen);
+      if StopListen then
       begin
-        try
-          FStompClientListener.OnMessage(FStompClient, frame, StopListen);
-        except
-
-        end;
-      end;
-    except
-      on e: EStompDisconnectionError do
-      begin
-        try
-          StopListen := true;
-          FStompClientListener.OnStopListen(FStompClient);
-        except
-        end;
+        FStompClientListener.OnStopListen(FStompClient);
+        StopListening;
       end;
     end;
   end;
@@ -566,11 +557,8 @@ end;
 procedure TStompClientListener.StopListening;
 begin
   Terminate;
-  WaitFor;
-  try
-    FStompClientListener.OnStopListen(FStompClient);
-  except
-  end;
+  Free;
+  // WaitFor;
 end;
 
 function TStompClientListener._AddRef: Integer;
