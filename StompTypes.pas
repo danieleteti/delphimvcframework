@@ -62,6 +62,7 @@ type
     function GetBody: string;
     procedure SetBody(const Value: string);
     function GetHeaders: IStompHeaders;
+    function MessageID: string;
   end;
 
   IStompClient = interface
@@ -145,6 +146,7 @@ type
     // return '', when Key doesn't exist or Value of Key is ''
     // otherwise, return Value;
     function Output: string;
+    function MessageID: string;
     property Headers: IStompHeaders read GetHeaders write SetHeaders;
   end;
 
@@ -292,6 +294,11 @@ end;
 function TStompFrame.GetHeaders: IStompHeaders;
 begin
   Result := FHeaders;
+end;
+
+function TStompFrame.MessageID: string;
+begin
+  Result := self.GetHeaders.Value(TStompHeaders.MESSAGE_ID);
 end;
 
 function TStompFrame.Output: string;
