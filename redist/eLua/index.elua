@@ -1,0 +1,6 @@
+<html>
+<body>
+<h3>This is an eLua View</h3>
+<h3>This is an <?lua="Hello World"?> from Lua</h3>
+</body>
+</html>
