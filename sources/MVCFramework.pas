@@ -303,7 +303,6 @@ type
   TMVCEngine = class
   strict private
     FApplicationSession: TWebApplicationSession;
-
   private
     FWebModule: TWebModule;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
@@ -395,6 +394,9 @@ type
   TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest {$ELSE}TIdHTTPAppRequest{$ENDIF})
 
   end;
+
+threadvar
+  ctx: TRTTIContext;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -717,7 +719,6 @@ procedure TMVCEngine.HandleBuiltInMethods(const AWebRequest: TWebRequest;
 var
   j: TJSONObject;
   c: TMVCControllerClass;
-  ctx: TRttiContext;
   _type: TRttiInstanceType;
   _method: TRTTIMethod;
   _methods: TArray<TRTTIMethod>;

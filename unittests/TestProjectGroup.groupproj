@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{05A61BAB-DCAC-4484-8D04-9F8BBC002114}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="DMVCFrameworkTests\DMVCFrameworkTests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="TestServer\TestServer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DMVCFrameworkTests">
+        <MSBuild Projects="DMVCFrameworkTests\DMVCFrameworkTests.dproj"/>
+    </Target>
+    <Target Name="DMVCFrameworkTests:Clean">
+        <MSBuild Projects="DMVCFrameworkTests\DMVCFrameworkTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DMVCFrameworkTests:Make">
+        <MSBuild Projects="DMVCFrameworkTests\DMVCFrameworkTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestServer">
+        <MSBuild Projects="TestServer\TestServer.dproj"/>
+    </Target>
+    <Target Name="TestServer:Clean">
+        <MSBuild Projects="TestServer\TestServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestServer:Make">
+        <MSBuild Projects="TestServer\TestServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DMVCFrameworkTests;TestServer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
