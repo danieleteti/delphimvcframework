@@ -1,0 +1,13 @@
+This is a normal text file
+but now I'm start a Lua tag 
+<?lua
+  --here I can write simple Lua code
+  for i = 1,5 do
+    print("i = " .. tostring(i));
+  end
+?>
+And now back to the simple text mode
+Expressions are supported too.
+Do you know what is the result of 5*5?
+5*5 = <?lua= 5*5 ?>
+bye bye

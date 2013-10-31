@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+	<title>LuaLogging: uma API simples para usar os recursos de log em Lua</title>
+    <link rel="stylesheet" href="http://www.keplerproject.org/doc.css" type="text/css"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
+	
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"><a href="http://www.keplerproject.org">
+    <img alt="Logotipo do LuaLogging" src="../images/lualogging-128.png"/></a></div>
+	<div id="product_name"><big><strong>LuaLogging</strong></big></div>
+	<div id="product_description">Uma API simples para usar recursos de log em Lua</div>
+</div> <!-- id="product" -->
+
+<div id="main">
+
+<div id="navigation">
+<h1>LuaLogging</h1>
+	<ul>
+		<li><a href="index.html">In&iacute;cio</a>
+			<ul>
+				<li><a href="index.html#overview">Vis&atilde;o geral</a></li>
+				<li><a href="index.html#status">Status</a></li>
+				<li><a href="index.html#download">Download</a></li>
+				<li><a href="index.html#history">Hist&oacute;rico</a></li>
+				<li><a href="index.html#credits">Cr&eacute;ditos</a></li>
+				<li><a href="index.html#contact">Fale conosco</a></li>
+			</ul>
+		</li>
+		<li><a href="manual.html">Manual</a>
+			<ul>
+				<li><a href="manual.html#introduction">Introdu&ccedil;&atilde;o</a></li>
+				<li><a href="manual.html#installation">Instala&ccedil;&atilde;o</a></li>
+				<li><a href="manual.html#logger">Objetos logger</a></li>
+				<li><a href="manual.html#examples">Exemplos</a></li>
+			</ul>
+		</li>
+		<li><a href="manual.html#appenders">Appenders</a>
+			<ul>
+				<li><a href="console.html">Console</a></li>
+				<li><a href="file.html">Arquivo</a></li>
+				<li><a href="sql.html">SQL</a></li>
+				<li><strong>Soquete</strong></li>
+				<li><a href="email.html">Email</a></li>
+			</ul>
+		</li>
+		<li><a href="https://github.com/Neopallium/lualogging">Project</a>
+			<ul>
+				<li><a href="https://github.com/Neopallium/lualogging/issues">Bug Tracker</a></li>
+			</ul>
+		</li>
+		<li><a href="license.html">Licen&ccedil;a</a></li>
+	</ul>
+</div> <!-- id="navigation" -->
+
+<div id="content">
+
+<h2>Appender de <em>socket</em></h2>
+
+<p>Este appender pode ser usado para enviar solicita&ccedil;&otilde;es de log
+por um <em>socket</em>. O appender de <em>socket</em> depende do
+<a href="http://www.tecgraf.puc-rio.br/luasocket">LuaSocket</a>
+para ser executado.<br/> Depois de cada solicita&ccedil;&atilde;o de log,
+uma conex&atilde;o &eacute; aberta, a mensagem, enviada e a conex&atilde;o, fechada.</p>
+
+<pre class="example">
+function logging.socket(address, port [,logPattern])
+</pre>
+
+<ul>
+    <li><code>address</code>:<br /> O endere&ccedil;o pode ser um endere&ccedil;o IP
+    ou o nome de um host ao qual a mensagem de log ser&aacute; enviada.</li>
+    
+    <li><code>port</code>:<br /> A porta deve ser um n&uacute;mero inteiro dentro do
+    intervalo [1..64K).</li>
+    
+    <li><code>logPattern</code>:<br /> &Eacute; poss&iacute;vel especificar um
+    padr&atilde;o para controlar o modo como a mensagem &eacute; gravada.<br />
+    O valor padr&atilde;o &eacute; <code>&quot;%date %level %message\n&quot;</code>.</li>
+</ul>
+
+<h2>Exemplo</h2>
+
+<pre class="example">
+require&quot;logging.socket&quot;
+
+local logger = logging.socket(&quot;localhost&quot;, 5000)
+
+logger:info(&quot;logging.socket test&quot;)
+logger:debug(&quot;debugging...&quot;)
+logger:error(&quot;error!&quot;)
+</pre>
+
+</div> <!-- id="content" -->
+
+</div> <!-- id="main" -->
+
+<div id="about">
+	<p><a href="http://validator.w3.org/check?uri=referer">
+    <img src="http://www.w3.org/Icons/valid-xhtml10" alt="XHTML 1.0 v&aacute;lido!" height="31" width="88" /></a></p>
+</div> <!-- id="about" -->
+
+</div> <!-- id="container" -->
+
+</body>
+</html>

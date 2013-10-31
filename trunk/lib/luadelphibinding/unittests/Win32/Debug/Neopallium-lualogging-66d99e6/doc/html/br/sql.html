@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+	<title>LuaLogging: uma API simples para usar os recursos de log em Lua</title>
+    <link rel="stylesheet" href="http://www.keplerproject.org/doc.css" type="text/css"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
+	
+<div id="container">
+
+<div id="product">
+	<div id="product_logo"><a href="http://www.keplerproject.org">
+    <img alt="Logotipo do LuaLogging" src="../images/lualogging-128.png"/></a></div>
+	<div id="product_name"><big><strong>LuaLogging</strong></big></div>
+	<div id="product_description">Uma API simples para usar recursos de log em Lua</div>
+</div> <!-- id="product" -->
+
+<div id="main">
+
+<div id="navigation">
+<h1>LuaLogging</h1>
+	<ul>
+		<li><a href="index.html">In&iacute;cio</a>
+			<ul>
+				<li><a href="index.html#overview">Vis&atilde;o geral</a></li>
+				<li><a href="index.html#status">Status</a></li>
+				<li><a href="index.html#download">Download</a></li>
+				<li><a href="index.html#history">Hist&oacute;rico</a></li>
+				<li><a href="index.html#credits">Cr&eacute;ditos</a></li>
+				<li><a href="index.html#contact">Fale conosco</a></li>
+			</ul>
+		</li>
+		<li><a href="manual.html">Manual</a>
+			<ul>
+				<li><a href="manual.html#introduction">Introdu&ccedil;&atilde;o</a></li>
+				<li><a href="manual.html#installation">Instala&ccedil;&atilde;o</a></li>
+				<li><a href="manual.html#logger">Objetos logger</a></li>
+				<li><a href="manual.html#examples">Exemplos</a></li>
+			</ul>
+		</li>
+		<li><a href="manual.html#appenders">Appenders</a>
+			<ul>
+				<li><a href="console.html">Console</a></li>
+				<li><a href="file.html">Arquivo</a></li>
+				<li><strong>SQL</strong></li>
+				<li><a href="socket.html">Soquete</a></li>
+				<li><a href="email.html">Email</a></li>
+			</ul>
+		</li>
+		<li><a href="https://github.com/Neopallium/lualogging">Project</a>
+			<ul>
+				<li><a href="https://github.com/Neopallium/lualogging/issues">Bug Tracker</a></li>
+			</ul>
+		</li>
+		<li><a href="license.html">Licen&ccedil;a</a></li>
+	</ul>
+</div> <!-- id="navigation" -->
+
+<div id="content">
+
+<h2>Appender de SQL</h2>
+
+<p>O appender de SQL pode ser usado para escrever mensagens de log em uma tabela
+de banco de dados SQL. Ele utiliza para tal 
+<a href="http://www.keplerproject.org/luasql/">LuaSQL</a>, portanto 
+&eacute; poss&iacute;vel usar qualquer banco de dados suportado.</p>
+
+<pre class="example">
+function logging.sql{
+    connectionfactory = <i>function</i>,
+    [tablename = <i>string</i>,]
+    [logdatefield = <i>string</i>,]
+    [loglevelfield = <i>string</i>,]
+    [logmessagefield = <i>string</i>,]
+    [keepalive = <i>boolean</i>],
+}
+</pre>
+
+<ul>
+    <li><code>connectionfactory</code>:<br /> Precisa necessariamente ser uma
+    fun&ccedil;&atilde;o que cria um objeto de conex&atilde;o LuaSQL.
+    Essa fun&ccedil;&atilde;o ser&aacute; chamada sempre que for preciso criar
+    uma conex&atilde;o.</li>
+    
+    <li><code>tablename</code>:<br /> O nome da tabela para gravar as
+    solicita&ccedil;&otilde;es de log. O valor padr&atilde;o &eacute;
+    <code>&quot;LogTable&quot;</code>.</li>
+    
+    <li><code>logdatefield</code>:<br /> O nome do campo para gravar a data de
+    cada solicita&ccedil;&atilde;o de log. O valor padr&atilde;o &eacute;
+    <code>&quot;LogDate&quot;</code>.</li>
+    
+    <li><code>loglevelfield</code>:<br /> O nome do campo para gravar o
+    n&iacute;vel de cada solicita&ccedil;&atilde;o de log.
+    O valor padr&atilde;o &eacute; <code>&quot;LogLevel&quot;</code>.</li>
+    
+    <li><code>logmessagefield</code>:<br /> O nome do campo para gravar a
+    mensagem de cada solicita&ccedil;&atilde;o de log.
+    O valor padr&atilde;o &eacute; <code>&quot;LogMessage&quot;</code>.</li>
+    
+    <li><code>keepalive</code>:<br /> Em toda solicita&ccedil;&atilde;o de log,
+    uma conex&atilde;o com o banco de dados &eacute; aberta, a mensagem, escrita
+    e a conex&atilde;o, fechada.<br /> Se o usu&aacute;rio quiser manter a
+    conex&atilde;o aberta, pode especificar <code>keepalive = true</code>.</li>
+</ul>
+
+<h2>Exemplo</h2>
+
+<pre class="example">
+require&quot;logging.sql&quot;
+require&quot;luasql.jdbc&quot;
+
+local env, err = luasql.jdbc('com.mysql.jdbc.Driver')
+
+local logger = logging.sql {
+  connectionfactory = function()
+    local con, err = env:connect('jdbc:mysql://localhost/test',
+                                 'tcp', '123')
+    assert(con, err)
+    return con
+  end,
+  keepalive = true,
+}
+
+logger:info(&quot;teste de logging.sql&quot;)
+logger:debug(&quot;depurando...&quot;)
+logger:error(&quot;erro!&quot;)
+</pre>
+
+</div> <!-- id="content" -->
+
+</div> <!-- id="main" -->
+
+<div id="about">
+	<p><a href="http://validator.w3.org/check?uri=referer">
+    <img src="http://www.w3.org/Icons/valid-xhtml10" alt="XHTML 1.0 v&aacute;lido!" height="31" width="88" /></a></p>
+</div> <!-- id="about" -->
+
+</div> <!-- id="container" -->
+
+</body>
+</html>
