@@ -1,0 +1,57 @@
+LuaLogging
+==========
+http://neopallium.github.com/lualogging/
+
+LuaLogging provides a simple API to use logging features in Lua.
+Its design was based on log4j. LuaLogging currently supports,
+through the use of appenders, console, file, rolling file, email, socket and sql outputs.
+
+Current version is 1.2.0. It was developed for Lua 5.1.
+
+LuaLogging is free software and uses the same license as Lua 5.1. It is part of the Kepler Project. 
+
+Please see docs at http://neopallium.github.com/lualogging/ for more details
+
+Installation
+============
+
+Release 1.2.0
+-------------
+
+With LuaRocks:
+
+	$ sudo luarocks install lualogging
+
+Latest Git revision
+-------------------
+
+With LuaRocks 2.0.4.1:
+
+	$ sudo luarocks install https://github.com/Neopallium/lualogging/raw/master/lualogging-scm-0.rockspec
+
+With make:
+
+	$ sudo make
+
+
+Guide lines for improved logging performance
+============================================
+
+The changes that I have made allow more complex log message formatting to be done only when 
+that log level is enabled.  This will decrease the impact of logging statement when their level 
+is disabled.
+
+* Use string.format() style formatting:
+
+logger:info("Some message prefix: val1='%s', val2=%d", "some string value", 1234)
+
+* For more complex log message formatting:
+
+local function log_callback(val1, val2)
+	-- Do some complex pre-processing of parameters, maybe dump a table to a string.
+	return string.format("Some message prefix: val1='%s', val2=%d", val1, val2)
+end
+-- function 'log_callback' will only be called if the current log level is "DEBUG"
+logger:debug(log_callback, "some string value", 1234)
+
+
