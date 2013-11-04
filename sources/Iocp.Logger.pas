@@ -1,3 +1,8 @@
+{
+THIS UNIT IS A MODIFIED VERSION OF delphi-iocp-framework PROJECT
+You can find the modified version here
+https://code.google.com/p/delphi-iocp-framework/
+}
 unit Iocp.Logger;
 
 interface
