@@ -1812,8 +1812,8 @@ end;
 procedure TMVCController.Render(AJSONValue: TJSONValue;
   AInstanceOwner: boolean);
 begin
-  ContentType := 'application/json';
-  Context.Response.Content := AJSONValue.ToString;
+  ContentType := 'application/json; charset=UTF-8';
+  Context.Response.Content := UTF8Encode(AJSONValue.ToString);
   if AInstanceOwner then
     FreeAndNil(AJSONValue)
 end;
