@@ -55,15 +55,23 @@ type
       const Value: TValue); overload;
     class function Clone(Obj: TObject): TObject; static;
     class procedure CopyObject(SourceObj, TargetObj: TObject); static;
-   class procedure CopyObjectAS<T:class>(SourceObj, TargetObj: TObject); static;
+    class procedure CopyObjectAS<T: class>(SourceObj, TargetObj: TObject); static;
     class function CreateObject(ARttiType: TRttiType): TObject; overload; static;
     class function CreateObject(AQualifiedClassName: string): TObject; overload; static;
     class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiObject)
       : T; overload;
     class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiType)
       : T; overload;
+
     class function HasAttribute<T: TCustomAttribute>
       (const Obj: TRttiObject): boolean; overload;
+    class function HasAttribute<T: class>(aObj: TObject; out AAttribute: T)
+      : boolean; overload;
+    class function HasAttribute<T: class>(ARTTIMember: TRttiMember; out AAttribute: T)
+      : boolean; overload;
+    class function HasAttribute<T: class>(ARTTIMember: TRttiType; out AAttribute: T)
+      : boolean; overload;
+
     class function TValueAsString(const Value: TValue;
       const PropertyType, CustomFormat: string): string;
     class function EqualValues(source, destination: TValue): boolean;
@@ -72,8 +80,10 @@ type
     class procedure ForEachProperty(Clazz: TClass; Proc: TProc<TRttiProperty>);
     class function HasStringValueAttribute<T: class>(ARTTIMember: TRttiMember; out Value: string)
       : boolean;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiMember; out AAttribute: T)
-      : boolean; overload;
+    class function BuildClass(AQualifiedName: string; Params: array of TValue): TObject;
+    class function FindType(QualifiedName: string): TRttiType;
+    class function GetGUID<T>: TGUID;
+
   end;
 
 function FieldFor(const PropertyName: string): string; inline;
@@ -252,6 +262,24 @@ begin
       AAttribute := T(Attr);
       Exit(true);
     end;
+end;
+
+class function TRTTIUtils.HasAttribute<T>(ARTTIMember: TRttiType;
+  out AAttribute: T): boolean;
+var
+  attrs: TArray<TCustomAttribute>;
+  Attr : TCustomAttribute;
+begin
+  AAttribute := nil;
+  Result := False;
+  attrs := ARTTIMember.GetAttributes;
+  for Attr in attrs do
+    if Attr is T then
+    begin
+      AAttribute := T(Attr);
+      Exit(true);
+    end;
+
 end;
 
 class
@@ -453,6 +481,16 @@ begin
     Result := EmptyStr;
 end;
 
+class function TRTTIUtils.GetGUID<T>: TGUID;
+var
+  Tp: TRttiType;
+begin
+  Tp := ctx.GetType(TypeInfo(T));
+  if not (Tp.TypeKind = tkInterface) then
+    raise Exception.Create('Type is no interface');
+  Result := TRttiInterfaceType(Tp).GUID;
+end;
+
 class function TRTTIUtils.GetMethod(AObject: TObject;
   AMethodName: string): TRttiMethod;
 var
@@ -540,6 +578,11 @@ begin
       Exit(elem);
   end;
   Result := nil;
+end;
+
+class function TRTTIUtils.FindType(QualifiedName: string): TRttiType;
+begin
+  Result := ctx.FindType(QualifiedName);
 end;
 
 class
@@ -726,7 +769,6 @@ begin
     end;
   end;
 
-
 end;
 
 class
@@ -766,6 +808,18 @@ begin
   { Second solution, dirty and fast }
   // Result := TObject(ARttiType.GetMethod('Create')
   // .Invoke(ARttiType.AsInstance.MetaclassType, []).AsObject);
+end;
+
+class function TRTTIUtils.BuildClass(AQualifiedName: string;
+  Params: array of TValue): TObject;
+var
+  T: TRttiType;
+  V: TValue;
+begin
+
+  T := FindType(AQualifiedName);
+  V := T.GetMethod('Create').Invoke(T.AsInstance.MetaclassType, Params);
+  Result := V.AsObject;
 end;
 
 class
@@ -854,5 +908,12 @@ begin
 end;
 
 { TListDuckTyping }
+
+class function TRTTIUtils.HasAttribute<T>(aObj: TObject;
+  out AAttribute: T): boolean;
+begin
+  HasAttribute<T>(ctx.GetType(aObj.ClassType), AAttribute)
+end;
+
 
 end.
