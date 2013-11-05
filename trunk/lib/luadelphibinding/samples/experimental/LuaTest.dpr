@@ -2,10 +2,11 @@ program LuaTest;
 
 uses
   Vcl.Forms,
-  Unit11 in 'Unit11.pas' {Form11},
-  LuaWrapper in '..\src\LuaWrapper.pas',
-  LuaWrapper.CustomType.DataSet in '..\src\LuaWrapper.CustomType.DataSet.pas',
-  LuaIntf in '..\src\LuaIntf.pas';
+  Unit11 in 'Unit11.pas' {Form11} ,
+  LuaBind.Intf in '..\..\LuaBind.Intf.pas',
+  LuaBind in '..\..\LuaBind.pas',
+  LuaBind.CustomType.DataSet in '..\..\LuaBind.CustomType.DataSet.pas',
+  LuaBind.DelphiObjects in '..\..\LuaBind.DelphiObjects.pas';
 
 {$R *.res}
 

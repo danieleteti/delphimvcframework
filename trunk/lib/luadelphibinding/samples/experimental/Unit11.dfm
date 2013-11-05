@@ -45,7 +45,7 @@ object Form11: TForm11
     Left = 8
     Top = 119
     Width = 179
-    Height = 81
+    Height = 58
     Caption = 'Button4'
     TabOrder = 3
     OnClick = Button4Click
@@ -95,7 +95,6 @@ object Form11: TForm11
     Width = 240
     Height = 25
     DataSource = DataSource1
-    Kind = dbnHorizontal
     TabOrder = 5
   end
   object Button5: TButton
