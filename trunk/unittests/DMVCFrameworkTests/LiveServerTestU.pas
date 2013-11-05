@@ -29,6 +29,7 @@ type
     procedure TestAsynchRequestPUT;
     procedure TestAsynchRequestGET;
     procedure TestAsynchRequestDELETE;
+    procedure TestEncodingRenderJSONValue;
   end;
 
 implementation
@@ -65,8 +66,8 @@ end;
 procedure TServerTest.TestAsynchRequestDELETE;
 var
   evt: TEvent;
-  r  : TWaitResult;
-  ok : boolean;
+  r: TWaitResult;
+  ok: boolean;
 begin
   ok := false;
   evt := TEvent.Create;
@@ -92,8 +93,8 @@ end;
 procedure TServerTest.TestAsynchRequestGET;
 var
   evt: TEvent;
-  r  : TWaitResult;
-  j  : TJSONObject;
+  r: TWaitResult;
+  j: TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -126,8 +127,8 @@ end;
 procedure TServerTest.TestAsynchRequestPOST;
 var
   evt: TEvent;
-  r  : TWaitResult;
-  j  : TJSONObject;
+  r: TWaitResult;
+  j: TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -161,8 +162,8 @@ end;
 procedure TServerTest.TestAsynchRequestPUT;
 var
   evt: TEvent;
-  r  : TWaitResult;
-  j  : TJSONObject;
+  r: TWaitResult;
+  j: TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -193,9 +194,19 @@ begin
   end;
 end;
 
+procedure TServerTest.TestEncodingRenderJSONValue;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/encoding', []);
+  CheckEquals('jørn', res.BodyAsJsonObject.Get('name1').JsonValue.Value);
+  CheckEquals('Što je Unicode?', res.BodyAsJsonObject.Get('name2').JsonValue.Value);
+  CheckEquals('àèéìòù', res.BodyAsJsonObject.Get('name3').JsonValue.Value);
+end;
+
 procedure TServerTest.TestPOSTWithParamsAndJSONBody;
 var
-  r   : IRESTResponse;
+  r: IRESTResponse;
   json: TJSONObject;
 begin
   json := TJSONObject.Create;
@@ -207,7 +218,7 @@ end;
 
 procedure TServerTest.TestPUTWithParamsAndJSONBody;
 var
-  r   : IRESTResponse;
+  r: IRESTResponse;
   json: TJSONObject;
 begin
   json := TJSONObject.Create;
@@ -250,7 +261,7 @@ end;
 
 procedure TServerTest.TestSession;
 var
-  c1 : TRESTClient;
+  c1: TRESTClient;
   res: IRESTResponse;
 begin
   c1 := TRESTClient.Create('localhost', 8888);
@@ -278,7 +289,7 @@ end;
 procedure TBaseServerTest.DoLoginWith(
   UserName: string);
 var
-  p  : TJSONObject;
+  p: TJSONObject;
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/login', [UserName]);
