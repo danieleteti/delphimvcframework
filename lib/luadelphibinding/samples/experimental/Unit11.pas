@@ -12,7 +12,6 @@ uses
   Vcl.Controls,
   Vcl.Forms,
   Vcl.Dialogs,
-  dorLua,
   Vcl.StdCtrls,
   Data.DB,
   Datasnap.DBClient,
@@ -43,6 +42,7 @@ type
     procedure Button4Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button5Click(Sender: TObject);
+
   private
     { Private declarations }
   public
@@ -51,20 +51,21 @@ type
 
   TPersona = class
   private
-    FAge: Integer;
-    FLastName: String;
-    FFirstName: String;
-    FBornDate: TDateTime;
-    FChild: TPersona;
+    FAge      : Integer;
+    FLastName : string;
+    FFirstName: string;
+    FBornDate : TDateTime;
+    FChild    : TPersona;
     procedure SetAge(const Value: Integer);
-    procedure SetFirstName(const Value: String);
-    procedure SetLastName(const Value: String);
+    procedure SetFirstName(const Value: string);
+    procedure SetLastName(const Value: string);
     procedure SetBornDate(const Value: TDateTime);
     procedure SetChild(const Value: TPersona);
+
   public
     class function NewPersona: TPersona;
-    property FirstName: String read FFirstName write SetFirstName;
-    property LastName: String read FLastName write SetLastName;
+    property FirstName: string read FFirstName write SetFirstName;
+    property LastName: string read FLastName write SetLastName;
     property Age: Integer read FAge write SetAge;
     property BornDate: TDateTime read FBornDate write SetBornDate;
     property Child: TPersona read FChild write SetChild;
@@ -78,7 +79,8 @@ implementation
 uses
   rtti,
   System.TypInfo,
-  LuaWrapper;
+  LuaBind.Intf,
+  LuaBind;
 
 {$R *.dfm}
 
@@ -98,7 +100,7 @@ begin
     begin
       if lua_pcall(state, 0, 1, 0) <> 0 then
       begin
-        ShowMessage(lua_tostring(state, -1));
+        ShowMessage(lua_tostring(state, - 1));
         lua_pop(state, 1);
       end
       else
@@ -108,7 +110,7 @@ begin
     end
     else
     begin
-      ShowMessage(lua_tostring(state, -1));
+      ShowMessage(lua_tostring(state, - 1));
       lua_pop(state, 1);
     end;
   finally
@@ -131,25 +133,25 @@ var
   v: pansichar;
   s: ansistring;
 begin
-  assert(lua_istable(L, -1));
-  lua_getfield(L, -1, pansichar('nome'));
-  s := lua_tostring(L, -1);
+  assert(lua_istable(L, - 1));
+  lua_getfield(L, - 1, pansichar('nome'));
+  s := lua_tostring(L, - 1);
   lua_pushstring(L, pansichar(s));
   Result := 1; // * number of results * /
 end;
 
 function _setcaption(L: Plua_State): Integer; cdecl;
 var
-  form: TForm;
+  form      : TForm;
   newcaption: ansistring;
 begin
-  assert(lua_type(L, -1) = LUA_TSTRING);
-  assert(lua_type(L, -2) = LUA_TLIGHTUSERDATA);
+  assert(lua_type(L, - 1) = LUA_TSTRING);
+  assert(lua_type(L, - 2) = LUA_TLIGHTUSERDATA);
 
-  newcaption := lua_tostring(L, -1);
+  newcaption := lua_tostring(L, - 1);
   lua_pop(L, 1);
 
-  form := TForm(lua_topointer(L, -1));
+  form := TForm(lua_topointer(L, - 1));
   lua_pop(L, 1);
 
   form.Caption := newcaption;
@@ -158,17 +160,17 @@ end;
 
 function doSomethingOnDelphiObject(L: Plua_State): Integer; cdecl;
 var
-  v: pansichar;
-  s: ansistring;
-  p: Pointer;
+  v   : pansichar;
+  s   : ansistring;
+  p   : Pointer;
   form: TForm11;
 begin
 
-//  TFileStream.Create('', fmCreate);
+  // TFileStream.Create('', fmCreate);
 
-  assert(lua_islightuserdata(L, -1));
+  assert(lua_islightuserdata(L, - 1));
   // lua_pop(L, );
-  p := lua_topointer(L, -1);
+  p := lua_topointer(L, - 1);
   lua_pop(L, 1);
   form := TForm11(p);
   form.Caption := 'Cambiato da Lua';
@@ -185,19 +187,19 @@ begin
   lua_newtable(L);
   lua_pushstring(L, 'nome');
   lua_pushstring(L, 'Daniele');
-  lua_settable(L, -3);
+  lua_settable(L, - 3);
 
   lua_pushstring(L, 'cognome');
   lua_pushstring(L, 'Teti');
-  lua_settable(L, -3);
+  lua_settable(L, - 3);
 
   lua_pushstring(L, 'eta');
   lua_pushnumber(L, 3);
-  lua_settable(L, -3);
+  lua_settable(L, - 3);
 
   lua_pushstring(L, 'fullname');
   lua_pushcfunction(L, @myfullname);
-  lua_settable(L, -3);
+  lua_settable(L, - 3);
 
   lua_setglobal(L, 'daniele');
 end;
@@ -231,9 +233,9 @@ begin
 end;
 
 function Load(filename: ansistring; out AWidth: Integer;
-  out AHeight: Integer): String;
+  out AHeight: Integer): string;
 var
-  L: Plua_State;
+  L       : Plua_State;
   AStringa: string;
 begin
   L := lua_open();
@@ -245,7 +247,7 @@ begin
 
   if (luaL_loadfile(L, pansichar(filename)) > 0) then
   begin
-    Exit('Cannot run configuration file ' + lua_tostring(L, -1));
+    Exit('Cannot run configuration file ' + lua_tostring(L, - 1));
   end;
 
   SetSomeVariables(L);
@@ -265,25 +267,25 @@ begin
 
   if lua_pcall(L, 0, 0, 0) > 0 then
   begin
-    Exit('Cannot exec configuration file ' + lua_tostring(L, -1));
+    Exit('Cannot exec configuration file ' + lua_tostring(L, - 1));
   end;
 
   lua_getglobal(L, 'width');
   lua_getglobal(L, 'height');
   lua_getglobal(L, 'stringa');
 
-  if (lua_isnumber(L, -3) = 0) then
+  if (lua_isnumber(L, - 3) = 0) then
     Exit('Width should be a number');
 
-  if (lua_isnumber(L, -2) = 0) then
+  if (lua_isnumber(L, - 2) = 0) then
     Exit('Height should be a number');
 
-  if (lua_isstring(L, -1) = 0) then
+  if (lua_isstring(L, - 1) = 0) then
     Exit('stringa should be a string');
 
-  AWidth := lua_tointeger(L, -3);
-  AHeight := lua_tointeger(L, -2);
-  AStringa := lua_tostring(L, -1);
+  AWidth := lua_tointeger(L, - 3);
+  AHeight := lua_tointeger(L, - 2);
+  AStringa := lua_tostring(L, - 1);
   lua_close(L);
   Result := Format('Width: %d, Height: %d, Stringa: %s',
     [AWidth, AHeight, AStringa]);
@@ -300,12 +302,12 @@ end;
 procedure push_object_properties(L: Plua_State; AObject: TObject;
   AName: string);
 var
-  prop: TRttiProperty;
-  ctx: TRttiContext;
+  prop      : TRttiProperty;
+  ctx       : TRttiContext;
   properties: TArray<TRttiProperty>;
-  k: ansistring;
-  Value: TValue;
-  v: ansistring;
+  k         : ansistring;
+  Value     : TValue;
+  v         : ansistring;
 begin
   ctx := TRttiContext.Create;
   try
@@ -337,7 +339,7 @@ begin
           push_object_properties(L, Value.AsObject, '');
       end;
 
-      lua_settable(L, -3);
+      lua_settable(L, - 3);
     end;
   finally
     ctx.Free;
@@ -347,12 +349,12 @@ end;
 procedure push_table(L: Plua_State; Keys: array of ansistring;
   Values: array of ansistring);
 var
-  key: TObject;
-  I: Integer;
-  k: ansistring;
-  v: ansistring;
+  key         : TObject;
+  I           : Integer;
+  k           : ansistring;
+  v           : ansistring;
   pvalue, pkey: pansichar;
-  le: Cardinal;
+  le          : Cardinal;
 begin
   // lua_newtable(L);
   // pkey := GetMemory(Length('firstname') + 1);
@@ -366,13 +368,13 @@ begin
   // lua_settable(L, -3);
 
   lua_newtable(L);
-  for I := 0 to High(Keys) do
+  for I := 0 to high(Keys) do
   begin
     k := Keys[I];
     v := Values[I];
     lua_pushstring(L, pansichar(k));
     lua_pushstring(L, pansichar(v));
-    lua_settable(L, -3);
+    lua_settable(L, - 3);
   end;
 
 
@@ -394,7 +396,7 @@ end;
 
 procedure TForm11.Button3Click(Sender: TObject);
 var
-  L: Plua_State;
+  L      : Plua_State;
   persona: TPersona;
 begin
   persona := TPersona.Create;
@@ -403,14 +405,14 @@ begin
     persona.LastName := 'Teti';
     persona.Age := 32;
     persona.BornDate := date;
-    // persona.Child := TPersona.NewPersona;
+    persona.Child := TPersona.NewPersona;
 
     L := lua_open;
     try
       luaL_openlibs(L);
       if luaL_loadfile(L, 'test01.html') > 0 then
         raise Exception.Create('Cannot run configuration file ' +
-          lua_tostring(L, -1));
+          lua_tostring(L, - 1));
 
       // push_table(L, ['firstname', 'lastname'], ['Daniele', 'Teti']);
       push_object_properties(L, persona, 'persona');
@@ -418,14 +420,15 @@ begin
       if lua_pcall(L, 0, 0, 0) > 0 then
       begin
         raise Exception.Create('Cannot exec configuration file ' +
-          lua_tostring(L, -1));
+          lua_tostring(L, - 1));
       end;
       lua_getglobal(L, 'p');
-      ShowMessage(lua_tostring(L, -1));
+      ShowMessage(lua_tostring(L, - 1));
     finally
       lua_close(L);
     end;
   finally
+    persona.Child.Free;
     persona.Free;
   end;
 end;
@@ -433,7 +436,7 @@ end;
 procedure TForm11.Button4Click(Sender: TObject);
 var
   lua: TLuaEngine;
-  v: ILuaValue;
+  v  : ILuaValue;
 begin
   lua := TLuaEngine.Create;
   try
@@ -452,15 +455,15 @@ end;
 
 procedure TForm11.Button5Click(Sender: TObject);
 begin
-  ClientDataSet1.SaveToFile(ClientDataSet1.filename);
-  ClientDataSet1.Close;
+  // ClientDataSet1.SaveToFile(ClientDataSet1.filename);
+  // ClientDataSet1.Close;
 end;
 
 procedure TForm11.FormCreate(Sender: TObject);
 begin
-  ClientDataSet1.Close;
-  ClientDataSet1.FileName:= '..\..\..\unittests\win32\debug\samplecds.xml';
-  ClientDataSet1.Open;
+  // ClientDataSet1.Close;
+  // ClientDataSet1.filename := '..\..\..\unittests\win32\debug\samplecds.xml';
+  // ClientDataSet1.Open;
 end;
 
 { TPersona }
@@ -489,12 +492,12 @@ begin
   FChild := Value;
 end;
 
-procedure TPersona.SetFirstName(const Value: String);
+procedure TPersona.SetFirstName(const Value: string);
 begin
   FFirstName := Value;
 end;
 
-procedure TPersona.SetLastName(const Value: String);
+procedure TPersona.SetLastName(const Value: string);
 begin
   FLastName := Value;
 end;
