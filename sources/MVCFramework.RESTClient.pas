@@ -24,6 +24,8 @@ type
     function ResponseCode: Word;
     function ResponseText: string;
     function Headers: TStringlist;
+    function GetContentType: String;
+    function GetContentEncoding: String;
     function Body: TStringStream;
     procedure SetResponseCode(AResponseCode: Word);
     procedure SetResponseText(AResponseText: string);
@@ -32,12 +34,14 @@ type
 
   TRESTResponse = class(TInterfacedObject, IRESTResponse)
   private
-    FBody            : TStringStream;
-    FResponseCode    : Word;
-    FResponseText    : string;
-    FHeaders         : TStringlist;
+    FBody: TStringStream;
+    FResponseCode: Word;
+    FResponseText: string;
+    FHeaders: TStringlist;
     FBodyAsJSONObject: TJSONObject;
-
+    FContentType: string;
+    FContentEncoding: String;
+    function GetHeader(const Value: String): String;
   public
     function BodyAsString: string;
     function BodyAsJsonObject: TJSONObject;
@@ -45,30 +49,31 @@ type
     function ResponseText: string;
     function Headers: TStringlist;
     function Body: TStringStream;
+    function GetContentType: String;
+    function GetContentEncoding: String;
 
     procedure SetResponseCode(AResponseCode: Word);
     procedure SetResponseText(AResponseText: string);
     procedure SetHeaders(AHeaders: TStrings);
-
     constructor Create; virtual;
     destructor Destroy; override;
   end;
 
   TRESTClient = class(TInterfacedObject)
   private
-    FServerName         : string;
-    FServerPort         : Word;
-    FBodyParams         : TStringlist;
-    FQueryStringParams  : TStringlist;
-    FAccept             : string;
-    FRawBody            : TStringStream;
-    FHTTP               : TIdHTTP;
-    FContentType        : string;
-    FLastSessionID      : string;
+    FServerName: string;
+    FServerPort: Word;
+    FBodyParams: TStringlist;
+    FQueryStringParams: TStringlist;
+    FAccept: string;
+    FRawBody: TStringStream;
+    FHTTP: TIdHTTP;
+    FContentType: string;
+    FLastSessionID: string;
     FNextRequestIsAsynch: Boolean;
-    FAsychProc          : TProc<IRESTResponse, Exception>;
-    FPrimaryThread      : TThread;
-    FMultiPartFormData  : TIdMultiPartFormDataStream;
+    FAsychProc: TProc<IRESTResponse, Exception>;
+    FPrimaryThread: TThread;
+    FMultiPartFormData: TIdMultiPartFormDataStream;
     function EncodeQueryStringParams(const AQueryStringParams: TStrings;
       IncludeQuestionMark: Boolean = true): string;
     procedure SetBodyParams(const Value: TStringlist);
@@ -305,7 +310,7 @@ begin
 end;
 
 procedure TRESTClient.StartAsynchRequestJSONBody(AHTTPMethod: THttpCommand;
-  AUrl: string; AJSONValue: TJSONValue; AOwnsJSONBody: Boolean);
+AUrl: string; AJSONValue: TJSONValue; AOwnsJSONBody: Boolean);
 var
   th: TThread;
 begin
@@ -377,7 +382,7 @@ begin
 end;
 
 function TRESTClient.doPOST(AResource: string; AResourceParams: array of string;
-  AJSONValue: TJSONValue; AOwnsJSONBody: Boolean): IRESTResponse;
+AJSONValue: TJSONValue; AOwnsJSONBody: Boolean): IRESTResponse;
 var
   url: string;
 begin
@@ -404,7 +409,7 @@ begin
 end;
 
 function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;
-  AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true): IRESTResponse;
+AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true): IRESTResponse;
 var
   url: string;
 begin
@@ -494,7 +499,7 @@ begin
 end;
 
 function TRESTClient.EncodeQueryStringParams(const AQueryStringParams: TStrings;
-  IncludeQuestionMark: Boolean = true): string;
+IncludeQuestionMark: Boolean = true): string;
 var
   i: Integer;
 begin
@@ -515,7 +520,7 @@ end;
 
 procedure TRESTClient.HandleCookies;
 var
-  s  : string;
+  s: string;
   arr: TArray<string>;
 begin
   // Log('Received cookies', FHTTP.Response.RawHeaders.Text);
@@ -563,8 +568,8 @@ begin
       Result := 'PUT';
     httpDELETE:
       Result := 'DELETE';
-    else
-      raise Exception.Create('Unknown HttpCommand in TRSF.HttpCommandToString');
+  else
+    raise Exception.Create('Unknown HttpCommand in TRSF.HttpCommandToString');
   end;
 end;
 
@@ -578,7 +583,7 @@ begin
 end;
 
 function TRESTClient.SendHTTPCommand(const ACommand: THttpCommand;
-  const AAccept, AContentType, AUrl: string; ABodyParams: TStrings)
+const AAccept, AContentType, AUrl: string; ABodyParams: TStrings)
   : IRESTResponse;
 var
   mp: TIdMultiPartFormDataStream;
@@ -645,7 +650,7 @@ begin
 end;
 
 function TRESTClient.SendHTTPCommandJSONBody(const ACommand: THttpCommand;
-  const AAccept, AContentType, AUrl: string; AJSONValue: TJSONValue)
+const AAccept, AContentType, AUrl: string; AJSONValue: TJSONValue)
   : IRESTResponse;
 begin
   Result := TRESTResponse.Create;
@@ -702,7 +707,6 @@ begin
   Result.SetResponseCode(FHTTP.Response.ResponseCode);
   Result.SetResponseText(FHTTP.Response.ResponseText);
   Result.SetHeaders(FHTTP.Response.RawHeaders);
-
 end;
 
 procedure TRESTClient.SetAccept(const Value: string);
@@ -787,7 +791,9 @@ function TRESTResponse.BodyAsString: string;
 var
   ss: TStringStream;
 begin
-  ss := TStringStream.Create('');
+  if FContentEncoding.IsEmpty then
+    FContentEncoding := 'UTF-8';
+  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding));
   try
     FBody.Position := 0;
     FBody.SaveToStream(ss);
@@ -813,6 +819,36 @@ begin
   inherited;
 end;
 
+function TRESTResponse.GetContentEncoding: String;
+begin
+  Result := FContentEncoding;
+end;
+
+function TRESTResponse.GetContentType: String;
+begin
+  Result := FContentType;
+end;
+
+function TRESTResponse.GetHeader(const Value: String): String;
+var
+  s: String;
+begin
+  if Assigned(FHeaders) and (FHeaders.Count > 0) then
+  begin
+    for s in FHeaders do
+    begin
+      if s.StartsWith(Value + ':', true) then
+      begin
+        Exit(s);
+      end;
+    end;
+  end
+  else
+  begin
+    Result := '';
+  end;
+end;
+
 function TRESTResponse.Headers: TStringlist;
 begin
   Result := FHeaders;
@@ -829,8 +865,24 @@ begin
 end;
 
 procedure TRESTResponse.SetHeaders(AHeaders: TStrings);
+var
+  CT: TArray<string>;
+  C: String;
 begin
   FHeaders.Assign(AHeaders);
+
+  C := GetHeader('content-type');
+
+  CT := C.Split([':'])[1].Split([';']);
+  FContentType := CT[0];
+  FContentEncoding := 'UTF-8'; // default encoding
+  if Length(CT) > 1 then
+  begin
+    if CT[1].trim.StartsWith('charset', true) then
+    begin
+      FContentEncoding := CT[1].trim.Split(['='])[1].trim;
+    end;
+  end;
 end;
 
 procedure TRESTResponse.SetResponseCode(AResponseCode: Word);

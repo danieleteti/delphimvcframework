@@ -42,6 +42,11 @@ type
     // this is only for test!!!!
     procedure Logout(ctx: TWebContext);
 
+    [MVCPath('/encoding')]
+    [MVCHTTPMethod([httpGET])]
+    // this is only for test!!!!
+    procedure TestEncoding(ctx: TWebContext);
+
   end;
 
 implementation
@@ -162,6 +167,17 @@ end;
 procedure TTestServerController.SessionSet(ctx: TWebContext);
 begin
   Session['value'] := ctx.Request.Params['value'];
+end;
+
+procedure TTestServerController.TestEncoding(ctx: TWebContext);
+var
+  Obj: TJSONObject;
+begin
+  Obj := TJSONObject.Create;
+  Obj.AddPair('name1', 'jørn');
+  Obj.AddPair('name2', 'Što je Unicode?');
+  Obj.AddPair('name3', 'àèéìòù');
+  Render(Obj);
 end;
 
 end.
