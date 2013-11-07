@@ -6,29 +6,22 @@ program LuaEmbedded;
 
 
 uses
-  System.SysUtils,
-  System.ioutils,
-  LuaBind,
-  LuaBind.Filters.Text;
+  LuaBind.Filters.Text,
+  System.IOUtils;
 
 var
-  lua: TLuaEngine;
-  filter: TLuaEmbeddedTextFilter;
+  eLuaFilter: TLuaEmbeddedTextFilter;
 
 begin
+  eLuaFilter := TLuaEmbeddedTextFilter.Create;
   try
-    filter := TLuaEmbeddedTextFilter.Create;
-    try
-      filter.OutputFunction := 'io.write';
-      filter.TemplateCode := TFile.ReadAllText(ParamStr(1));
-      filter.Execute;
-      TFile.WriteAllText(ChangeFileExt(ParamStr(1), '.lua'), filter.LuaCode);
-    finally
-      filter.Free;
-    end;
-  except
-    on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+    eLuaFilter.OutputFunction := 'io.write';
+    eLuaFilter.TemplateCode := TFile.ReadAllText(ParamStr(1));
+    eLuaFilter.Execute;
+
+    TFile.WriteAllText(TPath.ChangeExtension(ParamStr(1), '.lua'), eLuaFilter.LuaCode);
+  finally
+    eLuaFilter.Free;
   end;
 
 end.
