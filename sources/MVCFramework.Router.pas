@@ -33,12 +33,12 @@ type
     function ExecuteRouting(AWebRequest: TWebRequest;
       AMVCControllers: TList<TMVCControllerClass>;
       var AMVCRequestParams: TMVCRequestParamsTable;
-      out AResponseContentType: string): Boolean; overload;
+      out AResponseContentType, AResponseContentEncoding: string): Boolean; overload;
     function ExecuteRouting(AWebRequestPathInfo: AnsiString;
       AWebRequestMethodType: TMVCHTTPMethodType;
       AMVCControllers: TList<TMVCControllerClass>;
       var AMVCRequestParams: TMVCRequestParamsTable;
-      out AResponseContentType: string): Boolean; overload;
+      out AResponseContentType, AResponseContentEncoding: string): Boolean; overload;
     property MethodToCall: TRTTIMethod read FMethodToCall;
     property MVCControllerClass: TMVCControllerClass read FMVCControllerClass;
   end;
@@ -55,13 +55,14 @@ uses
 
 function TMVCRouter.ExecuteRouting(AWebRequest: TWebRequest;
   AMVCControllers: TList<TMVCControllerClass>;
-  var AMVCRequestParams: TMVCRequestParamsTable; out AResponseContentType: string): Boolean;
+  var AMVCRequestParams: TMVCRequestParamsTable;
+  out AResponseContentType, AResponseContentEncoding: string): Boolean;
 var
   HTTPMethodType: TMVCHTTPMethodType;
 begin
   HTTPMethodType := StringMethodToHTTPMetod(AWebRequest.Method);
   Result := ExecuteRouting(AWebRequest.RawPathInfo, HTTPMethodType,
-    AMVCControllers, AMVCRequestParams, AResponseContentType);
+    AMVCControllers, AMVCRequestParams, AResponseContentType, AResponseContentEncoding);
 end;
 
 constructor TMVCRouter.Create(AMVCConfig: TMVCConfig);
@@ -74,7 +75,7 @@ function TMVCRouter.ExecuteRouting(AWebRequestPathInfo: AnsiString;
   AWebRequestMethodType: TMVCHTTPMethodType;
   AMVCControllers: TList<TMVCControllerClass>;
   var AMVCRequestParams: TMVCRequestParamsTable;
-  out AResponseContentType: string): Boolean;
+  out AResponseContentType, AResponseContentEncoding: string): Boolean;
 var
   controllerClass: TMVCControllerClass;
   _type: TRttiType;
@@ -148,9 +149,15 @@ begin
               // getting the default contenttype using MVCProduceAttribute
               MVCProduceAttr := GetAttribute<MVCProduceAttribute>(_attributes);
               if Assigned(MVCProduceAttr) then
-                AResponseContentType := MVCProduceAttr.Value
+              begin
+                AResponseContentType := MVCProduceAttr.Value;
+                AResponseContentEncoding := MVCProduceAttr.ProduceEncoding;
+              end
               else
+              begin
                 AResponseContentType := TMVCMimeType.APPLICATION_JSON;
+                AResponseContentEncoding := 'UTF-8';
+              end;
 
               Exit(true);
             end;
