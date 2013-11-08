@@ -24,8 +24,7 @@ uses
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
   DuckListU in '..\..\sources\DuckListU.pas',
-  MVCFramework.BUSController in '..\..\sources\MVCFramework.BUSController.pas',
-  DataModuleMainU in 'DataModuleMainU.pas' {DataModuleMain: TDataModule};
+  MVCFramework.BUSController in '..\..\sources\MVCFramework.BUSController.pas';
 
 {$R *.res}
 

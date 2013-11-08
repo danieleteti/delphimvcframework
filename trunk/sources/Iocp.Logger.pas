@@ -1,7 +1,7 @@
 {
-THIS UNIT IS A MODIFIED VERSION OF delphi-iocp-framework PROJECT
-You can find the modified version here
-https://code.google.com/p/delphi-iocp-framework/
+  THIS UNIT IS A MODIFIED VERSION OF delphi-iocp-framework PROJECT
+  You can find the original version here
+  https://code.google.com/p/delphi-iocp-framework/
 }
 unit Iocp.Logger;
 
@@ -25,11 +25,11 @@ const
 type
   TCacheFileStream = class(TThread)
   private
-    FFileStream                               : TFileStream;
-    FFileTime                                 : TDateTime;
-    FLocker                                   : TCriticalSection;
+    FFileStream: TFileStream;
+    FFileTime: TDateTime;
+    FLocker: TCriticalSection;
     FCacheBuffer, FCacheBufferA, FCacheBufferB: TMemoryStream;
-    FFlushInterval                            : DWORD;
+    FFlushInterval: DWORD;
 
   protected
     procedure Lock;
@@ -53,12 +53,12 @@ type
 
   TIocpLogger = class
   private
-    FRefCount     : Integer;
-    FFileWriters  : array [TLogType] of TCacheFileStream;
-    FFileLocker   : array [TLogType] of TCriticalSection;
-    FLogColor     : array [TLogType] of Integer;
+    FRefCount: Integer;
+    FFileWriters: array [TLogType] of TCacheFileStream;
+    FFileLocker: array [TLogType] of TCriticalSection;
+    FLogColor: array [TLogType] of Integer;
     FConsoleHandle: THandle;
-    FShowConsole  : Boolean;
+    FShowConsole: Boolean;
     FConsoleLocker: TCriticalSection;
     procedure SetShowConsole(const Value: Boolean);
 
@@ -160,16 +160,14 @@ begin
   if (Result <> '') then
     Result := Result + '-';
 
-  {$IFDEF USEPIDFORLOGFILE}
-
+{$IFDEF USEPIDFORLOGFILE}
   Result := Result + ThreadFormatDateTime('YYYY-MM-DD', Date) + '_PID' +
     IntToStr(GetCurrentProcessID) + '.log';
 
-  {$ELSE}
-
+{$ELSE}
   Result := Result + ThreadFormatDateTime('YYYY-MM-DD', Date) + '.log';
 
-  {$ENDIF}
+{$ENDIF}
 
 end;
 
@@ -184,7 +182,7 @@ end;
 procedure TIocpLogger.SetShowConsole(const Value: Boolean);
 var
   ConSize: TCoord;
-  ConRec : TSmallRect;
+  ConRec: TSmallRect;
 begin
   if (FShowConsole = Value) then
     Exit;

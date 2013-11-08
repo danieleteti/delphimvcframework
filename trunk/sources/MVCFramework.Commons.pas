@@ -29,7 +29,7 @@ type
 
   EMVCException = class(Exception)
   private
-    FHTTPErrorCode       : UInt16;
+    FHTTPErrorCode: UInt16;
     FApplicationErrorCode: UInt16;
     procedure SetDetailedMessage(const Value: string);
 
@@ -41,7 +41,7 @@ type
       overload; virtual;
     constructor Create(const Msg: string; const DetailedMessage: string;
       const ApplicationErrorCode: UInt16;
-      const HTTPErrorCode       : UInt16 = 500); overload; virtual;
+      const HTTPErrorCode: UInt16 = 500); overload; virtual;
     constructor CreateFmt(const Msg: string; const Args: array of const);
     property HTTPErrorCode: UInt16 read FHTTPErrorCode;
     property DetailedMessage: string read FDetailedMessage
@@ -81,9 +81,12 @@ type
     property Value[AIndex: string]: string read GetValue
       write SetValue; default;
     function ToString: string; override;
+    procedure SaveToFile(const AFileName: String);
+    procedure LoadFromFile(const AFileName: String);
   end;
 
-  {$SCOPEDENUMS ON}
+{$SCOPEDENUMS ON}
+
 
 type
   THttpMethod = (GET, POST, PUT, DELETE, HEAD);
@@ -97,7 +100,7 @@ implementation
 uses
   System.IOUtils,
   idGlobal,
-  System.StrUtils;
+  System.StrUtils, Data.DBXJSON;
 
 const
   ReservedIPs: array [1 .. 11] of array [1 .. 2] of string = (
@@ -121,7 +124,7 @@ end;
 
 function IsReservedOrPrivateIP(const IP: string): boolean;
 var
-  i    : Integer;
+  i: Integer;
   IntIP: Cardinal;
 begin
   Result := False;
@@ -169,6 +172,40 @@ begin
     raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
 end;
 
+procedure TMVCConfig.LoadFromFile(const AFileName: String);
+var
+  S: string;
+  jobj: TJSONObject;
+  p: TJSONPair;
+  json: TJSONValue;
+  i: Integer;
+begin
+  S := TFile.ReadAllText(AFileName);
+  json := TJSONObject.ParseJSONValue(S);
+  if Assigned(json) then
+  begin
+    if json is TJSONObject then
+    begin
+      jobj := TJSONObject(json);
+      for i := 0 to jobj.Size - 1 do
+      begin
+        p := jobj.GET(i);
+        FConfig.AddOrSetValue(p.JsonString.Value, p.JsonValue.Value);
+      end
+    end
+    else
+      raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName +
+        '] does not contain a valid JSONObject');
+  end
+  else
+    raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+end;
+
+procedure TMVCConfig.SaveToFile(const AFileName: String);
+begin
+  TFile.WriteAllText(AFileName, ToString, TEncoding.ASCII);
+end;
+
 procedure TMVCConfig.SetValue(AIndex: string; const Value: string);
 begin
   FConfig.AddOrSetValue(AIndex, Value);
@@ -177,13 +214,15 @@ end;
 function TMVCConfig.ToString: string;
 var
   k: string;
+  json: TJSONObject;
 begin
-  Result := '';
-  for k in FConfig.Keys do
-  begin
-    if not Result.IsEmpty then
-      Result := Result + sLineBreak;
-    Result := Result + k + '=' + FConfig[k];
+  json := TJSONObject.Create;
+  try
+    for k in FConfig.Keys do
+      json.AddPair(k, FConfig[k]);
+    Result := json.ToString;
+  finally
+    json.Free;
   end;
 end;
 
@@ -199,7 +238,7 @@ end;
 
 constructor EMVCException.Create(const Msg, DetailedMessage: string;
   const ApplicationErrorCode: UInt16;
-  const HTTPErrorCode       : UInt16);
+  const HTTPErrorCode: UInt16);
 begin
   Create(Msg);
   FHTTPErrorCode := HTTPErrorCode;
