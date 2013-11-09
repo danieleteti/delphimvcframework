@@ -4,6 +4,7 @@ unit MVCFramework;
 METHODS([vcPublic, vcPublished, vcProtected, vcPrivate])
 FIELDS(DefaultFieldRttiVisibility)
 PROPERTIES(DefaultPropertyRttiVisibility)}
+{$WARNINGS OFF}
 
 interface
 
@@ -57,14 +58,20 @@ type
     property Value: string read FValue;
   end;
 
-  MVCProduceAttribute = class(MVCStringAttribute)
+  MVCConsumesAttribute = class(MVCStringAttribute)
+
+  end;
+
+  MVCProducesAttribute = class(MVCStringAttribute)
   private
     FProduceEncoding: String;
     procedure SetProduceEncoding(const Value: String);
   public
     constructor Create(const Value: string); overload;
-    constructor Create(const Value: string; const ProduceEncoding: String); overload;
-    property ProduceEncoding: String read FProduceEncoding write SetProduceEncoding;
+    constructor Create(const Value: string;
+      const ProduceEncoding: String); overload;
+    property ProduceEncoding: String read FProduceEncoding
+      write SetProduceEncoding;
   end;
 
   MVCPathAttribute = class(MVCBaseAttribute)
@@ -98,7 +105,7 @@ type
     function GetFiles: TAbstractWebRequestFiles;
 
   strict protected
-    FBodyAsJSONObject: TJSONObject;
+    FBodyAsJSONValue: TJSONValue;
 
   public
     destructor Destroy; override;
@@ -114,6 +121,7 @@ type
     property PathInfo: string read GetPathInfo;
     function Body: string;
     function BodyAsJSONObject: TJSONObject;
+    function BodyAsJSONValue: TJSONValue;
     property Headers[const HeaderName: string]: string read GetHeader;
     property ParamsAsInteger[const ParamName: string]: Integer
       read GetParamAllAsInteger;
@@ -255,7 +263,8 @@ type
     procedure MVCControllerAfterCreate; virtual;
     procedure MVCControllerBeforeDestroy; virtual;
     property ContentType: string read GetContentType write SetContentType;
-    property ContentEncoding: string read GetContentEncoding write SetContentEncoding;
+    property ContentEncoding: string read GetContentEncoding
+      write SetContentEncoding;
     // Session
     procedure SessionStart; virtual;
     procedure SessionStop(ARaiseExceptionIfExpired: boolean = true); virtual;
@@ -405,12 +414,12 @@ uses
   MVCFramework.BUSController;
 
 type
-  TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest {$ELSE}TIdHTTPAppRequest{$ENDIF})
+  TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest
+{$ELSE}TIdHTTPAppRequest{$ENDIF})
 
   end;
 
-threadvar
-  ctx: TRTTIContext;
+threadvar ctx: TRTTIContext;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -476,7 +485,6 @@ function TMVCEngine.ExecuteAction(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse): boolean;
 var
   SelectedController: TMVCController;
-  MethodToCall: TRTTIMethod;
   Context: TWebContext;
   ParamsTable: TMVCRequestParamsTable;
   Router: TMVCRouter;
@@ -532,7 +540,7 @@ begin
                 // exception?
                 try
                   Handled := False;
-                  // gets response contentype from MVCProduce attribute
+                  // gets response contentype from MVCProduces attribute
                   SelectedController.ContentType := ResponseContentType;
                   SelectedController.ContentEncoding := ResponseContentEncoding;
                   SelectedController.OnBeforeAction(Context,
@@ -646,7 +654,6 @@ class function TMVCEngine.GetCurrentSession(Config: TMVCConfig;
   const BindToThisSessionID: string; ARaiseExceptionIfExpired: boolean)
   : TWebSession;
 var
-  c: string;
   SessionID: string;
   List: TObjectDictionary<string, TWebSession>;
   IsExpired: boolean;
@@ -741,7 +748,6 @@ var
   jmethod: TJSONObject;
   _a: TCustomAttribute;
   methods: TJSONArray;
-  systimes: TThread.TSystemTimes;
   FoundAttrib: boolean;
   StrRelativePath: string;
   StrHTTPMethods: string;
@@ -859,8 +865,6 @@ end;
 
 procedure TMVCEngine.OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse; var Handled: boolean);
-var
-  cs: TStream;
 begin
   Handled := False;
   if Assigned(FSavedOnBeforeDispatch) then
@@ -1052,13 +1056,18 @@ end;
 
 function TMVCWebRequest.BodyAsJSONObject: TJSONObject;
 begin
-  if not Assigned(FBodyAsJSONObject) then
+  Result := BodyAsJSONValue as TJSONObject;
+end;
+
+function TMVCWebRequest.BodyAsJSONValue: TJSONValue;
+begin
+  if not Assigned(FBodyAsJSONValue) then
     try
-      FBodyAsJSONObject := TJSONObject.ParseJSONValue(Body) as TJSONObject;
+      FBodyAsJSONValue := TJSONObject.ParseJSONValue(Body);
     except
-      FBodyAsJSONObject := nil;
+      FBodyAsJSONValue := nil;
     end;
-  Result := FBodyAsJSONObject;
+  Result := FBodyAsJSONValue;
 end;
 
 function TMVCWebRequest.ClientPrefer(MimeType: string): boolean;
@@ -1078,7 +1087,7 @@ end;
 
 destructor TMVCWebRequest.Destroy;
 begin
-  FreeAndNil(FBodyAsJSONObject);
+  FreeAndNil(FBodyAsJSONValue);
   inherited;
 end;
 
@@ -1145,7 +1154,8 @@ begin
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
     Stomp.Send(ATopic, msg.ToString, H);
-    TThread.Sleep(100); // single user cannot enqueue more than 10 message in noe second...
+    TThread.Sleep(100);
+    // single user cannot enqueue more than 10 message in noe second...
     // it is noot too much elegant, but it works as DoS protection
   finally
     msg.Free;
@@ -1165,8 +1175,8 @@ end;
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
   Result := StompUtils.NewStomp(Config['stompserver'],
-    Config['stompserverport'].ToInteger, GetClientID,
-    Config['stompusername'], Config['stomppassword']);
+    Config['stompserverport'].ToInteger, GetClientID, Config['stompusername'],
+    Config['stomppassword']);
 end;
 
 function TMVCController.GetWebSession: TWebSession;
@@ -1268,12 +1278,15 @@ begin
   end
   else
   begin
-    ContentType := 'application/json; charset=' + ContentEncoding;
+    if ContentType.IsEmpty then
+      ContentType := 'text/plain; charset=' + ContentEncoding
+    else
+      ContentType := ContentType + '; charset=' + ContentEncoding;
     OutEncoding := TEncoding.GetEncoding(ContentEncoding);
     InEncoding := TEncoding.Default;
-    Context.Response.Content := OutEncoding.GetString(
-      TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(Content))
-      );
+    Context.Response.Content := OutEncoding.GetString
+      (TEncoding.Convert(InEncoding, OutEncoding,
+      InEncoding.GetBytes(Content)));
   end;
 end;
 
@@ -1316,7 +1329,6 @@ end;
 
 procedure TMVCController.SessionStart;
 var
-  Cookie: TCookie;
   Sess: TWebSession;
   SessionID: string;
 begin
@@ -1662,7 +1674,8 @@ function TMVCINDYWebRequest.ClientIP: string;
 }
   function CheckIP(IP: string): boolean;
   begin
-    Result := (not IP.IsEmpty) and { (IP2Long(IP) <> -1) and } (IP2Long(IP) > 0);
+    Result := (not IP.IsEmpty) and { (IP2Long(IP) <> -1) and }
+      (IP2Long(IP) > 0);
   end;
 
 var
@@ -1676,7 +1689,6 @@ var
   Headers: TIdHeaderList;
 
 {$ENDIF}
-
 begin
   req := TIdHTTPAppRequestHack(FWebRequest);
 
@@ -1854,9 +1866,8 @@ begin
   S := AJSONValue.ToString;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   InEncoding := TEncoding.Default; // GetEncoding(S);
-  Context.Response.Content := OutEncoding.GetString(
-    TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S))
-    );
+  Context.Response.Content := OutEncoding.GetString
+    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
 
   if AInstanceOwner then
     FreeAndNil(AJSONValue)
@@ -1910,7 +1921,6 @@ end;
 
 {$IFDEF IOCP}
 
-
 constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
 begin
   inherited;
@@ -1918,7 +1928,6 @@ begin
 end;
 
 {$ENDIF}
-
 { MVCStringAttribute }
 
 constructor MVCStringAttribute.Create(const Value: string);
@@ -1939,19 +1948,19 @@ end;
 
 { MVCProduceAttribute }
 
-constructor MVCProduceAttribute.Create(const Value, ProduceEncoding: String);
+constructor MVCProducesAttribute.Create(const Value, ProduceEncoding: String);
 begin
   Create(Value);
   FProduceEncoding := ProduceEncoding;
 end;
 
-constructor MVCProduceAttribute.Create(const Value: string);
+constructor MVCProducesAttribute.Create(const Value: string);
 begin
   inherited;
   FProduceEncoding := 'UTF-8';
 end;
 
-procedure MVCProduceAttribute.SetProduceEncoding(const Value: String);
+procedure MVCProducesAttribute.SetProduceEncoding(const Value: String);
 begin
   FProduceEncoding := Value;
 end;

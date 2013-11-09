@@ -21,6 +21,7 @@ type
   IRESTResponse = interface
     function BodyAsString: string;
     function BodyAsJsonObject: TJSONObject;
+    function BodyAsJsonValue: TJSONValue;
     function ResponseCode: Word;
     function ResponseText: string;
     function Headers: TStringlist;
@@ -38,13 +39,14 @@ type
     FResponseCode: Word;
     FResponseText: string;
     FHeaders: TStringlist;
-    FBodyAsJSONObject: TJSONObject;
+    FBodyAsJSONValue: TJSONValue;
     FContentType: string;
     FContentEncoding: String;
     function GetHeader(const Value: String): String;
   public
     function BodyAsString: string;
     function BodyAsJsonObject: TJSONObject;
+    function BodyAsJsonValue: TJSONValue;
     function ResponseCode: Word;
     function ResponseText: string;
     function Headers: TStringlist;
@@ -71,9 +73,11 @@ type
     FContentType: string;
     FLastSessionID: string;
     FNextRequestIsAsynch: Boolean;
-    FAsychProc: TProc<IRESTResponse, Exception>;
+    FAsynchProc: TProc<IRESTResponse>;
+    FAsynchProcErr: TProc<Exception>;
     FPrimaryThread: TThread;
     FMultiPartFormData: TIdMultiPartFormDataStream;
+    FAsynchProcAlways: TProc;
     function EncodeQueryStringParams(const AQueryStringParams: TStrings;
       IncludeQuestionMark: Boolean = true): string;
     procedure SetBodyParams(const Value: TStringlist);
@@ -87,9 +91,10 @@ type
     function GetRawBody: TStringStream;
     procedure SetReadTimeout(const Value: Integer);
     function GetReadTimeout: Integer;
-    procedure StartAsynchRequestJSONBody(AHTTPMethod: THttpCommand;
-      AUrl: string; AJSONValue: TJSONValue; AOwnsJSONBody: Boolean);
-    procedure StartAsynchRequest(AHTTPMethod: THttpCommand; AUrl: string);
+    procedure StartAsynchRequest(AHTTPMethod: THttpCommand; AUrl: string;
+      ABodyString: String); overload;
+    procedure StartAsynchRequest(AHTTPMethod: THttpCommand;
+      AUrl: string); overload;
     procedure SetConnectionTimeout(const Value: Integer);
     function GetConnectionTimeout: Integer;
     procedure SetRequestHeaders(const Value: TStringlist);
@@ -104,8 +109,8 @@ type
     function SendHTTPCommand(const ACommand: THttpCommand;
       const AAccept, AContentType, AUrl: string; ABodyParams: TStrings)
       : IRESTResponse;
-    function SendHTTPCommandJSONBody(const ACommand: THttpCommand;
-      const AAccept, AContentType, AUrl: string; AJSONValue: TJSONValue)
+    function SendHTTPCommandWithBody(const ACommand: THttpCommand;
+      const AAccept, AContentType, AUrl: string; ABodyString: String)
       : IRESTResponse;
     procedure HandleRequestCookies;
     function GetMultipartFormData: TIdMultiPartFormDataStream;
@@ -115,10 +120,11 @@ type
       AServerPort: Word = 80); virtual;
     destructor Destroy; override;
 
-    function AddFile(const FieldName, FileName: string; const ContentType: string = '')
-      : TRESTClient;
+    function AddFile(const FieldName, FileName: string;
+      const ContentType: string = ''): TRESTClient;
 
-    function Asynch(AProc: TProc<IRESTResponse, Exception>): TRESTClient;
+    function Asynch(AProc: TProc<IRESTResponse>;
+      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil): TRESTClient;
     function ClearAllParams: TRESTClient;
     function ResetSession: TRESTClient;
     function Accept(const AcceptHeader: string): TRESTClient; overload;
@@ -135,6 +141,8 @@ type
     function doPOST(AResource: string; AResourceParams: array of string;
       AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
       : IRESTResponse; overload;
+    function doPOST(AResource: string; AResourceParams: array of string;
+      ABodyString: String): IRESTResponse; overload;
     function doPUT(AResource: string; AResourceParams: array of string)
       : IRESTResponse; overload;
     function doPUT(AResource: string; AResourceParams: array of string;
@@ -150,7 +158,8 @@ type
     property ReadTimeout: Integer read GetReadTimeout write SetReadTimeout;
     property ConnectionTimeout: Integer read GetConnectionTimeout
       write SetConnectionTimeout;
-    property RequestHeaders: TStringlist read FRequestHeaders write SetRequestHeaders;
+    property RequestHeaders: TStringlist read FRequestHeaders
+      write SetRequestHeaders;
   end;
 
 function StringsToArrayOfString(const AStrings: TStrings): TArrayOfString;
@@ -188,17 +197,19 @@ begin
   Result := FAccept;
 end;
 
-function TRESTClient.AddFile(const FieldName, FileName,
-  ContentType: string): TRESTClient;
+function TRESTClient.AddFile(const FieldName, FileName, ContentType: string)
+  : TRESTClient;
 begin
   GetMultipartFormData.AddFile(FieldName, FileName, ContentType);
 end;
 
-function TRESTClient.Asynch(AProc: TProc<IRESTResponse, Exception>)
-  : TRESTClient;
+function TRESTClient.Asynch(AProc: TProc<IRESTResponse>;
+  AProcErr: TProc<Exception>; AProcAlways: TProc): TRESTClient;
 begin
   FNextRequestIsAsynch := true;
-  FAsychProc := AProc;
+  FAsynchProc := AProc;
+  FAsynchProcErr := AProcErr;
+  FAsynchProcAlways := AProcAlways;
   Result := Self;
 end;
 
@@ -215,7 +226,9 @@ begin
     FQueryStringParams.Clear;
   Result := Self;
   FNextRequestIsAsynch := False;
-  FAsychProc := nil;
+  FAsynchProc := nil;
+  FAsynchProcErr := nil;
+  FAsynchProcAlways := nil;
 end;
 
 function TRESTClient.ContentType: string;
@@ -281,36 +294,12 @@ end;
 
 procedure TRESTClient.StartAsynchRequest(AHTTPMethod: THttpCommand;
   AUrl: string);
-var
-  th: TThread;
 begin
-  th := TThread.CreateAnonymousThread(
-    procedure
-    var
-      R: IRESTResponse;
-    begin
-      try
-        R := SendHTTPCommand(AHTTPMethod, FAccept, FContentType, AUrl,
-          FBodyParams);
-        TMonitor.Enter(TObject(R));
-        try
-          FAsychProc(R, nil);
-          ClearAllParams;
-        finally
-          TMonitor.Exit(TObject(R));
-        end;
-      except
-        on E: Exception do
-        begin
-          FAsychProc(nil, E);
-        end;
-      end;
-    end);
-  th.Start;
+  StartAsynchRequest(AHTTPMethod, AUrl, '');
 end;
 
-procedure TRESTClient.StartAsynchRequestJSONBody(AHTTPMethod: THttpCommand;
-AUrl: string; AJSONValue: TJSONValue; AOwnsJSONBody: Boolean);
+procedure TRESTClient.StartAsynchRequest(AHTTPMethod: THttpCommand;
+  AUrl: string; ABodyString: String);
 var
   th: TThread;
 begin
@@ -320,13 +309,11 @@ begin
       R: IRESTResponse;
     begin
       try
-        R := SendHTTPCommandJSONBody(AHTTPMethod, FAccept, FContentType, AUrl,
-          AJSONValue);
-        if AOwnsJSONBody then
-          FreeAndNil(AJSONValue);
+        R := SendHTTPCommandWithBody(AHTTPMethod, FAccept, FContentType, AUrl,
+          ABodyString);
         TMonitor.Enter(TObject(R));
         try
-          FAsychProc(R, nil);
+          FAsynchProc(R);
           ClearAllParams;
         finally
           TMonitor.Exit(TObject(R));
@@ -334,9 +321,11 @@ begin
       except
         on E: Exception do
         begin
-          FAsychProc(nil, E);
+          FAsynchProcErr(E);
         end;
       end;
+      if Assigned(FAsynchProcAlways) then
+        FAsynchProcAlways();
     end);
   th.Start;
 end;
@@ -386,6 +375,19 @@ AJSONValue: TJSONValue; AOwnsJSONBody: Boolean): IRESTResponse;
 var
   url: string;
 begin
+  try
+    Result := doPOST(AResource, AResourceParams, AJSONValue.ToString);
+  finally
+    if AOwnsJSONBody then
+      FreeAndNil(AJSONValue);
+  end;
+end;
+
+function TRESTClient.doPOST(AResource: string; AResourceParams: array of string;
+ABodyString: String): IRESTResponse;
+var
+  url: string;
+begin
   url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
@@ -393,18 +395,13 @@ begin
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequestJSONBody(httpPOST, url, AJSONValue, AOwnsJSONBody);
+    StartAsynchRequest(httpPOST, url, ABodyString);
   end
   else
   begin
-    try
-      Result := SendHTTPCommandJSONBody(httpPOST, FAccept, FContentType, url,
-        AJSONValue);
-      ClearAllParams;
-    finally
-      if AOwnsJSONBody then
-        FreeAndNil(AJSONValue);
-    end;
+    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, url,
+      ABodyString);
+    ClearAllParams;
   end;
 end;
 
@@ -420,13 +417,15 @@ begin
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequestJSONBody(httpPUT, url, AJSONValue, AOwnsJSONBody);
+    StartAsynchRequest(httpPUT, url, AJSONValue.ToString);
+    if AOwnsJSONBody then
+      FreeAndNil(AJSONValue);
   end
   else
   begin
     try
-      Result := SendHTTPCommandJSONBody(httpPUT, FAccept, FContentType, url,
-        AJSONValue);
+      Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, url,
+        AJSONValue.ToString);
       ClearAllParams;
     finally
       if AOwnsJSONBody then
@@ -619,7 +618,8 @@ begin
 
       httpPUT:
         begin
-          if GetMultipartFormData.Size <> 0 then { TODO -oDaniele -cGeneral : Rework please!!! }
+          if GetMultipartFormData.Size <> 0
+          then { TODO -oDaniele -cGeneral : Rework please!!! }
             raise Exception.Create('Only POST can Send Files');
           Result.Body.Position := 0;
           if Assigned(ABodyParams) and (ABodyParams.Count > 0) then
@@ -649,9 +649,8 @@ begin
   Result.SetHeaders(FHTTP.Response.RawHeaders);
 end;
 
-function TRESTClient.SendHTTPCommandJSONBody(const ACommand: THttpCommand;
-const AAccept, AContentType, AUrl: string; AJSONValue: TJSONValue)
-  : IRESTResponse;
+function TRESTClient.SendHTTPCommandWithBody(const ACommand: THttpCommand;
+const AAccept, AContentType, AUrl: string; ABodyString: String): IRESTResponse;
 begin
   Result := TRESTResponse.Create;
   FHTTP.Request.RawHeaders.Clear;
@@ -672,22 +671,16 @@ begin
             raise Exception.Create('This method cannot send files');
 
           RawBody.Position := 0;
-          if Assigned(AJSONValue) then
-          begin
-            FRawBody.Size := 0;
-            FRawBody.WriteString(UTF8Encode(AJSONValue.ToString));
-          end;
+          FRawBody.Size := 0;
+          FRawBody.WriteString(UTF8Encode(ABodyString));
           FHTTP.Post(AUrl, FRawBody, Result.Body);
         end;
 
       httpPUT:
         begin
           RawBody.Position := 0;
-          if Assigned(AJSONValue) then
-          begin
-            FRawBody.Size := 0;
-            FRawBody.WriteString(UTF8Encode(AJSONValue.ToString));
-          end;
+          FRawBody.Size := 0;
+          FRawBody.WriteString(UTF8Encode(ABodyString));
           FHTTP.Put(AUrl, FRawBody, Result.Body);
         end;
 
@@ -759,26 +752,29 @@ begin
 end;
 
 function TRESTResponse.BodyAsJsonObject: TJSONObject;
-var
-  V: TJSONValue;
+begin
+  Result := BodyAsJsonValue as TJSONObject;
+end;
+
+function TRESTResponse.BodyAsJsonValue: TJSONValue;
 begin
   try
-    if not Assigned(FBodyAsJSONObject) then
+    if not Assigned(FBodyAsJSONValue) then
     begin
       if BodyAsString = '' then
-        FBodyAsJSONObject := nil
+        FBodyAsJSONValue := nil
       else
       begin
         try
-          V := TJSONObject.ParseJSONValue(BodyAsString);
-          if Assigned(V) then
-            FBodyAsJSONObject := V as TJSONObject;
+          FBodyAsJSONValue := TJSONObject.ParseJSONValue(BodyAsString);
+          // if Assigned(V) then
+          // FBodyAsJSONObject := V as TJSONObject;
         except
-          FBodyAsJSONObject := nil;
+          FBodyAsJSONValue := nil;
         end;
       end;
     end;
-    Result := FBodyAsJSONObject;
+    Result := FBodyAsJSONValue;
   except
     on E: Exception do
     begin
@@ -808,12 +804,12 @@ begin
   inherited;
   FHeaders := TStringlist.Create;
   FBody := TStringStream.Create('', TEncoding.UTF8);
-  FBodyAsJSONObject := nil;
+  FBodyAsJSONValue := nil;
 end;
 
 destructor TRESTResponse.Destroy;
 begin
-  FreeAndNil(FBodyAsJSONObject);
+  FreeAndNil(FBodyAsJSONValue);
   FHeaders.Free;
   FBody.Free;
   inherited;
@@ -874,7 +870,7 @@ begin
   C := GetHeader('content-type');
 
   CT := C.Split([':'])[1].Split([';']);
-  FContentType := CT[0];
+  FContentType := trim(CT[0]);
   FContentEncoding := 'UTF-8'; // default encoding
   if Length(CT) > 1 then
   begin
