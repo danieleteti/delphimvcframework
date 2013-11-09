@@ -30,6 +30,9 @@ type
     procedure TestAsynchRequestGET;
     procedure TestAsynchRequestDELETE;
     procedure TestEncodingRenderJSONValue;
+
+    procedure TestProducesConsumes01;
+    procedure TestProducesConsumes02;
   end;
 
 implementation
@@ -73,10 +76,14 @@ begin
   evt := TEvent.Create;
   try
     RESTClient.Asynch(
-      procedure(Response: IRESTResponse; Err: Exception)
+      procedure(Response: IRESTResponse)
       begin
-        ok := not Assigned(Err);
+        ok := true;
         evt.SetEvent;
+      end,
+      procedure(E: Exception)
+      begin
+        ok := false;
       end).doDELETE('/req/with/params', ['1', '2', '3']);
 
     // wait for thred finish
@@ -100,15 +107,17 @@ begin
   evt := TEvent.Create;
   try
     RESTClient.Asynch(
-      procedure(Response: IRESTResponse; Err: Exception)
+      procedure(Response: IRESTResponse)
       begin
         try
-          if not Assigned(Err) then
-            j := Response.BodyAsJsonObject.Clone as TJSONObject;
+          j := Response.BodyAsJsonObject.Clone as TJSONObject;
         except
           // test should not block...never!
         end;
         evt.SetEvent;
+      end,
+      procedure(E: Exception)
+      begin
       end).doGET('/req/with/params', ['1', '2', '3']);
 
     // wait for thred finish
@@ -134,15 +143,17 @@ begin
   evt := TEvent.Create;
   try
     RESTClient.Asynch(
-      procedure(Response: IRESTResponse; Err: Exception)
+      procedure(Response: IRESTResponse)
       begin
         try
-          if not Assigned(Err) then
-            j := Response.BodyAsJsonObject.Clone as TJSONObject;
+          j := Response.BodyAsJsonObject.Clone as TJSONObject;
         except
           // test should not block...never!
         end;
         evt.SetEvent;
+      end,
+      procedure(E: Exception)
+      begin
       end).doPOST('/echo', ['1', '2', '3'],
       TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
 
@@ -169,15 +180,17 @@ begin
   evt := TEvent.Create;
   try
     RESTClient.Asynch(
-      procedure(Response: IRESTResponse; Err: Exception)
+      procedure(Response: IRESTResponse)
       begin
         try
-          if not Assigned(Err) then
-            j := Response.BodyAsJsonObject.Clone as TJSONObject;
+          j := Response.BodyAsJsonObject.Clone as TJSONObject;
         except
           // test should not block...never!
         end;
         evt.SetEvent;
+      end,
+      procedure(E: Exception)
+      begin
       end).doPUT('/echo', ['1', '2', '3'],
       TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
 
@@ -200,7 +213,8 @@ var
 begin
   res := RESTClient.doGET('/encoding', []);
   CheckEquals('jørn', res.BodyAsJsonObject.Get('name1').JsonValue.Value);
-  CheckEquals('Što je Unicode?', res.BodyAsJsonObject.Get('name2').JsonValue.Value);
+  CheckEquals('Što je Unicode?', res.BodyAsJsonObject.Get('name2')
+    .JsonValue.Value);
   CheckEquals('àèéìòù', res.BodyAsJsonObject.Get('name3').JsonValue.Value);
 end;
 
@@ -214,6 +228,29 @@ begin
   r := RESTClient.doPOST('/echo', ['1', '2', '3'], json);
   CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
   CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
+end;
+
+procedure TServerTest.TestProducesConsumes01;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doPOST('/testconsumes', [],
+    TJSONString.Create('Hello World'));
+  CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
+  CheckEquals('application/json', res.GetContentType);
+  CheckEquals('UTF-8', res.GetContentEncoding);
+end;
+
+procedure TServerTest.TestProducesConsumes02;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.
+    Accept('text/plain').
+    doPOST('/testconsumes', [], 'Hello World');
+  CheckEquals('Hello World', res.BodyAsString);
+  CheckEquals('text/plain', res.GetContentType);
+  CheckEquals('UTF-8', res.GetContentEncoding);
 end;
 
 procedure TServerTest.TestPUTWithParamsAndJSONBody;
@@ -286,8 +323,7 @@ begin
   end;
 end;
 
-procedure TBaseServerTest.DoLoginWith(
-  UserName: string);
+procedure TBaseServerTest.DoLoginWith(UserName: string);
 var
   p: TJSONObject;
   res: IRESTResponse;

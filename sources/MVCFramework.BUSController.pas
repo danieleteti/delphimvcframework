@@ -13,7 +13,8 @@ type
   TMVCBUSController = class(TMVCController)
   protected
     function GetUniqueDurableHeader(clientid, topicname: string): string;
-    procedure InternalSubscribeUserToTopics(clientid: string; Stomp: IStompClient);
+    procedure InternalSubscribeUserToTopics(clientid: string;
+      Stomp: IStompClient);
     procedure InternalSubscribeUserToTopic(clientid: string; topicname: string;
       StompClient: IStompClient);
 
@@ -51,10 +52,10 @@ uses
 
 procedure TMVCBUSController.AddTopicToUserSubscriptions(const ATopic: string);
 var
-  x     : string;
+  x: string;
   topics: TArray<string>;
-  t     : string;
-  ToAdd : Boolean;
+  t: string;
+  ToAdd: Boolean;
 begin
   x := Session['__subscriptions'];
   topics := x.Split([';']);
@@ -99,39 +100,31 @@ end;
 
 procedure TMVCBUSController.ReceiveMessages(CTX: TWebContext);
 var
-  Stomp              : IStompClient;
-  clientid           : string;
-  topicorqueue       : string;
-  thename            : string;
-  q                  : string;
-  frame              : IStompFrame;
-  x                  : string;
-  queues             : TArray<string>;
-  StartReceiving     : TDateTime;
-  obj, res           : TJSONObject;
-  Frames             : TArray<IStompFrame>;
-  fr                 : TObject;
-  arr                : TJSONArray;
+  Stomp: IStompClient;
+  clientid: string;
+  frame: IStompFrame;
+  // StartReceiving     : TDateTime;
+  obj, res: TJSONObject;
+  Frames: TArray<IStompFrame>;
+  arr: TJSONArray;
   LastReceivedMessage: TDateTime;
-  TOUT               : Boolean;
+  TOUT: Boolean;
 const
 
-  {$IFDEF TEST}
-
+{$IFDEF TEST}
   RECEIVE_TIMEOUT = 10; // seconds
 
-  {$ELSE}
-
+{$ELSE}
   RECEIVE_TIMEOUT = 60 * 5; // 5 minutes
 
-  {$ENDIF}
-
+{$ENDIF}
 begin
+  TOUT := False;
   clientid := GetClientID;
   Stomp := GetNewStompClient(clientid);
   try
     InternalSubscribeUserToTopics(clientid, Stomp);
-    StartReceiving := now;
+    // StartReceiving := now;
 
     LastReceivedMessage := now;
     SetLength(Frames, 0);
@@ -141,7 +134,8 @@ begin
       frame := nil;
       LogE('Stomp.Receive');
       Stomp.Receive(frame, 500);
-      if Assigned(frame) then // get 10 messages at max, and then send them to client
+      if Assigned(frame) then
+      // get 10 messages at max, and then send them to client
       begin
         LastReceivedMessage := now;
         SetLength(Frames, length(Frames) + 1);
@@ -175,7 +169,8 @@ begin
         end
         else
         begin
-          LogE(Format('Not valid JSON object in topic requested by user %s. The raw message is "%s"',
+          LogE(Format
+            ('Not valid JSON object in topic requested by user %s. The raw message is "%s"',
             [clientid, frame.GetBody]));
         end;
       end;
@@ -192,14 +187,13 @@ begin
   end;
 end;
 
-procedure TMVCBUSController.RemoveTopicFromUserSubscriptions(
-  const ATopic: string);
+procedure TMVCBUSController.RemoveTopicFromUserSubscriptions
+  (const ATopic: string);
 var
-  x                         : string;
+  x: string;
   topics, afterremovaltopics: TArray<string>;
-  t                         : string;
-  IndexToRemove             : Integer;
-  i                         : Integer;
+  IndexToRemove: Integer;
+  i: Integer;
 begin
   x := Session['__subscriptions'];
   topics := x.Split([';']);
@@ -224,12 +218,10 @@ end;
 
 procedure TMVCBUSController.SubscribeToTopic(CTX: TWebContext);
 var
-  Stomp   : IStompClient;
+  Stomp: IStompClient;
   clientid: string;
-  thename : string;
-  x       : string;
-  queues  : TArray<string>;
-  s       : string;
+  thename: string;
+  s: string;
 begin
   clientid := GetClientID;
   thename := CTX.Request.Params['name'].ToLower;
@@ -243,9 +235,10 @@ begin
   end;
 end;
 
-procedure TMVCBUSController.InternalSubscribeUserToTopics(clientid: string; Stomp: IStompClient);
+procedure TMVCBUSController.InternalSubscribeUserToTopics(clientid: string;
+  Stomp: IStompClient);
 var
-  x, t  : string;
+  x, t: string;
   topics: TArray<string>;
 begin
   x := Session['__subscriptions'];
@@ -266,28 +259,26 @@ begin
   Handled := False;
 end;
 
-procedure TMVCBUSController.InternalSubscribeUserToTopic(clientid, topicname: string;
-  StompClient: IStompClient);
+procedure TMVCBUSController.InternalSubscribeUserToTopic(clientid,
+  topicname: string; StompClient: IStompClient);
 var
   DurSubHeader: string;
 begin
   DurSubHeader := GetUniqueDurableHeader(clientid, topicname);
-  StompClient.Subscribe(
-    topicname, amClient,
-    StompUtils.NewHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader(DurSubHeader))
-    );
-  LogE('SUBSCRIBE TO ' + clientid + '@' + topicname + ' dursubheader:' + DurSubHeader);
+  StompClient.Subscribe(topicname, amClient,
+    StompUtils.NewHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader
+    (DurSubHeader)));
+  LogE('SUBSCRIBE TO ' + clientid + '@' + topicname + ' dursubheader:' +
+    DurSubHeader);
   AddTopicToUserSubscriptions(topicname);
 end;
 
 procedure TMVCBUSController.UnSubscribeFromTopic(CTX: TWebContext);
 var
-  Stomp   : IStompClient;
+  Stomp: IStompClient;
   clientid: string;
-  thename : string;
-  x       : string;
-  queues  : TArray<string>;
-  s       : string;
+  thename: string;
+  s: string;
 begin
   clientid := GetClientID;
   thename := CTX.Request.Params['name'].ToLower;

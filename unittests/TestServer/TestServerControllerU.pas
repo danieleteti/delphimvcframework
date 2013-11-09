@@ -47,6 +47,18 @@ type
     // this is only for test!!!!
     procedure TestEncoding(ctx: TWebContext);
 
+    [MVCPath('/testconsumes')]
+    [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
+    [MVCConsumes('application/json')]
+    [MVCProduces('application/json')]
+    procedure TestConsumesProduces(ctx: TWebContext);
+
+    [MVCPath('/testconsumes')]
+    [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
+    [MVCConsumes('text/plain')]
+    [MVCProduces('text/plain')]
+    procedure TestConsumesProducesText(ctx: TWebContext);
+
   end;
 
 implementation
@@ -64,28 +76,22 @@ begin
     httpGET:
       begin
 
-      end
-        ;
+      end;
     httpPOST:
       begin
-      end
-        ;
+      end;
     httpPUT:
       begin
-      end
-        ;
+      end;
     httpDELETE:
       begin
-      end
-        ;
+      end;
     httpHEAD:
       begin
-      end
-        ;
+      end;
     httpOPTIONS:
       begin
-      end
-        ;
+      end;
   end;
 end;
 
@@ -167,6 +173,16 @@ end;
 procedure TTestServerController.SessionSet(ctx: TWebContext);
 begin
   Session['value'] := ctx.Request.Params['value'];
+end;
+
+procedure TTestServerController.TestConsumesProduces(ctx: TWebContext);
+begin
+  Render('Hello World');
+end;
+
+procedure TTestServerController.TestConsumesProducesText(ctx: TWebContext);
+begin
+  Render('Hello World');
 end;
 
 procedure TTestServerController.TestEncoding(ctx: TWebContext);

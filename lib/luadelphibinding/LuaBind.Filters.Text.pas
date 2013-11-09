@@ -8,12 +8,12 @@ uses
 type
   TLuaEmbeddedTextFilter = class
   private
-    FTemplateCode       : string;
-    FLuaCode            : string;
-    FCurrCharIndex      : int64;
+    FTemplateCode: string;
+    FLuaCode: string;
+    FCurrCharIndex: int64;
     FOutputStringBuilder: TStringBuilder;
-    FCurrChar           : Char;
-    FOutputFunction     : string;
+    FCurrChar: Char;
+    FOutputFunction: string;
     procedure SetLuaCode(const Value: string);
     procedure SetTemplateCode(const Value: string);
     procedure NextChar;
@@ -26,10 +26,11 @@ type
     procedure Execute;
     property TemplateCode: string read FTemplateCode write SetTemplateCode;
     property LuaCode: string read FLuaCode write SetLuaCode;
-    property OutputFunction: string read FOutputFunction write SetOutputFunction;
+    property OutputFunction: string read FOutputFunction
+      write SetOutputFunction;
     // helpers
     class function ExecuteWithResult(eLuaScript: AnsiString;
-      const ParamNames : array of string;
+      const ParamNames: array of string;
       const ParamValues: array of string): string;
   end;
 
@@ -40,13 +41,12 @@ uses
   System.Classes,
   LuaBind;
 
-threadvar
-  _OutputBuffer: TStringBuilder;
+threadvar _OutputBuffer: TStringBuilder;
 
 function __lua_stream_out(L: Plua_State): Integer; cdecl;
 var
-  s     : string;
-  o     : TObject;
+  s: string;
+  o: TObject;
   stream: TStreamWriter;
 begin
   if lua_gettop(L) <> 2 then
@@ -55,9 +55,9 @@ begin
     Exit;
   end;
 
-  if lua_isstring(L, - 1) = 1 then
+  if lua_isstring(L, -1) = 1 then
   begin
-    s := lua_tostring(L, - 1);
+    s := lua_tostring(L, -1);
     lua_pop(L, 1);
   end
   else
@@ -66,9 +66,9 @@ begin
     Exit;
   end;
 
-  if lua_islightuserdata(L, - 1) then
+  if lua_islightuserdata(L, -1) then
   begin
-    o := TObject(lua_topointer(L, - 1));
+    o := TObject(lua_topointer(L, -1));
     lua_pop(L, 1);
   end
   else
@@ -93,13 +93,14 @@ end;
 procedure TLuaEmbeddedTextFilter.Execute;
 var
   StartCode: Boolean;
-  State    : Integer;
+  State: Integer;
 const
   PARSER_VERBATIM_TEXT = $8000;
   PARSER_VERBATIM_CODE = PARSER_VERBATIM_TEXT + 1;
   PARSER_VERBATIM_EXPRESSION = PARSER_VERBATIM_CODE + 1;
   PARSER_VERBATIM_CODE_STRING_SINGLE_QUOTED = PARSER_VERBATIM_EXPRESSION + 1;
-  PARSER_VERBATIM_CODE_STRING_DOUBLE_QUOTED = PARSER_VERBATIM_CODE_STRING_SINGLE_QUOTED + 1;
+  PARSER_VERBATIM_CODE_STRING_DOUBLE_QUOTED =
+    PARSER_VERBATIM_CODE_STRING_SINGLE_QUOTED + 1;
 begin
   FCurrCharIndex := 0;
   State := PARSER_VERBATIM_TEXT;
@@ -115,8 +116,8 @@ begin
           begin
             if FCurrChar = '<' then
             begin
-              if (LookAhead(1) = '?') and (LookAhead(2) = 'l') and (LookAhead(3) = 'u') and
-                (LookAhead(4) = 'a') then
+              if (LookAhead(1) = '?') and (LookAhead(2) = 'l') and
+                (LookAhead(3) = 'u') and (LookAhead(4) = 'a') then
               begin
                 NextChar; // ?
                 NextChar; // l
@@ -141,7 +142,8 @@ begin
                 if StartCode then
                 begin
                   StartCode := False;
-                  FOutputStringBuilder.Append(FOutputFunction + ' [[' + sLineBreak);
+                  FOutputStringBuilder.Append(FOutputFunction + ' [[' +
+                    sLineBreak);
                 end;
                 PushToOutput('<');
                 NextChar;
@@ -152,7 +154,8 @@ begin
               if StartCode then
               begin
                 StartCode := False;
-                FOutputStringBuilder.Append(FOutputFunction + ' [[' + sLineBreak);
+                FOutputStringBuilder.Append(FOutputFunction + ' [[' +
+                  sLineBreak);
               end;
               PushToOutput(FCurrChar);
               NextChar;
@@ -223,7 +226,8 @@ begin
               begin
                 NextChar; // >
                 NextChar; // _
-                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [[' + sLineBreak);
+                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [['
+                  + sLineBreak);
                 State := PARSER_VERBATIM_TEXT;
               end
               else
@@ -248,7 +252,8 @@ begin
                 NextChar; // >
                 NextChar; // _
                 FOutputStringBuilder.Append(')');
-                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [[' + sLineBreak);
+                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [['
+                  + sLineBreak);
                 State := PARSER_VERBATIM_TEXT;
               end
               else
@@ -268,8 +273,7 @@ begin
 
     if (State = PARSER_VERBATIM_TEXT) and (not StartCode) then
       FOutputStringBuilder.Append(']]')
-    else
-      if not StartCode then
+    else if not StartCode then
       raise ELuaFilterException.Create('Expected closing Lua tag');
 
     FLuaCode := FOutputStringBuilder.ToString;
@@ -289,9 +293,9 @@ begin
     Exit;
   end;
 
-  if lua_isstring(L, - 1) = 1 then
+  if lua_isstring(L, -1) = 1 then
   begin
-    s := lua_tostring(L, - 1);
+    s := lua_tostring(L, -1);
     lua_pop(L, 1);
   end
   else
@@ -307,8 +311,8 @@ class function TLuaEmbeddedTextFilter.ExecuteWithResult(eLuaScript: AnsiString;
   const ParamNames, ParamValues: array of string): string;
 var
   LuaFilter: TLuaEmbeddedTextFilter;
-  L        : TLuaEngine;
-  I        : Integer;
+  L: TLuaEngine;
+  I: Integer;
 
   function GetOutputBuffer: TStringBuilder;
   begin
@@ -317,7 +321,8 @@ var
 
 begin
   if Length(ParamNames) <> Length(ParamValues) then
-    raise ELuaRuntimeException.Create('Number of params names and param values is not equals');
+    raise ELuaRuntimeException.Create
+      ('Number of params names and param values is not equals');
 
   LuaFilter := TLuaEmbeddedTextFilter.Create;
   try
@@ -358,7 +363,7 @@ procedure TLuaEmbeddedTextFilter.NextChar;
 begin
   if FCurrCharIndex = Length(FTemplateCode) then
   begin
-    FCurrCharIndex := - 1;
+    FCurrCharIndex := -1;
     FCurrChar := #0;
   end
   else

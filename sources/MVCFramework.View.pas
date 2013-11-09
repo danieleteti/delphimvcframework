@@ -1,4 +1,5 @@
 unit MVCFramework.View;
+{$WARNINGS OFF}
 
 interface
 
@@ -13,11 +14,11 @@ uses
 type
   TMVCBaseView = class(TMVCBase)
   private
-    FViewName    : string;
-    FWebContext  : TWebContext;
-    FViewModel   : TMVCDataObjects;
+    FViewName: string;
+    FWebContext: TWebContext;
+    FViewModel: TMVCDataObjects;
     FViewDataSets: TObjectDictionary<string, TDataSet>;
-    FMVCEngine   : TMVCEngine;
+    FMVCEngine: TMVCEngine;
     // FViewCache   : TViewCache;
     // procedure SetViewCache(const Value: TViewCache);
 
@@ -25,16 +26,16 @@ type
     FCurrentContentType: string;
 
   protected
-    function IsCompiledVersionUpToDate(const FileName, CompiledFileName: string): Boolean;
-      virtual; abstract;
+    function IsCompiledVersionUpToDate(const FileName, CompiledFileName: string)
+      : Boolean; virtual; abstract;
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
 
   public
     constructor Create(AViewName: string; AMVCEngine: TMVCEngine;
-      AWebContext  : TWebContext;
-      AViewModels  : TMVCDataObjects;
-      AViewDataSets: TObjectDictionary<string, TDataSet>; ACurrentContentType: string); virtual;
+      AWebContext: TWebContext; AViewModels: TMVCDataObjects;
+      AViewDataSets: TObjectDictionary<string, TDataSet>;
+      ACurrentContentType: string); virtual;
     destructor Destroy; override;
     procedure Execute; virtual; abstract;
     // property ViewCache: TViewCache read FViewCache write SetViewCache;
@@ -44,7 +45,7 @@ type
 
   private
     ScriptOutputStringBuilder: TStringBuilder;
-    FFileName                : string;
+    FFileName: string;
     function GetCompiledFileName(const FileName: string): string;
 
   private
@@ -60,7 +61,8 @@ type
     property FileName: string read FFileName write SetFileName;
 
   protected
-    function IsCompiledVersionUpToDate(const FileName, CompiledFileName: string): Boolean; override;
+    function IsCompiledVersionUpToDate(const FileName, CompiledFileName: string)
+      : Boolean; override;
 
   public const
     LOG_FILE_NAME = 'mvc_%s.log';
@@ -80,10 +82,10 @@ uses
 
 function __lua_form_parameter(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  parname: string;
+  res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
 begin
   if lua_gettop(L) <> 2 then
@@ -91,9 +93,10 @@ begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
     Exit;
   end;
-  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 1).AsString;
-  lua_getfield(L, - 2, '__self');
-  p := lua_topointer(L, - 1);
+  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -1).AsString;
+  lua_getfield(L, -2, '__self');
+  p := lua_topointer(L, -1);
   WebContext := TWebContext(TObject(p));
   res := WebContext.Request.Params[parname];
   TLuaUtils.PushTValue(L, res);
@@ -102,10 +105,10 @@ end;
 
 function __lua_headers_get_all(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  // parname: string;
+  res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
 begin
   if lua_gettop(L) <> 1 then
@@ -113,22 +116,23 @@ begin
     luaL_error(L, PAnsiChar('Wrong parameters number (0 expected)'));
     Exit;
   end;
-  lua_getfield(L, - 1, '__self');
-  p := lua_topointer(L, - 1);
+  lua_getfield(L, -1, '__self');
+  p := lua_topointer(L, -1);
   WebContext := TWebContext(TObject(p));
-  res := WebContext.Request.RawWebRequest.RawContent; { TODO -oDaniele -cGeneral : Do not works }
+  res := WebContext.Request.RawWebRequest.RawContent;
+  { TODO -oDaniele -cGeneral : Do not works }
   TLuaUtils.PushTValue(L, res);
   Result := 1;
 end;
 
 function __lua_headers(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  parname: string;
+  res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
-  parvalue  : string;
+  // parvalue: string;
 begin
   if (lua_gettop(L) <> 2) then
   begin
@@ -136,9 +140,10 @@ begin
     Exit;
   end;
 
-  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 1).AsString;
-  lua_getfield(L, - 2, '__self');
-  p := lua_topointer(L, - 1);
+  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -1).AsString;
+  lua_getfield(L, -2, '__self');
+  p := lua_topointer(L, -1);
   WebContext := TWebContext(TObject(p));
   res := WebContext.Request.RawWebRequest.GetFieldByName(parname.ToUpper);
   TLuaUtils.PushTValue(L, res);
@@ -147,13 +152,13 @@ end;
 
 function __lua_set_http_code(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  // parname: string;
+  // res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
-  parvalue  : string;
-  errocode  : integer;
+  // parvalue: string;
+  errocode: Integer;
 begin
   if lua_gettop(L) <> 2 then
   begin
@@ -162,9 +167,10 @@ begin
   end;
 
   // setting the http return code    request:http_code(404)
-  errocode := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtInteger, L, - 1).AsInteger;
-  lua_getfield(L, - 2, '__self');
-  p := lua_topointer(L, - 1);
+  errocode := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtInteger, L,
+    -1).AsInteger;
+  lua_getfield(L, -2, '__self');
+  p := lua_topointer(L, -1);
 
   WebContext := TWebContext(TObject(p));
   WebContext.Response.StatusCode := errocode;
@@ -173,12 +179,12 @@ end;
 
 function __lua_set_response_headers(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  parname: string;
+  // res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
-  parvalue  : string;
+  parvalue: string;
 begin
   if lua_gettop(L) <> 3 then
   begin
@@ -187,10 +193,12 @@ begin
   end;
 
   // setting an header  request:headers(name, newvalue)
-  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 2).AsString;
-  parvalue := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 1).AsString;
-  lua_getfield(L, - 3, '__self');
-  p := lua_topointer(L, - 1);
+  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -2).AsString;
+  parvalue := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -1).AsString;
+  lua_getfield(L, -3, '__self');
+  p := lua_topointer(L, -1);
 
   WebContext := TWebContext(TObject(p));
   WebContext.Response.CustomHeaders.Values[parname] := parvalue;
@@ -199,10 +207,10 @@ end;
 
 function __lua_post_parameter(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  parname: string;
+  res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
 begin
   if lua_gettop(L) <> 2 then
@@ -210,9 +218,10 @@ begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
     Exit;
   end;
-  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 1).AsString;
-  lua_getfield(L, - 2, '__self');
-  p := lua_topointer(L, - 1);
+  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -1).AsString;
+  lua_getfield(L, -2, '__self');
+  p := lua_topointer(L, -1);
   WebContext := TWebContext(TObject(p));
   res := WebContext.Request.ContentParam(parname);
   TLuaUtils.PushTValue(L, res);
@@ -221,22 +230,24 @@ end;
 
 function __lua_set_header_field(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  parname: string;
+  // res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
-  parvalue  : string;
+  parvalue: string;
 begin
   if lua_gettop(L) <> 2 then
   begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
     Exit;
   end;
-  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 2).AsString;
-  parvalue := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 1).AsString;
-  lua_getfield(L, - 3, '__self');
-  p := lua_topointer(L, - 1);
+  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -2).AsString;
+  parvalue := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -1).AsString;
+  lua_getfield(L, -3, '__self');
+  p := lua_topointer(L, -1);
   WebContext := TWebContext(TObject(p));
   WebContext.Response.SetCustomHeader(parname, parvalue);
   Result := 0;
@@ -244,10 +255,10 @@ end;
 
 function __lua_get_parameter(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  parname: string;
+  res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
 begin
   if lua_gettop(L) <> 2 then
@@ -255,9 +266,10 @@ begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
     Exit;
   end;
-  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L, - 1).AsString;
-  lua_getfield(L, - 2, '__self');
-  p := lua_topointer(L, - 1);
+  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
+    -1).AsString;
+  lua_getfield(L, -2, '__self');
+  p := lua_topointer(L, -1);
   WebContext := TWebContext(TObject(p));
   res := WebContext.Request.QueryStringParam(parname);
   TLuaUtils.PushTValue(L, res);
@@ -266,21 +278,21 @@ end;
 
 function __lua_stream_out(L: Plua_State): Integer; cdecl;
 var
-  parname   : string;
-  res       : string;
-  rq        : TMVCWebRequest;
-  p         : Pointer;
+  // parname: string;
+  // res: string;
+  // rq: TMVCWebRequest;
+  p: Pointer;
   WebContext: TWebContext;
-  v         : string;
+  v: string;
 begin
   if lua_gettop(L) <> 2 then
   begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
     Exit;
   end;
-  v := lua_tostring(L, - 1);
-  lua_getfield(L, - 2, '__self');
-  p := lua_topointer(L, - 1);
+  v := lua_tostring(L, -1);
+  lua_getfield(L, -2, '__self');
+  p := lua_topointer(L, -1);
 
   WebContext := TWebContext(TObject(p));
   TStringBuilder(WebContext.ReservedData).Append(v);
@@ -328,16 +340,16 @@ end;
 
 procedure TMVCEmbeddedLuaView.Execute;
 var
-  Lua                 : TLuaEngine;
-  k                   : string;
-  LuaFilter           : TLuaEmbeddedTextFilter;
-  CompiledFileName    : string;
-  CompiledTimeStamp   : TDateTime;
-  LuaCode             : string;
-  v                   : string;
-  sr                  : TStreamReader;
-  DecodeJSONStrings   : string;
-  LuaRequestFunctions : TDictionary<string, lua_CFunction>;
+  Lua: TLuaEngine;
+  k: string;
+  LuaFilter: TLuaEmbeddedTextFilter;
+  CompiledFileName: string;
+  // CompiledTimeStamp   : TDateTime;
+  // LuaCode             : string;
+  v: string;
+  sr: TStreamReader;
+  DecodeJSONStrings: string;
+  LuaRequestFunctions: TDictionary<string, lua_CFunction>;
   LuaResponseFunctions: TDictionary<string, lua_CFunction>;
 begin
   Lua := TLuaEngine.Create;
@@ -347,22 +359,26 @@ begin
     if FFileName.IsEmpty then
     begin // get the real filename from viewname
 
-      FFileName := StringReplace(ViewName, '/', '\', [rfReplaceAll]); // $0.02 of normalization
+      FFileName := StringReplace(ViewName, '/', '\', [rfReplaceAll]);
+      // $0.02 of normalization
       if FFileName = '\' then
         FFileName := '\index.' + DEFAULT_VIEW_EXT
       else
         FFileName := FFileName + '.' + DEFAULT_VIEW_EXT;
 
       if DirectoryExists(GetMVCConfig.Value['view_path']) then
-        FFileName := ExpandFileName(IncludeTrailingPathDelimiter(GetMVCConfig.Value['view_path'])
-          + FFileName)
+        FFileName := ExpandFileName
+          (IncludeTrailingPathDelimiter(GetMVCConfig.Value['view_path']) +
+          FFileName)
       else
-        FFileName := ExpandFileName(IncludeTrailingPathDelimiter(
-          GetApplicationFileNamePath + GetMVCConfig.Value['view_path']) + FFileName);
+        FFileName := ExpandFileName
+          (IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
+          GetMVCConfig.Value['view_path']) + FFileName);
     end;
 
     if not FileExists(FileName) then
-      raise EMVCFrameworkView.CreateFmt('View [%s.%s] not found', [ViewName, DEFAULT_VIEW_EXT])
+      raise EMVCFrameworkView.CreateFmt('View [%s.%s] not found',
+        [ViewName, DEFAULT_VIEW_EXT])
     else
     begin
       DecodeJSONStrings := '';
@@ -371,8 +387,8 @@ begin
           if FViewModel[k] is TJSONValue then
           begin
             Lua.DeclareGlobalString(k, TJSONValue(FViewModel[k]).ToString);
-            DecodeJSONStrings := DecodeJSONStrings + sLineBreak +
-              'local ' + AnsiString(k) + ' = json.decode(' + AnsiString(k) + ')';
+            DecodeJSONStrings := DecodeJSONStrings + sLineBreak + 'local ' +
+              AnsiString(k) + ' = json.decode(' + AnsiString(k) + ')';
           end
           else
             Lua.DeclareTable(k, FViewModel[k]);
@@ -393,8 +409,10 @@ begin
 
       LuaResponseFunctions := TDictionary<string, lua_CFunction>.Create;
       try
-        LuaResponseFunctions.AddOrSetValue('set_headers', @__lua_set_response_headers);
-        LuaResponseFunctions.AddOrSetValue('set_http_code', @__lua_set_http_code);
+        LuaResponseFunctions.AddOrSetValue('set_headers',
+          @__lua_set_response_headers);
+        LuaResponseFunctions.AddOrSetValue('set_http_code',
+          @__lua_set_http_code);
         LuaResponseFunctions.AddOrSetValue('out', @__lua_stream_out);
         Lua.DeclareTable('response', WebContext, LuaResponseFunctions);
       finally
@@ -421,9 +439,11 @@ begin
           LuaFilter := TLuaEmbeddedTextFilter.Create;
           try
             LuaFilter.OutputFunction := '_out';
-            LuaFilter.TemplateCode := TFile.ReadAllText(FileName, TEncoding.ANSI);
+            LuaFilter.TemplateCode := TFile.ReadAllText(FileName,
+              TEncoding.ANSI);
             LuaFilter.Execute;
-            TFile.WriteAllText(CompiledFileName, LuaFilter.LuaCode, TEncoding.ANSI);
+            TFile.WriteAllText(CompiledFileName, LuaFilter.LuaCode,
+              TEncoding.ANSI);
           finally
             LuaFilter.Free;
           end;
@@ -447,9 +467,7 @@ begin
       // 'require "Lua.helper.view"' + ' require "Lua.delphi.datasets"' + ' json = require "dkjson" ' + DecodeJSONStrings + ' ' + v
       // );
 
-      Lua.LoadScript(
-        'require "Lua.boot" ' + DecodeJSONStrings + ' ' + v
-        );
+      Lua.LoadScript('require "Lua.boot" ' + DecodeJSONStrings + ' ' + v);
 
       // prepare to execution and...
       ScriptOutputStringBuilder := TStringBuilder.Create;
@@ -469,14 +487,17 @@ begin
   end;
 end;
 
-function TMVCEmbeddedLuaView.GetCompiledFileName(const FileName: string): string;
+function TMVCEmbeddedLuaView.GetCompiledFileName(const FileName
+  : string): string;
 var
-  CompiledFileDir : string;
+  CompiledFileDir: string;
   CompiledFileName: string;
 begin
   // Exit(FileName + '.compiled');
-  CompiledFileDir := IncludeTrailingPathDelimiter(ExtractFilePath(FileName) + '__compiled');
-  CompiledFileName := CompiledFileDir + ChangeFileExt(ExtractFileName(FileName), '.lua');
+  CompiledFileDir := IncludeTrailingPathDelimiter(ExtractFilePath(FileName) +
+    '__compiled');
+  CompiledFileName := CompiledFileDir +
+    ChangeFileExt(ExtractFileName(FileName), '.lua');
   ForceDirectories(CompiledFileDir);
   Result := CompiledFileName;
 end;
@@ -506,9 +527,9 @@ end;
 { TMVCBaseView }
 
 constructor TMVCBaseView.Create(AViewName: string; AMVCEngine: TMVCEngine;
-  AWebContext  : TWebContext;
-  AViewModels  : TMVCDataObjects;
-  AViewDataSets: TObjectDictionary<string, TDataSet>; ACurrentContentType: string);
+  AWebContext: TWebContext; AViewModels: TMVCDataObjects;
+  AViewDataSets: TObjectDictionary<string, TDataSet>;
+  ACurrentContentType: string);
 begin
   inherited Create;
   FViewName := AViewName;
