@@ -11,7 +11,7 @@ uses
 type
   TTestRouting = class(TTestCase)
   private
-    Router     : TMVCRouter;
+    Router: TMVCRouter;
     Controllers: TList<TMVCControllerClass>;
 
   public
@@ -55,15 +55,18 @@ end;
 
 procedure TTestRouting.TestPathButNoParameters;
 var
-  Params             : TMVCRequestParamsTable;
+  Params: TMVCRequestParamsTable;
   ResponseContentType: string;
+  ResponseContentEncoding: string;
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Orders', Router.MethodToCall.Name);
+    CheckEquals('UTF-8', ResponseContentEncoding);
   finally
     Params.Free;
   end;
@@ -71,13 +74,14 @@ end;
 
 procedure TTestRouting.TestPathWithParameters;
 var
-  Params             : TMVCRequestParamsTable;
+  Params: TMVCRequestParamsTable;
   ResponseContentType: string;
+  ResponseContentEncoding: string;
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET,
-      Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('789', Params['ordernumber']);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
@@ -90,46 +94,49 @@ end;
 
 procedure TTestRouting.TestWithMethodTypes;
 var
-  Params             : TMVCRequestParamsTable;
+  Params: TMVCRequestParamsTable;
   ResponseContentType: string;
+  ResponseContentEncoding: string;
 begin
   Params := TMVCRequestParamsTable.Create;
   try
     CheckTrue(Router.ExecuteRouting('/orders/789', httpPOST, Controllers,
-      Params, ResponseContentType));
+      Params, ResponseContentType, ResponseContentEncoding));
     CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPUT,
-      Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpPUT, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpDELETE,
-      Controllers, Params, ResponseContentType));
+    CheckFalse(Router.ExecuteRouting('/orders/789', httpDELETE, Controllers,
+      Params, ResponseContentType, ResponseContentEncoding));
     CheckNull(Router.MethodToCall);
     CheckFalse(Assigned(Router.MVCControllerClass));
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpHEAD,
-      Controllers, Params, ResponseContentType), 'Resolved as HEAD');
+    CheckFalse(Router.ExecuteRouting('/orders/789', httpHEAD, Controllers,
+      Params, ResponseContentType, ResponseContentEncoding),
+      'Resolved as HEAD');
     CheckNull(Router.MethodToCall, 'Resolved as HEAD');
     CheckFalse(Assigned(Router.MVCControllerClass));
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpOPTIONS,
-      Controllers, Params, ResponseContentType), 'Resolved as OPTIONS');
+    CheckFalse(Router.ExecuteRouting('/orders/789', httpOPTIONS, Controllers,
+      Params, ResponseContentType, ResponseContentEncoding),
+      'Resolved as OPTIONS');
     CheckNull(Router.MethodToCall, 'Resolved as OPTIONS');
     CheckFalse(Assigned(Router.MVCControllerClass));
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET,
-      Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET,
-      Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
     Params.Free;
@@ -138,12 +145,14 @@ end;
 
 procedure TTestRouting.TestWithNoParameters;
 var
-  Params             : TMVCRequestParamsTable;
+  Params: TMVCRequestParamsTable;
   ResponseContentType: string;
+  ResponseContentEncoding: string;
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/', httpGET, Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('/', httpGET, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
@@ -154,12 +163,14 @@ end;
 
 procedure TTestRouting.TestWithNoPath;
 var
-  Params             : TMVCRequestParamsTable;
+  Params: TMVCRequestParamsTable;
   ResponseContentType: string;
+  ResponseContentEncoding: string;
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('', httpGET, Controllers, Params, ResponseContentType));
+    CheckTrue(Router.ExecuteRouting('', httpGET, Controllers, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
