@@ -30,9 +30,9 @@ uses
 procedure TMessagingExtensionsTestCase.TestMultipleSubscribeAndUnsubscribe;
 var
   res: IRESTResponse;
-  x  : string;
+  x: string;
 begin
-  RESTClient.ReadTimeout := - 1;
+  RESTClient.ReadTimeout := -1;
   DoLoginWith('d.teti');
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
   CheckEquals(200, res.ResponseCode, res.ResponseText);
@@ -41,27 +41,30 @@ begin
   CheckEquals('/topic/test01', x);
 
   res := RESTClient.doGET('/messages/subscribe', ['test010']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText); // server shod not return an error
+  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/topic/test01;/topic/test010', x);
 
   res := RESTClient.doGET('/messages/unsubscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText); // server shod not return an error
+  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/topic/test010', x);
 
-  CheckEquals(200, res.ResponseCode, res.ResponseText); // server shod not return an error
+  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  // server shod not return an error
   DoLogout;
 end;
 
 procedure TMessagingExtensionsTestCase.TestMultipleSubscribeAndUnsubscribeHARD;
 var
   res: IRESTResponse;
-  x  : string;
+  x: string;
 begin
-  RESTClient.ReadTimeout := - 1;
+  RESTClient.ReadTimeout := -1;
   DoLoginWith('d.teti');
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
   res := RESTClient.doGET('/messages/subscribe', ['test010']);
@@ -70,7 +73,8 @@ begin
   res := RESTClient.doGET('/messages/subscribe', ['test010101']);
   res := RESTClient.doGET('/messages/subscribe', ['test0101010']);
 
-  CheckEquals(200, res.ResponseCode, res.ResponseText); // server shod not return an error
+  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals
@@ -78,7 +82,8 @@ begin
     x);
 
   res := RESTClient.doGET('/messages/unsubscribe', ['test010']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText); // server shod not return an error
+  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals
@@ -95,25 +100,26 @@ begin
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
   CheckEquals(200, res.ResponseCode, res.ResponseText);
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText); // server shod not return an error
+  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  // server shod not return an error
   DoLogout;
 end;
 
 procedure TMessagingExtensionsTestCase.TestSubscribeAndReceive;
 var
-  res          : IRESTResponse;
-  messages     : TJSONArray;
-  sid          : string;
+  res: IRESTResponse;
+  messages: TJSONArray;
+  sid: string;
   RMessageCount: Integer;
-  I            : Integer;
-  o            : TJSONObject;
+  I: Integer;
+  o: TJSONObject;
 const
   MSG_COUNT = 100;
 begin
   DoLoginWith('d.teti');
   RESTClient.doGET('/messages/subscribe/test01', []);
   RESTClient.doGET('/messages/subscribe/test02', []);
-  RESTClient.ReadTimeout := - 1;
+  RESTClient.ReadTimeout := -1;
 
   RESTClient.doPOST('/messages/enqueue/test02', [],
     TJSONObject.Create(TJSONPair.Create('hello', 'world')));
@@ -133,7 +139,8 @@ begin
         for I := 1 to MSG_COUNT do
         begin
           RESTC.doPOST('/messages/enqueue/test02', [],
-            TJSONObject.Create(TJSONPair.Create('hello', TJSONNumber.Create(I))));
+            TJSONObject.Create(TJSONPair.Create('hello',
+            TJSONNumber.Create(I))));
         end;
       finally
         RESTC.Free;
@@ -146,7 +153,8 @@ begin
     res := RESTClient.doGET('/messages/receive', []);
     if res.ResponseCode = 200 then
     begin
-      CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
+      CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'),
+        '_timestamp is not set');
       CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
       CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray,
         'Messages is not a TJSONArray');
@@ -180,6 +188,7 @@ end;
 
 initialization
 
-RegisterTest(TMessagingExtensionsTestCase.Suite);
+// RegisterTest(TMessagingExtensionsTestCase.Suite);
+finalization
 
 end.
