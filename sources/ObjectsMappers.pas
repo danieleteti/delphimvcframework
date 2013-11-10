@@ -27,7 +27,12 @@ uses
   Generics.Collections,
   DBXJSON,
   SqlExpr,
-  DuckListU;
+  DuckListU,
+
+  Xml.xmldom,
+  Xml.XMLIntf,
+  Xml.XMLDoc
+    ;
 
 type
   Mapper = class
@@ -84,6 +89,10 @@ type
       AReaderInstanceOwner: boolean = True);
     class procedure DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
       ADataSetInstanceOwner: boolean = True);
+//    class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
+//      ADataSetInstanceOwner: boolean = True);
+//    class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
+//      ADataSetInstanceOwner: boolean = True);
     class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false): TJSONArray;
     class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>)
@@ -174,7 +183,7 @@ type
   MapperColumnAttribute = class(TCustomAttribute)
   private
     FFieldName: string;
-    FIsPK     : boolean;
+    FIsPK: boolean;
     procedure SetFieldName(const Value: string);
     procedure SetIsPK(const Value: boolean);
 
@@ -189,13 +198,13 @@ type
   GridColumnProps = class(TCustomAttribute)
   private
     FCaption: string;
-    FAlign  : TGridColumnAlign;
-    FWidth  : Integer;
+    FAlign: TGridColumnAlign;
+    FWidth: Integer;
     function GetAlignAsString: string;
 
   public
     constructor Create(ACaption: string; AAlign: TGridColumnAlign = caCenter;
-      AWidth: Integer = - 1);
+      AWidth: Integer = -1);
     property Caption: string read FCaption;
     property Align: TGridColumnAlign read FAlign;
     property AlignAsString: string read GetAlignAsString;
@@ -225,8 +234,8 @@ uses
   SqlTimSt,
   DateUtils,
   Classes,
-  RTTIUtilsU;
-
+  RTTIUtilsU,
+  Xml.adomxmldom;
 { Mapper }
 
 function ISOTimeToString(ATime: TTime): string;
@@ -323,12 +332,12 @@ end;
 class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject;
   ADataSetInstanceOwner: boolean);
 var
-  I   : Integer;
-  key : string;
-  dt  : TDateTime;
-  tt  : TTime;
+  I: Integer;
+  key: string;
+  dt: TDateTime;
+  tt: TTime;
   Time: TTimeStamp;
-  ts  : TSQLTimeStamp;
+  ts: TSQLTimeStamp;
 begin
   for I := 0 to ADataSet.FieldCount - 1 do
   begin
@@ -391,8 +400,8 @@ begin
             AJSONObject.AddPair(key, TJSONNull.Create);
         end;
 
-      else
-        raise Exception.Create('Cannot find type for field ' + key);
+    else
+      raise Exception.Create('Cannot find type for field ' + key);
     end;
   end;
   if ADataSetInstanceOwner then
@@ -402,16 +411,16 @@ end;
 
 class procedure Mapper.DataSetToObject(ADataSet: TDataSet; AObject: TObject);
 var
-  _type                  : TRttiType;
-  _fields                : TArray<TRttiProperty>;
-  _field                 : TRttiProperty;
-  _attribute             : TCustomAttribute;
-  _dict                  : TDictionary<string, string>;
-  _keys                  : TDictionary<string, boolean>;
-  mf                     : MapperColumnAttribute;
-  field_name             : string;
-  Value                  : TValue;
-  FoundAttribute         : boolean;
+  _type: TRttiType;
+  _fields: TArray<TRttiProperty>;
+  _field: TRttiProperty;
+  _attribute: TCustomAttribute;
+  _dict: TDictionary<string, string>;
+  _keys: TDictionary<string, boolean>;
+  mf: MapperColumnAttribute;
+  field_name: string;
+  Value: TValue;
+  FoundAttribute: boolean;
   FoundTransientAttribute: boolean;
 begin
   _dict := TDictionary<string, string>.Create();
@@ -434,7 +443,7 @@ begin
       else if _attribute is MapperTransientAttribute then
         FoundTransientAttribute := True;
     end;
-    if not (FoundAttribute and FoundTransientAttribute) then
+    if not(FoundAttribute and FoundTransientAttribute) then
     begin
       _dict.Add(_field.Name, _field.Name);
       _keys.Add(_field.Name, false);
@@ -487,15 +496,15 @@ end;
 
 class function Mapper.ObjectToJSONArray(AObject: TObject): TJSONArray;
 var
-  _type    : TRttiType;
-  _fields  : TArray<TRttiProperty>;
-  _field   : TRttiProperty;
-  f        : string;
+  _type: TRttiType;
+  _fields: TArray<TRttiProperty>;
+  _field: TRttiProperty;
+  f: string;
   JSONArray: TJSONArray;
-  o        : TObject;
-  list     : IWrappedList;
-  arr      : TJSONArray;
-  Obj      : TObject;
+  o: TObject;
+  list: IWrappedList;
+  arr: TJSONArray;
+  Obj: TObject;
 begin
   JSONArray := TJSONArray.Create;
   _type := ctx.GetType(AObject.ClassInfo);
@@ -567,16 +576,16 @@ end;
 class function Mapper.ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string)
   : TJSONObject;
 var
-  _type                    : TRttiType;
-  _properties              : TArray<TRttiProperty>;
-  _property                : TRttiProperty;
-  f                        : string;
-  JSONObject               : TJSONObject;
-  arr                      : TJSONArray;
-  list                     : IWrappedList;
-  Obj, o                   : TObject;
-  DoNotSerializeThis       : boolean;
-  I                        : Integer;
+  _type: TRttiType;
+  _properties: TArray<TRttiProperty>;
+  _property: TRttiProperty;
+  f: string;
+  JSONObject: TJSONObject;
+  arr: TJSONArray;
+  list: IWrappedList;
+  Obj, o: TObject;
+  DoNotSerializeThis: boolean;
+  I: Integer;
   ThereAreIgnoredProperties: boolean;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
@@ -684,16 +693,16 @@ end;
 class function Mapper.ObjectToJSONObjectFields(AObject: TObject;
   AIgnoredProperties: array of string): TJSONObject;
 var
-  _type                    : TRttiType;
-  _fields                  : TArray<TRttiField>;
-  _field                   : TRttiField;
-  f                        : string;
-  JSONObject               : TJSONObject;
-  arr                      : TJSONArray;
-  list                     : IWrappedList;
-  Obj, o                   : TObject;
-  DoNotSerializeThis       : boolean;
-  I                        : Integer;
+  _type: TRttiType;
+  _fields: TArray<TRttiField>;
+  _field: TRttiField;
+  f: string;
+  JSONObject: TJSONObject;
+  arr: TJSONArray;
+  list: IWrappedList;
+  Obj, o: TObject;
+  DoNotSerializeThis: boolean;
+  I: Integer;
   ThereAreIgnoredProperties: boolean;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
@@ -793,12 +802,12 @@ end;
 class procedure Mapper.ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
   AReaderInstanceOwner: boolean);
 var
-  I   : Integer;
-  key : string;
-  dt  : TDateTime;
-  tt  : TTime;
+  I: Integer;
+  key: string;
+  dt: TDateTime;
+  tt: TTime;
   Time: TTimeStamp;
-  ts  : TSQLTimeStamp;
+  ts: TSQLTimeStamp;
 begin
   for I := 0 to AReader.ColumnCount - 1 do
   begin
@@ -838,8 +847,8 @@ begin
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
         end
-      else
-        raise Exception.Create('Cannot find type');
+    else
+      raise Exception.Create('Cannot find type');
     end;
   end;
   if AReaderInstanceOwner then
@@ -861,20 +870,20 @@ end;
 
 class procedure Mapper.ReaderToObject(AReader: TDBXReader; AObject: TObject);
 var
-  _type     : TRttiType;
-  _fields   : TArray<TRttiProperty>;
-  _field    : TRttiProperty;
+  _type: TRttiType;
+  _fields: TArray<TRttiProperty>;
+  _field: TRttiProperty;
   _attribute: MapperColumnAttribute;
-  _dict     : TDictionary<string, string>;
-  _keys     : TDictionary<string, boolean>;
-  mf        : MapperColumnAttribute;
+  _dict: TDictionary<string, string>;
+  _keys: TDictionary<string, boolean>;
+  mf: MapperColumnAttribute;
   field_name: string;
-  Value     : TValue;
-  Time      : TTimeStamp;
-  dt        : TDateTime;
-  T         : TTime;
-  ts        : TTimeStamp;
-  sqlts     : TSQLTimeStamp;
+  Value: TValue;
+  Time: TTimeStamp;
+  dt: TDateTime;
+  T: TTime;
+  ts: TTimeStamp;
+  sqlts: TSQLTimeStamp;
 begin
   _dict := TDictionary<string, string>.Create();
   _keys := TDictionary<string, boolean>.Create();
@@ -933,8 +942,8 @@ begin
           else
             Value := AReader.Value[field_name].AsString;
         end;
-      else
-        raise Exception.Create('Unknown field type for ' + field_name);
+    else
+      raise Exception.Create('Unknown field type for ' + field_name);
     end;
     _field.SetValue(AObject, Value);
   end;
@@ -958,7 +967,7 @@ end;
 class function Mapper.GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string;
 var
   attrs: TArray<TCustomAttribute>;
-  attr : TCustomAttribute;
+  attr: TCustomAttribute;
 begin
   // JSONSer property attribute handling
   attrs := ARttiField.GetAttributes;
@@ -1067,7 +1076,7 @@ end;
 class function Mapper.GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string;
 var
   attrs: TArray<TCustomAttribute>;
-  attr : TCustomAttribute;
+  attr: TCustomAttribute;
 begin
   // JSONSer property attribute handling
   attrs := ARttiProp.GetAttributes;
@@ -1127,7 +1136,7 @@ end;
 
 class function Mapper.GetProperty(Obj: TObject; const PropertyName: string): TValue;
 var
-  Prop     : TRttiProperty;
+  Prop: TRttiProperty;
   ARTTIType: TRttiType;
 begin
   ARTTIType := ctx.GetType(Obj.ClassType);
@@ -1161,7 +1170,7 @@ end;
 class function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember; out AAttribute: T): boolean;
 var
   attrs: TArray<TCustomAttribute>;
-  attr : TCustomAttribute;
+  attr: TCustomAttribute;
 begin
   AAttribute := nil;
   Result := false;
@@ -1177,7 +1186,7 @@ end;
 class function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember): boolean;
 var
   attrs: TArray<TCustomAttribute>;
-  attr : TCustomAttribute;
+  attr: TCustomAttribute;
 begin
   Result := false;
   attrs := ARTTIMember.GetAttributes;
@@ -1204,19 +1213,19 @@ end;
 class procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
   AObject: TObject);
 var
-  _type  : TRttiType;
+  _type: TRttiType;
   _fields: TArray<TRttiProperty>;
-  _field : TRttiProperty;
-  f      : string;
-  jvalue : TJSONValue;
-  v      : TValue;
-  o      : TObject;
-  list   : IWrappedList;
-  oo     : TObject;
-  I      : Integer;
-  cref   : TClass;
-  attr   : MapperItemsClassType;
-  arr    : TJSONArray;
+  _field: TRttiProperty;
+  f: string;
+  jvalue: TJSONValue;
+  v: TValue;
+  o: TObject;
+  list: IWrappedList;
+  oo: TObject;
+  I: Integer;
+  cref: TClass;
+  attr: MapperItemsClassType;
+  arr: TJSONArray;
 begin
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
@@ -1324,7 +1333,7 @@ end;
 
 class function Mapper.JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
 var
-  AObject  : TObject;
+  AObject: TObject;
   _rttiType: TRttiType;
 begin
   _rttiType := Mapper.ctx.FindType(ClazzName);
@@ -1352,12 +1361,12 @@ end;
 
 class function Mapper.JSONObjectToObjectFields<T>(AJSONObject: TJSONObject): T;
 var
-  _type  : TRttiType;
+  _type: TRttiType;
   _fields: TArray<TRttiField>;
-  _field : TRttiField;
-  f      : string;
+  _field: TRttiField;
+  f: string;
   AObject: T;
-  jvalue : TJSONValue;
+  jvalue: TJSONValue;
 begin
   AObject := T.Create;
   try
@@ -1400,7 +1409,7 @@ end;
 class procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
   ACloseDataSetAfterScroll: boolean);
 var
-  Obj          : T;
+  Obj: T;
   SavedPosition: TArray<Byte>;
 begin
   ADataSet.DisableControls;
@@ -1422,19 +1431,110 @@ begin
     ADataSet.Close;
 end;
 
+//class procedure Mapper.DataSetToXML(ADataSet: TDataSet;
+//  XMLDocument: String; ADataSetInstanceOwner: boolean);
+//var
+//  Xml: IXMLDocument;
+//  Row: IDOMElement;
+//begin
+//  DefaultDOMVendor := 'ADOM XML v4';
+//  Xml := NewXMLDocument();
+//  Xml.Active := True;
+//  while not ADataSet.Eof do
+//  begin
+//    Row := Xml.DOMDocument.createElement('row');
+//    // Row := Xml.DocumentElement.AddChild('row');
+//    // DataSetRowToXML(ADataSet, Row, false);
+//    Xml.DOMDocument.appendChild(Row);
+//    ADataSet.Next;
+//  end;
+//  if ADataSetInstanceOwner then
+//    FreeAndNil(ADataSet);
+//  Xml.SaveToXML(XMLDocument);
+//end;
+//
+//class procedure Mapper.DataSetRowToXML(ADataSet: TDataSet;
+//  Row: IXMLNode; ADataSetInstanceOwner: boolean);
+//var
+//  I: Integer;
+//  key: string;
+//  dt: TDateTime;
+//  tt: TTime;
+//  Time: TTimeStamp;
+//  ts: TSQLTimeStamp;
+//begin
+//  for I := 0 to ADataSet.FieldCount - 1 do
+//  begin
+//    key := LowerCase(ADataSet.Fields[I].FieldName);
+//    case ADataSet.Fields[I].DataType of
+//      TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
+//        Row.Attributes[key] := ADataSet.Fields[I].AsInteger;
+//      // AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
+//      TFieldType.ftLargeint:
+//        begin
+//          Row.Attributes[key] := ADataSet.Fields[I].AsLargeInt;
+//        end;
+//      TFieldType.ftSingle, TFieldType.ftFloat:
+//        Row.Attributes[key] := ADataSet.Fields[I].AsFloat;
+//      ftString, ftWideString, ftMemo:
+//        Row.Attributes[key] := ADataSet.Fields[I].AsWideString;
+//      TFieldType.ftDate:
+//        begin
+//          if not ADataSet.Fields[I].IsNull then
+//          begin
+//            Row.Attributes[key] := ISODateToString(ADataSet.Fields[I].AsDateTime);
+//          end
+//        end;
+//      TFieldType.ftDateTime:
+//        begin
+//          if not ADataSet.Fields[I].IsNull then
+//          begin
+//            Row.Attributes[key] := ISODateTimeToString(ADataSet.Fields[I].AsDateTime);
+//          end
+//        end;
+//      TFieldType.ftTimeStamp:
+//        begin
+//          if not ADataSet.Fields[I].IsNull then
+//          begin
+//            ts := ADataSet.Fields[I].AsSQLTimeStamp;
+//            Row.Attributes[key] := SQLTimeStampToStr('hh:nn:ss', ts);
+//          end
+//        end;
+//      TFieldType.ftCurrency:
+//        begin
+//          if not ADataSet.Fields[I].IsNull then
+//          begin
+//            Row.Attributes[key] := FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency);
+//          end
+//        end;
+//      TFieldType.ftFMTBcd:
+//        begin
+//          if not ADataSet.Fields[I].IsNull then
+//          begin
+//            Row.Attributes[key] := BcdToDouble(ADataSet.Fields[I].AsBcd);
+//          end
+//        end
+//    else
+//      raise Exception.Create('Cannot find type for field ' + key);
+//    end;
+//  end;
+//  if ADataSetInstanceOwner then
+//    FreeAndNil(ADataSet);
+//end;
+
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
   WithResult: boolean): Int64;
 var
-  I              : Integer;
-  pname          : string;
-  _rttiType      : TRttiType;
-  obj_fields     : TArray<TRttiProperty>;
-  obj_field      : TRttiProperty;
+  I: Integer;
+  pname: string;
+  _rttiType: TRttiType;
+  obj_fields: TArray<TRttiProperty>;
+  obj_field: TRttiProperty;
   obj_field_attrs: TArray<TCustomAttribute>;
-  obj_field_attr : MapperColumnAttribute;
-  Map            : TObjectDictionary<string, TRttiProperty>;
-  f              : TRttiProperty;
-  fv             : TValue;
+  obj_field_attr: MapperColumnAttribute;
+  Map: TObjectDictionary<string, TRttiProperty>;
+  f: TRttiProperty;
+  fv: TValue;
 begin
   Map := TObjectDictionary<string, TRttiProperty>.Create;
   try
@@ -1522,15 +1622,13 @@ begin
   FCaption := ACaption;
   FAlign := AAlign;
 
-  {$IF CompilerVersion >= 23.0}
-
+{$IF CompilerVersion >= 23.0}
   FWidth := System.Math.Max(AWidth, 50);
 
-  {$ELSE}
-
+{$ELSE}
   FWidth := Math.Max(AWidth, 50);
 
-  {$IFEND}
+{$IFEND}
 
 end;
 
