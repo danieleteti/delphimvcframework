@@ -254,6 +254,7 @@ type
     procedure SetContentEncoding(const Value: string);
 
   protected
+    function GetCurrentWebModule: TWebModule;
     function ResponseStream: TStringBuilder;
     function GetNewStompClient(ClientID: string = ''): IStompClient;
     function GetClientID: string;
@@ -276,6 +277,8 @@ type
     procedure Render<T: class>(ACollection: TObjectList<T>;
       AInstanceOwner: boolean = true); overload;
     procedure Render(AObject: TObject; AInstanceOwner: boolean = true);
+      overload; virtual;
+    procedure Render(ADataSet: TDataSet; AInstanceOwner: boolean = false);
       overload; virtual;
     procedure Render(AJSONValue: TJSONValue; AInstanceOwner: boolean = true);
       overload; virtual;
@@ -496,7 +499,7 @@ var
 begin
   LogEnterMethod(Request.PathInfo);
   try
-    Result := False;
+    Result := false;
     ParamsTable := TMVCRequestParamsTable.Create;
     try
       Context := TWebContext.Create(Request, Response);
@@ -539,7 +542,7 @@ begin
                 SelectedController.SetMVCEngine(Self);
                 // exception?
                 try
-                  Handled := False;
+                  Handled := false;
                   // gets response contentype from MVCProduces attribute
                   SelectedController.ContentType := ResponseContentType;
                   SelectedController.ContentEncoding := ResponseContentEncoding;
@@ -570,7 +573,7 @@ begin
                   on E: EMVCSessionExpiredException do
                   begin
                     LogException(E, E.DetailedMessage);
-                    SelectedController.SessionStop(False);
+                    SelectedController.SessionStop(false);
                     SelectedController.ResponseStatusCode(E.HTTPErrorCode);
                     SelectedController.Render(E);
                   end;
@@ -773,7 +776,7 @@ begin
         _methods := _type.GetDeclaredMethods;
         for _method in _methods do
         begin
-          FoundAttrib := False;
+          FoundAttrib := false;
           StrRelativePath := '';
           StrHTTPMethods := '';
           for _a in _method.GetAttributes do
@@ -866,7 +869,7 @@ end;
 procedure TMVCEngine.OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse; var Handled: boolean);
 begin
-  Handled := False;
+  Handled := false;
   if Assigned(FSavedOnBeforeDispatch) then
     FSavedOnBeforeDispatch(Sender, Request, Response, Handled);
   // _Request := Request as TIdHTTPAppRequest;
@@ -961,7 +964,7 @@ end;
 
 constructor TMVCWebResponse.Create(AWebResponse: TWebResponse);
 begin
-  FStreamOutputDone := False;
+  FStreamOutputDone := false;
   inherited Create;
   FWebResponse := AWebResponse;
 end;
@@ -1099,7 +1102,7 @@ begin
   begin
     FWebSession := TMVCEngine.GetCurrentSession(GetMVCConfig,
       Context.Request.FWebRequest, Context.Response.FWebResponse,
-      SessionID, False);
+      SessionID, false);
     if not Assigned(FWebSession) then
       raise EMVCException.Create('Invalid SessionID');
     FWebSession.MarkAsUsed;
@@ -1112,8 +1115,8 @@ end;
 constructor TMVCController.Create;
 begin
   inherited Create;
-  IsSessionStarted := False;
-  SessionMustBeClose := False;
+  IsSessionStarted := false;
+  SessionMustBeClose := false;
   FContentEncoding := 'UTF-8';
   MVCControllerAfterCreate;
 end;
@@ -1172,6 +1175,11 @@ begin
   Result := FContext.Response.ContentType;
 end;
 
+function TMVCController.GetCurrentWebModule: TWebModule;
+begin
+  Result := GetMVCEngine.Owner as TWebModule;
+end;
+
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
   Result := StompUtils.NewStomp(Config['stompserver'],
@@ -1184,7 +1192,7 @@ begin
   if not Assigned(FWebSession) then
   begin
     FWebSession := TMVCEngine.GetCurrentSession(GetMVCConfig,
-      Context.Request.FWebRequest, Context.Response.FWebResponse, '', False);
+      Context.Request.FWebRequest, Context.Response.FWebResponse, '', false);
     if not Assigned(FWebSession) then
       SessionStart
       // else
@@ -1240,7 +1248,7 @@ end;
 procedure TMVCController.OnBeforeAction(Context: TWebContext;
   const AActionNAme: string; var Handled: boolean);
 begin
-  Handled := False;
+  Handled := false;
   if ContentType.IsEmpty then
     ContentType := GetMVCConfig['default_content_type'];
 end;
@@ -1351,7 +1359,7 @@ begin
       TMonitor.Exit(SessionList);
     end;
     IsSessionStarted := true;
-    SessionMustBeClose := False;
+    SessionMustBeClose := false;
   end;
 end;
 
@@ -1382,7 +1390,7 @@ begin
     TMonitor.Exit(SessionList);
   end;
 
-  IsSessionStarted := False;
+  IsSessionStarted := false;
   SessionMustBeClose := true;
 end;
 
@@ -1749,7 +1757,7 @@ var
   frame: IStompFrame;
   o: TJSONValue;
 begin
-  Result := False;
+  Result := false;
   Stomp := GetNewStompClient(GetClientID);
   if not Stomp.Receive(frame, ATimeout) then
     JSONObject := nil
@@ -1837,6 +1845,27 @@ begin
   end;
 end;
 
+procedure TMVCController.Render(ADataSet: TDataSet; AInstanceOwner: boolean);
+var
+  arr: TJSONArray;
+  S: String;
+begin
+  if ContentType = TMVCMimeType.APPLICATION_JSON then
+  begin
+    ADataSet.First;
+    arr := TJSONArray.Create;
+    Mapper.DataSetToJSONArray(ADataSet, arr, AInstanceOwner);
+    Render(arr);
+  end
+  else
+    raise Exception.Create('ContentType not supported for this render [' + ContentType + ']');
+  // if ContentType = TMVCMimeType.TEXT_XML then
+  // begin
+  // Mapper.DataSetToXML(ADataSet, S, AInstanceOwner);
+  // Render(S);
+  // end;
+end;
+
 procedure TMVCController.Render<T>(ACollection: TObjectList<T>;
   AInstanceOwner: boolean);
 var
@@ -1920,6 +1949,7 @@ begin
 end;
 
 {$IFDEF IOCP}
+
 
 constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
 begin
