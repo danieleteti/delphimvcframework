@@ -3,7 +3,7 @@ unit RoutingSampleControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons;
+  MVCFramework, MVCFramework.Commons, ObjectsMappers;
 
 type
 
@@ -11,30 +11,76 @@ type
   TRoutingSampleController = class(TMVCController)
   public
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/($searchtext)/($page)')]
-    [MVCProduce('text/plain')]
+    [MVCPath('/search/($searchtext)/($page)')]
+    [MVCProduces('text/plain')]
     procedure SearchCustomers(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGet])]
+    [MVCPath('/people/($id)')]
+    [MVCProduces('application/json')]
+    procedure GetPerson(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGet])]
+    [MVCPath('/people/($id)/json')]
+    [MVCProduces('application/json')]
+    procedure GetPersonJSON(CTX: TWebContext);
   end;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, BusinessObjectsU, Data.DBXJSON;
 
 { TRoutingSampleController }
+
+procedure TRoutingSampleController.GetPerson(CTX: TWebContext);
+var
+  P: TPerson;
+  IDPerson: Integer;
+begin
+  IDPerson := CTX.Request.ParamsAsInteger['id'];
+  {
+    Use IDPerson to load the person from a database...
+    In this example, we're creating a fake person
+  }
+  P := TPerson.Create;
+  P.FirstName := 'Daniele';
+  P.LastName := 'Teti';
+  P.DOB := EncodeDate(1975, 5, 2);
+  P.Married := True;
+  Render(P);
+end;
+
+procedure TRoutingSampleController.GetPersonJSON(CTX: TWebContext);
+var
+  P: TJSONObject;
+  IDPerson: Integer;
+begin
+  IDPerson := CTX.Request.ParamsAsInteger['id'];
+  {
+    Use IDPerson to load the person from a database...
+    In this example, we're creating a fake person
+  }
+  P := TJSONObject.Create;
+  P.AddPair('FirstName', 'Daniele');
+  P.AddPair('LastName', 'Teti');
+  P.AddPair('DOB', ISODateToString(EncodeDate(1975, 5, 2)));
+  P.AddPair('Married', TJSONTrue.Create);
+  Render(P);
+end;
 
 procedure TRoutingSampleController.SearchCustomers(CTX: TWebContext);
 var
   search: string;
-  p: Integer;
+  P: Integer;
   orderby: string;
 begin
   search := CTX.Request.Params['searchtext'];
-  p := CTX.Request.ParamsAsInteger['page'];
+  P := CTX.Request.ParamsAsInteger['page'];
   orderby := '';
   if CTX.Request.QueryStringParamExists('order') then
     orderby := CTX.Request.QueryStringParam('order');
-  Render(Format('SEARCHTEXT: "%s", PAGE: %d, ORDERBYFIELD: "%s"', [search, p, orderby]));
+  Render(Format('SEARCHTEXT: "%s", PAGE: %d, ORDERBYFIELD: "%s"', [search, P, orderby]));
 end;
 
 end.

@@ -1,5 +1,6 @@
-program routingsample;
+program renders;
 {$APPTYPE CONSOLE}
+
 
 uses
   System.SysUtils,
@@ -7,11 +8,12 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
-  RoutingSampleControllerU in 'RoutingSampleControllerU.pas',
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
+  RenderSampleControllerU in 'RenderSampleControllerU.pas',
   BusinessObjectsU in 'BusinessObjectsU.pas';
 
 {$R *.res}
+
 
 procedure RunServer(APort: Integer);
 var
@@ -31,8 +33,8 @@ begin
     begin
       Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
       if (LInputRecord.EventType = KEY_EVENT) and
-      LInputRecord.Event.KeyEvent.bKeyDown and
-      (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
+        LInputRecord.Event.KeyEvent.bKeyDown and
+        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
         break;
     end;
   finally
@@ -42,11 +44,12 @@ end;
 
 begin
   try
-  if WebRequestHandler <> nil then
-    WebRequestHandler.WebModuleClass := WebModuleClass;
+    if WebRequestHandler <> nil then
+      WebRequestHandler.WebModuleClass := WebModuleClass;
     RunServer(8080);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
   end
+
 end.
