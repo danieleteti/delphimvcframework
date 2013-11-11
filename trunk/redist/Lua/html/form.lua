@@ -31,8 +31,11 @@ function html:button(value, useropts)
   return tag('input', {["type"]= "button", ["value"] = value}, useropts)
 end
 
-function html:form_start(opts, useropts)
-  return tag('form', opts, {})
+function html:form_start(method, action, useropts)
+  return tag('form', {
+		["action"] = action,
+		["method"] = method
+		}, {})
 end
 
 function html:form_end()
