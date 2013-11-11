@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{7CFFAFB8-6EAB-4C80-A815-9942D203CD97}</ProjectGuid>
+        <ProjectGuid>{E3725756-A58C-46BB-9708-ADE38AF9523C}</ProjectGuid>
         <ProjectVersion>15.2</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>routingsample.dpr</MainSource>

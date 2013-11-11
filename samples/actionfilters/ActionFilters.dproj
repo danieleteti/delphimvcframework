@@ -1,9 +1,9 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{8CCDACDA-3FA5-486E-AD8E-63E4113177EE}</ProjectGuid>
+        <ProjectGuid>{7CFFAFB8-6EAB-4C80-A815-9942D203CD97}</ProjectGuid>
         <ProjectVersion>15.2</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
-        <MainSource>renders.dpr</MainSource>
+        <MainSource>ActionFilters.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -89,8 +89,8 @@
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="RenderSampleControllerU.pas"/>
-        <DCCReference Include="..\commons\BusinessObjectsU.pas"/>
+        <DCCReference Include="ActionFiltersControllerU.pas"/>
+        <DCCReference Include="BusinessObjectsU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -109,7 +109,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">renders.dpr</Source>
+                    <Source Name="MainSource">ActionFilters.dpr</Source>
                 </Source>
                 <VersionInfo>
                     <VersionInfo Name="IncludeVerInfo">False</VersionInfo>

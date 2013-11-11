@@ -20,10 +20,6 @@ type
     [MVCProduces('application/json')]
     procedure GetPerson(CTX: TWebContext);
 
-    [MVCHTTPMethod([httpGet])]
-    [MVCPath('/people/($id)/json')]
-    [MVCProduces('application/json')]
-    procedure GetPersonJSON(CTX: TWebContext);
   end;
 
 implementation
@@ -48,24 +44,6 @@ begin
   P.LastName := 'Teti';
   P.DOB := EncodeDate(1975, 5, 2);
   P.Married := True;
-  Render(P);
-end;
-
-procedure TRoutingSampleController.GetPersonJSON(CTX: TWebContext);
-var
-  P: TJSONObject;
-  IDPerson: Integer;
-begin
-  IDPerson := CTX.Request.ParamsAsInteger['id'];
-  {
-    Use IDPerson to load the person from a database...
-    In this example, we're creating a fake person
-  }
-  P := TJSONObject.Create;
-  P.AddPair('FirstName', 'Daniele');
-  P.AddPair('LastName', 'Teti');
-  P.AddPair('DOB', ISODateToString(EncodeDate(1975, 5, 2)));
-  P.AddPair('Married', TJSONTrue.Create);
   Render(P);
 end;
 
