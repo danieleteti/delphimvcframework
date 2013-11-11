@@ -271,6 +271,7 @@ begin
     begin
       FoundOneAttribConsumes := true;
       Accept := MVCConsumesAttribute(AAttributes[i]).Value;
+      AAccept := Copy(AAccept, 1, Pos(',', AAccept)-1);
       Result := SameText(AAccept, Accept, loInvariantLocale);
     end;
   end;
@@ -300,7 +301,8 @@ begin
   Result := (not MustBeCompatible) or (MustBeCompatible and Result);
 end;
 
-class function TMVCRouter.StringMethodToHTTPMetod(const Value: AnsiString)
+class
+  function TMVCRouter.StringMethodToHTTPMetod(const Value: AnsiString)
   : TMVCHTTPMethodType;
 begin
   if Value = 'GET' then
