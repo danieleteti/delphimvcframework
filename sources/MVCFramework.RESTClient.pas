@@ -170,12 +170,6 @@ implementation
 
 { TRSF }
 
-// type
-// THackedIdHTTP = class(TIdHTTP)
-// public
-// procedure Delete(AURL: string; AResponseContent: TIdStream);
-// end;
-
 function StringsToArrayOfString(const AStrings: TStrings): TArrayOfString;
 
 var
