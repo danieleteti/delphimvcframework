@@ -1798,7 +1798,37 @@ begin
     if Context.Response.StatusCode = 200 then
       ResponseStatusCode(500);
   end;
-  if Context.Request.IsAjax or (ContentType = 'application/json') then
+
+  if (not Context.Request.IsAjax) and (Context.Request.ClientPreferHTML) then
+  begin
+    ContentType := TMVCMimeType.TEXT_HTML;
+    ContentEncoding := 'UTF-8';
+    ResponseStream.Clear;
+
+    ResponseStream.
+      Append('<html><head><style>pre { color: #000000; background-color: #d0d0d0; }</style></head><body>').
+      Append('<h1>DMVCFramework: Error Raised</h1>').
+      AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak, [Context.Response.StatusCode]).
+      AppendFormat('HTTP Reason Text: "%s"</pre>', [Context.Response.ReasonString]).
+      Append('<h3><pre>').
+      AppendFormat('Exception Class Name : %s' + sLineBreak, [E.ClassName]).
+      AppendFormat('Exception Message    : %s' + sLineBreak, [E.Message]).
+      Append('</pre></h3>');
+    if Assigned(ErrorItems) and (ErrorItems.Count > 0) then
+    begin
+      ResponseStream.Append('<h2><pre>');
+      for S in ErrorItems do
+        ResponseStream.AppendLine('- ' + S);
+      ResponseStream.Append('</pre><h2>');
+    end
+    else
+    begin
+      ResponseStream.AppendLine('<pre>No other informations available</pre>');
+    end;
+    ResponseStream.Append('</body></html>');
+    Render;
+  end
+  else if Context.Request.IsAjax or (ContentType = 'application/json') then
   begin
     j := TJSONObject.Create;
     j.AddPair('status', 'error').AddPair('classname', E.ClassName)

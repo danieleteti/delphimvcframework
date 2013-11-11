@@ -148,6 +148,8 @@ type
     function doPUT(AResource: string; AResourceParams: array of string;
       AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
       : IRESTResponse; overload;
+    function doPUT(AResource: string; AResourceParams: array of string;
+      ABodyString: String): IRESTResponse; overload;
     function doDELETE(AResource: string; AResourceParams: array of string)
       : IRESTResponse;
     property BodyParams: TStringlist read GetBodyParams write SetBodyParams;
@@ -375,6 +377,8 @@ AJSONValue: TJSONValue; AOwnsJSONBody: Boolean): IRESTResponse;
 var
   url: string;
 begin
+  if not Assigned(AJSONValue) then
+    raise Exception.Create('AJSONValue is nil');
   try
     Result := doPOST(AResource, AResourceParams, AJSONValue.ToString);
   finally
@@ -406,7 +410,7 @@ begin
 end;
 
 function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;
-AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true): IRESTResponse;
+ABodyString: String): IRESTResponse;
 var
   url: string;
 begin
@@ -417,20 +421,30 @@ begin
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequest(httpPUT, url, AJSONValue.ToString);
-    if AOwnsJSONBody then
-      FreeAndNil(AJSONValue);
+    StartAsynchRequest(httpPUT, url, ABodyString);
   end
   else
   begin
-    try
-      Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, url,
-        AJSONValue.ToString);
-      ClearAllParams;
-    finally
-      if AOwnsJSONBody then
-        FreeAndNil(AJSONValue);
-    end;
+    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, url,
+      ABodyString);
+    ClearAllParams;
+  end;
+
+end;
+
+function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;
+AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true): IRESTResponse;
+var
+  url: string;
+begin
+  if not Assigned(AJSONValue) then
+    raise Exception.Create('AJSONValue is nil');
+
+  try
+    Result := doPUT(AResource, AResourceParams, AJSONValue.ToString);
+  finally
+    if AOwnsJSONBody then
+      FreeAndNil(AJSONValue);
   end;
 end;
 
