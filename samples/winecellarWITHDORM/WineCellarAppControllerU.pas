@@ -4,7 +4,8 @@ interface
 
 uses
   MVCFramework,
-  MainDataModuleUnit;
+  MainDataModuleUnit,
+  dorm, dorm.loggers;
 
 type
 
@@ -12,6 +13,7 @@ type
   TWineCellarApp = class(TMVCController)
   private
     dm: TWineCellarDataModule;
+    dormSession: TSession;
 
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
@@ -48,11 +50,16 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, System.IOUtils, System.Classes, dorm.Commons, WinesBO,
+  ObjectsMappers, dorm.ObjectStatus, dorm.Query, System.Generics.Collections;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
+var
+  Wines: TObjectList<TWine>;
 begin
-  Render(dm.FindWines(ctx.Request.Params['value']));
+  Wines := dormSession.LoadListSQL<TWine>(Select.From(TWine).Where('#TWine.name# containing ? order by #TWine.ID#',
+    [ctx.Request.Params['value']]));
+  Render<TWine>(Wines);
 end;
 
 procedure TWineCellarApp.Index(ctx: TWebContext);
@@ -72,27 +79,49 @@ procedure TWineCellarApp.OnBeforeAction(Context: TWebContext;
   var Handled: Boolean);
 begin
   inherited;
+  dormSession := TSession.CreateConfigured(
+    TStreamReader.Create('dorm.conf', TEncoding.ASCII), deDevelopment);
   dm := TWineCellarDataModule.Create(nil);
 end;
 
 procedure TWineCellarApp.SaveWine(ctx: TWebContext);
+var
+  Wine: TWine;
 begin
-  dm.AddWine(ctx.Request.BodyAsJSONObject);
+  Wine := Mapper.JSONObjectToObject<TWine>(ctx.Request.BodyAsJSONObject);
+  dormSession.Persist(Wine);
+  dormSession.Commit();
+  // dm.AddWine(ctx.Request.BodyAsJSONObject);
 end;
 
 procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
+var
+  Wine: TWine;
 begin
-  Render(dm.UpdateWine(ctx.Request.BodyAsJSONObject));
+  Wine := Mapper.JSONObjectToObject<TWine>(ctx.Request.BodyAsJSONObject);
+  Wine.ObjStatus := osDirty;
+  dormSession.Persist(Wine);
+  dormSession.Commit();
+  Render(200, 'Wine updated');
 end;
 
 procedure TWineCellarApp.WineById(ctx: TWebContext);
+var
+  Wine: TWine;
 begin
+  Wine := dormSession.Load<TWine>(ctx.Request.ParamsAsInteger['id']);
+
   // different behaviour according to the request http method
   case ctx.Request.HTTPMethod of
     httpDELETE:
-      Render(dm.DeleteWine(StrToInt(ctx.Request.Params['id'])));
+      begin
+        Wine.ObjStatus := osDeleted;
+        dormSession.Persist(Wine);
+        dormSession.Commit();
+        Render(200, 'Wine deleted');
+      end;
     httpGET:
-      Render(dm.GetWineById(StrToInt(ctx.Request.Params['id'])));
+      Render(Wine);
   else
     raise Exception.Create('Invalid http method for action');
   end;
@@ -100,7 +129,7 @@ end;
 
 procedure TWineCellarApp.WinesList(ctx: TWebContext);
 begin
-  Render(dm.FindWines(''));
+  Render<TWine>(dormSession.ListAll<TWine>);
 end;
 
 end.
