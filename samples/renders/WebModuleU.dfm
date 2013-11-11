@@ -13,7 +13,6 @@ object WebModule1: TWebModule1
       'Password=masterkey'
       'DriverID=IB')
     ConnectedStoredUsage = [auDesignTime]
-    Connected = True
     LoginPrompt = False
     Left = 160
     Top = 40

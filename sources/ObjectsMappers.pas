@@ -27,12 +27,7 @@ uses
   Generics.Collections,
   DBXJSON,
   SqlExpr,
-  DuckListU,
-
-  Xml.xmldom,
-  Xml.XMLIntf,
-  Xml.XMLDoc
-    ;
+  DuckListU;
 
 type
   Mapper = class
@@ -89,10 +84,10 @@ type
       AReaderInstanceOwner: boolean = True);
     class procedure DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
       ADataSetInstanceOwner: boolean = True);
-//    class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
-//      ADataSetInstanceOwner: boolean = True);
-//    class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
-//      ADataSetInstanceOwner: boolean = True);
+    // class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
+    // ADataSetInstanceOwner: boolean = True);
+    // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
+    // ADataSetInstanceOwner: boolean = True);
     class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false): TJSONArray;
     class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>)
@@ -609,6 +604,10 @@ begin
       if DoNotSerializeThis then
         Continue;
     end;
+
+    if HasAttribute<MapperTransientAttribute>(_property) then
+      Continue;
+
     case _property.PropertyType.TypeKind of
       tkInteger, tkInt64:
         JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsInteger));
@@ -1430,97 +1429,97 @@ begin
   if ACloseDataSetAfterScroll then
     ADataSet.Close;
 end;
-
-//class procedure Mapper.DataSetToXML(ADataSet: TDataSet;
-//  XMLDocument: String; ADataSetInstanceOwner: boolean);
-//var
-//  Xml: IXMLDocument;
-//  Row: IDOMElement;
-//begin
-//  DefaultDOMVendor := 'ADOM XML v4';
-//  Xml := NewXMLDocument();
-//  Xml.Active := True;
-//  while not ADataSet.Eof do
-//  begin
-//    Row := Xml.DOMDocument.createElement('row');
-//    // Row := Xml.DocumentElement.AddChild('row');
-//    // DataSetRowToXML(ADataSet, Row, false);
-//    Xml.DOMDocument.appendChild(Row);
-//    ADataSet.Next;
-//  end;
-//  if ADataSetInstanceOwner then
-//    FreeAndNil(ADataSet);
-//  Xml.SaveToXML(XMLDocument);
-//end;
 //
-//class procedure Mapper.DataSetRowToXML(ADataSet: TDataSet;
-//  Row: IXMLNode; ADataSetInstanceOwner: boolean);
-//var
-//  I: Integer;
-//  key: string;
-//  dt: TDateTime;
-//  tt: TTime;
-//  Time: TTimeStamp;
-//  ts: TSQLTimeStamp;
-//begin
-//  for I := 0 to ADataSet.FieldCount - 1 do
-//  begin
-//    key := LowerCase(ADataSet.Fields[I].FieldName);
-//    case ADataSet.Fields[I].DataType of
-//      TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
-//        Row.Attributes[key] := ADataSet.Fields[I].AsInteger;
-//      // AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
-//      TFieldType.ftLargeint:
-//        begin
-//          Row.Attributes[key] := ADataSet.Fields[I].AsLargeInt;
-//        end;
-//      TFieldType.ftSingle, TFieldType.ftFloat:
-//        Row.Attributes[key] := ADataSet.Fields[I].AsFloat;
-//      ftString, ftWideString, ftMemo:
-//        Row.Attributes[key] := ADataSet.Fields[I].AsWideString;
-//      TFieldType.ftDate:
-//        begin
-//          if not ADataSet.Fields[I].IsNull then
-//          begin
-//            Row.Attributes[key] := ISODateToString(ADataSet.Fields[I].AsDateTime);
-//          end
-//        end;
-//      TFieldType.ftDateTime:
-//        begin
-//          if not ADataSet.Fields[I].IsNull then
-//          begin
-//            Row.Attributes[key] := ISODateTimeToString(ADataSet.Fields[I].AsDateTime);
-//          end
-//        end;
-//      TFieldType.ftTimeStamp:
-//        begin
-//          if not ADataSet.Fields[I].IsNull then
-//          begin
-//            ts := ADataSet.Fields[I].AsSQLTimeStamp;
-//            Row.Attributes[key] := SQLTimeStampToStr('hh:nn:ss', ts);
-//          end
-//        end;
-//      TFieldType.ftCurrency:
-//        begin
-//          if not ADataSet.Fields[I].IsNull then
-//          begin
-//            Row.Attributes[key] := FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency);
-//          end
-//        end;
-//      TFieldType.ftFMTBcd:
-//        begin
-//          if not ADataSet.Fields[I].IsNull then
-//          begin
-//            Row.Attributes[key] := BcdToDouble(ADataSet.Fields[I].AsBcd);
-//          end
-//        end
-//    else
-//      raise Exception.Create('Cannot find type for field ' + key);
-//    end;
-//  end;
-//  if ADataSetInstanceOwner then
-//    FreeAndNil(ADataSet);
-//end;
+// class procedure Mapper.DataSetToXML(ADataSet: TDataSet;
+// XMLDocument: String; ADataSetInstanceOwner: boolean);
+// var
+// Xml: IXMLDocument;
+// Row: IXMLNode;
+// begin
+// DefaultDOMVendor := 'ADOM XML v4';
+// Xml := NewXMLDocument();
+// while not ADataSet.Eof do
+// begin
+// Row := Xml.CreateNode('row');
+// // Row := Xml.DocumentElement.AddChild('row');
+// // DataSetRowToXML(ADataSet, Row, false);
+// Xml.ChildNodes.Add(Row);
+// break;
+// ADataSet.Next;
+// end;
+// if ADataSetInstanceOwner then
+// FreeAndNil(ADataSet);
+// Xml.SaveToXML(XMLDocument);
+// end;
+//
+// class procedure Mapper.DataSetRowToXML(ADataSet: TDataSet;
+// Row: IXMLNode; ADataSetInstanceOwner: boolean);
+// var
+// I: Integer;
+// key: string;
+// dt: TDateTime;
+// tt: TTime;
+// Time: TTimeStamp;
+// ts: TSQLTimeStamp;
+// begin
+// for I := 0 to ADataSet.FieldCount - 1 do
+// begin
+// key := LowerCase(ADataSet.Fields[I].FieldName);
+// case ADataSet.Fields[I].DataType of
+// TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
+// Row.Attributes[key] := ADataSet.Fields[I].AsInteger;
+// // AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
+// TFieldType.ftLargeint:
+// begin
+// Row.Attributes[key] := ADataSet.Fields[I].AsLargeInt;
+// end;
+// TFieldType.ftSingle, TFieldType.ftFloat:
+// Row.Attributes[key] := ADataSet.Fields[I].AsFloat;
+// ftString, ftWideString, ftMemo:
+// Row.Attributes[key] := ADataSet.Fields[I].AsWideString;
+// TFieldType.ftDate:
+// begin
+// if not ADataSet.Fields[I].IsNull then
+// begin
+// Row.Attributes[key] := ISODateToString(ADataSet.Fields[I].AsDateTime);
+// end
+// end;
+// TFieldType.ftDateTime:
+// begin
+// if not ADataSet.Fields[I].IsNull then
+// begin
+// Row.Attributes[key] := ISODateTimeToString(ADataSet.Fields[I].AsDateTime);
+// end
+// end;
+// TFieldType.ftTimeStamp:
+// begin
+// if not ADataSet.Fields[I].IsNull then
+// begin
+// ts := ADataSet.Fields[I].AsSQLTimeStamp;
+// Row.Attributes[key] := SQLTimeStampToStr('hh:nn:ss', ts);
+// end
+// end;
+// TFieldType.ftCurrency:
+// begin
+// if not ADataSet.Fields[I].IsNull then
+// begin
+// Row.Attributes[key] := FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency);
+// end
+// end;
+// TFieldType.ftFMTBcd:
+// begin
+// if not ADataSet.Fields[I].IsNull then
+// begin
+// Row.Attributes[key] := BcdToDouble(ADataSet.Fields[I].AsBcd);
+// end
+// end
+// else
+// raise Exception.Create('Cannot find type for field ' + key);
+// end;
+// end;
+// if ADataSetInstanceOwner then
+// FreeAndNil(ADataSet);
+// end;
 
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
   WithResult: boolean): Int64;
