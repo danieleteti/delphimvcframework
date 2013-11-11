@@ -119,6 +119,10 @@ type
 
   end;
 
+  DoNotSerializeAttribute = class(TCustomAttribute)
+
+  end;
+
   MapperItemsClassType = class(TCustomAttribute)
   private
     FValue: TClass;
@@ -506,7 +510,7 @@ begin
   _fields := _type.GetProperties;
   for _field in _fields do
   begin
-    if HasAttribute<MapperTransientAttribute>(_field) then
+    if HasAttribute<DoNotSerializeAttribute>(_field) then
       Continue;
     f := GetKeyName(_field, _type);
     case _field.PropertyType.TypeKind of
@@ -605,7 +609,7 @@ begin
         Continue;
     end;
 
-    if HasAttribute<MapperTransientAttribute>(_property) then
+    if HasAttribute<DoNotSerializeAttribute>(_property) then
       Continue;
 
     case _property.PropertyType.TypeKind of
