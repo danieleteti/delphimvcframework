@@ -16,9 +16,9 @@ type
     procedure GetCustomers(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/customers')]
-    [MVCProduces('text/xml')]
-    procedure GetCustomersXML(CTX: TWebContext);
+    [MVCPath('/customers/($id)')]
+    [MVCProduces('application/json')]
+    procedure GetCustomerByID(CTX: TWebContext);
 
   end;
 
@@ -29,16 +29,26 @@ uses
 
 { TRoutingSampleController }
 
-procedure TRenderSampleController.GetCustomers(CTX: TWebContext);
+procedure TRenderSampleController.GetCustomerByID(CTX: TWebContext);
 var
-  wm: TWebModule1;
+  Cust: TCustomer;
 begin
-  wm := GetCurrentWebModule as TWebModule1;
-  wm.qryCustomers.Open;
-  Render(wm.qryCustomers);
+  if CTX.Request.ParamsAsInteger['id'] = 7 then
+    Render(404, 'Customer Not Found')
+  else
+  begin
+    Cust := TCustomer.Create;
+    Cust.Name := 'Daniele Teti Inc.';
+    Cust.ContactFirst := 'Daniele';
+    Cust.ContactLast := 'Teti';
+    Cust.AddressLine1 := 'Rome Street 12';
+    Cust.AddressLine2 := '00100';
+    Cust.City := 'ROME';
+    Render(Cust);
+  end;
 end;
 
-procedure TRenderSampleController.GetCustomersXML(CTX: TWebContext);
+procedure TRenderSampleController.GetCustomers(CTX: TWebContext);
 var
   wm: TWebModule1;
 begin

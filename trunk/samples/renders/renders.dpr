@@ -8,9 +8,9 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   RenderSampleControllerU in 'RenderSampleControllerU.pas',
-  BusinessObjectsU in 'BusinessObjectsU.pas';
+  BusinessObjectsU in '..\commons\BusinessObjectsU.pas';
 
 {$R *.res}
 
