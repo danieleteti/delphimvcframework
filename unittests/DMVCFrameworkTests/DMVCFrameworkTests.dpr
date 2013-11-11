@@ -20,7 +20,8 @@ uses
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
   MessagingExtensionsTestU in 'MessagingExtensionsTestU.pas',
-  TestControllersU in 'TestControllersU.pas';
+  TestControllersU in 'TestControllersU.pas',
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
 
 {$R *.RES}
 
