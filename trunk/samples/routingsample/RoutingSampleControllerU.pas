@@ -12,7 +12,8 @@ type
   public
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/search/($searchtext)/($page)')]
-    [MVCProduces('text/plain')]
+    [MVCProduces('text/plain', 'UTF-8')]
+    [MVCConsumes('text/html')]
     procedure SearchCustomers(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
@@ -58,7 +59,11 @@ begin
   orderby := '';
   if CTX.Request.QueryStringParamExists('order') then
     orderby := CTX.Request.QueryStringParam('order');
-  Render(Format('SEARCHTEXT: "%s", PAGE: %d, ORDERBYFIELD: "%s"', [search, P, orderby]));
+  Render(Format(
+    'SEARCHTEXT: "%s"' + sLineBreak +
+    'PAGE: %d' + sLineBreak +
+    'ORDERBYFIELD: "%s"',
+    [search, P, orderby]));
 end;
 
 end.

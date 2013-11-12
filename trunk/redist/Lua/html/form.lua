@@ -19,20 +19,21 @@ local function tag(tagname, systemopts, useropts)
 	return s
 end
 
-function html:input(type, value, useropts)
-  return tag('input', {["type"]= type, ["value"] = value}, useropts)
+function html:input(name, type, value, useropts)
+  return tag('input', {["name"] = name, ["type"]= type, ["value"] = value}, useropts)
 end
 
-function html:submit(value, useropts)
-  return tag('input', {["type"]= "submit", ["value"] = value}, useropts)
+function html:submit(name, value, useropts)
+  return tag('input', {["name"] = name, ["type"]= "submit", ["value"] = value}, useropts)
 end
 
 function html:button(value, useropts)
   return tag('input', {["type"]= "button", ["value"] = value}, useropts)
 end
 
-function html:form_start(method, action, useropts)
+function html:form_start(name, method, action, useropts)
   return tag('form', {
+		["name"] = name,
 		["action"] = action,
 		["method"] = method
 		}, {})

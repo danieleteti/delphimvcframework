@@ -17,7 +17,7 @@ type
 
     [MVCHTTPMethod([httpPost])]
     [MVCPath('/customers')]
-    [MVCProduces('text/plain')]
+    [MVCProduces('text/html')]
     procedure CreateCustomer(CTX: TWebContext);
 
   end;
@@ -31,9 +31,7 @@ uses
 
 procedure TSampleController.CreateCustomer(CTX: TWebContext);
 begin
-  ResponseStream.Append('First name: ' + CTX.Request.Params['first_name'] +
-    sLineBreak + 'Last name: ' + CTX.Request.Params['last_name']);
-  Render;
+  LoadView('customer_show');
 end;
 
 procedure TSampleController.SearchCustomers(CTX: TWebContext);

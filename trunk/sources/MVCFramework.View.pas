@@ -343,7 +343,7 @@ var
   Lua: TLuaEngine;
   k: string;
   LuaFilter: TLuaEmbeddedTextFilter;
-  CompiledFileName: string;
+  _FFileName, CompiledFileName: string;
   // CompiledTimeStamp   : TDateTime;
   // LuaCode             : string;
   v: string;
@@ -351,6 +351,7 @@ var
   DecodeJSONStrings: string;
   LuaRequestFunctions: TDictionary<string, lua_CFunction>;
   LuaResponseFunctions: TDictionary<string, lua_CFunction>;
+  pn: string;
 begin
   Lua := TLuaEngine.Create;
   try
@@ -367,13 +368,21 @@ begin
         FFileName := FFileName + '.' + DEFAULT_VIEW_EXT;
 
       if DirectoryExists(GetMVCConfig.Value['view_path']) then
-        FFileName := ExpandFileName
+        _FFileName := ExpandFileName
           (IncludeTrailingPathDelimiter(GetMVCConfig.Value['view_path']) +
           FFileName)
       else
-        FFileName := ExpandFileName
+        _FFileName := ExpandFileName
           (IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
           GetMVCConfig.Value['view_path']) + FFileName);
+
+      // if not found in the elua folder, find in the document_root
+      if not TFile.Exists(_FFileName) then
+        FFileName := ExpandFileName
+          (IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
+          GetMVCConfig.Value['document_root']) + FFileName)
+      else
+        FFileName := _FFileName;
     end;
 
     if not FileExists(FileName) then
@@ -396,6 +405,11 @@ begin
       if Assigned(FViewDataSets) then
         for k in FViewDataSets.Keys do
           ExposeDataSet(Lua, FViewDataSets[k], FViewDataSets[k].Name);
+
+      for pn in FWebContext.Request.GetParamNames do
+      begin
+        Lua.DeclareGlobalString(pn, FWebContext.Request.Params[pn]);
+      end;
 
       Lua.DeclareGlobalString('__ROOT__', ExtractFilePath(ParamStr(0)));
       Lua.DeclareGlobalString('__log_file', LOG_FILE_NAME);
