@@ -96,7 +96,6 @@ type
     procedure SetPathInfo(const Value: string);
     function Param(Name: string): string;
     function GetParamAll(const ParamName: string): string;
-    // function GetHeaderAll(const HeaderName: string): string;
     function GetIsAjax: boolean;
     function GetHTTPMethod: TMVCHTTPMethodType;
     function GetHTTPMethodAsString: string;
@@ -106,10 +105,11 @@ type
 
   strict protected
     FBodyAsJSONValue: TJSONValue;
-
+    FParamNames: TArray<String>;
   public
     destructor Destroy; override;
     procedure SetParamsTable(AParamsTable: TMVCRequestParamsTable);
+    function GetParamNames: TArray<String>;
     function ClientIP: string; virtual; abstract;
     function ClientPrefer(MimeType: string): boolean;
     function ThereIsRequestBody: boolean;
@@ -1487,7 +1487,7 @@ end;
 
 function TMVCWebRequest.GetParamAll(const ParamName: string): string;
 begin
-  if not FParamsTable.TryGetValue(ParamName, Result) then
+  if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(ParamName, Result)) then
   begin
     Result := FWebRequest.QueryFields.Values[ParamName];
     if Result = EmptyStr then
@@ -1500,6 +1500,40 @@ end;
 function TMVCWebRequest.GetParamAllAsInteger(const ParamName: string): Integer;
 begin
   Result := strtoint(GetParamAll(ParamName));
+end;
+
+function TMVCWebRequest.GetParamNames: TArray<String>;
+var
+  MappedParams: TArray<String>;
+  LastIndex: Integer;
+  I: Integer;
+  Names: TList<String>;
+  n: string;
+begin
+  if Length(FParamNames) > 0 then
+    Exit(FParamNames);
+
+  Names := TList<String>.Create;
+  try
+    if Assigned(FParamsTable) and (Length(FParamsTable.Keys.ToArray) > 0) then
+      for n in FParamsTable.Keys.ToArray do
+        Names.Add(n);
+
+    if FWebRequest.QueryFields.Count > 0 then
+      for I := 0 to FWebRequest.QueryFields.Count - 1 do
+        Names.Add(FWebRequest.QueryFields.Names[I]);
+
+    if FWebRequest.ContentFields.Count > 0 then
+      for I := 0 to FWebRequest.ContentFields.Count - 1 do
+        Names.Add(FWebRequest.ContentFields.Names[I]);
+
+    if FWebRequest.CookieFields.Count > 0 then
+      for I := 0 to FWebRequest.CookieFields.Count - 1 do
+        Names.Add(FWebRequest.CookieFields.Names[I]);
+    Result := Names.ToArray;
+  finally
+    Names.Free;
+  end;
 end;
 
 function TMVCWebRequest.GetPathInfo: string;
