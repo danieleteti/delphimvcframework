@@ -11,25 +11,25 @@ type
   TRenderSampleController = class(TMVCController)
   public
     [MVCHTTPMethod([httpGet])]
+    [MVCPath('/customers/($id).html')]
+    [MVCConsumes('text/html')]
+    [MVCProduces('text/html', 'UTF-8')]
+    procedure GetPerson_AsText(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers')]
     [MVCProduces('application/json')]
-    procedure GetCustomers(CTX: TWebContext);
+    procedure GetCustomers_AsDataSet(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers/($id)')]
     [MVCProduces('application/json')]
-    procedure GetCustomerByID(CTX: TWebContext);
+    procedure GetCustomerByID_AsTObject(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/customers')]
+    [MVCPath('/customers.json')]
     [MVCProduces('application/json')]
     procedure GetPersonJSON(CTX: TWebContext);
-
-    [MVCHTTPMethod([httpGet])]
-    [MVCPath('/customers/($id)/html')]
-    [MVCConsumes('text/html')]
-    [MVCProduces('text/html', 'UTF-8')]
-    procedure GetPersonAsText(CTX: TWebContext);
 
   end;
 
@@ -40,7 +40,7 @@ uses
 
 { TRoutingSampleController }
 
-procedure TRenderSampleController.GetCustomerByID(CTX: TWebContext);
+procedure TRenderSampleController.GetCustomerByID_AsTObject(CTX: TWebContext);
 var
   Cust: TCustomer;
 begin
@@ -59,7 +59,7 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers(CTX: TWebContext);
+procedure TRenderSampleController.GetCustomers_AsDataSet(CTX: TWebContext);
 var
   wm: TWebModule1;
 begin
@@ -68,7 +68,7 @@ begin
   Render(wm.qryCustomers);
 end;
 
-procedure TRenderSampleController.GetPersonAsText(CTX: TWebContext);
+procedure TRenderSampleController.GetPerson_AsText(CTX: TWebContext);
 begin
   ResponseStream.
     Append('<html><body><ul>').
@@ -83,13 +83,7 @@ end;
 procedure TRenderSampleController.GetPersonJSON(CTX: TWebContext);
 var
   P: TJSONObject;
-  IDPerson: Integer;
 begin
-  IDPerson := CTX.Request.ParamsAsInteger['id'];
-  {
-    Use IDPerson to load the person from a database...
-    In this example, we're creating a fake person
-  }
   P := TJSONObject.Create;
   P.AddPair('FirstName', 'Daniele');
   P.AddPair('LastName', 'Teti');

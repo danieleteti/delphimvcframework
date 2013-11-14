@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{BC84F95B-1AFE-426E-B24A-CD64B3D9E680}</ProjectGuid>
+        <ProjectGuid>{D87A49D2-D936-4F0E-BC4F-38702084A156}</ProjectGuid>
         <ProjectVersion>15.2</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>WineCellarServer.dpr</MainSource>
