@@ -1961,7 +1961,7 @@ begin
   InEncoding := TEncoding.Default; // GetEncoding(S);
   Context.Response.Content := OutEncoding.GetString
     (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
-
+  OutEncoding.Free;
   if AInstanceOwner then
     FreeAndNil(AJSONValue)
 end;
