@@ -88,6 +88,7 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="FileUploadControllerU.pas"/>
+        <DCCReference Include="C:\Program Files (x86)\Embarcadero\RAD Studio\11.0\source\internet\ReqMulti.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

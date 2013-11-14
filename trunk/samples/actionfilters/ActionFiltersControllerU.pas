@@ -9,7 +9,6 @@ type
 
   [MVCPath('/')]
   TActionFiltersController = class(TMVCController)
-
   protected
     procedure MVCControllerAfterCreate; override;
     procedure MVCControllerBeforeDestroy; override;
