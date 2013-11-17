@@ -59,6 +59,8 @@ type
     [MVCProduces('text/plain')]
     procedure TestConsumesProducesText(ctx: TWebContext);
 
+
+
   end;
 
 implementation

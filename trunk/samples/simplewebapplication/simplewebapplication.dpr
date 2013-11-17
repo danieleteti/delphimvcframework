@@ -1,16 +1,19 @@
 program simplewebapplication;
 {$APPTYPE CONSOLE}
 
+
 uses
   System.SysUtils,
   Winapi.Windows,
+  Winapi.ShellAPI,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
   SampleControllerU in 'SampleControllerU.pas';
 
 {$R *.res}
+
 
 procedure RunServer(APort: Integer);
 var
@@ -25,13 +28,14 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     Writeln('Press ESC to stop the server');
+    ShellExecute(0, 'open', 'http://localhost:8080/index.elua', nil, nil, SW_SHOW);
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
     begin
       Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
       if (LInputRecord.EventType = KEY_EVENT) and
-      LInputRecord.Event.KeyEvent.bKeyDown and
-      (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
+        LInputRecord.Event.KeyEvent.bKeyDown and
+        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
         break;
     end;
   finally
@@ -41,11 +45,12 @@ end;
 
 begin
   try
-  if WebRequestHandler <> nil then
-    WebRequestHandler.WebModuleClass := WebModuleClass;
+    if WebRequestHandler <> nil then
+      WebRequestHandler.WebModuleClass := WebModuleClass;
     RunServer(8080);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
   end
+
 end.

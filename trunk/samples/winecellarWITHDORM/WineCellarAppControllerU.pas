@@ -4,7 +4,6 @@ interface
 
 uses
   MVCFramework,
-  MainDataModuleUnit,
   dorm, dorm.loggers;
 
 type
@@ -12,13 +11,13 @@ type
   [MVCPath('/')]
   TWineCellarApp = class(TMVCController)
   private
-    dm: TWineCellarDataModule;
     dormSession: TSession;
 
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean);
       override;
+
     procedure OnAfterAction(Context: TWebContext;
       const AActionNAme: string); override;
 
@@ -71,7 +70,7 @@ procedure TWineCellarApp.OnAfterAction(Context: TWebContext;
   const AActionNAme: string);
 begin
   inherited;
-  dm.Free;
+  dormSession.Free;
 end;
 
 procedure TWineCellarApp.OnBeforeAction(Context: TWebContext;
@@ -79,9 +78,9 @@ procedure TWineCellarApp.OnBeforeAction(Context: TWebContext;
   var Handled: Boolean);
 begin
   inherited;
+  // in real world app, you should avoid to read from disk at every request
   dormSession := TSession.CreateConfigured(
     TStreamReader.Create('dorm.conf', TEncoding.ASCII), deDevelopment);
-  dm := TWineCellarDataModule.Create(nil);
 end;
 
 procedure TWineCellarApp.SaveWine(ctx: TWebContext);
@@ -91,7 +90,6 @@ begin
   Wine := Mapper.JSONObjectToObject<TWine>(ctx.Request.BodyAsJSONObject);
   dormSession.Persist(Wine);
   dormSession.Commit();
-  // dm.AddWine(ctx.Request.BodyAsJSONObject);
 end;
 
 procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);

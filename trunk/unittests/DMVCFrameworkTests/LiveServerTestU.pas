@@ -236,6 +236,7 @@ var
 begin
   res := RESTClient.doPOST('/testconsumes', [],
     TJSONString.Create('Hello World'));
+  CheckEquals(200, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
   CheckEquals('application/json', res.GetContentType);
   CheckEquals('UTF-8', res.GetContentEncoding);
