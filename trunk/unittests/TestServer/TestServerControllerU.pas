@@ -59,7 +59,10 @@ type
     [MVCProduces('text/plain')]
     procedure TestConsumesProducesText(ctx: TWebContext);
 
-
+    [MVCPath('/objects')]
+    [MVCHTTPMethod([httpPOST, httpPUT])]
+    [MVCProduces('application/json')]
+    procedure TestPOSTObject(ctx: TWebContext);
 
   end;
 
@@ -68,7 +71,7 @@ implementation
 uses
   Data.DBXJSON,
   MVCFramework.Commons,
-  Web.HTTPApp;
+  Web.HTTPApp, BusinessObjectsU;
 
 { TTestServerController }
 
@@ -196,6 +199,14 @@ begin
   Obj.AddPair('name2', 'to je Unicode?');
   Obj.AddPair('name3', 'אטילעש');
   Render(Obj);
+end;
+
+procedure TTestServerController.TestPOSTObject(ctx: TWebContext);
+var
+  Person: TPerson;
+begin
+  Person := ctx.Request.BodyAs<TPerson>();
+  Render(Person);
 end;
 
 end.
