@@ -9,9 +9,8 @@ uses
   WinApi.Windows,
   Web.WebReq,
   Web.WebBroker,
-  MainWebModuleUnit in 'MainWebModuleUnit.pas' {wm: TWebModule} ,
+  MainWebModuleUnit in 'MainWebModuleUnit.pas' {wm: TWebModule},
   WineCellarAppControllerU in 'WineCellarAppControllerU.pas',
-  MainDataModuleUnit in 'MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule} ,
   WinesBO in 'WinesBO.pas',
   IdHTTPWebBrokerBridge;
 

@@ -92,10 +92,6 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="WineCellarAppControllerU.pas"/>
-        <DCCReference Include="MainDataModuleUnit.pas">
-            <Form>WineCellarDataModule</Form>
-            <DesignClass>TDataModule</DesignClass>
-        </DCCReference>
         <DCCReference Include="WinesBO.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

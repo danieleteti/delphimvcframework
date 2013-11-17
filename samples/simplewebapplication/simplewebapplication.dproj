@@ -86,7 +86,6 @@
         </DelphiCompile>
         <DCCReference Include="WebModuleU.pas">
             <Form>WebModule1</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="SampleControllerU.pas"/>

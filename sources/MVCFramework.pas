@@ -85,12 +85,14 @@ type
   end;
 
   TMVCWebRequest = class
-    constructor Create(AWebRequest: TWebRequest); virtual; abstract;
+    constructor Create(AWebRequest: TWebRequest); virtual;
 
   private
     FWebRequest: TWebRequest;
     FPathInfo: string;
     FParamsTable: TMVCRequestParamsTable;
+    FContentType: string;
+    FContentEncoding: string;
     function GetHeader(const Name: string): string;
     function GetPathInfo: string;
     procedure SetPathInfo(const Value: string);
@@ -120,6 +122,8 @@ type
     function Cookie(Name: string): string; virtual;
     property PathInfo: string read GetPathInfo;
     function Body: string;
+    function BodyAs<T: class, constructor>(const RootProperty: String = ''): T;
+    function BodyAsListOf<T: class, constructor>(const RootProperty: String = ''): TObjectList<T>;
     function BodyAsJSONObject: TJSONObject;
     function BodyAsJSONValue: TJSONValue;
     property Headers[const HeaderName: string]: string read GetHeader;
@@ -132,6 +136,8 @@ type
     property RawWebRequest: TWebRequest read FWebRequest;
     property ClientPreferHTML: boolean read GetClientPreferHTML;
     property Files: TAbstractWebRequestFiles read GetFiles;
+    property ContentType: String read FContentType;
+    property ContentEncoding: String read FContentEncoding;
   end;
 
   TMVCISAPIWebRequest = class(TMVCWebRequest)
@@ -1057,6 +1063,27 @@ begin
   Result := FWebRequest.Content;
 end;
 
+function TMVCWebRequest.BodyAs<T>(const RootProperty: String): T;
+var
+  S: string;
+begin
+  if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
+  begin
+    if RootProperty = '' then
+      Result := Mapper.JSONObjectToObject<T>(BodyAsJSONObject)
+    else
+    begin
+      S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
+      if not S.IsEmpty then
+        Result := Mapper.JSONObjectToObject<T>(BodyAsJSONObject.Get(S).JsonValue as TJSONObject)
+      else
+        raise EMVCException.CreateFmt('Body property %s not valid', [RootProperty]);
+    end;
+  end
+  else
+    raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+end;
+
 function TMVCWebRequest.BodyAsJSONObject: TJSONObject;
 begin
   Result := BodyAsJSONValue as TJSONObject;
@@ -1073,6 +1100,27 @@ begin
   Result := FBodyAsJSONValue;
 end;
 
+function TMVCWebRequest.BodyAsListOf<T>(const RootProperty: String): TObjectList<T>;
+var
+  S: string;
+begin
+  if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
+  begin
+    if RootProperty = '' then
+      Result := Mapper.JSONArrayToObjectList<T>(BodyAsJSONValue as TJSONArray)
+    else
+    begin
+      S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
+      if not S.IsEmpty then
+        Result := Mapper.JSONArrayToObjectList<T>(BodyAsJSONObject.Get(S).JsonValue as TJSONArray)
+      else
+        raise EMVCException.CreateFmt('Body property %s not valid', [RootProperty]);
+    end;
+  end
+  else
+    raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+end;
+
 function TMVCWebRequest.ClientPrefer(MimeType: string): boolean;
 begin
   Result := AnsiPos(MimeType, LowerCase(RawWebRequest.Accept)) = 1;
@@ -1086,6 +1134,25 @@ end;
 function TMVCWebRequest.Cookie(Name: string): string;
 begin
   Result := FWebRequest.CookieFields.Values[name];
+end;
+
+constructor TMVCWebRequest.Create(AWebRequest: TWebRequest);
+var
+  CT: TArray<string>;
+  c: String;
+begin
+  inherited Create;
+  c := AWebRequest.GetFieldByName('content-type');
+  CT := c.Split([':'])[1].Split([';']);
+  FContentType := trim(CT[0]);
+  FContentEncoding := 'UTF-8'; // default encoding
+  if Length(CT) > 1 then
+  begin
+    if CT[1].trim.StartsWith('charset', true) then
+    begin
+      FContentEncoding := CT[1].trim.Split(['='])[1].trim;
+    end;
+  end;
 end;
 
 destructor TMVCWebRequest.Destroy;
@@ -1746,8 +1813,8 @@ begin
 
   for S in Headers.Values['HTTP_X_FORWARDED_FOR'].Split([',']) do
   begin
-    if CheckIP(S.Trim) then
-      Exit(S.Trim);
+    if CheckIP(S.trim) then
+      Exit(S.trim);
   end;
 
   if CheckIP(Headers.Values['HTTP_X_FORWARDED']) then
