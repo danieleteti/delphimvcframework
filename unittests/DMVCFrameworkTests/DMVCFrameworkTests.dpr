@@ -21,7 +21,8 @@ uses
   LiveServerTestU in 'LiveServerTestU.pas',
   MessagingExtensionsTestU in 'MessagingExtensionsTestU.pas',
   TestControllersU in 'TestControllersU.pas',
-  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
+  BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas';
 
 {$R *.RES}
 

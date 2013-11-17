@@ -1143,7 +1143,7 @@ var
 begin
   inherited Create;
   c := AWebRequest.GetFieldByName('content-type');
-  CT := c.Split([':'])[1].Split([';']);
+  CT := c.Split([';']);
   FContentType := trim(CT[0]);
   FContentEncoding := 'UTF-8'; // default encoding
   if Length(CT) > 1 then

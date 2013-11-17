@@ -23,6 +23,7 @@ type
   published
     procedure TestReqWithParams;
     procedure TestPOSTWithParamsAndJSONBody;
+    procedure TestPOSTWithObjectJSONBody;
     procedure TestPUTWithParamsAndJSONBody;
     procedure TestSession;
     procedure TestAsynchRequestPOST;
@@ -41,7 +42,7 @@ uses
   Data.DBXJSON,
   MVCFramework.Commons,
   System.SyncObjs,
-  System.SysUtils;
+  System.SysUtils, BusinessObjectsU, ObjectsMappers;
 
 { TServerTest }
 
@@ -218,6 +219,33 @@ begin
   CheckEquals('אטילעש', res.BodyAsJsonObject.Get('name3').JsonValue.Value);
 end;
 
+procedure TServerTest.TestPOSTWithObjectJSONBody;
+var
+  r: IRESTResponse;
+  json: TJSONObject;
+  P: TPerson;
+begin
+  P := TPerson.Create;
+  try
+    P.FirstName := 'Daniele';
+    P.LastName := 'אעשטיל';
+    P.DOB := EncodeDate(1979, 1, 1);
+    P.Married := true;
+    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [], mapper.ObjectToJSONObject(P));
+  finally
+    P.Free;
+  end;
+  P := mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
+  try
+    CheckEquals('Daniele', P.FirstName);
+    CheckEquals('אעשטיל', P.LastName);
+    CheckEquals(true, P.Married);
+    CheckEquals(EncodeDate(1979, 1, 1), P.DOB);
+  finally
+    P.Free;
+  end;
+end;
+
 procedure TServerTest.TestPOSTWithParamsAndJSONBody;
 var
   r: IRESTResponse;
@@ -326,7 +354,7 @@ end;
 
 procedure TBaseServerTest.DoLoginWith(UserName: string);
 var
-  p: TJSONObject;
+  P: TJSONObject;
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/login', [UserName]);

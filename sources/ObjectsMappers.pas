@@ -1358,6 +1358,8 @@ end;
 
 class function Mapper.JSONObjectToObject<T>(AJSONObject: TJSONObject): T;
 begin
+  if not Assigned(AJSONObject) then
+    raise Exception.Create('JSONObject not assigned');
   Result := Mapper.JSONObjectToObject(T.QualifiedClassName, AJSONObject) as T;
   // Result := JSONObjectToObject(TObject.ClassInfo, AJSONObject);
 end;
