@@ -1,0 +1,4 @@
+Daniele Teti 04/11/1979 True
+Pater Parker 01/01/1978 True
+Sue Storm 05/08/1982 False
+falsetruetruetruetruefalse

@@ -1,0 +1,151 @@
+<div id="content">
+
+<h2><a name="introduction"></a>Introdu&ccedil;&atilde;o</h2>
+
+<p>LuaLogging fornece uma API simples para usar recursos de log em Lua.
+O design se baseia em <a href="http://logging.apache.org/log4j/docs/index.html">log4j</a>.
+No momento, LuaLogging oferece suporte a resultados em consoles, arquivos, emails,
+soquetes e sql com o uso de <em><a href="#appenders">appenders</a></em>.</p>
+
+<p>LuaLogging define uma &uacute;nica vari&aacute;vel global, uma tabela chamada <code>logging</code>,
+que cont&eacute;m uma fun&ccedil;&atilde;o para criar novos <a href="#logger"><code>logger</code>s</a>.</p>
+
+<p>Este construtor de <code>logger</code>s recebe uma fun&ccedil;&atilde;o
+(chamada <em>appender</em>) que ser&aacute; chamada
+sempre que houver uma mensagem de log for escrita.</p>
+
+<p>Uma fun&ccedil;&atilde;o <em>appender</em> aceita tr&ecirc;s argumentos:</p>
+
+<ul>
+    <li><strong>self</strong>: o objeto logger</li>
+    <li><strong>level</strong>: o n&iacute;vel de log</li>
+    <li><strong>message</strong>: a mensagem a ser registrada</li>
+</ul>
+
+<h2><a name="installation"></a>Instala&ccedil;&atilde;o</h2>
+
+<p>LuaLogging &eacute; distribu&iacute;do como um conjunto de arquivos Lua e segue o
+<a href="http://www.keplerproject.org/compat/">modelo de pacotes</a> de Lua 5.1, portanto,
+ele deve ser &quot;instalado&quot;. Se voc&ecirc; est&aacute; usando Lua 5.0, por favor 
+consulte a se&ccedil;&atilde;o <a href="http://www.keplerproject.org/compat/manual.html#configuration">Configura&ccedil;&atilde;o do Compat-5.1</a>
+para obter informa&ccedil;&otilde;es sobre como instalar corretamente os m&oacute;dulos.</p>
+
+<h2><a name="logger"></a>Objetos logger</h2>
+
+<p>Um objeto logger oferece os m&eacute;todos a seguir, que escrevem mensagens de log.</p>
+
+<p>Para cada um dos m&eacute;todos a seguir, o par&acirc;metro <code>message</code>
+pode ser qualquer valor Lua e n&atilde;o apenas strings. Quando necess&aacute;rio,
+<code>message</code> &eacute; convertido em uma string.</p>
+
+<p>O par&acirc;metro <code>level</code> pode ser uma das vari&aacute;veis relacionadas a seguir.
+Os valores s&atilde;o apresentados em ordem de import&acirc;ncia decrescente, assim,
+o n&iacute;vel m&iacute;nimo &eacute; definido como <code>logging.WARN</code>,
+portanto, as mensagens dos n&iacute;veis <code>logging.INFO</code> e
+<code>logging.DEBUG</code> n&atilde;o s&atilde;o registradas.</p>
+
+<dl class="reference">
+    <dt><strong>logging.DEBUG</strong></dt>
+    <dd>O n&iacute;vel <em>DEBUG</em> designa eventos informativos detalhados que s&atilde;o os
+    mais &uacute;teis quando se depura um aplicativo.</dd>
+    
+    <dt><strong>logging.INFO</strong></dt>
+    <dd>O n&iacute;vel <em>INFO</em> designa as mensagens informativas que evidenciam o andamento
+    do aplicativo em um n&iacute;vel menos detalhado.</dd>
+    
+    <dt><strong>logging.WARN</strong></dt>
+    <dd>O n&iacute;vel <em>WARN</em> designa situa&ccedil;&otilde;es potencialmente danosas.</dd>
+    
+    <dt><strong>logging.ERROR</strong></dt>
+    <dd>O n&iacute;vel <em>ERROR</em> designa eventos de erro que podem ainda permitir que a aplica&ccedil;&atilde;o
+    continue a ser executado.</dd>
+    
+    <dt><strong>logging.FATAL</strong></dt>
+    <dd>O n&iacute;vel <em>FATAL</em> designa eventos de erro muito graves que, presumivelmente,
+    podem levar o aplicativo a ser encerrado.</dd>
+</dl>
+
+<h3>M&eacute;todos</h3>
+
+<dl class="reference">
+    <dt><strong>logger:log (level, message)</strong></dt>
+    <dd>Registra uma mensagem com o n&iacute;vel especificado.</dd>
+    
+    <dt><strong>logger:debug (message)</strong></dt>
+    <dd>Registra uma mensagem com o n&iacute;vel DEBUG.</dd>
+    
+    <dt><strong>logger:info (message)</strong></dt>
+    <dd>Registra uma mensagem com o n&iacute;vel INFO.</dd>
+    
+    <dt><strong>logger:warn (message)</strong></dt>
+    <dd>Registra uma mensagem com o n&iacute;vel WARN.</dd>
+    
+    <dt><strong>logger:error (message)</strong></dt>
+    <dd>Registra uma mensagem com o n&iacute;vel ERROR.</dd>
+    
+    <dt><strong>logger:fatal (message)</strong></dt>
+    <dd>Registra uma mensagem com o n&iacute;vel FATAL.</dd>
+    
+    <dt><strong>logger:setLevel (level)</strong></dt>
+    <dd>Este m&eacute;todo define um n&iacute;vel m&iacute;nimo para que as mensagens sejam
+    registradas.</dd>
+</dl>
+
+<h2><a name="examples"></a>Exemplos</h2>
+
+<p>O exemplo a seguir cria um logger que imprime
+(ou executa a a&ccedil;&atilde;o da fun&ccedil;&atilde;o de impress&atilde;o)
+o n&iacute;vel e a mensagem na sa&iacute;da padr&atilde;o.</p>
+
+<pre class="example">
+require &quot;logging&quot;
+
+local logger = logging.new(function(self, level, message)
+                             print(level, message)
+                             return true
+                           end)
+                           
+logger:setLevel (logging.WARN)
+logger:log(logging.INFO, &quot;enviando email&quot;)
+
+logger:info(&quot;tentando contatar o servidor&quot;)
+logger:warn(&quot;o servidor ainda n&atilde;o respondeu&quot;)
+logger:error(&quot;o servidor n&atilde;o pode ser alcan&ccedil;ado&quot;)
+</pre>
+
+<p>Ap&oacute;s executar o exemplo anterior, as linhas a seguir ser&atilde;o
+mostradas na sa&iacute;da padr&atilde;o. Observe que as solicita&ccedil;&otilde;es
+de log do n&iacute;vel <em>INFO</em> n&atilde;o s&atilde;o tratadas porque o 
+n&iacute;vel m&iacute;nimo est&aacute; definido como <em>WARN</em>.</p>
+
+<pre class="example">
+WARN o servidor ainda n&atilde;o respondeu
+ERROR o servidor n&atilde;o pode ser alcan&ccedil;ado
+</pre>
+
+<a name="appenders"></a> 
+
+<h2>Appenders</h2>
+
+Os appenders a seguir s&atilde;o inclu&iacute;dos na distribui&ccedil;&atilde;o padr&atilde;o. 
+
+<ul>
+    <li><a href="console.html">Console</a></li>
+    <li><a href="file.html">Arquivo</a></li>
+    <li><a href="sql.html">SQL</a></li>
+    <li><a href="socket.html">Soquete</a></li>
+    <li><a href="email.html">Email</a></li>
+</ul>
+
+<h2>Atualiza&ccedil;&atilde;o da vers&atilde;o 1.0.0</h2>
+
+<p>Fazer a atualiza&ccedil;&atilde;o do LuaLogging 1.0.0 &eacute; muito f&aacute;cil.
+O objeto <code>logger</code> &eacute; totalmente compat&iacute;vel. Basta alterar o
+c&oacute;digo que cria o objeto.</p>
+
+<p>O construtor <code>logger</code> da vers&atilde;o 1.0.0 aceitava um &uacute;nico
+argumento, que era um nome de arquivo. Para atualizar para a vers&atilde;o 1.1.0,
+voc&ecirc; deve criar um objeto <code>logging.file</code>, passando o nome do arquivo
+como argumento. Isso &eacute; tudo.</p>
+
+</div> <!-- id="content" -->

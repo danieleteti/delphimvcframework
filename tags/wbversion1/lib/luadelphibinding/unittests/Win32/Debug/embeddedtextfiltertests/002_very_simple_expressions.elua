@@ -1,0 +1,6 @@
+Ciao
+<?lua io.write("hello") ?>
+mondo
+<?lua io.write("world") ?>
+Hi, my name is <?lua= "Daniele Teti" ?>. What's your name?
+close
