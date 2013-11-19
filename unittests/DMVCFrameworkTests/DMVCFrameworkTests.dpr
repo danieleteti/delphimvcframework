@@ -22,7 +22,9 @@ uses
   MessagingExtensionsTestU in 'MessagingExtensionsTestU.pas',
   TestControllersU in 'TestControllersU.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
-  BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas';
+  BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
+  ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
+  BOs in 'BOs.pas';
 
 {$R *.RES}
 

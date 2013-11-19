@@ -586,6 +586,7 @@ var
   DoNotSerializeThis: boolean;
   I: Integer;
   ThereAreIgnoredProperties: boolean;
+  ts: TTimeStamp;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -652,6 +653,14 @@ begin
             JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsOrdinal));
           end;
         end;
+      tkRecord:
+        begin
+          if _property.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp' then
+          begin
+            ts := _property.GetValue(AObject).AsType<System.SysUtils.TTimeStamp>;
+            JSONObject.AddPair(f, TJSONNumber.Create(TimeStampToMsecs(ts)));
+          end;
+        end;
       tkClass:
         begin
           o := _property.GetValue(AObject).AsObject;
@@ -684,16 +693,19 @@ begin
   Result := JSONObject;
 end;
 
-class function Mapper.ObjectFieldsToJSONObject(AObject: TObject): TJSONObject;
+class
+  function Mapper.ObjectFieldsToJSONObject(AObject: TObject): TJSONObject;
 begin
 end;
 
-class function Mapper.ObjectToJSONObject(AObject: TObject): TJSONObject;
+class
+  function Mapper.ObjectToJSONObject(AObject: TObject): TJSONObject;
 begin
   Result := ObjectToJSONObject(AObject, []);
 end;
 
-class function Mapper.ObjectToJSONObjectFields(AObject: TObject;
+class
+  function Mapper.ObjectToJSONObjectFields(AObject: TObject;
   AIgnoredProperties: array of string): TJSONObject;
 var
   _type: TRttiType;
@@ -787,7 +799,8 @@ begin
   Result := JSONObject;
 end;
 
-class procedure Mapper.ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray;
+class
+  procedure Mapper.ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray;
   AReaderInstanceOwner: boolean);
 var
   Obj: TJSONObject;
@@ -802,7 +815,8 @@ begin
     FreeAndNil(AReader);
 end;
 
-class procedure Mapper.ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
+class
+  procedure Mapper.ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
   AReaderInstanceOwner: boolean);
 var
   I: Integer;
@@ -858,7 +872,8 @@ begin
     FreeAndNil(AReader);
 end;
 
-class procedure Mapper.ReaderToList<T>(AReader: TDBXReader; AList: IWrappedList);
+class
+  procedure Mapper.ReaderToList<T>(AReader: TDBXReader; AList: IWrappedList);
 var
   Obj: T;
 begin
@@ -871,7 +886,8 @@ begin
   AReader.Close;
 end;
 
-class procedure Mapper.ReaderToObject(AReader: TDBXReader; AObject: TObject);
+class
+  procedure Mapper.ReaderToObject(AReader: TDBXReader; AObject: TObject);
 var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
@@ -954,7 +970,8 @@ begin
   _keys.Free;
 end;
 
-class procedure Mapper.ReaderToObjectList<T>(AReader: TDBXReader; AObjectList: TObjectList<T>);
+class
+  procedure Mapper.ReaderToObjectList<T>(AReader: TDBXReader; AObjectList: TObjectList<T>);
 var
   Obj: T;
 begin
@@ -967,7 +984,8 @@ begin
   AReader.Close;
 end;
 
-class function Mapper.GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string;
+class
+  function Mapper.GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1003,7 +1021,8 @@ begin
   Result := ARttiField.Name;
 end;
 
-class function Mapper.GetBooleanDef(JSONObject: TJSONObject;
+class
+  function Mapper.GetBooleanDef(JSONObject: TJSONObject;
   PropertyName: string; DefaultValue: boolean): boolean;
 var
   pair: TJSONPair;
@@ -1019,7 +1038,8 @@ begin
     raise Exception.Create('Property is not a Boolean Property');
 end;
 
-class function Mapper.GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
+class
+  function Mapper.GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
   DefaultValue: Int64): Int64;
 var
   pair: TJSONPair;
@@ -1033,7 +1053,8 @@ begin
     raise Exception.Create('Property is not an Int64 Property');
 end;
 
-class function Mapper.GetIntegerDef(JSONObject: TJSONObject;
+class
+  function Mapper.GetIntegerDef(JSONObject: TJSONObject;
   PropertyName: string; DefaultValue: Integer): Integer;
 var
   pair: TJSONPair;
@@ -1047,7 +1068,8 @@ begin
     raise Exception.Create('Property is not an Integer Property');
 end;
 
-class function Mapper.GetJSONArray(JSONObject: TJSONObject;
+class
+  function Mapper.GetJSONArray(JSONObject: TJSONObject;
   PropertyName: string): TJSONArray;
 var
   pair: TJSONPair;
@@ -1062,7 +1084,8 @@ begin
 
 end;
 
-class function Mapper.GetJSONObj(JSONObject: TJSONObject;
+class
+  function Mapper.GetJSONObj(JSONObject: TJSONObject;
   PropertyName: string): TJSONObject;
 var
   pair: TJSONPair;
@@ -1076,7 +1099,8 @@ begin
     raise Exception.Create('Property is not a JSONObject');
 end;
 
-class function Mapper.GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string;
+class
+  function Mapper.GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1112,7 +1136,8 @@ begin
   Result := ARttiProp.Name;
 end;
 
-class function Mapper.GetNumberDef(JSONObject: TJSONObject;
+class
+  function Mapper.GetNumberDef(JSONObject: TJSONObject;
   PropertyName: string; DefaultValue: Extended): Extended;
 var
   pair: TJSONPair;
@@ -1126,7 +1151,8 @@ begin
     raise Exception.Create('Property is not a Number Property');
 end;
 
-class function Mapper.GetPair(JSONObject: TJSONObject;
+class
+  function Mapper.GetPair(JSONObject: TJSONObject;
   PropertyName: string): TJSONPair;
 var
   pair: TJSONPair;
@@ -1137,7 +1163,8 @@ begin
   Result := pair;
 end;
 
-class function Mapper.GetProperty(Obj: TObject; const PropertyName: string): TValue;
+class
+  function Mapper.GetProperty(Obj: TObject; const PropertyName: string): TValue;
 var
   Prop: TRttiProperty;
   ARTTIType: TRttiType;
@@ -1156,7 +1183,8 @@ begin
       [ARTTIType.ToString, PropertyName]);
 end;
 
-class function Mapper.GetStringDef(JSONObject: TJSONObject; PropertyName,
+class
+  function Mapper.GetStringDef(JSONObject: TJSONObject; PropertyName,
   DefaultValue: string): string;
 var
   pair: TJSONPair;
@@ -1170,7 +1198,8 @@ begin
     raise Exception.Create('Property is not a String Property');
 end;
 
-class function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember; out AAttribute: T): boolean;
+class
+  function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember; out AAttribute: T): boolean;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1186,7 +1215,8 @@ begin
     end;
 end;
 
-class function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember): boolean;
+class
+  function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember): boolean;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1198,7 +1228,8 @@ begin
       Exit(True);
 end;
 
-class function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
+class
+  function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
   AOwnsChildObjects: boolean): TObjectList<T>;
 var
   I: Integer;
@@ -1213,7 +1244,8 @@ begin
   end;
 end;
 
-class procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
+class
+  procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
   AObject: TObject);
 var
   _type: TRttiType;
@@ -1229,6 +1261,7 @@ var
   cref: TClass;
   attr: MapperItemsClassType;
   arr: TJSONArray;
+  n: TJSONNumber;
 begin
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
@@ -1287,6 +1320,14 @@ begin
         begin
           _field.SetValue(TObject(AObject), jvalue.Value);
         end;
+      tkRecord:
+        begin
+          if _field.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp' then
+          begin
+            n := jvalue as TJSONNumber;
+            _field.SetValue(TObject(AObject), TValue.From<TTimeStamp>(MSecsToTimeStamp(n.AsInt64)));
+          end;
+        end;
       tkClass: // try to restore child properties... but only if the collection is not nil!!!
         begin
           o := _field.GetValue(TObject(AObject)).AsObject;
@@ -1319,7 +1360,8 @@ begin
   end;
 end;
 
-class function Mapper.JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
+class
+  function Mapper.JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
 var
   AObject: TObject;
 begin
@@ -1334,7 +1376,8 @@ begin
   end;
 end;
 
-class function Mapper.JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
+class
+  function Mapper.JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
 var
   AObject: TObject;
   _rttiType: TRttiType;
@@ -1356,7 +1399,8 @@ begin
     raise Exception.CreateFmt('Class not found [%s]', [ClazzName]);
 end;
 
-class function Mapper.JSONObjectToObject<T>(AJSONObject: TJSONObject): T;
+class
+  function Mapper.JSONObjectToObject<T>(AJSONObject: TJSONObject): T;
 begin
   if not Assigned(AJSONObject) then
     raise Exception.Create('JSONObject not assigned');
@@ -1364,7 +1408,8 @@ begin
   // Result := JSONObjectToObject(TObject.ClassInfo, AJSONObject);
 end;
 
-class function Mapper.JSONObjectToObjectFields<T>(AJSONObject: TJSONObject): T;
+class
+  function Mapper.JSONObjectToObjectFields<T>(AJSONObject: TJSONObject): T;
 var
   _type: TRttiType;
   _fields: TArray<TRttiField>;
@@ -1411,7 +1456,8 @@ begin
   end;
 end;
 
-class procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
+class
+  procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
   ACloseDataSetAfterScroll: boolean);
 var
   Obj: T;
@@ -1527,7 +1573,8 @@ end;
 // FreeAndNil(ADataSet);
 // end;
 
-class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
+class
+  function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
   WithResult: boolean): Int64;
 var
   I: Integer;
@@ -1584,17 +1631,20 @@ begin
   end;
 end;
 
-class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;
+class
+  function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;
 begin
   Result := InternalExecuteSQLQuery(AQuery, AObject, false);
 end;
 
-class procedure Mapper.ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject);
+class
+  procedure Mapper.ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject);
 begin
   InternalExecuteSQLQuery(AQuery, AObject, True);
 end;
 
-class function Mapper.ExecuteSQLQueryAsObjectList<T>(AQuery: TSQLQuery; AObject: TObject)
+class
+  function Mapper.ExecuteSQLQueryAsObjectList<T>(AQuery: TSQLQuery; AObject: TObject)
   : TObjectList<T>;
 begin
   ExecuteSQLQuery(AQuery, AObject);
@@ -1634,7 +1684,6 @@ begin
   FWidth := Math.Max(AWidth, 50);
 
 {$IFEND}
-
 end;
 
 function GridColumnProps.GetAlignAsString: string;

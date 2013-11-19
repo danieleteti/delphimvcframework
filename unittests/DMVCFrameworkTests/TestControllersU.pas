@@ -36,6 +36,11 @@ type
     property CalledActions: TStringList read FCalledActions; // only for tests
   end;
 
+  TNotSoSimpleController = class(TMVCController)
+  public
+    procedure Method1(CTX: TWebContext);
+  end;
+
 implementation
 
 { TSimpleController }
@@ -74,6 +79,13 @@ begin
 end;
 
 procedure TSimpleController.OrderNumber(Context: TWebContext);
+begin
+
+end;
+
+{ TNotSoSimpleController }
+
+procedure TNotSoSimpleController.Method1(CTX: TWebContext);
 begin
 
 end;
