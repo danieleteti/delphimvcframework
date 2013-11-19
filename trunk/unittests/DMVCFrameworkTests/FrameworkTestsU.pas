@@ -25,6 +25,10 @@ type
     procedure TestPathWithParameters;
     procedure TestWithMethodTypes;
     procedure TestComplexRoutings;
+    // procedure TestClassNameMethodNameRouting;
+
+    procedure TestObjectToJSONObject;
+    procedure TestObjectListToJSONArray;
   end;
 
 implementation
@@ -33,12 +37,13 @@ implementation
 
 uses MVCFramework.Commons,
   TestControllersU,
-  Web.HTTPApp;
+  Web.HTTPApp, ObjectsMappers, BOs, Data.DBXJSON;
 
 procedure TTestRouting.SetUp;
 begin
   Controllers := TList<TMVCControllerClass>.Create;
   Controllers.Add(TSimpleController);
+  Controllers.Add(TNotSoSimpleController);
   Router := TMVCRouter.Create(nil);
 end;
 
@@ -48,9 +53,79 @@ begin
   Controllers.Free;
 end;
 
+// procedure TTestRouting.TestClassNameMethodNameRouting;
+// var
+// Params: TMVCRequestParamsTable;
+// ResponseContentType: string;
+// ResponseContentEncoding: string;
+// begin
+// Params := TMVCRequestParamsTable.Create;
+// try
+// CheckTrue(Router.ExecuteRouting('/TNotSoSimpleController/Method1', httpGET, 'text/plain', Controllers,
+// Params, ResponseContentType, ResponseContentEncoding));
+// CheckEquals(0, Params.Count);
+// CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+// CheckEquals('Index', Router.MethodToCall.Name);
+// finally
+// Params.Free;
+// end;
+// end;
+
 procedure TTestRouting.TestComplexRoutings;
 begin
 
+end;
+
+procedure TTestRouting.TestObjectListToJSONArray;
+var
+  Obj, Obj2: TMyObject;
+  ObjList, Obj2List: TObjectList<TMyObject>;
+  json: TJSONArray;
+  I: Integer;
+begin
+  ObjList := TObjectList<TMyObject>.Create(true);
+  try
+    for I := 1 to 10 do
+    begin
+      Obj := GetMyObject;
+      Obj.PropInteger := I;
+      ObjList.Add(Obj);
+    end;
+    json := Mapper.ObjectListToJSONArray<TMyObject>(ObjList);
+
+    Obj2List := Mapper.JSONArrayToObjectList<TMyObject>(json);
+    try
+      CheckEquals(ObjList.Count, Obj2List.Count);
+      for I := 0 to 9 do
+      begin
+        CheckTrue(Obj2List[I].Equals(ObjList[I]));
+      end;
+    finally
+      Obj2List.Free;
+    end;
+  finally
+    ObjList.Free;
+  end;
+end;
+
+procedure TTestRouting.TestObjectToJSONObject;
+var
+  Obj: TMyObject;
+  json: TJSONObject;
+  Obj2: TMyObject;
+begin
+  Obj := GetMyObject;
+  try
+    json := Mapper.ObjectToJSONObject(Obj);
+    try
+      Obj2 := Mapper.JSONObjectToObject<TMyObject>(json);
+      CheckTrue(Obj.Equals(Obj2));
+    finally
+      json.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
 end;
 
 procedure TTestRouting.TestPathButNoParameters;
@@ -178,6 +253,8 @@ begin
     Params.Free;
   end;
 end;
+
+{ TMyObject }
 
 initialization
 
