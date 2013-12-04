@@ -691,8 +691,8 @@ begin
       IsExpired := true;
       if List.TryGetValue(SessionID, Result) then
       begin
-        IsExpired := MinutesBetween(now, Result.LastAccess) > Config.Value
-          ['sessiontimeout'].ToInteger;
+        IsExpired := MinutesBetween(now, Result.LastAccess) > StrToInt(Config.Value
+          ['sessiontimeout']);
       end;
 
       if Assigned(Result) then
@@ -1253,7 +1253,7 @@ end;
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
   Result := StompUtils.NewStomp(Config['stompserver'],
-    Config['stompserverport'].ToInteger, GetClientID, Config['stompusername'],
+    StrToInt(Config['stompserverport']), GetClientID, Config['stompusername'],
     Config['stomppassword']);
 end;
 
@@ -1680,7 +1680,7 @@ begin
     else
     begin
       S := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
-      Context.Response.SetCustomHeader('Content-Length', S.Size.ToString);
+      Context.Response.SetCustomHeader('Content-Length', IntToStr(S.Size));
       Context.Response.SetCustomHeader('Last-Modified',
         LocalDateTimeToHttpStr(LFileDate));
       Context.Response.SetContentStream(S, AMimeType);

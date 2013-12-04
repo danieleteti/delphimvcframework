@@ -251,7 +251,7 @@ procedure TMVCBUSController.OnBeforeAction(Context: TWebContext;
   const AActionNAme: string; var Handled: Boolean);
 begin
   inherited;
-  if not Config['messaging'].ToBoolean then
+  if not StrToBool( Config['messaging']) then
   begin
     Handled := true;
     raise EMVCException.Create('Messaging extensions are not enabled');
