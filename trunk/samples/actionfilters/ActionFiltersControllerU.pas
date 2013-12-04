@@ -53,13 +53,12 @@ end;
 procedure TActionFiltersController.MVCControllerAfterCreate;
 begin
   inherited;
-  // some safe initialization... do not raise exception here
+  // raise Exception.Create('Error Message');
 end;
 
 procedure TActionFiltersController.MVCControllerBeforeDestroy;
 begin
   inherited;
-  // finalizations...
 end;
 
 procedure TActionFiltersController.OnAfterAction(Context: TWebContext;
