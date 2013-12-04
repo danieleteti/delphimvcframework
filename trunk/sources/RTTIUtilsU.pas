@@ -55,7 +55,7 @@ type
       const Value: TValue); overload;
     class function Clone(Obj: TObject): TObject; static;
     class procedure CopyObject(SourceObj, TargetObj: TObject); static;
-    class procedure CopyObjectAS<T: class>(SourceObj, TargetObj: TObject); static;
+//    class procedure CopyObjectAS<T: class>(SourceObj, TargetObj: TObject); static;
     class function CreateObject(ARttiType: TRttiType): TObject; overload; static;
     class function CreateObject(AQualifiedClassName: string): TObject; overload; static;
     class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiObject)
@@ -286,11 +286,11 @@ class
   function TRTTIUtils.HasStringValueAttribute<T>(ARTTIMember: TRttiMember;
   out Value: string): boolean;
 var
-  Attr: StringValueAttribute;
+  Attr: T; //StringValueAttribute;
 begin
   Result := HasAttribute<T>(ARTTIMember, Attr);
   if Result then
-    Value := Attr.Value
+    Value := StringValueAttribute(Attr).Value
   else
     Value := '';
 end;
@@ -364,7 +364,7 @@ begin
     tkUnknown:
       Result := '';
     tkInteger:
-      Result := Value.AsInteger.ToString;
+      Result := IntToStr(Value.AsInteger);
     tkChar:
       Result := Value.AsString;
     tkEnumeration:
@@ -376,27 +376,27 @@ begin
       begin
         if PropertyType = 'datetime' then
         begin
-          if CustomFormat.IsEmpty then
+          if CustomFormat = '' then
             Exit(DateTimeToStr(Value.AsExtended))
           else
             Exit(FormatDateTime(CustomFormat, Value.AsExtended))
         end
         else if PropertyType = 'date' then
         begin
-          if CustomFormat.IsEmpty then
+          if CustomFormat = '' then
             Exit(DateToStr(Value.AsExtended))
           else
             Exit(FormatDateTime(CustomFormat, Trunc(Value.AsExtended)))
         end
         else if PropertyType = 'time' then
         begin
-          if CustomFormat.IsEmpty then
+          if CustomFormat = '' then
             Exit(TimeToStr(Value.AsExtended))
           else
             Exit(FormatDateTime(CustomFormat, Frac(Value.AsExtended)))
         end;
         if CustomFormat.IsEmpty then
-          Result := Value.AsExtended.ToString()
+          Result := FloatToStr(Value.AsExtended)
         else
           Result := FormatFloat(CustomFormat, Value.AsExtended);
       end;
@@ -429,7 +429,7 @@ begin
       Result := '(interface)';
 
     tkInt64:
-      Result := Value.AsInt64.ToString();
+      Result := IntToStr(Value.AsInt64);
 
     tkDynArray:
       Result := '(array)';
@@ -679,97 +679,97 @@ begin
   end;
 end;
 
-class procedure TRTTIUtils.CopyObjectAS<T>(SourceObj, TargetObj: TObject);
-var
-  _ARttiType      : TRttiType;
-  _ARttiTypeTarget: TRttiType;
-  Field, FieldDest: TRttiField;
-  master, cloned  : TObject;
-  Src             : TObject;
-  sourceStream    : TStream;
-  SavedPosition   : Int64;
-  targetStream    : TStream;
-  targetCollection: IWrappedList;
-  sourceCollection: IWrappedList;
-  I               : Integer;
-  sourceObject    : TObject;
-  targetObject    : TObject;
-  Tar             : TObject;
-begin
-  if not Assigned(TargetObj) then
-    Exit;
-
-  _ARttiType := ctx.GetType(SourceObj.ClassType);
-  _ARttiTypeTarget := ctx.GetType(T);
-
-  cloned := TargetObj;
-  master := SourceObj;
-  for Field in _ARttiType.GetFields do
-  begin
-    FieldDest := _ARttiTypeTarget.GetField(Field.Name);
-    if not Assigned(FieldDest) then
-      continue;
-    if not Field.FieldType.IsInstance then
-    begin
-      FieldDest.SetValue(cloned, Field.GetValue(master));
-    end
-    else
-    begin
-      Src := Field.GetValue(SourceObj).AsObject;
-      if not Assigned(Src) then
-      begin
-        FieldDest.SetValue(cloned, Src);
-
-      end
-      else
-        if Src is TStream then
-      begin
-        sourceStream := TStream(Src);
-        SavedPosition := sourceStream.Position;
-        sourceStream.Position := 0;
-        if FieldDest.GetValue(cloned).IsEmpty then
-        begin
-          targetStream := TMemoryStream.Create;
-          FieldDest.SetValue(cloned, targetStream);
-        end
-        else
-          targetStream := FieldDest.GetValue(cloned).AsObject as TStream;
-        targetStream.Position := 0;
-        targetStream.CopyFrom(sourceStream, sourceStream.Size);
-        targetStream.Position := SavedPosition;
-        sourceStream.Position := SavedPosition;
-      end
-      else if TDuckTypedList.CanBeWrappedAsList(Src) then
-      begin
-        sourceCollection := WrapAsList(Src);
-        Tar := FieldDest.GetValue(cloned).AsObject;
-        if Assigned(Tar) then
-        begin
-          targetCollection := WrapAsList(Tar);
-          targetCollection.Clear;
-          for I := 0 to sourceCollection.Count - 1 do
-            targetCollection.Add(TRTTIUtils.Clone(sourceCollection.GetItem(I)));
-        end;
-      end
-      else
-      begin
-        sourceObject := Src;
-
-        if FieldDest.GetValue(cloned).IsEmpty then
-        begin
-          targetObject := TRTTIUtils.Clone(sourceObject);
-          FieldDest.SetValue(cloned, targetObject);
-        end
-        else
-        begin
-          targetObject := FieldDest.GetValue(cloned).AsObject;
-          TRTTIUtils.CopyObject(sourceObject, targetObject);
-        end;
-      end;
-    end;
-  end;
-
-end;
+//class procedure TRTTIUtils.CopyObjectAS<T>(SourceObj, TargetObj: TObject);
+//var
+//  _ARttiType      : TRttiType;
+//  _ARttiTypeTarget: TRttiType;
+//  Field, FieldDest: TRttiField;
+//  master, cloned  : TObject;
+//  Src             : TObject;
+//  sourceStream    : TStream;
+//  SavedPosition   : Int64;
+//  targetStream    : TStream;
+//  targetCollection: IWrappedList;
+//  sourceCollection: IWrappedList;
+//  I               : Integer;
+//  sourceObject    : TObject;
+//  targetObject    : TObject;
+//  Tar             : TObject;
+//begin
+//  if not Assigned(TargetObj) then
+//    Exit;
+//
+//  _ARttiType := ctx.GetType(SourceObj.ClassType);
+//  _ARttiTypeTarget := ctx.GetType(T);
+//
+//  cloned := TargetObj;
+//  master := SourceObj;
+//  for Field in _ARttiType.GetFields do
+//  begin
+//    FieldDest := _ARttiTypeTarget.GetField(Field.Name);
+//    if not Assigned(FieldDest) then
+//      continue;
+//    if not Field.FieldType.IsInstance then
+//    begin
+//      FieldDest.SetValue(cloned, Field.GetValue(master));
+//    end
+//    else
+//    begin
+//      Src := Field.GetValue(SourceObj).AsObject;
+//      if not Assigned(Src) then
+//      begin
+//        FieldDest.SetValue(cloned, Src);
+//
+//      end
+//      else
+//        if Src is TStream then
+//      begin
+//        sourceStream := TStream(Src);
+//        SavedPosition := sourceStream.Position;
+//        sourceStream.Position := 0;
+//        if FieldDest.GetValue(cloned).IsEmpty then
+//        begin
+//          targetStream := TMemoryStream.Create;
+//          FieldDest.SetValue(cloned, targetStream);
+//        end
+//        else
+//          targetStream := FieldDest.GetValue(cloned).AsObject as TStream;
+//        targetStream.Position := 0;
+//        targetStream.CopyFrom(sourceStream, sourceStream.Size);
+//        targetStream.Position := SavedPosition;
+//        sourceStream.Position := SavedPosition;
+//      end
+//      else if TDuckTypedList.CanBeWrappedAsList(Src) then
+//      begin
+//        sourceCollection := WrapAsList(Src);
+//        Tar := FieldDest.GetValue(cloned).AsObject;
+//        if Assigned(Tar) then
+//        begin
+//          targetCollection := WrapAsList(Tar);
+//          targetCollection.Clear;
+//          for I := 0 to sourceCollection.Count - 1 do
+//            targetCollection.Add(TRTTIUtils.Clone(sourceCollection.GetItem(I)));
+//        end;
+//      end
+//      else
+//      begin
+//        sourceObject := Src;
+//
+//        if FieldDest.GetValue(cloned).IsEmpty then
+//        begin
+//          targetObject := TRTTIUtils.Clone(sourceObject);
+//          FieldDest.SetValue(cloned, targetObject);
+//        end
+//        else
+//        begin
+//          targetObject := FieldDest.GetValue(cloned).AsObject;
+//          TRTTIUtils.CopyObject(sourceObject, targetObject);
+//        end;
+//      end;
+//    end;
+//  end;
+//
+//end;
 
 class
   function TRTTIUtils.CreateObject(AQualifiedClassName: string): TObject;
