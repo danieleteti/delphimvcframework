@@ -24,7 +24,8 @@ uses
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
-  BOs in 'BOs.pas';
+  BOs in 'BOs.pas',
+  RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas';
 
 {$R *.RES}
 
