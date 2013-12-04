@@ -392,6 +392,10 @@ type
 function IsShuttingDown: boolean;
 procedure EnterInShutdownState;
 
+procedure InternalRender(const Content: string; ContentType, ContentEncoding: String; Context: TWebContext); overload;
+procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
+  AInstanceOwner: boolean = true); overload;
+
 implementation
 
 uses
@@ -548,6 +552,7 @@ begin
                 SelectedController.SetMVCEngine(Self);
                 // exception?
                 try
+                  SelectedController.MVCControllerAfterCreate;
                   Handled := false;
                   // gets response contentype from MVCProduces attribute
                   SelectedController.ContentType := ResponseContentType;
@@ -574,7 +579,7 @@ begin
                   begin
 
                   end;
-
+                  SelectedController.MVCControllerBeforeDestroy;
                 except
                   on E: EMVCSessionExpiredException do
                   begin
@@ -1188,12 +1193,20 @@ begin
   IsSessionStarted := false;
   SessionMustBeClose := false;
   FContentEncoding := 'UTF-8';
-  MVCControllerAfterCreate;
+  // try
+  // MVCControllerAfterCreate;
+  // except
+  // on E: Exception do
+  // begin
+  // raise EMVCException.Create('Initialization failed for controller ' + ClassName +
+  // ' [CLASS ' + E.ClassName + '] [MESSAGE ' + E.Message + ']');
+  // end;
+  // end;
 end;
 
 destructor TMVCController.Destroy;
 begin
-  MVCControllerBeforeDestroy;
+  // MVCControllerBeforeDestroy;
   FreeAndNil(FResponseStream);
   inherited;
 end;
@@ -1341,14 +1354,33 @@ begin
   FViewModel.Add(AModelName, AModel);
 end;
 
-procedure TMVCController.Render(const Content: string);
+procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
+  AInstanceOwner: boolean);
 var
+  S: string;
   OutEncoding: TEncoding;
   InEncoding: TEncoding;
 begin
+  Context.Response.ContentType := 'application/json; charset=' + ContentEncoding;
+  S := AJSONValue.ToString;
+  OutEncoding := TEncoding.GetEncoding(ContentEncoding);
+  InEncoding := TEncoding.Default; // GetEncoding(S);
+  Context.Response.Content := OutEncoding.GetString
+    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
+  OutEncoding.Free;
+  if AInstanceOwner then
+    FreeAndNil(AJSONValue)
+end;
+
+procedure InternalRender(const Content: string; ContentType, ContentEncoding: String; Context: TWebContext);
+var
+  OutEncoding: TEncoding;
+  InEncoding: TEncoding;
+  S: String;
+begin
   if ContentType = TMVCMimeType.APPLICATION_JSON then
   begin
-    Render(TJSONString.Create(Content));
+    InternalRender(TJSONString.Create(Content), ContentType, ContentEncoding, Context, true);
   end
   else if ContentType = TMVCMimeType.TEXT_XML then
   begin
@@ -1357,15 +1389,43 @@ begin
   else
   begin
     if ContentType.IsEmpty then
-      ContentType := 'text/plain; charset=' + ContentEncoding
+      Context.Response.ContentType := 'text/plain; charset=' + ContentEncoding
     else
-      ContentType := ContentType + '; charset=' + ContentEncoding;
+      Context.Response.ContentType := ContentType + '; charset=' + ContentEncoding;
     OutEncoding := TEncoding.GetEncoding(ContentEncoding);
     InEncoding := TEncoding.Default;
     Context.Response.Content := OutEncoding.GetString
       (TEncoding.Convert(InEncoding, OutEncoding,
       InEncoding.GetBytes(Content)));
   end;
+end;
+
+procedure TMVCController.Render(const Content: string);
+var
+  OutEncoding: TEncoding;
+  InEncoding: TEncoding;
+begin
+  InternalRender(Content, ContentType, ContentEncoding, Context);
+  // if ContentType = TMVCMimeType.APPLICATION_JSON then
+  // begin
+  // Render(TJSONString.Create(Content));
+  // end
+  // else if ContentType = TMVCMimeType.TEXT_XML then
+  // begin
+  // raise EMVCException.Create('Format still not supported - ' + ContentType);
+  // end
+  // else
+  // begin
+  // if ContentType.IsEmpty then
+  // ContentType := 'text/plain; charset=' + ContentEncoding
+  // else
+  // ContentType := ContentType + '; charset=' + ContentEncoding;
+  // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
+  // InEncoding := TEncoding.Default;
+  // Context.Response.Content := OutEncoding.GetString
+  // (TEncoding.Convert(InEncoding, OutEncoding,
+  // InEncoding.GetBytes(Content)));
+  // end;
 end;
 
 procedure TMVCController.Render(AObject: TObject; AInstanceOwner: boolean);
@@ -1569,7 +1629,7 @@ end;
 
 function TMVCWebRequest.GetParamAllAsInteger(const ParamName: string): Integer;
 begin
-  Result := strtoint(GetParamAll(ParamName));
+  Result := StrToInt(GetParamAll(ParamName));
 end;
 
 function TMVCWebRequest.GetParamNames: TArray<String>;
@@ -2020,20 +2080,21 @@ end;
 
 procedure TMVCController.Render(AJSONValue: TJSONValue;
   AInstanceOwner: boolean);
-var
-  S: string;
-  OutEncoding: TEncoding;
-  InEncoding: TEncoding;
+// var
+// S: string;
+// OutEncoding: TEncoding;
+// InEncoding: TEncoding;
 begin
-  ContentType := 'application/json; charset=' + ContentEncoding;
-  S := AJSONValue.ToString;
-  OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-  InEncoding := TEncoding.Default; // GetEncoding(S);
-  Context.Response.Content := OutEncoding.GetString
-    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
-  OutEncoding.Free;
-  if AInstanceOwner then
-    FreeAndNil(AJSONValue)
+  InternalRender(AJSONValue, ContentType, ContentEncoding, Context, AInstanceOwner);
+  // ContentType := 'application/json; charset=' + ContentEncoding;
+  // S := AJSONValue.ToString;
+  // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
+  // InEncoding := TEncoding.Default; // GetEncoding(S);
+  // Context.Response.Content := OutEncoding.GetString
+  // (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
+  // OutEncoding.Free;
+  // if AInstanceOwner then
+  // FreeAndNil(AJSONValue)
 end;
 
 procedure TMVCController.ResponseStatusCode(const ErrorCode: UInt16);
