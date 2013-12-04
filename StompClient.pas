@@ -526,10 +526,19 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     tout          : boolean;
     FirstValidChar: boolean;
     // UTF8Encoding: TEncoding;
+    {$IF Defined(VER240)}
+    UTF8Encoding: TIdTextEncoding;
+    {$IFEND}
+    {$IF Defined(Ver250) or Defined(VER260)}
     UTF8Encoding: IIdTextEncoding;
+    {$IFEND}
   begin
-    // UTF8Encoding := TEncoding.UTF8;
+    {$IF Defined(VER240)}
+    UTF8Encoding := TEncoding.UTF8;
+    {$IFEND}
+    {$IF Defined(Ver250) or Defined(VER260)}
     UTF8Encoding := IndyTextEncoding_UTF8();
+    {$IFEND}
     tout := False;
     Result := nil;
     try
@@ -647,8 +656,14 @@ begin
   // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
   if Assigned(FOnBeforeSendFrame) then
     FOnBeforeSendFrame(AFrame);
-  // FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+
+  {$IF Defined(Ver240)}
+  FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+  {$IFEND}
+
+  {$IF Defined(Ver250) or Defined(VER260)}
   FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
+  {$IFEND}
   if Assigned(FOnAfterSendFrame) then
     FOnAfterSendFrame(AFrame);
 
