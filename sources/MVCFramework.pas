@@ -581,10 +581,7 @@ begin
 
                     end;
                   finally
-                    try
-                      SelectedController.MVCControllerBeforeDestroy;
-                    except
-                    end;
+                    SelectedController.MVCControllerBeforeDestroy;
                   end;
                 except
                   on E: EMVCSessionExpiredException do

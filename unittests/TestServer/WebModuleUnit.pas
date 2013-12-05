@@ -23,12 +23,15 @@ implementation
 
 
 uses
-  TestServerControllerU;
+  TestServerControllerU, TestServerControllerExceptionU;
 
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
   MVCEngine := TMVCEngine.Create(self);
-  MVCEngine.AddController(TTestServerController);
+  MVCEngine
+    .AddController(TTestServerController)
+    .AddController(TTestServerControllerExceptionAfterCreate)
+    .AddController(TTestServerControllerExceptionBeforeDestroy);
   MVCEngine.Config['stompserver'] := 'localhost';
   MVCEngine.Config['stompserverport'] := '61613';
   MVCEngine.Config['stompusername'] := 'guest';

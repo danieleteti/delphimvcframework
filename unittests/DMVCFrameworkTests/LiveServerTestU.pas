@@ -34,6 +34,8 @@ type
 
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
+    procedure TestExceptionInMVCAfterCreate;
+    procedure TestExceptionInMVCBeforeDestroy;
   end;
 
 implementation
@@ -217,6 +219,22 @@ begin
   CheckEquals('to je Unicode?', res.BodyAsJsonObject.Get('name2')
     .JsonValue.Value);
   CheckEquals('אטילעש', res.BodyAsJsonObject.Get('name3').JsonValue.Value);
+end;
+
+procedure TServerTest.TestExceptionInMVCAfterCreate;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/exception/aftercreate/nevercalled', []);
+  CheckEquals(500, res.ResponseCode);
+end;
+
+procedure TServerTest.TestExceptionInMVCBeforeDestroy;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/exception/beforedestroy/nevercalled', []);
+  CheckEquals(500, res.ResponseCode);
 end;
 
 procedure TServerTest.TestPOSTWithObjectJSONBody;
