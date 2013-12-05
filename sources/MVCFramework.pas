@@ -553,33 +553,39 @@ begin
                 // exception?
                 try
                   SelectedController.MVCControllerAfterCreate;
-                  Handled := false;
-                  // gets response contentype from MVCProduces attribute
-                  SelectedController.ContentType := ResponseContentType;
-                  SelectedController.ContentEncoding := ResponseContentEncoding;
-                  SelectedController.OnBeforeAction(Context,
-                    Router.MethodToCall.Name, Handled);
-                  if not Handled then
-                  begin
-                    if Assigned(Router.MethodToCall) then
+                  try
+                    Handled := false;
+                    // gets response contentype from MVCProduces attribute
+                    SelectedController.ContentType := ResponseContentType;
+                    SelectedController.ContentEncoding := ResponseContentEncoding;
+                    SelectedController.OnBeforeAction(Context,
+                      Router.MethodToCall.Name, Handled);
+                    if not Handled then
                     begin
-                      Router.MethodToCall.Invoke(SelectedController, [Context]);
-                      SelectedController.OnAfterAction(Context,
-                        Router.MethodToCall.Name);
+                      if Assigned(Router.MethodToCall) then
+                      begin
+                        Router.MethodToCall.Invoke(SelectedController, [Context]);
+                        SelectedController.OnAfterAction(Context,
+                          Router.MethodToCall.Name);
+                      end
+                      else
+                        raise EMVCException.Create('MethodToCall is nil');
+                    end;
+
+                    if SelectedController.SessionMustBeClose then
+                    begin
+                      // do something to close session
                     end
                     else
-                      raise EMVCException.Create('MethodToCall is nil');
-                  end;
+                    begin
 
-                  if SelectedController.SessionMustBeClose then
-                  begin
-                    // do something to close session
-                  end
-                  else
-                  begin
-
+                    end;
+                  finally
+                    try
+                      SelectedController.MVCControllerBeforeDestroy;
+                    except
+                    end;
                   end;
-                  SelectedController.MVCControllerBeforeDestroy;
                 except
                   on E: EMVCSessionExpiredException do
                   begin
