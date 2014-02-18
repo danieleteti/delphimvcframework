@@ -26,6 +26,7 @@ implementation
 
 {$R *.dfm}
 
+
 uses System.StrUtils,
   Data.DBXCommon,
   ObjectsMappers,
@@ -36,7 +37,7 @@ uses System.StrUtils,
 function TWineCellarDataModule.AddWine(Wine: TJSONObject): TJSONObject;
 var
   cmd: TDBXCommand;
-  w  : TWine;
+  w: TWine;
   qry: TSQLQuery;
 const
   SQL = 'INSERT INTO wine (name, grapes, country, region, "YEAR", description) VALUES (:name, :grapes, :country, :region, :year, :description)';
@@ -116,7 +117,7 @@ end;
 function TWineCellarDataModule.UpdateWine(Wine: TJSONObject): TJSONObject;
 var
   cmd: TDBXCommand;
-  w  : TWine;
+  w: TWine;
   qry: TSQLQuery;
 const
   SQL = 'UPDATE WINE SET name = :name, grapes = :grapes, country = :country, region = :region, "YEAR" = :year, description = :description WHERE ID = :id';
