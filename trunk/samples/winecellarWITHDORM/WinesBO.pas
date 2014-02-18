@@ -6,7 +6,7 @@ uses ObjectsMappers, dorm.ObjectStatus, dorm.Mappings;
 
 type
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MapperJSONNaming(JSONNameLowerCase)]  
   TWine = class
   private
     FYEAR: string;
