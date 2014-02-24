@@ -26,8 +26,12 @@ uses
   DB,
   Generics.Collections,
   DBXJSON,
-  SqlExpr,
-  DuckListU;
+  SqlExpr
+{$IF Defined(VER260)}
+    , DuckListU
+    , FireDAC.Comp.Client
+    , FireDAC.Stan.Param
+{$IFEND};
 
 type
   Mapper = class
@@ -37,6 +41,10 @@ type
   private
     class function InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
       WithResult: boolean): Int64;
+{$IF Defined(VER260)}
+    class function InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
+      WithResult: boolean): Int64;
+{$IFEND}
     class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string; overload;
     class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string; overload;
     class procedure InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
@@ -97,6 +105,13 @@ type
     class procedure ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject = nil);
     class function ExecuteSQLQueryAsObjectList<T: class, constructor>(AQuery: TSQLQuery;
       AObject: TObject = nil): TObjectList<T>;
+
+    { FIREDAC RELATED METHODS }
+{$IF Defined(VER260)}
+    class function ExecuteFDQueryNoResult(AQuery: TFDQuery; AObject: TObject): Int64;
+    class procedure ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
+    class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject);
+{$IFEND}
     /// ///
     class function CreateQuery(AConnection: TSQLConnection; ASQL: string): TSQLQuery;
     // SAFE TJSONObject getter
@@ -1630,6 +1645,87 @@ begin
     Map.Free;
   end;
 end;
+
+{$IF Defined(VER260)}
+
+
+class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject);
+var
+  I: Integer;
+  pname: string;
+  _rttiType: TRttiType;
+  obj_fields: TArray<TRttiProperty>;
+  obj_field: TRttiProperty;
+  obj_field_attrs: TArray<TCustomAttribute>;
+  obj_field_attr: MapperColumnAttribute;
+  Map: TObjectDictionary<string, TRttiProperty>;
+  f: TRttiProperty;
+  fv: TValue;
+begin
+  Map := TObjectDictionary<string, TRttiProperty>.Create;
+  try
+    if Assigned(AObject) then
+    begin
+      _rttiType := ctx.GetType(AObject.ClassType);
+      obj_fields := _rttiType.GetProperties;
+      for obj_field in obj_fields do
+      begin
+        if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
+        begin
+          Map.Add(LowerCase(MapperColumnAttribute(obj_field_attr).FieldName), obj_field);
+        end
+        else
+        begin
+          Map.Add(LowerCase(obj_field.Name), obj_field);
+        end
+      end;
+    end;
+    for I := 0 to AFDParams.Count - 1 do
+    begin
+      pname := LowerCase(AFDParams[I].Name);
+      if Map.TryGetValue(pname, f) then
+      begin
+        fv := f.GetValue(AObject);
+        AFDParams[I].Value := fv.AsVariant;
+      end
+      else
+      begin
+        AFDParams[I].Clear;
+        // AQuery.Params[I].DataType := ftString;
+      end;
+    end;
+  finally
+    Map.Free;
+  end
+end;
+
+class
+  function Mapper.InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
+  WithResult: boolean): Int64;
+begin
+  ObjectToFDParameters(AQuery.Params, AObject);
+  Result := 0;
+  if WithResult then
+    AQuery.Open
+  else
+  begin
+    AQuery.ExecSQL;
+    Result := AQuery.RowsAffected;
+  end;
+end;
+
+class function Mapper.ExecuteFDQueryNoResult(AQuery: TFDQuery; AObject: TObject): Int64;
+begin
+  Result := InternalExecuteFDQuery(AQuery, AObject, false);
+end;
+
+class procedure Mapper.ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
+begin
+  InternalExecuteFDQuery(AQuery, AObject, True);
+end;
+
+{$IFEND}
+
 
 class
   function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;

@@ -61,7 +61,7 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    RunServer(8888);
+    RunServer(9999);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

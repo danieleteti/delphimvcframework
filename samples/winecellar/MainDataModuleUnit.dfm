@@ -47,7 +47,7 @@ object WineCellarDataModule: TWineCellarDataModule
       'RoleName=RoleName'
       'ServerCharSet='
       'Trim Char=False')
-    Left = 94
-    Top = 57
+    Left = 86
+    Top = 49
   end
 end

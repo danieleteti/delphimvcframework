@@ -118,6 +118,15 @@ begin
   // daniele
   AWebRequestPathInfo := TIdURI.URLDecode(AWebRequestPathInfo);
 
+  { ISAPI CHANGE THE REQUEST PATH INFO START }
+  if IsLibrary then
+  begin
+    AWebRequestPathInfo := String(AWebRequestPathInfo).Remove(0, FMVCConfig.Value['ISAPI_PATH'].Length);
+    if Length(AWebRequestPathInfo) = 0 then
+      AWebRequestPathInfo := '/';
+  end;
+  { ISAPI CHANGE THE REQUEST PATH INFO END }
+
   Result := False;
   ControllerMappedPath := '';
   for controllerClass in AMVCControllers do
