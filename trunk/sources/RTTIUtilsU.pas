@@ -474,7 +474,7 @@ begin
   begin
     Result := 'float'
   end
-  else if (_PropInfo.Kind = tkEnumeration) and (_PropInfo.Name = 'Boolean') then
+  else if (_PropInfo.Kind = tkEnumeration) {and (_PropInfo.Name = 'Boolean')} then
     Result := 'boolean'
   else if AProp.PropertyType.IsInstance and
     AProp.PropertyType.AsInstance.MetaclassType.InheritsFrom(TStream) then

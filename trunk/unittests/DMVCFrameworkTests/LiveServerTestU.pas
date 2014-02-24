@@ -59,7 +59,7 @@ end;
 procedure TBaseServerTest.SetUp;
 begin
   inherited;
-  RESTClient := TRESTClient.Create('localhost', 8888);
+  RESTClient := TRESTClient.Create('localhost', 9999);
   RESTClient.ReadTimeout := 60 * 1000 * 30;
 end;
 
@@ -348,7 +348,7 @@ var
   c1: TRESTClient;
   res: IRESTResponse;
 begin
-  c1 := TRESTClient.Create('localhost', 8888);
+  c1 := TRESTClient.Create('localhost', 9999);
   try
     c1.Accept(TMVCMimeType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
