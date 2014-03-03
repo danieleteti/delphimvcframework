@@ -280,7 +280,7 @@ begin
     begin
       FoundOneAttribConsumes := true;
       Accept := MVCConsumesAttribute(AAttributes[i]).Value;
-      if Pos(AAccept, ',') > 0 then
+      if Pos(',', AAccept) > 0 then
         AAccept := Copy(AAccept, 1, Pos(',', AAccept) - 1);
       Result := SameText(AAccept, Accept, loInvariantLocale);
     end;

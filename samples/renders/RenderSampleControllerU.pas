@@ -12,6 +12,7 @@ type
   public
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers/($id).html')]
+    { this route require a request header ACCEPT: text/html }
     [MVCConsumes('text/html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetPerson_AsText(CTX: TWebContext);
