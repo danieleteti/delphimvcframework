@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <BorlandProject>
 	<Transactions>
-    <Transaction>2014/02/19 23.00.00.000.908,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\WebModuleUnit1.dfm=C:\Users\Daniele\Documents\RAD Studio\Projects\WebModuleUnit1.dfm</Transaction>
     <Transaction>2014/02/19 23.00.00.000.139,=C:\Users\Daniele\Documents\RAD Studio\Projects\WebModuleUnit1.pas</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.688,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver.dproj=C:\Users\Daniele\Documents\RAD Studio\Projects\Project5.dproj</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.908,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\WebModuleUnit1.pas=C:\Users\Daniele\Documents\RAD Studio\Projects\WebModuleUnit1.pas</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.069,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\MyControllerU.pas=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.079,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\MyObjectsU.pas=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.610,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver1.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver.dproj</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.026,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver2.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver1.dproj</Transaction>
-    <Transaction>2014/02/19 23.00.00.000.724,=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.908,C:\Users\Daniele\Documents\RAD Studio\Projects\WebModuleUnit1.dfm=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\WebModuleUnit1.dfm</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.908,C:\Users\Daniele\Documents\RAD Studio\Projects\WebModuleUnit1.pas=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\WebModuleUnit1.pas</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.688,C:\Users\Daniele\Documents\RAD Studio\Projects\Project5.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver.dproj</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.610,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver1.dproj</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.069,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\MyControllerU.pas</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.026,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver1.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver2.dproj</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.079,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\MyObjectsU.pas</Transaction>
     <Transaction>2014/02/19 23.00.00.000.557,=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas</Transaction>
-    <Transaction>2014/02/20 00.00.00.000.486,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver2.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver3.dproj</Transaction>
-    <Transaction>2014/03/03 14.35.05.796,C:\DEV\DMVCFramework\samples\ssl\SSLSample.dproj=C:\DEV\DMVCFramework\samples\ssl\ssltestserver3.dproj</Transaction>
+    <Transaction>2014/02/19 23.00.00.000.724,=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\Unit1.pas</Transaction>
+    <Transaction>2014/02/20 00.00.00.000.486,C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver3.dproj=C:\Corsi\Mobile Development with Delphi XE5\opensslstuff\test\ssltestserver2.dproj</Transaction>
+    <Transaction>2014/03/03 14.00.00.000.796,C:\DEV\DMVCFramework\samples\ssl\ssltestserver3.dproj=C:\DEV\DMVCFramework\samples\ssl\SSLSample.dproj</Transaction>
   </Transactions>
 </BorlandProject>
