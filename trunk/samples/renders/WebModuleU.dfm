@@ -6,13 +6,14 @@ object WebModule1: TWebModule1
   Width = 435
   object FDConnection1: TFDConnection
     Params.Strings = (
-      
-        'Database=C:\Users\Public\Documents\RAD Studio\12.0\Samples\Data\' +
-        'EMPLOYEE.GDB'
+      'Database=employee'
       'User_Name=sysdba'
       'Password=masterkey'
-      'DriverID=IB')
+      'Protocol=TCPIP'
+      'Server=localhost'
+      'DriverID=FB')
     ConnectedStoredUsage = [auDesignTime]
+    Connected = True
     LoginPrompt = False
     Left = 160
     Top = 40
@@ -24,8 +25,8 @@ object WebModule1: TWebModule1
     Left = 160
     Top = 112
   end
-  object FDPhysIBDriverLink1: TFDPhysIBDriverLink
+  object FDPhysFBDriverLink1: TFDPhysFBDriverLink
     Left = 160
-    Top = 176
+    Top = 200
   end
 end

@@ -93,6 +93,11 @@
         </DCCReference>
         <DCCReference Include="WineCellarAppControllerU.pas"/>
         <DCCReference Include="WinesBO.pas"/>
+        <None Include="ModelSupport_WineCellarServerWITHDORM\default.txaPackage"/>
+        <None Include="ModelSupport_WineCellarServerWITHDORM\default.txvpck"/>
+        <None Include="ModelSupport_WineCellarServerWITHDORM\WinesBO\default.txvpck"/>
+        <None Include="ModelSupport_WineCellarServerWITHDORM\WineCellarServerWITHDORM\default.txvpck"/>
+        <None Include="ModelSupport_WineCellarServerWITHDORM\WinesBO\default.txaPackage"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -160,6 +165,7 @@
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>
+            <ModelSupport>True</ModelSupport>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>

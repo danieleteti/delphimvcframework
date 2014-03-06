@@ -87,7 +87,7 @@ procedure TWineCellarApp.SaveWine(ctx: TWebContext);
 var
   Wine: TWine;
 begin
-  Wine := Mapper.JSONObjectToObject<TWine>(ctx.Request.BodyAsJSONObject);
+  Wine := ctx.Request.BodyAs<TWine>;
   dormSession.Persist(Wine);
   dormSession.Commit();
 end;
@@ -96,7 +96,7 @@ procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
 var
   Wine: TWine;
 begin
-  Wine := Mapper.JSONObjectToObject<TWine>(ctx.Request.BodyAsJSONObject);
+  Wine := ctx.Request.BodyAs<TWine>;
   Wine.ObjStatus := osDirty;
   dormSession.Persist(Wine);
   dormSession.Commit();

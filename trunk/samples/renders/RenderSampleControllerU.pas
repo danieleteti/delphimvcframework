@@ -28,7 +28,7 @@ type
     procedure GetCustomerByID_AsTObject(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/customers.json')]
+    [MVCPath('/files/customers.json')]
     [MVCProduces('application/json')]
     procedure GetPersonJSON(CTX: TWebContext);
 
