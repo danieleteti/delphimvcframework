@@ -424,7 +424,7 @@ uses
 
 {$ENDIF},
   LuaBind,
-  MVCFramework.BUSController;
+  MVCFramework.BUSController, Web.WebReq;
 
 type
   TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest
@@ -475,6 +475,8 @@ end;
 constructor TMVCEngine.Create(WebModule: TWebModule);
 begin
   inherited Create(WebModule);
+  WebRequestHandler.CacheConnections := true;
+  WebRequestHandler.MaxConnections := 1024;
   FMimeTypes := TDictionary<string, string>.Create;
   FMVCConfig := TMVCConfig.Create;
   FWebModule := WebModule;

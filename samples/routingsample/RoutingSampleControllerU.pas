@@ -10,6 +10,9 @@ type
   [MVCPath('/')]
   TRoutingSampleController = class(TMVCController)
   public
+    [MVCPath('/')]
+    procedure Index(CTX: TWebContext);
+
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/search/($searchtext)/($page)')]
     [MVCProduces('text/plain', 'UTF-8')]
@@ -46,6 +49,11 @@ begin
   P.DOB := EncodeDate(1975, 5, 2);
   P.Married := True;
   Render(P);
+end;
+
+procedure TRoutingSampleController.Index(CTX: TWebContext);
+begin
+  Render('This is the root path');
 end;
 
 procedure TRoutingSampleController.SearchCustomers(CTX: TWebContext);
