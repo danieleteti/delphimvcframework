@@ -284,7 +284,7 @@ type
       AInstanceOwner: boolean = true); overload;
     procedure Render(AObject: TObject; AInstanceOwner: boolean = true);
       overload; virtual;
-    procedure Render(ADataSet: TDataSet; AInstanceOwner: boolean = false);
+    procedure Render(ADataSet: TDataSet; AInstanceOwner: boolean = false; AOnlySingleRecord: boolean = false);
       overload; virtual;
     procedure Render(AJSONValue: TJSONValue; AInstanceOwner: boolean = true);
       overload; virtual;
@@ -2044,17 +2044,27 @@ begin
   end;
 end;
 
-procedure TMVCController.Render(ADataSet: TDataSet; AInstanceOwner: boolean);
+procedure TMVCController.Render(ADataSet: TDataSet; AInstanceOwner: boolean; AOnlySingleRecord: boolean);
 var
   arr: TJSONArray;
+  jobj: TJSONObject;
   S: String;
 begin
   if ContentType = TMVCMimeType.APPLICATION_JSON then
   begin
-    ADataSet.First;
-    arr := TJSONArray.Create;
-    Mapper.DataSetToJSONArray(ADataSet, arr, AInstanceOwner);
-    Render(arr);
+    if not AOnlySingleRecord then
+    begin
+      ADataSet.First;
+      arr := TJSONArray.Create;
+      Mapper.DataSetToJSONArray(ADataSet, arr, AInstanceOwner);
+      Render(arr);
+    end
+    else
+    begin
+      jobj := TJSONObject.Create;
+      Mapper.DataSetToJSONObject(ADataSet, jobj, AInstanceOwner);
+      Render(jobj);
+    end;
   end
   else
     raise Exception.Create('ContentType not supported for this render [' + ContentType + ']');

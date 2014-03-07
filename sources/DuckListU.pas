@@ -55,7 +55,7 @@ type
 
   TdormListEnumerator = class(TEnumerator<TObject>)
   protected
-    FPosition     : Int64;
+    FPosition: Int64;
     FDuckTypedList: TDuckTypedList;
 
   protected
@@ -84,12 +84,12 @@ type
 
   TDuckTypedList = class(TInterfacedObject, IWrappedList)
   protected
-    FCTX           : TRTTIContext;
-    FObjectAsDuck  : TObject;
-    FAddMethod     : TRttiMethod;
-    FClearMethod   : TRttiMethod;
-    FCountProperty : TRttiProperty;
-    FGetItemMethod : TRttiMethod;
+    FCTX: TRTTIContext;
+    FObjectAsDuck: TObject;
+    FAddMethod: TRttiMethod;
+    FClearMethod: TRttiMethod;
+    FCountProperty: TRttiProperty;
+    FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
     function Count: Integer;
     function GetItem(const index: Integer): TObject;
@@ -125,12 +125,12 @@ constructor TdormListEnumerator.Create(ADuckTypedList: TDuckTypedList);
 begin
   inherited Create;
   FDuckTypedList := ADuckTypedList;
-  FPosition := - 1;
+  FPosition := -1;
 end;
 
 function TdormListEnumerator.DoGetCurrent: TObject;
 begin
-  if FPosition > - 1 then
+  if FPosition > -1 then
     Result := FDuckTypedList.GetItem(FPosition)
   else
     raise Exception.Create('Enumerator error: Call MoveNext first');
@@ -169,15 +169,13 @@ begin
     (FCTX.GetType(AObjectAsDuck.ClassInfo)
     .GetMethod('Clear') <> nil)
 
-  {$IF CompilerVersion >= 23}
-
+{$IF CompilerVersion >= 23}
     and
     (FCTX.GetType(AObjectAsDuck.ClassInfo)
     .GetIndexedProperty('Items')
     .ReadMethod <> nil)
 
-  {$IFEND}
-
+{$IFEND}
     and
     (
     (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetItem')
@@ -219,13 +217,11 @@ begin
       ('Cannot find method "Clear" in the duck object');
   FGetItemMethod := nil;
 
-  {$IF CompilerVersion >= 23}
-
+{$IF CompilerVersion >= 23}
   FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
     .GetIndexedProperty('Items').ReadMethod;
 
-  {$IFEND}
-
+{$IFEND}
   if not Assigned(FGetItemMethod) then
     FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
       .GetMethod('GetItem');
@@ -281,7 +277,7 @@ procedure TDuckTypedList.QuickSort(List: IWrappedList; L, R: Integer;
   SCompare: TFunc<TObject, TObject, Integer>);
 var
   I, J: Integer;
-  p, T: TObject;
+  p: TObject;
 begin
   { 07/08/2013: This method is based on QuickSort procedure from
     Classes.pas, (c) Borland Software Corp.
@@ -360,7 +356,7 @@ begin
     QuickSort(self,
       function(Left, Right: TObject): Integer
       begin
-        Result := - 1 * CompareValue(
+        Result := -1 * CompareValue(
           TRTTIUtils.GetProperty(Left, PropertyName),
           TRTTIUtils.GetProperty(Right, PropertyName));
       end);
