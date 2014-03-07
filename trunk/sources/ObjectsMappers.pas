@@ -1,5 +1,5 @@
 { *******************************************************************************
-  Copyright 2010-2014 Daniele Teti
+  Copyright 2010-2013 Daniele Teti
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -127,6 +127,14 @@ type
       DefaultValue: Int64 = 0): Int64;
     class function GetBooleanDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: boolean = false): boolean;
+  end;
+
+  TDataSetHelper = class helper for TDataSet
+  public
+    function AsJSONArray: TJSONArray;
+    function AsJSONObject: TJSONObject;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
+    function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
   end;
 
   MapperTransientAttribute = class(TCustomAttribute)
@@ -1830,6 +1838,64 @@ end;
 procedure MapperItemsClassType.SetValue(const Value: TClass);
 begin
   FValue := Value;
+end;
+
+{ TDataSetHelper }
+
+function TDataSetHelper.AsJSONArray: TJSONArray;
+var
+  JArr: TJSONArray;
+begin
+  JArr := TJSONArray.Create;
+  try
+    Mapper.DataSetToJSONArray(Self, JArr, false);
+    Result := JArr;
+  except
+    FreeAndNil(JArr);
+    raise;
+  end;
+end;
+
+function TDataSetHelper.AsJSONObject: TJSONObject;
+var
+  JObj: TJSONObject;
+begin
+  JObj := TJSONObject.Create;
+  try
+    Mapper.DataSetToJSONObject(Self, JObj, false);
+    Result := JObj;
+  except
+    FreeAndNil(JObj);
+    raise;
+  end;
+end;
+
+function TDataSetHelper.AsObject<T>(CloseAfterScroll: boolean): T;
+var
+  Obj: T;
+begin
+  Obj := T.Create;
+  try
+    Mapper.DataSetToObject(Self, Obj);
+    Result := Obj;
+  except
+    FreeAndNil(Obj);
+    raise;
+  end;
+end;
+
+function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean): TObjectList<T>;
+var
+  Objs: TObjectList<T>;
+begin
+  Objs := TObjectList<T>.Create(True);
+  try
+    Mapper.DataSetToObjectList<T>(Self, Objs, CloseAfterScroll);
+    Result := Objs;
+  except
+    FreeAndNil(Objs);
+    raise;
+  end;
 end;
 
 end.
