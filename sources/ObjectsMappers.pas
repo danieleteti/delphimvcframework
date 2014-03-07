@@ -1,5 +1,5 @@
 { *******************************************************************************
-  Copyright 2010-2013 Daniele Teti
+  Copyright 2010-2014 Daniele Teti
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -26,9 +26,9 @@ uses
   DB,
   Generics.Collections,
   DBXJSON,
-  SqlExpr
+  SqlExpr,
+  DuckListU
 {$IF Defined(VER260)}
-    , DuckListU
     , FireDAC.Comp.Client
     , FireDAC.Stan.Param
 {$IFEND};
