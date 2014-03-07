@@ -346,20 +346,20 @@ type
   protected
     FConfiguredSessionTimeout: Int64;
     FControllers: TList<TMVCControllerClass>;
-    procedure ConfigDefaultValues;
+    procedure ConfigDefaultValues; virtual;
     procedure FixUpWebModule;
     procedure OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
-      Response: TWebResponse; var Handled: boolean);
+      Response: TWebResponse; var Handled: boolean); virtual;
     function ExecuteAction(Sender: TObject; Request: TWebRequest;
-      Response: TWebResponse): boolean;
-    procedure LoadSystemControllers;
+      Response: TWebResponse): boolean; virtual;
+    procedure LoadSystemControllers; virtual;
     procedure ResponseErrorPage(E: Exception; Request: TWebRequest;
       Response: TWebResponse); virtual;
     function IsBuiltInMethod(const AWebRequest: TWebRequest;
       const AWebResponse: TWebResponse): boolean;
     procedure HandleBuiltInMethods(const AWebRequest: TWebRequest;
       const AWebResponse: TWebResponse);
-    procedure ExecuteFile(const AFileName: string; AContext: TWebContext);
+    procedure ExecuteFile(const AFileName: string; AContext: TWebContext); virtual;
 
   public
     class function GetCurrentSession(Config: TMVCConfig;
@@ -576,7 +576,7 @@ begin
 
                     if SelectedController.SessionMustBeClose then
                     begin
-                      // do something to close session
+                      // SessionList.Remove(SelectedController.Session.SessionID);
                     end
                     else
                     begin
