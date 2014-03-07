@@ -68,7 +68,6 @@ type
       : T; static;
     class procedure ObjectToDataSet(Obj: TObject; Field: TField; var Value: Variant); static;
     class procedure DataSetToObject(ADataSet: TDataSet; AObject: TObject);
-    class function ObjectFieldsToJSONObject(AObject: TObject): TJSONObject;
     class function ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string)
       : TJSONObject; overload;
     class function ObjectToJSONObjectFields(AObject: TObject; AIgnoredProperties: array of string)
@@ -143,7 +142,7 @@ type
     FValue: TClass;
     procedure SetValue(const Value: TClass);
 
-  published
+  public
     constructor Create(Value: TClass);
     property Value: TClass read FValue write SetValue;
   end;
@@ -161,8 +160,6 @@ type
 
   public
     constructor Create(Value: string);
-
-  published
     property Value: string read FValue write SetValue;
   end;
 
@@ -348,16 +345,18 @@ class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSO
 var
   I: Integer;
   key: string;
-  dt: TDateTime;
-  tt: TTime;
-  Time: TTimeStamp;
   ts: TSQLTimeStamp;
 begin
   for I := 0 to ADataSet.FieldCount - 1 do
   begin
     key := LowerCase(ADataSet.Fields[I].FieldName);
+    if ADataSet.Fields[I].IsNull then
+    begin
+      AJSONObject.AddPair(key, TJSONNull.Create);
+      Continue;
+    end;
     case ADataSet.Fields[I].DataType of
-      TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
+      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint, TFieldType.ftShortint:
         AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
       TFieldType.ftLargeint:
         begin
@@ -709,11 +708,6 @@ begin
 end;
 
 class
-  function Mapper.ObjectFieldsToJSONObject(AObject: TObject): TJSONObject;
-begin
-end;
-
-class
   function Mapper.ObjectToJSONObject(AObject: TObject): TJSONObject;
 begin
   Result := ObjectToJSONObject(AObject, []);
@@ -837,7 +831,6 @@ var
   I: Integer;
   key: string;
   dt: TDateTime;
-  tt: TTime;
   Time: TTimeStamp;
   ts: TSQLTimeStamp;
 begin
@@ -913,9 +906,6 @@ var
   mf: MapperColumnAttribute;
   field_name: string;
   Value: TValue;
-  Time: TTimeStamp;
-  dt: TDateTime;
-  T: TTime;
   ts: TTimeStamp;
   sqlts: TSQLTimeStamp;
 begin
@@ -1271,13 +1261,13 @@ var
   v: TValue;
   o: TObject;
   list: IWrappedList;
-  oo: TObject;
   I: Integer;
   cref: TClass;
   attr: MapperItemsClassType;
   arr: TJSONArray;
   n: TJSONNumber;
 begin
+  jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
   for _field in _fields do
@@ -1386,7 +1376,6 @@ begin
     Result := AObject;
   except
     AObject.Free;
-    AObject := nil;
     Result := nil;
   end;
 end;
@@ -1406,7 +1395,6 @@ begin
       Result := AObject;
     except
       AObject.Free;
-      AObject := nil;
       Result := nil;
     end;
   end
@@ -1597,7 +1585,6 @@ var
   _rttiType: TRttiType;
   obj_fields: TArray<TRttiProperty>;
   obj_field: TRttiProperty;
-  obj_field_attrs: TArray<TCustomAttribute>;
   obj_field_attr: MapperColumnAttribute;
   Map: TObjectDictionary<string, TRttiProperty>;
   f: TRttiProperty;
@@ -1656,7 +1643,6 @@ var
   _rttiType: TRttiType;
   obj_fields: TArray<TRttiProperty>;
   obj_field: TRttiProperty;
-  obj_field_attrs: TArray<TCustomAttribute>;
   obj_field_attr: MapperColumnAttribute;
   Map: TObjectDictionary<string, TRttiProperty>;
   f: TRttiProperty;

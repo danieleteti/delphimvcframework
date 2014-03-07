@@ -400,11 +400,7 @@ begin
 end;
 
 procedure TCacheFileStream.Execute;
-var
-  t: DWORD;
 begin
-  t := GetTickCount;
-
   // while not Terminated do
   // begin
   // if (CalcTickDiff(t, GetTickCount) >= FFlushInterval) then
