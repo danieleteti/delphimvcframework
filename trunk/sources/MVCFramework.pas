@@ -389,10 +389,28 @@ type
       Config: TMVCConfig): boolean;
   end;
 
+type
+  TMVCConfigKey = class
+  public
+    const
+    SessionTimeout = 'sessiontimeout';
+    DocumentRoot = 'document_root';
+    ViewPath = 'view_path';
+    DefaultContentType = 'default_content_type';
+    DefaultViewFileExtension = 'default_view_file_extension';
+    ISAPIPath = 'isapi_path';
+    StompServer = 'stompserver';
+    StompServerPort = 'stompserverport';
+    StompUsername = 'stompusername';
+    StompPassword = 'stomppassword';
+    Messaging = 'messaging';
+  end;
+
 function IsShuttingDown: boolean;
 procedure EnterInShutdownState;
 
-procedure InternalRender(const Content: string; ContentType, ContentEncoding: String; Context: TWebContext); overload;
+procedure InternalRender(const Content: string; ContentType, ContentEncoding: String;
+  Context: TWebContext); overload;
 procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
   AInstanceOwner: boolean = true); overload;
 
@@ -449,17 +467,31 @@ end;
 
 procedure TMVCEngine.ConfigDefaultValues;
 begin
-  Config['sessiontimeout'] := '30'; // 30 minutes
-  Config['document_root'] := '..\..\..\www';
-  Config['view_path'] := 'eLua';
-  Config['default_content_type'] := TMVCMimeType.APPLICATION_JSON;
-  Config['default_view_file_extension'] := 'elua';
+  Config[TMVCConfigKey.SessionTimeout] := '30'; // 30 minutes
+  Config[TMVCConfigKey.DocumentRoot] := '..\..\..\www';
+  Config[TMVCConfigKey.ViewPath] := 'eLua';
+  Config[TMVCConfigKey.DefaultContentType] := TMVCMimeType.APPLICATION_JSON;
+  Config[TMVCConfigKey.DefaultViewFileExtension] := 'elua';
+  Config[TMVCConfigKey.ISAPIPath] := '';
 
-  Config['stompserver'] := 'localhost';
-  Config['stompserverport'] := '61613';
-  Config['stompusername'] := 'guest';
-  Config['stomppassword'] := 'guest';
-  Config['messaging'] := 'true';
+  Config[TMVCConfigKey.StompServer] := 'localhost';
+  Config[TMVCConfigKey.StompServerPort] := '61613';
+  Config[TMVCConfigKey.StompUsername] := 'guest';
+  Config[TMVCConfigKey.StompPassword] := 'guest';
+  Config[TMVCConfigKey.Messaging] := 'true';
+
+  // Config['sessiontimeout'] := '30'; // 30 minutes
+  // Config['document_root'] := '..\..\..\www';
+  // Config['view_path'] := 'eLua';
+  // Config['default_content_type'] := TMVCMimeType.APPLICATION_JSON;
+  // Config['default_view_file_extension'] := 'elua';
+  // Config['isapi_path'] := '';
+  //
+  // Config['stompserver'] := 'localhost';
+  // Config['stompserverport'] := '61613';
+  // Config['stompusername'] := 'guest';
+  // Config['stomppassword'] := 'guest';
+  // Config['messaging'] := 'true';
   /// ///////
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
@@ -518,7 +550,7 @@ begin
       try
         // Static file handling
         if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
-          FMVCConfig['document_root']), Request.PathInfo, StaticFileName) then
+          FMVCConfig[TMVCConfigKey.DocumentRoot]), Request.PathInfo, StaticFileName) then
         begin
           if TMVCStaticContents.IsScriptableFile(StaticFileName, FMVCConfig)
           then
@@ -552,6 +584,9 @@ begin
                 Context.SetParams(ParamsTable);
                 SelectedController.SetContext(Context);
                 SelectedController.SetMVCEngine(Self);
+                Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Request.RawPathInfo + ' -> ' +
+                  Router.MVCControllerClass.QualifiedClassName);
+
                 // exception?
                 try
                   SelectedController.MVCControllerAfterCreate;
@@ -668,7 +703,8 @@ begin
   raise Exception.Create('Not implemented');
 end;
 
-class function TMVCEngine.GetCurrentSession(Config: TMVCConfig;
+class
+  function TMVCEngine.GetCurrentSession(Config: TMVCConfig;
   const AWebRequest: TWebRequest; const AWebResponse: TWebResponse;
   const BindToThisSessionID: string; ARaiseExceptionIfExpired: boolean)
   : TWebSession;
@@ -1270,9 +1306,9 @@ end;
 
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
-  Result := StompUtils.NewStomp(Config['stompserver'],
-    StrToInt(Config['stompserverport']), GetClientID, Config['stompusername'],
-    Config['stomppassword']);
+  Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
+    StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID, Config[TMVCConfigKey.StompUsername],
+    Config[TMVCConfigKey.StompPassword]);
 end;
 
 function TMVCController.GetWebSession: TWebSession;
@@ -1338,7 +1374,7 @@ procedure TMVCController.OnBeforeAction(Context: TWebContext;
 begin
   Handled := false;
   if ContentType.IsEmpty then
-    ContentType := GetMVCConfig['default_content_type'];
+    ContentType := GetMVCConfig[TMVCConfigKey.DefaultContentType];
 end;
 
 procedure TMVCController.PushDataSetToView(const AModelName: string;
@@ -1486,7 +1522,7 @@ begin
     TMonitor.Enter(SessionList);
     try
       Sess := TMVCSessionFactory.GetInstance.CreateNewByType('memory',
-        SessionID, StrToInt64(Config['sessiontimeout']));
+        SessionID, StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
       SessionList.Add(SessionID, Sess);
       FWebSession := Sess;
       Sess.MarkAsUsed;
@@ -1720,7 +1756,8 @@ begin
 end;
 
 { TMVCStaticContents }
-class procedure TMVCStaticContents.SendFile(AFileName, AMimeType: string;
+class
+  procedure TMVCStaticContents.SendFile(AFileName, AMimeType: string;
   Context: TWebContext);
 var
   LFileDate: TDateTime;
@@ -1753,14 +1790,16 @@ begin
   end;
 end;
 
-class function TMVCStaticContents.IsScriptableFile(StaticFileName: string;
+class
+  function TMVCStaticContents.IsScriptableFile(StaticFileName: string;
   Config: TMVCConfig): boolean;
 begin
   Result := TPath.GetExtension(StaticFileName).ToLower = '.' +
-    Config['default_view_file_extension'].ToLower;
+    Config[TMVCConfigKey.DefaultViewFileExtension].ToLower;
 end;
 
-class function TMVCStaticContents.IsStaticFile(AViewPath, AWebRequestPath
+class
+  function TMVCStaticContents.IsStaticFile(AViewPath, AWebRequestPath
   : string; out ARealFileName: string): boolean;
 var
   FileName: string;
@@ -1793,7 +1832,8 @@ begin
   FMVCEngine := Value;
 end;
 
-class function TMVCBase.GetApplicationFileName: string;
+class
+  function TMVCBase.GetApplicationFileName: string;
 var
   fname: PChar;
   Size: Integer;
@@ -1809,7 +1849,8 @@ begin
   end;
 end;
 
-class function TMVCBase.GetApplicationFileNamePath: string;
+class
+  function TMVCBase.GetApplicationFileNamePath: string;
 begin
   Result := IncludeTrailingPathDelimiter
     (ExtractFilePath(GetApplicationFileName));
