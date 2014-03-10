@@ -32,10 +32,11 @@ begin
     .AddController(TTestServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy);
-  MVCEngine.Config['stompserver'] := 'localhost';
-  MVCEngine.Config['stompserverport'] := '61613';
-  MVCEngine.Config['stompusername'] := 'guest';
-  MVCEngine.Config['stomppassword'] := 'guest';
+  MVCEngine.Config[TMVCConfigKey.StompServer] := 'localhost';
+  MVCEngine.Config[TMVCConfigKey.StompServerPort] := '61613';
+  MVCEngine.Config[TMVCConfigKey.StompUserName] := 'guest';
+  MVCEngine.Config[TMVCConfigKey.StompPassword] := 'guest';
+  MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;
 
 end.

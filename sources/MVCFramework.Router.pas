@@ -121,7 +121,7 @@ begin
   { ISAPI CHANGE THE REQUEST PATH INFO START }
   if IsLibrary then
   begin
-    AWebRequestPathInfo := String(AWebRequestPathInfo).Remove(0, FMVCConfig.Value['ISAPI_PATH'].Length);
+    AWebRequestPathInfo := String(AWebRequestPathInfo).Remove(0, FMVCConfig.Value['isapi_path'].Length);
     if Length(AWebRequestPathInfo) = 0 then
       AWebRequestPathInfo := '/';
   end;

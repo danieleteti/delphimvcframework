@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{C8F2ABF8-B8A8-4590-B169-A43EAFA5A161}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="StandAlone\StandAloneServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ISAPI\isapiapp.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="StandAloneServer">
+        <MSBuild Projects="StandAlone\StandAloneServer.dproj"/>
+    </Target>
+    <Target Name="StandAloneServer:Clean">
+        <MSBuild Projects="StandAlone\StandAloneServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="StandAloneServer:Make">
+        <MSBuild Projects="StandAlone\StandAloneServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="isapiapp">
+        <MSBuild Projects="ISAPI\isapiapp.dproj"/>
+    </Target>
+    <Target Name="isapiapp:Clean">
+        <MSBuild Projects="ISAPI\isapiapp.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="isapiapp:Make">
+        <MSBuild Projects="ISAPI\isapiapp.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="StandAloneServer;isapiapp"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="StandAloneServer:Clean;isapiapp:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="StandAloneServer:Make;isapiapp:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
