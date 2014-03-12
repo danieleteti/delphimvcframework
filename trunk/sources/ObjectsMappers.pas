@@ -1670,13 +1670,13 @@ begin
         end
         else
         begin
-          Map.Add(LowerCase(obj_field.Name), obj_field);
+          Map.Add(obj_field.Name, obj_field);
         end
       end;
     end;
     for I := 0 to AFDParams.Count - 1 do
     begin
-      pname := LowerCase(AFDParams[I].Name);
+      pname := AFDParams[I].Name;
       if Map.TryGetValue(pname, f) then
       begin
         fv := f.GetValue(AObject);
