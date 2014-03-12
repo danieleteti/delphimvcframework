@@ -93,6 +93,8 @@ type
       AReaderInstanceOwner: boolean = True);
     class procedure DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
       ADataSetInstanceOwner: boolean = True);
+    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
+      AJSONArrayInstanceOwner: boolean = True);
     // class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
     // ADataSetInstanceOwner: boolean = True);
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
@@ -135,6 +137,8 @@ type
   public
     function AsJSONArray: TJSONArray;
     function AsJSONObject: TJSONObject;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject);
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray);
     function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
   end;
@@ -1269,6 +1273,20 @@ begin
       Exit(True);
 end;
 
+class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean);
+var
+  I: Integer;
+begin
+  for I := 0 to AJSONArray.Size - 1 do
+  begin
+    ADataSet.Insert;
+    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, false);
+    ADataSet.Post;
+  end;
+  if AJSONArrayInstanceOwner then
+    AJSONArray.Free;
+end;
+
 class
   function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
   AOwnsChildObjects: boolean): TObjectList<T>;
@@ -2018,6 +2036,16 @@ begin
     FreeAndNil(Objs);
     raise;
   end;
+end;
+
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray);
+begin
+  Mapper.JSONArrayToDataSet(AJSONArray, Self, false);
+end;
+
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject);
+begin
+  Mapper.JSONObjectToDataSet(AJSONObject, Self, false);
 end;
 
 end.

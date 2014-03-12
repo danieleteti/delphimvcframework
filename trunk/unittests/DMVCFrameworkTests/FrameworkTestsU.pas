@@ -108,7 +108,8 @@ begin
     ds.First;
     JArr := TJSONArray.Create;
     try
-      Mapper.DataSetToJSONArray(ds, JArr, false);
+      JArr := ds.AsJSONArray;
+      // Mapper.DataSetToJSONArray(ds, JArr, false);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
       ds.First;
@@ -116,7 +117,8 @@ begin
       begin
         ds2.Insert;
         JObj := JArr.Get(ds.RecNo - 1) as TJSONObject;
-        Mapper.JSONObjectToDataSet(JObj, ds2, false);
+        ds2.LoadFromJSONObject(JObj);
+        // Mapper.JSONObjectToDataSet(JObj, ds2, false);
         ds2.Post;
         SameFishesDataSet(ds, ds2);
         ds.Next;
@@ -143,11 +145,13 @@ begin
     ds.LoadFromFile('..\..\fishes.xml');
     JObj := TJSONObject.Create;
     try
-      Mapper.DataSetToJSONObject(ds, JObj, false);
+      JObj := ds.AsJSONObject;
+      // Mapper.DataSetToJSONObject(ds, JObj, false);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
       ds2.Insert;
-      Mapper.JSONObjectToDataSet(JObj, ds2, false);
+      ds2.LoadFromJSONObject(JObj);
+      // Mapper.JSONObjectToDataSet(JObj, ds2, false);
       ds2.Post;
       SameFishesDataSet(ds, ds2);
     finally
