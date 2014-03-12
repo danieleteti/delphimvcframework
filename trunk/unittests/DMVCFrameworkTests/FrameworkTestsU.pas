@@ -6,7 +6,7 @@ uses
   TestFramework,
   MVCFramework.Router,
   System.Generics.Collections,
-  MVCFramework;
+  MVCFramework, Data.DB;
 
 type
   TTestRouting = class(TTestCase)
@@ -17,7 +17,8 @@ type
   public
     procedure SetUp; override;
     procedure TearDown; override;
-
+  protected
+    procedure SameFishesDataSet(ds, ds2: TDataSet);
   published
     procedure TestWithNoParameters;
     procedure TestWithNoPath;
@@ -29,6 +30,10 @@ type
 
     procedure TestObjectToJSONObject;
     procedure TestObjectListToJSONArray;
+    // objects mappers
+    procedure TestJSONObjectToObjectAndBack;
+    procedure TestDataSetToJSONObject;
+    procedure TestDataSetToJSONArray;
   end;
 
 implementation
@@ -36,8 +41,20 @@ implementation
 { TTestRouting }
 
 uses MVCFramework.Commons,
-  TestControllersU,
+  TestControllersU, DBClient,
   Web.HTTPApp, ObjectsMappers, BOs, Data.DBXJSON;
+
+procedure TTestRouting.SameFishesDataSet(ds, ds2: TDataSet);
+begin
+  CheckEquals(ds.FieldByName('Species No').AsInteger, ds2.FieldByName('Species No').AsInteger);
+  CheckEquals(ds.FieldByName('Category').AsString, ds2.FieldByName('Category').AsString);
+  CheckEquals(ds.FieldByName('Common_Name').AsString, ds2.FieldByName('Common_Name').AsString);
+  CheckEquals(ds.FieldByName('Species Name').AsString, ds2.FieldByName('Species Name').AsString);
+  CheckEquals(ds.FieldByName('Length (cm)').AsString, ds2.FieldByName('Length (cm)').AsString);
+  CheckEquals(ds.FieldByName('Length_In').AsInteger, ds2.FieldByName('Length_In').AsInteger);
+  CheckEquals(ds.FieldByName('Notes').AsString, ds2.FieldByName('Notes').AsString);
+  CheckEquals(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic').AsString);
+end;
 
 procedure TTestRouting.SetUp;
 begin
@@ -74,6 +91,96 @@ end;
 procedure TTestRouting.TestComplexRoutings;
 begin
 
+end;
+
+procedure TTestRouting.TestDataSetToJSONArray;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+  S: string;
+  ds2: TClientDataSet;
+  JArr: TJSONArray;
+begin
+  ds := TClientDataSet.Create(nil);
+  ds2 := TClientDataSet.Create(nil);
+  try
+    ds.LoadFromFile('..\..\fishes.xml');
+    ds.First;
+    JArr := TJSONArray.Create;
+    try
+      Mapper.DataSetToJSONArray(ds, JArr, false);
+      ds2.LoadFromFile('..\..\fishes.xml');
+      ds2.EmptyDataSet;
+      ds.First;
+      while not ds.Eof do
+      begin
+        ds2.Insert;
+        JObj := JArr.Get(ds.RecNo - 1) as TJSONObject;
+        Mapper.JSONObjectToDataSet(JObj, ds2, false);
+        ds2.Post;
+        SameFishesDataSet(ds, ds2);
+        ds.Next;
+      end;
+    finally
+      JArr.Free;
+    end;
+  finally
+    ds.Free;
+    ds2.Free;
+  end;
+end;
+
+procedure TTestRouting.TestDataSetToJSONObject;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+  S: string;
+  ds2: TClientDataSet;
+begin
+  ds := TClientDataSet.Create(nil);
+  ds2 := TClientDataSet.Create(nil);
+  try
+    ds.LoadFromFile('..\..\fishes.xml');
+    JObj := TJSONObject.Create;
+    try
+      Mapper.DataSetToJSONObject(ds, JObj, false);
+      ds2.LoadFromFile('..\..\fishes.xml');
+      ds2.EmptyDataSet;
+      ds2.Insert;
+      Mapper.JSONObjectToDataSet(JObj, ds2, false);
+      ds2.Post;
+      SameFishesDataSet(ds, ds2);
+    finally
+      JObj.Free;
+    end;
+  finally
+    ds.Free;
+    ds2.Free;
+  end;
+end;
+
+procedure TTestRouting.TestJSONObjectToObjectAndBack;
+var
+  Obj: TMyObject;
+  JObj: TJSONObject;
+  Obj2: TMyObject;
+begin
+  Obj := GetMyObject;
+  try
+    JObj := Mapper.ObjectToJSONObject(Obj);
+    try
+      Obj2 := Mapper.JSONObjectToObject<TMyObject>(JObj);
+      try
+        CheckTrue(Obj.Equals(Obj2));
+      finally
+        Obj2.Free;
+      end;
+    finally
+      JObj.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
 end;
 
 procedure TTestRouting.TestObjectListToJSONArray;

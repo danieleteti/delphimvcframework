@@ -83,6 +83,8 @@ type
       AReaderInstanceOwner: boolean = True);
     class procedure DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject;
       ADataSetInstanceOwner: boolean = True);
+    class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
+      ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean = True);
     class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet;
       AObjectList: TObjectList<T>; ACloseDataSetAfterScroll: boolean = True);
     class function DataSetToJSONArrayOf<T: class, constructor>(ADataSet: TDataSet): TJSONArray;
@@ -254,6 +256,7 @@ uses
   DateUtils,
   Classes,
   RTTIUtilsU,
+  Soap.EncdDecd,
   Xml.adomxmldom;
 { Mapper }
 
@@ -354,6 +357,8 @@ var
   I: Integer;
   key: string;
   ts: TSQLTimeStamp;
+  MS: TMemoryStream;
+  SS: TStringStream;
 begin
   for I := 0 to ADataSet.FieldCount - 1 do
   begin
@@ -420,9 +425,32 @@ begin
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
         end;
+      TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
+        begin
+          if not ADataSet.Fields[I].IsNull then
+          begin
+            MS := TMemoryStream.Create;
+            try
+              TBlobField(ADataSet.Fields[I]).SaveToStream(MS);
+              MS.Position := 0;
+              SS := TStringStream.Create('', TEncoding.ASCII);
+              try
+                EncodeStream(MS, SS);
+                SS.Position := 0;
+                AJSONObject.AddPair(key, SS.DataString);
+              finally
+                SS.Free;
+              end;
+            finally
+              MS.Free;
+            end;
+          end
+          else
+            AJSONObject.AddPair(key, TJSONNull.Create);
+        end;
 
-    else
-      raise Exception.Create('Cannot find type for field ' + key);
+      // else
+      // raise Exception.Create('Cannot find type for field ' + key);
     end;
   end;
   if ADataSetInstanceOwner then
@@ -1386,6 +1414,100 @@ begin
     AObject.Free;
     Result := nil;
   end;
+end;
+
+class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
+  AJSONObjectInstanceOwner: boolean);
+var
+  I: Integer;
+  key: string;
+  ts: TSQLTimeStamp;
+  v: TJSONValue;
+  jp: TJSONPair;
+  fs: TFormatSettings;
+  MS: TMemoryStream;
+  SS: TStringStream;
+begin
+  for I := 0 to ADataSet.FieldCount - 1 do
+  begin
+    key := LowerCase(ADataSet.Fields[I].FieldName);
+    v := nil;
+    jp := AJSONObject.Get(key);
+    if Assigned(jp) then
+      if not(jp.JsonValue is TJSONNull) then
+        v := AJSONObject.Get(key).JsonValue;
+    if not Assigned(v) then
+    begin
+      ADataSet.Fields[I].Clear;
+      Continue;
+    end;
+
+    case ADataSet.Fields[I].DataType of
+      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint, TFieldType.ftShortint:
+        begin
+          ADataSet.Fields[I].AsInteger := (v as TJSONNumber).AsInt;
+        end;
+      TFieldType.ftLargeint:
+        begin
+          ADataSet.Fields[I].AsLargeInt := (v as TJSONNumber).AsInt64;
+        end;
+      TFieldType.ftSingle, TFieldType.ftFloat:
+        begin
+          ADataSet.Fields[I].AsFloat := (v as TJSONNumber).AsDouble;
+        end;
+      ftString, ftWideString, ftMemo:
+        begin
+          ADataSet.Fields[I].AsString := (v as TJSONString).Value;
+        end;
+      TFieldType.ftDate:
+        begin
+          ADataSet.Fields[I].AsDateTime := ISOStrToDate((v as TJSONString).Value);
+        end;
+      TFieldType.ftDateTime:
+        begin
+          ADataSet.Fields[I].AsDateTime := ISOStrToDateTime((v as TJSONString).Value);
+        end;
+      TFieldType.ftTimeStamp:
+        begin
+          ADataSet.Fields[I].AsSQLTimeStamp := StrToSQLTimeStamp((v as TJSONString).Value);
+        end;
+      TFieldType.ftCurrency:
+        begin
+          fs.DecimalSeparator := '.';
+          ADataSet.Fields[I].AsCurrency := StrToCurr((v as TJSONString).Value, fs);
+          // if not ADataSet.Fields[I].IsNull then
+          // begin
+          // AJSONObject.AddPair(key, FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency));
+          // end
+          // else
+          // AJSONObject.AddPair(key, TJSONNull.Create);
+        end;
+      TFieldType.ftFMTBcd:
+        begin
+          ADataSet.Fields[I].AsBcd := DoubleToBcd((v as TJSONNumber).AsDouble);
+        end;
+      TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
+        begin
+          MS := TMemoryStream.Create;
+          try
+            SS := TStringStream.Create((v as TJSONString).Value, TEncoding.ASCII);
+            try
+              DecodeStream(SS, MS);
+              MS.Position := 0;
+              TBlobField(ADataSet.Fields[I]).LoadFromStream(MS);
+            finally
+              SS.Free;
+            end;
+          finally
+            MS.Free;
+          end;
+        end;
+      // else
+      // raise Exception.Create('Cannot find type for field ' + key);
+    end;
+  end;
+  if AJSONObjectInstanceOwner then
+    FreeAndNil(AJSONObject);
 end;
 
 class
