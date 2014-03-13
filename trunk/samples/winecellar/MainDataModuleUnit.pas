@@ -80,17 +80,19 @@ end;
 function TWineCellarDataModule.FindWines(Search: string): TJSONArray;
 var
   obj: TJSONObject;
-  cmd: TDBXCommand;
+  cmd: TSQLQuery;
+  SQL: string;
 begin
-  cmd := wines.DBXConnection.CreateCommand;
+  cmd := TSQLQuery.Create(nil);
   try
+    cmd.SQLConnection := wines;
     if Search.IsEmpty then
-      cmd.Text := 'SELECT * FROM wine'
+      SQL := 'SELECT * FROM wine'
     else
-      cmd.Text := 'SELECT * FROM wine where NAME CONTAINING ''' + Search + '''';
-    cmd.Text := cmd.Text + ' order by name';
-    Result := TJSONArray.Create;
-    Mapper.ReaderToJSONArray(cmd.ExecuteQuery, Result);
+      SQL := 'SELECT * FROM wine where NAME CONTAINING ''' + Search + '''';
+    cmd.CommandText := SQL + ' order by name';
+    cmd.Open;
+    Result := cmd.AsJSONArray;
   finally
     cmd.free;
   end;
@@ -98,17 +100,15 @@ end;
 
 function TWineCellarDataModule.GetWineById(id: Integer): TJSONObject;
 var
-  cmd: TDBXCommand;
-  rdr: TDBXReader;
+  cmd: TSQLDataSet;
 begin
   Result := nil;
-  cmd := wines.DBXConnection.CreateCommand;
+  cmd := TSQLDataSet.Create(nil);
   try
-    cmd.Text := 'SELECT * FROM wine where id = ' + inttostr(id);
-    Result := TJSONObject.Create;
-    rdr := cmd.ExecuteQuery;
-    if rdr.Next then
-      Mapper.ReaderToJSONObject(rdr, Result);
+    cmd.SQLConnection := wines;
+    cmd.CommandText := 'SELECT * FROM wine where id = ' + inttostr(id);
+    cmd.Open;
+    Result := cmd.AsJSONObject;
   finally
     cmd.free;
   end;
