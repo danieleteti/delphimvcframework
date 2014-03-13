@@ -136,7 +136,7 @@ type
   TDataSetHelper = class helper for TDataSet
   public
     function AsJSONArray: TJSONArray;
-    function AsJSONObject: TJSONObject;
+    function AsJSONObject(AReturnNilIfEOF: boolean = false): TJSONObject;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject);
     procedure LoadFromJSONArray(AJSONArray: TJSONArray);
     function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
@@ -1996,13 +1996,15 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONObject: TJSONObject;
+function TDataSetHelper.AsJSONObject(AReturnNilIfEOF: boolean): TJSONObject;
 var
   JObj: TJSONObject;
 begin
   JObj := TJSONObject.Create;
   try
     Mapper.DataSetToJSONObject(Self, JObj, false);
+    if AReturnNilIfEOF and (JObj.Size = 0) then
+      FreeAndNil(JObj);
     Result := JObj;
   except
     FreeAndNil(JObj);
