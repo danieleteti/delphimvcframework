@@ -23,6 +23,7 @@ type
   published
     procedure TestReqWithParams;
     procedure TestPOSTWithParamsAndJSONBody;
+    // procedure TestPATCHWithParamsAndJSONBody;
     procedure TestPOSTWithObjectJSONBody;
     procedure TestPUTWithParamsAndJSONBody;
     procedure TestSession;
@@ -237,6 +238,18 @@ begin
   CheckEquals(500, res.ResponseCode);
 end;
 
+// procedure TServerTest.TestPATCHWithParamsAndJSONBody;
+// var
+// r: IRESTResponse;
+// json: TJSONObject;
+// begin
+// json := TJSONObject.Create;
+// json.AddPair('client', 'clientdata');
+// r := RESTClient.doPATCH('/echo', ['1', '2', '3'], json);
+// CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
+// CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
+// end;
+
 procedure TServerTest.TestPOSTWithObjectJSONBody;
 var
   r: IRESTResponse;
@@ -294,6 +307,7 @@ var
 begin
   res := RESTClient.
     Accept('text/plain').
+    ContentType('text/plain').
     doPOST('/testconsumes', [], 'Hello World');
   CheckEquals('Hello World', res.BodyAsString);
   CheckEquals('text/plain', res.GetContentType);

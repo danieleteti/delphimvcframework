@@ -16,7 +16,7 @@ uses
 
 type
   TArrayOfString = array of string;
-  THttpCommand = (httpGET, httpPOST, httpPUT, httpDELETE);
+  THttpCommand = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE);
 
   IRESTResponse = interface
     function BodyAsString: string;
@@ -142,6 +142,11 @@ type
       AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
       : IRESTResponse; overload;
     function doPOST(AResource: string; AResourceParams: array of string;
+      ABodyString: String): IRESTResponse; overload;
+    function doPATCH(AResource: string; AResourceParams: array of string;
+      AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
+      : IRESTResponse; overload;
+    function doPATCH(AResource: string; AResourceParams: array of string;
       ABodyString: String): IRESTResponse; overload;
     function doPUT(AResource: string; AResourceParams: array of string)
       : IRESTResponse; overload;
@@ -375,6 +380,42 @@ begin
     raise Exception.Create('AJSONValue is nil');
   try
     Result := doPOST(AResource, AResourceParams, AJSONValue.ToString);
+  finally
+    if AOwnsJSONBody then
+      FreeAndNil(AJSONValue);
+  end;
+end;
+
+function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string; ABodyString: String): IRESTResponse;
+var
+  url: string;
+begin
+  url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+    EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
+    (FQueryStringParams);
+
+  if FNextRequestIsAsynch then
+  begin
+    Result := nil;
+    StartAsynchRequest(httpPOST, url, ABodyString);
+  end
+  else
+  begin
+    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType, url,
+      ABodyString);
+    ClearAllParams;
+  end;
+end;
+
+function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string; AJSONValue: TJSONValue;
+AOwnsJSONBody: Boolean): IRESTResponse;
+var
+  url: string;
+begin
+  if not Assigned(AJSONValue) then
+    raise Exception.Create('AJSONValue is nil');
+  try
+    Result := doPATCH(AResource, AResourceParams, AJSONValue.ToString);
   finally
     if AOwnsJSONBody then
       FreeAndNil(AJSONValue);
@@ -682,6 +723,12 @@ begin
           FRawBody.Size := 0;
           FRawBody.WriteString(UTF8Encode(ABodyString));
           FHTTP.Post(AUrl, FRawBody, Result.Body);
+        end;
+
+      httpPATCH:
+        begin
+          raise Exception.Create
+            ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
         end;
 
       httpPUT:
