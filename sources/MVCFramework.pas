@@ -29,7 +29,7 @@ uses
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
-    httpOPTIONS);
+    httpOPTIONS, httpPATCH, httpTRACE);
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
   // RTTI ATTRIBUTES
 

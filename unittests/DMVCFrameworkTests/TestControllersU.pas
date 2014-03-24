@@ -33,6 +33,10 @@ type
     [MVCPath('/orders/($ordernumber)')]
     procedure UpdateOrderNumber(Context: TWebContext);
 
+    [MVCHTTPMethod([httpPATCH])]
+    [MVCPath('/orders/($ordernumber)')]
+    procedure PatchOrder(Context: TWebContext);
+
     property CalledActions: TStringList read FCalledActions; // only for tests
   end;
 
@@ -69,6 +73,11 @@ begin
 end;
 
 procedure TSimpleController.Orders(Context: TWebContext);
+begin
+
+end;
+
+procedure TSimpleController.PatchOrder(Context: TWebContext);
 begin
 
 end;

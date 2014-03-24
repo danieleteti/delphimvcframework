@@ -296,6 +296,11 @@ begin
     CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpPATCH, 'text/plain',
+      Controllers, Params, ResponseContentType, ResponseContentEncoding));
+    CheckEquals('PatchOrder', Router.MethodToCall.Name);
+
+    Params.Clear;
     CheckFalse(Router.ExecuteRouting('/orders/789', httpDELETE, 'text/plain',
       Controllers, Params, ResponseContentType, ResponseContentEncoding));
     CheckNull(Router.MethodToCall);

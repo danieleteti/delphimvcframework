@@ -14,7 +14,7 @@ type
     procedure ReqWithParams(ctx: TWebContext);
 
     [MVCPath('/echo/($par1)/($par2)/($par3)')]
-    [MVCHTTPMethod([httpPOST, httpPUT])]
+    [MVCHTTPMethod([httpPOST, httpPUT, httpPATCH])]
     procedure EchoBody(ctx: TWebContext);
 
     [MVCPath('/session/($value)')]

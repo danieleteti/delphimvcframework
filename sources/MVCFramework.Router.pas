@@ -17,7 +17,7 @@ type
     FMVCControllerClass: TMVCControllerClass;
     FCTX: TRttiContext;
     FMVCConfig: TMVCConfig;
-    function IsHTTPAcceptCompatible(AAccept: AnsiString;
+    function IsHTTPContentTypeCompatible(AWebRequestMethodType: TMVCHTTPMethodType; AAccept: AnsiString;
       AAttributes: TArray<TCustomAttribute>): Boolean;
 
   protected
@@ -38,7 +38,7 @@ type
       out AResponseContentType, AResponseContentEncoding: string)
       : Boolean; overload;
     function ExecuteRouting(AWebRequestPathInfo: AnsiString;
-      AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestAccept: AnsiString;
+      AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString;
       AMVCControllers: TList<TMVCControllerClass>;
       var AMVCRequestParams: TMVCRequestParamsTable;
       out AResponseContentType, AResponseContentEncoding: string)
@@ -77,7 +77,7 @@ var
 begin
   HTTPMethodType := StringMethodToHTTPMetod(AWebRequest.Method);
   Result := ExecuteRouting(AWebRequest.PathInfo, HTTPMethodType,
-    AWebRequest.Accept, AMVCControllers, AMVCRequestParams,
+    AWebRequest.ContentType, AMVCControllers, AMVCRequestParams,
     AResponseContentType, AResponseContentEncoding);
 end;
 
@@ -88,7 +88,7 @@ begin
 end;
 
 function TMVCRouter.ExecuteRouting(AWebRequestPathInfo: AnsiString;
-  AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestAccept: AnsiString;
+  AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString;
   AMVCControllers: TList<TMVCControllerClass>;
   var AMVCRequestParams: TMVCRequestParamsTable;
   out AResponseContentType, AResponseContentEncoding: string): Boolean;
@@ -164,7 +164,7 @@ begin
         if _attribute is MVCPathAttribute then
         begin
           if IsHTTPMethodCompatible(AWebRequestMethodType, _attributes) and
-            IsHTTPAcceptCompatible(AWebRequestAccept, _attributes) then
+            IsHTTPContentTypeCompatible(AWebRequestMethodType, AWebRequestContentType, _attributes) then
           begin
             MethodPathAttribute := MVCPathAttribute(_attribute).Path;
             if IsCompatiblePath(ControllerMappedPath + MethodPathAttribute,
@@ -265,13 +265,17 @@ begin
   end;
 end;
 
-function TMVCRouter.IsHTTPAcceptCompatible(AAccept: AnsiString;
+function TMVCRouter.IsHTTPContentTypeCompatible(AWebRequestMethodType: TMVCHTTPMethodType; AAccept: AnsiString;
   AAttributes: TArray<TCustomAttribute>): Boolean;
 var
   i: Integer;
   Accept: string;
   FoundOneAttribConsumes: Boolean;
 begin
+  // content type is applicable only for PUT, POST and PATCH
+  if AWebRequestMethodType in [httpGET, httpDELETE, httpHEAD, httpOPTIONS] then
+    Exit(true);
+
   Result := False;
   FoundOneAttribConsumes := False;
   for i := 0 to high(AAttributes) do
@@ -327,6 +331,10 @@ begin
     Exit(httpHEAD);
   if Value = 'OPTIONS' then
     Exit(httpOPTIONS);
+  if Value = 'PATCH' then
+    Exit(httpPATCH);
+  if Value = 'TRACE' then
+    Exit(httpTRACE);
   raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [Value]);
 end;
 
