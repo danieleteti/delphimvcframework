@@ -177,6 +177,8 @@ type
     function GetContentType: string;
     procedure SetContent(const Value: string);
     function GetContent: string;
+    function GetLocation: String;
+    procedure SetLocation(const Value: String);
     property Content: string read GetContent write SetContent;
 
   protected // do not put this as "strict"
@@ -194,6 +196,7 @@ type
     property ReasonString: string read FReasonString write SetReasonString;
     property Cookies: TCookieCollection read GetCookies;
     property ContentType: string read GetContentType write SetContentType;
+    property Location: String read GetLocation write SetLocation;
     property RawWebResponse: TWebResponse read FWebResponse;
   end;
 
@@ -1055,6 +1058,11 @@ begin
   Result := FWebResponse.CustomHeaders;
 end;
 
+function TMVCWebResponse.GetLocation: String;
+begin
+  Result := CustomHeaders.Values['location'];
+end;
+
 function TMVCWebResponse.GetStatusCode: Integer;
 begin
   Result := FWebResponse.StatusCode;
@@ -1085,6 +1093,11 @@ end;
 procedure TMVCWebResponse.SetCustomHeader(const Name, Value: string);
 begin
   Self.FWebResponse.SetCustomHeader(name, Value);
+end;
+
+procedure TMVCWebResponse.SetLocation(const Value: String);
+begin
+  CustomHeaders.Values['location'] := Value;
 end;
 
 procedure TMVCWebResponse.SetReasonString(const Value: string);
