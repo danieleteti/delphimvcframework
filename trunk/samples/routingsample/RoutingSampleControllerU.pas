@@ -14,15 +14,19 @@ type
     procedure Index(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/search/($searchtext)/($page)')]
+    [MVCPath('/searches/($searchtext)/($page)')]
     [MVCProduces('text/plain', 'UTF-8')]
-    [MVCConsumes('text/html')]
     procedure SearchCustomers(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/people/($id)')]
+    [MVCPath('/people/($id)')]     { double MVCPath }
+    [MVCPath('/($id)')]
     [MVCProduces('application/json')]
     procedure GetPerson(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpDelete])]
+    [MVCPath('/people/($id)')]
+    procedure DeletePerson(CTX: TWebContext);
 
   end;
 
@@ -32,6 +36,15 @@ uses
   System.SysUtils, BusinessObjectsU, Data.DBXJSON;
 
 { TRoutingSampleController }
+
+procedure TRoutingSampleController.DeletePerson(CTX: TWebContext);
+var
+  IDPerson: Integer;
+begin
+  IDPerson := CTX.Request.ParamsAsInteger['id'];
+  // RemovePerson(IDPerson)
+  Render(204 { 'No content' } , 'Person deleted');
+end;
 
 procedure TRoutingSampleController.GetPerson(CTX: TWebContext);
 var
@@ -61,17 +74,25 @@ var
   search: string;
   P: Integer;
   orderby: string;
+  S: string;
 begin
   search := CTX.Request.Params['searchtext'];
   P := CTX.Request.ParamsAsInteger['page'];
   orderby := '';
   if CTX.Request.QueryStringParamExists('order') then
     orderby := CTX.Request.QueryStringParam('order');
-  Render(Format(
-    'SEARCHTEXT: "%s"' + sLineBreak +
-    'PAGE: %d' + sLineBreak +
-    'ORDERBYFIELD: "%s"',
-    [search, P, orderby]));
+  S := Format(
+    'SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
+    [search, P, orderby]);
+  ResponseStream
+    .AppendLine(S)
+    .AppendLine(StringOfChar('*', 30))
+    .AppendLine('1. Daniele Teti')
+    .AppendLine('2. John Doe')
+    .AppendLine('3. Mark Rossi')
+    .AppendLine('4. Jack Verdi')
+    .AppendLine(StringOfChar('*', 30));
+  Render;
 end;
 
 end.

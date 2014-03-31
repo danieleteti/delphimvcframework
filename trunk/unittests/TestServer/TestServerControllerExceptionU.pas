@@ -3,7 +3,7 @@ unit TestServerControllerExceptionU;
 interface
 
 uses
-  MVCFramework;
+  MVCFramework, System.SysUtils;
 
 type
 
@@ -35,15 +35,12 @@ type
 
 implementation
 
-uses
-  System.SysUtils;
-
 { TTestServerControllerException }
 
 procedure TTestServerControllerExceptionAfterCreate.MVCControllerAfterCreate;
 begin
   inherited;
-  raise Exception.Create('This is an exception raised in the MVCControllerAfterCreate');
+  raise EMyException.Create('This is an exception raised in the MVCControllerAfterCreate');
 end;
 
 procedure TTestServerControllerExceptionAfterCreate.MVCControllerBeforeDestroy;
@@ -68,7 +65,7 @@ end;
 procedure TTestServerControllerExceptionBeforeDestroy.MVCControllerBeforeDestroy;
 begin
   inherited;
-  raise Exception.Create('This is an exception raised in the MVCControllerBeforeDestroy');
+  raise EMyException.Create('This is an exception raised in the MVCControllerBeforeDestroy');
 end;
 
 procedure TTestServerControllerExceptionBeforeDestroy.NeverCalled(CTX: TWebContext);

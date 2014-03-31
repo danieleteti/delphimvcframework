@@ -20,6 +20,7 @@ type
   end;
 
   TServerTest = class(TBaseServerTest)
+  private
   published
     procedure TestReqWithParams;
     procedure TestPOSTWithParamsAndJSONBody;
@@ -35,6 +36,7 @@ type
 
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
+    procedure TestProducesConsumesWithWrongAcceptHeader;
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
     procedure TestMiddlewareSpeedMiddleware;
@@ -324,11 +326,26 @@ begin
   CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
 end;
 
+procedure TServerTest.TestProducesConsumesWithWrongAcceptHeader;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient
+    .Accept('text/plain') // action is waiting for a accept: application/json
+    .ContentType('application/json')
+    .doPOST('/testconsumes', [],
+    TJSONString.Create('Hello World'));
+  CheckEquals(404, res.ResponseCode);
+end;
+
 procedure TServerTest.TestProducesConsumes01;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient.doPOST('/testconsumes', [],
+  res := RESTClient
+    .Accept('application/json')
+    .ContentType('application/json')
+    .doPOST('/testconsumes', [],
     TJSONString.Create('Hello World'));
   CheckEquals(200, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
@@ -347,6 +364,12 @@ begin
   CheckEquals('Hello World', res.BodyAsString);
   CheckEquals('text/plain', res.GetContentType);
   CheckEquals('UTF-8', res.GetContentEncoding);
+
+  res := RESTClient.
+    Accept('text/plain').
+    ContentType('application/json').
+    doPOST('/testconsumes', [], '{"name": "Daniele"}');
+  CheckEquals(404, res.ResponseCode);
 end;
 
 procedure TServerTest.TestPUTWithParamsAndJSONBody;

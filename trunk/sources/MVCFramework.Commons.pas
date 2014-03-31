@@ -95,6 +95,9 @@ function AppPath: string;
 function IsReservedOrPrivateIP(const IP: string): boolean;
 function IP2Long(IP: string): UInt32;
 
+var
+  Lock: TObject;
+
 implementation
 
 uses
@@ -259,5 +262,13 @@ procedure EMVCException.SetDetailedMessage(const Value: string);
 begin
   FDetailedMessage := Value;
 end;
+
+initialization
+
+Lock := TObject.Create;
+
+finalization
+
+FreeAndNil(Lock);
 
 end.
