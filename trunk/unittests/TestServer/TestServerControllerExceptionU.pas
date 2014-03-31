@@ -7,6 +7,10 @@ uses
 
 type
 
+  EMyException = class(Exception)
+
+  end;
+
   [MVCPath('/exception/aftercreate')]
   TTestServerControllerExceptionAfterCreate = class(TMVCController)
 
