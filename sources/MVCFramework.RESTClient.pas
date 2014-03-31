@@ -28,6 +28,7 @@ type
     function GetContentType: String;
     function GetContentEncoding: String;
     function Body: TStringStream;
+    function GetHeaderValue(const Name: String): String;
     procedure SetResponseCode(AResponseCode: Word);
     procedure SetResponseText(AResponseText: string);
     procedure SetHeaders(AHeaders: TStrings);
@@ -44,6 +45,7 @@ type
     FContentEncoding: String;
     function GetHeader(const Value: String): String;
   public
+
     function BodyAsString: string;
     function BodyAsJsonObject: TJSONObject;
     function BodyAsJsonValue: TJSONValue;
@@ -59,6 +61,7 @@ type
     procedure SetHeaders(AHeaders: TStrings);
     constructor Create; virtual;
     destructor Destroy; override;
+    function GetHeaderValue(const Name: string): string;
   end;
 
   TRESTClient = class(TInterfacedObject)
@@ -129,7 +132,6 @@ type
     function ResetSession: TRESTClient;
     function Accept(const AcceptHeader: string): TRESTClient; overload;
     function Accept: string; overload;
-
     function ContentType(const ContentTypeHeader: string): TRESTClient;
       overload;
     function ContentType: string; overload;
@@ -897,6 +899,23 @@ begin
   else
   begin
     Result := '';
+  end;
+end;
+
+function TRESTResponse.GetHeaderValue(const Name: string): string;
+var
+  s: string;
+  arr: TArray<string>;
+begin
+  Result := '';
+  for s in Self.Headers do
+  begin
+    arr := s.Split([':'], 2);
+    if SameText(arr[0].trim, name) then
+    begin
+      Result := arr[1].trim;
+      Break;
+    end;
   end;
 end;
 

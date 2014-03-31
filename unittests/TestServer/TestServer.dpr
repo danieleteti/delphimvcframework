@@ -26,7 +26,8 @@ uses
   DuckListU in '..\..\sources\DuckListU.pas',
   MVCFramework.BUSController in '..\..\sources\MVCFramework.BUSController.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
-  TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas';
+  TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
+  SpeedMiddlewareU in 'SpeedMiddlewareU.pas';
 
 {$R *.res}
 

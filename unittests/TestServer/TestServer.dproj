@@ -109,6 +109,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.BUSController.pas"/>
         <DCCReference Include="..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="TestServerControllerExceptionU.pas"/>
+        <DCCReference Include="SpeedMiddlewareU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

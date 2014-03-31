@@ -37,6 +37,7 @@ type
     procedure TestProducesConsumes02;
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
+    procedure TestMiddlewareSpeedMiddleware;
   end;
 
 implementation
@@ -236,6 +237,26 @@ var
 begin
   res := RESTClient.doGET('/exception/beforedestroy/nevercalled', []);
   CheckEquals(500, res.ResponseCode);
+end;
+
+procedure TServerTest.TestMiddlewareSpeedMiddleware;
+var
+  r: IRESTResponse;
+  json: TJSONObject;
+  P: TPerson;
+begin
+  P := TPerson.Create;
+  try
+    P.FirstName := StringOfChar('*', 1000);
+    P.LastName := StringOfChar('*', 1000);
+    P.DOB := EncodeDate(1979, 1, 1);
+    P.Married := true;
+    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [], mapper.ObjectToJSONObject(P));
+  finally
+    P.Free;
+  end;
+
+  CheckNotEquals('', r.GetHeaderValue('request_gen_time'));
 end;
 
 // procedure TServerTest.TestPATCHWithParamsAndJSONBody;
