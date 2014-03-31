@@ -22,7 +22,8 @@ uses
   IdHeaderList,
   MVCFramework.ApplicationSession,
   MVCFramework.Session,
-  StompTypes
+  StompTypes,
+  ObjectsMappers
 
 {$IFDEF VER250},
   ReqMulti {$ENDIF}{required for file uploading on XE4};
@@ -207,6 +208,8 @@ type
     FRequest: TMVCWebRequest;
     FResponse: TMVCWebResponse;
     FParamsTable: TMVCRequestParamsTable;
+    FData: TDictionary<String, String>;
+    function GetData: TDictionary<String, String>;
 
   protected
     constructor Create(ARequest: TWebRequest; AResponse: TWebResponse); virtual;
@@ -218,6 +221,7 @@ type
     destructor Destroy; override;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
+    property Data: TDictionary<String, String> read GetData;
   end;
 
   TMVCActionProc = reference to procedure(Context: TWebContext);
@@ -284,7 +288,7 @@ type
     procedure Render(const Content: string); overload; virtual;
     procedure Render; overload; virtual;
     procedure Render<T: class>(ACollection: TObjectList<T>;
-      AInstanceOwner: boolean = true); overload;
+      AInstanceOwner: boolean = true; AJSONObjectActionProc: TJSONObjectActionProc = nil); overload;
     procedure Render(AObject: TObject; AInstanceOwner: boolean = true);
       overload; virtual;
     procedure Render(ADataSet: TDataSet; AInstanceOwner: boolean = false; AOnlySingleRecord: boolean = false);
@@ -332,6 +336,12 @@ type
 
   TMVCControllerClass = class of TMVCController;
 
+  IMVCMiddleware = interface
+    ['{3278183A-124A-4214-AB4E-94CA4C22450D}']
+    procedure OnBeforeControllerAction(Context: TWebContext; const AActionNAme: string; var Handled: boolean);
+    procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string; const Handled: boolean);
+  end;
+
   TMVCEngine = class(TComponent)
   strict private
     FApplicationSession: TWebApplicationSession;
@@ -349,6 +359,9 @@ type
   protected
     FConfiguredSessionTimeout: Int64;
     FControllers: TList<TMVCControllerClass>;
+    FMiddleware: TList<IMVCMiddleware>;
+    procedure ExecuteBeforeMiddleware(Context: TWebContext; const AActionNAme: string; var Handled: boolean);
+    procedure ExecuteAfterMiddleware(Context: TWebContext; const AActionNAme: string; const Handled: boolean);
     procedure ConfigDefaultValues; virtual;
     procedure FixUpWebModule;
     procedure OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
@@ -373,6 +386,7 @@ type
     destructor Destroy; override;
     function AddController(AControllerClass: TMVCControllerClass)
       : TMVCEngine; overload;
+    function AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
     // http return codes
     procedure Http404(AWebContext: TWebContext);
     procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
@@ -432,7 +446,6 @@ uses
   Web.Win.IsapiHTTP,
   MVCFramework.Router,
   MVCFramework.View,
-  ObjectsMappers,
   IdURI,
   DuckListU,
   IdStack
@@ -465,6 +478,12 @@ function TMVCEngine.AddController(AControllerClass: TMVCControllerClass)
   : TMVCEngine;
 begin
   FControllers.Add(AControllerClass);
+  Result := Self;
+end;
+
+function TMVCEngine.AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
+begin
+  FMiddleware.Add(AMiddleware);
   Result := Self;
 end;
 
@@ -516,6 +535,7 @@ begin
   FMVCConfig := TMVCConfig.Create;
   FWebModule := WebModule;
   FControllers := TList<TMVCControllerClass>.Create;
+  FMiddleware := TList<IMVCMiddleware>.Create;
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
   ConfigDefaultValues;
@@ -527,6 +547,7 @@ begin
   FMimeTypes.Free;
   FMVCConfig.Free;
   FControllers.Free;
+  FMiddleware.Free;
   // FViewCache.Free;
   inherited;
 end;
@@ -579,11 +600,8 @@ begin
             begin
               SelectedController := Router.MVCControllerClass.Create;
               try
-                // SelectedController.ViewCache := FViewCache;
                 SelectedController.SetMVCConfig(Config);
                 SelectedController.ApplicationSession := FApplicationSession;
-                // SelectedController.Session := GetCurrentSession(Request,
-                // Response);
                 Context.SetParams(ParamsTable);
                 SelectedController.SetContext(Context);
                 SelectedController.SetMVCEngine(Self);
@@ -596,20 +614,24 @@ begin
                   try
                     Handled := false;
                     // gets response contentype from MVCProduces attribute
-                    SelectedController.ContentType := ResponseContentType;
-                    SelectedController.ContentEncoding := ResponseContentEncoding;
-                    SelectedController.OnBeforeAction(Context,
-                      Router.MethodToCall.Name, Handled);
+                    ExecuteBeforeMiddleware(Context, Router.MethodToCall.Name, Handled);
                     if not Handled then
                     begin
-                      if Assigned(Router.MethodToCall) then
+                      SelectedController.ContentType := ResponseContentType;
+                      SelectedController.ContentEncoding := ResponseContentEncoding;
+                      SelectedController.OnBeforeAction(Context,
+                        Router.MethodToCall.Name, Handled);
+                      if not Handled then
                       begin
-                        Router.MethodToCall.Invoke(SelectedController, [Context]);
-                        SelectedController.OnAfterAction(Context,
-                          Router.MethodToCall.Name);
-                      end
-                      else
-                        raise EMVCException.Create('MethodToCall is nil');
+                        if Assigned(Router.MethodToCall) then
+                        begin
+                          Router.MethodToCall.Invoke(SelectedController, [Context]);
+                          SelectedController.OnAfterAction(Context,
+                            Router.MethodToCall.Name);
+                        end
+                        else
+                          raise EMVCException.Create('MethodToCall is nil');
+                      end;
                     end;
 
                     if SelectedController.SessionMustBeClose then
@@ -620,6 +642,8 @@ begin
                     begin
 
                     end;
+
+                    ExecuteAfterMiddleware(Context, Router.MethodToCall.Name, Handled);
                   finally
                     SelectedController.MVCControllerBeforeDestroy;
                   end;
@@ -668,6 +692,29 @@ begin
   finally
     LogExitMethod(Request.PathInfo);
   end;
+end;
+
+procedure TMVCEngine.ExecuteAfterMiddleware(Context: TWebContext; const AActionNAme: string; const Handled: boolean);
+var
+  middleware: IMVCMiddleware;
+begin
+  for middleware in FMiddleware do
+  begin
+    middleware.OnAfterControllerAction(Context, AActionNAme, Handled);
+  end;
+end;
+
+procedure TMVCEngine.ExecuteBeforeMiddleware(Context: TWebContext; const AActionNAme: string; var Handled: boolean);
+var
+  middleware: IMVCMiddleware;
+begin
+  if not Handled then
+    for middleware in FMiddleware do
+    begin
+      middleware.OnBeforeControllerAction(Context, AActionNAme, Handled);
+      if Handled then
+        break;
+    end;
 end;
 
 procedure TMVCEngine.ExecuteFile(const AFileName: string;
@@ -995,18 +1042,25 @@ begin
 {$ENDIF}
   end;
   FResponse := TMVCWebResponse.Create(AResponse);
+  FData := TDictionary<String, String>.Create;
 end;
 
 destructor TWebContext.Destroy;
 begin
   FreeAndNil(FResponse);
   FreeAndNil(FRequest);
+  FreeAndNil(FData);
   inherited;
 end;
 
 procedure TWebContext.Flush;
 begin
   FResponse.Flush;
+end;
+
+function TWebContext.GetData: TDictionary<String, String>;
+begin
+  Result := FData;
 end;
 
 procedure TWebContext.SetParams(AParamsTable: TMVCRequestParamsTable);
@@ -2130,11 +2184,11 @@ begin
 end;
 
 procedure TMVCController.Render<T>(ACollection: TObjectList<T>;
-  AInstanceOwner: boolean);
+  AInstanceOwner: boolean; AJSONObjectActionProc: TJSONObjectActionProc);
 var
   json: TJSONArray;
 begin
-  json := Mapper.ObjectListToJSONArray<T>(ACollection);
+  json := Mapper.ObjectListToJSONArray<T>(ACollection, false, AJSONObjectActionProc);
   Render(json, true);
   if AInstanceOwner then
     FreeAndNil(ACollection);
@@ -2149,21 +2203,8 @@ end;
 
 procedure TMVCController.Render(AJSONValue: TJSONValue;
   AInstanceOwner: boolean);
-// var
-// S: string;
-// OutEncoding: TEncoding;
-// InEncoding: TEncoding;
 begin
   InternalRender(AJSONValue, ContentType, ContentEncoding, Context, AInstanceOwner);
-  // ContentType := 'application/json; charset=' + ContentEncoding;
-  // S := AJSONValue.ToString;
-  // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-  // InEncoding := TEncoding.Default; // GetEncoding(S);
-  // Context.Response.Content := OutEncoding.GetString
-  // (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
-  // OutEncoding.Free;
-  // if AInstanceOwner then
-  // FreeAndNil(AJSONValue)
 end;
 
 procedure TMVCController.ResponseStatusCode(const ErrorCode: UInt16);

@@ -23,7 +23,7 @@ implementation
 
 
 uses
-  TestServerControllerU, TestServerControllerExceptionU;
+  TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU;
 
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
@@ -31,7 +31,8 @@ begin
   MVCEngine
     .AddController(TTestServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
-    .AddController(TTestServerControllerExceptionBeforeDestroy);
+    .AddController(TTestServerControllerExceptionBeforeDestroy)
+    .AddMiddleware(TMVCSpeedMiddleware.Create);
   MVCEngine.Config[TMVCConfigKey.StompServer] := 'localhost';
   MVCEngine.Config[TMVCConfigKey.StompServerPort] := '61613';
   MVCEngine.Config[TMVCConfigKey.StompUserName] := 'guest';

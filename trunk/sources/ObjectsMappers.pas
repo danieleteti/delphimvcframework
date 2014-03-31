@@ -34,6 +34,8 @@ uses
 {$IFEND};
 
 type
+  TJSONObjectActionProc = reference to procedure(const AJSONObject: TJSONObject);
+
   Mapper = class
   strict private
     class var ctx: TRTTIContext;
@@ -105,7 +107,7 @@ type
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
     // ADataSetInstanceOwner: boolean = True);
     class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>;
-      AOwnsInstance: boolean = false): TJSONArray;
+      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
     class function ObjectListToJSONArrayString<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false): String;
     class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>)
@@ -549,15 +551,22 @@ begin
   _keys.Free;
 end;
 
-class function Mapper.ObjectListToJSONArray<T>(AList: TObjectList<T>; AOwnsInstance: boolean)
+class function Mapper.ObjectListToJSONArray<T>(AList: TObjectList<T>; AOwnsInstance: boolean;
+  AForEach: TJSONObjectActionProc)
   : TJSONArray;
 var
   I: Integer;
+  JV: TJSONObject;
 begin
   Result := TJSONArray.Create;
   if Assigned(AList) then
     for I := 0 to AList.Count - 1 do
-      Result.AddElement(ObjectToJSONObject(AList[I]));
+    begin
+      JV := ObjectToJSONObject(AList[I]);
+      if Assigned(AForEach) then
+        AForEach(JV);
+      Result.AddElement(JV);
+    end;
   if AOwnsInstance then
     AList.Free;
 end;
