@@ -38,6 +38,7 @@ type
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
     procedure TestMiddlewareSpeedMiddleware;
+    procedure TestMiddlewareHandler;
   end;
 
 implementation
@@ -237,6 +238,19 @@ var
 begin
   res := RESTClient.doGET('/exception/beforedestroy/nevercalled', []);
   CheckEquals(500, res.ResponseCode);
+end;
+
+procedure TServerTest.TestMiddlewareHandler;
+var
+  r: IRESTResponse;
+  json: TJSONObject;
+  P: TPerson;
+begin
+  r := RESTClient
+    .Accept(TMVCMimeType.APPLICATION_JSON)
+    .doGET('/handledbymiddleware', []);
+  CheckEquals('This is a middleware response', r.BodyAsString);
+  CheckEquals(200, r.ResponseCode);
 end;
 
 procedure TServerTest.TestMiddlewareSpeedMiddleware;

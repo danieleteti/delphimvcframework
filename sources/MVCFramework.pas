@@ -338,7 +338,7 @@ type
 
   IMVCMiddleware = interface
     ['{3278183A-124A-4214-AB4E-94CA4C22450D}']
-    procedure OnBeforeControllerAction(Context: TWebContext; const AActionNAme: string; var Handled: boolean);
+    procedure OnBeforeRouting(Context: TWebContext; var Handled: boolean);
     procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string; const Handled: boolean);
   end;
 
@@ -360,7 +360,7 @@ type
     FConfiguredSessionTimeout: Int64;
     FControllers: TList<TMVCControllerClass>;
     FMiddleware: TList<IMVCMiddleware>;
-    procedure ExecuteBeforeMiddleware(Context: TWebContext; const AActionNAme: string; var Handled: boolean);
+    procedure ExecuteBeforeRoutingMiddleware(Context: TWebContext; var Handled: boolean);
     procedure ExecuteAfterMiddleware(Context: TWebContext; const AActionNAme: string; const Handled: boolean);
     procedure ConfigDefaultValues; virtual;
     procedure FixUpWebModule;
@@ -594,91 +594,95 @@ begin
         begin
           Router := TMVCRouter.Create(Config);
           try
-            /// ////
-            if Router.ExecuteRouting(Request, FControllers, ParamsTable,
-              ResponseContentType, ResponseContentEncoding) then
+            ExecuteBeforeRoutingMiddleware(Context, Handled);
+            if not Handled then
             begin
-              SelectedController := Router.MVCControllerClass.Create;
-              try
-                SelectedController.SetMVCConfig(Config);
-                SelectedController.ApplicationSession := FApplicationSession;
-                Context.SetParams(ParamsTable);
-                SelectedController.SetContext(Context);
-                SelectedController.SetMVCEngine(Self);
-                Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Request.RawPathInfo + ' -> ' +
-                  Router.MVCControllerClass.QualifiedClassName);
-
-                // exception?
+              if Router.ExecuteRouting(Request, FControllers, ParamsTable,
+                ResponseContentType, ResponseContentEncoding) then
+              begin
+                SelectedController := Router.MVCControllerClass.Create;
                 try
-                  SelectedController.MVCControllerAfterCreate;
+                  SelectedController.SetMVCConfig(Config);
+                  SelectedController.ApplicationSession := FApplicationSession;
+                  Context.SetParams(ParamsTable);
+                  SelectedController.SetContext(Context);
+                  SelectedController.SetMVCEngine(Self);
+                  Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Request.RawPathInfo + ' -> ' +
+                    Router.MVCControllerClass.QualifiedClassName);
+
+                  // exception?
                   try
-                    Handled := false;
-                    // gets response contentype from MVCProduces attribute
-                    ExecuteBeforeMiddleware(Context, Router.MethodToCall.Name, Handled);
-                    if not Handled then
-                    begin
-                      SelectedController.ContentType := ResponseContentType;
-                      SelectedController.ContentEncoding := ResponseContentEncoding;
-                      SelectedController.OnBeforeAction(Context,
-                        Router.MethodToCall.Name, Handled);
+                    SelectedController.MVCControllerAfterCreate;
+                    try
+                      Handled := false;
+                      // gets response contentype from MVCProduces attribute
                       if not Handled then
                       begin
-                        if Assigned(Router.MethodToCall) then
+                        SelectedController.ContentType := ResponseContentType;
+                        SelectedController.ContentEncoding := ResponseContentEncoding;
+                        SelectedController.OnBeforeAction(Context,
+                          Router.MethodToCall.Name, Handled);
+                        if not Handled then
                         begin
-                          Router.MethodToCall.Invoke(SelectedController, [Context]);
-                          SelectedController.OnAfterAction(Context,
-                            Router.MethodToCall.Name);
-                        end
-                        else
-                          raise EMVCException.Create('MethodToCall is nil');
+                          if Assigned(Router.MethodToCall) then
+                          begin
+                            Router.MethodToCall.Invoke(SelectedController, [Context]);
+                            SelectedController.OnAfterAction(Context,
+                              Router.MethodToCall.Name);
+                          end
+                          else
+                            raise EMVCException.Create('MethodToCall is nil');
+                        end;
                       end;
+
+                      if SelectedController.SessionMustBeClose then
+                      begin
+                        // SessionList.Remove(SelectedController.Session.SessionID);
+                      end
+                      else
+                      begin
+
+                      end;
+
+                      ExecuteAfterMiddleware(Context, Router.MethodToCall.Name, Handled);
+                    finally
+                      SelectedController.MVCControllerBeforeDestroy;
                     end;
-
-                    if SelectedController.SessionMustBeClose then
+                  except
+                    on E: EMVCSessionExpiredException do
                     begin
-                      // SessionList.Remove(SelectedController.Session.SessionID);
-                    end
-                    else
-                    begin
-
+                      LogException(E, E.DetailedMessage);
+                      SelectedController.SessionStop(false);
+                      SelectedController.ResponseStatusCode(E.HTTPErrorCode);
+                      SelectedController.Render(E);
                     end;
-
-                    ExecuteAfterMiddleware(Context, Router.MethodToCall.Name, Handled);
-                  finally
-                    SelectedController.MVCControllerBeforeDestroy;
+                    on E: EMVCException do
+                    begin
+                      LogException(E, E.DetailedMessage);
+                      SelectedController.ResponseStatusCode(E.HTTPErrorCode);
+                      SelectedController.Render(E);
+                    end;
+                    on E: Exception do
+                    begin
+                      LogException(E);
+                      SelectedController.Render(E);
+                    end;
                   end;
-                except
-                  on E: EMVCSessionExpiredException do
-                  begin
-                    LogException(E, E.DetailedMessage);
-                    SelectedController.SessionStop(false);
-                    SelectedController.ResponseStatusCode(E.HTTPErrorCode);
-                    SelectedController.Render(E);
-                  end;
-                  on E: EMVCException do
-                  begin
-                    LogException(E, E.DetailedMessage);
-                    SelectedController.ResponseStatusCode(E.HTTPErrorCode);
-                    SelectedController.Render(E);
-                  end;
-                  on E: Exception do
-                  begin
-                    LogException(E);
-                    SelectedController.Render(E);
-                  end;
+                  Context.Response.ContentType := SelectedController.ContentType;
+                  Context.Response.Flush;
+                finally
+                  SelectedController.Free;
                 end;
-                Context.Response.ContentType := SelectedController.ContentType;
-                Context.Response.Flush;
-              finally
-                SelectedController.Free;
+              end
+              else if IsBuiltInMethod(Request, Response) then
+              begin
+                HandleBuiltInMethods(Request, Response);
+              end
+              else
+              begin
+                Http404(Context);
               end;
-            end
-            else if IsBuiltInMethod(Request, Response) then
-            begin
-              HandleBuiltInMethods(Request, Response);
-            end
-            else
-              Http404(Context);
+            end;
           finally
             Router.Free;
           end;
@@ -704,14 +708,14 @@ begin
   end;
 end;
 
-procedure TMVCEngine.ExecuteBeforeMiddleware(Context: TWebContext; const AActionNAme: string; var Handled: boolean);
+procedure TMVCEngine.ExecuteBeforeRoutingMiddleware(Context: TWebContext; var Handled: boolean);
 var
   middleware: IMVCMiddleware;
 begin
   if not Handled then
     for middleware in FMiddleware do
     begin
-      middleware.OnBeforeControllerAction(Context, AActionNAme, Handled);
+      middleware.OnBeforeRouting(Context, Handled);
       if Handled then
         break;
     end;
