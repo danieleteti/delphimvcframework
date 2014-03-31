@@ -6,6 +6,8 @@ uses
   ObjectsMappers;
 
 type
+
+  [MapperJSONNaming(JSONNameLowerCase)]
   TPerson = class
   private
     FLastName: String;

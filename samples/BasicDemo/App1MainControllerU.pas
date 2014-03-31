@@ -47,7 +47,7 @@ var
 begin
   json := ctx.Request.BodyAsJSONObject;
   json.AddPair('modified', 'from server');
-  Render(json.Clone as TJSONObject);
+  Render(json);
   Log('Hello world called with POST');
 end;
 

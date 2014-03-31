@@ -375,8 +375,6 @@ end;
 
 function TRESTClient.doPOST(AResource: string; AResourceParams: array of string;
 AJSONValue: TJSONValue; AOwnsJSONBody: Boolean): IRESTResponse;
-var
-  url: string;
 begin
   if not Assigned(AJSONValue) then
     raise Exception.Create('AJSONValue is nil');
@@ -411,8 +409,6 @@ end;
 
 function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string; AJSONValue: TJSONValue;
 AOwnsJSONBody: Boolean): IRESTResponse;
-var
-  url: string;
 begin
   if not Assigned(AJSONValue) then
     raise Exception.Create('AJSONValue is nil');
@@ -471,8 +467,6 @@ end;
 
 function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;
 AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true): IRESTResponse;
-var
-  url: string;
 begin
   if not Assigned(AJSONValue) then
     raise Exception.Create('AJSONValue is nil');
@@ -635,8 +629,6 @@ end;
 function TRESTClient.SendHTTPCommand(const ACommand: THttpCommand;
 const AAccept, AContentType, AUrl: string; ABodyParams: TStrings)
   : IRESTResponse;
-var
-  mp: TIdMultiPartFormDataStream;
 begin
   Result := TRESTResponse.Create;
   FHTTP.Request.RawHeaders.Clear;

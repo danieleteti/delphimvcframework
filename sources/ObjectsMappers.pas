@@ -1515,7 +1515,6 @@ class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: T
 var
   I: Integer;
   key: string;
-  ts: TSQLTimeStamp;
   v: TJSONValue;
   jp: TJSONPair;
   fs: TFormatSettings;

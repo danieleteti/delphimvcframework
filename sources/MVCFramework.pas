@@ -428,6 +428,7 @@ procedure EnterInShutdownState;
 
 procedure InternalRender(const Content: string; ContentType, ContentEncoding: String;
   Context: TWebContext); overload;
+procedure InternalRenderText(const AContent: String; ContentType, ContentEncoding: String; Context: TWebContext);
 procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
   AInstanceOwner: boolean = true); overload;
 
@@ -559,7 +560,6 @@ var
   Context: TWebContext;
   ParamsTable: TMVCRequestParamsTable;
   Router: TMVCRouter;
-  // sesscookie        : TCookie;
   StaticFileName: string;
   ContentType: string;
   Handled: boolean;
@@ -597,8 +597,9 @@ begin
             ExecuteBeforeRoutingMiddleware(Context, Handled);
             if not Handled then
             begin
-              if Router.ExecuteRouting(Request, FControllers, ParamsTable,
-                ResponseContentType, ResponseContentEncoding) then
+              if Router.ExecuteRouting(Request, FControllers,
+                FMVCConfig[TMVCConfigKey.DefaultContentType],
+                ParamsTable, ResponseContentType, ResponseContentEncoding) then
               begin
                 SelectedController := Router.MVCControllerClass.Create;
                 try
@@ -616,22 +617,17 @@ begin
                     try
                       Handled := false;
                       // gets response contentype from MVCProduces attribute
+                      SelectedController.ContentType := ResponseContentType;
+                      SelectedController.ContentEncoding := ResponseContentEncoding;
+                      SelectedController.OnBeforeAction(Context,
+                        Router.MethodToCall.Name, Handled);
                       if not Handled then
                       begin
-                        SelectedController.ContentType := ResponseContentType;
-                        SelectedController.ContentEncoding := ResponseContentEncoding;
-                        SelectedController.OnBeforeAction(Context,
-                          Router.MethodToCall.Name, Handled);
-                        if not Handled then
-                        begin
-                          if Assigned(Router.MethodToCall) then
-                          begin
-                            Router.MethodToCall.Invoke(SelectedController, [Context]);
-                            SelectedController.OnAfterAction(Context,
-                              Router.MethodToCall.Name);
-                          end
-                          else
-                            raise EMVCException.Create('MethodToCall is nil');
+                        try
+                          Router.MethodToCall.Invoke(SelectedController, [Context]);
+                        finally
+                          SelectedController.OnAfterAction(Context,
+                            Router.MethodToCall.Name);
                         end;
                       end;
 
@@ -644,10 +640,10 @@ begin
 
                       end;
 
-                      ExecuteAfterMiddleware(Context, Router.MethodToCall.Name, Handled);
                     finally
                       SelectedController.MVCControllerBeforeDestroy;
                     end;
+                    ExecuteAfterMiddleware(Context, Router.MethodToCall.Name, Handled);
                   except
                     on E: EMVCSessionExpiredException do
                     begin
@@ -662,9 +658,14 @@ begin
                       SelectedController.ResponseStatusCode(E.HTTPErrorCode);
                       SelectedController.Render(E);
                     end;
+                    on E: EInvalidOp do
+                    begin
+                      LogException(E, 'Invalid OP');
+                      SelectedController.Render(E);
+                    end;
                     on E: Exception do
                     begin
-                      LogException(E);
+                      LogException(E, 'Global Action Exception Handler');
                       SelectedController.Render(E);
                     end;
                   end;
@@ -851,8 +852,8 @@ var
   j: TJSONObject;
   c: TMVCControllerClass;
   _type: TRttiInstanceType;
-  _method: TRTTIMethod;
-  _methods: TArray<TRTTIMethod>;
+  _method: TRttiMethod;
+  _methods: TArray<TRttiMethod>;
   ControllerInfo: TJSONObject;
   jmethod: TJSONObject;
   _a: TCustomAttribute;
@@ -1466,6 +1467,19 @@ begin
   FViewModel.Add(AModelName, AModel);
 end;
 
+procedure InternalRenderText(const AContent: String; ContentType, ContentEncoding: String; Context: TWebContext);
+var
+  OutEncoding: TEncoding;
+  InEncoding: TEncoding;
+begin
+  Context.Response.ContentType := ContentType + '; charset=' + ContentEncoding;
+  OutEncoding := TEncoding.GetEncoding(ContentEncoding);
+  InEncoding := TEncoding.Default; // GetEncoding(S);
+  Context.Response.Content := OutEncoding.GetString
+    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(AContent)));
+  OutEncoding.Free;
+end;
+
 procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
   AInstanceOwner: boolean);
 var
@@ -1485,10 +1499,6 @@ begin
 end;
 
 procedure InternalRender(const Content: string; ContentType, ContentEncoding: String; Context: TWebContext);
-var
-  OutEncoding: TEncoding;
-  InEncoding: TEncoding;
-  S: String;
 begin
   if ContentType = TMVCMimeType.APPLICATION_JSON then
   begin
@@ -1501,43 +1511,15 @@ begin
   else
   begin
     if ContentType.IsEmpty then
-      Context.Response.ContentType := 'text/plain; charset=' + ContentEncoding
+      InternalRenderText(Content, 'text/plain', ContentEncoding, Context)
     else
-      Context.Response.ContentType := ContentType + '; charset=' + ContentEncoding;
-    OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-    InEncoding := TEncoding.Default;
-    Context.Response.Content := OutEncoding.GetString
-      (TEncoding.Convert(InEncoding, OutEncoding,
-      InEncoding.GetBytes(Content)));
+      InternalRenderText(Content, ContentType, ContentEncoding, Context);
   end;
 end;
 
 procedure TMVCController.Render(const Content: string);
-var
-  OutEncoding: TEncoding;
-  InEncoding: TEncoding;
 begin
   InternalRender(Content, ContentType, ContentEncoding, Context);
-  // if ContentType = TMVCMimeType.APPLICATION_JSON then
-  // begin
-  // Render(TJSONString.Create(Content));
-  // end
-  // else if ContentType = TMVCMimeType.TEXT_XML then
-  // begin
-  // raise EMVCException.Create('Format still not supported - ' + ContentType);
-  // end
-  // else
-  // begin
-  // if ContentType.IsEmpty then
-  // ContentType := 'text/plain; charset=' + ContentEncoding
-  // else
-  // ContentType := ContentType + '; charset=' + ContentEncoding;
-  // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-  // InEncoding := TEncoding.Default;
-  // Context.Response.Content := OutEncoding.GetString
-  // (TEncoding.Convert(InEncoding, OutEncoding,
-  // InEncoding.GetBytes(Content)));
-  // end;
 end;
 
 procedure TMVCController.Render(AObject: TObject; AInstanceOwner: boolean);
@@ -1746,8 +1728,6 @@ end;
 
 function TMVCWebRequest.GetParamNames: TArray<String>;
 var
-  MappedParams: TArray<String>;
-  LastIndex: Integer;
   I: Integer;
   Names: TList<String>;
   n: string;
@@ -2160,7 +2140,6 @@ procedure TMVCController.Render(ADataSet: TDataSet; AInstanceOwner: boolean; AOn
 var
   arr: TJSONArray;
   jobj: TJSONObject;
-  S: String;
 begin
   if ContentType = TMVCMimeType.APPLICATION_JSON then
   begin
