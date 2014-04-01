@@ -89,7 +89,8 @@ begin
     Append('<html><body><ul>').
     Append('<li>FirstName: Daniele</li>').
     Append('<li>LastName: Teti').
-    AppendFormat('<li>DOB: %s</li>', [ISODateToString(EncodeDate(1975, 5, 2))]).
+    AppendFormat('<li>DOB: %s</li>',
+    [ISODateToString(EncodeDate(1975, 5, 2))]).
     Append('<li>Married: yes</li>').
     Append('</ul></body></html>');
   Render;
@@ -134,7 +135,6 @@ begin
   P.Married := True;
   People.Add(P);
 {$ENDREGION}
-
   Render<TPerson>(People);
   // or if you want to be more opne to future extension
   // RenderListAsProperty<TPerson>('people', People);
@@ -154,6 +154,7 @@ end;
 
 procedure TRenderSampleController.GetPersonPhoto(CTX: TWebContext);
 begin
+  // ContentType := 'image/jpeg';
   SendFile('..\..\..\_\customer.png');
 end;
 

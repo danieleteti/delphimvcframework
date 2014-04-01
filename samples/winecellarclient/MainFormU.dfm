@@ -38,8 +38,6 @@ object Form5: TForm5
     TabOrder = 1
     object TabSheet1: TTabSheet
       Caption = 'Wines'
-      ExplicitWidth = 281
-      ExplicitHeight = 165
       object DBGrid1: TDBGrid
         Left = 0
         Top = 0
@@ -97,8 +95,6 @@ object Form5: TForm5
     object TabSheet3: TTabSheet
       Caption = 'Wine Edit'
       ImageIndex = 2
-      ExplicitLeft = -84
-      ExplicitTop = 16
       object Label1: TLabel
         Left = 16
         Top = 16
@@ -205,8 +201,6 @@ object Form5: TForm5
     object TabSheet2: TTabSheet
       Caption = 'Raw'
       ImageIndex = 1
-      ExplicitWidth = 281
-      ExplicitHeight = 165
       object Memo1: TMemo
         Left = 0
         Top = 0
@@ -221,10 +215,6 @@ object Form5: TForm5
         ParentFont = False
         ReadOnly = True
         TabOrder = 0
-        ExplicitLeft = -416
-        ExplicitTop = -212
-        ExplicitWidth = 697
-        ExplicitHeight = 377
       end
     end
   end

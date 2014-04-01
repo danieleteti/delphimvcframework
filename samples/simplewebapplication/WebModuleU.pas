@@ -20,12 +20,13 @@ implementation
 
 {$R *.dfm}
 
+
 uses SampleControllerU;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   DMVC := TMVCEngine.Create(self);
-  DMVC.Config['document_root'] := '..\..\www';
+  DMVC.Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
   DMVC.AddController(TSampleController);
 end;
 

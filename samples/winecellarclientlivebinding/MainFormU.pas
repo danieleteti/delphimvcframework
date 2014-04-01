@@ -66,7 +66,7 @@ implementation
 {$R *.dfm}
 
 
-uses ObjectsMappers, Data.DBXJSON;
+uses ObjectsMappers, Data.DBXJSON, MVCFramework.Commons;
 
 procedure TForm5.BindNavigator1BeforeAction(Sender: TObject; Button: TNavigateButton);
 var
@@ -110,7 +110,8 @@ begin
   response := RESTClient.doGET('/wines', []);
   Memo1.Lines.Text := response.BodyAsString;
   FWines.Clear;
-  Mapper.JSONArrayToObjectList<TWine>(FWines, response.BodyAsJsonValue as TJSONArray, false);
+  Mapper.JSONArrayToObjectList<TWine>(FWines,
+    response.BodyAsJsonValue as TJSONArray, false);
   WinesAdapter.SetList(FWines, false);
   WinesAdapter.Active := True;
 end;

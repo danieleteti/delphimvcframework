@@ -234,8 +234,8 @@ object Form5: TForm5
       end>
     ScopeMappings = <>
     OnCreateAdapter = PrototypeBindSource1CreateAdapter
-    Left = 520
-    Top = 168
+    Left = 320
+    Top = 160
   end
   object BindingsList1: TBindingsList
     Methods = <>
