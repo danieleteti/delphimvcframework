@@ -8,9 +8,9 @@ uses System.SysUtils,
 type
   TWebSession = class abstract
   strict protected
-    FSessionID : string;
+    FSessionID: string;
     FLastAccess: TDateTime;
-    FTimeout   : UInt64;
+    FTimeout: UInt64;
     function GetItems(const Key: string): string; virtual; abstract;
     procedure SetItems(const Key, Value: string); virtual; abstract;
 
@@ -44,7 +44,7 @@ type
   TMVCSessionFactory = class sealed
   protected
     FRegisteredSessionTypes: TDictionary<string, TWebSessionClass>;
-    class var FInstance    : TMVCSessionFactory;
+    class var FInstance: TMVCSessionFactory;
     constructor Create;
     destructor Destroy; override;
 
@@ -63,9 +63,9 @@ uses
   System.SyncObjs;
 
 var
-  GSessionlist         : TObjectDictionary<string, TWebSession>;
+  GSessionlist: TObjectDictionary<string, TWebSession>;
   GLastSessionListClear: TDateTime;
-  CS                   : TCriticalSection;
+  CS: TCriticalSection;
 
 function SessionList: TObjectDictionary<string, TWebSession>;
 var
@@ -139,13 +139,23 @@ end;
 
 function TWebSessionMemory.GetItems(const Key: string): string;
 begin
-  if not FData.TryGetValue(Key, Result) then
-    Result := '';
+  TMonitor.Enter(Self);
+  try
+    if not FData.TryGetValue(Key, Result) then
+      Result := '';
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 procedure TWebSessionMemory.SetItems(const Key, Value: string);
 begin
-  FData.AddOrSetValue(Key, Value);
+  TMonitor.Enter(Self);
+  try
+    FData.AddOrSetValue(Key, Value);
+  finally
+    TMonitor.Exit(Self);
+  end;
 end;
 
 function TWebSessionMemory.ToString: string;
