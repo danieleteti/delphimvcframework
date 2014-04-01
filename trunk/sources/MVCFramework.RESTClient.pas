@@ -12,7 +12,7 @@ uses
   idURI,
   DBXJSON,
   IdMultipartFormData,
-  System.SysUtils;
+  System.SysUtils, Data.DB;
 
 type
   TArrayOfString = array of string;
@@ -169,11 +169,18 @@ type
       write SetConnectionTimeout;
     property RequestHeaders: TStringlist read FRequestHeaders
       write SetRequestHeaders;
+    // dataset specific methods
+    function DSUpdate(const URL: String; DataSet: TDataSet; const KeyValue: String): IRESTResponse;
+    function DSInsert(const URL: String; DataSet: TDataSet): IRESTResponse;
+    function DSDelete(const URL: String; const KeyValue: String): IRESTResponse;
   end;
 
 function StringsToArrayOfString(const AStrings: TStrings): TArrayOfString;
 
 implementation
+
+uses
+  ObjectsMappers;
 
 { TRSF }
 
@@ -277,20 +284,20 @@ end;
 function TRESTClient.doDELETE(AResource: string;
   AResourceParams: array of string): IRESTResponse;
 var
-  url: string;
+  URL: string;
 begin
-  url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequest(httpDELETE, url);
+    StartAsynchRequest(httpDELETE, URL);
   end
   else
   begin
-    Result := SendHTTPCommand(httpDELETE, FAccept, FContentType, url, nil);
+    Result := SendHTTPCommand(httpDELETE, FAccept, FContentType, URL, nil);
     ClearAllParams;
   end;
 end;
@@ -336,20 +343,20 @@ end;
 function TRESTClient.doGET(AResource: string; AResourceParams: array of string)
   : IRESTResponse;
 var
-  url: string;
+  URL: string;
 begin
-  url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequest(httpGET, url);
+    StartAsynchRequest(httpGET, URL);
   end
   else
   begin
-    Result := SendHTTPCommand(httpGET, FAccept, FContentType, url, nil);
+    Result := SendHTTPCommand(httpGET, FAccept, FContentType, URL, nil);
     ClearAllParams;
   end;
 end;
@@ -388,20 +395,20 @@ end;
 
 function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string; ABodyString: String): IRESTResponse;
 var
-  url: string;
+  URL: string;
 begin
-  url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequest(httpPOST, url, ABodyString);
+    StartAsynchRequest(httpPOST, URL, ABodyString);
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType, url,
+    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType, URL,
       ABodyString);
     ClearAllParams;
   end;
@@ -423,20 +430,20 @@ end;
 function TRESTClient.doPOST(AResource: string; AResourceParams: array of string;
 ABodyString: String): IRESTResponse;
 var
-  url: string;
+  URL: string;
 begin
-  url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequest(httpPOST, url, ABodyString);
+    StartAsynchRequest(httpPOST, URL, ABodyString);
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, url,
+    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, URL,
       ABodyString);
     ClearAllParams;
   end;
@@ -445,24 +452,39 @@ end;
 function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;
 ABodyString: String): IRESTResponse;
 var
-  url: string;
+  URL: string;
 begin
-  url := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
     Result := nil;
-    StartAsynchRequest(httpPUT, url, ABodyString);
+    StartAsynchRequest(httpPUT, URL, ABodyString);
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, url,
+    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, URL,
       ABodyString);
     ClearAllParams;
   end;
 
+end;
+
+function TRESTClient.DSDelete(const URL, KeyValue: String): IRESTResponse;
+begin
+  Result := doDELETE(URL, [KeyValue]);
+end;
+
+function TRESTClient.DSInsert(const URL: String; DataSet: TDataSet): IRESTResponse;
+begin
+  Result := doPOST(URL, [], DataSet.AsJSONObjectString);
+end;
+
+function TRESTClient.DSUpdate(const URL: String; DataSet: TDataSet; const KeyValue: String): IRESTResponse;
+begin
+  Result := doPUT(URL, [KeyValue], DataSet.AsJSONObjectString);
 end;
 
 function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;

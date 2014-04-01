@@ -78,7 +78,9 @@ type
     class function ObjectToJSONObjectString(AObject: TObject): String;
     class function ObjectToJSONArray(AObject: TObject): TJSONArray;
     class function JSONArrayToObjectList<T: class, constructor>(AJSONArray: TJSONArray;
-      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True): TObjectList<T>;
+      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True): TObjectList<T>; overload;
+    class procedure JSONArrayToObjectList<T: class, constructor>(AList: TObjectList<T>; AJSONArray: TJSONArray;
+      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True); overload;
     class procedure ReaderToObject(AReader: TDBXReader; AObject: TObject);
     class procedure ReaderToObjectList<T: class, constructor>(AReader: TDBXReader;
       AObjectList: TObjectList<T>);
@@ -1356,20 +1358,26 @@ begin
     AJSONArray.Free;
 end;
 
-class
-  function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
-  AOwnsChildObjects: boolean): TObjectList<T>;
+class procedure Mapper.JSONArrayToObjectList<T>(AList: TObjectList<T>; AJSONArray: TJSONArray; AInstanceOwner,
+  AOwnsChildObjects: boolean);
 var
   I: Integer;
 begin
-  Result := TObjectList<T>.Create(AOwnsChildObjects);
   if Assigned(AJSONArray) then
   begin
     for I := 0 to AJSONArray.Size - 1 do
-      Result.Add(Mapper.JSONObjectToObject<T>(AJSONArray.Get(I) as TJSONObject));
+      AList.Add(Mapper.JSONObjectToObject<T>(AJSONArray.Get(I) as TJSONObject));
     if AInstanceOwner then
       AJSONArray.Free;
   end;
+end;
+
+class
+  function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
+  AOwnsChildObjects: boolean): TObjectList<T>;
+begin
+  Result := TObjectList<T>.Create(AOwnsChildObjects);
+  JSONArrayToObjectList<T>(Result, AJSONArray, AInstanceOwner, AOwnsChildObjects);
 end;
 
 class
@@ -1879,18 +1887,18 @@ begin
       begin
         if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
         begin
-          Map.Add(LowerCase(MapperColumnAttribute(obj_field_attr).FieldName), obj_field);
+          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName.ToLower, obj_field);
         end
         else
         begin
-          Map.Add(obj_field.Name, obj_field);
+          Map.Add(obj_field.Name.ToLower, obj_field);
         end
       end;
     end;
     for I := 0 to AFDParams.Count - 1 do
     begin
-      pname := AFDParams[I].Name;
-      if pname.StartsWith(AParamPrefix) then
+      pname := AFDParams[I].Name.ToLower;
+      if pname.StartsWith(AParamPrefix, True) then
         Delete(pname, 1, PrefixLength);
       if Map.TryGetValue(pname, f) then
       begin

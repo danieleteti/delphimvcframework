@@ -90,12 +90,18 @@ begin
   // different behaviour according to the request http method
   case ctx.Request.HTTPMethod of
     httpDELETE:
-      Render(dm.DeleteWine(StrToInt(ctx.Request.Params['id'])));
+      begin
+        dm.DeleteWine(StrToInt(ctx.Request.Params['id']));
+        Render(200, 'Wine deleted');
+      end;
     httpGET:
-      Render(dm.GetWineById(StrToInt(ctx.Request.Params['id'])));
+      begin
+        Render(dm.GetWineById(StrToInt(ctx.Request.Params['id'])));
+      end
   else
     raise Exception.Create('Invalid http method for action');
   end;
+
 end;
 
 procedure TWineCellarApp.WinesList(ctx: TWebContext);
