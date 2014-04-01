@@ -3,8 +3,8 @@
 	<body>
 	<h2>Customer List</h2>
 	<ul>
-	<?lua for i = 1,#customers do ?>
-		<li><?lua=customers[i].firstName .. " " .. customers[i].lastName ?></li>
+		<?lua for _, customer in ipairs(customers) do ?>
+		<li><?lua=customer.firstName .. " " .. customer.lastName ?></li>
 	<?lua end	?>
 	</ul>
 	<a href="/newcustomer.elua">Add New Customer</a>
