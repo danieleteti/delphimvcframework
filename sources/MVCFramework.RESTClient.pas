@@ -12,7 +12,7 @@ uses
   idURI,
   DBXJSON,
   IdMultipartFormData,
-  System.SysUtils, Data.DB;
+  System.SysUtils, Data.DB, IdIOHandler;
 
 type
   TArrayOfString = array of string;
@@ -81,6 +81,7 @@ type
     FPrimaryThread: TThread;
     FMultiPartFormData: TIdMultiPartFormDataStream;
     FAsynchProcAlways: TProc;
+    FProtocol: string;
     function EncodeQueryStringParams(const AQueryStringParams: TStrings;
       IncludeQuestionMark: Boolean = true): string;
     procedure SetBodyParams(const Value: TStringlist);
@@ -120,7 +121,7 @@ type
 
   public
     constructor Create(const AServerName: string;
-      AServerPort: Word = 80); virtual;
+      AServerPort: Word = 80; AIOHandler: TIdIOHandler = nil); virtual;
     destructor Destroy; override;
 
     function AddFile(const FieldName, FileName: string;
@@ -252,7 +253,9 @@ begin
   Result := Self;
 end;
 
-constructor TRESTClient.Create(const AServerName: string; AServerPort: Word);
+constructor TRESTClient.Create(const AServerName: string; AServerPort: Word; AIOHandler: TIdIOHandler);
+var
+  Pieces: TArray<String>;
 begin
   inherited Create;
   FPrimaryThread := TThread.CurrentThread;
@@ -264,9 +267,18 @@ begin
   FAccept := 'application/json';
   FContentType := 'application/json; charset=utf-8';
   FRequestHeaders := TStringlist.Create;
+  if AServerName.Contains('://') then
+  begin
+    Pieces := FServerName.Split(['://'], 2, TStringSplitOptions.ExcludeEmpty);
+    FProtocol := Pieces[0];
+    FServerName := Pieces[1];
+  end
+  else
+    FProtocol := 'http';
 
   FHTTP := TIdHTTP.Create(nil);
   FHTTP.ReadTimeout := 20000;
+  FHTTP.IOHandler := AIOHandler;
   // FHTTP.AllowCookies := true;
 end;
 
@@ -286,7 +298,7 @@ function TRESTClient.doDELETE(AResource: string;
 var
   URL: string;
 begin
-  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
@@ -345,7 +357,7 @@ function TRESTClient.doGET(AResource: string; AResourceParams: array of string)
 var
   URL: string;
 begin
-  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
@@ -368,7 +380,7 @@ var
 begin
   try
     Result := SendHTTPCommand(httpPOST, FAccept, FContentType,
-      'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+      FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
       EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
       (FQueryStringParams), FBodyParams);
   except
@@ -397,7 +409,7 @@ function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string
 var
   URL: string;
 begin
-  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
@@ -432,7 +444,7 @@ ABodyString: String): IRESTResponse;
 var
   URL: string;
 begin
-  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
@@ -454,7 +466,7 @@ ABodyString: String): IRESTResponse;
 var
   URL: string;
 begin
-  URL := 'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+  URL := FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams);
 
@@ -505,7 +517,7 @@ function TRESTClient.doPUT(AResource: string; AResourceParams: array of string)
   : IRESTResponse;
 begin
   Result := SendHTTPCommand(httpPUT, FAccept, FContentType,
-    'http://' + FServerName + ':' + inttostr(FServerPort) + AResource +
+    FProtocol + '://' + FServerName + ':' + inttostr(FServerPort) + AResource +
     EncodeResourceParams(AResourceParams) + EncodeQueryStringParams
     (FQueryStringParams), FBodyParams);
   ClearAllParams;
