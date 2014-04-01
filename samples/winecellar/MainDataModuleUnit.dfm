@@ -1,53 +1,62 @@
 object WineCellarDataModule: TWineCellarDataModule
   OldCreateOrder = False
-  OnCreate = DataModuleCreate
-  Height = 150
-  Width = 215
-  object wines: TSQLConnection
-    ConnectionName = 'wines'
-    DriverName = 'Firebird'
-    LoginPrompt = False
+  Height = 211
+  Width = 336
+  object Connection: TFDConnection
     Params.Strings = (
-      'DriverName=Firebird'
-      'DriverUnit=Data.DBXFirebird'
-      
-        'DriverPackageLoader=TDBXDynalinkDriverLoader,DbxCommonDriver170.' +
-        'bpl'
-      
-        'DriverAssemblyLoader=Borland.Data.TDBXDynalinkDriverLoader,Borla' +
-        'nd.Data.DbxCommonDriver,Version=17.0.0.0,Culture=neutral,PublicK' +
-        'eyToken=91d62ebb5b0d1b1b'
-      
-        'MetaDataPackageLoader=TDBXFirebirdMetaDataCommandFactory,DbxFire' +
-        'birdDriver170.bpl'
-      
-        'MetaDataAssemblyLoader=Borland.Data.TDBXFirebirdMetaDataCommandF' +
-        'actory,Borland.Data.DbxFirebirdDriver,Version=17.0.0.0,Culture=n' +
-        'eutral,PublicKeyToken=91d62ebb5b0d1b1b'
-      'LibraryName=dbxfb.dll'
-      'LibraryNameOsx=libsqlfb.dylib'
-      'VendorLib=fbclient.dll'
-      'VendorLibWin64=fbclient.dll'
-      'VendorLibOsx=/Library/Frameworks/Firebird.framework/Firebird'
-      
-        'Database=D:\Corsi\HTML5 Builder XE3\samples\winesdatasnap\WINES.' +
-        'FDB'
+      'Database=C:\DEV\DMVCFramework\samples\winecellar\WINES.FDB'
       'User_Name=sysdba'
       'Password=masterkey'
-      'Role=RoleName'
-      'MaxBlobSize=-1'
-      'LocaleCode=0000'
-      'IsolationLevel=ReadCommitted'
-      'SQLDialect=3'
-      'CommitRetain=False'
-      'WaitOnLocks=True'
-      'TrimChar=False'
-      'BlobSize=-1'
-      'ErrorResourceFile='
-      'RoleName=RoleName'
-      'ServerCharSet='
-      'Trim Char=False')
-    Left = 86
-    Top = 49
+      'DriverID=FB')
+    ConnectedStoredUsage = [auDesignTime]
+    Connected = True
+    LoginPrompt = False
+    BeforeConnect = ConnectionBeforeConnect
+    Left = 72
+    Top = 48
+  end
+  object qryWines: TFDQuery
+    Active = True
+    Connection = Connection
+    UpdateObject = updWines
+    SQL.Strings = (
+      'SELECT * FROM WINE')
+    Left = 168
+    Top = 48
+  end
+  object updWines: TFDUpdateSQL
+    Connection = Connection
+    InsertSQL.Strings = (
+      'INSERT INTO WINE'
+      '(NAME, "YEAR", GRAPES, COUNTRY, REGION, '
+      '  DESCRIPTION, PICTURE)'
+      
+        'VALUES (:NEW_NAME, :NEW_YEAR, :NEW_GRAPES, :NEW_COUNTRY, :NEW_RE' +
+        'GION, '
+      '  :NEW_DESCRIPTION, :NEW_PICTURE)')
+    ModifySQL.Strings = (
+      'UPDATE WINE'
+      'SET NAME = :NEW_NAME, "YEAR" = :NEW_YEAR, GRAPES = :NEW_GRAPES, '
+      
+        '  COUNTRY = :NEW_COUNTRY, REGION = :NEW_REGION, DESCRIPTION = :N' +
+        'EW_DESCRIPTION, '
+      '  PICTURE = :NEW_PICTURE'
+      'WHERE ID = :OLD_ID')
+    DeleteSQL.Strings = (
+      'DELETE FROM WINE'
+      'WHERE ID = :OLD_ID')
+    FetchRowSQL.Strings = (
+      
+        'SELECT ID, NAME, "YEAR" AS "YEAR", GRAPES, COUNTRY, REGION, DESC' +
+        'RIPTION, '
+      '  PICTURE'
+      'FROM WINE'
+      'WHERE ID = :ID')
+    Left = 168
+    Top = 120
+  end
+  object FDPhysFBDriverLink1: TFDPhysFBDriverLink
+    Left = 72
+    Top = 120
   end
 end

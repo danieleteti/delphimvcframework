@@ -104,7 +104,7 @@ begin
     dsEdit:
       Resp := RESTClient.DSUpdate('/wines', FDMemTable1, FDMemTable1id.AsString);
     dsInsert:
-      Resp := RESTClient.dsInsert('/wines', FDMemTable1);
+      Resp := RESTClient.DSInsert('/wines', FDMemTable1);
   end;
   if not Resp.ResponseCode in [200, 201] then
     raise Exception.Create(Resp.ResponseText);
