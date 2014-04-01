@@ -2161,12 +2161,22 @@ end;
 
 procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray);
 begin
-  Mapper.JSONArrayToDataSet(AJSONArray, Self, false);
+  Self.DisableControls;
+  try
+    Mapper.JSONArrayToDataSet(AJSONArray, Self, false);
+  finally
+    Self.EnableControls;
+  end;
 end;
 
 procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<String>);
 begin
-  Mapper.JSONArrayToDataSet(AJSONArray, Self, AIgnoredFields, false);
+  Self.DisableControls;
+  try
+    Mapper.JSONArrayToDataSet(AJSONArray, Self, AIgnoredFields, false);
+  finally
+    Self.EnableControls;
+  end;
 end;
 
 procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: String; AIgnoredFields: TArray<String>);

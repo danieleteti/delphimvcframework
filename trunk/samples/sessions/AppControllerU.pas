@@ -11,7 +11,7 @@ type
   [MVCPath('/')]
   TApp1MainController = class(TMVCController)
   public
-    [MVCPath('/')]
+    [MVCPath('/name')]
     [MVCHTTPMethod([httpGET])]
     procedure Index(ctx: TWebContext);
 
