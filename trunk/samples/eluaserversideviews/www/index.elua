@@ -1,8 +1,0 @@
-<?lua require 'Lua.html.form'?>
-This is an eLua file
-<?lua="Hello World" ?>
-
-<?lua=html:form_start("POST", "/customers") ?>
-<?lua=html:input("text", "Hello World") ?>
-<?lua=html:submit("Save") ?>
-<?lua=html:form_end() ?>

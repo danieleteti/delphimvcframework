@@ -9,46 +9,84 @@ type
 
   [MVCPath('/')]
   TSampleController = class(TMVCController)
-  public
-    [MVCHTTPMethod([httpGet])]
-    [MVCPath('/($searchtext)/($page)')]
-    [MVCProduces('text/plain')]
-    procedure SearchCustomers(CTX: TWebContext);
+  protected
+    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean); override;
 
-    [MVCHTTPMethod([httpPost])]
+  public
+    [MVCPath('/')]
+    [MVCHTTPMethod([httpGet])]
+    procedure Index(Ctx: TWebContext);
+
     [MVCPath('/customers')]
-    [MVCProduces('text/plain')]
-    procedure CreateCustomer(CTX: TWebContext);
+    [MVCHTTPMethod([httpGet])]
+    [MVCProduces('text/html')]
+    procedure CustomersList(Ctx: TWebContext);
+
+    [MVCPath('/customers')]
+    [MVCHTTPMethod([httpPost])]
+    [MVCProduces('text/html')]
+    [MVCConsumes('application/x-www-form-urlencoded')]
+    procedure CreateCustomer(Ctx: TWebContext);
 
   end;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, Data.DBXJSON;
 
 { TRoutingSampleController }
 
-procedure TSampleController.CreateCustomer(CTX: TWebContext);
+procedure TSampleController.CreateCustomer(Ctx: TWebContext);
+var
+  Arr: TJSONArray;
+  FirstName: string;
+  LastName: string;
 begin
-  ResponseStream.Append('First name: ' + CTX.Request.Params['first_name'] +
-    sLineBreak + 'Last name: ' + CTX.Request.Params['last_name']);
-  Render;
+  Arr := TJSONObject.ParseJSONValue(Session['customers']) as TJSONArray;
+  try
+    FirstName := Ctx.Request.Params['firstName'];
+    LastName := Ctx.Request.Params['lastName'];
+    Arr.AddElement(TJSONObject.Create.AddPair('firstName', FirstName).AddPair('lastName', LastName));
+    Session['customers'] := Arr.ToString;
+  finally
+    Arr.Free;
+  end;
+  Redirect('/customers');
 end;
 
-procedure TSampleController.SearchCustomers(CTX: TWebContext);
+procedure TSampleController.OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean);
 var
-  search: string;
-  p: Integer;
-  orderby: string;
+  Arr: TJSONArray;
+  cust: TJSONObject;
 begin
-  search := CTX.Request.Params['searchtext'];
-  p := CTX.Request.ParamsAsInteger['page'];
-  orderby := '';
-  if CTX.Request.QueryStringParamExists('order') then
-    orderby := CTX.Request.QueryStringParam('order');
-  Render(Format('SEARCHTEXT: "%s", PAGE: %d, ORDERBYFIELD: "%s"',
-    [search, p, orderby]));
+  inherited;
+  if Session['customers'].IsEmpty then
+  begin
+    Arr := TJSONArray.Create;
+    try
+      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Daniele').AddPair('lastName', 'Teti'));
+      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Peter').AddPair('lastName', 'Parker'));
+      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Sue').AddPair('lastName', 'Storm'));
+      Session['customers'] := Arr.ToString;
+    finally
+      Arr.Free;
+    end;
+  end;
+end;
+
+procedure TSampleController.CustomersList(Ctx: TWebContext);
+var
+  JV: TJSONValue;
+begin
+  JV := TJSONObject.ParseJSONValue(Session['customers']);
+  PushJSONToView('customers', JV);
+  LoadView('list');
+end;
+
+procedure TSampleController.Index(Ctx: TWebContext);
+begin
+  Redirect('/customers');
 end;
 
 end.

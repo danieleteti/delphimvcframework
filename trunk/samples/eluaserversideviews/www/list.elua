@@ -1,0 +1,12 @@
+<?lua require 'Lua.html.form'?>
+<html>
+	<body>
+	<h2>Customer List</h2>
+	<ul>
+	<?lua for i = 1,#customers do ?>
+		<li><?lua=customers[i].firstName .. " " .. customers[i].lastName ?></li>
+	<?lua end	?>
+	</ul>
+	<a href="/newcustomer.elua">Add New Customer</a>
+	</body>
+</html>
