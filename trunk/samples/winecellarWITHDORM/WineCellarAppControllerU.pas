@@ -22,7 +22,7 @@ type
       const AActionNAme: string); override;
 
   public
-    [MVCPath('/')]
+    [MVCPath]
     [MVCHTTPMethod([httpGET])]
     procedure Index(ctx: TWebContext);
 
@@ -56,7 +56,8 @@ procedure TWineCellarApp.FindWines(ctx: TWebContext);
 var
   Wines: TObjectList<TWine>;
 begin
-  Wines := dormSession.LoadListSQL<TWine>(Select.From(TWine).Where('#TWine.name# containing ? order by #TWine.ID#',
+  Wines := dormSession.LoadListSQL<TWine>(
+    Select.From(TWine).Where('#TWine.name# containing ? order by #TWine.ID#',
     [ctx.Request.Params['value']]));
   Render<TWine>(Wines);
 end;

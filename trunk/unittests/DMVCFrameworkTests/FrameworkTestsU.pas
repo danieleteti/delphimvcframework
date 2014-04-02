@@ -26,7 +26,6 @@ type
     procedure TestPathWithParameters;
     procedure TestWithMethodTypes;
     procedure TestComplexRoutings;
-    // procedure TestClassNameMethodNameRouting;
 
     procedure TestObjectToJSONObject;
     procedure TestObjectListToJSONArray;
@@ -42,7 +41,7 @@ implementation
 
 uses MVCFramework.Commons,
   TestControllersU, DBClient,
-  Web.HTTPApp, ObjectsMappers, BOs, Data.DBXJSON;
+  Web.HTTPApp, ObjectsMappers, BOs, Data.DBXJSON, TestServerControllerU;
 
 procedure TTestRouting.SameFishesDataSet(ds, ds2: TDataSet);
 begin
@@ -61,6 +60,7 @@ begin
   Controllers := TList<TMVCControllerClass>.Create;
   Controllers.Add(TSimpleController);
   Controllers.Add(TNotSoSimpleController);
+  Controllers.Add(TTestServerController);
   Router := TMVCRouter.Create(nil);
 end;
 
@@ -89,8 +89,41 @@ end;
 // end;
 
 procedure TTestRouting.TestComplexRoutings;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
 begin
+  Params := TMVCRequestParamsTable.Create;
+  try
+    CheckTrue(Router.ExecuteRouting('/path1/1', httpPOST, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', Params, ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
 
+    Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/path2/1/2/3', httpPOST, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', Params, ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/path3/1/2/tre/3', httpPOST, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', Params, ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/path4/par1/2/par2/3/4', httpPOST, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', Params, ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckFalse(Router.ExecuteRouting('/path4/par1/par2/3/4/notvalidparameter', httpPOST, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', Params, ResponseContentType, ResponseContentEncoding));
+    CheckNull(Router.MethodToCall);
+    CheckFalse(Assigned(Router.MVCControllerClass));
+
+  finally
+    Params.Free;
+  end;
 end;
 
 procedure TTestRouting.TestDataSetToJSONArray;

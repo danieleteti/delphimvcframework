@@ -5,6 +5,7 @@ interface
 uses ObjectsMappers;
 
 type
+  [MapperJSONNaming(JSONNameLowerCase)]
   TWine = class
   private
     FYEAR: string;

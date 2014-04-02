@@ -1,4 +1,3 @@
-<?lua require 'Lua.html.form'?>
 <?lua require 'userlib.commons'?>
 <html>
 	<body>
