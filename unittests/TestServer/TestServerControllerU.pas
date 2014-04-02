@@ -64,6 +64,13 @@ type
     [MVCProduces('application/json')]
     procedure TestPOSTObject(ctx: TWebContext);
 
+    [MVCPath('/path1/($id)')]
+    [MVCPath('/path2/($id)/2/($par)')]
+    [MVCPath('/path3/($id)/2/($par)/3')]
+    [MVCPath('/path4/($id)/2/($par)/3/4')]
+    [MVCHTTPMethod([httpPOST, httpPUT])]
+    procedure TestMultiplePaths(ctx: TWebContext);
+
   end;
 
 implementation
@@ -199,6 +206,12 @@ begin
   Obj.AddPair('name2', 'to je Unicode?');
   Obj.AddPair('name3', 'אטילעש');
   Render(Obj);
+end;
+
+procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);
+begin
+  ContentType := TMVCMimeType.TEXT_PLAIN;
+  Render(ctx.Request.Params['id']);
 end;
 
 procedure TTestServerController.TestPOSTObject(ctx: TWebContext);

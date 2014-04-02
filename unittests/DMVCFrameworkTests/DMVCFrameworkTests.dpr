@@ -25,7 +25,8 @@ uses
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
   BOs in 'BOs.pas',
-  RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas';
+  RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
+  TestServerControllerU in '..\TestServer\TestServerControllerU.pas';
 
 {$R *.RES}
 
