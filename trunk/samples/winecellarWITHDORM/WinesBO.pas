@@ -38,7 +38,7 @@ type
     property description: string read FDESCRIPTION write SetDESCRIPTION;
     property picture: String read FPICTURE write SetPICTURE;
     [Transient]
-    property ObjStatus: tdormObjectStatus read FObjStatus write SetObjStatus;
+    property ObjStatus: TdormObjectStatus read FObjStatus write SetObjStatus;
   end;
 
 implementation
