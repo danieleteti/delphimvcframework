@@ -82,6 +82,7 @@ type
     FMultiPartFormData: TIdMultiPartFormDataStream;
     FAsynchProcAlways: TProc;
     FProtocol: string;
+    FSynchronized: Boolean;
     function EncodeQueryStringParams(const AQueryStringParams: TStrings;
       IncludeQuestionMark: Boolean = true): string;
     procedure SetBodyParams(const Value: TStringlist);
@@ -128,7 +129,7 @@ type
       const ContentType: string = ''): TRESTClient;
 
     function Asynch(AProc: TProc<IRESTResponse>;
-      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil): TRESTClient;
+      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil; ASynchronized: Boolean = false): TRESTClient;
     function ClearAllParams: TRESTClient;
     function ResetSession: TRESTClient;
     function Accept(const AcceptHeader: string): TRESTClient; overload;
@@ -215,12 +216,13 @@ begin
 end;
 
 function TRESTClient.Asynch(AProc: TProc<IRESTResponse>;
-  AProcErr: TProc<Exception>; AProcAlways: TProc): TRESTClient;
+  AProcErr: TProc<Exception>; AProcAlways: TProc; ASynchronized: Boolean): TRESTClient;
 begin
   FNextRequestIsAsynch := true;
   FAsynchProc := AProc;
   FAsynchProcErr := AProcErr;
   FAsynchProcAlways := AProcAlways;
+  FSynchronized := ASynchronized;
   Result := Self;
 end;
 
@@ -236,7 +238,7 @@ begin
   if Assigned(FQueryStringParams) then
     FQueryStringParams.Clear;
   Result := Self;
-  FNextRequestIsAsynch := False;
+  FNextRequestIsAsynch := false;
   FAsynchProc := nil;
   FAsynchProcErr := nil;
   FAsynchProcAlways := nil;
@@ -335,7 +337,14 @@ begin
           ABodyString);
         TMonitor.Enter(TObject(R));
         try
-          FAsynchProc(R);
+          if FSynchronized then
+            TThread.Synchronize(nil,
+              procedure
+              begin
+                FAsynchProc(R);
+              end)
+          else
+            FAsynchProc(R);
           ClearAllParams;
         finally
           TMonitor.Exit(TObject(R));
@@ -343,17 +352,32 @@ begin
       except
         on E: Exception do
         begin
-          FAsynchProcErr(E);
+          if FSynchronized then
+            TThread.Synchronize(nil,
+              procedure
+              begin
+                FAsynchProcErr(E);
+              end)
+          else
+            FAsynchProcErr(E);
         end;
       end;
       if Assigned(FAsynchProcAlways) then
-        FAsynchProcAlways();
+      begin
+        if FSynchronized then
+          TThread.Synchronize(nil,
+            procedure
+            begin
+              FAsynchProcAlways();
+            end)
+        else
+          FAsynchProcAlways();
+      end;
     end);
   th.Start;
 end;
 
-function TRESTClient.doGET(AResource: string; AResourceParams: array of string)
-  : IRESTResponse;
+function TRESTClient.doGET(AResource: string; AResourceParams: array of string): IRESTResponse;
 var
   URL: string;
 begin
@@ -373,8 +397,7 @@ begin
   end;
 end;
 
-function TRESTClient.doPOST(AResource: string; AResourceParams: array of string)
-  : IRESTResponse;
+function TRESTClient.doPOST(AResource: string; AResourceParams: array of string): IRESTResponse;
 var
   s: string;
 begin
@@ -702,7 +725,7 @@ begin
           if Assigned(ABodyParams) and (ABodyParams.Count > 0) then
           begin
             GetRawBody.Size := 0;
-            GetRawBody.WriteString(EncodeQueryStringParams(ABodyParams, False));
+            GetRawBody.WriteString(EncodeQueryStringParams(ABodyParams, false));
           end;
           FHTTP.Put(AUrl, FRawBody, Result.Body);
         end;
