@@ -7,11 +7,6 @@ uses
   Generics.Collections;
 
 type
-  TMVCConstants = class sealed
-  public const
-    SESSION_TOKEN_NAME = 'dtsessionid';
-  end;
-
   TMVCMimeType = class sealed
   public const
     APPLICATION_JSON = 'application/json';
@@ -25,6 +20,13 @@ type
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     APPLICATION_OCTETSTREAM = 'application/octet-stream';
     TEXT_EVENTSTREAM = 'text/event-stream';
+  end;
+
+  TMVCConstants = class sealed
+  public const
+    SESSION_TOKEN_NAME = 'dtsessionid';
+    DEFAULT_CONTENT_ENCODING = 'utf-8';
+    DEFAULT_CONTENT_TYPE = TMVCMimeType.APPLICATION_JSON;
   end;
 
   EMVCException = class(Exception)
