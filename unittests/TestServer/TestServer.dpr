@@ -59,6 +59,7 @@ begin
 end;
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;

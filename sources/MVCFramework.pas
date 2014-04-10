@@ -95,6 +95,7 @@ type
     FContentType: string;
     FContentEncoding: string;
     function GetHeader(const Name: string): string;
+    function GetHeaderValue(const Name: string): string;
     function GetPathInfo: string;
     procedure SetPathInfo(const Value: string);
     function Param(Name: string): string;
@@ -296,7 +297,7 @@ type
     procedure Render(AJSONValue: TJSONValue; AInstanceOwner: boolean = true);
       overload; virtual;
     procedure RenderListAsProperty<T: class>(const APropertyName: string;
-      AObjectList: TObjectList<T>; AOwnsInstance: boolean = true);
+      AObjectList: TObjectList<T>; AOwnsInstance: boolean = true; AJSONObjectActionProc: TJSONObjectActionProc = nil);
     procedure Render(E: Exception; ErrorItems: TList<string> = nil);
       overload; virtual;
     procedure Render(const AErrorCode: UInt16;
@@ -414,6 +415,7 @@ type
     DocumentRoot = 'document_root';
     ViewPath = 'view_path';
     DefaultContentType = 'default_content_type';
+    DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
     ISAPIPath = 'isapi_path';
     StompServer = 'stompserver';
@@ -491,9 +493,11 @@ end;
 procedure TMVCEngine.ConfigDefaultValues;
 begin
   Config[TMVCConfigKey.SessionTimeout] := '30'; // 30 minutes
-  Config[TMVCConfigKey.DocumentRoot] := '..\..\..\www';
+  Config[TMVCConfigKey.DocumentRoot] := '.\www';
   Config[TMVCConfigKey.ViewPath] := 'eLua';
-  Config[TMVCConfigKey.DefaultContentType] := TMVCMimeType.APPLICATION_JSON;
+  Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
+  Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+
   Config[TMVCConfigKey.DefaultViewFileExtension] := 'elua';
   Config[TMVCConfigKey.ISAPIPath] := '';
 
@@ -501,7 +505,7 @@ begin
   Config[TMVCConfigKey.StompServerPort] := '61613';
   Config[TMVCConfigKey.StompUsername] := 'guest';
   Config[TMVCConfigKey.StompPassword] := 'guest';
-  Config[TMVCConfigKey.Messaging] := 'true';
+  Config[TMVCConfigKey.Messaging] := 'false';
 
   // Config['sessiontimeout'] := '30'; // 30 minutes
   // Config['document_root'] := '..\..\..\www';
@@ -599,6 +603,8 @@ begin
             begin
               if Router.ExecuteRouting(Request, FControllers,
                 FMVCConfig[TMVCConfigKey.DefaultContentType],
+                FMVCConfig[TMVCConfigKey.DefaultContentCharset],
+
                 ParamsTable, ResponseContentType, ResponseContentEncoding) then
               begin
                 SelectedController := Router.MVCControllerClass.Create;
@@ -670,7 +676,6 @@ begin
                     end;
                   end;
                   Context.Response.ContentType := SelectedController.ContentType;
-                  Context.Response.Flush;
                 finally
                   SelectedController.Free;
                 end;
@@ -695,7 +700,7 @@ begin
       ParamsTable.Free;
     end;
   finally
-    LogExitMethod(Request.PathInfo);
+    LogExitMethod(Request.PathInfo + ' [' + IntToStr(Response.StatusCode) + ' ' + Response.ReasonString + ']');
   end;
 end;
 
@@ -1043,7 +1048,6 @@ begin
 
 {$ELSE}
     FRequest := TMVCINDYWebRequest.Create(ARequest);
-
 {$ENDIF}
   end;
   FResponse := TMVCWebResponse.Create(AResponse);
@@ -1265,7 +1269,7 @@ begin
   begin
     CT := c.Split([';']);
     FContentType := trim(CT[0]);
-    FContentEncoding := 'UTF-8'; // default encoding
+    FContentEncoding := 'utf-8'; // default encoding
     if Length(CT) > 1 then
     begin
       if CT[1].trim.StartsWith('charset', true) then
@@ -1274,6 +1278,10 @@ begin
       end;
     end;
   end;
+
+  c := GetHeaderValue('content-encoding');
+  if c.IsEmpty then
+    FContentEncoding := c;
 end;
 
 destructor TMVCWebRequest.Destroy;
@@ -1305,22 +1313,14 @@ begin
   inherited Create;
   IsSessionStarted := false;
   SessionMustBeClose := false;
-  FContentEncoding := 'UTF-8';
-  // try
-  // MVCControllerAfterCreate;
-  // except
-  // on E: Exception do
-  // begin
-  // raise EMVCException.Create('Initialization failed for controller ' + ClassName +
-  // ' [CLASS ' + E.ClassName + '] [MESSAGE ' + E.Message + ']');
-  // end;
-  // end;
+  FContentEncoding := TMVCConstants.DEFAULT_CONTENT_CHARSET;
 end;
 
 destructor TMVCController.Destroy;
 begin
-  // MVCControllerBeforeDestroy;
   FreeAndNil(FResponseStream);
+  FreeAndNil(FViewDataSets);
+  FreeAndNil(FViewModel);
   inherited;
 end;
 
@@ -1424,14 +1424,10 @@ end;
 procedure TMVCController.MVCControllerAfterCreate;
 begin
   inherited;
-  FViewModel := TMVCDataObjects.Create;
-  FViewDataSets := TObjectDictionary<string, TDataSet>.Create;
 end;
 
 procedure TMVCController.MVCControllerBeforeDestroy;
 begin
-  FViewDataSets.Free;
-  FViewModel.Free;
   inherited;
 end;
 
@@ -1452,53 +1448,94 @@ end;
 procedure TMVCController.PushDataSetToView(const AModelName: string;
   ADataSet: TDataSet);
 begin
+  if not Assigned(FViewDataSets) then
+    FViewDataSets := TObjectDictionary<string, TDataSet>.Create;
   FViewDataSets.Add(AModelName, ADataSet);
 end;
 
 procedure TMVCController.PushJSONToView(const AModelName: string;
   AModel: TJSONValue);
 begin
+  if not Assigned(FViewModel) then
+    FViewModel := TMVCDataObjects.Create;
   FViewModel.Add(AModelName, AModel);
 end;
 
 procedure TMVCController.PushModelToView(const AModelName: string;
   AModel: TObject);
 begin
+  if not Assigned(FViewModel) then
+    FViewModel := TMVCDataObjects.Create;
   FViewModel.Add(AModelName, AModel);
 end;
 
 procedure InternalRenderText(const AContent: String; ContentType, ContentEncoding: String; Context: TWebContext);
 var
   OutEncoding: TEncoding;
-  InEncoding: TEncoding;
 begin
-  Context.Response.ContentType := ContentType + '; charset=' + ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-  InEncoding := TEncoding.Default; // GetEncoding(S);
-  Context.Response.Content := OutEncoding.GetString
-    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(AContent)));
-  OutEncoding.Free;
+  try
+    Context.Response.RawWebResponse.Content :=
+      OutEncoding.GetString(
+      TEncoding.Convert(
+      TEncoding.Default,
+      OutEncoding,
+      TEncoding.Default.GetBytes(AContent)));
+  finally
+    OutEncoding.Free;
+  end;
+  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' + ContentEncoding;
+  // Context.Response.RawWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
+  // Context.Response.RawWebResponse.ContentEncoding := ContentEncoding;
+  // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
+  // InEncoding := TEncoding.Default; // GetEncoding(S);
+  // Context.Response.Content := OutEncoding.GetString
+  // (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(AContent)));
+  // OutEncoding.Free;
 end;
 
 procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
   AInstanceOwner: boolean);
 var
-  S: string;
   OutEncoding: TEncoding;
-  InEncoding: TEncoding;
 begin
-  Context.Response.ContentType := 'application/json; charset=' + ContentEncoding;
-  S := AJSONValue.ToString;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-  InEncoding := TEncoding.Default; // GetEncoding(S);
-  Context.Response.Content := OutEncoding.GetString
+  try
+    Context.Response.RawWebResponse.Content :=
+      OutEncoding.GetString(
+      TEncoding.Convert(
+      TEncoding.Default,
+      OutEncoding,
+      TEncoding.Default.GetBytes(AJSONValue.ToString)));
+  finally
+    OutEncoding.Free;
+  end;
+  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' + ContentEncoding;
+
+  // Context.Response.RawWebResponse.StatusCode := 200;
+
+  {
+    Context.Response.RawWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
+    //Context.Response.RawWebResponse.ContentEncoding := ContentEncoding;
+    S := AJSONValue.ToString;
+    OutEncoding := TEncoding.GetEncoding(ContentEncoding);
+    InEncoding := TEncoding.Default;
+    Context.Response.RawWebResponse.Content := OutEncoding.GetString
     (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
-  OutEncoding.Free;
+    OutEncoding.Free;
+    Context.Response.RawWebResponse.Content := s;
+  }
   if AInstanceOwner then
     FreeAndNil(AJSONValue)
 end;
 
-procedure InternalRender(const Content: string; ContentType, ContentEncoding: String; Context: TWebContext);
+procedure InternalRender(
+  const
+  Content:
+  string;
+  ContentType, ContentEncoding: String;
+  Context:
+  TWebContext);
 begin
   if ContentType = TMVCMimeType.APPLICATION_JSON then
   begin
@@ -1517,12 +1554,17 @@ begin
   end;
 end;
 
-procedure TMVCController.Render(const Content: string);
+procedure TMVCController.Render(
+  const
+  Content:
+  string);
 begin
   InternalRender(Content, ContentType, ContentEncoding, Context);
 end;
 
-procedure TMVCController.Render(AObject: TObject; AInstanceOwner: boolean);
+procedure TMVCController.Render(AObject: TObject;
+  AInstanceOwner:
+  boolean);
 var
   json: TJSONObject;
 begin
@@ -1542,7 +1584,10 @@ begin
 
 end;
 
-procedure TMVCController.SendSessionCookie(const SessionID: string);
+procedure TMVCController.SendSessionCookie(
+  const
+  SessionID:
+  string);
 var
   Cookie: TCookie;
 begin
@@ -1618,17 +1663,26 @@ begin
   SessionMustBeClose := true;
 end;
 
-procedure TMVCController.SetContentEncoding(const Value: string);
+procedure TMVCController.SetContentEncoding(
+  const
+  Value:
+  string);
 begin
   FContentEncoding := Value;
 end;
 
-procedure TMVCController.SetContentType(const Value: string);
+procedure TMVCController.SetContentType(
+  const
+  Value:
+  string);
 begin
   FContext.Response.ContentType := Value;
 end;
 
-procedure TMVCController.SetContext(const Value: TWebContext);
+procedure TMVCController.SetContext(
+  const
+  Value:
+  TWebContext);
 begin
   if FContext = nil then
     FContext := Value
@@ -1641,7 +1695,10 @@ end;
 // FViewCache := Value;
 // end;
 
-procedure TMVCController.SetWebSession(const Value: TWebSession);
+procedure TMVCController.SetWebSession(
+  const
+  Value:
+  TWebSession);
 begin
   if Assigned(FWebSession) then
     raise EMVCException.Create('Web Session already set for controller ' +
@@ -1652,7 +1709,10 @@ end;
 
 { TMVCPathAttribute }
 
-constructor MVCPathAttribute.Create(const Value: string);
+constructor MVCPathAttribute.Create(
+  const
+  Value:
+  string);
 begin
   inherited Create;
   FPath := Value;
@@ -1683,9 +1743,29 @@ begin
   Result := FWebRequest.Files;
 end;
 
-function TMVCWebRequest.GetHeader(const Name: string): string;
+function TMVCWebRequest.GetHeader(
+  const
+  Name:
+  string): string;
 begin
-  Result := FWebRequest.GetFieldByName(name);
+  if Assigned(FWebRequest) then
+    Result := FWebRequest.GetFieldByName(name)
+  else
+    Result := '';
+end;
+
+function TMVCWebRequest.GetHeaderValue(
+  const
+  Name:
+  string): string;
+var
+  S: string;
+begin
+  S := GetHeader(Name);
+  if S.IsEmpty then
+    Result := ''
+  else
+    Result := S.Split([':'])[1].trim;
 end;
 
 // function TMVCWebRequest.GetHeaderAll(const HeaderName: string): string;
@@ -1709,7 +1789,10 @@ begin
     = 'xmlhttprequest';
 end;
 
-function TMVCWebRequest.GetParamAll(const ParamName: string): string;
+function TMVCWebRequest.GetParamAll(
+  const
+  ParamName:
+  string): string;
 begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(ParamName, Result)) then
   begin
@@ -1721,7 +1804,10 @@ begin
   end;
 end;
 
-function TMVCWebRequest.GetParamAllAsInteger(const ParamName: string): Integer;
+function TMVCWebRequest.GetParamAllAsInteger(
+  const
+  ParamName:
+  string): Integer;
 begin
   Result := StrToInt(GetParamAll(ParamName));
 end;
@@ -1768,7 +1854,10 @@ begin
   FParamsTable := AParamsTable;
 end;
 
-procedure TMVCWebRequest.SetPathInfo(const Value: string);
+procedure TMVCWebRequest.SetPathInfo(
+  const
+  Value:
+  string);
 begin
   FPathInfo := Value;
 end;
@@ -1809,7 +1898,8 @@ end;
 { TMVCStaticContents }
 class
   procedure TMVCStaticContents.SendFile(AFileName, AMimeType: string;
-  Context: TWebContext);
+  Context:
+  TWebContext);
 var
   LFileDate: TDateTime;
   LReqDate: TDateTime;
@@ -1843,7 +1933,8 @@ end;
 
 class
   function TMVCStaticContents.IsScriptableFile(StaticFileName: string;
-  Config: TMVCConfig): boolean;
+  Config:
+  TMVCConfig): boolean;
 begin
   Result := TPath.GetExtension(StaticFileName).ToLower = '.' +
     Config[TMVCConfigKey.DefaultViewFileExtension].ToLower;
@@ -1851,7 +1942,8 @@ end;
 
 class
   function TMVCStaticContents.IsStaticFile(AViewPath, AWebRequestPath
-  : string; out ARealFileName: string): boolean;
+  : string;
+  out ARealFileName: string): boolean;
 var
   FileName: string;
 begin
@@ -1866,19 +1958,28 @@ begin
   ARealFileName := FileName;
 end;
 
-procedure TMVCBase.SetApplicationSession(const Value: TWebApplicationSession);
+procedure TMVCBase.SetApplicationSession(
+  const
+  Value:
+  TWebApplicationSession);
 begin
   if Assigned(FApplicationSession) then
     raise EMVCException.Create('Application Session already set');
   FApplicationSession := Value;
 end;
 
-procedure TMVCBase.SetMVCConfig(const Value: TMVCConfig);
+procedure TMVCBase.SetMVCConfig(
+  const
+  Value:
+  TMVCConfig);
 begin
   FMVCConfig := Value;
 end;
 
-procedure TMVCBase.SetMVCEngine(const Value: TMVCEngine);
+procedure TMVCBase.SetMVCEngine(
+  const
+  Value:
+  TMVCEngine);
 begin
   FMVCEngine := Value;
 end;
@@ -2011,8 +2112,14 @@ begin
 end;
 { TWebSession }
 
-function TMVCController.ReceiveMessageFromTopic(const ATopic: string;
-  ATimeout: Int64; var JSONObject: TJSONObject): boolean;
+function TMVCController.ReceiveMessageFromTopic(
+  const
+  ATopic:
+  string;
+  ATimeout:
+  Int64;
+  var
+  JSONObject: TJSONObject): boolean;
 var
   Stomp: IStompClient;
   frame: IStompFrame;
@@ -2046,7 +2153,9 @@ begin
   FContext.Response.FWebResponse.SendRedirect(URL);
 end;
 
-procedure TMVCController.Render(E: Exception; ErrorItems: TList<string>);
+procedure TMVCController.Render(E: Exception;
+  ErrorItems:
+  TList<string>);
 var
   j: TJSONObject;
   S: string;
@@ -2112,8 +2221,13 @@ begin
   end;
 end;
 
-procedure TMVCController.Render(const AErrorCode: UInt16;
-  const AErrorMessage: string);
+procedure TMVCController.Render(
+  const
+  AErrorCode:
+  UInt16;
+  const
+  AErrorMessage:
+  string);
 var
   j: TJSONObject;
   status: string;
@@ -2136,7 +2250,11 @@ begin
   end;
 end;
 
-procedure TMVCController.Render(ADataSet: TDataSet; AInstanceOwner: boolean; AOnlySingleRecord: boolean);
+procedure TMVCController.Render(ADataSet: TDataSet;
+  AInstanceOwner:
+  boolean;
+  AOnlySingleRecord:
+  boolean);
 var
   arr: TJSONArray;
   jobj: TJSONObject;
@@ -2167,7 +2285,10 @@ begin
 end;
 
 procedure TMVCController.Render<T>(ACollection: TObjectList<T>;
-  AInstanceOwner: boolean; AJSONObjectActionProc: TJSONObjectActionProc);
+  AInstanceOwner:
+  boolean;
+  AJSONObjectActionProc:
+  TJSONObjectActionProc);
 var
   json: TJSONArray;
 begin
@@ -2177,20 +2298,26 @@ begin
     FreeAndNil(ACollection);
 end;
 
-procedure TMVCController.RenderListAsProperty<T>(const APropertyName: string;
-  AObjectList: TObjectList<T>; AOwnsInstance: boolean);
+procedure TMVCController.RenderListAsProperty<T>(
+  const APropertyName: string;
+  AObjectList: TObjectList<T>;
+  AOwnsInstance: boolean; AJSONObjectActionProc: TJSONObjectActionProc);
 begin
   Render(TJSONObject.Create(TJSONPair.Create(APropertyName,
-    Mapper.ObjectListToJSONArray<T>(AObjectList, AOwnsInstance))));
+    Mapper.ObjectListToJSONArray<T>(AObjectList, AOwnsInstance, AJSONObjectActionProc))));
 end;
 
 procedure TMVCController.Render(AJSONValue: TJSONValue;
-  AInstanceOwner: boolean);
+  AInstanceOwner:
+  boolean);
 begin
   InternalRender(AJSONValue, ContentType, ContentEncoding, Context, AInstanceOwner);
 end;
 
-procedure TMVCController.ResponseStatusCode(const ErrorCode: UInt16);
+procedure TMVCController.ResponseStatusCode(
+  const
+  ErrorCode:
+  UInt16);
 begin
   Context.Response.StatusCode := ErrorCode;
 end;
@@ -2207,8 +2334,14 @@ begin
   Create('');
 end;
 
-procedure TMVCController.Render(const AErrorCode: UInt16;
-  AJSONValue: TJSONValue; AInstanceOwner: boolean);
+procedure TMVCController.Render(
+  const
+  AErrorCode:
+  UInt16;
+  AJSONValue:
+  TJSONValue;
+  AInstanceOwner:
+  boolean);
 begin
   ResponseStatusCode(AErrorCode);
   if ContentType = 'application/json' then
@@ -2223,8 +2356,14 @@ begin
 
 end;
 
-procedure TMVCController.Render(const AErrorCode: UInt16; AObject: TObject;
-  AInstanceOwner: boolean);
+procedure TMVCController.Render(
+  const
+  AErrorCode:
+  UInt16;
+  AObject:
+  TObject;
+  AInstanceOwner:
+  boolean);
 begin
   Render(AErrorCode, Mapper.ObjectToJSONObject(AObject), true);
   if AInstanceOwner then
@@ -2248,7 +2387,10 @@ end;
 {$ENDIF}
 { MVCStringAttribute }
 
-constructor MVCStringAttribute.Create(const Value: string);
+constructor MVCStringAttribute.Create(
+  const
+  Value:
+  string);
 begin
   inherited Create;
   FValue := Value;
@@ -2266,19 +2408,27 @@ end;
 
 { MVCProduceAttribute }
 
-constructor MVCProducesAttribute.Create(const Value, ProduceEncoding: String);
+constructor MVCProducesAttribute.Create(
+  const
+  Value, ProduceEncoding: String);
 begin
   Create(Value);
   FProduceEncoding := ProduceEncoding;
 end;
 
-constructor MVCProducesAttribute.Create(const Value: string);
+constructor MVCProducesAttribute.Create(
+  const
+  Value:
+  string);
 begin
   inherited;
   FProduceEncoding := 'UTF-8';
 end;
 
-procedure MVCProducesAttribute.SetProduceEncoding(const Value: String);
+procedure MVCProducesAttribute.SetProduceEncoding(
+  const
+  Value:
+  String);
 begin
   FProduceEncoding := Value;
 end;

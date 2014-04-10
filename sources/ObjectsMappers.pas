@@ -62,6 +62,8 @@ type
     ///
     class function JSONObjectToObject<T: constructor, class>(AJSONObject: TJSONObject): T;
       overload; static;
+    class function JSONObjectStringToObject<T: constructor, class>(const AJSONObjectString: String): T;
+
     class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
       overload; static;
     class function JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
@@ -142,6 +144,7 @@ type
       DefaultValue: Int64 = 0): Int64;
     class function GetBooleanDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: boolean = false): boolean;
+    class function PropertyExists(JSONObject: TJSONObject; PropertyName: string): boolean;
   end;
 
   TDataSetHelper = class helper for TDataSet
@@ -201,6 +204,10 @@ type
   end;
 
   FormatDateTimeValue = class(StringValueAttribute)
+
+  end;
+
+  MapperSerializeAsString = class(TCustomAttribute)
 
   end;
 
@@ -693,6 +700,8 @@ var
   I: Integer;
   ThereAreIgnoredProperties: boolean;
   ts: TTimeStamp;
+  sr: TStreamReader;
+  SS: TStringStream;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -785,6 +794,32 @@ begin
                     Arr.AddElement(ObjectToJSONObject(Obj));
                 end;
               end
+            end
+            else if o is TStream then
+            begin
+              if HasAttribute<MapperSerializeAsString>(_property) then
+              begin
+                // serialize the stream as a normal string...
+                TStream(o).Position := 0;
+                sr := TStreamReader.Create(TStream(o));
+                try
+                  JSONObject.AddPair(f, sr.ReadToEnd);
+                finally
+                  sr.Free;
+                end;
+              end
+              else
+              begin
+                // serialize the stream as Base64 encoded string...
+                TStream(o).Position := 0;
+                SS := TStringStream.Create;
+                try
+                  EncodeStream(TStream(o), SS);
+                  JSONObject.AddPair(f, SS.DataString);
+                finally
+                  SS.Free;
+                end;
+              end;
             end
             else
             begin
@@ -909,6 +944,11 @@ begin
   finally
     JObj.Free;
   end;
+end;
+
+class function Mapper.PropertyExists(JSONObject: TJSONObject; PropertyName: string): boolean;
+begin
+  Result := Assigned(GetPair(JSONObject, PropertyName));
 end;
 
 class
@@ -1517,6 +1557,18 @@ begin
   JSONObjectToDataSet(AJSONObject, ADataSet, TArray<String>.Create(), AJSONObjectInstanceOwner);
 end;
 
+class function Mapper.JSONObjectStringToObject<T>(const AJSONObjectString: String): T;
+var
+  JObj: TJSONObject;
+begin
+  JObj := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
+  try
+    Result := JSONObjectToObject<T>(JObj);
+  finally
+    JObj.Free;
+  end;
+end;
+
 class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
   AIgnoredFields: TArray<String>;
   AJSONObjectInstanceOwner: boolean);
@@ -1629,8 +1681,7 @@ begin
     raise Exception.CreateFmt('Class not found [%s]', [ClazzName]);
 end;
 
-class
-  function Mapper.JSONObjectToObject<T>(AJSONObject: TJSONObject): T;
+class function Mapper.JSONObjectToObject<T>(AJSONObject: TJSONObject): T;
 begin
   if not Assigned(AJSONObject) then
     raise Exception.Create('JSONObject not assigned');

@@ -50,7 +50,7 @@ type
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     [MVCConsumes('application/json')]
-    [MVCProduces('application/json')]
+    [MVCProduces('application/json', 'utf-8')]
     procedure TestConsumesProduces(ctx: TWebContext);
 
     [MVCPath('/testconsumes')]
@@ -201,6 +201,7 @@ procedure TTestServerController.TestEncoding(ctx: TWebContext);
 var
   Obj: TJSONObject;
 begin
+  ContentEncoding := 'utf-8';
   Obj := TJSONObject.Create;
   Obj.AddPair('name1', 'jørn');
   Obj.AddPair('name2', 'Što je Unicode?');

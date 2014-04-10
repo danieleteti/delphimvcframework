@@ -35,7 +35,7 @@ type
     constructor Create(AMVCConfig: TMVCConfig);
     function ExecuteRouting(AWebRequest: TWebRequest;
       AMVCControllers: TList<TMVCControllerClass>;
-      ADefaultContentType: String;
+      ADefaultContentType, ADefaultContentCharset: String;
       var AMVCRequestParams: TMVCRequestParamsTable;
       out AResponseContentType, AResponseContentEncoding: string)
       : Boolean; overload;
@@ -45,6 +45,7 @@ type
       AWebRequestAccept: AnsiString;
       AMVCControllers: TList<TMVCControllerClass>;
       ADefaultContentType: String;
+      ADefaultContentCharset: String;
       var AMVCRequestParams: TMVCRequestParamsTable;
       out AResponseContentType, AResponseContentEncoding: string)
       : Boolean; overload;
@@ -64,7 +65,7 @@ uses
 
 function TMVCRouter.ExecuteRouting(AWebRequest: TWebRequest;
   AMVCControllers: TList<TMVCControllerClass>;
-  ADefaultContentType: String;
+  ADefaultContentType, ADefaultContentCharset: String;
   var AMVCRequestParams: TMVCRequestParamsTable;
   out AResponseContentType, AResponseContentEncoding: string): Boolean;
 var
@@ -72,7 +73,10 @@ var
 begin
   HTTPMethodType := StringMethodToHTTPMetod(AWebRequest.Method);
   Result := ExecuteRouting(AWebRequest.PathInfo, HTTPMethodType,
-    AWebRequest.ContentType, AWebRequest.Accept, AMVCControllers, ADefaultContentType, AMVCRequestParams,
+    AWebRequest.ContentType, AWebRequest.Accept, AMVCControllers,
+    ADefaultContentType,
+    ADefaultContentCharset,
+    AMVCRequestParams,
     AResponseContentType, AResponseContentEncoding);
 end;
 
@@ -85,7 +89,7 @@ end;
 function TMVCRouter.ExecuteRouting(AWebRequestPathInfo: AnsiString;
   AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString; AWebRequestAccept: AnsiString;
   AMVCControllers: TList<TMVCControllerClass>;
-  ADefaultContentType: String;
+  ADefaultContentType, ADefaultContentCharset: String;
   var AMVCRequestParams: TMVCRequestParamsTable;
   out AResponseContentType, AResponseContentEncoding: string): Boolean;
 var
@@ -183,7 +187,7 @@ begin
                 else
                 begin
                   AResponseContentType := ADefaultContentType;
-                  AResponseContentEncoding := 'UTF-8';
+                  AResponseContentEncoding := ADefaultContentCharset;
                 end;
                 Exit(true);
               end; // if is compatible path
