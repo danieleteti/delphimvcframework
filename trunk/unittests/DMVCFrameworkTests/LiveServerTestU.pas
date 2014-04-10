@@ -345,12 +345,13 @@ begin
   res := RESTClient
     .Accept('application/json')
     .ContentType('application/json')
+    .ContentEncoding('utf-8')
     .doPOST('/testconsumes', [],
     TJSONString.Create('Hello World'));
   CheckEquals(200, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
   CheckEquals('application/json', res.GetContentType);
-  CheckEquals('UTF-8', res.GetContentEncoding);
+  CheckEquals('utf-8', res.GetContentEncoding);
 end;
 
 procedure TServerTest.TestProducesConsumes02;

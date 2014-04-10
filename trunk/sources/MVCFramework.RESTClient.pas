@@ -83,6 +83,7 @@ type
     FAsynchProcAlways: TProc;
     FProtocol: string;
     FSynchronized: Boolean;
+    FContentEncoding: String;
     function EncodeQueryStringParams(const AQueryStringParams: TStrings;
       IncludeQuestionMark: Boolean = true): string;
     procedure SetBodyParams(const Value: TStringlist);
@@ -137,6 +138,9 @@ type
     function ContentType(const ContentTypeHeader: string): TRESTClient;
       overload;
     function ContentType: string; overload;
+    function ContentEncoding(const ContentEncodingHeader: string): TRESTClient;
+      overload;
+    function ContentEncoding: string; overload;
     // requests
     function doGET(AResource: string; AResourceParams: array of string)
       : IRESTResponse;
@@ -242,6 +246,17 @@ begin
   FAsynchProc := nil;
   FAsynchProcErr := nil;
   FAsynchProcAlways := nil;
+end;
+
+function TRESTClient.ContentEncoding(const ContentEncodingHeader: string): TRESTClient;
+begin
+  FContentEncoding := ContentEncodingHeader;
+  Result := Self;
+end;
+
+function TRESTClient.ContentEncoding: string;
+begin
+  Result := FContentEncoding;
 end;
 
 function TRESTClient.ContentType: string;
