@@ -218,12 +218,23 @@ end;
 procedure TServerTest.TestEncodingRenderJSONValue;
 var
   res: IRESTResponse;
+  s: string;
 begin
   res := RESTClient.doGET('/encoding', []);
-  CheckEquals('jørn', res.BodyAsJsonObject.Get('name1').JsonValue.Value);
-  CheckEquals('Što je Unicode?', res.BodyAsJsonObject.Get('name2')
-    .JsonValue.Value);
-  CheckEquals('àèéìòù', res.BodyAsJsonObject.Get('name3').JsonValue.Value);
+
+  s := res.BodyAsJsonObject.Get('name1').JsonValue.Value;
+  CheckEquals('jørn', s);
+
+  s := res.BodyAsJsonObject.Get('name3').JsonValue.Value;
+  CheckEquals('àèéìòù', s);
+
+  s := res.BodyAsJsonObject.Get('name2').JsonValue.Value;
+  CheckEquals('Što je Unicode?', s);
+  { WARNING!!! }
+  {
+    If this test fail, check
+    http://qc.embarcadero.com/wc/qcmain.aspx?d=119779
+  }
 end;
 
 procedure TServerTest.TestExceptionInMVCAfterCreate;
