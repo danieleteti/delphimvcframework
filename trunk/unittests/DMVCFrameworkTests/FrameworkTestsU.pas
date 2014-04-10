@@ -282,11 +282,12 @@ begin
   try
     CheckTrue(Router.ExecuteRouting(
       '/orders', httpGET, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCConstants.DEFAULT_CONTENT_ENCODING , Params, ResponseContentType, ResponseContentEncoding));
+      Controllers, 'text/plain', TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
+      ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Orders', Router.MethodToCall.Name);
-    CheckEquals(TMVCConstants.DEFAULT_CONTENT_ENCODING, ResponseContentEncoding);
+    CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
   finally
     Params.Free;
   end;
