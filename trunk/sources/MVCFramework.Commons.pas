@@ -105,7 +105,7 @@ implementation
 uses
   System.IOUtils,
   idGlobal,
-  System.StrUtils, Data.DBXJSON;
+  System.StrUtils, Data.DBXJSON, uGlobalVars;
 
 const
   ReservedIPs: array [1 .. 11] of array [1 .. 2] of string = (
@@ -145,7 +145,7 @@ end;
 
 function AppPath: string;
 begin
-  Result := TPath.GetDirectoryName(GetModuleName(HInstance));
+  Result := gAppPath; //TPath.GetDirectoryName(GetModuleName(HInstance));
 end;
 
 { TMVCDataObjects }
