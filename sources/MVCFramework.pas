@@ -306,6 +306,7 @@ type
       AInstanceOwner: boolean = true); overload;
     procedure Render(const AErrorCode: UInt16; AObject: TObject;
       AInstanceOwner: boolean = true); overload;
+    procedure RenderStreamAndFree(const AStream: TStream);
     // messaging
     procedure EnqueueMessageOnTopic(const ATopic: string;
       AJSONObject: TJSONObject; AOwnsInstance: boolean = true);
@@ -2305,6 +2306,11 @@ procedure TMVCController.RenderListAsProperty<T>(
 begin
   Render(TJSONObject.Create(TJSONPair.Create(APropertyName,
     Mapper.ObjectListToJSONArray<T>(AObjectList, AOwnsInstance, AJSONObjectActionProc))));
+end;
+
+procedure TMVCController.RenderStreamAndFree(const AStream: TStream);
+begin
+  SendStream(AStream);
 end;
 
 procedure TMVCController.Render(AJSONValue: TJSONValue;
