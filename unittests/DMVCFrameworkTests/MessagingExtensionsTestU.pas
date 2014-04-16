@@ -21,7 +21,11 @@ implementation
 
 uses
   System.SysUtils,
+{$IF not Defined(VER270)}
   Data.DBXJSON,
+{$ELSE}
+  System.JSON,
+{$IFEND}
   System.Classes,
   MVCFramework.Logger;
 

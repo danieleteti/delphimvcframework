@@ -46,7 +46,11 @@ uses
   System.SysUtils,
   MVCFramework.Commons,
   System.DateUtils,
+{$IF not Defined(VER270)}
   Data.DBXJSON,
+{$ELSE}
+  System.JSON,
+{$IFEND}
   MVCFramework.Logger,
   System.SyncObjs;
 
@@ -251,7 +255,7 @@ procedure TMVCBUSController.OnBeforeAction(Context: TWebContext;
   const AActionNAme: string; var Handled: Boolean);
 begin
   inherited;
-  if not StrToBool( Config['messaging']) then
+  if not StrToBool(Config['messaging']) then
   begin
     Handled := true;
     raise EMVCException.Create('Messaging extensions are not enabled');

@@ -22,129 +22,166 @@ uses
   System.RTTI,
   System.IOUtils,
   DBXPLatform,
+{$IF not Defined(VER270)}
   DBXCommon,
+{$IFEND}
   DB,
   Generics.Collections,
-  DBXJSON,
-  SqlExpr,
+{$IF Defined(VER270)}
+  System.JSON,
+{$ELSE}
+  Data.DBXJSON,
+  Data.SqlExpr,
+{$IFEND}
   DuckListU
 {$IF Defined(VER260)}
-    , FireDAC.Comp.Client
-    , FireDAC.Stan.Param
+    , FireDAC.Comp.Client, FireDAC.Stan.Param
 {$IFEND};
 
 type
-  TJSONObjectActionProc = reference to procedure(const AJSONObject: TJSONObject);
+  TJSONObjectActionProc = reference to procedure(const AJSONObject
+    : TJSONObject);
 
   Mapper = class
   strict private
     class var ctx: TRTTIContext;
 
   private
+{$IF not Defined(VER270)}
     class function InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
       WithResult: boolean): Int64;
+{$IFEND}
 {$IF Defined(VER260)}
     class function InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
       WithResult: boolean): Int64;
 {$IFEND}
-    class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string; overload;
-    class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string; overload;
-    class procedure InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
-      AObject: TObject); static;
+    class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType)
+      : string; overload;
+    class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType)
+      : string; overload;
+    class procedure InternalJSONObjectToObject(ctx: TRTTIContext;
+      AJSONObject: TJSONObject; AObject: TObject); static;
 
   public
-    class function HasAttribute<T: class>(ARTTIMember: TRttiMember): boolean; overload;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiMember; out AAttribute: T)
+    class function HasAttribute<T: class>(ARTTIMember: TRttiMember)
       : boolean; overload;
+    class function HasAttribute<T: class>(ARTTIMember: TRttiMember;
+      out AAttribute: T): boolean; overload;
 
     ///
     /// Do not restore nested classes
     ///
-    class function JSONObjectToObject<T: constructor, class>(AJSONObject: TJSONObject): T;
-      overload; static;
-    class function JSONObjectStringToObject<T: constructor, class>(const AJSONObjectString: String): T;
+    class function JSONObjectToObject<T: constructor, class>
+      (AJSONObject: TJSONObject): T; overload; static;
+    class function JSONObjectStringToObject<T: constructor, class>
+      (const AJSONObjectString: String): T;
 
-    class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
-      overload; static;
-    class function JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
-      overload; static;
-    class function JSONObjectToObjectFields<T: constructor, class>(AJSONObject: TJSONObject)
-      : T; static;
-    class procedure ObjectToDataSet(Obj: TObject; Field: TField; var Value: Variant); static;
+    class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject)
+      : TObject; overload; static;
+    class function JSONObjectToObject(ClazzName: string;
+      AJSONObject: TJSONObject): TObject; overload; static;
+    class function JSONObjectToObjectFields<T: constructor, class>
+      (AJSONObject: TJSONObject): T; static;
+    class procedure ObjectToDataSet(Obj: TObject; Field: TField;
+      var Value: Variant); static;
     class procedure DataSetToObject(ADataSet: TDataSet; AObject: TObject);
-    class function ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string)
-      : TJSONObject; overload;
-    class function ObjectToJSONObjectFields(AObject: TObject; AIgnoredProperties: array of string)
-      : TJSONObject; overload;
+    class function ObjectToJSONObject(AObject: TObject;
+      AIgnoredProperties: array of string): TJSONObject; overload;
+    class function ObjectToJSONObjectFields(AObject: TObject;
+      AIgnoredProperties: array of string): TJSONObject; overload;
     class function ObjectToJSONObject(AObject: TObject): TJSONObject; overload;
     class function ObjectToJSONObjectString(AObject: TObject): String;
     class function ObjectToJSONArray(AObject: TObject): TJSONArray;
-    class function JSONArrayToObjectList<T: class, constructor>(AJSONArray: TJSONArray;
-      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True): TObjectList<T>; overload;
-    class procedure JSONArrayToObjectList<T: class, constructor>(AList: TObjectList<T>; AJSONArray: TJSONArray;
-      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True); overload;
+    class function JSONArrayToObjectList<T: class, constructor>
+      (AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+      AOwnsChildObjects: boolean = True): TObjectList<T>; overload;
+    class procedure JSONArrayToObjectList<T: class, constructor>
+      (AList: TObjectList<T>; AJSONArray: TJSONArray;
+      AInstanceOwner: boolean = True;
+      AOwnsChildObjects: boolean = True); overload;
+{$IF not Defined(VER270)}
     class procedure ReaderToObject(AReader: TDBXReader; AObject: TObject);
-    class procedure ReaderToObjectList<T: class, constructor>(AReader: TDBXReader;
-      AObjectList: TObjectList<T>);
-    class procedure ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
-      AReaderInstanceOwner: boolean = True);
-    class procedure DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject;
-      ADataSetInstanceOwner: boolean = True);
+    class procedure ReaderToObjectList<T: class, constructor>
+      (AReader: TDBXReader; AObjectList: TObjectList<T>);
+    class procedure ReaderToJSONObject(AReader: TDBXReader;
+      AJSONObject: TJSONObject; AReaderInstanceOwner: boolean = True);
+{$ENDIF}
+    class procedure DataSetToJSONObject(ADataSet: TDataSet;
+      AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True);
     class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
       ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean = True); overload;
     class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
-      ADataSet: TDataSet; AIgnoredFields: TArray<String>; AJSONObjectInstanceOwner: boolean = True); overload;
-    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet;
-      AObjectList: TObjectList<T>; ACloseDataSetAfterScroll: boolean = True);
-    class function DataSetToJSONArrayOf<T: class, constructor>(ADataSet: TDataSet): TJSONArray;
-    class procedure ReaderToList<T: class, constructor>(AReader: TDBXReader; AList: IWrappedList);
-    class procedure ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray;
-      AReaderInstanceOwner: boolean = True);
-    class procedure DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
-      ADataSetInstanceOwner: boolean = True);
-    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
-      AJSONArrayInstanceOwner: boolean = True); overload;
-    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AIgnoredFields: TArray<String>;
+      ADataSet: TDataSet; AIgnoredFields: TArray<String>;
+      AJSONObjectInstanceOwner: boolean = True); overload;
+    class procedure DataSetToObjectList<T: class, constructor>
+      (ADataSet: TDataSet; AObjectList: TObjectList<T>;
+      ACloseDataSetAfterScroll: boolean = True);
+    class function DataSetToJSONArrayOf<T: class, constructor>
+      (ADataSet: TDataSet): TJSONArray;
+{$IF not Defined(VER270)}
+    class procedure ReaderToList<T: class, constructor>(AReader: TDBXReader;
+      AList: IWrappedList);
+    class procedure ReaderToJSONArray(AReader: TDBXReader;
+      AJSONArray: TJSONArray; AReaderInstanceOwner: boolean = True);
+{$ENDIF}
+    class procedure DataSetToJSONArray(ADataSet: TDataSet;
+      AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True);
+    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray;
+      ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean = True); overload;
+    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray;
+      ADataSet: TDataSet; AIgnoredFields: TArray<String>;
       AJSONArrayInstanceOwner: boolean = True); overload;
     // class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
     // ADataSetInstanceOwner: boolean = True);
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
     // ADataSetInstanceOwner: boolean = True);
     class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>;
-      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
+      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil)
+      : TJSONArray;
     class function ObjectListToJSONArrayString<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false): String;
-    class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>)
-      : TJSONArray;
-    class function GetProperty(Obj: TObject; const PropertyName: string): TValue; static;
-    class function ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;
+    class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>
+      (AList: TObjectList<T>): TJSONArray;
+    class function GetProperty(Obj: TObject; const PropertyName: string)
+      : TValue; static;
+{$IF not Defined(VER270)}
+    class function ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
+      AObject: TObject): Int64;
     class procedure ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject = nil);
-    class function ExecuteSQLQueryAsObjectList<T: class, constructor>(AQuery: TSQLQuery;
-      AObject: TObject = nil): TObjectList<T>;
-
+    class function ExecuteSQLQueryAsObjectList<T: class, constructor>
+      (AQuery: TSQLQuery; AObject: TObject = nil): TObjectList<T>;
+{$ENDIF}
     { FIREDAC RELATED METHODS }
 {$IF Defined(VER260)}
-    class function ExecuteFDQueryNoResult(AQuery: TFDQuery; AObject: TObject): Int64;
+    class function ExecuteFDQueryNoResult(AQuery: TFDQuery;
+      AObject: TObject): Int64;
     class procedure ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
-    class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string = '');
+    class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
+      AParamPrefix: string = '');
 {$IFEND}
-    /// ///
-    class function CreateQuery(AConnection: TSQLConnection; ASQL: string): TSQLQuery;
+{$IF not Defined(VER270)}
+    class function CreateQuery(AConnection: TSQLConnection; ASQL: string)
+      : TSQLQuery;
+{$IFEND}
     // SAFE TJSONObject getter
-    class function GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
+    class function GetPair(JSONObject: TJSONObject; PropertyName: string)
+      : TJSONPair;
     class function GetStringDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: string = ''): string;
     class function GetNumberDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: Extended = 0): Extended;
-    class function GetJSONObj(JSONObject: TJSONObject; PropertyName: string): TJSONObject;
-    class function GetJSONArray(JSONObject: TJSONObject; PropertyName: string): TJSONArray;
+    class function GetJSONObj(JSONObject: TJSONObject; PropertyName: string)
+      : TJSONObject;
+    class function GetJSONArray(JSONObject: TJSONObject; PropertyName: string)
+      : TJSONArray;
     class function GetIntegerDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: Integer = 0): Integer;
     class function GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: Int64 = 0): Int64;
     class function GetBooleanDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: boolean = false): boolean;
-    class function PropertyExists(JSONObject: TJSONObject; PropertyName: string): boolean;
+    class function PropertyExists(JSONObject: TJSONObject;
+      PropertyName: string): boolean;
   end;
 
   TDataSetHelper = class helper for TDataSet
@@ -152,17 +189,24 @@ type
     function AsJSONArray: TJSONArray;
     function AsJSONArrayString: String;
     function AsJSONObject(AReturnNilIfEOF: boolean = false): TJSONObject;
-    function AsJSONObjectString(AReturnEmptyStringIfEOF: boolean = false): String;
+    function AsJSONObjectString(AReturnEmptyStringIfEOF
+      : boolean = false): String;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject); overload;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<String>); overload;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
+      AIgnoredFields: TArray<String>); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<String>); overload;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
+      AIgnoredFields: TArray<String>); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: String); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: String; AIgnoredFields: TArray<String>); overload;
+    procedure LoadFromJSONObjectString(AJSONObjectString: String;
+      AIgnoredFields: TArray<String>); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: String); overload;
-    procedure AppendFromJSONArrayString(AJSONArrayString: String; AIgnoredFields: TArray<String>); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
-    function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
+    procedure AppendFromJSONArrayString(AJSONArrayString: String;
+      AIgnoredFields: TArray<String>); overload;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll
+      : boolean = false): TObjectList<T>;
+    function AsObject<T: class, constructor>(CloseAfterScroll
+      : boolean = false): T;
   end;
 
   MapperTransientAttribute = class(TCustomAttribute)
@@ -290,7 +334,8 @@ uses
   Xml.adomxmldom;
 { Mapper }
 
-function ContainsFieldName(const FieldName: String; var FieldsArray: TArray<String>): boolean;
+function ContainsFieldName(const FieldName: String;
+  var FieldsArray: TArray<String>): boolean;
 var
   I: Integer;
 begin
@@ -326,21 +371,23 @@ end;
 function ISOStrToDateTime(DateTimeAsString: string): TDateTime;
 begin
   Result := EncodeDateTime(StrToInt(Copy(DateTimeAsString, 1, 4)),
-    StrToInt(Copy(DateTimeAsString, 6, 2)), StrToInt(Copy(DateTimeAsString, 9, 2)),
-    StrToInt(Copy(DateTimeAsString, 12, 2)), StrToInt(Copy(DateTimeAsString, 15, 2)),
+    StrToInt(Copy(DateTimeAsString, 6, 2)),
+    StrToInt(Copy(DateTimeAsString, 9, 2)),
+    StrToInt(Copy(DateTimeAsString, 12, 2)),
+    StrToInt(Copy(DateTimeAsString, 15, 2)),
     StrToInt(Copy(DateTimeAsString, 18, 2)), 0);
 end;
 
 function ISOStrToTime(TimeAsString: string): TTime;
 begin
-  Result := EncodeTime(StrToInt(Copy(TimeAsString, 1, 2)), StrToInt(Copy(TimeAsString, 4, 2)),
-    StrToInt(Copy(TimeAsString, 7, 2)), 0);
+  Result := EncodeTime(StrToInt(Copy(TimeAsString, 1, 2)),
+    StrToInt(Copy(TimeAsString, 4, 2)), StrToInt(Copy(TimeAsString, 7, 2)), 0);
 end;
 
 function ISOStrToDate(DateAsString: string): TDate;
 begin
-  Result := EncodeDate(StrToInt(Copy(DateAsString, 1, 4)), StrToInt(Copy(DateAsString, 6, 2)),
-    StrToInt(Copy(DateAsString, 9, 2)));
+  Result := EncodeDate(StrToInt(Copy(DateAsString, 1, 4)),
+    StrToInt(Copy(DateAsString, 6, 2)), StrToInt(Copy(DateAsString, 9, 2)));
   // , StrToInt
   // (Copy(DateAsString, 12, 2)), StrToInt(Copy(DateAsString, 15, 2)),
   // StrToInt(Copy(DateAsString, 18, 2)), 0);
@@ -357,15 +404,259 @@ end;
 // Result := FormatDateTime('HH:nn:ss', ATime);
 // end;
 
-class function Mapper.CreateQuery(AConnection: TSQLConnection; ASQL: string): TSQLQuery;
+{$IF not Defined(VER270)}
+
+class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
+  AObject: TObject; WithResult: boolean): Int64;
+var
+  I: Integer;
+  pname: string;
+  _rttiType: TRttiType;
+  obj_fields: TArray<TRttiProperty>;
+  obj_field: TRttiProperty;
+  obj_field_attr: MapperColumnAttribute;
+  Map: TObjectDictionary<string, TRttiProperty>;
+  f: TRttiProperty;
+  fv: TValue;
+begin
+  Map := TObjectDictionary<string, TRttiProperty>.Create;
+  try
+    if Assigned(AObject) then
+    begin
+      _rttiType := ctx.GetType(AObject.ClassType);
+      obj_fields := _rttiType.GetProperties;
+      for obj_field in obj_fields do
+      begin
+        if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
+        begin
+          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName, obj_field);
+        end
+        else
+        begin
+          Map.Add(LowerCase(obj_field.Name), obj_field);
+        end
+      end;
+    end;
+    for I := 0 to AQuery.Params.Count - 1 do
+    begin
+      pname := AQuery.Params[I].Name;
+      if Map.TryGetValue(pname, f) then
+      begin
+        fv := f.GetValue(AObject);
+        AQuery.Params[I].Value := fv.AsVariant;
+      end
+      else
+      begin
+        AQuery.Params[I].Clear;
+        AQuery.Params[I].DataType := ftString; // just to make dbx happy
+
+      end;
+    end;
+    Result := 0;
+    if WithResult then
+      AQuery.Open
+    else
+      Result := AQuery.ExecSQL;
+  finally
+    Map.Free;
+  end;
+end;
+
+class procedure Mapper.ReaderToJSONArray(AReader: TDBXReader;
+  AJSONArray: TJSONArray; AReaderInstanceOwner: boolean);
+var
+  Obj: TJSONObject;
+begin
+  while AReader.Next do
+  begin
+    Obj := TJSONObject.Create;
+    AJSONArray.AddElement(Obj);
+    ReaderToJSONObject(AReader, Obj, false);
+  end;
+  if AReaderInstanceOwner then
+    FreeAndNil(AReader);
+end;
+
+class procedure Mapper.ReaderToJSONObject(AReader: TDBXReader;
+  AJSONObject: TJSONObject; AReaderInstanceOwner: boolean);
+var
+  I: Integer;
+  key: string;
+  dt: TDateTime;
+  Time: TTimeStamp;
+  ts: TSQLTimeStamp;
+begin
+  for I := 0 to AReader.ColumnCount - 1 do
+  begin
+    key := LowerCase(AReader.Value[I].ValueType.Name);
+    case AReader.Value[I].ValueType.DataType of
+      TDBXDataTypes.Int16Type:
+        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsInt16));
+      TDBXDataTypes.Int32Type:
+        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsInt32));
+      TDBXDataTypes.Int64Type:
+        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsInt64));
+      TDBXDataTypes.DoubleType:
+        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsDouble));
+      TDBXDataTypes.AnsiStringType, TDBXDataTypes.WideStringType:
+        AJSONObject.AddPair(key, AReader.Value[I].AsString);
+      TDBXDataTypes.BcdType:
+        AJSONObject.AddPair(key,
+          TJSONNumber.Create(BcdToDouble(AReader.Value[I].AsBcd)));
+      TDBXDataTypes.DateType:
+        begin
+          if not AReader.Value[I].IsNull then
+          begin
+            Time.Time := 0;
+            Time.date := AReader.Value[I].AsDate;
+            dt := TimeStampToDateTime(Time);
+            AJSONObject.AddPair(key, ISODateToString(dt));
+          end
+          else
+            AJSONObject.AddPair(key, TJSONNull.Create);
+        end;
+      TDBXDataTypes.TimeType:
+        begin
+          if not AReader.Value[I].IsNull then
+          begin
+            ts := AReader.Value[I].AsTimeStamp;
+            AJSONObject.AddPair(key, SQLTimeStampToStr('hh:nn:ss', ts));
+          end
+          else
+            AJSONObject.AddPair(key, TJSONNull.Create);
+        end
+    else
+      raise Exception.Create('Cannot find type');
+    end;
+  end;
+  if AReaderInstanceOwner then
+    FreeAndNil(AReader);
+end;
+
+class procedure Mapper.ReaderToList<T>(AReader: TDBXReader;
+  AList: IWrappedList);
+var
+  Obj: T;
+begin
+  while AReader.Next do
+  begin
+    Obj := T.Create;
+    ReaderToObject(AReader, Obj);
+    AList.Add(Obj);
+  end;
+  AReader.Close;
+end;
+
+class procedure Mapper.ReaderToObject(AReader: TDBXReader; AObject: TObject);
+var
+  _type: TRttiType;
+  _fields: TArray<TRttiProperty>;
+  _field: TRttiProperty;
+  _attribute: MapperColumnAttribute;
+  _dict: TDictionary<string, string>;
+  _keys: TDictionary<string, boolean>;
+  mf: MapperColumnAttribute;
+  field_name: string;
+  Value: TValue;
+  ts: TTimeStamp;
+  sqlts: TSQLTimeStamp;
+begin
+  _dict := TDictionary<string, string>.Create();
+  _keys := TDictionary<string, boolean>.Create();
+  _type := ctx.GetType(AObject.ClassInfo);
+  _fields := _type.GetProperties;
+  for _field in _fields do
+    if HasAttribute<MapperColumnAttribute>(_field, _attribute) then
+    begin
+      mf := _attribute;
+      _dict.Add(_field.Name, mf.FieldName);
+      _keys.Add(_field.Name, mf.IsPK);
+    end
+    else
+    begin
+      _dict.Add(_field.Name, _field.Name);
+      _keys.Add(_field.Name, false);
+    end;
+
+  for _field in _fields do
+  begin
+    if (not _dict.TryGetValue(_field.Name, field_name)) or
+      (not _field.IsWritable) or (HasAttribute<MapperTransientAttribute>(_field))
+    then
+      Continue;
+    case _field.PropertyType.TypeKind of
+      tkInteger:
+        Value := AReader.Value[field_name].AsInt32;
+      tkFloat:
+        begin
+          if AReader.Value[field_name].IsNull then
+            Value := 0
+          else
+          begin
+            if AReader.Value[field_name].ValueType.DataType = TDBXDataTypes.DateType
+            then
+            begin
+              ts.Time := 0;
+              ts.date := AReader.Value[field_name].AsDate;
+              Value := TimeStampToDateTime(ts);
+            end
+            else if AReader.Value[field_name]
+              .ValueType.DataType = TDBXDataTypes.DoubleType then
+              Value := AReader.Value[field_name].AsDouble
+            else if AReader.Value[field_name]
+              .ValueType.DataType = TDBXDataTypes.BcdType then
+              Value := BcdToDouble(AReader.Value[field_name].AsBcd)
+            else if AReader.Value[field_name]
+              .ValueType.DataType = TDBXDataTypes.TimeType then
+            begin
+              sqlts := AReader.Value[field_name].AsTimeStamp;
+              Value := SQLTimeStampToDateTime(sqlts);
+            end
+            else
+              raise Exception.Create('Unknown tkFloat Type');
+          end;
+        end;
+      tkString, tkUString, tkWChar, tkLString, tkWString:
+        begin
+          if AReader.Value[field_name].IsNull then
+            Value := ''
+          else
+            Value := AReader.Value[field_name].AsString;
+        end;
+    else
+      raise Exception.Create('Unknown field type for ' + field_name);
+    end;
+    _field.SetValue(AObject, Value);
+  end;
+  _dict.Free;
+  _keys.Free;
+end;
+
+class procedure Mapper.ReaderToObjectList<T>(AReader: TDBXReader;
+  AObjectList: TObjectList<T>);
+var
+  Obj: T;
+begin
+  while AReader.Next do
+  begin
+    Obj := T.Create;
+    ReaderToObject(AReader, Obj);
+    AObjectList.Add(Obj);
+  end;
+  AReader.Close;
+end;
+
+class function Mapper.CreateQuery(AConnection: TSQLConnection; ASQL: string)
+  : TSQLQuery;
 begin
   Result := TSQLQuery.Create(nil);
   Result.SQLConnection := AConnection;
   Result.CommandText := ASQL;
 end;
+{$IFEND}
 
-class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
-  ADataSetInstanceOwner: boolean);
+class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
+  AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean);
 var
   Obj: TJSONObject;
 begin
@@ -393,8 +684,8 @@ begin
   end;
 end;
 
-class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject;
-  ADataSetInstanceOwner: boolean);
+class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet;
+  AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean);
 var
   I: Integer;
   key: string;
@@ -411,21 +702,26 @@ begin
       Continue;
     end;
     case ADataSet.Fields[I].DataType of
-      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint, TFieldType.ftShortint:
-        AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
+      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint,
+        TFieldType.ftShortint:
+        AJSONObject.AddPair(key,
+          TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
       TFieldType.ftLargeint:
         begin
-          AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsLargeInt));
+          AJSONObject.AddPair(key,
+            TJSONNumber.Create(ADataSet.Fields[I].AsLargeInt));
         end;
       TFieldType.ftSingle, TFieldType.ftFloat:
-        AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsFloat));
+        AJSONObject.AddPair(key,
+          TJSONNumber.Create(ADataSet.Fields[I].AsFloat));
       ftString, ftWideString, ftMemo:
         AJSONObject.AddPair(key, ADataSet.Fields[I].AsWideString);
       TFieldType.ftDate:
         begin
           if not ADataSet.Fields[I].IsNull then
           begin
-            AJSONObject.AddPair(key, ISODateToString(ADataSet.Fields[I].AsDateTime));
+            AJSONObject.AddPair(key,
+              ISODateToString(ADataSet.Fields[I].AsDateTime));
           end
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
@@ -434,7 +730,8 @@ begin
         begin
           if not ADataSet.Fields[I].IsNull then
           begin
-            AJSONObject.AddPair(key, ISODateTimeToString(ADataSet.Fields[I].AsDateTime));
+            AJSONObject.AddPair(key,
+              ISODateTimeToString(ADataSet.Fields[I].AsDateTime));
           end
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
@@ -453,7 +750,8 @@ begin
         begin
           if not ADataSet.Fields[I].IsNull then
           begin
-            AJSONObject.AddPair(key, FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency));
+            AJSONObject.AddPair(key, FormatCurr('0.00##',
+              ADataSet.Fields[I].AsCurrency));
           end
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
@@ -462,7 +760,8 @@ begin
         begin
           if not ADataSet.Fields[I].IsNull then
           begin
-            AJSONObject.AddPair(key, TJSONNumber.Create(BcdToDouble(ADataSet.Fields[I].AsBcd)));
+            AJSONObject.AddPair(key,
+              TJSONNumber.Create(BcdToDouble(ADataSet.Fields[I].AsBcd)));
           end
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
@@ -560,9 +859,8 @@ begin
   _keys.Free;
 end;
 
-class function Mapper.ObjectListToJSONArray<T>(AList: TObjectList<T>; AOwnsInstance: boolean;
-  AForEach: TJSONObjectActionProc)
-  : TJSONArray;
+class function Mapper.ObjectListToJSONArray<T>(AList: TObjectList<T>;
+  AOwnsInstance: boolean; AForEach: TJSONObjectActionProc): TJSONArray;
 var
   I: Integer;
   JV: TJSONObject;
@@ -580,7 +878,8 @@ begin
     AList.Free;
 end;
 
-class function Mapper.ObjectListToJSONArrayOfJSONArray<T>(AList: TObjectList<T>): TJSONArray;
+class function Mapper.ObjectListToJSONArrayOfJSONArray<T>(AList: TObjectList<T>)
+  : TJSONArray;
 var
   I: Integer;
 begin
@@ -589,7 +888,8 @@ begin
     Result.AddElement(ObjectToJSONArray(AList[I]));
 end;
 
-class function Mapper.ObjectListToJSONArrayString<T>(AList: TObjectList<T>; AOwnsInstance: boolean): String;
+class function Mapper.ObjectListToJSONArrayString<T>(AList: TObjectList<T>;
+  AOwnsInstance: boolean): String;
 var
   Arr: TJSONArray;
 begin
@@ -601,7 +901,8 @@ begin
   end;
 end;
 
-class procedure Mapper.ObjectToDataSet(Obj: TObject; Field: TField; var Value: Variant);
+class procedure Mapper.ObjectToDataSet(Obj: TObject; Field: TField;
+  var Value: Variant);
 begin
   Value := GetProperty(Obj, Field.FieldName).AsVariant;
 end;
@@ -638,23 +939,29 @@ begin
           end;
         end;
       tkInteger, tkInt64:
-        JSONArray.AddElement(TJSONNumber.Create(_field.GetValue(AObject).AsInteger));
+        JSONArray.AddElement(TJSONNumber.Create(_field.GetValue(AObject)
+          .AsInteger));
       tkFloat:
         begin
           if _field.PropertyType.QualifiedName = 'System.TDate' then
-            JSONArray.AddElement(TJSONString.Create(ISODateToString(_field.GetValue(AObject)
+            JSONArray.AddElement
+              (TJSONString.Create(ISODateToString(_field.GetValue(AObject)
               .AsExtended)))
           else if _field.PropertyType.QualifiedName = 'System.TDateTime' then
-            JSONArray.AddElement(TJSONString.Create(ISODateTimeToString(_field.GetValue(AObject)
+            JSONArray.AddElement
+              (TJSONString.Create(ISODateTimeToString(_field.GetValue(AObject)
               .AsExtended)))
           else if _field.PropertyType.QualifiedName = 'System.TTime' then
-            JSONArray.AddElement(TJSONString.Create(ISOTimeToString(_field.GetValue(AObject)
+            JSONArray.AddElement
+              (TJSONString.Create(ISOTimeToString(_field.GetValue(AObject)
               .AsExtended)))
           else
-            JSONArray.AddElement(TJSONNumber.Create(_field.GetValue(AObject).AsExtended));
+            JSONArray.AddElement(TJSONNumber.Create(_field.GetValue(AObject)
+              .AsExtended));
         end;
       tkString, tkLString, tkWString, tkUString:
-        JSONArray.AddElement(TJSONString.Create(_field.GetValue(AObject).AsString));
+        JSONArray.AddElement(TJSONString.Create(_field.GetValue(AObject)
+          .AsString));
       tkClass:
         begin
           o := _field.GetValue(AObject).AsObject;
@@ -674,7 +981,8 @@ begin
             end
             else
             begin
-              JSONArray.AddElement(ObjectToJSONObject(_field.GetValue(AObject).AsObject));
+              JSONArray.AddElement(ObjectToJSONObject(_field.GetValue(AObject)
+                .AsObject));
             end;
           end
           else
@@ -685,8 +993,8 @@ begin
   Result := JSONArray;
 end;
 
-class function Mapper.ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string)
-  : TJSONObject;
+class function Mapper.ObjectToJSONObject(AObject: TObject;
+  AIgnoredProperties: array of string): TJSONObject;
 var
   _type: TRttiType;
   _properties: TArray<TRttiProperty>;
@@ -730,7 +1038,8 @@ begin
 
     case _property.PropertyType.TypeKind of
       tkInteger, tkInt64:
-        JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsInteger));
+        JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject)
+          .AsInteger));
       tkFloat:
         begin
           if _property.PropertyType.QualifiedName = 'System.TDate' then
@@ -738,19 +1047,23 @@ begin
             if _property.GetValue(AObject).AsExtended = 0 then
               JSONObject.AddPair(f, TJSONNull.Create)
             else
-              JSONObject.AddPair(f, ISODateToString(_property.GetValue(AObject).AsExtended))
+              JSONObject.AddPair(f, ISODateToString(_property.GetValue(AObject)
+                .AsExtended))
           end
           else if _property.PropertyType.QualifiedName = 'System.TDateTime' then
           begin
             if _property.GetValue(AObject).AsExtended = 0 then
               JSONObject.AddPair(f, TJSONNull.Create)
             else
-              JSONObject.AddPair(f, ISODateTimeToString(_property.GetValue(AObject).AsExtended))
+              JSONObject.AddPair(f,
+                ISODateTimeToString(_property.GetValue(AObject).AsExtended))
           end
           else if _property.PropertyType.QualifiedName = 'System.TTime' then
-            JSONObject.AddPair(f, ISOTimeToString(_property.GetValue(AObject).AsExtended))
+            JSONObject.AddPair(f, ISOTimeToString(_property.GetValue(AObject)
+              .AsExtended))
           else
-            JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsExtended));
+            JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject)
+              .AsExtended));
         end;
       tkString, tkLString, tkWString, tkUString:
         JSONObject.AddPair(f, _property.GetValue(AObject).AsString);
@@ -765,14 +1078,17 @@ begin
           end
           else
           begin
-            JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsOrdinal));
+            JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject)
+              .AsOrdinal));
           end;
         end;
       tkRecord:
         begin
-          if _property.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp' then
+          if _property.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp'
+          then
           begin
-            ts := _property.GetValue(AObject).AsType<System.SysUtils.TTimeStamp>;
+            ts := _property.GetValue(AObject)
+              .AsType<System.SysUtils.TTimeStamp>;
             JSONObject.AddPair(f, TJSONNumber.Create(TimeStampToMsecs(ts)));
           end;
         end;
@@ -790,7 +1106,8 @@ begin
                 JSONObject.AddPair(f, Arr);
                 for Obj in list do
                 begin
-                  if Assigned(Obj) then // nil element into the list are not serialized
+                  if Assigned(Obj) then
+                    // nil element into the list are not serialized
                     Arr.AddElement(ObjectToJSONObject(Obj));
                 end;
               end
@@ -823,7 +1140,8 @@ begin
             end
             else
             begin
-              JSONObject.AddPair(f, ObjectToJSONObject(_property.GetValue(AObject).AsObject));
+              JSONObject.AddPair(f,
+                ObjectToJSONObject(_property.GetValue(AObject).AsObject));
             end;
           end
           else
@@ -839,8 +1157,7 @@ begin
   Result := ObjectToJSONObject(AObject, []);
 end;
 
-class
-  function Mapper.ObjectToJSONObjectFields(AObject: TObject;
+class function Mapper.ObjectToJSONObjectFields(AObject: TObject;
   AIgnoredProperties: array of string): TJSONObject;
 var
   _type: TRttiType;
@@ -878,17 +1195,22 @@ begin
     end;
     case _field.FieldType.TypeKind of
       tkInteger, tkInt64:
-        JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject).AsInteger));
+        JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject)
+          .AsInteger));
       tkFloat:
         begin
           if _field.FieldType.QualifiedName = 'System.TDate' then
-            JSONObject.AddPair(f, ISODateToString(_field.GetValue(AObject).AsExtended))
+            JSONObject.AddPair(f, ISODateToString(_field.GetValue(AObject)
+              .AsExtended))
           else if _field.FieldType.QualifiedName = 'System.TDateTime' then
-            JSONObject.AddPair(f, ISODateTimeToString(_field.GetValue(AObject).AsExtended))
+            JSONObject.AddPair(f, ISODateTimeToString(_field.GetValue(AObject)
+              .AsExtended))
           else if _field.FieldType.QualifiedName = 'System.TTime' then
-            JSONObject.AddPair(f, ISOTimeToString(_field.GetValue(AObject).AsExtended))
+            JSONObject.AddPair(f, ISOTimeToString(_field.GetValue(AObject)
+              .AsExtended))
           else
-            JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject).AsExtended));
+            JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject)
+              .AsExtended));
         end;
       tkString, tkLString, tkWString, tkUString:
         JSONObject.AddPair(f, _field.GetValue(AObject).AsString);
@@ -903,7 +1225,8 @@ begin
           end
           else
           begin
-            JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject).AsOrdinal));
+            JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject)
+              .AsOrdinal));
           end;
         end;
       tkClass:
@@ -923,7 +1246,8 @@ begin
             end
             else
             begin
-              JSONObject.AddPair(f, ObjectToJSONObject(_field.GetValue(AObject).AsObject));
+              JSONObject.AddPair(f, ObjectToJSONObject(_field.GetValue(AObject)
+                .AsObject));
             end;
           end
           else
@@ -946,194 +1270,14 @@ begin
   end;
 end;
 
-class function Mapper.PropertyExists(JSONObject: TJSONObject; PropertyName: string): boolean;
+class function Mapper.PropertyExists(JSONObject: TJSONObject;
+  PropertyName: string): boolean;
 begin
   Result := Assigned(GetPair(JSONObject, PropertyName));
 end;
 
-class
-  procedure Mapper.ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray;
-  AReaderInstanceOwner: boolean);
-var
-  Obj: TJSONObject;
-begin
-  while AReader.Next do
-  begin
-    Obj := TJSONObject.Create;
-    AJSONArray.AddElement(Obj);
-    ReaderToJSONObject(AReader, Obj, false);
-  end;
-  if AReaderInstanceOwner then
-    FreeAndNil(AReader);
-end;
-
-class
-  procedure Mapper.ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
-  AReaderInstanceOwner: boolean);
-var
-  I: Integer;
-  key: string;
-  dt: TDateTime;
-  Time: TTimeStamp;
-  ts: TSQLTimeStamp;
-begin
-  for I := 0 to AReader.ColumnCount - 1 do
-  begin
-    key := LowerCase(AReader.Value[I].ValueType.Name);
-    case AReader.Value[I].ValueType.DataType of
-      TDBXDataTypes.Int16Type:
-        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsInt16));
-      TDBXDataTypes.Int32Type:
-        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsInt32));
-      TDBXDataTypes.Int64Type:
-        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsInt64));
-      TDBXDataTypes.DoubleType:
-        AJSONObject.AddPair(key, TJSONNumber.Create(AReader.Value[I].AsDouble));
-      TDBXDataTypes.AnsiStringType, TDBXDataTypes.WideStringType:
-        AJSONObject.AddPair(key, AReader.Value[I].AsString);
-      TDBXDataTypes.BcdType:
-        AJSONObject.AddPair(key, TJSONNumber.Create(BcdToDouble(AReader.Value[I].AsBcd)));
-      TDBXDataTypes.DateType:
-        begin
-          if not AReader.Value[I].IsNull then
-          begin
-            Time.Time := 0;
-            Time.date := AReader.Value[I].AsDate;
-            dt := TimeStampToDateTime(Time);
-            AJSONObject.AddPair(key, ISODateToString(dt));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
-        end;
-      TDBXDataTypes.TimeType:
-        begin
-          if not AReader.Value[I].IsNull then
-          begin
-            ts := AReader.Value[I].AsTimeStamp;
-            AJSONObject.AddPair(key, SQLTimeStampToStr('hh:nn:ss', ts));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
-        end
-    else
-      raise Exception.Create('Cannot find type');
-    end;
-  end;
-  if AReaderInstanceOwner then
-    FreeAndNil(AReader);
-end;
-
-class
-  procedure Mapper.ReaderToList<T>(AReader: TDBXReader; AList: IWrappedList);
-var
-  Obj: T;
-begin
-  while AReader.Next do
-  begin
-    Obj := T.Create;
-    ReaderToObject(AReader, Obj);
-    AList.Add(Obj);
-  end;
-  AReader.Close;
-end;
-
-class
-  procedure Mapper.ReaderToObject(AReader: TDBXReader; AObject: TObject);
-var
-  _type: TRttiType;
-  _fields: TArray<TRttiProperty>;
-  _field: TRttiProperty;
-  _attribute: MapperColumnAttribute;
-  _dict: TDictionary<string, string>;
-  _keys: TDictionary<string, boolean>;
-  mf: MapperColumnAttribute;
-  field_name: string;
-  Value: TValue;
-  ts: TTimeStamp;
-  sqlts: TSQLTimeStamp;
-begin
-  _dict := TDictionary<string, string>.Create();
-  _keys := TDictionary<string, boolean>.Create();
-  _type := ctx.GetType(AObject.ClassInfo);
-  _fields := _type.GetProperties;
-  for _field in _fields do
-    if HasAttribute<MapperColumnAttribute>(_field, _attribute) then
-    begin
-      mf := _attribute;
-      _dict.Add(_field.Name, mf.FieldName);
-      _keys.Add(_field.Name, mf.IsPK);
-    end
-    else
-    begin
-      _dict.Add(_field.Name, _field.Name);
-      _keys.Add(_field.Name, false);
-    end;
-
-  for _field in _fields do
-  begin
-    if (not _dict.TryGetValue(_field.Name, field_name)) or (not _field.IsWritable) or
-      (HasAttribute<MapperTransientAttribute>(_field)) then
-      Continue;
-    case _field.PropertyType.TypeKind of
-      tkInteger:
-        Value := AReader.Value[field_name].AsInt32;
-      tkFloat:
-        begin
-          if AReader.Value[field_name].IsNull then
-            Value := 0
-          else
-          begin
-            if AReader.Value[field_name].ValueType.DataType = TDBXDataTypes.DateType then
-            begin
-              ts.Time := 0;
-              ts.date := AReader.Value[field_name].AsDate;
-              Value := TimeStampToDateTime(ts);
-            end
-            else if AReader.Value[field_name].ValueType.DataType = TDBXDataTypes.DoubleType then
-              Value := AReader.Value[field_name].AsDouble
-            else if AReader.Value[field_name].ValueType.DataType = TDBXDataTypes.BcdType then
-              Value := BcdToDouble(AReader.Value[field_name].AsBcd)
-            else if AReader.Value[field_name].ValueType.DataType = TDBXDataTypes.TimeType then
-            begin
-              sqlts := AReader.Value[field_name].AsTimeStamp;
-              Value := SQLTimeStampToDateTime(sqlts);
-            end
-            else
-              raise Exception.Create('Unknown tkFloat Type');
-          end;
-        end;
-      tkString, tkUString, tkWChar, tkLString, tkWString:
-        begin
-          if AReader.Value[field_name].IsNull then
-            Value := ''
-          else
-            Value := AReader.Value[field_name].AsString;
-        end;
-    else
-      raise Exception.Create('Unknown field type for ' + field_name);
-    end;
-    _field.SetValue(AObject, Value);
-  end;
-  _dict.Free;
-  _keys.Free;
-end;
-
-class
-  procedure Mapper.ReaderToObjectList<T>(AReader: TDBXReader; AObjectList: TObjectList<T>);
-var
-  Obj: T;
-begin
-  while AReader.Next do
-  begin
-    Obj := T.Create;
-    ReaderToObject(AReader, Obj);
-    AObjectList.Add(Obj);
-  end;
-  AReader.Close;
-end;
-
-class
-  function Mapper.GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string;
+class function Mapper.GetKeyName(const ARttiField: TRttiField;
+  AType: TRttiType): string;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1169,8 +1313,7 @@ begin
   Result := ARttiField.Name;
 end;
 
-class
-  function Mapper.GetBooleanDef(JSONObject: TJSONObject;
+class function Mapper.GetBooleanDef(JSONObject: TJSONObject;
   PropertyName: string; DefaultValue: boolean): boolean;
 var
   pair: TJSONPair;
@@ -1186,8 +1329,7 @@ begin
     raise Exception.Create('Property is not a Boolean Property');
 end;
 
-class
-  function Mapper.GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
+class function Mapper.GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
   DefaultValue: Int64): Int64;
 var
   pair: TJSONPair;
@@ -1201,8 +1343,7 @@ begin
     raise Exception.Create('Property is not an Int64 Property');
 end;
 
-class
-  function Mapper.GetIntegerDef(JSONObject: TJSONObject;
+class function Mapper.GetIntegerDef(JSONObject: TJSONObject;
   PropertyName: string; DefaultValue: Integer): Integer;
 var
   pair: TJSONPair;
@@ -1216,8 +1357,7 @@ begin
     raise Exception.Create('Property is not an Integer Property');
 end;
 
-class
-  function Mapper.GetJSONArray(JSONObject: TJSONObject;
+class function Mapper.GetJSONArray(JSONObject: TJSONObject;
   PropertyName: string): TJSONArray;
 var
   pair: TJSONPair;
@@ -1232,9 +1372,8 @@ begin
 
 end;
 
-class
-  function Mapper.GetJSONObj(JSONObject: TJSONObject;
-  PropertyName: string): TJSONObject;
+class function Mapper.GetJSONObj(JSONObject: TJSONObject; PropertyName: string)
+  : TJSONObject;
 var
   pair: TJSONPair;
 begin
@@ -1247,8 +1386,8 @@ begin
     raise Exception.Create('Property is not a JSONObject');
 end;
 
-class
-  function Mapper.GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string;
+class function Mapper.GetKeyName(const ARttiProp: TRttiProperty;
+  AType: TRttiType): string;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1284,8 +1423,7 @@ begin
   Result := ARttiProp.Name;
 end;
 
-class
-  function Mapper.GetNumberDef(JSONObject: TJSONObject;
+class function Mapper.GetNumberDef(JSONObject: TJSONObject;
   PropertyName: string; DefaultValue: Extended): Extended;
 var
   pair: TJSONPair;
@@ -1299,9 +1437,8 @@ begin
     raise Exception.Create('Property is not a Number Property');
 end;
 
-class
-  function Mapper.GetPair(JSONObject: TJSONObject;
-  PropertyName: string): TJSONPair;
+class function Mapper.GetPair(JSONObject: TJSONObject; PropertyName: string)
+  : TJSONPair;
 var
   pair: TJSONPair;
 begin
@@ -1311,15 +1448,16 @@ begin
   Result := pair;
 end;
 
-class
-  function Mapper.GetProperty(Obj: TObject; const PropertyName: string): TValue;
+class function Mapper.GetProperty(Obj: TObject;
+  const PropertyName: string): TValue;
 var
   Prop: TRttiProperty;
   ARTTIType: TRttiType;
 begin
   ARTTIType := ctx.GetType(Obj.ClassType);
   if not Assigned(ARTTIType) then
-    raise Exception.CreateFmt('Cannot get RTTI for type [%s]', [ARTTIType.ToString]);
+    raise Exception.CreateFmt('Cannot get RTTI for type [%s]',
+      [ARTTIType.ToString]);
   Prop := ARTTIType.GetProperty(PropertyName);
   if not Assigned(Prop) then
     raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]',
@@ -1331,9 +1469,8 @@ begin
       [ARTTIType.ToString, PropertyName]);
 end;
 
-class
-  function Mapper.GetStringDef(JSONObject: TJSONObject; PropertyName,
-  DefaultValue: string): string;
+class function Mapper.GetStringDef(JSONObject: TJSONObject;
+  PropertyName, DefaultValue: string): string;
 var
   pair: TJSONPair;
 begin
@@ -1346,8 +1483,8 @@ begin
     raise Exception.Create('Property is not a String Property');
 end;
 
-class
-  function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember; out AAttribute: T): boolean;
+class function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember;
+  out AAttribute: T): boolean;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1363,8 +1500,7 @@ begin
     end;
 end;
 
-class
-  function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember): boolean;
+class function Mapper.HasAttribute<T>(ARTTIMember: TRttiMember): boolean;
 var
   attrs: TArray<TCustomAttribute>;
   attr: TCustomAttribute;
@@ -1376,13 +1512,15 @@ begin
       Exit(True);
 end;
 
-class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
-  AJSONArrayInstanceOwner: boolean);
+class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray;
+  ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean);
 begin
-  JSONArrayToDataSet(AJSONArray, ADataSet, TArray<String>.Create(), AJSONArrayInstanceOwner);
+  JSONArrayToDataSet(AJSONArray, ADataSet, TArray<String>.Create(),
+    AJSONArrayInstanceOwner);
 end;
 
-class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AIgnoredFields: TArray<String>;
+class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray;
+  ADataSet: TDataSet; AIgnoredFields: TArray<String>;
   AJSONArrayInstanceOwner: boolean);
 var
   I: Integer;
@@ -1390,16 +1528,16 @@ begin
   for I := 0 to AJSONArray.Size - 1 do
   begin
     ADataSet.Append;
-    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject,
-      ADataSet, AIgnoredFields, false);
+    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet,
+      AIgnoredFields, false);
     ADataSet.Post;
   end;
   if AJSONArrayInstanceOwner then
     AJSONArray.Free;
 end;
 
-class procedure Mapper.JSONArrayToObjectList<T>(AList: TObjectList<T>; AJSONArray: TJSONArray; AInstanceOwner,
-  AOwnsChildObjects: boolean);
+class procedure Mapper.JSONArrayToObjectList<T>(AList: TObjectList<T>;
+  AJSONArray: TJSONArray; AInstanceOwner, AOwnsChildObjects: boolean);
 var
   I: Integer;
 begin
@@ -1412,17 +1550,16 @@ begin
   end;
 end;
 
-class
-  function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
-  AOwnsChildObjects: boolean): TObjectList<T>;
+class function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray;
+  AInstanceOwner: boolean; AOwnsChildObjects: boolean): TObjectList<T>;
 begin
   Result := TObjectList<T>.Create(AOwnsChildObjects);
-  JSONArrayToObjectList<T>(Result, AJSONArray, AInstanceOwner, AOwnsChildObjects);
+  JSONArrayToObjectList<T>(Result, AJSONArray, AInstanceOwner,
+    AOwnsChildObjects);
 end;
 
-class
-  procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
-  AObject: TObject);
+class procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext;
+  AJSONObject: TJSONObject; AObject: TObject);
 var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
@@ -1443,8 +1580,8 @@ begin
   _fields := _type.GetProperties;
   for _field in _fields do
   begin
-    if ((not _field.IsWritable) and (_field.PropertyType.TypeKind <> tkClass)) or
-      (HasAttribute<MapperTransientAttribute>(_field)) then
+    if ((not _field.IsWritable) and (_field.PropertyType.TypeKind <> tkClass))
+      or (HasAttribute<MapperTransientAttribute>(_field)) then
       Continue;
     f := GetKeyName(_field, _type);
     if Assigned(AJSONObject.Get(f)) then
@@ -1461,11 +1598,13 @@ begin
             else if jvalue is TJSONFalse then
               _field.SetValue(TObject(AObject), false)
             else
-              raise Exception.Create('Invalid value for property ' + _field.Name);
+              raise Exception.Create('Invalid value for property ' +
+                _field.Name);
           end
           else // it is an enumerated value but it's not a boolean.
           begin
-            TValue.Make((jvalue as TJSONNumber).AsInt, _field.PropertyType.Handle, v);
+            TValue.Make((jvalue as TJSONNumber).AsInt,
+              _field.PropertyType.Handle, v);
             _field.SetValue(TObject(AObject), v);
           end;
         end;
@@ -1478,7 +1617,8 @@ begin
             if jvalue is TJSONNull then
               _field.SetValue(TObject(AObject), 0)
             else
-              _field.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value + ' 00:00:00'))
+              _field.SetValue(TObject(AObject),
+                ISOStrToDateTime(jvalue.Value + ' 00:00:00'))
           end
           else if _field.PropertyType.QualifiedName = 'System.TDateTime' then
           begin
@@ -1498,10 +1638,12 @@ begin
         end;
       tkRecord:
         begin
-          if _field.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp' then
+          if _field.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp'
+          then
           begin
             n := jvalue as TJSONNumber;
-            _field.SetValue(TObject(AObject), TValue.From<TTimeStamp>(MSecsToTimeStamp(n.AsInt64)));
+            _field.SetValue(TObject(AObject),
+              TValue.From<TTimeStamp>(MSecsToTimeStamp(n.AsInt64)));
           end;
         end;
       tkClass: // try to restore child properties... but only if the collection is not nil!!!
@@ -1520,7 +1662,8 @@ begin
                   list := WrapAsList(o);
                   for I := 0 to Arr.Size - 1 do
                   begin
-                    list.Add(Mapper.JSONObjectToObject(cref, Arr.Get(I) as TJSONObject));
+                    list.Add(Mapper.JSONObjectToObject(cref,
+                      Arr.Get(I) as TJSONObject));
                   end;
                 end;
               end
@@ -1536,8 +1679,8 @@ begin
   end;
 end;
 
-class
-  function Mapper.JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
+class function Mapper.JSONObjectToObject(Clazz: TClass;
+  AJSONObject: TJSONObject): TObject;
 var
   AObject: TObject;
 begin
@@ -1551,13 +1694,15 @@ begin
   end;
 end;
 
-class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
-  AJSONObjectInstanceOwner: boolean);
+class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;
+  ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean);
 begin
-  JSONObjectToDataSet(AJSONObject, ADataSet, TArray<String>.Create(), AJSONObjectInstanceOwner);
+  JSONObjectToDataSet(AJSONObject, ADataSet, TArray<String>.Create(),
+    AJSONObjectInstanceOwner);
 end;
 
-class function Mapper.JSONObjectStringToObject<T>(const AJSONObjectString: String): T;
+class function Mapper.JSONObjectStringToObject<T>(const AJSONObjectString
+  : String): T;
 var
   JObj: TJSONObject;
 begin
@@ -1569,8 +1714,8 @@ begin
   end;
 end;
 
-class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
-  AIgnoredFields: TArray<String>;
+class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;
+  ADataSet: TDataSet; AIgnoredFields: TArray<String>;
   AJSONObjectInstanceOwner: boolean);
 var
   I: Integer;
@@ -1598,7 +1743,8 @@ begin
     end;
 
     case ADataSet.Fields[I].DataType of
-      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint, TFieldType.ftShortint:
+      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint,
+        TFieldType.ftShortint:
         begin
           ADataSet.Fields[I].AsInteger := (v as TJSONNumber).AsInt;
         end;
@@ -1616,20 +1762,24 @@ begin
         end;
       TFieldType.ftDate:
         begin
-          ADataSet.Fields[I].AsDateTime := ISOStrToDate((v as TJSONString).Value);
+          ADataSet.Fields[I].AsDateTime :=
+            ISOStrToDate((v as TJSONString).Value);
         end;
       TFieldType.ftDateTime:
         begin
-          ADataSet.Fields[I].AsDateTime := ISOStrToDateTime((v as TJSONString).Value);
+          ADataSet.Fields[I].AsDateTime :=
+            ISOStrToDateTime((v as TJSONString).Value);
         end;
       TFieldType.ftTimeStamp:
         begin
-          ADataSet.Fields[I].AsSQLTimeStamp := StrToSQLTimeStamp((v as TJSONString).Value);
+          ADataSet.Fields[I].AsSQLTimeStamp :=
+            StrToSQLTimeStamp((v as TJSONString).Value);
         end;
       TFieldType.ftCurrency:
         begin
           fs.DecimalSeparator := '.';
-          ADataSet.Fields[I].AsCurrency := StrToCurr((v as TJSONString).Value, fs);
+          ADataSet.Fields[I].AsCurrency :=
+            StrToCurr((v as TJSONString).Value, fs);
         end;
       TFieldType.ftFMTBcd:
         begin
@@ -1639,7 +1789,8 @@ begin
         begin
           MS := TMemoryStream.Create;
           try
-            SS := TStringStream.Create((v as TJSONString).Value, TEncoding.ASCII);
+            SS := TStringStream.Create((v as TJSONString).Value,
+              TEncoding.ASCII);
             try
               DecodeStream(SS, MS);
               MS.Position := 0;
@@ -1659,8 +1810,8 @@ begin
     FreeAndNil(AJSONObject);
 end;
 
-class
-  function Mapper.JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
+class function Mapper.JSONObjectToObject(ClazzName: string;
+  AJSONObject: TJSONObject): TObject;
 var
   AObject: TObject;
   _rttiType: TRttiType;
@@ -1689,8 +1840,7 @@ begin
   // Result := JSONObjectToObject(TObject.ClassInfo, AJSONObject);
 end;
 
-class
-  function Mapper.JSONObjectToObjectFields<T>(AJSONObject: TJSONObject): T;
+class function Mapper.JSONObjectToObjectFields<T>(AJSONObject: TJSONObject): T;
 var
   _type: TRttiType;
   _fields: TArray<TRttiField>;
@@ -1721,7 +1871,8 @@ begin
             else if _field.FieldType.QualifiedName = 'System.TDateTime' then
               _field.SetValue(TObject(AObject), StrToDateTime(jvalue.Value))
             else
-              _field.SetValue(TObject(AObject), (jvalue as TJSONNumber).AsDouble)
+              _field.SetValue(TObject(AObject),
+                (jvalue as TJSONNumber).AsDouble)
           end;
         tkString, tkLString, tkWString, tkUString:
           begin
@@ -1737,9 +1888,8 @@ begin
   end;
 end;
 
-class
-  procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
-  ACloseDataSetAfterScroll: boolean);
+class procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet;
+  AObjectList: TObjectList<T>; ACloseDataSetAfterScroll: boolean);
 var
   Obj: T;
   SavedPosition: TArray<Byte>;
@@ -1854,67 +2004,10 @@ end;
 // FreeAndNil(ADataSet);
 // end;
 
-class
-  function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
-  WithResult: boolean): Int64;
-var
-  I: Integer;
-  pname: string;
-  _rttiType: TRttiType;
-  obj_fields: TArray<TRttiProperty>;
-  obj_field: TRttiProperty;
-  obj_field_attr: MapperColumnAttribute;
-  Map: TObjectDictionary<string, TRttiProperty>;
-  f: TRttiProperty;
-  fv: TValue;
-begin
-  Map := TObjectDictionary<string, TRttiProperty>.Create;
-  try
-    if Assigned(AObject) then
-    begin
-      _rttiType := ctx.GetType(AObject.ClassType);
-      obj_fields := _rttiType.GetProperties;
-      for obj_field in obj_fields do
-      begin
-        if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
-        begin
-          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName, obj_field);
-        end
-        else
-        begin
-          Map.Add(LowerCase(obj_field.Name), obj_field);
-        end
-      end;
-    end;
-    for I := 0 to AQuery.Params.Count - 1 do
-    begin
-      pname := AQuery.Params[I].Name;
-      if Map.TryGetValue(pname, f) then
-      begin
-        fv := f.GetValue(AObject);
-        AQuery.Params[I].Value := fv.AsVariant;
-      end
-      else
-      begin
-        AQuery.Params[I].Clear;
-        AQuery.Params[I].DataType := ftString; // just to make dbx happy
-
-      end;
-    end;
-    Result := 0;
-    if WithResult then
-      AQuery.Open
-    else
-      Result := AQuery.ExecSQL;
-  finally
-    Map.Free;
-  end;
-end;
-
 {$IF Defined(VER260)}
 
-
-class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string);
+class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
+  AObject: TObject; AParamPrefix: string);
 var
   I: Integer;
   pname: string;
@@ -1938,7 +2031,8 @@ begin
       begin
         if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
         begin
-          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName.ToLower, obj_field);
+          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName.ToLower,
+            obj_field);
         end
         else
         begin
@@ -1966,8 +2060,7 @@ begin
   end
 end;
 
-class
-  function Mapper.InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
+class function Mapper.InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
   WithResult: boolean): Int64;
 begin
   ObjectToFDParameters(AQuery.Params, AObject);
@@ -1981,7 +2074,8 @@ begin
   end;
 end;
 
-class function Mapper.ExecuteFDQueryNoResult(AQuery: TFDQuery; AObject: TObject): Int64;
+class function Mapper.ExecuteFDQueryNoResult(AQuery: TFDQuery;
+  AObject: TObject): Int64;
 begin
   Result := InternalExecuteFDQuery(AQuery, AObject, false);
 end;
@@ -1991,29 +2085,26 @@ begin
   InternalExecuteFDQuery(AQuery, AObject, True);
 end;
 
-{$IFEND}
-
-
-class
-  function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;
+class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
+  AObject: TObject): Int64;
 begin
   Result := InternalExecuteSQLQuery(AQuery, AObject, false);
 end;
 
-class
-  procedure Mapper.ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject);
+class procedure Mapper.ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject);
 begin
   InternalExecuteSQLQuery(AQuery, AObject, True);
 end;
 
-class
-  function Mapper.ExecuteSQLQueryAsObjectList<T>(AQuery: TSQLQuery; AObject: TObject)
-  : TObjectList<T>;
+class function Mapper.ExecuteSQLQueryAsObjectList<T>(AQuery: TSQLQuery;
+  AObject: TObject): TObjectList<T>;
 begin
   ExecuteSQLQuery(AQuery, AObject);
   Result := TObjectList<T>.Create(True);
   DataSetToObjectList<T>(AQuery, Result);
 end;
+
+{$IFEND}
 { MappedField }
 
 constructor MapperColumnAttribute.Create(AFieldName: string; AIsPK: boolean);
@@ -2034,7 +2125,8 @@ begin
 end;
 { GridColumnProps }
 
-constructor GridColumnProps.Create(ACaption: string; AAlign: TGridColumnAlign; AWidth: Integer);
+constructor GridColumnProps.Create(ACaption: string; AAlign: TGridColumnAlign;
+  AWidth: Integer);
 begin
   inherited Create;
   FCaption := ACaption;
@@ -2157,7 +2249,8 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONObjectString(AReturnEmptyStringIfEOF: boolean): String;
+function TDataSetHelper.AsJSONObjectString(AReturnEmptyStringIfEOF
+  : boolean): String;
 var
   JObj: TJSONObject;
 begin
@@ -2196,7 +2289,8 @@ begin
     Result := nil;
 end;
 
-function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean): TObjectList<T>;
+function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean)
+  : TObjectList<T>;
 var
   Objs: TObjectList<T>;
 begin
@@ -2220,7 +2314,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<String>);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
+  AIgnoredFields: TArray<String>);
 begin
   Self.DisableControls;
   try
@@ -2230,7 +2325,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: String; AIgnoredFields: TArray<String>);
+procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: String;
+  AIgnoredFields: TArray<String>);
 var
   JV: TJSONValue;
 begin
@@ -2250,12 +2346,14 @@ begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<String>.Create());
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<String>);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
+  AIgnoredFields: TArray<String>);
 begin
   Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false);
 end;
 
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: String; AIgnoredFields: TArray<String>);
+procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: String;
+  AIgnoredFields: TArray<String>);
 var
   JV: TJSONValue;
 begin

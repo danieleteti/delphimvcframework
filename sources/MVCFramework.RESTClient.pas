@@ -10,7 +10,11 @@ uses
   IdTCPClient,
   IdHTTP,
   idURI,
-  DBXJSON,
+{$IF not Defined(VER270)}
+  Data.DBXJSON,
+{$ELSE}
+  System.JSON,
+{$IFEND}
   IdMultipartFormData,
   System.SysUtils, Data.DB, IdIOHandler;
 

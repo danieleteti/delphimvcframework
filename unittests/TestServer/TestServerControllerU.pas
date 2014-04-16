@@ -76,7 +76,11 @@ type
 implementation
 
 uses
+{$IF not Defined(VER270)}
   Data.DBXJSON,
+{$ELSE}
+  System.JSON,
+{$IFEND}
   MVCFramework.Commons,
   Web.HTTPApp, BusinessObjectsU;
 
