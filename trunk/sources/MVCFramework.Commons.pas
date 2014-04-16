@@ -39,16 +39,16 @@ type
     FDetailedMessage: string;
 
   public
-    constructor Create(const Msg: string);
-      overload; virtual;
+    constructor Create(const Msg: string); overload; virtual;
     constructor Create(const Msg: string; const DetailedMessage: string;
-      const ApplicationErrorCode: UInt16;
-      const HTTPErrorCode: UInt16 = 500); overload; virtual;
+      const ApplicationErrorCode: UInt16; const HTTPErrorCode: UInt16 = 500);
+      overload; virtual;
     constructor CreateFmt(const Msg: string; const Args: array of const);
     property HTTPErrorCode: UInt16 read FHTTPErrorCode;
     property DetailedMessage: string read FDetailedMessage
       write SetDetailedMessage;
-    property ApplicationErrorCode: UInt16 read FApplicationErrorCode write FApplicationErrorCode;
+    property ApplicationErrorCode: UInt16 read FApplicationErrorCode
+      write FApplicationErrorCode;
   end;
 
   EMVCSessionExpiredException = class(EMVCException)
@@ -89,7 +89,6 @@ type
 
 {$SCOPEDENUMS ON}
 
-
 type
   THttpMethod = (GET, POST, PUT, DELETE, HEAD);
 
@@ -105,22 +104,22 @@ implementation
 uses
   System.IOUtils,
   idGlobal,
-  System.StrUtils, Data.DBXJSON, uGlobalVars;
+  System.StrUtils,
+  uGlobalVars
+{$IF not Defined(VER270)}
+    , Data.DBXJSON
+{$ELSE}
+    , System.JSON
+{$IFEND};
 
 const
-  ReservedIPs: array [1 .. 11] of array [1 .. 2] of string = (
-    ('0.0.0.0', '0.255.255.255'),
-    ('10.0.0.0', '10.255.255.255'),
-    ('127.0.0.0', '127.255.255.255'),
-    ('169.254.0.0', '169.254.255.255'),
-    ('172.16.0.0', '172.31.255.255'),
-    ('192.0.2.0', '192.0.2.255'),
-    ('192.88.99.0', '192.88.99.255'),
-    ('192.168.0.0', '192.168.255.255'),
-    ('198.18.0.0', '198.19.255.255'),
-    ('224.0.0.0', '239.255.255.255'),
-    ('240.0.0.0', '255.255.255.255')
-    );
+  ReservedIPs: array [1 .. 11] of array [1 .. 2] of string =
+    (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
+    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
+    ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
+    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
+    ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
+    ('240.0.0.0', '255.255.255.255'));
 
 function IP2Long(IP: string): UInt32;
 begin
@@ -136,7 +135,8 @@ begin
   IntIP := IP2Long(IP);
   for i := low(ReservedIPs) to high(ReservedIPs) do
   begin
-    if (IntIP >= IP2Long(ReservedIPs[i][1])) and (IntIP <= IP2Long(ReservedIPs[i][2])) then
+    if (IntIP >= IP2Long(ReservedIPs[i][1])) and
+      (IntIP <= IP2Long(ReservedIPs[i][2])) then
     begin
       Exit(True)
     end;
@@ -145,7 +145,7 @@ end;
 
 function AppPath: string;
 begin
-  Result := gAppPath; //TPath.GetDirectoryName(GetModuleName(HInstance));
+  Result := gAppPath; // TPath.GetDirectoryName(GetModuleName(HInstance));
 end;
 
 { TMVCDataObjects }
@@ -182,16 +182,16 @@ var
   S: string;
   jobj: TJSONObject;
   p: TJSONPair;
-  json: TJSONValue;
+  JSON: TJSONValue;
   i: Integer;
 begin
   S := TFile.ReadAllText(AFileName);
-  json := TJSONObject.ParseJSONValue(S);
-  if Assigned(json) then
+  JSON := TJSONObject.ParseJSONValue(S);
+  if Assigned(JSON) then
   begin
-    if json is TJSONObject then
+    if JSON is TJSONObject then
     begin
-      jobj := TJSONObject(json);
+      jobj := TJSONObject(JSON);
       for i := 0 to jobj.Size - 1 do
       begin
         p := jobj.GET(i);
@@ -199,11 +199,12 @@ begin
       end
     end
     else
-      raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName +
-        '] does not contain a valid JSONObject');
+      raise EMVCConfigException.Create('DMVCFramework configuration file [' +
+        AFileName + '] does not contain a valid JSONObject');
   end
   else
-    raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+    raise EMVCConfigException.Create
+      ('Cannot load DMVCFramework configuration file [' + AFileName + ']');
 end;
 
 procedure TMVCConfig.SaveToFile(const AFileName: String);
@@ -219,15 +220,15 @@ end;
 function TMVCConfig.ToString: string;
 var
   k: string;
-  json: TJSONObject;
+  JSON: TJSONObject;
 begin
-  json := TJSONObject.Create;
+  JSON := TJSONObject.Create;
   try
     for k in FConfig.Keys do
-      json.AddPair(k, FConfig[k]);
-    Result := json.ToString;
+      JSON.AddPair(k, FConfig[k]);
+    Result := JSON.ToString;
   finally
-    json.Free;
+    JSON.Free;
   end;
 end;
 
@@ -242,8 +243,7 @@ begin
 end;
 
 constructor EMVCException.Create(const Msg, DetailedMessage: string;
-  const ApplicationErrorCode: UInt16;
-  const HTTPErrorCode: UInt16);
+  const ApplicationErrorCode: UInt16; const HTTPErrorCode: UInt16);
 begin
   Create(Msg);
   FHTTPErrorCode := HTTPErrorCode;
