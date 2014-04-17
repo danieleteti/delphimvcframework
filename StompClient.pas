@@ -529,7 +529,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     {$IF Defined(VER240)}
     UTF8Encoding: TIdTextEncoding;
     {$IFEND}
-    {$IF Defined(Ver250) or Defined(VER260)}
+    {$IF Defined(Ver250) or Defined(VER260) or Defined(VER270)}
     UTF8Encoding: IIdTextEncoding;
     {$IFEND}
   begin
