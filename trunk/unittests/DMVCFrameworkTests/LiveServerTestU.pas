@@ -233,7 +233,7 @@ begin
   CheckEquals('אטילעש', s);
 
   s := res.BodyAsJsonObject.Get('name2').JsonValue.Value;
-  CheckEquals('to je Unicode?', s);
+  CheckEquals('to je Unicode?', s, 'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   { WARNING!!! }
   {
     If this test fail, check
