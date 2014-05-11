@@ -31,7 +31,9 @@ type
 implementation
 
 uses
-  Data.DBXJSON,
+{$IFDEF VER270} System.JSON,
+{$ELSE} Data.DBXJSON,
+{$ENDIF}
   System.SysUtils;
 
 { TApp1MainController }
@@ -43,17 +45,17 @@ end;
 
 procedure TApp1MainController.HelloWorldPost(ctx: TWebContext);
 var
-  json: TJSONObject;
+  JSON: TJSONObject;
 begin
-  json := ctx.Request.BodyAsJSONObject;
-  json.AddPair('modified', 'from server');
-  Render(json);
+  JSON := ctx.Request.BodyAsJSONObject;
+  JSON.AddPair('modified', 'from server');
+  Render(JSON, false);
   Log('Hello world called with POST');
 end;
 
 procedure TApp1MainController.Index(ctx: TWebContext);
 begin
-  Redirect('/public_html/index.html');
+  Redirect('index.html');
 end;
 
 procedure TApp1MainController.RaiseException(ctx: TWebContext);
