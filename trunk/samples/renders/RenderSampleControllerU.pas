@@ -3,7 +3,7 @@ unit RenderSampleControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, ObjectsMappers;
+  MVCFramework, MVCFramework.Commons, ObjectsMappers, System.JSON;
 
 type
 
