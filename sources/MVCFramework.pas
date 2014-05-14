@@ -23,10 +23,11 @@ uses
   MVCFramework.Session,
   StompTypes,
   ObjectsMappers
-{$IF not Defined(VER270)}
-    , Data.DBXJSON
-{$ELSE}
+{$IF Defined(VER270)}
     , System.JSON
+    , Web.ApacheHTTP
+{$ELSE}
+    , Data.DBXJSON
 {$IFEND}
 {$IFDEF VER250},
   ReqMulti {$ENDIF}{required for file uploading on XE4};
@@ -86,6 +87,7 @@ type
   end;
 
   TMVCWebRequest = class
+  public
     constructor Create(AWebRequest: TWebRequest); virtual;
   private
     FWebRequest: TWebRequest;
@@ -141,6 +143,15 @@ type
     property ContentEncoding: String read FContentEncoding;
     property Charset: String read FCharset;
   end;
+
+{$IF Defined(VER270)}
+
+  TMVCApacheWebRequest = class(TMVCWebRequest)
+  public
+    constructor Create(AWebRequest: TWebRequest); override;
+    function ClientIP: string; override;
+  end;
+{$ENDIF}
 
   TMVCISAPIWebRequest = class(TMVCWebRequest)
   public
@@ -1022,9 +1033,17 @@ end;
 constructor TWebContext.Create(ARequest: TWebRequest; AResponse: TWebResponse);
 begin
   inherited Create;
+
   if IsLibrary then
   begin
-    FRequest := TMVCISAPIWebRequest.Create(ARequest);
+{$IF Defined(VER270)}
+    if ARequest is TIdHTTPAppRequest then
+      FRequest := TMVCISAPIWebRequest.Create(ARequest)
+    else
+      FRequest := TMVCApacheWebRequest.Create(ARequest);
+{$ELSE}
+    FRequest := TMVCISAPIWebRequest.Create(ARequest)
+{$ENDIF}
   end
   else
   begin
@@ -1975,6 +1994,21 @@ begin
   FWebRequest := AWebRequest as TISAPIRequest;
 end;
 
+{ TMVCApacheWebRequest }
+{$IF Defined(VER270)}
+
+
+function TMVCApacheWebRequest.ClientIP: string;
+begin
+  raise EMVCException.Create('<TMVCApacheWebRequest.ClientIP> Not implemented');
+end;
+
+constructor TMVCApacheWebRequest.Create(AWebRequest: TWebRequest);
+begin
+  inherited;
+  FWebRequest := AWebRequest as TApacheRequest;
+end;
+{$ENDIF}
 { TMVCINDYWebRequest }
 
 function TMVCINDYWebRequest.ClientIP: string;

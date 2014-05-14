@@ -233,7 +233,8 @@ begin
   CheckEquals('אטילעש', s);
 
   s := res.BodyAsJsonObject.Get('name2').JsonValue.Value;
-  CheckEquals('to je Unicode?', s, 'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
+  CheckEquals('to je Unicode?', s,
+    'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   { WARNING!!! }
   {
     If this test fail, check
@@ -260,7 +261,7 @@ end;
 procedure TServerTest.TestMiddlewareHandler;
 var
   r: IRESTResponse;
-  json: TJSONObject;
+  JSON: TJSONObject;
   P: TPerson;
 begin
   r := RESTClient
@@ -273,7 +274,7 @@ end;
 procedure TServerTest.TestMiddlewareSpeedMiddleware;
 var
   r: IRESTResponse;
-  json: TJSONObject;
+  JSON: TJSONObject;
   P: TPerson;
 begin
   P := TPerson.Create;
@@ -282,7 +283,8 @@ begin
     P.LastName := StringOfChar('*', 1000);
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
-    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [], mapper.ObjectToJSONObject(P));
+    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [],
+      mapper.ObjectToJSONObject(P));
   finally
     P.Free;
   end;
@@ -305,7 +307,7 @@ end;
 procedure TServerTest.TestPOSTWithObjectJSONBody;
 var
   r: IRESTResponse;
-  json: TJSONObject;
+  JSON: TJSONObject;
   P: TPerson;
 begin
   P := TPerson.Create;
@@ -314,7 +316,19 @@ begin
     P.LastName := 'אעשטיל';
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
-    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [], mapper.ObjectToJSONObject(P));
+    try
+      r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON)
+        .doPOST('/objects', [], mapper.ObjectToJSONObject(P));
+    except
+      Fail('If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
+      { WARNING!!! }
+      {
+        If this test fail, check
+        http://qc.embarcadero.com/wc/qcmain.aspx?d=119779
+      }
+      raise;
+
+    end;
   finally
     P.Free;
   end;
@@ -332,11 +346,11 @@ end;
 procedure TServerTest.TestPOSTWithParamsAndJSONBody;
 var
   r: IRESTResponse;
-  json: TJSONObject;
+  JSON: TJSONObject;
 begin
-  json := TJSONObject.Create;
-  json.AddPair('client', 'clientdata');
-  r := RESTClient.doPOST('/echo', ['1', '2', '3'], json);
+  JSON := TJSONObject.Create;
+  JSON.AddPair('client', 'clientdata');
+  r := RESTClient.doPOST('/echo', ['1', '2', '3'], JSON);
   CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
   CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
 end;
@@ -391,11 +405,11 @@ end;
 procedure TServerTest.TestPUTWithParamsAndJSONBody;
 var
   r: IRESTResponse;
-  json: TJSONObject;
+  JSON: TJSONObject;
 begin
-  json := TJSONObject.Create;
-  json.AddPair('client', 'clientdata');
-  r := RESTClient.doPUT('/echo', ['1', '2', '3'], json);
+  JSON := TJSONObject.Create;
+  JSON.AddPair('client', 'clientdata');
+  r := RESTClient.doPUT('/echo', ['1', '2', '3'], JSON);
   CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
   CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
 end;
