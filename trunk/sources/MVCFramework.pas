@@ -68,12 +68,12 @@ type
 
   MVCProducesAttribute = class(MVCStringAttribute)
   private
-    FProduceEncoding: String;
-    procedure SetProduceEncoding(const Value: String);
+    FProduceEncoding: string;
+    procedure SetProduceEncoding(const Value: string);
   public
     constructor Create(const Value: string); overload;
-    constructor Create(const Value: string; const ProduceEncoding: String); overload;
-    property ProduceEncoding: String read FProduceEncoding write SetProduceEncoding;
+    constructor Create(const Value: string; const ProduceEncoding: string); overload;
+    property ProduceEncoding: string read FProduceEncoding write SetProduceEncoding;
   end;
 
   MVCPathAttribute = class(MVCBaseAttribute)
@@ -111,11 +111,11 @@ type
 
   strict protected
     FBodyAsJSONValue: TJSONValue;
-    FParamNames: TArray<String>;
+    FParamNames: TArray<string>;
   public
     destructor Destroy; override;
     procedure SetParamsTable(AParamsTable: TMVCRequestParamsTable);
-    function GetParamNames: TArray<String>;
+    function GetParamNames: TArray<string>;
     function ClientIP: string; virtual; abstract;
     function ClientPrefer(MimeType: string): boolean;
     function ThereIsRequestBody: boolean;
@@ -126,8 +126,8 @@ type
     function Cookie(Name: string): string; virtual;
     property PathInfo: string read GetPathInfo;
     function Body: string;
-    function BodyAs<T: class, constructor>(const RootProperty: String = ''): T;
-    function BodyAsListOf<T: class, constructor>(const RootProperty: String = ''): TObjectList<T>;
+    function BodyAs<T: class, constructor>(const RootProperty: string = ''): T;
+    function BodyAsListOf<T: class, constructor>(const RootProperty: string = ''): TObjectList<T>;
     function BodyAsJSONObject: TJSONObject;
     function BodyAsJSONValue: TJSONValue;
     property Headers[const HeaderName: string]: string read GetHeader;
@@ -139,9 +139,9 @@ type
     property RawWebRequest: TWebRequest read FWebRequest;
     property ClientPreferHTML: boolean read GetClientPreferHTML;
     property Files: TAbstractWebRequestFiles read GetFiles;
-    property ContentType: String read FContentType;
-    property ContentEncoding: String read FContentEncoding;
-    property Charset: String read FCharset;
+    property ContentType: string read FContentType;
+    property ContentEncoding: string read FContentEncoding;
+    property Charset: string read FCharset;
   end;
 
 {$IF Defined(VER270)}
@@ -190,8 +190,8 @@ type
     function GetContentType: string;
     procedure SetContent(const Value: string);
     function GetContent: string;
-    function GetLocation: String;
-    procedure SetLocation(const Value: String);
+    function GetLocation: string;
+    procedure SetLocation(const Value: string);
     property Content: string read GetContent write SetContent;
 
   protected // do not put this as "strict"
@@ -209,7 +209,7 @@ type
     property ReasonString: string read FReasonString write SetReasonString;
     property Cookies: TCookieCollection read GetCookies;
     property ContentType: string read GetContentType write SetContentType;
-    property Location: String read GetLocation write SetLocation;
+    property Location: string read GetLocation write SetLocation;
     property RawWebResponse: TWebResponse read FWebResponse;
   end;
 
@@ -220,8 +220,8 @@ type
     FRequest: TMVCWebRequest;
     FResponse: TMVCWebResponse;
     FParamsTable: TMVCRequestParamsTable;
-    FData: TDictionary<String, String>;
-    function GetData: TDictionary<String, String>;
+    FData: TDictionary<string, string>;
+    function GetData: TDictionary<string, string>;
 
   protected
     constructor Create(ARequest: TWebRequest; AResponse: TWebResponse); virtual;
@@ -233,7 +233,7 @@ type
     destructor Destroy; override;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
-    property Data: TDictionary<String, String> read GetData;
+    property Data: TDictionary<string, string> read GetData;
   end;
 
   TMVCActionProc = reference to procedure(Context: TWebContext);
@@ -422,11 +422,11 @@ type
 function IsShuttingDown: boolean;
 procedure EnterInShutdownState;
 
-procedure InternalRender(const Content: string; ContentType, ContentEncoding: String;
+procedure InternalRender(const Content: string; ContentType, ContentEncoding: string;
   Context: TWebContext); overload;
-procedure InternalRenderText(const AContent: String; ContentType, ContentEncoding: String;
+procedure InternalRenderText(const AContent: string; ContentType, ContentEncoding: string;
   Context: TWebContext);
-procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String; Context: TWebContext;
+procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: string; Context: TWebContext;
   AInstanceOwner: boolean = true); overload;
 
 implementation
@@ -1056,7 +1056,7 @@ begin
 {$ENDIF}
   end;
   FResponse := TMVCWebResponse.Create(AResponse);
-  FData := TDictionary<String, String>.Create;
+  FData := TDictionary<string, string>.Create;
 end;
 
 destructor TWebContext.Destroy;
@@ -1072,7 +1072,7 @@ begin
   FResponse.Flush;
 end;
 
-function TWebContext.GetData: TDictionary<String, String>;
+function TWebContext.GetData: TDictionary<string, string>;
 begin
   Result := FData;
 end;
@@ -1126,7 +1126,7 @@ begin
   Result := FWebResponse.CustomHeaders;
 end;
 
-function TMVCWebResponse.GetLocation: String;
+function TMVCWebResponse.GetLocation: string;
 begin
   Result := CustomHeaders.Values['location'];
 end;
@@ -1162,7 +1162,7 @@ begin
   Self.FWebResponse.SetCustomHeader(name, Value);
 end;
 
-procedure TMVCWebResponse.SetLocation(const Value: String);
+procedure TMVCWebResponse.SetLocation(const Value: string);
 begin
   CustomHeaders.Values['location'] := Value;
 end;
@@ -1206,12 +1206,15 @@ begin
   end
   else
     InEnc := TEncoding.GetEncoding(FCharset);
-
-  Buffer := TEncoding.Convert(InEnc, TEncoding.Default, TBytes(FWebRequest.RawContent));
-  Result := TEncoding.Default.GetString(Buffer);
+  try
+    Buffer := TEncoding.Convert(InEnc, TEncoding.Default, TBytes(FWebRequest.RawContent));
+    Result := TEncoding.Default.GetString(Buffer);
+  finally
+    InEnc.Free;
+  end
 end;
 
-function TMVCWebRequest.BodyAs<T>(const RootProperty: String): T;
+function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
 var
   S: string;
   JObj: TJSONObject;
@@ -1254,7 +1257,7 @@ begin
   Result := FBodyAsJSONValue;
 end;
 
-function TMVCWebRequest.BodyAsListOf<T>(const RootProperty: String): TObjectList<T>;
+function TMVCWebRequest.BodyAsListOf<T>(const RootProperty: string): TObjectList<T>;
 var
   S: string;
 begin
@@ -1293,7 +1296,7 @@ end;
 constructor TMVCWebRequest.Create(AWebRequest: TWebRequest);
 var
   CT: TArray<string>;
-  c: String;
+  c: string;
 begin
   inherited Create;
   c := AWebRequest.GetFieldByName('Content-Type');
@@ -1495,7 +1498,7 @@ begin
   FViewModel.Add(AModelName, AModel);
 end;
 
-procedure InternalRenderText(const AContent: String; ContentType, ContentEncoding: String;
+procedure InternalRenderText(const AContent: string; ContentType, ContentEncoding: string;
   Context: TWebContext);
 var
   OutEncoding: TEncoding;
@@ -1518,7 +1521,7 @@ begin
   // OutEncoding.Free;
 end;
 
-procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: String;
+procedure InternalRender(AJSONValue: TJSONValue; ContentType, ContentEncoding: string;
   Context: TWebContext;
   AInstanceOwner: boolean);
 var
@@ -1551,7 +1554,7 @@ begin
     FreeAndNil(AJSONValue)
 end;
 
-procedure InternalRender(const Content: string; ContentType, ContentEncoding: String;
+procedure InternalRender(const Content: string; ContentType, ContentEncoding: string;
   Context: TWebContext);
 begin
   if ContentType = TMVCMimeType.APPLICATION_JSON then
@@ -1726,7 +1729,7 @@ end;
 
 function TMVCWebRequest.QueryStringParamExists(Name: string): boolean;
 begin
-  Result := not QueryStringParam(Name).IsEmpty;
+  Result := not QueryStringParam(name).IsEmpty;
 end;
 
 function TMVCWebRequest.GetClientPreferHTML: boolean;
@@ -1751,7 +1754,7 @@ function TMVCWebRequest.GetHeaderValue(const Name: string): string;
 var
   S: string;
 begin
-  S := GetHeader(Name);
+  S := GetHeader(name);
   if S.IsEmpty then
     Result := ''
   else
@@ -1795,16 +1798,16 @@ begin
   Result := StrToInt(GetParamAll(ParamName));
 end;
 
-function TMVCWebRequest.GetParamNames: TArray<String>;
+function TMVCWebRequest.GetParamNames: TArray<string>;
 var
   I: Integer;
-  Names: TList<String>;
+  Names: TList<string>;
   n: string;
 begin
   if Length(FParamNames) > 0 then
     Exit(FParamNames);
 
-  Names := TList<String>.Create;
+  Names := TList<string>.Create;
   try
     if Assigned(FParamsTable) and (Length(FParamsTable.Keys.ToArray) > 0) then
       for n in FParamsTable.Keys.ToArray do
@@ -2347,7 +2350,7 @@ end;
 
 { MVCProduceAttribute }
 
-constructor MVCProducesAttribute.Create(const Value, ProduceEncoding: String);
+constructor MVCProducesAttribute.Create(const Value, ProduceEncoding: string);
 begin
   Create(Value);
   FProduceEncoding := ProduceEncoding;
@@ -2359,7 +2362,7 @@ begin
   FProduceEncoding := 'UTF-8';
 end;
 
-procedure MVCProducesAttribute.SetProduceEncoding(const Value: String);
+procedure MVCProducesAttribute.SetProduceEncoding(const Value: string);
 begin
   FProduceEncoding := Value;
 end;
