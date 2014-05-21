@@ -33,7 +33,7 @@ type
 implementation
 
 uses
-  System.SysUtils, Data.DBXJSON;
+  System.SysUtils{$IFDEF VER270}, System.JSON {$ELSE}, Data.DBXJSON{$ENDIF};
 
 { TRoutingSampleController }
 

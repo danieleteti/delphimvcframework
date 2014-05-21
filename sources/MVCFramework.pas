@@ -1,7 +1,7 @@
 unit MVCFramework;
 
 {$RTTI EXPLICIT
-METHODS([vcPublic, vcPublished, vcProtected, vcPrivate])
+METHODS([vcPublic, vcPublished, vcProtected])
 FIELDS(DefaultFieldRttiVisibility)
 PROPERTIES(DefaultPropertyRttiVisibility)}
 {$WARNINGS OFF}
