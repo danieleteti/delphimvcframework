@@ -26,7 +26,7 @@ uses SampleControllerU;
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   DMVC := TMVCEngine.Create(self);
-  DMVC.Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
+  DMVC.Config[TMVCConfigKey.DocumentRoot] := 'www';
   DMVC.AddController(TSampleController);
 end;
 

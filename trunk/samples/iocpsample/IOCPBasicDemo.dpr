@@ -27,6 +27,7 @@ begin
   Writeln(
 {$IFDEF IOCP}
     'IOCP Version'
+{$MESSAGE ERROR 'IOCP is not currently supported!'}
 {$ELSE}
     'INDY Version'
 {$ENDIF}

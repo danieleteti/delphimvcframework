@@ -14,12 +14,13 @@ type
     procedure Index(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/searches/($searchtext)/($page)')]
+    [MVCPath('/searches/($searchtext)')]
     [MVCProduces('text/plain', 'UTF-8')]
     procedure SearchCustomers(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
-    [MVCPath('/people/($id)')]     { double MVCPath }
+    [MVCPath('/people/($id)')]
+    { double MVCPath }
     [MVCPath('/($id)')]
     [MVCProduces('application/json')]
     procedure GetPerson(CTX: TWebContext);
@@ -72,18 +73,20 @@ end;
 procedure TRoutingSampleController.SearchCustomers(CTX: TWebContext);
 var
   search: string;
-  P: Integer;
+  Page: Integer;
   orderby: string;
   S: string;
 begin
   search := CTX.Request.Params['searchtext'];
-  P := CTX.Request.ParamsAsInteger['page'];
+  Page := 1;
+  if CTX.Request.QueryStringParamExists('page') then
+    Page := CTX.Request.QueryStringParam('page').ToInteger;
   orderby := '';
   if CTX.Request.QueryStringParamExists('order') then
     orderby := CTX.Request.QueryStringParam('order');
   S := Format(
     'SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
-    [search, P, orderby]);
+    [search, Page, orderby]);
   ResponseStream
     .AppendLine(S)
     .AppendLine(StringOfChar('*', 30))
