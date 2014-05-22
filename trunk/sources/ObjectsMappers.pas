@@ -1954,13 +1954,22 @@ var
   fv: TValue;
   PrefixLength: Integer;
 
-  function KindToFieldType(AKind: TTypeKind): TFieldType;
+  function KindToFieldType(AKind: TTypeKind; AProp: TRttiProperty): TFieldType;
   begin
     case AKind of
       tkInteger:
         Result := ftInteger;
       tkFloat:
-        Result := ftFloat;
+        begin // daniele teti 2014-05-23
+          if AProp.PropertyType.QualifiedName = 'System.TDate' then
+            Result := ftDate
+          else if AProp.PropertyType.QualifiedName = 'System.TDateTime' then
+            Result := ftDateTime
+          else if AProp.PropertyType.QualifiedName = 'System.TTime' then
+            Result := ftTime
+          else
+            Result := ftFloat;
+        end;
       tkChar,
         tkWChar,
         tkString,
@@ -2009,7 +2018,7 @@ begin
       if Map.TryGetValue(pname, f) then
       begin
         fv := f.GetValue(AObject);
-        AFDParams[I].DataType := KindToFieldType(fv.Kind); // DmitryG - 2014-03-28
+        AFDParams[I].DataType := KindToFieldType(fv.Kind, f); // DmitryG - 2014-03-28
         AFDParams[I].Value := fv.AsVariant;
       end
       else
