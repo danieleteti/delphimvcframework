@@ -10,17 +10,19 @@ type
   [MapperJSONNaming(JSONNameLowerCase)]
   TPerson = class
   private
-    FLastName: String;
+    FLastName: string;
     FDOB: TDate;
-    FFirstName: String;
+    FFirstName: string;
     FMarried: boolean;
     procedure SetDOB(const Value: TDate);
-    procedure SetFirstName(const Value: String);
-    procedure SetLastName(const Value: String);
+    procedure SetFirstName(const Value: string);
+    procedure SetLastName(const Value: string);
     procedure SetMarried(const Value: boolean);
   public
-    property FirstName: String read FFirstName write SetFirstName;
-    property LastName: String read FLastName write SetLastName;
+    // [MapperJsonSer('nome')]
+    property FirstName: string read FFirstName write SetFirstName;
+    // [DoNotSerialize]
+    property LastName: string read FLastName write SetLastName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
   end;
@@ -28,27 +30,27 @@ type
   [MapperJSONNaming(JSONNameLowerCase)]
   TCustomer = class
   private
-    FName: String;
-    FAddressLine2: String;
-    FAddressLine1: String;
-    FContactFirst: String;
-    FCity: String;
-    FContactLast: String;
-    procedure SetAddressLine1(const Value: String);
-    procedure SetAddressLine2(const Value: String);
-    procedure SetCity(const Value: String);
-    procedure SetContactFirst(const Value: String);
-    procedure SetContactLast(const Value: String);
-    procedure SetName(const Value: String);
+    FName: string;
+    FAddressLine2: string;
+    FAddressLine1: string;
+    FContactFirst: string;
+    FCity: string;
+    FContactLast: string;
+    procedure SetAddressLine1(const Value: string);
+    procedure SetAddressLine2(const Value: string);
+    procedure SetCity(const Value: string);
+    procedure SetContactFirst(const Value: string);
+    procedure SetContactLast(const Value: string);
+    procedure SetName(const Value: string);
   public
-    property Name: String read FName write SetName;
+    property name: string read FName write SetName;
     [MapperTransient]
-    property ContactFirst: String read FContactFirst write SetContactFirst;
+    property ContactFirst: string read FContactFirst write SetContactFirst;
     [MapperTransient]
-    property ContactLast: String read FContactLast write SetContactLast;
-    property AddressLine1: String read FAddressLine1 write SetAddressLine1;
-    property AddressLine2: String read FAddressLine2 write SetAddressLine2;
-    property City: String read FCity write SetCity;
+    property ContactLast: string read FContactLast write SetContactLast;
+    property AddressLine1: string read FAddressLine1 write SetAddressLine1;
+    property AddressLine2: string read FAddressLine2 write SetAddressLine2;
+    property City: string read FCity write SetCity;
   end;
 
 implementation
@@ -60,12 +62,12 @@ begin
   FDOB := Value;
 end;
 
-procedure TPerson.SetFirstName(const Value: String);
+procedure TPerson.SetFirstName(const Value: string);
 begin
   FFirstName := Value;
 end;
 
-procedure TPerson.SetLastName(const Value: String);
+procedure TPerson.SetLastName(const Value: string);
 begin
   FLastName := Value;
 end;
@@ -77,32 +79,32 @@ end;
 
 { TCustomer }
 
-procedure TCustomer.SetAddressLine1(const Value: String);
+procedure TCustomer.SetAddressLine1(const Value: string);
 begin
   FAddressLine1 := Value;
 end;
 
-procedure TCustomer.SetAddressLine2(const Value: String);
+procedure TCustomer.SetAddressLine2(const Value: string);
 begin
   FAddressLine2 := Value;
 end;
 
-procedure TCustomer.SetCity(const Value: String);
+procedure TCustomer.SetCity(const Value: string);
 begin
   FCity := Value;
 end;
 
-procedure TCustomer.SetContactFirst(const Value: String);
+procedure TCustomer.SetContactFirst(const Value: string);
 begin
   FContactFirst := Value;
 end;
 
-procedure TCustomer.SetContactLast(const Value: String);
+procedure TCustomer.SetContactLast(const Value: string);
 begin
   FContactLast := Value;
 end;
 
-procedure TCustomer.SetName(const Value: String);
+procedure TCustomer.SetName(const Value: string);
 begin
   FName := Value;
 end;
