@@ -3,7 +3,8 @@ unit BOs;
 interface
 
 uses
-  FrameworkTestsU, system.TimeSpan, system.SysUtils;
+  FrameworkTestsU, system.TimeSpan, system.SysUtils, generics.collections,
+  ObjectsMappers;
 
 type
   TMyObject = class
@@ -51,12 +52,64 @@ type
     property PropTimeStamp: TTimeStamp read FPropTimeStamp write SetPropTimeStamp;
   end;
 
+  TMyChildObject = class
+  private
+    FMyChildProperty1: string;
+    procedure SetMyChildProperty1(const Value: string);
+  public
+    property MyChildProperty1: string read FMyChildProperty1 write SetMyChildProperty1;
+  end;
+
+  [MapperListOf(TMyChildObject)]
+  TMyChildObjectList = class(TObjectList<TMyChildObject>)
+  end;
+
+  TMyComplexObject = class
+  private
+    FProp1: string;
+    FChildObjectList: TMyChildObjectList;
+    FChildObject: TMyChildObject;
+    procedure SetChildObject(const Value: TMyChildObject);
+    procedure SetChildObjectList(const Value: TMyChildObjectList);
+    procedure SetProp1(const Value: string);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Equals(Obj: TObject): boolean; override;
+
+    property Prop1: string read FProp1 write SetProp1;
+    property ChildObject: TMyChildObject read FChildObject write SetChildObject;
+    property ChildObjectList: TMyChildObjectList read FChildObjectList write SetChildObjectList;
+  end;
+
 function GetMyObject: TMyObject;
+function GetMyComplexObject: TMyComplexObject;
 
 implementation
 
 uses
   system.DateUtils;
+
+function GetMyComplexObject: TMyComplexObject;
+var
+  co: TMyChildObject;
+begin
+  Result := TMyComplexObject.Create;
+  Result.Prop1 := 'property1';
+  Result.ChildObject.MyChildProperty1 := 'MySingleChildProperty1';
+  co := TMyChildObject.Create;
+  co.MyChildProperty1 := 'MyChildProperty1';
+  Result.ChildObjectList.Add(co);
+  co := TMyChildObject.Create;
+  co.MyChildProperty1 := 'MyChildProperty2';
+  Result.ChildObjectList.Add(co);
+  co := TMyChildObject.Create;
+  co.MyChildProperty1 := 'MyChildProperty3';
+  Result.ChildObjectList.Add(co);
+  co := TMyChildObject.Create;
+  co.MyChildProperty1 := 'MyChildProperty4';
+  Result.ChildObjectList.Add(co);
+end;
 
 function GetMyObject: TMyObject;
 begin
@@ -158,6 +211,59 @@ end;
 procedure TMyObject.SetPropUInt64(const Value: UInt64);
 begin
   FPropUInt64 := Value;
+end;
+
+{ TMyComplexObject }
+
+constructor TMyComplexObject.Create;
+begin
+  inherited;
+  FChildObjectList := TMyChildObjectList.Create(true);
+  FChildObject := TMyChildObject.Create;
+end;
+
+destructor TMyComplexObject.Destroy;
+begin
+  FChildObjectList.Free;
+  FChildObject.Free;
+  inherited;
+end;
+
+function TMyComplexObject.Equals(Obj: TObject): boolean;
+var
+  co: TMyComplexObject;
+begin
+  co := Obj as TMyComplexObject;
+
+  Result := co.Prop1 = Self.Prop1;
+  Result := Result and (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1);
+  Result := Result and (co.ChildObjectList.Count = Self.ChildObjectList.Count);
+  Result := Result and (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3].MyChildProperty1);
+end;
+
+procedure TMyComplexObject.SetChildObject(const Value: TMyChildObject);
+begin
+  FChildObject := Value;
+end;
+
+procedure TMyComplexObject.SetChildObjectList(const Value: TMyChildObjectList);
+begin
+  FChildObjectList := Value;
+end;
+
+procedure TMyComplexObject.SetProp1(const Value: string);
+begin
+  FProp1 := Value;
+end;
+
+{ TMyChildObject }
+
+procedure TMyChildObject.SetMyChildProperty1(const Value: string);
+begin
+  FMyChildProperty1 := Value;
 end;
 
 end.

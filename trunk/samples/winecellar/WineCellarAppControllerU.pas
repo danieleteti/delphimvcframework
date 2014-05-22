@@ -48,7 +48,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, WinesBO;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
@@ -76,13 +76,28 @@ begin
 end;
 
 procedure TWineCellarApp.SaveWine(ctx: TWebContext);
+var
+  Wine: TWine;
 begin
-  dm.AddWine(ctx.Request.BodyAsJSONObject);
+  Wine := ctx.Request.BodyAs<TWine>;
+  try
+    dm.AddWine(Wine);
+  finally
+    Wine.Free;
+  end;
 end;
 
 procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
+var
+  Wine: TWine;
 begin
-  Render(dm.UpdateWine(ctx.Request.BodyAsJSONObject));
+  Wine := ctx.Request.BodyAs<TWine>;
+  try
+    dm.UpdateWine(Wine);
+  finally
+    Wine.Free;
+  end;
+  Render(200, 'Wine updated');
 end;
 
 procedure TWineCellarApp.WineById(ctx: TWebContext);
