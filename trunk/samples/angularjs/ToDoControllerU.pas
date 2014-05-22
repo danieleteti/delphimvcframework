@@ -46,8 +46,12 @@ uses ObjectsMappers,
   dorm.ObjectStatus,
   dorm.Utils,
   dorm.Commons,
-  ToDoBO,
-  DATA.DBXJSON,
+  ToDoBO
+{$IFDEF VER270}
+    , System.JSON
+{$ELSE}
+    , DATA.DBXJSON
+{$ENDIF},
   System.SysUtils;
 
 { TApp1MainController }
