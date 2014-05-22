@@ -13,7 +13,6 @@ type
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers')]
     [MVCProduces('application/json')]
-    [MVCProduces('text/html')]
     procedure GetCustomers_AsDataSet(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
