@@ -19,7 +19,6 @@ type
 implementation
 
 uses
-  Data.DBXJSON,
   System.SysUtils, MVCFramework.Commons;
 
 { TApp1MainController }

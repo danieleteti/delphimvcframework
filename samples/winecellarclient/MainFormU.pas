@@ -102,8 +102,7 @@ begin
     Exit;
   case FDMemTable1.State of
     dsEdit:
-      Resp := RESTClient.DSUpdate('/wines', FDMemTable1,
-        FDMemTable1id.AsString);
+      Resp := RESTClient.DSUpdate('/wines', FDMemTable1, FDMemTable1id.AsString);
     dsInsert:
       Resp := RESTClient.DSInsert('/wines', FDMemTable1);
   end;

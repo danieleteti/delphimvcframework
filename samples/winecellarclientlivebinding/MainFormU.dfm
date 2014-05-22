@@ -264,7 +264,6 @@ object Form5: TForm5
           SourceMemberName = 'region'
           ControlMemberName = 'SubItems[3]'
         end>
-      AutoBufferCount = False
       FillHeaderExpressions = <>
       FillBreakGroups = <>
     end

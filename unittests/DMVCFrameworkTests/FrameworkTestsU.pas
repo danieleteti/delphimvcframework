@@ -31,6 +31,7 @@ type
     procedure TestObjectListToJSONArray;
     // objects mappers
     procedure TestJSONObjectToObjectAndBack;
+    procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestDataSetToJSONObject;
     procedure TestDataSetToJSONArray;
   end;
@@ -103,6 +104,30 @@ end;
 // Params.Free;
 // end;
 // end;
+
+procedure TTestRouting.TestComplexObjectToJSONObjectAndBack;
+var
+  Obj: TMyComplexObject;
+  JObj: TJSONObject;
+  Obj2: TMyComplexObject;
+begin
+  Obj := GetMyComplexObject;
+  try
+    JObj := Mapper.ObjectToJSONObject(Obj);
+    try
+      Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
+      try
+        CheckTrue(Obj.Equals(Obj2));
+      finally
+        Obj2.Free;
+      end;
+    finally
+      JObj.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
 
 procedure TTestRouting.TestComplexRoutings;
 var

@@ -14,7 +14,8 @@ uses System.SysUtils,
 {$ENDIF}
     , FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client, FireDAC.Stan.Param,
-  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase, FireDAC.Phys.FB;
+  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase, FireDAC.Phys.FB,
+  WinesBO;
 
 type
   TWineCellarDataModule = class(TDataModule)
@@ -27,8 +28,8 @@ type
   public
     function GetWineById(id: Integer): TJSONObject;
     function FindWines(Search: string): TJSONArray;
-    function AddWine(AWine: TJSONObject): TJSONObject;
-    function UpdateWine(Wine: TJSONObject): TJSONObject;
+    function AddWine(AWine: TWine): TJSONObject;
+    procedure UpdateWine(AWine: TWine);
     function DeleteWine(id: Integer): TJSONObject;
   end;
 
@@ -39,25 +40,14 @@ implementation
 
 uses System.StrUtils,
   Data.DBXCommon,
-  ObjectsMappers,
-  WinesBO;
+  ObjectsMappers;
 
 { TCellarSM }
 
-function TWineCellarDataModule.AddWine(AWine: TJSONObject): TJSONObject;
-var
-  Wine: TWine;
+function TWineCellarDataModule.AddWine(AWine: TWine): TJSONObject;
 begin
-  Wine := Mapper.JSONObjectToObject<TWine>(AWine);
-  try
-    Mapper.ObjectToFDParameters(
-      updWines.Commands[arInsert].Params,
-      Wine,
-      'NEW_');
-    updWines.Commands[arInsert].Execute;
-  finally
-    Wine.Free;
-  end;
+  Mapper.ObjectToFDParameters(updWines.Commands[arInsert].Params, AWine, 'NEW_');
+  updWines.Commands[arInsert].Execute;
 end;
 
 function TWineCellarDataModule.DeleteWine(id: Integer): TJSONObject;
@@ -87,19 +77,11 @@ begin
   Result := qryWines.AsJSONObject;
 end;
 
-function TWineCellarDataModule.UpdateWine(Wine: TJSONObject): TJSONObject;
-var
-  w: TWine;
+procedure TWineCellarDataModule.UpdateWine(AWine: TWine);
 begin
-  w := Mapper.JSONObjectToObject<TWine>(Wine);
-  try
-    Mapper.ObjectToFDParameters(updWines.Commands[arUpdate].Params, w, 'NEW_');
-    updWines.Commands[arUpdate].Params.ParamByName('OLD_ID').AsInteger := w.id;
-    updWines.Commands[arUpdate].Execute;
-  finally
-    w.Free;
-  end;
-  Result := TJSONObject.Create;
+  Mapper.ObjectToFDParameters(updWines.Commands[arUpdate].Params, AWine, 'NEW_');
+  updWines.Commands[arUpdate].Params.ParamByName('OLD_ID').AsInteger := AWine.id;
+  updWines.Commands[arUpdate].Execute;
 end;
 
 end.

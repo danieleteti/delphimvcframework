@@ -12,6 +12,7 @@ type
   protected
     procedure MVCControllerAfterCreate; override;
     procedure MVCControllerBeforeDestroy; override;
+
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
     procedure OnAfterAction(Context: TWebContext; const AActionNAme: string);

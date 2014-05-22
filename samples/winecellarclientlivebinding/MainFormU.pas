@@ -66,7 +66,7 @@ implementation
 {$R *.dfm}
 
 
-uses ObjectsMappers, Data.DBXJSON, MVCFramework.Commons;
+uses ObjectsMappers, {$IFDEF VER270}System.JSON{$ELSE}Data.DBXJSON{$ENDIF}, MVCFramework.Commons;
 
 procedure TForm5.BindNavigator1BeforeAction(Sender: TObject; Button: TNavigateButton);
 var
