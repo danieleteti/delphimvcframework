@@ -21,6 +21,11 @@ type
     procedure GetPeople_AsObjectList(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
+    [MVCPath('/skilledpeople')]
+    // [MVCProduces('application/json')]
+    procedure GetProgrammersAndPhilosophersAsObjectList(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetPerson_AsHTML(CTX: TWebContext);
@@ -105,34 +110,63 @@ begin
   Render;
 end;
 
+procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList(
+  CTX: TWebContext);
+var
+  List: TObjectList<TPerson>;
+  p: TProgrammer;
+  ph: TPhilosopher;
+begin
+  List := TObjectList<TPerson>.Create(True);
+  p := TProgrammer.Create;
+  p.Married := True;
+  p.FirstName := 'Peter';
+  p.LastName := 'Parker';
+  p.Skills := 'Delphi, JavaScript, Python, C++';
+  List.Add(p);
+  ph := TPhilosopher.Create;
+  p.Married := False;
+  ph.FirstName := 'Bruce';
+  ph.LastName := 'Banner';
+  ph.Mentors := 'Abbagnano, Algarotti, Cavalieri, Pareyson';
+  List.Add(ph);
+  p := TProgrammer.Create;
+  p.Married := False;
+  p.FirstName := 'Sue';
+  p.LastName := 'Storm';
+  p.Skills := 'Delphi, JavaScript';
+  List.Add(p);
+  Render<TPerson>(List);
+end;
+
 procedure TRenderSampleController.GetPeople_AsObjectList(CTX: TWebContext);
 var
-  P: TPerson;
+  p: TPerson;
   People: TObjectList<TPerson>;
 begin
   People := TObjectList<TPerson>.Create(True);
 
 {$REGION 'Fake data'}
-  P := TPerson.Create;
-  P.FirstName := 'Daniele';
-  P.LastName := 'Teti';
-  P.DOB := EncodeDate(1979, 11, 4);
-  P.Married := True;
-  People.Add(P);
+  p := TPerson.Create;
+  p.FirstName := 'Daniele';
+  p.LastName := 'Teti';
+  p.DOB := EncodeDate(1979, 11, 4);
+  p.Married := True;
+  People.Add(p);
 
-  P := TPerson.Create;
-  P.FirstName := 'John';
-  P.LastName := 'Doe';
-  P.DOB := EncodeDate(1879, 10, 2);
-  P.Married := False;
-  People.Add(P);
+  p := TPerson.Create;
+  p.FirstName := 'John';
+  p.LastName := 'Doe';
+  p.DOB := EncodeDate(1879, 10, 2);
+  p.Married := False;
+  People.Add(p);
 
-  P := TPerson.Create;
-  P.FirstName := 'Jane';
-  P.LastName := 'Doe';
-  P.DOB := EncodeDate(1883, 1, 5);
-  P.Married := True;
-  People.Add(P);
+  p := TPerson.Create;
+  p.FirstName := 'Jane';
+  p.LastName := 'Doe';
+  p.DOB := EncodeDate(1883, 1, 5);
+  p.Married := True;
+  People.Add(p);
 {$ENDREGION}
   Render<TPerson>(People);
   // or if you want to be more opne to future extension
@@ -141,14 +175,14 @@ end;
 
 procedure TRenderSampleController.GetPersonJSON(CTX: TWebContext);
 var
-  P: TJSONObject;
+  p: TJSONObject;
 begin
-  P := TJSONObject.Create;
-  P.AddPair('FirstName', 'Daniele');
-  P.AddPair('LastName', 'Teti');
-  P.AddPair('DOB', ISODateToString(EncodeDate(1975, 5, 2)));
-  P.AddPair('Married', TJSONTrue.Create);
-  Render(P);
+  p := TJSONObject.Create;
+  p.AddPair('FirstName', 'Daniele');
+  p.AddPair('LastName', 'Teti');
+  p.AddPair('DOB', ISODateToString(EncodeDate(1975, 5, 2)));
+  p.AddPair('Married', TJSONTrue.Create);
+  Render(p);
 end;
 
 procedure TRenderSampleController.GetPersonPhoto(CTX: TWebContext);
