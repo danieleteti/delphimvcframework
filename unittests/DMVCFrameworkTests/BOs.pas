@@ -22,6 +22,7 @@ type
     FPropInteger: Integer;
     FPropTimeStamp: TTimeStamp;
     FPropTime: TTime;
+    FPropCurrency: Currency;
     procedure SetPropAnsiString(const Value: AnsiString);
     procedure SetPropString(const Value: string);
     procedure SetPropInt64(const Value: Int64);
@@ -35,6 +36,7 @@ type
     procedure SetPropInteger(const Value: Integer);
     procedure SetPropTimeStamp(const Value: TTimeStamp);
     procedure SetPropTime(const Value: TTime);
+    procedure SetPropCurrency(const Value: Currency);
   public
     function Equals(Obj: TMyObject): boolean;
     property PropString: string read FPropString write SetPropString;
@@ -50,6 +52,7 @@ type
     property PropTime: TTime read FPropTime write SetPropTime;
     property PropDateTime: TDateTime read FPropDateTime write SetPropDateTime;
     property PropTimeStamp: TTimeStamp read FPropTimeStamp write SetPropTimeStamp;
+    property PropCurrency: Currency read FPropCurrency write SetPropCurrency;
   end;
 
   TMyChildObject = class
@@ -122,6 +125,7 @@ begin
   Result.PropUInt64 := 1234567890;
   Result.PropUInt16 := 12345;
   Result.PropInt16 := -12345;
+  Result.PropCurrency := 1234.5678;
   Result.PropBoolean := true;
   Result.PropDate := EncodeDate(2010, 10, 20);
   Result.PropTime := EncodeTime(10, 20, 30, 40);
@@ -142,6 +146,7 @@ begin
   Result := Result and (Self.PropInt16 = Obj.PropInt16);
   Result := Result and (Self.PropBoolean = Obj.PropBoolean);
   Result := Result and (Self.PropDate = Obj.PropDate);
+  Result := Result and (Self.PropCurrency = Obj.PropCurrency);
   Result := Result and (SecondsBetween(Self.PropTime, Obj.PropTime) = 0);
   Result := Result and (SecondsBetween(Self.PropDateTime, Obj.PropDateTime) = 0);
   Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and
@@ -156,6 +161,11 @@ end;
 procedure TMyObject.SetPropBoolean(const Value: boolean);
 begin
   FPropBoolean := Value;
+end;
+
+procedure TMyObject.SetPropCurrency(const Value: Currency);
+begin
+  FPropCurrency := Value;
 end;
 
 procedure TMyObject.SetPropDate(const Value: TDate);

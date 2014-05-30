@@ -53,6 +53,24 @@ type
     property City: string read FCity write SetCity;
   end;
 
+  [MapperJSONNaming(JSONNameLowerCase)]
+  TProgrammer = class(TPerson)
+  private
+    FSkills: string;
+    procedure SetSkills(const Value: string);
+  public
+    property Skills: string read FSkills write SetSkills;
+  end;
+
+  [MapperJSONNaming(JSONNameLowerCase)]
+  TPhilosopher = class(TPerson)
+  private
+    FMentors: String;
+    procedure SetMentors(const Value: String);
+  public
+    property Mentors: String read FMentors write SetMentors;
+  end;
+
 implementation
 
 { TPerson }
@@ -107,6 +125,20 @@ end;
 procedure TCustomer.SetName(const Value: string);
 begin
   FName := Value;
+end;
+
+{ TProgrammer }
+
+procedure TProgrammer.SetSkills(const Value: string);
+begin
+  FSkills := Value;
+end;
+
+{ TPhilosopher }
+
+procedure TPhilosopher.SetMentors(const Value: String);
+begin
+  FMentors := Value;
 end;
 
 end.

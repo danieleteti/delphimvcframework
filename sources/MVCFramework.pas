@@ -1037,10 +1037,12 @@ begin
   if IsLibrary then
   begin
 {$IF Defined(VER270)}
-    if ARequest is TIdHTTPAppRequest then
+    if ARequest is TApacheRequest then
+      FRequest := TMVCApacheWebRequest.Create(ARequest)
+    else if ARequest is TISAPIRequest then
       FRequest := TMVCISAPIWebRequest.Create(ARequest)
     else
-      FRequest := TMVCApacheWebRequest.Create(ARequest);
+      raise EMVCException.Create('Unknown request type ' + ARequest.ClassName);
 {$ELSE}
     FRequest := TMVCISAPIWebRequest.Create(ARequest)
 {$ENDIF}
