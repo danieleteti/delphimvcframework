@@ -29,10 +29,10 @@ type
     function ResponseCode: Word;
     function ResponseText: string;
     function Headers: TStringlist;
-    function GetContentType: String;
-    function GetContentEncoding: String;
+    function GetContentType: string;
+    function GetContentEncoding: string;
     function Body: TStringStream;
-    function GetHeaderValue(const Name: String): String;
+    function GetHeaderValue(const Name: string): string;
     procedure SetResponseCode(AResponseCode: Word);
     procedure SetResponseText(AResponseText: string);
     procedure SetHeaders(AHeaders: TStrings);
@@ -46,8 +46,8 @@ type
     FHeaders: TStringlist;
     FBodyAsJSONValue: TJSONValue;
     FContentType: string;
-    FContentEncoding: String;
-    function GetHeader(const Value: String): String;
+    FContentEncoding: string;
+    function GetHeader(const Value: string): string;
   public
 
     function BodyAsString: string;
@@ -57,8 +57,8 @@ type
     function ResponseText: string;
     function Headers: TStringlist;
     function Body: TStringStream;
-    function GetContentType: String;
-    function GetContentEncoding: String;
+    function GetContentType: string;
+    function GetContentEncoding: string;
 
     procedure SetResponseCode(AResponseCode: Word);
     procedure SetResponseText(AResponseText: string);
@@ -87,7 +87,7 @@ type
     FAsynchProcAlways: TProc;
     FProtocol: string;
     FSynchronized: Boolean;
-    FContentEncoding: String;
+    FContentEncoding: string;
     function EncodeQueryStringParams(const AQueryStringParams: TStrings;
       IncludeQuestionMark: Boolean = true): string;
     procedure SetBodyParams(const Value: TStringlist);
@@ -102,7 +102,7 @@ type
     procedure SetReadTimeout(const Value: Integer);
     function GetReadTimeout: Integer;
     procedure StartAsynchRequest(AHTTPMethod: THttpCommand; AUrl: string;
-      ABodyString: String); overload;
+      ABodyString: string); overload;
     procedure StartAsynchRequest(AHTTPMethod: THttpCommand;
       AUrl: string); overload;
     procedure SetConnectionTimeout(const Value: Integer);
@@ -120,7 +120,7 @@ type
       const AAccept, AContentType, AUrl: string; ABodyParams: TStrings)
       : IRESTResponse;
     function SendHTTPCommandWithBody(const ACommand: THttpCommand;
-      const AAccept, AContentType, AUrl: string; ABodyString: String)
+      const AAccept, AContentType, AUrl: string; ABodyString: string)
       : IRESTResponse;
     procedure HandleRequestCookies;
     function GetMultipartFormData: TIdMultiPartFormDataStream;
@@ -154,19 +154,19 @@ type
       AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
       : IRESTResponse; overload;
     function doPOST(AResource: string; AResourceParams: array of string;
-      ABodyString: String): IRESTResponse; overload;
+      ABodyString: string): IRESTResponse; overload;
     function doPATCH(AResource: string; AResourceParams: array of string;
       AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
       : IRESTResponse; overload;
     function doPATCH(AResource: string; AResourceParams: array of string;
-      ABodyString: String): IRESTResponse; overload;
+      ABodyString: string): IRESTResponse; overload;
     function doPUT(AResource: string; AResourceParams: array of string)
       : IRESTResponse; overload;
     function doPUT(AResource: string; AResourceParams: array of string;
       AJSONValue: TJSONValue; AOwnsJSONBody: Boolean = true)
       : IRESTResponse; overload;
     function doPUT(AResource: string; AResourceParams: array of string;
-      ABodyString: String): IRESTResponse; overload;
+      ABodyString: string): IRESTResponse; overload;
     function doDELETE(AResource: string; AResourceParams: array of string)
       : IRESTResponse;
     property BodyParams: TStringlist read GetBodyParams write SetBodyParams;
@@ -180,9 +180,9 @@ type
     property RequestHeaders: TStringlist read FRequestHeaders
       write SetRequestHeaders;
     // dataset specific methods
-    function DSUpdate(const URL: String; DataSet: TDataSet; const KeyValue: String): IRESTResponse;
-    function DSInsert(const URL: String; DataSet: TDataSet): IRESTResponse;
-    function DSDelete(const URL: String; const KeyValue: String): IRESTResponse;
+    function DSUpdate(const URL: string; DataSet: TDataSet; const KeyValue: string): IRESTResponse;
+    function DSInsert(const URL: string; DataSet: TDataSet): IRESTResponse;
+    function DSDelete(const URL: string; const KeyValue: string): IRESTResponse;
   end;
 
 function StringsToArrayOfString(const AStrings: TStrings): TArrayOfString;
@@ -221,6 +221,7 @@ function TRESTClient.AddFile(const FieldName, FileName, ContentType: string)
   : TRESTClient;
 begin
   GetMultipartFormData.AddFile(FieldName, FileName, ContentType);
+  Result := Self;
 end;
 
 function TRESTClient.Asynch(AProc: TProc<IRESTResponse>;
@@ -276,7 +277,7 @@ end;
 
 constructor TRESTClient.Create(const AServerName: string; AServerPort: Word; AIOHandler: TIdIOHandler);
 var
-  Pieces: TArray<String>;
+  Pieces: TArray<string>;
 begin
   inherited Create;
   FPrimaryThread := TThread.CurrentThread;
@@ -342,7 +343,7 @@ begin
 end;
 
 procedure TRESTClient.StartAsynchRequest(AHTTPMethod: THttpCommand;
-  AUrl: string; ABodyString: String);
+  AUrl: string; ABodyString: string);
 var
   th: TThread;
 begin
@@ -364,7 +365,6 @@ begin
               end)
           else
             FAsynchProc(R);
-          ClearAllParams;
         finally
           TMonitor.Exit(TObject(R));
         end;
@@ -392,6 +392,7 @@ begin
         else
           FAsynchProcAlways();
       end;
+      ClearAllParams;
     end);
   th.Start;
 end;
@@ -447,7 +448,7 @@ begin
   end;
 end;
 
-function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string; ABodyString: String): IRESTResponse;
+function TRESTClient.doPATCH(AResource: string; AResourceParams: array of string; ABodyString: string): IRESTResponse;
 var
   URL: string;
 begin
@@ -482,7 +483,7 @@ begin
 end;
 
 function TRESTClient.doPOST(AResource: string; AResourceParams: array of string;
-ABodyString: String): IRESTResponse;
+ABodyString: string): IRESTResponse;
 var
   URL: string;
 begin
@@ -504,7 +505,7 @@ begin
 end;
 
 function TRESTClient.doPUT(AResource: string; AResourceParams: array of string;
-ABodyString: String): IRESTResponse;
+ABodyString: string): IRESTResponse;
 var
   URL: string;
 begin
@@ -526,17 +527,17 @@ begin
 
 end;
 
-function TRESTClient.DSDelete(const URL, KeyValue: String): IRESTResponse;
+function TRESTClient.DSDelete(const URL, KeyValue: string): IRESTResponse;
 begin
   Result := doDELETE(URL, [KeyValue]);
 end;
 
-function TRESTClient.DSInsert(const URL: String; DataSet: TDataSet): IRESTResponse;
+function TRESTClient.DSInsert(const URL: string; DataSet: TDataSet): IRESTResponse;
 begin
   Result := doPOST(URL, [], DataSet.AsJSONObjectString);
 end;
 
-function TRESTClient.DSUpdate(const URL: String; DataSet: TDataSet; const KeyValue: String): IRESTResponse;
+function TRESTClient.DSUpdate(const URL: string; DataSet: TDataSet; const KeyValue: string): IRESTResponse;
 begin
   Result := doPUT(URL, [KeyValue], DataSet.AsJSONObjectString);
 end;
@@ -769,7 +770,7 @@ begin
 end;
 
 function TRESTClient.SendHTTPCommandWithBody(const ACommand: THttpCommand;
-const AAccept, AContentType, AUrl: string; ABodyString: String): IRESTResponse;
+const AAccept, AContentType, AUrl: string; ABodyString: string): IRESTResponse;
 begin
   Result := TRESTResponse.Create;
   FHTTP.Request.RawHeaders.Clear;
@@ -940,19 +941,19 @@ begin
   inherited;
 end;
 
-function TRESTResponse.GetContentEncoding: String;
+function TRESTResponse.GetContentEncoding: string;
 begin
   Result := FContentEncoding;
 end;
 
-function TRESTResponse.GetContentType: String;
+function TRESTResponse.GetContentType: string;
 begin
   Result := FContentType;
 end;
 
-function TRESTResponse.GetHeader(const Value: String): String;
+function TRESTResponse.GetHeader(const Value: string): string;
 var
-  s: String;
+  s: string;
 begin
   if Assigned(FHeaders) and (FHeaders.Count > 0) then
   begin
@@ -1005,7 +1006,7 @@ end;
 procedure TRESTResponse.SetHeaders(AHeaders: TStrings);
 var
   CT: TArray<string>;
-  C: String;
+  C: string;
 begin
   FHeaders.Assign(AHeaders);
 

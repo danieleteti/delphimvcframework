@@ -22,6 +22,11 @@ type
   public
     [MVCPath('/')]
     procedure Index(Context: TWebContext);
+
+    [MVCPath('/orders')]
+    [MVCProduces('application/json')]
+    procedure OrdersProduceJSON(Context: TWebContext);
+
     [MVCPath('/orders')]
     procedure Orders(Context: TWebContext);
 
@@ -73,6 +78,11 @@ begin
 end;
 
 procedure TSimpleController.Orders(Context: TWebContext);
+begin
+
+end;
+
+procedure TSimpleController.OrdersProduceJSON(Context: TWebContext);
 begin
 
 end;

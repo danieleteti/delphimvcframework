@@ -205,7 +205,7 @@ procedure TTestServerController.TestEncoding(ctx: TWebContext);
 var
   Obj: TJSONObject;
 begin
-  ContentEncoding := 'utf-8';
+  ContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   Obj := TJSONObject.Create;
   Obj.AddPair('name1', 'jørn');
   Obj.AddPair('name2', 'Što je Unicode?');

@@ -1535,6 +1535,8 @@ begin
           end
           else if _field.PropertyType.QualifiedName = 'System.TTime' then
             _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
+          else if _field.PropertyType.QualifiedName = 'System.Currency' then
+            _field.SetValue(TObject(AObject), (jvalue as TJSONNumber).AsDouble)
           else
             _field.SetValue(TObject(AObject), (jvalue as TJSONNumber).AsDouble)
         end;

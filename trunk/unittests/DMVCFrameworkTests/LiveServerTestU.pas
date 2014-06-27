@@ -261,7 +261,6 @@ end;
 procedure TServerTest.TestMiddlewareHandler;
 var
   r: IRESTResponse;
-  JSON: TJSONObject;
   P: TPerson;
 begin
   r := RESTClient
@@ -274,7 +273,6 @@ end;
 procedure TServerTest.TestMiddlewareSpeedMiddleware;
 var
   r: IRESTResponse;
-  JSON: TJSONObject;
   P: TPerson;
 begin
   P := TPerson.Create;
@@ -307,7 +305,6 @@ end;
 procedure TServerTest.TestPOSTWithObjectJSONBody;
 var
   r: IRESTResponse;
-  JSON: TJSONObject;
   P: TPerson;
 begin
   P := TPerson.Create;

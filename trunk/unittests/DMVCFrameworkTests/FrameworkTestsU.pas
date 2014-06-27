@@ -26,6 +26,8 @@ type
     procedure TestPathWithParameters;
     procedure TestWithMethodTypes;
     procedure TestComplexRoutings;
+    procedure TestProduceRoutings;
+    procedure TestProduceRoutingsWithExplicitCharset;
 
     procedure TestObjectToJSONObject;
     procedure TestObjectListToJSONArray;
@@ -360,6 +362,60 @@ begin
     Params.Free;
   end;
 
+end;
+
+procedure TTestRouting.TestProduceRoutings;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentCharset: string;
+begin
+  Params := TMVCRequestParamsTable.Create;
+  try
+    // a GET request with a ACCEPT: application/json
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET,
+      '',
+      'application/json',
+      Controllers,
+      TMVCConstants.DEFAULT_CONTENT_TYPE,
+      TMVCConstants.DEFAULT_CONTENT_CHARSET,
+      Params,
+      ResponseContentType,
+      ResponseContentCharset));
+    CheckEquals(0, Params.Count);
+    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
+    CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
+  finally
+    Params.Free;
+  end;
+end;
+
+procedure TTestRouting.TestProduceRoutingsWithExplicitCharset;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentCharset: string;
+begin
+  Params := TMVCRequestParamsTable.Create;
+  try
+    // a GET request with a ACCEPT: application/json
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET,
+      '',
+      'application/json; charset=UTF-8',
+      Controllers,
+      TMVCConstants.DEFAULT_CONTENT_TYPE,
+      TMVCConstants.DEFAULT_CONTENT_CHARSET,
+      Params,
+      ResponseContentType,
+      ResponseContentCharset));
+    CheckEquals(0, Params.Count);
+    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
+    CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
+  finally
+    Params.Free;
+  end;
 end;
 
 procedure TTestRouting.TestWithMethodTypes;
