@@ -4,18 +4,19 @@ object dmMain: TdmMain
   Width = 438
   object Connection: TFDConnection
     Params.Strings = (
-      
-        'Database=C:\DEV\DMVCFramework\samples\ordersmanager\bin\TOMSORDE' +
-        'RS_DEVELOPMENT.FDB'
+      'Database=C:\DEV\DMVCFramework\samples\data\ORDERSMANAGER.FDB'
       'User_Name=sysdba'
       'Password=masterkey'
       'DriverID=FB')
     ConnectedStoredUsage = []
+    Connected = True
+    LoginPrompt = False
     BeforeConnect = ConnectionBeforeConnect
     Left = 64
     Top = 48
   end
   object dsArticles: TFDQuery
+    Active = True
     Connection = Connection
     UpdateOptions.AssignedValues = [uvFetchGeneratorsPoint, uvGeneratorName]
     UpdateOptions.FetchGeneratorsPoint = gpImmediate
@@ -37,9 +38,7 @@ object dmMain: TdmMain
       'RETURNING ID, CODICE, DESCRIZIONE, PREZZO')
     ModifySQL.Strings = (
       'UPDATE ARTICOLI'
-      
-        'SET ID = :NEW_ID, CODICE = :NEW_CODICE, DESCRIZIONE = :NEW_DESCR' +
-        'IZIONE, '
+      'SET CODICE = :NEW_CODICE, DESCRIZIONE = :NEW_DESCRIZIONE, '
       '  PREZZO = :NEW_PREZZO'
       'WHERE ID = :OLD_ID'
       'RETURNING ID, CODICE, DESCRIZIONE, PREZZO')
