@@ -25,7 +25,7 @@ type
   TMVCConstants = class sealed
   public const
     SESSION_TOKEN_NAME = 'dtsessionid';
-    DEFAULT_CONTENT_CHARSET = 'utf-8';
+    DEFAULT_CONTENT_CHARSET = 'UTF-8';
     DEFAULT_CONTENT_TYPE = TMVCMimeType.APPLICATION_JSON;
   end;
 

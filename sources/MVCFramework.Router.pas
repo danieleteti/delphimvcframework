@@ -21,6 +21,7 @@ type
       AAttributes: TArray<TCustomAttribute>): Boolean;
     function IsHTTPAcceptCompatible(AWebRequestMethodType: TMVCHTTPMethodType; AAccept: AnsiString;
       AAttributes: TArray<TCustomAttribute>): Boolean;
+    function GetFirstMimeType(const AContentType: string): string;
   protected
     function IsHTTPMethodCompatible(AMethodType: TMVCHTTPMethodType;
       AAttributes: TArray<TCustomAttribute>): Boolean; virtual;
@@ -33,21 +34,16 @@ type
     class function StringMethodToHTTPMetod(const Value: AnsiString)
       : TMVCHTTPMethodType;
     constructor Create(AMVCConfig: TMVCConfig);
-    function ExecuteRouting(AWebRequest: TWebRequest;
-      AMVCControllers: TList<TMVCControllerClass>;
-      ADefaultContentType, ADefaultContentCharset: String;
-      var AMVCRequestParams: TMVCRequestParamsTable;
-      out AResponseContentType, AResponseContentEncoding: string)
-      : Boolean; overload;
     function ExecuteRouting(AWebRequestPathInfo: AnsiString;
       AWebRequestMethodType: TMVCHTTPMethodType;
       AWebRequestContentType: AnsiString;
       AWebRequestAccept: AnsiString;
       AMVCControllers: TList<TMVCControllerClass>;
-      ADefaultContentType: String;
-      ADefaultContentCharset: String;
+      ADefaultContentType: string;
+      ADefaultContentCharset: string;
       var AMVCRequestParams: TMVCRequestParamsTable;
-      out AResponseContentType, AResponseContentEncoding: string)
+      out AResponseContentType: string;
+      out AResponseContentEncoding: string)
       : Boolean; overload;
     property MethodToCall: TRTTIMethod read FMethodToCall;
     property MVCControllerClass: TMVCControllerClass read FMVCControllerClass;
@@ -63,23 +59,6 @@ uses
 
 { TMVCRouter }
 
-function TMVCRouter.ExecuteRouting(AWebRequest: TWebRequest;
-  AMVCControllers: TList<TMVCControllerClass>;
-  ADefaultContentType, ADefaultContentCharset: String;
-  var AMVCRequestParams: TMVCRequestParamsTable;
-  out AResponseContentType, AResponseContentEncoding: string): Boolean;
-var
-  HTTPMethodType: TMVCHTTPMethodType;
-begin
-  HTTPMethodType := StringMethodToHTTPMetod(AWebRequest.Method);
-  Result := ExecuteRouting(AWebRequest.PathInfo, HTTPMethodType,
-    AWebRequest.ContentType, AWebRequest.Accept, AMVCControllers,
-    ADefaultContentType,
-    ADefaultContentCharset,
-    AMVCRequestParams,
-    AResponseContentType, AResponseContentEncoding);
-end;
-
 constructor TMVCRouter.Create(AMVCConfig: TMVCConfig);
 begin
   inherited Create;
@@ -89,9 +68,10 @@ end;
 function TMVCRouter.ExecuteRouting(AWebRequestPathInfo: AnsiString;
   AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString; AWebRequestAccept: AnsiString;
   AMVCControllers: TList<TMVCControllerClass>;
-  ADefaultContentType, ADefaultContentCharset: String;
+  ADefaultContentType, ADefaultContentCharset: string;
   var AMVCRequestParams: TMVCRequestParamsTable;
-  out AResponseContentType, AResponseContentEncoding: string): Boolean;
+  out AResponseContentType: string;
+  out AResponseContentEncoding: string): Boolean;
 var
   controllerClass: TMVCControllerClass;
   _type: TRttiType;
@@ -121,7 +101,7 @@ begin
   { ISAPI CHANGE THE REQUEST PATH INFO START }
   if IsLibrary then
   begin
-    AWebRequestPathInfo := String(AWebRequestPathInfo).Remove(0, FMVCConfig.Value['isapi_path'].Length);
+    AWebRequestPathInfo := string(AWebRequestPathInfo).Remove(0, FMVCConfig.Value[TMVCConfigKey.ISAPIPath].Length);
     if Length(AWebRequestPathInfo) = 0 then
       AWebRequestPathInfo := '/';
   end;
@@ -211,6 +191,16 @@ begin
       Exit(T(a));
 end;
 
+function TMVCRouter.GetFirstMimeType(
+  const AContentType: string): string;
+begin
+  Result := AContentType;
+  while Pos(',', Result) > 0 do
+    Result := Copy(Result, 1, Pos(',', Result) - 1);
+  while Pos(';', Result) > 0 do
+    Result := Copy(Result, 1, Pos(';', Result) - 1); // application/json;charset=UTF-8 {daniele}
+end;
+
 function TMVCRouter.IsCompatiblePath(AMVCPath: string; APath: string;
   var AParams: TMVCRequestParamsTable): Boolean;
   function ToPattern(const V: string; Names: TList<string>): string;
@@ -287,8 +277,10 @@ begin
     begin
       FoundOneAttribProduces := true;
       MethodAccept := MVCProducesAttribute(AAttributes[i]).Value;
-      while Pos(',', AAccept) > 0 do
-        AAccept := Copy(AAccept, 1, Pos(',', AAccept) - 1);
+      AAccept := GetFirstMimeType(AAccept);
+//      while Pos(',', AAccept) > 0 do
+//        AAccept := Copy(AAccept, 1, Pos(',', AAccept) - 1);
+
       Result := SameText(AAccept, MethodAccept, loInvariantLocale);
       if Result then
         Break;
@@ -316,8 +308,7 @@ begin
     begin
       FoundOneAttribConsumes := true;
       MethodContentType := MVCConsumesAttribute(AAttributes[i]).Value;
-      while Pos(',', AContentType) > 0 do
-        AContentType := Copy(AContentType, 1, Pos(',', AContentType) - 1);
+      AContentType := GetFirstMimeType(AContentType);
       Result := SameText(AContentType, MethodContentType, loInvariantLocale);
       if Result then
         Break;

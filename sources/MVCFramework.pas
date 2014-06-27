@@ -95,7 +95,7 @@ type
     FParamsTable: TMVCRequestParamsTable;
     FContentType: string;
     FCharset: string;
-    FContentEncoding: string;
+    FContentCharset: string;
     function GetHeader(const Name: string): string;
     function GetHeaderValue(const Name: string): string;
     function GetPathInfo: string;
@@ -140,7 +140,7 @@ type
     property ClientPreferHTML: boolean read GetClientPreferHTML;
     property Files: TAbstractWebRequestFiles read GetFiles;
     property ContentType: string read FContentType;
-    property ContentEncoding: string read FContentEncoding;
+    property ContentCharset: string read FContentCharset;
     property Charset: string read FCharset;
   end;
 
@@ -268,14 +268,14 @@ type
     FContext: TWebContext;
     FWebSession: TWebSession;
     FResponseStream: TStringBuilder;
-    FContentEncoding: string;
+    FContentCharset: string;
     procedure SetContext(const Value: TWebContext);
     procedure SetWebSession(const Value: TWebSession);
     procedure SetContentType(const Value: string);
     function GetContentType: string;
     function GetWebSession: TWebSession;
-    function GetContentEncoding: string;
-    procedure SetContentEncoding(const Value: string);
+    function GetContentCharset: string;
+    procedure SetContentCharset(const Value: string);
 
   protected
     procedure RaiseSessionExpired; virtual;
@@ -289,7 +289,7 @@ type
     procedure MVCControllerAfterCreate; virtual;
     procedure MVCControllerBeforeDestroy; virtual;
     property ContentType: string read GetContentType write SetContentType;
-    property ContentEncoding: string read GetContentEncoding write SetContentEncoding;
+    property ContentCharset: string read GetContentCharset write SetContentCharset;
     // Session
     procedure SessionStart; virtual;
     procedure SessionStop(ARaiseExceptionIfExpired: boolean = true); virtual;
@@ -560,7 +560,7 @@ var
   StaticFileName: string;
   ContentType: string;
   Handled: boolean;
-  ResponseContentType, ResponseContentEncoding: string;
+  ResponseContentType, ResponseContentCharset: string;
 begin
   LogEnterMethod(Request.PathInfo);
   try
@@ -592,10 +592,17 @@ begin
             ExecuteBeforeRoutingMiddleware(Context, Handled);
             if not Handled then
             begin
-              if Router.ExecuteRouting(Request, FControllers, FMVCConfig[TMVCConfigKey.DefaultContentType],
+              if Router.ExecuteRouting(
+                Request.PathInfo,
+                TMVCRouter.StringMethodToHTTPMetod(Request.Method),
+                Request.ContentType,
+                Request.Accept,
+                FControllers,
+                FMVCConfig[TMVCConfigKey.DefaultContentType],
                 FMVCConfig[TMVCConfigKey.DefaultContentCharset],
-
-                ParamsTable, ResponseContentType, ResponseContentEncoding) then
+                ParamsTable,
+                ResponseContentType,
+                ResponseContentCharset) then
               begin
                 SelectedController := Router.MVCControllerClass.Create;
                 try
@@ -615,7 +622,7 @@ begin
                       Handled := false;
                       // gets response contentype from MVCProduces attribute
                       SelectedController.ContentType := ResponseContentType;
-                      SelectedController.ContentEncoding := ResponseContentEncoding;
+                      SelectedController.ContentCharset := ResponseContentCharset;
                       SelectedController.OnBeforeAction(Context, Router.MethodToCall.Name, Handled);
                       if not Handled then
                       begin
@@ -1306,7 +1313,7 @@ begin
   begin
     CT := c.Split([';']);
     FContentType := trim(CT[0]);
-    FCharset := 'utf-8'; // default encoding
+    FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET; // default charset
     if Length(CT) > 1 then
     begin
       if CT[1].trim.StartsWith('charset', true) then
@@ -1316,9 +1323,9 @@ begin
     end;
   end;
 
-  c := GetHeaderValue('content-encoding');
-  if c.IsEmpty then
-    FContentEncoding := c;
+  // c := GetHeaderValue('content-encoding');
+  // if c.IsEmpty then
+  // FContentEncoding := c;
 end;
 
 destructor TMVCWebRequest.Destroy;
@@ -1349,7 +1356,7 @@ begin
   inherited Create;
   IsSessionStarted := false;
   SessionMustBeClose := false;
-  FContentEncoding := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
 end;
 
 destructor TMVCController.Destroy;
@@ -1396,9 +1403,9 @@ begin
   end;
 end;
 
-function TMVCController.GetContentEncoding: string;
+function TMVCController.GetContentCharset: string;
 begin
-  Result := FContentEncoding;
+  Result := FContentCharset;
 end;
 
 function TMVCController.GetContentType: string;
@@ -1578,7 +1585,7 @@ end;
 
 procedure TMVCController.Render(const Content: string);
 begin
-  InternalRender(Content, ContentType, ContentEncoding, Context);
+  InternalRender(Content, ContentType, ContentCharset, Context);
 end;
 
 procedure TMVCController.Render(AObject: TObject; AInstanceOwner: boolean);
@@ -1680,9 +1687,9 @@ begin
   SessionMustBeClose := true;
 end;
 
-procedure TMVCController.SetContentEncoding(const Value: string);
+procedure TMVCController.SetContentCharset(const Value: string);
 begin
-  FContentEncoding := Value;
+  FContentCharset := Value;
 end;
 
 procedure TMVCController.SetContentType(const Value: string);
@@ -2147,7 +2154,7 @@ begin
   if (not Context.Request.IsAjax) and (Context.Request.ClientPreferHTML) then
   begin
     ContentType := TMVCMimeType.TEXT_HTML;
-    ContentEncoding := 'UTF-8';
+    ContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
     ResponseStream.Clear;
 
     ResponseStream.Append
@@ -2275,7 +2282,7 @@ end;
 
 procedure TMVCController.Render(AJSONValue: TJSONValue; AInstanceOwner: boolean);
 begin
-  InternalRender(AJSONValue, ContentType, ContentEncoding, Context, AInstanceOwner);
+  InternalRender(AJSONValue, ContentType, ContentCharset, Context, AInstanceOwner);
 end;
 
 procedure TMVCController.ResponseStatusCode(const ErrorCode: UInt16);

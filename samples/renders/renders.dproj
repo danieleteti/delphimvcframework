@@ -91,6 +91,15 @@
         </DCCReference>
         <DCCReference Include="RenderSampleControllerU.pas"/>
         <DCCReference Include="..\commons\BusinessObjectsU.pas"/>
+        <None Include="ModelSupport_renders\default.txaPackage"/>
+        <None Include="ModelSupport_renders\default.txvpck"/>
+        <None Include="ModelSupport_renders\renders1\default.txvpck"/>
+        <None Include="ModelSupport_renders\BusinessObjectsU\default.txaPackage"/>
+        <None Include="ModelSupport_renders\BusinessObjectsU\default.txvpck"/>
+        <None Include="ModelSupport_renders\WebModuleU\default.txvpck"/>
+        <None Include="ModelSupport_renders\renders\default.txvpck"/>
+        <None Include="ModelSupport_renders\RenderSampleControllerU\default.txvpck"/>
+        <None Include="ModelSupport_renders\renders\default.txaPackage"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -173,6 +182,7 @@
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>
+            <ModelSupport>True</ModelSupport>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>
