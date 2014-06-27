@@ -11,16 +11,19 @@ type
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticles(context: TWebContext);
+    procedure GetArticles(Context: TWebContext);
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticleByID(context: TWebContext);
+    procedure GetArticleByID(Context: TWebContext);
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpDelete])]
-    procedure DeleteArticleByID(context: TWebContext);
+    procedure DeleteArticleByID(Context: TWebContext);
+    [MVCPath('/($id)')]
+    [MVCHTTPMethod([httpPUT])]
+    procedure UpdateArticleByID(Context: TWebContext);
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticle(context: TWebContext);
+    procedure CreateArticle(Context: TWebContext);
   end;
 
 implementation
@@ -29,26 +32,26 @@ implementation
 
 uses Services, BusinessObjects, Commons, mvcframework.Commons;
 
-procedure TArticlesController.CreateArticle(context: TWebContext);
+procedure TArticlesController.CreateArticle(Context: TWebContext);
 var
   Article: TArticle;
 begin
-  Article := context.Request.BodyAs<TArticle>;
+  Article := Context.Request.BodyAs<TArticle>;
   try
     GetArticlesService.Add(Article);
-    Render(201, 'Article creato');
+    Render(201, 'Article Created');
   finally
     Article.Free;
   end;
 end;
 
-procedure TArticlesController.DeleteArticleByID(context: TWebContext);
+procedure TArticlesController.DeleteArticleByID(Context: TWebContext);
 var
   Article: TArticle;
 begin
   GetArticlesService.StartTransaction;
   try
-    Article := GetArticlesService.GetByID(context.Request.ParamsAsInteger['id']);
+    Article := GetArticlesService.GetByID(Context.Request.ParamsAsInteger['id']);
     try
       GetArticlesService.Delete(Article);
     finally
@@ -61,17 +64,31 @@ begin
   end;
 end;
 
-procedure TArticlesController.GetArticles(context: TWebContext);
+procedure TArticlesController.GetArticles(Context: TWebContext);
 begin
   Render<TArticle>(GetArticlesService.GetAll);
 end;
 
-procedure TArticlesController.GetArticleByID(context: TWebContext);
+procedure TArticlesController.UpdateArticleByID(Context: TWebContext);
+var
+  Article: TArticle;
+begin
+  Article := Context.Request.BodyAs<TArticle>;
+  try
+    Article.ID := Context.Request.ParamsAsInteger['id'];
+    GetArticlesService.Update(Article);
+    Render(201, 'Article Updated');
+  finally
+    Article.Free;
+  end;
+end;
+
+procedure TArticlesController.GetArticleByID(Context: TWebContext);
 var
   Article: TArticle;
 begin
   try
-    Article := GetArticlesService.GetByID(context.Request.ParamsAsInteger['id']);
+    Article := GetArticlesService.GetByID(Context.Request.ParamsAsInteger['id']);
     Render(Article);
   except
     on E: EServiceException do

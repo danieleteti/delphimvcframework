@@ -23,6 +23,7 @@ type
     function GetByID(const AID: Integer): TArticle;
     procedure Delete(AArticolo: TArticle);
     procedure Add(AArticolo: TArticle);
+    procedure Update(AArticolo: TArticle);
   end;
 
 implementation
@@ -70,6 +71,19 @@ begin
   finally
     FDM.dsArticles.Close;
   end;
+end;
+
+procedure TArticlesService.Update(AArticolo: TArticle);
+var
+  Cmd: TFDCustomCommand;
+begin
+  AArticolo.CheckUpdate;
+  Cmd := FDM.updArticles.Commands[arUpdate];
+  Mapper.ObjectToFDParameters(Cmd.Params, AArticolo, 'NEW_');
+  Cmd.ParamByName('OLD_ID').AsInteger := AArticolo.ID;
+  Cmd.OpenOrExecute;
+  if Cmd.RowsAffected <> 1 then
+    raise Exception.Create('Article not found');
 end;
 
 { TServiceBase }
