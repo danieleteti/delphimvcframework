@@ -101,7 +101,8 @@ begin
   { ISAPI CHANGE THE REQUEST PATH INFO START }
   if IsLibrary then
   begin
-    AWebRequestPathInfo := string(AWebRequestPathInfo).Remove(0, FMVCConfig.Value[TMVCConfigKey.ISAPIPath].Length);
+    if string(AWebRequestPathInfo).StartsWith(FMVCConfig.Value[TMVCConfigKey.ISAPIPath]) then
+      AWebRequestPathInfo := string(AWebRequestPathInfo).Remove(0, FMVCConfig.Value[TMVCConfigKey.ISAPIPath].Length);
     if Length(AWebRequestPathInfo) = 0 then
       AWebRequestPathInfo := '/';
   end;
@@ -278,8 +279,8 @@ begin
       FoundOneAttribProduces := true;
       MethodAccept := MVCProducesAttribute(AAttributes[i]).Value;
       AAccept := GetFirstMimeType(AAccept);
-//      while Pos(',', AAccept) > 0 do
-//        AAccept := Copy(AAccept, 1, Pos(',', AAccept) - 1);
+      // while Pos(',', AAccept) > 0 do
+      // AAccept := Copy(AAccept, 1, Pos(',', AAccept) - 1);
 
       Result := SameText(AAccept, MethodAccept, loInvariantLocale);
       if Result then
