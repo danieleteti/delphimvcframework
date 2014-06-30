@@ -14,7 +14,6 @@ type
     procedure CheckInsert; virtual;
     procedure CheckUpdate; virtual;
     procedure CheckDelete; virtual;
-  public
     property ID: Integer read FID write SetID;
   end;
 
@@ -28,8 +27,9 @@ type
     procedure SetDescription(const Value: string);
     procedure SetPrice(const Value: Currency);
   public
+    procedure CheckInsert; override;
+    procedure CheckUpdate; override;
     procedure CheckDelete; override;
-  public
     [MapperColumn('CODICE')]
     property Code: string read FCode write SetCode;
     [MapperColumn('DESCRIZIONE')]
@@ -72,6 +72,20 @@ begin
   inherited;
   if Price > 0 then
     raise Exception.Create('Cannot delete an article with a price greater than 0 (yes, it is a silly check)');
+end;
+
+procedure TArticle.CheckInsert;
+begin
+  inherited;
+  if length(Code) < 3 then
+    raise Exception.Create('Article code cannot be less than 3 chars');
+end;
+
+procedure TArticle.CheckUpdate;
+begin
+  inherited;
+  if length(Code) < 3 then
+    raise Exception.Create('Article code cannot be less than 3 chars');
 end;
 
 procedure TArticle.SetCode(const Value: string);

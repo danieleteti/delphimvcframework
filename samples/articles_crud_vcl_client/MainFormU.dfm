@@ -11,6 +11,7 @@ object Form4: TForm4
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -35,7 +36,6 @@ object Form4: TForm4
       Caption = 'Get List Asynch'
       TabOrder = 0
       OnClick = btnGetListAsynchClick
-      ExplicitTop = 4
     end
     object btnGetListSynch: TButton
       AlignWithMargins = True
@@ -51,9 +51,14 @@ object Form4: TForm4
       Caption = 'Get List'
       TabOrder = 1
       OnClick = Button1Click
-      ExplicitLeft = 240
-      ExplicitTop = 11
-      ExplicitHeight = 21
+    end
+    object DBNavigator1: TDBNavigator
+      Left = 222
+      Top = 8
+      Width = 240
+      Height = 25
+      DataSource = DataSource1
+      TabOrder = 2
     end
   end
   object DBGrid1: TDBGrid
@@ -92,6 +97,8 @@ object Form4: TForm4
       end>
   end
   object FDMemTable1: TFDMemTable
+    BeforePost = FDMemTable1BeforePost
+    BeforeDelete = FDMemTable1BeforeDelete
     FieldDefs = <>
     IndexDefs = <>
     FetchOptions.AssignedValues = [evMode]
