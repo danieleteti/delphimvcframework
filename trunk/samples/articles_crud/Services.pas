@@ -81,7 +81,7 @@ begin
   Cmd := FDM.updArticles.Commands[arUpdate];
   Mapper.ObjectToFDParameters(Cmd.Params, AArticolo, 'NEW_');
   Cmd.ParamByName('OLD_ID').AsInteger := AArticolo.ID;
-  Cmd.OpenOrExecute;
+  Cmd.Execute;
   if Cmd.RowsAffected <> 1 then
     raise Exception.Create('Article not found');
 end;
