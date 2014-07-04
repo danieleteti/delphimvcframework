@@ -1514,9 +1514,23 @@ var
 begin
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
-    Context.Response.RawWebResponse.Content :=
-      OutEncoding.GetString(TEncoding.Convert(TEncoding.Default, OutEncoding,
-      TEncoding.Default.GetBytes(AContent)));
+    // Context.Response.RawWebResponse.ContentStream := TStringStream.Create(UTF8Encode(AContent));
+    if SameText('UTF-8', ContentEncoding) then
+    begin
+      Context.Response.RawWebResponse.Content := '';
+      Context.Response.RawWebResponse.ContentStream := TStringStream.Create(UTF8Encode(AContent));
+    end
+    else
+    begin
+      Context.Response.RawWebResponse.Content :=
+        OutEncoding.GetString(
+          TEncoding.Convert(
+            TEncoding.UTF8,
+            OutEncoding,
+            TEncoding.Default.GetBytes(AContent)
+          )
+        );
+    end;
   finally
     OutEncoding.Free;
   end;
