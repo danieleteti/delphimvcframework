@@ -1,4 +1,4 @@
-unit RenderSampleControllerU;
+﻿unit RenderSampleControllerU;
 
 interface
 
@@ -31,6 +31,11 @@ type
     procedure GetPerson_AsHTML(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
+    [MVCPath('/customers/unicode/($id).html')]
+    [MVCProduces('text/html', 'UTF-8')]
+    procedure GetUnicodeText_AsHTML(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers/($id)')]
     [MVCProduces('application/json')]
     procedure GetCustomerByID_AsTObject(CTX: TWebContext);
@@ -58,6 +63,18 @@ uses
   System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU, Generics.Collections;
 
 { TRoutingSampleController }
+
+procedure TRenderSampleController.GetUnicodeText_AsHTML(CTX: TWebContext);
+var
+  s: string;
+begin
+  s := '<html><body>';
+  s := s + '什么是Unicode(统一码)? in Simplified Chinese <br>';
+  s := s + 'Što je Unicode? in Croatian <br>';
+  s := s + 'Co je Unicode? in Czech';
+  s := s + '</body></html>';
+  Render(s);
+end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(CTX: TWebContext);
 var
