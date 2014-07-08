@@ -48,7 +48,7 @@ type
 implementation
 
 uses
-  System.SysUtils, WinesBO;
+  System.SysUtils, WinesBO, MVCFramework.Logger;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
@@ -82,6 +82,7 @@ begin
   Wine := ctx.Request.BodyAs<TWine>;
   try
     dm.AddWine(Wine);
+    Log(TLogLevel.levNormal, 'Wine correctly saved');
   finally
     Wine.Free;
   end;
@@ -94,6 +95,7 @@ begin
   Wine := ctx.Request.BodyAs<TWine>;
   try
     dm.UpdateWine(Wine);
+    Log(TLogLevel.levNormal, 'Wine correctly updated');
   finally
     Wine.Free;
   end;
@@ -107,6 +109,7 @@ begin
     httpDELETE:
       begin
         dm.DeleteWine(StrToInt(ctx.Request.Params['id']));
+        Log(TLogLevel.levNormal, 'Wine deleted');
         Render(200, 'Wine deleted');
       end;
     httpGET:
@@ -122,6 +125,7 @@ end;
 procedure TWineCellarApp.WinesList(ctx: TWebContext);
 begin
   Render(dm.FindWines(''));
+  Log(TLogLevel.levNormal, 'Getting Wines list');
 end;
 
 end.
