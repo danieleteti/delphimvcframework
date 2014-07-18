@@ -17,14 +17,11 @@ initialization
 
 gAppExe := ExtractFileName(GetModuleName(HInstance) { ParamStr(0) } );
 gAppName := ChangeFileExt(gAppExe, '');
-if not IsConsole then
-  gAppPath := IncludeTrailingPathDelimiter(TPath.GetPublicPath)
-else
-  gAppPath := IncludeTrailingPathDelimiter
-    (ExtractFilePath(GetModuleName(HInstance) { ParamStr(0) } ));
-// if gAppPAth.StartsWith('\\?\') then
-// gAppPath := gAppPath.Substring(4);
-// \\?\
+// if not IsConsole then
+// gAppPath := IncludeTrailingPathDelimiter(TPath.GetPublicPath)
+// else
+gAppPath := IncludeTrailingPathDelimiter
+  (ExtractFilePath(GetModuleName(HInstance) { ParamStr(0) } ));
 
 finalization
 

@@ -27,7 +27,8 @@ uses
   MVCFramework.BUSController in '..\..\sources\MVCFramework.BUSController.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
-  SpeedMiddlewareU in 'SpeedMiddlewareU.pas';
+  SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
+  uGlobalVars in '..\..\sources\uGlobalVars.pas';
 
 {$R *.res}
 
