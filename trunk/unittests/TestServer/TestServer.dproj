@@ -111,6 +111,7 @@
         <DCCReference Include="..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="TestServerControllerExceptionU.pas"/>
         <DCCReference Include="SpeedMiddlewareU.pas"/>
+        <DCCReference Include="..\..\sources\uGlobalVars.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
