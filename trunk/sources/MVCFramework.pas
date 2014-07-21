@@ -29,8 +29,7 @@ uses
 {$ELSE}
     , Data.DBXJSON
 {$IFEND}
-{$IFDEF VER250},
-  ReqMulti {$ENDIF}{required for file uploading on XE4};
+, ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH, httpTRACE);
