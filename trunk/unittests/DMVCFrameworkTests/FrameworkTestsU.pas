@@ -47,11 +47,11 @@ uses MVCFramework.Commons,
   Web.HTTPApp,
   ObjectsMappers,
   BOs,
-{$IF not Defined(VER270)}
+{$IF CompilerVersion < 27}
   Data.DBXJSON,
 {$ELSE}
   System.JSON,
-{$IFEND}
+{$ENDIF}
   TestServerControllerU;
 
 procedure TTestRouting.SameFishesDataSet(ds, ds2: TDataSet);
@@ -272,7 +272,7 @@ end;
 
 procedure TTestRouting.TestObjectListToJSONArray;
 var
-  Obj, Obj2: TMyObject;
+  Obj: TMyObject;
   ObjList, Obj2List: TObjectList<TMyObject>;
   JSON: TJSONArray;
   I: Integer;

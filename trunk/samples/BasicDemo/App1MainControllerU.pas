@@ -41,6 +41,8 @@ uses
 procedure TApp1MainController.HelloWorld(ctx: TWebContext);
 begin
   Render('Hello World called with GET');
+  if ctx.Request.ThereIsRequestBody then
+    Log('Body:' + ctx.Request.Body);
 end;
 
 procedure TApp1MainController.HelloWorldPost(ctx: TWebContext);
@@ -64,8 +66,7 @@ var
 begin
   Log('Parameter1=' + ctx.Request.Params['par1'].QuotedString);
   Log('Parameter2=' + ctx.Request.Params['par2'].QuotedString);
-  R :=
-    StrToInt(ctx.Request.Params['par1']) /
+  R := StrToInt(ctx.Request.Params['par1']) /
     StrToInt(ctx.Request.Params['par2']);
   Render(TJSONObject.Create(TJSONPair.Create('result', TJSONNumber.Create(R))));
 end;

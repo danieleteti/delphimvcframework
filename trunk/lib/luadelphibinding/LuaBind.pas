@@ -48,8 +48,7 @@ type
   end;
 
   TLuaValueType = (lvtNil, lvtNumber, lvtInteger, lvtString, lvtBoolean,
-    lvtLightUserData, lvtTable,
-    lvtFunction, lvtUserData, lvtThread);
+    lvtLightUserData, lvtTable, lvtFunction, lvtUserData, lvtThread);
 
   TLuaValue = class(TInterfacedObject, ILuaValue)
   strict private
@@ -80,17 +79,13 @@ type
     constructor Create(LuaState: Plua_State; StackIndex: Integer);
 
   public
-    class
-      function GetAsLuaTable(LuaState: Plua_State; StackIndex: Integer): TValue;
-    class
-      function GetLuaValueType(LuaState: Plua_State; StackIndex: Integer): TLuaValueType;
-    class
-      function GetTValueFromLuaValueType(LuaValueType: TLuaValueType; LuaState: Plua_State;
+    class function GetAsLuaTable(LuaState: Plua_State;
       StackIndex: Integer): TValue;
-      static;
-    class
-      function PopTValueFromStack(LuaState: Plua_State): TValue;
-      static;
+    class function GetLuaValueType(LuaState: Plua_State; StackIndex: Integer)
+      : TLuaValueType;
+    class function GetTValueFromLuaValueType(LuaValueType: TLuaValueType;
+      LuaState: Plua_State; StackIndex: Integer): TValue; static;
+    class function PopTValueFromStack(LuaState: Plua_State): TValue; static;
   end;
 
   ILuaLibraryLoader = interface;
@@ -108,21 +103,15 @@ type
     procedure CloseLua;
 
   public
-    constructor Create;
-      overload;
-      virtual;
-    constructor Create(const AScript: string);
-      overload;
-      virtual;
-    destructor Destroy;
-      override;
+    constructor Create; overload; virtual;
+    constructor Create(const AScript: string); overload; virtual;
+    destructor Destroy; override;
     function GetRawLuaState: Plua_State;
 
     procedure Reset;
-    procedure LoadScript(const AScript: AnsiString);
-      overload;
-    procedure LoadScript(const AStream: TStream; AOwnStream: boolean = true);
-      overload;
+    procedure LoadScript(const AScript: AnsiString); overload;
+    procedure LoadScript(const AStream: TStream;
+      AOwnStream: boolean = true); overload;
     procedure LoadFromFile(const AFileName: AnsiString);
     procedure Execute;
     procedure ExecuteFile(const AFileName: AnsiString);
@@ -131,41 +120,38 @@ type
     // PUSH methods for simple types
     function DeclareGlobalNil(AName: AnsiString): TLuaEngine;
     function DeclareGlobalNumber(AName: AnsiString; AValue: Double): TLuaEngine;
-    function DeclareGlobalInteger(AName: AnsiString; AValue: Integer): TLuaEngine;
-    function DeclareGlobalString(AName: AnsiString; AValue: AnsiString): TLuaEngine;
-    function DeclareGlobalBoolean(AName: AnsiString; AValue: boolean): TLuaEngine;
-    function DeclareGlobalLightUserData(AName: AnsiString; AValue: Pointer): TLuaEngine;
-    function DeclareGlobalUserData(AName: AnsiString; AValue: Pointer): TLuaEngine;
+    function DeclareGlobalInteger(AName: AnsiString; AValue: Integer)
+      : TLuaEngine;
+    function DeclareGlobalString(AName: AnsiString; AValue: AnsiString)
+      : TLuaEngine;
+    function DeclareGlobalBoolean(AName: AnsiString; AValue: boolean)
+      : TLuaEngine;
+    function DeclareGlobalLightUserData(AName: AnsiString; AValue: Pointer)
+      : TLuaEngine;
+    function DeclareGlobalUserData(AName: AnsiString; AValue: Pointer)
+      : TLuaEngine;
 
     // PUSH complex types
     function DeclareGlobalFunction(AName: AnsiString; AFunction: lua_CFunction)
       : TLuaEngine;
 
-    function DeclareGlobalDelphiObjectAsTable(AObject: TObject; AVariableName: string)
-      : TLuaEngine;
+    function DeclareGlobalDelphiObjectAsTable(AObject: TObject;
+      AVariableName: string): TLuaEngine;
 
     // Helpers to PUSH specific types coping properties or data into Lua tables
     function DeclareTable(const ATableName: AnsiString; AKeys: array of string;
-      AValues: array of string): TLuaEngine;
-      overload;
+      AValues: array of string): TLuaEngine; overload;
     function DeclareTable(const ATableName: AnsiString; AKeys: array of Integer;
-      AValues: array of string): TLuaEngine;
-      overload;
+      AValues: array of string): TLuaEngine; overload;
     function DeclareTable(const ATableName: AnsiString;
-      ADictionary: TDictionary<TValue, TValue>)
-      : TLuaEngine;
-      overload;
+      ADictionary: TDictionary<TValue, TValue>): TLuaEngine; overload;
     function DeclareTable(const ATableName: AnsiString;
-      ADictionary: TDictionary<string, string>)
-      : TLuaEngine;
-      overload;
-    function DeclareTable(const ATableName: AnsiString; AObject: TObject): TLuaEngine;
-      overload;
+      ADictionary: TDictionary<string, string>): TLuaEngine; overload;
+    function DeclareTable(const ATableName: AnsiString; AObject: TObject)
+      : TLuaEngine; overload;
 
-    function DeclareTable(
-      const ATableName: AnsiString;
-      __self          : Pointer;
-      AFunctions      : TDictionary<string, lua_CFunction>): TLuaEngine; overload;
+    function DeclareTable(const ATableName: AnsiString; __self: Pointer;
+      AFunctions: TDictionary<string, lua_CFunction>): TLuaEngine; overload;
 
     // GET methods for simple types
     function GetGlobal(AName: AnsiString): ILuaValue;
@@ -179,7 +165,7 @@ type
 
     // helpers
     class function ExecuteWithResult(AScript: AnsiString;
-      const ParamNames : array of string;
+      const ParamNames: array of string;
       const ParamValues: array of string): string;
   end;
 
@@ -190,9 +176,7 @@ type
 
   TLuaUtils = class sealed
   public
-    class
-      procedure PushTValue(L: Plua_State; Value: TValue);
-      static;
+    class procedure PushTValue(L: Plua_State; Value: TValue); static;
   end;
 
 implementation
@@ -225,8 +209,8 @@ var
   utf8s: RawByteString;
 begin
   case Value.Kind of
-    tkUnknown, tkChar, tkSet, tkMethod, tkVariant, tkArray, tkProcedure, tkRecord, tkInterface,
-      tkDynArray, tkClassRef:
+    tkUnknown, tkChar, tkSet, tkMethod, tkVariant, tkArray, tkProcedure,
+      tkRecord, tkInterface, tkDynArray, tkClassRef:
       begin
         lua_pushnil(L);
         // raise Exception.Create('Unsupported return type: ' + Value.ToString);
@@ -280,7 +264,8 @@ begin
   LoadScript(AScript);
 end;
 
-function TLuaEngine.DeclareGlobalBoolean(AName: AnsiString; AValue: boolean): TLuaEngine;
+function TLuaEngine.DeclareGlobalBoolean(AName: AnsiString; AValue: boolean)
+  : TLuaEngine;
 var
   b: Integer;
 begin
@@ -296,23 +281,23 @@ end;
 function TLuaEngine.DeclareGlobalDelphiObjectAsTable(AObject: TObject;
   AVariableName: string): TLuaEngine;
 var
-  I     : Integer;
-  k     : string;
-  v     : TValue;
-  ctx   : TRTTIContext;
-  prop  : TRTTIProperty;
+  I: Integer;
+  k: string;
+  v: TValue;
+  ctx: TRTTIContext;
+  prop: TRTTIProperty;
   method: TRttiMethod;
-  utf8s : RawByteString;
+  utf8s: RawByteString;
 begin
   // lua_createtable(L, 0, 0);
   // lua_createtable(L, 0, 1);
-  assert(lua_isnil(LState, - 1));
+  assert(lua_isnil(LState, -1));
   lua_newtable(LState);
-  assert(lua_istable(LState, - 1));
+  assert(lua_istable(LState, -1));
   lua_newtable(LState);
   lua_pushcfunction(LState, @internal_call_method);
-  lua_setfield(LState, - 2, '__index');
-  lua_setmetatable(LState, - 2);
+  lua_setfield(LState, -2, '__index');
+  lua_setmetatable(LState, -2);
   lua_setglobal(LState, PAnsiChar(AnsiString(AVariableName)));
 
   // http://stackoverflow.com/questions/3449759/lua-c-api-and-metatable-functions
@@ -355,17 +340,15 @@ begin
 end;
 
 function TLuaEngine.DeclareGlobalFunction(AName: AnsiString;
-  AFunction:
-  lua_CFunction): TLuaEngine;
+  AFunction: lua_CFunction): TLuaEngine;
 begin
   lua_pushcfunction(LState, AFunction);
   lua_setglobal(LState, PAnsiChar(AName));
   Result := Self;
 end;
 
-function TLuaEngine.DeclareGlobalInteger(AName: AnsiString;
-  AValue:
-  Integer): TLuaEngine;
+function TLuaEngine.DeclareGlobalInteger(AName: AnsiString; AValue: Integer)
+  : TLuaEngine;
 begin
   lua_pushinteger(LState, AValue);
   lua_setglobal(LState, PAnsiChar(AName));
@@ -373,8 +356,7 @@ begin
 end;
 
 function TLuaEngine.DeclareGlobalLightUserData(AName: AnsiString;
-  AValue:
-  Pointer): TLuaEngine;
+  AValue: Pointer): TLuaEngine;
 begin
   lua_pushlightuserdata(LState, AValue);
   lua_setglobal(LState, PAnsiChar(AName));
@@ -388,40 +370,31 @@ begin
   Result := Self;
 end;
 
-function TLuaEngine.DeclareGlobalNumber(AName: AnsiString;
-  AValue:
-  Double): TLuaEngine;
+function TLuaEngine.DeclareGlobalNumber(AName: AnsiString; AValue: Double)
+  : TLuaEngine;
 begin
   lua_pushnumber(LState, AValue);
   lua_setglobal(LState, PAnsiChar(AName));
   Result := Self;
 end;
 
-function TLuaEngine.DeclareGlobalString(AName: AnsiString;
-  AValue:
-  AnsiString): TLuaEngine;
+function TLuaEngine.DeclareGlobalString(AName: AnsiString; AValue: AnsiString)
+  : TLuaEngine;
 begin
   lua_pushstring(LState, PAnsiChar(AValue));
   lua_setglobal(LState, PAnsiChar(AName));
   Result := Self;
 end;
 
-function TLuaEngine.DeclareGlobalUserData(AName: AnsiString;
-  AValue:
-  Pointer): TLuaEngine;
+function TLuaEngine.DeclareGlobalUserData(AName: AnsiString; AValue: Pointer)
+  : TLuaEngine;
 begin
   raise ELuaException.Create('Not implemented');
   Result := Self;
 end;
 
-function TLuaEngine.DeclareTable(
-  const
-  ATableName:
-  AnsiString;
-  AKeys:
-  array of Integer;
-  AValues:
-  array of string): TLuaEngine;
+function TLuaEngine.DeclareTable(const ATableName: AnsiString;
+  AKeys: array of Integer; AValues: array of string): TLuaEngine;
 var
   I: Integer;
   k: Integer;
@@ -434,22 +407,18 @@ begin
     v := AValues[I];
     TLuaUtils.PushTValue(LState, k);
     TLuaUtils.PushTValue(LState, v);
-    lua_settable(LState, - 3);
+    lua_settable(LState, -3);
   end;
   lua_setglobal(LState, PAnsiChar(ATableName));
   Result := Self;
 end;
 
-function TLuaEngine.DeclareTable(
-  const
-  ATableName:
-  AnsiString;
-  ADictionary:
-  TDictionary<TValue, TValue>): TLuaEngine;
+function TLuaEngine.DeclareTable(const ATableName: AnsiString;
+  ADictionary: TDictionary<TValue, TValue>): TLuaEngine;
 var
-  I  : Integer;
-  k  : TValue;
-  v  : TValue;
+  I: Integer;
+  k: TValue;
+  v: TValue;
   key: TValue;
 begin
   lua_newtable(LState);
@@ -457,20 +426,16 @@ begin
   begin
     TLuaUtils.PushTValue(LState, key);
     TLuaUtils.PushTValue(LState, ADictionary.Items[key]);
-    lua_settable(LState, - 3);
+    lua_settable(LState, -3);
   end;
   lua_setglobal(LState, PAnsiChar(ATableName));
 end;
 
-function TLuaEngine.DeclareTable(
-  const
-  ATableName:
-  AnsiString;
-  ADictionary:
-  TDictionary<string, string>): TLuaEngine;
+function TLuaEngine.DeclareTable(const ATableName: AnsiString;
+  ADictionary: TDictionary<string, string>): TLuaEngine;
 var
-  I  : Integer;
-  k  : string;
+  I: Integer;
+  k: string;
   key: string;
 begin
   lua_newtable(LState);
@@ -478,19 +443,13 @@ begin
   begin
     TLuaUtils.PushTValue(LState, key);
     TLuaUtils.PushTValue(LState, ADictionary.Items[key]);
-    lua_settable(LState, - 3);
+    lua_settable(LState, -3);
   end;
   lua_setglobal(LState, PAnsiChar(ATableName));
 end;
 
-function TLuaEngine.DeclareTable(
-  const
-  ATableName:
-  AnsiString;
-  AKeys:
-  array of string;
-  AValues:
-  array of string): TLuaEngine;
+function TLuaEngine.DeclareTable(const ATableName: AnsiString;
+  AKeys: array of string; AValues: array of string): TLuaEngine;
 var
   I: Integer;
   k: string;
@@ -503,7 +462,7 @@ begin
     v := AValues[I];
     TLuaUtils.PushTValue(LState, k);
     TLuaUtils.PushTValue(LState, v);
-    lua_settable(LState, - 3);
+    lua_settable(LState, -3);
   end;
   lua_setglobal(LState, PAnsiChar(ATableName));
 end;
@@ -522,10 +481,7 @@ begin
   CheckLuaError(r);
 end;
 
-procedure TLuaEngine.CheckLuaError(
-  const
-  r:
-  Integer);
+procedure TLuaEngine.CheckLuaError(const r: Integer);
 var
   err: PAnsiChar;
 begin
@@ -538,53 +494,48 @@ begin
     // a runtime error.
     LUA_ERRRUN:
       begin
-        err := lua_tostring(LState, - 1);
+        err := lua_tostring(LState, -1);
         lua_pop(LState, 1);
         raise ELuaRuntimeException.CreateFmt('Runtime error [%s]', [err]);
       end;
     // memory allocation error. For such errors, Lua does not call the error handler function.
     LUA_ERRMEM:
       begin
-        err := lua_tostring(LState, - 1);
+        err := lua_tostring(LState, -1);
         lua_pop(LState, 1);
         raise ELuaException.CreateFmt('Memory allocation error [%s]', [err]);
       end;
     // error while running the error handler function.
     LUA_ERRERR:
       begin
-        err := lua_tostring(LState, - 1);
+        err := lua_tostring(LState, -1);
         lua_pop(LState, 1);
         raise ELuaException.CreateFmt
           ('Error while running the error handler function [%s]', [err]);
       end;
     LUA_ERRSYNTAX:
       begin
-        err := lua_tostring(LState, - 1);
+        err := lua_tostring(LState, -1);
         lua_pop(LState, 1);
         raise ELuaSyntaxError.CreateFmt('Syntax Error [%s]', [err]);
       end
-    else
-      begin
-        err := lua_tostring(LState, - 1);
-        lua_pop(LState, 1);
-        raise ELuaException.CreateFmt('Unknown Error [%s]', [err]);
-      end;
+  else
+    begin
+      err := lua_tostring(LState, -1);
+      lua_pop(LState, 1);
+      raise ELuaException.CreateFmt('Unknown Error [%s]', [err]);
+    end;
   end;
 end;
 
-procedure TLuaEngine.ExecuteFile(
-  const
-  AFileName:
-  AnsiString);
+procedure TLuaEngine.ExecuteFile(const AFileName: AnsiString);
 begin
   LoadFromFile(AFileName);
   Execute;
 end;
 
 function TLuaEngine.ExecuteFunction(FunctionName: AnsiString;
-  const
-  Params:
-  array of TValue): TValue;
+  const Params: array of TValue): TValue;
 var
   p: TValue;
   r: Integer;
@@ -600,7 +551,7 @@ end;
 function TLuaEngine.GetGlobal(AName: AnsiString): ILuaValue;
 begin
   lua_getglobal(LState, PAnsiChar(AName));
-  Result := TLuaValue.Create(LState, - 1);
+  Result := TLuaValue.Create(LState, -1);
 end;
 
 function TLuaEngine.GetRawLuaState: Plua_State;
@@ -616,35 +567,28 @@ begin
   luaL_openlibs(LState);
 end;
 
-procedure TLuaEngine.LoadExternalLibraries(ALuaLibraryLoader: ILuaLibraryLoader);
+procedure TLuaEngine.LoadExternalLibraries(ALuaLibraryLoader
+  : ILuaLibraryLoader);
 begin
   ALuaLibraryLoader.Execute(Self);
 end;
 
-procedure TLuaEngine.LoadFromFile(
-  const
-  AFileName:
-  AnsiString);
+procedure TLuaEngine.LoadFromFile(const AFileName: AnsiString);
 var
   err: PAnsiChar;
 begin
   if luaL_loadfile(LState, PAnsiChar(AFileName)) <> 0 then
   begin
-    err := lua_tostring(LState, - 1);
+    err := lua_tostring(LState, -1);
     lua_pop(LState, 1);
     raise ELuaException.Create(err);
   end;
 end;
 
-procedure TLuaEngine.LoadScript(
-  const
-  AStream:
-  TStream;
-  AOwnStream:
-  boolean);
+procedure TLuaEngine.LoadScript(const AStream: TStream; AOwnStream: boolean);
 var
   sr: TStreamReader;
-  s : string;
+  s: string;
 begin
   sr := TStreamReader.Create(AStream);
   try
@@ -663,16 +607,13 @@ begin
   InitLua;
 end;
 
-procedure TLuaEngine.ExecuteScript(
-  const
-  AScript:
-  AnsiString);
+procedure TLuaEngine.ExecuteScript(const AScript: AnsiString);
 var
   err: PAnsiChar;
 begin
   if luaL_dostring(LState, PAnsiChar(AScript)) then
   begin
-    err := lua_tostring(LState, - 1);
+    err := lua_tostring(LState, -1);
     lua_pop(LState, 1);
     raise ELuaException.Create(err);
   end;
@@ -688,7 +629,8 @@ begin
   try
     L.LoadScript(AScript);
     if Length(ParamNames) <> Length(ParamValues) then
-      raise ELuaRuntimeException.Create('Number of params names and param values is not equals');
+      raise ELuaRuntimeException.Create
+        ('Number of params names and param values is not equals');
     for I := 0 to Length(ParamNames) - 1 do
       L.DeclareGlobalString(ParamNames[I], ParamValues[I]);
     L.Execute;
@@ -697,16 +639,13 @@ begin
   end;
 end;
 
-procedure TLuaEngine.LoadScript(
-  const
-  AScript:
-  AnsiString);
+procedure TLuaEngine.LoadScript(const AScript: AnsiString);
 var
   err: PAnsiChar;
 begin
   if luaL_loadstring(LState, PAnsiChar(AScript)) <> 0 then
   begin
-    err := lua_tostring(LState, - 1);
+    err := lua_tostring(LState, -1);
     lua_pop(LState, 1);
     raise ELuaException.Create(err);
   end;
@@ -714,13 +653,13 @@ end;
 
 procedure TLuaEngine.InternalDeclareTable(AObject: TObject);
 var
-  prop      : TRTTIProperty;
-  ctx       : TRTTIContext;
+  prop: TRTTIProperty;
+  ctx: TRTTIContext;
   properties: TArray<TRTTIProperty>;
-  k         : AnsiString;
-  Value     : TValue;
-  v         : AnsiString;
-  o         : TObject;
+  k: AnsiString;
+  Value: TValue;
+  v: AnsiString;
+  o: TObject;
 begin
   ctx := TRTTIContext.Create;
   try
@@ -728,7 +667,7 @@ begin
     properties := ctx.GetType(AObject.ClassType).GetProperties;
     for prop in properties do
     begin
-      if not (prop.Visibility in [mvPublic, mvPublished]) then
+      if not(prop.Visibility in [mvPublic, mvPublished]) then
         continue;
       k := prop.Name;
       TLuaUtils.PushTValue(LState, k);
@@ -749,57 +688,46 @@ begin
         end;
         TLuaUtils.PushTValue(LState, Value)
       end;
-      lua_settable(LState, - 3);
+      lua_settable(LState, -3);
     end;
   finally
     ctx.Free;
   end;
 end;
 
-function TLuaEngine.DeclareTable(
-  const
-  ATableName:
-  AnsiString;
-  AObject:
-  TObject): TLuaEngine;
+function TLuaEngine.DeclareTable(const ATableName: AnsiString; AObject: TObject)
+  : TLuaEngine;
 begin
   InternalDeclareTable(AObject);
   lua_setglobal(LState, PAnsiChar(ATableName));
 end;
 
-function TLuaEngine.DeclareTable(const ATableName: AnsiString;
-  __self    : Pointer;
+function TLuaEngine.DeclareTable(const ATableName: AnsiString; __self: Pointer;
   AFunctions: TDictionary<string, lua_CFunction>): TLuaEngine;
 var
-  I  : Integer;
-  k  : string;
   key: string;
 begin
   lua_newtable(LState);
   TLuaUtils.PushTValue(LState, '__self');
   lua_pushlightuserdata(LState, __self);
-  lua_settable(LState, - 3);
+  lua_settable(LState, -3);
   for key in AFunctions.Keys do
   begin
     TLuaUtils.PushTValue(LState, key);
     lua_pushcfunction(LState, AFunctions[key]);
-    lua_settable(LState, - 3);
+    lua_settable(LState, -3);
   end;
   lua_setglobal(LState, PAnsiChar(ATableName));
 end;
 
 { TLuaValue }
 
-class
-  function TLuaValue.GetTValueFromLuaValueType(LuaValueType: TLuaValueType;
-  LuaState:
-  Plua_State;
-  StackIndex:
-  Integer): TValue;
+class function TLuaValue.GetTValueFromLuaValueType(LuaValueType: TLuaValueType;
+  LuaState: Plua_State; StackIndex: Integer): TValue;
 var
-  a             : AnsiString;
+  a: AnsiString;
   _lua_CFunction: lua_CFunction;
-  _pluastate    : Plua_State;
+  _pluastate: Plua_State;
 begin
   case LuaValueType of
     lvtNil:
@@ -831,7 +759,7 @@ begin
     lvtFunction:
       begin
         raise ELuaException.Create('Not implemented');
-        _lua_CFunction := lua_tocfunction(LuaState, StackIndex);
+        // _lua_CFunction := lua_tocfunction(LuaState, StackIndex);
         Result := nil; { todo }
       end;
 
@@ -841,25 +769,21 @@ begin
     lvtThread:
       begin
         raise ELuaException.Create('Not implemented');
-        _pluastate := lua_tothread(LuaState, StackIndex);
+        // _pluastate := lua_tothread(LuaState, StackIndex);
         Result := nil; { todo }
       end;
   end;
 end;
 
-constructor TLuaValue.Create(LuaState: Plua_State;
-  StackIndex:
-  Integer);
+constructor TLuaValue.Create(LuaState: Plua_State; StackIndex: Integer);
 begin
   inherited Create;
   FLuaValueType := GetLuaValueType(LuaState, StackIndex);
   FValue := GetTValueFromLuaValueType(FLuaValueType, LuaState, StackIndex);
 end;
 
-class
-  function TLuaValue.GetLuaValueType(LuaState: Plua_State;
-  StackIndex:
-  Integer): TLuaValueType;
+class function TLuaValue.GetLuaValueType(LuaState: Plua_State;
+  StackIndex: Integer): TLuaValueType;
 begin
   Result := lvtNil;
   case lua_type(LuaState, StackIndex) of
@@ -889,9 +813,9 @@ end;
 procedure TLuaValue.CheckType(LuaValueType: TLuaValueType);
 begin
   if FLuaValueType <> LuaValueType then
-    raise ELuaException.Create('Cannot access value as ' + GetEnumName(TypeInfo(TLuaValueType),
-      Ord(LuaValueType)) + ' while it is ' + GetEnumName(TypeInfo(TLuaValueType),
-      Ord(FLuaValueType)));
+    raise ELuaException.Create('Cannot access value as ' +
+      GetEnumName(TypeInfo(TLuaValueType), Ord(LuaValueType)) + ' while it is '
+      + GetEnumName(TypeInfo(TLuaValueType), Ord(FLuaValueType)));
 end;
 
 function TLuaValue.GetAsBoolean: boolean;
@@ -902,6 +826,7 @@ end;
 
 function TLuaValue.GetAsInteger: Integer;
 begin
+  Result := 0;
   if Self.FLuaValueType = lvtNumber then
   begin
     if GetAsNumber = Trunc(GetAsNumber) then
@@ -922,10 +847,8 @@ begin
   Result := Pointer(FValue.AsObject);
 end;
 
-class
-  function TLuaValue.GetAsLuaTable(LuaState: Plua_State;
-  StackIndex:
-  Integer): TValue;
+class function TLuaValue.GetAsLuaTable(LuaState: Plua_State;
+  StackIndex: Integer): TValue;
 begin
   raise ELuaException.Create('Not implemented');
 end;
@@ -972,16 +895,13 @@ begin
   Result := FLuaValueType = lvtString;
 end;
 
-class
-  function TLuaValue.PopTValueFromStack(LuaState: Plua_State): TValue;
+class function TLuaValue.PopTValueFromStack(LuaState: Plua_State): TValue;
 var
   lvt: TLuaValueType;
 begin
-  lvt := TLuaValue.GetLuaValueType(LuaState, - 1);
-  Result := TLuaValue.GetTValueFromLuaValueType(lvt, LuaState, - 1);
+  lvt := TLuaValue.GetLuaValueType(LuaState, -1);
+  Result := TLuaValue.GetTValueFromLuaValueType(lvt, LuaState, -1);
   lua_pop(LuaState, 1);
 end;
-
-{ TPippo }
 
 end.

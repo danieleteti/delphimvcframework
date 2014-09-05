@@ -10,7 +10,7 @@ uses
   IdTCPClient,
   IdHTTP,
   idURI,
-{$IF not Defined(VER270)}
+{$IF CompilerVersion < 27}
   Data.DBXJSON,
 {$ELSE}
   System.JSON,
