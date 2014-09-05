@@ -46,7 +46,7 @@ uses
   System.SysUtils,
   MVCFramework.Commons,
   System.DateUtils,
-{$IF not Defined(VER270)}
+{$IF CompilerVersion < 27}
   Data.DBXJSON,
 {$ELSE}
   System.JSON,

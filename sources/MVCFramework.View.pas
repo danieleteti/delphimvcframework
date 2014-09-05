@@ -78,11 +78,11 @@ uses
   LuaBind.Intf,
   System.ioutils,
   System.Classes
-{$IF not Defined(VER270)}
+{$IF CompilerVersion < 27}
     , Data.DBXJSON
 {$ELSE}
     , System.JSON
-{$IFEND};
+{$ENDIF};
 
 function __lua_form_parameter(L: Plua_State): Integer; cdecl;
 var

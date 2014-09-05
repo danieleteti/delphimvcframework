@@ -38,7 +38,7 @@ type
     procedure SetPropTime(const Value: TTime);
     procedure SetPropCurrency(const Value: Currency);
   public
-    function Equals(Obj: TMyObject): boolean;
+    function Equals(Obj: TMyObject): boolean; reintroduce;
     property PropString: string read FPropString write SetPropString;
     property PropAnsiString: AnsiString read FPropAnsiString write SetPropAnsiString;
     property PropInteger: Integer read FPropInteger write SetPropInteger;

@@ -2,7 +2,6 @@ program BasicDemo;
 
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
   Winapi.Windows,
@@ -14,7 +13,6 @@ uses
   App1MainControllerU in 'App1MainControllerU.pas';
 
 {$R *.res}
-
 
 procedure RunServer(APort: Integer);
 var
@@ -29,8 +27,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort) +
-      '/div/10/20'), nil, nil,
-      SW_SHOWMAXIMIZED);
+      '/div/10/20'), nil, nil, SW_SHOWMAXIMIZED);
     Writeln('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
@@ -56,6 +53,6 @@ begin
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
-  end
+  end;
 
 end.

@@ -1596,6 +1596,6 @@ BEGIN
 	System_SysConst_SEndOfFile,	L"Read beyond end of file"
 END
 
-/* C:\DEV\DMVCFramework\samples\BasicDemo\WebModuleUnit1.dfm */
-/* C:\DEV\DMVCFramework\samples\BasicDemo\BasicDemo.res */
-/* C:\DEV\DMVCFramework\samples\BasicDemo\BasicDemo.drf */
+/* D:\DEV\DMVCFramework\samples\BasicDemo\WebModuleUnit1.dfm */
+/* D:\DEV\DMVCFramework\samples\BasicDemo\BasicDemo.res */
+/* D:\DEV\DMVCFramework\samples\BasicDemo\BasicDemo.drf */

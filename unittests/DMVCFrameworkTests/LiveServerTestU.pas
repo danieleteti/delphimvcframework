@@ -46,11 +46,11 @@ type
 implementation
 
 uses
-{$IF not Defined(VER270)}
+{$IF CompilerVersion < 27}
   Data.DBXJSON,
 {$ELSE}
   System.JSON,
-{$IFEND}
+{$ENDIF}
   MVCFramework.Commons,
   System.SyncObjs,
   System.SysUtils, BusinessObjectsU, ObjectsMappers;
@@ -261,7 +261,6 @@ end;
 procedure TServerTest.TestMiddlewareHandler;
 var
   r: IRESTResponse;
-  P: TPerson;
 begin
   r := RESTClient
     .Accept(TMVCMimeType.APPLICATION_JSON)
@@ -471,7 +470,6 @@ end;
 
 procedure TBaseServerTest.DoLoginWith(UserName: string);
 var
-  P: TJSONObject;
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/login', [UserName]);

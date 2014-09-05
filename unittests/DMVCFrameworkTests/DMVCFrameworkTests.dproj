@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{0582DE6A-D716-46D3-8CBD-84AD73A4B536}</ProjectGuid>
-        <ProjectVersion>15.4</ProjectVersion>
+        <ProjectVersion>16.0</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
@@ -78,8 +78,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <DCC_UNSUPPORTED_CONSTRUCT>error</DCC_UNSUPPORTED_CONSTRUCT>
-        <DCC_UnitSearchPath>..\..\lib\fastmm;..\..\sources;..\..\lib\LuaDelphiBinding;..\..\lib\objectmapper;..\..\lib\iocpdelphiframework;..\..\lib\delphistompclient;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\lib\fastmm;..\..\sources;..\..\lib\LuaDelphiBinding;..\..\lib\objectmapper;..\..\lib\iocpdelphiframework;..\..\lib\iocpdelphiframework\base;..\..\lib\delphistompclient;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>None</Manifest_File>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
@@ -175,8 +174,10 @@
                     <Source Name="MainSource">DMVCFrameworkTests.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k200.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp200.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k210.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp210.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k210.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp210.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment/>
