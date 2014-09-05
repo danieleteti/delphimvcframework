@@ -526,19 +526,17 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     tout          : boolean;
     FirstValidChar: boolean;
     // UTF8Encoding: TEncoding;
-    {$IF Defined(VER240)}
+    {$IF CompilerVersion < 24}
     UTF8Encoding: TIdTextEncoding;
-    {$IFEND}
-    {$IF Defined(Ver250) or Defined(VER260) or Defined(VER270)}
+    {$ELSE}
     UTF8Encoding: IIdTextEncoding;
     {$IFEND}
   begin
-    {$IF Defined(VER240)}
+    {$IF CompilerVersion < 24}
     UTF8Encoding := TEncoding.UTF8;
-    {$IFEND}
-    {$IF Defined(Ver250) or Defined(VER260)}
+    {$ELSE}
     UTF8Encoding := IndyTextEncoding_UTF8();
-    {$IFEND}
+    {$ENDIF}
     tout := False;
     Result := nil;
     try
