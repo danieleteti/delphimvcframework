@@ -96,7 +96,7 @@ type
       (AList: TObjectList<T>; AJSONArray: TJSONArray;
       AInstanceOwner: boolean = True;
       AOwnsChildObjects: boolean = True); overload;
-{$IF CompilerVersion < 25}
+{$IF CompilerVersion <= 25}
     class procedure ReaderToObject(AReader: TDBXReader; AObject: TObject);
     class procedure ReaderToObjectList<T: class, constructor>
       (AReader: TDBXReader; AObjectList: TObjectList<T>);
@@ -115,7 +115,7 @@ type
       ACloseDataSetAfterScroll: boolean = True);
     class function DataSetToJSONArrayOf<T: class, constructor>
       (ADataSet: TDataSet): TJSONArray;
-{$IF CompilerVersion < 25}
+{$IF CompilerVersion <= 25}
     class procedure ReaderToList<T: class, constructor>(AReader: TDBXReader;
       AList: IWrappedList);
     class procedure ReaderToJSONArray(AReader: TDBXReader;
@@ -141,12 +141,13 @@ type
       (AList: TObjectList<T>): TJSONArray;
     class function GetProperty(Obj: TObject; const PropertyName: string)
       : TValue; static;
-{$IF CompilerVersion < 25}
+{$IF CompilerVersion <= 25}
     class function ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
       AObject: TObject): Int64;
     class procedure ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject = nil);
     class function ExecuteSQLQueryAsObjectList<T: class, constructor>
       (AQuery: TSQLQuery; AObject: TObject = nil): TObjectList<T>;
+    class function CreateQuery(AConnection: TSQLConnection; ASQL: string): TSQLQuery;
 {$ENDIF}
     { FIREDAC RELATED METHODS }
 {$IF CompilerVersion > 25}
@@ -155,10 +156,6 @@ type
     class procedure ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
     class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
       AParamPrefix: string = '');
-{$IFEND}
-{$IF CompilerVersion < 25}
-    class function CreateQuery(AConnection: TSQLConnection; ASQL: string)
-      : TSQLQuery;
 {$IFEND}
     // SAFE TJSONObject getter
     class function GetPair(JSONObject: TJSONObject; PropertyName: string)
@@ -403,7 +400,8 @@ end;
 // Result := FormatDateTime('HH:nn:ss', ATime);
 // end;
 
-{$IF CompilerVersion < 25}
+{$IF CompilerVersion <= 25}
+
 
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
   AObject: TObject; WithResult: boolean): Int64;
@@ -653,6 +651,7 @@ begin
   Result.CommandText := ASQL;
 end;
 {$IFEND}
+
 
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
   AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean);
@@ -2085,6 +2084,7 @@ end;
 
 {$IF CompilerVersion > 25}
 
+
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
   AObject: TObject; AParamPrefix: string);
 var
@@ -2198,7 +2198,8 @@ begin
   InternalExecuteFDQuery(AQuery, AObject, True);
 end;
 {$ENDIF}
-{$IF CompilerVersion < 25}
+{$IF CompilerVersion <= 25}
+
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
   AObject: TObject): Int64;
