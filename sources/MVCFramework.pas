@@ -146,8 +146,7 @@ type
     property Charset: string read FCharset;
   end;
 
-{$IF Defined(VER270)}
-
+{$IF CompilerVersion >= 27}
   TMVCApacheWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
@@ -1089,7 +1088,7 @@ begin
 
   if IsLibrary then
   begin
-{$IF Defined(VER270)}
+{$IF CompilerVersion >= 27}
     if ARequest is TApacheRequest then
       FRequest := TMVCApacheWebRequest.Create(ARequest)
     else if ARequest is TISAPIRequest then
@@ -2088,7 +2087,7 @@ begin
 end;
 
 { TMVCApacheWebRequest }
-{$IF Defined(VER270)}
+{$IF CompilerVersion >= 27}
 
 function TMVCApacheWebRequest.ClientIP: string;
 begin
