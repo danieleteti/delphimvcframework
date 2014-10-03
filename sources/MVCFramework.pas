@@ -147,6 +147,7 @@ type
   end;
 
 {$IF CompilerVersion >= 27}
+
   TMVCApacheWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
@@ -315,8 +316,8 @@ type
       AJSONObjectActionProc: TJSONObjectActionProc = nil);
     procedure Render(E: Exception; ErrorItems: TList<string> = nil);
       overload; virtual;
-    procedure Render(const AErrorCode: UInt16;
-      const AErrorMessage: string); overload;
+    procedure Render(const AErrorCode: UInt16; const AErrorMessage: string;
+      const AErrorClassName: string = ''); overload;
     procedure Render(const AErrorCode: UInt16; AJSONValue: TJSONValue;
       AInstanceOwner: boolean = true); overload;
     procedure Render(const AErrorCode: UInt16; AObject: TObject;
@@ -2286,7 +2287,7 @@ begin
 end;
 
 procedure TMVCController.Render(const AErrorCode: UInt16;
-  const AErrorMessage: string);
+  const AErrorMessage: string; const AErrorClassName: string = '');
 var
   j: TJSONObject;
   status: string;
@@ -2299,7 +2300,10 @@ begin
       status := 'ok';
     j := TJSONObject.Create;
     j.AddPair('status', status);
-    j.AddPair('classname', TJSONNull.Create);
+    if AErrorClassName = '' then
+      j.AddPair('classname', TJSONNull.Create)
+    else
+      j.AddPair('classname', AErrorClassName);
     j.AddPair('message', AErrorMessage);
     Render(j);
   end
