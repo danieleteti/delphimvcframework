@@ -104,7 +104,8 @@ type
       AJSONObject: TJSONObject; AReaderInstanceOwner: boolean = True);
 {$ENDIF}
     class procedure DataSetToJSONObject(ADataSet: TDataSet;
-      AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True);
+      AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True;
+      AJSONObjectActionProc: TJSONObjectActionProc = nil);
     class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
       ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean = True); overload;
     class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
@@ -122,7 +123,8 @@ type
       AJSONArray: TJSONArray; AReaderInstanceOwner: boolean = True);
 {$ENDIF}
     class procedure DataSetToJSONArray(ADataSet: TDataSet;
-      AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True);
+      AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True;
+      AJSONObjectActionProc: TJSONObjectActionProc = nil);
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray;
       ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean = True); overload;
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray;
@@ -147,7 +149,8 @@ type
     class procedure ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject = nil);
     class function ExecuteSQLQueryAsObjectList<T: class, constructor>
       (AQuery: TSQLQuery; AObject: TObject = nil): TObjectList<T>;
-    class function CreateQuery(AConnection: TSQLConnection; ASQL: string): TSQLQuery;
+    class function CreateQuery(AConnection: TSQLConnection; ASQL: string)
+      : TSQLQuery;
 {$ENDIF}
     { FIREDAC RELATED METHODS }
 {$IF CompilerVersion > 25}
@@ -402,7 +405,6 @@ end;
 
 {$IF CompilerVersion <= 25}
 
-
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
   AObject: TObject; WithResult: boolean): Int64;
 var
@@ -652,18 +654,25 @@ begin
 end;
 {$IFEND}
 
-
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
-  AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean);
+  AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean;
+  AJSONObjectActionProc: TJSONObjectActionProc);
 var
   Obj: TJSONObject;
 begin
-  repeat
+  while not ADataSet.Eof do
+  begin
     Obj := TJSONObject.Create;
     AJSONArray.AddElement(Obj);
-    DataSetToJSONObject(ADataSet, Obj, false);
+    DataSetToJSONObject(ADataSet, Obj, false, AJSONObjectActionProc);
     ADataSet.Next;
-  until ADataSet.Eof;
+  end;
+  // repeat
+  // Obj := TJSONObject.Create;
+  // AJSONArray.AddElement(Obj);
+  // DataSetToJSONObject(ADataSet, Obj, false);
+  // ADataSet.Next;
+  // until ADataSet.Eof;
 
   if ADataSetInstanceOwner then
     FreeAndNil(ADataSet);
@@ -683,7 +692,8 @@ begin
 end;
 
 class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet;
-  AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean);
+  AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean;
+  AJSONObjectActionProc: TJSONObjectActionProc);
 var
   I: Integer;
   key: string;
@@ -739,7 +749,8 @@ begin
           if not ADataSet.Fields[I].IsNull then
           begin
             ts := ADataSet.Fields[I].AsSQLTimeStamp;
-            AJSONObject.AddPair(key, SQLTimeStampToStr('hh:nn:ss', ts));
+            AJSONObject.AddPair(key,
+              SQLTimeStampToStr('yyyy-mm-dd hh:nn:ss', ts));
           end
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
@@ -795,7 +806,8 @@ begin
   end;
   if ADataSetInstanceOwner then
     FreeAndNil(ADataSet);
-
+  if Assigned(AJSONObjectActionProc) then
+    AJSONObjectActionProc(AJSONObject);
 end;
 
 class procedure Mapper.DataSetToObject(ADataSet: TDataSet; AObject: TObject);
@@ -1587,7 +1599,6 @@ var
   n: TJSONNumber;
   SerStreamASString: string;
   EncBytes: TBytes;
-  enc: TEncoding;
   sw: TStreamWriter;
 begin
   jvalue := nil;
@@ -2084,7 +2095,6 @@ end;
 
 {$IF CompilerVersion > 25}
 
-
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
   AObject: TObject; AParamPrefix: string);
 var
@@ -2199,7 +2209,6 @@ begin
 end;
 {$ENDIF}
 {$IF CompilerVersion <= 25}
-
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
   AObject: TObject): Int64;

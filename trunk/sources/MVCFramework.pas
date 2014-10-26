@@ -308,7 +308,8 @@ type
     procedure Render(AObject: TObject; AInstanceOwner: boolean = true);
       overload; virtual;
     procedure Render(ADataSet: TDataSet; AInstanceOwner: boolean = false;
-      AOnlySingleRecord: boolean = false); overload; virtual;
+      AOnlySingleRecord: boolean = false;
+      AJSONObjectActionProc: TJSONObjectActionProc = nil); overload; virtual;
     procedure Render(AJSONValue: TJSONValue; AInstanceOwner: boolean = true);
       overload; virtual;
     procedure RenderListAsProperty<T: class>(const APropertyName: string;
@@ -2314,7 +2315,7 @@ begin
 end;
 
 procedure TMVCController.Render(ADataSet: TDataSet; AInstanceOwner: boolean;
-  AOnlySingleRecord: boolean);
+  AOnlySingleRecord: boolean; AJSONObjectActionProc: TJSONObjectActionProc);
 var
   arr: TJSONArray;
   JObj: TJSONObject;
@@ -2325,13 +2326,15 @@ begin
     begin
       ADataSet.First;
       arr := TJSONArray.Create;
-      Mapper.DataSetToJSONArray(ADataSet, arr, AInstanceOwner);
+      Mapper.DataSetToJSONArray(ADataSet, arr, AInstanceOwner,
+        AJSONObjectActionProc);
       Render(arr);
     end
     else
     begin
       JObj := TJSONObject.Create;
-      Mapper.DataSetToJSONObject(ADataSet, JObj, AInstanceOwner);
+      Mapper.DataSetToJSONObject(ADataSet, JObj, AInstanceOwner,
+        AJSONObjectActionProc);
       Render(JObj);
     end;
   end
