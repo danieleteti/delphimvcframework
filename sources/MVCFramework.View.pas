@@ -156,12 +156,8 @@ end;
 
 function __lua_set_http_code(L: Plua_State): Integer; cdecl;
 var
-  // parname: string;
-  // res: string;
-  // rq: TMVCWebRequest;
   p: Pointer;
   WebContext: TWebContext;
-  // parvalue: string;
   errocode: Integer;
 begin
   if lua_gettop(L) <> 2 then
@@ -417,13 +413,13 @@ begin
 
       Lua.DeclareGlobalString('__ROOT__', ExtractFilePath(ParamStr(0)));
       Lua.DeclareGlobalString('__log_file', LOG_FILE_NAME);
-      // Lua.DeclareGlobalFunction('__lua_out', @__lua_stream_out);
+      Lua.DeclareGlobalString('__view_path__',
+        IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
+        GetMVCConfig.Value['view_path']));
+      Lua.DeclareGlobalString('__document_root__',
+        IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
+        GetMVCConfig.Value['document_root']));
       Lua.DeclareGlobalLightUserData('__webcontext', WebContext);
-
-      // expose request and response to the LUA engine
-      // Lua.DeclareGlobalFunction('request_header', @__lua_request_header);
-      // Lua.DeclareGlobalFunction('POST', @__lua_post_parameters);
-      // Lua.DeclareGlobalFunction('GET', @__lua_get_parameters);
 
       LuaResponseFunctions := TDictionary<string, lua_CFunction>.Create;
       try

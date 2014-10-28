@@ -10,7 +10,8 @@ type
   [MVCPath('/')]
   TSampleController = class(TMVCController)
   protected
-    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean); override;
+    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
+      var Handled: Boolean); override;
 
   public
     [MVCPath('/')]
@@ -33,7 +34,8 @@ type
 implementation
 
 uses
-  System.SysUtils{$IFDEF VER270}, System.JSON {$ELSE}, Data.DBXJSON{$ENDIF};
+  System.SysUtils{$IF CompilerVersion >= 27}, System.JSON {$ELSE},
+  Data.DBXJSON{$ENDIF};
 
 { TRoutingSampleController }
 
@@ -47,7 +49,8 @@ begin
   try
     FirstName := Ctx.Request.Params['firstName'];
     LastName := Ctx.Request.Params['lastName'];
-    Arr.AddElement(TJSONObject.Create.AddPair('firstName', FirstName).AddPair('lastName', LastName));
+    Arr.AddElement(TJSONObject.Create.AddPair('firstName', FirstName)
+      .AddPair('lastName', LastName));
     Session['customers'] := Arr.ToString;
   finally
     Arr.Free;
@@ -55,7 +58,8 @@ begin
   Redirect('/customers');
 end;
 
-procedure TSampleController.OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean);
+procedure TSampleController.OnBeforeAction(Context: TWebContext;
+  const AActionNAme: string; var Handled: Boolean);
 var
   Arr: TJSONArray;
   cust: TJSONObject;
@@ -65,9 +69,12 @@ begin
   begin
     Arr := TJSONArray.Create;
     try
-      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Daniele').AddPair('lastName', 'Teti'));
-      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Peter').AddPair('lastName', 'Parker'));
-      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Sue').AddPair('lastName', 'Storm'));
+      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Daniele')
+        .AddPair('lastName', 'Teti'));
+      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Peter')
+        .AddPair('lastName', 'Parker'));
+      Arr.AddElement(TJSONObject.Create.AddPair('firstName', 'Sue')
+        .AddPair('lastName', 'Storm'));
       Session['customers'] := Arr.ToString;
     finally
       Arr.Free;
