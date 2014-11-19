@@ -766,7 +766,7 @@ begin
           else
             AJSONObject.AddPair(key, TJSONNull.Create);
         end;
-      TFieldType.ftFMTBcd:
+      TFieldType.ftBCD, TFieldType.ftFMTBcd:
         begin
           if not ADataSet.Fields[I].IsNull then
           begin
