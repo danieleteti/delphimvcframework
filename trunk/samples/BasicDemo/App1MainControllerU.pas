@@ -31,7 +31,7 @@ type
 implementation
 
 uses
-{$IFDEF VER270} System.JSON,
+{$IF CompilerVersion >= 27} System.JSON,
 {$ELSE} Data.DBXJSON,
 {$ENDIF}
   System.SysUtils;
