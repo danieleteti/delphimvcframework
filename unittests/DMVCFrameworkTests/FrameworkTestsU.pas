@@ -1,4 +1,4 @@
-unit FrameworkTestsU;
+﻿unit FrameworkTestsU;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   TestFramework,
   MVCFramework.Router,
   System.Generics.Collections,
-  MVCFramework, Data.DB;
+  MVCFramework, Data.DB, System.SysUtils;
 
 type
   TTestRouting = class(TTestCase)
@@ -36,6 +36,8 @@ type
     procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestDataSetToJSONObject;
     procedure TestDataSetToJSONArray;
+    procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
+    procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
   end;
 
 implementation
@@ -52,7 +54,7 @@ uses MVCFramework.Commons,
 {$ELSE}
   System.JSON,
 {$ENDIF}
-  TestServerControllerU;
+  TestServerControllerU, System.Classes;
 
 procedure TTestRouting.SameFishesDataSet(ds, ds2: TDataSet);
 begin
@@ -322,6 +324,60 @@ begin
   end;
 end;
 
+procedure TTestRouting.TestObjectToJSONObjectAndBackWithStringStreamUTF16;
+var
+  SO: TMyStreamObject;
+  JSONObj: TJSONObject;
+  ResultSO: TMyStreamObject;
+  ResultStr, str: UnicodeString;
+begin
+  // ARRANGE
+  str := 'This is a UTF16 String (什么是)';
+  SO := TMyStreamObject.Create;
+  try
+    // ACT
+    SO.PropStream := TStringStream.Create(str, TEncoding.Unicode);
+    JSONObj := Mapper.ObjectToJSONObject(SO);
+    ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+    try
+      ResultStr := TStringStream(ResultSO.PropStream).DataString;
+      // ASSERT
+      CheckEquals(str, ResultStr);
+    finally
+      ResultSO.Free;
+    end;
+  finally
+    SO.Free;
+  end;
+end;
+
+procedure TTestRouting.TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+var
+  SO: TMyStreamObject;
+  JSONObj: TJSONObject;
+  ResultSO: TMyStreamObject;
+  ResultStr, str: UTF8String;
+begin
+  // ARRANGE
+  str := 'This is a UTF8 String (什么是)';
+  SO := TMyStreamObject.Create;
+  try
+    // ACT
+    SO.Prop8Stream := TStringStream.Create(str, TEncoding.UTF8);
+    JSONObj := Mapper.ObjectToJSONObject(SO);
+    ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+    try
+      ResultStr := TStringStream(ResultSO.Prop8Stream).DataString;
+      // ASSERT
+      CheckEquals(str, ResultStr);
+    finally
+      ResultSO.Free;
+    end;
+  finally
+    SO.Free;
+  end;
+end;
+
 procedure TTestRouting.TestPathButNoParameters;
 var
   Params: TMVCRequestParamsTable;
@@ -373,14 +429,9 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     // a GET request with a ACCEPT: application/json
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET,
-      '',
-      'application/json',
-      Controllers,
-      TMVCConstants.DEFAULT_CONTENT_TYPE,
-      TMVCConstants.DEFAULT_CONTENT_CHARSET,
-      Params,
-      ResponseContentType,
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '', 'application/json',
+      Controllers, TMVCConstants.DEFAULT_CONTENT_TYPE,
+      TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
       ResponseContentCharset));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
@@ -400,15 +451,10 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     // a GET request with a ACCEPT: application/json
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET,
-      '',
-      'application/json; charset=UTF-8',
-      Controllers,
-      TMVCConstants.DEFAULT_CONTENT_TYPE,
-      TMVCConstants.DEFAULT_CONTENT_CHARSET,
-      Params,
-      ResponseContentType,
-      ResponseContentCharset));
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '',
+      'application/json; charset=UTF-8', Controllers,
+      TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET,
+      Params, ResponseContentType, ResponseContentCharset));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
