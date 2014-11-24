@@ -34,7 +34,7 @@ uses
 {$IF CompilerVersion > 25}
   FireDAC.Comp.Client, FireDAC.Stan.Param,
 {$IFEND}
-  DuckListU;
+  DuckListU, System.SysUtils;
 
 type
   TJSONObjectActionProc = reference to procedure(const AJSONObject
@@ -251,7 +251,15 @@ type
   end;
 
   MapperSerializeAsString = class(TCustomAttribute)
+  strict private
+    FEncoding: string;
+    procedure SetEncoding(const Value: string);
 
+  const
+    DefaultEncoding = 'utf-8';
+  public
+    constructor Create(AEncoding: string = DefaultEncoding);
+    property Encoding: string read FEncoding write SetEncoding;
   end;
 
   MapperJSONNaming = class(TCustomAttribute)
@@ -322,7 +330,6 @@ implementation
 
 uses
   TypInfo,
-  SysUtils,
   FmtBcd,
   Math,
   SqlTimSt,
@@ -1021,10 +1028,12 @@ var
   I: Integer;
   ThereAreIgnoredProperties: boolean;
   ts: TTimeStamp;
-  sr: TStreamReader;
+  sr: TStringStream;
   SS: TStringStream;
   EncBytes: TBytes;
   enc: TEncoding;
+  _attrser: MapperSerializeAsString;
+  SerEnc: TEncoding;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -1129,17 +1138,15 @@ begin
             end
             else if o is TStream then
             begin
-              if HasAttribute<MapperSerializeAsString>(_property) then
+              if HasAttribute<MapperSerializeAsString>(_property, _attrser) then
               begin
                 // serialize the stream as a normal string...
                 TStream(o).Position := 0;
-                SetLength(EncBytes, Min(TStream(o).Size, 10));
-                TStream(o).Read(EncBytes, Length(EncBytes));
-                TStream(o).Position := 0;
-                TEncoding.GetBufferEncoding(EncBytes, enc);
-                sr := TStreamReader.Create(TStream(o), enc);
+                SerEnc := TEncoding.GetEncoding(_attrser.Encoding);
+                sr := TStringStream.Create('', SerEnc);
                 try
-                  JSONObject.AddPair(f, sr.ReadToEnd);
+                  sr.LoadFromStream(TStream(o));
+                  JSONObject.AddPair(f, sr.DataString);
                 finally
                   sr.Free;
                 end;
@@ -1600,6 +1607,9 @@ var
   SerStreamASString: string;
   EncBytes: TBytes;
   sw: TStreamWriter;
+  SS: TStringStream;
+  _attrser: MapperSerializeAsString;
+  SerEnc: TEncoding;
 begin
   jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
@@ -1705,15 +1715,17 @@ begin
                 raise Exception.Create('Expected JSONString in ' +
                   AJSONObject.Get(f).JsonString.Value);
 
-              if HasAttribute<MapperSerializeAsString>(_field) then
+              if HasAttribute<MapperSerializeAsString>(_field, _attrser) then
               begin
                 // serialize the stream as a normal string...
                 TStream(o).Position := 0;
-                sw := TStreamWriter.Create(TStream(o));
+                SerEnc := TEncoding.GetEncoding(_attrser.Encoding);
+                SS := TStringStream.Create(SerStreamASString, SerEnc);
                 try
-                  sw.Write(SerStreamASString);
+                  SS.Position := 0;
+                  TStream(o).CopyFrom(SS, SS.Size);
                 finally
-                  sw.Free;
+                  SS.Free;
                 end;
               end
               else
@@ -2502,6 +2514,22 @@ end;
 procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string);
 begin
   LoadFromJSONObjectString(AJSONObjectString, TArray<string>.Create());
+end;
+
+{ MapperSerializeAsString }
+
+constructor MapperSerializeAsString.Create(AEncoding: string);
+begin
+  inherited Create;
+  if AEncoding.IsEmpty then
+    FEncoding := DefaultEncoding
+  else
+    FEncoding := AEncoding;
+end;
+
+procedure MapperSerializeAsString.SetEncoding(const Value: string);
+begin
+  FEncoding := Value;
 end;
 
 end.
