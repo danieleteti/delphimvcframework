@@ -38,6 +38,7 @@ type
     procedure TestDataSetToJSONArray;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+    procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
   end;
 
 implementation
@@ -108,6 +109,32 @@ end;
 // Params.Free;
 // end;
 // end;
+
+procedure TTestRouting.TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
+var
+  Obj: TMyStreamObject;
+  JSONObj: TJSONObject;
+  DesObj: TMyStreamObject;
+begin
+  // ARRANGE
+  Obj := TMyStreamObject.Create;
+  try
+    Obj.PropStream := nil;
+    Obj.Prop8Stream := nil;
+    // ACT
+    JSONObj := Mapper.ObjectToJSONObject(Obj);
+    DesObj := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+    try
+      // ASSERT
+      CheckTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
+      CheckTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
+    finally
+      DesObj.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
 
 procedure TTestRouting.TestComplexObjectToJSONObjectAndBack;
 var

@@ -1171,7 +1171,12 @@ begin
             end;
           end
           else
-            JSONObject.AddPair(f, TJSONNull.Create);
+          begin
+            if HasAttribute<MapperSerializeAsString>(_property) then
+              JSONObject.AddPair(f, '')
+            else
+              JSONObject.AddPair(f, TJSONNull.Create);
+          end;
         end;
     end;
   end;
