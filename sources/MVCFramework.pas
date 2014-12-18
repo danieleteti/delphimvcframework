@@ -1025,8 +1025,8 @@ end;
 
 procedure TMVCEngine.LoadSystemControllers;
 begin
-  // AddController(TMVCStaticContents); //--daniele Static files are not handled directly by the router
-  AddController(TMVCBUSController);
+  if Config[TMVCConfigKey.Messaging].Equals('true') then
+    AddController(TMVCBUSController);
 end;
 
 procedure TMVCEngine.OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
@@ -2091,6 +2091,7 @@ end;
 { TMVCApacheWebRequest }
 {$IF CompilerVersion >= 27}
 
+
 function TMVCApacheWebRequest.ClientIP: string;
 begin
   raise EMVCException.Create('<TMVCApacheWebRequest.ClientIP> Not implemented');
@@ -2428,6 +2429,7 @@ begin
 end;
 
 {$IFDEF IOCP}
+
 
 constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
 begin
