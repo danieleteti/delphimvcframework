@@ -170,7 +170,7 @@ end;
 
 initialization
 
-RegisterTest(TTestRESTAdapter.suite);
+//RegisterTest(TTestRESTAdapter.suite);
 
 finalization
 

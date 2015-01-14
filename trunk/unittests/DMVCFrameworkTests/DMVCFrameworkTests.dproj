@@ -104,8 +104,8 @@
         <DCCReference Include="BOs.pas"/>
         <DCCReference Include="..\..\sources\RTTIUtilsU.pas"/>
         <DCCReference Include="..\TestServer\TestServerControllerU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTAdapter.pas"/>
         <DCCReference Include="RESTAdapterTestsU.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTAdapter.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
