@@ -59,6 +59,20 @@ type
     [MVCProduces('text/plain')]
     procedure TestConsumesProducesText(ctx: TWebContext);
 
+    [MVCPath('/testconsumejson')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCConsumes('application/json')]
+    [MVCProduces('application/json', 'utf-8')]
+    procedure TestConsumeJSON(ctx: TWebContext);
+
+    [MVCPath('/persons/($id)')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetPersonByID(ctx: TWebContext);
+
+    [MVCPath('/persons')]
+    [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
+    procedure TestGetPersons(ctx: TWebContext);
+
     [MVCPath('/objects')]
     [MVCHTTPMethod([httpPOST, httpPUT])]
     [MVCProduces('application/json')]
@@ -81,8 +95,8 @@ uses
 {$ELSE}
   System.JSON,
 {$IFEND}
-  MVCFramework.Commons,
-  Web.HTTPApp, BusinessObjectsU;
+  MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
+  SysUtils;
 
 { TTestServerController }
 
@@ -113,11 +127,11 @@ end;
 
 procedure TTestServerController.EchoBody(ctx: TWebContext);
 var
-  json: TJSONObject;
+  JSON: TJSONObject;
 begin
-  json := ctx.Request.BodyAsJSONObject.Clone as TJSONObject;
-  json.AddPair('echo', 'from server');
-  Render(json);
+  JSON := ctx.Request.BodyAsJSONObject.Clone as TJSONObject;
+  JSON.AddPair('echo', 'from server');
+  Render(JSON);
 end;
 
 procedure TTestServerController.EchoHeaders(ctx: TWebContext);
@@ -191,6 +205,11 @@ begin
   Session['value'] := ctx.Request.Params['value'];
 end;
 
+procedure TTestServerController.TestConsumeJSON(ctx: TWebContext);
+begin
+  Render(TJSONObject.ParseJSONValue('{"key":"Hello World"}'));
+end;
+
 procedure TTestServerController.TestConsumesProduces(ctx: TWebContext);
 begin
   Render('Hello World');
@@ -211,6 +230,39 @@ begin
   Obj.AddPair('name2', 'to je Unicode?');
   Obj.AddPair('name3', 'אטילעש');
   Render(Obj);
+end;
+
+procedure TTestServerController.TestGetPersonByID(ctx: TWebContext);
+var
+  Person: TPerson;
+  PersonList: TObjectList<TPerson>;
+  ID: integer;
+begin
+  ID := ctx.Request.Params['id'].ToInteger;
+  PersonList := TPerson.GetList;
+  try
+    Render(PersonList[ID - 1], false);
+  finally
+    PersonList.Free;
+  end;
+end;
+
+procedure TTestServerController.TestGetPersons(ctx: TWebContext);
+var
+  Person: TPerson;
+begin
+  case ctx.Request.HTTPMethod of
+    httpGET:
+      Render<TPerson>(TPerson.GetList);
+    httpPOST:
+      begin
+        Person := ctx.Request.BodyAs<TPerson>();
+        Render(Person);
+      end;
+    httpPUT:
+      ;
+  end;
+
 end;
 
 procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);
