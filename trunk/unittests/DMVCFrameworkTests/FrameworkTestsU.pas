@@ -35,9 +35,14 @@ type
     procedure TestJSONObjectToObjectAndBack;
     procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestDataSetToJSONObject;
+    procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
+    procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
+    procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
     procedure TestDataSetToJSONArray;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+    procedure TestJSONArrayToObjectListNoGenerics;
+    procedure TestJSONArrayToObjectListNoGenericsWrappedList;
     procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
   end;
 
@@ -55,7 +60,7 @@ uses MVCFramework.Commons,
 {$ELSE}
   System.JSON,
 {$ENDIF}
-  TestServerControllerU, System.Classes;
+  TestServerControllerU, System.Classes, DuckListU;
 
 procedure TTestRouting.SameFishesDataSet(ds, ds2: TDataSet);
 begin
@@ -272,6 +277,158 @@ begin
   finally
     ds.Free;
     ds2.Free;
+  end;
+end;
+
+procedure TTestRouting.TestDataSetToJSONObjectFieldPolicyAsIsCase;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+  S: string;
+  ds2: TClientDataSet;
+begin
+  ds := TClientDataSet.Create(nil);
+  ds2 := TClientDataSet.Create(nil);
+  try
+    ds.LoadFromFile('..\..\fishes.xml');
+    JObj := TJSONObject.Create;
+    try
+      JObj := ds.AsJSONObject(false, fpAsIs);
+      // Mapper.DataSetToJSONObject(ds, JObj, false);
+      ds2.LoadFromFile('..\..\fishes.xml');
+      ds2.EmptyDataSet;
+      ds2.Insert;
+      ds2.LoadFromJSONObject(JObj, fpAsIs);
+      // Mapper.JSONObjectToDataSet(JObj, ds2, false);
+      ds2.Post;
+      SameFishesDataSet(ds, ds2);
+    finally
+      JObj.Free;
+    end;
+  finally
+    ds.Free;
+    ds2.Free;
+  end;
+end;
+
+procedure TTestRouting.TestDataSetToJSONObjectFieldPolicyLowerCase;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+  S: string;
+  ds2: TClientDataSet;
+begin
+  ds := TClientDataSet.Create(nil);
+  ds2 := TClientDataSet.Create(nil);
+  try
+    ds.LoadFromFile('..\..\fishes.xml');
+    JObj := TJSONObject.Create;
+    try
+      JObj := ds.AsJSONObject(false, fpLowerCase);
+      // Mapper.DataSetToJSONObject(ds, JObj, false);
+      ds2.LoadFromFile('..\..\fishes.xml');
+      ds2.EmptyDataSet;
+      ds2.Insert;
+      ds2.LoadFromJSONObject(JObj, fpLowerCase);
+      // Mapper.JSONObjectToDataSet(JObj, ds2, false);
+      ds2.Post;
+      SameFishesDataSet(ds, ds2);
+    finally
+      JObj.Free;
+    end;
+  finally
+    ds.Free;
+    ds2.Free;
+  end;
+end;
+
+procedure TTestRouting.TestDataSetToJSONObjectFieldPolicyUpperCase;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+  S: string;
+  ds2: TClientDataSet;
+begin
+  ds := TClientDataSet.Create(nil);
+  ds2 := TClientDataSet.Create(nil);
+  try
+    ds.LoadFromFile('..\..\fishes.xml');
+    JObj := TJSONObject.Create;
+    try
+      JObj := ds.AsJSONObject(false, fpUpperCase);
+      // Mapper.DataSetToJSONObject(ds, JObj, false);
+      ds2.LoadFromFile('..\..\fishes.xml');
+      ds2.EmptyDataSet;
+      ds2.Insert;
+      ds2.LoadFromJSONObject(JObj, fpUpperCase);
+      // Mapper.JSONObjectToDataSet(JObj, ds2, false);
+      ds2.Post;
+      SameFishesDataSet(ds, ds2);
+    finally
+      JObj.Free;
+    end;
+  finally
+    ds.Free;
+    ds2.Free;
+  end;
+end;
+
+procedure TTestRouting.TestJSONArrayToObjectListNoGenerics;
+var
+  ListObj, RetList: TObjectList<TMyObject>;
+  JSONArr: TJSONArray;
+  I: Integer;
+begin
+  ListObj := TObjectList<TMyObject>.Create;
+  try
+    ListObj.Add(GetMyObject);
+    ListObj.Add(GetMyObject);
+    JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
+    try
+      RetList := TObjectList<TMyObject>(Mapper.JSONArrayToObjectList(TMyObject,
+        JSONArr, false));
+      try
+        CheckEquals(2, RetList.Count);
+        for I := 0 to ListObj.Count - 1 do
+          CheckTrue(ListObj[I].Equals(RetList[I]));
+      finally
+        RetList.Free;
+      end;
+    finally
+      JSONArr.Free;
+    end;
+  finally
+    ListObj.Free;
+  end;
+end;
+
+procedure TTestRouting.TestJSONArrayToObjectListNoGenericsWrappedList;
+var
+  ListObj, RetList: TObjectList<TMyObject>;
+  JSONArr: TJSONArray;
+  I: Integer;
+begin
+  ListObj := TObjectList<TMyObject>.Create;
+  try
+    ListObj.Add(GetMyObject);
+    ListObj.Add(GetMyObject);
+    JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
+    try
+      RetList := TObjectList<TMyObject>.Create;
+      try
+        Mapper.JSONArrayToObjectList(WrapAsList(RetList), TMyObject,
+          JSONArr, false);
+        CheckEquals(2, RetList.Count);
+        for I := 0 to ListObj.Count - 1 do
+          CheckTrue(ListObj[I].Equals(RetList[I]));
+      finally
+        RetList.Free;
+      end;
+    finally
+      JSONArr.Free;
+    end;
+  finally
+    ListObj.Free;
   end;
 end;
 

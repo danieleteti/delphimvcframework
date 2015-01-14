@@ -14,7 +14,6 @@ program DMVCFrameworkTests;
 {$APPTYPE CONSOLE}
 {$ENDIF}
 
-
 uses
   DUnitTestRunner,
   FrameworkTestsU in 'FrameworkTestsU.pas',
@@ -26,12 +25,14 @@ uses
   ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
   BOs in 'BOs.pas',
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
-  TestServerControllerU in '..\TestServer\TestServerControllerU.pas';
+  TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
+  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
+  RESTAdapterTestsU in 'RESTAdapterTestsU.pas';
 
 {$R *.RES}
 
-
 begin
+  ReportMemoryLeaksOnShutdown := true;
   DUnitTestRunner.RunRegisteredTests;
 
 end.

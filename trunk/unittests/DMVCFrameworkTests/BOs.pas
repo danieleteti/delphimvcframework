@@ -99,7 +99,8 @@ type
     constructor Create;
     [MapperSerializeAsString('utf-16')]
     property PropStream: TStream read FPropStream write SetPropStream;
-    [MapperSerializeAsString] // utf-8 is default
+    [MapperSerializeAsString]
+    // utf-8 is default
     property Prop8Stream: TStream read FProp8Stream write SetProp8Stream;
   end;
 
@@ -326,5 +327,7 @@ begin
     FPropStream.Free;
   FPropStream := Value;
 end;
+
+{ TCliente }
 
 end.

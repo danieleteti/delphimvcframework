@@ -918,7 +918,7 @@ end;
 class function TRTTIUtils.HasAttribute<T>(aObj: TObject;
   out AAttribute: T): boolean;
 begin
-  HasAttribute<T>(ctx.GetType(aObj.ClassType), AAttribute)
+  Result := HasAttribute<T>(ctx.GetType(aObj.ClassType), AAttribute)
 end;
 
 end.

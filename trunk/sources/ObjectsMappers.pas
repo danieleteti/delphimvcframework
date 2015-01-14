@@ -37,6 +37,10 @@ uses
   DuckListU, System.SysUtils;
 
 type
+
+  { ***** Daniele Spinetti ***** }
+  TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);
+
   TJSONObjectActionProc = reference to procedure(const AJSONObject
     : TJSONObject);
 
@@ -89,6 +93,12 @@ type
     class function ObjectToJSONObject(AObject: TObject): TJSONObject; overload;
     class function ObjectToJSONObjectString(AObject: TObject): string;
     class function ObjectToJSONArray(AObject: TObject): TJSONArray;
+    class function JSONArrayToObjectList(AListOf: TClass;
+      AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+      AOwnsChildObjects: boolean = True): TObjectList<TObject>; overload;
+    class procedure JSONArrayToObjectList(AList: IWrappedList; AListOf: TClass;
+      AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+      AOwnsChildObjects: boolean = True); overload;
     class function JSONArrayToObjectList<T: class, constructor>
       (AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
       AOwnsChildObjects: boolean = True): TObjectList<T>; overload;
@@ -105,12 +115,14 @@ type
 {$ENDIF}
     class procedure DataSetToJSONObject(ADataSet: TDataSet;
       AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True;
-      AJSONObjectActionProc: TJSONObjectActionProc = nil);
+      AJSONObjectActionProc: TJSONObjectActionProc = nil;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase);
     class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
       ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean = True); overload;
     class procedure JSONObjectToDataSet(AJSONObject: TJSONObject;
       ADataSet: TDataSet; AIgnoredFields: TArray<string>;
-      AJSONObjectInstanceOwner: boolean = True); overload;
+      AJSONObjectInstanceOwner: boolean = True;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     class procedure DataSetToObjectList<T: class, constructor>
       (ADataSet: TDataSet; AObjectList: TObjectList<T>;
       ACloseDataSetAfterScroll: boolean = True);
@@ -185,12 +197,15 @@ type
   public
     function AsJSONArray: TJSONArray;
     function AsJSONArrayString: string;
-    function AsJSONObject(AReturnNilIfEOF: boolean = false): TJSONObject;
+    function AsJSONObject(AReturnNilIfEOF: boolean = false;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): TJSONObject;
     function AsJSONObjectString(AReturnEmptyStringIfEOF
       : boolean = false): string;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject); overload;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject;
-      AIgnoredFields: TArray<string>); overload;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
+      AIgnoredFields: TArray<string>;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AIgnoredFields: TArray<string>); overload;
@@ -700,7 +715,8 @@ end;
 
 class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet;
   AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean;
-  AJSONObjectActionProc: TJSONObjectActionProc);
+  AJSONObjectActionProc: TJSONObjectActionProc;
+  AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
   key: string;
@@ -710,7 +726,16 @@ var
 begin
   for I := 0 to ADataSet.FieldCount - 1 do
   begin
-    key := LowerCase(ADataSet.Fields[I].FieldName);
+    // Name policy { ***** Daniele Spinetti ***** }
+    case AFieldNamePolicy of
+      fpLowerCase:
+        key := LowerCase(ADataSet.Fields[I].FieldName);
+      fpUpperCase:
+        key := UpperCase(ADataSet.Fields[I].FieldName);
+      fpAsIs:
+        key := ADataSet.Fields[I].FieldName;
+    end;
+
     if ADataSet.Fields[I].IsNull then
     begin
       AJSONObject.AddPair(key, TJSONNull.Create);
@@ -1571,6 +1596,39 @@ begin
     AJSONArray.Free;
 end;
 
+class function Mapper.JSONArrayToObjectList(AListOf: TClass;
+  AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+  AOwnsChildObjects: boolean = True): TObjectList<TObject>;
+var
+  I: Integer;
+begin
+  if Assigned(AJSONArray) then
+  begin
+    Result := TObjectList<TObject>.Create(AOwnsChildObjects);
+    for I := 0 to AJSONArray.Size - 1 do
+      Result.Add(Mapper.JSONObjectToObject(AListOf,
+        AJSONArray.Get(I) as TJSONObject));
+    if AInstanceOwner then
+      AJSONArray.Free;
+  end;
+end;
+
+class procedure Mapper.JSONArrayToObjectList(AList: IWrappedList;
+  AListOf: TClass; AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+  AOwnsChildObjects: boolean = True);
+var
+  I: Integer;
+begin
+  if Assigned(AJSONArray) then
+  begin
+    for I := 0 to AJSONArray.Size - 1 do
+      AList.Add(Mapper.JSONObjectToObject(AListOf,
+        AJSONArray.Get(I) as TJSONObject));
+    if AInstanceOwner then
+      AJSONArray.Free;
+  end;
+end;
+
 class procedure Mapper.JSONArrayToObjectList<T>(AList: TObjectList<T>;
   AJSONArray: TJSONArray; AInstanceOwner, AOwnsChildObjects: boolean);
 var
@@ -1821,7 +1879,7 @@ end;
 
 class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;
   ADataSet: TDataSet; AIgnoredFields: TArray<string>;
-  AJSONObjectInstanceOwner: boolean);
+  AJSONObjectInstanceOwner: boolean; AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
   key: string;
@@ -1835,7 +1893,17 @@ begin
   begin
     if ContainsFieldName(ADataSet.Fields[I].FieldName, AIgnoredFields) then
       Continue;
-    key := LowerCase(ADataSet.Fields[I].FieldName);
+
+    // Name policy { ***** Daniele Spinetti ***** }
+    case AFieldNamePolicy of
+      fpLowerCase:
+        key := LowerCase(ADataSet.Fields[I].FieldName);
+      fpUpperCase:
+        key := UpperCase(ADataSet.Fields[I].FieldName);
+      fpAsIs:
+        key := ADataSet.Fields[I].FieldName;
+    end;
+
     v := nil;
     jp := AJSONObject.Get(key);
     if Assigned(jp) then
@@ -2376,7 +2444,8 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONObject(AReturnNilIfEOF: boolean): TJSONObject;
+function TDataSetHelper.AsJSONObject(AReturnNilIfEOF: boolean;
+  AFieldNamePolicy: TFieldNamePolicy): TJSONObject;
 var
   JObj: TJSONObject;
 begin
@@ -2490,9 +2559,10 @@ begin
 end;
 
 procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
-  AIgnoredFields: TArray<string>);
+  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
 begin
-  Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false);
+  Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false,
+    AFieldNamePolicy);
 end;
 
 procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string;
@@ -2511,7 +2581,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   LoadFromJSONObject(AJSONObject, TArray<string>.Create());
 end;
