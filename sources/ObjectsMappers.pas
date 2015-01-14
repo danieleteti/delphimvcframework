@@ -1,5 +1,5 @@
 { *******************************************************************************
-  Copyright 2010-2013 Daniele Teti
+  Copyright 2010-2015 Daniele Teti
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -207,6 +207,7 @@ type
       AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray); overload;
+    procedure LoadFromJSONArrayString(AJSONArrayString: String);
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AIgnoredFields: TArray<string>); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
@@ -426,6 +427,7 @@ end;
 // end;
 
 {$IF CompilerVersion <= 25}
+
 
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
   AObject: TObject; WithResult: boolean): Int64;
@@ -675,6 +677,7 @@ begin
   Result.CommandText := ASQL;
 end;
 {$IFEND}
+
 
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
   AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean;
@@ -1951,8 +1954,11 @@ begin
       TFieldType.ftCurrency:
         begin
           fs.DecimalSeparator := '.';
-          ADataSet.Fields[I].AsCurrency :=
-            StrToCurr((v as TJSONString).Value, fs);
+{$IF CompilerVersion <= 27}
+          ADataSet.Fields[I].AsCurrency := StrToCurr((v as TJSONString).Value, fs);
+{$ELSE} // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
+          ADataSet.Fields[I].AsCurrency := StrToCurr((v as TJSONNumber).ToJSON, fs);
+{$ENDIF}
         end;
       TFieldType.ftFMTBcd:
         begin
@@ -2180,6 +2186,7 @@ end;
 
 {$IF CompilerVersion > 25}
 
+
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
   AObject: TObject; AParamPrefix: string);
 var
@@ -2294,6 +2301,7 @@ begin
 end;
 {$ENDIF}
 {$IF CompilerVersion <= 25}
+
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
   AObject: TObject): Int64;
@@ -2535,6 +2543,11 @@ begin
   finally
     Self.EnableControls;
   end;
+end;
+
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: String);
+begin
+  AppendFromJSONArrayString(AJSONArrayString);
 end;
 
 procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;

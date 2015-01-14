@@ -26,8 +26,8 @@ uses
   BOs in 'BOs.pas',
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
-  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
-  RESTAdapterTestsU in 'RESTAdapterTestsU.pas';
+  RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
+  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas';
 
 {$R *.RES}
 

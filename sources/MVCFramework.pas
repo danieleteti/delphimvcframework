@@ -1612,12 +1612,18 @@ procedure InternalRender(AJSONValue: TJSONValue;
   AInstanceOwner: boolean);
 var
   OutEncoding: TEncoding;
+  JString: String;
 begin
+{$IF CompilerVersion <= 27}
+  JString := AJSONValue.ToString; // requires the patch
+{$ELSE}
+  JString := AJSONValue.ToJSON; //since XE7 it works using ToJSON
+{$ENDIF}
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     Context.Response.RawWebResponse.Content :=
       OutEncoding.GetString(TEncoding.Convert(TEncoding.Default, OutEncoding,
-      TEncoding.Default.GetBytes(AJSONValue.ToString)));
+      TEncoding.Default.GetBytes(JString)));
   finally
     OutEncoding.Free;
   end;
