@@ -78,7 +78,8 @@ begin
     ds2.FieldByName('Length_In').AsInteger);
   CheckEquals(ds.FieldByName('Notes').AsString, ds2.FieldByName('Notes')
     .AsString);
-  CheckEquals(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic').AsString);
+  CheckEquals(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic')
+    .AsString);
 end;
 
 procedure TTestRouting.SetUp;
@@ -127,13 +128,17 @@ begin
     Obj.Prop8Stream := nil;
     // ACT
     JSONObj := Mapper.ObjectToJSONObject(Obj);
-    DesObj := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
     try
-      // ASSERT
-      CheckTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
-      CheckTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
+      DesObj := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+      try
+        // ASSERT
+        CheckTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
+        CheckTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
+      finally
+        DesObj.free;
+      end;
     finally
-      DesObj.free;
+      JSONObj.free;
     end;
   finally
     Obj.free;
