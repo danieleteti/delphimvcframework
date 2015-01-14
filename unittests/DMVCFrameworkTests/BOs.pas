@@ -97,6 +97,7 @@ type
     procedure SetProp8Stream(const Value: TStream);
   public
     constructor Create;
+    destructor Destroy; override;
     [MapperSerializeAsString('utf-16')]
     property PropStream: TStream read FPropStream write SetPropStream;
     [MapperSerializeAsString]
@@ -312,6 +313,15 @@ begin
   inherited Create;
   FPropStream := TStringStream.Create('', TEncoding.Unicode);
   FProp8Stream := TStringStream.Create('', TEncoding.UTF8);
+end;
+
+destructor TMyStreamObject.Destroy;
+begin
+  if Assigned(FPropStream) then
+    FPropStream.Free;
+  if Assigned(FProp8Stream) then
+    FProp8Stream.Free;
+  inherited;
 end;
 
 procedure TMyStreamObject.SetProp8Stream(const Value: TStream);
