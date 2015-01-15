@@ -520,13 +520,17 @@ begin
     // ACT
     SO.PropStream := TStringStream.Create(str, TEncoding.Unicode);
     JSONObj := Mapper.ObjectToJSONObject(SO);
-    ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
     try
-      ResultStr := TStringStream(ResultSO.PropStream).DataString;
-      // ASSERT
-      CheckEquals(str, ResultStr);
+      ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+      try
+        ResultStr := TStringStream(ResultSO.PropStream).DataString;
+        // ASSERT
+        CheckEquals(str, ResultStr);
+      finally
+        ResultSO.free;
+      end;
     finally
-      ResultSO.free;
+      JSONObj.free;
     end;
   finally
     SO.free;
@@ -547,13 +551,17 @@ begin
     // ACT
     SO.Prop8Stream := TStringStream.Create(str, TEncoding.UTF8);
     JSONObj := Mapper.ObjectToJSONObject(SO);
-    ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
     try
-      ResultStr := TStringStream(ResultSO.Prop8Stream).DataString;
-      // ASSERT
-      CheckEquals(str, ResultStr);
+      ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+      try
+        ResultStr := TStringStream(ResultSO.Prop8Stream).DataString;
+        // ASSERT
+        CheckEquals(str, ResultStr);
+      finally
+        ResultSO.free;
+      end;
     finally
-      ResultSO.free;
+      JSONObj.free;
     end;
   finally
     SO.free;

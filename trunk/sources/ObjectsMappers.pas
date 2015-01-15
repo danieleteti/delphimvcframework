@@ -93,9 +93,11 @@ type
     class function ObjectToJSONObject(AObject: TObject): TJSONObject; overload;
     class function ObjectToJSONObjectString(AObject: TObject): string;
     class function ObjectToJSONArray(AObject: TObject): TJSONArray;
+    { ***** Daniele Spinetti ***** }
     class function JSONArrayToObjectList(AListOf: TClass;
       AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
       AOwnsChildObjects: boolean = True): TObjectList<TObject>; overload;
+    { ***** Daniele Spinetti ***** }
     class procedure JSONArrayToObjectList(AList: IWrappedList; AListOf: TClass;
       AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
       AOwnsChildObjects: boolean = True); overload;
