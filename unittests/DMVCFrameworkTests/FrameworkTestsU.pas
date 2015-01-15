@@ -227,9 +227,9 @@ begin
   try
     ds.LoadFromFile('..\..\fishes.xml');
     ds.First;
-    JArr := TJSONArray.Create;
+    // JArr := TJSONArray.Create;
+    JArr := ds.AsJSONArray;
     try
-      JArr := ds.AsJSONArray;
       // Mapper.DataSetToJSONArray(ds, JArr, false);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
@@ -264,9 +264,9 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    JObj := TJSONObject.Create;
+    // JObj := TJSONObject.Create;
+    JObj := ds.AsJSONObject;
     try
-      JObj := ds.AsJSONObject;
       // Mapper.DataSetToJSONObject(ds, JObj, false);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
@@ -295,9 +295,9 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    JObj := TJSONObject.Create;
+    // JObj := TJSONObject.Create;
+    JObj := ds.AsJSONObject(false, fpAsIs);
     try
-      JObj := ds.AsJSONObject(false, fpAsIs);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
       ds2.Insert;
@@ -324,9 +324,9 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    JObj := TJSONObject.Create;
+    // JObj := TJSONObject.Create;
+    JObj := ds.AsJSONObject(false, fpLowerCase);
     try
-      JObj := ds.AsJSONObject(false, fpLowerCase);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
       ds2.Insert;
@@ -353,9 +353,9 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    JObj := TJSONObject.Create;
+    // JObj := TJSONObject.Create;
+    JObj := ds.AsJSONObject(false, fpUpperCase);
     try
-      JObj := ds.AsJSONObject(false, fpUpperCase);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
       ds2.Insert;
@@ -497,7 +497,11 @@ begin
     JSON := Mapper.ObjectToJSONObject(Obj);
     try
       Obj2 := Mapper.JSONObjectToObject<TMyObject>(JSON);
-      CheckTrue(Obj.Equals(Obj2));
+      try
+        CheckTrue(Obj.Equals(Obj2));
+      finally
+        Obj2.free;
+      end;
     finally
       JSON.free;
     end;
