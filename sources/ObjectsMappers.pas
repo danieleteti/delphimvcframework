@@ -430,7 +430,6 @@ end;
 
 {$IF CompilerVersion <= 25}
 
-
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
   AObject: TObject; WithResult: boolean): Int64;
 var
@@ -679,7 +678,6 @@ begin
   Result.CommandText := ASQL;
 end;
 {$IFEND}
-
 
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
   AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean;
@@ -1626,6 +1624,7 @@ var
 begin
   if Assigned(AJSONArray) then
   begin
+    AList.OwnsObjects := AOwnsChildObjects;
     for I := 0 to AJSONArray.Size - 1 do
       AList.Add(Mapper.JSONObjectToObject(AListOf,
         AJSONArray.Get(I) as TJSONObject));
@@ -1957,9 +1956,11 @@ begin
         begin
           fs.DecimalSeparator := '.';
 {$IF CompilerVersion <= 27}
-          ADataSet.Fields[I].AsCurrency := StrToCurr((v as TJSONString).Value, fs);
+          ADataSet.Fields[I].AsCurrency :=
+            StrToCurr((v as TJSONString).Value, fs);
 {$ELSE} // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
-          ADataSet.Fields[I].AsCurrency := StrToCurr((v as TJSONNumber).ToJSON, fs);
+          ADataSet.Fields[I].AsCurrency :=
+            StrToCurr((v as TJSONNumber).ToJSON, fs);
 {$ENDIF}
         end;
       TFieldType.ftFMTBcd:
@@ -2188,7 +2189,6 @@ end;
 
 {$IF CompilerVersion > 25}
 
-
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
   AObject: TObject; AParamPrefix: string);
 var
@@ -2303,7 +2303,6 @@ begin
 end;
 {$ENDIF}
 {$IF CompilerVersion <= 25}
-
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
   AObject: TObject): Int64;
