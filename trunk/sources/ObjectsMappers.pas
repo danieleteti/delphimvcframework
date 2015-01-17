@@ -1836,6 +1836,8 @@ begin
               begin
                 InternalJSONObjectToObject(ctx, TJSONObject(jvalue), o);
               end
+              else if jvalue is TJSONNull then
+                o := nil
               else
                 raise Exception.Create('Cannot deserialize property ' +
                   _field.Name);

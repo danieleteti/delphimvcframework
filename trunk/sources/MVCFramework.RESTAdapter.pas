@@ -24,6 +24,9 @@ uses
   System.Rtti, System.TypInfo, MVCFramework.RESTClient, MVCFramework,
   IdIOHandler, System.Classes;
 
+const
+  URL_SEPARATOR = '/';
+
 type
 
   RESTResourceAttribute = class(MVCHTTPMethodAttribute)
@@ -52,12 +55,17 @@ type
   private
     FParamType: string;
     FCustomFormat: string;
+    FParamMatch: string;
     procedure SetCustomFormat(const Value: string);
     procedure SetParamType(const Value: string);
+    procedure SetParamMatch(const Value: string);
   public
-    constructor Create(AParamType: string = ''; ACustomFormat: string = '');
+    constructor Create(AParamMatch: string; AParamType: string = '';
+      ACustomFormat: string = '');
+    property ParamMatch: string read FParamMatch write SetParamMatch;
     property ParamType: string read FParamType write SetParamType;
     property CustomFormat: string read FCustomFormat write SetCustomFormat;
+    function FmtParamMatch: string;
   end;
 
   HeadersAttribute = class(TCustomAttribute)
@@ -100,12 +108,11 @@ type
       out Result: TValue); override;
     procedure AddRequestHeaders(AObj: TRttiObject);
     procedure AddRequestHeader(AKey: string; AValue: string);
-    function MapAsParam(AParam: ParamAttribute; const Arg: TValue): string;
-    function MapAsBody(const Arg: TValue): string;
-    procedure MapParams(Method: TRttiMethod; const Args: TArray<TValue>;
-      out ABody: string; out AParams: TArray<string>);
     procedure MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
       out AResult: TValue);
+    function GetURL(AMethod: TRttiMethod; const Args: TArray<TValue>): string;
+    function GetBodyAsString(AMethod: TRttiMethod;
+      const Args: TArray<TValue>): string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -200,19 +207,14 @@ procedure TRESTAdapter<T>.DoInvokeImpl(Method: TRttiMethod;
 var
   Resp: IRESTResponse;
   _restresourceattr: RESTResourceAttribute;
-  _attrlistof: MapperListOf;
-  BodyString: string;
-  _parameter: TRttiParameter;
-  Params: TArray<string>;
+  URL: string;
+  Body: string;
 begin
   // Implementation of RESTClient DoGet DoPut ecc...
   if not TRTTIUtils.HasAttribute<RESTResourceAttribute>(Method,
     _restresourceattr) then
     raise Exception.CreateFmt('No REST Resource specified in method %s',
       [Method.Name]);
-
-  // MapParams BodyAttribute and ParamAttribute
-  MapParams(Method, Args, BodyString, Params);
 
   // headers can be more than one
   FRESTClient.RequestHeaders.Clear;
@@ -221,14 +223,24 @@ begin
   // Method
   AddRequestHeaders(Method);
 
+  // URL and Body
+  URL := GetURL(Method, Args);
+  Body := GetBodyAsString(Method, Args);
+
   case _restresourceattr.HTTPMethodType of
     httpGET:
-      Resp := FRESTClient.doGET(_restresourceattr.URL, Params);
+      Resp := FRESTClient.doGET(URL, []);
     httpPUT:
-      Resp := FRESTClient.doPUT(_restresourceattr.URL, Params, BodyString);
+      Resp := FRESTClient.doPUT(URL, [], Body);
     httpPOST:
-      Resp := FRESTClient.doPOST(_restresourceattr.URL, Params, BodyString);
+      Resp := FRESTClient.doPOST(URL, [], Body);
   end;
+
+  // if the response code is > 400 raise exception
+  // if Resp.ResponseCode >= 400 then
+  // raise Exception.CreateFmt
+  // ('Error on execute request ''%s''. Message: %d %s ',
+  // [URL, Resp.ResponseCode, Resp.BodyAsString]);
 
   // if is a procedure no need a return type
   if Assigned(Method.ReturnType) then
@@ -236,35 +248,73 @@ begin
 
 end;
 
-function TRESTAdapter<T>.MapAsBody(const Arg: TValue): string;
-begin
-  if Arg.IsObject then
-    Result := Mapper.ObjectToJSONObjectString(Arg.AsObject)
-  else
-    Result := TRTTIUtils.TValueAsString(Arg, '', '');
-end;
-
-function TRESTAdapter<T>.MapAsParam(AParam: ParamAttribute;
-  const Arg: TValue): string;
-begin
-  Result := TRTTIUtils.TValueAsString(Arg, AParam.ParamType,
-    AParam.CustomFormat);
-end;
-
-procedure TRESTAdapter<T>.MapParams(Method: TRttiMethod;
-  const Args: TArray<TValue>; out ABody: string; out AParams: TArray<string>);
+function TRESTAdapter<T>.GetBodyAsString(AMethod: TRttiMethod;
+  const Args: TArray<TValue>): string;
 var
+  _parameters: TArray<TRttiParameter>;
+  I: Integer;
+  _parameter: TRttiParameter;
+  _param: BodyAttribute;
+  Arg: TValue;
+begin
+  _parameters := AMethod.GetParameters;
+  for I := 0 to Length(_parameters) - 1 do
+  begin
+    _parameter := _parameters[I];
+    // ARG := ARGS[I+1] because
+    // Args	RTTI for the arguments of the interface method that has been called. The first argument (located at index 0) represents the interface instance itself.
+    Arg := Args[I + 1];
+    if TRTTIUtils.HasAttribute<BodyAttribute>(_parameter, _param) then
+      if Arg.IsObject then
+        Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject))
+      else
+        Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
+  end;
+end;
+
+function TRESTAdapter<T>.GetURL(AMethod: TRttiMethod;
+  const Args: TArray<TValue>): string;
+var
+  _restresourceattr: RESTResourceAttribute;
+  IURL: string;
+  SplitUrl: TArray<string>;
+  URLDict: TDictionary<string, string>;
+  Split: string;
+  _parameters: TArray<TRttiParameter>;
   I: Integer;
   _parameter: TRttiParameter;
   _param: ParamAttribute;
+  Arg: TValue;
 begin
-  for I := 0 to Length(Method.GetParameters) - 1 do
-  begin
-    _parameter := Method.GetParameters[I];
-    if TRTTIUtils.HasAttribute<BodyAttribute>(_parameter) then
-      ABody := MapAsBody(Args[I]);
-    if TRTTIUtils.HasAttribute<ParamAttribute>(_parameter, _param) then
-      AParams := AParams + [MapAsParam(_param, Args[I])];
+  _restresourceattr := TRTTIUtils.GetAttribute<RESTResourceAttribute>(AMethod);
+  IURL := _restresourceattr.URL;
+  SplitUrl := IURL.Split([URL_SEPARATOR]);
+  URLDict := TDictionary<string, string>.Create;
+  try
+    for Split in SplitUrl do
+      if not Split.IsEmpty then
+        URLDict.Add(Split, Split);
+    _parameters := AMethod.GetParameters;
+    // ARG := ARGS[I+1] because
+    // Args	RTTI for the arguments of the interface method that has been called. The first argument (located at index 0) represents the interface instance itself.
+    for I := 0 to Length(_parameters) - 1 do
+    begin
+      _parameter := _parameters[I];
+      Arg := Args[I + 1];
+      if TRTTIUtils.HasAttribute<ParamAttribute>(_parameter, _param) then
+        URLDict[_param.FmtParamMatch] := TRTTIUtils.TValueAsString(Arg,
+          _param.ParamType, _param.CustomFormat);
+    end;
+
+    for Split in SplitUrl do
+      if not Split.IsEmpty then
+        Result := Result + URL_SEPARATOR + URLDict[Split];
+
+    if IURL.EndsWith(URL_SEPARATOR) and not(Result.EndsWith(URL_SEPARATOR)) then
+      Result := Result + URL_SEPARATOR;
+
+  finally
+    URLDict.Free;
   end;
 end;
 
@@ -273,22 +323,31 @@ procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
 var
   _attrlistof: MapperListOf;
 begin
-  if AMethod.ReturnType.QualifiedName = TRTTIUtils.ctx.GetType
-    (TypeInfo(IRESTResponse)).QualifiedName then
-    AResult := AResult.From(AResp)
-  else if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
+  if AMethod.ReturnType.TypeKind = tkClass then
   begin
-    AResult := TRTTIUtils.CreateObject(AMethod.ReturnType.QualifiedName);
-    Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
-      _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
+    // ListOf
+    if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
+    begin
+      AResult := TRTTIUtils.CreateObject(AMethod.ReturnType.QualifiedName);
+      Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
+        _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
+    end
+    // JSONValue
+    else if AMethod.ReturnType.AsInstance.MetaclassType.InheritsFrom(TJSONValue)
+    then
+      AResult := TJSONObject.ParseJSONValue(AResp.BodyAsString)
+      // Object
+    else
+      AResult := Mapper.JSONObjectToObject(AMethod.ReturnType.QualifiedName,
+        AResp.BodyAsJsonObject)
   end
-  else if AMethod.ReturnType.QualifiedName.Contains('JSON') then
-    AResult := AResult.From(AResp.BodyAsJsonValue)
-  else if AMethod.ReturnType.TypeKind = tkClass then
-    AResult := Mapper.JSONObjectToObject(AMethod.ReturnType.QualifiedName,
-      AResp.BodyAsJsonObject)
   else
-    AResult := AResp.BodyAsString
+    // IRESTResponse
+    if AMethod.ReturnType.QualifiedName = TRTTIUtils.ctx.GetType
+      (TypeInfo(IRESTResponse)).QualifiedName then
+      AResult := AResult.From(AResp)
+    else // else a simple BodyAsString
+      AResult := AResp.BodyAsString
 end;
 
 function TRESTAdapter<T>.ResourcesService: T;
@@ -333,6 +392,7 @@ end;
 
 constructor BodyAttribute.Create(AOwnsObject: boolean);
 begin
+  inherited Create;
   FOwnsObject := AOwnsObject;
 end;
 
@@ -343,15 +403,28 @@ end;
 
 { ParamAttribute }
 
-constructor ParamAttribute.Create(AParamType, ACustomFormat: string);
+constructor ParamAttribute.Create(AParamMatch: string;
+  AParamType, ACustomFormat: string);
 begin
+  inherited Create;
+  FParamMatch := AParamMatch;
   FParamType := AParamType;
   FCustomFormat := ACustomFormat;
+end;
+
+function ParamAttribute.FmtParamMatch: string;
+begin
+  Result := '{' + ParamMatch + '}';
 end;
 
 procedure ParamAttribute.SetCustomFormat(const Value: string);
 begin
   FCustomFormat := Value;
+end;
+
+procedure ParamAttribute.SetParamMatch(const Value: string);
+begin
+  FParamMatch := Value;
 end;
 
 procedure ParamAttribute.SetParamType(const Value: string);

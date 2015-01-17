@@ -67,6 +67,8 @@ type
 
     class function HasAttribute<T: TCustomAttribute>
       (const Obj: TRttiObject): boolean; overload;
+    class function HasAttribute<T: TCustomAttribute>
+      (const Obj: TRttiObject; out AAttribute: T): boolean; overload;
     class function HasAttribute<T: class>(aObj: TObject; out AAttribute: T)
       : boolean; overload;
     class function HasAttribute<T: class>(ARTTIMember: TRttiMember; out AAttribute: T)
@@ -282,6 +284,13 @@ begin
       Exit(true);
     end;
 
+end;
+
+class function TRTTIUtils.HasAttribute<T>(const Obj: TRttiObject;
+  out AAttribute: T): boolean;
+begin
+  AAttribute := GetAttribute<T>(Obj);
+  Result := Assigned(AAttribute);
 end;
 
 class
