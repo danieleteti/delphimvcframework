@@ -27,11 +27,14 @@ type
     [RESTResource(HttpGet, '/persons/1')]
     function GetTonyStark: TPerson;
 
-    [RESTResource(HttpGet, '/persons')]
-    function GetPersonByID([Param] APersonID: integer): TPerson;
+    [RESTResource(HttpGet, '/persons/{personid}')]
+    function GetPersonByID([Param('personid')] APersonID: integer): TPerson;
 
     [RESTResource(httpPOST, '/persons')]
-    function SendPerson([Body] ABody: string): TPerson;
+    function SendPerson([Body] ABody: TPerson): TPerson;
+
+    [RESTResource(HttpGet, '/persons')]
+    function GetPersonInJSONArray: TJSONArray;
 
     [Headers('Accept', 'application/json')]
     [Headers('ContentType', 'application/json')]
@@ -64,9 +67,12 @@ type
     procedure TestHeadersApplicationJSON;
     procedure TestHeadersTextPlain;
     procedure TestApplicationJSONWithHeaderTextPlain;
+    procedure TestGetPersonInJSONArray;
   end;
 
 implementation
+
+uses System.SysUtils;
 
 { TTestRESTAdapter }
 
@@ -81,13 +87,28 @@ procedure TTestRESTAdapter.TestGetPersonByID;
 var
   Person: TPerson;
 begin;
-  Person := TESTService.GetPersonByID(4);
+  Person := TESTService.GetPersonByID(1);
   try
     CheckEquals('Tony', Person.FirstName);
     CheckEquals('Stark', Person.LastName);
     CheckTrue(Person.Married);
   finally
     Person.Free;
+  end;
+end;
+
+procedure TTestRESTAdapter.TestGetPersonInJSONArray;
+var
+  JSONArray: TJSONArray;
+begin
+  JSONArray := TESTService.GetPersonInJSONArray;
+  try
+    CheckTrue(JSONArray.ToJSON.Contains('Tony'));
+    CheckTrue(JSONArray.ToJSON.Contains('Stark'));
+    CheckTrue(JSONArray.ToJSON.Contains('Bruce'));
+    CheckTrue(JSONArray.ToJSON.Contains('Banner'));
+  finally
+    JSONArray.Free;
   end;
 end;
 
@@ -132,7 +153,7 @@ var
 begin
   Person := TPerson.GetNew('Peter', 'Parker', 0, false);
   try
-    RetPerson := TESTService.SendPerson('person');
+    RetPerson := TESTService.SendPerson(Person);
     try
       CheckEquals('Peter', RetPerson.FirstName);
       CheckEquals('Parker', RetPerson.LastName);
@@ -170,7 +191,7 @@ end;
 
 initialization
 
-//RegisterTest(TTestRESTAdapter.suite);
+RegisterTest(TTestRESTAdapter.suite);
 
 finalization
 
