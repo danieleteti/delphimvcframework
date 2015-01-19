@@ -152,17 +152,13 @@ var
   RetPerson: TPerson;
 begin
   Person := TPerson.GetNew('Peter', 'Parker', 0, false);
+  RetPerson := TESTService.SendPerson(Person);
   try
-    RetPerson := TESTService.SendPerson(Person);
-    try
-      CheckEquals('Peter', RetPerson.FirstName);
-      CheckEquals('Parker', RetPerson.LastName);
-      CheckFalse(RetPerson.Married);
-    finally
-      RetPerson.Free;
-    end;
+    CheckEquals('Peter', RetPerson.FirstName);
+    CheckEquals('Parker', RetPerson.LastName);
+    CheckFalse(RetPerson.Married);
   finally
-    Person.Free;
+    RetPerson.Free;
   end;
 end;
 
