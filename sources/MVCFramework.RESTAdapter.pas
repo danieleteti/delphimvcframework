@@ -22,7 +22,7 @@ interface
 
 uses
   System.Rtti, System.TypInfo, MVCFramework.RESTClient, MVCFramework,
-  IdIOHandler, System.Classes;
+  IdIOHandler, System.Classes, System.SysUtils;
 
 const
   URL_SEPARATOR = '/';
@@ -124,10 +124,31 @@ type
     property RESTClient: TRESTClient read FRESTClient write SetRESTClient;
   end;
 
+  TAsynchRequest = class(TObject)
+  private
+    FSynchronized: boolean;
+    FSuccessProc: TProc<IRESTResponse>;
+    FErrorProc: TProc<Exception>;
+    FAlwaysProc: TProc;
+    procedure SetAlwaysProc(const Value: TProc);
+    procedure SetErrorProc(const Value: TProc<Exception>);
+    procedure SetSuccessProc(const Value: TProc<IRESTResponse>);
+    procedure SetSynchronized(const Value: boolean);
+  public
+    constructor Create(AProc: TProc<IRESTResponse> = nil;
+      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
+      ASynchronized: boolean = false);
+    property SuccessProc: TProc<IRESTResponse> read FSuccessProc
+      write SetSuccessProc;
+    property ErrorProc: TProc<Exception> read FErrorProc write SetErrorProc;
+    property AlwaysProc: TProc read FAlwaysProc write SetAlwaysProc;
+    property Synchronized: boolean read FSynchronized write SetSynchronized;
+  end;
+
 implementation
 
 uses
-  System.SysUtils, ObjectsMappers,
+  ObjectsMappers,
 {$IF CompilerVersion < 27}
   Data.DBXJSON,
   Data.SqlExpr,
@@ -209,6 +230,7 @@ var
   _restresourceattr: RESTResourceAttribute;
   URL: string;
   Body: string;
+  AsynchClass: TAsynchRequest;
 begin
   // Implementation of RESTClient DoGet DoPut ecc...
   if not TRTTIUtils.HasAttribute<RESTResourceAttribute>(Method,
@@ -226,6 +248,18 @@ begin
   // URL and Body
   URL := GetURL(Method, Args);
   Body := GetBodyAsString(Method, Args);
+
+  // Asynch way to do
+  if Args[Length(Args) - 1].TryAsType<TAsynchRequest>(AsynchClass) then
+    FRESTClient.Asynch(
+      procedure(ARESTResponse: IRESTResponse)
+      var
+        ResValue: TValue;
+      begin
+        MapResult(ARESTResponse, Method, ResValue);
+        // AsynchClass.SuccessProc(ResValue.AsType<T>);
+      end, AsynchClass.ErrorProc, AsynchClass.FAlwaysProc,
+      AsynchClass.Synchronized);
 
   case _restresourceattr.HTTPMethodType of
     httpGET:
@@ -249,7 +283,7 @@ begin
 end;
 
 function TRESTAdapter<T>.GetBodyAsString(AMethod: TRttiMethod;
-  const Args: TArray<TValue>): string;
+const Args: TArray<TValue>): string;
 var
   _parameters: TArray<TRttiParameter>;
   I: Integer;
@@ -265,15 +299,20 @@ begin
     // Args	RTTI for the arguments of the interface method that has been called. The first argument (located at index 0) represents the interface instance itself.
     Arg := Args[I + 1];
     if TRTTIUtils.HasAttribute<BodyAttribute>(_parameter, _param) then
-      if Arg.IsObject then
-        Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject))
-      else
-        Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
+      try
+        if Arg.IsObject then
+          Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject))
+        else
+          Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
+      finally
+        if _param.OwnsObject and Arg.IsObject then
+          Arg.AsObject.Free;
+      end;
   end;
 end;
 
 function TRESTAdapter<T>.GetURL(AMethod: TRttiMethod;
-  const Args: TArray<TValue>): string;
+const Args: TArray<TValue>): string;
 var
   _restresourceattr: RESTResourceAttribute;
   IURL: string;
@@ -319,7 +358,7 @@ begin
 end;
 
 procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
-  out AResult: TValue);
+out AResult: TValue);
 var
   _attrlistof: MapperListOf;
 begin
@@ -371,7 +410,7 @@ end;
 { RESTResourceAttribute }
 
 constructor RESTResourceAttribute.Create(AMVCHTTPMethod: TMVCHTTPMethodType;
-  AURL: string);
+AURL: string);
 begin
   FURL := AURL;
   FHTTPMethodType := AMVCHTTPMethod;
@@ -404,7 +443,7 @@ end;
 { ParamAttribute }
 
 constructor ParamAttribute.Create(AParamMatch: string;
-  AParamType, ACustomFormat: string);
+AParamType, ACustomFormat: string);
 begin
   inherited Create;
   FParamMatch := AParamMatch;
@@ -448,6 +487,39 @@ end;
 procedure HeadersAttribute.SetValue(const Value: string);
 begin
   FValue := Value;
+end;
+
+{ TAsynchRequest }
+
+constructor TAsynchRequest.Create(AProc: TProc<IRESTResponse> = nil;
+AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
+ASynchronized: boolean = false);
+begin
+  inherited Create;
+  FSuccessProc := AProc;
+  FErrorProc := AProcErr;
+  FAlwaysProc := AProcAlways;
+  FSynchronized := ASynchronized;
+end;
+
+procedure TAsynchRequest.SetAlwaysProc(const Value: TProc);
+begin
+  FAlwaysProc := Value;
+end;
+
+procedure TAsynchRequest.SetErrorProc(const Value: TProc<Exception>);
+begin
+  FErrorProc := Value;
+end;
+
+procedure TAsynchRequest.SetSuccessProc(const Value: TProc<IRESTResponse>);
+begin
+  FSuccessProc := Value;
+end;
+
+procedure TAsynchRequest.SetSynchronized(const Value: boolean);
+begin
+  FSynchronized := Value;
 end;
 
 end.
