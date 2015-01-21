@@ -39,6 +39,8 @@ procedure TForm5.Button1Click(Sender: TObject);
 begin
   roomname := '/topic/' + Edit2.Text;
   stomp := TStompClient.Create;
+  stomp.SetUserName('admin');
+  stomp.SetPassword('password');
   stomp.Connect(Edit1.Text);
 
   //Setup for reading messages
@@ -79,7 +81,7 @@ var
   f: IStompFrame;
   fw: FLASHWINFO;
 begin
-  f := stomp.Receive(100);  //this should be done in a secondary thread
+  f := stomp.Receive(50);  //this should be done in a secondary thread
   if assigned(f) then
   begin
     Memo1.Lines.Add('[' + f.GetHeaders.Value('datetime') + ' ' + f.GetHeaders.Value('sender') + ']' + sLineBreak + f.GetBody);
