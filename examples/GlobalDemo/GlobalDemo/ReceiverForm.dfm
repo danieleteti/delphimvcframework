@@ -68,7 +68,6 @@ object Form1: TForm1
     ReadOnly = True
     TabOrder = 3
     WordWrap = False
-    ExplicitHeight = 171
   end
   object Button3: TButton
     Left = 439
