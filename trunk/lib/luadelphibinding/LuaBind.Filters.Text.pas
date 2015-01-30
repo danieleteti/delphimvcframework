@@ -52,7 +52,7 @@ begin
   if lua_gettop(L) <> 2 then
   begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
-    Exit;
+    Exit(0);
   end;
 
   if lua_isstring(L, -1) = 1 then
@@ -63,7 +63,7 @@ begin
   else
   begin
     luaL_error(L, PAnsiChar('Type mismatch, expected String'));
-    Exit;
+    Exit(0);
   end;
 
   if lua_islightuserdata(L, -1) then
@@ -74,7 +74,7 @@ begin
   else
   begin
     luaL_error(L, PAnsiChar('Type mismatch, expected LightUserData'));
-    Exit;
+    Exit(0);
   end;
 
   stream := o as TStreamWriter;
@@ -285,12 +285,11 @@ end;
 function __lua_out(L: Plua_State): Integer; cdecl;
 var
   s: string;
-  o: TObject;
 begin
   if lua_gettop(L) <> 1 then
   begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
-    Exit;
+    Exit(0);
   end;
 
   if lua_isstring(L, -1) = 1 then
@@ -301,7 +300,7 @@ begin
   else
   begin
     luaL_error(L, PAnsiChar('Type mismatch, expected String'));
-    Exit;
+    Exit(0);
   end;
   _OutputBuffer.Append(s);
   Result := 0;
