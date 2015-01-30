@@ -284,10 +284,6 @@ var
   I: Integer;
   k: string;
   v: TValue;
-  ctx: TRTTIContext;
-  prop: TRTTIProperty;
-  method: TRttiMethod;
-  utf8s: RawByteString;
 begin
   // lua_createtable(L, 0, 0);
   // lua_createtable(L, 0, 1);
@@ -429,6 +425,7 @@ begin
     lua_settable(LState, -3);
   end;
   lua_setglobal(LState, PAnsiChar(ATableName));
+  Result := Self;
 end;
 
 function TLuaEngine.DeclareTable(const ATableName: AnsiString;
