@@ -92,7 +92,6 @@ type
     constructor Create(AWebRequest: TWebRequest); virtual;
   private
     FWebRequest: TWebRequest;
-    FPathInfo: string;
     FParamsTable: TMVCRequestParamsTable;
     FContentType: string;
     FCharset: string;
@@ -100,7 +99,6 @@ type
     function GetHeader(const Name: string): string;
     function GetHeaderValue(const Name: string): string;
     function GetPathInfo: string;
-    function Param(Name: string): string;
     function GetParamAll(const ParamName: string): string;
     function GetIsAjax: boolean;
     function GetHTTPMethod: TMVCHTTPMethodType;
@@ -1242,14 +1240,16 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
+{.$IF CompilerVersion <= 27}
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
+{.$ENDIF}
 begin
-{$IF CompilerVersion > 27}
-  Exit(FWebRequest.Content);
-{$ELSE}
+{.$IF CompilerVersion > 27}
+//  Exit(FWebRequest.Content);
+{.$ELSE}
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
   // considering the content charser. So, here's the fix
 
@@ -1273,7 +1273,7 @@ begin
   finally
     InEnc.Free;
   end
-{$ENDIF}
+{.$ENDIF}
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
@@ -1617,7 +1617,7 @@ begin
 {$IF CompilerVersion <= 27}
   JString := AJSONValue.ToString; // requires the patch
 {$ELSE}
-  JString := AJSONValue.ToJSON; //since XE7 it works using ToJSON
+  JString := AJSONValue.ToJSON; // since XE7 it works using ToJSON
 {$ENDIF}
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
@@ -1811,11 +1811,6 @@ constructor MVCPathAttribute.Create(const Value: string);
 begin
   inherited Create;
   FPath := Value;
-end;
-
-function TMVCWebRequest.Param(Name: string): string;
-begin
-  Result := FWebRequest.QueryFields.Values[name];
 end;
 
 function TMVCWebRequest.QueryStringParam(Name: string): string;

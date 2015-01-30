@@ -441,7 +441,12 @@ begin
   if not Assigned(AJSONValue) then
     raise Exception.Create('AJSONValue is nil');
   try
-    Result := doPOST(AResource, AResourceParams, AJSONValue.ToString);
+    Result := doPOST(AResource, AResourceParams,
+    {$IF CompilerVersion >= 28}
+      AJSONValue.ToJSON
+    {$ELSE}
+      AJSONValue.ToString
+    {$ENDIF});
   finally
     if AOwnsJSONBody then
       FreeAndNil(AJSONValue);
@@ -475,7 +480,12 @@ begin
   if not Assigned(AJSONValue) then
     raise Exception.Create('AJSONValue is nil');
   try
-    Result := doPATCH(AResource, AResourceParams, AJSONValue.ToString);
+    Result := doPATCH(AResource, AResourceParams,
+    {$IF CompilerVersion >= 28}
+      AJSONValue.ToJSON
+    {$ELSE}
+      AJSONValue.ToString
+    {$ENDIF});
   finally
     if AOwnsJSONBody then
       FreeAndNil(AJSONValue);
@@ -549,7 +559,12 @@ begin
     raise Exception.Create('AJSONValue is nil');
 
   try
-    Result := doPUT(AResource, AResourceParams, AJSONValue.ToString);
+    Result := doPUT(AResource, AResourceParams,
+    {$IF CompilerVersion >= 28}
+      AJSONValue.ToJSON
+    {$ELSE}
+      AJSONValue.ToString
+    {$ENDIF});
   finally
     if AOwnsJSONBody then
       FreeAndNil(AJSONValue);
