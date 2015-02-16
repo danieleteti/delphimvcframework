@@ -671,7 +671,7 @@ begin
   try
     lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
     try
-      lJObj.RemovePair('FFirstName');
+      lJObj.RemovePair('FFirstName').free;
       ExpectedException := EMapperException;
       Mapper.JSONObjectFieldsToObject(lJObj);
     finally
