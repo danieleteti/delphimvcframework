@@ -13,7 +13,7 @@ type
   TSimpleController = class(TMVCController)
   private
     FCalledActions: TStringList;
-    procedure AddCall(ActionName: String);
+    procedure AddCall(ActionName: string);
 
   protected
     procedure MVCControllerAfterCreate; override;
@@ -54,7 +54,7 @@ implementation
 
 { TSimpleController }
 
-procedure TSimpleController.AddCall(ActionName: String);
+procedure TSimpleController.AddCall(ActionName: string);
 begin
   FCalledActions.Add(ActionName);
 end;

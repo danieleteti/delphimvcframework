@@ -33,7 +33,7 @@ type
     procedure TestAsynchRequestGET;
     procedure TestAsynchRequestDELETE;
     procedure TestEncodingRenderJSONValue;
-
+    procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
     procedure TestProducesConsumesWithWrongAcceptHeader;
@@ -166,8 +166,7 @@ begin
       end,
       procedure(E: Exception)
       begin
-      end).doPOST('/echo', ['1', '2', '3'],
-      TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
+      end).doPOST('/echo', ['1', '2', '3'], TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
 
     // wait for thred finish
     repeat
@@ -203,8 +202,7 @@ begin
       end,
       procedure(E: Exception)
       begin
-      end).doPUT('/echo', ['1', '2', '3'],
-      TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
+      end).doPUT('/echo', ['1', '2', '3'], TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
 
     // wait for thred finish
     repeat
@@ -233,8 +231,7 @@ begin
   CheckEquals('‡ËÈÏÚ˘', s);
 
   s := res.BodyAsJsonObject.Get('name2').JsonValue.Value;
-  CheckEquals('äto je Unicode?', s,
-    'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
+  CheckEquals('äto je Unicode?', s, 'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   { WARNING!!! }
   {
     If this test fail, check
@@ -262,9 +259,7 @@ procedure TServerTest.TestMiddlewareHandler;
 var
   r: IRESTResponse;
 begin
-  r := RESTClient
-    .Accept(TMVCMimeType.APPLICATION_JSON)
-    .doGET('/handledbymiddleware', []);
+  r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doGET('/handledbymiddleware', []);
   CheckEquals('This is a middleware response', r.BodyAsString);
   CheckEquals(200, r.ResponseCode);
 end;
@@ -280,8 +275,7 @@ begin
     P.LastName := StringOfChar('*', 1000);
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
-    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [],
-      mapper.ObjectToJSONObject(P));
+    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [], Mapper.ObjectToJSONObject(P));
   finally
     P.Free;
   end;
@@ -313,8 +307,7 @@ begin
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
-      r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON)
-        .doPOST('/objects', [], mapper.ObjectToJSONObject(P));
+      r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [], Mapper.ObjectToJSONObject(P));
     except
       Fail('If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
       { WARNING!!! }
@@ -328,7 +321,7 @@ begin
   finally
     P.Free;
   end;
-  P := mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
+  P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
   try
     CheckEquals('Daniele', P.FirstName);
     CheckEquals('‡Ú˘ËÈÏ', P.LastName);
@@ -355,11 +348,8 @@ procedure TServerTest.TestProducesConsumesWithWrongAcceptHeader;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient
-    .Accept('text/plain') // action is waiting for a accept: application/json
-    .ContentType('application/json')
-    .doPOST('/testconsumes', [],
-    TJSONString.Create('Hello World'));
+  res := RESTClient.Accept('text/plain') // action is waiting for a accept: application/json
+    .ContentType('application/json').doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
   CheckEquals(404, res.ResponseCode);
 end;
 
@@ -367,12 +357,8 @@ procedure TServerTest.TestProducesConsumes01;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient
-    .Accept('application/json')
-    .ContentType('application/json')
-    .ContentEncoding('utf-8')
-    .doPOST('/testconsumes', [],
-    TJSONString.Create('Hello World'));
+  res := RESTClient.Accept('application/json').ContentType('application/json').ContentEncoding('utf-8')
+    .doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
   CheckEquals(200, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
   CheckEquals('application/json', res.GetContentType);
@@ -383,18 +369,12 @@ procedure TServerTest.TestProducesConsumes02;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient.
-    Accept('text/plain').
-    ContentType('text/plain').
-    doPOST('/testconsumes', [], 'Hello World');
+  res := RESTClient.Accept('text/plain').ContentType('text/plain').doPOST('/testconsumes', [], 'Hello World');
   CheckEquals('Hello World', res.BodyAsString);
   CheckEquals('text/plain', res.GetContentType);
   CheckEquals('UTF-8', res.GetContentEncoding);
 
-  res := RESTClient.
-    Accept('text/plain').
-    ContentType('application/json').
-    doPOST('/testconsumes', [], '{"name": "Daniele"}');
+  res := RESTClient.Accept('text/plain').ContentType('application/json').doPOST('/testconsumes', [], '{"name": "Daniele"}');
   CheckEquals(404, res.ResponseCode);
 end;
 
@@ -439,6 +419,30 @@ begin
   r := RESTClient.doDELETE('/req/with/params', ['1', '2', '3']);
   CheckEquals(200, r.ResponseCode);
   CheckNull(r.BodyAsJsonObject);
+end;
+
+procedure TServerTest.TestSerializationType;
+var
+  LResp: IRESTResponse;
+  LPersonProps, LPersonFlds: TPerson;
+  LObj: TObject;
+begin
+  LResp := RESTClient.doGET('/people', ['1']);
+  LPersonProps := Mapper.JSONObjectToObject<TPerson>(LResp.BodyAsJsonObject);
+  try
+    LResp := RESTClient.doGET('/people', ['1', 'asfields']);
+    LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
+    try
+      CheckEquals('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
+      LPersonFlds := TPerson(LObj);
+      CheckTrue(LPersonFlds.Equals(LPersonProps),
+        'Object tranferred using field serialization is different from the object serialized in the default way');
+    finally
+      LObj.Free;
+    end;
+  finally
+    LPersonProps.Free;
+  end;
 end;
 
 procedure TServerTest.TestSession;

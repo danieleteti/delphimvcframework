@@ -19,14 +19,14 @@ type
     procedure SetLastName(const Value: string);
     procedure SetMarried(const Value: boolean);
   public
+    function Equals(Obj: TObject): boolean; override;
     // [MapperJsonSer('nome')]
     property FirstName: string read FFirstName write SetFirstName;
     // [DoNotSerialize]
     property LastName: string read FLastName write SetLastName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-    class function GetNew(AFirstName, ALastName: string; ADOB: TDate;
-      AMarried: boolean): TPerson;
+    class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList: TObjectList<TPerson>;
   end;
 
@@ -68,26 +68,40 @@ type
   [MapperJSONNaming(JSONNameLowerCase)]
   TPhilosopher = class(TPerson)
   private
-    FMentors: String;
-    procedure SetMentors(const Value: String);
+    FMentors: string;
+    procedure SetMentors(const Value: string);
   public
-    property Mentors: String read FMentors write SetMentors;
+    property Mentors: string read FMentors write SetMentors;
   end;
 
 implementation
 
+uses
+  System.SysUtils;
+
 { TPerson }
+
+function TPerson.Equals(Obj: TObject): boolean;
+begin
+  Result := Obj is TPerson;
+  if Result then
+  begin
+    Result := Result and (TPerson(Obj).LastName = Self.LastName);
+    Result := Result and (TPerson(Obj).FirstName = Self.FirstName);
+    Result := Result and (TPerson(Obj).Married = Self.Married);
+    Result := Result and (TPerson(Obj).DOB = Self.DOB);
+  end;
+end;
 
 class function TPerson.GetList: TObjectList<TPerson>;
 begin
   Result := TObjectList<TPerson>.Create;
-  Result.Add(TPerson.GetNew('Tony', 'Stark', 0, true));
+  Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
   Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
   Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
 end;
 
-class function TPerson.GetNew(AFirstName, ALastName: string; ADOB: TDate;
-  AMarried: boolean): TPerson;
+class function TPerson.GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
 begin
   Result := TPerson.Create;
   Result.FLastName := ALastName;
@@ -157,7 +171,7 @@ end;
 
 { TPhilosopher }
 
-procedure TPhilosopher.SetMentors(const Value: String);
+procedure TPhilosopher.SetMentors(const Value: string);
 begin
   FMentors := Value;
 end;

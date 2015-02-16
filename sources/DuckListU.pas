@@ -27,25 +27,25 @@ uses
   TypInfo;
 
 type
-  TDuckTypedList = class;
+  TDuckTypedList=class;
 
-  TdormObjectStatus = (osDirty = 0, osClean, osUnknown, osDeleted);
+  TdormObjectStatus=(osDirty=0, osClean, osUnknown, osDeleted);
 
-  EdormException = class(Exception)
-
-  end;
-
-  EdormValidationException = class(EdormException)
+  EdormException=class(Exception)
 
   end;
 
-  TdormEnvironment = (deDevelopment, deTest, deRelease);
-  TdormObjectOwner = (ooItself, ooParent);
-  TdormSaveType = (stAllGraph, stSingleObject);
-  TdormRelations = set of (drBelongsTo, drHasMany, drHasOne);
-  TdormFillOptions = set of (CallAfterLoadEvent);
+  EdormValidationException=class(EdormException)
 
-  IList = interface
+  end;
+
+  TdormEnvironment=(deDevelopment, deTest, deRelease);
+  TdormObjectOwner=(ooItself, ooParent);
+  TdormSaveType=(stAllGraph, stSingleObject);
+  TdormRelations=set of (drBelongsTo, drHasMany, drHasOne);
+  TdormFillOptions=set of (CallAfterLoadEvent);
+
+  IList=interface
     ['{2A1BCB3C-17A2-4F8D-B6FB-32B2A1BFE840}']
     function Add(const Value: TObject): Integer;
     procedure Clear;
@@ -53,7 +53,7 @@ type
     function GetItem(index: Integer): TObject;
   end;
 
-  TdormListEnumerator = class(TEnumerator<TObject>)
+  TdormListEnumerator=class(TEnumerator<TObject>)
   protected
     FPosition: Int64;
     FDuckTypedList: TDuckTypedList;
@@ -66,9 +66,9 @@ type
     constructor Create(ADuckTypedList: TDuckTypedList);
   end;
 
-  TSortingType = (soAscending, soDescending);
+  TSortingType=(soAscending, soDescending);
 
-  IWrappedList = interface
+  IWrappedList=interface
     ['{B60AF5A6-7C31-4EAA-8DFB-D8BD3E112EE7}']
     function Count: Integer;
     function GetItem(const index: Integer): TObject;
@@ -76,13 +76,13 @@ type
     procedure Clear;
     function GetEnumerator: TdormListEnumerator;
     function WrappedObject: TObject;
-    procedure Sort(const PropertyName: string; Order: TSortingType = soAscending);
+    procedure Sort(const PropertyName: string; Order: TSortingType=soAscending);
     function GetOwnsObjects: boolean;
     procedure SetOwnsObjects(const Value: boolean);
     property OwnsObjects: boolean read GetOwnsObjects write SetOwnsObjects;
   end;
 
-  TDuckTypedList = class(TInterfacedObject, IWrappedList)
+  TDuckTypedList=class(TInterfacedObject, IWrappedList)
   protected
     FCTX: TRTTIContext;
     FObjectAsDuck: TObject;
@@ -96,13 +96,10 @@ type
     procedure Add(const AObject: TObject);
     procedure Clear;
     function WrappedObject: TObject;
-    procedure QuickSort(List: IWrappedList; L, R: Integer;
-      SCompare: TFunc<TObject, TObject, Integer>); overload;
+    procedure QuickSort(List: IWrappedList; L, R: Integer; SCompare: TFunc<TObject, TObject, Integer>); overload;
 
-    procedure QuickSort(List: IWrappedList;
-      SCompare:
-      TFunc<TObject, TObject, Integer>); overload;
-    procedure Sort(const PropertyName: string; Order: TSortingType = soAscending);
+    procedure QuickSort(List: IWrappedList; SCompare: TFunc<TObject, TObject, Integer>); overload;
+    procedure Sort(const PropertyName: string; Order: TSortingType=soAscending);
 
   public
     constructor Create(AObjectAsDuck: TObject);
@@ -130,7 +127,7 @@ end;
 
 function TdormListEnumerator.DoGetCurrent: TObject;
 begin
-  if FPosition > -1 then
+  if FPosition>-1 then
     Result := FDuckTypedList.GetItem(FPosition)
   else
     raise Exception.Create('Enumerator error: Call MoveNext first');
@@ -138,7 +135,7 @@ end;
 
 function TdormListEnumerator.DoMoveNext: boolean;
 begin
-  if FPosition < FDuckTypedList.Count - 1 then
+  if FPosition<FDuckTypedList.Count-1 then
   begin
     Inc(FPosition);
     Result := True;
@@ -157,36 +154,18 @@ begin
   FAddMethod.Invoke(FObjectAsDuck, [AObject]);
 end;
 
-class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck
-  : TObject): boolean;
+class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject): boolean;
 var
   FCTX: TRTTIContext;
 begin
-  Result :=
-    (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add') <>
-    nil)
-    and
-    (FCTX.GetType(AObjectAsDuck.ClassInfo)
-    .GetMethod('Clear') <> nil)
+  Result := (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add')<>nil)and(FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear')<>nil)
 
 {$IF CompilerVersion >= 23}
-    and
-    (FCTX.GetType(AObjectAsDuck.ClassInfo)
-    .GetIndexedProperty('Items')
-    .ReadMethod <> nil)
+    and(FCTX.GetType(AObjectAsDuck.ClassInfo).GetIndexedProperty('Items').ReadMethod<>nil)
 
 {$IFEND}
-    and
-    (
-    (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetItem')
-    <> nil)
-    or
-    (FCTX.GetType(AObjectAsDuck.ClassInfo)
-    .GetMethod('GetElement') <> nil)
-    )
-    and
-    (FCTX.GetType(AObjectAsDuck.ClassInfo)
-    .GetProperty('Count') <> nil)
+    and((FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetItem')<>nil)or(FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetElement')<>
+    nil))and(FCTX.GetType(AObjectAsDuck.ClassInfo).GetProperty('Count')<>nil)
 
 end;
 
@@ -213,33 +192,27 @@ begin
     raise EdormException.Create('Cannot find method "Add" in the duck object');
   FClearMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear');
   if not Assigned(FClearMethod) then
-    raise EdormException.Create
-      ('Cannot find method "Clear" in the duck object');
+    raise EdormException.Create('Cannot find method "Clear" in the duck object');
   FGetItemMethod := nil;
 
 {$IF CompilerVersion >= 23}
-  FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-    .GetIndexedProperty('Items').ReadMethod;
+  FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetIndexedProperty('Items').ReadMethod;
 
 {$IFEND}
   if not Assigned(FGetItemMethod) then
-    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-      .GetMethod('GetItem');
+    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetItem');
   if not Assigned(FGetItemMethod) then
-    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-      .GetMethod('GetElement');
+    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetElement');
   if not Assigned(FGetItemMethod) then
     raise EdormException.Create
       ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the duck object');
   FCountProperty := FCTX.GetType(AObjectAsDuck.ClassInfo).GetProperty('Count');
   if not Assigned(FCountProperty) then
   begin
-    FGetCountMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-      .GetMethod('Count');
+    FGetCountMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Count');
     if not Assigned(FGetCountMethod) then
 
-      raise EdormException.Create
-        ('Cannot find property/method "Count" in the duck object');
+      raise EdormException.Create('Cannot find property/method "Count" in the duck object');
   end;
 end;
 
@@ -273,8 +246,7 @@ begin
   end;
 end;
 
-procedure TDuckTypedList.QuickSort(List: IWrappedList; L, R: Integer;
-  SCompare: TFunc<TObject, TObject, Integer>);
+procedure TDuckTypedList.QuickSort(List: IWrappedList; L, R: Integer; SCompare: TFunc<TObject, TObject, Integer>);
 var
   I, J: Integer;
   p: TObject;
@@ -289,30 +261,28 @@ begin
   repeat
     I := L;
     J := R;
-    p := List.GetItem((L + R) shr 1);
+    p := List.GetItem((L+R) shr 1);
     repeat
-      while SCompare(TObject(List.GetItem(I)), p) < 0 do
+      while SCompare(TObject(List.GetItem(I)), p)<0 do
         Inc(I);
-      while SCompare(TObject(List.GetItem(J)), p) > 0 do
+      while SCompare(TObject(List.GetItem(J)), p)>0 do
         Dec(J);
-      if I <= J then
+      if I<=J then
       begin
         TRTTIUtils.MethodCall(List.WrappedObject, 'Exchange', [I, J]);
         Inc(I);
         Dec(J);
       end;
-    until I > J;
-    if L < J then
+    until I>J;
+    if L<J then
       QuickSort(List, L, J, SCompare);
     L := I;
-  until I >= R;
+  until I>=R;
 end;
 
-procedure TDuckTypedList.QuickSort(List: IWrappedList;
-  SCompare:
-  TFunc<TObject, TObject, Integer>);
+procedure TDuckTypedList.QuickSort(List: IWrappedList; SCompare: TFunc<TObject, TObject, Integer>);
 begin
-  QuickSort(List, 0, List.Count - 1, SCompare);
+  QuickSort(List, 0, List.Count-1, SCompare);
 end;
 
 function CompareValue(const Left, Right: TValue): Integer;
@@ -321,13 +291,11 @@ begin
   begin
     Result := System.Math.CompareValue(Left.AsOrdinal, Right.AsOrdinal);
   end
-  else
-    if Left.Kind = tkFloat then
+  else if Left.Kind=tkFloat then
   begin
     Result := System.Math.CompareValue(Left.AsExtended, Right.AsExtended);
   end
-  else
-    if Left.Kind in [tkString, tkUString, tkWString, tkLString] then
+  else if Left.Kind in [tkString, tkUString, tkWString, tkLString] then
   begin
     Result := CompareText(Left.AsString, Right.AsString);
   end
@@ -344,21 +312,17 @@ end;
 
 procedure TDuckTypedList.Sort(const PropertyName: string; Order: TSortingType);
 begin
-  if Order = soAscending then
+  if Order=soAscending then
     QuickSort(self,
       function(Left, Right: TObject): Integer
       begin
-        Result := CompareValue(
-          TRTTIUtils.GetProperty(Left, PropertyName),
-          TRTTIUtils.GetProperty(Right, PropertyName));
+        Result := CompareValue(TRTTIUtils.GetProperty(Left, PropertyName), TRTTIUtils.GetProperty(Right, PropertyName));
       end)
   else
     QuickSort(self,
       function(Left, Right: TObject): Integer
       begin
-        Result := -1 * CompareValue(
-          TRTTIUtils.GetProperty(Left, PropertyName),
-          TRTTIUtils.GetProperty(Right, PropertyName));
+        Result := -1*CompareValue(TRTTIUtils.GetProperty(Left, PropertyName), TRTTIUtils.GetProperty(Right, PropertyName));
       end);
 end;
 

@@ -36,7 +36,7 @@ var
   res: IRESTResponse;
   x: string;
 begin
-  RESTClient.ReadTimeout := -1;
+  RESTClient.ReadTimeout := - 1;
   DoLoginWith('d.teti');
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
   CheckEquals(200, res.ResponseCode, res.ResponseText);
@@ -68,7 +68,7 @@ var
   res: IRESTResponse;
   x: string;
 begin
-  RESTClient.ReadTimeout := -1;
+  RESTClient.ReadTimeout := - 1;
   DoLoginWith('d.teti');
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
   res := RESTClient.doGET('/messages/subscribe', ['test010']);
@@ -81,18 +81,14 @@ begin
   // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
-  CheckEquals
-    ('/topic/test01;/topic/test010;/topic/test0101;/topic/test01010;/topic/test010101;/topic/test0101010',
-    x);
+  CheckEquals('/topic/test01;/topic/test010;/topic/test0101;/topic/test01010;/topic/test010101;/topic/test0101010', x);
 
   res := RESTClient.doGET('/messages/unsubscribe', ['test010']);
   CheckEquals(200, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
-  CheckEquals
-    ('/topic/test01;/topic/test0101;/topic/test01010;/topic/test010101;/topic/test0101010',
-    x);
+  CheckEquals('/topic/test01;/topic/test0101;/topic/test01010;/topic/test010101;/topic/test0101010', x);
   DoLogout;
 end;
 
@@ -123,10 +119,9 @@ begin
   DoLoginWith('d.teti');
   RESTClient.doGET('/messages/subscribe/test01', []);
   RESTClient.doGET('/messages/subscribe/test02', []);
-  RESTClient.ReadTimeout := -1;
+  RESTClient.ReadTimeout := - 1;
 
-  RESTClient.doPOST('/messages/enqueue/test02', [],
-    TJSONObject.Create(TJSONPair.Create('hello', 'world')));
+  RESTClient.doPOST('/messages/enqueue/test02', [], TJSONObject.Create(TJSONPair.Create('hello', 'world')));
 
   sid := RESTClient.SessionID;
   TThread.CreateAnonymousThread(
@@ -142,9 +137,7 @@ begin
         RESTC.doGET('/login', ['j.doe']);
         for I := 1 to MSG_COUNT do
         begin
-          RESTC.doPOST('/messages/enqueue/test02', [],
-            TJSONObject.Create(TJSONPair.Create('hello',
-            TJSONNumber.Create(I))));
+          RESTC.doPOST('/messages/enqueue/test02', [], TJSONObject.Create(TJSONPair.Create('hello', TJSONNumber.Create(I))));
         end;
       finally
         RESTC.Free;
@@ -157,11 +150,9 @@ begin
     res := RESTClient.doGET('/messages/receive', []);
     if res.ResponseCode = 200 then
     begin
-      CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'),
-        '_timestamp is not set');
+      CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
       CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
-      CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray,
-        'Messages is not a TJSONArray');
+      CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray, 'Messages is not a TJSONArray');
       messages := res.BodyAsJsonObject.Get('messages').JsonValue as TJSONArray;
       if messages.Size > 0 then
         for I := 0 to messages.Size - 1 do

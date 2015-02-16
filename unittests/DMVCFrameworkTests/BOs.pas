@@ -40,8 +40,7 @@ type
   public
     function Equals(Obj: TMyObject): boolean; reintroduce;
     property PropString: string read FPropString write SetPropString;
-    property PropAnsiString: AnsiString read FPropAnsiString
-      write SetPropAnsiString;
+    property PropAnsiString: AnsiString read FPropAnsiString write SetPropAnsiString;
     property PropInteger: Integer read FPropInteger write SetPropInteger;
     property PropUInt32: cardinal read FPropUInt32 write SetPropUInt32;
     property PropInt64: Int64 read FPropInt64 write SetPropInt64;
@@ -52,8 +51,7 @@ type
     property PropDate: TDate read FPropDate write SetPropDate;
     property PropTime: TTime read FPropTime write SetPropTime;
     property PropDateTime: TDateTime read FPropDateTime write SetPropDateTime;
-    property PropTimeStamp: TTimeStamp read FPropTimeStamp
-      write SetPropTimeStamp;
+    property PropTimeStamp: TTimeStamp read FPropTimeStamp write SetPropTimeStamp;
     property PropCurrency: Currency read FPropCurrency write SetPropCurrency;
   end;
 
@@ -62,8 +60,7 @@ type
     FMyChildProperty1: string;
     procedure SetMyChildProperty1(const Value: string);
   public
-    property MyChildProperty1: string read FMyChildProperty1
-      write SetMyChildProperty1;
+    property MyChildProperty1: string read FMyChildProperty1 write SetMyChildProperty1;
   end;
 
   [MapperListOf(TMyChildObject)]
@@ -85,8 +82,7 @@ type
 
     property Prop1: string read FProp1 write SetProp1;
     property ChildObject: TMyChildObject read FChildObject write SetChildObject;
-    property ChildObjectList: TMyChildObjectList read FChildObjectList
-      write SetChildObjectList;
+    property ChildObjectList: TMyChildObjectList read FChildObjectList write SetChildObjectList;
   end;
 
   TMyStreamObject = class(TObject)
@@ -103,6 +99,26 @@ type
     [MapperSerializeAsString]
     // utf-8 is default
     property Prop8Stream: TStream read FProp8Stream write SetProp8Stream;
+  end;
+
+  TMyObjectWithLogic = class
+  private
+    FLastName: string;
+    FFirstName: string;
+    FAge: Integer;
+    function GetFullName: string;
+    procedure SetFirstName(const Value: string);
+    procedure SetLastName(const Value: string);
+    function GetIsAdult: boolean;
+    procedure SetAge(const Value: Integer);
+  public
+    constructor Create(aFirstName, aLastName: string; aAge: Integer);
+    function Equals(Obj: TObject): boolean; override;
+    property FirstName: string read FFirstName write SetFirstName;
+    property LastName: string read FLastName write SetLastName;
+    property Age: Integer read FAge write SetAge;
+    property IsAdult: boolean read GetIsAdult;
+    property FullName: string read GetFullName;
   end;
 
 function GetMyObject: TMyObject;
@@ -139,12 +155,12 @@ begin
   Result := TMyObject.Create;
   Result.PropString := 'Some text אטילעש';
   Result.PropAnsiString := 'This is an ANSI text';
-  Result.PropInteger := -1234;
+  Result.PropInteger := - 1234;
   Result.PropUInt32 := 1234;
-  Result.PropInt64 := -1234567890;
+  Result.PropInt64 := - 1234567890;
   Result.PropUInt64 := 1234567890;
   Result.PropUInt16 := 12345;
-  Result.PropInt16 := -12345;
+  Result.PropInt16 := - 12345;
   Result.PropCurrency := 1234.5678;
   Result.PropBoolean := true;
   Result.PropDate := EncodeDate(2010, 10, 20);
@@ -168,10 +184,8 @@ begin
   Result := Result and (Self.PropDate = Obj.PropDate);
   Result := Result and (Self.PropCurrency = Obj.PropCurrency);
   Result := Result and (SecondsBetween(Self.PropTime, Obj.PropTime) = 0);
-  Result := Result and (SecondsBetween(Self.PropDateTime,
-    Obj.PropDateTime) = 0);
-  Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and
-    (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
+  Result := Result and (SecondsBetween(Self.PropDateTime, Obj.PropDateTime) = 0);
+  Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
 end;
 
 procedure TMyObject.SetPropAnsiString(const Value: AnsiString);
@@ -267,21 +281,12 @@ begin
   co := Obj as TMyComplexObject;
 
   Result := co.Prop1 = Self.Prop1;
-  Result := Result and
-    (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1);
+  Result := Result and (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1);
   Result := Result and (co.ChildObjectList.Count = Self.ChildObjectList.Count);
-  Result := Result and
-    (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0]
-    .MyChildProperty1);
-  Result := Result and
-    (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1]
-    .MyChildProperty1);
-  Result := Result and
-    (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2]
-    .MyChildProperty1);
-  Result := Result and
-    (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3]
-    .MyChildProperty1);
+  Result := Result and (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3].MyChildProperty1);
 end;
 
 procedure TMyComplexObject.SetChildObject(const Value: TMyChildObject);
@@ -339,5 +344,54 @@ begin
 end;
 
 { TCliente }
+
+{ TMyObjectWithLogic }
+
+constructor TMyObjectWithLogic.Create(aFirstName, aLastName: string; aAge: Integer);
+begin
+  inherited Create;
+  FFirstName := aFirstName;
+  FLastName := aLastName;
+  FAge := aAge;
+end;
+
+function TMyObjectWithLogic.Equals(Obj: TObject): boolean;
+var
+  lOther: TMyObjectWithLogic;
+begin
+  Result := (Obj is TMyObjectWithLogic);
+  if Result then
+  begin
+    lOther := TMyObjectWithLogic(Obj);
+    Result := Result and (Self.FirstName = lOther.FirstName);
+    Result := Result and (Self.LastName = lOther.LastName);
+    Result := Result and (Self.Age = lOther.Age);
+  end;
+end;
+
+function TMyObjectWithLogic.GetFullName: string;
+begin
+  Result := FirstName + ' ' + LastName; // logic
+end;
+
+function TMyObjectWithLogic.GetIsAdult: boolean;
+begin
+  Result := Age >= 18; // logic
+end;
+
+procedure TMyObjectWithLogic.SetAge(const Value: Integer);
+begin
+  FAge := Value;
+end;
+
+procedure TMyObjectWithLogic.SetFirstName(const Value: string);
+begin
+  FFirstName := Value;
+end;
+
+procedure TMyObjectWithLogic.SetLastName(const Value: string);
+begin
+  FLastName := Value;
+end;
 
 end.
