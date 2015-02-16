@@ -20,20 +20,20 @@ type
   ITESTService = interface(IInvokable)
     ['{58B9FA23-92F4-4B8E-814B-05232F32A41F}']
 
-    [RESTResource(HttpGet, '/persons')]
+    [RESTResource(HttpGet, '/people')]
     [MapperListOf(TPerson)]
     function GetListPerson: TObjectList<TPerson>;
 
-    [RESTResource(HttpGet, '/persons/1')]
+    [RESTResource(HttpGet, '/people/1')]
     function GetTonyStark: TPerson;
 
-    [RESTResource(HttpGet, '/persons/{personid}')]
+    [RESTResource(HttpGet, '/people/{personid}')]
     function GetPersonByID([Param('personid')] APersonID: integer): TPerson;
 
-    [RESTResource(httpPOST, '/persons')]
+    [RESTResource(httpPOST, '/people')]
     function SendPerson([Body] ABody: TPerson): TPerson;
 
-    [RESTResource(HttpGet, '/persons')]
+    [RESTResource(HttpGet, '/people')]
     function GetPersonInJSONArray: TJSONArray;
 
     [Headers('Accept', 'application/json')]

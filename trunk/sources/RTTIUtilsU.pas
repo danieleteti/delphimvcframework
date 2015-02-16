@@ -1,7 +1,7 @@
 unit RTTIUtilsU;
 
 { *******************************************************************************
-  Copyright 2010-2013 Daniele Teti
+  Copyright 2010-2015 Daniele Teti
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -31,28 +31,21 @@ type
     class var TValueToStringFormatSettings: TFormatSettings;
 
   public
-    class function MethodCall(AObject: TObject; AMethodName: string;
-      AParameters: array of TValue; RaiseExceptionIfNotFound: boolean = true): TValue;
+    class function MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
+      RaiseExceptionIfNotFound: boolean = true): TValue;
     class function GetMethod(AObject: TObject; AMethodName: string): TRttiMethod;
-    class procedure SetProperty(Obj: TObject; const PropertyName: string;
-      const Value: TValue); overload; static;
+    class procedure SetProperty(Obj: TObject; const PropertyName: string; const Value: TValue); overload; static;
     class function GetFieldType(AProp: TRttiProperty): string;
     class function GetPropertyType(AObject: TObject; APropertyName: string): string;
-    class procedure ObjectToDataSet(Obj: TObject; Field: TField;
-      var Value: Variant);
-    class function ExistsProperty(AObject: TObject; const APropertyName: string;
-      out AProperty: TRttiProperty): boolean;
+    class procedure ObjectToDataSet(Obj: TObject; Field: TField; var Value: Variant);
+    class function ExistsProperty(AObject: TObject; const APropertyName: string; out AProperty: TRttiProperty): boolean;
     class procedure DatasetToObject(Dataset: TDataset; Obj: TObject);
-    class function GetProperty(Obj: TObject;
-      const PropertyName: string): TValue;
-    class function GetPropertyAsString(Obj: TObject;
-      const PropertyName: string): string; overload;
+    class function GetProperty(Obj: TObject; const PropertyName: string): TValue;
+    class function GetPropertyAsString(Obj: TObject; const PropertyName: string): string; overload;
 
     class function GetPropertyAsString(Obj: TObject; AProperty: TRttiProperty): string; overload;
-    class function GetField(Obj: TObject; const PropertyName: string)
-      : TValue; overload;
-    class procedure SetField(Obj: TObject; const PropertyName: string;
-      const Value: TValue); overload;
+    class function GetField(Obj: TObject; const PropertyName: string): TValue; overload;
+    class procedure SetField(Obj: TObject; const PropertyName: string; const Value: TValue); overload;
     class function Clone(Obj: TObject): TObject; static;
     class procedure CopyObject(SourceObj, TargetObj: TObject); static;
 {$IF CompilerVersion >= 24.0} // not supported in xe3
@@ -60,30 +53,20 @@ type
 {$IFEND}
     class function CreateObject(ARttiType: TRttiType): TObject; overload; static;
     class function CreateObject(AQualifiedClassName: string): TObject; overload; static;
-    class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiObject)
-      : T; overload;
-    class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiType)
-      : T; overload;
+    class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiObject): T; overload;
+    class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiType): T; overload;
 
-    class function HasAttribute<T: TCustomAttribute>
-      (const Obj: TRttiObject): boolean; overload;
-    class function HasAttribute<T: TCustomAttribute>
-      (const Obj: TRttiObject; out AAttribute: T): boolean; overload;
-    class function HasAttribute<T: class>(aObj: TObject; out AAttribute: T)
-      : boolean; overload;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiMember; out AAttribute: T)
-      : boolean; overload;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiType; out AAttribute: T)
-      : boolean; overload;
+    class function HasAttribute<T: TCustomAttribute>(const Obj: TRttiObject): boolean; overload;
+    class function HasAttribute<T: TCustomAttribute>(const Obj: TRttiObject; out AAttribute: T): boolean; overload;
+    class function HasAttribute<T: class>(aObj: TObject; out AAttribute: T): boolean; overload;
+    class function HasAttribute<T: class>(ARTTIMember: TRttiMember; out AAttribute: T): boolean; overload;
+    class function HasAttribute<T: class>(ARTTIMember: TRttiType; out AAttribute: T): boolean; overload;
 
-    class function TValueAsString(const Value: TValue;
-      const PropertyType, CustomFormat: string): string;
+    class function TValueAsString(const Value: TValue; const PropertyType, CustomFormat: string): string;
     class function EqualValues(source, destination: TValue): boolean;
-    class function FindByProperty<T: class>(List: TObjectList<T>; PropertyName: string;
-      PropertyValue: TValue): T;
+    class function FindByProperty<T: class>(List: TObjectList<T>; PropertyName: string; PropertyValue: TValue): T;
     class procedure ForEachProperty(Clazz: TClass; Proc: TProc<TRttiProperty>);
-    class function HasStringValueAttribute<T: class>(ARTTIMember: TRttiMember; out Value: string)
-      : boolean;
+    class function HasStringValueAttribute<T: class>(ARTTIMember: TRttiMember; out Value: string): boolean;
     class function BuildClass(AQualifiedName: string; Params: array of TValue): TObject;
     class function FindType(QualifiedName: string): TRttiType;
     class function GetGUID<T>: TGUID;
@@ -100,8 +83,8 @@ uses
   ObjectsMappers,
   DuckListU;
 
-class function TRTTIUtils.MethodCall(AObject: TObject; AMethodName: string;
-  AParameters: array of TValue; RaiseExceptionIfNotFound: boolean): TValue;
+class function TRTTIUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
+  RaiseExceptionIfNotFound: boolean): TValue;
 var
   m: TRttiMethod;
   T: TRttiType;
@@ -125,10 +108,8 @@ begin
 
   if Found then
     Result := m.Invoke(AObject, AParameters)
-  else
-    if RaiseExceptionIfNotFound then
-    raise Exception.CreateFmt('Cannot find compatible method "%s" in the object',
-      [AMethodName]);
+  else if RaiseExceptionIfNotFound then
+    raise Exception.CreateFmt('Cannot find compatible method "%s" in the object', [AMethodName]);
 end;
 
 function FieldFor(const PropertyName: string): string; inline;
@@ -160,8 +141,7 @@ begin
   end;
 end;
 
-class function TRTTIUtils.GetField(Obj: TObject;
-  const PropertyName: string): TValue;
+class function TRTTIUtils.GetField(Obj: TObject; const PropertyName: string): TValue;
 var
   Field: TRttiField;
   Prop: TRttiProperty;
@@ -169,8 +149,7 @@ var
 begin
   ARttiType := ctx.GetType(Obj.ClassType);
   if not Assigned(ARttiType) then
-    raise Exception.CreateFmt('Cannot get RTTI for type [%s]',
-      [ARttiType.ToString]);
+    raise Exception.CreateFmt('Cannot get RTTI for type [%s]', [ARttiType.ToString]);
   Field := ARttiType.GetField(FieldFor(PropertyName));
   if Assigned(Field) then
     Result := Field.GetValue(Obj)
@@ -178,35 +157,29 @@ begin
   begin
     Prop := ARttiType.GetProperty(PropertyName);
     if not Assigned(Prop) then
-      raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]',
-        [ARttiType.ToString, PropertyName]);
+      raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]', [ARttiType.ToString, PropertyName]);
     Result := Prop.GetValue(Obj);
   end;
 end;
 
-class function TRTTIUtils.GetProperty(Obj: TObject;
-  const PropertyName: string): TValue;
+class function TRTTIUtils.GetProperty(Obj: TObject; const PropertyName: string): TValue;
 var
   Prop: TRttiProperty;
   ARttiType: TRttiType;
 begin
   ARttiType := ctx.GetType(Obj.ClassType);
   if not Assigned(ARttiType) then
-    raise Exception.CreateFmt('Cannot get RTTI for type [%s]',
-      [ARttiType.ToString]);
+    raise Exception.CreateFmt('Cannot get RTTI for type [%s]', [ARttiType.ToString]);
   Prop := ARttiType.GetProperty(PropertyName);
   if not Assigned(Prop) then
-    raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]',
-      [ARttiType.ToString, PropertyName]);
+    raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]', [ARttiType.ToString, PropertyName]);
   if Prop.IsReadable then
     Result := Prop.GetValue(Obj)
   else
-    raise Exception.CreateFmt('Property is not readable [%s.%s]',
-      [ARttiType.ToString, PropertyName]);
+    raise Exception.CreateFmt('Property is not readable [%s.%s]', [ARttiType.ToString, PropertyName]);
 end;
 
-class function TRTTIUtils.GetPropertyAsString(Obj: TObject;
-  AProperty: TRttiProperty): string;
+class function TRTTIUtils.GetPropertyAsString(Obj: TObject; AProperty: TRttiProperty): string;
 var
   P: TValue;
   FT: string;
@@ -223,8 +196,7 @@ begin
     Result := '';
 end;
 
-class function TRTTIUtils.GetPropertyAsString(Obj: TObject;
-  const PropertyName: string): string;
+class function TRTTIUtils.GetPropertyAsString(Obj: TObject; const PropertyName: string): string;
 var
   Prop: TRttiProperty;
 begin
@@ -235,24 +207,17 @@ begin
     Result := '';
 end;
 
-class function TRTTIUtils.GetPropertyType(AObject: TObject;
-  APropertyName: string): string;
+class function TRTTIUtils.GetPropertyType(AObject: TObject; APropertyName: string): string;
 begin
   Result := GetFieldType(ctx.GetType(AObject.ClassInfo).GetProperty(APropertyName));
 end;
 
-class
-  function TRTTIUtils.HasAttribute<T>(
-  const
-  Obj:
-  TRttiObject): boolean;
+class function TRTTIUtils.HasAttribute<T>(const Obj: TRttiObject): boolean;
 begin
   Result := Assigned(GetAttribute<T>(Obj));
 end;
 
-class
-  function TRTTIUtils.HasAttribute<T>(ARTTIMember: TRttiMember;
-  out AAttribute: T): boolean;
+class function TRTTIUtils.HasAttribute<T>(ARTTIMember: TRttiMember; out AAttribute: T): boolean;
 var
   attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -268,8 +233,7 @@ begin
     end;
 end;
 
-class function TRTTIUtils.HasAttribute<T>(ARTTIMember: TRttiType;
-  out AAttribute: T): boolean;
+class function TRTTIUtils.HasAttribute<T>(ARTTIMember: TRttiType; out AAttribute: T): boolean;
 var
   attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -286,16 +250,13 @@ begin
 
 end;
 
-class function TRTTIUtils.HasAttribute<T>(const Obj: TRttiObject;
-  out AAttribute: T): boolean;
+class function TRTTIUtils.HasAttribute<T>(const Obj: TRttiObject; out AAttribute: T): boolean;
 begin
   AAttribute := GetAttribute<T>(Obj);
   Result := Assigned(AAttribute);
 end;
 
-class
-  function TRTTIUtils.HasStringValueAttribute<T>(ARTTIMember: TRttiMember;
-  out Value: string): boolean;
+class function TRTTIUtils.HasStringValueAttribute<T>(ARTTIMember: TRttiMember; out Value: string): boolean;
 var
   Attr: T; // StringValueAttribute;
 begin
@@ -306,14 +267,7 @@ begin
     Value := '';
 end;
 
-class
-  procedure TRTTIUtils.SetField(Obj: TObject;
-  const
-  PropertyName:
-  string;
-  const
-  Value:
-  TValue);
+class procedure TRTTIUtils.SetField(Obj: TObject; const PropertyName: string; const Value: TValue);
 var
   Field: TRttiField;
   Prop: TRttiProperty;
@@ -321,8 +275,7 @@ var
 begin
   ARttiType := ctx.GetType(Obj.ClassType);
   if not Assigned(ARttiType) then
-    raise Exception.CreateFmt('Cannot get RTTI for type [%s]',
-      [ARttiType.ToString]);
+    raise Exception.CreateFmt('Cannot get RTTI for type [%s]', [ARttiType.ToString]);
   Field := ARttiType.GetField(FieldFor(PropertyName));
   if Assigned(Field) then
     Field.SetValue(Obj, Value)
@@ -335,41 +288,28 @@ begin
         Prop.SetValue(Obj, Value)
     end
     else
-      raise Exception.CreateFmt('Cannot get RTTI for field or property [%s.%s]',
-        [ARttiType.ToString, PropertyName]);
+      raise Exception.CreateFmt('Cannot get RTTI for field or property [%s.%s]', [ARttiType.ToString, PropertyName]);
   end;
 end;
 
-class
-  procedure TRTTIUtils.SetProperty(Obj: TObject;
-  const
-  PropertyName:
-  string;
-  const
-  Value:
-  TValue);
+class procedure TRTTIUtils.SetProperty(Obj: TObject; const PropertyName: string; const Value: TValue);
 var
   Prop: TRttiProperty;
   ARttiType: TRttiType;
 begin
   ARttiType := ctx.GetType(Obj.ClassType);
   if not Assigned(ARttiType) then
-    raise Exception.CreateFmt('Cannot get RTTI for type [%s]',
-      [ARttiType.ToString]);
+    raise Exception.CreateFmt('Cannot get RTTI for type [%s]', [ARttiType.ToString]);
   Prop := ARttiType.GetProperty(PropertyName);
   if not Assigned(Prop) then
-    raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]',
-      [ARttiType.ToString, PropertyName]);
+    raise Exception.CreateFmt('Cannot get RTTI for property [%s.%s]', [ARttiType.ToString, PropertyName]);
   if Prop.IsWritable then
     Prop.SetValue(Obj, Value)
   else
-    raise Exception.CreateFmt('Property is not writeable [%s.%s]',
-      [ARttiType.ToString, PropertyName]);
+    raise Exception.CreateFmt('Property is not writeable [%s.%s]', [ARttiType.ToString, PropertyName]);
 end;
 
-class
-  function TRTTIUtils.TValueAsString(
-  const Value: TValue; const PropertyType, CustomFormat: string): string;
+class function TRTTIUtils.TValueAsString(const Value: TValue; const PropertyType, CustomFormat: string): string;
 begin
   case Value.Kind of
     tkUnknown:
@@ -432,8 +372,7 @@ begin
       Result := string(Value.AsVariant);
 
     tkArray:
-      Result := '(array)'
-        ;
+      Result := '(array)';
     tkRecord:
       Result := '(record)';
     tkInterface:
@@ -458,14 +397,12 @@ begin
   end;
 end;
 
-class
-  function TRTTIUtils.GetFieldType(AProp: TRttiProperty): string;
+class function TRTTIUtils.GetFieldType(AProp: TRttiProperty): string;
 var
   _PropInfo: PTypeInfo;
 begin
   _PropInfo := AProp.PropertyType.Handle;
-  if _PropInfo.Kind in [tkString, tkWString, tkChar, tkWChar, tkLString,
-    tkUString] then
+  if _PropInfo.Kind in [tkString, tkWString, tkChar, tkWChar, tkLString, tkUString] then
     Result := 'string'
   else if _PropInfo.Kind in [tkInteger, tkInt64] then
     Result := 'integer'
@@ -485,8 +422,7 @@ begin
   end
   else if (_PropInfo.Kind = tkEnumeration) { and (_PropInfo.Name = 'Boolean') } then
     Result := 'boolean'
-  else if AProp.PropertyType.IsInstance and
-    AProp.PropertyType.AsInstance.MetaclassType.InheritsFrom(TStream) then
+  else if AProp.PropertyType.IsInstance and AProp.PropertyType.AsInstance.MetaclassType.InheritsFrom(TStream) then
     Result := 'blob'
   else
     Result := EmptyStr;
@@ -497,13 +433,12 @@ var
   Tp: TRttiType;
 begin
   Tp := ctx.GetType(TypeInfo(T));
-  if not(Tp.TypeKind = tkInterface) then
+  if not (Tp.TypeKind = tkInterface) then
     raise Exception.Create('Type is no interface');
   Result := TRttiInterfaceType(Tp).GUID;
 end;
 
-class function TRTTIUtils.GetMethod(AObject: TObject;
-  AMethodName: string): TRttiMethod;
+class function TRTTIUtils.GetMethod(AObject: TObject; AMethodName: string): TRttiMethod;
 var
   T: TRttiType;
 begin
@@ -511,19 +446,12 @@ begin
   Result := T.GetMethod(AMethodName);
 end;
 
-class
-  procedure TRTTIUtils.ObjectToDataSet(Obj: TObject;
-  Field:
-  TField;
-  var
-  Value: Variant);
+class procedure TRTTIUtils.ObjectToDataSet(Obj: TObject; Field: TField; var Value: Variant);
 begin
   Value := GetProperty(Obj, Field.FieldName).AsVariant;
 end;
 
-class
-  procedure TRTTIUtils.DatasetToObject(Dataset: TDataset;
-  Obj: TObject);
+class procedure TRTTIUtils.DatasetToObject(Dataset: TDataset; Obj: TObject);
 var
   ARttiType: TRttiType;
   props: TArray<TRttiProperty>;
@@ -546,24 +474,19 @@ begin
     end;
 end;
 
-class
-  function TRTTIUtils.EqualValues(source, destination: TValue): boolean;
+class function TRTTIUtils.EqualValues(source, destination: TValue): boolean;
 begin
   // Really UniCodeCompareStr (Annoying VCL Name for backwards compatablity)
   Result := AnsiCompareStr(source.ToString, destination.ToString) = 0;
 end;
 
-class function TRTTIUtils.ExistsProperty(AObject: TObject;
-  const APropertyName: string; out AProperty: TRttiProperty): boolean;
+class function TRTTIUtils.ExistsProperty(AObject: TObject; const APropertyName: string; out AProperty: TRttiProperty): boolean;
 begin
   AProperty := ctx.GetType(AObject.ClassInfo).GetProperty(APropertyName);
   Result := Assigned(AProperty);
 end;
 
-class
-  function TRTTIUtils.FindByProperty<T>(List: TObjectList<T>;
-  PropertyName: string;
-  PropertyValue: TValue): T;
+class function TRTTIUtils.FindByProperty<T>(List: TObjectList<T>; PropertyName: string; PropertyValue: TValue): T;
 var
   elem: T;
   V: TValue;
@@ -596,10 +519,7 @@ begin
   Result := ctx.FindType(QualifiedName);
 end;
 
-class
-  procedure TRTTIUtils.ForEachProperty(Clazz: TClass;
-  Proc:
-  TProc<TRttiProperty>);
+class procedure TRTTIUtils.ForEachProperty(Clazz: TClass; Proc: TProc<TRttiProperty>);
 var
   _rtti: TRttiType;
   P: TRttiProperty;
@@ -612,8 +532,7 @@ begin
   end;
 end;
 
-class
-  procedure TRTTIUtils.CopyObject(SourceObj, TargetObj: TObject);
+class procedure TRTTIUtils.CopyObject(SourceObj, TargetObj: TObject);
 var
   _ARttiType: TRttiType;
   Field: TRttiField;
@@ -692,7 +611,6 @@ end;
 
 {$IF CompilerVersion >= 24.0}
 
-
 class procedure TRTTIUtils.CopyObjectAS<T>(SourceObj, TargetObj: TObject);
 var
   _ARttiType: TRttiType;
@@ -735,8 +653,7 @@ begin
         FieldDest.SetValue(cloned, Src);
 
       end
-      else
-        if Src is TStream then
+      else if Src is TStream then
       begin
         sourceStream := TStream(Src);
         SavedPosition := sourceStream.Position;
@@ -785,9 +702,7 @@ begin
 end;
 {$IFEND}
 
-
-class
-  function TRTTIUtils.CreateObject(AQualifiedClassName: string): TObject;
+class function TRTTIUtils.CreateObject(AQualifiedClassName: string): TObject;
 var
   rttitype: TRttiType;
 begin
@@ -795,11 +710,10 @@ begin
   if Assigned(rttitype) then
     Result := CreateObject(rttitype)
   else
-    raise Exception.Create('Cannot find RTTI for ' + AQualifiedClassName);
+    raise Exception.Create('Cannot find RTTI for ' + AQualifiedClassName + '. Hint: Is the specified classtype linked in the module?');
 end;
 
-class
-  function TRTTIUtils.CreateObject(ARttiType: TRttiType): TObject;
+class function TRTTIUtils.CreateObject(ARttiType: TRttiType): TObject;
 var
   Method: TRttiMethod;
   metaClass: TClass;
@@ -817,16 +731,14 @@ begin
   if Assigned(metaClass) then
     Result := Method.Invoke(metaClass, []).AsObject
   else
-    raise Exception.Create('Cannot find a propert constructor for ' +
-      ARttiType.ToString);
+    raise Exception.Create('Cannot find a propert constructor for ' + ARttiType.ToString);
 
   { Second solution, dirty and fast }
   // Result := TObject(ARttiType.GetMethod('Create')
   // .Invoke(ARttiType.AsInstance.MetaclassType, []).AsObject);
 end;
 
-class function TRTTIUtils.BuildClass(AQualifiedName: string;
-  Params: array of TValue): TObject;
+class function TRTTIUtils.BuildClass(AQualifiedName: string; Params: array of TValue): TObject;
 var
   T: TRttiType;
   V: TValue;
@@ -837,8 +749,7 @@ begin
   Result := V.AsObject;
 end;
 
-class
-  function TRTTIUtils.Clone(Obj: TObject): TObject;
+class function TRTTIUtils.Clone(Obj: TObject): TObject;
 var
   _ARttiType: TRttiType;
   Field: TRttiField;
@@ -893,8 +804,7 @@ begin
           Field.SetValue(cloned, targetCollection);
         end
         else
-          targetCollection := Field.GetValue(cloned)
-            .AsObject as TObjectList<TObject>;
+          targetCollection := Field.GetValue(cloned).AsObject as TObjectList<TObject>;
         for I := 0 to sourceCollection.Count - 1 do
         begin
           targetCollection.Add(TRTTIUtils.Clone(sourceCollection[I]));
@@ -924,8 +834,7 @@ end;
 
 { TListDuckTyping }
 
-class function TRTTIUtils.HasAttribute<T>(aObj: TObject;
-  out AAttribute: T): boolean;
+class function TRTTIUtils.HasAttribute<T>(aObj: TObject; out AAttribute: T): boolean;
 begin
   Result := HasAttribute<T>(ctx.GetType(aObj.ClassType), AAttribute)
 end;

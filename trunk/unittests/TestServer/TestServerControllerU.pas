@@ -65,11 +65,15 @@ type
     [MVCProduces('application/json', 'utf-8')]
     procedure TestConsumeJSON(ctx: TWebContext);
 
-    [MVCPath('/persons/($id)')]
+    [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
     procedure TestGetPersonByID(ctx: TWebContext);
 
-    [MVCPath('/persons')]
+    [MVCPath('/people/($id)/asfields')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetPersonByIDAsFields(ctx: TWebContext);
+
+    [MVCPath('/people')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     procedure TestGetPersons(ctx: TWebContext);
 
@@ -185,10 +189,8 @@ end;
 
 procedure TTestServerController.ReqWithParams(ctx: TWebContext);
 begin
-  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1'])
-    .AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
-    ctx.Request.Params['par3']).AddPair('method',
-    ctx.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
+    ctx.Request.Params['par3']).AddPair('method', ctx.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet(ctx: TWebContext);
@@ -234,7 +236,6 @@ end;
 
 procedure TTestServerController.TestGetPersonByID(ctx: TWebContext);
 var
-  Person: TPerson;
   PersonList: TObjectList<TPerson>;
   ID: integer;
 begin
@@ -242,6 +243,20 @@ begin
   PersonList := TPerson.GetList;
   try
     Render(PersonList[ID - 1], false);
+  finally
+    PersonList.Free;
+  end;
+end;
+
+procedure TTestServerController.TestGetPersonByIDAsFields(ctx: TWebContext);
+var
+  PersonList: TObjectList<TPerson>;
+  ID: integer;
+begin
+  ID := ctx.Request.Params['id'].ToInteger;
+  PersonList := TPerson.GetList;
+  try
+    Render(PersonList[ID - 1], false, TDMVCSerializationType.Fields);
   finally
     PersonList.Free;
   end;
