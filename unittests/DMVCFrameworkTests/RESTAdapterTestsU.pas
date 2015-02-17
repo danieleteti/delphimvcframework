@@ -22,10 +22,19 @@ type
 
     [RESTResource(HttpGet, '/people')]
     [MapperListOf(TPerson)]
-    function GetListPerson: TObjectList<TPerson>;
+    function GetPeople: TObjectList<TPerson>;
+
+    [RESTResource(HttpGet, '/people')]
+    [MapperListOf(TPerson)]
+    [Mapping(TPeople)]
+    procedure GetPeopleAsynch(AAsynchRequest: IAsynchRequest);
 
     [RESTResource(HttpGet, '/people/1')]
     function GetTonyStark: TPerson;
+
+    [RESTResource(HttpGet, '/people/1')]
+    [Mapping(TPerson)]
+    procedure GetTonyStarkAsynch(AAsynchRequest: IAsynchRequest);
 
     [RESTResource(HttpGet, '/people/{personid}')]
     function GetPersonByID([Param('personid')] APersonID: integer): TPerson;
@@ -60,8 +69,10 @@ type
   protected
     procedure SetUp; override;
   published
-    procedure TestGetListPerson;
+    procedure TestGetPeople;
+    procedure TestGetPeopleAsynch;
     procedure TestGetTonyStark;
+    procedure TestGetTonyStarkAsynch;
     procedure TestPostPerson;
     procedure TestGetPersonByID;
     procedure TestHeadersApplicationJSON;
@@ -72,7 +83,7 @@ type
 
 implementation
 
-uses System.SysUtils;
+uses System.SysUtils, System.Rtti;
 
 { TTestRESTAdapter }
 
@@ -126,6 +137,31 @@ begin;
   end;
 end;
 
+procedure TTestRESTAdapter.TestGetTonyStarkAsynch;
+var
+  AsynchRequest: IAsynchRequest;
+begin
+  AsynchRequest := TAsynchRequest.Create(
+    procedure(AValue: TValue)
+    var
+      Person: TPerson;
+    begin
+      Person := AValue.AsType<TPerson>;
+      try
+        CheckEquals('Tony', Person.FirstName);
+        CheckEquals('Stark', Person.LastName);
+        CheckTrue(Person.Married);
+      finally
+        Person.Free;
+      end;
+    end,
+    procedure(AException: Exception)
+    begin
+      CheckTrue(false, 'Procedure OnException called')
+    end);
+  TESTService.GetTonyStarkAsynch(AsynchRequest);
+end;
+
 procedure TTestRESTAdapter.TestHeadersApplicationJSON;
 var
   Res: TJSONObject;
@@ -171,11 +207,11 @@ begin
   CheckEquals(404, Resp.ResponseCode);
 end;
 
-procedure TTestRESTAdapter.TestGetListPerson;
+procedure TTestRESTAdapter.TestGetPeople;
 var
   ListPerson: TObjectList<TPerson>;
 begin
-  ListPerson := TESTService.GetListPerson;
+  ListPerson := TESTService.GetPeople;
   try
     CheckTrue(ListPerson.Count > 0);
     CheckEquals('Tony', ListPerson[0].FirstName);
@@ -183,6 +219,31 @@ begin
   finally
     ListPerson.Free;
   end;
+end;
+
+procedure TTestRESTAdapter.TestGetPeopleAsynch;
+var
+  AsynchRequest: IAsynchRequest;
+begin
+  AsynchRequest := TAsynchRequest.Create(
+    procedure(AValue: TValue)
+    var
+      People: TPeople;
+    begin
+      People := AValue.AsType<TPeople>;
+      try
+        CheckTrue(People.Count > 0);
+        CheckEquals('Tony', People[0].FirstName);
+        CheckEquals('Stark', People[0].LastName);
+      finally
+        People.Free;
+      end;
+    end,
+    procedure(AException: Exception)
+    begin
+      CheckTrue(false, 'Procedure OnException called');
+    end, nil, true);
+  TESTService.GetPeopleAsynch(AsynchRequest);
 end;
 
 initialization

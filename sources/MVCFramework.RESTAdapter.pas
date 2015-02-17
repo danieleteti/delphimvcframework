@@ -38,7 +38,8 @@ type
   public
     constructor Create(AMVCHTTPMethod: TMVCHTTPMethodType; AURL: string);
     property URL: string read FURL write SetURL;
-    property HTTPMethodType: TMVCHTTPMethodType read FHTTPMethodType write SetHTTPMethodType;
+    property HTTPMethodType: TMVCHTTPMethodType read FHTTPMethodType
+      write SetHTTPMethodType;
   end;
 
   BodyAttribute = class(TCustomAttribute)
@@ -59,7 +60,8 @@ type
     procedure SetParamType(const Value: string);
     procedure SetParamMatch(const Value: string);
   public
-    constructor Create(AParamMatch: string; AParamType: string = ''; ACustomFormat: string = '');
+    constructor Create(AParamMatch: string; AParamType: string = '';
+      ACustomFormat: string = '');
     property ParamMatch: string read FParamMatch write SetParamMatch;
     property ParamType: string read FParamType write SetParamType;
     property CustomFormat: string read FCustomFormat write SetCustomFormat;
@@ -78,18 +80,29 @@ type
     property Value: string read FValue write SetValue;
   end;
 
+  MappingAttribute = class(TCustomAttribute)
+  private
+    FClass: TClass;
+  public
+    constructor Create(AClass: TClass);
+    function GetType: TRttiType;
+  end;
+
   IRESTAdapter<T> = interface
     ['{AAA41F40-69DB-419B-9922-F59F990CBDB5}']
     function ResourcesService: T;
     procedure AddRequestHeaders(AObj: TRttiObject);
     procedure AddRequestHeader(AKey: string; AValue: string);
-    procedure MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; out AResult: TValue);
+    procedure MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
+      ARTTIType: TRttiType; out AResult: TValue);
   end;
 
   TVIAdapter<T: IInvokable> = class(TVirtualInterface)
   protected
-    procedure DoInvoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
-    procedure DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue); virtual; abstract;
+    procedure DoInvoke(Method: TRttiMethod; const Args: TArray<TValue>;
+      out Result: TValue);
+    procedure DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>;
+      out Result: TValue); virtual; abstract;
   public
     constructor Create;
   end;
@@ -99,39 +112,68 @@ type
     FRESTClient: TRESTClient;
     procedure SetRESTClient(const Value: TRESTClient);
   protected
-    procedure DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue); override;
+    procedure DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>;
+      out Result: TValue); override;
     procedure AddRequestHeaders(AObj: TRttiObject);
     procedure AddRequestHeader(AKey: string; AValue: string);
-    procedure MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; out AResult: TValue);
+    procedure MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
+      ARTTIType: TRttiType; out AResult: TValue);
     function GetURL(AMethod: TRttiMethod; const Args: TArray<TValue>): string;
-    function GetBodyAsString(AMethod: TRttiMethod; const Args: TArray<TValue>): string;
+    function GetBodyAsString(AMethod: TRttiMethod;
+      const Args: TArray<TValue>): string;
   public
     constructor Create;
     destructor Destroy; override;
     function Build(ARESTClient: TRESTClient): T; overload;
-    function Build(const AServerName: string; const AServerPort: Word = 80; AIOHandler: TIdIOHandler = nil): T; overload;
+    function Build(const AServerName: string; const AServerPort: Word = 80;
+      AIOHandler: TIdIOHandler = nil): T; overload;
 
     function ResourcesService: T;
     property RESTClient: TRESTClient read FRESTClient write SetRESTClient;
   end;
 
-  TAsynchRequest = class(TObject)
+  IAsynchRequest = interface
+    ['{3E720356-F2B7-4C32-8051-B7723263740F}']
+    procedure SetAlwaysProc(const Value: TProc);
+    procedure SetErrorProc(const Value: TProc<Exception>);
+    procedure SetSuccessProc(const Value: TProc<TValue>);
+    procedure SetSynchronized(const Value: boolean);
+
+    function GetAlwaysProc: TProc;
+    function GetErrorProc: TProc<Exception>;
+    function GetSuccessProc: TProc<TValue>;
+    function GetSynchronized: boolean;
+
+    property SuccessProc: TProc<TValue> read GetSuccessProc
+      write SetSuccessProc;
+    property ErrorProc: TProc<Exception> read GetErrorProc write SetErrorProc;
+    property AlwaysProc: TProc read GetAlwaysProc write SetAlwaysProc;
+    property Synchronized: boolean read GetSynchronized write SetSynchronized;
+  end;
+
+  TAsynchRequest = class(TInterfacedObject, IAsynchRequest)
   private
     FSynchronized: boolean;
-    FSuccessProc: TProc<IRESTResponse>;
+    FSuccessProc: TProc<TValue>;
     FErrorProc: TProc<Exception>;
     FAlwaysProc: TProc;
     procedure SetAlwaysProc(const Value: TProc);
     procedure SetErrorProc(const Value: TProc<Exception>);
-    procedure SetSuccessProc(const Value: TProc<IRESTResponse>);
+    procedure SetSuccessProc(const Value: TProc<TValue>);
     procedure SetSynchronized(const Value: boolean);
+    function GetAlwaysProc: TProc;
+    function GetErrorProc: TProc<Exception>;
+    function GetSuccessProc: TProc<TValue>;
+    function GetSynchronized: boolean;
   public
-    constructor Create(AProc: TProc<IRESTResponse> = nil; AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
+    constructor Create(AProc: TProc<TValue> = nil;
+      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
       ASynchronized: boolean = false);
-    property SuccessProc: TProc<IRESTResponse> read FSuccessProc write SetSuccessProc;
-    property ErrorProc: TProc<Exception> read FErrorProc write SetErrorProc;
-    property AlwaysProc: TProc read FAlwaysProc write SetAlwaysProc;
-    property Synchronized: boolean read FSynchronized write SetSynchronized;
+    property SuccessProc: TProc<TValue> read GetSuccessProc
+      write SetSuccessProc;
+    property ErrorProc: TProc<Exception> read GetErrorProc write SetErrorProc;
+    property AlwaysProc: TProc read GetAlwaysProc write SetAlwaysProc;
+    property Synchronized: boolean read GetSynchronized write SetSynchronized;
   end;
 
 implementation
@@ -163,7 +205,8 @@ begin
   inherited Create(TypeInfo(T), DoInvoke);
 end;
 
-procedure TVIAdapter<T>.DoInvoke(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
+procedure TVIAdapter<T>.DoInvoke(Method: TRttiMethod;
+  const Args: TArray<TValue>; out Result: TValue);
 begin
   DoInvokeImpl(Method, Args, Result);
 end;
@@ -186,10 +229,12 @@ var
 begin
   for _attr in AObj.GetAttributes do
     if _attr is HeadersAttribute then
-      AddRequestHeader(HeadersAttribute(_attr).Key, HeadersAttribute(_attr).Value);
+      AddRequestHeader(HeadersAttribute(_attr).Key,
+        HeadersAttribute(_attr).Value);
 end;
 
-function TRESTAdapter<T>.Build(const AServerName: string; const AServerPort: Word; AIOHandler: TIdIOHandler): T;
+function TRESTAdapter<T>.Build(const AServerName: string;
+  const AServerPort: Word; AIOHandler: TIdIOHandler): T;
 var
   ARESTClient: TRESTClient;
 begin
@@ -209,17 +254,21 @@ begin
   inherited;
 end;
 
-procedure TRESTAdapter<T>.DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>; out Result: TValue);
+procedure TRESTAdapter<T>.DoInvokeImpl(Method: TRttiMethod;
+  const Args: TArray<TValue>; out Result: TValue);
 var
   Resp: IRESTResponse;
   _restresourceattr: RESTResourceAttribute;
   URL: string;
   Body: string;
-  AsynchClass: TAsynchRequest;
+  AsynchClass: IAsynchRequest;
+  _mappingattr: MappingAttribute;
 begin
   // Implementation of RESTClient DoGet DoPut ecc...
-  if not TRTTIUtils.HasAttribute<RESTResourceAttribute>(Method, _restresourceattr) then
-    raise Exception.CreateFmt('No REST Resource specified in method %s', [Method.Name]);
+  if not TRTTIUtils.HasAttribute<RESTResourceAttribute>(Method,
+    _restresourceattr) then
+    raise Exception.CreateFmt('No REST Resource specified in method %s',
+      [Method.Name]);
 
   // headers can be more than one
   FRESTClient.RequestHeaders.Clear;
@@ -233,15 +282,22 @@ begin
   Body := GetBodyAsString(Method, Args);
 
   // Asynch way to do
-  if Args[Length(Args) - 1].TryAsType<TAsynchRequest>(AsynchClass) then
+  if Args[Length(Args) - 1].TryAsType<IAsynchRequest>(AsynchClass) then
+  begin
     FRESTClient.Asynch(
       procedure(ARESTResponse: IRESTResponse)
       var
         ResValue: TValue;
       begin
-        MapResult(ARESTResponse, Method, ResValue);
-        // AsynchClass.SuccessProc(ResValue.AsType<T>);
-      end, AsynchClass.ErrorProc, AsynchClass.FAlwaysProc, AsynchClass.Synchronized);
+        if TRTTIUtils.HasAttribute<MappingAttribute>(Method, _mappingattr) then
+          MapResult(ARESTResponse, Method, _mappingattr.GetType, ResValue)
+        else
+          ResValue := TValue.From(ARESTResponse);
+        if Assigned(AsynchClass.SuccessProc) then
+          AsynchClass.SuccessProc(ResValue);
+      end, AsynchClass.ErrorProc, AsynchClass.AlwaysProc,
+      AsynchClass.Synchronized);
+  end;
 
   case _restresourceattr.HTTPMethodType of
     httpGET:
@@ -260,11 +316,12 @@ begin
 
   // if is a procedure no need a return type
   if Assigned(Method.ReturnType) then
-    MapResult(Resp, Method, Result);
+    MapResult(Resp, Method, Method.ReturnType, Result);
 
 end;
 
-function TRESTAdapter<T>.GetBodyAsString(AMethod: TRttiMethod; const Args: TArray<TValue>): string;
+function TRESTAdapter<T>.GetBodyAsString(AMethod: TRttiMethod;
+const Args: TArray<TValue>): string;
 var
   _parameters: TArray<TRttiParameter>;
   I: Integer;
@@ -292,7 +349,8 @@ begin
   end;
 end;
 
-function TRESTAdapter<T>.GetURL(AMethod: TRttiMethod; const Args: TArray<TValue>): string;
+function TRESTAdapter<T>.GetURL(AMethod: TRttiMethod;
+const Args: TArray<TValue>): string;
 var
   _restresourceattr: RESTResourceAttribute;
   IURL: string;
@@ -321,14 +379,15 @@ begin
       _parameter := _parameters[I];
       Arg := Args[I + 1];
       if TRTTIUtils.HasAttribute<ParamAttribute>(_parameter, _param) then
-        URLDict[_param.FmtParamMatch] := TRTTIUtils.TValueAsString(Arg, _param.ParamType, _param.CustomFormat);
+        URLDict[_param.FmtParamMatch] := TRTTIUtils.TValueAsString(Arg,
+          _param.ParamType, _param.CustomFormat);
     end;
 
     for Split in SplitUrl do
       if not Split.IsEmpty then
         Result := Result + URL_SEPARATOR + URLDict[Split];
 
-    if IURL.EndsWith(URL_SEPARATOR) and not (Result.EndsWith(URL_SEPARATOR)) then
+    if IURL.EndsWith(URL_SEPARATOR) and not(Result.EndsWith(URL_SEPARATOR)) then
       Result := Result + URL_SEPARATOR;
 
   finally
@@ -336,28 +395,32 @@ begin
   end;
 end;
 
-procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; out AResult: TValue);
+procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
+ARTTIType: TRttiType; out AResult: TValue);
 var
   _attrlistof: MapperListOf;
 begin
-  if AMethod.ReturnType.TypeKind = tkClass then
+  if ARTTIType.TypeKind = tkClass then
   begin
     // ListOf
     if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
     begin
-      AResult := TRTTIUtils.CreateObject(AMethod.ReturnType.QualifiedName);
-      Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject), _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
+      AResult := TRTTIUtils.CreateObject(ARTTIType.QualifiedName);
+      Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
+        _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
     end
     // JSONValue
-    else if AMethod.ReturnType.AsInstance.MetaclassType.InheritsFrom(TJSONValue) then
+    else if ARTTIType.AsInstance.MetaclassType.InheritsFrom(TJSONValue) then
       AResult := TJSONObject.ParseJSONValue(AResp.BodyAsString)
       // Object
     else
-      AResult := Mapper.JSONObjectToObject(AMethod.ReturnType.QualifiedName, AResp.BodyAsJsonObject)
+      AResult := Mapper.JSONObjectToObject(ARTTIType.QualifiedName,
+        AResp.BodyAsJsonObject)
   end
   else
     // IRESTResponse
-    if AMethod.ReturnType.QualifiedName = TRTTIUtils.ctx.GetType(TypeInfo(IRESTResponse)).QualifiedName then
+    if ARTTIType.QualifiedName = TRTTIUtils.ctx.GetType(TypeInfo(IRESTResponse))
+      .QualifiedName then
       AResult := AResult.From(AResp)
     else // else a simple BodyAsString
       AResult := AResp.BodyAsString
@@ -370,7 +433,9 @@ begin
   pInfo := TypeInfo(T);
   if QueryInterface(GetTypeData(pInfo).Guid, Result) <> 0 then
   begin
-    raise Exception.CreateFmt('RESTAdapter is unable to cast %s to its interface', [string(pInfo.Name)]);
+    raise Exception.CreateFmt
+      ('RESTAdapter is unable to cast %s to its interface',
+      [string(pInfo.Name)]);
   end;
 end;
 
@@ -381,13 +446,15 @@ end;
 
 { RESTResourceAttribute }
 
-constructor RESTResourceAttribute.Create(AMVCHTTPMethod: TMVCHTTPMethodType; AURL: string);
+constructor RESTResourceAttribute.Create(AMVCHTTPMethod: TMVCHTTPMethodType;
+AURL: string);
 begin
   FURL := AURL;
   FHTTPMethodType := AMVCHTTPMethod;
 end;
 
-procedure RESTResourceAttribute.SetHTTPMethodType(const Value: TMVCHTTPMethodType);
+procedure RESTResourceAttribute.SetHTTPMethodType
+  (const Value: TMVCHTTPMethodType);
 begin
   FHTTPMethodType := Value;
 end;
@@ -412,7 +479,8 @@ end;
 
 { ParamAttribute }
 
-constructor ParamAttribute.Create(AParamMatch: string; AParamType, ACustomFormat: string);
+constructor ParamAttribute.Create(AParamMatch: string;
+AParamType, ACustomFormat: string);
 begin
   inherited Create;
   FParamMatch := AParamMatch;
@@ -460,7 +528,8 @@ end;
 
 { TAsynchRequest }
 
-constructor TAsynchRequest.Create(AProc: TProc<IRESTResponse> = nil; AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
+constructor TAsynchRequest.Create(AProc: TProc<TValue> = nil;
+AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
 ASynchronized: boolean = false);
 begin
   inherited Create;
@@ -468,6 +537,26 @@ begin
   FErrorProc := AProcErr;
   FAlwaysProc := AProcAlways;
   FSynchronized := ASynchronized;
+end;
+
+function TAsynchRequest.GetAlwaysProc: TProc;
+begin
+  Result := FAlwaysProc;
+end;
+
+function TAsynchRequest.GetErrorProc: TProc<Exception>;
+begin
+  Result := FErrorProc;
+end;
+
+function TAsynchRequest.GetSuccessProc: TProc<TValue>;
+begin
+  Result := FSuccessProc;
+end;
+
+function TAsynchRequest.GetSynchronized: boolean;
+begin
+  Result := FSynchronized;
 end;
 
 procedure TAsynchRequest.SetAlwaysProc(const Value: TProc);
@@ -480,7 +569,7 @@ begin
   FErrorProc := Value;
 end;
 
-procedure TAsynchRequest.SetSuccessProc(const Value: TProc<IRESTResponse>);
+procedure TAsynchRequest.SetSuccessProc(const Value: TProc<TValue>);
 begin
   FSuccessProc := Value;
 end;
@@ -488,6 +577,18 @@ end;
 procedure TAsynchRequest.SetSynchronized(const Value: boolean);
 begin
   FSynchronized := Value;
+end;
+
+{ MappingAttribute }
+
+constructor MappingAttribute.Create(AClass: TClass);
+begin
+  FClass := AClass;
+end;
+
+function MappingAttribute.GetType: TRttiType;
+begin
+  Result := TRTTIUtils.ctx.GetType(FClass);
 end;
 
 end.

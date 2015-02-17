@@ -2,9 +2,10 @@ unit WinesBO;
 
 interface
 
-uses ObjectsMappers;
+uses ObjectsMappers, System.Generics.Collections;
 
 type
+
   [MapperJSONNaming(JSONNameLowerCase)]
   TWine = class
   private
@@ -35,6 +36,8 @@ type
     property description: string read FDESCRIPTION write SetDESCRIPTION;
     property picture: String read FPICTURE write SetPICTURE;
   end;
+
+  TWines = class(TObjectList<TWine>);
 
 implementation
 

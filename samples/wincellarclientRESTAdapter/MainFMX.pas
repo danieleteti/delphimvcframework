@@ -21,8 +21,6 @@ type
     TabControl1: TTabControl;
     WineListTabItem: TTabItem;
     EdtTabItem: TTabItem;
-    TabItem3: TTabItem;
-    TabItem4: TTabItem;
     BtnWineList: TButton;
     ActionList1: TActionList;
     acWineList: TAction;
@@ -88,25 +86,35 @@ uses Generics.Collections;
 procedure TTabbedForm.acSaveWineExecute(Sender: TObject);
 var
   Wine: TWine;
+  AsynchReq: IAsynchRequest;
 begin
   Wine := GetWine;
-  try
-    if Wine.id > 0 then
-      WineRESTService.UpdateWineById(Wine.id, Wine)
-    else
-      WineRESTService.SaveWine(Wine);
-  finally
-    Wine.free;
-    PrototypeBindSource1.Cancel;
-    acWineList.Execute;
-    ChangeTabActionWineList.ExecuteTarget(Sender);
-  end;
+  // Asynch
+  AsynchReq := TAsynchRequest.Create(
+    procedure(AValue: TValue)
+    begin
+      PrototypeBindSource1.Cancel;
+      acWineList.Execute;
+      ChangeTabActionWineList.ExecuteTarget(Sender);
+    end, nil, nil, true);
+  if Wine.id > 0 then
+    WineRESTService.UpdateWineById(Wine.id, Wine, AsynchReq)
+  else
+    WineRESTService.SaveWine(Wine, AsynchReq);
 end;
 
 procedure TTabbedForm.acWineListExecute(Sender: TObject);
+var
+  AsynchReq: IAsynchRequest;
 begin
-  WinesAdapter.SetList(WineRESTService.GetWineList);
-  WinesAdapter.Active := true;
+  AsynchReq := TAsynchRequest.Create(
+    procedure(AValue: TValue)
+    begin
+      WinesAdapter.Active := false;
+      WinesAdapter.SetList(AValue.AsType<TWines>);
+      WinesAdapter.Active := true;
+    end, nil, nil, true);
+  WineRESTService.GetWineList(AsynchReq);
 end;
 
 procedure TTabbedForm.FormCreate(Sender: TObject);
@@ -151,14 +159,14 @@ begin
 end;
 
 procedure TTabbedForm.PrototypeBindSource1CreateAdapter(Sender: TObject;
-  var ABindSourceAdapter: TBindSourceAdapter);
+var ABindSourceAdapter: TBindSourceAdapter);
 begin
   WinesAdapter := TListBindSourceAdapter<TWine>.Create(PrototypeBindSource1);
   ABindSourceAdapter := WinesAdapter;
 end;
 
 procedure TTabbedForm.WineListViewItemClick(const Sender: TObject;
-  const AItem: TListViewItem);
+const AItem: TListViewItem);
 begin
   ChangeTabActionEdtWine.ExecuteTarget(Sender);
 end;

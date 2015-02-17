@@ -41,14 +41,14 @@ object TabbedForm: TTabbedForm
     Size.Height = 519.000000000000000000
     Size.PlatformDefault = False
     TabHeight = 49.000000000000000000
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 1
     TabPosition = None
     object WineListTabItem: TTabItem
       CustomIcon = <
         item
         end>
-      IsSelected = False
+      IsSelected = True
       Size.Width = 8.000000000000000000
       Size.Height = 8.000000000000000000
       Size.PlatformDefault = False
@@ -83,7 +83,7 @@ object TabbedForm: TTabbedForm
       CustomIcon = <
         item
         end>
-      IsSelected = True
+      IsSelected = False
       Size.Width = 8.000000000000000000
       Size.Height = 8.000000000000000000
       Size.PlatformDefault = False
@@ -188,30 +188,6 @@ object TabbedForm: TTabbedForm
         Size.PlatformDefault = False
         Visible = False
       end
-    end
-    object TabItem3: TTabItem
-      CustomIcon = <
-        item
-        end>
-      IsSelected = False
-      Size.Width = 8.000000000000000000
-      Size.Height = 8.000000000000000000
-      Size.PlatformDefault = False
-      StyleLookup = 'tabitemrecent'
-      TabOrder = 0
-      Text = 'TabItem3'
-    end
-    object TabItem4: TTabItem
-      CustomIcon = <
-        item
-        end>
-      IsSelected = False
-      Size.Width = 8.000000000000000000
-      Size.Height = 8.000000000000000000
-      Size.PlatformDefault = False
-      StyleLookup = 'tabitemmostrecent'
-      TabOrder = 0
-      Text = 'TabItem4'
     end
   end
   object MultiView1: TMultiView
