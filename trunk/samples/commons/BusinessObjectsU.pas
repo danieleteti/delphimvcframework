@@ -26,9 +26,12 @@ type
     property LastName: string read FLastName write SetLastName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-    class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
+    class function GetNew(AFirstName, ALastName: string; ADOB: TDate;
+      AMarried: boolean): TPerson;
     class function GetList: TObjectList<TPerson>;
   end;
+
+  TPeople = class(TObjectList<TPerson>);
 
   [MapperJSONNaming(JSONNameLowerCase)]
   TCustomer = class
@@ -101,7 +104,8 @@ begin
   Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
 end;
 
-class function TPerson.GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
+class function TPerson.GetNew(AFirstName, ALastName: string; ADOB: TDate;
+  AMarried: boolean): TPerson;
 begin
   Result := TPerson.Create;
   Result.FLastName := ALastName;

@@ -13,13 +13,15 @@ type
 
     [RESTResource(HttpGet, '/wines')]
     [MapperListOf(TWine)]
-    function GetWineList: TObjectList<TWine>;
+    [Mapping(TWines)]
+    procedure GetWineList(AAsynchReq: IAsynchRequest);
 
     [RESTResource(httpPOST, '/wines')]
-    procedure SaveWine([Body] AWine: TWine);
+    procedure SaveWine([Body] AWine: TWine; AAsynchReq: IAsynchRequest);
 
     [RESTResource(httpPUT, '/wines/{id}')]
-    procedure UpdateWineById([Param('id')] AID: integer; [Body] AWine: TWine);
+    procedure UpdateWineById([Param('id')] AID: integer; [Body] AWine: TWine;
+      AAsynchReq: IAsynchRequest);
 
   end;
 
