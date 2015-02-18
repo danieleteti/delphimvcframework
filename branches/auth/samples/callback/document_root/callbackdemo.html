@@ -1,0 +1,148 @@
+<html>
+<head>
+</head>
+<body>
+<h2>DMVCFramework - Callback DEMO</h2>
+<div class="beforelogin">
+<input type="text" id="username" style="width: 300px" value="your username">
+<input type="button" id="btnLogin" style="width: 100px" value="login">
+</div>
+
+<div class="afterlogin">
+	<div id="area" style="font-family: verdana; width: 400px; height: 500px; border: grey thin solid; overflow-y: scroll;">
+
+	</div>
+
+	<input type="text" id="txtMessage" style="width: 300px" value="Write your message...">
+	<input type="button" id="btnSend" style="width: 100px" value="send">
+	<br>
+	<input type="button" id="btnSendMultiple" style="width: 300px" value="send multiple">
+</div>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>
+	function enterInChat(username) {
+		 var res = false;
+		 $.ajax({
+              url: "/login/" + username,
+              type: "GET",
+              async: false,
+              success: function(data) {
+                console.log(data);
+								res = true;
+              },
+							error:  function(data) {
+                console.log(data);
+              }
+        });
+
+		//if (!res) return false;
+
+		 $.ajax({
+              url: "/messages/subscribe/demochat",
+              type: "GET",
+              async: false,
+              success: function(data) {
+								res = true;
+                console.log(data);
+								receive();
+              },
+							error:  function(data) {
+                console.log(data);
+              }
+        });
+		return res;
+	}
+
+
+	function sendMessage(msg){
+		 var msgobj = {
+		   text: msg
+		 };
+
+		 $.ajax({
+									url: "/messages/enqueue/demochat",
+									data: JSON.stringify(msgobj),
+									processData: false,
+									type: "POST",
+									async: false,
+									success: function(data) {
+										console.log(data)
+									}
+						});
+	}
+
+	function bindEvents(){
+		$('#btnSend').click(function(){
+			sendMessage($('#txtMessage').val())
+		});
+
+		$('#btnSendMultiple').click(function(){
+		  for (var i = 1; i <= 20; i++) {
+				sendMessage('message' + i);
+			}
+		});
+
+		$('#btnLogin').click(function(){
+			var username = $('#username').val();
+			username = username.replace(" ","").replace(",","").replace("-",""); //only chars without spaces
+			if (username == 'yourusername' || username == '') {
+			  alert('Please, enter your username');
+				return false;
+			}
+			if (enterInChat(username)) {
+				$('.beforelogin').hide();
+				$('.afterlogin').show();
+				$('h2').append('&nbsp;<span>(logged as ' + username + ')</span>');
+			} else {
+			  alert('Problem on connecting. Retry please...');
+			}
+		});
+	}
+
+function htmlEntities(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function receive() {
+ $.ajax({
+					url: "/messages/receive",
+					type: "GET",
+					async: true,
+					success: function(data) {
+						errcount = 0;
+						console.log(JSON.stringify(data));
+						var s, msg;
+						var area = $('#area');
+						for (var i = 0; i < data.messages.length; i++) {
+							msg = data.messages[i];
+							s = '<p><span>' +
+							'<i>(' + data.messages[i]._timestamp + ') - </i>' +
+							'<i>' + data.messages[i]._username + '</i>' +
+							'</span><br><span><b>' + htmlEntities(data.messages[i].message.text) + '</span></p>';
+							$(s).appendTo(area);
+							document.getElementById("area").scrollTop = document.getElementById("area").scrollHeight;
+						}
+						setTimeout(function(){receive()}, 10);
+					},
+					error: function(data) {
+						errcount++;
+						console.log("ERROR");
+						console.log(arguments);
+						if (errcount < 5)
+							setTimeout(function(){receive()}, 10);
+						else
+							alert('Errors... cannot connect...');
+					}
+		});
+}
+
+
+  $(document).ready(function(){
+		$('.beforelogin').show();
+		$('.afterlogin').hide();
+		bindEvents();
+	});
+</script>
+</body>
+</html>
