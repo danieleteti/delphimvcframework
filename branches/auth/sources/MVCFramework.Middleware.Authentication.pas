@@ -76,7 +76,7 @@ var
     Handled := true;
   end;
 
-  procedure Send403;
+  procedure Send403Forbidden;
   begin
     Context.LoggedUser.Clear;
     Context.Response.StatusCode := 403;
@@ -131,14 +131,13 @@ begin
         Context.LoggedUser.SaveToSession(LWebSession);
       end;
 
-      // authorization
-      LIsAuthorized := False;
-
     finally
       LRoles.Free;
     end;
   end;
 
+  // authorization
+  LIsAuthorized := False;
   if LIsValid then
   begin
     if Assigned(FOnAuthorization) then
@@ -151,7 +150,7 @@ begin
   else
   begin
     if LIsValid then
-      Send403
+      Send403Forbidden
     else
       SendWWWAuthenticate;
   end;
