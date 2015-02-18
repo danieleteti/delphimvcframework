@@ -22,7 +22,8 @@ implementation
 {$R *.dfm}
 
 uses
-  TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU;
+  TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
+  MVCFramework.Middleware.Authentication, System.Generics.Collections;
 
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
@@ -30,25 +31,24 @@ begin
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
-    .AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCAuthenticationMiddleware.Create(
-      procedure(const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean)
+    .AddMiddleware(TMVCSpeedMiddleware.Create).AddMiddleware(TMVCAuthenticationMiddleware.Create(
+    procedure(const AUserName, APassword: string; AControllerQualifiedClassName,
+      AActionName: string; AUserRoles: TList<string>; var AIsValid: Boolean)
+    begin
+      AIsValid := true or AUserName.Equals(APassword);
+      if AIsValid then
       begin
-        AIsValid := AUserName.Equals(APassword);
-        if AIsValid then
-        begin
-          AUserRoles.Add('role1');
-          AUserRoles.Add('role2');
-        end
-        else
-          AUserRoles.Clear;
-      end,
-      procedure(const AControllerQualifiedClassName: string; const AActionNAme: string;
-        AUserRoles: TList<string>; var AIsAuthorized: Boolean)
-      begin
-        AIsAuthorized := AUserRoles.Contains('role1');
-      end));
-
+        AUserRoles.Add('role1');
+        AUserRoles.Add('role2');
+      end
+      else
+        AUserRoles.Clear;
+    end,
+    procedure(AContext: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionName: string; var AIsAuthorized: Boolean)
+    begin
+      AIsAuthorized := true or AContext.LoggedUser.Roles.Contains('role1');
+    end));
 
   MVCEngine.Config[TMVCConfigKey.StompServer] := 'localhost';
   MVCEngine.Config[TMVCConfigKey.StompServerPort] := '61613';
