@@ -28,26 +28,34 @@ uses
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
   MVCEngine := TMVCEngine.Create(self);
-  MVCEngine.AddController(TTestServerController)
+  MVCEngine.AddController(TTestServerController).AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddMiddleware(TMVCSpeedMiddleware.Create).AddMiddleware(TMVCAuthenticationMiddleware.Create(
     procedure(const AUserName, APassword: string; AControllerQualifiedClassName,
       AActionName: string; AUserRoles: TList<string>; var AIsValid: Boolean)
     begin
-      AIsValid := true or AUserName.Equals(APassword);
-      if AIsValid then
+      AUserRoles.Clear;
+      AIsValid := False;
+      if AUserName = 'user1' then
       begin
+        AIsValid := True;
         AUserRoles.Add('role1');
+      end;
+      if AUserName = 'user2' then
+      begin
+        AIsValid := True;
         AUserRoles.Add('role2');
-      end
-      else
-        AUserRoles.Clear;
+      end;
     end,
     procedure(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AIsAuthorized: Boolean)
     begin
-      AIsAuthorized := true or AContext.LoggedUser.Roles.Contains('role1');
+      if AActionName = 'OnlyRole1' then
+        AIsAuthorized := AContext.LoggedUser.Roles.Contains('role1');
+
+      if AActionName = 'OnlyRole2' then
+        AIsAuthorized := AContext.LoggedUser.Roles.Contains('role2');
     end));
 
   MVCEngine.Config[TMVCConfigKey.StompServer] := 'localhost';

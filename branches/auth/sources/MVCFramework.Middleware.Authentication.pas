@@ -67,6 +67,7 @@ var
   LSessionID: string;
   LIsAuthorized: Boolean;
   LSessionIDFromWebRequest: string;
+  LSessionIsNeeded: Boolean;
   procedure SendWWWAuthenticate;
   begin
     Context.LoggedUser.Clear;
@@ -96,59 +97,63 @@ begin
   end;
 
   Context.LoggedUser.LoadFromSession(LWebSession);
-  if (not Context.LoggedUser.IsValid) or (LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE]
-    <> Context.Request.Headers['Authorization']) then
+  if not Context.LoggedUser.IsValid then
   begin
     LAuth := Context.Request.Headers['Authorization'];
     LAuth := DecodeString(LAuth.Remove(0, 'Basic'.Length).Trim);
     LPieces := LAuth.Split([':']);
     if (not LAuth.IsEmpty) and (Length(LPieces) <> 2) then
-      raise EMVCException.Create('Invalid Basic Authentication', '', 400);
-    if Assigned(FOnAuthentication) then
     begin
-      LRoles := TList<string>.Create;
-      try
-        if Length(LPieces) = 0 then
-        begin
-          SetLength(LPieces, 2);
-          LPieces[0] := '';
-          LPieces[1] := '';
-        end;
-
-        FOnAuthentication(LPieces[0], LPieces[1], AControllerQualifiedClassName, AActionName,
-          LRoles, LIsValid);
-        if LIsValid then
-        begin
-          Context.LoggedUser.Roles.AddRange(LRoles);
-          Context.LoggedUser.UserName := LPieces[0];
-          Context.LoggedUser.LoggedSince := Now;
-          LSessionID := TMVCEngine.SendSessionCookie(Context);
-          LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
-            Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
-          LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
-            ['Authorization'];
-          Context.LoggedUser.SaveToSession(LWebSession);
-          if Assigned(FOnAuthorization) then
-            FOnAuthorization(Context, AControllerQualifiedClassName, AActionName, LIsAuthorized)
-          else
-            raise EMVCException.Create('OnAuthorization event not set');
-          if LIsAuthorized then
-            Handled := False
-          else
-          begin
-            Send403;
-          end;
-        end
-        else
-          SendWWWAuthenticate;
-      finally
-        LRoles.Free;
-      end;
+      SendWWWAuthenticate;
+      Exit;
     end;
-  end
+    LRoles := TList<string>.Create;
+    try
+      if Length(LPieces) = 0 then
+      begin
+        SetLength(LPieces, 2);
+        LPieces[0] := '';
+        LPieces[1] := '';
+      end;
+
+      FOnAuthentication(LPieces[0], LPieces[1], AControllerQualifiedClassName, AActionName, LRoles,
+        LIsValid);
+      if LIsValid and (not LAuth.IsEmpty) then
+      begin
+        Context.LoggedUser.Roles.AddRange(LRoles);
+        Context.LoggedUser.UserName := LPieces[0];
+        Context.LoggedUser.LoggedSince := Now;
+        LSessionID := TMVCEngine.SendSessionCookie(Context);
+        LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
+          Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
+        LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
+          ['Authorization'];
+        Context.LoggedUser.SaveToSession(LWebSession);
+      end;
+
+      // authorization
+      LIsAuthorized := False;
+
+    finally
+      LRoles.Free;
+    end;
+  end;
+
+  if LIsValid then
+  begin
+    if Assigned(FOnAuthorization) then
+      FOnAuthorization(Context, AControllerQualifiedClassName, AActionName, LIsAuthorized)
+    else
+      raise EMVCException.Create('OnAuthorization event not set');
+  end;
+  if LIsAuthorized then
+    Handled := False
   else
   begin
-    Handled := False;
+    if LIsValid then
+      Send403
+    else
+      SendWWWAuthenticate;
   end;
 end;
 

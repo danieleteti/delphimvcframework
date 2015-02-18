@@ -91,6 +91,15 @@ type
 
   end;
 
+  [MVCPath('/private')]
+  TTestPrivateServerController = class(TMVCController)
+  public
+    [MVCPath('/role1')]
+    procedure OnlyRole1(ctx: TWebContext);
+    [MVCPath('/role2')]
+    procedure OnlyRole2(ctx: TWebContext);
+  end;
+
 implementation
 
 uses
@@ -189,8 +198,9 @@ end;
 
 procedure TTestServerController.ReqWithParams(ctx: TWebContext);
 begin
-  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
-    ctx.Request.Params['par3']).AddPair('method', ctx.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2',
+    ctx.Request.Params['par2']).AddPair('par3', ctx.Request.Params['par3']).AddPair('method',
+    ctx.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet(ctx: TWebContext);
@@ -292,6 +302,18 @@ var
 begin
   Person := ctx.Request.BodyAs<TPerson>();
   Render(Person);
+end;
+
+{ TTestPrivateServerController }
+
+procedure TTestPrivateServerController.OnlyRole1(ctx: TWebContext);
+begin
+  Render(ctx.LoggedUser.UserName);
+end;
+
+procedure TTestPrivateServerController.OnlyRole2(ctx: TWebContext);
+begin
+  Render(ctx.LoggedUser.UserName);
 end;
 
 end.
