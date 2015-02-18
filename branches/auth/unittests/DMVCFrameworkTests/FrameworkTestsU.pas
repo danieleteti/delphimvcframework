@@ -665,7 +665,6 @@ procedure TTestRouting.TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObjec
 var
   lObj: TMyObjectWithLogic;
   lJObj: TJSONObject;
-  lObj2: TObject;
 begin
   lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
   try

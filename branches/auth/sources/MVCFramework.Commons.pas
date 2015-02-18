@@ -27,6 +27,8 @@ type
     SESSION_TOKEN_NAME = 'dtsessionid';
     DEFAULT_CONTENT_CHARSET = 'UTF-8';
     DEFAULT_CONTENT_TYPE = TMVCMimeType.APPLICATION_JSON;
+    CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
+    LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
   end;
 
   EMVCException = class(Exception)
@@ -41,14 +43,11 @@ type
   public
     constructor Create(const Msg: string); overload; virtual;
     constructor Create(const Msg: string; const DetailedMessage: string;
-      const ApplicationErrorCode: UInt16; const HTTPErrorCode: UInt16 = 500);
-      overload; virtual;
+      const ApplicationErrorCode: UInt16; const HTTPErrorCode: UInt16 = 500); overload; virtual;
     constructor CreateFmt(const Msg: string; const Args: array of const);
     property HTTPErrorCode: UInt16 read FHTTPErrorCode;
-    property DetailedMessage: string read FDetailedMessage
-      write SetDetailedMessage;
-    property ApplicationErrorCode: UInt16 read FApplicationErrorCode
-      write FApplicationErrorCode;
+    property DetailedMessage: string read FDetailedMessage write SetDetailedMessage;
+    property ApplicationErrorCode: UInt16 read FApplicationErrorCode write FApplicationErrorCode;
   end;
 
   EMVCSessionExpiredException = class(EMVCException)
@@ -76,15 +75,16 @@ type
     FConfig: TDictionary<string, string>;
     function GetValue(AIndex: string): string;
     procedure SetValue(AIndex: string; const Value: string);
+    function GetValueAsInt64(AIndex: string): Int64;
 
   public
     constructor Create;
     destructor Destroy; override;
-    property Value[AIndex: string]: string read GetValue
-      write SetValue; default;
+    property Value[AIndex: string]: string read GetValue write SetValue; default;
+    property AsInt64[AIndex: string]: Int64 read GetValueAsInt64;
     function ToString: string; override;
-    procedure SaveToFile(const AFileName: String);
-    procedure LoadFromFile(const AFileName: String);
+    procedure SaveToFile(const AFileName: string);
+    procedure LoadFromFile(const AFileName: string);
   end;
 
 {$SCOPEDENUMS ON}
@@ -113,13 +113,12 @@ uses
 {$IFEND};
 
 const
-  ReservedIPs: array [1 .. 11] of array [1 .. 2] of string =
-    (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
-    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
-    ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
-    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
-    ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
-    ('240.0.0.0', '255.255.255.255'));
+  ReservedIPs: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'),
+    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'),
+    ('169.254.0.0', '169.254.255.255'), ('172.16.0.0', '172.31.255.255'),
+    ('192.0.2.0', '192.0.2.255'), ('192.88.99.0', '192.88.99.255'),
+    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
+    ('224.0.0.0', '239.255.255.255'), ('240.0.0.0', '255.255.255.255'));
 
 function IP2Long(IP: string): UInt32;
 begin
@@ -135,8 +134,7 @@ begin
   IntIP := IP2Long(IP);
   for i := low(ReservedIPs) to high(ReservedIPs) do
   begin
-    if (IntIP >= IP2Long(ReservedIPs[i][1])) and
-      (IntIP <= IP2Long(ReservedIPs[i][2])) then
+    if (IntIP >= IP2Long(ReservedIPs[i][1])) and (IntIP <= IP2Long(ReservedIPs[i][2])) then
     begin
       Exit(True)
     end;
@@ -177,7 +175,12 @@ begin
     raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
 end;
 
-procedure TMVCConfig.LoadFromFile(const AFileName: String);
+function TMVCConfig.GetValueAsInt64(AIndex: string): Int64;
+begin
+  Result := StrToInt64(Value[AIndex]);
+end;
+
+procedure TMVCConfig.LoadFromFile(const AFileName: string);
 var
   S: string;
   jobj: TJSONObject;
@@ -199,15 +202,15 @@ begin
       end
     end
     else
-      raise EMVCConfigException.Create('DMVCFramework configuration file [' +
-        AFileName + '] does not contain a valid JSONObject');
+      raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName +
+        '] does not contain a valid JSONObject');
   end
   else
-    raise EMVCConfigException.Create
-      ('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+    raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' +
+      AFileName + ']');
 end;
 
-procedure TMVCConfig.SaveToFile(const AFileName: String);
+procedure TMVCConfig.SaveToFile(const AFileName: string);
 begin
   TFile.WriteAllText(AFileName, ToString, TEncoding.ASCII);
 end;
@@ -251,8 +254,7 @@ begin
   FDetailedMessage := DetailedMessage;
 end;
 
-constructor EMVCException.CreateFmt(const Msg: string;
-  const Args: array of const);
+constructor EMVCException.CreateFmt(const Msg: string; const Args: array of const);
 begin
   inherited;
   FHTTPErrorCode := 500;
