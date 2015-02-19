@@ -185,7 +185,8 @@ begin
   Result := Result and (Self.PropCurrency = Obj.PropCurrency);
   Result := Result and (SecondsBetween(Self.PropTime, Obj.PropTime) = 0);
   Result := Result and (SecondsBetween(Self.PropDateTime, Obj.PropDateTime) = 0);
-  Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
+  Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and
+    (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
 end;
 
 procedure TMyObject.SetPropAnsiString(const Value: AnsiString);
@@ -281,12 +282,19 @@ begin
   co := Obj as TMyComplexObject;
 
   Result := co.Prop1 = Self.Prop1;
-  Result := Result and (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1);
+  if Assigned(co.ChildObject) and Assigned(Self.ChildObject) then
+    Result := Result and (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1)
+  else
+    Result := Result and (not Assigned(co.ChildObject)) and (not Assigned(Self.ChildObject));
   Result := Result and (co.ChildObjectList.Count = Self.ChildObjectList.Count);
-  Result := Result and (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0].MyChildProperty1);
-  Result := Result and (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1].MyChildProperty1);
-  Result := Result and (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2].MyChildProperty1);
-  Result := Result and (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3].MyChildProperty1);
+  Result := Result and (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0]
+    .MyChildProperty1);
+  Result := Result and (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1]
+    .MyChildProperty1);
+  Result := Result and (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2]
+    .MyChildProperty1);
+  Result := Result and (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3]
+    .MyChildProperty1);
 end;
 
 procedure TMyComplexObject.SetChildObject(const Value: TMyChildObject);
