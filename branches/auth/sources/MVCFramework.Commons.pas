@@ -87,13 +87,24 @@ type
     procedure LoadFromFile(const AFileName: string);
   end;
 
+  IMVCAuthenticationHandler = interface
+    ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
+    procedure OnRequest(const ControllerQualifiedClassName, ActionName: string;
+      var AuthenticationRequired: Boolean);
+    procedure OnAuthentication(const UserName, Password: string; UserRoles: TList<string>;
+      var IsValid: Boolean);
+    procedure OnAuthorization(UserRoles: TList<String>; const ControllerQualifiedClassName: string; const ActionName: string;
+      var IsAuthorized: Boolean);
+
+  end;
+
 {$SCOPEDENUMS ON}
 
 type
   THttpMethod = (GET, POST, PUT, DELETE, HEAD);
 
 function AppPath: string;
-function IsReservedOrPrivateIP(const IP: string): boolean;
+function IsReservedOrPrivateIP(const IP: string): Boolean;
 function IP2Long(IP: string): UInt32;
 
 var
@@ -125,7 +136,7 @@ begin
   Result := idGlobal.IPv4ToDWord(IP);
 end;
 
-function IsReservedOrPrivateIP(const IP: string): boolean;
+function IsReservedOrPrivateIP(const IP: string): Boolean;
 var
   i: Integer;
   IntIP: Cardinal;

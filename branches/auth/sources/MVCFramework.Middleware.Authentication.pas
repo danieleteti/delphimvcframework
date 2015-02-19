@@ -3,34 +3,26 @@ unit MVCFramework.Middleware.Authentication;
 interface
 
 uses
-  MVCFramework, MVCFramework.Logger, System.Generics.Collections;
+  MVCFramework, MVCFramework.Commons, MVCFramework.Logger, System.Generics.Collections;
 
 type
-  TOnAuthenticationEvent = reference to procedure(const AUserName, APassword: string;
-    AControllerQualifiedClassName, AActionName: string; AUserRoles: TList<string>;
-    var AIsValid: Boolean);
-  TOnAuthorizationEvent = reference to procedure(AContext: TWebContext;
-    const AControllerQualifiedClassName: string; const AActionName: string;
-    var AIsAuthorized: Boolean);
-
   TMVCAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  strict private
+    FMVCAuthenticationHandler: IMVCAuthenticationHandler;
   protected
-    FOnAuthentication: TOnAuthenticationEvent;
-    FOnAuthorization: TOnAuthorizationEvent;
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnAfterControllerAction(Context: TWebContext; const AActionName: string;
       const Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string; var Handled: Boolean);
   public
-    constructor Create(AOnAuthentication: TOnAuthenticationEvent;
-      AOnAuthorization: TOnAuthorizationEvent); virtual;
+    constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler); virtual;
   end;
 
 implementation
 
 uses
-  System.SysUtils, Soap.EncdDecd, MVCFramework.Commons, MVCFramework.Session;
+  System.SysUtils, Soap.EncdDecd, MVCFramework.Session;
 
 {
 
@@ -42,12 +34,11 @@ uses
 
 { TMVCSalutationMiddleware }
 
-constructor TMVCAuthenticationMiddleware.Create(AOnAuthentication: TOnAuthenticationEvent;
-  AOnAuthorization: TOnAuthorizationEvent);
+constructor TMVCAuthenticationMiddleware.Create(AMVCAuthenticationHandler
+  : IMVCAuthenticationHandler);
 begin
   inherited Create;
-  FOnAuthentication := AOnAuthentication;
-  FOnAuthorization := AOnAuthorization;
+  FMVCAuthenticationHandler := AMVCAuthenticationHandler;
 end;
 
 procedure TMVCAuthenticationMiddleware.OnAfterControllerAction(Context: TWebContext;
@@ -68,6 +59,7 @@ var
   LIsAuthorized: Boolean;
   LSessionIDFromWebRequest: string;
   LSessionIsNeeded: Boolean;
+  LAuthRequired: Boolean;
   procedure SendWWWAuthenticate;
   begin
     Context.LoggedUser.Clear;
@@ -99,26 +91,30 @@ begin
   Context.LoggedUser.LoadFromSession(LWebSession);
   if not Context.LoggedUser.IsValid then
   begin
+    // check if the resource is protected
+    FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, LAuthRequired);
+    if not LAuthRequired then
+    begin
+      Handled := False;
+      Exit;
+    end;
+
+    // we NEED authentication
     LAuth := Context.Request.Headers['Authorization'];
     LAuth := DecodeString(LAuth.Remove(0, 'Basic'.Length).Trim);
     LPieces := LAuth.Split([':']);
-    if (not LAuth.IsEmpty) and (Length(LPieces) <> 2) then
+    if LAuth.IsEmpty or (Length(LPieces) <> 2) then
     begin
       SendWWWAuthenticate;
       Exit;
     end;
+
+    // now, we have username and password.
+    // check the authorization for the requested resource
     LRoles := TList<string>.Create;
     try
-      if Length(LPieces) = 0 then
-      begin
-        SetLength(LPieces, 2);
-        LPieces[0] := '';
-        LPieces[1] := '';
-      end;
-
-      FOnAuthentication(LPieces[0], LPieces[1], AControllerQualifiedClassName, AActionName, LRoles,
-        LIsValid);
-      if LIsValid and (not LAuth.IsEmpty) then
+      FMVCAuthenticationHandler.OnAuthentication(LPieces[0], LPieces[1], LRoles, LIsValid);
+      if LIsValid then
       begin
         Context.LoggedUser.Roles.AddRange(LRoles);
         Context.LoggedUser.UserName := LPieces[0];
@@ -130,7 +126,6 @@ begin
           ['Authorization'];
         Context.LoggedUser.SaveToSession(LWebSession);
       end;
-
     finally
       LRoles.Free;
     end;
@@ -140,11 +135,10 @@ begin
   LIsAuthorized := False;
   if LIsValid then
   begin
-    if Assigned(FOnAuthorization) then
-      FOnAuthorization(Context, AControllerQualifiedClassName, AActionName, LIsAuthorized)
-    else
-      raise EMVCException.Create('OnAuthorization event not set');
+    FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
+      LIsAuthorized)
   end;
+
   if LIsAuthorized then
     Handled := False
   else

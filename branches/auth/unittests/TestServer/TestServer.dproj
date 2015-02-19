@@ -92,7 +92,6 @@
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
@@ -114,6 +113,8 @@
         <DCCReference Include="..\..\sources\uGlobalVars.pas">
             <Form>$R *.res</Form>
         </DCCReference>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

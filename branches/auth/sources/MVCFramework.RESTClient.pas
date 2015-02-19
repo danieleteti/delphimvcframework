@@ -297,6 +297,7 @@ begin
   FHTTP := TIdHTTP.Create(nil);
   FHTTP.ReadTimeout := 20000;
   FHTTP.IOHandler := AIOHandler;
+  FHTTP.Request.BasicAuthentication := True;
   // FHTTP.AllowCookies := true;
 end;
 

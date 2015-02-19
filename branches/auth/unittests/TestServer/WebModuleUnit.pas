@@ -23,7 +23,21 @@ implementation
 
 uses
   TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
-  MVCFramework.Middleware.Authentication, System.Generics.Collections;
+  MVCFramework.Middleware.Authentication, System.Generics.Collections,
+  MVCFramework.Commons;
+
+type
+  TSampleAuth = class(TInterfacedObject, IMVCAuthenticationHandler)
+
+  public
+    procedure OnRequest(const ControllerQualifiedClassName: string; const ActionName: string;
+      var AuthenticationRequired: Boolean);
+    procedure OnAuthentication(const UserName: string; const Password: string;
+      UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
+    procedure OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
+      const ControllerQualifiedClassName: string; const ActionName: string;
+      var IsAuthorized: Boolean);
+  end;
 
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
@@ -31,38 +45,81 @@ begin
   MVCEngine.AddController(TTestServerController).AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
-    .AddMiddleware(TMVCSpeedMiddleware.Create).AddMiddleware(TMVCAuthenticationMiddleware.Create(
-    procedure(const AUserName, APassword: string; AControllerQualifiedClassName,
-      AActionName: string; AUserRoles: TList<string>; var AIsValid: Boolean)
-    begin
-      AUserRoles.Clear;
-      AIsValid := False;
-      if AUserName = 'user1' then
-      begin
-        AIsValid := True;
-        AUserRoles.Add('role1');
-      end;
-      if AUserName = 'user2' then
-      begin
-        AIsValid := True;
-        AUserRoles.Add('role2');
-      end;
-    end,
-    procedure(AContext: TWebContext; const AControllerQualifiedClassName: string;
-      const AActionName: string; var AIsAuthorized: Boolean)
-    begin
-      if AActionName = 'OnlyRole1' then
-        AIsAuthorized := AContext.LoggedUser.Roles.Contains('role1');
+    .AddMiddleware(TMVCSpeedMiddleware.Create)
+    .AddMiddleware(TMVCAuthenticationMiddleware.Create(TSampleAuth.Create));
 
-      if AActionName = 'OnlyRole2' then
-        AIsAuthorized := AContext.LoggedUser.Roles.Contains('role2');
-    end));
+
+
+  // procedure(const AUserName, APassword: string; AControllerQualifiedClassName,
+  // AActionName: string; AUserRoles: TList<string>; var AIsValid: Boolean)
+  // begin
+  // AUserRoles.Clear;
+  // AIsValid := False;
+  // if AUserName = 'user1' then
+  // begin
+  // AIsValid := True;
+  // AUserRoles.Add('role1');
+  // end;
+  // if AUserName = 'user2' then
+  // begin
+  // AIsValid := True;
+  // AUserRoles.Add('role2');
+  // end;
+  // end,
+  // procedure(AContext: TWebContext; const AControllerQualifiedClassName: string;
+  // const AActionName: string; var AIsAuthorized: Boolean)
+  // begin
+  // if AActionName = 'OnlyRole1' then
+  // AIsAuthorized := AContext.LoggedUser.Roles.Contains('role1');
+  //
+  // if AActionName = 'OnlyRole2' then
+  // AIsAuthorized := AContext.LoggedUser.Roles.Contains('role2');
+  // end));
 
   MVCEngine.Config[TMVCConfigKey.StompServer] := 'localhost';
   MVCEngine.Config[TMVCConfigKey.StompServerPort] := '61613';
   MVCEngine.Config[TMVCConfigKey.StompUserName] := 'guest';
   MVCEngine.Config[TMVCConfigKey.StompPassword] := 'guest';
   MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
+end;
+
+{ TSampleAuth }
+
+procedure TSampleAuth.OnAuthentication(const UserName, Password: string;
+  UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
+begin
+  UserRoles.Clear;
+  IsValid := UserName = Password;
+  if not IsValid then
+    Exit;
+
+  if UserName = 'user1' then
+  begin
+    IsValid := True;
+    UserRoles.Add('role1');
+  end;
+  if UserName = 'user2' then
+  begin
+    IsValid := True;
+    UserRoles.Add('role2');
+  end;
+end;
+
+procedure TSampleAuth.OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
+  const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
+begin
+  IsAuthorized := False;
+  if ActionName = 'OnlyRole1' then
+    IsAuthorized := UserRoles.Contains('role1');
+
+  if ActionName = 'OnlyRole2' then
+    IsAuthorized := UserRoles.Contains('role2');
+end;
+
+procedure TSampleAuth.OnRequest(const ControllerQualifiedClassName, ActionName: string;
+  var AuthenticationRequired: Boolean);
+begin
+  AuthenticationRequired := ControllerQualifiedClassName.EndsWith('TTestPrivateServerController');
 end;
 
 end.

@@ -42,6 +42,8 @@ type
     procedure TestMiddlewareHandler;
     // test authentication/authorization
     procedure TestAuthentication01;
+    procedure TestAuthentication02;
+    procedure TestAuthentication03;
   end;
 
 implementation
@@ -54,7 +56,7 @@ uses
 {$ENDIF}
   MVCFramework.Commons,
   System.SyncObjs,
-  System.SysUtils, BusinessObjectsU, ObjectsMappers;
+  System.SysUtils, BusinessObjectsU, ObjectsMappers, Soap.EncdDecd;
 
 { TServerTest }
 
@@ -224,16 +226,32 @@ procedure TServerTest.TestAuthentication01;
 var
   LRes: IRESTResponse;
 begin
+  RESTClient.UserName := 'user1';
+  RESTClient.Password := 'user1';
+  LRes := RESTClient.doGET('/private/role1', []);
+  CheckEquals(200, LRes.ResponseCode);
+end;
+
+procedure TServerTest.TestAuthentication02;
+var
+  LRes: IRESTResponse;
+begin
   RESTClient.UserName := '';
   RESTClient.Password := '';
+  RESTClient.UseBasicAuthentication := false;
   LRes := RESTClient.doGET('/private/role1', []);
   CheckEquals(401, LRes.ResponseCode);
+end;
 
-  RESTClient.UseBasicAuthentication := true;
+procedure TServerTest.TestAuthentication03;
+var
+  LRes: IRESTResponse;
+begin
   RESTClient.UserName := 'user1';
-  RESTClient.Password := 'a';
-  LRes := RESTClient.doGET('/private/role1', []);
-  CheckEquals(401, LRes.ResponseCode);
+  RESTClient.Password := 'user1';
+  RESTClient.UseBasicAuthentication := true;
+  LRes := RESTClient.doGET('/private/role2', []);
+  CheckEquals(403, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestEncodingRenderJSONValue;
