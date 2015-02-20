@@ -26,47 +26,16 @@ implementation
 {$R *.dfm}
 
 uses AppControllerU, System.Generics.Collections,
-  MVCFramework.Middleware.Authentication;
+  MVCFramework.Middleware.Authentication, AuthenticationU;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
-var
-  LOnAuthentication: TOnAuthenticationEvent;
-  LOnAuthorization: TOnAuthorizationEvent;
 begin
-  LOnAuthentication :=
-      procedure(const AUserName, APassword: string; AControllerQualifiedClassName,
-      AActionNAme: string; AUserRoles: TList<string>; var AIsValid: Boolean)
-    begin
-      if AControllerQualifiedClassName = TAdminController.QualifiedClassName then
-      begin
-        AIsValid := AUserName.Equals(APassword);
-        if AIsValid then
-        begin
-          AUserRoles.Add('role1');
-          AUserRoles.Add('role2');
-        end
-        else
-          AUserRoles.Clear;
-      end
-      else // all the other controllers don't require authentication
-      begin
-        AUserRoles.Clear;
-        AIsValid := True;
-      end;
-    end;
-
-  LOnAuthorization :=
-      procedure(AContext: TWebContext; const AControllerQualifiedClassName: string;
-      const AActionNAme: string; var AIsAuthorized: Boolean)
-    begin
-      AIsAuthorized := AContext.LoggedUser.Roles.Contains('role1');
-    end;
-
   MVC := TMVCEngine.Create(Self);
+  MVC.Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
   MVC.Config[TMVCConfigKey.SessionTimeout] := '30';
-  MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
+  MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/html';
   MVC.AddController(TApp1MainController).AddController(TAdminController)
-    .AddMiddleware(TMVCAuthenticationMiddleware.Create(LOnAuthentication, LOnAuthorization));
+    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TAuthenticationSample.Create));
 end;
 
 end.

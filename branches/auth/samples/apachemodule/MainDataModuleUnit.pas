@@ -6,15 +6,17 @@ uses System.SysUtils,
   System.Classes,
   Data.DBXFirebird,
   Data.DB,
-  Data.SqlExpr
-{$IFDEF VER270}
-    , System.JSON
+  Data.SqlExpr,
+{$IF CompilerVersion <= 27}
+  Data.DBXJSON,
 {$ELSE}
-    , Data.DBXJSON
+  System.JSON,
 {$ENDIF}
-    , FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
-  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client, FireDAC.Stan.Param,
-  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase, FireDAC.Phys.FB;
+  FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
+  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
+  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase,
+  FireDAC.Phys.FB, FireDAC.Phys.FBDef;
 
 type
   TWineCellarDataModule = class(TDataModule)
@@ -36,7 +38,6 @@ implementation
 
 {$R *.dfm}
 
-
 uses System.StrUtils,
   Data.DBXCommon,
   ObjectsMappers,
@@ -50,10 +51,7 @@ var
 begin
   Wine := Mapper.JSONObjectToObject<TWine>(AWine);
   try
-    Mapper.ObjectToFDParameters(
-      updWines.Commands[arInsert].Params,
-      Wine,
-      'NEW_');
+    Mapper.ObjectToFDParameters(updWines.Commands[arInsert].Params, Wine, 'NEW_');
     updWines.Commands[arInsert].Execute;
   finally
     Wine.Free;

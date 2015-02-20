@@ -94,6 +94,7 @@
         </DCCReference>
         <DCCReference Include="AppControllerU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
+        <DCCReference Include="AuthenticationU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

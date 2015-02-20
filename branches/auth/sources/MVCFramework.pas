@@ -219,9 +219,11 @@ type
     FRoles: TList<string>;
     FUserName: string;
     FLoggedSince: TDateTime;
+    FRealm: string;
     procedure SetUserName(const Value: string);
     procedure SetLoggedSince(const Value: TDateTime);
     function GetIsValidLoggedUser: boolean;
+    procedure SetRealm(const Value: string);
 
   public
     procedure SaveToSession(AWebSession: TWebSession);
@@ -231,6 +233,7 @@ type
     property UserName: string read FUserName write SetUserName;
     property LoggedSince: TDateTime read FLoggedSince write SetLoggedSince;
     property IsValid: boolean read GetIsValidLoggedUser;
+    property Realm: string read FRealm write SetRealm;
     constructor Create; virtual;
     destructor Destroy; override;
   end;
@@ -564,19 +567,6 @@ begin
   Config[TMVCConfigKey.StompPassword] := 'guest';
   Config[TMVCConfigKey.Messaging] := 'false';
 
-  // Config['sessiontimeout'] := '30'; // 30 minutes
-  // Config['document_root'] := '..\..\..\www';
-  // Config['view_path'] := 'eLua';
-  // Config['default_content_type'] := TMVCMimeType.APPLICATION_JSON;
-  // Config['default_view_file_extension'] := 'elua';
-  // Config['isapi_path'] := '';
-  //
-  // Config['stompserver'] := 'localhost';
-  // Config['stompserverport'] := '61613';
-  // Config['stompusername'] := 'guest';
-  // Config['stomppassword'] := 'guest';
-  // Config['messaging'] := 'true';
-  /// ///////
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.txt', TMVCMimeType.TEXT_PLAIN);
@@ -1751,7 +1741,6 @@ begin
 end;
 
 procedure TMVCController.SendFile(AFileName: string);
-
 begin
   TMVCStaticContents.SendFile(AFileName, ContentType, Context);
 end;
@@ -2501,6 +2490,7 @@ procedure TUser.Clear;
 begin
   FUserName := '';
   FLoggedSince := 0;
+  FRealm := '';
   FRoles.Clear;
 end;
 
@@ -2538,6 +2528,7 @@ begin
     LPieces := LSerObj.Split(['$$'], TStringSplitOptions.None);
     UserName := LPieces[0];
     LoggedSince := ISOStrToDateTime(LPieces[1]);
+    Realm := LPieces[2];
     Roles.Clear;
     for I := 2 to Length(LPieces) - 1 do
     begin
@@ -2556,7 +2547,7 @@ begin
   else
     LRoles := '';
   AWebSession[TMVCConstants.CURRENT_USER_SESSION_KEY] := FUserName + '$$' +
-    ISODateTimeToString(FLoggedSince) + '$$' + LRoles;
+    ISODateTimeToString(FLoggedSince) + '$$' + FRealm + '$$' + LRoles;
 end;
 
 procedure TUser.SetLoggedSince(const Value: TDateTime);
@@ -2565,6 +2556,11 @@ begin
     FLoggedSince := Value
   else
     raise EMVCException.Create('User.LoggedSince already set');
+end;
+
+procedure TUser.SetRealm(const Value: string);
+begin
+  FRealm := Value;
 end;
 
 procedure TUser.SetUserName(const Value: string);

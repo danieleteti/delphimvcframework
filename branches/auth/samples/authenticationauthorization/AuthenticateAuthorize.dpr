@@ -2,7 +2,6 @@ program AuthenticateAuthorize;
 
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
   Winapi.Windows,
@@ -10,12 +9,13 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   AppControllerU in 'AppControllerU.pas',
-  MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas';
+  MVCFramework.Middleware.Authentication
+    in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  AuthenticationU in 'AuthenticationU.pas';
 
 {$R *.res}
-
 
 procedure RunServer(APort: Integer);
 var
@@ -30,12 +30,12 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     Writeln('Press ESC to stop the server');
+    ShellExecute(0, 'open', PChar('http://localhost:' + APort.ToString), nil, nil, SW_SHOW);
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
     begin
       Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
+      if (LInputRecord.EventType = KEY_EVENT) and LInputRecord.Event.KeyEvent.bKeyDown and
         (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
         break;
     end;

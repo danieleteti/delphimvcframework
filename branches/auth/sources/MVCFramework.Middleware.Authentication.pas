@@ -6,17 +6,19 @@ uses
   MVCFramework, MVCFramework.Commons, MVCFramework.Logger, System.Generics.Collections;
 
 type
-  TMVCAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  TMVCBasicAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   strict private
     FMVCAuthenticationHandler: IMVCAuthenticationHandler;
   protected
+    FRealm: string;
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnAfterControllerAction(Context: TWebContext; const AActionName: string;
       const Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string; var Handled: Boolean);
   public
-    constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler); virtual;
+    constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler;
+      Realm: string = 'DelphiMVCFramework REALM'); virtual;
   end;
 
 implementation
@@ -34,20 +36,21 @@ uses
 
 { TMVCSalutationMiddleware }
 
-constructor TMVCAuthenticationMiddleware.Create(AMVCAuthenticationHandler
-  : IMVCAuthenticationHandler);
+constructor TMVCBasicAuthenticationMiddleware.Create(AMVCAuthenticationHandler
+  : IMVCAuthenticationHandler; Realm: string);
 begin
   inherited Create;
   FMVCAuthenticationHandler := AMVCAuthenticationHandler;
+  FRealm := Realm;
 end;
 
-procedure TMVCAuthenticationMiddleware.OnAfterControllerAction(Context: TWebContext;
+procedure TMVCBasicAuthenticationMiddleware.OnAfterControllerAction(Context: TWebContext;
   const AActionName: string; const Handled: Boolean);
 begin
 
 end;
 
-procedure TMVCAuthenticationMiddleware.OnBeforeControllerAction(Context: TWebContext;
+procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(Context: TWebContext;
   const AControllerQualifiedClassName, AActionName: string; var Handled: Boolean);
 var
   LAuth: string;
@@ -64,7 +67,7 @@ var
   begin
     Context.LoggedUser.Clear;
     Context.Response.StatusCode := 401;
-    Context.Response.SetCustomHeader('WWW-Authenticate', 'Basic realm="DMVCFramework TEST"');
+    Context.Response.SetCustomHeader('WWW-Authenticate', 'Basic realm=' + FRealm.QuotedString);
     Handled := true;
   end;
 
@@ -119,11 +122,12 @@ begin
         Context.LoggedUser.Roles.AddRange(LRoles);
         Context.LoggedUser.UserName := LPieces[0];
         Context.LoggedUser.LoggedSince := Now;
+        Context.LoggedUser.Realm := FRealm;
         LSessionID := TMVCEngine.SendSessionCookie(Context);
         LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
           Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
-        LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
-          ['Authorization'];
+//        LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
+        // ['Authorization'];
         Context.LoggedUser.SaveToSession(LWebSession);
       end;
     finally
@@ -135,8 +139,8 @@ begin
   LIsAuthorized := False;
   if LIsValid then
   begin
-    FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
-      LIsAuthorized)
+    FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles,
+      AControllerQualifiedClassName, AActionName, LIsAuthorized)
   end;
 
   if LIsAuthorized then
@@ -150,7 +154,7 @@ begin
   end;
 end;
 
-procedure TMVCAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
+procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
 begin
 
 end;
