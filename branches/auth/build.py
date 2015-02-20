@@ -22,8 +22,8 @@ def buildProject(project):
 def summaryTable(builds):
     WConio.clrscr()
     WConio.textcolor(WConio.WHITE)
-    print "PROJECT NAME".ljust(70) + "STATUS".ljust(10)
-    print "=" * 80
+    print "PROJECT NAME".ljust(90) + "STATUS".ljust(10)
+    print "=" * 100
     good = bad = 0
     for item in builds:
         if item['status'] == 'ok':
@@ -32,13 +32,13 @@ def summaryTable(builds):
         else:
             WConio.textcolor(WConio.RED)
             bad += 1
-        print item['project'].ljust(70) + item['status'].ljust(4)
+        print item['project'].ljust(90) + item['status'].ljust(4)
     WConio.textcolor(WConio.WHITE)
-    print "=" * 80
+    print "=" * 100
     WConio.textcolor(WConio.GREEN)
-    print "GOOD :".rjust(70) + str(good).rjust(10, '.')
+    print "GOOD :".rjust(90) + str(good).rjust(10, '.')
     WConio.textcolor(WConio.RED)
-    print "BAD  :".rjust(70) + str(bad).rjust(10, '.')
+    print "BAD  :".rjust(90) + str(bad).rjust(10, '.')
 
 
 #################################################################################
