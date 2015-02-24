@@ -1307,7 +1307,11 @@ var
 begin
   LJObj := ObjectToJSONObjectFields(AObject, AIgnoredProperties);
   try
+{$IF CompilerVersion >= 27}
     Result := LJObj.ToJSON;
+{$ELSE}
+    Result := LJObj.ToString
+{$ENDIF}
   finally
     LJObj.Free;
   end;
