@@ -34,7 +34,12 @@ uses
 
 }
 
-{ TMVCSalutationMiddleware }
+const
+  CONTENT_HTML_FORMAT = '<html><body><h1>%s</h1></body></html>';
+  CONTENT_401_NOT_AUTHORIZED = '401: Not authorized';
+  CONTENT_403_FORBIDDEN = '403: Forbidden';
+
+  { TMVCSalutationMiddleware }
 
 constructor TMVCBasicAuthenticationMiddleware.Create(AMVCAuthenticationHandler
   : IMVCAuthenticationHandler; Realm: string);
@@ -66,19 +71,50 @@ var
   procedure SendWWWAuthenticate;
   begin
     Context.LoggedUser.Clear;
+    if Context.Request.ClientPreferHTML then
+    begin
+      Context.Response.ContentType := 'text/html';
+      Context.Response.RawWebResponse.Content :=
+        Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED]);
+    end
+    else
+    begin
+      Context.Response.ContentType := 'text/plain';
+      Context.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED;
+    end;
     Context.Response.StatusCode := 401;
     Context.Response.SetCustomHeader('WWW-Authenticate', 'Basic realm=' + FRealm.QuotedString);
+
     Handled := true;
   end;
 
   procedure Send403Forbidden;
   begin
     Context.LoggedUser.Clear;
+    if Context.Request.ClientPreferHTML then
+    begin
+      Context.Response.ContentType := 'text/html';
+      Context.Response.RawWebResponse.Content :=
+        Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN]);
+    end
+    else
+    begin
+      Context.Response.ContentType := 'text/plain';
+      Context.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN;
+    end;
     Context.Response.StatusCode := 403;
     Handled := true;
   end;
 
 begin
+  // check if the resource is protected
+  FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, LAuthRequired);
+  if not LAuthRequired then
+  begin
+    Handled := False;
+    Exit;
+  end;
+
   LSessionIDFromWebRequest := TMVCEngine.ExtractSessionIDFromWebRequest
     (Context.Request.RawWebRequest);
   LWebSession := TMVCEngine.GetCurrentSession(Context.Config.AsInt64[TMVCConfigKey.SessionTimeout],
@@ -95,12 +131,12 @@ begin
   if not Context.LoggedUser.IsValid then
   begin
     // check if the resource is protected
-    FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, LAuthRequired);
-    if not LAuthRequired then
-    begin
-      Handled := False;
-      Exit;
-    end;
+    // FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, LAuthRequired);
+    // if not LAuthRequired then
+    // begin
+    // Handled := False;
+    // Exit;
+    // end;
 
     // we NEED authentication
     LAuth := Context.Request.Headers['Authorization'];
@@ -126,7 +162,7 @@ begin
         LSessionID := TMVCEngine.SendSessionCookie(Context);
         LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
           Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
-//        LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
+        // LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
         // ['Authorization'];
         Context.LoggedUser.SaveToSession(LWebSession);
       end;
@@ -154,7 +190,8 @@ begin
   end;
 end;
 
-procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
+procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext;
+  var Handled: Boolean);
 begin
 
 end;

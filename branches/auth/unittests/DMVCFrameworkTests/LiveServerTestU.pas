@@ -44,6 +44,7 @@ type
     procedure TestAuthentication01;
     procedure TestAuthentication02;
     procedure TestAuthentication03;
+    procedure TestAuthentication04;
   end;
 
 implementation
@@ -252,6 +253,19 @@ begin
   RESTClient.UseBasicAuthentication := true;
   LRes := RESTClient.doGET('/private/role2', []);
   CheckEquals(403, LRes.ResponseCode);
+end;
+
+procedure TServerTest.TestAuthentication04;
+var
+  LRes: IRESTResponse;
+begin
+  RESTClient.UserName := 'user1';
+  RESTClient.Password := 'user1';
+  RESTClient.UseBasicAuthentication := true;
+  LRes := RESTClient.doGET('/private/role1', []);
+  CheckEquals(200, LRes.ResponseCode);
+  LRes := RESTClient.doGET('/people', []);
+  CheckEquals(200, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestEncodingRenderJSONValue;
