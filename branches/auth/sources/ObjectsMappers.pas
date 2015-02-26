@@ -2115,19 +2115,25 @@ var
   lJClassName: TJSONString;
   LObj: TObject;
 begin
-  if AJSONObject.TryGetValue<TJSONString>(DMVC_CLASSNAME, lJClassName) then
+{$IF CompilerVersion <= 26}
+  if Assigned(AJSONObject.Get(DMVC_CLASSNAME)) then
   begin
-    LObj := TRTTIUtils.CreateObject(lJClassName.Value);
-    try
-      InternalJSONObjectFieldsToObject(ctx, AJSONObject, LObj);
-      Result := LObj;
-    except
-      FreeAndNil(LObj);
-      raise;
-    end;
+    lJClassName := AJSONObject.Get(DMVC_CLASSNAME).JsonValue as TJSONString;
   end
   else
     raise EMapperException.Create('No $classname property in the JSON object');
+{$ELSE}
+  if not AJSONObject.TryGetValue<TJSONString>(DMVC_CLASSNAME, lJClassName) then
+    raise EMapperException.Create('No $classname property in the JSON object');
+{$ENDIF}
+  LObj := TRTTIUtils.CreateObject(lJClassName.Value);
+  try
+    InternalJSONObjectFieldsToObject(ctx, AJSONObject, LObj);
+    Result := LObj;
+  except
+    FreeAndNil(LObj);
+    raise;
+  end;
 end;
 
 class function Mapper.JSONObjectStringToObject<T>(const AJSONObjectString: string): T;
