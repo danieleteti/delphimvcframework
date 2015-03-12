@@ -117,14 +117,14 @@ var
   message_data: string;
   s1: string;
 const
-  MSG = 5000;
-  MSG_SIZE = 1024 * 5; // div 10;
+  MSG = 1000;
+  MSG_SIZE = 1024; // div 10;
 begin
   sw1 := TStopWatch.StartNew;
   message_data := StringOfChar('X', MSG_SIZE);
   WriteLn('TEST MESSAGE IS (', length(message_data), ' bytes - WILL BE UTF8 Encoded):', #13#10, '"',
     message_data, '"'#13#10#13#10);
-  stomp := StompUtils.NewStomp(serveraddress, DEFAULT_STOMP_PORT, '', 'Daniele', 'Teti',
+  stomp := StompUtils.NewStomp(serveraddress, DEFAULT_STOMP_PORT, '', 'guest', 'guest',
     STOMP_VERSION);
   WriteLn('SERVER: ', stomp.GetServer, ' PROTOCOL VERSION: ' + stomp.GetProtocolVersion);
 
@@ -144,7 +144,7 @@ begin
     begin
       stomp.Send('/topic/foo.bar', message_data,
         StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true)));
-      if i mod 100 = 0 then
+      //if i mod 100 = 0 then
         WriteLn('Queued ', i, ' messages in ', sw.ElapsedMilliseconds, ' ms');
     end;
     WriteLn('Finished Queueing... Currently Queued ', MSG, ' messages in ',

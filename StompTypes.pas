@@ -129,7 +129,7 @@ type
   TStompFrame = class(TInterfacedObject, IStompFrame)
   private
     FCommand: string;
-    FBody   : string;
+    FBody: string;
     FHeaders: IStompHeaders;
     procedure SetHeaders(const Value: IStompHeaders);
     function GetCommand: string;
@@ -174,7 +174,7 @@ type
   TStompClientListener = class(TThread, IStompListener)
   strict protected
     FStompClientListener: IStompClientListener;
-    FStompClient        : IStompClient;
+    FStompClient: IStompClient;
     procedure Execute; override;
 
   public
@@ -195,9 +195,8 @@ type
     class function NewFrame: IStompFrame;
     class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
     class function NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-      ClientID      : string = '';
-      const UserName: string = 'guest'; const Password: string = 'guest';
-      AcceptVersion : TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
+      ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest';
+      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
   end;
 
 implementation
@@ -207,7 +206,7 @@ uses
   StompClient;
 
 class function StompUtils.NewStomp(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-  ClientID     : string = ''; const UserName: string = 'guest'; const Password: string = 'guest';
+  ClientID: string = ''; const UserName: string = 'guest'; const Password: string = 'guest';
   AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
 begin
   Result := TStompClient.Create;
@@ -264,8 +263,8 @@ begin
       Result := 'client';
     amClientIndividual:
       Result := 'client-individual'; // stomp 1.1
-    else
-      raise EStomp.Create('Unknown AckMode');
+  else
+    raise EStomp.Create('Unknown AckMode');
   end;
 end;
 
@@ -350,13 +349,13 @@ end;
 
 class function StompUtils.CreateFrame(Buf: string): TStompFrame;
 var
-  line      : string;
-  i         : Integer;
-  p         : Integer;
+  line: string;
+  i: Integer;
+  p: Integer;
   Key, Value: string;
-  other     : string;
-  contLen   : Integer;
-  sContLen  : string;
+  other: string;
+  contLen: Integer;
+  sContLen: string;
 begin
   Result := TStompFrame.Create;
   i := 1;
@@ -382,7 +381,8 @@ begin
         raise EStomp.Create('frame no ending');
       contLen := StrToInt(sContLen);
       other := StripLastChar(other, COMMAND_END);
-      if Length(other) <> contLen then // there is still the command_end
+
+      if TEncoding.UTF8.GetByteCount(other) <> contLen then // there is still the command_end
         raise EStomp.Create('frame too short');
       Result.Body := other;
     end
@@ -477,7 +477,7 @@ end;
 
 function TStompHeaders.Output: string;
 var
-  i : Integer;
+  i: Integer;
   kv: TKeyValue;
 begin
   Result := '';
@@ -538,19 +538,20 @@ end;
 
 procedure TStompClientListener.Execute;
 var
-  frame     : IStompFrame;
+  frame: IStompFrame;
   StopListen: Boolean;
 begin
   StopListen := False;
   while not terminated do
   begin
-    if FStompClient.Receive(frame, 2000) then
+    if FStompClient.Receive(frame, 1000) then
     begin
       FStompClientListener.OnMessage(FStompClient, frame, StopListen);
       if StopListen then
       begin
         FStompClientListener.OnStopListen(FStompClient);
-        StopListening;
+        if not terminated then
+          StopListening;
       end;
     end;
   end;
@@ -558,13 +559,13 @@ end;
 
 function TStompClientListener.QueryInterface(const IID: TGUID; out Obj): HRESULT;
 begin
-
+  Result := 0;
 end;
 
 procedure TStompClientListener.StopListening;
 begin
   Terminate;
-  Free;
+  // Free;
   // WaitFor;
 end;
 

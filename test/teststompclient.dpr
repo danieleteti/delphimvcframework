@@ -17,9 +17,9 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   try
     Main(SERVERNAME, STOMP_Version_1_0);
-    Main(SERVERNAME, STOMP_Version_1_1); // Your STOMP server supports protocol 1.1 ?
-    MainWithTransaction;
-    Test_Unicode_Chars;
+    //Main(SERVERNAME, STOMP_Version_1_1); // Your STOMP server supports protocol 1.1 ?
+    //MainWithTransaction;
+    //Test_Unicode_Chars;
     Writeln('ALL TESTS OK');
   except
     on E: Exception do

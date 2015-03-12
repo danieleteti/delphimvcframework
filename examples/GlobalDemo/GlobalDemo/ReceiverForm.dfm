@@ -111,7 +111,7 @@ object Form1: TForm1
       EditLabel.Height = 13
       EditLabel.Caption = 'UserName'
       TabOrder = 1
-      Text = 'admin'
+      Text = 'guest'
     end
     object edtPassword: TLabeledEdit
       Left = 314
@@ -122,7 +122,7 @@ object Form1: TForm1
       EditLabel.Height = 13
       EditLabel.Caption = 'Password'
       TabOrder = 2
-      Text = 'password'
+      Text = 'guest'
     end
     object edtHostNameAndPort: TLabeledEdit
       Left = 8
