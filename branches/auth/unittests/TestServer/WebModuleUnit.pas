@@ -41,20 +41,24 @@ type
 
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
-  MVCEngine := TMVCEngine.Create(self);
+  MVCEngine := TMVCEngine.Create(self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.Messaging] := 'true';
+    end);
   MVCEngine.AddController(TTestServerController).AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TSampleAuth.Create));
 
-  MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
+  // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;
 
 { TSampleAuth }
 
 procedure TSampleAuth.OnAuthentication(const UserName, Password: string;
-  UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
+UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
 begin
   UserRoles.Clear;
   IsValid := UserName = Password;
@@ -74,7 +78,7 @@ begin
 end;
 
 procedure TSampleAuth.OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
-  const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
+const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
   if ActionName = 'OnlyRole1' then
@@ -85,7 +89,7 @@ begin
 end;
 
 procedure TSampleAuth.OnRequest(const ControllerQualifiedClassName, ActionName: string;
-  var AuthenticationRequired: Boolean);
+var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName.EndsWith('TTestPrivateServerController');
 end;

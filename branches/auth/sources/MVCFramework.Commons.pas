@@ -80,6 +80,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    function Keys: TArray<string>;
     property Value[AIndex: string]: string read GetValue write SetValue; default;
     property AsInt64[AIndex: string]: Int64 read GetValueAsInt64;
     function ToString: string; override;
@@ -93,8 +94,8 @@ type
       var AuthenticationRequired: Boolean);
     procedure OnAuthentication(const UserName, Password: string; UserRoles: TList<string>;
       var IsValid: Boolean);
-    procedure OnAuthorization(UserRoles: TList<String>; const ControllerQualifiedClassName: string; const ActionName: string;
-      var IsAuthorized: Boolean);
+    procedure OnAuthorization(UserRoles: TList<string>; const ControllerQualifiedClassName: string;
+      const ActionName: string; var IsAuthorized: Boolean);
 
   end;
 
@@ -189,6 +190,11 @@ end;
 function TMVCConfig.GetValueAsInt64(AIndex: string): Int64;
 begin
   Result := StrToInt64(Value[AIndex]);
+end;
+
+function TMVCConfig.Keys: TArray<string>;
+begin
+  Result := FConfig.Keys.ToArray;
 end;
 
 procedure TMVCConfig.LoadFromFile(const AFileName: string);

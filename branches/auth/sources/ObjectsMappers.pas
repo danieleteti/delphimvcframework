@@ -169,7 +169,7 @@ type
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
       AJSONArrayInstanceOwner: boolean = True); overload;
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
-      AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean = True); overload;
+      AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean = True;AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     // class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
     // ADataSetInstanceOwner: boolean = True);
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
@@ -225,7 +225,7 @@ type
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray); overload;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string);
     procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
@@ -1656,14 +1656,14 @@ begin
 end;
 
 class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
-  AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean);
+  AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean; AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
 begin
   for I := 0 to AJSONArray.Size - 1 do
   begin
     ADataSet.Append;
-    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, AIgnoredFields, false);
+    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, AIgnoredFields, false, AFieldNamePolicy);
     ADataSet.Post;
   end;
   if AJSONArrayInstanceOwner then
@@ -2477,7 +2477,9 @@ var
           else
             Result := ftFloat;
         end;
-      tkChar, tkWChar, tkString, tkUString, tkLString, tkWString:
+      tkChar, tkString:
+        Result := ftString;
+      tkWChar, tkUString, tkLString, tkWString:
         Result := ftWideString;
       tkVariant:
         Result := ftVariant;
@@ -2777,11 +2779,11 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy);
 begin
   Self.DisableControls;
   try
-    Mapper.JSONArrayToDataSet(AJSONArray, Self, false);
+    Mapper.JSONArrayToDataSet(AJSONArray, Self, [], false, AFieldNamePolicy);
   finally
     Self.EnableControls;
   end;

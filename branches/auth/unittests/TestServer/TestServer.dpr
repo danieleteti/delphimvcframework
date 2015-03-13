@@ -29,7 +29,8 @@ uses
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
   uGlobalVars in '..\..\sources\uGlobalVars.pas' {$R *.res},
   MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
-  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas';
+  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas';
 
 {$R *.res}
 

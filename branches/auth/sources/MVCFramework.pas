@@ -98,7 +98,7 @@ type
     FCharset: string;
     FContentCharset: string;
     function GetHeader(const Name: string): string;
-    function GetHeaderValue(const Name: string): string;
+    // function GetHeaderValue(const Name: string): string;
     function GetPathInfo: string;
     function GetParamAll(const ParamName: string): string;
     function GetIsAjax: boolean;
@@ -302,13 +302,17 @@ type
     function GetWebSession: TWebSession;
     function GetContentCharset: string;
     procedure SetContentCharset(const Value: string);
+    // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
+    // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType);
 
+  protected const
+    CLIENTID_KEY = '__clientid';
   protected
+    function GetClientID: string;
     procedure RaiseSessionExpired; virtual;
     function GetCurrentWebModule: TWebModule;
     function ResponseStream: TStringBuilder;
     function GetNewStompClient(ClientID: string = ''): IStompClient;
-    function GetClientID: string;
     procedure LoadView(const ViewName: string); virtual;
     property Context: TWebContext read FContext write SetContext;
     property Session: TWebSession read GetWebSession write SetWebSession;
@@ -395,8 +399,7 @@ type
     // FViewCache            : TViewCache;
     FMimeTypes: TDictionary<string, string>;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
-    function GetBinVersion(): string;
-    function GetUpTime: string;
+    function GetBinVersion: string;
 
   protected
     FConfiguredSessionTimeout: Int64;
@@ -416,17 +419,13 @@ type
     procedure LoadSystemControllers; virtual;
     procedure ResponseErrorPage(E: Exception; Request: TWebRequest;
       Response: TWebResponse); virtual;
-    function IsBuiltInMethod(const AWebRequest: TWebRequest;
-      const AWebResponse: TWebResponse): boolean;
-    procedure HandleBuiltInMethods(const AWebRequest: TWebRequest;
-      const AWebResponse: TWebResponse);
     procedure ExecuteFile(const AFileName: string; AContext: TWebContext); virtual;
 
   public
     class function GetCurrentSession(ASessionTimeout: UInt64; const ASessionID: string;
       ARaiseExceptionIfExpired: boolean = true): TWebSession;
     class function ExtractSessionIDFromWebRequest(AWebRequest: TWebRequest): string;
-    constructor Create(WebModule: TWebModule); reintroduce;
+    constructor Create(WebModule: TWebModule; ConfigProc: TProc<TMVCConfig> = nil); reintroduce;
     destructor Destroy; override;
     class function SendSessionCookie(AContext: TWebContext): string; overload;
     class function SendSessionCookie(AContext: TWebContext; ASessionID: string): string; overload;
@@ -435,6 +434,8 @@ type
     function GetSessionBySessionID(const ASessionID: string): TWebSession;
     function AddController(AControllerClass: TMVCControllerClass): TMVCEngine; overload;
     function AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
+    // internal methods
+    function RegisteredControllers: TList<TMVCControllerClass>;
     // http return codes
     procedure Http404(AWebContext: TWebContext);
     procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
@@ -506,7 +507,7 @@ uses
 
 {$ENDIF},
   LuaBind,
-  MVCFramework.BUSController, Web.WebReq;
+  MVCFramework.BUSController, Web.WebReq, MVCFramework.SysControllers;
 
 type
   TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest
@@ -552,6 +553,7 @@ end;
 
 procedure TMVCEngine.ConfigDefaultValues;
 begin
+  Log(TLogLevel.levNormal, 'ENTER: Config default values');
   Config[TMVCConfigKey.SessionTimeout] := '30'; // 30 minutes
   Config[TMVCConfigKey.DocumentRoot] := '.\www';
   Config[TMVCConfigKey.ViewPath] := 'eLua';
@@ -576,9 +578,11 @@ begin
   FMimeTypes.Add('.jpeg', TMVCMimeType.IMAGE_JPEG);
   FMimeTypes.Add('.png', TMVCMimeType.IMAGE_PNG);
   FMimeTypes.Add('.appcache', TMVCMimeType.TEXT_CACHEMANIFEST);
+
+  Log(TLogLevel.levNormal, 'EXIT: Config default values');
 end;
 
-constructor TMVCEngine.Create(WebModule: TWebModule);
+constructor TMVCEngine.Create(WebModule: TWebModule; ConfigProc: TProc<TMVCConfig>);
 begin
   inherited Create(WebModule);
   WebRequestHandler.CacheConnections := true;
@@ -591,6 +595,12 @@ begin
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
   ConfigDefaultValues;
+  if Assigned(ConfigProc) then
+  begin
+    LogEnterMethod('Custom configuration proc');
+    ConfigProc(Self.FMVCConfig);
+    LogExitMethod('Custom configuration proc');
+  end;
   LoadSystemControllers;
 end;
 
@@ -732,10 +742,6 @@ begin
                 finally
                   SelectedController.Free;
                 end;
-              end
-              else if IsBuiltInMethod(Request, Response) then
-              begin
-                HandleBuiltInMethods(Request, Response);
               end
               else
               begin
@@ -897,149 +903,6 @@ begin
   end;
 end;
 
-function MSecToTime(mSec: Int64): string;
-const
-  secondTicks = 1000;
-  minuteTicks = 1000 * 60;
-  hourTicks = 1000 * 60 * 60;
-  dayTicks = 1000 * 60 * 60 * 24;
-var
-  D, H, M, S: string;
-  ZD, ZH, ZM, ZS: Integer;
-begin
-  ZD := mSec div dayTicks;
-  Dec(mSec, ZD * dayTicks);
-  ZH := mSec div hourTicks;
-  Dec(mSec, ZH * hourTicks);
-  ZM := mSec div minuteTicks;
-  Dec(mSec, ZM * minuteTicks);
-  ZS := mSec div secondTicks;
-  D := IntToStr(ZD);
-  H := IntToStr(ZH);
-  M := IntToStr(ZM);
-  S := IntToStr(ZS);
-  Result := D + '.' + H + ':' + M + ':' + S;
-end;
-
-function TMVCEngine.GetUpTime: string;
-begin
-  Result := MSecToTime(GetTickCount);
-end;
-
-procedure TMVCEngine.HandleBuiltInMethods(const AWebRequest: TWebRequest;
-  const AWebResponse: TWebResponse);
-var
-  j: TJSONObject;
-  c: TMVCControllerClass;
-  _type: TRttiInstanceType;
-  _method: TRttiMethod;
-  _methods: TArray<TRttiMethod>;
-  ControllerInfo: TJSONObject;
-  jmethod: TJSONObject;
-  _a: TCustomAttribute;
-  methods: TJSONArray;
-  FoundAttrib: boolean;
-  StrRelativePath: string;
-  StrHTTPMethods: string;
-  StrConsumes: string;
-  StrProduces: string;
-begin
-  { TODO -oDaniele -cGeneral : Please! Use a register here!! }
-  if LowerCase(string(AWebRequest.PathInfo)) = '/describeserver.info' then
-  begin
-    j := TJSONObject.Create;
-    try
-      for c in FControllers do
-      begin
-        ControllerInfo := TJSONObject.Create;
-        j.AddPair(c.QualifiedClassName, ControllerInfo);
-
-        _type := ctx.GetType(c) as TRttiInstanceType;
-        for _a in _type.GetAttributes do
-        begin
-          if _a is MVCPathAttribute then
-            ControllerInfo.AddPair('ResourcePath', MVCPathAttribute(_a).Path)
-        end;
-
-        methods := TJSONArray.Create;
-        ControllerInfo.AddPair('Actions', methods);
-        _methods := _type.GetDeclaredMethods;
-        for _method in _methods do
-        begin
-          FoundAttrib := false;
-          StrRelativePath := '';
-          StrHTTPMethods := '';
-          StrConsumes := '';
-          StrProduces := '';
-          for _a in _method.GetAttributes do
-          begin
-            if _a is MVCPathAttribute then
-            begin
-              StrRelativePath := MVCPathAttribute(_a).Path;
-              FoundAttrib := true;
-            end;
-            if _a is MVCHTTPMethodAttribute then
-            begin
-              StrHTTPMethods := MVCHTTPMethodAttribute(_a).MVCHTTPMethodsAsString;
-              FoundAttrib := true;
-            end;
-            if _a is MVCConsumesAttribute then
-            begin
-              StrConsumes := MVCConsumesAttribute(_a).Value;
-              FoundAttrib := true;
-            end;
-            if _a is MVCProducesAttribute then
-            begin
-              StrProduces := MVCProducesAttribute(_a).Value;
-              FoundAttrib := true;
-            end;
-          end;
-
-          if FoundAttrib then
-          begin
-            jmethod := TJSONObject.Create;
-            jmethod.AddPair('ActionName', _method.Name);
-            jmethod.AddPair('RelativePath', StrRelativePath);
-            jmethod.AddPair('Consumes', StrConsumes);
-            jmethod.AddPair('Produces', StrProduces);
-            jmethod.AddPair('HTTPMethods', StrHTTPMethods);
-            methods.AddElement(jmethod);
-          end;
-        end;
-      end;
-      AWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
-      AWebResponse.Content := j.ToString;
-      AWebResponse.StatusCode := 200;
-    finally
-      j.Free;
-    end;
-  end
-  else if LowerCase(string(AWebRequest.PathInfo)) = '/describeplatform.info' then
-  begin
-    j := TJSONObject.Create;
-    try
-      j.AddPair('os', TOSVersion.ToString);
-      // j.AddPair('binversion', GetBinVersion());
-      j.AddPair('CPUs', TJSONNumber.Create(TThread.ProcessorCount));
-      j.AddPair('CPU_architecture', IntToStr(Ord(TOSVersion.Architecture)) +
-        ' /*(0=Intelx86; 1=Intelx64 2=ARM32)*/');
-      j.AddPair('uptime', GetUpTime);
-
-      AWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
-      AWebResponse.Content := j.ToString;
-      AWebResponse.StatusCode := 200;
-    finally
-      j.Free;
-    end;
-  end
-  else if LowerCase(string(AWebRequest.PathInfo)) = '/serverconfig.info' then
-  begin
-    AWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
-    AWebResponse.Content := Config.ToString.Replace('\', '\\', [rfReplaceAll]);
-    AWebResponse.StatusCode := 200;
-  end;
-end;
-
 procedure TMVCEngine.Http404(AWebContext: TWebContext);
 begin
   AWebContext.Response.StatusCode := 404;
@@ -1054,18 +917,16 @@ begin
   AWebContext.Response.Content := 'Internal server error: ' + AReasonText;
 end;
 
-function TMVCEngine.IsBuiltInMethod(const AWebRequest: TWebRequest;
-  const AWebResponse: TWebResponse): boolean;
-begin
-  Result := (LowerCase(AWebRequest.PathInfo) = '/describeserver.info') or
-    (LowerCase(AWebRequest.PathInfo) = '/describeplatform.info') or
-    (LowerCase(AWebRequest.PathInfo) = '/serverconfig.info');
-end;
-
 procedure TMVCEngine.LoadSystemControllers;
 begin
-  if Config[TMVCConfigKey.Messaging].Equals('true') then
+  Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
+  AddController(TMVCSystemController);
+  if Config[TMVCConfigKey.Messaging].ToLower.Equals('true') then
+  begin
     AddController(TMVCBUSController);
+    Log(TLogLevel.levNormal, 'Loaded system controller ' + TMVCBUSController.QualifiedClassName);
+  end;
+  Log(TLogLevel.levNormal, 'EXIT: LoadSystemControllers');
 end;
 
 procedure TMVCEngine.OnBeforeDispatch(Sender: TObject; Request: TWebRequest; Response: TWebResponse;
@@ -1091,6 +952,11 @@ begin
     end;
     Handled := true;
   end;
+end;
+
+function TMVCEngine.RegisteredControllers: TList<TMVCControllerClass>;
+begin
+  Result := FControllers;
 end;
 
 procedure TMVCEngine.ResponseErrorPage(E: Exception; Request: TWebRequest; Response: TWebResponse);
@@ -1490,14 +1356,6 @@ begin
   inherited;
 end;
 
-function TMVCController.GetClientID: string;
-begin
-  if Session['username'].IsEmpty then
-    raise EMVCException.Create('Messaging extensions require a valid "username" key in session');
-  Result := Session['username'];
-  // + IntToStr(GetTickCount);
-end;
-
 procedure TMVCController.EnqueueMessageOnTopic(const ATopic: string; AJSONObject: TJSONObject;
   AOwnsInstance: boolean);
 var
@@ -1517,13 +1375,22 @@ begin
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
-    Stomp.Send(ATopic, msg.ToString, H);
+    Stomp.Send(ATopic, msg.ToJSON); // , H);
     TThread.Sleep(100);
     // single user cannot enqueue more than 10 message in noe second...
     // it is noot too much elegant, but it works as DoS protection
   finally
     msg.Free;
   end;
+end;
+
+function TMVCController.GetClientID: string;
+begin
+  Result := Session[CLIENTID_KEY];
+  if Result.IsEmpty then
+    // if Result.IsEmpty then
+    raise EMVCException.Create('Invalid ClientID' + sLineBreak +
+      'Hint: Messaging extensions require a valid clientid. Did you call /messages/clients/YOUR_CLIENT_ID ?');
 end;
 
 function TMVCController.GetContentCharset: string;
@@ -1761,7 +1628,6 @@ end;
 
 procedure TMVCController.SessionStart;
 var
-  Sess: TWebSession;
   LSessionID: string;
 begin
   if not Assigned(FWebSession) then
@@ -1870,16 +1736,16 @@ begin
     Result := '';
 end;
 
-function TMVCWebRequest.GetHeaderValue(const Name: string): string;
-var
-  S: string;
-begin
-  S := GetHeader(name);
-  if S.IsEmpty then
-    Result := ''
-  else
-    Result := S.Split([':'])[1].trim;
-end;
+// function TMVCWebRequest.GetHeaderValue(const Name: string): string;
+// var
+// S: string;
+// begin
+// S := GetHeader(name);
+// if S.IsEmpty then
+// Result := ''
+// else
+// Result := S.Split([':'])[1].trim;
+// end;
 
 // function TMVCWebRequest.GetHeaderAll(const HeaderName: string): string;
 // begin
@@ -2188,6 +2054,15 @@ begin
 
   if CheckIP(FWebRequest.RemoteHost) then
     Exit(FWebRequest.RemoteHost);
+
+  if CheckIP(req.RemoteAddr) then
+    Exit(req.RemoteAddr);
+
+  if CheckIP(req.RemoteIP) then
+    Exit(req.RemoteIP);
+
+  if CheckIP(req.RemoteHost) then
+    Exit(req.RemoteHost);
 
   Result := '';
 end;
@@ -2540,7 +2415,6 @@ end;
 procedure TUser.SaveToSession(AWebSession: TWebSession);
 var
   LRoles: string;
-  LRole: string;
 begin
   if FRoles.Count > 0 then // bug in string.Join
     LRoles := string.Join('$$', FRoles.ToArray)

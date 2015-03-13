@@ -66,7 +66,6 @@ var
   LSessionID: string;
   LIsAuthorized: Boolean;
   LSessionIDFromWebRequest: string;
-  LSessionIsNeeded: Boolean;
   LAuthRequired: Boolean;
   procedure SendWWWAuthenticate;
   begin

@@ -1,0 +1,7 @@
+13/03/2015
+- all the built-in methods have been moved under the /system controller
+- messaging system is ready to test and use RabbitMQ
+- authentication/authorization architecture
+- basic authentication is builtin
+- new method for middleware: OnBeforeControllerAction
+- new configuration block in TMVCEngine.Create (now is the preferred way to configure the server)
