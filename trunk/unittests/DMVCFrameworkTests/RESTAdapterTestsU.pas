@@ -83,7 +83,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Rtti;
+uses System.SysUtils, System.Rtti, System.SyncObjs;
 
 { TTestRESTAdapter }
 
@@ -140,26 +140,31 @@ end;
 procedure TTestRESTAdapter.TestGetTonyStarkAsynch;
 var
   AsynchRequest: IAsynchRequest;
+  Person: TPerson;
+  LEvt: TEvent;
 begin
-  AsynchRequest := TAsynchRequest.Create(
-    procedure(AValue: TValue)
-    var
-      Person: TPerson;
-    begin
-      Person := AValue.AsType<TPerson>;
-      try
-        CheckEquals('Tony', Person.FirstName);
-        CheckEquals('Stark', Person.LastName);
-        CheckTrue(Person.Married);
-      finally
-        Person.Free;
-      end;
-    end,
-    procedure(AException: Exception)
-    begin
-      CheckTrue(false, 'Procedure OnException called')
-    end);
-  TESTService.GetTonyStarkAsynch(AsynchRequest);
+  LEvt := TEvent.Create;
+  try
+    AsynchRequest := TAsynchRequest.Create(
+      procedure(AValue: TValue)
+      begin
+        Person := AValue.AsType<TPerson>;
+        LEvt.SetEvent;
+      end);
+    TESTService.GetTonyStarkAsynch(AsynchRequest);
+    // attend for max 5 seconds
+    CheckTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
+    CheckNotNull(Person);
+    try
+      CheckEquals('Tony', Person.FirstName);
+      CheckEquals('Stark', Person.LastName);
+      CheckTrue(Person.Married);
+    finally
+      Person.Free;
+    end;
+  finally
+    LEvt.Free;
+  end;
 end;
 
 procedure TTestRESTAdapter.TestHeadersApplicationJSON;
@@ -224,26 +229,32 @@ end;
 procedure TTestRESTAdapter.TestGetPeopleAsynch;
 var
   AsynchRequest: IAsynchRequest;
+  People: TPeople;
+  LEvt: TEvent;
 begin
-  AsynchRequest := TAsynchRequest.Create(
-    procedure(AValue: TValue)
-    var
-      People: TPeople;
-    begin
-      People := AValue.AsType<TPeople>;
-      try
-        CheckTrue(People.Count > 0);
-        CheckEquals('Tony', People[0].FirstName);
-        CheckEquals('Stark', People[0].LastName);
-      finally
-        People.Free;
-      end;
-    end,
-    procedure(AException: Exception)
-    begin
-      CheckTrue(false, 'Procedure OnException called');
-    end, nil, true);
-  TESTService.GetPeopleAsynch(AsynchRequest);
+  LEvt := TEvent.Create;
+  try
+    AsynchRequest := TAsynchRequest.Create(
+      procedure(AValue: TValue)
+      begin
+        People := AValue.AsType<TPeople>;
+        LEvt.SetEvent;
+      end);
+    TESTService.GetPeopleAsynch(AsynchRequest);
+
+    // attend for max 5 seconds
+    CheckTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
+    CheckNotNull(People);
+    try
+      CheckTrue(People.Count > 0);
+      CheckEquals('Tony', People[0].FirstName);
+      CheckEquals('Stark', People[0].LastName);
+    finally
+      People.Free;
+    end;
+  finally
+    LEvt.Free;
+  end;
 end;
 
 initialization

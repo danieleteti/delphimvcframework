@@ -166,7 +166,7 @@ type
     function GetSuccessProc: TProc<TValue>;
     function GetSynchronized: boolean;
   public
-    constructor Create(AProc: TProc<TValue> = nil;
+    constructor Create(ASuccProc: TProc<TValue> = nil;
       AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
       ASynchronized: boolean = false);
     property SuccessProc: TProc<TValue> read GetSuccessProc
@@ -528,12 +528,12 @@ end;
 
 { TAsynchRequest }
 
-constructor TAsynchRequest.Create(AProc: TProc<TValue> = nil;
+constructor TAsynchRequest.Create(ASuccProc: TProc<TValue> = nil;
 AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
 ASynchronized: boolean = false);
 begin
   inherited Create;
-  FSuccessProc := AProc;
+  FSuccessProc := ASuccProc;
   FErrorProc := AProcErr;
   FAlwaysProc := AProcAlways;
   FSynchronized := ASynchronized;
