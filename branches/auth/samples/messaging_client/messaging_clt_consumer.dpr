@@ -4,7 +4,7 @@ program messaging_clt_consumer;
 {$R *.res}
 
 uses
-  System.SysUtils, MVCFramework.RESTClient, System.JSON;
+  System.SysUtils, MVCFramework.RESTClient, System.JSON, MVCFramework.Commons;
 
 procedure Main;
 var
@@ -19,13 +19,16 @@ begin
     LCli.ReadTimeout := - 1;
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
     LRes := LCli.doPOST('/messages', ['subscriptions', 'queue1']);
-    if LRes.ResponseCode <> 200 then
-      raise Exception.Create(LRes.BodyAsString);
+    if LRes.ResponseCode <> http_status.OK then
+      WriteLn('Cannot subscribe');
     while True do
     begin
-      WriteLn('in attesa di /messages/receive');
+      WriteLn('Waiting on GET /messages');
       LRes := LCli.doGET('/messages', []);
-      WriteLn(LRes.BodyAsString);
+      if LRes.ResponseCode = http_status.RequestTimeout then
+        WriteLn('TIMEOUT: ' + LRes.BodyAsString)
+      else
+        WriteLn(LRes.BodyAsString);
     end;
   finally
     LCli.Free;
