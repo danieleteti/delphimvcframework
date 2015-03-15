@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{C1FDC7B5-A18A-4751-9F41-E38D8181EDC8}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="messaging_clt_consumer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="messaging_clt_producer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="messaging_clt_consumer">
+        <MSBuild Projects="messaging_clt_consumer.dproj"/>
+    </Target>
+    <Target Name="messaging_clt_consumer:Clean">
+        <MSBuild Projects="messaging_clt_consumer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="messaging_clt_consumer:Make">
+        <MSBuild Projects="messaging_clt_consumer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="messaging_clt_producer">
+        <MSBuild Projects="messaging_clt_producer.dproj"/>
+    </Target>
+    <Target Name="messaging_clt_producer:Clean">
+        <MSBuild Projects="messaging_clt_producer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="messaging_clt_producer:Make">
+        <MSBuild Projects="messaging_clt_producer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="messaging_clt_consumer;messaging_clt_producer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="messaging_clt_consumer:Clean;messaging_clt_producer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="messaging_clt_consumer:Make;messaging_clt_producer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

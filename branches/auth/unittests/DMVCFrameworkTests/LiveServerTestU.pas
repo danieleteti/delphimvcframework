@@ -66,7 +66,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/logout', []);
-  CheckTrue(res.ResponseCode = 200, 'Logout Failed');
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Logout Failed');
 end;
 
 procedure TBaseServerTest.SetUp;
@@ -86,20 +86,20 @@ procedure TServerTest.TestAsynchRequestDELETE;
 var
   evt: TEvent;
   r: TWaitResult;
-  ok: boolean;
+  OK: boolean;
 begin
-  ok := false;
+  OK := false;
   evt := TEvent.Create;
   try
     RESTClient.Asynch(
       procedure(Response: IRESTResponse)
       begin
-        ok := true;
+        OK := true;
         evt.SetEvent;
       end,
       procedure(E: Exception)
       begin
-        ok := false;
+        OK := false;
       end).doDELETE('/req/with/params', ['1', '2', '3']);
 
     // wait for thred finish
@@ -107,7 +107,7 @@ begin
       r := evt.WaitFor(2000);
     until r = TWaitResult.wrSignaled;
 
-    CheckEquals(true, ok);
+    CheckEquals(true, OK);
   finally
     evt.Free;
   end;
@@ -230,7 +230,7 @@ begin
   RESTClient.UserName := 'user1';
   RESTClient.Password := 'user1';
   LRes := RESTClient.doGET('/private/role1', []);
-  CheckEquals(200, LRes.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestAuthentication02;
@@ -241,7 +241,7 @@ begin
   RESTClient.Password := '';
   RESTClient.UseBasicAuthentication := false;
   LRes := RESTClient.doGET('/private/role1', []);
-  CheckEquals(401, LRes.ResponseCode);
+  CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestAuthentication03;
@@ -252,7 +252,7 @@ begin
   RESTClient.Password := 'user1';
   RESTClient.UseBasicAuthentication := true;
   LRes := RESTClient.doGET('/private/role2', []);
-  CheckEquals(403, LRes.ResponseCode);
+  CheckEquals(HTTP_STATUS.Forbidden, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestAuthentication04;
@@ -263,9 +263,9 @@ begin
   RESTClient.Password := 'user1';
   RESTClient.UseBasicAuthentication := true;
   LRes := RESTClient.doGET('/private/role1', []);
-  CheckEquals(200, LRes.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/people', []);
-  CheckEquals(200, LRes.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestEncodingRenderJSONValue;
@@ -296,7 +296,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/exception/aftercreate/nevercalled', []);
-  CheckEquals(500, res.ResponseCode);
+  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode);
 end;
 
 procedure TServerTest.TestExceptionInMVCBeforeDestroy;
@@ -304,7 +304,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/exception/beforedestroy/nevercalled', []);
-  CheckEquals(500, res.ResponseCode);
+  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode);
 end;
 
 procedure TServerTest.TestMiddlewareHandler;
@@ -313,7 +313,7 @@ var
 begin
   r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doGET('/handledbymiddleware', []);
   CheckEquals('This is a middleware response', r.BodyAsString);
-  CheckEquals(200, r.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
 end;
 
 procedure TServerTest.TestMiddlewareSpeedMiddleware;
@@ -404,7 +404,7 @@ var
 begin
   res := RESTClient.Accept('text/plain') // action is waiting for a accept: application/json
     .ContentType('application/json').doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
-  CheckEquals(404, res.ResponseCode);
+  CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestProducesConsumes01;
@@ -413,7 +413,7 @@ var
 begin
   res := RESTClient.Accept('application/json').ContentType('application/json')
     .ContentEncoding('utf-8').doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
-  CheckEquals(200, res.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
   CheckEquals('application/json', res.GetContentType);
   CheckEquals('utf-8', res.GetContentEncoding);
@@ -431,7 +431,7 @@ begin
 
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
-  CheckEquals(404, res.ResponseCode);
+  CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestPUTWithParamsAndJSONBody;
@@ -451,29 +451,29 @@ var
   r: IRESTResponse;
 begin
   r := RESTClient.doGET('/unknownurl/bla/bla', []);
-  CheckEquals(404, r.ResponseCode, '/unknownurl/bla/bla');
+  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode, '/unknownurl/bla/bla');
 
   r := RESTClient.doGET('/req/with/params/', []);
-  CheckEquals(404, r.ResponseCode, '/req/with/params/');
+  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode, '/req/with/params/');
 
   r := RESTClient.doGET('/req/with/params', []);
-  CheckEquals(404, r.ResponseCode, '/req/with/params');
+  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode, '/req/with/params');
 
   r := RESTClient.doGET('/req/with/params', ['1', '2', '3']);
-  CheckEquals(200, r.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
   CheckEquals('1', r.BodyAsJsonObject.Get('par1').JsonValue.Value);
   CheckEquals('2', r.BodyAsJsonObject.Get('par2').JsonValue.Value);
   CheckEquals('3', r.BodyAsJsonObject.Get('par3').JsonValue.Value);
   CheckEquals('GET', r.BodyAsJsonObject.Get('method').JsonValue.Value);
 
   r := RESTClient.doPOST('/req/with/params', ['1', '2', '3']);
-  CheckEquals(404, r.ResponseCode);
+  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode);
 
   r := RESTClient.doPUT('/req/with/params', ['1', '2', '3']);
-  CheckEquals(404, r.ResponseCode);
+  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode);
 
   r := RESTClient.doDELETE('/req/with/params', ['1', '2', '3']);
-  CheckEquals(200, r.ResponseCode);
+  CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
   CheckNull(r.BodyAsJsonObject);
 end;
 
@@ -519,7 +519,7 @@ begin
 
     // aggiungo altri cookies
     res := c1.doGET('/lotofcookies', []); // rileggo il valore dalla sessione
-    CheckEquals(200, res.ResponseCode);
+    CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
     c1.Accept(TMVCMimeType.TEXT_PLAIN);
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
     CheckEquals('daniele teti', res.BodyAsString);
@@ -533,7 +533,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/login', [UserName]);
-  CheckTrue(res.ResponseCode = 200, 'Login Failed');
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Login Failed');
 end;
 
 initialization

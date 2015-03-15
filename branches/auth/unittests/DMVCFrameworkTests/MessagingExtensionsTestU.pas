@@ -27,7 +27,7 @@ uses
   System.JSON,
 {$ENDIF}
   System.Classes,
-  MVCFramework.Logger;
+  MVCFramework.Logger, MVCFramework.Commons;
 
 { TMessagingExtensionsTestCase }
 
@@ -40,26 +40,26 @@ begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test01', x);
 
   res := RESTClient.doGET('/messages/subscribe', ['test010']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test01;/queue/test010', x);
 
   res := RESTClient.doGET('/messages/unsubscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test010', x);
 
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   DoLogout;
 end;
@@ -79,7 +79,7 @@ begin
   res := RESTClient.doGET('/messages/subscribe', ['test010101']);
   res := RESTClient.doGET('/messages/subscribe', ['test0101010']);
 
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
@@ -88,7 +88,7 @@ begin
     x);
 
   res := RESTClient.doGET('/messages/unsubscribe', ['test010']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/topics', []);
   x := Trim(res.BodyAsString);
@@ -104,9 +104,9 @@ begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   DoLogout;
 end;
@@ -157,7 +157,7 @@ begin
   while RMessageCount < MSG_COUNT * 2 do
   begin
     res := RESTClient.doGET('/messages/receive', []);
-    if res.ResponseCode = 200 then
+    if res.ResponseCode = http_status.OK then
     begin
       CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
       CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
@@ -172,7 +172,7 @@ begin
         end;
       RMessageCount := RMessageCount + messages.Size;
     end;
-    if res.ResponseCode = 204 then // receive timeout
+    if res.ResponseCode = http_status.NoContent then // receive timeout
       break;
   end;
   CheckEquals(MSG_COUNT * 2, RMessageCount, 'message count');
@@ -186,15 +186,17 @@ begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doGET('/messages/unsubscribe', ['test01']);
-  CheckEquals(200, res.ResponseCode, res.ResponseText);
+  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
   DoLogout;
 end;
 
 initialization
 
-RegisterTest(TMessagingExtensionsTestCase.Suite);
+{$IFDEF USE_MESSAGING}
+  RegisterTest(TMessagingExtensionsTestCase.Suite);
+{$ENDIF}
 
 finalization
 

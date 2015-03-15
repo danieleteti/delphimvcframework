@@ -6,7 +6,7 @@
         <Projects Include="DMVCFrameworkTests\DMVCFrameworkTests.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\samples\messaging_client\messaging_client_sample.dproj">
+        <Projects Include="TestServer\TestServer.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -26,23 +26,23 @@
     <Target Name="DMVCFrameworkTests:Make">
         <MSBuild Projects="DMVCFrameworkTests\DMVCFrameworkTests.dproj" Targets="Make"/>
     </Target>
-    <Target Name="messaging_client_sample">
-        <MSBuild Projects="..\samples\messaging_client\messaging_client_sample.dproj"/>
+    <Target Name="TestServer">
+        <MSBuild Projects="TestServer\TestServer.dproj"/>
     </Target>
-    <Target Name="messaging_client_sample:Clean">
-        <MSBuild Projects="..\samples\messaging_client\messaging_client_sample.dproj" Targets="Clean"/>
+    <Target Name="TestServer:Clean">
+        <MSBuild Projects="TestServer\TestServer.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="messaging_client_sample:Make">
-        <MSBuild Projects="..\samples\messaging_client\messaging_client_sample.dproj" Targets="Make"/>
+    <Target Name="TestServer:Make">
+        <MSBuild Projects="TestServer\TestServer.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="DMVCFrameworkTests;messaging_client_sample"/>
+        <CallTarget Targets="DMVCFrameworkTests;TestServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DMVCFrameworkTests:Clean;messaging_client_sample:Clean"/>
+        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DMVCFrameworkTests:Make;messaging_client_sample:Make"/>
+        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
