@@ -18,15 +18,13 @@ begin
   try
     LCli.ReadTimeout := - 1;
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
-    LRes := LCli.doGET('/messages', ['subscribe', 'queue1']);
+    LRes := LCli.doPOST('/messages', ['subscriptions', 'queue1']);
     if LRes.ResponseCode <> 200 then
       raise Exception.Create(LRes.BodyAsString);
-    LCli.doPOST('/messages', ['enqueue', 'queue1'],
-      TJSONObject.Create(TJSONPair.Create('msg', 'PING')));
     while True do
     begin
       WriteLn('in attesa di /messages/receive');
-      LRes := LCli.doGET('/messages', ['receive']);
+      LRes := LCli.doGET('/messages', []);
       WriteLn(LRes.BodyAsString);
     end;
   finally

@@ -507,7 +507,9 @@ uses
 
 {$ENDIF},
   LuaBind,
-  MVCFramework.BUSController, Web.WebReq, MVCFramework.SysControllers;
+  MVCFramework.MessagingController,
+  Web.WebReq,
+  MVCFramework.SysControllers;
 
 type
   TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest

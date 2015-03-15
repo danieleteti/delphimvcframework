@@ -1,4 +1,4 @@
-unit MVCFramework.BUSController;
+unit MVCFramework.MessagingController;
 
 interface
 
@@ -27,17 +27,24 @@ type
     [MVCPath('/clients/($clientid)')]
     procedure SetClientID(CTX: TWebContext);
 
-    [MVCPath('/subscribe/($name)')]
+    [MVCPath('/subscriptions/($name)')]
+    [MVCHTTPMethod([httpPOST])]
     procedure SubscribeToTopic(CTX: TWebContext);
-    [MVCPath('/unsubscribe/($name)')]
+
+    [MVCPath('/subscriptions/($name)')]
+    [MVCHTTPMethod([httpDELETE])]
     procedure UnSubscribeFromTopic(CTX: TWebContext);
-    [MVCPath('/receive')]
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath]
     procedure ReceiveMessages(CTX: TWebContext);
 
     [MVCHTTPMethod([httpPOST])]
-    [MVCPath('/enqueue/($topic)')]
+    [MVCPath('/queues/($topic)')]
     procedure EnqueueMessage(CTX: TWebContext);
-    [MVCPath('/topics')]
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/subscriptions')]
     procedure CurrentlySubscribedTopics(CTX: TWebContext);
   end;
 
@@ -117,7 +124,7 @@ var
 const
 
 {$IFDEF TEST}
-  RECEIVE_TIMEOUT = 10; // seconds
+  RECEIVE_TIMEOUT = 5; // seconds
 
 {$ELSE}
   RECEIVE_TIMEOUT = 60 * 5; // 5 minutes
@@ -137,15 +144,15 @@ begin
     begin
       LTimeOut := False;
       frame := nil;
-      LogE('Stomp.Receive');
-      Stomp.Receive(frame, 500);
+      Log('/messages receive');
+      Stomp.Receive(frame, 100);
       if Assigned(frame) then
       // get 10 messages at max, and then send them to client
       begin
         LLastReceivedMessageTS := now;
         SetLength(LFrames, length(LFrames) + 1);
         LFrames[length(LFrames) - 1] := frame;
-        Stomp.Ack(frame.MessageID); // rimettilo!!!
+        Stomp.Ack(frame.MessageID);
         if length(LFrames) >= 10 then
           break;
       end
@@ -182,11 +189,16 @@ begin
     end; // for in
     res.AddPair('_timestamp', FormatDateTime('yyyy-mm-dd hh:nn:ss', now));
     if LTimeOut then
-      res.AddPair('_timeout', TJSONTrue.Create)
+    begin
+      res.AddPair('_timeout', TJSONTrue.Create);
+      Render(http_status.RequestTimeout, res);
+    end
     else
+    begin
       res.AddPair('_timeout', TJSONFalse.Create);
+      Render(http_status.OK, res);
+    end;
 
-    Render(res);
   finally
     // Stomp.Disconnect;
   end;

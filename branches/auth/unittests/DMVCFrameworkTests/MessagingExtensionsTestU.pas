@@ -27,7 +27,7 @@ uses
   System.JSON,
 {$ENDIF}
   System.Classes,
-  MVCFramework.Logger, MVCFramework.Commons;
+  MVCFramework.Logger, MVCFramework.Commons, Winapi.Windows;
 
 { TMessagingExtensionsTestCase }
 
@@ -39,23 +39,23 @@ begin
   RESTClient.ReadTimeout := - 1;
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doGET('/messages/subscribe', ['test01']);
+  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
-  res := RESTClient.doGET('/messages/topics', []);
+  res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test01', x);
 
-  res := RESTClient.doGET('/messages/subscribe', ['test010']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test010']);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
-  res := RESTClient.doGET('/messages/topics', []);
+  res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test01;/queue/test010', x);
 
-  res := RESTClient.doGET('/messages/unsubscribe', ['test01']);
+  res := RESTClient.doDELETE('/messages/subscriptions/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
-  res := RESTClient.doGET('/messages/topics', []);
+  res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test010', x);
 
@@ -72,25 +72,25 @@ begin
   RESTClient.ReadTimeout := - 1;
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  res := RESTClient.doGET('/messages/subscribe', ['test010']);
-  res := RESTClient.doGET('/messages/subscribe', ['test0101']);
-  res := RESTClient.doGET('/messages/subscribe', ['test01010']);
-  res := RESTClient.doGET('/messages/subscribe', ['test010101']);
-  res := RESTClient.doGET('/messages/subscribe', ['test0101010']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test01']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test010']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test0101']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test01010']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test010101']);
+  res := RESTClient.doPOST('/messages/subscriptions', ['test0101010']);
 
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
-  res := RESTClient.doGET('/messages/topics', []);
+  res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals
     ('/queue/test01;/queue/test010;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010',
     x);
 
-  res := RESTClient.doGET('/messages/unsubscribe', ['test010']);
+  res := RESTClient.doDELETE('/messages/subscriptions', ['test010']);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
-  res := RESTClient.doGET('/messages/topics', []);
+  res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals
     ('/queue/test01;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010', x);
@@ -103,10 +103,10 @@ var
 begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
-  res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
+  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   DoLogout;
 end;
@@ -119,15 +119,18 @@ var
   RMessageCount: Integer;
   I: Integer;
   o: TJSONObject;
+  J: Integer;
+  LUnique: string;
 const
   MSG_COUNT = 10;
 begin
-  DoLoginWith('guest');
-  RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  RESTClient.doGET('/messages/subscribe/test01', []);
-  RESTClient.doGET('/messages/subscribe/test02', []);
-  RESTClient.ReadTimeout := - 1;
+  LUnique := GetTickCount.ToString;
 
+  DoLoginWith('guest');
+  RESTClient.doPOST('/messages/clients', ['my-unique-' + LUnique]);
+  RESTClient.doPOST('/messages', ['subscriptions', 'test01']);
+  RESTClient.doPOST('/messages', ['subscriptions', 'test02']);
+  RESTClient.ReadTimeout := - 1;
   sid := RESTClient.SessionID;
   TThread.CreateAnonymousThread(
     procedure
@@ -138,14 +141,14 @@ begin
       TThread.Sleep(1000);
       RESTC := TRESTClient.Create('localhost', 9999);
       try
-        RESTC.doPOST('/messages/clients', ['my-other-unique-id']);
+        RESTC.doPOST('/messages/clients', ['my-other-unique-' + LUnique]);
         RESTC.ReadTimeout := 60 * 1000 * 30;
         RESTC.doGET('/login', ['guest']);
         for I := 1 to MSG_COUNT do
         begin
-          RESTC.doPOST('/messages/enqueue/test02', [], TJSONObject.Create(TJSONPair.Create('hello',
+          RESTC.doPOST('/messages/queues/test02', [], TJSONObject.Create(TJSONPair.Create('hello',
             TJSONNumber.Create(I))));
-          RESTC.doPOST('/messages/enqueue/test01', [], TJSONObject.Create(TJSONPair.Create('hello',
+          RESTC.doPOST('/messages/queues/test01', [], TJSONObject.Create(TJSONPair.Create('hello',
             TJSONNumber.Create(I))));
         end;
       finally
@@ -154,11 +157,12 @@ begin
     end).Start;
 
   RMessageCount := 0;
-  while RMessageCount < MSG_COUNT * 2 do
+  for J := 1 to MSG_COUNT * 2 do
   begin
-    res := RESTClient.doGET('/messages/receive', []);
-    if res.ResponseCode = http_status.OK then
+    res := RESTClient.doGET('/messages', []);
+    if res.ResponseCode = HTTP_STATUS.OK then
     begin
+      CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONFalse);
       CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
       CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
       CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray,
@@ -168,14 +172,16 @@ begin
         for I := 0 to messages.Size - 1 do
         begin
           o := messages.Get(I) as TJSONObject;
-          logw(o.Get('message').toString);
+          logw(o.Get('message').ToString);
         end;
       RMessageCount := RMessageCount + messages.Size;
     end;
-    if res.ResponseCode = http_status.NoContent then // receive timeout
+    if res.ResponseCode = HTTP_STATUS.RequestTimeout then // receive timeout
       break;
   end;
   CheckEquals(MSG_COUNT * 2, RMessageCount, 'message count');
+  res := RESTClient.doGET('/messages', []);
+  CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONTrue);
   DoLogout;
 end;
 
@@ -185,10 +191,10 @@ var
 begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doGET('/messages/subscribe', ['test01']);
-  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
-  res := RESTClient.doGET('/messages/unsubscribe', ['test01']);
-  CheckEquals(http_status.OK, res.ResponseCode, res.ResponseText);
+  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  res := RESTClient.doDELETE('/messages/subscriptions/test01', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   DoLogout;
 end;
 

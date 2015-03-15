@@ -4,7 +4,8 @@ program messaging_clt_producer;
 {$R *.res}
 
 uses
-  System.SysUtils, MVCFramework.RESTClient, System.JSON;
+  System.SysUtils, MVCFramework.RESTClient, System.JSON, MVCFramework.Commons,
+  Winapi.Windows;
 
 procedure Main;
 var
@@ -18,16 +19,12 @@ begin
   try
     LCli.ReadTimeout := - 1;
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
-    LRes := LCli.doGET('/messages', ['subscribe', 'queue1']);
-    if LRes.ResponseCode <> 200 then
-      raise Exception.Create(LRes.BodyAsString);
-    LCli.doPOST('/messages', ['enqueue', 'queue1'],
-      TJSONObject.Create(TJSONPair.Create('msg', 'PING')));
     while True do
     begin
-      WriteLn('in attesa di /messages/receive');
-      LRes := LCli.doGET('/messages', ['receive']);
-      WriteLn(LRes.BodyAsString);
+      LCli.doPOST('/messages', ['queues', 'queue1'],
+        TJSONObject.Create(TJSONPair.Create('msg', GetTickCount.ToString)));
+      WriteLn('in attesa di /messages/queues');
+      Sleep(10);
     end;
   finally
     LCli.Free;
