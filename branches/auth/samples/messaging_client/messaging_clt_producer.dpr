@@ -11,9 +11,15 @@ procedure Main;
 var
   LCli: TRESTClient;
   LRes: IRESTResponse;
-  LMsg: string;
+  LMsg: TJSONObject;
   LMyClientID: string;
 begin
+  {
+    USAGE PATTERN
+    POST /messages/clients/<myuniqueid>
+    POST /messages/queues/<queuename1> (message in the request body as json object)
+  }
+
   LMyClientID := 'my-unique-client-id';
   LCli := TRESTClient.Create('localhost', 9999);
   try
@@ -21,9 +27,9 @@ begin
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
     while True do
     begin
-      LCli.doPOST('/messages', ['queues', 'queue1'],
-        TJSONObject.Create(TJSONPair.Create('msg', GetTickCount.ToString)));
-      WriteLn('in attesa di /messages/queues');
+      LMsg := TJSONObject.Create(TJSONPair.Create('msg', GetTickCount.ToString));
+      WriteLn('Writing on the queue: ' + LMsg.ToJSON);
+      LCli.doPOST('/messages', ['queues', 'queue1'], LMsg);
       Sleep(10);
     end;
   finally

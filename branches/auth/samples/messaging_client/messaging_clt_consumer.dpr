@@ -13,6 +13,22 @@ var
   LMsg: string;
   LMyClientID: string;
 begin
+  {
+    USAGE PATTERN
+    POST /messages/clients/<myuniqueid>
+    POST /messages/subscriptions/<queuename1>
+    POST /messages/subscriptions/<queuename2>
+    ...
+    POST /messages/subscriptions/<queuenameN>
+    GET /messages (this line can return 200 OK or 408 REQUEST TIMEOUT, however there is always a message body)
+
+    to unsubscribe
+    DELETE /messages/subscriptions/<queuename1>
+    DELETE /messages/subscriptions/<queuename2>
+    ...
+    DELETE /messages/subscriptions/<queuenameN>
+  }
+
   LMyClientID := 'my-unique-client-id';
   LCli := TRESTClient.Create('localhost', 9999);
   try
