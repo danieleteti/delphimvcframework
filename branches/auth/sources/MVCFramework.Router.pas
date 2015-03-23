@@ -119,7 +119,7 @@ begin
       SetLength(_attributes, 0);
       _type := FCTX.GetType(controllerClass.ClassInfo);
       _attributes := _type.GetAttributes;
-      if not Assigned(_attributes) then
+      if _attributes = nil then
         Continue;
 
       Found := False;
@@ -166,7 +166,7 @@ begin
                 // getting the default contenttype using MVCProduceAttribute
                 MVCProduceAttr := GetAttribute<MVCProducesAttribute>
                   (_attributes);
-                if Assigned(MVCProduceAttr) then
+                if MVCProduceAttr <> nil then
                 begin
                   AResponseContentType := MVCProduceAttr.Value;
                   AResponseContentEncoding := MVCProduceAttr.ProduceEncoding;

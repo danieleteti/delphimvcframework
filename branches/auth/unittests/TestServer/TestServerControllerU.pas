@@ -82,6 +82,10 @@ type
     [MVCProduces('application/json')]
     procedure TestPOSTObject(ctx: TWebContext);
 
+    [MVCPath('/speed')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestHelloWorld(ctx: TWebContext);
+
     [MVCPath('/path1/($id)')]
     [MVCPath('/path2/($id)/2/($par)')]
     [MVCPath('/path3/($id)/2/($par)/3')]
@@ -288,6 +292,12 @@ begin
       ;
   end;
 
+end;
+
+procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
+begin
+  ContentType := 'text/plain';
+  Render('hello world');
 end;
 
 procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);
