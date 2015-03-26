@@ -73,6 +73,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestGetPersonByIDAsFields(ctx: TWebContext);
 
+    [MVCPath('/customers/list')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure TestJSONArrayAsObjectList(ctx: TWebContext);
+
     [MVCPath('/people')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     procedure TestGetPersons(ctx: TWebContext);
@@ -298,6 +302,22 @@ procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
 begin
   ContentType := 'text/plain';
   Render('hello world');
+end;
+
+procedure TTestServerController.TestJSONArrayAsObjectList(ctx: TWebContext);
+var
+  vUsers: TObjectList<TCustomer>;
+begin
+  vUsers := ctx.Request.BodyAsListOf<TCustomer>();
+  try
+    vUsers.OwnsObjects := True;
+    if (vUsers.Count > 0) then
+      Render('Sucess!')
+    else
+      Render('Error!');
+  finally
+    FreeAndNil(vUsers);
+  end;
 end;
 
 procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);

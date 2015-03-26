@@ -1271,7 +1271,8 @@ begin
     begin
       S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
       if not S.IsEmpty then
-        Result := Mapper.JSONArrayToObjectList<T>(BodyAsJSONObject.Get(S).JsonValue as TJSONArray)
+        Result := Mapper.JSONArrayToObjectList<T>(BodyAsJSONObject.Get(S).JsonValue as TJSONArray,
+          false, true) // thank you Ezequiel J. Müller
       else
         raise EMVCException.CreateFmt('Body property %s not valid', [RootProperty]);
     end;

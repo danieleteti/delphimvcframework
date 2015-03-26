@@ -40,6 +40,7 @@ type
     procedure TestExceptionInMVCBeforeDestroy;
     procedure TestMiddlewareSpeedMiddleware;
     procedure TestMiddlewareHandler;
+    procedure TestPostAListOfObjects;
     // test authentication/authorization
     procedure TestAuthentication01;
     procedure TestAuthentication02;
@@ -57,7 +58,11 @@ uses
 {$ENDIF}
   MVCFramework.Commons,
   System.SyncObjs,
-  System.SysUtils, BusinessObjectsU, ObjectsMappers, Soap.EncdDecd;
+  System.Generics.Collections,
+  System.SysUtils,
+  BusinessObjectsU,
+  ObjectsMappers,
+  Soap.EncdDecd;
 
 { TServerTest }
 
@@ -347,6 +352,21 @@ end;
 // CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
 // CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
 // end;
+
+procedure TServerTest.TestPostAListOfObjects;
+var
+  LRes: IRESTResponse;
+  LCustomers: TObjectList<TCustomer>;
+begin
+  LCustomers := TCustomer.GetList;
+  try
+    LRes := RESTClient.doPOST('/customers/list', [],
+      Mapper.ObjectListToJSONArray<TCustomer>(LCustomers));
+    CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+  finally
+    LCustomers.Free;
+  end;
+end;
 
 procedure TServerTest.TestPOSTWithObjectJSONBody;
 var
