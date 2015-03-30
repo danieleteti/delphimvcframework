@@ -24,7 +24,7 @@ type
 implementation
 
 uses
-  System.SysUtils, Soap.EncdDecd, MVCFramework.Session;
+  System.SysUtils, MVCFramework.Session, Soap.EncdDecd;
 
 {
 
@@ -161,8 +161,6 @@ begin
         LSessionID := TMVCEngine.SendSessionCookie(Context);
         LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
           Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
-        // LWebSession[TMVCConstants.LAST_AUTHORIZATION_HEADER_VALUE] := Context.Request.Headers
-        // ['Authorization'];
         Context.LoggedUser.SaveToSession(LWebSession);
       end;
     finally

@@ -297,7 +297,7 @@ begin
   FHTTP := TIdHTTP.Create(nil);
   FHTTP.ReadTimeout := 20000;
   FHTTP.IOHandler := AIOHandler;
-  FHTTP.Request.BasicAuthentication := True;
+  FHTTP.Request.BasicAuthentication := true;
   // FHTTP.AllowCookies := true;
 end;
 
@@ -802,7 +802,9 @@ begin
 
           RawBody.Position := 0;
           FRawBody.Size := 0;
+{$WARNINGS OFF}
           FRawBody.WriteString(UTF8Encode(ABodyString));
+{$WARNINGS ON}
           FHTTP.Post(AUrl, FRawBody, Result.Body);
         end;
 
@@ -816,7 +818,9 @@ begin
         begin
           RawBody.Position := 0;
           FRawBody.Size := 0;
+{$WARNINGS OFF}
           FRawBody.WriteString(UTF8Encode(ABodyString));
+{$WARNINGS ON}
           FHTTP.Put(AUrl, FRawBody, Result.Body);
         end;
 

@@ -19,6 +19,8 @@ type
 
 implementation
 
+{$WARN SYMBOL_DEPRECATED OFF}
+
 uses
   System.SysUtils,
 {$IF CompilerVersion < 27}
@@ -39,22 +41,22 @@ begin
   RESTClient.ReadTimeout := - 1;
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test01', x);
 
-  res := RESTClient.doPOST('/messages/subscriptions', ['test010']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test010']);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
-  // server shod not return an error
+  // server shoud not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test01;/queue/test010', x);
 
-  res := RESTClient.doDELETE('/messages/subscriptions/test01', []);
+  res := RESTClient.doDELETE('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
-  // server shod not return an error
+  // server shoud not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals('/queue/test010', x);
@@ -72,12 +74,12 @@ begin
   RESTClient.ReadTimeout := - 1;
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doPOST('/messages/subscriptions', ['test01']);
-  res := RESTClient.doPOST('/messages/subscriptions', ['test010']);
-  res := RESTClient.doPOST('/messages/subscriptions', ['test0101']);
-  res := RESTClient.doPOST('/messages/subscriptions', ['test01010']);
-  res := RESTClient.doPOST('/messages/subscriptions', ['test010101']);
-  res := RESTClient.doPOST('/messages/subscriptions', ['test0101010']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test01']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test010']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test0101']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test01010']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test010101']);
+  res := RESTClient.doPOST('/messages/subscriptions/queue', ['test0101010']);
 
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
@@ -87,7 +89,7 @@ begin
     ('/queue/test01;/queue/test010;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010',
     x);
 
-  res := RESTClient.doDELETE('/messages/subscriptions', ['test010']);
+  res := RESTClient.doDELETE('/messages/subscriptions/queue', ['test010']);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
@@ -103,11 +105,11 @@ var
 begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
-  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
-  // server shod not return an error
+  // server shoud not return an error
   DoLogout;
 end;
 
@@ -128,8 +130,8 @@ begin
 
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-' + LUnique]);
-  RESTClient.doPOST('/messages', ['subscriptions', 'test01']);
-  RESTClient.doPOST('/messages', ['subscriptions', 'test02']);
+  RESTClient.doPOST('/messages', ['subscriptions', 'queue', 'test01']);
+  RESTClient.doPOST('/messages', ['subscriptions', 'queue', 'test02']);
   RESTClient.ReadTimeout := - 1;
   sid := RESTClient.SessionID;
   TThread.CreateAnonymousThread(
@@ -146,9 +148,9 @@ begin
         RESTC.doGET('/login', ['guest']);
         for I := 1 to MSG_COUNT do
         begin
-          RESTC.doPOST('/messages/queues/test02', [], TJSONObject.Create(TJSONPair.Create('hello',
+          RESTC.doPOST('/messages/queue/test02', [], TJSONObject.Create(TJSONPair.Create('hello',
             TJSONNumber.Create(I))));
-          RESTC.doPOST('/messages/queues/test01', [], TJSONObject.Create(TJSONPair.Create('hello',
+          RESTC.doPOST('/messages/queue/test01', [], TJSONObject.Create(TJSONPair.Create('hello',
             TJSONNumber.Create(I))));
         end;
       finally
@@ -191,9 +193,9 @@ var
 begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
-  res := RESTClient.doPOST('/messages/subscriptions/test01', []);
+  res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
-  res := RESTClient.doDELETE('/messages/subscriptions/test01', []);
+  res := RESTClient.doDELETE('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   DoLogout;
 end;

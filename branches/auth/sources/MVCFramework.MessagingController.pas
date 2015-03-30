@@ -27,11 +27,11 @@ type
     [MVCPath('/clients/($clientid)')]
     procedure SetClientID(CTX: TWebContext);
 
-    [MVCPath('/subscriptions/($name)')]
+    [MVCPath('/subscriptions/($topicorqueue)/($name)')]
     [MVCHTTPMethod([httpPOST])]
     procedure SubscribeToTopic(CTX: TWebContext);
 
-    [MVCPath('/subscriptions/($name)')]
+    [MVCPath('/subscriptions/($topicorqueue)/($name)')]
     [MVCHTTPMethod([httpDELETE])]
     procedure UnSubscribeFromTopic(CTX: TWebContext);
 
@@ -40,7 +40,7 @@ type
     procedure ReceiveMessages(CTX: TWebContext);
 
     [MVCHTTPMethod([httpPOST])]
-    [MVCPath('/queues/($topic)')]
+    [MVCPath('/($type)/($topicorqueue)')]
     procedure EnqueueMessage(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGET])]
@@ -96,13 +96,20 @@ end;
 procedure TMVCBUSController.EnqueueMessage(CTX: TWebContext);
 var
   topicname: string;
+  queuetype: string;
 begin
-  topicname := CTX.Request.Params['topic'].Trim;
+  queuetype := CTX.Request.Params['type'].Trim.ToLower;
+  if (queuetype <> 'topic') and (queuetype <> 'queue') then
+    raise EMVCException.Create('Valid type are "queue" or "topic", got ' + queuetype);
+
+  topicname := CTX.Request.Params['topicorqueue'].Trim;
   if topicname.IsEmpty then
     raise EMVCException.Create('Invalid or empty topic');
-
-  EnqueueMessageOnTopic('/queue/' + topicname,
+  if not CTX.Request.ThereIsRequestBody then
+    raise EMVCException.Create('Body request required');
+  EnqueueMessageOnTopicOrQueue(queuetype = 'queue', '/' + queuetype + '/' + topicname,
     CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
+  // EnqueueMessage('/queue/' + topicname, CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
   Render(200, 'Message sent to topic ' + topicname);
 end;
 
@@ -242,12 +249,14 @@ var
   LStomp: IStompClient;
   LClientID: string;
   LTopicName: string;
+  LTopicOrQueue: string;
 begin
   LClientID := GetClientID;
   LTopicName := CTX.Request.Params['name'].ToLower;
+  LTopicOrQueue := CTX.Request.Params['topicorqueue'].ToLower;
   LStomp := GetNewStompClient(LClientID);
   try
-    LTopicName := '/queue/' + LTopicName;
+    LTopicName := '/' + LTopicOrQueue + '/' + LTopicName;
     InternalSubscribeUserToTopic(LClientID, LTopicName, LStomp);
     Render(200, 'Subscription OK for ' + LTopicName);
   finally

@@ -350,8 +350,8 @@ type
       AInstanceOwner: boolean = true); overload;
     procedure RenderStreamAndFree(const AStream: TStream);
     // messaging
-    procedure EnqueueMessageOnTopic(const ATopic: string; AJSONObject: TJSONObject;
-      AOwnsInstance: boolean = true);
+    procedure EnqueueMessageOnTopicOrQueue(const IsQueue: boolean; const ATopic: string;
+      AJSONObject: TJSONObject; AOwnsInstance: boolean = true);
     function ReceiveMessageFromTopic(const ATopic: string; ATimeout: Int64;
       var JSONObject: TJSONObject): boolean;
     // redirects
@@ -399,7 +399,6 @@ type
     // FViewCache            : TViewCache;
     FMimeTypes: TDictionary<string, string>;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
-    function GetBinVersion: string;
 
   protected
     FConfiguredSessionTimeout: Int64;
@@ -843,11 +842,6 @@ procedure TMVCEngine.FixUpWebModule;
 begin
   FSavedOnBeforeDispatch := FWebModule.BeforeDispatch;
   FWebModule.BeforeDispatch := OnBeforeDispatch;
-end;
-
-function TMVCEngine.GetBinVersion: string;
-begin
-  raise Exception.Create('Not implemented');
 end;
 
 class function TMVCEngine.GetCurrentSession(ASessionTimeout: UInt64; const ASessionID: string;
@@ -1361,8 +1355,8 @@ begin
   inherited;
 end;
 
-procedure TMVCController.EnqueueMessageOnTopic(const ATopic: string; AJSONObject: TJSONObject;
-  AOwnsInstance: boolean);
+procedure TMVCController.EnqueueMessageOnTopicOrQueue(const IsQueue: boolean; const ATopic: string;
+  AJSONObject: TJSONObject; AOwnsInstance: boolean);
 var
   Stomp: IStompClient;
   H: IStompHeaders;
@@ -1375,8 +1369,13 @@ begin
     else
       msg.AddPair('message', AJSONObject.Clone as TJSONObject);
 
-    msg.AddPair('_topic', ATopic).AddPair('_username', GetClientID)
-      .AddPair('_timestamp', FormatDateTime('YYYY-MM-DD HH:NN:SS', now));
+    if IsQueue then
+      msg.AddPair('_queue', ATopic)
+    else
+      msg.AddPair('_topic', ATopic);
+
+    msg.AddPair('_username', GetClientID).AddPair('_timestamp',
+      FormatDateTime('YYYY-MM-DD HH:NN:SS', now));
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));

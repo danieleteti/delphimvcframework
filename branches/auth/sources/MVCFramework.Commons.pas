@@ -254,6 +254,8 @@ var
 
 implementation
 
+{$WARN SYMBOL_DEPRECATED OFF}
+
 uses
   System.IOUtils,
   idGlobal,

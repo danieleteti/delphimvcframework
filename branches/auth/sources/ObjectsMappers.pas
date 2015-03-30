@@ -360,6 +360,8 @@ function ISOStrToTime(TimeAsString: string): TTime;
 
 implementation
 
+{$WARN SYMBOL_DEPRECATED OFF}
+
 uses
   TypInfo,
   FmtBcd,
@@ -1744,7 +1746,7 @@ var
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
 begin
-  jvalue := nil;
+//  jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetFields;
   for _field in _fields do
@@ -1921,7 +1923,7 @@ var
   Arr: TJSONArray;
   n: TJSONNumber;
   SerStreamASString: string;
-  EncBytes: TBytes;
+//  EncBytes: TBytes;
   sw: TStreamWriter;
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
@@ -2266,7 +2268,7 @@ begin
       Result := AObject;
     except
       AObject.Free;
-      Result := nil;
+//      Result := nil;
       raise; // added 20140630
     end;
   end

@@ -51,7 +51,7 @@ type
 
 implementation
 
-{ TTestRouting }
+{$WARN SYMBOL_DEPRECATED OFF}
 
 uses MVCFramework.Commons,
   TestControllersU, DBClient,
