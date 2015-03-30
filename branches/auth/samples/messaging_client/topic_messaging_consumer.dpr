@@ -1,10 +1,11 @@
-program messaging_clt_consumer;
+program topic_messaging_consumer;
 
 {$APPTYPE CONSOLE}
 {$R *.res}
 
 uses
-  System.SysUtils, MVCFramework.RESTClient, System.JSON, MVCFramework.Commons;
+  System.SysUtils, MVCFramework.RESTClient, System.JSON,
+  Winapi.Windows, MVCFramework.Commons;
 
 procedure Main;
 var
@@ -16,32 +17,34 @@ begin
   {
     USAGE PATTERN
     POST /messages/clients/<myuniqueid>
-    POST /messages/subscriptions/<queuename1>
-    POST /messages/subscriptions/<queuename2>
+    POST /messages/subscriptions/topic/<topicname1>
+    POST /messages/subscriptions/topic/<topicname2>
     ...
-    POST /messages/subscriptions/<queuenameN>
+    POST /messages/subscriptions/topic/<topicnameN>
     GET /messages (this line can return 200 OK or 408 REQUEST TIMEOUT, however there is always a message body)
 
     to unsubscribe
-    DELETE /messages/subscriptions/<queuename1>
-    DELETE /messages/subscriptions/<queuename2>
+    DELETE /messages/subscriptions/topic/<topicname1>
+    DELETE /messages/subscriptions/topic/<topicname2>
     ...
-    DELETE /messages/subscriptions/<queuenameN>
+    DELETE /messages/subscriptions/topic/<topicnameN>
   }
 
-  LMyClientID := 'my-unique-client-id';
+  LMyClientID := 'my-unique-client-id' + GetTickCount.ToString;
   LCli := TRESTClient.Create('localhost', 9999);
   try
     LCli.ReadTimeout := - 1;
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
-    LRes := LCli.doPOST('/messages', ['subscriptions', 'queue1']);
-    if LRes.ResponseCode <> http_status.OK then
-      WriteLn('Cannot subscribe');
+    if LRes.ResponseCode <> HTTP_STATUS.OK then
+      WriteLn('Cannot set client id. ' + LRes.ResponseText);
+    LRes := LCli.doPOST('/messages/subscriptions/topic', ['topic1']);
+    if LRes.ResponseCode <> HTTP_STATUS.OK then
+      WriteLn('Cannot subscribe. ' + LRes.ResponseText);
     while True do
     begin
       WriteLn('Waiting on GET /messages');
       LRes := LCli.doGET('/messages', []);
-      if LRes.ResponseCode = http_status.RequestTimeout then
+      if LRes.ResponseCode = HTTP_STATUS.RequestTimeout then
         WriteLn('TIMEOUT: ' + LRes.BodyAsString)
       else
         WriteLn(LRes.BodyAsString);

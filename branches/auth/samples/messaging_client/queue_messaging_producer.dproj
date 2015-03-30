@@ -3,7 +3,7 @@
         <ProjectGuid>{1C87949A-8BE1-4EB2-A776-8D95AA246479}</ProjectGuid>
         <ProjectVersion>16.1</ProjectVersion>
         <FrameworkType>None</FrameworkType>
-        <MainSource>messaging_clt_producer.dpr</MainSource>
+        <MainSource>queue_messaging_producer.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -60,7 +60,7 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
-        <SanitizedProjectName>messaging_clt_producer</SanitizedProjectName>
+        <SanitizedProjectName>queue_messaging_producer</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -142,13 +142,13 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">messaging_clt_producer.dpr</Source>
+                    <Source Name="MainSource">queue_messaging_producer.dpr</Source>
                 </Source>
             </Delphi.Personality>
             <Deployment>
-                <DeployFile LocalName="Win32\Debug\messaging_clt_producer.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Win32\Debug\queue_messaging_producer.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>messaging_clt_producer.exe</RemoteName>
+                        <RemoteName>queue_messaging_producer.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

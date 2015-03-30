@@ -1,4 +1,4 @@
-program messaging_clt_producer;
+program queue_messaging_producer;
 
 {$APPTYPE CONSOLE}
 {$R *.res}
@@ -12,7 +12,7 @@ var
   LCli: TRESTClient;
   LRes: IRESTResponse;
   LMsg: TJSONObject;
-  LMyClientID: string;
+  LStrMsg, LMyClientID: string;
 begin
   {
     USAGE PATTERN
@@ -25,12 +25,15 @@ begin
   try
     LCli.ReadTimeout := - 1;
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
+    LStrMsg := 'FIRST MESSAGE';
     while True do
     begin
-      LMsg := TJSONObject.Create(TJSONPair.Create('msg', GetTickCount.ToString));
+      LMsg := TJSONObject.Create(TJSONPair.Create('msg', LStrMsg)); // ;;GetTickCount.ToString));
       WriteLn('Writing on the queue: ' + LMsg.ToJSON);
-      LCli.doPOST('/messages', ['queues', 'queue1'], LMsg);
-      Sleep(10);
+      LRes := LCli.doPOST('/messages', ['queue', 'queue1'], LMsg);
+      WriteLn(LRes.ResponseCode, LRes.ResponseText);
+      write('Send Message: ');
+      ReadLn(LStrMsg);
     end;
   finally
     LCli.Free;
@@ -44,6 +47,6 @@ begin
     on E: Exception do
       WriteLn(E.ClassName, ': ', E.Message);
   end;
-  readln;
+  ReadLn;
 
 end.
