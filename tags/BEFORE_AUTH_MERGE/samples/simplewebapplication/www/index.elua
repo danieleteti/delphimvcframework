@@ -1,0 +1,10 @@
+<?lua require 'Lua.html.form' ?>
+<html>
+	<body>
+		<?lua=html:form_start('myform', "POST", "/customers?par1=ThisIsAnotherParameter") ?>
+		FirstName: <?lua=html:input('first_name') ?> <br>
+		LastName: <?lua=html:input('last_name') ?> <br>
+		<?lua=html:submit("btnSend", "Send your data") ?>
+		<?lua=html:form_end()?>
+	</body>
+</html>

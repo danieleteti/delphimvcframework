@@ -1,0 +1,13 @@
+<?lua require 'Lua.html.form'?>
+<html>
+	<body>
+	<h2>New Customer</h2>
+	<?lua=html:form_start("myForm", "POST", "/customers") ?>
+
+	FirstName: <?lua=html:input("firstName") ?>
+	<br>
+	LastName: <?lua=html:input("lastName") ?>
+	<?lua=html:submit("Save") ?>
+	<?lua=html:form_end() ?>
+	</body>
+</html>

@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{87E6405B-4E52-4C01-A512-8293F36E951B}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="WineCellarClientRESTAdapter.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\winecellarWITHDORM\WineCellarServerWITHDORM.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="WineCellarClientRESTAdapter">
+        <MSBuild Projects="WineCellarClientRESTAdapter.dproj"/>
+    </Target>
+    <Target Name="WineCellarClientRESTAdapter:Clean">
+        <MSBuild Projects="WineCellarClientRESTAdapter.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarClientRESTAdapter:Make">
+        <MSBuild Projects="WineCellarClientRESTAdapter.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WineCellarServerWITHDORM">
+        <MSBuild Projects="..\winecellarWITHDORM\WineCellarServerWITHDORM.dproj"/>
+    </Target>
+    <Target Name="WineCellarServerWITHDORM:Clean">
+        <MSBuild Projects="..\winecellarWITHDORM\WineCellarServerWITHDORM.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarServerWITHDORM:Make">
+        <MSBuild Projects="..\winecellarWITHDORM\WineCellarServerWITHDORM.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="WineCellarClientRESTAdapter;WineCellarServerWITHDORM"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="WineCellarClientRESTAdapter:Clean;WineCellarServerWITHDORM:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="WineCellarClientRESTAdapter:Make;WineCellarServerWITHDORM:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
