@@ -73,6 +73,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestGetPersonByIDAsFields(ctx: TWebContext);
 
+    [MVCPath('/customers/list')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure TestJSONArrayAsObjectList(ctx: TWebContext);
+
     [MVCPath('/people')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     procedure TestGetPersons(ctx: TWebContext);
@@ -82,6 +86,10 @@ type
     [MVCProduces('application/json')]
     procedure TestPOSTObject(ctx: TWebContext);
 
+    [MVCPath('/speed')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestHelloWorld(ctx: TWebContext);
+
     [MVCPath('/path1/($id)')]
     [MVCPath('/path2/($id)/2/($par)')]
     [MVCPath('/path3/($id)/2/($par)/3')]
@@ -89,6 +97,15 @@ type
     [MVCHTTPMethod([httpPOST, httpPUT])]
     procedure TestMultiplePaths(ctx: TWebContext);
 
+  end;
+
+  [MVCPath('/private')]
+  TTestPrivateServerController = class(TMVCController)
+  public
+    [MVCPath('/role1')]
+    procedure OnlyRole1(ctx: TWebContext);
+    [MVCPath('/role2')]
+    procedure OnlyRole2(ctx: TWebContext);
   end;
 
 implementation
@@ -189,8 +206,9 @@ end;
 
 procedure TTestServerController.ReqWithParams(ctx: TWebContext);
 begin
-  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
-    ctx.Request.Params['par3']).AddPair('method', ctx.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2',
+    ctx.Request.Params['par2']).AddPair('par3', ctx.Request.Params['par3']).AddPair('method',
+    ctx.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet(ctx: TWebContext);
@@ -280,6 +298,28 @@ begin
 
 end;
 
+procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
+begin
+  ContentType := 'text/plain';
+  Render('hello world');
+end;
+
+procedure TTestServerController.TestJSONArrayAsObjectList(ctx: TWebContext);
+var
+  vUsers: TObjectList<TCustomer>;
+begin
+  vUsers := ctx.Request.BodyAsListOf<TCustomer>();
+  try
+    vUsers.OwnsObjects := True;
+    if (vUsers.Count > 0) then
+      Render('Sucess!')
+    else
+      Render('Error!');
+  finally
+    FreeAndNil(vUsers);
+  end;
+end;
+
 procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);
 begin
   ContentType := TMVCMimeType.TEXT_PLAIN;
@@ -292,6 +332,18 @@ var
 begin
   Person := ctx.Request.BodyAs<TPerson>();
   Render(Person);
+end;
+
+{ TTestPrivateServerController }
+
+procedure TTestPrivateServerController.OnlyRole1(ctx: TWebContext);
+begin
+  Render(ctx.LoggedUser.UserName);
+end;
+
+procedure TTestPrivateServerController.OnlyRole2(ctx: TWebContext);
+begin
+  Render(ctx.LoggedUser.UserName);
 end;
 
 end.

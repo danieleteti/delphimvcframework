@@ -1,3 +1,4 @@
+{$WARNINGS OFF}
 unit LuaBind.Filters.Text;
 
 interface
@@ -26,11 +27,9 @@ type
     procedure Execute;
     property TemplateCode: string read FTemplateCode write SetTemplateCode;
     property LuaCode: string read FLuaCode write SetLuaCode;
-    property OutputFunction: string read FOutputFunction
-      write SetOutputFunction;
+    property OutputFunction: string read FOutputFunction write SetOutputFunction;
     // helpers
-    class function ExecuteWithResult(eLuaScript: AnsiString;
-      const ParamNames: array of string;
+    class function ExecuteWithResult(eLuaScript: AnsiString; const ParamNames: array of string;
       const ParamValues: array of string): string;
   end;
 
@@ -55,9 +54,9 @@ begin
     Exit(0);
   end;
 
-  if lua_isstring(L, -1) = 1 then
+  if lua_isstring(L, - 1) = 1 then
   begin
-    s := lua_tostring(L, -1);
+    s := lua_tostring(L, - 1);
     lua_pop(L, 1);
   end
   else
@@ -66,9 +65,9 @@ begin
     Exit(0);
   end;
 
-  if lua_islightuserdata(L, -1) then
+  if lua_islightuserdata(L, - 1) then
   begin
-    o := TObject(lua_topointer(L, -1));
+    o := TObject(lua_topointer(L, - 1));
     lua_pop(L, 1);
   end
   else
@@ -99,8 +98,7 @@ const
   PARSER_VERBATIM_CODE = PARSER_VERBATIM_TEXT + 1;
   PARSER_VERBATIM_EXPRESSION = PARSER_VERBATIM_CODE + 1;
   PARSER_VERBATIM_CODE_STRING_SINGLE_QUOTED = PARSER_VERBATIM_EXPRESSION + 1;
-  PARSER_VERBATIM_CODE_STRING_DOUBLE_QUOTED =
-    PARSER_VERBATIM_CODE_STRING_SINGLE_QUOTED + 1;
+  PARSER_VERBATIM_CODE_STRING_DOUBLE_QUOTED = PARSER_VERBATIM_CODE_STRING_SINGLE_QUOTED + 1;
 begin
   FCurrCharIndex := 0;
   State := PARSER_VERBATIM_TEXT;
@@ -116,8 +114,8 @@ begin
           begin
             if FCurrChar = '<' then
             begin
-              if (LookAhead(1) = '?') and (LookAhead(2) = 'l') and
-                (LookAhead(3) = 'u') and (LookAhead(4) = 'a') then
+              if (LookAhead(1) = '?') and (LookAhead(2) = 'l') and (LookAhead(3) = 'u') and
+                (LookAhead(4) = 'a') then
               begin
                 NextChar; // ?
                 NextChar; // l
@@ -142,8 +140,7 @@ begin
                 if StartCode then
                 begin
                   StartCode := False;
-                  FOutputStringBuilder.Append(FOutputFunction + ' [[' +
-                    sLineBreak);
+                  FOutputStringBuilder.Append(FOutputFunction + ' [[' + sLineBreak);
                 end;
                 PushToOutput('<');
                 NextChar;
@@ -154,8 +151,7 @@ begin
               if StartCode then
               begin
                 StartCode := False;
-                FOutputStringBuilder.Append(FOutputFunction + ' [[' +
-                  sLineBreak);
+                FOutputStringBuilder.Append(FOutputFunction + ' [[' + sLineBreak);
               end;
               PushToOutput(FCurrChar);
               NextChar;
@@ -226,8 +222,7 @@ begin
               begin
                 NextChar; // >
                 NextChar; // _
-                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [['
-                  + sLineBreak);
+                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [[' + sLineBreak);
                 State := PARSER_VERBATIM_TEXT;
               end
               else
@@ -252,8 +247,7 @@ begin
                 NextChar; // >
                 NextChar; // _
                 FOutputStringBuilder.Append(')');
-                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [['
-                  + sLineBreak);
+                FOutputStringBuilder.Append(sLineBreak + FOutputFunction + ' [[' + sLineBreak);
                 State := PARSER_VERBATIM_TEXT;
               end
               else
@@ -292,9 +286,9 @@ begin
     Exit(0);
   end;
 
-  if lua_isstring(L, -1) = 1 then
+  if lua_isstring(L, - 1) = 1 then
   begin
-    s := lua_tostring(L, -1);
+    s := lua_tostring(L, - 1);
     lua_pop(L, 1);
   end
   else
@@ -320,8 +314,7 @@ var
 
 begin
   if Length(ParamNames) <> Length(ParamValues) then
-    raise ELuaRuntimeException.Create
-      ('Number of params names and param values is not equals');
+    raise ELuaRuntimeException.Create('Number of params names and param values is not equals');
 
   LuaFilter := TLuaEmbeddedTextFilter.Create;
   try
@@ -362,7 +355,7 @@ procedure TLuaEmbeddedTextFilter.NextChar;
 begin
   if FCurrCharIndex = Length(FTemplateCode) then
   begin
-    FCurrCharIndex := -1;
+    FCurrCharIndex := - 1;
     FCurrChar := #0;
   end
   else

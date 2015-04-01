@@ -9,14 +9,12 @@ object WineCellarDataModule: TWineCellarDataModule
       'Password=masterkey'
       'DriverID=FB')
     ConnectedStoredUsage = [auDesignTime]
-    Connected = True
     LoginPrompt = False
     BeforeConnect = ConnectionBeforeConnect
     Left = 72
     Top = 48
   end
   object qryWines: TFDQuery
-    Active = True
     Connection = Connection
     UpdateObject = updWines
     SQL.Strings = (

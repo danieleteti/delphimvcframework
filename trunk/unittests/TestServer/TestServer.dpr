@@ -9,7 +9,6 @@ uses
   Web.WebReq,
   Web.WebBroker,
   WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule},
-  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
   MVCFramework in '..\..\sources\MVCFramework.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
@@ -24,11 +23,14 @@ uses
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
   DuckListU in '..\..\sources\DuckListU.pas',
-  MVCFramework.BUSController in '..\..\sources\MVCFramework.BUSController.pas',
+  MVCFramework.MessagingController in '..\..\sources\MVCFramework.MessagingController.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
-  uGlobalVars in '..\..\sources\uGlobalVars.pas';
+  uGlobalVars in '..\..\sources\uGlobalVars.pas' {$R *.res},
+  MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas';
 
 {$R *.res}
 

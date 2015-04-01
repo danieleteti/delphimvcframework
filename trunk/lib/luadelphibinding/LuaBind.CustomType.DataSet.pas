@@ -22,7 +22,7 @@ uses LuaBind.Intf;
 function _dataset_eof(L: plua_state): Integer; cdecl;
 var
   ds: TDataSet;
-  s : string;
+  s : ansistring;
 begin
   s := lua_typename(L, lua_type(L, - 1));
   assert(lua_islightuserdata(L, - 1));
@@ -57,7 +57,7 @@ begin
   ds := TDataSet(lua_topointer(L, - 1));
   lua_pop(L, 1);
 
-  sdata := ds.FieldByName(fieldname).AsString;
+  sdata := ds.FieldByName(String(fieldname)).AsAnsiString;
   lua_pushstring(L, pansichar(sdata));
   Result := 1;
 end;

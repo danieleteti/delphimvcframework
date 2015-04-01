@@ -46,12 +46,12 @@ uses ObjectsMappers,
   dorm.ObjectStatus,
   dorm.Utils,
   dorm.Commons,
-  ToDoBO
-{$IFDEF VER270}
-    , System.JSON
+  ToDoBO,
+{$IF CompilerVersion <= 27}
+  DATA.DBXJSON,
 {$ELSE}
-    , DATA.DBXJSON
-{$ENDIF},
+  System.JSON,
+{$ENDIF}
   System.SysUtils;
 
 { TApp1MainController }
@@ -110,8 +110,8 @@ begin
   if Context.Request.BodyAsJSONObject = nil then
     raise Exception.Create('Invalid request, Missing JSON object in parameter');
 
-  ToDos := Mapper.JSONArrayToObjectList<TToDo>
-    (ctx.Request.BodyAsJSONObject.Get('todos').JsonValue as TJSONArray, false);
+  ToDos := Mapper.JSONArrayToObjectList<TToDo>(ctx.Request.BodyAsJSONObject.Get('todos')
+    .JsonValue as TJSONArray, false);
   try
     dormSession.PersistCollection(ToDos);
     Render(200, 'update ok');

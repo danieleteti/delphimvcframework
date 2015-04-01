@@ -46,12 +46,12 @@ type
     FRegisteredSessionTypes: TDictionary<string, TWebSessionClass>;
     class var FInstance: TMVCSessionFactory;
     constructor Create;
-    destructor Destroy; override;
 
   public
     procedure RegisterSessionType(AName: string; AWebSessionClass: TWebSessionClass);
     class function GetInstance: TMVCSessionFactory;
     function CreateNewByType(AName: string; ASessionID: string; ATimeout: UInt64): TWebSession;
+    destructor Destroy; override;
   end;
 
 function SessionList: TObjectDictionary<string, TWebSession>;

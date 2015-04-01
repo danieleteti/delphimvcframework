@@ -52,7 +52,7 @@ type
 
 implementation
 
-{ TTestRouting }
+{$WARN SYMBOL_DEPRECATED OFF}
 
 uses MVCFramework.Commons,
   TestControllersU, DBClient,
@@ -699,7 +699,6 @@ procedure TTestRouting.TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObjec
 var
   lObj: TMyObjectWithLogic;
   lJObj: TJSONObject;
-  lObj2: TObject;
 begin
   lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
   try

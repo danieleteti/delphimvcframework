@@ -24,8 +24,8 @@
 	function enterInChat(username) {
 		 var res = false;
 		 $.ajax({
-              url: "/login/" + username,
-              type: "GET",
+              url: "/messages/clients/" + username,
+              type: "POST",
               async: false,
               success: function(data) {
                 console.log(data);
@@ -39,8 +39,8 @@
 		//if (!res) return false;
 
 		 $.ajax({
-              url: "/messages/subscribe/demochat",
-              type: "GET",
+              url: "/messages/subscriptions/topic/chat",
+              type: "POST",
               async: false,
               success: function(data) {
 								res = true;
@@ -61,11 +61,11 @@
 		 };
 
 		 $.ajax({
-									url: "/messages/enqueue/demochat",
+									url: "/messages/topic/chat",
 									data: JSON.stringify(msgobj),
 									processData: false,
 									type: "POST",
-									async: false,
+									async: true,
 									success: function(data) {
 										console.log(data)
 									}
@@ -73,6 +73,8 @@
 	}
 
 	function bindEvents(){
+		$('#username').val("user" + (1000 + Math.round((Math.random() * 1000)).toString()));
+		
 		$('#btnSend').click(function(){
 			sendMessage($('#txtMessage').val())
 		});
@@ -106,7 +108,7 @@ function htmlEntities(str) {
 
 function receive() {
  $.ajax({
-					url: "/messages/receive",
+					url: "/messages",
 					type: "GET",
 					async: true,
 					success: function(data) {

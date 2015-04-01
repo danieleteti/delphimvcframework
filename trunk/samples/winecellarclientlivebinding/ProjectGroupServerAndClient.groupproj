@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{87E6405B-4E52-4C01-A512-8293F36E951B}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="..\winecellar\WineCellarServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="WineCellarClientLiveBinding.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="WineCellarServer">
+        <MSBuild Projects="..\winecellar\WineCellarServer.dproj"/>
+    </Target>
+    <Target Name="WineCellarServer:Clean">
+        <MSBuild Projects="..\winecellar\WineCellarServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarServer:Make">
+        <MSBuild Projects="..\winecellar\WineCellarServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="WineCellarClientLiveBinding">
+        <MSBuild Projects="WineCellarClientLiveBinding.dproj"/>
+    </Target>
+    <Target Name="WineCellarClientLiveBinding:Clean">
+        <MSBuild Projects="WineCellarClientLiveBinding.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarClientLiveBinding:Make">
+        <MSBuild Projects="WineCellarClientLiveBinding.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="WineCellarServer;WineCellarClientLiveBinding"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="WineCellarServer:Clean;WineCellarClientLiveBinding:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="WineCellarServer:Make;WineCellarClientLiveBinding:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

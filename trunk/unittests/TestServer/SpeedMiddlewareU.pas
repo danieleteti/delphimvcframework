@@ -10,6 +10,9 @@ type
   public
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string; const Handled: Boolean);
+    procedure OnBeforeControllerAction(Context: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionNAme: string;
+      var Handled: Boolean);
   end;
 
 implementation
@@ -24,6 +27,13 @@ procedure TMVCSpeedMiddleware.OnAfterControllerAction(Context: TWebContext; cons
 begin
   Context.Response.CustomHeaders.Values['request_gen_time'] :=
     MilliSecondsBetween(Now, ISOStrToDateTime(Context.Data[classname + 'startup'])).ToString
+end;
+
+procedure TMVCSpeedMiddleware.OnBeforeControllerAction(Context: TWebContext;
+  const AControllerQualifiedClassName, AActionNAme: string;
+  var Handled: Boolean);
+begin
+
 end;
 
 procedure TMVCSpeedMiddleware.OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
