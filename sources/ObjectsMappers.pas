@@ -55,45 +55,65 @@ type
 
   private
 {$IF CompilerVersion > 25}
-    class function InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject; WithResult: boolean): Int64;
+    class function InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
+      WithResult: boolean): Int64;
 {$ELSE}
-    class function InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject; WithResult: boolean): Int64;
+    class function InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
+      WithResult: boolean): Int64;
 {$IFEND}
     class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType): string; overload;
     class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType): string; overload;
-    class procedure InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject; AObject: TObject); static;
-    class procedure InternalJSONObjectFieldsToObject(ctx: TRTTIContext; AJSONObject: TJSONObject; AObject: TObject); static;
+    class procedure InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
+      AObject: TObject); static;
+    class procedure InternalJSONObjectFieldsToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
+      AObject: TObject); static;
 
     { following methods are used by the serializer/unserializer to handle with the ser/unser logic }
-    class function SerializeFloatProperty(AObject: TObject; ARTTIProperty: TRttiProperty): TJSONValue;
+    class function SerializeFloatProperty(AObject: TObject; ARTTIProperty: TRttiProperty)
+      : TJSONValue;
     class function SerializeFloatField(AObject: TObject; ARttiField: TRttiField): TJSONValue;
-    class function SerializeEnumerationProperty(AObject: TObject; ARTTIProperty: TRttiProperty): TJSONValue;
+    class function SerializeEnumerationProperty(AObject: TObject; ARTTIProperty: TRttiProperty)
+      : TJSONValue;
     class function SerializeEnumerationField(AObject: TObject; ARttiField: TRttiField): TJSONValue;
   public
     class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject): boolean; overload;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject; out AAttribute: T): boolean; overload;
+    class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject; out AAttribute: T)
+      : boolean; overload;
 
     ///
     /// Do not restore nested classes
     ///
-    class function JSONObjectToObject<T: constructor, class>(AJSONObject: TJSONObject): T; overload; static;
-    class function JSONObjectStringToObject<T: constructor, class>(const AJSONObjectString: string): T;
+    class function JSONObjectToObject<T: constructor, class>(AJSONObject: TJSONObject): T;
+      overload; static;
+    class function JSONObjectStringToObject<T: constructor, class>(const AJSONObjectString
+      : string): T;
 
-    class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject; overload; static;
-    class function JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject; overload; static;
-    class function JSONObjectToObjectFields<T: constructor, class>(AJSONObject: TJSONObject): T; static;
+    class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
+      overload; static;
+    class function JSONObjectToObject(ClazzName: string; AJSONObject: TJSONObject): TObject;
+      overload; static;
+    class function JSONObjectToObjectFields<T: constructor, class>(AJSONObject: TJSONObject)
+      : T; static;
     class procedure ObjectToDataSet(Obj: TObject; Field: TField; var Value: Variant); static;
     class procedure DataSetToObject(ADataSet: TDataSet; AObject: TObject);
-    class function ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string): TJSONObject; overload;
+    class function ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string)
+      : TJSONObject; overload;
     /// <summary>
     /// Serializes an object to a jsonobject using fields value, not property values. WARNING! This
     /// method do not generate the $dmvc_classname property in the jsonobject. To have the $dmvc_classname
     /// into the json you should use ObjectToJSONObjectFields.
     /// </summary>
-    class function ObjectToJSONObjectFields(AObject: TObject; AIgnoredProperties: array of string): TJSONObject; overload;
+    class function ObjectToJSONObjectFields(AObject: TObject; AIgnoredProperties: array of string)
+      : TJSONObject; overload;
+    class function ObjectToJSONObjectFieldsString(AObject: TObject;
+      AIgnoredProperties: array of string): string; overload;
+
     /// <summary>
     /// Restore the object stored in the JSON object using the $dmvc_classname property
     /// to know the qualified full class name. Values readed from the json are restored directly to the object fields.
+    /// Fields MUST be exists into the json. This kind of deserialization is way more strit than the properties based.
+    /// It should not be used to serialize object for a thin client, but to serialize objects that must be deserialized using
+    /// the same delphi class. So this method is useful when you are developing a delphi-delphi solution. Exceptions apply.
     /// </summary>
     class function JSONObjectFieldsToObject(AJSONObject: TJSONObject): TObject;
     /// <summary>
@@ -109,69 +129,88 @@ type
     class function ObjectToJSONObjectString(AObject: TObject): string;
     class function ObjectToJSONArray(AObject: TObject): TJSONArray;
     { ***** Daniele Spinetti ***** }
-    class function JSONArrayToObjectList(AListOf: TClass; AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
-      AOwnsChildObjects: boolean = True): TObjectList<TObject>; overload;
+    class function JSONArrayToObjectList(AListOf: TClass; AJSONArray: TJSONArray;
+      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True)
+      : TObjectList<TObject>; overload;
     { ***** Daniele Spinetti ***** }
-    class procedure JSONArrayToObjectList(AList: IWrappedList; AListOf: TClass; AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+    class procedure JSONArrayToObjectList(AList: IWrappedList; AListOf: TClass;
+      AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
       AOwnsChildObjects: boolean = True); overload;
-    class function JSONArrayToObjectList<T: class, constructor>(AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
-      AOwnsChildObjects: boolean = True): TObjectList<T>; overload;
-    class procedure JSONArrayToObjectList<T: class, constructor>(AList: TObjectList<T>; AJSONArray: TJSONArray;
-      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True); overload;
+    class function JSONArrayToObjectList<T: class, constructor>(AJSONArray: TJSONArray;
+      AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True): TObjectList<T>; overload;
+    class procedure JSONArrayToObjectList<T: class, constructor>(AList: TObjectList<T>;
+      AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
+      AOwnsChildObjects: boolean = True); overload;
 {$IF CompilerVersion <= 25}
     class procedure ReaderToObject(AReader: TDBXReader; AObject: TObject);
-    class procedure ReaderToObjectList<T: class, constructor>(AReader: TDBXReader; AObjectList: TObjectList<T>);
-    class procedure ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject; AReaderInstanceOwner: boolean = True);
+    class procedure ReaderToObjectList<T: class, constructor>(AReader: TDBXReader;
+      AObjectList: TObjectList<T>);
+    class procedure ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
+      AReaderInstanceOwner: boolean = True);
 {$ENDIF}
-    class procedure DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True;
-      AJSONObjectActionProc: TJSONObjectActionProc = nil; AFieldNamePolicy: TFieldNamePolicy = fpLowerCase);
-    class procedure JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean = True); overload;
-    class procedure JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet; AIgnoredFields: TArray<string>;
-      AJSONObjectInstanceOwner: boolean = True; AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
-      ACloseDataSetAfterScroll: boolean = True);
+    class procedure DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject;
+      ADataSetInstanceOwner: boolean = True; AJSONObjectActionProc: TJSONObjectActionProc = nil;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase);
+    class procedure JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
+      AJSONObjectInstanceOwner: boolean = True); overload;
+    class procedure JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
+      AIgnoredFields: TArray<string>; AJSONObjectInstanceOwner: boolean = True;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet;
+      AObjectList: TObjectList<T>; ACloseDataSetAfterScroll: boolean = True);
     class function DataSetToJSONArrayOf<T: class, constructor>(ADataSet: TDataSet): TJSONArray;
 {$IF CompilerVersion <= 25}
     class procedure ReaderToList<T: class, constructor>(AReader: TDBXReader; AList: IWrappedList);
-    class procedure ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray; AReaderInstanceOwner: boolean = True);
+    class procedure ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray;
+      AReaderInstanceOwner: boolean = True);
 {$ENDIF}
-    class procedure DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True;
-      AJSONObjectActionProc: TJSONObjectActionProc = nil);
-    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean = True); overload;
-    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AIgnoredFields: TArray<string>;
+    class procedure DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
+      ADataSetInstanceOwner: boolean = True; AJSONObjectActionProc: TJSONObjectActionProc = nil);
+    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
       AJSONArrayInstanceOwner: boolean = True); overload;
+    class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
+      AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean = True;AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     // class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
     // ADataSetInstanceOwner: boolean = True);
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
     // ADataSetInstanceOwner: boolean = True);
-    class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>; AOwnsInstance: boolean = false;
-      AForEach: TJSONObjectActionProc = nil): TJSONArray;
-    class function ObjectListToJSONArrayFields<T: class>(AList: TObjectList<T>; AOwnsInstance: boolean = false;
-      AForEach: TJSONObjectActionProc = nil): TJSONArray;
-    class function ObjectListToJSONArrayString<T: class>(AList: TObjectList<T>; AOwnsInstance: boolean = false): string;
-    class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>): TJSONArray;
+    class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>;
+      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
+    class function ObjectListToJSONArrayFields<T: class>(AList: TObjectList<T>;
+      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
+    class function ObjectListToJSONArrayString<T: class>(AList: TObjectList<T>;
+      AOwnsInstance: boolean = false): string;
+    class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>)
+      : TJSONArray;
     class function GetProperty(Obj: TObject; const PropertyName: string): TValue; static;
 {$IF CompilerVersion <= 25}
     class function ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;
     class procedure ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject = nil);
-    class function ExecuteSQLQueryAsObjectList<T: class, constructor>(AQuery: TSQLQuery; AObject: TObject = nil): TObjectList<T>;
+    class function ExecuteSQLQueryAsObjectList<T: class, constructor>(AQuery: TSQLQuery;
+      AObject: TObject = nil): TObjectList<T>;
     class function CreateQuery(AConnection: TSQLConnection; ASQL: string): TSQLQuery;
 {$ENDIF}
     { FIREDAC RELATED METHODS }
 {$IF CompilerVersion > 25}
     class function ExecuteFDQueryNoResult(AQuery: TFDQuery; AObject: TObject): Int64;
     class procedure ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
-    class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string = '');
+    class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
+      AParamPrefix: string = '');
 {$IFEND}
     // SAFE TJSONObject getter
     class function GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
-    class function GetStringDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: string = ''): string;
-    class function GetNumberDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: Extended = 0): Extended;
+    class function GetStringDef(JSONObject: TJSONObject; PropertyName: string;
+      DefaultValue: string = ''): string;
+    class function GetNumberDef(JSONObject: TJSONObject; PropertyName: string;
+      DefaultValue: Extended = 0): Extended;
     class function GetJSONObj(JSONObject: TJSONObject; PropertyName: string): TJSONObject;
     class function GetJSONArray(JSONObject: TJSONObject; PropertyName: string): TJSONArray;
-    class function GetIntegerDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: Integer = 0): Integer;
-    class function GetInt64Def(JSONObject: TJSONObject; PropertyName: string; DefaultValue: Int64 = 0): Int64;
-    class function GetBooleanDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: boolean = false): boolean;
+    class function GetIntegerDef(JSONObject: TJSONObject; PropertyName: string;
+      DefaultValue: Integer = 0): Integer;
+    class function GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
+      DefaultValue: Int64 = 0): Int64;
+    class function GetBooleanDef(JSONObject: TJSONObject; PropertyName: string;
+      DefaultValue: boolean = false): boolean;
     class function PropertyExists(JSONObject: TJSONObject; PropertyName: string): boolean;
   end;
 
@@ -179,18 +218,22 @@ type
   public
     function AsJSONArray: TJSONArray;
     function AsJSONArrayString: string;
-    function AsJSONObject(AReturnNilIfEOF: boolean = false; AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): TJSONObject;
+    function AsJSONObject(AReturnNilIfEOF: boolean = false;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): TJSONObject;
     function AsJSONObjectString(AReturnEmptyStringIfEOF: boolean = false): string;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray); overload;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string);
     procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
+    procedure LoadFromJSONObjectString(AJSONObjectString: string;
+      AIgnoredFields: TArray<string>); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
-    procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>); overload;
+    procedure AppendFromJSONArrayString(AJSONArrayString: string;
+      AIgnoredFields: TArray<string>); overload;
     function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
   end;
@@ -294,7 +337,8 @@ type
     function GetAlignAsString: string;
 
   public
-    constructor Create(ACaption: string; AAlign: TGridColumnAlign = caCenter; AWidth: Integer = - 1);
+    constructor Create(ACaption: string; AAlign: TGridColumnAlign = caCenter;
+      AWidth: Integer = - 1);
     property Caption: string read FCaption;
     property Align: TGridColumnAlign read FAlign;
     property AlignAsString: string read GetAlignAsString;
@@ -315,6 +359,8 @@ function ISOStrToTime(TimeAsString: string): TTime;
 // function ISOTimeToStr(const ATime: TTime): String;
 
 implementation
+
+{$WARN SYMBOL_DEPRECATED OFF}
 
 uses
   TypInfo,
@@ -369,19 +415,22 @@ end;
 
 function ISOStrToDateTime(DateTimeAsString: string): TDateTime;
 begin
-  Result := EncodeDateTime(StrToInt(Copy(DateTimeAsString, 1, 4)), StrToInt(Copy(DateTimeAsString, 6, 2)),
-    StrToInt(Copy(DateTimeAsString, 9, 2)), StrToInt(Copy(DateTimeAsString, 12, 2)), StrToInt(Copy(DateTimeAsString, 15, 2)),
+  Result := EncodeDateTime(StrToInt(Copy(DateTimeAsString, 1, 4)),
+    StrToInt(Copy(DateTimeAsString, 6, 2)), StrToInt(Copy(DateTimeAsString, 9, 2)),
+    StrToInt(Copy(DateTimeAsString, 12, 2)), StrToInt(Copy(DateTimeAsString, 15, 2)),
     StrToInt(Copy(DateTimeAsString, 18, 2)), 0);
 end;
 
 function ISOStrToTime(TimeAsString: string): TTime;
 begin
-  Result := EncodeTime(StrToInt(Copy(TimeAsString, 1, 2)), StrToInt(Copy(TimeAsString, 4, 2)), StrToInt(Copy(TimeAsString, 7, 2)), 0);
+  Result := EncodeTime(StrToInt(Copy(TimeAsString, 1, 2)), StrToInt(Copy(TimeAsString, 4, 2)),
+    StrToInt(Copy(TimeAsString, 7, 2)), 0);
 end;
 
 function ISOStrToDate(DateAsString: string): TDate;
 begin
-  Result := EncodeDate(StrToInt(Copy(DateAsString, 1, 4)), StrToInt(Copy(DateAsString, 6, 2)), StrToInt(Copy(DateAsString, 9, 2)));
+  Result := EncodeDate(StrToInt(Copy(DateAsString, 1, 4)), StrToInt(Copy(DateAsString, 6, 2)),
+    StrToInt(Copy(DateAsString, 9, 2)));
   // , StrToInt
   // (Copy(DateAsString, 12, 2)), StrToInt(Copy(DateAsString, 15, 2)),
   // StrToInt(Copy(DateAsString, 18, 2)), 0);
@@ -400,7 +449,8 @@ end;
 
 {$IF CompilerVersion <= 25}
 
-class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject; WithResult: boolean): Int64;
+class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
+  WithResult: boolean): Int64;
 var
   I: Integer;
   pname: string;
@@ -455,7 +505,8 @@ begin
   end;
 end;
 
-class procedure Mapper.ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray; AReaderInstanceOwner: boolean);
+class procedure Mapper.ReaderToJSONArray(AReader: TDBXReader; AJSONArray: TJSONArray;
+  AReaderInstanceOwner: boolean);
 var
   Obj: TJSONObject;
 begin
@@ -469,7 +520,8 @@ begin
     FreeAndNil(AReader);
 end;
 
-class procedure Mapper.ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject; AReaderInstanceOwner: boolean);
+class procedure Mapper.ReaderToJSONObject(AReader: TDBXReader; AJSONObject: TJSONObject;
+  AReaderInstanceOwner: boolean);
 var
   I: Integer;
   key: string;
@@ -569,7 +621,8 @@ begin
 
   for _field in _fields do
   begin
-    if (not _dict.TryGetValue(_field.Name, field_name)) or (not _field.IsWritable) or (HasAttribute<MapperTransientAttribute>(_field)) then
+    if (not _dict.TryGetValue(_field.Name, field_name)) or (not _field.IsWritable) or
+      (HasAttribute<MapperTransientAttribute>(_field)) then
       Continue;
     case _field.PropertyType.TypeKind of
       tkInteger:
@@ -636,8 +689,8 @@ begin
 end;
 {$IFEND}
 
-class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean;
-  AJSONObjectActionProc: TJSONObjectActionProc);
+class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
+  ADataSetInstanceOwner: boolean; AJSONObjectActionProc: TJSONObjectActionProc);
 var
   Obj: TJSONObject;
 begin
@@ -672,8 +725,9 @@ begin
   end;
 end;
 
-class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean;
-  AJSONObjectActionProc: TJSONObjectActionProc; AFieldNamePolicy: TFieldNamePolicy);
+class procedure Mapper.DataSetToJSONObject(ADataSet: TDataSet; AJSONObject: TJSONObject;
+  ADataSetInstanceOwner: boolean; AJSONObjectActionProc: TJSONObjectActionProc;
+  AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
   key: string;
@@ -852,8 +906,8 @@ begin
   _keys.Free;
 end;
 
-class function Mapper.ObjectListToJSONArrayFields<T>(AList: TObjectList<T>; AOwnsInstance: boolean = false;
-  AForEach: TJSONObjectActionProc = nil): TJSONArray;
+class function Mapper.ObjectListToJSONArrayFields<T>(AList: TObjectList<T>;
+  AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
 var
   I: Integer;
   JV: TJSONObject;
@@ -871,7 +925,8 @@ begin
     AList.Free;
 end;
 
-class function Mapper.ObjectListToJSONArray<T>(AList: TObjectList<T>; AOwnsInstance: boolean; AForEach: TJSONObjectActionProc): TJSONArray;
+class function Mapper.ObjectListToJSONArray<T>(AList: TObjectList<T>; AOwnsInstance: boolean;
+  AForEach: TJSONObjectActionProc): TJSONArray;
 var
   I: Integer;
   JV: TJSONObject;
@@ -898,7 +953,8 @@ begin
     Result.AddElement(ObjectToJSONArray(AList[I]));
 end;
 
-class function Mapper.ObjectListToJSONArrayString<T>(AList: TObjectList<T>; AOwnsInstance: boolean): string;
+class function Mapper.ObjectListToJSONArrayString<T>(AList: TObjectList<T>;
+  AOwnsInstance: boolean): string;
 var
   Arr: TJSONArray;
 begin
@@ -985,7 +1041,8 @@ begin
   Result := LJArray;
 end;
 
-class function Mapper.ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string): TJSONObject;
+class function Mapper.ObjectToJSONObject(AObject: TObject; AIgnoredProperties: array of string)
+  : TJSONObject;
 var
   _type: TRttiType;
   _properties: TArray<TRttiProperty>;
@@ -1152,7 +1209,8 @@ begin
   Result := ObjectToJSONObject(AObject, []);
 end;
 
-class function Mapper.ObjectToJSONObjectFields(AObject: TObject; AIgnoredProperties: array of string): TJSONObject;
+class function Mapper.ObjectToJSONObjectFields(AObject: TObject;
+  AIgnoredProperties: array of string): TJSONObject;
 var
   _type: TRttiType;
   _fields: TArray<TRttiField>;
@@ -1244,6 +1302,23 @@ begin
   end;
 end;
 
+class function Mapper.ObjectToJSONObjectFieldsString(AObject: TObject;
+  AIgnoredProperties: array of string): string;
+var
+  LJObj: TJSONObject;
+begin
+  LJObj := ObjectToJSONObjectFields(AObject, AIgnoredProperties);
+  try
+{$IF CompilerVersion >= 27}
+    Result := LJObj.ToJSON;
+{$ELSE}
+    Result := LJObj.ToString
+{$ENDIF}
+  finally
+    LJObj.Free;
+  end;
+end;
+
 class function Mapper.ObjectToJSONObjectString(AObject: TObject): string;
 var
   JObj: TJSONObject;
@@ -1261,7 +1336,8 @@ begin
   Result := Assigned(GetPair(JSONObject, PropertyName));
 end;
 
-class function Mapper.SerializeEnumerationField(AObject: TObject; ARttiField: TRttiField): TJSONValue;
+class function Mapper.SerializeEnumerationField(AObject: TObject; ARttiField: TRttiField)
+  : TJSONValue;
 begin
   if ARttiField.FieldType.QualifiedName = 'System.Boolean' then
   begin
@@ -1276,7 +1352,8 @@ begin
   end;
 end;
 
-class function Mapper.SerializeEnumerationProperty(AObject: TObject; ARTTIProperty: TRttiProperty): TJSONValue;
+class function Mapper.SerializeEnumerationProperty(AObject: TObject; ARTTIProperty: TRttiProperty)
+  : TJSONValue;
 begin
   if ARTTIProperty.PropertyType.QualifiedName = 'System.Boolean' then
   begin
@@ -1313,7 +1390,8 @@ begin
     Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
 end;
 
-class function Mapper.SerializeFloatProperty(AObject: TObject; ARTTIProperty: TRttiProperty): TJSONValue;
+class function Mapper.SerializeFloatProperty(AObject: TObject; ARTTIProperty: TRttiProperty)
+  : TJSONValue;
 begin
   if ARTTIProperty.PropertyType.QualifiedName = 'System.TDate' then
   begin
@@ -1380,7 +1458,8 @@ begin
   Result := ARttiField.Name;
 end;
 
-class function Mapper.GetBooleanDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: boolean): boolean;
+class function Mapper.GetBooleanDef(JSONObject: TJSONObject; PropertyName: string;
+  DefaultValue: boolean): boolean;
 var
   pair: TJSONPair;
 begin
@@ -1395,7 +1474,8 @@ begin
     raise EMapperException.CreateFmt('Property %s is not a Boolean Property', [PropertyName]);
 end;
 
-class function Mapper.GetInt64Def(JSONObject: TJSONObject; PropertyName: string; DefaultValue: Int64): Int64;
+class function Mapper.GetInt64Def(JSONObject: TJSONObject; PropertyName: string;
+  DefaultValue: Int64): Int64;
 var
   pair: TJSONPair;
 begin
@@ -1408,7 +1488,8 @@ begin
     raise EMapperException.CreateFmt('Property %s is not a Int64 Property', [PropertyName]);
 end;
 
-class function Mapper.GetIntegerDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: Integer): Integer;
+class function Mapper.GetIntegerDef(JSONObject: TJSONObject; PropertyName: string;
+  DefaultValue: Integer): Integer;
 var
   pair: TJSONPair;
 begin
@@ -1485,7 +1566,8 @@ begin
   Result := ARttiProp.Name;
 end;
 
-class function Mapper.GetNumberDef(JSONObject: TJSONObject; PropertyName: string; DefaultValue: Extended): Extended;
+class function Mapper.GetNumberDef(JSONObject: TJSONObject; PropertyName: string;
+  DefaultValue: Extended): Extended;
 var
   pair: TJSONPair;
 begin
@@ -1518,14 +1600,17 @@ begin
     raise EMapperException.CreateFmt('Cannot get RTTI for type [%s]', [ARTTIType.ToString]);
   Prop := ARTTIType.GetProperty(PropertyName);
   if not Assigned(Prop) then
-    raise EMapperException.CreateFmt('Cannot get RTTI for property [%s.%s]', [ARTTIType.ToString, PropertyName]);
+    raise EMapperException.CreateFmt('Cannot get RTTI for property [%s.%s]',
+      [ARTTIType.ToString, PropertyName]);
   if Prop.IsReadable then
     Result := Prop.GetValue(Obj)
   else
-    raise EMapperException.CreateFmt('Property is not readable [%s.%s]', [ARTTIType.ToString, PropertyName]);
+    raise EMapperException.CreateFmt('Property is not readable [%s.%s]',
+      [ARTTIType.ToString, PropertyName]);
 end;
 
-class function Mapper.GetStringDef(JSONObject: TJSONObject; PropertyName, DefaultValue: string): string;
+class function Mapper.GetStringDef(JSONObject: TJSONObject;
+  PropertyName, DefaultValue: string): string;
 var
   pair: TJSONPair;
 begin
@@ -1566,28 +1651,29 @@ begin
       Exit(True);
 end;
 
-class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean);
+class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
+  AJSONArrayInstanceOwner: boolean);
 begin
   JSONArrayToDataSet(AJSONArray, ADataSet, TArray<string>.Create(), AJSONArrayInstanceOwner);
 end;
 
-class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet; AIgnoredFields: TArray<string>;
-  AJSONArrayInstanceOwner: boolean);
+class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
+  AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean; AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
 begin
   for I := 0 to AJSONArray.Size - 1 do
   begin
     ADataSet.Append;
-    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, AIgnoredFields, false);
+    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, AIgnoredFields, false, AFieldNamePolicy);
     ADataSet.Post;
   end;
   if AJSONArrayInstanceOwner then
     AJSONArray.Free;
 end;
 
-class function Mapper.JSONArrayToObjectList(AListOf: TClass; AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
-  AOwnsChildObjects: boolean = True): TObjectList<TObject>;
+class function Mapper.JSONArrayToObjectList(AListOf: TClass; AJSONArray: TJSONArray;
+  AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True): TObjectList<TObject>;
 var
   I: Integer;
 begin
@@ -1602,8 +1688,8 @@ begin
   end;
 end;
 
-class procedure Mapper.JSONArrayToObjectList(AList: IWrappedList; AListOf: TClass; AJSONArray: TJSONArray; AInstanceOwner: boolean = True;
-  AOwnsChildObjects: boolean = True);
+class procedure Mapper.JSONArrayToObjectList(AList: IWrappedList; AListOf: TClass;
+  AJSONArray: TJSONArray; AInstanceOwner: boolean = True; AOwnsChildObjects: boolean = True);
 var
   I: Integer;
 begin
@@ -1617,7 +1703,8 @@ begin
   end;
 end;
 
-class procedure Mapper.JSONArrayToObjectList<T>(AList: TObjectList<T>; AJSONArray: TJSONArray; AInstanceOwner, AOwnsChildObjects: boolean);
+class procedure Mapper.JSONArrayToObjectList<T>(AList: TObjectList<T>; AJSONArray: TJSONArray;
+  AInstanceOwner, AOwnsChildObjects: boolean);
 var
   I: Integer;
 begin
@@ -1630,13 +1717,15 @@ begin
   end;
 end;
 
-class function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean; AOwnsChildObjects: boolean): TObjectList<T>;
+class function Mapper.JSONArrayToObjectList<T>(AJSONArray: TJSONArray; AInstanceOwner: boolean;
+  AOwnsChildObjects: boolean): TObjectList<T>;
 begin
   Result := TObjectList<T>.Create(AOwnsChildObjects);
   JSONArrayToObjectList<T>(Result, AJSONArray, AInstanceOwner, AOwnsChildObjects);
 end;
 
-class procedure Mapper.InternalJSONObjectFieldsToObject(ctx: TRTTIContext; AJSONObject: TJSONObject; AObject: TObject);
+class procedure Mapper.InternalJSONObjectFieldsToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
+  AObject: TObject);
 var
   _type: TRttiType;
   _fields: TArray<TRttiField>;
@@ -1657,18 +1746,20 @@ var
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
 begin
-  jvalue := nil;
+//  jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetFields;
   for _field in _fields do
   begin
-    if { (_field.FieldType.TypeKind <> tkClass) or } (HasAttribute<MapperTransientAttribute>(_field)) then
+    if { (_field.FieldType.TypeKind <> tkClass) or } (HasAttribute<MapperTransientAttribute>(_field))
+    then
       Continue;
     f := GetKeyName(_field, _type);
     if Assigned(AJSONObject.Get(f)) then
       jvalue := AJSONObject.Get(f).JsonValue
     else
-      raise EMapperException.Create(f + ' (real field name = ' + _field.Name + ') key field is not present in the JSONObject');
+      raise EMapperException.Create(f + ' (real field name = ' + _field.Name +
+        ') key field is not present in the JSONObject');
     case _field.FieldType.TypeKind of
       tkEnumeration:
         begin
@@ -1746,7 +1837,8 @@ begin
                 SerStreamASString := TJSONString(jvalue).Value;
               end
               else
-                raise EMapperException.Create('Expected JSONString in ' + AJSONObject.Get(f).JsonString.Value);
+                raise EMapperException.Create('Expected JSONString in ' + AJSONObject.Get(f)
+                  .JsonString.Value);
 
               if HasAttribute<MapperSerializeAsString>(_field, _attrser) then
               begin
@@ -1779,8 +1871,8 @@ begin
               begin
                 Arr := TJSONArray(jvalue);
                 // look for the MapperItemsClassType on the property itself or on the property type
-                if Mapper.HasAttribute<MapperItemsClassType>(_field, attr) or Mapper.HasAttribute<MapperItemsClassType>(_field.FieldType,
-                  attr) then
+                if Mapper.HasAttribute<MapperItemsClassType>(_field, attr) or
+                  Mapper.HasAttribute<MapperItemsClassType>(_field.FieldType, attr) then
                 begin
                   cref := attr.Value;
                   list := WrapAsList(o);
@@ -1791,7 +1883,8 @@ begin
                 end;
               end
               else
-                raise EMapperException.Create('Cannot restore ' + f + ' because the related json property is not an array');
+                raise EMapperException.Create('Cannot restore ' + f +
+                  ' because the related json property is not an array');
             end
             else // try to deserialize into the property... but the json MUST be an object
             begin
@@ -1813,7 +1906,8 @@ begin
   end;
 end;
 
-class procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject; AObject: TObject);
+class procedure Mapper.InternalJSONObjectToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
+  AObject: TObject);
 var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
@@ -1829,7 +1923,7 @@ var
   Arr: TJSONArray;
   n: TJSONNumber;
   SerStreamASString: string;
-  EncBytes: TBytes;
+//  EncBytes: TBytes;
   sw: TStreamWriter;
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
@@ -1840,7 +1934,8 @@ begin
   _fields := _type.GetProperties;
   for _field in _fields do
   begin
-    if ((not _field.IsWritable) and (_field.PropertyType.TypeKind <> tkClass)) or (HasAttribute<MapperTransientAttribute>(_field)) then
+    if ((not _field.IsWritable) and (_field.PropertyType.TypeKind <> tkClass)) or
+      (HasAttribute<MapperTransientAttribute>(_field)) then
       Continue;
     f := GetKeyName(_field, _type);
     if Assigned(AJSONObject.Get(f)) then
@@ -1928,7 +2023,8 @@ begin
                 SerStreamASString := TJSONString(jvalue).Value;
               end
               else
-                raise EMapperException.Create('Expected JSONString in ' + AJSONObject.Get(f).JsonString.Value);
+                raise EMapperException.Create('Expected JSONString in ' + AJSONObject.Get(f)
+                  .JsonString.Value);
 
               if HasAttribute<MapperSerializeAsString>(_field, _attrser) then
               begin
@@ -1961,8 +2057,8 @@ begin
               begin
                 Arr := TJSONArray(jvalue);
                 // look for the MapperItemsClassType on the property itself or on the property type
-                if Mapper.HasAttribute<MapperItemsClassType>(_field, attr) or Mapper.HasAttribute<MapperItemsClassType>(_field.PropertyType,
-                  attr) then
+                if Mapper.HasAttribute<MapperItemsClassType>(_field, attr) or
+                  Mapper.HasAttribute<MapperItemsClassType>(_field.PropertyType, attr) then
                 begin
                   cref := attr.Value;
                   list := WrapAsList(o);
@@ -1973,7 +2069,8 @@ begin
                 end;
               end
               else
-                raise EMapperException.Create('Cannot restore ' + f + ' because the related json property is not an array');
+                raise EMapperException.Create('Cannot restore ' + f +
+                  ' because the related json property is not an array');
             end
             else // try to deserialize into the property... but the json MUST be an object
             begin
@@ -2009,7 +2106,8 @@ begin
   end;
 end;
 
-class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet; AJSONObjectInstanceOwner: boolean);
+class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
+  AJSONObjectInstanceOwner: boolean);
 begin
   JSONObjectToDataSet(AJSONObject, ADataSet, TArray<string>.Create(), AJSONObjectInstanceOwner);
 end;
@@ -2019,19 +2117,25 @@ var
   lJClassName: TJSONString;
   LObj: TObject;
 begin
-  if AJSONObject.TryGetValue<TJSONString>(DMVC_CLASSNAME, lJClassName) then
+{$IF CompilerVersion <= 26}
+  if Assigned(AJSONObject.Get(DMVC_CLASSNAME)) then
   begin
-    LObj := TRTTIUtils.CreateObject(lJClassName.Value);
-    try
-      InternalJSONObjectFieldsToObject(ctx, AJSONObject, LObj);
-      Result := LObj;
-    except
-      FreeAndNil(LObj);
-      raise;
-    end;
+    lJClassName := AJSONObject.Get(DMVC_CLASSNAME).JsonValue as TJSONString;
   end
   else
     raise EMapperException.Create('No $classname property in the JSON object');
+{$ELSE}
+  if not AJSONObject.TryGetValue<TJSONString>(DMVC_CLASSNAME, lJClassName) then
+    raise EMapperException.Create('No $classname property in the JSON object');
+{$ENDIF}
+  LObj := TRTTIUtils.CreateObject(lJClassName.Value);
+  try
+    InternalJSONObjectFieldsToObject(ctx, AJSONObject, LObj);
+    Result := LObj;
+  except
+    FreeAndNil(LObj);
+    raise;
+  end;
 end;
 
 class function Mapper.JSONObjectStringToObject<T>(const AJSONObjectString: string): T;
@@ -2046,8 +2150,9 @@ begin
   end;
 end;
 
-class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet; AIgnoredFields: TArray<string>;
-  AJSONObjectInstanceOwner: boolean; AFieldNamePolicy: TFieldNamePolicy);
+class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject; ADataSet: TDataSet;
+  AIgnoredFields: TArray<string>; AJSONObjectInstanceOwner: boolean;
+  AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
   key: string;
@@ -2163,7 +2268,7 @@ begin
       Result := AObject;
     except
       AObject.Free;
-      Result := nil;
+//      Result := nil;
       raise; // added 20140630
     end;
   end
@@ -2226,7 +2331,8 @@ begin
   end;
 end;
 
-class procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>; ACloseDataSetAfterScroll: boolean);
+class procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
+  ACloseDataSetAfterScroll: boolean);
 var
   Obj: T;
   SavedPosition: TArray<Byte>;
@@ -2343,7 +2449,8 @@ end;
 
 {$IF CompilerVersion > 25}
 
-class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string);
+class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
+  AParamPrefix: string);
 var
   I: Integer;
   pname: string;
@@ -2372,7 +2479,9 @@ var
           else
             Result := ftFloat;
         end;
-      tkChar, tkWChar, tkString, tkUString, tkLString, tkWString:
+      tkChar, tkString:
+        Result := ftString;
+      tkWChar, tkUString, tkLString, tkWString:
         Result := ftWideString;
       tkVariant:
         Result := ftVariant;
@@ -2429,7 +2538,8 @@ begin
   end
 end;
 
-class function Mapper.InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject; WithResult: boolean): Int64;
+class function Mapper.InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
+  WithResult: boolean): Int64;
 begin
   ObjectToFDParameters(AQuery.Params, AObject);
   Result := 0;
@@ -2464,7 +2574,8 @@ begin
   InternalExecuteSQLQuery(AQuery, AObject, True);
 end;
 
-class function Mapper.ExecuteSQLQueryAsObjectList<T>(AQuery: TSQLQuery; AObject: TObject): TObjectList<T>;
+class function Mapper.ExecuteSQLQueryAsObjectList<T>(AQuery: TSQLQuery; AObject: TObject)
+  : TObjectList<T>;
 begin
   ExecuteSQLQuery(AQuery, AObject);
   Result := TObjectList<T>.Create(True);
@@ -2600,7 +2711,8 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONObject(AReturnNilIfEOF: boolean; AFieldNamePolicy: TFieldNamePolicy): TJSONObject;
+function TDataSetHelper.AsJSONObject(AReturnNilIfEOF: boolean; AFieldNamePolicy: TFieldNamePolicy)
+  : TJSONObject;
 var
   JObj: TJSONObject;
 begin
@@ -2669,11 +2781,11 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy);
 begin
   Self.DisableControls;
   try
-    Mapper.JSONArrayToDataSet(AJSONArray, Self, false);
+    Mapper.JSONArrayToDataSet(AJSONArray, Self, [], false, AFieldNamePolicy);
   finally
     Self.EnableControls;
   end;
@@ -2694,7 +2806,8 @@ begin
   AppendFromJSONArrayString(AJSONArrayString);
 end;
 
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>);
+procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;
+  AIgnoredFields: TArray<string>);
 var
   JV: TJSONValue;
 begin
@@ -2714,12 +2827,14 @@ begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create());
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
+  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
 begin
   Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false, AFieldNamePolicy);
 end;
 
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>);
+procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string;
+  AIgnoredFields: TArray<string>);
 var
   JV: TJSONValue;
 begin
@@ -2734,7 +2849,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   LoadFromJSONObject(AJSONObject, TArray<string>.Create());
 end;

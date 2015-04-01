@@ -2,7 +2,13 @@ unit App1MainControllerU;
 
 interface
 
-uses MVCFramework,
+uses
+  MVCFramework,
+{$IF CompilerVersion <= 27}
+  DATA.DBXJSON,
+{$ELSE}
+  System.JSON,
+{$ENDIF}
   MVCFramework.Logger;
 
 type
@@ -30,7 +36,7 @@ type
 implementation
 
 uses
-  Data.DBXJSON,
+  DATA.DBXJSON,
   System.SysUtils;
 
 { TApp1MainController }
@@ -42,11 +48,11 @@ end;
 
 procedure TApp1MainController.HelloWorldPost(ctx: TWebContext);
 var
-  json: TJSONObject;
+  JSON: TJSONObject;
 begin
-  json := ctx.Request.BodyAsJSONObject;
-  json.AddPair('modified', 'from server');
-  Render(json.Clone as TJSONObject);
+  JSON := ctx.Request.BodyAsJSONObject;
+  JSON.AddPair('modified', 'from server');
+  Render(JSON.Clone as TJSONObject);
   Log('Hello world called with POST');
 end;
 
@@ -61,9 +67,7 @@ var
 begin
   Log('Parameter1=' + ctx.Request.Params['par1'].QuotedString);
   Log('Parameter2=' + ctx.Request.Params['par2'].QuotedString);
-  R :=
-    StrToInt(ctx.Request.Params['par1']) /
-    StrToInt(ctx.Request.Params['par2']);
+  R := StrToInt(ctx.Request.Params['par1']) / StrToInt(ctx.Request.Params['par2']);
   Render(TJSONObject.Create(TJSONPair.Create('result', TJSONNumber.Create(R))));
 end;
 

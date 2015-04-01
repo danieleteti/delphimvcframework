@@ -37,12 +37,11 @@ type
     FRegisteredApplicationSessionTypes: TDictionary<String, TWebApplicationSessionClass>;
     class var FInstance: TMVCApplicationSessionFactory;
     constructor Create;
-    destructor Destroy; override;
-
   public
     procedure RegisterSessionType(AName: String; AWebApplicationSessionClass: TWebApplicationSessionClass);
     class function GetInstance: TMVCApplicationSessionFactory;
     function CreateNewByType(AName: String): TWebApplicationSession;
+    destructor Destroy; override;
   end;
 
 implementation

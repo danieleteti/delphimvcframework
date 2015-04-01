@@ -12,8 +12,8 @@ uses
   MVCFramework,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   CallbackControllerU in 'CallbackControllerU.pas',
-  MVCFramework.BUSController in '..\..\sources\MVCFramework.BUSController.pas',
-  StompClient in '..\..\lib\delphistompclient\StompClient.pas';
+  StompClient in '..\..\lib\delphistompclient\StompClient.pas',
+  MVCFramework.MessagingController in '..\..\sources\MVCFramework.MessagingController.pas';
 
 {$R *.res}
 

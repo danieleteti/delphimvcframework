@@ -26,8 +26,7 @@ type
     property LastName: string read FLastName write SetLastName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-    class function GetNew(AFirstName, ALastName: string; ADOB: TDate;
-      AMarried: boolean): TPerson;
+    class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList: TObjectList<TPerson>;
   end;
 
@@ -57,6 +56,7 @@ type
     property AddressLine1: string read FAddressLine1 write SetAddressLine1;
     property AddressLine2: string read FAddressLine2 write SetAddressLine2;
     property City: string read FCity write SetCity;
+    class function GetList: TObjectList<TCustomer>;
   end;
 
   [MapperJSONNaming(JSONNameLowerCase)]
@@ -135,6 +135,29 @@ begin
 end;
 
 { TCustomer }
+
+class function TCustomer.GetList: TObjectList<TCustomer>;
+var
+  C1: TCustomer;
+begin
+  Result := TObjectList<TCustomer>.Create(true);
+  C1 := TCustomer.Create;
+  C1.name := 'bit Time Professionals';
+  C1.ContactFirst := 'Daniele';
+  C1.ContactLast := 'Teti';
+  C1.AddressLine1 := 'Via di Valle Morta 10';
+  C1.City := 'Rome, IT';
+  Result.Add(C1);
+
+  C1 := TCustomer.Create;
+  C1.name := 'Stark Industries';
+  C1.ContactFirst := 'Tony';
+  C1.ContactLast := 'Stark';
+  C1.AddressLine1 := 'Superhero Street 555';
+  C1.City := 'Palo Alto, CA';
+  Result.Add(C1);
+
+end;
 
 procedure TCustomer.SetAddressLine1(const Value: string);
 begin

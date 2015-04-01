@@ -92,7 +92,6 @@
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
@@ -107,13 +106,16 @@
         <DCCReference Include="..\..\sources\RTTIUtilsU.pas"/>
         <DCCReference Include="..\..\sources\ObjectsMappers.pas"/>
         <DCCReference Include="..\..\sources\DuckListU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.BUSController.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.MessagingController.pas"/>
         <DCCReference Include="..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="TestServerControllerExceptionU.pas"/>
         <DCCReference Include="SpeedMiddlewareU.pas"/>
         <DCCReference Include="..\..\sources\uGlobalVars.pas">
             <Form>$R *.res</Form>
         </DCCReference>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

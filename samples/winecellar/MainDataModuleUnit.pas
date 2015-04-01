@@ -6,16 +6,18 @@ uses System.SysUtils,
   System.Classes,
   Data.DBXFirebird,
   Data.DB,
-  Data.SqlExpr
-{$IFDEF VER270}
-    , System.JSON
+  Data.SqlExpr,
+{$IF CompilerVersion <= 27}
+  Data.DBXJSON,
 {$ELSE}
-    , Data.DBXJSON
+  System.JSON,
 {$ENDIF}
-    , FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
-  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client, FireDAC.Stan.Param,
-  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase, FireDAC.Phys.FB,
-  WinesBO;
+  FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
+  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
+  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase,
+  FireDAC.Phys.FB,
+  WinesBO, FireDAC.Phys.FBDef;
 
 type
   TWineCellarDataModule = class(TDataModule)
@@ -37,7 +39,6 @@ implementation
 
 {$R *.dfm}
 
-
 uses System.StrUtils,
   Data.DBXCommon,
   ObjectsMappers;
@@ -58,8 +59,7 @@ end;
 
 procedure TWineCellarDataModule.ConnectionBeforeConnect(Sender: TObject);
 begin
-  Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)
-    ) + '..\..\WINES.FDB';
+  Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\WINES.FDB';
 end;
 
 function TWineCellarDataModule.FindWines(Search: string): TJSONArray;

@@ -9,6 +9,9 @@
         <Projects Include="TestServer\TestServer.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\samples\callback\CallbackDemo.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="TestServer:Make">
         <MSBuild Projects="TestServer\TestServer.dproj" Targets="Make"/>
     </Target>
+    <Target Name="CallbackDemo">
+        <MSBuild Projects="..\samples\callback\CallbackDemo.dproj"/>
+    </Target>
+    <Target Name="CallbackDemo:Clean">
+        <MSBuild Projects="..\samples\callback\CallbackDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CallbackDemo:Make">
+        <MSBuild Projects="..\samples\callback\CallbackDemo.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="DMVCFrameworkTests;TestServer"/>
+        <CallTarget Targets="DMVCFrameworkTests;TestServer;CallbackDemo"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean"/>
+        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean;CallbackDemo:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make"/>
+        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make;CallbackDemo:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

@@ -1,3 +1,4 @@
+{$WARNINGS OFF}
 unit LuaBind;
 
 interface
@@ -185,11 +186,7 @@ uses
   typinfo,
   LuaBind.DelphiObjects;
 
-function internal_call_method(LState: Plua_State): Integer;
-cdecl
-var
-  I: Integer;
-  v: TValue;
+function internal_call_method(LState: Plua_State): Integer; cdecl;
 begin
   // raise Exception.Create('Error Message');
   lua_pop(LState, 1);
@@ -280,10 +277,6 @@ end;
 
 function TLuaEngine.DeclareGlobalDelphiObjectAsTable(AObject: TObject;
   AVariableName: string): TLuaEngine;
-var
-  I: Integer;
-  k: string;
-  v: TValue;
 begin
   // lua_createtable(L, 0, 0);
   // lua_createtable(L, 0, 1);
@@ -412,9 +405,6 @@ end;
 function TLuaEngine.DeclareTable(const ATableName: AnsiString;
   ADictionary: TDictionary<TValue, TValue>): TLuaEngine;
 var
-  I: Integer;
-  k: TValue;
-  v: TValue;
   key: TValue;
 begin
   lua_newtable(LState);
@@ -431,8 +421,6 @@ end;
 function TLuaEngine.DeclareTable(const ATableName: AnsiString;
   ADictionary: TDictionary<string, string>): TLuaEngine;
 var
-  I: Integer;
-  k: string;
   key: string;
 begin
   lua_newtable(LState);
@@ -655,7 +643,6 @@ var
   properties: TArray<TRTTIProperty>;
   k: AnsiString;
   Value: TValue;
-  v: AnsiString;
   o: TObject;
 begin
   ctx := TRTTIContext.Create;
@@ -723,8 +710,6 @@ class function TLuaValue.GetTValueFromLuaValueType(LuaValueType: TLuaValueType;
   LuaState: Plua_State; StackIndex: Integer): TValue;
 var
   a: AnsiString;
-  _lua_CFunction: lua_CFunction;
-  _pluastate: Plua_State;
 begin
   case LuaValueType of
     lvtNil:
