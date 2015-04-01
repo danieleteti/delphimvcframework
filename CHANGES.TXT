@@ -6,3 +6,9 @@
 - new method for middleware: OnBeforeControllerAction
 - new configuration block in TMVCEngine.Create (now is the preferred way to configure the server)
 - Declared in MVCFramework.Commons the record HTTP_STATUS which defines all the HTTP/1.1 status code. 
+
+31/03/2015
+- messaging system now supports queues and topics
+- some minor bug fixes in the objectsmappers
+- added new build system based on a python script
+- added more unit tests
