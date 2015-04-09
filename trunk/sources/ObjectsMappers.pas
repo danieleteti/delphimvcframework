@@ -169,7 +169,8 @@ type
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
       AJSONArrayInstanceOwner: boolean = True); overload;
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
-      AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean = True;AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+      AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean = True;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     // class procedure DataSetRowToXML(ADataSet: TDataSet; Row: IXMLNode;
     // ADataSetInstanceOwner: boolean = True);
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
@@ -225,7 +226,8 @@ type
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string);
     procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
@@ -1223,6 +1225,7 @@ var
   DoNotSerializeThis: boolean;
   I: Integer;
   ThereAreIgnoredProperties: boolean;
+  JObj: TJSONObject;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -1258,36 +1261,29 @@ begin
         tkEnumeration:
           begin
             JSONObject.AddPair(f, SerializeEnumerationField(AObject, _field));
-            // if _field.FieldType.QualifiedName = 'System.Boolean' then
-            // begin
-            // if _field.GetValue(AObject).AsBoolean then
-            // JSONObject.AddPair(f, TJSONTrue.Create)
-            // else
-            // JSONObject.AddPair(f, TJSONFalse.Create);
-            // end
-            // else
-            // begin
-            // JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject).AsOrdinal));
-            // end;
           end;
         tkClass:
           begin
             o := _field.GetValue(AObject).AsObject;
             if Assigned(o) then
             begin
-              list := WrapAsList(o);
-              if Assigned(list) then
+              if TDuckTypedList.CanBeWrappedAsList(o) then
               begin
+                list := WrapAsList(o);
+                JObj := TJSONObject.Create;
+                JSONObject.AddPair(f, JObj);
+                JObj.AddPair(DMVC_CLASSNAME, o.QualifiedClassName);
                 Arr := TJSONArray.Create;
-                JSONObject.AddPair(f, Arr);
+                JObj.AddPair('items', Arr);
                 for Obj in list do
                 begin
-                  Arr.AddElement(ObjectToJSONObject(Obj));
+                  Arr.AddElement(ObjectToJSONObjectFields(Obj, []));
                 end;
               end
               else
               begin
-                JSONObject.AddPair(f, ObjectToJSONObject(_field.GetValue(AObject).AsObject));
+                JSONObject.AddPair(f, ObjectToJSONObjectFields(_field.GetValue(AObject)
+                  .AsObject, []));
               end;
             end
             else
@@ -1658,14 +1654,16 @@ begin
 end;
 
 class procedure Mapper.JSONArrayToDataSet(AJSONArray: TJSONArray; ADataSet: TDataSet;
-  AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean; AFieldNamePolicy: TFieldNamePolicy);
+  AIgnoredFields: TArray<string>; AJSONArrayInstanceOwner: boolean;
+  AFieldNamePolicy: TFieldNamePolicy);
 var
   I: Integer;
 begin
   for I := 0 to AJSONArray.Size - 1 do
   begin
     ADataSet.Append;
-    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, AIgnoredFields, false, AFieldNamePolicy);
+    Mapper.JSONObjectToDataSet(AJSONArray.Get(I) as TJSONObject, ADataSet, AIgnoredFields, false,
+      AFieldNamePolicy);
     ADataSet.Post;
   end;
   if AJSONArrayInstanceOwner then
@@ -1745,8 +1743,9 @@ var
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
+  LClassName: string;
 begin
-//  jvalue := nil;
+  // jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetFields;
   for _field in _fields do
@@ -1758,8 +1757,10 @@ begin
     if Assigned(AJSONObject.Get(f)) then
       jvalue := AJSONObject.Get(f).JsonValue
     else
+    begin
       raise EMapperException.Create(f + ' (real field name = ' + _field.Name +
         ') key field is not present in the JSONObject');
+    end;
     case _field.FieldType.TypeKind of
       tkEnumeration:
         begin
@@ -1867,18 +1868,22 @@ begin
             end
             else if TDuckTypedList.CanBeWrappedAsList(o) then
             begin // restore collection
+              if not (jvalue is TJSONObject) then
+                raise EMapperException.Create('Wrong serialization for ' + o.QualifiedClassName);
+              LClassName := TJSONObject(jvalue).Get(DMVC_CLASSNAME).JsonValue.Value;
+              if o = nil then // recreate the object as it should be
+              begin
+                o := TRTTIUtils.CreateObject(LClassName);
+              end;
+              jvalue := TJSONObject(jvalue).Get('items').JsonValue;
               if jvalue is TJSONArray then
               begin
                 Arr := TJSONArray(jvalue);
-                // look for the MapperItemsClassType on the property itself or on the property type
-                if Mapper.HasAttribute<MapperItemsClassType>(_field, attr) or
-                  Mapper.HasAttribute<MapperItemsClassType>(_field.FieldType, attr) then
                 begin
-                  cref := attr.Value;
                   list := WrapAsList(o);
                   for I := 0 to Arr.Size - 1 do
                   begin
-                    list.Add(Mapper.JSONObjectToObject(cref, Arr.Get(I) as TJSONObject));
+                    list.Add(Mapper.JSONObjectFieldsToObject(Arr.Get(I) as TJSONObject));
                   end;
                 end;
               end
@@ -1923,7 +1928,7 @@ var
   Arr: TJSONArray;
   n: TJSONNumber;
   SerStreamASString: string;
-//  EncBytes: TBytes;
+  // EncBytes: TBytes;
   sw: TStreamWriter;
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
@@ -2268,7 +2273,7 @@ begin
       Result := AObject;
     except
       AObject.Free;
-//      Result := nil;
+      // Result := nil;
       raise; // added 20140630
     end;
   end
@@ -2781,7 +2786,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   Self.DisableControls;
   try

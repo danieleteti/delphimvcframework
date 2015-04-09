@@ -35,6 +35,8 @@ type
     procedure TestJSONObjectToObjectAndBack;
     procedure TestSerializeUsingProperties;
     procedure TestSerializeUsingFields;
+    procedure TestSerializeUsingFieldsComplexObject;
+    procedure TestSerializeUsingFieldsComplexObject2;
     procedure TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
     procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
@@ -683,6 +685,64 @@ begin
       lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
       try
         CheckIs(lObj2, TMyObjectWithLogic, 'wrong classtype for deserialized object');
+        CheckTrue(lObj.Equals(lObj2), 'restored object is different from the original');
+      finally
+        lObj2.free;
+      end;
+    finally
+      lJObj.free;
+    end;
+  finally
+    lObj.free;
+  end;
+end;
+
+procedure TTestRouting.TestSerializeUsingFieldsComplexObject;
+var
+  lJObj: TJSONObject;
+  lObj2: TObject;
+  lObj: TMyComplexObject;
+begin
+  lObj := GetMyComplexObject;
+  try
+    lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
+    try
+      CheckEquals(4, lJObj.Count); // 3 properties + $dmvc.classname
+      CheckNotNull(lJObj.Get('FProp1'));
+      CheckNotNull(lJObj.Get('FChildObjectList'));
+      CheckNotNull(lJObj.Get('FChildObject'));
+      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
+      try
+        CheckIs(lObj2, TMyComplexObject, 'wrong classtype for deserialized object');
+        CheckTrue(lObj.Equals(lObj2), 'restored object is different from the original');
+      finally
+        lObj2.free;
+      end;
+    finally
+      lJObj.free;
+    end;
+  finally
+    lObj.free;
+  end;
+end;
+
+procedure TTestRouting.TestSerializeUsingFieldsComplexObject2;
+var
+  lJObj: TJSONObject;
+  lObj2: TObject;
+  lObj: TMyComplexObject;
+begin
+  lObj := GetMyComplexObjectWithNotInitializedChilds;
+  try
+    lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
+    try
+      CheckEquals(4, lJObj.Count); // 3 properties + $dmvc.classname
+      CheckNotNull(lJObj.Get('FProp1'));
+      CheckNotNull(lJObj.Get('FChildObjectList'));
+      CheckNotNull(lJObj.Get('FChildObject'));
+      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
+      try
+        CheckIs(lObj2, TMyComplexObject, 'wrong classtype for deserialized object');
         CheckTrue(lObj.Equals(lObj2), 'restored object is different from the original');
       finally
         lObj2.free;

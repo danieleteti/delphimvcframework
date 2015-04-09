@@ -123,11 +123,20 @@ type
 
 function GetMyObject: TMyObject;
 function GetMyComplexObject: TMyComplexObject;
+function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
 
 implementation
 
 uses
   system.DateUtils;
+
+function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
+var
+  co: TMyChildObject;
+begin
+  Result := TMyComplexObject.Create;
+  Result.Prop1 := 'property1';
+end;
 
 function GetMyComplexObject: TMyComplexObject;
 var
