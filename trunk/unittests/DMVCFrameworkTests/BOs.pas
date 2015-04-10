@@ -60,6 +60,7 @@ type
     FMyChildProperty1: string;
     procedure SetMyChildProperty1(const Value: string);
   public
+    constructor Create;
     property MyChildProperty1: string read FMyChildProperty1 write SetMyChildProperty1;
   end;
 
@@ -296,6 +297,9 @@ begin
   else
     Result := Result and (not Assigned(co.ChildObject)) and (not Assigned(Self.ChildObject));
   Result := Result and (co.ChildObjectList.Count = Self.ChildObjectList.Count);
+  if co.ChildObjectList.Count = 0 then
+    Exit;
+
   Result := Result and (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0]
     .MyChildProperty1);
   Result := Result and (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1]
@@ -322,6 +326,12 @@ begin
 end;
 
 { TMyChildObject }
+
+constructor TMyChildObject.Create;
+begin
+  inherited;
+  Self.MyChildProperty1 := 'my default value';
+end;
 
 procedure TMyChildObject.SetMyChildProperty1(const Value: string);
 begin

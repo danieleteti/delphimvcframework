@@ -759,14 +759,19 @@ procedure TTestRouting.TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObjec
 var
   lObj: TMyObjectWithLogic;
   lJObj: TJSONObject;
+  lObj2: TMyObjectWithLogic;
 begin
   lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
   try
     lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
     try
       lJObj.RemovePair('FFirstName').free;
-      ExpectedException := EMapperException;
-      Mapper.JSONObjectFieldsToObject(lJObj);
+      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj) as TMyObjectWithLogic;
+      try
+        CheckEquals('', lObj2.FirstName);
+      finally
+        lObj2.free;
+      end;
     finally
       lJObj.free;
     end;

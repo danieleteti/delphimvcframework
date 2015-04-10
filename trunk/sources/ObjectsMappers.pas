@@ -1793,58 +1793,71 @@ begin
       tkInteger, tkInt64:
         begin
           if LJSONKeyIsNotPresent then
-            RaiseExceptForField(_field.Name);
-          _field.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
+            _field.SetValue(TObject(AObject), 0)
+          else
+            _field.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
         end;
       tkFloat:
         begin
           if LJSONKeyIsNotPresent then
-            RaiseExceptForField(_field.Name);
-          if _field.FieldType.QualifiedName = 'System.TDate' then
           begin
-            if jvalue is TJSONNull then
-              _field.SetValue(TObject(AObject), 0)
-            else
-              _field.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value + ' 00:00:00'))
+            _field.SetValue(TObject(AObject), 0);
           end
-          else if _field.FieldType.QualifiedName = 'System.TDateTime' then
+          else
           begin
-            if jvalue is TJSONNull then
-              _field.SetValue(TObject(AObject), 0)
-            else
-              _field.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value))
-          end
-          else if _field.FieldType.QualifiedName = 'System.TTime' then
-          begin
-            if jvalue is TJSONString then
-              _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
-            else
-              raise EMapperException.CreateFmt('Cannot deserialize [%s], expected [%s] got [%s]',
-                [_field.Name, 'TJSONString', jvalue.ClassName]);
-          end
-          else { if _field.PropertyType.QualifiedName = 'System.Currency' then }
-          begin
-            if jvalue is TJSONNumber then
-              _field.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
-            else
-              raise EMapperException.CreateFmt('Cannot deserialize [%s], expected [%s] got [%s]',
-                [_field.Name, 'TJSONNumber', jvalue.ClassName]);
+            if _field.FieldType.QualifiedName = 'System.TDate' then
+            begin
+              if jvalue is TJSONNull then
+                _field.SetValue(TObject(AObject), 0)
+              else
+                _field.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value + ' 00:00:00'))
+            end
+            else if _field.FieldType.QualifiedName = 'System.TDateTime' then
+            begin
+              if jvalue is TJSONNull then
+                _field.SetValue(TObject(AObject), 0)
+              else
+                _field.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value))
+            end
+            else if _field.FieldType.QualifiedName = 'System.TTime' then
+            begin
+              if jvalue is TJSONString then
+                _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
+              else
+                raise EMapperException.CreateFmt('Cannot deserialize [%s], expected [%s] got [%s]',
+                  [_field.Name, 'TJSONString', jvalue.ClassName]);
+            end
+            else { if _field.PropertyType.QualifiedName = 'System.Currency' then }
+            begin
+              if jvalue is TJSONNumber then
+                _field.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
+              else
+                raise EMapperException.CreateFmt('Cannot deserialize [%s], expected [%s] got [%s]',
+                  [_field.Name, 'TJSONNumber', jvalue.ClassName]);
+            end;
           end;
         end;
       tkString, tkLString, tkWString, tkUString:
         begin
           if LJSONKeyIsNotPresent then
-            RaiseExceptForField(_field.Name);
-          _field.SetValue(TObject(AObject), jvalue.Value);
+            _field.SetValue(TObject(AObject), '')
+          else
+            _field.SetValue(TObject(AObject), jvalue.Value);
         end;
       tkRecord:
         begin
-          if LJSONKeyIsNotPresent then
-            RaiseExceptForField(_field.Name);
           if _field.FieldType.QualifiedName = 'System.SysUtils.TTimeStamp' then
           begin
-            n := jvalue as TJSONNumber;
-            _field.SetValue(TObject(AObject), TValue.From<TTimeStamp>(MSecsToTimeStamp(n.AsInt64)));
+            if LJSONKeyIsNotPresent then
+            begin
+              _field.SetValue(TObject(AObject), TValue.From<TTimeStamp>(MSecsToTimeStamp(0)));
+            end
+            else
+            begin
+              n := jvalue as TJSONNumber;
+              _field.SetValue(TObject(AObject),
+                TValue.From<TTimeStamp>(MSecsToTimeStamp(n.AsInt64)));
+            end;
           end;
         end;
       tkClass: // try to restore child properties... but only if the collection is not nil!!!
