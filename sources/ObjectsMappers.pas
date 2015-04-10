@@ -1724,6 +1724,11 @@ end;
 
 class procedure Mapper.InternalJSONObjectFieldsToObject(ctx: TRTTIContext; AJSONObject: TJSONObject;
   AObject: TObject);
+  procedure RaiseExceptForField(FieldName: string);
+  begin
+    raise EMapperException.Create(FieldName + ' key field is not present in the JSONObject');
+  end;
+
 var
   _type: TRttiType;
   _fields: TArray<TRttiField>;
@@ -1744,6 +1749,7 @@ var
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
   LClassName: string;
+  LJSONKeyIsNotPresent: boolean;
 begin
   // jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
@@ -1755,15 +1761,20 @@ begin
       Continue;
     f := GetKeyName(_field, _type);
     if Assigned(AJSONObject.Get(f)) then
-      jvalue := AJSONObject.Get(f).JsonValue
+    begin
+      LJSONKeyIsNotPresent := false;
+      jvalue := AJSONObject.Get(f).JsonValue;
+    end
     else
     begin
-      raise EMapperException.Create(f + ' (real field name = ' + _field.Name +
-        ') key field is not present in the JSONObject');
+      LJSONKeyIsNotPresent := True;
     end;
+
     case _field.FieldType.TypeKind of
       tkEnumeration:
         begin
+          if LJSONKeyIsNotPresent then
+            RaiseExceptForField(_field.Name);
           if _field.FieldType.QualifiedName = 'System.Boolean' then
           begin
             if jvalue is TJSONTrue then
@@ -1780,9 +1791,15 @@ begin
           end;
         end;
       tkInteger, tkInt64:
-        _field.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
+        begin
+          if LJSONKeyIsNotPresent then
+            RaiseExceptForField(_field.Name);
+          _field.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
+        end;
       tkFloat:
         begin
+          if LJSONKeyIsNotPresent then
+            RaiseExceptForField(_field.Name);
           if _field.FieldType.QualifiedName = 'System.TDate' then
           begin
             if jvalue is TJSONNull then
@@ -1816,10 +1833,14 @@ begin
         end;
       tkString, tkLString, tkWString, tkUString:
         begin
+          if LJSONKeyIsNotPresent then
+            RaiseExceptForField(_field.Name);
           _field.SetValue(TObject(AObject), jvalue.Value);
         end;
       tkRecord:
         begin
+          if LJSONKeyIsNotPresent then
+            RaiseExceptForField(_field.Name);
           if _field.FieldType.QualifiedName = 'System.SysUtils.TTimeStamp' then
           begin
             n := jvalue as TJSONNumber;
@@ -1829,6 +1850,13 @@ begin
       tkClass: // try to restore child properties... but only if the collection is not nil!!!
         begin
           o := _field.GetValue(TObject(AObject)).AsObject;
+          if LJSONKeyIsNotPresent then
+          begin
+            o.Free;
+            o := nil;
+            _field.SetValue(AObject, nil);
+          end;
+
           if Assigned(o) then
           begin
             if o is TStream then
