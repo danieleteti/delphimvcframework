@@ -1305,7 +1305,7 @@ var
 begin
   LJObj := ObjectToJSONObjectFields(AObject, AIgnoredProperties);
   try
-{$IF CompilerVersion >= 27}
+{$IF CompilerVersion >= 28}
     Result := LJObj.ToJSON;
 {$ELSE}
     Result := LJObj.ToString
