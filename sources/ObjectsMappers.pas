@@ -1739,8 +1739,6 @@ var
   o: TObject;
   list: IWrappedList;
   I: Integer;
-  cref: TClass;
-  attr: MapperItemsClassType;
   Arr: TJSONArray;
   n: TJSONNumber;
   SerStreamASString: string;
@@ -1751,13 +1749,12 @@ var
   LClassName: string;
   LJSONKeyIsNotPresent: boolean;
 begin
-  // jvalue := nil;
+  jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetFields;
   for _field in _fields do
   begin
-    if { (_field.FieldType.TypeKind <> tkClass) or } (HasAttribute<MapperTransientAttribute>(_field))
-    then
+    if HasAttribute<MapperTransientAttribute>(_field) then
       Continue;
     f := GetKeyName(_field, _type);
     if Assigned(AJSONObject.Get(f)) then
