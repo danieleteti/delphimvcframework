@@ -1379,7 +1379,11 @@ begin
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
-    Stomp.Send(ATopic, msg.ToJSON); // , H);
+{$IF CompilerVersion >= 28}
+    Stomp.Send(ATopic, msg.ToJSON);
+{$ELSE}
+    Stomp.Send(ATopic, msg.ToString);
+{$ENDIF}
     TThread.Sleep(100);
     // single user cannot enqueue more than 10 message in noe second...
     // it is noot too much elegant, but it works as DoS protection
