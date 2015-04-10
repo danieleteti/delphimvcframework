@@ -2832,7 +2832,7 @@ procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
 begin
   Self.DisableControls;
   try
-    Mapper.JSONArrayToDataSet(AJSONArray, Self, [], false, AFieldNamePolicy);
+    Mapper.JSONArrayToDataSet(AJSONArray, Self, TArray<string>.Create(), false, AFieldNamePolicy);
   finally
     Self.EnableControls;
   end;
