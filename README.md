@@ -1,5 +1,5 @@
-# delphistompclient
-Stomp client for Embarcadero Delphi and FreePascal?. 
+# Delphi/FreePascal STOMP Client
+STOMP client for Embarcadero Delphi and FreePascal. 
 
 Actually tested with
 - Apache ActiveMQ 5.2
