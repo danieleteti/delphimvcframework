@@ -171,11 +171,13 @@ end;
 
 procedure TMVCSystemController.OnBeforeAction(Context: TWebContext; const AActionNAme: string;
   var Handled: Boolean);
+var
+  LClientIP: string;
 begin
   inherited;
-  if (Context.Request.ClientIP <> '127.0.0.1') and (Context.Request.ClientIP.ToLower <> 'localhost')
-  then
-    Handled := true;
+  LClientIP := Context.Request.ClientIP;
+  Handled := not((LClientIP = '127.0.0.1') or (LClientIP = '0:0:0:0:0:0:0:1') or
+    (LClientIP.ToLower = 'localhost'));
 end;
 
 procedure TMVCSystemController.ServerConfig(Context: TWebContext);
