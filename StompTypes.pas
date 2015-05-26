@@ -63,6 +63,7 @@ type
     procedure SetBody(const Value: string);
     function GetHeaders: IStompHeaders;
     function MessageID: string;
+    function ContentLength: Integer;
   end;
 
   IStompClient = interface
@@ -130,6 +131,7 @@ type
   private
     FCommand: string;
     FBody: string;
+    FContentLength: Integer;
     FHeaders: IStompHeaders;
     procedure SetHeaders(const Value: IStompHeaders);
     function GetCommand: string;
@@ -147,6 +149,7 @@ type
     // otherwise, return Value;
     function Output: string;
     function MessageID: string;
+    function ContentLength: Integer;
     property Headers: IStompHeaders read GetHeaders write SetHeaders;
   end;
 
@@ -273,6 +276,7 @@ begin
   FHeaders := TStompHeaders.Create;
   self.FCommand := '';
   self.FBody := '';
+  self.FContentLength := 0;
 end;
 
 destructor TStompFrame.Destroy;
@@ -305,9 +309,15 @@ begin
   Result := FCommand + LINE_END + FHeaders.Output + LINE_END + FBody + COMMAND_END;
 end;
 
+function TStompFrame.ContentLength: Integer;
+begin
+  Result := FContentLength;
+end;
+
 procedure TStompFrame.SetBody(const Value: string);
 begin
   FBody := Value;
+  FContentLength := Length(TEncoding.UTF8.GetBytes(FBody));
 end;
 
 procedure TStompFrame.SetCommand(const Value: string);

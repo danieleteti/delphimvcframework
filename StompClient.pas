@@ -405,6 +405,10 @@ begin
         h := AHeaders.GetAt(i);
         AFrame.GetHeaders.Add(h.Key, h.Value);
       end;
+
+  // If the frame has some content, then set the length of that content.
+  if (AFrame.ContentLength > 0) then
+    AFrame.GetHeaders.Add('content-length', IntToStr(AFrame.ContentLength));
 end;
 
 procedure TStompClient.Nack(const MessageID, TransactionIdentifier: string);
