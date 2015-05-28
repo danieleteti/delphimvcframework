@@ -4,7 +4,7 @@
   * Fancy URL with parameter mappings
   * Specialied renders to generate text, html, JSON
   * Powerful mapper to map json to objects and datasets to objects
-  * Can be packaged as stand alone server, apache module (XE6, XE7) and ISAPI dll
+  * Can be packaged as stand alone server, apache module (XE6, XE7, XE8) and ISAPI dll
   * Integrated RESTClient
   * Works with XE3, XE4, XE5, XE6, XE7 and XE8
   * Completely unit tested
@@ -22,13 +22,13 @@ DelphiMVCFramework contains also a lot of indipendent code that can be used in o
 
 These are the most notable:
 
-  * Mapper (convert JSON in Object and back, !ObjectList in !JSONArray and back, !DataSets in JSONArray or !ObjectList and back)
+  * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
   * LuaDelphiBinding (integrate Lua script into Delphi native code)
   * eLua (convert eLua into plain Lua executable script just like PHP or JSP)
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
-All samples are in "Samples" folder
+All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/tree/master/samples) folder
 
 
 #Sample Controller
