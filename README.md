@@ -15,7 +15,7 @@
   * Specific trainings are available (ask me for a date and a place)
   * Messaging extension using STOMP (beta)
   * Community driven (Facebook group https://www.facebook.com/groups/delphimvcframework)
-  * Simple and [https://delphimvcframework.googlecode.com/svn/trunk/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf documented]
+  * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   
 
 DelphiMVCFramework contains also a lot of indipendent code that can be used in other kind of project. 
@@ -24,7 +24,7 @@ These are the most notable:
 
   * Mapper (convert JSON in Object and back, !ObjectList in !JSONArray and back, !DataSets in JSONArray or !ObjectList and back)
   * LuaDelphiBinding (integrate Lua script into Delphi native code)
-  * [eLuaTextFilter eLua] (convert eLua into plain Lua executable script just like PHP or JSP)
+  * eLua (convert eLua into plain Lua executable script just like PHP or JSP)
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
