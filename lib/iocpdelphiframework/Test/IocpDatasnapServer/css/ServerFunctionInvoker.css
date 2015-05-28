@@ -1,0 +1,138 @@
+body {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
+}
+div#contentdiv {
+  margin: 0px 15px 0px 15px;
+}
+p.maintitle {
+  font-size: medium;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  text-decoration: underline;
+  margin-left: 30px;
+}
+input.loginField {
+  border: 1px solid #949EA7;
+}
+div.errorMsg {
+  color: #ff0000;
+  font-style:italic;
+}
+div.loginFieldDiv {
+  font-weight: bold;
+}
+div.logindiv {
+  border: 1px solid #949EA7;
+  background-color: #CCF0FF;
+  margin: 30px;
+  padding: 15px;
+  padding-bottom: 0px;
+  width: 300px;
+}
+table.authtable {
+  border: 0px;
+  font-weight: bold;
+}
+p.divlabel {
+  font-size: small;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0px;
+  text-decoration: underline;
+}
+#maincontent {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 100px;
+  overflow: auto;
+}
+#framecontent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  border-style:solid;
+  border: 0px;
+  border-top:2px solid #000000;
+  background: #F2FBFD;
+  overflow: auto;
+}
+div#resultWrapper {
+  margin: 15px;
+  visibility:hidden;
+}
+table.resultTable {
+  border: 0px;
+  width: 90%;
+}
+td.resultLabel {
+  font-weight: bold;
+  text-decoration: underline;
+  text-align:right;
+  width: 1px;
+}
+div.classDiv {
+  border: 1px solid #949EA7;
+  background-color: white;
+  padding: 0px 0px 10px 0px;
+}
+div.classHeading {
+  padding: 0px 0px 0px 3px;
+  background-color: #CCF0FF;
+}
+div.methodHeading {
+  margin-left: 20px;
+  margin-bottom: 5px;
+  vertical-align:middle;
+}
+div.paramDiv {
+  padding: 0px 0px 0px 50px;
+}
+a.simple {
+  border: 0px;
+}
+img {
+  border: 0;
+}
+
+div.executeForm {
+  border: 1px solid #949EA7;
+  background: #F2FBFD;
+  width: 90%;
+}
+.executeForm table {
+  width: 90%;
+}
+.paramTableHeader td {
+  font-weight: bold;
+  text-decoration: underline;
+}
+.executeForm button {
+  text-align: right;
+}
+td.thin {
+  width: 1px;
+}
+input.long {
+  width: 95%;
+}
+div.executeButtonDiv {
+  text-align: right;
+  padding: 5px;
+}
+
+* html body{ /*IE6 hack*/
+  padding: 0 0 100px 0; /*Set value to (0 0 HeightOfFrameDiv 0)*/
+}
+
+* html #maincontent{ /*IE6 hack*/
+  height: 100%;
+  width: 100%;
+}

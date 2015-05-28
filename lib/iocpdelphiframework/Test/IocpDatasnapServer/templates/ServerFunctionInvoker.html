@@ -1,0 +1,106 @@
+<!-- !DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" -->
+<html>
+<head>
+<title>Server Function Invoker</title>
+<link rel="stylesheet" type="text/css" href="css/ServerFunctionInvoker.css" />
+<script type="text/javascript" src="js/base64.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/serverfunctionexecutor.js"></script>
+<script type="text/javascript" src="js/connection.js"></script>
+<script type="text/javascript" src="<#serverfunctionsjs>"></script>
+<script type="text/javascript" src="js/ServerFunctionInvoker.js"></script>
+<script>
+var loginRequired;
+function onLoad()
+{
+  loginRequired = <#loginRequired>;
+  setConnection('<#host>', '<#port>', '<#urlpath>');
+  if (loginRequired)
+  {
+    showLogin(true);
+  }
+  else
+  {
+    if (setCredentials('', ''))
+      createClassTree();
+    else
+      alert('Connection error');
+  }
+}
+
+function showLogin(show)
+{
+  var loginDiv = document.getElementById('logindiv');
+  if (show)
+  {
+      loginDiv.style.display="block";
+  }
+  else
+  {
+      loginDiv.style.display="none";
+  }
+}
+
+function onLogin()
+{
+  if (loginRequired)
+  {
+    if (AdminInst == null)
+    {
+        if (setCredentials(document.getElementById('userField').value, document.getElementById('passwrdField').value))
+        {
+          createClassTree();
+          loginCorrect(true);
+        }
+        else
+          loginCorrect(false);
+    }
+  }
+}
+
+function loginCorrect(isCorrect)
+{
+  var errorDiv = document.getElementById('loginError');
+
+  if ( errorDiv != null )
+  {
+    errorDiv.innerHTML= isCorrect ? "" : "login incorrect";
+  }
+}
+
+</script>
+</head>
+<body onload="onLoad()">
+<div id="maincontent">
+<p class="maintitle">Server Function Invoker</p>
+<div id="contentdiv">
+  <div id="logindiv" class="logindiv" style="display:none">
+  <p class="divlabel">Login</p><br />
+  <form onsubmit="onLogin(); return false;">
+    <table class="authtable">
+      <tr><td>User Name:</td><td><input id="userField" class="loginField" type="text" /></td></tr>
+      <tr><td>Password:</td><td><input id="passwrdField" class="loginField" type="password" /></td></tr>
+    </table>
+    <div id="loginError" class="errorMsg"></div>
+    <br />
+    <input id="loginButton" type="submit" value="LOG IN" />
+  </form>
+  </div>
+</div>
+</div>
+<div id="framecontent">
+  <div id="resultWrapper">
+    <table class="resultTable">
+    <tr>
+      <td class="resultLabel">Executed:</td>
+      <td id="resultMethodSignature"></td>
+    </tr>
+    <tr>
+      <td class="resultLabel">Result:</td>
+      <td id="resultMethodResult"></td>
+    </tr>
+    </table>
+  </div>
+</div>
+</body>
+</html>

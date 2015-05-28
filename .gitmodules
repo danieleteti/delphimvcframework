@@ -1,0 +1,3 @@
+[submodule "lib/delphistompclient"]
+	path = lib/delphistompclient
+	url = https://github.com/danieleteti/delphistompclient.git
