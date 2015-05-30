@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Delphi MVC Framework by danieleteti</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Delphi MVC Framework</h1>
+      <h2 class="project-tagline">DMVCFramework (for short) is a powerful framework for web solution in Delphi</h2>
+      <a href="https://github.com/danieleteti/delphimvcframework" class="btn">View on GitHub</a>
+      <a href="https://github.com/danieleteti/delphimvcframework/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/danieleteti/delphimvcframework/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul>
+<li>REALLY RESTful <a href="http://martinfowler.com/articles/richardsonMaturityModel.html">RMM Level 3</a> compliant</li>
+<li>Can be used in load balanced environment using Redis (<a href="http://Redis.io">http://Redis.io</a>) [dev]</li>
+<li>Fancy URL with parameter mappings</li>
+<li>URL and classes/methods name are completely decoupled by the router subsystem. So you can support nested resources using the same controller!</li>
+<li>Specialied renders to generate text, html, JSON</li>
+<li>Powerful mapper to map json to objects and datasets to objects</li>
+<li>Can be packaged as stand alone server, apache module (XE6, XE7, XE8) and ISAPI dll</li>
+<li>Integrated RESTClient</li>
+<li>Works with XE3, XE4, XE5, XE6, XE7 and XE8</li>
+<li>Completely unit tested</li>
+<li>There is a sample for each functionality</li>
+<li>There is a complete set of trainings about it, but the samples are included in the project</li>
+<li>Experimental support for IOCP [dev]</li>
+<li>Server side generated pages using eLua (Embedded Lua)</li>
+<li>Specific trainings are available (ask me for a date and a place)</li>
+<li>Messaging extension using STOMP (beta)</li>
+<li>Community driven (Facebook group <a href="https://www.facebook.com/groups/delphimvcframework">https://www.facebook.com/groups/delphimvcframework</a>)</li>
+<li>Simple and <a href="https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf">documented</a>
+</li>
+</ul>
+
+<p>DelphiMVCFramework contains also a lot of indipendent code that can be used in other kind of project. </p>
+
+<p>These are the most notable:</p>
+
+<ul>
+<li>Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)</li>
+<li>LuaDelphiBinding (integrate Lua script into Delphi native code)</li>
+<li>eLua (convert eLua into plain Lua executable script just like PHP or JSP)</li>
+</ul>
+
+<h2>
+<a id="samples-and-documentation" class="anchor" href="#samples-and-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Samples and documentation</h2>
+
+<p>DMVCFramework is provided with a lot of examples focused on specific functionality.
+All samples are in <a href="https://github.com/danieleteti/delphimvcframework/tree/master/samples">Samples</a> folder</p>
+
+<h1>
+<a id="sample-controller" class="anchor" href="#sample-controller" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sample Controller</h1>
+
+<p>Below a basic sample of a DMVCFramework controller with 2 action</p>
+
+<div class="highlight highlight-delphi"><pre><span class="pl-k">unit</span> UsersControllerU;
+
+<span class="pl-k">interface</span>
+
+<span class="pl-k">uses</span> 
+  MVCFramework;
+
+<span class="pl-k">type</span> 
+   [MVCPath(<span class="pl-s"><span class="pl-pds">'</span>/users<span class="pl-pds">'</span></span>)]
+   TUsersController = <span class="pl-k">class</span>(TMVCController)
+   <span class="pl-k">public</span>
+
+    <span class="pl-c">//The following action will be with a GET request like the following</span>
+    <span class="pl-c">//http://myserver.com/users/3</span>
+    [MVCPath(<span class="pl-s"><span class="pl-pds">'</span>/($id)<span class="pl-pds">'</span></span>)]
+    [MVCProduce(<span class="pl-s"><span class="pl-pds">'</span>application/json<span class="pl-pds">'</span></span>)]
+    [MVCHTTPMethod([httpGET])]
+    <span class="pl-k">procedure</span> <span class="pl-en">GetUsers</span>(CTX: TWebContext);
+
+    <span class="pl-c">//The following action will be with a POST or PUT request like the following</span>
+    <span class="pl-c">//http://myserver.com/users/3</span>
+    <span class="pl-c">//and in the request body there should be a serialized TUser</span>
+    [MVCPath(<span class="pl-s"><span class="pl-pds">'</span>/($id)<span class="pl-pds">'</span></span>)]
+    [MVCProduce(<span class="pl-s"><span class="pl-pds">'</span>application/json<span class="pl-pds">'</span></span>)]
+    [MVCHTTPMethod([httPOST, httpPUT])]
+    <span class="pl-k">procedure</span> <span class="pl-en">UpdateOrCreateUser</span>(CTX: TWebContext);
+
+  <span class="pl-k">end</span>;
+
+<span class="pl-k">implementation</span>
+
+<span class="pl-k">uses</span>
+  MyTransactionScript; <span class="pl-c">//contains actual data access code</span>
+
+<span class="pl-c">{ TUsersController }</span>
+
+<span class="pl-k">procedure</span> <span class="pl-en">TUsersController.GetUsers</span>(CTX: TWebContext);
+<span class="pl-k">var</span>
+  User: TUser;
+<span class="pl-k">begin</span>
+  User := GetUserById(CTX.Request.Parameters[<span class="pl-s"><span class="pl-pds">'</span>id<span class="pl-pds">'</span></span>].ToInteger);
+  Render(User);
+<span class="pl-k">end</span>;
+
+<span class="pl-k">procedure</span> <span class="pl-en">TUsersController.UpdateOrCreateUser</span>(CTX: TWebContext);
+<span class="pl-k">var</span>
+  User: TUser;
+<span class="pl-k">begin</span>
+  User := CTX.Request.BodyAs&lt;TUser&gt;;
+  SaveUser(User);
+  Render(User);
+<span class="pl-k">end</span>;
+
+
+<span class="pl-k">end</span>.</pre></div>
+
+<p>Feel free to ask questions on the "Delphi MVC Framework" facebook group (<a href="https://www.facebook.com/groups/delphimvcframework">https://www.facebook.com/groups/delphimvcframework</a>).</p>
+
+<h3>
+<a id="links" class="anchor" href="#links" aria-hidden="true"><span class="octicon octicon-link"></span></a>Links</h3>
+
+<p><a href="http://www.danieleteti.it/2013/04/18/sneak-peek-to-simple-integration-between-dmvcframework-and-dorm/">http://www.danieleteti.it/2013/04/18/sneak-peek-to-simple-integration-between-dmvcframework-and-dorm/</a></p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/danieleteti/delphimvcframework">Delphi MVC Framework</a> is maintained by <a href="https://github.com/danieleteti">danieleteti</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
+
