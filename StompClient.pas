@@ -1,6 +1,6 @@
 // Stomp Client for Embarcadero Delphi & FreePascal
-// Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2
-// Copyright (c) 2009-2012 Daniele Teti
+// Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2, RabbitMQ
+// Copyright (c) 2009-2015 Daniele Teti
 //
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
