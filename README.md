@@ -10,3 +10,4 @@ Actually tested with
 
 The project can use INDY (Delphi) or Synapse (Delphi or FreePascal). In case you want to use Synapse, you have to get a copy of Synapse library from http://synapse.ararat.cz/doku.php/download. 
 
+More info on the author's blog http://www.danieleteti.it/stomp-client/
