@@ -2004,9 +2004,17 @@ function TMVCINDYWebRequest.ClientIP: string;
   http://www.grantburton.com/2008/11/30/fix-for-incorrect-ip-addresses-in-wordpress-comments/
 }
   function CheckIP(IP: string): boolean;
+  // var
+  // IPv6Address: TIdIPv6Address;
+  // LErr: boolean;
   begin
-    Result := (not IP.IsEmpty) and { (IP2Long(IP) <> -1) and }
-      (IP2Long(IP) > 0);
+    // this is not a real check, it checks only if the IP is not empty
+    Result := not IP.IsEmpty;
+
+    //
+    // idglobal.IPv6ToIdIPv6Address(IP, IPv6Address, LErr);
+    // Result := LErr and (not IP.IsEmpty) and { (IP2Long(IP) <> -1) and }
+    // (IP2Long(IP) > 0);
   end;
 
 var
@@ -2105,7 +2113,7 @@ begin
       raise EMVCException.Create('Message is not a valid JSONObject')
     else
     begin
-      if not (o is TJSONObject) then
+      if not(o is TJSONObject) then
       begin
         FreeAndNil(o);
         raise EMVCException.Create('Message is a JSONValue but not a JSONObject')
