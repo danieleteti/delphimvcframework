@@ -28,7 +28,7 @@ uses
 {$ELSE}
     , System.JSON, Web.ApacheHTTP
 {$IFEND}
-    , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
+    , ReqMulti  {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH,
@@ -1260,7 +1260,7 @@ begin
   if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
   begin
     if RootProperty = '' then
-      Result := Mapper.JSONArrayToObjectList<T>(BodyAsJSONValue as TJSONArray)
+      Result := Mapper.JSONArrayToObjectList<T>((BodyAsJSONValue as TJSONArray), False, True) //Ezequiel J. Müller (bug fix)
     else
     begin
       S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');

@@ -249,8 +249,9 @@ end;
 
 destructor TRESTAdapter<T>.Destroy;
 begin
-  if Assigned(FRESTClient) then
-    FRESTClient.Free;
+  //Ezequiel J. Müller (If it is created outside, it must be destroyed out)
+  //if Assigned(FRESTClient) then
+  //  FRESTClient.Free;
   inherited;
 end;
 
@@ -271,7 +272,7 @@ begin
       [Method.Name]);
 
   // headers can be more than one
-  FRESTClient.RequestHeaders.Clear;
+  //FRESTClient.RequestHeaders.Clear; //Ezequiel J. Müller (You can not clear the header, because I can use other.)
   // Interface
   AddRequestHeaders(TRTTIUtils.ctx.GetType(TypeInfo(T)));
   // Method
