@@ -16,7 +16,9 @@ uses
   System.JSON,
 {$IFEND}
   IdMultipartFormData,
-  System.SysUtils, Data.DB, IdIOHandler;
+  System.SysUtils, Data.DB, IdIOHandler,
+  IdCompressorZLib, //Ezequiel J. Müller
+  IdSSLOpenSSL; //Ezequiel J. Müller
 
 type
   TArrayOfString = array of string;
@@ -142,6 +144,8 @@ type
     function ResetSession: TRESTClient;
     function Accept(const AcceptHeader: string): TRESTClient; overload;
     function Accept: string; overload;
+    function SSL(const Enabled: Boolean = True): TRESTClient;  //Ezequiel J. Müller
+    function Compression(const Enabled: Boolean = True): TRESTClient; //Ezequiel J. Müller
     function ContentType(const ContentTypeHeader: string): TRESTClient; overload;
     function ContentType: string; overload;
     function ContentEncoding(const ContentEncodingHeader: string): TRESTClient; overload;
@@ -210,6 +214,42 @@ end;
 function TRESTClient.Accept: string;
 begin
   Result := FAccept;
+end;
+
+function TRESTClient.Compression(const Enabled: Boolean): TRESTClient; //Ezequiel J. Müller
+begin
+  if Enabled then
+  begin
+    if not Assigned(FHTTP.Compressor) then
+      FHTTP.Compressor := TIdCompressorZLib.Create(FHTTP);
+  end
+  else
+  begin
+    if (FHTTP.Compressor <> nil) then
+    begin
+      FHTTP.Compressor.Free;
+      FHTTP.Compressor := nil;
+    end;
+  end;
+  Result := Self;
+end;
+
+function TRESTClient.SSL(const Enabled: Boolean): TRESTClient; //Ezequiel J. Müller
+begin
+  if Enabled then
+  begin
+    if not Assigned(FHTTP.IOHandler) then
+      FHTTP.IOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(FHTTP);
+  end
+  else
+  begin
+    if (FHTTP.IOHandler <> nil) then
+    begin
+      FHTTP.IOHandler.Free;
+      FHTTP.IOHandler := nil;
+    end;
+  end;
+  Result := Self;
 end;
 
 function TRESTClient.AddFile(const FieldName, FileName, ContentType: string): TRESTClient;
@@ -296,8 +336,14 @@ begin
 
   FHTTP := TIdHTTP.Create(nil);
   FHTTP.ReadTimeout := 20000;
-  FHTTP.IOHandler := AIOHandler;
-  FHTTP.Request.BasicAuthentication := true;
+  if (AIOHandler <> nil) then //Ezequiel J. Müller
+    FHTTP.IOHandler := AIOHandler  //Ezequiel J. Müller
+  else
+    SSL(False); //Ezequiel J. Müller
+  Compression(False); //Ezequiel J. Müller
+  FHTTP.HandleRedirects := True; //Ezequiel J. Müller
+  FHTTP.Request.CustomHeaders.FoldLines := False; //Ezequiel J. Müller
+  FHTTP.Request.BasicAuthentication := True;
   // FHTTP.AllowCookies := true;
 end;
 
@@ -803,7 +849,10 @@ begin
           RawBody.Position := 0;
           FRawBody.Size := 0;
 {$WARNINGS OFF}
-          FRawBody.WriteString(UTF8Encode(ABodyString));
+          if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then //Ezequiel Juliano Müller - Start
+            FRawBody.WriteString(UTF8ToString(ABodyString))
+          else
+            FRawBody.WriteString(ABodyString); //Ezequiel Juliano Müller - End
 {$WARNINGS ON}
           FHTTP.Post(AUrl, FRawBody, Result.Body);
         end;
@@ -819,7 +868,10 @@ begin
           RawBody.Position := 0;
           FRawBody.Size := 0;
 {$WARNINGS OFF}
-          FRawBody.WriteString(UTF8Encode(ABodyString));
+          if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then //Ezequiel Juliano Müller - Start
+            FRawBody.WriteString(UTF8ToString(ABodyString))
+          else
+            FRawBody.WriteString(ABodyString); //Ezequiel Juliano Müller - End
 {$WARNINGS ON}
           FHTTP.Put(AUrl, FRawBody, Result.Body);
         end;
