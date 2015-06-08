@@ -211,7 +211,7 @@ function TMVCRouter.IsCompatiblePath(AMVCPath: string; APath: string;
   begin
     Result := V;
     for s in Names do
-      Result := StringReplace(Result, '($' + s + ')', '([ אטישעל\.\_\,%\w\d\x2D\x3A]*)',
+      Result := StringReplace(Result, '($' + s + ')', '([ אטישעל@\.\_\,%\w\d\x2D\x3A]*)',
         [rfReplaceAll]);
   end;
 
