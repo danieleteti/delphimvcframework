@@ -34,7 +34,7 @@ All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/t
 #Sample Controller
 Below a basic sample of a DMVCFramework controller with 2 action
 
-
+```delphi
 	unit UsersControllerU;
 	  
 	interface
@@ -89,11 +89,13 @@ Below a basic sample of a DMVCFramework controller with 2 action
 	end;	
 	  
 	end.
+```
 
 ###Quick Creation of MVC Server
 
 Create a new server is a simple task:
 
+```delphi
 	uses
 	  MVCFramework.Server;
 	
@@ -112,16 +114,18 @@ Create a new server is a simple task:
 	  Server.Start;
 	  Server.Stop;
 	end;
+```
 
 If you want to add a layer of security:
 
-    uses
+```delphi
+        uses
 	  MVCFramework.Server;
 	
 	var
 	  ServerInfo: IMVCServerInfo;
 	  Server: IMVCServer;
-      OnAuthentication: TMVCAuthenticationDelegate;
+          OnAuthentication: TMVCAuthenticationDelegate;
 	begin
 	  ServerInfo := TMVCServerInfoFactory.Build;
 	  ServerInfo.ServerName := 'MVCServer';
@@ -142,25 +146,27 @@ If you want to add a layer of security:
 	  Server.Start;
 	end;
 
-    //And in his WebModule you should add the security middleware
-	uses
-      MVCFramework.Middleware.Authentication;
+      //And in his WebModule you should add the security middleware
+      uses
+        MVCFramework.Middleware.Authentication;
     
-    procedure TTestWebModule.WebModuleCreate(Sender: TObject);
-	begin
-	  MVCEngine := TMVCEngine.Create(Self);
+     procedure TTestWebModule.WebModuleCreate(Sender: TObject);
+     begin
+       MVCEngine := TMVCEngine.Create(Self);
 	
-	  // Add Yours Controllers
-	  MVCEngine.AddController(TYourController);
+       // Add Yours Controllers
+       MVCEngine.AddController(TYourController);
 	
-	  // Add Security Middleware
-	  MVCEngine.AddMiddleware(
+       // Add Security Middleware
+       MVCEngine.AddMiddleware(
 	     TMVCBasicAuthenticationMiddleware.Create(Server.Info.Security)
        );
 	end;  
+```
 
 You can work with a container of servers:
 
+```delphi
 	uses 
 	  MVCFramework.Server;
 	
@@ -187,8 +193,9 @@ You can work with a container of servers:
 	
 	  Container.CreateServer(ServerTwoInfo);
       
-      Container.StartServers();
+          Container.StartServers();
 	end;  
+```
 
 ###Links
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
