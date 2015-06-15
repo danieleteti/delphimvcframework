@@ -27,7 +27,10 @@ uses
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas';
+  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
+  MVCFramework.Server in '..\..\sources\MVCFramework.Server.pas',
+  MVCFrameworkServerTestsU in 'MVCFrameworkServerTestsU.pas',
+  TestWebModuleU in 'TestWebModuleU.pas' {TestWebModule: TWebModule};
 
 {$R *.RES}
 
