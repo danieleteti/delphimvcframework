@@ -33,6 +33,9 @@ type
     procedure TestServerAndClient();
   end;
 
+var
+  ServerContainer: IMVCServerContainer;
+
 implementation
 
 uses
@@ -56,7 +59,6 @@ end;
 procedure TTestMVCFrameworkServer.TestCreateServer;
 var
   vServerInfo: IMVCServerInfo;
-  vOnAuthentication: TMVCAuthenticationDelegate;
   vServer: IMVCServer;
 begin
   vServerInfo := TMVCServerInfoFactory.Build;
@@ -65,16 +67,10 @@ begin
   vServerInfo.MaxConnections := 1024;
   vServerInfo.WebModuleClass := TestWebModuleClass;
 
-  vOnAuthentication := procedure(const pUserName, pPassword: string;
-      pUserRoles: TList<string>; var pIsValid: Boolean)
-    begin
-      pIsValid := pUserName.Equals('ezequiel') and pPassword.Equals('123');
-    end;
-
-  vServerInfo.Security := TMVCDefaultSecurity.Create(vOnAuthentication, nil);
-
   vServer := TMVCServerFactory.Build(vServerInfo);
+
   CheckTrue(vServer.Info <> nil);
+
   vServer.Start;
   vServer.Stop;
 end;
@@ -99,8 +95,11 @@ begin
 
   vServerInfo.Security := TMVCDefaultSecurity.Create(vOnAuthentication, nil);
 
-  MVCServerDefault.Container.CreateServer(vServerInfo);
-  MVCServerDefault.Container.StartServers;
+  if (ServerContainer.FindServerByName('ServerTemp') <> nil) then
+    ServerContainer.DestroyServer('ServerTemp');
+
+  ServerContainer.CreateServer(vServerInfo);
+  ServerContainer.StartServers;
 
   vRESTCli := TRESTClient.Create('localhost', 6000);
   try
@@ -111,14 +110,13 @@ begin
     FreeAndNil(vRESTCli);
   end;
 
-  MVCServerDefault.Container.StopServers;
+  ServerContainer.StopServers;
 end;
 
 procedure TTestMVCFrameworkServer.TestServerContainer;
 var
   vServerInfo: IMVCServerInfo;
-  vOnAuthentication: TMVCAuthenticationDelegate;
-  FContainer: IMVCServerContainer;
+  vContainer: IMVCServerContainer;
 begin
   vServerInfo := TMVCServerInfoFactory.Build;
   vServerInfo.ServerName := 'ServerTemp';
@@ -126,22 +124,14 @@ begin
   vServerInfo.MaxConnections := 1024;
   vServerInfo.WebModuleClass := TestWebModuleClass;
 
-  vOnAuthentication := procedure(const pUserName, pPassword: string;
-      pUserRoles: TList<string>; var pIsValid: Boolean)
-    begin
-      pIsValid := pUserName.Equals('ezequiel') and pPassword.Equals('123');
-    end;
+  vContainer := TMVCServerContainerFactory.Build();
+  vContainer.CreateServer(vServerInfo);
 
-  vServerInfo.Security := TMVCDefaultSecurity.Create(vOnAuthentication, nil);
+  CheckTrue(vContainer.FindServerByName('ServerTemp') <> nil);
 
-  FContainer := TMVCServerContainerFactory.Build();
-  FContainer.CreateServer(vServerInfo);
+  vContainer.DestroyServer('ServerTemp');
 
-  CheckTrue(FContainer.FindServerByName('ServerTemp') <> nil);
-
-  FContainer.DestroyServer('ServerTemp');
-
-  CheckTrue(FContainer.FindServerByName('ServerTemp') = nil);
+  CheckTrue(vContainer.FindServerByName('ServerTemp') = nil);
 end;
 
 { TTestAppController }
@@ -154,5 +144,7 @@ end;
 initialization
 
 RegisterTest(TTestMVCFrameworkServer.Suite);
+
+ServerContainer := MVCServerDefault.Container;
 
 end.

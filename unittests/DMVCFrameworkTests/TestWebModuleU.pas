@@ -25,14 +25,25 @@ var
 implementation
 
 uses
-  MVCFrameworkServerTestsU;
+  MVCFrameworkServerTestsU,
+  MVCFramework.Middleware.Authentication,
+  MVCFramework.Server;
 
 {$R *.dfm}
 
 procedure TTestWebModule.WebModuleCreate(Sender: TObject);
+var
+  vServer: IMVCServer;
 begin
   FMVCEngine := TMVCEngine.Create(Self);
+
+  // Add Controller
   FMVCEngine.AddController(TTestAppController);
+
+  // Add Security Middleware
+  vServer := ServerContainer.FindServerByName('ServerTemp');
+  if (vServer <> nil) and (vServer.Info.Security <> nil) then
+    FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(vServer.Info.Security));
 end;
 
 procedure TTestWebModule.WebModuleDestroy(Sender: TObject);
