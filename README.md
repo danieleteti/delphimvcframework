@@ -147,7 +147,7 @@ If you want to add a layer of security:
 	end;
 
       //And in his WebModule you should add the security middleware
-      uses
+     uses
         MVCFramework.Middleware.Authentication;
     
      procedure TTestWebModule.WebModuleCreate(Sender: TObject);
