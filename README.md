@@ -91,7 +91,7 @@ Below a basic sample of a DMVCFramework controller with 2 action
 	end.
 ```
 
-###Quick Creation of MVC Server
+###Quick Creation of DelphiMVCFramework Server
 
 Create a new server is a simple task:
 
@@ -164,7 +164,7 @@ If you want to add a layer of security:
 	end;  
 ```
 
-You can work with a container of servers:
+You can work with a container of DelphiMVCFramework servers:
 
 ```delphi
 	uses 
