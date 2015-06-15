@@ -114,10 +114,10 @@ var
 begin
   JSONArray := TESTService.GetPersonInJSONArray;
   try
-    CheckTrue(JSONArray.ToJSON.Contains('Tony'));
-    CheckTrue(JSONArray.ToJSON.Contains('Stark'));
-    CheckTrue(JSONArray.ToJSON.Contains('Bruce'));
-    CheckTrue(JSONArray.ToJSON.Contains('Banner'));
+    CheckTrue(JSONArray.ToString.Contains('Tony'));
+    CheckTrue(JSONArray.ToString.Contains('Stark'));
+    CheckTrue(JSONArray.ToString.Contains('Bruce'));
+    CheckTrue(JSONArray.ToString.Contains('Banner'));
   finally
     JSONArray.Free;
   end;
