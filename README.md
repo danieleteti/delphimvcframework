@@ -35,60 +35,60 @@ All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/t
 Below a basic sample of a DMVCFramework controller with 2 action
 
 ```delphi
-	unit UsersControllerU;
-	  
-	interface
-	  
-	uses 
-	  MVCFramework;
-	 
-	type 
-	   [MVCPath('/users')]
-	   TUsersController = class(TMVCController)
-	   public
-	    
-	    //The following action will be with a GET request like the following
-	    //http://myserver.com/users/3
-	    [MVCPath('/($id)')]
-	    [MVCProduce('application/json')]
-	    [MVCHTTPMethod([httpGET])]
-	    procedure GetUsers(CTX: TWebContext);
-	
-	    //The following action will be with a POST or PUT request like the following
-	    //http://myserver.com/users/3
-	    //and in the request body there should be a serialized TUser
-	    [MVCPath('/($id)')]
-	    [MVCProduce('application/json')]
-	    [MVCHTTPMethod([httPOST, httpPUT])]
-	    procedure UpdateOrCreateUser(CTX: TWebContext);
-	
-	  end;
-	 
-	implementation
-	
-	uses
-	  MyTransactionScript; //contains actual data access code
-	  
-	{ TUsersController }
-	 
-	procedure TUsersController.GetUsers(CTX: TWebContext);
-	var
-	  User: TUser;
-	begin
-	  User := GetUserById(CTX.Request.Parameters['id'].ToInteger);
-	  Render(User);
-	end;
-	
-	procedure TUsersController.UpdateOrCreateUser(CTX: TWebContext);
-	var
-	  User: TUser;
-	begin
-	  User := CTX.Request.BodyAs<TUser>;
-	  SaveUser(User);
-	  Render(User);
-	end;	
-	  
-	end.
+unit UsersControllerU;
+  
+interface
+  
+uses 
+  MVCFramework;
+ 
+type 
+   [MVCPath('/users')]
+   TUsersController = class(TMVCController)
+   public
+    
+    //The following action will be with a GET request like the following
+    //http://myserver.com/users/3
+    [MVCPath('/($id)')]
+    [MVCProduce('application/json')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetUsers(CTX: TWebContext);
+
+    //The following action will be with a POST or PUT request like the following
+    //http://myserver.com/users/3
+    //and in the request body there should be a serialized TUser
+    [MVCPath('/($id)')]
+    [MVCProduce('application/json')]
+    [MVCHTTPMethod([httPOST, httpPUT])]
+    procedure UpdateOrCreateUser(CTX: TWebContext);
+
+  end;
+ 
+implementation
+
+uses
+  MyTransactionScript; //contains actual data access code
+  
+{ TUsersController }
+ 
+procedure TUsersController.GetUsers(CTX: TWebContext);
+var
+  User: TUser;
+begin
+  User := GetUserById(CTX.Request.Parameters['id'].ToInteger);
+  Render(User);
+end;
+
+procedure TUsersController.UpdateOrCreateUser(CTX: TWebContext);
+var
+  User: TUser;
+begin
+  User := CTX.Request.BodyAs<TUser>;
+  SaveUser(User);
+  Render(User);
+end;	
+  
+end.
 ```
 
 ###Quick Creation of DelphiMVCFramework Server
@@ -96,105 +96,100 @@ Below a basic sample of a DMVCFramework controller with 2 action
 Create a new server is a simple task:
 
 ```delphi
-	uses
-	  MVCFramework.Server;
-	
-	var
-	  ServerInfo: IMVCServerInfo;
-	  Server: IMVCServer;
-	begin
-	  ServerInfo := TMVCServerInfoFactory.Build;
-	  ServerInfo.ServerName := 'MVCServer';
-	  ServerInfo.Port := 4000;
-	  ServerInfo.MaxConnections := 1000;
-	  //You must reference your TWebModuleClass  
-	  ServerInfo.WebModuleClass := YourServerWebModuleClass;
-	
-	  Server := TMVCServerFactory.Build(ServerInfo);
-	  Server.Start;
-	  Server.Stop;
-	end;
+uses
+  MVCFramework.Server;
+
+var
+  ServerInfo: IMVCServerInfo;
+  Server: IMVCServer;
+begin
+  ServerInfo := TMVCServerInfoFactory.Build;
+  ServerInfo.ServerName := 'MVCServer';
+  ServerInfo.Port := 4000;
+  ServerInfo.MaxConnections := 1000;
+  //You must reference your TWebModuleClass  
+  ServerInfo.WebModuleClass := YourServerWebModuleClass;
+
+  Server := TMVCServerFactory.Build(ServerInfo);
+  Server.Start;
+  Server.Stop;
+end;
 ```
 
 If you want to add a layer of security:
 
 ```delphi
-        uses
-	  MVCFramework.Server;
-	
-	var
-	  ServerInfo: IMVCServerInfo;
-	  Server: IMVCServer;
-          OnAuthentication: TMVCAuthenticationDelegate;
+uses
+  MVCFramework.Server;
+
+var
+  ServerInfo: IMVCServerInfo;
+  Server: IMVCServer;
+  OnAuthentication: TMVCAuthenticationDelegate;
+begin
+  ServerInfo := TMVCServerInfoFactory.Build;
+  ServerInfo.ServerName := 'MVCServer';
+  ServerInfo.Port := 4000;
+  ServerInfo.MaxConnections := 1000;
+  //You must reference your TWebModuleClass  
+  ServerInfo.WebModuleClass := YourServerWebModuleClass;
+
+	OnAuthentication := procedure(const pUserName, pPassword: string; pUserRoles: TList<string>; var pIsValid: Boolean)
 	begin
-	  ServerInfo := TMVCServerInfoFactory.Build;
-	  ServerInfo.ServerName := 'MVCServer';
-	  ServerInfo.Port := 4000;
-	  ServerInfo.MaxConnections := 1000;
-	  //You must reference your TWebModuleClass  
-	  ServerInfo.WebModuleClass := YourServerWebModuleClass;
-
-      OnAuthentication := procedure(const pUserName, pPassword: string;
-        pUserRoles: TList<string>; var pIsValid: Boolean)
-        begin
-           pIsValid := pUserName.Equals('dmvc') and pPassword.Equals('123');
-        end;
-
-	  ServerInfo.Security := TMVCDefaultSecurity.Create(OnAuthentication, nil);
-	
-	  Server := TMVCServerFactory.Build(ServerInfo);
-	  Server.Start;
+	   pIsValid := pUserName.Equals('dmvc') and pPassword.Equals('123');
 	end;
 
-      //And in his WebModule you should add the security middleware
-     uses
-        MVCFramework.Middleware.Authentication;
-    
-     procedure TTestWebModule.WebModuleCreate(Sender: TObject);
-     begin
-       MVCEngine := TMVCEngine.Create(Self);
+  ServerInfo.Security := TMVCDefaultSecurity.Create(OnAuthentication, nil);
+
+  Server := TMVCServerFactory.Build(ServerInfo);
+  Server.Start;
+end;
+
+//And in his WebModule you should add the security middleware
+uses
+	MVCFramework.Middleware.Authentication;
+
+procedure TTestWebModule.WebModuleCreate(Sender: TObject);
+begin
+	MVCEngine := TMVCEngine.Create(Self);
 	
-       // Add Yours Controllers
-       MVCEngine.AddController(TYourController);
+	// Add Yours Controllers
+	MVCEngine.AddController(TYourController);
 	
-       // Add Security Middleware
-       MVCEngine.AddMiddleware(
-	     TMVCBasicAuthenticationMiddleware.Create(Server.Info.Security)
-       );
-	end;  
+	// Add Security Middleware
+	MVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(Server.Info.Security));
+end;  
 ```
 
 You can work with a container of DelphiMVCFramework servers:
 
 ```delphi
-	uses 
-	  MVCFramework.Server;
-	
-	var
-	  ServerOneInfo: IMVCServerInfo;
-	  ServerTwoInfo: IMVCServerInfo;
-	  Container: IMVCServerContainer;
-	begin
-	  Container := TMVCServerContainerFactory.Build();
-	
-	  ServerOneInfo := TMVCServerInfoFactory.Build;
-	  ServerOneInfo.ServerName := 'MVCServer1';
-	  ServerOneInfo.Port := 4000;
-	  ServerOneInfo.MaxConnections := 1000;
-	  ServerOneInfo.WebModuleClass := ServerOneWebModuleClass;
-	
-	  Container.CreateServer(ServerOneInfo);
-	
-	  ServerTwoInfo := TMVCServerInfoFactory.Build;
-	  ServerTwoInfo.ServerName := 'MVCServer2';
-	  ServerTwoInfo.Port := 5000;
-	  ServerTwoInfo.MaxConnections := 1000;
-	  ServerTwoInfo.WebModuleClass := ServerTwoWebModuleClass;
-	
-	  Container.CreateServer(ServerTwoInfo);
-      
-          Container.StartServers();
-	end;  
+uses 
+  MVCFramework.Server;
+
+var
+  ServerOneInfo: IMVCServerInfo;
+  ServerTwoInfo: IMVCServerInfo;
+  Container: IMVCServerContainer;
+begin
+  Container := TMVCServerContainerFactory.Build();
+
+  ServerOneInfo := TMVCServerInfoFactory.Build;
+  ServerOneInfo.ServerName := 'MVCServer1';
+  ServerOneInfo.Port := 4000;
+  ServerOneInfo.MaxConnections := 1000;
+  ServerOneInfo.WebModuleClass := ServerOneWebModuleClass;
+
+  Container.CreateServer(ServerOneInfo);
+
+  ServerTwoInfo := TMVCServerInfoFactory.Build;
+  ServerTwoInfo.ServerName := 'MVCServer2';
+  ServerTwoInfo.Port := 5000;
+  ServerTwoInfo.MaxConnections := 1000;
+  ServerTwoInfo.WebModuleClass := ServerTwoWebModuleClass;
+  Container.CreateServer(ServerTwoInfo);
+  Container.StartServers();
+end;  
 ```
 
 ###Links
