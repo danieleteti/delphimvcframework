@@ -108,7 +108,7 @@ Create a new server is a simple task:
 	  //You must reference your TWebModuleClass  
 	  ServerInfo.WebModuleClass := YourServerWebModuleClass;
 	
-	  Server := TMVCServerFactory.Build(vServerInfo);
+	  Server := TMVCServerFactory.Build(ServerInfo);
 	  Server.Start;
 	  Server.Stop;
 	end;
@@ -136,7 +136,7 @@ If you want to add a layer of security:
            pIsValid := pUserName.Equals('dmvc') and pPassword.Equals('123');
         end;
 
-	  ServerInfo.Security := TMVCDefaultSecurity.Create(vOnAuthentication, nil);
+	  ServerInfo.Security := TMVCDefaultSecurity.Create(OnAuthentication, nil);
 	
 	  Server := TMVCServerFactory.Build(ServerInfo);
 	  Server.Start;

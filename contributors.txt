@@ -11,3 +11,9 @@ email:		d.spinetti@bittime.it
 blog: 		www.danielespinetti.it
 company:	www.bittimeprofessionals.it
 country:	ITALY
+
+Ezequiel Juliano Müller
+Role:		Expert, Senior Developer
+email:		ezequieljuliano@gmail.com
+blog: 		www.ezequieljuliano.com.br
+country:	BRAZIL
