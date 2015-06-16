@@ -31,6 +31,55 @@ DMVCFramework is provided with a lot of examples focused on specific functionali
 All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/tree/master/samples) folder
 
 
+#Sample Server
+Below a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
+
+To create this server, you have to create a new Delphi Projects -> WebBroker -> WebServerApplication. Then add the following changes to the webmodule.
+```delphi
+unit WebModuleUnit1;
+
+interface
+
+uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework {this unit contains TMVCEngine class};
+
+type
+  TWebModule1 = class(TWebModule)
+    procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
+
+  private
+    MVC: TMVCEngine;
+
+  public
+    { Public declarations }
+  end;
+
+var
+  WebModuleClass: TComponentClass = TWebModule1;
+
+implementation
+
+{$R *.dfm}
+
+uses UsersControllerU; //this is the unit where is defined the controller
+
+procedure TWebModule1.WebModuleCreate(Sender: TObject);
+begin
+  MVC := TMVCEngine.Create(Self);
+  MVC.Config['document_root'] := 'public_html'; //if you need some static html, javascript, etc (optional)
+  MVC.AddController(TUsersController); //see next section to know how to create a controller
+end;
+
+procedure TWebModule1.WebModuleDestroy(Sender: TObject);
+begin
+  MVC.Free;
+end;
+
+end.
+```
+
+That's it! You have just created your first DelphiMVCFramework. Now you have to add a controller to respond to the http request.
+
 #Sample Controller
 Below a basic sample of a DMVCFramework controller with 2 action
 
@@ -93,7 +142,7 @@ end.
 
 ###Quick Creation of DelphiMVCFramework Server
 
-Create a new server is a simple task:
+If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one server into one single executable. In this case, the process is a bit different and involves the creation of a server container. However, create a new server is a simple task:
 
 ```delphi
 uses
