@@ -78,6 +78,7 @@ end;
 end.
 ```
 
+Remember that the files inside the redist folder *must* be in the executable path or in the system path. If starting the server whithin the IDE doesn't works, try to run the executable outside the IDE and check the dependencies.
 That's it! You have just created your first DelphiMVCFramework. Now you have to add a controller to respond to the http request.
 
 #Sample Controller
@@ -156,6 +157,11 @@ end;
   
 end.
 ```
+
+Now you have a performant RESTful server wich respond to the following URLs:
+- GET /users/($id)		(eg. /users/1, /users/45 etc)
+- PUT /users/($id)		(eg. /users/1, /users/45 etc with the JSON data in the request body)
+- POST /users			(the JSON data must be in the request body)
 
 ###Quick Creation of DelphiMVCFramework Server
 
