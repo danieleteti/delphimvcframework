@@ -97,23 +97,15 @@ type
       ARTTIType: TRttiType; out AResult: TValue);
   end;
 
-  TVIAdapter<T: IInvokable> = class(TVirtualInterface)
+  TRESTAdapter<T: IInvokable> = class(TVirtualInterface, IRESTAdapter<T>)
+  private
+    FRESTClient: TRESTClient;
+    FRESTClientOwner: boolean;
+    procedure SetRESTClient(const Value: TRESTClient);
+    procedure SetRESTClientOwner(const Value: boolean);
   protected
     procedure DoInvoke(Method: TRttiMethod; const Args: TArray<TValue>;
       out Result: TValue);
-    procedure DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>;
-      out Result: TValue); virtual; abstract;
-  public
-    constructor Create;
-  end;
-
-  TRESTAdapter<T: IInvokable> = class(TVIAdapter<T>, IRESTAdapter<T>)
-  private
-    FRESTClient: TRESTClient;
-    procedure SetRESTClient(const Value: TRESTClient);
-  protected
-    procedure DoInvokeImpl(Method: TRttiMethod; const Args: TArray<TValue>;
-      out Result: TValue); override;
     procedure AddRequestHeaders(AObj: TRttiObject);
     procedure AddRequestHeader(AKey: string; AValue: string);
     procedure MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
@@ -124,12 +116,13 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    function Build(ARESTClient: TRESTClient): T; overload;
+    function Build(ARESTClient: TRESTClient; const ARESTClientOwner: boolean = false): T; overload;
     function Build(const AServerName: string; const AServerPort: Word = 80;
       AIOHandler: TIdIOHandler = nil): T; overload;
 
     function ResourcesService: T;
     property RESTClient: TRESTClient read FRESTClient write SetRESTClient;
+    property RESTClientOwner: boolean read FRESTClientOwner write SetRESTClientOwner;
   end;
 
   IAsynchRequest = interface
@@ -192,23 +185,11 @@ uses
 
 { TRESTAdapter }
 
-function TRESTAdapter<T>.Build(ARESTClient: TRESTClient): T;
+function TRESTAdapter<T>.Build(ARESTClient: TRESTClient; const ARESTClientOwner: boolean = false): T;
 begin
   RESTClient := ARESTClient;
+  RESTClientOwner := ARESTClientOwner;
   Result := ResourcesService;
-end;
-
-{ TVIAdapter }
-
-constructor TVIAdapter<T>.Create;
-begin
-  inherited Create(TypeInfo(T), DoInvoke);
-end;
-
-procedure TVIAdapter<T>.DoInvoke(Method: TRttiMethod;
-  const Args: TArray<TValue>; out Result: TValue);
-begin
-  DoInvokeImpl(Method, Args, Result);
 end;
 
 procedure TRESTAdapter<T>.AddRequestHeader(AKey, AValue: string);
@@ -239,23 +220,24 @@ var
   ARESTClient: TRESTClient;
 begin
   ARESTClient := TRESTClient.Create(AServerName, AServerPort, AIOHandler);
-  Result := Build(ARESTClient);
+  Result := Build(ARESTClient, true);
 end;
 
 constructor TRESTAdapter<T>.Create;
 begin
-  inherited Create;
+  inherited Create(TypeInfo(T), DoInvoke);
 end;
 
 destructor TRESTAdapter<T>.Destroy;
 begin
   //Ezequiel J. Müller (If it is created outside, it must be destroyed out)
-  //if Assigned(FRESTClient) then
-  //  FRESTClient.Free;
+  //d.spinetti added RESTClientOwner to manage desctruction of RESTClient and free its associated memory
+  if RESTClientOwner and Assigned(FRESTClient) then
+    FRESTClient.Free;
   inherited;
 end;
 
-procedure TRESTAdapter<T>.DoInvokeImpl(Method: TRttiMethod;
+procedure TRESTAdapter<T>.DoInvoke(Method: TRttiMethod;
   const Args: TArray<TValue>; out Result: TValue);
 var
   Resp: IRESTResponse;
@@ -443,6 +425,11 @@ end;
 procedure TRESTAdapter<T>.SetRESTClient(const Value: TRESTClient);
 begin
   FRESTClient := Value;
+end;
+
+procedure TRESTAdapter<T>.SetRESTClientOwner(const Value: boolean);
+begin
+  FRESTClientOwner := Value;
 end;
 
 { RESTResourceAttribute }
