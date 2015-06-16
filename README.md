@@ -103,13 +103,21 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure GetUsers(CTX: TWebContext);
 
-    //The following action will be with a POST or PUT request like the following
+    //The following action will be with a PUT request like the following
     //http://myserver.com/users/3
     //and in the request body there should be a serialized TUser
     [MVCPath('/($id)')]
     [MVCProduce('application/json')]
-    [MVCHTTPMethod([httPOST, httpPUT])]
-    procedure UpdateOrCreateUser(CTX: TWebContext);
+    [MVCHTTPMethod([httpPUT])]
+    procedure UpdateUser(CTX: TWebContext);
+
+    //The following action will respond to a POST request like the following
+    //http://myserver.com/users
+    //and in the request body there should be the new user to create as json
+    [MVCPath]
+    [MVCProduce('application/json')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure CreateUser(CTX: TWebContext);
 
   end;
  
@@ -128,12 +136,21 @@ begin
   Render(User);
 end;
 
-procedure TUsersController.UpdateOrCreateUser(CTX: TWebContext);
+procedure TUsersController.UpdateUser(CTX: TWebContext);
 var
   User: TUser;
 begin
   User := CTX.Request.BodyAs<TUser>;
   SaveUser(User);
+  Render(User);
+end;	
+  
+procedure TUsersController.CreateUser(CTX: TWebContext);
+var
+  User: TUser;
+begin
+  User := CTX.Request.BodyAs<TUser>;
+  CreateUser(User);
   Render(User);
 end;	
   
