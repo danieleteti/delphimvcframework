@@ -28,7 +28,7 @@ uses
 {$ELSE}
     , System.JSON, Web.ApacheHTTP
 {$IFEND}
-    , ReqMulti  {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
+    , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH,
@@ -303,6 +303,8 @@ type
     function GetContentCharset: string;
     procedure SetContentCharset(const Value: string);
     // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
+    // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType); overload;
+    // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
     // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType);
 
   protected const
@@ -348,7 +350,8 @@ type
       AInstanceOwner: boolean = true); overload;
     procedure Render(const AErrorCode: UInt16; AObject: TObject;
       AInstanceOwner: boolean = true); overload;
-    procedure RenderStreamAndFree(const AStream: TStream);
+    procedure RenderStreamAndFree(const AStream: TStream); deprecated 'Use Render(TStream,Boolean)';
+    procedure Render(const AStream: TStream; AInstanceOwner: boolean = true); overload;
     // messaging
     procedure EnqueueMessageOnTopicOrQueue(const IsQueue: boolean; const ATopic: string;
       AJSONObject: TJSONObject; AOwnsInstance: boolean = true);
@@ -359,7 +362,7 @@ type
     // http return code
     procedure ResponseStatusCode(const ErrorCode: UInt16);
     // streams and files
-    procedure SendStream(AStream: TStream); virtual;
+    procedure SendStream(AStream: TStream; AOwnStream: boolean = true); virtual;
     procedure SendFile(AFileName: string); virtual;
     // filters before, after
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
@@ -1260,7 +1263,8 @@ begin
   if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
   begin
     if RootProperty = '' then
-      Result := Mapper.JSONArrayToObjectList<T>((BodyAsJSONValue as TJSONArray), False, True) //Ezequiel J. Müller (bug fix)
+      Result := Mapper.JSONArrayToObjectList<T>((BodyAsJSONValue as TJSONArray), false, true)
+      // Ezequiel J. Müller (bug fix)
     else
     begin
       S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
@@ -1625,13 +1629,13 @@ begin
   Result := TMVCEngine.SendSessionCookie(AContext);
 end;
 
-procedure TMVCController.SendStream(AStream: TStream);
+procedure TMVCController.SendStream(AStream: TStream; AOwnStream: boolean);
 begin
   FContext.Response.FWebResponse.Content := '';
   // FContext.Response.SetContentStream(AStream, ContentType);
   FContext.Response.FWebResponse.ContentType := ContentType;
   FContext.Response.FWebResponse.ContentStream := AStream;
-  FContext.Response.FWebResponse.FreeContentStream := true;
+  FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
 end;
 
 procedure TMVCController.SessionStart;
@@ -2250,6 +2254,11 @@ begin
   // Mapper.DataSetToXML(ADataSet, S, AInstanceOwner);
   // Render(S);
   // end;
+end;
+
+procedure TMVCController.Render(const AStream: TStream; AInstanceOwner: boolean);
+begin
+  SendStream(AStream, AInstanceOwner);
 end;
 
 procedure TMVCController.Render<T>(ACollection: TObjectList<T>; AInstanceOwner: boolean;

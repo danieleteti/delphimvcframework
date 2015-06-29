@@ -1630,6 +1630,6 @@ BEGIN
 	System_SysConst_SEndOfFile,	L"Read beyond end of file"
 END
 
-/* C:\DEV\dmvcframework\samples\BasicDemo\WebModuleUnit1.dfm */
-/* C:\DEV\dmvcframework\samples\BasicDemo\BasicDemo.res */
-/* C:\Users\Daniele\AppData\Local\Temp\dtf95B1.tmp */
+/* D:\DEV\dmvcframework\samples\BasicDemo\WebModuleUnit1.dfm */
+/* D:\DEV\dmvcframework\samples\BasicDemo\BasicDemo.res */
+/* C:\Users\Daniele\AppData\Local\Temp\dtf4908.tmp */
