@@ -2144,8 +2144,14 @@ begin
     InternalJSONObjectToObject(ctx, AJSONObject, AObject);
     Result := AObject;
   except
-    AObject.Free;
-    Result := nil;
+    //Ezequiel J. Müller
+    //It is important to pass on the exception, to be able to identify the problem you are experiencing.
+    on E: Exception do
+    begin
+       AObject.Free;
+       Result := nil;
+       raise EMapperException.Create(E.Message);
+    end;
   end;
 end;
 
