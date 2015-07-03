@@ -763,7 +763,7 @@ begin
         end;
       TFieldType.ftSingle, TFieldType.ftFloat:
         AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsFloat));
-      ftString, ftWideString, ftMemo:
+      ftString, ftWideString, ftMemo, ftWideMemo:
         AJSONObject.AddPair(key, ADataSet.Fields[I].AsWideString);
       TFieldType.ftDate:
         begin
@@ -2244,7 +2244,7 @@ begin
         begin
           ADataSet.Fields[I].AsFloat := (v as TJSONNumber).AsDouble;
         end;
-      ftString, ftWideString, ftMemo:
+      ftString, ftWideString, ftMemo, ftWideMemo:
         begin
           ADataSet.Fields[I].AsString := (v as TJSONString).Value;
         end;
