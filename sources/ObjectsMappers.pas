@@ -1062,6 +1062,10 @@ var
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
+  attr: MapperItemsClassType;
+  ListCount: Integer;
+  ListItems: TRttiMethod;
+  ListItemValue: TValue;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -1147,18 +1151,43 @@ begin
           begin
             if TDuckTypedList.CanBeWrappedAsList(o) then
             begin
-              list := WrapAsList(o);
-              if Assigned(list) then
+              if Mapper.HasAttribute<MapperItemsClassType>(_property, attr) or
+                  Mapper.HasAttribute<MapperItemsClassType>(_property.PropertyType, attr) then
               begin
-                Arr := TJSONArray.Create;
-                JSONObject.AddPair(f, Arr);
-                for Obj in list do
+                list := WrapAsList(o);
+                if Assigned(list) then
                 begin
-                  if Assigned(Obj) then
-                    // nil element into the list are not serialized
-                    Arr.AddElement(ObjectToJSONObject(Obj));
+                  Arr := TJSONArray.Create;
+                  JSONObject.AddPair(f, Arr);
+                  for Obj in list do
+                    if Assigned(Obj) then // nil element into the list are not serialized
+                      Arr.AddElement(ObjectToJSONObject(Obj));
                 end;
               end
+              else //Ezequiel J. Müller convert regular list
+              begin
+                ListCount := ctx.GetType(o.ClassInfo).GetProperty('Count').GetValue(o).AsInteger;
+                ListItems := ctx.GetType(o.ClassInfo).GetIndexedProperty('Items').ReadMethod;
+                if (ListCount > 0) and (ListItems <> nil) then
+                begin
+                  Arr := TJSONArray.Create;
+                  JSONObject.AddPair(f, Arr);
+                  for I := 0 to ListCount - 1 do
+                  begin
+                    ListItemValue := ListItems.Invoke(o, [I]);
+                    case ListItemValue.TypeInfo.Kind of
+                      tkInteger:
+                         Arr.AddElement(TJSONNumber.Create(ListItemValue.AsInteger));
+                      tkInt64:
+                         Arr.AddElement(TJSONNumber.Create(ListItemValue.AsInt64));
+                      tkFloat:
+                         Arr.AddElement(TJSONNumber.Create(ListItemValue.AsExtended));
+                      tkString, tkLString, tkWString, tkUString:
+                         Arr.AddElement(TJSONString.Create(ListItemValue.AsString));
+                    end;
+                  end;
+                end;
+              end;
             end
             else if o is TStream then
             begin
@@ -1971,6 +2000,9 @@ var
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
+  ListMethod: TRttiMethod;
+  ListItem: TValue;
+  ListParam: TRttiParameter;
 begin
   jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
@@ -2108,6 +2140,30 @@ begin
                   for I := 0 to Arr.Size - 1 do
                   begin
                     list.Add(Mapper.JSONObjectToObject(cref, Arr.Get(I) as TJSONObject));
+                  end;
+                end
+                else //Ezequiel J. Müller convert regular list
+                begin
+                  ListMethod := ctx.GetType(o.ClassInfo).GetMethod('Add');
+                  if (ListMethod <> nil) then
+                  begin
+                    for I := 0 to Arr.Size - 1 do
+                    begin
+                      ListItem := TValue.Empty;
+
+                      for ListParam in ListMethod.GetParameters do
+                        case ListParam.ParamType.TypeKind of
+                          tkInteger, tkInt64:
+                            ListItem := StrToIntDef(Arr.Get(I).Value, 0);
+                          tkFloat:
+                            ListItem := TJSONNumber(Arr.Get(I).Value).AsDouble;
+                          tkString, tkLString, tkWString, tkUString:
+                            ListItem := Arr.Get(I).Value;
+                        end;
+
+                      if not ListItem.IsEmpty then
+                        ListMethod.Invoke(o, [ListItem]);
+                    end;
                   end;
                 end;
               end
