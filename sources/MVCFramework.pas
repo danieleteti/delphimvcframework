@@ -191,6 +191,7 @@ type
     function GetContent: string;
     function GetLocation: string;
     procedure SetLocation(const Value: string);
+    function GetReasonString: string;
     property Content: string read GetContent write SetContent;
 
   protected // do not put this as "strict"
@@ -205,7 +206,7 @@ type
     procedure SendHeaders;
     property CustomHeaders: TStrings read GetCustomHeaders;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
-    property ReasonString: string read FReasonString write SetReasonString;
+    property ReasonString: string read GetReasonString write SetReasonString;
     property Cookies: TCookieCollection read GetCookies;
     property ContentType: string read GetContentType write SetContentType;
     property Location: string read GetLocation write SetLocation;
@@ -360,7 +361,7 @@ type
     // redirects
     procedure Redirect(const URL: string);
     // http return code
-    procedure ResponseStatusCode(const ErrorCode: UInt16);
+    procedure ResponseStatusCode(const AStatusCode: UInt16; AStatusText: string = '');
     // streams and files
     procedure SendStream(AStream: TStream; AOwnStream: boolean = true); virtual;
     procedure SendFile(AFileName: string); virtual;
@@ -1124,6 +1125,11 @@ begin
   Result := CustomHeaders.Values['location'];
 end;
 
+function TMVCWebResponse.GetReasonString: string;
+begin
+  Result := FWebResponse.ReasonString;
+end;
+
 function TMVCWebResponse.GetStatusCode: Integer;
 begin
   Result := FWebResponse.StatusCode;
@@ -1162,7 +1168,7 @@ end;
 
 procedure TMVCWebResponse.SetReasonString(const Value: string);
 begin
-  FReasonString := Value;
+  FWebResponse.ReasonString := Value;
 end;
 
 procedure TMVCWebResponse.SetStatusCode(const Value: Integer);
@@ -1989,6 +1995,7 @@ end;
 { TMVCApacheWebRequest }
 {$IF CompilerVersion >= 27}
 
+
 function TMVCApacheWebRequest.ClientIP: string;
 begin
   raise EMVCException.Create('<TMVCApacheWebRequest.ClientIP> Not implemented');
@@ -2140,11 +2147,11 @@ var
   jarr: TJSONArray;
 begin
   if E is EMVCException then
-    ResponseStatusCode(EMVCException(E).HTTPErrorCode)
+    ResponseStatusCode(EMVCException(E).HTTPErrorCode, E.Message + ' [' + E.ClassName + ']')
   else
   begin
     if Context.Response.StatusCode = 200 then
-      ResponseStatusCode(500);
+      ResponseStatusCode(500, E.Message + ' [' + E.ClassName + ']');
   end;
 
   if (not Context.Request.IsAjax) and (Context.Request.ClientPreferHTML) then
@@ -2204,7 +2211,7 @@ var
   j: TJSONObject;
   status: string;
 begin
-  ResponseStatusCode(AErrorCode);
+  ResponseStatusCode(AErrorCode, AErrorMessage);
   if Context.Request.IsAjax or (ContentType = 'application/json') then
   begin
     status := 'error';
@@ -2293,9 +2300,10 @@ begin
   InternalRender(AJSONValue, ContentType, ContentCharset, Context, AInstanceOwner);
 end;
 
-procedure TMVCController.ResponseStatusCode(const ErrorCode: UInt16);
+procedure TMVCController.ResponseStatusCode(const AStatusCode: UInt16; AStatusText: string);
 begin
-  Context.Response.StatusCode := ErrorCode;
+  Context.Response.StatusCode := AStatusCode;
+  Context.Response.ReasonString := AStatusText;
 end;
 
 function TMVCController.ResponseStream: TStringBuilder;
@@ -2339,6 +2347,7 @@ begin
 end;
 
 {$IFDEF IOCP}
+
 
 constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
 begin
