@@ -12,7 +12,7 @@ type
   public
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers')]
-    [MVCProduces('application/json')]
+    // [MVCProduces('application/json')]
     procedure GetCustomers_AsDataSet(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
@@ -22,7 +22,7 @@ type
 
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/skilledpeople')]
-    // [MVCProduces('application/json')]
+    [MVCProduces('application/json')]
     procedure GetProgrammersAndPhilosophersAsObjectList(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
@@ -55,12 +55,17 @@ type
     [MVCProduces('image/png')]
     procedure GetPersonPhoto(CTX: TWebContext);
 
+    [MVCHTTPMethod([httpGet])]
+    [MVCPath('/images/customers/($id)')]
+    procedure GetPersonPhotoAsStream(CTX: TWebContext);
+
   end;
 
 implementation
 
 uses
-  System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU, Generics.Collections;
+  System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU, Generics.Collections,
+  System.Classes;
 
 { TRoutingSampleController }
 
@@ -106,29 +111,22 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);
 begin
-  ResponseStream.
-    Append('<html><body><ul>').
-    Append('<li>FirstName: Daniele</li>').
-    Append('<li>LastName: Teti').
-    AppendFormat('<li>DOB: %s</li>',
-    [ISODateToString(EncodeDate(1975, 5, 2))]).
-    Append('<li>Married: yes</li>').
-    Append('</ul></body></html>');
+  ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>')
+    .Append('<li>LastName: Teti').AppendFormat('<li>DOB: %s</li>',
+    [ISODateToString(EncodeDate(1975, 5, 2))]).Append('<li>Married: yes</li>')
+    .Append('</ul></body></html>');
   Render;
 end;
 
 procedure TRenderSampleController.GetPerson_AsText(CTX: TWebContext);
 begin
-  ResponseStream.
-    AppendLine('FirstName: Daniele').
-    AppendLine('LastName : Teti').
-    AppendLine('DOB      : ' + ISODateToString(EncodeDate(1975, 5, 2))).
-    AppendLine('Married  : yes');
+  ResponseStream.AppendLine('FirstName: Daniele').AppendLine('LastName : Teti')
+    .AppendLine('DOB      : ' + ISODateToString(EncodeDate(1975, 5, 2)))
+    .AppendLine('Married  : yes');
   Render;
 end;
 
-procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList(
-  CTX: TWebContext);
+procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList(CTX: TWebContext);
 var
   List: TObjectList<TPerson>;
   p: TProgrammer;
@@ -206,6 +204,17 @@ procedure TRenderSampleController.GetPersonPhoto(CTX: TWebContext);
 begin
   // ContentType := 'image/jpeg';
   SendFile('..\..\..\_\customer.png');
+end;
+
+procedure TRenderSampleController.GetPersonPhotoAsStream(CTX: TWebContext);
+var
+  LPhoto: TFileStream;
+begin
+  LPhoto := TFileStream.Create('..\..\..\_\customer.png', fmOpenRead or fmShareDenyWrite);
+  ContentType := 'image/png'; // you can also use MVCProduces attribute
+
+  // LPhoto is a plain TStream descendant, so it can be rendered as usual
+  Render(LPhoto, True);
 end;
 
 end.

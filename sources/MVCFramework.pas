@@ -28,7 +28,7 @@ uses
 {$ELSE}
     , System.JSON, Web.ApacheHTTP
 {$IFEND}
-    , ReqMulti  {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
+    , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH,
@@ -191,6 +191,7 @@ type
     function GetContent: string;
     function GetLocation: string;
     procedure SetLocation(const Value: string);
+    function GetReasonString: string;
     property Content: string read GetContent write SetContent;
 
   protected // do not put this as "strict"
@@ -205,7 +206,7 @@ type
     procedure SendHeaders;
     property CustomHeaders: TStrings read GetCustomHeaders;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
-    property ReasonString: string read FReasonString write SetReasonString;
+    property ReasonString: string read GetReasonString write SetReasonString;
     property Cookies: TCookieCollection read GetCookies;
     property ContentType: string read GetContentType write SetContentType;
     property Location: string read GetLocation write SetLocation;
@@ -303,6 +304,8 @@ type
     function GetContentCharset: string;
     procedure SetContentCharset(const Value: string);
     // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
+    // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType); overload;
+    // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
     // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType);
 
   protected const
@@ -348,7 +351,8 @@ type
       AInstanceOwner: boolean = true); overload;
     procedure Render(const AErrorCode: UInt16; AObject: TObject;
       AInstanceOwner: boolean = true); overload;
-    procedure RenderStreamAndFree(const AStream: TStream);
+    procedure RenderStreamAndFree(const AStream: TStream); deprecated 'Use Render(TStream,Boolean)';
+    procedure Render(const AStream: TStream; AInstanceOwner: boolean = true); overload;
     // messaging
     procedure EnqueueMessageOnTopicOrQueue(const IsQueue: boolean; const ATopic: string;
       AJSONObject: TJSONObject; AOwnsInstance: boolean = true);
@@ -357,9 +361,9 @@ type
     // redirects
     procedure Redirect(const URL: string);
     // http return code
-    procedure ResponseStatusCode(const ErrorCode: UInt16);
+    procedure ResponseStatusCode(const AStatusCode: UInt16; AStatusText: string = '');
     // streams and files
-    procedure SendStream(AStream: TStream); virtual;
+    procedure SendStream(AStream: TStream; AOwnStream: boolean = true); virtual;
     procedure SendFile(AFileName: string); virtual;
     // filters before, after
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
@@ -1121,6 +1125,11 @@ begin
   Result := CustomHeaders.Values['location'];
 end;
 
+function TMVCWebResponse.GetReasonString: string;
+begin
+  Result := FWebResponse.ReasonString;
+end;
+
 function TMVCWebResponse.GetStatusCode: Integer;
 begin
   Result := FWebResponse.StatusCode;
@@ -1159,7 +1168,7 @@ end;
 
 procedure TMVCWebResponse.SetReasonString(const Value: string);
 begin
-  FReasonString := Value;
+  FWebResponse.ReasonString := Value;
 end;
 
 procedure TMVCWebResponse.SetStatusCode(const Value: Integer);
@@ -1260,7 +1269,8 @@ begin
   if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
   begin
     if RootProperty = '' then
-      Result := Mapper.JSONArrayToObjectList<T>((BodyAsJSONValue as TJSONArray), False, True) //Ezequiel J. Müller (bug fix)
+      Result := Mapper.JSONArrayToObjectList<T>((BodyAsJSONValue as TJSONArray), false, true)
+      // Ezequiel J. Müller (bug fix)
     else
     begin
       S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
@@ -1625,13 +1635,13 @@ begin
   Result := TMVCEngine.SendSessionCookie(AContext);
 end;
 
-procedure TMVCController.SendStream(AStream: TStream);
+procedure TMVCController.SendStream(AStream: TStream; AOwnStream: boolean);
 begin
   FContext.Response.FWebResponse.Content := '';
   // FContext.Response.SetContentStream(AStream, ContentType);
   FContext.Response.FWebResponse.ContentType := ContentType;
   FContext.Response.FWebResponse.ContentStream := AStream;
-  FContext.Response.FWebResponse.FreeContentStream := true;
+  FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
 end;
 
 procedure TMVCController.SessionStart;
@@ -1985,6 +1995,7 @@ end;
 { TMVCApacheWebRequest }
 {$IF CompilerVersion >= 27}
 
+
 function TMVCApacheWebRequest.ClientIP: string;
 begin
   raise EMVCException.Create('<TMVCApacheWebRequest.ClientIP> Not implemented');
@@ -2136,11 +2147,11 @@ var
   jarr: TJSONArray;
 begin
   if E is EMVCException then
-    ResponseStatusCode(EMVCException(E).HTTPErrorCode)
+    ResponseStatusCode(EMVCException(E).HTTPErrorCode, E.Message + ' [' + E.ClassName + ']')
   else
   begin
     if Context.Response.StatusCode = 200 then
-      ResponseStatusCode(500);
+      ResponseStatusCode(500, E.Message + ' [' + E.ClassName + ']');
   end;
 
   if (not Context.Request.IsAjax) and (Context.Request.ClientPreferHTML) then
@@ -2200,7 +2211,7 @@ var
   j: TJSONObject;
   status: string;
 begin
-  ResponseStatusCode(AErrorCode);
+  ResponseStatusCode(AErrorCode, AErrorMessage);
   if Context.Request.IsAjax or (ContentType = 'application/json') then
   begin
     status := 'error';
@@ -2252,6 +2263,11 @@ begin
   // end;
 end;
 
+procedure TMVCController.Render(const AStream: TStream; AInstanceOwner: boolean);
+begin
+  SendStream(AStream, AInstanceOwner);
+end;
+
 procedure TMVCController.Render<T>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
   AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType);
 var
@@ -2284,9 +2300,10 @@ begin
   InternalRender(AJSONValue, ContentType, ContentCharset, Context, AInstanceOwner);
 end;
 
-procedure TMVCController.ResponseStatusCode(const ErrorCode: UInt16);
+procedure TMVCController.ResponseStatusCode(const AStatusCode: UInt16; AStatusText: string);
 begin
-  Context.Response.StatusCode := ErrorCode;
+  Context.Response.StatusCode := AStatusCode;
+  Context.Response.ReasonString := AStatusText;
 end;
 
 function TMVCController.ResponseStream: TStringBuilder;
@@ -2330,6 +2347,7 @@ begin
 end;
 
 {$IFDEF IOCP}
+
 
 constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
 begin

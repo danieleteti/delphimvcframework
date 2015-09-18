@@ -340,7 +340,7 @@ type
 
   public
     constructor Create(ACaption: string; AAlign: TGridColumnAlign = caCenter;
-      AWidth: Integer = - 1);
+      AWidth: Integer = -1);
     property Caption: string read FCaption;
     property Align: TGridColumnAlign read FAlign;
     property AlignAsString: string read GetAlignAsString;
@@ -363,6 +363,7 @@ function ISOStrToTime(TimeAsString: string): TTime;
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
+
 
 uses
   TypInfo,
@@ -450,6 +451,7 @@ end;
 // end;
 
 {$IF CompilerVersion <= 25}
+
 
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
   WithResult: boolean): Int64;
@@ -691,6 +693,7 @@ begin
 end;
 {$IFEND}
 
+
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet; AJSONArray: TJSONArray;
   ADataSetInstanceOwner: boolean; AJSONObjectActionProc: TJSONObjectActionProc);
 var
@@ -763,7 +766,7 @@ begin
         end;
       TFieldType.ftSingle, TFieldType.ftFloat:
         AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsFloat));
-      ftString, ftWideString, ftMemo:
+      ftString, ftWideString, ftMemo, ftWideMemo:
         AJSONObject.AddPair(key, ADataSet.Fields[I].AsWideString);
       TFieldType.ftDate:
         begin
@@ -1935,7 +1938,7 @@ begin
             end
             else if TDuckTypedList.CanBeWrappedAsList(o) then
             begin // restore collection
-              if not (jvalue is TJSONObject) then
+              if not(jvalue is TJSONObject) then
                 raise EMapperException.Create('Wrong serialization for ' + o.QualifiedClassName);
               LClassName := TJSONObject(jvalue).Get(DMVC_CLASSNAME).JsonValue.Value;
               if o = nil then // recreate the object as it should be
@@ -2285,7 +2288,7 @@ begin
     v := nil;
     jp := AJSONObject.Get(key);
     if Assigned(jp) then
-      if not (jp.JsonValue is TJSONNull) then
+      if not(jp.JsonValue is TJSONNull) then
         v := AJSONObject.Get(key).JsonValue;
     if not Assigned(v) then
     begin
@@ -2306,7 +2309,7 @@ begin
         begin
           ADataSet.Fields[I].AsFloat := (v as TJSONNumber).AsDouble;
         end;
-      ftString, ftWideString, ftMemo:
+      ftString, ftWideString, ftMemo, ftWideMemo:
         begin
           ADataSet.Fields[I].AsString := (v as TJSONString).Value;
         end;
@@ -2554,6 +2557,7 @@ end;
 
 {$IF CompilerVersion > 25}
 
+
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
   AParamPrefix: string);
 var
@@ -2668,6 +2672,7 @@ begin
 end;
 {$ENDIF}
 {$IF CompilerVersion <= 25}
+
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery; AObject: TObject): Int64;
 begin
@@ -2810,7 +2815,11 @@ var
 begin
   Arr := AsJSONArray;
   try
+{$IF CompilerVersion >= 28}
+    Result := Arr.ToJSON;
+{$ELSE}
     Result := Arr.ToString;
+{$ENDIF}
   finally
     Arr.Free;
   end;
@@ -2847,7 +2856,11 @@ begin
   end
   else
     try
-      Result := JObj.ToString;
+{$IF CompilerVersion >= 28}
+      Result := JObj.ToJSON;
+{$ELSE}
+      Result := JObj.ToString
+{$ENDIF}
     finally
       JObj.Free;
     end;
@@ -2922,7 +2935,7 @@ begin
     if JV is TJSONArray then
       LoadFromJSONArray(TJSONArray(JV), AIgnoredFields)
     else
-      raise EMapperException.Create('Extected JSONArray in LoadFromJSONArrayString');
+      raise EMapperException.Create('Expected JSONArray in LoadFromJSONArrayString');
   finally
     JV.Free;
   end;

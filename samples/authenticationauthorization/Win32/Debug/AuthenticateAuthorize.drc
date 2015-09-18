@@ -1630,6 +1630,6 @@ BEGIN
 	System_SysConst_SEndOfFile,	L"Read beyond end of file"
 END
 
-/* C:\DEV\dmvcframework\samples\authenticationauthorization\WebModuleUnit1.dfm */
-/* C:\DEV\dmvcframework\samples\authenticationauthorization\AuthenticateAuthorize.res */
-/* C:\Users\Daniele\AppData\Local\Temp\dtf8A76.tmp */
+/* D:\DEV\dmvcframework\samples\authenticationauthorization\WebModuleUnit1.dfm */
+/* D:\DEV\dmvcframework\samples\authenticationauthorization\AuthenticateAuthorize.res */
+/* C:\Users\Daniele\AppData\Local\Temp\dtf3E88.tmp */
