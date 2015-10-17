@@ -766,8 +766,10 @@ begin
         end;
       TFieldType.ftSingle, TFieldType.ftFloat:
         AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsFloat));
-      ftString, ftWideString, ftMemo, ftWideMemo:
+      ftWideString, ftMemo, ftWideMemo:
         AJSONObject.AddPair(key, ADataSet.Fields[I].AsWideString);
+      ftString:
+        AJSONObject.AddPair(key, ADataSet.Fields[I].AsString);
       TFieldType.ftDate:
         begin
           if not ADataSet.Fields[I].IsNull then
@@ -900,8 +902,10 @@ begin
         Value := ADataSet.FieldByName(field_name).AsLargeInt;
       tkFloat:
         Value := ADataSet.FieldByName(field_name).AsFloat;
-      tkString, tkUString, tkWChar, tkLString, tkWString:
+      tkString:
         Value := ADataSet.FieldByName(field_name).AsString;
+      tkUString, tkWChar, tkLString, tkWString:
+        Value := ADataSet.FieldByName(field_name).AsWideString;
     else
       Continue;
     end;

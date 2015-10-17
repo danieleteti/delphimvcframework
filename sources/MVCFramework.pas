@@ -180,7 +180,6 @@ type
 
   private
     FStreamOutputDone: boolean;
-    FReasonString: string;
     procedure SetStatusCode(const Value: Integer);
     function GetStatusCode: Integer;
     procedure SetReasonString(const Value: string);
