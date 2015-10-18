@@ -1,0 +1,18 @@
+﻿<table class="table table-striped">
+	<thead>
+		<tr>
+			<th>#</th>
+			<th>First name</th>
+			<th>Last name</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{#customers}}
+			<tr>
+				<td>{{-index}}</td>
+				<td>{{firstName}}</td>
+				<td>{{lastName}}</td>
+			</tr>
+		{{/customers}}								
+	</tbody>
+</table>
