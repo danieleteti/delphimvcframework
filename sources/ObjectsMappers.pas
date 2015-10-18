@@ -2211,8 +2211,7 @@ begin
     //It is important to pass on the exception, to be able to identify the problem you are experiencing.
     on E: Exception do
     begin
-       AObject.Free;
-       Result := nil;
+       FreeAndNil(AObject);
        raise EMapperException.Create(E.Message);
     end;
   end;

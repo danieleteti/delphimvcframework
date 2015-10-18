@@ -9,6 +9,9 @@
         <Projects Include="TestServer\TestServer.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\samples\serversideviews\serversideviews.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="TestServer:Make">
         <MSBuild Projects="TestServer\TestServer.dproj" Targets="Make"/>
     </Target>
+    <Target Name="serversideviews">
+        <MSBuild Projects="..\samples\serversideviews\serversideviews.dproj"/>
+    </Target>
+    <Target Name="serversideviews:Clean">
+        <MSBuild Projects="..\samples\serversideviews\serversideviews.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="serversideviews:Make">
+        <MSBuild Projects="..\samples\serversideviews\serversideviews.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="DMVCFrameworkTests;TestServer"/>
+        <CallTarget Targets="DMVCFrameworkTests;TestServer;serversideviews"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean"/>
+        <CallTarget Targets="DMVCFrameworkTests:Clean;TestServer:Clean;serversideviews:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make"/>
+        <CallTarget Targets="DMVCFrameworkTests:Make;TestServer:Make;serversideviews:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

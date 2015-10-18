@@ -24,7 +24,9 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session, Soap.EncdDecd;
+  System.SysUtils, MVCFramework.Session, Soap.EncdDecd,
+  System.NetEncoding
+  ;
 
 {
 
