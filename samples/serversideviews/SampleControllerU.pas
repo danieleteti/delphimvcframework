@@ -103,7 +103,7 @@ end;
 
 procedure TSampleController.Index(Ctx: TWebContext);
 begin
-	Redirect('/customers');
+	Redirect('/index.html');
 end;
 
 procedure TSampleController.NewCustomer(Ctx: TWebContext);

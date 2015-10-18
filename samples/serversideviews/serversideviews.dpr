@@ -5,6 +5,7 @@ program serversideviews;
 uses
 	System.SysUtils,
 	Winapi.Windows,
+	Winapi.ShellAPI,
 	IdHTTPWebBrokerBridge,
 	Web.WebReq,
 	Web.WebBroker,
@@ -27,6 +28,8 @@ begin
 	try
 		LServer.DefaultPort := APort;
 		LServer.Active := True;
+		ShellExecute(0, PChar('open'), PChar('http://localhost:8080/index.html'),
+			nil, nil, SW_SHOWMAXIMIZED);
 		Writeln('Press ESC to stop the server');
 		LHandle := GetStdHandle(STD_INPUT_HANDLE);
 		while True do
