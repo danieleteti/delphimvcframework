@@ -93,8 +93,8 @@ begin
       LWebRequestPathInfo := '/' + LWebRequestPathInfo;
   end;
 
-  // daniele
-  LWebRequestPathInfo := TIdURI.URLDecode(LWebRequestPathInfo);
+  //FIX https://github.com/danieleteti/delphimvcframework/issues/17
+  LWebRequestPathInfo := TIdURI.PathEncode(LWebRequestPathInfo);
 
   { ISAPI CHANGE THE REQUEST PATH INFO START }
   if IsLibrary then
