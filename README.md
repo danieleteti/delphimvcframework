@@ -1,4 +1,5 @@
 #DMVCFramework features
+  * Simple to use (really)
   * RESTful (RMM Level 3) compliant
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
   * Fancy URL with parameter mappings
@@ -11,7 +12,7 @@
   * There is a sample for each functionlities
   * There is a complete set of trainings about it, but the samples are included in the project
   * Experimental support for IOCP [dev]
-  * Server side generated pages using eLua (Embedded Lua)
+  * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
   * Specific trainings are available (ask me for a date and a place)
   * Messaging extension using STOMP (beta)
   * Community driven (Facebook group https://www.facebook.com/groups/delphimvcframework)
@@ -25,6 +26,7 @@ These are the most notable:
   * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
   * LuaDelphiBinding (integrate Lua script into Delphi native code)
   * eLua (convert eLua into plain Lua executable script just like PHP or JSP)
+  * DelphiRedisClient (https://github.com/danieleteti/delphiredisclient)
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
