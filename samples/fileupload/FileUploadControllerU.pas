@@ -12,7 +12,7 @@ type
   TFileUploadController = class(TMVCController)
   public
     [MVCPath('')]
-    [MVCProduce('text/plain')]
+    [MVCProduces('text/plain')]
     [MVCHTTPMethod([httpPOST])]
     procedure SaveFile(CTX: TWebContext);
   end;
