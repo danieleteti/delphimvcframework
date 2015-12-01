@@ -102,7 +102,7 @@ type
     //The following action will be with a GET request like the following
     //http://myserver.com/users/3
     [MVCPath('/($id)')]
-    [MVCProduce('application/json')]
+    [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
     procedure GetUsers(CTX: TWebContext);
 
