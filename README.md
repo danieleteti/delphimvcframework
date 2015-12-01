@@ -24,8 +24,6 @@ DelphiMVCFramework contains also a lot of indipendent code that can be used in o
 These are the most notable:
 
   * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
-  * LuaDelphiBinding (integrate Lua script into Delphi native code)
-  * eLua (convert eLua into plain Lua executable script just like PHP or JSP)
   * DelphiRedisClient (https://github.com/danieleteti/delphiredisclient)
 
 ##Samples and documentation
