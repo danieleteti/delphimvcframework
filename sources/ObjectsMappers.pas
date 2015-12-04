@@ -896,6 +896,24 @@ begin
     if not _dict.TryGetValue(_field.Name, field_name) then
       Continue;
     case _field.PropertyType.TypeKind of
+      tkEnumeration : // tristan
+        begin
+          if _field.PropertyType.Handle = TypeInfo(Boolean) then
+          begin
+            case ADataSet.FieldByName(field_name).DataType of
+              ftInteger, ftSmallint, ftLargeint  :
+                begin
+                  Value := (ADataSet.FieldByName(field_name).AsInteger = 1);
+                end;
+              ftBoolean :
+                begin
+                   Value := ADataSet.FieldByName(field_name).AsBoolean;
+                end;
+              else
+                Continue;
+            end;
+          end;
+        end;
       tkInteger:
         Value := ADataSet.FieldByName(field_name).AsInteger;
       tkInt64:
