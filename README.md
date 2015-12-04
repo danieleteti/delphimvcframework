@@ -20,7 +20,7 @@
   
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
-If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofesionals website](http://www.bittimeprofesionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
+If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
 
 
 ## Sub Projects
