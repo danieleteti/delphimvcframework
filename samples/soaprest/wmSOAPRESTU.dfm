@@ -7,7 +7,6 @@ object wmSOAPREST: TwmSOAPREST
       Default = True
       Name = 'DefaultHandler'
       PathInfo = '/'
-      OnAction = WebModule1DefaultHandlerAction
     end
     item
       Name = 'SoapAction'
@@ -30,7 +29,6 @@ object wmSOAPREST: TwmSOAPREST
   object WSDLHTMLPublish: TWSDLHTMLPublish
     WebDispatch.MethodType = mtAny
     WebDispatch.PathInfo = 'wsdl*'
-    TargetNamespace = 'http://tempuri.org/'
     PublishOptions = [poUTF8ContentType]
     Left = 60
     Top = 123
