@@ -51,7 +51,7 @@ type
 
   end;
 
-  MVCHTTPMethodsAttribute = MVCHTTPMethodAttribute; //just an alias
+  MVCHTTPMethodsAttribute = MVCHTTPMethodAttribute; // just an alias
 
   MVCBaseAttribute = class(TCustomAttribute)
 
@@ -1253,11 +1253,11 @@ begin
     SetLength(Buffer, 0);
   end
   else
+  begin
     InEnc := TEncoding.GetEncoding(FCharset);
+  end;
   try
-    Buffer := TEncoding.Convert(InEnc, TEncoding.Default,
-      TBytes(FWebRequest.RawContent));
-    Result := TEncoding.Default.GetString(Buffer);
+    Result := InEnc.GetString(TEncoding.ANSI.GetBytes(FWebRequest.RawContent));
   finally
     InEnc.Free;
   end
