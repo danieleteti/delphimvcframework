@@ -51,6 +51,8 @@ type
 
   end;
 
+  MVCHTTPMethodsAttribute = MVCHTTPMethodAttribute; //just an alias
+
   MVCBaseAttribute = class(TCustomAttribute)
 
   end;
@@ -65,6 +67,10 @@ type
   end;
 
   MVCConsumesAttribute = class(MVCStringAttribute)
+
+  end;
+
+  MVCDocAttribute = class(MVCStringAttribute)
 
   end;
 
@@ -117,7 +123,7 @@ type
     destructor Destroy; override;
     procedure SetParamsTable(AParamsTable: TMVCRequestParamsTable);
     function GetParamNames: TArray<string>;
-    function ClientIP: string; virtual; abstract;
+    function ClientIP: string; virtual;
     function ClientPrefer(MimeType: string): boolean;
     function ThereIsRequestBody: boolean;
     function Accept: string;
@@ -152,21 +158,17 @@ type
   TMVCApacheWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
-    function ClientIP: string; override;
   end;
 {$ENDIF}
 
   TMVCISAPIWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
-    function ClientIP: string; override;
   end;
 
   TMVCINDYWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
-    function ClientIP: string; override;
-
   end;
 
 {$IFDEF IOCP}
@@ -1335,6 +1337,60 @@ begin
       [ContentType]);
 end;
 
+function TMVCWebRequest.ClientIP: string;
+{
+  This code has been converted to Delphi from a PHP code
+  http://www.grantburton.com/2008/11/30/fix-for-incorrect-ip-addresses-in-wordpress-comments/
+}
+var
+  S: string;
+begin
+  if FWebRequest.GetFieldByName('HTTP_CLIENT_IP') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_CLIENT_IP'));
+
+  for S in String(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
+    .Split([',']) do
+  begin
+    if not S.trim.IsEmpty then
+      Exit(S.trim);
+  end;
+
+  if FWebRequest.GetFieldByName('HTTP_X_FORWARDED') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_X_FORWARDED'));
+
+  if FWebRequest.GetFieldByName('HTTP_X_CLUSTER_CLIENT_IP') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_X_CLUSTER_CLIENT_IP'));
+
+  if FWebRequest.GetFieldByName('HTTP_FORWARDED_FOR') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_FORWARDED_FOR'));
+
+  if FWebRequest.GetFieldByName('HTTP_FORWARDED') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_FORWARDED'));
+
+  if FWebRequest.GetFieldByName('REMOTE_ADDR') <> '' then
+    Exit(FWebRequest.GetFieldByName('REMOTE_ADDR'));
+
+  if FWebRequest.RemoteIP <> '' then
+    Exit(FWebRequest.RemoteIP);
+
+  if FWebRequest.RemoteAddr <> '' then
+    Exit(FWebRequest.RemoteAddr);
+
+  if FWebRequest.RemoteHost <> '' then
+    Exit(FWebRequest.RemoteHost);
+
+  if FWebRequest.RemoteAddr <> '' then
+    Exit(FWebRequest.RemoteAddr);
+
+  if FWebRequest.RemoteIP <> '' then
+    Exit(FWebRequest.RemoteIP);
+
+  if FWebRequest.RemoteHost <> '' then
+    Exit(FWebRequest.RemoteHost);
+
+  Result := '';
+end;
+
 function TMVCWebRequest.ClientPrefer(MimeType: string): boolean;
 begin
   Result := AnsiPos(MimeType, LowerCase(RawWebRequest.Accept)) = 1;
@@ -1415,8 +1471,6 @@ begin
   FreeAndNil(FViewModel);
   inherited;
 end;
-
-
 
 procedure TMVCController.EnqueueMessageOnTopicOrQueue(const IsQueue: boolean;
   const ATopic: string; AJSONObject: TJSONObject; AOwnsInstance: boolean);
@@ -2066,11 +2120,6 @@ end;
 
 { TMVCISAPIWebRequest }
 
-function TMVCISAPIWebRequest.ClientIP: string;
-begin
-  raise EMVCException.Create('<TMVCISAPIWebRequest.ClientIP> Not implemented');
-end;
-
 constructor TMVCISAPIWebRequest.Create(AWebRequest: TWebRequest);
 begin
   inherited;
@@ -2080,11 +2129,6 @@ end;
 { TMVCApacheWebRequest }
 {$IF CompilerVersion >= 27}
 
-function TMVCApacheWebRequest.ClientIP: string;
-begin
-  raise EMVCException.Create('<TMVCApacheWebRequest.ClientIP> Not implemented');
-end;
-
 constructor TMVCApacheWebRequest.Create(AWebRequest: TWebRequest);
 begin
   inherited;
@@ -2092,91 +2136,6 @@ begin
 end;
 {$ENDIF}
 { TMVCINDYWebRequest }
-
-function TMVCINDYWebRequest.ClientIP: string;
-{
-  This code has been converted to Delphi from a PHP code
-  http://www.grantburton.com/2008/11/30/fix-for-incorrect-ip-addresses-in-wordpress-comments/
-}
-  function CheckIP(IP: string): boolean;
-  // var
-  // IPv6Address: TIdIPv6Address;
-  // LErr: boolean;
-  begin
-    // this is not a real check, it checks only if the IP is not empty
-    Result := not IP.IsEmpty;
-
-    //
-    // idglobal.IPv6ToIdIPv6Address(IP, IPv6Address, LErr);
-    // Result := LErr and (not IP.IsEmpty) and { (IP2Long(IP) <> -1) and }
-    // (IP2Long(IP) > 0);
-  end;
-
-var
-  S: string;
-  req: TIdHTTPAppRequestHack;
-
-{$IFDEF IOCP}
-  Headers: TStringList;
-
-{$ELSE}
-  Headers: TIdHeaderList;
-
-{$ENDIF}
-begin
-  req := TIdHTTPAppRequestHack(FWebRequest);
-
-{$IFDEF IOCP}
-  Headers := req.FHttpConnection.RequestHeader;
-
-{$ELSE}
-  Headers := req.FRequestInfo.RawHeaders;
-
-{$ENDIF}
-  if CheckIP(Headers.Values['HTTP_CLIENT_IP']) then
-    Exit(Headers.Values['HTTP_CLIENT_IP']);
-
-  for S in Headers.Values['HTTP_X_FORWARDED_FOR'].Split([',']) do
-  begin
-    if CheckIP(S.trim) then
-      Exit(S.trim);
-  end;
-
-  if CheckIP(Headers.Values['HTTP_X_FORWARDED']) then
-    Exit(Headers.Values['HTTP_X_FORWARDED']);
-
-  if CheckIP(Headers.Values['HTTP_X_CLUSTER_CLIENT_IP']) then
-    Exit(Headers.Values['HTTP_X_CLUSTER_CLIENT_IP']);
-
-  if CheckIP(Headers.Values['HTTP_FORWARDED_FOR']) then
-    Exit(Headers.Values['HTTP_FORWARDED_FOR']);
-
-  if CheckIP(Headers.Values['HTTP_FORWARDED']) then
-    Exit(Headers.Values['HTTP_FORWARDED']);
-
-  if CheckIP(Headers.Values['REMOTE_ADDR']) then
-    Exit(Headers.Values['REMOTE_ADDR']);
-
-  if CheckIP(FWebRequest.RemoteIP) then
-    Exit(FWebRequest.RemoteIP);
-
-  if CheckIP(FWebRequest.RemoteAddr) then
-    Exit(FWebRequest.RemoteAddr);
-
-  if CheckIP(FWebRequest.RemoteHost) then
-    Exit(FWebRequest.RemoteHost);
-
-  if CheckIP(req.RemoteAddr) then
-    Exit(req.RemoteAddr);
-
-  if CheckIP(req.RemoteIP) then
-    Exit(req.RemoteIP);
-
-  if CheckIP(req.RemoteHost) then
-    Exit(req.RemoteHost);
-
-  Result := '';
-end;
 
 constructor TMVCINDYWebRequest.Create(AWebRequest: TWebRequest);
 begin

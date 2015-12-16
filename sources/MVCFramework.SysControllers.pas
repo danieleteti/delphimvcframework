@@ -8,6 +8,7 @@ uses
 type
 
   [MVCPath('/system')]
+  [MVCDoc('Built-in DelphiMVCFramework System controller')]
   TMVCSystemController = class(TMVCController)
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
@@ -15,12 +16,17 @@ type
     function GetUpTime: string;
   public
     [MVCPath('/describeserver.info')]
+    [MVCHTTPMethods([httpGET, httpPOST])]
+    [MVCDoc('Describe controllers and actions published by the RESTful server per resources')
+      ]
     procedure DescribeServer(Context: TWebContext);
 
     [MVCPath('/describeplatform.info')]
+    [MVCDoc('Describe the system where server is running')]
     procedure DescribePlatform(Context: TWebContext);
 
     [MVCPath('/serverconfig.info')]
+    [MVCDoc('Server configuration')]
     procedure ServerConfig(Context: TWebContext);
   end;
 
@@ -69,7 +75,8 @@ begin
   try
     LJRes.AddPair('OS', TOSVersion.ToString);
     LJRes.AddPair('CPU_count', TJSONNumber.Create(TThread.ProcessorCount));
-    LJRes.AddPair('CPU_architecture', GetEnumName(TypeInfo(TOSVersion.TArchitecture),
+    LJRes.AddPair('CPU_architecture',
+      GetEnumName(TypeInfo(TOSVersion.TArchitecture),
       Ord(TOSVersion.Architecture)));
     LJRes.AddPair('system_uptime', GetUpTime);
     ContentType := TMVCMimeType.APPLICATION_JSON;
@@ -93,6 +100,7 @@ var
   LFoundAttrib: Boolean;
   LStrRelativePath: string;
   LStrHTTPMethods: string;
+  LStrDoc: string;
   LStrConsumes: string;
   LStrProduces: string;
   LJMethod: TJSONObject;
@@ -108,7 +116,11 @@ begin
       for LAttribute in LRTTIType.GetAttributes do
       begin
         if LAttribute is MVCPathAttribute then
-          ControllerInfo.AddPair('resource_path', MVCPathAttribute(LAttribute).Path)
+          ControllerInfo.AddPair('resource_path',
+            MVCPathAttribute(LAttribute).Path);
+        if LAttribute is MVCDocAttribute then
+          ControllerInfo.AddPair('description',
+            MVCDocAttribute(LAttribute).Value);
       end;
 
       LJMethods := TJSONArray.Create;
@@ -121,8 +133,15 @@ begin
         LStrHTTPMethods := '';
         LStrConsumes := '';
         LStrProduces := '';
+        LStrHTTPMethods :=
+          'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
         for LAttribute in LMethod.GetAttributes do
         begin
+          if LAttribute is MVCDocAttribute then
+          begin
+            LStrDoc := MVCDocAttribute(LAttribute).Value;
+            LFoundAttrib := true;
+          end;
           if LAttribute is MVCPathAttribute then
           begin
             LStrRelativePath := MVCPathAttribute(LAttribute).Path;
@@ -130,7 +149,8 @@ begin
           end;
           if LAttribute is MVCHTTPMethodAttribute then
           begin
-            LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute).MVCHTTPMethodsAsString;
+            LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute)
+              .MVCHTTPMethodsAsString;
             LFoundAttrib := true;
           end;
           if LAttribute is MVCConsumesAttribute then
@@ -153,6 +173,7 @@ begin
           LJMethod.AddPair('consumes', LStrConsumes);
           LJMethod.AddPair('produces', LStrProduces);
           LJMethod.AddPair('http_methods', LStrHTTPMethods);
+          LJMethod.AddPair('description', LStrDoc);
           LJMethods.AddElement(LJMethod);
         end;
       end;
@@ -169,15 +190,15 @@ begin
   Result := MSecToTime(GetTickCount);
 end;
 
-procedure TMVCSystemController.OnBeforeAction(Context: TWebContext; const AActionNAme: string;
-  var Handled: Boolean);
+procedure TMVCSystemController.OnBeforeAction(Context: TWebContext;
+  const AActionNAme: string; var Handled: Boolean);
 var
   LClientIP: string;
 begin
   inherited;
   LClientIP := Context.Request.ClientIP;
-  Handled := not((LClientIP = '127.0.0.1') or (LClientIP = '0:0:0:0:0:0:0:1') or
-    (LClientIP.ToLower = 'localhost'));
+  Handled := not((LClientIP = '::1') or (LClientIP = '127.0.0.1') or
+    (LClientIP = '0:0:0:0:0:0:0:1') or (LClientIP.ToLower = 'localhost'));
 end;
 
 procedure TMVCSystemController.ServerConfig(Context: TWebContext);
