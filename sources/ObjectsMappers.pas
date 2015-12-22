@@ -176,11 +176,15 @@ type
     // class procedure DataSetToXML(ADataSet: TDataSet; XMLDocument: String;
     // ADataSetInstanceOwner: boolean = True);
     class function ObjectListToJSONArray<T: class>(AList: TObjectList<T>;
-      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
+      AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray; overload;
+    class function ObjectListToJSONArray(AList: IWrappedList;
+      AOwnsChildObjects: boolean = true; AForEach: TJSONObjectActionProc = nil): TJSONArray; overload;
     class function ObjectListToJSONArrayFields<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil): TJSONArray;
     class function ObjectListToJSONArrayString<T: class>(AList: TObjectList<T>;
-      AOwnsInstance: boolean = false): string;
+      AOwnsInstance: boolean = false): string; overload;
+    class function ObjectListToJSONArrayString(AList: IWrappedList;
+      AOwnsChildObjects: boolean = true): string; overload;
     class function ObjectListToJSONArrayOfJSONArray<T: class, constructor>(AList: TObjectList<T>)
       : TJSONArray;
     class function GetProperty(Obj: TObject; const PropertyName: string): TValue; static;
@@ -971,6 +975,26 @@ begin
     AList.Free;
 end;
 
+class function Mapper.ObjectListToJSONArray(AList: IWrappedList; AOwnsChildObjects: boolean;
+  AForEach: TJSONObjectActionProc): TJSONArray;
+var
+  I: Integer;
+  JV: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  if Assigned(AList) then
+  begin
+    AList.OwnsObjects := AOwnsChildObjects;
+    for I := 0 to AList.Count - 1 do
+    begin
+      JV := ObjectToJSONObject(AList.GetItem(I));
+      if Assigned(AForEach) then
+        AForEach(JV);
+      Result.AddElement(JV);
+    end;
+  end;
+end;
+
 class function Mapper.ObjectListToJSONArrayOfJSONArray<T>(AList: TObjectList<T>): TJSONArray;
 var
   I: Integer;
@@ -986,6 +1010,19 @@ var
   Arr: TJSONArray;
 begin
   Arr := Mapper.ObjectListToJSONArray<T>(AList, AOwnsInstance);
+  try
+    Result := Arr.ToString;
+  finally
+    Arr.Free;
+  end;
+end;
+
+class function Mapper.ObjectListToJSONArrayString(AList: IWrappedList;
+  AOwnsChildObjects: boolean): string;
+var
+  Arr: TJSONArray;
+begin
+  Arr := Mapper.ObjectListToJSONArray(AList, AOwnsChildObjects);
   try
     Result := Arr.ToString;
   finally
