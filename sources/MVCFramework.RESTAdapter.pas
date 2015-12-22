@@ -310,6 +310,7 @@ var
   I: Integer;
   _parameter: TRttiParameter;
   _param: BodyAttribute;
+  _attrlistof: MapperListOf;
   Arg: TValue;
 begin
   _parameters := AMethod.GetParameters;
@@ -322,7 +323,12 @@ begin
     if TRTTIUtils.HasAttribute<BodyAttribute>(_parameter, _param) then
       try
         if Arg.IsObject then
-          Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject))
+        begin
+          if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
+            Exit(Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), True))
+          else
+            Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject));
+        end
         else
           Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
       finally
