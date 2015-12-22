@@ -8,10 +8,11 @@ uses
     , Data.DBXJSON
 {$ELSE}
     , System.JSON
-{$IFEND}
+{$ENDIF}
     , System.Generics.Collections;
 
 type
+
   TMVCMimeType = class sealed
   public const
     APPLICATION_JSON = 'application/json';
@@ -25,6 +26,53 @@ type
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     APPLICATION_OCTETSTREAM = 'application/octet-stream';
     TEXT_EVENTSTREAM = 'text/event-stream';
+  end deprecated 'use TMVCMediaType';
+
+  TMVCMediaType = class sealed
+  public const
+    APPLICATION_ATOM_XML = 'application/atom+xml';
+    APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
+    APPLICATION_JSON = 'application/json';
+    APPLICATION_OCTET_STREAM = 'application/octet-stream';
+    APPLICATION_SVG_XML = 'application/svg+xml';
+    APPLICATION_XHTML_XML = 'application/xhtml+xml';
+    APPLICATION_XML = 'application/xml';
+    MEDIA_TYPE_WILDCARD = '*';
+    MULTIPART_FORM_DATA = 'multipart/form-data';
+    TEXT_HTML = 'text/html';
+    TEXT_PLAIN = 'text/plain';
+    TEXT_XML = 'text/xml';
+    TEXT_CSS = 'text/css';
+    TEXT_JAVASCRIPT = 'text/javascript';
+    TEXT_CACHEMANIFEST = 'text/cache-manifest';
+    TEXT_EVENTSTREAM = 'text/event-stream';
+    IMAGE_JPEG = 'image/jpeg';
+    IMAGE_PNG = 'image/x-png';
+    WILDCARD = '*/*';
+  end;
+
+  TMVCCharSet = class sealed
+  public const
+    US_ASCII = 'US-ASCII';
+    WINDOWS_1250 = 'windows-1250';
+    WINDOWS_1251 = 'windows-1251';
+    WINDOWS_1252 = 'windows-1252';
+    WINDOWS_1253 = 'windows-1253';
+    WINDOWS_1254 = 'windows-1254';
+    WINDOWS_1257 = 'windows-1257';
+    ISO88591 = 'ISO-8859-1';
+    ISO88592 = 'ISO-8859-2';
+    ISO88593 = 'ISO-8859-3';
+    ISO88594 = 'ISO-8859-4';
+    ISO88595 = 'ISO-8859-5';
+    ISO88596 = 'ISO-8859-6';
+    ISO88597 = 'ISO-8859-7';
+    ISO88598 = 'ISO-8859-8';
+    ISO885915 = 'ISO-8859-15';
+    UTF_8 = 'UTF-8';
+    UTF_16 = 'UTF-16';
+    UTF_16BE = 'UTF-16BE';
+    UTF_16LE = 'UTF-16LE';
   end;
 
   TMVCConstants = class sealed
