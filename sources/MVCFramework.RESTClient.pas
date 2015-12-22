@@ -97,13 +97,12 @@ type
     FContentEncoding: string;
     function GetRawBody(): TStringStream;
     function GetMultiPartFormData(): TIdMultiPartFormDataStream;
-    function GetSessionID: string;
-    function GetBasicAuth: Boolean;
-    function GetPassword: string;
-    function GetUserName: string;
-    function GetBodyParams: TStringlist;
-    function GetQueryStringParams: TStringlist;
-    function GetRequestHeaders(): TStringlist;
+    function GetSessionID(): string;
+    function GetBasicAuth(): Boolean;
+    function GetPassword(): string;
+    function GetUserName(): string;
+    function GetBodyParams(): TStringlist;
+    function GetQueryStringParams(): TStringlist;
     procedure SetBasicAuth(const AValue: Boolean);
     procedure SetPassword(const AValue: string);
     procedure SetUserName(const AValue: string);
@@ -144,32 +143,41 @@ type
     function ClearAllParams(): TRESTClient;
     function SSL(const AEnabled: Boolean = True): TRESTClient;
     function Compression(const AEnabled: Boolean = True): TRESTClient;
-    function ResetSession: TRESTClient;
+    function ResetSession(): TRESTClient;
 
     function AddFile(const AFieldName, AFileName: string; const AContentType: string = ''): TRESTClient;
 
     function Asynch(AProc: TProc<IRESTResponse>; AProcErr: TProc<Exception> = nil;
       AProcAlways: TProc = nil; ASynchronized: Boolean = False): TRESTClient;
 
-    function doGET(const AResource: string; const AParams: array of string): IRESTResponse;
+    function doGET(): IRESTResponse; overload;
+    function doGET(const AResource: string; const AParams: array of string): IRESTResponse; overload;
 
+    function doPOST(const ABody: string): IRESTResponse; overload;
+    function doPOST(ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPOST<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPOST<TBodyType: class>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPOST(const AResource: string; const AParams: array of string): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string; ABody: TJSONValue;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string;
-      const ABody: string): IRESTResponse; overload;
+    function doPOST(const AResource: string; const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPOST(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse; overload;
 
-    function doPATCH(const AResource: string; const AParams: array of string; ABody: TJSONValue;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH(const AResource: string; const AParams: array of string;
-      const ABody: string): IRESTResponse; overload;
+    function doPATCH(const ABody: string): IRESTResponse; overload;
+    function doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPATCH<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPATCH<TBodyType: class>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPATCH(const AResource: string; const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPATCH(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse; overload;
 
+    function doPUT(const ABody: string): IRESTResponse; overload;
+    function doPUT(ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPUT<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPUT<TBodyType: class>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPUT(const AResource: string; const AParams: array of string): IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string; ABody: TJSONValue;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPUT(const AResource: string; const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPUT(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse; overload;
 
-    function doDELETE(const AResource: string; const AParams: array of string): IRESTResponse;
+    function doDELETE(): IRESTResponse; overload;
+    function doDELETE(const AResource: string; const AParams: array of string): IRESTResponse; overload;
 
     function DataSetUpdate(const AResource: string; ADataSet: TDataSet; const AKeyValue: string): IRESTResponse;
     function DataSetInsert(const AResource: string; ADataSet: TDataSet): IRESTResponse;
@@ -184,6 +192,8 @@ type
     function ContentEncoding(): string; overload;
     function ConnectionTimeOut(): Integer; overload;
     function ReadTimeOut(): Integer; overload;
+    function HasSSL(): Boolean;
+    function HasCompression(): Boolean;
 
     property RawBody: TStringStream read GetRawBody;
     property MultiPartFormData: TIdMultiPartFormDataStream read GetMultipartFormData;
@@ -191,7 +201,6 @@ type
     property SessionID: string read GetSessionID write SetSessionID;
     property Username: string read GetUserName write SetUserName;
     property Password: string read GetPassword write SetPassword;
-    property BasicAuth: Boolean read GetBasicAuth write SetBasicAuth;
     property UseBasicAuthentication: Boolean read GetBasicAuth write SetBasicAuth;
     property RequestHeaders: TStringlist read FRequestHeaders;
     property QueryStringParams: TStringlist read GetQueryStringParams;
@@ -226,24 +235,24 @@ type
     procedure SetResponseText(const AResponseText: string); deprecated 'use method UpdateResponseText';
     procedure SetHeaders(AHeaders: TStrings); deprecated 'use method UpdateHeaders';
 
-    function Body: TStringStream;
-    function BodyAsString: string;
-    function BodyAsJSONValue: TJSONValue;
-    function BodyAsJSONObject: TJSONObject;
-    function BodyAsJSONArray: TJSONArray;
+    function Body(): TStringStream;
+    function BodyAsString(): string;
+    function BodyAsJSONValue(): TJSONValue;
+    function BodyAsJSONObject(): TJSONObject;
+    function BodyAsJSONArray(): TJSONArray;
 
     procedure UpdateResponseCode(const AResponseCode: Word);
     procedure UpdateResponseText(const AResponseText: string);
     procedure UpdateHeaders(AHeaders: TStrings);
 
-    function ResponseCode: Word;
-    function ResponseText: string;
+    function ResponseCode(): Word;
+    function ResponseText(): string;
 
     function Headers: TStringlist;
     function HeaderValue(const AName: string): string;
 
-    function ContentType: string;
-    function ContentEncoding: string;
+    function ContentType(): string;
+    function ContentEncoding(): string;
   end;
 
   { TRESTResponse }
@@ -502,22 +511,21 @@ end;
 
 function TRESTClient.ClearAllParams: TRESTClient;
 begin
-  if Assigned(FRawBody) then
-  begin
-    FRawBody.Size := 0;
-    FRawBody.Position := 0;
-  end;
-
+  RawBody.Size := 0;
+  RawBody.Position := 0;
   BodyParams.Clear;
-
-  if Assigned(FQueryStringParams) then
-    FQueryStringParams.Clear;
+  QueryStringParams.Clear;
 
   FNextRequestIsAsynch := False;
   FAsynchProc := nil;
   FAsynchProcErr := nil;
   FAsynchProcAlways := nil;
-  FHTTP.Request.BasicAuthentication := False;
+  FSynchronized := False;
+
+  FHTTP.Request.Username := '';
+  FHTTP.Request.Password := '';
+  FHTTP.Request.BasicAuthentication := True;
+
   SetLength(FParams, 0);
 
   Result := Self;
@@ -646,7 +654,7 @@ end;
 
 function TRESTClient.DataSetUpdate(const AResource: string; ADataSet: TDataSet; const AKeyValue: string): IRESTResponse;
 begin
-  Result := doDELETE(AResource, [AKeyValue]);
+  Result := doPUT(AResource, [AKeyValue], ADataSet.AsJSONObjectString);
 end;
 
 destructor TRESTClient.Destroy;
@@ -672,7 +680,7 @@ function TRESTClient.doDELETE(const AResource: string; const AParams: array of s
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + inttostr(FPort) + AResource +
+  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -685,6 +693,22 @@ begin
     Result := SendHTTPCommand(httpDELETE, FAccept, FContentType, URL, nil);
     ClearAllParams;
   end;
+end;
+
+function TRESTClient.doDELETE: IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  Result := doDELETE(FResource, FParams);
+end;
+
+function TRESTClient.doGET: IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  Result := doGET(FResource, FParams);
 end;
 
 function TRESTClient.doGET(const AResource: string; const AParams: array of string): IRESTResponse;
@@ -712,7 +736,7 @@ var
 begin
   try
     Result := SendHTTPCommand(httpPOST, FAccept, FContentType, FProtocol + '://' + FHost + ':'
-      + inttostr(FPort) + AResource + EncodeResourceParams(AParams) +
+      + IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
       EncodeQueryStringParams(FQueryStringParams), FBodyParams);
   except
     on E: EIdHTTPProtocolException do
@@ -773,7 +797,7 @@ function TRESTClient.doPATCH(const AResource: string; const AParams: array of st
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + inttostr(FPort) + AResource +
+  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -788,12 +812,61 @@ begin
   end;
 end;
 
+function TRESTClient.doPATCH(const ABody: string): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if (ABody = '') then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPATCH(FResource, FParams, ABody);
+end;
+
+function TRESTClient.doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPATCH(FResource, FParams, ABody, AOwnsBody);
+end;
+
+function TRESTClient.doPATCH<TBodyType>(ABody: TBodyType; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPATCH(FResource, FParams, Mapper.ObjectToJSONObject(ABody) as TJSONValue, True);
+
+  if AOwnsBody then
+    TObject(ABody).Free;
+end;
+
+function TRESTClient.doPATCH<TBodyType>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  ABody.OwnsObjects := AOwnsBody;
+
+  Result := doPATCH(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>(ABody, AOwnsBody) as TJSONValue, True);
+end;
+
 function TRESTClient.doPOST(const AResource: string; const AParams: array of string;
   const ABody: string): IRESTResponse;
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + inttostr(FPort) + AResource +
+  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -808,10 +881,59 @@ begin
   end;
 end;
 
+function TRESTClient.doPOST(const ABody: string): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if (ABody = '') then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPOST(FResource, FParams, ABody);
+end;
+
+function TRESTClient.doPOST(ABody: TJSONValue; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPOST(FResource, FParams, ABody, AOwnsBody);
+end;
+
+function TRESTClient.doPOST<TBodyType>(ABody: TBodyType; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPOST(FResource, FParams, Mapper.ObjectToJSONObject(ABody) as TJSONValue, True);
+
+  if AOwnsBody then
+    TObject(ABody).Free;
+end;
+
+function TRESTClient.doPOST<TBodyType>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  ABody.OwnsObjects := AOwnsBody;
+
+  Result := doPOST(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>(ABody, AOwnsBody) as TJSONValue, True);
+end;
+
 function TRESTClient.doPUT(const AResource: string; const AParams: array of string): IRESTResponse;
 begin
   Result := SendHTTPCommand(httpPUT, FAccept, FContentType, FProtocol + '://' + FHost + ':' +
-    inttostr(FPort) + AResource + EncodeResourceParams(AParams) +
+    IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
     EncodeQueryStringParams(QueryStringParams), FBodyParams);
   ClearAllParams;
 end;
@@ -844,7 +966,7 @@ function TRESTClient.doPUT(const AResource: string; const AParams: array of stri
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + inttostr(FPort) + AResource +
+  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -857,6 +979,55 @@ begin
     Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, URL, ABody);
     ClearAllParams;
   end;
+end;
+
+function TRESTClient.doPUT(const ABody: string): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if (ABody = '') then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPUT(FResource, FParams, ABody);
+end;
+
+function TRESTClient.doPUT(ABody: TJSONValue; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPUT(FResource, FParams, ABody, AOwnsBody);
+end;
+
+function TRESTClient.doPUT<TBodyType>(ABody: TBodyType; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  Result := doPUT(FResource, FParams, Mapper.ObjectToJSONObject(ABody) as TJSONValue, True);
+
+  if AOwnsBody then
+    TObject(ABody).Free;
+end;
+
+function TRESTClient.doPUT<TBodyType>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean): IRESTResponse;
+begin
+  if (FResource = '') then
+    raise ERESTClientException.Create('You must enter the Resource!');
+
+  if not Assigned(ABody) then
+    raise ERESTClientException.Create('You must enter the Body!');
+
+  ABody.OwnsObjects := AOwnsBody;
+
+  Result := doPUT(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>(ABody, AOwnsBody) as TJSONValue, True);
 end;
 
 function TRESTClient.DSDelete(const AResource, AKeyValue: string): IRESTResponse;
@@ -941,11 +1112,6 @@ begin
   Result := FRawBody;
 end;
 
-function TRESTClient.GetRequestHeaders: TStringlist;
-begin
-  Result := FRequestHeaders;
-end;
-
 function TRESTClient.GetSessionID: string;
 begin
   Result := FLastSessionID;
@@ -991,6 +1157,16 @@ begin
     FHTTP.Request.CustomHeaders.AddValue(FRequestHeaders.Names[I],
       FRequestHeaders.ValueFromIndex[I]);
   end;
+end;
+
+function TRESTClient.HasCompression: Boolean;
+begin
+  Result := (FHTTP.Compressor <> nil);
+end;
+
+function TRESTClient.HasSSL: Boolean;
+begin
+  Result := (FHTTP.IOHandler <> nil);
 end;
 
 function TRESTClient.Header(const AField, AValue: string): TRESTClient;
