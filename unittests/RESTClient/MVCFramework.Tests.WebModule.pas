@@ -1,4 +1,4 @@
-unit TestWebModuleU;
+unit MVCFramework.Tests.WebModule;
 
 interface
 
@@ -25,8 +25,9 @@ var
 implementation
 
 uses
-  MVCFrameworkServerTestsU,
+  MVCFramework.Tests.RESTClient,
   MVCFramework.Middleware.Authentication,
+  MVCFramework.Tests.AppController,
   MVCFramework.Server;
 
 {$R *.dfm}
@@ -38,10 +39,10 @@ begin
   FMVCEngine := TMVCEngine.Create(Self);
 
   // Add Controller
-  FMVCEngine.AddController(TTestAppController);
+  FMVCEngine.AddController(TAppController);
 
   // Add Security Middleware
-  vServer := ServerContainer.FindServerByName('ServerTemp');
+  vServer := MVCServerDefault.Container.FindServerByName('ServerApp');
   if (vServer <> nil) and (vServer.Info.Security <> nil) then
     FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(vServer.Info.Security));
 end;

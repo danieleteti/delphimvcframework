@@ -1,4 +1,4 @@
-unit MVCFrameworkServerTestsU;
+unit MVCFramework.Tests.StandaloneServer;
 
 interface
 
@@ -21,7 +21,7 @@ type
   end;
 
   TTestMVCFrameworkServer = class(TTestCase)
-  private
+  strict private
 
   protected
     procedure SetUp; override;
@@ -29,7 +29,6 @@ type
   published
     procedure TestCreateServer();
     procedure TestServerContainer();
-
     procedure TestServerAndClient();
   end;
 
@@ -39,7 +38,7 @@ var
 implementation
 
 uses
-  TestWebModuleU,
+  MVCFramework.Tests.WebModule,
   MVCFramework.RESTClient;
 
 { TTestMVCFrameworkServer }
@@ -72,7 +71,10 @@ begin
   CheckTrue(vServer.Info <> nil);
 
   vServer.Start;
+  CheckTrue(vServer.Active);
+
   vServer.Stop;
+  CheckFalse(vServer.Active);
 end;
 
 procedure TTestMVCFrameworkServer.TestServerAndClient;
