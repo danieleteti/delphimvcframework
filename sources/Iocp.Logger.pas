@@ -1,8 +1,14 @@
+{
+  THIS UNIT IS A MODIFIED VERSION OF delphi-iocp-framework PROJECT
+  You can find the original version here
+  https://code.google.com/p/delphi-iocp-framework/
+}
+
 {***************************************************************************}
 {                                                                           }
-{           Delphi MVC Framework                                            }
+{                      Delphi MVC Framework                                 }
 {                                                                           }
-{           Copyright (c) 2010-2015 DMVCFramework Team                      }
+{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
 {                                                                           }
 {           https://github.com/danieleteti/delphimvcframework               }
 {                                                                           }
@@ -21,12 +27,6 @@
 {  limitations under the License.                                           }
 {                                                                           }
 {***************************************************************************}
-
-{
-  THIS UNIT IS A MODIFIED VERSION OF delphi-iocp-framework PROJECT
-  You can find the original version here
-  https://code.google.com/p/delphi-iocp-framework/
-}
 
 unit Iocp.Logger;
 

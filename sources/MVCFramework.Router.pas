@@ -1,8 +1,8 @@
 {***************************************************************************}
 {                                                                           }
-{           Delphi MVC Framework                                            }
+{                      Delphi MVC Framework                                 }
 {                                                                           }
-{           Copyright (c) 2010-2015 DMVCFramework Team                      }
+{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
 {                                                                           }
 {           https://github.com/danieleteti/delphimvcframework               }
 {                                                                           }
