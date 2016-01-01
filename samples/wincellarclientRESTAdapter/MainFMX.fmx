@@ -55,10 +55,13 @@ object TabbedForm: TTabbedForm
       StyleLookup = 'tabitemtoprated'
       TabOrder = 0
       Text = 'Wine Lists'
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
       object BtnWineList: TButton
         Action = acWineList
         Align = Bottom
         Enabled = True
+        ImageIndex = -1
         Position.Y = 473.000000000000000000
         Size.Width = 384.000000000000000000
         Size.Height = 46.000000000000000000
@@ -90,6 +93,8 @@ object TabbedForm: TTabbedForm
       StyleLookup = 'tabitemcontacts'
       TabOrder = 0
       Text = 'EdtTabItem'
+      ExplicitSize.cx = 8.000000000000000000
+      ExplicitSize.cy = 8.000000000000000000
       object EdtName: TEdit
         Touch.InteractiveGestures = [LongTap, DoubleTap]
         TabOrder = 6
@@ -162,8 +167,8 @@ object TabbedForm: TTabbedForm
       end
       object ToolBar1: TToolBar
         Align = Bottom
-        Position.Y = 479.000000000000000000
-        Size.Width = 384.000000000000000000
+        Position.Y = 10.000000000000000000
+        Size.Width = 50.000000000000000000
         Size.Height = 40.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 15
@@ -171,7 +176,8 @@ object TabbedForm: TTabbedForm
           Action = acSaveWine
           Align = Client
           Enabled = True
-          Size.Width = 384.000000000000000000
+          ImageIndex = -1
+          Size.Width = 50.000000000000000000
           Size.Height = 40.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
@@ -195,26 +201,29 @@ object TabbedForm: TTabbedForm
     MasterButton = DrawerBtn
     Mode = Drawer
     Size.Width = 250.000000000000000000
-    Size.Height = 567.000000000000000000
+    Size.Height = 519.000000000000000000
     Size.PlatformDefault = False
     Visible = False
     TabOrder = 4
     object ListBox1: TListBox
       Align = Client
       Size.Width = 249.000000000000000000
-      Size.Height = 567.000000000000000000
+      Size.Height = 519.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
       DisableFocusEffect = True
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
+      Viewport.Width = 245.000000000000000000
+      Viewport.Height = 515.000000000000000000
       object ListBoxItem1: TListBoxItem
         TabOrder = 0
         Text = 'Wine List'
         OnClick = ListBoxItem1Click
       end
       object ListBoxItem2: TListBoxItem
+        Position.Y = 19.000000000000000000
         TabOrder = 1
         Text = 'New Wine'
         OnClick = ListBoxItem2Click

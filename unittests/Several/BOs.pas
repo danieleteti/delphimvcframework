@@ -132,8 +132,6 @@ uses
   system.DateUtils;
 
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
-var
-  co: TMyChildObject;
 begin
   Result := TMyComplexObject.Create;
   Result.Prop1 := 'property1';

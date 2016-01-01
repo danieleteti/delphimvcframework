@@ -52,7 +52,7 @@ end;
 
 procedure TAdminController.OnlyRole1(ctx: TWebContext);
 begin
-  ContentType := TMVCMimeType.TEXT_PLAIN;
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' + sLineBreak +
@@ -62,7 +62,7 @@ end;
 
 procedure TAdminController.OnlyRole2(ctx: TWebContext);
 begin
-  ContentType := TMVCMimeType.TEXT_PLAIN;
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' + sLineBreak +

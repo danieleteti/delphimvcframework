@@ -33,7 +33,7 @@ begin
   LMyClientID := 'my-unique-client-id' + GetTickCount.ToString;
   LCli := TRESTClient.Create('localhost', 9999);
   try
-    LCli.ReadTimeout := - 1;
+    LCli.ReadTimeout(-1);
     LRes := LCli.doPOST('/messages', ['clients', LMyClientID]);
     if LRes.ResponseCode <> HTTP_STATUS.OK then
       WriteLn('Cannot set client id. ' + LRes.ResponseText);

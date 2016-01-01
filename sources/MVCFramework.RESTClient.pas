@@ -251,13 +251,13 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function GetContentType: string; deprecated 'use method ContentType';
-    function GetContentEncoding: string; deprecated 'use method ContentEncoding';
-    function GetHeaderValue(const AName: string): string; deprecated 'use method HeaderValue';
+    function GetContentType: string;
+    function GetContentEncoding: string;
+    function GetHeaderValue(const AName: string): string;
 
-    procedure SetResponseCode(const AResponseCode: Word); deprecated 'use method UpdateResponseCode';
-    procedure SetResponseText(const AResponseText: string); deprecated 'use method UpdateResponseText';
-    procedure SetHeaders(AHeaders: TStrings); deprecated 'use method UpdateHeaders';
+    procedure SetResponseCode(const AResponseCode: Word);
+    procedure SetResponseText(const AResponseText: string);
+    procedure SetHeaders(AHeaders: TStrings);
 
     function Body(): TStringStream;
     function BodyAsString(): string;

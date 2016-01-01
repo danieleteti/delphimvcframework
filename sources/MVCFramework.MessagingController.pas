@@ -113,7 +113,7 @@ end;
 
 procedure TMVCBUSController.CurrentlySubscribedTopics(CTX: TWebContext);
 begin
-  ContentType := TMVCMimeType.TEXT_PLAIN;
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(Session['__subscriptions']);
 end;
 

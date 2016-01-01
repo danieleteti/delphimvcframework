@@ -47,7 +47,7 @@ end;
 
 procedure TApp1MainController.Index(ctx: TWebContext);
 begin
-  ContentType := TMVCMimeType.TEXT_PLAIN;
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(Session['username']);
 end;
 

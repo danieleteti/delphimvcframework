@@ -103,7 +103,7 @@ begin
       GetEnumName(TypeInfo(TOSVersion.TArchitecture),
       Ord(TOSVersion.Architecture)));
     LJRes.AddPair('system_uptime', GetUpTime);
-    ContentType := TMVCMimeType.APPLICATION_JSON;
+    ContentType := TMVCMediaType.APPLICATION_JSON;
     Render(LJRes, False);
   finally
     LJRes.Free;
@@ -202,7 +202,7 @@ begin
         end;
       end;
     end;
-    ContentType := TMVCMimeType.APPLICATION_JSON;
+    ContentType := TMVCMediaType.APPLICATION_JSON;
     Render(LJResp, False);
   finally
     LJResp.Free;
@@ -231,7 +231,7 @@ var
   LKey: string;
   LJRes: TJSONObject;
 begin
-  ContentType := TMVCMimeType.APPLICATION_JSON;
+  ContentType := TMVCMediaType.APPLICATION_JSON;
 
   LJRes := TJSONObject.Create;
   try

@@ -1,2 +1,1 @@
-@python build.py
-@pause
+@call python build.py

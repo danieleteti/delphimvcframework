@@ -316,7 +316,7 @@ procedure TServerTest.TestMiddlewareHandler;
 var
   r: IRESTResponse;
 begin
-  r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doGET('/handledbymiddleware', []);
+  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doGET('/handledbymiddleware', []);
   CheckEquals('This is a middleware response', r.BodyAsString);
   CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
 end;
@@ -332,13 +332,13 @@ begin
     P.LastName := StringOfChar('*', 1000);
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
-    r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON).doPOST('/objects', [],
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doPOST('/objects', [],
       Mapper.ObjectToJSONObject(P));
   finally
     P.Free;
   end;
 
-  CheckNotEquals('', r.GetHeaderValue('request_gen_time'));
+  CheckNotEquals('', r.HeaderValue('request_gen_time'));
 end;
 
 // procedure TServerTest.TestPATCHWithParamsAndJSONBody;
@@ -380,7 +380,7 @@ begin
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
-      r := RESTClient.Accept(TMVCMimeType.APPLICATION_JSON)
+      r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
         .doPOST('/objects', [], Mapper.ObjectToJSONObject(P));
     except
       Fail('If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
@@ -435,8 +435,8 @@ begin
     .ContentEncoding('utf-8').doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
-  CheckEquals('application/json', res.GetContentType);
-  CheckEquals('utf-8', res.GetContentEncoding);
+  CheckEquals('application/json', res.ContentType);
+  CheckEquals('utf-8', res.ContentEncoding);
 end;
 
 procedure TServerTest.TestProducesConsumes02;
@@ -446,8 +446,8 @@ begin
   res := RESTClient.Accept('text/plain').ContentType('text/plain').doPOST('/testconsumes', [],
     'Hello World');
   CheckEquals('Hello World', res.BodyAsString);
-  CheckEquals('text/plain', res.GetContentType);
-  CheckEquals('UTF-8', res.GetContentEncoding);
+  CheckEquals('text/plain', res.ContentType);
+  CheckEquals('UTF-8', res.ContentEncoding);
 
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
@@ -528,11 +528,11 @@ var
 begin
   c1 := TRESTClient.Create('localhost', 9999);
   try
-    c1.Accept(TMVCMimeType.APPLICATION_JSON);
+    c1.Accept(TMVCMediaType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
     CheckEquals('"daniele teti"', res.BodyAsString);
-    c1.Accept(TMVCMimeType.TEXT_PLAIN);
+    c1.Accept(TMVCMediaType.TEXT_PLAIN);
     res := c1.doGET('/session', []);
     // rileggo il valore dalla sessione
     CheckEquals('daniele teti', res.BodyAsString);
@@ -540,7 +540,7 @@ begin
     // aggiungo altri cookies
     res := c1.doGET('/lotofcookies', []); // rileggo il valore dalla sessione
     CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
-    c1.Accept(TMVCMimeType.TEXT_PLAIN);
+    c1.Accept(TMVCMediaType.TEXT_PLAIN);
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
     CheckEquals('daniele teti', res.BodyAsString);
   finally
