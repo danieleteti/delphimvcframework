@@ -624,6 +624,20 @@ begin
     Params.free;
   end;
 
+  Params := TMVCRequestParamsTable.Create;
+  try
+    CheckTrue(Router.ExecuteRouting('/orders/àèéìòù .-_\', httpGET, 'text/plain', 'text/plain', Controllers,
+      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckEquals(1, Params.Count);
+    CheckEquals('àèéìòù .-_\', Params['ordernumber']);
+    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('OrderNumber', Router.MethodToCall.Name);
+  finally
+    Params.free;
+  end;
+
+
+
 end;
 
 procedure TTestRouting.TestProduceRoutings;
