@@ -189,7 +189,7 @@ begin
   Result := '';
   for Key in FData.Keys do
   begin
-    Result := Key + ' = ' + QuotedStr(FData.Items[Key]) + sLineBreak;
+    Result := Result + Key + '=' + QuotedStr(FData.Items[Key]) + sLineBreak;
   end;
 end;
 
