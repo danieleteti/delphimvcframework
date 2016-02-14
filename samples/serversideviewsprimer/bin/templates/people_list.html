@@ -1,0 +1,35 @@
+﻿<div class="row_fluid">  
+	<div class="col-sm-12">
+		<table class="table table-striped">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>First name</th>
+					<th>Last name</th>
+					<th>Age</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{^people}}
+					<tr>
+						<td class="text-center" colspan="4">&lt;&lt;No People Found&gt;&gt;</td>
+					</tr>			
+			  {{/people}}			
+				{{#people}}
+					<tr>
+						<td>{{-index}}</td>
+						<td>{{first_name}}</td>
+						<td>{{last_name}}</td>
+						<td>{{age}}</td>
+					</tr>
+				{{/people}}								
+			</tbody>
+		</table>
+	</div>
+</div>
+<br>
+<div class="row_fluid">
+  <div class="col-sm-2 col-sm-offset-10">
+	  <a class="btn btn-primary btn-block" href="/newperson">Add New Person</a>
+	</div>
+</div>	
