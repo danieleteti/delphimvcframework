@@ -462,6 +462,9 @@ type
     procedure FixUpWebModule;
     procedure OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
       Response: TWebResponse; var Handled: boolean); virtual;
+    procedure PreFlighRequestHandler(Context: TWebContext;
+      var Handled: boolean); virtual;
+    procedure SetDefaultReponseHeaders(AContext: TWebContext); virtual;
     function ExecuteAction(Sender: TObject; Request: TWebRequest;
       Response: TWebResponse): boolean; virtual;
     procedure LoadSystemControllers; virtual;
@@ -523,6 +526,10 @@ type
     StompPassword = 'stomppassword';
     Messaging = 'messaging';
     AllowUnhandledAction = 'allow_unhandled_action'; // tristan
+    AllowCrossOrigin = 'allow_cross_origin'; // tristan
+    ServerName = 'server_name'; // tristan
+    CrossOriginAllowedHeaders = 'cross_origin_allow_headers'; // tristan
+    CrossOriginAllowedMethods = 'cross_origin_allowed_methods'; // tristan
   end;
 
 function IsShuttingDown: boolean;
@@ -631,6 +638,14 @@ begin
   Config[TMVCConfigKey.Messaging] := 'false';
 
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false'; // tristan
+  Config[TMVCConfigKey.AllowCrossOrigin] := 'false'; // tristan
+  Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
+
+  Config[TMVCConfigKey.CrossOriginAllowedHeaders] :=
+    'Origin, X-Requested-With, Content-Type, Accept'; // tristan
+
+  Config[TMVCConfigKey.CrossOriginAllowedMethods] :=
+    'GET, POST, PUT, DELETE, PATCH'; // tristan
 
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
@@ -678,6 +693,49 @@ begin
   inherited;
 end;
 
+procedure TMVCEngine.SetDefaultReponseHeaders(AContext: TWebContext);
+begin
+  AContext.Response.CustomHeaders.Values['Server'] :=
+    Config[TMVCConfigKey.ServerName];
+  AContext.Response.RawWebResponse.Date := Now;
+
+  if Config[TMVCConfigKey.AllowCrossOrigin] = 'true' then
+  begin
+    AContext.Response.CustomHeaders.Values['Access-Control-Allow-Credentials']
+      := 'true';
+    AContext.Response.CustomHeaders.Values['Cache-Control'] := 'private';
+    AContext.Response.CustomHeaders.Values['X-Content-Type-Options'] :=
+      'nosniff';
+    AContext.Response.CustomHeaders.Values['Age'] := '1';
+    AContext.Response.CustomHeaders.Values['Server'] :=
+      Config[TMVCConfigKey.ServerName];
+    AContext.Response.CustomHeaders.Values
+      ['Access-Control-Allow-Methods'] := '*';
+    AContext.Response.CustomHeaders.Values
+      ['Access-Control-Allow-Origin'] := '*';
+  end;
+end;
+
+procedure TMVCEngine.PreFlighRequestHandler(Context: TWebContext;
+  var Handled: boolean);
+begin
+
+  Context.Response.CustomHeaders.Values['Access-Control-Allow-Origin'] :=
+    Context.Request.Headers['Origin'];
+
+  Context.Response.CustomHeaders.Values['Access-Control-Allow-Headers'] :=
+    Config[TMVCConfigKey.CrossOriginAllowedHeaders];
+
+  Context.Response.CustomHeaders.Values['Access-Control-Allow-Methods'] :=
+    Config[TMVCConfigKey.CrossOriginAllowedMethods];
+
+  Context.Response.ContentType := 'text/plain';
+  Context.Response.Content := Context.Request.PathInfo;
+
+  Handled := true;
+
+end;
+
 function TMVCEngine.ExecuteAction(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse): boolean;
 var
@@ -696,6 +754,7 @@ begin
   ParamsTable := TMVCRequestParamsTable.Create;
   try
     Context := TWebContext.Create(Request, Response, FMVCConfig);
+    SetDefaultReponseHeaders(Context);
     try
       // Static file handling
       if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
@@ -817,17 +876,27 @@ begin
             end
             else
             begin
-              if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-              // tristan
+              if Context.Request.HTTPMethod = httpOPTIONS then
               begin
-                Http404(Context);
-                Log(TLogLevel.levNormal, Request.Method + ':' +
-                  Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
-                  Response.StatusCode.ToString + ' ' + Response.ReasonString);
-              end
-              else
+                if Config[TMVCConfigKey.AllowCrossOrigin] = 'true' then
+                begin
+                  PreFlighRequestHandler(Context, Handled);
+                end;
+              end;
+              if not Handled then
               begin
-                Context.Response.FlushOnDestroy := false; // tristan
+                if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
+                // tristan
+                begin
+                  Http404(Context);
+                  Log(TLogLevel.levNormal, Request.Method + ':' +
+                    Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
+                    Response.StatusCode.ToString + ' ' + Response.ReasonString);
+                end
+                else
+                begin
+                  Context.Response.FlushOnDestroy := false; // tristan
+                end;
               end;
             end;
           end;
@@ -925,7 +994,7 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-        IsExpired := MinutesBetween(now, Result.LastAccess) > ASessionTimeout;
+        IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
         // StrToInt(Config.Value['sessiontimeout']);
       end;
 
@@ -1028,16 +1097,16 @@ begin
   if Pos('text/html', LowerCase(Request.Accept)) = 1 then
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
-      'Exception raised of class: ' + E.ClassName + sLineBreak +
+    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
   end
   else
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
-      'Exception raised of class: ' + E.ClassName + sLineBreak +
+    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
   end;
@@ -1061,7 +1130,7 @@ begin
   Cookie := AContext.Response.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionID;
-  Cookie.Expires := now + OneHour * 24 * 365;
+  Cookie.Expires := Now + OneHour * 24 * 365;
   // OneMinute * strtoint(GetMVCConfig['sessiontimeout']);
   Cookie.Path := '/';
   Result := ASessionID;
@@ -1516,7 +1585,7 @@ begin
       msg.AddPair('_topic', ATopic);
 
     msg.AddPair('_username', GetClientID).AddPair('_timestamp',
-      FormatDateTime('YYYY-MM-DD HH:NN:SS', now));
+      FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
