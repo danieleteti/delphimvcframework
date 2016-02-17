@@ -1,3 +1,27 @@
+{***************************************************************************}
+{                                                                           }
+{                      Delphi MVC Framework                                 }
+{                                                                           }
+{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
+{                                                                           }
+{           https://github.com/danieleteti/delphimvcframework               }
+{                                                                           }
+{***************************************************************************}
+{                                                                           }
+{  Licensed under the Apache License, Version 2.0 (the "License");          }
+{  you may not use this file except in compliance with the License.         }
+{  You may obtain a copy of the License at                                  }
+{                                                                           }
+{      http://www.apache.org/licenses/LICENSE-2.0                           }
+{                                                                           }
+{  Unless required by applicable law or agreed to in writing, software      }
+{  distributed under the License is distributed on an "AS IS" BASIS,        }
+{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{  See the License for the specific language governing permissions and      }
+{  limitations under the License.                                           }
+{                                                                           }
+{***************************************************************************}
+
 unit MVCFramework;
 
 {$RTTI EXPLICIT
@@ -51,6 +75,8 @@ type
 
   end;
 
+  MVCHTTPMethodsAttribute = MVCHTTPMethodAttribute; // just an alias
+
   MVCBaseAttribute = class(TCustomAttribute)
 
   end;
@@ -65,6 +91,10 @@ type
   end;
 
   MVCConsumesAttribute = class(MVCStringAttribute)
+
+  end;
+
+  MVCDocAttribute = class(MVCStringAttribute)
 
   end;
 
@@ -117,7 +147,7 @@ type
     destructor Destroy; override;
     procedure SetParamsTable(AParamsTable: TMVCRequestParamsTable);
     function GetParamNames: TArray<string>;
-    function ClientIP: string; virtual; abstract;
+    function ClientIP: string; virtual;
     function ClientPrefer(MimeType: string): boolean;
     function ThereIsRequestBody: boolean;
     function Accept: string;
@@ -152,21 +182,17 @@ type
   TMVCApacheWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
-    function ClientIP: string; override;
   end;
 {$ENDIF}
 
   TMVCISAPIWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
-    function ClientIP: string; override;
   end;
 
   TMVCINDYWebRequest = class(TMVCWebRequest)
   public
     constructor Create(AWebRequest: TWebRequest); override;
-    function ClientIP: string; override;
-
   end;
 
 {$IFDEF IOCP}
@@ -436,9 +462,6 @@ type
     procedure FixUpWebModule;
     procedure OnBeforeDispatch(Sender: TObject; Request: TWebRequest;
       Response: TWebResponse; var Handled: boolean); virtual;
-    procedure PreFlighRequestHandler(Context: TWebContext;
-      var Handled: boolean); virtual;
-    procedure SetDefaultReponseHeaders(AContext: TWebContext); virtual;
     function ExecuteAction(Sender: TObject; Request: TWebRequest;
       Response: TWebResponse): boolean; virtual;
     procedure LoadSystemControllers; virtual;
@@ -500,10 +523,7 @@ type
     StompPassword = 'stomppassword';
     Messaging = 'messaging';
     AllowUnhandledAction = 'allow_unhandled_action'; // tristan
-    AllowCrossOrigin = 'allow_cross_origin'; // tristan
     ServerName = 'server_name'; // tristan
-    CrossOriginAllowedHeaders = 'cross_origin_allow_headers'; // tristan
-    CrossOriginAllowedMethods = 'cross_origin_allowed_methods'; // tristan
   end;
 
 function IsShuttingDown: boolean;
@@ -612,14 +632,6 @@ begin
   Config[TMVCConfigKey.Messaging] := 'false';
 
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false'; // tristan
-  Config[TMVCConfigKey.AllowCrossOrigin] := 'false'; // tristan
-  Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
-
-  Config[TMVCConfigKey.CrossOriginAllowedHeaders] :=
-    'Origin, X-Requested-With, Content-Type, Accept'; // tristan
-
-  Config[TMVCConfigKey.CrossOriginAllowedMethods] :=
-    'GET, POST, PUT, DELETE, PATCH'; // tristan
 
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
@@ -667,49 +679,6 @@ begin
   inherited;
 end;
 
-procedure TMVCEngine.SetDefaultReponseHeaders(AContext: TWebContext);
-begin
-  AContext.Response.CustomHeaders.Values['Server'] :=
-    Config[TMVCConfigKey.ServerName];
-  AContext.Response.RawWebResponse.Date := Now;
-
-  if Config[TMVCConfigKey.AllowCrossOrigin] = 'true' then
-  begin
-    AContext.Response.CustomHeaders.Values['Access-Control-Allow-Credentials']
-      := 'true';
-    AContext.Response.CustomHeaders.Values['Cache-Control'] := 'private';
-    AContext.Response.CustomHeaders.Values['X-Content-Type-Options'] :=
-      'nosniff';
-    AContext.Response.CustomHeaders.Values['Age'] := '1';
-    AContext.Response.CustomHeaders.Values['Server'] :=
-      Config[TMVCConfigKey.ServerName];
-    AContext.Response.CustomHeaders.Values
-      ['Access-Control-Allow-Methods'] := '*';
-    AContext.Response.CustomHeaders.Values
-      ['Access-Control-Allow-Origin'] := '*';
-  end;
-end;
-
-procedure TMVCEngine.PreFlighRequestHandler(Context: TWebContext;
-  var Handled: boolean);
-begin
-
-  Context.Response.CustomHeaders.Values['Access-Control-Allow-Origin'] :=
-    Context.Request.Headers['Origin'];
-
-  Context.Response.CustomHeaders.Values['Access-Control-Allow-Headers'] :=
-    Config[TMVCConfigKey.CrossOriginAllowedHeaders];
-
-  Context.Response.CustomHeaders.Values['Access-Control-Allow-Methods'] :=
-    Config[TMVCConfigKey.CrossOriginAllowedMethods];
-
-  Context.Response.ContentType := 'text/plain';
-  Context.Response.Content := Context.Request.PathInfo;
-
-  Handled := true;
-
-end;
-
 function TMVCEngine.ExecuteAction(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse): boolean;
 var
@@ -728,7 +697,6 @@ begin
   ParamsTable := TMVCRequestParamsTable.Create;
   try
     Context := TWebContext.Create(Request, Response, FMVCConfig);
-    SetDefaultReponseHeaders(Context);
     try
       // Static file handling
       if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
@@ -850,27 +818,17 @@ begin
             end
             else
             begin
-              if Context.Request.HTTPMethod = httpOPTIONS then
+              if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
+              // tristan
               begin
-                if Config[TMVCConfigKey.AllowCrossOrigin] = 'true' then
-                begin
-                  PreFlighRequestHandler(Context, Handled);
-                end;
-              end;
-              if not Handled then
+                Http404(Context);
+                Log(TLogLevel.levNormal, Request.Method + ':' +
+                  Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
+                  Response.StatusCode.ToString + ' ' + Response.ReasonString);
+              end
+              else
               begin
-                if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-                // tristan
-                begin
-                  Http404(Context);
-                  Log(TLogLevel.levNormal, Request.Method + ':' +
-                    Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
-                    Response.StatusCode.ToString + ' ' + Response.ReasonString);
-                end
-                else
-                begin
-                  Context.Response.FlushOnDestroy := false; // tristan
-                end;
+                Context.Response.FlushOnDestroy := false; // tristan
               end;
             end;
           end;
@@ -968,7 +926,7 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-        IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
+        IsExpired := MinutesBetween(now, Result.LastAccess) > ASessionTimeout;
         // StrToInt(Config.Value['sessiontimeout']);
       end;
 
@@ -1071,16 +1029,16 @@ begin
   if Pos('text/html', LowerCase(Request.Accept)) = 1 then
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
-      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
+    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
+      'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
   end
   else
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
-      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
+    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
+      'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
   end;
@@ -1104,7 +1062,7 @@ begin
   Cookie := AContext.Response.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionID;
-  Cookie.Expires := Now + OneHour * 24 * 365;
+  Cookie.Expires := now + OneHour * 24 * 365;
   // OneMinute * strtoint(GetMVCConfig['sessiontimeout']);
   Cookie.Path := '/';
   Result := ASessionID;
@@ -1320,11 +1278,11 @@ begin
     SetLength(Buffer, 0);
   end
   else
+  begin
     InEnc := TEncoding.GetEncoding(FCharset);
+  end;
   try
-    Buffer := TEncoding.Convert(InEnc, TEncoding.Default,
-      TBytes(FWebRequest.RawContent));
-    Result := TEncoding.Default.GetString(Buffer);
+    Result := InEnc.GetString(TEncoding.ANSI.GetBytes(FWebRequest.RawContent));
   finally
     InEnc.Free;
   end
@@ -1402,6 +1360,60 @@ begin
   else
     raise EMVCException.CreateFmt('Body ContentType %s not supported',
       [ContentType]);
+end;
+
+function TMVCWebRequest.ClientIP: string;
+{
+  This code has been converted to Delphi from a PHP code
+  http://www.grantburton.com/2008/11/30/fix-for-incorrect-ip-addresses-in-wordpress-comments/
+}
+var
+  S: string;
+begin
+  if FWebRequest.GetFieldByName('HTTP_CLIENT_IP') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_CLIENT_IP'));
+
+  for S in String(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
+    .Split([',']) do
+  begin
+    if not S.trim.IsEmpty then
+      Exit(S.trim);
+  end;
+
+  if FWebRequest.GetFieldByName('HTTP_X_FORWARDED') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_X_FORWARDED'));
+
+  if FWebRequest.GetFieldByName('HTTP_X_CLUSTER_CLIENT_IP') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_X_CLUSTER_CLIENT_IP'));
+
+  if FWebRequest.GetFieldByName('HTTP_FORWARDED_FOR') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_FORWARDED_FOR'));
+
+  if FWebRequest.GetFieldByName('HTTP_FORWARDED') <> '' then
+    Exit(FWebRequest.GetFieldByName('HTTP_FORWARDED'));
+
+  if FWebRequest.GetFieldByName('REMOTE_ADDR') <> '' then
+    Exit(FWebRequest.GetFieldByName('REMOTE_ADDR'));
+
+  if FWebRequest.RemoteIP <> '' then
+    Exit(FWebRequest.RemoteIP);
+
+  if FWebRequest.RemoteAddr <> '' then
+    Exit(FWebRequest.RemoteAddr);
+
+  if FWebRequest.RemoteHost <> '' then
+    Exit(FWebRequest.RemoteHost);
+
+  if FWebRequest.RemoteAddr <> '' then
+    Exit(FWebRequest.RemoteAddr);
+
+  if FWebRequest.RemoteIP <> '' then
+    Exit(FWebRequest.RemoteIP);
+
+  if FWebRequest.RemoteHost <> '' then
+    Exit(FWebRequest.RemoteHost);
+
+  Result := '';
 end;
 
 function TMVCWebRequest.ClientPrefer(MimeType: string): boolean;
@@ -1505,7 +1517,7 @@ begin
       msg.AddPair('_topic', ATopic);
 
     msg.AddPair('_username', GetClientID).AddPair('_timestamp',
-      FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
+      FormatDateTime('YYYY-MM-DD HH:NN:SS', now));
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
@@ -2133,11 +2145,6 @@ end;
 
 { TMVCISAPIWebRequest }
 
-function TMVCISAPIWebRequest.ClientIP: string;
-begin
-  raise EMVCException.Create('<TMVCISAPIWebRequest.ClientIP> Not implemented');
-end;
-
 constructor TMVCISAPIWebRequest.Create(AWebRequest: TWebRequest);
 begin
   inherited;
@@ -2147,11 +2154,6 @@ end;
 { TMVCApacheWebRequest }
 {$IF CompilerVersion >= 27}
 
-function TMVCApacheWebRequest.ClientIP: string;
-begin
-  raise EMVCException.Create('<TMVCApacheWebRequest.ClientIP> Not implemented');
-end;
-
 constructor TMVCApacheWebRequest.Create(AWebRequest: TWebRequest);
 begin
   inherited;
@@ -2159,91 +2161,6 @@ begin
 end;
 {$ENDIF}
 { TMVCINDYWebRequest }
-
-function TMVCINDYWebRequest.ClientIP: string;
-{
-  This code has been converted to Delphi from a PHP code
-  http://www.grantburton.com/2008/11/30/fix-for-incorrect-ip-addresses-in-wordpress-comments/
-}
-  function CheckIP(IP: string): boolean;
-  // var
-  // IPv6Address: TIdIPv6Address;
-  // LErr: boolean;
-  begin
-    // this is not a real check, it checks only if the IP is not empty
-    Result := not IP.IsEmpty;
-
-    //
-    // idglobal.IPv6ToIdIPv6Address(IP, IPv6Address, LErr);
-    // Result := LErr and (not IP.IsEmpty) and { (IP2Long(IP) <> -1) and }
-    // (IP2Long(IP) > 0);
-  end;
-
-var
-  S: string;
-  req: TIdHTTPAppRequestHack;
-
-{$IFDEF IOCP}
-  Headers: TStringList;
-
-{$ELSE}
-  Headers: TIdHeaderList;
-
-{$ENDIF}
-begin
-  req := TIdHTTPAppRequestHack(FWebRequest);
-
-{$IFDEF IOCP}
-  Headers := req.FHttpConnection.RequestHeader;
-
-{$ELSE}
-  Headers := req.FRequestInfo.RawHeaders;
-
-{$ENDIF}
-  if CheckIP(Headers.Values['HTTP_CLIENT_IP']) then
-    Exit(Headers.Values['HTTP_CLIENT_IP']);
-
-  for S in Headers.Values['HTTP_X_FORWARDED_FOR'].Split([',']) do
-  begin
-    if CheckIP(S.trim) then
-      Exit(S.trim);
-  end;
-
-  if CheckIP(Headers.Values['HTTP_X_FORWARDED']) then
-    Exit(Headers.Values['HTTP_X_FORWARDED']);
-
-  if CheckIP(Headers.Values['HTTP_X_CLUSTER_CLIENT_IP']) then
-    Exit(Headers.Values['HTTP_X_CLUSTER_CLIENT_IP']);
-
-  if CheckIP(Headers.Values['HTTP_FORWARDED_FOR']) then
-    Exit(Headers.Values['HTTP_FORWARDED_FOR']);
-
-  if CheckIP(Headers.Values['HTTP_FORWARDED']) then
-    Exit(Headers.Values['HTTP_FORWARDED']);
-
-  if CheckIP(Headers.Values['REMOTE_ADDR']) then
-    Exit(Headers.Values['REMOTE_ADDR']);
-
-  if CheckIP(FWebRequest.RemoteIP) then
-    Exit(FWebRequest.RemoteIP);
-
-  if CheckIP(FWebRequest.RemoteAddr) then
-    Exit(FWebRequest.RemoteAddr);
-
-  if CheckIP(FWebRequest.RemoteHost) then
-    Exit(FWebRequest.RemoteHost);
-
-  if CheckIP(req.RemoteAddr) then
-    Exit(req.RemoteAddr);
-
-  if CheckIP(req.RemoteIP) then
-    Exit(req.RemoteIP);
-
-  if CheckIP(req.RemoteHost) then
-    Exit(req.RemoteHost);
-
-  Result := '';
-end;
 
 constructor TMVCINDYWebRequest.Create(AWebRequest: TWebRequest);
 begin
