@@ -1,26 +1,20 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+{ *******************************************************************************
+  Copyright 2010-2015 Daniele Teti
+  Copyright 2010-2015 Daniele Spinetti
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  ******************************************************************************** }
 
 unit MVCFramework.RESTAdapter;
 
@@ -316,7 +310,6 @@ var
   I: Integer;
   _parameter: TRttiParameter;
   _param: BodyAttribute;
-  _attrlistof: MapperListOf;
   Arg: TValue;
 begin
   _parameters := AMethod.GetParameters;
@@ -329,12 +322,7 @@ begin
     if TRTTIUtils.HasAttribute<BodyAttribute>(_parameter, _param) then
       try
         if Arg.IsObject then
-        begin
-          if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
-            Exit(Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), True))
-          else
-            Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject));
-        end
+          Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject))
         else
           Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
       finally

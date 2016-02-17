@@ -1,27 +1,3 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
-
 unit MVCFramework.Server;
 
 interface
@@ -46,7 +22,7 @@ uses
 
 type
 
-  EMVCServerException = class(Exception);
+  EMVCSeverException = class(Exception);
 
   IMVCSecurity = MVCFramework.Commons.IMVCAuthenticationHandler;
 
@@ -59,46 +35,46 @@ type
     { public declarations }
   end;
 
-  TMVCAuthenticationDelegate = reference to procedure(const AUserName, APassword: string;
-    AUserRoles: TList<string>; var AIsValid: Boolean);
+  TMVCAuthenticationDelegate = reference to procedure(const pUserName, pPassword: string;
+    pUserRoles: TList<string>; var pIsValid: Boolean);
 
-  TMVCAuthorizationDelegate = reference to procedure(AUserRoles: TList<string>;
-    const AControllerQualifiedClassName: string; const AActionName: string; var AIsAuthorized: Boolean);
+  TMVCAuthorizationDelegate = reference to procedure(pUserRoles: TList<string>;
+    const pControllerQualifiedClassName: string; const pActionName: string; var pIsAuthorized: Boolean);
 
   TMVCDefaultSecurity = class(TMVCBaseSecurity, IMVCSecurity)
   strict private
     FAuthenticationDelegate: TMVCAuthenticationDelegate;
     FAuthorizationDelegate: TMVCAuthorizationDelegate;
   public
-    constructor Create(AAuthenticationDelegate: TMVCAuthenticationDelegate;
-      AAuthorizationDelegate: TMVCAuthorizationDelegate);
+    constructor Create(pAuthenticationDelegate: TMVCAuthenticationDelegate;
+      pAuthorizationDelegate: TMVCAuthorizationDelegate);
 
-    procedure OnRequest(const AControllerQualifiedClassName, AActionName: string;
-      var AAuthenticationRequired: Boolean);
+    procedure OnRequest(const ControllerQualifiedClassName, ActionName: string;
+      var AuthenticationRequired: Boolean);
 
-    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
-      var AIsValid: Boolean);
+    procedure OnAuthentication(const UserName, Password: string; UserRoles: TList<string>;
+      var IsValid: Boolean);
 
-    procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
-      const AActionName: string; var AIsAuthorized: Boolean);
+    procedure OnAuthorization(UserRoles: TList<string>; const ControllerQualifiedClassName: string;
+      const ActionName: string; var IsAuthorized: Boolean);
   end;
 
   IMVCServerInfo = interface
     ['{3A328987-2485-4660-BB9B-B8AFFF47E4BA}']
     function GetServerName(): string;
-    procedure SetServerName(const AValue: string);
+    procedure SetServerName(const pValue: string);
 
     function GetPort(): Integer;
-    procedure SetPort(const AValue: Integer);
+    procedure SetPort(const pValue: Integer);
 
     function GetMaxConnections(): Integer;
-    procedure SetMaxConnections(const AValue: Integer);
+    procedure SetMaxConnections(const pValue: Integer);
 
     function GetWebModuleClass(): TComponentClass;
-    procedure SetWebModuleClass(AValue: TComponentClass);
+    procedure SetWebModuleClass(pValue: TComponentClass);
 
     function GetSecurity(): IMVCSecurity;
-    procedure SetSecurity(AValue: IMVCSecurity);
+    procedure SetSecurity(pValue: IMVCSecurity);
 
     property ServerName: string read GetServerName write SetServerName;
     property Port: Integer read GetPort write SetPort;
@@ -122,13 +98,11 @@ type
 
   IMVCServer = interface
     ['{95E91DF0-6ABF-46B1-B995-FC748BC54568}']
-    function GetActive(): Boolean;
     function GetInfo(): IMVCServerInfo;
 
     procedure Start();
     procedure Stop();
 
-    property Active: Boolean read GetActive;
     property Info: IMVCServerInfo read GetInfo;
   end;
 
@@ -142,20 +116,20 @@ type
     {$HINTS ON}
 
   public
-    class function Build(AServerInfo: IMVCServerInfo): IMVCServer; static;
+    class function Build(pServerInfo: IMVCServerInfo): IMVCServer; static;
   end;
 
   IMVCServerContainer = interface
     ['{B20796A0-CB07-4D16-BEAB-4F0B10880318}']
     function GetServers(): TDictionary<string, IMVCServer>;
 
-    procedure CreateServer(AServerInfo: IMVCServerInfo);
-    procedure DestroyServer(const AServerName: string);
+    procedure CreateServer(pServerInfo: IMVCServerInfo);
+    procedure DestroyServer(const pServerName: string);
 
     procedure StartServers();
     procedure StopServers();
 
-    function FindServerByName(const AServerName: string): IMVCServer;
+    function FindServerByName(const pServerName: string): IMVCServer;
 
     property Servers: TDictionary<string, IMVCServer> read GetServers;
   end;
@@ -202,19 +176,19 @@ type
     FSecurity: IMVCSecurity;
   strict private
     function GetServerName(): string;
-    procedure SetServerName(const AValue: string);
+    procedure SetServerName(const pValue: string);
 
     function GetPort(): Integer;
-    procedure SetPort(const AValue: Integer);
+    procedure SetPort(const pValue: Integer);
 
     function GetMaxConnections(): Integer;
-    procedure SetMaxConnections(const AValue: Integer);
+    procedure SetMaxConnections(const pValue: Integer);
 
     function GetWebModuleClass(): TComponentClass;
-    procedure SetWebModuleClass(AValue: TComponentClass);
+    procedure SetWebModuleClass(pValue: TComponentClass);
 
     function GetSecurity(): IMVCSecurity;
-    procedure SetSecurity(AValue: IMVCSecurity);
+    procedure SetSecurity(pValue: IMVCSecurity);
 
   public
     constructor Create();
@@ -242,17 +216,15 @@ type
 
     FInfo: IMVCServerInfo;
   strict private
-    function GetActive(): Boolean;
     function GetInfo(): IMVCServerInfo;
-    procedure Configuration(AServerInfo: IMVCServerInfo);
+    procedure Configuration(pServerInfo: IMVCServerInfo);
   public
-    constructor Create(AServerInfo: IMVCServerInfo);
+    constructor Create(pServerInfo: IMVCServerInfo);
     destructor Destroy(); override;
 
     procedure Start();
     procedure Stop();
 
-    property Active: Boolean read GetActive;
     property Info: IMVCServerInfo read GetInfo;
   end;
 
@@ -265,13 +237,13 @@ type
     constructor Create();
     destructor Destroy(); override;
 
-    procedure CreateServer(AServerInfo: IMVCServerInfo);
-    procedure DestroyServer(const AServerName: string);
+    procedure CreateServer(pServerInfo: IMVCServerInfo);
+    procedure DestroyServer(const pServerName: string);
 
     procedure StartServers();
     procedure StopServers();
 
-    function FindServerByName(const AServerName: string): IMVCServer;
+    function FindServerByName(const pServerName: string): IMVCServer;
 
     property Servers: TDictionary<string, IMVCServer> read GetServers;
   end;
@@ -307,14 +279,14 @@ end;
 function TMVCServerInfo.GetMaxConnections: Integer;
 begin
   if (FMaxConnections = 0) then
-    raise EMVCServerException.Create('MaxConnections was not informed!');
+    raise EMVCSeverException.Create('MaxConnections was not informed!');
   Result := FMaxConnections;
 end;
 
 function TMVCServerInfo.GetPort: Integer;
 begin
   if (FPort = 0) then
-    raise EMVCServerException.Create('Port was not informed!');
+    raise EMVCSeverException.Create('Port was not informed!');
   Result := FPort;
 end;
 
@@ -326,40 +298,40 @@ end;
 function TMVCServerInfo.GetServerName: string;
 begin
   if (FServerName = EmptyStr) then
-    raise EMVCServerException.Create('ServerName was not informed!');
+    raise EMVCSeverException.Create('ServerName was not informed!');
   Result := FServerName;
 end;
 
 function TMVCServerInfo.GetWebModuleClass: TComponentClass;
 begin
   if (FWebModuleClass = nil) then
-    raise EMVCServerException.Create('WebModuleClass was not informed!');
+    raise EMVCSeverException.Create('WebModuleClass was not informed!');
   Result := FWebModuleClass;
 end;
 
-procedure TMVCServerInfo.SetMaxConnections(const AValue: Integer);
+procedure TMVCServerInfo.SetMaxConnections(const pValue: Integer);
 begin
-  FMaxConnections := AValue;
+  FMaxConnections := pValue;
 end;
 
-procedure TMVCServerInfo.SetPort(const AValue: Integer);
+procedure TMVCServerInfo.SetPort(const pValue: Integer);
 begin
-  FPort := AValue;
+  FPort := pValue;
 end;
 
-procedure TMVCServerInfo.SetSecurity(AValue: IMVCSecurity);
+procedure TMVCServerInfo.SetSecurity(pValue: IMVCSecurity);
 begin
-  FSecurity := AValue;
+  FSecurity := pValue;
 end;
 
-procedure TMVCServerInfo.SetServerName(const AValue: string);
+procedure TMVCServerInfo.SetServerName(const pValue: string);
 begin
-  FServerName := AValue;
+  FServerName := pValue;
 end;
 
-procedure TMVCServerInfo.SetWebModuleClass(AValue: TComponentClass);
+procedure TMVCServerInfo.SetWebModuleClass(pValue: TComponentClass);
 begin
-  FWebModuleClass := AValue;
+  FWebModuleClass := pValue;
 end;
 
 { TMVCServerInfoFactory }
@@ -371,17 +343,17 @@ end;
 
 constructor TMVCServerInfoFactory.Create;
 begin
-  raise EMVCServerException.Create(_CanNotBeInstantiatedException);
+  raise EMVCSeverException.Create(_CanNotBeInstantiatedException);
 end;
 
 { TMVCServer }
 
-procedure TMVCServer.Configuration(AServerInfo: IMVCServerInfo);
+procedure TMVCServer.Configuration(pServerInfo: IMVCServerInfo);
 begin
-  if (AServerInfo = nil) then
-    raise EMVCServerException.Create('ServerInfo was not informed!');
+  if (pServerInfo = nil) then
+    raise EMVCSeverException.Create('ServerInfo was not informed!');
 
-  FInfo := AServerInfo;
+  FInfo := pServerInfo;
 
   {$IFDEF IOCP}
 
@@ -403,9 +375,9 @@ begin
 
 end;
 
-constructor TMVCServer.Create(AServerInfo: IMVCServerInfo);
+constructor TMVCServer.Create(pServerInfo: IMVCServerInfo);
 begin
-  Configuration(AServerInfo);
+  Configuration(pServerInfo);
 end;
 
 destructor TMVCServer.Destroy;
@@ -415,15 +387,10 @@ begin
   inherited;
 end;
 
-function TMVCServer.GetActive: Boolean;
-begin
-  Result := FBridge.Active;
-end;
-
 function TMVCServer.GetInfo: IMVCServerInfo;
 begin
   if (FInfo = nil) then
-    raise EMVCServerException.Create('Server Info was not informed!');
+    raise EMVCSeverException.Create('Server Info was not informed!');
 
   Result := FInfo;
 end;
@@ -440,14 +407,14 @@ end;
 
 { TMVCServerFactory }
 
-class function TMVCServerFactory.Build(AServerInfo: IMVCServerInfo): IMVCServer;
+class function TMVCServerFactory.Build(pServerInfo: IMVCServerInfo): IMVCServer;
 begin
-  Result := TMVCServer.Create(AServerInfo);
+  Result := TMVCServer.Create(pServerInfo);
 end;
 
 constructor TMVCServerFactory.Create;
 begin
-  raise EMVCServerException.Create(_CanNotBeInstantiatedException);
+  raise EMVCSeverException.Create(_CanNotBeInstantiatedException);
 end;
 
 { TMVCServerContainer }
@@ -457,19 +424,19 @@ begin
   FServers := TDictionary<string, IMVCServer>.Create;
 end;
 
-procedure TMVCServerContainer.CreateServer(AServerInfo: IMVCServerInfo);
+procedure TMVCServerContainer.CreateServer(pServerInfo: IMVCServerInfo);
 var
   vServer: IMVCServer;
   vPair: TPair<string, IMVCServer>;
 begin
-  if not(FServers.ContainsKey(AServerInfo.ServerName)) then
+  if not(FServers.ContainsKey(pServerInfo.ServerName)) then
   begin
     for vPair in FServers do
-      if (vPair.Value.Info.WebModuleClass = AServerInfo.WebModuleClass) then
-        raise EMVCServerException.Create('Server List already contains ' + AServerInfo.WebModuleClass.ClassName + '!');
+      if (vPair.Value.Info.WebModuleClass = pServerInfo.WebModuleClass) then
+        raise EMVCSeverException.Create('Server List already contains ' + pServerInfo.WebModuleClass.ClassName + '!');
 
-    vServer := TMVCServerFactory.Build(AServerInfo);
-    FServers.Add(AServerInfo.ServerName, vServer);
+    vServer := TMVCServerFactory.Build(pServerInfo);
+    FServers.Add(pServerInfo.ServerName, vServer);
   end;
 end;
 
@@ -480,18 +447,18 @@ begin
   inherited;
 end;
 
-procedure TMVCServerContainer.DestroyServer(const AServerName: string);
+procedure TMVCServerContainer.DestroyServer(const pServerName: string);
 begin
-  if (FServers.ContainsKey(AServerName)) then
-    FServers.Remove(AServerName)
+  if (FServers.ContainsKey(pServerName)) then
+    FServers.Remove(pServerName)
   else
-    raise EMVCServerException.Create('Server ' + AServerName + ' not found!');
+    raise EMVCSeverException.Create('Server ' + pServerName + ' not found!');
 end;
 
-function TMVCServerContainer.FindServerByName(const AServerName: string): IMVCServer;
+function TMVCServerContainer.FindServerByName(const pServerName: string): IMVCServer;
 begin
   try
-    Result := FServers.Items[AServerName];
+    Result := FServers.Items[pServerName];
   except
     Result := nil;
   end;
@@ -527,38 +494,38 @@ end;
 
 constructor TMVCServerContainerFactory.Create;
 begin
-  raise EMVCServerException.Create(_CanNotBeInstantiatedException);
+  raise EMVCSeverException.Create(_CanNotBeInstantiatedException);
 end;
 
 { TMVCDefaultSecurity }
 
-constructor TMVCDefaultSecurity.Create(AAuthenticationDelegate: TMVCAuthenticationDelegate;
-  AAuthorizationDelegate: TMVCAuthorizationDelegate);
+constructor TMVCDefaultSecurity.Create(pAuthenticationDelegate: TMVCAuthenticationDelegate;
+  pAuthorizationDelegate: TMVCAuthorizationDelegate);
 begin
-  FAuthenticationDelegate := AAuthenticationDelegate;
-  FAuthorizationDelegate := AAuthorizationDelegate;
+  FAuthenticationDelegate := pAuthenticationDelegate;
+  FAuthorizationDelegate := pAuthorizationDelegate;
 end;
 
-procedure TMVCDefaultSecurity.OnAuthentication(const AUserName, APassword: string;
-  AUserRoles: TList<string>; var AIsValid: Boolean);
+procedure TMVCDefaultSecurity.OnAuthentication(const UserName, Password: string;
+  UserRoles: TList<string>; var IsValid: Boolean);
 begin
-  AIsValid := True;
+  IsValid := True;
   if Assigned(FAuthenticationDelegate) then
-    FAuthenticationDelegate(AUserName, APassword, AUserRoles, AIsValid);
+    FAuthenticationDelegate(UserName, Password, UserRoles, IsValid);
 end;
 
-procedure TMVCDefaultSecurity.OnAuthorization(AUserRoles: TList<string>;
-  const AControllerQualifiedClassName, AActionName: string; var AIsAuthorized: Boolean);
+procedure TMVCDefaultSecurity.OnAuthorization(UserRoles: TList<string>;
+  const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
 begin
-  AIsAuthorized := True;
+  IsAuthorized := True;
   if Assigned(FAuthorizationDelegate) then
-    FAuthorizationDelegate(AUserRoles, AControllerQualifiedClassName, AActionName, AIsAuthorized);
+    FAuthorizationDelegate(UserRoles, ControllerQualifiedClassName, ActionName, IsAuthorized);
 end;
 
-procedure TMVCDefaultSecurity.OnRequest(const AControllerQualifiedClassName, AActionName: string;
-  var AAuthenticationRequired: Boolean);
+procedure TMVCDefaultSecurity.OnRequest(const ControllerQualifiedClassName, ActionName: string;
+  var AuthenticationRequired: Boolean);
 begin
-  AAuthenticationRequired := True;
+  AuthenticationRequired := True;
 end;
 
 { TMVCSingletonServerContainer }
@@ -598,7 +565,7 @@ end;
 
 constructor MVCServerDefault.Create;
 begin
-  raise EMVCServerException.Create(_CanNotBeInstantiatedException);
+  raise EMVCSeverException.Create(_CanNotBeInstantiatedException);
 end;
 
 end.
