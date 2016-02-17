@@ -15,10 +15,16 @@
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
   * Specific trainings are available (ask me for a date and a place)
   * Messaging extension using STOMP (beta)
+  * Automatic documentation through /system/describeserver.info
   * Community driven (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   
+## Trainings, consultancy or custom development service
+As you know, good support on open source software is a must for professional users.
+If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
 
+
+## Sub Projects
 DelphiMVCFramework contains also a lot of indipendent code that can be used in other kind of project. 
 
 These are the most notable:
@@ -102,6 +108,7 @@ type
     [MVCPath('/($id)')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
+    [MVCDoc('Returns the users list as a JSON Array of JSON Objects')]
     procedure GetUsers(CTX: TWebContext);
 
     //The following action will be with a PUT request like the following
@@ -110,6 +117,7 @@ type
     [MVCPath('/($id)')]
     [MVCProduce('application/json')]
     [MVCHTTPMethod([httpPUT])]
+    [MVCDoc('Update a user')]    
     procedure UpdateUser(CTX: TWebContext);
 
     //The following action will respond to a POST request like the following
@@ -118,6 +126,7 @@ type
     [MVCPath]
     [MVCProduce('application/json')]
     [MVCHTTPMethod([httpPOST])]
+    [MVCDoc('Create a new user, returns the id of the new user')]
     procedure CreateUser(CTX: TWebContext);
 
   end;

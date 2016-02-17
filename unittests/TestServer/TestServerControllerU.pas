@@ -157,7 +157,7 @@ end;
 
 procedure TTestServerController.EchoHeaders(ctx: TWebContext);
 begin
-  ctx.Response.ContentType := TMVCMimeType.TEXT_PLAIN;
+  ctx.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(ctx.Request.Headers['ACCEPT']);
 end;
 
@@ -322,7 +322,7 @@ end;
 
 procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);
 begin
-  ContentType := TMVCMimeType.TEXT_PLAIN;
+  ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(ctx.Request.Params['id']);
 end;
 

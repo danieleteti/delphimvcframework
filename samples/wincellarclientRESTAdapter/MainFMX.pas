@@ -12,7 +12,8 @@ uses
   Data.Bind.GenData, FMX.Bind.GenData, Data.Bind.Components,
   Data.Bind.ObjectScope, System.Rtti, System.Bindings.Outputs, FMX.Bind.Editors,
   Data.Bind.EngExt, FMX.Bind.DBEngExt, FMX.Controls.Presentation, FMX.Edit,
-  Data.Bind.Controls, FMX.Bind.Navigator;
+  Data.Bind.Controls, FMX.Bind.Navigator, FMX.ListView.Appearances,
+  FMX.ListView.Adapters.Base;
 
 type
   TTabbedForm = class(TForm)

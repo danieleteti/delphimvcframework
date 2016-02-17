@@ -6,8 +6,7 @@ uses
   MVCFramework, WSHelperCustomersU;
 
 type
-
-  [MVCPath('/customers')]
+  [MVCPath('/')]
   TControllerCustomer = class(TMVCController)
   private
     FWSHelperCustomers: TWSHelperCustomers;
@@ -18,9 +17,13 @@ type
       const AActionNAme: string); override;
 
   public
-    [MVCPath]
+    [MVCPath('/customers')]
     [MVCHTTPMethod([httpGET])]
     procedure GetCustomers(ctx: TWebContext);
+
+    [MVCPath('/')]
+    [MVCHTTPMethod([httpGET])]
+    procedure Index(ctx: TWebContext);
 
   end;
 
@@ -33,6 +36,11 @@ procedure TControllerCustomer.OnBeforeAction(Context: TWebContext;
   const AActionNAme: string; var Handled: Boolean);
 begin
   FWSHelperCustomers := TWSHelperCustomers.Create;
+end;
+
+procedure TControllerCustomer.Index(ctx: TWebContext);
+begin
+  Redirect('/index.html');
 end;
 
 procedure TControllerCustomer.OnAfterAction(Context: TWebContext;

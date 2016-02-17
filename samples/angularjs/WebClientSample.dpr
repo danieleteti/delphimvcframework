@@ -2,7 +2,6 @@ program WebClientSample;
 
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
   Winapi.Windows,
@@ -10,29 +9,27 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   WebSiteControllerU in 'WebSiteControllerU.pas',
   ToDoControllerU in 'ToDoControllerU.pas',
   ToDoBO in 'ToDoBO.pas';
 
 {$R *.res}
 
-
 procedure RunServer(APort: Integer);
 var
   LInputRecord: TInputRecord;
-  LEvent      : DWord;
-  LHandle     : THandle;
-  LServer     : TIdHTTPWebBrokerBridge;
+  LEvent: DWord;
+  LHandle: THandle;
+  LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    // ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort) +
-    // '/div/10/20'), nil, nil,
-    // SW_SHOWMAXIMIZED);
+    ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort) +
+      '/index.html'), nil, nil, SW_SHOWMAXIMIZED);
     Writeln('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do

@@ -12,8 +12,6 @@ type
     HTTPSoapDispatcher: THTTPSoapDispatcher;
     HTTPSoapPascalInvoker: THTTPSoapPascalInvoker;
     WSDLHTMLPublish: TWSDLHTMLPublish;
-    procedure WebModule1DefaultHandlerAction(Sender: TObject;
-      Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
     procedure WebModuleCreate(Sender: TObject);
     procedure WebModuleDestroy(Sender: TObject);
     procedure wmSOAPRESTSoapActionAction(Sender: TObject; Request: TWebRequest;
@@ -36,21 +34,11 @@ implementation
 uses
   RESTControllerCustomerU;
 
-procedure TwmSOAPREST.WebModule1DefaultHandlerAction(Sender: TObject;
-  Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
-begin
-  // WSDLHTMLPublish1.ServiceInfo(Sender, Request, Response, Handled);
-  Response.Content := '<html><heading/><body>SOAP and REST</body></html>' +
-    '<p>This example uses the allow_unhandled_action option to allow standard Delphi SOAP webservice functionality.</p>'
-    + '<p>Visit "<a href="/soap">/soap</a>" for WSDL</p>' +
-    '<p>Visit "<a href="/customers">/customer</a>" for Customer REST</p>';
-end;
-
 procedure TwmSOAPREST.WebModuleCreate(Sender: TObject);
 begin
   FMVCEngine := TMVCEngine.Create(self);
-  FMVCEngine.Config['document_root'] := 'www';
-  FMVCEngine.Config['allow_unhandled_action'] := 'true';
+  FMVCEngine.Config[TMVCConfigKey.DocumentRoot] := 'www';
+  FMVCEngine.Config[TMVCConfigKey.AllowUnhandledAction] := 'true';
   FMVCEngine.AddController(TControllerCustomer);
 end;
 
