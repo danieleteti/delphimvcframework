@@ -467,6 +467,7 @@ type
     procedure LoadSystemControllers; virtual;
     procedure ResponseErrorPage(E: Exception; Request: TWebRequest;
       Response: TWebResponse); virtual;
+    procedure SetDefaultReponseHeaders(AContext: TWebContext); virtual;
   public
 
     class function GetCurrentSession(ASessionTimeout: UInt64;
@@ -523,6 +524,7 @@ type
     StompPassword = 'stomppassword';
     Messaging = 'messaging';
     AllowUnhandledAction = 'allow_unhandled_action'; // tristan
+    ServerName = 'server_name'; // tristan
   end;
 
 function IsShuttingDown: boolean;
@@ -631,6 +633,7 @@ begin
   Config[TMVCConfigKey.Messaging] := 'false';
 
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false'; // tristan
+  Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
 
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
@@ -678,6 +681,14 @@ begin
   inherited;
 end;
 
+procedure TMVCEngine.SetDefaultReponseHeaders(AContext: TWebContext);
+begin
+  AContext.Response.CustomHeaders.Values['Server'] :=
+    Config[TMVCConfigKey.ServerName];
+  AContext.Response.RawWebResponse.Date := Now;
+end;
+
+
 function TMVCEngine.ExecuteAction(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse): boolean;
 var
@@ -696,6 +707,7 @@ begin
   ParamsTable := TMVCRequestParamsTable.Create;
   try
     Context := TWebContext.Create(Request, Response, FMVCConfig);
+    SetDefaultReponseHeaders(Context); //tristan
     try
       // Static file handling
       if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
@@ -1028,7 +1040,7 @@ begin
   if Pos('text/html', LowerCase(Request.Accept)) = 1 then
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
+    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' + sLineBreak +
       'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
@@ -1036,7 +1048,7 @@ begin
   else
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
+    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' + sLineBreak +
       'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
@@ -2231,7 +2243,7 @@ begin
 
     ResponseStream.Append
       ('<html><head><style>pre { color: #000000; background-color: #d0d0d0; }</style></head><body>')
-      .Append('<h1>DMVCFramework: Error Raised</h1>')
+      .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
       .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
       [Context.Response.StatusCode])
       .AppendFormat('HTTP Reason Text: "%s"</pre>',
