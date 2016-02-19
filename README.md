@@ -1,7 +1,13 @@
 #DMVCFramework features
   * Simple to use (really)
   * RESTful (RMM Level 3) compliant
+  * Stable and solid, used by small/mid/big projects since 2010
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
+  * Optional session support
+  * Extendable using middlewares (simple hooks to handle request/response)
+  * CORS
+  * Basic Authentication
+  * Controllers inheritance
   * Fancy URL with parameter mappings
   * Specialied renders to generate text, html, JSON
   * Powerful mapper to map json to objects and datasets to objects
@@ -9,14 +15,14 @@
   * Integrated RESTClient
   * Works with XE3, XE4, XE5, XE6, XE7, XE8 and Delphi 10 Seattle
   * Completely unit tested
-  * There is a sample for each functionlities
+  * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
   * Experimental support for IOCP [dev]
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
   * Specific trainings are available (ask me for a date and a place)
   * Messaging extension using STOMP (beta)
   * Automatic documentation through /system/describeserver.info
-  * Community driven (Facebook group https://www.facebook.com/groups/delphimvcframework)
+  * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   
 ## Trainings, consultancy or custom development service
