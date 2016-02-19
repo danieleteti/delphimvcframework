@@ -1,39 +1,33 @@
-{ *************************************************************************** }
-{ }
-{ Delphi MVC Framework }
-{ }
-{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
-{ }
-{ https://github.com/danieleteti/delphimvcframework }
-{ }
-{ *************************************************************************** }
-{ }
-{ Licensed under the Apache License, Version 2.0 (the "License"); }
-{ you may not use this file except in compliance with the License. }
-{ You may obtain a copy of the License at }
-{ }
-{ http://www.apache.org/licenses/LICENSE-2.0 }
-{ }
-{ Unless required by applicable law or agreed to in writing, software }
-{ distributed under the License is distributed on an "AS IS" BASIS, }
-{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{ See the License for the specific language governing permissions and }
-{ limitations under the License. }
-{ }
-{ *************************************************************************** }
+{***************************************************************************}
+{                                                                           }
+{                      Delphi MVC Framework                                 }
+{                                                                           }
+{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
+{                                                                           }
+{           https://github.com/danieleteti/delphimvcframework               }
+{                                                                           }
+{***************************************************************************}
+{                                                                           }
+{  Licensed under the Apache License, Version 2.0 (the "License");          }
+{  you may not use this file except in compliance with the License.         }
+{  You may obtain a copy of the License at                                  }
+{                                                                           }
+{      http://www.apache.org/licenses/LICENSE-2.0                           }
+{                                                                           }
+{  Unless required by applicable law or agreed to in writing, software      }
+{  distributed under the License is distributed on an "AS IS" BASIS,        }
+{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{  See the License for the specific language governing permissions and      }
+{  limitations under the License.                                           }
+{                                                                           }
+{***************************************************************************}
 
 unit MVCFramework.Logger;
 
 interface
 
-{$DEFINE MVC_LOGENABLED}
-
 uses
-{$IFDEF MVC_LOGENABLED}
   Iocp.Logger,
-{$ELSE}
-  // Allow different log library.
-{$ENDIF}
   System.SysUtils;
 
 type
@@ -69,15 +63,15 @@ begin
       Result := 'ERROR';
     levException:
       Result := 'EXCEPTION';
-  else
-    Result := 'UNKNOWN';
+    else
+      Result := 'UNKNOWN';
   end;
 end;
 
 procedure LogEx(AException: Exception; AMessage: string = '');
 begin
-  Log(TLogLevel.levException, Format('[%s] %s (Custom message: "%s")',
-    [AException.ClassName, AException.Message, AMessage]));
+  Log(TLogLevel.levException, Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
+    AException.Message, AMessage]));
 end;
 
 procedure LogW(AMessage: string);
@@ -90,7 +84,9 @@ begin
   Log(TLogLevel.levError, AMessage);
 end;
 
-procedure LogException(AException: Exception; AMessage: string);
+procedure LogException(
+  AException: Exception;
+  AMessage  : string);
 begin
   LogEx(AException, AMessage);
 end;
@@ -105,8 +101,6 @@ begin
   Log(TLogLevel.levNormal, '<< ' + AMethodName);
 end;
 
-{$IFDEF MVC_LOGENABLED}
-
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
 var
   Msg: string;
@@ -114,8 +108,10 @@ begin
   if LogLevel < LogLevelLimit then
     Exit;
 
-  Msg := Format('[%10s %5.5d] %s', [LogLevelAsString(LogLevel),
-    TThread.CurrentThread.ThreadID, AMessage]);
+  Msg := Format('[%10s %5.5d] %s', [
+    LogLevelAsString(LogLevel),
+    TThread.CurrentThread.ThreadID,
+    AMessage]);
 
   case LogLevel of
     levNormal:
@@ -138,18 +134,11 @@ begin
         AppendLog(Msg, TLogType.ltWarning);
         AppendLog(Msg, TLogType.ltNormal);
       end
-  else
-    raise Exception.Create('Invalid LOG LEVEL! Original message was: ' +
-      AMessage);
+    else
+      raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
   end;
-end;
-{$ELSE}
 
-procedure Log(LogLevel: TLogLevel; const AMessage: string);
-begin
- // Custom logging
 end;
-{$ENDIF}
 
 procedure Log(AMessage: string); overload;
 begin
