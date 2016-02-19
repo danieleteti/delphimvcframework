@@ -1,26 +1,26 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ *************************************************************************** }
 
 unit MVCFramework;
 
@@ -1073,8 +1073,9 @@ begin
   Cookie := AContext.Response.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionID;
-  Cookie.Expires := now + OneHour * 24 * 365;
-  // OneMinute * strtoint(GetMVCConfig['sessiontimeout']);
+  // danieleteti - reintroduced sessiontimeout
+  Cookie.Expires := now + OneMinute *
+    strtoint(AContext.Config[TMVCConfigKey.SessionTimeout]);
   Cookie.Path := '/';
   Result := ASessionID;
 end;
@@ -1572,7 +1573,7 @@ end;
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
   Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
-    StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
+    strtoint(Config[TMVCConfigKey.StompServerPort]), GetClientID,
     Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
 end;
 
@@ -1966,7 +1967,7 @@ end;
 
 function TMVCWebRequest.GetParamAllAsInteger(const ParamName: string): Integer;
 begin
-  Result := StrToInt(GetParamAll(ParamName));
+  Result := strtoint(GetParamAll(ParamName));
 end;
 
 function TMVCWebRequest.GetParamNames: TArray<string>;
