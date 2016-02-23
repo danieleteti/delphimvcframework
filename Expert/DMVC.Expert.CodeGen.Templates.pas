@@ -105,6 +105,7 @@ resourcestring
  #13#10 +
  'type'#13#10 +
  #13#10 +
+ '  [MVCPath(''/'')]'#13#10 +
  '  %1:s = class(TMVCController) '#13#10 +
  '  public'#13#10 +
  '%2:s' +
@@ -125,6 +126,7 @@ resourcestring
  sIndexMethodImpl =
  'procedure %0:s.Index(ctx: TWebContext);'#13#10 +
  'begin'#13#10 +
+ '  Render(''Hello World'');'#13#10 +
  #13#10 +
  'end;';
 
@@ -183,6 +185,7 @@ resourcestring
 sWebModuleDFM =
 'object %0:s: %1:s'#13#10 +
 '  OldCreateOrder = False'#13#10 +
+'  OnCreate = WebModuleCreate'#13#10 +
 '  Height = 230'#13#10 +
 '  Width = 415'#13#10 +
 'end';

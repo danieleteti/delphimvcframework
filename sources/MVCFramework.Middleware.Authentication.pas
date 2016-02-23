@@ -1,33 +1,34 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ *************************************************************************** }
 
 unit MVCFramework.Middleware.Authentication;
 
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.Logger, System.Generics.Collections;
+  MVCFramework, MVCFramework.Commons, MVCFramework.Logger,
+  System.Generics.Collections;
 
 type
   TMVCBasicAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
@@ -36,10 +37,11 @@ type
   protected
     FRealm: string;
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
-    procedure OnAfterControllerAction(Context: TWebContext; const AActionName: string;
-      const Handled: Boolean);
+    procedure OnAfterControllerAction(Context: TWebContext;
+      const AActionName: string; const Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionName: string; var Handled: Boolean);
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      var Handled: Boolean);
   public
     constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler;
       Realm: string = 'DelphiMVCFramework REALM'); virtual;
@@ -49,8 +51,7 @@ implementation
 
 uses
   System.SysUtils, MVCFramework.Session, Soap.EncdDecd,
-  System.NetEncoding
-  ;
+  System.NetEncoding;
 
 {
 
@@ -75,14 +76,15 @@ begin
   FRealm := Realm;
 end;
 
-procedure TMVCBasicAuthenticationMiddleware.OnAfterControllerAction(Context: TWebContext;
-  const AActionName: string; const Handled: Boolean);
+procedure TMVCBasicAuthenticationMiddleware.OnAfterControllerAction
+  (Context: TWebContext; const AActionName: string; const Handled: Boolean);
 begin
 
 end;
 
-procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(Context: TWebContext;
-  const AControllerQualifiedClassName, AActionName: string; var Handled: Boolean);
+procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction
+  (Context: TWebContext; const AControllerQualifiedClassName,
+  AActionName: string; var Handled: Boolean);
 var
   LAuth: string;
   LPieces: TArray<string>;
@@ -93,6 +95,8 @@ var
   LIsAuthorized: Boolean;
   LSessionIDFromWebRequest: string;
   LAuthRequired: Boolean;
+  LSessionData: TSessionData;
+  LPair: TPair<String, String>;
   procedure SendWWWAuthenticate;
   begin
     Context.LoggedUser.Clear;
@@ -108,7 +112,8 @@ var
       Context.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED;
     end;
     Context.Response.StatusCode := 401;
-    Context.Response.SetCustomHeader('WWW-Authenticate', 'Basic realm=' + FRealm.QuotedString);
+    Context.Response.SetCustomHeader('WWW-Authenticate',
+      'Basic realm=' + FRealm.QuotedString);
 
     Handled := true;
   end;
@@ -133,7 +138,8 @@ var
 
 begin
   // check if the resource is protected
-  FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, LAuthRequired);
+  FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName,
+    AActionName, LAuthRequired);
   if not LAuthRequired then
   begin
     Handled := False;
@@ -142,15 +148,18 @@ begin
 
   LSessionIDFromWebRequest := TMVCEngine.ExtractSessionIDFromWebRequest
     (Context.Request.RawWebRequest);
-  LWebSession := TMVCEngine.GetCurrentSession(Context.Config.AsInt64[TMVCConfigKey.SessionTimeout],
+  LWebSession := TMVCEngine.GetCurrentSession
+    (Context.Config.AsInt64[TMVCConfigKey.SessionTimeout],
     LSessionIDFromWebRequest, False);
 
-  if (not LSessionIDFromWebRequest.IsEmpty) and (not Assigned(LWebSession)) then
-  begin
-    // The sessionid is present but is not valid and there is an authentication header.
-    // In this case, an exception is raised because the sessionid is not valid
-    raise EMVCSessionExpiredException.Create('Session expired');
-  end;
+//  if (not LSessionIDFromWebRequest.IsEmpty) and (not Assigned(LWebSession)) then
+//  begin
+//    SendWWWAuthenticate;
+//    // Exit;
+//    // The sessionid is present but is not valid and there is an authentication header.
+//    // In this case, an exception is raised because the sessionid is not valid
+//    // raise EMVCSessionExpiredException.Create('Session expired');
+//  end;
 
   Context.LoggedUser.LoadFromSession(LWebSession);
   if not Context.LoggedUser.IsValid then
@@ -163,7 +172,7 @@ begin
     // Exit;
     // end;
 
-    // we NEED authentication
+    // We NEED authentication
     LAuth := Context.Request.Headers['Authorization'];
     LAuth := DecodeString(LAuth.Remove(0, 'Basic'.Length).Trim);
     LPieces := LAuth.Split([':']);
@@ -177,17 +186,28 @@ begin
     // check the authorization for the requested resource
     LRoles := TList<string>.Create;
     try
-      FMVCAuthenticationHandler.OnAuthentication(LPieces[0], LPieces[1], LRoles, LIsValid);
-      if LIsValid then
-      begin
-        Context.LoggedUser.Roles.AddRange(LRoles);
-        Context.LoggedUser.UserName := LPieces[0];
-        Context.LoggedUser.LoggedSince := Now;
-        Context.LoggedUser.Realm := FRealm;
-        LSessionID := TMVCEngine.SendSessionCookie(Context);
-        LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
-          Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
-        Context.LoggedUser.SaveToSession(LWebSession);
+      LSessionData := TSessionData.Create;
+      try
+        FMVCAuthenticationHandler.OnAuthentication(LPieces[0], LPieces[1],
+          LRoles, LIsValid, LSessionData);
+        if LIsValid then
+        begin
+          Context.LoggedUser.Roles.AddRange(LRoles);
+          Context.LoggedUser.UserName := LPieces[0];
+          Context.LoggedUser.LoggedSince := Now;
+          Context.LoggedUser.Realm := FRealm;
+          LSessionID := TMVCEngine.SendSessionCookie(Context);
+          LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
+            Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
+          Context.LoggedUser.SaveToSession(LWebSession);
+          // save sessiondata to the actual session
+          for LPair in LSessionData do
+          begin
+            LWebSession[LPair.Key] := LPair.Value;
+          end;
+        end;
+      finally
+        LSessionData.Free;
       end;
     finally
       LRoles.Free;
@@ -213,8 +233,8 @@ begin
   end;
 end;
 
-procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext;
-  var Handled: Boolean);
+procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting
+  (Context: TWebContext; var Handled: Boolean);
 begin
 
 end;

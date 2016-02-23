@@ -60,6 +60,7 @@ type
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TDMVCSerializationType = TSerializationType;
+  TSessionData = TDictionary<String, String>;
 
   // RTTI ATTRIBUTES
 
@@ -1064,6 +1065,7 @@ begin
   // danieleteti - reintroduced sessiontimeout
   Cookie.Expires := now + OneMinute *
     strtoint(AContext.Config[TMVCConfigKey.SessionTimeout]);
+  Cookie.Expires := 0; // session cookie;
   Cookie.Path := '/';
   Result := ASessionID;
 end;

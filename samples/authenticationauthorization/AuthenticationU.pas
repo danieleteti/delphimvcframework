@@ -3,17 +3,19 @@ unit AuthenticationU;
 interface
 
 uses
-  System.SysUtils, MVCFramework.Commons, System.Generics.Collections;
+  System.SysUtils, MVCFramework.Commons, System.Generics.Collections,
+  MVCFramework;
 
 type
   TAuthenticationSample = class(TInterfacedObject, IMVCAuthenticationHandler)
-
   protected
-    procedure OnRequest(const ControllerQualifiedClassName: string; const ActionName: string;
-      var AuthenticationRequired: Boolean);
+    procedure OnRequest(const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
     procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
-    procedure OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
+      UserRoles: System.Generics.Collections.TList<System.string>;
+      var IsValid: Boolean; const SessionData: TSessionData);
+    procedure OnAuthorization(UserRoles
+      : System.Generics.Collections.TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
   end;
@@ -22,8 +24,9 @@ implementation
 
 { TMVCAuthorization }
 
-procedure TAuthenticationSample.OnAuthentication(const UserName, Password: string;
-  UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
+procedure TAuthenticationSample.OnAuthentication(const UserName,
+  Password: string; UserRoles: System.Generics.Collections.TList<System.string>;
+  var IsValid: Boolean; const SessionData: TSessionData);
 begin
   IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
@@ -50,7 +53,8 @@ end;
 
 procedure TAuthenticationSample.OnAuthorization
   (UserRoles: System.Generics.Collections.TList<System.string>;
-  const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
+  const ControllerQualifiedClassName, ActionName: string;
+  var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
   if ActionName = 'Logout' then
@@ -61,10 +65,11 @@ begin
     IsAuthorized := UserRoles.Contains('role1');
 end;
 
-procedure TAuthenticationSample.OnRequest(const ControllerQualifiedClassName, ActionName: string;
-  var AuthenticationRequired: Boolean);
+procedure TAuthenticationSample.OnRequest(const ControllerQualifiedClassName,
+  ActionName: string; var AuthenticationRequired: Boolean);
 begin
-  AuthenticationRequired := ControllerQualifiedClassName = 'AppControllerU.TAdminController';
+  AuthenticationRequired := ControllerQualifiedClassName =
+    'AppControllerU.TAdminController';
 
 end;
 
