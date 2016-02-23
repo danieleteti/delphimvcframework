@@ -426,12 +426,34 @@ type
 
   TMVCControllerClass = class of TMVCController;
 
+  /// <summary>
+  /// Basis Interface for DMVC Middleware.
+  /// </summary>
   IMVCMiddleware = interface
     ['{3278183A-124A-4214-AB4E-94CA4C22450D}']
+    /// <summary>
+    /// Procedure is called before the MVCEngine routes the request to a specific controller/method.
+    /// </summary>
+    /// <param name="Context">Webcontext which contains the complete request and response of the actual call.</param>
+    /// <param name="Handled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
     procedure OnBeforeRouting(Context: TWebContext; var Handled: boolean);
+    /// <summary>
+    /// Procedure is called before the specific controller method is called.
+    /// </summary>
+    /// <param name="Context">Webcontext which contains the complete request and response of the actual call.</param>
+    /// <param name="AControllerQualifiedClassName">Qualified classname of the matching controller.</param>
+    /// <param name="AActionNAme">Method name of the matching controller method.</param>
+    /// <param name="Handled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string;
       var Handled: boolean);
+    /// <summary>
+    /// Procedure is called after the specific controller method was called.
+    /// It is still possible to cancel or to completly modifiy the request.
+    /// </summary>
+    /// <param name="Context">Webcontext which contains the complete request and response of the actual call.</param>
+    /// <param name="AActionNAme">Method name of the matching controller method.</param>
+    /// <param name="Handled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
     procedure OnAfterControllerAction(Context: TWebContext;
       const AActionNAme: string; const Handled: boolean);
   end;

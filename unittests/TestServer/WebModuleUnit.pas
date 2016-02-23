@@ -30,11 +30,13 @@ type
   TSampleAuth = class(TInterfacedObject, IMVCAuthenticationHandler)
 
   public
-    procedure OnRequest(const ControllerQualifiedClassName: string; const ActionName: string;
-      var AuthenticationRequired: Boolean);
+    procedure OnRequest(const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
     procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
-    procedure OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
+      UserRoles: System.Generics.Collections.TList<System.string>;
+      var IsValid: Boolean; const SessionData: TDictionary<String, String>);
+    procedure OnAuthorization(UserRoles
+      : System.Generics.Collections.TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
   end;
@@ -46,19 +48,23 @@ begin
     begin
       Config[TMVCConfigKey.Messaging] := 'true';
     end);
-  MVCEngine.AddController(TTestServerController).AddController(TTestPrivateServerController)
+  MVCEngine.AddController(TTestServerController)
+    .AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TSampleAuth.Create));
+    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create
+    (TSampleAuth.Create));
 
   // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;
 
 { TSampleAuth }
 
-procedure TSampleAuth.OnAuthentication(const UserName, Password: string;
-UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean);
+procedure TSampleAuth.OnAuthentication(const UserName: string;
+const Password: string;
+UserRoles: System.Generics.Collections.TList<System.string>;
+var IsValid: Boolean; const SessionData: TDictionary<String, String>);
 begin
   UserRoles.Clear;
   IsValid := UserName = Password;
@@ -77,8 +83,10 @@ begin
   end;
 end;
 
-procedure TSampleAuth.OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
-const ControllerQualifiedClassName, ActionName: string; var IsAuthorized: Boolean);
+procedure TSampleAuth.OnAuthorization(UserRoles
+  : System.Generics.Collections.TList<System.string>;
+const ControllerQualifiedClassName, ActionName: string;
+var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
   if ActionName = 'OnlyRole1' then
@@ -88,10 +96,11 @@ begin
     IsAuthorized := UserRoles.Contains('role2');
 end;
 
-procedure TSampleAuth.OnRequest(const ControllerQualifiedClassName, ActionName: string;
-var AuthenticationRequired: Boolean);
+procedure TSampleAuth.OnRequest(const ControllerQualifiedClassName,
+  ActionName: string; var AuthenticationRequired: Boolean);
 begin
-  AuthenticationRequired := ControllerQualifiedClassName.EndsWith('TTestPrivateServerController');
+  AuthenticationRequired := ControllerQualifiedClassName.EndsWith
+    ('TTestPrivateServerController');
 end;
 
 end.
