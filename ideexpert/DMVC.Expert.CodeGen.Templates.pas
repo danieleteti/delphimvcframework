@@ -35,104 +35,131 @@ interface
 resourcestring
 
  { Delphi template code }
-
- sDMVCDPR = 'program %0:s;'#13#10 +
-#13#10 +
-' {$APPTYPE CONSOLE}'#13#10  +
-''#13#10 +
-'uses'#13#10 +
-'  System.SysUtils,'#13#10 +
-'  Winapi.Windows,'#13#10 +
-'  Winapi.ShellAPI,'#13#10 +
-'  Web.WebReq,'#13#10 +
-'  Web.WebBroker,'#13#10 +
-'  IdHTTPWebBrokerBridge;'#13#10 +
-''#13#10 +
-'{$R *.res}'#13#10 +
-#13#10 +
-'procedure RunServer(APort: Integer);'#13#10 +
-'var'#13#10 +
-'  LInputRecord: TInputRecord;'#13#10 +
-'  LEvent: DWord;'#13#10 +
-'  LHandle: THandle;'#13#10 +
-'  LServer: TIdHTTPWebBrokerBridge;'#13#10 +
-'begin'#13#10 +
-'  Writeln(Format(''Starting HTTP Server or port %%d'', [APort]));'#13#10 +
-'  LServer := TIdHTTPWebBrokerBridge.Create(nil);'#13#10 +
-'  try'#13#10 +
-'    LServer.DefaultPort := APort;'#13#10 +
-'    LServer.Active := True;'#13#10 +
-'    ShellExecute(0, ''open'', pChar(''http://localhost:'' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);'#13#10 +
-'    Writeln(''Press ESC to stop the server'');'#13#10 +
-'    LHandle := GetStdHandle(STD_INPUT_HANDLE);'#13#10 +
-'    while True do'#13#10 +
-'    begin'#13#10 +
-'      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));'#13#10 +
-'      if (LInputRecord.EventType = KEY_EVENT) and'#13#10 +
-'        LInputRecord.Event.KeyEvent.bKeyDown and'#13#10 +
-'        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then'#13#10 +
-'        break;'#13#10 +
-'    end;'#13#10 +
-'  finally'#13#10 +
-'    LServer.Free;'#13#10 +
-'  end;'#13#10 +
-'end;'#13#10 +
-#13#10 +
-'begin'#13#10 +
-'  ReportMemoryLeaksOnShutdown := True;'#13#10 +
-'  try'#13#10 +
-'    if WebRequestHandler <> nil then'#13#10 +
-'      WebRequestHandler.WebModuleClass := WebModuleClass;'#13#10 +
-'    WebRequestHandlerProc.MaxConnections := 1024;'#13#10 +
-'    RunServer(3000);'#13#10 +
-'  except'#13#10 +
-'    on E: Exception do'#13#10 +
-'      Writeln(E.ClassName, '': '', E.Message);'#13#10 +
-'  end;'#13#10 +
-'end.'#13#10;
+//0 - project name
+//1 - http/s port
+ sDMVCDPR = 'program %0:s;' + sLineBreak +
+sLineBreak +
+' {$APPTYPE CONSOLE}' + sLineBreak  +
+'' + sLineBreak +
+'uses' + sLineBreak +
+'  System.SysUtils,' + sLineBreak +
+'  Winapi.Windows,' + sLineBreak +
+'  Winapi.ShellAPI,' + sLineBreak +
+'  Web.WebReq,' + sLineBreak +
+'  Web.WebBroker,' + sLineBreak +
+'  IdHTTPWebBrokerBridge;' + sLineBreak +
+'' + sLineBreak +
+'{$R *.res}' + sLineBreak +
+sLineBreak +
+'procedure RunServer(APort: Integer);' + sLineBreak +
+'var' + sLineBreak +
+'  LInputRecord: TInputRecord;' + sLineBreak +
+'  LEvent: DWord;' + sLineBreak +
+'  LHandle: THandle;' + sLineBreak +
+'  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
+'begin' + sLineBreak +
+'  Writeln(''** DMVCFramework Server **'');' + sLineBreak +
+'  Writeln(Format(''Starting HTTP Server or port %%d'', [APort]));' + sLineBreak +
+'  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
+'  try' + sLineBreak +
+'    LServer.DefaultPort := APort;' + sLineBreak +
+'    LServer.Active := True;' + sLineBreak +
+'    ShellExecute(0, ''open'', pChar(''http://localhost:'' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);' + sLineBreak +
+'    Writeln(''Press ESC to stop the server'');' + sLineBreak +
+'    LHandle := GetStdHandle(STD_INPUT_HANDLE);' + sLineBreak +
+'    while True do' + sLineBreak +
+'    begin' + sLineBreak +
+'      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));' + sLineBreak +
+'      if (LInputRecord.EventType = KEY_EVENT) and' + sLineBreak +
+'        LInputRecord.Event.KeyEvent.bKeyDown and' + sLineBreak +
+'        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then' + sLineBreak +
+'        break;' + sLineBreak +
+'    end;' + sLineBreak +
+'  finally' + sLineBreak +
+'    LServer.Free;' + sLineBreak +
+'  end;' + sLineBreak +
+'end;' + sLineBreak +
+sLineBreak +
+'begin' + sLineBreak +
+'  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
+'  try' + sLineBreak +
+'    if WebRequestHandler <> nil then' + sLineBreak +
+'      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
+'    WebRequestHandlerProc.MaxConnections := 1024;' + sLineBreak +
+'    RunServer(%1:d);' + sLineBreak +
+'  except' + sLineBreak +
+'    on E: Exception do' + sLineBreak +
+'      Writeln(E.ClassName, '': '', E.Message);' + sLineBreak +
+'  end;' + sLineBreak +
+'end.' + sLineBreak;
 
 
  // 0 - Unit Name
  // 1 - Class Name
  // 2 - Index Method - Interface
  // 3 - Index Method - Implementation
- sControllerUnit = 'unit %0:s;'#13#10 +
- #13#10 +
- 'interface'#13#10 +
- #13#10 +
- 'uses'#13#10 +
- '  MVCFramework;'#13#10 +
- #13#10 +
- 'type'#13#10 +
- #13#10 +
- '  [MVCPath(''/'')]'#13#10 +
- '  %1:s = class(TMVCController) '#13#10 +
- '  public'#13#10 +
+ // 4 - Action Filters - Interface
+ // 5 - Action Filters - Implementation
+ sControllerUnit = 'unit %0:s;' + sLineBreak +
+ sLineBreak +
+ 'interface' + sLineBreak +
+ sLineBreak +
+ 'uses' + sLineBreak +
+ '  MVCFramework;' + sLineBreak +
+ sLineBreak +
+ 'type' + sLineBreak +
+ sLineBreak +
+ '  [MVCPath(''/'')]' + sLineBreak +
+ '  %1:s = class(TMVCController) ' + sLineBreak +
+ '  public' + sLineBreak +
  '%2:s' +
- '  end;'#13#10 +
- #13#10 +
- 'implementation'#13#10 +
- #13#10 +
- '%3:s'#13#10 +
- #13#10 +
- 'end.'#13#10;
+ '%4:s' +
+ '  end;' + sLineBreak +
+ sLineBreak +
+ 'implementation' + sLineBreak +
+ sLineBreak +
+ '%3:s' + sLineBreak +
+ '%5:s' + sLineBreak +
+ sLineBreak +
+ 'end.' + sLineBreak;
 
  sIndexMethodIntf =
-'    [MVCPath(''/'')]'#13#10 +
-'    [MVCHTTPMethod([httpGET])]'#13#10 +
-'    procedure Index(ctx: TWebContext);'#13#10;
+'    [MVCPath(''/'')]' + sLineBreak +
+'    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+'    procedure Index(ctx: TWebContext);' + sLineBreak;
 
  // 0 - Class Name
  sIndexMethodImpl =
- 'procedure %0:s.Index(ctx: TWebContext);'#13#10 +
- 'begin'#13#10 +
- '  Render(''Hello World'');'#13#10 +
- #13#10 +
+ 'procedure %0:s.Index(ctx: TWebContext);' + sLineBreak +
+ 'begin' + sLineBreak +
+ '  Render(''Hello World'');' + sLineBreak +
+ sLineBreak +
  'end;';
+
+sActionFiltersIntf =
+'    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;' + sLineBreak +
+'    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;' + sLineBreak;
+
+sActionFiltersImpl =
+'procedure %0:s.OnAfterAction(Context: TWebContext; const AActionName: string); ' + sLineBreak +
+'begin' + sLineBreak +
+'  { Executed after each action }' + sLineBreak +
+'  inherited;' + sLineBreak +
+'end;' + sLineBreak +
+sLineBreak +
+'procedure %0:s.OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean);' + sLineBreak +
+'begin' + sLineBreak +
+'  { Executed before each action' + sLineBreak +
+'    if handled is true (or an exception is raised) the actual' + sLineBreak +
+'    action will not be called }' + sLineBreak +
+'  inherited;' + sLineBreak +
+'end;' + sLineBreak;
+
 
 
  sDefaultControllerName = 'TMyController';
  sDefaultWebModuleName = 'TMyWebModule';
+ sDefaultServerPort = '8080';
 
 
  // 0 = unit name
@@ -140,54 +167,73 @@ resourcestring
  // 2 = controller unit
  // 3 - controller class name
  sWebModuleUnit =
-'unit %0:s;'#13#10 +
-''#13#10 +
-'interface'#13#10 +
-#13#10 +
-'uses System.SysUtils,'#13#10 +
-'     System.Classes,'#13#10 +
-'     Web.HTTPApp,'#13#10 +
-'     MVCFramework;'#13#10 +
-#13#10 +
-'type'#13#10 +
-'  %1:s = class(TWebModule)'#13#10 +
-'    procedure WebModuleCreate(Sender: TObject);'#13#10 +
-'    procedure WebModuleDestroy(Sender: TObject);'#13#10 +
-'  private'#13#10 +
-'    MVC: TMVCEngine;'#13#10 +
-'  public'#13#10 +
-'    { Public declarations }'#13#10 +
-'  end;'#13#10 +
-#13#10 +
-'var'#13#10 +
-'  WebModuleClass: TComponentClass = %1:s;'#13#10 +
-#13#10 +
-'implementation'#13#10 +
-#13#10 +
-'{$R *.dfm}'#13#10 +
-#13#10 +
-'uses %2:s;'#13#10 +
-#13#10 +
-'procedure %1:s.WebModuleCreate(Sender: TObject);'#13#10 +
-'begin'#13#10 +
-'  MVC := TMVCEngine.Create(Self);'#13#10 +
-'  MVC.AddController(%3:s);'#13#10 +
-'end;'#13#10 +
-#13#10 +
-'procedure %1:s.WebModuleDestroy(Sender: TObject);'#13#10 +
-'begin'#13#10 +
-'  MVC.Free;'#13#10 +
-'end;'#13#10 +
-#13#10 +
-'end.'#13#10;
+'unit %0:s;' + sLineBreak +
+'' + sLineBreak +
+'interface' + sLineBreak +
+sLineBreak +
+'uses System.SysUtils,' + sLineBreak +
+'     System.Classes,' + sLineBreak +
+'     Web.HTTPApp,' + sLineBreak +
+'     MVCFramework;' + sLineBreak +
+sLineBreak +
+'type' + sLineBreak +
+'  %1:s = class(TWebModule)' + sLineBreak +
+'    procedure WebModuleCreate(Sender: TObject);' + sLineBreak +
+'    procedure WebModuleDestroy(Sender: TObject);' + sLineBreak +
+'  private' + sLineBreak +
+'    FMVC: TMVCEngine;' + sLineBreak +
+'  public' + sLineBreak +
+'    { Public declarations }' + sLineBreak +
+'  end;' + sLineBreak +
+sLineBreak +
+'var' + sLineBreak +
+'  WebModuleClass: TComponentClass = %1:s;' + sLineBreak +
+sLineBreak +
+'implementation' + sLineBreak +
+sLineBreak +
+'{$R *.dfm}' + sLineBreak +
+sLineBreak +
+'uses %2:s, MVCFramework.Commons;' + sLineBreak +
+sLineBreak +
+'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
+'begin' + sLineBreak +
+'  FMVC := TMVCEngine.Create(Self,' + sLineBreak +
+'    procedure(Config: TMVCConfig)' + sLineBreak +
+'    begin' + sLineBreak +
+'      //enable static files' + sLineBreak +
+'      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + ''\www'';' + sLineBreak +
+'      // session timeout (0 means session cookie)' + sLineBreak +
+'      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +
+'      //default content-type' + sLineBreak +
+'      Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;' + sLineBreak +
+'      //default content charset' + sLineBreak +
+'      Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;' + sLineBreak +
+'      //unhandled actions are permitted?' + sLineBreak +
+'      Config[TMVCConfigKey.AllowUnhandledAction] := ''false'';' + sLineBreak +
+'      //default view file extension' + sLineBreak +
+'      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
+'      //view path' + sLineBreak +
+'      Config[TMVCConfigKey.ViewPath] := ''templates'';'  +sLineBreak +
+'      //Enable STOMP messaging controller' + sLineBreak +
+'      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
+'    end);' + sLineBreak +
+'  FMVC.AddController(%3:s);' + sLineBreak +
+'end;' + sLineBreak +
+sLineBreak +
+'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +
+'begin' + sLineBreak +
+'  FMVC.Free;' + sLineBreak +
+'end;' + sLineBreak +
+sLineBreak +
+'end.' + sLineBreak;
 
 
 sWebModuleDFM =
-'object %0:s: %1:s'#13#10 +
-'  OldCreateOrder = False'#13#10 +
-'  OnCreate = WebModuleCreate'#13#10 +
-'  Height = 230'#13#10 +
-'  Width = 415'#13#10 +
+'object %0:s: %1:s' + sLineBreak +
+'  OldCreateOrder = False' + sLineBreak +
+'  OnCreate = WebModuleCreate' + sLineBreak +
+'  Height = 230' + sLineBreak +
+'  Width = 415' + sLineBreak +
 'end';
 
 implementation

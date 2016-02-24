@@ -27,6 +27,9 @@ type
     edtWebModuleName: TEdit;
     Label1: TLabel;
     lblWbModule: TLabel;
+    chkCreateActionFiltersMethods: TCheckBox;
+    edtServerPort: TEdit;
+    Label2: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
@@ -36,14 +39,19 @@ type
     function GetCreateControllerUnit: boolean;
     function GetControllerClassName: string;
     function GetWebModuleClassName: string;
+    function GetCreateActionFiltersMethods: boolean;
+    function GetServerPort: Integer;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
     property ControllerClassName: string read GetControllerClassName;
-    property CreateControllerUnit: Boolean read GetCreateControllerUnit;
-    property AddToProjectGroup: Boolean read GetAddToProjectGroup;
-    property CreateIndexMethod: Boolean read GetCreateIndexMethod;
+    property CreateControllerUnit: boolean read GetCreateControllerUnit;
+    property AddToProjectGroup: boolean read GetAddToProjectGroup;
+    property CreateIndexMethod: boolean read GetCreateIndexMethod;
+    property CreateActionFiltersMethods: boolean
+      read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
+    property ServerPort: Integer read GetServerPort;
   end;
 
 var
@@ -67,6 +75,7 @@ procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
 begin
   edtClassName.TextHint := sDefaultControllerName;
   edtWebModuleName.TextHint := sDefaultWebModuleName;
+  edtServerPort.TextHint := sDefaultServerPort;
 end;
 
 function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
@@ -79,15 +88,34 @@ begin
   Result := chkCreateIndexMethod.Checked;
 end;
 
+function TfrmDMVCNewProject.GetServerPort: Integer;
+var
+  lServerPort: Integer;
+begin
+  Result := StrToInt(sDefaultServerPort);
+  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text,
+    lServerPort) then
+  begin
+    if (lServerPort > 0) and (lServerPort < 65535) then
+      Result := lServerPort;
+  end;
+end;
+
 function TfrmDMVCNewProject.GetWebModuleClassName: string;
 begin
   if Trim(edtWebModuleName.Text) = '' then
   begin
     Result := sDefaultWebModuleName
-  end else
+  end
+  else
   begin
     Result := Trim(edtWebModuleName.Text);
   end;
+end;
+
+function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;
+begin
+  Result := chkCreateActionFiltersMethods.Checked;
 end;
 
 function TfrmDMVCNewProject.GetCreateControllerUnit: boolean;
@@ -100,7 +128,8 @@ begin
   if Trim(edtClassName.Text) = '' then
   begin
     Result := sDefaultControllerName
-  end else
+  end
+  else
   begin
     Result := Trim(edtClassName.Text);
   end;

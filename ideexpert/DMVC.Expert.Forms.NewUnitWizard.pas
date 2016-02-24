@@ -52,15 +52,18 @@ type
     lblClassName: TLabel;
     edtClassName: TEdit;
     chkCreateIndexMethod: TCheckBox;
+    chkCreateActionFiltersMethods: TCheckBox;
     procedure FormCreate(Sender: TObject);
   private
     function GetCreateIndexMethod: boolean;
     function GetControllerClassName: string;
+    function GetCreateActionFiltersMethods: boolean;
     { Private declarations }
   public
     { Public declarations }
     property ControllerClassName : string read GetControllerClassName;
     property CreateIndexMethod : boolean read GetCreateIndexMethod;
+    property CreateActionFiltersMethods: boolean read GetCreateActionFiltersMethods;
 
   end;
 
@@ -77,6 +80,11 @@ uses
 procedure TfrmDMVCNewUnit.FormCreate(Sender: TObject);
 begin
   edtClassName.TextHint := sDefaultControllerName;
+end;
+
+function TfrmDMVCNewUnit.GetCreateActionFiltersMethods: boolean;
+begin
+  Result := chkCreateActionFiltersMethods.Checked;
 end;
 
 function TfrmDMVCNewUnit.GetCreateIndexMethod: boolean;

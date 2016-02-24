@@ -55,13 +55,13 @@ uses
 
 resourcestring
  sNewDMVCUnitCaption = 'DMVC Unit';
- sNewDMVCProjectHint = 'Create New DMVC Controller Unit';
+ sNewDMVCProjectHint = 'Create New DelphiMVCFramework Controller Unit';
 
 class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const aPersonality: string);
 begin
   RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(aPersonality,
                         sNewDMVCProjectHint, sNewDMVCUnitCaption, 'DMVC.Wizard.NewUnitWizard',  // do not localize
-                        'DMVC', 'DMVC Team - https://github.com/danieleteti/delphimvcframework', // do not localize
+                        'DMVC', 'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
       WizardForm     : TfrmDMVCNewUnit;
@@ -77,6 +77,7 @@ begin
           Project :=  GetActiveProject;
           ControllerUnit := ModuleServices.CreateModule(
                            TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod,
+                                                       WizardForm.CreateActionFiltersMethods,
                                                        WizardForm.ControllerClassName,
                                                        aPersonality));
           if Project <> nil then

@@ -61,8 +61,8 @@ uses
   ExpertsRepository;
 
 resourcestring
-  sNewDMVCProjectCaption = 'DMVC Project';
-  sNewDMVCProjectHint = 'Create New DMVC Project with Controller';
+  sNewDMVCProjectCaption = 'DelphiMVCFramework Project';
+  sNewDMVCProjectHint = 'Create New DelphiMVCFramework Project with Controller';
 
 { TDUnitXNewProjectWizard }
 
@@ -86,6 +86,7 @@ begin
       WebModuleUnit     : IOTAModule;
       ControllerCreator : IOTACreator;
       WebModuleCreator  : IOTAModuleCreator;
+    lProjectSourceCreator: IOTACreator;
     begin
       WizardForm := TfrmDMVCNewProject.Create(Application);
       try
@@ -98,7 +99,9 @@ begin
           ModuleServices := (BorlandIDEServices as IOTAModuleServices);
 
           // Create Project Source
-          ModuleServices.CreateModule(TDMVCProjectFile.Create(APersonality));
+          lProjectSourceCreator := TDMVCProjectFile.Create(APersonality);
+          TDMVCProjectFile(lProjectSourceCreator).DefaultPort := WizardForm.ServerPort;
+          ModuleServices.CreateModule(lProjectSourceCreator);
           Project :=  GetActiveProject;
 
           Config := (Project.ProjectOptions as IOTAProjectOptionsConfigurations).BaseConfiguration;
@@ -108,7 +111,7 @@ begin
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin
-             ControllerCreator := TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod, WizardForm.ControllerClassName, aPersonality);
+             ControllerCreator := TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod, WizardForm.CreateActionFiltersMethods, WizardForm.ControllerClassName, aPersonality);
              ControllerUnit := ModuleServices.CreateModule(ControllerCreator);
              if Project <> nil then
              begin
