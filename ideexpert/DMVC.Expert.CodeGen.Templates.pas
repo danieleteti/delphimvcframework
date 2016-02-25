@@ -232,6 +232,7 @@ sWebModuleDFM =
 'object %0:s: %1:s' + sLineBreak +
 '  OldCreateOrder = False' + sLineBreak +
 '  OnCreate = WebModuleCreate' + sLineBreak +
+'  OnDestroy = WebModuleDestroy' + sLineBreak +
 '  Height = 230' + sLineBreak +
 '  Width = 415' + sLineBreak +
 'end';
