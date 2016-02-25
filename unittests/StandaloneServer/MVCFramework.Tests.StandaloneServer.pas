@@ -90,7 +90,7 @@ begin
   vServerInfo.WebModuleClass := TestWebModuleClass;
 
   vOnAuthentication := procedure(const pUserName, pPassword: string;
-      pUserRoles: TList<string>; var pIsValid: Boolean)
+      pUserRoles: TList<string>; var pIsValid: Boolean; const pSessionData: TDictionary<String, String>)
     begin
       pIsValid := pUserName.Equals('ezequiel') and pPassword.Equals('123');
     end;

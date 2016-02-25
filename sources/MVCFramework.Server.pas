@@ -60,7 +60,7 @@ type
   end;
 
   TMVCAuthenticationDelegate = reference to procedure(const AUserName, APassword: string;
-    AUserRoles: TList<string>; var AIsValid: Boolean);
+    AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<String, String>);
 
   TMVCAuthorizationDelegate = reference to procedure(AUserRoles: TList<string>;
     const AControllerQualifiedClassName: string; const AActionName: string; var AIsAuthorized: Boolean);
@@ -77,7 +77,7 @@ type
       var AAuthenticationRequired: Boolean);
 
     procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
-      var AIsValid: Boolean);
+      var AIsValid: Boolean; const ASessionData: TDictionary<String, String>);
 
     procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
       const AActionName: string; var AIsAuthorized: Boolean);
@@ -540,11 +540,11 @@ begin
 end;
 
 procedure TMVCDefaultSecurity.OnAuthentication(const AUserName, APassword: string;
-  AUserRoles: TList<string>; var AIsValid: Boolean);
+  AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<String, String>);
 begin
   AIsValid := True;
   if Assigned(FAuthenticationDelegate) then
-    FAuthenticationDelegate(AUserName, APassword, AUserRoles, AIsValid);
+    FAuthenticationDelegate(AUserName, APassword, AUserRoles, AIsValid, ASessionData);
 end;
 
 procedure TMVCDefaultSecurity.OnAuthorization(AUserRoles: TList<string>;
