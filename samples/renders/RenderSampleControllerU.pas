@@ -26,6 +26,11 @@ type
     procedure GetProgrammersAndPhilosophersAsObjectList(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGet])]
+    [MVCPath('/customers/view/($id).html')]
+    [MVCProduces('text/html', 'UTF-8')]
+    procedure GetPerson_AsHTMLView(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGet])]
     [MVCPath('/customers/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetPerson_AsHTML(CTX: TWebContext);
@@ -64,7 +69,8 @@ type
 implementation
 
 uses
-  System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU, Generics.Collections,
+  System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU,
+  Generics.Collections,
   System.Classes;
 
 { TRoutingSampleController }
@@ -111,10 +117,26 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);
 begin
-  ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>')
-    .Append('<li>LastName: Teti').AppendFormat('<li>DOB: %s</li>',
-    [ISODateToString(EncodeDate(1975, 5, 2))]).Append('<li>Married: yes</li>')
-    .Append('</ul></body></html>');
+  ResponseStream.Append('<html><body><ul>')
+    .Append('<li>FirstName: Daniele</li>').Append('<li>LastName: Teti')
+    .AppendFormat('<li>DOB: %s</li>', [ISODateToString(EncodeDate(1975, 5, 2))])
+    .Append('<li>Married: yes</li>').Append('</ul></body></html>');
+  Render;
+end;
+
+procedure TRenderSampleController.GetPerson_AsHTMLView(CTX: TWebContext);
+var
+  Cust: TCustomer;
+begin
+  Cust := TCustomer.Create;
+  Cust.Name := 'Daniele Teti Inc.';
+  Cust.ContactFirst := 'Daniele';
+  Cust.ContactLast := 'Teti';
+  Cust.AddressLine1 := 'Rome Street 12';
+  Cust.AddressLine2 := '00100';
+  Cust.City := 'ROME';
+  PushObjectToView('customer', Cust);
+  LoadView(['customer']);
   Render;
 end;
 
@@ -126,7 +148,8 @@ begin
   Render;
 end;
 
-procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList(CTX: TWebContext);
+procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList
+  (CTX: TWebContext);
 var
   List: TObjectList<TPerson>;
   p: TProgrammer;
@@ -210,7 +233,8 @@ procedure TRenderSampleController.GetPersonPhotoAsStream(CTX: TWebContext);
 var
   LPhoto: TFileStream;
 begin
-  LPhoto := TFileStream.Create('..\..\..\_\customer.png', fmOpenRead or fmShareDenyWrite);
+  LPhoto := TFileStream.Create('..\..\..\_\customer.png',
+    fmOpenRead or fmShareDenyWrite);
   ContentType := 'image/png'; // you can also use MVCProduces attribute
 
   // LPhoto is a plain TStream descendant, so it can be rendered as usual
