@@ -349,7 +349,16 @@ type
     function GetCurrentWebModule: TWebModule;
     function ResponseStream: TStringBuilder;
     function GetNewStompClient(ClientID: string = ''): IStompClient;
+    /// <summary>
+    /// Load mustache view located in TMVCConfigKey.ViewsPath and
+    /// generates output using models pushed using Push* methods
+    /// </summary>
     procedure LoadView(const ViewNames: TArray<String>); virtual;
+    /// <summary>
+    /// Load mustache view located in TMVCConfigKey.ViewsPath and
+    /// returns output using models pushed using Push* methods
+    /// </summary>
+    function GetRenderedView(const ViewNames: TArray<String>): String; virtual;
     property Context: TWebContext read FContext write SetContext;
     property Session: TWebSession read GetWebSession write SetWebSession;
     procedure MVCControllerAfterCreate; virtual;
@@ -1589,6 +1598,42 @@ begin
     Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
 end;
 
+function TMVCController.GetRenderedView(const ViewNames
+  : TArray<String>): String;
+var
+  View: TMVCMustacheView;
+  LViewName: String;
+  LSBuilder: TStringBuilder;
+begin
+  LSBuilder := TStringBuilder.Create;
+  try
+    try
+      for LViewName in ViewNames do
+      begin
+
+        View := TMVCMustacheView.Create(LViewName, GetMVCEngine, FContext,
+          FViewModel, FViewDataSets, ContentType);
+        try
+          View.SetMVCConfig(GetMVCConfig);
+          View.Execute;
+          LSBuilder.Append(View.GetOutput);
+        finally
+          View.Free;
+        end;
+      end;
+      Result := LSBuilder.ToString;
+    except
+      on E: Exception do
+      begin
+        ContentType := 'text/plain';
+        Render(E);
+      end;
+    end;
+  finally
+    LSBuilder.Free;
+  end;
+end;
+
 function TMVCController.GetWebSession: TWebSession;
 begin
   if not Assigned(FWebSession) then
@@ -1607,28 +1652,14 @@ begin
 end;
 
 procedure TMVCController.LoadView(const ViewNames: TArray<String>);
-var
-  View: TMVCMustacheView;
-  LViewName: String;
 begin
-  for LViewName in ViewNames do
-  begin
-    try
-      View := TMVCMustacheView.Create(LViewName, GetMVCEngine, FContext,
-        FViewModel, FViewDataSets, ContentType);
-      try
-        View.SetMVCConfig(GetMVCConfig);
-        View.Execute;
-        ResponseStream.Append(View.GetOutput);
-      finally
-        View.Free;
-      end;
-    except
-      on E: Exception do
-      begin
-        ContentType := 'text/plain';
-        Render(E);
-      end;
+  try
+    ResponseStream.Append(GetRenderedView(ViewNames));
+  except
+    on E: Exception do
+    begin
+      ContentType := 'text/plain';
+      Render(E);
     end;
   end;
 end;

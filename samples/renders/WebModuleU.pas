@@ -35,7 +35,7 @@ begin
   DMVC := TMVCEngine.Create(self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.ViewPath] = 'templates';
+      Config[TMVCConfigKey.ViewPath] := 'templates';
     end);
   DMVC.AddController(TRenderSampleController);
 end;

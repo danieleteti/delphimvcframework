@@ -136,8 +136,15 @@ begin
   Cust.AddressLine2 := '00100';
   Cust.City := 'ROME';
   PushObjectToView('customer', Cust);
-  LoadView(['customer']);
+  LoadView(['header', 'customer', 'footer']);
   Render;
+  { If you need more flexibility, you can use GetRenderedView to compose your
+    output using small views.
+    Here's an example:
+
+    ContentType := TMVCMediaType.TEXT_HTML;
+    Render(GetRenderedView(['header', 'customer','footer']));
+  }
 end;
 
 procedure TRenderSampleController.GetPerson_AsText(CTX: TWebContext);
