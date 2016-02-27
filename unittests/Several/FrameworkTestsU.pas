@@ -9,29 +9,13 @@ uses
   MVCFramework, Data.DB, System.SysUtils;
 
 type
-  TTestRouting = class(TTestCase)
-  private
-    Router: TMVCRouter;
-    Controllers: TList<TMVCControllerClass>;
-
-  public
-    procedure SetUp; override;
-    procedure TearDown; override;
+  TTestMappers = class(TTestCase)
   protected
     procedure SameFishesDataSet(ds, ds2: TDataSet);
-  published
-    procedure TestWithNoParameters;
-    procedure TestWithNoPath;
-    procedure TestPathButNoParameters;
-    procedure TestPathWithParameters;
-    procedure TestWithMethodTypes;
-    procedure TestComplexRoutings;
-    procedure TestProduceRoutings;
-    procedure TestProduceRoutingsWithExplicitCharset;
 
+  published
     procedure TestObjectToJSONObject;
     procedure TestObjectListToJSONArray;
-    // objects mappers
     procedure TestJSONObjectToObjectAndBack;
     procedure TestSerializeUsingProperties;
     procedure TestSerializeUsingFields;
@@ -50,6 +34,28 @@ type
     procedure TestJSONArrayToObjectListNoGenerics;
     procedure TestJSONArrayToObjectListNoGenericsWrappedList;
     procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
+
+  end;
+
+  TTestRouting = class(TTestCase)
+  private
+    Router: TMVCRouter;
+    Controllers: TList<TMVCControllerClass>;
+
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestWithNoParameters;
+    procedure TestWithNoPath;
+    procedure TestPathButNoParameters;
+    procedure TestPathWithParameters;
+    procedure TestWithMethodTypes;
+    procedure TestComplexRoutings;
+    procedure TestProduceRoutings;
+    procedure TestProduceRoutingsWithExplicitCharset;
+
+    // objects mappers
   end;
 
 implementation
@@ -68,16 +74,24 @@ uses MVCFramework.Commons,
 {$ENDIF}
   TestServerControllerU, System.Classes, DuckListU;
 
-procedure TTestRouting.SameFishesDataSet(ds, ds2: TDataSet);
+procedure TTestMappers.SameFishesDataSet(ds, ds2: TDataSet);
 begin
-  CheckEquals(ds.FieldByName('Species No').AsInteger, ds2.FieldByName('Species No').AsInteger);
-  CheckEquals(ds.FieldByName('Category').AsString, ds2.FieldByName('Category').AsString);
-  CheckEquals(ds.FieldByName('Common_Name').AsString, ds2.FieldByName('Common_Name').AsString);
-  CheckEquals(ds.FieldByName('Species Name').AsString, ds2.FieldByName('Species Name').AsString);
-  CheckEquals(ds.FieldByName('Length (cm)').AsString, ds2.FieldByName('Length (cm)').AsString);
-  CheckEquals(ds.FieldByName('Length_In').AsInteger, ds2.FieldByName('Length_In').AsInteger);
-  CheckEquals(ds.FieldByName('Notes').AsString, ds2.FieldByName('Notes').AsString);
-  CheckEquals(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic').AsString);
+  CheckEquals(ds.FieldByName('Species No').AsInteger,
+    ds2.FieldByName('Species No').AsInteger);
+  CheckEquals(ds.FieldByName('Category').AsString, ds2.FieldByName('Category')
+    .AsString);
+  CheckEquals(ds.FieldByName('Common_Name').AsString,
+    ds2.FieldByName('Common_Name').AsString);
+  CheckEquals(ds.FieldByName('Species Name').AsString,
+    ds2.FieldByName('Species Name').AsString);
+  CheckEquals(ds.FieldByName('Length (cm)').AsString,
+    ds2.FieldByName('Length (cm)').AsString);
+  CheckEquals(ds.FieldByName('Length_In').AsInteger,
+    ds2.FieldByName('Length_In').AsInteger);
+  CheckEquals(ds.FieldByName('Notes').AsString, ds2.FieldByName('Notes')
+    .AsString);
+  CheckEquals(ds.FieldByName('Graphic').AsString, ds2.FieldByName('Graphic')
+    .AsString);
 end;
 
 procedure TTestRouting.SetUp;
@@ -113,7 +127,7 @@ end;
 // end;
 // end;
 
-procedure TTestRouting.TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
+procedure TTestMappers.TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
 var
   Obj: TMyStreamObject;
   JSONObj: TJSONObject;
@@ -143,7 +157,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestComplexObjectToJSONObjectAndBack;
+procedure TTestMappers.TestComplexObjectToJSONObjectAndBack;
 var
   Obj: TMyComplexObject;
   JObj: TJSONObject;
@@ -167,7 +181,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestComplexObjectToJSONObjectAndBackWithNilReference;
+procedure TTestMappers.TestComplexObjectToJSONObjectAndBackWithNilReference;
 var
   Obj: TMyComplexObject;
   JObj: TJSONObject;
@@ -201,32 +215,35 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/path1/1', httpPOST, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
-
-    Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/path2/1/2/3', httpPOST, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
-
-    Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/path3/1/2/tre/3', httpPOST, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
-
-    Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/path4/par1/2/par2/3/4', httpPOST, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
-
-    Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/path4/par1/par2/3/4/notvalidparameter', httpPOST,
-      'text/plain', 'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+    CheckTrue(Router.ExecuteRouting('/path1/1', httpPOST, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/path2/1/2/3', httpPOST, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/path3/1/2/tre/3', httpPOST, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckTrue(Router.ExecuteRouting('/path4/par1/2/par2/3/4', httpPOST,
+      'text/plain', 'text/plain', Controllers, 'text/plain',
+      TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
+      ResponseContentEncoding));
+    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+
+    Params.Clear;
+    CheckFalse(Router.ExecuteRouting('/path4/par1/par2/3/4/notvalidparameter',
+      httpPOST, 'text/plain', 'text/plain', Controllers, 'text/plain',
+      TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
+      ResponseContentEncoding));
     CheckNull(Router.MethodToCall);
     CheckFalse(Assigned(Router.MVCControllerClass));
 
@@ -235,7 +252,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestDataSetToJSONArray;
+procedure TTestMappers.TestDataSetToJSONArray;
 var
   ds: TClientDataSet;
   JObj: TJSONObject;
@@ -273,7 +290,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestDataSetToJSONObject;
+procedure TTestMappers.TestDataSetToJSONObject;
 var
   ds: TClientDataSet;
   JObj: TJSONObject;
@@ -283,15 +300,12 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    // JObj := TJSONObject.Create;
     JObj := ds.AsJSONObject;
     try
-      // Mapper.DataSetToJSONObject(ds, JObj, false);
       ds2.LoadFromFile('..\..\fishes.xml');
       ds2.EmptyDataSet;
       ds2.Insert;
       ds2.LoadFromJSONObject(JObj);
-      // Mapper.JSONObjectToDataSet(JObj, ds2, false);
       ds2.Post;
       SameFishesDataSet(ds, ds2);
     finally
@@ -303,7 +317,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestDataSetToJSONObjectFieldPolicyAsIsCase;
+procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyAsIsCase;
 var
   ds: TClientDataSet;
   JObj: TJSONObject;
@@ -313,7 +327,6 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    // JObj := TJSONObject.Create;
     JObj := ds.AsJSONObject(false, fpAsIs);
     try
       ds2.LoadFromFile('..\..\fishes.xml');
@@ -331,7 +344,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestDataSetToJSONObjectFieldPolicyLowerCase;
+procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyLowerCase;
 var
   ds: TClientDataSet;
   JObj: TJSONObject;
@@ -341,7 +354,6 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    // JObj := TJSONObject.Create;
     JObj := ds.AsJSONObject(false, fpLowerCase);
     try
       ds2.LoadFromFile('..\..\fishes.xml');
@@ -359,7 +371,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestDataSetToJSONObjectFieldPolicyUpperCase;
+procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyUpperCase;
 var
   ds: TClientDataSet;
   JObj: TJSONObject;
@@ -369,7 +381,6 @@ begin
   ds2 := TClientDataSet.Create(nil);
   try
     ds.LoadFromFile('..\..\fishes.xml');
-    // JObj := TJSONObject.Create;
     JObj := ds.AsJSONObject(false, fpUpperCase);
     try
       ds2.LoadFromFile('..\..\fishes.xml');
@@ -387,7 +398,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestJSONArrayToObjectListNoGenerics;
+procedure TTestMappers.TestJSONArrayToObjectListNoGenerics;
 var
   ListObj, RetList: TObjectList<TMyObject>;
   JSONArr: TJSONArray;
@@ -399,7 +410,8 @@ begin
     ListObj.Add(GetMyObject);
     JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
     try
-      RetList := TObjectList<TMyObject>(Mapper.JSONArrayToObjectList(TMyObject, JSONArr, false));
+      RetList := TObjectList<TMyObject>(Mapper.JSONArrayToObjectList(TMyObject,
+        JSONArr, false));
       try
         CheckEquals(2, RetList.Count);
         for I := 0 to ListObj.Count - 1 do
@@ -415,7 +427,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestJSONArrayToObjectListNoGenericsWrappedList;
+procedure TTestMappers.TestJSONArrayToObjectListNoGenericsWrappedList;
 var
   ListObj, RetList: TObjectList<TMyObject>;
   JSONArr: TJSONArray;
@@ -429,7 +441,8 @@ begin
     try
       RetList := TObjectList<TMyObject>.Create;
       try
-        Mapper.JSONArrayToObjectList(WrapAsList(RetList), TMyObject, JSONArr, false);
+        Mapper.JSONArrayToObjectList(WrapAsList(RetList), TMyObject,
+          JSONArr, false);
         CheckEquals(2, RetList.Count);
         for I := 0 to ListObj.Count - 1 do
           CheckTrue(ListObj[I].Equals(RetList[I]));
@@ -444,7 +457,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestJSONObjectToObjectAndBack;
+procedure TTestMappers.TestJSONObjectToObjectAndBack;
 var
   Obj: TMyObject;
   JObj: TJSONObject;
@@ -468,7 +481,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestObjectListToJSONArray;
+procedure TTestMappers.TestObjectListToJSONArray;
 var
   Obj: TMyObject;
   ObjList, Obj2List: TObjectList<TMyObject>;
@@ -500,7 +513,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestObjectToJSONObject;
+procedure TTestMappers.TestObjectToJSONObject;
 var
   Obj: TMyObject;
   JSON: TJSONObject;
@@ -524,7 +537,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestObjectToJSONObjectAndBackWithStringStreamUTF16;
+procedure TTestMappers.TestObjectToJSONObjectAndBackWithStringStreamUTF16;
 var
   SO: TMyStreamObject;
   JSONObj: TJSONObject;
@@ -555,7 +568,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+procedure TTestMappers.TestObjectToJSONObjectAndBackWithStringStreamUTF8;
 var
   SO: TMyStreamObject;
   JSONObj: TJSONObject;
@@ -594,8 +607,9 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET, 'text/plain',
+      'text/plain', Controllers, 'text/plain',
+      TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
       ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
@@ -614,8 +628,9 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('789', Params['ordernumber']);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
@@ -626,8 +641,10 @@ begin
 
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/àèéìòù .-_\', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/àèéìòù .-_\', httpGET,
+      'text/plain', 'text/plain', Controllers, 'text/plain',
+      TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
+      ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('àèéìòù .-_\', Params['ordernumber']);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
@@ -635,8 +652,6 @@ begin
   finally
     Params.free;
   end;
-
-
 
 end;
 
@@ -649,9 +664,10 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     // a GET request with a ACCEPT: application/json
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '', 'application/json', Controllers,
-      TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, Params,
-      ResponseContentType, ResponseContentCharset));
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '', 'application/json',
+      Controllers, TMVCConstants.DEFAULT_CONTENT_TYPE,
+      TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
+      ResponseContentCharset));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
@@ -670,8 +686,9 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     // a GET request with a ACCEPT: application/json
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '', 'application/json; charset=UTF-8',
-      Controllers, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET,
+    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '',
+      'application/json; charset=UTF-8', Controllers,
+      TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET,
       Params, ResponseContentType, ResponseContentCharset));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
@@ -682,7 +699,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestSerializeUsingFields;
+procedure TTestMappers.TestSerializeUsingFields;
 var
   lObj: TMyObjectWithLogic;
   lJObj: TJSONObject;
@@ -698,8 +715,10 @@ begin
       CheckNotNull(lJObj.Get('FAge'));
       lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
       try
-        CheckIs(lObj2, TMyObjectWithLogic, 'wrong classtype for deserialized object');
-        CheckTrue(lObj.Equals(lObj2), 'restored object is different from the original');
+        CheckIs(lObj2, TMyObjectWithLogic,
+          'wrong classtype for deserialized object');
+        CheckTrue(lObj.Equals(lObj2),
+          'restored object is different from the original');
       finally
         lObj2.free;
       end;
@@ -711,7 +730,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestSerializeUsingFieldsComplexObject;
+procedure TTestMappers.TestSerializeUsingFieldsComplexObject;
 var
   lJObj: TJSONObject;
   lObj2: TObject;
@@ -727,8 +746,10 @@ begin
       CheckNotNull(lJObj.Get('FChildObject'));
       lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
       try
-        CheckIs(lObj2, TMyComplexObject, 'wrong classtype for deserialized object');
-        CheckTrue(lObj.Equals(lObj2), 'restored object is different from the original');
+        CheckIs(lObj2, TMyComplexObject,
+          'wrong classtype for deserialized object');
+        CheckTrue(lObj.Equals(lObj2),
+          'restored object is different from the original');
       finally
         lObj2.free;
       end;
@@ -740,7 +761,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestSerializeUsingFieldsComplexObject2;
+procedure TTestMappers.TestSerializeUsingFieldsComplexObject2;
 var
   lJObj: TJSONObject;
   lObj2: TObject;
@@ -756,8 +777,10 @@ begin
       CheckNotNull(lJObj.Get('FChildObject'));
       lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
       try
-        CheckIs(lObj2, TMyComplexObject, 'wrong classtype for deserialized object');
-        CheckTrue(lObj.Equals(lObj2), 'restored object is different from the original');
+        CheckIs(lObj2, TMyComplexObject,
+          'wrong classtype for deserialized object');
+        CheckTrue(lObj.Equals(lObj2),
+          'restored object is different from the original');
       finally
         lObj2.free;
       end;
@@ -769,7 +792,8 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
+procedure TTestMappers.
+  TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
 var
   lObj: TMyObjectWithLogic;
   lJObj: TJSONObject;
@@ -794,7 +818,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestSerializeUsingProperties;
+procedure TTestMappers.TestSerializeUsingProperties;
 var
   lObj: TMyObjectWithLogic;
   lJObj: TJSONObject;
@@ -812,7 +836,8 @@ begin
       CheckNotNull(lJObj.Get('IsAdult'));
       lObj2 := Mapper.JSONObjectToObject<TMyObjectWithLogic>(lJObj);
       try
-        CheckTrue(lObj2.Equals(lObj), 'deserialized object is not equals to the original object');
+        CheckTrue(lObj2.Equals(lObj),
+          'deserialized object is not equals to the original object');
       finally
         lObj2.free;
       end;
@@ -832,51 +857,54 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPOST, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpPOST, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPUT, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpPUT, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPATCH, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpPATCH, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('PatchOrder', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpDELETE, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding));
+    CheckFalse(Router.ExecuteRouting('/orders/789', httpDELETE, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckNull(Router.MethodToCall);
     CheckFalse(Assigned(Router.MVCControllerClass));
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpHEAD, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding), 'Resolved as HEAD');
+    CheckFalse(Router.ExecuteRouting('/orders/789', httpHEAD, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding), 'Resolved as HEAD');
     CheckNull(Router.MethodToCall, 'Resolved as HEAD');
     CheckFalse(Assigned(Router.MVCControllerClass));
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpOPTIONS, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType,
-      ResponseContentEncoding), 'Resolved as OPTIONS');
+    CheckFalse(Router.ExecuteRouting('/orders/789', httpOPTIONS, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding), 'Resolved as OPTIONS');
     CheckNull(Router.MethodToCall, 'Resolved as OPTIONS');
     CheckFalse(Assigned(Router.MVCControllerClass));
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
+      'text/plain', Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
     Params.free;
@@ -891,8 +919,9 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('/', httpGET, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
@@ -909,8 +938,9 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('', httpGET, 'text/plain', 'text/plain', Controllers,
-      'text/plain', TMVCMimeType.TEXT_PLAIN, Params, ResponseContentType, ResponseContentEncoding));
+    CheckTrue(Router.ExecuteRouting('', httpGET, 'text/plain', 'text/plain',
+      Controllers, 'text/plain', TMVCMimeType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
@@ -924,6 +954,7 @@ end;
 initialization
 
 RegisterTest(TTestRouting.suite);
+RegisterTest(TTestMappers.suite);
 
 finalization
 
