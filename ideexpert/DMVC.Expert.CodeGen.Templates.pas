@@ -216,6 +216,8 @@ sLineBreak +
 '      Config[TMVCConfigKey.ViewPath] := ''templates'';'  +sLineBreak +
 '      //Enable STOMP messaging controller' + sLineBreak +
 '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
+'      //Enable Server Signature in response' + sLineBreak +
+'      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
 '    end);' + sLineBreak +
 '  FMVC.AddController(%3:s);' + sLineBreak +
 'end;' + sLineBreak +

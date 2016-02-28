@@ -76,11 +76,13 @@ type
     procedure OnRequest(const AControllerQualifiedClassName, AActionName: string;
       var AAuthenticationRequired: Boolean);
 
-    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
-      var AIsValid: Boolean);
-
     procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
       const AActionName: string; var AIsAuthorized: Boolean);
+
+    procedure OnAuthentication(const UserName: string; const Password: string;
+      UserRoles: System.Generics.Collections.TList<System.string>;
+      var IsValid: Boolean;
+      const SessionData: TDictionary<string,string>);
   end;
 
   IMVCServerInfo = interface
@@ -539,12 +541,14 @@ begin
   FAuthorizationDelegate := AAuthorizationDelegate;
 end;
 
-procedure TMVCDefaultSecurity.OnAuthentication(const AUserName, APassword: string;
-  AUserRoles: TList<string>; var AIsValid: Boolean);
+procedure TMVCDefaultSecurity.OnAuthentication(const UserName: string; const Password: string;
+      UserRoles: System.Generics.Collections.TList<System.string>;
+      var IsValid: Boolean;
+      const SessionData: TDictionary<string,string>);
 begin
-  AIsValid := True;
+  IsValid := True;
   if Assigned(FAuthenticationDelegate) then
-    FAuthenticationDelegate(AUserName, APassword, AUserRoles, AIsValid);
+    FAuthenticationDelegate(UserName, Password, UserRoles, IsValid);
 end;
 
 procedure TMVCDefaultSecurity.OnAuthorization(AUserRoles: TList<string>;

@@ -21,7 +21,6 @@
 { limitations under the License. }
 { }
 { *************************************************************************** }
-
 unit MVCFramework;
 
 {$RTTI EXPLICIT
@@ -47,11 +46,11 @@ uses
   MVCFramework.Session,
   StompTypes,
   ObjectsMappers
-{$IF CompilerVErsion < 27}
+{$IF CompilerVersion < 27}
     , Data.DBXJSON
 {$ELSE}
     , System.JSON, Web.ApacheHTTP
-{$IFEND}
+{$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
 
 type
@@ -478,6 +477,7 @@ type
     // FViewCache            : TViewCache;
     FMimeTypes: TDictionary<string, string>;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
+    procedure SetDefaultReponseHeaders(AContext: TWebContext);
 
   protected
     FConfiguredSessionTimeout: Int64;
@@ -555,6 +555,8 @@ type
     StompPassword = 'stomppassword';
     Messaging = 'messaging';
     AllowUnhandledAction = 'allow_unhandled_action'; // tristan
+    ServerName = 'server_name'; // tristan
+    ExposeServerSignature = 'server_signature';
   end;
 
 function IsShuttingDown: boolean;
@@ -663,6 +665,8 @@ begin
   Config[TMVCConfigKey.Messaging] := 'false';
 
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false'; // tristan
+  Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
+  Config[TMVCConfigKey.ExposeServerSignature] := 'true';
 
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
@@ -710,6 +714,16 @@ begin
   inherited;
 end;
 
+procedure TMVCEngine.SetDefaultReponseHeaders(AContext: TWebContext);
+begin
+  if Config[TMVCConfigKey.ExposeServerSignature] = 'true' then
+  begin
+    AContext.Response.CustomHeaders.Values['Server'] :=
+      Config[TMVCConfigKey.ServerName];
+  end;
+  AContext.Response.RawWebResponse.Date := Now;
+end;
+
 function TMVCEngine.ExecuteAction(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse): boolean;
 var
@@ -729,6 +743,7 @@ begin
   try
     Context := TWebContext.Create(Request, Response, FMVCConfig);
     try
+      SetDefaultReponseHeaders(Context); // tristan
       // Static file handling
       if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
         FMVCConfig[TMVCConfigKey.DocumentRoot]), Request.PathInfo,
@@ -957,7 +972,7 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-        IsExpired := MinutesBetween(now, Result.LastAccess) > ASessionTimeout;
+        IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
         // StrToInt(Config.Value['sessiontimeout']);
       end;
 
@@ -1060,16 +1075,16 @@ begin
   if Pos('text/html', LowerCase(Request.Accept)) = 1 then
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
-      'Exception raised of class: ' + E.ClassName + sLineBreak +
+    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
   end
   else
   begin
     Response.ContentType := 'text/plain';
-    Response.Content := 'DelphiMVCFramework ERROR:' + sLineBreak +
-      'Exception raised of class: ' + E.ClassName + sLineBreak +
+    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
       '***********************************************' + sLineBreak + E.Message
       + sLineBreak + '***********************************************';
   end;
@@ -1098,7 +1113,7 @@ begin
   if LSessTimeout = 0 then
     Cookie.Expires := 0
   else
-    Cookie.Expires := now + OneMinute * LSessTimeout;
+    Cookie.Expires := Now + OneMinute * LSessTimeout;
   Cookie.Path := '/';
   Result := ASessionID;
 end;
@@ -1552,7 +1567,7 @@ begin
       msg.AddPair('_topic', ATopic);
 
     msg.AddPair('_username', GetClientID).AddPair('_timestamp',
-      FormatDateTime('YYYY-MM-DD HH:NN:SS', now));
+      FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
@@ -2289,7 +2304,7 @@ begin
 
     ResponseStream.Append
       ('<html><head><style>pre { color: #000000; background-color: #d0d0d0; }</style></head><body>')
-      .Append('<h1>DMVCFramework: Error Raised</h1>')
+      .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
       .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
       [Context.Response.StatusCode])
       .AppendFormat('HTTP Reason Text: "%s"</pre>',
