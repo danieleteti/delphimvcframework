@@ -59,7 +59,7 @@ sLineBreak +
 '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
 'begin' + sLineBreak +
 '  Writeln(''** DMVCFramework Server **'');' + sLineBreak +
-'  Writeln(Format(''Starting HTTP Server or port %%d'', [APort]));' + sLineBreak +
+'  Writeln(Format(''Starting HTTP Server on port %%d'', [APort]));' + sLineBreak +
 '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
 '  try' + sLineBreak +
 '    LServer.DefaultPort := APort;' + sLineBreak +
