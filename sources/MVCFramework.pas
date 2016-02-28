@@ -1089,14 +1089,16 @@ class function TMVCEngine.SendSessionCookie(AContext: TWebContext;
   ASessionID: string): string;
 var
   Cookie: TCookie;
+  LSessTimeout: Integer;
 begin
   Cookie := AContext.Response.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionID;
-  // danieleteti - reintroduced sessiontimeout
-  Cookie.Expires := now + OneMinute *
-    strtoint(AContext.Config[TMVCConfigKey.SessionTimeout]);
-  Cookie.Expires := 0; // session cookie;
+  LSessTimeout := StrToIntDef(AContext.Config[TMVCConfigKey.SessionTimeout], 0);
+  if LSessTimeout = 0 then
+    Cookie.Expires := 0
+  else
+    Cookie.Expires := now + OneMinute * LSessTimeout;
   Cookie.Path := '/';
   Result := ASessionID;
 end;
