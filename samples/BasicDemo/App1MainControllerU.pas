@@ -64,8 +64,8 @@ procedure TApp1MainController.RaiseException(ctx: TWebContext);
 var
   R: Extended;
 begin
-  Log('Parameter1=' + ctx.Request.Params['par1'].QuotedString);
-  Log('Parameter2=' + ctx.Request.Params['par2'].QuotedString);
+  Log('Parameter1=' + QuotedStr(ctx.Request.Params['par1']));
+  Log('Parameter2=' + QuotedStr(ctx.Request.Params['par2']));
   R := StrToInt(ctx.Request.Params['par1']) /
     StrToInt(ctx.Request.Params['par2']);
   Render(TJSONObject.Create(TJSONPair.Create('result', TJSONNumber.Create(R))));
