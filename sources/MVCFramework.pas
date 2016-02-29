@@ -857,7 +857,7 @@ begin
                 Log(TLogLevel.levNormal, Request.Method + ':' +
                   Request.RawPathInfo + ' -> ' +
                   Router.MVCControllerClass.QualifiedClassName + ' - ' +
-                  Response.StatusCode.ToString + ' ' + Response.ReasonString)
+                  IntToStr(Response.StatusCode) + ' ' + Response.ReasonString)
               finally
                 SelectedController.Free;
               end;
@@ -870,7 +870,7 @@ begin
                 Http404(Context);
                 Log(TLogLevel.levNormal, Request.Method + ':' +
                   Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
-                  Response.StatusCode.ToString + ' ' + Response.ReasonString);
+                  IntToStr(Response.StatusCode) + ' ' + Response.ReasonString);
               end
               else
               begin

@@ -640,7 +640,7 @@ begin
     Exit;
 
   _ARttiType := ctx.GetType(SourceObj.ClassType);
-  _ARttiTypeTarget := ctx.GetType(T);
+  _ARttiTypeTarget := ctx.GetType(TargetObj.ClassType);
 
   cloned := TargetObj;
   master := SourceObj;
