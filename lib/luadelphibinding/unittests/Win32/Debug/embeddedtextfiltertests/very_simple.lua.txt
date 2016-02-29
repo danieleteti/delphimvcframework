@@ -1,5 +1,0 @@
-Ciao
-hello
-mondo
-world
-close

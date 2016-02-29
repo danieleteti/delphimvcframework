@@ -439,7 +439,7 @@ end;
 function ISOStrToTime(TimeAsString: string): TTime;
 begin
   Result := EncodeTime(StrToInt(Copy(TimeAsString, 1, 2)), StrToInt(Copy(TimeAsString, 4, 2)),
-    StrToInt(Copy(TimeAsString, 7, 2)), 0);
+    StrToIntDef(Copy(TimeAsString, 7, 2), 0), 0);
 end;
 
 function ISOStrToDate(DateAsString: string): TDate;

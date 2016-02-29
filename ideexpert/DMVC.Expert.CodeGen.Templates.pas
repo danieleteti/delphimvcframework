@@ -59,7 +59,7 @@ sLineBreak +
 '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
 'begin' + sLineBreak +
 '  Writeln(''** DMVCFramework Server **'');' + sLineBreak +
-'  Writeln(Format(''Starting HTTP Server or port %%d'', [APort]));' + sLineBreak +
+'  Writeln(Format(''Starting HTTP Server on port %%d'', [APort]));' + sLineBreak +
 '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
 '  try' + sLineBreak +
 '    LServer.DefaultPort := APort;' + sLineBreak +
@@ -216,6 +216,8 @@ sLineBreak +
 '      Config[TMVCConfigKey.ViewPath] := ''templates'';'  +sLineBreak +
 '      //Enable STOMP messaging controller' + sLineBreak +
 '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
+'      //Enable Server Signature in response' + sLineBreak +
+'      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
 '    end);' + sLineBreak +
 '  FMVC.AddController(%3:s);' + sLineBreak +
 'end;' + sLineBreak +
@@ -232,6 +234,7 @@ sWebModuleDFM =
 'object %0:s: %1:s' + sLineBreak +
 '  OldCreateOrder = False' + sLineBreak +
 '  OnCreate = WebModuleCreate' + sLineBreak +
+'  OnDestroy = WebModuleDestroy' + sLineBreak +
 '  Height = 230' + sLineBreak +
 '  Width = 415' + sLineBreak +
 'end';

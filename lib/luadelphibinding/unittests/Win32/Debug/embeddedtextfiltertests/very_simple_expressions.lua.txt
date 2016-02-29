@@ -1,6 +1,0 @@
-Ciao
-hello
-mondo
-world
-Hi, my name is Daniele Teti. What's your name?
-close
