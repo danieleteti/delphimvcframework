@@ -12,7 +12,7 @@ type
   TTestRouting = class(TTestCase)
   private
     Router: TMVCRouter;
-    Controllers: TList<TMVCControllerClass>;
+    Controllers: TObjectList<TMVCControllerRoutable>;
 
   public
     procedure SetUp; override;
@@ -82,10 +82,10 @@ end;
 
 procedure TTestRouting.SetUp;
 begin
-  Controllers := TList<TMVCControllerClass>.Create;
-  Controllers.Add(TSimpleController);
-  Controllers.Add(TNotSoSimpleController);
-  Controllers.Add(TTestServerController);
+  Controllers := TObjectList<TMVCControllerRoutable>.Create;
+  Controllers.Add(TMVCControllerRoutable.Create(TSimpleController, nil));
+  Controllers.Add(TMVCControllerRoutable.Create(TNotSoSimpleController, nil));
+  Controllers.Add(TMVCControllerRoutable.Create(TTestServerController, nil));
   Router := TMVCRouter.Create(nil);
 end;
 

@@ -77,7 +77,7 @@ begin
   vServerInfo.WebModuleClass := TestWebModuleClass;
 
   vOnAuthentication := procedure(const AUserName, APassword: string;
-      AUserRoles: TList<string>; var AIsValid: Boolean)
+      AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<String, String>)
     begin
       AIsValid := AUserName.Equals('ezequiel') and APassword.Equals('123');
     end;

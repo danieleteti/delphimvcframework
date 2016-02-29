@@ -40,6 +40,7 @@ type
     FCTX: TRttiContext;
     FMethodToCall: TRTTIMethod;
     FMVCControllerClass: TMVCControllerClass;
+    FMVCControllerDelegate: TMVCControllerDelegate;
     FMVCConfig: TMVCConfig;
     function IsHTTPContentTypeCompatible(AWebRequestMethodType: TMVCHTTPMethodType;
       AContentType: String; AAttributes: TArray<TCustomAttribute>): Boolean;
@@ -58,12 +59,13 @@ type
     constructor Create(AMVCConfig: TMVCConfig);
     function ExecuteRouting(AWebRequestPathInfo: AnsiString;
       AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString;
-      AWebRequestAccept: AnsiString; AMVCControllers: TList<TMVCControllerClass>;
+      AWebRequestAccept: AnsiString; AMVCControllers: TObjectList<TMVCControllerRoutable>;
       ADefaultContentType: string; ADefaultContentCharset: string;
       var AMVCRequestParams: TMVCRequestParamsTable; out AResponseContentType: string;
       out AResponseContentEncoding: string): Boolean; overload;
     property MethodToCall: TRTTIMethod read FMethodToCall;
     property MVCControllerClass: TMVCControllerClass read FMVCControllerClass;
+    property MVCControllerDelegate: TMVCControllerDelegate read FMVCControllerDelegate;
   end;
 
 implementation
@@ -85,12 +87,12 @@ end;
 
 function TMVCRouter.ExecuteRouting(AWebRequestPathInfo: AnsiString;
   AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString;
-  AWebRequestAccept: AnsiString; AMVCControllers: TList<TMVCControllerClass>;
+  AWebRequestAccept: AnsiString; AMVCControllers: TObjectList<TMVCControllerRoutable>;
   ADefaultContentType, ADefaultContentCharset: string;
   var AMVCRequestParams: TMVCRequestParamsTable; out AResponseContentType: string;
   out AResponseContentEncoding: string): Boolean;
 var
-  controllerClass: TMVCControllerClass;
+  controllerRoutable: TMVCControllerRoutable;
   _type: TRttiType;
   _methods: TArray<TRTTIMethod>;
   _method: TRTTIMethod;
@@ -106,6 +108,7 @@ var
 begin
   FMethodToCall := nil;
   FMVCControllerClass := nil;
+  FMVCControllerDelegate := nil;
   LWebRequestAccept := String(AWebRequestAccept);
 
   LWebRequestPathInfo := string(AWebRequestPathInfo);
@@ -136,10 +139,10 @@ begin
 
     Result := False;
     ControllerMappedPath := '';
-    for controllerClass in AMVCControllers do
+    for controllerRoutable in AMVCControllers do
     begin
       SetLength(_attributes, 0);
-      _type := FCTX.GetType(controllerClass.ClassInfo);
+      _type := FCTX.GetType(controllerRoutable.&Class.ClassInfo);
       _attributes := _type.GetAttributes;
       if _attributes = nil then
         Continue;
@@ -182,7 +185,8 @@ begin
                 AMVCRequestParams) then
               begin
                 FMethodToCall := _method;
-                FMVCControllerClass := controllerClass;
+                FMVCControllerClass := controllerRoutable.&Class;
+                FMVCControllerDelegate := controllerRoutable.Delegate;
                 // getting the default contenttype using MVCProduceAttribute
                 MVCProduceAttr := GetAttribute<MVCProducesAttribute>(_attributes);
                 if MVCProduceAttr <> nil then

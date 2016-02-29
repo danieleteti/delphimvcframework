@@ -1,26 +1,26 @@
-{ *************************************************************************** }
-{ }
-{ Delphi MVC Framework }
-{ }
-{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
-{ }
-{ https://github.com/danieleteti/delphimvcframework }
-{ }
-{ *************************************************************************** }
-{ }
-{ Licensed under the Apache License, Version 2.0 (the "License"); }
-{ you may not use this file except in compliance with the License. }
-{ You may obtain a copy of the License at }
-{ }
-{ http://www.apache.org/licenses/LICENSE-2.0 }
-{ }
-{ Unless required by applicable law or agreed to in writing, software }
-{ distributed under the License is distributed on an "AS IS" BASIS, }
-{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{ See the License for the specific language governing permissions and }
-{ limitations under the License. }
-{ }
-{ *************************************************************************** }
+{***************************************************************************}
+{                                                                           }
+{                      Delphi MVC Framework                                 }
+{                                                                           }
+{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
+{                                                                           }
+{           https://github.com/danieleteti/delphimvcframework               }
+{                                                                           }
+{***************************************************************************}
+{                                                                           }
+{  Licensed under the Apache License, Version 2.0 (the "License");          }
+{  you may not use this file except in compliance with the License.         }
+{  You may obtain a copy of the License at                                  }
+{                                                                           }
+{      http://www.apache.org/licenses/LICENSE-2.0                           }
+{                                                                           }
+{  Unless required by applicable law or agreed to in writing, software      }
+{  distributed under the License is distributed on an "AS IS" BASIS,        }
+{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{  See the License for the specific language governing permissions and      }
+{  limitations under the License.                                           }
+{                                                                           }
+{***************************************************************************}
 
 unit MVCFramework;
 
@@ -426,6 +426,19 @@ type
 
   TMVCControllerClass = class of TMVCController;
 
+  TMVCControllerDelegate = reference to function: TMVCController;
+
+  TMVCControllerRoutable = class
+  strict private
+    FClass: TMVCControllerClass;
+    FDelegate: TMVCControllerDelegate;
+  public
+    constructor Create(AClass: TMVCControllerClass; ADelegate: TMVCControllerDelegate);
+
+    property &Class: TMVCControllerClass read FClass;
+    property Delegate: TMVCControllerDelegate read FDelegate;
+  end;
+
   /// <summary>
   /// Basis Interface for DMVC Middleware.
   /// </summary>
@@ -472,7 +485,7 @@ type
 
   protected
     FConfiguredSessionTimeout: Int64;
-    FControllers: TList<TMVCControllerClass>;
+    FControllers: TObjectList<TMVCControllerRoutable>;
     FMiddleware: TList<IMVCMiddleware>;
     procedure ExecuteBeforeRoutingMiddleware(Context: TWebContext;
       var Handled: boolean);
@@ -506,17 +519,16 @@ type
     class function AddSessionToTheSessionList(const ASessionID: string;
       ASessionTimeout: UInt64): TWebSession;
     function GetSessionBySessionID(const ASessionID: string): TWebSession;
-    function AddController(AControllerClass: TMVCControllerClass)
-      : TMVCEngine; overload;
+    function AddController(AControllerClass: TMVCControllerClass): TMVCEngine; overload;
+    function AddController(AControllerClass: TMVCControllerClass; ADelegate: TMVCControllerDelegate): TMVCEngine; overload;
     function AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
     // internal methods
-    function RegisteredControllers: TList<TMVCControllerClass>;
+    function RegisteredControllers: TObjectList<TMVCControllerRoutable>;
     // http return codes
     procedure Http404(AWebContext: TWebContext);
     procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
     property Config: TMVCConfig read FMVCConfig; // allow a simple client code
-    property ApplicationSession: TWebApplicationSession read FApplicationSession
-      write SetApplicationSession;
+    property ApplicationSession: TWebApplicationSession read FApplicationSession write SetApplicationSession;
   end;
 
   TMVCStaticContents = class(TMVCController)
@@ -606,7 +618,13 @@ var
 function TMVCEngine.AddController(AControllerClass: TMVCControllerClass)
   : TMVCEngine;
 begin
-  FControllers.Add(AControllerClass);
+  Result := AddController(AControllerClass, nil);
+end;
+
+function TMVCEngine.AddController(AControllerClass: TMVCControllerClass;
+  ADelegate: TMVCControllerDelegate): TMVCEngine;
+begin
+  FControllers.Add(TMVCControllerRoutable.Create(AControllerClass, ADelegate));
   Result := Self;
 end;
 
@@ -677,7 +695,7 @@ begin
   FMimeTypes := TDictionary<string, string>.Create;
   FMVCConfig := TMVCConfig.Create;
   FWebModule := WebModule;
-  FControllers := TList<TMVCControllerClass>.Create;
+  FControllers := TObjectList<TMVCControllerRoutable>.Create(True);
   FMiddleware := TList<IMVCMiddleware>.Create;
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
@@ -753,7 +771,10 @@ begin
               FMVCConfig[TMVCConfigKey.DefaultContentCharset], ParamsTable,
               ResponseContentType, ResponseContentCharset) then
             begin
-              SelectedController := Router.MVCControllerClass.Create;
+              if Assigned(Router.MVCControllerDelegate) then
+                SelectedController := Router.MVCControllerDelegate()
+              else
+                SelectedController := Router.MVCControllerClass.Create;
               try
                 SelectedController.SetMVCConfig(Config);
                 SelectedController.ApplicationSession := FApplicationSession;
@@ -1038,7 +1059,7 @@ begin
   end;
 end;
 
-function TMVCEngine.RegisteredControllers: TList<TMVCControllerClass>;
+function TMVCEngine.RegisteredControllers: TObjectList<TMVCControllerRoutable>;
 begin
   Result := FControllers;
 end;
@@ -2582,6 +2603,14 @@ end;
 procedure TUser.SetUserName(const Value: string);
 begin
   FUserName := Value;
+end;
+
+{ TMVCControllerRoutable }
+
+constructor TMVCControllerRoutable.Create(AClass: TMVCControllerClass; ADelegate: TMVCControllerDelegate);
+begin
+  FClass := AClass;
+  FDelegate := ADelegate;
 end;
 
 initialization

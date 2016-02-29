@@ -37,8 +37,13 @@ var
 begin
   FMVCEngine := TMVCEngine.Create(Self);
 
-  // Add Controller
-  FMVCEngine.AddController(TTestAppController);
+  // Add With Delegate Constructor Controller
+  FMVCEngine.AddController(TTestAppController,
+    function: TMVCController
+    begin
+      Result := TTestAppController.Create;
+    end
+    );
 
   // Add Security Middleware
   vServer := ServerContainer.FindServerByName('ServerTemp');
