@@ -1,26 +1,26 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ *************************************************************************** }
 unit MVCFramework;
 
 {$RTTI EXPLICIT
@@ -441,7 +441,8 @@ type
     FClass: TMVCControllerClass;
     FDelegate: TMVCControllerDelegate;
   public
-    constructor Create(AClass: TMVCControllerClass; ADelegate: TMVCControllerDelegate);
+    constructor Create(AClass: TMVCControllerClass;
+      ADelegate: TMVCControllerDelegate);
 
     property &Class: TMVCControllerClass read FClass;
     property Delegate: TMVCControllerDelegate read FDelegate;
@@ -528,8 +529,10 @@ type
     class function AddSessionToTheSessionList(const ASessionID: string;
       ASessionTimeout: UInt64): TWebSession;
     function GetSessionBySessionID(const ASessionID: string): TWebSession;
-    function AddController(AControllerClass: TMVCControllerClass): TMVCEngine; overload;
-    function AddController(AControllerClass: TMVCControllerClass; ADelegate: TMVCControllerDelegate): TMVCEngine; overload;
+    function AddController(AControllerClass: TMVCControllerClass)
+      : TMVCEngine; overload;
+    function AddController(AControllerClass: TMVCControllerClass;
+      ADelegate: TMVCControllerDelegate): TMVCEngine; overload;
     function AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
     // internal methods
     function RegisteredControllers: TObjectList<TMVCControllerRoutable>;
@@ -537,7 +540,8 @@ type
     procedure Http404(AWebContext: TWebContext);
     procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
     property Config: TMVCConfig read FMVCConfig; // allow a simple client code
-    property ApplicationSession: TWebApplicationSession read FApplicationSession write SetApplicationSession;
+    property ApplicationSession: TWebApplicationSession read FApplicationSession
+      write SetApplicationSession;
   end;
 
   TMVCStaticContents = class(TMVCController)
@@ -708,7 +712,7 @@ begin
   FMimeTypes := TDictionary<string, string>.Create;
   FMVCConfig := TMVCConfig.Create;
   FWebModule := WebModule;
-  FControllers := TObjectList<TMVCControllerRoutable>.Create(True);
+  FControllers := TObjectList<TMVCControllerRoutable>.Create(true);
   FMiddleware := TList<IMVCMiddleware>.Create;
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
@@ -1760,6 +1764,8 @@ procedure InternalRenderText(const AContent: string;
 var
   OutEncoding: TEncoding;
 begin
+  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
+    ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     // Context.Response.RawWebResponse.ContentStream := TStringStream.Create(UTF8Encode(AContent));
@@ -1778,8 +1784,6 @@ begin
   finally
     OutEncoding.Free;
   end;
-  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
-    ContentEncoding;
   // Context.Response.RawWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
   // Context.Response.RawWebResponse.ContentEncoding := ContentEncoding;
   // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
@@ -1801,6 +1805,11 @@ begin
 {$ELSE}
   JString := AJSONValue.ToJSON; // since XE7 it works using ToJSON
 {$ENDIF}
+  // first set the ContentType; because of this bug:
+  // http://qc.embarcadero.com/wc/qcmain.aspx?d=67350
+  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
+    ContentEncoding;
+
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     Context.Response.RawWebResponse.Content :=
@@ -1809,22 +1818,7 @@ begin
   finally
     OutEncoding.Free;
   end;
-  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
-    ContentEncoding;
 
-  // Context.Response.RawWebResponse.StatusCode := 200;
-
-  {
-    Context.Response.RawWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
-    //Context.Response.RawWebResponse.ContentEncoding := ContentEncoding;
-    S := AJSONValue.ToString;
-    OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-    InEncoding := TEncoding.Default;
-    Context.Response.RawWebResponse.Content := OutEncoding.GetString
-    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
-    OutEncoding.Free;
-    Context.Response.RawWebResponse.Content := s;
-  }
   if AInstanceOwner then
     FreeAndNil(AJSONValue)
 end;
@@ -2655,7 +2649,8 @@ end;
 
 { TMVCControllerRoutable }
 
-constructor TMVCControllerRoutable.Create(AClass: TMVCControllerClass; ADelegate: TMVCControllerDelegate);
+constructor TMVCControllerRoutable.Create(AClass: TMVCControllerClass;
+  ADelegate: TMVCControllerDelegate);
 begin
   FClass := AClass;
   FDelegate := ADelegate;
