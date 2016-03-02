@@ -60,7 +60,7 @@ type
   end;
 
   TMVCAuthenticationDelegate = reference to procedure(const AUserName, APassword: string;
-    AUserRoles: TList<string>; var AIsValid: Boolean);
+    AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<String, String>);
 
   TMVCAuthorizationDelegate = reference to procedure(AUserRoles: TList<string>;
     const AControllerQualifiedClassName: string; const AActionName: string; var AIsAuthorized: Boolean);
@@ -76,13 +76,11 @@ type
     procedure OnRequest(const AControllerQualifiedClassName, AActionName: string;
       var AAuthenticationRequired: Boolean);
 
+    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
+      var AIsValid: Boolean; const ASessionData: TDictionary<String, String>);
+
     procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string;
       const AActionName: string; var AIsAuthorized: Boolean);
-
-    procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>;
-      var IsValid: Boolean;
-      const SessionData: TDictionary<string,string>);
   end;
 
   IMVCServerInfo = interface
@@ -541,14 +539,12 @@ begin
   FAuthorizationDelegate := AAuthorizationDelegate;
 end;
 
-procedure TMVCDefaultSecurity.OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>;
-      var IsValid: Boolean;
-      const SessionData: TDictionary<string,string>);
+procedure TMVCDefaultSecurity.OnAuthentication(const AUserName, APassword: string;
+  AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<String, String>);
 begin
-  IsValid := True;
+  AIsValid := True;
   if Assigned(FAuthenticationDelegate) then
-    FAuthenticationDelegate(UserName, Password, UserRoles, IsValid);
+    FAuthenticationDelegate(AUserName, APassword, AUserRoles, AIsValid, ASessionData);
 end;
 
 procedure TMVCDefaultSecurity.OnAuthorization(AUserRoles: TList<string>;

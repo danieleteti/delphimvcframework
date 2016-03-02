@@ -113,7 +113,7 @@ end;
 procedure TMVCSystemController.DescribeServer(Context: TWebContext);
 var
   LJResp: TJSONObject;
-  LController: TMVCControllerClass;
+  LControllerRoutable: TMVCControllerRoutable;
   ControllerInfo: TJSONObject;
   LRTTIType: TRttiInstanceType;
   LCTX: TRttiContext;
@@ -131,12 +131,12 @@ var
 begin
   LJResp := TJSONObject.Create;
   try
-    for LController in GetMVCEngine.RegisteredControllers do
+    for LControllerRoutable in GetMVCEngine.RegisteredControllers do
     begin
       ControllerInfo := TJSONObject.Create;
-      LJResp.AddPair(LController.QualifiedClassName, ControllerInfo);
+      LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName, ControllerInfo);
 
-      LRTTIType := LCTX.GetType(LController) as TRttiInstanceType;
+      LRTTIType := LCTX.GetType(LControllerRoutable) as TRttiInstanceType;
       for LAttribute in LRTTIType.GetAttributes do
       begin
         if LAttribute is MVCPathAttribute then

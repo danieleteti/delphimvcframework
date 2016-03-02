@@ -434,6 +434,20 @@ type
 
   TMVCControllerClass = class of TMVCController;
 
+  TMVCControllerDelegate = reference to function: TMVCController;
+
+  TMVCControllerRoutable = class
+  strict private
+    FClass: TMVCControllerClass;
+    FDelegate: TMVCControllerDelegate;
+  public
+    constructor Create(AClass: TMVCControllerClass;
+      ADelegate: TMVCControllerDelegate);
+
+    property &Class: TMVCControllerClass read FClass;
+    property Delegate: TMVCControllerDelegate read FDelegate;
+  end;
+
   /// <summary>
   /// Basis Interface for DMVC Middleware.
   /// </summary>
@@ -481,7 +495,7 @@ type
 
   protected
     FConfiguredSessionTimeout: Int64;
-    FControllers: TList<TMVCControllerClass>;
+    FControllers: TObjectList<TMVCControllerRoutable>;
     FMiddleware: TList<IMVCMiddleware>;
     procedure ExecuteBeforeRoutingMiddleware(Context: TWebContext;
       var Handled: boolean);
@@ -517,9 +531,11 @@ type
     function GetSessionBySessionID(const ASessionID: string): TWebSession;
     function AddController(AControllerClass: TMVCControllerClass)
       : TMVCEngine; overload;
+    function AddController(AControllerClass: TMVCControllerClass;
+      ADelegate: TMVCControllerDelegate): TMVCEngine; overload;
     function AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
     // internal methods
-    function RegisteredControllers: TList<TMVCControllerClass>;
+    function RegisteredControllers: TObjectList<TMVCControllerRoutable>;
     // http return codes
     procedure Http404(AWebContext: TWebContext);
     procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
@@ -617,7 +633,13 @@ var
 function TMVCEngine.AddController(AControllerClass: TMVCControllerClass)
   : TMVCEngine;
 begin
-  FControllers.Add(AControllerClass);
+  Result := AddController(AControllerClass, nil);
+end;
+
+function TMVCEngine.AddController(AControllerClass: TMVCControllerClass;
+  ADelegate: TMVCControllerDelegate): TMVCEngine;
+begin
+  FControllers.Add(TMVCControllerRoutable.Create(AControllerClass, ADelegate));
   Result := Self;
 end;
 
@@ -690,7 +712,7 @@ begin
   FMimeTypes := TDictionary<string, string>.Create;
   FMVCConfig := TMVCConfig.Create;
   FWebModule := WebModule;
-  FControllers := TList<TMVCControllerClass>.Create;
+  FControllers := TObjectList<TMVCControllerRoutable>.Create(true);
   FMiddleware := TList<IMVCMiddleware>.Create;
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
@@ -777,7 +799,10 @@ begin
               FMVCConfig[TMVCConfigKey.DefaultContentCharset], ParamsTable,
               ResponseContentType, ResponseContentCharset) then
             begin
-              SelectedController := Router.MVCControllerClass.Create;
+              if Assigned(Router.MVCControllerDelegate) then
+                SelectedController := Router.MVCControllerDelegate()
+              else
+                SelectedController := Router.MVCControllerClass.Create;
               try
                 SelectedController.SetMVCConfig(Config);
                 SelectedController.ApplicationSession := FApplicationSession;
@@ -1062,7 +1087,7 @@ begin
   end;
 end;
 
-function TMVCEngine.RegisteredControllers: TList<TMVCControllerClass>;
+function TMVCEngine.RegisteredControllers: TObjectList<TMVCControllerRoutable>;
 begin
   Result := FControllers;
 end;
@@ -1739,6 +1764,8 @@ procedure InternalRenderText(const AContent: string;
 var
   OutEncoding: TEncoding;
 begin
+  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
+    ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     // Context.Response.RawWebResponse.ContentStream := TStringStream.Create(UTF8Encode(AContent));
@@ -1757,8 +1784,6 @@ begin
   finally
     OutEncoding.Free;
   end;
-  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
-    ContentEncoding;
   // Context.Response.RawWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
   // Context.Response.RawWebResponse.ContentEncoding := ContentEncoding;
   // OutEncoding := TEncoding.GetEncoding(ContentEncoding);
@@ -1780,6 +1805,11 @@ begin
 {$ELSE}
   JString := AJSONValue.ToJSON; // since XE7 it works using ToJSON
 {$ENDIF}
+  // first set the ContentType; because of this bug:
+  // http://qc.embarcadero.com/wc/qcmain.aspx?d=67350
+  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
+    ContentEncoding;
+
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     Context.Response.RawWebResponse.Content :=
@@ -1788,22 +1818,7 @@ begin
   finally
     OutEncoding.Free;
   end;
-  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
-    ContentEncoding;
 
-  // Context.Response.RawWebResponse.StatusCode := 200;
-
-  {
-    Context.Response.RawWebResponse.ContentType := TMVCMimeType.APPLICATION_JSON;
-    //Context.Response.RawWebResponse.ContentEncoding := ContentEncoding;
-    S := AJSONValue.ToString;
-    OutEncoding := TEncoding.GetEncoding(ContentEncoding);
-    InEncoding := TEncoding.Default;
-    Context.Response.RawWebResponse.Content := OutEncoding.GetString
-    (TEncoding.Convert(InEncoding, OutEncoding, InEncoding.GetBytes(S)));
-    OutEncoding.Free;
-    Context.Response.RawWebResponse.Content := s;
-  }
   if AInstanceOwner then
     FreeAndNil(AJSONValue)
 end;
@@ -2630,6 +2645,15 @@ end;
 procedure TUser.SetUserName(const Value: string);
 begin
   FUserName := Value;
+end;
+
+{ TMVCControllerRoutable }
+
+constructor TMVCControllerRoutable.Create(AClass: TMVCControllerClass;
+  ADelegate: TMVCControllerDelegate);
+begin
+  FClass := AClass;
+  FDelegate := ADelegate;
 end;
 
 initialization
