@@ -39,6 +39,9 @@
         <Projects Include="ssl\SSLSample.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="BasicDemoVCLClient\BasicDemoVCLClient.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -155,14 +158,23 @@
     <Target Name="SSLSample:Make">
         <MSBuild Projects="ssl\SSLSample.dproj" Targets="Make"/>
     </Target>
+    <Target Name="BasicDemoVCLClient">
+        <MSBuild Projects="BasicDemoVCLClient\BasicDemoVCLClient.dproj"/>
+    </Target>
+    <Target Name="BasicDemoVCLClient:Clean">
+        <MSBuild Projects="BasicDemoVCLClient\BasicDemoVCLClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BasicDemoVCLClient:Make">
+        <MSBuild Projects="BasicDemoVCLClient\BasicDemoVCLClient.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="ActionFilters;AuthenticateAuthorize;BasicDemo;CallbackDemo;FilesUploadDemo;MiddlewareSamples;deserializenestedclasses;DiscogsData;jsoncasesample;routingsample;SessionSamples;SSLSample"/>
+        <CallTarget Targets="ActionFilters;AuthenticateAuthorize;BasicDemo;CallbackDemo;FilesUploadDemo;MiddlewareSamples;deserializenestedclasses;DiscogsData;jsoncasesample;routingsample;SessionSamples;SSLSample;BasicDemoVCLClient"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="ActionFilters:Clean;AuthenticateAuthorize:Clean;BasicDemo:Clean;CallbackDemo:Clean;FilesUploadDemo:Clean;MiddlewareSamples:Clean;deserializenestedclasses:Clean;DiscogsData:Clean;jsoncasesample:Clean;routingsample:Clean;SessionSamples:Clean;SSLSample:Clean"/>
+        <CallTarget Targets="ActionFilters:Clean;AuthenticateAuthorize:Clean;BasicDemo:Clean;CallbackDemo:Clean;FilesUploadDemo:Clean;MiddlewareSamples:Clean;deserializenestedclasses:Clean;DiscogsData:Clean;jsoncasesample:Clean;routingsample:Clean;SessionSamples:Clean;SSLSample:Clean;BasicDemoVCLClient:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="ActionFilters:Make;AuthenticateAuthorize:Make;BasicDemo:Make;CallbackDemo:Make;FilesUploadDemo:Make;MiddlewareSamples:Make;deserializenestedclasses:Make;DiscogsData:Make;jsoncasesample:Make;routingsample:Make;SessionSamples:Make;SSLSample:Make"/>
+        <CallTarget Targets="ActionFilters:Make;AuthenticateAuthorize:Make;BasicDemo:Make;CallbackDemo:Make;FilesUploadDemo:Make;MiddlewareSamples:Make;deserializenestedclasses:Make;DiscogsData:Make;jsoncasesample:Make;routingsample:Make;SessionSamples:Make;SSLSample:Make;BasicDemoVCLClient:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

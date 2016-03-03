@@ -131,6 +131,8 @@ type
     procedure SetPassword(const AValue: string);
     procedure SetUserName(const AValue: string);
     procedure SetSessionID(const AValue: string);
+    procedure SetProxyServer(const AValue: string);
+    procedure SetProxyPort(const AValue: Integer);
   strict protected
     procedure HandleRequestCookies();
     procedure HandleCookies();
@@ -228,6 +230,8 @@ type
     property UseBasicAuthentication: Boolean read GetBasicAuth write SetBasicAuth;
     property RequestHeaders: TStringlist read FRequestHeaders;
     property QueryStringParams: TStringlist read GetQueryStringParams;
+    property ProxyServer: string write SetProxyServer;
+    property ProxyPort: Integer write SetProxyPort;
   end;
 
 implementation
@@ -1410,6 +1414,16 @@ end;
 procedure TRESTClient.SetPassword(const AValue: string);
 begin
   FHTTP.Request.Password := AValue;
+end;
+
+procedure TRESTClient.SetProxyPort(const AValue: Integer);
+begin
+  FHTTP.ProxyParams.ProxyPort := AValue;
+end;
+
+procedure TRESTClient.SetProxyServer(const AValue: string);
+begin
+  FHTTP.ProxyParams.ProxyServer := AValue;
 end;
 
 procedure TRESTClient.SetSessionID(const AValue: string);
