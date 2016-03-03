@@ -783,74 +783,35 @@ begin
       ftString:
         AJSONObject.AddPair(key, ADataSet.Fields[I].AsString);
       TFieldType.ftDate:
-        begin
-          if not ADataSet.Fields[I].IsNull then
-          begin
-            AJSONObject.AddPair(key, ISODateToString(ADataSet.Fields[I].AsDateTime));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
-        end;
+        AJSONObject.AddPair(key, ISODateToString(ADataSet.Fields[I].AsDateTime));
       TFieldType.ftDateTime:
-        begin
-          if not ADataSet.Fields[I].IsNull then
-          begin
-            AJSONObject.AddPair(key, ISODateTimeToString(ADataSet.Fields[I].AsDateTime));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
-        end;
+        AJSONObject.AddPair(key, ISODateTimeToString(ADataSet.Fields[I].AsDateTime));
       TFieldType.ftTimeStamp:
         begin
-          if not ADataSet.Fields[I].IsNull then
-          begin
-            ts := ADataSet.Fields[I].AsSQLTimeStamp;
-            AJSONObject.AddPair(key, SQLTimeStampToStr('yyyy-mm-dd hh:nn:ss', ts));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
+          ts := ADataSet.Fields[I].AsSQLTimeStamp;
+          AJSONObject.AddPair(key, SQLTimeStampToStr('yyyy-mm-dd hh:nn:ss', ts));
         end;
       TFieldType.ftCurrency:
-        begin
-          if not ADataSet.Fields[I].IsNull then
-          begin
-            // AJSONObject.AddPair(key, FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency));
-            AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsCurrency));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
-        end;
+        AJSONObject.AddPair(key, TJSONNumber.Create(ADataSet.Fields[I].AsCurrency));
       TFieldType.ftBCD, TFieldType.ftFMTBcd:
-        begin
-          if not ADataSet.Fields[I].IsNull then
-          begin
-            AJSONObject.AddPair(key, TJSONNumber.Create(BcdToDouble(ADataSet.Fields[I].AsBcd)));
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
-        end;
+        AJSONObject.AddPair(key, TJSONNumber.Create(BcdToDouble(ADataSet.Fields[I].AsBcd)));
       TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
         begin
-          if not ADataSet.Fields[I].IsNull then
-          begin
-            MS := TMemoryStream.Create;
+          MS := TMemoryStream.Create;
+          try
+            TBlobField(ADataSet.Fields[I]).SaveToStream(MS);
+            MS.Position := 0;
+            SS := TStringStream.Create('', TEncoding.ASCII);
             try
-              TBlobField(ADataSet.Fields[I]).SaveToStream(MS);
-              MS.Position := 0;
-              SS := TStringStream.Create('', TEncoding.ASCII);
-              try
-                EncodeStream(MS, SS);
-                SS.Position := 0;
-                AJSONObject.AddPair(key, SS.DataString);
-              finally
-                SS.Free;
-              end;
+              EncodeStream(MS, SS);
+              SS.Position := 0;
+              AJSONObject.AddPair(key, SS.DataString);
             finally
-              MS.Free;
+              SS.Free;
             end;
-          end
-          else
-            AJSONObject.AddPair(key, TJSONNull.Create);
+          finally
+            MS.Free;
+          end;
         end;
 
       // else
