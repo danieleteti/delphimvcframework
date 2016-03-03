@@ -2146,7 +2146,13 @@ begin
     else
     begin
       S := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyNone);
-      Context.Response.SetCustomHeader('Content-Length', IntToStr(S.Size));
+      //Content-Length is set in (%DELPHI%)\source\internet\Web.Win.IsapiHTTP.pas
+      //procedure TISAPIResponse.SendResponse;
+      //if set twice it could be a problem under IIS (ISAPI)
+      //the header is available 1x but the value are doubled
+      //sometimes some images are not shown
+      //How to unittest this behavior?
+      //Context.Response.SetCustomHeader('Content-Length', IntToStr(S.Size));
       Context.Response.SetCustomHeader('Last-Modified',
         LocalDateTimeToHttpStr(LFileDate));
       Context.Response.SetContentStream(S, AMimeType);
