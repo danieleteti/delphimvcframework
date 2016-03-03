@@ -50,8 +50,7 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session, Soap.EncdDecd,
-  System.NetEncoding;
+  System.SysUtils, MVCFramework.Session, Soap.EncdDecd;
 
 {
 
@@ -113,7 +112,7 @@ var
     end;
     Context.Response.StatusCode := 401;
     Context.Response.SetCustomHeader('WWW-Authenticate',
-      'Basic realm=' + FRealm.QuotedString);
+      'Basic realm=' + QuotedStr(FRealm));
 
     Handled := true;
   end;

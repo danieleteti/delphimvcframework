@@ -80,7 +80,7 @@ begin
   search := CTX.Request.Params['searchtext'];
   Page := 1;
   if CTX.Request.QueryStringParamExists('page') then
-    Page := CTX.Request.QueryStringParam('page').ToInteger;
+    Page := StrToInt(CTX.Request.QueryStringParam('page'));
   orderby := '';
   if CTX.Request.QueryStringParamExists('order') then
     orderby := CTX.Request.QueryStringParam('order');

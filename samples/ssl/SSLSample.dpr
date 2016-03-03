@@ -1,3 +1,6 @@
+// JCL_DEBUG_EXPERT_GENERATEJDBG OFF
+// JCL_DEBUG_EXPERT_INSERTJDBG OFF
+// JCL_DEBUG_EXPERT_DELETEMAPFILE OFF
 program SSLSample;
 {$APPTYPE CONSOLE}
 
@@ -19,10 +22,10 @@ uses
 
 type
   TGetSSLPassword = class
-    procedure OnGetSSLPassword(var APassword: String);
+    procedure OnGetSSLPassword(var APassword: {$IF CompilerVersion < 27}AnsiString{$ELSE}string{$ENDIF});
   end;
 
-procedure TGetSSLPassword.OnGetSSLPassword(var APassword: String);
+procedure TGetSSLPassword.OnGetSSLPassword(var APassword: {$IF CompilerVersion < 27}AnsiString{$ELSE}string{$ENDIF});
 begin
   APassword := '';
 end;

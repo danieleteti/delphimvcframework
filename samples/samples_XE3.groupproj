@@ -1,0 +1,168 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{EDABEEE2-06A6-4FC9-9F54-A75CF5D56BC0}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="actionfilters\ActionFilters.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="authenticationauthorization\AuthenticateAuthorize.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="BasicDemo\BasicDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="callback\CallbackDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="fileupload\FilesUploadDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="middleware\MiddlewareSamples.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="objectsmapperssamples\deserializeandserialize\deserializenestedclasses.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="objectsmapperssamples\discogsdata\DiscogsData.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="objectsmapperssamples\jsoncase\jsoncasesample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="routingsample\routingsample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="sessions\SessionSamples.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ssl\SSLSample.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="ActionFilters">
+        <MSBuild Projects="actionfilters\ActionFilters.dproj"/>
+    </Target>
+    <Target Name="ActionFilters:Clean">
+        <MSBuild Projects="actionfilters\ActionFilters.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ActionFilters:Make">
+        <MSBuild Projects="actionfilters\ActionFilters.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="AuthenticateAuthorize">
+        <MSBuild Projects="authenticationauthorization\AuthenticateAuthorize.dproj"/>
+    </Target>
+    <Target Name="AuthenticateAuthorize:Clean">
+        <MSBuild Projects="authenticationauthorization\AuthenticateAuthorize.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="AuthenticateAuthorize:Make">
+        <MSBuild Projects="authenticationauthorization\AuthenticateAuthorize.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="BasicDemo">
+        <MSBuild Projects="BasicDemo\BasicDemo.dproj"/>
+    </Target>
+    <Target Name="BasicDemo:Clean">
+        <MSBuild Projects="BasicDemo\BasicDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BasicDemo:Make">
+        <MSBuild Projects="BasicDemo\BasicDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="CallbackDemo">
+        <MSBuild Projects="callback\CallbackDemo.dproj"/>
+    </Target>
+    <Target Name="CallbackDemo:Clean">
+        <MSBuild Projects="callback\CallbackDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CallbackDemo:Make">
+        <MSBuild Projects="callback\CallbackDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FilesUploadDemo">
+        <MSBuild Projects="fileupload\FilesUploadDemo.dproj"/>
+    </Target>
+    <Target Name="FilesUploadDemo:Clean">
+        <MSBuild Projects="fileupload\FilesUploadDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FilesUploadDemo:Make">
+        <MSBuild Projects="fileupload\FilesUploadDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="MiddlewareSamples">
+        <MSBuild Projects="middleware\MiddlewareSamples.dproj"/>
+    </Target>
+    <Target Name="MiddlewareSamples:Clean">
+        <MSBuild Projects="middleware\MiddlewareSamples.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="MiddlewareSamples:Make">
+        <MSBuild Projects="middleware\MiddlewareSamples.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="deserializenestedclasses">
+        <MSBuild Projects="objectsmapperssamples\deserializeandserialize\deserializenestedclasses.dproj"/>
+    </Target>
+    <Target Name="deserializenestedclasses:Clean">
+        <MSBuild Projects="objectsmapperssamples\deserializeandserialize\deserializenestedclasses.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="deserializenestedclasses:Make">
+        <MSBuild Projects="objectsmapperssamples\deserializeandserialize\deserializenestedclasses.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DiscogsData">
+        <MSBuild Projects="objectsmapperssamples\discogsdata\DiscogsData.dproj"/>
+    </Target>
+    <Target Name="DiscogsData:Clean">
+        <MSBuild Projects="objectsmapperssamples\discogsdata\DiscogsData.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DiscogsData:Make">
+        <MSBuild Projects="objectsmapperssamples\discogsdata\DiscogsData.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="jsoncasesample">
+        <MSBuild Projects="objectsmapperssamples\jsoncase\jsoncasesample.dproj"/>
+    </Target>
+    <Target Name="jsoncasesample:Clean">
+        <MSBuild Projects="objectsmapperssamples\jsoncase\jsoncasesample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jsoncasesample:Make">
+        <MSBuild Projects="objectsmapperssamples\jsoncase\jsoncasesample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="routingsample">
+        <MSBuild Projects="routingsample\routingsample.dproj"/>
+    </Target>
+    <Target Name="routingsample:Clean">
+        <MSBuild Projects="routingsample\routingsample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="routingsample:Make">
+        <MSBuild Projects="routingsample\routingsample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SessionSamples">
+        <MSBuild Projects="sessions\SessionSamples.dproj"/>
+    </Target>
+    <Target Name="SessionSamples:Clean">
+        <MSBuild Projects="sessions\SessionSamples.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SessionSamples:Make">
+        <MSBuild Projects="sessions\SessionSamples.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SSLSample">
+        <MSBuild Projects="ssl\SSLSample.dproj"/>
+    </Target>
+    <Target Name="SSLSample:Clean">
+        <MSBuild Projects="ssl\SSLSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SSLSample:Make">
+        <MSBuild Projects="ssl\SSLSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="ActionFilters;AuthenticateAuthorize;BasicDemo;CallbackDemo;FilesUploadDemo;MiddlewareSamples;deserializenestedclasses;DiscogsData;jsoncasesample;routingsample;SessionSamples;SSLSample"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="ActionFilters:Clean;AuthenticateAuthorize:Clean;BasicDemo:Clean;CallbackDemo:Clean;FilesUploadDemo:Clean;MiddlewareSamples:Clean;deserializenestedclasses:Clean;DiscogsData:Clean;jsoncasesample:Clean;routingsample:Clean;SessionSamples:Clean;SSLSample:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="ActionFilters:Make;AuthenticateAuthorize:Make;BasicDemo:Make;CallbackDemo:Make;FilesUploadDemo:Make;MiddlewareSamples:Make;deserializenestedclasses:Make;DiscogsData:Make;jsoncasesample:Make;routingsample:Make;SessionSamples:Make;SSLSample:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

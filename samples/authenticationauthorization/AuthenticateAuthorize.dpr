@@ -30,7 +30,7 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     Writeln('Press ESC to stop the server');
-    ShellExecute(0, 'open', PChar('http://localhost:' + APort.ToString), nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort)), nil, nil, SW_SHOW);
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
     begin
