@@ -3,7 +3,7 @@ unit DiscogsClasses;
 interface
 
 uses
-  System.JSON,
+//  System.JSON,
   Generics.Collections,
   ObjectsMappers;
 

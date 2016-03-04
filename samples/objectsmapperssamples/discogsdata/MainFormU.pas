@@ -24,7 +24,13 @@ implementation
 
 {$R *.dfm}
 
-uses DiscogsClasses, ObjectsMappers, System.IOUtils, System.JSON, System.Generics.collections;
+uses DiscogsClasses, ObjectsMappers, System.IOUtils,
+{$IF CompilerVersion < 27}
+    Data.DBXJSON,
+{$ELSE}
+    System.JSON,
+{$ENDIF}
+  System.Generics.collections;
 
 procedure TMainForm.Button1Click(Sender: TObject);
 var
@@ -46,9 +52,9 @@ begin
       for LRelease in LDiscogsReleases do
       begin
         Log(''.PadRight(70, '-'));
-        Log('ReleaseID:'.PadRight(20) + LRelease.instance_id.tostring);
+        Log('ReleaseID:'.PadRight(20) + IntToStr(LRelease.instance_id));
         Log('Title:'.PadRight(20) + LRelease.basic_information.title);
-        Log('Year:'.PadRight(20) + LRelease.basic_information.year.tostring);
+        Log('Year:'.PadRight(20) + IntToStr(LRelease.basic_information.year));
         Log('[artists in the release]');
         for LArtist in LRelease.basic_information.artists do
         begin

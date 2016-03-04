@@ -39,7 +39,17 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
+        <Cfg_2_Win32>true</Cfg_2_Win32>
+        <CfgParent>Cfg_2</CfgParent>
+        <Cfg_2>true</Cfg_2>
+        <Base>true</Base>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <VerInfo_Locale>1031</VerInfo_Locale>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <DCC_UnitSearchPath>..\..\sources;..\..\lib\dmustache;..\..\lib\iocpdelphiframework;..\..\lib\iocpdelphiframework\base;..\..\lib\delphistompclient;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <Manifest_File>None</Manifest_File>
         <SanitizedProjectName>SSLSample</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
@@ -53,10 +63,8 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UnitSearchPath>..\..\lib\iocpdelphiframework\Base;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-        <Manifest_File>None</Manifest_File>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <DCC_UsePackage>FireDACSqliteDriver;TsiLang_XE5r;DBXSqliteDriver;FireDACPgDriver;fmx;TreeViewPresenter;IndySystem;i18n;TeeDB;frx19;vclib;inetdbbde;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;DataSnapServer;DataSnapProviderClient;DPFAndroidPackagesXE5;DBXSybaseASEDriver;DbxCommonDriver;vclimg;dbxcds;DatasnapConnectorsFreePascal;MetropolisUILiveTile;vcldb;vcldsnap;fmxFireDAC;DBXDb2Driver;DBXOracleDriver;CustomIPTransport;vclribbon;dsnap;IndyIPServer;i18nDB;fmxase;vcl;IndyCore;IndyIPCommon;CloudService;DBXMSSQLDriver;FmxTeeUI;FireDACIBDriver;CodeSiteExpressPkg;DataSnapFireDAC;FireDACDBXDriver;inetdbxpress;FireDACDb2Driver;adortl;CustomAdaptersMDPackage;DataBindingsVCL;FireDACASADriver;bindcompfmx;vcldbx;FireDACODBCDriver;rtl;dbrtl;DbxClientDriver;FireDACCommon;bindcomp;inetdb;Tee;DataBindings;DBXOdbcDriver;vclFireDAC;CPortLibDXE;xmlrtl;svnui;ibxpress;IndyProtocols;DBXMySQLDriver;FireDACCommonDriver;bindengine;vclactnband;soaprtl;bindcompdbx;FMXTee;TeeUI;bindcompvcl;vclie;FireDACADSDriver;vcltouch;fmxinfopower;VclSmp;FireDACMSSQLDriver;FireDAC;VCLRESTComponents;Intraweb;DBXInformixDriver;DataSnapConnectors;FireDACDataSnapDriver;dsnapcon;DBXFirebirdDriver;inet;fmxobj;FireDACMySQLDriver;vclx;svn;DBXSybaseASADriver;FireDACOracleDriver;fmxdae;RESTComponents;bdertl;VirtualTreesR;FireDACMSAccDriver;DataSnapIndy10ServerTransport;dbexpress;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
@@ -71,9 +79,6 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <DCC_DcuOutput>.\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
-        <DCC_UnitSearchPath>..\..\sources;..\..\lib\luadelphibinding;..\..\lib\iocpdelphiframework;..\..\lib\delphistompclient;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-        <Manifest_File>None</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
     </PropertyGroup>
@@ -82,6 +87,9 @@
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
         <DCC_DebugInformation>0</DCC_DebugInformation>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -164,10 +172,8 @@
                     <Source Name="MainSource">SSLSample.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k190.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp190.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k190.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp190.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k170.bpl">Microsoft Office 2000 Beispiele für gekapselte Komponenten für Automatisierungsserver</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp170.bpl">Microsoft Office XP Beispiele für gekapselte Komponenten für Automation Server</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment/>
