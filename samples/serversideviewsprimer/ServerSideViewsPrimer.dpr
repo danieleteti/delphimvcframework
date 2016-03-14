@@ -20,6 +20,7 @@ var
   LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
+  ReportMemoryLeaksOnShutdown := True;
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
