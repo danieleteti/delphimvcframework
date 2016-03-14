@@ -4,29 +4,29 @@
   https://code.google.com/p/delphi-iocp-framework/
 }
 
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ *************************************************************************** }
 
 unit Iocp.Logger;
 
@@ -103,7 +103,8 @@ type
     procedure AppendLog(const Log: UnicodeString; LogType: TLogType = ltNormal;
       CRLF: string = ';'); overload;
     procedure AppendLog(const Fmt: UnicodeString; const Args: array of const;
-      const TimeFormat: string; LogType: TLogType = ltNormal; CRLF: string = ';'); overload;
+      const TimeFormat: string; LogType: TLogType = ltNormal;
+      CRLF: string = ';'); overload;
     procedure AppendLog(const Fmt: UnicodeString; const Args: array of const;
       LogType: TLogType = ltNormal; CRLF: string = ';'); overload;
 
@@ -115,8 +116,9 @@ procedure AppendLog(const Log: UnicodeString; const TimeFormat: string;
   LogType: TLogType = ltNormal; CRLF: string = ';'); overload;
 procedure AppendLog(const Log: UnicodeString; LogType: TLogType = ltNormal;
   CRLF: string = ';'); overload;
-procedure AppendLog(const Fmt: UnicodeString; const Args: array of const; const TimeFormat: string;
-  LogType: TLogType = ltNormal; CRLF: string = ';'); overload;
+procedure AppendLog(const Fmt: UnicodeString; const Args: array of const;
+  const TimeFormat: string; LogType: TLogType = ltNormal;
+  CRLF: string = ';'); overload;
 procedure AppendLog(const Fmt: UnicodeString; const Args: array of const;
   LogType: TLogType = ltNormal; CRLF: string = ';'); overload;
 
@@ -154,22 +156,27 @@ begin
     颜色由三原色组合而成
   }
   FLogColor[ltNormal] := FOREGROUND_RED or FOREGROUND_GREEN or FOREGROUND_BLUE;
-  FLogColor[ltWarning] := FOREGROUND_INTENSITY or FOREGROUND_RED or FOREGROUND_GREEN;
+  FLogColor[ltWarning] := FOREGROUND_INTENSITY or FOREGROUND_RED or
+    FOREGROUND_GREEN;
   FLogColor[ltError] := FOREGROUND_INTENSITY or FOREGROUND_RED;
-  FLogColor[ltException] := FOREGROUND_INTENSITY or FOREGROUND_RED or FOREGROUND_BLUE;
+  FLogColor[ltException] := FOREGROUND_INTENSITY or FOREGROUND_RED or
+    FOREGROUND_BLUE;
 end;
 
 destructor TIocpLogger.Destroy;
 var
   i: TLogType;
+  LHandle: Cardinal;
 begin
   for i := low(TLogType) to high(TLogType) do
   begin
     if Assigned(FFileWriters[i]) then
     begin
       FFileWriters[i].Flush;
+      LHandle := FFileWriters[i].Handle;
       FFileWriters[i].Terminate;
-      FFileWriters[i].Free;
+      WaitForSingleObject(LHandle, INFINITE);
+      //FFileWriters[i].Free;
       FFileWriters[i] := nil;
     end;
     FFileLocker[i].Free;
@@ -193,7 +200,6 @@ begin
   Result := Result + ThreadFormatDateTime('YYYY-MM-DD', Date) + '.log';
 
 {$ENDIF}
-
 end;
 
 function TIocpLogger.Release: Boolean;
@@ -244,8 +250,8 @@ begin
   end;
 end;
 
-procedure TIocpLogger.AppendLog(const Log: UnicodeString; const TimeFormat: string;
-  LogType: TLogType; CRLF: string);
+procedure TIocpLogger.AppendLog(const Log: UnicodeString;
+  const TimeFormat: string; LogType: TLogType; CRLF: string);
 var
   LogText: UnicodeString;
 begin
@@ -254,8 +260,8 @@ begin
 
   try
     if (CRLF <> '') then
-      LogText := StringReplace(StringReplace(Log, #13#10, CRLF, [rfReplaceAll]), #10, CRLF,
-        [rfReplaceAll])
+      LogText := StringReplace(StringReplace(Log, #13#10, CRLF, [rfReplaceAll]),
+        #10, CRLF, [rfReplaceAll])
     else
       LogText := Log;
     LogText := ThreadFormatDateTime(TimeFormat, Now) + ' ' + LogText + #13#10;
@@ -276,7 +282,8 @@ begin
   end;
 end;
 
-procedure TIocpLogger.AppendLog(const Log: UnicodeString; LogType: TLogType; CRLF: string);
+procedure TIocpLogger.AppendLog(const Log: UnicodeString; LogType: TLogType;
+  CRLF: string);
 begin
   if (AddRef = 1) then
     Exit;
@@ -287,8 +294,9 @@ begin
   end;
 end;
 
-procedure TIocpLogger.AppendLog(const Fmt: UnicodeString; const Args: array of const;
-  const TimeFormat: string; LogType: TLogType; CRLF: string);
+procedure TIocpLogger.AppendLog(const Fmt: UnicodeString;
+  const Args: array of const; const TimeFormat: string; LogType: TLogType;
+  CRLF: string);
 begin
   if (AddRef = 1) then
     Exit;
@@ -304,8 +312,8 @@ begin
   Result := InterlockedIncrement(FRefCount);
 end;
 
-procedure TIocpLogger.AppendLog(const Fmt: UnicodeString; const Args: array of const;
-  LogType: TLogType; CRLF: string);
+procedure TIocpLogger.AppendLog(const Fmt: UnicodeString;
+  const Args: array of const; LogType: TLogType; CRLF: string);
 begin
   if (AddRef = 1) then
     Exit;
@@ -316,32 +324,37 @@ begin
   end;
 end;
 
-procedure TIocpLogger.AppendStrToLogFile(const S: UnicodeString; LogType: TLogType);
+procedure TIocpLogger.AppendStrToLogFile(const S: UnicodeString;
+  LogType: TLogType);
 var
   LogDir, LogFile: string;
 begin
   if (AddRef = 1) then
     Exit;
   try
-    FFileLocker[LogType].Enter;
-    try
-      // CREATE OR ROTATE //daniele
-      if not Assigned(FFileWriters[LogType]) or (Trunc(FFileWriters[LogType].FileTime) <> Trunc(Now))
-      then
-      begin
-        if Assigned(FFileWriters[LogType]) then
+    if (FFileWriters[LogType] = nil) or
+      (Trunc(FFileWriters[LogType].FileTime) <> Trunc(Now)) then
+    begin
+      FFileLocker[LogType].Enter;
+      try
+        // CREATE OR ROTATE //daniele
+        if (FFileWriters[LogType] = nil) or
+          (Trunc(FFileWriters[LogType].FileTime) <> Trunc(Now)) then
         begin
-          FFileWriters[LogType].Flush;
-          FFileWriters[LogType].Terminate;
-        end;
+          if Assigned(FFileWriters[LogType]) then
+          begin
+            FFileWriters[LogType].Flush;
+            FFileWriters[LogType].Terminate; // freeonterminate = true
+          end;
 
-        LogDir := gAppPath + gAppName + '.Log\';
-        LogFile := LogDir + GetLogFileName(LogType, Now);
-        ForceDirectories(LogDir);
-        FFileWriters[LogType] := TCacheFileStream.Create(LogFile);
+          LogDir := gAppPath + gAppName + '.Log\';
+          LogFile := LogDir + GetLogFileName(LogType, Now);
+          ForceDirectories(LogDir);
+          FFileWriters[LogType] := TCacheFileStream.Create(LogFile);
+        end;
+      finally
+        FFileLocker[LogType].Leave;
       end;
-    finally
-      FFileLocker[LogType].Leave;
     end;
 
     FFileWriters[LogType].AppendStr(S);
@@ -371,25 +384,25 @@ constructor TCacheFileStream.Create(const AFileName: string);
 var
   UTF8Header: RawByteString;
 begin
-  // 在线程创建之后触发打开文件失败的异常会造成程序崩溃
-  // 所以把创建线程(inherited Create)放在打开日志文件之后
   if FileExists(AFileName) then
   begin
-    FFileStream := TFileStream.Create(AFileName, fmOpenReadWrite or fmShareDenyWrite);
+    FFileStream := TFileStream.Create(AFileName, fmOpenReadWrite or
+      fmShareDenyWrite);
     UTF8Header := '';
   end
   else
   begin
     FFileStream := TFileStream.Create(AFileName, fmCreate);
     FFileStream.Free;
-    FFileStream := TFileStream.Create(AFileName, fmOpenReadWrite or fmShareDenyWrite);
+    FFileStream := TFileStream.Create(AFileName, fmOpenReadWrite or
+      fmShareDenyWrite);
     // 写UTF8文件头
     UTF8Header := RawByteString(#$EF#$BB#$BF);
   end;
 
   inherited Create(True);
 
-  // FreeOnTerminate := True;
+  FreeOnTerminate := True;
 
   FLocker := TCriticalSection.Create;
   FCacheBufferA := TMemoryStream.Create;
@@ -440,7 +453,7 @@ begin
   while not Terminated do
   begin
     Flush;
-    TThread.Sleep(1000);
+    TThread.Sleep(500);
   end;
 
   // Flush;
@@ -450,13 +463,9 @@ procedure TCacheFileStream.Flush;
 var
   Buffer: TMemoryStream;
 begin
-  // 如果当前缓存中没有数据，则不用写文件
   if (FCacheBuffer.Position <= 0) then
     Exit;
 
-  // 双缓冲策略：
-  // 读取当前缓存数据，并将另一缓存置为当前缓存
-  // 这个过程需要加锁，TCacheFileStream.Write中也需要加同一个锁
   Buffer := FCacheBuffer;
   Lock;
   if (FCacheBuffer = FCacheBufferA) then
@@ -465,9 +474,7 @@ begin
     FCacheBuffer := FCacheBufferA;
   FCacheBuffer.Position := 0;
   Unlock;
-
   try
-    // 将缓存中的数据追加到文件尾
     FFileStream.Seek(0, soEnd);
     FFileStream.Write(Buffer.Memory^, Buffer.Position);
     FlushFileBuffers(FFileStream.Handle);
@@ -507,13 +514,14 @@ begin
   gIocpLogger.AppendLog(Log, TimeFormat, LogType, CRLF);
 end;
 
-procedure AppendLog(const Log: UnicodeString; LogType: TLogType = ltNormal; CRLF: string = ';');
+procedure AppendLog(const Log: UnicodeString; LogType: TLogType = ltNormal;
+  CRLF: string = ';');
 begin
   gIocpLogger.AppendLog(Log, LogType, CRLF);
 end;
 
-procedure AppendLog(const Fmt: UnicodeString; const Args: array of const; const TimeFormat: string;
-  LogType: TLogType = ltNormal; CRLF: string = ';');
+procedure AppendLog(const Fmt: UnicodeString; const Args: array of const;
+  const TimeFormat: string; LogType: TLogType = ltNormal; CRLF: string = ';');
 begin
   gIocpLogger.AppendLog(Fmt, Args, TimeFormat, LogType, CRLF);
 end;
