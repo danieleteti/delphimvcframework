@@ -31,6 +31,7 @@ type
     procedure TestDataSetToJSONArray;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+    procedure TestObjectToJSONObjectAndBackWithStream;
     procedure TestJSONArrayToObjectListNoGenerics;
     procedure TestJSONArrayToObjectListNoGenericsWrappedList;
     procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
@@ -65,6 +66,7 @@ implementation
 uses MVCFramework.Commons,
   TestControllersU, DBClient,
   Web.HTTPApp, Soap.EncdDecd,
+  IdHashMessageDigest, idHash,
   ObjectsMappers,
   BOs,
 {$IF CompilerVersion < 27}
@@ -73,6 +75,21 @@ uses MVCFramework.Commons,
   System.JSON,
 {$ENDIF}
   TestServerControllerU, System.Classes, DuckListU;
+
+function MD5(const aStream: TStream): string;
+var
+  idmd5: TIdHashMessageDigest5;
+  fs: TFileStream;
+  hash: T4x4LongWordRecord;
+begin
+  aStream.Position := 0;
+  idmd5 := TIdHashMessageDigest5.Create;
+  try
+    result := idmd5.HashBytesAsHex(idmd5.HashStream(aStream));
+  finally
+    idmd5.Free;
+  end;
+end;
 
 procedure TTestMappers.SameFishesDataSet(ds, ds2: TDataSet);
 begin
@@ -105,8 +122,8 @@ end;
 
 procedure TTestRouting.TearDown;
 begin
-  Router.free;
-  Controllers.free;
+  Router.Free;
+  Controllers.Free;
 end;
 
 // procedure TTestRouting.TestClassNameMethodNameRouting;
@@ -147,13 +164,13 @@ begin
         CheckTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
         CheckTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
       finally
-        DesObj.free;
+        DesObj.Free;
       end;
     finally
-      JSONObj.free;
+      JSONObj.Free;
     end;
   finally
-    Obj.free;
+    Obj.Free;
   end;
 end;
 
@@ -171,13 +188,13 @@ begin
       try
         CheckTrue(Obj.Equals(Obj2));
       finally
-        Obj2.free;
+        Obj2.Free;
       end;
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    Obj.free;
+    Obj.Free;
   end;
 end;
 
@@ -189,7 +206,7 @@ var
 begin
   Obj := GetMyComplexObject;
   try
-    Obj.ChildObject.free;
+    Obj.ChildObject.Free;
     Obj.ChildObject := nil;
     JObj := Mapper.ObjectToJSONObject(Obj);
     try
@@ -197,13 +214,13 @@ begin
       try
         CheckTrue(Obj.Equals(Obj2));
       finally
-        Obj2.free;
+        Obj2.Free;
       end;
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    Obj.free;
+    Obj.Free;
   end;
 end;
 
@@ -248,7 +265,7 @@ begin
     CheckFalse(Assigned(Router.MVCControllerClass));
 
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 
@@ -282,11 +299,11 @@ begin
         ds.Next;
       end;
     finally
-      JArr.free;
+      JArr.Free;
     end;
   finally
-    ds.free;
-    ds2.free;
+    ds.Free;
+    ds2.Free;
   end;
 end;
 
@@ -309,11 +326,11 @@ begin
       ds2.Post;
       SameFishesDataSet(ds, ds2);
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    ds.free;
-    ds2.free;
+    ds.Free;
+    ds2.Free;
   end;
 end;
 
@@ -336,11 +353,11 @@ begin
       ds2.Post;
       SameFishesDataSet(ds, ds2);
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    ds.free;
-    ds2.free;
+    ds.Free;
+    ds2.Free;
   end;
 end;
 
@@ -363,11 +380,11 @@ begin
       ds2.Post;
       SameFishesDataSet(ds, ds2);
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    ds.free;
-    ds2.free;
+    ds.Free;
+    ds2.Free;
   end;
 end;
 
@@ -390,11 +407,11 @@ begin
       ds2.Post;
       SameFishesDataSet(ds, ds2);
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    ds.free;
-    ds2.free;
+    ds.Free;
+    ds2.Free;
   end;
 end;
 
@@ -417,13 +434,13 @@ begin
         for I := 0 to ListObj.Count - 1 do
           CheckTrue(ListObj[I].Equals(RetList[I]));
       finally
-        RetList.free;
+        RetList.Free;
       end;
     finally
-      JSONArr.free;
+      JSONArr.Free;
     end;
   finally
-    ListObj.free;
+    ListObj.Free;
   end;
 end;
 
@@ -447,13 +464,13 @@ begin
         for I := 0 to ListObj.Count - 1 do
           CheckTrue(ListObj[I].Equals(RetList[I]));
       finally
-        RetList.free;
+        RetList.Free;
       end;
     finally
-      JSONArr.free;
+      JSONArr.Free;
     end;
   finally
-    ListObj.free;
+    ListObj.Free;
   end;
 end;
 
@@ -471,13 +488,13 @@ begin
       try
         CheckTrue(Obj.Equals(Obj2));
       finally
-        Obj2.free;
+        Obj2.Free;
       end;
     finally
-      JObj.free;
+      JObj.Free;
     end;
   finally
-    Obj.free;
+    Obj.Free;
   end;
 end;
 
@@ -506,10 +523,10 @@ begin
         CheckTrue(Obj2List[I].Equals(ObjList[I]));
       end;
     finally
-      Obj2List.free;
+      Obj2List.Free;
     end;
   finally
-    ObjList.free;
+    ObjList.Free;
   end;
 end;
 
@@ -527,13 +544,44 @@ begin
       try
         CheckTrue(Obj.Equals(Obj2));
       finally
-        Obj2.free;
+        Obj2.Free;
       end;
     finally
-      JSON.free;
+      JSON.Free;
     end;
   finally
-    Obj.free;
+    Obj.Free;
+  end;
+end;
+
+procedure TTestMappers.TestObjectToJSONObjectAndBackWithStream;
+var
+  SO: TMyStreamObject;
+  JSONObj: TJSONObject;
+  ResultSO: TMyStreamObject;
+  ResultStr, str: UnicodeString;
+begin
+  // ARRANGE
+  SO := TMyStreamObject.Create;
+  try
+    // ACT
+    TMemoryStream(SO.ImageStream)
+      .LoadFromFile('..\..\..\..\samples\_\customer.png');
+    JSONObj := Mapper.ObjectToJSONObject(SO);
+    try
+      ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+      try
+        // ASSERT
+        CheckEquals(SO.ImageStream.Size, ResultSO.ImageStream.Size);
+        CheckEquals(MD5(SO.ImageStream), MD5(ResultSO.ImageStream));
+      finally
+        ResultSO.Free;
+      end;
+    finally
+      JSONObj.Free;
+    end;
+  finally
+    SO.Free;
   end;
 end;
 
@@ -558,13 +606,13 @@ begin
         // ASSERT
         CheckEquals(str, ResultStr);
       finally
-        ResultSO.free;
+        ResultSO.Free;
       end;
     finally
-      JSONObj.free;
+      JSONObj.Free;
     end;
   finally
-    SO.free;
+    SO.Free;
   end;
 end;
 
@@ -589,13 +637,13 @@ begin
         // ASSERT
         CheckEquals(str, ResultStr);
       finally
-        ResultSO.free;
+        ResultSO.Free;
       end;
     finally
-      JSONObj.free;
+      JSONObj.Free;
     end;
   finally
-    SO.free;
+    SO.Free;
   end;
 end;
 
@@ -616,7 +664,7 @@ begin
     CheckEquals('Orders', Router.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 
@@ -636,7 +684,7 @@ begin
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
-    Params.free;
+    Params.Free;
   end;
 
   Params := TMVCRequestParamsTable.Create;
@@ -650,7 +698,7 @@ begin
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
-    Params.free;
+    Params.Free;
   end;
 
 end;
@@ -673,7 +721,7 @@ begin
     CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 
@@ -695,7 +743,7 @@ begin
     CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 
@@ -720,13 +768,13 @@ begin
         CheckTrue(lObj.Equals(lObj2),
           'restored object is different from the original');
       finally
-        lObj2.free;
+        lObj2.Free;
       end;
     finally
-      lJObj.free;
+      lJObj.Free;
     end;
   finally
-    lObj.free;
+    lObj.Free;
   end;
 end;
 
@@ -751,13 +799,13 @@ begin
         CheckTrue(lObj.Equals(lObj2),
           'restored object is different from the original');
       finally
-        lObj2.free;
+        lObj2.Free;
       end;
     finally
-      lJObj.free;
+      lJObj.Free;
     end;
   finally
-    lObj.free;
+    lObj.Free;
   end;
 end;
 
@@ -782,13 +830,13 @@ begin
         CheckTrue(lObj.Equals(lObj2),
           'restored object is different from the original');
       finally
-        lObj2.free;
+        lObj2.Free;
       end;
     finally
-      lJObj.free;
+      lJObj.Free;
     end;
   finally
-    lObj.free;
+    lObj.Free;
   end;
 end;
 
@@ -803,18 +851,18 @@ begin
   try
     lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
     try
-      lJObj.RemovePair('FFirstName').free;
+      lJObj.RemovePair('FFirstName').Free;
       lObj2 := Mapper.JSONObjectFieldsToObject(lJObj) as TMyObjectWithLogic;
       try
         CheckEquals('', lObj2.FirstName);
       finally
-        lObj2.free;
+        lObj2.Free;
       end;
     finally
-      lJObj.free;
+      lJObj.Free;
     end;
   finally
-    lObj.free;
+    lObj.Free;
   end;
 end;
 
@@ -839,13 +887,13 @@ begin
         CheckTrue(lObj2.Equals(lObj),
           'deserialized object is not equals to the original object');
       finally
-        lObj2.free;
+        lObj2.Free;
       end;
     finally
-      lJObj.free;
+      lJObj.Free;
     end;
   finally
-    lObj.free;
+    lObj.Free;
   end;
 end;
 
@@ -907,7 +955,7 @@ begin
       ResponseContentType, ResponseContentEncoding));
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 
@@ -926,7 +974,7 @@ begin
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 
@@ -945,7 +993,7 @@ begin
     CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
   finally
-    Params.free;
+    Params.Free;
   end;
 end;
 

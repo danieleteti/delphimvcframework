@@ -40,7 +40,8 @@ type
   public
     function Equals(Obj: TMyObject): boolean; reintroduce;
     property PropString: string read FPropString write SetPropString;
-    property PropAnsiString: AnsiString read FPropAnsiString write SetPropAnsiString;
+    property PropAnsiString: AnsiString read FPropAnsiString
+      write SetPropAnsiString;
     property PropInteger: Integer read FPropInteger write SetPropInteger;
     property PropUInt32: cardinal read FPropUInt32 write SetPropUInt32;
     property PropInt64: Int64 read FPropInt64 write SetPropInt64;
@@ -51,7 +52,8 @@ type
     property PropDate: TDate read FPropDate write SetPropDate;
     property PropTime: TTime read FPropTime write SetPropTime;
     property PropDateTime: TDateTime read FPropDateTime write SetPropDateTime;
-    property PropTimeStamp: TTimeStamp read FPropTimeStamp write SetPropTimeStamp;
+    property PropTimeStamp: TTimeStamp read FPropTimeStamp
+      write SetPropTimeStamp;
     property PropCurrency: Currency read FPropCurrency write SetPropCurrency;
   end;
 
@@ -61,7 +63,8 @@ type
     procedure SetMyChildProperty1(const Value: string);
   public
     constructor Create;
-    property MyChildProperty1: string read FMyChildProperty1 write SetMyChildProperty1;
+    property MyChildProperty1: string read FMyChildProperty1
+      write SetMyChildProperty1;
   end;
 
   [MapperListOf(TMyChildObject)]
@@ -83,15 +86,18 @@ type
 
     property Prop1: string read FProp1 write SetProp1;
     property ChildObject: TMyChildObject read FChildObject write SetChildObject;
-    property ChildObjectList: TMyChildObjectList read FChildObjectList write SetChildObjectList;
+    property ChildObjectList: TMyChildObjectList read FChildObjectList
+      write SetChildObjectList;
   end;
 
   TMyStreamObject = class(TObject)
   private
     FPropStream: TStream;
     FProp8Stream: TStream;
+    FImageStream: TStream;
     procedure SetPropStream(const Value: TStream);
     procedure SetProp8Stream(const Value: TStream);
+    procedure SetImageStream(const Value: TStream);
   public
     constructor Create;
     destructor Destroy; override;
@@ -100,6 +106,7 @@ type
     [MapperSerializeAsString]
     // utf-8 is default
     property Prop8Stream: TStream read FProp8Stream write SetProp8Stream;
+    property ImageStream: TStream read FImageStream write SetImageStream;
   end;
 
   TMyObjectWithLogic = class
@@ -163,12 +170,12 @@ begin
   Result := TMyObject.Create;
   Result.PropString := 'Some text אטילעש';
   Result.PropAnsiString := 'This is an ANSI text';
-  Result.PropInteger := - 1234;
+  Result.PropInteger := -1234;
   Result.PropUInt32 := 1234;
-  Result.PropInt64 := - 1234567890;
+  Result.PropInt64 := -1234567890;
   Result.PropUInt64 := 1234567890;
   Result.PropUInt16 := 12345;
-  Result.PropInt16 := - 12345;
+  Result.PropInt16 := -12345;
   Result.PropCurrency := 1234.5678;
   Result.PropBoolean := true;
   Result.PropDate := EncodeDate(2010, 10, 20);
@@ -192,7 +199,8 @@ begin
   Result := Result and (Self.PropDate = Obj.PropDate);
   Result := Result and (Self.PropCurrency = Obj.PropCurrency);
   Result := Result and (SecondsBetween(Self.PropTime, Obj.PropTime) = 0);
-  Result := Result and (SecondsBetween(Self.PropDateTime, Obj.PropDateTime) = 0);
+  Result := Result and (SecondsBetween(Self.PropDateTime,
+    Obj.PropDateTime) = 0);
   Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and
     (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
 end;
@@ -291,20 +299,26 @@ begin
 
   Result := co.Prop1 = Self.Prop1;
   if Assigned(co.ChildObject) and Assigned(Self.ChildObject) then
-    Result := Result and (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1)
+    Result := Result and
+      (co.ChildObject.MyChildProperty1 = Self.ChildObject.MyChildProperty1)
   else
-    Result := Result and (not Assigned(co.ChildObject)) and (not Assigned(Self.ChildObject));
+    Result := Result and (not Assigned(co.ChildObject)) and
+      (not Assigned(Self.ChildObject));
   Result := Result and (co.ChildObjectList.Count = Self.ChildObjectList.Count);
   if co.ChildObjectList.Count = 0 then
     Exit;
 
-  Result := Result and (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0]
+  Result := Result and
+    (co.ChildObjectList[0].MyChildProperty1 = Self.ChildObjectList[0]
     .MyChildProperty1);
-  Result := Result and (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1]
+  Result := Result and
+    (co.ChildObjectList[1].MyChildProperty1 = Self.ChildObjectList[1]
     .MyChildProperty1);
-  Result := Result and (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2]
+  Result := Result and
+    (co.ChildObjectList[2].MyChildProperty1 = Self.ChildObjectList[2]
     .MyChildProperty1);
-  Result := Result and (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3]
+  Result := Result and
+    (co.ChildObjectList[3].MyChildProperty1 = Self.ChildObjectList[3]
     .MyChildProperty1);
 end;
 
@@ -343,6 +357,7 @@ begin
   inherited Create;
   FPropStream := TStringStream.Create('', TEncoding.Unicode);
   FProp8Stream := TStringStream.Create('', TEncoding.UTF8);
+  FImageStream := TMemoryStream.Create;
 end;
 
 destructor TMyStreamObject.Destroy;
@@ -351,7 +366,14 @@ begin
     FPropStream.Free;
   if Assigned(FProp8Stream) then
     FProp8Stream.Free;
+  if Assigned(FImageStream) then
+    FImageStream.Free;
   inherited;
+end;
+
+procedure TMyStreamObject.SetImageStream(const Value: TStream);
+begin
+  FImageStream := Value;
 end;
 
 procedure TMyStreamObject.SetProp8Stream(const Value: TStream);
@@ -372,7 +394,8 @@ end;
 
 { TMyObjectWithLogic }
 
-constructor TMyObjectWithLogic.Create(aFirstName, aLastName: string; aAge: Integer);
+constructor TMyObjectWithLogic.Create(aFirstName, aLastName: string;
+  aAge: Integer);
 begin
   inherited Create;
   FFirstName := aFirstName;
