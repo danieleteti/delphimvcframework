@@ -2176,9 +2176,6 @@ var
   Arr: TJSONArray;
   n: TJSONNumber;
   SerStreamASString: string;
-  // EncBytes: TBytes;
-  sw: TStreamWriter;
-  SS: TStringStream;
   _attrser: MapperSerializeAsString;
   ListMethod: TRttiMethod;
   ListItem: TValue;
