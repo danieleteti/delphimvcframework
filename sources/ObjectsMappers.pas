@@ -108,6 +108,7 @@ type
 
     class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject)
       : TObject; overload; static;
+    class procedure LoadJSONObjectToObject<T: class>(AJSONObject: TJSONObject; const AObject: T); static;
     class function JSONObjectToObject(ClazzName: string;
       AJSONObject: TJSONObject): TObject; overload; static;
     class function JSONObjectToObjectFields<T: constructor, class>
@@ -2618,6 +2619,12 @@ begin
     AObject := nil;
     Result := nil;
   end;
+end;
+
+class procedure Mapper.LoadJSONObjectToObject<T>(AJSONObject: TJSONObject;
+  const AObject: T);
+begin
+  InternalJSONObjectToObject(ctx, AJSONObject, AObject);
 end;
 
 class procedure Mapper.DataSetToObjectList<T>(ADataSet: TDataSet;

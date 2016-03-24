@@ -17,6 +17,7 @@ type
     procedure TestObjectToJSONObject;
     procedure TestObjectListToJSONArray;
     procedure TestJSONObjectToObjectAndBack;
+    procedure TestLoadJSONObjectToObjectAndBack;
     procedure TestSerializeUsingProperties;
     procedure TestSerializeUsingFields;
     procedure TestSerializeUsingFieldsComplexObject;
@@ -486,6 +487,31 @@ begin
     try
       Obj2 := Mapper.JSONObjectToObject<TMyObject>(JObj);
       try
+        CheckTrue(Obj.Equals(Obj2));
+      finally
+        Obj2.Free;
+      end;
+    finally
+      JObj.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
+
+procedure TTestMappers.TestLoadJSONObjectToObjectAndBack;
+var
+  Obj: TMyObject;
+  JObj: TJSONObject;
+  Obj2: TMyObject;
+begin
+  Obj := GetMyObject;
+  try
+    JObj := Mapper.ObjectToJSONObject(Obj);
+    try
+      Obj2 := TMyObject.Create;
+      try
+        Mapper.LoadJSONObjectToObject<TMyObject>(JObj, Obj2);
         CheckTrue(Obj.Equals(Obj2));
       finally
         Obj2.Free;

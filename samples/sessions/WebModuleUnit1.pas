@@ -31,7 +31,7 @@ uses AppControllerU;
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(Self);
-  MVC.Config[TMVCConfigKey.SessionTimeout] := '30';
+  MVC.Config[TMVCConfigKey.SessionTimeout] := '10'; //10minutes
   MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
 
   MVC.AddController(TApp1MainController);

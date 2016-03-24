@@ -1688,8 +1688,10 @@ begin
       (FContext.Request.RawWebRequest), false);
     if not Assigned(FWebSession) then
       SessionStart
-      // else
-      // SendSessionCookie(FWebSession.SessionID); //daniele
+    else
+    begin
+      TMVCEngine.SendSessionCookie(FContext, FWebSession.SessionID); //daniele
+    end;
   end;
   Result := FWebSession;
   Result.MarkAsUsed;
