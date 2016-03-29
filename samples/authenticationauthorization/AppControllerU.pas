@@ -24,9 +24,15 @@ type
   TAdminController = class(TMVCController)
   public
     [MVCPath('/role1')]
+    [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
     procedure OnlyRole1(ctx: TWebContext);
+    [MVCPath('/role1')]
+    [MVCProduces('application/json')]
+    [MVCHTTPMethod([httpGET])]
+    procedure OnlyRole1EmittingJSON(ctx: TWebContext);
     [MVCPath('/role2')]
+    [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
     procedure OnlyRole2(ctx: TWebContext);
   end;
@@ -55,9 +61,16 @@ begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
-  ResponseStream.AppendLine('As logged user you have the following roles: ' + sLineBreak +
-    string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
+  ResponseStream.AppendLine('As logged user you have the following roles: ' +
+    sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
   Render;
+end;
+
+procedure TAdminController.OnlyRole1EmittingJSON(ctx: TWebContext);
+begin
+  ContentType := TMVCMediaType.APPLICATION_JSON;
+  Render('This is protected content accessible only by user1: paremeter = ' +
+    ctx.Request.Params['par1']);
 end;
 
 procedure TAdminController.OnlyRole2(ctx: TWebContext);
@@ -65,8 +78,8 @@ begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
-  ResponseStream.AppendLine('As logged user you have the following roles: ' + sLineBreak +
-    string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
+  ResponseStream.AppendLine('As logged user you have the following roles: ' +
+    sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
   Render;
 end;
 

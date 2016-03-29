@@ -63,6 +63,8 @@ begin
     IsAuthorized := UserRoles.Contains('role2');
   if ActionName = 'OnlyRole1' then
     IsAuthorized := UserRoles.Contains('role1');
+  if ActionName = 'OnlyRole1EmittingJSON' then
+    IsAuthorized := UserRoles.Contains('role1');
 end;
 
 procedure TAuthenticationSample.OnRequest(const ControllerQualifiedClassName,
