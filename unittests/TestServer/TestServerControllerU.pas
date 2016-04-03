@@ -104,6 +104,9 @@ type
   public
     [MVCPath('/role1')]
     procedure OnlyRole1(ctx: TWebContext);
+    [MVCPath('/role1session')]
+    [MVCHTTPMethods([httpGET])]
+    procedure OnlyRole1Session(ctx: TWebContext);
     [MVCPath('/role2')]
     procedure OnlyRole2(ctx: TWebContext);
   end;
@@ -201,13 +204,14 @@ end;
 
 procedure TTestServerController.Logout(ctx: TWebContext);
 begin
-  SessionStop(false);
+  ctx.SessionStop(false);
 end;
 
 procedure TTestServerController.ReqWithParams(ctx: TWebContext);
 begin
-  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2',
-    ctx.Request.Params['par2']).AddPair('par3', ctx.Request.Params['par3']).AddPair('method',
+  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1'])
+    .AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
+    ctx.Request.Params['par3']).AddPair('method',
     ctx.Request.HTTPMethodAsString));
 end;
 
@@ -339,6 +343,18 @@ end;
 procedure TTestPrivateServerController.OnlyRole1(ctx: TWebContext);
 begin
   Render(ctx.LoggedUser.UserName);
+end;
+
+procedure TTestPrivateServerController.OnlyRole1Session(ctx: TWebContext);
+begin
+  if ctx.Request.QueryStringParamExists('value') then
+  begin
+    Session['value'] := ctx.Request.Params['value'];
+  end
+  else
+  begin
+    Render(Session['value']);
+  end;
 end;
 
 procedure TTestPrivateServerController.OnlyRole2(ctx: TWebContext);

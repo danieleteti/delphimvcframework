@@ -80,8 +80,6 @@ uses MVCFramework.Commons,
 function MD5(const aStream: TStream): string;
 var
   idmd5: TIdHashMessageDigest5;
-  fs: TFileStream;
-  hash: T4x4LongWordRecord;
 begin
   aStream.Position := 0;
   idmd5 := TIdHashMessageDigest5.Create;
@@ -585,7 +583,6 @@ var
   SO: TMyStreamObject;
   JSONObj: TJSONObject;
   ResultSO: TMyStreamObject;
-  ResultStr, str: UnicodeString;
 begin
   // ARRANGE
   SO := TMyStreamObject.Create;

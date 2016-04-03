@@ -27,6 +27,7 @@ type
     procedure TestPOSTWithObjectJSONBody;
     procedure TestPUTWithParamsAndJSONBody;
     procedure TestSession;
+    procedure TestInvalidateSession;
     procedure TestAsynchRequestPOST;
     procedure TestAsynchRequestPUT;
     procedure TestAsynchRequestGET;
@@ -46,6 +47,7 @@ type
     procedure TestAuthentication02;
     procedure TestAuthentication03;
     procedure TestAuthentication04;
+    procedure TestAuthentication05;
   end;
 
 implementation
@@ -175,8 +177,8 @@ begin
       end,
       procedure(E: Exception)
       begin
-      end).doPOST('/echo', ['1', '2', '3'], TJSONObject.Create(TJSONPair.Create('from client',
-      'hello world')), true);
+      end).doPOST('/echo', ['1', '2', '3'],
+      TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
 
     // wait for thred finish
     repeat
@@ -212,8 +214,8 @@ begin
       end,
       procedure(E: Exception)
       begin
-      end).doPUT('/echo', ['1', '2', '3'], TJSONObject.Create(TJSONPair.Create('from client',
-      'hello world')), true);
+      end).doPUT('/echo', ['1', '2', '3'],
+      TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
 
     // wait for thred finish
     repeat
@@ -232,8 +234,9 @@ procedure TServerTest.TestAuthentication01;
 var
   LRes: IRESTResponse;
 begin
-  RESTClient.UserName := 'user1';
-  RESTClient.Password := 'user1';
+  RESTClient.Authentication('user1', 'user1');
+  CheckEquals('user1', RESTClient.UserName);
+  CheckEquals('user1', RESTClient.Password);
   LRes := RESTClient.doGET('/private/role1', []);
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
@@ -271,6 +274,29 @@ begin
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/people', []);
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+end;
+
+procedure TServerTest.TestAuthentication05;
+var
+  LRes: IRESTResponse;
+begin
+  RESTClient.UserName := 'user1';
+  RESTClient.Password := 'user1';
+  RESTClient.UseBasicAuthentication := true;
+
+  // first
+  LRes := RESTClient.doGET('/private/role1session?value=danieleteti', []);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+  LRes := RESTClient.doGET('/private/role1session', []);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+  CheckEquals('"danieleteti"', LRes.BodyAsString);
+
+  // second
+  LRes := RESTClient.doGET('/private/role1session?value=johndoe', []);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+  LRes := RESTClient.doGET('/private/role1session', []);
+  CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+  CheckEquals('"johndoe"', LRes.BodyAsString);
 end;
 
 procedure TServerTest.TestEncodingRenderJSONValue;
@@ -312,11 +338,31 @@ begin
   CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode);
 end;
 
+procedure TServerTest.TestInvalidateSession;
+var
+  c1: TRESTClient;
+  res: IRESTResponse;
+begin
+  c1 := TRESTClient.Create('localhost', 9999);
+  try
+    c1.Accept(TMVCMediaType.APPLICATION_JSON);
+    c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
+    res := c1.doGET('/session', []); // rileggo il valore dalla sessione
+    CheckEquals('"daniele teti"', res.BodyAsString);
+    c1.SessionID := '';
+    res := c1.doGET('/session', []); // rileggo il valore dalla sessione
+    CheckEquals('""', res.BodyAsString);
+  finally
+    c1.Free;
+  end;
+end;
+
 procedure TServerTest.TestMiddlewareHandler;
 var
   r: IRESTResponse;
 begin
-  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doGET('/handledbymiddleware', []);
+  r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+    .doGET('/handledbymiddleware', []);
   CheckEquals('This is a middleware response', r.BodyAsString);
   CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
 end;
@@ -332,8 +378,8 @@ begin
     P.LastName := StringOfChar('*', 1000);
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
-    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doPOST('/objects', [],
-      Mapper.ObjectToJSONObject(P));
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/objects', [], Mapper.ObjectToJSONObject(P));
   finally
     P.Free;
   end;
@@ -422,8 +468,10 @@ procedure TServerTest.TestProducesConsumesWithWrongAcceptHeader;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient.Accept('text/plain') // action is waiting for a accept: application/json
-    .ContentType('application/json').doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
+  res := RESTClient.Accept('text/plain')
+  // action is waiting for a accept: application/json
+    .ContentType('application/json').doPOST('/testconsumes', [],
+    TJSONString.Create('Hello World'));
   CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
@@ -432,7 +480,8 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.Accept('application/json').ContentType('application/json')
-    .ContentEncoding('utf-8').doPOST('/testconsumes', [], TJSONString.Create('Hello World'));
+    .ContentEncoding('utf-8').doPOST('/testconsumes', [],
+    TJSONString.Create('Hello World'));
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
   CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
   CheckEquals('application/json', res.ContentType);
@@ -443,8 +492,8 @@ procedure TServerTest.TestProducesConsumes02;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient.Accept('text/plain').ContentType('text/plain').doPOST('/testconsumes', [],
-    'Hello World');
+  res := RESTClient.Accept('text/plain').ContentType('text/plain')
+    .doPOST('/testconsumes', [], 'Hello World');
   CheckEquals('Hello World', res.BodyAsString);
   CheckEquals('text/plain', res.ContentType);
   CheckEquals('UTF-8', res.ContentEncoding);

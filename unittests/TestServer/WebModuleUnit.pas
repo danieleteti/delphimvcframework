@@ -89,7 +89,7 @@ const ControllerQualifiedClassName, ActionName: string;
 var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
-  if ActionName = 'OnlyRole1' then
+  if (ActionName = 'OnlyRole1') or (ActionName = 'OnlyRole1Session') then
     IsAuthorized := UserRoles.Contains('role1');
 
   if ActionName = 'OnlyRole2' then

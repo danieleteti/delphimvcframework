@@ -8,7 +8,7 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule},
+  WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule} ,
   TestServerControllerU in 'TestServerControllerU.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
@@ -32,7 +32,9 @@ begin
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
     begin
+{$WARN SYMBOL_PLATFORM OFF}
       Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
+{$WARN SYMBOL_PLATFORM ON}
       if (LInputRecord.EventType = KEY_EVENT) and
         LInputRecord.Event.KeyEvent.bKeyDown and
         (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then

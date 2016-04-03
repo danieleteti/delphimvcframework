@@ -2,7 +2,7 @@
 { }
 { Delphi MVC Framework }
 { }
-{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team }
 { }
 { https://github.com/danieleteti/delphimvcframework }
 { }
@@ -279,19 +279,32 @@ type
     FParamsTable: TMVCRequestParamsTable;
     FData: TDictionary<string, string>;
     FLoggedUser: TUser;
+    FWebSession: TWebSession;
+    FIsSessionStarted: boolean;
+    FSessionMustBeClose: boolean;
     function GetData: TDictionary<string, string>;
+    function GetWebSession: TWebSession;
   protected
+    function SessionMustBeClose: boolean;
+    function IsSessionStarted: boolean;
     constructor Create(ARequest: TWebRequest; AResponse: TWebResponse;
       AConfig: TMVCConfig); virtual;
     procedure SetParams(AParamsTable: TMVCRequestParamsTable);
     procedure Flush;
     function GetLoggedUser: TUser;
+    // Session
+    procedure SessionStart; virtual;
+    procedure BindToSession(SessionID: string);
+    function SendSessionCookie(AContext: TWebContext): string;
+
   public
     ReservedData: TObject;
     destructor Destroy; override;
+    procedure SessionStop(ARaiseExceptionIfExpired: boolean = true); virtual;
     property LoggedUser: TUser read GetLoggedUser;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
+    property Session: TWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
     property Data: TDictionary<string, string> read GetData;
   end;
@@ -320,12 +333,9 @@ type
 
   TMVCController = class(TMVCBase)
   private
-    FIsSessionStarted: boolean;
-    FSessionMustBeClose: boolean;
     FViewModel: TMVCDataObjects;
     FViewDataSets: TObjectDictionary<string, TDataSet>;
     FContext: TWebContext;
-    FWebSession: TWebSession;
     FResponseStream: TStringBuilder;
     FContentCharset: string;
     procedure SetContext(const Value: TWebContext);
@@ -365,11 +375,6 @@ type
     property ContentType: string read GetContentType write SetContentType;
     property ContentCharset: string read GetContentCharset
       write SetContentCharset;
-    // Session
-    procedure SessionStart; virtual;
-    procedure SessionStop(ARaiseExceptionIfExpired: boolean = true); virtual;
-    procedure BindToSession(SessionID: string);
-    function SendSessionCookie(AContext: TWebContext): string;
     // Renderers
     procedure Render(const Content: string); overload; virtual;
     procedure Render; overload; virtual;
@@ -838,7 +843,7 @@ begin
                       end;
                     end;
 
-                    if SelectedController.FSessionMustBeClose then
+                    if Context.SessionMustBeClose then
                     begin
                       // SessionList.Remove(SelectedController.Session.SessionID);
                     end
@@ -856,7 +861,7 @@ begin
                   on E: EMVCSessionExpiredException do
                   begin
                     LogException(E, E.DetailedMessage);
-                    SelectedController.SessionStop(false);
+                    Context.SessionStop(false);
                     SelectedController.ResponseStatusCode(E.HTTPErrorCode);
                     SelectedController.Render(E);
                   end;
@@ -1154,6 +1159,8 @@ constructor TWebContext.Create(ARequest: TWebRequest; AResponse: TWebResponse;
   AConfig: TMVCConfig);
 begin
   inherited Create;
+  FIsSessionStarted := false;
+  FSessionMustBeClose := false;
 
   if IsLibrary then
   begin
@@ -1190,6 +1197,7 @@ begin
   FreeAndNil(FRequest);
   FreeAndNil(FData);
   FreeAndNil(FLoggedUser);
+  // do not destroy session here... it is stored in the session list
   inherited;
 end;
 
@@ -1210,6 +1218,38 @@ begin
     FLoggedUser := TUser.Create;
   end;
   Result := FLoggedUser;
+end;
+
+function TWebContext.GetWebSession: TWebSession;
+begin
+  if not Assigned(FWebSession) then
+  begin
+    FWebSession := TMVCEngine.GetCurrentSession
+      (StrToInt64(FConfig[TMVCConfigKey.SessionTimeout]),
+      TMVCEngine.ExtractSessionIDFromWebRequest(FRequest.RawWebRequest), false);
+    if not Assigned(FWebSession) then
+      SessionStart
+    else
+    begin
+      TMVCEngine.SendSessionCookie(Self, FWebSession.SessionID);
+      // daniele
+    end;
+  end;
+  Result := FWebSession;
+  Result.MarkAsUsed;
+  {
+    LSessionIDFromWebRequest := TMVCEngine.ExtractSessionIDFromWebRequest
+    (Context.Request.RawWebRequest);
+    LWebSession := TMVCEngine.GetCurrentSession
+    (Context.Config.AsInt64[TMVCConfigKey.SessionTimeout],
+    LSessionIDFromWebRequest, False);
+
+  }
+end;
+
+function TWebContext.IsSessionStarted: boolean;
+begin
+  Result := FIsSessionStarted;
 end;
 
 procedure TWebContext.SetParams(AParamsTable: TMVCRequestParamsTable);
@@ -1542,17 +1582,16 @@ end;
 
 { TMVCAction }
 
-procedure TMVCController.BindToSession(SessionID: string);
+procedure TWebContext.BindToSession(SessionID: string);
 begin
   if not Assigned(FWebSession) then
   begin
     FWebSession := TMVCEngine.GetCurrentSession
-      (StrToInt64(GetMVCConfig[TMVCConfigKey.SessionTimeout]),
-      SessionID, false);
+      (StrToInt64(FConfig[TMVCConfigKey.SessionTimeout]), SessionID, false);
     if not Assigned(FWebSession) then
       raise EMVCException.Create('Invalid SessionID');
     FWebSession.MarkAsUsed;
-    TMVCEngine.SendSessionCookie(FContext, SessionID);
+    TMVCEngine.SendSessionCookie(Self, SessionID);
   end
   else
     raise EMVCException.Create('Session already bounded for this request');
@@ -1561,8 +1600,6 @@ end;
 constructor TMVCController.Create;
 begin
   inherited Create;
-  FIsSessionStarted := false;
-  FSessionMustBeClose := false;
   FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
 end;
 
@@ -1680,21 +1717,7 @@ end;
 
 function TMVCController.GetWebSession: TWebSession;
 begin
-  if not Assigned(FWebSession) then
-  begin
-    FWebSession := TMVCEngine.GetCurrentSession
-      (StrToInt64(GetMVCConfig[TMVCConfigKey.SessionTimeout]),
-      TMVCEngine.ExtractSessionIDFromWebRequest
-      (FContext.Request.RawWebRequest), false);
-    if not Assigned(FWebSession) then
-      SessionStart
-    else
-    begin
-      TMVCEngine.SendSessionCookie(FContext, FWebSession.SessionID); //daniele
-    end;
-  end;
-  Result := FWebSession;
-  Result.MarkAsUsed;
+  Result := FContext.Session;
 end;
 
 procedure TMVCController.LoadView(const ViewNames: TArray<String>);
@@ -1872,9 +1895,9 @@ begin
   TMVCStaticContents.SendFile(AFileName, ContentType, Context);
 end;
 
-function TMVCController.SendSessionCookie(AContext: TWebContext): string;
+function TWebContext.SendSessionCookie(AContext: TWebContext): string;
 begin
-  Result := TMVCEngine.SendSessionCookie(AContext);
+  Result := TMVCEngine.SendSessionCookie(Self);
 end;
 
 procedure TMVCController.SendStream(AStream: TStream; AOwnStream: boolean);
@@ -1886,13 +1909,18 @@ begin
   FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
 end;
 
-procedure TMVCController.SessionStart;
+function TWebContext.SessionMustBeClose: boolean;
+begin
+  Result := FSessionMustBeClose;
+end;
+
+procedure TWebContext.SessionStart;
 var
   LSessionID: string;
 begin
   if not Assigned(FWebSession) then
   begin
-    LSessionID := TMVCEngine.SendSessionCookie(FContext);
+    LSessionID := TMVCEngine.SendSessionCookie(Self);
     FWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := true;
@@ -1900,13 +1928,14 @@ begin
   end;
 end;
 
-procedure TMVCController.SessionStop(ARaiseExceptionIfExpired: boolean);
+procedure TWebContext.SessionStop(ARaiseExceptionIfExpired: boolean);
 var
   Cookie: TCookie;
+  LSessionID: string;
 begin
   // Set-Cookie: token=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT
-  FContext.FResponse.Cookies.Clear; // daniele ... remove all previous cookies
-  Cookie := FContext.FResponse.Cookies.Add;
+  FResponse.Cookies.Clear; // daniele ... remove all previous cookies
+  Cookie := FResponse.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
 
   // rubbish... invalid the cookie value
@@ -1917,12 +1946,14 @@ begin
 
   TMonitor.Enter(SessionList);
   try
-    if not Assigned(FWebSession) then
-      FWebSession := TMVCEngine.GetCurrentSession
-        (StrToInt64(GetMVCConfig[TMVCConfigKey.SessionTimeout]), '',
-        ARaiseExceptionIfExpired);
-    if Assigned(FWebSession) then
-      SessionList.Remove(Session.SessionID);
+    LSessionID := TMVCEngine.ExtractSessionIDFromWebRequest
+      (FRequest.RawWebRequest);
+    // if not Assigned(FWebSession) then
+    // FWebSession := TMVCEngine.GetCurrentSession
+    // (StrToInt64(FConfig[TMVCConfigKey.SessionTimeout]), '',
+    // ARaiseExceptionIfExpired);
+    // if Assigned(FWebSession) then
+    SessionList.Remove(LSessionID);
   finally
     TMonitor.Exit(SessionList);
   end;
@@ -1956,11 +1987,12 @@ end;
 
 procedure TMVCController.SetWebSession(const Value: TWebSession);
 begin
-  if Assigned(FWebSession) then
-    raise EMVCException.Create('Web Session already set for controller ' +
-      ClassName);
-  FWebSession := Value;
-  FIsSessionStarted := Assigned(FWebSession);
+  raise Exception.Create('Qualcuno mi usa...');
+  // if Assigned(FContext.FWebSession) then
+  // raise EMVCException.Create('Web Session already set for controller ' +
+  // ClassName);
+  // FContext.FWebSession := Value;
+  // FIsSessionStarted := Assigned(FContext.FWebSession);
 end;
 
 { TMVCPathAttribute }

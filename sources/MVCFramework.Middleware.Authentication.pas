@@ -50,7 +50,12 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session, Soap.EncdDecd;
+  System.SysUtils, MVCFramework.Session
+{$IF CompilerVersion >= 21}
+    , System.NetEncoding
+{$ELSE}
+    , Soap.EncdDecd
+{$ENDIF};
 
 {
 
@@ -61,11 +66,20 @@ uses
 }
 
 const
-  CONTENT_HTML_FORMAT = '<html><body><h1>%s</h1></body></html>';
+  CONTENT_HTML_FORMAT = '<html><body><h1>%s</h1><p>%s</p></body></html>';
   CONTENT_401_NOT_AUTHORIZED = '401: Not authorized';
   CONTENT_403_FORBIDDEN = '403: Forbidden';
 
-  { TMVCSalutationMiddleware }
+function Base64DecodeString(const Value: String): String; inline;
+begin
+{$IF CompilerVersion >= 21}
+  Result := TNetEncoding.Base64.Decode(Value);
+{$ELSE}
+  Result := DecodeString(Value);
+{$ENDIF}
+end;
+
+{ TMVCSalutationMiddleware }
 
 constructor TMVCBasicAuthenticationMiddleware.Create(AMVCAuthenticationHandler
   : IMVCAuthenticationHandler; Realm: string);
@@ -78,7 +92,7 @@ end;
 procedure TMVCBasicAuthenticationMiddleware.OnAfterControllerAction
   (Context: TWebContext; const AActionName: string; const Handled: Boolean);
 begin
-
+  // do nothing
 end;
 
 procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction
@@ -89,10 +103,7 @@ var
   LPieces: TArray<string>;
   LRoles: TList<string>;
   LIsValid: Boolean;
-  LWebSession: TWebSession;
-  LSessionID: string;
   LIsAuthorized: Boolean;
-  LSessionIDFromWebRequest: string;
   LAuthRequired: Boolean;
   LSessionData: TSessionData;
   LPair: TPair<String, String>;
@@ -103,12 +114,12 @@ var
     begin
       Context.Response.ContentType := 'text/html';
       Context.Response.RawWebResponse.Content :=
-        Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED]);
+        Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED, Context.Config[TMVCConfigKey.ServerName]]);
     end
     else
     begin
       Context.Response.ContentType := 'text/plain';
-      Context.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED;
+      Context.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak + Context.Config[TMVCConfigKey.ServerName];
     end;
     Context.Response.StatusCode := 401;
     Context.Response.SetCustomHeader('WWW-Authenticate',
@@ -124,12 +135,12 @@ var
     begin
       Context.Response.ContentType := 'text/html';
       Context.Response.RawWebResponse.Content :=
-        Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN]);
+        Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN, Context.Config[TMVCConfigKey.ServerName]]);
     end
     else
     begin
       Context.Response.ContentType := 'text/plain';
-      Context.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN;
+      Context.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN + sLineBreak + Context.Config[TMVCConfigKey.ServerName];
     end;
     Context.Response.StatusCode := 403;
     Handled := true;
@@ -145,35 +156,12 @@ begin
     Exit;
   end;
 
-  LSessionIDFromWebRequest := TMVCEngine.ExtractSessionIDFromWebRequest
-    (Context.Request.RawWebRequest);
-  LWebSession := TMVCEngine.GetCurrentSession
-    (Context.Config.AsInt64[TMVCConfigKey.SessionTimeout],
-    LSessionIDFromWebRequest, False);
-
-//  if (not LSessionIDFromWebRequest.IsEmpty) and (not Assigned(LWebSession)) then
-//  begin
-//    SendWWWAuthenticate;
-//    // Exit;
-//    // The sessionid is present but is not valid and there is an authentication header.
-//    // In this case, an exception is raised because the sessionid is not valid
-//    // raise EMVCSessionExpiredException.Create('Session expired');
-//  end;
-
-  Context.LoggedUser.LoadFromSession(LWebSession);
+  Context.LoggedUser.LoadFromSession(Context.Session);
   if not Context.LoggedUser.IsValid then
   begin
-    // check if the resource is protected
-    // FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, LAuthRequired);
-    // if not LAuthRequired then
-    // begin
-    // Handled := False;
-    // Exit;
-    // end;
-
     // We NEED authentication
     LAuth := Context.Request.Headers['Authorization'];
-    LAuth := DecodeString(LAuth.Remove(0, 'Basic'.Length).Trim);
+    LAuth := Base64DecodeString(LAuth.Remove(0, 'Basic'.Length).Trim);
     LPieces := LAuth.Split([':']);
     if LAuth.IsEmpty or (Length(LPieces) <> 2) then
     begin
@@ -195,14 +183,12 @@ begin
           Context.LoggedUser.UserName := LPieces[0];
           Context.LoggedUser.LoggedSince := Now;
           Context.LoggedUser.Realm := FRealm;
-          LSessionID := TMVCEngine.SendSessionCookie(Context);
-          LWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
-            Context.Config.AsInt64[TMVCConfigKey.SessionTimeout]);
-          Context.LoggedUser.SaveToSession(LWebSession);
+          Context.LoggedUser.SaveToSession(Context.Session);
+
           // save sessiondata to the actual session
           for LPair in LSessionData do
           begin
-            LWebSession[LPair.Key] := LPair.Value;
+            Context.Session[LPair.Key] := LPair.Value;
           end;
         end;
       finally
@@ -235,7 +221,7 @@ end;
 procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting
   (Context: TWebContext; var Handled: Boolean);
 begin
-
+  // do nothing
 end;
 
 end.
