@@ -578,6 +578,7 @@ type
     AllowUnhandledAction = 'allow_unhandled_action'; // tristan
     ServerName = 'server_name'; // tristan
     ExposeServerSignature = 'server_signature';
+    IndexDocument = 'index_document';
   end;
 
 function IsShuttingDown: boolean;
@@ -695,6 +696,8 @@ begin
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
 
+  Config[TMVCConfigKey.IndexDocument] := 'index.html';
+
   FMimeTypes.Add('.html', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.htm', TMVCMimeType.TEXT_HTML);
   FMimeTypes.Add('.txt', TMVCMimeType.TEXT_PLAIN);
@@ -754,27 +757,44 @@ end;
 function TMVCEngine.ExecuteAction(Sender: TObject; Request: TWebRequest;
   Response: TWebResponse): boolean;
 var
-  SelectedController: TMVCController;
-  Context: TWebContext;
-  ParamsTable: TMVCRequestParamsTable;
-  Router: TMVCRouter;
-  StaticFileName: string;
-  ContentType: string;
-  Handled: boolean;
-  ResponseContentType, ResponseContentCharset: string;
+  lSelectedController: TMVCController;
+  lContext: TWebContext;
+  lParamsTable: TMVCRequestParamsTable;
+  lRouter: TMVCRouter;
+  lStaticFileName: string;
+  lContentType: string;
+  lHandled: boolean;
+  lResponseContentType, lResponseContentCharset: string;
+
+  function SendDocumentIndexIfPresent: boolean;
+  begin
+    lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
+      Config[TMVCConfigKey.IndexDocument]);
+    if TFile.Exists(lStaticFileName) then
+    begin
+      if not FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)),
+        lContentType) then
+        lContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
+      TMVCStaticContents.SendFile(lStaticFileName, lContentType, lContext);
+      Result := true;
+    end
+    else
+      Result := false;
+  end;
+
 begin
   // LogEnterMethod(Request.PathInfo);
   // try
   Result := false;
-  ParamsTable := TMVCRequestParamsTable.Create;
+  lParamsTable := TMVCRequestParamsTable.Create;
   try
-    Context := TWebContext.Create(Request, Response, FMVCConfig);
+    lContext := TWebContext.Create(Request, Response, FMVCConfig);
     try
-      SetDefaultReponseHeaders(Context); // tristan
+      SetDefaultReponseHeaders(lContext); // tristan
       // Static file handling
       if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
         FMVCConfig[TMVCConfigKey.DocumentRoot]), Request.PathInfo,
-        StaticFileName) then
+        lStaticFileName) then
       begin
         // if TMVCStaticContents.IsScriptableFile(StaticFileName, FMVCConfig) then
         // // execute the file
@@ -783,67 +803,68 @@ begin
         // end
         // else // serve the file
         // begin
-        if not FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(StaticFileName)),
-          ContentType) then
-          ContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
-        TMVCStaticContents.SendFile(StaticFileName, ContentType, Context);
+        if not FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)
+          ), lContentType) then
+          lContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
+        TMVCStaticContents.SendFile(lStaticFileName, lContentType, lContext);
         Result := true;
         // end;
       end
       else
       begin
-        Router := TMVCRouter.Create(Config);
+        lRouter := TMVCRouter.Create(Config);
         try
-          ExecuteBeforeRoutingMiddleware(Context, Handled);
-          if not Handled then
+          ExecuteBeforeRoutingMiddleware(lContext, lHandled);
+          if not lHandled then
           begin
-            if Router.ExecuteRouting(Request.PathInfo,
+            if lRouter.ExecuteRouting(Request.PathInfo,
               TMVCRouter.StringMethodToHTTPMetod(Request.Method),
               Request.ContentType, Request.Accept, FControllers,
               FMVCConfig[TMVCConfigKey.DefaultContentType],
-              FMVCConfig[TMVCConfigKey.DefaultContentCharset], ParamsTable,
-              ResponseContentType, ResponseContentCharset) then
+              FMVCConfig[TMVCConfigKey.DefaultContentCharset], lParamsTable,
+              lResponseContentType, lResponseContentCharset) then
             begin
-              if Assigned(Router.MVCControllerDelegate) then
-                SelectedController := Router.MVCControllerDelegate()
+              if Assigned(lRouter.MVCControllerDelegate) then
+                lSelectedController := lRouter.MVCControllerDelegate()
               else
-                SelectedController := Router.MVCControllerClass.Create;
+                lSelectedController := lRouter.MVCControllerClass.Create;
               try
-                SelectedController.SetMVCConfig(Config);
-                SelectedController.ApplicationSession := FApplicationSession;
-                Context.SetParams(ParamsTable);
-                SelectedController.SetContext(Context);
-                SelectedController.SetMVCEngine(Self);
+                lSelectedController.SetMVCConfig(Config);
+                lSelectedController.ApplicationSession := FApplicationSession;
+                lContext.SetParams(lParamsTable);
+                lSelectedController.SetContext(lContext);
+                lSelectedController.SetMVCEngine(Self);
 
                 // exception?
                 try
                   { middlewares before controller action }
-                  ExecuteBeforeControllerActionMiddleware(Self, Context,
-                    Router.MVCControllerClass.QualifiedClassName,
-                    Router.MethodToCall.Name, Handled);
-                  if Handled then
+                  ExecuteBeforeControllerActionMiddleware(Self, lContext,
+                    lRouter.MVCControllerClass.QualifiedClassName,
+                    lRouter.MethodToCall.Name, lHandled);
+                  if lHandled then
                     Exit(true);
 
-                  SelectedController.MVCControllerAfterCreate;
+                  lSelectedController.MVCControllerAfterCreate;
                   try
-                    Handled := false;
+                    lHandled := false;
                     // gets response contentype from MVCProduces attribute
-                    SelectedController.ContentType := ResponseContentType;
-                    SelectedController.ContentCharset := ResponseContentCharset;
-                    SelectedController.OnBeforeAction(Context,
-                      Router.MethodToCall.Name, Handled);
-                    if not Handled then
+                    lSelectedController.ContentType := lResponseContentType;
+                    lSelectedController.ContentCharset :=
+                      lResponseContentCharset;
+                    lSelectedController.OnBeforeAction(lContext,
+                      lRouter.MethodToCall.Name, lHandled);
+                    if not lHandled then
                     begin
                       try
-                        Router.MethodToCall.Invoke(SelectedController,
-                          [Context]);
+                        lRouter.MethodToCall.Invoke(lSelectedController,
+                          [lContext]);
                       finally
-                        SelectedController.OnAfterAction(Context,
-                          Router.MethodToCall.Name);
+                        lSelectedController.OnAfterAction(lContext,
+                          lRouter.MethodToCall.Name);
                       end;
                     end;
 
-                    if Context.SessionMustBeClose then
+                    if lContext.SessionMustBeClose then
                     begin
                       // SessionList.Remove(SelectedController.Session.SessionID);
                     end
@@ -853,43 +874,44 @@ begin
                     end;
 
                   finally
-                    SelectedController.MVCControllerBeforeDestroy;
+                    lSelectedController.MVCControllerBeforeDestroy;
                   end;
-                  ExecuteAfterControllerActionMiddleware(Context,
-                    Router.MethodToCall.Name, Handled);
+                  ExecuteAfterControllerActionMiddleware(lContext,
+                    lRouter.MethodToCall.Name, lHandled);
                 except
                   on E: EMVCSessionExpiredException do
                   begin
                     LogException(E, E.DetailedMessage);
-                    Context.SessionStop(false);
-                    SelectedController.ResponseStatusCode(E.HTTPErrorCode);
-                    SelectedController.Render(E);
+                    lContext.SessionStop(false);
+                    lSelectedController.ResponseStatusCode(E.HTTPErrorCode);
+                    lSelectedController.Render(E);
                   end;
                   on E: EMVCException do
                   begin
                     LogException(E, E.DetailedMessage);
-                    SelectedController.ResponseStatusCode(E.HTTPErrorCode);
-                    SelectedController.Render(E);
+                    lSelectedController.ResponseStatusCode(E.HTTPErrorCode);
+                    lSelectedController.Render(E);
                   end;
                   on E: EInvalidOp do
                   begin
                     LogException(E, 'Invalid OP');
-                    SelectedController.Render(E);
+                    lSelectedController.Render(E);
                   end;
                   on E: Exception do
                   begin
                     LogException(E, 'Global Action Exception Handler');
-                    SelectedController.Render(E);
+                    lSelectedController.Render(E);
                   end;
                 end;
-                Context.Response.ContentType := SelectedController.ContentType;
+                lContext.Response.ContentType :=
+                  lSelectedController.ContentType;
 
                 Log(TLogLevel.levNormal, Request.Method + ':' +
                   Request.RawPathInfo + ' -> ' +
-                  Router.MVCControllerClass.QualifiedClassName + ' - ' +
+                  lRouter.MVCControllerClass.QualifiedClassName + ' - ' +
                   IntToStr(Response.StatusCode) + ' ' + Response.ReasonString)
               finally
-                SelectedController.Free;
+                lSelectedController.Free;
               end;
             end
             else
@@ -897,27 +919,31 @@ begin
               if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
               // tristan
               begin
-                Http404(Context);
-                Log(TLogLevel.levNormal, Request.Method + ':' +
-                  Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
-                  IntToStr(Response.StatusCode) + ' ' + Response.ReasonString);
+                if not SendDocumentIndexIfPresent then
+                begin
+                  Http404(lContext);
+                  Log(TLogLevel.levNormal, Request.Method + ':' +
+                    Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
+                    IntToStr(Response.StatusCode) + ' ' +
+                    Response.ReasonString);
+                end;
               end
               else
               begin
-                Context.Response.FlushOnDestroy := false; // tristan
+                lContext.Response.FlushOnDestroy := false; // tristan
               end;
             end;
           end;
         finally
-          Router.Free;
+          lRouter.Free;
         end;
       end; // end if IS_STATIC
     finally
 
-      Context.Free;
+      lContext.Free;
     end;
   finally
-    ParamsTable.Free;
+    lParamsTable.Free;
   end;
   // finally
   // LogExitMethod(Request.PathInfo + ' [' + IntToStr(Response.StatusCode) + ' ' +
