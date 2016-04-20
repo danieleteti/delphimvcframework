@@ -13,7 +13,7 @@
   * Powerful mapper to map json to objects and datasets to objects
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
-  * Works with XE3, XE4, XE5, XE6, XE7, XE8 and Delphi 10 Seattle
+  * Works with XE3, XE4, XE5, XE6, XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
