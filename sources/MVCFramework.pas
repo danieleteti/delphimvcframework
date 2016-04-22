@@ -391,6 +391,7 @@ type
       AJSONObjectActionProc: TJSONObjectActionProc = nil); overload; virtual;
     procedure Render(AJSONValue: TJSONValue; AInstanceOwner: boolean = true);
       overload; virtual;
+    procedure Render(ATextWriter: TTextWriter; AInstanceOwner: boolean = true); overload;
     procedure RenderListAsProperty<T: class>(const APropertyName: string;
       AObjectList: TObjectList<T>; AOwnsInstance: boolean = true;
       AJSONObjectActionProc: TJSONObjectActionProc = nil);
@@ -2529,6 +2530,11 @@ end;
 procedure TMVCController.RenderStreamAndFree(const AStream: TStream);
 begin
   SendStream(AStream);
+end;
+
+procedure TMVCController.Render(ATextWriter: TTextWriter; AInstanceOwner: boolean);
+begin
+  InternalRenderText(ATextWriter.ToString, ContentType, ContentCharset, Context);
 end;
 
 procedure TMVCController.Render(AJSONValue: TJSONValue;

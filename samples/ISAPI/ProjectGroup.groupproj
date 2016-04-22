@@ -3,10 +3,13 @@
         <ProjectGuid>{C8F2ABF8-B8A8-4590-B169-A43EAFA5A161}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="StandAlone\StandAloneServer.dproj">
+        <Projects Include="..\..\..\LoggerPro\samples\60_logging_inside_dll\mydll.dproj">
+            <Dependencies>..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj</Dependencies>
+        </Projects>
+        <Projects Include="..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="ISAPI\isapiapp.dproj">
+        <Projects Include="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -17,32 +20,41 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
-    <Target Name="StandAloneServer">
-        <MSBuild Projects="StandAlone\StandAloneServer.dproj"/>
+    <Target Name="mydll" DependsOnTargets="MainProgram">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\mydll.dproj"/>
     </Target>
-    <Target Name="StandAloneServer:Clean">
-        <MSBuild Projects="StandAlone\StandAloneServer.dproj" Targets="Clean"/>
+    <Target Name="mydll:Clean" DependsOnTargets="MainProgram:Clean">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\mydll.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="StandAloneServer:Make">
-        <MSBuild Projects="StandAlone\StandAloneServer.dproj" Targets="Make"/>
+    <Target Name="mydll:Make" DependsOnTargets="MainProgram:Make">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\mydll.dproj" Targets="Make"/>
     </Target>
-    <Target Name="isapiapp">
-        <MSBuild Projects="ISAPI\isapiapp.dproj"/>
+    <Target Name="MainProgram">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj"/>
     </Target>
-    <Target Name="isapiapp:Clean">
-        <MSBuild Projects="ISAPI\isapiapp.dproj" Targets="Clean"/>
+    <Target Name="MainProgram:Clean">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="isapiapp:Make">
-        <MSBuild Projects="ISAPI\isapiapp.dproj" Targets="Make"/>
+    <Target Name="MainProgram:Make">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="file_appender">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj"/>
+    </Target>
+    <Target Name="file_appender:Clean">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="file_appender:Make">
+        <MSBuild Projects="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="StandAloneServer;isapiapp"/>
+        <CallTarget Targets="mydll;MainProgram;file_appender"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="StandAloneServer:Clean;isapiapp:Clean"/>
+        <CallTarget Targets="mydll:Clean;MainProgram:Clean;file_appender:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="StandAloneServer:Make;isapiapp:Make"/>
+        <CallTarget Targets="mydll:Make;MainProgram:Make;file_appender:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
