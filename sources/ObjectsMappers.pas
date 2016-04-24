@@ -820,7 +820,7 @@ begin
       Continue;
     end;
     case ADataSet.Fields[I].DataType of
-      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint,
+      TFieldType.ftInteger, TFieldType.ftLongWord, TFieldType.ftAutoInc, TFieldType.ftSmallint,
         TFieldType.ftShortint:
         AJSONObject.AddPair(key,
           TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
@@ -2470,7 +2470,7 @@ begin
     end;
 
     case ADataSet.Fields[I].DataType of
-      TFieldType.ftInteger, TFieldType.ftAutoInc, TFieldType.ftSmallint,
+      TFieldType.ftInteger, TFieldType.ftLongWord, TFieldType.ftAutoInc, TFieldType.ftSmallint,
         TFieldType.ftShortint:
         begin
           ADataSet.Fields[I].AsInteger := (v as TJSONNumber).AsInt;
