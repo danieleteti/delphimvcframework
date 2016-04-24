@@ -36,7 +36,7 @@ implementation
 
 { TWebSiteController }
 
-uses DAL, System.SysUtils, MVCFramework.Commons;
+uses DAL, System.SysUtils, MVCFramework.Commons, Web.HTTPApp;
 
 function TWebSiteController.GetSpeed: TJSONString;
 begin
@@ -67,11 +67,20 @@ end;
 procedure TWebSiteController.PeopleList(CTX: TWebContext);
 var
   LDAL: IPeopleDAL;
+  lCookie: TCookie;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   PushJSONToView('people', LDAL.GetPeople);
   PushJSONToView('speed', GetSpeed);
   LoadView(['header', 'people_list', 'footer']);
+
+  // send a cookie with the server datetime at the page rendering
+  lCookie := CTX.Response.Cookies.Add;
+  lCookie.Name := 'lastresponse';
+  lCookie.Value := DateTimeToStr(now);
+  lCookie.Expires := 0; // session cookie
+  // END cookie sending
+
   Render; // rember to call render!!!
 end;
 
@@ -88,13 +97,14 @@ begin
 
   if LFirstName.IsEmpty or LLastName.IsEmpty or LAge.IsEmpty then
   begin
-    { TODO -oDaniele -cGeneral : Show how to propertly render an exception }
+    { TODO -oDaniele -cGeneral : Show how to properly render an exception }
     raise EMVCException.Create('Invalid data',
       'First name, last name and age are not optional', 0);
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
   LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger());
+
   Redirect('/people');
 end;
 

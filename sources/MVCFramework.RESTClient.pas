@@ -1,26 +1,26 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ *************************************************************************** }
 
 unit MVCFramework.RESTClient;
 
@@ -31,16 +31,13 @@ uses
   IdHTTP,
   IdURI,
 
-  {$IF CompilerVersion < 27}
-
+{$IF CompilerVersion < 27}
   Data.DBXJSON,
 
-  {$ELSE}
-
+{$ELSE}
   System.JSON,
 
-  {$ENDIF}
-
+{$ENDIF}
   IdMultipartFormData,
   System.SysUtils,
   Data.DB,
@@ -48,7 +45,7 @@ uses
   IdCompressorZLib,
   IdSSLOpenSSL,
   System.Generics.Collections,
-  System.StrUtils;
+  System.StrUtils, Web.HTTPApp, IdCookie;
 
 type
   ERESTClientException = class(Exception);
@@ -59,12 +56,17 @@ type
   IRESTResponse = interface
     ['{E96178DE-79D4-4EF6-88F6-1A677207265A}']
     function GetContentType: string; deprecated 'use method ContentType';
-    function GetContentEncoding: string; deprecated 'use method ContentEncoding';
-    function GetHeaderValue(const AName: string): string; deprecated 'use method HeaderValue';
+    function GetContentEncoding: string;
+      deprecated 'use method ContentEncoding';
+    function GetHeaderValue(const AName: string): string;
+      deprecated 'use method HeaderValue';
 
-    procedure SetResponseCode(const AResponseCode: Word); deprecated 'use method UpdateResponseCode';
-    procedure SetResponseText(const AResponseText: string); deprecated 'use method UpdateResponseText';
-    procedure SetHeaders(AHeaders: TStrings); deprecated 'use method UpdateHeaders';
+    procedure SetResponseCode(const AResponseCode: Word);
+      deprecated 'use method UpdateResponseCode';
+    procedure SetResponseText(const AResponseText: string);
+      deprecated 'use method UpdateResponseText';
+    procedure SetHeaders(AHeaders: TStrings);
+      deprecated 'use method UpdateHeaders';
 
     function Body: TStringStream;
     function BodyAsString: string;
@@ -84,6 +86,10 @@ type
 
     function ContentType: string;
     function ContentEncoding: string;
+
+    function GetCookies: TIdCookies;
+    procedure SetCookies(aCookie: TIdCookies);
+    property Cookies: TIdCookies read GetCookies write SetCookies;
   end;
 
   TJSONObjectResponseHelper = class helper for TJSONObject
@@ -135,28 +141,36 @@ type
     procedure SetProxyPort(const AValue: Integer);
   strict protected
     procedure HandleRequestCookies();
-    procedure HandleCookies();
+    procedure HandleCookies(aCookies: TIdCookies;
+  aRESTResponse: IRESTResponse);
 
-    function EncodeQueryStringParams(const AParams: TStrings; AIncludeQuestionMark: Boolean = True): string;
-    function EncodeResourceParams(const AResourceParams: array of string): string;
+    function EncodeQueryStringParams(const AParams: TStrings;
+      AIncludeQuestionMark: Boolean = True): string;
+    function EncodeResourceParams(const AResourceParams
+      : array of string): string;
 
-    procedure StartAsynchRequest(const ACommand: THTTPCommand; const AResource, ABody: string); overload;
-    procedure StartAsynchRequest(const ACommand: THTTPCommand; const AResource: string); overload;
+    procedure StartAsynchRequest(const ACommand: THTTPCommand;
+      const AResource, ABody: string); overload;
+    procedure StartAsynchRequest(const ACommand: THTTPCommand;
+      const AResource: string); overload;
 
     function HTTPCommandToString(const ACommand: THTTPCommand): string;
 
-    function SendHTTPCommand(const ACommand: THttpCommand;
-      const AAccept, AContentType, AResource: string; ABodyParams: TStrings): IRESTResponse;
+    function SendHTTPCommand(const ACommand: THTTPCommand;
+      const AAccept, AContentType, AResource: string; ABodyParams: TStrings)
+      : IRESTResponse;
 
     function SendHTTPCommandWithBody(const ACommand: THTTPCommand;
       const AAccept, AContentType, AResource, ABody: string): IRESTResponse;
   public
-    constructor Create(const AHost: string; const APort: Word = 80; AIOHandler: TIdIOHandler = nil); virtual;
+    constructor Create(const AHost: string; const APort: Word = 80;
+      AIOHandler: TIdIOHandler = nil); virtual;
     destructor Destroy; override;
 
     function ReadTimeOut(const AValue: Integer): TRESTClient; overload;
     function ConnectionTimeOut(const AValue: Integer): TRESTClient; overload;
-    function Authentication(const AUsername, APassword: string; const ABasicAuth: Boolean = True): TRESTClient;
+    function Authentication(const AUsername, APassword: string;
+      const ABasicAuth: Boolean = True): TRESTClient;
     function ClearHeaders(): TRESTClient;
     function Header(const AField, AValue: string): TRESTClient;
     function Accept(const AValue: string): TRESTClient; overload;
@@ -171,47 +185,78 @@ type
     function Compression(const AEnabled: Boolean = True): TRESTClient;
     function ResetSession(): TRESTClient;
 
-    function AddFile(const AFieldName, AFileName: string; const AContentType: string = ''): TRESTClient;
+    function AddFile(const AFieldName, AFileName: string;
+      const AContentType: string = ''): TRESTClient;
 
-    function Asynch(AProc: TProc<IRESTResponse>; AProcErr: TProc<Exception> = nil;
-      AProcAlways: TProc = nil; ASynchronized: Boolean = False): TRESTClient;
+    function Asynch(AProc: TProc<IRESTResponse>;
+      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
+      ASynchronized: Boolean = False): TRESTClient;
 
     function doGET(): IRESTResponse; overload;
-    function doGET(const AResource: string; const AParams: array of string): IRESTResponse; overload;
+    function doGET(const AResource: string; const AParams: array of string)
+      : IRESTResponse; overload;
 
     function doPOST(const ABody: string): IRESTResponse; overload;
-    function doPOST(ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST<TBodyType: class>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse; overload;
+    function doPOST(ABody: TJSONValue; const AOwnsBody: Boolean = True)
+      : IRESTResponse; overload;
+    function doPOST<TBodyType: class>(ABody: TBodyType;
+      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPOST<TBodyType: class>(ABody: TObjectList<TBodyType>;
+      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPOST(const AResource: string; const AParams: array of string)
+      : IRESTResponse; overload;
+    function doPOST(const AResource: string; const AParams: array of string;
+      ABody: TJSONValue; const AOwnsBody: Boolean = True)
+      : IRESTResponse; overload;
+    function doPOST(const AResource: string; const AParams: array of string;
+      const ABody: string): IRESTResponse; overload;
 
     function doPATCH(const ABody: string): IRESTResponse; overload;
-    function doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH<TBodyType: class>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH(const AResource: string; const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse; overload;
+    function doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean = True)
+      : IRESTResponse; overload;
+    function doPATCH<TBodyType: class>(ABody: TBodyType;
+      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPATCH<TBodyType: class>(ABody: TObjectList<TBodyType>;
+      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPATCH(const AResource: string; const AParams: array of string;
+      ABody: TJSONValue; const AOwnsBody: Boolean = True)
+      : IRESTResponse; overload;
+    function doPATCH(const AResource: string; const AParams: array of string;
+      const ABody: string): IRESTResponse; overload;
 
     function doPUT(const ABody: string): IRESTResponse; overload;
-    function doPUT(ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPUT<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPUT<TBodyType: class>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string): IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse; overload;
+    function doPUT(ABody: TJSONValue; const AOwnsBody: Boolean = True)
+      : IRESTResponse; overload;
+    function doPUT<TBodyType: class>(ABody: TBodyType;
+      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPUT<TBodyType: class>(ABody: TObjectList<TBodyType>;
+      const AOwnsBody: Boolean = True): IRESTResponse; overload;
+    function doPUT(const AResource: string; const AParams: array of string)
+      : IRESTResponse; overload;
+    function doPUT(const AResource: string; const AParams: array of string;
+      ABody: TJSONValue; const AOwnsBody: Boolean = True)
+      : IRESTResponse; overload;
+    function doPUT(const AResource: string; const AParams: array of string;
+      const ABody: string): IRESTResponse; overload;
 
     function doDELETE(): IRESTResponse; overload;
-    function doDELETE(const AResource: string; const AParams: array of string): IRESTResponse; overload;
+    function doDELETE(const AResource: string; const AParams: array of string)
+      : IRESTResponse; overload;
 
-    function DataSetUpdate(const AResource: string; ADataSet: TDataSet; const AKeyValue: string): IRESTResponse;
-    function DataSetInsert(const AResource: string; ADataSet: TDataSet): IRESTResponse;
-    function DataSetDelete(const AResource: string; const AKeyValue: string): IRESTResponse;
+    function DataSetUpdate(const AResource: string; ADataSet: TDataSet;
+      const AKeyValue: string): IRESTResponse;
+    function DataSetInsert(const AResource: string; ADataSet: TDataSet)
+      : IRESTResponse;
+    function DataSetDelete(const AResource: string; const AKeyValue: string)
+      : IRESTResponse;
 
-    function DSUpdate(const AResource: string; ADataSet: TDataSet; const AKeyValue: string): IRESTResponse; deprecated 'use method DataSetUpdate';
-    function DSInsert(const AResource: string; ADataSet: TDataSet): IRESTResponse; deprecated 'use method DataSetInsert';
-    function DSDelete(const AResource: string; const AKeyValue: string): IRESTResponse; deprecated 'use method DataSetDelete';
+    function DSUpdate(const AResource: string; ADataSet: TDataSet;
+      const AKeyValue: string): IRESTResponse;
+      deprecated 'use method DataSetUpdate';
+    function DSInsert(const AResource: string; ADataSet: TDataSet)
+      : IRESTResponse; deprecated 'use method DataSetInsert';
+    function DSDelete(const AResource: string; const AKeyValue: string)
+      : IRESTResponse; deprecated 'use method DataSetDelete';
 
     function Accept(): string; overload;
     function ContentType(): string; overload;
@@ -222,12 +267,14 @@ type
     function HasCompression(): Boolean;
 
     property RawBody: TStringStream read GetRawBody;
-    property MultiPartFormData: TIdMultiPartFormDataStream read GetMultipartFormData;
+    property MultiPartFormData: TIdMultiPartFormDataStream
+      read GetMultiPartFormData;
     property BodyParams: TStringlist read GetBodyParams;
     property SessionID: string read GetSessionID write SetSessionID;
     property Username: string read GetUserName write SetUserName;
     property Password: string read GetPassword write SetPassword;
-    property UseBasicAuthentication: Boolean read GetBasicAuth write SetBasicAuth;
+    property UseBasicAuthentication: Boolean read GetBasicAuth
+      write SetBasicAuth;
     property RequestHeaders: TStringlist read FRequestHeaders;
     property QueryStringParams: TStringlist read GetQueryStringParams;
     property ProxyServer: string write SetProxyServer;
@@ -250,7 +297,10 @@ type
     FBodyAsJSONValue: TJSONValue;
     FContentType: string;
     FContentEncoding: string;
+    FCookieCollection: TCookieCollection;
     function GetHeader(const AValue: string): string;
+  private
+    FCookies: TIdCookies;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -281,6 +331,10 @@ type
 
     function ContentType(): string;
     function ContentEncoding(): string;
+
+    function GetCookies: TIdCookies;
+    procedure SetCookies(aCookie: TIdCookies);
+    property Cookies: TIdCookies read GetCookies write SetCookies;
   end;
 
   { TRESTResponse }
@@ -352,6 +406,7 @@ end;
 constructor TRESTResponse.Create;
 begin
   FHeaders := TStringlist.Create;
+  FCookies := TIdCookies.Create(nil);
   FBody := TStringStream.Create('', TEncoding.UTF8);
   FBodyAsJSONValue := nil;
 end;
@@ -362,6 +417,7 @@ begin
     FreeAndNil(FBodyAsJSONValue);
   FreeAndNil(FHeaders);
   FreeAndNil(FBody);
+  FreeAndNil(FCookies);
   inherited;
 end;
 
@@ -375,6 +431,11 @@ begin
   Result := ContentType;
 end;
 
+function TRESTResponse.GetCookies: TIdCookies;
+begin
+  Result := FCookies;
+end;
+
 function TRESTResponse.GetHeader(const AValue: string): string;
 var
   s: string;
@@ -382,7 +443,7 @@ begin
   if Assigned(FHeaders) and (FHeaders.Count > 0) then
   begin
     for s in FHeaders do
-      if s.StartsWith(AValue + ':', true) then
+      if s.StartsWith(AValue + ':', True) then
         Exit(s);
   end
   else
@@ -426,6 +487,11 @@ begin
   Result := FResponseText;
 end;
 
+procedure TRESTResponse.SetCookies(aCookie: TIdCookies);
+begin
+  FCookies := aCookie;
+end;
+
 procedure TRESTResponse.SetHeaders(AHeaders: TStrings);
 begin
   UpdateHeaders(AHeaders);
@@ -451,11 +517,11 @@ begin
   C := GetHeader('content-type');
 
   CT := C.Split([':'])[1].Split([';']);
-  FContentType := trim(CT[0]);
+  FContentType := Trim(CT[0]);
   FContentEncoding := 'UTF-8';
   if Length(CT) > 1 then
-    if CT[1].Trim.StartsWith('charset', true) then
-      FContentEncoding := CT[1].trim.Split(['='])[1].trim;
+    if CT[1].Trim.StartsWith('charset', True) then
+      FContentEncoding := CT[1].Trim.Split(['='])[1].Trim;
 end;
 
 procedure TRESTResponse.UpdateResponseCode(const AResponseCode: Word);
@@ -506,14 +572,16 @@ begin
   Result := Self;
 end;
 
-function TRESTClient.AddFile(const AFieldName, AFileName, AContentType: string): TRESTClient;
+function TRESTClient.AddFile(const AFieldName, AFileName, AContentType: string)
+  : TRESTClient;
 begin
-  MultipartFormData.AddFile(AFieldName, AFileName, AContentType);
+  MultiPartFormData.AddFile(AFieldName, AFileName, AContentType);
   Result := Self;
 end;
 
-function TRESTClient.Asynch(AProc: TProc<IRESTResponse>; AProcErr: TProc<Exception>; AProcAlways: TProc;
-  ASynchronized: Boolean): TRESTClient;
+function TRESTClient.Asynch(AProc: TProc<IRESTResponse>;
+  AProcErr: TProc<Exception>; AProcAlways: TProc; ASynchronized: Boolean)
+  : TRESTClient;
 begin
   FNextRequestIsAsynch := True;
   FAsynchProc := AProc;
@@ -523,9 +591,10 @@ begin
   Result := Self;
 end;
 
-function TRESTClient.Authentication(const AUsername, APassword: string; const ABasicAuth: Boolean): TRESTClient;
+function TRESTClient.Authentication(const AUsername, APassword: string;
+  const ABasicAuth: Boolean): TRESTClient;
 begin
-  FHTTP.Request.UserName := AUsername;
+  FHTTP.Request.Username := AUsername;
   FHTTP.Request.Password := APassword;
   FHTTP.Request.BasicAuthentication := ABasicAuth;
   Result := Self;
@@ -621,7 +690,8 @@ begin
   Result := Self;
 end;
 
-constructor TRESTClient.Create(const AHost: string; const APort: Word; AIOHandler: TIdIOHandler);
+constructor TRESTClient.Create(const AHost: string; const APort: Word;
+  AIOHandler: TIdIOHandler);
 var
   Pieces: TArray<string>;
 begin
@@ -656,7 +726,7 @@ begin
     FProtocol := 'http';
 
   FHTTP := TIdHTTP.Create(nil);
-  FHTTP.ReadTimeout := 20000;
+  FHTTP.ReadTimeOut := 20000;
 
   if (AIOHandler <> nil) then
     FHTTP.IOHandler := AIOHandler
@@ -670,17 +740,20 @@ begin
   FHTTP.Request.BasicAuthentication := True;
 end;
 
-function TRESTClient.DataSetDelete(const AResource, AKeyValue: string): IRESTResponse;
+function TRESTClient.DataSetDelete(const AResource, AKeyValue: string)
+  : IRESTResponse;
 begin
   Result := doDELETE(AResource, [AKeyValue]);
 end;
 
-function TRESTClient.DataSetInsert(const AResource: string; ADataSet: TDataSet): IRESTResponse;
+function TRESTClient.DataSetInsert(const AResource: string; ADataSet: TDataSet)
+  : IRESTResponse;
 begin
   Result := doPOST(AResource, [], ADataSet.AsJSONObjectString);
 end;
 
-function TRESTClient.DataSetUpdate(const AResource: string; ADataSet: TDataSet; const AKeyValue: string): IRESTResponse;
+function TRESTClient.DataSetUpdate(const AResource: string; ADataSet: TDataSet;
+  const AKeyValue: string): IRESTResponse;
 begin
   Result := doPUT(AResource, [AKeyValue], ADataSet.AsJSONObjectString);
 end;
@@ -704,7 +777,8 @@ begin
   inherited;
 end;
 
-function TRESTClient.doDELETE(const AResource: string; const AParams: array of string): IRESTResponse;
+function TRESTClient.doDELETE(const AResource: string;
+  const AParams: array of string): IRESTResponse;
 var
   URL: string;
 begin
@@ -739,7 +813,8 @@ begin
   Result := doGET(FResource, FParams);
 end;
 
-function TRESTClient.doGET(const AResource: string; const AParams: array of string): IRESTResponse;
+function TRESTClient.doGET(const AResource: string;
+  const AParams: array of string): IRESTResponse;
 var
   URL: string;
 begin
@@ -758,14 +833,16 @@ begin
   end;
 end;
 
-function TRESTClient.doPOST(const AResource: string; const AParams: array of string): IRESTResponse;
+function TRESTClient.doPOST(const AResource: string;
+  const AParams: array of string): IRESTResponse;
 var
   s: string;
 begin
   try
-    Result := SendHTTPCommand(httpPOST, FAccept, FContentType, FProtocol + '://' + FHost + ':'
-      + IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
-      EncodeQueryStringParams(FQueryStringParams), FBodyParams);
+    Result := SendHTTPCommand(httpPOST, FAccept, FContentType,
+      FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
+      EncodeResourceParams(AParams) + EncodeQueryStringParams
+      (FQueryStringParams), FBodyParams);
   except
     on E: EIdHTTPProtocolException do
       s := E.Message;
@@ -773,8 +850,9 @@ begin
   ClearAllParams;
 end;
 
-function TRESTClient.doPOST(const AResource: string; const AParams: array of string; ABody: TJSONValue;
-  const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPOST(const AResource: string;
+  const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean)
+  : IRESTResponse;
 begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('ABody is nil JSONValue');
@@ -782,23 +860,22 @@ begin
   try
     Result := doPOST(AResource, AParams,
 
-      {$IF CompilerVersion >= 28}
-
+{$IF CompilerVersion >= 28}
       ABody.ToJSON
 
-      {$ELSE}
-
+{$ELSE}
       ABody.ToString
 
-      {$ENDIF});
+{$ENDIF});
   finally
     if AOwnsBody then
       FreeAndNil(ABody);
   end;
 end;
 
-function TRESTClient.doPATCH(const AResource: string; const AParams: array of string; ABody: TJSONValue;
-  const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPATCH(const AResource: string;
+  const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean)
+  : IRESTResponse;
 begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('ABody is nil JSONValue');
@@ -806,22 +883,21 @@ begin
   try
     Result := doPATCH(AResource, AParams,
 
-      {$IF CompilerVersion >= 28}
-
+{$IF CompilerVersion >= 28}
       ABody.ToJSON
 
-      {$ELSE}
-
+{$ELSE}
       ABody.ToString
 
-      {$ENDIF});
+{$ENDIF});
   finally
     if AOwnsBody then
       FreeAndNil(ABody);
   end;
 end;
 
-function TRESTClient.doPATCH(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse;
+function TRESTClient.doPATCH(const AResource: string;
+  const AParams: array of string; const ABody: string): IRESTResponse;
 var
   URL: string;
 begin
@@ -835,7 +911,8 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType, URL, ABody);
+    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType,
+      URL, ABody);
     ClearAllParams;
   end;
 end;
@@ -851,7 +928,8 @@ begin
   Result := doPATCH(FResource, FParams, ABody);
 end;
 
-function TRESTClient.doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean)
+  : IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -862,7 +940,8 @@ begin
   Result := doPATCH(FResource, FParams, ABody, AOwnsBody);
 end;
 
-function TRESTClient.doPATCH<TBodyType>(ABody: TBodyType; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPATCH<TBodyType>(ABody: TBodyType;
+  const AOwnsBody: Boolean): IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -870,13 +949,15 @@ begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('You must enter the Body!');
 
-  Result := doPATCH(FResource, FParams, Mapper.ObjectToJSONObject(ABody) as TJSONValue, True);
+  Result := doPATCH(FResource, FParams, Mapper.ObjectToJSONObject(ABody)
+    as TJSONValue, True);
 
   if AOwnsBody then
     TObject(ABody).Free;
 end;
 
-function TRESTClient.doPATCH<TBodyType>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPATCH<TBodyType>(ABody: TObjectList<TBodyType>;
+  const AOwnsBody: Boolean): IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -886,11 +967,12 @@ begin
 
   ABody.OwnsObjects := AOwnsBody;
 
-  Result := doPATCH(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>(ABody, AOwnsBody) as TJSONValue, True);
+  Result := doPATCH(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>
+    (ABody, AOwnsBody) as TJSONValue, True);
 end;
 
-function TRESTClient.doPOST(const AResource: string; const AParams: array of string;
-  const ABody: string): IRESTResponse;
+function TRESTClient.doPOST(const AResource: string;
+  const AParams: array of string; const ABody: string): IRESTResponse;
 var
   URL: string;
 begin
@@ -904,7 +986,8 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, URL, ABody);
+    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType,
+      URL, ABody);
     ClearAllParams;
   end;
 end;
@@ -920,7 +1003,8 @@ begin
   Result := doPOST(FResource, FParams, ABody);
 end;
 
-function TRESTClient.doPOST(ABody: TJSONValue; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPOST(ABody: TJSONValue; const AOwnsBody: Boolean)
+  : IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -931,7 +1015,8 @@ begin
   Result := doPOST(FResource, FParams, ABody, AOwnsBody);
 end;
 
-function TRESTClient.doPOST<TBodyType>(ABody: TBodyType; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPOST<TBodyType>(ABody: TBodyType;
+  const AOwnsBody: Boolean): IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -939,13 +1024,15 @@ begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('You must enter the Body!');
 
-  Result := doPOST(FResource, FParams, Mapper.ObjectToJSONObject(ABody) as TJSONValue, True);
+  Result := doPOST(FResource, FParams, Mapper.ObjectToJSONObject(ABody)
+    as TJSONValue, True);
 
   if AOwnsBody then
     TObject(ABody).Free;
 end;
 
-function TRESTClient.doPOST<TBodyType>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPOST<TBodyType>(ABody: TObjectList<TBodyType>;
+  const AOwnsBody: Boolean): IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -955,19 +1042,23 @@ begin
 
   ABody.OwnsObjects := AOwnsBody;
 
-  Result := doPOST(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>(ABody, AOwnsBody) as TJSONValue, True);
+  Result := doPOST(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>
+    (ABody, AOwnsBody) as TJSONValue, True);
 end;
 
-function TRESTClient.doPUT(const AResource: string; const AParams: array of string): IRESTResponse;
+function TRESTClient.doPUT(const AResource: string;
+  const AParams: array of string): IRESTResponse;
 begin
-  Result := SendHTTPCommand(httpPUT, FAccept, FContentType, FProtocol + '://' + FHost + ':' +
-    IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
-    EncodeQueryStringParams(QueryStringParams), FBodyParams);
+  Result := SendHTTPCommand(httpPUT, FAccept, FContentType,
+    FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
+    EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams),
+    FBodyParams);
   ClearAllParams;
 end;
 
-function TRESTClient.doPUT(const AResource: string; const AParams: array of string; ABody: TJSONValue;
-  const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPUT(const AResource: string;
+  const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean)
+  : IRESTResponse;
 begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('ABody is nil JSONValue');
@@ -975,22 +1066,21 @@ begin
   try
     Result := doPUT(AResource, AParams,
 
-      {$IF CompilerVersion >= 28}
-
+{$IF CompilerVersion >= 28}
       ABody.ToJSON
 
-      {$ELSE}
-
+{$ELSE}
       ABody.ToString
 
-      {$ENDIF});
+{$ENDIF});
   finally
     if AOwnsBody then
       FreeAndNil(ABody);
   end;
 end;
 
-function TRESTClient.doPUT(const AResource: string; const AParams: array of string; const ABody: string): IRESTResponse;
+function TRESTClient.doPUT(const AResource: string;
+  const AParams: array of string; const ABody: string): IRESTResponse;
 var
   URL: string;
 begin
@@ -1004,7 +1094,8 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, URL, ABody);
+    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType,
+      URL, ABody);
     ClearAllParams;
   end;
 end;
@@ -1020,7 +1111,8 @@ begin
   Result := doPUT(FResource, FParams, ABody);
 end;
 
-function TRESTClient.doPUT(ABody: TJSONValue; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPUT(ABody: TJSONValue; const AOwnsBody: Boolean)
+  : IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -1031,7 +1123,8 @@ begin
   Result := doPUT(FResource, FParams, ABody, AOwnsBody);
 end;
 
-function TRESTClient.doPUT<TBodyType>(ABody: TBodyType; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPUT<TBodyType>(ABody: TBodyType;
+  const AOwnsBody: Boolean): IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -1039,13 +1132,15 @@ begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('You must enter the Body!');
 
-  Result := doPUT(FResource, FParams, Mapper.ObjectToJSONObject(ABody) as TJSONValue, True);
+  Result := doPUT(FResource, FParams, Mapper.ObjectToJSONObject(ABody)
+    as TJSONValue, True);
 
   if AOwnsBody then
     TObject(ABody).Free;
 end;
 
-function TRESTClient.doPUT<TBodyType>(ABody: TObjectList<TBodyType>; const AOwnsBody: Boolean): IRESTResponse;
+function TRESTClient.doPUT<TBodyType>(ABody: TObjectList<TBodyType>;
+  const AOwnsBody: Boolean): IRESTResponse;
 begin
   if (FResource = '') then
     raise ERESTClientException.Create('You must enter the Resource!');
@@ -1055,25 +1150,30 @@ begin
 
   ABody.OwnsObjects := AOwnsBody;
 
-  Result := doPUT(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>(ABody, AOwnsBody) as TJSONValue, True);
+  Result := doPUT(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>
+    (ABody, AOwnsBody) as TJSONValue, True);
 end;
 
-function TRESTClient.DSDelete(const AResource, AKeyValue: string): IRESTResponse;
+function TRESTClient.DSDelete(const AResource, AKeyValue: string)
+  : IRESTResponse;
 begin
   Result := DataSetDelete(AResource, AKeyValue);
 end;
 
-function TRESTClient.DSInsert(const AResource: string; ADataSet: TDataSet): IRESTResponse;
+function TRESTClient.DSInsert(const AResource: string; ADataSet: TDataSet)
+  : IRESTResponse;
 begin
   Result := DataSetInsert(AResource, ADataSet);
 end;
 
-function TRESTClient.DSUpdate(const AResource: string; ADataSet: TDataSet; const AKeyValue: string): IRESTResponse;
+function TRESTClient.DSUpdate(const AResource: string; ADataSet: TDataSet;
+  const AKeyValue: string): IRESTResponse;
 begin
   Result := DataSetUpdate(AResource, ADataSet, AKeyValue);
 end;
 
-function TRESTClient.EncodeQueryStringParams(const AParams: TStrings; AIncludeQuestionMark: Boolean): string;
+function TRESTClient.EncodeQueryStringParams(const AParams: TStrings;
+  AIncludeQuestionMark: Boolean): string;
 var
   I: Integer;
 begin
@@ -1089,17 +1189,19 @@ begin
   begin
     if I > 0 then
       Result := Result + '&';
-    Result := Result + AParams.Names[I] + '=' + TIdURI.ParamsEncode(AParams.ValueFromIndex[I]);
+    Result := Result + AParams.Names[I] + '=' + TIdURI.ParamsEncode
+      (AParams.ValueFromIndex[I]);
   end;
 end;
 
-function TRESTClient.EncodeResourceParams(const AResourceParams: array of string): string;
+function TRESTClient.EncodeResourceParams(const AResourceParams
+  : array of string): string;
 var
   I: Integer;
 begin
   Result := '';
   for I := Low(AResourceParams) to High(AResourceParams) do
-    Result := Result + '/' + TIdURI.ParamsEncode(AResourceParams[i]);
+    Result := Result + '/' + TIdURI.ParamsEncode(AResourceParams[I]);
 end;
 
 function TRESTClient.GetBasicAuth: Boolean;
@@ -1147,17 +1249,26 @@ end;
 
 function TRESTClient.GetUserName: string;
 begin
-  Result := FHTTP.Request.UserName;
+  Result := FHTTP.Request.Username;
 end;
 
-procedure TRESTClient.HandleCookies;
+procedure TRESTClient.HandleCookies(aCookies: TIdCookies;
+  aRESTResponse: IRESTResponse);
 var
   s: string;
   arr: TArray<string>;
 begin
+  aCookies.LockCookieList(caReadWrite);
+  try
+    aRESTResponse.Cookies.Clear;
+    aRESTResponse.Cookies.AddCookies(aCookies);
+  finally
+    aCookies.UnlockCookieList(caReadWrite);
+  end;
+
   for s in FHTTP.Response.RawHeaders do
   begin
-    if s.StartsWith('Set-Cookie', true) then
+    if s.StartsWith('Set-Cookie', True) then
     begin
       arr := s.Split([':'], 2);
       if arr[1].Trim.StartsWith('dtsessionid') then
@@ -1168,6 +1279,7 @@ begin
       Break;
     end;
   end;
+
 end;
 
 procedure TRESTClient.HandleRequestCookies;
@@ -1178,7 +1290,8 @@ begin
     FHTTP.CookieManager.CookieCollection.Clear;
 
   if not FLastSessionID.Trim.IsEmpty then
-    FHTTP.Request.CustomHeaders.AddValue('Cookie', 'dtsessionid=' + FLastSessionID);
+    FHTTP.Request.CustomHeaders.AddValue('Cookie',
+      'dtsessionid=' + FLastSessionID);
 
   for I := 0 to FRequestHeaders.Count - 1 do
   begin
@@ -1215,7 +1328,8 @@ begin
     httpDELETE:
       Result := 'DELETE';
   else
-    raise ERESTClientException.Create('Unknown HTTPCommand in TRESTClient.HTTPCommandToString');
+    raise ERESTClientException.Create
+      ('Unknown HTTPCommand in TRESTClient.HTTPCommandToString');
   end;
 end;
 
@@ -1231,13 +1345,13 @@ end;
 
 function TRESTClient.ReadTimeOut(const AValue: Integer): TRESTClient;
 begin
-  FHTTP.ReadTimeout := AValue;
+  FHTTP.ReadTimeOut := AValue;
   Result := Self;
 end;
 
 function TRESTClient.ReadTimeOut: Integer;
 begin
-  Result := FHTTP.ReadTimeout;
+  Result := FHTTP.ReadTimeOut;
 end;
 
 function TRESTClient.ResetSession: TRESTClient;
@@ -1255,8 +1369,9 @@ begin
   Result := Self;
 end;
 
-function TRESTClient.SendHTTPCommand(const ACommand: THttpCommand; const AAccept, AContentType, AResource: string;
-  ABodyParams: TStrings): IRESTResponse;
+function TRESTClient.SendHTTPCommand(const ACommand: THTTPCommand;
+  const AAccept, AContentType, AResource: string; ABodyParams: TStrings)
+  : IRESTResponse;
 begin
   Result := TRESTResponse.Create;
 
@@ -1276,21 +1391,22 @@ begin
 
       httpPOST:
         begin
-          if (MultipartFormData.Size = 0) then
+          if (MultiPartFormData.Size = 0) then
           begin
             Result.Body.Position := 0;
             FHTTP.Post(AResource, RawBody, Result.Body);
           end
           else
           begin
-            FHTTP.Post(AResource, MultipartFormData, Result.Body);
-            MultipartFormData.Clear;
+            FHTTP.Post(AResource, MultiPartFormData, Result.Body);
+            MultiPartFormData.Clear;
           end;
         end;
 
       httpPUT:
         begin
-          if (MultipartFormData.Size <> 0) then { TODO -oDaniele -cGeneral : Rework please!!! }
+          if (MultiPartFormData.Size <> 0)
+          then { TODO -oDaniele -cGeneral : Rework please!!! }
             raise ERESTClientException.Create('Only POST can Send Files');
 
           Result.Body.Position := 0;
@@ -1318,7 +1434,7 @@ begin
       raise;
   end;
 
-  HandleCookies;
+  HandleCookies(FHTTP.CookieManager.CookieCollection, Result);
 
   Result.UpdateResponseCode(FHTTP.Response.ResponseCode);
   Result.UpdateResponseText(FHTTP.Response.ResponseText);
@@ -1345,21 +1461,19 @@ begin
 
       httpPOST:
         begin
-          if (MultipartFormData.Size <> 0) then
+          if (MultiPartFormData.Size <> 0) then
             raise ERESTClientException.Create('This method cannot send files');
 
           RawBody.Position := 0;
           RawBody.Size := 0;
 
-          {$WARNINGS OFF}
-
+{$WARNINGS OFF}
           if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
             RawBody.WriteString(UTF8ToString(ABody))
           else
             RawBody.WriteString(ABody);
 
-          {$WARNINGS ON}
-
+{$WARNINGS ON}
           FHTTP.Post(AResource, RawBody, Result.Body);
         end;
 
@@ -1374,15 +1488,13 @@ begin
           RawBody.Position := 0;
           RawBody.Size := 0;
 
-          {$WARNINGS OFF}
-
+{$WARNINGS OFF}
           if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
             RawBody.WriteString(UTF8ToString(ABody))
           else
             RawBody.WriteString(ABody);
 
-          {$WARNINGS ON}
-
+{$WARNINGS ON}
           FHTTP.Put(AResource, RawBody, Result.Body);
         end;
 
@@ -1399,7 +1511,7 @@ begin
       raise;
   end;
 
-  HandleCookies;
+  HandleCookies(FHTTP.CookieManager.CookieCollection, Result);
 
   Result.UpdateResponseCode(FHTTP.Response.ResponseCode);
   Result.UpdateResponseText(FHTTP.Response.ResponseText);
@@ -1435,7 +1547,7 @@ end;
 
 procedure TRESTClient.SetUserName(const AValue: string);
 begin
-  FHTTP.Request.UserName := AValue;
+  FHTTP.Request.Username := AValue;
 end;
 
 function TRESTClient.SSL(const AEnabled: Boolean): TRESTClient;
@@ -1456,12 +1568,14 @@ begin
   Result := Self;
 end;
 
-procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand; const AResource: string);
+procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand;
+  const AResource: string);
 begin
   StartAsynchRequest(ACommand, AResource, '');
 end;
 
-procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand; const AResource, ABody: string);
+procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand;
+  const AResource, ABody: string);
 var
   th: TThread;
 begin
@@ -1471,7 +1585,8 @@ begin
       R: IRESTResponse;
     begin
       try
-        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType, AResource, ABody);
+        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType,
+          AResource, ABody);
         TMonitor.Enter(TObject(R));
         try
           if FSynchronized then

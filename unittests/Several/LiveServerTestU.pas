@@ -26,6 +26,7 @@ type
     // procedure TestPATCHWithParamsAndJSONBody;
     procedure TestPOSTWithObjectJSONBody;
     procedure TestPUTWithParamsAndJSONBody;
+    procedure TestCookies;
     procedure TestSession;
     procedure TestInvalidateSession;
     procedure TestAsynchRequestPOST;
@@ -297,6 +298,27 @@ begin
   LRes := RESTClient.doGET('/private/role1session', []);
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
   CheckEquals('"johndoe"', LRes.BodyAsString);
+end;
+
+procedure TServerTest.TestCookies;
+var
+  res: IRESTResponse;
+  s: string;
+  I: Integer;
+begin
+  res := RESTClient.doGET('/lotofcookies', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+  CheckEquals(4, res.Cookies.Count, 'Wrong number of cookies');
+  for I := 0 to 3 do
+  begin
+    CheckEquals('usersettings' + IntToStr(I + 1),
+      res.Cookies.Cookies[I].CookieName);
+    CheckEquals('usersettings' + IntToStr(I + 1) + '-value',
+      res.Cookies.Cookies[I].Value);
+    CheckEquals('/usersettings' + IntToStr(I + 1),
+      res.Cookies.Cookies[I].Path);
+  end;
+
 end;
 
 procedure TServerTest.TestEncodingRenderJSONValue;

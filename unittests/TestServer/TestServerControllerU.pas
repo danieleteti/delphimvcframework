@@ -172,27 +172,27 @@ begin
   v := ctx.Request.Cookie('usersettings');
 
   c := ctx.Response.Cookies.Add;
-  c.Name := 'usersettings';
-  c.Value := '01234-5678-90';
-  c.Path := '/';
-  c.Expires := 0;
-
-  c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings1';
-  c.Value := '11234-5678-90';
-  c.Path := '/';
+  c.Value := 'usersettings1-value';
+  c.Path := '/usersettings1';
   c.Expires := 0;
 
   c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings2';
-  c.Value := '21234-5678-90';
-  c.Path := '/';
+  c.Value := 'usersettings2-value';
+  c.Path := '/usersettings2';
   c.Expires := 0;
 
   c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings3';
-  c.Value := '31234-5678-90';
-  c.Path := '/';
+  c.Value := 'usersettings3-value';
+  c.Path := '/usersettings3';
+  c.Expires := 0;
+
+  c := ctx.Response.Cookies.Add;
+  c.Name := 'usersettings4';
+  c.Value := 'usersettings4-value';
+  c.Path := '/usersettings4';
   c.Expires := 0;
 
 end;
