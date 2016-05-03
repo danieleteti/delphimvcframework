@@ -4,7 +4,7 @@ interface
 
 uses MVCFramework,
   MVCFramework.Logger,
-  dorm,
+  dorm, //this sample requires DORM
   dorm.Mappings,
   dorm.loggers,
   Web.HTTPApp;

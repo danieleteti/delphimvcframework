@@ -41,7 +41,7 @@ end;
 
 procedure TApp1MainController.DoLogout(ctx: TWebContext);
 begin
-  SessionStop(false);
+  ctx.SessionStop(false);
   Render(204, 'No Content');
 end;
 

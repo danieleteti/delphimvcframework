@@ -41,12 +41,12 @@ end;
 
 procedure TCallbackController.Login(CTX: TWebContext);
 begin
-  Session['username'] := CTX.Request.Params['username'];
+  CTX.Session['username'] := CTX.Request.Params['username'];
 end;
 
 procedure TCallbackController.Logout(CTX: TWebContext);
 begin
-  SessionStop(false);
+  CTX.SessionStop(false);
 end;
 
 end.
