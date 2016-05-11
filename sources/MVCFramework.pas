@@ -153,6 +153,7 @@ type
     function Accept: string;
     function QueryStringParam(Name: string): string; virtual;
     function QueryStringParamExists(Name: string): boolean; virtual;
+    procedure EnsureQueryParamExists(const Name: String);
     function ContentParam(Name: string): string; virtual;
     function Cookie(Name: string): string; virtual;
     property PathInfo: string read GetPathInfo;
@@ -395,6 +396,8 @@ type
     procedure RenderListAsProperty<T: class>(const APropertyName: string;
       AObjectList: TObjectList<T>; AOwnsInstance: boolean = true;
       AJSONObjectActionProc: TJSONObjectActionProc = nil);
+    procedure RenderJSONArrayAsProperty(const APropertyName: string;
+      AJSONArray: TJSONArray);
     procedure Render(E: Exception; ErrorItems: TList<string> = nil);
       overload; virtual;
     procedure Render(const AErrorCode: UInt16; const AErrorMessage: string;
@@ -2035,6 +2038,12 @@ begin
   Result := FWebRequest.QueryFields.Values[name];
 end;
 
+procedure TMVCWebRequest.EnsureQueryParamExists(const Name: String);
+begin
+  if GetParamAll(Name).IsEmpty then
+    raise EMVCException.CreateFmt('Parameter "%s" required', [Name]);
+end;
+
 function TMVCWebRequest.QueryStringParamExists(Name: string): boolean;
 begin
   Result := not QueryStringParam(name).IsEmpty;
@@ -2310,6 +2319,7 @@ end;
 { TMVCApacheWebRequest }
 {$IF CompilerVersion >= 27}
 
+
 constructor TMVCApacheWebRequest.Create(AWebRequest: TWebRequest);
 begin
   inherited;
@@ -2518,6 +2528,13 @@ begin
     FreeAndNil(ACollection);
 end;
 
+procedure TMVCController.RenderJSONArrayAsProperty(const APropertyName: string;
+  AJSONArray: TJSONArray);
+begin
+  Render(TJSONObject.Create(TJSONPair.Create(APropertyName,
+    AJSONArray)));
+end;
+
 procedure TMVCController.RenderListAsProperty<T>(const APropertyName: string;
   AObjectList: TObjectList<T>; AOwnsInstance: boolean;
   AJSONObjectActionProc: TJSONObjectActionProc);
@@ -2593,6 +2610,7 @@ begin
 end;
 
 {$IFDEF IOCP}
+
 
 constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
 begin
