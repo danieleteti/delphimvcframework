@@ -65,7 +65,7 @@ uses
   System.SysUtils,
   BusinessObjectsU,
   ObjectsMappers,
-  Soap.EncdDecd;
+  Soap.EncdDecd, System.Classes;
 
 { TServerTest }
 
@@ -540,8 +540,19 @@ end;
 procedure TServerTest.TestReqWithParams;
 var
   r: IRESTResponse;
+  ss: TStringStream;
 begin
   r := RESTClient.doGET('/unknownurl/bla/bla', []);
+
+  ss := TStringStream.Create;
+  try
+    ss.CopyFrom(r.Body, 0);
+    CheckEquals(ss.DataString, r.BodyAsString,
+      'In case of rotocol error, the body doesn''t contain the same of BodyAsString');
+  finally
+    ss.Free;
+  end;
+
   CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode, '/unknownurl/bla/bla');
 
   r := RESTClient.doGET('/req/with/params/', []);

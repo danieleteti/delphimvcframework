@@ -68,7 +68,7 @@ type
     procedure SetHeaders(AHeaders: TStrings);
       deprecated 'use method UpdateHeaders';
 
-    function Body: TStringStream;
+    function Body: TStream;
     function BodyAsString: string;
     function BodyAsJSONValue: TJSONValue;
     function BodyAsJSONObject: TJSONObject;
@@ -142,7 +142,7 @@ type
   strict protected
     procedure HandleRequestCookies();
     procedure HandleCookies(aCookies: TIdCookies;
-  aRESTResponse: IRESTResponse);
+      aRESTResponse: IRESTResponse);
 
     function EncodeQueryStringParams(const AParams: TStrings;
       AIncludeQuestionMark: Boolean = True): string;
@@ -284,13 +284,13 @@ type
 implementation
 
 uses
-  ObjectsMappers;
+  ObjectsMappers, AnsiStrings;
 
 type
 
   TRESTResponse = class(TInterfacedObject, IRESTResponse)
   strict private
-    FBody: TStringStream;
+    FBody: TMemoryStream;
     FResponseCode: Word;
     FResponseText: string;
     FHeaders: TStringlist;
@@ -313,7 +313,7 @@ type
     procedure SetResponseText(const AResponseText: string);
     procedure SetHeaders(AHeaders: TStrings);
 
-    function Body(): TStringStream;
+    function Body(): TStream;
     function BodyAsString(): string;
     function BodyAsJSONValue(): TJSONValue;
     function BodyAsJSONObject(): TJSONObject;
@@ -339,7 +339,7 @@ type
 
   { TRESTResponse }
 
-function TRESTResponse.Body: TStringStream;
+function TRESTResponse.Body: TStream;
 begin
   Result := FBody;
 end;
@@ -1429,7 +1429,10 @@ begin
     end;
   except
     on E: EIdHTTPProtocolException do
-      Result.Body.WriteString(E.ErrorMessage)
+    begin
+      Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
+        AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage), Length(E.ErrorMessage) * 2));
+    end
     else
       raise;
   end;
@@ -1506,7 +1509,8 @@ begin
     end;
   except
     on E: EIdHTTPProtocolException do
-      Result.Body.WriteString(E.ErrorMessage)
+      Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
+        AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage), Length(E.ErrorMessage) * 2));
     else
       raise;
   end;
