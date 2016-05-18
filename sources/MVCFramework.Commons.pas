@@ -1,13 +1,13 @@
 { *************************************************************************** }
-{                                                                             }
-{ Delphi MVC Framework                                                        }
-{                                                                             }
-{ Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team             }
-{                                                                             }
-{ https://github.com/danieleteti/delphimvcframework                           }
-{                                                                             }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
 { *************************************************************************** }
-{                                                                             }
+{ }
 { Licensed under the Apache License, Version 2.0 (the "License"); }
 { you may not use this file except in compliance with the License. }
 { You may obtain a copy of the License at }
@@ -141,6 +141,10 @@ type
   end;
 
   EMVCFrameworkView = class(EMVCException)
+
+  end;
+
+  EMVCJWTException = class(EMVCException)
 
   end;
 
@@ -327,12 +331,19 @@ type
 
 {$SCOPEDENUMS ON}
 
+
 type
   THttpMethod = (GET, POST, PUT, DELETE, HEAD);
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const IP: string): Boolean;
 function IP2Long(IP: string): UInt32;
+
+function B64Encode(const Value: String): String; overload;
+function B64Encode(const Value: TBytes): String; overload;
+function B64Decode(const Value: String): String;
+function ByteToHex(InByte: byte): String;
+function BytesToHex(Bytes: TBytes): String;
 
 var
   Lock: TObject;
@@ -341,11 +352,14 @@ implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
 
+
 uses
   System.IOUtils,
   idGlobal,
   System.StrUtils,
-  uGlobalVars;
+  uGlobalVars, Soap.EncdDecd
+{$IF CompilerVersion >= 21} , System.NetEncoding {$ENDIF}
+    ;
 
 const
   ReservedIPs: array [1 .. 11] of array [1 .. 2] of string =
@@ -517,6 +531,39 @@ end;
 procedure EMVCException.SetDetailedMessage(const Value: string);
 begin
   FDetailedMessage := Value;
+end;
+
+function B64Encode(const Value: String): String; overload;
+begin
+  Result := EncodeString(Value);
+end;
+
+function B64Encode(const Value: TBytes): String; overload;
+begin
+  Result := String(EncodeBase64(Value, Length(Value)));
+end;
+
+function B64Decode(const Value: String): String;
+begin
+  Result := DecodeString(Value);
+end;
+
+function ByteToHex(InByte: byte): String;
+const
+  Digits: array [0 .. 15] of Char = '0123456789abcdef';
+begin
+  Result := Digits[InByte shr 4] + Digits[InByte and $0F];
+end;
+
+function BytesToHex(Bytes: TBytes): String;
+var
+  lByte: byte;
+begin
+  Result := '';
+  for lByte in Bytes do
+  begin
+    Result := Result + ByteToHex(lByte);
+  end;
 end;
 
 initialization

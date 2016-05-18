@@ -297,7 +297,6 @@ type
     FBodyAsJSONValue: TJSONValue;
     FContentType: string;
     FContentEncoding: string;
-    FCookieCollection: TCookieCollection;
     function GetHeader(const AValue: string): string;
   private
     FCookies: TIdCookies;
