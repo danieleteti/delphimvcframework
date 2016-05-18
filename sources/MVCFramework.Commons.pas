@@ -342,6 +342,7 @@ function IP2Long(IP: string): UInt32;
 function B64Encode(const Value: String): String; overload;
 function B64Encode(const Value: TBytes): String; overload;
 function B64Decode(const Value: String): String;
+
 function ByteToHex(InByte: byte): String;
 function BytesToHex(Bytes: TBytes): String;
 
@@ -352,14 +353,15 @@ implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
 
+{$I dmvcframework.inc}
+
 
 uses
   System.IOUtils,
   idGlobal,
   System.StrUtils,
-  uGlobalVars, Soap.EncdDecd
-{$IF CompilerVersion >= 21} , System.NetEncoding {$ENDIF}
-    ;
+  uGlobalVars,
+  idCoderMIME;
 
 const
   ReservedIPs: array [1 .. 11] of array [1 .. 2] of string =
@@ -533,19 +535,59 @@ begin
   FDetailedMessage := Value;
 end;
 
-function B64Encode(const Value: String): String; overload;
+function B64Encode(const Value: String): String;
+overload
+// var
+// lB64: TBase64Encoding;
 begin
-  Result := EncodeString(Value);
+  Result := TIdEncoderMIME.EncodeString(Value);
+
+  // WARNING!!! Using TNetEncoding.Base64.Encode the resultant string is
+  // subdivided in multiple lines of 72 chars eacg. This  invalidate the token which doesn't have to
+  // contains more than 1 line. So I had to create directly TBase64Encoding.Create(0) using 0 to
+  // instruct the class to not use multiline
+  // lB64 := TBase64Encoding.Create(0);
+  // try
+  // Result := lB64.Encode(Value);
+  // finally
+  // lB64.Free;
+  // end;
 end;
 
 function B64Encode(const Value: TBytes): String; overload;
+// var
+// lB64: TBase64Encoding;
 begin
-  Result := String(EncodeBase64(Value, Length(Value)));
+  Result := TIdEncoderMIME.EncodeBytes(TidBytes(Value));
+  // WARNING!!! Using TNetEncoding.Base64.Encode the resultant string is
+  // subdivided in multiple lines of 72 chars eacg. This  invalidate the token which doesn't have to
+  // contains more than 1 line. So I had to create directly TBase64Encoding.Create(0) using 0 to
+  // instruct the class to not use multiline
+  // lB64 := TBase64Encoding.Create(0);
+  // try
+  // Result := lB64.EncodeBytesToString(Value);
+  // finally
+  // lB64.Free;
+  // end;
+  // Result := String(EncodeBase64(Value, Length(Value)));
 end;
 
 function B64Decode(const Value: String): String;
+// var
+// lB64: TBase64Encoding;
 begin
-  Result := DecodeString(Value);
+  Result := TIdDecoderMIME.DecodeString(Value);
+  // WARNING!!! Using TNetEncoding.Base64.Encode the resultant string is
+  // subdivided in multiple lines of 72 chars eacg. This  invalidate the token which doesn't have to
+  // contains more than 1 line. So I had to create directly TBase64Encoding.Create(0) using 0 to
+  // instruct the class to not use multiline
+  // lB64 := TBase64Encoding.Create(MaxLongInt);
+  // try
+  // Result := lB64.Decode(Value);
+  // finally
+  // lB64.Free;
+  // end;
+  // Result := DecodeString(Value);
 end;
 
 function ByteToHex(InByte: byte): String;

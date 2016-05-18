@@ -372,8 +372,7 @@ begin
         Exit(False);
 
       lAlgName := lJAlg.Value;
-      Result :=
-        Token = lPieces[0] + '.' + lPieces[1] + '.' +
+      Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
         B64Encode(
         HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey)
         );
