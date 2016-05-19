@@ -303,7 +303,6 @@ end;
 procedure TServerTest.TestCookies;
 var
   res: IRESTResponse;
-  s: string;
   I: Integer;
 begin
   res := RESTClient.doGET('/lotofcookies', []);
