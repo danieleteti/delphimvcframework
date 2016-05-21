@@ -2,14 +2,18 @@
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
   * RESTful (RMM Level 3) compliant
   * Stable and solid, used by small/mid/big projects since 2010
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 700 active members
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
+  * Can be used in load balanced environment using MySQL [user contrib]
+  * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
+  * JSON Web Token Support (JWT)
   * Extendable using middlewares (simple hooks to handle request/response)
-  * CORS
+  * CORS support
   * Basic Authentication
   * Controllers inheritance
   * Fancy URL with parameter mappings
-  * Specialied renders to generate text, html, JSON
+  * Specialied renders to generate text, HTML, JSON
   * Powerful mapper to map json to objects and datasets to objects
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
@@ -17,7 +21,6 @@
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
-  * Experimental support for IOCP [dev]
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
   * Specific trainings are available (ask me for a date and a place)
   * Messaging extension using STOMP (beta)
