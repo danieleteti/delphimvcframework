@@ -44,6 +44,8 @@ begin
   finally
     lClt.Free;
   end;
+  ShowMessage
+    ('In the next 15 seconds you can request protected resources. After your token will expires!');
 end;
 
 procedure TForm7.Button2Click(Sender: TObject);
@@ -55,7 +57,8 @@ begin
   try
     lClt.Header('Authentication', 'bearer ' + FToken);
     lResp := lClt.doGET('/', []);
-    ShowMessage(lResp.BodyAsJSONValue.Value);
+    ShowMessage(lResp.ResponseText + sLineBreak +
+      lResp.BodyAsJSONValue.Value);
   finally
     lClt.Free;
   end;

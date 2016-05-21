@@ -1,8 +1,8 @@
 object Form7: TForm7
   Left = 0
   Top = 0
-  Caption = 'Form7'
-  ClientHeight = 231
+  Caption = 'JWT Sample'
+  ClientHeight = 160
   ClientWidth = 505
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET

@@ -3,9 +3,13 @@ unit MVCFramework.JWT;
 interface
 
 uses
-  System.Generics.Collections;
+  System.Generics.Collections, System.JSON;
 
 type
+{$SCOPEDENUMS ON}
+  TJWTCheckableClaim = (ExpirationTime, NotBefore, IssuedAt);
+  TJWTCheckableClaims = set of TJWTCheckableClaim;
+
   TJWTRegisteredClaimNames = class sealed
   public
     const
@@ -152,22 +156,31 @@ type
     FRegisteredClaims: TJWTRegisteredClaims;
     FCustomClaims: TJWTCustomClaims;
     FHMACAlgorithm: String;
+    FLeewaySeconds: Int64;
+    FRegClaimsToChecks: TJWTCheckableClaims;
     procedure SetHMACAlgorithm(const Value: String);
+    procedure SetLeewaySeconds(const Value: Int64);
+    procedure SetChecks(const Value: TJWTCheckableClaims);
+    function CheckExpirationTime(Payload: TJSONObject; out Error: String): Boolean;
+    function CheckNotBefore(Payload: TJSONObject; out Error: String): Boolean;
+    function CheckIssuedAt(Payload: TJSONObject; out Error: String): Boolean;
   public
     constructor Create(const SecretKey: String); virtual;
     destructor Destroy; override;
     function GetToken: String;
-    function IsValidToken(const Token: String): Boolean;
+    function IsValidToken(const Token: String; out Error: String): Boolean;
     procedure LoadToken(const Token: String);
     property Claims: TJWTRegisteredClaims read FRegisteredClaims;
     property CustomClaims: TJWTCustomClaims read FCustomClaims;
     property HMACAlgorithm: String read FHMACAlgorithm write SetHMACAlgorithm;
+    property LeewaySeconds: Int64 read FLeewaySeconds write SetLeewaySeconds;
+    property RegClaimsToChecks: TJWTCheckableClaims read FRegClaimsToChecks write SetChecks;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.JSON, MVCFramework.Commons, MVCFramework.HMAC, System.DateUtils;
+  System.SysUtils, MVCFramework.Commons, MVCFramework.HMAC, System.DateUtils;
 
 { TJWTRegisteredClaims }
 
@@ -293,6 +306,94 @@ end;
 
 { TJWT }
 
+function TJWT.CheckExpirationTime(Payload: TJSONObject;
+  out Error: String): Boolean;
+var
+  lJValue: TJSONValue;
+  lIntValue: Int64;
+  lValue: string;
+begin
+  lJValue := Payload.GetValue(TJWTRegisteredClaimNames.ExpirationTime);
+  if not Assigned(lJValue) then
+  begin
+    Error := TJWTRegisteredClaimNames.ExpirationTime + ' not set';
+    Exit(false);
+  end;
+
+  lValue := lJValue.Value;
+  if not TryStrToInt64(lValue, lIntValue) then
+  begin
+    Error := TJWTRegisteredClaimNames.ExpirationTime + ' is not an integer';
+    Exit(false);
+  end;
+
+  if UnixToDateTime(lIntValue) <= Now - FLeewaySeconds * OneSecond then
+  begin
+    Error := 'Token expired';
+    Exit(false);
+  end;
+
+  Result := True;
+end;
+
+function TJWT.CheckIssuedAt(Payload: TJSONObject; out Error: String): Boolean;
+var
+  lJValue: TJSONValue;
+  lIntValue: Int64;
+  lValue: string;
+begin
+  lJValue := Payload.GetValue(TJWTRegisteredClaimNames.IssuedAt);
+  if not Assigned(lJValue) then
+  begin
+    Error := TJWTRegisteredClaimNames.IssuedAt + ' not set';
+    Exit(false);
+  end;
+
+  lValue := lJValue.Value;
+  if not TryStrToInt64(lValue, lIntValue) then
+  begin
+    Error := TJWTRegisteredClaimNames.IssuedAt + ' is not an integer';
+    Exit(false);
+  end;
+
+  if UnixToDateTime(lIntValue) >= Now + FLeewaySeconds * OneSecond then
+  begin
+    Error := 'Token is issued in the future';
+    Exit(false);
+  end;
+
+  Result := True;
+end;
+
+function TJWT.CheckNotBefore(Payload: TJSONObject; out Error: String): Boolean;
+var
+  lJValue: TJSONValue;
+  lIntValue: Int64;
+  lValue: string;
+begin
+  lJValue := Payload.GetValue(TJWTRegisteredClaimNames.NotBefore);
+  if not Assigned(lJValue) then
+  begin
+    Error := TJWTRegisteredClaimNames.NotBefore + ' not set';
+    Exit(false);
+  end;
+
+  lValue := lJValue.Value;
+  if not TryStrToInt64(lValue, lIntValue) then
+  begin
+    Error := TJWTRegisteredClaimNames.NotBefore + ' is not an integer';
+    Exit(false);
+  end;
+
+  if UnixToDateTime(lIntValue) >= Now + FLeewaySeconds * OneSecond then
+  begin
+    Error := 'Token still not valid';
+    Exit(false);
+  end;
+
+  Result := True;
+end;
+
 constructor TJWT.Create(const SecretKey: String);
 begin
   inherited Create;
@@ -300,6 +401,9 @@ begin
   FRegisteredClaims := TJWTRegisteredClaims.Create;
   FCustomClaims := TJWTCustomClaims.Create;
   FHMACAlgorithm := 'HS256';
+  FLeewaySeconds := 300; // 5 minutes of leeway
+  FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+    TJWTCheckableClaim.IssuedAt];
 end;
 
 destructor TJWT.Destroy;
@@ -325,7 +429,15 @@ begin
       for lRegClaimName in TJWTRegisteredClaimNames.Names do
       begin
         if FRegisteredClaims.Contains(lRegClaimName) then
-          lPayload.AddPair(lRegClaimName, FRegisteredClaims[lRegClaimName]);
+        begin
+          if (lRegClaimName = TJWTRegisteredClaimNames.ExpirationTime) or
+            (lRegClaimName = TJWTRegisteredClaimNames.NotBefore) or
+            (lRegClaimName = TJWTRegisteredClaimNames.IssuedAt) then
+            lPayload.AddPair(lRegClaimName,
+              TJSONNumber.Create(StrToInt64(FRegisteredClaims[lRegClaimName])))
+          else
+            lPayload.AddPair(lRegClaimName, FRegisteredClaims[lRegClaimName]);
+        end;
       end;
 
       for lCustomClaimName in FCustomClaims.Keys do
@@ -347,35 +459,61 @@ begin
   end;
 end;
 
-function TJWT.IsValidToken(const Token: String): Boolean;
+function TJWT.IsValidToken(const Token: String; out Error: String): Boolean;
 var
   lPieces: TArray<String>;
   lJHeader: TJSONObject;
   lJAlg: TJSONString;
   lAlgName: string;
   lJPayload: TJSONObject;
+  lError: String;
 begin
   lPieces := Token.Split(['.']);
   if Length(lPieces) <> 3 then
-    Exit(False);
+    Exit(false);
   lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
   try
     if not Assigned(lJHeader) then
-      Exit(False);
+      Exit(false);
 
     lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
     try
       if not Assigned(lJPayload) then
-        Exit(False);
+        Exit(false);
 
       if not lJHeader.TryGetValue<TJSONString>('alg', lJAlg) then
-        Exit(False);
+        Exit(false);
 
       lAlgName := lJAlg.Value;
       Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
         B64Encode(
         HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey)
         );
+
+      // if the token is correctly signed and has not been tampered,
+      // let's check it's validity usinf nbf, exp, iat as configured in
+      // the RegClaimsToCheck property
+      if Result then
+      begin
+        if TJWTCheckableClaim.ExpirationTime in RegClaimsToChecks then
+        begin
+          if not CheckExpirationTime(lJPayload, lError) then
+            Exit(false);
+        end;
+
+        if TJWTCheckableClaim.NotBefore in RegClaimsToChecks then
+        begin
+          if not CheckNotBefore(lJPayload, lError) then
+            Exit(false);
+        end;
+
+        if TJWTCheckableClaim.IssuedAt in RegClaimsToChecks then
+        begin
+          if not CheckIssuedAt(lJPayload, lError) then
+            Exit(false);
+        end;
+      end;
+
     finally
       lJPayload.Free;
     end;
@@ -395,9 +533,10 @@ var
   j: Integer;
   lIsRegistered: Boolean;
   lValue: string;
+  lError: String;
 begin
-  if not IsValidToken(Token) then
-    raise EMVCJWTException.Create('Invalid token');
+  if not IsValidToken(Token, lError) then
+    raise EMVCJWTException.Create('Invalid token: ' + lError);
 
   lPieces := Token.Split(['.']);
   lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
@@ -413,7 +552,7 @@ begin
       FCustomClaims.FClaims.Clear;
       for i := 0 to lJPayload.Count - 1 do
       begin
-        lIsRegistered := False;
+        lIsRegistered := false;
         lJPair := lJPayload.Pairs[i];
         lName := lJPair.JsonString.Value;
         lValue := lJPair.JsonValue.Value;
@@ -440,9 +579,19 @@ begin
   end;
 end;
 
+procedure TJWT.SetChecks(const Value: TJWTCheckableClaims);
+begin
+  FRegClaimsToChecks := Value;
+end;
+
 procedure TJWT.SetHMACAlgorithm(const Value: String);
 begin
   FHMACAlgorithm := Value;
+end;
+
+procedure TJWT.SetLeewaySeconds(const Value: Int64);
+begin
+  FLeewaySeconds := Value;
 end;
 
 end.

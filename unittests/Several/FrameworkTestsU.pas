@@ -71,6 +71,10 @@ type
     procedure TestStorage;
     procedure TestCreateAndValidateToken;
     procedure TestLoadToken;
+    procedure TestNotBefore;
+    procedure TestExpirationTime;
+    procedure TestIssuedAt;
+    procedure TestDefaults;
   end;
 
 implementation
@@ -1078,15 +1082,52 @@ end;
 procedure TTestJWT.TestCreateAndValidateToken;
 var
   lToken: string;
+  lError: string;
 begin
   FJWT.Claims.Issuer := 'bit Time Professionals';
   FJWT.Claims.Subject := 'DelphiMVCFramework';
   FJWT.Claims.JWT_ID := TGUID.NewGuid.ToString;
   FJWT.CustomClaims['username'] := 'dteti';
   FJWT.CustomClaims['userrole'] := 'admin';
+  FJWT.Claims.ExpirationTime := Tomorrow;
+  FJWT.Claims.IssuedAt := Yesterday;
+  FJWT.Claims.NotBefore := Yesterday;
   lToken := FJWT.GetToken;
   // TFile.WriteAllText('jwt_token.dat', lToken);
-  CheckTrue(FJWT.IsValidToken(lToken), 'Generated token is not valid');
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Generated token is not valid');
+end;
+
+procedure TTestJWT.TestDefaults;
+begin
+  CheckEquals('HS256', FJWT.HMACAlgorithm, 'Default algorithm should be HS256');
+  CheckEquals(300, FJWT.LeewaySeconds, 'Default leeway should be 5 minutes');
+  if FJWT.RegClaimsToChecks * [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+    TJWTCheckableClaim.IssuedAt] <> [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+    TJWTCheckableClaim.IssuedAt] then
+    Fail('Default RegClaimsToCheck not correct');
+end;
+
+procedure TTestJWT.TestExpirationTime;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.RegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime];
+  FJWT.Claims.ExpirationTime := Tomorrow;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered expired');
+
+  FJWT.Claims.ExpirationTime := Yesterday;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Expired token is considered valid');
+
+  FJWT.Claims.ExpirationTime := Now;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered expired');
+
+  FJWT.Claims.ExpirationTime := Now - (FJWT.LeewaySeconds + 1) * OneSecond;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Expired token is considered valid');
 end;
 
 procedure TTestJWT.TestHMAC;
@@ -1104,6 +1145,29 @@ begin
   end;
 end;
 
+procedure TTestJWT.TestIssuedAt;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.RegClaimsToChecks := [TJWTCheckableClaim.IssuedAt];
+  FJWT.Claims.IssuedAt := Yesterday;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.IssuedAt := Tomorrow;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+
+  FJWT.Claims.IssuedAt := Now;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.IssuedAt := Now + (FJWT.LeewaySeconds + 1) * OneSecond;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+end;
+
 procedure TTestJWT.TestLoadToken;
 var
   lToken: string;
@@ -1113,7 +1177,7 @@ begin
   FJWT.Claims.Subject := 'DelphiMVCFramework';
   FJWT.Claims.Audience := 'DelphiDevelopers';
   FJWT.Claims.IssuedAt := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
-  FJWT.Claims.ExpirationTime := FJWT.Claims.IssuedAt + OneHour * 2;
+  FJWT.Claims.ExpirationTime := Now + OneHour * 2;
   FJWT.Claims.NotBefore := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
   FJWT.Claims.JWT_ID := '123456';
   FJWT.CustomClaims['username'] := 'dteti';
@@ -1139,6 +1203,29 @@ begin
     lJWT.Free;
   end;
 
+end;
+
+procedure TTestJWT.TestNotBefore;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.RegClaimsToChecks := [TJWTCheckableClaim.NotBefore];
+  FJWT.Claims.NotBefore := Yesterday;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.NotBefore := Tomorrow;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+
+  FJWT.Claims.NotBefore := Now;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.NotBefore := Now + (FJWT.LeewaySeconds + 1) * OneSecond;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
 end;
 
 procedure TTestJWT.TestStorage;

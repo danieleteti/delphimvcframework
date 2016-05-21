@@ -46,8 +46,9 @@ procedure TMyController.OnBeforeAction(Context: TWebContext; const AActionName: 
   var Handled: Boolean);
 var
   lJWT: TJWT;
-  lAuthHeader: string;
-  lToken: string;
+  lAuthHeader: String;
+  lToken: String;
+  lError: String;
 begin
   { Executed before each action
     if handled is true (or an exception is raised) the actual
@@ -59,8 +60,9 @@ begin
     lJWT := TJWT.Create('mysecret');
     try
       lJWT.Claims.Issuer := 'dmvcframework app';
-      lJWT.Claims.ExpirationTime := Now + OneHour;
+      lJWT.Claims.ExpirationTime := Now + OneSecond * 15;
       lJWT.Claims.NotBefore := Now - OneMinute * 5;
+      lJWT.Claims.IssuedAt := Now - OneMinute * 5;
       lJWT.CustomClaims['username'] := 'dteti';
       Render(lJWT.GetToken);
       Exit;
@@ -69,8 +71,12 @@ begin
     end;
   end;
 
+  // JWT checking
   lJWT := TJWT.Create('mysecret');
   try
+    // in this demo, no tolerance... so no LEEWAY time
+    lJWT.LeewaySeconds := 0;
+
     lAuthHeader := Context.Request.Headers['Authentication'];
     if lAuthHeader.IsEmpty then
     begin
@@ -84,7 +90,7 @@ begin
       lToken := lAuthHeader.Remove(0, 'bearer'.Length).Trim;
     end;
 
-    if not lJWT.IsValidToken(lToken) then
+    if not lJWT.IsValidToken(lToken, lError) then
     begin
       Render(http_status.Unauthorized, 'Invalid Token, Authentication Required');
       Handled := True;
