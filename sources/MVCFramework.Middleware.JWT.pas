@@ -204,9 +204,9 @@ begin
         begin
           lJWT := TJWT.Create(FSecret);
           try
-            lJWT.Claims.Issuer := 'AraCrav app';
-            lJWT.Claims.ExpirationTime := Now + OneHour;
-            lJWT.Claims.NotBefore := Now - OneMinute * 5;
+            lJWT.Claims.Issuer := 'Delphi MVC Framework';
+            lJWT.Claims.ExpirationTime := Now + OneHour; // todo: customize
+            lJWT.Claims.NotBefore := Now - OneMinute * 5; // todo: customize
             lJWT.CustomClaims['username'] := lUserName;
             lJWT.CustomClaims['roles'] := String.Join(',', lRoles.ToArray);
 
