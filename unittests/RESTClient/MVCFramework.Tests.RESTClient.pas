@@ -10,6 +10,7 @@ uses
   ObjectsMappers,
   MVCFramework,
   MVCFramework.Server,
+  MVCFramework.Server.Impl,
   MVCFramework.RESTClient,
   MVCFramework.RESTAdapter,
   MVCFramework.Commons,
@@ -40,6 +41,7 @@ type
 
   TTestRESTClient = class(TTestCase)
   strict private
+    FServerListener: IMVCListener;
     FRESTClient: TRESTClient;
     FRESTAdapter: TRESTAdapter<IAppResource>;
     FAppResource: IAppResource;
@@ -65,89 +67,79 @@ uses
 { TTestRESTClient }
 
 procedure TTestRESTClient.SetUp;
-var
-  vServerInfo: IMVCServerInfo;
-  vOnAuthentication: TMVCAuthenticationDelegate;
 begin
   inherited;
-  vServerInfo := TMVCServerInfoFactory.Build;
-  vServerInfo.ServerName := 'ServerApp';
-  vServerInfo.Port := 3000;
-  vServerInfo.MaxConnections := 1024;
-  vServerInfo.WebModuleClass := TestWebModuleClass;
-
-  vOnAuthentication := procedure(const AUserName, APassword: string;
-      AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<String, String>)
-    begin
-      AIsValid := AUserName.Equals('ezequiel') and APassword.Equals('123');
-    end;
-
-  vServerInfo.Security := TMVCDefaultSecurity.Create(vOnAuthentication, nil);
-
-  MVCServerDefault.Container.CreateServer(vServerInfo);
-  MVCServerDefault.Container.StartServers;
+  FServerListener := TMVCListener.Create(TMVCListenerProperties.New
+    .SetName('AppServer')
+    .SetPort(3000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass)
+    );
+  FServerListener.Start;
 
   FRESTClient := TRESTClient.Create('localhost', 3000);
+
   FRESTAdapter := TRESTAdapter<IAppResource>.Create;
   FRESTAdapter.Build(FRESTClient);
+
   FAppResource := FRESTAdapter.ResourcesService;
 end;
 
 procedure TTestRESTClient.TearDown;
 begin
   inherited;
-  MVCServerDefault.Container.StopServers;
-  FreeAndNil(FRESTClient);
+  FServerListener.Stop;
+  FRESTClient.Free;
 end;
 
 procedure TTestRESTClient.TestCreateAndDestroy;
 var
-  vClient: TRESTClient;
+  LClient: TRESTClient;
 begin
-  vClient := TRESTClient.Create('', 80, nil);
-  CheckTrue(vClient <> nil);
-  FreeAndNil(vClient);
-  CheckTrue(vClient = nil);
+  LClient := TRESTClient.Create('', 80, nil);
+  CheckTrue(LClient <> nil);
+  FreeAndNil(LClient);
+  CheckTrue(LClient = nil);
 end;
 
 procedure TTestRESTClient.TestGetUser;
 var
-  vUser: TAppUser;
-  vResp: IRESTResponse;
+  LUser: TAppUser;
+  LResp: IRESTResponse;
 begin
   FRESTClient.Resource('/user').Params([]);
-  FRESTClient.Authentication('ezequiel', '123');
+  FRESTClient.Authentication('dmvc', '123');
 
   // String
-  vResp := FRESTClient.doGET;
+  LResp := FRESTClient.doGET;
   CheckTrue(
-    ('{"Cod":1,"Name":"Ezequiel","Pass":"123"}' = vResp.BodyAsString) and
-    (vResp.ResponseCode = 200)
+    ('{"Cod":1,"Name":"Ezequiel","Pass":"123"}' = LResp.BodyAsString) and
+    (LResp.ResponseCode = 200)
     );
 
   // Object
-  vUser := FRESTClient.doGET.BodyAsJSONObject.AsObject<TAppUser>();
+  LUser := FRESTClient.doGET.BodyAsJSONObject.AsObject<TAppUser>();
   try
-    CheckTrue((vUser <> nil) and (vUser.Cod > 0));
+    CheckTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
-    FreeAndNil(vUser);
+    FreeAndNil(LUser);
   end;
 
   // Adapter
-  vUser := FAppResource.GetUser;
+  LUser := FAppResource.GetUser;
   try
-    CheckTrue((vUser <> nil) and (vUser.Cod > 0));
+    CheckTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
-    FreeAndNil(vUser);
+    FreeAndNil(LUser);
   end;
 end;
 
 procedure TTestRESTClient.TestGetUsers;
 var
-  vUsers: TObjectList<TAppUser>;
+  LUsers: TObjectList<TAppUser>;
 begin
   FRESTClient.Resource('/users').Params([]);
-  FRESTClient.Authentication('ezequiel', '123');
+  FRESTClient.Authentication('dmvc', '123');
 
   // String
   CheckEqualsString('[{"Cod":0,"Name":"Ezequiel 0","Pass":"0"},{"Cod":1,"Name":"Ezequiel 1","Pass":"1"},' +
@@ -157,28 +149,28 @@ begin
     FRESTClient.doGET.BodyAsString);
 
   // Objects
-  vUsers := FRESTClient.doGET.BodyAsJSONArray.AsObjectList<TAppUser>;
+  LUsers := FRESTClient.doGET.BodyAsJSONArray.AsObjectList<TAppUser>;
   try
-    vUsers.OwnsObjects := True;
-    CheckTrue(vUsers.Count > 0);
+    LUsers.OwnsObjects := True;
+    CheckTrue(LUsers.Count > 0);
   finally
-    FreeAndNil(vUsers);
+    FreeAndNil(LUsers);
   end;
 
   // Adapter
-  vUsers := FAppResource.GetUsers;
+  LUsers := FAppResource.GetUsers;
   try
-    vUsers.OwnsObjects := True;
-    CheckTrue(vUsers.Count > 0);
+    LUsers.OwnsObjects := True;
+    CheckTrue(LUsers.Count > 0);
   finally
-    FreeAndNil(vUsers);
+    FreeAndNil(LUsers);
   end;
 end;
 
 procedure TTestRESTClient.TestHelloWorld;
 begin
   FRESTClient.Resource('/hello').Params([]);
-  FRESTClient.Authentication('ezequiel', '123');
+  FRESTClient.Authentication('dmvc', '123');
 
   // String
   CheckEqualsString('"Hello World called with GET"', FRESTClient.doGET.BodyAsString);
@@ -189,10 +181,10 @@ end;
 
 procedure TTestRESTClient.TestInformation;
 var
-  vClient: TRESTClient;
+  LClient: TRESTClient;
 begin
-  vClient := TRESTClient.Create('', 80, nil);
-  vClient
+  LClient := TRESTClient.Create('', 80, nil);
+  LClient
     .ReadTimeOut(100)
     .ConnectionTimeOut(100)
     .Authentication('dmvc', 'dmvc', True)
@@ -204,84 +196,84 @@ begin
     .SSL
     .Compression;
 
-  CheckTrue(vClient.ReadTimeOut = 100);
-  CheckTrue(vClient.ConnectionTimeOut = 100);
-  CheckTrue(vClient.Username = 'dmvc');
-  CheckTrue(vClient.Password = 'dmvc');
-  CheckTrue(vClient.UseBasicAuthentication);
-  CheckTrue(vClient.Accept = 'application/json;charset=UTF-8');
-  CheckTrue(vClient.ContentType = 'application/json;charset=UTF-8');
-  CheckTrue(vClient.ContentEncoding = 'UTF-8');
-  CheckTrue(vClient.HasSSL);
-  CheckTrue(vClient.HasCompression);
+  CheckTrue(LClient.ReadTimeOut = 100);
+  CheckTrue(LClient.ConnectionTimeOut = 100);
+  CheckTrue(LClient.Username = 'dmvc');
+  CheckTrue(LClient.Password = 'dmvc');
+  CheckTrue(LClient.UseBasicAuthentication);
+  CheckTrue(LClient.Accept = 'application/json;charset=UTF-8');
+  CheckTrue(LClient.ContentType = 'application/json;charset=UTF-8');
+  CheckTrue(LClient.ContentEncoding = 'UTF-8');
+  CheckTrue(LClient.HasSSL);
+  CheckTrue(LClient.HasCompression);
 
-  CheckTrue(vClient.RawBody <> nil);
-  CheckTrue(vClient.MultiPartFormData <> nil);
-  CheckTrue(vClient.BodyParams <> nil);
-  CheckTrue(vClient.RequestHeaders <> nil);
-  CheckTrue(vClient.QueryStringParams <> nil);
+  CheckTrue(LClient.RawBody <> nil);
+  CheckTrue(LClient.MultiPartFormData <> nil);
+  CheckTrue(LClient.BodyParams <> nil);
+  CheckTrue(LClient.RequestHeaders <> nil);
+  CheckTrue(LClient.QueryStringParams <> nil);
 
-  FreeAndNil(vClient);
+  FreeAndNil(LClient);
 end;
 
 procedure TTestRESTClient.TestPostUser;
 var
-  vUser: TAppUser;
-  vResp: IRESTResponse;
+  LUser: TAppUser;
+  LResp: IRESTResponse;
 begin
   FRESTClient.Resource('/user/save').Params([]);
-  FRESTClient.Authentication('ezequiel', '123');
+  FRESTClient.Authentication('dmvc', '123');
 
-  vUser := TAppUser.Create;
-  vUser.Cod := 1;
-  vUser.Name := 'Ezequiel';
-  vUser.Pass := '123';
-  vResp := FRESTClient.doPOST<TAppUser>(vUser);
-  CheckTrue(('"Sucess!"' = vResp.BodyAsString) and (vResp.ResponseCode = 200));
+  LUser := TAppUser.Create;
+  LUser.Cod := 1;
+  LUser.Name := 'Ezequiel';
+  LUser.Pass := '123';
+  LResp := FRESTClient.doPOST<TAppUser>(LUser);
+  CheckTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
-  vUser := TAppUser.Create;
-  vUser.Cod := 1;
-  vUser.Name := 'Ezequiel';
-  vUser.Pass := '123';
-  FAppResource.PostUser(vUser);
+  LUser := TAppUser.Create;
+  LUser.Cod := 1;
+  LUser.Name := 'Ezequiel';
+  LUser.Pass := '123';
+  FAppResource.PostUser(LUser);
 end;
 
 procedure TTestRESTClient.TestPostUsers;
 var
-  vUsers: TObjectList<TAppUser>;
-  vResp: IRESTResponse;
+  LUsers: TObjectList<TAppUser>;
+  LResp: IRESTResponse;
   I: Integer;
-  vUser: TAppUser;
+  LUser: TAppUser;
 begin
   FRESTClient.Resource('/users/save').Params([]);
-  FRESTClient.Authentication('ezequiel', '123');
+  FRESTClient.Authentication('dmvc', '123');
   FRESTClient.Accept('application/json;charset=utf-8');
   FRESTClient.ContentType('application/json;charset=utf-8');
 
-  vUsers := TObjectList<TAppUser>.Create(True);
+  LUsers := TObjectList<TAppUser>.Create(True);
   for I := 0 to 10 do
   begin
-    vUser := TAppUser.Create;
-    vUser.Cod := I;
-    vUser.Name := 'Ezequiel ˆ¸·‡Á„ı∫s ' + IntToStr(I);
-    vUser.Pass := IntToStr(I);
-    vUsers.Add(vUser);
+    LUser := TAppUser.Create;
+    LUser.Cod := I;
+    LUser.Name := 'Ezequiel ˆ¸·‡Á„ı∫s ' + IntToStr(I);
+    LUser.Pass := IntToStr(I);
+    LUsers.Add(LUser);
   end;
-  vResp := FRESTClient.doPOST<TAppUser>(vUsers);
-  CheckTrue(('"Sucess!"' = vResp.BodyAsString) and (vResp.ResponseCode = 200));
+  LResp := FRESTClient.doPOST<TAppUser>(LUsers);
+  CheckTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
-  vUsers := TObjectList<TAppUser>.Create(True);
+  LUsers := TObjectList<TAppUser>.Create(True);
   for I := 0 to 10 do
   begin
-    vUser := TAppUser.Create;
-    vUser.Cod := I;
-    vUser.Name := 'Ezequiel ˆ¸·‡Á„ı∫s ' + IntToStr(I);
-    vUser.Pass := IntToStr(I);
-    vUsers.Add(vUser);
+    LUser := TAppUser.Create;
+    LUser.Cod := I;
+    LUser.Name := 'Ezequiel ˆ¸·‡Á„ı∫s ' + IntToStr(I);
+    LUser.Pass := IntToStr(I);
+    LUsers.Add(LUser);
   end;
-  FAppResource.PostUsers(vUsers);
+  FAppResource.PostUsers(LUsers);
 end;
 
 initialization

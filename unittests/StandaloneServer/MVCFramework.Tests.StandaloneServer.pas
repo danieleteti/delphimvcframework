@@ -6,14 +6,15 @@ uses
   TestFramework,
   System.Classes,
   System.SysUtils,
-  MVCFramework.Server,
   System.Generics.Collections,
-  MVCFramework;
+  MVCFramework,
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 type
 
   [MVCPath('/')]
-  TTestAppController = class(TMVCController)
+  TTestController = class(TMVCController)
   public
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpGET])]
@@ -21,19 +22,16 @@ type
   end;
 
   TTestMVCFrameworkServer = class(TTestCase)
-  strict private
+  private
 
   protected
     procedure SetUp; override;
     procedure TearDown; override;
   published
-    procedure TestCreateServer();
-    procedure TestServerContainer();
-    procedure TestServerAndClient();
+    procedure TestListener;
+    procedure TestListenerContext;
+    procedure TestServerListenerAndClient;
   end;
-
-var
-  ServerContainer: IMVCServerContainer;
 
 implementation
 
@@ -55,90 +53,100 @@ begin
 
 end;
 
-procedure TTestMVCFrameworkServer.TestCreateServer;
+procedure TTestMVCFrameworkServer.TestListener;
 var
-  vServerInfo: IMVCServerInfo;
-  vServer: IMVCServer;
+  LListener: IMVCListener;
 begin
-  vServerInfo := TMVCServerInfoFactory.Build;
-  vServerInfo.ServerName := 'ServerTemp';
-  vServerInfo.Port := 4000;
-  vServerInfo.MaxConnections := 1024;
-  vServerInfo.WebModuleClass := TestWebModuleClass;
+  LListener := TMVCListener.Create(TMVCListenerProperties.New
+    .SetName('Listener1')
+    .SetPort(5000)
+    .SetMaxConnections(512)
+    .SetWebModuleClass(TestWebModuleClass)
+    );
 
-  vServer := TMVCServerFactory.Build(vServerInfo);
+  CheckTrue(Assigned(LListener));
 
-  CheckTrue(vServer.Info <> nil);
+  LListener.Start;
+  CheckTrue(LListener.Active);
 
-  vServer.Start;
-  CheckTrue(vServer.Active);
-
-  vServer.Stop;
-  CheckFalse(vServer.Active);
+  LListener.Stop;
+  CheckFalse(LListener.Active);
 end;
 
-procedure TTestMVCFrameworkServer.TestServerAndClient;
+procedure TTestMVCFrameworkServer.TestServerListenerAndClient;
 var
-  vServerInfo: IMVCServerInfo;
-  vOnAuthentication: TMVCAuthenticationDelegate;
-  vRESTCli: TRESTClient;
+  LListener: IMVCListener;
+  LClient: TRESTClient;
 begin
-  vServerInfo := TMVCServerInfoFactory.Build;
-  vServerInfo.ServerName := 'ServerTemp';
-  vServerInfo.Port := 6000;
-  vServerInfo.MaxConnections := 1024;
-  vServerInfo.WebModuleClass := TestWebModuleClass;
+  LListener := TMVCListener.Create(TMVCListenerProperties.New
+    .SetName('Listener1')
+    .SetPort(6000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass)
+    );
 
-  vOnAuthentication := procedure(const pUserName, pPassword: string;
-      pUserRoles: TList<string>; var pIsValid: Boolean; const pSessionData: TDictionary<String, String>)
-    begin
-      pIsValid := pUserName.Equals('ezequiel') and pPassword.Equals('123');
-    end;
+  CheckTrue(Assigned(LListener));
 
-  vServerInfo.Security := TMVCDefaultSecurity.Create(vOnAuthentication, nil);
+  LListener.Start;
+  CheckTrue(LListener.Active);
 
-  if (ServerContainer.FindServerByName('ServerTemp') <> nil) then
-    ServerContainer.DestroyServer('ServerTemp');
-
-  ServerContainer.CreateServer(vServerInfo);
-  ServerContainer.StartServers;
-
-  vRESTCli := TRESTClient.Create('localhost', 6000);
+  LClient := TRESTClient.Create('localhost', 6000);
   try
-    vRESTCli.UserName := 'ezequiel';
-    vRESTCli.Password := '123';
-    CheckEqualsString('"Hello World called with GET"', vRESTCli.doGET('/hello', []).BodyAsString);
+    LClient.UserName := 'dmvc';
+    LClient.Password := '123';
+    CheckEqualsString('"Hello World called with GET"', LClient.doGET('/hello', []).BodyAsString);
   finally
-    FreeAndNil(vRESTCli);
+    FreeAndNil(LClient);
   end;
 
-  ServerContainer.StopServers;
+  LListener.Stop;
+  CheckFalse(LListener.Active);
 end;
 
-procedure TTestMVCFrameworkServer.TestServerContainer;
+procedure TTestMVCFrameworkServer.TestListenerContext;
 var
-  vServerInfo: IMVCServerInfo;
-  vContainer: IMVCServerContainer;
+  LListenerCtx: IMVCListenersContext;
 begin
-  vServerInfo := TMVCServerInfoFactory.Build;
-  vServerInfo.ServerName := 'ServerTemp';
-  vServerInfo.Port := 4000;
-  vServerInfo.MaxConnections := 1024;
-  vServerInfo.WebModuleClass := TestWebModuleClass;
+  LListenerCtx := TMVCListenersContext.Create;
 
-  vContainer := TMVCServerContainerFactory.Build();
-  vContainer.CreateServer(vServerInfo);
+  LListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('Listener2')
+    .SetPort(6000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass)
+    );
 
-  CheckTrue(vContainer.FindServerByName('ServerTemp') <> nil);
+  LListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('Listener3')
+    .SetPort(7000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass2)
+    );
 
-  vContainer.DestroyServer('ServerTemp');
+  CheckTrue(Assigned(LListenerCtx.FindByName('Listener2')));
+  CheckTrue(Assigned(LListenerCtx.FindByName('Listener3')));
 
-  CheckTrue(vContainer.FindServerByName('ServerTemp') = nil);
+  LListenerCtx.StartAll;
+
+  CheckTrue(LListenerCtx.Count = 2);
+  CheckTrue(LListenerCtx.FindByName('Listener2').Active);
+  CheckTrue(LListenerCtx.FindByName('Listener3').Active);
+
+  LListenerCtx.StopAll;
+
+  CheckFalse(LListenerCtx.FindByName('Listener2').Active);
+  CheckFalse(LListenerCtx.FindByName('Listener3').Active);
+
+  LListenerCtx
+    .Remove('Listener2')
+    .Remove('Listener3');
+
+  CheckTrue(LListenerCtx.Count = 0);
 end;
 
-{ TTestAppController }
+{ TTestController }
 
-procedure TTestAppController.HelloWorld(ctx: TWebContext);
+procedure TTestController.HelloWorld(ctx: TWebContext);
 begin
   Render('Hello World called with GET');
 end;
@@ -146,7 +154,5 @@ end;
 initialization
 
 RegisterTest(TTestMVCFrameworkServer.Suite);
-
-ServerContainer := MVCServerDefault.Container;
 
 end.

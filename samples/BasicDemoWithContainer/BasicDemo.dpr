@@ -9,6 +9,7 @@ uses
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Server,
+  MVCFramework.Server.Impl,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   App1MainControllerU in 'App1MainControllerU.pas';
 
@@ -16,21 +17,23 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LServerInfo: IMVCServerInfo;
+  LServerListenerCtx: IMVCListenersContext;
   LInputRecord: TInputRecord;
   LEvent: DWord;
   LHandle: THandle;
 begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
 
-  LServerInfo := TMVCServerInfoFactory.Build;
-  LServerInfo.ServerName := 'BasicDemo';
-  LServerInfo.Port := APort;
-  LServerInfo.MaxConnections := 1024;
-  LServerInfo.WebModuleClass := WebModuleClass;
+  LServerListenerCtx := TMVCListenersContext.Create;
 
-  MVCServerDefault.Container.CreateServer(LServerInfo);
-  MVCServerDefault.Container.StartServers;
+  LServerListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('BasicDemo')
+    .SetPort(APort)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(WebModuleClass)
+    );
+
+  LServerListenerCtx.StartAll;
 
   ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort) +
     '/div/10/20'), nil, nil, SW_SHOWMAXIMIZED);
