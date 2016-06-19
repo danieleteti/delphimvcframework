@@ -185,102 +185,86 @@ Now you have a performant RESTful server wich respond to the following URLs:
 
 ###Quick Creation of DelphiMVCFramework Server
 
-If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one server into one single executable. In this case, the process is a bit different and involves the creation of a server container. However, create a new server is a simple task:
+If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one listener application server into one single executable. In this case, the process is a bit different and involves the creation of a listener context. However, create a new server is a simple task:
 
 ```delphi
 uses
-  MVCFramework.Server;
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 var
-  ServerInfo: IMVCServerInfo;
-  Server: IMVCServer;
+  LServerListener: IMVCListener;
 begin
-  ServerInfo := TMVCServerInfoFactory.Build;
-  ServerInfo.ServerName := 'MVCServer';
-  ServerInfo.Port := 4000;
-  ServerInfo.MaxConnections := 1000;
-  //You must reference your TWebModuleClass  
-  ServerInfo.WebModuleClass := YourServerWebModuleClass;
+  LServerListener := TMVCListener.Create(TMVCListenerProperties.New
+	 .SetName('Listener1')
+	 .SetPort(5000)
+	 .SetMaxConnections(1024)
+	 .SetWebModuleClass(YourServerWebModuleClass)
+   );  
 
-  Server := TMVCServerFactory.Build(ServerInfo);
-  Server.Start;
-  Server.Stop;
+  LServerListener.Start;
+  LServerListener.Stop;
 end;
 ```
 
-If you want to add a layer of security:
+If you want to add a layer of security (in its WebModule you should add the security middleware):
 
 ```delphi
 uses
-  MVCFramework.Server;
-
-var
-  ServerInfo: IMVCServerInfo;
-  Server: IMVCServer;
-  OnAuthentication: TMVCAuthenticationDelegate;
-begin
-  ServerInfo := TMVCServerInfoFactory.Build;
-  ServerInfo.ServerName := 'MVCServer';
-  ServerInfo.Port := 4000;
-  ServerInfo.MaxConnections := 1000;
-  //You must reference your TWebModuleClass  
-  ServerInfo.WebModuleClass := YourServerWebModuleClass;
-
-	OnAuthentication := procedure(const pUserName, pPassword: string; pUserRoles: TList<string>; var pIsValid: Boolean)
-	begin
-	   pIsValid := pUserName.Equals('dmvc') and pPassword.Equals('123');
-	end;
-
-  ServerInfo.Security := TMVCDefaultSecurity.Create(OnAuthentication, nil);
-
-  Server := TMVCServerFactory.Build(ServerInfo);
-  Server.Start;
-end;
-
-//And in his WebModule you should add the security middleware
-uses
-	MVCFramework.Middleware.Authentication;
+  MVCFramework.Server,
+  MVCFramework.Server.Impl,
+  MVCFramework.Middleware.Authentication;
 
 procedure TTestWebModule.WebModuleCreate(Sender: TObject);
 begin
-	MVCEngine := TMVCEngine.Create(Self);
+  FMVCEngine := TMVCEngine.Create(Self);
 	
-	// Add Yours Controllers
-	MVCEngine.AddController(TYourController);
+  // Add Yours Controllers
+  FMVCEngine.AddController(TYourController);
 	
-	// Add Security Middleware
-	MVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(Server.Info.Security));
+  // Add Security Middleware
+  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+    TMVCDefaultAuthenticationHandler.New
+    .SetOnAuthentication(
+		procedure(const AUserName, APassword: string;
+		  AUserRoles: TList<string>; var IsValid: Boolean; 
+		  const ASessionData: TDictionary<String, String>)
+		begin
+		  IsValid := AUserName.Equals('dmvc') and APassword.Equals('123');
+		end
+		)
+    ));
 end;  
 ```
 
-You can work with a container of DelphiMVCFramework servers:
+In stand alone mode you can work with a context that supports multiple listeners servers:
 
 ```delphi
-uses 
-  MVCFramework.Server;
+uses
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 var
-  ServerOneInfo: IMVCServerInfo;
-  ServerTwoInfo: IMVCServerInfo;
-  Container: IMVCServerContainer;
+  LServerListenerCtx: IMVCListenersContext;
+
 begin
-  Container := TMVCServerContainerFactory.Build();
+  LServerListenerCtx := TMVCListenersContext.Create;
 
-  ServerOneInfo := TMVCServerInfoFactory.Build;
-  ServerOneInfo.ServerName := 'MVCServer1';
-  ServerOneInfo.Port := 4000;
-  ServerOneInfo.MaxConnections := 1000;
-  ServerOneInfo.WebModuleClass := ServerOneWebModuleClass;
+  LServerListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('Listener1')
+    .SetPort(6000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(WebModuleClass1)
+    );
 
-  Container.CreateServer(ServerOneInfo);
+  LServerListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('Listener2')
+    .SetPort(7000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(WebModuleClass2)
+    );
 
-  ServerTwoInfo := TMVCServerInfoFactory.Build;
-  ServerTwoInfo.ServerName := 'MVCServer2';
-  ServerTwoInfo.Port := 5000;
-  ServerTwoInfo.MaxConnections := 1000;
-  ServerTwoInfo.WebModuleClass := ServerTwoWebModuleClass;
-  Container.CreateServer(ServerTwoInfo);
-  Container.StartServers();
+  LServerListenerCtx.StartAll;
 end;  
 ```
 
