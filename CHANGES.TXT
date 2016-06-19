@@ -12,3 +12,7 @@
 - some minor bug fixes in the objectsmappers
 - added new build system based on a python script
 - added more unit tests
+
+
+- added support for JWT
+- added auth middleware based on JWT
