@@ -1,26 +1,26 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{***************************************************************************}
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
 
 unit MVCFramework.RESTAdapter;
 
@@ -191,7 +191,8 @@ uses
 
 { TRESTAdapter }
 
-function TRESTAdapter<T>.Build(ARESTClient: TRESTClient; const ARESTClientOwner: boolean = false): T;
+function TRESTAdapter<T>.Build(ARESTClient: TRESTClient;
+  const ARESTClientOwner: boolean = false): T;
 begin
   RESTClient := ARESTClient;
   RESTClientOwner := ARESTClientOwner;
@@ -236,8 +237,8 @@ end;
 
 destructor TRESTAdapter<T>.Destroy;
 begin
-  //Ezequiel J. Müller (If it is created outside, it must be destroyed out)
-  //d.spinetti added RESTClientOwner to manage desctruction of RESTClient and free its associated memory
+  // Ezequiel J. Müller (If it is created outside, it must be destroyed out)
+  // d.spinetti added RESTClientOwner to manage desctruction of RESTClient and free its associated memory
   if RESTClientOwner and Assigned(FRESTClient) then
     FRESTClient.Free;
   inherited;
@@ -260,7 +261,7 @@ begin
       [Method.Name]);
 
   // headers can be more than one
-  //FRESTClient.RequestHeaders.Clear; //Ezequiel J. Müller (You can not clear the header, because I can use other.)
+  // FRESTClient.RequestHeaders.Clear; //Ezequiel J. Müller (You can not clear the header, because I can use other.)
   // Interface
   AddRequestHeaders(TRTTIUtils.ctx.GetType(TypeInfo(T)));
   // Method
@@ -331,7 +332,7 @@ begin
         if Arg.IsObject then
         begin
           if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
-            Exit(Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), True))
+            Exit(Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), true))
           else
             Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject));
         end

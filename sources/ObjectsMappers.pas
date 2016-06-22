@@ -108,7 +108,8 @@ type
 
     class function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject)
       : TObject; overload; static;
-    class procedure LoadJSONObjectToObject<T: class>(AJSONObject: TJSONObject; const AObject: T); static;
+    class procedure LoadJSONObjectToObject<T: class>(AJSONObject: TJSONObject;
+      const AObject: T); static;
     class function JSONObjectToObject(ClazzName: string;
       AJSONObject: TJSONObject): TObject; overload; static;
     class function JSONObjectToObjectFields<T: constructor, class>
@@ -414,6 +415,7 @@ implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
 
+
 uses
   TypInfo,
   FmtBcd,
@@ -463,11 +465,30 @@ var
   fs: TFormatSettings;
 begin
   fs.TimeSeparator := ':';
+  fs.DateSeparator := '-';
   Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
+end;
+
+function CheckISOTimeStrSeparator(const TimeAsString: String; const Offset: Word): boolean;
+begin
+  Result := (TimeAsString.Chars[Offset + 2] = ':') and
+    (TimeAsString.Chars[Offset + 5] = ':');
+end;
+
+function CheckISODateStrSeparator(const DateAsString: String; const Offset: Word): boolean;
+begin
+  Result := (DateAsString.Chars[Offset + 4] = '-') and
+    (DateAsString.Chars[Offset + 7] = '-');
 end;
 
 function ISOStrToDateTime(DateTimeAsString: string): TDateTime;
 begin
+  if not CheckISODateStrSeparator(DateTimeAsString, 0) then
+    raise EMapperException.Create('Invalid ISO DateTime String');
+
+  if not CheckISOTimeStrSeparator(DateTimeAsString, 11) then
+    raise EMapperException.Create('Invalid ISO DateTime String');
+
   Result := EncodeDateTime(StrToInt(Copy(DateTimeAsString, 1, 4)),
     StrToInt(Copy(DateTimeAsString, 6, 2)),
     StrToInt(Copy(DateTimeAsString, 9, 2)),
@@ -478,6 +499,9 @@ end;
 
 function ISOStrToTime(TimeAsString: string): TTime;
 begin
+  if not CheckISOTimeStrSeparator(TimeAsString, 0) then
+    raise EMapperException.Create('Invalid ISO Time String');
+
   Result := EncodeTime(StrToInt(Copy(TimeAsString, 1, 2)),
     StrToInt(Copy(TimeAsString, 4, 2)),
     StrToIntDef(Copy(TimeAsString, 7, 2), 0), 0);
@@ -485,25 +509,15 @@ end;
 
 function ISOStrToDate(DateAsString: string): TDate;
 begin
+  if not CheckISODateStrSeparator(DateAsString, 0) then
+    raise EMapperException.Create('Invalid ISO Date String');
+
   Result := EncodeDate(StrToInt(Copy(DateAsString, 1, 4)),
     StrToInt(Copy(DateAsString, 6, 2)), StrToInt(Copy(DateAsString, 9, 2)));
-  // , StrToInt
-  // (Copy(DateAsString, 12, 2)), StrToInt(Copy(DateAsString, 15, 2)),
-  // StrToInt(Copy(DateAsString, 18, 2)), 0);
 end;
 
-
-// function ISODateToStr(const ADate: TDate): String;
-// begin
-// Result := FormatDateTime('YYYY-MM-DD', ADate);
-// end;
-//
-// function ISOTimeToStr(const ATime: TTime): String;
-// begin
-// Result := FormatDateTime('HH:nn:ss', ATime);
-// end;
-
 {$IF CompilerVersion <= 25}
+
 
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
   AObject: TObject; WithResult: boolean): Int64;
@@ -753,6 +767,7 @@ begin
   Result.CommandText := ASQL;
 end;
 {$IFEND}
+
 
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
   AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean;
@@ -2127,7 +2142,7 @@ begin
 end;
 
 class procedure Mapper.DeSerializeBase64StringStream(aStream: TStream;
-      const aBase64SerializedString: string);
+  const aBase64SerializedString: string);
 var
   SS: TStringStream;
 begin
@@ -2143,7 +2158,7 @@ begin
 end;
 
 class procedure Mapper.DeSerializeStringStream(aStream: TStream;
-      const aSerializedString: string; aEncoding: String);
+  const aSerializedString: string; aEncoding: String);
 var
   SerEnc: TEncoding;
   SS: TStringStream;
@@ -2744,6 +2759,7 @@ end;
 
 {$IF CompilerVersion > 25}
 
+
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
   AObject: TObject; AParamPrefix: string);
 var
@@ -2860,6 +2876,7 @@ begin
 end;
 {$ENDIF}
 {$IF CompilerVersion <= 25}
+
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
   AObject: TObject): Int64;

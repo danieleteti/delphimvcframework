@@ -26,13 +26,14 @@ implementation
 
 {$R *.dfm}
 
+
 uses App1MainControllerU;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(Self);
-  MVC.Config['view_path'] := '..\Debug\HTML5Application';
-  MVC.Config['document_root'] := 'HTML5Application\public_html';
+  MVC.Config[TMVCConfigKey.ViewPath] := '.\www\public_html';
+  MVC.Config[TMVCConfigKey.DocumentRoot] := '.\www\public_html';
   MVC.AddController(TApp1MainController);
 end;
 

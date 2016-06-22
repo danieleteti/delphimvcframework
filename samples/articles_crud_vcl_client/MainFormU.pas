@@ -124,13 +124,16 @@ end;
 procedure TForm4.RefreshAsynch;
 var
   Res: IRESTResponse;
+  lRNo: Integer;
 begin
   // this a simple sychronous request...
   Res := Clt.doGET('/articles', []);
+  lRNo := FDMemTable1.RecNo;
   FDMemTable1.Close;
   FDMemTable1.Open;
   FLoading := true;
   FDMemTable1.AppendFromJSONArrayString(Res.BodyAsString);
+  FDMemTable1.RecNo := lRNo;
   FLoading := false;
 end;
 

@@ -109,6 +109,28 @@
         <DCCReference Include="..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="TestServerControllerExceptionU.pas"/>
         <DCCReference Include="SpeedMiddlewareU.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTAdapter.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ApplicationSession.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.HMAC.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JWT.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Logger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.MessagingController.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.CORS.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Session.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Server.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Server.Impl.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.View.Cache.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.View.pas"/>
+        <DCCReference Include="..\..\sources\RTTIUtilsU.pas"/>
+        <DCCReference Include="..\..\sources\uGlobalVars.pas"/>
+        <DCCReference Include="..\..\sources\Iocp.Logger.pas"/>
+        <DCCReference Include="..\..\sources\DuckListU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -176,16 +198,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                </DeployClass>
+                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
                 <DeployClass Name="ProjectOSXResource">
                     <Platform Name="OSX32">
                         <RemoteDir>Contents\Resources</RemoteDir>
@@ -497,7 +510,16 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                </DeployClass>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>

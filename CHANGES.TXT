@@ -1,3 +1,10 @@
+22/06/2016
+- Added strongly typed actions
+- TWebContext param in the actions is optional
+- In caso of "action not found", the server dont returns NEVER the document index
+- Refactoring
+- More unit tests
+
 15/03/2015
 - all the built-in methods have been moved under the /system controller
 - messaging system is ready to test. It now uses RabbitMQ
