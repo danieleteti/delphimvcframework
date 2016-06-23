@@ -129,83 +129,88 @@ var
   LStrProduces: string;
   LJMethod: TJSONObject;
 begin
-  LJResp := TJSONObject.Create;
+  LCTX := TRttiContext.Create;
   try
-    for LControllerRoutable in GetMVCEngine.RegisteredControllers do
-    begin
-      ControllerInfo := TJSONObject.Create;
-      LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName, ControllerInfo);
-
-      LRTTIType := LCTX.GetType(LControllerRoutable) as TRttiInstanceType;
-      for LAttribute in LRTTIType.GetAttributes do
+    LJResp := TJSONObject.Create;
+    try
+      for LControllerRoutable in GetMVCEngine.RegisteredControllers do
       begin
-        if LAttribute is MVCPathAttribute then
-          ControllerInfo.AddPair('resource_path',
-            MVCPathAttribute(LAttribute).Path);
-        if LAttribute is MVCDocAttribute then
-          ControllerInfo.AddPair('description',
-            MVCDocAttribute(LAttribute).Value);
-      end;
+        ControllerInfo := TJSONObject.Create;
+        LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName, ControllerInfo);
 
-      LJMethods := TJSONArray.Create;
-      ControllerInfo.AddPair('actions', LJMethods);
-      LMethods := LRTTIType.GetDeclaredMethods;
-      for LMethod in LMethods do
-      begin
-        LFoundAttrib := False;
-        LStrRelativePath := '';
-        LStrHTTPMethods := '';
-        LStrConsumes := '';
-        LStrProduces := '';
-        LStrHTTPMethods :=
-          'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
-        for LAttribute in LMethod.GetAttributes do
+        LRTTIType := LCTX.GetType(LControllerRoutable.&Class) as TRttiInstanceType;
+        for LAttribute in LRTTIType.GetAttributes do
         begin
-          if LAttribute is MVCDocAttribute then
-          begin
-            LStrDoc := MVCDocAttribute(LAttribute).Value;
-            LFoundAttrib := true;
-          end;
           if LAttribute is MVCPathAttribute then
-          begin
-            LStrRelativePath := MVCPathAttribute(LAttribute).Path;
-            LFoundAttrib := true;
-          end;
-          if LAttribute is MVCHTTPMethodAttribute then
-          begin
-            LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute)
-              .MVCHTTPMethodsAsString;
-            LFoundAttrib := true;
-          end;
-          if LAttribute is MVCConsumesAttribute then
-          begin
-            LStrConsumes := MVCConsumesAttribute(LAttribute).Value;
-            LFoundAttrib := true;
-          end;
-          if LAttribute is MVCProducesAttribute then
-          begin
-            LStrProduces := MVCProducesAttribute(LAttribute).Value;
-            LFoundAttrib := true;
-          end;
+            ControllerInfo.AddPair('resource_path',
+              MVCPathAttribute(LAttribute).Path);
+          if LAttribute is MVCDocAttribute then
+            ControllerInfo.AddPair('description',
+              MVCDocAttribute(LAttribute).Value);
         end;
 
-        if LFoundAttrib then
+        LJMethods := TJSONArray.Create;
+        ControllerInfo.AddPair('actions', LJMethods);
+        LMethods := LRTTIType.GetDeclaredMethods;
+        for LMethod in LMethods do
         begin
-          LJMethod := TJSONObject.Create;
-          LJMethod.AddPair('action_name', LMethod.Name);
-          LJMethod.AddPair('relative_path', LStrRelativePath);
-          LJMethod.AddPair('consumes', LStrConsumes);
-          LJMethod.AddPair('produces', LStrProduces);
-          LJMethod.AddPair('http_methods', LStrHTTPMethods);
-          LJMethod.AddPair('description', LStrDoc);
-          LJMethods.AddElement(LJMethod);
+          LFoundAttrib := False;
+          LStrRelativePath := '';
+          LStrHTTPMethods := '';
+          LStrConsumes := '';
+          LStrProduces := '';
+          LStrHTTPMethods :=
+            'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
+          for LAttribute in LMethod.GetAttributes do
+          begin
+            if LAttribute is MVCDocAttribute then
+            begin
+              LStrDoc := MVCDocAttribute(LAttribute).Value;
+              LFoundAttrib := true;
+            end;
+            if LAttribute is MVCPathAttribute then
+            begin
+              LStrRelativePath := MVCPathAttribute(LAttribute).Path;
+              LFoundAttrib := true;
+            end;
+            if LAttribute is MVCHTTPMethodAttribute then
+            begin
+              LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute)
+                .MVCHTTPMethodsAsString;
+              LFoundAttrib := true;
+            end;
+            if LAttribute is MVCConsumesAttribute then
+            begin
+              LStrConsumes := MVCConsumesAttribute(LAttribute).Value;
+              LFoundAttrib := true;
+            end;
+            if LAttribute is MVCProducesAttribute then
+            begin
+              LStrProduces := MVCProducesAttribute(LAttribute).Value;
+              LFoundAttrib := true;
+            end;
+          end;
+
+          if LFoundAttrib then
+          begin
+            LJMethod := TJSONObject.Create;
+            LJMethod.AddPair('action_name', LMethod.Name);
+            LJMethod.AddPair('relative_path', LStrRelativePath);
+            LJMethod.AddPair('consumes', LStrConsumes);
+            LJMethod.AddPair('produces', LStrProduces);
+            LJMethod.AddPair('http_methods', LStrHTTPMethods);
+            LJMethod.AddPair('description', LStrDoc);
+            LJMethods.AddElement(LJMethod);
+          end;
         end;
       end;
+      ContentType := TMVCMediaType.APPLICATION_JSON;
+      Render(LJResp, False);
+    finally
+      LJResp.Free;
     end;
-    ContentType := TMVCMediaType.APPLICATION_JSON;
-    Render(LJResp, False);
   finally
-    LJResp.Free;
+    LCTX.Free;
   end;
 end;
 

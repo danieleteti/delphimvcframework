@@ -1,6 +1,7 @@
-program TestServer;
+﻿program TestServer;
 
 {$APPTYPE CONSOLE}
+
 
 uses
   System.SysUtils,
@@ -8,7 +9,7 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule},
+  WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule} ,
   TestServerControllerU in 'TestServerControllerU.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
@@ -21,7 +22,8 @@ uses
   MVCFramework.JWT in '..\..\sources\MVCFramework.JWT.pas',
   MVCFramework.Logger in '..\..\sources\MVCFramework.Logger.pas',
   MVCFramework.MessagingController in '..\..\sources\MVCFramework.MessagingController.pas',
-  MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  MVCFramework.Middleware.Authentication
+    in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
   MVCFramework.Middleware.CORS in '..\..\sources\MVCFramework.Middleware.CORS.pas',
   MVCFramework.Middleware.JWT in '..\..\sources\MVCFramework.Middleware.JWT.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
@@ -38,6 +40,21 @@ uses
 
 {$R *.res}
 
+
+procedure Logo;
+begin
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED or FOREGROUND_INTENSITY);
+  WriteLn(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
+  WriteLn(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
+  WriteLn(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
+  WriteLn(' ██║  ██║██║╚██╔╝██║╚██╗ ██╔╝██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗');
+  WriteLn(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
+  WriteLn(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
+  WriteLn(' ');
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or
+    FOREGROUND_RED);
+end;
+
 procedure RunServer(APort: Integer);
 var
   LInputRecord: TInputRecord;
@@ -45,12 +62,13 @@ var
   LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  Logo;
+  WriteLn(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
+    WriteLn('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
     begin
@@ -75,7 +93,7 @@ begin
     RunServer(9999);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      WriteLn(E.ClassName, ': ', E.Message);
   end
 
 end.
