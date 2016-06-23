@@ -113,14 +113,23 @@ type
    [MVCPath('/users')]
    TUsersController = class(TMVCController)
    public
-    
+
     //The following action will be with a GET request like the following
     //http://myserver.com/users/3
     [MVCPath('/($id)')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
+    [MVCDoc('Returns a user as a JSON object')]
+    procedure GetUser(id: Integer);
+
+    
+    //The following action will be with a GET request like the following
+    //http://myserver.com/users
+    [MVCPath('/')]
+    [MVCProduces('application/json')]
+    [MVCHTTPMethod([httpGET])]
     [MVCDoc('Returns the users list as a JSON Array of JSON Objects')]
-    procedure GetUsers(CTX: TWebContext);
+    procedure GetUsers;
 
     //The following action will be with a PUT request like the following
     //http://myserver.com/users/3
@@ -129,7 +138,7 @@ type
     [MVCProduce('application/json')]
     [MVCHTTPMethod([httpPUT])]
     [MVCDoc('Update a user')]    
-    procedure UpdateUser(CTX: TWebContext);
+    procedure UpdateUser(id: Integer);
 
     //The following action will respond to a POST request like the following
     //http://myserver.com/users
@@ -138,7 +147,7 @@ type
     [MVCProduce('application/json')]
     [MVCHTTPMethod([httpPOST])]
     [MVCDoc('Create a new user, returns the id of the new user')]
-    procedure CreateUser(CTX: TWebContext);
+    procedure CreateUser;
 
   end;
  
@@ -148,29 +157,37 @@ uses
   MyTransactionScript; //contains actual data access code
   
 { TUsersController }
+
+procedure TUsersController.GetUsers;
+var
+  Users: TObjectList<TUser>;
+begin
+  Users := GetUsers;
+  Render(Users);
+end;
  
-procedure TUsersController.GetUsers(CTX: TWebContext);
+procedure TUsersController.GetUser(id: Integer);
 var
   User: TUser;
 begin
-  User := GetUserById(CTX.Request.Parameters['id'].ToInteger);
+  User := GetUserById(id);
   Render(User);
 end;
 
-procedure TUsersController.UpdateUser(CTX: TWebContext);
+procedure TUsersController.UpdateUser(id: Integer);
 var
   User: TUser;
 begin
-  User := CTX.Request.BodyAs<TUser>;
-  SaveUser(User);
+  User := Context.Request.BodyAs<TUser>;
+  UpdateUser(id, User);
   Render(User);
 end;	
   
-procedure TUsersController.CreateUser(CTX: TWebContext);
+procedure TUsersController.CreateUser;
 var
   User: TUser;
 begin
-  User := CTX.Request.BodyAs<TUser>;
+  User := Context.Request.BodyAs<TUser>;
   CreateUser(User);
   Render(User);
 end;	
