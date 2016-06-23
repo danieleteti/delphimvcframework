@@ -1,5 +1,7 @@
 23/06/2016
 - completed jwt middleware (check jwtmiddleware sample to know how to use)
+- added "HasError" and "Error" properties to the IRESTResponse (thank you Mathias Pannier)
+- added "Context.Request.QueryStringParams: TStrings"
 
 22/06/2016
 - Added strongly typed actions

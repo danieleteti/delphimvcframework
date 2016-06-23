@@ -156,7 +156,7 @@ type
     function Accept: string;
     function QueryStringParam(Name: string): string; virtual;
     function QueryStringParamExists(Name: string): Boolean; virtual;
-    function QueryParams: TStrings;
+    function QueryStringParams: TStrings;
     procedure EnsureQueryParamExists(const Name: String);
     function ContentParam(Name: string): string; virtual;
     function Cookie(Name: string): string; virtual;
@@ -2176,7 +2176,7 @@ begin
   FPath := Value;
 end;
 
-function TMVCWebRequest.QueryParams: TStrings;
+function TMVCWebRequest.QueryStringParams: TStrings;
 begin
   Result := FWebRequest.QueryFields;
 end;

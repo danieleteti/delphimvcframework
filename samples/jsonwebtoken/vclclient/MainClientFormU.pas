@@ -34,13 +34,14 @@ implementation
 
 
 uses
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient, ObjectsMappers;
 
 procedure TForm5.btnGetClick(Sender: TObject);
 var
   lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lResp: IRESTResponse;
   lQueryStringParams: TStringList;
+  lExc: TMVCExceptionObj;
 begin
   lClient := TRESTClient.Create('localhost', 8080);
   try
@@ -51,11 +52,15 @@ begin
     try
       lQueryStringParams.Values['firstname'] := 'Daniele';
       lQueryStringParams.Values['lastname'] := 'Teti';
-      lRest := lClient.doGET('/admin/role1', [], lQueryStringParams);
+      lResp := lClient.doGET('/admin/role1', [], lQueryStringParams);
+
+      if lResp.HasError then
+        ShowMessage(lResp.Error.ExceptionMessage);
+
     finally
       lQueryStringParams.Free;
     end;
-    Memo2.Lines.Text := lRest.BodyAsString;
+    Memo2.Lines.Text := lResp.BodyAsString;
   finally
     lClient.Free;
   end;
