@@ -32,17 +32,20 @@ uses
   MVCFramework.Logger,
   MVCFramework.JWT,
   System.Generics.Collections,
-  System.DateUtils;
+  System.DateUtils, System.SysUtils;
 
 type
+  TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
+
   TMVCJwtAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   strict private
     FMVCAuthenticationHandler: IMVCAuthenticationHandler;
 
-    procedure Render(const AErrorCode: UInt16; const AErrorMessage: string; Context: TWebContext;
-      const AErrorClassName: string = ''); overload;
+    procedure Render(const aErrorCode: UInt16; const aErrorMessage: string; aContext: TWebContext;
+      const aErrorClassName: string = ''); overload;
   private
     FClaimsToChecks: TJWTCheckableClaims;
+    FSetupJWTClaims: TJWTClaimsSetup;
 
   protected
     FSecret: string;
@@ -54,7 +57,9 @@ type
       var Handled: Boolean);
   public
     constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler;
-      ASecret: string = 'D3lph1MVCFram3w0rk'; ClaimsToCheck: TJWTCheckableClaims = [
+      aConfigClaims: TJWTClaimsSetup;
+      aSecret: string = 'D3lph1MVCFram3w0rk';
+      aClaimsToCheck: TJWTCheckableClaims = [
       TJWTCheckableClaim.ExpirationTime,
       TJWTCheckableClaim.NotBefore,
       TJWTCheckableClaim.IssuedAt
@@ -64,7 +69,7 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session
+  MVCFramework.Session
 {$IF CompilerVersion < 27}
     , Data.DBXJSON
 {$ELSE}
@@ -80,16 +85,15 @@ uses
 
 constructor TMVCJwtAuthenticationMiddleware.Create(AMVCAuthenticationHandler
   : IMVCAuthenticationHandler;
-  ASecret: string = 'D3lph1MVCFram3w0rk'; ClaimsToCheck: TJWTCheckableClaims = [
-  TJWTCheckableClaim.ExpirationTime,
-  TJWTCheckableClaim.NotBefore,
-  TJWTCheckableClaim.IssuedAt
-  ]);
+  aConfigClaims: TJWTClaimsSetup;
+  aSecret: string;
+  aClaimsToCheck: TJWTCheckableClaims);
 begin
   inherited Create;
   FMVCAuthenticationHandler := AMVCAuthenticationHandler;
-  FSecret := ASecret;
-  FClaimsToChecks := ClaimsToCheck;
+  FSecret := aSecret;
+  FClaimsToChecks := aClaimsToCheck;
+  FSetupJWTClaims := aConfigClaims;
 end;
 
 procedure TMVCJwtAuthenticationMiddleware.OnAfterControllerAction
@@ -131,14 +135,17 @@ begin
       Exit;
     end;
 
+    // retrieve the token from the "authentication bearer" header
+    lToken := '';
     if lAuthHeader.StartsWith('bearer', True) then
     begin
       lToken := lAuthHeader.Remove(0, 'bearer'.Length).Trim;
     end;
 
+    // check the jwt
     if not lJWT.IsValidToken(lToken, lError) then
     begin
-      Render(http_status.Unauthorized, 'Invalid Token, ' + lError, Context);
+      Render(http_status.Unauthorized, lError, Context);
       Handled := True;
     end
     else
@@ -152,6 +159,9 @@ begin
       else
       begin
         lIsAuthorized := False;
+        Context.LoggedUser.UserName := lJWT.CustomClaims['username'];
+        Context.LoggedUser.Roles.AddRange(lJWT.CustomClaims['roles'].Split([',']));
+        Context.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
         FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles,
           AControllerQualifiedClassName, AActionName, lIsAuthorized);
         if lIsAuthorized then
@@ -204,21 +214,31 @@ begin
         begin
           lJWT := TJWT.Create(FSecret);
           try
-            lJWT.Claims.Issuer := 'Delphi MVC Framework';
-            lJWT.Claims.ExpirationTime := Now + OneHour; // todo: customize
-            lJWT.Claims.NotBefore := Now - OneMinute * 5; // todo: customize
+            // let's user config claims and custom claims
+            FSetupJWTClaims(lJWT);
+
+            // these claims are mandatory and managed by the middleware
+            if not lJWT.CustomClaims['username'].IsEmpty then
+              raise EMVCJWTException.Create
+                ('Custom claim "username" is reserved and cannot be modified in the JWT setup');
+            if not lJWT.CustomClaims['roles'].IsEmpty then
+              raise EMVCJWTException.Create
+                ('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
+
             lJWT.CustomClaims['username'] := lUserName;
             lJWT.CustomClaims['roles'] := String.Join(',', lRoles.ToArray);
 
+            /// / setup the current logged user from the JWT
             Context.LoggedUser.Roles.AddRange(lRoles);
-            Context.LoggedUser.UserName := lUserName;
-            Context.LoggedUser.LoggedSince := Now;
+            Context.LoggedUser.UserName := lJWT.CustomClaims['username'];
+            Context.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
+            Context.LoggedUser.Realm := lJWT.Claims.Subject;
+            /// ////////////////////////////////////////////////
 
             InternalRender(TJSONObject.Create(TJSONPair.Create('token', lJWT.GetToken)),
               TMVCMediaType.APPLICATION_JSON,
               TMVCConstants.DEFAULT_CONTENT_CHARSET, Context);
             Handled := True;
-            Exit;
           finally
             lJWT.Free;
           end;
@@ -237,28 +257,28 @@ begin
   end;
 end;
 
-procedure TMVCJwtAuthenticationMiddleware.Render(const AErrorCode: UInt16;
-  const AErrorMessage: string; Context: TWebContext;
-  const AErrorClassName: string);
+procedure TMVCJwtAuthenticationMiddleware.Render(const aErrorCode: UInt16;
+  const aErrorMessage: string; aContext: TWebContext;
+  const aErrorClassName: string = '');
 var
   j: TJSONObject;
   status: string;
 begin
-  Context.Response.StatusCode := AErrorCode;
-  Context.Response.ReasonString := AErrorMessage;
+  aContext.Response.StatusCode := aErrorCode;
+  aContext.Response.ReasonString := aErrorMessage;
   status := 'error';
-  if (AErrorCode div 100) = 2 then
+  if (aErrorCode div 100) = 2 then
     status := 'ok';
   j := TJSONObject.Create;
   j.AddPair('status', status);
-  if AErrorClassName = '' then
+  if aErrorClassName = '' then
     j.AddPair('classname', TJSONNull.Create)
   else
-    j.AddPair('classname', AErrorClassName);
-  j.AddPair('message', AErrorMessage);
+    j.AddPair('classname', aErrorClassName);
+  j.AddPair('message', aErrorMessage);
 
   InternalRender(j, TMVCConstants.DEFAULT_CONTENT_TYPE,
-    TMVCConstants.DEFAULT_CONTENT_CHARSET, Context);
+    TMVCConstants.DEFAULT_CONTENT_CHARSET, aContext);
 
 end;
 

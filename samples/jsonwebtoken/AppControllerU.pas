@@ -30,7 +30,7 @@ type
     [MVCPath('/role1')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
-    procedure OnlyRole1EmittingJSON(ctx: TWebContext);
+    procedure OnlyRole1EmittingJSON;
     [MVCPath('/role2')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
@@ -40,7 +40,7 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Commons;
+  System.SysUtils, MVCFramework.Commons, System.JSON, System.Classes;
 
 { TApp1MainController }
 
@@ -66,11 +66,28 @@ begin
   Render;
 end;
 
-procedure TAdminController.OnlyRole1EmittingJSON(ctx: TWebContext);
+procedure TAdminController.OnlyRole1EmittingJSON;
+var
+  lJObj: TJSONObject;
+  lJArr: TJSONArray;
+  lQueryParams: TStrings;
+  I: Integer;
 begin
   ContentType := TMVCMediaType.APPLICATION_JSON;
-  Render('This is protected content accessible only by user1: paremeter = ' +
-    ctx.Request.Params['par1']);
+  lJObj := TJSONObject.Create;
+  lJObj.AddPair('message', 'This is protected content accessible only by user1');
+  lJArr := TJSONArray.Create;
+  lJObj.AddPair('querystringparameters', lJArr);
+
+  lQueryParams := Context.Request.QueryStringParams;
+  for I := 0 to lQueryParams.Count - 1 do
+  begin
+    lJArr.AddElement(TJSONObject.Create(TJSONPair.Create(
+      lQueryParams.Names[I],
+      lQueryParams.ValueFromIndex[I])));
+  end;
+
+  Render(lJObj);
 end;
 
 procedure TAdminController.OnlyRole2(ctx: TWebContext);

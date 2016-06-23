@@ -5,16 +5,22 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls;
 
 type
   TForm5 = class(TForm)
+    Memo1: TMemo;
+    Memo2: TMemo;
+    Panel1: TPanel;
     btnGet: TButton;
     btnLOGIN: TButton;
+    Splitter1: TSplitter;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
   private
-    { Private declarations }
+    FJWT: String;
+    procedure SetJWT(const Value: String);
+    property JWT: String read FJWT write SetJWT;
   public
     { Public declarations }
   end;
@@ -34,11 +40,22 @@ procedure TForm5.btnGetClick(Sender: TObject);
 var
   lClient: TRESTClient;
   lRest: IRESTResponse;
+  lQueryStringParams: TStringList;
 begin
   lClient := TRESTClient.Create('localhost', 8080);
   try
-    lRest := lClient.doGET('/', []);
-    ShowMessage(lRest.BodyAsString);
+    lClient.ReadTimeOut(0);
+    if not FJWT.IsEmpty then
+      lClient.RequestHeaders.Values['Authentication'] := 'bearer ' + FJWT;
+    lQueryStringParams := TStringList.Create;
+    try
+      lQueryStringParams.Values['firstname'] := 'Daniele';
+      lQueryStringParams.Values['lastname'] := 'Teti';
+      lRest := lClient.doGET('/admin/role1', [], lQueryStringParams);
+    finally
+      lQueryStringParams.Free;
+    end;
+    Memo2.Lines.Text := lRest.BodyAsString;
   finally
     lClient.Free;
   end;
@@ -51,14 +68,21 @@ var
 begin
   lClient := TRESTClient.Create('localhost', 8080);
   try
+    lClient.ReadTimeOut(0);
     lClient
-      .Header('jwtusername', 'daniele')
-      .Header('jwtpassword', 'daniele');
+      .Header('jwtusername', 'user1')
+      .Header('jwtpassword', 'user1');
     lRest := lClient.doPOST('/login', []);
-    ShowMessage(lRest.BodyAsString);
+    JWT := lRest.BodyAsJSONObject.GetValue('token').Value;
   finally
     lClient.Free;
   end;
+end;
+
+procedure TForm5.SetJWT(const Value: String);
+begin
+  FJWT := Value;
+  Memo1.Lines.Text := Value;
 end;
 
 end.

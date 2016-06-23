@@ -490,23 +490,36 @@ var
   lJAlg: TJSONString;
   lAlgName: string;
   lJPayload: TJSONObject;
-  lError: String;
 begin
+  Error := '';
   lPieces := Token.Split(['.']);
   if Length(lPieces) <> 3 then
+  begin
+    Error := 'Invalid Token';
     Exit(false);
+  end;
+
   lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
   try
     if not Assigned(lJHeader) then
+    begin
+      Error := 'Invalid Token';
       Exit(false);
+    end;
 
     lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
     try
       if not Assigned(lJPayload) then
+      begin
+        Error := 'Invalid Token';
         Exit(false);
+      end;
 
       if not lJHeader.TryGetValue<TJSONString>('alg', lJAlg) then
+      begin
+        Error := 'Invalid Token';
         Exit(false);
+      end;
 
       lAlgName := lJAlg.Value;
       Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
@@ -521,20 +534,27 @@ begin
       begin
         if TJWTCheckableClaim.ExpirationTime in RegClaimsToChecks then
         begin
-          if not CheckExpirationTime(lJPayload, lError) then
+          if not CheckExpirationTime(lJPayload, Error) then
+          begin
             Exit(false);
+          end;
+
         end;
 
         if TJWTCheckableClaim.NotBefore in RegClaimsToChecks then
         begin
-          if not CheckNotBefore(lJPayload, lError) then
+          if not CheckNotBefore(lJPayload, Error) then
+          begin
             Exit(false);
+          end;
         end;
 
         if TJWTCheckableClaim.IssuedAt in RegClaimsToChecks then
         begin
-          if not CheckIssuedAt(lJPayload, lError) then
+          if not CheckIssuedAt(lJPayload, Error) then
+          begin
             Exit(false);
+          end;
         end;
       end;
 
@@ -560,7 +580,7 @@ var
   lError: String;
 begin
   if not IsValidToken(Token, lError) then
-    raise EMVCJWTException.Create('Invalid token: ' + lError);
+    raise EMVCJWTException.Create(lError);
 
   lPieces := Token.Split(['.']);
   lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;

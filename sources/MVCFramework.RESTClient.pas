@@ -193,7 +193,8 @@ type
       ASynchronized: Boolean = False): TRESTClient;
 
     function doGET(): IRESTResponse; overload;
-    function doGET(const AResource: string; const AParams: array of string)
+    function doGET(const AResource: string; const AParams: array of string;
+      const aQueryStringParams: TStrings = nil)
       : IRESTResponse; overload;
 
     function doPOST(const ABody: string): IRESTResponse; overload;
@@ -813,12 +814,16 @@ begin
 end;
 
 function TRESTClient.doGET(const AResource: string;
-  const AParams: array of string): IRESTResponse;
+  const AParams: array of string; const aQueryStringParams: TStrings): IRESTResponse;
 var
   URL: string;
 begin
   URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
-    EncodeResourceParams(AParams) + EncodeQueryStringParams(FQueryStringParams);
+    EncodeResourceParams(AParams);
+  if aQueryStringParams = nil then
+    URL := URL + EncodeQueryStringParams(FQueryStringParams)
+  else
+    URL := URL + EncodeQueryStringParams(aQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
