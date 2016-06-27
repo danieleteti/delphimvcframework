@@ -1,6 +1,7 @@
-program TestServer;
+﻿program TestServer;
 
 {$APPTYPE CONSOLE}
+
 
 uses
   System.SysUtils,
@@ -12,9 +13,47 @@ uses
   TestServerControllerU in 'TestServerControllerU.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
-  SpeedMiddlewareU in 'SpeedMiddlewareU.pas';
+  SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
+  MVCFramework in '..\..\sources\MVCFramework.pas',
+  MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
+  MVCFramework.ApplicationSession in '..\..\sources\MVCFramework.ApplicationSession.pas',
+  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework.HMAC in '..\..\sources\MVCFramework.HMAC.pas',
+  MVCFramework.JWT in '..\..\sources\MVCFramework.JWT.pas',
+  MVCFramework.Logger in '..\..\sources\MVCFramework.Logger.pas',
+  MVCFramework.MessagingController in '..\..\sources\MVCFramework.MessagingController.pas',
+  MVCFramework.Middleware.Authentication
+    in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  MVCFramework.Middleware.CORS in '..\..\sources\MVCFramework.Middleware.CORS.pas',
+  MVCFramework.Middleware.JWT in '..\..\sources\MVCFramework.Middleware.JWT.pas',
+  MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
+  MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
+  MVCFramework.Session in '..\..\sources\MVCFramework.Session.pas',
+  MVCFramework.Server in '..\..\sources\MVCFramework.Server.pas',
+  MVCFramework.Server.Impl in '..\..\sources\MVCFramework.Server.Impl.pas',
+  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
+  MVCFramework.View in '..\..\sources\MVCFramework.View.pas',
+  RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
+  uGlobalVars in '..\..\sources\uGlobalVars.pas',
+  Iocp.Logger in '..\..\sources\Iocp.Logger.pas',
+  DuckListU in '..\..\sources\DuckListU.pas';
 
 {$R *.res}
+
+
+procedure Logo;
+begin
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED or FOREGROUND_INTENSITY);
+  WriteLn(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
+  WriteLn(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
+  WriteLn(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
+  WriteLn(' ██║  ██║██║╚██╔╝██║╚██╗ ██╔╝██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗');
+  WriteLn(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
+  WriteLn(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
+  WriteLn(' ');
+  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or
+    FOREGROUND_RED);
+end;
 
 procedure RunServer(APort: Integer);
 var
@@ -23,12 +62,13 @@ var
   LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  Logo;
+  WriteLn(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
+    WriteLn('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
     begin
@@ -53,7 +93,7 @@ begin
     RunServer(9999);
   except
     on E: Exception do
-      Writeln(E.ClassName, ': ', E.Message);
+      WriteLn(E.ClassName, ': ', E.Message);
   end
 
 end.

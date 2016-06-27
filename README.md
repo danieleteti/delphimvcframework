@@ -2,14 +2,18 @@
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
   * RESTful (RMM Level 3) compliant
   * Stable and solid, used by small/mid/big projects since 2010
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 700 active members
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
+  * Can be used in load balanced environment using MySQL [user contrib]
+  * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
+  * JSON Web Token Support (JWT)
   * Extendable using middlewares (simple hooks to handle request/response)
-  * CORS
+  * CORS support
   * Basic Authentication
   * Controllers inheritance
   * Fancy URL with parameter mappings
-  * Specialied renders to generate text, html, JSON
+  * Specialied renders to generate text, HTML, JSON
   * Powerful mapper to map json to objects and datasets to objects
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
@@ -17,7 +21,6 @@
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
-  * Experimental support for IOCP [dev]
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
   * Specific trainings are available (ask me for a date and a place)
   * Messaging extension using STOMP (beta)
@@ -110,14 +113,23 @@ type
    [MVCPath('/users')]
    TUsersController = class(TMVCController)
    public
-    
+
     //The following action will be with a GET request like the following
     //http://myserver.com/users/3
     [MVCPath('/($id)')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
+    [MVCDoc('Returns a user as a JSON object')]
+    procedure GetUser(id: Integer);
+
+    
+    //The following action will be with a GET request like the following
+    //http://myserver.com/users
+    [MVCPath('/')]
+    [MVCProduces('application/json')]
+    [MVCHTTPMethod([httpGET])]
     [MVCDoc('Returns the users list as a JSON Array of JSON Objects')]
-    procedure GetUsers(CTX: TWebContext);
+    procedure GetUsers;
 
     //The following action will be with a PUT request like the following
     //http://myserver.com/users/3
@@ -126,7 +138,7 @@ type
     [MVCProduce('application/json')]
     [MVCHTTPMethod([httpPUT])]
     [MVCDoc('Update a user')]    
-    procedure UpdateUser(CTX: TWebContext);
+    procedure UpdateUser(id: Integer);
 
     //The following action will respond to a POST request like the following
     //http://myserver.com/users
@@ -135,7 +147,7 @@ type
     [MVCProduce('application/json')]
     [MVCHTTPMethod([httpPOST])]
     [MVCDoc('Create a new user, returns the id of the new user')]
-    procedure CreateUser(CTX: TWebContext);
+    procedure CreateUser;
 
   end;
  
@@ -145,29 +157,37 @@ uses
   MyTransactionScript; //contains actual data access code
   
 { TUsersController }
+
+procedure TUsersController.GetUsers;
+var
+  Users: TObjectList<TUser>;
+begin
+  Users := GetUsers;
+  Render(Users);
+end;
  
-procedure TUsersController.GetUsers(CTX: TWebContext);
+procedure TUsersController.GetUser(id: Integer);
 var
   User: TUser;
 begin
-  User := GetUserById(CTX.Request.Parameters['id'].ToInteger);
+  User := GetUserById(id);
   Render(User);
 end;
 
-procedure TUsersController.UpdateUser(CTX: TWebContext);
+procedure TUsersController.UpdateUser(id: Integer);
 var
   User: TUser;
 begin
-  User := CTX.Request.BodyAs<TUser>;
-  SaveUser(User);
+  User := Context.Request.BodyAs<TUser>;
+  UpdateUser(id, User);
   Render(User);
 end;	
   
-procedure TUsersController.CreateUser(CTX: TWebContext);
+procedure TUsersController.CreateUser;
 var
   User: TUser;
 begin
-  User := CTX.Request.BodyAs<TUser>;
+  User := Context.Request.BodyAs<TUser>;
   CreateUser(User);
   Render(User);
 end;	
@@ -182,102 +202,86 @@ Now you have a performant RESTful server wich respond to the following URLs:
 
 ###Quick Creation of DelphiMVCFramework Server
 
-If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one server into one single executable. In this case, the process is a bit different and involves the creation of a server container. However, create a new server is a simple task:
+If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one listener application server into one single executable. In this case, the process is a bit different and involves the creation of a listener context. However, create a new server is a simple task:
 
 ```delphi
 uses
-  MVCFramework.Server;
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 var
-  ServerInfo: IMVCServerInfo;
-  Server: IMVCServer;
+  LServerListener: IMVCListener;
 begin
-  ServerInfo := TMVCServerInfoFactory.Build;
-  ServerInfo.ServerName := 'MVCServer';
-  ServerInfo.Port := 4000;
-  ServerInfo.MaxConnections := 1000;
-  //You must reference your TWebModuleClass  
-  ServerInfo.WebModuleClass := YourServerWebModuleClass;
+  LServerListener := TMVCListener.Create(TMVCListenerProperties.New
+	 .SetName('Listener1')
+	 .SetPort(5000)
+	 .SetMaxConnections(1024)
+	 .SetWebModuleClass(YourServerWebModuleClass)
+   );  
 
-  Server := TMVCServerFactory.Build(ServerInfo);
-  Server.Start;
-  Server.Stop;
+  LServerListener.Start;
+  LServerListener.Stop;
 end;
 ```
 
-If you want to add a layer of security:
+If you want to add a layer of security (in its WebModule you should add the security middleware):
 
 ```delphi
 uses
-  MVCFramework.Server;
-
-var
-  ServerInfo: IMVCServerInfo;
-  Server: IMVCServer;
-  OnAuthentication: TMVCAuthenticationDelegate;
-begin
-  ServerInfo := TMVCServerInfoFactory.Build;
-  ServerInfo.ServerName := 'MVCServer';
-  ServerInfo.Port := 4000;
-  ServerInfo.MaxConnections := 1000;
-  //You must reference your TWebModuleClass  
-  ServerInfo.WebModuleClass := YourServerWebModuleClass;
-
-	OnAuthentication := procedure(const pUserName, pPassword: string; pUserRoles: TList<string>; var pIsValid: Boolean)
-	begin
-	   pIsValid := pUserName.Equals('dmvc') and pPassword.Equals('123');
-	end;
-
-  ServerInfo.Security := TMVCDefaultSecurity.Create(OnAuthentication, nil);
-
-  Server := TMVCServerFactory.Build(ServerInfo);
-  Server.Start;
-end;
-
-//And in his WebModule you should add the security middleware
-uses
-	MVCFramework.Middleware.Authentication;
+  MVCFramework.Server,
+  MVCFramework.Server.Impl,
+  MVCFramework.Middleware.Authentication;
 
 procedure TTestWebModule.WebModuleCreate(Sender: TObject);
 begin
-	MVCEngine := TMVCEngine.Create(Self);
+  FMVCEngine := TMVCEngine.Create(Self);
 	
-	// Add Yours Controllers
-	MVCEngine.AddController(TYourController);
+  // Add Yours Controllers
+  FMVCEngine.AddController(TYourController);
 	
-	// Add Security Middleware
-	MVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(Server.Info.Security));
+  // Add Security Middleware
+  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+    TMVCDefaultAuthenticationHandler.New
+    .SetOnAuthentication(
+		procedure(const AUserName, APassword: string;
+		  AUserRoles: TList<string>; var IsValid: Boolean; 
+		  const ASessionData: TDictionary<String, String>)
+		begin
+		  IsValid := AUserName.Equals('dmvc') and APassword.Equals('123');
+		end
+		)
+    ));
 end;  
 ```
 
-You can work with a container of DelphiMVCFramework servers:
+In stand alone mode you can work with a context that supports multiple listeners servers:
 
 ```delphi
-uses 
-  MVCFramework.Server;
+uses
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 var
-  ServerOneInfo: IMVCServerInfo;
-  ServerTwoInfo: IMVCServerInfo;
-  Container: IMVCServerContainer;
+  LServerListenerCtx: IMVCListenersContext;
+
 begin
-  Container := TMVCServerContainerFactory.Build();
+  LServerListenerCtx := TMVCListenersContext.Create;
 
-  ServerOneInfo := TMVCServerInfoFactory.Build;
-  ServerOneInfo.ServerName := 'MVCServer1';
-  ServerOneInfo.Port := 4000;
-  ServerOneInfo.MaxConnections := 1000;
-  ServerOneInfo.WebModuleClass := ServerOneWebModuleClass;
+  LServerListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('Listener1')
+    .SetPort(6000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(WebModuleClass1)
+    );
 
-  Container.CreateServer(ServerOneInfo);
+  LServerListenerCtx.Add(TMVCListenerProperties.New
+    .SetName('Listener2')
+    .SetPort(7000)
+    .SetMaxConnections(1024)
+    .SetWebModuleClass(WebModuleClass2)
+    );
 
-  ServerTwoInfo := TMVCServerInfoFactory.Build;
-  ServerTwoInfo.ServerName := 'MVCServer2';
-  ServerTwoInfo.Port := 5000;
-  ServerTwoInfo.MaxConnections := 1000;
-  ServerTwoInfo.WebModuleClass := ServerTwoWebModuleClass;
-  Container.CreateServer(ServerTwoInfo);
-  Container.StartServers();
+  LServerListenerCtx.StartAll;
 end;  
 ```
 

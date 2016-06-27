@@ -6,7 +6,8 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  System.Generics.Collections;
 
 type
 
@@ -28,28 +29,33 @@ uses
   MVCFramework.Tests.RESTClient,
   MVCFramework.Middleware.Authentication,
   MVCFramework.Tests.AppController,
-  MVCFramework.Server;
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 {$R *.dfm}
 
 procedure TTestWebModule.WebModuleCreate(Sender: TObject);
-var
-  vServer: IMVCServer;
 begin
   FMVCEngine := TMVCEngine.Create(Self);
 
   // Add Controller
   FMVCEngine.AddController(TAppController);
 
-  // Add Security Middleware
-  vServer := MVCServerDefault.Container.FindServerByName('ServerApp');
-  if (vServer <> nil) and (vServer.Info.Security <> nil) then
-    FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(vServer.Info.Security));
+  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+    TMVCDefaultAuthenticationHandler.New
+    .SetOnAuthentication(
+    procedure(const AUserName, APassword: string;
+      AUserRoles: TList<string>; var IsValid: Boolean; const ASessionData: TDictionary<String, String>)
+    begin
+      IsValid := AUserName.Equals('dmvc') and APassword.Equals('123');
+    end
+    )
+    ));
 end;
 
 procedure TTestWebModule.WebModuleDestroy(Sender: TObject);
 begin
-  FreeAndNil(FMVCEngine);
+  FMVCEngine.Free;
 end;
 
 end.

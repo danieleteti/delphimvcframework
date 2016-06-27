@@ -13,19 +13,19 @@ type
   public
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
+    procedure Index;
 
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpGET])]
-    procedure HelloWorld(ctx: TWebContext);
+    procedure HelloWorld;
 
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpPOST])]
-    procedure HelloWorldPost(ctx: TWebContext);
+    procedure HelloWorldPost;
 
     [MVCPath('/div/($par1)/($par2)')]
     [MVCHTTPMethod([httpGET])]
-    procedure RaiseException(ctx: TWebContext);
+    procedure RaiseException(par1, par2: String);
   end;
 
 implementation
@@ -38,36 +38,35 @@ uses
 
 { TApp1MainController }
 
-procedure TApp1MainController.HelloWorld(ctx: TWebContext);
+procedure TApp1MainController.HelloWorld;
 begin
   Render('Hello World called with GET');
-  if ctx.Request.ThereIsRequestBody then
-    Log('Body:' + ctx.Request.Body);
+  if Context.Request.ThereIsRequestBody then
+    Log('Body:' + Context.Request.Body);
 end;
 
-procedure TApp1MainController.HelloWorldPost(ctx: TWebContext);
+procedure TApp1MainController.HelloWorldPost;
 var
   JSON: TJSONObject;
 begin
-  JSON := ctx.Request.BodyAsJSONObject;
+  JSON := Context.Request.BodyAsJSONObject;
   JSON.AddPair('modified', 'from server');
   Render(JSON, false);
   Log('Hello world called with POST');
 end;
 
-procedure TApp1MainController.Index(ctx: TWebContext);
+procedure TApp1MainController.Index;
 begin
   Redirect('index.html');
 end;
 
-procedure TApp1MainController.RaiseException(ctx: TWebContext);
+procedure TApp1MainController.RaiseException(par1, par2: String);
 var
   R: Extended;
 begin
-  Log('Parameter1=' + QuotedStr(ctx.Request.Params['par1']));
-  Log('Parameter2=' + QuotedStr(ctx.Request.Params['par2']));
-  R := StrToInt(ctx.Request.Params['par1']) /
-    StrToInt(ctx.Request.Params['par2']);
+  Log('Parameter1=' + QuotedStr(par1));
+  Log('Parameter2=' + QuotedStr(par2));
+  R := StrToInt(par1) / StrToInt(par2);
   Render(TJSONObject.Create(TJSONPair.Create('result', TJSONNumber.Create(R))));
 end;
 

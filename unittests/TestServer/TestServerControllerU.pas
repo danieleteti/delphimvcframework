@@ -2,12 +2,16 @@ unit TestServerControllerU;
 
 interface
 
-uses MVCFramework;
+uses MVCFramework, System.SysUtils;
 
 type
 
   [MVCPath('/')]
   TTestServerController = class(TMVCController)
+  private
+    FFormatSettings: TFormatSettings;
+  protected
+    procedure MVCControllerAfterCreate; override;
   public
     [MVCPath('/req/with/params/($par1)/($par2)/($par3)')]
     [MVCHTTPMethod([httpGET, httpDELETE])]
@@ -97,6 +101,42 @@ type
     [MVCHTTPMethod([httpPOST, httpPUT])]
     procedure TestMultiplePaths(ctx: TWebContext);
 
+    { Strongly typed actions }
+    [MVCPath('/typed/string1/($value)')]
+    procedure TestTypedActionString1(value: String);
+
+    [MVCPath('/typed/integer1/($value)')]
+    procedure TestTypedActionInteger1(value: Integer);
+
+    [MVCPath('/typed/int641/($value)')]
+    procedure TestTypedActionInt641(value: Int64);
+
+    [MVCPath('/typed/single1/($value)')]
+    procedure TestTypedActionSingle1(value: Single);
+
+    [MVCPath('/typed/double1/($value)')]
+    procedure TestTypedActionDouble1(value: Double);
+
+    [MVCPath('/typed/extended1/($value)')]
+    procedure TestTypedActionExtended1(value: Extended);
+
+    [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')
+      ]
+    procedure TestTypedActionAllTypes(ParString: String; ParInteger: Integer; ParInt64: Int64;
+      ParSingle: Single; ParDouble: Double; ParExtended: Extended);
+
+    [MVCPath('/typed/tdatetime1/($value)')]
+    procedure TestTypedActionTDateTime1(value: TDateTime);
+
+    [MVCPath('/typed/tdate1/($value)')]
+    procedure TestTypedActionTDate1(value: TDate);
+
+    [MVCPath('/typed/ttime1/($value)')]
+    procedure TestTypedActionTTime1(value: TTime);
+
+    [MVCPath('/typed/booleans/($bool1)/($bool2)/($bool3)/($bool4)')]
+    procedure TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
+
   end;
 
   [MVCPath('/private')]
@@ -120,7 +160,7 @@ uses
   System.JSON,
 {$IFEND}
   MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  SysUtils;
+  ObjectsMappers;
 
 { TTestServerController }
 
@@ -173,25 +213,25 @@ begin
 
   c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings1';
-  c.Value := 'usersettings1-value';
+  c.value := 'usersettings1-value';
   c.Path := '/usersettings1';
   c.Expires := 0;
 
   c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings2';
-  c.Value := 'usersettings2-value';
+  c.value := 'usersettings2-value';
   c.Path := '/usersettings2';
   c.Expires := 0;
 
   c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings3';
-  c.Value := 'usersettings3-value';
+  c.value := 'usersettings3-value';
   c.Path := '/usersettings3';
   c.Expires := 0;
 
   c := ctx.Response.Cookies.Add;
   c.Name := 'usersettings4';
-  c.Value := 'usersettings4-value';
+  c.value := 'usersettings4-value';
   c.Path := '/usersettings4';
   c.Expires := 0;
 
@@ -205,6 +245,11 @@ end;
 procedure TTestServerController.Logout(ctx: TWebContext);
 begin
   ctx.SessionStop(false);
+end;
+
+procedure TTestServerController.MVCControllerAfterCreate;
+begin
+  FFormatSettings.DecimalSeparator := '.';
 end;
 
 procedure TTestServerController.ReqWithParams(ctx: TWebContext);
@@ -259,7 +304,7 @@ end;
 procedure TTestServerController.TestGetPersonByID(ctx: TWebContext);
 var
   PersonList: TObjectList<TPerson>;
-  ID: integer;
+  ID: Integer;
 begin
   ID := ctx.Request.Params['id'].ToInteger;
   PersonList := TPerson.GetList;
@@ -273,7 +318,7 @@ end;
 procedure TTestServerController.TestGetPersonByIDAsFields(ctx: TWebContext);
 var
   PersonList: TObjectList<TPerson>;
-  ID: integer;
+  ID: Integer;
 begin
   ID := ctx.Request.Params['id'].ToInteger;
   PersonList := TPerson.GetList;
@@ -336,6 +381,87 @@ var
 begin
   Person := ctx.Request.BodyAs<TPerson>();
   Render(Person);
+end;
+
+procedure TTestServerController.TestTypedActionAllTypes(ParString: String;
+  ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
+  ParExtended: Extended);
+var
+  lJObj: TJSONObject;
+begin
+  lJObj := TJSONObject.Create;
+  lJObj.AddPair('ParString', ParString);
+  lJObj.AddPair('ParInteger', TJSONNumber.Create(ParInteger));
+  lJObj.AddPair('ParInt64', TJSONNumber.Create(ParInt64));
+  lJObj.AddPair('ParSingle', TJSONNumber.Create(ParSingle));
+  lJObj.AddPair('ParDouble', TJSONNumber.Create(ParDouble));
+  lJObj.AddPair('ParExtended', TJSONNumber.Create(ParExtended));
+  Render(lJObj);
+end;
+
+procedure TTestServerController.TestTypedActionDouble1(value: Double);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(FloatToStr(value, FFormatSettings) + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionExtended1(value: Extended);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(FloatToStr(value, FFormatSettings) + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionSingle1(value: Single);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(FloatToStr(value, FFormatSettings) + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionInt641(value: Int64);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(value.ToString + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionInteger1(value: Integer);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(value.ToString + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionString1(value: String);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(value + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionTDate1(value: TDate);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(ISODateToString(value) + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionTDateTime1(value: TDateTime);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(ISODateTimeToString(value) + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3,
+  bool4: Boolean);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(Format('%s.%s.%s.%s', [
+    BoolToStr(bool1, True),
+    BoolToStr(bool2, True),
+    BoolToStr(bool3, True),
+    BoolToStr(bool4, True)]));
+end;
+
+procedure TTestServerController.TestTypedActionTTime1(value: TTime);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(ISOTimeToString(value) + ' modified from server');
 end;
 
 { TTestPrivateServerController }

@@ -53,35 +53,35 @@ implementation
 
 procedure TAppController.GetUser(ctx: TWebContext);
 var
-  vUser: TAppUser;
+  LUser: TAppUser;
 begin
-  vUser := TAppUser.Create;
-  vUser.Cod := 1;
-  vUser.Name := 'Ezequiel';
-  vUser.Pass := '123';
+  LUser := TAppUser.Create;
+  LUser.Cod := 1;
+  LUser.Name := 'Ezequiel';
+  LUser.Pass := '123';
 
-  Render(vUser);
+  Render(LUser);
 end;
 
 procedure TAppController.GetUsers(ctx: TWebContext);
 var
-  vUsers: TObjectList<TAppUser>;
-  vUser: TAppUser;
+  LUsers: TObjectList<TAppUser>;
+  LUser: TAppUser;
   I: Integer;
 begin
-  vUsers := TObjectList<TAppUser>.Create(True);
+  LUsers := TObjectList<TAppUser>.Create(True);
 
   for I := 0 to 10 do
   begin
-    vUser := TAppUser.Create;
-    vUser.Cod := I;
-    vUser.Name := 'Ezequiel ' + IntToStr(I);
-    vUser.Pass := IntToStr(I);
+    LUser := TAppUser.Create;
+    LUser.Cod := I;
+    LUser.Name := 'Ezequiel ' + IntToStr(I);
+    LUser.Pass := IntToStr(I);
 
-    vUsers.Add(vUser);
+    LUsers.Add(LUser);
   end;
 
-  Self.Render<TAppUser>(vUsers);
+  Self.Render<TAppUser>(LUsers);
 end;
 
 procedure TAppController.HelloWorld(ctx: TWebContext);
@@ -91,31 +91,31 @@ end;
 
 procedure TAppController.PostUser(ctx: TWebContext);
 var
-  vUser: TAppUser;
+  LUser: TAppUser;
 begin
-  vUser := ctx.Request.BodyAs<TAppUser>();
+  LUser := ctx.Request.BodyAs<TAppUser>();
 
-  if (vUser.Cod > 0) then
+  if (LUser.Cod > 0) then
     Render('Sucess!')
   else
     Render('Error!');
 
-  FreeAndNil(vUser);
+  LUser.Free;
 end;
 
 procedure TAppController.PostUsers(ctx: TWebContext);
 var
-  vUsers: TObjectList<TAppUser>;
+  LUsers: TObjectList<TAppUser>;
 begin
-  vUsers := ctx.Request.BodyAsListOf<TAppUser>();
-  vUsers.OwnsObjects := True;
+  LUsers := ctx.Request.BodyAsListOf<TAppUser>();
+  LUsers.OwnsObjects := True;
 
-  if (vUsers.Count > 0) then
+  if (LUsers.Count > 0) then
     Render('Sucess!')
   else
     Render('Error!');
 
-  FreeAndNil(vUsers);
+  LUsers.Free;
 end;
 
 end.

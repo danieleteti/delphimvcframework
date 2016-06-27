@@ -11,16 +11,16 @@ type
   public
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticles(Context: TWebContext);
+    procedure GetArticles;
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetArticleByID(Context: TWebContext);
+    procedure GetArticleByID(id: Integer);
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpDelete])]
-    procedure DeleteArticleByID(Context: TWebContext);
+    procedure DeleteArticleByID(id: Integer);
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateArticleByID(Context: TWebContext);
+    procedure UpdateArticleByID(id: Integer);
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateArticle(Context: TWebContext);
@@ -45,7 +45,7 @@ begin
   end;
 end;
 
-procedure TArticlesController.DeleteArticleByID(Context: TWebContext);
+procedure TArticlesController.DeleteArticleByID(id: Integer);
 var
   Article: TArticle;
 begin
@@ -64,18 +64,18 @@ begin
   end;
 end;
 
-procedure TArticlesController.GetArticles(Context: TWebContext);
+procedure TArticlesController.GetArticles;
 begin
   Render<TArticle>(GetArticlesService.GetAll);
 end;
 
-procedure TArticlesController.UpdateArticleByID(Context: TWebContext);
+procedure TArticlesController.UpdateArticleByID(id: Integer);
 var
   Article: TArticle;
 begin
   Article := Context.Request.BodyAs<TArticle>;
   try
-    Article.ID := Context.Request.ParamsAsInteger['id'];
+    Article.id := Context.Request.ParamsAsInteger['id'];
     GetArticlesService.Update(Article);
     Render(201, 'Article Updated');
   finally
@@ -83,7 +83,7 @@ begin
   end;
 end;
 
-procedure TArticlesController.GetArticleByID(Context: TWebContext);
+procedure TArticlesController.GetArticleByID(id: Integer);
 var
   Article: TArticle;
 begin

@@ -5,6 +5,7 @@ interface
 uses
   System.SysUtils,
   System.Classes,
+  System.Generics.Collections,
   Web.HTTPApp,
   MVCFramework;
 
@@ -21,39 +22,45 @@ type
 
 var
   TestWebModuleClass: TComponentClass = TTestWebModule;
+  TestWebModuleClass2: TComponentClass = TTestWebModule;
 
 implementation
 
 uses
   MVCFramework.Tests.StandaloneServer,
   MVCFramework.Middleware.Authentication,
-  MVCFramework.Server;
+  MVCFramework.Server,
+  MVCFramework.Server.Impl;
 
 {$R *.dfm}
 
 procedure TTestWebModule.WebModuleCreate(Sender: TObject);
-var
-  vServer: IMVCServer;
 begin
   FMVCEngine := TMVCEngine.Create(Self);
 
   // Add With Delegate Constructor Controller
-  FMVCEngine.AddController(TTestAppController,
+  FMVCEngine.AddController(TTestController,
     function: TMVCController
     begin
-      Result := TTestAppController.Create;
+      Result := TTestController.Create;
     end
     );
 
-  // Add Security Middleware
-  vServer := ServerContainer.FindServerByName('ServerTemp');
-  if (vServer <> nil) and (vServer.Info.Security <> nil) then
-    FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(vServer.Info.Security));
+  FMVCEngine.AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(
+    TMVCDefaultAuthenticationHandler.New
+    .SetOnAuthentication(
+    procedure(const AUserName, APassword: string;
+      AUserRoles: TList<string>; var IsValid: Boolean; const ASessionData: TDictionary<String, String>)
+    begin
+      IsValid := AUserName.Equals('dmvc') and APassword.Equals('123');
+    end
+    )
+    ));
 end;
 
 procedure TTestWebModule.WebModuleDestroy(Sender: TObject);
 begin
-  FreeAndNil(FMVCEngine);
+  FMVCEngine.Free;
 end;
 
 end.

@@ -22,7 +22,8 @@ uses
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
-  RESTAdapterTestsU in 'RESTAdapterTestsU.pas';
+  RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
+  MVCFramework.HMAC in '..\..\sources\MVCFramework.HMAC.pas';
 
 {$R *.RES}
 

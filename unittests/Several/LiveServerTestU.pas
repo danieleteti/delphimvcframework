@@ -49,11 +49,22 @@ type
     procedure TestAuthentication03;
     procedure TestAuthentication04;
     procedure TestAuthentication05;
+    // typed actions
+    procedure TestTypedString1;
+    procedure TestTypedInteger1;
+    procedure TestTypedInt641;
+    procedure TestTypedSingle1;
+    procedure TestTypedDouble1;
+    procedure TestTypedExtended1;
+    procedure TestTypedAll;
+    procedure TestTypedDateTimeTypes;
+    procedure TestTypedBooleans;
   end;
 
 implementation
 
 uses
+  System.Math,
 {$IF CompilerVersion < 27}
   Data.DBXJSON,
 {$ELSE}
@@ -303,7 +314,6 @@ end;
 procedure TServerTest.TestCookies;
 var
   res: IRESTResponse;
-  s: string;
   I: Integer;
 begin
   res := RESTClient.doGET('/lotofcookies', []);
@@ -628,6 +638,121 @@ begin
   finally
     c1.Free;
   end;
+end;
+
+procedure TServerTest.TestTypedAll;
+var
+  res: IRESTResponse;
+  lJObj: TJSONObject;
+begin
+  // ----------------------'/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')', []);
+  res := RESTClient.doGET('/typed/all/mystring/1234/12345678/12.3/1234.5678/1234.5678', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  lJObj := res.BodyAsJsonObject;
+  CheckEquals('mystring', lJObj.GetValue('ParString').Value, 'ParString');
+  CheckEquals(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt, 'ParInteger');
+  CheckEquals(12345678, TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64, 'ParInt64');
+  CheckEquals(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble, -1), 'ParSingle');
+  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble')).AsDouble, -4),
+    'ParDouble');
+  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended')).AsDouble, -4),
+    'ParExtended');
+end;
+
+procedure TServerTest.TestTypedBooleans;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/booleans/true/false/1/0', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('true.false.true.false', res.BodyAsString.ToLower);
+end;
+
+procedure TServerTest.TestTypedDouble1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/double1/1234.5678', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('1234.5678 modified from server', res.BodyAsString);
+
+end;
+
+procedure TServerTest.TestTypedExtended1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/extended1/1234.5678', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('1234.5678 modified from server', res.BodyAsString);
+
+end;
+
+procedure TServerTest.TestTypedInt641;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/int641/12345678', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('12345678 modified from server', res.BodyAsString);
+end;
+
+procedure TServerTest.TestTypedInteger1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/integer1/1234', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('1234 modified from server', res.BodyAsString);
+end;
+
+procedure TServerTest.TestTypedSingle1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/single1/1234.5', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('1234.5 modified from server', res.BodyAsString);
+
+end;
+
+procedure TServerTest.TestTypedString1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/string1/daniele', []);
+  CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  CheckEquals('daniele modified from server', res.BodyAsString);
+end;
+
+procedure TServerTest.TestTypedDateTimeTypes;
+var
+  res: IRESTResponse;
+begin
+  // TDate, wrong and correct
+  res := RESTClient.doGET('/typed/tdate1/20161012', []);
+  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDate');
+
+  res := RESTClient.doGET('/typed/tdate1/2016-10-12', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+  CheckEquals('2016-10-12 modified from server', res.BodyAsString);
+
+  // TDateTime, wrong and correct
+  res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
+  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDateTime');
+
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+  CheckEquals('2016-10-12 12:12:12 modified from server', res.BodyAsString);
+
+  // TTime, wrong and correct
+  res := RESTClient.doGET('/typed/ttime1/121212', []);
+  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TTime');
+
+  res := RESTClient.doGET('/typed/ttime1/12:12:12', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+  CheckEquals('12:12:12 modified from server', res.BodyAsString);
+
 end;
 
 procedure TBaseServerTest.DoLoginWith(UserName: string);

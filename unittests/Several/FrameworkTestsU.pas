@@ -6,7 +6,7 @@ uses
   TestFramework,
   MVCFramework.Router,
   System.Generics.Collections,
-  MVCFramework, Data.DB, System.SysUtils;
+  MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT;
 
 type
   TTestMappers = class(TTestCase)
@@ -60,22 +60,67 @@ type
     // objects mappers
   end;
 
+  TTestJWT = class(TTestCase)
+  private
+    FJWT: TJWT;
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestHMAC;
+    procedure TestStorage;
+    procedure TestCreateAndValidateToken;
+    procedure TestLoadToken;
+    procedure TestNotBefore;
+    procedure TestExpirationTime;
+    procedure TestIssuedAt;
+    procedure TestDefaults;
+  end;
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
 
-uses MVCFramework.Commons,
+
+uses System.DateUtils, System.Math, MVCFramework.Commons,
   TestControllersU, DBClient,
   Web.HTTPApp, Soap.EncdDecd,
   IdHashMessageDigest, idHash,
   ObjectsMappers,
   BOs,
+  MVCFramework.HMAC,
 {$IF CompilerVersion < 27}
   Data.DBXJSON,
 {$ELSE}
   System.JSON,
 {$ENDIF}
-  TestServerControllerU, System.Classes, DuckListU;
+  TestServerControllerU, System.Classes, DuckListU, System.IOUtils;
+
+var
+  JWT_SECRET_KEY_TEST: String = 'myk3y';
+  HMAC_ALG_AND_RESULTS: array [0 .. 4] of array [0 .. 1] of string =
+    (
+    (
+      'md5',
+      '5256311089fa9c80f735fb8cc28bf4fe'
+    ),
+    (
+      'sha1',
+      '323ff5f4e53c43f2d9342952299a9d35f9ee5dc2'
+    ),
+    (
+      'sha224',
+      '2f42e18342d2d35afc9942364caec009e1ace1d1695c3e9178e65e35'
+    ),
+    (
+      'sha256',
+      '1f75a969e2b9c43e6d06969dfad2088f9aab68d3aa440904d2ed8710e2f8e38b'
+    ),
+    (
+      'sha512',
+      '22465b5f4138ab80801ff8eca8dd99a56844dd7dc54f76d38bb02bdd815596fc5859709ba4f7130c299a626864a84a4a79401f529d44c85a894fcd7e6192eee9'
+    )
+  );
 
 function MD5(const aStream: TStream): string;
 var
@@ -1020,12 +1065,200 @@ begin
   end;
 end;
 
-{ TMyObject }
+{ TTestJWT }
+
+procedure TTestJWT.SetUp;
+begin
+  inherited;
+  FJWT := TJWT.Create(JWT_SECRET_KEY_TEST);
+end;
+
+procedure TTestJWT.TearDown;
+begin
+  FJWT.Free;
+  inherited;
+end;
+
+procedure TTestJWT.TestCreateAndValidateToken;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.Claims.Issuer := 'bit Time Professionals';
+  FJWT.Claims.Subject := 'DelphiMVCFramework';
+  FJWT.Claims.JWT_ID := TGUID.NewGuid.ToString;
+  FJWT.CustomClaims['username'] := 'dteti';
+  FJWT.CustomClaims['userrole'] := 'admin';
+  FJWT.Claims.ExpirationTime := Tomorrow;
+  FJWT.Claims.IssuedAt := Yesterday;
+  FJWT.Claims.NotBefore := Yesterday;
+  lToken := FJWT.GetToken;
+  // TFile.WriteAllText('jwt_token.dat', lToken);
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Generated token is not valid');
+end;
+
+procedure TTestJWT.TestDefaults;
+begin
+  CheckEquals('HS256', FJWT.HMACAlgorithm, 'Default algorithm should be HS256');
+  CheckEquals(300, FJWT.LeewaySeconds, 'Default leeway should be 5 minutes');
+  if FJWT.RegClaimsToChecks * [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+    TJWTCheckableClaim.IssuedAt] <> [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+    TJWTCheckableClaim.IssuedAt] then
+    Fail('Default RegClaimsToCheck not correct');
+end;
+
+procedure TTestJWT.TestExpirationTime;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.RegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime];
+  FJWT.Claims.ExpirationTime := Tomorrow;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered expired');
+
+  FJWT.Claims.ExpirationTime := Yesterday;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Expired token is considered valid');
+
+  FJWT.Claims.ExpirationTime := Now;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered expired');
+
+  FJWT.Claims.ExpirationTime := Now - (FJWT.LeewaySeconds + 1) * OneSecond;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Expired token is considered valid');
+end;
+
+procedure TTestJWT.TestHMAC;
+var
+  lAlg: String;
+  lValue: String;
+  I: Integer;
+begin
+  for I := Low(HMAC_ALG_AND_RESULTS) to High(HMAC_ALG_AND_RESULTS) do
+  begin
+    lAlg := HMAC_ALG_AND_RESULTS[I][0];
+    lValue := HMAC_ALG_AND_RESULTS[I][1];
+    CheckEquals(lValue, BytesToHex(HMAC(lAlg, 'Daniele Teti', 'daniele')),
+      'HMAC ' + lAlg + ' fails');
+  end;
+end;
+
+procedure TTestJWT.TestIssuedAt;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.RegClaimsToChecks := [TJWTCheckableClaim.IssuedAt];
+  FJWT.Claims.IssuedAt := Yesterday;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.IssuedAt := Tomorrow;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+
+  FJWT.Claims.IssuedAt := Now;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.IssuedAt := Now + (FJWT.LeewaySeconds + 1) * OneSecond;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+end;
+
+procedure TTestJWT.TestLoadToken;
+var
+  lToken: string;
+  lJWT: TJWT;
+begin
+  FJWT.Claims.Issuer := 'bit Time Professionals';
+  FJWT.Claims.Subject := 'DelphiMVCFramework';
+  FJWT.Claims.Audience := 'DelphiDevelopers';
+  FJWT.Claims.IssuedAt := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
+  FJWT.Claims.ExpirationTime := Now + OneHour * 2;
+  FJWT.Claims.NotBefore := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
+  FJWT.Claims.JWT_ID := '123456';
+  FJWT.CustomClaims['username'] := 'dteti';
+  FJWT.CustomClaims['userrole'] := 'admin';
+
+  lToken := FJWT.GetToken;
+  // TFile.WriteAllText('jwt_token_full.dat', lToken);
+
+  lJWT := TJWT.Create(JWT_SECRET_KEY_TEST);
+  try
+    lJWT.LoadToken(lToken);
+    CheckEquals('bit Time Professionals', lJWT.Claims.Issuer);
+    CheckEquals('DelphiMVCFramework', lJWT.Claims.Subject);
+    CheckEquals('DelphiDevelopers', lJWT.Claims.Audience);
+    CheckEquals('123456', lJWT.Claims.JWT_ID);
+    CheckEquals(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.IssuedAt);
+    CheckEquals(Roundto(lJWT.Claims.IssuedAt + OneHour * 2, 4),
+      Roundto(lJWT.Claims.ExpirationTime, 4));
+    CheckEquals(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), lJWT.Claims.NotBefore);
+    CheckEquals('dteti', lJWT.CustomClaims['username']);
+    CheckEquals('admin', lJWT.CustomClaims['userrole']);
+  finally
+    lJWT.Free;
+  end;
+
+end;
+
+procedure TTestJWT.TestNotBefore;
+var
+  lToken: string;
+  lError: string;
+begin
+  FJWT.RegClaimsToChecks := [TJWTCheckableClaim.NotBefore];
+  FJWT.Claims.NotBefore := Yesterday;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.NotBefore := Tomorrow;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+
+  FJWT.Claims.NotBefore := Now;
+  lToken := FJWT.GetToken;
+  CheckTrue(FJWT.IsValidToken(lToken, lError), 'Valid token is considered not valid');
+
+  FJWT.Claims.NotBefore := Now + (FJWT.LeewaySeconds + 1) * OneSecond;
+  lToken := FJWT.GetToken;
+  CheckFalse(FJWT.IsValidToken(lToken, lError), 'Still-not-valid token is considered valid');
+end;
+
+procedure TTestJWT.TestStorage;
+begin
+  FJWT.Claims.Issuer := 'bit Time Professionals';
+  FJWT.Claims.Subject := 'DelphiMVCFramework';
+  FJWT.Claims.Audience := 'DelphiDevelopers';
+  FJWT.Claims.IssuedAt := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
+  FJWT.Claims.ExpirationTime := FJWT.Claims.IssuedAt + OneHour * 2;
+  FJWT.Claims.NotBefore := EncodeDateTime(2011, 11, 17, 17, 30, 0, 0);
+  FJWT.Claims.JWT_ID := '123456';
+  FJWT.CustomClaims['username'] := 'dteti';
+  FJWT.CustomClaims['userrole'] := 'admin';
+
+  CheckEquals('bit Time Professionals', FJWT.Claims.Issuer);
+  CheckEquals('DelphiMVCFramework', FJWT.Claims.Subject);
+  CheckEquals('DelphiDevelopers', FJWT.Claims.Audience);
+  CheckEquals('123456', FJWT.Claims.JWT_ID);
+  CheckEquals(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), FJWT.Claims.IssuedAt);
+  CheckEquals(Roundto(FJWT.Claims.IssuedAt + OneHour * 2, 4),
+    Roundto(FJWT.Claims.ExpirationTime, 4));
+  CheckEquals(EncodeDateTime(2011, 11, 17, 17, 30, 0, 0), FJWT.Claims.NotBefore);
+
+  CheckEquals('dteti', FJWT.CustomClaims['username']);
+  CheckEquals('admin', FJWT.CustomClaims['userrole']);
+
+end;
 
 initialization
 
 RegisterTest(TTestRouting.suite);
 RegisterTest(TTestMappers.suite);
+RegisterTest(TTestJWT.suite);
 
 finalization
 

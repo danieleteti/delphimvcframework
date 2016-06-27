@@ -1,3 +1,17 @@
+23/06/2016
+- completed jwt middleware (check jwtmiddleware sample to know how to use)
+- added "HasError" and "Error" properties to the IRESTResponse (thank you Mathias Pannier)
+- added "Context.Request.QueryStringParams: TStrings"
+
+22/06/2016
+- Added strongly typed actions
+- TWebContext param in the actions is optional
+- In caso of "action not found", the server dont returns NEVER the document index
+- Refactoring
+- More unit tests
+- BasicDemo updated
+- articles_crud.dproj updated to user typed action
+
 15/03/2015
 - all the built-in methods have been moved under the /system controller
 - messaging system is ready to test. It now uses RabbitMQ
@@ -12,3 +26,7 @@
 - some minor bug fixes in the objectsmappers
 - added new build system based on a python script
 - added more unit tests
+
+
+- added support for JWT
+- added auth middleware based on JWT

@@ -1,26 +1,26 @@
-{ *************************************************************************** }
-{ }
-{ Delphi MVC Framework }
-{ }
-{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
-{ }
-{ https://github.com/danieleteti/delphimvcframework }
-{ }
-{ *************************************************************************** }
-{ }
-{ Licensed under the Apache License, Version 2.0 (the "License"); }
-{ you may not use this file except in compliance with the License. }
-{ You may obtain a copy of the License at }
-{ }
-{ http://www.apache.org/licenses/LICENSE-2.0 }
-{ }
-{ Unless required by applicable law or agreed to in writing, software }
-{ distributed under the License is distributed on an "AS IS" BASIS, }
-{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{ See the License for the specific language governing permissions and }
-{ limitations under the License. }
-{ }
-{ *************************************************************************** }
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
 
 unit MVCFramework.RESTClient;
 
@@ -30,6 +30,7 @@ uses
   System.Classes,
   IdHTTP,
   IdURI,
+  ObjectsMappers,
 
 {$IF CompilerVersion < 27}
   Data.DBXJSON,
@@ -52,6 +53,23 @@ type
 
   TArrayOfString = array of string;
   THTTPCommand = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE);
+
+  [MapperJSONNaming(JSONNameLowerCase)]
+  TMVCExceptionObj = class(TObject)
+  private
+    FStatus: string;
+    Fclassname: string;
+    FMessage: string;
+    FHttp_error: Integer;
+  public
+    property Status: string read FStatus write FStatus;
+    [MapperJSONSer('classname')]
+    property ExceptionClassname: string read Fclassname write Fclassname;
+    [MapperJSONSer('message')]
+    property ExceptionMessage: string read FMessage write FMessage;
+    [MapperJSONSer('http_error')]
+    property HTTPError: Integer read FHttp_error write FHttp_error;
+  end;
 
   IRESTResponse = interface
     ['{E96178DE-79D4-4EF6-88F6-1A677207265A}']
@@ -89,7 +107,14 @@ type
 
     function GetCookies: TIdCookies;
     procedure SetCookies(aCookie: TIdCookies);
+
+    function GetHasError: Boolean;
+    procedure SetHasError(const aHasError: Boolean);
+
+    function Error: TMVCExceptionObj;
+
     property Cookies: TIdCookies read GetCookies write SetCookies;
+    property HasError: Boolean read GetHasError write SetHasError;
   end;
 
   TJSONObjectResponseHelper = class helper for TJSONObject
@@ -193,7 +218,8 @@ type
       ASynchronized: Boolean = False): TRESTClient;
 
     function doGET(): IRESTResponse; overload;
-    function doGET(const AResource: string; const AParams: array of string)
+    function doGET(const AResource: string; const AParams: array of string;
+      const aQueryStringParams: TStrings = nil)
       : IRESTResponse; overload;
 
     function doPOST(const ABody: string): IRESTResponse; overload;
@@ -284,10 +310,9 @@ type
 implementation
 
 uses
-  ObjectsMappers, AnsiStrings;
+  AnsiStrings;
 
 type
-
   TRESTResponse = class(TInterfacedObject, IRESTResponse)
   strict private
     FBody: TMemoryStream;
@@ -297,10 +322,14 @@ type
     FBodyAsJSONValue: TJSONValue;
     FContentType: string;
     FContentEncoding: string;
-    FCookieCollection: TCookieCollection;
     function GetHeader(const AValue: string): string;
   private
     FCookies: TIdCookies;
+    FHasError: Boolean;
+    FErrorObject: TMVCExceptionObj;
+  protected
+    function GetHasError: Boolean;
+    procedure SetHasError(const aHasError: Boolean);
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -331,6 +360,8 @@ type
 
     function ContentType(): string;
     function ContentEncoding(): string;
+
+    function Error: TMVCExceptionObj;
 
     function GetCookies: TIdCookies;
     procedure SetCookies(aCookie: TIdCookies);
@@ -409,6 +440,7 @@ begin
   FCookies := TIdCookies.Create(nil);
   FBody := TStringStream.Create('', TEncoding.UTF8);
   FBodyAsJSONValue := nil;
+  FHasError := False;
 end;
 
 destructor TRESTResponse.Destroy;
@@ -418,7 +450,19 @@ begin
   FreeAndNil(FHeaders);
   FreeAndNil(FBody);
   FreeAndNil(FCookies);
+  FreeAndNil(FErrorObject);
   inherited;
+end;
+
+function TRESTResponse.Error: TMVCExceptionObj;
+begin
+  if not FHasError then
+    Exit(nil);
+  if not Assigned(FErrorObject) then
+  begin
+    FErrorObject := Mapper.JSONObjectToObject<TMVCExceptionObj>(self.BodyAsJSONObject);
+  end;
+  Result := FErrorObject;
 end;
 
 function TRESTResponse.GetContentEncoding: string;
@@ -434,6 +478,11 @@ end;
 function TRESTResponse.GetCookies: TIdCookies;
 begin
   Result := FCookies;
+end;
+
+function TRESTResponse.GetHasError: Boolean;
+begin
+  Result := FHasError;
 end;
 
 function TRESTResponse.GetHeader(const AValue: string): string;
@@ -466,7 +515,7 @@ var
   arr: TArray<string>;
 begin
   Result := '';
-  for s in Self.Headers do
+  for s in self.Headers do
   begin
     arr := s.Split([':'], 2);
     if SameText(arr[0].Trim, AName) then
@@ -490,6 +539,11 @@ end;
 procedure TRESTResponse.SetCookies(aCookie: TIdCookies);
 begin
   FCookies := aCookie;
+end;
+
+procedure TRESTResponse.SetHasError(const aHasError: Boolean);
+begin
+  FHasError := aHasError;
 end;
 
 procedure TRESTResponse.SetHeaders(AHeaders: TStrings);
@@ -538,14 +592,14 @@ end;
 
 function TJSONObjectResponseHelper.AsObject<T>: T;
 begin
-  Result := Mapper.JSONObjectToObject<T>(Self);
+  Result := Mapper.JSONObjectToObject<T>(self);
 end;
 
 { TJSONArrayResponseHelper }
 
 function TJSONArrayResponseHelper.AsObjectList<T>: TObjectList<T>;
 begin
-  Result := Mapper.JSONArrayToObjectList<T>(Self, False, True);
+  Result := Mapper.JSONArrayToObjectList<T>(self, False, True);
 end;
 
 { TRESTClient }
@@ -553,7 +607,7 @@ end;
 function TRESTClient.Accept(const AValue: string): TRESTClient;
 begin
   FAccept := AValue;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.Accept: string;
@@ -567,16 +621,16 @@ begin
     raise ERESTClientException.Create('First set the Accept property!');
 
   if not AnsiContainsText(FAccept, 'charset') then
-    Self.Accept(FAccept + ';charset=' + AValue);
+    self.Accept(FAccept + ';charset=' + AValue);
 
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.AddFile(const AFieldName, AFileName, AContentType: string)
   : TRESTClient;
 begin
   MultiPartFormData.AddFile(AFieldName, AFileName, AContentType);
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.Asynch(AProc: TProc<IRESTResponse>;
@@ -588,7 +642,7 @@ begin
   FAsynchProcErr := AProcErr;
   FAsynchProcAlways := AProcAlways;
   FSynchronized := ASynchronized;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.Authentication(const AUsername, APassword: string;
@@ -597,13 +651,13 @@ begin
   FHTTP.Request.Username := AUsername;
   FHTTP.Request.Password := APassword;
   FHTTP.Request.BasicAuthentication := ABasicAuth;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ClearHeaders: TRESTClient;
 begin
   FRequestHeaders.Clear;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ClearAllParams: TRESTClient;
@@ -625,7 +679,7 @@ begin
 
   SetLength(FParams, 0);
 
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.Compression(const AEnabled: Boolean): TRESTClient;
@@ -643,13 +697,13 @@ begin
       FHTTP.Compressor := nil;
     end;
   end;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ConnectionTimeOut(const AValue: Integer): TRESTClient;
 begin
   FHTTP.ConnectTimeout := AValue;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ConnectionTimeOut: Integer;
@@ -663,9 +717,9 @@ begin
     raise ERESTClientException.Create('First set the ContentType property!');
 
   if not AnsiContainsText(FContentType, 'charset') then
-    Self.ContentType(FContentType + ';charset=' + AValue);
+    self.ContentType(FContentType + ';charset=' + AValue);
 
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ContentEncoding: string;
@@ -676,7 +730,7 @@ end;
 function TRESTClient.ContentEncoding(const AValue: string): TRESTClient;
 begin
   FContentEncoding := AValue;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ContentType: string;
@@ -687,7 +741,7 @@ end;
 function TRESTClient.ContentType(const AValue: string): TRESTClient;
 begin
   FContentType := AValue;
-  Result := Self;
+  Result := self;
 end;
 
 constructor TRESTClient.Create(const AHost: string; const APort: Word;
@@ -814,12 +868,16 @@ begin
 end;
 
 function TRESTClient.doGET(const AResource: string;
-  const AParams: array of string): IRESTResponse;
+  const AParams: array of string; const aQueryStringParams: TStrings): IRESTResponse;
 var
   URL: string;
 begin
   URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
-    EncodeResourceParams(AParams) + EncodeQueryStringParams(FQueryStringParams);
+    EncodeResourceParams(AParams);
+  if aQueryStringParams = nil then
+    URL := URL + EncodeQueryStringParams(FQueryStringParams)
+  else
+    URL := URL + EncodeQueryStringParams(aQueryStringParams);
 
   if FNextRequestIsAsynch then
   begin
@@ -1313,7 +1371,7 @@ end;
 function TRESTClient.Header(const AField, AValue: string): TRESTClient;
 begin
   FRequestHeaders.Add(AField + '=' + AValue);
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.HTTPCommandToString(const ACommand: THTTPCommand): string;
@@ -1340,13 +1398,13 @@ begin
   SetLength(FParams, Length(AValues));
   for I := Low(AValues) to High(AValues) do
     FParams[I] := AValues[I];
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ReadTimeOut(const AValue: Integer): TRESTClient;
 begin
   FHTTP.ReadTimeOut := AValue;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.ReadTimeOut: Integer;
@@ -1360,13 +1418,13 @@ begin
   if Assigned(FHTTP.CookieManager) then
     FHTTP.CookieManager.CookieCollection.Clear;
   FHTTP.Request.RawHeaders.Clear;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.Resource(const AValue: string): TRESTClient;
 begin
   FResource := AValue;
-  Result := Self;
+  Result := self;
 end;
 
 function TRESTClient.SendHTTPCommand(const ACommand: THTTPCommand;
@@ -1430,6 +1488,7 @@ begin
   except
     on E: EIdHTTPProtocolException do
     begin
+      Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
         AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage), Length(E.ErrorMessage) * 2));
     end
@@ -1569,7 +1628,7 @@ begin
       FHTTP.IOHandler := nil;
     end;
   end;
-  Result := Self;
+  Result := self;
 end;
 
 procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand;
