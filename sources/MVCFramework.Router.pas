@@ -251,7 +251,7 @@ function TMVCRouter.IsCompatiblePath(AMVCPath: string; APath: string;
     i: Integer;
   begin
     Result := TList<string>.Create;
-    s := '\(\$([A-Za-z0-9]+)\)';
+    s := '\(\$([A-Za-z0-9_]+)\)';
     matches := TRegEx.matches(V, s, [roIgnoreCase, roCompiled, roSingleLine]);
     for match in matches do
       for i := 0 to match.Groups.Count - 1 do
