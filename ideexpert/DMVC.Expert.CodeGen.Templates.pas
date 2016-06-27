@@ -126,12 +126,13 @@ sLineBreak +
  sIndexMethodIntf =
 '    [MVCPath(''/'')]' + sLineBreak +
 '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-'    procedure Index(ctx: TWebContext);' + sLineBreak;
+'    procedure Index;' + sLineBreak;
 
  // 0 - Class Name
  sIndexMethodImpl =
- 'procedure %0:s.Index(ctx: TWebContext);' + sLineBreak +
+ 'procedure %0:s.Index;' + sLineBreak +
  'begin' + sLineBreak +
+ '  //use Context property to access to the HTTP request and response ' + sLineBreak +
  '  Render(''Hello World'');' + sLineBreak +
  sLineBreak +
  'end;';
