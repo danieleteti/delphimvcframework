@@ -144,8 +144,8 @@ begin
     begin
       stomp.Send('/topic/foo.bar', message_data,
         StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true)));
-      //if i mod 100 = 0 then
-        WriteLn('Queued ', i, ' messages in ', sw.ElapsedMilliseconds, ' ms');
+      // if i mod 100 = 0 then
+      WriteLn('Queued ', i, ' messages in ', sw.ElapsedMilliseconds, ' ms');
     end;
     WriteLn('Finished Queueing... Currently Queued ', MSG, ' messages in ',
       sw.ElapsedMilliseconds, ' ms');

@@ -108,10 +108,16 @@ type
     procedure SetItems(index: Cardinal; const Value: TKeyValue);
 
   public
-    class function NewDurableSubscriptionHeader(const SubscriptionName: string)
-      : TKeyValue;
+    class function NewDurableSubscriptionHeader(const SubscriptionName: string): TKeyValue;
+      deprecated 'Use Subscription instead';
     class function NewPersistentHeader(const Value: Boolean): TKeyValue;
+      deprecated 'Use Persistent instead';
     class function NewReplyToHeader(const DestinationName: string): TKeyValue;
+      deprecated 'Use ReplyTo instead';
+
+    class function Subscription(const SubscriptionName: string): TKeyValue;
+    class function Persistent(const Value: Boolean): TKeyValue;
+    class function ReplyTo(const DestinationName: string): TKeyValue;
 
     /// /////////////////////////////////////////////7
   const
@@ -198,7 +204,8 @@ type
     class function StripLastChar(Buf: string; LastChar: char): string;
     class function CreateFrame(Buf: string): TStompFrame;
     class function AckModeToStr(AckMode: TAckMode): string;
-    class function NewHeaders: IStompHeaders;
+    class function NewHeaders: IStompHeaders; deprecated 'Use Headers instead';
+    class function Headers: IStompHeaders;
     class function NewFrame: IStompFrame;
     class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
     class function NewStomp(Host: string = '127.0.0.1';
@@ -207,11 +214,23 @@ type
       AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
   end;
 
+function NewStompClient(Host: string = '127.0.0.1';
+  Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
+  const UserName: string = 'guest'; const Password: string = 'guest';
+  AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
+
 implementation
 
 uses
   Dateutils,
   StompClient;
+
+function NewStompClient(Host: string; Port: Integer; ClientID: string;
+  const UserName, Password: string;
+  AcceptVersion: TStompAcceptProtocol): IStompClient;
+begin
+  Result := StompUtils.NewStomp(Host, Port, ClientID, UserName, Password, AcceptVersion);
+end;
 
 class function StompUtils.NewStomp(Host: string = '127.0.0.1';
   Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
@@ -237,27 +256,24 @@ end;
 class function TStompHeaders.NewDurableSubscriptionHeader(const SubscriptionName
   : string): TKeyValue;
 begin
-  Result.Key := 'activemq.subscriptionName';
-  Result.Value := SubscriptionName;
+  Result := Subscription(SubscriptionName);
 end;
 
 class function TStompHeaders.NewPersistentHeader(const Value: Boolean)
   : TKeyValue;
 begin
-  Result.Key := 'persistent';
-  Result.Value := LowerCase(BoolToStr(Value, true));
+  Result := Persistent(Value);
 end;
 
 class function TStompHeaders.NewReplyToHeader(const DestinationName: string)
   : TKeyValue;
 begin
-  Result.Key := 'reply-to';
-  Result.Value := DestinationName;
+  Result := ReplyTo(DestinationName);
 end;
 
 class function StompUtils.NewHeaders: IStompHeaders;
 begin
-  Result := TStompHeaders.Create;
+  Result := Headers;
 end;
 
 class function StompUtils.TimestampAsDateTime(const HeaderValue: string)
@@ -397,7 +413,7 @@ begin
       other := StripLastChar(other, COMMAND_END);
 
       if TEncoding.UTF8.GetByteCount(other) <> contLen then
-      // there is still the command_end
+        // there is still the command_end
         raise EStomp.Create('frame too short');
       Result.Body := other;
     end
@@ -418,6 +434,11 @@ begin
       raise EStomp.Create(e.message);
     end;
   end;
+end;
+
+class function StompUtils.Headers: IStompHeaders;
+begin
+  Result := TStompHeaders.Create;
 end;
 
 class function StompUtils.NewFrame: IStompFrame;
@@ -506,6 +527,12 @@ begin
     Result := LINE_END;
 end;
 
+class function TStompHeaders.Persistent(const Value: Boolean): TKeyValue;
+begin
+  Result.Key := 'persistent';
+  Result.Value := LowerCase(BoolToStr(Value, true));
+end;
+
 function TStompHeaders.Remove(Key: string): IStompHeaders;
 var
   p: Integer;
@@ -514,6 +541,12 @@ begin
   Dispose(PKeyValue(FList[p]));
   FList.Delete(p);
   Result := self;
+end;
+
+class function TStompHeaders.ReplyTo(const DestinationName: string): TKeyValue;
+begin
+  Result.Key := 'reply-to';
+  Result.Value := DestinationName;
 end;
 
 procedure TStompHeaders.SetItems(index: Cardinal; const Value: TKeyValue);
@@ -528,6 +561,13 @@ begin
   end
   else
     raise EStomp.Create('Error SetItems');
+end;
+
+class function TStompHeaders.Subscription(
+  const SubscriptionName: string): TKeyValue;
+begin
+  Result.Key := 'id';
+  Result.Value := SubscriptionName;
 end;
 
 function TStompHeaders.Value(Key: string): string;
@@ -555,7 +595,7 @@ var
   frame: IStompFrame;
   StopListen: Boolean;
 begin
-  StopListen := False;
+  StopListen := false;
   while not terminated do
   begin
     if FStompClient.Receive(frame, 1000) then

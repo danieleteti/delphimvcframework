@@ -34,6 +34,7 @@ uses
   IdTCPClient,
   IdException,
   IdExceptionCore,
+  IdHeaderList,
 
 {$ELSE}
   synsock,
@@ -84,7 +85,7 @@ type
     procedure DeInit;
     procedure MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
     procedure SendFrame(AFrame: IStompFrame);
-
+    function FormatErrorFrame(const AErrorFrame: IStompFrame): String;
   public
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
@@ -137,6 +138,7 @@ const
 uses
   // Windows,   // Remove windows unit for compiling on ios
   IdGlobal,
+  IdGlobalProtocols,
   Character;
 
 {$ENDIF}
@@ -261,7 +263,7 @@ begin
     while Frame = nil do
       Frame := Receive;
     if Frame.GetCommand = 'ERROR' then
-      raise EStomp.Create(Frame.output);
+      raise EStomp.Create(FormatErrorFrame(Frame));
     if Frame.GetCommand = 'CONNECTED' then
     begin
       FSession := Frame.GetHeaders.Value('session');
@@ -342,6 +344,13 @@ begin
 {$ENDIF}
   end;
   DeInit;
+end;
+
+function TStompClient.FormatErrorFrame(const AErrorFrame: IStompFrame): String;
+begin
+  if AErrorFrame.GetCommand <> 'ERROR' then
+    raise EStomp.Create('Not an ERROR frame');
+  Result := AErrorFrame.GetHeaders.Value('message') + ': ' + AErrorFrame.GetBody;
 end;
 
 function TStompClient.GetProtocolVersion: string;
@@ -497,72 +506,115 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 {$ELSE}
   function InternalReceiveINDY(ATimeout: Integer): IStompFrame;
   var
-    c: char;
-    sb: TStringBuilder;
-    tout: boolean;
-    FirstValidChar: boolean;
-    // UTF8Encoding: TEncoding;
+    s: string;
+    lSBuilder: TStringBuilder;
+    Headers: TIdHeaderList;
+    ContentLength: Integer;
+    Charset: string;
+
 {$IF CompilerVersion < 24}
-    UTF8Encoding: TIdTextEncoding;
+    Encoding: TIdTextEncoding;
+    FreeEncoding: boolean;
 {$ELSE}
-    UTF8Encoding: IIdTextEncoding;
-{$IFEND}
-  begin
-{$IF CompilerVersion < 24}
-    UTF8Encoding := TEncoding.UTF8;
-{$ELSE}
-    UTF8Encoding := IndyTextEncoding_UTF8();
+    Encoding: IIdTextEncoding;
 {$ENDIF}
-    tout := False;
+  begin
     Result := nil;
+    lSBuilder := TStringBuilder.Create(1024 * 4);
     try
-      sb := TStringBuilder.Create(1024 * 4);
+      FTCP.ReadTimeout := ATimeout;
+      FTCP.Socket.DefStringEncoding :=
+{$IF CompilerVersion < 24}TIdTextEncoding.UTF8{$ELSE}IndyTextEncoding_UTF8{$ENDIF};
+
       try
-        FTCP.ReadTimeout := ATimeout;
+        // read command line
+        repeat
+          s := FTCP.Socket.ReadLn;
+        until s <> '';
+        lSBuilder.Append(s + LF);
+
+        // read headers
+        Headers := TIdHeaderList.Create(QuotePlain);
+
         try
-          FirstValidChar := False;
-          FTCP.Socket.CheckForDataOnSource(1);
-          while True do
-          begin
-            c := FTCP.Socket.ReadChar(UTF8Encoding);
-            if (c = LF) and (not FirstValidChar) then
-              Continue;
-            FirstValidChar := True;
-            if c <> CHAR0 then
-              sb.Append(c)
-            else
-            begin
-              // FTCP.IOHandler.ReadChar(TEncoding.UTF8);
+          repeat
+            s := FTCP.Socket.ReadLn;
+            lSBuilder.Append(s + LF);
+            if s = '' then
               Break;
-            end;
-          end;
-        except
-          on E: EIdReadTimeout do
+            Headers.Add(s);
+          until False;
+
+          // read body
+          //
+          // NOTE: non-text data really should be read as a Stream instead of a String!!!
+          //
+
+          if IsHeaderMediaType(Headers.Values['content-type'], 'text') then
           begin
-            tout := True;
-          end;
-          on E: Exception do
+            Charset := Headers.Params['content-type', 'charset'];
+            if Charset = '' then
+              Charset := 'utf-8';
+            Encoding := CharsetToEncoding(Charset);
+{$IF CompilerVersion < 24}
+            FreeEncoding := True;
+{$ENDIF}
+          end
+          else
           begin
-            if sb.Length > 0 then
-              raise EStomp.Create(E.message + sLineBreak + sb.toString)
+            Encoding := IndyTextEncoding_8Bit();
+{$IF CompilerVersion < 24}
+            FreeEncoding := False;
+{$ENDIF}
+          end;
+
+{$IF CompilerVersion < 24}
+          try
+{$ENDIF}
+            if Headers.IndexOfName('content-length') <> -1 then
+            begin
+              // length specified, read exactly that many bytes
+              ContentLength := IndyStrToInt(Headers.Values['content-length']);
+              if ContentLength > 0 then
+              begin
+                s := FTCP.Socket.ReadString(ContentLength, Encoding);
+                lSBuilder.Append(s);
+              end;
+              // frame must still be terminated by a null
+              FTCP.Socket.ReadLn(#0);
+            end
             else
-              raise;
+
+            begin
+              // no length specified, body terminated by frame terminating null
+              s := FTCP.Socket.ReadLn(#0, Encoding);
+              lSBuilder.Append(s);
+
+            end;
+            lSBuilder.Append(#0);
+{$IF CompilerVersion < 24}
+          finally
+            if FreeEncoding then
+              Encoding.Free;
           end;
+{$ENDIF}
+        finally
+          Headers.Free;
         end;
-        if not tout then
+      except
+        on E: Exception do
         begin
-          Result := StompUtils.CreateFrame(sb.toString + CHAR0);
-          if Result.GetCommand = 'ERROR' then
-            raise EStomp.Create(Result.GetHeaders.Value('message'));
+          if lSBuilder.Length > 0 then
+            raise EStomp.Create(E.message + sLineBreak + lSBuilder.toString)
+          else
+            raise;
         end;
-      finally
-        sb.Free;
       end;
-    except
-      on E: Exception do
-      begin
-        raise;
-      end;
+      Result := StompUtils.CreateFrame(lSBuilder.toString);
+      if Result.GetCommand = 'ERROR' then
+        raise EStomp.Create(FormatErrorFrame(Result));
+    finally
+      lSBuilder.Free;
     end;
   end;
 
