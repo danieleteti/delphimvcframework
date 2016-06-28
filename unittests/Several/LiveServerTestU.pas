@@ -27,6 +27,7 @@ type
     procedure TestPOSTWithObjectJSONBody;
     procedure TestPUTWithParamsAndJSONBody;
     procedure TestCookies;
+    procedure TestSessionWithLogin;
     procedure TestSession;
     procedure TestInvalidateSession;
     procedure TestAsynchRequestPOST;
@@ -638,6 +639,12 @@ begin
   finally
     c1.Free;
   end;
+end;
+
+procedure TServerTest.TestSessionWithLogin;
+begin
+  DoLoginWith('daniele');
+  DoLogout;
 end;
 
 procedure TServerTest.TestTypedAll;

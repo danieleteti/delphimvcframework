@@ -291,13 +291,13 @@ type
     function GetWebSession: TWebSession;
   protected
     function SessionMustBeClose: Boolean;
-    function IsSessionStarted: Boolean;
     constructor Create(ARequest: TWebRequest; AResponse: TWebResponse;
       AConfig: TMVCConfig); virtual;
     procedure SetParams(AParamsTable: TMVCRequestParamsTable);
     procedure Flush;
     function GetLoggedUser: TUser;
     // Session
+    function IsSessionStarted: Boolean;
     procedure SessionStart; virtual;
     procedure BindToSession(SessionID: string);
     function SendSessionCookie(AContext: TWebContext): string;
@@ -305,6 +305,8 @@ type
   public
     destructor Destroy; override;
     procedure SessionStop(ARaiseExceptionIfExpired: Boolean = true); virtual;
+    function SessionStarted: Boolean;
+    function SessionID: String;
     property LoggedUser: TUser read GetLoggedUser;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
@@ -2082,6 +2084,13 @@ begin
   FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
 end;
 
+function TWebContext.SessionID: String;
+begin
+  if Assigned(FWebSession) then
+    Exit(FWebSession.SessionID);
+  Result := FRequest.Cookie(TMVCConstants.SESSION_TOKEN_NAME);
+end;
+
 function TWebContext.SessionMustBeClose: Boolean;
 begin
   Result := FSessionMustBeClose;
@@ -2098,6 +2107,21 @@ begin
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := true;
     FSessionMustBeClose := false;
+  end;
+end;
+
+function TWebContext.SessionStarted: Boolean;
+var
+  LSessionID: string;
+begin
+  LSessionID := SessionID;
+  if LSessionID.IsEmpty then
+    Exit(false);
+  TMonitor.Enter(SessionList);
+  try
+    Result := SessionList.ContainsKey(LSessionID);
+  finally
+    TMonitor.Exit(SessionList);
   end;
 end;
 

@@ -40,11 +40,11 @@ type
 
     [MVCPath('/login/($username)')]
     // this is only for test!!!!
-    procedure Login(ctx: TWebContext);
+    procedure Login;
 
     [MVCPath('/logout')]
     // this is only for test!!!!
-    procedure Logout(ctx: TWebContext);
+    procedure Logout;
 
     [MVCPath('/encoding')]
     [MVCHTTPMethod([httpGET])]
@@ -237,14 +237,22 @@ begin
 
 end;
 
-procedure TTestServerController.Login(ctx: TWebContext);
+procedure TTestServerController.Login;
 begin
-  Session['username'] := ctx.Request.Params['username'];
+  if Context.SessionStarted then
+    raise EMVCException.Create('Session already started');
+  Session['username'] := Context.Request.Params['username'];
+  if not Context.SessionStarted then
+    raise EMVCException.Create('Session still not started');
 end;
 
-procedure TTestServerController.Logout(ctx: TWebContext);
+procedure TTestServerController.Logout;
 begin
-  ctx.SessionStop(false);
+  if not Context.SessionStarted then
+    raise EMVCException.Create('Session not available');
+  Context.SessionStop(false);
+  if Context.SessionStarted then
+    raise EMVCException.Create('Session still available');
 end;
 
 procedure TTestServerController.MVCControllerAfterCreate;

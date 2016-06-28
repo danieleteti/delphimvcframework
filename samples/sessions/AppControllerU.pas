@@ -13,15 +13,15 @@ type
   public
     [MVCPath('/name')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
+    procedure Index;
 
     [MVCPath('/login/($username)')]
     [MVCHTTPMethod([httpGET])]
-    procedure DoLogin(ctx: TWebContext);
+    procedure DoLogin(username: String);
 
     [MVCPath('/logout')]
     [MVCHTTPMethod([httpGET])]
-    procedure DoLogout(ctx: TWebContext);
+    procedure DoLogout;
 
   end;
 
@@ -33,22 +33,32 @@ uses
 
 { TApp1MainController }
 
-procedure TApp1MainController.DoLogin(ctx: TWebContext);
+procedure TApp1MainController.DoLogin(username: String);
 begin
-  Session['username'] := ctx.Request.Params['username'];
+  Session['username'] := username;
   Render(204, 'No Content');
 end;
 
-procedure TApp1MainController.DoLogout(ctx: TWebContext);
+procedure TApp1MainController.DoLogout;
 begin
-  ctx.SessionStop(false);
+  Context.SessionStop(false);
   Render(204, 'No Content');
 end;
 
-procedure TApp1MainController.Index(ctx: TWebContext);
+procedure TApp1MainController.Index;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(Session['username']);
+
+  // do not create session if not already created
+  if Context.SessionStarted then
+  begin
+    // automaticaly create the session
+    Render('Session[''username''] = ' + Session['username']);
+  end
+  else
+  begin
+    Render(400, 'Session not created. Do login first');
+  end;
 end;
 
 end.

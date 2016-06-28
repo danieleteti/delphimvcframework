@@ -1,3 +1,11 @@
+28/06/2016
+- added method TWebContext.SessionStarted (check sample Sessions to see how it works)
+- added method TWebContext.SessionID
+- added unit test for TWebContext.SessionStarted
+
+27/06/2016
+- updated IDE Expert to generate parameterless actions
+
 23/06/2016
 - completed jwt middleware (check jwtmiddleware sample to know how to use)
 - added "HasError" and "Error" properties to the IRESTResponse (thank you Mathias Pannier)
