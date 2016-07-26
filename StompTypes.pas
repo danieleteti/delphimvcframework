@@ -68,6 +68,7 @@ type
 
   IStompClient = interface
     ['{EDE6EF1D-59EE-4FCC-9CD7-B183E606D949}']
+    function GetServerProtocolVersion: string;
     function Receive(out StompFrame: IStompFrame; ATimeout: Integer)
       : Boolean; overload;
     function Receive: IStompFrame; overload;
@@ -75,7 +76,8 @@ type
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613;
       ClientID: string = '';
-      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
+      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0;
+      VirtualHost: string = '');
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
@@ -95,6 +97,7 @@ type
     /// ////////////
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
+    function SetCredentials(const UserName: string; const Password: string): IStompClient;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
     function Connected: Boolean;
     function GetProtocolVersion: string;

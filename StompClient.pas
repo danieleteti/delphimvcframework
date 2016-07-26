@@ -85,8 +85,9 @@ type
     procedure DeInit;
     procedure MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
     procedure SendFrame(AFrame: IStompFrame);
-    function FormatErrorFrame(const AErrorFrame: IStompFrame): String;
+    function FormatErrorFrame(const AErrorFrame: IStompFrame): string;
   public
+    function GetServerProtocolVersion: string;
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
     function Receive(out StompFrame: IStompFrame; ATimeout: Integer): boolean; overload;
@@ -94,7 +95,8 @@ type
     function Receive(ATimeout: Integer): IStompFrame; overload;
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-      ClientID: string = ''; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
+      ClientID: string = ''; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0;
+      VirtualHost: string = '');
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
@@ -117,6 +119,7 @@ type
     function GetProtocolVersion: string;
     function GetServer: string;
     function GetSession: string;
+    function SetCredentials(const UserName: string; const Password: string): IStompClient;
     property ReceiptTimeout: Integer read FReceiptTimeout write SetReceiptTimeout;
     property Transactions: TStringList read FTransactions;
     // * Manage Events
@@ -227,8 +230,9 @@ begin
       [TransactionIdentifier]);
 end;
 
-procedure TStompClient.Connect(Host: string; Port: Integer; ClientID: string;
-  AcceptVersion: TStompAcceptProtocol);
+procedure TStompClient.Connect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
+  ClientID: string = ''; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0;
+  VirtualHost: string = '');
 var
   Frame: IStompFrame;
 begin
@@ -251,8 +255,12 @@ begin
     FClientAcceptProtocolVersion := AcceptVersion;
     if STOMP_Version_1_1 in [FClientAcceptProtocolVersion] then
     begin
-      Frame.GetHeaders.Add('heart-beat', '0,1000'); // stomp 1.1
-      Frame.GetHeaders.Add('accept-version', '1.1'); // stomp 1.1
+//      Frame.GetHeaders.Add('heart-beat', '0,1000'); // stomp 1.1
+      Frame.GetHeaders.Add('accept-version', '1.0,1.1'); // stomp 1.1
+      if VirtualHost <> '' then
+      begin
+        Frame.GetHeaders.Add('host', VirtualHost);
+      end;
     end;
 
     Frame.GetHeaders.Add('login', FUserName).Add('passcode', FPassword);
@@ -300,7 +308,7 @@ begin
   FUserName := 'guest';
   FPassword := 'guest';
   FHeaders := TStompHeaders.Create;
-  FTimeout := 200;
+  FTimeout := 2000;
   FReceiptTimeout := FTimeout;
 end;
 
@@ -346,7 +354,7 @@ begin
   DeInit;
 end;
 
-function TStompClient.FormatErrorFrame(const AErrorFrame: IStompFrame): String;
+function TStompClient.FormatErrorFrame(const AErrorFrame: IStompFrame): string;
 begin
   if AErrorFrame.GetCommand <> 'ERROR' then
     raise EStomp.Create('Not an ERROR frame');
@@ -361,6 +369,11 @@ end;
 function TStompClient.GetServer: string;
 begin
   Result := FServer;
+end;
+
+function TStompClient.GetServerProtocolVersion: string;
+begin
+  Result := FServerProtocolVersion;
 end;
 
 function TStompClient.GetSession: string;
@@ -417,7 +430,7 @@ begin
 
   // If the frame has some content, then set the length of that content.
   if (AFrame.ContentLength > 0) then
-    AFrame.GetHeaders.Add('content-length', IntToStr(AFrame.ContentLength));
+    AFrame.GetHeaders.Add('content-length', intToStr(AFrame.ContentLength));
 end;
 
 procedure TStompClient.Nack(const MessageID, TransactionIdentifier: string);
@@ -526,14 +539,18 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
     Result := nil;
     lSBuilder := TStringBuilder.Create(1024 * 4);
     try
-      FTCP.ReadTimeout := ATimeout;
+      FTCP.Socket.ReadTimeout := ATimeout;
       FTCP.Socket.DefStringEncoding :=
 {$IF CompilerVersion < 24}TIdTextEncoding.UTF8{$ELSE}IndyTextEncoding_UTF8{$ENDIF};
 
       try
         // read command line
         repeat
-          s := FTCP.Socket.ReadLn;
+          //se abilito heart-beat trova sempre #10 e quindi non va mai in timeout
+          s := FTCP.Socket.ReadLn(#10, ATimeout, -1, FTCP.Socket.DefStringEncoding);
+
+          if FTCP.Socket.ReadLnTimedout then
+            Break;
         until s <> '';
         lSBuilder.Append(s + LF);
 
@@ -694,6 +711,12 @@ begin
 
 {$ENDIF}
 
+end;
+
+function TStompClient.SetCredentials(const UserName,
+  Password: string): IStompClient;
+begin
+  Result := SetUserName(UserName).SetPassword(Password);
 end;
 
 function TStompClient.SetPassword(const Value: string): IStompClient;
