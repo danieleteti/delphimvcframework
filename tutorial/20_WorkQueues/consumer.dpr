@@ -20,7 +20,11 @@ begin
   lClient := TStompClient.Create;
   lClient.Connect();
   WriteLn('Subscribing to queue "myjobqueue"');
-  lClient.Subscribe('myjobqueue', TAckMode.amClient);
+  lClient.Subscribe('/queue/myjobqueue',
+    TAckMode.amClient,
+    StompUtils.Headers
+    .Add('auto-delete', 'true')
+    );
 
   while true do
   begin
@@ -46,7 +50,7 @@ end;
 begin
   try
     Main;
-    Write('Press return to quit');
+    write('Press return to quit');
     ReadLn;
   except
     on E: Exception do

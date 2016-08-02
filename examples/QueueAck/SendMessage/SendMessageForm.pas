@@ -37,17 +37,22 @@ implementation
 
 {$R *.dfm}
 
+
 procedure TSendMessageMainForm.AutomaticSendCheckBoxClick(Sender: TObject);
 begin
-  if QueueEdit.Text=''       then raise Exception.Create('Specify queue name');
-  if QueueMemo.Lines.Text='' then raise Exception.Create('Specify text of message to be sent');
-  if AutomaticSendCheckBox.Checked then AutomaticSendTimer.Enabled := True
-                                   else AutomaticSendTimer.Enabled := False;
+  if QueueEdit.Text = '' then
+    raise Exception.Create('Specify queue name');
+  if QueueMemo.Lines.Text = '' then
+    raise Exception.Create('Specify text of message to be sent');
+  if AutomaticSendCheckBox.Checked then
+    AutomaticSendTimer.Enabled := True
+  else
+    AutomaticSendTimer.Enabled := False;
 end;
 
 procedure TSendMessageMainForm.BeforeSendFrame(AFrame: IStompFrame);
 begin
-  LogMemo.Lines.Add(AFrame.Output);
+  LogMemo.Lines.Add(StringReplace(AFrame.Output, #10, sLineBreak, [rfReplaceAll]));
 end;
 
 procedure TSendMessageMainForm.FormCreate(Sender: TObject);
@@ -76,11 +81,11 @@ begin
   StompClient.Connect;
   try
     try
-      StompClient.Send(QueueEdit.Text,QueueMemo.Lines.Text);
+      StompClient.Send(QueueEdit.Text, QueueMemo.Lines.Text);
     except
-      on e: exception do
+      on e: Exception do
       begin
-        LogMemo.Lines.Add('ERROR: '+e.Message);
+        LogMemo.Lines.Add('ERROR: ' + e.Message);
       end;
     end;
   finally
@@ -90,8 +95,10 @@ end;
 
 procedure TSendMessageMainForm.SendMessageButtonClick(Sender: TObject);
 begin
-  if QueueEdit.Text=''       then raise Exception.Create('Specify queue name');
-  if QueueMemo.Lines.Text='' then raise Exception.Create('Specify text of message to be sent');
+  if QueueEdit.Text = '' then
+    raise Exception.Create('Specify queue name');
+  if QueueMemo.Lines.Text = '' then
+    raise Exception.Create('Specify text of message to be sent');
   Send;
 end;
 

@@ -127,6 +127,11 @@ type
     MESSAGE_ID: string = 'message-id';
     TRANSACTION: string = 'transaction';
     REPLY_TO: string = 'reply-to';
+    AUTO_DELETE: string = 'auto-delete';
+    // RabbitMQ specific headers
+    PREFETCH_COUNT: string = 'prefetch-count';
+    X_MESSAGE_TTL: string = 'x-message-ttl';
+    X_EXPIRES: string = 'x-expires';
     /// /
     function Add(Key, Value: string): IStompHeaders; overload;
     function Add(HeaderItem: TKeyValue): IStompHeaders; overload;
@@ -215,40 +220,13 @@ type
     class function Headers: IStompHeaders;
     class function NewFrame: IStompFrame;
     class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
-    class function NewStomp(Host: string = '127.0.0.1';
-      Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
-      const UserName: string = 'guest'; const Password: string = 'guest';
-      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
   end;
-
-function NewStompClient(Host: string = '127.0.0.1';
-  Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
-  const UserName: string = 'guest'; const Password: string = 'guest';
-  AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
 
 implementation
 
 uses
   Dateutils,
   StompClient;
-
-function NewStompClient(Host: string; Port: Integer; ClientID: string;
-  const UserName, Password: string;
-  AcceptVersion: TStompAcceptProtocol): IStompClient;
-begin
-  Result := StompUtils.NewStomp(Host, Port, ClientID, UserName, Password, AcceptVersion);
-end;
-
-class function StompUtils.NewStomp(Host: string = '127.0.0.1';
-  Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
-  const UserName: string = 'guest'; const Password: string = 'guest';
-  AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0): IStompClient;
-begin
-  Result := TStompClient.Create;
-  Result.SetUserName(UserName);
-  Result.SetPassword(Password);
-  Result.Connect(Host, Port, ClientID, AcceptVersion);
-end;
 
 class function StompUtils.StripLastChar(Buf: string; LastChar: char): string;
 var

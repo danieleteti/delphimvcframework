@@ -31,7 +31,11 @@ begin
     lIsEmpty := lMessage.Trim.IsEmpty;
     if not lIsEmpty then
     begin
-      lClient.Send('myjobqueue', lMessage.Trim, StompUtils.Headers.Add('persistent', 'true'));
+      lClient.Send('/queue/myjobqueue', lMessage.Trim,
+        StompUtils
+          .Headers
+          .Add('persistent', 'true')
+        );
     end;
   until lIsEmpty;
   WriteLn('bye bye...');

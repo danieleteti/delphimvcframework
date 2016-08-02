@@ -21,8 +21,11 @@ begin
   lClient := TStompClient.Create;
   lClient.Connect();
   WriteLn('Subscribing to queue "myjobqueue"');
-  lClient.Subscribe('myjobqueue', TAckMode.amClient,
-    StompUtils.Headers.Add(TStompHeaders.Subscription('12345'))
+  lClient.Subscribe('/queue/myjobqueue', TAckMode.amClient,
+    StompUtils
+    .Headers
+    .Add(TStompHeaders.Subscription('12345'))
+    .Add('persistent', 'true')
     );
 
   while true do
@@ -49,7 +52,7 @@ end;
 begin
   try
     Main;
-    Write('Press return to quit');
+    write('Press return to quit');
     ReadLn;
   except
     on E: Exception do

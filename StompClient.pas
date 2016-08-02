@@ -94,9 +94,10 @@ type
     function Receive(ATimeout: Integer): IStompFrame; overload;
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-      ClientID: string = ''; AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
+      ClientID: string = '';
+      AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.STOMP_Version_1_0);
     procedure Disconnect;
-    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
+    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = TAckMode.amAuto;
       Headers: IStompHeaders = nil);
     procedure Unsubscribe(Queue: string);
     procedure Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders = nil);
@@ -110,7 +111,11 @@ type
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);
     /// ////////////
-    constructor Create; virtual;
+    constructor Create; overload; virtual;
+    class function CreateAndConnect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
+      ClientID: string = '';
+      AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.STOMP_Version_1_0): IStompClient;
+      overload; virtual;
     destructor Destroy; override;
     function Connected: boolean;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
@@ -249,7 +254,7 @@ begin
     Frame.SetCommand('CONNECT');
 
     FClientAcceptProtocolVersion := AcceptVersion;
-    if STOMP_Version_1_1 in [FClientAcceptProtocolVersion] then
+    if TStompAcceptProtocol.STOMP_Version_1_1 in [FClientAcceptProtocolVersion] then
     begin
       Frame.GetHeaders.Add('heart-beat', '0,1000'); // stomp 1.1
       Frame.GetHeaders.Add('accept-version', '1.1'); // stomp 1.1
@@ -290,6 +295,13 @@ begin
 
 {$ENDIF}
 
+end;
+
+class function TStompClient.CreateAndConnect(Host: string; Port: Integer; ClientID: string;
+  AcceptVersion: TStompAcceptProtocol): IStompClient;
+begin
+  Result := TStompClient.Create;
+  Result.Connect(Host, Port, ClientID, AcceptVersion);
 end;
 
 constructor TStompClient.Create;
@@ -721,7 +733,7 @@ begin
   Result := Self;
 end;
 
-procedure TStompClient.Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
+procedure TStompClient.Subscribe(QueueOrTopicName: string; Ack: TAckMode = TAckMode.amAuto;
   Headers: IStompHeaders = nil);
 var
   Frame: IStompFrame;

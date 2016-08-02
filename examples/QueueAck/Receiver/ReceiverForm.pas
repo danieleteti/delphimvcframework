@@ -44,9 +44,10 @@ implementation
 
 {$R *.dfm}
 
+
 procedure TReceiverMainForm.BeforeSendFrame(AFrame: IStompFrame);
 begin
-  LogMemo.Lines.Add(AFrame.Output);
+  LogMemo.Lines.Add(StringReplace(AFrame.Output, #10, sLineBreak, [rfReplaceAll]));
 end;
 
 procedure TReceiverMainForm.FormCreate(Sender: TObject);
@@ -55,9 +56,9 @@ begin
   try
     StompClient.Connect;
   except
-    on e: exception do
+    on e: Exception do
     begin
-      raise exception.Create
+      raise Exception.Create
         ('Cannot connect to Apollo server. Run the server and restart the application');
     end;
   end;
@@ -76,7 +77,7 @@ end;
 procedure TReceiverMainForm.SendAckButtonClick(Sender: TObject);
 begin
   if MessageIdEdit.Text = '' then
-    raise exception.Create('Specify MessageId');
+    raise Exception.Create('Specify MessageId');
 
   if StompClient.Connected then
   begin
@@ -87,7 +88,7 @@ end;
 procedure TReceiverMainForm.SendNackButtonClick(Sender: TObject);
 begin
   if MessageIdEdit.Text = '' then
-    raise exception.Create('Specify MessageId');
+    raise Exception.Create('Specify MessageId');
 
   if StompClient.Connected then
   begin
@@ -96,27 +97,38 @@ begin
 end;
 
 procedure TReceiverMainForm.SubscribeButtonClick(Sender: TObject);
+var
+  lAuto: Boolean;
+  lAckMode: TAckMode;
 begin
-  if QueueEdit.Text = '' then
-    raise exception.Create('Specify queue name');
+  if not StompClient.Connected then
+    raise Exception.Create('StompClient not connected');
 
-  if StompClient.Connected then
-  begin
-    StompClient.Subscribe(QueueEdit.Text, amClientIndividual);
-    // StompClient.Subscribe(QueueEdit.Text,amAuto);
+  if QueueEdit.Text = '' then
+    raise Exception.Create('Specify queue name');
+
+  lAuto := MessageDlg('AckMode AUTO (Yes) or CLIENT (No) ?', mtInformation, mbYesNo, 0) = mrYes;
+
+  if lAuto then
+    lAckMode := amAuto
+  else
+    lAckMode := amClient;
+
+  StompClient.Subscribe(QueueEdit.Text, lAckMode);
+  // StompClient.Subscribe(QueueEdit.Text,amAuto);
+  if not ThReceiver.Started then
     ThReceiver.Start;
-  end;
 end;
 
 procedure TReceiverMainForm.UnsubscribeButtonClick(Sender: TObject);
 begin
   if QueueEdit.Text = '' then
-    raise exception.Create('Specify queue name');
+    raise Exception.Create('Specify queue name');
 
   if StompClient.Connected then
   begin
     StompClient.Unsubscribe(QueueEdit.Text);
-    ThReceiver.Start;
+    // ThReceiver.Start;
   end;
 end;
 

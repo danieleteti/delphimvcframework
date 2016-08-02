@@ -250,7 +250,6 @@
                 <Platform value="iOSDevice32">False</Platform>
                 <Platform value="iOSDevice64">False</Platform>
                 <Platform value="iOSSimulator">False</Platform>
-                <Platform value="OSX32">False</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>
