@@ -60,7 +60,7 @@ type
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TDMVCSerializationType = TSerializationType;
-  TSessionData = TDictionary<String, String>;
+  TSessionData = TDictionary<string, string>;
 
   // RTTI ATTRIBUTES
 
@@ -134,7 +134,7 @@ type
     // function GetHeaderValue(const Name: string): string;
     function GetPathInfo: string;
     function GetParamAll(const ParamName: string): string;
-    function GetSegmentParam(const ParamName: String; out Value: String): Boolean;
+    function GetSegmentParam(const ParamName: string; out Value: string): Boolean;
     function GetSegmentParamsCount: Integer;
     function GetIsAjax: Boolean;
     function GetHTTPMethod: TMVCHTTPMethodType;
@@ -157,7 +157,7 @@ type
     function QueryStringParam(Name: string): string; virtual;
     function QueryStringParamExists(Name: string): Boolean; virtual;
     function QueryStringParams: TStrings;
-    procedure EnsureQueryParamExists(const Name: String);
+    procedure EnsureQueryParamExists(const Name: string);
     function ContentParam(Name: string): string; virtual;
     function Cookie(Name: string): string; virtual;
     property PathInfo: string read GetPathInfo;
@@ -306,7 +306,7 @@ type
     destructor Destroy; override;
     procedure SessionStop(ARaiseExceptionIfExpired: Boolean = true); virtual;
     function SessionStarted: Boolean;
-    function SessionID: String;
+    function SessionID: string;
     property LoggedUser: TUser read GetLoggedUser;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
@@ -368,12 +368,12 @@ type
     /// Load mustache view located in TMVCConfigKey.ViewsPath and
     /// generates output using models pushed using Push* methods
     /// </summary>
-    procedure LoadView(const ViewNames: TArray<String>); virtual;
+    procedure LoadView(const ViewNames: TArray<string>); virtual;
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath and
     /// returns output using models pushed using Push* methods
     /// </summary>
-    function GetRenderedView(const ViewNames: TArray<String>): String; virtual;
+    function GetRenderedView(const ViewNames: TArray<string>): string; virtual;
     property Context: TWebContext read FContext write SetContext;
     property Session: TWebSession read GetWebSession write SetWebSession;
     procedure MVCControllerAfterCreate; virtual;
@@ -798,12 +798,12 @@ var
   end;
 
   procedure FillActualParamsForAction(const AContext: TWebContext;
-    const aActionFormalParams: TArray<TRttiParameter>; const aActionName: String;
+    const aActionFormalParams: TArray<TRttiParameter>; const aActionName: string;
     var aActualParams: TArray<TValue>);
   var
     lParamName: string;
     i: Integer;
-    lStrValue: String;
+    lStrValue: string;
     lFormatSettings: TFormatSettings;
     lWasDateTime: Boolean;
   begin
@@ -1665,7 +1665,7 @@ begin
   if FWebRequest.GetFieldByName('HTTP_CLIENT_IP') <> '' then
     Exit(FWebRequest.GetFieldByName('HTTP_CLIENT_IP'));
 
-  for S in String(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
+  for S in string(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
     .Split([',']) do
   begin
     if not S.trim.IsEmpty then
@@ -1849,16 +1849,17 @@ end;
 
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
-  Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
-    StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
-    Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
+  raise EMVCException.Create('Not Implemented');
+//  Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
+//    StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
+//    Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
 end;
 
 function TMVCController.GetRenderedView(const ViewNames
-  : TArray<String>): String;
+  : TArray<string>): string;
 var
   View: TMVCMustacheView;
-  LViewName: String;
+  LViewName: string;
   LSBuilder: TStringBuilder;
 begin
   LSBuilder := TStringBuilder.Create;
@@ -1895,7 +1896,7 @@ begin
   Result := FContext.Session;
 end;
 
-procedure TMVCController.LoadView(const ViewNames: TArray<String>);
+procedure TMVCController.LoadView(const ViewNames: TArray<string>);
 begin
   try
     ResponseStream.Append(GetRenderedView(ViewNames));
@@ -2084,7 +2085,7 @@ begin
   FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
 end;
 
-function TWebContext.SessionID: String;
+function TWebContext.SessionID: string;
 begin
   if Assigned(FWebSession) then
     Exit(FWebSession.SessionID);
@@ -2210,10 +2211,10 @@ begin
   Result := FWebRequest.QueryFields.Values[name];
 end;
 
-procedure TMVCWebRequest.EnsureQueryParamExists(const Name: String);
+procedure TMVCWebRequest.EnsureQueryParamExists(const Name: string);
 begin
-  if GetParamAll(Name).IsEmpty then
-    raise EMVCException.CreateFmt('Parameter "%s" required', [Name]);
+  if GetParamAll(name).IsEmpty then
+    raise EMVCException.CreateFmt('Parameter "%s" required', [name]);
 end;
 
 function TMVCWebRequest.QueryStringParamExists(Name: string): Boolean;
@@ -2271,8 +2272,8 @@ begin
     = 'xmlhttprequest';
 end;
 
-function TMVCWebRequest.GetSegmentParam(const ParamName: String;
-  out Value: String): Boolean;
+function TMVCWebRequest.GetSegmentParam(const ParamName: string;
+  out Value: string): Boolean;
 begin
   if (not Assigned(FParamsTable)) then
     Exit(false);
