@@ -14,6 +14,7 @@ program DMVCFrameworkTests;
 {$APPTYPE CONSOLE}
 {$ENDIF}
 
+
 uses
   DUnitTestRunner,
   FrameworkTestsU in 'FrameworkTestsU.pas',
@@ -27,10 +28,16 @@ uses
 
 {$R *.RES}
 
+
 begin
 
   ReportMemoryLeaksOnShutdown := True;
 
   DUnitTestRunner.RunRegisteredTests;
+
+{$IFDEF CONSOLE_TESTRUNNER}
+  write('Press return to continue...');
+  ReadLn;
+{$ENDIF}
 
 end.
