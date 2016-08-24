@@ -43,7 +43,7 @@ type
     FMVCControllerDelegate: TMVCControllerDelegate;
     FMVCConfig: TMVCConfig;
     function IsHTTPContentTypeCompatible(AWebRequestMethodType: TMVCHTTPMethodType;
-      AContentType: String; AAttributes: TArray<TCustomAttribute>): Boolean;
+      AContentType: string; AAttributes: TArray<TCustomAttribute>): Boolean;
     function IsHTTPAcceptCompatible(AWebRequestMethodType: TMVCHTTPMethodType; AAccept: string;
       AAttributes: TArray<TCustomAttribute>): Boolean;
     function GetFirstMimeType(const AContentType: string): string;
@@ -104,12 +104,12 @@ var
   MVCProduceAttr: MVCProducesAttribute;
   Found: Boolean;
   LWebRequestPathInfo: string;
-  LWebRequestAccept: String;
+  LWebRequestAccept: string;
 begin
   FMethodToCall := nil;
   FMVCControllerClass := nil;
   FMVCControllerDelegate := nil;
-  LWebRequestAccept := String(AWebRequestAccept);
+  LWebRequestAccept := string(AWebRequestAccept);
 
   LWebRequestPathInfo := string(AWebRequestPathInfo);
   if Trim(LWebRequestPathInfo) = EmptyStr then
@@ -176,7 +176,7 @@ begin
           if _attribute is MVCPathAttribute then
           begin
             if IsHTTPMethodCompatible(AWebRequestMethodType, _attributes) and
-              IsHTTPContentTypeCompatible(AWebRequestMethodType, String(AWebRequestContentType),
+              IsHTTPContentTypeCompatible(AWebRequestMethodType, string(AWebRequestContentType),
               _attributes) and IsHTTPAcceptCompatible(AWebRequestMethodType, LWebRequestAccept,
               _attributes) then
             begin
@@ -251,7 +251,8 @@ function TMVCRouter.IsCompatiblePath(AMVCPath: string; APath: string;
     i: Integer;
   begin
     Result := TList<string>.Create;
-    s := '\(\$([A-Za-z0-9]+)\)';
+    s := '\(\$([A-Za-z0-9\_]+)\)';
+    // dt 2/08/2016 added "_" as allowed character in the parameter name
     matches := TRegEx.matches(V, s, [roIgnoreCase, roCompiled, roSingleLine]);
     for match in matches do
       for i := 0 to match.Groups.Count - 1 do
@@ -319,7 +320,7 @@ begin
 end;
 
 function TMVCRouter.IsHTTPContentTypeCompatible(AWebRequestMethodType: TMVCHTTPMethodType;
-  AContentType: String; AAttributes: TArray<TCustomAttribute>): Boolean;
+  AContentType: string; AAttributes: TArray<TCustomAttribute>): Boolean;
 var
   i: Integer;
   MethodContentType: string;
