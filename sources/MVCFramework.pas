@@ -787,9 +787,15 @@ var
       Config[TMVCConfigKey.IndexDocument]);
     if TFile.Exists(lStaticFileName) then
     begin
-      if not FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)),
-        lContentType) then
+      if FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)), lContentType) then
+      begin
+        lContentType := lContentType + ';charset=' + FMVCConfig
+          [TMVCConfigKey.DefaultContentCharset];
+      end
+      else
+      begin
         lContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
+      end;
       TMVCStaticContents.SendFile(lStaticFileName, lContentType, lContext);
       Result := true;
     end
@@ -925,9 +931,15 @@ begin
         // end
         // else // serve the file
         // begin
-        if not FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)
-          ), lContentType) then
+        if FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)), lContentType) then
+        begin
+          lContentType := lContentType + ';charset=' + FMVCConfig
+            [TMVCConfigKey.DefaultContentCharset];
+        end
+        else
+        begin
           lContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
+        end;
         TMVCStaticContents.SendFile(lStaticFileName, lContentType, lContext);
         Result := true;
         // end;
@@ -1064,17 +1076,19 @@ begin
               if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
               // tristan
               begin
-                // if not SendDocumentIndexIfPresent then   //danieleteti
-                // begin
-                Http404(lContext);
-                Log(TLogLevel.levNormal, Request.Method + ':' +
-                  Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
-                  IntToStr(Response.StatusCode) + ' ' +
-                  Response.ReasonString);
-                // end;
+                Result := true;
+                if not SendDocumentIndexIfPresent then // danieleteti
+                begin
+                  Http404(lContext);
+                  Log(TLogLevel.levNormal, Request.Method + ':' +
+                    Request.RawPathInfo + ' -> NO ACTION ' + ' - ' +
+                    IntToStr(Response.StatusCode) + ' ' +
+                    Response.ReasonString);
+                end;
               end
               else
               begin
+                Result := false;
                 lContext.Response.FlushOnDestroy := false; // tristan
               end;
             end;
@@ -1850,9 +1864,9 @@ end;
 function TMVCController.GetNewStompClient(ClientID: string): IStompClient;
 begin
   raise EMVCException.Create('Not Implemented');
-//  Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
-//    StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
-//    Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
+  // Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
+  // StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
+  // Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
 end;
 
 function TMVCController.GetRenderedView(const ViewNames
