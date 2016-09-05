@@ -65,7 +65,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Width = 288
       Height = 17
       Anchors = [akLeft, akTop, akRight]
-      Caption = 'Create Index Method'
+      Caption = 'Create Index And Sample Methods'
       Checked = True
       State = cbChecked
       TabOrder = 0
