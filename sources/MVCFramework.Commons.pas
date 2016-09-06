@@ -33,7 +33,7 @@ uses
 {$ELSE}
     , System.JSON
 {$ENDIF}
-    , System.Generics.Collections, MVCFramework.Session;
+    , System.Generics.Collections, MVCFramework.Session, LoggerPro;
 
 type
 
@@ -162,7 +162,6 @@ type
     function GetValue(AIndex: string): string;
     procedure SetValue(AIndex: string; const Value: string);
     function GetValueAsInt64(AIndex: string): Int64;
-
   public
     constructor Create;
     destructor Destroy; override;

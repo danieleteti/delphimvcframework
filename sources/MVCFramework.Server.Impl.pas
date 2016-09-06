@@ -30,17 +30,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-
-  {$IFDEF IOCP}
-
-  Iocp.DSHTTPWebBroker
-
-  {$ELSE}
-
-  IdHTTPWebBrokerBridge
-
-  {$ENDIF},
-
+  IdHTTPWebBrokerBridge,
   MVCFramework.Server;
 
 type
@@ -70,17 +60,7 @@ type
 
   TMVCListener = class(TInterfacedObject, IMVCListener)
   private
-
-    {$IFDEF IOCP}
-
-    FBridge: TIocpWebBrokerBridge;
-
-    {$ELSE}
-
     FBridge: TIdHTTPWebBrokerBridge;
-
-    {$ENDIF}
-
   protected
     function GetActive: Boolean;
 
@@ -117,19 +97,24 @@ type
     FAuthenticationDelegate: TMVCAuthenticationDelegate;
     FAuthorizationDelegate: TMVCAuthorizationDelegate;
   protected
-    procedure OnRequest(const AControllerQualifiedClassName, AActionName: string; var AAuthenticationRequired: Boolean);
+    procedure OnRequest(const AControllerQualifiedClassName, AActionName: string;
+      var AAuthenticationRequired: Boolean);
 
-    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>; var IsValid: Boolean;
-      const ASessionData: TDictionary<String, String>);
+    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
+      var IsValid: Boolean;
+      const ASessionData: TDictionary<string, string>);
 
-    procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string;
+    procedure OnAuthorization(AUserRoles: TList<string>;
+      const AControllerQualifiedClassName: string; const AActionName: string;
       var IsAuthorized: Boolean);
   public
     class function New: IMVCDefaultAuthenticationHandler; static;
 
     function SetOnRequest(AMethod: TMVCRequestDelegate): IMVCDefaultAuthenticationHandler;
-    function SetOnAuthentication(AMethod: TMVCAuthenticationDelegate): IMVCDefaultAuthenticationHandler;
-    function SetOnAuthorization(AMethod: TMVCAuthorizationDelegate): IMVCDefaultAuthenticationHandler;
+    function SetOnAuthentication(AMethod: TMVCAuthenticationDelegate)
+      : IMVCDefaultAuthenticationHandler;
+    function SetOnAuthorization(AMethod: TMVCAuthorizationDelegate)
+      : IMVCDefaultAuthenticationHandler;
   end;
 
 implementation
@@ -206,22 +191,10 @@ begin
   if AProperties.GetName.IsEmpty then
     raise EMVCServerException.Create('Listener name was not informed.');
 
-  {$IFDEF IOCP}
-
-  FBridge := TIocpWebBrokerBridge.Create(nil);
-  FBridge.Port := AProperties.GetPort;
-  FBridge.MaxClients := AProperties.GetMaxConnections;
-  FBridge.RegisterWebModuleClass(AProperties.GetWebModuleClass);
-
-  {$ELSE}
-
   FBridge := TIdHTTPWebBrokerBridge.Create(nil);
   FBridge.DefaultPort := AProperties.GetPort;
   FBridge.MaxConnections := AProperties.GetMaxConnections;
   FBridge.RegisterWebModuleClass(AProperties.GetWebModuleClass);
-
-  {$ENDIF}
-
 end;
 
 destructor TMVCListener.Destroy;
@@ -248,7 +221,8 @@ end;
 
 { TMVCListenersContext }
 
-function TMVCListenersContext.Add(const AName: string; AListener: IMVCListener): IMVCListenersContext;
+function TMVCListenersContext.Add(const AName: string; AListener: IMVCListener)
+  : IMVCListenersContext;
 begin
   FListeners.AddOrSetValue(AName, AListener);
   Result := Self;
@@ -329,15 +303,17 @@ begin
   Result := TMVCDefaultAuthenticationHandler.Create;
 end;
 
-procedure TMVCDefaultAuthenticationHandler.OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
-var IsValid: Boolean; const ASessionData: TDictionary<String, String>);
+procedure TMVCDefaultAuthenticationHandler.OnAuthentication(const AUserName, APassword: string;
+AUserRoles: TList<string>;
+var IsValid: Boolean; const ASessionData: TDictionary<string, string>);
 begin
   IsValid := True;
   if Assigned(FAuthenticationDelegate) then
     FAuthenticationDelegate(AUserName, APassword, AUserRoles, IsValid, ASessionData);
 end;
 
-procedure TMVCDefaultAuthenticationHandler.OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName,
+procedure TMVCDefaultAuthenticationHandler.OnAuthorization(AUserRoles: TList<string>;
+const AControllerQualifiedClassName,
   AActionName: string; var IsAuthorized: Boolean);
 begin
   IsAuthorized := True;
@@ -345,7 +321,8 @@ begin
     FAuthorizationDelegate(AUserRoles, AControllerQualifiedClassName, AActionName, IsAuthorized);
 end;
 
-procedure TMVCDefaultAuthenticationHandler.OnRequest(const AControllerQualifiedClassName, AActionName: string;
+procedure TMVCDefaultAuthenticationHandler.OnRequest(const AControllerQualifiedClassName,
+  AActionName: string;
 var AAuthenticationRequired: Boolean);
 begin
   AAuthenticationRequired := True;
@@ -353,19 +330,22 @@ begin
     FRequestDelegate(AControllerQualifiedClassName, AActionName, AAuthenticationRequired);
 end;
 
-function TMVCDefaultAuthenticationHandler.SetOnAuthentication(AMethod: TMVCAuthenticationDelegate): IMVCDefaultAuthenticationHandler;
+function TMVCDefaultAuthenticationHandler.SetOnAuthentication(AMethod: TMVCAuthenticationDelegate)
+  : IMVCDefaultAuthenticationHandler;
 begin
   FAuthenticationDelegate := AMethod;
   Result := Self;
 end;
 
-function TMVCDefaultAuthenticationHandler.SetOnAuthorization(AMethod: TMVCAuthorizationDelegate): IMVCDefaultAuthenticationHandler;
+function TMVCDefaultAuthenticationHandler.SetOnAuthorization(AMethod: TMVCAuthorizationDelegate)
+  : IMVCDefaultAuthenticationHandler;
 begin
   FAuthorizationDelegate := AMethod;
   Result := Self;
 end;
 
-function TMVCDefaultAuthenticationHandler.SetOnRequest(AMethod: TMVCRequestDelegate): IMVCDefaultAuthenticationHandler;
+function TMVCDefaultAuthenticationHandler.SetOnRequest(AMethod: TMVCRequestDelegate)
+  : IMVCDefaultAuthenticationHandler;
 begin
   FRequestDelegate := AMethod;
   Result := Self;

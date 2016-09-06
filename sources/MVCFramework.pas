@@ -52,7 +52,8 @@ uses
 {$ELSE}
     , System.JSON, Web.ApacheHTTP
 {$ENDIF}
-    , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC};
+    , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
+    ,LoggerPro;
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
@@ -199,15 +200,6 @@ type
   public
     constructor Create(AWebRequest: TWebRequest); override;
   end;
-
-{$IFDEF IOCP}
-
-  TMVCIOCPWebRequest = class(TMVCWebRequest)
-  public
-    constructor Create(AWebRequest: TWebRequest); override;
-  end;
-
-{$ENDIF}
 
   TMVCWebResponse = class
   strict private
@@ -535,7 +527,7 @@ type
     class function ExtractSessionIDFromWebRequest
       (AWebRequest: TWebRequest): string;
     constructor Create(WebModule: TWebModule;
-      ConfigProc: TProc<TMVCConfig> = nil); reintroduce;
+      ConfigProc: TProc<TMVCConfig>; CustomLogger: ILogWriter = nil); reintroduce;
     destructor Destroy; override;
     class function SendSessionCookie(AContext: TWebContext): string; overload;
     class function SendSessionCookie(AContext: TWebContext; ASessionID: string)
@@ -618,15 +610,8 @@ uses
   MVCFramework.View,
   IdURI,
   DuckListU,
-  IdStack
-
-{$IFDEF IOCP},
-  Iocp.DSHTTPWebBroker
-
-{$ELSE},
-  IdHTTPWebBrokerBridge
-
-{$ENDIF},
+  IdStack,
+  IdHTTPWebBrokerBridge,
   MVCFramework.MessagingController,
   Web.WebReq,
   MVCFramework.SysControllers;
@@ -636,8 +621,7 @@ const
     'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime and String';
 
 type
-  TIdHTTPAppRequestHack = class({$IFDEF IOCP}TIocpWebRequest
-{$ELSE}TIdHTTPAppRequest{$ENDIF})
+  TIdHTTPAppRequestHack = class(TIdHTTPAppRequest)
 
   end;
 
@@ -687,7 +671,7 @@ end;
 
 procedure TMVCEngine.ConfigDefaultValues;
 begin
-  Log(TLogLevel.levNormal, 'ENTER: Config default values');
+  Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
   Config[TMVCConfigKey.SessionTimeout] := '30'; // 30 minutes
   Config[TMVCConfigKey.DocumentRoot] := '.\www';
   Config[TMVCConfigKey.DefaultContentType] :=
@@ -721,11 +705,11 @@ begin
   FMimeTypes.Add('.png', TMVCMimeType.IMAGE_PNG);
   FMimeTypes.Add('.appcache', TMVCMimeType.TEXT_CACHEMANIFEST);
 
-  Log(TLogLevel.levNormal, 'EXIT: Config default values');
+  Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 end;
 
 constructor TMVCEngine.Create(WebModule: TWebModule;
-  ConfigProc: TProc<TMVCConfig>);
+  ConfigProc: TProc<TMVCConfig>; CustomLogger: ILogWriter);
 begin
   inherited Create(WebModule);
   WebRequestHandler.CacheConnections := true;
@@ -737,13 +721,17 @@ begin
   FMiddleware := TList<IMVCMiddleware>.Create;
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
+  MVCFramework.Logger.SetDefaultLogger(CustomLogger);
+  // WARNING!! from now on, the logger subsystem is available
   ConfigDefaultValues;
+
   if Assigned(ConfigProc) then
   begin
     LogEnterMethod('Custom configuration proc');
-    ConfigProc(Self.FMVCConfig);
+    ConfigProc(FMVCConfig);
     LogExitMethod('Custom configuration proc');
   end;
+
   LoadSystemControllers;
 end;
 
@@ -989,8 +977,6 @@ begin
                     begin
 
                       lActionFormalParams := lRouter.MethodToCall.GetParameters;
-
-
 
                       // case1: check for parameterless action
                       if Length(lActionFormalParams) = 0 then
@@ -1367,13 +1353,7 @@ begin
   end
   else
   begin
-
-{$IFDEF IOCP}
-    FRequest := TMVCIOCPWebRequest.Create(ARequest);
-
-{$ELSE}
     FRequest := TMVCINDYWebRequest.Create(ARequest);
-{$ENDIF}
   end;
   FResponse := TMVCWebResponse.Create(AResponse);
   FConfig := AConfig;
@@ -2818,16 +2798,6 @@ begin
   Render(ResponseStream.ToString);
 end;
 
-{$IFDEF IOCP}
-
-
-constructor TMVCIOCPWebRequest.Create(AWebRequest: TWebRequest);
-begin
-  inherited;
-  FWebRequest := AWebRequest as TIocpWebRequest;
-end;
-
-{$ENDIF}
 { MVCStringAttribute }
 
 constructor MVCStringAttribute.Create(const Value: string);
