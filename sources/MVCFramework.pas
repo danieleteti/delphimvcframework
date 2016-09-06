@@ -527,7 +527,7 @@ type
     class function ExtractSessionIDFromWebRequest
       (AWebRequest: TWebRequest): string;
     constructor Create(WebModule: TWebModule;
-      ConfigProc: TProc<TMVCConfig>; CustomLogger: ILogWriter = nil); reintroduce;
+      ConfigProc: TProc<TMVCConfig> = nil; CustomLogger: ILogWriter = nil); reintroduce;
     destructor Destroy; override;
     class function SendSessionCookie(AContext: TWebContext): string; overload;
     class function SendSessionCookie(AContext: TWebContext; ASessionID: string)
