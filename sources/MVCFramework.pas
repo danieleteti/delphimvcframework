@@ -990,19 +990,20 @@ begin
 
                       lActionFormalParams := lRouter.MethodToCall.GetParameters;
 
-                      lActualParams := [];
+
 
                       // case1: check for parameterless action
                       if Length(lActionFormalParams) = 0 then
                       begin
-                        lActualParams := [];
+                        SetLength(lActualParams, 0);
                       end
                       // case2: check for action with only TWebContext
                       else if (Length(lActionFormalParams) = 1) and
                         (SameText(lActionFormalParams[0].ParamType.QualifiedName,
                         'MVCFramework.TWebContext')) then
                       begin
-                        lActualParams := [lContext];
+                        SetLength(lActualParams, 1);
+                        lActualParams[0] := lContext;
                       end
                       // case3: strongly typed declaration... injection parameters
                       else

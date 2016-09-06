@@ -1,3 +1,9 @@
+06/09/2016
+- Restored support for Delphi Version with no inline array support
+05/09/2016
+- IDE Expert can generate CORS enabled servers
+- added "_" in the allowed characters for parameters names
+
 28/06/2016
 - added method TWebContext.SessionStarted (check sample Sessions to see how it works)
 - added method TWebContext.SessionID
