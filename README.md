@@ -29,6 +29,10 @@
   * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
   
+## How to correctly get the repository
+DMVCFramework uses a couple of external open source projects, so whe you clone its repository you must retrieve also all the submodule. In the developers guide all the speps are explained, but the git procedure is also repeated below in the screenshot.
+![How to get the repository](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/dmvcframework_installation.png)
+
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
 If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
@@ -41,6 +45,7 @@ These are the most notable:
 
   * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
   * DelphiRedisClient (https://github.com/danieleteti/delphiredisclient)
+  * LoggerPro (https://github.com/danieleteti/loggerpro)
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
@@ -48,8 +53,9 @@ All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/t
 Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress).
 
 
-#Sample Server
-Below a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
+#Getting Started
+Below the is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
+The project containes an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
 
 To create this server, you have to create a new Delphi Projects -> WebBroker -> WebServerApplication. Then add the following changes to the webmodule.
 ```delphi
@@ -83,7 +89,7 @@ uses UsersControllerU; //this is the unit where is defined the controller
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(Self);
-  MVC.Config['document_root'] := 'public_html'; //if you need some static html, javascript, etc (optional)
+  MVC.Config[TMVCConfigKey.DocumentRoot] := 'public_html'; //if you need some static html, javascript, etc (optional)
   MVC.AddController(TUsersController); //see next section to know how to create a controller
 end;
 
