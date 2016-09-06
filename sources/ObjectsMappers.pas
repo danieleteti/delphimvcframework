@@ -2250,21 +2250,23 @@ begin
           end
           else if _field.PropertyType.QualifiedName = 'System.TTime' then
           begin
-            if jvalue is TJSONString then
-              _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
-            else
-              raise EMapperException.CreateFmt
-                ('Cannot deserialize [%s], expected [%s] got [%s]',
-                [_field.Name, 'TJSONString', jvalue.ClassName]);
+            if not (jvalue is TJSONNull) then
+              if jvalue is TJSONString then
+                _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
+              else
+                raise EMapperException.CreateFmt
+                  ('Cannot deserialize [%s], expected [%s] got [%s]',
+                  [_field.Name, 'TJSONString', jvalue.ClassName]);
           end
           else { if _field.PropertyType.QualifiedName = 'System.Currency' then }
           begin
-            if jvalue is TJSONNumber then
-              _field.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
-            else
-              raise EMapperException.CreateFmt
-                ('Cannot deserialize [%s], expected [%s] got [%s]',
-                [_field.Name, 'TJSONNumber', jvalue.ClassName]);
+            if not (jvalue is TJSONNull) then
+              if jvalue is TJSONNumber then
+                _field.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
+              else
+                raise EMapperException.CreateFmt
+                  ('Cannot deserialize [%s], expected [%s] got [%s]',
+                  [_field.Name, 'TJSONNumber', jvalue.ClassName]);
           end {
             else
             begin
