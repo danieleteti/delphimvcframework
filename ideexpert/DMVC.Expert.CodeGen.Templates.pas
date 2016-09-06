@@ -96,8 +96,8 @@ sLineBreak +
 
  // 0 - Unit Name
  // 1 - Class Name
- // 2 - Index Method - Interface
- // 3 - Index Method - Implementation
+ // 2 - Sample Methods - Interface
+ // 3 - Sample Methods - Implementation
  // 4 - Action Filters - Interface
  // 5 - Action Filters - Implementation
  sControllerUnit = 'unit %0:s;' + sLineBreak +
@@ -126,7 +126,11 @@ sLineBreak +
  sIndexMethodIntf =
 '    [MVCPath(''/'')]' + sLineBreak +
 '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-'    procedure Index;' + sLineBreak;
+'    procedure Index;' + sLineBreak + sLineBreak +
+'    [MVCPath(''/hellos/($FirstName)'')]' + sLineBreak +
+'    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+'    procedure GetSpecializedHello(const FirstName: String);' + sLineBreak;
+
 
  // 0 - Class Name
  sIndexMethodImpl =
@@ -135,7 +139,12 @@ sLineBreak +
  '  //use Context property to access to the HTTP request and response ' + sLineBreak +
  '  Render(''Hello World'');' + sLineBreak +
  sLineBreak +
- 'end;';
+ 'end;'  + sLineBreak + sLineBreak +
+ 'procedure %0:s.GetSpecializedHello(const FirstName: String);' + sLineBreak +
+ 'begin' + sLineBreak +
+ '  Render(''Hello '' + FirstName);' + sLineBreak +
+ sLineBreak +
+ 'end;'  + sLineBreak;
 
 sActionFiltersIntf =
 '    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;' + sLineBreak +

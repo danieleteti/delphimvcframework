@@ -309,8 +309,13 @@ type
 
 implementation
 
+
+{$IF CompilerVersion > 30}
+
 uses
-  AnsiStrings;
+  System.AnsiStrings;
+{$ENDIF}
+
 
 type
   TRESTResponse = class(TInterfacedObject, IRESTResponse)
@@ -1258,7 +1263,7 @@ var
   I: Integer;
 begin
   Result := '';
-  for I := Low(AResourceParams) to High(AResourceParams) do
+  for I := low(AResourceParams) to high(AResourceParams) do
     Result := Result + '/' + TIdURI.ParamsEncode(AResourceParams[I]);
 end;
 
@@ -1396,7 +1401,7 @@ var
   I: Integer;
 begin
   SetLength(FParams, Length(AValues));
-  for I := Low(AValues) to High(AValues) do
+  for I := low(AValues) to high(AValues) do
     FParams[I] := AValues[I];
   Result := self;
 end;
@@ -1490,7 +1495,12 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-        AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage), Length(E.ErrorMessage) * 2));
+{$IF CompilerVersion > 30}
+        System.AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage),
+{$ELSE}
+        ElementToCharLen(UTF8Encode(E.ErrorMessage),
+{$ENDIF}
+        Length(E.ErrorMessage) * 2));
     end
     else
       raise;
@@ -1569,7 +1579,12 @@ begin
   except
     on E: EIdHTTPProtocolException do
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-        AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage), Length(E.ErrorMessage) * 2));
+{$IF CompilerVersion > 30}
+        System.AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage),
+{$ELSE}
+        ElementToCharLen(UTF8Encode(E.ErrorMessage),
+{$ENDIF}
+        Length(E.ErrorMessage) * 2));
     else
       raise;
   end;

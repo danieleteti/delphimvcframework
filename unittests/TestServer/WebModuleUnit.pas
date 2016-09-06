@@ -47,7 +47,7 @@ begin
     procedure(Config: TMVCConfig)
     begin
       Config[TMVCConfigKey.Messaging] := 'true';
-    end);
+    end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)

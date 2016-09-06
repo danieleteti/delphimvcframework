@@ -9,7 +9,7 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule} ,
+  WebModuleUnit in 'WebModuleUnit.pas' {wm: TWebModule},
   TestServerControllerU in 'TestServerControllerU.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
@@ -22,8 +22,7 @@ uses
   MVCFramework.JWT in '..\..\sources\MVCFramework.JWT.pas',
   MVCFramework.Logger in '..\..\sources\MVCFramework.Logger.pas',
   MVCFramework.MessagingController in '..\..\sources\MVCFramework.MessagingController.pas',
-  MVCFramework.Middleware.Authentication
-    in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
+  MVCFramework.Middleware.Authentication in '..\..\sources\MVCFramework.Middleware.Authentication.pas',
   MVCFramework.Middleware.CORS in '..\..\sources\MVCFramework.Middleware.CORS.pas',
   MVCFramework.Middleware.JWT in '..\..\sources\MVCFramework.Middleware.JWT.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
@@ -35,7 +34,6 @@ uses
   MVCFramework.View in '..\..\sources\MVCFramework.View.pas',
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   uGlobalVars in '..\..\sources\uGlobalVars.pas',
-  Iocp.Logger in '..\..\sources\Iocp.Logger.pas',
   DuckListU in '..\..\sources\DuckListU.pas';
 
 {$R *.res}

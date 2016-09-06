@@ -175,7 +175,7 @@ begin
     begin
       LTimeOut := False;
       frame := nil;
-      Log('/messages receive');
+      Log.Info('/messages receive', ClassName);
       Stomp.Receive(frame, 100);
       if Assigned(frame) then
       // get 10 messages at max, and then send them to client
@@ -212,9 +212,9 @@ begin
         end
         else
         begin
-          LogE(Format
+          Log.Error(Format
             ('Not valid JSON object in topic requested by user %s. The raw message is "%s"',
-            [LClientID, frame.GetBody]));
+            [LClientID, frame.GetBody]), ClassName);
         end;
       end;
     end; // for in

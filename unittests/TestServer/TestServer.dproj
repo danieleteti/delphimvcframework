@@ -47,7 +47,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <VerInfo_Locale>1046</VerInfo_Locale>
-        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\sources;..\..\lib\iocpdelphiframework\Base;..\..\lib\iocpdelphiframework\Core;..\..\lib\iocpdelphiframework\Extensions;..\..\lib\delphistompclient;..\..\lib\dmustache;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\sources;..\..\lib\delphistompclient;..\..\lib\dmustache;..\..\lib\loggerpro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <DCC_DcpOutput>.\$(Platform)\$(Config)\dcp</DCC_DcpOutput>
         <DCC_BplOutput>.\$(Platform)\$(Config)\pkg</DCC_BplOutput>
@@ -129,7 +129,6 @@
         <DCCReference Include="..\..\sources\MVCFramework.View.pas"/>
         <DCCReference Include="..\..\sources\RTTIUtilsU.pas"/>
         <DCCReference Include="..\..\sources\uGlobalVars.pas"/>
-        <DCCReference Include="..\..\sources\Iocp.Logger.pas"/>
         <DCCReference Include="..\..\sources\DuckListU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
@@ -187,8 +186,10 @@
                     <Source Name="MainSource">TestServer.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k230.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp230.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k240.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp240.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k240.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp240.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
