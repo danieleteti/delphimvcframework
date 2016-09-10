@@ -1,7 +1,7 @@
 # DelphiMVCFramework - ROADMAP
 The DelphiMVCFramework team is working hard to bring to the Open Source Delphi community an even better framework for the Q4 2016 and Q1 2017. 
 In this document are defined all our plans for the next features. As you know DMVCFramework is used in many big and small companies  all around the world and many of these companies ask for specific features, so this roadmap tries to focus on these requests. 
-As we are in the detailed planning stages for these features, we will share additional details as we get further into Q4 2016 and 2017. If you have specific items or questions, please let the develpment team know and we can talk about it (email: dmvcframework@bittime.it).
+As we are in the detailed planning stages for these features, we will share additional details as we get further into Q4 2016 and 2017. If you have specific items or questions, please let the develpment team know and we can talk about it (email: dmvcframework@bittime.it). Also if we are working harder to bring these functionatilies to the light, there is no certainty that they will be implemented in the time or in the way we planned in this document. If you need some specific functionality according to your needs and in your time, request a quote for custom development (email: dmvcframework@bittime.it).
 
  - (DONE) Switch from the internal logger to the [LoggerPro](https://github.com/danieleteti/loggerpro) project to have more flexibility
  - (DONE) Remove eLua support and switch to [Mustache](https://github.com/synopse/dmustache) for server side view
@@ -13,7 +13,7 @@ As we are in the detailed planning stages for these features, we will share addi
    - Will be possible to register a specific serializer/deserializer engine for each type or property name
  - Switch from the System.JSON parser to the [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (which is more than 10 times faster).
    - This point has the max priority!
- - Improve the IDE expert
+ - (DONE, BUT WE NEED MORE) Improve the IDE expert
  - Add the XML support for the Mapper using the [OmniXML](https://github.com/mremec/omnixml) project (low priority: looking for volunteers)
  - Create a mechanism to allows a fast and dirty CRUD interface based on tables
    - With this features you can simply define the resource name, the database table name which that resource points to and the allowed standard CRUD actions, and you have a complete CRUD system. Will be a lot useful for all that simple entities which don't have complex business logic.
