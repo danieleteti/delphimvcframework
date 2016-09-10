@@ -18,6 +18,7 @@ As we are in the detailed planning stages for these features, we will share addi
  - Create a mechanism to allows a fast and dirty CRUD interface based on tables
    - With this features you can simply define the resource name, the database table name which that resource points to and the allowed standard CRUD actions, and you have a complete CRUD system. Will be a lot useful for all that simple entities which don't have complex business logic.
    - Will be based on FireDAC
+
 - New samples with specific web related use cases:
    - WebWorkers
    - Angular2
