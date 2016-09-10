@@ -1,6 +1,7 @@
 # DelphiMVCFramework - ROADMAP
-The DelphiMVCFramework team is working hard to bring to the Open Source Delphi community an even better framework for the Q4 2016 and Q1 2017.
+The DelphiMVCFramework team is working hard to bring to the Open Source Delphi community an even better framework for the Q4 2016 and Q1 2017. 
 In this document are defined all our plans for the next features. As you know DMVCFramework is used in many big and small companies  all around the world and many of these companies ask for specific features, so this roadmap tries to focus on these requests. 
+As we are in the detailed planning stages for these features, we will share additional details as we get further into Q4 2016 and 2017. If you have specific items or questions, please let the develpment team know and we can talk about it (email: dmvcframework@bittime.it).
 
  - (DONE) Switch from the internal logger to the [LoggerPro](https://github.com/danieleteti/loggerpro) project to have more flexibility
  - (DONE) Remove eLua support and switch to [Mustache](https://github.com/synopse/dmustache) for server side view
