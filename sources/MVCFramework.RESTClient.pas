@@ -310,10 +310,12 @@ type
 implementation
 
 
+{$IFNDEF ANDROID OR IOS}
 {$IF CompilerVersion > 30}
 
 uses
   System.AnsiStrings;
+{$ENDIF}
 {$ENDIF}
 
 
@@ -1496,7 +1498,7 @@ begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
 {$IF CompilerVersion > 30}
-        System.AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage),
+        ElementToCharLen(String(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
 {$ENDIF}
@@ -1580,7 +1582,7 @@ begin
     on E: EIdHTTPProtocolException do
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
 {$IF CompilerVersion > 30}
-        System.AnsiStrings.ElementToCharLen(UTF8Encode(E.ErrorMessage),
+        ElementToCharLen(String(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
 {$ENDIF}
