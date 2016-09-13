@@ -1,5 +1,6 @@
 #DMVCFramework features
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
+  * [Project Roadmap](delphimvcframework/roadmap.md) is always public
   * RESTful (RMM Level 3) compliant
   * Stable and solid, used by small/mid/big projects since 2010
   * Support group at https://www.facebook.com/groups/delphimvcframework with more than 700 active members
@@ -32,6 +33,9 @@
 ## How to correctly get the repository
 DMVCFramework uses a couple of external open source projects, so whe you clone its repository you must retrieve also all the submodule. In the developers guide all the speps are explained, but the git procedure is also repeated below in the screenshot.
 ![How to get the repository](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/dmvcframework_installation.png)
+
+## Roadmap
+DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](delphimvcframework/roadmap.md).
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
