@@ -53,7 +53,7 @@ uses
     , System.JSON, Web.ApacheHTTP
 {$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
-    ,LoggerPro;
+    , LoggerPro;
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
@@ -519,6 +519,7 @@ type
     procedure LoadSystemControllers; virtual;
     procedure ResponseErrorPage(E: Exception; Request: TWebRequest;
       Response: TWebResponse); virtual;
+    class procedure ClearSessionCookiesAlreadySet(aCookies: TCookieCollection);
   public
 
     class function GetCurrentSession(ASessionTimeout: UInt64;
@@ -669,6 +670,29 @@ begin
   end;
 end;
 
+class procedure TMVCEngine.ClearSessionCookiesAlreadySet(
+  aCookies: TCookieCollection);
+var
+  I: Integer;
+  lSessCookieName: string;
+  lCookie: TCookie;
+begin
+  lSessCookieName := TMVCConstants.SESSION_TOKEN_NAME.ToLower;
+  I := 0;
+  while true do
+  begin
+    if I = aCookies.Count then
+      Break;
+    lCookie := aCookies[I];
+    if lCookie.Name.ToLower = lSessCookieName then
+    begin
+      aCookies.Delete(I);
+    end
+    else
+      Inc(I);
+  end;
+end;
+
 procedure TMVCEngine.ConfigDefaultValues;
 begin
   Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
@@ -796,7 +820,7 @@ var
     var aActualParams: TArray<TValue>);
   var
     lParamName: string;
-    i: Integer;
+    I: Integer;
     lStrValue: string;
     lFormatSettings: TFormatSettings;
     lWasDateTime: Boolean;
@@ -806,69 +830,69 @@ var
         ('Paramaters count mismatch (expected %d actual %d) for action "%s"',
         [Length(aActionFormalParams), AContext.Request.GetSegmentParamsCount, aActionName]);
     SetLength(aActualParams, Length(aActionFormalParams));
-    for i := 0 to Length(aActionFormalParams) - 1 do
+    for I := 0 to Length(aActionFormalParams) - 1 do
     begin
-      lParamName := aActionFormalParams[i].Name;
+      lParamName := aActionFormalParams[I].Name;
       if not AContext.Request.GetSegmentParam(lParamName, lStrValue) then
         raise EMVCException.CreateFmt('Invalid paramater %s for action %s',
           [lParamName, aActionName]);
-      case aActionFormalParams[i].ParamType.TypeKind of
+      case aActionFormalParams[I].ParamType.TypeKind of
         tkInteger, tkInt64:
           begin
-            aActualParams[i] := StrToInt(lStrValue);
+            aActualParams[I] := StrToInt(lStrValue);
           end;
         tkUString:
           begin
-            aActualParams[i] := lStrValue;
+            aActualParams[I] := lStrValue;
           end;
         tkFloat:
           begin
             lWasDateTime := false;
-            if aActionFormalParams[i].ParamType.QualifiedName = 'System.TDate' then
+            if aActionFormalParams[I].ParamType.QualifiedName = 'System.TDate' then
             begin
               try
                 lWasDateTime := true;
-                aActualParams[i] := ISOStrToDate(lStrValue);
+                aActualParams[I] := ISOStrToDate(lStrValue);
               except
                 raise EMVCException.CreateFmt('Invalid TDate value for param [%s]',
-                  [aActionFormalParams[i].Name]);
+                  [aActionFormalParams[I].Name]);
               end;
             end
-            else if aActionFormalParams[i].ParamType.QualifiedName = 'System.TDateTime' then
+            else if aActionFormalParams[I].ParamType.QualifiedName = 'System.TDateTime' then
             begin
               try
                 lWasDateTime := true;
-                aActualParams[i] := ISOStrToDateTime(lStrValue);
+                aActualParams[I] := ISOStrToDateTime(lStrValue);
               except
                 raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s]',
-                  [aActionFormalParams[i].Name]);
+                  [aActionFormalParams[I].Name]);
               end;
             end
-            else if aActionFormalParams[i].ParamType.QualifiedName = 'System.TTime' then
+            else if aActionFormalParams[I].ParamType.QualifiedName = 'System.TTime' then
             begin
               try
                 lWasDateTime := true;
-                aActualParams[i] := ISOStrToTime(lStrValue);
+                aActualParams[I] := ISOStrToTime(lStrValue);
               except
                 raise EMVCException.CreateFmt('Invalid TTime value for param [%s]',
-                  [aActionFormalParams[i].Name]);
+                  [aActionFormalParams[I].Name]);
               end;
             end;
 
             if not lWasDateTime then
             begin
               lFormatSettings.DecimalSeparator := '.';
-              aActualParams[i] := StrToFloat(lStrValue, lFormatSettings);
+              aActualParams[I] := StrToFloat(lStrValue, lFormatSettings);
             end;
           end;
         tkEnumeration:
           begin
-            if aActionFormalParams[i].ParamType.QualifiedName = 'System.Boolean' then
+            if aActionFormalParams[I].ParamType.QualifiedName = 'System.Boolean' then
             begin
               if SameText(lStrValue, 'true') or SameText(lStrValue, '1') then
-                aActualParams[i] := true
+                aActualParams[I] := true
               else if SameText(lStrValue, 'false') or SameText(lStrValue, '0') then
-                aActualParams[i] := false
+                aActualParams[I] := false
               else
                 raise EMVCException.CreateFmt
                   ('Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
@@ -1121,7 +1145,7 @@ begin
       LMiddleware.OnBeforeControllerAction(Context,
         AControllerQualifiedClassName, aActionName, Handled);
       if Handled then
-        break;
+        Break;
     end;
 end;
 
@@ -1135,7 +1159,7 @@ begin
     begin
       middleware.OnBeforeRouting(Context, Handled);
       if Handled then
-        break;
+        Break;
     end;
 end;
 
@@ -1312,6 +1336,7 @@ var
   Cookie: TCookie;
   LSessTimeout: Integer;
 begin
+  ClearSessionCookiesAlreadySet(AContext.Response.Cookies);
   Cookie := AContext.Response.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionID;
@@ -1542,7 +1567,7 @@ function TMVCWebRequest.Body: string;
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
-  i: Integer;
+  I: Integer;
   { .$ENDIF }
 begin
   { .$IF CompilerVersion > 27 }
@@ -1555,9 +1580,9 @@ begin
   if FCharset.IsEmpty then
   begin
     SetLength(Buffer, 10);
-    for i := 0 to 9 do
+    for I := 0 to 9 do
     begin
-      Buffer[i] := Byte(FWebRequest.RawContent[i]);
+      Buffer[I] := Byte(FWebRequest.RawContent[I]);
     end;
     TEncoding.GetBufferEncoding(Buffer, InEnc, TEncoding.Default);
     SetLength(Buffer, 0);
@@ -2303,7 +2328,7 @@ end;
 
 function TMVCWebRequest.GetParamNames: TArray<string>;
 var
-  i: Integer;
+  I: Integer;
   Names: TList<string>;
   n: string;
 begin
@@ -2317,16 +2342,16 @@ begin
         Names.Add(n);
 
     if FWebRequest.QueryFields.Count > 0 then
-      for i := 0 to FWebRequest.QueryFields.Count - 1 do
-        Names.Add(FWebRequest.QueryFields.Names[i]);
+      for I := 0 to FWebRequest.QueryFields.Count - 1 do
+        Names.Add(FWebRequest.QueryFields.Names[I]);
 
     if FWebRequest.ContentFields.Count > 0 then
-      for i := 0 to FWebRequest.ContentFields.Count - 1 do
-        Names.Add(FWebRequest.ContentFields.Names[i]);
+      for I := 0 to FWebRequest.ContentFields.Count - 1 do
+        Names.Add(FWebRequest.ContentFields.Names[I]);
 
     if FWebRequest.CookieFields.Count > 0 then
-      for i := 0 to FWebRequest.CookieFields.Count - 1 do
-        Names.Add(FWebRequest.CookieFields.Names[i]);
+      for I := 0 to FWebRequest.CookieFields.Count - 1 do
+        Names.Add(FWebRequest.CookieFields.Names[I]);
     Result := Names.ToArray;
   finally
     Names.Free;
@@ -2358,15 +2383,15 @@ end;
 
 function MVCHTTPMethodAttribute.GetMVCHTTPMethodsAsString: string;
 var
-  i: TMVCHTTPMethodType;
+  I: TMVCHTTPMethodType;
 begin
   Result := '';
-  for i := low(TMVCHTTPMethodType) to high(TMVCHTTPMethodType) do
+  for I := low(TMVCHTTPMethodType) to high(TMVCHTTPMethodType) do
   begin
-    if i in FMVCHTTPMethods then
+    if I in FMVCHTTPMethods then
     begin
       Result := Result + ',' + GetEnumName
-        (TypeInfo(TMVCHTTPMethodType), Ord(i));
+        (TypeInfo(TMVCHTTPMethodType), Ord(I));
     end;
   end;
 
@@ -2867,7 +2892,7 @@ function TUser.LoadFromSession(AWebSession: TWebSession): Boolean;
 var
   LSerObj: string;
   LPieces: TArray<string>;
-  i: Integer;
+  I: Integer;
 begin
   if not Assigned(AWebSession) then
     Exit(false);
@@ -2881,9 +2906,9 @@ begin
     LoggedSince := ISOStrToDateTime(LPieces[1]);
     Realm := LPieces[2];
     Roles.Clear;
-    for i := 2 to Length(LPieces) - 1 do
+    for I := 2 to Length(LPieces) - 1 do
     begin
-      Roles.Add(LPieces[i]);
+      Roles.Add(LPieces[I]);
     end;
   end;
 end;

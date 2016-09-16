@@ -187,6 +187,9 @@ type
 
     function SendHTTPCommandWithBody(const ACommand: THTTPCommand;
       const AAccept, AContentType, AResource, ABody: string): IRESTResponse;
+
+    procedure OnHTTPRedirect(Sender: TObject; var dest: string; var NumRedirect: Integer;
+      var Handled: Boolean; var VMethod: TIdHTTPMethod);
   public
     constructor Create(const AHost: string; const APort: Word = 80;
       AIOHandler: TIdIOHandler = nil); virtual;
@@ -313,8 +316,9 @@ implementation
 {$IFNDEF ANDROID OR IOS}
 {$IF CompilerVersion > 30}
 
+
 uses
-  System.AnsiStrings;
+  System.AnsiStrings, MVCFramework.Commons;
 {$ENDIF}
 {$ENDIF}
 
@@ -576,13 +580,22 @@ begin
   FHeaders.Assign(AHeaders);
 
   C := GetHeader('content-type');
+  if not C.IsEmpty then
+  begin
+    CT := C.Split([':'])[1].Split([';']);
+    FContentType := Trim(CT[0]);
+  end
+  else
+  begin
+    SetLength(CT, 0);
+    FContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+  end;
 
-  CT := C.Split([':'])[1].Split([';']);
-  FContentType := Trim(CT[0]);
   FContentEncoding := 'UTF-8';
   if Length(CT) > 1 then
     if CT[1].Trim.StartsWith('charset', True) then
       FContentEncoding := CT[1].Trim.Split(['='])[1].Trim;
+
 end;
 
 procedure TRESTResponse.UpdateResponseCode(const AResponseCode: Word);
@@ -787,6 +800,8 @@ begin
     FProtocol := 'http';
 
   FHTTP := TIdHTTP.Create(nil);
+  FHTTP.HandleRedirects := False; // DT 2016/09/16
+  FHTTP.OnRedirect := OnHTTPRedirect; // DT 2016/09/16
   FHTTP.ReadTimeOut := 20000;
 
   if (AIOHandler <> nil) then
@@ -1344,7 +1359,6 @@ begin
       Break;
     end;
   end;
-
 end;
 
 procedure TRESTClient.HandleRequestCookies;
@@ -1396,6 +1410,12 @@ begin
     raise ERESTClientException.Create
       ('Unknown HTTPCommand in TRESTClient.HTTPCommandToString');
   end;
+end;
+
+procedure TRESTClient.OnHTTPRedirect(Sender: TObject; var dest: string;
+  var NumRedirect: Integer; var Handled: Boolean; var VMethod: TIdHTTPMethod);
+begin
+  Handled := False;
 end;
 
 function TRESTClient.Params(const AValues: array of string): TRESTClient;
@@ -1498,7 +1518,7 @@ begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
 {$IF CompilerVersion > 30}
-        ElementToCharLen(String(UTF8Encode(E.ErrorMessage)),
+        ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
 {$ENDIF}
@@ -1582,7 +1602,7 @@ begin
     on E: EIdHTTPProtocolException do
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
 {$IF CompilerVersion > 30}
-        ElementToCharLen(String(UTF8Encode(E.ErrorMessage)),
+        ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
 {$ENDIF}

@@ -34,7 +34,8 @@ uses
   MVCFramework.View in '..\..\sources\MVCFramework.View.pas',
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   uGlobalVars in '..\..\sources\uGlobalVars.pas',
-  DuckListU in '..\..\sources\DuckListU.pas';
+  DuckListU in '..\..\sources\DuckListU.pas',
+  TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas';
 
 {$R *.res}
 

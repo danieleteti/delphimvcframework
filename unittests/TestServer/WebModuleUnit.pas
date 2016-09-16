@@ -21,24 +21,37 @@ implementation
 
 {$R *.dfm}
 
+
 uses
   TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication, System.Generics.Collections,
-  MVCFramework.Commons;
+  MVCFramework.Commons, TestServerControllerPrivateU;
 
 type
-  TSampleAuth = class(TInterfacedObject, IMVCAuthenticationHandler)
+  TAuthHandlerBase = class abstract(TInterfacedObject, IMVCAuthenticationHandler)
 
   public
     procedure OnRequest(const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean);
+      const ActionName: string; var AuthenticationRequired: Boolean); virtual; abstract;
     procedure OnAuthentication(const UserName: string; const Password: string;
       UserRoles: System.Generics.Collections.TList<System.string>;
-      var IsValid: Boolean; const SessionData: TDictionary<String, String>);
+      var IsValid: Boolean; const SessionData: TDictionary<string, string>); virtual;
     procedure OnAuthorization(UserRoles
       : System.Generics.Collections.TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
-      var IsAuthorized: Boolean);
+      var IsAuthorized: Boolean); virtual;
+  end;
+
+  TBasicAuthHandler = class(TAuthHandlerBase)
+  public
+    procedure OnRequest(const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean); override;
+  end;
+
+  TCustomAuthHandler = class(TAuthHandlerBase)
+  public
+    procedure OnRequest(const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean); override;
   end;
 
 procedure Twm.WebModuleCreate(Sender: TObject);
@@ -52,19 +65,20 @@ begin
     .AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
+    .AddController(TTestPrivateServerControllerCustomAuth)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create
-    (TSampleAuth.Create));
+    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
+    .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged','/login.html'));
 
   // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;
 
 { TSampleAuth }
 
-procedure TSampleAuth.OnAuthentication(const UserName: string;
-const Password: string;
-UserRoles: System.Generics.Collections.TList<System.string>;
-var IsValid: Boolean; const SessionData: TDictionary<String, String>);
+procedure TAuthHandlerBase.OnAuthentication(
+  const UserName: string; const Password: string;
+UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean;
+const SessionData: TDictionary<string, string>);
 begin
   UserRoles.Clear;
   IsValid := UserName = Password;
@@ -83,10 +97,13 @@ begin
   end;
 end;
 
-procedure TSampleAuth.OnAuthorization(UserRoles
+procedure TAuthHandlerBase.OnAuthorization(UserRoles
   : System.Generics.Collections.TList<System.string>;
-const ControllerQualifiedClassName, ActionName: string;
-var IsAuthorized: Boolean);
+const
+  ControllerQualifiedClassName, ActionName: string;
+var
+  IsAuthorized:
+  Boolean);
 begin
   IsAuthorized := False;
   if (ActionName = 'OnlyRole1') or (ActionName = 'OnlyRole1Session') then
@@ -96,11 +113,22 @@ begin
     IsAuthorized := UserRoles.Contains('role2');
 end;
 
-procedure TSampleAuth.OnRequest(const ControllerQualifiedClassName,
-  ActionName: string; var AuthenticationRequired: Boolean);
+{ TBasicAuthHandler }
+
+procedure TBasicAuthHandler.OnRequest(const ControllerQualifiedClassName, ActionName: string;
+var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName.EndsWith
     ('TTestPrivateServerController');
+end;
+
+{ TCustomAuthHandler }
+
+procedure TCustomAuthHandler.OnRequest(const ControllerQualifiedClassName,
+  ActionName: string; var AuthenticationRequired: Boolean);
+begin
+  AuthenticationRequired := ControllerQualifiedClassName.EndsWith
+    ('TTestPrivateServerControllerCustomAuth');
 end;
 
 end.

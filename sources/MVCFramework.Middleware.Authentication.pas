@@ -27,8 +27,8 @@ unit MVCFramework.Middleware.Authentication;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.Logger,
-  System.Generics.Collections;
+  MVCFramework, MVCFramework.Logger,
+  System.Generics.Collections, MVCFramework.Commons;
 
 type
   TMVCBasicAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
@@ -47,12 +47,34 @@ type
       Realm: string = 'DelphiMVCFramework REALM'); virtual;
   end;
 
+  TMVCCustomAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  strict private
+    FMVCAuthenticationHandler: IMVCAuthenticationHandler;
+  private
+    FLoginUrl: string;
+    procedure SendResponse(const Context: TWebContext; var Handled: Boolean;
+      HTTPStatus: Word = HTTP_STATUS.Unauthorized);
+  protected
+    procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
+    procedure OnAfterControllerAction(Context: TWebContext;
+      const AActionName: string; const Handled: Boolean);
+    procedure OnBeforeControllerAction(Context: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      var Handled: Boolean);
+  public
+    constructor Create(
+      AMVCAuthenticationHandler: IMVCAuthenticationHandler;
+      aLoginUrl: string = '/system/users/logged';
+      aRedirectUrl: string = ''
+      ); virtual;
+  end;
+
 implementation
 
 uses
   System.SysUtils, MVCFramework.Session
 {$IF CompilerVersion >= 21}
-    , System.NetEncoding
+    , System.NetEncoding, System.JSON, ObjectsMappers
 {$ELSE}
     , Soap.EncdDecd
 {$ENDIF};
@@ -70,7 +92,7 @@ const
   CONTENT_401_NOT_AUTHORIZED = '401: Not authorized';
   CONTENT_403_FORBIDDEN = '403: Forbidden';
 
-function Base64DecodeString(const Value: String): String; inline;
+function Base64DecodeString(const Value: string): string; inline;
 begin
 {$IF CompilerVersion >= 21}
   Result := TNetEncoding.Base64.Decode(Value);
@@ -106,7 +128,7 @@ var
   LIsAuthorized: Boolean;
   LAuthRequired: Boolean;
   LSessionData: TSessionData;
-  LPair: TPair<String, String>;
+  LPair: TPair<string, string>;
   procedure SendWWWAuthenticate;
   begin
     Context.LoggedUser.Clear;
@@ -114,12 +136,14 @@ var
     begin
       Context.Response.ContentType := 'text/html';
       Context.Response.RawWebResponse.Content :=
-        Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED, Context.Config[TMVCConfigKey.ServerName]]);
+        Format(CONTENT_HTML_FORMAT, [CONTENT_401_NOT_AUTHORIZED,
+        Context.Config[TMVCConfigKey.ServerName]]);
     end
     else
     begin
       Context.Response.ContentType := 'text/plain';
-      Context.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak + Context.Config[TMVCConfigKey.ServerName];
+      Context.Response.RawWebResponse.Content := CONTENT_401_NOT_AUTHORIZED + sLineBreak +
+        Context.Config[TMVCConfigKey.ServerName];
     end;
     Context.Response.StatusCode := 401;
     Context.Response.SetCustomHeader('WWW-Authenticate',
@@ -135,12 +159,14 @@ var
     begin
       Context.Response.ContentType := 'text/html';
       Context.Response.RawWebResponse.Content :=
-        Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN, Context.Config[TMVCConfigKey.ServerName]]);
+        Format(CONTENT_HTML_FORMAT, [CONTENT_403_FORBIDDEN,
+        Context.Config[TMVCConfigKey.ServerName]]);
     end
     else
     begin
       Context.Response.ContentType := 'text/plain';
-      Context.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN + sLineBreak + Context.Config[TMVCConfigKey.ServerName];
+      Context.Response.RawWebResponse.Content := CONTENT_403_FORBIDDEN + sLineBreak + Context.Config
+        [TMVCConfigKey.ServerName];
     end;
     Context.Response.StatusCode := 403;
     Handled := true;
@@ -222,6 +248,211 @@ procedure TMVCBasicAuthenticationMiddleware.OnBeforeRouting
   (Context: TWebContext; var Handled: Boolean);
 begin
   // do nothing
+end;
+
+{ TMVCFormAuthenticationMiddleware }
+
+constructor TMVCCustomAuthenticationMiddleware.Create(
+  AMVCAuthenticationHandler: IMVCAuthenticationHandler;
+  aLoginUrl: string = '/system/users/logged';
+  aRedirectUrl: string = ''
+  );
+begin
+  inherited Create;
+  FMVCAuthenticationHandler := AMVCAuthenticationHandler;
+  FLoginUrl := aLoginUrl.ToLower;
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.OnAfterControllerAction(
+  Context: TWebContext; const AActionName: string; const Handled: Boolean);
+begin
+  // do nothing
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.SendResponse(const Context: TWebContext;
+  var Handled: Boolean; HTTPStatus: Word);
+begin
+  Context.LoggedUser.Clear;
+  Context.Response.CustomHeaders.Values['X-LOGIN-URL'] := FLoginUrl;
+  Context.Response.CustomHeaders.Values['X-LOGIN-METHOD'] := 'POST';
+  Context.Response.StatusCode := HTTPStatus;
+  if Context.Request.ClientPreferHTML then
+  begin
+    Context.Response.ContentType := 'text/html';
+    Context.Response.RawWebResponse.Content :=
+      Format(CONTENT_HTML_FORMAT, [HTTPStatus,
+      Context.Config[TMVCConfigKey.ServerName]]);
+  end
+  else
+  begin
+    Context.Response.ContentType := 'application/json';
+    Context.Response.RawWebResponse.Content :=
+      '{"status":"KO", "message":"' + HTTPStatus.ToString + '"}';
+  end;
+  Handled := true;
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.OnBeforeControllerAction(
+  Context: TWebContext; const AControllerQualifiedClassName,
+  AActionName: string; var Handled: Boolean);
+var
+  LIsValid: Boolean;
+  LIsAuthorized: Boolean;
+  LAuthRequired: Boolean;
+begin
+  // check if the resource is protected
+  FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName,
+    AActionName, LAuthRequired);
+  if not LAuthRequired then
+  begin
+    Handled := False;
+    Exit;
+  end;
+
+  Context.LoggedUser.LoadFromSession(Context.Session);
+  LIsValid := Context.LoggedUser.IsValid;
+  if not LIsValid then
+  begin
+    SendResponse(Context, Handled);
+    Exit;
+  end;
+
+  // authorization
+  LIsAuthorized := False;
+  FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles,
+    AControllerQualifiedClassName, AActionName, LIsAuthorized);
+
+  if LIsAuthorized then
+    Handled := False
+  else
+  begin
+    if LIsValid then
+      SendResponse(Context, Handled, HTTP_STATUS.Forbidden)
+    else
+      SendResponse(Context, Handled, HTTP_STATUS.Unauthorized);
+  end;
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext;
+  var Handled: Boolean);
+var
+  lJObj: TJSONObject;
+  lUserName: string;
+  lPassword: string;
+  LIsValid: Boolean;
+  LRoles: TList<string>;
+  LSessionData: TSessionData;
+  LPair: TPair<string, string>;
+begin
+  if (Context.Request.PathInfo.ToLower = FLoginUrl)
+    and (Context.Request.HTTPMethod = httpPOST)
+    and (Context.Request.ContentType.StartsWith(TMVCMediaType.APPLICATION_JSON))
+  then
+  begin
+    Context.SessionStop(False);
+    Context.LoggedUser.Clear;
+    if not Context.Request.ThereIsRequestBody then
+    begin
+      Handled := true;
+      Context.Response.StatusCode := HTTP_STATUS.BadRequest;
+      Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+      Context.Response.RawWebResponse.Content :=
+        '{"status":"KO", "message":"username and password are mandatory in the body request as json object"}';
+      Exit;
+    end;
+
+    lJObj := Context.Request.BodyAsJSONObject;
+    if not Assigned(lJObj) then
+    begin
+      Handled := true;
+      SendResponse(Context, Handled, HTTP_STATUS.BadRequest);
+      Exit;
+    end;
+
+    lUserName := Mapper.GetStringDef(lJObj, 'username', '');
+    lPassword := Mapper.GetStringDef(lJObj, 'password', '');
+
+    if lUserName.IsEmpty or lPassword.IsEmpty then
+    begin
+      Handled := true;
+      SendResponse(Context, Handled);
+      Exit;
+    end;
+
+    // now, we have username and password.
+    // check the authorization for the requested resource
+
+    LRoles := TList<string>.Create;
+    try
+      LSessionData := TSessionData.Create;
+      try
+        LIsValid := False;
+        FMVCAuthenticationHandler.OnAuthentication(lUserName, lPassword,
+          LRoles, LIsValid, LSessionData);
+        if not LIsValid then
+        begin
+          SendResponse(Context, Handled);
+          Exit;
+        end;
+
+        // create the session
+        Context.LoggedUser.Roles.AddRange(LRoles);
+        Context.LoggedUser.UserName := lUserName;
+        Context.LoggedUser.LoggedSince := Now;
+        Context.LoggedUser.Realm := 'custom';
+        Context.LoggedUser.SaveToSession(Context.Session);
+
+        // save sessiondata to the actual session
+        for LPair in LSessionData do
+        begin
+          Context.Session[LPair.Key] := LPair.Value;
+        end;
+
+        Context.Response.StatusCode := HTTP_STATUS.OK;
+        Context.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLoginUrl;
+        Context.Response.CustomHeaders.Values['X-LOGOUT-METHOD'] := 'DELETE';
+        Context.Response.RawWebResponse.Content := '{"status":"OK"}';
+        Handled := true;
+      finally
+        LSessionData.Free;
+      end;
+    finally
+      LRoles.Free;
+    end;
+
+  end;
+
+  {
+    Context.LoggedUser.LoadFromSession(Context.Session);
+    if not Context.LoggedUser.IsValid then
+    begin
+    Send401Unauthorized;
+    Exit;
+    end;
+
+
+    // authorization
+    LIsAuthorized := False;
+    if LIsValid then
+    begin
+    FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles,
+    AControllerQualifiedClassName, AActionName, LIsAuthorized)
+    end;
+
+    if LIsAuthorized then
+    Handled := False
+    else
+    begin
+    if LIsValid then
+    Send403Forbidden
+    else
+    SendWWWAuthenticate;
+    end;
+
+    end;
+
+
+  }
 end;
 
 end.

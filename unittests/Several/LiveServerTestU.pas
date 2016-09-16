@@ -44,12 +44,20 @@ type
     procedure TestMiddlewareSpeedMiddleware;
     procedure TestMiddlewareHandler;
     procedure TestPostAListOfObjects;
-    // test authentication/authorization
+    // test authentication/authorization with BasicAuth
     procedure TestAuthentication01;
     procedure TestAuthentication02;
     procedure TestAuthentication03;
     procedure TestAuthentication04;
     procedure TestAuthentication05;
+
+    // test authentication/authorization with CustomAuth
+    procedure TestCustomAuthRequestWithoutLogin;
+    procedure TestCustomAuthRequestsWithValidLogin;
+    procedure TestCustomAuthWrongRequestBodies;
+    procedure TestCustomAuthentication04;
+    procedure TestCustomAuthentication05;
+
     // typed actions
     procedure TestTypedString1;
     procedure TestTypedInteger1;
@@ -329,6 +337,105 @@ begin
     CheckEquals('/usersettings' + IntToStr(I + 1),
       res.Cookies.Cookies[I].Path);
   end;
+
+end;
+
+procedure TServerTest.TestCustomAuthRequestWithoutLogin;
+var
+  LRes: IRESTResponse;
+begin
+  LRes := RESTClient.doGET('/privatecustom/role1', []);
+  CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
+  CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
+  CheckEquals('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
+
+  LRes := RESTClient.doGET('/privatecustom/role2', []);
+  CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
+  CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
+  CheckEquals('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
+end;
+
+procedure TServerTest.TestCustomAuthRequestsWithValidLogin;
+var
+  LRes: IRESTResponse;
+  lJSON: TJSONObject;
+  lCookieValue: string;
+begin
+  lJSON := TJSONObject.Create;
+  try
+    lJSON.AddPair('username', 'user1');
+    lJSON.AddPair('password', 'user1');
+    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+
+    lJSON.AddPair('username', 'user1');
+    lJSON.AddPair('password', 'user1');
+    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+    CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
+    CheckEquals('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
+    CheckEquals('{"status":"OK"}', LRes.BodyAsString);
+    lCookieValue := LRes.Cookies
+      [LRes.Cookies.GetCookieIndex(TMVCConstants.SESSION_TOKEN_NAME)].Value;
+    CheckNotEquals('', lCookieValue, 'Session cookie not returned after login');
+    CheckFalse(lCookieValue.Contains('invalid'), 'Returned an invalid session token');
+
+    LRes := RESTClient.doGET('/privatecustom/role2', []);
+    CheckEquals(HTTP_STATUS.Forbidden, LRes.ResponseCode,
+      'Authorization not respected for not allowed action');
+
+    LRes := RESTClient.doGET('/privatecustom/role1', []);
+    CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode,
+      'Authorization not respected for allowed action');
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestCustomAuthWrongRequestBodies;
+var
+  LRes: IRESTResponse;
+  lJSON: TJSONObject;
+  lCookieValue: string;
+begin
+  lJSON := TJSONObject.Create;
+  try
+    // no request body
+    LRes := RESTClient.doPOST('/system/users/logged', []);
+    CheckEquals(HTTP_STATUS.BadRequest, LRes.ResponseCode,
+      'Empty request body doesn''t return HTTP 400 Bad Request');
+
+    // wrong request body 1
+    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
+      'Invalid json doesn''t return HTTP 401 Unauthorized');
+
+    // wrong request body 2
+    lJSON.AddPair('username', '');
+    lJSON.AddPair('password', '');
+    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
+      'Empty username and password doesn''t return HTTP 401 Unauthorized');
+
+    // wrong username and password 3
+    lJSON.RemovePair('username');
+    lJSON.RemovePair('password');
+    lJSON.AddPair('username', 'notvaliduser');
+    lJSON.AddPair('password', 'notvalidpassword');
+    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
+      'Wrong username and password doesn''t return HTTP 401 Unauthorized');
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestCustomAuthentication04;
+begin
+
+end;
+
+procedure TServerTest.TestCustomAuthentication05;
+begin
 
 end;
 
