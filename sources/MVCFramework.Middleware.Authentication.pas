@@ -61,11 +61,12 @@ type
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionName: string;
       var Handled: Boolean);
+    procedure DoLogin(Context: TWebContext; var Handled: Boolean);
+    procedure DoLogout(Context: TWebContext; var Handled: Boolean);
   public
     constructor Create(
       AMVCAuthenticationHandler: IMVCAuthenticationHandler;
-      aLoginUrl: string = '/system/users/logged';
-      aRedirectUrl: string = ''
+      aLoginUrl: string = '/system/users/logged'
       ); virtual;
   end;
 
@@ -74,7 +75,7 @@ implementation
 uses
   System.SysUtils, MVCFramework.Session
 {$IF CompilerVersion >= 21}
-    , System.NetEncoding, System.JSON, ObjectsMappers
+    , System.NetEncoding, System.JSON, ObjectsMappers, System.StrUtils
 {$ELSE}
     , Soap.EncdDecd
 {$ENDIF};
@@ -254,13 +255,102 @@ end;
 
 constructor TMVCCustomAuthenticationMiddleware.Create(
   AMVCAuthenticationHandler: IMVCAuthenticationHandler;
-  aLoginUrl: string = '/system/users/logged';
-  aRedirectUrl: string = ''
-  );
+  aLoginUrl: string = '/system/users/logged');
 begin
   inherited Create;
   FMVCAuthenticationHandler := AMVCAuthenticationHandler;
   FLoginUrl := aLoginUrl.ToLower;
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.DoLogin(Context: TWebContext;
+  var Handled: Boolean);
+var
+  lJObj: TJSONObject;
+  lUserName: string;
+  lPassword: string;
+  LRoles: TList<string>;
+  LPair: TPair<string, string>;
+  LSessionData: TSessionData;
+  LIsValid: Boolean;
+begin
+  Context.SessionStop(False);
+  Context.LoggedUser.Clear;
+  if not Context.Request.ThereIsRequestBody then
+  begin
+    Handled := true;
+    Context.Response.StatusCode := HTTP_STATUS.BadRequest;
+    Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+    Context.Response.RawWebResponse.Content :=
+      '{"status":"KO", "message":"username and password are mandatory in the body request as json object"}';
+    Exit;
+  end;
+
+  lJObj := Context.Request.BodyAsJSONObject;
+  if not Assigned(lJObj) then
+  begin
+    Handled := true;
+    SendResponse(Context, Handled, HTTP_STATUS.BadRequest);
+    Exit;
+  end;
+
+  lUserName := Mapper.GetStringDef(lJObj, 'username', '');
+  lPassword := Mapper.GetStringDef(lJObj, 'password', '');
+
+  if lUserName.IsEmpty or lPassword.IsEmpty then
+  begin
+    Handled := true;
+    SendResponse(Context, Handled);
+    Exit;
+  end;
+
+  // now, we have username and password.
+  // check the authorization for the requested resource
+
+  LRoles := TList<string>.Create;
+  try
+    LSessionData := TSessionData.Create;
+    try
+      LIsValid := False;
+      FMVCAuthenticationHandler.OnAuthentication(lUserName, lPassword,
+        LRoles, LIsValid, LSessionData);
+      if not LIsValid then
+      begin
+        SendResponse(Context, Handled);
+        Exit;
+      end;
+
+      // create the session
+      Context.LoggedUser.Roles.AddRange(LRoles);
+      Context.LoggedUser.UserName := lUserName;
+      Context.LoggedUser.LoggedSince := Now;
+      Context.LoggedUser.Realm := 'custom';
+      Context.LoggedUser.SaveToSession(Context.Session);
+
+      // save sessiondata to the actual session
+      for LPair in LSessionData do
+      begin
+        Context.Session[LPair.Key] := LPair.Value;
+      end;
+
+      Context.Response.StatusCode := HTTP_STATUS.OK;
+      Context.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLoginUrl;
+      Context.Response.CustomHeaders.Values['X-LOGOUT-METHOD'] := 'DELETE';
+      Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+      Context.Response.RawWebResponse.Content := '{"status":"OK"}';
+      Handled := true;
+    finally
+      LSessionData.Free;
+    end;
+  finally
+    LRoles.Free;
+  end;
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.DoLogout(Context: TWebContext;
+  var Handled: Boolean);
+begin
+  Context.SessionStop(False);
+  SendResponse(Context, Handled, HTTP_STATUS.OK);
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.OnAfterControllerAction(
@@ -271,6 +361,9 @@ end;
 
 procedure TMVCCustomAuthenticationMiddleware.SendResponse(const Context: TWebContext;
   var Handled: Boolean; HTTPStatus: Word);
+var
+  lIsPositive: Boolean;
+  lMsg: string;
 begin
   Context.LoggedUser.Clear;
   Context.Response.CustomHeaders.Values['X-LOGIN-URL'] := FLoginUrl;
@@ -285,9 +378,11 @@ begin
   end
   else
   begin
+    lIsPositive := (HTTPStatus div 100) = 2;
+    lMsg := ifthen(lIsPositive, 'OK', 'KO');
     Context.Response.ContentType := 'application/json';
     Context.Response.RawWebResponse.Content :=
-      '{"status":"KO", "message":"' + HTTPStatus.ToString + '"}';
+      '{"status":"' + lMsg + '", "message":"' + HTTPStatus.ToString + '"}';
   end;
   Handled := true;
 end;
@@ -335,91 +430,20 @@ end;
 
 procedure TMVCCustomAuthenticationMiddleware.OnBeforeRouting(Context: TWebContext;
   var Handled: Boolean);
-var
-  lJObj: TJSONObject;
-  lUserName: string;
-  lPassword: string;
-  LIsValid: Boolean;
-  LRoles: TList<string>;
-  LSessionData: TSessionData;
-  LPair: TPair<string, string>;
 begin
-  if (Context.Request.PathInfo.ToLower = FLoginUrl)
-    and (Context.Request.HTTPMethod = httpPOST)
-    and (Context.Request.ContentType.StartsWith(TMVCMediaType.APPLICATION_JSON))
-  then
+  if (Context.Request.PathInfo.ToLower = FLoginUrl) then
   begin
-    Context.SessionStop(False);
-    Context.LoggedUser.Clear;
-    if not Context.Request.ThereIsRequestBody then
+    Handled := False;
+    if (Context.Request.HTTPMethod = httpPOST)
+      and (Context.Request.ContentType.StartsWith(TMVCMediaType.APPLICATION_JSON))
+    then
     begin
-      Handled := true;
-      Context.Response.StatusCode := HTTP_STATUS.BadRequest;
-      Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
-      Context.Response.RawWebResponse.Content :=
-        '{"status":"KO", "message":"username and password are mandatory in the body request as json object"}';
-      Exit;
+      DoLogin(Context, Handled);
     end;
-
-    lJObj := Context.Request.BodyAsJSONObject;
-    if not Assigned(lJObj) then
+    if Context.Request.HTTPMethod = httpDELETE then
     begin
-      Handled := true;
-      SendResponse(Context, Handled, HTTP_STATUS.BadRequest);
-      Exit;
+      DoLogout(Context, Handled);
     end;
-
-    lUserName := Mapper.GetStringDef(lJObj, 'username', '');
-    lPassword := Mapper.GetStringDef(lJObj, 'password', '');
-
-    if lUserName.IsEmpty or lPassword.IsEmpty then
-    begin
-      Handled := true;
-      SendResponse(Context, Handled);
-      Exit;
-    end;
-
-    // now, we have username and password.
-    // check the authorization for the requested resource
-
-    LRoles := TList<string>.Create;
-    try
-      LSessionData := TSessionData.Create;
-      try
-        LIsValid := False;
-        FMVCAuthenticationHandler.OnAuthentication(lUserName, lPassword,
-          LRoles, LIsValid, LSessionData);
-        if not LIsValid then
-        begin
-          SendResponse(Context, Handled);
-          Exit;
-        end;
-
-        // create the session
-        Context.LoggedUser.Roles.AddRange(LRoles);
-        Context.LoggedUser.UserName := lUserName;
-        Context.LoggedUser.LoggedSince := Now;
-        Context.LoggedUser.Realm := 'custom';
-        Context.LoggedUser.SaveToSession(Context.Session);
-
-        // save sessiondata to the actual session
-        for LPair in LSessionData do
-        begin
-          Context.Session[LPair.Key] := LPair.Value;
-        end;
-
-        Context.Response.StatusCode := HTTP_STATUS.OK;
-        Context.Response.CustomHeaders.Values['X-LOGOUT-URL'] := FLoginUrl;
-        Context.Response.CustomHeaders.Values['X-LOGOUT-METHOD'] := 'DELETE';
-        Context.Response.RawWebResponse.Content := '{"status":"OK"}';
-        Handled := true;
-      finally
-        LSessionData.Free;
-      end;
-    finally
-      LRoles.Free;
-    end;
-
   end;
 
   {

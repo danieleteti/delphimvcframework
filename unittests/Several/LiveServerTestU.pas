@@ -1,3 +1,27 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit LiveServerTestU;
 
 interface
@@ -55,8 +79,7 @@ type
     procedure TestCustomAuthRequestWithoutLogin;
     procedure TestCustomAuthRequestsWithValidLogin;
     procedure TestCustomAuthWrongRequestBodies;
-    procedure TestCustomAuthentication04;
-    procedure TestCustomAuthentication05;
+    procedure TestCustomAuthLoginLogout;
 
     // typed actions
     procedure TestTypedString1;
@@ -366,10 +389,7 @@ begin
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
-
-    lJSON.AddPair('username', 'user1');
-    lJSON.AddPair('password', 'user1');
-    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    CheckEquals('application/json', LRes.ContentType);
     CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
     CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
     CheckEquals('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
@@ -395,7 +415,6 @@ procedure TServerTest.TestCustomAuthWrongRequestBodies;
 var
   LRes: IRESTResponse;
   lJSON: TJSONObject;
-  lCookieValue: string;
 begin
   lJSON := TJSONObject.Create;
   try
@@ -429,13 +448,45 @@ begin
   end;
 end;
 
-procedure TServerTest.TestCustomAuthentication04;
+procedure TServerTest.TestCustomAuthLoginLogout;
+var
+  LRes: IRESTResponse;
+  lJSON: TJSONObject;
+  lLogoutUrl: string;
+  lValue: string;
+  I: Integer;
+  lPieces: TArray<string>;
+  lPass: Boolean;
 begin
+  lJSON := TJSONObject.Create;
+  try
+    lJSON.AddPair('username', 'user1');
+    lJSON.AddPair('password', 'user1');
+    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
 
-end;
+    CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+    lLogoutUrl := LRes.HeaderValue('X-LOGOUT-URL');
 
-procedure TServerTest.TestCustomAuthentication05;
-begin
+    LRes := RESTClient.doDELETE(lLogoutUrl, []);
+    lPass := false;
+    for I := 0 to LRes.Headers.Count do
+    begin
+      lValue := LRes.Headers[I];
+      if lValue.StartsWith('Set-Cookie') then
+      begin
+        lPieces := lValue.Split([':']);
+        lValue := lPieces[1].Trim;
+        if lValue.StartsWith(TMVCConstants.SESSION_TOKEN_NAME) and lValue.Contains('invalid') then
+        begin
+          lPass := true;
+          Break;
+        end;
+      end;
+    end;
+    CheckTrue(lPass, 'No session cookie cleanup in the response');
+  finally
+    lJSON.Free;
+  end;
 
 end;
 

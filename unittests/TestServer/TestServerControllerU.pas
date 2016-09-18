@@ -1,3 +1,27 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit TestServerControllerU;
 
 interface
@@ -103,7 +127,7 @@ type
 
     { Strongly typed actions }
     [MVCPath('/typed/string1/($value)')]
-    procedure TestTypedActionString1(value: String);
+    procedure TestTypedActionString1(value: string);
 
     [MVCPath('/typed/integer1/($value)')]
     procedure TestTypedActionInteger1(value: Integer);
@@ -122,7 +146,7 @@ type
 
     [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')
       ]
-    procedure TestTypedActionAllTypes(ParString: String; ParInteger: Integer; ParInt64: Int64;
+    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64;
       ParSingle: Single; ParDouble: Double; ParExtended: Extended);
 
     [MVCPath('/typed/tdatetime1/($value)')]
@@ -391,7 +415,7 @@ begin
   Render(Person);
 end;
 
-procedure TTestServerController.TestTypedActionAllTypes(ParString: String;
+procedure TTestServerController.TestTypedActionAllTypes(ParString: string;
   ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
   ParExtended: Extended);
 var
@@ -437,7 +461,7 @@ begin
   Render(value.ToString + ' modified from server');
 end;
 
-procedure TTestServerController.TestTypedActionString1(value: String);
+procedure TTestServerController.TestTypedActionString1(value: string);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(value + ' modified from server');
