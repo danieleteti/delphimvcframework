@@ -35,7 +35,8 @@ uses
   RTTIUtilsU in '..\..\sources\RTTIUtilsU.pas',
   uGlobalVars in '..\..\sources\uGlobalVars.pas',
   DuckListU in '..\..\sources\DuckListU.pas',
-  TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas';
+  TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas',
+  AuthHandlersU in 'AuthHandlersU.pas';
 
 {$R *.res}
 

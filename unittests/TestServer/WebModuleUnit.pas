@@ -25,34 +25,7 @@ implementation
 uses
   TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication, System.Generics.Collections,
-  MVCFramework.Commons, TestServerControllerPrivateU;
-
-type
-  TAuthHandlerBase = class abstract(TInterfacedObject, IMVCAuthenticationHandler)
-
-  public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean); virtual; abstract;
-    procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>;
-      var IsValid: Boolean; const SessionData: TDictionary<string, string>); virtual;
-    procedure OnAuthorization(UserRoles
-      : System.Generics.Collections.TList<System.string>;
-      const ControllerQualifiedClassName: string; const ActionName: string;
-      var IsAuthorized: Boolean); virtual;
-  end;
-
-  TBasicAuthHandler = class(TAuthHandlerBase)
-  public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean); override;
-  end;
-
-  TCustomAuthHandler = class(TAuthHandlerBase)
-  public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean); override;
-  end;
+  MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU;
 
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
@@ -74,61 +47,7 @@ begin
 end;
 
 { TSampleAuth }
-
-procedure TAuthHandlerBase.OnAuthentication(
-  const UserName: string; const Password: string;
-UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean;
-const SessionData: TDictionary<string, string>);
-begin
-  UserRoles.Clear;
-  IsValid := UserName = Password;
-  if not IsValid then
-    Exit;
-
-  if UserName = 'user1' then
-  begin
-    IsValid := True;
-    UserRoles.Add('role1');
-  end;
-  if UserName = 'user2' then
-  begin
-    IsValid := True;
-    UserRoles.Add('role2');
-  end;
-end;
-
-procedure TAuthHandlerBase.OnAuthorization(UserRoles
-  : System.Generics.Collections.TList<System.string>;
-const
-  ControllerQualifiedClassName, ActionName: string;
-var
-  IsAuthorized:
-  Boolean);
-begin
-  IsAuthorized := False;
-  if (ActionName = 'OnlyRole1') or (ActionName = 'OnlyRole1Session') then
-    IsAuthorized := UserRoles.Contains('role1');
-
-  if ActionName = 'OnlyRole2' then
-    IsAuthorized := UserRoles.Contains('role2');
-end;
-
 { TBasicAuthHandler }
-
-procedure TBasicAuthHandler.OnRequest(const ControllerQualifiedClassName, ActionName: string;
-var AuthenticationRequired: Boolean);
-begin
-  AuthenticationRequired := ControllerQualifiedClassName.EndsWith
-    ('TTestPrivateServerController');
-end;
-
 { TCustomAuthHandler }
-
-procedure TCustomAuthHandler.OnRequest(const ControllerQualifiedClassName,
-  ActionName: string; var AuthenticationRequired: Boolean);
-begin
-  AuthenticationRequired := ControllerQualifiedClassName.EndsWith
-    ('TTestPrivateServerControllerCustomAuth');
-end;
 
 end.
