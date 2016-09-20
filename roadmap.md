@@ -25,7 +25,7 @@ As we are in the detailed planning stages for these features, we will share addi
    - WebWorkers
    - Angular2
    - React
-	 - Custom Authentication and Authorization
-   
+
+- (DONE) Create "Custom Authentication and Authorization" demo
 - Complete the [DevGuide](https://danieleteti.gitbooks.io/delphimvcframework/content/) on gitbooks
 - Improve the session mechanism to allows more flexibility
