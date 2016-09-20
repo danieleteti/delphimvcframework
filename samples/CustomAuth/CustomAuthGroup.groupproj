@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CF5DB084-7815-4A94-85E3-F9FC0074C8AC}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="CustomAuthServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="CustomAuthClient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="CustomAuthServer">
+        <MSBuild Projects="CustomAuthServer.dproj"/>
+    </Target>
+    <Target Name="CustomAuthServer:Clean">
+        <MSBuild Projects="CustomAuthServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomAuthServer:Make">
+        <MSBuild Projects="CustomAuthServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="CustomAuthClient">
+        <MSBuild Projects="CustomAuthClient.dproj"/>
+    </Target>
+    <Target Name="CustomAuthClient:Clean">
+        <MSBuild Projects="CustomAuthClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomAuthClient:Make">
+        <MSBuild Projects="CustomAuthClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="CustomAuthServer;CustomAuthClient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="CustomAuthServer:Clean;CustomAuthClient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="CustomAuthServer:Make;CustomAuthClient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
