@@ -11,7 +11,6 @@ object Form4: TForm4
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnClose = FormClose
   DesignSize = (
     527
     506)
@@ -39,6 +38,5 @@ object Form4: TForm4
     Font.Style = []
     ParentFont = False
     TabOrder = 1
-    ExplicitHeight = 196
   end
 end
