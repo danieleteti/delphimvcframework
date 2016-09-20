@@ -1355,6 +1355,8 @@ begin
       begin
         arr := arr[1].Split(['='], 2);
         FLastSessionID := TIdURI.URLDecode(arr[1].Split([';'])[0]);
+        if FLastSessionID.Contains('invalid') then
+          FLastSessionID := '';
       end;
       Break;
     end;
@@ -1600,6 +1602,8 @@ begin
     end;
   except
     on E: EIdHTTPProtocolException do
+    begin
+      Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
 {$IF CompilerVersion > 30}
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
@@ -1607,6 +1611,7 @@ begin
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
 {$ENDIF}
         Length(E.ErrorMessage) * 2));
+    end
     else
       raise;
   end;

@@ -408,6 +408,7 @@ begin
   LIsValid := Context.LoggedUser.IsValid;
   if not LIsValid then
   begin
+    Context.SessionStop(false);
     SendResponse(Context, Handled);
     Exit;
   end;

@@ -126,6 +126,7 @@ type
   public
     constructor Create(AWebRequest: TWebRequest); virtual;
   private
+    FBody: String;
     FWebRequest: TWebRequest;
     FParamsTable: TMVCRequestParamsTable;
     FContentType: string;
@@ -1570,6 +1571,9 @@ var
   I: Integer;
   { .$ENDIF }
 begin
+  if FBody <> '' then
+    Exit(FBody);
+
   { .$IF CompilerVersion > 27 }
   // Exit(FWebRequest.Content);
   { .$ELSE }
@@ -1594,7 +1598,8 @@ begin
   try
     SetLength(Buffer, FWebRequest.ContentLength);
     FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    Result := InEnc.GetString(Buffer);
+    FBody := InEnc.GetString(Buffer);
+    Result := FBody;
   finally
     InEnc.Free;
   end
@@ -1749,6 +1754,7 @@ var
   c: string;
 begin
   inherited Create;
+  FBody := '';
   c := AWebRequest.GetFieldByName('Content-Type');
   if not c.IsEmpty then
   begin

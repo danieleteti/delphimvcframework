@@ -69,11 +69,11 @@ type
     procedure TestMiddlewareHandler;
     procedure TestPostAListOfObjects;
     // test authentication/authorization with BasicAuth
-    procedure TestAuthentication01;
-    procedure TestAuthentication02;
-    procedure TestAuthentication03;
-    procedure TestAuthentication04;
-    procedure TestAuthentication05;
+    procedure TestBasicAuth01;
+    procedure TestBasicAuth02;
+    procedure TestBasicAuth03;
+    procedure TestBasicAuth04;
+    procedure TestBasicAuth05;
 
     // test authentication/authorization with CustomAuth
     procedure TestCustomAuthRequestWithoutLogin;
@@ -274,7 +274,7 @@ begin
   end;
 end;
 
-procedure TServerTest.TestAuthentication01;
+procedure TServerTest.TestBasicAuth01;
 var
   LRes: IRESTResponse;
 begin
@@ -285,7 +285,7 @@ begin
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
 
-procedure TServerTest.TestAuthentication02;
+procedure TServerTest.TestBasicAuth02;
 var
   LRes: IRESTResponse;
 begin
@@ -296,7 +296,7 @@ begin
   CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
 end;
 
-procedure TServerTest.TestAuthentication03;
+procedure TServerTest.TestBasicAuth03;
 var
   LRes: IRESTResponse;
 begin
@@ -307,7 +307,7 @@ begin
   CheckEquals(HTTP_STATUS.Forbidden, LRes.ResponseCode);
 end;
 
-procedure TServerTest.TestAuthentication04;
+procedure TServerTest.TestBasicAuth04;
 var
   LRes: IRESTResponse;
 begin
@@ -320,7 +320,7 @@ begin
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
 
-procedure TServerTest.TestAuthentication05;
+procedure TServerTest.TestBasicAuth05;
 var
   LRes: IRESTResponse;
 begin

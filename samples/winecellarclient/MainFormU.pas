@@ -89,7 +89,7 @@ procedure TForm5.FDMemTable1BeforeDelete(DataSet: TDataSet);
 var
   Resp: IRESTResponse;
 begin
-  Resp := RESTClient.DSDelete('/wines', FDMemTable1id.AsString);
+  Resp := RESTClient.DataSetDelete('/wines', FDMemTable1id.AsString);
   if not Resp.ResponseCode in [200] then
     raise Exception.Create(Resp.ResponseText);
 end;
@@ -102,9 +102,9 @@ begin
     Exit;
   case FDMemTable1.State of
     dsEdit:
-      Resp := RESTClient.DSUpdate('/wines', FDMemTable1, FDMemTable1id.AsString);
+      Resp := RESTClient.DataSetUpdate('/wines', FDMemTable1, FDMemTable1id.AsString);
     dsInsert:
-      Resp := RESTClient.DSInsert('/wines', FDMemTable1);
+      Resp := RESTClient.DataSetInsert('/wines', FDMemTable1);
   end;
   if not Resp.ResponseCode in [200, 201] then
     raise Exception.Create(Resp.ResponseText);

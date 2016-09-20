@@ -1,5 +1,10 @@
+19/09/2016
+- IDE Expert: Load optimized configuration for the default generated project (MaxConnections and ListenQueue)
+- small optimization for body reading in the TWebContext
+- add sample for CustomAuth
+
 16/09/2016
-- added Custom Authetication and Authorization Middleware
+- added Custom Authentication and Authorization Middleware
 
 06/09/2016
 - Restored support for Delphi Version with no inline array support

@@ -76,7 +76,7 @@ var
   Res: IRESTResponse;
 begin
   if FDMemTable1.State = dsBrowse then
-    Res := Clt.DSDelete('/articles', FDMemTable1id.AsString);
+    Res := Clt.DataSetDelete('/articles', FDMemTable1id.AsString);
   if not(Res.ResponseCode in [200, 201]) then
   begin
     ShowError(Res);
@@ -93,9 +93,9 @@ begin
   if not FLoading then
   begin
     if FDMemTable1.State = dsInsert then
-      Res := Clt.dsInsert('/articles', FDMemTable1)
+      Res := Clt.DataSetInsert('/articles', FDMemTable1)
     else
-      Res := Clt.dsUpdate('/articles', FDMemTable1, FDMemTable1id.AsString);
+      Res := Clt.DataSetUpdate('/articles', FDMemTable1, FDMemTable1id.AsString);
     if not(Res.ResponseCode in [200, 201]) then
     begin
       ShowError(Res);
