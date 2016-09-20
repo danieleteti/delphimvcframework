@@ -1,4 +1,4 @@
-object wm: Twm
+object bas: Tbas
   OldCreateOrder = False
   OnCreate = WebModuleCreate
   Actions = <>

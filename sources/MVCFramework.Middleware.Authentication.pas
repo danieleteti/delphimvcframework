@@ -184,7 +184,8 @@ begin
   end;
 
   Context.LoggedUser.LoadFromSession(Context.Session);
-  if not Context.LoggedUser.IsValid then
+  LIsValid := Context.LoggedUser.IsValid;
+  if not LIsValid then
   begin
     // We NEED authentication
     LAuth := Context.Request.Headers['Authorization'];

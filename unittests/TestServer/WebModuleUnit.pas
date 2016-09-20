@@ -32,14 +32,14 @@ uses System.SysUtils,
   MVCFramework;
 
 type
-  Twm = class(TWebModule)
+  Tbas = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
   private
     MVCEngine: TMVCEngine;
   end;
 
 var
-  WebModuleClass: TComponentClass = Twm;
+  WebModuleClass: TComponentClass = Tbas;
 
 implementation
 
@@ -51,7 +51,7 @@ uses
   MVCFramework.Middleware.Authentication, System.Generics.Collections,
   MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU;
 
-procedure Twm.WebModuleCreate(Sender: TObject);
+procedure Tbas.WebModuleCreate(Sender: TObject);
 begin
   MVCEngine := TMVCEngine.Create(self,
     procedure(Config: TMVCConfig)
