@@ -9,6 +9,7 @@ As we are in the detailed planning stages for these features, we will share addi
  - (DONE) Implement Strongly Typed Actions
  - (DOME) Implement Custom Authentication and Authorization Middleware
  - (ALMOST DONE) Use a middleware to implement response compression for console type projects
+ - Implement Swagger support (we need a good self contained YAML parser/generator...)
  - Linux support (compatibly with the [Next Delphi version with codename Godzilla](http://community.embarcadero.com/article/news/16211-embarcadero-rad-studio-2016-product-approach-and-roadmap-2))
  - Update Mapper framework to make it extensible and configurable
    - The default mapper interface will be the same as the current version so that no breaking changes happend
