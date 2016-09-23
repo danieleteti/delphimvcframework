@@ -20,7 +20,6 @@ type
     Button1: TButton;
     Memo1: TMemo;
     procedure Button1Click(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     th0: IStompListener;
     th1: IStompListener;
@@ -56,38 +55,35 @@ var
   stomp1: IStompClient;
   stomp2: IStompClient;
 begin
-  stomp0 := StompUtils.NewStomp;
-  stomp0.Subscribe('/topic/daniele', amAuto, StompUtils.NewHeaders.Add('include-seq', 'seq'));
+  stomp0 := TStompClient.CreateAndConnect;
+  stomp0.Subscribe('/topic/danieleteti', amAuto, StompUtils.NewHeaders.Add('include-seq', 'seq'));
   th0 := TStompClientListener.Create(stomp0, TMyStompListener.Create);
 
-  stomp1 := StompUtils.NewStomp;
-  stomp1.Subscribe('/topic/daniele');
+  stomp1 := TStompClient.CreateAndConnect;
+  stomp1.Subscribe('/topic/danieleteti');
   th1 := TStompClientListener.Create(stomp1, self);
 
-  stomp2 := StompUtils.NewStomp;
+  stomp2 := TStompClient.CreateAndConnect;
   stomp2.Subscribe('/topic/salvatore');
   th2 := TStompClientListener.Create(stomp2, self);
 
-  TThread.CreateAnonymousThread(procedure
+  TThread.CreateAnonymousThread(
+    procedure
     var
       i: Integer;
       stomp: IStompClient;
     begin
-      stomp := StompUtils.NewStomp;
+      stomp := TStompClient.CreateAndConnect;
       for i := 1 to 10 do
       begin
         sleep(100);
-        stomp.Send('/topic/daniele,/topic/salvatore', 'Hello World ' + IntToStr(i));
+        stomp.Send('/topic/danieleteti', 'Hello World ' + IntToStr(i));
+        stomp.Send('/topic/salvatore', 'Hello World ' + IntToStr(i));
       end;
-      stomp.Send('/topic/daniele,/topic/salvatore', 'SHUTDOWN');
+      stomp.Send('/topic/danieleteti', 'SHUTDOWN');
+      stomp.Send('/topic/johndoe', 'SHUTDOWN');
       stomp.Disconnect;
     end).Start;
-end;
-
-procedure TForm4.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  // th1.StopListening;
-  // th2.StopListening;
 end;
 
 procedure TForm4.OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
@@ -96,7 +92,8 @@ begin
   if StompFrame.GetBody = 'SHUTDOWN' then
     StopListening := true;
 
-  TThread.Synchronize(nil, procedure
+  TThread.Synchronize(nil,
+    procedure
     begin
       Memo1.Lines.Add(StompFrame.GetBody);
     end);
@@ -104,7 +101,8 @@ end;
 
 procedure TForm4.OnStopListen(StompClient: IStompClient);
 begin
-  TThread.Synchronize(nil, procedure
+  TThread.Synchronize(nil,
+    procedure
     begin
       Memo1.Lines.Add(StompClient.GetSession + ' has been stopped');
     end);

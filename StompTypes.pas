@@ -196,6 +196,7 @@ type
     procedure OnStopListen(StompClient: IStompClient);
   end;
 
+  { TODO -oDaniele -cGeneral : Use TThread by composition and not by inheritance }
   TStompClientListener = class(TThread, IStompListener)
   strict protected
     FStompClientListener: IStompClientListener;

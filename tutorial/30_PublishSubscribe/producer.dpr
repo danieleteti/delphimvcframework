@@ -5,7 +5,7 @@ program producer;
 {$R *.res}
 
 {
-  https://www.rabbitmq.com/tutorials/tutorial-two-python.html
+  https://www.rabbitmq.com/tutorials/tutorial-three-python.html
 }
 
 uses
@@ -18,8 +18,8 @@ var
   lMessage: string;
 begin
   lClient := TStompClient.Create;
-  lClient.Connect();
-  WriteLn('Sending messages to queue "myjobqueue"');
+  lClient.Connect;
+  WriteLn('Sending messages to topic "mytopic"');
   WriteLn('NOTE: Consumers will wait a second for each "." present in the message.');
   WriteLn('      empty message will terminate the program.');
   lMessage := '';
@@ -28,8 +28,16 @@ begin
     Readln(lMessage);
     if not lMessage.IsEmpty then
     begin
-      lClient.Send('/queue/myjobqueue', lMessage, StompUtils.Headers.Add('auto-delete', 'true'));
-    end;
+      lClient.Send('/topic/mytopic', lMessage);
+      // Server can replyes with an ERROR.
+      // Server Errors raise exception automatically in the client,
+      // so we can just "try" to read something.
+      // If you need to understand the type of the error you can
+      // read the message normally and check the body.
+      lClient.Receive(100);
+    end
+    else
+      WriteLn('Nothing to send... we are not kidding here bro!');
   until lMessage.IsEmpty;
   WriteLn('bye bye');
   lClient.Disconnect;

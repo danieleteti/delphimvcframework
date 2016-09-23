@@ -22,8 +22,8 @@ def buildProject(project):
 def summaryTable(builds):
     print(ansi.clear_screen())
     dmvc_copyright()
-    print(Fore.WHITE + "PROJECT NAME".ljust(90) + "STATUS".ljust(10))
-    print(Fore.YELLOW + "=" * 100)
+    print(Fore.WHITE + "PROJECT NAME".ljust(80) + "STATUS".ljust(10))
+    print(Fore.YELLOW + "=" * 90)
     good = bad = 0
     for item in builds:
         if item['status'] == 'ok':
@@ -32,14 +32,14 @@ def summaryTable(builds):
         else:
             #WConio.textcolor(WConio.RED)
             bad += 1
-        print(Fore.BLUE + item['project'].ljust(90) + (Fore.WHITE if item['status'] == 'ok' else Fore.RED) + item['status'].ljust(4))
+        print(Fore.BLUE + item['project'].ljust(80) + (Fore.WHITE if item['status'] == 'ok' else Fore.RED) + item['status'].ljust(4))
 				
     #WConio.textcolor(WConio.WHITE)
-    print(Fore.YELLOW + "=" * 100)
+    print(Fore.YELLOW + "=" * 90)
     #WConio.textcolor(WConio.GREEN)
-    print(Fore.WHITE + "GOOD :".rjust(90) + str(good).rjust(10, '.'))
+    print(Fore.WHITE + "GOOD :".rjust(80) + str(good).rjust(10, '.'))
     #WConio.textcolor(WConio.RED)
-    print(Fore.RED + "BAD  :".rjust(90) + str(bad).rjust(10, '.'))
+    print(Fore.RED + "BAD  :".rjust(80) + str(bad).rjust(10, '.'))
 
 
 #################################################################################
@@ -63,12 +63,15 @@ def main(projects):
 #old_setting = WConio.gettextinfo()[4] & 0x00FF
 
 def dmvc_copyright():
-  print(Style.BRIGHT + Fore.WHITE + "----------------------------------------------------------------------------------------")	
+  print(Style.BRIGHT + Fore.WHITE + "------------------------------------------------------------------------------------------")	
   print(Fore.RED + "                 ** Delphi STOMP Client Building System **")
   print(Fore.WHITE + " Delphi STOMP Client is CopyRight (2010-2016) of Daniele Teti d.teti@bittime.it")
-  print(Fore.RESET + "----------------------------------------------------------------------------------------\n")
+  print(Fore.RESET + "------------------------------------------------------------------------------------------\n")
 
 ## MAIN ##
-projects = glob.glob("*\**\**\*.dproj")
+projects = glob.glob("examples\**\**\*.dproj")
+projects += glob.glob("examples\**\*.dproj")
+projects += glob.glob("tutorial\**\*.dproj")
+
 main(projects)
 print(Style.RESET_ALL)
