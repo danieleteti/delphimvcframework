@@ -19,7 +19,6 @@ unit StompClient;
 {$MODE DELPHI}
 {$DEFINE USESYNAPSE}
 {$ENDIF}
-
 // For Delphi users:
 // Decomment following line to use synapse also in Delphi
 { .$DEFINE USESYNAPSE }
@@ -72,7 +71,13 @@ type
     FServer: string;
     FOnBeforeSendFrame: TSenderFrameEvent;
     FOnAfterSendFrame: TSenderFrameEvent;
+    FHost: string;
+    FPort: Integer;
+    FClientID: string;
+    FAcceptVersion: TStompAcceptProtocol;
+    FConnectionTimeout: UInt32;
     procedure SetReceiptTimeout(const Value: Integer);
+    procedure SetConnectionTimeout(const Value: UInt32);
 
   protected
 
@@ -83,62 +88,71 @@ type
 {$ENDIF}
     procedure Init;
     procedure DeInit;
-    procedure MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
+    procedure MergeHeaders(var AFrame: IStompFrame;
+      var AHeaders: IStompHeaders);
     procedure SendFrame(AFrame: IStompFrame);
     function FormatErrorFrame(const AErrorFrame: IStompFrame): string;
   public
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
-    function Receive(out StompFrame: IStompFrame; ATimeout: Integer): boolean; overload;
+    function Receive(out StompFrame: IStompFrame; ATimeout: Integer)
+      : boolean; overload;
     function Receive: IStompFrame; overload;
     function Receive(ATimeout: Integer): IStompFrame; overload;
     procedure Receipt(const ReceiptID: string);
-    procedure Connect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-      ClientID: string = '';
-      AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.STOMP_Version_1_0);
+    procedure Connect(Host: string = '127.0.0.1';
+      Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
+      AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.
+      STOMP_Version_1_0);
     procedure Disconnect;
-    procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = TAckMode.amAuto;
-      Headers: IStompHeaders = nil);
+    procedure Subscribe(QueueOrTopicName: string;
+      Ack: TAckMode = TAckMode.amAuto; Headers: IStompHeaders = nil);
     procedure Unsubscribe(Queue: string);
-    procedure Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders = nil);
-      overload;
-    procedure Send(QueueOrTopicName: string; TextMessage: string; TransactionIdentifier: string;
+    procedure Send(QueueOrTopicName: string; TextMessage: string;
       Headers: IStompHeaders = nil); overload;
-    procedure Ack(const MessageID: string; const TransactionIdentifier: string = '');
+    procedure Send(QueueOrTopicName: string; TextMessage: string;
+      TransactionIdentifier: string; Headers: IStompHeaders = nil); overload;
+    procedure Ack(const MessageID: string;
+      const TransactionIdentifier: string = '');
     { STOMP 1.1 }
-    procedure Nack(const MessageID: string; const TransactionIdentifier: string = '');
+    procedure Nack(const MessageID: string;
+      const TransactionIdentifier: string = '');
     procedure BeginTransaction(const TransactionIdentifier: string);
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);
     /// ////////////
     constructor Create; overload; virtual;
-    class function CreateAndConnect(Host: string = '127.0.0.1'; Port: Integer = DEFAULT_STOMP_PORT;
-      ClientID: string = '';
-      AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.STOMP_Version_1_0): IStompClient;
-      overload; virtual;
+    class function CreateAndConnect(Host: string = '127.0.0.1';
+      Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
+      AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.
+      STOMP_Version_1_0): IStompClient; overload; virtual;
     destructor Destroy; override;
+    function Clone: IStompClient;
     function Connected: boolean;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
     function GetProtocolVersion: string;
     function GetServer: string;
     function GetSession: string;
-    property ReceiptTimeout: Integer read FReceiptTimeout write SetReceiptTimeout;
+    property ReceiptTimeout: Integer read FReceiptTimeout
+      write SetReceiptTimeout;
     property Transactions: TStringList read FTransactions;
+    property ConnectionTimeout: UInt32 read FConnectionTimeout
+      write SetConnectionTimeout;
     // * Manage Events
-    property OnBeforeSendFrame: TSenderFrameEvent read FOnBeforeSendFrame write FOnBeforeSendFrame;
-    property OnAfterSendFrame: TSenderFrameEvent read FOnAfterSendFrame write FOnAfterSendFrame;
+    property OnBeforeSendFrame: TSenderFrameEvent read FOnBeforeSendFrame
+      write FOnBeforeSendFrame;
+    property OnAfterSendFrame: TSenderFrameEvent read FOnAfterSendFrame
+      write FOnAfterSendFrame;
   end;
 
 implementation
 
 {$IFDEF FPC}
 
-
 const
   CHAR0 = #0;
 
 {$ELSE}
-
 
 uses
   // Windows,   // Remove windows unit for compiling on ios
@@ -147,7 +161,6 @@ uses
   Character;
 
 {$ENDIF}
-
 { TStompClient }
 
 procedure TStompClient.AbortTransaction(const TransactionIdentifier: string);
@@ -164,11 +177,13 @@ begin
     FTransactions.Delete(FTransactions.IndexOf(TransactionIdentifier));
   end
   else
-    raise EStomp.CreateFmt('Abort Transaction Error. Transaction [%s] not found',
+    raise EStomp.CreateFmt
+      ('Abort Transaction Error. Transaction [%s] not found',
       [TransactionIdentifier]);
 end;
 
-procedure TStompClient.Ack(const MessageID: string; const TransactionIdentifier: string);
+procedure TStompClient.Ack(const MessageID: string;
+  const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
 begin
@@ -195,7 +210,8 @@ begin
     FTransactions.Add(TransactionIdentifier);
   end
   else
-    raise EStomp.CreateFmt('Begin Transaction Error. Transaction [%s] still open',
+    raise EStomp.CreateFmt
+      ('Begin Transaction Error. Transaction [%s] still open',
       [TransactionIdentifier]);
 end;
 
@@ -214,6 +230,13 @@ end;
 // SendFrame(Frame);
 // end;
 
+function TStompClient.Clone: IStompClient;
+begin
+  Result := TStompClient.Create;
+  TStompClient(Result).ConnectionTimeout := FConnectionTimeout;
+  TStompClient(Result).Connect(FHost, FPort, FClientID, FAcceptVersion);
+end;
+
 procedure TStompClient.CommitTransaction(const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
@@ -228,7 +251,8 @@ begin
     FTransactions.Delete(FTransactions.IndexOf(TransactionIdentifier));
   end
   else
-    raise EStomp.CreateFmt('Commit Transaction Error. Transaction [%s] not found',
+    raise EStomp.CreateFmt
+      ('Commit Transaction Error. Transaction [%s] not found',
       [TransactionIdentifier]);
 end;
 
@@ -237,6 +261,11 @@ procedure TStompClient.Connect(Host: string; Port: Integer; ClientID: string;
 var
   Frame: IStompFrame;
 begin
+  FHost := Host;
+  FPort := Port;
+  FClientID := ClientID;
+  FAcceptVersion := AcceptVersion;
+
   try
     Init;
 
@@ -246,6 +275,7 @@ begin
     FSynapseConnected := True;
 
 {$ELSE}
+    FTCP.ConnectTimeout := FConnectionTimeout;
     FTCP.Connect(Host, Port);
     FTCP.IOHandler.MaxLineLength := MaxInt;
 
@@ -254,15 +284,19 @@ begin
     Frame.SetCommand('CONNECT');
 
     FClientAcceptProtocolVersion := AcceptVersion;
-    if TStompAcceptProtocol.STOMP_Version_1_1 in [FClientAcceptProtocolVersion] then
+    if TStompAcceptProtocol.STOMP_Version_1_1 in [FClientAcceptProtocolVersion]
+    then
     begin
       Frame.GetHeaders.Add('heart-beat', '0,1000'); // stomp 1.1
       Frame.GetHeaders.Add('accept-version', '1.1'); // stomp 1.1
     end;
 
     Frame.GetHeaders.Add('login', FUserName).Add('passcode', FPassword);
+    FClientID := ClientID;
     if ClientID <> '' then
+    begin
       Frame.GetHeaders.Add('client-id', ClientID);
+    end;
     SendFrame(Frame);
     Frame := nil;
     while Frame = nil do
@@ -294,11 +328,10 @@ begin
   Result := Assigned(FTCP) and FTCP.Connected;
 
 {$ENDIF}
-
 end;
 
-class function TStompClient.CreateAndConnect(Host: string; Port: Integer; ClientID: string;
-  AcceptVersion: TStompAcceptProtocol): IStompClient;
+class function TStompClient.CreateAndConnect(Host: string; Port: Integer;
+  ClientID: string; AcceptVersion: TStompAcceptProtocol): IStompClient;
 begin
   Result := TStompClient.Create;
   Result.Connect(Host, Port, ClientID, AcceptVersion);
@@ -314,6 +347,7 @@ begin
   FHeaders := TStompHeaders.Create;
   FTimeout := 200;
   FReceiptTimeout := FTimeout;
+  FConnectionTimeout := 1000 * 10; // 10secs
 end;
 
 procedure TStompClient.DeInit;
@@ -362,7 +396,8 @@ function TStompClient.FormatErrorFrame(const AErrorFrame: IStompFrame): string;
 begin
   if AErrorFrame.GetCommand <> 'ERROR' then
     raise EStomp.Create('Not an ERROR frame');
-  Result := AErrorFrame.GetHeaders.Value('message') + ': ' + AErrorFrame.GetBody;
+  Result := AErrorFrame.GetHeaders.Value('message') + ': ' +
+    AErrorFrame.GetBody;
 end;
 
 function TStompClient.GetProtocolVersion: string;
@@ -398,14 +433,12 @@ end;
 
 {$IFDEF USESYNAPSE}
 
-
 procedure TStompClient.SynapseSocketCallBack(Sender: TObject;
   Reason: THookSocketReason; const Value: string);
 begin
   // As seen at TBlockSocket.ExceptCheck procedure, it SEEMS safe to say
   // when an error occurred and is not a Timeout, the connection is broken
-  if (Reason = HR_Error) and (FSynapseTCP.LastError <> WSAETIMEDOUT)
-  then
+  if (Reason = HR_Error) and (FSynapseTCP.LastError <> WSAETIMEDOUT) then
   begin
     FSynapseConnected := False;
   end;
@@ -413,8 +446,8 @@ end;
 
 {$ENDIF}
 
-
-procedure TStompClient.MergeHeaders(var AFrame: IStompFrame; var AHeaders: IStompHeaders);
+procedure TStompClient.MergeHeaders(var AFrame: IStompFrame;
+  var AHeaders: IStompHeaders);
 var
   i: Integer;
   h: TKeyValue;
@@ -457,7 +490,8 @@ begin
   end;
 end;
 
-function TStompClient.Receive(out StompFrame: IStompFrame; ATimeout: Integer): boolean;
+function TStompClient.Receive(out StompFrame: IStompFrame;
+  ATimeout: Integer): boolean;
 begin
   StompFrame := nil;
   StompFrame := Receive(ATimeout);
@@ -484,7 +518,8 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
           begin
             c := Chr(FSynapseTCP.RecvByte(ATimeout));
             if c <> CHAR0 then
-              s := s + c // should be improved with a string buffer (daniele.teti)
+              s := s + c
+              // should be improved with a string buffer (daniele.teti)
             else
             begin
               c := Chr(FSynapseTCP.RecvByte(ATimeout));
@@ -545,7 +580,8 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
       try
         // read command line
         // repeat
-        s := FTCP.Socket.ReadLn(LF, ATimeout, -1, FTCP.Socket.DefStringEncoding);
+        s := FTCP.Socket.ReadLn(LF, ATimeout, -1,
+          FTCP.Socket.DefStringEncoding);
         // until s <> '';
         if s = '' then
           Exit(nil);
@@ -638,7 +674,6 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 
 {$ENDIF}
 
-
 begin
 
 {$IFDEF USESYNAPSE}
@@ -648,7 +683,6 @@ begin
   Result := InternalReceiveINDY(ATimeout);
 
 {$ENDIF}
-
 end;
 
 function TStompClient.Receive: IStompFrame;
@@ -656,7 +690,8 @@ begin
   Result := Receive(FTimeout);
 end;
 
-procedure TStompClient.Send(QueueOrTopicName: string; TextMessage: string; Headers: IStompHeaders);
+procedure TStompClient.Send(QueueOrTopicName: string; TextMessage: string;
+  Headers: IStompHeaders);
 var
   Frame: IStompFrame;
 begin
@@ -707,7 +742,11 @@ begin
     FOnAfterSendFrame(AFrame);
 
 {$ENDIF}
+end;
 
+procedure TStompClient.SetConnectionTimeout(const Value: UInt32);
+begin
+  FConnectionTimeout := Value;
 end;
 
 function TStompClient.SetPassword(const Value: string): IStompClient;
@@ -721,7 +760,8 @@ begin
   FReceiptTimeout := Value;
 end;
 
-function TStompClient.SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
+function TStompClient.SetReceiveTimeout(const AMilliSeconds: Cardinal)
+  : IStompClient;
 begin
   FTimeout := AMilliSeconds;
   Result := Self;
@@ -733,14 +773,15 @@ begin
   Result := Self;
 end;
 
-procedure TStompClient.Subscribe(QueueOrTopicName: string; Ack: TAckMode = TAckMode.amAuto;
-  Headers: IStompHeaders = nil);
+procedure TStompClient.Subscribe(QueueOrTopicName: string;
+  Ack: TAckMode = TAckMode.amAuto; Headers: IStompHeaders = nil);
 var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
   Frame.SetCommand('SUBSCRIBE');
-  Frame.GetHeaders.Add('destination', QueueOrTopicName).Add('ack', StompUtils.AckModeToStr(Ack));
+  Frame.GetHeaders.Add('destination', QueueOrTopicName)
+    .Add('ack', StompUtils.AckModeToStr(Ack));
   if Headers <> nil then
     MergeHeaders(Frame, Headers);
   SendFrame(Frame);

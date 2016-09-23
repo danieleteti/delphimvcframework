@@ -78,6 +78,7 @@ type
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613;
       ClientID: string = '';
       AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
+    function Clone: IStompClient;
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
