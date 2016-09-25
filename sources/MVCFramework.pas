@@ -50,8 +50,9 @@ uses
 {$IF CompilerVersion < 27}
     , Data.DBXJSON
 {$ELSE}
-    , System.JSON, Web.ApacheHTTP
+    , System.JSON
 {$ENDIF}
+    , Web.ApacheHTTP
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
     , LoggerPro;
 
@@ -687,7 +688,7 @@ begin
     if I = aCookies.Count then
       Break;
     lCookie := aCookies[I];
-    if lCookie.Name.ToLower = lSessCookieName then
+    if LowerCase(lCookie.Name) = lSessCookieName then
     begin
       aCookies.Delete(I);
     end
