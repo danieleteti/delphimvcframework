@@ -126,7 +126,7 @@ type
   public
     constructor Create(AWebRequest: TWebRequest); virtual;
   private
-    FBody: String;
+    FBody: string;
     FWebRequest: TWebRequest;
     FParamsTable: TMVCRequestParamsTable;
     FContentType: string;
@@ -358,10 +358,11 @@ type
     function ResponseStream: TStringBuilder;
     function GetNewStompClient(ClientID: string = ''): IStompClient;
     /// <summary>
-    /// Load mustache view located in TMVCConfigKey.ViewsPath and
-    /// generates output using models pushed using Push* methods
+    /// Load mustache view located in TMVCConfigKey.ViewsPath
+    /// returns the rendered views and generates output using
+    /// models pushed using Push* methods
     /// </summary>
-    procedure LoadView(const ViewNames: TArray<string>); virtual;
+    function LoadView(const ViewNames: TArray<string>): string; virtual;
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath and
     /// returns output using models pushed using Push* methods
@@ -376,7 +377,8 @@ type
       write SetContentCharset;
     // Renderers
     procedure Render(const Content: string); overload; virtual;
-    procedure Render; overload; virtual;
+    procedure Render; overload; virtual; deprecated 'Use RenderResponseStream()';
+    procedure RenderResponseStream; virtual;
     procedure Render<T: class>(aCollection: TObjectList<T>;
       aInstanceOwner: Boolean = true;
       aJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -835,7 +837,7 @@ var
     begin
       lParamName := aActionFormalParams[I].Name;
       if not AContext.Request.GetSegmentParam(lParamName, lStrValue) then
-        raise EMVCException.CreateFmt('Invalid paramater %s for action %s',
+        raise EMVCException.CreateFmt('Invalid paramater %s for action %s (Hint: Here parameters names are case-sensitive)',
           [lParamName, aActionName]);
       case aActionFormalParams[I].ParamType.TypeKind of
         tkInteger, tkInt64:
@@ -1922,10 +1924,11 @@ begin
   Result := FContext.Session;
 end;
 
-procedure TMVCController.LoadView(const ViewNames: TArray<string>);
+function TMVCController.LoadView(const ViewNames: TArray<string>): string;
 begin
   try
-    ResponseStream.Append(GetRenderedView(ViewNames));
+    Result := GetRenderedView(ViewNames);
+    ResponseStream.Append(Result);
   except
     on E: Exception do
     begin
@@ -2071,6 +2074,11 @@ begin
     else
       InternalRenderText(Content, ContentType, ContentEncoding, Context);
   end;
+end;
+
+procedure TMVCController.RenderResponseStream;
+begin
+  InternalRenderText(ResponseStream.ToString, ContentType, ContentCharset, Context);
 end;
 
 procedure TMVCController.Render(const Content: string);
@@ -2826,7 +2834,7 @@ end;
 
 procedure TMVCController.Render;
 begin
-  Render(ResponseStream.ToString);
+  RenderResponseStream;
 end;
 
 { MVCStringAttribute }

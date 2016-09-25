@@ -1,26 +1,26 @@
-{ *************************************************************************** }
-{ }
-{ Delphi MVC Framework }
-{ }
-{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
-{ }
-{ https://github.com/danieleteti/delphimvcframework }
-{ }
-{ *************************************************************************** }
-{ }
-{ Licensed under the Apache License, Version 2.0 (the "License"); }
-{ you may not use this file except in compliance with the License. }
-{ You may obtain a copy of the License at }
-{ }
-{ http://www.apache.org/licenses/LICENSE-2.0 }
-{ }
-{ Unless required by applicable law or agreed to in writing, software }
-{ distributed under the License is distributed on an "AS IS" BASIS, }
-{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{ See the License for the specific language governing permissions and }
-{ limitations under the License. }
-{ }
-{ *************************************************************************** }
+// *************************************************************************** }
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
 
 unit ObjectsMappers;
 
@@ -89,7 +89,7 @@ type
     class function SerializeEnumerationField(AObject: TObject;
       ARttiField: TRttiField): TJSONValue;
     class procedure DeSerializeStringStream(aStream: TStream;
-      const aSerializedString: string; aEncoding: String); static;
+      const aSerializedString: string; aEncoding: string); static;
     class procedure DeSerializeBase64StringStream(aStream: TStream;
       const aBase64SerializedString: string); static;
   public
@@ -469,13 +469,13 @@ begin
   Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
 end;
 
-function CheckISOTimeStrSeparator(const TimeAsString: String; const Offset: Word): boolean;
+function CheckISOTimeStrSeparator(const TimeAsString: string; const Offset: Word): boolean;
 begin
   Result := (TimeAsString.Chars[Offset + 2] = ':') and
     (TimeAsString.Chars[Offset + 5] = ':');
 end;
 
-function CheckISODateStrSeparator(const DateAsString: String; const Offset: Word): boolean;
+function CheckISODateStrSeparator(const DateAsString: string; const Offset: Word): boolean;
 begin
   Result := (DateAsString.Chars[Offset + 4] = '-') and
     (DateAsString.Chars[Offset + 7] = '-');
@@ -2158,7 +2158,7 @@ begin
 end;
 
 class procedure Mapper.DeSerializeStringStream(aStream: TStream;
-  const aSerializedString: string; aEncoding: String);
+  const aSerializedString: string; aEncoding: string);
 var
   SerEnc: TEncoding;
   SS: TStringStream;
@@ -2250,7 +2250,7 @@ begin
           end
           else if _field.PropertyType.QualifiedName = 'System.TTime' then
           begin
-            if not (jvalue is TJSONNull) then
+            if not(jvalue is TJSONNull) then
               if jvalue is TJSONString then
                 _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
               else
@@ -2260,7 +2260,7 @@ begin
           end
           else { if _field.PropertyType.QualifiedName = 'System.Currency' then }
           begin
-            if not (jvalue is TJSONNull) then
+            if not(jvalue is TJSONNull) then
               if jvalue is TJSONNumber then
                 _field.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
               else

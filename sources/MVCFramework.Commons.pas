@@ -180,7 +180,7 @@ type
       var AuthenticationRequired: Boolean);
     procedure OnAuthentication(const UserName, Password: string;
       UserRoles: TList<string>; var IsValid: Boolean;
-      const SessionData: TDictionary<String, String>);
+      const SessionData: TDictionary<string, string>);
     procedure OnAuthorization(UserRoles: TList<string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
@@ -338,12 +338,12 @@ function AppPath: string;
 function IsReservedOrPrivateIP(const IP: string): Boolean;
 function IP2Long(IP: string): UInt32;
 
-function B64Encode(const Value: String): String; overload;
-function B64Encode(const Value: TBytes): String; overload;
-function B64Decode(const Value: String): String;
+function B64Encode(const Value: string): string; overload;
+function B64Encode(const Value: TBytes): string; overload;
+function B64Decode(const Value: string): string;
 
-function ByteToHex(InByte: byte): String;
-function BytesToHex(Bytes: TBytes): String;
+function ByteToHex(InByte: byte): string;
+function BytesToHex(Bytes: TBytes): string;
 
 var
   Lock: TObject;
@@ -357,7 +357,6 @@ uses
   System.IOUtils,
   idGlobal,
   System.StrUtils,
-  uGlobalVars,
   idCoderMIME;
 
 const
@@ -368,6 +367,9 @@ const
     ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
     ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
+
+var
+  gAppName, gAppPath, gAppExe: string;
 
 function IP2Long(IP: string): UInt32;
 begin
@@ -532,7 +534,7 @@ begin
   FDetailedMessage := Value;
 end;
 
-function B64Encode(const Value: String): String;
+function B64Encode(const Value: string): string;
 overload
 // var
 // lB64: TBase64Encoding;
@@ -551,7 +553,7 @@ begin
   // end;
 end;
 
-function B64Encode(const Value: TBytes): String; overload;
+function B64Encode(const Value: TBytes): string; overload;
 // var
 // lB64: TBase64Encoding;
 begin
@@ -569,7 +571,7 @@ begin
   // Result := String(EncodeBase64(Value, Length(Value)));
 end;
 
-function B64Decode(const Value: String): String;
+function B64Decode(const Value: string): string;
 // var
 // lB64: TBase64Encoding;
 begin
@@ -587,14 +589,14 @@ begin
   // Result := DecodeString(Value);
 end;
 
-function ByteToHex(InByte: byte): String;
+function ByteToHex(InByte: byte): string;
 const
   Digits: array [0 .. 15] of Char = '0123456789abcdef';
 begin
   Result := Digits[InByte shr 4] + Digits[InByte and $0F];
 end;
 
-function BytesToHex(Bytes: TBytes): String;
+function BytesToHex(Bytes: TBytes): string;
 var
   lByte: byte;
 begin
@@ -608,6 +610,14 @@ end;
 initialization
 
 Lock := TObject.Create;
+
+gAppExe := ExtractFileName(GetModuleName(HInstance) { ParamStr(0) } );
+gAppName := ChangeFileExt(gAppExe, '');
+// if not IsConsole then
+// gAppPath := IncludeTrailingPathDelimiter(TPath.GetPublicPath)
+// else
+gAppPath := IncludeTrailingPathDelimiter
+  (ExtractFilePath(GetModuleName(HInstance) { ParamStr(0) } ));
 
 finalization
 
