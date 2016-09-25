@@ -837,7 +837,8 @@ var
     begin
       lParamName := aActionFormalParams[I].Name;
       if not AContext.Request.GetSegmentParam(lParamName, lStrValue) then
-        raise EMVCException.CreateFmt('Invalid paramater %s for action %s (Hint: Here parameters names are case-sensitive)',
+        raise EMVCException.CreateFmt
+          ('Invalid paramater %s for action %s (Hint: Here parameters names are case-sensitive)',
           [lParamName, aActionName]);
       case aActionFormalParams[I].ParamType.TypeKind of
         tkInteger, tkInt64:
@@ -1566,19 +1567,19 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{ .$IF CompilerVersion <= 27 }
+{$IF CompilerVersion <= 27 }
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
-  { .$ENDIF }
+{$ENDIF }
 begin
   if FBody <> '' then
     Exit(FBody);
-
-  { .$IF CompilerVersion > 27 }
-  // Exit(FWebRequest.Content);
-  { .$ELSE }
+  FWebRequest.ReadTotalContent;
+{$IF CompilerVersion > 29 }
+  Exit(FWebRequest.Content);
+{$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
   // considering the content charser. So, here's the fix
 
@@ -1600,12 +1601,12 @@ begin
   try
     SetLength(Buffer, FWebRequest.ContentLength);
     FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    FBody := InEnc.GetString(Buffer);
+    FBody := InEnc.GetString(FWebRequest.RawContent);
     Result := FBody;
   finally
     InEnc.Free;
   end
-  { .$ENDIF }
+{$ENDIF }
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
