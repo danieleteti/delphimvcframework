@@ -121,6 +121,7 @@ type
 
     class function Subscription(const SubscriptionName: string): TKeyValue;
     class function Persistent(const Value: Boolean): TKeyValue;
+    class function Durable(const Value: Boolean): TKeyValue;
     class function ReplyTo(const DestinationName: string): TKeyValue;
 
     /// /////////////////////////////////////////////7
@@ -483,6 +484,12 @@ begin
       Dispose(PKeyValue(FList[i]));
   FList.Free;
   inherited;
+end;
+
+class function TStompHeaders.Durable(const Value: Boolean): TKeyValue;
+begin
+  Result.Key := 'durable';
+  Result.Value := LowerCase(BoolToStr(Value, true));
 end;
 
 function TStompHeaders.GetAt(const index: Integer): TKeyValue;
