@@ -362,11 +362,11 @@ begin
     tkString:
       Result := Value.AsString;
     tkSet:
-      ;
+      Result := '';
     tkClass:
       Result := Value.AsObject.QualifiedClassName;
     tkMethod:
-      ;
+      Result := '';
     tkWChar:
       Result := Value.AsString;
 
@@ -402,6 +402,8 @@ begin
 
     tkProcedure:
       Result := '(procedure)';
+  else
+    Result := '';
   end;
 end;
 

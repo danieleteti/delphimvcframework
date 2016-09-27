@@ -145,6 +145,7 @@ type
     function GetHTTPMethod: TMVCHTTPMethodType;
     function GetHTTPMethodAsString: string;
     function GetParamAllAsInteger(const ParamName: string): Integer;
+    function GetParamAllAsInt64(const ParamName: string): Int64;
     function GetClientPreferHTML: Boolean;
     function GetFiles: TAbstractWebRequestFiles;
 
@@ -175,6 +176,8 @@ type
     property Headers[const HeaderName: string]: string read GetHeader;
     property ParamsAsInteger[const ParamName: string]: Integer
       read GetParamAllAsInteger;
+    property ParamsAsInt64[const ParamName: string]: Int64
+      read GetParamAllAsInt64;
     property Params[const ParamName: string]: string read GetParamAll;
     property IsAjax: Boolean read GetIsAjax;
     property HTTPMethod: TMVCHTTPMethodType read GetHTTPMethod;
@@ -2338,6 +2341,11 @@ begin
     if Result = EmptyStr then
       Result := FWebRequest.CookieFields.Values[ParamName];
   end;
+end;
+
+function TMVCWebRequest.GetParamAllAsInt64(const ParamName: string): Int64;
+begin
+  Result := StrToInt64(GetParamAll(ParamName));
 end;
 
 function TMVCWebRequest.GetParamAllAsInteger(const ParamName: string): Integer;
