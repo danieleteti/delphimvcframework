@@ -48,7 +48,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <VerInfo_Locale>1031</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <DCC_UnitSearchPath>..\..\sources;..\..\lib\dmustache;..\..\lib\iocpdelphiframework;..\..\lib\iocpdelphiframework\base;..\..\lib\delphistompclient;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\sources;..\..\lib\delphistompclient;..\..\lib\loggerpro;..\..\lib\dmustache;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <Manifest_File>None</Manifest_File>
         <SanitizedProjectName>routingsample</SanitizedProjectName>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>

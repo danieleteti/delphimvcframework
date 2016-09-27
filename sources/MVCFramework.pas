@@ -52,7 +52,9 @@ uses
 {$ELSE}
     , System.JSON
 {$ENDIF}
-    , Web.ApacheHTTP
+{$IF CompilerVersion >= 27}
+    , Web.ApacheHTTP //Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
+{$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
     , LoggerPro;
 
@@ -1577,8 +1579,8 @@ var
 begin
   if FBody <> '' then
     Exit(FBody);
-  FWebRequest.ReadTotalContent;
 {$IF CompilerVersion > 29 }
+  FWebRequest.ReadTotalContent;
   Exit(FWebRequest.Content);
 {$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
@@ -1602,7 +1604,7 @@ begin
   try
     SetLength(Buffer, FWebRequest.ContentLength);
     FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    FBody := InEnc.GetString(FWebRequest.RawContent);
+    FBody := InEnc.GetString(Buffer);
     Result := FBody;
   finally
     InEnc.Free;

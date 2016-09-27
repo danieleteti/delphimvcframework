@@ -41,7 +41,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <SanitizedProjectName>MiddlewareSamples</SanitizedProjectName>
-        <DCC_UnitSearchPath>..\..\sources;..\..\lib\dmustache;..\..\lib\iocpdelphiframework;..\..\lib\iocpdelphiframework\base;..\..\lib\delphistompclient;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\sources;..\..\lib\delphistompclient;..\..\lib\loggerpro;..\..\lib\dmustache;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <Manifest_File>None</Manifest_File>
         <VerInfo_Locale>1040</VerInfo_Locale>
