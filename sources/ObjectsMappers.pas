@@ -402,9 +402,9 @@ function ISODateTimeToString(ADateTime: TDateTime): string;
 function ISODateToString(ADate: TDateTime): string;
 function ISOTimeToString(ATime: TTime): string;
 
-function ISOStrToDateTime(DateTimeAsString: string): TDateTime;
-function ISOStrToDate(DateAsString: string): TDate;
-function ISOStrToTime(TimeAsString: string): TTime;
+function ISOStrToDateTime(const DateTimeAsString: string): TDateTime;
+function ISOStrToDate(const DateAsString: string): TDate;
+function ISOStrToTime(const TimeAsString: string): TTime;
 
 
 // function ISODateToStr(const ADate: TDate): String;
@@ -481,7 +481,7 @@ begin
     (DateAsString.Chars[Offset + 7] = '-');
 end;
 
-function ISOStrToDateTime(DateTimeAsString: string): TDateTime;
+function ISOStrToDateTime(const DateTimeAsString: string): TDateTime;
 begin
   if not CheckISODateStrSeparator(DateTimeAsString, 0) then
     raise EMapperException.Create('Invalid ISO DateTime String');
@@ -497,7 +497,7 @@ begin
     StrToInt(Copy(DateTimeAsString, 18, 2)), 0);
 end;
 
-function ISOStrToTime(TimeAsString: string): TTime;
+function ISOStrToTime(const TimeAsString: string): TTime;
 begin
   if not CheckISOTimeStrSeparator(TimeAsString, 0) then
     raise EMapperException.Create('Invalid ISO Time String');
@@ -507,7 +507,7 @@ begin
     StrToIntDef(Copy(TimeAsString, 7, 2), 0), 0);
 end;
 
-function ISOStrToDate(DateAsString: string): TDate;
+function ISOStrToDate(const DateAsString: string): TDate;
 begin
   if not CheckISODateStrSeparator(DateAsString, 0) then
     raise EMapperException.Create('Invalid ISO Date String');

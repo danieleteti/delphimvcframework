@@ -43,8 +43,8 @@ procedure LogE(AMessage: string); deprecated 'Use Log.Error';
 procedure LogEx(AException: Exception; AMessage: string = ''); deprecated 'Use Log.Error';
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
   deprecated 'Use Log.Info, Log.Debug, Log.Warn or Log.Error';
-procedure LogEnterMethod(AMethodName: string);
-procedure LogExitMethod(AMethodName: string);
+procedure LogEnterMethod(const AMethodName: string);
+procedure LogExitMethod(const AMethodName: string);
 procedure LogException(AException: Exception; AMessage: string = '');
   deprecated 'Use Log.Error';
 
@@ -125,13 +125,13 @@ begin
   LogEx(AException, AMessage);
 end;
 
-procedure LogEnterMethod(AMethodName: string);
+procedure LogEnterMethod(const AMethodName: string);
 begin
   Log.Info('>> ' + AMethodName, LOGGERPRO_TAG);
   // Log(TLogLevel.levNormal, '>> ' + AMethodName);
 end;
 
-procedure LogExitMethod(AMethodName: string);
+procedure LogExitMethod(const AMethodName: string);
 begin
   Log.Info('<< ' + AMethodName, LOGGERPRO_TAG);
   // Log(TLogLevel.levNormal, '<< ' + AMethodName);

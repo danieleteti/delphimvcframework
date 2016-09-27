@@ -336,7 +336,7 @@ type
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const IP: string): Boolean;
-function IP2Long(IP: string): UInt32;
+function IP2Long(const IP: string): UInt32;
 
 function B64Encode(const Value: string): string; overload;
 function B64Encode(const Value: TBytes): string; overload;
@@ -371,7 +371,7 @@ const
 var
   gAppName, gAppPath, gAppExe: string;
 
-function IP2Long(IP: string): UInt32;
+function IP2Long(const IP: string): UInt32;
 begin
   Result := idGlobal.IPv4ToDWord(IP);
 end;

@@ -537,7 +537,7 @@ type
       ConfigProc: TProc<TMVCConfig> = nil; CustomLogger: ILogWriter = nil); reintroduce;
     destructor Destroy; override;
     class function SendSessionCookie(AContext: TWebContext): string; overload;
-    class function SendSessionCookie(AContext: TWebContext; ASessionID: string)
+    class function SendSessionCookie(AContext: TWebContext; const ASessionID: string)
       : string; overload;
     class function AddSessionToTheSessionList(const ASessionID: string;
       ASessionTimeout: UInt64): TWebSession;
@@ -551,7 +551,7 @@ type
     function RegisteredControllers: TObjectList<TMVCControllerRoutable>;
     // http return codes
     procedure Http404(AWebContext: TWebContext);
-    procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
+    procedure Http500(AWebContext: TWebContext; const AReasonText: string = '');
     property Config: TMVCConfig read FMVCConfig; // allow a simple client code
     property ApplicationSession: TWebApplicationSession read FApplicationSession
       write SetApplicationSession;
@@ -1251,7 +1251,7 @@ begin
   AWebContext.Response.Content := 'Not Found';
 end;
 
-procedure TMVCEngine.Http500(AWebContext: TWebContext; AReasonText: string);
+procedure TMVCEngine.Http500(AWebContext: TWebContext; const AReasonText: string);
 begin
   AWebContext.Response.StatusCode := 500;
   AWebContext.Response.ReasonString := 'Internal server error: ' + AReasonText;
@@ -1307,15 +1307,16 @@ procedure TMVCEngine.ResponseErrorPage(E: Exception; Request: TWebRequest;
 begin
   Response.SetCustomHeader('x-mvc-error', E.ClassName + ': ' + E.Message);
   Response.StatusCode := 200;
-  if Pos('text/html', LowerCase(Request.Accept)) = 1 then
-  begin
-    Response.ContentType := 'text/plain';
-    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
-      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
-      '***********************************************' + sLineBreak + E.Message
-      + sLineBreak + '***********************************************';
-  end
-  else
+//  if Pos('text/html', LowerCase(Request.Accept)) = 1 then
+//  begin
+//    Response.ContentType := 'text/plain';
+//    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+//      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
+//      '***********************************************' + sLineBreak + E.Message
+//      + sLineBreak + '***********************************************';
+//  end
+//  else
+//Same code in if and else section
   begin
     Response.ContentType := 'text/plain';
     Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
@@ -1338,7 +1339,7 @@ end;
 
 class
   function TMVCEngine.SendSessionCookie(AContext: TWebContext;
-  ASessionID: string): string;
+  const ASessionID: string): string;
 var
   Cookie: TCookie;
   LSessTimeout: Integer;

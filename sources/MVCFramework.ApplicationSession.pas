@@ -62,10 +62,10 @@ type
     class var FInstance: TMVCApplicationSessionFactory;
     constructor Create;
   public
-    procedure RegisterSessionType(AName: String;
+    procedure RegisterSessionType(const AName: String;
       AWebApplicationSessionClass: TWebApplicationSessionClass);
     class function GetInstance: TMVCApplicationSessionFactory;
-    function CreateNewByType(AName: String): TWebApplicationSession;
+    function CreateNewByType(const AName: String): TWebApplicationSession;
     destructor Destroy; override;
   end;
 
@@ -146,7 +146,7 @@ begin
   FRegisteredApplicationSessionTypes := TDictionary<string, TWebApplicationSessionClass>.Create;
 end;
 
-function TMVCApplicationSessionFactory.CreateNewByType(AName: String): TWebApplicationSession;
+function TMVCApplicationSessionFactory.CreateNewByType(const AName: String): TWebApplicationSession;
 var
   clazz: TWebApplicationSessionClass;
 begin
@@ -170,7 +170,7 @@ begin
   Result := FInstance;
 end;
 
-procedure TMVCApplicationSessionFactory.RegisterSessionType(AName: String;
+procedure TMVCApplicationSessionFactory.RegisterSessionType(const AName: String;
   AWebApplicationSessionClass: TWebApplicationSessionClass);
 begin
   FRegisteredApplicationSessionTypes.AddOrSetValue(AName, AWebApplicationSessionClass);
