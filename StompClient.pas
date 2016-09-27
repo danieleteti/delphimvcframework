@@ -233,8 +233,10 @@ end;
 function TStompClient.Clone: IStompClient;
 begin
   Result := TStompClient.Create;
+  Result.SetUserName(FUserName).SetPassword(FPassword);
   TStompClient(Result).ConnectionTimeout := FConnectionTimeout;
   TStompClient(Result).Connect(FHost, FPort, FClientID, FAcceptVersion);
+
 end;
 
 procedure TStompClient.CommitTransaction(const TransactionIdentifier: string);
