@@ -57,10 +57,10 @@ type
   public
     class function StringMethodToHTTPMetod(const Value: AnsiString): TMVCHTTPMethodType;
     constructor Create(AMVCConfig: TMVCConfig);
-    function ExecuteRouting(AWebRequestPathInfo: AnsiString;
-      AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString;
-      AWebRequestAccept: AnsiString; AMVCControllers: TObjectList<TMVCControllerRoutable>;
-      ADefaultContentType: string; ADefaultContentCharset: string;
+    function ExecuteRouting(const AWebRequestPathInfo: AnsiString;
+      AWebRequestMethodType: TMVCHTTPMethodType; const AWebRequestContentType: AnsiString;
+      const AWebRequestAccept: AnsiString; AMVCControllers: TObjectList<TMVCControllerRoutable>;
+      const ADefaultContentType: string; const ADefaultContentCharset: string;
       var AMVCRequestParams: TMVCRequestParamsTable; out AResponseContentType: string;
       out AResponseContentEncoding: string): Boolean; overload;
     property MethodToCall: TRTTIMethod read FMethodToCall;
@@ -85,10 +85,10 @@ begin
   FMVCConfig := AMVCConfig;
 end;
 
-function TMVCRouter.ExecuteRouting(AWebRequestPathInfo: AnsiString;
-  AWebRequestMethodType: TMVCHTTPMethodType; AWebRequestContentType: AnsiString;
-  AWebRequestAccept: AnsiString; AMVCControllers: TObjectList<TMVCControllerRoutable>;
-  ADefaultContentType, ADefaultContentCharset: string;
+function TMVCRouter.ExecuteRouting(const AWebRequestPathInfo: AnsiString;
+  AWebRequestMethodType: TMVCHTTPMethodType; const AWebRequestContentType: AnsiString;
+  const AWebRequestAccept: AnsiString; AMVCControllers: TObjectList<TMVCControllerRoutable>;
+  const ADefaultContentType, ADefaultContentCharset: string;
   var AMVCRequestParams: TMVCRequestParamsTable; out AResponseContentType: string;
   out AResponseContentEncoding: string): Boolean;
 var

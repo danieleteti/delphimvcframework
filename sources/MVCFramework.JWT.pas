@@ -27,7 +27,13 @@ unit MVCFramework.JWT;
 interface
 
 uses
-  System.Generics.Collections, System.JSON;
+  System.Generics.Collections
+{$IF CompilerVersion < 27 }
+    , Data.DBXJSON
+{$ELSE}
+    , System.JSON
+{$ENDIF}
+;
 
 type
 {$SCOPEDENUMS ON}
@@ -325,7 +331,7 @@ end;
 procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: String;
   const Value: TDateTime);
 begin
-  Items[Index] := DateTimeToUnix(Value).ToString;
+  Items[Index] := IntToStr(DateTimeToUnix(Value));
 end;
 
 { TJWT }

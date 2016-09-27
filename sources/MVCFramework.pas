@@ -52,7 +52,9 @@ uses
 {$ELSE}
     , System.JSON
 {$ENDIF}
-    , Web.ApacheHTTP
+{$IF CompilerVersion >= 27}
+    , Web.ApacheHTTP //Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
+{$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
     , LoggerPro;
 
@@ -143,6 +145,7 @@ type
     function GetHTTPMethod: TMVCHTTPMethodType;
     function GetHTTPMethodAsString: string;
     function GetParamAllAsInteger(const ParamName: string): Integer;
+    function GetParamAllAsInt64(const ParamName: string): Int64;
     function GetClientPreferHTML: Boolean;
     function GetFiles: TAbstractWebRequestFiles;
 
@@ -173,6 +176,8 @@ type
     property Headers[const HeaderName: string]: string read GetHeader;
     property ParamsAsInteger[const ParamName: string]: Integer
       read GetParamAllAsInteger;
+    property ParamsAsInt64[const ParamName: string]: Int64
+      read GetParamAllAsInt64;
     property Params[const ParamName: string]: string read GetParamAll;
     property IsAjax: Boolean read GetIsAjax;
     property HTTPMethod: TMVCHTTPMethodType read GetHTTPMethod;
@@ -535,7 +540,7 @@ type
       ConfigProc: TProc<TMVCConfig> = nil; CustomLogger: ILogWriter = nil); reintroduce;
     destructor Destroy; override;
     class function SendSessionCookie(AContext: TWebContext): string; overload;
-    class function SendSessionCookie(AContext: TWebContext; ASessionID: string)
+    class function SendSessionCookie(AContext: TWebContext; const ASessionID: string)
       : string; overload;
     class function AddSessionToTheSessionList(const ASessionID: string;
       ASessionTimeout: UInt64): TWebSession;
@@ -549,7 +554,7 @@ type
     function RegisteredControllers: TObjectList<TMVCControllerRoutable>;
     // http return codes
     procedure Http404(AWebContext: TWebContext);
-    procedure Http500(AWebContext: TWebContext; AReasonText: string = '');
+    procedure Http500(AWebContext: TWebContext; const AReasonText: string = '');
     property Config: TMVCConfig read FMVCConfig; // allow a simple client code
     property ApplicationSession: TWebApplicationSession read FApplicationSession
       write SetApplicationSession;
@@ -1249,7 +1254,7 @@ begin
   AWebContext.Response.Content := 'Not Found';
 end;
 
-procedure TMVCEngine.Http500(AWebContext: TWebContext; AReasonText: string);
+procedure TMVCEngine.Http500(AWebContext: TWebContext; const AReasonText: string);
 begin
   AWebContext.Response.StatusCode := 500;
   AWebContext.Response.ReasonString := 'Internal server error: ' + AReasonText;
@@ -1305,15 +1310,16 @@ procedure TMVCEngine.ResponseErrorPage(E: Exception; Request: TWebRequest;
 begin
   Response.SetCustomHeader('x-mvc-error', E.ClassName + ': ' + E.Message);
   Response.StatusCode := 200;
-  if Pos('text/html', LowerCase(Request.Accept)) = 1 then
-  begin
-    Response.ContentType := 'text/plain';
-    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
-      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
-      '***********************************************' + sLineBreak + E.Message
-      + sLineBreak + '***********************************************';
-  end
-  else
+//  if Pos('text/html', LowerCase(Request.Accept)) = 1 then
+//  begin
+//    Response.ContentType := 'text/plain';
+//    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+//      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
+//      '***********************************************' + sLineBreak + E.Message
+//      + sLineBreak + '***********************************************';
+//  end
+//  else
+//Same code in if and else section
   begin
     Response.ContentType := 'text/plain';
     Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
@@ -1336,7 +1342,7 @@ end;
 
 class
   function TMVCEngine.SendSessionCookie(AContext: TWebContext;
-  ASessionID: string): string;
+  const ASessionID: string): string;
 var
   Cookie: TCookie;
   LSessTimeout: Integer;
@@ -1577,8 +1583,8 @@ var
 begin
   if FBody <> '' then
     Exit(FBody);
-  FWebRequest.ReadTotalContent;
 {$IF CompilerVersion > 29 }
+  FWebRequest.ReadTotalContent;
   Exit(FWebRequest.Content);
 {$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
@@ -1602,7 +1608,7 @@ begin
   try
     SetLength(Buffer, FWebRequest.ContentLength);
     FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    FBody := InEnc.GetString(FWebRequest.RawContent);
+    FBody := InEnc.GetString(Buffer);
     Result := FBody;
   finally
     InEnc.Free;
@@ -2335,6 +2341,11 @@ begin
     if Result = EmptyStr then
       Result := FWebRequest.CookieFields.Values[ParamName];
   end;
+end;
+
+function TMVCWebRequest.GetParamAllAsInt64(const ParamName: string): Int64;
+begin
+  Result := StrToInt64(GetParamAll(ParamName));
 end;
 
 function TMVCWebRequest.GetParamAllAsInteger(const ParamName: string): Integer;

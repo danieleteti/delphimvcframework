@@ -73,11 +73,11 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session
-{$IF CompilerVersion >= 21}
-    , System.NetEncoding, System.JSON, ObjectsMappers, System.StrUtils
+  System.SysUtils, MVCFramework.Session, ObjectsMappers, System.StrUtils
+{$IF CompilerVersion > 24}
+    , System.NetEncoding, System.JSON
 {$ELSE}
-    , Soap.EncdDecd
+    , Soap.EncdDecd, Data.DBXJSON
 {$ENDIF};
 
 {
@@ -95,7 +95,7 @@ const
 
 function Base64DecodeString(const Value: string): string; inline;
 begin
-{$IF CompilerVersion >= 21}
+{$IF CompilerVersion > 24}
   Result := TNetEncoding.Base64.Decode(Value);
 {$ELSE}
   Result := DecodeString(Value);
@@ -383,7 +383,7 @@ begin
     lMsg := ifthen(lIsPositive, 'OK', 'KO');
     Context.Response.ContentType := 'application/json';
     Context.Response.RawWebResponse.Content :=
-      '{"status":"' + lMsg + '", "message":"' + HTTPStatus.ToString + '"}';
+      '{"status":"' + lMsg + '", "message":"' + IntToStr(HTTPStatus) + '"}';
   end;
   Handled := true;
 end;

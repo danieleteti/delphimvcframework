@@ -43,8 +43,8 @@ procedure LogE(AMessage: string); deprecated 'Use Log.Error';
 procedure LogEx(AException: Exception; AMessage: string = ''); deprecated 'Use Log.Error';
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
   deprecated 'Use Log.Info, Log.Debug, Log.Warn or Log.Error';
-procedure LogEnterMethod(AMethodName: string);
-procedure LogExitMethod(AMethodName: string);
+procedure LogEnterMethod(const AMethodName: string);
+procedure LogExitMethod(const AMethodName: string);
 procedure LogException(AException: Exception; AMessage: string = '');
   deprecated 'Use Log.Error';
 
@@ -53,6 +53,10 @@ function Log: ILogWriter; overload;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 procedure InitializeDefaultLogger;
+{ @abstract(Use only inside DLL because dll unloading is not a safe place to shutdown threads, so call this before unload DLL)
+  Use this also in ISAPI dll. Check the @code(loggerproisapisample.dll) sample
+}
+procedure ReleaseGlobalLogger;
 
 var
   LogLevelLimit: TLogLevel = TLogLevel.levNormal;
@@ -125,13 +129,13 @@ begin
   LogEx(AException, AMessage);
 end;
 
-procedure LogEnterMethod(AMethodName: string);
+procedure LogEnterMethod(const AMethodName: string);
 begin
   Log.Info('>> ' + AMethodName, LOGGERPRO_TAG);
   // Log(TLogLevel.levNormal, '>> ' + AMethodName);
 end;
 
-procedure LogExitMethod(AMethodName: string);
+procedure LogExitMethod(const AMethodName: string);
 begin
   Log.Info('<< ' + AMethodName, LOGGERPRO_TAG);
   // Log(TLogLevel.levNormal, '<< ' + AMethodName);
@@ -206,6 +210,23 @@ begin
     TMonitor.Exit(_lock);
   end;
 end;
+
+procedure ReleaseGlobalLogger;
+begin
+  if _DefaultLogger <> nil then
+  begin
+    TMonitor.Enter(_Lock);
+    try
+      if _DefaultLogger <> nil then // double check
+      begin
+        _DefaultLogger := nil;
+      end;
+    finally
+      TMonitor.Exit(_Lock);
+    end;
+  end;
+end;
+
 
 initialization
 
