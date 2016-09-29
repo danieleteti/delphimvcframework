@@ -56,7 +56,7 @@ uses
     , Web.ApacheHTTP //Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 {$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
-    , LoggerPro;
+    , LoggerPro, DuckListU;
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
@@ -385,6 +385,10 @@ type
     procedure Render(const Content: string); overload; virtual;
     procedure Render; overload; virtual; deprecated 'Use RenderResponseStream()';
     procedure RenderResponseStream; virtual;
+    procedure RenderWrappedList(aList: IWrappedList;
+      aJSONObjectActionProc: TJSONObjectActionProc = nil;
+      aSerializationType: TDMVCSerializationType = TDMVCSerializationType.
+      Properties);
     procedure Render<T: class>(aCollection: TObjectList<T>;
       aInstanceOwner: Boolean = true;
       aJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -619,7 +623,6 @@ uses
   MVCFramework.Router,
   MVCFramework.View,
   IdURI,
-  DuckListU,
   IdStack,
   IdHTTPWebBrokerBridge,
   MVCFramework.MessagingController,
@@ -2750,6 +2753,22 @@ procedure TMVCController.Render(const AStream: TStream;
   aInstanceOwner: Boolean);
 begin
   SendStream(AStream, aInstanceOwner);
+end;
+
+procedure TMVCController.RenderWrappedList(aList: IWrappedList;
+  aJSONObjectActionProc: TJSONObjectActionProc = nil;
+  aSerializationType: TDMVCSerializationType = TDMVCSerializationType.
+  Properties);
+var
+  JSON: TJSONArray;
+begin
+  if aSerializationType = TSerializationType.Properties then
+    JSON := Mapper.ObjectListToJSONArray(aList, true,
+      aJSONObjectActionProc)
+  else
+    JSON := Mapper.ObjectListToJSONArrayFields(aList, true,
+      aJSONObjectActionProc);
+  Render(JSON, true);
 end;
 
 procedure TMVCController.Render<T>(aCollection: TObjectList<T>;

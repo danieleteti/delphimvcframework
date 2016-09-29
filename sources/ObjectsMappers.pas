@@ -213,7 +213,10 @@ type
       : TJSONArray; overload;
     class function ObjectListToJSONArrayFields<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false; AForEach: TJSONObjectActionProc = nil)
-      : TJSONArray;
+      : TJSONArray; overload;
+    class function ObjectListToJSONArrayFields(AList: IWrappedList;
+      AOwnsChildObjects: boolean = True; AForEach: TJSONObjectActionProc = nil)
+      : TJSONArray; overload;
     class function ObjectListToJSONArrayString<T: class>(AList: TObjectList<T>;
       AOwnsInstance: boolean = false): string; overload;
     class function ObjectListToJSONArrayString(AList: IWrappedList;
@@ -978,6 +981,25 @@ begin
   end;
   _dict.Free;
   _keys.Free;
+end;
+
+class function Mapper.ObjectListToJSONArrayFields(AList: IWrappedList;
+  AOwnsChildObjects: boolean = True; AForEach: TJSONObjectActionProc = nil)
+  : TJSONArray;
+var
+  I: Integer;
+  JV: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  AList.OwnsObjects := AOwnsChildObjects;
+  if Assigned(AList) then
+    for I := 0 to AList.Count - 1 do
+    begin
+      JV := ObjectToJSONObjectFields(AList.GetItem(I), []);
+      if Assigned(AForEach) then
+        AForEach(JV);
+      Result.AddElement(JV);
+    end;
 end;
 
 class function Mapper.ObjectListToJSONArrayFields<T>(AList: TObjectList<T>;

@@ -59,6 +59,7 @@ type
     procedure TestAsynchRequestGET;
     procedure TestAsynchRequestDELETE;
     procedure TestEncodingRenderJSONValue;
+    procedure TestRenderWrappedList;
     procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
@@ -357,8 +358,7 @@ begin
       res.Cookies.Cookies[I].CookieName);
     CheckEquals('usersettings' + IntToStr(I + 1) + '-value',
       res.Cookies.Cookies[I].Value);
-    CheckEquals('/usersettings' + IntToStr(I + 1),
-      res.Cookies.Cookies[I].Path);
+    CheckEquals('/usersettings' + IntToStr(I + 1), res.Cookies.Cookies[I].Path);
   end;
 
 end;
@@ -397,7 +397,8 @@ begin
     lCookieValue := LRes.Cookies
       [LRes.Cookies.GetCookieIndex(TMVCConstants.SESSION_TOKEN_NAME)].Value;
     CheckNotEquals('', lCookieValue, 'Session cookie not returned after login');
-    CheckFalse(lCookieValue.Contains('invalid'), 'Returned an invalid session token');
+    CheckFalse(lCookieValue.Contains('invalid'),
+      'Returned an invalid session token');
 
     LRes := RESTClient.doGET('/privatecustom/role2', []);
     CheckEquals(HTTP_STATUS.Forbidden, LRes.ResponseCode,
@@ -456,7 +457,7 @@ var
   lValue: string;
   I: Integer;
   lPieces: TArray<string>;
-  lPass: Boolean;
+  lPass: boolean;
 begin
   lJSON := TJSONObject.Create;
   try
@@ -476,7 +477,8 @@ begin
       begin
         lPieces := lValue.Split([':']);
         lValue := lPieces[1].Trim;
-        if lValue.StartsWith(TMVCConstants.SESSION_TOKEN_NAME) and lValue.Contains('invalid') then
+        if lValue.StartsWith(TMVCConstants.SESSION_TOKEN_NAME) and
+          lValue.Contains('invalid') then
         begin
           lPass := true;
           Break;
@@ -511,6 +513,25 @@ begin
     If this test fail, check
     http://qc.embarcadero.com/wc/qcmain.aspx?d=119779
   }
+end;
+
+procedure TServerTest.TestRenderWrappedList;
+var
+  res: IRESTResponse;
+  s: string;
+  JSONArr: TJSONArray;
+  I: Integer;
+  JSONObj: TJSONObject;
+begin
+  res := RESTClient.doGET('/wrappedpeople', []);
+
+  JSONArr := res.BodyAsJSONArray;
+  for I := 0 to JSONArr.Count - 1 do
+  begin
+    JSONObj := JSONArr.Items[I] as TJSONObject;
+    CheckFalse(JSONObj.GetValue<string>('firstname').IsEmpty);
+  end;
+
 end;
 
 procedure TServerTest.TestExceptionInMVCAfterCreate;
@@ -811,17 +832,21 @@ var
   lJObj: TJSONObject;
 begin
   // ----------------------'/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')', []);
-  res := RESTClient.doGET('/typed/all/mystring/1234/12345678/12.3/1234.5678/1234.5678', []);
+  res := RESTClient.doGET
+    ('/typed/all/mystring/1234/12345678/12.3/1234.5678/1234.5678', []);
   CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
   lJObj := res.BodyAsJsonObject;
   CheckEquals('mystring', lJObj.GetValue('ParString').Value, 'ParString');
-  CheckEquals(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt, 'ParInteger');
-  CheckEquals(12345678, TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64, 'ParInt64');
-  CheckEquals(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble, -1), 'ParSingle');
-  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble')).AsDouble, -4),
-    'ParDouble');
-  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended')).AsDouble, -4),
-    'ParExtended');
+  CheckEquals(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt,
+    'ParInteger');
+  CheckEquals(12345678, TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64,
+    'ParInt64');
+  CheckEquals(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble,
+    -1), 'ParSingle');
+  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble'))
+    .AsDouble, -4), 'ParDouble');
+  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended'))
+    .AsDouble, -4), 'ParExtended');
 end;
 
 procedure TServerTest.TestTypedBooleans;
@@ -904,7 +929,8 @@ begin
 
   // TDateTime, wrong and correct
   res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
-  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDateTime');
+  CheckEquals(HTTP_STATUS.InternalServerError, res.ResponseCode,
+    'wrong TDateTime');
 
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode);

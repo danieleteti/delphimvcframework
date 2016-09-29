@@ -109,6 +109,10 @@ type
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     procedure TestGetPersons(ctx: TWebContext);
 
+    [MVCPath('/wrappedpeople')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetWrappedPersons(ctx: TWebContext);
+
     [MVCPath('/objects')]
     [MVCHTTPMethod([httpPOST, httpPUT])]
     [MVCProduces('application/json')]
@@ -184,7 +188,7 @@ uses
   System.JSON,
 {$IFEND}
   MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  ObjectsMappers;
+  ObjectsMappers, DuckListU;
 
 { TTestServerController }
 
@@ -377,6 +381,15 @@ begin
       ;
   end;
 
+end;
+
+procedure TTestServerController.TestGetWrappedPersons(ctx: TWebContext);
+var
+  Person: TPerson;
+  LWrappedList: IWrappedList;
+begin
+  LWrappedList := WrapAsList(TPerson.GetList);
+  RenderWrappedList(LWrappedList);
 end;
 
 procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
