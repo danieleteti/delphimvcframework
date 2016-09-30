@@ -28,7 +28,7 @@ interface
 
 uses
   Web.HTTPApp,
-  RTTIUtilsU,
+  MVCFramework.RTTIUtils,
   MVCFramework.Commons,
   System.RTTI,
   MVCFramework,

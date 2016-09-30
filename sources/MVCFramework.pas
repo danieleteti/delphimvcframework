@@ -56,7 +56,7 @@ uses
     , Web.ApacheHTTP //Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 {$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
-    , LoggerPro, DuckListU;
+    , LoggerPro, MVCFramework.DuckTyping;
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,

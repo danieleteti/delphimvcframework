@@ -118,7 +118,8 @@ uses System.DateUtils, System.Math, MVCFramework.Commons,
 {$ELSE}
   System.JSON,
 {$ENDIF}
-  TestServerControllerU, System.Classes, DuckListU, System.IOUtils;
+  TestServerControllerU, System.Classes,
+  MVCFramework.DuckTyping, System.IOUtils;
 
 var
   JWT_SECRET_KEY_TEST: String = 'myk3y';

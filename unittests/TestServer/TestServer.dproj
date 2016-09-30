@@ -127,8 +127,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Server.Impl.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.View.Cache.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.View.pas"/>
-        <DCCReference Include="..\..\sources\RTTIUtilsU.pas"/>
-        <DCCReference Include="..\..\sources\DuckListU.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RTTIUtils.pas"/>
         <DCCReference Include="TestServerControllerPrivateU.pas"/>
         <DCCReference Include="AuthHandlersU.pas"/>
         <BuildConfiguration Include="Release">

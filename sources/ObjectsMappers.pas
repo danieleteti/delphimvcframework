@@ -42,7 +42,7 @@ uses
 {$IF CompilerVersion > 25}
   FireDAC.Comp.Client, FireDAC.Stan.Param,
 {$IFEND}
-  DuckListU, System.SysUtils, System.Classes;
+  MVCFramework.DuckTyping, System.SysUtils, System.Classes;
 
 type
   { ***** Daniele Spinetti ***** }
@@ -425,7 +425,7 @@ uses
   Math,
   SqlTimSt,
   DateUtils,
-  RTTIUtilsU,
+  MVCFramework.RTTIUtils,
   Xml.adomxmldom,
 {$IF CompilerVersion >= 28}
   System.NetEncoding,
