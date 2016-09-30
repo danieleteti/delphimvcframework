@@ -1,3 +1,8 @@
+29/09/2016
+- Added RenderWrappedList to render heterogeneous lists
+- Added ObjectsMappers support for heterogeneous lists
+- Unit Names refactoring
+
 19/09/2016
 - IDE Expert: Load optimized configuration for the default generated project (MaxConnections and ListenQueue)
 - small optimization for body reading in the TWebContext
