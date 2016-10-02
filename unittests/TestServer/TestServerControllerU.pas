@@ -188,7 +188,7 @@ uses
   System.JSON,
 {$IFEND}
   MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  ObjectsMappers, DuckListU;
+  ObjectsMappers, MVCFramework.DuckTyping;
 
 { TTestServerController }
 
@@ -385,7 +385,6 @@ end;
 
 procedure TTestServerController.TestGetWrappedPersons(ctx: TWebContext);
 var
-  Person: TPerson;
   LWrappedList: IWrappedList;
 begin
   LWrappedList := WrapAsList(TPerson.GetList);

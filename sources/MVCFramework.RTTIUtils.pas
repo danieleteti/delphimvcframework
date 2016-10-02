@@ -22,7 +22,7 @@
 //
 // ***************************************************************************
 
-unit RTTIUtilsU;
+unit MVCFramework.RTTIUtils;
 
 interface
 
@@ -89,7 +89,7 @@ uses
   Classes,
   TypInfo,
   ObjectsMappers,
-  DuckListU;
+  MVCFramework.DuckTyping;
 
 class function TRTTIUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
   RaiseExceptionIfNotFound: boolean): TValue;

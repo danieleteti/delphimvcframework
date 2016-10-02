@@ -70,6 +70,7 @@ type
     TEXT_JAVASCRIPT = 'text/javascript';
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     TEXT_EVENTSTREAM = 'text/event-stream';
+    TEXT_CSV = 'text/csv'; // https://tools.ietf.org/html/rfc7111
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_PNG = 'image/x-png';
     WILDCARD = '*/*';

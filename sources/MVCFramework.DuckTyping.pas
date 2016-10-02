@@ -22,7 +22,7 @@
 //
 // ***************************************************************************
 
-unit DuckListU;
+unit MVCFramework.DuckTyping;
 
 interface
 
@@ -115,7 +115,7 @@ function WrapAsList(const AObject: TObject): IWrappedList;
 implementation
 
 uses System.Math,
-  RTTIUtilsU, MVCFramework.Commons;
+  MVCFramework.RTTIUtils, MVCFramework.Commons;
 
 constructor TDuckListEnumerator.Create(ADuckTypedList: TDuckTypedList);
 begin

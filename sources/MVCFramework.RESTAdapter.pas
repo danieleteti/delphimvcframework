@@ -186,7 +186,7 @@ uses
 {$ELSE}
   System.JSON,
 {$ENDIF}
-  RTTIUtilsU, DuckListU,
+  MVCFramework.RTTIUtils, MVCFramework.DuckTyping,
   Generics.Collections;
 
 { TRESTAdapter }

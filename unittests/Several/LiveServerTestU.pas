@@ -517,19 +517,18 @@ end;
 
 procedure TServerTest.TestRenderWrappedList;
 var
-  res: IRESTResponse;
-  s: string;
-  JSONArr: TJSONArray;
+  lRes: IRESTResponse;
+  lJSONArr: TJSONArray;
   I: Integer;
-  JSONObj: TJSONObject;
+  lJSONObj: TJSONObject;
 begin
-  res := RESTClient.doGET('/wrappedpeople', []);
+  lRes := RESTClient.doGET('/wrappedpeople', []);
 
-  JSONArr := res.BodyAsJSONArray;
-  for I := 0 to JSONArr.Count - 1 do
+  lJSONArr := lRes.BodyAsJSONArray;
+  for I := 0 to lJSONArr.Count - 1 do
   begin
-    JSONObj := JSONArr.Items[I] as TJSONObject;
-    CheckFalse(JSONObj.GetValue<string>('firstname').IsEmpty);
+    lJSONObj := lJSONArr.Items[I] as TJSONObject;
+    CheckFalse(lJSONObj.GetValue<string>('firstname').IsEmpty);
   end;
 
 end;
