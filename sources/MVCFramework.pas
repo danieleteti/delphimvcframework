@@ -53,7 +53,8 @@ uses
     , System.JSON
 {$ENDIF}
 {$IF CompilerVersion >= 27}
-    , Web.ApacheHTTP //Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
+    , Web.ApacheHTTP
+  // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 {$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
     , LoggerPro, MVCFramework.DuckTyping;
@@ -369,6 +370,15 @@ type
     /// models pushed using Push* methods
     /// </summary>
     function LoadView(const ViewNames: TArray<string>): string; virtual;
+
+    /// <summary>
+    /// Load a view fragment in the output render stream. The view fragment is appended to the
+    /// ResponseStream verbatim. No processing happens.
+    /// Useful when used with cache.
+    /// It is equivalent to <code>ResponseStream.Append(ViewFragment);</code>
+    /// </summary>
+    procedure LoadViewFragment(const ViewFragment: string);
+
     /// <summary>
     /// Load mustache view located in TMVCConfigKey.ViewsPath and
     /// returns output using models pushed using Push* methods
@@ -1137,11 +1147,11 @@ end;
 procedure TMVCEngine.ExecuteAfterControllerActionMiddleware
   (Context: TWebContext; const aActionName: string; const Handled: Boolean);
 var
-  middleware: IMVCMiddleware;
+  I: Integer;
 begin
-  for middleware in FMiddleware do
+  for I := FMiddleware.Count - 1 downto 0 do
   begin
-    middleware.OnAfterControllerAction(Context, aActionName, Handled);
+    FMiddleware[I].OnAfterControllerAction(Context, aActionName, Handled);
   end;
 end;
 
@@ -1313,16 +1323,16 @@ procedure TMVCEngine.ResponseErrorPage(E: Exception; Request: TWebRequest;
 begin
   Response.SetCustomHeader('x-mvc-error', E.ClassName + ': ' + E.Message);
   Response.StatusCode := 200;
-//  if Pos('text/html', LowerCase(Request.Accept)) = 1 then
-//  begin
-//    Response.ContentType := 'text/plain';
-//    Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
-//      sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
-//      '***********************************************' + sLineBreak + E.Message
-//      + sLineBreak + '***********************************************';
-//  end
-//  else
-//Same code in if and else section
+  // if Pos('text/html', LowerCase(Request.Accept)) = 1 then
+  // begin
+  // Response.ContentType := 'text/plain';
+  // Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
+  // sLineBreak + 'Exception raised of class: ' + E.ClassName + sLineBreak +
+  // '***********************************************' + sLineBreak + E.Message
+  // + sLineBreak + '***********************************************';
+  // end
+  // else
+  // Same code in if and else section
   begin
     Response.ContentType := 'text/plain';
     Response.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' +
@@ -1943,10 +1953,16 @@ begin
   except
     on E: Exception do
     begin
+      LogException(E);
       ContentType := 'text/plain';
       Render(E);
     end;
   end;
+end;
+
+procedure TMVCController.LoadViewFragment(const ViewFragment: string);
+begin
+  ResponseStream.Append(ViewFragment);
 end;
 
 procedure TMVCController.MVCControllerAfterCreate;

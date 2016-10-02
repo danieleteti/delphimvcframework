@@ -40,13 +40,12 @@ function LogLevelAsString(ALogLevel: TLogLevel): string;
 procedure Log(AMessage: string); overload; deprecated 'Use Log.Info';
 procedure LogW(AMessage: string); deprecated 'Use Log.Warn';
 procedure LogE(AMessage: string); deprecated 'Use Log.Error';
-procedure LogEx(AException: Exception; AMessage: string = ''); deprecated 'Use Log.Error';
+procedure LogEx(AException: Exception; AMessage: string = ''); deprecated 'Use LogException or Log.Error';
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
   deprecated 'Use Log.Info, Log.Debug, Log.Warn or Log.Error';
 procedure LogEnterMethod(const AMethodName: string);
 procedure LogExitMethod(const AMethodName: string);
-procedure LogException(AException: Exception; AMessage: string = '');
-  deprecated 'Use Log.Error';
+procedure LogException(const AException: Exception; const AMessage: string = '');
 
 // direct access to loggerpro logger
 function Log: ILogWriter; overload;
@@ -123,10 +122,11 @@ begin
 end;
 
 procedure LogException(
-  AException: Exception;
-  AMessage: string);
+  const AException: Exception;
+  const AMessage: string);
 begin
-  LogEx(AException, AMessage);
+  _DefaultLogger.Error(Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
+    AException.Message, AMessage]), LOGGERPRO_TAG);
 end;
 
 procedure LogEnterMethod(const AMethodName: string);
@@ -142,17 +142,7 @@ begin
 end;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
-// var
-// Msg: string;
 begin
-  // if LogLevel < LogLevelLimit then
-  // Exit;
-
-  // Msg := Format('[%10s %5.5d] %s', [
-  // LogLevelAsString(LogLevel),
-  // TThread.CurrentThread.ThreadID,
-  // AMessage]);
-
   case _LevelsMap[LogLevel] of
     TLogType.Debug:
       _DefaultLogger.Debug(AMessage, LOGGERPRO_TAG);
@@ -215,18 +205,17 @@ procedure ReleaseGlobalLogger;
 begin
   if _DefaultLogger <> nil then
   begin
-    TMonitor.Enter(_Lock);
+    TMonitor.Enter(_lock);
     try
       if _DefaultLogger <> nil then // double check
       begin
         _DefaultLogger := nil;
       end;
     finally
-      TMonitor.Exit(_Lock);
+      TMonitor.Exit(_lock);
     end;
   end;
 end;
-
 
 initialization
 
