@@ -159,6 +159,7 @@ begin
           LStrHTTPMethods := '';
           LStrConsumes := '';
           LStrProduces := '';
+          LStrDoc := '';
           LStrHTTPMethods :=
             'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
           for LAttribute in LMethod.GetAttributes do
