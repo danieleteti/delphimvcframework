@@ -143,6 +143,7 @@ end;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
 begin
+  Assert(_DefaultLogger <> nil, 'DefaultLogger not initialized');
   case _LevelsMap[LogLevel] of
     TLogType.Debug:
       _DefaultLogger.Debug(AMessage, LOGGERPRO_TAG);
