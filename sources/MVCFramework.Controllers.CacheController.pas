@@ -128,7 +128,7 @@ const ExpireInSeconds: UInt64);
 begin
   if FCacheEnabled then
   begin
-    RedisClient.SETExpireInSec(Key, TEncoding.Default.GetBytes(Value), ExpireInSeconds);
+    RedisClient.&SET(Key, TEncoding.Default.GetBytes(Value), ExpireInSeconds);
   end;
 end;
 
