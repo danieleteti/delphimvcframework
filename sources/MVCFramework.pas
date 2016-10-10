@@ -442,7 +442,8 @@ type
     procedure ResponseStatusCode(const AStatusCode: UInt16;
       AStatusText: string = '');
     // streams and files
-    procedure SendStream(AStream: TStream; AOwnStream: Boolean = true); virtual;
+    procedure SendStream(AStream: TStream; AOwnStream: Boolean = true;
+      ARewindStream: Boolean = false); virtual;
     procedure SendFile(AFileName: string); virtual;
     // filters before, after
     procedure OnBeforeAction(Context: TWebContext; const aActionName: string;
@@ -2139,10 +2140,12 @@ begin
   Result := TMVCEngine.SendSessionCookie(Self);
 end;
 
-procedure TMVCController.SendStream(AStream: TStream; AOwnStream: Boolean);
+procedure TMVCController.SendStream(AStream: TStream; AOwnStream: Boolean;
+  ARewindStream: Boolean);
 begin
+  if ARewindStream then
+    AStream.Position := 0;
   FContext.Response.FWebResponse.Content := '';
-  // FContext.Response.SetContentStream(AStream, ContentType);
   FContext.Response.FWebResponse.ContentType := ContentType;
   FContext.Response.FWebResponse.ContentStream := AStream;
   FContext.Response.FWebResponse.FreeContentStream := AOwnStream;

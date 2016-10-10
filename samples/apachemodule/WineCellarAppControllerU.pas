@@ -36,6 +36,10 @@ type
     [MVCPath('/wines/search/($value)')]
     procedure FindWines(ctx: TWebContext);
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/wines/pdf')]
+    procedure GetWinesCatalogAsPDF(ctx: TWebContext);
+
     [MVCPath('/wines/($id)')]
     [MVCHTTPMethod([httpGET, httpDELETE])]
     procedure WineById(ctx: TWebContext);
@@ -48,11 +52,41 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, System.Classes, System.IOUtils, MVCFramework.Commons;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
   Render(dm.FindWines(ctx.Request.Params['value']));
+end;
+
+procedure TWineCellarApp.GetWinesCatalogAsPDF(ctx: TWebContext);
+var
+  pdf: string;
+  PDFFileStream: TFileStream;
+  PDFMemoryStream: TMemoryStream;
+begin
+  pdf := tpath.Combine(AppPath, '..\..\PDFsServedByDMVCBehindApache\Box2DManual.pdf');
+  if not TFile.Exists(pdf) then
+  begin
+    Render(HTTP_STATUS.NotFound, 'File ' + pdf + ' not found');
+    exit;
+  end;
+  PDFFileStream := TFileStream.Create(pdf, fmOpenRead);
+  try
+    PDFMemoryStream := TMemoryStream.Create;
+    try
+      PDFMemoryStream.CopyFrom(PDFFileStream, PDFMemoryStream.Size);
+    except
+      PDFMemoryStream.Free;
+      raise;
+    end;
+  finally
+    PDFFileStream.Free;
+  end;
+  // TFile.Delete(pdf);
+  PDFMemoryStream.Position := 0;
+  Context.Response.ContentType := 'application/pdf';
+  SendStream(PDFMemoryStream);
 end;
 
 procedure TWineCellarApp.Index(ctx: TWebContext);

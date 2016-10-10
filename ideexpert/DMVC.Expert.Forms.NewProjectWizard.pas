@@ -64,10 +64,12 @@ uses
 
 {$R *.dfm}
 
+
 procedure TfrmDMVCNewProject.chkCreateControllerUnitClick(Sender: TObject);
 begin
   gbControllerUnitOptions.Enabled := chkCreateIndexMethod.Checked;
   chkCreateIndexMethod.Enabled := chkCreateControllerUnit.Checked;
+  chkCreateActionFiltersMethods.Enabled := chkCreateControllerUnit.Checked;
   edtClassName.Enabled := chkCreateControllerUnit.Checked;
 end;
 
