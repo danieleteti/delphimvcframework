@@ -40,7 +40,7 @@ procedure Twm.WebModuleCreate(Sender: TObject);
 begin
   MVCEngine := TMVCEngine.Create(self);
   MVCEngine.AddController(TWineCellarApp);
-  MVCEngine.Config['document_root'] := '..\..\www';
+  MVCEngine.Config[TMVCConfigKey.DocumentRoot] := ''; // static files are not served by dmvc
 end;
 
 procedure Twm.WebModuleDestroy(Sender: TObject);

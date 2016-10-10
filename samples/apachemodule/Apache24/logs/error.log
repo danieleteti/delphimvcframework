@@ -1,0 +1,32 @@
+AH00558: httpd.exe: Could not reliably determine the server's fully qualified domain name, using fe80::1dbc:5316:7e54:7537. Set the 'ServerName' directive globally to suppress this message
+[Mon Oct 10 15:25:15.458687 2016] [mpm_winnt:notice] [pid 14908:tid 808] AH00354: Child: Starting 64 worker threads.
+Apache server interrupted...
+[Mon Oct 10 15:25:23.019523 2016] [mpm_winnt:notice] [pid 14908:tid 808] AH00364: Child: All worker threads have exited.
+[Mon Oct 10 15:25:38.688672 2016] [core:warn] [pid 11076:tid 532] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:25:38.692997 2016] [mpm_winnt:notice] [pid 11076:tid 532] AH00354: Child: Starting 64 worker threads.
+Apache server interrupted...
+[Mon Oct 10 15:27:20.482183 2016] [mpm_winnt:notice] [pid 11076:tid 532] AH00364: Child: All worker threads have exited.
+[Mon Oct 10 15:27:24.134571 2016] [core:warn] [pid 12096:tid 444] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:27:24.139575 2016] [mpm_winnt:notice] [pid 12096:tid 444] AH00354: Child: Starting 64 worker threads.
+Apache server interrupted...
+[Mon Oct 10 15:27:33.421281 2016] [mpm_winnt:notice] [pid 12096:tid 444] AH00364: Child: All worker threads have exited.
+[Mon Oct 10 15:28:32.456356 2016] [core:warn] [pid 14260:tid 492] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:28:32.461359 2016] [mpm_winnt:notice] [pid 14260:tid 492] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:29:04.134826 2016] [core:warn] [pid 9664:tid 180] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:29:04.139828 2016] [mpm_winnt:notice] [pid 9664:tid 180] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:30:02.070044 2016] [core:warn] [pid 15972:tid 464] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:30:02.074770 2016] [mpm_winnt:notice] [pid 15972:tid 464] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:30:48.907649 2016] [core:warn] [pid 1304:tid 656] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:30:48.911650 2016] [mpm_winnt:notice] [pid 1304:tid 656] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:33:00.723663 2016] [core:warn] [pid 17840:tid 636] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:33:00.727668 2016] [mpm_winnt:notice] [pid 17840:tid 636] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:35:22.053575 2016] [core:warn] [pid 16948:tid 544] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:35:22.058574 2016] [mpm_winnt:notice] [pid 16948:tid 544] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:37:42.965803 2016] [core:warn] [pid 16236:tid 524] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:37:42.971807 2016] [mpm_winnt:notice] [pid 16236:tid 524] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:39:22.058007 2016] [core:warn] [pid 11040:tid 512] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:39:22.061945 2016] [mpm_winnt:notice] [pid 11040:tid 512] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:41:01.374346 2016] [core:warn] [pid 13828:tid 520] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:41:01.379350 2016] [mpm_winnt:notice] [pid 13828:tid 520] AH00354: Child: Starting 64 worker threads.
+[Mon Oct 10 15:42:13.041927 2016] [core:warn] [pid 14916:tid 524] AH00098: pid file D:/DEV/dmvcframework/samples/apachemodule/Apache24/logs/httpd.pid overwritten -- Unclean shutdown of previous Apache run?
+[Mon Oct 10 15:42:13.045934 2016] [mpm_winnt:notice] [pid 14916:tid 524] AH00354: Child: Starting 64 worker threads.

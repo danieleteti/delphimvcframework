@@ -955,9 +955,11 @@ begin
     try
       SetDefaultReponseHeaders(lContext); // tristan
       // Static file handling
-      if TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
+      if (not FMVCConfig[TMVCConfigKey.DocumentRoot].IsEmpty) and
+      // dt: if document_root is empty, no static file are served
+        (TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
         FMVCConfig[TMVCConfigKey.DocumentRoot]), Request.PathInfo,
-        lStaticFileName) then
+        lStaticFileName)) then
       begin
         // if TMVCStaticContents.IsScriptableFile(StaticFileName, FMVCConfig) then
         // // execute the file
