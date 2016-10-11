@@ -1590,7 +1590,7 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{$IF CompilerVersion <= 27 }
+{$IF CompilerVersion <= 28 }
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
