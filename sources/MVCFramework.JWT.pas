@@ -315,7 +315,7 @@ var
 begin
   if not TryStrToInt64(Items[Index], lIntValue) then
     raise Exception.Create('Item cannot be converted as Unix Epoch');
-  Result := UnixToDateTime(lIntValue);
+  Result := UnixToDateTime(lIntValue, False);
 end;
 
 function TJWTDictionaryObject.Keys: TArray<String>;
@@ -331,7 +331,7 @@ end;
 procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: String;
   const Value: TDateTime);
 begin
-  Items[Index] := IntToStr(DateTimeToUnix(Value));
+  Items[Index] := IntToStr(DateTimeToUnix(Value, False));
 end;
 
 { TJWT }
@@ -357,7 +357,7 @@ begin
     Exit(false);
   end;
 
-  if UnixToDateTime(lIntValue) <= Now - FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, False) <= Now - FLeewaySeconds * OneSecond then
   begin
     Error := 'Token expired';
     Exit(false);
@@ -386,7 +386,7 @@ begin
     Exit(false);
   end;
 
-  if UnixToDateTime(lIntValue) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token is issued in the future';
     Exit(false);
@@ -415,7 +415,7 @@ begin
     Exit(false);
   end;
 
-  if UnixToDateTime(lIntValue) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token still not valid';
     Exit(false);
