@@ -31,7 +31,12 @@ uses
 
 type
   TCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  private
+    FAllowedOriginURL: string;
+    FAllowsCredentials: string;
   public
+    constructor Create(const AllowedOriginURL: string = '*';
+      const AllowsCredentials: Boolean = true); virtual;
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnAfterControllerAction(Context: TWebContext;
       const AActionNAme: string; const Handled: Boolean);
@@ -42,7 +47,18 @@ type
 
 implementation
 
+uses
+  System.StrUtils;
+
 { TCORSMiddleware }
+
+constructor TCORSMiddleware.Create(const AllowedOriginURL: string;
+  const AllowsCredentials: Boolean);
+begin
+  inherited Create;
+  FAllowedOriginURL := AllowedOriginURL;
+  FAllowsCredentials := ifthen(AllowsCredentials, 'true', 'false');
+end;
 
 procedure TCORSMiddleware.OnAfterControllerAction(Context: TWebContext;
   const AActionNAme: string; const Handled: Boolean);
@@ -60,17 +76,19 @@ procedure TCORSMiddleware.OnBeforeRouting(Context: TWebContext;
   var Handled: Boolean);
 begin
   Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Origin'] := '*';
+    ['Access-Control-Allow-Origin'] := FAllowedOriginURL;
   Context.Response.RawWebResponse.CustomHeaders.Values
     ['Access-Control-Allow-Methods'] :=
     'POST, GET, OPTIONS, PUT, DELETE';
   Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Headers'] := 'content-type';
+    ['Access-Control-Allow-Headers'] := 'Content-Type, Accept';
+  Context.Response.RawWebResponse.CustomHeaders.Values
+    ['Access-Control-Allow-Credentials'] := FAllowsCredentials;
 
   if Context.Request.HTTPMethod = httpOPTIONS then
   begin
     Context.Response.StatusCode := 200;
-    Handled := True;
+    Handled := true;
   end;
 end;
 
