@@ -63,6 +63,7 @@ uses
 
 {$R *.dfm}
 
+
 procedure TForm1.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 begin
   ListBox1.Items.BeginUpdate;
@@ -117,7 +118,10 @@ end;
 procedure TForm1.Button5Click(Sender: TObject);
 begin
   LSTOMP.Subscribe(Edit1.Text, amAuto,
-    StompUtils.NewHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader('pippo')));
+    StompUtils.Headers
+      .Add(TStompHeaders.Persistent(true))
+      .Add(TStompHeaders.Durable(true))
+    );
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);

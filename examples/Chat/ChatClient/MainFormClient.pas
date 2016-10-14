@@ -39,8 +39,8 @@ procedure TForm5.Button1Click(Sender: TObject);
 begin
   roomname := '/topic/' + Edit2.Text;
   stomp := TStompClient.Create;
-  stomp.SetUserName('admin');
-  stomp.SetPassword('password');
+//  stomp.SetUserName('admin');
+//  stomp.SetPassword('password');
   stomp.Connect(Edit1.Text);
 
   //Setup for reading messages

@@ -19,16 +19,21 @@ type
   TForm4 = class(TForm, IStompClientListener)
     Button1: TButton;
     Memo1: TMemo;
+    Button2: TButton;
+    Button3: TButton;
     procedure Button1Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
   private
-    th0: IStompListener;
-    th1: IStompListener;
-    th2: IStompListener;
-    { Private declarations }
+    FSTOMPListener: IStompListener;
+    FSTOMPClient: IStompClient;
+    FFormClosing: Boolean;
+    FProducerThread: TThread;
   public
-    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-      var StopListening: boolean);
-    procedure OnStopListen(StompClient: IStompClient);
+    procedure OnMessage(MessageBody: string; var TerminateListener: Boolean);
+    procedure OnListenerStopped(StompClient: IStompClient);
   end;
 
 var
@@ -38,92 +43,71 @@ implementation
 
 uses StompClient;
 
-type
-  TMyStompListener = class(TInterfacedObject, IStompClientListener)
-  public
-    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-      var StopListening: boolean);
-    procedure OnStopListen(StompClient: IStompClient);
-  end;
-
 {$R *.dfm}
 
 
 procedure TForm4.Button1Click(Sender: TObject);
-var
-  stomp0: IStompClient;
-  stomp1: IStompClient;
-  stomp2: IStompClient;
 begin
-  stomp0 := TStompClient.CreateAndConnect;
-  stomp0.Subscribe('/topic/danieleteti', amAuto, StompUtils.NewHeaders.Add('include-seq', 'seq'));
-  th0 := TStompClientListener.Create(stomp0, TMyStompListener.Create);
+  FSTOMPListener.StopListening;
+  FSTOMPListener.StartListening;
+end;
 
-  stomp1 := TStompClient.CreateAndConnect;
-  stomp1.Subscribe('/topic/danieleteti');
-  th1 := TStompClientListener.Create(stomp1, self);
+procedure TForm4.Button2Click(Sender: TObject);
+begin
+  FSTOMPListener.StopListening;
+end;
 
-  stomp2 := TStompClient.CreateAndConnect;
-  stomp2.Subscribe('/topic/salvatore');
-  th2 := TStompClientListener.Create(stomp2, self);
-
-  TThread.CreateAnonymousThread(
+procedure TForm4.Button3Click(Sender: TObject);
+begin
+  FProducerThread := TThread.CreateAnonymousThread(
     procedure
     var
       i: Integer;
       stomp: IStompClient;
     begin
       stomp := TStompClient.CreateAndConnect;
-      for i := 1 to 10 do
+      i := 1;
+      while True do
       begin
-        sleep(100);
+        sleep(300);
+        if FFormClosing then
+          Exit;
         stomp.Send('/topic/danieleteti', 'Hello World ' + IntToStr(i));
-        stomp.Send('/topic/salvatore', 'Hello World ' + IntToStr(i));
+        inc(i);
       end;
-      stomp.Send('/topic/danieleteti', 'SHUTDOWN');
-      stomp.Send('/topic/johndoe', 'SHUTDOWN');
       stomp.Disconnect;
-    end).Start;
-end;
-
-procedure TForm4.OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-var StopListening: boolean);
-begin
-  if StompFrame.GetBody = 'SHUTDOWN' then
-    StopListening := true;
-
-  TThread.Synchronize(nil,
-    procedure
-    begin
-      Memo1.Lines.Add(StompFrame.GetBody);
     end);
+  FProducerThread.FreeOnTerminate := False;
+  FProducerThread.Start;
 end;
 
-procedure TForm4.OnStopListen(StompClient: IStompClient);
+procedure TForm4.FormCreate(Sender: TObject);
 begin
-  TThread.Synchronize(nil,
-    procedure
-    begin
-      Memo1.Lines.Add(StompClient.GetSession + ' has been stopped');
-    end);
+  FFormClosing := False;
+  FSTOMPClient := TStompClient.CreateAndConnect;
+  FSTOMPClient.Subscribe('/topic/danieleteti',
+    amAuto,
+    StompUtils.Headers.Add('include-seq', 'seq'));
+  FSTOMPListener := TStompClientListener.Create(FSTOMPClient, Self);
 end;
 
-{ TMyStompListener }
-
-procedure TMyStompListener.OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-var StopListening: boolean);
+procedure TForm4.FormDestroy(Sender: TObject);
 begin
-  if StompFrame.GetBody = 'SHUTDOWN' then
-    StopListening := true;
-  Writeln('------');
-  Writeln(StompFrame.Output);
-  Writeln('------');
+  FFormClosing := True;
+  FProducerThread.WaitFor;
+  FProducerThread.Free;
+  FSTOMPListener := nil;
 end;
 
-procedure TMyStompListener.OnStopListen(StompClient: IStompClient);
+procedure TForm4.OnMessage(MessageBody: string; var TerminateListener: Boolean);
 begin
-  Writeln('Listener has been stopped');
+  Memo1.Lines.Add(MessageBody);
+  TerminateListener := FFormClosing;
+end;
 
+procedure TForm4.OnListenerStopped(StompClient: IStompClient);
+begin
+  Memo1.Lines.Add('Listener Stopped');
 end;
 
 initialization

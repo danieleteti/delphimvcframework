@@ -1,6 +1,6 @@
 // Stomp Client for Embarcadero Delphi & FreePascal
 // Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2, RabbitMQ
-// Copyright (c) 2009-2015 Daniele Teti
+// Copyright (c) 2009-2016 Daniele Teti
 //
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
@@ -29,7 +29,7 @@ const
 type
   TAckMode = (amAuto, amClient, amClientIndividual { STOMP 1.1 } );
 
-  TStompAcceptProtocol = (STOMP_Version_1_0, STOMP_Version_1_1);
+  TStompAcceptProtocol = (Ver_1_0, Ver_1_1);
 
   EStomp = class(Exception)
   end;
@@ -66,6 +66,8 @@ type
     function MessageID: string;
     function ContentLength: Integer;
     function ReplyTo: string;
+    property Headers: IStompHeaders read GetHeaders write SetHeaders;
+    property Command: string read GetCommand write SetCommand;
   end;
 
   IStompClient = interface
@@ -77,7 +79,7 @@ type
     procedure Receipt(const ReceiptID: string);
     procedure Connect(Host: string = '127.0.0.1'; Port: Integer = 61613;
       ClientID: string = '';
-      AcceptVersion: TStompAcceptProtocol = STOMP_Version_1_0);
+      AcceptVersion: TStompAcceptProtocol = Ver_1_0);
     function Clone: IStompClient;
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
@@ -89,16 +91,17 @@ type
       TransactionIdentifier: string; Headers: IStompHeaders = nil); overload;
     procedure Ack(const MessageID: string;
       const TransactionIdentifier: string = '');
-    { STOMP 1.1 }
+    { ** STOMP 1.1 ** }
     procedure Nack(const MessageID: string;
       const TransactionIdentifier: string = '');
     procedure BeginTransaction(const TransactionIdentifier: string);
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);
-    /// ////////////
+    { ****************************************************************** }
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
+    procedure SetHeartBeat(const OutgoingHeartBeats, IncomingHeartBeats: Int64);
     function Connected: Boolean;
     function GetProtocolVersion: string;
     function GetServer: string;
@@ -188,30 +191,29 @@ type
   IStompListener = interface
     ['{CB3EB297-8616-408E-A0B2-7CCC11224DBC}']
     procedure StopListening;
+    procedure StartListening;
   end;
 
   IStompClientListener = interface
     ['{C4C0D932-8994-43FB-9D32-A03FE86AEFE4}']
-    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-      var StompListening: Boolean);
-    procedure OnStopListen(StompClient: IStompClient);
+    procedure OnMessage(MessageBody: string; var TerminateListener: Boolean);
+    procedure OnListenerStopped(StompClient: IStompClient);
   end;
 
-  { TODO -oDaniele -cGeneral : Use TThread by composition and not by inheritance }
-  TStompClientListener = class(TThread, IStompListener)
-  strict protected
+  TStompClientListener = class(TInterfacedObject, IStompListener)
+  strict private
+    FReceiverThread: TThread;
+    FTerminated: Boolean;
+  private
     FStompClientListener: IStompClientListener;
+  strict protected
     FStompClient: IStompClient;
-    procedure Execute; override;
-
   public
-    constructor Create(StompClient: IStompClient;
-      StompClientListener: IStompClientListener);
+    constructor Create(const StompClient: IStompClient;
+      const StompClientListener: IStompClientListener); virtual;
+    destructor Destroy; override;
+    procedure StartListening;
     procedure StopListening;
-    function QueryInterface(const IID: TGUID; out Obj): HRESULT; stdcall;
-    function _AddRef: Integer; stdcall;
-    function _Release: Integer; stdcall;
-
   end;
 
 type
@@ -223,6 +225,16 @@ type
     class function Headers: IStompHeaders;
     class function NewFrame: IStompFrame;
     class function TimestampAsDateTime(const HeaderValue: string): TDateTime;
+  end;
+
+  TReceiverThread = class(TThread)
+  private
+    FStompClient: IStompClient;
+    FStompClientListener: IStompClientListener;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(StompClient: IStompClient; StompClientListener: IStompClientListener);
   end;
 
 implementation
@@ -431,7 +443,7 @@ begin
     on e: Exception do
     begin
       Result.Free;
-      raise EStomp.Create(e.message);
+      raise EStomp.Create(e.Message);
     end;
   end;
 end;
@@ -588,56 +600,72 @@ end;
 
 { TStompListener }
 
-constructor TStompClientListener.Create(StompClient: IStompClient;
-  StompClientListener: IStompClientListener);
+constructor TStompClientListener.Create(const StompClient: IStompClient;
+  const StompClientListener: IStompClientListener);
 begin
   FStompClientListener := StompClientListener;
   FStompClient := StompClient;
-  inherited Create(false);
+  FTerminated := False;
+  FReceiverThread := nil;
+  inherited Create;
 end;
 
-procedure TStompClientListener.Execute;
-var
-  frame: IStompFrame;
-  StopListen: Boolean;
+destructor TStompClientListener.Destroy;
 begin
-  StopListen := false;
-  while not terminated do
-  begin
-    if FStompClient.Receive(frame, 1000) then
-    begin
-      FStompClientListener.OnMessage(FStompClient, frame, StopListen);
-      if StopListen then
-      begin
-        FStompClientListener.OnStopListen(FStompClient);
-        if not terminated then
-          StopListening;
-      end;
-    end;
-  end;
+  FTerminated := true;
+  FReceiverThread.Free;
+  inherited;
 end;
 
-function TStompClientListener.QueryInterface(const IID: TGUID; out Obj)
-  : HRESULT;
+procedure TStompClientListener.StartListening;
 begin
-  Result := E_NOINTERFACE;
+  if Assigned(FReceiverThread) then
+    raise EStomp.Create('Already listening');
+  FReceiverThread := TReceiverThread.Create(FStompClient, FStompClientListener);
+  FReceiverThread.Start;
 end;
 
 procedure TStompClientListener.StopListening;
 begin
-  Terminate;
-  // Free;
-  // WaitFor;
+  if not Assigned(FReceiverThread) then
+    exit;
+  FReceiverThread.Terminate;
+  FReceiverThread.Free;
+  FReceiverThread := nil;
 end;
 
-function TStompClientListener._AddRef: Integer;
+{ TReceiverThread }
+
+constructor TReceiverThread.Create(StompClient: IStompClient;
+  StompClientListener: IStompClientListener);
 begin
-  Result := -1;
+  inherited Create(true);
+  FStompClient := StompClient;
+  FStompClientListener := StompClientListener;
 end;
 
-function TStompClientListener._Release: Integer;
+procedure TReceiverThread.Execute;
+var
+  LFrame: IStompFrame;
+  LTerminateListener: Boolean;
 begin
-  Result := -1;
+  LTerminateListener := False;
+  while (not Terminated) and (not LTerminateListener) do
+  begin
+    if FStompClient.Receive(LFrame, 1000) then
+    begin
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          FStompClientListener.OnMessage(LFrame.Body, LTerminateListener);
+        end);
+    end;
+  end;
+  TThread.Synchronize(nil,
+    procedure
+    begin
+      FStompClientListener.OnListenerStopped(FStompClient);
+    end);
 end;
 
 end.

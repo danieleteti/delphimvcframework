@@ -19,7 +19,7 @@ begin
   lClient := TStompClient.Create;
   lClient.Connect();
   WriteLn('Subscribing to queue "myqueue"');
-  lClient.Subscribe('myqueue');
+  lClient.Subscribe('/queue/myqueue');
 
   WriteLn('Reading just the following 2 messages...');
   WriteLn(sLineBreak + sLineBreak + 'Waiting for the 1st message...' + sLineBreak +

@@ -9,7 +9,9 @@ program consumer;
 }
 
 uses
-  System.SysUtils, StompClient, StompTypes;
+  System.SysUtils,
+  StompClient in '..\..\StompClient.pas',
+  StompTypes in '..\..\StompTypes.pas';
 
 procedure Main;
 var
@@ -18,7 +20,8 @@ var
   lMessage: string;
 begin
   lClient := TStompClient.Create;
-  lClient.Connect();
+  lClient.SetHeartBeat(0, 0);
+  lClient.Connect('127.0.0.1', 61613, '', TStompAcceptProtocol.Ver_1_1);
   WriteLn('Subscribing to queue "myjobqueue"');
   lClient.Subscribe('/topic/mytopic',
     TAckMode.amClient

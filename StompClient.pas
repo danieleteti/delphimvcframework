@@ -1,6 +1,6 @@
 // Stomp Client for Embarcadero Delphi & FreePascal
 // Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2, RabbitMQ
-// Copyright (c) 2009-2015 Daniele Teti
+// Copyright (c) 2009-2016 Daniele Teti
 //
 // Contributors:
 // Daniel Gaspary: dgaspary@gmail.com
@@ -28,6 +28,7 @@ interface
 uses
   StompTypes,
   SysUtils,
+  DateUtils,
 
 {$IFNDEF USESYNAPSE}
   IdTCPClient,
@@ -46,6 +47,7 @@ type
   { TStompClient }
 
   TSenderFrameEvent = procedure(AFrame: IStompFrame) of object;
+  THeartBeatThread = class;
 
   TStompClient = class(TInterfacedObject, IStompClient)
   private
@@ -76,6 +78,13 @@ type
     FClientID: string;
     FAcceptVersion: TStompAcceptProtocol;
     FConnectionTimeout: UInt32;
+    FOutgoingHeartBeats: Int64;
+    FIncomingHeartBeats: Int64;
+    FLock: TObject;
+    FHeartBeatThread: THeartBeatThread;
+    FServerIncomingHeartBeats: Int64;
+    FServerOutgoingHeartBeats: Int64;
+    procedure ParseHeartBeat(Headers: IStompHeaders);
     procedure SetReceiptTimeout(const Value: Integer);
     procedure SetConnectionTimeout(const Value: UInt32);
 
@@ -91,7 +100,9 @@ type
     procedure MergeHeaders(var AFrame: IStompFrame;
       var AHeaders: IStompHeaders);
     procedure SendFrame(AFrame: IStompFrame);
+    procedure SendHeartBeat;
     function FormatErrorFrame(const AErrorFrame: IStompFrame): string;
+    function ServerSupportsHeartBeat: boolean;
   public
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
@@ -103,7 +114,7 @@ type
     procedure Connect(Host: string = '127.0.0.1';
       Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
       AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.
-      STOMP_Version_1_0);
+      Ver_1_0);
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string;
       Ack: TAckMode = TAckMode.amAuto; Headers: IStompHeaders = nil);
@@ -125,8 +136,9 @@ type
     class function CreateAndConnect(Host: string = '127.0.0.1';
       Port: Integer = DEFAULT_STOMP_PORT; ClientID: string = '';
       AcceptVersion: TStompAcceptProtocol = TStompAcceptProtocol.
-      STOMP_Version_1_0): IStompClient; overload; virtual;
+      Ver_1_0): IStompClient; overload; virtual;
     destructor Destroy; override;
+    procedure SetHeartBeat(const OutgoingHeartBeats, IncomingHeartBeats: Int64);
     function Clone: IStompClient;
     function Connected: boolean;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
@@ -145,20 +157,34 @@ type
       write FOnAfterSendFrame;
   end;
 
+  THeartBeatThread = class(TThread)
+  private
+    FStompClient: TStompClient;
+    FLock: TObject;
+    FOutgoingHeatBeatTimeout: Int64;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(StompClient: TStompClient; Lock: TObject;
+      OutgoingHeatBeatTimeout: Int64); virtual;
+  end;
+
 implementation
 
 {$IFDEF FPC}
+
 
 const
   CHAR0 = #0;
 
 {$ELSE}
 
+
 uses
   // Windows,   // Remove windows unit for compiling on ios
   IdGlobal,
   IdGlobalProtocols,
-  Character;
+  Character, Winapi.Windows;
 
 {$ENDIF}
 { TStompClient }
@@ -170,8 +196,8 @@ begin
   if FTransactions.IndexOf(TransactionIdentifier) > -1 then
   begin
     Frame := TStompFrame.Create;
-    Frame.SetCommand('ABORT');
-    Frame.GetHeaders.Add('transaction', TransactionIdentifier);
+    Frame.Command := 'ABORT';
+    Frame.Headers.Add('transaction', TransactionIdentifier);
     SendFrame(Frame);
     FInTransaction := False;
     FTransactions.Delete(FTransactions.IndexOf(TransactionIdentifier));
@@ -188,10 +214,10 @@ var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
-  Frame.SetCommand('ACK');
-  Frame.GetHeaders.Add(TStompHeaders.MESSAGE_ID, MessageID);
+  Frame.Command := 'ACK';
+  Frame.Headers.Add(TStompHeaders.MESSAGE_ID, MessageID);
   if TransactionIdentifier <> '' then
-    Frame.GetHeaders.Add('transaction', TransactionIdentifier);
+    Frame.Headers.Add('transaction', TransactionIdentifier);
   SendFrame(Frame);
 end;
 
@@ -202,8 +228,8 @@ begin
   if FTransactions.IndexOf(TransactionIdentifier) = -1 then
   begin
     Frame := TStompFrame.Create;
-    Frame.SetCommand('BEGIN');
-    Frame.GetHeaders.Add('transaction', TransactionIdentifier);
+    Frame.Command := 'BEGIN';
+    Frame.Headers.Add('transaction', TransactionIdentifier);
     SendFrame(Frame);
     // CheckReceipt(Frame);
     FInTransaction := True;
@@ -222,7 +248,7 @@ end;
 // if FEnableReceipts then
 // begin
 // ReceiptID := inttostr(GetTickCount);
-// Frame.GetHeaders.Add('receipt', ReceiptID);
+// Frame.Headers.Add('receipt', ReceiptID);
 // SendFrame(Frame);
 // Receipt(ReceiptID);
 // end
@@ -246,8 +272,8 @@ begin
   if FTransactions.IndexOf(TransactionIdentifier) > -1 then
   begin
     Frame := TStompFrame.Create;
-    Frame.SetCommand('COMMIT');
-    Frame.GetHeaders.Add('transaction', TransactionIdentifier);
+    Frame.Command := 'COMMIT';
+    Frame.Headers.Add('transaction', TransactionIdentifier);
     SendFrame(Frame);
     FInTransaction := False;
     FTransactions.Delete(FTransactions.IndexOf(TransactionIdentifier));
@@ -262,6 +288,7 @@ procedure TStompClient.Connect(Host: string; Port: Integer; ClientID: string;
   AcceptVersion: TStompAcceptProtocol);
 var
   Frame: IStompFrame;
+  lHeartBeat: string;
 begin
   FHost := Host;
   FPort := Port;
@@ -283,34 +310,48 @@ begin
 
 {$ENDIF}
     Frame := TStompFrame.Create;
-    Frame.SetCommand('CONNECT');
+    Frame.Command := 'CONNECT';
 
     FClientAcceptProtocolVersion := AcceptVersion;
-    if TStompAcceptProtocol.STOMP_Version_1_1 in [FClientAcceptProtocolVersion]
+    if TStompAcceptProtocol.Ver_1_1 in [FClientAcceptProtocolVersion]
     then
     begin
-      Frame.GetHeaders.Add('heart-beat', '0,1000'); // stomp 1.1
-      Frame.GetHeaders.Add('accept-version', '1.1'); // stomp 1.1
+      Frame.Headers.Add('accept-version', '1.1'); // stomp 1.1
+      lHeartBeat := Format('%d,%d', [FOutgoingHeartBeats, FIncomingHeartBeats]);
+      Frame.Headers.Add('heart-beat', lHeartBeat); // stomp 1.1
+    end
+    else
+    begin
+      Frame.Headers.Add('accept-version', '1.0'); // stomp 1.0
     end;
 
-    Frame.GetHeaders.Add('login', FUserName).Add('passcode', FPassword);
+    Frame.Headers.Add('login', FUserName).Add('passcode', FPassword);
     FClientID := ClientID;
     if ClientID <> '' then
     begin
-      Frame.GetHeaders.Add('client-id', ClientID);
+      Frame.Headers.Add('client-id', ClientID);
     end;
     SendFrame(Frame);
     Frame := nil;
     while Frame = nil do
       Frame := Receive;
-    if Frame.GetCommand = 'ERROR' then
+    if Frame.Command = 'ERROR' then
       raise EStomp.Create(FormatErrorFrame(Frame));
-    if Frame.GetCommand = 'CONNECTED' then
+    if Frame.Command = 'CONNECTED' then
     begin
-      FSession := Frame.GetHeaders.Value('session');
-      FServerProtocolVersion := Frame.GetHeaders.Value('version'); // stomp 1.1
-      FServer := Frame.GetHeaders.Value('server'); // stomp 1.1
+      FSession := Frame.Headers.Value('session');
+      FServerProtocolVersion := Frame.Headers.Value('version'); // stomp 1.1
+      FServer := Frame.Headers.Value('server'); // stomp 1.1
+      ParseHeartBeat(Frame.Headers);
     end;
+
+    // Let's start the hearbeat thread
+    if ServerSupportsHeartBeat then
+    begin
+      FHeartBeatThread := THeartBeatThread.Create(Self, FLock, FServerOutgoingHeartBeats);
+      FHeartBeatThread.Start;
+    end;
+
     { todo: 'Call event?' }
   except
     on E: Exception do
@@ -342,6 +383,7 @@ end;
 constructor TStompClient.Create;
 begin
   inherited;
+  FLock := TObject.Create;
   FInTransaction := False;
   FSession := '';
   FUserName := 'guest';
@@ -350,6 +392,8 @@ begin
   FTimeout := 200;
   FReceiptTimeout := FTimeout;
   FConnectionTimeout := 1000 * 10; // 10secs
+  FIncomingHeartBeats := 10000; // 10secs
+  FOutgoingHeartBeats := 0; // disabled
 end;
 
 procedure TStompClient.DeInit;
@@ -369,6 +413,7 @@ destructor TStompClient.Destroy;
 begin
   Disconnect;
   DeInit;
+  FLock.Free;
   inherited;
 end;
 
@@ -378,8 +423,16 @@ var
 begin
   if Connected then
   begin
+    if ServerSupportsHeartBeat then
+    begin
+      Assert(Assigned(FHeartBeatThread), 'HeartBeat thread not created');
+      FHeartBeatThread.Terminate;
+      FHeartBeatThread.WaitFor;
+      FHeartBeatThread.Free;
+    end;
+
     Frame := TStompFrame.Create;
-    Frame.SetCommand('DISCONNECT');
+    Frame.Command := 'DISCONNECT';
     SendFrame(Frame);
 
 {$IFDEF USESYNAPSE}
@@ -396,10 +449,10 @@ end;
 
 function TStompClient.FormatErrorFrame(const AErrorFrame: IStompFrame): string;
 begin
-  if AErrorFrame.GetCommand <> 'ERROR' then
+  if AErrorFrame.Command <> 'ERROR' then
     raise EStomp.Create('Not an ERROR frame');
-  Result := AErrorFrame.GetHeaders.Value('message') + ': ' +
-    AErrorFrame.GetBody;
+  Result := AErrorFrame.Headers.Value('message') + ': ' +
+    AErrorFrame.Body;
 end;
 
 function TStompClient.GetProtocolVersion: string;
@@ -435,6 +488,7 @@ end;
 
 {$IFDEF USESYNAPSE}
 
+
 procedure TStompClient.SynapseSocketCallBack(Sender: TObject;
   Reason: THookSocketReason; const Value: string);
 begin
@@ -448,6 +502,7 @@ end;
 
 {$ENDIF}
 
+
 procedure TStompClient.MergeHeaders(var AFrame: IStompFrame;
   var AHeaders: IStompHeaders);
 var
@@ -459,12 +514,12 @@ begin
       for i := 0 to AHeaders.Count - 1 do
       begin
         h := AHeaders.GetAt(i);
-        AFrame.GetHeaders.Add(h.Key, h.Value);
+        AFrame.Headers.Add(h.Key, h.Value);
       end;
 
   // If the frame has some content, then set the length of that content.
   if (AFrame.ContentLength > 0) then
-    AFrame.GetHeaders.Add('content-length', intToStr(AFrame.ContentLength));
+    AFrame.Headers.Add('content-length', intToStr(AFrame.ContentLength));
 end;
 
 procedure TStompClient.Nack(const MessageID, TransactionIdentifier: string);
@@ -472,11 +527,28 @@ var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
-  Frame.SetCommand('NACK');
-  Frame.GetHeaders.Add('message-id', MessageID);
+  Frame.Command := 'NACK';
+  Frame.Headers.Add('message-id', MessageID);
   if TransactionIdentifier <> '' then
-    Frame.GetHeaders.Add('transaction', TransactionIdentifier);
+    Frame.Headers.Add('transaction', TransactionIdentifier);
   SendFrame(Frame);
+end;
+
+procedure TStompClient.ParseHeartBeat(Headers: IStompHeaders);
+var
+  lValue: string;
+  lIntValue: string;
+begin
+  FServerOutgoingHeartBeats := 0;
+  FServerIncomingHeartBeats := 0;
+  //WARNING!! server heart beat is reversed
+  lValue := Headers.Value('heart-beat');
+  if Trim(lValue) <> '' then
+  begin
+    lIntValue := Fetch(lValue, ',');
+    FServerIncomingHeartBeats := StrToInt(lIntValue);
+    FServerOutgoingHeartBeats := StrToInt(lValue);
+  end;
 end;
 
 procedure TStompClient.Receipt(const ReceiptID: string);
@@ -485,9 +557,9 @@ var
 begin
   if Receive(Frame, FReceiptTimeout) then
   begin
-    if Frame.GetCommand <> 'RECEIPT' then
+    if Frame.Command <> 'RECEIPT' then
       raise EStomp.Create('Receipt command error');
-    if Frame.GetHeaders.Value('receipt-id') <> ReceiptID then
+    if Frame.Headers.Value('receipt-id') <> ReceiptID then
       raise EStomp.Create('Receipt receipt-id error');
   end;
 end;
@@ -559,12 +631,13 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 {$ELSE}
   function InternalReceiveINDY(ATimeout: Integer): IStompFrame;
   var
-    s: string;
+    lLine: string;
     lSBuilder: TStringBuilder;
     Headers: TIdHeaderList;
     ContentLength: Integer;
     Charset: string;
-
+    lHeartBeat: boolean;
+    lTimestampFirstReadLn: TDateTime;
 {$IF CompilerVersion < 24}
     Encoding: TIdTextEncoding;
     FreeEncoding: boolean;
@@ -580,32 +653,54 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 {$IF CompilerVersion < 24}TIdTextEncoding.UTF8{$ELSE}IndyTextEncoding_UTF8{$ENDIF};
 
       try
+        lTimestampFirstReadLn := Now;
         // read command line
-        // repeat
-        s := FTCP.Socket.ReadLn(LF, ATimeout, -1,
-          FTCP.Socket.DefStringEncoding);
-        // until s <> '';
-        if s = '' then
+        while True do
+        begin
+          lLine := FTCP.Socket.ReadLn(LF, ATimeout, -1,
+            FTCP.Socket.DefStringEncoding);
+
+          if FTCP.Socket.ReadLnTimedout then
+            Break;
+
+          lHeartBeat := lLine = ''; // here is not timeout because of the previous line
+          if lHeartBeat then
+            WinApi.Windows.Beep(1500,200);
+
+          if FServerProtocolVersion = '1.1' then // 1.1 supports heart-beats
+          begin
+            if (not lHeartBeat) or (lLine <> '') then
+              Break;
+            if MilliSecondsBetween(lTimestampFirstReadLn, Now) >= ATimeout then
+              Break;
+          end
+          else
+            Break; // 1.0
+        end;
+
+        if lLine = '' then
           Exit(nil);
-        lSBuilder.Append(s + LF);
+        lSBuilder.Append(lLine + LF);
 
         // read headers
         Headers := TIdHeaderList.Create(QuotePlain);
 
         try
           repeat
-            s := FTCP.Socket.ReadLn;
-            lSBuilder.Append(s + LF);
-            if s = '' then
+            lLine := FTCP.Socket.ReadLn;
+            lSBuilder.Append(lLine + LF);
+            if lLine = '' then
               Break;
-            Headers.Add(s);
+            // in case of duplicated header, only the first is considered
+            // https://stomp.github.io/stomp-specification-1.1.html#Repeated_Header_Entries
+            if Headers.IndexOfName(Fetch(lLine, ':', False, False)) = -1 then
+              Headers.Add(lLine);
           until False;
 
           // read body
           //
           // NOTE: non-text data really should be read as a Stream instead of a String!!!
           //
-
           if IsHeaderMediaType(Headers.Values['content-type'], 'text') then
           begin
             Charset := Headers.Params['content-type', 'charset'];
@@ -633,8 +728,8 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
               ContentLength := IndyStrToInt(Headers.Values['content-length']);
               if ContentLength > 0 then
               begin
-                s := FTCP.Socket.ReadString(ContentLength, Encoding);
-                lSBuilder.Append(s);
+                lLine := FTCP.Socket.ReadString(ContentLength, Encoding);
+                lSBuilder.Append(lLine);
               end;
               // frame must still be terminated by a null
               FTCP.Socket.ReadLn(#0 + LF);
@@ -643,8 +738,8 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 
             begin
               // no length specified, body terminated by frame terminating null
-              s := FTCP.Socket.ReadLn(#0 + LF, Encoding);
-              lSBuilder.Append(s);
+              lLine := FTCP.Socket.ReadLn(#0 + LF, Encoding);
+              lSBuilder.Append(lLine);
 
             end;
             lSBuilder.Append(#0);
@@ -667,7 +762,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
         end;
       end;
       Result := StompUtils.CreateFrame(lSBuilder.toString);
-      if Result.GetCommand = 'ERROR' then
+      if Result.Command = 'ERROR' then
         raise EStomp.Create(FormatErrorFrame(Result));
     finally
       lSBuilder.Free;
@@ -675,6 +770,7 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
   end;
 
 {$ENDIF}
+
 
 begin
 
@@ -698,9 +794,9 @@ var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
-  Frame.SetCommand('SEND');
-  Frame.GetHeaders.Add('destination', QueueOrTopicName);
-  Frame.SetBody(TextMessage);
+  Frame.Command := 'SEND';
+  Frame.Headers.Add('destination', QueueOrTopicName);
+  Frame.Body := TextMessage;
   MergeHeaders(Frame, Headers);
   SendFrame(Frame);
 end;
@@ -711,44 +807,81 @@ var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
-  Frame.SetCommand('SEND');
-  Frame.GetHeaders.Add('destination', QueueOrTopicName);
-  Frame.GetHeaders.Add('transaction', TransactionIdentifier);
-  Frame.SetBody(TextMessage);
+  Frame.Command := 'SEND';
+  Frame.Headers.Add('destination', QueueOrTopicName);
+  Frame.Headers.Add('transaction', TransactionIdentifier);
+  Frame.Body := TextMessage;
   MergeHeaders(Frame, Headers);
   SendFrame(Frame);
 end;
 
 procedure TStompClient.SendFrame(AFrame: IStompFrame);
 begin
-
+  TMonitor.Enter(FLock);
+  try
 {$IFDEF USESYNAPSE}
-  if Assigned(FOnBeforeSendFrame) then
-    FOnBeforeSendFrame(AFrame);
-  FSynapseTCP.SendString(AFrame.output);
-  if Assigned(FOnAfterSendFrame) then
-    FOnAfterSendFrame(AFrame);
+    if Assigned(FOnBeforeSendFrame) then
+      FOnBeforeSendFrame(AFrame);
+    FSynapseTCP.SendString(AFrame.output);
+    if Assigned(FOnAfterSendFrame) then
+      FOnAfterSendFrame(AFrame);
 
 {$ELSE}
-  // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
-  if Assigned(FOnBeforeSendFrame) then
-    FOnBeforeSendFrame(AFrame);
+    // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
+    if Assigned(FOnBeforeSendFrame) then
+      FOnBeforeSendFrame(AFrame);
 
 {$IF CompilerVersion < 25}
-  FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+    FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
 {$IFEND}
 {$IF CompilerVersion >= 25}
-  FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
+    FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
 {$IFEND}
-  if Assigned(FOnAfterSendFrame) then
-    FOnAfterSendFrame(AFrame);
+    if Assigned(FOnAfterSendFrame) then
+      FOnAfterSendFrame(AFrame);
 
 {$ENDIF}
+  finally
+    TMonitor.Exit(FLock);
+  end;
+end;
+
+procedure TStompClient.SendHeartBeat;
+begin
+  TMonitor.Enter(FLock);
+  try
+    Winapi.Windows.Beep(600, 200);
+{$IFDEF USESYNAPSE}
+    FSynapseTCP.SendString(LF);
+{$ELSE}
+{$IF CompilerVersion < 25}
+    FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(LF));
+{$IFEND}
+{$IF CompilerVersion >= 25}
+    FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(LF));
+{$IFEND}
+{$ENDIF}
+  finally
+    TMonitor.Exit(FLock);
+  end;
+
+end;
+
+function TStompClient.ServerSupportsHeartBeat: boolean;
+begin
+  Result := (FServerProtocolVersion = '1.1') and (FServerOutgoingHeartBeats > 0)
 end;
 
 procedure TStompClient.SetConnectionTimeout(const Value: UInt32);
 begin
   FConnectionTimeout := Value;
+end;
+
+procedure TStompClient.SetHeartBeat(const OutgoingHeartBeats,
+  IncomingHeartBeats: Int64);
+begin
+  FOutgoingHeartBeats := OutgoingHeartBeats;
+  FIncomingHeartBeats := IncomingHeartBeats;
 end;
 
 function TStompClient.SetPassword(const Value: string): IStompClient;
@@ -781,8 +914,8 @@ var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
-  Frame.SetCommand('SUBSCRIBE');
-  Frame.GetHeaders.Add('destination', QueueOrTopicName)
+  Frame.Command := 'SUBSCRIBE';
+  Frame.Headers.Add('destination', QueueOrTopicName)
     .Add('ack', StompUtils.AckModeToStr(Ack));
   if Headers <> nil then
     MergeHeaders(Frame, Headers);
@@ -794,9 +927,36 @@ var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
-  Frame.SetCommand('UNSUBSCRIBE');
-  Frame.GetHeaders.Add('destination', Queue);
+  Frame.Command := 'UNSUBSCRIBE';
+  Frame.Headers.Add('destination', Queue);
   SendFrame(Frame);
+end;
+
+{ THeartBeatThread }
+
+constructor THeartBeatThread.Create(StompClient: TStompClient; Lock: TObject;
+  OutgoingHeatBeatTimeout: Int64);
+begin
+  inherited Create(True);
+  FStompClient := StompClient;
+  FLock := Lock;
+  FOutgoingHeatBeatTimeout := OutgoingHeatBeatTimeout;
+end;
+
+procedure THeartBeatThread.Execute;
+var
+  lStart: TDateTime;
+begin
+  while not Terminated do
+  begin
+    lStart := Now;
+    while (not Terminated) and (MilliSecondsBetween(Now, lStart) < FOutgoingHeatBeatTimeout) do
+    begin
+      Sleep(100);
+    end;
+    if not Terminated then
+      FStompClient.SendHeartBeat;
+  end;
 end;
 
 end.

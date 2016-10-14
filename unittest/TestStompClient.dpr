@@ -1,34 +1,61 @@
 program TestStompClient;
-{$IFDEF CONSOLE_TESTRUNNER}
+
+{$IFNDEF TESTINSIGHT}
 {$APPTYPE CONSOLE}
-{$ENDIF}
-
+{$ENDIF}{$STRONGLINKTYPES ON}
 uses
-  Forms,
-  TestFramework,
-  GUITestRunner,
-  TextTestRunner,
-  TestStompClientU in 'TestStompClientU.pas';
-
-{$R *.RES}
+  System.SysUtils,
+  {$IFDEF TESTINSIGHT}
+  TestInsight.DUnitX,
+  {$ENDIF }
+  DUnitX.Loggers.Console,
+  DUnitX.Loggers.Xml.NUnit,
+  DUnitX.TestFramework,
+  TestStompClientU in 'TestStompClientU.pas',
+  StompClient in '..\StompClient.pas',
+  StompTypes in '..\StompTypes.pas';
 
 var
-  ExCode: Integer;
-  TestResult: TTestResult;
-
+  runner : ITestRunner;
+  results : IRunResults;
+  logger : ITestLogger;
+  nunitLogger : ITestLogger;
 begin
-  ExCode := 0;
-  Application.Initialize;
-  if IsConsole then
-  begin
-    TestResult := TextTestRunner.RunRegisteredTests;
-    try
-      ExCode := TestResult.ErrorCount + TestResult.FailureCount;
-    finally
-      TestResult.Free;
+{$IFDEF TESTINSIGHT}
+  TestInsight.DUnitX.RunRegisteredTests;
+  exit;
+{$ENDIF}
+  try
+    //Check command line options, will exit if invalid
+    TDUnitX.CheckCommandLine;
+    //Create the test runner
+    runner := TDUnitX.CreateRunner;
+    //Tell the runner to use RTTI to find Fixtures
+    runner.UseRTTI := True;
+    //tell the runner how we will log things
+    //Log to the console window
+    logger := TDUnitXConsoleLogger.Create(true);
+    runner.AddLogger(logger);
+    //Generate an NUnit compatible XML File
+    nunitLogger := TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile);
+    runner.AddLogger(nunitLogger);
+    runner.FailsOnNoAsserts := False; //When true, Assertions must be made during tests;
+
+    //Run tests
+    results := runner.Execute;
+    if not results.AllPassed then
+      System.ExitCode := EXIT_ERRORS;
+
+    {$IFNDEF CI}
+    //We don't want this happening when running under CI.
+    if TDUnitX.Options.ExitBehavior = TDUnitXExitBehavior.Pause then
+    begin
+      System.Write('Done.. press <Enter> key to quit.');
+      System.Readln;
     end;
-  end
-  else
-    GUITestRunner.RunRegisteredTests;
-  Halt(ExCode);
+    {$ENDIF}
+  except
+    on E: Exception do
+      System.Writeln(E.ClassName, ': ', E.Message);
+  end;
 end.
