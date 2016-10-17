@@ -101,7 +101,7 @@ type
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
-    procedure SetHeartBeat(const OutgoingHeartBeats, IncomingHeartBeats: Int64);
+    function SetHeartBeat(const OutgoingHeartBeats, IncomingHeartBeats: Int64): IStompClient;
     function Connected: Boolean;
     function GetProtocolVersion: string;
     function GetServer: string;
