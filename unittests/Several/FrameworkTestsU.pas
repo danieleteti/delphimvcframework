@@ -61,6 +61,7 @@ type
     procedure TestJSONArrayToObjectListNoGenerics;
     procedure TestJSONArrayToObjectListNoGenericsWrappedList;
     procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
+    procedure TestJSONObjectToObjectWithNullInJSONString;
 
   end;
 
@@ -564,6 +565,17 @@ begin
   finally
     Obj.Free;
   end;
+end;
+
+procedure TTestMappers.TestJSONObjectToObjectWithNullInJSONString;
+var
+  LJSONObject: string;
+  Obj: TMyStreamObject;
+begin
+  LJSONObject := '{"ImageStream":null}';
+  Obj := Mapper.JSONObjectStringToObject<TMyStreamObject>(LJSONObject);
+  CheckNull(Obj.ImageStream);
+  Obj.Free;
 end;
 
 procedure TTestMappers.TestLoadJSONObjectToObjectAndBack;
