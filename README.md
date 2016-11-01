@@ -13,11 +13,14 @@ The project can use INDY (Delphi) or Synapse (Delphi or FreePascal). In case you
 More info on the author's blog http://www.danieleteti.it/stomp-client/
 
 
-# Delphi STOMP Client Team
+## Delphi STOMP Client Team
 Daniele Teti (Lead Developer)
+
 Daniel Gaspary (Free Pascal Mantainer)
 
-*Contributors*
+### Contributors*
 Oliver Marr (encoding fixes)
+
 Marco Mottadelli (iOS fixes)
+
 Chenavier Gérald (STOMP 1.1 improvement)
