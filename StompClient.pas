@@ -1,4 +1,4 @@
-// Stomp Client for Embarcadero Delphi & FreePascal
+// Stomp Client for Embarcadero Delphi & FreePasca
 // Tested With ApacheMQ 5.2/5.3, Apache Apollo 1.2, RabbitMQ
 // Copyright (c) 2009-2016 Daniele Teti
 //
@@ -35,7 +35,8 @@ uses
   IdException,
   IdExceptionCore,
   IdHeaderList,
-
+  IdIOHandler, IdIOHandlerSocket, IdIOHandlerStack, IdSSL, IdSSLOpenSSL, // SSL
+  System.SyncObjs,
 {$ELSE}
   synsock,
   blcksock,
@@ -47,6 +48,7 @@ type
   { TStompClient }
 
   TSenderFrameEvent = procedure(AFrame: IStompFrame) of object;
+
   THeartBeatThread = class;
 
   TStompClient = class(TInterfacedObject, IStompClient)
@@ -58,8 +60,11 @@ type
 
 {$ELSE}
     FTCP: TIdTCPClient;
-
+    FIOHandlerSocketOpenSSL : TIdSSLIOHandlerSocketOpenSSL;
 {$ENDIF}
+    FOnConnect: TStompConnectNotifyEvent; // Add By GC 26/01/2011
+
+
     FHeaders: IStompHeaders;
     FPassword: string;
     FUserName: string;
@@ -76,6 +81,12 @@ type
     FHost: string;
     FPort: Integer;
     FClientID: string;
+
+    FUseSSL   : boolean;      // SSL
+    FsslKeyFile : string;     // SSL
+    FsslCertFile : string;    // SSL
+    FsslKeyPass   : string;   // SSL
+
     FAcceptVersion: TStompAcceptProtocol;
     FConnectionTimeout: UInt32;
     FOutgoingHeartBeats: Int64;
@@ -85,9 +96,14 @@ type
     FServerIncomingHeartBeats: Int64;
     FServerOutgoingHeartBeats: Int64;
     FOnHeartBeatError: TNotifyEvent;
+
+
+
     procedure ParseHeartBeat(Headers: IStompHeaders);
     procedure SetReceiptTimeout(const Value: Integer);
     procedure SetConnectionTimeout(const Value: UInt32);
+    function GetOnConnect: TStompConnectNotifyEvent;
+    procedure SetOnConnect(const Value: TStompConnectNotifyEvent);
 
   protected
 
@@ -106,7 +122,12 @@ type
     function ServerSupportsHeartBeat: boolean;
     procedure OnHeartBeatErrorHandler(Sender: TObject);
     procedure DoHeartBeatErrorHandler;
+    procedure OpenSSLGetPassword(var Password: String);
   public
+    Function SetUseSSL(const boUseSSL: boolean;
+      const KeyFile : string =''; const CertFile : string = '';
+      const PassPhrase : string = ''): IStompClient; // SSL
+
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
     function Receive(out StompFrame: IStompFrame; ATimeout: Integer)
@@ -121,16 +142,18 @@ type
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string;
       Ack: TAckMode = TAckMode.amAuto; Headers: IStompHeaders = nil);
-    procedure Unsubscribe(Queue: string);
+    procedure Unsubscribe(Queue: string; const subscriptionId: string = ''); // Unsubscribe STOMP 1.1 : It requires that the id header matches the id value of previous SUBSCRIBE operation.
     procedure Send(QueueOrTopicName: string; TextMessage: string;
       Headers: IStompHeaders = nil); overload;
     procedure Send(QueueOrTopicName: string; TextMessage: string;
       TransactionIdentifier: string; Headers: IStompHeaders = nil); overload;
-    procedure Ack(const MessageID: string;
-      const TransactionIdentifier: string = '');
+
+
+    procedure Ack(const MessageID: string; const subscriptionId: string = '';
+      const TransactionIdentifier: string = ''); // ACK  STOMP 1.1 : has two REQUIRED headers: message-id, which MUST contain a value matching the message-id for the MESSAGE being acknowledged and subscription, which MUST be set to match the value of the subscription's id header
     { STOMP 1.1 }
-    procedure Nack(const MessageID: string;
-      const TransactionIdentifier: string = '');
+    procedure Nack(const MessageID: string; const subscriptionId: string = '';
+      const TransactionIdentifier: string = ''); // NACK STOMP 1.1 : takes the same headers as ACK: message-id (mandatory), subscription (mandatory) and transaction (OPTIONAL).
     procedure BeginTransaction(const TransactionIdentifier: string);
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);
@@ -151,6 +174,13 @@ type
     property ReceiptTimeout: Integer read FReceiptTimeout
       write SetReceiptTimeout;
     property Transactions: TStringList read FTransactions;
+
+
+
+
+
+
+
     property ConnectionTimeout: UInt32 read FConnectionTimeout
       write SetConnectionTimeout;
     // * Manage Events
@@ -159,6 +189,9 @@ type
     property OnAfterSendFrame: TSenderFrameEvent read FOnAfterSendFrame
       write FOnAfterSendFrame;
     property OnHeartBeatError: TNotifyEvent read FOnHeartBeatError write FOnHeartBeatError;
+
+    // Add by GC 26/01/2001
+    property OnConnect: TStompConnectNotifyEvent read GetOnConnect write SetOnConnect;
   end;
 
   THeartBeatThread = class(TThread)
@@ -215,7 +248,7 @@ begin
       [TransactionIdentifier]);
 end;
 
-procedure TStompClient.Ack(const MessageID: string;
+procedure TStompClient.Ack(const MessageID: string; const subscriptionId: string;
   const TransactionIdentifier: string);
 var
   Frame: IStompFrame;
@@ -223,6 +256,10 @@ begin
   Frame := TStompFrame.Create;
   Frame.Command := 'ACK';
   Frame.Headers.Add(TStompHeaders.MESSAGE_ID, MessageID);
+
+  if subscriptionId <> '' then
+    Frame.Headers.Add('subscription', subscriptionId);
+
   if TransactionIdentifier <> '' then
     Frame.Headers.Add('transaction', TransactionIdentifier);
   SendFrame(Frame);
@@ -311,6 +348,27 @@ begin
     FSynapseConnected := True;
 
 {$ELSE}
+
+
+    if FUseSSL then
+    begin
+      FIOHandlerSocketOpenSSL.OnGetPassword := OpenSSLGetPassword;
+      FIOHandlerSocketOpenSSL.Port := 0  ;
+      FIOHandlerSocketOpenSSL.DefaultPort := 0       ;
+      FIOHandlerSocketOpenSSL.SSLOptions.Method := sslvTLSv1_2; //sslvSSLv3; //sslvSSLv23;
+      FIOHandlerSocketOpenSSL.SSLOptions.KeyFile  := FsslKeyFile;
+      FIOHandlerSocketOpenSSL.SSLOptions.CertFile := FsslCertFile;
+      FIOHandlerSocketOpenSSL.SSLOptions.Mode := sslmUnassigned; //sslmClient;
+      FIOHandlerSocketOpenSSL.SSLOptions.VerifyMode := [];
+      FIOHandlerSocketOpenSSL.SSLOptions.VerifyDepth := 0;
+//      FIOHandlerSocketOpenSSL.OnBeforeConnect := BeforeConnect;
+      FTCP.IOHandler := FIOHandlerSocketOpenSSL;
+    end
+    else
+    begin
+      FTCP.IOHandler := nil;
+    end;
+
     FTCP.ConnectTimeout := FConnectionTimeout;
     FTCP.Connect(Host, Port);
     FTCP.IOHandler.MaxLineLength := MaxInt;
@@ -360,7 +418,11 @@ begin
       FHeartBeatThread.Start;
     end;
 
-    { todo: 'Call event?' }
+    { todo: 'Call event?' -> by Gc}
+    // Add by GC 26/01/2011
+    if Assigned(FOnConnect) then
+      FOnConnect(Self, Frame);
+
   except
     on E: Exception do
     begin
@@ -375,8 +437,8 @@ begin
 {$IFDEF USESYNAPSE}
   Result := Assigned(FSynapseTCP) and FSynapseConnected;
 
-{$ELSE}
-  Result := Assigned(FTCP) and FTCP.Connected;
+{$ELSE}                                           // ClosedGracefully <> FTCP.Connected !!!
+  Result := Assigned(FTCP) and FTCP.Connected and (not FTCP.IOHandler.ClosedGracefully);
 
 {$ENDIF}
 end;
@@ -396,6 +458,7 @@ begin
   FSession := '';
   FUserName := 'guest';
   FPassword := 'guest';
+  FUseSSL := false;
   FHeaders := TStompHeaders.Create;
   FTimeout := 200;
   FReceiptTimeout := FTimeout;
@@ -412,6 +475,7 @@ begin
 
 {$ELSE}
   FreeAndNil(FTCP);
+  FreeAndNil(FIOHandlerSocketOpenSSL);
 
 {$ENDIF}
   FreeAndNil(FTransactions);
@@ -422,6 +486,7 @@ begin
   Disconnect;
   DeInit;
   FLock.Free;
+
   inherited;
 end;
 
@@ -441,15 +506,14 @@ begin
 
     Frame := TStompFrame.Create;
     Frame.Command := 'DISCONNECT';
+
     SendFrame(Frame);
 
 {$IFDEF USESYNAPSE}
     FSynapseTCP.CloseSocket;
     FSynapseConnected := False;
-
 {$ELSE}
     FTCP.Disconnect;
-
 {$ENDIF}
   end;
   DeInit;
@@ -472,6 +536,11 @@ begin
     raise EStomp.Create('Not an ERROR frame');
   Result := AErrorFrame.Headers.Value('message') + ': ' +
     AErrorFrame.Body;
+end;
+
+function TStompClient.GetOnConnect: TStompConnectNotifyEvent;
+begin
+  Result := FOnConnect;
 end;
 
 function TStompClient.GetProtocolVersion: string;
@@ -499,6 +568,7 @@ begin
   FSynapseTCP.RaiseExcept := True;
 
 {$ELSE}
+  FIOHandlerSocketOpenSSL := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
   FTCP := TIdTCPClient.Create(nil);
 
 {$ENDIF}
@@ -541,13 +611,17 @@ begin
     AFrame.Headers.Add('content-length', intToStr(AFrame.ContentLength));
 end;
 
-procedure TStompClient.Nack(const MessageID, TransactionIdentifier: string);
+procedure TStompClient.Nack(const MessageID, subscriptionId, TransactionIdentifier: string);
 var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
   Frame.Command := 'NACK';
   Frame.Headers.Add('message-id', MessageID);
+
+  if subscriptionId <> '' then
+    Frame.Headers.Add('subscription', subscriptionId);
+
   if TransactionIdentifier <> '' then
     Frame.Headers.Add('transaction', TransactionIdentifier);
   SendFrame(Frame);
@@ -561,6 +635,11 @@ begin
   FHeartBeatThread := nil;
   Disconnect;
   DoHeartBeatErrorHandler;
+end;
+
+procedure TStompClient.OpenSSLGetPassword(var Password: String);
+begin
+  Password := FsslKeyPass;
 end;
 
 procedure TStompClient.ParseHeartBeat(Headers: IStompHeaders);
@@ -802,7 +881,6 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
 
 
 begin
-
 {$IFDEF USESYNAPSE}
   Result := InternalReceiveSynapse(ATimeout);
 
@@ -810,6 +888,7 @@ begin
   Result := InternalReceiveINDY(ATimeout);
 
 {$ENDIF}
+
 end;
 
 function TStompClient.Receive: IStompFrame;
@@ -844,56 +923,63 @@ begin
   SendFrame(Frame);
 end;
 
+
 procedure TStompClient.SendFrame(AFrame: IStompFrame);
 begin
   TMonitor.Enter(FLock);
-  try
-{$IFDEF USESYNAPSE}
-    if Assigned(FOnBeforeSendFrame) then
-      FOnBeforeSendFrame(AFrame);
-    FSynapseTCP.SendString(AFrame.output);
-    if Assigned(FOnAfterSendFrame) then
-      FOnAfterSendFrame(AFrame);
+  Try
+    if Connected then // Test if error on Socket
+    begin
+      {$IFDEF USESYNAPSE}
+          if Assigned(FOnBeforeSendFrame) then
+            FOnBeforeSendFrame(AFrame);
+          FSynapseTCP.SendString(AFrame.output);
+          if Assigned(FOnAfterSendFrame) then
+            FOnAfterSendFrame(AFrame);
+      {$ELSE}
+          // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
+          if Assigned(FOnBeforeSendFrame) then
+            FOnBeforeSendFrame(AFrame);
 
-{$ELSE}
-    // FTCP.IOHandler.write(TEncoding.ASCII.GetBytes(AFrame.output));
-    if Assigned(FOnBeforeSendFrame) then
-      FOnBeforeSendFrame(AFrame);
+      {$IF CompilerVersion < 25}
+          FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
+      {$IFEND}
+      {$IF CompilerVersion >= 25}
+          FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
+      {$IFEND}
 
-{$IF CompilerVersion < 25}
-    FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(AFrame.output));
-{$IFEND}
-{$IF CompilerVersion >= 25}
-    FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(AFrame.output));
-{$IFEND}
-    if Assigned(FOnAfterSendFrame) then
-      FOnAfterSendFrame(AFrame);
-
-{$ENDIF}
-  finally
+          if Assigned(FOnAfterSendFrame) then
+            FOnAfterSendFrame(AFrame);
+      {$ENDIF}
+    end;
+  Finally
     TMonitor.Exit(FLock);
-  end;
+  End;
 end;
 
 procedure TStompClient.SendHeartBeat;
 begin
   TMonitor.Enter(FLock);
-  try
-    // Winapi.Windows.Beep(600, 200);
-{$IFDEF USESYNAPSE}
-    FSynapseTCP.SendString(LF);
-{$ELSE}
-{$IF CompilerVersion < 25}
-    FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(LF));
-{$IFEND}
-{$IF CompilerVersion >= 25}
-    FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(LF));
-{$IFEND}
-{$ENDIF}
-  finally
-    TMonitor.Exit(FLock);
-  end;
+  Try
+    if Connected then
+    begin
+        // Winapi.Windows.Beep(600, 200);
+    {$IFDEF USESYNAPSE}
+        FSynapseTCP.SendString(LF);
+    {$ELSE}
 
+    {$IF CompilerVersion < 25}
+        FTCP.IOHandler.write(TEncoding.UTF8.GetBytes(LF));
+    {$IFEND}
+    {$IF CompilerVersion >= 25}
+        FTCP.IOHandler.write(IndyTextEncoding_UTF8.GetBytes(LF));
+    {$IFEND}
+
+    {$ENDIF}
+    end;
+  Finally
+    TMonitor.Exit(FLock);
+  End;
 end;
 
 function TStompClient.ServerSupportsHeartBeat: boolean;
@@ -912,6 +998,15 @@ begin
   FOutgoingHeartBeats := OutgoingHeartBeats;
   FIncomingHeartBeats := IncomingHeartBeats;
   Result := Self;
+end;
+
+
+
+
+
+procedure TStompClient.SetOnConnect(const Value: TStompConnectNotifyEvent);
+begin
+  FOnConnect := Value;
 end;
 
 function TStompClient.SetPassword(const Value: string): IStompClient;
@@ -938,6 +1033,17 @@ begin
   Result := Self;
 end;
 
+function TStompClient.SetUseSSL(const boUseSSL: boolean; const KeyFile,
+  CertFile, PassPhrase: string): IStompClient;
+begin
+  FUseSSL := boUseSSL;
+  FsslKeyFile   := KeyFile;
+  FsslCertFile := CertFile;
+  FsslKeyPass  := PassPhrase;
+  Result := Self;
+
+end;
+
 procedure TStompClient.Subscribe(QueueOrTopicName: string;
   Ack: TAckMode = TAckMode.amAuto; Headers: IStompHeaders = nil);
 var
@@ -952,13 +1058,17 @@ begin
   SendFrame(Frame);
 end;
 
-procedure TStompClient.Unsubscribe(Queue: string);
+procedure TStompClient.Unsubscribe(Queue: string; const subscriptionId: string = '');
 var
   Frame: IStompFrame;
 begin
   Frame := TStompFrame.Create;
   Frame.Command := 'UNSUBSCRIBE';
   Frame.Headers.Add('destination', Queue);
+
+  if subscriptionId <> '' then
+    Frame.Headers.Add('id', subscriptionId);
+
   SendFrame(Frame);
 end;
 

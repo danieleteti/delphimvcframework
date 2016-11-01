@@ -27,6 +27,13 @@ const
   DEFAULT_STOMP_PORT = 61613;
 
 type
+  // Add by GC 26/01/2011
+  IStompClient = interface;
+  IStompFrame = interface;
+
+  // Add by Gc 26/01/2011
+  TStompConnectNotifyEvent = procedure (Client: IStompClient; Frame: IStompFrame) of object;
+
   TAckMode = (amAuto, amClient, amClientIndividual { STOMP 1.1 } );
 
   TStompAcceptProtocol = (Ver_1_0, Ver_1_1);
@@ -40,6 +47,7 @@ type
   end;
 
   PKeyValue = ^TKeyValue;
+
 
   IStompHeaders = interface
     ['{BD087D9D-0576-4C35-88F9-F5D6348E3894}']
@@ -84,20 +92,24 @@ type
     procedure Disconnect;
     procedure Subscribe(QueueOrTopicName: string; Ack: TAckMode = amAuto;
       Headers: IStompHeaders = nil);
-    procedure Unsubscribe(Queue: string);
+    procedure Unsubscribe(Queue: string; const subscriptionId: string = ''); // Unsubscribe STOMP 1.1 : It requires that the id header matches the id value of previous SUBSCRIBE operation.
     procedure Send(QueueOrTopicName: string; TextMessage: string;
       Headers: IStompHeaders = nil); overload;
     procedure Send(QueueOrTopicName: string; TextMessage: string;
       TransactionIdentifier: string; Headers: IStompHeaders = nil); overload;
-    procedure Ack(const MessageID: string;
-      const TransactionIdentifier: string = '');
+
+    procedure Ack(const MessageID: string; const subscriptionId: string = '';
+      const TransactionIdentifier: string = ''); // ACK  STOMP 1.1 : has two REQUIRED headers: message-id, which MUST contain a value matching the message-id for the MESSAGE being acknowledged and subscription, which MUST be set to match the value of the subscription's id header
     { ** STOMP 1.1 ** }
-    procedure Nack(const MessageID: string;
+    procedure Nack(const MessageID: string; const subscriptionId: string = ''; // NACK STOMP 1.1 : takes the same headers as ACK: message-id (mandatory), subscription (mandatory) and transaction (OPTIONAL).
       const TransactionIdentifier: string = '');
     procedure BeginTransaction(const TransactionIdentifier: string);
     procedure CommitTransaction(const TransactionIdentifier: string);
     procedure AbortTransaction(const TransactionIdentifier: string);
     { ****************************************************************** }
+    Function SetUseSSL(const boUseSSL: boolean;
+      const KeyFile : string =''; const CertFile : string = '';
+      const PassPhrase : string = ''): IStompClient; // SSL
     function SetPassword(const Value: string): IStompClient;
     function SetUserName(const Value: string): IStompClient;
     function SetReceiveTimeout(const AMilliSeconds: Cardinal): IStompClient;
@@ -106,6 +118,10 @@ type
     function GetProtocolVersion: string;
     function GetServer: string;
     function GetSession: string;
+
+    function GetOnConnect: TStompConnectNotifyEvent;
+    procedure SetOnConnect(const Value: TStompConnectNotifyEvent);
+    property OnConnect: TStompConnectNotifyEvent read GetOnConnect write SetOnConnect;
   end;
 
   TStompHeaders = class(TInterfacedObject, IStompHeaders)
@@ -196,7 +212,7 @@ type
 
   IStompClientListener = interface
     ['{C4C0D932-8994-43FB-9D32-A03FE86AEFE4}']
-    procedure OnMessage(MessageBody: string; var TerminateListener: Boolean);
+    procedure OnMessage(StompFrame: IStompFrame; var TerminateListener: Boolean);
     procedure OnListenerStopped(StompClient: IStompClient);
   end;
 
@@ -657,7 +673,7 @@ begin
       TThread.Synchronize(nil,
         procedure
         begin
-          FStompClientListener.OnMessage(LFrame.Body, LTerminateListener);
+          FStompClientListener.OnMessage(LFrame, LTerminateListener);
         end);
     end;
   end;
