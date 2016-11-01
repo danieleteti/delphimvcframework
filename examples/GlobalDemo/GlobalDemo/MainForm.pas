@@ -59,7 +59,7 @@ begin
   hostname := Copy(s, 1, Pos(':', s) - 1);
   port := Copy(s, Pos(':', s) + 1, length(s));
   stomp.SetUserName(edtUserName.Text).SetPassword(edtPassword.Text).Connect(hostname, strtoint(port),
-    inttostr(Random(100000000)), TStompAcceptProtocol.STOMP_Version_1_1);
+    inttostr(Random(100000000)), TStompAcceptProtocol.Ver_1_1);
 
 end;
 
@@ -103,9 +103,9 @@ procedure TfrmMain.Button6Click(Sender: TObject);
 var
   h: IStompHeaders;
 begin
-  h := StompUtils.NewHeaders;
+  h := StompUtils.Headers;
   if chkPersistent.Checked then
-    h.Add(TStompHeaders.NewPersistentHeader(true));
+    h.Add(TStompHeaders.Persistent(true));
   if tr <> '' then
     stomp.Send(Edit1.Text, Memo1.Lines.Text, tr, h)
   else

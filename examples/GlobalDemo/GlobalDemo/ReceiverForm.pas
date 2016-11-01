@@ -44,13 +44,11 @@ type
 
   private
     LSTOMP: IStompClient;
-    LThread: TStompClientListener;
+    LSTOMPListener: IStompListener;
 
   public
-    procedure OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-      var StompListening: Boolean);
-    procedure OnStopListen(StompClient: IStompClient);
-
+    procedure OnMessage(MessageBody: string; var TerminateListener: Boolean);
+    procedure OnListenerStopped(StompClient: IStompClient);
   end;
 
 var
@@ -92,8 +90,9 @@ begin
   LSTOMP.SetUserName(edtUserName.Text);
   LSTOMP.SetPassword(edtPassword.Text);
   try
-    LSTOMP.Connect('localhost', 61613, 'myclientid', TStompAcceptProtocol.STOMP_Version_1_0);
-    LThread := TStompClientListener.Create(LSTOMP, Self);
+    LSTOMP.Connect('localhost', 61613, 'myclientid', TStompAcceptProtocol.Ver_1_0);
+    LSTOMPListener := TStompClientListener.Create(LSTOMP, Self);
+    LSTOMPListener.StartListening;
   except
     on E: Exception do
     begin
@@ -109,9 +108,8 @@ end;
 
 procedure TForm1.Button4Click(Sender: TObject);
 begin
-  LThread.StopListening;
-  LThread.WaitFor;
-  FreeAndNil(LThread);
+  LSTOMPListener.StopListening;
+  FreeAndNil(LSTOMPListener);
   LSTOMP.Disconnect;
 end;
 
@@ -119,17 +117,17 @@ procedure TForm1.Button5Click(Sender: TObject);
 begin
   LSTOMP.Subscribe(Edit1.Text, amAuto,
     StompUtils.Headers
-      .Add(TStompHeaders.Persistent(true))
-      .Add(TStompHeaders.Durable(true))
+    .Add(TStompHeaders.Persistent(true))
+    .Add(TStompHeaders.Durable(true))
     );
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if assigned(LThread) then
+  if assigned(LSTOMPListener) then
   begin
-    LThread.StopListening;
-    FreeAndNil(LThread);
+    LSTOMPListener.StopListening;
+    FreeAndNil(LSTOMPListener);
   end;
   LSTOMP := nil;
 end;
@@ -139,20 +137,19 @@ begin
   LSTOMP := TStompClient.Create;
 end;
 
-procedure TForm1.OnMessage(StompClient: IStompClient; StompFrame: IStompFrame;
-  var StompListening: Boolean);
+procedure TForm1.OnListenerStopped(StompClient: IStompClient);
+begin
+  ShowMessage('LISTENER STOPPED');
+end;
+
+procedure TForm1.OnMessage(MessageBody: string; var TerminateListener: Boolean);
 begin
   TThread.Synchronize(nil,
     procedure
     begin
       Caption := 'Last message: ' + datetimetostr(now);
-      Memo1.Lines.Add(StompFrame.GetBody);
+      Memo1.Lines.Add(MessageBody);
     end);
-end;
-
-procedure TForm1.OnStopListen(StompClient: IStompClient);
-begin
-  ShowMessage('STOP LISTEN');
 end;
 
 end.
