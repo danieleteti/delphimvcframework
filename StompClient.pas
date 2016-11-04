@@ -772,8 +772,6 @@ function TStompClient.Receive(ATimeout: Integer): IStompFrame;
             Break;
 
           lHeartBeat := lLine = ''; // here is not timeout because of the previous line
-          if lHeartBeat then
-            Winapi.Windows.Beep(1500, 200);
 
           if FServerProtocolVersion = '1.1' then // 1.1 supports heart-beats
           begin
