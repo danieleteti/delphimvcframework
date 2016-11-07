@@ -1,4 +1,8 @@
-#DMVCFramework features
+![DelphiMVCFramework Logo](https://github.com/danieleteti/delphimvcframework/blob/master/docs/dmvcframework_logofacebook.png)
+
+
+
+##DelphiMVCFramework Main Features
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
   * [Project Roadmap](delphimvcframework/roadmap.md) is always public
   * RESTful (RMM Level 3) compliant

@@ -2314,7 +2314,12 @@ begin
           o := _field.GetValue(TObject(AObject)).AsObject;
           if Assigned(o) then
           begin
-            if o is TStream then
+            if jvalue is TJSONNull then
+            begin
+              FreeAndNil(o);
+              _field.SetValue(AObject, nil);
+            end
+            else if o is TStream then
             begin
               if jvalue is TJSONString then
               begin
