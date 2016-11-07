@@ -44,6 +44,11 @@ object TabbedForm: TTabbedForm
     TabIndex = 0
     TabOrder = 1
     TabPosition = None
+    Sizes = (
+      384s
+      519s
+      384s
+      519s)
     object WineListTabItem: TTabItem
       CustomIcon = <
         item
@@ -167,8 +172,8 @@ object TabbedForm: TTabbedForm
       end
       object ToolBar1: TToolBar
         Align = Bottom
-        Position.Y = 10.000000000000000000
-        Size.Width = 50.000000000000000000
+        Position.Y = 479.000000000000000000
+        Size.Width = 384.000000000000000000
         Size.Height = 40.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 15
@@ -177,7 +182,7 @@ object TabbedForm: TTabbedForm
           Align = Client
           Enabled = True
           ImageIndex = -1
-          Size.Width = 50.000000000000000000
+          Size.Width = 384.000000000000000000
           Size.Height = 40.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0

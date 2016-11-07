@@ -4,7 +4,7 @@ uses
   Vcl.Forms,
   MainFormU in 'MainFormU.pas' {Form5},
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
-  WinesBO in '..\winecellar\WinesBO.pas';
+  WinesBO in '..\winecellarserver\WinesBO.pas';
 
 {$R *.res}
 

@@ -3,9 +3,9 @@ program WineCellarClientRESTAdapter;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  MainFMX in 'MainFMX.pas' {TabbedForm} ,
+  MainFMX in 'MainFMX.pas' {TabbedForm},
   RESTServicesU in 'RESTServicesU.pas',
-  WinesBO in '..\winecellar\WinesBO.pas';
+  WinesBO in '..\winecellarserver\WinesBO.pas';
 
 {$R *.res}
 

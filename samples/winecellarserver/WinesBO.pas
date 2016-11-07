@@ -1,5 +1,10 @@
 unit WinesBO;
 
+{ ** Note: In case of Delphi clients you can share the units containing the business objects
+  between client and server. This is not required, and could lead to difficult
+  dependencies schemas in buig project. In this demo this file is shared between
+  clients and server. }
+
 interface
 
 uses ObjectsMappers, System.Generics.Collections;
@@ -11,7 +16,7 @@ type
   private
     FYEAR: string;
     FNAME: string;
-    FPICTURE: String;
+    FPICTURE: string;
     FGRAPES: string;
     FID: integer;
     FDESCRIPTION: string;
@@ -22,7 +27,7 @@ type
     procedure SetGRAPES(const Value: string);
     procedure SetID(const Value: integer);
     procedure SetNAME(const Value: string);
-    procedure SetPICTURE(const Value: String);
+    procedure SetPICTURE(const Value: string);
     procedure SetREGION(const Value: string);
     procedure SetYEAR(const Value: string);
 
@@ -34,7 +39,7 @@ type
     property country: string read FCOUNTRY write SetCOUNTRY;
     property region: string read FREGION write SetREGION;
     property description: string read FDESCRIPTION write SetDESCRIPTION;
-    property picture: String read FPICTURE write SetPICTURE;
+    property picture: string read FPICTURE write SetPICTURE;
   end;
 
   TWines = class(TObjectList<TWine>);
@@ -68,7 +73,7 @@ begin
   FNAME := Value;
 end;
 
-procedure TWine.SetPICTURE(const Value: String);
+procedure TWine.SetPICTURE(const Value: string);
 begin
   FPICTURE := Value;
 end;
