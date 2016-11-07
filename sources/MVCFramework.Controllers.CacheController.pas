@@ -1,28 +1,77 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.Controllers.CacheController;
 
 interface
 
+//NOTE: To use this controller you need DelphiRedisClient
+// To use DelphiRedisClient just open a command prompt, go to where you
+// usually put your Delphi libraries and run the following command (requires git)
+// git clone --recursive https://github.com/danieleteti/delphiredisclient
+
 uses
-  MVCFramework, Redis.Client, Redis.Commons;
+  MVCFramework, Redis.Client, Redis.Commons, MVCFramework.Commons;
 
 type
+  EMVCCacheException = class(EMVCException)
+
+  end;
+
   TMVCCacheController = class(TMVCController)
   private
     FRedis: IRedisClient;
     FCacheEnabled: Boolean;
     FExposeCache: Boolean;
+    FCurrentCacheKey: string;
     procedure SetCacheEnabled(const Value: Boolean);
     procedure SetExposeCache(const Value: Boolean);
+    procedure CheckCacheKey;
+    function RedisClient: IRedisClient;
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
     procedure OnAfterAction(Context: TWebContext; const AActionNAme: string); override;
-    function RedisClient: IRedisClient;
-    procedure SetCacheFragment(const Key: string; const Value: string;
+    /// <summary>
+    /// Put in cache an arbitrary string using an arbitraty key (FragmentKey)
+    /// </summary>
+    procedure SetCacheFragment(const FragmentKey: string; const Value: string;
       const ExpireInSeconds: UInt64);
-    function GetFromCacheFragment(const Key: string; out Value: string): Boolean;
-    procedure SetCache(const Key: string; const ExpireInSeconds: UInt64);
-    function GetFromCache(const Key: string): Boolean;
+    /// <summary>
+    /// Get a previously cached string present at FragmentKey key
+    /// </summary>
+    function GetFromCacheFragment(const FragmentKey: string; out Value: string): Boolean;
+    procedure SetCache(const ExpireInSeconds: UInt64);
+    /// <summary>
+    /// Sets the cache key that will be used by the subsequent "GetFromCache" and "SetCache" methods
+    /// </summary>
+    procedure SetCacheKey(const Key: string);
+    /// <summary>
+    /// Returns true if the cache is available and automatically fills
+    /// the response using the cache contents
+    /// </summary>
+    function CacheAvailable: Boolean;
     /// <summary>
     /// If set to true the cache is enabled for this controller instance
     /// </summary>
@@ -37,39 +86,68 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Classes;
+  System.SysUtils, System.Classes, Redis.Values;
 
-function TMVCCacheController.GetFromCache(const Key: string): Boolean;
+function TMVCCacheController.CacheAvailable: Boolean;
 var
-  lOutput: TArray<string>;
+  lOutput: TRedisArray;
+  lStatusPieces: TArray<string>;
 begin
   if not FCacheEnabled then
     Exit(False); // ignore and return false
+  CheckCacheKey;
 
   // check if the redis key is present
-  lOutput := RedisClient.HMGET(Key, ['headers', 'body']);
-  Result := not lOutput[0].IsEmpty;
+  lOutput := RedisClient.HMGET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type',
+    'status']);
+  Result := lOutput.Items[0].HasValue and lOutput.Items[1].HasValue and
+    lOutput.Items[2].HasValue and lOutput.Items[3].HasValue and lOutput.Items[4].HasValue;
   if Result then
   begin
     // if contents is cached, serve it from cache
     Context.Response.CustomHeaders.Clear;
-    Context.Response.CustomHeaders.AddStrings(lOutput[0].Split([sLineBreak]));
+    Context.Response.CustomHeaders.AddStrings(lOutput.Items[1].Value.Split([sLineBreak]));
     if FExposeCache then
     begin
       Context.Response.CustomHeaders.AddPair('X-CACHE-HIT', '1');
     end;
-    ResponseStream.Append(lOutput[1]);
-    RenderResponseStream;
+    ContentType := lOutput.Items[0];
+
+    if lOutput.Items[3] = 'text' then
+    begin
+      ResponseStream.Append(lOutput.Items[2]);
+      RenderResponseStream;
+    end
+    else
+    begin
+      Render(TBytesStream.Create(TEncoding.ANSI.GetBytes(lOutput.Items[2])), True);
+      ContentCharset := '';
+    end;
+    lStatusPieces := string(lOutput.Items[4]).Split([':']);
+    ResponseStatusCode(StrToInt(lStatusPieces[0]), lStatusPieces[1]);
   end;
 end;
 
-function TMVCCacheController.GetFromCacheFragment(const Key: string; out Value: string): Boolean;
+procedure TMVCCacheController.CheckCacheKey;
+begin
+  if FCurrentCacheKey = '' then
+    raise EMVCCacheException.Create
+      ('Cache key not set [Hint: Call "SetCacheKey" before "CacheAvailable" or "SetCache"]');
+end;
+
+function TMVCCacheController.GetFromCacheFragment(const FragmentKey: string;
+  out Value: string): Boolean;
+var
+  lValue: TRedisString;
 begin
   if not FCacheEnabled then
     Exit(False); // ignore and return false
 
   // check if the redis key is present
-  Result := RedisClient.GET(Key, Value);
+  lValue := RedisClient.GET(FragmentKey);
+  Result := lValue.HasValue;
+  if Result then
+    Value := lValue;
 end;
 
 procedure TMVCCacheController.OnAfterAction(Context: TWebContext; const AActionNAme: string);
@@ -94,7 +172,8 @@ begin
   begin
     lConnection := self.Config['redis_connection_string'];
     if lConnection.Trim.IsEmpty then
-      FRedis := NewRedisClient // default localhost standard port
+      raise ERedisException.Create
+        ('"redis_connection_string" config key is not defined (format is <host>:<port>)')
     else
     begin
       lPieces := lConnection.Split([':']);
@@ -106,30 +185,62 @@ begin
   Result := FRedis;
 end;
 
-procedure TMVCCacheController.SetCache(const Key: string; const ExpireInSeconds: UInt64);
+procedure TMVCCacheController.SetCache(const ExpireInSeconds: UInt64);
 begin
+  if not FCacheEnabled then
+    Exit; // ignore
+  CheckCacheKey;
   if FCacheEnabled then
     RedisClient.MULTI(
-      procedure(R: IRedisClient)
+      procedure(const R: IRedisClient)
+      var
+        SS: TStringStream;
       begin
-        R.HMSET(Key, ['headers', 'body'], [Context.Response.CustomHeaders.Text,
-          Context.Response.RawWebResponse.Content]);
-        R.EXPIRE(Key, 20);
+        if Context.Response.RawWebResponse.ContentStream = nil then
+          R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'], [
+            ContentType,
+            Context.Response.CustomHeaders.Text,
+            Context.Response.RawWebResponse.Content,
+            'text', Context.Response.StatusCode.ToString + ':' + Context.Response.ReasonString])
+        else
+        begin
+          Context.Response.RawWebResponse.ContentStream.Position := 0;
+          SS := TStringStream.Create('', TEncoding.ANSI);
+          try
+            SS.CopyFrom(Context.Response.RawWebResponse.ContentStream, 0);
+            R.HMSET(FCurrentCacheKey, ['contenttype', 'headers', 'body', 'type', 'status'],
+              [ContentType,
+              Context.Response.CustomHeaders.Text,
+              SS.DataString,
+              'stream', Context.Response.StatusCode.ToString + ':' +
+              Context.Response.ReasonString]);
+            Context.Response.RawWebResponse.ContentStream.Position := 0;
+          finally
+            SS.Free;
+          end;
+        end;
+        R.EXPIRE(FCurrentCacheKey, ExpireInSeconds);
       end);
 end;
 
 procedure TMVCCacheController.SetCacheEnabled(const Value: Boolean);
 begin
   FCacheEnabled := Value;
+  FCurrentCacheKey := '';
 end;
 
-procedure TMVCCacheController.SetCacheFragment(const Key: string; const Value: string;
+procedure TMVCCacheController.SetCacheFragment(const FragmentKey: string; const Value: string;
 const ExpireInSeconds: UInt64);
 begin
   if FCacheEnabled then
   begin
-    RedisClient.&SET(Key, TEncoding.Default.GetBytes(Value), ExpireInSeconds);
+    RedisClient.&SET(FragmentKey, TEncoding.Default.GetBytes(Value), ExpireInSeconds);
   end;
+end;
+
+procedure TMVCCacheController.SetCacheKey(const Key: string);
+begin
+  FCurrentCacheKey := Key;
 end;
 
 procedure TMVCCacheController.SetExposeCache(const Value: Boolean);

@@ -45,6 +45,7 @@ resourcestring
     '  System.SysUtils,' + sLineBreak +
     '  Winapi.Windows,' + sLineBreak +
     '  Winapi.ShellAPI,' + sLineBreak +
+		'  ReqMulti, {enables files upload}' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
