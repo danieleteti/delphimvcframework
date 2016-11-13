@@ -32,7 +32,7 @@ type
     FFormClosing: Boolean;
     FProducerThread: TThread;
   public
-    procedure OnMessage(MessageBody: string; var TerminateListener: Boolean);
+    procedure OnMessage(StompFrame: IStompFrame; var TerminateListener: Boolean);
     procedure OnListenerStopped(StompClient: IStompClient);
   end;
 
@@ -49,6 +49,7 @@ uses StompClient;
 procedure TForm4.Button1Click(Sender: TObject);
 begin
   FSTOMPListener.StopListening;
+  Memo1.Lines.Add('Listener Started');
   FSTOMPListener.StartListening;
 end;
 
@@ -79,6 +80,8 @@ begin
     end);
   FProducerThread.FreeOnTerminate := False;
   FProducerThread.Start;
+  Button3.Enabled := False;
+  ShowMessage('Background thread started... Now you can start the subscriber');
 end;
 
 procedure TForm4.FormCreate(Sender: TObject);
@@ -94,14 +97,17 @@ end;
 procedure TForm4.FormDestroy(Sender: TObject);
 begin
   FFormClosing := True;
-  FProducerThread.WaitFor;
-  FProducerThread.Free;
+  if Assigned(FProducerThread) then
+  begin
+    FProducerThread.WaitFor;
+    FProducerThread.Free;
+  end;
   FSTOMPListener := nil;
 end;
 
-procedure TForm4.OnMessage(MessageBody: string; var TerminateListener: Boolean);
+procedure TForm4.OnMessage(StompFrame: IStompFrame; var TerminateListener: Boolean);
 begin
-  Memo1.Lines.Add(MessageBody);
+  Memo1.Lines.Add(StompFrame.Body);
   TerminateListener := FFormClosing;
 end;
 
@@ -109,9 +115,5 @@ procedure TForm4.OnListenerStopped(StompClient: IStompClient);
 begin
   Memo1.Lines.Add('Listener Stopped');
 end;
-
-initialization
-
-AllocConsole;
 
 end.

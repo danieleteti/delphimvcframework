@@ -21,7 +21,7 @@ def buildProject(project):
 
 def summaryTable(builds):
     print(ansi.clear_screen())
-    dmvc_copyright()
+    delphistompclient_copyright()
     print(Fore.WHITE + "PROJECT NAME".ljust(80) + "STATUS".ljust(10))
     print(Fore.YELLOW + "=" * 90)
     good = bad = 0
@@ -42,10 +42,15 @@ def summaryTable(builds):
     print(Fore.RED + "BAD  :".rjust(80) + str(bad).rjust(10, '.'))
 
 
+def generate_documentation():
+    print("Generating documentation...")
+    subprocess.call("del .\docs\*.html", shell=True)
+    return subprocess.call("tools\pasdoc.exe --source pasdocfiles.txt --language en --write-uses-list --format html --output .\docs --title DelphiSTOMPClient", shell=True) == 0
+
 #################################################################################
 
 def main(projects):
-	dmvc_copyright()
+	delphistompclient_copyright()
 	builds = []
 	for project in projects:
 			filename = '\\'.join(project.split('\\')[-3:])
@@ -57,12 +62,13 @@ def main(projects):
 			else:
 					list["status"] = "ko"
 			builds.append(list)
+	generate_documentation()
 	summaryTable(builds)
 
 # Store current attribute settings
 #old_setting = WConio.gettextinfo()[4] & 0x00FF
 
-def dmvc_copyright():
+def delphistompclient_copyright():
   print(Style.BRIGHT + Fore.WHITE + "------------------------------------------------------------------------------------------")	
   print(Fore.RED + "                 ** Delphi STOMP Client Building System **")
   print(Fore.WHITE + " Delphi STOMP Client is CopyRight (2010-2016) of Daniele Teti d.teti@bittime.it")

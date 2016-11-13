@@ -1,7 +1,7 @@
 object Form4: TForm4
   Left = 0
   Top = 0
-  Caption = 'TEST'
+  Caption = 'STOMP Listener'
   ClientHeight = 506
   ClientWidth = 527
   Color = clBtnFace
@@ -19,11 +19,11 @@ object Form4: TForm4
   PixelsPerInch = 96
   TextHeight = 13
   object Button1: TButton
-    Left = 8
+    Left = 279
     Top = 8
-    Width = 137
+    Width = 117
     Height = 42
-    Caption = 'Start'
+    Caption = 'Start subscriber'
     TabOrder = 0
     OnClick = Button1Click
   end
@@ -42,21 +42,21 @@ object Form4: TForm4
     TabOrder = 1
   end
   object Button2: TButton
-    Left = 151
+    Left = 402
     Top = 8
-    Width = 137
+    Width = 117
     Height = 42
-    Caption = 'Stop'
+    Caption = 'Stop subscriber'
     TabOrder = 2
     OnClick = Button2Click
   end
   object Button3: TButton
-    Left = 392
+    Left = 8
     Top = 8
-    Width = 127
+    Width = 201
     Height = 42
     Anchors = [akTop, akRight]
-    Caption = 'Produce messages continuosly'
+    Caption = 'Produce messages continuosly on a background thread'
     TabOrder = 3
     WordWrap = True
     OnClick = Button3Click
