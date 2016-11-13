@@ -9,12 +9,6 @@
         <Projects Include="Several\DMVCFrameworkTests.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="RESTClient\RESTClientTests.dproj">
-            <Dependencies/>
-        </Projects>
-        <Projects Include="StandaloneServer\StandaloneServerTests.dproj">
-            <Dependencies/>
-        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -41,32 +35,14 @@
     <Target Name="DMVCFrameworkTests:Make">
         <MSBuild Projects="Several\DMVCFrameworkTests.dproj" Targets="Make"/>
     </Target>
-    <Target Name="RESTClientTests">
-        <MSBuild Projects="RESTClient\RESTClientTests.dproj"/>
-    </Target>
-    <Target Name="RESTClientTests:Clean">
-        <MSBuild Projects="RESTClient\RESTClientTests.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="RESTClientTests:Make">
-        <MSBuild Projects="RESTClient\RESTClientTests.dproj" Targets="Make"/>
-    </Target>
-    <Target Name="StandaloneServerTests">
-        <MSBuild Projects="StandaloneServer\StandaloneServerTests.dproj"/>
-    </Target>
-    <Target Name="StandaloneServerTests:Clean">
-        <MSBuild Projects="StandaloneServer\StandaloneServerTests.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="StandaloneServerTests:Make">
-        <MSBuild Projects="StandaloneServer\StandaloneServerTests.dproj" Targets="Make"/>
-    </Target>
     <Target Name="Build">
-        <CallTarget Targets="TestServer;DMVCFrameworkTests;RESTClientTests;StandaloneServerTests"/>
+        <CallTarget Targets="TestServer;DMVCFrameworkTests"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="TestServer:Clean;DMVCFrameworkTests:Clean;RESTClientTests:Clean;StandaloneServerTests:Clean"/>
+        <CallTarget Targets="TestServer:Clean;DMVCFrameworkTests:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="TestServer:Make;DMVCFrameworkTests:Make;RESTClientTests:Make;StandaloneServerTests:Make"/>
+        <CallTarget Targets="TestServer:Make;DMVCFrameworkTests:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

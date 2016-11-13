@@ -1,4 +1,4 @@
-object TestWebModule: TTestWebModule
+object TestWebModule2: TTestWebModule2
   OldCreateOrder = False
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy

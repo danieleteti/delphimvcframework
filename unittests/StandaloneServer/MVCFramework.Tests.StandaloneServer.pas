@@ -36,7 +36,7 @@ type
 implementation
 
 uses
-  MVCFramework.Tests.WebModule,
+  MVCFramework.Tests.WebModule2,
   MVCFramework.RESTClient;
 
 { TTestMVCFrameworkServer }

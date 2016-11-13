@@ -1,4 +1,4 @@
-unit MVCFramework.Tests.WebModule;
+unit MVCFramework.Tests.WebModule1;
 
 interface
 
@@ -11,7 +11,7 @@ uses
 
 type
 
-  TTestWebModule = class(TWebModule)
+  TTestWebModule1 = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
     procedure WebModuleDestroy(Sender: TObject);
   private
@@ -21,7 +21,7 @@ type
   end;
 
 var
-  TestWebModuleClass: TComponentClass = TTestWebModule;
+  TestWebModuleClass: TComponentClass = TTestWebModule1;
 
 implementation
 
@@ -34,7 +34,7 @@ uses
 
 {$R *.dfm}
 
-procedure TTestWebModule.WebModuleCreate(Sender: TObject);
+procedure TTestWebModule1.WebModuleCreate(Sender: TObject);
 begin
   FMVCEngine := TMVCEngine.Create(Self);
 
@@ -53,7 +53,7 @@ begin
     ));
 end;
 
-procedure TTestWebModule.WebModuleDestroy(Sender: TObject);
+procedure TTestWebModule1.WebModuleDestroy(Sender: TObject);
 begin
   FMVCEngine.Free;
 end;

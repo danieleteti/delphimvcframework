@@ -67,6 +67,8 @@ def dmvc_copyright():
   print(Fore.RESET + "----------------------------------------------------------------------------------------\n")
 
 ## MAIN ##
-projects = glob.glob("*\**\*.dproj")
+projects = glob.glob("ideexpert\*.dproj")
+projects += glob.glob("unittests\**\*.dproj")
+projects += glob.glob("*\**\*.dproj")
 main(projects)
 print(Style.RESET_ALL)

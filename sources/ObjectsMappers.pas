@@ -137,6 +137,7 @@ type
     /// the same delphi class. So this method is useful when you are developing a delphi-delphi solution. Exceptions apply.
     /// </summary>
     class function JSONObjectFieldsToObject(AJSONObject: TJSONObject): TObject;
+    class procedure LoadJSONObjectFieldsStringToObject(AJSONObjectString: string; AObject: TObject);
     /// <summary>
     /// Serialize an object to a JSONObject using properties values. It is useful when you
     /// have to send derived or calculated properties. It is not a simple serialization, it bring
@@ -2432,6 +2433,19 @@ class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;
 begin
   JSONObjectToDataSet(AJSONObject, ADataSet, TArray<string>.Create(),
     AJSONObjectInstanceOwner);
+end;
+
+class procedure Mapper.LoadJSONObjectFieldsStringToObject(AJSONObjectString: string;
+  AObject: TObject);
+var
+  lJSON: TJSONObject;
+begin
+  lJSON := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
+  try
+    InternalJSONObjectFieldsToObject(ctx, lJSON, AObject);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 class function Mapper.JSONObjectFieldsToObject(AJSONObject
