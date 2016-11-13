@@ -9,8 +9,6 @@ type
 
   [TestFixture]
   TTestSTOMP = class(TObject)
-  private
-    FSTOMP: IStompClient;
   public
     [Setup]
     procedure Setup;
@@ -51,7 +49,7 @@ begin
   lSTOMP.SetHeartBeat(1000, 0);
   lSTOMP.Connect('127.0.0.1', 61613, '', TStompAcceptProtocol.Ver_1_1);
   lSTOMP.Subscribe('/topic/mytopic');
-  Sleep(10000);
+  Sleep(2000);
   lSTOMP.Send('/topic/mytopic', 'Hello World1');
   lSTOMP.Send('/topic/mytopic', 'Hello World2');
   lSTOMP.Send('/topic/mytopic', 'Hello World3');
