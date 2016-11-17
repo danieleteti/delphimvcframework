@@ -36,7 +36,7 @@ begin
     .AppendLine
     ('Run this program in debug and check the Delphi "Event" debug window to see the custom logs')
   .AppendLine('Also, the log file are generated in the custom path "MyFolder\MyLogs"');
-  Render;
+  RenderResponseStream;
 end;
 
 procedure TMyController.GetSpecializedHello(const FirstName: string);

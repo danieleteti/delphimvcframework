@@ -82,7 +82,7 @@ begin
   Wine := ctx.Request.BodyAs<TWine>;
   try
     dm.AddWine(Wine);
-    Log(TLogLevel.levNormal, 'Wine correctly saved');
+    Log.Info('Wine correctly saved', 'WINESERVER');
   finally
     Wine.Free;
   end;
@@ -95,7 +95,7 @@ begin
   Wine := ctx.Request.BodyAs<TWine>;
   try
     dm.UpdateWine(Wine);
-    Log(TLogLevel.levNormal, 'Wine correctly updated');
+    Log.Info('Wine correctly updated', 'WINESERVER');
   finally
     Wine.Free;
   end;
@@ -109,7 +109,7 @@ begin
     httpDELETE:
       begin
         dm.DeleteWine(StrToInt(ctx.Request.Params['id']));
-        Log(TLogLevel.levNormal, 'Wine deleted');
+        Log.Info('Wine deleted', 'WINESERVER');
         Render(200, 'Wine deleted');
       end;
     httpGET:
@@ -125,7 +125,7 @@ end;
 procedure TWineCellarApp.WinesList(ctx: TWebContext);
 begin
   Render(dm.FindWines(''));
-  Log(TLogLevel.levNormal, 'Getting Wines list');
+  Log.Info('Getting Wines list', 'WINESERVER');
 end;
 
 end.

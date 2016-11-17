@@ -29,7 +29,7 @@ type
 implementation
 
 uses
-  ObjectsMappers, FireDAC.Stan.Option, FireDAC.Comp.Client;
+  ObjectsMappers, FireDAC.Stan.Option, FireDAC.Comp.Client, FireDAC.Stan.Param;
 
 { TArticoliService }
 
@@ -62,6 +62,7 @@ end;
 
 function TArticlesService.GetByID(const AID: Integer): TArticle;
 begin
+  Result := nil;
   FDM.dsArticles.Open('SELECT * FROM ARTICOLI WHERE ID = :ID', [AID]);
   try
     if not FDM.dsArticles.Eof then
