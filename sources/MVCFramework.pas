@@ -2142,13 +2142,26 @@ end;
 
 procedure TMVCController.SendStream(AStream: TStream; AOwnStream: Boolean;
   ARewindStream: Boolean);
+var
+  lStream: TStream;
 begin
   if ARewindStream then
     AStream.Position := 0;
+
+  if not AOwnStream then
+  begin
+    lStream := TMemoryStream.Create;
+    lStream.CopyFrom(AStream, 0);
+  end
+  else
+  begin
+    lStream := AStream;
+  end;
+
   FContext.Response.FWebResponse.Content := '';
   FContext.Response.FWebResponse.ContentType := ContentType;
-  FContext.Response.FWebResponse.ContentStream := AStream;
-  FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
+  FContext.Response.FWebResponse.ContentStream := lStream;
+  FContext.Response.FWebResponse.FreeContentStream := True;
 end;
 
 function TWebContext.SessionID: string;

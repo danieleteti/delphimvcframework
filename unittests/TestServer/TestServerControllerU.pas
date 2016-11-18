@@ -393,9 +393,15 @@ end;
 procedure TTestServerController.TestGetWrappedPersons(ctx: TWebContext);
 var
   LWrappedList: IWrappedList;
+  lObj: TObject;
 begin
-  LWrappedList := WrapAsList(TPerson.GetList);
-  RenderWrappedList(LWrappedList);
+  lObj := TPerson.GetList;
+  try
+    LWrappedList := WrapAsList(lObj);
+    RenderWrappedList(LWrappedList);
+  finally
+    lObj.Free;
+  end;
 end;
 
 procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
