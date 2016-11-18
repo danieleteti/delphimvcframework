@@ -150,8 +150,9 @@ type
 
     [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')
       ]
-    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64;
-      ParSingle: Single; ParDouble: Double; ParExtended: Extended);
+    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer;
+      ParInt64: Int64; ParSingle: Single; ParDouble: Double;
+      ParExtended: Extended);
 
     [MVCPath('/typed/tdatetime1/($value)')]
     procedure TestTypedActionTDateTime1(value: TDateTime);
@@ -164,6 +165,12 @@ type
 
     [MVCPath('/typed/booleans/($bool1)/($bool2)/($bool3)/($bool4)')]
     procedure TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
+
+    [MVCPath('/renderstreamandfreewithownerfalse')]
+    procedure TestRenderStreamAndFreeWithOwnerFalse;
+
+    [MVCPath('/renderstreamandfreewithownertrue')]
+    procedure TestRenderStreamAndFreeWithOwnerTrue;
 
   end;
 
@@ -188,7 +195,7 @@ uses
   System.JSON,
 {$IFEND}
   MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  ObjectsMappers, MVCFramework.DuckTyping;
+  ObjectsMappers, MVCFramework.DuckTyping, System.Classes;
 
 { TTestServerController }
 
@@ -427,6 +434,26 @@ begin
   Render(Person);
 end;
 
+procedure TTestServerController.TestRenderStreamAndFreeWithOwnerFalse;
+var
+  LStream: TMemoryStream;
+begin
+  LStream := TMemoryStream.Create;
+  try
+    Render(LStream, false);
+  finally
+    LStream.Free;
+  end;
+end;
+
+procedure TTestServerController.TestRenderStreamAndFreeWithOwnerTrue;
+var
+  LStream: TMemoryStream;
+begin
+  LStream := TMemoryStream.Create;
+  Render(LStream, True);
+end;
+
 procedure TTestServerController.TestTypedActionAllTypes(ParString: string;
   ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
   ParExtended: Extended);
@@ -495,11 +522,8 @@ procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3,
   bool4: Boolean);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(Format('%s.%s.%s.%s', [
-    BoolToStr(bool1, True),
-    BoolToStr(bool2, True),
-    BoolToStr(bool3, True),
-    BoolToStr(bool4, True)]));
+  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True),
+    BoolToStr(bool3, True), BoolToStr(bool4, True)]));
 end;
 
 procedure TTestServerController.TestTypedActionTTime1(value: TTime);

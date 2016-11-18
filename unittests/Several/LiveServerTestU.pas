@@ -60,6 +60,8 @@ type
     procedure TestAsynchRequestDELETE;
     procedure TestEncodingRenderJSONValue;
     procedure TestRenderWrappedList;
+    procedure TestRenderStreamAndFreeWithOwnerFalse;
+    procedure TestRenderStreamAndFreeWithOwnerTrue;
     procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
@@ -515,16 +517,32 @@ begin
   }
 end;
 
+procedure TServerTest.TestRenderStreamAndFreeWithOwnerFalse;
+var
+  LRes: IRESTResponse;
+begin
+  LRes := RESTClient.doGET('/renderstreamandfreewithownerfalse', []);
+  CheckEquals(200, LRes.ResponseCode);
+end;
+
+procedure TServerTest.TestRenderStreamAndFreeWithOwnerTrue;
+var
+  LRes: IRESTResponse;
+begin
+  LRes := RESTClient.doGET('/renderstreamandfreewithownertrue', []);
+  CheckEquals(200, LRes.ResponseCode);
+end;
+
 procedure TServerTest.TestRenderWrappedList;
 var
-  lRes: IRESTResponse;
+  LRes: IRESTResponse;
   lJSONArr: TJSONArray;
   I: Integer;
   lJSONObj: TJSONObject;
 begin
-  lRes := RESTClient.doGET('/wrappedpeople', []);
+  LRes := RESTClient.doGET('/wrappedpeople', []);
 
-  lJSONArr := lRes.BodyAsJSONArray;
+  lJSONArr := LRes.BodyAsJSONArray;
   for I := 0 to lJSONArr.Count - 1 do
   begin
     lJSONObj := lJSONArr.Items[I] as TJSONObject;
