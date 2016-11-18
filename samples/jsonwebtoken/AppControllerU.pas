@@ -63,7 +63,7 @@ begin
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' +
     sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
-  Render;
+  RenderResponseStream;
 end;
 
 procedure TAdminController.OnlyRole1EmittingJSON;
@@ -97,7 +97,7 @@ begin
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' +
     sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
-  Render;
+  RenderResponseStream;
 end;
 
 end.

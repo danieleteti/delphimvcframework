@@ -16,11 +16,10 @@ program PeopleManagerTests;
 
 
 uses
-  TestPeopleModuleU in 'TestPeopleModuleU.pas',
   TestCommonsU in 'TestCommonsU.pas',
   CommonsU in '..\CommonsU.pas',
   PersonBO in '..\BusinessObjects\PersonBO.pas',
-  PeopleModuleU in '..\Modules\PeopleModuleU.pas' {PeopleModule: TDataModule} ,
+  PeopleModuleU in '..\Modules\PeopleModuleU.pas' {PeopleModule: TDataModule},
   DUnitTestRunner;
 
 {$R *.RES}

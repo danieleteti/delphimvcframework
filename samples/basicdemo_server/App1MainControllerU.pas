@@ -42,7 +42,7 @@ procedure TApp1MainController.HelloWorld;
 begin
   Render('Hello World called with GET');
   if Context.Request.ThereIsRequestBody then
-    Log('Body:' + Context.Request.Body);
+    Log.Info('Body:' + Context.Request.Body, 'basicdemo');
 end;
 
 procedure TApp1MainController.HelloWorldPost;
@@ -52,7 +52,7 @@ begin
   JSON := Context.Request.BodyAsJSONObject;
   JSON.AddPair('modified', 'from server');
   Render(JSON, false);
-  Log('Hello world called with POST');
+  Log.Info('Hello world called with POST', 'basicdemo');
 end;
 
 procedure TApp1MainController.Index;
@@ -64,8 +64,8 @@ procedure TApp1MainController.RaiseException(par1, par2: String);
 var
   R: Extended;
 begin
-  Log('Parameter1=' + QuotedStr(par1));
-  Log('Parameter2=' + QuotedStr(par2));
+  Log.Info('Parameter1=' + QuotedStr(par1), 'basicdemo');
+  Log.Info('Parameter2=' + QuotedStr(par2), 'basicdemo');
   R := StrToInt(par1) / StrToInt(par2);
   Render(TJSONObject.Create(TJSONPair.Create('result', TJSONNumber.Create(R))));
 end;

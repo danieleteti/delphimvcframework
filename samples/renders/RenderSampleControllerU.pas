@@ -121,7 +121,7 @@ begin
     .Append('<li>FirstName: Daniele</li>').Append('<li>LastName: Teti')
     .AppendFormat('<li>DOB: %s</li>', [ISODateToString(EncodeDate(1975, 5, 2))])
     .Append('<li>Married: yes</li>').Append('</ul></body></html>');
-  Render;
+  RenderResponseStream;
 end;
 
 procedure TRenderSampleController.GetPerson_AsHTMLView(CTX: TWebContext);
@@ -137,7 +137,7 @@ begin
   Cust.City := 'ROME';
   PushObjectToView('customer', Cust);
   LoadView(['header', 'customer', 'footer']);
-  Render;
+  RenderResponseStream;
   { If you need more flexibility, you can use GetRenderedView to compose your
     output using small views.
     Here's an example:
@@ -152,7 +152,7 @@ begin
   ResponseStream.AppendLine('FirstName: Daniele').AppendLine('LastName : Teti')
     .AppendLine('DOB      : ' + ISODateToString(EncodeDate(1975, 5, 2)))
     .AppendLine('Married  : yes');
-  Render;
+  RenderResponseStream;
 end;
 
 procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList

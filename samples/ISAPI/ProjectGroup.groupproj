@@ -9,9 +9,6 @@
         <Projects Include="..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj">
-            <Dependencies/>
-        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -38,23 +35,14 @@
     <Target Name="MainProgram:Make">
         <MSBuild Projects="..\..\..\LoggerPro\samples\60_logging_inside_dll\MainProgram.dproj" Targets="Make"/>
     </Target>
-    <Target Name="file_appender">
-        <MSBuild Projects="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj"/>
-    </Target>
-    <Target Name="file_appender:Clean">
-        <MSBuild Projects="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="file_appender:Make">
-        <MSBuild Projects="..\..\..\LoggerPro\samples\02_file_appender\file_appender.dproj" Targets="Make"/>
-    </Target>
     <Target Name="Build">
-        <CallTarget Targets="mydll;MainProgram;file_appender"/>
+        <CallTarget Targets="mydll;MainProgram"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="mydll:Clean;MainProgram:Clean;file_appender:Clean"/>
+        <CallTarget Targets="mydll:Clean;MainProgram:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="mydll:Make;MainProgram:Make;file_appender:Make"/>
+        <CallTarget Targets="mydll:Make;MainProgram:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
