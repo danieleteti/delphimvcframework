@@ -13,48 +13,65 @@ type
     [MVCPath('/')]
     procedure Index(CTX: TWebContext);
 
+    { This action requires that the ACCEPT header is text/plain to be invocated }
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/searches/($searchtext)')]
     [MVCProduces('text/plain', 'UTF-8')]
     procedure SearchCustomers(CTX: TWebContext);
 
+    { This action requires that the ACCEPT header is application/json to be invocated }
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/people/($id)')]
     { double MVCPath }
     [MVCPath('/($id)')]
     [MVCProduces('application/json')]
-    procedure GetPerson(CTX: TWebContext);
+    procedure GetPerson(const id: Integer);
 
     [MVCHTTPMethod([httpDelete])]
     [MVCPath('/people/($id)')]
-    procedure DeletePerson(CTX: TWebContext);
+    procedure DeletePerson(const id: Integer);
+
+    { To be invocated this action requires that:
+      - the CONTENT-TYPE header is application/json and
+      - that the ACCEPT header is application/json
+    }
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/people')]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    procedure CreatePerson;
 
   end;
 
 implementation
 
 uses
-  System.SysUtils, BusinessObjectsU, Data.DBXJSON;
+  System.SysUtils, BusinessObjectsU, Data.DBXJSON, System.JSON;
 
 { TRoutingSampleController }
 
-procedure TRoutingSampleController.DeletePerson(CTX: TWebContext);
+procedure TRoutingSampleController.CreatePerson;
 var
-  IDPerson: Integer;
+  lJObj: TJSONObject;
 begin
-  IDPerson := CTX.Request.ParamsAsInteger['id'];
-  // RemovePerson(IDPerson)
+  lJObj := Context.Request.BodyAsJSONObject.Clone as TJSONObject;
+  lJObj.AddPair('server_datetime', DateTimeToStr(now));
+  Render(lJObj);
+end;
+
+procedure TRoutingSampleController.DeletePerson(const id: Integer);
+begin
+  { Here you should do something with id }
+  // RemovePerson(ID)
   Render(204 { 'No content' } , 'Person deleted');
 end;
 
-procedure TRoutingSampleController.GetPerson(CTX: TWebContext);
+procedure TRoutingSampleController.GetPerson(const id: Integer);
 var
   P: TPerson;
-  IDPerson: Integer;
 begin
-  IDPerson := CTX.Request.ParamsAsInteger['id'];
   {
-    Use IDPerson to load the person from a database...
+    Use ID to load the person from a database...
     In this example, we're creating a fake person
   }
   P := TPerson.Create;
@@ -84,16 +101,11 @@ begin
   orderby := '';
   if CTX.Request.QueryStringParamExists('order') then
     orderby := CTX.Request.QueryStringParam('order');
-  S := Format(
-    'SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
+  S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
     [search, Page, orderby]);
-  ResponseStream
-    .AppendLine(S)
-    .AppendLine(StringOfChar('*', 30))
-    .AppendLine('1. Daniele Teti')
-    .AppendLine('2. John Doe')
-    .AppendLine('3. Mark Rossi')
-    .AppendLine('4. Jack Verdi')
+  ResponseStream.AppendLine(S).AppendLine(StringOfChar('*', 30))
+    .AppendLine('1. Daniele Teti').AppendLine('2. John Doe')
+    .AppendLine('3. Mark Rossi').AppendLine('4. Jack Verdi')
     .AppendLine(StringOfChar('*', 30));
   Render;
 end;
