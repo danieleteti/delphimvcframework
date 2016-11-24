@@ -102,7 +102,8 @@ begin
     LJRes.AddPair('CPU_architecture',
       GetEnumName(TypeInfo(TOSVersion.TArchitecture),
       Ord(TOSVersion.Architecture)));
-    LJRes.AddPair('system_uptime', GetUpTime);
+    // LJRes.AddPair('system_uptime', GetUpTime);
+    LJRes.AddPair('system_time', FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
     ContentType := TMVCMediaType.APPLICATION_JSON;
     Render(LJRes, False);
   finally
@@ -136,9 +137,11 @@ begin
       for LControllerRoutable in GetMVCEngine.RegisteredControllers do
       begin
         ControllerInfo := TJSONObject.Create;
-        LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName, ControllerInfo);
+        LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName,
+          ControllerInfo);
 
-        LRTTIType := LCTX.GetType(LControllerRoutable.&Class) as TRttiInstanceType;
+        LRTTIType := LCTX.GetType(LControllerRoutable.&Class)
+          as TRttiInstanceType;
         for LAttribute in LRTTIType.GetAttributes do
         begin
           if LAttribute is MVCPathAttribute then
