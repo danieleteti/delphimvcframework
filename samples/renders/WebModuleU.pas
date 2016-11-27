@@ -13,9 +13,6 @@ uses
 
 type
   TWebModule1 = class(TWebModule)
-    FDConnection1: TFDConnection;
-    qryCustomers: TFDQuery;
-    FDPhysFBDriverLink1: TFDPhysFBDriverLink;
     procedure WebModuleCreate(Sender: TObject);
   private
     DMVC: TMVCEngine;

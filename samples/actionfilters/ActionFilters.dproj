@@ -171,6 +171,7 @@
         <VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleVersion=1.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName);NSHighResolutionCapable=true;LSApplicationCategoryType=public.app-category.utilities;NSLocationAlwaysUsageDescription=The reason for accessing the location information of the user;NSLocationWhenInUseUsageDescription=The reason for accessing the location information of the user;NSContactsUsageDescription=The reason for accessing the contacts</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_UsePackage>FireDACSqliteDriver;DBXSqliteDriver;FireDACPgDriver;fmx;IndySystem;TeeDB;frx19;inetdbbde;vclib;DBXInterBaseDriver;DataSnapClient;DataSnapCommon;DataSnapServer;DataSnapProviderClient;DBXSybaseASEDriver;DbxCommonDriver;vclimg;dbxcds;DatasnapConnectorsFreePascal;MetropolisUILiveTile;vcldb;vcldsnap;fmxFireDAC;DBXDb2Driver;DBXOracleDriver;CustomIPTransport;vclribbon;dsnap;IndyIPServer;fmxase;vcl;IndyCore;IndyIPCommon;CloudService;DBXMSSQLDriver;FmxTeeUI;FireDACIBDriver;CodeSiteExpressPkg;FireDACDBXDriver;inetdbxpress;webdsnap;frxe19;FireDACDb2Driver;adortl;frxDB19;FireDACASADriver;bindcompfmx;ADVLikeComponents;vcldbx;FireDACODBCDriver;rtl;dbrtl;DbxClientDriver;FireDACCommon;bindcomp;inetdb;Tee;DBXOdbcDriver;vclFireDAC;xmlrtl;svnui;ibxpress;IndyProtocols;DBXMySQLDriver;FireDACCommonDriver;vclactnband;bindengine;soaprtl;bindcompdbx;FMXTee;TeeUI;bindcompvcl;vclie;FireDACADSDriver;vcltouch;VclSmp;FireDACMSSQLDriver;FireDAC;VCLRESTComponents;Intraweb;DBXInformixDriver;DataSnapConnectors;FireDACDataSnapDriver;dsnapcon;DBXFirebirdDriver;inet;fmxobj;FireDACMySQLDriver;vclx;svn;DBXSybaseASADriver;FireDACOracleDriver;fmxdae;RESTComponents;bdertl;FireDACMSAccDriver;DataSnapIndy10ServerTransport;dbexpress;IndyIPClient;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
@@ -206,7 +207,6 @@
         </DelphiCompile>
         <DCCReference Include="WebModuleU.pas">
             <Form>WebModule1</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="ActionFiltersControllerU.pas"/>
@@ -289,16 +289,7 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                </DeployClass>
+                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
                 <DeployClass Name="ProjectOSXResource">
                     <Platform Name="OSX32">
                         <RemoteDir>Contents\Resources</RemoteDir>
@@ -637,7 +628,16 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                </DeployClass>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>

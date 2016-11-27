@@ -42,7 +42,6 @@ end;
 procedure TMyController.GetSpecializedHello(const FirstName: string);
 begin
   Render('Hello ' + FirstName);
-
 end;
 
 procedure TMyController.OnAfterAction(Context: TWebContext; const AActionName: string);

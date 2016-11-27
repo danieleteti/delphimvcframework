@@ -51,7 +51,7 @@ type
 
     [MVCPath('/session')]
     [MVCHTTPMethod([httpGET])]
-    procedure SessionGet(ctx: TWebContext);
+    procedure SessionGet;
 
     [MVCPath('/headers')]
     procedure EchoHeaders(ctx: TWebContext);
@@ -303,13 +303,13 @@ begin
     ctx.Request.HTTPMethodAsString));
 end;
 
-procedure TTestServerController.SessionGet(ctx: TWebContext);
+procedure TTestServerController.SessionGet;
 var
   s: string;
 begin
-  ContentType := ctx.Request.Accept;
+  ContentType := Context.Request.Accept;
   s := Session['value'];
-  Render(s); // ['value']);
+  Render(s);
 end;
 
 procedure TTestServerController.SessionSet(ctx: TWebContext);

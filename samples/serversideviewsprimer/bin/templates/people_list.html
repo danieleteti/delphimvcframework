@@ -7,6 +7,7 @@
 					<th>First name</th>
 					<th>Last name</th>
 					<th>Age</th>
+					<th>&nbsp;</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -21,10 +22,11 @@
 						<td>{{first_name}}</td>
 						<td>{{last_name}}</td>
 						<td>{{age}}</td>
+						<td><button class="btn btn-danger" onclick="doDelete('{{guid}}')"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Delete</button></td>
 					</tr>
 				{{/people}}								
 			</tbody>
-		</table>
+		</table>   
 	</div>
 </div>
 <br>
@@ -33,3 +35,16 @@
 	  <a class="btn btn-primary btn-block" href="/newperson">Add New Person</a>
 	</div>
 </div>	
+<script>
+	function doDelete(guid){
+		if (confirm("Are you sure?")){		
+			$.ajax({
+					url: '/people/' + guid,
+					type: 'DELETE',
+					success: function(result) {
+							location.href = '/people';
+					}
+			});
+		}
+	}
+</script>

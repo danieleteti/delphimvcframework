@@ -2745,7 +2745,7 @@ begin
   end
   else
   begin
-    Render(Format('Error: [%d] %s', [aErrorCode, aErrorMessage]));
+    Render(Format('[%d]: %s', [aErrorCode, aErrorMessage]));
   end;
 end;
 

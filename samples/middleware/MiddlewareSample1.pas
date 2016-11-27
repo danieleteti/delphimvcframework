@@ -35,20 +35,20 @@ procedure TMVCSalutationMiddleware.OnAfterControllerAction(Context: TWebContext;
   const AActionNAme: string; const Handled: Boolean);
 begin
   Context.Response.CustomHeaders.Values['X-PROUD-HEADER'] :=
-    'Proudly served by DelphiMVCFramework (https://code.google.com/p/delphimvcframework/)';
+    'Proudly served by DelphiMVCFramework (https://github.com/danieleteti/delphimvcframework)';
 end;
 
 procedure TMVCRedirectAndroidDeviceOnPlayStore.OnAfterControllerAction(Context: TWebContext;
   const AActionNAme: string; const Handled: Boolean);
 begin
-
+  // do nothing
 end;
 
 procedure TMVCRedirectAndroidDeviceOnPlayStore.OnBeforeControllerAction(
   Context: TWebContext; const AControllerQualifiedClassName,
   AActionNAme: string; var Handled: Boolean);
 begin
-
+  // do nothing
 end;
 
 procedure TMVCRedirectAndroidDeviceOnPlayStore.OnBeforeRouting(Context: TWebContext;
@@ -66,12 +66,12 @@ end;
 procedure TMVCSalutationMiddleware.OnBeforeControllerAction(Context: TWebContext;
   const AControllerQualifiedClassName, AActionNAme: string; var Handled: Boolean);
 begin
-
+  // do nothing
 end;
 
 procedure TMVCSalutationMiddleware.OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
 begin
-
+  // do nothing
 end;
 
 end.

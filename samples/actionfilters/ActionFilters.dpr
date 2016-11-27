@@ -4,6 +4,7 @@ program ActionFilters;
 
 uses
   System.SysUtils,
+  MVCFramework.Logger,
   Winapi.Windows,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
@@ -27,6 +28,7 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
+    LogI(Format('Server started on port %d', [APort]));
     Writeln('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do

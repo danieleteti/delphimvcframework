@@ -211,6 +211,9 @@ begin
   inherited;
   // Setting CacheEnabled to false will be disable the cache for all the controller actions
   CacheEnabled := True;
+
+
+  Context.Request.b
 end;
 
 function TPeopleController.PeopleModule: TPeopleModule;

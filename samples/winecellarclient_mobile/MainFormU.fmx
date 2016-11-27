@@ -1,0 +1,125 @@
+object HeaderFooterForm: THeaderFooterForm
+  Left = 0
+  Top = 0
+  Caption = 'Header Footer Form'
+  ClientHeight = 567
+  ClientWidth = 384
+  FormFactor.Width = 1440
+  FormFactor.Height = 900
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object Header: TToolBar
+    Size.Width = 384.000000000000000000
+    Size.Height = 48.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object HeaderLabel: TLabel
+      Align = Contents
+      Size.Width = 384.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'toollabel'
+      TextSettings.HorzAlign = Center
+      Text = 'Title'
+    end
+    object Button1: TButton
+      Align = Right
+      Position.X = 264.000000000000000000
+      Size.Width = 120.000000000000000000
+      Size.Height = 48.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'refreshtoolbuttonbordered'
+      TabOrder = 0
+      Text = 'Button1'
+      OnClick = Button1Click
+    end
+  end
+  object Footer: TToolBar
+    Align = Bottom
+    Position.Y = 519.000000000000000000
+    Size.Width = 384.000000000000000000
+    Size.Height = 48.000000000000000000
+    Size.PlatformDefault = False
+    StyleLookup = 'bottomtoolbar'
+    TabOrder = 1
+  end
+  object ListView1: TListView
+    ItemAppearanceClassName = 'TImageListItemBottomDetailAppearance'
+    ItemEditAppearanceClassName = 'TImageListItemBottomDetailShowCheckAppearance'
+    HeaderAppearanceClassName = 'TListHeaderObjects'
+    FooterAppearanceClassName = 'TListHeaderObjects'
+    Align = Client
+    Size.Width = 384.000000000000000000
+    Size.Height = 471.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+  end
+  object RESTClient1: TRESTClient
+    Accept = 'application/json, text/plain; q=0.9, text/html;q=0.8,'
+    AcceptCharset = 'UTF-8, *;q=0.8'
+    BaseURL = 'http://192.168.0.144:3000'
+    Params = <>
+    HandleRedirects = True
+    Left = 104
+    Top = 104
+  end
+  object RESTRequest1: TRESTRequest
+    Client = RESTClient1
+    Params = <>
+    Resource = 'wines'
+    Response = RESTResponse1
+    SynchronizedEvents = False
+    Left = 104
+    Top = 176
+  end
+  object RESTResponseDataSetAdapter1: TRESTResponseDataSetAdapter
+    Dataset = FDMemTable1
+    FieldDefs = <>
+    Response = RESTResponse1
+    Left = 104
+    Top = 256
+  end
+  object FDMemTable1: TFDMemTable
+    FieldDefs = <>
+    IndexDefs = <>
+    FetchOptions.AssignedValues = [evMode]
+    FetchOptions.Mode = fmAll
+    ResourceOptions.AssignedValues = [rvSilentMode]
+    ResourceOptions.SilentMode = True
+    UpdateOptions.AssignedValues = [uvCheckRequired]
+    UpdateOptions.CheckRequired = False
+    StoreDefs = True
+    Left = 104
+    Top = 328
+  end
+  object RESTResponse1: TRESTResponse
+    ContentType = 'application/json'
+    Left = 200
+    Top = 176
+  end
+  object BindSourceDB12: TBindSourceDB
+    DataSet = FDMemTable1
+    ScopeMappings = <>
+    Left = 192
+    Top = 320
+  end
+  object BindingsList1: TBindingsList
+    Methods = <>
+    OutputConverters = <>
+    Left = 20
+    Top = 5
+    object LinkListControlToField1: TLinkListControlToField
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB12
+      FieldName = 'name'
+      Control = ListView1
+      FillExpressions = <
+        item
+          SourceMemberName = 'grapes'
+          ControlMemberName = 'Detail'
+        end>
+      FillHeaderExpressions = <>
+      FillBreakGroups = <>
+    end
+  end
+end

@@ -53,6 +53,7 @@ procedure TActionFiltersController.MVCControllerAfterCreate;
 begin
   inherited;
   // raise Exception.Create('Error Message');
+  LogI('MVCControllerAfterCreate');
 end;
 
 procedure TActionFiltersController.MVCControllerBeforeDestroy;

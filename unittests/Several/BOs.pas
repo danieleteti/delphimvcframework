@@ -153,6 +153,31 @@ type
     property FullName: string read GetFullName;
   end;
 
+  TMyClass = class
+  private
+    FID: Integer;
+    FDescription: string;
+    procedure SetId(ID: Integer);
+    procedure SetDescription(Description: string);
+  public
+    property ID: Integer read FID write SetId;
+    property Description: string read FDescription write SetDescription;
+    constructor Create(ID: Integer; Description: string); overload;
+  end;
+
+  TResponseWrapper<T: class> = class
+  private
+    FTotalItems: Integer;
+    FItems: TObjectList<T>;
+    procedure SetTotalItems(TotalItems: Integer);
+    procedure SetItems(aItems: TObjectList<T>);
+  public
+    property TotalItems: Integer read FTotalItems write SetTotalItems;
+    property Items: TObjectList<T> read FItems write SetItems;
+    constructor Create(TotalItems: Integer; aItems: TObjectList<T>); overload;
+    destructor Destroy; override;
+  end;
+
 function GetMyObject: TMyObject;
 function GetMyComplexObject: TMyComplexObject;
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
@@ -464,6 +489,51 @@ end;
 procedure TMyObjectWithLogic.SetLastName(const Value: string);
 begin
   FLastName := Value;
+end;
+
+{ TResponseGrid<T> }
+
+constructor TResponseWrapper<T>.Create(TotalItems: Integer; aItems: TObjectList<T>);
+begin
+  inherited Create;
+  Self.SetTotalItems(TotalItems);
+  Self.SetItems(aItems);
+  aItems.OwnsObjects := True;
+end;
+
+destructor TResponseWrapper<T>.Destroy;
+begin
+  FItems.Free;
+  inherited;
+end;
+
+procedure TResponseWrapper<T>.SetItems(aItems: TObjectList<T>);
+begin
+  Self.FItems := aItems;
+end;
+
+procedure TResponseWrapper<T>.SetTotalItems(TotalItems: Integer);
+begin
+  Self.FTotalItems := TotalItems;
+end;
+
+{ TMyClass }
+
+constructor TMyClass.Create(ID: Integer; Description: string);
+begin
+  inherited Create;
+  Self.SetId(ID);
+  Self.SetDescription(Description);
+end;
+
+procedure TMyClass.SetDescription(Description: string);
+begin
+  Self.FDescription := Description;
+end;
+
+procedure TMyClass.SetId(ID: Integer);
+begin
+  Self.FID := ID;
 end;
 
 end.

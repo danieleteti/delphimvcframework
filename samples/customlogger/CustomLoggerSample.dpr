@@ -5,13 +5,15 @@ program CustomLoggerSample;
 
 uses
   System.SysUtils,
+  MVCFramework.Logger,
   Winapi.Windows,
   Winapi.ShellAPI,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MyControllerU in 'MyControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
+  CustomLoggerConfigU in 'CustomLoggerConfigU.pas';
 
 {$R *.res}
 
@@ -23,6 +25,8 @@ var
   LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
+  SetDefaultLogger(GetLogger); // setting the custom logger
+
   Writeln('** DMVCFramework Server **');
   Writeln('WARNING! Run this program in debug and check the Delphi "Event" debug window to see the custom logs');
   Writeln('WARNING! Also, the log file are generated in the custom path "MyFolder\MyLogs"');

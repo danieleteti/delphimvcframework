@@ -45,8 +45,8 @@ uses System.JSON;
 
 
 const
-  BASEURL = 'http://192.168.3.75:8080';
-
+  // BASEURL = 'http://192.168.3.75:8080';
+  BASEURL = 'http://192.168.1.109:8080';
 
 procedure TForm7.acLoginExecute(Sender: TObject);
 begin
@@ -98,8 +98,8 @@ begin
                     ListBox1.Items.Add(TimeToStr(Time) + ' [' + lUserName + ']: ' +
                       lMessage.Trim);
                     ListBox1.SelectRange(
-                        ListBox1.ItemByIndex(ListBox1.Items.Count - 1),
-                        ListBox1.ItemByIndex(ListBox1.Items.Count - 1)
+                      ListBox1.ItemByIndex(ListBox1.Items.Count - 1),
+                      ListBox1.ItemByIndex(ListBox1.Items.Count - 1)
                       );
                   end);
               end;

@@ -45,15 +45,6 @@
         </DeployFile>
     </ItemGroup>
     <ItemGroup Condition="'$(Platform)'=='Android'">
-        <DeployFile Include="$(BDS)\bin\Artwork\Android\FM_LauncherIcon_36x36.png" Condition="'$(Config)'=='Debug'">
-            <RemoteDir>PushNotificationsMobileClient\res\drawable-ldpi\</RemoteDir>
-            <RemoteName>ic_launcher.png</RemoteName>
-            <DeployClass>Android_LauncherIcon36</DeployClass>
-            <Operation>1</Operation>
-            <LocalCommand/>
-            <RemoteCommand/>
-            <Overwrite>True</Overwrite>
-        </DeployFile>
         <DeployFile Include="Android\Debug\libPushNotificationsMobileClient.so" Condition="'$(Config)'=='Debug'">
             <RemoteDir>PushNotificationsMobileClient\library\lib\armeabi-v7a\</RemoteDir>
             <RemoteName>libPushNotificationsMobileClient.so</RemoteName>
@@ -63,6 +54,15 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
             <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\bin\Artwork\Android\FM_LauncherIcon_36x36.png" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>PushNotificationsMobileClient\res\drawable-ldpi\</RemoteDir>
+            <RemoteName>ic_launcher.png</RemoteName>
+            <DeployClass>Android_LauncherIcon36</DeployClass>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
         </DeployFile>
         <DeployFile Include="Android\Debug\AndroidManifest.xml" Condition="'$(Config)'=='Debug'">
             <RemoteDir>PushNotificationsMobileClient\</RemoteDir>

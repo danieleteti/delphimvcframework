@@ -52,11 +52,12 @@ uses
 
 procedure TRoutingSampleController.CreatePerson;
 var
-  lJObj: TJSONObject;
+  lPerson: TPerson;
 begin
-  lJObj := Context.Request.BodyAsJSONObject.Clone as TJSONObject;
-  lJObj.AddPair('server_datetime', DateTimeToStr(now));
-  Render(lJObj);
+  lPerson := Context.Request.BodyAs<TPerson>;
+  lPerson.Validate;
+  // SavePerson(lPerson);
+  Render(200, 'Person saved');
 end;
 
 procedure TRoutingSampleController.DeletePerson(const id: Integer);
@@ -107,7 +108,7 @@ begin
     .AppendLine('1. Daniele Teti').AppendLine('2. John Doe')
     .AppendLine('3. Mark Rossi').AppendLine('4. Jack Verdi')
     .AppendLine(StringOfChar('*', 30));
-  Render;
+  RenderResponseStream;
 end;
 
 end.

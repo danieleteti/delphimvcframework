@@ -2,7 +2,11 @@ unit BusinessObjectsU;
 
 interface
 
+uses
+  ObjectsMappers;
+
 type
+  [MapperJSONNaming(TJSONNameCase.JSONNameLowerCase)]
   TPerson = class
   private
     FLastName: String;
@@ -14,6 +18,7 @@ type
     procedure SetLastName(const Value: String);
     procedure SetMarried(const Value: boolean);
   public
+    procedure Validate;
     property FirstName: String read FFirstName write SetFirstName;
     property LastName: String read FLastName write SetLastName;
     property DOB: TDate read FDOB write SetDOB;
@@ -21,6 +26,9 @@ type
   end;
 
 implementation
+
+uses
+  System.SysUtils;
 
 { TPerson }
 
@@ -42,6 +50,12 @@ end;
 procedure TPerson.SetMarried(const Value: boolean);
 begin
   FMarried := Value;
+end;
+
+procedure TPerson.Validate;
+begin
+  if FirstName.Trim.IsEmpty or LastName.Trim.IsEmpty then
+    raise Exception.Create('Invalid person. First name and last name required');
 end;
 
 end.

@@ -13,7 +13,7 @@ type
   public
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
+    procedure Index;
   end;
 
 implementation
@@ -23,7 +23,7 @@ uses
 
 { TApp1MainController }
 
-procedure TApp1MainController.Index(ctx: TWebContext);
+procedure TApp1MainController.Index;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(StringOfChar('*', 1024));

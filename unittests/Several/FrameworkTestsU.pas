@@ -40,6 +40,7 @@ type
   published
     procedure TestObjectToJSONObject;
     procedure TestObjectListToJSONArray;
+    procedure TestObjectToJSONObject_Generics;
     procedure TestWrappedListToJSONArray;
     procedure TestJSONObjectToObjectAndBack;
     procedure TestLoadJSONObjectToObjectAndBack;
@@ -106,6 +107,7 @@ type
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
+
 
 uses System.DateUtils, System.Math, MVCFramework.Commons,
   TestControllersU, DBClient,
@@ -784,6 +786,29 @@ begin
     end;
   finally
     SO.Free;
+  end;
+end;
+
+procedure TTestMappers.TestObjectToJSONObject_Generics;
+var
+  lObjList: TObjectList<TMyClass>;
+  lResponse: TResponseWrapper<TMyClass>;
+  LJSONObj: TJSONObject;
+begin
+  lObjList := TObjectList<TMyClass>.Create();
+  lObjList.Add(TMyClass.Create(1, 'pippo'));
+  lObjList.Add(TMyClass.Create(2, 'pluto'));
+  lResponse := TResponseWrapper<TMyClass>.Create(lObjList.Count, lObjList);
+  try
+    LJSONObj := Mapper.ObjectToJSONObject(lResponse);
+    try
+      CheckNotNull(LJSONObj.GetValue('Items'));
+      CheckEquals(2, TJSONArray(LJSONObj.GetValue('Items')).Count);
+    finally
+      LJSONObj.Free;
+    end;
+  finally
+    lResponse.Free;
   end;
 end;
 

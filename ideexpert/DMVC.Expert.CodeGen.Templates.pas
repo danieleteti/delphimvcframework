@@ -43,6 +43,7 @@ resourcestring
     '' + sLineBreak +
     'uses' + sLineBreak +
     '  System.SysUtils,' + sLineBreak +
+    '  MVCFramework.Logger,' + sLineBreak +
     '  Winapi.Windows,' + sLineBreak +
     '  Winapi.ShellAPI,' + sLineBreak +
 		'  ReqMulti, {enables files upload}' + sLineBreak +
@@ -65,6 +66,7 @@ resourcestring
     '  try' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
+    '    LogI(Format(''Server started on port %d'', [APort]));' + sLineBreak +
     '    { more info about MaxConnections ' + sLineBreak +
     '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html}'
     + sLineBreak +

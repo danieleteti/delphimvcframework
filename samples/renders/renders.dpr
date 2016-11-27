@@ -10,7 +10,8 @@ uses
   Web.WebBroker,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   RenderSampleControllerU in 'RenderSampleControllerU.pas',
-  BusinessObjectsU in '..\commons\BusinessObjectsU.pas';
+  BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
+  MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule};
 
 {$R *.res}
 
@@ -43,6 +44,7 @@ begin
 end;
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
