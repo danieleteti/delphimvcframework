@@ -81,7 +81,7 @@ begin
 
   lPeople := TObjectList<TPerson>.Create(True);
   try
-    for I := 1 to 1000 do
+    for I := 1 to 3000 do
     begin
       lPerson := TPerson.Create;
       lPeople.Add(lPerson);
@@ -99,7 +99,7 @@ begin
     raise;
   end;
   Render<TPerson>(lPeople);
-  SetCache(5);
+  SetCache(20);
 end;
 
 procedure TPeopleController.CreateBulkData(CTX: TWebContext);
@@ -211,9 +211,6 @@ begin
   inherited;
   // Setting CacheEnabled to false will be disable the cache for all the controller actions
   CacheEnabled := True;
-
-
-  Context.Request.b
 end;
 
 function TPeopleController.PeopleModule: TPeopleModule;

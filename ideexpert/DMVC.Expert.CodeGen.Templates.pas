@@ -129,6 +129,8 @@ resourcestring
     '  end;' + sLineBreak +
     sLineBreak +
     'implementation' + sLineBreak +
+		'uses' + sLineBreak +
+		'    MVCFramework.Logger;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
