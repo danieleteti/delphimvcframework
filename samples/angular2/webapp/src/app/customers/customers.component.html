@@ -1,0 +1,19 @@
+<div class="col-md-12">
+  <h2>Customers</h2>
+  <table class="table table-striped">
+    <thead>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Age</th>
+      <th> </th>
+    </thead>
+    <tbody>
+      <tr *ngFor="let customer of customers">
+        <td>{{customer.first_name}}</td>
+        <td>{{customer.last_name}}</td>
+        <td>{{customer.age}}</td>
+        <td class="text-right"><a [routerLink]="['/customers', customer.id]" class="btn btn-default">View</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
