@@ -384,6 +384,7 @@ type
     /// returns output using models pushed using Push* methods
     /// </summary>
     function GetRenderedView(const ViewNames: TArray<string>): string; virtual;
+    function SessionAs<T: TWebSession>: T;
     property Context: TWebContext read FContext write SetContext;
     property Session: TWebSession read GetWebSession write SetWebSession;
     procedure MVCControllerAfterCreate; virtual;
@@ -520,7 +521,6 @@ type
     FMVCConfig: TMVCConfig;
     // FViewCache            : TViewCache;
     FMimeTypes: TDictionary<string, string>;
-    class var fSessionType: string;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
     procedure SetDefaultReponseHeaders(AContext: TWebContext);
   protected
@@ -545,9 +545,6 @@ type
       Response: TWebResponse); virtual;
     class procedure ClearSessionCookiesAlreadySet(aCookies: TCookieCollection);
   public
-    class procedure SetSessionType(aValue:string);
-    class function GetSessionType:string;
-
     class function GetCurrentSession(ASessionTimeout: UInt64;
       const ASessionID: string; ARaiseExceptionIfExpired: Boolean = true)
       : TWebSession;
@@ -559,8 +556,6 @@ type
     class function SendSessionCookie(AContext: TWebContext): string; overload;
     class function SendSessionCookie(AContext: TWebContext; const ASessionID: string)
       : string; overload;
-    class function AddSessionToTheSessionList(const ASessionID: string;
-      ASessionTimeout: UInt64): TWebSession;
     function GetSessionBySessionID(const ASessionID: string): TWebSession;
     function AddController(AControllerClass: TMVCControllerClass)
       : TMVCEngine; overload;
@@ -607,6 +602,7 @@ type
     ServerName = 'server_name'; // tristan
     ExposeServerSignature = 'server_signature';
     IndexDocument = 'index_document';
+    SessionType = 'session_type';
   end;
 
 function IsShuttingDown: Boolean;
@@ -678,14 +674,20 @@ begin
   Result := Self;
 end;
 
-class function TMVCEngine.AddSessionToTheSessionList(const ASessionID: string;
+function AddSessionToTheSessionList(const aSessionType, ASessionID: string;
   ASessionTimeout: UInt64): TWebSession;
 var
   LSess: TWebSession;
 begin
+  if Trim(aSessionType) = '' then
+  begin
+    raise EMVCException.Create('Empty Session Type');
+  end;
+
   TMonitor.Enter(SessionList);
   try
-    LSess := TMVCSessionFactory.GetInstance.CreateNewByType(GetSessionType,
+    LSess := TMVCSessionFactory.GetInstance.CreateNewByType(
+      aSessionType,
       ASessionID, ASessionTimeout);
     SessionList.Add(ASessionID, LSess);
     Result := LSess;
@@ -741,6 +743,7 @@ begin
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false'; // tristan
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+  Config[TMVCConfigKey.SessionType] := 'memory';
 
   Config[TMVCConfigKey.IndexDocument] := 'index.html';
 
@@ -1265,20 +1268,6 @@ begin
   end;
 end;
 
-class function TMVCEngine.GetSessionType: string;
-begin
-   if fSessionType='' then
-      result:='memory'
-   else
-      result:=fSessionType;
-end;
-
-class procedure TMVCEngine.SetSessionType(aValue: string);
-begin
-   fSessionType := aValue;
-end;
-
-
 procedure TMVCEngine.Http404(AWebContext: TWebContext);
 begin
   AWebContext.Response.StatusCode := 404;
@@ -1735,8 +1724,8 @@ begin
   for S in string(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
     .Split([',']) do
   begin
-    if not S.trim.IsEmpty then
-      Exit(S.trim);
+    if not S.Trim.IsEmpty then
+      Exit(S.Trim);
   end;
 
   if FWebRequest.GetFieldByName('HTTP_X_FORWARDED') <> '' then
@@ -1801,13 +1790,13 @@ begin
   if not c.IsEmpty then
   begin
     CT := c.Split([';']);
-    FContentType := trim(CT[0]);
+    FContentType := Trim(CT[0]);
     FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET; // default charset
     if Length(CT) > 1 then
     begin
-      if CT[1].trim.StartsWith('charset', true) then
+      if CT[1].Trim.StartsWith('charset', true) then
       begin
-        FCharset := CT[1].trim.Split(['='])[1].trim;
+        FCharset := CT[1].Trim.Split(['='])[1].Trim;
       end;
     end;
   end;
@@ -1921,6 +1910,11 @@ begin
   // Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
   // StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
   // Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
+end;
+
+function TMVCController.SessionAs<T>: T;
+begin
+  Result := Session as T;
 end;
 
 function TMVCController.GetRenderedView(const ViewNames
@@ -2177,7 +2171,7 @@ begin
   FContext.Response.FWebResponse.Content := '';
   FContext.Response.FWebResponse.ContentType := ContentType;
   FContext.Response.FWebResponse.ContentStream := lStream;
-  FContext.Response.FWebResponse.FreeContentStream := True;
+  FContext.Response.FWebResponse.FreeContentStream := true;
 end;
 
 function TWebContext.SessionID: string;
@@ -2199,7 +2193,9 @@ begin
   if not Assigned(FWebSession) then
   begin
     LSessionID := TMVCEngine.SendSessionCookie(Self);
-    FWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
+    FWebSession := AddSessionToTheSessionList(
+      Config[TMVCConfigKey.SessionType],
+      LSessionID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := true;
     FSessionMustBeClose := false;

@@ -31,11 +31,8 @@ uses AppControllerU;
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(Self);
-  MVC.Config[TMVCConfigKey.SessionTimeout] := '10'; //10minutes
+  MVC.Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
   MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
-
-  MVC.SetSessionType('memoryController'); //comment the line to use default session type (memory)
-
   MVC.AddController(TApp1MainController);
 end;
 
