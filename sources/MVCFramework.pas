@@ -520,9 +520,9 @@ type
     FMVCConfig: TMVCConfig;
     // FViewCache            : TViewCache;
     FMimeTypes: TDictionary<string, string>;
+    class var fSessionType: string;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
     procedure SetDefaultReponseHeaders(AContext: TWebContext);
-
   protected
     FConfiguredSessionTimeout: Int64;
     FControllers: TObjectList<TMVCControllerRoutable>;
@@ -545,6 +545,8 @@ type
       Response: TWebResponse); virtual;
     class procedure ClearSessionCookiesAlreadySet(aCookies: TCookieCollection);
   public
+    class procedure SetSessionType(aValue:string);
+    class function GetSessionType:string;
 
     class function GetCurrentSession(ASessionTimeout: UInt64;
       const ASessionID: string; ARaiseExceptionIfExpired: Boolean = true)
@@ -683,7 +685,7 @@ var
 begin
   TMonitor.Enter(SessionList);
   try
-    LSess := TMVCSessionFactory.GetInstance.CreateNewByType('memory',
+    LSess := TMVCSessionFactory.GetInstance.CreateNewByType(GetSessionType,
       ASessionID, ASessionTimeout);
     SessionList.Add(ASessionID, LSess);
     Result := LSess;
@@ -1262,6 +1264,20 @@ begin
     // TMVCEngine.SendSessionCookie(FContext, SessionID);
   end;
 end;
+
+class function TMVCEngine.GetSessionType: string;
+begin
+   if fSessionType='' then
+      result:='memory'
+   else
+      result:=fSessionType;
+end;
+
+class procedure TMVCEngine.SetSessionType(aValue: string);
+begin
+   fSessionType := aValue;
+end;
+
 
 procedure TMVCEngine.Http404(AWebContext: TWebContext);
 begin
@@ -2234,7 +2250,6 @@ begin
   finally
     TMonitor.Exit(SessionList);
   end;
-
   FIsSessionStarted := false;
   FSessionMustBeClose := true;
 end;
@@ -2745,7 +2760,7 @@ begin
   end
   else
   begin
-    Render(Format('[%d]: %s', [aErrorCode, aErrorMessage]));
+    Render(Format('Error: [%d] %s', [aErrorCode, aErrorMessage]));
   end;
 end;
 
