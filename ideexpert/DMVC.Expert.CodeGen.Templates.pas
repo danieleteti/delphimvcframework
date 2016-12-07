@@ -1,32 +1,32 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{  This IDE expert is based off of the one included with the DUnitX         }
-{  project.  Original source by Robert Love.  Adapted by Nick Hodges.       }
-{                                                                           }
-{  The DUnitX project is run by Vincent Parrett and can be found at:        }
-{                                                                           }
-{            https://github.com/VSoftTechnologies/DUnitX                    }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ This IDE expert is based off of the one included with the DUnitX }
+{ project.  Original source by Robert Love.  Adapted by Nick Hodges. }
+{ }
+{ The DUnitX project is run by Vincent Parrett and can be found at: }
+{ }
+{ https://github.com/VSoftTechnologies/DUnitX }
+{ *************************************************************************** }
 
 unit DMVC.Expert.CodeGen.Templates;
 
@@ -46,7 +46,7 @@ resourcestring
     '  MVCFramework.Logger,' + sLineBreak +
     '  Winapi.Windows,' + sLineBreak +
     '  Winapi.ShellAPI,' + sLineBreak +
-		'  ReqMulti, {enables files upload}' + sLineBreak +
+    '  ReqMulti, {enables files upload}' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
@@ -129,8 +129,8 @@ resourcestring
     '  end;' + sLineBreak +
     sLineBreak +
     'implementation' + sLineBreak +
-		'uses' + sLineBreak +
-		'    MVCFramework.Logger;' + sLineBreak +
+    'uses' + sLineBreak +
+    '    MVCFramework.Logger;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
@@ -244,6 +244,8 @@ resourcestring
     '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
     '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
+    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
+    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +
     'end;' + sLineBreak +

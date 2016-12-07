@@ -34,7 +34,7 @@ begin
     procedure(Config: TMVCConfig)
     begin
       // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + '\www';
+      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + 'www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -51,6 +51,9 @@ begin
       Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+
+      // Define a default URL for requests that don't map to a route or a file
+      Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
   FMVC.AddController(TCustomersController);
   FMVC.AddMiddleware(TCORSMiddleware.Create);

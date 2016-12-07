@@ -603,6 +603,10 @@ type
     ExposeServerSignature = 'server_signature';
     IndexDocument = 'index_document';
     SessionType = 'session_type';
+    /// <summary>
+    /// Define a default URL for requests that don't map to a route or a file
+    /// </summary>
+    FallbackResource = 'fallback_resource';
   end;
 
 function IsShuttingDown: Boolean;
@@ -725,6 +729,7 @@ begin
   Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
   Config[TMVCConfigKey.SessionTimeout] := '30'; // 30 minutes
   Config[TMVCConfigKey.DocumentRoot] := '.\www';
+  Config[TMVCConfigKey.FallbackResource] := '';
   Config[TMVCConfigKey.DefaultContentType] :=
     TMVCConstants.DEFAULT_CONTENT_TYPE;
   Config[TMVCConfigKey.DefaultContentCharset] :=
@@ -821,10 +826,9 @@ var
   lActionFormalParams: TArray<TRttiParameter>;
   lActualParams: TArray<TValue>;
 
-  function SendDocumentIndexIfPresent: Boolean;
+  function SendFileIfPresent(const AFileName: String): Boolean;
   begin
-    lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
-      Config[TMVCConfigKey.IndexDocument]);
+    lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot], AFileName);
     if TFile.Exists(lStaticFileName) then
     begin
       if FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)), lContentType) then
@@ -841,6 +845,29 @@ var
     end
     else
       Result := false;
+  end;
+
+  function SendDocumentIndexIfPresent: Boolean;
+  begin
+    Result := SendFileIfPresent(Config[TMVCConfigKey.IndexDocument]);
+    // lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
+    // Config[TMVCConfigKey.IndexDocument]);
+    // if TFile.Exists(lStaticFileName) then
+    // begin
+    // if FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)), lContentType) then
+    // begin
+    // lContentType := lContentType + ';charset=' + FMVCConfig
+    // [TMVCConfigKey.DefaultContentCharset];
+    // end
+    // else
+    // begin
+    // lContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
+    // end;
+    // TMVCStaticContents.SendFile(lStaticFileName, lContentType, lContext);
+    // Result := true;
+    // end
+    // else
+    // Result := false;
   end;
 
   procedure FillActualParamsForAction(const AContext: TWebContext;
@@ -1062,16 +1089,6 @@ begin
                           lRouter.MethodToCall.Name);
                       end;
                     end;
-
-                    if lContext.SessionMustBeClose then
-                    begin
-                      // SessionList.Remove(SelectedController.Session.SessionID);
-                    end
-                    else
-                    begin
-
-                    end;
-
                   finally
                     lSelectedController.MVCControllerBeforeDestroy;
                   end;
@@ -1116,10 +1133,11 @@ begin
             else
             begin
               if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-              // tristan
               begin
-                Result := true;
-                if not SendDocumentIndexIfPresent then // danieleteti
+                Result := false;
+                if not Config[TMVCConfigKey.FallbackResource].IsEmpty then
+                  Result := SendFileIfPresent(Config[TMVCConfigKey.FallbackResource]);
+                if not Result then
                 begin
                   Http404(lContext);
                   Log(TLogLevel.levNormal, Request.Method + ':' +
