@@ -1613,19 +1613,19 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{$IF CompilerVersion <= 27 }
+{.$IF CompilerVersion <= 27 }
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
-{$ENDIF }
+{.$ENDIF }
 begin
   if FBody <> '' then
     Exit(FBody);
-{$IF CompilerVersion > 29 }
-  FWebRequest.ReadTotalContent;
-  Exit(FWebRequest.Content);
-{$ELSE }
+{.$IF CompilerVersion > 29 }
+//  FWebRequest.ReadTotalContent;
+//  Exit(FWebRequest.Content);
+{.$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
   // considering the content charser. So, here's the fix
 
@@ -1652,7 +1652,7 @@ begin
   finally
     InEnc.Free;
   end
-{$ENDIF }
+{.$ENDIF }
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
@@ -2053,23 +2053,32 @@ procedure InternalRenderText(const AContent: string;
   ContentType, ContentEncoding: string; Context: TWebContext);
 var
   OutEncoding: TEncoding;
+  lContentType: String;
 begin
-  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
-    ContentEncoding;
+  lContentType := ContentType + '; charset=' + ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     // Context.Response.RawWebResponse.ContentStream := TStringStream.Create(UTF8Encode(AContent));
     if SameText('UTF-8', ContentEncoding) then
     begin
-      Context.Response.RawWebResponse.Content := '';
-      Context.Response.RawWebResponse.ContentStream :=
-        TStringStream.Create(UTF8Encode(AContent));
+      Context.Response.SetContentStream(
+        // TStringStream.Create(UTF8Encode(AContent), TEncoding.UTF8),
+        TStringStream.Create({UTF8Encode(}AContent{)}, TEncoding.UTF8),
+        lContentType);
+      // Context.Response.RawWebResponse.Content := '';
+      // Context.Response.RawWebResponse.ContentStream :=
+      // TStringStream.Create(UTF8Encode(AContent));
     end
     else
     begin
-      Context.Response.RawWebResponse.Content :=
-        OutEncoding.GetString(TEncoding.Convert(TEncoding.UTF8, OutEncoding,
-        TEncoding.Default.GetBytes(AContent)));
+      Context.Response.SetContentStream(
+        TBytesStream.Create(
+        TEncoding.Convert(TEncoding.Default, OutEncoding, TEncoding.Default.GetBytes(AContent))),
+        lContentType
+        );
+      // Context.Response.RawWebResponse.Content :=
+      // OutEncoding.GetString(TEncoding.Convert(TEncoding.UTF8, OutEncoding,
+      // TEncoding.Default.GetBytes(AContent)));
     end;
   finally
     OutEncoding.Free;
@@ -2088,23 +2097,36 @@ procedure InternalRender(aJSONValue: TJSONValue;
   aInstanceOwner: Boolean);
 var
   OutEncoding: TEncoding;
-  JString: string;
+  lContentType, lJString: string;
 begin
 {$IF CompilerVersion <= 27}
-  JString := aJSONValue.ToString; // requires the patch
+  lJString := aJSONValue.ToString; // requires the patch
 {$ELSE}
-  JString := aJSONValue.ToJSON; // since XE7 it works using ToJSON
+  lJString := aJSONValue.ToJSON; // since XE7 is available ToJSON
 {$ENDIF}
   // first set the ContentType; because of this bug:
   // http://qc.embarcadero.com/wc/qcmain.aspx?d=67350
   Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
     ContentEncoding;
-
+  lContentType := ContentType + '; charset=' +
+    ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
-    Context.Response.RawWebResponse.Content :=
-      OutEncoding.GetString(TEncoding.Convert(TEncoding.Default, OutEncoding,
-      TEncoding.Default.GetBytes(JString)));
+    Context.Response.SetContentStream(
+      TBytesStream.Create(
+      TEncoding.Convert(TEncoding.Default, OutEncoding,
+      TEncoding.Default.GetBytes(lJString))
+      ), lContentType);
+
+    // Context.Response.SetContent(
+    // OutEncoding.GetString(
+    // TEncoding.Convert(TEncoding.Default, OutEncoding,
+    // TEncoding.Default.GetBytes(lJString))
+    // ));
+
+    // Context.Response.RawWebResponse.Content :=
+    // OutEncoding.GetString(TEncoding.Convert(TEncoding.Default, OutEncoding,
+    // TEncoding.Default.GetBytes(JString)));
   finally
     OutEncoding.Free;
   end;

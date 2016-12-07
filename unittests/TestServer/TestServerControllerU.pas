@@ -26,7 +26,7 @@ unit TestServerControllerU;
 
 interface
 
-uses MVCFramework, System.SysUtils;
+uses MVCFramework, System.SysUtils, MVCFramework.Commons;
 
 type
 
@@ -80,6 +80,12 @@ type
     [MVCConsumes('application/json')]
     [MVCProduces('application/json', 'utf-8')]
     procedure TestConsumesProduces(ctx: TWebContext);
+
+    [MVCPath('/testconsumes/textiso8859_1')]
+    [MVCHTTPMethod([httpPOST, httpPUT])]
+    [MVCConsumes(TMVCMediaType.TEXT_PLAIN)]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN, 'iso8859-1')]
+    procedure TestConsumesProducesTextISO8859_1;
 
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
@@ -148,8 +154,7 @@ type
     [MVCPath('/typed/extended1/($value)')]
     procedure TestTypedActionExtended1(value: Extended);
 
-    [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')
-      ]
+    [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')]
     procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer;
       ParInt64: Int64; ParSingle: Single; ParDouble: Double;
       ParExtended: Extended);
@@ -194,7 +199,7 @@ uses
 {$ELSE}
   System.JSON,
 {$IFEND}
-  MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
+  Web.HTTPApp, BusinessObjectsU, Generics.Collections,
   ObjectsMappers, MVCFramework.DuckTyping, System.Classes;
 
 { TTestServerController }
@@ -330,6 +335,11 @@ end;
 procedure TTestServerController.TestConsumesProducesText(ctx: TWebContext);
 begin
   Render('Hello World');
+end;
+
+procedure TTestServerController.TestConsumesProducesTextISO8859_1;
+begin
+  Render(Context.Request.Body);
 end;
 
 procedure TTestServerController.TestEncoding(ctx: TWebContext);

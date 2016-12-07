@@ -187,7 +187,7 @@ type
       : IRESTResponse;
 
     function SendHTTPCommandWithBody(const ACommand: THTTPCommand;
-      const AAccept, AContentType, AResource, ABody: string): IRESTResponse;
+      const AAccept, AContentType, AContentEncoding, AResource, ABody: string): IRESTResponse;
 
     procedure OnHTTPRedirect(Sender: TObject; var dest: string; var NumRedirect: Integer;
       var Handled: Boolean; var VMethod: TIdHTTPMethod);
@@ -316,6 +316,8 @@ implementation
 
 {$IFNDEF ANDROID OR IOS}
 {$IF CompilerVersion > 30}
+
+
 uses
   System.AnsiStrings;
 {$ENDIF}
@@ -990,7 +992,7 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType,
+    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType, FContentEncoding,
       URL, ABody);
     ClearAllParams;
   end;
@@ -1053,7 +1055,7 @@ end;
 function TRESTClient.doPOST(const AResource: string;
   const AParams: array of string; const ABody: string): IRESTResponse;
 var
-  URL: string;
+  URL, lContentTypeWithCharset: string;
 begin
   URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
@@ -1065,7 +1067,12 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType,
+    lContentTypeWithCharset := FContentType;
+    if FContentEncoding = '' then
+      FContentEncoding := 'UTF-8';
+    lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
+
+    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, FContentEncoding,
       URL, ABody);
     ClearAllParams;
   end;
@@ -1173,7 +1180,7 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType,
+    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, FContentEncoding,
       URL, ABody);
     ClearAllParams;
   end;
@@ -1537,14 +1544,26 @@ begin
 end;
 
 function TRESTClient.SendHTTPCommandWithBody(const ACommand: THTTPCommand;
-  const AAccept, AContentType, AResource, ABody: string): IRESTResponse;
+  const AAccept, AContentType, AContentEncoding, AResource, ABody: string): IRESTResponse;
+var
+  lBytes: TArray<Byte>;
+  lContentEncoding: string;
+  lContentTypeWithCharset: string;
+  lEncoding: TEncoding;
 begin
   Result := TRESTResponse.Create;
 
   FHTTP.Request.RawHeaders.Clear;
   FHTTP.Request.CustomHeaders.Clear;
   FHTTP.Request.Accept := AAccept;
-  FHTTP.Request.ContentType := AContentType;
+
+  lContentEncoding := 'UTF-8';
+  if AContentEncoding <> '' then
+    lContentEncoding := AContentEncoding;
+  lContentTypeWithCharset := AContentType + ';charset=' + FContentEncoding;
+
+  FHTTP.Request.ContentType := lContentTypeWithCharset;
+  FHTTP.Request.ContentEncoding := AContentEncoding;
 
   HandleRequestCookies;
   try
@@ -1566,7 +1585,16 @@ begin
           if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
             RawBody.WriteString(UTF8ToString(ABody))
           else
-            RawBody.WriteString(ABody);
+          begin
+            lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+            try
+              lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
+                TEncoding.Default.GetBytes(ABody));
+              RawBody.WriteData(lBytes, Length(lBytes));
+            finally
+              lEncoding.Free;
+            end;
+          end;
 
 {$WARNINGS ON}
           FHTTP.Post(AResource, RawBody, Result.Body);
@@ -1689,7 +1717,7 @@ begin
       R: IRESTResponse;
     begin
       try
-        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType,
+        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType, FContentEncoding,
           AResource, ABody);
         TMonitor.Enter(TObject(R));
         try
