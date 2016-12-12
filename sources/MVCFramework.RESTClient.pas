@@ -425,8 +425,8 @@ var
   ss: TStringStream;
 begin
   if (FContentEncoding = '') then
-    FContentEncoding := 'UTF-8';
-  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding));
+    FContentEncoding := 'utf-8';
+  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding.ToLower));
   try
     FBody.Position := 0;
     FBody.SaveToStream(ss);
@@ -1055,7 +1055,7 @@ end;
 function TRESTClient.doPOST(const AResource: string;
   const AParams: array of string; const ABody: string): IRESTResponse;
 var
-  URL, lContentTypeWithCharset: string;
+  URL {, lContentTypeWithCharset}: string;
 begin
   URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
@@ -1067,10 +1067,10 @@ begin
   end
   else
   begin
-    lContentTypeWithCharset := FContentType;
-    if FContentEncoding = '' then
-      FContentEncoding := 'UTF-8';
-    lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
+//    lContentTypeWithCharset := FContentType;
+//    if FContentEncoding = '' then
+//      FContentEncoding := 'UTF-8';
+//    lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
 
     Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, FContentEncoding,
       URL, ABody);
@@ -1562,18 +1562,22 @@ begin
     lContentEncoding := AContentEncoding;
   lContentTypeWithCharset := AContentType + ';charset=' + FContentEncoding;
 
-  FHTTP.Request.ContentType := lContentTypeWithCharset;
+  // FHTTP.Request.ContentType := lContentTypeWithCharset;
+  FHTTP.Request.ContentType := AContentType;
   FHTTP.Request.ContentEncoding := AContentEncoding;
 
   HandleRequestCookies;
   try
+    if FHTTP.Request.CharSet = '' then
+      FHTTP.Request.CharSet := 'utf-8';
+
     case ACommand of
       httpGET:
         begin
           FHTTP.Get(AResource, Result.Body);
         end;
 
-      httpPOST:
+      httpPOST, httpPUT:
         begin
           if (MultiPartFormData.Size <> 0) then
             raise ERESTClientException.Create('This method cannot send files');
@@ -1581,23 +1585,19 @@ begin
           RawBody.Position := 0;
           RawBody.Size := 0;
 
-{$WARNINGS OFF}
-          if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
-            RawBody.WriteString(UTF8ToString(ABody))
-          else
-          begin
-            lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
-            try
-              lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
-                TEncoding.Default.GetBytes(ABody));
-              RawBody.WriteData(lBytes, Length(lBytes));
-            finally
-              lEncoding.Free;
-            end;
+          lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+          try
+            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
+              TEncoding.Default.GetBytes(ABody));
+            RawBody.WriteData(lBytes, Length(lBytes));
+          finally
+            lEncoding.Free;
           end;
 
-{$WARNINGS ON}
-          FHTTP.Post(AResource, RawBody, Result.Body);
+          if ACommand = httpPOST then
+            FHTTP.Post(AResource, RawBody, Result.Body)
+          else
+            FHTTP.Put(AResource, RawBody, Result.Body);
         end;
 
       httpPATCH:
@@ -1606,20 +1606,21 @@ begin
             ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
         end;
 
-      httpPUT:
-        begin
-          RawBody.Position := 0;
-          RawBody.Size := 0;
-
-{$WARNINGS OFF}
-          if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
-            RawBody.WriteString(UTF8ToString(ABody))
-          else
-            RawBody.WriteString(ABody);
-
-{$WARNINGS ON}
-          FHTTP.Put(AResource, RawBody, Result.Body);
-        end;
+//      httpPUT:
+//        begin
+//          RawBody.Position := 0;
+//          RawBody.Size := 0;
+//          lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+//          try
+//            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
+//              TEncoding.Default.GetBytes(ABody));
+//            RawBody.WriteData(lBytes, Length(lBytes));
+//          finally
+//            lEncoding.Free;
+//          end;
+//
+//          FHTTP.Put(AResource, RawBody, Result.Body);
+//        end;
 
       httpDELETE:
         begin
