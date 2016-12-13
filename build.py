@@ -53,6 +53,8 @@ def main(projects):
 	delphistompclient_copyright()
 	builds = []
 	for project in projects:
+			if project.find("GlobalDemo") != -1:
+				continue
 			filename = '\\'.join(project.split('\\')[-3:])
 			if filename.find('2007') > 0: #do not build Delphi 2007 examples not Lazarus examples
 			  continue

@@ -39,7 +39,7 @@ object ReceiverMainForm: TReceiverMainForm
     Left = 8
     Top = 8
     Width = 449
-    Height = 52
+    Height = 39
     Caption = 
       'This example show how subscribe a queue and after you receive a ' +
       'message from apollo you can send a ACK message to accept the mes' +
@@ -74,7 +74,6 @@ object ReceiverMainForm: TReceiverMainForm
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
-    ExplicitWidth = 432
   end
   object SubscribeButton: TButton
     Left = 8
@@ -94,7 +93,6 @@ object ReceiverMainForm: TReceiverMainForm
     Anchors = [akLeft, akBottom]
     TabOrder = 2
     Text = '/queue/alarm'
-    ExplicitTop = 353
   end
   object SendAckButton: TButton
     Left = 176
@@ -105,7 +103,6 @@ object ReceiverMainForm: TReceiverMainForm
     Caption = '2 - Send ACK'
     TabOrder = 3
     OnClick = SendAckButtonClick
-    ExplicitTop = 380
   end
   object SendNackButton: TButton
     Left = 176
@@ -116,7 +113,6 @@ object ReceiverMainForm: TReceiverMainForm
     Caption = '2 - Send NACK'
     TabOrder = 4
     OnClick = SendNackButtonClick
-    ExplicitTop = 416
   end
   object UnsubscribeButton: TButton
     Left = 311
@@ -127,7 +123,6 @@ object ReceiverMainForm: TReceiverMainForm
     Caption = '3 - Unsubscribe '
     TabOrder = 5
     OnClick = UnsubscribeButtonClick
-    ExplicitTop = 380
   end
   object MessageIdEdit: TEdit
     Left = 174
@@ -136,7 +131,6 @@ object ReceiverMainForm: TReceiverMainForm
     Height = 21
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 6
-    ExplicitTop = 353
   end
   object LogMemo: TMemo
     Left = 8
