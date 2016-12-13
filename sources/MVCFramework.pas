@@ -1613,23 +1613,24 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{.$IF CompilerVersion <= 27 }
+{ .$IF CompilerVersion <= 27 }
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
-{.$ENDIF }
+  { .$ENDIF }
 begin
   if FBody <> '' then
     Exit(FBody);
-{.$IF CompilerVersion > 29 }
-//  FWebRequest.ReadTotalContent;
-//  Exit(FWebRequest.Content);
-{.$ELSE }
+  { .$IF CompilerVersion > 29 }
+  // FWebRequest.ReadTotalContent;
+  // Exit(FWebRequest.Content);
+  { .$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
   // considering the content charser. So, here's the fix
 
   // check http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
+  FWebRequest.ReadTotalContent;
   if FCharset.IsEmpty then
   begin
     SetLength(Buffer, 10);
@@ -1645,14 +1646,15 @@ begin
     InEnc := TEncoding.GetEncoding(FCharset);
   end;
   try
-    SetLength(Buffer, FWebRequest.ContentLength);
-    FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    FBody := InEnc.GetString(Buffer);
+    // SetLength(Buffer, FWebRequest.ContentLength);
+    // FWebRequest.RawContent
+    // FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
+    FBody := InEnc.GetString(FWebRequest.RawContent);
     Result := FBody;
   finally
     InEnc.Free;
   end
-{.$ENDIF }
+  { .$ENDIF }
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
@@ -2063,7 +2065,7 @@ begin
     begin
       Context.Response.SetContentStream(
         // TStringStream.Create(UTF8Encode(AContent), TEncoding.UTF8),
-        TStringStream.Create({UTF8Encode(}AContent{)}, TEncoding.UTF8),
+        TStringStream.Create( { UTF8Encode( } AContent { ) } , TEncoding.UTF8),
         lContentType);
       // Context.Response.RawWebResponse.Content := '';
       // Context.Response.RawWebResponse.ContentStream :=
