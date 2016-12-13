@@ -65,6 +65,7 @@ type
     procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
+    procedure TestProducesConsumes03;
     procedure TestProducesConsumesWithWrongAcceptHeader;
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
@@ -730,6 +731,23 @@ begin
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
   CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
+end;
+
+procedure TServerTest.TestProducesConsumes03;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient
+    .Accept(TMVCMediaType.TEXT_PLAIN)
+    .ContentType(TMVCMediaType.TEXT_PLAIN)
+    .ContentEncoding('iso8859-1')
+    .doPOST('/testconsumes/textiso8859_1', [],
+    'אטילעש');
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+  CheckEquals('אטילעש', res.BodyAsString);
+  CheckEquals(TMVCMediaType.TEXT_PLAIN, res.ContentType);
+  CheckEquals('iso8859-1', res.ContentEncoding);
+
 end;
 
 procedure TServerTest.TestPUTWithParamsAndJSONBody;

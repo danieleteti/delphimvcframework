@@ -187,7 +187,7 @@ type
       : IRESTResponse;
 
     function SendHTTPCommandWithBody(const ACommand: THTTPCommand;
-      const AAccept, AContentType, AResource, ABody: string): IRESTResponse;
+      const AAccept, AContentType, AContentEncoding, AResource, ABody: string): IRESTResponse;
 
     procedure OnHTTPRedirect(Sender: TObject; var dest: string; var NumRedirect: Integer;
       var Handled: Boolean; var VMethod: TIdHTTPMethod);
@@ -316,6 +316,8 @@ implementation
 
 {$IFNDEF ANDROID OR IOS}
 {$IF CompilerVersion > 30}
+
+
 uses
   System.AnsiStrings;
 {$ENDIF}
@@ -423,8 +425,8 @@ var
   ss: TStringStream;
 begin
   if (FContentEncoding = '') then
-    FContentEncoding := 'UTF-8';
-  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding));
+    FContentEncoding := 'utf-8';
+  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding.ToLower));
   try
     FBody.Position := 0;
     FBody.SaveToStream(ss);
@@ -990,7 +992,7 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType,
+    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType, FContentEncoding,
       URL, ABody);
     ClearAllParams;
   end;
@@ -1053,7 +1055,7 @@ end;
 function TRESTClient.doPOST(const AResource: string;
   const AParams: array of string; const ABody: string): IRESTResponse;
 var
-  URL: string;
+  URL {, lContentTypeWithCharset}: string;
 begin
   URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
@@ -1065,7 +1067,12 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType,
+//    lContentTypeWithCharset := FContentType;
+//    if FContentEncoding = '' then
+//      FContentEncoding := 'UTF-8';
+//    lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
+
+    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, FContentEncoding,
       URL, ABody);
     ClearAllParams;
   end;
@@ -1173,7 +1180,7 @@ begin
   end
   else
   begin
-    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType,
+    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType, FContentEncoding,
       URL, ABody);
     ClearAllParams;
   end;
@@ -1537,24 +1544,40 @@ begin
 end;
 
 function TRESTClient.SendHTTPCommandWithBody(const ACommand: THTTPCommand;
-  const AAccept, AContentType, AResource, ABody: string): IRESTResponse;
+  const AAccept, AContentType, AContentEncoding, AResource, ABody: string): IRESTResponse;
+var
+  lBytes: TArray<Byte>;
+  lContentEncoding: string;
+  lContentTypeWithCharset: string;
+  lEncoding: TEncoding;
 begin
   Result := TRESTResponse.Create;
 
   FHTTP.Request.RawHeaders.Clear;
   FHTTP.Request.CustomHeaders.Clear;
   FHTTP.Request.Accept := AAccept;
+
+  lContentEncoding := 'UTF-8';
+  if AContentEncoding <> '' then
+    lContentEncoding := AContentEncoding;
+  lContentTypeWithCharset := AContentType + ';charset=' + FContentEncoding;
+
+  // FHTTP.Request.ContentType := lContentTypeWithCharset;
   FHTTP.Request.ContentType := AContentType;
+  FHTTP.Request.ContentEncoding := AContentEncoding;
 
   HandleRequestCookies;
   try
+    if FHTTP.Request.CharSet = '' then
+      FHTTP.Request.CharSet := 'utf-8';
+
     case ACommand of
       httpGET:
         begin
           FHTTP.Get(AResource, Result.Body);
         end;
 
-      httpPOST:
+      httpPOST, httpPUT:
         begin
           if (MultiPartFormData.Size <> 0) then
             raise ERESTClientException.Create('This method cannot send files');
@@ -1562,14 +1585,19 @@ begin
           RawBody.Position := 0;
           RawBody.Size := 0;
 
-{$WARNINGS OFF}
-          if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
-            RawBody.WriteString(UTF8ToString(ABody))
-          else
-            RawBody.WriteString(ABody);
+          lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+          try
+            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
+              TEncoding.Default.GetBytes(ABody));
+            RawBody.WriteData(lBytes, Length(lBytes));
+          finally
+            lEncoding.Free;
+          end;
 
-{$WARNINGS ON}
-          FHTTP.Post(AResource, RawBody, Result.Body);
+          if ACommand = httpPOST then
+            FHTTP.Post(AResource, RawBody, Result.Body)
+          else
+            FHTTP.Put(AResource, RawBody, Result.Body);
         end;
 
       httpPATCH:
@@ -1578,20 +1606,21 @@ begin
             ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
         end;
 
-      httpPUT:
-        begin
-          RawBody.Position := 0;
-          RawBody.Size := 0;
-
-{$WARNINGS OFF}
-          if (LowerCase(FHTTP.Request.CharSet) = 'utf-8') then
-            RawBody.WriteString(UTF8ToString(ABody))
-          else
-            RawBody.WriteString(ABody);
-
-{$WARNINGS ON}
-          FHTTP.Put(AResource, RawBody, Result.Body);
-        end;
+//      httpPUT:
+//        begin
+//          RawBody.Position := 0;
+//          RawBody.Size := 0;
+//          lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+//          try
+//            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
+//              TEncoding.Default.GetBytes(ABody));
+//            RawBody.WriteData(lBytes, Length(lBytes));
+//          finally
+//            lEncoding.Free;
+//          end;
+//
+//          FHTTP.Put(AResource, RawBody, Result.Body);
+//        end;
 
       httpDELETE:
         begin
@@ -1689,7 +1718,7 @@ begin
       R: IRESTResponse;
     begin
       try
-        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType,
+        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType, FContentEncoding,
           AResource, ABody);
         TMonitor.Enter(TObject(R));
         try
