@@ -305,6 +305,7 @@ begin
   Result := TStompClient.Create;
   Result.SetUserName(FUserName).SetPassword(FPassword);
   TStompClient(Result).ConnectionTimeout := FConnectionTimeout;
+  TStompClient(Result).SetHeartBeat(FOutgoingHeartBeats, FIncomingHeartBeats);
   TStompClient(Result).Connect(FHost, FPort, FClientID, FAcceptVersion);
 
 end;
