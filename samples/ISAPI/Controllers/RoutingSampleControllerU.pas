@@ -22,7 +22,7 @@ type
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/people/($id)')]
     [MVCProduces('application/json')]
-    procedure GetPerson(CTX: TWebContext);
+    procedure GetPerson(const id: Integer);
 
   end;
 
@@ -33,14 +33,12 @@ uses
 
 { TRoutingSampleController }
 
-procedure TRoutingSampleController.GetPerson(CTX: TWebContext);
+procedure TRoutingSampleController.GetPerson(const id: Integer);
 var
   P: TPerson;
-  IDPerson: Integer;
 begin
-  IDPerson := CTX.Request.ParamsAsInteger['id'];
   {
-    Use IDPerson to load the person from a database...
+    Use ID to load the person from a database...
     In this example, we're creating a fake person
   }
   P := TPerson.Create;

@@ -76,6 +76,8 @@ type
   end;
 
   TDuckTypedList = class(TInterfacedObject, IWrappedList)
+  private
+    FOwnsObject: boolean;
   protected
     FCTX: TRTTIContext;
     FObjectAsDuck: TObject;
@@ -98,7 +100,7 @@ type
       Order: TSortingType = soAscending);
 
   public
-    constructor Create(AObjectAsDuck: TObject);
+    constructor Create(AObjectAsDuck: TObject; aOwnsObject: boolean = false);
     destructor Destroy; override;
     function GetEnumerator: TDuckListEnumerator;
     function GetOwnsObjects: boolean;
@@ -110,7 +112,8 @@ type
       : boolean; overload;
   end;
 
-function WrapAsList(const AObject: TObject): IWrappedList;
+function WrapAsList(const AObject: TObject; aOwnsObject: boolean = false)
+  : IWrappedList;
 
 implementation
 
@@ -172,8 +175,8 @@ begin
 
 end;
 
-class function TDuckTypedList.CanBeWrappedAsList(
-  const AInterfaceAsDuck: IInterface): boolean;
+class function TDuckTypedList.CanBeWrappedAsList(const AInterfaceAsDuck
+  : IInterface): boolean;
 var
   FCTX: TRTTIContext;
   LType: TRttiType;
@@ -183,8 +186,7 @@ begin
     (LType.GetMethod('Clear') <> nil)
 
 {$IF CompilerVersion >= 23}
-    and (LType.GetIndexedProperty('Items')
-    .ReadMethod <> nil)
+    and (LType.GetIndexedProperty('Items').ReadMethod <> nil)
 
 {$ENDIF}
     and (LType.GetMethod('GetItem') <> nil) or
@@ -207,17 +209,17 @@ begin
 
 end;
 
-constructor TDuckTypedList.Create(AObjectAsDuck: TObject);
+constructor TDuckTypedList.Create(AObjectAsDuck: TObject; aOwnsObject: boolean);
 begin
   inherited Create;
+  FOwnsObject := aOwnsObject;
   FObjectAsDuck := AObjectAsDuck;
   FAddMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add');
   if not Assigned(FAddMethod) then
     raise EMVCException.Create('Cannot find method "Add" in the duck object');
   FClearMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear');
   if not Assigned(FClearMethod) then
-    raise EMVCException.Create
-      ('Cannot find method "Clear" in the duck object');
+    raise EMVCException.Create('Cannot find method "Clear" in the duck object');
   FGetItemMethod := nil;
 
 {$IF CompilerVersion >= 23}
@@ -247,7 +249,8 @@ end;
 
 destructor TDuckTypedList.Destroy;
 begin
-
+  if FOwnsObject then
+    FreeAndNil(FObjectAsDuck);
   inherited;
 end;
 
@@ -266,10 +269,10 @@ begin
   Result := FObjectAsDuck;
 end;
 
-function WrapAsList(const AObject: TObject): IWrappedList;
+function WrapAsList(const AObject: TObject; aOwnsObject: boolean): IWrappedList;
 begin
   try
-    Result := TDuckTypedList.Create(AObject);
+    Result := TDuckTypedList.Create(AObject, aOwnsObject);
   except
     Result := nil;
   end;

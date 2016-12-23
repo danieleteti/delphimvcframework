@@ -24,7 +24,12 @@ uses
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.HMAC in '..\..\sources\MVCFramework.HMAC.pas';
+  MVCFramework.HMAC in '..\..\sources\MVCFramework.HMAC.pas',
+  MVCFramework.Tests.WebModule2 in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule},
+  MVCFramework.Tests.StandaloneServer in '..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas',
+  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
+  MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
+  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas';
 
 {$R *.RES}
 

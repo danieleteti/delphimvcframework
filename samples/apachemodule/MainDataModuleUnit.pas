@@ -16,7 +16,7 @@ uses System.SysUtils,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client,
   FireDAC.Stan.Param,
   FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase,
-  FireDAC.Phys.FB, FireDAC.Phys.FBDef;
+  FireDAC.Phys.FB, FireDAC.Phys.FBDef, FireDAC.VCLUI.Wait;
 
 type
   TWineCellarDataModule = class(TDataModule)
@@ -29,9 +29,9 @@ type
   public
     function GetWineById(id: Integer): TJSONObject;
     function FindWines(Search: string): TJSONArray;
-    function AddWine(AWine: TJSONObject): TJSONObject;
+    procedure AddWine(AWine: TJSONObject);
     function UpdateWine(Wine: TJSONObject): TJSONObject;
-    function DeleteWine(id: Integer): TJSONObject;
+    procedure DeleteWine(id: Integer);
   end;
 
 implementation
@@ -45,7 +45,7 @@ uses System.StrUtils,
 
 { TCellarSM }
 
-function TWineCellarDataModule.AddWine(AWine: TJSONObject): TJSONObject;
+procedure TWineCellarDataModule.AddWine(AWine: TJSONObject);
 var
   Wine: TWine;
 begin
@@ -58,7 +58,7 @@ begin
   end;
 end;
 
-function TWineCellarDataModule.DeleteWine(id: Integer): TJSONObject;
+procedure TWineCellarDataModule.DeleteWine(id: Integer);
 begin
   updWines.Commands[arDelete].ParamByName('OLD_ID').AsInteger := id;
   updWines.Commands[arDelete].Execute;

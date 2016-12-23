@@ -1,0 +1,26 @@
+EXPORTED {
+	global:
+		_NativeMain;
+		__rsrc_*;
+		__rstr_*;
+		dbkFCallWrapperAddr;
+		__dbk_fcall_wrapper;
+		_DbgExcNotify;
+		_Unwind_VRS_Get;
+		_Unwind_VRS_Set;
+		_Unwind_Complete;
+		_Unwind_Resume_or_Rethrow;
+		_Unwind_GetDataRelBase;
+		_Unwind_GetTextRelBase;
+		_Unwind_GetLanguageSpecificData;
+		_Unwind_GetRegionStart;
+		_BorUnwind_RaiseException;
+		_BorUnwind_Resume;
+		_UnwindCppFrame;
+		UnwindCppPersonalityCommon;
+		_Unwind_DeleteException;
+		TMethodImplementationIntercept;
+		ExecJNI;
+		ANativeActivity_onCreate;
+	local: *;
+};

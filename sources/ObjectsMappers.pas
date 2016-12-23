@@ -121,8 +121,7 @@ type
       AIgnoredProperties: array of string): TJSONObject; overload;
     /// <summary>
     /// Serializes an object to a jsonobject using fields value, not property values. WARNING! This
-    /// method do not generate the $dmvc_classname property in the jsonobject. To have the $dmvc_classname
-    /// into the json you should use ObjectToJSONObjectFields.
+    /// method generates the $dmvc_classname property in the jsonobject.
     /// </summary>
     class function ObjectToJSONObjectFields(AObject: TObject;
       AIgnoredProperties: array of string): TJSONObject; overload;
@@ -137,6 +136,7 @@ type
     /// the same delphi class. So this method is useful when you are developing a delphi-delphi solution. Exceptions apply.
     /// </summary>
     class function JSONObjectFieldsToObject(AJSONObject: TJSONObject): TObject;
+    class procedure LoadJSONObjectFieldsStringToObject(AJSONObjectString: string; AObject: TObject);
     /// <summary>
     /// Serialize an object to a JSONObject using properties values. It is useful when you
     /// have to send derived or calculated properties. It is not a simple serialization, it bring
@@ -194,7 +194,9 @@ type
 {$ENDIF}
     class procedure DataSetToJSONArray(ADataSet: TDataSet;
       AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True;
-      AJSONObjectActionProc: TJSONObjectActionProc = nil);
+      AJSONObjectActionProc: TJSONObjectActionProc = nil;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase
+      );
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray;
       ADataSet: TDataSet; AJSONArrayInstanceOwner: boolean = True); overload;
     class procedure JSONArrayToDataSet(AJSONArray: TJSONArray;
@@ -279,15 +281,17 @@ type
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.
       fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string);
+    procedure LoadFromJSONArrayString(AJSONArrayString: string;
+      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+    procedure LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
-      AIgnoredFields: TArray<string>); overload;
+      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string;
       AIgnoredFields: TArray<string>); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string;
-      AIgnoredFields: TArray<string>); overload;
+      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     function AsObjectList<T: class, constructor>(CloseAfterScroll
       : boolean = false): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll
@@ -774,7 +778,8 @@ end;
 
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
   AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean;
-  AJSONObjectActionProc: TJSONObjectActionProc);
+  AJSONObjectActionProc: TJSONObjectActionProc;
+  AFieldNamePolicy: TFieldNamePolicy);
 var
   Obj: TJSONObject;
 begin
@@ -782,15 +787,9 @@ begin
   begin
     Obj := TJSONObject.Create;
     AJSONArray.AddElement(Obj);
-    DataSetToJSONObject(ADataSet, Obj, false, AJSONObjectActionProc);
+    DataSetToJSONObject(ADataSet, Obj, false, AJSONObjectActionProc, AFieldNamePolicy);
     ADataSet.Next;
   end;
-  // repeat
-  // Obj := TJSONObject.Create;
-  // AJSONArray.AddElement(Obj);
-  // DataSetToJSONObject(ADataSet, Obj, false);
-  // ADataSet.Next;
-  // until ADataSet.Eof;
 
   if ADataSetInstanceOwner then
     FreeAndNil(ADataSet);
@@ -1195,10 +1194,10 @@ var
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
-  attr: MapperItemsClassType;
-  ListCount: Integer;
-  ListItems: TRttiMethod;
-  ListItemValue: TValue;
+//  attr: MapperItemsClassType;
+//  ListCount: Integer;
+//  ListItems: TRttiMethod;
+//  ListItemValue: TValue;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -1288,9 +1287,9 @@ begin
           begin
             if TDuckTypedList.CanBeWrappedAsList(o) then
             begin
-              if Mapper.HasAttribute<MapperItemsClassType>(_property, attr) or
+              if true {Mapper.HasAttribute<MapperItemsClassType>(_property, attr) or
                 Mapper.HasAttribute<MapperItemsClassType>
-                (_property.PropertyType, attr) then
+                (_property.PropertyType, attr)} then
               begin
                 list := WrapAsList(o);
                 if Assigned(list) then
@@ -1303,36 +1302,36 @@ begin
                       Arr.AddElement(ObjectToJSONObject(Obj));
                 end;
               end
-              else // Ezequiel J. Müller convert regular list
-              begin
-                ListCount := ctx.GetType(o.ClassInfo).GetProperty('Count')
-                  .GetValue(o).AsInteger;
-                ListItems := ctx.GetType(o.ClassInfo)
-                  .GetIndexedProperty('Items').ReadMethod;
-                if (ListCount > 0) and (ListItems <> nil) then
-                begin
-                  Arr := TJSONArray.Create;
-                  JSONObject.AddPair(f, Arr);
-                  for I := 0 to ListCount - 1 do
-                  begin
-                    ListItemValue := ListItems.Invoke(o, [I]);
-                    case ListItemValue.TypeInfo.Kind of
-                      tkInteger:
-                        Arr.AddElement
-                          (TJSONNumber.Create(ListItemValue.AsInteger));
-                      tkInt64:
-                        Arr.AddElement
-                          (TJSONNumber.Create(ListItemValue.AsInt64));
-                      tkFloat:
-                        Arr.AddElement
-                          (TJSONNumber.Create(ListItemValue.AsExtended));
-                      tkString, tkLString, tkWString, tkUString:
-                        Arr.AddElement
-                          (TJSONString.Create(ListItemValue.AsString));
-                    end;
-                  end;
-                end;
-              end;
+//              else // Ezequiel J. Müller convert regular list
+//              begin
+//                ListCount := ctx.GetType(o.ClassInfo).GetProperty('Count')
+//                  .GetValue(o).AsInteger;
+//                ListItems := ctx.GetType(o.ClassInfo)
+//                  .GetIndexedProperty('Items').ReadMethod;
+//                if (ListCount > 0) and (ListItems <> nil) then
+//                begin
+//                  Arr := TJSONArray.Create;
+//                  JSONObject.AddPair(f, Arr);
+//                  for I := 0 to ListCount - 1 do
+//                  begin
+//                    ListItemValue := ListItems.Invoke(o, [I]);
+//                    case ListItemValue.TypeInfo.Kind of
+//                      tkInteger:
+//                        Arr.AddElement
+//                          (TJSONNumber.Create(ListItemValue.AsInteger));
+//                      tkInt64:
+//                        Arr.AddElement
+//                          (TJSONNumber.Create(ListItemValue.AsInt64));
+//                      tkFloat:
+//                        Arr.AddElement
+//                          (TJSONNumber.Create(ListItemValue.AsExtended));
+//                      tkString, tkLString, tkWString, tkUString:
+//                        Arr.AddElement
+//                          (TJSONString.Create(ListItemValue.AsString));
+//                    end;
+//                  end;
+//                end;
+//              end;
             end
             else if o is TStream then
             begin
@@ -2314,7 +2313,12 @@ begin
           o := _field.GetValue(TObject(AObject)).AsObject;
           if Assigned(o) then
           begin
-            if o is TStream then
+            if jvalue is TJSONNull then
+            begin
+              FreeAndNil(o);
+              _field.SetValue(AObject, nil);
+            end
+            else if o is TStream then
             begin
               if jvalue is TJSONString then
               begin
@@ -2427,6 +2431,19 @@ class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;
 begin
   JSONObjectToDataSet(AJSONObject, ADataSet, TArray<string>.Create(),
     AJSONObjectInstanceOwner);
+end;
+
+class procedure Mapper.LoadJSONObjectFieldsStringToObject(AJSONObjectString: string;
+  AObject: TObject);
+var
+  lJSON: TJSONObject;
+begin
+  lJSON := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
+  try
+    InternalJSONObjectFieldsToObject(ctx, lJSON, AObject);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 class function Mapper.JSONObjectFieldsToObject(AJSONObject
@@ -3144,30 +3161,36 @@ begin
 end;
 
 procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
-  AIgnoredFields: TArray<string>);
+  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
 begin
   Self.DisableControls;
   try
-    Mapper.JSONArrayToDataSet(AJSONArray, Self, AIgnoredFields, false);
+    Mapper.JSONArrayToDataSet(AJSONArray, Self, AIgnoredFields, false, AFieldNamePolicy);
   finally
     Self.EnableControls;
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string);
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
+  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
 begin
-  AppendFromJSONArrayString(AJSONArrayString);
+  AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
+end;
+
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
+begin
+  AppendFromJSONArrayString(AJSONArrayString, TArray<String>.Create(), AFieldNamePolicy);
 end;
 
 procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>);
+  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
 var
   JV: TJSONValue;
 begin
   JV := TJSONObject.ParseJSONValue(AJSONArrayString);
   try
     if JV is TJSONArray then
-      LoadFromJSONArray(TJSONArray(JV), AIgnoredFields)
+      LoadFromJSONArray(TJSONArray(JV), AIgnoredFields, AFieldNamePolicy)
     else
       raise EMapperException.Create
         ('Expected JSONArray in LoadFromJSONArrayString');

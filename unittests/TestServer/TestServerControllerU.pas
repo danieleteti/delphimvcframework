@@ -26,7 +26,7 @@ unit TestServerControllerU;
 
 interface
 
-uses MVCFramework, System.SysUtils;
+uses MVCFramework, System.SysUtils, MVCFramework.Commons;
 
 type
 
@@ -51,7 +51,7 @@ type
 
     [MVCPath('/session')]
     [MVCHTTPMethod([httpGET])]
-    procedure SessionGet(ctx: TWebContext);
+    procedure SessionGet;
 
     [MVCPath('/headers')]
     procedure EchoHeaders(ctx: TWebContext);
@@ -80,6 +80,12 @@ type
     [MVCConsumes('application/json')]
     [MVCProduces('application/json', 'utf-8')]
     procedure TestConsumesProduces(ctx: TWebContext);
+
+    [MVCPath('/testconsumes/textiso8859_1')]
+    [MVCHTTPMethod([httpPOST, httpPUT])]
+    [MVCConsumes(TMVCMediaType.TEXT_PLAIN)]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN, 'iso8859-1')]
+    procedure TestConsumesProducesTextISO8859_1;
 
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
@@ -148,10 +154,10 @@ type
     [MVCPath('/typed/extended1/($value)')]
     procedure TestTypedActionExtended1(value: Extended);
 
-    [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')
-      ]
-    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64;
-      ParSingle: Single; ParDouble: Double; ParExtended: Extended);
+    [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')]
+    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer;
+      ParInt64: Int64; ParSingle: Single; ParDouble: Double;
+      ParExtended: Extended);
 
     [MVCPath('/typed/tdatetime1/($value)')]
     procedure TestTypedActionTDateTime1(value: TDateTime);
@@ -164,6 +170,12 @@ type
 
     [MVCPath('/typed/booleans/($bool1)/($bool2)/($bool3)/($bool4)')]
     procedure TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
+
+    [MVCPath('/renderstreamandfreewithownerfalse')]
+    procedure TestRenderStreamAndFreeWithOwnerFalse;
+
+    [MVCPath('/renderstreamandfreewithownertrue')]
+    procedure TestRenderStreamAndFreeWithOwnerTrue;
 
   end;
 
@@ -187,8 +199,8 @@ uses
 {$ELSE}
   System.JSON,
 {$IFEND}
-  MVCFramework.Commons, Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  ObjectsMappers, MVCFramework.DuckTyping;
+  Web.HTTPApp, BusinessObjectsU, Generics.Collections,
+  ObjectsMappers, MVCFramework.DuckTyping, System.Classes;
 
 { TTestServerController }
 
@@ -296,13 +308,13 @@ begin
     ctx.Request.HTTPMethodAsString));
 end;
 
-procedure TTestServerController.SessionGet(ctx: TWebContext);
+procedure TTestServerController.SessionGet;
 var
   s: string;
 begin
-  ContentType := ctx.Request.Accept;
+  ContentType := Context.Request.Accept;
   s := Session['value'];
-  Render(s); // ['value']);
+  Render(s);
 end;
 
 procedure TTestServerController.SessionSet(ctx: TWebContext);
@@ -323,6 +335,11 @@ end;
 procedure TTestServerController.TestConsumesProducesText(ctx: TWebContext);
 begin
   Render('Hello World');
+end;
+
+procedure TTestServerController.TestConsumesProducesTextISO8859_1;
+begin
+  Render(Context.Request.Body);
 end;
 
 procedure TTestServerController.TestEncoding(ctx: TWebContext);
@@ -386,9 +403,15 @@ end;
 procedure TTestServerController.TestGetWrappedPersons(ctx: TWebContext);
 var
   LWrappedList: IWrappedList;
+  lObj: TObject;
 begin
-  LWrappedList := WrapAsList(TPerson.GetList);
-  RenderWrappedList(LWrappedList);
+  lObj := TPerson.GetList;
+  try
+    LWrappedList := WrapAsList(lObj);
+    RenderWrappedList(LWrappedList);
+  finally
+    lObj.Free;
+  end;
 end;
 
 procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
@@ -425,6 +448,26 @@ var
 begin
   Person := ctx.Request.BodyAs<TPerson>();
   Render(Person);
+end;
+
+procedure TTestServerController.TestRenderStreamAndFreeWithOwnerFalse;
+var
+  LStream: TMemoryStream;
+begin
+  LStream := TMemoryStream.Create;
+  try
+    Render(LStream, false);
+  finally
+    LStream.Free;
+  end;
+end;
+
+procedure TTestServerController.TestRenderStreamAndFreeWithOwnerTrue;
+var
+  LStream: TMemoryStream;
+begin
+  LStream := TMemoryStream.Create;
+  Render(LStream, True);
 end;
 
 procedure TTestServerController.TestTypedActionAllTypes(ParString: string;
@@ -495,11 +538,8 @@ procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3,
   bool4: Boolean);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(Format('%s.%s.%s.%s', [
-    BoolToStr(bool1, True),
-    BoolToStr(bool2, True),
-    BoolToStr(bool3, True),
-    BoolToStr(bool4, True)]));
+  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True),
+    BoolToStr(bool3, True), BoolToStr(bool4, True)]));
 end;
 
 procedure TTestServerController.TestTypedActionTTime1(value: TTime);

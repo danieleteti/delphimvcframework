@@ -1,9 +1,14 @@
-#DMVCFramework features
+![DelphiMVCFramework Logo](https://github.com/danieleteti/delphimvcframework/blob/master/docs/dmvcframework_logofacebook.png)
+
+
+
+##DelphiMVCFramework Main Features
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
   * [Project Roadmap](delphimvcframework/roadmap.md) is always public
+	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
   * Stable and solid, used by small/mid/big projects since 2010
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 700 active members
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 950 active members
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
   * Can be used in load balanced environment using MySQL [user contrib]
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!

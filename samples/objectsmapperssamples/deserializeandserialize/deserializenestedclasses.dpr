@@ -3,7 +3,7 @@ program deserializenestedclasses;
 uses
   Vcl.Forms,
   MainFormU in 'MainFormU.pas' {Form1},
-  BusinessObjectsU in 'BusinessObjectsU.pas';
+  BusinessObjectsU in '..\mapperprimer\BusinessObjectsU.pas';
 
 {$R *.res}
 

@@ -10,6 +10,7 @@ type
     ['{3E534A3E-EAEB-44ED-B74E-EFBBAAAE11B4}']
     function GetPeople: TJSONArray;
     procedure AddPerson(FirstName, LastName: String; Age: Integer);
+    procedure DeleteByGUID(GUID: String);
   end;
 
   TPeopleDAL = class(TInterfacedObject, IPeopleDAL)
@@ -18,6 +19,7 @@ type
   public
     function GetPeople: TJSONArray;
     procedure AddPerson(FirstName, LastName: String; Age: Integer);
+    procedure DeleteByGUID(GUID: String);
   end;
 
   TServicesFactory = class sealed
@@ -46,8 +48,11 @@ begin
     try
       LJPerson := TJSONObject.Create;
       LJPeople.AddElement(LJPerson);
-      LJPerson.AddPair('first_name', FirstName).AddPair('last_name', LastName)
-        .AddPair('age', TJSONNumber.Create(Age));
+      LJPerson
+        .AddPair('first_name', FirstName)
+        .AddPair('last_name', LastName)
+        .AddPair('age', TJSONNumber.Create(Age))
+        .AddPair('guid', TGuid.NewGuid.ToString);
       TFile.WriteAllText(DATAFILE, LJPeople.ToJSON);
     finally
       LJPeople.Free;
@@ -60,6 +65,32 @@ end;
 class function TServicesFactory.GetPeopleDAL: IPeopleDAL;
 begin
   Result := TPeopleDAL.Create;
+end;
+
+procedure TPeopleDAL.DeleteByGUID(GUID: String);
+var
+  LJPeople: TJSONArray;
+  I: Integer;
+begin
+  _CS.Enter;
+  try
+    LJPeople := GetPeople;
+    try
+      for I := 0 to LJPeople.Count - 1 do
+      begin
+        if LJPeople.Items[I].GetValue<TJSONString>('guid').Value = GUID then
+        begin
+          LJPeople.Remove(I);
+          break;
+        end;
+      end;
+      TFile.WriteAllText(DATAFILE, LJPeople.ToJSON);
+    finally
+      LJPeople.Free;
+    end;
+  finally
+    _CS.Leave;
+  end;
 end;
 
 function TPeopleDAL.GetPeople: TJSONArray;

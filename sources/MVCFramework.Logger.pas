@@ -34,18 +34,19 @@ const
   LOGGERPRO_TAG = 'dmvcframework';
 
 type
-  TLogLevel = (levNormal = 1, levWar = 2, levError = 3, levException = 4);
+  TLogLevel = (levDebug = 0, levNormal = 1, levWar = 2, levError = 3, levException = 4);
 
 function LogLevelAsString(ALogLevel: TLogLevel): string;
-procedure Log(AMessage: string); overload; deprecated 'Use Log.Info';
-procedure LogW(AMessage: string); deprecated 'Use Log.Warn';
-procedure LogE(AMessage: string); deprecated 'Use Log.Error';
-procedure LogEx(AException: Exception; AMessage: string = ''); deprecated 'Use LogException or Log.Error';
+procedure Log(AMessage: string); overload;
+procedure LogD(AMessage: string); overload;
+procedure LogI(AMessage: string);
+procedure LogW(AMessage: string);
+procedure LogE(AMessage: string);
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
-  deprecated 'Use Log.Info, Log.Debug, Log.Warn or Log.Error';
 procedure LogEnterMethod(const AMethodName: string);
 procedure LogExitMethod(const AMethodName: string);
 procedure LogException(const AException: Exception; const AMessage: string = '');
+procedure LogEx(AException: Exception; AMessage: string = ''); deprecated 'Use LogException or Log.Error';
 
 // direct access to loggerpro logger
 function Log: ILogWriter; overload;
@@ -68,7 +69,7 @@ uses
 var
   _lock: TObject;
   _DefaultLogger: ILogWriter;
-  _LevelsMap: array [TLogLevel.levNormal .. TLogLevel.levException] of LoggerPro.TLogType =
+  _LevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType =
     (
     (
       TLogType.Debug
@@ -81,11 +82,19 @@ var
     ),
     (
       TLogType.Error
+    ),
+    (
+      TLogType.Error
     )
   );
 
 function Log: ILogWriter;
 begin
+  if _DefaultLogger = nil then
+  begin
+    SetDefaultLogger(nil);
+  end;
+
   Result := _DefaultLogger;
 end;
 
@@ -107,52 +116,48 @@ end;
 
 procedure LogEx(AException: Exception; AMessage: string = '');
 begin
-  Log(TLogLevel.levException, Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
-    AException.Message, AMessage]));
+  LogEx(AException, AMessage);
 end;
 
 procedure LogW(AMessage: string);
 begin
-  Log(TLogLevel.levWar, AMessage);
+  Log.Warn(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogE(AMessage: string);
 begin
-  Log(TLogLevel.levError, AMessage);
+  Log.Error(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure LogException(
   const AException: Exception;
   const AMessage: string);
 begin
-  _DefaultLogger.Error(Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
+  Log.Error(Format('[%s] %s (Custom message: "%s")', [AException.ClassName,
     AException.Message, AMessage]), LOGGERPRO_TAG);
 end;
 
 procedure LogEnterMethod(const AMethodName: string);
 begin
-  Log.Info('>> ' + AMethodName, LOGGERPRO_TAG);
-  // Log(TLogLevel.levNormal, '>> ' + AMethodName);
+  LogI('>> ' + AMethodName);
 end;
 
 procedure LogExitMethod(const AMethodName: string);
 begin
-  Log.Info('<< ' + AMethodName, LOGGERPRO_TAG);
-  // Log(TLogLevel.levNormal, '<< ' + AMethodName);
+  LogI('<< ' + AMethodName);
 end;
 
 procedure Log(LogLevel: TLogLevel; const AMessage: string);
 begin
-  Assert(_DefaultLogger <> nil, 'DefaultLogger not initialized');
   case _LevelsMap[LogLevel] of
     TLogType.Debug:
-      _DefaultLogger.Debug(AMessage, LOGGERPRO_TAG);
+      Log.Debug(AMessage, LOGGERPRO_TAG);
     TLogType.Info:
-      _DefaultLogger.Info(AMessage, LOGGERPRO_TAG);
+      Log.Info(AMessage, LOGGERPRO_TAG);
     TLogType.Warning:
-      _DefaultLogger.Warn(AMessage, LOGGERPRO_TAG);
+      Log.Warn(AMessage, LOGGERPRO_TAG);
     TLogType.Error:
-      _DefaultLogger.Error(AMessage, LOGGERPRO_TAG);
+      Log.Error(AMessage, LOGGERPRO_TAG);
   else
     raise Exception.Create('Invalid LOG LEVEL! Original message was: ' + AMessage);
   end;
@@ -161,44 +166,51 @@ end;
 
 procedure Log(AMessage: string); overload;
 begin
+  LogI(AMessage);
+end;
+
+procedure LogI(AMessage: string); overload;
+begin
   Log.Info(AMessage, LOGGERPRO_TAG);
+end;
+
+procedure LogD(AMessage: string); overload;
+begin
+  Log.Debug(AMessage, LOGGERPRO_TAG);
 end;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
 begin
-  if _DefaultLogger <> nil then
-    Exit;
-  TMonitor.Enter(_lock); // double check here
-  try
-    if not Assigned(_DefaultLogger) then
-    begin
-      if Assigned(aLogWriter) then
+  if _DefaultLogger = nil then
+  begin
+    TMonitor.Enter(_lock); // double check here
+    try
+      if _DefaultLogger = nil then
       begin
-        _DefaultLogger := aLogWriter;
-        Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
-      end
-      else
-      begin
-        _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, 'logs')]);
-        Log.Info('Default Logger initialized', LOGGERPRO_TAG);
+        if aLogWriter <> nil then
+        begin
+          _DefaultLogger := aLogWriter;
+          Log.Info('Custom Logger initialized', LOGGERPRO_TAG);
+        end
+        else
+        begin
+          InitializeDefaultLogger;
+          Log.Info('Default Logger initialized', LOGGERPRO_TAG);
+        end;
       end;
+    finally
+      TMonitor.Exit(_lock);
     end;
-  finally
-    TMonitor.Exit(_lock);
   end;
 end;
 
 procedure InitializeDefaultLogger;
 begin
-  TMonitor.Enter(_lock);
-  try
-    if not Assigned(_DefaultLogger) then
-    begin
-      _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
-      Log.Info('Default Logger initialized', LOGGERPRO_TAG);
-    end;
-  finally
-    TMonitor.Exit(_lock);
+  { This procedure must be called in a synchronized context
+    (Normally only SetDefaultLogger should be the caller) }
+  if not Assigned(_DefaultLogger) then
+  begin
+    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, 'logs')]);
   end;
 end;
 

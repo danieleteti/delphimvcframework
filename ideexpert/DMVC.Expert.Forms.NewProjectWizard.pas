@@ -5,6 +5,7 @@ interface
 uses
   WinAPI.Windows,
   WinAPI.Messages,
+  WinAPI.ShellAPI,
   System.SysUtils,
   System.Variants,
   System.Classes,
@@ -12,7 +13,8 @@ uses
   VCL.Controls,
   VCL.Forms,
   VCL.Dialogs,
-  VCL.StdCtrls;
+  VCL.StdCtrls,
+  VCL.Imaging.pngimage, VCL.ExtCtrls;
 
 type
   TfrmDMVCNewProject = class(TForm)
@@ -30,8 +32,10 @@ type
     chkCreateActionFiltersMethods: TCheckBox;
     edtServerPort: TEdit;
     Label2: TLabel;
+    Image1: TImage;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure Image1Click(Sender: TObject);
   private
     { Private declarations }
     function GetAddToProjectGroup: boolean;
@@ -63,7 +67,6 @@ uses
   DMVC.Expert.CodeGen.Templates;
 
 {$R *.dfm}
-
 
 procedure TfrmDMVCNewProject.chkCreateControllerUnitClick(Sender: TObject);
 begin
@@ -113,6 +116,13 @@ begin
   begin
     Result := Trim(edtWebModuleName.Text);
   end;
+end;
+
+procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
+begin
+  ShellExecute(0, PChar('open'),
+    PChar('https://www.gitbook.com/book/danieleteti/delphimvcframework/details'),
+    nil, nil, SW_SHOW);
 end;
 
 function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;

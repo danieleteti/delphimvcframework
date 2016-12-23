@@ -62,7 +62,7 @@ type
 implementation
 
 uses
-  MVCFramework.Tests.WebModule;
+  MVCFramework.Tests.WebModule1;
 
 { TTestRESTClient }
 

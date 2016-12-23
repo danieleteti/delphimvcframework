@@ -19,6 +19,11 @@ type
     [MVCPath('/people')]
     [MVCHTTPMethods([httpGET])]
     procedure PeopleList(CTX: TWebContext);
+
+    [MVCPath('/people/($guid)')]
+    [MVCHTTPMethods([httpDELETE])]
+    procedure DeletePerson(const guid: string);
+
     [MVCPath('/people')]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes('application/x-www-form-urlencoded')]
@@ -38,6 +43,14 @@ implementation
 
 uses DAL, System.SysUtils, MVCFramework.Commons, Web.HTTPApp;
 
+procedure TWebSiteController.DeletePerson(const guid: string);
+var
+  LDAL: IPeopleDAL;
+begin
+  LDAL := TServicesFactory.GetPeopleDAL;
+  LDAL.DeleteByGUID(guid);
+end;
+
 function TWebSiteController.GetSpeed: TJSONString;
 begin
   Result := TJSONString.Create(FStopWatch.Elapsed.TotalMilliseconds.ToString);
@@ -52,7 +65,7 @@ procedure TWebSiteController.NewPerson(CTX: TWebContext);
 begin
   PushJSONToView('speed', GetSpeed);
   LoadView(['header', 'editperson', 'footer']);
-  Render;
+  RenderResponseStream;
 end;
 
 procedure TWebSiteController.OnBeforeAction(Context: TWebContext;
@@ -81,7 +94,7 @@ begin
   lCookie.Expires := 0; // session cookie
   // END cookie sending
 
-  Render; // rember to call render!!!
+  RenderResponseStream; // rember to call render!!!
 end;
 
 procedure TWebSiteController.SavePerson(CTX: TWebContext);

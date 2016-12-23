@@ -10,59 +10,68 @@ type
   [MVCPath('/')]
   TRenderSampleController = class(TMVCController)
   public
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/($id)')]
+    [MVCProduces('text/plain')]
+    procedure GetPerson_AsText(const id: Integer);
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
-    // [MVCProduces('application/json')]
+    [MVCProduces('application/json')]
     procedure GetCustomers_AsDataSet(CTX: TWebContext);
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/multi')]
+    [MVCProduces('application/json')]
+    procedure GetCustomersAndCountry_AsDataSet;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/people')]
     [MVCProduces('application/json')]
-    procedure GetPeople_AsObjectList(CTX: TWebContext);
+    procedure GetPeople_AsObjectList;
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/skilledpeople')]
     [MVCProduces('application/json')]
-    procedure GetProgrammersAndPhilosophersAsObjectList(CTX: TWebContext);
+    procedure GetProgrammersAndPhilosophersAsObjectList;
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/view/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
-    procedure GetPerson_AsHTMLView(CTX: TWebContext);
+    procedure GetPerson_AsHTMLView;
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetPerson_AsHTML(CTX: TWebContext);
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/unicode/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetUnicodeText_AsHTML(CTX: TWebContext);
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id)')]
     [MVCProduces('application/json')]
-    procedure GetCustomerByID_AsTObject(CTX: TWebContext);
+    procedure GetCustomerByID_AsTObject(const id: Integer);
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/files/customers.json')]
     [MVCProduces('application/json')]
-    procedure GetPersonJSON(CTX: TWebContext);
+    procedure GetPersonJSON;
 
-    [MVCHTTPMethod([httpGet])]
-    [MVCPath('/files/customers.txt')]
-    [MVCProduces('text/plain')]
-    procedure GetPerson_AsText(CTX: TWebContext);
-
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/files/customers.png')]
     [MVCProduces('image/png')]
-    procedure GetPersonPhoto(CTX: TWebContext);
+    procedure GetPersonPhoto;
 
-    [MVCHTTPMethod([httpGet])]
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/images/customers/($id)')]
     procedure GetPersonPhotoAsStream(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/exception')]
+    procedure RaiseException;
 
   end;
 
@@ -71,7 +80,7 @@ implementation
 uses
   System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU,
   Generics.Collections,
-  System.Classes;
+  System.Classes, MyDataModuleU;
 
 { TRoutingSampleController }
 
@@ -87,12 +96,20 @@ begin
   Render(s);
 end;
 
-procedure TRenderSampleController.GetCustomerByID_AsTObject(CTX: TWebContext);
+procedure TRenderSampleController.RaiseException;
+var
+  a: Integer;
+begin
+  a := 0;
+  Render(IntToStr(10 div a));
+end;
+
+procedure TRenderSampleController.GetCustomerByID_AsTObject(const id: Integer);
 var
   Cust: TCustomer;
 begin
-  if CTX.Request.ParamsAsInteger['id'] = 7 then // just a sample
-    Render(404, 'Customer Not Found')
+  if id = 7 then // just a sample
+    Render(HTTP_STATUS.NotFound, 'Customer Not Found')
   else
   begin
     Cust := TCustomer.Create;
@@ -106,25 +123,55 @@ begin
   end;
 end;
 
+procedure TRenderSampleController.GetCustomersAndCountry_AsDataSet;
+var
+  lDM: TMyDataModule;
+  lJObj: TJSONObject;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    lDM.qryCountry.Open;
+    lJObj := TJSONObject.Create;
+    try
+      lJObj.AddPair('customers', lDM.qryCustomers.AsJSONArray);
+      lJObj.AddPair('countries', lDM.qryCountry.AsJSONArray);
+      Render(lJObj);
+    except // avoid memory leaks
+      lJObj.Free;
+      raise;
+    end;
+  finally
+    lDM.Free;
+  end;
+end;
+
 procedure TRenderSampleController.GetCustomers_AsDataSet(CTX: TWebContext);
 var
-  wm: TWebModule1;
+  lDM: TMyDataModule;
 begin
-  wm := GetCurrentWebModule as TWebModule1;
-  wm.qryCustomers.Open;
-  Render(wm.qryCustomers);
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    Render(lDM.qryCustomers);
+  finally
+    lDM.Free;
+  end;
 end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);
 begin
-  ResponseStream.Append('<html><body><ul>')
-    .Append('<li>FirstName: Daniele</li>').Append('<li>LastName: Teti')
+  ResponseStream
+    .Append('<html><body><ul>')
+    .Append('<li>FirstName: Daniele</li>')
+    .Append('<li>LastName: Teti')
     .AppendFormat('<li>DOB: %s</li>', [ISODateToString(EncodeDate(1975, 5, 2))])
-    .Append('<li>Married: yes</li>').Append('</ul></body></html>');
-  Render;
+    .Append('<li>Married: yes</li>')
+    .Append('</ul></body></html>');
+  RenderResponseStream;
 end;
 
-procedure TRenderSampleController.GetPerson_AsHTMLView(CTX: TWebContext);
+procedure TRenderSampleController.GetPerson_AsHTMLView;
 var
   Cust: TCustomer;
 begin
@@ -137,7 +184,7 @@ begin
   Cust.City := 'ROME';
   PushObjectToView('customer', Cust);
   LoadView(['header', 'customer', 'footer']);
-  Render;
+  RenderResponseStream;
   { If you need more flexibility, you can use GetRenderedView to compose your
     output using small views.
     Here's an example:
@@ -147,16 +194,19 @@ begin
   }
 end;
 
-procedure TRenderSampleController.GetPerson_AsText(CTX: TWebContext);
+procedure TRenderSampleController.GetPerson_AsText(const id: Integer);
 begin
-  ResponseStream.AppendLine('FirstName: Daniele').AppendLine('LastName : Teti')
-    .AppendLine('DOB      : ' + ISODateToString(EncodeDate(1975, 5, 2)))
-    .AppendLine('Married  : yes');
-  Render;
+  ResponseStream
+    .AppendLine('ID        :  ' + id.ToString)
+    .AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti')
+    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+    .AppendLine('Married   : yes');
+  RenderResponseStream;
 end;
 
 procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList
-  (CTX: TWebContext);
+  ;
 var
   List: TObjectList<TPerson>;
   p: TProgrammer;
@@ -184,7 +234,7 @@ begin
   Render<TPerson>(List);
 end;
 
-procedure TRenderSampleController.GetPeople_AsObjectList(CTX: TWebContext);
+procedure TRenderSampleController.GetPeople_AsObjectList;
 var
   p: TPerson;
   People: TObjectList<TPerson>;
@@ -218,7 +268,7 @@ begin
   // RenderListAsProperty<TPerson>('people', People);
 end;
 
-procedure TRenderSampleController.GetPersonJSON(CTX: TWebContext);
+procedure TRenderSampleController.GetPersonJSON;
 var
   p: TJSONObject;
 begin
@@ -230,17 +280,17 @@ begin
   Render(p);
 end;
 
-procedure TRenderSampleController.GetPersonPhoto(CTX: TWebContext);
+procedure TRenderSampleController.GetPersonPhoto;
 begin
   // ContentType := 'image/jpeg';
-  SendFile('..\..\..\_\customer.png');
+  SendFile('..\..\_\customer.png');
 end;
 
 procedure TRenderSampleController.GetPersonPhotoAsStream(CTX: TWebContext);
 var
   LPhoto: TFileStream;
 begin
-  LPhoto := TFileStream.Create('..\..\..\_\customer.png',
+  LPhoto := TFileStream.Create('..\..\_\customer.png',
     fmOpenRead or fmShareDenyWrite);
   ContentType := 'image/png'; // you can also use MVCProduces attribute
 

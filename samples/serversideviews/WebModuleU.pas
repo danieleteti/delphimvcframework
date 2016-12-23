@@ -2,15 +2,15 @@ unit WebModuleU;
 
 interface
 
-uses
-  System.SysUtils, System.Classes,
-  Web.HTTPApp, MVCFramework;
+uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework;
 
 type
   TWebModule1 = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
   private
-    DMVC: TMVCEngine;
+    { Private declarations }
+  public
+    { Public declarations }
   end;
 
 var
@@ -18,16 +18,40 @@ var
 
 implementation
 
-{$R *.dfm}
+{ %CLASSGROUP 'Vcl.Controls.TControl' }
 
-uses SampleControllerU;
+uses WebSiteControllerU, MVCFramework.Commons;
+
+{$R *.dfm}
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  DMVC := TMVCEngine.Create(self);
-  DMVC.Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
-  DMVC.Config[TMVCConfigKey.ViewPath] := '..\..\templates';
-  DMVC.AddController(TSampleController);
+  TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      // enable static files
+      Config[TMVCConfigKey.DocumentRoot] :=
+        ExtractFilePath(GetModuleName(HInstance)) + '\www';
+      // session timeout (0 means session cookie)
+      Config[TMVCConfigKey.SessionTimeout] := '0';
+      // default content-type
+      Config[TMVCConfigKey.DefaultContentType] :=
+        TMVCConstants.DEFAULT_CONTENT_TYPE;
+      // default content charset
+      Config[TMVCConfigKey.DefaultContentCharset] :=
+        TMVCConstants.DEFAULT_CONTENT_CHARSET;
+      // unhandled actions are permitted?
+      Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
+      // default view file extension
+      Config[TMVCConfigKey.DefaultViewFileExtension] := 'mustache';
+      // view path
+      Config[TMVCConfigKey.ViewPath] := 'templates';
+      // Enable STOMP messaging controller
+      Config[TMVCConfigKey.Messaging] := 'false';
+      // Enable Server Signature in response
+      Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+    end).AddController(TWebSiteController);
+
 end;
 
 end.

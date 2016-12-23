@@ -1,0 +1,19 @@
+<div class="col-md-12">
+  <form>
+    <div class="form-group">
+      <label for="first_name">First Name:</label>
+      <input type="text" name="first_name" [(ngModel)]="customer.first_name" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="last_name">Last Name:</label>
+      <input type="text" name="last_name" [(ngModel)]="customer.last_name" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="age">Age:</label>
+      <input type="number" name="age" [(ngModel)]="customer.age" class="form-control">
+    </div>
+  </form>
+  <a class="btn btn-info" [routerLink]="['/customers']">Back to the list</a>
+</div>

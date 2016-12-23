@@ -60,9 +60,12 @@ type
     procedure TestAsynchRequestDELETE;
     procedure TestEncodingRenderJSONValue;
     procedure TestRenderWrappedList;
+    procedure TestRenderStreamAndFreeWithOwnerFalse;
+    procedure TestRenderStreamAndFreeWithOwnerTrue;
     procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
+    procedure TestProducesConsumes03;
     procedure TestProducesConsumesWithWrongAcceptHeader;
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
@@ -515,16 +518,32 @@ begin
   }
 end;
 
+procedure TServerTest.TestRenderStreamAndFreeWithOwnerFalse;
+var
+  LRes: IRESTResponse;
+begin
+  LRes := RESTClient.doGET('/renderstreamandfreewithownerfalse', []);
+  CheckEquals(200, LRes.ResponseCode);
+end;
+
+procedure TServerTest.TestRenderStreamAndFreeWithOwnerTrue;
+var
+  LRes: IRESTResponse;
+begin
+  LRes := RESTClient.doGET('/renderstreamandfreewithownertrue', []);
+  CheckEquals(200, LRes.ResponseCode);
+end;
+
 procedure TServerTest.TestRenderWrappedList;
 var
-  lRes: IRESTResponse;
+  LRes: IRESTResponse;
   lJSONArr: TJSONArray;
   I: Integer;
   lJSONObj: TJSONObject;
 begin
-  lRes := RESTClient.doGET('/wrappedpeople', []);
+  LRes := RESTClient.doGET('/wrappedpeople', []);
 
-  lJSONArr := lRes.BodyAsJSONArray;
+  lJSONArr := LRes.BodyAsJSONArray;
   for I := 0 to lJSONArr.Count - 1 do
   begin
     lJSONObj := lJSONArr.Items[I] as TJSONObject;
@@ -712,6 +731,23 @@ begin
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
   CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
+end;
+
+procedure TServerTest.TestProducesConsumes03;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient
+    .Accept(TMVCMediaType.TEXT_PLAIN)
+    .ContentType(TMVCMediaType.TEXT_PLAIN)
+    .ContentEncoding('iso8859-1')
+    .doPOST('/testconsumes/textiso8859_1', [],
+    'אטילעש');
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+  CheckEquals('אטילעש', res.BodyAsString);
+  CheckEquals(TMVCMediaType.TEXT_PLAIN, res.ContentType);
+  CheckEquals('iso8859-1', res.ContentEncoding);
+
 end;
 
 procedure TServerTest.TestPUTWithParamsAndJSONBody;

@@ -36,13 +36,13 @@ uses
 procedure TApp1MainController.DoLogin(username: String);
 begin
   Session['username'] := username;
-  Render(204, 'No Content');
+  Render(200, 'Logged in');
 end;
 
 procedure TApp1MainController.DoLogout;
 begin
   Context.SessionStop(false);
-  Render(204, 'No Content');
+  Render(200, 'Logged out');
 end;
 
 procedure TApp1MainController.Index;
@@ -53,7 +53,7 @@ begin
   if Context.SessionStarted then
   begin
     // automaticaly create the session
-    Render('Session[''username''] = ' + Session['username']);
+    Render('Hello ' + Session['username']);
   end
   else
   begin

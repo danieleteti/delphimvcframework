@@ -22,7 +22,7 @@ type
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/people/($id)')]
     [MVCProduces('application/json')]
-    procedure GetPerson(CTX: TWebContext);
+    procedure GetPerson(id: Integer);
 
   end;
 
@@ -33,14 +33,12 @@ uses
 
 { TActionFiltersController }
 
-procedure TActionFiltersController.GetPerson(CTX: TWebContext);
+procedure TActionFiltersController.GetPerson(id: Integer);
 var
   P: TPerson;
-  IDPerson: Integer;
 begin
-  IDPerson := CTX.Request.ParamsAsInteger['id'];
   {
-    Use IDPerson to load the person from a database...
+    Use ID to load the person from a database...
     In this example, we're creating a fake person
   }
   P := TPerson.Create;
@@ -55,6 +53,7 @@ procedure TActionFiltersController.MVCControllerAfterCreate;
 begin
   inherited;
   // raise Exception.Create('Error Message');
+  LogI('MVCControllerAfterCreate');
 end;
 
 procedure TActionFiltersController.MVCControllerBeforeDestroy;
@@ -66,9 +65,9 @@ procedure TActionFiltersController.OnAfterAction(Context: TWebContext;
   const AActionNAme: string);
 begin
   inherited;
-  Log('ACTION CALLED: ' + AActionNAme +
+  Log.Info('ACTION CALLED: ' + AActionNAme +
     ' mapped to ' + Context.Request.PathInfo +
-    ' from ' + Context.Request.ClientIP);
+    ' from ' + Context.Request.ClientIP, 'ACTIONFILTERS');
 end;
 
 procedure TActionFiltersController.OnBeforeAction(Context: TWebContext;

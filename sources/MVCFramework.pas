@@ -384,6 +384,7 @@ type
     /// returns output using models pushed using Push* methods
     /// </summary>
     function GetRenderedView(const ViewNames: TArray<string>): string; virtual;
+    function SessionAs<T: TWebSession>: T;
     property Context: TWebContext read FContext write SetContext;
     property Session: TWebSession read GetWebSession write SetWebSession;
     procedure MVCControllerAfterCreate; virtual;
@@ -522,7 +523,6 @@ type
     FMimeTypes: TDictionary<string, string>;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
     procedure SetDefaultReponseHeaders(AContext: TWebContext);
-
   protected
     FConfiguredSessionTimeout: Int64;
     FControllers: TObjectList<TMVCControllerRoutable>;
@@ -545,7 +545,6 @@ type
       Response: TWebResponse); virtual;
     class procedure ClearSessionCookiesAlreadySet(aCookies: TCookieCollection);
   public
-
     class function GetCurrentSession(ASessionTimeout: UInt64;
       const ASessionID: string; ARaiseExceptionIfExpired: Boolean = true)
       : TWebSession;
@@ -557,8 +556,6 @@ type
     class function SendSessionCookie(AContext: TWebContext): string; overload;
     class function SendSessionCookie(AContext: TWebContext; const ASessionID: string)
       : string; overload;
-    class function AddSessionToTheSessionList(const ASessionID: string;
-      ASessionTimeout: UInt64): TWebSession;
     function GetSessionBySessionID(const ASessionID: string): TWebSession;
     function AddController(AControllerClass: TMVCControllerClass)
       : TMVCEngine; overload;
@@ -605,6 +602,11 @@ type
     ServerName = 'server_name'; // tristan
     ExposeServerSignature = 'server_signature';
     IndexDocument = 'index_document';
+    SessionType = 'session_type';
+    /// <summary>
+    /// Define a default URL for requests that don't map to a route or a file
+    /// </summary>
+    FallbackResource = 'fallback_resource';
   end;
 
 function IsShuttingDown: Boolean;
@@ -676,14 +678,20 @@ begin
   Result := Self;
 end;
 
-class function TMVCEngine.AddSessionToTheSessionList(const ASessionID: string;
+function AddSessionToTheSessionList(const aSessionType, ASessionID: string;
   ASessionTimeout: UInt64): TWebSession;
 var
   LSess: TWebSession;
 begin
+  if Trim(aSessionType) = '' then
+  begin
+    raise EMVCException.Create('Empty Session Type');
+  end;
+
   TMonitor.Enter(SessionList);
   try
-    LSess := TMVCSessionFactory.GetInstance.CreateNewByType('memory',
+    LSess := TMVCSessionFactory.GetInstance.CreateNewByType(
+      aSessionType,
       ASessionID, ASessionTimeout);
     SessionList.Add(ASessionID, LSess);
     Result := LSess;
@@ -721,6 +729,7 @@ begin
   Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
   Config[TMVCConfigKey.SessionTimeout] := '30'; // 30 minutes
   Config[TMVCConfigKey.DocumentRoot] := '.\www';
+  Config[TMVCConfigKey.FallbackResource] := '';
   Config[TMVCConfigKey.DefaultContentType] :=
     TMVCConstants.DEFAULT_CONTENT_TYPE;
   Config[TMVCConfigKey.DefaultContentCharset] :=
@@ -739,6 +748,7 @@ begin
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false'; // tristan
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework'; // tristan
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+  Config[TMVCConfigKey.SessionType] := 'memory';
 
   Config[TMVCConfigKey.IndexDocument] := 'index.html';
 
@@ -816,10 +826,9 @@ var
   lActionFormalParams: TArray<TRttiParameter>;
   lActualParams: TArray<TValue>;
 
-  function SendDocumentIndexIfPresent: Boolean;
+  function SendFileIfPresent(const AFileName: String): Boolean;
   begin
-    lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
-      Config[TMVCConfigKey.IndexDocument]);
+    lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot], AFileName);
     if TFile.Exists(lStaticFileName) then
     begin
       if FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)), lContentType) then
@@ -836,6 +845,29 @@ var
     end
     else
       Result := false;
+  end;
+
+  function SendDocumentIndexIfPresent: Boolean;
+  begin
+    Result := SendFileIfPresent(Config[TMVCConfigKey.IndexDocument]);
+    // lStaticFileName := TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
+    // Config[TMVCConfigKey.IndexDocument]);
+    // if TFile.Exists(lStaticFileName) then
+    // begin
+    // if FMimeTypes.TryGetValue(LowerCase(ExtractFileExt(lStaticFileName)), lContentType) then
+    // begin
+    // lContentType := lContentType + ';charset=' + FMVCConfig
+    // [TMVCConfigKey.DefaultContentCharset];
+    // end
+    // else
+    // begin
+    // lContentType := TMVCMimeType.APPLICATION_OCTETSTREAM;
+    // end;
+    // TMVCStaticContents.SendFile(lStaticFileName, lContentType, lContext);
+    // Result := true;
+    // end
+    // else
+    // Result := false;
   end;
 
   procedure FillActualParamsForAction(const AContext: TWebContext;
@@ -1057,16 +1089,6 @@ begin
                           lRouter.MethodToCall.Name);
                       end;
                     end;
-
-                    if lContext.SessionMustBeClose then
-                    begin
-                      // SessionList.Remove(SelectedController.Session.SessionID);
-                    end
-                    else
-                    begin
-
-                    end;
-
                   finally
                     lSelectedController.MVCControllerBeforeDestroy;
                   end;
@@ -1111,10 +1133,11 @@ begin
             else
             begin
               if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-              // tristan
               begin
-                Result := true;
-                if not SendDocumentIndexIfPresent then // danieleteti
+                Result := false;
+                if not Config[TMVCConfigKey.FallbackResource].IsEmpty then
+                  Result := SendFileIfPresent(Config[TMVCConfigKey.FallbackResource]);
+                if not Result then
                 begin
                   Http404(lContext);
                   Log(TLogLevel.levNormal, Request.Method + ':' +
@@ -1590,23 +1613,24 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{$IF CompilerVersion <= 28 }
+{ .$IF CompilerVersion <= 27 }
 var
   InEnc: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
-{$ENDIF }
+  { .$ENDIF }
 begin
   if FBody <> '' then
     Exit(FBody);
-{$IF CompilerVersion > 29 }
-  FWebRequest.ReadTotalContent;
-  Exit(FWebRequest.Content);
-{$ELSE }
+  { .$IF CompilerVersion > 29 }
+  // FWebRequest.ReadTotalContent;
+  // Exit(FWebRequest.Content);
+  { .$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
   // considering the content charser. So, here's the fix
 
   // check http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
+  FWebRequest.ReadTotalContent;
   if FCharset.IsEmpty then
   begin
     SetLength(Buffer, 10);
@@ -1622,14 +1646,15 @@ begin
     InEnc := TEncoding.GetEncoding(FCharset);
   end;
   try
-    SetLength(Buffer, FWebRequest.ContentLength);
-    FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    FBody := InEnc.GetString(Buffer);
+    // SetLength(Buffer, FWebRequest.ContentLength);
+    // FWebRequest.RawContent
+    // FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
+    FBody := InEnc.GetString(FWebRequest.RawContent);
     Result := FBody;
   finally
     InEnc.Free;
   end
-{$ENDIF }
+  { .$ENDIF }
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
@@ -1719,8 +1744,8 @@ begin
   for S in string(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
     .Split([',']) do
   begin
-    if not S.trim.IsEmpty then
-      Exit(S.trim);
+    if not S.Trim.IsEmpty then
+      Exit(S.Trim);
   end;
 
   if FWebRequest.GetFieldByName('HTTP_X_FORWARDED') <> '' then
@@ -1785,13 +1810,13 @@ begin
   if not c.IsEmpty then
   begin
     CT := c.Split([';']);
-    FContentType := trim(CT[0]);
+    FContentType := Trim(CT[0]);
     FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET; // default charset
     if Length(CT) > 1 then
     begin
-      if CT[1].trim.StartsWith('charset', true) then
+      if CT[1].Trim.StartsWith('charset', true) then
       begin
-        FCharset := CT[1].trim.Split(['='])[1].trim;
+        FCharset := CT[1].Trim.Split(['='])[1].Trim;
       end;
     end;
   end;
@@ -1905,6 +1930,11 @@ begin
   // Result := StompUtils.NewStomp(Config[TMVCConfigKey.StompServer],
   // StrToInt(Config[TMVCConfigKey.StompServerPort]), GetClientID,
   // Config[TMVCConfigKey.StompUsername], Config[TMVCConfigKey.StompPassword]);
+end;
+
+function TMVCController.SessionAs<T>: T;
+begin
+  Result := Session as T;
 end;
 
 function TMVCController.GetRenderedView(const ViewNames
@@ -2025,23 +2055,32 @@ procedure InternalRenderText(const AContent: string;
   ContentType, ContentEncoding: string; Context: TWebContext);
 var
   OutEncoding: TEncoding;
+  lContentType: String;
 begin
-  Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
-    ContentEncoding;
+  lContentType := ContentType + '; charset=' + ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
     // Context.Response.RawWebResponse.ContentStream := TStringStream.Create(UTF8Encode(AContent));
     if SameText('UTF-8', ContentEncoding) then
     begin
-      Context.Response.RawWebResponse.Content := '';
-      Context.Response.RawWebResponse.ContentStream :=
-        TStringStream.Create(UTF8Encode(AContent));
+      Context.Response.SetContentStream(
+        // TStringStream.Create(UTF8Encode(AContent), TEncoding.UTF8),
+        TStringStream.Create( { UTF8Encode( } AContent { ) } , TEncoding.UTF8),
+        lContentType);
+      // Context.Response.RawWebResponse.Content := '';
+      // Context.Response.RawWebResponse.ContentStream :=
+      // TStringStream.Create(UTF8Encode(AContent));
     end
     else
     begin
-      Context.Response.RawWebResponse.Content :=
-        OutEncoding.GetString(TEncoding.Convert(TEncoding.UTF8, OutEncoding,
-        TEncoding.Default.GetBytes(AContent)));
+      Context.Response.SetContentStream(
+        TBytesStream.Create(
+        TEncoding.Convert(TEncoding.Default, OutEncoding, TEncoding.Default.GetBytes(AContent))),
+        lContentType
+        );
+      // Context.Response.RawWebResponse.Content :=
+      // OutEncoding.GetString(TEncoding.Convert(TEncoding.UTF8, OutEncoding,
+      // TEncoding.Default.GetBytes(AContent)));
     end;
   finally
     OutEncoding.Free;
@@ -2060,23 +2099,36 @@ procedure InternalRender(aJSONValue: TJSONValue;
   aInstanceOwner: Boolean);
 var
   OutEncoding: TEncoding;
-  JString: string;
+  lContentType, lJString: string;
 begin
 {$IF CompilerVersion <= 27}
-  JString := aJSONValue.ToString; // requires the patch
+  lJString := aJSONValue.ToString; // requires the patch
 {$ELSE}
-  JString := aJSONValue.ToJSON; // since XE7 it works using ToJSON
+  lJString := aJSONValue.ToJSON; // since XE7 is available ToJSON
 {$ENDIF}
   // first set the ContentType; because of this bug:
   // http://qc.embarcadero.com/wc/qcmain.aspx?d=67350
   Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
     ContentEncoding;
-
+  lContentType := ContentType + '; charset=' +
+    ContentEncoding;
   OutEncoding := TEncoding.GetEncoding(ContentEncoding);
   try
-    Context.Response.RawWebResponse.Content :=
-      OutEncoding.GetString(TEncoding.Convert(TEncoding.Default, OutEncoding,
-      TEncoding.Default.GetBytes(JString)));
+    Context.Response.SetContentStream(
+      TBytesStream.Create(
+      TEncoding.Convert(TEncoding.Default, OutEncoding,
+      TEncoding.Default.GetBytes(lJString))
+      ), lContentType);
+
+    // Context.Response.SetContent(
+    // OutEncoding.GetString(
+    // TEncoding.Convert(TEncoding.Default, OutEncoding,
+    // TEncoding.Default.GetBytes(lJString))
+    // ));
+
+    // Context.Response.RawWebResponse.Content :=
+    // OutEncoding.GetString(TEncoding.Convert(TEncoding.Default, OutEncoding,
+    // TEncoding.Default.GetBytes(JString)));
   finally
     OutEncoding.Free;
   end;
@@ -2142,13 +2194,27 @@ end;
 
 procedure TMVCController.SendStream(AStream: TStream; AOwnStream: Boolean;
   ARewindStream: Boolean);
+var
+  lStream: TStream;
 begin
   if ARewindStream then
     AStream.Position := 0;
+
+  if not AOwnStream then
+  begin
+    lStream := TMemoryStream.Create;
+    lStream.CopyFrom(AStream, 0);
+    lStream.Position := 0;
+  end
+  else
+  begin
+    lStream := AStream;
+  end;
+
   FContext.Response.FWebResponse.Content := '';
   FContext.Response.FWebResponse.ContentType := ContentType;
-  FContext.Response.FWebResponse.ContentStream := AStream;
-  FContext.Response.FWebResponse.FreeContentStream := AOwnStream;
+  FContext.Response.FWebResponse.ContentStream := lStream;
+  FContext.Response.FWebResponse.FreeContentStream := true;
 end;
 
 function TWebContext.SessionID: string;
@@ -2170,7 +2236,9 @@ begin
   if not Assigned(FWebSession) then
   begin
     LSessionID := TMVCEngine.SendSessionCookie(Self);
-    FWebSession := TMVCEngine.AddSessionToTheSessionList(LSessionID,
+    FWebSession := AddSessionToTheSessionList(
+      Config[TMVCConfigKey.SessionType],
+      LSessionID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := true;
     FSessionMustBeClose := false;
@@ -2221,7 +2289,6 @@ begin
   finally
     TMonitor.Exit(SessionList);
   end;
-
   FIsSessionStarted := false;
   FSessionMustBeClose := true;
 end;

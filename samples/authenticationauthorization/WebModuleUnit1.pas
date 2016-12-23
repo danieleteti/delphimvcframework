@@ -25,6 +25,7 @@ implementation
 
 {$R *.dfm}
 
+
 uses AppControllerU, System.Generics.Collections,
   MVCFramework.Middleware.Authentication, AuthenticationU;
 
@@ -34,8 +35,12 @@ begin
   MVC.Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
   MVC.Config[TMVCConfigKey.SessionTimeout] := '30';
   MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/html';
-  MVC.AddController(TApp1MainController).AddController(TAdminController)
-    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TAuthenticationSample.Create));
+  MVC
+    .AddController(TApp1MainController)
+    .AddController(TAdminController)
+    .AddMiddleware(
+    TMVCBasicAuthenticationMiddleware.Create(TAuthenticationSample.Create)
+    );
 end;
 
 end.

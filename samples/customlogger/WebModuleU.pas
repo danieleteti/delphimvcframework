@@ -25,22 +25,10 @@ implementation
 {$R *.dfm}
 
 
-uses MVCFramework.Commons, MyControllerU,
-  LoggerPro, // loggerpro core
-  LoggerPro.FileAppender, // loggerpro file appender (logs to file)
-  LoggerPro.ConsoleAppender, // loggerpro console appender (logs to the console)
-  LoggerPro.OutputdebugStringAppender // loggerpro outputdbugstring appender (logs to the debugger)
-    ;
+uses MVCFramework.Commons, MyControllerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
-var
-  lMyLogger: ILogWriter;
 begin
-  lMyLogger := BuildLogWriter([
-    TLoggerProFileAppender.Create(10, 1000, 'MyFolder\MyLogs'),
-    TLoggerProOutputDebugStringAppender.Create
-    ], nil, TLogType.Debug);
-
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
@@ -62,7 +50,7 @@ begin
       Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end, lMyLogger);
+    end);
   FMVC.AddController(TMyController);
 end;
 

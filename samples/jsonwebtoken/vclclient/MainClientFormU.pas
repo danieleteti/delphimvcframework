@@ -41,7 +41,6 @@ var
   lClient: TRESTClient;
   lResp: IRESTResponse;
   lQueryStringParams: TStringList;
-  lExc: TMVCExceptionObj;
 begin
   lClient := TRESTClient.Create('localhost', 8080);
   try

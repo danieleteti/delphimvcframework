@@ -2,7 +2,7 @@
 { }
 { Delphi MVC Framework }
 { }
-{ Copyright (c) 2010-2015 Daniele Teti and the DMVCFramework Team }
+{ Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team }
 { }
 { https://github.com/danieleteti/delphimvcframework }
 { }
@@ -43,8 +43,10 @@ resourcestring
     '' + sLineBreak +
     'uses' + sLineBreak +
     '  System.SysUtils,' + sLineBreak +
+    '  MVCFramework.Logger,' + sLineBreak +
     '  Winapi.Windows,' + sLineBreak +
     '  Winapi.ShellAPI,' + sLineBreak +
+    '  ReqMulti, {enables files upload}' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
@@ -64,6 +66,7 @@ resourcestring
     '  try' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
+    '    LogI(Format(''Server started on port %d'', [APort]));' + sLineBreak +
     '    { more info about MaxConnections ' + sLineBreak +
     '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html}'
     + sLineBreak +
@@ -126,6 +129,8 @@ resourcestring
     '  end;' + sLineBreak +
     sLineBreak +
     'implementation' + sLineBreak +
+    'uses' + sLineBreak +
+    '    MVCFramework.Logger;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
@@ -239,6 +244,8 @@ resourcestring
     '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
     '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
+    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
+    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +
     'end;' + sLineBreak +
