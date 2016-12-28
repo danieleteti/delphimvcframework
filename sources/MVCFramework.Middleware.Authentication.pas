@@ -75,7 +75,7 @@ implementation
 uses
   System.SysUtils, MVCFramework.Session, ObjectsMappers, System.StrUtils
 {$IF CompilerVersion > 24}
-    , System.NetEncoding, System.JSON
+    , System.NetEncoding, System.JSON, System.Classes
 {$ELSE}
     , Soap.EncdDecd, Data.DBXJSON
 {$ENDIF};
@@ -374,7 +374,7 @@ begin
   begin
     Context.Response.ContentType := 'text/html';
     Context.Response.RawWebResponse.Content :=
-      Format(CONTENT_HTML_FORMAT, [HTTPStatus,
+      Format(CONTENT_HTML_FORMAT, [IntToStr(HTTPStatus),
       Context.Config[TMVCConfigKey.ServerName]]);
   end
   else
@@ -409,7 +409,7 @@ begin
   LIsValid := Context.LoggedUser.IsValid;
   if not LIsValid then
   begin
-    Context.SessionStop(false);
+    Context.SessionStop(False);
     SendResponse(Context, Handled);
     Exit;
   end;
