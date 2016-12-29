@@ -139,23 +139,35 @@ end;
 class function TCustomer.GetList: TObjectList<TCustomer>;
 var
   C1: TCustomer;
+  I: Integer;
 begin
   Result := TObjectList<TCustomer>.Create(true);
-  C1 := TCustomer.Create;
-  C1.name := 'bit Time Professionals';
-  C1.ContactFirst := 'Daniele';
-  C1.ContactLast := 'Teti';
-  C1.AddressLine1 := 'Via di Valle Morta 10';
-  C1.City := 'Rome, IT';
-  Result.Add(C1);
+  for I := 1 to 1000 do
+  begin
+    C1 := TCustomer.Create;
+    C1.name := I.ToString + ': bit Time Professionals';
+    C1.ContactFirst := 'Daniele';
+    C1.ContactLast := 'Teti';
+    C1.AddressLine1 := 'Via di Valle Morta 10';
+    C1.City := 'Rome, IT';
+    Result.Add(C1);
 
-  C1 := TCustomer.Create;
-  C1.name := 'Stark Industries';
-  C1.ContactFirst := 'Tony';
-  C1.ContactLast := 'Stark';
-  C1.AddressLine1 := 'Superhero Street 555';
-  C1.City := 'Palo Alto, CA';
-  Result.Add(C1);
+    C1 := TCustomer.Create;
+    C1.name := I.ToString + ': Stark Industries';
+    C1.ContactFirst := 'Tony';
+    C1.ContactLast := 'Stark';
+    C1.AddressLine1 := 'Superhero Street 555';
+    C1.City := 'Palo Alto, CA';
+    Result.Add(C1);
+
+    C1 := TCustomer.Create;
+    C1.name := I.ToString + ': Google Inc';
+    C1.ContactFirst := 'Larry';
+    C1.ContactLast := 'Page';
+    C1.AddressLine1 := '';
+    C1.City := 'Mountain View, CA';
+    Result.Add(C1);
+  end;
 
 end;
 

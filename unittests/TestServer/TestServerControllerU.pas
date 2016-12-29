@@ -109,7 +109,7 @@ type
 
     [MVCPath('/customers/list')]
     [MVCHTTPMethod([httpPOST])]
-    procedure TestJSONArrayAsObjectList(ctx: TWebContext);
+    procedure TestJSONArrayAsObjectList;
 
     [MVCPath('/people')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
@@ -420,15 +420,15 @@ begin
   Render('hello world');
 end;
 
-procedure TTestServerController.TestJSONArrayAsObjectList(ctx: TWebContext);
+procedure TTestServerController.TestJSONArrayAsObjectList;
 var
   vUsers: TObjectList<TCustomer>;
 begin
-  vUsers := ctx.Request.BodyAsListOf<TCustomer>();
+  vUsers := Context.Request.BodyAsListOf<TCustomer>();
   try
     vUsers.OwnsObjects := True;
-    if (vUsers.Count > 0) then
-      Render('Sucess!')
+    if (vUsers.Count = 3000) then
+      Render('Success!')
     else
       Render('Error!');
   finally
