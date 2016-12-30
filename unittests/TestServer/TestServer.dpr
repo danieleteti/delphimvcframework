@@ -34,7 +34,8 @@ uses
   MVCFramework.View in '..\..\sources\MVCFramework.View.pas',
   MVCFramework.RTTIUtils in '..\..\sources\MVCFramework.RTTIUtils.pas',
   TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas',
-  AuthHandlersU in 'AuthHandlersU.pas';
+  AuthHandlersU in 'AuthHandlersU.pas',
+  MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas';
 
 {$R *.res}
 

@@ -26,6 +26,9 @@ unit MVCFramework.Middleware.Authentication;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
   MVCFramework, MVCFramework.Logger,
   System.Generics.Collections, MVCFramework.Commons;
@@ -73,12 +76,18 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session, ObjectsMappers, System.StrUtils
-{$IF CompilerVersion > 24}
-    , System.NetEncoding, System.JSON, System.Classes
+  System.SysUtils, MVCFramework.Session, ObjectsMappers, System.StrUtils, System.Classes
+{$IFDEF SYSTEMNETENCODING}
+    , System.NetEncoding
 {$ELSE}
-    , Soap.EncdDecd, Data.DBXJSON
-{$ENDIF};
+    , Soap.EncdDecd
+{$ENDIF}
+{$IFDEF SYSTEMJSON}
+    , System.JSON
+{$ELSE}
+    , Data.DBXJSON
+{$ENDIF}
+    ;
 
 {
 
@@ -95,7 +104,7 @@ const
 
 function Base64DecodeString(const Value: string): string; inline;
 begin
-{$IF CompilerVersion > 24}
+{$IFDEF SYSTEMNETENCODING}
   Result := TNetEncoding.Base64.Decode(Value);
 {$ELSE}
   Result := DecodeString(Value);

@@ -28,10 +28,10 @@ interface
 
 uses
   System.SysUtils, Generics.Collections
-{$IF CompilerVersion < 27 }
-    , Data.DBXJSON
-{$ELSE}
+{$IF CompilerVersion >= 27} // XE6
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
 {$ENDIF}
     , System.Generics.Collections, MVCFramework.Session, LoggerPro;
 

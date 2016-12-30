@@ -47,17 +47,19 @@ uses
   MVCFramework.Session,
   StompTypes,
   ObjectsMappers
-{$IF CompilerVersion < 27}
-    , Data.DBXJSON
-{$ELSE}
+{$IF CompilerVersion >= 27} // XE6
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
 {$ENDIF}
 {$IF CompilerVersion >= 27}
     , Web.ApacheHTTP
   // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 {$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
-    , LoggerPro, MVCFramework.DuckTyping;
+    , LoggerPro
+    , MVCFramework.DuckTyping
+    , MVCFramework.Patches;
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
@@ -1889,11 +1891,7 @@ begin
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
-{$IF CompilerVersion >= 28}
     Stomp.Send(ATopic, msg.ToJSON);
-{$ELSE}
-    Stomp.Send(ATopic, msg.ToString);
-{$ENDIF}
     TThread.Sleep(100);
     // single user cannot enqueue more than 10 message in noe second...
     // it is noot too much elegant, but it works as DoS protection
@@ -2103,11 +2101,7 @@ var
   OutEncoding: TEncoding;
   lContentType, lJString: string;
 begin
-{$IF CompilerVersion <= 27}
-  lJString := aJSONValue.ToString; // requires the patch
-{$ELSE}
-  lJString := aJSONValue.ToJSON; // since XE7 is available ToJSON
-{$ENDIF}
+  lJString := aJSONValue.ToJSON;
   // first set the ContentType; because of this bug:
   // http://qc.embarcadero.com/wc/qcmain.aspx?d=67350
   Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +

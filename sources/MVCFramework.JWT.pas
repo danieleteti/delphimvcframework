@@ -28,12 +28,13 @@ interface
 
 uses
   System.Generics.Collections
-{$IF CompilerVersion < 27 }
-    , Data.DBXJSON
-{$ELSE}
+{$IF CompilerVersion >= 27} // XE6
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
+    , MVCFramework.Patches
 {$ENDIF}
-;
+    ;
 
 type
 {$SCOPEDENUMS ON}
@@ -210,7 +211,11 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Commons, MVCFramework.HMAC, System.DateUtils;
+  System.SysUtils
+    , MVCFramework.Commons
+    , MVCFramework.HMAC
+    , System.DateUtils
+    , MVCFramework.Patches;
 
 { TJWTRegisteredClaims }
 
@@ -347,20 +352,20 @@ begin
   if not Assigned(lJValue) then
   begin
     Error := TJWTRegisteredClaimNames.ExpirationTime + ' not set';
-    Exit(false);
+    Exit(False);
   end;
 
   lValue := lJValue.Value;
   if not TryStrToInt64(lValue, lIntValue) then
   begin
     Error := TJWTRegisteredClaimNames.ExpirationTime + ' is not an integer';
-    Exit(false);
+    Exit(False);
   end;
 
   if UnixToDateTime(lIntValue, False) <= Now - FLeewaySeconds * OneSecond then
   begin
     Error := 'Token expired';
-    Exit(false);
+    Exit(False);
   end;
 
   Result := True;
@@ -376,20 +381,20 @@ begin
   if not Assigned(lJValue) then
   begin
     Error := TJWTRegisteredClaimNames.IssuedAt + ' not set';
-    Exit(false);
+    Exit(False);
   end;
 
   lValue := lJValue.Value;
   if not TryStrToInt64(lValue, lIntValue) then
   begin
     Error := TJWTRegisteredClaimNames.IssuedAt + ' is not an integer';
-    Exit(false);
+    Exit(False);
   end;
 
   if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token is issued in the future';
-    Exit(false);
+    Exit(False);
   end;
 
   Result := True;
@@ -405,20 +410,20 @@ begin
   if not Assigned(lJValue) then
   begin
     Error := TJWTRegisteredClaimNames.NotBefore + ' not set';
-    Exit(false);
+    Exit(False);
   end;
 
   lValue := lJValue.Value;
   if not TryStrToInt64(lValue, lIntValue) then
   begin
     Error := TJWTRegisteredClaimNames.NotBefore + ' is not an integer';
-    Exit(false);
+    Exit(False);
   end;
 
   if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token still not valid';
-    Exit(false);
+    Exit(False);
   end;
 
   Result := True;
@@ -502,7 +507,7 @@ begin
   if Length(lPieces) <> 3 then
   begin
     Error := 'Invalid Token';
-    Exit(false);
+    Exit(False);
   end;
 
   lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
@@ -510,7 +515,7 @@ begin
     if not Assigned(lJHeader) then
     begin
       Error := 'Invalid Token';
-      Exit(false);
+      Exit(False);
     end;
 
     lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
@@ -518,13 +523,13 @@ begin
       if not Assigned(lJPayload) then
       begin
         Error := 'Invalid Token';
-        Exit(false);
+        Exit(False);
       end;
 
       if not lJHeader.TryGetValue<TJSONString>('alg', lJAlg) then
       begin
         Error := 'Invalid Token';
-        Exit(false);
+        Exit(False);
       end;
 
       lAlgName := lJAlg.Value;
@@ -542,7 +547,7 @@ begin
         begin
           if not CheckExpirationTime(lJPayload, Error) then
           begin
-            Exit(false);
+            Exit(False);
           end;
 
         end;
@@ -551,7 +556,7 @@ begin
         begin
           if not CheckNotBefore(lJPayload, Error) then
           begin
-            Exit(false);
+            Exit(False);
           end;
         end;
 
@@ -559,7 +564,7 @@ begin
         begin
           if not CheckIssuedAt(lJPayload, Error) then
           begin
-            Exit(false);
+            Exit(False);
           end;
         end;
       end;
@@ -602,7 +607,7 @@ begin
       FCustomClaims.FClaims.Clear;
       for i := 0 to lJPayload.Count - 1 do
       begin
-        lIsRegistered := false;
+        lIsRegistered := False;
         lJPair := lJPayload.Pairs[i];
         lName := lJPair.JsonString.Value;
         lValue := lJPair.JsonValue.Value;

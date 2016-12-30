@@ -57,13 +57,18 @@ type
 implementation
 
 uses
-{$IF CompilerVErsion < 27}
-  Data.DBXJSON,
+  System.SysUtils
+    , System.Rtti
+    , MVCFramework.Commons
+    , System.Classes
+    , Winapi.Windows
+    , System.TypInfo
+{$IF CompilerVersion >= 27} // XE6
+    , System.JSON
 {$ELSE}
-  System.JSON,
-{$IFEND}
-  System.SysUtils, System.Rtti, MVCFramework.Commons, System.Classes,
-  Winapi.Windows, System.TypInfo;
+    , Data.DBXJSON
+{$ENDIF}
+    ;
 
 function MSecToTime(mSec: Int64): string;
 const

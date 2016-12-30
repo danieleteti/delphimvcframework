@@ -26,6 +26,9 @@ unit MVCFramework.Middleware.JWT;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
   MVCFramework,
   MVCFramework.Commons,
@@ -70,12 +73,15 @@ implementation
 
 uses
   MVCFramework.Session
-{$IF CompilerVersion < 27}
-    , Data.DBXJSON
+{$IFDEF SYSTEMJSON}
+    , System.JSON
 {$ELSE}
-    , System.JSON, Web.ApacheHTTP
+    , Data.DBXJSON
 {$ENDIF}
-{$IF CompilerVersion >= 21}
+{$IFDEF WEBAPACHEHTTP}
+    , Web.ApacheHTTP
+{$ENDIF}
+{$IFDEF SYSTEMNETENCODING}
     , System.NetEncoding
 {$ELSE}
     , Soap.EncdDecd

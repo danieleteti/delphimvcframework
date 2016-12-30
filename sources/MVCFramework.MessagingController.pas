@@ -77,16 +77,16 @@ implementation
 { TMVCBUSController }
 
 uses
-  System.SysUtils,
-  MVCFramework.Commons,
-  System.DateUtils,
-{$IF CompilerVersion < 27}
-  Data.DBXJSON,
+  System.SysUtils
+    , MVCFramework.Commons
+    , System.DateUtils
+{$IF CompilerVersion >= 27} // XE6
+    , System.JSON
 {$ELSE}
-  System.JSON,
-{$IFEND}
-  MVCFramework.Logger,
-  System.SyncObjs;
+    , Data.DBXJSON
+{$ENDIF}
+    , MVCFramework.Logger
+    , System.SyncObjs;
 
 procedure TMVCBUSController.AddTopicToUserSubscriptions(const ATopic: string);
 var
@@ -313,21 +313,21 @@ end;
 
 procedure TMVCBUSController.InternalSubscribeUserToTopic(clientid, topicname: string;
   StompClient: IStompClient);
-//var
-//  LDurSubHeader: string;
-//  LHeaders: IStompHeaders;
+// var
+// LDurSubHeader: string;
+// LHeaders: IStompHeaders;
 begin
   raise EMVCException.Create('Not implemented');
-//  LHeaders := TStompHeaders.Create;
-//  LDurSubHeader := GetUniqueDurableHeader(clientid, topicname);
-//  LHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader(LDurSubHeader));
-//
-//  if topicname.StartsWith('/topic') then
-//    LHeaders.Add('id', clientid); //https://www.rabbitmq.com/stomp.html
-//
-//  StompClient.Subscribe(topicname, amClient, LHeaders);
-//  LogE('SUBSCRIBE TO ' + clientid + '@' + topicname + ' dursubheader:' + LDurSubHeader);
-//  AddTopicToUserSubscriptions(topicname);
+  // LHeaders := TStompHeaders.Create;
+  // LDurSubHeader := GetUniqueDurableHeader(clientid, topicname);
+  // LHeaders.Add(TStompHeaders.NewDurableSubscriptionHeader(LDurSubHeader));
+  //
+  // if topicname.StartsWith('/topic') then
+  // LHeaders.Add('id', clientid); //https://www.rabbitmq.com/stomp.html
+  //
+  // StompClient.Subscribe(topicname, amClient, LHeaders);
+  // LogE('SUBSCRIBE TO ' + clientid + '@' + topicname + ' dursubheader:' + LDurSubHeader);
+  // AddTopicToUserSubscriptions(topicname);
 end;
 
 procedure TMVCBUSController.UnSubscribeFromTopic(CTX: TWebContext);

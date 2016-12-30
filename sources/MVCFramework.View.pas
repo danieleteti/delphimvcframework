@@ -35,7 +35,9 @@ uses
   Data.DB,
   MVCFramework.View.Cache,
   System.SysUtils,
-  SynMustache, SynCommons;
+  SynMustache,
+  SynCommons,
+  MVCFramework.Patches;
 
 type
   TMVCBaseView = class(TMVCBase)
@@ -82,12 +84,12 @@ type
 implementation
 
 uses
-  System.ioutils,
-  System.Classes
-{$IF CompilerVersion < 27}
-    , Data.DBXJSON
-{$ELSE}
+  System.IOUtils
+    , System.Classes
+{$IF CompilerVersion >= 27} // XE6
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
 {$ENDIF};
 
 { TMVCBaseView }
@@ -192,11 +194,7 @@ begin
     raise;
   end;
 
-{$IF CompilerVersion >= 28}
   FOutput := UTF8ToString(LMEngine.RenderJSON(LJContext.ToJSON));
-{$ELSE}
-  FOutput := UTF8ToString(LMEngine.RenderJSON(LJContext.ToString));
-{$ENDIF}
 end;
 
 end.
