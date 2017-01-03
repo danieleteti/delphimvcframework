@@ -35,7 +35,8 @@ uses
   MVCFramework.RTTIUtils in '..\..\sources\MVCFramework.RTTIUtils.pas',
   TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas',
   AuthHandlersU in 'AuthHandlersU.pas',
-  MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas';
+  MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas',
+  ObjectsMappers in '..\..\sources\ObjectsMappers.pas';
 
 {$R *.res}
 

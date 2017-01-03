@@ -25,6 +25,11 @@
 {
   http://delphi.wikia.com/wiki/CompilerVersion_Constant
 }
+
+{ ---- Enable this if you are on DELPHI STARTED EDITION --------- }
+{.$DEFINE STARTEREDITION}
+{ ------------ DO NOT CHANGE UNDER THIS LINE -------------------- }
+
 {$IF CompilerVersion >= 27} // XE6
 {$DEFINE SYSTEMJSON}
 {$DEFINE WEBAPACHEHTTP}
@@ -32,4 +37,15 @@
 
 {$IF CompilerVersion >= 28} // XE7
 {$DEFINE SYSTEMNETENCODING}
+{$ENDIF}
+
+{$IF CompilerVersion >= 27}  // XE6
+{$DEFINE USEFIREDAC}
+{$ELSE}
+{$DEFINE USEDBX} //XE3, XE4, XE5
+{$ENDIF}
+
+{$IFDEF STARTEREDITION}
+{$UNDEF USEFIREDAC}
+{$UNDEF USEDBX}
 {$ENDIF}
