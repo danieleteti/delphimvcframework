@@ -55,6 +55,15 @@ These are the most notable:
   * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
   * DelphiRedisClient (https://github.com/danieleteti/delphiredisclient)
   * LoggerPro (https://github.com/danieleteti/loggerpro)
+  
+### Using ObjectsMappers in Delphi Starter Edition
+A lot of users ask about it, now is possible to use the Mapper also in Delphi Started Edition. To enable the "StarterEditionMode" open ```sources\dmvcframework.inc``` and remove the dot (.) after the curly brace in the following line
+
+```{.$DEFINE STARTEREDITION}```
+
+become
+
+```{$DEFINE STARTEREDITION}```
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
