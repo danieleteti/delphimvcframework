@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -454,7 +454,13 @@ type
     procedure OnAfterAction(Context: TWebContext;
       const aActionName: string); virtual;
 
+    procedure SetStatusCode(const Value: UInt16);
+
+    function GetStatusCode: UInt16;
+
     property Config: TMVCConfig read GetMVCConfig;
+
+    property StatusCode: UInt16 read GetStatusCode write SetStatusCode;
 
   public
     // property ViewCache: TViewCache read FViewCache write SetViewCache;
@@ -1082,14 +1088,22 @@ begin
                           lRouter.MethodToCall.Name, lActualParams);
                       end;
 
+                      /// ///////////////////////////////////////////////////////
                       lSelectedController.OnBeforeAction(lContext,
                         lRouter.MethodToCall.Name, lHandled);
-                      try
-                        lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
-                      finally
-                        lSelectedController.OnAfterAction(lContext,
-                          lRouter.MethodToCall.Name);
+                      { WARNING!!! Is the BeforeAction filter set lHandled = true,
+                        the AfterAction is never called }
+                      if not lHandled then
+                      begin
+                        try
+                          lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                        finally
+                          lSelectedController.OnAfterAction(lContext,
+                            lRouter.MethodToCall.Name);
+                        end;
                       end;
+                      /// ///////////////////////////////////////////////////////
+
                     end;
                   finally
                     lSelectedController.MVCControllerBeforeDestroy;
@@ -1118,6 +1132,7 @@ begin
                   on E: Exception do
                   begin
                     LogException(E, 'Global Action Exception Handler');
+                    lSelectedController.ResponseStatusCode(HTTP_STATUS.InternalServerError);
                     lSelectedController.Render(E);
                   end;
                 end;
@@ -2908,8 +2923,18 @@ end;
 procedure TMVCController.ResponseStatusCode(const AStatusCode: UInt16;
   AStatusText: string);
 begin
-  Context.Response.StatusCode := AStatusCode;
+  StatusCode := AStatusCode;
   Context.Response.ReasonString := AStatusText;
+end;
+
+function TMVCController.GetStatusCode: UInt16;
+begin
+  Result := Context.Response.StatusCode;
+end;
+
+procedure TMVCController.SetStatusCode(const Value: UInt16);
+begin
+  Context.Response.StatusCode := Value;
 end;
 
 function TMVCController.ResponseStream: TStringBuilder;

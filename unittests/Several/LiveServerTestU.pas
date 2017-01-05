@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -69,6 +69,7 @@ type
     procedure TestProducesConsumesWithWrongAcceptHeader;
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
+    procedure TestActionFiltersOnBeforeAction;
     procedure TestMiddlewareSpeedMiddleware;
     procedure TestMiddlewareHandler;
     procedure TestPostAListOfObjects;
@@ -136,6 +137,17 @@ procedure TBaseServerTest.TearDown;
 begin
   inherited;
   RESTClient.Free;
+end;
+
+procedure TServerTest.TestActionFiltersOnBeforeAction;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/actionfilters/beforeaction/alwayscalled', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+
+  res := RESTClient.doGET('/actionfilters/beforeaction/nevercalled', []);
+  CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestAsynchRequestDELETE;

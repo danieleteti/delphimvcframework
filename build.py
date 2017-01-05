@@ -67,7 +67,7 @@ def main(projects):
 def dmvc_copyright():
   print(Style.BRIGHT + Fore.WHITE + "----------------------------------------------------------------------------------------")	
   print(Fore.RED + "                 ** Delphi MVC Framework Building System **")
-  print(Fore.WHITE + "Delphi MVC Framework is CopyRight (2010-2016) of Daniele Teti and the DMVCFramework TEAM")
+  print(Fore.WHITE + "Delphi MVC Framework is CopyRight (2010-2017) of Daniele Teti and the DMVCFramework TEAM")
   print(Fore.RESET + "----------------------------------------------------------------------------------------\n")
 
 ## MAIN ##

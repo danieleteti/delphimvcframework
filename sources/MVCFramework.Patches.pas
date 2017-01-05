@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -30,13 +30,16 @@ interface
 
 
 uses
-  System.Classes, System.JSON
+  System.Classes
+{$IFDEF SYSTEMJSON}
+    , System.JSON
+{$IFEND}
 {$IFNDEF SYSTEMJSON} // XE6
     , Data.DBXJSON
-{$ENDIF}
+{$IFEND}
     ;
 
-{$IFNDEF SYSTEMJSON}
+{$IFNDEF TOJSON}
 
 
 type
@@ -50,7 +53,7 @@ implementation
 
 { TJSONValueHelper }
 
-{$IFNDEF SYSTEMJSON}
+{$IFNDEF TOJSON}
 
 
 function TJSONValueHelper.ToJSON: String;

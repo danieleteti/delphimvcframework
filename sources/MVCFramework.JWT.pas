@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -26,14 +26,17 @@ unit MVCFramework.JWT;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
   System.Generics.Collections
-{$IF CompilerVersion >= 27} // XE6
+{$IFDEF SYSTEMJSON}
     , System.JSON
 {$ELSE}
     , Data.DBXJSON
-    , MVCFramework.Patches
 {$ENDIF}
+    , MVCFramework.Patches
     ;
 
 type
@@ -214,8 +217,7 @@ uses
   System.SysUtils
     , MVCFramework.Commons
     , MVCFramework.HMAC
-    , System.DateUtils
-    , MVCFramework.Patches;
+    , System.DateUtils;
 
 { TJWTRegisteredClaims }
 

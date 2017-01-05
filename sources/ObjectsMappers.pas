@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -48,6 +48,7 @@ uses
 {$ELSE}
     , Data.DBXJSON
 {$IFEND}
+    , MVCFramework.Patches
     ;
 
 type
@@ -394,7 +395,6 @@ type
     property FieldName: string read FFieldName write SetFieldName;
     property IsPK: boolean read FIsPK write SetIsPK;
   end;
-
 
 function ISODateTimeToString(ADateTime: TDateTime): string;
 function ISODateToString(ADate: TDateTime): string;
@@ -1472,11 +1472,11 @@ var
 begin
   LJObj := ObjectToJSONObjectFields(AObject, AIgnoredProperties);
   try
-{$IF CompilerVersion >= 28}
+{.$IFDEF TOJSON}
     Result := LJObj.ToJSON;
-{$ELSE}
-    Result := LJObj.ToString
-{$IFEND}
+{.$ELSE}
+//    Result := LJObj.ToString
+{.$IFEND}
   finally
     LJObj.Free;
   end;
@@ -2551,13 +2551,13 @@ begin
       TFieldType.ftCurrency:
         begin
           fs.DecimalSeparator := '.';
-{$IF CompilerVersion <= 27}
-          ADataSet.Fields[I].AsCurrency :=
-            StrToCurr((v as TJSONString).Value, fs);
-{$ELSE} // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
+{,$IFNDEF TOJSON}
+//          ADataSet.Fields[I].AsCurrency :=
+//            StrToCurr((v as TJSONString).Value, fs);
+{.$ELSE} // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
           ADataSet.Fields[I].AsCurrency :=
             StrToCurr((v as TJSONNumber).ToJSON, fs);
-{$IFEND}
+{.$IFEND}
         end;
       TFieldType.ftFMTBcd:
         begin
@@ -2790,6 +2790,7 @@ end;
 // end;
 
 {$IFDEF USEFIREDAC}
+
 
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
   AObject: TObject; AParamPrefix: string);
@@ -3025,11 +3026,11 @@ var
 begin
   Arr := AsJSONArray;
   try
-{$IFDEF SYSTEMJSON}
+{.$IFDEF TOJSON}
     Result := Arr.ToJSON;
-{$ELSE}
-    Result := Arr.ToString;
-{$IFEND}
+{.$ELSE}
+//    Result := Arr.ToString;
+{.$IFEND}
   finally
     Arr.Free;
   end;
@@ -3067,11 +3068,11 @@ begin
   end
   else
     try
-{$IFDEF SYSTEMJSON}
+{.$IFDEF TOJSON}
       Result := JObj.ToJSON;
-{$ELSE}
-      Result := JObj.ToString
-{$IFEND}
+{.$ELSE}
+//      Result := JObj.ToString
+{.$IFEND}
     finally
       JObj.Free;
     end;

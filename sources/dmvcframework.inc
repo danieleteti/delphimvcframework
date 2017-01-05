@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -27,22 +27,20 @@
 }
 
 { ---- Enable this if you are on DELPHI STARTED EDITION --------- }
-{.$DEFINE STARTEREDITION}
+{ .$DEFINE STARTEREDITION }
 { ------------ DO NOT CHANGE UNDER THIS LINE -------------------- }
 
-{$IF CompilerVersion >= 27} // XE6
+{$IF CompilerVersion >= 27}  // XE6
 {$DEFINE SYSTEMJSON}
 {$DEFINE WEBAPACHEHTTP}
+{$DEFINE USEFIREDAC}
+{$ELSE}
+{$DEFINE USEDBX} // XE3, XE4, XE5
 {$ENDIF}
 
 {$IF CompilerVersion >= 28} // XE7
 {$DEFINE SYSTEMNETENCODING}
-{$ENDIF}
-
-{$IF CompilerVersion >= 27}  // XE6
-{$DEFINE USEFIREDAC}
-{$ELSE}
-{$DEFINE USEDBX} //XE3, XE4, XE5
+{$DEFINE TOJSON}
 {$ENDIF}
 
 {$IFDEF STARTEREDITION}

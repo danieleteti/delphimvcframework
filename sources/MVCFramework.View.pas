@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -25,6 +25,8 @@
 unit MVCFramework.View;
 
 {$WARNINGS OFF}
+
+{$I dmvcframework.inc}
 
 interface
 
@@ -86,7 +88,7 @@ implementation
 uses
   System.IOUtils
     , System.Classes
-{$IF CompilerVersion >= 27} // XE6
+{$IFDEF SYSTEMJSON}
     , System.JSON
 {$ELSE}
     , Data.DBXJSON
