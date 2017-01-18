@@ -7,6 +7,7 @@ interface
 
 uses MVCFramework,
   MVCFramework.Logger,
+	 MVCFramework.Commons,
   Web.HTTPApp;
 
 type

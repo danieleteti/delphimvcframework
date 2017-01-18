@@ -24,19 +24,21 @@
 
 unit RESTAdapterTestsU;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
   MVCFramework.RESTAdapter, TestFramework, BusinessObjectsU,
   Generics.Collections,
-{$IF CompilerVersion < 27}
+{$IFDEF SYSTEMJSON}
+  System.JSON,
+{$ELSE}
   Data.DBXJSON,
   Data.SqlExpr,
   DBXCommon,
-{$ELSE}
-  System.JSON,
 {$ENDIF}
-  ObjectsMappers, MVCFramework.RESTClient, MVCFramework;
+  ObjectsMappers, MVCFramework.RESTClient, MVCFramework.Commons;
 
 type
 

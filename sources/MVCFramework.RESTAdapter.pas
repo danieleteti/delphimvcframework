@@ -24,10 +24,12 @@
 
 unit MVCFramework.RESTAdapter;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
-  System.Rtti, System.TypInfo, MVCFramework.RESTClient, MVCFramework,
+  System.Rtti, System.TypInfo, MVCFramework.RESTClient, MVCFramework.Commons,
   IdIOHandler, System.Classes, System.SysUtils;
 
 const
@@ -35,7 +37,7 @@ const
 
 type
 
-  RESTResourceAttribute = class(MVCHTTPMethodAttribute)
+  RESTResourceAttribute = class(TCustomAttribute)
   private
     FURL: string;
     FHTTPMethodType: TMVCHTTPMethodType;
@@ -179,14 +181,15 @@ implementation
 
 uses
   ObjectsMappers,
-{$IF CompilerVersion < 27}
+{$IFDEF SYSTEMJSON}
+  System.JSON,
+{$ELSE}
   Data.DBXJSON,
   Data.SqlExpr,
   DBXCommon,
-{$ELSE}
-  System.JSON,
 {$ENDIF}
-  MVCFramework.RTTIUtils, MVCFramework.DuckTyping,
+  MVCFramework.RTTIUtils,
+  MVCFramework.DuckTyping,
   Generics.Collections;
 
 { TRESTAdapter }
@@ -340,7 +343,11 @@ begin
           Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
       finally
         if _param.OwnsObject and Arg.IsObject then
+        begin
+{$HINTS OFF}
           Arg.AsObject.Free;
+{$HINTS ON}
+        end;
       end;
   end;
 end;
@@ -429,9 +436,7 @@ begin
   pInfo := TypeInfo(T);
   if QueryInterface(GetTypeData(pInfo).Guid, Result) <> 0 then
   begin
-    raise Exception.CreateFmt
-      ('RESTAdapter is unable to cast %s to its interface',
-      [string(pInfo.Name)]);
+    raise Exception.Create('RESTAdapter is unable to cast to its interface');
   end;
 end;
 

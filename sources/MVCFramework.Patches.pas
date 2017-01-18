@@ -33,10 +33,10 @@ uses
   System.Classes
 {$IFDEF SYSTEMJSON}
     , System.JSON
-{$IFEND}
+{$ENDIF}
 {$IFNDEF SYSTEMJSON} // XE6
     , Data.DBXJSON
-{$IFEND}
+{$ENDIF}
     ;
 
 {$IFNDEF TOJSON}

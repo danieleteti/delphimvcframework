@@ -117,7 +117,7 @@ resourcestring
     'interface' + sLineBreak +
     sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework;' + sLineBreak +
+    '  MVCFramework, MVCFramework.Commons;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
     sLineBreak +
@@ -128,9 +128,9 @@ resourcestring
     '%4:s' +
     '  end;' + sLineBreak +
     sLineBreak +
-    'implementation' + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak +
     'uses' + sLineBreak +
-    '    MVCFramework.Logger;' + sLineBreak +
+    '  MVCFramework.Logger;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
@@ -151,15 +151,14 @@ resourcestring
     'begin' + sLineBreak +
     '  //use Context property to access to the HTTP request and response ' + sLineBreak +
     '  Render(''Hello World'');' + sLineBreak +
-    sLineBreak +
     'end;' + sLineBreak + sLineBreak +
     'procedure %0:s.GetSpecializedHello(const FirstName: String);' + sLineBreak +
     'begin' + sLineBreak +
     '  Render(''Hello '' + FirstName);' + sLineBreak +
-    sLineBreak +
     'end;' + sLineBreak;
 
   sActionFiltersIntf =
+    '  protected' + sLineBreak +
     '    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;'
     + sLineBreak +
     '    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;' +
@@ -244,7 +243,8 @@ resourcestring
     '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
     '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
+    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' +
+    sLineBreak +
     '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +

@@ -3,8 +3,8 @@ unit RESTServicesU;
 interface
 
 uses
-  Generics.Collections, WinesBO, MVCFramework.RESTAdapter, MVCFramework,
-  ObjectsMappers;
+  Generics.Collections, WinesBO, MVCFramework.RESTAdapter,
+  ObjectsMappers, MVCFramework.Commons;
 
 type
 

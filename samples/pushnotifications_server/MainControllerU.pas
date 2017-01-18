@@ -3,7 +3,7 @@ unit MainControllerU;
 interface
 
 uses
-  MVCFramework;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
@@ -30,8 +30,7 @@ type
 implementation
 
 uses
-  System.JSON, ObjectsMappers, System.SysUtils, StompClient, StompTypes,
-  MVCFramework.Commons;
+  System.JSON, ObjectsMappers, System.SysUtils, StompClient, StompTypes;
 
 const
   DEFAULT_TIMEOUT = 30000; // 30 secs

@@ -3,9 +3,10 @@ unit RESTControllerCustomerU;
 interface
 
 uses
-  MVCFramework, WSHelperCustomersU;
+  MVCFramework, MVCFramework.Commons, WSHelperCustomersU;
 
 type
+
   [MVCPath('/')]
   TControllerCustomer = class(TMVCController)
   private

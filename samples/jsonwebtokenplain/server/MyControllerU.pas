@@ -3,7 +3,7 @@ unit MyControllerU;
 interface
 
 uses
-  MVCFramework;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
@@ -24,7 +24,7 @@ type
 implementation
 
 uses
-  MVCFramework.JWT, MVCFramework.Commons, System.SysUtils, System.DateUtils;
+  MVCFramework.JWT, System.SysUtils, System.DateUtils;
 
 procedure TMyController.DoLogin(ctx: TWebContext);
 begin

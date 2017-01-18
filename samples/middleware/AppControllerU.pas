@@ -3,6 +3,7 @@ unit AppControllerU;
 interface
 
 uses MVCFramework,
+  MVCFramework.Commons,
   MVCFramework.Logger,
   Web.HTTPApp;
 
@@ -19,7 +20,7 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Commons;
+  System.SysUtils;
 
 { TApp1MainController }
 

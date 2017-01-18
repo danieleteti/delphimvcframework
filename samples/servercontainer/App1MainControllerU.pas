@@ -1,8 +1,12 @@
 unit App1MainControllerU;
 
+{$I dmvcframework.inc}
+
 interface
 
-uses MVCFramework,
+uses
+  MVCFramework,
+  MVCFramework.Commons,
   MVCFramework.Logger,
   Web.HTTPApp;
 
@@ -31,8 +35,10 @@ type
 implementation
 
 uses
-{$IF CompilerVersion >= 27} System.JSON,
-{$ELSE} Data.DBXJSON,
+{$IFDEF SYSTEMJSON}
+  System.JSON,
+{$ELSE}
+  Data.DBXJSON,
 {$ENDIF}
   System.SysUtils;
 

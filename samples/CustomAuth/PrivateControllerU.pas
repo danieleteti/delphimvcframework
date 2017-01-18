@@ -27,7 +27,7 @@ unit PrivateControllerU;
 interface
 
 uses
-  MVCFramework;
+  MVCFramework, MVCFramework.Commons;
 
 type
 

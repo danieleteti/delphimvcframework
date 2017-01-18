@@ -4,6 +4,7 @@ interface
 
 uses
   MVCFramework,
+  MVCFramework.Commons,
   MVCFramework.Logger,
   Web.HTTPApp;
 
@@ -40,7 +41,7 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Commons, System.JSON, System.Classes;
+  System.SysUtils, System.JSON, System.Classes;
 
 { TApp1MainController }
 

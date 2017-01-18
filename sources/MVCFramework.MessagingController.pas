@@ -24,10 +24,13 @@
 
 unit MVCFramework.MessagingController;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
   MVCFramework,
+  MVCFramework.Commons,
   StompClient,
   StompTypes;
 
@@ -78,9 +81,8 @@ implementation
 
 uses
   System.SysUtils
-    , MVCFramework.Commons
     , System.DateUtils
-{$IF CompilerVersion >= 27} // XE6
+{$IFDEF SYSTEMJSON} // XE6
     , System.JSON
 {$ELSE}
     , Data.DBXJSON

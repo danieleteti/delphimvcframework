@@ -48,7 +48,7 @@ type
 implementation
 
 uses
-  System.StrUtils;
+  System.StrUtils, MVCFramework.Commons;
 
 { TCORSMiddleware }
 

@@ -5,7 +5,7 @@ interface
 uses ObjectsMappers, System.Generics.Collections;
 
 type
-
+{$M+}
   [MapperJSONNaming(JSONNameLowerCase)]
   TCustomer = class
   private
@@ -15,7 +15,6 @@ type
     procedure SetFirstName(const Value: string);
     procedure SetMiddleName(const Value: string);
     procedure SetSurname(const Value: string);
-  public
   published
     property FirstName: string read FFirstName write SetFirstName;
     property MiddleName: string read FMiddleName write SetMiddleName;

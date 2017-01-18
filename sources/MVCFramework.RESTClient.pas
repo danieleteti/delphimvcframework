@@ -714,8 +714,10 @@ begin
   begin
     if (FHTTP.Compressor <> nil) then
     begin
+{$HINTS OFF}
       FHTTP.Compressor.Free;
       FHTTP.Compressor := nil;
+{$HINTS ON}
     end;
   end;
   Result := self;
@@ -1055,7 +1057,7 @@ end;
 function TRESTClient.doPOST(const AResource: string;
   const AParams: array of string; const ABody: string): IRESTResponse;
 var
-  URL {, lContentTypeWithCharset}: string;
+  URL { , lContentTypeWithCharset } : string;
 begin
   URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource +
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams);
@@ -1067,10 +1069,10 @@ begin
   end
   else
   begin
-//    lContentTypeWithCharset := FContentType;
-//    if FContentEncoding = '' then
-//      FContentEncoding := 'UTF-8';
-//    lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
+    // lContentTypeWithCharset := FContentType;
+    // if FContentEncoding = '' then
+    // FContentEncoding := 'UTF-8';
+    // lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
 
     Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType, FContentEncoding,
       URL, ABody);
@@ -1606,21 +1608,21 @@ begin
             ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
         end;
 
-//      httpPUT:
-//        begin
-//          RawBody.Position := 0;
-//          RawBody.Size := 0;
-//          lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
-//          try
-//            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
-//              TEncoding.Default.GetBytes(ABody));
-//            RawBody.WriteData(lBytes, Length(lBytes));
-//          finally
-//            lEncoding.Free;
-//          end;
-//
-//          FHTTP.Put(AResource, RawBody, Result.Body);
-//        end;
+      // httpPUT:
+      // begin
+      // RawBody.Position := 0;
+      // RawBody.Size := 0;
+      // lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+      // try
+      // lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
+      // TEncoding.Default.GetBytes(ABody));
+      // RawBody.WriteData(lBytes, Length(lBytes));
+      // finally
+      // lEncoding.Free;
+      // end;
+      //
+      // FHTTP.Put(AResource, RawBody, Result.Body);
+      // end;
 
       httpDELETE:
         begin
@@ -1694,8 +1696,10 @@ begin
   begin
     if (FHTTP.IOHandler <> nil) then
     begin
+{$HINTS OFF}
       FHTTP.IOHandler.Free;
       FHTTP.IOHandler := nil;
+{$HINTS ON}
     end;
   end;
   Result := self;

@@ -28,7 +28,6 @@ interface
 
 {$I dmvcframework.inc}
 
-
 uses
   System.RTTI,
   System.IOUtils,
@@ -41,7 +40,7 @@ uses
 {$IFEND}
 {$IFDEF USEFIREDAC}
   FireDAC.Comp.Client, FireDAC.Stan.Param,
-{$IFEND}
+{$ENDIF}
   MVCFramework.DuckTyping, System.SysUtils, System.Classes
 {$IFDEF SYSTEMJSON}
     , System.JSON
@@ -73,11 +72,11 @@ type
 {$IFDEF USEFIREDAC}
     class function InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
       WithResult: boolean): Int64;
-{$IFEND}
+{$ENDIF}
 {$IFDEF USEDBX}
     class function InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
       WithResult: boolean): Int64;
-{$IFEND}
+{$ENDIF}
     class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType)
       : string; overload;
     class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType)
@@ -251,7 +250,7 @@ type
     class procedure ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
     class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
       AParamPrefix: string = '');
-{$IFEND}
+{$ENDIF}
     // SAFE TJSONObject getter
     class function GetPair(JSONObject: TJSONObject; PropertyName: string)
       : TJSONPair;
@@ -422,10 +421,10 @@ uses
   DateUtils,
   MVCFramework.RTTIUtils,
   Xml.adomxmldom,
-{$IF CompilerVersion >= 28}
+{$IFDEF SYSTEMNETENCODING}
   System.NetEncoding,
   // so that the old functions in Soap.EncdDecd can be inlined
-{$IFEND}
+{$ENDIF}
   Soap.EncdDecd;
 
 const
@@ -1472,11 +1471,11 @@ var
 begin
   LJObj := ObjectToJSONObjectFields(AObject, AIgnoredProperties);
   try
-{.$IFDEF TOJSON}
+    { .$IFDEF TOJSON }
     Result := LJObj.ToJSON;
-{.$ELSE}
-//    Result := LJObj.ToString
-{.$IFEND}
+    { .$ELSE }
+    // Result := LJObj.ToString
+    { .$IFEND }
   finally
     LJObj.Free;
   end;
@@ -2453,7 +2452,7 @@ begin
 {$ELSE}
   if not AJSONObject.TryGetValue<TJSONString>(DMVC_CLASSNAME, lJClassName) then
     raise EMapperException.Create('No $classname property in the JSON object');
-{$IFEND}
+{$ENDIF}
   LObj := TRTTIUtils.CreateObject(lJClassName.Value);
   try
     InternalJSONObjectFieldsToObject(ctx, AJSONObject, LObj);
@@ -2551,13 +2550,13 @@ begin
       TFieldType.ftCurrency:
         begin
           fs.DecimalSeparator := '.';
-{,$IFNDEF TOJSON}
-//          ADataSet.Fields[I].AsCurrency :=
-//            StrToCurr((v as TJSONString).Value, fs);
-{.$ELSE} // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
+          { ,$IFNDEF TOJSON }
+          // ADataSet.Fields[I].AsCurrency :=
+          // StrToCurr((v as TJSONString).Value, fs);
+          { .$ELSE } // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
           ADataSet.Fields[I].AsCurrency :=
             StrToCurr((v as TJSONNumber).ToJSON, fs);
-{.$IFEND}
+          { .$IFEND }
         end;
       TFieldType.ftFMTBcd:
         begin
@@ -2906,7 +2905,7 @@ class procedure Mapper.ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
 begin
   InternalExecuteFDQuery(AQuery, AObject, True);
 end;
-{$IFEND}
+{$ENDIF}
 
 {$IFDEF USEDBX}
 
@@ -3026,11 +3025,11 @@ var
 begin
   Arr := AsJSONArray;
   try
-{.$IFDEF TOJSON}
+    { .$IFDEF TOJSON }
     Result := Arr.ToJSON;
-{.$ELSE}
-//    Result := Arr.ToString;
-{.$IFEND}
+    { .$ELSE }
+    // Result := Arr.ToString;
+    { .$IFEND }
   finally
     Arr.Free;
   end;
@@ -3068,11 +3067,11 @@ begin
   end
   else
     try
-{.$IFDEF TOJSON}
+      { .$IFDEF TOJSON }
       Result := JObj.ToJSON;
-{.$ELSE}
-//      Result := JObj.ToString
-{.$IFEND}
+      { .$ELSE }
+      // Result := JObj.ToString
+      { .$IFEND }
     finally
       JObj.Free;
     end;

@@ -27,7 +27,7 @@ unit PublicControllerU;
 interface
 
 uses
-  MVCFramework;
+  MVCFramework, MVCFramework.Commons;
 
 type
 

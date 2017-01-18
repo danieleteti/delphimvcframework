@@ -24,6 +24,12 @@
 
 unit MVCFramework;
 
+{$I dmvcframework.inc}
+
+{$IFDEF ANDROID OR IOS}
+{$MESSAGE Fatal 'This unit is not compilable on mobile platforms'}
+{$ENDIF}
+
 {$RTTI EXPLICIT
 METHODS([vcPublic, vcPublished, vcProtected])
 FIELDS(DefaultFieldRttiVisibility)
@@ -47,12 +53,12 @@ uses
   MVCFramework.Session,
   StompTypes,
   ObjectsMappers
-{$IF CompilerVersion >= 27} // XE6
+{$IFDEF SYSTEMJSON}
     , System.JSON
 {$ELSE}
     , Data.DBXJSON
 {$ENDIF}
-{$IF CompilerVersion >= 27}
+{$IFDEF WEBAPACHEHTTP}
     , Web.ApacheHTTP
   // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 {$ENDIF}
@@ -62,10 +68,6 @@ uses
     , MVCFramework.Patches;
 
 type
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
-    httpOPTIONS, httpPATCH, httpTRACE);
-  TMVCHTTPMethods = set of TMVCHTTPMethodType;
-
   TDMVCSerializationType = TSerializationType;
   TSessionData = TDictionary<string, string>;
 
@@ -193,7 +195,7 @@ type
     property Charset: string read FCharset;
   end;
 
-{$IF CompilerVersion >= 27}
+{$IFDEF WEBAPACHEHTTP}
 
   TMVCApacheWebRequest = class(TMVCWebRequest)
   public
@@ -1432,7 +1434,7 @@ begin
 
   if IsLibrary then
   begin
-{$IF CompilerVersion >= 27}
+{$IFDEF WEBAPACHEHTTP}
     if ARequest is TApacheRequest then
       FRequest := TMVCApacheWebRequest.Create(ARequest)
     else if ARequest is TISAPIRequest then

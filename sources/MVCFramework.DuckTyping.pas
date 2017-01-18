@@ -24,6 +24,8 @@
 
 unit MVCFramework.DuckTyping;
 
+{$LEGACYIFEND ON}
+
 interface
 
 uses
@@ -188,7 +190,7 @@ begin
 {$IF CompilerVersion >= 23}
     and (LType.GetIndexedProperty('Items').ReadMethod <> nil)
 
-{$ENDIF}
+{$IFEND}
     and (LType.GetMethod('GetItem') <> nil) or
     (LType.GetMethod('GetElement') <> nil) and
     (LType.GetProperty('Count') <> nil)

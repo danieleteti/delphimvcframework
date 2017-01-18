@@ -26,9 +26,12 @@ unit MVCFramework.Commons;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
   System.SysUtils, Generics.Collections
-{$IF CompilerVersion >= 27} // XE6
+{$IFDEF SYSTEMJSON} // XE6
     , System.JSON
 {$ELSE}
     , Data.DBXJSON
@@ -36,6 +39,9 @@ uses
     , System.Generics.Collections, MVCFramework.Session, LoggerPro;
 
 type
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
+    httpOPTIONS, httpPATCH, httpTRACE);
+  TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TMVCMimeType = class sealed
   public const
