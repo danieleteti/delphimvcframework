@@ -1268,7 +1268,11 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-        IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
+      // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
+        if ASessionTimeout = 0 then
+          IsExpired := MinutesBetween(Now, Result.LastAccess) > DEFAULT_SESSION_INACTIVITY
+        else
+          IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
         // StrToInt(Config.Value['sessiontimeout']);
       end;
 
