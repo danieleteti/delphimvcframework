@@ -68,7 +68,7 @@ procedure TWineCellarDataModule.ConnectionBeforeConnect(Sender: TObject);
 begin
   Connection.Params.Values['Database'] :=
   { change this path to be compliant with your system }
-    'C:\DEV\DMVCFramework\samples\winecellar\WINES.FDB';
+    'D:\DEV\dmvcframework\samples\winecellarserver\WINES.FDB';
 end;
 
 function TWineCellarDataModule.FindWines(Search: string): TJSONArray;
