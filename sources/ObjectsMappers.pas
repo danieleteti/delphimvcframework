@@ -882,7 +882,10 @@ begin
         end;
       TFieldType.ftBoolean:
         begin
-          AJSONObject.AddPair(key, TJSONBool.Create(ADataSet.Fields[I].AsBoolean));
+          if ADataSet.Fields[I].AsBoolean then
+            AJSONObject.AddPair(key, TJSONTrue.Create)
+          else
+            AJSONObject.AddPair(key, TJSONFalse.Create);
         end;
 
       // else
@@ -2587,7 +2590,19 @@ begin
 
       TFieldType.ftBoolean:
         begin
-          ADataSet.Fields[I].AsBoolean := (v as TJSONBool).AsBoolean;
+{$IFDEF JSONBOOL}
+          if v is TJSONBool then
+            ADataSet.Fields[I].AsBoolean := (v as TJSONBool).AsBoolean
+          else
+            raise EMapperException.Create('Invalid JSON for field ' + key);
+{$ELSE}
+          if v is TJSONTrue then
+            ADataSet.Fields[I].AsBoolean := True
+          else if v is TJSONFalse then
+            ADataSet.Fields[I].AsBoolean := false
+          else
+            raise EMapperException.Create('Invalid JSON for field ' + key);
+{$ENDIF}
         end;
       // else
       // raise EMapperException.Create('Cannot find type for field ' + key);

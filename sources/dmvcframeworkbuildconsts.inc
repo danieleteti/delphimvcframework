@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = '2.1.1 (hydrogen)';
+  DMVCFRAMEWORK_VERSION = '2.1.2 (helium)';
