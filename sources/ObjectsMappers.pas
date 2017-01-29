@@ -1949,6 +1949,8 @@ var
   LClassName: string;
   LJSONKeyIsNotPresent: boolean;
 begin
+  if not Assigned(AJSONObject) then
+    raise EMapperException.Create('JSON Object cannot be nil');
   jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetFields;
@@ -2216,6 +2218,8 @@ var
   ListItem: TValue;
   ListParam: TRttiParameter;
 begin
+  if not Assigned(AJSONObject) then
+    raise EMapperException.Create('JSON Object cannot be nil');
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
   for _field in _fields do
@@ -2437,11 +2441,16 @@ var
   lJSON: TJSONObject;
 begin
   lJSON := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
-  try
-    InternalJSONObjectFieldsToObject(ctx, lJSON, AObject);
-  finally
-    lJSON.Free;
-  end;
+  if Assigned(lJSON) then
+  begin
+    try
+      InternalJSONObjectFieldsToObject(ctx, lJSON, AObject);
+    finally
+      lJSON.Free;
+    end;
+  end
+  else
+    EMapperException.Create('Invalid JSON');
 end;
 
 class function Mapper.JSONObjectFieldsToObject(AJSONObject
@@ -2477,11 +2486,16 @@ var
   JObj: TJSONObject;
 begin
   JObj := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
-  try
-    Result := JSONObjectToObject<T>(JObj);
-  finally
-    JObj.Free;
-  end;
+  if Assigned(JObj) then
+  begin
+    try
+      Result := JSONObjectToObject<T>(JObj);
+    finally
+      JObj.Free;
+    end;
+  end
+  else
+    raise EMapperException.Create('Invalid JSON');
 end;
 
 class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;

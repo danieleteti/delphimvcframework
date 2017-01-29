@@ -64,7 +64,8 @@ type
     procedure TestJSONArrayToObjectListNoGenericsWrappedList;
     procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
     procedure TestJSONObjectToObjectWithNullInJSONString;
-
+    procedure TestJSONObjectStringToObject;
+    procedure TestJSONObjectStringToObjectWithWrongJSON;
   end;
 
   TTestRouting = class(TTestCase)
@@ -584,6 +585,39 @@ begin
   finally
     ListObj.Free;
   end;
+end;
+
+procedure TTestMappers.TestJSONObjectStringToObject;
+const
+  MYOBJECTJSON =
+    '{"PropString":"Some text \u00E0\u00E8\u00E9\u00EC\u00F2\u00F9",' +
+    '"PropAnsiString":"This is an ANSI text","PropInteger":-1234,' +
+    '"PropUInt32":1234,"PropInt64":-1234567890,"PropUInt64":1234567890,' +
+    '"PropUInt16":12345,"PropInt16":-12345,"PropBoolean":true,' +
+    '"PropDate":"2010-10-20","PropTime":"10:20:30",' +
+    '"PropDateTime":"2010-10-20 10:20:30",' +
+    '"PropTimeStamp":63423339630040,"PropCurrency":1234.5678}';
+var
+  lMyObject: TMyObject;
+  lMyObject2: TMyObject;
+begin
+  lMyObject := Mapper.JSONObjectStringToObject<TMyObject>(MYOBJECTJSON);
+  try
+    lMyObject2 := GetMyObject;
+    try
+      CheckTrue(lMyObject.Equals(lMyObject2));
+    finally
+      lMyObject2.Free;
+    end;
+  finally
+    lMyObject.Free;
+  end;
+end;
+
+procedure TTestMappers.TestJSONObjectStringToObjectWithWrongJSON;
+begin
+  ExpectedException := EMapperException;
+  Mapper.JSONObjectStringToObject<TObject>('{wrongjson}');
 end;
 
 procedure TTestMappers.TestJSONObjectToObjectAndBack;
