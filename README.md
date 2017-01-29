@@ -65,6 +65,18 @@ become
 
 ```{$DEFINE STARTEREDITION}```
 
+## Release Notes
+**2.1.2 (helium)**
+  - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
+  - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
+
+**2.1.1 (hydrogen)**
+  - Updated the IDE Expert to show the current version of the framework
+  - FIX to the mapper about the datasets null values (needs to be checked in old Delphi versions)
+  - ADDED support for boolean values in datasets serialization
+  - ADDED unit tests about Mapper and dataset fields nullability
+  - The current version is available in constant ```DMVCFRAMEWORK_VERSION``` defined in ```MVCFramework.Commons.pas```
+
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
 All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/tree/master/samples) folder.
@@ -75,7 +87,7 @@ Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphi
 Below the is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
 The project containes an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
 
-To create this server, you have to create a new Delphi Projects -> WebBroker -> WebServerApplication. Then add the following changes to the webmodule.
+To create this server, you have to create a new ```Delphi Projects -> WebBroker -> WebServerApplication```. Then add the following changes to the webmodule.
 ```delphi
 unit WebModuleUnit1;
 
