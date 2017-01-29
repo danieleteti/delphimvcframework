@@ -32,6 +32,7 @@
   * Messaging extension using STOMP (beta)
   * Automatic documentation through /system/describeserver.info
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
+  * Semantic Versioning
   * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
   
@@ -66,6 +67,10 @@ become
 ```{$DEFINE STARTEREDITION}```
 
 ## Release Notes
+**2.1.3 (lithium)**
+  - FIX https://github.com/danieleteti/delphimvcframework/issues/64
+  - Added unit tests to avoid regressions
+  
 **2.1.2 (helium)**
   - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
   - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
