@@ -133,6 +133,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.Patches.pas"/>
         <DCCReference Include="..\..\sources\ObjectsMappers.pas"/>
         <None Include="..\..\sources\dmvcframework.inc"/>
+        <None Include="..\..\sources\dmvcframeworkbuildconsts.inc"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -203,6 +204,12 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="..\..\sources\dmvcframework.inc" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\sources\dmvcframeworkbuildconsts.inc" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win32">
                         <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>

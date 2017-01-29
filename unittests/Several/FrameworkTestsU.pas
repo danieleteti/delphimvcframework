@@ -52,6 +52,7 @@ type
     procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
     procedure TestDataSetToJSONObject;
+    procedure TestDataSetToJSONObjectWithNulls;
     procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
     procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
     procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
@@ -483,6 +484,46 @@ begin
   finally
     ds.Free;
     ds2.Free;
+  end;
+end;
+
+procedure TTestMappers.TestDataSetToJSONObjectWithNulls;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+begin
+  ds := TClientDataSet.Create(nil);
+  try
+    ds.FieldDefs.Add('string_value', ftString, 50);
+    ds.FieldDefs.Add('integer_value', ftInteger);
+    ds.FieldDefs.Add('float_value', ftFloat);
+    ds.FieldDefs.Add('null_value', ftString, 50);
+    ds.FieldDefs.Add('boolean_value', ftBoolean);
+    ds.CreateDataSet;
+    ds.Insert;
+    ds.FieldByName('string_value').AsString := 'myStringValue';
+    ds.FieldByName('integer_value').AsInteger := 123;
+    ds.FieldByName('float_value').AsFloat := 123.456;
+    ds.FieldByName('null_value').Clear;
+    ds.FieldByName('boolean_value').AsBoolean := true;
+    ds.Post;
+    JObj := ds.AsJSONObject;
+    try
+      CheckEquals('myStringValue', JObj.Values['string_value'].Value);
+      CheckEquals(123, JObj.Values['integer_value'].GetValue<TJSONNumber>().AsInt);
+      CheckEquals(123.456, JObj.Values['float_value'].GetValue<TJSONNumber>().AsDouble, 0.0009);
+      CheckTrue(JObj.Values['null_value'].GetValue<TJSONNull>().Null);
+      CheckEquals(true, JObj.Values['boolean_value'].GetValue<TJSONBool>().AsBoolean);
+      CheckTrue(JObj.ToJSON.Replace(' ', '').Contains('"null_value":null'));
+      ds.Insert;
+      ds.LoadFromJSONObject(JObj);
+      ds.Post;
+      CheckTrue(ds.FieldByName('null_value').IsNull);
+    finally
+      JObj.Free;
+    end;
+  finally
+    ds.Free;
   end;
 end;
 

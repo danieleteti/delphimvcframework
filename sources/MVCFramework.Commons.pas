@@ -28,7 +28,6 @@ interface
 
 {$I dmvcframework.inc}
 
-
 uses
   System.SysUtils, Generics.Collections
 {$IFDEF SYSTEMJSON} // XE6
@@ -37,6 +36,8 @@ uses
     , Data.DBXJSON
 {$ENDIF}
     , System.Generics.Collections, MVCFramework.Session, LoggerPro;
+
+{$I dmvcframeworkbuildconsts.inc}
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,

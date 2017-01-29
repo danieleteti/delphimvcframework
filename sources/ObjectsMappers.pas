@@ -28,6 +28,7 @@ interface
 
 {$I dmvcframework.inc}
 
+
 uses
   System.RTTI,
   System.IOUtils,
@@ -878,6 +879,10 @@ begin
           finally
             MS.Free;
           end;
+        end;
+      TFieldType.ftBoolean:
+        begin
+          AJSONObject.AddPair(key, TJSONBool.Create(ADataSet.Fields[I].AsBoolean));
         end;
 
       // else
@@ -2578,6 +2583,11 @@ begin
           finally
             MS.Free;
           end;
+        end;
+
+      TFieldType.ftBoolean:
+        begin
+          ADataSet.Fields[I].AsBoolean := (v as TJSONBool).AsBoolean;
         end;
       // else
       // raise EMapperException.Create('Cannot find type for field ' + key);
