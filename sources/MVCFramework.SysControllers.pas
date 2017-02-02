@@ -238,7 +238,7 @@ begin
   inherited;
   LClientIP := Context.Request.ClientIP;
   Handled := not((LClientIP = '::1') or (LClientIP = '127.0.0.1') or
-    (LClientIP = '0:0:0:0:0:0:0:1') or (LClientIP.ToLower = 'localhost'));
+    (LClientIP = '0:0:0:0:0:0:0:1') or SameText(LClientIP, 'localhost'));
 end;
 
 procedure TMVCSystemController.ServerConfig(Context: TWebContext);

@@ -88,7 +88,8 @@ uses
     , Data.DBXJSON
 {$ENDIF}
     , MVCFramework.Logger
-    , System.SyncObjs;
+    , System.SyncObjs
+    , StringHelper;
 
 procedure TMVCBUSController.AddTopicToUserSubscriptions(const ATopic: string);
 var
@@ -98,10 +99,10 @@ var
   ToAdd: Boolean;
 begin
   x := Session['__subscriptions'];
-  topics := x.Split([';']);
+  topics := StringSplit(x, [';']);
   ToAdd := true;
   for t in topics do
-    if t.Equals(ATopic) then
+    if t = ATopic then
     begin
       ToAdd := False;
     end;
@@ -109,7 +110,7 @@ begin
   begin
     SetLength(topics, length(topics) + 1);
     topics[length(topics) - 1] := ATopic;
-    Session['__subscriptions'] := string.Join(';', topics);
+    Session['__subscriptions'] := StringJoin(';', topics);
   end;
 end;
 
@@ -124,12 +125,12 @@ var
   topicname: string;
   queuetype: string;
 begin
-  queuetype := CTX.Request.Params['type'].Trim.ToLower;
+  queuetype := LowerCase(Trim(CTX.Request.Params['type']));
   if (queuetype <> 'topic') and (queuetype <> 'queue') then
     raise EMVCException.Create('Valid type are "queue" or "topic", got ' + queuetype);
 
-  topicname := CTX.Request.Params['topicorqueue'].Trim;
-  if topicname.IsEmpty then
+  topicname := Trim(CTX.Request.Params['topicorqueue']);
+  if StringIsEmpty(topicname) then
     raise EMVCException.Create('Invalid or empty topic');
   if not CTX.Request.ThereIsRequestBody then
     raise EMVCException.Create('Body request required');
@@ -141,7 +142,7 @@ end;
 
 function TMVCBUSController.GetUniqueDurableHeader(clientid, topicname: string): string;
 begin
-  Result := clientid + '___' + topicname.Replace('/', '_', [rfReplaceAll]);
+  Result := clientid + '___' + StringReplace(topicname, '/', '_', [rfReplaceAll]);
 end;
 
 procedure TMVCBUSController.ReceiveMessages(CTX: TWebContext);
@@ -245,12 +246,12 @@ var
   i: Integer;
 begin
   x := Session['__subscriptions'];
-  topics := x.Split([';']);
+  topics := StringSplit(x, [';']);
   IndexToRemove := 0;
   SetLength(afterremovaltopics, length(topics));
   for i := 0 to length(topics) - 1 do
   begin
-    if not topics[i].Equals(ATopic) then
+    if not (topics[i] = ATopic) then
     begin
       afterremovaltopics[IndexToRemove] := topics[i];
       Inc(IndexToRemove);
@@ -262,7 +263,7 @@ begin
   if length(afterremovaltopics) = 0 then
     Session['__subscriptions'] := ''
   else
-    Session['__subscriptions'] := string.Join(';', afterremovaltopics);
+    Session['__subscriptions'] := StringJoin(';', afterremovaltopics);
 end;
 
 procedure TMVCBUSController.SetClientID(CTX: TWebContext);
@@ -278,8 +279,8 @@ var
   LTopicOrQueue: string;
 begin
   LClientID := GetClientID;
-  LTopicName := CTX.Request.Params['name'].ToLower;
-  LTopicOrQueue := CTX.Request.Params['topicorqueue'].ToLower;
+  LTopicName := LowerCase(CTX.Request.Params['name']);
+  LTopicOrQueue := LowerCase(CTX.Request.Params['topicorqueue']);
   LStomp := GetNewStompClient(LClientID);
   try
     LTopicName := '/' + LTopicOrQueue + '/' + LTopicName;
@@ -296,7 +297,7 @@ var
   topics: TArray<string>;
 begin
   x := Session['__subscriptions'];
-  topics := x.Split([';']);
+  topics := StringSplit(x, [';']);
   for t in topics do
     InternalSubscribeUserToTopic(clientid, t, Stomp);
 end;
@@ -340,7 +341,7 @@ var
   s: string;
 begin
   clientid := GetClientID;
-  thename := CTX.Request.Params['name'].ToLower;
+  thename := LowerCase(CTX.Request.Params['name']);
   Stomp := GetNewStompClient(clientid);
   s := '/queue/' + thename;
   Stomp.Unsubscribe(s);

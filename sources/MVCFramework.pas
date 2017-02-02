@@ -423,7 +423,7 @@ type
       aJSONObjectActionProc: TJSONObjectActionProc = nil);
     procedure RenderJSONArrayAsProperty(const aPropertyName: string;
       AJSONArray: TJSONArray);
-    procedure Render(E: Exception; ErrorItems: TList<string> = nil);
+    procedure Render(E: Exception; ErrorItems: TList<string> {$IF RTLVersion > 23.0} = nil {$IFEND});
       overload; virtual;
     procedure Render(const aErrorCode: UInt16; const aErrorMessage: string;
       const AErrorClassName: string = ''); overload;
@@ -561,7 +561,7 @@ type
     class function ExtractSessionIDFromWebRequest
       (AWebRequest: TWebRequest): string;
     constructor Create(WebModule: TWebModule;
-      ConfigProc: TProc<TMVCConfig> = nil; CustomLogger: ILogWriter = nil); reintroduce;
+      ConfigProc: TProc<TMVCConfig> {$IF RTLVersion > 23.0} = nil {$IFEND}; CustomLogger: ILogWriter = nil); reintroduce;
     destructor Destroy; override;
     class function SendSessionCookie(AContext: TWebContext): string; overload;
     class function SendSessionCookie(AContext: TWebContext; const ASessionID: string)
@@ -650,7 +650,8 @@ uses
   IdHTTPWebBrokerBridge,
   MVCFramework.MessagingController,
   Web.WebReq,
-  MVCFramework.SysControllers;
+  MVCFramework.SysControllers,
+  StringHelper;
 
 const
   ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
@@ -718,7 +719,7 @@ var
   lSessCookieName: string;
   lCookie: TCookie;
 begin
-  lSessCookieName := TMVCConstants.SESSION_TOKEN_NAME.ToLower;
+  lSessCookieName := LowerCase(TMVCConstants.SESSION_TOKEN_NAME);
   I := 0;
   while true do
   begin
@@ -998,7 +999,7 @@ begin
     try
       SetDefaultReponseHeaders(lContext); // tristan
       // Static file handling
-      if (not FMVCConfig[TMVCConfigKey.DocumentRoot].IsEmpty) and
+      if (not StringIsEmpty(FMVCConfig[TMVCConfigKey.DocumentRoot])) and
       // dt: if document_root is empty, no static file are served
         (TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath,
         FMVCConfig[TMVCConfigKey.DocumentRoot]), Request.PathInfo,
@@ -1154,7 +1155,7 @@ begin
               if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
               begin
                 Result := false;
-                if not Config[TMVCConfigKey.FallbackResource].IsEmpty then
+                if not StringIsEmpty(Config[TMVCConfigKey.FallbackResource]) then
                   Result := SendFileIfPresent(Config[TMVCConfigKey.FallbackResource]);
                 if not Result then
                 begin
@@ -1236,7 +1237,7 @@ class
   (AWebRequest: TWebRequest): string;
 begin
   Result := AWebRequest.CookieFields.Values[TMVCConstants.SESSION_TOKEN_NAME];
-  if not Result.IsEmpty then
+  if not StringIsEmpty(Result) then
     Result := TIdURI.URLDecode(Result);
 end;
 
@@ -1263,7 +1264,7 @@ begin
     // raise EMVCException.Create('Empty SessionID');
 
     { SESSION IS NOT AUTOCREATED BY DEFAULT }
-    if not ASessionID.IsEmpty then
+    if not StringIsEmpty(ASessionID) then
     begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
@@ -1327,7 +1328,7 @@ procedure TMVCEngine.LoadSystemControllers;
 begin
   Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
   AddController(TMVCSystemController);
-  if Config[TMVCConfigKey.Messaging].ToLower.Equals('true') then
+  if SameText(Config[TMVCConfigKey.Messaging], 'true') then
   begin
     AddController(TMVCBUSController);
     Log(TLogLevel.levNormal, 'Loaded system controller ' +
@@ -1658,7 +1659,7 @@ begin
   SetLength(Buffer, FWebRequest.ContentLength);
   FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
 
-  if FCharset.IsEmpty then
+  if StringIsEmpty(FCharset) then
   begin
     SetLength(TestBuffer, 10);
     for I := 0 to 9 do
@@ -1687,7 +1688,7 @@ var
   S: string;
   JObj: TJSONObject;
 begin
-  if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
+  if (ContentType = TMVCMimeType.APPLICATION_JSON) then
   begin
     if RootProperty = '' then
     begin
@@ -1699,7 +1700,7 @@ begin
     else
     begin
       S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
-      if not S.IsEmpty then
+      if not StringIsEmpty(S) then
         Result := Mapper.JSONObjectToObject<T>(BodyAsJSONObject.Get(S)
           .JsonValue as TJSONObject)
       else
@@ -1733,7 +1734,7 @@ function TMVCWebRequest.BodyAsListOf<T>(const RootProperty: string)
 var
   S: string;
 begin
-  if ContentType.Equals(TMVCMimeType.APPLICATION_JSON) then
+  if (ContentType = TMVCMimeType.APPLICATION_JSON) then
   begin
     if RootProperty = '' then
       Result := Mapper.JSONArrayToObjectList<T>((BodyAsJSONValue as TJSONArray),
@@ -1742,7 +1743,7 @@ begin
     else
     begin
       S := Mapper.GetStringDef(BodyAsJSONObject, RootProperty, '');
-      if not S.IsEmpty then
+      if not StringIsEmpty(S) then
         Result := Mapper.JSONArrayToObjectList<T>(BodyAsJSONObject.Get(S)
           .JsonValue as TJSONArray, false, true) // thank you Ezequiel J. Müller
       else
@@ -1766,11 +1767,10 @@ begin
   if FWebRequest.GetFieldByName('HTTP_CLIENT_IP') <> '' then
     Exit(FWebRequest.GetFieldByName('HTTP_CLIENT_IP'));
 
-  for S in string(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'))
-    .Split([',']) do
+  for S in StringSplit(FWebRequest.GetFieldByName('HTTP_X_FORWARDED_FOR'), [',']) do
   begin
-    if not S.Trim.IsEmpty then
-      Exit(S.Trim);
+    if not StringIsEmpty(Trim(S)) then
+      Exit(Trim(S));
   end;
 
   if FWebRequest.GetFieldByName('HTTP_X_FORWARDED') <> '' then
@@ -1832,16 +1832,16 @@ begin
   inherited Create;
   FBody := '';
   c := AWebRequest.GetFieldByName('Content-Type');
-  if not c.IsEmpty then
+  if not StringIsEmpty(c) then
   begin
-    CT := c.Split([';']);
+    CT := StringSplit(c, [';']);
     FContentType := Trim(CT[0]);
     FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET; // default charset
     if Length(CT) > 1 then
     begin
-      if CT[1].Trim.StartsWith('charset', true) then
+      if StringStartsWith(Trim(CT[1]), 'charset', true) then
       begin
-        FCharset := CT[1].Trim.Split(['='])[1].Trim;
+        FCharset := Trim(StringSplit(Trim(CT[1]), ['='])[1]);
       end;
     end;
   end;
@@ -1924,7 +1924,7 @@ end;
 function TMVCController.GetClientID: string;
 begin
   Result := Session[CLIENTID_KEY];
-  if Result.IsEmpty then
+  if StringIsEmpty(Result) then
     // if Result.IsEmpty then
     raise EMVCException.Create('Invalid ClientID' + sLineBreak +
       'Hint: Messaging extensions require a valid clientid. Did you call /messages/clients/YOUR_CLIENT_ID ?');
@@ -2039,7 +2039,7 @@ procedure TMVCController.OnBeforeAction(Context: TWebContext;
   const aActionName: string; var Handled: Boolean);
 begin
   Handled := false;
-  if ContentType.IsEmpty then
+  if StringIsEmpty(ContentType) then
     ContentType := GetMVCConfig[TMVCConfigKey.DefaultContentType];
 end;
 
@@ -2168,7 +2168,7 @@ begin
   end
   else
   begin
-    if ContentType.IsEmpty then
+    if StringIsEmpty(ContentType) then
       InternalRenderText(Content, 'text/plain', ContentEncoding, Context)
     else
       InternalRenderText(Content, ContentType, ContentEncoding, Context);
@@ -2267,7 +2267,7 @@ var
   LSessionID: string;
 begin
   LSessionID := SessionID;
-  if LSessionID.IsEmpty then
+  if StringIsEmpty(LSessionID) then
     Exit(false);
   TMonitor.Enter(SessionList);
   try
@@ -2363,13 +2363,13 @@ end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const Name: string);
 begin
-  if GetParamAll(name).IsEmpty then
+  if StringIsEmpty(GetParamAll(name)) then
     raise EMVCException.CreateFmt('Parameter "%s" required', [name]);
 end;
 
 function TMVCWebRequest.QueryStringParamExists(Name: string): Boolean;
 begin
-  Result := not QueryStringParam(name).IsEmpty;
+  Result := not StringIsEmpty(QueryStringParam(name));
 end;
 
 function TMVCWebRequest.GetClientPreferHTML: Boolean;
@@ -2530,8 +2530,8 @@ begin
     end;
   end;
 
-  if not Result.IsEmpty then
-    Result := Result.Remove(0, 1)
+  if not StringIsEmpty(Result) then
+    Result := StringRemove(Result, 0, 1)
   else
     Result := 'any';
 end;
@@ -2581,8 +2581,8 @@ class
   function TMVCStaticContents.IsScriptableFile(StaticFileName: string;
   Config: TMVCConfig): Boolean;
 begin
-  Result := TPath.GetExtension(StaticFileName).ToLower = '.' +
-    Config[TMVCConfigKey.DefaultViewFileExtension].ToLower;
+  Result := LowerCase(TPath.GetExtension(StaticFileName)) = '.' +
+    LowerCase(Config[TMVCConfigKey.DefaultViewFileExtension]);
 end;
 
 class
@@ -2592,12 +2592,12 @@ var
   FileName: string;
 begin
   if TDirectory.Exists(AViewPath) then // absolute path
-    FileName := AViewPath + AWebRequestPath.Replace('/',
-      TPath.DirectorySeparatorChar)
+    FileName := AViewPath + StringReplace(AWebRequestPath, '/',
+      TPath.DirectorySeparatorChar, [rfReplaceAll])
   else
     FileName := GetApplicationFileNamePath + AViewPath +
     // relative path
-      AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar);
+      StringReplace(AWebRequestPath, '/', TPath.DirectorySeparatorChar, [rfReplaceAll]);
   Result := TFile.Exists(FileName);
   ARealFileName := FileName;
 end;
@@ -2674,7 +2674,7 @@ begin
   inherited;
   FWebRequest := AWebRequest as TApacheRequest;
 end;
-{$ENDIF}
+{$IFEND}
 { TMVCINDYWebRequest }
 
 constructor TMVCINDYWebRequest.Create(AWebRequest: TWebRequest);
@@ -2993,8 +2993,13 @@ begin
 end;
 
 function IsShuttingDown: Boolean;
+
+  function InterlockedRead(var Target: Int64): Int64;
+  begin
+    Result := TInterlocked.CompareExchange(Target, 0, 0);
+  end;
 begin
-  Result := TInterlocked.Read(_IsShuttingDown) = 1
+  Result := InterlockedRead(_IsShuttingDown) = 1
 end;
 
 procedure EnterInShutdownState;
@@ -3046,7 +3051,7 @@ end;
 
 function TUser.GetIsValidLoggedUser: Boolean;
 begin
-  Result := (not UserName.IsEmpty) and (LoggedSince > 0);
+  Result := (not StringIsEmpty(UserName)) and (LoggedSince > 0);
 end;
 
 function TUser.LoadFromSession(AWebSession: TWebSession): Boolean;
@@ -3058,11 +3063,11 @@ begin
   if not Assigned(AWebSession) then
     Exit(false);
   LSerObj := AWebSession[TMVCConstants.CURRENT_USER_SESSION_KEY];
-  Result := not LSerObj.IsEmpty;
+  Result := not StringIsEmpty(LSerObj);
   if Result then
   begin
     Clear;
-    LPieces := LSerObj.Split(['$$'], TStringSplitOptions.None);
+    LPieces := StringSplit(LSerObj, ['$$']);
     UserName := LPieces[0];
     LoggedSince := ISOStrToDateTime(LPieces[1]);
     Realm := LPieces[2];
@@ -3079,7 +3084,7 @@ var
   LRoles: string;
 begin
   if FRoles.Count > 0 then // bug in string.Join
-    LRoles := string.Join('$$', FRoles.ToArray)
+    LRoles := StringJoin('$$', FRoles.ToArray)
   else
     LRoles := '';
   AWebSession[TMVCConstants.CURRENT_USER_SESSION_KEY] := FUserName + '$$' +
