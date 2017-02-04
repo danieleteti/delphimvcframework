@@ -11,137 +11,132 @@ uses
   Vcl.DBCtrls;
 
 type
-  TForm4 = class(TForm)
+  TMainForm = class(TForm)
     Panel1: TPanel;
     DBGrid1: TDBGrid;
-    FDMemTable1: TFDMemTable;
-    FDMemTable1id: TIntegerField;
-    FDMemTable1code: TStringField;
-    FDMemTable1description: TStringField;
-    FDMemTable1price: TCurrencyField;
-    DataSource1: TDataSource;
-    btnGetListAsynch: TButton;
-    btnGetListSynch: TButton;
+    dsArticles: TFDMemTable;
+    dsArticlesid: TIntegerField;
+    dsArticlescode: TStringField;
+    dsArticlesdescription: TStringField;
+    dsArticlesprice: TCurrencyField;
+    dsrcArticles: TDataSource;
     DBNavigator1: TDBNavigator;
-    procedure Button1Click(Sender: TObject);
-    procedure btnGetListAsynchClick(Sender: TObject);
+    btnOpen: TButton;
+    btnClose: TButton;
     procedure FormCreate(Sender: TObject);
-    procedure FDMemTable1BeforePost(DataSet: TDataSet);
-    procedure FDMemTable1BeforeDelete(DataSet: TDataSet);
+    procedure dsArticlesBeforePost(DataSet: TDataSet);
+    procedure dsArticlesBeforeDelete(DataSet: TDataSet);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure dsArticlesBeforeRefresh(DataSet: TDataSet);
+    procedure dsArticlesAfterOpen(DataSet: TDataSet);
+    procedure btnOpenClick(Sender: TObject);
+    procedure btnCloseClick(Sender: TObject);
   private
-    CltAsynch: TRESTClient;
     FLoading: Boolean;
     Clt: TRESTClient;
     { Private declarations }
     procedure ShowError(const AResponse: IRESTResponse);
-  public
-    procedure RefreshAsynch;
   end;
 
 var
-  Form4: TForm4;
+  MainForm: TMainForm;
 
 implementation
 
 uses
-  ObjectsMappers;
+  ObjectsMappers, System.UITypes;
 
 {$R *.dfm}
 
 
-procedure TForm4.btnGetListAsynchClick(Sender: TObject);
+procedure TMainForm.btnCloseClick(Sender: TObject);
 begin
-  // this an asychronous request... just like you could do in jQuery
-  CltAsynch.Asynch(
-    procedure(Res: IRESTResponse)
-    begin
-      FDMemTable1.Close;
-      FDMemTable1.Open;
-      FLoading := true;
-      FDMemTable1.AppendFromJSONArrayString(Res.BodyAsString);
-      FLoading := false;
-    end,
-    nil, nil, true)
-    .doGET('/articles', []);
+  dsArticles.Close;
 end;
 
-procedure TForm4.Button1Click(Sender: TObject);
+procedure TMainForm.btnOpenClick(Sender: TObject);
 begin
-  RefreshAsynch;
+  dsArticles.Open;
 end;
 
-procedure TForm4.FDMemTable1BeforeDelete(DataSet: TDataSet);
+procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
 var
   Res: IRESTResponse;
 begin
-  if FDMemTable1.State = dsBrowse then
-    Res := Clt.DataSetDelete('/articles', FDMemTable1id.AsString);
-  if not(Res.ResponseCode in [200, 201]) then
+  // this a simple sychronous request...
+  Res := Clt.doGET('/articles', []);
+  DataSet.DisableControls;
+  try
+    FLoading := true;
+    dsArticles.AppendFromJSONArrayString(Res.BodyAsString);
+    FLoading := false;
+    dsArticles.First;
+  finally
+    DataSet.EnableControls;
+  end;
+end;
+
+procedure TMainForm.dsArticlesBeforeDelete(DataSet: TDataSet);
+var
+  Res: IRESTResponse;
+begin
+  if dsArticles.State = dsBrowse then
+    Res := Clt.DataSetDelete('/articles', dsArticlesid.AsString);
+  if not(Res.ResponseCode in [200]) then
   begin
     ShowError(Res);
     Abort;
-  end
-  else
-    Refresh;
+  end;
 end;
 
-procedure TForm4.FDMemTable1BeforePost(DataSet: TDataSet);
+procedure TMainForm.dsArticlesBeforePost(DataSet: TDataSet);
 var
   Res: IRESTResponse;
 begin
   if not FLoading then
   begin
-    if FDMemTable1.State = dsInsert then
-      Res := Clt.DataSetInsert('/articles', FDMemTable1)
+    if dsArticles.State = dsInsert then
+      Res := Clt.DataSetInsert('/articles', dsArticles)
     else
-      Res := Clt.DataSetUpdate('/articles', FDMemTable1, FDMemTable1id.AsString);
+      Res := Clt.DataSetUpdate('/articles', dsArticles, dsArticlesid.AsString);
     if not(Res.ResponseCode in [200, 201]) then
     begin
       ShowError(Res);
       Abort;
     end
     else
-      RefreshAsynch;
+      DataSet.Refresh;
   end;
 end;
 
-procedure TForm4.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  CltAsynch.Free;
-  Clt.Free;
-end;
-
-procedure TForm4.FormCreate(Sender: TObject);
-begin
-  Clt := TRESTClient.Create('localhost', 8080);
-
-  // just for demo, here's the asych version. It is the same :-)
-  // check the GETLISTASYNCH button
-  CltAsynch := TRESTClient.Create('localhost', 8080);
-end;
-
-procedure TForm4.RefreshAsynch;
+procedure TMainForm.dsArticlesBeforeRefresh(DataSet: TDataSet);
 var
   Res: IRESTResponse;
-  lRNo: Integer;
 begin
-  // this a simple sychronous request...
-  Res := Clt.doGET('/articles', []);
-  lRNo := FDMemTable1.RecNo;
-  FDMemTable1.Close;
-  FDMemTable1.Open;
+  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
   FLoading := true;
-  FDMemTable1.AppendFromJSONArrayString(Res.BodyAsString);
-  FDMemTable1.RecNo := lRNo;
+  dsArticles.Edit;
+  dsArticles.LoadFromJSONObjectString(Res.BodyAsString);
+  dsArticles.Post;
   FLoading := false;
 end;
 
-procedure TForm4.ShowError(const AResponse: IRESTResponse);
+procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  ShowMessage(
+  Clt.Free;
+end;
+
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+  Clt := TRESTClient.Create('localhost', 8080);
+end;
+
+procedure TMainForm.ShowError(const AResponse: IRESTResponse);
+begin
+  MessageDlg(
     AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
-    AResponse.BodyAsJsonObject.Get('message').JsonValue.Value);
+    AResponse.BodyAsJsonObject.Get('message').JsonValue.Value,
+    mtError, [mbOK], 0);
 end;
 
 end.

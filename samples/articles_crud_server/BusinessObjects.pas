@@ -70,8 +70,8 @@ end;
 procedure TArticle.CheckDelete;
 begin
   inherited;
-  if Price > 0 then
-    raise Exception.Create('Cannot delete an article with a price greater than 0 (yes, it is a silly check)');
+//  if Price > 0 then
+//    raise Exception.Create('Cannot delete an article with a price greater than 0 (yes, it is a silly check)');
 end;
 
 procedure TArticle.CheckInsert;

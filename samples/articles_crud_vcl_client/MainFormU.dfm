@@ -1,9 +1,9 @@
-object Form4: TForm4
+object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Articles CRUD SAMPLE'
   ClientHeight = 391
-  ClientWidth = 747
+  ClientWidth = 592
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,56 +18,57 @@ object Form4: TForm4
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 747
-    Height = 43
+    Width = 592
+    Height = 39
     Align = alTop
     TabOrder = 0
-    object btnGetListAsynch: TButton
-      AlignWithMargins = True
-      Left = 120
-      Top = 6
-      Width = 89
-      Height = 31
-      Margins.Left = 10
-      Margins.Top = 5
-      Margins.Right = 10
-      Margins.Bottom = 5
-      Align = alLeft
-      Caption = 'Get List Asynch'
-      TabOrder = 0
-      OnClick = btnGetListAsynchClick
-    end
-    object btnGetListSynch: TButton
-      AlignWithMargins = True
-      Left = 11
-      Top = 6
-      Width = 89
-      Height = 31
-      Margins.Left = 10
-      Margins.Top = 5
-      Margins.Right = 10
-      Margins.Bottom = 5
-      Align = alLeft
-      Caption = 'Get List'
-      TabOrder = 1
-      OnClick = Button1Click
-    end
+    ExplicitWidth = 747
     object DBNavigator1: TDBNavigator
-      Left = 222
-      Top = 8
-      Width = 240
-      Height = 25
-      DataSource = DataSource1
+      AlignWithMargins = True
+      Left = 301
+      Top = 4
+      Width = 287
+      Height = 31
+      DataSource = dsrcArticles
+      Align = alRight
+      TabOrder = 0
+      ExplicitLeft = 456
+      ExplicitHeight = 35
+    end
+    object btnOpen: TButton
+      AlignWithMargins = True
+      Left = 4
+      Top = 4
+      Width = 75
+      Height = 31
+      Align = alLeft
+      Caption = 'Open'
+      TabOrder = 1
+      OnClick = btnOpenClick
+      ExplicitLeft = 256
+      ExplicitTop = 8
+      ExplicitHeight = 25
+    end
+    object btnClose: TButton
+      AlignWithMargins = True
+      Left = 85
+      Top = 4
+      Width = 75
+      Height = 31
+      Align = alLeft
+      Caption = 'Close'
       TabOrder = 2
+      OnClick = btnCloseClick
+      ExplicitLeft = 314
     end
   end
   object DBGrid1: TDBGrid
     Left = 0
-    Top = 43
-    Width = 747
-    Height = 348
+    Top = 39
+    Width = 592
+    Height = 352
     Align = alClient
-    DataSource = DataSource1
+    DataSource = dsrcArticles
     TabOrder = 1
     TitleFont.Charset = DEFAULT_CHARSET
     TitleFont.Color = clWindowText
@@ -78,27 +79,34 @@ object Form4: TForm4
       item
         Expanded = False
         FieldName = 'id'
+        Title.Caption = '#ID'
         Visible = True
       end
       item
         Expanded = False
         FieldName = 'code'
+        Title.Caption = 'Code'
         Visible = True
       end
       item
         Expanded = False
         FieldName = 'description'
+        Title.Caption = 'Description'
+        Width = 265
         Visible = True
       end
       item
         Expanded = False
         FieldName = 'price'
+        Title.Caption = 'Price'
         Visible = True
       end>
   end
-  object FDMemTable1: TFDMemTable
-    BeforePost = FDMemTable1BeforePost
-    BeforeDelete = FDMemTable1BeforeDelete
+  object dsArticles: TFDMemTable
+    AfterOpen = dsArticlesAfterOpen
+    BeforePost = dsArticlesBeforePost
+    BeforeDelete = dsArticlesBeforeDelete
+    BeforeRefresh = dsArticlesBeforeRefresh
     FieldDefs = <>
     IndexDefs = <>
     FetchOptions.AssignedValues = [evMode]
@@ -110,23 +118,23 @@ object Form4: TForm4
     StoreDefs = True
     Left = 136
     Top = 120
-    object FDMemTable1id: TIntegerField
+    object dsArticlesid: TIntegerField
       FieldName = 'id'
     end
-    object FDMemTable1code: TStringField
+    object dsArticlescode: TStringField
       FieldName = 'code'
     end
-    object FDMemTable1description: TStringField
+    object dsArticlesdescription: TStringField
       FieldName = 'description'
       Size = 50
     end
-    object FDMemTable1price: TCurrencyField
+    object dsArticlesprice: TCurrencyField
       FieldName = 'price'
     end
   end
-  object DataSource1: TDataSource
-    DataSet = FDMemTable1
-    Left = 312
-    Top = 192
+  object dsrcArticles: TDataSource
+    DataSet = dsArticles
+    Left = 136
+    Top = 184
   end
 end
