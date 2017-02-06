@@ -13,8 +13,8 @@ type
     [MVCDoc('Returns the list of articles')]
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-
     procedure GetArticles;
+
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
