@@ -22,7 +22,6 @@ object MainForm: TMainForm
     Height = 39
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 747
     object DBNavigator1: TDBNavigator
       AlignWithMargins = True
       Left = 301
@@ -32,8 +31,6 @@ object MainForm: TMainForm
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 0
-      ExplicitLeft = 456
-      ExplicitHeight = 35
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -45,9 +42,6 @@ object MainForm: TMainForm
       Caption = 'Open'
       TabOrder = 1
       OnClick = btnOpenClick
-      ExplicitLeft = 256
-      ExplicitTop = 8
-      ExplicitHeight = 25
     end
     object btnClose: TButton
       AlignWithMargins = True
@@ -59,7 +53,6 @@ object MainForm: TMainForm
       Caption = 'Close'
       TabOrder = 2
       OnClick = btnCloseClick
-      ExplicitLeft = 314
     end
   end
   object DBGrid1: TDBGrid
@@ -109,6 +102,7 @@ object MainForm: TMainForm
     BeforeRefresh = dsArticlesBeforeRefresh
     FieldDefs = <>
     IndexDefs = <>
+    BeforeRowRequest = dsArticlesBeforeRowRequest
     FetchOptions.AssignedValues = [evMode]
     FetchOptions.Mode = fmAll
     ResourceOptions.AssignedValues = [rvSilentMode]

@@ -31,6 +31,7 @@ type
     procedure dsArticlesAfterOpen(DataSet: TDataSet);
     procedure btnOpenClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
+    procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
   private
     FLoading: Boolean;
     Clt: TRESTClient;
@@ -110,15 +111,23 @@ begin
 end;
 
 procedure TMainForm.dsArticlesBeforeRefresh(DataSet: TDataSet);
-var
-  Res: IRESTResponse;
+//var
+//  Res: IRESTResponse;
 begin
-  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
-  FLoading := true;
-  dsArticles.Edit;
-  dsArticles.LoadFromJSONObjectString(Res.BodyAsString);
-  dsArticles.Post;
-  FLoading := false;
+  DataSet.Close;
+  DataSet.Open;
+//
+//  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
+//  FLoading := true;
+//  dsArticles.Edit;
+//  dsArticles.LoadFromJSONObjectString(Res.BodyAsString);
+//  dsArticles.Post;
+//  FLoading := false;
+end;
+
+procedure TMainForm.dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
+begin
+  ShowMessage('RowRequest');
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
