@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'Articles CRUD SAMPLE'
   ClientHeight = 391
-  ClientWidth = 592
+  ClientWidth = 669
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,19 +18,21 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 592
+    Width = 669
     Height = 39
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 592
     object DBNavigator1: TDBNavigator
       AlignWithMargins = True
-      Left = 301
+      Left = 378
       Top = 4
       Width = 287
       Height = 31
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 0
+      ExplicitLeft = 301
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -43,7 +45,18 @@ object MainForm: TMainForm
       TabOrder = 1
       OnClick = btnOpenClick
     end
-    object btnClose: TButton
+    object btnRefreshRecord: TButton
+      AlignWithMargins = True
+      Left = 166
+      Top = 4
+      Width = 107
+      Height = 31
+      Align = alLeft
+      Caption = 'Refresh Record'
+      TabOrder = 2
+      OnClick = btnRefreshRecordClick
+    end
+    object Button1: TButton
       AlignWithMargins = True
       Left = 85
       Top = 4
@@ -51,14 +64,14 @@ object MainForm: TMainForm
       Height = 31
       Align = alLeft
       Caption = 'Close'
-      TabOrder = 2
+      TabOrder = 3
       OnClick = btnCloseClick
     end
   end
   object DBGrid1: TDBGrid
     Left = 0
     Top = 39
-    Width = 592
+    Width = 669
     Height = 352
     Align = alClient
     DataSource = dsrcArticles

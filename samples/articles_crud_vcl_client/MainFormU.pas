@@ -22,7 +22,8 @@ type
     dsrcArticles: TDataSource;
     DBNavigator1: TDBNavigator;
     btnOpen: TButton;
-    btnClose: TButton;
+    btnRefreshRecord: TButton;
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure dsArticlesBeforePost(DataSet: TDataSet);
     procedure dsArticlesBeforeDelete(DataSet: TDataSet);
@@ -32,6 +33,7 @@ type
     procedure btnOpenClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
+    procedure btnRefreshRecordClick(Sender: TObject);
   private
     FLoading: Boolean;
     Clt: TRESTClient;
@@ -58,6 +60,11 @@ end;
 procedure TMainForm.btnOpenClick(Sender: TObject);
 begin
   dsArticles.Open;
+end;
+
+procedure TMainForm.btnRefreshRecordClick(Sender: TObject);
+begin
+  dsArticles.RefreshRecord;
 end;
 
 procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
@@ -111,23 +118,21 @@ begin
 end;
 
 procedure TMainForm.dsArticlesBeforeRefresh(DataSet: TDataSet);
-//var
-//  Res: IRESTResponse;
 begin
   DataSet.Close;
   DataSet.Open;
-//
-//  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
-//  FLoading := true;
-//  dsArticles.Edit;
-//  dsArticles.LoadFromJSONObjectString(Res.BodyAsString);
-//  dsArticles.Post;
-//  FLoading := false;
 end;
 
 procedure TMainForm.dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
+var
+  Res: IRESTResponse;
 begin
-  ShowMessage('RowRequest');
+  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
+  FLoading := true;
+  DataSet.Edit;
+  DataSet.LoadFromJSONObjectString(Res.BodyAsString);
+  DataSet.Post;
+  FLoading := false;
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
