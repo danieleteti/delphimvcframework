@@ -30,7 +30,9 @@ uses
   TestFramework,
   MVCFramework.Router,
   System.Generics.Collections,
-  MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT;
+  BOs,
+  MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT,
+  MVCFramework.Serializer.Intf;
 
 type
   TTestMappers = class(TTestCase)
@@ -106,6 +108,21 @@ type
     procedure TestDefaults;
   end;
 
+  { This is the base test case for all the serunser testcases,
+    check 'SerializationFrameworkTestU.pas' }
+  TMVCSerUnSerTestCase = class abstract(TTestCase)
+  private
+    FSerUnSer: IMVCSerUnSer;
+  protected
+    procedure SetSerUnSer(const SerUnSer: IMVCSerUnSer);
+    procedure SetUp; override;
+    function GetObjectsList: TObjectList<TMyObject>;
+    property SerUnSer: IMVCSerUnSer read FSerUnSer;
+  published
+    procedure TestSerUnSerObject; virtual; abstract;
+    procedure TestSerUnSerObjectList; virtual; abstract;
+  end;
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -116,7 +133,6 @@ uses System.DateUtils, System.Math, MVCFramework.Commons,
   Web.HTTPApp, Soap.EncdDecd,
   IdHashMessageDigest, idHash,
   ObjectsMappers,
-  BOs,
   MVCFramework.HMAC,
 {$IF CompilerVersion < 27}
   Data.DBXJSON,
@@ -158,7 +174,7 @@ begin
   aStream.Position := 0;
   idmd5 := TIdHashMessageDigest5.Create;
   try
-    result := idmd5.HashBytesAsHex(idmd5.HashStream(aStream));
+    Result := idmd5.HashBytesAsHex(idmd5.HashStream(aStream));
   finally
     idmd5.Free;
   end;
@@ -1440,6 +1456,30 @@ begin
   CheckEquals('dteti', FJWT.CustomClaims['username']);
   CheckEquals('admin', FJWT.CustomClaims['userrole']);
 
+end;
+
+{ TMVCSerUnSerTestCase }
+
+function TMVCSerUnSerTestCase.GetObjectsList: TObjectList<TMyObject>;
+var
+  I: Integer;
+begin
+  Result := TObjectList<TMyObject>.Create(true);
+  for I := 1 to 10 do
+  begin
+    Result.Add(GetMyObject);
+    Result.Last.PropInteger := I;
+  end;
+end;
+
+procedure TMVCSerUnSerTestCase.SetSerUnSer(const SerUnSer: IMVCSerUnSer);
+begin
+  FSerUnSer := SerUnSer;
+end;
+
+procedure TMVCSerUnSerTestCase.SetUp;
+begin
+  raise Exception.Create('You should override this to use a specific MVCSerUnSer');
 end;
 
 initialization

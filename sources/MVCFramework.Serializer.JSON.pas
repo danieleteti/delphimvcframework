@@ -11,14 +11,14 @@ uses MVCFramework.Serializer.Intf
     , System.SysUtils
     , System.Classes
     , MVCFramework.Serializer.Commons
-    , MVCFramework.TypesAliases
+    , MVCFramework.TypesAliases, MVCFramework.DuckTyping
     ;
 
 type
   TMVCJSONSerUnSer = class(TInterfacedObject, IMVCSerUnSer)
   private
     class var CTX: TRTTIContext;
-    { following methods are used by the serializer/unserializer to handle with the ser/unser logic }
+    { following methods are used internally by the serializer/unserializer to handle with the ser/unser logic }
     function SerializeFloatProperty(AObject: TObject;
       ARTTIProperty: TRttiProperty): TJSONValue;
     function SerializeFloatField(AObject: TObject; ARttiField: TRttiField)
@@ -36,20 +36,25 @@ type
     function PropertyExists(JSONObject: TJSONObject;
       PropertyName: string): boolean;
     function GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
+    function JSONObjectToObject(Clazz: TClass;
+      AJSONObject: TJSONObject): TObject;
   protected
     { IMVCSerializer }
     function SerializeObject(AObject: TObject;
       AIgnoredProperties: array of string): string;
     function SerializeDataSet(ADataSet: TDataSet;
       AIgnoredFields: array of string): string;
+    function SerializeCollection(AList: TObject;
+      AIgnoredProperties: array of string): String;
     { IMVCDeserializer }
     procedure DeserializeObject(ASerializedObject: string; AObject: TObject);
+    procedure DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
   end;
 
 implementation
 
 uses
-  MVCFramework.DuckTyping, ObjectsMappers;
+  ObjectsMappers, MVCFramework.Patches, MVCFramework.RTTIUtils;
 
 { TMVCJSONSerializer }
 
@@ -68,328 +73,6 @@ begin
   pair := JSONObject.Get(PropertyName);
   Result := pair;
 end;
-
-function TMVCJSONSerUnSer.ObjectToJSONObject(AObject: TObject;
-  AIgnoredProperties: array of string): TJSONObject;
-var
-  lType: TRttiType;
-  lProperties: TArray<TRttiProperty>;
-  lProperty: TRttiProperty;
-  f: string;
-  JSONObject: TJSONObject;
-  Arr: TJSONArray;
-  list: IWrappedList;
-  Obj, o: TObject;
-  DoNotSerializeThis: boolean;
-  I: Integer;
-  ThereAreIgnoredProperties: boolean;
-  ts: TTimeStamp;
-  sr: TStringStream;
-  SS: TStringStream;
-  _attrser: MapperSerializeAsString;
-  SerEnc: TEncoding;
-begin
-  ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
-  JSONObject := TJSONObject.Create;
-  lType := CTX.GetType(AObject.ClassInfo);
-  lProperties := lType.GetProperties;
-  for lProperty in lProperties do
-  begin
-    // f := LowerCase(_property.Name);
-    f := TSerializerHelpers.GetKeyName(lProperty, lType);
-    // Delete(f, 1, 1);
-    if ThereAreIgnoredProperties then
-    begin
-      DoNotSerializeThis := false;
-      for I := low(AIgnoredProperties) to high(AIgnoredProperties) do
-        if SameText(f, AIgnoredProperties[I]) then
-        begin
-          DoNotSerializeThis := True;
-          Break;
-        end;
-      if DoNotSerializeThis then
-        Continue;
-    end;
-
-    if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lProperty) then
-      Continue;
-
-    case lProperty.PropertyType.TypeKind of
-      tkInteger, tkInt64:
-        JSONObject.AddPair(f, TJSONNumber.Create(lProperty.GetValue(AObject)
-          .AsInteger));
-      tkFloat:
-        begin
-          JSONObject.AddPair(f, SerializeFloatProperty(AObject, lProperty));
-          {
-            if _property.PropertyType.QualifiedName = 'System.TDate' then
-            begin
-            if _property.GetValue(AObject).AsExtended = 0 then
-            JSONObject.AddPair(f, TJSONNull.Create)
-            else
-            JSONObject.AddPair(f, ISODateToString(_property.GetValue(AObject).AsExtended))
-            end
-            else if _property.PropertyType.QualifiedName = 'System.TDateTime' then
-            begin
-            if _property.GetValue(AObject).AsExtended = 0 then
-            JSONObject.AddPair(f, TJSONNull.Create)
-            else
-            JSONObject.AddPair(f, ISODateTimeToString(_property.GetValue(AObject).AsExtended))
-            end
-            else if _property.PropertyType.QualifiedName = 'System.TTime' then
-            JSONObject.AddPair(f, ISOTimeToString(_property.GetValue(AObject).AsExtended))
-            else
-            JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsExtended));
-          }
-        end;
-      tkString, tkLString, tkWString, tkUString:
-        JSONObject.AddPair(f, lProperty.GetValue(AObject).AsString);
-      tkEnumeration:
-        begin
-          JSONObject.AddPair(f, SerializeEnumerationProperty(AObject,
-            lProperty));
-          // if _property.PropertyType.QualifiedName = 'System.Boolean' then
-          // begin
-          // if _property.GetValue(AObject).AsBoolean then
-          // JSONObject.AddPair(f, TJSONTrue.Create)
-          // else
-          // JSONObject.AddPair(f, TJSONFalse.Create);
-          // end
-          // else
-          // begin
-          // JSONObject.AddPair(f, TJSONNumber.Create(_property.GetValue(AObject).AsOrdinal));
-          // end;
-        end;
-      tkRecord:
-        begin
-          if lProperty.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp'
-          then
-          begin
-            ts := lProperty.GetValue(AObject)
-              .AsType<System.SysUtils.TTimeStamp>;
-            JSONObject.AddPair(f, TJSONNumber.Create(TimeStampToMsecs(ts)));
-          end;
-        end;
-      tkClass:
-        begin
-          o := lProperty.GetValue(AObject).AsObject;
-          if Assigned(o) then
-          begin
-            if TDuckTypedList.CanBeWrappedAsList(o) then
-            begin
-              if True { Mapper.HasAttribute<MapperItemsClassType>(_property, attr) or
-                Mapper.HasAttribute<MapperItemsClassType>
-                (_property.PropertyType, attr) } then
-              begin
-                list := WrapAsList(o);
-                if Assigned(list) then
-                begin
-                  Arr := TJSONArray.Create;
-                  JSONObject.AddPair(f, Arr);
-                  for Obj in list do
-                    if Assigned(Obj) then
-                      // nil element into the list are not serialized
-                      Arr.AddElement(ObjectToJSONObject(Obj, []));
-                end;
-              end
-              // else // Ezequiel J. Müller convert regular list
-              // begin
-              // ListCount := ctx.GetType(o.ClassInfo).GetProperty('Count')
-              // .GetValue(o).AsInteger;
-              // ListItems := ctx.GetType(o.ClassInfo)
-              // .GetIndexedProperty('Items').ReadMethod;
-              // if (ListCount > 0) and (ListItems <> nil) then
-              // begin
-              // Arr := TJSONArray.Create;
-              // JSONObject.AddPair(f, Arr);
-              // for I := 0 to ListCount - 1 do
-              // begin
-              // ListItemValue := ListItems.Invoke(o, [I]);
-              // case ListItemValue.TypeInfo.Kind of
-              // tkInteger:
-              // Arr.AddElement
-              // (TJSONNumber.Create(ListItemValue.AsInteger));
-              // tkInt64:
-              // Arr.AddElement
-              // (TJSONNumber.Create(ListItemValue.AsInt64));
-              // tkFloat:
-              // Arr.AddElement
-              // (TJSONNumber.Create(ListItemValue.AsExtended));
-              // tkString, tkLString, tkWString, tkUString:
-              // Arr.AddElement
-              // (TJSONString.Create(ListItemValue.AsString));
-              // end;
-              // end;
-              // end;
-              // end;
-            end
-            else if o is TStream then
-            begin
-              if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(lProperty, _attrser) then
-              begin
-                // serialize the stream as a normal string...
-                TStream(o).Position := 0;
-                SerEnc := TEncoding.GetEncoding(_attrser.Encoding);
-                sr := TStringStream.Create('', SerEnc);
-                try
-                  sr.LoadFromStream(TStream(o));
-                  JSONObject.AddPair(f, sr.DataString);
-                finally
-                  sr.Free;
-                end;
-              end
-              else
-              begin
-                // serialize the stream as Base64 encoded string...
-                TStream(o).Position := 0;
-                SS := TStringStream.Create;
-                try
-                  TSerializerHelpers.EncodeStream(TStream(o), SS);
-                  JSONObject.AddPair(f, SS.DataString);
-                finally
-                  SS.Free;
-                end;
-              end;
-            end
-            else
-            begin
-              JSONObject.AddPair(f,
-                ObjectToJSONObject(lProperty.GetValue(AObject).AsObject, []));
-            end;
-          end
-          else
-          begin
-            if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(lProperty) then
-              JSONObject.AddPair(f, '')
-            else
-              JSONObject.AddPair(f, TJSONNull.Create);
-          end;
-        end;
-    end;
-  end;
-  Result := JSONObject;
-
-end;
-
-function TMVCJSONSerUnSer.SerializeFloatProperty(AObject: TObject;
-  ARTTIProperty: TRttiProperty): TJSONValue;
-begin
-  if ARTTIProperty.PropertyType.QualifiedName = 'System.TDate' then
-  begin
-    if ARTTIProperty.GetValue(AObject).AsExtended = 0 then
-      Result := TJSONNull.Create
-    else
-      Result := TJSONString.Create
-        (ISODateToString(ARTTIProperty.GetValue(AObject).AsExtended))
-  end
-  else if ARTTIProperty.PropertyType.QualifiedName = 'System.TDateTime' then
-  begin
-    if ARTTIProperty.GetValue(AObject).AsExtended = 0 then
-      Result := TJSONNull.Create
-    else
-      Result := TJSONString.Create
-        (ISODateTimeToString(ARTTIProperty.GetValue(AObject).AsExtended))
-  end
-  else if ARTTIProperty.PropertyType.QualifiedName = 'System.TTime' then
-    Result := TJSONString.Create(ISOTimeToString(ARTTIProperty.GetValue(AObject)
-      .AsExtended))
-  else
-    Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsExtended);
-
-  // if ARTTIProperty.PropertyType.QualifiedName = 'System.TDate' then
-  // Result := TJSONString.Create(ISODateToString(ARTTIProperty.GetValue(AObject).AsExtended))
-  // else if ARTTIProperty.PropertyType.QualifiedName = 'System.TDateTime' then
-  // Result := TJSONString.Create(ISODateTimeToString(ARTTIProperty.GetValue(AObject).AsExtended))
-  // else if ARTTIProperty.PropertyType.QualifiedName = 'System.TTime' then
-  // Result := TJSONString.Create(ISOTimeToString(ARTTIProperty.GetValue(AObject).AsExtended))
-  // else
-  // Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsExtended);
-end;
-
-function TMVCJSONSerUnSer.SerializeObject(AObject: TObject;
-  AIgnoredProperties: array of string): string;
-var
-  lJSON: TJSONObject;
-begin
-  lJSON := ObjectToJSONObject(AObject, AIgnoredProperties);
-  try
-    Result := lJSON.ToJSON;
-  finally
-    lJSON.Free;
-  end;
-end;
-
-function TMVCJSONSerUnSer.PropertyExists(JSONObject: TJSONObject;
-  PropertyName: string): boolean;
-begin
-  Result := Assigned(GetPair(JSONObject, PropertyName));
-end;
-
-function TMVCJSONSerUnSer.SerializeDataSet(ADataSet: TDataSet;
-  AIgnoredFields: array of string): string;
-begin
-
-end;
-
-function TMVCJSONSerUnSer.SerializeEnumerationField(AObject: TObject;
-  ARttiField: TRttiField): TJSONValue;
-begin
-  if ARttiField.FieldType.QualifiedName = 'System.Boolean' then
-  begin
-    if ARttiField.GetValue(AObject).AsBoolean then
-      Result := TJSONTrue.Create
-    else
-      Result := TJSONFalse.Create;
-  end
-  else
-  begin
-    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsOrdinal);
-  end;
-end;
-
-function TMVCJSONSerUnSer.SerializeEnumerationProperty(AObject: TObject;
-  ARTTIProperty: TRttiProperty): TJSONValue;
-begin
-  if ARTTIProperty.PropertyType.QualifiedName = 'System.Boolean' then
-  begin
-    if ARTTIProperty.GetValue(AObject).AsBoolean then
-      Result := TJSONTrue.Create
-    else
-      Result := TJSONFalse.Create;
-  end
-  else
-  begin
-    Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsOrdinal);
-  end;
-end;
-
-function TMVCJSONSerUnSer.SerializeFloatField(AObject: TObject;
-  ARttiField: TRttiField): TJSONValue;
-begin
-  if ARttiField.FieldType.QualifiedName = 'System.TDate' then
-  begin
-    if ARttiField.GetValue(AObject).AsExtended = 0 then
-      Result := TJSONNull.Create
-    else
-      Result := TJSONString.Create(ISODateToString(ARttiField.GetValue(AObject)
-        .AsExtended))
-  end
-  else if ARttiField.FieldType.QualifiedName = 'System.TDateTime' then
-  begin
-    if ARttiField.GetValue(AObject).AsExtended = 0 then
-      Result := TJSONNull.Create
-    else
-      Result := TJSONString.Create
-        (ISODateTimeToString(ARttiField.GetValue(AObject).AsExtended))
-  end
-  else if ARttiField.FieldType.QualifiedName = 'System.TTime' then
-    Result := TJSONString.Create(ISOTimeToString(ARttiField.GetValue(AObject)
-      .AsExtended))
-  else
-    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
-end;
-
-{ TMVCJSONDeserializer }
 
 procedure InternalJSONObjectToObject(CTX: TRTTIContext;
   AJSONObject: TJSONObject; AObject: TObject);
@@ -600,6 +283,324 @@ begin
           end;
         end;
     end;
+  end;
+end;
+
+function TMVCJSONSerUnSer.JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
+var
+  AObject: TObject;
+begin
+  AObject := TRTTIUtils.CreateObject(Clazz.QualifiedClassName);
+  try
+    InternalJSONObjectToObject(CTX, AJSONObject, AObject);
+    Result := AObject;
+  except
+    on E: Exception do
+    begin
+      FreeAndNil(AObject);
+      raise EMVCDeserializationException.Create(E.Message);
+    end;
+  end;
+end;
+
+function TMVCJSONSerUnSer.ObjectToJSONObject(AObject: TObject;
+  AIgnoredProperties: array of string): TJSONObject;
+var
+  lType: TRttiType;
+  lProperties: TArray<TRttiProperty>;
+  lProperty: TRttiProperty;
+  f: string;
+  JSONObject: TJSONObject;
+  Arr: TJSONArray;
+  list: IMVCList;
+  Obj, o: TObject;
+  DoNotSerializeThis: boolean;
+  I: Integer;
+  ThereAreIgnoredProperties: boolean;
+  ts: TTimeStamp;
+  sr: TStringStream;
+  SS: TStringStream;
+  _attrser: MapperSerializeAsString;
+  SerEnc: TEncoding;
+begin
+  ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
+  JSONObject := TJSONObject.Create;
+  lType := CTX.GetType(AObject.ClassInfo);
+  lProperties := lType.GetProperties;
+  for lProperty in lProperties do
+  begin
+    // f := LowerCase(_property.Name);
+    f := TSerializerHelpers.GetKeyName(lProperty, lType);
+    // Delete(f, 1, 1);
+    if ThereAreIgnoredProperties then
+    begin
+      DoNotSerializeThis := false;
+      for I := low(AIgnoredProperties) to high(AIgnoredProperties) do
+        if SameText(f, AIgnoredProperties[I]) then
+        begin
+          DoNotSerializeThis := True;
+          Break;
+        end;
+      if DoNotSerializeThis then
+        Continue;
+    end;
+
+    if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lProperty) then
+      Continue;
+
+    case lProperty.PropertyType.TypeKind of
+      tkInteger, tkInt64:
+        JSONObject.AddPair(f, TJSONNumber.Create(lProperty.GetValue(AObject)
+          .AsInteger));
+      tkFloat:
+        begin
+          JSONObject.AddPair(f, SerializeFloatProperty(AObject, lProperty));
+        end;
+      tkString, tkLString, tkWString, tkUString:
+        JSONObject.AddPair(f, lProperty.GetValue(AObject).AsString);
+      tkEnumeration:
+        begin
+          JSONObject.AddPair(f, SerializeEnumerationProperty(AObject,
+            lProperty));
+        end;
+      tkRecord:
+        begin
+          if lProperty.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp'
+          then
+          begin
+            ts := lProperty.GetValue(AObject)
+              .AsType<System.SysUtils.TTimeStamp>;
+            JSONObject.AddPair(f, TJSONNumber.Create(TimeStampToMsecs(ts)));
+          end;
+        end;
+      tkClass:
+        begin
+          o := lProperty.GetValue(AObject).AsObject;
+          if Assigned(o) then
+          begin
+            if TDuckTypedList.CanBeWrappedAsList(o) then
+            begin
+              list := TDuckTypedList.Wrap(o);
+              if Assigned(list) then
+              begin
+                Arr := TJSONArray.Create;
+                JSONObject.AddPair(f, Arr);
+                for Obj in list do
+                  if Assigned(Obj) then
+                    // nil element into the list are not serialized
+                    Arr.AddElement(ObjectToJSONObject(Obj, []));
+              end;
+            end
+            else if o is TStream then
+            begin
+              if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(lProperty, _attrser) then
+              begin
+                // serialize the stream as a normal string...
+                TStream(o).Position := 0;
+                SerEnc := TEncoding.GetEncoding(_attrser.Encoding);
+                sr := TStringStream.Create('', SerEnc);
+                try
+                  sr.LoadFromStream(TStream(o));
+                  JSONObject.AddPair(f, sr.DataString);
+                finally
+                  sr.Free;
+                end;
+              end
+              else
+              begin
+                // serialize the stream as Base64 encoded string...
+                TStream(o).Position := 0;
+                SS := TStringStream.Create;
+                try
+                  TSerializerHelpers.EncodeStream(TStream(o), SS);
+                  JSONObject.AddPair(f, SS.DataString);
+                finally
+                  SS.Free;
+                end;
+              end;
+            end
+            else
+            begin
+              JSONObject.AddPair(f,
+                ObjectToJSONObject(lProperty.GetValue(AObject).AsObject, []));
+            end;
+          end
+          else
+          begin
+            if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(lProperty) then
+              JSONObject.AddPair(f, '')
+            else
+              JSONObject.AddPair(f, TJSONNull.Create);
+          end;
+        end;
+    end;
+  end;
+  Result := JSONObject;
+
+end;
+
+function TMVCJSONSerUnSer.SerializeFloatProperty(AObject: TObject;
+  ARTTIProperty: TRttiProperty): TJSONValue;
+begin
+  if ARTTIProperty.PropertyType.QualifiedName = 'System.TDate' then
+  begin
+    if ARTTIProperty.GetValue(AObject).AsExtended = 0 then
+      Result := TJSONNull.Create
+    else
+      Result := TJSONString.Create
+        (ISODateToString(ARTTIProperty.GetValue(AObject).AsExtended))
+  end
+  else if ARTTIProperty.PropertyType.QualifiedName = 'System.TDateTime' then
+  begin
+    if ARTTIProperty.GetValue(AObject).AsExtended = 0 then
+      Result := TJSONNull.Create
+    else
+      Result := TJSONString.Create
+        (ISODateTimeToString(ARTTIProperty.GetValue(AObject).AsExtended))
+  end
+  else if ARTTIProperty.PropertyType.QualifiedName = 'System.TTime' then
+    Result := TJSONString.Create(ISOTimeToString(ARTTIProperty.GetValue(AObject)
+      .AsExtended))
+  else
+    Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsExtended);
+end;
+
+function TMVCJSONSerUnSer.SerializeObject(AObject: TObject;
+  AIgnoredProperties: array of string): string;
+var
+  lJSON: TJSONObject;
+begin
+  lJSON := ObjectToJSONObject(AObject, AIgnoredProperties);
+  try
+    Result := lJSON.ToJSON;
+  finally
+    lJSON.Free;
+  end;
+end;
+
+function TMVCJSONSerUnSer.SerializeCollection(AList: TObject;
+  AIgnoredProperties: array of string): String;
+var
+  I: Integer;
+  JV: TJSONObject;
+  lList: IMVCList;
+  lJArr: TJSONArray;
+begin
+  if Assigned(AList) then
+  begin
+    lList := WrapAsList(AList);
+    lJArr := TJSONArray.Create;
+    try
+      // AList.OwnsObjects := AOwnsChildObjects;
+      for I := 0 to lList.Count - 1 do
+      begin
+        JV := ObjectToJSONObject(lList.GetItem(I), AIgnoredProperties);
+        // if Assigned(AForEach) then
+        // AForEach(JV);
+        lJArr.AddElement(JV);
+      end;
+      Result := lJArr.ToJSON;
+    finally
+      lJArr.Free;
+    end;
+  end
+  else
+  begin
+    raise EMVCSerializationException.Create('List is nil');
+  end;
+end;
+
+function TMVCJSONSerUnSer.PropertyExists(JSONObject: TJSONObject;
+  PropertyName: string): boolean;
+begin
+  Result := Assigned(GetPair(JSONObject, PropertyName));
+end;
+
+function TMVCJSONSerUnSer.SerializeDataSet(ADataSet: TDataSet;
+  AIgnoredFields: array of string): string;
+begin
+
+end;
+
+function TMVCJSONSerUnSer.SerializeEnumerationField(AObject: TObject;
+  ARttiField: TRttiField): TJSONValue;
+begin
+  if ARttiField.FieldType.QualifiedName = 'System.Boolean' then
+  begin
+    if ARttiField.GetValue(AObject).AsBoolean then
+      Result := TJSONTrue.Create
+    else
+      Result := TJSONFalse.Create;
+  end
+  else
+  begin
+    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsOrdinal);
+  end;
+end;
+
+function TMVCJSONSerUnSer.SerializeEnumerationProperty(AObject: TObject;
+  ARTTIProperty: TRttiProperty): TJSONValue;
+begin
+  if ARTTIProperty.PropertyType.QualifiedName = 'System.Boolean' then
+  begin
+    if ARTTIProperty.GetValue(AObject).AsBoolean then
+      Result := TJSONTrue.Create
+    else
+      Result := TJSONFalse.Create;
+  end
+  else
+  begin
+    Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsOrdinal);
+  end;
+end;
+
+function TMVCJSONSerUnSer.SerializeFloatField(AObject: TObject;
+  ARttiField: TRttiField): TJSONValue;
+begin
+  if ARttiField.FieldType.QualifiedName = 'System.TDate' then
+  begin
+    if ARttiField.GetValue(AObject).AsExtended = 0 then
+      Result := TJSONNull.Create
+    else
+      Result := TJSONString.Create(ISODateToString(ARttiField.GetValue(AObject)
+        .AsExtended))
+  end
+  else if ARttiField.FieldType.QualifiedName = 'System.TDateTime' then
+  begin
+    if ARttiField.GetValue(AObject).AsExtended = 0 then
+      Result := TJSONNull.Create
+    else
+      Result := TJSONString.Create
+        (ISODateTimeToString(ARttiField.GetValue(AObject).AsExtended))
+  end
+  else if ARttiField.FieldType.QualifiedName = 'System.TTime' then
+    Result := TJSONString.Create(ISOTimeToString(ARttiField.GetValue(AObject)
+      .AsExtended))
+  else
+    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
+end;
+
+{ TMVCJSONDeserializer }
+
+procedure TMVCJSONSerUnSer.DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
+var
+  I: Integer;
+  lJArr: TJSONArray;
+  lJValue: TJSONValue;
+begin
+  if Trim(ASerializedObjectList) = '' then
+    raise EMVCDeserializationException.Create('Invalid serialized data');
+  lJValue := TJSONObject.ParseJSONValue(ASerializedObjectList);
+  try
+    if (lJValue = nil) or (not(lJValue is TJSONArray)) then
+      raise EMVCDeserializationException.Create('Serialized data is not a valid JSON Array');
+    lJArr := TJSONArray(lJValue);
+    for I := 0 to lJArr.Size - 1 do
+    begin
+      AList.Add(JSONObjectToObject(AClazz, lJArr.Get(I) as TJSONObject));
+    end;
+  finally
+    lJValue.Free;
   end;
 end;
 

@@ -27,7 +27,7 @@ unit BOs;
 interface
 
 uses
-  FrameworkTestsU, system.TimeSpan, system.SysUtils, generics.collections,
+  system.TimeSpan, system.SysUtils, generics.collections,
   ObjectsMappers, system.Classes;
 
 type

@@ -62,8 +62,8 @@ type
 
   TSortingType = (soAscending, soDescending);
 
-  IWrappedList = interface
-    ['{B60AF5A6-7C31-4EAA-8DFB-D8BD3E112EE7}']
+  IMVCList = interface
+    ['{35BFF7E7-7CDA-4DCF-8618-33B9E92EA7CA}']
     function Count: Integer;
     function GetItem(const index: Integer): TObject;
     procedure Add(const AObject: TObject);
@@ -77,11 +77,13 @@ type
     property OwnsObjects: boolean read GetOwnsObjects write SetOwnsObjects;
   end;
 
+  IWrappedList = IMVCList;
+
   TDuckTypedList = class(TInterfacedObject, IWrappedList)
   private
     FOwnsObject: boolean;
   protected
-    FCTX: TRTTIContext;
+    class var CTX: TRTTIContext;
     FObjectAsDuck: TObject;
     FAddMethod: TRttiMethod;
     FClearMethod: TRttiMethod;
@@ -112,6 +114,7 @@ type
       : boolean; overload;
     class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface)
       : boolean; overload;
+    class function Wrap(const AObjectAsDuck: TObject): IMVCList;
   end;
 
 function WrapAsList(const AObject: TObject; aOwnsObject: boolean = false)
@@ -216,32 +219,32 @@ begin
   inherited Create;
   FOwnsObject := aOwnsObject;
   FObjectAsDuck := AObjectAsDuck;
-  FAddMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add');
+  FAddMethod := CTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add');
   if not Assigned(FAddMethod) then
     raise EMVCException.Create('Cannot find method "Add" in the duck object');
-  FClearMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear');
+  FClearMethod := CTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear');
   if not Assigned(FClearMethod) then
     raise EMVCException.Create('Cannot find method "Clear" in the duck object');
   FGetItemMethod := nil;
 
 {$IF CompilerVersion >= 23}
-  FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
+  FGetItemMethod := CTX.GetType(AObjectAsDuck.ClassInfo)
     .GetIndexedProperty('Items').ReadMethod;
 
 {$IFEND}
   if not Assigned(FGetItemMethod) then
-    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
+    FGetItemMethod := CTX.GetType(AObjectAsDuck.ClassInfo)
       .GetMethod('GetItem');
   if not Assigned(FGetItemMethod) then
-    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
+    FGetItemMethod := CTX.GetType(AObjectAsDuck.ClassInfo)
       .GetMethod('GetElement');
   if not Assigned(FGetItemMethod) then
     raise EMVCException.Create
       ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the duck object');
-  FCountProperty := FCTX.GetType(AObjectAsDuck.ClassInfo).GetProperty('Count');
+  FCountProperty := CTX.GetType(AObjectAsDuck.ClassInfo).GetProperty('Count');
   if not Assigned(FCountProperty) then
   begin
-    FGetCountMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Count');
+    FGetCountMethod := CTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Count');
     if not Assigned(FGetCountMethod) then
 
       raise EMVCException.Create
@@ -264,6 +267,37 @@ end;
 function TDuckTypedList.GetOwnsObjects: boolean;
 begin
   Result := TRTTIUtils.GetProperty(FObjectAsDuck, 'OwnsObjects').AsBoolean
+end;
+
+class function TDuckTypedList.Wrap(const AObjectAsDuck: TObject): IMVCList;
+var
+  lRttiType: TRttiType;
+begin
+  lRttiType := CTX.GetType(AObjectAsDuck.ClassInfo);
+  FAddMethod := lRttiType.GetMethod('Add');
+  if not Assigned(FAddMethod) then
+    Exit(nil);
+  FClearMethod := lRttiType.GetMethod('Clear');
+  if not Assigned(FClearMethod) then
+    Exit(nil);
+  FGetItemMethod := nil;
+
+{$IF CompilerVersion >= 23}
+  FGetItemMethod := lRttiType.GetIndexedProperty('Items').ReadMethod;
+{$IFEND}
+  if not Assigned(FGetItemMethod) then
+    FGetItemMethod := lRttiType.GetMethod('GetItem');
+  if not Assigned(FGetItemMethod) then
+    FGetItemMethod := lRttiType.GetMethod('GetElement');
+  if not Assigned(FGetItemMethod) then
+    Exit(nil);
+  FCountProperty := lRttiType.GetProperty('Count');
+  if not Assigned(FCountProperty) then
+  begin
+    FGetCountMethod := lRttiType.GetMethod('Count');
+    if not Assigned(FGetCountMethod) then
+      Exit(nil);
+  end;
 end;
 
 function TDuckTypedList.WrappedObject: TObject;

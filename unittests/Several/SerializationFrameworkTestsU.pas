@@ -32,15 +32,15 @@ uses
   MVCFramework.Router,
   System.Generics.Collections,
   MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT,
-  MVCFramework.TypesAliases, MVCFramework.Serializer.Intf;
+  MVCFramework.TypesAliases, MVCFramework.Serializer.Intf, FrameworkTestsU;
 
 type
-  TTestJSONSerializer = class(TTestCase)
+  TTestJSONSerializer = class(TMVCSerUnSerTestCase)
   protected
-    FSerUnSer: IMVCSerUnSer;
     procedure Setup; override;
   published
-    procedure TestObjectToJSONObject;
+    procedure TestSerUnSerObject; override;
+    procedure TestSerUnSerObjectList; override;
   end;
 
 implementation
@@ -48,16 +48,16 @@ implementation
 {$WARN SYMBOL_DEPRECATED OFF}
 
 
-uses BOs, MVCFramework.Serializer.JSON;
+uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping;
 
 { TTestJSONSerializer }
 
 procedure TTestJSONSerializer.Setup;
 begin
-  FSerUnSer := TMVCJSONSerUnSer.Create;
+  SetSerUnSer(TMVCJSONSerUnSer.Create);
 end;
 
-procedure TTestJSONSerializer.TestObjectToJSONObject;
+procedure TTestJSONSerializer.TestSerUnSerObject;
 var
   Obj: TMyObject;
   JSON: string;
@@ -65,16 +65,42 @@ var
 begin
   Obj := GetMyObject;
   try
-    JSON := FSerUnSer.SerializeObject(Obj, []);
+    JSON := SerUnSer.SerializeObject(Obj, []);
     Obj2 := TMyObject.Create;
     try
-      FSerUnSer.DeserializeObject(JSON, Obj2);
+      SerUnSer.DeserializeObject(JSON, Obj2);
       CheckTrue(Obj.Equals(Obj2));
     finally
       Obj2.Free;
     end;
   finally
     Obj.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectList;
+var
+  Obj: TMyObject;
+  ObjList, Obj2List: TObjectList<TMyObject>;
+  lJSON: String;
+  I: Integer;
+begin
+  ObjList := GetObjectsList;
+  try
+    lJSON := SerUnSer.SerializeCollection(ObjList, []);
+    Obj2List := TObjectList<TMyObject>.Create(True);
+    try
+      SerUnSer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyObject);
+      CheckEquals(ObjList.Count, Obj2List.Count);
+      for I := 0 to 9 do
+      begin
+        CheckTrue(Obj2List[I].Equals(ObjList[I]));
+      end;
+    finally
+      Obj2List.Free;
+    end;
+  finally
+    ObjList.Free;
   end;
 end;
 

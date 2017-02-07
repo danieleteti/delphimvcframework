@@ -28,6 +28,7 @@ interface
 
 {$I dmvcframework.inc}
 
+
 uses
   System.SysUtils, Generics.Collections
 {$IFDEF SYSTEMJSON} // XE6
@@ -35,9 +36,11 @@ uses
 {$ELSE}
     , Data.DBXJSON
 {$ENDIF}
-    , System.Generics.Collections, MVCFramework.Session, LoggerPro;
+    , System.Generics.Collections, MVCFramework.Session, LoggerPro,
+  System.SyncObjs;
 
 {$I dmvcframeworkbuildconsts.inc}
+
 
 type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
@@ -162,6 +165,11 @@ type
 
   TMVCDataObjects = class(TObjectDictionary<string, TJSONValue>)
     constructor Create;
+  end;
+
+  TMVCCriticalSectionHelper = class helper for TCriticalSection
+    procedure WithLock(const AAction: TProc);
+    function WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
   end;
 
   TMVCConfig = class sealed
@@ -612,6 +620,31 @@ begin
   for lByte in Bytes do
   begin
     Result := Result + ByteToHex(lByte);
+  end;
+end;
+
+{ TCriticalSectionHelper }
+
+procedure TMVCCriticalSectionHelper.WithLock(const AAction: TProc);
+begin
+  Self.Enter;
+  try
+    AAction();
+  finally
+    Self.Leave;
+  end;
+end;
+
+function TMVCCriticalSectionHelper.WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+begin
+  Result := Self.WaitFor(ATimeOut);
+  if Result = TWaitResult.wrSignaled then
+  begin
+    try
+      AAction();
+    finally
+      Self.Leave;
+    end;
   end;
 end;
 
