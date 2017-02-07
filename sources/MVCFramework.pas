@@ -1636,50 +1636,26 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{ .$IF CompilerVersion <= 27 }
 var
-  InEnc: TEncoding;
-  TestBuffer, Buffer: TArray<Byte>;
+  Encoding: TEncoding;
+  Buffer: TArray<Byte>;
   I: Integer;
-  { .$ENDIF }
 begin
-  if FBody <> '' then
-    Exit(FBody);
-
-  { .$IF CompilerVersion > 29 }
-  // FWebRequest.ReadTotalContent;
-  // Exit(FWebRequest.Content);
-  { .$ELSE }
-  // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
-  // considering the content charser. So, here's the fix
-  // check http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
-  // FWebRequest.ReadTotalContent;
-
-  SetLength(Buffer, FWebRequest.ContentLength);
-  FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-
-  if FCharset.IsEmpty then
+  if (FBody = '') then
   begin
-    SetLength(TestBuffer, 10);
-    for I := 0 to 9 do
+    if (FCharset = '') then
     begin
-      TestBuffer[I] := Buffer[I];
-    end;
-    TEncoding.GetBufferEncoding(TestBuffer, InEnc, TEncoding.Default);
-    SetLength(TestBuffer, 0);
-  end
-  else
-  begin
-    InEnc := TEncoding.GetEncoding(FCharset);
+      SetLength(Buffer, 10);
+      for I := 0 to 9 do
+        Buffer[I] := FWebRequest.RawContent[I];
+      TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
+      SetLength(Buffer, 0);
+    end
+    else
+      Encoding := TEncoding.GetEncoding(FCharset);
+    FBody := Encoding.GetString(FWebRequest.RawContent);
   end;
-
-  try
-    FBody := InEnc.GetString(Buffer);
-    Result := FBody;
-  finally
-    InEnc.Free;
-  end
-  { .$ENDIF }
+  Result := FBody;
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
