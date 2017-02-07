@@ -29,7 +29,12 @@ uses
   MVCFramework.Tests.StandaloneServer in '..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas',
   MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
-  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas';
+  MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
+  SerializationFrameworkTestsU in 'SerializationFrameworkTestsU.pas',
+  MVCFramework.Serializer.JSON in '..\..\sources\MVCFramework.Serializer.JSON.pas',
+  ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
+  MVCFramework.Serializer.Commons in '..\..\sources\MVCFramework.Serializer.Commons.pas',
+  MVCFramework.TypesAliases in '..\..\sources\MVCFramework.TypesAliases.pas';
 
 {$R *.RES}
 

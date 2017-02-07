@@ -144,6 +144,11 @@
         </DCCReference>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.RESTClient.pas"/>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.AppController.pas"/>
+        <DCCReference Include="SerializationFrameworkTestsU.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JSON.pas"/>
+        <DCCReference Include="..\..\sources\ObjectsMappers.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.TypesAliases.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
