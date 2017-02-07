@@ -1,0 +1,25 @@
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-condensed animated fadeIn">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th class="text-right">Price</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor=" let articolo of articles, let i=index ">
+                    <td>{{articolo.code}}</td>
+                    <td>{{articolo.description }}</td>
+                    <td class="text-right">{{articolo.price | currency:'EUR':true:'1.2-2'}}</td>
+                    <td class="text-right">
+                        <button class="btn btn-default" (click)="doAddProduct(i)"><span class="glyphicon glyphicon-plus"></span></button>
+                        <button class="btn btn-default" (click)="doRemoveProduct(i)"><span class="glyphicon glyphicon-minus"></span></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

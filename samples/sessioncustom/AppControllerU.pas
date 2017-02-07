@@ -3,6 +3,7 @@ unit AppControllerU;
 interface
 
 uses MVCFramework,
+  MVCFramework.Commons,
   MVCFramework.Logger,
   Web.HTTPApp;
 
@@ -37,8 +38,9 @@ implementation
 
 uses
   Data.DBXJSON,
-  System.SysUtils, MVCFramework.Commons,
-  Classes, MemoryWebSessionController;
+  System.SysUtils,
+  Classes,
+  MemoryWebSessionController;
 
 { TApp1MainController }
 

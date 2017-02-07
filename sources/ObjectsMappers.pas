@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -26,23 +26,30 @@ unit ObjectsMappers;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
   System.RTTI,
   System.IOUtils,
   DBXPLatform,
   DB,
   Generics.Collections,
-{$IF CompilerVersion < 27}
-  Data.DBXJSON,
+{$IFDEF USEDBX}
   Data.SqlExpr,
   DBXCommon,
-{$ELSE}
-  System.JSON,
-{$ENDIF}
-{$IF CompilerVersion > 25}
-  FireDAC.Comp.Client, FireDAC.Stan.Param,
 {$IFEND}
-  MVCFramework.DuckTyping, System.SysUtils, System.Classes;
+{$IFDEF USEFIREDAC}
+  FireDAC.Comp.Client, FireDAC.Stan.Param,
+{$ENDIF}
+  MVCFramework.DuckTyping, System.SysUtils, System.Classes
+{$IFDEF SYSTEMJSON}
+    , System.JSON
+{$ELSE}
+    , Data.DBXJSON
+{$IFEND}
+    , MVCFramework.Patches
+    ;
 
 type
   { ***** Daniele Spinetti ***** }
@@ -63,13 +70,14 @@ type
     class var ctx: TRTTIContext;
 
   private
-{$IF CompilerVersion > 25}
+{$IFDEF USEFIREDAC}
     class function InternalExecuteFDQuery(AQuery: TFDQuery; AObject: TObject;
       WithResult: boolean): Int64;
-{$ELSE}
+{$ENDIF}
+{$IFDEF USEDBX}
     class function InternalExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject;
       WithResult: boolean): Int64;
-{$IFEND}
+{$ENDIF}
     class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType)
       : string; overload;
     class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType)
@@ -164,13 +172,13 @@ type
       (AList: TObjectList<T>; AJSONArray: TJSONArray;
       AInstanceOwner: boolean = True;
       AOwnsChildObjects: boolean = True); overload;
-{$IF CompilerVersion <= 25}
+{$IFDEF USEDBX}
     class procedure ReaderToObject(AReader: TDBXReader; AObject: TObject);
     class procedure ReaderToObjectList<T: class, constructor>
       (AReader: TDBXReader; AObjectList: TObjectList<T>);
     class procedure ReaderToJSONObject(AReader: TDBXReader;
       AJSONObject: TJSONObject; AReaderInstanceOwner: boolean = True);
-{$ENDIF}
+{$IFEND}
     class procedure DataSetToJSONObject(ADataSet: TDataSet;
       AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True;
       AJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -186,12 +194,12 @@ type
       ACloseDataSetAfterScroll: boolean = True);
     class function DataSetToJSONArrayOf<T: class, constructor>
       (ADataSet: TDataSet): TJSONArray;
-{$IF CompilerVersion <= 25}
+{$IFDEF USEDBX}
     class procedure ReaderToList<T: class, constructor>(AReader: TDBXReader;
       AList: IWrappedList);
     class procedure ReaderToJSONArray(AReader: TDBXReader;
       AJSONArray: TJSONArray; AReaderInstanceOwner: boolean = True);
-{$ENDIF}
+{$IFEND}
     class procedure DataSetToJSONArray(ADataSet: TDataSet;
       AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True;
       AJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -227,7 +235,7 @@ type
       (AList: TObjectList<T>): TJSONArray;
     class function GetProperty(Obj: TObject; const PropertyName: string)
       : TValue; static;
-{$IF CompilerVersion <= 25}
+{$IFDEF USEDBX}
     class function ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
       AObject: TObject): Int64;
     class procedure ExecuteSQLQuery(AQuery: TSQLQuery; AObject: TObject = nil);
@@ -235,15 +243,15 @@ type
       (AQuery: TSQLQuery; AObject: TObject = nil): TObjectList<T>;
     class function CreateQuery(AConnection: TSQLConnection; ASQL: string)
       : TSQLQuery;
-{$ENDIF}
+{$IFEND}
     { FIREDAC RELATED METHODS }
-{$IF CompilerVersion > 25}
+{$IFDEF USEFIREDAC}
     class function ExecuteFDQueryNoResult(AQuery: TFDQuery;
       AObject: TObject): Int64;
     class procedure ExecuteFDQuery(AQuery: TFDQuery; AObject: TObject);
     class procedure ObjectToFDParameters(AFDParams: TFDParams; AObject: TObject;
       AParamPrefix: string = '');
-{$IFEND}
+{$ENDIF}
     // SAFE TJSONObject getter
     class function GetPair(JSONObject: TJSONObject; PropertyName: string)
       : TJSONPair;
@@ -283,7 +291,8 @@ type
       fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string;
       AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+    procedure LoadFromJSONArrayString(AJSONArrayString: string;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
@@ -387,24 +396,6 @@ type
     property IsPK: boolean read FIsPK write SetIsPK;
   end;
 
-  TGridColumnAlign = (caLeft, caCenter, caRight);
-
-  GridColumnProps = class(TCustomAttribute)
-  private
-    FCaption: string;
-    FAlign: TGridColumnAlign;
-    FWidth: Integer;
-    function GetAlignAsString: string;
-
-  public
-    constructor Create(ACaption: string; AAlign: TGridColumnAlign = caCenter;
-      AWidth: Integer = -1);
-    property Caption: string read FCaption;
-    property Align: TGridColumnAlign read FAlign;
-    property AlignAsString: string read GetAlignAsString;
-    property Width: Integer read FWidth;
-  end;
-
 function ISODateTimeToString(ADateTime: TDateTime): string;
 function ISODateToString(ADate: TDateTime): string;
 function ISOTimeToString(ATime: TTime): string;
@@ -431,7 +422,7 @@ uses
   DateUtils,
   MVCFramework.RTTIUtils,
   Xml.adomxmldom,
-{$IF CompilerVersion >= 28}
+{$IFDEF SYSTEMNETENCODING}
   System.NetEncoding,
   // so that the old functions in Soap.EncdDecd can be inlined
 {$ENDIF}
@@ -523,7 +514,7 @@ begin
     StrToInt(Copy(DateAsString, 6, 2)), StrToInt(Copy(DateAsString, 9, 2)));
 end;
 
-{$IF CompilerVersion <= 25}
+{$IFDEF USEDBX}
 
 
 class function Mapper.InternalExecuteSQLQuery(AQuery: TSQLQuery;
@@ -889,6 +880,13 @@ begin
             MS.Free;
           end;
         end;
+      TFieldType.ftBoolean:
+        begin
+          if ADataSet.Fields[I].AsBoolean then
+            AJSONObject.AddPair(key, TJSONTrue.Create)
+          else
+            AJSONObject.AddPair(key, TJSONFalse.Create);
+        end;
 
       // else
       // raise EMapperException.Create('Cannot find type for field ' + key);
@@ -1194,10 +1192,10 @@ var
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
-//  attr: MapperItemsClassType;
-//  ListCount: Integer;
-//  ListItems: TRttiMethod;
-//  ListItemValue: TValue;
+  // attr: MapperItemsClassType;
+  // ListCount: Integer;
+  // ListItems: TRttiMethod;
+  // ListItemValue: TValue;
 begin
   ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
   JSONObject := TJSONObject.Create;
@@ -1287,9 +1285,9 @@ begin
           begin
             if TDuckTypedList.CanBeWrappedAsList(o) then
             begin
-              if true {Mapper.HasAttribute<MapperItemsClassType>(_property, attr) or
+              if True { Mapper.HasAttribute<MapperItemsClassType>(_property, attr) or
                 Mapper.HasAttribute<MapperItemsClassType>
-                (_property.PropertyType, attr)} then
+                (_property.PropertyType, attr) } then
               begin
                 list := WrapAsList(o);
                 if Assigned(list) then
@@ -1302,36 +1300,36 @@ begin
                       Arr.AddElement(ObjectToJSONObject(Obj));
                 end;
               end
-//              else // Ezequiel J. Müller convert regular list
-//              begin
-//                ListCount := ctx.GetType(o.ClassInfo).GetProperty('Count')
-//                  .GetValue(o).AsInteger;
-//                ListItems := ctx.GetType(o.ClassInfo)
-//                  .GetIndexedProperty('Items').ReadMethod;
-//                if (ListCount > 0) and (ListItems <> nil) then
-//                begin
-//                  Arr := TJSONArray.Create;
-//                  JSONObject.AddPair(f, Arr);
-//                  for I := 0 to ListCount - 1 do
-//                  begin
-//                    ListItemValue := ListItems.Invoke(o, [I]);
-//                    case ListItemValue.TypeInfo.Kind of
-//                      tkInteger:
-//                        Arr.AddElement
-//                          (TJSONNumber.Create(ListItemValue.AsInteger));
-//                      tkInt64:
-//                        Arr.AddElement
-//                          (TJSONNumber.Create(ListItemValue.AsInt64));
-//                      tkFloat:
-//                        Arr.AddElement
-//                          (TJSONNumber.Create(ListItemValue.AsExtended));
-//                      tkString, tkLString, tkWString, tkUString:
-//                        Arr.AddElement
-//                          (TJSONString.Create(ListItemValue.AsString));
-//                    end;
-//                  end;
-//                end;
-//              end;
+              // else // Ezequiel J. Müller convert regular list
+              // begin
+              // ListCount := ctx.GetType(o.ClassInfo).GetProperty('Count')
+              // .GetValue(o).AsInteger;
+              // ListItems := ctx.GetType(o.ClassInfo)
+              // .GetIndexedProperty('Items').ReadMethod;
+              // if (ListCount > 0) and (ListItems <> nil) then
+              // begin
+              // Arr := TJSONArray.Create;
+              // JSONObject.AddPair(f, Arr);
+              // for I := 0 to ListCount - 1 do
+              // begin
+              // ListItemValue := ListItems.Invoke(o, [I]);
+              // case ListItemValue.TypeInfo.Kind of
+              // tkInteger:
+              // Arr.AddElement
+              // (TJSONNumber.Create(ListItemValue.AsInteger));
+              // tkInt64:
+              // Arr.AddElement
+              // (TJSONNumber.Create(ListItemValue.AsInt64));
+              // tkFloat:
+              // Arr.AddElement
+              // (TJSONNumber.Create(ListItemValue.AsExtended));
+              // tkString, tkLString, tkWString, tkUString:
+              // Arr.AddElement
+              // (TJSONString.Create(ListItemValue.AsString));
+              // end;
+              // end;
+              // end;
+              // end;
             end
             else if o is TStream then
             begin
@@ -1481,11 +1479,11 @@ var
 begin
   LJObj := ObjectToJSONObjectFields(AObject, AIgnoredProperties);
   try
-{$IF CompilerVersion >= 28}
+    { .$IFDEF TOJSON }
     Result := LJObj.ToJSON;
-{$ELSE}
-    Result := LJObj.ToString
-{$ENDIF}
+    { .$ELSE }
+    // Result := LJObj.ToString
+    { .$IFEND }
   finally
     LJObj.Free;
   end;
@@ -1951,6 +1949,8 @@ var
   LClassName: string;
   LJSONKeyIsNotPresent: boolean;
 begin
+  if not Assigned(AJSONObject) then
+    raise EMapperException.Create('JSON Object cannot be nil');
   jvalue := nil;
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetFields;
@@ -2218,6 +2218,8 @@ var
   ListItem: TValue;
   ListParam: TRttiParameter;
 begin
+  if not Assigned(AJSONObject) then
+    raise EMapperException.Create('JSON Object cannot be nil');
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
   for _field in _fields do
@@ -2439,11 +2441,16 @@ var
   lJSON: TJSONObject;
 begin
   lJSON := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
-  try
-    InternalJSONObjectFieldsToObject(ctx, lJSON, AObject);
-  finally
-    lJSON.Free;
-  end;
+  if Assigned(lJSON) then
+  begin
+    try
+      InternalJSONObjectFieldsToObject(ctx, lJSON, AObject);
+    finally
+      lJSON.Free;
+    end;
+  end
+  else
+    EMapperException.Create('Invalid JSON');
 end;
 
 class function Mapper.JSONObjectFieldsToObject(AJSONObject
@@ -2479,11 +2486,16 @@ var
   JObj: TJSONObject;
 begin
   JObj := TJSONObject.ParseJSONValue(AJSONObjectString) as TJSONObject;
-  try
-    Result := JSONObjectToObject<T>(JObj);
-  finally
-    JObj.Free;
-  end;
+  if Assigned(JObj) then
+  begin
+    try
+      Result := JSONObjectToObject<T>(JObj);
+    finally
+      JObj.Free;
+    end;
+  end
+  else
+    raise EMapperException.Create('Invalid JSON');
 end;
 
 class procedure Mapper.JSONObjectToDataSet(AJSONObject: TJSONObject;
@@ -2560,13 +2572,13 @@ begin
       TFieldType.ftCurrency:
         begin
           fs.DecimalSeparator := '.';
-{$IF CompilerVersion <= 27}
-          ADataSet.Fields[I].AsCurrency :=
-            StrToCurr((v as TJSONString).Value, fs);
-{$ELSE} // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
+          { ,$IFNDEF TOJSON }
+          // ADataSet.Fields[I].AsCurrency :=
+          // StrToCurr((v as TJSONString).Value, fs);
+          { .$ELSE } // Delphi XE7 introduces method "ToJSON" to fix some old bugs...
           ADataSet.Fields[I].AsCurrency :=
             StrToCurr((v as TJSONNumber).ToJSON, fs);
-{$ENDIF}
+          { .$IFEND }
         end;
       TFieldType.ftFMTBcd:
         begin
@@ -2588,6 +2600,23 @@ begin
           finally
             MS.Free;
           end;
+        end;
+
+      TFieldType.ftBoolean:
+        begin
+{$IFDEF JSONBOOL}
+          if v is TJSONBool then
+            ADataSet.Fields[I].AsBoolean := (v as TJSONBool).AsBoolean
+          else
+            raise EMapperException.Create('Invalid JSON for field ' + key);
+{$ELSE}
+          if v is TJSONTrue then
+            ADataSet.Fields[I].AsBoolean := True
+          else if v is TJSONFalse then
+            ADataSet.Fields[I].AsBoolean := false
+          else
+            raise EMapperException.Create('Invalid JSON for field ' + key);
+{$ENDIF}
         end;
       // else
       // raise EMapperException.Create('Cannot find type for field ' + key);
@@ -2798,7 +2827,7 @@ end;
 // FreeAndNil(ADataSet);
 // end;
 
-{$IF CompilerVersion > 25}
+{$IFDEF USEFIREDAC}
 
 
 class procedure Mapper.ObjectToFDParameters(AFDParams: TFDParams;
@@ -2916,7 +2945,8 @@ begin
   InternalExecuteFDQuery(AQuery, AObject, True);
 end;
 {$ENDIF}
-{$IF CompilerVersion <= 25}
+
+{$IFDEF USEDBX}
 
 
 class function Mapper.ExecuteSQLQueryNoResult(AQuery: TSQLQuery;
@@ -2938,6 +2968,7 @@ begin
   DataSetToObjectList<T>(AQuery, Result);
 end;
 {$IFEND}
+
 { MappedField }
 
 constructor MapperColumnAttribute.Create(AFieldName: string; AIsPK: boolean);
@@ -2955,35 +2986,6 @@ end;
 procedure MapperColumnAttribute.SetIsPK(const Value: boolean);
 begin
   FIsPK := Value;
-end;
-{ GridColumnProps }
-
-constructor GridColumnProps.Create(ACaption: string; AAlign: TGridColumnAlign;
-  AWidth: Integer);
-begin
-  inherited Create;
-  FCaption := ACaption;
-  FAlign := AAlign;
-
-{$IF CompilerVersion >= 23.0}
-  FWidth := System.Math.Max(AWidth, 50);
-
-{$ELSE}
-  FWidth := Math.Max(AWidth, 50);
-
-{$IFEND}
-end;
-
-function GridColumnProps.GetAlignAsString: string;
-begin
-  case FAlign of
-    caLeft:
-      Result := 'left';
-    caCenter:
-      Result := 'center';
-    caRight:
-      Result := 'right';
-  end;
 end;
 
 { JSONSer }
@@ -3062,11 +3064,11 @@ var
 begin
   Arr := AsJSONArray;
   try
-{$IF CompilerVersion >= 28}
+    { .$IFDEF TOJSON }
     Result := Arr.ToJSON;
-{$ELSE}
-    Result := Arr.ToString;
-{$ENDIF}
+    { .$ELSE }
+    // Result := Arr.ToString;
+    { .$IFEND }
   finally
     Arr.Free;
   end;
@@ -3104,11 +3106,11 @@ begin
   end
   else
     try
-{$IF CompilerVersion >= 28}
+      { .$IFDEF TOJSON }
       Result := JObj.ToJSON;
-{$ELSE}
-      Result := JObj.ToString
-{$ENDIF}
+      { .$ELSE }
+      // Result := JObj.ToString
+      { .$IFEND }
     finally
       JObj.Free;
     end;

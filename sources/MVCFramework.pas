@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,6 +23,12 @@
 // *************************************************************************** }
 
 unit MVCFramework;
+
+{$I dmvcframework.inc}
+
+{$IFDEF ANDROID OR IOS}
+{$MESSAGE Fatal 'This unit is not compilable on mobile platforms'}
+{$ENDIF}
 
 {$RTTI EXPLICIT
 METHODS([vcPublic, vcPublished, vcProtected])
@@ -47,23 +53,21 @@ uses
   MVCFramework.Session,
   StompTypes,
   ObjectsMappers
-{$IF CompilerVersion < 27}
-    , Data.DBXJSON
-{$ELSE}
+{$IFDEF SYSTEMJSON}
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
 {$ENDIF}
-{$IF CompilerVersion >= 27}
+{$IFDEF WEBAPACHEHTTP}
     , Web.ApacheHTTP
   // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
 {$ENDIF}
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
-    , LoggerPro, MVCFramework.DuckTyping;
+    , LoggerPro
+    , MVCFramework.DuckTyping
+    , MVCFramework.Patches;
 
 type
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
-    httpOPTIONS, httpPATCH, httpTRACE);
-  TMVCHTTPMethods = set of TMVCHTTPMethodType;
-
   TDMVCSerializationType = TSerializationType;
   TSessionData = TDictionary<string, string>;
 
@@ -191,7 +195,7 @@ type
     property Charset: string read FCharset;
   end;
 
-{$IF CompilerVersion >= 27}
+{$IFDEF WEBAPACHEHTTP}
 
   TMVCApacheWebRequest = class(TMVCWebRequest)
   public
@@ -452,7 +456,13 @@ type
     procedure OnAfterAction(Context: TWebContext;
       const aActionName: string); virtual;
 
+    procedure SetStatusCode(const Value: UInt16);
+
+    function GetStatusCode: UInt16;
+
     property Config: TMVCConfig read GetMVCConfig;
+
+    property StatusCode: UInt16 read GetStatusCode write SetStatusCode;
 
   public
     // property ViewCache: TViewCache read FViewCache write SetViewCache;
@@ -1080,14 +1090,22 @@ begin
                           lRouter.MethodToCall.Name, lActualParams);
                       end;
 
+                      /// ///////////////////////////////////////////////////////
                       lSelectedController.OnBeforeAction(lContext,
                         lRouter.MethodToCall.Name, lHandled);
-                      try
-                        lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
-                      finally
-                        lSelectedController.OnAfterAction(lContext,
-                          lRouter.MethodToCall.Name);
+                      { WARNING!!! Is the BeforeAction filter set lHandled = true,
+                        the AfterAction is never called }
+                      if not lHandled then
+                      begin
+                        try
+                          lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
+                        finally
+                          lSelectedController.OnAfterAction(lContext,
+                            lRouter.MethodToCall.Name);
+                        end;
                       end;
+                      /// ///////////////////////////////////////////////////////
+
                     end;
                   finally
                     lSelectedController.MVCControllerBeforeDestroy;
@@ -1116,6 +1134,7 @@ begin
                   on E: Exception do
                   begin
                     LogException(E, 'Global Action Exception Handler');
+                    lSelectedController.ResponseStatusCode(HTTP_STATUS.InternalServerError);
                     lSelectedController.Render(E);
                   end;
                 end;
@@ -1249,7 +1268,11 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-        IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
+      // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
+        if ASessionTimeout = 0 then
+          IsExpired := MinutesBetween(Now, Result.LastAccess) > DEFAULT_SESSION_INACTIVITY
+        else
+          IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
         // StrToInt(Config.Value['sessiontimeout']);
       end;
 
@@ -1415,7 +1438,7 @@ begin
 
   if IsLibrary then
   begin
-{$IF CompilerVersion >= 27}
+{$IFDEF WEBAPACHEHTTP}
     if ARequest is TApacheRequest then
       FRequest := TMVCApacheWebRequest.Create(ARequest)
     else if ARequest is TISAPIRequest then
@@ -1616,40 +1639,42 @@ function TMVCWebRequest.Body: string;
 { .$IF CompilerVersion <= 27 }
 var
   InEnc: TEncoding;
-  Buffer: TArray<Byte>;
+  TestBuffer, Buffer: TArray<Byte>;
   I: Integer;
   { .$ENDIF }
 begin
   if FBody <> '' then
     Exit(FBody);
+
   { .$IF CompilerVersion > 29 }
   // FWebRequest.ReadTotalContent;
   // Exit(FWebRequest.Content);
   { .$ELSE }
   // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
   // considering the content charser. So, here's the fix
-
   // check http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
-  FWebRequest.ReadTotalContent;
+  // FWebRequest.ReadTotalContent;
+
+  SetLength(Buffer, FWebRequest.ContentLength);
+  FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
+
   if FCharset.IsEmpty then
   begin
-    SetLength(Buffer, 10);
+    SetLength(TestBuffer, 10);
     for I := 0 to 9 do
     begin
-      Buffer[I] := Byte(FWebRequest.RawContent[I]);
+      TestBuffer[I] := Buffer[I];
     end;
-    TEncoding.GetBufferEncoding(Buffer, InEnc, TEncoding.Default);
-    SetLength(Buffer, 0);
+    TEncoding.GetBufferEncoding(TestBuffer, InEnc, TEncoding.Default);
+    SetLength(TestBuffer, 0);
   end
   else
   begin
     InEnc := TEncoding.GetEncoding(FCharset);
   end;
+
   try
-    // SetLength(Buffer, FWebRequest.ContentLength);
-    // FWebRequest.RawContent
-    // FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    FBody := InEnc.GetString(FWebRequest.RawContent);
+    FBody := InEnc.GetString(Buffer);
     Result := FBody;
   finally
     InEnc.Free;
@@ -1887,11 +1912,7 @@ begin
 
     Stomp := GetNewStompClient(GetClientID);
     H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
-{$IF CompilerVersion >= 28}
     Stomp.Send(ATopic, msg.ToJSON);
-{$ELSE}
-    Stomp.Send(ATopic, msg.ToString);
-{$ENDIF}
     TThread.Sleep(100);
     // single user cannot enqueue more than 10 message in noe second...
     // it is noot too much elegant, but it works as DoS protection
@@ -2101,11 +2122,7 @@ var
   OutEncoding: TEncoding;
   lContentType, lJString: string;
 begin
-{$IF CompilerVersion <= 27}
-  lJString := aJSONValue.ToString; // requires the patch
-{$ELSE}
-  lJString := aJSONValue.ToJSON; // since XE7 is available ToJSON
-{$ENDIF}
+  lJString := aJSONValue.ToJSON;
   // first set the ContentType; because of this bug:
   // http://qc.embarcadero.com/wc/qcmain.aspx?d=67350
   Context.Response.RawWebResponse.ContentType := ContentType + '; charset=' +
@@ -2912,8 +2929,18 @@ end;
 procedure TMVCController.ResponseStatusCode(const AStatusCode: UInt16;
   AStatusText: string);
 begin
-  Context.Response.StatusCode := AStatusCode;
+  StatusCode := AStatusCode;
   Context.Response.ReasonString := AStatusText;
+end;
+
+function TMVCController.GetStatusCode: UInt16;
+begin
+  Result := Context.Response.StatusCode;
+end;
+
+procedure TMVCController.SetStatusCode(const Value: UInt16);
+begin
+  Context.Response.StatusCode := Value;
 end;
 
 function TMVCController.ResponseStream: TStringBuilder;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,19 +24,21 @@
 
 unit RESTAdapterTestsU;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
   MVCFramework.RESTAdapter, TestFramework, BusinessObjectsU,
   Generics.Collections,
-{$IF CompilerVersion < 27}
+{$IFDEF SYSTEMJSON}
+  System.JSON,
+{$ELSE}
   Data.DBXJSON,
   Data.SqlExpr,
   DBXCommon,
-{$ELSE}
-  System.JSON,
 {$ENDIF}
-  ObjectsMappers, MVCFramework.RESTClient, MVCFramework;
+  ObjectsMappers, MVCFramework.RESTClient, MVCFramework.Commons;
 
 type
 

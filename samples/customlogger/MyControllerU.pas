@@ -3,7 +3,7 @@ unit MyControllerU;
 interface
 
 uses
-  MVCFramework;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
@@ -24,9 +24,6 @@ type
 
 implementation
 
-uses
-  MVCFramework.Commons;
-
 procedure TMyController.Index;
 begin
   // use Context property to access to the HTTP request and response
@@ -35,7 +32,7 @@ begin
     .AppendLine('WARNING!')
     .AppendLine
     ('Run this program in debug and check the Delphi "Event" debug window to see the custom logs')
-  .AppendLine('Also, the log file are generated in the custom path "MyFolder\MyLogs"');
+    .AppendLine('Also, the log file are generated in the custom path "MyFolder\MyLogs"');
   RenderResponseStream;
 end;
 

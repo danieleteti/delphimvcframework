@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -25,6 +25,9 @@
 unit MVCFramework.Middleware.JWT;
 
 interface
+
+{$I dmvcframework.inc}
+
 
 uses
   MVCFramework,
@@ -70,12 +73,15 @@ implementation
 
 uses
   MVCFramework.Session
-{$IF CompilerVersion < 27}
-    , Data.DBXJSON
+{$IFDEF SYSTEMJSON}
+    , System.JSON
 {$ELSE}
-    , System.JSON, Web.ApacheHTTP
+    , Data.DBXJSON
 {$ENDIF}
-{$IF CompilerVersion >= 21}
+{$IFDEF WEBAPACHEHTTP}
+    , Web.ApacheHTTP
+{$ENDIF}
+{$IFDEF SYSTEMNETENCODING}
     , System.NetEncoding
 {$ELSE}
     , Soap.EncdDecd

@@ -22,7 +22,7 @@ implementation
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
-uses Controllers.Articles;
+uses Controllers.Articles, MVCFramework.Middleware.CORS;
 
 {$R *.dfm}
 
@@ -41,6 +41,7 @@ procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   FEngine := TMVCEngine.Create(self);
   FEngine.AddController(TArticlesController);
+  FEngine.AddMiddleware(TCORSMiddleware.Create);
 end;
 
 end.

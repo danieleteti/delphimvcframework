@@ -4,6 +4,7 @@ interface
 
 uses
   MVCFramework,
+	 MVCFramework.Commons,
   MVCFramework.Logger;
 
 type

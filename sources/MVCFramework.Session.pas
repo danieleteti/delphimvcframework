@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -28,6 +28,10 @@ interface
 
 uses System.SysUtils,
   System.Generics.Collections;
+
+const
+
+  DEFAULT_SESSION_INACTIVITY = 60; // in minutes
 
 type
   TWebSession = class abstract
@@ -136,7 +140,11 @@ end;
 
 function TWebSession.IsExpired: Boolean;
 begin
-  Result := MinutesBetween(now, LastAccess) > FTimeout;
+  // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
+  if FTimeout = 0 then
+    Result := MinutesBetween(now, LastAccess) > DEFAULT_SESSION_INACTIVITY
+  else
+    Result := MinutesBetween(now, LastAccess) > FTimeout;
 end;
 
 procedure TWebSession.MarkAsUsed;

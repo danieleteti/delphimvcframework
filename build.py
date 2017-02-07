@@ -8,7 +8,7 @@ init()
 
 
 #################################################################################
-def buildProject(project):
+def buildProject(project, platform = 'Win32'):
 	print(Fore.YELLOW + "Building " + project)
 	p = project.replace('.dproj', '.cfg')
 	if os.path.isfile(p):
@@ -16,7 +16,7 @@ def buildProject(project):
 			os.remove(p + '.unused')
 		os.rename(p, p + '.unused')
 	# print os.system("msbuild /t:Build /p:Config=Debug \"" + project + "\"")
-	return subprocess.call("rsvars.bat & msbuild /t:Build /p:Config=Debug /p:Platform=Win32 \"" + project + "\"", shell=True) == 0
+	return subprocess.call("rsvars.bat & msbuild /t:Build /p:Config=Debug /p:Platform=" + platform + " \"" + project + "\"", shell=True) == 0
 
 
 def summaryTable(builds):
@@ -26,19 +26,14 @@ def summaryTable(builds):
 	print(Fore.YELLOW + "=" * 90)
 	good = bad = 0
 	for item in builds:
-		if item['status'] == 'ok':
-			#WConio.textcolor(WConio.LIGHTGREEN)
+		if item['status'].startswith('ok'):
 			good += 1
 		else:
-			#WConio.textcolor(WConio.RED)
 			bad += 1
-		print(Fore.BLUE + item['project'].ljust(80) + (Fore.WHITE if item['status'] == 'ok' else Fore.RED) + item['status'].ljust(4))
+		print(Fore.BLUE + item['project'].ljust(80) + (Fore.WHITE if item['status'].startswith('ok') else Fore.RED) + item['status'].ljust(4))
 				
-	#WConio.textcolor(WConio.WHITE)
 	print(Fore.YELLOW + "=" * 90)
-	#WConio.textcolor(WConio.GREEN)
 	print(Fore.WHITE + "GOOD :".rjust(80) + str(good).rjust(10, '.'))
-	#WConio.textcolor(WConio.RED)
 	print(Fore.RED + "BAD  :".rjust(80) + str(bad).rjust(10, '.'))
 
 
@@ -49,6 +44,7 @@ def main(projects):
 	builds = []
 	for project in projects:
 			filename = '\\'.join(project.split('\\')[-3:])
+			list = {'project': filename}
 			if project.find('delphistompclient') > -1 or project.find('contribsamples') > -1:
 					list['status'] = 'skip'
 					continue
@@ -59,6 +55,14 @@ def main(projects):
 			else:
 					list["status"] = "ko"
 			builds.append(list)
+
+			if (os.path.exists(project + '.android')):
+					list = {'project': filename}
+					if buildProject(project, 'Android'):
+							list["status"] = "okandroid"
+					else:
+							list["status"] = "koandroid"
+					builds.append(list)  				
 	summaryTable(builds)
 
 # Store current attribute settings
@@ -67,7 +71,7 @@ def main(projects):
 def dmvc_copyright():
   print(Style.BRIGHT + Fore.WHITE + "----------------------------------------------------------------------------------------")	
   print(Fore.RED + "                 ** Delphi MVC Framework Building System **")
-  print(Fore.WHITE + "Delphi MVC Framework is CopyRight (2010-2016) of Daniele Teti and the DMVCFramework TEAM")
+  print(Fore.WHITE + "Delphi MVC Framework is CopyRight (2010-2017) of Daniele Teti and the DMVCFramework TEAM")
   print(Fore.RESET + "----------------------------------------------------------------------------------------\n")
 
 ## MAIN ##

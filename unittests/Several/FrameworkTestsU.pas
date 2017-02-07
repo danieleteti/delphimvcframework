@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -52,6 +52,7 @@ type
     procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
     procedure TestDataSetToJSONObject;
+    procedure TestDataSetToJSONObjectWithNulls;
     procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
     procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
     procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
@@ -63,7 +64,8 @@ type
     procedure TestJSONArrayToObjectListNoGenericsWrappedList;
     procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
     procedure TestJSONObjectToObjectWithNullInJSONString;
-
+    procedure TestJSONObjectStringToObject;
+    procedure TestJSONObjectStringToObjectWithWrongJSON;
   end;
 
   TTestRouting = class(TTestCase)
@@ -486,6 +488,46 @@ begin
   end;
 end;
 
+procedure TTestMappers.TestDataSetToJSONObjectWithNulls;
+var
+  ds: TClientDataSet;
+  JObj: TJSONObject;
+begin
+  ds := TClientDataSet.Create(nil);
+  try
+    ds.FieldDefs.Add('string_value', ftString, 50);
+    ds.FieldDefs.Add('integer_value', ftInteger);
+    ds.FieldDefs.Add('float_value', ftFloat);
+    ds.FieldDefs.Add('null_value', ftString, 50);
+    ds.FieldDefs.Add('boolean_value', ftBoolean);
+    ds.CreateDataSet;
+    ds.Insert;
+    ds.FieldByName('string_value').AsString := 'myStringValue';
+    ds.FieldByName('integer_value').AsInteger := 123;
+    ds.FieldByName('float_value').AsFloat := 123.456;
+    ds.FieldByName('null_value').Clear;
+    ds.FieldByName('boolean_value').AsBoolean := true;
+    ds.Post;
+    JObj := ds.AsJSONObject;
+    try
+      CheckEquals('myStringValue', JObj.Values['string_value'].Value);
+      CheckEquals(123, JObj.Values['integer_value'].GetValue<TJSONNumber>().AsInt);
+      CheckEquals(123.456, JObj.Values['float_value'].GetValue<TJSONNumber>().AsDouble, 0.0009);
+      CheckTrue(JObj.Values['null_value'].GetValue<TJSONNull>().Null);
+      CheckEquals(true, JObj.Values['boolean_value'].GetValue<TJSONBool>().AsBoolean);
+      CheckTrue(JObj.ToJSON.Replace(' ', '').Contains('"null_value":null'));
+      ds.Insert;
+      ds.LoadFromJSONObject(JObj);
+      ds.Post;
+      CheckTrue(ds.FieldByName('null_value').IsNull);
+    finally
+      JObj.Free;
+    end;
+  finally
+    ds.Free;
+  end;
+end;
+
 procedure TTestMappers.TestJSONArrayToObjectListNoGenerics;
 var
   ListObj, RetList: TObjectList<TMyObject>;
@@ -543,6 +585,39 @@ begin
   finally
     ListObj.Free;
   end;
+end;
+
+procedure TTestMappers.TestJSONObjectStringToObject;
+const
+  MYOBJECTJSON =
+    '{"PropString":"Some text \u00E0\u00E8\u00E9\u00EC\u00F2\u00F9",' +
+    '"PropAnsiString":"This is an ANSI text","PropInteger":-1234,' +
+    '"PropUInt32":1234,"PropInt64":-1234567890,"PropUInt64":1234567890,' +
+    '"PropUInt16":12345,"PropInt16":-12345,"PropBoolean":true,' +
+    '"PropDate":"2010-10-20","PropTime":"10:20:30",' +
+    '"PropDateTime":"2010-10-20 10:20:30",' +
+    '"PropTimeStamp":63423339630040,"PropCurrency":1234.5678}';
+var
+  lMyObject: TMyObject;
+  lMyObject2: TMyObject;
+begin
+  lMyObject := Mapper.JSONObjectStringToObject<TMyObject>(MYOBJECTJSON);
+  try
+    lMyObject2 := GetMyObject;
+    try
+      CheckTrue(lMyObject.Equals(lMyObject2));
+    finally
+      lMyObject2.Free;
+    end;
+  finally
+    lMyObject.Free;
+  end;
+end;
+
+procedure TTestMappers.TestJSONObjectStringToObjectWithWrongJSON;
+begin
+  ExpectedException := EMapperException;
+  Mapper.JSONObjectStringToObject<TObject>('{wrongjson}');
 end;
 
 procedure TTestMappers.TestJSONObjectToObjectAndBack;

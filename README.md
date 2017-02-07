@@ -32,6 +32,7 @@
   * Messaging extension using STOMP (beta)
   * Automatic documentation through /system/describeserver.info
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
+  * Semantic Versioning
   * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
   
@@ -55,6 +56,31 @@ These are the most notable:
   * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
   * DelphiRedisClient (https://github.com/danieleteti/delphiredisclient)
   * LoggerPro (https://github.com/danieleteti/loggerpro)
+  
+### Using ObjectsMappers in Delphi Starter Edition
+A lot of users ask about it, now is possible to use the Mapper also in Delphi Started Edition. To enable the "StarterEditionMode" open ```sources\dmvcframework.inc``` and remove the dot (.) after the curly brace in the following line
+
+```{.$DEFINE STARTEREDITION}```
+
+become
+
+```{$DEFINE STARTEREDITION}```
+
+## Release Notes
+**2.1.3 (lithium)**
+  - FIX https://github.com/danieleteti/delphimvcframework/issues/64
+  - Added unit tests to avoid regressions
+  
+**2.1.2 (helium)**
+  - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
+  - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
+
+**2.1.1 (hydrogen)**
+  - Updated the IDE Expert to show the current version of the framework
+  - FIX to the mapper about the datasets null values (needs to be checked in old Delphi versions)
+  - ADDED support for boolean values in datasets serialization
+  - ADDED unit tests about Mapper and dataset fields nullability
+  - The current version is available in constant ```DMVCFRAMEWORK_VERSION``` defined in ```MVCFramework.Commons.pas```
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
@@ -66,7 +92,7 @@ Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphi
 Below the is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
 The project containes an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
 
-To create this server, you have to create a new Delphi Projects -> WebBroker -> WebServerApplication. Then add the following changes to the webmodule.
+To create this server, you have to create a new ```Delphi Projects -> WebBroker -> WebServerApplication```. Then add the following changes to the webmodule.
 ```delphi
 unit WebModuleUnit1;
 

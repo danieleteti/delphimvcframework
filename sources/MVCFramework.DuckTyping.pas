@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -23,6 +23,8 @@
 // ***************************************************************************
 
 unit MVCFramework.DuckTyping;
+
+{$LEGACYIFEND ON}
 
 interface
 
@@ -188,7 +190,7 @@ begin
 {$IF CompilerVersion >= 23}
     and (LType.GetIndexedProperty('Items').ReadMethod <> nil)
 
-{$ENDIF}
+{$IFEND}
     and (LType.GetMethod('GetItem') <> nil) or
     (LType.GetMethod('GetElement') <> nil) and
     (LType.GetProperty('Count') <> nil)

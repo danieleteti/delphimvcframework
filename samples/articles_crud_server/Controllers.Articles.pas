@@ -2,7 +2,7 @@ unit Controllers.Articles;
 
 interface
 
-uses mvcframework, Controllers.Base;
+uses mvcframework, mvcframework.Commons, Controllers.Base;
 
 type
 
@@ -13,8 +13,8 @@ type
     [MVCDoc('Returns the list of articles')]
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
-
     procedure GetArticles;
+
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
@@ -40,7 +40,7 @@ implementation
 
 { TArticlesController }
 
-uses Services, BusinessObjects, Commons, mvcframework.Commons;
+uses Services, BusinessObjects, Commons;
 
 procedure TArticlesController.CreateArticle(Context: TWebContext);
 var

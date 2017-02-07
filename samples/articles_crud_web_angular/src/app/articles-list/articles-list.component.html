@@ -1,0 +1,30 @@
+<div class="row">
+    <div class="col-md-12">
+
+        <button type="button" class="pull-right btn btn-large btn-success" (click)="doNewArticle()">New Article</button>
+
+        <table class="table table-condensed animated fadeIn">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th class="text-right">Price</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor=" let articolo of articoli, let i=index ">
+                    <td>{{articolo.code}}</td>
+                    <td>{{articolo.description }}</td>
+                    <td class="text-right">{{articolo.price | currency:'EUR':true:'1.2-2'}}</td>
+                    <td class="text-right">
+                        <a href="#" [routerLink]="['/article-edit', articolo.id]" class="btn btn-default"><span class="glyphicon glyphicon-pencil "></span></a>
+                        <button class="btn btn-default" (click)="doRemoveArticolo(i)"><span class="glyphicon glyphicon-remove "></span></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- class="row " -->
+<div class="error " *ngIf="errorMessage ">{{errorMessage}}</div>

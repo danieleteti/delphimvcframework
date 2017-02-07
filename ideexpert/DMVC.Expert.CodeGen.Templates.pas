@@ -1,32 +1,32 @@
-{ *************************************************************************** }
-{ }
-{ Delphi MVC Framework }
-{ }
-{ Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team }
-{ }
-{ https://github.com/danieleteti/delphimvcframework }
-{ }
-{ *************************************************************************** }
-{ }
-{ Licensed under the Apache License, Version 2.0 (the "License"); }
-{ you may not use this file except in compliance with the License. }
-{ You may obtain a copy of the License at }
-{ }
-{ http://www.apache.org/licenses/LICENSE-2.0 }
-{ }
-{ Unless required by applicable law or agreed to in writing, software }
-{ distributed under the License is distributed on an "AS IS" BASIS, }
-{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{ See the License for the specific language governing permissions and }
-{ limitations under the License. }
-{ }
-{ This IDE expert is based off of the one included with the DUnitX }
-{ project.  Original source by Robert Love.  Adapted by Nick Hodges. }
-{ }
-{ The DUnitX project is run by Vincent Parrett and can be found at: }
-{ }
-{ https://github.com/VSoftTechnologies/DUnitX }
-{ *************************************************************************** }
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This IDE expert is based off of the one included with the DUnitX
+// project.  Original source by Robert Love.  Adapted by Nick Hodges.
+//
+// The DUnitX project is run by Vincent Parrett and can be found at:
+//
+// https://github.com/VSoftTechnologies/DUnitX
+// ***************************************************************************
 
 unit DMVC.Expert.CodeGen.Templates;
 
@@ -44,6 +44,7 @@ resourcestring
     'uses' + sLineBreak +
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
+    '  MVCFramework.Commons,' + sLineBreak +
     '  Winapi.Windows,' + sLineBreak +
     '  Winapi.ShellAPI,' + sLineBreak +
     '  ReqMulti, {enables files upload}' + sLineBreak +
@@ -60,7 +61,7 @@ resourcestring
     '  LHandle: THandle;' + sLineBreak +
     '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
     'begin' + sLineBreak +
-    '  Writeln(''** DMVCFramework Server **'');' + sLineBreak +
+    '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
     '  Writeln(Format(''Starting HTTP Server on port %%d'', [APort]));' + sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
@@ -95,6 +96,7 @@ resourcestring
     sLineBreak +
     'begin' + sLineBreak +
     '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
+    '  IsMultiThread := True;' + sLineBreak +
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
@@ -117,7 +119,7 @@ resourcestring
     'interface' + sLineBreak +
     sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework;' + sLineBreak +
+    '  MVCFramework, MVCFramework.Commons;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
     sLineBreak +
@@ -128,9 +130,9 @@ resourcestring
     '%4:s' +
     '  end;' + sLineBreak +
     sLineBreak +
-    'implementation' + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak +
     'uses' + sLineBreak +
-    '    MVCFramework.Logger;' + sLineBreak +
+    '  MVCFramework.Logger;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
@@ -150,16 +152,15 @@ resourcestring
     'procedure %0:s.Index;' + sLineBreak +
     'begin' + sLineBreak +
     '  //use Context property to access to the HTTP request and response ' + sLineBreak +
-    '  Render(''Hello World'');' + sLineBreak +
-    sLineBreak +
+    '  Render(''Hello DelphiMVCFramework World'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
     'procedure %0:s.GetSpecializedHello(const FirstName: String);' + sLineBreak +
     'begin' + sLineBreak +
     '  Render(''Hello '' + FirstName);' + sLineBreak +
-    sLineBreak +
     'end;' + sLineBreak;
 
   sActionFiltersIntf =
+    '  protected' + sLineBreak +
     '    procedure OnBeforeAction(Context: TWebContext; const AActionName: string; var Handled: Boolean); override;'
     + sLineBreak +
     '    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;' +
@@ -244,7 +245,8 @@ resourcestring
     '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
     '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
+    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' +
+    sLineBreak +
     '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +

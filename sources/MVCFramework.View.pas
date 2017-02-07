@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -26,6 +26,8 @@ unit MVCFramework.View;
 
 {$WARNINGS OFF}
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -35,7 +37,9 @@ uses
   Data.DB,
   MVCFramework.View.Cache,
   System.SysUtils,
-  SynMustache, SynCommons;
+  SynMustache,
+  SynCommons,
+  MVCFramework.Patches;
 
 type
   TMVCBaseView = class(TMVCBase)
@@ -82,12 +86,12 @@ type
 implementation
 
 uses
-  System.ioutils,
-  System.Classes
-{$IF CompilerVersion < 27}
-    , Data.DBXJSON
-{$ELSE}
+  System.IOUtils
+    , System.Classes
+{$IFDEF SYSTEMJSON}
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
 {$ENDIF};
 
 { TMVCBaseView }
@@ -192,11 +196,7 @@ begin
     raise;
   end;
 
-{$IF CompilerVersion >= 28}
   FOutput := UTF8ToString(LMEngine.RenderJSON(LJContext.ToJSON));
-{$ELSE}
-  FOutput := UTF8ToString(LMEngine.RenderJSON(LJContext.ToString));
-{$ENDIF}
 end;
 
 end.

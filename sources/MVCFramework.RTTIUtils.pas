@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -25,6 +25,8 @@
 unit MVCFramework.RTTIUtils;
 
 interface
+
+{$I dmvcframework.inc}
 
 uses
   RTTI,
@@ -56,9 +58,9 @@ type
     class procedure SetField(Obj: TObject; const PropertyName: string; const Value: TValue); overload;
     class function Clone(Obj: TObject): TObject; static;
     class procedure CopyObject(SourceObj, TargetObj: TObject); static;
-{$IF CompilerVersion >= 24.0} // not supported in xe3
+{$IFDEF XE3ORBETTER} // not supported before xe3
     class procedure CopyObjectAS<T: class>(SourceObj, TargetObj: TObject); static;
-{$IFEND}
+{$ENDIF}
     class function CreateObject(ARttiType: TRttiType): TObject; overload; static;
     class function CreateObject(AQualifiedClassName: string): TObject; overload; static;
     class function GetAttribute<T: TCustomAttribute>(const Obj: TRttiObject): T; overload;
@@ -443,7 +445,7 @@ var
   Tp: TRttiType;
 begin
   Tp := ctx.GetType(TypeInfo(T));
-  if not (Tp.TypeKind = tkInterface) then
+  if not(Tp.TypeKind = tkInterface) then
     raise Exception.Create('Type is no interface');
   Result := TRttiInterfaceType(Tp).GUID;
 end;
@@ -490,7 +492,8 @@ begin
   Result := AnsiCompareStr(source.ToString, destination.ToString) = 0;
 end;
 
-class function TRTTIUtils.ExistsProperty(AObject: TObject; const APropertyName: string; out AProperty: TRttiProperty): boolean;
+class function TRTTIUtils.ExistsProperty(AObject: TObject; const APropertyName: string;
+  out AProperty: TRttiProperty): boolean;
 begin
   AProperty := ctx.GetType(AObject.ClassInfo).GetProperty(APropertyName);
   Result := Assigned(AProperty);
@@ -621,6 +624,7 @@ end;
 
 {$IF CompilerVersion >= 24.0}
 
+
 class procedure TRTTIUtils.CopyObjectAS<T>(SourceObj, TargetObj: TObject);
 var
   _ARttiType: TRttiType;
@@ -710,7 +714,8 @@ begin
     end;
   end;
 end;
-{$IFEND}
+{$ENDIF}
+
 
 class function TRTTIUtils.CreateObject(AQualifiedClassName: string): TObject;
 var
@@ -720,7 +725,8 @@ begin
   if Assigned(rttitype) then
     Result := CreateObject(rttitype)
   else
-    raise Exception.Create('Cannot find RTTI for ' + AQualifiedClassName + '. Hint: Is the specified classtype linked in the module?');
+    raise Exception.Create('Cannot find RTTI for ' + AQualifiedClassName +
+      '. Hint: Is the specified classtype linked in the module?');
 end;
 
 class function TRTTIUtils.CreateObject(ARttiType: TRttiType): TObject;

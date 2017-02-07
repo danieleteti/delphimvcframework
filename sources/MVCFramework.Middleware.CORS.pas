@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -48,7 +48,7 @@ type
 implementation
 
 uses
-  System.StrUtils;
+  System.StrUtils, MVCFramework.Commons;
 
 { TCORSMiddleware }
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -57,7 +57,22 @@ type
     procedure NeverCalled(CTX: TWebContext);
   end;
 
+  [MVCPath('/actionfilters/beforeaction')]
+  TTestServerControllerActionFilters = class(TMVCController)
+  protected
+    procedure OnBeforeAction(Context: TWebContext; const aActionName: string;
+      var Handled: Boolean); override;
+  public
+    [MVCPath('/alwayscalled')]
+    procedure AlwaysCalled(CTX: TWebContext);
+    [MVCPath('/nevercalled')]
+    procedure NeverCalled(CTX: TWebContext);
+  end;
+
 implementation
+
+uses
+  MVCFramework.Commons;
 
 { TTestServerControllerException }
 
@@ -95,6 +110,29 @@ end;
 procedure TTestServerControllerExceptionBeforeDestroy.NeverCalled(CTX: TWebContext);
 begin
 
+end;
+
+{ TTestServerControllerActionFilters }
+
+procedure TTestServerControllerActionFilters.AlwaysCalled(CTX: TWebContext);
+begin
+  StatusCode := 200;
+end;
+
+procedure TTestServerControllerActionFilters.NeverCalled(CTX: TWebContext);
+begin
+  raise Exception.Create('Should never be called!');
+end;
+
+procedure TTestServerControllerActionFilters.OnBeforeAction(
+  Context: TWebContext; const aActionName: string; var Handled: Boolean);
+begin
+  inherited;
+  if SameText(aActionName, 'NeverCalled') then
+  begin
+    Context.Response.StatusCode := 404;
+    Handled := True;
+  end;
 end;
 
 end.

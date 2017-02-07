@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -26,8 +26,11 @@ unit MVCFramework.SysControllers;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
-  MVCFramework;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
@@ -57,13 +60,17 @@ type
 implementation
 
 uses
-{$IF CompilerVErsion < 27}
-  Data.DBXJSON,
+  System.SysUtils
+    , System.Rtti
+    , System.Classes
+    , Winapi.Windows
+    , System.TypInfo
+{$IFDEF SYSTEMJSON} // XE6
+    , System.JSON
 {$ELSE}
-  System.JSON,
-{$IFEND}
-  System.SysUtils, System.Rtti, MVCFramework.Commons, System.Classes,
-  Winapi.Windows, System.TypInfo;
+    , Data.DBXJSON
+{$ENDIF}
+    ;
 
 function MSecToTime(mSec: Int64): string;
 const

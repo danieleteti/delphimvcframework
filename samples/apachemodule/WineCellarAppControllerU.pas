@@ -4,6 +4,7 @@ interface
 
 uses
   MVCFramework,
+  MVCFramework.Commons,
   MainDataModuleUnit;
 
 type
@@ -52,7 +53,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.IOUtils, MVCFramework.Commons;
+  System.SysUtils, System.Classes, System.IOUtils;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin

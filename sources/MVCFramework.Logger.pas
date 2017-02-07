@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -64,7 +64,7 @@ var
 implementation
 
 uses
-  System.Classes, LoggerPro.FileAppender;
+  System.Classes, LoggerPro.FileAppender, MVCFramework.Commons;
 
 var
   _lock: TObject;
@@ -210,7 +210,7 @@ begin
     (Normally only SetDefaultLogger should be the caller) }
   if not Assigned(_DefaultLogger) then
   begin
-    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, 'logs')]);
+    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, AppPath + 'logs')]);
   end;
 end;
 

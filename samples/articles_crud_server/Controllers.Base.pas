@@ -3,7 +3,7 @@ unit Controllers.Base;
 interface
 
 uses
-  MVCFramework, Services, MainDM;
+  MVCFramework, MVCFramework.Commons, Services, MainDM;
 
 type
   TBaseController = class abstract(TMVCController)

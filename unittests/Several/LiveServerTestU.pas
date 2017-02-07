@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -69,6 +69,7 @@ type
     procedure TestProducesConsumesWithWrongAcceptHeader;
     procedure TestExceptionInMVCAfterCreate;
     procedure TestExceptionInMVCBeforeDestroy;
+    procedure TestActionFiltersOnBeforeAction;
     procedure TestMiddlewareSpeedMiddleware;
     procedure TestMiddlewareHandler;
     procedure TestPostAListOfObjects;
@@ -82,6 +83,7 @@ type
     // test authentication/authorization with CustomAuth
     procedure TestCustomAuthRequestWithoutLogin;
     procedure TestCustomAuthRequestsWithValidLogin;
+    procedure TestCustomAuthRequestsWithValidLogin_HTML;
     procedure TestCustomAuthWrongRequestBodies;
     procedure TestCustomAuthLoginLogout;
 
@@ -135,6 +137,17 @@ procedure TBaseServerTest.TearDown;
 begin
   inherited;
   RESTClient.Free;
+end;
+
+procedure TServerTest.TestActionFiltersOnBeforeAction;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/actionfilters/beforeaction/alwayscalled', []);
+  CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
+
+  res := RESTClient.doGET('/actionfilters/beforeaction/nevercalled', []);
+  CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestAsynchRequestDELETE;
@@ -392,6 +405,40 @@ begin
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    CheckEquals('application/json', LRes.ContentType);
+    CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
+    CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
+    CheckEquals('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
+    CheckEquals('{"status":"OK"}', LRes.BodyAsString);
+    lCookieValue := LRes.Cookies
+      [LRes.Cookies.GetCookieIndex(TMVCConstants.SESSION_TOKEN_NAME)].Value;
+    CheckNotEquals('', lCookieValue, 'Session cookie not returned after login');
+    CheckFalse(lCookieValue.Contains('invalid'),
+      'Returned an invalid session token');
+
+    LRes := RESTClient.doGET('/privatecustom/role2', []);
+    CheckEquals(HTTP_STATUS.Forbidden, LRes.ResponseCode,
+      'Authorization not respected for not allowed action');
+
+    LRes := RESTClient.doGET('/privatecustom/role1', []);
+    CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode,
+      'Authorization not respected for allowed action');
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestCustomAuthRequestsWithValidLogin_HTML;
+var
+  LRes: IRESTResponse;
+  lJSON: TJSONObject;
+  lCookieValue: string;
+begin
+  lJSON := TJSONObject.Create;
+  try
+    lJSON.AddPair('username', 'user1');
+    lJSON.AddPair('password', 'user1');
+    LRes := RESTClient.Accept('text/html').doPOST('/system/users/logged', [], lJSON, false);
     CheckEquals('application/json', LRes.ContentType);
     CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
     CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));

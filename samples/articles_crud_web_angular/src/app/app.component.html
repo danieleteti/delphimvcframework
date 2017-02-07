@@ -1,0 +1,32 @@
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+            <h1 class="text-center">
+                DelphiMVCFramework
+                <!--<span style="margin-left: 5px; font-size: 60%" class="pull-right"><app-login-logout></app-login-logout></span>-->
+                <!--<span class="pull-right"><app-shopping-cart></app-shopping-cart></span>-->
+            </h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2">
+            <ul class="nav nav-pills nav-stacked">
+                <li role="presentation"><a [routerLink]="['/home']" routerLinkActive="active-route">Home</a></li>
+                <li role="presentation"><a [routerLink]="['/articles-list']" routerLinkActive="active-route">Articles</a></li>
+                <!--<li role="presentation"><a [routerLink]="['/shopping']" routerLinkActive="active-route">Place an Order</a></li>-->
+            </ul>
+            <hr>
+            <div *ngIf="isLogged">
+                <hr>
+                <ul class="nav nav-pills nav-stacked">
+                    <li role="presentation"><a [routerLink]="['/admin','private1']" routerLinkActive="active-route">Private Page1</a></li>
+                    <li role="presentation"><a [routerLink]="['/admin','private2']" routerLinkActive="active-route">Private Page2</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-10">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+</div>

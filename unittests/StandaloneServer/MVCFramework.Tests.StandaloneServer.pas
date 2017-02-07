@@ -8,6 +8,7 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   MVCFramework,
+  MVCFramework.Commons,
   MVCFramework.Server,
   MVCFramework.Server.Impl;
 

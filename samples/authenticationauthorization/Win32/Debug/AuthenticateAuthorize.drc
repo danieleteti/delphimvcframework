@@ -357,15 +357,15 @@
 #define System_Win_ComConst_STooManyParams 65021
 #define FireDAC_Stan_ResStrs_S_FD_LoginDialogDefCaption 65022
 #define FireDAC_Stan_ResStrs_S_FD_DuplicatedName 65023
-#define System_JSONConsts_SUTF8UnexpectedByte 65024
-#define System_JSONConsts_SUTF8InvalidHeaderByte 65025
-#define System_JSONConsts_SCannotConvertJSONValueToType 65026
-#define System_JSONConsts_SJSONPathUnexpectedRootChar 65027
-#define System_JSONConsts_SJSONPathEndedOpenBracket 65028
-#define System_JSONConsts_SJSONPathEndedOpenString 65029
-#define System_JSONConsts_SJSONPathInvalidArrayIndex 65030
-#define System_JSONConsts_SJSONPathUnexpectedIndexedChar 65031
-#define System_JSONConsts_SJSONPathDotsEmptyName 65032
+#define Data_DBConsts_SProviderSQLNotSupported 65024
+#define Data_DBConsts_SProviderExecuteNotSupported 65025
+#define Data_DBConsts_SDataSetUnidirectional 65026
+#define Data_DBConsts_SUnassignedVar 65027
+#define Data_DBConsts_SRecordNotFound 65028
+#define Data_DBConsts_SBcdOverflow 65029
+#define Data_DBConsts_SInvalidBcdValue 65030
+#define Data_DBConsts_SCouldNotParseTimeStamp 65031
+#define Data_DBConsts_SInvalidSqlTimeStamp 65032
 #define IdResourceStringsOpenSSL_RSOSSFailedToLoad 65033
 #define IdResourceStringsOpenSSL_RSOSSLModeNotSet 65034
 #define IdResourceStringsOpenSSL_RSOSSLCouldNotLoadSSLLibrary 65035
@@ -373,54 +373,54 @@
 #define IdResourceStringsOpenSSL_RSOSSLAlert 65037
 #define IdResourceStringsOpenSSL_RSOSSLReadAlert 65038
 #define IdResourceStringsOpenSSL_RSOSSLWriteAlert 65039
-#define Data_DBConsts_SNestedDataSetClass 65040
-#define Data_DBConsts_STextFalse 65041
-#define Data_DBConsts_STextTrue 65042
-#define Data_DBConsts_SParameterNotFound 65043
-#define Data_DBConsts_SInvalidVersion 65044
-#define Data_DBConsts_SBadFieldType 65045
-#define Data_DBConsts_SProviderSQLNotSupported 65046
-#define Data_DBConsts_SProviderExecuteNotSupported 65047
-#define Data_DBConsts_SDataSetUnidirectional 65048
-#define Data_DBConsts_SUnassignedVar 65049
-#define Data_DBConsts_SRecordNotFound 65050
-#define Data_DBConsts_SBcdOverflow 65051
-#define Data_DBConsts_SInvalidBcdValue 65052
-#define Data_DBConsts_SCouldNotParseTimeStamp 65053
-#define Data_DBConsts_SInvalidSqlTimeStamp 65054
-#define System_JSONConsts_SUTF8Start 65055
-#define Data_DBConsts_SInvalidCalcType 65056
-#define Data_DBConsts_SFieldReadOnly 65057
-#define Data_DBConsts_SNoFieldIndexes 65058
-#define Data_DBConsts_SNotIndexField 65059
-#define Data_DBConsts_SDuplicateIndexName 65060
-#define Data_DBConsts_SNoIndexForFields 65061
-#define Data_DBConsts_SIndexNotFound 65062
-#define Data_DBConsts_SDBDuplicateName 65063
-#define Data_DBConsts_SCircularDataLink 65064
-#define Data_DBConsts_SLookupInfoError 65065
-#define Data_DBConsts_SDataSourceChange 65066
-#define Data_DBConsts_SDataSetOpen 65067
-#define Data_DBConsts_SNotEditing 65068
-#define Data_DBConsts_SDataSetClosed 65069
-#define Data_DBConsts_SDataSetEmpty 65070
-#define Data_DBConsts_SDataSetReadOnly 65071
-#define Data_DBConsts_SFieldNameMissing 65072
-#define Data_DBConsts_SDuplicateFieldName 65073
-#define Data_DBConsts_SFieldNotFound 65074
-#define Data_DBConsts_SFieldAccessError 65075
-#define Data_DBConsts_SFieldValueError 65076
-#define Data_DBConsts_SFieldRangeError 65077
-#define Data_DBConsts_SBcdFieldRangeError 65078
-#define Data_DBConsts_SInvalidIntegerValue 65079
-#define Data_DBConsts_SInvalidBoolValue 65080
-#define Data_DBConsts_SInvalidFloatValue 65081
-#define Data_DBConsts_SFieldTypeMismatch 65082
-#define Data_DBConsts_SFieldSizeMismatch 65083
-#define Data_DBConsts_SInvalidVarByteArray 65084
-#define Data_DBConsts_SFieldOutOfRange 65085
-#define Data_DBConsts_SFieldRequired 65086
-#define Data_DBConsts_SDataSetMissing 65087
+#define Data_DBConsts_SIndexNotFound 65040
+#define Data_DBConsts_SDBDuplicateName 65041
+#define Data_DBConsts_SCircularDataLink 65042
+#define Data_DBConsts_SLookupInfoError 65043
+#define Data_DBConsts_SDataSourceChange 65044
+#define Data_DBConsts_SDataSetOpen 65045
+#define Data_DBConsts_SNotEditing 65046
+#define Data_DBConsts_SDataSetClosed 65047
+#define Data_DBConsts_SDataSetEmpty 65048
+#define Data_DBConsts_SDataSetReadOnly 65049
+#define Data_DBConsts_SNestedDataSetClass 65050
+#define Data_DBConsts_STextFalse 65051
+#define Data_DBConsts_STextTrue 65052
+#define Data_DBConsts_SParameterNotFound 65053
+#define Data_DBConsts_SInvalidVersion 65054
+#define Data_DBConsts_SBadFieldType 65055
+#define Data_DBConsts_SBcdFieldRangeError 65056
+#define Data_DBConsts_SInvalidIntegerValue 65057
+#define Data_DBConsts_SInvalidBoolValue 65058
+#define Data_DBConsts_SInvalidFloatValue 65059
+#define Data_DBConsts_SFieldTypeMismatch 65060
+#define Data_DBConsts_SFieldSizeMismatch 65061
+#define Data_DBConsts_SInvalidVarByteArray 65062
+#define Data_DBConsts_SFieldOutOfRange 65063
+#define Data_DBConsts_SFieldRequired 65064
+#define Data_DBConsts_SDataSetMissing 65065
+#define Data_DBConsts_SInvalidCalcType 65066
+#define Data_DBConsts_SFieldReadOnly 65067
+#define Data_DBConsts_SNoFieldIndexes 65068
+#define Data_DBConsts_SNotIndexField 65069
+#define Data_DBConsts_SDuplicateIndexName 65070
+#define Data_DBConsts_SNoIndexForFields 65071
+#define System_JSONConsts_SCannotConvertJSONValueToType 65072
+#define System_JSONConsts_SJSONPathUnexpectedRootChar 65073
+#define System_JSONConsts_SJSONPathEndedOpenBracket 65074
+#define System_JSONConsts_SJSONPathEndedOpenString 65075
+#define System_JSONConsts_SJSONPathInvalidArrayIndex 65076
+#define System_JSONConsts_SJSONPathUnexpectedIndexedChar 65077
+#define System_JSONConsts_SJSONPathDotsEmptyName 65078
+#define Data_DBConsts_SInvalidFieldSize 65079
+#define Data_DBConsts_SInvalidFieldKind 65080
+#define Data_DBConsts_SUnknownFieldType 65081
+#define Data_DBConsts_SFieldNameMissing 65082
+#define Data_DBConsts_SDuplicateFieldName 65083
+#define Data_DBConsts_SFieldNotFound 65084
+#define Data_DBConsts_SFieldAccessError 65085
+#define Data_DBConsts_SFieldValueError 65086
+#define Data_DBConsts_SFieldRangeError 65087
 #define IdResourceStringsProtocols_RSSSLGetMethodError 65088
 #define IdResourceStringsProtocols_RSSSLFDSetError 65089
 #define IdResourceStringsProtocols_RSSSLDataBindingError 65090
@@ -434,9 +434,9 @@
 #define IdResourceStringsProtocols_RSWBBInvalidIdxGetStrVariable 65098
 #define IdResourceStringsProtocols_RSWBBInvalidStringVar 65099
 #define IdResourceStringsProtocols_RSWBBInvalidIdxSetStringVar 65100
-#define Data_DBConsts_SInvalidFieldSize 65101
-#define Data_DBConsts_SInvalidFieldKind 65102
-#define Data_DBConsts_SUnknownFieldType 65103
+#define System_JSONConsts_SUTF8Start 65101
+#define System_JSONConsts_SUTF8UnexpectedByte 65102
+#define System_JSONConsts_SUTF8InvalidHeaderByte 65103
 #define IdResourceStringsProtocols_RSHTTPUnknownResponseCode 65104
 #define IdResourceStringsProtocols_RSHTTPHeaderAlreadyWritten 65105
 #define IdResourceStringsProtocols_RSHTTPErrorParsingCommand 65106
@@ -1220,28 +1220,6 @@ BEGIN
 	System_Win_ComConst_STooManyParams,	L"Dispatch methods do not support more than 64 parameters"
 	FireDAC_Stan_ResStrs_S_FD_LoginDialogDefCaption,	L"FireDAC Login"
 	FireDAC_Stan_ResStrs_S_FD_DuplicatedName,	L"Name [%s] is duplicated in the list"
-	System_JSONConsts_SUTF8UnexpectedByte,	L"UTF8: An unexpected continuation byte in %s-byte UTF8 in position %s"
-	System_JSONConsts_SUTF8InvalidHeaderByte,	L"UTF8: Type cannot be determined out of header byte at position %s"
-	System_JSONConsts_SCannotConvertJSONValueToType,	L"Conversion from %0:s to %1:s is not supported"
-	System_JSONConsts_SJSONPathUnexpectedRootChar,	L"Unexpected char for root element: ."
-	System_JSONConsts_SJSONPathEndedOpenBracket,	L"Path ended with an open bracket"
-	System_JSONConsts_SJSONPathEndedOpenString,	L"Path ended with an open string"
-	System_JSONConsts_SJSONPathInvalidArrayIndex,	L"Invalid index for array: %s"
-	System_JSONConsts_SJSONPathUnexpectedIndexedChar,	L"Unexpected character while parsing indexer: %s"
-	System_JSONConsts_SJSONPathDotsEmptyName,	L"Empty name not allowed in dot notation, use ['']"
-	IdResourceStringsOpenSSL_RSOSSFailedToLoad,	L"Failed to load %s."
-	IdResourceStringsOpenSSL_RSOSSLModeNotSet,	L"Mode has not been set."
-	IdResourceStringsOpenSSL_RSOSSLCouldNotLoadSSLLibrary,	L"Could not load SSL library."
-	IdResourceStringsOpenSSL_RSOSSLStatusString,	L"SSL status: \"%s\""
-	IdResourceStringsOpenSSL_RSOSSLAlert,	L"%s Alert"
-	IdResourceStringsOpenSSL_RSOSSLReadAlert,	L"%s Read Alert"
-	IdResourceStringsOpenSSL_RSOSSLWriteAlert,	L"%s Write Alert"
-	Data_DBConsts_SNestedDataSetClass,	L"Nested dataset must inherit from %s"
-	Data_DBConsts_STextFalse,	L"False"
-	Data_DBConsts_STextTrue,	L"True"
-	Data_DBConsts_SParameterNotFound,	L"Parameter '%s' not found"
-	Data_DBConsts_SInvalidVersion,	L"Unable to load bind parameters"
-	Data_DBConsts_SBadFieldType,	L"Field '%s' is of an unsupported type"
 	Data_DBConsts_SProviderSQLNotSupported,	L"SQL not supported"
 	Data_DBConsts_SProviderExecuteNotSupported,	L"Execute not supported"
 	Data_DBConsts_SDataSetUnidirectional,	L"Operation not allowed on a unidirectional dataset"
@@ -1251,13 +1229,13 @@ BEGIN
 	Data_DBConsts_SInvalidBcdValue,	L"%s is not a valid BCD value"
 	Data_DBConsts_SCouldNotParseTimeStamp,	L"Could not parse SQL TimeStamp string"
 	Data_DBConsts_SInvalidSqlTimeStamp,	L"Invalid SQL date/time values"
-	System_JSONConsts_SUTF8Start,	L"UTF8: A start byte not followed by enough continuation bytes in position %s"
-	Data_DBConsts_SInvalidCalcType,	L"Field '%s' cannot be a calculated or lookup field"
-	Data_DBConsts_SFieldReadOnly,	L"Field '%s' cannot be modified"
-	Data_DBConsts_SNoFieldIndexes,	L"No index currently active"
-	Data_DBConsts_SNotIndexField,	L"Field '%s' is not indexed and cannot be modified"
-	Data_DBConsts_SDuplicateIndexName,	L"Duplicate index name '%s'"
-	Data_DBConsts_SNoIndexForFields,	L"No index for fields '%s'"
+	IdResourceStringsOpenSSL_RSOSSFailedToLoad,	L"Failed to load %s."
+	IdResourceStringsOpenSSL_RSOSSLModeNotSet,	L"Mode has not been set."
+	IdResourceStringsOpenSSL_RSOSSLCouldNotLoadSSLLibrary,	L"Could not load SSL library."
+	IdResourceStringsOpenSSL_RSOSSLStatusString,	L"SSL status: \"%s\""
+	IdResourceStringsOpenSSL_RSOSSLAlert,	L"%s Alert"
+	IdResourceStringsOpenSSL_RSOSSLReadAlert,	L"%s Read Alert"
+	IdResourceStringsOpenSSL_RSOSSLWriteAlert,	L"%s Write Alert"
 	Data_DBConsts_SIndexNotFound,	L"Index '%s' not found"
 	Data_DBConsts_SDBDuplicateName,	L"Duplicate name '%s' in %s"
 	Data_DBConsts_SCircularDataLink,	L"Circular datalinks are not allowed"
@@ -1268,12 +1246,12 @@ BEGIN
 	Data_DBConsts_SDataSetClosed,	L"Cannot perform this operation on a closed dataset"
 	Data_DBConsts_SDataSetEmpty,	L"Cannot perform this operation on an empty dataset"
 	Data_DBConsts_SDataSetReadOnly,	L"Cannot modify a read-only dataset"
-	Data_DBConsts_SFieldNameMissing,	L"Field name missing"
-	Data_DBConsts_SDuplicateFieldName,	L"Duplicate field name '%s'"
-	Data_DBConsts_SFieldNotFound,	L"Field '%s' not found"
-	Data_DBConsts_SFieldAccessError,	L"Cannot access field '%s' as type %s"
-	Data_DBConsts_SFieldValueError,	L"Invalid value for field '%s'"
-	Data_DBConsts_SFieldRangeError,	L"%g is not a valid value for field '%s'. The allowed range is %g to %g"
+	Data_DBConsts_SNestedDataSetClass,	L"Nested dataset must inherit from %s"
+	Data_DBConsts_STextFalse,	L"False"
+	Data_DBConsts_STextTrue,	L"True"
+	Data_DBConsts_SParameterNotFound,	L"Parameter '%s' not found"
+	Data_DBConsts_SInvalidVersion,	L"Unable to load bind parameters"
+	Data_DBConsts_SBadFieldType,	L"Field '%s' is of an unsupported type"
 	Data_DBConsts_SBcdFieldRangeError,	L"%s is not a valid value for field '%s'. The allowed range is %s to %s"
 	Data_DBConsts_SInvalidIntegerValue,	L"'%s' is not a valid integer value for field '%s'"
 	Data_DBConsts_SInvalidBoolValue,	L"'%s' is not a valid boolean value for field '%s'"
@@ -1284,6 +1262,28 @@ BEGIN
 	Data_DBConsts_SFieldOutOfRange,	L"Value of field '%s' is out of range"
 	Data_DBConsts_SFieldRequired,	L"Field '%s' must have a value"
 	Data_DBConsts_SDataSetMissing,	L"Field '%s' has no dataset"
+	Data_DBConsts_SInvalidCalcType,	L"Field '%s' cannot be a calculated or lookup field"
+	Data_DBConsts_SFieldReadOnly,	L"Field '%s' cannot be modified"
+	Data_DBConsts_SNoFieldIndexes,	L"No index currently active"
+	Data_DBConsts_SNotIndexField,	L"Field '%s' is not indexed and cannot be modified"
+	Data_DBConsts_SDuplicateIndexName,	L"Duplicate index name '%s'"
+	Data_DBConsts_SNoIndexForFields,	L"No index for fields '%s'"
+	System_JSONConsts_SCannotConvertJSONValueToType,	L"Conversion from %0:s to %1:s is not supported"
+	System_JSONConsts_SJSONPathUnexpectedRootChar,	L"Unexpected char for root element: ."
+	System_JSONConsts_SJSONPathEndedOpenBracket,	L"Path ended with an open bracket"
+	System_JSONConsts_SJSONPathEndedOpenString,	L"Path ended with an open string"
+	System_JSONConsts_SJSONPathInvalidArrayIndex,	L"Invalid index for array: %s"
+	System_JSONConsts_SJSONPathUnexpectedIndexedChar,	L"Unexpected character while parsing indexer: %s"
+	System_JSONConsts_SJSONPathDotsEmptyName,	L"Empty name not allowed in dot notation, use ['']"
+	Data_DBConsts_SInvalidFieldSize,	L"Invalid field size"
+	Data_DBConsts_SInvalidFieldKind,	L"Invalid FieldKind"
+	Data_DBConsts_SUnknownFieldType,	L"Field '%s' is of an unknown type"
+	Data_DBConsts_SFieldNameMissing,	L"Field name missing"
+	Data_DBConsts_SDuplicateFieldName,	L"Duplicate field name '%s'"
+	Data_DBConsts_SFieldNotFound,	L"Field '%s' not found"
+	Data_DBConsts_SFieldAccessError,	L"Cannot access field '%s' as type %s"
+	Data_DBConsts_SFieldValueError,	L"Invalid value for field '%s'"
+	Data_DBConsts_SFieldRangeError,	L"%g is not a valid value for field '%s'. The allowed range is %g to %g"
 	IdResourceStringsProtocols_RSSSLGetMethodError,	L"Error getting SSL method."
 	IdResourceStringsProtocols_RSSSLFDSetError,	L"Error setting File Descriptor for SSL"
 	IdResourceStringsProtocols_RSSSLDataBindingError,	L"Error binding data to SSL socket."
@@ -1297,9 +1297,9 @@ BEGIN
 	IdResourceStringsProtocols_RSWBBInvalidIdxGetStrVariable,	L"Invalid Index %s in TIdHTTPAppResponse.GetStringVariable"
 	IdResourceStringsProtocols_RSWBBInvalidStringVar,	L"TIdHTTPAppResponse.SetStringVariable: Cannot set the version"
 	IdResourceStringsProtocols_RSWBBInvalidIdxSetStringVar,	L"Invalid Index %s in TIdHTTPAppResponse.SetStringVariable"
-	Data_DBConsts_SInvalidFieldSize,	L"Invalid field size"
-	Data_DBConsts_SInvalidFieldKind,	L"Invalid FieldKind"
-	Data_DBConsts_SUnknownFieldType,	L"Field '%s' is of an unknown type"
+	System_JSONConsts_SUTF8Start,	L"UTF8: A start byte not followed by enough continuation bytes in position %s"
+	System_JSONConsts_SUTF8UnexpectedByte,	L"UTF8: An unexpected continuation byte in %s-byte UTF8 in position %s"
+	System_JSONConsts_SUTF8InvalidHeaderByte,	L"UTF8: Type cannot be determined out of header byte at position %s"
 	IdResourceStringsProtocols_RSHTTPUnknownResponseCode,	L"Unknown Response Code"
 	IdResourceStringsProtocols_RSHTTPHeaderAlreadyWritten,	L"Header has already been written."
 	IdResourceStringsProtocols_RSHTTPErrorParsingCommand,	L"Error in parsing command."
@@ -1736,4 +1736,4 @@ END
 
 /* D:\DEV\dmvcframework\samples\authenticationauthorization\WebModuleUnit1.dfm */
 /* D:\DEV\dmvcframework\samples\authenticationauthorization\AuthenticateAuthorize.res */
-/* C:\Users\Daniele\AppData\Local\Temp\dtf6D14.tmp */
+/* C:\Users\Daniele\AppData\Local\Temp\dtfB1DC.tmp */

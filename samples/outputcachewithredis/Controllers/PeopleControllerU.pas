@@ -3,7 +3,11 @@ unit PeopleControllerU;
 interface
 
 uses
-  MVCFramework, PeopleModuleU, Redis.Commons, MVCFramework.Controllers.CacheController;
+  MVCFramework,
+  MVCFramework.Commons,
+  PeopleModuleU,
+  Redis.Commons,
+  MVCFramework.Controllers.CacheController;
 
 type
 
