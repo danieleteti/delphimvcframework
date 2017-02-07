@@ -46,6 +46,7 @@ type
   TJSONValueHelper = class helper for TJSONValue
   public
     function ToJSON: String;
+    function Count: Integer;
   end;
 {$ENDIF}
 
@@ -55,6 +56,11 @@ implementation
 
 {$IFNDEF TOJSON}
 
+
+function TJSONValueHelper.Count: Integer;
+begin
+  Result := Size;
+end;
 
 function TJSONValueHelper.ToJSON: String;
 begin

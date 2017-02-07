@@ -230,7 +230,7 @@ begin
                 begin
                   cref := attr.Value;
                   list := WrapAsList(o);
-                  for I := 0 to Arr.Size - 1 do
+                  for I := 0 to Arr.Count - 1 do
                   begin
                     list.Add(Mapper.JSONObjectToObject(cref,
                       Arr.Get(I) as TJSONObject));
@@ -241,7 +241,7 @@ begin
                   ListMethod := CTX.GetType(o.ClassInfo).GetMethod('Add');
                   if (ListMethod <> nil) then
                   begin
-                    for I := 0 to Arr.Size - 1 do
+                    for I := 0 to Arr.Count - 1 do
                     begin
                       ListItem := TValue.Empty;
 
@@ -595,7 +595,7 @@ begin
     if (lJValue = nil) or (not(lJValue is TJSONArray)) then
       raise EMVCDeserializationException.Create('Serialized data is not a valid JSON Array');
     lJArr := TJSONArray(lJValue);
-    for I := 0 to lJArr.Size - 1 do
+    for I := 0 to lJArr.Count - 1 do
     begin
       AList.Add(JSONObjectToObject(AClazz, lJArr.Get(I) as TJSONObject));
     end;

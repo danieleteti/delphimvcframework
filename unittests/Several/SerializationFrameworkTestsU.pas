@@ -80,7 +80,6 @@ end;
 
 procedure TTestJSONSerializer.TestSerUnSerObjectList;
 var
-  Obj: TMyObject;
   ObjList, Obj2List: TObjectList<TMyObject>;
   lJSON: String;
   I: Integer;
