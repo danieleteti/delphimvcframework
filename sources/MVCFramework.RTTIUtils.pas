@@ -91,7 +91,8 @@ uses
   Classes,
   TypInfo,
   ObjectsMappers,
-  MVCFramework.DuckTyping;
+  MVCFramework.DuckTyping,
+  StringHelper;
 
 class function TRTTIUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
   RaiseExceptionIfNotFound: boolean): TValue;
@@ -109,7 +110,7 @@ begin
   for m in T.GetMethods do
   begin
     MethodParamsLen := Length(m.GetParameters);
-    if m.Name.Equals(AMethodName) and (MethodParamsLen = ParLen) then
+    if (m.Name = AMethodName) and (MethodParamsLen = ParLen) then
     begin
       Found := true;
       Break;
@@ -356,7 +357,7 @@ begin
           else
             Exit(FormatDateTime(CustomFormat, Frac(Value.AsExtended)))
         end;
-        if CustomFormat.IsEmpty then
+        if StringIsEmpty(CustomFormat) then
           Result := FloatToStr(Value.AsExtended)
         else
           Result := FormatFloat(CustomFormat, Value.AsExtended);
@@ -714,7 +715,7 @@ begin
     end;
   end;
 end;
-{$ENDIF}
+{$IFEND}
 
 
 class function TRTTIUtils.CreateObject(AQualifiedClassName: string): TObject;

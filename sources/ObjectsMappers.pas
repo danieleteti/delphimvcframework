@@ -38,7 +38,7 @@ uses
 {$IFDEF USEDBX}
   Data.SqlExpr,
   DBXCommon,
-{$IFEND}
+{$ENDIF}
 {$IFDEF USEFIREDAC}
   FireDAC.Comp.Client, FireDAC.Stan.Param,
 {$ENDIF}
@@ -47,7 +47,7 @@ uses
     , System.JSON
 {$ELSE}
     , Data.DBXJSON
-{$IFEND}
+{$ENDIF}
     , MVCFramework.Patches
     ;
 
@@ -178,7 +178,7 @@ type
       (AReader: TDBXReader; AObjectList: TObjectList<T>);
     class procedure ReaderToJSONObject(AReader: TDBXReader;
       AJSONObject: TJSONObject; AReaderInstanceOwner: boolean = True);
-{$IFEND}
+{$ENDIF}
     class procedure DataSetToJSONObject(ADataSet: TDataSet;
       AJSONObject: TJSONObject; ADataSetInstanceOwner: boolean = True;
       AJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -199,7 +199,7 @@ type
       AList: IWrappedList);
     class procedure ReaderToJSONArray(AReader: TDBXReader;
       AJSONArray: TJSONArray; AReaderInstanceOwner: boolean = True);
-{$IFEND}
+{$ENDIF}
     class procedure DataSetToJSONArray(ADataSet: TDataSet;
       AJSONArray: TJSONArray; ADataSetInstanceOwner: boolean = True;
       AJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -243,7 +243,7 @@ type
       (AQuery: TSQLQuery; AObject: TObject = nil): TObjectList<T>;
     class function CreateQuery(AConnection: TSQLConnection; ASQL: string)
       : TSQLQuery;
-{$IFEND}
+{$ENDIF}
     { FIREDAC RELATED METHODS }
 {$IFDEF USEFIREDAC}
     class function ExecuteFDQueryNoResult(AQuery: TFDQuery;
@@ -426,7 +426,8 @@ uses
   System.NetEncoding,
   // so that the old functions in Soap.EncdDecd can be inlined
 {$ENDIF}
-  Soap.EncdDecd;
+  Soap.EncdDecd,
+  StringHelper;
 
 const
   DMVC_CLASSNAME = '$dmvc_classname';
@@ -469,14 +470,14 @@ end;
 
 function CheckISOTimeStrSeparator(const TimeAsString: string; const Offset: Word): boolean;
 begin
-  Result := (TimeAsString.Chars[Offset + 2] = ':') and
-    (TimeAsString.Chars[Offset + 5] = ':');
+  Result := (StringChars(TimeAsString, Offset + 2) = ':') and
+    (StringChars(TimeAsString, Offset + 5) = ':');
 end;
 
 function CheckISODateStrSeparator(const DateAsString: string; const Offset: Word): boolean;
 begin
-  Result := (DateAsString.Chars[Offset + 4] = '-') and
-    (DateAsString.Chars[Offset + 7] = '-');
+  Result := (StringChars(DateAsString, Offset + 4) = '-') and
+    (StringChars(DateAsString, Offset + 7) = '-');
 end;
 
 function ISOStrToDateTime(const DateTimeAsString: string): TDateTime;
@@ -764,7 +765,7 @@ begin
   Result.SQLConnection := AConnection;
   Result.CommandText := ASQL;
 end;
-{$IFEND}
+{$ENDIF}
 
 
 class procedure Mapper.DataSetToJSONArray(ADataSet: TDataSet;
@@ -2469,7 +2470,7 @@ begin
 {$ELSE}
   if not AJSONObject.TryGetValue<TJSONString>(DMVC_CLASSNAME, lJClassName) then
     raise EMapperException.Create('No $classname property in the JSON object');
-{$ENDIF}
+{$IFEND}
   LObj := TRTTIUtils.CreateObject(lJClassName.Value);
   try
     InternalJSONObjectFieldsToObject(ctx, AJSONObject, LObj);
@@ -2967,7 +2968,7 @@ begin
   Result := TObjectList<T>.Create(True);
   DataSetToObjectList<T>(AQuery, Result);
 end;
-{$IFEND}
+{$ENDIF}
 
 { MappedField }
 
@@ -3246,7 +3247,7 @@ end;
 constructor MapperSerializeAsString.Create(aEncoding: string);
 begin
   inherited Create;
-  if aEncoding.IsEmpty then
+  if StringIsEmpty(aEncoding) then
     FEncoding := DefaultEncoding
   else
     FEncoding := aEncoding;

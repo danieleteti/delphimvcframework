@@ -75,7 +75,8 @@ uses
   System.StrUtils,
   System.RegularExpressions,
   System.SysUtils,
-  idURI;
+  idURI,
+  StringHelper;
 
 { TMVCRouter }
 
@@ -126,9 +127,9 @@ begin
   { ISAPI CHANGE THE REQUEST PATH INFO START }
   if IsLibrary then
   begin
-    if string(LWebRequestPathInfo).StartsWith(FMVCConfig.Value[TMVCConfigKey.ISAPIPath]) then
-      LWebRequestPathInfo := LWebRequestPathInfo.Remove(0,
-        FMVCConfig.Value[TMVCConfigKey.ISAPIPath].Length);
+    if StringStartsWith(LWebRequestPathInfo, FMVCConfig.Value[TMVCConfigKey.ISAPIPath]) then
+      LWebRequestPathInfo := StringRemove(LWebRequestPathInfo, 0,
+        Length(FMVCConfig.Value[TMVCConfigKey.ISAPIPath]));
     if Length(LWebRequestPathInfo) = 0 then
       LWebRequestPathInfo := '/';
   end;
@@ -162,7 +163,7 @@ begin
       if ControllerMappedPath = '/' then // WE WANT TO AVOID '//' AS MVCPATH
         ControllerMappedPath := '';
 
-      if (not ControllerMappedPath.IsEmpty) and (Pos(ControllerMappedPath, LWebRequestPathInfo) <> 1)
+      if (not StringIsEmpty(ControllerMappedPath)) and (Pos(ControllerMappedPath, LWebRequestPathInfo) <> 1)
       then
         Continue;
 

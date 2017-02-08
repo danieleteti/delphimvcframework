@@ -24,7 +24,9 @@
 
 unit MVCFramework.DuckTyping;
 
+{$IF CompilerVersion > 23}
 {$LEGACYIFEND ON}
+{$IFEND}
 
 interface
 
