@@ -30,6 +30,7 @@ interface
 
 
 uses
+  MVCFramework.Serializer.Intf,
   System.RTTI,
   System.IOUtils,
   DBXPLatform,
@@ -59,8 +60,6 @@ type
   EMapperException = class(Exception)
 
   end;
-
-  TSerializationType = (Properties, Fields);
 
   TJSONObjectActionProc = reference to procedure(const AJSONObject
     : TJSONObject);
@@ -357,10 +356,12 @@ type
     procedure SetEncoding(const Value: string);
 
   const
-    DefaultEncoding = 'utf-8';
+    DefaultEncoding = 'utf8';
+  private
+    function GetEncoding: string;
   public
     constructor Create(aEncoding: string = DefaultEncoding);
-    property Encoding: string read FEncoding write SetEncoding;
+    property Encoding: string read GetEncoding write SetEncoding;
   end;
 
   MapperJSONNaming = class(TCustomAttribute)
@@ -428,9 +429,7 @@ uses
 {$ENDIF}
   Soap.EncdDecd;
 
-const
-  DMVC_CLASSNAME = '$dmvc_classname';
-  { Mapper }
+{ Mapper }
 
 function ContainsFieldName(const FieldName: string;
   var FieldsArray: TArray<string>): boolean;
@@ -3246,10 +3245,14 @@ end;
 constructor MapperSerializeAsString.Create(aEncoding: string);
 begin
   inherited Create;
-  if aEncoding.IsEmpty then
-    FEncoding := DefaultEncoding
-  else
-    FEncoding := aEncoding;
+  FEncoding := aEncoding;
+end;
+
+function MapperSerializeAsString.GetEncoding: string;
+begin
+  if FEncoding.IsEmpty then
+    FEncoding := DefaultEncoding;
+  Result := FEncoding;
 end;
 
 procedure MapperSerializeAsString.SetEncoding(const Value: string);

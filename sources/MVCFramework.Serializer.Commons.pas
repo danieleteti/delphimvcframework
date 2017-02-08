@@ -15,6 +15,7 @@ type
       : boolean; overload;
     class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject;
       out AAttribute: T): boolean; overload;
+    class function AttributeExists<T: TCustomAttribute>(Attributes: TArray<TCustomAttribute>; out Attribute: T): boolean;
     class procedure EncodeStream(Input, Output: TStream);
     class procedure DecodeStream(Input, Output: TStream);
     class procedure DeSerializeStringStream(aStream: TStream;
@@ -127,14 +128,31 @@ begin
   Result := ARttiField.Name;
 end;
 
+class function TSerializerHelpers.AttributeExists<T>(
+  Attributes: TArray<TCustomAttribute>; out Attribute: T): boolean;
+var
+  lAtt: TCustomAttribute;
+begin
+  Attribute := nil;
+  for lAtt in Attributes do
+  begin
+    if lAtt is T then
+    begin
+      Attribute := T(lAtt);
+      Break;
+    end;
+  end;
+  Result := Attribute <> nil;
+end;
+
 class procedure TSerializerHelpers.DecodeStream(Input, Output: TStream);
 begin
-  DecodeStream(Input, Output);
+  Soap.EncdDecd.DecodeStream(Input, Output);
 end;
 
 class procedure TSerializerHelpers.EncodeStream(Input, Output: TStream);
 begin
-  EncodeStream(Input, Output);
+  Soap.EncdDecd.EncodeStream(Input, Output);
 end;
 
 class function TSerializerHelpers.GetKeyName(const ARttiProp: TRttiProperty;

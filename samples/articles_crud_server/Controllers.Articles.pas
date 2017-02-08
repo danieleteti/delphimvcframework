@@ -40,7 +40,7 @@ implementation
 
 { TArticlesController }
 
-uses Services, BusinessObjects, Commons;
+uses Services, BusinessObjects, Commons, mvcframework.Serializer.Intf;
 
 procedure TArticlesController.CreateArticle(Context: TWebContext);
 var

@@ -41,6 +41,8 @@ type
   published
     procedure TestSerUnSerObject; override;
     procedure TestSerUnSerObjectList; override;
+    procedure TestSerUnSerObjectWithStream; override;
+    procedure TestSerUnSerObjectListWithStream; override;
   end;
 
 implementation
@@ -48,7 +50,8 @@ implementation
 {$WARN SYMBOL_DEPRECATED OFF}
 
 
-uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping;
+uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping,
+  System.Classes, Winapi.Windows;
 
 { TTestJSONSerializer }
 
@@ -100,6 +103,59 @@ begin
     end;
   finally
     ObjList.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectListWithStream;
+var
+  ObjList, Obj2List: TObjectList<TMyStreamObject>;
+  lJSON: String;
+  I: Integer;
+begin
+  ObjList := GetObjectsWithStreamsList;
+  try
+    lJSON := SerUnSer.SerializeCollection(ObjList, []);
+    Obj2List := TObjectList<TMyStreamObject>.Create(True);
+    try
+      SerUnSer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyStreamObject);
+      CheckEquals(ObjList.Count, Obj2List.Count);
+      for I := 0 to 9 do
+      begin
+        CheckTrue(Obj2List[I].Equals(ObjList[I]), 'TMyStreamObject instances are not equal');
+      end;
+    finally
+      Obj2List.Free;
+    end;
+  finally
+    ObjList.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectWithStream;
+var
+  Obj: TMyStreamObject;
+  JSON: String;
+  Obj2: TMyStreamObject;
+  Buff: TBytes;
+begin
+  // ARRANGE
+  Obj := GetMyObjectWithStream;
+  try
+    // ACT
+    JSON := SerUnSer.SerializeObject(Obj, []);
+    Obj2 := TMyStreamObject.Create;
+    try
+      SerUnSer.DeserializeObject(JSON, Obj2);
+      // ASSERT
+      CheckEquals('This is an UTF16 String', TStringStream(Obj2.PropStream).DataString);
+      CheckEquals('This is an UTF8 String', TStringStream(Obj2.Prop8Stream).DataString);
+      CheckEquals(BASE64_STRING, TEncoding.ANSI.GetString(TMemoryStream(Obj2.ImageStream).Memory, 0,
+        Length(BASE64_STRING)));
+    finally
+      Obj2.Free;
+    end;
+  finally
+    Obj.Free;
   end;
 end;
 

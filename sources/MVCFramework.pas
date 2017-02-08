@@ -52,12 +52,9 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Session,
   StompTypes,
-  ObjectsMappers
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
+  ObjectsMappers,
+  MVCFramework.Patches,
+  MVCFramework.TypesAliases
 {$IFDEF WEBAPACHEHTTP}
     , Web.ApacheHTTP
   // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
@@ -65,10 +62,10 @@ uses
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
     , LoggerPro
     , MVCFramework.DuckTyping
-    , MVCFramework.Patches, MVCFramework.Serializer.Intf;
+    , MVCFramework.Serializer.Intf;
 
 type
-  TDMVCSerializationType = TSerializationType;
+  TDMVCSerializationType = TMVCSerializationType;
   TSessionData = TDictionary<string, string>;
 
   // RTTI ATTRIBUTES
@@ -399,7 +396,7 @@ type
     procedure RenderResponseStream; virtual;
     procedure RenderWrappedList(aList: IWrappedList;
       aJSONObjectActionProc: TJSONObjectActionProc = nil;
-      aSerializationType: TDMVCSerializationType = TDMVCSerializationType.
+      aSerializationType: TMVCSerializationType = TMVCSerializationType.
       Properties);
     procedure Render<T: class>(aCollection: TObjectList<T>;
       aInstanceOwner: Boolean = true;
@@ -2868,12 +2865,12 @@ end;
 
 procedure TMVCController.RenderWrappedList(aList: IWrappedList;
   aJSONObjectActionProc: TJSONObjectActionProc = nil;
-  aSerializationType: TDMVCSerializationType = TDMVCSerializationType.
+  aSerializationType: TMVCSerializationType = TMVCSerializationType.
   Properties);
 var
   JSON: TJSONArray;
 begin
-  if aSerializationType = TSerializationType.Properties then
+  if aSerializationType = TMVCSerializationType.Properties then
     JSON := Mapper.ObjectListToJSONArray(aList, true,
       aJSONObjectActionProc)
   else
@@ -2884,19 +2881,39 @@ end;
 
 procedure TMVCController.Render<T>(aCollection: TObjectList<T>;
   aInstanceOwner: Boolean; aJSONObjectActionProc: TJSONObjectActionProc;
-  aSerializationType: TSerializationType);
+  aSerializationType: TMVCSerializationType);
 var
-  JSON: TJSONArray;
+  JSON: String;
 begin
-  if aSerializationType = TSerializationType.Properties then
-    JSON := Mapper.ObjectListToJSONArray<T>(aCollection, false,
-      aJSONObjectActionProc)
+  case aSerializationType of
+    TMVCSerializationType.Properties:
+      begin
+        JSON := Renderer.SerializeCollection(aCollection, [])
+      end;
+    TMVCSerializationType.Fields:
+      begin
+        JSON := Renderer.SerializeCollectionStrict(aCollection);
+      end
   else
-    JSON := Mapper.ObjectListToJSONArrayFields<T>(aCollection, false,
-      aJSONObjectActionProc);
-  Render(JSON, true);
+    begin
+      raise EMVCSerializationException.Create('Invalid serialization type');
+    end;
+  end;
+
+  InternalRenderText(JSON, ContentType, 'utf8', Context);
+
   if aInstanceOwner then
     FreeAndNil(aCollection);
+
+  // if aSerializationType = TMVCSerializationType.Properties then
+  // JSON := Mapper.ObjectListToJSONArray<T>(aCollection, false,
+  // aJSONObjectActionProc)
+  // else
+  // JSON := Mapper.ObjectListToJSONArrayFields<T>(aCollection, false,
+  // aJSONObjectActionProc);
+  // Render(JSON, true);
+  // if aInstanceOwner then
+  // FreeAndNil(aCollection);
 end;
 
 procedure TMVCController.RenderJSONArrayAsProperty(const aPropertyName: string;

@@ -123,11 +123,12 @@ type
     procedure SetProp8Stream(const Value: TStream);
     procedure SetImageStream(const Value: TStream);
   public
+    function Equals(Obj: TMyStreamObject): boolean; reintroduce;
     constructor Create;
     destructor Destroy; override;
     [MapperSerializeAsString('utf-16')]
     property PropStream: TStream read FPropStream write SetPropStream;
-    [MapperSerializeAsString]
+    [MapperSerializeAsString('utf-8')]
     // utf-8 is default
     property Prop8Stream: TStream read FProp8Stream write SetProp8Stream;
     property ImageStream: TStream read FImageStream write SetImageStream;
@@ -179,13 +180,17 @@ type
   end;
 
 function GetMyObject: TMyObject;
+function GetMyObjectWithStream: TMyStreamObject;
 function GetMyComplexObject: TMyComplexObject;
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
+
+const
+  BASE64_STRING: AnsiString = 'This is serialized as BASE64 String';
 
 implementation
 
 uses
-  system.DateUtils;
+  system.DateUtils, Winapi.Windows;
 
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
 begin
@@ -212,6 +217,18 @@ begin
   co := TMyChildObject.Create;
   co.MyChildProperty1 := 'MyChildProperty4';
   Result.ChildObjectList.Add(co);
+end;
+
+function GetMyObjectWithStream: TMyStreamObject;
+var
+  Buff: TBytes;
+begin
+  Result := TMyStreamObject.Create;
+  TStringStream(Result.PropStream).WriteString('This is an UTF16 String');
+  TStringStream(Result.Prop8Stream).WriteString('This is an UTF8 String');
+  SetLength(Buff, Length(BASE64_STRING));
+  MoveMemory(Buff, PAnsiChar(AnsiString(BASE64_STRING)), Length(BASE64_STRING));
+  TMemoryStream(Result.ImageStream).Write(Buff, Length(Buff));
 end;
 
 function GetMyObject: TMyObject;
@@ -411,13 +428,34 @@ end;
 
 destructor TMyStreamObject.Destroy;
 begin
-  if Assigned(FPropStream) then
-    FPropStream.Free;
-  if Assigned(FProp8Stream) then
-    FProp8Stream.Free;
-  if Assigned(FImageStream) then
-    FImageStream.Free;
+  FPropStream.Free;
+  FProp8Stream.Free;
+  FImageStream.Free;
   inherited;
+end;
+
+function TMyStreamObject.Equals(Obj: TMyStreamObject): boolean;
+var
+  lPMemSelf: PByte;
+  lPMemOther: PByte;
+  I: Integer;
+begin
+  Result := true;
+  Result := Result and (TStringStream(Self.PropStream).DataString = TStringStream(Obj.PropStream).DataString);
+  Result := Result and (TStringStream(Self.Prop8Stream).DataString = TStringStream(Obj.Prop8Stream).DataString);
+  Result := Result and (Self.ImageStream.Size = Obj.ImageStream.Size);
+
+  if Result then
+  begin
+    lPMemSelf := TMemoryStream(Self.ImageStream).Memory;
+    lPMemOther := TMemoryStream(Obj.ImageStream).Memory;
+    for I := 0 to Self.ImageStream.Size - 1 do
+    begin
+      Result := Result and (lPMemSelf^ = lPMemOther^);
+      Inc(lPMemSelf);
+      Inc(lPMemOther);
+    end;
+  end;
 end;
 
 procedure TMyStreamObject.SetImageStream(const Value: TStream);
@@ -428,7 +466,7 @@ end;
 procedure TMyStreamObject.SetProp8Stream(const Value: TStream);
 begin
   if Assigned(FProp8Stream) then
-    FProp8Stream.Free;
+    FreeAndNil(FProp8Stream);
   FProp8Stream := Value;
 end;
 
@@ -498,7 +536,7 @@ begin
   inherited Create;
   Self.SetTotalItems(TotalItems);
   Self.SetItems(aItems);
-  aItems.OwnsObjects := True;
+  aItems.OwnsObjects := true;
 end;
 
 destructor TResponseWrapper<T>.Destroy;
