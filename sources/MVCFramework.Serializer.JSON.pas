@@ -233,7 +233,7 @@ begin
                   for I := 0 to Arr.Count - 1 do
                   begin
                     list.Add(Mapper.JSONObjectToObject(cref,
-                      Arr.Get(I) as TJSONObject));
+                      Arr.Items[I] as TJSONObject));
                   end;
                 end
                 else // Ezequiel J. Müller convert regular list
@@ -248,11 +248,11 @@ begin
                       for ListParam in ListMethod.GetParameters do
                         case ListParam.ParamType.TypeKind of
                           tkInteger, tkInt64:
-                            ListItem := StrToIntDef(Arr.Get(I).Value, 0);
+                            ListItem := StrToIntDef(Arr.Items[I].Value, 0);
                           tkFloat:
-                            ListItem := TJSONNumber(Arr.Get(I).Value).AsDouble;
+                            ListItem := TJSONNumber(Arr.Items[I].Value).AsDouble;
                           tkString, tkLString, tkWString, tkUString:
-                            ListItem := Arr.Get(I).Value;
+                            ListItem := Arr.Items[I].Value;
                         end;
 
                       if not ListItem.IsEmpty then
@@ -597,7 +597,7 @@ begin
     lJArr := TJSONArray(lJValue);
     for I := 0 to lJArr.Count - 1 do
     begin
-      AList.Add(JSONObjectToObject(AClazz, lJArr.Get(I) as TJSONObject));
+      AList.Add(JSONObjectToObject(AClazz, lJArr.Items[I] as TJSONObject));
     end;
   finally
     lJValue.Free;
@@ -636,5 +636,13 @@ begin
     lJSON.Free;
   end;
 end;
+
+initialization
+
+TMVCSerUnSerRegistry.RegisterSerializer('application/json', TMVCJSONSerUnSer.Create);
+
+finalization
+
+TMVCSerUnSerRegistry.UnRegisterSerializer('application/json');
 
 end.

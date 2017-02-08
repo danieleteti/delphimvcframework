@@ -37,7 +37,7 @@ uses
 type
   TTestJSONSerializer = class(TMVCSerUnSerTestCase)
   protected
-    procedure Setup; override;
+    procedure SetUp; override;
   published
     procedure TestSerUnSerObject; override;
     procedure TestSerUnSerObjectList; override;
@@ -52,7 +52,7 @@ uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping;
 
 { TTestJSONSerializer }
 
-procedure TTestJSONSerializer.Setup;
+procedure TTestJSONSerializer.SetUp;
 begin
   SetSerUnSer(TMVCJSONSerUnSer.Create);
 end;

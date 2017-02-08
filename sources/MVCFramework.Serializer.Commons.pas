@@ -3,7 +3,7 @@ unit MVCFramework.Serializer.Commons;
 interface
 
 uses
-  System.Rtti, System.Classes, System.SysUtils;
+  System.Rtti, System.Classes, System.SysUtils, System.Generics.Collections, MVCFramework.Serializer.Intf;
 
 type
   TSerializerHelpers = class sealed
@@ -31,6 +31,17 @@ type
 
   EMVCDeserializationException = class(Exception)
 
+  end;
+
+  TMVCSerUnSerRegistry = class sealed
+  strict private
+    class var SStorage: TDictionary<string, IMVCSerUnSer>;
+  public
+    class function GetSerUnSer(aContentType: String): IMVCSerUnSer;
+    class procedure RegisterSerializer(aContentType: string; aMVCSerUnSer: IMVCSerUnSer);
+    class procedure UnRegisterSerializer(aContentType: string);
+    class constructor Create;
+    class destructor Destroy;
   end;
 
 implementation
@@ -191,6 +202,36 @@ begin
       AAttribute := T(attr);
       Exit(True);
     end;
+end;
+
+{ TMVCSerUnSerRegistry }
+
+class constructor TMVCSerUnSerRegistry.Create;
+begin
+  SStorage := TDictionary<String, IMVCSerUnSer>.Create;
+end;
+
+class destructor TMVCSerUnSerRegistry.Destroy;
+begin
+  SStorage.Free;
+end;
+
+class function TMVCSerUnSerRegistry.GetSerUnSer(
+  aContentType: String): IMVCSerUnSer;
+begin
+  if not SStorage.TryGetValue(aContentType, Result) then
+    raise EMVCSerializationException.CreateFmt('Cannot find a suitable serializer for %s', [aContentType]);
+end;
+
+class procedure TMVCSerUnSerRegistry.RegisterSerializer(aContentType: string;
+  aMVCSerUnSer: IMVCSerUnSer);
+begin
+  TMVCSerUnSerRegistry.SStorage.Add(aContentType, aMVCSerUnSer);
+end;
+
+class procedure TMVCSerUnSerRegistry.UnRegisterSerializer(aContentType: string);
+begin
+  TMVCSerUnSerRegistry.SStorage.Remove(aContentType);
 end;
 
 end.

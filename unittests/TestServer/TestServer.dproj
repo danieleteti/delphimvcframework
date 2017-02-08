@@ -132,6 +132,9 @@
         <DCCReference Include="AuthHandlersU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Patches.pas"/>
         <DCCReference Include="..\..\sources\ObjectsMappers.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Intf.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JSON.pas"/>
         <None Include="..\..\sources\dmvcframework.inc"/>
         <None Include="..\..\sources\dmvcframeworkbuildconsts.inc"/>
         <BuildConfiguration Include="Release">
@@ -215,16 +218,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                </DeployClass>
+                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
                 <DeployClass Name="ProjectOSXResource">
                     <Platform Name="OSX32">
                         <RemoteDir>Contents\Resources</RemoteDir>
@@ -564,7 +558,16 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                </DeployClass>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>

@@ -9,7 +9,7 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule} ,
+  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule},
   TestServerControllerU in 'TestServerControllerU.pas',
   BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
@@ -36,7 +36,10 @@ uses
   TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas',
   AuthHandlersU in 'AuthHandlersU.pas',
   MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas',
-  ObjectsMappers in '..\..\sources\ObjectsMappers.pas';
+  ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
+  MVCFramework.Serializer.Commons in '..\..\sources\MVCFramework.Serializer.Commons.pas',
+  MVCFramework.Serializer.Intf in '..\..\sources\MVCFramework.Serializer.Intf.pas',
+  MVCFramework.Serializer.JSON in '..\..\sources\MVCFramework.Serializer.JSON.pas';
 
 {$R *.res}
 

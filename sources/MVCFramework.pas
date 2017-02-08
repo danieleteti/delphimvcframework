@@ -65,7 +65,7 @@ uses
     , ReqMulti {Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC}
     , LoggerPro
     , MVCFramework.DuckTyping
-    , MVCFramework.Patches;
+    , MVCFramework.Patches, MVCFramework.Serializer.Intf;
 
 type
   TDMVCSerializationType = TSerializationType;
@@ -348,6 +348,7 @@ type
     FContext: TWebContext;
     FResponseStream: TStringBuilder;
     FContentCharset: string;
+    FRenderer: IMVCSerUnSer;
     procedure SetContext(const Value: TWebContext);
     procedure SetWebSession(const Value: TWebSession);
     procedure SetContentType(const Value: string);
@@ -355,11 +356,7 @@ type
     function GetWebSession: TWebSession;
     function GetContentCharset: string;
     procedure SetContentCharset(const Value: string);
-    // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
-    // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType); overload;
-    // procedure Render<T: class>(ACollection: TObjectList<T>; AInstanceOwner: boolean;
-    // AJSONObjectActionProc: TJSONObjectActionProc; ASerializationType: TSerializationType);
-
+    function GetRenderer: IMVCSerUnSer;
   protected const
     CLIENTID_KEY = '__clientid';
   protected
@@ -463,7 +460,7 @@ type
     property Config: TMVCConfig read GetMVCConfig;
 
     property StatusCode: UInt16 read GetStatusCode write SetStatusCode;
-
+    property Renderer: IMVCSerUnSer read GetRenderer;
   public
     // property ViewCache: TViewCache read FViewCache write SetViewCache;
     procedure PushJSONToView(const AModelName: string; AModel: TJSONValue);
@@ -650,7 +647,7 @@ uses
   IdHTTPWebBrokerBridge,
   MVCFramework.MessagingController,
   Web.WebReq,
-  MVCFramework.SysControllers;
+  MVCFramework.SysControllers, MVCFramework.Serializer.Commons;
 
 const
   ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
@@ -1268,7 +1265,7 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-      // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
+        // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
         if ASessionTimeout = 0 then
           IsExpired := MinutesBetween(Now, Result.LastAccess) > DEFAULT_SESSION_INACTIVITY
         else
@@ -1992,6 +1989,15 @@ begin
   finally
     LSBuilder.Free;
   end;
+end;
+
+function TMVCController.GetRenderer: IMVCSerUnSer;
+begin
+  if FRenderer = nil then
+  begin
+    FRenderer := TMVCSerUnSerRegistry.GetSerUnSer(ContentType);
+  end;
+  Result := FRenderer;
 end;
 
 function TMVCController.GetWebSession: TWebSession;
