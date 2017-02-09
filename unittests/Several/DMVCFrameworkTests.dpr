@@ -35,7 +35,8 @@ uses
   ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
   MVCFramework.Serializer.Commons in '..\..\sources\MVCFramework.Serializer.Commons.pas',
   MVCFramework.TypesAliases in '..\..\sources\MVCFramework.TypesAliases.pas',
-  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas';
+  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework.Serializer.JSON.CustomTypes in '..\..\sources\MVCFramework.Serializer.JSON.CustomTypes.pas';
 
 {$R *.RES}
 

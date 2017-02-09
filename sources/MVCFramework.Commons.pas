@@ -30,13 +30,8 @@ interface
 
 
 uses
-  System.SysUtils, Generics.Collections
-{$IFDEF SYSTEMJSON} // XE6
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    , System.Generics.Collections, MVCFramework.Session, LoggerPro,
+  System.SysUtils, Generics.Collections, MVCFramework.TypesAliases,
+  System.Generics.Collections, MVCFramework.Session, LoggerPro,
   System.SyncObjs;
 
 {$I dmvcframeworkbuildconsts.inc}
@@ -46,6 +41,16 @@ type
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
     httpOPTIONS, httpPATCH, httpTRACE);
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
+
+  TMVCPair<TKey, TVal> = class
+  private
+    FKey: TKey;
+    FValue: TVal;
+  public
+    constructor Create(const Key: TKey; const Value: TVal);
+    property Key: TKey read FKey;
+    property Value: TVal read FValue;
+  end;
 
   TMVCMimeType = class sealed
   public const
@@ -646,6 +651,15 @@ begin
       Self.Leave;
     end;
   end;
+end;
+
+{ TMVCPair<TKey, TVal> }
+
+constructor TMVCPair<TKey, TVal>.Create(const Key: TKey; const Value: TVal);
+begin
+  inherited Create;
+  FKey := Key;
+  FValue := Value;
 end;
 
 initialization

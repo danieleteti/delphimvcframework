@@ -49,7 +49,7 @@ uses
 {$ELSE}
     , Data.DBXJSON
 {$IFEND}
-    , MVCFramework.Patches
+    , MVCFramework.Patches, MVCFramework.Serializer.Commons
     ;
 
 type
@@ -350,19 +350,20 @@ type
 
   end;
 
-  MapperSerializeAsString = class(TCustomAttribute)
-  strict private
-    FEncoding: string;
-    procedure SetEncoding(const Value: string);
-
-  const
-    DefaultEncoding = 'utf8';
-  private
-    function GetEncoding: string;
-  public
-    constructor Create(aEncoding: string = DefaultEncoding);
-    property Encoding: string read GetEncoding write SetEncoding;
-  end;
+  MapperSerializeAsString = MVCSerializeAsString;
+  // MapperSerializeAsString = class(TCustomAttribute)
+  // strict private
+  // FEncoding: string;
+  // procedure SetEncoding(const Value: string);
+  //
+  // const
+  // DefaultEncoding = 'utf8';
+  // private
+  // function GetEncoding: string;
+  // public
+  // constructor Create(aEncoding: string = DefaultEncoding);
+  // property Encoding: string read GetEncoding write SetEncoding;
+  // end;
 
   MapperJSONNaming = class(TCustomAttribute)
   private
@@ -3240,24 +3241,24 @@ begin
   LoadFromJSONObjectString(AJSONObjectString, TArray<string>.Create());
 end;
 
-{ MapperSerializeAsString }
-
-constructor MapperSerializeAsString.Create(aEncoding: string);
-begin
-  inherited Create;
-  FEncoding := aEncoding;
-end;
-
-function MapperSerializeAsString.GetEncoding: string;
-begin
-  if FEncoding.IsEmpty then
-    FEncoding := DefaultEncoding;
-  Result := FEncoding;
-end;
-
-procedure MapperSerializeAsString.SetEncoding(const Value: string);
-begin
-  FEncoding := Value;
-end;
+// { MapperSerializeAsString }
+//
+// constructor MapperSerializeAsString.Create(aEncoding: string);
+// begin
+// inherited Create;
+// FEncoding := aEncoding;
+// end;
+//
+// function MapperSerializeAsString.GetEncoding: string;
+// begin
+// if FEncoding.IsEmpty then
+// FEncoding := DefaultEncoding;
+// Result := FEncoding;
+// end;
+//
+// procedure MapperSerializeAsString.SetEncoding(const Value: string);
+// begin
+// FEncoding := Value;
+// end;
 
 end.

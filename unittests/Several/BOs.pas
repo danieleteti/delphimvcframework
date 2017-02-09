@@ -124,15 +124,18 @@ type
     FProp1: string;
     FChildObjectList: TMyChildObjectList;
     FChildObject: TMyChildObject;
+    FPropStringList: TStringList;
     procedure SetChildObject(const Value: TMyChildObject);
     procedure SetChildObjectList(const Value: TMyChildObjectList);
     procedure SetProp1(const Value: string);
+    procedure SetPropStringList(const Value: TStringList);
   public
     constructor Create;
     destructor Destroy; override;
     function Equals(Obj: TObject): boolean; override;
 
     property Prop1: string read FProp1 write SetProp1;
+    property PropStringList: TStringList read FPropStringList write SetPropStringList;
     property ChildObject: TMyChildObject read FChildObject write SetChildObject;
     property ChildObjectList: TMyChildObjectList read FChildObjectList
       write SetChildObjectList;
@@ -190,6 +193,22 @@ type
     constructor Create(ID: Integer; Description: string); overload;
   end;
 
+  IMyInterface = interface
+    ['{B36E786B-5871-4211-88AD-365B453DC408}']
+    function GetID: Integer;
+    function GetDescription: String;
+  end;
+
+  TMyIntfObject = class(TInterfacedObject, IMyInterface)
+  private
+    FID: Integer;
+    FValue: string;
+  public
+    constructor Create(const ID: Integer; const Value: String);
+    function GetDescription: string;
+    function GetID: Integer;
+  end;
+
   TResponseWrapper<T: class> = class
   private
     FTotalItems: Integer;
@@ -201,6 +220,16 @@ type
     property Items: TObjectList<T> read FItems write SetItems;
     constructor Create(TotalItems: Integer; aItems: TObjectList<T>); overload;
     destructor Destroy; override;
+  end;
+
+  TObjectWithCustomType = class
+  private
+    FPropStringList: TStringList;
+    procedure SetPropStringList(const Value: TStringList);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    property PropStringList: TStringList read FPropStringList write SetPropStringList;
   end;
 
 function GetMyObject: TMyObject;
@@ -242,6 +271,11 @@ var
 begin
   Result := TMyComplexObject.Create;
   Result.Prop1 := 'property1';
+  Result.PropStringList := TStringList.Create;
+  Result.PropStringList.Add('item 1');
+  Result.PropStringList.Add('item 2');
+  Result.PropStringList.Add('item 3');
+  Result.PropStringList.Add('item 4');
   Result.ChildObject.MyChildProperty1 := 'MySingleChildProperty1';
   co := TMyChildObject.Create;
   co.MyChildProperty1 := 'MyChildProperty1';
@@ -392,6 +426,7 @@ destructor TMyComplexObject.Destroy;
 begin
   FChildObjectList.Free;
   FChildObject.Free;
+  FPropStringList.Free;
   inherited;
 end;
 
@@ -439,6 +474,11 @@ end;
 procedure TMyComplexObject.SetProp1(const Value: string);
 begin
   FProp1 := Value;
+end;
+
+procedure TMyComplexObject.SetPropStringList(const Value: TStringList);
+begin
+  FPropStringList := Value;
 end;
 
 { TMyChildObject }
@@ -640,6 +680,44 @@ end;
 procedure TMyObjectWithTValue.SetValueAsString(const Value: TValue);
 begin
   FValueAsString := Value;
+end;
+
+{ TMyIntfObject }
+
+constructor TMyIntfObject.Create(const ID: Integer; const Value: String);
+begin
+  inherited Create;
+  FID := ID;
+  FValue := Value;
+end;
+
+function TMyIntfObject.GetDescription: string;
+begin
+  Result := FValue;
+end;
+
+function TMyIntfObject.GetID: Integer;
+begin
+  Result := FID;
+end;
+
+{ TObjectWithCustomType }
+
+constructor TObjectWithCustomType.Create;
+begin
+  inherited;
+  FPropStringList := TStringList.Create;
+end;
+
+destructor TObjectWithCustomType.Destroy;
+begin
+  FPropStringList.Free;
+  inherited;
+end;
+
+procedure TObjectWithCustomType.SetPropStringList(const Value: TStringList);
+begin
+  FPropStringList.Assign(Value);
 end;
 
 end.

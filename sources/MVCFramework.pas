@@ -345,7 +345,7 @@ type
     FContext: TWebContext;
     FResponseStream: TStringBuilder;
     FContentCharset: string;
-    FRenderer: IMVCSerUnSer;
+    FRenderer: IMVCSerializer;
     procedure SetContext(const Value: TWebContext);
     procedure SetWebSession(const Value: TWebSession);
     procedure SetContentType(const Value: string);
@@ -353,7 +353,7 @@ type
     function GetWebSession: TWebSession;
     function GetContentCharset: string;
     procedure SetContentCharset(const Value: string);
-    function GetRenderer: IMVCSerUnSer;
+    function GetRenderer: IMVCSerializer;
   protected const
     CLIENTID_KEY = '__clientid';
   protected
@@ -451,7 +451,7 @@ type
     property Config: TMVCConfig read GetMVCConfig;
 
     property StatusCode: UInt16 read GetStatusCode write SetStatusCode;
-    property Renderer: IMVCSerUnSer read GetRenderer;
+    property Renderer: IMVCSerializer read GetRenderer;
   public
     // property ViewCache: TViewCache read FViewCache write SetViewCache;
     procedure PushJSONToView(const AModelName: string; AModel: TJSONValue);
@@ -1982,12 +1982,12 @@ begin
   end;
 end;
 
-function TMVCController.GetRenderer: IMVCSerUnSer;
+function TMVCController.GetRenderer: IMVCSerializer;
 begin
   { TODO -oDaniele -cPluggableMapper : Check if the available renderer is compatible with the controller current content-type }
   if FRenderer = nil then
   begin
-    FRenderer := TMVCSerUnSerRegistry.GetSerUnSer(ContentType);
+    FRenderer := TMVCSerializersRegistry.GetSerializer(ContentType);
   end;
   Result := FRenderer;
 end;

@@ -45,6 +45,8 @@ type
     procedure TestSerUnSerObjectListWithStream; override;
     procedure TestSerUnSerObjectWithTValue; override;
     procedure TestSerUnSerObjectListWithTValue; override;
+    procedure TestSerUnSerObjectStrict; override;
+    procedure TestSerUnSerObjectBuiltInCustomTypes; override;
   end;
 
 implementation
@@ -55,11 +57,20 @@ implementation
 uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping,
   System.Classes, Winapi.Windows;
 
+function GetMyObjectWithCustomType: TObjectWithCustomType;
+begin
+  Result := TObjectWithCustomType.Create;
+  Result.PropStringList.Add('item 1');
+  Result.PropStringList.Add('item 2');
+  Result.PropStringList.Add('item 3');
+  Result.PropStringList.Add('item 4');
+end;
+
 { TTestJSONSerializer }
 
 procedure TTestJSONSerializer.SetUp;
 begin
-  SetSerUnSer(TMVCJSONSerUnSer.Create);
+  SetSerializer(TMVCJSONSerUnSer.Create);
 end;
 
 procedure TTestJSONSerializer.TestSerUnSerObject;
@@ -70,10 +81,31 @@ var
 begin
   Obj := GetMyObject;
   try
-    JSON := SerUnSer.SerializeObject(Obj, []);
+    JSON := Serializer.SerializeObject(Obj, []);
     Obj2 := TMyObject.Create;
     try
-      SerUnSer.DeserializeObject(JSON, Obj2);
+      Serializer.DeserializeObject(JSON, Obj2);
+      CheckTrue(Obj.Equals(Obj2));
+    finally
+      Obj2.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectBuiltInCustomTypes;
+var
+  Obj: TObjectWithCustomType;
+  JSON: string;
+  Obj2: TObjectWithCustomType;
+begin
+  Obj := GetMyObjectWithCustomType;
+  try
+    JSON := Serializer.SerializeObject(Obj, []);
+    Obj2 := TObjectWithCustomType.Create;
+    try
+      Serializer.DeserializeObject(JSON, Obj2);
       CheckTrue(Obj.Equals(Obj2));
     finally
       Obj2.Free;
@@ -91,10 +123,10 @@ var
 begin
   ObjList := GetObjectsList;
   try
-    lJSON := SerUnSer.SerializeCollection(ObjList, []);
+    lJSON := Serializer.SerializeCollection(ObjList, []);
     Obj2List := TObjectList<TMyObject>.Create(True);
     try
-      SerUnSer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyObject);
+      Serializer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyObject);
       CheckEquals(ObjList.Count, Obj2List.Count);
       for I := 0 to 9 do
       begin
@@ -116,10 +148,10 @@ var
 begin
   ObjList := GetObjectsWithStreamsList;
   try
-    lJSON := SerUnSer.SerializeCollection(ObjList, []);
+    lJSON := Serializer.SerializeCollection(ObjList, []);
     Obj2List := TObjectList<TMyStreamObject>.Create(True);
     try
-      SerUnSer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyStreamObject);
+      Serializer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyStreamObject);
       CheckEquals(ObjList.Count, Obj2List.Count);
       for I := 0 to 9 do
       begin
@@ -141,10 +173,10 @@ var
 begin
   ObjList := GetObjectsWithTValueList;
   try
-    lJSON := SerUnSer.SerializeCollection(ObjList, []);
+    lJSON := Serializer.SerializeCollection(ObjList, []);
     Obj2List := TObjectList<TMyObjectWithTValue>.Create(True);
     try
-      SerUnSer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyObjectWithTValue);
+      Serializer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyObjectWithTValue);
       CheckEquals(ObjList.Count, Obj2List.Count);
       for I := 0 to 9 do
       begin
@@ -155,6 +187,27 @@ begin
     end;
   finally
     ObjList.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectStrict;
+var
+  Obj: TMyObject;
+  JSON: string;
+  Obj2: TMyObject;
+begin
+  Obj := GetMyObject;
+  try
+    JSON := Serializer.SerializeObjectStrict(Obj);
+    Obj2 := TMyObject.Create;
+    try
+      Serializer.DeserializeObjectStrict(JSON, Obj2);
+      CheckTrue(Obj.Equals(Obj2));
+    finally
+      Obj2.Free;
+    end;
+  finally
+    Obj.Free;
   end;
 end;
 
@@ -169,10 +222,10 @@ begin
   Obj := GetMyObjectWithStream;
   try
     // ACT
-    JSON := SerUnSer.SerializeObject(Obj, []);
+    JSON := Serializer.SerializeObject(Obj, []);
     Obj2 := TMyStreamObject.Create;
     try
-      SerUnSer.DeserializeObject(JSON, Obj2);
+      Serializer.DeserializeObject(JSON, Obj2);
       // ASSERT
       CheckEquals('This is an UTF16 String', TStringStream(Obj2.PropStream).DataString);
       CheckEquals('This is an UTF8 String', TStringStream(Obj2.Prop8Stream).DataString);
@@ -194,10 +247,10 @@ var
 begin
   lObj := GetMyObjectWithTValue;
   try
-    JSON := SerUnSer.SerializeObject(lObj, []);
+    JSON := Serializer.SerializeObject(lObj, []);
     Obj2 := TMyObjectWithTValue.Create;
     try
-      SerUnSer.DeserializeObject(JSON, Obj2);
+      Serializer.DeserializeObject(JSON, Obj2);
       CheckTrue(lObj.Equals(Obj2));
     finally
       Obj2.Free;

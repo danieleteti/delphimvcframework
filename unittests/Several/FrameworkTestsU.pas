@@ -32,7 +32,7 @@ uses
   System.Generics.Collections,
   BOs,
   MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT,
-  MVCFramework.Serializer.Intf;
+  MVCFramework.Serializer.Intf, MVCFramework.MultiMap;
 
 type
   TTestMappers = class(TTestCase)
@@ -112,14 +112,14 @@ type
     check 'SerializationFrameworkTestU.pas' }
   TMVCSerUnSerTestCase = class abstract(TTestCase)
   private
-    FSerUnSer: IMVCSerUnSer;
+    FSerializer: IMVCSerializer;
   protected
-    procedure SetSerUnSer(const SerUnSer: IMVCSerUnSer);
+    procedure SetSerializer(const ASerializer: IMVCSerializer);
     procedure SetUp; override;
     function GetObjectsList: TObjectList<TMyObject>;
     function GetObjectsWithStreamsList: TObjectList<TMyStreamObject>;
     function GetObjectsWithTValueList: TObjectList<TMyObjectWithTValue>;
-    property SerUnSer: IMVCSerUnSer read FSerUnSer;
+    property Serializer: IMVCSerializer read FSerializer;
   published
     procedure TestSerUnSerObject; virtual; abstract;
     procedure TestSerUnSerObjectList; virtual; abstract;
@@ -127,6 +127,19 @@ type
     procedure TestSerUnSerObjectListWithStream; virtual; abstract;
     procedure TestSerUnSerObjectWithTValue; virtual; abstract;
     procedure TestSerUnSerObjectListWithTValue; virtual; abstract;
+    procedure TestSerUnSerObjectStrict; virtual; abstract;
+    procedure TestSerUnSerObjectBuiltInCustomTypes; virtual; abstract;
+  end;
+
+  TTestMultiMap = class(TTestCase)
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestObjectMultiMapAdd;
+    procedure TestObjectMultiMapRemove;
+    procedure TestInterfaceMultiMapAdd;
+    procedure TestInterfaceMultiMapRemove;
   end;
 
 implementation
@@ -1500,9 +1513,9 @@ begin
   end;
 end;
 
-procedure TMVCSerUnSerTestCase.SetSerUnSer(const SerUnSer: IMVCSerUnSer);
+procedure TMVCSerUnSerTestCase.SetSerializer(const ASerializer: IMVCSerializer);
 begin
-  FSerUnSer := SerUnSer;
+  FSerializer := ASerializer;
 end;
 
 procedure TMVCSerUnSerTestCase.SetUp;
@@ -1510,11 +1523,94 @@ begin
   raise Exception.Create('You should override this to use a specific MVCSerUnSer');
 end;
 
+{ TTestMultiMap }
+
+procedure TTestMultiMap.SetUp;
+begin
+  inherited;
+
+end;
+
+procedure TTestMultiMap.TearDown;
+begin
+  inherited;
+
+end;
+
+procedure TTestMultiMap.TestInterfaceMultiMapAdd;
+var
+  lMultiMap: IMVCInterfaceMultiMap<IMyInterface>;
+begin
+  lMultiMap := TMVCInterfaceMultiMap<IMyInterface>.Create;
+  CheckEquals(0, Length(lMultiMap.Keys));
+  lMultiMap.Clear;
+  CheckFalse(lMultiMap.Contains('key1'));
+  lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
+  CheckTrue(lMultiMap.Contains('key1'));
+  CheckEquals(1, lMultiMap.GetItems('key1').Count);
+  lMultiMap.Add('key1', TMyIntfObject.Create(2, 'value2'));
+  CheckEquals(2, lMultiMap.GetItems('key1').Count);
+  CheckEquals('value1', lMultiMap.GetItems('key1')[0].GetDescription);
+  CheckEquals('value2', lMultiMap.GetItems('key1')[1].GetDescription);
+  lMultiMap.Add('key2', TMyIntfObject.Create(1, 'value3'));
+  CheckEquals(2, lMultiMap.GetItems('key1').Count);
+  CheckEquals(1, lMultiMap.GetItems('key2').Count);
+end;
+
+procedure TTestMultiMap.TestInterfaceMultiMapRemove;
+var
+  lMultiMap: IMVCInterfaceMultiMap<IMyInterface>;
+begin
+  lMultiMap := TMVCInterfaceMultiMap<IMyInterface>.Create;
+  lMultiMap.Remove('not valid');
+  lMultiMap.Add('key1', TMyIntfObject.Create(1, 'value1'));
+  lMultiMap.Add('key1', TMyIntfObject.Create(2, 'value2'));
+  CheckEquals(2, lMultiMap.GetItems('key1').Count);
+  CheckTrue(lMultiMap.Contains('key1'));
+  lMultiMap.Remove('key1');
+  CheckFalse(lMultiMap.Contains('key1'));
+end;
+
+procedure TTestMultiMap.TestObjectMultiMapAdd;
+var
+  lMultiMap: IMVCObjectMultiMap<TMyClass>;
+begin
+  lMultiMap := TMVCObjectMultiMap<TMyClass>.Create;
+  CheckEquals(0, Length(lMultiMap.Keys));
+  lMultiMap.Clear;
+  CheckFalse(lMultiMap.Contains('key1'));
+  lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));
+  CheckTrue(lMultiMap.Contains('key1'));
+  CheckEquals(1, lMultiMap.GetItems('key1').Count);
+  lMultiMap.Add('key1', TMyClass.Create(2, 'value2'));
+  CheckEquals(2, lMultiMap.GetItems('key1').Count);
+  CheckEquals('value1', lMultiMap.GetItems('key1')[0].Description);
+  CheckEquals('value2', lMultiMap.GetItems('key1')[1].Description);
+  lMultiMap.Add('key2', TMyClass.Create(1, 'value3'));
+  CheckEquals(2, lMultiMap.GetItems('key1').Count);
+  CheckEquals(1, lMultiMap.GetItems('key2').Count);
+end;
+
+procedure TTestMultiMap.TestObjectMultiMapRemove;
+var
+  lMultiMap: IMVCObjectMultiMap<TMyClass>;
+begin
+  lMultiMap := TMVCObjectMultiMap<TMyClass>.Create;
+  lMultiMap.Remove('not valid');
+  lMultiMap.Add('key1', TMyClass.Create(1, 'value1'));
+  lMultiMap.Add('key1', TMyClass.Create(2, 'value2'));
+  CheckEquals(2, lMultiMap.GetItems('key1').Count);
+  CheckTrue(lMultiMap.Contains('key1'));
+  lMultiMap.Remove('key1');
+  CheckFalse(lMultiMap.Contains('key1'));
+end;
+
 initialization
 
 RegisterTest(TTestRouting.suite);
 RegisterTest(TTestMappers.suite);
 RegisterTest(TTestJWT.suite);
+RegisterTest(TTestMultiMap.suite);
 
 finalization
 

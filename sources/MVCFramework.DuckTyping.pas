@@ -83,7 +83,8 @@ type
   private
     FOwnsObject: boolean;
   protected
-    class var CTX: TRTTIContext;
+  class var
+    CTX: TRTTIContext;
     FObjectAsDuck: TObject;
     FAddMethod: TRttiMethod;
     FClearMethod: TRttiMethod;
@@ -272,6 +273,9 @@ end;
 class function TDuckTypedList.Wrap(const AObjectAsDuck: TObject): IMVCList;
 var
   lRttiType: TRttiType;
+{$IF CompilerVersion >= 23}
+  lRTTIIndexedProperty: TRTTIIndexedProperty;
+{$IFEND}
 begin
   lRttiType := CTX.GetType(AObjectAsDuck.ClassInfo);
   FAddMethod := lRttiType.GetMethod('Add');
@@ -283,7 +287,10 @@ begin
   FGetItemMethod := nil;
 
 {$IF CompilerVersion >= 23}
-  FGetItemMethod := lRttiType.GetIndexedProperty('Items').ReadMethod;
+  lRTTIIndexedProperty := lRttiType.GetIndexedProperty('Items');
+  if lRTTIIndexedProperty = nil then
+    Exit(nil);
+  FGetItemMethod := lRTTIIndexedProperty.ReadMethod;
 {$IFEND}
   if not Assigned(FGetItemMethod) then
     FGetItemMethod := lRttiType.GetMethod('GetItem');

@@ -1,10 +1,34 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.Serializer.Commons;
 
 interface
 
 uses
   System.Rtti, System.Classes, System.SysUtils, System.Generics.Collections, MVCFramework.Serializer.Intf,
-  System.TypInfo;
+  System.TypInfo, MVCFramework.MultiMap, MVCFramework.Commons;
 
 type
   TSerializerHelpers = class sealed
@@ -37,13 +61,18 @@ type
 
   end;
 
-  TMVCSerUnSerRegistry = class sealed
+  TMVCSerializersRegistry = class sealed
   strict private
-    class var SStorage: TDictionary<string, IMVCSerUnSer>;
+    class var SSerializers: TDictionary<string, IMVCSerializer>;
+    class var SCustomTypeSerializers: IMVCObjectMultiMap<TMVCPair<PTypeInfo, IMVCTypeSerializer>>;
   public
-    class function GetSerUnSer(aContentType: String): IMVCSerUnSer;
-    class procedure RegisterSerializer(aContentType: string; aMVCSerUnSer: IMVCSerUnSer);
+    class function GetSerializer(aContentType: String): IMVCSerializer;
+    class procedure RegisterSerializer(aContentType: string; aMVCSerUnSer: IMVCSerializer);
     class procedure UnRegisterSerializer(aContentType: string);
+    class procedure RegisterTypeSerializer(aContentType: string; aTypeInfo: PTypeInfo;
+      aMVCTypeSerializer: IMVCTypeSerializer);
+    class procedure UnRegisterTypeSerializer(aContentType: string; aTypeInfo: PTypeInfo);
+    class function GetTypeSerializer(aContentType: String; aTypeInfo: PTypeInfo): IMVCTypeSerializer;
     class constructor Create;
     class destructor Destroy;
   end;
@@ -54,6 +83,20 @@ type
   public
     constructor Create(ATValueTypeInfo: PTypeInfo);
     function TValueTypeInfo: PTypeInfo;
+  end;
+
+  MVCSerializeAsString = class(TCustomAttribute)
+  strict private
+    FEncoding: string;
+    procedure SetEncoding(const Value: string);
+
+  const
+    DefaultEncoding = 'utf8';
+  private
+    function GetEncoding: string;
+  public
+    constructor Create(aEncoding: string = DefaultEncoding);
+    property Encoding: string read GetEncoding write SetEncoding;
   end;
 
 implementation
@@ -218,6 +261,8 @@ var
 begin
   Result := false;
   attrs := ARTTIMember.GetAttributes;
+  if Length(attrs) = 0 then
+    Exit(false);
   for attr in attrs do
     if attr is T then
       Exit(True);
@@ -248,32 +293,69 @@ end;
 
 { TMVCSerUnSerRegistry }
 
-class constructor TMVCSerUnSerRegistry.Create;
+class constructor TMVCSerializersRegistry.Create;
 begin
-  SStorage := TDictionary<String, IMVCSerUnSer>.Create;
+  SSerializers := TDictionary<String, IMVCSerializer>.Create;
+  SCustomTypeSerializers := TMVCObjectMultiMap < TMVCPair < PTypeInfo, IMVCTypeSerializer >>.Create;
 end;
 
-class destructor TMVCSerUnSerRegistry.Destroy;
+class destructor TMVCSerializersRegistry.Destroy;
 begin
-  SStorage.Free;
+  SSerializers.Free;
 end;
 
-class function TMVCSerUnSerRegistry.GetSerUnSer(
-  aContentType: String): IMVCSerUnSer;
+class function TMVCSerializersRegistry.GetSerializer(
+  aContentType: String): IMVCSerializer;
 begin
-  if not SStorage.TryGetValue(aContentType, Result) then
+  if not SSerializers.TryGetValue(aContentType, Result) then
     raise EMVCSerializationException.CreateFmt('Cannot find a suitable serializer for %s', [aContentType]);
 end;
 
-class procedure TMVCSerUnSerRegistry.RegisterSerializer(aContentType: string;
-  aMVCSerUnSer: IMVCSerUnSer);
+class function TMVCSerializersRegistry.GetTypeSerializer(aContentType: String;
+  aTypeInfo: PTypeInfo): IMVCTypeSerializer;
+var
+  lList: TList<TMVCPair<PTypeInfo, IMVCTypeSerializer>>;
+  I: Integer;
 begin
-  TMVCSerUnSerRegistry.SStorage.Add(aContentType, aMVCSerUnSer);
+  Result := nil;
+  lList := SCustomTypeSerializers.GetItems(aContentType);
+  if lList = nil then
+    Exit;
+  for I := 0 to lList.Count - 1 do
+  begin
+    if lList[I].Key = aTypeInfo then
+    begin
+      Result := lList[I].Value;
+      Break;
+    end;
+  end;
 end;
 
-class procedure TMVCSerUnSerRegistry.UnRegisterSerializer(aContentType: string);
+class procedure TMVCSerializersRegistry.RegisterSerializer(aContentType: string;
+  aMVCSerUnSer: IMVCSerializer);
 begin
-  TMVCSerUnSerRegistry.SStorage.Remove(aContentType);
+  TMVCSerializersRegistry.SSerializers.Add(aContentType, aMVCSerUnSer);
+end;
+
+class procedure TMVCSerializersRegistry.RegisterTypeSerializer(
+  aContentType: string; aTypeInfo: PTypeInfo;
+  aMVCTypeSerializer: IMVCTypeSerializer);
+begin
+  SCustomTypeSerializers.Add(aContentType,
+    TMVCPair<PTypeInfo, IMVCTypeSerializer>.Create(aTypeInfo, aMVCTypeSerializer));
+end;
+
+class procedure TMVCSerializersRegistry.UnRegisterSerializer(aContentType: string);
+begin
+  TMVCSerializersRegistry.SSerializers.Remove(aContentType);
+end;
+
+class procedure TMVCSerializersRegistry.UnRegisterTypeSerializer(
+  aContentType: string; aTypeInfo: PTypeInfo);
+begin
+  raise Exception.Create('Not implemented');
+  // SCustomTypeSerializers.Add(aContentType,
+  // TMVCPair<PTypeInfo, IMVCTypeSerializer>.Create(aTypeInfo, aMVCTypeSerializer));
 end;
 
 { TValueAsType }
@@ -287,6 +369,26 @@ end;
 function TValueAsType.TValueTypeInfo: PTypeInfo;
 begin
   Result := FTValueTypeInfo;
+end;
+
+{ MVCSerializeAsString }
+
+constructor MVCSerializeAsString.Create(aEncoding: string);
+begin
+  inherited Create;
+  FEncoding := aEncoding;
+end;
+
+function MVCSerializeAsString.GetEncoding: string;
+begin
+  if FEncoding.IsEmpty then
+    FEncoding := DefaultEncoding;
+  Result := FEncoding;
+end;
+
+procedure MVCSerializeAsString.SetEncoding(const Value: string);
+begin
+  FEncoding := Value;
 end;
 
 end.
