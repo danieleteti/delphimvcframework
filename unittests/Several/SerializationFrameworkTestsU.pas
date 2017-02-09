@@ -43,6 +43,8 @@ type
     procedure TestSerUnSerObjectList; override;
     procedure TestSerUnSerObjectWithStream; override;
     procedure TestSerUnSerObjectListWithStream; override;
+    procedure TestSerUnSerObjectWithTValue; override;
+    procedure TestSerUnSerObjectListWithTValue; override;
   end;
 
 implementation
@@ -131,6 +133,31 @@ begin
   end;
 end;
 
+procedure TTestJSONSerializer.TestSerUnSerObjectListWithTValue;
+var
+  ObjList, Obj2List: TObjectList<TMyObjectWithTValue>;
+  lJSON: String;
+  I: Integer;
+begin
+  ObjList := GetObjectsWithTValueList;
+  try
+    lJSON := SerUnSer.SerializeCollection(ObjList, []);
+    Obj2List := TObjectList<TMyObjectWithTValue>.Create(True);
+    try
+      SerUnSer.DeserializeCollection(lJSON, WrapAsList(Obj2List), TMyObjectWithTValue);
+      CheckEquals(ObjList.Count, Obj2List.Count);
+      for I := 0 to 9 do
+      begin
+        CheckTrue(Obj2List[I].Equals(ObjList[I]));
+      end;
+    finally
+      Obj2List.Free;
+    end;
+  finally
+    ObjList.Free;
+  end;
+end;
+
 procedure TTestJSONSerializer.TestSerUnSerObjectWithStream;
 var
   Obj: TMyStreamObject;
@@ -156,6 +183,27 @@ begin
     end;
   finally
     Obj.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectWithTValue;
+var
+  lObj: TMyObjectWithTValue;
+  JSON: string;
+  Obj2: TMyObjectWithTValue;
+begin
+  lObj := GetMyObjectWithTValue;
+  try
+    JSON := SerUnSer.SerializeObject(lObj, []);
+    Obj2 := TMyObjectWithTValue.Create;
+    try
+      SerUnSer.DeserializeObject(JSON, Obj2);
+      CheckTrue(lObj.Equals(Obj2));
+    finally
+      Obj2.Free;
+    end;
+  finally
+    lObj.Free;
   end;
 end;
 

@@ -11,6 +11,12 @@ const
 type
   TMVCSerializationType = (Properties, Fields);
 
+  IMVCSerUnSerListener = interface
+    ['{5976F9DA-1B89-4F8C-B333-C3612071DEE0}']
+    procedure BeforeSerialize(const AObject: TObject);
+    procedure AfterDeserialize(const AObject: TObject);
+  end;
+
   IMVCSerUnSer = interface
     ['{1ECA942A-E3C4-45DD-9D23-C00363B5E334}']
     function SerializeObject(AObject: TObject; AIgnoredProperties: array of string): String;

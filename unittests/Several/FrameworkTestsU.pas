@@ -118,12 +118,15 @@ type
     procedure SetUp; override;
     function GetObjectsList: TObjectList<TMyObject>;
     function GetObjectsWithStreamsList: TObjectList<TMyStreamObject>;
+    function GetObjectsWithTValueList: TObjectList<TMyObjectWithTValue>;
     property SerUnSer: IMVCSerUnSer read FSerUnSer;
   published
     procedure TestSerUnSerObject; virtual; abstract;
     procedure TestSerUnSerObjectList; virtual; abstract;
     procedure TestSerUnSerObjectWithStream; virtual; abstract;
     procedure TestSerUnSerObjectListWithStream; virtual; abstract;
+    procedure TestSerUnSerObjectWithTValue; virtual; abstract;
+    procedure TestSerUnSerObjectListWithTValue; virtual; abstract;
   end;
 
 implementation
@@ -1472,6 +1475,17 @@ begin
   begin
     Result.Add(GetMyObject);
     Result.Last.PropInteger := I;
+  end;
+end;
+
+function TMVCSerUnSerTestCase.GetObjectsWithTValueList: TObjectList<TMyObjectWithTValue>;
+var
+  I: Integer;
+begin
+  Result := TObjectList<TMyObjectWithTValue>.Create(true);
+  for I := 1 to 10 do
+  begin
+    Result.Add(GetMyObjectWithTValue);
   end;
 end;
 

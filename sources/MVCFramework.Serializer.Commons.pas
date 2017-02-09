@@ -3,7 +3,8 @@ unit MVCFramework.Serializer.Commons;
 interface
 
 uses
-  System.Rtti, System.Classes, System.SysUtils, System.Generics.Collections, MVCFramework.Serializer.Intf;
+  System.Rtti, System.Classes, System.SysUtils, System.Generics.Collections, MVCFramework.Serializer.Intf,
+  System.TypInfo;
 
 type
   TSerializerHelpers = class sealed
@@ -15,7 +16,8 @@ type
       : boolean; overload;
     class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject;
       out AAttribute: T): boolean; overload;
-    class function AttributeExists<T: TCustomAttribute>(Attributes: TArray<TCustomAttribute>; out Attribute: T): boolean;
+    class function AttributeExists<T: TCustomAttribute>(Attributes: TArray<TCustomAttribute>; out Attribute: T)
+      : boolean;
     class procedure EncodeStream(Input, Output: TStream);
     class procedure DecodeStream(Input, Output: TStream);
     class procedure DeSerializeStringStream(aStream: TStream;
@@ -23,7 +25,8 @@ type
 
     class procedure DeSerializeBase64StringStream(aStream: TStream;
       const aBase64SerializedString: string); static;
-
+    class function GetTypeKindAsString(const ATypeKind: TTypeKind): String;
+    class function StringToTypeKind(const AValue: String): TTypeKind;
   end;
 
   EMVCSerializationException = class(Exception)
@@ -43,6 +46,14 @@ type
     class procedure UnRegisterSerializer(aContentType: string);
     class constructor Create;
     class destructor Destroy;
+  end;
+
+  TValueAsType = class(TCustomAttribute)
+  private
+    FTValueTypeInfo: PTypeInfo;
+  public
+    constructor Create(ATValueTypeInfo: PTypeInfo);
+    function TValueTypeInfo: PTypeInfo;
   end;
 
 implementation
@@ -192,6 +203,13 @@ begin
   Result := ARttiProp.Name;
 end;
 
+class function TSerializerHelpers.GetTypeKindAsString(
+  const ATypeKind: TTypeKind): String;
+begin
+  Result := GetEnumName(TypeInfo(TTypeKind), Ord(ATypeKind));
+  Result := Result.Remove(0, 2).ToLower;
+end;
+
 class function TSerializerHelpers.HasAttribute<T>(
   ARTTIMember: TRttiNamedObject): boolean;
 var
@@ -222,6 +240,12 @@ begin
     end;
 end;
 
+class function TSerializerHelpers.StringToTypeKind(
+  const AValue: String): TTypeKind;
+begin
+  Result := TTypeKind(GetEnumValue(TypeInfo(TTypeKind), 'tk' + AValue));
+end;
+
 { TMVCSerUnSerRegistry }
 
 class constructor TMVCSerUnSerRegistry.Create;
@@ -250,6 +274,19 @@ end;
 class procedure TMVCSerUnSerRegistry.UnRegisterSerializer(aContentType: string);
 begin
   TMVCSerUnSerRegistry.SStorage.Remove(aContentType);
+end;
+
+{ TValueAsType }
+
+constructor TValueAsType.Create(ATValueTypeInfo: PTypeInfo);
+begin
+  inherited Create;
+  FTValueTypeInfo := ATValueTypeInfo;
+end;
+
+function TValueAsType.TValueTypeInfo: PTypeInfo;
+begin
+  Result := FTValueTypeInfo;
 end;
 
 end.

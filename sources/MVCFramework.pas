@@ -392,7 +392,6 @@ type
       write SetContentCharset;
     // Renderers
     procedure Render(const Content: string); overload; virtual;
-    procedure Render; overload; virtual; deprecated 'Use RenderResponseStream()';
     procedure RenderResponseStream; virtual;
     procedure RenderWrappedList(aList: IWrappedList;
       aJSONObjectActionProc: TJSONObjectActionProc = nil;
@@ -410,13 +409,8 @@ type
       aOnlySingleRecord: Boolean = false;
       aJSONObjectActionProc: TJSONObjectActionProc = nil); overload; virtual;
     procedure Render(aJSONValue: TJSONValue; aInstanceOwner: Boolean = true);
-      overload; virtual;
+      overload; virtual; deprecated 'Use Render(String)';
     procedure Render(aTextWriter: TTextWriter; aInstanceOwner: Boolean = true); overload;
-    procedure RenderListAsProperty<T: class>(const aPropertyName: string;
-      aObjectList: TObjectList<T>; aOwnsInstance: Boolean = true;
-      aJSONObjectActionProc: TJSONObjectActionProc = nil);
-    procedure RenderJSONArrayAsProperty(const aPropertyName: string;
-      AJSONArray: TJSONArray);
     procedure Render(E: Exception; ErrorItems: TList<string> = nil);
       overload; virtual;
     procedure Render(const aErrorCode: UInt16; const aErrorMessage: string;
@@ -1990,6 +1984,7 @@ end;
 
 function TMVCController.GetRenderer: IMVCSerUnSer;
 begin
+  { TODO -oDaniele -cPluggableMapper : Check if the available renderer is compatible with the controller current content-type }
   if FRenderer = nil then
   begin
     FRenderer := TMVCSerUnSerRegistry.GetSerUnSer(ContentType);
@@ -2191,15 +2186,24 @@ end;
 procedure TMVCController.Render(aObject: TObject; aInstanceOwner: Boolean;
   aSerializationType: TDMVCSerializationType);
 var
-  JSON: TJSONObject;
+  lOutput: String;
 begin
-  if aSerializationType = TDMVCSerializationType.Properties then
-    JSON := Mapper.ObjectToJSONObject(aObject)
+  if aSerializationType = TMVCSerializationType.Properties then
+    lOutput := Renderer.SerializeObject(aObject, [])
   else
-    JSON := Mapper.ObjectToJSONObjectFields(aObject, []);
-  Render(JSON, true);
+    lOutput := Renderer.SerializeObjectStrict(aObject);
+  InternalRenderText(lOutput, ContentType, 'utf-8', Context);
+
   if aInstanceOwner then
     FreeAndNil(aObject);
+
+  // if aSerializationType = TDMVCSerializationType.Properties then
+  // JSON := Mapper.ObjectToJSONObject(aObject)
+  // else
+  // JSON := Mapper.ObjectToJSONObjectFields(aObject, []);
+  // Render(JSON, true);
+  // if aInstanceOwner then
+  // FreeAndNil(aObject);
 end;
 
 procedure TMVCController.SendFile(AFileName: string);
@@ -2770,7 +2774,7 @@ begin
       ResponseStream.AppendLine('<pre>No other informations available</pre>');
     end;
     ResponseStream.Append('</body></html>');
-    Render;
+    RenderResponseStream;
   end
   else if Context.Request.IsAjax or (ContentType = 'application/json') then
   begin
@@ -2916,22 +2920,6 @@ begin
   // FreeAndNil(aCollection);
 end;
 
-procedure TMVCController.RenderJSONArrayAsProperty(const aPropertyName: string;
-  AJSONArray: TJSONArray);
-begin
-  Render(TJSONObject.Create(TJSONPair.Create(aPropertyName,
-    AJSONArray)));
-end;
-
-procedure TMVCController.RenderListAsProperty<T>(const aPropertyName: string;
-  aObjectList: TObjectList<T>; aOwnsInstance: Boolean;
-  aJSONObjectActionProc: TJSONObjectActionProc);
-begin
-  Render(TJSONObject.Create(TJSONPair.Create(aPropertyName,
-    Mapper.ObjectListToJSONArray<T>(aObjectList, aOwnsInstance,
-    aJSONObjectActionProc))));
-end;
-
 procedure TMVCController.RenderStreamAndFree(const AStream: TStream);
 begin
   SendStream(AStream);
@@ -3000,11 +2988,6 @@ begin
   Render(aErrorCode, Mapper.ObjectToJSONObject(aObject), true);
   if aInstanceOwner then
     aObject.Free;
-end;
-
-procedure TMVCController.Render;
-begin
-  RenderResponseStream;
 end;
 
 { MVCStringAttribute }

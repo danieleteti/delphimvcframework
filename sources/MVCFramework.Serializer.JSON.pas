@@ -11,7 +11,7 @@ uses MVCFramework.Serializer.Intf
     , System.SysUtils
     , System.Classes
     , MVCFramework.Serializer.Commons
-    , MVCFramework.TypesAliases, MVCFramework.DuckTyping
+    , MVCFramework.TypesAliases, MVCFramework.DuckTyping, System.TypInfo
     ;
 
 type
@@ -26,8 +26,12 @@ type
     function SerializeEnumerationProperty(AObject: TObject;
       ARTTIProperty: TRttiProperty): TJSONValue; overload; deprecated;
     function SerializeEnumerationProperty(AElementType: TRTTIType; AValue: TValue): TJSONValue; overload;
+    function SerializeTValue(AElementType: TRTTIType; AValue: TValue; AAttributes: TArray<TCustomAttribute>)
+      : TJSONValue;
     function SerializeEnumerationField(AObject: TObject;
       ARttiField: TRttiField): TJSONValue;
+    function DeserializeTValue(AJValue: TJSONValue; AAttributes: TArray<TCustomAttribute>): TValue;
+    function DeserializeTValueWithDynamicType(AJValue: TJSONValue): TValue;
     procedure DeSerializeStringStream(aStream: TStream;
       const aSerializedString: string; aEncoding: string);
     procedure DeSerializeBase64StringStream(aStream: TStream;
@@ -40,9 +44,11 @@ type
     function GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
     function JSONObjectToObject(Clazz: TClass;
       AJSONObject: TJSONObject): TObject;
-    procedure SerializeRTTIElement(const ElementName: String; ElementType: TRTTIType;
-      ElementAttributes: TArray<TCustomAttribute>; Value: TValue;
-      JSONObject: TJSONObject);
+    function SerializeRTTIElement(ElementType: TRTTIType;
+      ElementAttributes: TArray<TCustomAttribute>; Value: TValue): TJSONValue;
+    procedure InternalJSONObjectToObject(AJSONObject: TJSONObject; AObject: TObject);
+    function SerializeTValueAsFixedNullableType(AValue: TValue;
+      AValueTypeInfo: PTypeInfo): TJSONValue;
   protected
     { IMVCSerializer }
     function SerializeObject(AObject: TObject;
@@ -71,6 +77,76 @@ begin
 
 end;
 
+function TMVCJSONSerUnSer.DeserializeTValue(AJValue: TJSONValue;
+  AAttributes: TArray<TCustomAttribute>): TValue;
+var
+  lAttr: TValueAsType;
+begin
+  if TSerializerHelpers.AttributeExists<TValueAsType>(AAttributes, lAttr) then
+  begin
+    case lAttr.TValueTypeInfo.Kind of
+      tkUString, tkString, tkLString, tkWString:
+        begin
+          Result := (AJValue as TJSONString).Value;
+        end;
+      tkInteger:
+        begin
+          Result := (AJValue as TJSONNumber).AsInt;
+        end;
+      tkInt64:
+        begin
+          Result := (AJValue as TJSONNumber).AsInt64;
+        end;
+      tkEnumeration:
+        begin
+          raise EMVCDeserializationException.Create('Booleans and enumerations are not supported');
+        end;
+    else
+      raise EMVCDeserializationException.Create('Type non supported for TValue');
+    end;
+  end
+  else
+  begin
+    Result := DeserializeTValueWithDynamicType(AJValue);
+  end;
+end;
+
+function TMVCJSONSerUnSer.DeserializeTValueWithDynamicType(
+  AJValue: TJSONValue): TValue;
+var
+  lJTValueValue: TJSONValue;
+  lTypeKind: TTypeKind;
+  lStrType: string;
+begin
+  lStrType := AJValue.GetValue<TJSONString>('type').Value;
+  lJTValueValue := AJValue.GetValue<TJSONValue>('value');
+  lTypeKind := TSerializerHelpers.StringToTypeKind(lStrType);
+  case lTypeKind of
+    tkInteger:
+      begin
+        Result := (lJTValueValue as TJSONNumber).AsInt;
+      end;
+    tkEnumeration:
+      begin
+        Result := lJTValueValue is TJSONTrue;
+      end;
+    tkFloat:
+      begin
+        Result := (lJTValueValue as TJSONNumber).AsDouble;
+      end;
+    tkString, tkLString, tkWString, tkUString:
+      begin
+        Result := lJTValueValue.Value;
+      end;
+    tkInt64:
+      begin
+        Result := (lJTValueValue as TJSONNumber).AsInt64;
+      end;
+  else
+    raise EMVCDeserializationException.CreateFmt('Type non supported for TValue %s', [lStrType]);
+  end;
+end;
+
 function TMVCJSONSerUnSer.GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
 var
   pair: TJSONPair;
@@ -81,12 +157,11 @@ begin
   Result := pair;
 end;
 
-procedure InternalJSONObjectToObject(CTX: TRTTIContext;
-  AJSONObject: TJSONObject; AObject: TObject);
+procedure TMVCJSONSerUnSer.InternalJSONObjectToObject(AJSONObject: TJSONObject; AObject: TObject);
 var
-  _type: TRTTIType;
-  _fields: TArray<TRttiProperty>;
-  _field: TRttiProperty;
+  lRttiType: TRTTIType;
+  lRttiProperties: TArray<TRttiProperty>;
+  lRttiProp: TRttiProperty;
   f: string;
   jvalue: TJSONValue;
   v: TValue;
@@ -103,107 +178,108 @@ var
   ListItem: TValue;
   ListParam: TRttiParameter;
 begin
+  { TODO -oDaniele -cGeneral : Refactor this method }
   if not Assigned(AJSONObject) then
     raise EMapperException.Create('JSON Object cannot be nil');
-  _type := CTX.GetType(AObject.ClassInfo);
-  _fields := _type.GetProperties;
-  for _field in _fields do
+  lRttiType := CTX.GetType(AObject.ClassInfo);
+  lRttiProperties := lRttiType.GetProperties;
+  for lRttiProp in lRttiProperties do
   begin
-    if ((not _field.IsWritable) and (_field.PropertyType.TypeKind <> tkClass))
-      or (TSerializerHelpers.HasAttribute<MapperTransientAttribute>(_field)) then
+    if ((not lRttiProp.IsWritable) and (lRttiProp.PropertyType.TypeKind <> tkClass))
+      or (TSerializerHelpers.HasAttribute<MapperTransientAttribute>(lRttiProp)) then
       Continue;
-    f := TSerializerHelpers.GetKeyName(_field, _type);
+    f := TSerializerHelpers.GetKeyName(lRttiProp, lRttiType);
     if Assigned(AJSONObject.Get(f)) then
       jvalue := AJSONObject.Get(f).JsonValue
     else
       Continue;
-    case _field.PropertyType.TypeKind of
+    case lRttiProp.PropertyType.TypeKind of
       tkEnumeration:
         begin
-          if _field.PropertyType.QualifiedName = 'System.Boolean' then
+          if lRttiProp.PropertyType.QualifiedName = 'System.Boolean' then
           begin
             if jvalue is TJSONTrue then
-              _field.SetValue(TObject(AObject), True)
+              lRttiProp.SetValue(TObject(AObject), True)
             else if jvalue is TJSONFalse then
-              _field.SetValue(TObject(AObject), false)
+              lRttiProp.SetValue(TObject(AObject), false)
             else
               raise EMapperException.Create('Invalid value for property ' +
-                _field.Name);
+                lRttiProp.Name);
           end
           else // it is an enumerated value but it's not a boolean.
           begin
             TValue.Make((jvalue as TJSONNumber).AsInt,
-              _field.PropertyType.Handle, v);
-            _field.SetValue(TObject(AObject), v);
+              lRttiProp.PropertyType.Handle, v);
+            lRttiProp.SetValue(TObject(AObject), v);
           end;
         end;
       tkInteger, tkInt64:
-        _field.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
+        lRttiProp.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
       tkFloat:
         begin
-          if _field.PropertyType.QualifiedName = 'System.TDate' then
+          if lRttiProp.PropertyType.QualifiedName = 'System.TDate' then
           begin
             if jvalue is TJSONNull then
-              _field.SetValue(TObject(AObject), 0)
+              lRttiProp.SetValue(TObject(AObject), 0)
             else
-              _field.SetValue(TObject(AObject),
+              lRttiProp.SetValue(TObject(AObject),
                 ISOStrToDateTime(jvalue.Value + ' 00:00:00'))
           end
-          else if _field.PropertyType.QualifiedName = 'System.TDateTime' then
+          else if lRttiProp.PropertyType.QualifiedName = 'System.TDateTime' then
           begin
             if jvalue is TJSONNull then
-              _field.SetValue(TObject(AObject), 0)
+              lRttiProp.SetValue(TObject(AObject), 0)
             else
-              _field.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value))
+              lRttiProp.SetValue(TObject(AObject), ISOStrToDateTime(jvalue.Value))
           end
-          else if _field.PropertyType.QualifiedName = 'System.TTime' then
+          else if lRttiProp.PropertyType.QualifiedName = 'System.TTime' then
           begin
             if not(jvalue is TJSONNull) then
               if jvalue is TJSONString then
-                _field.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
+                lRttiProp.SetValue(TObject(AObject), ISOStrToTime(jvalue.Value))
               else
                 raise EMapperException.CreateFmt
                   ('Cannot deserialize [%s], expected [%s] got [%s]',
-                  [_field.Name, 'TJSONString', jvalue.ClassName]);
+                  [lRttiProp.Name, 'TJSONString', jvalue.ClassName]);
           end
           else { if _field.PropertyType.QualifiedName = 'System.Currency' then }
           begin
             if not(jvalue is TJSONNull) then
               if jvalue is TJSONNumber then
-                _field.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
+                lRttiProp.SetValue(TObject(AObject), TJSONNumber(jvalue).AsDouble)
               else
                 raise EMapperException.CreateFmt
                   ('Cannot deserialize [%s], expected [%s] got [%s]',
-                  [_field.Name, 'TJSONNumber', jvalue.ClassName]);
-          end {
-            else
-            begin
-            _field.SetValue(TObject(AObject), (jvalue as TJSONNumber).AsDouble)
-            end; }
+                  [lRttiProp.Name, 'TJSONNumber', jvalue.ClassName]);
+          end;
         end;
       tkString, tkLString, tkWString, tkUString:
         begin
-          _field.SetValue(TObject(AObject), jvalue.Value);
+          lRttiProp.SetValue(TObject(AObject), jvalue.Value);
         end;
       tkRecord:
         begin
-          if _field.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp'
+          if lRttiProp.PropertyType.QualifiedName = 'System.Rtti.TValue' then
+          begin
+            lRttiProp.SetValue(TObject(AObject), DeserializeTValue(jvalue, lRttiProp.GetAttributes));
+          end
+          else if lRttiProp.PropertyType.QualifiedName = 'System.SysUtils.TTimeStamp'
           then
           begin
             n := jvalue as TJSONNumber;
-            _field.SetValue(TObject(AObject),
+            lRttiProp.SetValue(TObject(AObject),
               TValue.From<TTimeStamp>(MSecsToTimeStamp(n.AsInt64)));
           end;
         end;
       tkClass: // try to restore child properties... but only if the collection is not nil!!!
         begin
-          o := _field.GetValue(TObject(AObject)).AsObject;
+          o := lRttiProp.GetValue(TObject(AObject)).AsObject;
           if Assigned(o) then
           begin
             if jvalue is TJSONNull then
             begin
               FreeAndNil(o);
-              _field.SetValue(AObject, nil);
+              lRttiProp.SetValue(AObject, nil);
             end
             else if o is TStream then
             begin
@@ -215,7 +291,7 @@ begin
                 raise EMapperException.Create('Expected JSONString in ' +
                   AJSONObject.Get(f).JsonString.Value);
 
-              if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(_field, _attrser) then
+              if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(lRttiProp, _attrser) then
               begin
                 TSerializerHelpers.DeSerializeStringStream(TStream(o), SerStreamASString,
                   _attrser.Encoding);
@@ -231,8 +307,8 @@ begin
               begin
                 Arr := TJSONArray(jvalue);
                 // look for the MapperItemsClassType on the property itself or on the property type
-                if Mapper.HasAttribute<MapperItemsClassType>(_field, attr) or
-                  Mapper.HasAttribute<MapperItemsClassType>(_field.PropertyType,
+                if Mapper.HasAttribute<MapperItemsClassType>(lRttiProp, attr) or
+                  Mapper.HasAttribute<MapperItemsClassType>(lRttiProp.PropertyType,
                   attr) then
                 begin
                   cref := attr.Value;
@@ -276,16 +352,16 @@ begin
             begin
               if jvalue is TJSONObject then
               begin
-                InternalJSONObjectToObject(CTX, TJSONObject(jvalue), o);
+                InternalJSONObjectToObject(TJSONObject(jvalue), o);
               end
               else if jvalue is TJSONNull then
               begin
                 FreeAndNil(o);
-                _field.SetValue(AObject, nil);
+                lRttiProp.SetValue(AObject, nil);
               end
               else
                 raise EMapperException.Create('Cannot deserialize property ' +
-                  _field.Name);
+                  lRttiProp.Name);
             end;
           end;
         end;
@@ -299,7 +375,7 @@ var
 begin
   AObject := TRTTIUtils.CreateObject(Clazz.QualifiedClassName);
   try
-    InternalJSONObjectToObject(CTX, AJSONObject, AObject);
+    InternalJSONObjectToObject(AJSONObject, AObject);
     Result := AObject;
   except
     on E: Exception do
@@ -354,7 +430,8 @@ begin
 
     if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lProperty) then
       Continue;
-    SerializeRTTIElement(f, lProperty.PropertyType, lProperty.GetAttributes, lProperty.GetValue(AObject), JSONObject);
+    JSONObject.AddPair(f, SerializeRTTIElement(lProperty.PropertyType, lProperty.GetAttributes,
+      lProperty.GetValue(AObject)));
   end;
   Result := JSONObject;
 
@@ -383,7 +460,7 @@ begin
     for _field in _fields do
     begin
       f := TSerializerHelpers.GetKeyName(_field, _type);
-      SerializeRTTIElement(f, _field.FieldType, _field.GetAttributes, _field.GetValue(AObject), JSONObject);
+      JSONObject.AddPair(f, SerializeRTTIElement(_field.FieldType, _field.GetAttributes, _field.GetValue(AObject)));
 
       // case _field.FieldType.TypeKind of
       // tkInteger, tkInt64:
@@ -479,9 +556,8 @@ begin
 
 end;
 
-procedure TMVCJSONSerUnSer.SerializeRTTIElement(const ElementName: String; ElementType: TRTTIType;
-  ElementAttributes: TArray<TCustomAttribute>; Value: TValue;
-  JSONObject: TJSONObject);
+function TMVCJSONSerUnSer.SerializeRTTIElement(ElementType: TRTTIType;
+  ElementAttributes: TArray<TCustomAttribute>; Value: TValue): TJSONValue;
 var
   ts: TTimeStamp;
   o: TObject;
@@ -500,24 +576,27 @@ var
 begin
   case ElementType.TypeKind of
     tkInteger, tkInt64:
-      JSONObject.AddPair(ElementName, TJSONNumber.Create(Value.AsInteger));
+      Result := TJSONNumber.Create(Value.AsInteger);
     tkFloat:
       begin
-        JSONObject.AddPair(ElementName, SerializeFloatProperty(ElementType, Value));
+        Result := SerializeFloatProperty(ElementType, Value);
       end;
     tkString, tkLString, tkWString, tkUString:
-      JSONObject.AddPair(ElementName, Value.AsString);
+      Result := TJSONString.Create(Value.AsString);
     tkEnumeration:
       begin
-        JSONObject.AddPair(ElementName, SerializeEnumerationProperty(ElementType, Value));
+        Result := SerializeEnumerationProperty(ElementType, Value);
       end;
     tkRecord:
       begin
-        if ElementType.QualifiedName = 'System.SysUtils.TTimeStamp'
-        then
+        if ElementType.QualifiedName = 'System.Rtti.TValue' then
+        begin
+          Result := SerializeTValue(ElementType, Value, ElementAttributes);
+        end
+        else if ElementType.QualifiedName = 'System.SysUtils.TTimeStamp' then
         begin
           ts := Value.AsType<System.SysUtils.TTimeStamp>;
-          JSONObject.AddPair(ElementName, TJSONNumber.Create(TimeStampToMsecs(ts)));
+          Result := TJSONNumber.Create(TimeStampToMsecs(ts));
         end;
       end;
     tkClass:
@@ -528,12 +607,11 @@ begin
           list := TDuckTypedList.Wrap(o);
           if Assigned(list) then
           begin
-            Arr := TJSONArray.Create;
-            JSONObject.AddPair(ElementName, Arr);
+            Result := TJSONArray.Create;
             for Obj in list do
               if Assigned(Obj) then
                 // nil element into the list are not serialized
-                Arr.AddElement(ObjectToJSONObject(Obj, []));
+                TJSONArray(Result).AddElement(ObjectToJSONObject(Obj, []));
           end
           else if o is TStream then
           begin
@@ -548,7 +626,7 @@ begin
                 TStream(o).Read(buff, TStream(o).Size);
                 lStreamAsString := SerEnc.GetString(buff);
                 SetLength(buff, 0);
-                JSONObject.AddPair(ElementName, UTF8Encode(lStreamAsString));
+                Result := TJSONString.Create(UTF8Encode(lStreamAsString));
               finally
                 SerEnc.Free;
               end;
@@ -560,7 +638,7 @@ begin
               SS := TStringStream.Create;
               try
                 TSerializerHelpers.EncodeStream(TStream(o), SS);
-                JSONObject.AddPair(ElementName, SS.DataString);
+                Result := TJSONString.Create(SS.DataString);
               finally
                 SS.Free;
               end;
@@ -568,18 +646,78 @@ begin
           end
           else
           begin
-            JSONObject.AddPair(ElementName,
-              ObjectToJSONObject(Value.AsObject, []));
+            Result := ObjectToJSONObject(Value.AsObject, []);
           end;
         end
         else
         begin
           if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(ElementType) then
-            JSONObject.AddPair(ElementName, '')
+            Result := TJSONString.Create('')
           else
-            JSONObject.AddPair(ElementName, TJSONNull.Create);
+            Result := TJSONNull.Create;
         end;
       end; // tkClass
+  end;
+end;
+
+function TMVCJSONSerUnSer.SerializeTValueAsFixedNullableType(AValue: TValue; AValueTypeInfo: PTypeInfo): TJSONValue;
+begin
+  // supports nulls
+  if AValue.IsEmpty then
+    Exit(TJSONNull.Create);
+
+  // serialize the TValue internal value as specific type
+  case AValueTypeInfo.Kind of
+    tkString, tkUString, tkLString, tkWString:
+      begin
+        Result := TJSONString.Create(AValue.AsString);
+      end;
+    tkInteger:
+      begin
+        Result := TJSONNumber.Create(AValue.AsInteger);
+      end;
+    tkInt64:
+      begin
+        Result := TJSONNumber.Create(AValue.AsInt64);
+      end;
+  else
+    raise EMVCSerializationException.Create('Unsupported type in SerializeTValueAsFixedType');
+  end;
+end;
+
+function TMVCJSONSerUnSer.SerializeTValue(AElementType: TRTTIType; AValue: TValue;
+  AAttributes: TArray<TCustomAttribute>): TJSONValue;
+var
+  lTValueDataRTTIType: TRTTIType;
+  lValue: TValue;
+  lAtt: TValueAsType;
+  lJSONValue: TJSONValue;
+begin
+  lValue := AValue.AsType<TValue>;
+  if TSerializerHelpers.AttributeExists<TValueAsType>(AAttributes, lAtt) then
+  begin
+    Result := SerializeTValueAsFixedNullableType(lValue, lAtt.TValueTypeInfo)
+  end
+  else
+  begin
+    Result := TJSONObject.Create;
+    try
+      if lValue.IsEmpty then
+      begin
+        lJSONValue := TJSONNull.Create;
+        TJSONObject(Result).AddPair('type', TJSONNull.Create);
+      end
+      else
+      begin
+        lTValueDataRTTIType := CTX.GetType(lValue.TypeInfo);
+        lJSONValue := SerializeRTTIElement(lTValueDataRTTIType, [], lValue);
+        TJSONObject(Result).AddPair('type', TSerializerHelpers.GetTypeKindAsString(lValue.TypeInfo.Kind));
+      end;
+      TJSONObject(Result).AddPair('value', lJSONValue);
+    except
+      Result.Free;
+      raise;
+    end;
   end;
 end;
 
@@ -758,7 +896,8 @@ end;
 
 { TMVCJSONDeserializer }
 
-procedure TMVCJSONSerUnSer.DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
+procedure TMVCJSONSerUnSer.DeserializeCollection(ASerializedObjectList: string; AList: IMVCList;
+  AClazz: TClass);
 var
   I: Integer;
   lJArr: TJSONArray;
@@ -796,7 +935,7 @@ begin
     begin
       if lJSON is TJSONObject then
       begin
-        InternalJSONObjectToObject(CTX, TJSONObject(lJSON), AObject)
+        InternalJSONObjectToObject(TJSONObject(lJSON), AObject)
       end
       else
       begin

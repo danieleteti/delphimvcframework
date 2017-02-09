@@ -28,7 +28,7 @@ interface
 
 uses
   system.TimeSpan, system.SysUtils, generics.collections,
-  ObjectsMappers, system.Classes;
+  ObjectsMappers, system.Classes, system.Rtti, MVCFramework.Serializer.Commons;
 
 type
   TMyObject = class
@@ -89,6 +89,30 @@ type
     constructor Create;
     property MyChildProperty1: string read FMyChildProperty1
       write SetMyChildProperty1;
+  end;
+
+  TMyObjectWithTValue = class
+  private
+    FValueAsString: TValue;
+    FValueAsInteger: TValue;
+    FValue1: TValue;
+    FValue2: TValue;
+    FValue3: TValue;
+    FValue4: TValue;
+    FValue5: TValue;
+    procedure SetValueAsInteger(const Value: TValue);
+    procedure SetValueAsString(const Value: TValue);
+  public
+    function Equals(Obj: TObject): boolean; reintroduce;
+    [TValueAsType(TypeInfo(String))]
+    property ValueAsString: TValue read FValueAsString write SetValueAsString;
+    [TValueAsType(TypeInfo(Integer))]
+    property ValueAsInteger: TValue read FValueAsInteger write SetValueAsInteger;
+    property Value1: TValue read FValue1 write FValue1;
+    property Value2: TValue read FValue2 write FValue2;
+    property Value3: TValue read FValue3 write FValue3;
+    property Value4: TValue read FValue4 write FValue4;
+    property Value5: TValue read FValue5 write FValue5;
   end;
 
   [MapperListOf(TMyChildObject)]
@@ -180,6 +204,7 @@ type
   end;
 
 function GetMyObject: TMyObject;
+function GetMyObjectWithTValue: TMyObjectWithTValue;
 function GetMyObjectWithStream: TMyStreamObject;
 function GetMyComplexObject: TMyComplexObject;
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
@@ -196,6 +221,19 @@ function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
 begin
   Result := TMyComplexObject.Create;
   Result.Prop1 := 'property1';
+end;
+
+function GetMyObjectWithTValue: TMyObjectWithTValue;
+begin
+  Result := TMyObjectWithTValue.Create;
+  Result.ValueAsString := 'Value As String';
+  Result.ValueAsInteger := 1234;
+  Result.Value1 := 'Hello World';
+  Result.Value2 := 1234;
+  Result.Value3 := true;
+  Result.Value4 := 1234.5678;
+  // VALUE5 must be a floting number bacause of equals check
+  Result.Value5 := EncodeDateTime(2004, 6, 7, 11, 30, 0, 0);
 end;
 
 function GetMyComplexObject: TMyComplexObject;
@@ -572,6 +610,36 @@ end;
 procedure TMyClass.SetId(ID: Integer);
 begin
   Self.FID := ID;
+end;
+
+{ TMyObjectWithTValue }
+
+function TMyObjectWithTValue.Equals(Obj: TObject): boolean;
+var
+  lOther: TMyObjectWithTValue;
+begin
+  Result := Obj is TMyObjectWithTValue;
+  if Result then
+  begin
+    lOther := TMyObjectWithTValue(Obj);
+    Result := Result and (Self.ValueAsString.AsString = lOther.ValueAsString.AsString);
+    Result := Result and (Self.ValueAsInteger.AsInteger = lOther.ValueAsInteger.AsInteger);
+    Result := Result and (Self.Value1.AsVariant = lOther.Value1.AsVariant);
+    Result := Result and (Self.Value2.AsVariant = lOther.Value2.AsVariant);
+    Result := Result and (Self.Value3.AsVariant = lOther.Value3.AsVariant);
+    Result := Result and (Self.Value4.AsVariant = lOther.Value4.AsVariant);
+    Result := Result and (Trunc(Self.Value5.AsVariant * 100000) = Trunc(lOther.Value5.AsVariant * 100000));
+  end;
+end;
+
+procedure TMyObjectWithTValue.SetValueAsInteger(const Value: TValue);
+begin
+  FValueAsInteger := Value;
+end;
+
+procedure TMyObjectWithTValue.SetValueAsString(const Value: TValue);
+begin
+  FValueAsString := Value;
 end;
 
 end.
