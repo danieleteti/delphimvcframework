@@ -47,6 +47,7 @@ type
     procedure TestSerUnSerObjectListWithTValue; override;
     procedure TestSerUnSerObjectStrict; override;
     procedure TestSerUnSerObjectBuiltInCustomTypes; override;
+    procedure TestSerUnSerObjectBuiltInCustomTypesFullObject; override;
   end;
 
 implementation
@@ -55,8 +56,8 @@ implementation
 
 
 uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping,
-  System.Classes, Winapi.Windows;
-
+  System.Classes, Winapi.Windows, MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.JSON.CustomTypes, CustomJSONSerializersU;
 
 { TTestJSONSerializer }
 
@@ -96,6 +97,27 @@ begin
   try
     JSON := Serializer.SerializeObject(Obj, []);
     Obj2 := TObjectWithCustomType.Create;
+    try
+      Serializer.DeserializeObject(JSON, Obj2);
+      CheckTrue(Obj.Equals(Obj2));
+    finally
+      Obj2.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerObjectBuiltInCustomTypesFullObject;
+var
+  Obj: TMyClass;
+  JSON: string;
+  Obj2: TMyClass;
+begin
+  Obj := TMyClass.Create(10, 'Hello World');
+  try
+    JSON := Serializer.SerializeObject(Obj, []);
+    Obj2 := TMyClass.Create(0, '');
     try
       Serializer.DeserializeObject(JSON, Obj2);
       CheckTrue(Obj.Equals(Obj2));
@@ -208,7 +230,6 @@ var
   Obj: TMyStreamObject;
   JSON: String;
   Obj2: TMyStreamObject;
-  Buff: TBytes;
 begin
   // ARRANGE
   Obj := GetMyObjectWithStream;
@@ -255,6 +276,11 @@ end;
 initialization
 
 RegisterTest(TTestJSONSerializer.suite);
+
+TMVCSerializersRegistry.RegisterTypeSerializer(
+  TMVCJSONSerializer.SERIALIZER_NAME,
+  TypeInfo(TMyClass),
+  TMyClassSerializerJSON.Create);
 
 finalization
 

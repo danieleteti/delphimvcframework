@@ -129,6 +129,7 @@ type
     procedure TestSerUnSerObjectListWithTValue; virtual; abstract;
     procedure TestSerUnSerObjectStrict; virtual; abstract;
     procedure TestSerUnSerObjectBuiltInCustomTypes; virtual; abstract;
+    procedure TestSerUnSerObjectBuiltInCustomTypesFullObject; virtual; abstract;
   end;
 
   TTestMultiMap = class(TTestCase)

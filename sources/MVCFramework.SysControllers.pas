@@ -216,7 +216,7 @@ begin
         end;
       end;
       ContentType := TMVCMediaType.APPLICATION_JSON;
-      Render(LJResp, False);
+      Renderer.SerializeObject(LJResp, []);
     finally
       LJResp.Free;
     end;

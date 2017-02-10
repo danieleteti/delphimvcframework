@@ -188,6 +188,7 @@ type
     procedure SetId(ID: Integer);
     procedure SetDescription(Description: string);
   public
+    function Equals(Obj: TObject): boolean; override;
     property ID: Integer read FID write SetId;
     property Description: string read FDescription write SetDescription;
     constructor Create(ID: Integer; Description: string); overload;
@@ -664,6 +665,16 @@ begin
   inherited Create;
   Self.SetId(ID);
   Self.SetDescription(Description);
+end;
+
+function TMyClass.Equals(Obj: TObject): boolean;
+begin
+  Result := Obj is TMyClass;
+  if Result then
+  begin
+    Result := Result and (TMyClass(Obj).ID = ID);
+    Result := Result and (TMyClass(Obj).Description = Description);
+  end;
 end;
 
 procedure TMyClass.SetDescription(Description: string);

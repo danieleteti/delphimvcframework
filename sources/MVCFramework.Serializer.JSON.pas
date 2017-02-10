@@ -41,8 +41,9 @@ type
   TMVCJSONSerializer = class(TInterfacedObject, IMVCSerializer)
   private
     class var CTX: TRTTIContext;
+    function PropertyMustBeSkipped(const ARTTIProperty: TRTTIProperty): Boolean;
     function SerializeFloatProperty(AObject: TObject;
-      ARTTIProperty: TRttiProperty): TJSONValue; overload; deprecated;
+      ARTTIProperty: TRTTIProperty): TJSONValue; overload; deprecated;
     function SerializeFloatProperty(AElementType: TRTTIType; AValue: TValue): TJSONValue; overload;
     // function SerializeFloatField(AObject: TObject; ARttiField: TRttiField): TJSONValue;
     // function SerializeEnumerationProperty(AObject: TObject;
@@ -54,7 +55,7 @@ type
       : TJSONValue;
     function SerializeEnumerationField(AObject: TObject;
       ARttiField: TRttiField): TJSONValue;
-    function DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue): TValue;
+    function DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue; APropName: String): TValue;
     function DeserializeEnumeration(ARTTIType: TRTTIType; AJSONValue: TJSONValue; AItemName: String): TValue;
     function DeserializeRecord(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
       AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
@@ -62,24 +63,23 @@ type
       AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
     function DeserializeTValue(AJValue: TJSONValue; AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
     function DeserializeTValueWithDynamicType(AJValue: TJSONValue; AItemName: String): TValue;
-    procedure DeSerializeStringStream(aStream: TStream;
-      const aSerializedString: string; aEncoding: string);
     procedure DeSerializeBase64StringStream(aStream: TStream;
       const aBase64SerializedString: string);
-    function ObjectToJSONObject(AObject: TObject;
-      AIgnoredProperties: array of string): TJSONObject;
+    function ObjectToJSONValue(AObject: TObject;
+      AIgnoredProperties: array of string): TJSONValue;
     function ObjectToJSONObjectFields(AObject: TObject): TJSONObject;
     function PropertyExists(JSONObject: TJSONObject;
-      PropertyName: string): boolean;
+      PropertyName: string): Boolean;
     function GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
-    function JSONObjectToObject(Clazz: TClass;
-      AJSONObject: TJSONObject): TObject;
+    function JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
     function SerializeRTTIElement(ElementType: TRTTIType;
-      ElementAttributes: TArray<TCustomAttribute>; Value: TValue; out OutputValue: TJSONValue): boolean;
-    procedure InternalJSONObjectToObject(AJSONObject: TJSONObject; AObject: TObject);
+      ElementAttributes: TArray<TCustomAttribute>; Value: TValue; out OutputValue: TJSONValue): Boolean;
+    procedure DeserializeRTTIElement(ElementType: TRTTIType;
+      ElementAttributes: TArray<TCustomAttribute>; JSONValue: TJSONValue; APropName: String; var Value: TValue);
+    procedure InternalJSONValueToObject(AJSONValue: TJSONValue; AObject: TObject);
     function SerializeTValueAsFixedNullableType(AValue: TValue;
       AValueTypeInfo: PTypeInfo): TJSONValue;
-    procedure InternalDeserializeObject(ASerializedObject: string; AObject: TObject; AStrict: boolean);
+    procedure InternalDeserializeObject(ASerializedObject: string; AObject: TObject; AStrict: Boolean);
   protected
     { IMVCSerializer }
     function SerializeObject(AObject: TObject;
@@ -90,10 +90,10 @@ type
     function SerializeCollection(AList: TObject;
       AIgnoredProperties: array of string): String;
     function SerializeCollectionStrict(AList: TObject): String;
-    { IMVCDeserializer }
     procedure DeserializeObject(ASerializedObject: string; AObject: TObject);
     procedure DeserializeObjectStrict(ASerializedObject: String; AObject: TObject);
     procedure DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
+    procedure DeserializeDataSet(ASerializedObject: String; const ADataSet: TDataSet);
   public
     const
     SERIALIZER_NAME = 'DELPHIJSON';
@@ -106,12 +106,6 @@ uses
   MVCFramework.Serializer.Commons, Winapi.Windows;
 
 { TMVCJSONSerializer }
-
-procedure TMVCJSONSerializer.DeSerializeStringStream(aStream: TStream;
-  const aSerializedString: string; aEncoding: string);
-begin
-
-end;
 
 function TMVCJSONSerializer.DeserializeTValue(AJValue: TJSONValue; AAttributes: TArray<TCustomAttribute>;
   AItemName: String): TValue;
@@ -194,7 +188,7 @@ begin
 end;
 
 procedure TMVCJSONSerializer.InternalDeserializeObject(ASerializedObject: string;
-  AObject: TObject; AStrict: boolean);
+  AObject: TObject; AStrict: Boolean);
 var
   lJSON: TJSONValue;
 begin
@@ -202,20 +196,12 @@ begin
   try
     if lJSON <> nil then
     begin
-      if lJSON is TJSONObject then
+      if not AStrict then
       begin
-        if AStrict then
-        begin
-          // InternalJSONObjectToObjectFields(TJSONObject(lJSON), AObject)
-        end
-        else
-          InternalJSONObjectToObject(TJSONObject(lJSON), AObject)
+        InternalJSONValueToObject(TJSONObject(lJSON), AObject)
       end
       else
-      begin
-        raise EMVCDeserializationException.CreateFmt('Serialized string is a %s, expected JSON Object',
-          [lJSON.ClassName]);
-      end;
+        // InternalJSONObjectToObjectFields(TJSONObject(lJSON), AObject)
     end
     else
     begin
@@ -226,13 +212,13 @@ begin
   end;
 end;
 
-procedure TMVCJSONSerializer.InternalJSONObjectToObject(AJSONObject: TJSONObject; AObject: TObject);
+procedure TMVCJSONSerializer.InternalJSONValueToObject(AJSONValue: TJSONValue; AObject: TObject);
 var
-  lRttiType: TRTTIType;
-  lProperties: TArray<TRttiProperty>;
-  lProperty: TRttiProperty;
-  f: string;
-  jvalue: TJSONValue;
+  lType: TRTTIType;
+  lProperties: TArray<TRTTIProperty>;
+  lProperty: TRTTIProperty;
+  lJSONObjKey: string;
+  lJSONValue: TJSONValue;
   v: TValue;
   o: TObject;
   list: IWrappedList;
@@ -248,161 +234,62 @@ var
   ListParam: TRttiParameter;
   lPropName: string;
   lTypeSerializer: IMVCTypeSerializer;
-  lOutputValue: TValue;
   lInstanceField: TValue;
+  lJSONObject: TJSONObject;
 begin
   { TODO -oDaniele -cGeneral : Refactor this method }
-  if not Assigned(AJSONObject) then
-    raise EMapperException.Create('JSON Object cannot be nil');
-  lRttiType := CTX.GetType(AObject.ClassInfo);
-  lProperties := lRttiType.GetProperties;
-  for lProperty in lProperties do
-  begin
-    if ((not lProperty.IsWritable) and (lProperty.PropertyType.TypeKind <> tkClass))
-      or (TSerializerHelpers.HasAttribute<MapperTransientAttribute>(lProperty)) then
-      Continue;
-    lPropName := lProperty.Name;
-    f := TSerializerHelpers.GetKeyName(lProperty, lRttiType);
-    if Assigned(AJSONObject.Get(f)) then
-      jvalue := AJSONObject.Get(f).JsonValue
-    else
-      Continue;
+  if not Assigned(AJSONValue) then
+    raise EMapperException.Create('JSON cannot be nil');
+  lType := CTX.GetType(AObject.ClassInfo);
 
-    lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(SERIALIZER_NAME, lProperty.PropertyType.Handle);
-    if lTypeSerializer <> nil then
+  // has main object a custom serializer?
+  lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
+    SERIALIZER_NAME,
+    lType.Handle);
+  if lTypeSerializer <> nil then
+  begin
+    // deserialize object using custom serializer...
+    lInstanceField := AObject;
+    lTypeSerializer.DeserializeInstance(
+      lType, lType.GetAttributes, AJSONValue, lInstanceField);
+  end
+  else
+  begin
+    // deserialize object using standard process...
+    if not(AJSONValue is TJSONObject) then
     begin
+      raise EMVCDeserializationException.CreateFmt('Expected TJSONObject, actual %s', [AJSONValue.ClassName]);
+    end;
+    lJSONObject := TJSONObject(AJSONValue);
+    lProperties := lType.GetProperties;
+    for lProperty in lProperties do
+    begin
+      if PropertyMustBeSkipped(lProperty) then
+        continue;
+      lPropName := lProperty.Name;
+      lJSONObjKey := TSerializerHelpers.GetKeyName(lProperty, lType);
+
+      if not lJSONObject.TryGetValue<TJSONValue>(lJSONObjKey, lJSONValue) then
+        continue;
       lInstanceField := lProperty.GetValue(TObject(AObject));
-      lTypeSerializer.DeserializeInstance(
-        lProperty.PropertyType, lProperty.GetAttributes, TObject(jvalue), lInstanceField);
+
+      // check is exists a custom serializer for the current type
+      lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(SERIALIZER_NAME, lProperty.PropertyType.Handle);
+      if lTypeSerializer <> nil then
+      begin
+        // go with custom deserializer
+        lTypeSerializer.DeserializeInstance(
+          lProperty.PropertyType, lProperty.GetAttributes, TObject(lJSONValue), lInstanceField);
+      end
+      else
+      begin
+        // go with standard deserializer
+        DeserializeRTTIElement(lProperty.PropertyType, lProperty.GetAttributes, lJSONValue, lProperty.Name,
+          lInstanceField);
+      end;
       { Reference types MUST use the internal "AsObject" wghile value types can directly assign to InstanceField }
       if not lInstanceField.IsObject then
         lProperty.SetValue(TObject(AObject), lInstanceField);
-    end
-    else
-    begin
-      case lProperty.PropertyType.TypeKind of
-        tkEnumeration:
-          begin
-            lProperty.SetValue(TObject(AObject),
-              DeserializeEnumeration(lProperty.PropertyType, jvalue, lPropName));
-          end;
-        tkInteger, tkInt64:
-          lProperty.SetValue(TObject(AObject), StrToIntDef(jvalue.Value, 0));
-        tkFloat:
-          begin
-            lProperty.SetValue(TObject(AObject),
-              DeserializeFloat(lProperty.PropertyType, jvalue));
-          end;
-        tkString, tkLString, tkWString, tkUString:
-          begin
-            lProperty.SetValue(TObject(AObject), jvalue.Value);
-          end;
-        tkRecord:
-          begin
-            lProperty.SetValue(TObject(AObject),
-              DeserializeRecord(lProperty.PropertyType, jvalue, lProperty.GetAttributes, lPropName));
-          end;
-        tkArray:
-          begin
-            lProperty.SetValue(TObject(AObject),
-              DeserializeArray(lProperty.PropertyType, jvalue, lProperty.GetAttributes, lPropName));
-          end;
-        tkClass: // try to restore child properties... but only if the collection is not nil!!!
-          begin
-            o := lProperty.GetValue(TObject(AObject)).AsObject;
-            if Assigned(o) then
-            begin
-              if jvalue is TJSONNull then
-              begin
-                { TODO -oDaniele -cGeneral : How to handle this case at best? }
-                // FreeAndNil(o);
-                // lRttiProp.SetValue(AObject, nil);
-              end
-              else if o is TStream then
-              begin
-                if jvalue is TJSONString then
-                begin
-                  SerStreamASString := TJSONString(jvalue).Value;
-                end
-                else
-                  raise EMapperException.Create('Expected JSONString in ' +
-                    AJSONObject.Get(f).JsonString.Value);
-
-                if TSerializerHelpers.HasAttribute<MapperSerializeAsString>(lProperty, _attrser) then
-                begin
-                  TSerializerHelpers.DeSerializeStringStream(TStream(o), SerStreamASString,
-                    _attrser.Encoding);
-                end
-                else
-                begin
-                  TSerializerHelpers.DeSerializeBase64StringStream(TStream(o), SerStreamASString);
-                end;
-              end
-              else if TDuckTypedList.CanBeWrappedAsList(o) then
-              begin // restore collection
-                if jvalue is TJSONArray then
-                begin
-                  Arr := TJSONArray(jvalue);
-                  // look for the MapperItemsClassType on the property itself or on the property type
-                  if Mapper.HasAttribute<MapperItemsClassType>(lProperty, attr) or
-                    Mapper.HasAttribute<MapperItemsClassType>(lProperty.PropertyType,
-                    attr) then
-                  begin
-                    cref := attr.Value;
-                    list := WrapAsList(o);
-                    for I := 0 to Arr.Count - 1 do
-                    begin
-                      list.Add(Mapper.JSONObjectToObject(cref,
-                        Arr.Items[I] as TJSONObject));
-                    end;
-                  end
-                  else // Ezequiel J. Müller convert regular list
-                  begin
-                    ListMethod := CTX.GetType(o.ClassInfo).GetMethod('Add');
-                    if (ListMethod <> nil) then
-                    begin
-                      for I := 0 to Arr.Count - 1 do
-                      begin
-                        ListItem := TValue.Empty;
-
-                        for ListParam in ListMethod.GetParameters do
-                          case ListParam.ParamType.TypeKind of
-                            tkInteger, tkInt64:
-                              ListItem := StrToIntDef(Arr.Items[I].Value, 0);
-                            tkFloat:
-                              ListItem := TJSONNumber(Arr.Items[I].Value).AsDouble;
-                            tkString, tkLString, tkWString, tkUString:
-                              ListItem := Arr.Items[I].Value;
-                          end;
-
-                        if not ListItem.IsEmpty then
-                          ListMethod.Invoke(o, [ListItem]);
-                      end;
-                    end;
-                  end;
-                end
-                else
-                  raise EMapperException.Create('Cannot restore ' + f +
-                    ' because the related json property is not an array');
-              end
-              else // try to deserialize into the property... but the json MUST be an object
-              begin
-                if jvalue is TJSONObject then
-                begin
-                  InternalJSONObjectToObject(TJSONObject(jvalue), o);
-                end
-                else if jvalue is TJSONNull then
-                begin
-                  FreeAndNil(o);
-                  lProperty.SetValue(AObject, nil);
-                end
-                else
-                  raise EMapperException.Create('Cannot deserialize property ' +
-                    lProperty.Name);
-              end;
-            end;
-          end;
-      end; // case
     end;
   end;
 end;
@@ -413,7 +300,7 @@ var
 begin
   AObject := TRTTIUtils.CreateObject(Clazz.QualifiedClassName);
   try
-    InternalJSONObjectToObject(AJSONObject, AObject);
+    InternalJSONValueToObject(AJSONObject, AObject);
     Result := AObject;
   except
     on E: Exception do
@@ -424,20 +311,19 @@ begin
   end;
 end;
 
-function TMVCJSONSerializer.ObjectToJSONObject(AObject: TObject;
-  AIgnoredProperties: array of string): TJSONObject;
+function TMVCJSONSerializer.ObjectToJSONValue(AObject: TObject;
+  AIgnoredProperties: array of string): TJSONValue;
 var
   lType: TRTTIType;
-  lProperties: TArray<TRttiProperty>;
-  lProperty: TRttiProperty;
+  lProperties: TArray<TRTTIProperty>;
+  lProperty: TRTTIProperty;
   f: string;
-  JSONObject: TJSONObject;
+  lOutputJSONObject: TJSONObject;
+  lOutputJsonValue: TJSONValue;
   Arr: TJSONArray;
   list: IMVCList;
   Obj, o: TObject;
-  DoNotSerializeThis: boolean;
-  I: Integer;
-  ThereAreIgnoredProperties: boolean;
+  ThereAreIgnoredProperties: Boolean;
   ts: TTimeStamp;
   sr: TStringStream;
   SS: TStringStream;
@@ -445,49 +331,68 @@ var
   lTypeSerializer: IMVCTypeSerializer;
   lJSONValue: TJSONValue;
   lSerializedJValue: TJSONValue;
-begin
-  ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
-  JSONObject := TJSONObject.Create;
-  lType := CTX.GetType(AObject.ClassInfo);
-  lProperties := lType.GetProperties;
-  for lProperty in lProperties do
+  function MustBeSerialized(AKeyName: String): Boolean;
+  var
+    I: Integer;
   begin
-    f := TSerializerHelpers.GetKeyName(lProperty, lType);
-    if ThereAreIgnoredProperties then
+    if not ThereAreIgnoredProperties then
+      Exit(True);
+    for I := low(AIgnoredProperties) to high(AIgnoredProperties) do
     begin
-      DoNotSerializeThis := false;
-      for I := low(AIgnoredProperties) to high(AIgnoredProperties) do
-        if SameText(f, AIgnoredProperties[I]) then
-        begin
-          DoNotSerializeThis := True;
-          Break;
-        end;
-      if DoNotSerializeThis then
-        Continue;
-    end;
-
-    if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lProperty) then
-      Continue;
-    lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
-      SERIALIZER_NAME,
-      lProperty.PropertyType.Handle);
-    if lTypeSerializer <> nil then
-    begin
-      lJSONValue := nil;
-      lTypeSerializer.SerializeInstance(
-        lProperty.PropertyType, lProperty.GetAttributes, lProperty.GetValue(AObject), TObject(lJSONValue));
-      JSONObject.AddPair(f, lJSONValue);
-    end
-    else
-    begin
-      { if serializable then serialize, otherwise ignore it }
-      if SerializeRTTIElement(lProperty.PropertyType, lProperty.GetAttributes,
-        lProperty.GetValue(AObject), lSerializedJValue) then
-        JSONObject.AddPair(f, lSerializedJValue);
+      if SameText(f, AIgnoredProperties[I]) then
+      begin
+        Exit(false);
+      end;
     end;
   end;
-  Result := JSONObject;
 
+begin
+  ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
+  lType := CTX.GetType(AObject.ClassInfo);
+
+  // main object has a custom serializer?
+  lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
+    SERIALIZER_NAME,
+    lType.Handle);
+  if lTypeSerializer <> nil then
+  begin
+    lJSONValue := nil;
+    lTypeSerializer.SerializeInstance(
+      lType, lType.GetAttributes, AObject, TObject(lJSONValue));
+    Result := lJSONValue; // as TJSONObject;
+  end
+  else
+  begin
+    lOutputJSONObject := TJSONObject.Create;
+
+    lProperties := lType.GetProperties;
+    for lProperty in lProperties do
+    begin
+      f := TSerializerHelpers.GetKeyName(lProperty, lType);
+      if not MustBeSerialized(f) then
+        continue;
+      if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lProperty) then
+        continue;
+      lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
+        SERIALIZER_NAME,
+        lProperty.PropertyType.Handle);
+      if lTypeSerializer <> nil then
+      begin
+        lJSONValue := nil;
+        lTypeSerializer.SerializeInstance(
+          lProperty.PropertyType, lProperty.GetAttributes, lProperty.GetValue(AObject), TObject(lJSONValue));
+        lOutputJSONObject.AddPair(f, lJSONValue);
+      end
+      else
+      begin
+        { if serializable then serialize, otherwise ignore it }
+        if SerializeRTTIElement(lProperty.PropertyType, lProperty.GetAttributes,
+          lProperty.GetValue(AObject), lSerializedJValue) then
+          lOutputJSONObject.AddPair(f, lSerializedJValue);
+      end;
+    end;
+    Result := lOutputJSONObject;
+  end;
 end;
 
 function TMVCJSONSerializer.ObjectToJSONObjectFields(AObject: TObject): TJSONObject;
@@ -498,7 +403,7 @@ var
   f: string;
   JSONObject: TJSONObject;
   Obj, o: TObject;
-  DoNotSerializeThis: boolean;
+  DoNotSerializeThis: Boolean;
   I: Integer;
   JObj: TJSONObject;
   lSerializedJValue: TJSONValue;
@@ -514,49 +419,6 @@ begin
       f := TSerializerHelpers.GetKeyName(_field, _type);
       if SerializeRTTIElement(_field.FieldType, _field.GetAttributes, _field.GetValue(AObject), lSerializedJValue) then
         JSONObject.AddPair(f, lSerializedJValue);
-
-      // case _field.FieldType.TypeKind of
-      // tkInteger, tkInt64:
-      // JSONObject.AddPair(f, TJSONNumber.Create(_field.GetValue(AObject)
-      // .AsInteger));
-      // tkFloat:
-      // begin
-      // JSONObject.AddPair(f, SerializeFloatField(AObject, _field));
-      // end;
-      // tkString, tkLString, tkWString, tkUString:
-      // JSONObject.AddPair(f, _field.GetValue(AObject).AsString);
-      // tkEnumeration:
-      // begin
-      // JSONObject.AddPair(f, SerializeEnumerationField(AObject, _field));
-      // end;
-      // tkClass:
-      // begin
-      // o := _field.GetValue(AObject).AsObject;
-      // if Assigned(o) then
-      // begin
-      // if TDuckTypedList.CanBeWrappedAsList(o) then
-      // begin
-      // list := WrapAsList(o);
-      // JObj := TJSONObject.Create;
-      // JSONObject.AddPair(f, JObj);
-      // JObj.AddPair(DMVC_CLASSNAME, o.QualifiedClassName);
-      // Arr := TJSONArray.Create;
-      // JObj.AddPair('items', Arr);
-      // for Obj in list do
-      // begin
-      // Arr.AddElement(ObjectToJSONObjectFields(Obj));
-      // end;
-      // end
-      // else
-      // begin
-      // JSONObject.AddPair(f,
-      // ObjectToJSONObjectFields(_field.GetValue(AObject).AsObject));
-      // end;
-      // end
-      // else
-      // JSONObject.AddPair(f, TJSONNull.Create);
-      // end;
-      // end;
     end;
     Result := JSONObject;
   except
@@ -566,7 +428,7 @@ begin
 end;
 
 function TMVCJSONSerializer.SerializeFloatProperty(AObject: TObject;
-  ARTTIProperty: TRttiProperty): TJSONValue;
+  ARTTIProperty: TRTTIProperty): TJSONValue;
 begin
   if ARTTIProperty.PropertyType.QualifiedName = 'System.TDate' then
   begin
@@ -594,12 +456,12 @@ end;
 function TMVCJSONSerializer.SerializeObject(AObject: TObject;
   AIgnoredProperties: array of string): string;
 var
-  lJSON: TJSONObject;
+  lJSON: TJSONValue;
 begin
   if AObject is TJSONValue then
     Exit(TJSONValue(AObject).ToJson);
 
-  lJSON := ObjectToJSONObject(AObject, AIgnoredProperties);
+  lJSON := ObjectToJSONValue(AObject, AIgnoredProperties);
   try
     Result := lJSON.ToJson;
   finally
@@ -631,7 +493,7 @@ begin
 end;
 
 function TMVCJSONSerializer.SerializeRTTIElement(ElementType: TRTTIType;
-  ElementAttributes: TArray<TCustomAttribute>; Value: TValue; out OutputValue: TJSONValue): boolean;
+  ElementAttributes: TArray<TCustomAttribute>; Value: TValue; out OutputValue: TJSONValue): Boolean;
 var
   ts: TTimeStamp;
   o: TObject;
@@ -641,9 +503,6 @@ var
   _attrser: MapperSerializeAsString;
   SerEnc: TEncoding;
   sr: TStringStream;
-  SS: TStringStream;
-  lAttribute: MapperSerializeAsString;
-  lAtt: TCustomAttribute;
   lEncodingName: string;
   buff: TBytes;
   lStreamAsString: string;
@@ -683,11 +542,11 @@ begin
             for Obj in list do
               if Assigned(Obj) then
                 // nil element into the list are not serialized
-                TJSONArray(OutputValue).AddElement(ObjectToJSONObject(Obj, []));
+                TJSONArray(OutputValue).AddElement(ObjectToJSONValue(Obj, []));
           end
           else
           begin
-            OutputValue := ObjectToJSONObject(Value.AsObject, []);
+            OutputValue := ObjectToJSONValue(Value.AsObject, []);
           end;
         end
         else
@@ -702,7 +561,8 @@ begin
   Result := OutputValue <> nil;
 end;
 
-function TMVCJSONSerializer.SerializeTValueAsFixedNullableType(AValue: TValue; AValueTypeInfo: PTypeInfo): TJSONValue;
+function TMVCJSONSerializer.SerializeTValueAsFixedNullableType(AValue: TValue;
+  AValueTypeInfo: PTypeInfo): TJSONValue;
 begin
   // supports nulls
   if AValue.IsEmpty then
@@ -769,7 +629,7 @@ function TMVCJSONSerializer.SerializeCollection(AList: TObject;
   AIgnoredProperties: array of string): String;
 var
   I: Integer;
-  JV: TJSONObject;
+  JV: TJSONValue;
   lList: IMVCList;
   lJArr: TJSONArray;
 begin
@@ -781,7 +641,7 @@ begin
       // AList.OwnsObjects := AOwnsChildObjects;
       for I := 0 to lList.Count - 1 do
       begin
-        JV := ObjectToJSONObject(lList.GetItem(I), AIgnoredProperties);
+        JV := ObjectToJSONValue(lList.GetItem(I), AIgnoredProperties);
         // if Assigned(AForEach) then
         // AForEach(JV);
         lJArr.AddElement(JV);
@@ -828,9 +688,17 @@ begin
 end;
 
 function TMVCJSONSerializer.PropertyExists(JSONObject: TJSONObject;
-  PropertyName: string): boolean;
+  PropertyName: string): Boolean;
 begin
   Result := Assigned(GetPair(JSONObject, PropertyName));
+end;
+
+function TMVCJSONSerializer.PropertyMustBeSkipped(
+  const ARTTIProperty: TRTTIProperty): Boolean;
+begin
+  Result :=
+    ((not ARTTIProperty.IsWritable) and (ARTTIProperty.PropertyType.TypeKind <> tkClass))
+    or (TSerializerHelpers.HasAttribute<MapperTransientAttribute>(ARTTIProperty));
 end;
 
 function TMVCJSONSerializer.SerializeDataSet(ADataSet: TDataSet;
@@ -887,31 +755,31 @@ end;
 // end;
 // end;
 
-//function TMVCJSONSerializer.SerializeFloatField(AObject: TObject;
-//  ARttiField: TRttiField): TJSONValue;
-//begin
-//  if ARttiField.FieldType.QualifiedName = 'System.TDate' then
-//  begin
-//    if ARttiField.GetValue(AObject).AsExtended = 0 then
-//      Result := TJSONNull.Create
-//    else
-//      Result := TJSONString.Create(ISODateToString(ARttiField.GetValue(AObject)
-//        .AsExtended))
-//  end
-//  else if ARttiField.FieldType.QualifiedName = 'System.TDateTime' then
-//  begin
-//    if ARttiField.GetValue(AObject).AsExtended = 0 then
-//      Result := TJSONNull.Create
-//    else
-//      Result := TJSONString.Create
-//        (ISODateTimeToString(ARttiField.GetValue(AObject).AsExtended))
-//  end
-//  else if ARttiField.FieldType.QualifiedName = 'System.TTime' then
-//    Result := TJSONString.Create(ISOTimeToString(ARttiField.GetValue(AObject)
-//      .AsExtended))
-//  else
-//    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
-//end;
+// function TMVCJSONSerializer.SerializeFloatField(AObject: TObject;
+// ARttiField: TRttiField): TJSONValue;
+// begin
+// if ARttiField.FieldType.QualifiedName = 'System.TDate' then
+// begin
+// if ARttiField.GetValue(AObject).AsExtended = 0 then
+// Result := TJSONNull.Create
+// else
+// Result := TJSONString.Create(ISODateToString(ARttiField.GetValue(AObject)
+// .AsExtended))
+// end
+// else if ARttiField.FieldType.QualifiedName = 'System.TDateTime' then
+// begin
+// if ARttiField.GetValue(AObject).AsExtended = 0 then
+// Result := TJSONNull.Create
+// else
+// Result := TJSONString.Create
+// (ISODateTimeToString(ARttiField.GetValue(AObject).AsExtended))
+// end
+// else if ARttiField.FieldType.QualifiedName = 'System.TTime' then
+// Result := TJSONString.Create(ISOTimeToString(ARttiField.GetValue(AObject)
+// .AsExtended))
+// else
+// Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
+// end;
 
 function TMVCJSONSerializer.SerializeFloatProperty(AElementType: TRTTIType;
   AValue: TValue): TJSONValue;
@@ -963,6 +831,12 @@ begin
   end;
 end;
 
+procedure TMVCJSONSerializer.DeserializeDataSet(ASerializedObject: String;
+  const ADataSet: TDataSet);
+begin
+  raise Exception.Create('Not implemented');
+end;
+
 function TMVCJSONSerializer.DeserializeEnumeration(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
   AItemName: String): TValue;
 var
@@ -984,7 +858,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerializer.DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue): TValue;
+function TMVCJSONSerializer.DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue; APropName: String): TValue;
 begin
   if ARTTIType.QualifiedName = 'System.TDate' then
   begin
@@ -1008,7 +882,7 @@ begin
       else
         raise EMVCDeserializationException.CreateFmt
           ('Cannot deserialize [%s], expected [%s] got [%s]',
-          [ARTTIType.QualifiedName, 'TJSONString', AJSONValue.ClassName]);
+          [APropName, 'TJSONString', AJSONValue.ClassName]);
   end
   else { if _field.PropertyType.QualifiedName = 'System.Currency' then }
   begin
@@ -1018,7 +892,7 @@ begin
       else
         raise EMVCDeserializationException.CreateFmt
           ('Cannot deserialize [%s], expected [%s] got [%s]',
-          [ARTTIType.QualifiedName, 'TJSONNumber', AJSONValue.ClassName]);
+          [APropName, 'TJSONNumber', AJSONValue.ClassName]);
   end;
 end;
 
@@ -1062,7 +936,85 @@ begin
     Result := TValue.From<TTimeStamp>(MSecsToTimeStamp(lJNumber.AsInt64));
   end
   else
-    raise EMVCDeserializationException.CreateFmt('Type %s not supported for %s', [ARTTIType.QualifiedName, AItemName]);
+    raise EMVCDeserializationException.CreateFmt('Type %s not supported for %s',
+      [ARTTIType.QualifiedName, AItemName]);
+end;
+
+procedure TMVCJSONSerializer.DeserializeRTTIElement(ElementType: TRTTIType;
+  ElementAttributes: TArray<TCustomAttribute>; JSONValue: TJSONValue; APropName: String; var Value: TValue);
+var
+  lInnerObj: TObject;
+  lJSONArr: TJSONArray;
+  lAttr: MapperItemsClassType;
+  lClassRef: TClass;
+  list: IMVCList;
+  I: Integer;
+begin
+  case ElementType.TypeKind of
+    tkEnumeration:
+      begin
+        Value := DeserializeEnumeration(ElementType, JSONValue, APropName);
+      end;
+    tkInteger, tkInt64:
+      Value := StrToIntDef(JSONValue.Value, 0);
+    tkFloat:
+      begin
+        Value := DeserializeFloat(ElementType, JSONValue, APropName);
+      end;
+    tkString, tkLString, tkWString, tkUString:
+      begin
+        Value := JSONValue.Value;
+      end;
+    tkRecord:
+      begin
+        Value := DeserializeRecord(ElementType, JSONValue, ElementAttributes, APropName);
+      end;
+    tkArray:
+      begin
+        Value := DeserializeArray(ElementType, JSONValue, ElementAttributes, APropName);
+      end;
+    tkClass: // try to restore child properties... but only if the collection is not nil!!!
+      begin
+        lInnerObj := Value.AsObject;
+        if Assigned(lInnerObj) then
+        begin
+          list := TDuckTypedList.Wrap(lInnerObj);
+          if list <> nil then
+          begin // restore collection
+            if JSONValue is TJSONArray then
+            begin
+              lJSONArr := TJSONArray(JSONValue);
+              // look for the MapperItemsClassType on the property itself or on the property type
+              if TSerializerHelpers.AttributeExists<MapperItemsClassType>(ElementAttributes, lAttr) or
+                TSerializerHelpers.AttributeExists<MapperItemsClassType>(ElementType.GetAttributes, lAttr) then
+              begin
+                lClassRef := lAttr.Value;
+                for I := 0 to lJSONArr.Count - 1 do
+                begin
+                  list.Add(JSONObjectToObject(lClassRef, lJSONArr.Items[I] as TJSONObject));
+                end;
+              end
+              else
+                raise EMVCDeserializationException.CreateFmt
+                  ('Cannot deserialize %s because no MapperItemsClassType is defined on property or property type',
+                  [APropName]);
+            end
+            else
+              raise EMapperException.CreateFmt('Expected TJSONArray, actual %s while deserialize property %s',
+                [JSONValue.ClassName, APropName]);
+          end
+          else // try to deserialize into the property... but the json MUST be an object
+          begin
+            if JSONValue is TJSONObject then
+            begin
+              InternalJSONValueToObject(TJSONObject(JSONValue), lInnerObj);
+            end
+            else
+              raise EMapperException.CreateFmt('Cannot deserialize property %s', [APropName]);
+          end;
+        end;
+      end;
+  end; // case
 end;
 
 initialization

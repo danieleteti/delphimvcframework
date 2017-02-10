@@ -27,6 +27,7 @@ type
     procedure DeserializeObject(ASerializedObject: String; AObject: TObject);
     procedure DeserializeObjectStrict(ASerializedObject: String; AObject: TObject);
     procedure DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
+    procedure DeserializeDataSet(ASerializedObject: String; const ADataSet: TDataSet);
   end;
 
   IMVCTypeSerializer = interface
