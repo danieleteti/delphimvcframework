@@ -26,6 +26,9 @@ unit MVCFramework.Serializer.Commons;
 
 interface
 
+{$I dmvcframework.inc}
+
+
 uses
   System.Rtti, System.Classes, System.SysUtils, System.Generics.Collections, MVCFramework.Serializer.Intf,
   System.TypInfo, MVCFramework.MultiMap, MVCFramework.Commons;
@@ -44,6 +47,8 @@ type
       : boolean;
     class procedure EncodeStream(Input, Output: TStream);
     class procedure DecodeStream(Input, Output: TStream);
+    class function EncodeString(const Input: string): string;
+    class function DecodeString(const Input: string): string;
     class procedure DeSerializeStringStream(aStream: TStream;
       const aSerializedString: string; aEncoding: string);
 
@@ -64,15 +69,18 @@ type
   TMVCSerializersRegistry = class sealed
   strict private
     class var SSerializers: TDictionary<string, IMVCSerializer>;
-    class var SCustomTypeSerializers: IMVCObjectMultiMap<TMVCPair<PTypeInfo, IMVCTypeSerializer>>;
+    class var SCustomTypeSerializers: TObjectList<TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>>;
   public
     class function GetSerializer(aContentType: String): IMVCSerializer;
     class procedure RegisterSerializer(aContentType: string; aMVCSerUnSer: IMVCSerializer);
     class procedure UnRegisterSerializer(aContentType: string);
-    class procedure RegisterTypeSerializer(aContentType: string; aTypeInfo: PTypeInfo;
+    class procedure RegisterTypeSerializer(
+      aSerializerName: string;
+      aTypeInfo: PTypeInfo;
       aMVCTypeSerializer: IMVCTypeSerializer);
     class procedure UnRegisterTypeSerializer(aContentType: string; aTypeInfo: PTypeInfo);
-    class function GetTypeSerializer(aContentType: String; aTypeInfo: PTypeInfo): IMVCTypeSerializer;
+    class function GetTypeSerializer(aSerializerName: String;
+      aTypeInfo: PTypeInfo): IMVCTypeSerializer;
     class constructor Create;
     class destructor Destroy;
   end;
@@ -83,6 +91,10 @@ type
   public
     constructor Create(ATValueTypeInfo: PTypeInfo);
     function TValueTypeInfo: PTypeInfo;
+  end;
+
+  MVCDoNotSerializeAttribute = class(TCustomAttribute)
+
   end;
 
   MVCSerializeAsString = class(TCustomAttribute)
@@ -104,10 +116,10 @@ implementation
 uses
   ObjectsMappers
 {$IFDEF SYSTEMNETENCODING}
-    , System.NetEncoding,
+    , System.NetEncoding
   // so that the old functions in Soap.EncdDecd can be inlined
 {$ENDIF}
-, Soap.EncdDecd;
+    , Soap.EncdDecd;
 
 { TSerializer }
 
@@ -204,9 +216,19 @@ begin
   Soap.EncdDecd.DecodeStream(Input, Output);
 end;
 
+class function TSerializerHelpers.DecodeString(const Input: string): string;
+begin
+  Result := Soap.EncdDecd.DecodeString(Input);
+end;
+
 class procedure TSerializerHelpers.EncodeStream(Input, Output: TStream);
 begin
   Soap.EncdDecd.EncodeStream(Input, Output);
+end;
+
+class function TSerializerHelpers.EncodeString(const Input: string): string;
+begin
+  Result := Soap.EncdDecd.EncodeString(Input);
 end;
 
 class function TSerializerHelpers.GetKeyName(const ARttiProp: TRttiProperty;
@@ -296,12 +318,13 @@ end;
 class constructor TMVCSerializersRegistry.Create;
 begin
   SSerializers := TDictionary<String, IMVCSerializer>.Create;
-  SCustomTypeSerializers := TMVCObjectMultiMap < TMVCPair < PTypeInfo, IMVCTypeSerializer >>.Create;
+  SCustomTypeSerializers := TObjectList < TMVCTuple < String, PTypeInfo, IMVCTypeSerializer >>.Create(True);
 end;
 
 class destructor TMVCSerializersRegistry.Destroy;
 begin
   SSerializers.Free;
+  SCustomTypeSerializers.Free;
 end;
 
 class function TMVCSerializersRegistry.GetSerializer(
@@ -311,21 +334,21 @@ begin
     raise EMVCSerializationException.CreateFmt('Cannot find a suitable serializer for %s', [aContentType]);
 end;
 
-class function TMVCSerializersRegistry.GetTypeSerializer(aContentType: String;
+class function TMVCSerializersRegistry.GetTypeSerializer(
+  aSerializerName: String;
   aTypeInfo: PTypeInfo): IMVCTypeSerializer;
 var
-  lList: TList<TMVCPair<PTypeInfo, IMVCTypeSerializer>>;
+  lList: TList<TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>>;
   I: Integer;
+  lItem: TMVCTuple<string, PTypeInfo, IMVCTypeSerializer>;
 begin
   Result := nil;
-  lList := SCustomTypeSerializers.GetItems(aContentType);
-  if lList = nil then
-    Exit;
-  for I := 0 to lList.Count - 1 do
+  for I := 0 to SCustomTypeSerializers.Count - 1 do
   begin
-    if lList[I].Key = aTypeInfo then
+    lItem := SCustomTypeSerializers[I];
+    if (lItem.Val1 = aSerializerName) and (lItem.Val2 = aTypeInfo) then
     begin
-      Result := lList[I].Value;
+      Result := lItem.Val3;
       Break;
     end;
   end;
@@ -338,11 +361,11 @@ begin
 end;
 
 class procedure TMVCSerializersRegistry.RegisterTypeSerializer(
-  aContentType: string; aTypeInfo: PTypeInfo;
+  aSerializerName: string; aTypeInfo: PTypeInfo;
   aMVCTypeSerializer: IMVCTypeSerializer);
 begin
-  SCustomTypeSerializers.Add(aContentType,
-    TMVCPair<PTypeInfo, IMVCTypeSerializer>.Create(aTypeInfo, aMVCTypeSerializer));
+  SCustomTypeSerializers.Add(TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>.Create(aSerializerName, aTypeInfo,
+    aMVCTypeSerializer));
 end;
 
 class procedure TMVCSerializersRegistry.UnRegisterSerializer(aContentType: string);

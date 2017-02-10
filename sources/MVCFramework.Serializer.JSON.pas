@@ -38,24 +38,27 @@ uses MVCFramework.Serializer.Intf
     ;
 
 type
-  TMVCJSONSerUnSer = class(TInterfacedObject, IMVCSerializer)
+  TMVCJSONSerializer = class(TInterfacedObject, IMVCSerializer)
   private
     class var CTX: TRTTIContext;
-    { following methods are used internally by the serializer/unserializer to handle with the ser/unser logic }
     function SerializeFloatProperty(AObject: TObject;
       ARTTIProperty: TRttiProperty): TJSONValue; overload; deprecated;
     function SerializeFloatProperty(AElementType: TRTTIType; AValue: TValue): TJSONValue; overload;
-    function SerializeFloatField(AObject: TObject; ARttiField: TRttiField): TJSONValue;
-    function SerializeEnumerationProperty(AObject: TObject;
-      ARTTIProperty: TRttiProperty): TJSONValue; overload; deprecated;
+    // function SerializeFloatField(AObject: TObject; ARttiField: TRttiField): TJSONValue;
+    // function SerializeEnumerationProperty(AObject: TObject;
+    // ARTTIProperty: TRttiProperty): TJSONValue; overload; deprecated;
     function SerializeEnumerationProperty(AElementType: TRTTIType; AValue: TValue): TJSONValue; overload;
     function SerializeTValue(AElementType: TRTTIType; AValue: TValue; AAttributes: TArray<TCustomAttribute>)
+      : TJSONValue;
+    function SerializeRecord(AElementType: TRTTIType; AValue: TValue; AAttributes: TArray<TCustomAttribute>)
       : TJSONValue;
     function SerializeEnumerationField(AObject: TObject;
       ARttiField: TRttiField): TJSONValue;
     function DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue): TValue;
     function DeserializeEnumeration(ARTTIType: TRTTIType; AJSONValue: TJSONValue; AItemName: String): TValue;
     function DeserializeRecord(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
+      AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
+    function DeserializeArray(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
       AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
     function DeserializeTValue(AJValue: TJSONValue; AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
     function DeserializeTValueWithDynamicType(AJValue: TJSONValue; AItemName: String): TValue;
@@ -91,6 +94,9 @@ type
     procedure DeserializeObject(ASerializedObject: string; AObject: TObject);
     procedure DeserializeObjectStrict(ASerializedObject: String; AObject: TObject);
     procedure DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
+  public
+    const
+    SERIALIZER_NAME = 'DELPHIJSON';
   end;
 
 implementation
@@ -101,13 +107,13 @@ uses
 
 { TMVCJSONSerializer }
 
-procedure TMVCJSONSerUnSer.DeSerializeStringStream(aStream: TStream;
+procedure TMVCJSONSerializer.DeSerializeStringStream(aStream: TStream;
   const aSerializedString: string; aEncoding: string);
 begin
 
 end;
 
-function TMVCJSONSerUnSer.DeserializeTValue(AJValue: TJSONValue; AAttributes: TArray<TCustomAttribute>;
+function TMVCJSONSerializer.DeserializeTValue(AJValue: TJSONValue; AAttributes: TArray<TCustomAttribute>;
   AItemName: String): TValue;
 var
   lAttr: TValueAsType;
@@ -141,7 +147,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.DeserializeTValueWithDynamicType(
+function TMVCJSONSerializer.DeserializeTValueWithDynamicType(
   AJValue: TJSONValue; AItemName: String): TValue;
 var
   lJTValueValue: TJSONValue;
@@ -177,7 +183,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
+function TMVCJSONSerializer.GetPair(JSONObject: TJSONObject; PropertyName: string): TJSONPair;
 var
   pair: TJSONPair;
 begin
@@ -187,7 +193,7 @@ begin
   Result := pair;
 end;
 
-procedure TMVCJSONSerUnSer.InternalDeserializeObject(ASerializedObject: string;
+procedure TMVCJSONSerializer.InternalDeserializeObject(ASerializedObject: string;
   AObject: TObject; AStrict: boolean);
 var
   lJSON: TJSONValue;
@@ -220,7 +226,7 @@ begin
   end;
 end;
 
-procedure TMVCJSONSerUnSer.InternalJSONObjectToObject(AJSONObject: TJSONObject; AObject: TObject);
+procedure TMVCJSONSerializer.InternalJSONObjectToObject(AJSONObject: TJSONObject; AObject: TObject);
 var
   lRttiType: TRTTIType;
   lProperties: TArray<TRttiProperty>;
@@ -243,6 +249,7 @@ var
   lPropName: string;
   lTypeSerializer: IMVCTypeSerializer;
   lOutputValue: TValue;
+  lInstanceField: TValue;
 begin
   { TODO -oDaniele -cGeneral : Refactor this method }
   if not Assigned(AJSONObject) then
@@ -261,12 +268,15 @@ begin
     else
       Continue;
 
-    lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer('application/json', lProperty.PropertyType.Handle);
+    lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(SERIALIZER_NAME, lProperty.PropertyType.Handle);
     if lTypeSerializer <> nil then
     begin
+      lInstanceField := lProperty.GetValue(TObject(AObject));
       lTypeSerializer.DeserializeInstance(
-        lProperty.PropertyType, lProperty.GetAttributes, TObject(jvalue), lOutputValue);
-      lProperty.SetValue(TObject(AObject), lOutputValue);
+        lProperty.PropertyType, lProperty.GetAttributes, TObject(jvalue), lInstanceField);
+      { Reference types MUST use the internal "AsObject" wghile value types can directly assign to InstanceField }
+      if not lInstanceField.IsObject then
+        lProperty.SetValue(TObject(AObject), lInstanceField);
     end
     else
     begin
@@ -291,6 +301,11 @@ begin
           begin
             lProperty.SetValue(TObject(AObject),
               DeserializeRecord(lProperty.PropertyType, jvalue, lProperty.GetAttributes, lPropName));
+          end;
+        tkArray:
+          begin
+            lProperty.SetValue(TObject(AObject),
+              DeserializeArray(lProperty.PropertyType, jvalue, lProperty.GetAttributes, lPropName));
           end;
         tkClass: // try to restore child properties... but only if the collection is not nil!!!
           begin
@@ -392,7 +407,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
+function TMVCJSONSerializer.JSONObjectToObject(Clazz: TClass; AJSONObject: TJSONObject): TObject;
 var
   AObject: TObject;
 begin
@@ -409,7 +424,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.ObjectToJSONObject(AObject: TObject;
+function TMVCJSONSerializer.ObjectToJSONObject(AObject: TObject;
   AIgnoredProperties: array of string): TJSONObject;
 var
   lType: TRTTIType;
@@ -427,7 +442,6 @@ var
   sr: TStringStream;
   SS: TStringStream;
   _attrser: MapperSerializeAsString;
-  SerEnc: TEncoding;
   lTypeSerializer: IMVCTypeSerializer;
   lJSONValue: TJSONValue;
   lSerializedJValue: TJSONValue;
@@ -438,10 +452,7 @@ begin
   lProperties := lType.GetProperties;
   for lProperty in lProperties do
   begin
-    // f := LowerCase(_property.Name);
     f := TSerializerHelpers.GetKeyName(lProperty, lType);
-    outputdebugstring(pchar(f));
-    // Delete(f, 1, 1);
     if ThereAreIgnoredProperties then
     begin
       DoNotSerializeThis := false;
@@ -457,7 +468,9 @@ begin
 
     if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lProperty) then
       Continue;
-    lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer('application/json', lProperty.PropertyType.Handle);
+    lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
+      SERIALIZER_NAME,
+      lProperty.PropertyType.Handle);
     if lTypeSerializer <> nil then
     begin
       lJSONValue := nil;
@@ -477,15 +490,13 @@ begin
 
 end;
 
-function TMVCJSONSerUnSer.ObjectToJSONObjectFields(AObject: TObject): TJSONObject;
+function TMVCJSONSerializer.ObjectToJSONObjectFields(AObject: TObject): TJSONObject;
 var
   _type: TRTTIType;
   _fields: TArray<TRttiField>;
   _field: TRttiField;
   f: string;
   JSONObject: TJSONObject;
-  Arr: TJSONArray;
-  list: IWrappedList;
   Obj, o: TObject;
   DoNotSerializeThis: boolean;
   I: Integer;
@@ -554,7 +565,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeFloatProperty(AObject: TObject;
+function TMVCJSONSerializer.SerializeFloatProperty(AObject: TObject;
   ARTTIProperty: TRttiProperty): TJSONValue;
 begin
   if ARTTIProperty.PropertyType.QualifiedName = 'System.TDate' then
@@ -580,25 +591,46 @@ begin
     Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsExtended);
 end;
 
-function TMVCJSONSerUnSer.SerializeObject(AObject: TObject;
+function TMVCJSONSerializer.SerializeObject(AObject: TObject;
   AIgnoredProperties: array of string): string;
 var
   lJSON: TJSONObject;
 begin
+  if AObject is TJSONValue then
+    Exit(TJSONValue(AObject).ToJson);
+
   lJSON := ObjectToJSONObject(AObject, AIgnoredProperties);
   try
-    Result := lJSON.ToJSON;
+    Result := lJSON.ToJson;
   finally
     lJSON.Free;
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeObjectStrict(AObject: TObject): String;
+function TMVCJSONSerializer.SerializeObjectStrict(AObject: TObject): String;
 begin
-
+  raise EMVCSerializationException.Create('Not implemented');
 end;
 
-function TMVCJSONSerUnSer.SerializeRTTIElement(ElementType: TRTTIType;
+function TMVCJSONSerializer.SerializeRecord(AElementType: TRTTIType;
+  AValue: TValue; AAttributes: TArray<TCustomAttribute>): TJSONValue;
+var
+  lTimeStamp: TTimeStamp;
+begin
+  if AElementType.QualifiedName = 'System.Rtti.TValue' then
+  begin
+    Result := SerializeTValue(AElementType, AValue, AAttributes);
+  end
+  else if AElementType.QualifiedName = 'System.SysUtils.TTimeStamp' then
+  begin
+    lTimeStamp := AValue.AsType<System.SysUtils.TTimeStamp>;
+    Result := TJSONNumber.Create(TimeStampToMsecs(lTimeStamp));
+  end
+  else
+    raise EMVCSerializationException.CreateFmt('Cannot serialize record: %s', [AElementType.ToString]);
+end;
+
+function TMVCJSONSerializer.SerializeRTTIElement(ElementType: TRTTIType;
   ElementAttributes: TArray<TCustomAttribute>; Value: TValue; out OutputValue: TJSONValue): boolean;
 var
   ts: TTimeStamp;
@@ -637,15 +669,7 @@ begin
       end;
     tkRecord:
       begin
-        if ElementType.QualifiedName = 'System.Rtti.TValue' then
-        begin
-          OutputValue := SerializeTValue(ElementType, Value, ElementAttributes);
-        end
-        else if ElementType.QualifiedName = 'System.SysUtils.TTimeStamp' then
-        begin
-          ts := Value.AsType<System.SysUtils.TTimeStamp>;
-          OutputValue := TJSONNumber.Create(TimeStampToMsecs(ts));
-        end;
+        OutputValue := SerializeRecord(ElementType, Value, ElementAttributes);
       end;
     tkClass:
       begin
@@ -661,37 +685,6 @@ begin
                 // nil element into the list are not serialized
                 TJSONArray(OutputValue).AddElement(ObjectToJSONObject(Obj, []));
           end
-          // else if o is TStream then
-          // begin
-          // if TSerializerHelpers.AttributeExists<MapperSerializeAsString>(ElementAttributes, _attrser) then
-          // begin
-          // // serialize the stream as a normal string...
-          // TStream(o).Position := 0;
-          // lEncodingName := _attrser.Encoding;
-          // SerEnc := TEncoding.GetEncoding(lEncodingName);
-          // try
-          // SetLength(buff, TStream(o).Size);
-          // TStream(o).Read(buff, TStream(o).Size);
-          // lStreamAsString := SerEnc.GetString(buff);
-          // SetLength(buff, 0);
-          // Result := TJSONString.Create(UTF8Encode(lStreamAsString));
-          // finally
-          // SerEnc.Free;
-          // end;
-          // end
-          // else
-          // begin
-          // // serialize the stream as Base64 encoded string...
-          // TStream(o).Position := 0;
-          // SS := TStringStream.Create;
-          // try
-          // TSerializerHelpers.EncodeStream(TStream(o), SS);
-          // Result := TJSONString.Create(SS.DataString);
-          // finally
-          // SS.Free;
-          // end;
-          // end;
-          // end
           else
           begin
             OutputValue := ObjectToJSONObject(Value.AsObject, []);
@@ -709,7 +702,7 @@ begin
   Result := OutputValue <> nil;
 end;
 
-function TMVCJSONSerUnSer.SerializeTValueAsFixedNullableType(AValue: TValue; AValueTypeInfo: PTypeInfo): TJSONValue;
+function TMVCJSONSerializer.SerializeTValueAsFixedNullableType(AValue: TValue; AValueTypeInfo: PTypeInfo): TJSONValue;
 begin
   // supports nulls
   if AValue.IsEmpty then
@@ -734,8 +727,9 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeTValue(AElementType: TRTTIType; AValue: TValue;
-  AAttributes: TArray<TCustomAttribute>): TJSONValue;
+function TMVCJSONSerializer.SerializeTValue(AElementType: TRTTIType; AValue: TValue;
+  AAttributes: TArray<TCustomAttribute>)
+  : TJSONValue;
 var
   lTValueDataRTTIType: TRTTIType;
   lValue: TValue;
@@ -771,7 +765,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeCollection(AList: TObject;
+function TMVCJSONSerializer.SerializeCollection(AList: TObject;
   AIgnoredProperties: array of string): String;
 var
   I: Integer;
@@ -792,7 +786,7 @@ begin
         // AForEach(JV);
         lJArr.AddElement(JV);
       end;
-      Result := lJArr.ToJSON;
+      Result := lJArr.ToJson;
     finally
       lJArr.Free;
     end;
@@ -803,7 +797,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeCollectionStrict(AList: TObject): String;
+function TMVCJSONSerializer.SerializeCollectionStrict(AList: TObject): String;
 var
   I: Integer;
   JV: TJSONObject;
@@ -822,7 +816,7 @@ begin
         // AForEach(JV);
         lJArr.AddElement(JV);
       end;
-      Result := lJArr.ToJSON;
+      Result := lJArr.ToJson;
     finally
       lJArr.Free;
     end;
@@ -833,19 +827,19 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.PropertyExists(JSONObject: TJSONObject;
+function TMVCJSONSerializer.PropertyExists(JSONObject: TJSONObject;
   PropertyName: string): boolean;
 begin
   Result := Assigned(GetPair(JSONObject, PropertyName));
 end;
 
-function TMVCJSONSerUnSer.SerializeDataSet(ADataSet: TDataSet;
+function TMVCJSONSerializer.SerializeDataSet(ADataSet: TDataSet;
   AIgnoredFields: array of string): string;
 begin
-
+  raise EMVCSerializationException.Create('Not implemented');
 end;
 
-function TMVCJSONSerUnSer.SerializeEnumerationField(AObject: TObject;
+function TMVCJSONSerializer.SerializeEnumerationField(AObject: TObject;
   ARttiField: TRttiField): TJSONValue;
 begin
   if ARttiField.FieldType.QualifiedName = 'System.Boolean' then
@@ -861,7 +855,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeEnumerationProperty(AElementType: TRTTIType;
+function TMVCJSONSerializer.SerializeEnumerationProperty(AElementType: TRTTIType;
   AValue: TValue): TJSONValue;
 begin
   if AElementType.QualifiedName = 'System.Boolean' then
@@ -877,49 +871,49 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.SerializeEnumerationProperty(AObject: TObject;
-  ARTTIProperty: TRttiProperty): TJSONValue;
-begin
-  if ARTTIProperty.PropertyType.QualifiedName = 'System.Boolean' then
-  begin
-    if ARTTIProperty.GetValue(AObject).AsBoolean then
-      Result := TJSONTrue.Create
-    else
-      Result := TJSONFalse.Create;
-  end
-  else
-  begin
-    Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsOrdinal);
-  end;
-end;
+// function TMVCJSONSerializer.SerializeEnumerationProperty(AObject: TObject;
+// ARTTIProperty: TRttiProperty): TJSONValue;
+// begin
+// if ARTTIProperty.PropertyType.QualifiedName = 'System.Boolean' then
+// begin
+// if ARTTIProperty.GetValue(AObject).AsBoolean then
+// Result := TJSONTrue.Create
+// else
+// Result := TJSONFalse.Create;
+// end
+// else
+// begin
+// Result := TJSONNumber.Create(ARTTIProperty.GetValue(AObject).AsOrdinal);
+// end;
+// end;
 
-function TMVCJSONSerUnSer.SerializeFloatField(AObject: TObject;
-  ARttiField: TRttiField): TJSONValue;
-begin
-  if ARttiField.FieldType.QualifiedName = 'System.TDate' then
-  begin
-    if ARttiField.GetValue(AObject).AsExtended = 0 then
-      Result := TJSONNull.Create
-    else
-      Result := TJSONString.Create(ISODateToString(ARttiField.GetValue(AObject)
-        .AsExtended))
-  end
-  else if ARttiField.FieldType.QualifiedName = 'System.TDateTime' then
-  begin
-    if ARttiField.GetValue(AObject).AsExtended = 0 then
-      Result := TJSONNull.Create
-    else
-      Result := TJSONString.Create
-        (ISODateTimeToString(ARttiField.GetValue(AObject).AsExtended))
-  end
-  else if ARttiField.FieldType.QualifiedName = 'System.TTime' then
-    Result := TJSONString.Create(ISOTimeToString(ARttiField.GetValue(AObject)
-      .AsExtended))
-  else
-    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
-end;
+//function TMVCJSONSerializer.SerializeFloatField(AObject: TObject;
+//  ARttiField: TRttiField): TJSONValue;
+//begin
+//  if ARttiField.FieldType.QualifiedName = 'System.TDate' then
+//  begin
+//    if ARttiField.GetValue(AObject).AsExtended = 0 then
+//      Result := TJSONNull.Create
+//    else
+//      Result := TJSONString.Create(ISODateToString(ARttiField.GetValue(AObject)
+//        .AsExtended))
+//  end
+//  else if ARttiField.FieldType.QualifiedName = 'System.TDateTime' then
+//  begin
+//    if ARttiField.GetValue(AObject).AsExtended = 0 then
+//      Result := TJSONNull.Create
+//    else
+//      Result := TJSONString.Create
+//        (ISODateTimeToString(ARttiField.GetValue(AObject).AsExtended))
+//  end
+//  else if ARttiField.FieldType.QualifiedName = 'System.TTime' then
+//    Result := TJSONString.Create(ISOTimeToString(ARttiField.GetValue(AObject)
+//      .AsExtended))
+//  else
+//    Result := TJSONNumber.Create(ARttiField.GetValue(AObject).AsExtended);
+//end;
 
-function TMVCJSONSerUnSer.SerializeFloatProperty(AElementType: TRTTIType;
+function TMVCJSONSerializer.SerializeFloatProperty(AElementType: TRTTIType;
   AValue: TValue): TJSONValue;
 begin
   if AElementType.QualifiedName = 'System.TDate' then
@@ -946,7 +940,7 @@ end;
 
 { TMVCJSONDeserializer }
 
-procedure TMVCJSONSerUnSer.DeserializeCollection(ASerializedObjectList: string; AList: IMVCList;
+procedure TMVCJSONSerializer.DeserializeCollection(ASerializedObjectList: string; AList: IMVCList;
   AClazz: TClass);
 var
   I: Integer;
@@ -969,7 +963,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.DeserializeEnumeration(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
+function TMVCJSONSerializer.DeserializeEnumeration(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
   AItemName: String): TValue;
 var
   lOutputValue: TValue;
@@ -990,7 +984,7 @@ begin
   end;
 end;
 
-function TMVCJSONSerUnSer.DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue): TValue;
+function TMVCJSONSerializer.DeserializeFloat(ARTTIType: TRTTIType; AJSONValue: TJSONValue): TValue;
 begin
   if ARTTIType.QualifiedName = 'System.TDate' then
   begin
@@ -1028,24 +1022,31 @@ begin
   end;
 end;
 
-procedure TMVCJSONSerUnSer.DeSerializeBase64StringStream(aStream: TStream;
+function TMVCJSONSerializer.DeserializeArray(ARTTIType: TRTTIType;
+  AJSONValue: TJSONValue; AAttributes: TArray<TCustomAttribute>;
+  AItemName: String): TValue;
+begin
+
+end;
+
+procedure TMVCJSONSerializer.DeSerializeBase64StringStream(aStream: TStream;
   const aBase64SerializedString: string);
 begin
 
 end;
 
-procedure TMVCJSONSerUnSer.DeserializeObject(ASerializedObject: string; AObject: TObject);
+procedure TMVCJSONSerializer.DeserializeObject(ASerializedObject: string; AObject: TObject);
 begin
   InternalDeserializeObject(ASerializedObject, AObject, false);
 end;
 
-procedure TMVCJSONSerUnSer.DeserializeObjectStrict(ASerializedObject: String;
+procedure TMVCJSONSerializer.DeserializeObjectStrict(ASerializedObject: String;
   AObject: TObject);
 begin
   InternalDeserializeObject(ASerializedObject, AObject, True);
 end;
 
-function TMVCJSONSerUnSer.DeserializeRecord(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
+function TMVCJSONSerializer.DeserializeRecord(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
   AAttributes: TArray<TCustomAttribute>; AItemName: String): TValue;
 var
   lJNumber: TJSONNumber;
@@ -1066,7 +1067,7 @@ end;
 
 initialization
 
-TMVCSerializersRegistry.RegisterSerializer('application/json', TMVCJSONSerUnSer.Create);
+TMVCSerializersRegistry.RegisterSerializer('application/json', TMVCJSONSerializer.Create);
 
 finalization
 

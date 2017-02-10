@@ -27,8 +27,8 @@ unit BOs;
 interface
 
 uses
-  system.TimeSpan, system.SysUtils, generics.collections,
-  ObjectsMappers, system.Classes, system.Rtti, MVCFramework.Serializer.Commons;
+  system.TimeSpan, system.SysUtils, generics.collections, system.Classes,
+  ObjectsMappers, system.Rtti, MVCFramework.Serializer.Commons;
 
 type
   TMyObject = class
@@ -225,11 +225,22 @@ type
   TObjectWithCustomType = class
   private
     FPropStringList: TStringList;
+    FPropStringArray: TArray<String>;
+    FPropStreamAsBASE64: TStringStream;
+    FPropStreamAsString: TStringStream;
     procedure SetPropStringList(const Value: TStringList);
+    procedure SetPropStringArray(const Value: TArray<String>);
+    procedure SetPropStreamAsBASE64(const Value: TStringStream);
+    procedure SetPropStreamAsString(const Value: TStringStream);
   public
     constructor Create; virtual;
     destructor Destroy; override;
+    function Equals(Obj: TObject): boolean; override;
     property PropStringList: TStringList read FPropStringList write SetPropStringList;
+    property PropStringArray: TArray<String> read FPropStringArray write SetPropStringArray;
+    [MVCSerializeAsString]
+    property PropStreamAsString: TStringStream read FPropStreamAsString write SetPropStreamAsString;
+    property PropStreamAsBASE64: TStringStream read FPropStreamAsBASE64 write SetPropStreamAsBASE64;
   end;
 
 function GetMyObject: TMyObject;
@@ -237,6 +248,7 @@ function GetMyObjectWithTValue: TMyObjectWithTValue;
 function GetMyObjectWithStream: TMyStreamObject;
 function GetMyComplexObject: TMyComplexObject;
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
+function GetMyObjectWithCustomType: TObjectWithCustomType;
 
 const
   BASE64_STRING: AnsiString = 'This is serialized as BASE64 String';
@@ -245,6 +257,18 @@ implementation
 
 uses
   system.DateUtils, Winapi.Windows;
+
+function GetMyObjectWithCustomType: TObjectWithCustomType;
+begin
+  Result := TObjectWithCustomType.Create;
+  Result.PropStringList.Add('item 1');
+  Result.PropStringList.Add('item 2');
+  Result.PropStringList.Add('item 3');
+  Result.PropStringList.Add('item 4');
+  Result.PropStringArray := ['item 1', 'item 2', 'item 3', 'item 4'];
+  Result.PropStreamAsString.WriteString('This is a string');
+  Result.PropStreamAsBASE64.WriteString('This is a BASE64 string');
+end;
 
 function GetMyComplexObjectWithNotInitializedChilds: TMyComplexObject;
 begin
@@ -707,17 +731,52 @@ constructor TObjectWithCustomType.Create;
 begin
   inherited;
   FPropStringList := TStringList.Create;
+  FPropStreamAsString := TStringStream.Create;
+  FPropStreamAsBASE64 := TStringStream.Create;
 end;
 
 destructor TObjectWithCustomType.Destroy;
 begin
   FPropStringList.Free;
+  FPropStreamAsString.Free;
+  FPropStreamAsBASE64.Free;
   inherited;
+end;
+
+function TObjectWithCustomType.Equals(Obj: TObject): boolean;
+var
+  lOther: TObjectWithCustomType;
+begin
+  if not(Obj is TObjectWithCustomType) then
+    Exit(false);
+  lOther := TObjectWithCustomType(Obj);
+  Result := true;
+  Result := Result and (lOther.PropStringList.Text = Self.PropStringList.Text);
+  Result := Result and (String.Join(',', lOther.PropStringArray) = String.Join(',', Self.PropStringArray));
+  Result := Result and (lOther.PropStreamAsString.DataString = PropStreamAsString.DataString);
+  Result := Result and (lOther.PropStreamAsBASE64.DataString = PropStreamAsBASE64.DataString);
+end;
+
+procedure TObjectWithCustomType.SetPropStreamAsBASE64(
+  const Value: TStringStream);
+begin
+  FPropStreamAsBASE64 := Value;
+end;
+
+procedure TObjectWithCustomType.SetPropStreamAsString(
+  const Value: TStringStream);
+begin
+  FPropStreamAsString := Value;
+end;
+
+procedure TObjectWithCustomType.SetPropStringArray(const Value: TArray<String>);
+begin
+  FPropStringArray := Value;
 end;
 
 procedure TObjectWithCustomType.SetPropStringList(const Value: TStringList);
 begin
-  FPropStringList.Assign(Value);
+  FPropStringList := Value;
 end;
 
 end.

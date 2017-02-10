@@ -52,6 +52,18 @@ type
     property Value: TVal read FValue;
   end;
 
+  TMVCTuple<TVal1, TVal2, TVal3> = class
+  private
+    FVal1: TVal1;
+    FVal2: TVal2;
+    FVal3: TVal3;
+  public
+    constructor Create(const Val1: TVal1; const Val2: TVal2; const Val3: TVal3);
+    property Val1: TVal1 read FVal1;
+    property Val2: TVal2 read FVal2;
+    property Val3: TVal3 read FVal3;
+  end;
+
   TMVCMimeType = class sealed
   public const
     APPLICATION_JSON = 'application/json';
@@ -660,6 +672,17 @@ begin
   inherited Create;
   FKey := Key;
   FValue := Value;
+end;
+
+{ TMVCTuple<TVal1, TVal2, TVal3> }
+
+constructor TMVCTuple<TVal1, TVal2, TVal3>.Create(const Val1: TVal1;
+  const Val2: TVal2; const Val3: TVal3);
+begin
+  inherited Create;
+  FVal1 := Val1;
+  FVal2 := Val2;
+  FVal3 := Val3;
 end;
 
 initialization

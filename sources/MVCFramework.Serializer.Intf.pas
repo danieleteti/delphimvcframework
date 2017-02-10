@@ -34,13 +34,13 @@ type
     procedure SerializeInstance(
       const ElementType: TRTTIType;
       const ElementAttributes: TArray<TCustomAttribute>;
-      const InputValue: TValue;
-      out OutputObject: TObject);
+      const InstanceField: TValue;
+      var SerializerObject: TObject);
     procedure DeserializeInstance(
       const ElementType: TRTTIType;
       const ElementAttributes: TArray<TCustomAttribute>;
-      const InputObject: TObject;
-      out OutputValue: TValue);
+      const SerializerObject: TObject;
+      var InstanceField: TValue);
   end;
 
 implementation

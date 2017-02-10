@@ -57,20 +57,12 @@ implementation
 uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping,
   System.Classes, Winapi.Windows;
 
-function GetMyObjectWithCustomType: TObjectWithCustomType;
-begin
-  Result := TObjectWithCustomType.Create;
-  Result.PropStringList.Add('item 1');
-  Result.PropStringList.Add('item 2');
-  Result.PropStringList.Add('item 3');
-  Result.PropStringList.Add('item 4');
-end;
 
 { TTestJSONSerializer }
 
 procedure TTestJSONSerializer.SetUp;
 begin
-  SetSerializer(TMVCJSONSerUnSer.Create);
+  SetSerializer(TMVCJSONSerializer.Create);
 end;
 
 procedure TTestJSONSerializer.TestSerUnSerObject;

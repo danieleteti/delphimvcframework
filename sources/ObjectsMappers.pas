@@ -310,9 +310,7 @@ type
 
   end;
 
-  DoNotSerializeAttribute = class(TCustomAttribute)
-
-  end;
+  DoNotSerializeAttribute = MVCDoNotSerializeAttribute;
 
   MapperItemsClassType = class(TCustomAttribute)
   private
@@ -1117,7 +1115,7 @@ begin
   LProperties := LRTTIType.GetProperties;
   for LProperty in LProperties do
   begin
-    if HasAttribute<DoNotSerializeAttribute>(LProperty) then
+    if HasAttribute<MVCDoNotSerializeAttribute>(LProperty) then
       Continue;
     LKeyName := GetKeyName(LProperty, LRTTIType);
     case LProperty.PropertyType.TypeKind of
@@ -1219,7 +1217,7 @@ begin
         Continue;
     end;
 
-    if HasAttribute<DoNotSerializeAttribute>(_property) then
+    if HasAttribute<MVCDoNotSerializeAttribute>(_property) then
       Continue;
 
     case _property.PropertyType.TypeKind of

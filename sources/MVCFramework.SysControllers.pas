@@ -112,7 +112,7 @@ begin
     // LJRes.AddPair('system_uptime', GetUpTime);
     LJRes.AddPair('system_time', FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
     ContentType := TMVCMediaType.APPLICATION_JSON;
-    Render(LJRes, False);
+    Renderer.SerializeObject(LJRes, []);
   finally
     LJRes.Free;
   end;
@@ -247,8 +247,7 @@ var
   LKey: string;
   LJRes: TJSONObject;
 begin
-  ContentType := TMVCMediaType.APPLICATION_JSON;
-
+  // ContentType := TMVCMediaType.APPLICATION_JSON;
   LJRes := TJSONObject.Create;
   try
     LKeys := Config.Keys;
@@ -256,11 +255,10 @@ begin
     begin
       LJRes.AddPair(LKey, Config[LKey]);
     end;
-  except
+    Renderer.SerializeObject(LJRes, []);
+  finally
     LJRes.Free;
-    raise;
   end;
-  Render(LJRes, true);
 end;
 
 end.
