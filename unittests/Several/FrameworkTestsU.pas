@@ -123,6 +123,7 @@ type
   published
     procedure TestSerUnSerObject; virtual; abstract;
     procedure TestSerUnSerObjectList; virtual; abstract;
+    procedure TestSerUnSerNestedObjects; virtual; abstract;
     procedure TestSerUnSerObjectWithStream; virtual; abstract;
     procedure TestSerUnSerObjectListWithStream; virtual; abstract;
     procedure TestSerUnSerObjectWithTValue; virtual; abstract;

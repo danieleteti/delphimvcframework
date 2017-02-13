@@ -65,7 +65,7 @@ uses
     , MVCFramework.Serializer.Intf;
 
 type
-  TDMVCSerializationType = TMVCSerializationType;
+  // TDMVCSerializationType = TMVCSerializationType;
   TSessionData = TDictionary<string, string>;
 
   // RTTI ATTRIBUTES
@@ -399,12 +399,8 @@ type
       Properties);
     procedure Render<T: class>(aCollection: TObjectList<T>;
       aInstanceOwner: Boolean = true;
-      aJSONObjectActionProc: TJSONObjectActionProc = nil;
-      aSerializationType: TDMVCSerializationType = TDMVCSerializationType.
-      Properties); overload;
-    procedure Render(aObject: TObject; aInstanceOwner: Boolean = true;
-      aSerializationType: TDMVCSerializationType = TDMVCSerializationType.
-      Properties); overload; virtual;
+      aJSONObjectActionProc: TJSONObjectActionProc = nil); overload;
+    procedure Render(aObject: TObject; aInstanceOwner: Boolean = true); overload; virtual;
     procedure Render(aDataSet: TDataSet; aInstanceOwner: Boolean = false;
       aOnlySingleRecord: Boolean = false;
       aJSONObjectActionProc: TJSONObjectActionProc = nil); overload; virtual;
@@ -2183,15 +2179,11 @@ begin
   InternalRender(Content, ContentType, ContentCharset, Context);
 end;
 
-procedure TMVCController.Render(aObject: TObject; aInstanceOwner: Boolean;
-  aSerializationType: TDMVCSerializationType);
+procedure TMVCController.Render(aObject: TObject; aInstanceOwner: Boolean);
 var
   lOutput: String;
 begin
-  if aSerializationType = TMVCSerializationType.Properties then
-    lOutput := Renderer.SerializeObject(aObject, [])
-  else
-    lOutput := Renderer.SerializeObjectStrict(aObject);
+  lOutput := Renderer.SerializeObject(aObject, []);
   InternalRenderText(lOutput, ContentType, 'utf-8', Context);
 
   if aInstanceOwner then
@@ -2874,36 +2866,17 @@ procedure TMVCController.RenderWrappedList(aList: IWrappedList;
 var
   JSON: TJSONArray;
 begin
-  if aSerializationType = TMVCSerializationType.Properties then
-    JSON := Mapper.ObjectListToJSONArray(aList, true,
-      aJSONObjectActionProc)
-  else
-    JSON := Mapper.ObjectListToJSONArrayFields(aList, true,
-      aJSONObjectActionProc);
+  JSON := Mapper.ObjectListToJSONArray(aList, true,
+    aJSONObjectActionProc);
   Render(JSON, true);
 end;
 
 procedure TMVCController.Render<T>(aCollection: TObjectList<T>;
-  aInstanceOwner: Boolean; aJSONObjectActionProc: TJSONObjectActionProc;
-  aSerializationType: TMVCSerializationType);
+  aInstanceOwner: Boolean; aJSONObjectActionProc: TJSONObjectActionProc);
 var
   JSON: String;
 begin
-  case aSerializationType of
-    TMVCSerializationType.Properties:
-      begin
-        JSON := Renderer.SerializeCollection(aCollection, [])
-      end;
-    TMVCSerializationType.Fields:
-      begin
-        JSON := Renderer.SerializeCollectionStrict(aCollection);
-      end
-  else
-    begin
-      raise EMVCSerializationException.Create('Invalid serialization type');
-    end;
-  end;
-
+  JSON := Renderer.SerializeCollection(aCollection, []);
   InternalRenderText(JSON, ContentType, 'utf8', Context);
 
   if aInstanceOwner then

@@ -373,10 +373,11 @@ var
   PersonList: TObjectList<TPerson>;
   ID: Integer;
 begin
+  raise Exception.Create('Not implemented');
   ID := ctx.Request.Params['id'].ToInteger;
   PersonList := TPerson.GetList;
   try
-    Render(PersonList[ID - 1], false, TDMVCSerializationType.Fields);
+//    Render(PersonList[ID - 1], false, TDMVCSerializationType.Fields);
   finally
     PersonList.Free;
   end;

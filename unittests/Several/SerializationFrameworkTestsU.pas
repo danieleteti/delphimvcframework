@@ -41,11 +41,25 @@ type
   published
     procedure TestSerUnSerObject; override;
     procedure TestSerUnSerObjectList; override;
+    procedure TestSerUnSerNestedObjects; override;
     procedure TestSerUnSerObjectWithStream; override;
     procedure TestSerUnSerObjectListWithStream; override;
     procedure TestSerUnSerObjectWithTValue; override;
     procedure TestSerUnSerObjectListWithTValue; override;
-    procedure TestSerUnSerObjectStrict; override;
+    procedure TestSerUnSerObjectBuiltInCustomTypes; override;
+    procedure TestSerUnSerObjectBuiltInCustomTypesFullObject; override;
+  end;
+
+  TTestJSONStrictSerializer = class(TTestJSONSerializer)
+  protected
+    procedure SetUp; override;
+  published
+    procedure TestSerUnSerObject; override;
+    procedure TestSerUnSerObjectList; override;
+    procedure TestSerUnSerObjectWithStream; override;
+    procedure TestSerUnSerObjectListWithStream; override;
+    procedure TestSerUnSerObjectWithTValue; override;
+    procedure TestSerUnSerObjectListWithTValue; override;
     procedure TestSerUnSerObjectBuiltInCustomTypes; override;
     procedure TestSerUnSerObjectBuiltInCustomTypesFullObject; override;
   end;
@@ -64,6 +78,27 @@ uses BOs, MVCFramework.Serializer.JSON, MVCFramework.DuckTyping,
 procedure TTestJSONSerializer.SetUp;
 begin
   SetSerializer(TMVCJSONSerializer.Create);
+end;
+
+procedure TTestJSONSerializer.TestSerUnSerNestedObjects;
+var
+  Obj: TMyComplexObject;
+  JSON: string;
+  Obj2: TMyComplexObject;
+begin
+  Obj := GetMyComplexObject;
+  try
+    JSON := Serializer.SerializeObject(Obj, []);
+    Obj2 := TMyComplexObject.Create;
+    try
+      Serializer.DeserializeObject(JSON, Obj2);
+      CheckTrue(Obj.Equals(Obj2));
+    finally
+      Obj2.Free;
+    end;
+  finally
+    Obj.Free;
+  end;
 end;
 
 procedure TTestJSONSerializer.TestSerUnSerObject;
@@ -204,27 +239,6 @@ begin
   end;
 end;
 
-procedure TTestJSONSerializer.TestSerUnSerObjectStrict;
-var
-  Obj: TMyObject;
-  JSON: string;
-  Obj2: TMyObject;
-begin
-  Obj := GetMyObject;
-  try
-    JSON := Serializer.SerializeObjectStrict(Obj);
-    Obj2 := TMyObject.Create;
-    try
-      Serializer.DeserializeObjectStrict(JSON, Obj2);
-      CheckTrue(Obj.Equals(Obj2));
-    finally
-      Obj2.Free;
-    end;
-  finally
-    Obj.Free;
-  end;
-end;
-
 procedure TTestJSONSerializer.TestSerUnSerObjectWithStream;
 var
   Obj: TMyStreamObject;
@@ -273,9 +287,66 @@ begin
   end;
 end;
 
+{ TTestJSONStrictSerializer }
+
+procedure TTestJSONStrictSerializer.SetUp;
+begin
+  inherited;
+  SetSerializer(TMVCJSONStrictSerializer.Create);
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObject;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectBuiltInCustomTypes;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectBuiltInCustomTypesFullObject;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectList;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectListWithStream;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectListWithTValue;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectWithStream;
+begin
+  inherited;
+
+end;
+
+procedure TTestJSONStrictSerializer.TestSerUnSerObjectWithTValue;
+begin
+  inherited;
+
+end;
+
 initialization
 
 RegisterTest(TTestJSONSerializer.suite);
+// RegisterTest(TTestJSONStrictSerializer.suite);
 
 TMVCSerializersRegistry.RegisterTypeSerializer(
   TMVCJSONSerializer.SERIALIZER_NAME,

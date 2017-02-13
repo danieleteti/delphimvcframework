@@ -305,6 +305,7 @@ begin
     if not Assigned(FGetCountMethod) then
       Exit(nil);
   end;
+  Result := TDuckTypedList.Create(AObjectAsDuck);
 end;
 
 function TDuckTypedList.WrappedObject: TObject;

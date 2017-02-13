@@ -39,7 +39,7 @@ uses MVCFramework.Serializer.Intf
 
 type
   TMVCJSONSerializer = class(TInterfacedObject, IMVCSerializer)
-  private
+  protected
     class var CTX: TRTTIContext;
     function PropertyMustBeSkipped(const ARTTIProperty: TRTTIProperty): Boolean;
     function SerializeFloatProperty(AObject: TObject;
@@ -66,7 +66,7 @@ type
     procedure DeSerializeBase64StringStream(aStream: TStream;
       const aBase64SerializedString: string);
     function ObjectToJSONValue(AObject: TObject;
-      AIgnoredProperties: array of string): TJSONValue;
+      AIgnoredProperties: array of string): TJSONValue; virtual;
     function ObjectToJSONObjectFields(AObject: TObject): TJSONObject;
     function PropertyExists(JSONObject: TJSONObject;
       PropertyName: string): Boolean;
@@ -79,7 +79,9 @@ type
     procedure InternalJSONValueToObject(AJSONValue: TJSONValue; AObject: TObject);
     function SerializeTValueAsFixedNullableType(AValue: TValue;
       AValueTypeInfo: PTypeInfo): TJSONValue;
-    procedure InternalDeserializeObject(ASerializedObject: string; AObject: TObject; AStrict: Boolean);
+    procedure InternalDeserializeObject(ASerializedObject: string; AObject: TObject);
+    procedure DeserializeJSONCollection(AJSONArray: TJSONArray; AList: IMVCList;
+      AClazz: TClass);
   protected
     { IMVCSerializer }
     function SerializeObject(AObject: TObject;
@@ -91,12 +93,20 @@ type
       AIgnoredProperties: array of string): String;
     function SerializeCollectionStrict(AList: TObject): String;
     procedure DeserializeObject(ASerializedObject: string; AObject: TObject);
-    procedure DeserializeObjectStrict(ASerializedObject: String; AObject: TObject);
     procedure DeserializeCollection(ASerializedObjectList: string; AList: IMVCList; AClazz: TClass);
     procedure DeserializeDataSet(ASerializedObject: String; const ADataSet: TDataSet);
   public
     const
     SERIALIZER_NAME = 'DELPHIJSON';
+  end;
+
+  TMVCJSONStrictSerializer = class(TMVCJSONSerializer)
+  protected
+    function ObjectToJSONValue(AObject: TObject;
+      AIgnoredProperties: array of string): TJSONValue; override;
+  public
+    const
+    SERIALIZER_NAME = 'DELPHIJSONSTRICT';
   end;
 
 implementation
@@ -188,7 +198,7 @@ begin
 end;
 
 procedure TMVCJSONSerializer.InternalDeserializeObject(ASerializedObject: string;
-  AObject: TObject; AStrict: Boolean);
+  AObject: TObject);
 var
   lJSON: TJSONValue;
 begin
@@ -196,12 +206,7 @@ begin
   try
     if lJSON <> nil then
     begin
-      if not AStrict then
-      begin
-        InternalJSONValueToObject(TJSONObject(lJSON), AObject)
-      end
-      else
-        // InternalJSONObjectToObjectFields(TJSONObject(lJSON), AObject)
+      InternalJSONValueToObject(TJSONObject(lJSON), AObject)
     end
     else
     begin
@@ -273,7 +278,7 @@ begin
         continue;
       lInstanceField := lProperty.GetValue(TObject(AObject));
 
-      // check is exists a custom serializer for the current type
+      // check if exists a custom serializer for the current type
       lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(SERIALIZER_NAME, lProperty.PropertyType.Handle);
       if lTypeSerializer <> nil then
       begin
@@ -822,12 +827,23 @@ begin
     if (lJValue = nil) or (not(lJValue is TJSONArray)) then
       raise EMVCDeserializationException.Create('Serialized data is not a valid JSON Array');
     lJArr := TJSONArray(lJValue);
-    for I := 0 to lJArr.Count - 1 do
-    begin
-      AList.Add(JSONObjectToObject(AClazz, lJArr.Items[I] as TJSONObject));
-    end;
+    DeserializeJSONCollection(lJArr, AList, AClazz);
   finally
     lJValue.Free;
+  end;
+end;
+
+procedure TMVCJSONSerializer.DeserializeJSONCollection(AJSONArray: TJSONArray; AList: IMVCList;
+  AClazz: TClass);
+var
+  I: Integer;
+  lJValue: TJSONValue;
+begin
+  if AJSONArray = nil then
+    raise EMVCDeserializationException.Create('Invalid serialized data');
+  for I := 0 to AJSONArray.Count - 1 do
+  begin
+    AList.Add(JSONObjectToObject(AClazz, AJSONArray.Items[I] as TJSONObject));
   end;
 end;
 
@@ -911,13 +927,7 @@ end;
 
 procedure TMVCJSONSerializer.DeserializeObject(ASerializedObject: string; AObject: TObject);
 begin
-  InternalDeserializeObject(ASerializedObject, AObject, false);
-end;
-
-procedure TMVCJSONSerializer.DeserializeObjectStrict(ASerializedObject: String;
-  AObject: TObject);
-begin
-  InternalDeserializeObject(ASerializedObject, AObject, True);
+  InternalDeserializeObject(ASerializedObject, AObject);
 end;
 
 function TMVCJSONSerializer.DeserializeRecord(ARTTIType: TRTTIType; AJSONValue: TJSONValue;
@@ -949,6 +959,7 @@ var
   lClassRef: TClass;
   list: IMVCList;
   I: Integer;
+  s: string;
 begin
   case ElementType.TypeKind of
     tkEnumeration:
@@ -983,16 +994,14 @@ begin
           begin // restore collection
             if JSONValue is TJSONArray then
             begin
+              s := ElementType.QualifiedName;
               lJSONArr := TJSONArray(JSONValue);
               // look for the MapperItemsClassType on the property itself or on the property type
               if TSerializerHelpers.AttributeExists<MapperItemsClassType>(ElementAttributes, lAttr) or
                 TSerializerHelpers.AttributeExists<MapperItemsClassType>(ElementType.GetAttributes, lAttr) then
               begin
                 lClassRef := lAttr.Value;
-                for I := 0 to lJSONArr.Count - 1 do
-                begin
-                  list.Add(JSONObjectToObject(lClassRef, lJSONArr.Items[I] as TJSONObject));
-                end;
+                DeserializeJSONCollection(lJSONArr, list, lClassRef);
               end
               else
                 raise EMVCDeserializationException.CreateFmt
@@ -1015,6 +1024,82 @@ begin
         end;
       end;
   end; // case
+end;
+
+{ TMVCJSONStrictSerializer }
+
+function TMVCJSONStrictSerializer.ObjectToJSONValue(AObject: TObject;
+  AIgnoredProperties: array of string): TJSONValue;
+var
+  lType: TRTTIType;
+  lFields: TArray<TRttiField>;
+  lField: TRttiField;
+  f: string;
+  lOutputJSONObject: TJSONObject;
+  lOutputJsonValue: TJSONValue;
+  Arr: TJSONArray;
+  list: IMVCList;
+  Obj, o: TObject;
+  ThereAreIgnoredProperties: Boolean;
+  ts: TTimeStamp;
+  sr: TStringStream;
+  SS: TStringStream;
+  _attrser: MapperSerializeAsString;
+  lTypeSerializer: IMVCTypeSerializer;
+  lJSONValue: TJSONValue;
+  lSerializedJValue: TJSONValue;
+  function MustBeSerialized(AKeyName: String): Boolean; inline;
+  begin
+    Result := True;
+  end;
+
+begin
+  ThereAreIgnoredProperties := Length(AIgnoredProperties) > 0;
+  lType := CTX.GetType(AObject.ClassInfo);
+
+  // main object has a custom serializer?
+  lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
+    SERIALIZER_NAME,
+    lType.Handle);
+  if lTypeSerializer <> nil then
+  begin
+    lJSONValue := nil;
+    lTypeSerializer.SerializeInstance(
+      lType, lType.GetAttributes, AObject, TObject(lJSONValue));
+    Result := lJSONValue; // as TJSONObject;
+  end
+  else
+  begin
+    lOutputJSONObject := TJSONObject.Create;
+    lOutputJSONObject.AddPair(DMVC_CLASSNAME, AObject.QualifiedClassName);
+    lFields := lType.GetFields;
+    for lField in lFields do
+    begin
+      f := TSerializerHelpers.GetKeyName(lField, lType);
+      if not MustBeSerialized(f) then
+        continue;
+      if TSerializerHelpers.HasAttribute<DoNotSerializeAttribute>(lField) then
+        continue;
+      lTypeSerializer := TMVCSerializersRegistry.GetTypeSerializer(
+        SERIALIZER_NAME,
+        lField.FieldType.Handle);
+      if lTypeSerializer <> nil then
+      begin
+        lJSONValue := nil;
+        lTypeSerializer.SerializeInstance(
+          lField.FieldType, lField.GetAttributes, lField.GetValue(AObject), TObject(lJSONValue));
+        lOutputJSONObject.AddPair(f, lJSONValue);
+      end
+      else
+      begin
+        { if serializable then serialize, otherwise ignore it }
+        if SerializeRTTIElement(lField.FieldType, lField.GetAttributes,
+          lField.GetValue(AObject), lSerializedJValue) then
+          lOutputJSONObject.AddPair(f, lSerializedJValue);
+      end;
+    end;
+    Result := lOutputJSONObject;
+  end;
 end;
 
 initialization
