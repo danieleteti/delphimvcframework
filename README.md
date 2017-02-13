@@ -4,7 +4,7 @@
 
 ##DelphiMVCFramework Main Features
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
-  * [Project Roadmap](delphimvcframework/roadmap.md) is always public
+  * [Project Roadmap](https://github.com/danieleteti/delphimvcframework/blob/master/roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
   * Stable and solid, used by small/mid/big projects since 2010
