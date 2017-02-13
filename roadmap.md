@@ -14,7 +14,7 @@ As we are in the detailed planning stages for these features, we will share addi
  - (WORKING) Update Mapper framework to make it extensible and configurable
    - The default mapper interface will be the same as the current version so that no breaking changes happend
    - Will be possible to register a specific serializer/deserializer engine for each type or property name
- - Switch from the System.JSON parser to the [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (which is more than 10 times faster).
+ - (WORKING) Switch from the System.JSON parser to the [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (which is more than 10 times faster).
    - This point has the max priority!
  - (DONE, BUT WE NEED MORE) Improve the IDE expert
  - Add the XML support for the Mapper using the [OmniXML](https://github.com/mremec/omnixml) project (low priority: looking for volunteers)
@@ -24,7 +24,7 @@ As we are in the detailed planning stages for these features, we will share addi
 
 - New samples with specific web related use cases:
    - WebWorkers
-   - Angular2
+   - (DONE) Angular2
    - React
 
 - (DONE) Create "Custom Authentication and Authorization" demo
