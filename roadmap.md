@@ -11,7 +11,7 @@ As we are in the detailed planning stages for these features, we will share addi
  - (ALMOST DONE) Use a middleware to implement response compression for console type projects
  - Implement Swagger support (we need a good self contained YAML parser/generator...)
  - Linux support (compatibly with the [Next Delphi version with codename Godzilla](http://community.embarcadero.com/article/news/16211-embarcadero-rad-studio-2016-product-approach-and-roadmap-2))
- - Update Mapper framework to make it extensible and configurable
+ - (WORKING) Update Mapper framework to make it extensible and configurable
    - The default mapper interface will be the same as the current version so that no breaking changes happend
    - Will be possible to register a specific serializer/deserializer engine for each type or property name
  - Switch from the System.JSON parser to the [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (which is more than 10 times faster).
