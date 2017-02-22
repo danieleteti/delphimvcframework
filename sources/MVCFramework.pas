@@ -1640,13 +1640,13 @@ var
   Encoding: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
-  {$IF CompilerVersion < 31}
+  {$IFNDEF BERLINORBETTER}
   TestBuffer: TArray<Byte>;
   {$ENDIF}
 begin
   if (FBody = '') then
   begin
-    {$IF CompilerVersion >= 31}
+    {$IFDEF BERLINORBETTER}
     if (FCharset = '') then
     begin
       SetLength(Buffer, 10);

@@ -67,6 +67,9 @@ become
 ```{$DEFINE STARTEREDITION}```
 
 ## Release Notes
+**2.1.4 (beryllium)**
+  - FIX https://github.com/danieleteti/delphimvcframework/issues/71
+  
 **2.1.3 (lithium)**
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions

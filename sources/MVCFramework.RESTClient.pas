@@ -1527,7 +1527,7 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-{$IF CompilerVersion > 30}
+{$IF CompilerVersion > 29}
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
@@ -1635,7 +1635,7 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-{$IF CompilerVersion > 30}
+{$IF CompilerVersion > 29}
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),

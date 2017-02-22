@@ -2218,6 +2218,8 @@ var
   ListItem: TValue;
   ListParam: TRttiParameter;
 begin
+{$HINTS OFF}   //silly hints of different delphi version...
+  jvalue := nil;
   if not Assigned(AJSONObject) then
     raise EMapperException.Create('JSON Object cannot be nil');
   _type := ctx.GetType(AObject.ClassInfo);
