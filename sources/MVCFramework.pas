@@ -1640,9 +1640,13 @@ var
   Encoding: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
+  {$IF CompilerVersion < 31}
+  TestBuffer: TArray<Byte>;
+  {$ENDIF}
 begin
   if (FBody = '') then
   begin
+    {$IF CompilerVersion >= 31}
     if (FCharset = '') then
     begin
       SetLength(Buffer, 10);
@@ -1654,6 +1658,23 @@ begin
     else
       Encoding := TEncoding.GetEncoding(FCharset);
     FBody := Encoding.GetString(FWebRequest.RawContent);
+    {$ELSE}
+    SetLength(Buffer, FWebRequest.ContentLength);
+    FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
+    if (FCharset = '') then
+    begin
+      SetLength(TestBuffer, 10);
+      for I := 0 to 9 do
+      begin
+        TestBuffer[I] := Buffer[I];
+      end;
+      TEncoding.GetBufferEncoding(TestBuffer, Encoding, TEncoding.Default);
+      SetLength(TestBuffer, 0);
+    end
+    else
+      Encoding := TEncoding.GetEncoding(FCharset);
+    FBody := Encoding.GetString(Buffer);
+    {$ENDIF}
   end;
   Result := FBody;
 end;
