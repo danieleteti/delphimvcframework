@@ -76,18 +76,18 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Session, ObjectsMappers, System.StrUtils, System.Classes
+  System.SysUtils
+    , MVCFramework.Session
+    , ObjectsMappers
+    , System.StrUtils
+    , System.Classes
+    , MVCFramework.Patches
+    , MVCFramework.TypesAliases
 {$IFDEF SYSTEMNETENCODING}
     , System.NetEncoding
 {$ELSE}
     , Soap.EncdDecd
-{$ENDIF}
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    ;
+{$ENDIF};
 
 {
 

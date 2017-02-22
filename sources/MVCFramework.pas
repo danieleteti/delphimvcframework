@@ -404,8 +404,6 @@ type
     procedure Render(aDataSet: TDataSet; aInstanceOwner: Boolean = false;
       aOnlySingleRecord: Boolean = false;
       aJSONObjectActionProc: TJSONObjectActionProc = nil); overload; virtual;
-    procedure Render(aJSONValue: TJSONValue; aInstanceOwner: Boolean = true);
-      overload; virtual; deprecated 'Use Render(String)';
     procedure Render(aTextWriter: TTextWriter; aInstanceOwner: Boolean = true); overload;
     procedure Render(E: Exception; ErrorItems: TList<string> = nil);
       overload; virtual;
@@ -2901,13 +2899,6 @@ end;
 procedure TMVCController.Render(aTextWriter: TTextWriter; aInstanceOwner: Boolean);
 begin
   InternalRenderText(aTextWriter.ToString, ContentType, ContentCharset, Context);
-end;
-
-procedure TMVCController.Render(aJSONValue: TJSONValue;
-  aInstanceOwner: Boolean);
-begin
-  InternalRender(aJSONValue, ContentType, ContentCharset, Context,
-    aInstanceOwner);
 end;
 
 procedure TMVCController.ResponseStatusCode(const AStatusCode: UInt16;

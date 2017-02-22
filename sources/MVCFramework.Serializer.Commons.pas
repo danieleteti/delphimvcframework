@@ -338,7 +338,6 @@ class function TMVCSerializersRegistry.GetTypeSerializer(
   aSerializerName: String;
   aTypeInfo: PTypeInfo): IMVCTypeSerializer;
 var
-  lList: TList<TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>>;
   I: Integer;
   lItem: TMVCTuple<string, PTypeInfo, IMVCTypeSerializer>;
 begin

@@ -390,7 +390,11 @@ uses
   System.IOUtils,
   idGlobal,
   System.StrUtils,
-  idCoderMIME;
+  idCoderMIME
+{$IFDEF SYSTEMJSON}
+    , System.JSON //just to allow inline
+{$ENDIF}
+    ;
 
 const
   ReservedIPs: array [1 .. 11] of array [1 .. 2] of string =
