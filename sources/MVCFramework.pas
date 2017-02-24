@@ -1646,7 +1646,8 @@ var
 begin
   if (FBody = '') then
   begin
-    {$IFDEF BERLINORBETTER}
+    Encoding := nil;
+	{$IFDEF BERLINORBETTER}
     if (FCharset = '') then
     begin
       SetLength(Buffer, 10);
@@ -1675,6 +1676,8 @@ begin
       Encoding := TEncoding.GetEncoding(FCharset);
     FBody := Encoding.GetString(Buffer);
     {$ENDIF}
+	if Assigned(Encoding) then
+	  Encoding.Free;
   end;
   Result := FBody;
 end;
