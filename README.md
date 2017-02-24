@@ -67,6 +67,13 @@ become
 ```{$DEFINE STARTEREDITION}```
 
 ## Release Notes
+
+**2.1.5 (boron)**
+- MERGE https://github.com/danieleteti/delphimvcframework/pull/73
+- Removed memory leaks in TMVCWebRequest (which affect also TRESTClient)
+- Defined conditionals for XE7, XE8 and 10 Seattle
+- Refactoring
+
 **2.1.4 (beryllium)**
   - FIX https://github.com/danieleteti/delphimvcframework/issues/71
   
