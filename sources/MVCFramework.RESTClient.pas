@@ -26,6 +26,8 @@ unit MVCFramework.RESTClient;
 
 interface
 
+{$I dmvcframework.inc}
+
 uses
   System.Classes,
   IdHTTP,
@@ -33,12 +35,10 @@ uses
   ObjectsMappers,
   MVCFramework.Commons,
 
-{$IF CompilerVersion < 27}
-  Data.DBXJSON,
-
-{$ELSE}
+{$IFDEF SYSTEMJSON}
   System.JSON,
-
+{$ELSE}
+  Data.DBXJSON,
 {$ENDIF}
   IdMultipartFormData,
   System.SysUtils,
@@ -315,8 +315,7 @@ implementation
 
 
 {$IFNDEF ANDROID OR IOS}
-{$IF CompilerVersion > 30}
-
+{$IFDEF BERLINORBETTER}
 
 uses
   System.AnsiStrings;
@@ -426,7 +425,7 @@ var
 begin
   if (FContentEncoding = '') then
     FContentEncoding := 'utf-8';
-  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding.ToLower));
+  ss := TStringStream.Create('', TEncoding.GetEncoding(FContentEncoding.ToLower), True);
   try
     FBody.Position := 0;
     FBody.SaveToStream(ss);
@@ -450,7 +449,7 @@ constructor TRESTResponse.Create;
 begin
   FHeaders := TStringlist.Create;
   FCookies := TIdCookies.Create(nil);
-  FBody := TStringStream.Create('', TEncoding.UTF8);
+  FBody := TStringStream.Create('', TEncoding.UTF8, True);
   FBodyAsJSONValue := nil;
   FHasError := False;
 end;
@@ -943,12 +942,10 @@ begin
   try
     Result := doPOST(AResource, AParams,
 
-{$IF CompilerVersion >= 28}
+{$IFDEF XE7ORBETTER}
       ABody.ToJSON
-
 {$ELSE}
       ABody.ToString
-
 {$ENDIF});
   finally
     if AOwnsBody then
@@ -966,12 +963,10 @@ begin
   try
     Result := doPATCH(AResource, AParams,
 
-{$IF CompilerVersion >= 28}
+{$IFDEF XE7ORBETTER}
       ABody.ToJSON
-
 {$ELSE}
       ABody.ToString
-
 {$ENDIF});
   finally
     if AOwnsBody then
@@ -1154,12 +1149,10 @@ begin
   try
     Result := doPUT(AResource, AParams,
 
-{$IF CompilerVersion >= 28}
+{$IFDEF XE7ORBETTER}
       ABody.ToJSON
-
 {$ELSE}
       ABody.ToString
-
 {$ENDIF});
   finally
     if AOwnsBody then
@@ -1527,7 +1520,7 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-{$IF CompilerVersion > 29}
+{$IFDEF SEATTLEORBETTER}
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
@@ -1605,7 +1598,7 @@ begin
       httpPATCH:
         begin
           raise ERESTClientException.Create
-            ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
+            ('Sorry, PATCH is not supported by the RESTClient because it''s not supportd by the TidHTTP');
         end;
 
       // httpPUT:
@@ -1635,7 +1628,7 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-{$IF CompilerVersion > 29}
+{$IFDEF SEATTLEORBETTER}
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
 {$ELSE}
         ElementToCharLen(UTF8Encode(E.ErrorMessage),

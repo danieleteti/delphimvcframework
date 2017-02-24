@@ -1268,7 +1268,7 @@ begin
       IsExpired := true;
       if List.TryGetValue(ASessionID, Result) then
       begin
-      // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
+        // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
         if ASessionTimeout = 0 then
           IsExpired := MinutesBetween(Now, Result.LastAccess) > DEFAULT_SESSION_INACTIVITY
         else
@@ -1640,41 +1640,50 @@ var
   Encoding: TEncoding;
   Buffer: TArray<Byte>;
   I: Integer;
-  {$IFNDEF BERLINORBETTER}
+{$IFNDEF BERLINORBETTER}
   TestBuffer: TArray<Byte>;
-  {$ENDIF}
+{$ENDIF}
 begin
+  Encoding := nil;
   if (FBody = '') then
   begin
-    {$IFDEF BERLINORBETTER}
-    if (FCharset = '') then
-    begin
-      SetLength(Buffer, 10);
-      for I := 0 to 9 do
-        Buffer[I] := FWebRequest.RawContent[I];
-      TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
-      SetLength(Buffer, 0);
-    end
-    else
-      Encoding := TEncoding.GetEncoding(FCharset);
-    FBody := Encoding.GetString(FWebRequest.RawContent);
-    {$ELSE}
-    SetLength(Buffer, FWebRequest.ContentLength);
-    FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-    if (FCharset = '') then
-    begin
-      SetLength(TestBuffer, 10);
-      for I := 0 to 9 do
+    try
+{$IFDEF BERLINORBETTER}
+      if (FCharset = '') then
       begin
-        TestBuffer[I] := Buffer[I];
+        SetLength(Buffer, 10);
+        for I := 0 to 9 do
+          Buffer[I] := FWebRequest.RawContent[I];
+        TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
+        SetLength(Buffer, 0);
+      end
+      else
+      begin
+        Encoding := TEncoding.GetEncoding(FCharset);
       end;
-      TEncoding.GetBufferEncoding(TestBuffer, Encoding, TEncoding.Default);
-      SetLength(TestBuffer, 0);
-    end
-    else
-      Encoding := TEncoding.GetEncoding(FCharset);
-    FBody := Encoding.GetString(Buffer);
-    {$ENDIF}
+      FBody := Encoding.GetString(FWebRequest.RawContent);
+{$ELSE}
+      SetLength(Buffer, FWebRequest.ContentLength);
+      FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
+      if (FCharset = '') then
+      begin
+        SetLength(TestBuffer, 10);
+        for I := 0 to 9 do
+        begin
+          TestBuffer[I] := Buffer[I];
+        end;
+        TEncoding.GetBufferEncoding(TestBuffer, Encoding, TEncoding.Default);
+        SetLength(TestBuffer, 0);
+      end
+      else
+      begin
+        Encoding := TEncoding.GetEncoding(FCharset);
+      end;
+      FBody := Encoding.GetString(Buffer);
+{$ENDIF}
+    finally
+      Encoding.Free;
+    end;
   end;
   Result := FBody;
 end;
