@@ -81,7 +81,7 @@ begin
     ['Access-Control-Allow-Methods'] :=
     'POST, GET, OPTIONS, PUT, DELETE';
   Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Headers'] := 'Content-Type, Accept';
+    ['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword';
   Context.Response.RawWebResponse.CustomHeaders.Values
     ['Access-Control-Allow-Credentials'] := FAllowsCredentials;
 
