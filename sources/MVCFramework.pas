@@ -405,8 +405,6 @@ type
     procedure Render(aDataSet: TDataSet; aInstanceOwner: Boolean = false;
       aOnlySingleRecord: Boolean = false;
       aJSONObjectActionProc: TJSONObjectActionProc = nil); overload; virtual;
-    procedure Render(aJSONValue: TJSONValue; aInstanceOwner: Boolean = true);
-      overload; virtual; deprecated 'Use Render(String)';
     procedure Render(aTextWriter: TTextWriter; aInstanceOwner: Boolean = true); overload;
     procedure Render(E: Exception; ErrorItems: TList<string> = nil);
       overload; virtual;
@@ -1127,6 +1125,7 @@ begin
                   on E: EInvalidOp do
                   begin
                     LogException(E, 'Invalid OP');
+                    lSelectedController.ResponseStatusCode(HTTP_STATUS.InternalServerError);
                     lSelectedController.Render(E);
                   end;
                   on E: Exception do
@@ -1641,50 +1640,50 @@ begin
 end;
 
 function TMVCWebRequest.Body: string;
-{ .$IF CompilerVersion <= 27 }
 var
-  InEnc: TEncoding;
-  TestBuffer, Buffer: TArray<Byte>;
+  Encoding: TEncoding;
+  Buffer: TArray<Byte>;
   I: Integer;
-  { .$ENDIF }
+  {$IFNDEF BERLINORBETTER}
+  TestBuffer: TArray<Byte>;
+  {$ENDIF}
 begin
-  if FBody <> '' then
-    Exit(FBody);
-
-  { .$IF CompilerVersion > 29 }
-  // FWebRequest.ReadTotalContent;
-  // Exit(FWebRequest.Content);
-  { .$ELSE }
-  // Property FWebRequest.Content is broken. It doesn't correctly decode the response body
-  // considering the content charser. So, here's the fix
-  // check http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
-  // FWebRequest.ReadTotalContent;
-
-  SetLength(Buffer, FWebRequest.ContentLength);
-  FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-
-  if FCharset.IsEmpty then
+  if (FBody = '') then
   begin
-    SetLength(TestBuffer, 10);
-    for I := 0 to 9 do
+    Encoding := nil;
+	{$IFDEF BERLINORBETTER}
+    if (FCharset = '') then
     begin
-      TestBuffer[I] := Buffer[I];
-    end;
-    TEncoding.GetBufferEncoding(TestBuffer, InEnc, TEncoding.Default);
-    SetLength(TestBuffer, 0);
-  end
-  else
-  begin
-    InEnc := TEncoding.GetEncoding(FCharset);
+      SetLength(Buffer, 10);
+      for I := 0 to 9 do
+        Buffer[I] := FWebRequest.RawContent[I];
+      TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
+      SetLength(Buffer, 0);
+    end
+    else
+      Encoding := TEncoding.GetEncoding(FCharset);
+    FBody := Encoding.GetString(FWebRequest.RawContent);
+    {$ELSE}
+    SetLength(Buffer, FWebRequest.ContentLength);
+    FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
+    if (FCharset = '') then
+    begin
+      SetLength(TestBuffer, 10);
+      for I := 0 to 9 do
+      begin
+        TestBuffer[I] := Buffer[I];
+      end;
+      TEncoding.GetBufferEncoding(TestBuffer, Encoding, TEncoding.Default);
+      SetLength(TestBuffer, 0);
+    end
+    else
+      Encoding := TEncoding.GetEncoding(FCharset);
+    FBody := Encoding.GetString(Buffer);
+    {$ENDIF}
+	if Assigned(Encoding) then
+	  Encoding.Free;
   end;
-
-  try
-    FBody := InEnc.GetString(Buffer);
-    Result := FBody;
-  finally
-    InEnc.Free;
-  end
-  { .$ENDIF }
+  Result := FBody;
 end;
 
 function TMVCWebRequest.BodyAs<T>(const RootProperty: string): T;
@@ -2920,13 +2919,6 @@ end;
 procedure TMVCController.Render(aTextWriter: TTextWriter; aInstanceOwner: Boolean);
 begin
   InternalRenderText(aTextWriter.ToString, ContentType, ContentCharset, Context);
-end;
-
-procedure TMVCController.Render(aJSONValue: TJSONValue;
-  aInstanceOwner: Boolean);
-begin
-  InternalRender(aJSONValue, ContentType, ContentCharset, Context,
-    aInstanceOwner);
 end;
 
 procedure TMVCController.ResponseStatusCode(const AStatusCode: UInt16;
