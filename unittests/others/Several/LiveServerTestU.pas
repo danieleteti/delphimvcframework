@@ -860,7 +860,7 @@ begin
   LResp := RESTClient.doGET('/people', ['1']);
   LPersonProps := Mapper.JSONObjectToObject<TPerson>(LResp.BodyAsJsonObject);
   try
-    LResp := RESTClient.doGET('/people', ['1', 'asfields']);
+    {LResp := RESTClient.doGET('/people', ['1', 'asfields']);
     LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
     try
       CheckEquals('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
@@ -869,7 +869,7 @@ begin
         'Object tranferred using field serialization is different from the object serialized in the default way');
     finally
       LObj.Free;
-    end;
+    end;}
   finally
     LPersonProps.Free;
   end;

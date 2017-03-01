@@ -24,7 +24,7 @@
 //
 // ***************************************************************************
 
-unit MVCFramework.Serializer.JSON.CustomTypes;
+unit MVCFramework.Serializer.JsonDataObjects.CustomTypes;
 
 interface
 
@@ -32,13 +32,12 @@ uses
   System.Rtti,
   System.Classes,
   System.SysUtils,
-  System.JSON,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons;
 
 type
 
-  TStreamSerializerJSON = class(TInterfacedObject, IMVCTypeSerializer)
+  TStreamSerializerJsonDataObject = class(TInterfacedObject, IMVCTypeSerializer)
   private
     { private declarations }
   protected
@@ -50,25 +49,28 @@ type
 
 implementation
 
-{ TStreamSerializerJSON }
+uses
+  MVCFramework.Serializer.JsonDataObjects;
 
-procedure TStreamSerializerJSON.Deserialize(
+{ TStreamSerializerJsonDataObject }
+
+procedure TStreamSerializerJsonDataObject.Deserialize(
   const ASerializedObject: TObject; var AElementValue: TValue;
   const AAttributes: TArray<TCustomAttribute>);
 var
-  JSONValue: TJSONValue;
+  JsonValue: TJsonValue;
   Stream: TStream;
   SS: TStringStream;
 begin
-  JSONValue := ASerializedObject as TJSONValue;
-  if Assigned(JSONValue) then
+  JsonValue := ASerializedObject as TJsonValue;
+  if Assigned(JsonValue) then
   begin
     Stream := AElementValue.AsObject as TStream;
     if Assigned(Stream) then
     begin
       if TMVCSerializerHelpful.AttributeExists<MVCSerializeAsStringAttribute>(AAttributes) then
       begin
-        SS := TStringStream.Create(JSONValue.Value);
+        SS := TStringStream.Create(JsonValue.Value);
         try
           SS.Seek(0, TSeekOrigin.soBeginning);
           SS.Position := 0;
@@ -79,7 +81,7 @@ begin
       end
       else
       begin
-        SS := TStringStream.Create(JSONValue.Value);
+        SS := TStringStream.Create(JsonValue.Value);
         try
           SS.Seek(0, TSeekOrigin.soBeginning);
           SS.Position := 0;
@@ -92,8 +94,8 @@ begin
   end;
 end;
 
-procedure TStreamSerializerJSON.Serialize(const AElementValue: TValue;
-  var ASerializerObject: TObject;
+procedure TStreamSerializerJsonDataObject.Serialize(
+  const AElementValue: TValue; var ASerializerObject: TObject;
   const AAttributes: TArray<TCustomAttribute>);
 var
   Stream: TStream;
@@ -111,7 +113,7 @@ begin
       try
         SS.CopyFrom(Stream, Stream.Size);
         DataString := SS.DataString;
-        ASerializerObject := TJSONString.Create(SS.DataString);
+        ASerializerObject := TJsonValue.Create(SS.DataString);
       finally
         SS.Free;
       end;
@@ -123,7 +125,7 @@ begin
         Stream.Seek(0, TSeekOrigin.soBeginning);
         Stream.Position := 0;
         TMVCSerializerHelpful.EncodeStream(Stream, SS);
-        ASerializerObject := TJSONString.Create(SS.DataString);
+        ASerializerObject := TJsonValue.Create(SS.DataString);
       finally
         SS.Free;
       end;

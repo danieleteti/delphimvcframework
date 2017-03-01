@@ -53,6 +53,7 @@ uses
   MVCFramework.Session,
   StompTypes,
   ObjectsMappers,
+  MVCFramework.Serializer.JSON,
   MVCFramework.Patches,
   MVCFramework.TypesAliases
 {$IFDEF WEBAPACHEHTTP}
@@ -396,7 +397,7 @@ type
     procedure RenderWrappedList(aList: IWrappedList;
       aJSONObjectActionProc: TJSONObjectActionProc = nil;
       aSerializationType: TMVCSerializationType = TMVCSerializationType.
-      Properties);
+      stProperties);
     procedure Render<T: class>(aCollection: TObjectList<T>;
       aInstanceOwner: Boolean = true;
       aJSONObjectActionProc: TJSONObjectActionProc = nil); overload;
@@ -513,6 +514,7 @@ type
     FWebModule: TWebModule;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FMVCConfig: TMVCConfig;
+    FRenderers: TDictionary<string, IMVCSerializer>;
     // FViewCache            : TViewCache;
     FMimeTypes: TDictionary<string, string>;
     procedure SetApplicationSession(const Value: TWebApplicationSession);
@@ -556,6 +558,8 @@ type
     function AddController(AControllerClass: TMVCControllerClass;
       ADelegate: TMVCControllerDelegate): TMVCEngine; overload;
     function AddMiddleware(AMiddleware: IMVCMiddleware): TMVCEngine;
+    function AddRenderer(const AContentType: string; const ARenderer: IMVCSerializer): TMVCEngine;
+    function FindRenderer(const AContentType: string): IMVCSerializer;
     // internal methods
     function RegisteredControllers: TObjectList<TMVCControllerRoutable>;
     // http return codes
@@ -672,6 +676,12 @@ begin
   Result := Self;
 end;
 
+function TMVCEngine.AddRenderer(const AContentType: string; const ARenderer: IMVCSerializer): TMVCEngine;
+begin
+  FRenderers.AddOrSetValue(AContentType, ARenderer);
+  Result := Self;
+end;
+
 function AddSessionToTheSessionList(const aSessionType, ASessionID: string;
   ASessionTimeout: UInt64): TWebSession;
 var
@@ -770,6 +780,9 @@ begin
   FWebModule := WebModule;
   FControllers := TObjectList<TMVCControllerRoutable>.Create(true);
   FMiddleware := TList<IMVCMiddleware>.Create;
+  FRenderers := TDictionary<string, IMVCSerializer>.Create;
+  //Add default serializer
+  FRenderers.Add(TMVCMediaType.APPLICATION_JSON, TMVCJSONSerializer.Create);
   // FViewCache := TViewCache.Create;
   FixUpWebModule;
   MVCFramework.Logger.SetDefaultLogger(CustomLogger);
@@ -792,6 +805,7 @@ begin
   FMVCConfig.Free;
   FControllers.Free;
   FMiddleware.Free;
+  FRenderers.Free;
   // FViewCache.Free;
   inherited;
 end;
@@ -1222,6 +1236,13 @@ begin
   Result := AWebRequest.CookieFields.Values[TMVCConstants.SESSION_TOKEN_NAME];
   if not Result.IsEmpty then
     Result := TIdURI.URLDecode(Result);
+end;
+
+function TMVCEngine.FindRenderer(const AContentType: string): IMVCSerializer;
+begin
+  Result := nil;
+  if FRenderers.ContainsKey(AContentType) then
+    Result := FRenderers.Items[AContentType];
 end;
 
 procedure TMVCEngine.FixUpWebModule;
@@ -1862,6 +1883,7 @@ constructor TMVCController.Create;
 begin
   inherited Create;
   FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  FRenderer := nil;
 end;
 
 destructor TMVCController.Destroy;
@@ -1980,11 +2002,8 @@ end;
 
 function TMVCController.GetRenderer: IMVCSerializer;
 begin
-  { TODO -oDaniele -cPluggableMapper : Check if the available renderer is compatible with the controller current content-type }
-  if FRenderer = nil then
-  begin
-    FRenderer := TMVCSerializersRegistry.GetSerializer(ContentType);
-  end;
+  if not Assigned(FRenderer) then
+    FRenderer := GetMVCEngine.FindRenderer(ContentType);
   Result := FRenderer;
 end;
 
@@ -2183,7 +2202,7 @@ procedure TMVCController.Render(aObject: TObject; aInstanceOwner: Boolean);
 var
   lOutput: String;
 begin
-  lOutput := Renderer.SerializeObject(aObject, []);
+  lOutput := Renderer.SerializeObject(aObject);
   InternalRenderText(lOutput, ContentType, 'utf-8', Context);
 
   if aInstanceOwner then
@@ -2862,7 +2881,7 @@ end;
 procedure TMVCController.RenderWrappedList(aList: IWrappedList;
   aJSONObjectActionProc: TJSONObjectActionProc = nil;
   aSerializationType: TMVCSerializationType = TMVCSerializationType.
-  Properties);
+  stProperties);
 var
   JSON: TJSONArray;
 begin
@@ -2876,7 +2895,7 @@ procedure TMVCController.Render<T>(aCollection: TObjectList<T>;
 var
   JSON: String;
 begin
-  JSON := Renderer.SerializeCollection(aCollection, []);
+  JSON := Renderer.SerializeCollection(aCollection);
   InternalRenderText(JSON, ContentType, 'utf8', Context);
 
   if aInstanceOwner then

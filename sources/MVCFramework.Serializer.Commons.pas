@@ -6,6 +6,8 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
+// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+//
 // ***************************************************************************
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +22,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// *************************************************************************** }
+// ***************************************************************************
 
 unit MVCFramework.Serializer.Commons;
 
@@ -28,390 +30,450 @@ interface
 
 {$I dmvcframework.inc}
 
-
 uses
-  System.Rtti, System.Classes, System.SysUtils, System.Generics.Collections, MVCFramework.Serializer.Intf,
-  System.TypInfo, MVCFramework.MultiMap, MVCFramework.Commons;
+  System.Rtti,
+  System.Classes,
+  System.SysUtils,
+  System.Generics.Collections,
+  System.DateUtils,
+  System.TypInfo,
+
+  {$IFDEF SYSTEMNETENCODING}
+
+  System.NetEncoding,
+
+  {$ELSE}
+
+  Soap.EncdDecd,
+
+  {$ENDIF}
+
+  MVCFramework.Serializer.Intf,
+  MVCFramework.Commons;
 
 type
-  TSerializerHelpers = class sealed
-    class function GetKeyName(const ARttiField: TRttiField; AType: TRttiType)
-      : string; overload;
-    class function GetKeyName(const ARttiProp: TRttiProperty; AType: TRttiType)
-      : string; overload;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject)
-      : boolean; overload;
-    class function HasAttribute<T: class>(ARTTIMember: TRttiNamedObject;
-      out AAttribute: T): boolean; overload;
-    class function AttributeExists<T: TCustomAttribute>(Attributes: TArray<TCustomAttribute>; out Attribute: T)
-      : boolean;
-    class procedure EncodeStream(Input, Output: TStream);
-    class procedure DecodeStream(Input, Output: TStream);
-    class function EncodeString(const Input: string): string;
-    class function DecodeString(const Input: string): string;
-    class procedure DeSerializeStringStream(aStream: TStream;
-      const aSerializedString: string; aEncoding: string);
 
-    class procedure DeSerializeBase64StringStream(aStream: TStream;
-      const aBase64SerializedString: string); static;
-    class function GetTypeKindAsString(const ATypeKind: TTypeKind): String;
-    class function StringToTypeKind(const AValue: String): TTypeKind;
-  end;
-
-  EMVCSerializationException = class(Exception)
-
-  end;
-
-  EMVCDeserializationException = class(Exception)
-
-  end;
-
-  TMVCSerializersRegistry = class sealed
-  strict private
-    class var SSerializers: TDictionary<string, IMVCSerializer>;
-    class var SCustomTypeSerializers: TObjectList<TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>>;
+  TMVCSerializerHelpful = class sealed
   public
-    class function GetSerializer(aContentType: String): IMVCSerializer;
-    class procedure RegisterSerializer(aContentType: string; aMVCSerUnSer: IMVCSerializer);
-    class procedure UnRegisterSerializer(aContentType: string);
-    class procedure RegisterTypeSerializer(
-      aSerializerName: string;
-      aTypeInfo: PTypeInfo;
-      aMVCTypeSerializer: IMVCTypeSerializer);
-    class procedure UnRegisterTypeSerializer(aContentType: string; aTypeInfo: PTypeInfo);
-    class function GetTypeSerializer(aSerializerName: String;
-      aTypeInfo: PTypeInfo): IMVCTypeSerializer;
-    class constructor Create;
-    class destructor Destroy;
+    class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
+    class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
+
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): Boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean; overload; static;
+
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): Boolean; overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): Boolean; overload; static;
+
+    class procedure EncodeStream(AInput, AOutput: TStream); static;
+    class procedure DecodeStream(AInput, AOutput: TStream); static;
+
+    class function EncodeString(const AInput: string): string; static;
+    class function DecodeString(const AInput: string): string; static;
+
+    class procedure DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string); static;
+    class procedure DeSerializeBase64StringStream(AStream: TStream; const ABase64SerializedString: string); static;
+
+    class function GetTypeKindAsString(const ATypeKind: TTypeKind): String; static;
+    class function StringToTypeKind(const AValue: String): TTypeKind; static;
+
+    class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
+    class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
   end;
 
-  TValueAsType = class(TCustomAttribute)
+  EMVCSerializationException = class(Exception);
+
+  EMVCDeserializationException = class(Exception);
+
+  MVCValueAsTypeAttribute = class(TCustomAttribute)
   private
-    FTValueTypeInfo: PTypeInfo;
+    FValueTypeInfo: PTypeInfo;
   public
-    constructor Create(ATValueTypeInfo: PTypeInfo);
-    function TValueTypeInfo: PTypeInfo;
+    constructor Create(AValueTypeInfo: PTypeInfo);
+    function ValueTypeInfo: PTypeInfo;
   end;
 
-  MVCDoNotSerializeAttribute = class(TCustomAttribute)
+  MVCDoNotSerializeAttribute = class(TCustomAttribute);
 
-  end;
+  MVCSerializeAsStringAttribute = class(TCustomAttribute);
 
-  MVCSerializeAsString = class(TCustomAttribute)
-  strict private
-    FEncoding: string;
-    procedure SetEncoding(const Value: string);
+  TMVCNameCase = (MVCNameUpperCase, MVCNameLowerCase);
 
-  const
-    DefaultEncoding = 'utf8';
+  MVCNameCaseAttribute = class(TCustomAttribute)
   private
-    function GetEncoding: string;
+    FKeyCase: TMVCNameCase;
+    function GetKeyCase: TMVCNameCase;
   public
-    constructor Create(aEncoding: string = DefaultEncoding);
-    property Encoding: string read GetEncoding write SetEncoding;
+    constructor Create(const AKeyCase: TMVCNameCase);
+    property KeyCase: TMVCNameCase read GetKeyCase;
   end;
+
+  MVCNameAsAttribute = class(TCustomAttribute)
+  private
+    FName: string;
+    function GetName: string;
+  public
+    constructor Create(const AName: string);
+    property Name: string read GetName;
+  end;
+
+  MVCListOfAttribute = class(TCustomAttribute)
+  private
+    FValue: TClass;
+  public
+    constructor Create(const AValue: TClass);
+    property Value: TClass read FValue;
+  end;
+
+function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
+function DateToISODate(const ADate: TDateTime): string;
+function TimeToISOTime(const ATime: TTime): string;
+
+function ISOTimeStampToDateTime(const ADateTime: string): TDateTime;
+function ISODateToDate(const ADate: string): TDate;
+function ISOTimeToTime(const ATime: string): TTime;
 
 implementation
 
-uses
-  ObjectsMappers
-{$IFDEF SYSTEMNETENCODING}
-    , System.NetEncoding
-  // so that the old functions in Soap.EncdDecd can be inlined
-{$ENDIF}
-    , Soap.EncdDecd;
+function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
+var
+  fs: TFormatSettings;
+begin
+  fs.TimeSeparator := ':';
+  Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
+end;
 
-{ TSerializer }
+function DateToISODate(const ADate: TDateTime): string;
+begin
+  Result := FormatDateTime('YYYY-MM-DD', ADate);
+end;
 
-class procedure TSerializerHelpers.DeSerializeBase64StringStream(
-  aStream: TStream; const aBase64SerializedString: string);
+function TimeToISOTime(const ATime: TTime): string;
+var
+  fs: TFormatSettings;
+begin
+  fs.TimeSeparator := ':';
+  Result := FormatDateTime('hh:nn:ss', ATime, fs);
+end;
+
+function ISOTimeStampToDateTime(const ADateTime: string): TDateTime;
+begin
+  Result := EncodeDateTime(StrToInt(Copy(ADateTime, 1, 4)), StrToInt(Copy(ADateTime, 6, 2)), StrToInt(Copy(ADateTime, 9, 2)),
+    StrToInt(Copy(ADateTime, 12, 2)), StrToInt(Copy(ADateTime, 15, 2)), StrToInt(Copy(ADateTime, 18, 2)), 0);
+end;
+
+function ISODateToDate(const ADate: string): TDate;
+begin
+  Result := EncodeDate(StrToInt(Copy(ADate, 1, 4)), StrToInt(Copy(ADate, 6, 2)), StrToInt(Copy(ADate, 9, 2)));
+end;
+
+function ISOTimeToTime(const ATime: string): TTime;
+begin
+  Result := EncodeTime(StrToInt(Copy(ATime, 1, 2)), StrToInt(Copy(ATime, 4, 2)), StrToInt(Copy(ATime, 7, 2)), 0);
+end;
+
+{ TMVCSerializerHelpful }
+
+class procedure TMVCSerializerHelpful.DeSerializeBase64StringStream(
+  AStream: TStream; const ABase64SerializedString: string);
 var
   SS: TStringStream;
 begin
-  // deserialize the stream as Base64 encoded string...
-  aStream.Size := 0;
-  SS := TStringStream.Create(aBase64SerializedString, TEncoding.ASCII);
+  AStream.Size := 0;
+  SS := TStringStream.Create(ABase64SerializedString, TEncoding.ASCII);
   try
     SS.Position := 0;
-    DecodeStream(SS, aStream);
+    DecodeStream(SS, AStream);
   finally
     SS.Free;
   end;
 end;
 
-class procedure TSerializerHelpers.DeSerializeStringStream(aStream: TStream;
-  const aSerializedString: string; aEncoding: string);
+class procedure TMVCSerializerHelpful.DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string);
 var
-  SerEnc: TEncoding;
+  Encoding: TEncoding;
   SS: TStringStream;
 begin
-  // deserialize the stream as a normal string...
-  aStream.Position := 0;
-  SerEnc := TEncoding.GetEncoding(aEncoding);
-  SS := TStringStream.Create(aSerializedString, SerEnc);
+  AStream.Position := 0;
+  Encoding := TEncoding.GetEncoding(AEncoding);
+  SS := TStringStream.Create(ASerializedString, Encoding);
   try
     SS.Position := 0;
-    aStream.CopyFrom(SS, SS.Size);
+    AStream.CopyFrom(SS, SS.Size);
   finally
     SS.Free;
   end;
 end;
 
-class function TSerializerHelpers.GetKeyName(const ARttiField: TRttiField;
-  AType: TRttiType): string;
+class function TMVCSerializerHelpful.GetKeyName(const AField: TRttiField; const AType: TRttiType): string;
 var
-  attrs: TArray<TCustomAttribute>;
-  attr: TCustomAttribute;
+  Attrs: TArray<TCustomAttribute>;
+  Attr: TCustomAttribute;
 begin
-  // JSONSer property attribute handling
-  attrs := ARttiField.GetAttributes;
-  for attr in attrs do
-  begin
-    if attr is MapperJSONSer then
-      Exit(MapperJSONSer(attr).Name);
-  end;
+  Result := AField.Name;
 
-  // JSONNaming class attribute handling
-  attrs := AType.GetAttributes;
-  for attr in attrs do
-  begin
-    if attr is MapperJSONNaming then
+  Attrs := AField.GetAttributes;
+  for Attr in Attrs do
+    if Attr is MVCNameAsAttribute then
+      Exit(MVCNameAsAttribute(Attr).Name);
+
+  Attrs := AType.GetAttributes;
+  for Attr in Attrs do
+    if Attr is MVCNameCaseAttribute then
     begin
-      case MapperJSONNaming(attr).KeyCase of
-        JSONNameUpperCase:
+      case MVCNameCaseAttribute(Attr).KeyCase of
+        MVCNameUpperCase:
           begin
-            Exit(UpperCase(ARttiField.Name));
+            Exit(UpperCase(AField.Name));
           end;
-        JSONNameLowerCase:
+        MVCNameLowerCase:
           begin
-            Exit(LowerCase(ARttiField.Name));
+            Exit(LowerCase(AField.Name));
           end;
       end;
     end;
-  end;
-
-  // Default
-  Result := ARttiField.Name;
 end;
 
-class function TSerializerHelpers.AttributeExists<T>(
-  Attributes: TArray<TCustomAttribute>; out Attribute: T): boolean;
+class function TMVCSerializerHelpful.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): Boolean;
 var
-  lAtt: TCustomAttribute;
+  Att: TCustomAttribute;
 begin
-  Attribute := nil;
-  for lAtt in Attributes do
-  begin
-    if lAtt is T then
+  AAttribute := nil;
+  for Att in AAttributes do
+    if Att is T then
     begin
-      Attribute := T(lAtt);
+      AAttribute := T(Att);
       Break;
     end;
-  end;
-  Result := Attribute <> nil;
+  Result := (AAttribute <> nil);
 end;
 
-class procedure TSerializerHelpers.DecodeStream(Input, Output: TStream);
-begin
-  Soap.EncdDecd.DecodeStream(Input, Output);
-end;
-
-class function TSerializerHelpers.DecodeString(const Input: string): string;
-begin
-  Result := Soap.EncdDecd.DecodeString(Input);
-end;
-
-class procedure TSerializerHelpers.EncodeStream(Input, Output: TStream);
-begin
-  Soap.EncdDecd.EncodeStream(Input, Output);
-end;
-
-class function TSerializerHelpers.EncodeString(const Input: string): string;
-begin
-  Result := Soap.EncdDecd.EncodeString(Input);
-end;
-
-class function TSerializerHelpers.GetKeyName(const ARttiProp: TRttiProperty;
-  AType: TRttiType): string;
+class function TMVCSerializerHelpful.AttributeExists<T>(
+  const AAttributes: TArray<TCustomAttribute>): Boolean;
 var
-  attrs: TArray<TCustomAttribute>;
-  attr: TCustomAttribute;
+  Att: TCustomAttribute;
 begin
-  // JSONSer property attribute handling
-  attrs := ARttiProp.GetAttributes;
-  for attr in attrs do
-  begin
-    if attr is MapperJSONSer then
-      Exit(MapperJSONSer(attr).Name);
-  end;
+  Result := False;
+  for Att in AAttributes do
+    if Att is T then
+      Exit(True);
+end;
 
-  // JSONNaming class attribute handling
-  attrs := AType.GetAttributes;
-  for attr in attrs do
-  begin
-    if attr is MapperJSONNaming then
+class function TMVCSerializerHelpful.CreateObject(const AObjectType: TRttiType): TObject;
+var
+  MetaClass: TClass;
+  Method: TRttiMethod;
+begin
+  MetaClass := nil;
+  Method := nil;
+
+  for Method in AObjectType.GetMethods do
+    if Method.HasExtendedInfo and Method.IsConstructor then
+      if Length(Method.GetParameters) = 0 then
+      begin
+        MetaClass := AObjectType.AsInstance.MetaclassType;
+        Break;
+      end;
+
+  if Assigned(MetaClass) then
+    Result := Method.Invoke(MetaClass, []).AsObject
+  else
+    raise EMVCException.CreateFmt('Cannot find a propert constructor for %s', [AObjectType.ToString]);
+end;
+
+class function TMVCSerializerHelpful.CreateObject(const AQualifiedClassName: string): TObject;
+var
+  Context: TRttiContext;
+  ObjectType: TRttiType;
+begin
+  Result := nil;
+
+  Context := TRttiContext.Create;
+  try
+    ObjectType := Context.FindType(AQualifiedClassName);
+    if Assigned(ObjectType) then
+      Result := CreateObject(ObjectType)
+    else
+      raise Exception.CreateFmt('Cannot find Rtti for %s. Hint: Is the specified classtype linked in the module?', [AQualifiedClassName]);
+  finally
+    Context.Free;
+  end;
+end;
+
+class procedure TMVCSerializerHelpful.DecodeStream(AInput, AOutput: TStream);
+begin
+
+  {$IFDEF SYSTEMNETENCODING}
+
+  TNetEncoding.Base64.Decode(AInput, AOutput);
+
+  {$ELSE}
+
+  Soap.EncdDecd.DecodeStream(AInput, AOutput);
+
+  {$ENDIF}
+
+end;
+
+class function TMVCSerializerHelpful.DecodeString(const AInput: string): string;
+begin
+
+  {$IFDEF SYSTEMNETENCODING}
+
+  Result := TNetEncoding.Base64.Decode(AInput);
+
+  {$ELSE}
+
+  Result := Soap.EncdDecd.DecodeString(AInput);
+
+  {$ENDIF}
+
+end;
+
+class procedure TMVCSerializerHelpful.EncodeStream(AInput, AOutput: TStream);
+begin
+
+  {$IFDEF SYSTEMNETENCODING}
+
+  TNetEncoding.Base64.Encode(AInput, AOutput);
+
+  {$ELSE}
+
+  Soap.EncdDecd.EncodeStream(AInput, AOutput);
+
+  {$ENDIF}
+
+end;
+
+class function TMVCSerializerHelpful.EncodeString(const AInput: string): string;
+begin
+
+  {$IFDEF SYSTEMNETENCODING}
+
+  Result := TNetEncoding.Base64.Encode(AInput);
+
+  {$ELSE}
+
+  Result := Soap.EncdDecd.EncodeString(AInput);
+
+  {$ENDIF}
+
+end;
+
+class function TMVCSerializerHelpful.GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
+var
+  Attrs: TArray<TCustomAttribute>;
+  Attr: TCustomAttribute;
+begin
+  Result := AProperty.Name;
+
+  Attrs := AProperty.GetAttributes;
+  for Attr in Attrs do
+    if Attr is MVCNameAsAttribute then
+      Exit(MVCNameAsAttribute(Attr).Name);
+
+  Attrs := AType.GetAttributes;
+  for Attr in Attrs do
+    if Attr is MVCNameCaseAttribute then
     begin
-      case MapperJSONNaming(attr).KeyCase of
-        JSONNameUpperCase:
+      case MVCNameCaseAttribute(Attr).KeyCase of
+        MVCNameUpperCase:
           begin
-            Exit(UpperCase(ARttiProp.Name));
+            Exit(UpperCase(AProperty.Name));
           end;
-        JSONNameLowerCase:
+        MVCNameLowerCase:
           begin
-            Exit(LowerCase(ARttiProp.Name));
+            Exit(LowerCase(AProperty.Name));
           end;
       end;
     end;
-  end;
-
-  // Default
-  Result := ARttiProp.Name;
 end;
 
-class function TSerializerHelpers.GetTypeKindAsString(
-  const ATypeKind: TTypeKind): String;
+class function TMVCSerializerHelpful.GetTypeKindAsString(const ATypeKind: TTypeKind): String;
 begin
   Result := GetEnumName(TypeInfo(TTypeKind), Ord(ATypeKind));
   Result := Result.Remove(0, 2).ToLower;
 end;
 
-class function TSerializerHelpers.HasAttribute<T>(
-  ARTTIMember: TRttiNamedObject): boolean;
+class function TMVCSerializerHelpful.HasAttribute<T>(const AMember: TRttiNamedObject): Boolean;
 var
-  attrs: TArray<TCustomAttribute>;
-  attr: TCustomAttribute;
+  Attrs: TArray<TCustomAttribute>;
+  Attr: TCustomAttribute;
 begin
-  Result := false;
-  attrs := ARTTIMember.GetAttributes;
-  if Length(attrs) = 0 then
-    Exit(false);
-  for attr in attrs do
-    if attr is T then
+  Result := False;
+  Attrs := AMember.GetAttributes;
+  if Length(Attrs) = 0 then
+    Exit(False);
+  for Attr in Attrs do
+    if Attr is T then
       Exit(True);
 end;
 
-class function TSerializerHelpers.HasAttribute<T>(ARTTIMember: TRttiNamedObject;
-  out AAttribute: T): boolean;
+class function TMVCSerializerHelpful.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
 var
-  attrs: TArray<TCustomAttribute>;
-  attr: TCustomAttribute;
+  Attrs: TArray<TCustomAttribute>;
+  Attr: TCustomAttribute;
 begin
   AAttribute := nil;
-  Result := false;
-  attrs := ARTTIMember.GetAttributes;
-  for attr in attrs do
-    if attr is T then
+  Result := False;
+  Attrs := AMember.GetAttributes;
+  for Attr in Attrs do
+    if Attr is T then
     begin
-      AAttribute := T(attr);
+      AAttribute := T(Attr);
       Exit(True);
     end;
 end;
 
-class function TSerializerHelpers.StringToTypeKind(
-  const AValue: String): TTypeKind;
+class function TMVCSerializerHelpful.StringToTypeKind(const AValue: String): TTypeKind;
 begin
   Result := TTypeKind(GetEnumValue(TypeInfo(TTypeKind), 'tk' + AValue));
 end;
 
-{ TMVCSerUnSerRegistry }
+{ MVCValueAsTypeAttribute }
 
-class constructor TMVCSerializersRegistry.Create;
-begin
-  SSerializers := TDictionary<String, IMVCSerializer>.Create;
-  SCustomTypeSerializers := TObjectList < TMVCTuple < String, PTypeInfo, IMVCTypeSerializer >>.Create(True);
-end;
-
-class destructor TMVCSerializersRegistry.Destroy;
-begin
-  SSerializers.Free;
-  SCustomTypeSerializers.Free;
-end;
-
-class function TMVCSerializersRegistry.GetSerializer(
-  aContentType: String): IMVCSerializer;
-begin
-  if not SSerializers.TryGetValue(aContentType, Result) then
-    raise EMVCSerializationException.CreateFmt('Cannot find a suitable serializer for %s', [aContentType]);
-end;
-
-class function TMVCSerializersRegistry.GetTypeSerializer(
-  aSerializerName: String;
-  aTypeInfo: PTypeInfo): IMVCTypeSerializer;
-var
-  lList: TList<TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>>;
-  I: Integer;
-  lItem: TMVCTuple<string, PTypeInfo, IMVCTypeSerializer>;
-begin
-  Result := nil;
-  for I := 0 to SCustomTypeSerializers.Count - 1 do
-  begin
-    lItem := SCustomTypeSerializers[I];
-    if (lItem.Val1 = aSerializerName) and (lItem.Val2 = aTypeInfo) then
-    begin
-      Result := lItem.Val3;
-      Break;
-    end;
-  end;
-end;
-
-class procedure TMVCSerializersRegistry.RegisterSerializer(aContentType: string;
-  aMVCSerUnSer: IMVCSerializer);
-begin
-  TMVCSerializersRegistry.SSerializers.Add(aContentType, aMVCSerUnSer);
-end;
-
-class procedure TMVCSerializersRegistry.RegisterTypeSerializer(
-  aSerializerName: string; aTypeInfo: PTypeInfo;
-  aMVCTypeSerializer: IMVCTypeSerializer);
-begin
-  SCustomTypeSerializers.Add(TMVCTuple<String, PTypeInfo, IMVCTypeSerializer>.Create(aSerializerName, aTypeInfo,
-    aMVCTypeSerializer));
-end;
-
-class procedure TMVCSerializersRegistry.UnRegisterSerializer(aContentType: string);
-begin
-  TMVCSerializersRegistry.SSerializers.Remove(aContentType);
-end;
-
-class procedure TMVCSerializersRegistry.UnRegisterTypeSerializer(
-  aContentType: string; aTypeInfo: PTypeInfo);
-begin
-  raise Exception.Create('Not implemented');
-  // SCustomTypeSerializers.Add(aContentType,
-  // TMVCPair<PTypeInfo, IMVCTypeSerializer>.Create(aTypeInfo, aMVCTypeSerializer));
-end;
-
-{ TValueAsType }
-
-constructor TValueAsType.Create(ATValueTypeInfo: PTypeInfo);
+constructor MVCValueAsTypeAttribute.Create(AValueTypeInfo: PTypeInfo);
 begin
   inherited Create;
-  FTValueTypeInfo := ATValueTypeInfo;
+  FValueTypeInfo := AValueTypeInfo;
 end;
 
-function TValueAsType.TValueTypeInfo: PTypeInfo;
+function MVCValueAsTypeAttribute.ValueTypeInfo: PTypeInfo;
 begin
-  Result := FTValueTypeInfo;
+  Result := FValueTypeInfo;
 end;
 
-{ MVCSerializeAsString }
+{ MVCNameCaseAttribute }
 
-constructor MVCSerializeAsString.Create(aEncoding: string);
+constructor MVCNameCaseAttribute.Create(const AKeyCase: TMVCNameCase);
 begin
   inherited Create;
-  FEncoding := aEncoding;
+  FKeyCase := AKeyCase;
 end;
 
-function MVCSerializeAsString.GetEncoding: string;
+function MVCNameCaseAttribute.GetKeyCase: TMVCNameCase;
 begin
-  if FEncoding.IsEmpty then
-    FEncoding := DefaultEncoding;
-  Result := FEncoding;
+  Result := FKeyCase;
 end;
 
-procedure MVCSerializeAsString.SetEncoding(const Value: string);
+{ MVCNameAsAttribute }
+
+constructor MVCNameAsAttribute.Create(const AName: string);
 begin
-  FEncoding := Value;
+  inherited Create;
+  FName := AName;
+end;
+
+function MVCNameAsAttribute.GetName: string;
+begin
+  Result := FName;
+end;
+
+{ MVCListOfAttribute }
+
+constructor MVCListOfAttribute.Create(const AValue: TClass);
+begin
+  inherited Create;
+  FValue := AValue;
 end;
 
 end.

@@ -20,24 +20,15 @@ uses
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
   MessagingExtensionsTestU in 'MessagingExtensionsTestU.pas',
-  BusinessObjectsU in '..\..\samples\commons\BusinessObjectsU.pas',
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.HMAC in '..\..\sources\MVCFramework.HMAC.pas',
   MVCFramework.Tests.WebModule2 in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule},
   MVCFramework.Tests.StandaloneServer in '..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas',
   MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
-  SerializationFrameworkTestsU in 'SerializationFrameworkTestsU.pas',
-  MVCFramework.Serializer.JSON in '..\..\sources\MVCFramework.Serializer.JSON.pas',
-  ObjectsMappers in '..\..\sources\ObjectsMappers.pas',
-  MVCFramework.Serializer.Commons in '..\..\sources\MVCFramework.Serializer.Commons.pas',
-  MVCFramework.TypesAliases in '..\..\sources\MVCFramework.TypesAliases.pas',
-  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
-  MVCFramework.Serializer.JSON.CustomTypes in '..\..\sources\MVCFramework.Serializer.JSON.CustomTypes.pas',
-  CustomJSONSerializersU in 'CustomJSONSerializersU.pas';
+  BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas';
 
 {$R *.RES}
 

@@ -68,7 +68,7 @@
         <SanitizedProjectName>DMVCFrameworkTests</SanitizedProjectName>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
         <DCC_Define>_CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
-        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\sources;..\..\lib\iocpdelphiframework\Base;..\..\lib\iocpdelphiframework\Core;..\..\lib\iocpdelphiframework\Extensions;..\..\lib\delphistompclient;..\..\lib\dmustache;..\..\lib\loggerpro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\..\sources;..\..\..\lib\delphistompclient;..\..\..\lib\dmustache;..\..\..\lib\loggerpro;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_DcuOutput>.\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_E>false</DCC_E>
@@ -126,11 +126,9 @@
         <DCCReference Include="FrameworkTestsU.pas"/>
         <DCCReference Include="LiveServerTestU.pas"/>
         <DCCReference Include="MessagingExtensionsTestU.pas"/>
-        <DCCReference Include="..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="BOs.pas"/>
         <DCCReference Include="..\TestServer\TestServerControllerU.pas"/>
         <DCCReference Include="RESTAdapterTestsU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.HMAC.pas"/>
         <DCCReference Include="..\StandaloneServer\MVCFramework.Tests.WebModule2.pas">
             <Form>TestWebModule2</Form>
             <FormType>dfm</FormType>
@@ -144,14 +142,7 @@
         </DCCReference>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.RESTClient.pas"/>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.AppController.pas"/>
-        <DCCReference Include="SerializationFrameworkTestsU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JSON.pas"/>
-        <DCCReference Include="..\..\sources\ObjectsMappers.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.TypesAliases.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JSON.CustomTypes.pas"/>
-        <DCCReference Include="CustomJSONSerializersU.pas"/>
+        <DCCReference Include="..\..\..\samples\commons\BusinessObjectsU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -227,8 +218,6 @@
                     <Source Name="MainSource">DMVCFrameworkTests.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k240.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp240.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k240.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp240.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
@@ -256,7 +245,16 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                </DeployClass>
                 <DeployClass Name="ProjectOSXResource">
                     <Platform Name="OSX32">
                         <RemoteDir>Contents\Resources</RemoteDir>
@@ -598,16 +596,7 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                </DeployClass>
+                <DeployClass Name="ProjectiOSDeviceResourceRules"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>

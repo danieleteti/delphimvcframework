@@ -820,7 +820,7 @@ begin
   try
     // ACT
     TMemoryStream(SO.ImageStream)
-      .LoadFromFile('..\..\..\..\samples\_\customer.png');
+      .LoadFromFile('..\..\..\..\..\samples\_\customer.png');
     JSONObj := Mapper.ObjectToJSONObject(SO);
     try
       ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
@@ -1065,7 +1065,7 @@ begin
   try
     lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
     try
-      CheckEquals(4, lJObj.Count); // 3 properties + $dmvc.classname
+      CheckEquals(5, lJObj.Count); // 4 properties + $dmvc.classname
       CheckNotNull(lJObj.Get('FProp1'));
       CheckNotNull(lJObj.Get('FChildObjectList'));
       CheckNotNull(lJObj.Get('FChildObject'));
@@ -1096,7 +1096,7 @@ begin
   try
     lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
     try
-      CheckEquals(4, lJObj.Count); // 3 properties + $dmvc.classname
+      CheckEquals(5, lJObj.Count); // 4 properties + $dmvc.classname
       CheckNotNull(lJObj.Get('FProp1'));
       CheckNotNull(lJObj.Get('FChildObjectList'));
       CheckNotNull(lJObj.Get('FChildObject'));

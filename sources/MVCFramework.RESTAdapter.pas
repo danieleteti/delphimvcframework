@@ -258,7 +258,7 @@ var
   _mappingattr: MappingAttribute;
 begin
   // Implementation of RESTClient DoGet DoPut ecc...
-  if not TRTTIUtils.HasAttribute<RESTResourceAttribute>(Method,
+  if not TRttiUtils.HasAttribute<RESTResourceAttribute>(Method,
     _restresourceattr) then
     raise Exception.CreateFmt('No REST Resource specified in method %s',
       [Method.Name]);
@@ -266,7 +266,7 @@ begin
   // headers can be more than one
   // FRESTClient.RequestHeaders.Clear; //Ezequiel J. Müller (You can not clear the header, because I can use other.)
   // Interface
-  AddRequestHeaders(TRTTIUtils.ctx.GetType(TypeInfo(T)));
+  AddRequestHeaders(TRttiUtils.GlContext.GetType(TypeInfo(T)));
   // Method
   AddRequestHeaders(Method);
 
@@ -282,7 +282,7 @@ begin
       var
         ResValue: TValue;
       begin
-        if TRTTIUtils.HasAttribute<MappingAttribute>(Method, _mappingattr) then
+        if TRttiUtils.HasAttribute<MappingAttribute>(Method, _mappingattr) then
           MapResult(ARESTResponse, Method, _mappingattr.GetType, ResValue)
         else
           ResValue := TValue.From(ARESTResponse);
@@ -330,17 +330,17 @@ begin
     // ARG := ARGS[I+1] because
     // Args	RTTI for the arguments of the interface method that has been called. The first argument (located at index 0) represents the interface instance itself.
     Arg := Args[I + 1];
-    if TRTTIUtils.HasAttribute<BodyAttribute>(_parameter, _param) then
+    if TRttiUtils.HasAttribute<BodyAttribute>(_parameter, _param) then
       try
         if Arg.IsObject then
         begin
-          if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
+          if TRttiUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
             Exit(Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), true))
           else
             Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject));
         end
         else
-          Exit(TRTTIUtils.TValueAsString(Arg, '', ''));
+          Exit(TRttiUtils.TValueAsString(Arg, '', ''));
       finally
         if _param.OwnsObject and Arg.IsObject then
         begin
@@ -366,7 +366,7 @@ var
   _param: ParamAttribute;
   Arg: TValue;
 begin
-  _restresourceattr := TRTTIUtils.GetAttribute<RESTResourceAttribute>(AMethod);
+  _restresourceattr := TRttiUtils.GetAttribute<RESTResourceAttribute>(AMethod);
   IURL := _restresourceattr.URL;
   SplitUrl := IURL.Split([URL_SEPARATOR]);
   URLDict := TDictionary<string, string>.Create;
@@ -381,8 +381,8 @@ begin
     begin
       _parameter := _parameters[I];
       Arg := Args[I + 1];
-      if TRTTIUtils.HasAttribute<ParamAttribute>(_parameter, _param) then
-        URLDict[_param.FmtParamMatch] := TRTTIUtils.TValueAsString(Arg,
+      if TRttiUtils.HasAttribute<ParamAttribute>(_parameter, _param) then
+        URLDict[_param.FmtParamMatch] := TRttiUtils.TValueAsString(Arg,
           _param.ParamType, _param.CustomFormat);
     end;
 
@@ -406,9 +406,9 @@ begin
   if ARTTIType.TypeKind = tkClass then
   begin
     // ListOf
-    if TRTTIUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
+    if TRttiUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
     begin
-      AResult := TRTTIUtils.CreateObject(ARTTIType.QualifiedName);
+      AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
       Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
         _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
     end
@@ -422,7 +422,7 @@ begin
   end
   else
     // IRESTResponse
-    if ARTTIType.QualifiedName = TRTTIUtils.ctx.GetType(TypeInfo(IRESTResponse))
+    if ARTTIType.QualifiedName = TRttiUtils.GlContext.GetType(TypeInfo(IRESTResponse))
       .QualifiedName then
       AResult := AResult.From(AResp)
     else // else a simple BodyAsString
@@ -594,7 +594,7 @@ end;
 
 function MappingAttribute.GetType: TRttiType;
 begin
-  Result := TRTTIUtils.ctx.GetType(FClass);
+  Result := TRttiUtils.GlContext.GetType(FClass);
 end;
 
 end.
