@@ -44,10 +44,8 @@ uses
 
 type
 
-  TMVCJSONSerializer = class(TInterfacedObject, IMVCSerializer)
+  TMVCJSONSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
-    FRttiContext: TRttiContext;
-    FTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
     procedure ObjectToJSONObject(
       const AObject: TObject;
       const AJSONObject: TJSONObject;
@@ -83,10 +81,7 @@ type
       const AType: TMVCSerializationType;
       const AIgnoredAttributes: array of string
       );
-    function IsIgnoredAttribute(const AAttributes: array of string; const AName: string): Boolean;
   protected
-    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
-
     function SerializeObject(const AObject: TObject): string; overload;
     function SerializeObject(const AObject: TObject; const AType: TMVCSerializationType): string; overload;
     function SerializeObject(const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string): string; overload;
@@ -108,8 +103,7 @@ type
 
     procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
   public
-    constructor Create;
-    destructor Destroy; override;
+    procedure AfterConstruction; override;
   end;
 
 implementation
@@ -118,6 +112,14 @@ uses
   MVCFramework.Serializer.JSON.CustomTypes;
 
 { TMVCJSONSerializer }
+
+procedure TMVCJSONSerializer.AfterConstruction;
+begin
+  inherited AfterConstruction;
+  GetTypeSerializers.Add(System.TypeInfo(TStream), TStreamSerializerJSON.Create);
+  GetTypeSerializers.Add(System.TypeInfo(TStringStream), TStreamSerializerJSON.Create);
+  GetTypeSerializers.Add(System.TypeInfo(TMemoryStream), TStreamSerializerJSON.Create);
+end;
 
 procedure TMVCJSONSerializer.AttributeToJSONDataValue(
   const AJSONObject: TJSONObject; const AName: string;
@@ -140,10 +142,10 @@ begin
     Exit;
   end;
 
-  if FTypeSerializers.ContainsKey(AValue.TypeInfo) then
+  if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
     ChildJSONValue := nil;
-    FTypeSerializers.Items[AValue.TypeInfo].Serialize(AValue, TObject(ChildJSONValue), ACustomAttributes);
+    GetTypeSerializers.Items[AValue.TypeInfo].Serialize(AValue, TObject(ChildJSONValue), ACustomAttributes);
     if Assigned(ChildJSONValue) then
     begin
       if ChildJSONValue is TJSONValue then
@@ -281,16 +283,6 @@ begin
   end;
 end;
 
-constructor TMVCJSONSerializer.Create;
-begin
-  inherited Create;
-  FRttiContext := TRttiContext.Create;
-  FTypeSerializers := TDictionary<PTypeInfo, IMVCTypeSerializer>.Create;
-  FTypeSerializers.Add(System.TypeInfo(TStream), TStreamSerializerJSON.Create);
-  FTypeSerializers.Add(System.TypeInfo(TStringStream), TStreamSerializerJSON.Create);
-  FTypeSerializers.Add(System.TypeInfo(TMemoryStream), TStreamSerializerJSON.Create);
-end;
-
 procedure TMVCJSONSerializer.DeserializeCollection(
   const ASerializedList: string; const AList: TObject;
   const AClazz: TClass; const AType: TMVCSerializationType);
@@ -361,11 +353,11 @@ begin
 
   JSONObject := TJSONObject.ParseJSONValue(ASerializedObject) as TJSONObject;
   try
-    ObjType := FRttiContext.GetType(AObject.ClassType);
-    if FTypeSerializers.ContainsKey(ObjType.Handle) then
+    ObjType := GetRttiContext.GetType(AObject.ClassType);
+    if GetTypeSerializers.ContainsKey(ObjType.Handle) then
     begin
       ObjValue := TValue.From<TObject>(AObject);
-      FTypeSerializers.Items[ObjType.Handle].Deserialize(JSONObject, ObjValue, []);
+      GetTypeSerializers.Items[ObjType.Handle].Deserialize(JSONObject, ObjValue, []);
       Exit;
     end;
     JSONObjectToObject(JSONObject, AObject, AType, AIgnoredAttributes);
@@ -378,24 +370,6 @@ procedure TMVCJSONSerializer.DeserializeObject(
   const ASerializedObject: string; const AObject: TObject);
 begin
   DeserializeObject(ASerializedObject, AObject, stDefault);
-end;
-
-destructor TMVCJSONSerializer.Destroy;
-begin
-  FTypeSerializers.Free;
-  FRttiContext.Free;
-  inherited Destroy;
-end;
-
-function TMVCJSONSerializer.IsIgnoredAttribute(
-  const AAttributes: array of string; const AName: string): Boolean;
-var
-  I: Integer;
-begin
-  Result := False;
-  for I := Low(AAttributes) to High(AAttributes) do
-    if (AAttributes[I] = AName) then
-      Exit(True);
 end;
 
 procedure TMVCJSONSerializer.JSONArrayToList(const AJSONArray: TJSONArray;
@@ -426,9 +400,9 @@ begin
   if not Assigned(AJSONObject.Values[AName]) then
     Exit;
 
-  if FTypeSerializers.ContainsKey(AValue.TypeInfo) then
+  if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
-    FTypeSerializers.Items[AValue.TypeInfo].Deserialize(AJSONObject.Values[AName], AValue, ACustomAttributes);
+    GetTypeSerializers.Items[AValue.TypeInfo].Deserialize(AJSONObject.Values[AName], AValue, ACustomAttributes);
     Exit;
   end;
 
@@ -502,7 +476,7 @@ var
   Fld: TRttiField;
   AttributeValue: TValue;
 begin
-  ObjType := FRttiContext.GetType(AObject.ClassType);
+  ObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
       begin
@@ -537,7 +511,7 @@ var
   Prop: TRttiProperty;
   Fld: TRttiField;
 begin
-  ObjType := FRttiContext.GetType(AObject.ClassType);
+  ObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
       begin
@@ -552,12 +526,6 @@ begin
             AttributeToJSONDataValue(AJsonObject, TMVCSerializerHelpful.GetKeyName(Fld, ObjType), Fld.GetValue(AObject), AType, AIgnoredAttributes, Fld.GetAttributes);
       end;
   end;
-end;
-
-procedure TMVCJSONSerializer.RegisterTypeSerializer(
-  const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
-begin
-  FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
 end;
 
 function TMVCJSONSerializer.SerializeCollection(
@@ -636,11 +604,11 @@ begin
   if AObject is TJSONValue then
     Exit(TJSONValue(AObject).ToJSON);
 
-  ObjType := FRttiContext.GetType(AObject.ClassType);
-  if FTypeSerializers.ContainsKey(ObjType.Handle) then
+  ObjType := GetRttiContext.GetType(AObject.ClassType);
+  if GetTypeSerializers.ContainsKey(ObjType.Handle) then
   begin
     ChildJSONValue := nil;
-    FTypeSerializers.Items[ObjType.Handle].Serialize(AObject, TObject(ChildJSONValue), []);
+    GetTypeSerializers.Items[ObjType.Handle].Serialize(AObject, TObject(ChildJSONValue), []);
     if Assigned(ChildJSONValue) then
     begin
       try

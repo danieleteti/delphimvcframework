@@ -53,6 +53,20 @@ uses
 
 type
 
+  TMVCAbstractSerializer = class abstract(TInterfacedObject)
+  private
+    FRttiContext: TRttiContext;
+    FTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
+  protected
+    function GetRttiContext: TRttiContext;
+    function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
+    function IsIgnoredAttribute(const AAttributes: array of string; const AName: string): Boolean;
+    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
   TMVCSerializerHelpful = class sealed
   public
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
@@ -474,6 +488,49 @@ constructor MVCListOfAttribute.Create(const AValue: TClass);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+{ TMVCAbstractSerializer }
+
+constructor TMVCAbstractSerializer.Create;
+begin
+  inherited Create;
+  FRttiContext := TRttiContext.Create;
+  FTypeSerializers := TDictionary<PTypeInfo, IMVCTypeSerializer>.Create;
+end;
+
+destructor TMVCAbstractSerializer.Destroy;
+begin
+  FTypeSerializers.Free;
+  FRttiContext.Free;
+  inherited Destroy;
+end;
+
+function TMVCAbstractSerializer.GetRttiContext: TRttiContext;
+begin
+  Result := FRttiContext;
+end;
+
+function TMVCAbstractSerializer.GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
+begin
+  Result := FTypeSerializers;
+end;
+
+function TMVCAbstractSerializer.IsIgnoredAttribute(
+  const AAttributes: array of string; const AName: string): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := Low(AAttributes) to High(AAttributes) do
+    if (AAttributes[I] = AName) then
+      Exit(True);
+end;
+
+procedure TMVCAbstractSerializer.RegisterTypeSerializer(
+  const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+begin
+  FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
 end;
 
 end.
