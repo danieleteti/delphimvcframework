@@ -39,17 +39,19 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.JSON,
+  MVCFramework.Tests.Serializer.Intf,
   MVCFramework.Tests.Serializer.Entities;
 
 type
 
-  TTestSerializerJSON = class(TTestCase)
+  TMVCTestSerializerJSON = class(TTestCase, IMVCTestSerializer)
   private
     FSerializer: IMVCSerializer;
   protected
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    { serialize declarations }
     procedure TestSerializeEntity;
     procedure TestSerializeEntityUpperCaseNames;
     procedure TestSerializeEntityLowerCaseNames;
@@ -57,14 +59,14 @@ type
     procedure TestSerializeEntityCustomSerializer;
     procedure TestSerializeEntityCustomMemberSerializer;
     procedure TestSerializeCollection;
-
+    { deserialize declarations }
     procedure TestDeserializeEntity;
     procedure TestDeserializeEntityCustomSerializer;
     procedure TestDeserializeEntityCustomMemberSerializer;
     procedure TestDeserializeCollection;
   end;
 
-  TEntityCustomSerializerJSON = class(TInterfacedObject, IMVCTypeSerializer)
+  TMVCEntityCustomSerializerJSON = class(TInterfacedObject, IMVCTypeSerializer)
   private
     { private declarations }
   protected
@@ -76,22 +78,22 @@ type
 
 implementation
 
-{ TTestSerializerJSON }
+{ TMVCTestSerializerJSON }
 
-procedure TTestSerializerJSON.SetUp;
+procedure TMVCTestSerializerJSON.SetUp;
 begin
   inherited;
   FSerializer := TMVCJSONSerializer.Create;
-  FSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TEntityCustomSerializerJSON.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJSON.Create);
 end;
 
-procedure TTestSerializerJSON.TearDown;
+procedure TMVCTestSerializerJSON.TearDown;
 begin
   inherited;
   FSerializer := nil;
 end;
 
-procedure TTestSerializerJSON.TestDeserializeCollection;
+procedure TMVCTestSerializerJSON.TestDeserializeCollection;
 
   procedure CheckObjectList(const AList: TObjectList<TNote>);
   begin
@@ -154,7 +156,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestDeserializeEntity;
+procedure TMVCTestSerializerJSON.TestDeserializeEntity;
 
   procedure CheckObject(const AEntity: TEntity);
   begin
@@ -282,7 +284,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestDeserializeEntityCustomMemberSerializer;
+procedure TMVCTestSerializerJSON.TestDeserializeEntityCustomMemberSerializer;
 const
   JSON =
     '{' +
@@ -310,7 +312,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestDeserializeEntityCustomSerializer;
+procedure TMVCTestSerializerJSON.TestDeserializeEntityCustomSerializer;
 const
   JSON =
     '{' +
@@ -332,7 +334,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeCollection;
+procedure TMVCTestSerializerJSON.TestSerializeCollection;
 const
   JSON =
     '[' +
@@ -386,7 +388,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeEntity;
+procedure TMVCTestSerializerJSON.TestSerializeEntity;
 const
   JSON_PROPERTIES =
     '{' +
@@ -553,7 +555,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeEntityCustomMemberSerializer;
+procedure TMVCTestSerializerJSON.TestSerializeEntityCustomMemberSerializer;
 const
   JSON =
     '{' +
@@ -584,7 +586,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeEntityCustomSerializer;
+procedure TMVCTestSerializerJSON.TestSerializeEntityCustomSerializer;
 const
   JSON =
     '{' +
@@ -609,7 +611,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeEntityLowerCaseNames;
+procedure TMVCTestSerializerJSON.TestSerializeEntityLowerCaseNames;
 const
   JSON =
     '{' +
@@ -634,7 +636,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeEntityNameAs;
+procedure TMVCTestSerializerJSON.TestSerializeEntityNameAs;
 const
   JSON =
     '{' +
@@ -662,7 +664,7 @@ begin
   end;
 end;
 
-procedure TTestSerializerJSON.TestSerializeEntityUpperCaseNames;
+procedure TMVCTestSerializerJSON.TestSerializeEntityUpperCaseNames;
 const
   JSON =
     '{' +
@@ -687,9 +689,9 @@ begin
   end;
 end;
 
-{ TEntityCustomSerializerJSON }
+{ TMVCEntityCustomSerializerJSON }
 
-procedure TEntityCustomSerializerJSON.Deserialize(
+procedure TMVCEntityCustomSerializerJSON.Deserialize(
   const ASerializedObject: TObject; var AElementValue: TValue;
   const AAttributes: TArray<TCustomAttribute>);
 var
@@ -709,7 +711,7 @@ begin
   end;
 end;
 
-procedure TEntityCustomSerializerJSON.Serialize(
+procedure TMVCEntityCustomSerializerJSON.Serialize(
   const AElementValue: TValue; var ASerializerObject: TObject;
   const AAttributes: TArray<TCustomAttribute>);
 var
@@ -727,6 +729,6 @@ end;
 
 initialization
 
-RegisterTest(TTestSerializerJSON.Suite);
+RegisterTest(TMVCTestSerializerJSON.Suite);
 
 end.

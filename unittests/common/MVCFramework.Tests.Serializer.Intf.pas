@@ -24,36 +24,29 @@
 //
 // ***************************************************************************
 
-program TestSerializerJSON;
-{
+unit MVCFramework.Tests.Serializer.Intf;
 
-  Delphi DUnit Test Project
-  -------------------------
-  This project contains the DUnit test framework and the GUI/Console test runners.
-  Add "CONSOLE_TESTRUNNER" to the conditional defines entry in the project options
-  to use the console test runner.  Otherwise the GUI test runner will be used by
-  default.
+interface
 
-}
+type
 
-{$IFDEF CONSOLE_TESTRUNNER}
-{$APPTYPE CONSOLE}
-{$ENDIF}
+  IMVCTestSerializer = interface
+    ['{9043E0F4-0896-4388-B53C-1A0831A1E320}']
+    { serialize declarations }
+    procedure TestSerializeEntity;
+    procedure TestSerializeEntityUpperCaseNames;
+    procedure TestSerializeEntityLowerCaseNames;
+    procedure TestSerializeEntityNameAs;
+    procedure TestSerializeEntityCustomSerializer;
+    procedure TestSerializeEntityCustomMemberSerializer;
+    procedure TestSerializeCollection;
+    { deserialize declarations }
+    procedure TestDeserializeEntity;
+    procedure TestDeserializeEntityCustomSerializer;
+    procedure TestDeserializeEntityCustomMemberSerializer;
+    procedure TestDeserializeCollection;
+  end;
 
-uses
-  DUnitTestRunner,
-  MVCFramework.Tests.Serializer.JSON in 'MVCFramework.Tests.Serializer.JSON.pas',
-  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
-  MVCFramework.Serializer.JSON in '..\..\..\sources\MVCFramework.Serializer.JSON.pas',
-  MVCFramework.Serializer.JSON.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JSON.CustomTypes.pas',
-  MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas';
-
-{$R *.RES}
-
-begin
-
-  ReportMemoryLeaksOnShutdown := True;
-
-  DUnitTestRunner.RunRegisteredTests;
+implementation
 
 end.
