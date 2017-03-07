@@ -62,7 +62,7 @@ type
     procedure TestRenderWrappedList;
     procedure TestRenderStreamAndFreeWithOwnerFalse;
     procedure TestRenderStreamAndFreeWithOwnerTrue;
-    procedure TestSerializationType;
+//    procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
     procedure TestProducesConsumes03;
@@ -851,29 +851,29 @@ begin
   CheckNull(r.BodyAsJsonObject);
 end;
 
-procedure TServerTest.TestSerializationType;
-var
-  LResp: IRESTResponse;
-  LPersonProps, LPersonFlds: TPerson;
-  LObj: TObject;
-begin
-  LResp := RESTClient.doGET('/people', ['1']);
-  LPersonProps := Mapper.JSONObjectToObject<TPerson>(LResp.BodyAsJsonObject);
-  try
-    {LResp := RESTClient.doGET('/people', ['1', 'asfields']);
-    LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
-    try
-      CheckEquals('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
-      LPersonFlds := TPerson(LObj);
-      CheckTrue(LPersonFlds.Equals(LPersonProps),
-        'Object tranferred using field serialization is different from the object serialized in the default way');
-    finally
-      LObj.Free;
-    end;}
-  finally
-    LPersonProps.Free;
-  end;
-end;
+//procedure TServerTest.TestSerializationType;
+//var
+//  LResp: IRESTResponse;
+//  LPersonProps, LPersonFlds: TPerson;
+//  LObj: TObject;
+//begin
+//  LResp := RESTClient.doGET('/people', ['1']);
+//  LPersonProps := Mapper.JSONObjectToObject<TPerson>(LResp.BodyAsJsonObject);
+//  try
+//    LResp := RESTClient.doGET('/people', ['1', 'asfields']);
+//    LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
+//    try
+//      CheckEquals('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
+//      LPersonFlds := TPerson(LObj);
+//      CheckTrue(LPersonFlds.Equals(LPersonProps),
+//        'Object tranferred using field serialization is different from the object serialized in the default way');
+//    finally
+//      LObj.Free;
+//    end;
+//  finally
+//    LPersonProps.Free;
+//  end;
+//end;
 
 procedure TServerTest.TestSession;
 var
