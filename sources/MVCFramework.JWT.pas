@@ -36,7 +36,7 @@ uses
 {$ELSE}
     , Data.DBXJSON
 {$ENDIF}
-    , MVCFramework.Patches
+    , MVCFramework.Patches, MVCFramework
     ;
 
 type
@@ -182,6 +182,7 @@ type
 
   TJWTCustomClaims = class(TJWTDictionaryObject)
     property Items; default;
+    function AsCustomData: TMVCCustomData;
   end;
 
   TJWT = class
@@ -339,6 +340,13 @@ procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: String;
   const Value: TDateTime);
 begin
   Items[Index] := IntToStr(DateTimeToUnix(Value, False));
+end;
+
+{ TJWTCustomClaims }
+
+function TJWTCustomClaims.AsCustomData: TMVCCustomData;
+begin
+  Result := TMVCCustomData.Create(FClaims);
 end;
 
 { TJWT }

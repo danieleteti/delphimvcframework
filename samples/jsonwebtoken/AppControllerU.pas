@@ -41,7 +41,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.JSON, System.Classes;
+  System.SysUtils, System.JSON, System.Classes, System.Generics.Collections;
 
 { TApp1MainController }
 
@@ -58,12 +58,20 @@ end;
 { TAdminController }
 
 procedure TAdminController.OnlyRole1(ctx: TWebContext);
+var
+  lPair: TPair<String, String>;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' +
     sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
+  ResponseStream.AppendLine('You CustomClaims are: ' +
+    sLineBreak);
+  for lPair in Context.LoggedUser.CustomData do
+  begin
+    ResponseStream.AppendFormat('%s = %s' + sLineBreak, [lPair.Key, lPair.Value]);
+  end;
   RenderResponseStream;
 end;
 
@@ -73,6 +81,7 @@ var
   lJArr: TJSONArray;
   lQueryParams: TStrings;
   I: Integer;
+  lPair: TPair<String, String>;
 begin
   ContentType := TMVCMediaType.APPLICATION_JSON;
   lJObj := TJSONObject.Create;
@@ -86,6 +95,13 @@ begin
     lJArr.AddElement(TJSONObject.Create(TJSONPair.Create(
       lQueryParams.Names[I],
       lQueryParams.ValueFromIndex[I])));
+  end;
+
+  lJArr := TJSONArray.Create;
+  lJObj.AddPair('customclaims', lJArr);
+  for lPair in Context.LoggedUser.CustomData do
+  begin
+    lJArr.AddElement(TJSONObject.Create(TJSONPair.Create(lPair.Key, lPair.Value)));
   end;
 
   Render(lJObj);

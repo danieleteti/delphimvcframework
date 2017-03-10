@@ -11,9 +11,9 @@ type
   protected
     procedure OnRequest(const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
-    procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>;
-      var IsValid: Boolean; const SessionData: TSessionData);
+    procedure OnAuthentication(const UserName,
+  Password: string; UserRoles: System.Generics.Collections.TList<System.string>;
+  var IsValid: Boolean; const CustomData: TMVCCustomData);
     procedure OnAuthorization(UserRoles
       : System.Generics.Collections.TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
@@ -26,7 +26,7 @@ implementation
 
 procedure TAuthenticationSample.OnAuthentication(const UserName,
   Password: string; UserRoles: System.Generics.Collections.TList<System.string>;
-  var IsValid: Boolean; const SessionData: TSessionData);
+  var IsValid: Boolean; const CustomData: TMVCCustomData);
 begin
   IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
@@ -44,6 +44,8 @@ begin
       UserRoles.Add('role1');
       UserRoles.Add('role2');
     end;
+    CustomData.Add('customclaim1', 'hello world');
+    CustomData.Add('customclaim2', 'daniele teti');
   end
   else
   begin

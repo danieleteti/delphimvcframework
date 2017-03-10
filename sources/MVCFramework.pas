@@ -69,7 +69,8 @@ uses
 
 type
   TDMVCSerializationType = TSerializationType;
-  TSessionData = TDictionary<string, string>;
+  TMVCCustomData = TDictionary<string, string>;
+  TSessionData = TMVCCustomData;
 
   // RTTI ATTRIBUTES
 
@@ -262,10 +263,12 @@ type
     FUserName: string;
     FLoggedSince: TDateTime;
     FRealm: string;
+    FCustomData: TMVCCustomData;
     procedure SetUserName(const Value: string);
     procedure SetLoggedSince(const Value: TDateTime);
     function GetIsValidLoggedUser: Boolean;
     procedure SetRealm(const Value: string);
+    procedure SetCustomData(const Value: TMVCCustomData);
 
   public
     procedure SaveToSession(AWebSession: TWebSession);
@@ -276,6 +279,7 @@ type
     property LoggedSince: TDateTime read FLoggedSince write SetLoggedSince;
     property IsValid: Boolean read GetIsValidLoggedUser;
     property Realm: string read FRealm write SetRealm;
+    property CustomData: TMVCCustomData read FCustomData write SetCustomData;
     constructor Create; virtual;
     destructor Destroy; override;
   end;
@@ -3040,6 +3044,7 @@ end;
 constructor TUser.Create;
 begin
   inherited;
+  FCustomData := nil;
   FRoles := TList<string>.Create;
   Clear;
 end;
@@ -3047,6 +3052,7 @@ end;
 destructor TUser.Destroy;
 begin
   FRoles.Free;
+  FreeAndNil(FCustomData);
   inherited;
 end;
 
@@ -3090,6 +3096,11 @@ begin
     LRoles := '';
   AWebSession[TMVCConstants.CURRENT_USER_SESSION_KEY] := FUserName + '$$' +
     ISODateTimeToString(FLoggedSince) + '$$' + FRealm + '$$' + LRoles;
+end;
+
+procedure TUser.SetCustomData(const Value: TMVCCustomData);
+begin
+  FCustomData := Value;
 end;
 
 procedure TUser.SetLoggedSince(const Value: TDateTime);

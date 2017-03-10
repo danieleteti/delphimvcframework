@@ -49,6 +49,7 @@ type
   private
     FClaimsToChecks: TJWTCheckableClaims;
     FSetupJWTClaims: TJWTClaimsSetup;
+    FLoginURLSegment: string;
 
   protected
     FSecret: string;
@@ -62,6 +63,7 @@ type
     constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler;
       aConfigClaims: TJWTClaimsSetup;
       aSecret: string = 'D3lph1MVCFram3w0rk';
+      aLoginURLSegment: string = '/login';
       aClaimsToCheck: TJWTCheckableClaims = [
       TJWTCheckableClaim.ExpirationTime,
       TJWTCheckableClaim.NotBefore,
@@ -73,31 +75,47 @@ implementation
 
 uses
   MVCFramework.Session
-{$IFDEF SYSTEMJSON}
+
+  {$IFDEF SYSTEMJSON}
+
     , System.JSON
-{$ELSE}
+
+  {$ELSE}
+
     , Data.DBXJSON
-{$ENDIF}
-{$IFDEF WEBAPACHEHTTP}
+
+  {$ENDIF}
+  {$IFDEF WEBAPACHEHTTP}
+
     , Web.ApacheHTTP
-{$ENDIF}
-{$IFDEF SYSTEMNETENCODING}
+
+  {$ENDIF}
+  {$IFDEF SYSTEMNETENCODING}
+
     , System.NetEncoding
-{$ELSE}
+
+  {$ELSE}
+
     , Soap.EncdDecd
-{$ENDIF};
+
+  {$ENDIF};
 
 { TMVCSalutationMiddleware }
 
-constructor TMVCJwtAuthenticationMiddleware.Create(AMVCAuthenticationHandler
-  : IMVCAuthenticationHandler;
+constructor TMVCJwtAuthenticationMiddleware.Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler;
   aConfigClaims: TJWTClaimsSetup;
-  aSecret: string;
-  aClaimsToCheck: TJWTCheckableClaims);
+  aSecret: string = 'D3lph1MVCFram3w0rk';
+  aLoginURLSegment: string = '/login';
+  aClaimsToCheck: TJWTCheckableClaims = [
+  TJWTCheckableClaim.ExpirationTime,
+  TJWTCheckableClaim.NotBefore,
+  TJWTCheckableClaim.IssuedAt
+  ]);
 begin
   inherited Create;
   FMVCAuthenticationHandler := AMVCAuthenticationHandler;
   FSecret := aSecret;
+  FLoginURLSegment := aLoginURLSegment;
   FClaimsToChecks := aClaimsToCheck;
   FSetupJWTClaims := aConfigClaims;
 end;
@@ -172,6 +190,7 @@ begin
           AControllerQualifiedClassName, AActionName, lIsAuthorized);
         if lIsAuthorized then
         begin
+          Context.LoggedUser.CustomData := lJWT.CustomClaims.AsCustomData;
           Handled := False;
         end
         else
@@ -193,11 +212,12 @@ var
   lUserName: string;
   lPassword: string;
   lRoles: TList<String>;
-  lSessionData: TSessionData;
+  lCustomData: TMVCCustomData;
   lIsValid: Boolean;
   lJWT: TJWT;
+  lPair: TPair<String, String>;
 begin
-  if SameText(Context.Request.PathInfo, '/login') and (Context.Request.HTTPMethod = httpPOST) then
+  if (Context.Request.HTTPMethod = httpPOST) and SameText(Context.Request.PathInfo, FLoginURLSegment) then
   begin
     lUserName := Context.Request.Headers['jwtusername'];
     lPassword := Context.Request.Headers['jwtpassword'];
@@ -212,33 +232,40 @@ begin
     // check the authorization for the requested resource
     lRoles := TList<string>.Create;
     try
-      lSessionData := TSessionData.Create;
+      lCustomData := TMVCCustomData.Create;
       try
         FMVCAuthenticationHandler.OnAuthentication(lUserName, lPassword,
-          lRoles, lIsValid, lSessionData);
+          lRoles, lIsValid, lCustomData);
         if lIsValid then
         begin
           lJWT := TJWT.Create(FSecret);
           try
-            // let's user config claims and custom claims
+            // CustomData becomes custom claims
+            for lPair in lCustomData do
+            begin
+              lJWT.CustomClaims[lPair.Key] := lPair.Value;
+            end;
+
+            // let's user config additional claims and custom claims
             FSetupJWTClaims(lJWT);
 
             // these claims are mandatory and managed by the middleware
             if not lJWT.CustomClaims['username'].IsEmpty then
               raise EMVCJWTException.Create
-                ('Custom claim "username" is reserved and cannot be modified in the JWT setup');
+                ('Custom claim "username" is reserved and cannot be modified in the JWT setup nor in CustomData');
             if not lJWT.CustomClaims['roles'].IsEmpty then
               raise EMVCJWTException.Create
-                ('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
+                ('Custom claim "roles" is reserved and cannot be modified in the JWT setup nor in CustomData');
 
             lJWT.CustomClaims['username'] := lUserName;
             lJWT.CustomClaims['roles'] := String.Join(',', lRoles.ToArray);
 
             /// / setup the current logged user from the JWT
-            Context.LoggedUser.Roles.AddRange(lRoles);
-            Context.LoggedUser.UserName := lJWT.CustomClaims['username'];
-            Context.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
-            Context.LoggedUser.Realm := lJWT.Claims.Subject;
+            // Context.LoggedUser.Roles.AddRange(lRoles);
+            // Context.LoggedUser.UserName := lJWT.CustomClaims['username'];
+            // Context.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
+            // Context.LoggedUser.Realm := lJWT.Claims.Subject;
+            // Context.LoggedUser.CustomData :=
             /// ////////////////////////////////////////////////
 
             InternalRender(TJSONObject.Create(TJSONPair.Create('token', lJWT.GetToken)),
@@ -255,7 +282,7 @@ begin
           Handled := True;
         end;
       finally
-        lSessionData.Free;
+        lCustomData.Free;
       end;
     finally
       lRoles.Free;

@@ -15,6 +15,8 @@ type
     btnGet: TButton;
     btnLOGIN: TButton;
     Splitter1: TSplitter;
+    Memo3: TMemo;
+    Splitter2: TSplitter;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
   private
@@ -42,6 +44,7 @@ var
   lResp: IRESTResponse;
   lQueryStringParams: TStringList;
 begin
+  { Getting JSON response }
   lClient := TRESTClient.Create('localhost', 8080);
   try
     lClient.ReadTimeOut(0);
@@ -52,10 +55,8 @@ begin
       lQueryStringParams.Values['firstname'] := 'Daniele';
       lQueryStringParams.Values['lastname'] := 'Teti';
       lResp := lClient.doGET('/admin/role1', [], lQueryStringParams);
-
       if lResp.HasError then
         ShowMessage(lResp.Error.ExceptionMessage);
-
     finally
       lQueryStringParams.Free;
     end;
@@ -63,6 +64,28 @@ begin
   finally
     lClient.Free;
   end;
+
+  { Getting HTML response }
+  lClient := TRESTClient.Create('localhost', 8080);
+  try
+    lClient.ReadTimeOut(0);
+    if not FJWT.IsEmpty then
+      lClient.RequestHeaders.Values['Authentication'] := 'bearer ' + FJWT;
+    lQueryStringParams := TStringList.Create;
+    try
+      lQueryStringParams.Values['firstname'] := 'Daniele';
+      lQueryStringParams.Values['lastname'] := 'Teti';
+      lResp := lClient.Accept('text/html').doGET('/admin/role1', [], lQueryStringParams);
+      if lResp.HasError then
+        ShowMessage(lResp.Error.ExceptionMessage);
+    finally
+      lQueryStringParams.Free;
+    end;
+    Memo3.Lines.Text := lResp.BodyAsString;
+  finally
+    lClient.Free;
+  end;
+
 end;
 
 procedure TForm5.btnLOGINClick(Sender: TObject);

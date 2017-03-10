@@ -48,7 +48,7 @@ type
 implementation
 
 uses
-  System.StrUtils, MVCFramework.Commons;
+  System.StrUtils, MVCFramework.Commons, System.Classes;
 
 { TCORSMiddleware }
 
@@ -74,17 +74,14 @@ end;
 
 procedure TCORSMiddleware.OnBeforeRouting(Context: TWebContext;
   var Handled: Boolean);
+var
+  lCustomHeaders: TStrings;
 begin
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Origin'] := FAllowedOriginURL;
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Methods'] :=
-    'POST, GET, OPTIONS, PUT, DELETE';
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Headers'] := 'Content-Type, Accept';
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Credentials'] := FAllowsCredentials;
-
+  lCustomHeaders := Context.Response.RawWebResponse.CustomHeaders;
+  lCustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
+  lCustomHeaders.Values['Access-Control-Allow-Methods'] := 'POST, GET, OPTIONS, PUT, DELETE';
+  lCustomHeaders.Values['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword, authentication';
+  lCustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
   if Context.Request.HTTPMethod = httpOPTIONS then
   begin
     Context.Response.StatusCode := 200;
