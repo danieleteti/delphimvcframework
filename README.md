@@ -68,6 +68,11 @@ become
 
 ## Release Notes
 
+**2.1.6 (carbon)**
+- FIX https://github.com/danieleteti/delphimvcframework/issues/74
+- Updated jsonwebtoken sample
+- Improved support for customclaims into the controller actions
+
 **2.1.5 (boron)**
 - MERGE https://github.com/danieleteti/delphimvcframework/pull/73
 - Removed memory leaks in TMVCWebRequest (which affect also TRESTClient)
