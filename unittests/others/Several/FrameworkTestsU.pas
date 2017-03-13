@@ -1610,7 +1610,7 @@ end;
 initialization
 
 RegisterTest(TTestRouting.suite);
-RegisterTest(TTestMappers.suite);
+// RegisterTest(TTestMappers.suite);
 RegisterTest(TTestJWT.suite);
 RegisterTest(TTestMultiMap.suite);
 
