@@ -61,6 +61,9 @@ type
     function SerializeDataSet(const ADataSet: TDataSet): string; overload;
     function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
 
+    function SerializeDataSetRecord(const ADataSet: TDataSet): string; overload;
+    function SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
+
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject); overload;
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType); overload;
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
@@ -70,6 +73,7 @@ type
     procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
 
     procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
+    procedure DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
   end;
 
 implementation

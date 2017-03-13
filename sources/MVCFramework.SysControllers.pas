@@ -28,9 +28,9 @@ interface
 
 {$I dmvcframework.inc}
 
-
 uses
-  MVCFramework, MVCFramework.Commons;
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
 
@@ -38,14 +38,12 @@ type
   [MVCDoc('Built-in DelphiMVCFramework System controller')]
   TMVCSystemController = class(TMVCController)
   protected
-    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
-      var Handled: Boolean); override;
+    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean); override;
     function GetUpTime: string;
   public
     [MVCPath('/describeserver.info')]
     [MVCHTTPMethods([httpGET, httpPOST])]
-    [MVCDoc('Describe controllers and actions published by the RESTful server per resources')
-      ]
+    [MVCDoc('Describe controllers and actions published by the RESTful server per resources')]
     procedure DescribeServer(Context: TWebContext);
 
     [MVCPath('/describeplatform.info')]
@@ -65,11 +63,17 @@ uses
     , System.Classes
     , Winapi.Windows
     , System.TypInfo
-{$IFDEF SYSTEMJSON} // XE6
+
+  {$IFDEF SYSTEMJSON} // XE6
+
     , System.JSON
-{$ELSE}
+
+  {$ELSE}
+
     , Data.DBXJSON
-{$ENDIF}
+
+  {$ENDIF}
+
     ;
 
 function MSecToTime(mSec: Int64): string;
@@ -121,7 +125,7 @@ end;
 procedure TMVCSystemController.DescribeServer(Context: TWebContext);
 var
   LJResp: TJSONObject;
-  LControllerRoutable: TMVCControllerRoutable;
+  LController: TMVCControllerDelegate;
   ControllerInfo: TJSONObject;
   LRTTIType: TRttiInstanceType;
   LCTX: TRttiContext;
@@ -141,13 +145,12 @@ begin
   try
     LJResp := TJSONObject.Create;
     try
-      for LControllerRoutable in GetMVCEngine.RegisteredControllers do
+      for LController in Engine.Controllers do
       begin
         ControllerInfo := TJSONObject.Create;
-        LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName,
-          ControllerInfo);
+        LJResp.AddPair(LController.Clazz.QualifiedClassName, ControllerInfo);
 
-        LRTTIType := LCTX.GetType(LControllerRoutable.&Class)
+        LRTTIType := LCTX.GetType(LController.Clazz)
           as TRttiInstanceType;
         for LAttribute in LRTTIType.GetAttributes do
         begin

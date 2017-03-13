@@ -133,8 +133,8 @@ begin
     raise EMVCException.Create('Invalid or empty topic');
   if not CTX.Request.ThereIsRequestBody then
     raise EMVCException.Create('Body request required');
-  EnqueueMessageOnTopicOrQueue(queuetype = 'queue', '/' + queuetype + '/' + topicname,
-    CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
+//  EnqueueMessageOnTopicOrQueue(queuetype = 'queue', '/' + queuetype + '/' + topicname,
+//    CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
   // EnqueueMessage('/queue/' + topicname, CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
   Render(200, 'Message sent to topic ' + topicname);
 end;
@@ -224,12 +224,12 @@ begin
     if LTimeOut then
     begin
       res.AddPair('_timeout', TJSONTrue.Create);
-      Render(http_status.RequestTimeout, res);
+      //Render(http_status.RequestTimeout, res);
     end
     else
     begin
       res.AddPair('_timeout', TJSONFalse.Create);
-      Render(http_status.OK, res);
+      //Render(http_status.OK, res);
     end;
 
   finally

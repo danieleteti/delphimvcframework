@@ -30,16 +30,19 @@ interface
 
 
 uses
-  System.SysUtils, Generics.Collections, MVCFramework.TypesAliases,
-  System.Generics.Collections, MVCFramework.Session, LoggerPro,
-  System.SyncObjs;
+  System.SysUtils,
+  System.SyncObjs,
+  System.Generics.Collections,
+  MVCFramework.TypesAliases,
+  MVCFramework.Session,
+  LoggerPro;
 
 {$I dmvcframeworkbuildconsts.inc}
 
-
 type
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
-    httpOPTIONS, httpPATCH, httpTRACE);
+
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH, httpTRACE);
+
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TMVCPair<TKey, TVal> = class
@@ -64,7 +67,7 @@ type
     property Val3: TVal3 read FVal3;
   end;
 
-  TMVCMimeType = class sealed
+  TMVCMimeType = record
   public const
     APPLICATION_JSON = 'application/json';
     TEXT_HTML = 'text/html';
@@ -79,7 +82,7 @@ type
     TEXT_EVENTSTREAM = 'text/event-stream';
   end deprecated 'use TMVCMediaType';
 
-  TMVCMediaType = class sealed
+  TMVCMediaType = record
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';
     APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
@@ -88,6 +91,7 @@ type
     APPLICATION_SVG_XML = 'application/svg+xml';
     APPLICATION_XHTML_XML = 'application/xhtml+xml';
     APPLICATION_XML = 'application/xml';
+    APPLICATION_OCTETSTREAM = 'application/octet-stream';
     MEDIA_TYPE_WILDCARD = '*';
     MULTIPART_FORM_DATA = 'multipart/form-data';
     TEXT_HTML = 'text/html';
@@ -97,13 +101,13 @@ type
     TEXT_JAVASCRIPT = 'text/javascript';
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     TEXT_EVENTSTREAM = 'text/event-stream';
-    TEXT_CSV = 'text/csv'; // https://tools.ietf.org/html/rfc7111
+    TEXT_CSV = 'text/csv';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_PNG = 'image/x-png';
     WILDCARD = '*/*';
   end;
 
-  TMVCCharSet = class sealed
+  TMVCCharSet = record
   public const
     US_ASCII = 'US-ASCII';
     WINDOWS_1250 = 'windows-1250';
@@ -127,13 +131,35 @@ type
     UTF_16LE = 'UTF-16LE';
   end;
 
-  TMVCConstants = class sealed
+  TMVCConstants = record
   public const
     SESSION_TOKEN_NAME = 'dtsessionid';
     DEFAULT_CONTENT_CHARSET = 'UTF-8';
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
+  end;
+
+  TMVCConfigKey = record
+  public const
+    SessionTimeout = 'sessiontimeout';
+    DocumentRoot = 'document_root';
+    ViewPath = 'view_path';
+    DefaultContentType = 'default_content_type';
+    DefaultContentCharset = 'default_content_charset';
+    DefaultViewFileExtension = 'default_view_file_extension';
+    ISAPIPath = 'isapi_path';
+    StompServer = 'stompserver';
+    StompServerPort = 'stompserverport';
+    StompUsername = 'stompusername';
+    StompPassword = 'stomppassword';
+    Messaging = 'messaging';
+    AllowUnhandledAction = 'allow_unhandled_action';
+    ServerName = 'server_name';
+    ExposeServerSignature = 'server_signature';
+    IndexDocument = 'index_document';
+    SessionType = 'session_type';
+    FallbackResource = 'fallback_resource';
   end;
 
   EMVCException = class(Exception)
@@ -361,7 +387,7 @@ type
     HTTPVersionNotSupported = 505;
   end;
 
-{$SCOPEDENUMS ON}
+  {$SCOPEDENUMS ON}
 
 
 type
@@ -391,9 +417,13 @@ uses
   idGlobal,
   System.StrUtils,
   idCoderMIME
-{$IFDEF SYSTEMJSON}
-    , System.JSON //just to allow inline
-{$ENDIF}
+
+  {$IFDEF SYSTEMJSON}
+
+    , System.JSON // just to allow inline
+
+  {$ENDIF}
+
     ;
 
 const

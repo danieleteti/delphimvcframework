@@ -104,6 +104,9 @@ type
     function SerializeDataSet(const ADataSet: TDataSet): string; overload;
     function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
 
+    function SerializeDataSetRecord(const ADataSet: TDataSet): string; overload;
+    function SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
+
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject); overload;
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType); overload;
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
@@ -113,6 +116,7 @@ type
     procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
 
     procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
+    procedure DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
   public
     procedure AfterConstruction; override;
   end;
@@ -343,10 +347,14 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.DeserializeDataSet(
-  const ASerializedDataSet: string; const ADataSet: TDataSet);
+procedure TMVCJsonDataObjectsSerializer.DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
 begin
   raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.DeserializeDataSet not implemented.');
+end;
+
+procedure TMVCJsonDataObjectsSerializer.DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
+begin
+  raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.DeserializeDataSetRecord not implemented.');
 end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(
@@ -597,6 +605,18 @@ function TMVCJsonDataObjectsSerializer.SerializeDataSet(
   const ADataSet: TDataSet; const AIgnoredFields: array of string): string;
 begin
   raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.SerializeDataSet not implemented.');
+end;
+
+function TMVCJsonDataObjectsSerializer.SerializeDataSetRecord(
+  const ADataSet: TDataSet): string;
+begin
+  Result := SerializeDataSetRecord(ADataSet, []);
+end;
+
+function TMVCJsonDataObjectsSerializer.SerializeDataSetRecord(
+  const ADataSet: TDataSet; const AIgnoredFields: array of string): string;
+begin
+  raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.SerializeDataSetRecord not implemented.');
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeDataSet(

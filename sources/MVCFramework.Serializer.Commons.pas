@@ -67,7 +67,7 @@ type
     destructor Destroy; override;
   end;
 
-  TMVCSerializerHelpful = class sealed
+  TMVCSerializerHelpful = record
   public
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;

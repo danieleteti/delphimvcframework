@@ -93,6 +93,9 @@ type
     function SerializeDataSet(const ADataSet: TDataSet): string; overload;
     function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
 
+    function SerializeDataSetRecord(const ADataSet: TDataSet): string; overload;
+    function SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
+
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject); overload;
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType); overload;
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
@@ -102,6 +105,7 @@ type
     procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
 
     procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
+    procedure DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
   public
     procedure AfterConstruction; override;
   end;
@@ -327,6 +331,11 @@ procedure TMVCJSONSerializer.DeserializeDataSet(
   const ASerializedDataSet: string; const ADataSet: TDataSet);
 begin
   raise EMVCSerializationException.Create('Method TMVCJSONSerializer.DeserializeDataSet not implemented.');
+end;
+
+procedure TMVCJSONSerializer.DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
+begin
+  raise EMVCSerializationException.Create('Method TMVCJSONSerializer.DeserializeDataSetRecord not implemented.');
 end;
 
 procedure TMVCJSONSerializer.DeserializeObject(
@@ -580,6 +589,16 @@ function TMVCJSONSerializer.SerializeDataSet(const ADataSet: TDataSet;
   const AIgnoredFields: array of string): string;
 begin
   raise EMVCSerializationException.Create('Method TMVCJSONSerializer.SerializeDataSet not implemented.');
+end;
+
+function TMVCJSONSerializer.SerializeDataSetRecord(const ADataSet: TDataSet): string;
+begin
+  Result := SerializeDataSetRecord(ADataSet, []);
+end;
+
+function TMVCJSONSerializer.SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: array of string): string;
+begin
+  raise EMVCSerializationException.Create('Method TMVCJSONSerializer.SerializeDataSetRecord not implemented.');
 end;
 
 function TMVCJSONSerializer.SerializeDataSet(
