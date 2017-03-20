@@ -1653,6 +1653,7 @@ begin
                   finally
                     LSelectedController.MVCControllerBeforeDestroy;
                   end;
+                  ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.Name, LHandled);
                 except
                   on E: EMVCSessionExpiredException do
                   begin

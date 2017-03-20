@@ -173,10 +173,10 @@ begin
   FRESTClient.Authentication('dmvc', '123');
 
   // String
-  CheckEqualsString('"Hello World called with GET"', FRESTClient.doGET.BodyAsString);
+  CheckEqualsString('Hello World called with GET', FRESTClient.doGET.BodyAsString);
 
   // Adapter
-  CheckEqualsString('"Hello World called with GET"', FAppResource.HelloWorld);
+  CheckEqualsString('Hello World called with GET', FAppResource.HelloWorld);
 end;
 
 procedure TTestRESTClient.TestInformation;
@@ -229,7 +229,7 @@ begin
   LUser.Name := 'Ezequiel';
   LUser.Pass := '123';
   LResp := FRESTClient.doPOST<TAppUser>(LUser);
-  CheckTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  CheckTrue(('Sucess!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
   LUser := TAppUser.Create;
@@ -261,7 +261,7 @@ begin
     LUsers.Add(LUser);
   end;
   LResp := FRESTClient.doPOST<TAppUser>(LUsers);
-  CheckTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  CheckTrue(('Sucess!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
   LUsers := TObjectList<TAppUser>.Create(True);

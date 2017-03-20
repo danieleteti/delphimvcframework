@@ -95,7 +95,7 @@ begin
   try
     LClient.UserName := 'dmvc';
     LClient.Password := '123';
-    CheckEqualsString('"Hello World called with GET"', LClient.doGET('/hello', []).BodyAsString);
+    CheckEqualsString('Hello World called with GET', LClient.doGET('/hello', []).BodyAsString);
   finally
     FreeAndNil(LClient);
   end;

@@ -3,10 +3,12 @@ unit BusinessObjectsU;
 interface
 
 uses
+  MVCFramework.Serializer.Commons,
   ObjectsMappers, Generics.Collections;
 
 type
 
+  [MVCNameCase(MVCNameLowerCase)]
   [MapperJSONNaming(JSONNameLowerCase)]
   TPerson = class
   private
@@ -20,18 +22,19 @@ type
     procedure SetMarried(const Value: boolean);
   public
     function Equals(Obj: TObject): boolean; override;
-    // [MapperJsonSer('nome')]
+
     property FirstName: string read FFirstName write SetFirstName;
-    // [DoNotSerialize]
     property LastName: string read FLastName write SetLastName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
+
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList: TObjectList<TPerson>;
   end;
 
   TPeople = class(TObjectList<TPerson>);
 
+  [MVCNameCase(MVCNameLowerCase)]
   [MapperJSONNaming(JSONNameLowerCase)]
   TCustomer = class
   private
@@ -50,8 +53,10 @@ type
   public
     property name: string read FName write SetName;
     [MapperTransient]
+    [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
     [MapperTransient]
+    [MVCDoNotSerialize]
     property ContactLast: string read FContactLast write SetContactLast;
     property AddressLine1: string read FAddressLine1 write SetAddressLine1;
     property AddressLine2: string read FAddressLine2 write SetAddressLine2;
@@ -60,6 +65,7 @@ type
   end;
 
   [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(MVCNameLowerCase)]
   TProgrammer = class(TPerson)
   private
     FSkills: string;
@@ -69,6 +75,7 @@ type
   end;
 
   [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(MVCNameLowerCase)]
   TPhilosopher = class(TPerson)
   private
     FMentors: string;

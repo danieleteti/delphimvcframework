@@ -350,14 +350,14 @@ begin
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/private/role1session', []);
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
-  CheckEquals('"danieleteti"', LRes.BodyAsString);
+  CheckEquals('danieleteti', LRes.BodyAsString);
 
   // second
   LRes := RESTClient.doGET('/private/role1session?value=johndoe', []);
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/private/role1session', []);
   CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
-  CheckEquals('"johndoe"', LRes.BodyAsString);
+  CheckEquals('johndoe', LRes.BodyAsString);
 end;
 
 procedure TServerTest.TestCookies;
@@ -625,10 +625,10 @@ begin
     c1.Accept(TMVCMediaType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    CheckEquals('"daniele teti"', res.BodyAsString);
+    CheckEquals('daniele teti', res.BodyAsString);
     c1.SessionID := '';
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    CheckEquals('""', res.BodyAsString);
+    CheckEquals('', res.BodyAsString);
   finally
     c1.Free;
   end;
@@ -760,7 +760,7 @@ begin
     .ContentEncoding('utf-8').doPOST('/testconsumes', [],
     TJSONString.Create('Hello World'));
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
-  CheckEquals('"Hello World"', res.BodyAsJsonValue.ToString);
+  CheckEquals('Hello World', res.BodyAsString);
   CheckEquals('application/json', res.ContentType);
   CheckEquals('utf-8', res.ContentEncoding);
 end;
@@ -885,7 +885,7 @@ begin
     c1.Accept(TMVCMediaType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    CheckEquals('"daniele teti"', res.BodyAsString);
+    CheckEquals('daniele teti', res.BodyAsString);
     c1.Accept(TMVCMediaType.TEXT_PLAIN);
     res := c1.doGET('/session', []);
     // rileggo il valore dalla sessione

@@ -395,6 +395,8 @@ class function TDuckTypedList.Wrap(const AObjectAsDuck: TObject; const AOwnsObje
 var
   List: IMVCList;
 begin
+  if AObjectAsDuck is TDuckTypedList then
+    Exit(AObjectAsDuck as TDuckTypedList);
   Result := nil;
   List := TDuckTypedList.Create(AObjectAsDuck, AOwnsObject);
   if List.IsWrappedList then
