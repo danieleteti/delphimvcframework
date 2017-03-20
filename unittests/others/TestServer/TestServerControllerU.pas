@@ -233,9 +233,9 @@ procedure TTestServerController.EchoBody(ctx: TWebContext);
 var
   JSON: TJSONObject;
 begin
-  JSON := ctx.Request.BodyAsJSONObject.Clone as TJSONObject;
+  JSON := TJSONObject.ParseJSONValue(ctx.Request.Body) as TJSONObject;
   JSON.AddPair('echo', 'from server');
-  Render(JSON);
+  Render(JSON, True);
 end;
 
 procedure TTestServerController.EchoHeaders(ctx: TWebContext);
@@ -409,7 +409,7 @@ begin
   lObj := TPerson.GetList;
   try
     LWrappedList := WrapAsList(lObj);
-    RenderWrappedList(LWrappedList);
+    Render(LWrappedList);
   finally
     lObj.Free;
   end;

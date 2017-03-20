@@ -73,7 +73,7 @@ type
   TTestRouting = class(TTestCase)
   private
     Router: TMVCRouter;
-    Controllers: TObjectList<TMVCControllerRoutable>;
+    Controllers: TObjectList<TMVCControllerDelegate>;
 
   public
     procedure SetUp; override;
@@ -223,10 +223,10 @@ end;
 
 procedure TTestRouting.SetUp;
 begin
-  Controllers := TObjectList<TMVCControllerRoutable>.Create;
-  Controllers.Add(TMVCControllerRoutable.Create(TSimpleController, nil));
-  Controllers.Add(TMVCControllerRoutable.Create(TNotSoSimpleController, nil));
-  Controllers.Add(TMVCControllerRoutable.Create(TTestServerController, nil));
+  Controllers := TObjectList<TMVCControllerDelegate>.Create;
+  Controllers.Add(TMVCControllerDelegate.Create(TSimpleController, nil));
+  Controllers.Add(TMVCControllerDelegate.Create(TNotSoSimpleController, nil));
+  Controllers.Add(TMVCControllerDelegate.Create(TTestServerController, nil));
   Router := TMVCRouter.Create(nil);
 end;
 
@@ -372,7 +372,7 @@ begin
       TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
       ResponseContentEncoding));
     CheckNull(Router.MethodToCall);
-    CheckFalse(Assigned(Router.MVCControllerClass));
+    CheckFalse(Assigned(Router.ControllerClazz));
 
   finally
     Params.Free;
@@ -937,7 +937,7 @@ begin
       TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
       ResponseContentEncoding));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('Orders', Router.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
   finally
@@ -958,7 +958,7 @@ begin
       ResponseContentType, ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('789', Params['ordernumber']);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
     Params.Free;
@@ -972,7 +972,7 @@ begin
       ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('àèéìòù .-_\', Params['ordernumber']);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('OrderNumber', Router.MethodToCall.Name);
   finally
     Params.Free;
@@ -994,7 +994,7 @@ begin
       TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
       ResponseContentCharset));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
@@ -1016,7 +1016,7 @@ begin
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET,
       Params, ResponseContentType, ResponseContentCharset));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
@@ -1204,21 +1204,21 @@ begin
       'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     CheckNull(Router.MethodToCall);
-    CheckFalse(Assigned(Router.MVCControllerClass));
+    CheckFalse(Assigned(Router.ControllerClazz));
 
     Params.Clear;
     CheckFalse(Router.ExecuteRouting('/orders/789', httpHEAD, 'text/plain',
       'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding), 'Resolved as HEAD');
     CheckNull(Router.MethodToCall, 'Resolved as HEAD');
-    CheckFalse(Assigned(Router.MVCControllerClass));
+    CheckFalse(Assigned(Router.ControllerClazz));
 
     Params.Clear;
     CheckFalse(Router.ExecuteRouting('/orders/789', httpOPTIONS, 'text/plain',
       'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding), 'Resolved as OPTIONS');
     CheckNull(Router.MethodToCall, 'Resolved as OPTIONS');
-    CheckFalse(Assigned(Router.MVCControllerClass));
+    CheckFalse(Assigned(Router.ControllerClazz));
 
     Params.Clear;
     CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
@@ -1248,7 +1248,7 @@ begin
       Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
   finally
     Params.Free;
@@ -1267,7 +1267,7 @@ begin
       Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.MVCControllerClass.ClassName);
+    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
     CheckEquals('Index', Router.MethodToCall.Name);
   finally
     Params.Free;
