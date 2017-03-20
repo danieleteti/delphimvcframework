@@ -177,6 +177,7 @@ type
 
     function ClientIp: string;
     function ClientPrefer(const AMediaType: string): Boolean;
+    function ClientPreferHTML: Boolean;
 
     function SegmentParam(const AParamName: string; out AValue: string): Boolean;
     function SegmentParamsCount: Integer;
@@ -375,6 +376,8 @@ type
     FContext: TWebContext;
     FContentCharset: string;
     FResponseStream: TStringBuilder;
+    FViewModel: TMVCViewDataObject;
+    FViewDataSets: TObjectDictionary<string, TDataSet>;
     function GetContext: TWebContext;
     function GetSession: TWebSession;
     function GetContentType: string;
@@ -393,6 +396,24 @@ type
     function GetClientId: string;
     function GetCurrentWebModule: TWebModule;
     function GetNewStompClient(const AClientId: string = ''): IStompClient;
+    function GetViewModel: TMVCViewDataObject;
+    function GetViewDataSets: TObjectDictionary<string, TDataSet>;
+    function GetRenderedView(const AViewNames: TArray<string>): string; virtual;
+
+    /// <summary>
+    /// Load mustache view located in TMVCConfigKey.ViewsPath
+    /// returns the rendered views and generates output using
+    /// models pushed using Push* methods
+    /// </summary>
+    function LoadView(const AViewNames: TArray<string>): string; virtual;
+
+    /// <summary>
+    /// Load a view fragment in the output render stream. The view fragment is appended to the
+    /// ResponseStream verbatim. No processing happens.
+    /// Useful when used with cache.
+    /// It is equivalent to <code>ResponseStream.Append(AViewFragment);</code>
+    /// </summary>
+    procedure LoadViewFragment(const AViewFragment: string);
 
     procedure EnqueueMessageOnTopicOrQueue(
       const AMessage: TMVCStompMessage;
@@ -441,9 +462,15 @@ type
     property ContentType: string read GetContentType write SetContentType;
     property ContentCharset: string read FContentCharset write FContentCharset;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
+    property ViewModel: TMVCViewDataObject read GetViewModel;
+    property ViewDataSets: TObjectDictionary<string, TDataSet> read GetViewDataSets;
   public
     constructor Create;
     destructor Destroy; override;
+
+    procedure PushToView(const AModelName: string; const AModel: string);
+    procedure PushObjectToView(const AModelName: string; const AModel: TObject);
+    procedure PushDataSetToView(const AModelName: string; const ADataSet: TDataSet);
   end;
 
   TMVCControllerClazz = class of TMVCController;
@@ -635,7 +662,8 @@ implementation
 uses
   MVCFramework.Router,
   MVCFramework.SysControllers,
-  MVCFramework.MessagingController;
+  MVCFramework.MessagingController,
+  MVCFramework.View;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -870,6 +898,11 @@ end;
 function TMVCWebRequest.ClientPrefer(const AMediaType: string): Boolean;
 begin
   Result := AnsiPos(AMediaType, LowerCase(RawWebRequest.Accept)) = 1;
+end;
+
+function TMVCWebRequest.ClientPreferHTML: Boolean;
+begin
+  Result := ClientPrefer(TMVCMediaType.TEXT_HTML);
 end;
 
 function TMVCWebRequest.ContentParam(const AName: string): string;
@@ -2110,12 +2143,20 @@ begin
   FContext := nil;
   FContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   FResponseStream := nil;
+  FViewModel := nil;
+  FViewDataSets := nil;
 end;
 
 destructor TMVCController.Destroy;
 begin
   if Assigned(FResponseStream) then
     FResponseStream.Free;
+
+  if Assigned(FViewModel) then
+    FViewModel.Free;
+
+  if Assigned(FViewDataSets) then
+    FViewDataSets.Free;
   inherited Destroy;
 end;
 
@@ -2181,6 +2222,40 @@ begin
   Result := GetContext.Response.StatusCode;
 end;
 
+function TMVCController.GetViewDataSets: TObjectDictionary<string, TDataSet>;
+begin
+  if not Assigned(FViewDataSets) then
+    FViewDataSets := TObjectDictionary<string, TDataSet>.Create;
+  Result := FViewDataSets;
+end;
+
+function TMVCController.GetViewModel: TMVCViewDataObject;
+begin
+  if not Assigned(FViewModel) then
+    FViewModel := TMVCViewDataObject.Create;
+  Result := FViewModel;
+end;
+
+function TMVCController.LoadView(const AViewNames: TArray<string>): string;
+begin
+  try
+    Result := GetRenderedView(AViewNames);
+    ResponseStream.Append(Result);
+  except
+    on E: Exception do
+    begin
+      LogException(E);
+      ContentType := TMVCMediaType.TEXT_PLAIN;
+      Render(E);
+    end;
+  end;
+end;
+
+procedure TMVCController.LoadViewFragment(const AViewFragment: string);
+begin
+  ResponseStream.Append(AViewFragment);
+end;
+
 procedure TMVCController.MVCControllerAfterCreate;
 begin
   { Implement if need be. }
@@ -2202,6 +2277,27 @@ begin
   if ContentType.IsEmpty then
     ContentType := Config[TMVCConfigKey.DefaultContentType];
   { Implement if need be. }
+end;
+
+procedure TMVCController.PushDataSetToView(const AModelName: string; const ADataSet: TDataSet);
+var
+  LSerializer: IMVCSerializer;
+begin
+  LSerializer := TMVCJSONSerializer.Create;
+  PushToView(AModelName, LSerializer.SerializeDataSet(ADataSet));
+end;
+
+procedure TMVCController.PushObjectToView(const AModelName: string; const AModel: TObject);
+var
+  LSerializer: IMVCSerializer;
+begin
+  LSerializer := TMVCJSONSerializer.Create;
+  PushToView(AModelName, LSerializer.SerializeObject(AModel));
+end;
+
+procedure TMVCController.PushToView(const AModelName: string; const AModel: string);
+begin
+  GetViewModel.Add(AModelName, AModel);
 end;
 
 procedure TMVCController.RaiseSessionExpired;
@@ -2391,6 +2487,44 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty collection.');
+end;
+
+function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
+var
+  View: TMVCMustacheView;
+  ViewName: string;
+  SBuilder: TStringBuilder;
+begin
+  SBuilder := TStringBuilder.Create;
+  try
+    try
+      for ViewName in AViewNames do
+      begin
+        View := TMVCMustacheView.Create(
+          ViewName,
+          Engine,
+          Context,
+          ViewModel,
+          ViewDataSets,
+          ContentType);
+        try
+          View.Execute;
+          SBuilder.Append(View.Output);
+        finally
+          View.Free;
+        end;
+      end;
+      Result := SBuilder.ToString;
+    except
+      on E: Exception do
+      begin
+        ContentType := TMVCMediaType.TEXT_PLAIN;
+        Render(E);
+      end;
+    end;
+  finally
+    SBuilder.Free;
+  end;
 end;
 
 procedure TMVCController.Render<T>(const ACollection: TObjectList<T>);

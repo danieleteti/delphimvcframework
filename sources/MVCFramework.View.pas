@@ -24,179 +24,155 @@
 
 unit MVCFramework.View;
 
-{$WARNINGS OFF}
-
 {$I dmvcframework.inc}
 
 interface
 
+{$WARNINGS OFF}
+
 uses
-  MVCFramework,
-  MVCFramework.Commons,
+  System.SysUtils,
+  System.IOUtils,
   System.Generics.Collections,
   Data.DB,
-  MVCFramework.View.Cache,
-  System.SysUtils,
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.TypesAliases,
   SynMustache,
-  SynCommons,
-  MVCFramework.Patches;
+  SynCommons;
+
+{$WARNINGS ON}
 
 type
+
   TMVCBaseView = class(TMVCBase)
   private
     FViewName: string;
     FWebContext: TWebContext;
-    FViewModel: TMVCDataObjects;
+    FViewModel: TMVCViewDataObject;
     FViewDataSets: TObjectDictionary<string, TDataSet>;
-    FMVCEngine: TMVCEngine;
-    // FViewCache   : TViewCache;
-    // procedure SetViewCache(const Value: TViewCache);
-
-  strict protected
-    FCurrentContentType: string;
+    FContentType: string;
     FOutput: string;
-
   protected
-    /// <summary>
-    /// returns the real name of the file or empty string if no
-    // suitable file is found
-    /// </summary>
-    function GetRealFileName(AViewName: String): String; virtual;
-    function IsCompiledVersionUpToDate(const FileName, CompiledFileName: string)
-      : Boolean; virtual; abstract;
+    function GetRealFileName(const AViewName: string): string; virtual;
+    function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
+  public
+    constructor Create(
+      const AViewName: string;
+      const AEngine: TMVCEngine;
+      const AWebContext: TWebContext;
+      const AViewModel: TMVCViewDataObject;
+      const AViewDataSets: TObjectDictionary<string, TDataSet>;
+      const AContentType: string); virtual;
+    destructor Destroy; override;
+
+    procedure Execute; virtual; abstract;
+
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
-
-  public
-    constructor Create(AViewName: string; AMVCEngine: TMVCEngine;
-      AWebContext: TWebContext; AViewModels: TMVCDataObjects;
-      AViewDataSets: TObjectDictionary<string, TDataSet>;
-      ACurrentContentType: string); virtual;
-    destructor Destroy; override;
-    procedure Execute; virtual; abstract;
-    function GetOutput: String;
-    // property ViewCache: TViewCache read FViewCache write SetViewCache;
+    property ViewModel: TMVCViewDataObject read FViewModel;
+    property ViewDataSets: TObjectDictionary<string, TDataSet> read FViewDataSets;
+    property ContentType: string read FContentType;
+    property Output: string read FOutput;
   end;
 
   TMVCMustacheView = class(TMVCBaseView)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
   public
     procedure Execute; override;
   end;
 
 implementation
 
-uses
-  System.IOUtils
-    , System.Classes
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF};
-
 { TMVCBaseView }
 
-constructor TMVCBaseView.Create(AViewName: string; AMVCEngine: TMVCEngine;
-  AWebContext: TWebContext; AViewModels: TMVCDataObjects;
-  AViewDataSets: TObjectDictionary<string, TDataSet>;
-  ACurrentContentType: string);
+constructor TMVCBaseView.Create(
+  const AViewName: string;
+  const AEngine: TMVCEngine;
+  const AWebContext: TWebContext;
+  const AViewModel: TMVCViewDataObject;
+  const AViewDataSets: TObjectDictionary<string, TDataSet>;
+  const AContentType: string);
 begin
   inherited Create;
   FViewName := AViewName;
+  Engine := AEngine;
   FWebContext := AWebContext;
-  FMVCEngine := AMVCEngine;
-  FViewModel := AViewModels;
+  FViewModel := AViewModel;
   FViewDataSets := AViewDataSets;
-  FCurrentContentType := ACurrentContentType;
+  FContentType := AContentType;
+  FOutput := EmptyStr;
 end;
 
 destructor TMVCBaseView.Destroy;
 begin
-  inherited;
+  inherited Destroy;
 end;
 
-function TMVCBaseView.GetOutput: String;
-begin
-  Result := FOutput;
-end;
-
-function TMVCBaseView.GetRealFileName(AViewName: String): String;
+function TMVCBaseView.GetRealFileName(const AViewName: string): string;
 var
-  LFileName: string;
-  _FFileName: string;
-  LDefaultViewFileExtension: string;
+  FileName: string;
+  F: string;
+  DefaultViewFileExtension: string;
 begin
-  LDefaultViewFileExtension := GetMVCConfig
-    [TMVCConfigKey.DefaultViewFileExtension];
-  LFileName := StringReplace(AViewName, '/', '\', [rfReplaceAll]);
-  // $0.02 of normalization
-  if LFileName = '\' then
-    LFileName := '\index.' + LDefaultViewFileExtension
-  else
-    LFileName := LFileName + '.' + LDefaultViewFileExtension;
+  DefaultViewFileExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
+  FileName := stringReplace(AViewName, '/', '\', [rfReplaceAll]);
 
-  if DirectoryExists(GetMVCConfig[TMVCConfigKey.ViewPath]) then
-    _FFileName := ExpandFileName
-      (IncludeTrailingPathDelimiter(GetMVCConfig.Value[TMVCConfigKey.ViewPath])
-      + LFileName)
+  if (FileName = '\') then
+    FileName := '\index.' + DefaultViewFileExtension
   else
-    _FFileName := ExpandFileName
-      (IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
-      GetMVCConfig.Value[TMVCConfigKey.ViewPath]) + LFileName);
+    FileName := FileName + '.' + DefaultViewFileExtension;
 
-  // if not found in the view_path folder, look in the document_root
-  if not TFile.Exists(_FFileName) then
-    LFileName := ExpandFileName
-      (IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
-      GetMVCConfig.Value[TMVCConfigKey.DocumentRoot]) + LFileName)
+  if DirectoryExists(Config[TMVCConfigKey.ViewPath]) then
+    F := ExpandFileName(IncludeTrailingPathDelimiter(Config.Value[TMVCConfigKey.ViewPath]) + FileName)
   else
-    LFileName := _FFileName;
+    F := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath + Config.Value[TMVCConfigKey.ViewPath]) + FileName);
 
-  if FileExists(LFileName) then
-  begin
-    Result := LFileName;
-  end
+  if not TFile.Exists(F) then
+    FileName := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath + Config.Value[TMVCConfigKey.DocumentRoot]) + FileName)
   else
-  begin
-    Result := '';
-  end;
+    FileName := F;
+
+  if FileExists(FileName) then
+    Result := FileName
+  else
+    Result := EmptyStr;
 end;
-
-// procedure TMVCBaseView.SetViewCache(const Value: TViewCache);
-// begin
-// FViewCache := Value;
-// end;
 
 { TMVCMustacheView }
 
+{$WARNINGS OFF}
+
 procedure TMVCMustacheView.Execute;
 var
-  LFileName: String;
-  LTemplate: RawUTF8;
-  LMEngine: TSynMustache;
-  LPair: TPair<String, TJSONValue>;
-  LJContext: TJSONObject;
+  ViewFileName: string;
+  ViewTemplate: RawUTF8;
+  ViewEngine: TSynMustache;
+  DataObj: TPair<string, string>;
+  Jo: TJSONObject;
 begin
-  LFileName := GetRealFileName(ViewName);
-  if not FileExists(LFileName) then
-    raise EMVCFrameworkView.CreateFmt('View [%s] not found', [ViewName]);
-  LTemplate := StringToUTF8(TFile.ReadAllText(LFileName, TEncoding.UTF8));
-  LMEngine := TSynMustache.Parse(LTemplate);
-  LJContext := TJSONObject.Create;
-  try
-    if FViewModel <> nil then
-    begin
-      for LPair in FViewModel do
-      begin
-        LJContext.AddPair(LPair.Key, LPair.Value)
-      end;
-    end;
-  except
-    LJContext.Free;
-    raise;
-  end;
+  ViewFileName := GetRealFileName(ViewName);
+  if not FileExists(ViewFileName) then
+    raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
 
-  FOutput := UTF8ToString(LMEngine.RenderJSON(LJContext.ToJSON));
+  ViewTemplate := stringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
+  ViewEngine := TSynMustache.Parse(ViewTemplate);
+
+  Jo := TJSONObject.Create;
+  try
+    if Assigned(FViewModel) then
+      for DataObj in FViewModel do
+        Jo.AddPair(DataObj.Key, TJSONObject.ParseJSONValue(DataObj.Value));
+
+    FOutput := UTF8Tostring(ViewEngine.RenderJSON(Jo.ToJSON));
+  finally
+    Jo.Free;
+  end;
 end;
+
+{$WARNINGS ON}
 
 end.

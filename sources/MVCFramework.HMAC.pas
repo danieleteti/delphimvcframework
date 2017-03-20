@@ -28,55 +28,65 @@ interface
 
 uses
   System.SysUtils,
+  System.Generics.Collections,
   EncdDecd,
   IdHMAC;
 
 type
-  EMVCHMACException = class(Exception)
 
+  EMVCHMACException = class(Exception)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
   end;
 
   THMACClass = class of TIdHMAC;
 
-function HMAC(const Algorithm: String; const Input, Key: string): TBytes;
-procedure RegisterHMACAlgorithm(const Algorithm: String; Clazz: THMACClass);
-procedure UnRegisterHMACAlgorithm(const Algorithm: String);
+function HMAC(const AAlgorithm: String; const AInput, AKey: string): TBytes;
+procedure RegisterHMACAlgorithm(const AAlgorithm: String; AClazz: THMACClass);
+procedure UnRegisterHMACAlgorithm(const AAlgorithm: String);
 
 implementation
 
 uses
-  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5,
-  IdHMACSHA1, System.Generics.Collections;
+  IdSSLOpenSSL,
+  IdHash,
+  IdGlobal,
+  IdHMACMD5,
+  IdHMACSHA1;
 
 var
   GHMACRegistry: TDictionary<string, THMACClass>;
 
-function HMAC(const Algorithm: String; const Input, Key: string): TBytes;
+function HMAC(const AAlgorithm: String; const AInput, AKey: string): TBytes;
 var
-  lHMAC: TIdHMAC;
+  LHMAC: TIdHMAC;
 begin
-  if not GHMACRegistry.ContainsKey(Algorithm) then
-    raise EMVCHMACException.CreateFmt('Unknown HMAC algorithm [%s]', [Algorithm]);
+  if not GHMACRegistry.ContainsKey(AAlgorithm) then
+    raise EMVCHMACException.CreateFmt('Unknown HMAC algorithm [%s]', [AAlgorithm]);
 
-  lHMAC := GHMACRegistry[Algorithm].Create;
+  LHMAC := GHMACRegistry[AAlgorithm].Create;
   try
-    lHMAC.Key := ToBytes(Key);
-    Result := TBytes(lHMAC.HashValue(ToBytes(Input)));
+    LHMAC.Key := ToBytes(AKey);
+    Result := TBytes(LHMAC.HashValue(ToBytes(AInput)));
   finally
-    lHMAC.Free;
+    LHMAC.Free;
   end;
 end;
 
-procedure RegisterHMACAlgorithm(const Algorithm: String; Clazz: THMACClass);
+procedure RegisterHMACAlgorithm(const AAlgorithm: String; AClazz: THMACClass);
 begin
-  if GHMACRegistry.ContainsKey(Algorithm) then
+  if GHMACRegistry.ContainsKey(AAlgorithm) then
     raise EMVCHMACException.Create('Algorithm already registered');
-  GHMACRegistry.Add(Algorithm, Clazz);
+  GHMACRegistry.Add(AAlgorithm, AClazz);
 end;
 
-procedure UnRegisterHMACAlgorithm(const Algorithm: String);
+procedure UnRegisterHMACAlgorithm(const AAlgorithm: String);
 begin
-  GHMACRegistry.Remove(Algorithm);
+  GHMACRegistry.Remove(AAlgorithm);
 end;
 
 initialization
@@ -85,7 +95,7 @@ Assert(IdSSLOpenSSL.LoadOpenSSLLibrary, 'HMAC requires OpenSSL libraries');
 
 GHMACRegistry := TDictionary<string, THMACClass>.Create;
 
-//registering based on hash function
+// registering based on hash function
 RegisterHMACAlgorithm('md5', TIdHMACMD5);
 RegisterHMACAlgorithm('sha1', TIdHMACSHA1);
 RegisterHMACAlgorithm('sha224', TIdHMACSHA224);
@@ -93,8 +103,7 @@ RegisterHMACAlgorithm('sha256', TIdHMACSHA256);
 RegisterHMACAlgorithm('sha384', TIdHMACSHA384);
 RegisterHMACAlgorithm('sha512', TIdHMACSHA512);
 
-
-//the same using the JWT naming
+// the same using the JWT naming
 RegisterHMACAlgorithm('HS256', TIdHMACSHA256);
 RegisterHMACAlgorithm('HS384', TIdHMACSHA384);
 RegisterHMACAlgorithm('HS512', TIdHMACSHA512);

@@ -27,68 +27,66 @@ unit MVCFramework.Middleware.CORS;
 interface
 
 uses
-  MVCFramework;
+  System.StrUtils,
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
+
   TCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     FAllowedOriginURL: string;
     FAllowsCredentials: string;
+  protected
+    { protected declarations }
   public
-    constructor Create(const AllowedOriginURL: string = '*';
-      const AllowsCredentials: Boolean = true); virtual;
-    procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
-    procedure OnAfterControllerAction(Context: TWebContext;
-      const AActionNAme: string; const Handled: Boolean);
-    procedure OnBeforeControllerAction(Context: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionNAme: string;
-      var Handled: Boolean);
+    constructor Create(const AllowedOriginURL: string = '*'; const AllowsCredentials: Boolean = true); virtual;
+
+    procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+    procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string; const AActionName: string; var AHandled: Boolean);
   end;
 
 implementation
 
-uses
-  System.StrUtils, MVCFramework.Commons;
 
 { TCORSMiddleware }
 
-constructor TCORSMiddleware.Create(const AllowedOriginURL: string;
-  const AllowsCredentials: Boolean);
+constructor TCORSMiddleware.Create(const AllowedOriginURL: string; const AllowsCredentials: Boolean);
 begin
   inherited Create;
   FAllowedOriginURL := AllowedOriginURL;
   FAllowsCredentials := ifthen(AllowsCredentials, 'true', 'false');
 end;
 
-procedure TCORSMiddleware.OnAfterControllerAction(Context: TWebContext;
-  const AActionNAme: string; const Handled: Boolean);
-begin
-end;
-
-procedure TCORSMiddleware.OnBeforeControllerAction(Context: TWebContext;
-  const AControllerQualifiedClassName, AActionNAme: string;
-  var Handled: Boolean);
+procedure TCORSMiddleware.OnAfterControllerAction(
+  AContext: TWebContext;
+  const AActionName: string;
+  const AHandled: Boolean);
 begin
   // do nothing
 end;
 
-procedure TCORSMiddleware.OnBeforeRouting(Context: TWebContext;
-  var Handled: Boolean);
+procedure TCORSMiddleware.OnBeforeControllerAction(
+  AContext: TWebContext;
+  const AControllerQualifiedClassName,
+  AActionName: string;
+  var AHandled: Boolean);
 begin
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Origin'] := FAllowedOriginURL;
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Methods'] :=
-    'POST, GET, OPTIONS, PUT, DELETE';
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword';
-  Context.Response.RawWebResponse.CustomHeaders.Values
-    ['Access-Control-Allow-Credentials'] := FAllowsCredentials;
+  // do nothing
+end;
 
-  if Context.Request.HTTPMethod = httpOPTIONS then
+procedure TCORSMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+begin
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Methods'] := 'POST, GET, OPTIONS, PUT, DELETE';
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword';
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
+
+  if (AContext.Request.HTTPMethod = httpOPTIONS) then
   begin
-    Context.Response.StatusCode := 200;
-    Handled := true;
+    AContext.Response.StatusCode := 200;
+    AHandled := True;
   end;
 end;
 

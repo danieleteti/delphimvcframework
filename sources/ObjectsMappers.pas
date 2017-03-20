@@ -419,7 +419,7 @@ uses
   Math,
   SqlTimSt,
   DateUtils,
-  MVCFramework.RTTIUtils,
+  MVCFramework.Rtti.Utils,
   Xml.adomxmldom,
 {$IFDEF SYSTEMNETENCODING}
   System.NetEncoding,

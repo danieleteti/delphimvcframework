@@ -331,7 +331,7 @@ type
     { public declarations }
   end;
 
-  TMVCDataObjects = class(TObjectDictionary<string, TJSONValue>) { TODO -oEzequiel -cRefactoring : Replace for custom serializers }
+  TMVCViewDataObject = class(TObjectDictionary<string, string>)
   private
     { private declarations }
   protected
@@ -490,9 +490,9 @@ begin
   FAppErrorCode := 0;
 end;
 
-{ TMVCDataObjects }
+{ TMVCViewDataObject }
 
-constructor TMVCDataObjects.Create;
+constructor TMVCViewDataObject.Create;
 begin
   inherited Create([doOwnsValues]);
 end;

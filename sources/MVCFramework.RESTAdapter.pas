@@ -188,7 +188,7 @@ uses
   Data.SqlExpr,
   DBXCommon,
 {$ENDIF}
-  MVCFramework.RTTIUtils,
+  MVCFramework.Rtti.Utils,
   MVCFramework.DuckTyping,
   Generics.Collections;
 

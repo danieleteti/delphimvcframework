@@ -124,7 +124,7 @@ begin
       ContentCharset := '';
     end;
     lStatusPieces := string(lOutput.Items[4]).Split([':']);
-    ResponseStatusCode(StrToInt(lStatusPieces[0]), lStatusPieces[1]);
+    ResponseStatus(StrToInt(lStatusPieces[0]), lStatusPieces[1]);
   end;
 end;
 

@@ -295,7 +295,7 @@ begin
     Exit;
   end;
 
-  lJObj := Context.Request.BodyAsJSONObject;
+  lJObj := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
   if not Assigned(lJObj) then
   begin
     Handled := true;

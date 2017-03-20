@@ -34,15 +34,23 @@ uses
   MVCFramework.Commons,
   MVCFramework.Logger,
   MVCFramework.JWT,
+  MVCFramework.TypesAliases,
+  System.Classes,
   System.Generics.Collections,
-  System.DateUtils, System.SysUtils;
+  System.DateUtils,
+  System.SysUtils;
 
 type
+
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
 
   TMVCJwtAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   strict private
     FMVCAuthenticationHandler: IMVCAuthenticationHandler;
+
+    procedure InternalRender(AJSONValue: TJSONValue;
+      AContentType, AContentEncoding: string; AContext: TWebContext;
+      AInstanceOwner: Boolean);
 
     procedure Render(const aErrorCode: UInt16; const aErrorMessage: string; aContext: TWebContext;
       const aErrorClassName: string = ''); overload;
@@ -73,19 +81,21 @@ implementation
 
 uses
   MVCFramework.Session
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-{$IFDEF WEBAPACHEHTTP}
+
+  {$IFDEF WEBAPACHEHTTP}
+
     , Web.ApacheHTTP
-{$ENDIF}
-{$IFDEF SYSTEMNETENCODING}
+
+  {$ENDIF}
+  {$IFDEF SYSTEMNETENCODING}
+
     , System.NetEncoding
-{$ELSE}
+
+  {$ELSE}
+
     , Soap.EncdDecd
-{$ENDIF};
+
+  {$ENDIF};
 
 { TMVCSalutationMiddleware }
 
@@ -100,6 +110,32 @@ begin
   FSecret := aSecret;
   FClaimsToChecks := aClaimsToCheck;
   FSetupJWTClaims := aConfigClaims;
+end;
+
+procedure TMVCJwtAuthenticationMiddleware.InternalRender(
+  AJSONValue: TJSONValue; AContentType, AContentEncoding: string;
+  AContext: TWebContext; AInstanceOwner: Boolean);
+var
+  OutEncoding: TEncoding;
+  lContentType, lJString: string;
+begin
+  lJString := AJSONValue.ToJSON;
+
+  AContext.Response.RawWebResponse.ContentType := AContentType + '; charset=' + AContentEncoding;
+  lContentType := AContentType + '; charset=' + AContentEncoding;
+  OutEncoding := TEncoding.GetEncoding(AContentEncoding);
+  try
+    AContext.Response.SetContentStream(
+      TBytesStream.Create(
+      TEncoding.Convert(TEncoding.Default, OutEncoding,
+      TEncoding.Default.GetBytes(lJString))
+      ), lContentType);
+  finally
+    OutEncoding.Free;
+  end;
+
+  if aInstanceOwner then
+    FreeAndNil(AJSONValue)
 end;
 
 procedure TMVCJwtAuthenticationMiddleware.OnAfterControllerAction
