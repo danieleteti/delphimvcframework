@@ -24,6 +24,8 @@
 
 unit MVCFramework.RESTClient;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses

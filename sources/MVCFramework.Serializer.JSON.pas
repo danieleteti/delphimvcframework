@@ -26,6 +26,8 @@
 
 unit MVCFramework.Serializer.JSON;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses

@@ -24,57 +24,58 @@
 
 unit MVCFramework.MultiMap;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
   System.Generics.Collections;
 
 type
+
   IMVCMultiMap<TKey, TVal> = interface
     ['{8D762DCE-3DB0-42BB-973C-68C49997606D}']
-    procedure Add(const Key: TKey; const Value: TVal);
-    function GetItems(const Key: TKey): TList<TVal>;
-    function Contains(const Key: TKey): Boolean;
+    procedure Add(const AKey: TKey; const AValue: TVal);
+    function GetItems(const AKey: TKey): TList<TVal>;
+    function Contains(const AKey: TKey): Boolean;
     function Keys: TArray<TKey>;
-    procedure Remove(const Key: String);
+    procedure Remove(const AKey: String);
     procedure Clear;
   end;
 
   IMVCInterfaceMultiMap<TVal: IInterface> = interface(IMVCMultiMap<String, TVal>)
     ['{90534C2B-7E93-4907-81CE-4CF6CAE63D50}']
-
   end;
 
   TMVCInterfaceMultiMap<TVal: IInterface> = class(TInterfacedObject, IMVCInterfaceMultiMap<TVal>)
   private
     FMultiMap: TObjectDictionary<String, TList<TVal>>;
   public
-    constructor Create(OwnsValues: Boolean = True); virtual;
+    constructor Create(AOwnsValues: Boolean = True); virtual;
     destructor Destroy; override;
-    procedure Add(const Key: String; const Value: TVal);
-    function GetItems(const Key: String): TList<TVal>;
-    function Contains(const Key: String): Boolean;
+    procedure Add(const AKey: String; const AValue: TVal);
+    function GetItems(const AKey: String): TList<TVal>;
+    function Contains(const AKey: String): Boolean;
     function Keys: TArray<String>;
-    procedure Remove(const Key: String);
+    procedure Remove(const AKey: String);
     procedure Clear;
   end;
 
   IMVCObjectMultiMap<TVal: class> = interface(IMVCMultiMap<String, TVal>)
     ['{1F6A6826-0759-488A-AEFC-A068AD5BB5DE}']
-
   end;
 
   TMVCObjectMultiMap<TVal: class> = class(TInterfacedObject, IMVCObjectMultiMap<TVal>)
   private
     FMultiMap: TObjectDictionary<String, TObjectList<TVal>>;
   public
-    constructor Create(OwnsValues: Boolean = True); virtual;
+    constructor Create(AOwnsValues: Boolean = True); virtual;
     destructor Destroy; override;
-    procedure Add(const Key: String; const Value: TVal);
-    function GetItems(const Key: String): TList<TVal>;
-    function Contains(const Key: String): Boolean;
+    procedure Add(const AKey: String; const AValue: TVal);
+    function GetItems(const AKey: String): TList<TVal>;
+    function Contains(const AKey: String): Boolean;
     function Keys: TArray<String>;
-    procedure Remove(const Key: String);
+    procedure Remove(const AKey: String);
     procedure Clear;
   end;
 
@@ -83,18 +84,18 @@ implementation
 uses
   System.SysUtils;
 
-{ TMVCMultiMap<TKey, TVal> }
+{ TMVCObjectMultiMap<TKey, TVal> }
 
-procedure TMVCObjectMultiMap<TVal>.Add(const Key: String; const Value: TVal);
+procedure TMVCObjectMultiMap<TVal>.Add(const AKey: String; const AValue: TVal);
 var
   lList: TObjectList<TVal>;
 begin
-  if not FMultiMap.TryGetValue(Key, lList) then
+  if not FMultiMap.TryGetValue(AKey, lList) then
   begin
     lList := TObjectList<TVal>.Create(True);
-    FMultiMap.Add(Key, lList);
+    FMultiMap.Add(AKey, lList);
   end;
-  lList.Add(Value);
+  lList.Add(AValue);
 end;
 
 procedure TMVCObjectMultiMap<TVal>.Clear;
@@ -102,18 +103,18 @@ begin
   FMultiMap.Clear;
 end;
 
-function TMVCObjectMultiMap<TVal>.Contains(const Key: String): Boolean;
+function TMVCObjectMultiMap<TVal>.Contains(const AKey: String): Boolean;
 begin
-  Result := FMultiMap.ContainsKey(Key);
+  Result := FMultiMap.ContainsKey(AKey);
 end;
 
-constructor TMVCObjectMultiMap<TVal>.Create(OwnsValues: Boolean);
+constructor TMVCObjectMultiMap<TVal>.Create(AOwnsValues: Boolean);
 var
   lDictOwnerships: TDictionaryOwnerships;
 begin
   inherited Create;
   lDictOwnerships := [];
-  if OwnsValues then
+  if AOwnsValues then
     lDictOwnerships := lDictOwnerships + [doOwnsValues];
 
   FMultiMap := TObjectDictionary < String, TObjectList < TVal >>.Create(lDictOwnerships);
@@ -125,12 +126,12 @@ begin
   inherited;
 end;
 
-function TMVCObjectMultiMap<TVal>.GetItems(const Key: String): TList<TVal>;
+function TMVCObjectMultiMap<TVal>.GetItems(const AKey: String): TList<TVal>;
 var
   lOutput: TObjectList<TVal>;
 begin
   Result := nil;
-  if FMultiMap.TryGetValue(Key, lOutput) then
+  if FMultiMap.TryGetValue(AKey, lOutput) then
     Result := lOutput;
 end;
 
@@ -139,23 +140,23 @@ begin
   Result := FMultiMap.Keys.ToArray;
 end;
 
-procedure TMVCObjectMultiMap<TVal>.Remove(const Key: String);
+procedure TMVCObjectMultiMap<TVal>.Remove(const AKey: String);
 begin
-  FMultiMap.Remove(Key);
+  FMultiMap.Remove(AKey);
 end;
 
 { TMVCInterfaceMultiMap<TVal> }
 
-procedure TMVCInterfaceMultiMap<TVal>.Add(const Key: String; const Value: TVal);
+procedure TMVCInterfaceMultiMap<TVal>.Add(const AKey: String; const AValue: TVal);
 var
   lList: TList<TVal>;
 begin
-  if not FMultiMap.TryGetValue(Key, lList) then
+  if not FMultiMap.TryGetValue(AKey, lList) then
   begin
     lList := TList<TVal>.Create;
-    FMultiMap.Add(Key, lList);
+    FMultiMap.Add(AKey, lList);
   end;
-  lList.Add(Value);
+  lList.Add(AValue);
 end;
 
 procedure TMVCInterfaceMultiMap<TVal>.Clear;
@@ -163,18 +164,18 @@ begin
   FMultiMap.Clear;
 end;
 
-function TMVCInterfaceMultiMap<TVal>.Contains(const Key: String): Boolean;
+function TMVCInterfaceMultiMap<TVal>.Contains(const AKey: String): Boolean;
 begin
-  Result := FMultiMap.ContainsKey(Key);
+  Result := FMultiMap.ContainsKey(AKey);
 end;
 
-constructor TMVCInterfaceMultiMap<TVal>.Create(OwnsValues: Boolean);
+constructor TMVCInterfaceMultiMap<TVal>.Create(AOwnsValues: Boolean);
 var
   lDictOwnerships: TDictionaryOwnerships;
 begin
   inherited Create;
   lDictOwnerships := [];
-  if OwnsValues then
+  if AOwnsValues then
     lDictOwnerships := lDictOwnerships + [doOwnsValues];
   FMultiMap := TObjectDictionary < String, TList < TVal >>.Create(lDictOwnerships);
 end;
@@ -185,12 +186,12 @@ begin
   inherited;
 end;
 
-function TMVCInterfaceMultiMap<TVal>.GetItems(const Key: String): TList<TVal>;
+function TMVCInterfaceMultiMap<TVal>.GetItems(const AKey: String): TList<TVal>;
 var
   lOutput: TList<TVal>;
 begin
   Result := nil;
-  if FMultiMap.TryGetValue(Key, lOutput) then
+  if FMultiMap.TryGetValue(AKey, lOutput) then
     Result := lOutput;
 end;
 
@@ -199,9 +200,9 @@ begin
   Result := FMultiMap.Keys.ToArray;
 end;
 
-procedure TMVCInterfaceMultiMap<TVal>.Remove(const Key: String);
+procedure TMVCInterfaceMultiMap<TVal>.Remove(const AKey: String);
 begin
-  FMultiMap.Remove(Key);
+  FMultiMap.Remove(AKey);
 end;
 
 end.

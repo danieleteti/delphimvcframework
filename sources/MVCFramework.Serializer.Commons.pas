@@ -26,9 +26,9 @@
 
 unit MVCFramework.Serializer.Commons;
 
-interface
-
 {$I dmvcframework.inc}
+
+interface
 
 uses
   System.Rtti,

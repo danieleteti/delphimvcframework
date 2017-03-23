@@ -511,7 +511,10 @@ type
     /// </summary>
     /// <param name="AContext">Webcontext which contains the complete request and response of the actual call.</param>
     /// <param name="AHandled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
-    procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+    procedure OnBeforeRouting(
+      AContext: TWebContext;
+      var AHandled: Boolean
+      );
     /// <summary>
     /// Procedure is called before the specific controller method is called.
     /// </summary>
@@ -519,7 +522,12 @@ type
     /// <param name="AControllerQualifiedClassName">Qualified classname of the matching controller.</param>
     /// <param name="AActionName">Method name of the matching controller method.</param>
     /// <param name="AHandled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
-    procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string; const AActionName: string; var AHandled: Boolean);
+    procedure OnBeforeControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
+      var AHandled: Boolean
+      );
     /// <summary>
     /// Procedure is called after the specific controller method was called.
     /// It is still possible to cancel or to completly modifiy the request.
@@ -527,7 +535,11 @@ type
     /// <param name="AContext">Webcontext which contains the complete request and response of the actual call.</param>
     /// <param name="AActionName">Method name of the matching controller method.</param>
     /// <param name="AHandled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
-    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+    procedure OnAfterControllerAction(
+      AContext: TWebContext;
+      const AActionName: string;
+      const AHandled: Boolean
+      );
   end;
 
   TMVCEngine = class
@@ -1249,14 +1261,14 @@ begin
   if (Trim(ASessionType) = EmptyStr) then
     raise EMVCException.Create('Empty Session Type');
 
-  TMonitor.Enter(SessionList);
+  TMonitor.Enter(GlobalSessionList);
   try
     Session := TMVCSessionFactory.GetInstance.CreateNewByType(ASessionType, ASessionId, ASessionTimeout);
-    SessionList.Add(ASessionId, Session);
+    GlobalSessionList.Add(ASessionId, Session);
     Result := Session;
     Session.MarkAsUsed;
   finally
-    TMonitor.Exit(SessionList);
+    TMonitor.Exit(GlobalSessionList);
   end;
 end;
 
@@ -1397,11 +1409,11 @@ begin
   SId := SessionId;
   if SId.IsEmpty then
     Exit(False);
-  TMonitor.Enter(SessionList);
+  TMonitor.Enter(GlobalSessionList);
   try
-    Result := SessionList.ContainsKey(SId);
+    Result := GlobalSessionList.ContainsKey(SId);
   finally
-    TMonitor.Exit(SessionList);
+    TMonitor.Exit(GlobalSessionList);
   end;
 end;
 
@@ -1419,12 +1431,12 @@ begin
   Cookie.Expires := EncodeDate(1970, 1, 1);
   Cookie.Path := '/';
 
-  TMonitor.Enter(SessionList);
+  TMonitor.Enter(GlobalSessionList);
   try
     SId := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
-    SessionList.Remove(SId);
+    GlobalSessionList.Remove(SId);
   finally
-    TMonitor.Exit(SessionList);
+    TMonitor.Exit(GlobalSessionList);
   end;
 
   FIsSessionStarted := False;
@@ -1879,7 +1891,7 @@ var
 begin
   Result := nil;
 
-  List := SessionList;
+  List := GlobalSessionList;
   TMonitor.Enter(List);
   try
     if not ASessionId.IsEmpty then

@@ -24,11 +24,16 @@
 
 unit MVCFramework.Logger;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
+  System.Classes,
+  System.SysUtils,
+  MVCFramework.Commons,
   LoggerPro,
-  System.SysUtils;
+  LoggerPro.FileAppender;
 
 const
   LOGGERPRO_TAG = 'dmvcframework';
@@ -62,9 +67,6 @@ var
   LogLevelLimit: TLogLevel = TLogLevel.levNormal;
 
 implementation
-
-uses
-  System.Classes, LoggerPro.FileAppender, MVCFramework.Commons;
 
 var
   _lock: TObject;

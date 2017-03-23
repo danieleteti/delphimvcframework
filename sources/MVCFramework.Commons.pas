@@ -26,9 +26,9 @@
 
 unit MVCFramework.Commons;
 
-interface
-
 {$I dmvcframework.inc}
+
+interface
 
 uses
   System.SysUtils,
@@ -375,7 +375,6 @@ type
   end;
 
   {$SCOPEDENUMS ON}
-
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean;

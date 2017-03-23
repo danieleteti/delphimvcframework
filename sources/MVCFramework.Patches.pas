@@ -24,10 +24,9 @@
 
 unit MVCFramework.Patches;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
   System.Classes

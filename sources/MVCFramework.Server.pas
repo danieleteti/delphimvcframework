@@ -6,6 +6,8 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
+// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+//
 // ***************************************************************************
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +25,8 @@
 // ***************************************************************************
 
 unit MVCFramework.Server;
+
+{$I dmvcframework.inc}
 
 interface
 

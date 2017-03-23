@@ -26,6 +26,8 @@
 
 unit MVCFramework.Router;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses

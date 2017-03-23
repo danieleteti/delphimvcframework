@@ -6,6 +6,8 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
+// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+//
 // ***************************************************************************
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +25,8 @@
 // ***************************************************************************
 
 unit MVCFramework.Server.Impl;
+
+{$I dmvcframework.inc}
 
 interface
 
@@ -100,21 +104,23 @@ type
     procedure OnRequest(const AControllerQualifiedClassName, AActionName: string;
       var AAuthenticationRequired: Boolean);
 
-    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>;
+    procedure OnAuthentication(
+      const AUserName, APassword: string;
+      AUserRoles: TList<string>;
       var IsValid: Boolean;
       const ASessionData: TDictionary<string, string>);
 
-    procedure OnAuthorization(AUserRoles: TList<string>;
-      const AControllerQualifiedClassName: string; const AActionName: string;
+    procedure OnAuthorization(
+      AUserRoles: TList<string>;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
       var IsAuthorized: Boolean);
   public
     class function New: IMVCDefaultAuthenticationHandler; static;
 
     function SetOnRequest(AMethod: TMVCRequestDelegate): IMVCDefaultAuthenticationHandler;
-    function SetOnAuthentication(AMethod: TMVCAuthenticationDelegate)
-      : IMVCDefaultAuthenticationHandler;
-    function SetOnAuthorization(AMethod: TMVCAuthorizationDelegate)
-      : IMVCDefaultAuthenticationHandler;
+    function SetOnAuthentication(AMethod: TMVCAuthenticationDelegate): IMVCDefaultAuthenticationHandler;
+    function SetOnAuthorization(AMethod: TMVCAuthorizationDelegate): IMVCDefaultAuthenticationHandler;
   end;
 
 implementation

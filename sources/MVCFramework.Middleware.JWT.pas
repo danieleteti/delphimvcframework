@@ -24,53 +24,67 @@
 
 unit MVCFramework.Middleware.JWT;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
-  MVCFramework,
-  MVCFramework.Commons,
-  MVCFramework.Logger,
-  MVCFramework.JWT,
-  MVCFramework.TypesAliases,
+  System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  System.DateUtils,
-  System.SysUtils;
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.JWT,
+  MVCFramework.TypesAliases;
 
 type
 
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
 
-  TMVCJwtAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
-  strict private
-    FMVCAuthenticationHandler: IMVCAuthenticationHandler;
-
-    procedure InternalRender(AJSONValue: TJSONValue;
-      AContentType, AContentEncoding: string; AContext: TWebContext;
-      AInstanceOwner: Boolean);
-
-    procedure Render(const aErrorCode: UInt16; const aErrorMessage: string; aContext: TWebContext;
-      const aErrorClassName: string = ''); overload;
+  TMVCJWTAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
+    FAuthenticationHandler: IMVCAuthenticationHandler;
     FClaimsToChecks: TJWTCheckableClaims;
     FSetupJWTClaims: TJWTClaimsSetup;
-
-  protected
     FSecret: string;
-    procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
-    procedure OnAfterControllerAction(Context: TWebContext;
-      const AActionName: string; const Handled: Boolean);
-    procedure OnBeforeControllerAction(Context: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var Handled: Boolean);
+
+    procedure InternalRender(
+      AJSONValue: TJSONValue;
+      AContentType: string;
+      AContentEncoding: string;
+      AContext: TWebContext;
+      AInstanceOwner: Boolean
+      );
+
+    procedure RenderError(
+      const AErrorCode: UInt16;
+      const AErrorMessage: string;
+      const AContext: TWebContext;
+      const AErrorClassName: string = ''
+      );
+  protected
+    procedure OnBeforeRouting(
+      AContext: TWebContext;
+      var AHandled: Boolean
+      );
+
+    procedure OnBeforeControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
+      var AHandled: Boolean
+      );
+
+    procedure OnAfterControllerAction(
+      AContext: TWebContext;
+      const AActionName: string;
+      const AHandled: Boolean
+      );
   public
-    constructor Create(AMVCAuthenticationHandler: IMVCAuthenticationHandler;
-      aConfigClaims: TJWTClaimsSetup;
-      aSecret: string = 'D3lph1MVCFram3w0rk';
-      aClaimsToCheck: TJWTCheckableClaims = [
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk';
+      AClaimsToCheck: TJWTCheckableClaims = [
       TJWTCheckableClaim.ExpirationTime,
       TJWTCheckableClaim.NotBefore,
       TJWTCheckableClaim.IssuedAt
@@ -79,249 +93,227 @@ type
 
 implementation
 
-uses
-  MVCFramework.Session
+{ TMVCJWTAuthenticationMiddleware }
 
-  {$IFDEF WEBAPACHEHTTP}
-
-    , Web.ApacheHTTP
-
-  {$ENDIF}
-  {$IFDEF SYSTEMNETENCODING}
-
-    , System.NetEncoding
-
-  {$ELSE}
-
-    , Soap.EncdDecd
-
-  {$ENDIF};
-
-{ TMVCSalutationMiddleware }
-
-constructor TMVCJwtAuthenticationMiddleware.Create(AMVCAuthenticationHandler
-  : IMVCAuthenticationHandler;
-  aConfigClaims: TJWTClaimsSetup;
-  aSecret: string;
-  aClaimsToCheck: TJWTCheckableClaims);
+constructor TMVCJWTAuthenticationMiddleware.Create(
+  AAuthenticationHandler: IMVCAuthenticationHandler;
+  AConfigClaims: TJWTClaimsSetup; ASecret: string;
+  AClaimsToCheck: TJWTCheckableClaims);
 begin
   inherited Create;
-  FMVCAuthenticationHandler := AMVCAuthenticationHandler;
-  FSecret := aSecret;
-  FClaimsToChecks := aClaimsToCheck;
-  FSetupJWTClaims := aConfigClaims;
+  FAuthenticationHandler := AAuthenticationHandler;
+  FSetupJWTClaims := AConfigClaims;
+  FClaimsToChecks := AClaimsToCheck;
+  FSecret := ASecret;
 end;
 
-procedure TMVCJwtAuthenticationMiddleware.InternalRender(
+procedure TMVCJWTAuthenticationMiddleware.InternalRender(
   AJSONValue: TJSONValue; AContentType, AContentEncoding: string;
   AContext: TWebContext; AInstanceOwner: Boolean);
 var
-  OutEncoding: TEncoding;
-  lContentType, lJString: string;
+  Encoding: TEncoding;
+  ContentType, JValue: string;
 begin
-  lJString := AJSONValue.ToJSON;
+  JValue := AJSONValue.ToJSON;
 
   AContext.Response.RawWebResponse.ContentType := AContentType + '; charset=' + AContentEncoding;
-  lContentType := AContentType + '; charset=' + AContentEncoding;
-  OutEncoding := TEncoding.GetEncoding(AContentEncoding);
+  ContentType := AContentType + '; charset=' + AContentEncoding;
+
+  Encoding := TEncoding.GetEncoding(AContentEncoding);
   try
     AContext.Response.SetContentStream(
-      TBytesStream.Create(
-      TEncoding.Convert(TEncoding.Default, OutEncoding,
-      TEncoding.Default.GetBytes(lJString))
-      ), lContentType);
+      TBytesStream.Create(TEncoding.Convert(TEncoding.Default, Encoding, TEncoding.Default.GetBytes(JValue))),
+      ContentType);
   finally
-    OutEncoding.Free;
+    Encoding.Free;
   end;
 
-  if aInstanceOwner then
+  if AInstanceOwner then
     FreeAndNil(AJSONValue)
 end;
 
-procedure TMVCJwtAuthenticationMiddleware.OnAfterControllerAction
-  (Context: TWebContext; const AActionName: string; const Handled: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(
+  AContext: TWebContext; const AActionName: string;
+  const AHandled: Boolean);
 begin
-  // do nothing
+  // Implement as needed
 end;
 
-procedure TMVCJwtAuthenticationMiddleware.OnBeforeControllerAction
-  (Context: TWebContext; const AControllerQualifiedClassName,
-  AActionName: string; var Handled: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.OnBeforeControllerAction(
+  AContext: TWebContext; const AControllerQualifiedClassName,
+  AActionName: string; var AHandled: Boolean);
 var
-  lAuthRequired: Boolean;
-  lIsAuthorized: Boolean;
-  lJWT: TJWT;
-  lAuthHeader: string;
-  lToken: string;
-  lError: String;
+  AuthRequired: Boolean;
+  IsAuthorized: Boolean;
+  JWTValue: TJWT;
+  AuthHeader: string;
+  AuthToken: string;
+  ErrorMsg: String;
 begin
   // check if the resource is protected
-  FMVCAuthenticationHandler.OnRequest(AControllerQualifiedClassName,
-    AActionName, lAuthRequired);
-  if not lAuthRequired then
+  FAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, AuthRequired);
+
+  if not AuthRequired then
   begin
-    Handled := False;
+    AHandled := False;
     Exit;
   end;
 
   // Checking token in subsequent requests
   // ***************************************************
-  lJWT := TJWT.Create(FSecret);
+  JWTValue := TJWT.Create(FSecret);
   try
-    lJWT.RegClaimsToChecks := Self.FClaimsToChecks;
-    lAuthHeader := Context.Request.Headers['Authentication'];
-    if lAuthHeader.IsEmpty then
+    JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
+    AuthHeader := AContext.Request.Headers['Authentication'];
+    if AuthHeader.IsEmpty then
     begin
-      Render(http_status.Unauthorized, 'Authentication Required', Context);
-      Handled := True;
+      RenderError(HTTP_STATUS.Unauthorized, 'Authentication Required', AContext);
+      AHandled := True;
       Exit;
     end;
 
     // retrieve the token from the "authentication bearer" header
-    lToken := '';
-    if lAuthHeader.StartsWith('bearer', True) then
-    begin
-      lToken := lAuthHeader.Remove(0, 'bearer'.Length).Trim;
-    end;
+    AuthToken := '';
+    if AuthHeader.StartsWith('bearer', True) then
+      AuthToken := AuthHeader.Remove(0, 'bearer'.Length).Trim;
 
     // check the jwt
-    if not lJWT.IsValidToken(lToken, lError) then
+    if not JWTValue.IsValidToken(AuthToken, ErrorMsg) then
     begin
-      Render(http_status.Unauthorized, lError, Context);
-      Handled := True;
+      RenderError(HTTP_STATUS.Unauthorized, ErrorMsg, AContext);
+      AHandled := True;
     end
     else
     begin
-      lJWT.LoadToken(lToken);
-      if lJWT.CustomClaims['username'].IsEmpty then
+      JWTValue.LoadToken(AuthToken);
+      if JWTValue.CustomClaims['username'].IsEmpty then
       begin
-        Render(http_status.Unauthorized, 'Invalid Token, Authentication Required', Context);
-        Handled := True;
+        RenderError(HTTP_STATUS.Unauthorized, 'Invalid Token, Authentication Required', AContext);
+        AHandled := True;
       end
       else
       begin
-        lIsAuthorized := False;
-        Context.LoggedUser.UserName := lJWT.CustomClaims['username'];
-        Context.LoggedUser.Roles.AddRange(lJWT.CustomClaims['roles'].Split([',']));
-        Context.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
-        FMVCAuthenticationHandler.OnAuthorization(Context.LoggedUser.Roles,
-          AControllerQualifiedClassName, AActionName, lIsAuthorized);
-        if lIsAuthorized then
-        begin
-          Handled := False;
-        end
+        IsAuthorized := False;
+
+        AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
+        AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
+        AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
+
+        FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
+
+        if IsAuthorized then
+          AHandled := False
         else
         begin
-          Render(http_status.Forbidden, 'Authorization Forbidden', Context);
-          Handled := True;
+          RenderError(HTTP_STATUS.Forbidden, 'Authorization Forbidden', AContext);
+          AHandled := True;
         end;
       end;
     end;
   finally
-    lJWT.Free;
+    JWTValue.Free;
   end;
-
 end;
 
-procedure TMVCJwtAuthenticationMiddleware.OnBeforeRouting
-  (Context: TWebContext; var Handled: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.OnBeforeRouting(
+  AContext: TWebContext; var AHandled: Boolean);
 var
-  lUserName: string;
-  lPassword: string;
-  lRoles: TList<String>;
-  lSessionData: TSessionData;
-  lIsValid: Boolean;
-  lJWT: TJWT;
+  UserName: string;
+  Password: string;
+  RolesList: TList<String>;
+  SessionData: TSessionData;
+  IsValid: Boolean;
+  JWTValue: TJWT;
 begin
-  if SameText(Context.Request.PathInfo, '/login') and (Context.Request.HTTPMethod = httpPOST) then
+  if SameText(AContext.Request.PathInfo, '/login') and (AContext.Request.HTTPMethod = httpPOST) then
   begin
-    lUserName := Context.Request.Headers['jwtusername'];
-    lPassword := Context.Request.Headers['jwtpassword'];
-    if (lUserName.IsEmpty) or
-      (lPassword.IsEmpty) then
+    UserName := AContext.Request.Headers['jwtusername'];
+    Password := AContext.Request.Headers['jwtpassword'];
+    if (UserName.IsEmpty) or (Password.IsEmpty) then
     begin
-      Render(http_status.Unauthorized, 'Username and password Required', Context);
-      Handled := True;
+      RenderError(HTTP_STATUS.Unauthorized, 'Username and password Required', AContext);
+      AHandled := True;
       Exit;
     end;
 
     // check the authorization for the requested resource
-    lRoles := TList<string>.Create;
+    RolesList := TList<string>.Create;
     try
-      lSessionData := TSessionData.Create;
+      SessionData := TSessionData.Create;
       try
-        FMVCAuthenticationHandler.OnAuthentication(lUserName, lPassword,
-          lRoles, lIsValid, lSessionData);
-        if lIsValid then
+        FAuthenticationHandler.OnAuthentication(UserName, Password, RolesList, IsValid, SessionData);
+        if IsValid then
         begin
-          lJWT := TJWT.Create(FSecret);
+          JWTValue := TJWT.Create(FSecret);
           try
             // let's user config claims and custom claims
-            FSetupJWTClaims(lJWT);
+            FSetupJWTClaims(JWTValue);
 
             // these claims are mandatory and managed by the middleware
-            if not lJWT.CustomClaims['username'].IsEmpty then
-              raise EMVCJWTException.Create
-                ('Custom claim "username" is reserved and cannot be modified in the JWT setup');
-            if not lJWT.CustomClaims['roles'].IsEmpty then
-              raise EMVCJWTException.Create
-                ('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
+            if not JWTValue.CustomClaims['username'].IsEmpty then
+              raise EMVCJWTException.Create('Custom claim "username" is reserved and cannot be modified in the JWT setup');
 
-            lJWT.CustomClaims['username'] := lUserName;
-            lJWT.CustomClaims['roles'] := String.Join(',', lRoles.ToArray);
+            if not JWTValue.CustomClaims['roles'].IsEmpty then
+              raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
 
-            /// / setup the current logged user from the JWT
-            Context.LoggedUser.Roles.AddRange(lRoles);
-            Context.LoggedUser.UserName := lJWT.CustomClaims['username'];
-            Context.LoggedUser.LoggedSince := lJWT.Claims.IssuedAt;
-            Context.LoggedUser.Realm := lJWT.Claims.Subject;
-            /// ////////////////////////////////////////////////
+            JWTValue.CustomClaims['username'] := UserName;
+            JWTValue.CustomClaims['roles'] := String.Join(',', RolesList.ToArray);
 
-            InternalRender(TJSONObject.Create(TJSONPair.Create('token', lJWT.GetToken)),
+            // setup the current logged user from the JWT
+            AContext.LoggedUser.Roles.AddRange(RolesList);
+            AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
+            AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
+            AContext.LoggedUser.Realm := JWTValue.Claims.Subject;
+
+            InternalRender(
+              TJSONObject.Create(TJSONPair.Create('token', JWTValue.GetToken)),
               TMVCMediaType.APPLICATION_JSON,
-              TMVCConstants.DEFAULT_CONTENT_CHARSET, Context);
-            Handled := True;
+              TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext
+              );
+            AHandled := True;
           finally
-            lJWT.Free;
+            JWTValue.Free;
           end;
         end
         else
         begin
-          Render(http_status.Forbidden, 'Forbidden', Context);
-          Handled := True;
+          RenderError(HTTP_STATUS.Forbidden, 'Forbidden', AContext);
+          AHandled := True;
         end;
       finally
-        lSessionData.Free;
+        SessionData.Free;
       end;
     finally
-      lRoles.Free;
+      RolesList.Free;
     end;
   end;
 end;
 
-procedure TMVCJwtAuthenticationMiddleware.Render(const aErrorCode: UInt16;
-  const aErrorMessage: string; aContext: TWebContext;
-  const aErrorClassName: string = '');
+procedure TMVCJWTAuthenticationMiddleware.RenderError(const AErrorCode: UInt16;
+  const AErrorMessage: string; const AContext: TWebContext;
+  const AErrorClassName: string);
 var
-  j: TJSONObject;
-  status: string;
+  Jo: TJSONObject;
+  Status: string;
 begin
-  aContext.Response.StatusCode := aErrorCode;
-  aContext.Response.ReasonString := aErrorMessage;
-  status := 'error';
-  if (aErrorCode div 100) = 2 then
-    status := 'ok';
-  j := TJSONObject.Create;
-  j.AddPair('status', status);
-  if aErrorClassName = '' then
-    j.AddPair('classname', TJSONNull.Create)
+  AContext.Response.StatusCode := AErrorCode;
+  AContext.Response.ReasonString := AErrorMessage;
+
+  Status := 'error';
+  if (AErrorCode div 100) = 2 then
+    Status := 'ok';
+
+  Jo := TJSONObject.Create;
+  Jo.AddPair('status', Status);
+
+  if AErrorClassName = '' then
+    Jo.AddPair('classname', TJSONNull.Create)
   else
-    j.AddPair('classname', aErrorClassName);
-  j.AddPair('message', aErrorMessage);
+    Jo.AddPair('classname', AErrorClassName);
 
-  InternalRender(j, TMVCConstants.DEFAULT_CONTENT_TYPE,
-    TMVCConstants.DEFAULT_CONTENT_CHARSET, aContext);
+  Jo.AddPair('message', AErrorMessage);
 
+  InternalRender(Jo, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
 end;
 
 end.

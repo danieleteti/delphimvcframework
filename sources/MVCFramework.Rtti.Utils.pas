@@ -24,9 +24,9 @@
 
 unit MVCFramework.Rtti.Utils;
 
-interface
-
 {$I dmvcframework.inc}
+
+interface
 
 uses
   System.Classes,

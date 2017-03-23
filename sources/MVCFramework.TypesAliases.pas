@@ -24,10 +24,9 @@
 
 unit MVCFramework.TypesAliases;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
   System.SysUtils
@@ -39,6 +38,7 @@ uses
     ;
 
 type
+
 {$IFDEF SYSTEMJSON}
   TJSONObject = System.JSON.TJSONObject;
   TJSONValue = System.JSON.TJSONValue;

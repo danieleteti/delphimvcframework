@@ -24,23 +24,23 @@
 
 unit MVCFramework.JWT;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
-  System.Generics.Collections
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    , MVCFramework.Patches
-    ;
+  System.SysUtils,
+  System.DateUtils,
+  System.Generics.Collections,
+  MVCFramework.Commons,
+  MVCFramework.HMAC,
+  MVCFramework.TypesAliases,
+  MVCFramework.Patches;
 
 type
-{$SCOPEDENUMS ON}
+
+  {$SCOPEDENUMS ON}
+
   TJWTCheckableClaim = (ExpirationTime, NotBefore, IssuedAt);
   TJWTCheckableClaims = set of TJWTCheckableClaim;
 
@@ -71,8 +71,7 @@ type
     procedure SetItem(const Index, Value: String);
     function GetItemAsDateTime(const Index: String): TDateTime;
     procedure SetItemAsDateTime(const Index: String; const Value: TDateTime);
-    property ItemsAsDateTime[const Index: String]: TDateTime read GetItemAsDateTime
-      write SetItemAsDateTime;
+    property ItemsAsDateTime[const Index: String]: TDateTime read GetItemAsDateTime write SetItemAsDateTime;
     property Items[const Index: String]: String read GetItem write SetItem; default;
   protected
     function Contains(const Index: String): Boolean;
@@ -212,12 +211,6 @@ type
   end;
 
 implementation
-
-uses
-  System.SysUtils
-    , MVCFramework.Commons
-    , MVCFramework.HMAC
-    , System.DateUtils;
 
 { TJWTRegisteredClaims }
 

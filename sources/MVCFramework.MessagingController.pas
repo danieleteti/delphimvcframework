@@ -29,8 +29,13 @@ unit MVCFramework.MessagingController;
 interface
 
 uses
+  System.SysUtils,
+  System.DateUtils,
+  System.SyncObjs,
   MVCFramework,
   MVCFramework.Commons,
+  MVCFramework.Logger,
+  MVCFramework.TypesAliases,
   StompClient,
   StompTypes;
 
@@ -38,57 +43,44 @@ type
 
   [MVCPath('/messages')]
   TMVCBUSController = class(TMVCController)
-  strict protected
-    function GetUniqueDurableHeader(clientid, topicname: string): string;
-    procedure InternalSubscribeUserToTopics(clientid: string; Stomp: IStompClient);
-    procedure InternalSubscribeUserToTopic(clientid: string; topicname: string;
-      StompClient: IStompClient);
+  protected
+    function GetUniqueDurableHeader(AClientId, ATopicName: string): string;
+
+    procedure InternalSubscribeUserToTopics(AClientId: string; AStompClient: IStompClient);
+    procedure InternalSubscribeUserToTopic(AClientId: string; ATopicName: string; AStompClient: IStompClient);
 
     procedure AddTopicToUserSubscriptions(const ATopic: string);
     procedure RemoveTopicFromUserSubscriptions(const ATopic: string);
-    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
-      var Handled: Boolean); override;
-
+    procedure OnBeforeAction(AContext: TWebContext; const AActionNAme: string; var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/clients/($clientid)')]
-    procedure SetClientID(CTX: TWebContext);
+    procedure SetClientID(AContext: TWebContext);
 
     [MVCPath('/subscriptions/($topicorqueue)/($name)')]
     [MVCHTTPMethod([httpPOST])]
-    procedure SubscribeToTopic(CTX: TWebContext);
+    procedure SubscribeToTopic(AContext: TWebContext);
 
     [MVCPath('/subscriptions/($topicorqueue)/($name)')]
     [MVCHTTPMethod([httpDELETE])]
-    procedure UnSubscribeFromTopic(CTX: TWebContext);
+    procedure UnSubscribeFromTopic(AContext: TWebContext);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath]
-    procedure ReceiveMessages(CTX: TWebContext);
+    procedure ReceiveMessages(AContext: TWebContext);
 
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/($type)/($topicorqueue)')]
-    procedure EnqueueMessage(CTX: TWebContext);
+    procedure EnqueueMessage(AContext: TWebContext);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/subscriptions')]
-    procedure CurrentlySubscribedTopics(CTX: TWebContext);
+    procedure CurrentlySubscribedTopics(AContext: TWebContext);
   end;
 
 implementation
 
 { TMVCBUSController }
-
-uses
-  System.SysUtils
-    , System.DateUtils
-{$IFDEF SYSTEMJSON} // XE6
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    , MVCFramework.Logger
-    , System.SyncObjs;
 
 procedure TMVCBUSController.AddTopicToUserSubscriptions(const ATopic: string);
 var
@@ -113,38 +105,38 @@ begin
   end;
 end;
 
-procedure TMVCBUSController.CurrentlySubscribedTopics(CTX: TWebContext);
+procedure TMVCBUSController.CurrentlySubscribedTopics(AContext: TWebContext);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(Session['__subscriptions']);
 end;
 
-procedure TMVCBUSController.EnqueueMessage(CTX: TWebContext);
+procedure TMVCBUSController.EnqueueMessage(AContext: TWebContext);
 var
   topicname: string;
   queuetype: string;
 begin
-  queuetype := CTX.Request.Params['type'].Trim.ToLower;
+  queuetype := AContext.Request.Params['type'].Trim.ToLower;
   if (queuetype <> 'topic') and (queuetype <> 'queue') then
     raise EMVCException.Create('Valid type are "queue" or "topic", got ' + queuetype);
 
-  topicname := CTX.Request.Params['topicorqueue'].Trim;
+  topicname := AContext.Request.Params['topicorqueue'].Trim;
   if topicname.IsEmpty then
     raise EMVCException.Create('Invalid or empty topic');
-  if not CTX.Request.ThereIsRequestBody then
+  if not AContext.Request.ThereIsRequestBody then
     raise EMVCException.Create('Body request required');
-//  EnqueueMessageOnTopicOrQueue(queuetype = 'queue', '/' + queuetype + '/' + topicname,
-//    CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
+  // EnqueueMessageOnTopicOrQueue(queuetype = 'queue', '/' + queuetype + '/' + topicname,
+  // CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
   // EnqueueMessage('/queue/' + topicname, CTX.Request.BodyAsJSONObject.Clone as TJSONObject, true);
   Render(200, 'Message sent to topic ' + topicname);
 end;
 
-function TMVCBUSController.GetUniqueDurableHeader(clientid, topicname: string): string;
+function TMVCBUSController.GetUniqueDurableHeader(AClientId, ATopicName: string): string;
 begin
-  Result := clientid + '___' + topicname.Replace('/', '_', [rfReplaceAll]);
+  Result := AClientId + '___' + ATopicName.Replace('/', '_', [rfReplaceAll]);
 end;
 
-procedure TMVCBUSController.ReceiveMessages(CTX: TWebContext);
+procedure TMVCBUSController.ReceiveMessages(AContext: TWebContext);
 var
   Stomp: IStompClient;
   LClientID: string;
@@ -156,13 +148,16 @@ var
   LTimeOut: Boolean;
 const
 
-{$IFDEF TEST}
+  {$IFDEF TEST}
+
   RECEIVE_TIMEOUT = 5; // seconds
 
-{$ELSE}
+  {$ELSE}
+
   RECEIVE_TIMEOUT = 60 * 5; // 5 minutes
 
-{$ENDIF}
+  {$ENDIF}
+
 begin
   LTimeOut := False;
   LClientID := GetClientID;
@@ -224,12 +219,12 @@ begin
     if LTimeOut then
     begin
       res.AddPair('_timeout', TJSONTrue.Create);
-      //Render(http_status.RequestTimeout, res);
+      // Render(http_status.RequestTimeout, res);
     end
     else
     begin
       res.AddPair('_timeout', TJSONFalse.Create);
-      //Render(http_status.OK, res);
+      // Render(http_status.OK, res);
     end;
 
   finally
@@ -265,12 +260,12 @@ begin
     Session['__subscriptions'] := string.Join(';', afterremovaltopics);
 end;
 
-procedure TMVCBUSController.SetClientID(CTX: TWebContext);
+procedure TMVCBUSController.SetClientID(AContext: TWebContext);
 begin
-  Session[CLIENTID_KEY] := CTX.Request.Params['clientid'];
+  Session[CLIENTID_KEY] := AContext.Request.Params['clientid'];
 end;
 
-procedure TMVCBUSController.SubscribeToTopic(CTX: TWebContext);
+procedure TMVCBUSController.SubscribeToTopic(AContext: TWebContext);
 var
   LStomp: IStompClient;
   LClientID: string;
@@ -278,8 +273,8 @@ var
   LTopicOrQueue: string;
 begin
   LClientID := GetClientID;
-  LTopicName := CTX.Request.Params['name'].ToLower;
-  LTopicOrQueue := CTX.Request.Params['topicorqueue'].ToLower;
+  LTopicName := AContext.Request.Params['name'].ToLower;
+  LTopicOrQueue := AContext.Request.Params['topicorqueue'].ToLower;
   LStomp := GetNewStompClient(LClientID);
   try
     LTopicName := '/' + LTopicOrQueue + '/' + LTopicName;
@@ -290,7 +285,7 @@ begin
   end;
 end;
 
-procedure TMVCBUSController.InternalSubscribeUserToTopics(clientid: string; Stomp: IStompClient);
+procedure TMVCBUSController.InternalSubscribeUserToTopics(AClientId: string; AStompClient: IStompClient);
 var
   x, t: string;
   topics: TArray<string>;
@@ -298,23 +293,23 @@ begin
   x := Session['__subscriptions'];
   topics := x.Split([';']);
   for t in topics do
-    InternalSubscribeUserToTopic(clientid, t, Stomp);
+    InternalSubscribeUserToTopic(AClientId, t, AStompClient);
 end;
 
-procedure TMVCBUSController.OnBeforeAction(Context: TWebContext; const AActionNAme: string;
-  var Handled: Boolean);
+procedure TMVCBUSController.OnBeforeAction(AContext: TWebContext; const AActionNAme: string;
+  var AHandled: Boolean);
 begin
   inherited;
   if not StrToBool(Config['messaging']) then
   begin
-    Handled := true;
+    AHandled := true;
     raise EMVCException.Create('Messaging extensions are not enabled');
   end;
-  Handled := False;
+  AHandled := False;
 end;
 
-procedure TMVCBUSController.InternalSubscribeUserToTopic(clientid, topicname: string;
-  StompClient: IStompClient);
+procedure TMVCBUSController.InternalSubscribeUserToTopic(AClientId, ATopicName: string;
+  AStompClient: IStompClient);
 // var
 // LDurSubHeader: string;
 // LHeaders: IStompHeaders;
@@ -332,7 +327,7 @@ begin
   // AddTopicToUserSubscriptions(topicname);
 end;
 
-procedure TMVCBUSController.UnSubscribeFromTopic(CTX: TWebContext);
+procedure TMVCBUSController.UnSubscribeFromTopic(AContext: TWebContext);
 var
   Stomp: IStompClient;
   clientid: string;
@@ -340,7 +335,7 @@ var
   s: string;
 begin
   clientid := GetClientID;
-  thename := CTX.Request.Params['name'].ToLower;
+  thename := AContext.Request.Params['name'].ToLower;
   Stomp := GetNewStompClient(clientid);
   s := '/queue/' + thename;
   Stomp.Unsubscribe(s);

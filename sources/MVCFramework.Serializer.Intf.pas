@@ -26,6 +26,8 @@
 
 unit MVCFramework.Serializer.Intf;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses

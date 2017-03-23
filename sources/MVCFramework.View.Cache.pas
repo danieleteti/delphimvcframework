@@ -24,14 +24,10 @@
 
 unit MVCFramework.View.Cache;
 
+{$I dmvcframework.inc}
+
 interface
 
-uses
-  Generics.Collections;
-
 implementation
-
-uses
-  System.SysUtils;
 
 end.

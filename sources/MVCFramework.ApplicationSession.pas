@@ -24,6 +24,8 @@
 
 unit MVCFramework.ApplicationSession;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -56,32 +58,34 @@ type
   protected
     function GetItems(const AKey: String): String; override;
     procedure SetItems(const AKey, AValue: String); override;
-
-    property Data: TDictionary<string, string> read FData;
   public
     constructor Create; override;
     destructor Destroy; override;
 
     function ToString: String; override;
+
+    property Data: TDictionary<string, string> read FData;
   end;
 
   TMVCApplicationSessionFactory = class sealed
   private
-    { private declarations }
-  protected
     FRegisteredApplicationSessionTypes: TDictionary<String, TWebApplicationSessionClass>;
-    class var FInstance: TMVCApplicationSessionFactory;
+  private
+    class var Instance: TMVCApplicationSessionFactory;
+  public
     constructor Create;
-  public
-    class function GetInstance: TMVCApplicationSessionFactory;
-  public
     destructor Destroy; override;
 
     procedure RegisterSessionType(const AName: String; AWebApplicationSessionClass: TWebApplicationSessionClass);
     function CreateNewByType(const AName: String): TWebApplicationSession;
+
+    class function GetInstance: TMVCApplicationSessionFactory; static;
+    class procedure DestroyInstance; static;
   end;
 
 implementation
+
+{ TWebApplicationSession }
 
 constructor TWebApplicationSession.Create;
 begin
@@ -90,44 +94,46 @@ end;
 
 destructor TWebApplicationSession.Destroy;
 begin
-  inherited;
+  inherited Destroy;
 end;
 
 function TWebApplicationSession.ToString: string;
 begin
-  Result := '';
+  Result := EmptyStr;
 end;
+
+{ TWebApplicationSessionMemory }
 
 constructor TWebApplicationSessionMemory.Create;
 begin
-  inherited;
+  inherited Create;
   FData := TDictionary<string, string>.Create;
 end;
 
 destructor TWebApplicationSessionMemory.Destroy;
 begin
   FData.Free;
-  inherited;
+  inherited Destroy;
 end;
 
 function TWebApplicationSessionMemory.GetItems(const AKey: String): String;
 begin
-  TMonitor.Enter(self);
+  TMonitor.Enter(Self);
   try
     if not FData.TryGetValue(AKey, Result) then
-      Result := '';
+      Result := EmptyStr;
   finally
-    TMonitor.Exit(self);
+    TMonitor.Exit(Self);
   end;
 end;
 
 procedure TWebApplicationSessionMemory.SetItems(const AKey, AValue: String);
 begin
-  TMonitor.Enter(self);
+  TMonitor.Enter(Self);
   try
     FData.AddOrSetValue(AKey, AValue);
   finally
-    TMonitor.Exit(self);
+    TMonitor.Exit(Self);
   end;
 end;
 
@@ -135,52 +141,55 @@ function TWebApplicationSessionMemory.ToString: String;
 var
   LKey: String;
 begin
-  TMonitor.Enter(self);
+  TMonitor.Enter(Self);
   try
-    Result := '';
+    Result := EmptyStr;
     for LKey in FData.Keys do
     begin
       Result := LKey + ' = ' + QuotedStr(FData.Items[LKey]) + sLineBreak;
     end;
   finally
-    TMonitor.Exit(self);
+    TMonitor.Exit(Self);
   end;
 end;
 
-{ TMVCSessionManager }
+{ TMVCApplicationSessionFactory }
 
 constructor TMVCApplicationSessionFactory.Create;
 begin
-  inherited;
+  inherited Create;
   FRegisteredApplicationSessionTypes := TDictionary<string, TWebApplicationSessionClass>.Create;
 end;
 
 function TMVCApplicationSessionFactory.CreateNewByType(const AName: String): TWebApplicationSession;
 var
-  clazz: TWebApplicationSessionClass;
+  Clazz: TWebApplicationSessionClass;
 begin
-  if not FRegisteredApplicationSessionTypes.TryGetValue(AName, clazz) then
+  if not FRegisteredApplicationSessionTypes.TryGetValue(AName, Clazz) then
     raise Exception.Create('Unknown application session type');
-  Result := clazz.Create;
+  Result := Clazz.Create;
 end;
 
 destructor TMVCApplicationSessionFactory.Destroy;
 begin
   FRegisteredApplicationSessionTypes.Free;
-  inherited;
+  inherited Destroy;
 end;
 
-class
-  function TMVCApplicationSessionFactory.GetInstance: TMVCApplicationSessionFactory;
+class procedure TMVCApplicationSessionFactory.DestroyInstance;
 begin
-  if not Assigned(FInstance) then
-    // doesnt require double-check because used for the first time at the unit initialization
-    FInstance := TMVCApplicationSessionFactory.Create;
-  Result := FInstance;
+  if Assigned(Instance) then
+    Instance.Free;
 end;
 
-procedure TMVCApplicationSessionFactory.RegisterSessionType(const AName: String;
-  AWebApplicationSessionClass: TWebApplicationSessionClass);
+class function TMVCApplicationSessionFactory.GetInstance: TMVCApplicationSessionFactory;
+begin
+  if not Assigned(Instance) then
+    Instance := TMVCApplicationSessionFactory.Create;
+  Result := Instance;
+end;
+
+procedure TMVCApplicationSessionFactory.RegisterSessionType(const AName: String; AWebApplicationSessionClass: TWebApplicationSessionClass);
 begin
   FRegisteredApplicationSessionTypes.AddOrSetValue(AName, AWebApplicationSessionClass);
 end;
@@ -191,6 +200,6 @@ TMVCApplicationSessionFactory.GetInstance.RegisterSessionType('memory', TWebAppl
 
 finalization
 
-TMVCApplicationSessionFactory.FInstance.Free;
+TMVCApplicationSessionFactory.DestroyInstance;
 
 end.

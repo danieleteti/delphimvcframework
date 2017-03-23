@@ -26,6 +26,8 @@
 
 unit MVCFramework.DuckTyping;
 
+{$I dmvcframework.inc}
+
 {$LEGACYIFEND ON}
 
 interface

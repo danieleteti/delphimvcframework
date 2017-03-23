@@ -26,6 +26,8 @@
 
 unit MVCFramework.Serializer.JsonDataObjects.CustomTypes;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses

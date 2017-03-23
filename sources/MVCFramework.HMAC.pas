@@ -24,6 +24,8 @@
 
 unit MVCFramework.HMAC;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
