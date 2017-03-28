@@ -39,6 +39,7 @@ uses
   System.Generics.Collections,
   Data.DB,
   MVCFramework.Serializer.Intf,
+  MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   JsonDataObjects;
@@ -95,30 +96,56 @@ type
       const AIgnoredAttributes: array of string
       );
   protected
-    function SerializeObject(const AObject: TObject): string; overload;
-    function SerializeObject(const AObject: TObject; const AType: TMVCSerializationType): string; overload;
-    function SerializeObject(const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string): string; overload;
+    function SerializeObject(
+      const AObject: TObject;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+      ): string;
 
-    function SerializeCollection(const AList: TObject): string; overload;
-    function SerializeCollection(const AList: TObject; const AType: TMVCSerializationType): string; overload;
-    function SerializeCollection(const AList: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string): string; overload;
+    function SerializeCollection(
+      const AList: TObject;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+      ): string;
 
-    function SerializeDataSet(const ADataSet: TDataSet): string; overload;
-    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
+    function SerializeDataSet(
+      const ADataSet: TDataSet;
+      const AIgnoredFields: TMVCIgnoredList = [];
+      const ANameCase: TMVCNameCase = ncAsIs
+      ): string;
 
-    function SerializeDataSetRecord(const ADataSet: TDataSet): string; overload;
-    function SerializeDataSetRecord(const ADataSet: TDataSet; const AIgnoredFields: array of string): string; overload;
+    function SerializeDataSetRecord(
+      const ADataSet: TDataSet;
+      const AIgnoredFields: TMVCIgnoredList = [];
+      const ANameCase: TMVCNameCase = ncAsIs
+      ): string;
 
-    procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject); overload;
-    procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType); overload;
-    procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
+    procedure DeserializeObject(
+      const ASerializedObject: string;
+      const AObject: TObject;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+      );
 
-    procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass); overload;
-    procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass; const AType: TMVCSerializationType); overload;
-    procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: array of string); overload;
+    procedure DeserializeCollection(
+      const ASerializedList: string;
+      const AList: TObject;
+      const AClazz: TClass;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+      );
 
-    procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
-    procedure DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
+    procedure DeserializeDataSet(
+      const ASerializedDataSet: string;
+      const ADataSet: TDataSet;
+      const AIgnoredFields: TMVCIgnoredList = []
+      );
+
+    procedure DeserializeDataSetRecord(
+      const ASerializedDataSetRecord: string;
+      const ADataSet: TDataSet;
+      const AIgnoredFields: TMVCIgnoredList = []
+      );
   public
     procedure AfterConstruction; override;
   end;
@@ -248,12 +275,12 @@ begin
             ChildJsonArray := AJsonObject.A[AName];
             for Obj in ChildList do
               if Assigned(Obj) then
-                ObjectToJsonObject(Obj, ChildJsonArray.AddObject, AType, AIgnored);
+                ObjectToJsonObject(Obj, ChildJsonArray.AddObject, GetSerializationType(Obj, AType), AIgnored);
           end
           else
           begin
             ChildJsonObject := AJsonObject.O[AName];
-            ObjectToJsonObject(ChildObject, ChildJsonObject, AType, AIgnored);
+            ObjectToJsonObject(ChildObject, ChildJsonObject, GetSerializationType(ChildObject, AType), AIgnored);
           end;
         end
         else
@@ -308,25 +335,8 @@ procedure TMVCJsonDataObjectsSerializer.DeserializeCollection(
   const ASerializedList: string;
   const AList: TObject;
   const AClazz: TClass;
-  const AType: TMVCSerializationType);
-begin
-  DeserializeCollection(ASerializedList, AList, AClazz, AType, []);
-end;
-
-procedure TMVCJsonDataObjectsSerializer.DeserializeCollection(
-  const ASerializedList: string;
-  const AList: TObject;
-  const AClazz: TClass);
-begin
-  DeserializeCollection(ASerializedList, AList, AClazz, stDefault);
-end;
-
-procedure TMVCJsonDataObjectsSerializer.DeserializeCollection(
-  const ASerializedList: string;
-  const AList: TObject;
-  const AClazz: TClass;
   const AType: TMVCSerializationType;
-  const AIgnoredAttributes: array of string);
+  const AIgnoredAttributes: TMVCIgnoredList);
 var
   JsonArray: TJsonArray;
   ObjList: IMVCList;
@@ -349,27 +359,20 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet);
+procedure TMVCJsonDataObjectsSerializer.DeserializeDataSet(
+  const ASerializedDataSet: string;
+  const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList);
 begin
   raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.DeserializeDataSet not implemented.');
 end;
 
-procedure TMVCJsonDataObjectsSerializer.DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet);
+procedure TMVCJsonDataObjectsSerializer.DeserializeDataSetRecord(
+  const ASerializedDataSetRecord: string;
+  const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList);
 begin
   raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.DeserializeDataSetRecord not implemented.');
-end;
-
-procedure TMVCJsonDataObjectsSerializer.DeserializeObject(
-  const ASerializedObject: string; const AObject: TObject;
-  const AType: TMVCSerializationType);
-begin
-  DeserializeObject(ASerializedObject, AObject, AType, []);
-end;
-
-procedure TMVCJsonDataObjectsSerializer.DeserializeObject(
-  const ASerializedObject: string; const AObject: TObject);
-begin
-  DeserializeObject(ASerializedObject, AObject, stDefault);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.JsonArrayToList(
@@ -383,7 +386,7 @@ begin
   for I := 0 to Pred(AJsonArray.Count) do
   begin
     Obj := TMVCSerializerHelpful.CreateObject(AClazz.QualifiedClassName);
-    JsonObjectToObject(AJsonArray.Items[I].ObjectValue, Obj, AType, AIgnoredAttributes);
+    JsonObjectToObject(AJsonArray.Items[I].ObjectValue, Obj, GetSerializationType(Obj, AType), AIgnoredAttributes);
     AList.Add(Obj);
   end;
 end;
@@ -476,7 +479,7 @@ begin
         begin
           ChildObject := AValue.AsObject;
           if Assigned(ChildObject) then
-            JsonObjectToObject(AJsonObject.O[AName], ChildObject, AType, AIgnored);
+            JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType), AIgnored);
         end;
       end;
 
@@ -562,7 +565,7 @@ end;
 
 function TMVCJsonDataObjectsSerializer.SerializeCollection(
   const AList: TObject; const AType: TMVCSerializationType;
-  const AIgnoredAttributes: array of string): string;
+  const AIgnoredAttributes: TMVCIgnoredList): string;
 var
   JsonArray: TJsonArray;
   ObjList: IMVCList;
@@ -583,7 +586,7 @@ begin
     try
       for Obj in ObjList do
         if Assigned(Obj) then
-          ObjectToJsonObject(Obj, JsonArray.AddObject, AType, AIgnoredAttributes);
+          ObjectToJsonObject(Obj, JsonArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes);
       Result := JsonArray.ToJSON(False);
     finally
       JsonArray.Free;
@@ -591,45 +594,25 @@ begin
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeCollection(
-  const AList: TObject): string;
-begin
-  Result := SerializeCollection(AList, stDefault);
-end;
-
-function TMVCJsonDataObjectsSerializer.SerializeCollection(
-  const AList: TObject; const AType: TMVCSerializationType): string;
-begin
-  Result := SerializeCollection(AList, AType, []);
-end;
-
 function TMVCJsonDataObjectsSerializer.SerializeDataSet(
-  const ADataSet: TDataSet; const AIgnoredFields: array of string): string;
+  const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase): string;
 begin
   raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.SerializeDataSet not implemented.');
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeDataSetRecord(
-  const ADataSet: TDataSet): string;
-begin
-  Result := SerializeDataSetRecord(ADataSet, []);
-end;
-
-function TMVCJsonDataObjectsSerializer.SerializeDataSetRecord(
-  const ADataSet: TDataSet; const AIgnoredFields: array of string): string;
+  const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase): string;
 begin
   raise EMVCSerializationException.Create('Method TMVCJsonDataObjectsSerializer.SerializeDataSetRecord not implemented.');
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeDataSet(
-  const ADataSet: TDataSet): string;
-begin
-  Result := SerializeDataSet(ADataSet, []);
-end;
-
 function TMVCJsonDataObjectsSerializer.SerializeObject(
   const AObject: TObject; const AType: TMVCSerializationType;
-  const AIgnoredAttributes: array of string): string;
+  const AIgnoredAttributes: TMVCIgnoredList): string;
 var
   JsonObject: TJsonObject;
   ChildJsonValue: TJsonBaseObject;
@@ -664,30 +647,18 @@ begin
 
   JsonObject := TJsonObject.Create;
   try
-    ObjectToJsonObject(AObject, JsonObject, AType, AIgnoredAttributes);
+    ObjectToJsonObject(AObject, JsonObject, GetSerializationType(AObject, AType), AIgnoredAttributes);
     Result := JsonObject.ToJSON(False);
   finally
     JsonObject.Free;
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeObject(
-  const AObject: TObject; const AType: TMVCSerializationType): string;
-begin
-  Result := SerializeObject(AObject, AType, []);
-end;
-
-function TMVCJsonDataObjectsSerializer.SerializeObject(
-  const AObject: TObject): string;
-begin
-  Result := SerializeObject(AObject, stDefault);
-end;
-
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(
   const ASerializedObject: string;
   const AObject: TObject;
   const AType: TMVCSerializationType;
-  const AIgnoredAttributes: array of string);
+  const AIgnoredAttributes: TMVCIgnoredList);
 var
   JsonObject: TJsonObject;
   ObjType: TRttiType;
@@ -708,7 +679,7 @@ begin
       GetTypeSerializers.Items[ObjType.Handle].Deserialize(JsonObject, ObjValue, []);
       Exit;
     end;
-    JsonObjectToObject(JsonObject, AObject, AType, AIgnoredAttributes);
+    JsonObjectToObject(JsonObject, AObject, GetSerializationType(AObject, AType), AIgnoredAttributes);
   finally
     JsonObject.Free;
   end;

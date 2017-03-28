@@ -131,7 +131,7 @@ type
     property Transient: string read FTransient write FTransient;
   end;
 
-  [MVCNameCase(MVCNameUpperCase)]
+  [MVCNameCase(ncUpperCase)]
   TEntityUpperCase = class
   private
     FId: Int64;
@@ -143,7 +143,7 @@ type
     property Name: string read FName write FName;
   end;
 
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TEntityLowerCase = class
   private
     FId: Int64;
@@ -178,6 +178,30 @@ type
   end;
 
   TEntityCustom = class
+  private
+    FId: Int64;
+    FCode: Integer;
+    FName: string;
+  public
+    property Id: Int64 read FId write FId;
+    property Code: Integer read FCode write FCode;
+    property Name: string read FName write FName;
+  end;
+
+  [MVCSerialize(stFields)]
+  TEntitySerializeFields = class
+  private
+    FId: Int64;
+    FCode: Integer;
+    FName: string;
+  public
+    property Id: Int64 read FId write FId;
+    property Code: Integer read FCode write FCode;
+    property Name: string read FName write FName;
+  end;
+
+  [MVCSerialize(stProperties)]
+  TEntitySerializeProperties = class
   private
     FId: Int64;
     FCode: Integer;

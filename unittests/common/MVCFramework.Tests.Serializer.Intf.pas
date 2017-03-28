@@ -39,11 +39,13 @@ type
     procedure TestSerializeEntityNameAs;
     procedure TestSerializeEntityCustomSerializer;
     procedure TestSerializeEntityCustomMemberSerializer;
+    procedure TestSerializeEntitySerializationType;
     procedure TestSerializeCollection;
     { deserialize declarations }
     procedure TestDeserializeEntity;
     procedure TestDeserializeEntityCustomSerializer;
     procedure TestDeserializeEntityCustomMemberSerializer;
+    procedure TestDeserializeEntitySerializationType;
     procedure TestDeserializeCollection;
   end;
 

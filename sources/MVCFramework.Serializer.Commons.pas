@@ -34,7 +34,6 @@ uses
   System.Rtti,
   System.Classes,
   System.SysUtils,
-  System.Generics.Collections,
   System.DateUtils,
   System.TypInfo,
 
@@ -48,26 +47,119 @@ uses
 
   {$ENDIF}
 
-  MVCFramework.Serializer.Intf,
   MVCFramework.Commons;
 
 type
 
-  TMVCAbstractSerializer = class abstract(TInterfacedObject)
+  TMVCSerializationType = (stDefault, stProperties, stFields);
+
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase);
+
+  TMVCDataType = (dtObject, dtArray);
+
+  TMVCIgnoredList = array of string;
+
+  EMVCSerializationException = class(Exception)
   private
-    FRttiContext: TRttiContext;
-    FTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
+    { private declarations }
   protected
-    function GetRttiContext: TRttiContext;
-    function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
-    function IsIgnoredAttribute(const AAttributes: array of string; const AName: string): Boolean;
-    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+    { protected declarations }
   public
-    constructor Create;
-    destructor Destroy; override;
+    { public declarations }
+  end;
+
+  EMVCDeserializationException = class(Exception)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCValueAsTypeAttribute = class(TCustomAttribute)
+  private
+    FValueTypeInfo: PTypeInfo;
+  protected
+    { protected declarations }
+  public
+    constructor Create(AValueTypeInfo: PTypeInfo);
+    function ValueTypeInfo: PTypeInfo;
+  end;
+
+  MVCDoNotSerializeAttribute = class(TCustomAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCSerializeAsStringAttribute = class(TCustomAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCNameCaseAttribute = class(TCustomAttribute)
+  private
+    FKeyCase: TMVCNameCase;
+    function GetKeyCase: TMVCNameCase;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AKeyCase: TMVCNameCase);
+    property KeyCase: TMVCNameCase read GetKeyCase;
+  end;
+
+  MVCNameAsAttribute = class(TCustomAttribute)
+  private
+    FName: string;
+    function GetName: string;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AName: string);
+    property Name: string read GetName;
+  end;
+
+  MVCListOfAttribute = class(TCustomAttribute)
+  private
+    FValue: TClass;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AValue: TClass);
+    property Value: TClass read FValue;
+  end;
+
+  MVCDataSetFieldAttribute = class(TCustomAttribute)
+  private
+    FDataType: TMVCDataType;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const ADataType: TMVCDataType);
+    property DataType: TMVCDataType read FDataType;
+  end;
+
+  MVCSerializeAttribute = class(TCustomAttribute)
+  private
+    FSerializationType: TMVCSerializationType;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const ASerializationType: TMVCSerializationType);
+    property SerializationType: TMVCSerializationType read FSerializationType;
   end;
 
   TMVCSerializerHelpful = record
+  private
+    { private declarations }
   public
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
@@ -92,50 +184,6 @@ type
 
     class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
     class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
-  end;
-
-  EMVCSerializationException = class(Exception);
-
-  EMVCDeserializationException = class(Exception);
-
-  MVCValueAsTypeAttribute = class(TCustomAttribute)
-  private
-    FValueTypeInfo: PTypeInfo;
-  public
-    constructor Create(AValueTypeInfo: PTypeInfo);
-    function ValueTypeInfo: PTypeInfo;
-  end;
-
-  MVCDoNotSerializeAttribute = class(TCustomAttribute);
-
-  MVCSerializeAsStringAttribute = class(TCustomAttribute);
-
-  TMVCNameCase = (MVCNameUpperCase, MVCNameLowerCase);
-
-  MVCNameCaseAttribute = class(TCustomAttribute)
-  private
-    FKeyCase: TMVCNameCase;
-    function GetKeyCase: TMVCNameCase;
-  public
-    constructor Create(const AKeyCase: TMVCNameCase);
-    property KeyCase: TMVCNameCase read GetKeyCase;
-  end;
-
-  MVCNameAsAttribute = class(TCustomAttribute)
-  private
-    FName: string;
-    function GetName: string;
-  public
-    constructor Create(const AName: string);
-    property Name: string read GetName;
-  end;
-
-  MVCListOfAttribute = class(TCustomAttribute)
-  private
-    FValue: TClass;
-  public
-    constructor Create(const AValue: TClass);
-    property Value: TClass read FValue;
   end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
@@ -235,11 +283,11 @@ begin
     if Attr is MVCNameCaseAttribute then
     begin
       case MVCNameCaseAttribute(Attr).KeyCase of
-        MVCNameUpperCase:
+        ncUpperCase:
           begin
             Exit(UpperCase(AField.Name));
           end;
-        MVCNameLowerCase:
+        ncLowerCase:
           begin
             Exit(LowerCase(AField.Name));
           end;
@@ -390,11 +438,11 @@ begin
     if Attr is MVCNameCaseAttribute then
     begin
       case MVCNameCaseAttribute(Attr).KeyCase of
-        MVCNameUpperCase:
+        ncUpperCase:
           begin
             Exit(UpperCase(AProperty.Name));
           end;
-        MVCNameLowerCase:
+        ncLowerCase:
           begin
             Exit(LowerCase(AProperty.Name));
           end;
@@ -490,47 +538,20 @@ begin
   FValue := AValue;
 end;
 
-{ TMVCAbstractSerializer }
+{ MVCDataSetFieldAttribute }
 
-constructor TMVCAbstractSerializer.Create;
+constructor MVCDataSetFieldAttribute.Create(const ADataType: TMVCDataType);
 begin
   inherited Create;
-  FRttiContext := TRttiContext.Create;
-  FTypeSerializers := TDictionary<PTypeInfo, IMVCTypeSerializer>.Create;
+  FDataType := ADataType;
 end;
 
-destructor TMVCAbstractSerializer.Destroy;
-begin
-  FTypeSerializers.Free;
-  FRttiContext.Free;
-  inherited Destroy;
-end;
+{ MVCSerializeAttribute }
 
-function TMVCAbstractSerializer.GetRttiContext: TRttiContext;
+constructor MVCSerializeAttribute.Create(const ASerializationType: TMVCSerializationType);
 begin
-  Result := FRttiContext;
-end;
-
-function TMVCAbstractSerializer.GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
-begin
-  Result := FTypeSerializers;
-end;
-
-function TMVCAbstractSerializer.IsIgnoredAttribute(
-  const AAttributes: array of string; const AName: string): Boolean;
-var
-  I: Integer;
-begin
-  Result := False;
-  for I := Low(AAttributes) to High(AAttributes) do
-    if (AAttributes[I] = AName) then
-      Exit(True);
-end;
-
-procedure TMVCAbstractSerializer.RegisterTypeSerializer(
-  const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
-begin
-  FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
+  inherited Create;
+  FSerializationType := ASerializationType;
 end;
 
 end.

@@ -57,11 +57,13 @@ type
     procedure TestSerializeEntityNameAs;
     procedure TestSerializeEntityCustomSerializer;
     procedure TestSerializeEntityCustomMemberSerializer;
+    procedure TestSerializeEntitySerializationType;
     procedure TestSerializeCollection;
 
     procedure TestDeserializeEntity;
     procedure TestDeserializeEntityCustomSerializer;
     procedure TestDeserializeEntityCustomMemberSerializer;
+    procedure TestDeserializeEntitySerializationType;
     procedure TestDeserializeCollection;
   end;
 
@@ -334,6 +336,46 @@ begin
     CheckTrue(O.Name = 'Ezequiel Juliano Müller');
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
+const
+  JSON_FIELDS =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"FId": 1,' + LINE_BREAK +
+    TAB_SPACE + '"FCode": 2,' + LINE_BREAK +
+    TAB_SPACE + '"FName": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+
+  JSON_PROPERTIES =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
+    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
+    TAB_SPACE + '"Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+var
+  OFields: TEntitySerializeFields;
+  OProperties: TEntitySerializeProperties;
+begin
+  OFields := TEntitySerializeFields.Create;
+  try
+    FSerializer.DeserializeObject(JSON_FIELDS, OFields);
+    CheckTrue(OFields.Id = 1);
+    CheckTrue(OFields.Code = 2);
+    CheckTrue(OFields.Name = 'Ezequiel Juliano Müller');
+  finally
+    OFields.Free;
+  end;
+
+  OProperties := TEntitySerializeProperties.Create;
+  try
+    FSerializer.DeserializeObject(JSON_PROPERTIES, OProperties);
+    CheckTrue(OProperties.Id = 1);
+    CheckTrue(OProperties.Code = 2);
+    CheckTrue(OProperties.Name = 'Ezequiel Juliano Müller');
+  finally
+    OProperties.Free;
   end;
 end;
 
@@ -664,6 +706,51 @@ begin
     CheckEqualsString(JSON, S);
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntitySerializationType;
+const
+  JSON_FIELDS =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"FId": 1,' + LINE_BREAK +
+    TAB_SPACE + '"FCode": 2,' + LINE_BREAK +
+    TAB_SPACE + '"FName": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+
+  JSON_PROPERTIES =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
+    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
+    TAB_SPACE + '"Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+var
+  OFields: TEntitySerializeFields;
+  OProperties: TEntitySerializeProperties;
+  S: string;
+begin
+  OFields := TEntitySerializeFields.Create;
+  try
+    OFields.Id := 1;
+    OFields.Code := 2;
+    OFields.Name := 'Ezequiel Juliano Müller';
+
+    S := FSerializer.SerializeObject(OFields);
+    CheckEqualsString(JSON_FIELDS, S);
+  finally
+    OFields.Free;
+  end;
+
+  OProperties := TEntitySerializeProperties.Create;
+  try
+    OProperties.Id := 1;
+    OProperties.Code := 2;
+    OProperties.Name := 'Ezequiel Juliano Müller';
+
+    S := FSerializer.SerializeObject(OProperties);
+    CheckEqualsString(JSON_PROPERTIES, S);
+  finally
+    OProperties.Free;
   end;
 end;
 
