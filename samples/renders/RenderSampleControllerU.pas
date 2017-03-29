@@ -264,8 +264,6 @@ begin
   People.Add(p);
 {$ENDREGION}
   Render<TPerson>(People);
-  // or if you want to be more opne to future extension
-  // RenderListAsProperty<TPerson>('people', People);
 end;
 
 procedure TRenderSampleController.GetPersonJSON;

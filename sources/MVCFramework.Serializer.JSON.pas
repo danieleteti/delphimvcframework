@@ -375,7 +375,7 @@ begin
             AJSONObject.AddPair(FieldName, TJSONString.Create(SQLTimeStampToStr('hh:nn:ss', ADataSet.Fields[I].AsSQLTimeStamp)));
 
           ftCurrency:
-            AJSONObject.AddPair(FieldName, TJSONString.Create(FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency)));
+            AJSONObject.AddPair(FieldName, TJSONNumber.Create(ADataSet.Fields[I].AsCurrency));
 
           ftFMTBcd, ftBCD:
             AJSONObject.AddPair(FieldName, TJSONNumber.Create(BcdToDouble(ADataSet.Fields[I].AsBcd)));

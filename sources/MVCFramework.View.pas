@@ -153,24 +153,29 @@ var
   ViewEngine: TSynMustache;
   DataObj: TPair<string, string>;
   Jo: TJSONObject;
+  lSJSON: String;
+  lFirst: Boolean;
 begin
   ViewFileName := GetRealFileName(ViewName);
   if not FileExists(ViewFileName) then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
 
-  ViewTemplate := stringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
+  ViewTemplate := StringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
   ViewEngine := TSynMustache.Parse(ViewTemplate);
-
-  Jo := TJSONObject.Create;
-  try
-    if Assigned(FViewModel) then
-      for DataObj in FViewModel do
-        Jo.AddPair(DataObj.Key, TJSONObject.ParseJSONValue(DataObj.Value));
-
-    FOutput := UTF8Tostring(ViewEngine.RenderJSON(Jo.ToJSON));
-  finally
-    Jo.Free;
+  lSJSON := '{';
+  if Assigned(FViewModel) then
+  begin
+    lFirst := True;
+    for DataObj in FViewModel do
+    begin
+      if not lFirst then
+        lSJSON := lSJSON + ',';
+      lSJSON := lSJSON + '"' + DataObj.Key + '":' + DataObj.Value;
+      lFirst := False;
+    end;
+    lSJSON := lSJSON + '}';
   end;
+  FOutput := UTF8Tostring(ViewEngine.RenderJSON(lSJSON));
 end;
 
 {$WARNINGS ON}
