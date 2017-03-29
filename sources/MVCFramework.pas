@@ -450,7 +450,8 @@ type
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ADataSet: TDataSet); overload;
     procedure Render(const ADataSet: TDataSet; const ASingleRecord: Boolean); overload;
-    procedure Render(const ADataSet: TDataSet; const AIgnoredFields: array of string; const ASingleRecord: Boolean); overload;
+    procedure Render(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList; const ASingleRecord: Boolean); overload;
+    procedure Render(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase; const ASingleRecord: Boolean); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
     procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = ''); overload;
@@ -633,7 +634,7 @@ type
     property SmTimestamp: TDateTime read FSmTimestamp write FSmTimestamp;
   end;
 
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TMVCErrorResponseItem = class
   private
     FMessage: string;
@@ -643,7 +644,7 @@ type
     property Message: string read FMessage write FMessage;
   end;
 
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TMVCErrorResponse = class
   private
     FStatusCode: Integer;
@@ -2486,6 +2487,21 @@ begin
   end;
 end;
 
+procedure TMVCController.Render(const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
+  const ASingleRecord: Boolean);
+begin
+  if Assigned(ADataSet) then
+  begin
+    if ASingleRecord then
+      Render(Serializer(ContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase))
+    else
+      Render(Serializer(ContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase))
+  end
+  else
+    raise EMVCException.Create('Can not render an empty dataset.');
+end;
+
 procedure TMVCController.Render<T>(const ACollection: TObjectList<T>;
   const AOwns: Boolean; const AType: TMVCSerializationType);
 begin
@@ -2670,17 +2686,9 @@ begin
   Render(AObject, True);
 end;
 
-procedure TMVCController.Render(const ADataSet: TDataSet; const AIgnoredFields: array of string; const ASingleRecord: Boolean);
+procedure TMVCController.Render(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList; const ASingleRecord: Boolean);
 begin
-  if Assigned(ADataSet) then
-  begin
-    if ASingleRecord then
-      Render(Serializer(ContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields))
-    else
-      Render(Serializer(ContentType).SerializeDataSet(ADataSet, AIgnoredFields))
-  end
-  else
-    raise EMVCException.Create('Can not render an empty dataset.');
+  Render(ADataSet, [], ncAsIs, ASingleRecord);
 end;
 
 procedure TMVCController.Render(const ADataSet: TDataSet; const ASingleRecord: Boolean);

@@ -8,7 +8,7 @@ uses
 
 type
 
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   [MapperJSONNaming(JSONNameLowerCase)]
   TPerson = class
   private
@@ -34,7 +34,7 @@ type
 
   TPeople = class(TObjectList<TPerson>);
 
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   [MapperJSONNaming(JSONNameLowerCase)]
   TCustomer = class
   private
@@ -65,7 +65,7 @@ type
   end;
 
   [MapperJSONNaming(JSONNameLowerCase)]
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TProgrammer = class(TPerson)
   private
     FSkills: string;
@@ -75,7 +75,7 @@ type
   end;
 
   [MapperJSONNaming(JSONNameLowerCase)]
-  [MVCNameCase(MVCNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TPhilosopher = class(TPerson)
   private
     FMentors: string;

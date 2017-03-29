@@ -46,7 +46,8 @@ uses
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   MVCFramework.Serializer.JSON in '..\..\..\sources\MVCFramework.Serializer.JSON.pas',
   MVCFramework.Serializer.JSON.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JSON.CustomTypes.pas',
-  MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas';
+  MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
+  MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule};
 
 {$R *.RES}
 

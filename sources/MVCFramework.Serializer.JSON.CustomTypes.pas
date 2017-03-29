@@ -72,7 +72,6 @@ begin
       begin
         SS := TStringStream.Create(JSONValue.Value);
         try
-          SS.Seek(0, TSeekOrigin.soBeginning);
           SS.Position := 0;
           Stream.CopyFrom(SS, SS.Size);
         finally
@@ -83,7 +82,6 @@ begin
       begin
         SS := TStringStream.Create(JSONValue.Value);
         try
-          SS.Seek(0, TSeekOrigin.soBeginning);
           SS.Position := 0;
           TMVCSerializerHelpful.DecodeStream(SS, Stream);
         finally
@@ -107,7 +105,6 @@ begin
   begin
     if TMVCSerializerHelpful.AttributeExists<MVCSerializeAsStringAttribute>(AAttributes) then
     begin
-      Stream.Seek(0, TSeekOrigin.soBeginning);
       Stream.Position := 0;
       SS := TStringStream.Create;
       try
@@ -122,7 +119,6 @@ begin
     begin
       SS := TStringStream.Create;
       try
-        Stream.Seek(0, TSeekOrigin.soBeginning);
         Stream.Position := 0;
         TMVCSerializerHelpful.EncodeStream(Stream, SS);
         ASerializerObject := TJSONString.Create(SS.DataString);

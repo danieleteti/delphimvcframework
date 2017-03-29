@@ -41,6 +41,7 @@ type
     procedure TestSerializeEntityCustomMemberSerializer;
     procedure TestSerializeEntitySerializationType;
     procedure TestSerializeCollection;
+    procedure TestSerializeDataSet;
     { deserialize declarations }
     procedure TestDeserializeEntity;
     procedure TestDeserializeEntityCustomSerializer;

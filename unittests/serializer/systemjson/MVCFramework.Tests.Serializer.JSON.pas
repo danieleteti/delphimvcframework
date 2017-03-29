@@ -40,7 +40,8 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.JSON,
   MVCFramework.Tests.Serializer.Intf,
-  MVCFramework.Tests.Serializer.Entities;
+  MVCFramework.Tests.Serializer.Entities,
+  MVCFramework.Tests.Serializer.EntitiesModule;
 
 type
 
@@ -60,6 +61,7 @@ type
     procedure TestSerializeEntityCustomMemberSerializer;
     procedure TestSerializeEntitySerializationType;
     procedure TestSerializeCollection;
+    procedure TestSerializeDataSet;
     { deserialize declarations }
     procedure TestDeserializeEntity;
     procedure TestDeserializeEntityCustomSerializer;
@@ -427,6 +429,139 @@ begin
     CheckEqualsString(JSON_FIELDS, S);
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJSON.TestSerializeDataSet;
+const
+  JSON =
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano",' +
+    '"Salary":"100,00",' +
+    '"Birthday":"1987-10-15",' +
+    '"AccessDateTime":"2017-02-17 16:37:50",' +
+    '"AccessTime":"16:40:50",' +
+    '"Active":true,' +
+    '"Amount":100,' +
+    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
+    '"Items":[' +
+    '{' +
+    '"Id":1,' +
+    '"Name":"Ezequiel"' +
+    '},' +
+    '{' +
+    '"Id":2,' +
+    '"Name":"Juliano"' +
+    '}' +
+    '],' +
+    '"Departament":{' +
+    '"Name":"Depto1"' +
+    '}' +
+    '}';
+
+  JSON_LOWERCASE =
+    '{' +
+    '"id":1,' +
+    '"name":"Ezequiel Juliano"' +
+    '}';
+
+  JSON_UPPERCASE =
+    '{' +
+    '"ID":1,' +
+    '"NAME":"Ezequiel Juliano"' +
+    '}';
+
+  JSON_ASIS =
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Ezequiel Juliano"' +
+    '}';
+
+  JSON_LIST =
+    '[' +
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Ezequiel Juliano"' +
+    '},' +
+    '{' +
+    '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano"' +
+    '}' +
+    ']';
+var
+  Dm: TEntitiesModule;
+  S: string;
+begin
+  Dm := TEntitiesModule.Create(nil);
+  try
+    Dm.Entity.Insert;
+    Dm.EntityId.AsLargeInt := 1;
+    Dm.EntityCode.AsInteger := 2;
+    Dm.EntityName.AsString := 'Ezequiel Juliano';
+    Dm.EntityBirthday.AsDateTime := StrToDate('15/10/1987');
+    Dm.EntityAccessDateTime.AsDateTime := StrToDateTime('17/02/2017 16:37:50');
+    Dm.EntityAccessTime.AsDateTime := StrToTime('16:40:50');
+    Dm.EntityActive.AsBoolean := True;
+    Dm.EntitySalary.AsCurrency := 100;
+    Dm.EntityAmount.AsFloat := 100;
+    Dm.EntityBlobFld.AsString := '<html><body><h1>BLOB</h1></body></html>';
+
+    Dm.Item.Insert;
+    Dm.ItemId.AsLargeInt := 1;
+    Dm.ItemName.AsString := 'Ezequiel';
+    Dm.Item.Post;
+
+    Dm.Item.Insert;
+    Dm.ItemId.AsLargeInt := 2;
+    Dm.ItemName.AsString := 'Juliano';
+    Dm.Item.Post;
+
+    Dm.Departament.Insert;
+    Dm.DepartamentName.AsString := 'Depto1';
+    Dm.Departament.Post;
+
+    Dm.Entity.Post;
+    S := FSerializer.SerializeDataSetRecord(Dm.Entity, ['Ignored'], ncAsIs);
+    CheckEqualsString(JSON, S);
+
+    Dm.EntityLowerCase.Insert;
+    Dm.EntityLowerCaseId.AsLargeInt := 1;
+    Dm.EntityLowerCaseName.AsString := 'Ezequiel Juliano';
+    Dm.EntityLowerCase.Post;
+    S := FSerializer.SerializeDataSetRecord(Dm.EntityLowerCase);
+    CheckEqualsString(JSON_LOWERCASE, S);
+
+    Dm.EntityUpperCase.Insert;
+    Dm.EntityUpperCaseId.AsLargeInt := 1;
+    Dm.EntityUpperCaseName.AsString := 'Ezequiel Juliano';
+    Dm.EntityUpperCase.Post;
+    S := FSerializer.SerializeDataSetRecord(Dm.EntityUpperCase);
+    CheckEqualsString(JSON_UPPERCASE, S);
+
+    Dm.EntityUpperCase2.Insert;
+    Dm.EntityUpperCase2Id.AsLargeInt := 1;
+    Dm.EntityUpperCase2Name.AsString := 'Ezequiel Juliano';
+    Dm.EntityUpperCase2.Post;
+    S := FSerializer.SerializeDataSetRecord(Dm.EntityUpperCase2, [], ncUpperCase);
+    CheckEqualsString(JSON_UPPERCASE, S);
+
+    Dm.EntityAsIs.Insert;
+    Dm.EntityAsIsId.AsLargeInt := 1;
+    Dm.EntityAsIsName.AsString := 'Ezequiel Juliano';
+    Dm.EntityAsIs.Post;
+    S := FSerializer.SerializeDataSetRecord(Dm.EntityAsIs);
+    CheckEqualsString(JSON_ASIS, S);
+
+    Dm.EntityAsIs.Append;
+    Dm.EntityAsIsId.AsLargeInt := 2;
+    Dm.EntityAsIsName.AsString := 'Ezequiel Juliano';
+    Dm.EntityAsIs.Post;
+    S := FSerializer.SerializeDataSet(Dm.EntityAsIs);
+    CheckEqualsString(JSON_LIST, S);
+  finally
+    Dm.Free;
   end;
 end;
 
