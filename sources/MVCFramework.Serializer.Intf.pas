@@ -102,13 +102,15 @@ type
     procedure DeserializeDataSet(
       const ASerializedDataSet: string;
       const ADataSet: TDataSet;
-      const AIgnoredFields: TMVCIgnoredList = []
+      const AIgnoredFields: TMVCIgnoredList = [];
+      const ANameCase: TMVCNameCase = ncAsIs
       );
 
     procedure DeserializeDataSetRecord(
       const ASerializedDataSetRecord: string;
       const ADataSet: TDataSet;
-      const AIgnoredFields: TMVCIgnoredList = []
+      const AIgnoredFields: TMVCIgnoredList = [];
+      const ANameCase: TMVCNameCase = ncAsIs
       );
   end;
 

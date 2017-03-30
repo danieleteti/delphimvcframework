@@ -68,6 +68,7 @@ type
     procedure TestDeserializeEntityCustomMemberSerializer;
     procedure TestDeserializeEntitySerializationType;
     procedure TestDeserializeCollection;
+    procedure TestDeserializeDataSet;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -161,6 +162,122 @@ begin
     CheckObjectList(O);
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeDataSet;
+const
+  JSON =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
+    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
+    TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
+    TAB_SPACE + '"Salary": "100,00",' + LINE_BREAK +
+    TAB_SPACE + '"Birthday": "1987-10-15",' + LINE_BREAK +
+    TAB_SPACE + '"AccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
+    TAB_SPACE + '"AccessTime": "16:40:50",' + LINE_BREAK +
+    TAB_SPACE + '"Active": true,' + LINE_BREAK +
+    TAB_SPACE + '"Amount": 100,' + LINE_BREAK +
+    TAB_SPACE + '"BlobFld": "PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' + LINE_BREAK +
+    TAB_SPACE + '"Items": [' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Id": 1,' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Name": "Ezequiel"' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Id": 2,' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Name": "Juliano"' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
+    TAB_SPACE + '],' + LINE_BREAK +
+    TAB_SPACE + '"Departament": {' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '"Name": "Depto1"' + LINE_BREAK +
+    TAB_SPACE + '}' + LINE_BREAK +
+    '}' + LINE_BREAK;
+
+  JSON_LOWERCASE =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"id": 1,' + LINE_BREAK +
+    TAB_SPACE + '"name": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+
+  JSON_UPPERCASE =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"ID": 1,' + LINE_BREAK +
+    TAB_SPACE + '"NAME": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+
+  JSON_ASIS =
+    '{' + LINE_BREAK +
+    TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
+    TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    '}' + LINE_BREAK;
+
+  JSON_LIST =
+    '[' + LINE_BREAK +
+    TAB_SPACE + '{' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    TAB_SPACE + '},' + LINE_BREAK +
+    TAB_SPACE + '{' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '"Id_Id": 2,' + LINE_BREAK +
+    TAB_SPACE + TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
+    TAB_SPACE + '}' + LINE_BREAK +
+    ']' + LINE_BREAK;
+var
+  Dm: TEntitiesModule;
+begin
+  Dm := TEntitiesModule.Create(nil);
+  try
+    FSerializer.DeserializeDataSetRecord(JSON, Dm.Entity, ['Ignored']);
+    CheckTrue(Dm.EntityId.AsLargeInt = 1);
+    CheckTrue(Dm.EntityCode.AsInteger = 2);
+    CheckTrue(Dm.EntityName.AsString = 'Ezequiel Juliano Müller');
+    CheckTrue(Dm.EntityBirthday.AsDateTime = StrToDate('15/10/1987'));
+    CheckTrue(Dm.EntityAccessDateTime.AsDateTime = StrToDateTime('17/02/2017 16:37:50'));
+    CheckTrue(Dm.EntityAccessTime.AsDateTime = StrToTime('16:40:50'));
+    CheckTrue(Dm.EntityActive.AsBoolean = True);
+    CheckTrue(Dm.EntitySalary.AsCurrency = 100);
+    CheckTrue(Dm.EntityAmount.AsFloat = 100);
+    CheckTrue(Dm.EntityBlobFld.AsString = '<html><body><h1>BLOB</h1></body></html>');
+
+    Dm.Item.First;
+    CheckTrue(Dm.ItemId.AsLargeInt = 1);
+    CheckTrue(Dm.ItemName.AsString = 'Ezequiel');
+
+    Dm.Item.Next;
+    CheckTrue(Dm.ItemId.AsLargeInt = 2);
+    CheckTrue(Dm.ItemName.AsString = 'Juliano');
+
+    Dm.Departament.First;
+    CheckTrue(Dm.DepartamentName.AsString = 'Depto1');
+
+    FSerializer.DeserializeDataSetRecord(JSON_LOWERCASE, Dm.EntityLowerCase);
+    CheckTrue(Dm.EntityLowerCaseId.AsLargeInt = 1);
+    CheckTrue(Dm.EntityLowerCaseName.AsString = 'Ezequiel Juliano Müller');
+
+    FSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase);
+    CheckTrue(Dm.EntityUpperCaseId.AsLargeInt = 1);
+    CheckTrue(Dm.EntityUpperCaseName.AsString = 'Ezequiel Juliano Müller');
+
+    FSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase2, [], ncUpperCase);
+    CheckTrue(Dm.EntityUpperCase2Id.AsLargeInt = 1);
+    CheckTrue(Dm.EntityUpperCase2Name.AsString = 'Ezequiel Juliano Müller');
+
+    FSerializer.DeserializeDataSetRecord(JSON_ASIS, Dm.EntityAsIs);
+    CheckTrue(Dm.EntityAsIsId.AsLargeInt = 1);
+    CheckTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+
+    Dm.EntityAsIs.EmptyDataSet;
+    FSerializer.DeserializeDataSet(JSON_LIST, Dm.EntityAsIs);
+    Dm.EntityAsIs.First;
+    CheckTrue(Dm.EntityAsIsId.AsLargeInt = 1);
+    CheckTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+
+    Dm.EntityAsIs.Next;
+    CheckTrue(Dm.EntityAsIsId.AsLargeInt = 2);
+    CheckTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+  finally
+    Dm.Free;
   end;
 end;
 

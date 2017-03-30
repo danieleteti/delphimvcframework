@@ -92,6 +92,18 @@ type
       const ANameCase: TMVCNameCase;
       const AIgnoredFields: TMVCIgnoredList
       );
+    procedure JSONObjectToDataSet(
+      const AJSONObject: TJSONObject;
+      const ADataSet: TDataSet;
+      const AIgnoredFields: TMVCIgnoredList;
+      const ANameCase: TMVCNameCase
+      );
+    procedure JSONArrayToDataSet(
+      const AJSONArray: TJSONArray;
+      const ADataSet: TDataSet;
+      const AIgnoredFields: TMVCIgnoredList;
+      const ANameCase: TMVCNameCase
+      );
   protected
     function SerializeObject(
       const AObject: TObject;
@@ -135,13 +147,15 @@ type
     procedure DeserializeDataSet(
       const ASerializedDataSet: string;
       const ADataSet: TDataSet;
-      const AIgnoredFields: TMVCIgnoredList = []
+      const AIgnoredFields: TMVCIgnoredList = [];
+      const ANameCase: TMVCNameCase = ncAsIs
       );
 
     procedure DeserializeDataSetRecord(
       const ASerializedDataSetRecord: string;
       const ADataSet: TDataSet;
-      const AIgnoredFields: TMVCIgnoredList = []
+      const AIgnoredFields: TMVCIgnoredList = [];
+      const ANameCase: TMVCNameCase = ncAsIs
       );
   public
     procedure AfterConstruction; override;
@@ -460,17 +474,41 @@ end;
 procedure TMVCJSONSerializer.DeserializeDataSet(
   const ASerializedDataSet: string;
   const ADataSet: TDataSet;
-  const AIgnoredFields: TMVCIgnoredList);
+  const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase);
+var
+  JSONArray: TJSONArray;
 begin
-  raise EMVCSerializationException.Create('Method TMVCJSONSerializer.DeserializeDataSet not implemented.');
+  if (ASerializedDataSet = EmptyStr) or (not Assigned(ADataSet)) then
+    Exit;
+
+  JSONArray := TJSONObject.ParseJSONValue(ASerializedDataSet) as TJSONArray;
+  try
+    JSONArrayToDataSet(JSONArray, ADataSet, AIgnoredFields, ANameCase);
+  finally
+    JSONArray.Free;
+  end;
 end;
 
 procedure TMVCJSONSerializer.DeserializeDataSetRecord(
   const ASerializedDataSetRecord: string;
   const ADataSet: TDataSet;
-  const AIgnoredFields: TMVCIgnoredList);
+  const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase);
+var
+  JSONObject: TJSONObject;
 begin
-  raise EMVCSerializationException.Create('Method TMVCJSONSerializer.DeserializeDataSetRecord not implemented.');
+  if (ASerializedDataSetRecord = EmptyStr) or (not Assigned(ADataSet)) then
+    Exit;
+
+  JSONObject := TJSONObject.ParseJSONValue(ASerializedDataSetRecord) as TJSONObject;
+  try
+    ADataSet.Edit;
+    JSONObjectToDataSet(JSONObject, ADataSet, AIgnoredFields, ANameCase);
+    ADataSet.Post;
+  finally
+    JSONObject.Free;
+  end;
 end;
 
 procedure TMVCJSONSerializer.DeserializeObject(
@@ -500,6 +538,20 @@ begin
     JSONObjectToObject(JSONObject, AObject, GetSerializationType(AObject, AType), AIgnoredAttributes);
   finally
     JSONObject.Free;
+  end;
+end;
+
+procedure TMVCJSONSerializer.JSONArrayToDataSet(
+  const AJSONArray: TJSONArray; const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
+var
+  I: Integer;
+begin
+  for I := 0 to Pred(AJSONArray.Count) do
+  begin
+    ADataSet.Append;
+    JSONObjectToDataSet(AJSONArray.Items[I] as TJSONObject, ADataSet, AIgnoredFields, ANameCase);
+    ADataSet.Post;
   end;
 end;
 
@@ -594,6 +646,117 @@ begin
         end;
       end;
     -1: Exit;
+  end;
+end;
+
+procedure TMVCJSONSerializer.JSONObjectToDataSet(
+  const AJSONObject: TJSONObject; const ADataSet: TDataSet;
+  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
+var
+  Field: TField;
+  Name: string;
+  Jv: TJSONValue;
+  SS: TStringStream;
+  SM: TMemoryStream;
+  NestedDataSet: TDataSet;
+begin
+  if (ADataSet.State in [dsInsert, dsEdit]) then
+  begin
+    for Field in ADataSet.Fields do
+    begin
+      Name := GetNameAs(ADataSet.Owner, Field.Name, Field.FieldName);
+
+      if (IsIgnoredAttribute(AIgnoredFields, Name)) or (IsIgnoredComponent(ADataSet.Owner, Field.Name)) then
+        Continue;
+
+      case GetNameCase(ADataSet, ANameCase) of
+        ncLowerCase: Name := LowerCase(Field.FieldName);
+        ncUpperCase: Name := UpperCase(Field.FieldName);
+      end;
+
+      Jv := AJSONObject.Get(Name).JsonValue;
+      if not Assigned(Jv) then
+        Continue;
+
+      if Jv is TJSONNull then
+      begin
+        Field.Clear;
+        Continue;
+      end;
+
+      case field.DataType of
+        TFieldType.ftBoolean:
+          Field.AsBoolean := (Jv as TJSONBool).AsBoolean;
+
+        TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
+          Field.AsInteger := (Jv as TJSONNumber).AsInt;
+
+        TFieldType.ftLargeint:
+          Field.AsLargeInt := (Jv as TJSONNumber).AsInt64;
+
+        TFieldType.ftCurrency:
+          Field.AsCurrency := StrToCurr((Jv as TJSONString).Value);
+
+        TFieldType.ftSingle:
+          Field.AsSingle := (Jv as TJSONNumber).AsDouble;
+
+        TFieldType.ftFloat, TFieldType.ftFMTBcd, TFieldType.ftBCD:
+          Field.AsFloat := (Jv as TJSONNumber).AsDouble;
+
+        ftString, ftWideString, ftMemo, ftWideMemo:
+          Field.AsWideString := (Jv as TJSONString).Value;
+
+        TFieldType.ftDate:
+          Field.AsDateTime := ISODateToDate((Jv as TJSONString).Value);
+
+        TFieldType.ftDateTime:
+          Field.AsDateTime := ISOTimeStampToDateTime((Jv as TJSONString).Value);
+
+        TFieldType.ftTimeStamp, TFieldType.ftTime:
+          Field.AsDateTime := ISOTimeToTime((Jv as TJSONString).Value);
+
+        TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
+          begin
+            SS := TStringStream.Create((Jv as TJSONString).Value);
+            try
+              SS.Position := 0;
+              SM := TMemoryStream.Create;
+              try
+                TMVCSerializerHelpful.DecodeStream(SS, SM);
+                TBlobField(Field).LoadFromStream(SM);
+              finally
+                SM.Free;
+              end;
+            finally
+              SS.Free;
+            end;
+          end;
+
+        TFieldType.ftDataSet:
+          begin
+            NestedDataSet := TDataSetField(Field).NestedDataSet;
+
+            NestedDataSet.First;
+            while not NestedDataSet.Eof do
+              NestedDataSet.Delete;
+
+            case GetDataType(ADataSet.Owner, Field.Name, dtArray) of
+              dtArray:
+                begin
+                  JsonArrayToDataSet(Jv as TJSONArray, NestedDataSet, AIgnoredFields, ANameCase);
+                end;
+              dtObject:
+                begin
+                  NestedDataSet.Edit;
+                  JsonObjectToDataSet(Jv as TJSONObject, NestedDataSet, AIgnoredFields, ANameCase);
+                  NestedDataSet.Post;
+                end;
+            end;
+          end;
+      else
+        raise EMVCDeserializationException.CreateFmt('Cannot find type for field "%s"', [Field.FieldName]);
+      end;
+    end;
   end;
 end;
 
@@ -703,6 +866,7 @@ function TMVCJSONSerializer.SerializeDataSet(
 var
   JSONArray: TJSONArray;
   JSONObject: TJSONObject;
+  BookMark: TBookmark;
 begin
   Result := EmptyStr;
 
@@ -711,6 +875,7 @@ begin
 
   JSONArray := TJSONArray.Create;
   try
+    BookMark := ADataSet.Bookmark;
     ADataSet.First;
     while not ADataSet.Eof do
     begin
@@ -722,6 +887,9 @@ begin
     Result := JSONArray.ToJSON;
   finally
     JSONArray.Free;
+    if ADataSet.BookmarkValid(BookMark) then
+      ADataSet.GotoBookmark(BookMark);
+    ADataSet.FreeBookmark(BookMark);
   end;
 end;
 

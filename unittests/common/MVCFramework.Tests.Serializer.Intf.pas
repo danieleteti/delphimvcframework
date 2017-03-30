@@ -48,6 +48,7 @@ type
     procedure TestDeserializeEntityCustomMemberSerializer;
     procedure TestDeserializeEntitySerializationType;
     procedure TestDeserializeCollection;
+    procedure TestDeserializeDataSet;
   end;
 
 implementation
