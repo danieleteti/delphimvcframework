@@ -2,10 +2,12 @@ unit WebModuleUnit1;
 
 interface
 
-uses System.SysUtils,
+uses
+  System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
   TWebModule1 = class(TWebModule)
@@ -26,9 +28,13 @@ implementation
 {$R *.dfm}
 
 
-uses AppControllerU, System.Generics.Collections,
+uses
+  AppControllerU,
+  System.Generics.Collections,
   AuthenticationU,
-  MVCFramework.Middleware.JWT, MVCFramework.JWT, System.DateUtils;
+  MVCFramework.Middleware.JWT,
+  MVCFramework.JWT,
+  System.DateUtils;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 var

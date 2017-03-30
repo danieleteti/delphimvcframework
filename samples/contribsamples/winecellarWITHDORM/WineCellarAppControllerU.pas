@@ -4,6 +4,7 @@ interface
 
 uses
   MVCFramework,
+  MVCFramework.Commons,
   dorm, dorm.loggers;
 
 type

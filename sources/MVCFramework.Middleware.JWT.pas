@@ -47,13 +47,13 @@ type
     FClaimsToChecks: TJWTCheckableClaims;
     FSetupJWTClaims: TJWTClaimsSetup;
     FSecret: string;
-
+  protected
     procedure InternalRender(
       AJSONValue: TJSONValue;
       AContentType: string;
       AContentEncoding: string;
       AContext: TWebContext;
-      AInstanceOwner: Boolean
+      AInstanceOwner: Boolean = True
       );
 
     procedure RenderError(
@@ -62,7 +62,7 @@ type
       const AContext: TWebContext;
       const AErrorClassName: string = ''
       );
-  protected
+
     procedure OnBeforeRouting(
       AContext: TWebContext;
       var AHandled: Boolean
@@ -268,7 +268,8 @@ begin
             InternalRender(
               TJSONObject.Create(TJSONPair.Create('token', JWTValue.GetToken)),
               TMVCMediaType.APPLICATION_JSON,
-              TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext
+              TMVCConstants.DEFAULT_CONTENT_CHARSET,
+              AContext
               );
             AHandled := True;
           finally

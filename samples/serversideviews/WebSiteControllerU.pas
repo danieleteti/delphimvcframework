@@ -84,8 +84,8 @@ var
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lPerson := LDAL.GetPersonByID(guid);
-  PushJSONToView('person', lPerson);
-  PushJSONToView('speed', GetSpeed);
+  PushToView('person', lPerson.ToJSON);
+  PushToView('speed', GetSpeed.ToJSON);
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -109,7 +109,7 @@ var
   LDAL: IPeopleDAL;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushJSONToView('people', LDAL.GetPeople);
+  PushToView('people', LDAL.GetPeople.ToJSON);
   LoadView(['people_header.csv', 'people_list.csv']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;
@@ -126,7 +126,7 @@ end;
 
 procedure TWebSiteController.NewPerson;
 begin
-  PushJSONToView('speed', GetSpeed);
+  PushToView('speed', GetSpeed.ToJSON);
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -145,8 +145,8 @@ var
   LDAL: IPeopleDAL;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushJSONToView('people', LDAL.GetPeople);
-  PushJSONToView('speed', GetSpeed);
+  PushToView('people', LDAL.GetPeople.ToJSON);
+  PushToView('speed', GetSpeed.ToJSON);
   LoadView(['header', 'people_list', 'footer']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;

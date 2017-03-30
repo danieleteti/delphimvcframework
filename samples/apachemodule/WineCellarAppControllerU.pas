@@ -5,6 +5,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
+  MVCFramework.TypesAliases,
   MainDataModuleUnit;
 
 type
@@ -111,13 +112,27 @@ begin
 end;
 
 procedure TWineCellarApp.SaveWine(ctx: TWebContext);
+var
+  JSON: TJSONObject;
 begin
-  dm.AddWine(ctx.Request.BodyAsJSONObject);
+  JSON := TJSONObject.ParseJSONValue(ctx.Request.Body) as TJSONObject;
+  try
+    dm.AddWine(JSON);
+  finally
+    JSON.Free;
+  end;
 end;
 
 procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
+var
+  JSON: TJSONObject;
 begin
-  Render(dm.UpdateWine(ctx.Request.BodyAsJSONObject));
+  JSON := TJSONObject.ParseJSONValue(ctx.Request.Body) as TJSONObject;
+  try
+    Render(dm.UpdateWine(JSON));
+  finally
+    JSON.Free;
+  end;
 end;
 
 procedure TWineCellarApp.WineById(ctx: TWebContext);

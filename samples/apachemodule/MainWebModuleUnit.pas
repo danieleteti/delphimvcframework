@@ -2,9 +2,15 @@ unit MainWebModuleUnit;
 
 interface
 
-uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework;
+uses
+  System.SysUtils,
+  System.Classes,
+  Web.HTTPApp,
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
+
   Twm = class(TWebModule)
     procedure WebModule1DefaultHandlerAction(Sender: TObject;
       Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);

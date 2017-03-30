@@ -5,7 +5,8 @@ interface
 uses System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
   TWebModule1 = class(TWebModule)

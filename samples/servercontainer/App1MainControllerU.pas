@@ -35,11 +35,17 @@ type
 implementation
 
 uses
-{$IFDEF SYSTEMJSON}
+
+  {$IFDEF SYSTEMJSON}
+
   System.JSON,
-{$ELSE}
+
+  {$ELSE}
+
   Data.DBXJSON,
-{$ENDIF}
+
+  {$ENDIF}
+
   System.SysUtils;
 
 { TApp1MainController }
@@ -55,10 +61,14 @@ procedure TApp1MainController.HelloWorldPost(ctx: TWebContext);
 var
   JSON: TJSONObject;
 begin
-  JSON := ctx.Request.BodyAsJSONObject;
-  JSON.AddPair('modified', 'from server');
-  Render(JSON, false);
-  Log('Hello world called with POST');
+  JSON := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
+  try
+    JSON.AddPair('modified', 'from server');
+    Render(JSON.ToJSON);
+    Log('Hello world called with POST');
+  finally
+    JSON.Free;
+  end;
 end;
 
 procedure TApp1MainController.Index(ctx: TWebContext);

@@ -4,7 +4,6 @@ interface
 
 uses System.SysUtils,
   System.Classes,
-  Data.DBXFirebird,
   Data.DB,
   Data.SqlExpr,
 {$IF CompilerVersion <= 27}

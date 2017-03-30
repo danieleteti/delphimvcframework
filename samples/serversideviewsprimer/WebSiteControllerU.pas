@@ -63,7 +63,7 @@ end;
 
 procedure TWebSiteController.NewPerson(CTX: TWebContext);
 begin
-  PushJSONToView('speed', GetSpeed);
+  PushToView('speed', GetSpeed.ToJSON);
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -83,8 +83,8 @@ var
   lCookie: TCookie;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushJSONToView('people', LDAL.GetPeople);
-  PushJSONToView('speed', GetSpeed);
+  PushToView('people', LDAL.GetPeople.ToJSON);
+  PushToView('speed', GetSpeed.ToJSON);
   LoadView(['header', 'people_list', 'footer']);
 
   // send a cookie with the server datetime at the page rendering

@@ -125,21 +125,24 @@ var
   lStomp: TStompClient;
   lJMessage: TJSONObject;
 begin
-  lJObj := Context.Request.BodyAsJSONObject;
-  if Assigned(lJObj.GetValue('message')) and (Assigned(lJObj.GetValue('username'))) then
-  begin
-    lJMessage := TJSONObject.Create;
-    try
-      lJMessage.AddPair('username', lJObj.GetValue('username').Value);
-      lJMessage.AddPair('message', lJObj.GetValue('message').Value);
-      lStomp := TStompClient.Create;
-      lStomp.Connect('127.0.0.1', 61613, ClientID);
-      lStomp.Send('/topic/' + TopicName, lJMessage.ToJSON);
-    finally
-      lJMessage.Free;
+  lJObj := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
+  try
+    if Assigned(lJObj.GetValue('message')) and (Assigned(lJObj.GetValue('username'))) then
+    begin
+      lJMessage := TJSONObject.Create;
+      try
+        lJMessage.AddPair('username', lJObj.GetValue('username').Value);
+        lJMessage.AddPair('message', lJObj.GetValue('message').Value);
+        lStomp := TStompClient.Create;
+        lStomp.Connect('127.0.0.1', 61613, ClientID);
+        lStomp.Send('/topic/' + TopicName, lJMessage.ToJSON);
+      finally
+        lJMessage.Free;
+      end;
     end;
+  finally
+    lJObj.Free;
   end;
-
 end;
 
 end.
