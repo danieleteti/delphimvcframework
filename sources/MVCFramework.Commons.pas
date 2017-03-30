@@ -493,7 +493,7 @@ end;
 
 constructor TMVCViewDataObject.Create;
 begin
-  inherited Create([doOwnsValues]);
+  inherited Create([]);
 end;
 
 { TMVCCriticalSectionHelper }

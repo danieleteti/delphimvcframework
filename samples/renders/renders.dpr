@@ -1,20 +1,19 @@
 program renders;
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
   Winapi.Windows,
   IdHTTPWebBrokerBridge,
+  MVCFramework.Commons,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
   RenderSampleControllerU in 'RenderSampleControllerU.pas',
   BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
   MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule};
 
 {$R *.res}
-
 
 procedure RunServer(APort: Integer);
 var
@@ -28,6 +27,7 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
+    Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
     Writeln('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do

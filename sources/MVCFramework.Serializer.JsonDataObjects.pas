@@ -404,7 +404,7 @@ begin
             AJsonObject.S[FieldName] := SQLTimeStampToStr('hh:nn:ss', ADataSet.Fields[I].AsSQLTimeStamp);
 
           ftCurrency:
-            AJsonObject.S[FieldName] := FormatCurr('0.00##', ADataSet.Fields[I].AsCurrency);
+            AJsonObject.F[FieldName] := ADataSet.Fields[I].AsCurrency;
 
           ftFMTBcd, ftBCD:
             AJsonObject.F[FieldName] := BcdToDouble(ADataSet.Fields[I].AsBcd);
