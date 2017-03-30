@@ -4,10 +4,9 @@ interface
 
 {$I dmvcframework.inc}
 
-
 uses MVCFramework,
   MVCFramework.Logger,
-	 MVCFramework.Commons,
+  MVCFramework.Commons,
   Web.HTTPApp;
 
 type
@@ -56,9 +55,15 @@ procedure TApp1MainController.HelloWorldPost;
 var
   JSON: TJSONObject;
 begin
-  JSON := Context.Request.BodyAsJSONObject;
-  JSON.AddPair('modified', 'from server');
-  Render(JSON, false);
+  JSON := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
+  try
+    if not Assigned(JSON) then
+      raise EMVCException.Create('Invalid JSON');
+    JSON.AddPair('modified', 'from server');
+    Render(JSON, false);
+  finally
+    JSON.Free;
+  end;
   Log.Info('Hello world called with POST', 'basicdemo');
 end;
 
