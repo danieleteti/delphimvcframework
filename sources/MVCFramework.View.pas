@@ -152,7 +152,6 @@ var
   ViewTemplate: RawUTF8;
   ViewEngine: TSynMustache;
   DataObj: TPair<string, string>;
-  Jo: TJSONObject;
   lSJSON: String;
   lFirst: Boolean;
 begin

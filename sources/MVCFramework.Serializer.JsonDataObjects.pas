@@ -705,7 +705,7 @@ begin
           Field.AsLargeInt := AJsonObject.L[Name];
 
         TFieldType.ftCurrency:
-          Field.AsCurrency := StrToCurr(AJsonObject.S[Name]);
+          Field.AsCurrency := AJsonObject.F[Name];
 
         TFieldType.ftSingle:
           Field.AsSingle := AJsonObject.F[Name];

@@ -172,7 +172,7 @@ const
     TAB_SPACE + '"Id": 1,' + LINE_BREAK +
     TAB_SPACE + '"Code": 2,' + LINE_BREAK +
     TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"Salary": "100,00",' + LINE_BREAK +
+    TAB_SPACE + '"Salary": 100,' + LINE_BREAK +
     TAB_SPACE + '"Birthday": "1987-10-15",' + LINE_BREAK +
     TAB_SPACE + '"AccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
     TAB_SPACE + '"AccessTime": "16:40:50",' + LINE_BREAK +

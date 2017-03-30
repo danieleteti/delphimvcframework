@@ -168,7 +168,7 @@ const
     '"Id": 1,' +
     '"Code": 2,' +
     '"Name": "Ezequiel Juliano",' +
-    '"Salary": "100,00",' +
+    '"Salary": 100,' +
     '"Birthday": "1987-10-15",' +
     '"AccessDateTime": "2017-02-17 16:37:50",' +
     '"AccessTime": "16:40:50",' +
@@ -556,7 +556,7 @@ const
     '"Id":1,' +
     '"Code":2,' +
     '"Name":"Ezequiel Juliano",' +
-    '"Salary":"100,00",' +
+    '"Salary":100,' +
     '"Birthday":"1987-10-15",' +
     '"AccessDateTime":"2017-02-17 16:37:50",' +
     '"AccessTime":"16:40:50",' +

@@ -695,7 +695,7 @@ begin
           Field.AsLargeInt := (Jv as TJSONNumber).AsInt64;
 
         TFieldType.ftCurrency:
-          Field.AsCurrency := StrToCurr((Jv as TJSONString).Value);
+          Field.AsCurrency := (Jv as TJSONNumber).AsDouble;
 
         TFieldType.ftSingle:
           Field.AsSingle := (Jv as TJSONNumber).AsDouble;
