@@ -1,0 +1,28 @@
+{ This is an automatically generated lazarus resource file }
+
+LazarusResources.Add('TForm5','FORMDATA',[
+  'TPF0'#6'TForm5'#5'Form5'#4'Left'#3#2#1#6'Height'#3#179#1#3'Top'#3#190#0#5'Wi'
+  +'dth'#3#255#1#13'ActiveControl'#7#7'Button1'#7'Caption'#6'4Delphi Stomp Clie'
+  +'nt - CHAT DEMO - www.danieleteti.it'#12'ClientHeight'#3#179#1#11'ClientWidt'
+  +'h'#3#255#1#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#7'OnClose'#7#9'Fo'
+  +'rmClose'#8'OnCreate'#7#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#0#5'TEdit'
+  +#5'Edit1'#4'Left'#2#7#6'Height'#2#23#3'Top'#2#10#5'Width'#3#137#0#8'TabOrder'
+  +#2#0#4'Text'#6#9'localhost'#0#0#5'TEdit'#5'Edit2'#4'Left'#3#150#0#6'Height'#2
+  +#23#3'Top'#2#10#5'Width'#2'y'#8'TabOrder'#2#1#4'Text'#6#12'ChatRoomName'#0#0
+  +#7'TButton'#7'Button1'#4'Left'#3#148#1#6'Height'#2#25#3'Top'#2#8#5'Width'#2
+  +'c'#7'Caption'#6#5'Enter'#7'OnClick'#7#12'Button1Click'#8'TabOrder'#2#2#0#0#5
+  +'TEdit'#5'Edit3'#4'Left'#3#21#1#6'Height'#2#23#3'Top'#2#10#5'Width'#2'y'#8'T'
+  +'abOrder'#2#3#4'Text'#6#12'daniele_teti'#0#0#5'TMemo'#5'Memo1'#4'Left'#2#9#6
+  +'Height'#3':'#1#3'Top'#2''''#5'Width'#3#238#1#7'Anchors'#11#5'akTop'#6'akLef'
+  +'t'#7'akRight'#8'akBottom'#0#5'Color'#7#9'clMenuBar'#12'Font.CharSet'#7#12'A'
+  +'NSI_CHARSET'#11'Font.Height'#2#244#9'Font.Name'#6#11'Courier New'#10'Parent'
+  +'Font'#8#8'ReadOnly'#9#8'TabOrder'#2#4#0#0#5'TMemo'#5'Memo2'#4'Left'#2#8#6'H'
+  +'eight'#2'D'#3'Top'#3'g'#1#5'Width'#3#133#1#7'Anchors'#11#6'akLeft'#7'akRigh'
+  +'t'#8'akBottom'#0#7'Enabled'#8#12'Font.CharSet'#7#12'ANSI_CHARSET'#11'Font.H'
+  +'eight'#2#243#9'Font.Name'#6#11'Courier New'#10'Font.Style'#11#6'fsBold'#0#7
+  +'OnKeyUp'#7#10'Memo2KeyUp'#10'ParentFont'#8#8'TabOrder'#2#5#0#0#7'TButton'#7
+  +'Button2'#4'Left'#3#147#1#6'Height'#2'D'#3'Top'#3'g'#1#5'Width'#2'd'#7'Ancho'
+  +'rs'#11#7'akRight'#8'akBottom'#0#7'Caption'#6#4'Send'#7'Enabled'#8#7'OnClick'
+  +#7#12'Button2Click'#8'TabOrder'#2#6#0#0#6'TTimer'#3'tmr'#8'Interval'#2#20#7
+  +'OnTimer'#7#8'tmrTimer'#4'left'#3#136#1#3'top'#2'R'#0#0#0
+]);
