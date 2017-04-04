@@ -36,8 +36,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.Logger,
   MVCFramework.TypesAliases,
-  StompClient,
-  StompTypes;
+  StompClient;
 
 type
 

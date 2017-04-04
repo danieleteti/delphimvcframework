@@ -69,10 +69,9 @@ uses
   Web.Win.IsapiHTTP,
   Web.WebReq,
   LoggerPro,
-  StompTypes,
   IdGlobal,
   IdGlobalProtocols,
-  IdURI;
+  IdURI, StompClient;
 
 type
 
@@ -2186,7 +2185,7 @@ begin
   begin
     try
       Stomp := GetNewStompClient(GetClientId);
-      Headers := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(True));
+      Headers := StompUtils.NewHeaders.Add(StompUtils.NewPersistentHeader(True));
       Stomp.Send(AMessage.SmTopic, Serializer(AContentType).SerializeObject(AMessage));
       TThread.Sleep(100);
     finally
