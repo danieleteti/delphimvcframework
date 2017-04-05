@@ -31,8 +31,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
-  StompClient,
-  StompTypes;
+  StompClient;
 
 type
 

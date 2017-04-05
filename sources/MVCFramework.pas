@@ -51,7 +51,7 @@ uses
   IdHeaderList,
   MVCFramework.ApplicationSession,
   MVCFramework.Session,
-  StompTypes,
+  StompClient,
   ObjectsMappers
 {$IFDEF SYSTEMJSON}
     , System.JSON
@@ -1921,7 +1921,7 @@ begin
       FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
 
     Stomp := GetNewStompClient(GetClientID);
-    H := StompUtils.NewHeaders.Add(TStompHeaders.NewPersistentHeader(true));
+    H := StompUtils.NewHeaders.Add(StompUtils.NewPersistentHeader(true));
     Stomp.Send(ATopic, msg.ToJSON);
     TThread.Sleep(100);
     // single user cannot enqueue more than 10 message in noe second...
