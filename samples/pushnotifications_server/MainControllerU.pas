@@ -30,7 +30,7 @@ type
 implementation
 
 uses
-  System.JSON, ObjectsMappers, System.SysUtils, StompClient, StompTypes;
+  System.JSON, ObjectsMappers, System.SysUtils, StompClient;
 
 const
   DEFAULT_TIMEOUT = 30000; // 30 secs
