@@ -116,6 +116,8 @@ type
     property KeyCase: TMVCNameCase read GetKeyCase;
   end;
 
+  MapperJSONNaming = MVCNameCaseAttribute deprecated 'Use MVCNameCaseAttribute';
+
   MVCNameAsAttribute = class(TCustomAttribute)
   private
     FName: string;
@@ -136,6 +138,8 @@ type
     constructor Create(const AValue: TClass);
     property Value: TClass read FValue;
   end;
+
+  MapperListOfAttribute = MVCListOfAttribute deprecated 'Use MVCListOfAttribute';
 
   MVCDataSetFieldAttribute = class(TCustomAttribute)
   private
@@ -193,6 +197,10 @@ function TimeToISOTime(const ATime: TTime): string;
 function ISOTimeStampToDateTime(const ADateTime: string): TDateTime;
 function ISODateToDate(const ADate: string): TDate;
 function ISOTimeToTime(const ATime: string): TTime;
+
+const
+  JSONNameLowerCase = ncLowerCase deprecated 'Use MVCNameCaseAttribute(ncLowerCase)';
+  JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
 implementation
 
