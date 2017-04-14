@@ -30,6 +30,18 @@ uses
   TestFramework,
   MVCFramework.RESTClient;
 
+const
+
+  {$IFDEF LINUX_SERVER}
+
+  TEST_SERVER_ADDRESS = '192.168.3.88';
+
+  {$ELSE}
+
+  TEST_SERVER_ADDRESS = '127.0.0.1';
+
+  {$ENDIF}
+
 type
   TBaseServerTest = class(TTestCase)
   protected
@@ -62,7 +74,7 @@ type
     procedure TestRenderWrappedList;
     procedure TestRenderStreamAndFreeWithOwnerFalse;
     procedure TestRenderStreamAndFreeWithOwnerTrue;
-//    procedure TestSerializationType;
+    // procedure TestSerializationType;
     procedure TestProducesConsumes01;
     procedure TestProducesConsumes02;
     procedure TestProducesConsumes03;
@@ -103,11 +115,17 @@ implementation
 
 uses
   System.Math,
-{$IF CompilerVersion < 27}
+
+  {$IF CompilerVersion < 27}
+
   Data.DBXJSON,
-{$ELSE}
+
+  {$ELSE}
+
   System.JSON,
-{$ENDIF}
+
+  {$ENDIF}
+
   MVCFramework.Commons,
   System.SyncObjs,
   System.Generics.Collections,
@@ -129,7 +147,7 @@ end;
 procedure TBaseServerTest.SetUp;
 begin
   inherited;
-  RESTClient := TRESTClient.Create('localhost', 9999);
+  RESTClient := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
   RESTClient.ReadTimeout(60 * 1000 * 30);
 end;
 
@@ -620,7 +638,7 @@ var
   c1: TRESTClient;
   res: IRESTResponse;
 begin
-  c1 := TRESTClient.Create('localhost', 9999);
+  c1 := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
   try
     c1.Accept(TMVCMediaType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
@@ -851,36 +869,36 @@ begin
   CheckNull(r.BodyAsJsonObject);
 end;
 
-//procedure TServerTest.TestSerializationType;
-//var
-//  LResp: IRESTResponse;
-//  LPersonProps, LPersonFlds: TPerson;
-//  LObj: TObject;
-//begin
-//  LResp := RESTClient.doGET('/people', ['1']);
-//  LPersonProps := Mapper.JSONObjectToObject<TPerson>(LResp.BodyAsJsonObject);
-//  try
-//    LResp := RESTClient.doGET('/people', ['1', 'asfields']);
-//    LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
-//    try
-//      CheckEquals('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
-//      LPersonFlds := TPerson(LObj);
-//      CheckTrue(LPersonFlds.Equals(LPersonProps),
-//        'Object tranferred using field serialization is different from the object serialized in the default way');
-//    finally
-//      LObj.Free;
-//    end;
-//  finally
-//    LPersonProps.Free;
-//  end;
-//end;
+// procedure TServerTest.TestSerializationType;
+// var
+// LResp: IRESTResponse;
+// LPersonProps, LPersonFlds: TPerson;
+// LObj: TObject;
+// begin
+// LResp := RESTClient.doGET('/people', ['1']);
+// LPersonProps := Mapper.JSONObjectToObject<TPerson>(LResp.BodyAsJsonObject);
+// try
+// LResp := RESTClient.doGET('/people', ['1', 'asfields']);
+// LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
+// try
+// CheckEquals('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
+// LPersonFlds := TPerson(LObj);
+// CheckTrue(LPersonFlds.Equals(LPersonProps),
+// 'Object tranferred using field serialization is different from the object serialized in the default way');
+// finally
+// LObj.Free;
+// end;
+// finally
+// LPersonProps.Free;
+// end;
+// end;
 
 procedure TServerTest.TestSession;
 var
   c1: TRESTClient;
   res: IRESTResponse;
 begin
-  c1 := TRESTClient.Create('localhost', 9999);
+  c1 := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
   try
     c1.Accept(TMVCMediaType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione

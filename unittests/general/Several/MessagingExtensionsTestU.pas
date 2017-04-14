@@ -165,7 +165,7 @@ begin
       I: Integer;
     begin
       TThread.Sleep(1000);
-      RESTC := TRESTClient.Create('localhost', 9999);
+      RESTC := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
       try
         RESTC.doPOST('/messages/clients', ['my-other-unique-' + LUnique]);
         RESTC.ReadTimeout(60 * 1000 * 30);

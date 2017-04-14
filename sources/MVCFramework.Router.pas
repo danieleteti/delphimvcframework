@@ -35,7 +35,9 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   System.RegularExpressions,
+  {$IFNDEF LINUX}
   System.AnsiStrings,
+  {$ENDIF}
   MVCFramework,
   MVCFramework.Commons,
   IdURI;

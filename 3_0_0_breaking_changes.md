@@ -20,3 +20,7 @@ end;
 - ```TMVCMimeType``` was renamed to ```TMVCMediaType```.
 - ```TMVCController.Render;``` no parameter method do not exist anymore. If the return is a ResponseStream, use the ```RenderResponseStream;```. 
 - ```TMVCController.PushJSONToView;``` was renamed to ```PushToView```and Removed SystemJSON dependency, use the ToJSON method if necessary.
+- There is no more a default view engine for Server Side Views (before 3.0 there was mustache).
+- Mustache engine is no more the only view engine available. Now you can implement all the view engines you need (check the serversideviewsprimer).
+- On Linux there is no built-in available view engine available. In other words, using only the built-in classes, you cannot use server side views on linux (dmustache is not compatible on linux).
+- HTTP File Upload doesn't work on Linux because of a bug in Delphi 10.2 (https://quality.embarcadero.com/browse/RSP-17216).

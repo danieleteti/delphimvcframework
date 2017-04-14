@@ -5,12 +5,11 @@
 
 uses
   System.SysUtils,
-  Winapi.Windows,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Commons,
-  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule},
+  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule} ,
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -23,7 +22,13 @@ uses
 
 procedure Logo;
 begin
+
+  {$IFNDEF LINUX}
+
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED or FOREGROUND_INTENSITY);
+
+  {$ENDIF}
+
   WriteLn(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
   WriteLn(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
   WriteLn(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
@@ -31,17 +36,26 @@ begin
   WriteLn(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
   WriteLn(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
   WriteLn(' ');
+
+  {$IFNDEF LINUX}
+
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_INTENSITY);
+
+  {$ENDIF}
+
   WriteLn('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
+
+  {$IFNDEF LINUX}
+
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or
     FOREGROUND_RED);
+
+  {$ENDIF}
+
 end;
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Logo;
@@ -56,18 +70,9 @@ begin
     { more info about ListenQueue
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
-    WriteLn('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-{$WARN SYMBOL_PLATFORM OFF}
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-{$WARN SYMBOL_PLATFORM ON}
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    WriteLn('Press RETURN to stop the server');
+    ReadLn;
+    WriteLn('Server stopped');
   finally
     LServer.Free;
   end;

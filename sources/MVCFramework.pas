@@ -47,7 +47,7 @@ uses
   System.DateUtils,
   System.Generics.Collections,
   System.Rtti,
-  WinApi.Windows,
+  // WinApi.Windows,
   MVCFramework.Commons,
   Data.DB,
   MVCFramework.Session,
@@ -64,18 +64,35 @@ uses
 
   {$ENDIF}
 
-  Web.ReqMulti, // Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC
+  // Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC
+  // https://quality.embarcadero.com/browse/RSP-17216
+
+  {$IFNDEF VER320}
+
+  Web.ReqMulti,
+
+  {$ENDIF}
+
   Web.HTTPApp,
+
+  {$IFNDEF LINUX}
+
   Web.Win.IsapiHTTP,
+
+  {$ENDIF}
+
   Web.WebReq,
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,
-  IdURI, StompClient;
+  IdURI,
+  StompClient;
 
 type
 
   TSessionData = TDictionary<string, string>;
+  TMVCBaseViewEngine = class;
+  TMVCViewEngineClass = class of TMVCBaseViewEngine;
 
   MVCBaseAttribute = class(TCustomAttribute)
   private
@@ -546,9 +563,10 @@ type
   private const
     ALLOWED_TYPED_ACTION_PARAMETERS_TYPES = 'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime and String';
   private
+    FViewEngineClass: TMVCViewEngineClass;
     FWebModule: TWebModule;
     FConfig: TMVCConfig;
-    FSerealizers: TDictionary<string, IMVCSerializer>;
+    FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
     FMediaTypes: TDictionary<string, string>;
@@ -561,7 +579,8 @@ type
       const AActionFormalParams: TArray<TRttiParameter>;
       const AActionName: string;
       var AActualParams: TArray<TValue>);
-    procedure RegisterDefaultsSerealizers;
+    procedure RegisterDefaultsSerializers;
+    function GetViewEngineClass: TMVCViewEngineClass;
   protected
     procedure ConfigDefaultValues; virtual;
     procedure LoadSystemControllers; virtual;
@@ -595,13 +614,15 @@ type
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
     function AddController(const AControllerClazz: TMVCControllerClazz): TMVCEngine; overload;
     function AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction): TMVCEngine; overload;
+    function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
 
     procedure HTTP404(const AContext: TWebContext);
     procedure HTTP500(const AContext: TWebContext; const AReasonString: string = '');
 
+    property ViewEngineClass: TMVCViewEngineClass read GetViewEngineClass;
     property WebModule: TWebModule read FWebModule;
     property Config: TMVCConfig read FConfig;
-    property Serealizers: TDictionary<string, IMVCSerializer> read FSerealizers;
+    property Serializers: TDictionary<string, IMVCSerializer> read FSerializers;
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property ApplicationSession: TWebApplicationSession read FApplicationSession write FApplicationSession;
@@ -666,6 +687,38 @@ type
     property Items: TObjectList<TMVCErrorResponseItem> read FItems;
   end;
 
+  TMVCBaseViewEngine = class(TMVCBase)
+  private
+    FViewName: string;
+    FWebContext: TWebContext;
+    FViewModel: TMVCViewDataObject;
+    FViewDataSets: TObjectDictionary<string, TDataSet>;
+    FContentType: string;
+    FOutput: string;
+  protected
+    function GetRealFileName(const AViewName: string): string; virtual;
+    function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
+    procedure SetOutput(const AOutput: String);
+  public
+    constructor Create(
+      const AViewName: string;
+      const AEngine: TMVCEngine;
+      const AWebContext: TWebContext;
+      const AViewModel: TMVCViewDataObject;
+      const AViewDataSets: TObjectDictionary<string, TDataSet>;
+      const AContentType: string); virtual;
+    destructor Destroy; override;
+
+    procedure Execute; virtual; abstract;
+
+    property ViewName: string read FViewName;
+    property WebContext: TWebContext read FWebContext;
+    property ViewModel: TMVCViewDataObject read FViewModel;
+    property ViewDataSets: TObjectDictionary<string, TDataSet> read FViewDataSets;
+    property ContentType: string read FContentType;
+    property Output: string read FOutput;
+  end;
+
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
 
@@ -674,8 +727,7 @@ implementation
 uses
   MVCFramework.Router,
   MVCFramework.SysControllers,
-  MVCFramework.MessagingController,
-  MVCFramework.View;
+  MVCFramework.MessagingController;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -1304,14 +1356,20 @@ begin
 
     if ARequest is TApacheRequest then
       FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
+
+      {$IFNDEF LINUX}
+
     else if ARequest is TISAPIRequest then
       FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+
+      {$ENDIF}
+
     else
       raise EMVCException.Create('Unknown request type ' + ARequest.ClassName);
 
     {$ELSE}
 
-    FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+      FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
 
     {$ENDIF}
 
@@ -1469,7 +1527,7 @@ end;
 
 function TMVCEngine.AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer): TMVCEngine;
 begin
-  FSerealizers.AddOrSetValue(AContentType, ASerializer);
+  FSerializers.AddOrSetValue(AContentType, ASerializer);
   Result := Self;
 end;
 
@@ -1537,7 +1595,7 @@ begin
   inherited Create;
   FWebModule := AWebModule;
   FConfig := TMVCConfig.Create;
-  FSerealizers := TDictionary<string, IMVCSerializer>.Create;
+  FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
   FMediaTypes := TDictionary<string, string>.Create;
@@ -1558,7 +1616,7 @@ begin
     LogExitMethod('Custom configuration method');
   end;
 
-  RegisterDefaultsSerealizers;
+  RegisterDefaultsSerializers;
   LoadSystemControllers;
 end;
 
@@ -1572,7 +1630,7 @@ end;
 destructor TMVCEngine.Destroy;
 begin
   FConfig.Free;
-  FSerealizers.Free;
+  FSerializers.Free;
   FMiddlewares.Free;
   FControllers.Free;
   FMediaTypes.Free;
@@ -1596,7 +1654,7 @@ begin
 
   LParamsTable := TMVCRequestParamsTable.Create;
   try
-    LContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerealizers);
+    LContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
     try
       DefineDefaultReponseHeaders(LContext);
       if IsStaticFileRequest(ARequest, LFileName) then
@@ -1927,6 +1985,13 @@ begin
     Result.MarkAsUsed;
 end;
 
+function TMVCEngine.GetViewEngineClass: TMVCViewEngineClass;
+begin
+  if FViewEngineClass = nil then
+    raise EMVCConfigException.Create('No View Engine configured. [HINT: Use TMVCEngine.SetViewEngine() to set a valid view engine]');
+  Result := FViewEngineClass;
+end;
+
 procedure TMVCEngine.HTTP404(const AContext: TWebContext);
 begin
   AContext.Response.StatusCode := HTTP_STATUS.NotFound;
@@ -1979,9 +2044,9 @@ begin
   end;
 end;
 
-procedure TMVCEngine.RegisterDefaultsSerealizers;
+procedure TMVCEngine.RegisterDefaultsSerializers;
 begin
-  FSerealizers.Add(TMVCMediaType.APPLICATION_JSON, TMVCJSONSerializer.Create);
+  FSerializers.Add(TMVCMediaType.APPLICATION_JSON, TMVCJSONSerializer.Create);
 end;
 
 procedure TMVCEngine.ResponseErrorPage(const AException: Exception; const ARequest: TWebRequest; const AResponse: TWebResponse);
@@ -2039,22 +2104,31 @@ begin
   end;
 end;
 
+function TMVCEngine.SetViewEngine(
+  const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
+begin
+  FViewEngineClass := AViewEngineClass;
+  Result := Self;
+end;
+
 { TMVCBase }
 
 class function TMVCBase.GetApplicationFileName: string;
-var
-  Name: PChar;
-  Size: Integer;
+// var
+// Name: PChar;
+// Size: Integer;
 begin
-  Result := EmptyStr;
-  Name := GetMemory(2048);
-  try
-    Size := GetModuleFileName(0, Name, 2048);
-    if Size > 0 then
-      Result := Name;
-  finally
-    FreeMem(Name, 2048);
-  end;
+  Result := GetModuleName(HInstance);
+  // Result := EmptyStr;
+  // Name := GetMemory(2048);
+  // try
+  // GetModuleName()
+  // Size := GetModuleFileName(0, Name, 2048);
+  // if Size > 0 then
+  // Result := Name;
+  // finally
+  // FreeMem(Name, 2048);
+  // end;
 end;
 
 class function TMVCBase.GetApplicationFileNamePath: string;
@@ -2426,9 +2500,9 @@ end;
 
 function TMVCController.Serializer(const AContentType: string): IMVCSerializer;
 begin
-  if not Engine.Serealizers.ContainsKey(AContentType) then
+  if not Engine.Serializers.ContainsKey(AContentType) then
     raise EMVCException.CreateFmt('The serializer for %s could not be found.', [AContentType]);
-  Result := Engine.Serealizers.Items[AContentType];
+  Result := Engine.Serializers.Items[AContentType];
 end;
 
 function TMVCController.SessionAs<T>: T;
@@ -2495,10 +2569,10 @@ begin
   if Assigned(ADataSet) then
   begin
     try
-    if ASingleRecord then
-      Render(Serializer(ContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase))
-    else
-      Render(Serializer(ContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase))
+      if ASingleRecord then
+        Render(Serializer(ContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase))
+      else
+        Render(Serializer(ContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase))
     finally
       if AOwns then
         ADataSet.Free;
@@ -2525,17 +2599,26 @@ begin
 end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
+
+{$IFNDEF LINUX}
+
 var
-  View: TMVCMustacheView;
+  View: TMVCBaseViewEngine;
   ViewName: string;
   SBuilder: TStringBuilder;
+
+  {$ENDIF}
+
 begin
+
+  {$IFNDEF LINUX}
+
   SBuilder := TStringBuilder.Create;
   try
     try
       for ViewName in AViewNames do
       begin
-        View := TMVCMustacheView.Create(
+        View := FEngine.ViewEngineClass.Create(
           ViewName,
           Engine,
           Context,
@@ -2560,6 +2643,13 @@ begin
   finally
     SBuilder.Free;
   end;
+
+  {$ELSE}
+
+  raise EMVCException.Create('Server Side Views are not supported on Linux');
+
+  {$ENDIF}
+
 end;
 
 procedure TMVCController.Render<T>(const ACollection: TObjectList<T>);
@@ -2714,6 +2804,66 @@ destructor TMVCErrorResponse.Destroy;
 begin
   FItems.Free;
   inherited Destroy;
+end;
+
+{ TMVCBaseView }
+
+constructor TMVCBaseViewEngine.Create(
+  const AViewName: string;
+  const AEngine: TMVCEngine;
+  const AWebContext: TWebContext;
+  const AViewModel: TMVCViewDataObject;
+  const AViewDataSets: TObjectDictionary<string, TDataSet>;
+  const AContentType: string);
+begin
+  inherited Create;
+  FViewName := AViewName;
+  Engine := AEngine;
+  FWebContext := AWebContext;
+  FViewModel := AViewModel;
+  FViewDataSets := AViewDataSets;
+  FContentType := AContentType;
+  FOutput := EmptyStr;
+end;
+
+destructor TMVCBaseViewEngine.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TMVCBaseViewEngine.GetRealFileName(const AViewName: string): string;
+var
+  FileName: string;
+  F: string;
+  DefaultViewFileExtension: string;
+begin
+  DefaultViewFileExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
+  FileName := stringReplace(AViewName, '/', '\', [rfReplaceAll]);
+
+  if (FileName = '\') then
+    FileName := '\index.' + DefaultViewFileExtension
+  else
+    FileName := FileName + '.' + DefaultViewFileExtension;
+
+  if DirectoryExists(Config[TMVCConfigKey.ViewPath]) then
+    F := ExpandFileName(IncludeTrailingPathDelimiter(Config.Value[TMVCConfigKey.ViewPath]) + FileName)
+  else
+    F := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath + Config.Value[TMVCConfigKey.ViewPath]) + FileName);
+
+  if not TFile.Exists(F) then
+    FileName := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath + Config.Value[TMVCConfigKey.DocumentRoot]) + FileName)
+  else
+    FileName := F;
+
+  if FileExists(FileName) then
+    Result := FileName
+  else
+    Result := EmptyStr;
+end;
+
+procedure TMVCBaseViewEngine.SetOutput(const AOutput: String);
+begin
+  FOutput := AOutput;
 end;
 
 initialization

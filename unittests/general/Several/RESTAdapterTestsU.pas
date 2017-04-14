@@ -109,7 +109,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Rtti, System.SyncObjs;
+uses System.SysUtils, System.Rtti, System.SyncObjs, LiveServerTestU;
 
 { TTestRESTAdapter }
 
@@ -117,7 +117,7 @@ procedure TTestRESTAdapter.SetUp;
 begin
   inherited;
   RESTAdapter := TRESTAdapter<ITESTService>.Create;
-  TESTService := RESTAdapter.Build('localhost', 9999);
+  TESTService := RESTAdapter.Build(TEST_SERVER_ADDRESS, 9999);
 end;
 
 procedure TTestRESTAdapter.TestGetPersonByID;

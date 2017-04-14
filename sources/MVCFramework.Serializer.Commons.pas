@@ -355,8 +355,6 @@ var
   Context: TRttiContext;
   ObjectType: TRttiType;
 begin
-  Result := nil;
-
   Context := TRttiContext.Create;
   try
     ObjectType := Context.FindType(AQualifiedClassName);

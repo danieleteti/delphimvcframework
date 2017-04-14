@@ -22,7 +22,10 @@ implementation
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
-uses WebSiteControllerU, MVCFramework.Commons;
+uses WebSiteControllerU, MVCFramework.Commons,
+  {we need mustache engine for server side views}
+  MVCFramework.View.Renderers.Mustache
+    ;
 
 {$R *.dfm}
 
@@ -60,7 +63,7 @@ begin
       Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end).AddController(TWebSiteController);
+    end).AddController(TWebSiteController).SetViewEngine(TMVCMustacheViewEngine);
 
 end;
 
