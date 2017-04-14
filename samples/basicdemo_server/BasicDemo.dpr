@@ -9,6 +9,7 @@ uses
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MVCFramework.REPLCommandsHandlerU,
+  MVCFramework.Logger,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   App1MainControllerU in 'App1MainControllerU.pas';
 
@@ -48,12 +49,20 @@ begin
       // end;
     end;
 
-  //Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  // Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.DefaultPort := APort;
-    //LServer.Active := True;
-    //Writeln('Press RETURN to stop the server');
+    LogI(Format('Server started on port %d', [APort]));
+
+    { more info about MaxConnections
+      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }
+    LServer.MaxConnections := 0;
+
+    { more info about ListenQueue
+      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
+    LServer.ListenQueue := 200;
+
     WriteLn('Write "quit" or "exit" to shutdown the server');
     repeat
       // TextColor(RED);

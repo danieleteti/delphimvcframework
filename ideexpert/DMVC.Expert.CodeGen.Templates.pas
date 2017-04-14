@@ -37,7 +37,8 @@ resourcestring
   { Delphi template code }
   // 0 - project name
   // 1 - http/s port
-  sDMVCDPR = 'program %0:s;' + sLineBreak +
+  sDMVCDPR =
+    'program %0:s;' + sLineBreak +
     sLineBreak +
     ' {$APPTYPE CONSOLE}' + sLineBreak +
     '' + sLineBreak +
@@ -45,53 +46,96 @@ resourcestring
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
-    '  Winapi.Windows,' + sLineBreak +
-    '  Winapi.ShellAPI,' + sLineBreak +
-    '  ReqMulti, {enables files upload}' + sLineBreak +
+    '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
+    '  {$IFNDEF LINUX}' + sLineBreak +
+    '  ReqMulti, {Enables files upload. Why is disabled on Linux? See https://quality.embarcadero.com/browse/RSP-17216}' + sLineBreak +
+    '  {$ENDIF}' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
     '' + sLineBreak +
-    '{$R *.res}' + sLineBreak +
-    sLineBreak +
+    '{$R *.res}' + sLineBreak + sLineBreak +
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
-    '  LInputRecord: TInputRecord;' + sLineBreak +
-    '  LEvent: DWord;' + sLineBreak +
-    '  LHandle: THandle;' + sLineBreak +
-    '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
+    '  lServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
+    '  lCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
+    '  lCmd, lStartupCommand: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
-    '  Writeln(Format(''Starting HTTP Server on port %%d'', [APort]));' + sLineBreak +
+    '  if ParamCount >= 1 then' + sLineBreak +
+    '    lStartupCommand := ParamStr(1)' + sLineBreak +
+    '  else' + sLineBreak +
+    '    lStartupCommand := '''';' + sLineBreak +
+    '' + sLineBreak +
+    '  lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      Handled := False;' + sLineBreak +
+    '      Result := THandleCommandResult.Unknown;' + sLineBreak +
+    '' + sLineBreak +
+    '      // Write here your custom command for the REPL using the following form...' + sLineBreak +
+    '      // ***' + sLineBreak +
+    '      // Handled := False;' + sLineBreak +
+    '      // if (Value = ''apiversion'') then' + sLineBreak +
+    '      // begin' + sLineBreak +
+    '      // REPLEmit(''Print my API version number'');' + sLineBreak +
+    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
+    '      // Handled := True;' + sLineBreak +
+    '      // end' + sLineBreak +
+    '      // else if (Value = ''datetime'') then' + sLineBreak +
+    '      // begin' + sLineBreak +
+    '      // REPLEmit(DateTimeToStr(Now));' + sLineBreak +
+    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
+    '      // Handled := True;' + sLineBreak +
+    '      // end;' + sLineBreak +
+    '    end;' + sLineBreak +
+    '' + sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.Active := True;' + sLineBreak +
-    '    LogI(Format(''Server started on port %d'', [APort]));' + sLineBreak +
-    '    { more info about MaxConnections ' + sLineBreak +
-    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html}'
-    + sLineBreak +
+    '' + sLineBreak +
+    '    { more info about MaxConnections' + sLineBreak +
+    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }' + sLineBreak +
     '    LServer.MaxConnections := 0;' + sLineBreak +
-    '    { more info about ListenQueue ' + sLineBreak +
-    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html}'
-    + sLineBreak +
+    '' + sLineBreak +
+    '    { more info about ListenQueue' + sLineBreak +
+    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
-    '    { Comment the next line to avoid the default browser startup }' + sLineBreak +
-    '    ShellExecute(0, ''open'', PChar(''http://localhost:'' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);'
-    + sLineBreak +
-    '    Writeln(''Press ESC to stop the server'');' + sLineBreak +
-    '    LHandle := GetStdHandle(STD_INPUT_HANDLE);' + sLineBreak +
-    '    while True do' + sLineBreak +
-    '    begin' + sLineBreak +
-    '      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));' + sLineBreak +
-    '      if (LInputRecord.EventType = KEY_EVENT) and' + sLineBreak +
-    '        LInputRecord.Event.KeyEvent.bKeyDown and' + sLineBreak +
-    '        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then' + sLineBreak +
-    '        break;' + sLineBreak +
-    '    end;' + sLineBreak +
+    '' + sLineBreak +
+    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
+    '    repeat' + sLineBreak +
+    '      // TextColor(RED);' + sLineBreak +
+    '      // TextColor(LightRed);' + sLineBreak +
+    '      Write(''-> '');' + sLineBreak +
+    '      // TextColor(White);' + sLineBreak +
+    '      if lStartupCommand.IsEmpty then' + sLineBreak +
+    '        ReadLn(lCmd)' + sLineBreak +
+    '      else' + sLineBreak +
+    '      begin' + sLineBreak +
+    '        lCmd := lStartupCommand;' + sLineBreak +
+    '        lStartupCommand := '''';' + sLineBreak +
+    '        WriteLn(lCmd);' + sLineBreak +
+    '      end;' + sLineBreak +
+    '' + sLineBreak +
+    '      case HandleCommand(lCmd.ToLower, LServer, lCustomHandler) of' + sLineBreak +
+    '        THandleCommandResult.Continue:' + sLineBreak +
+    '          begin' + sLineBreak +
+    '            Continue;' + sLineBreak +
+    '          end;' + sLineBreak +
+    '        THandleCommandResult.Break:' + sLineBreak +
+    '          begin' + sLineBreak +
+    '            Break;' + sLineBreak +
+    '          end;' + sLineBreak +
+    '        THandleCommandResult.Unknown:' + sLineBreak +
+    '          begin' + sLineBreak +
+    '            REPLEmit(''Unknown command: '' + lCmd);' + sLineBreak +
+    '          end;' + sLineBreak +
+    '      end;' + sLineBreak +
+    '    until false;' + sLineBreak +
+    '' + sLineBreak +
     '  finally' + sLineBreak +
     '    LServer.Free;' + sLineBreak +
     '  end;' + sLineBreak +
+
     'end;' + sLineBreak +
     sLineBreak +
     'begin' + sLineBreak +
