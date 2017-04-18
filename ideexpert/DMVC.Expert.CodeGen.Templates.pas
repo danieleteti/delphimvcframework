@@ -65,7 +65,7 @@ resourcestring
     '  if ParamCount >= 1 then' + sLineBreak +
     '    lStartupCommand := ParamStr(1)' + sLineBreak +
     '  else' + sLineBreak +
-    '    lStartupCommand := '''';' + sLineBreak +
+    '    lStartupCommand := ''start'';' + sLineBreak +
     '' + sLineBreak +
     '  lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
     '    begin' + sLineBreak +
