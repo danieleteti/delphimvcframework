@@ -370,7 +370,7 @@ begin
           ftInteger, ftSmallint, ftShortint:
             AJSONObject.AddPair(FieldName, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
 
-          ftLargeint:
+          ftLargeint, ftAutoInc:
             AJSONObject.AddPair(FieldName, TJSONNumber.Create(ADataSet.Fields[I].AsLargeInt));
 
           ftSingle, ftFloat:

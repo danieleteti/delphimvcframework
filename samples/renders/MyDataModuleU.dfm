@@ -34,4 +34,9 @@ object MyDataModule: TMyDataModule
     Left = 256
     Top = 112
   end
+  object FDGUIxWaitCursor1: TFDGUIxWaitCursor
+    Provider = 'Console'
+    Left = 264
+    Top = 200
+  end
 end

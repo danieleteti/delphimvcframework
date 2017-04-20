@@ -9,7 +9,6 @@ uses
 type
 
   [MVCNameCase(ncLowerCase)]
-  [MapperJSONNaming(JSONNameLowerCase)]
   TPerson = class
   private
     FLastName: string;
@@ -35,7 +34,6 @@ type
   TPeople = class(TObjectList<TPerson>);
 
   [MVCNameCase(ncLowerCase)]
-  [MapperJSONNaming(JSONNameLowerCase)]
   TCustomer = class
   private
     FName: string;
@@ -64,7 +62,6 @@ type
     class function GetList: TObjectList<TCustomer>;
   end;
 
-  [MapperJSONNaming(JSONNameLowerCase)]
   [MVCNameCase(ncLowerCase)]
   TProgrammer = class(TPerson)
   private
@@ -74,7 +71,6 @@ type
     property Skills: string read FSkills write SetSkills;
   end;
 
-  [MapperJSONNaming(JSONNameLowerCase)]
   [MVCNameCase(ncLowerCase)]
   TPhilosopher = class(TPerson)
   private

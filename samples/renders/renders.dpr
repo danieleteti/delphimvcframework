@@ -1,9 +1,9 @@
 program renders;
+
 {$APPTYPE CONSOLE}
 
 uses
   System.SysUtils,
-  Winapi.Windows,
   IdHTTPWebBrokerBridge,
   MVCFramework.Commons,
   Web.WebReq,
@@ -17,9 +17,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
@@ -28,16 +25,9 @@ begin
     LServer.DefaultPort := APort;
     LServer.Active := True;
     Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    Writeln('Press RETURN to stop the server');
+    ReadLn;
+    Writeln('Stopping...');
   finally
     LServer.Free;
   end;

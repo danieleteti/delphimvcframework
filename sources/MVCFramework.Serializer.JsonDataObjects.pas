@@ -385,7 +385,7 @@ begin
           ftInteger, ftSmallint, ftShortint:
             AJsonObject.I[FieldName] := ADataSet.Fields[I].AsInteger;
 
-          ftLargeint:
+          ftLargeint, ftAutoInc:
             AJsonObject.L[FieldName] := ADataSet.Fields[I].AsLargeInt;
 
           ftSingle, ftFloat:

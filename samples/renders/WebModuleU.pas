@@ -9,7 +9,7 @@ uses
   FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Stan.Param,
   FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB, FireDAC.Comp.DataSet,
   FireDAC.Comp.Client, FireDAC.Phys.IBBase, FireDAC.Phys.IB, FireDAC.Phys.FB,
-  FireDAC.Phys.FBDef, FireDAC.VCLUI.Wait;
+  FireDAC.Phys.FBDef;
 
 type
   TWebModule1 = class(TWebModule)

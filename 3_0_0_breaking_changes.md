@@ -24,3 +24,5 @@ end;
 - Mustache engine is no more the only view engine available. Now you can implement all the view engines you need (check the serversideviewsprimer).
 - On Linux there is no built-in available view engine available. In other words, using only the built-in classes, you cannot use server side views on linux (dmustache is not compatible on linux).
 - HTTP File Upload doesn't work on Linux because of a bug in Delphi 10.2 (https://quality.embarcadero.com/browse/RSP-17216).
+- ```[MapperJSONNaming(TJSONNameCase.JSONNameLowerCase)]``` now must be changed in ```[MVCNameCase(ncLowerCase)]```
+- ```[MapperJSONNaming(TJSONNameCase.JSONNameUpperCase)]``` now must be changed in ```[MVCNameCase(ncUpperCase)]```
