@@ -22,7 +22,6 @@ object MainForm: TMainForm
     Height = 39
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 592
     object DBNavigator1: TDBNavigator
       AlignWithMargins = True
       Left = 378
@@ -32,7 +31,6 @@ object MainForm: TMainForm
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 0
-      ExplicitLeft = 301
     end
     object btnOpen: TButton
       AlignWithMargins = True

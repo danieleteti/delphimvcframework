@@ -272,40 +272,6 @@ type
       PropertyName: string): boolean;
   end;
 
-  TDataSetHelper = class helper for TDataSet
-  public
-    function AsJSONArray: TJSONArray;
-    function AsJSONArrayString: string;
-    function AsJSONObject(AReturnNilIfEOF: boolean = false;
-      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): TJSONObject;
-    function AsJSONObjectString(AReturnEmptyStringIfEOF
-      : boolean = false): string;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
-      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
-      AIgnoredFields: TArray<string>;
-      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.
-      fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string;
-      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
-      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: string;
-      AIgnoredFields: TArray<string>); overload;
-    procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
-    procedure AppendFromJSONArrayString(AJSONArrayString: string;
-      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll
-      : boolean = false): TObjectList<T>;
-    function AsObject<T: class, constructor>(CloseAfterScroll
-      : boolean = false): T;
-  end;
-
   MapperTransientAttribute = class(TCustomAttribute)
 
   end;
@@ -382,7 +348,7 @@ type
     property name: string read GetName;
   end;
 
-  MapperColumnAttribute = class(TCustomAttribute)
+  MapperColumnAttribute_DEPRECATED = class(TCustomAttribute)
   private
     FFieldName: string;
     FIsPK: boolean;
@@ -522,7 +488,7 @@ var
   _rttiType: TRttiType;
   obj_fields: TArray<TRttiProperty>;
   obj_field: TRttiProperty;
-  obj_field_attr: MapperColumnAttribute;
+  obj_field_attr: MapperColumnAttribute_DEPRECATED;
   Map: TObjectDictionary<string, TRttiProperty>;
   f: TRttiProperty;
   fv: TValue;
@@ -535,9 +501,9 @@ begin
       obj_fields := _rttiType.GetProperties;
       for obj_field in obj_fields do
       begin
-        if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
+        if HasAttribute<MapperColumnAttribute_DEPRECATED>(obj_field, obj_field_attr) then
         begin
-          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName, obj_field);
+          Map.Add(MapperColumnAttribute_DEPRECATED(obj_field_attr).FieldName, obj_field);
         end
         else
         begin
@@ -660,10 +626,10 @@ var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
   _field: TRttiProperty;
-  _attribute: MapperColumnAttribute;
+  _attribute: MapperColumnAttribute_DEPRECATED;
   _dict: TDictionary<string, string>;
   _keys: TDictionary<string, boolean>;
-  mf: MapperColumnAttribute;
+  mf: MapperColumnAttribute_DEPRECATED;
   field_name: string;
   Value: TValue;
   ts: TTimeStamp;
@@ -674,7 +640,7 @@ begin
   _type := ctx.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
   for _field in _fields do
-    if HasAttribute<MapperColumnAttribute>(_field, _attribute) then
+    if HasAttribute<MapperColumnAttribute_DEPRECATED>(_field, _attribute) then
     begin
       mf := _attribute;
       _dict.Add(_field.Name, mf.FieldName);
@@ -903,7 +869,7 @@ var
   _attribute: TCustomAttribute;
   _dict: TDictionary<string, string>;
   _keys: TDictionary<string, boolean>;
-  mf: MapperColumnAttribute;
+  mf: MapperColumnAttribute_DEPRECATED;
   field_name: string;
   Value: TValue;
   FoundAttribute: boolean;
@@ -919,10 +885,10 @@ begin
     FoundTransientAttribute := false;
     for _attribute in _field.GetAttributes do
     begin
-      if _attribute is MapperColumnAttribute then
+      if _attribute is MapperColumnAttribute_DEPRECATED then
       begin
         FoundAttribute := True;
-        mf := MapperColumnAttribute(_attribute);
+        mf := MapperColumnAttribute_DEPRECATED(_attribute);
         _dict.Add(_field.Name, mf.FieldName);
         _keys.Add(_field.Name, mf.IsPK);
       end
@@ -2835,7 +2801,7 @@ var
   _rttiType: TRttiType;
   obj_fields: TArray<TRttiProperty>;
   obj_field: TRttiProperty;
-  obj_field_attr: MapperColumnAttribute;
+  obj_field_attr: MapperColumnAttribute_DEPRECATED;
   Map: TObjectDictionary<string, TRttiProperty>;
   f: TRttiProperty;
   fv: TValue;
@@ -2884,9 +2850,9 @@ begin
       obj_fields := _rttiType.GetProperties;
       for obj_field in obj_fields do
       begin
-        if HasAttribute<MapperColumnAttribute>(obj_field, obj_field_attr) then
+        if HasAttribute<MapperColumnAttribute_DEPRECATED>(obj_field, obj_field_attr) then
         begin
-          Map.Add(MapperColumnAttribute(obj_field_attr).FieldName.ToLower,
+          Map.Add(MapperColumnAttribute_DEPRECATED(obj_field_attr).FieldName.ToLower,
             obj_field);
         end
         else
@@ -2968,19 +2934,19 @@ end;
 
 { MappedField }
 
-constructor MapperColumnAttribute.Create(AFieldName: string; AIsPK: boolean);
+constructor MapperColumnAttribute_DEPRECATED.Create(AFieldName: string; AIsPK: boolean);
 begin
   inherited Create;
   FFieldName := AFieldName;
   FIsPK := AIsPK;
 end;
 
-procedure MapperColumnAttribute.SetFieldName(const Value: string);
+procedure MapperColumnAttribute_DEPRECATED.SetFieldName(const Value: string);
 begin
   FFieldName := Value;
 end;
 
-procedure MapperColumnAttribute.SetIsPK(const Value: boolean);
+procedure MapperColumnAttribute_DEPRECATED.SetIsPK(const Value: boolean);
 begin
   FIsPK := Value;
 end;
@@ -3038,207 +3004,7 @@ begin
 end;
 
 { TDataSetHelper }
-
-function TDataSetHelper.AsJSONArray: TJSONArray;
-var
-  JArr: TJSONArray;
-begin
-
-  JArr := TJSONArray.Create;
-  try
-    if not Eof then
-      Mapper.DataSetToJSONArray(Self, JArr, false);
-    Result := JArr;
-  except
-    FreeAndNil(JArr);
-    raise;
-  end;
-end;
-
-function TDataSetHelper.AsJSONArrayString: string;
-var
-  Arr: TJSONArray;
-begin
-  Arr := AsJSONArray;
-  try
-    { .$IFDEF TOJSON }
-    Result := Arr.ToJSON;
-    { .$ELSE }
-    // Result := Arr.ToString;
-    { .$IFEND }
-  finally
-    Arr.Free;
-  end;
-end;
-
-function TDataSetHelper.AsJSONObject(AReturnNilIfEOF: boolean;
-  AFieldNamePolicy: TFieldNamePolicy): TJSONObject;
-var
-  JObj: TJSONObject;
-begin
-  JObj := TJSONObject.Create;
-  try
-    Mapper.DataSetToJSONObject(Self, JObj, false);
-    if AReturnNilIfEOF and (JObj.Size = 0) then
-      FreeAndNil(JObj);
-    Result := JObj;
-  except
-    FreeAndNil(JObj);
-    raise;
-  end;
-end;
-
-function TDataSetHelper.AsJSONObjectString(AReturnEmptyStringIfEOF
-  : boolean): string;
-var
-  JObj: TJSONObject;
-begin
-  JObj := AsJSONObject(True);
-  if not Assigned(JObj) then
-  begin
-    if AReturnEmptyStringIfEOF then
-      Result := ''
-    else
-      Result := '{}';
-  end
-  else
-    try
-      { .$IFDEF TOJSON }
-      Result := JObj.ToJSON;
-      { .$ELSE }
-      // Result := JObj.ToString
-      { .$IFEND }
-    finally
-      JObj.Free;
-    end;
-end;
-
-function TDataSetHelper.AsObject<T>(CloseAfterScroll: boolean): T;
-var
-  Obj: T;
-begin
-  if not Self.Eof then
-  begin
-    Obj := T.Create;
-    try
-      Mapper.DataSetToObject(Self, Obj);
-      Result := Obj;
-    except
-      FreeAndNil(Obj);
-      raise;
-    end;
-  end
-  else
-    Result := nil;
-end;
-
-function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean)
-  : TObjectList<T>;
-var
-  Objs: TObjectList<T>;
-begin
-  Objs := TObjectList<T>.Create(True);
-  try
-    Mapper.DataSetToObjectList<T>(Self, Objs, CloseAfterScroll);
-    Result := Objs;
-  except
-    FreeAndNil(Objs);
-    raise;
-  end;
-end;
-
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
-  AFieldNamePolicy: TFieldNamePolicy);
-begin
-  Self.DisableControls;
-  try
-    Mapper.JSONArrayToDataSet(AJSONArray, Self, TArray<string>.Create(), false,
-      AFieldNamePolicy);
-  finally
-    Self.EnableControls;
-  end;
-end;
-
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
-begin
-  Self.DisableControls;
-  try
-    Mapper.JSONArrayToDataSet(AJSONArray, Self, AIgnoredFields, false, AFieldNamePolicy);
-  finally
-    Self.EnableControls;
-  end;
-end;
-
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
-begin
-  AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
-end;
-
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
-begin
-  AppendFromJSONArrayString(AJSONArrayString, TArray<String>.Create(), AFieldNamePolicy);
-end;
-
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
-var
-  JV: TJSONValue;
-begin
-  JV := TJSONObject.ParseJSONValue(AJSONArrayString);
-  try
-    if JV is TJSONArray then
-      LoadFromJSONArray(TJSONArray(JV), AIgnoredFields, AFieldNamePolicy)
-    else
-      raise EMapperException.Create
-        ('Expected JSONArray in LoadFromJSONArrayString');
-  finally
-    JV.Free;
-  end;
-end;
-
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string);
-begin
-  AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create());
-end;
-
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
-begin
-  Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false,
-    AFieldNamePolicy);
-end;
-
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string;
-  AIgnoredFields: TArray<string>);
-var
-  JV: TJSONValue;
-begin
-  JV := TJSONObject.ParseJSONValue(AJSONObjectString);
-  try
-    if JV is TJSONObject then
-      LoadFromJSONObject(TJSONObject(JV), AIgnoredFields)
-    else
-      raise EMapperException.Create
-        ('Extected JSONObject in LoadFromJSONObjectString');
-  finally
-    JV.Free;
-  end;
-end;
-
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
-  AFieldNamePolicy: TFieldNamePolicy);
-begin
-  LoadFromJSONObject(AJSONObject, TArray<string>.Create());
-end;
-
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string);
-begin
-  LoadFromJSONObjectString(AJSONObjectString, TArray<string>.Create());
-end;
-
- { MapperSerializeAsString }
+{ MapperSerializeAsString }
 
  constructor MapperSerializeAsString.Create(aEncoding: string);
  begin

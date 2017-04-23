@@ -29,7 +29,9 @@ type
 implementation
 
 uses
-  ObjectsMappers, FireDAC.Stan.Option, FireDAC.Comp.Client, FireDAC.Stan.Param;
+  FireDAC.Stan.Option, FireDAC.Comp.Client, FireDAC.Stan.Param,
+  MVCFramework.FireDAC.Utils, MVCFramework.DataSet.Utils,
+  MVCFramework.Serializer.Commons;
 
 { TArticoliService }
 
@@ -39,7 +41,7 @@ var
 begin
   AArticolo.CheckInsert;
   Cmd := FDM.updArticles.Commands[arInsert];
-  Mapper.ObjectToFDParameters(Cmd.Params, AArticolo, 'NEW_');
+  TFireDACUtils.ObjectToParameters(Cmd.Params, AArticolo, 'NEW_');
   Cmd.OpenOrExecute;
 end;
 
@@ -49,7 +51,7 @@ var
 begin
   AArticolo.CheckDelete;
   Cmd := FDM.updArticles.Commands[arDelete];
-  Mapper.ObjectToFDParameters(Cmd.Params, AArticolo, 'OLD_');
+  TFireDACUtils.ObjectToParameters(Cmd.Params, AArticolo, 'OLD_');
   Cmd.Execute;
 end;
 
@@ -80,7 +82,7 @@ var
 begin
   AArticolo.CheckUpdate;
   Cmd := FDM.updArticles.Commands[arUpdate];
-  Mapper.ObjectToFDParameters(Cmd.Params, AArticolo, 'NEW_');
+  TFireDACUtils.ObjectToParameters(Cmd.Params, AArticolo, 'NEW_');
   Cmd.ParamByName('OLD_ID').AsInteger := AArticolo.ID;
   Cmd.Execute;
   if Cmd.RowsAffected <> 1 then

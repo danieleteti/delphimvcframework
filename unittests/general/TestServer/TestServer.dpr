@@ -7,6 +7,9 @@ uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
+  {$IFNDEF LINUX}
+  Winapi.Windows,
+  {$ENDIF}
   Web.WebBroker,
   MVCFramework.Commons,
   WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule} ,

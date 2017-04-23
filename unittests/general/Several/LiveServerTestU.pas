@@ -212,6 +212,7 @@ begin
       procedure(Response: IRESTResponse)
       begin
         try
+          { TODO -oDaniele -cGeneral : Crea una unit con i metodi che mancano }
           j := Response.BodyAsJsonObject.Clone as TJSONObject;
         except
           // test should not block...never!

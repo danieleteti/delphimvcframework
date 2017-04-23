@@ -161,6 +161,18 @@ type
     property SerializationType: TMVCSerializationType read FSerializationType;
   end;
 
+  MVCColumnAttribute = class(TCustomAttribute)
+  private
+    FFieldName: string;
+    FIsPK: boolean;
+    procedure SetFieldName(const Value: string);
+    procedure SetIsPK(const Value: boolean);
+  public
+    constructor Create(AFieldName: string; AIsPK: boolean = false);
+    property FieldName: string read FFieldName write SetFieldName;
+    property IsPK: boolean read FIsPK write SetIsPK;
+  end;
+
   TMVCSerializerHelpful = record
   private
     { private declarations }
@@ -558,6 +570,25 @@ constructor MVCSerializeAttribute.Create(const ASerializationType: TMVCSerializa
 begin
   inherited Create;
   FSerializationType := ASerializationType;
+end;
+
+{ MVCColumnAttribute }
+
+constructor MVCColumnAttribute.Create(AFieldName: string; AIsPK: boolean);
+begin
+  inherited Create;
+  FFieldName := AFieldName;
+  FIsPK := AIsPK;
+end;
+
+procedure MVCColumnAttribute.SetFieldName(const Value: string);
+begin
+  FFieldName := Value;
+end;
+
+procedure MVCColumnAttribute.SetIsPK(const Value: boolean);
+begin
+  FIsPK := Value;
 end;
 
 end.

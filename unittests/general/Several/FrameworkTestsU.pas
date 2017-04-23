@@ -53,12 +53,12 @@ type
     procedure TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
     procedure TestComplexObjectToJSONObjectAndBack;
     procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
-    procedure TestDataSetToJSONObject;
-    procedure TestDataSetToJSONObjectWithNulls;
-    procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
-    procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
-    procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
-    procedure TestDataSetToJSONArray;
+//    procedure TestDataSetToJSONObject;
+//    procedure TestDataSetToJSONObjectWithNulls;
+//    procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
+//    procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
+//    procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
+//    procedure TestDataSetToJSONArray;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
     procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
     procedure TestObjectToJSONObjectAndBackWithStream;
@@ -379,191 +379,191 @@ begin
   end;
 end;
 
-procedure TTestMappers.TestDataSetToJSONArray;
-var
-  ds: TClientDataSet;
-  JObj: TJSONObject;
-  ds2: TClientDataSet;
-  JArr: TJSONArray;
-begin
-  ds := TClientDataSet.Create(nil);
-  ds2 := TClientDataSet.Create(nil);
-  try
-    ds.LoadFromFile('..\..\fishes.xml');
-    ds.First;
-    // JArr := TJSONArray.Create;
-    JArr := ds.AsJSONArray;
-    try
-      // Mapper.DataSetToJSONArray(ds, JArr, false);
-      ds2.LoadFromFile('..\..\fishes.xml');
-      ds2.EmptyDataSet;
-      ds.First;
-      while not ds.Eof do
-      begin
-        ds2.Insert;
-        JObj := JArr.Get(ds.RecNo - 1) as TJSONObject;
-        ds2.LoadFromJSONObject(JObj);
-        // Mapper.JSONObjectToDataSet(JObj, ds2, false);
-        ds2.Post;
-        SameFishesDataSet(ds, ds2);
-        ds.Next;
-      end;
-    finally
-      JArr.Free;
-    end;
-  finally
-    ds.Free;
-    ds2.Free;
-  end;
-end;
+//procedure TTestMappers.TestDataSetToJSONArray;
+//var
+//  ds: TClientDataSet;
+//  JObj: TJSONObject;
+//  ds2: TClientDataSet;
+//  JArr: TJSONArray;
+//begin
+//  ds := TClientDataSet.Create(nil);
+//  ds2 := TClientDataSet.Create(nil);
+//  try
+//    ds.LoadFromFile('..\..\fishes.xml');
+//    ds.First;
+//    // JArr := TJSONArray.Create;
+//    JArr := ds.AsJSONArray;
+//    try
+//      // Mapper.DataSetToJSONArray(ds, JArr, false);
+//      ds2.LoadFromFile('..\..\fishes.xml');
+//      ds2.EmptyDataSet;
+//      ds.First;
+//      while not ds.Eof do
+//      begin
+//        ds2.Insert;
+//        JObj := JArr.Get(ds.RecNo - 1) as TJSONObject;
+//        ds2.LoadFromJSONObject(JObj);
+//        // Mapper.JSONObjectToDataSet(JObj, ds2, false);
+//        ds2.Post;
+//        SameFishesDataSet(ds, ds2);
+//        ds.Next;
+//      end;
+//    finally
+//      JArr.Free;
+//    end;
+//  finally
+//    ds.Free;
+//    ds2.Free;
+//  end;
+//end;
 
-procedure TTestMappers.TestDataSetToJSONObject;
-var
-  ds: TClientDataSet;
-  JObj: TJSONObject;
-  ds2: TClientDataSet;
-begin
-  ds := TClientDataSet.Create(nil);
-  ds2 := TClientDataSet.Create(nil);
-  try
-    ds.LoadFromFile('..\..\fishes.xml');
-    JObj := ds.AsJSONObject;
-    try
-      ds2.LoadFromFile('..\..\fishes.xml');
-      ds2.EmptyDataSet;
-      ds2.Insert;
-      ds2.LoadFromJSONObject(JObj);
-      ds2.Post;
-      SameFishesDataSet(ds, ds2);
-    finally
-      JObj.Free;
-    end;
-  finally
-    ds.Free;
-    ds2.Free;
-  end;
-end;
+//procedure TTestMappers.TestDataSetToJSONObject;
+//var
+//  ds: TClientDataSet;
+//  JObj: TJSONObject;
+//  ds2: TClientDataSet;
+//begin
+//  ds := TClientDataSet.Create(nil);
+//  ds2 := TClientDataSet.Create(nil);
+//  try
+//    ds.LoadFromFile('..\..\fishes.xml');
+//    JObj := ds.AsJSONObject;
+//    try
+//      ds2.LoadFromFile('..\..\fishes.xml');
+//      ds2.EmptyDataSet;
+//      ds2.Insert;
+//      ds2.LoadFromJSONObject(JObj);
+//      ds2.Post;
+//      SameFishesDataSet(ds, ds2);
+//    finally
+//      JObj.Free;
+//    end;
+//  finally
+//    ds.Free;
+//    ds2.Free;
+//  end;
+//end;
 
-procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyAsIsCase;
-var
-  ds: TClientDataSet;
-  JObj: TJSONObject;
-  ds2: TClientDataSet;
-begin
-  ds := TClientDataSet.Create(nil);
-  ds2 := TClientDataSet.Create(nil);
-  try
-    ds.LoadFromFile('..\..\fishes.xml');
-    JObj := ds.AsJSONObject(false, fpAsIs);
-    try
-      ds2.LoadFromFile('..\..\fishes.xml');
-      ds2.EmptyDataSet;
-      ds2.Insert;
-      ds2.LoadFromJSONObject(JObj, fpAsIs);
-      ds2.Post;
-      SameFishesDataSet(ds, ds2);
-    finally
-      JObj.Free;
-    end;
-  finally
-    ds.Free;
-    ds2.Free;
-  end;
-end;
+//procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyAsIsCase;
+//var
+//  ds: TClientDataSet;
+//  JObj: TJSONObject;
+//  ds2: TClientDataSet;
+//begin
+//  ds := TClientDataSet.Create(nil);
+//  ds2 := TClientDataSet.Create(nil);
+//  try
+//    ds.LoadFromFile('..\..\fishes.xml');
+//    JObj := ds.AsJSONObject(false, fpAsIs);
+//    try
+//      ds2.LoadFromFile('..\..\fishes.xml');
+//      ds2.EmptyDataSet;
+//      ds2.Insert;
+//      ds2.LoadFromJSONObject(JObj, fpAsIs);
+//      ds2.Post;
+//      SameFishesDataSet(ds, ds2);
+//    finally
+//      JObj.Free;
+//    end;
+//  finally
+//    ds.Free;
+//    ds2.Free;
+//  end;
+//end;
 
-procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyLowerCase;
-var
-  ds: TClientDataSet;
-  JObj: TJSONObject;
-  ds2: TClientDataSet;
-begin
-  ds := TClientDataSet.Create(nil);
-  ds2 := TClientDataSet.Create(nil);
-  try
-    ds.LoadFromFile('..\..\fishes.xml');
-    JObj := ds.AsJSONObject(false, fpLowerCase);
-    try
-      ds2.LoadFromFile('..\..\fishes.xml');
-      ds2.EmptyDataSet;
-      ds2.Insert;
-      ds2.LoadFromJSONObject(JObj, fpLowerCase);
-      ds2.Post;
-      SameFishesDataSet(ds, ds2);
-    finally
-      JObj.Free;
-    end;
-  finally
-    ds.Free;
-    ds2.Free;
-  end;
-end;
+//procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyLowerCase;
+//var
+//  ds: TClientDataSet;
+//  JObj: TJSONObject;
+//  ds2: TClientDataSet;
+//begin
+//  ds := TClientDataSet.Create(nil);
+//  ds2 := TClientDataSet.Create(nil);
+//  try
+//    ds.LoadFromFile('..\..\fishes.xml');
+//    JObj := ds.AsJSONObject(false, fpLowerCase);
+//    try
+//      ds2.LoadFromFile('..\..\fishes.xml');
+//      ds2.EmptyDataSet;
+//      ds2.Insert;
+//      ds2.LoadFromJSONObject(JObj, fpLowerCase);
+//      ds2.Post;
+//      SameFishesDataSet(ds, ds2);
+//    finally
+//      JObj.Free;
+//    end;
+//  finally
+//    ds.Free;
+//    ds2.Free;
+//  end;
+//end;
+//
+//procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyUpperCase;
+//var
+//  ds: TClientDataSet;
+//  JObj: TJSONObject;
+//  ds2: TClientDataSet;
+//begin
+//  ds := TClientDataSet.Create(nil);
+//  ds2 := TClientDataSet.Create(nil);
+//  try
+//    ds.LoadFromFile('..\..\fishes.xml');
+//    JObj := ds.AsJSONObject(false, fpUpperCase);
+//    try
+//      ds2.LoadFromFile('..\..\fishes.xml');
+//      ds2.EmptyDataSet;
+//      ds2.Insert;
+//      ds2.LoadFromJSONObject(JObj, fpUpperCase);
+//      ds2.Post;
+//      SameFishesDataSet(ds, ds2);
+//    finally
+//      JObj.Free;
+//    end;
+//  finally
+//    ds.Free;
+//    ds2.Free;
+//  end;
+//end;
 
-procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyUpperCase;
-var
-  ds: TClientDataSet;
-  JObj: TJSONObject;
-  ds2: TClientDataSet;
-begin
-  ds := TClientDataSet.Create(nil);
-  ds2 := TClientDataSet.Create(nil);
-  try
-    ds.LoadFromFile('..\..\fishes.xml');
-    JObj := ds.AsJSONObject(false, fpUpperCase);
-    try
-      ds2.LoadFromFile('..\..\fishes.xml');
-      ds2.EmptyDataSet;
-      ds2.Insert;
-      ds2.LoadFromJSONObject(JObj, fpUpperCase);
-      ds2.Post;
-      SameFishesDataSet(ds, ds2);
-    finally
-      JObj.Free;
-    end;
-  finally
-    ds.Free;
-    ds2.Free;
-  end;
-end;
-
-procedure TTestMappers.TestDataSetToJSONObjectWithNulls;
-var
-  ds: TClientDataSet;
-  JObj: TJSONObject;
-begin
-  ds := TClientDataSet.Create(nil);
-  try
-    ds.FieldDefs.Add('string_value', ftString, 50);
-    ds.FieldDefs.Add('integer_value', ftInteger);
-    ds.FieldDefs.Add('float_value', ftFloat);
-    ds.FieldDefs.Add('null_value', ftString, 50);
-    ds.FieldDefs.Add('boolean_value', ftBoolean);
-    ds.CreateDataSet;
-    ds.Insert;
-    ds.FieldByName('string_value').AsString := 'myStringValue';
-    ds.FieldByName('integer_value').AsInteger := 123;
-    ds.FieldByName('float_value').AsFloat := 123.456;
-    ds.FieldByName('null_value').Clear;
-    ds.FieldByName('boolean_value').AsBoolean := true;
-    ds.Post;
-    JObj := ds.AsJSONObject;
-    try
-      CheckEquals('myStringValue', JObj.Values['string_value'].Value);
-      CheckEquals(123, JObj.Values['integer_value'].GetValue<TJSONNumber>().AsInt);
-      CheckEquals(123.456, JObj.Values['float_value'].GetValue<TJSONNumber>().AsDouble, 0.0009);
-      CheckTrue(JObj.Values['null_value'].GetValue<TJSONNull>().Null);
-      CheckEquals(true, JObj.Values['boolean_value'].GetValue<TJSONBool>().AsBoolean);
-      CheckTrue(JObj.ToJSON.Replace(' ', '').Contains('"null_value":null'));
-      ds.Insert;
-      ds.LoadFromJSONObject(JObj);
-      ds.Post;
-      CheckTrue(ds.FieldByName('null_value').IsNull);
-    finally
-      JObj.Free;
-    end;
-  finally
-    ds.Free;
-  end;
-end;
+//procedure TTestMappers.TestDataSetToJSONObjectWithNulls;
+//var
+//  ds: TClientDataSet;
+//  JObj: TJSONObject;
+//begin
+//  ds := TClientDataSet.Create(nil);
+//  try
+//    ds.FieldDefs.Add('string_value', ftString, 50);
+//    ds.FieldDefs.Add('integer_value', ftInteger);
+//    ds.FieldDefs.Add('float_value', ftFloat);
+//    ds.FieldDefs.Add('null_value', ftString, 50);
+//    ds.FieldDefs.Add('boolean_value', ftBoolean);
+//    ds.CreateDataSet;
+//    ds.Insert;
+//    ds.FieldByName('string_value').AsString := 'myStringValue';
+//    ds.FieldByName('integer_value').AsInteger := 123;
+//    ds.FieldByName('float_value').AsFloat := 123.456;
+//    ds.FieldByName('null_value').Clear;
+//    ds.FieldByName('boolean_value').AsBoolean := true;
+//    ds.Post;
+//    JObj := ds.AsJSONObject;
+//    try
+//      CheckEquals('myStringValue', JObj.Values['string_value'].Value);
+//      CheckEquals(123, JObj.Values['integer_value'].GetValue<TJSONNumber>().AsInt);
+//      CheckEquals(123.456, JObj.Values['float_value'].GetValue<TJSONNumber>().AsDouble, 0.0009);
+//      CheckTrue(JObj.Values['null_value'].GetValue<TJSONNull>().Null);
+//      CheckEquals(true, JObj.Values['boolean_value'].GetValue<TJSONBool>().AsBoolean);
+//      CheckTrue(JObj.ToJSON.Replace(' ', '').Contains('"null_value":null'));
+//      ds.Insert;
+//      ds.LoadFromJSONObject(JObj);
+//      ds.Post;
+//      CheckTrue(ds.FieldByName('null_value').IsNull);
+//    finally
+//      JObj.Free;
+//    end;
+//  finally
+//    ds.Free;
+//  end;
+//end;
 
 procedure TTestMappers.TestJSONArrayToObjectListNoGenerics;
 var

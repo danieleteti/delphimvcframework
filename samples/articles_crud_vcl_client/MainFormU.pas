@@ -47,7 +47,7 @@ var
 implementation
 
 uses
-  ObjectsMappers, System.UITypes;
+  System.UITypes, MVCFramework.DataSet.Utils;
 
 {$R *.dfm}
 
@@ -76,7 +76,7 @@ begin
   DataSet.DisableControls;
   try
     FLoading := true;
-    dsArticles.AppendFromJSONArrayString(Res.BodyAsString);
+    dsArticles.LoadFromJSONArrayString(Res.BodyAsString);
     FLoading := false;
     dsArticles.First;
   finally
@@ -129,9 +129,7 @@ var
 begin
   Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
   FLoading := true;
-  DataSet.Edit;
   DataSet.LoadFromJSONObjectString(Res.BodyAsString);
-  DataSet.Post;
   FLoading := false;
 end;
 
@@ -149,7 +147,7 @@ procedure TMainForm.ShowError(const AResponse: IRESTResponse);
 begin
   MessageDlg(
     AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
-    AResponse.BodyAsJsonObject.Get('message').JsonValue.Value,
+    AResponse.BodyAsString,
     mtError, [mbOK], 0);
 end;
 

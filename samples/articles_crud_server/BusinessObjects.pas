@@ -3,7 +3,7 @@ unit BusinessObjects;
 interface
 
 uses
-  ObjectsMappers;
+  MVCFramework.Serializer.Commons;
 
 type
   TBaseBO = class
@@ -17,7 +17,7 @@ type
     property ID: Integer read FID write SetID;
   end;
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TArticle = class(TBaseBO)
   private
     FPrice: Currency;
@@ -30,11 +30,11 @@ type
     procedure CheckInsert; override;
     procedure CheckUpdate; override;
     procedure CheckDelete; override;
-    [MapperColumn('CODICE')]
+    [MVCColumn('CODICE')]
     property Code: string read FCode write SetCode;
-    [MapperColumn('DESCRIZIONE')]
+    [MVCColumn('DESCRIZIONE')]
     property Description: string read FDescription write SetDescription;
-    [MapperColumn('PREZZO')]
+    [MVCColumn('PREZZO')]
     property Price: Currency read FPrice write SetPrice;
   end;
 

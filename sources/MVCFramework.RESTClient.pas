@@ -32,16 +32,9 @@ uses
   System.Classes,
   IdHTTP,
   IdURI,
-  ObjectsMappers,
   MVCFramework.Commons,
-
-{$IF CompilerVersion < 27}
-  Data.DBXJSON,
-
-{$ELSE}
-  System.JSON,
-
-{$ENDIF}
+  MVCFramework.Serializer.Commons,
+  MVCFramework.DataSet.Utils,
   IdMultipartFormData,
   System.SysUtils,
   Data.DB,
@@ -49,7 +42,7 @@ uses
   IdCompressorZLib,
   IdSSLOpenSSL,
   System.Generics.Collections,
-  System.StrUtils, Web.HTTPApp, IdCookie;
+  System.StrUtils, Web.HTTPApp, IdCookie, MVCFramework.Serializer.Intf;
 
 type
   ERESTClientException = class(Exception);
@@ -91,9 +84,9 @@ type
 
     function Body: TStream;
     function BodyAsString: string;
-    function BodyAsJSONValue: TJSONValue;
-    function BodyAsJSONObject: TJSONObject;
-    function BodyAsJSONArray: TJSONArray;
+    // function BodyAsJSONValue: TJSONValue;
+    // function BodyAsJSONObject: TJSONObject;
+    // function BodyAsJSONArray: TJSONArray;
 
     procedure UpdateResponseCode(const AResponseCode: Word);
     procedure UpdateResponseText(const AResponseText: string);
@@ -120,15 +113,15 @@ type
     property HasError: Boolean read GetHasError write SetHasError;
   end;
 
-  TJSONObjectResponseHelper = class helper for TJSONObject
-  public
-    function AsObject<T: class, constructor>(): T;
-  end;
+//  TJSONObjectResponseHelper = class helper for TJSONObject
+//  public
+//    function AsObject<T: class, constructor>(): T;
+//  end;
 
-  TJSONArrayResponseHelper = class helper for TJSONArray
-  public
-    function AsObjectList<T: class, constructor>(): TObjectList<T>;
-  end;
+//  TJSONArrayResponseHelper = class helper for TJSONArray
+//  public
+//    function AsObjectList<T: class, constructor>(): TObjectList<T>;
+//  end;
 
   TRESTClient = class(TInterfacedObject)
   strict private
@@ -167,6 +160,8 @@ type
     procedure SetSessionID(const AValue: string);
     procedure SetProxyServer(const AValue: string);
     procedure SetProxyPort(const AValue: Integer);
+  private
+    FSerializer: IMVCSerializer;
   strict protected
     procedure HandleRequestCookies();
     procedure HandleCookies(aCookies: TIdCookies;
@@ -229,44 +224,32 @@ type
       : IRESTResponse; overload;
 
     function doPOST(const ABody: string): IRESTResponse; overload;
-    function doPOST(ABody: TJSONValue; const AOwnsBody: Boolean = True)
-      : IRESTResponse; overload;
     function doPOST<TBodyType: class>(ABody: TBodyType;
       const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPOST<TBodyType: class>(ABody: TObjectList<TBodyType>;
       const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string)
-      : IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string;
-      ABody: TJSONValue; const AOwnsBody: Boolean = True)
-      : IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string;
+    function doPOST(
+      const AResource: string;
+      const AParams: array of string): IRESTResponse; overload;
+    function doPOST(
+      const AResource: string;
+      const AParams: array of string;
       const ABody: string): IRESTResponse; overload;
 
     function doPATCH(const ABody: string): IRESTResponse; overload;
-    function doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean = True)
-      : IRESTResponse; overload;
     function doPATCH<TBodyType: class>(ABody: TBodyType;
       const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPATCH<TBodyType: class>(ABody: TObjectList<TBodyType>;
       const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPATCH(const AResource: string; const AParams: array of string;
-      ABody: TJSONValue; const AOwnsBody: Boolean = True)
-      : IRESTResponse; overload;
-    function doPATCH(const AResource: string; const AParams: array of string;
       const ABody: string): IRESTResponse; overload;
 
     function doPUT(const ABody: string): IRESTResponse; overload;
-    function doPUT(ABody: TJSONValue; const AOwnsBody: Boolean = True)
-      : IRESTResponse; overload;
     function doPUT<TBodyType: class>(ABody: TBodyType;
       const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPUT<TBodyType: class>(ABody: TObjectList<TBodyType>;
       const AOwnsBody: Boolean = True): IRESTResponse; overload;
     function doPUT(const AResource: string; const AParams: array of string)
-      : IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string;
-      ABody: TJSONValue; const AOwnsBody: Boolean = True)
       : IRESTResponse; overload;
     function doPUT(const AResource: string; const AParams: array of string;
       const ABody: string): IRESTResponse; overload;
@@ -315,16 +298,18 @@ type
 
 implementation
 
-
-{$IFNDEF ANDROID OR IOS}
-{$IF CompilerVersion > 30}
-
-
 uses
-  System.AnsiStrings;
-{$ENDIF}
-{$ENDIF}
+  MVCFramework.Serializer.Defaults
 
+  {$IFNDEF ANDROID OR IOS}
+  {$IF CompilerVersion > 30}
+
+    , System.AnsiStrings
+
+  {$ENDIF}
+  {$ENDIF}
+
+    ;
 
 type
   TRESTResponse = class(TInterfacedObject, IRESTResponse)
@@ -333,7 +318,7 @@ type
     FResponseCode: Word;
     FResponseText: string;
     FHeaders: TStringlist;
-    FBodyAsJSONValue: TJSONValue;
+//    FBodyAsJSONValue: TJSONValue;
     FContentType: string;
     FContentEncoding: string;
     function GetHeader(const AValue: string): string;
@@ -358,9 +343,9 @@ type
 
     function Body(): TStream;
     function BodyAsString(): string;
-    function BodyAsJSONValue(): TJSONValue;
-    function BodyAsJSONObject(): TJSONObject;
-    function BodyAsJSONArray(): TJSONArray;
+    // function BodyAsJSONValue(): TJSONValue;
+    // function BodyAsJSONObject(): TJSONObject;
+    // function BodyAsJSONArray(): TJSONArray;
 
     procedure UpdateResponseCode(const AResponseCode: Word);
     procedure UpdateResponseText(const AResponseText: string);
@@ -387,39 +372,6 @@ type
 function TRESTResponse.Body: TStream;
 begin
   Result := FBody;
-end;
-
-function TRESTResponse.BodyAsJSONArray: TJSONArray;
-begin
-  Result := BodyAsJSONValue as TJSONArray;
-end;
-
-function TRESTResponse.BodyAsJSONObject: TJSONObject;
-begin
-  Result := BodyAsJSONValue as TJSONObject;
-end;
-
-function TRESTResponse.BodyAsJSONValue: TJSONValue;
-begin
-  try
-    if not Assigned(FBodyAsJSONValue) then
-    begin
-      if (BodyAsString = '') then
-        FBodyAsJSONValue := nil
-      else
-      begin
-        try
-          FBodyAsJSONValue := TJSONObject.ParseJSONValue(BodyAsString);
-        except
-          FBodyAsJSONValue := nil;
-        end;
-      end;
-    end;
-    Result := FBodyAsJSONValue;
-  except
-    on E: Exception do
-      raise ERESTClientException.Create(E.Message);
-  end;
 end;
 
 function TRESTResponse.BodyAsString: string;
@@ -453,14 +405,14 @@ begin
   FHeaders := TStringlist.Create;
   FCookies := TIdCookies.Create(nil);
   FBody := TStringStream.Create('', TEncoding.UTF8);
-  FBodyAsJSONValue := nil;
+//  FBodyAsJSONValue := nil;
   FHasError := False;
 end;
 
 destructor TRESTResponse.Destroy;
 begin
-  if Assigned(FBodyAsJSONValue) then
-    FreeAndNil(FBodyAsJSONValue);
+//  if Assigned(FBodyAsJSONValue) then
+//    FreeAndNil(FBodyAsJSONValue);
   FreeAndNil(FHeaders);
   FreeAndNil(FBody);
   FreeAndNil(FCookies);
@@ -469,12 +421,16 @@ begin
 end;
 
 function TRESTResponse.Error: TMVCExceptionObj;
+var
+  lSerializer: IMVCSerializer;
 begin
   if not FHasError then
     Exit(nil);
   if not Assigned(FErrorObject) then
   begin
-    FErrorObject := Mapper.JSONObjectToObject<TMVCExceptionObj>(self.BodyAsJSONObject);
+    FErrorObject := TMVCExceptionObj.Create;
+    lSerializer := GetDefaultSerializer;
+    lSerializer.DeserializeObject(Self.BodyAsString, FErrorObject);
   end;
   Result := FErrorObject;
 end;
@@ -613,17 +569,28 @@ end;
 
 { TJSONObjectResponseHelper }
 
-function TJSONObjectResponseHelper.AsObject<T>: T;
-begin
-  Result := Mapper.JSONObjectToObject<T>(self);
-end;
+//function TJSONObjectResponseHelper.AsObject<T>: T;
+//var
+//  lSerializer: IMVCSerializer;
+//begin
+//  lSerializer := GetDefaultSerializer;
+//  Result := T.Create;
+//  try
+//    lSerializer.DeserializeObject(Self.ToJSON, Result);
+//  except
+//    FreeAndNil(Result);
+//    raise;
+//  end;
+//  // Result := Mapper.JSONObjectToObject<T>(self);
+//end;
 
 { TJSONArrayResponseHelper }
 
-function TJSONArrayResponseHelper.AsObjectList<T>: TObjectList<T>;
-begin
-  Result := Mapper.JSONArrayToObjectList<T>(self, False, True);
-end;
+//function TJSONArrayResponseHelper.AsObjectList<T>: TObjectList<T>;
+//begin
+//  raise Exception.Create('Not Implemented');
+//  // Result := Mapper.JSONArrayToObjectList<T>(self, False, True);
+//end;
 
 { TRESTClient }
 
@@ -716,10 +683,14 @@ begin
   begin
     if (FHTTP.Compressor <> nil) then
     begin
-{$HINTS OFF}
+
+      {$HINTS OFF}
+
       FHTTP.Compressor.Free;
       FHTTP.Compressor := nil;
-{$HINTS ON}
+
+      {$HINTS ON}
+
     end;
   end;
   Result := self;
@@ -819,6 +790,8 @@ begin
   FHTTP.HandleRedirects := True;
   FHTTP.Request.CustomHeaders.FoldLines := False;
   FHTTP.Request.BasicAuthentication := True;
+
+  FSerializer := GetDefaultSerializer;
 end;
 
 function TRESTClient.DataSetDelete(const AResource, AKeyValue: string)
@@ -827,16 +800,15 @@ begin
   Result := doDELETE(AResource, [AKeyValue]);
 end;
 
-function TRESTClient.DataSetInsert(const AResource: string; ADataSet: TDataSet)
-  : IRESTResponse;
+function TRESTClient.DataSetInsert(const AResource: string; ADataSet: TDataSet): IRESTResponse;
 begin
-  Result := doPOST(AResource, [], ADataSet.AsJSONObjectString);
+  Result := doPOST(AResource, [], ADataSet.AsJSONObject);
 end;
 
 function TRESTClient.DataSetUpdate(const AResource: string; ADataSet: TDataSet;
   const AKeyValue: string): IRESTResponse;
 begin
-  Result := doPUT(AResource, [AKeyValue], ADataSet.AsJSONObjectString);
+  Result := doPUT(AResource, [AKeyValue], ADataSet.AsJSONObject);
 end;
 
 destructor TRESTClient.Destroy;
@@ -935,52 +907,6 @@ begin
   ClearAllParams;
 end;
 
-function TRESTClient.doPOST(const AResource: string;
-  const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean)
-  : IRESTResponse;
-begin
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('ABody is nil JSONValue');
-
-  try
-    Result := doPOST(AResource, AParams,
-
-{$IF CompilerVersion >= 28}
-      ABody.ToJSON
-
-{$ELSE}
-      ABody.ToString
-
-{$ENDIF});
-  finally
-    if AOwnsBody then
-      FreeAndNil(ABody);
-  end;
-end;
-
-function TRESTClient.doPATCH(const AResource: string;
-  const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean)
-  : IRESTResponse;
-begin
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('ABody is nil JSONValue');
-
-  try
-    Result := doPATCH(AResource, AParams,
-
-{$IF CompilerVersion >= 28}
-      ABody.ToJSON
-
-{$ELSE}
-      ABody.ToString
-
-{$ENDIF});
-  finally
-    if AOwnsBody then
-      FreeAndNil(ABody);
-  end;
-end;
-
 function TRESTClient.doPATCH(const AResource: string;
   const AParams: array of string; const ABody: string): IRESTResponse;
 var
@@ -1013,18 +939,6 @@ begin
   Result := doPATCH(FResource, FParams, ABody);
 end;
 
-function TRESTClient.doPATCH(ABody: TJSONValue; const AOwnsBody: Boolean)
-  : IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPATCH(FResource, FParams, ABody, AOwnsBody);
-end;
-
 function TRESTClient.doPATCH<TBodyType>(ABody: TBodyType;
   const AOwnsBody: Boolean): IRESTResponse;
 begin
@@ -1034,8 +948,7 @@ begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('You must enter the Body!');
 
-  Result := doPATCH(FResource, FParams, Mapper.ObjectToJSONObject(ABody)
-    as TJSONValue, True);
+  Result := doPATCH(FResource, FParams, FSerializer.SerializeObject(ABody));
 
   if AOwnsBody then
     TObject(ABody).Free;
@@ -1051,9 +964,7 @@ begin
     raise ERESTClientException.Create('You must enter the Body!');
 
   ABody.OwnsObjects := AOwnsBody;
-
-  Result := doPATCH(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>
-    (ABody, AOwnsBody) as TJSONValue, True);
+  Result := doPATCH(FResource, FParams, FSerializer.SerializeCollection(ABody));
 end;
 
 function TRESTClient.doPOST(const AResource: string;
@@ -1093,18 +1004,6 @@ begin
   Result := doPOST(FResource, FParams, ABody);
 end;
 
-function TRESTClient.doPOST(ABody: TJSONValue; const AOwnsBody: Boolean)
-  : IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPOST(FResource, FParams, ABody, AOwnsBody);
-end;
-
 function TRESTClient.doPOST<TBodyType>(ABody: TBodyType;
   const AOwnsBody: Boolean): IRESTResponse;
 begin
@@ -1114,8 +1013,7 @@ begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('You must enter the Body!');
 
-  Result := doPOST(FResource, FParams, Mapper.ObjectToJSONObject(ABody)
-    as TJSONValue, True);
+  Result := doPOST(FResource, FParams, FSerializer.SerializeObject(ABody));
 
   if AOwnsBody then
     TObject(ABody).Free;
@@ -1132,8 +1030,7 @@ begin
 
   ABody.OwnsObjects := AOwnsBody;
 
-  Result := doPOST(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>
-    (ABody, AOwnsBody) as TJSONValue, True);
+  Result := doPOST(FResource, FParams, FSerializer.SerializeCollection(ABody));
 end;
 
 function TRESTClient.doPUT(const AResource: string;
@@ -1144,29 +1041,6 @@ begin
     EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams),
     FBodyParams);
   ClearAllParams;
-end;
-
-function TRESTClient.doPUT(const AResource: string;
-  const AParams: array of string; ABody: TJSONValue; const AOwnsBody: Boolean)
-  : IRESTResponse;
-begin
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('ABody is nil JSONValue');
-
-  try
-    Result := doPUT(AResource, AParams,
-
-{$IF CompilerVersion >= 28}
-      ABody.ToJSON
-
-{$ELSE}
-      ABody.ToString
-
-{$ENDIF});
-  finally
-    if AOwnsBody then
-      FreeAndNil(ABody);
-  end;
 end;
 
 function TRESTClient.doPUT(const AResource: string;
@@ -1201,18 +1075,6 @@ begin
   Result := doPUT(FResource, FParams, ABody);
 end;
 
-function TRESTClient.doPUT(ABody: TJSONValue; const AOwnsBody: Boolean)
-  : IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPUT(FResource, FParams, ABody, AOwnsBody);
-end;
-
 function TRESTClient.doPUT<TBodyType>(ABody: TBodyType;
   const AOwnsBody: Boolean): IRESTResponse;
 begin
@@ -1222,8 +1084,7 @@ begin
   if not Assigned(ABody) then
     raise ERESTClientException.Create('You must enter the Body!');
 
-  Result := doPUT(FResource, FParams, Mapper.ObjectToJSONObject(ABody)
-    as TJSONValue, True);
+  Result := doPUT(FResource, FParams, FSerializer.SerializeObject(ABody));
 
   if AOwnsBody then
     TObject(ABody).Free;
@@ -1240,8 +1101,7 @@ begin
 
   ABody.OwnsObjects := AOwnsBody;
 
-  Result := doPUT(FResource, FParams, Mapper.ObjectListToJSONArray<TBodyType>
-    (ABody, AOwnsBody) as TJSONValue, True);
+  Result := doPUT(FResource, FParams, FSerializer.SerializeCollection(ABody));
 end;
 
 function TRESTClient.DSDelete(const AResource, AKeyValue: string)
@@ -1529,11 +1389,17 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-{$IF CompilerVersion > 30}
+
+        {$IF CompilerVersion > 30}
+
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
-{$ELSE}
+
+        {$ELSE}
+
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
-{$ENDIF}
+
+        {$ENDIF}
+
         Length(E.ErrorMessage) * 2));
     end
     else
@@ -1637,11 +1503,17 @@ begin
     begin
       Result.HasError := True;
       Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-{$IF CompilerVersion > 30}
+
+        {$IF CompilerVersion > 30}
+
         ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
-{$ELSE}
+
+        {$ELSE}
+
         ElementToCharLen(UTF8Encode(E.ErrorMessage),
-{$ENDIF}
+
+        {$ENDIF}
+
         Length(E.ErrorMessage) * 2));
     end
     else
@@ -1698,10 +1570,14 @@ begin
   begin
     if (FHTTP.IOHandler <> nil) then
     begin
-{$HINTS OFF}
+
+      {$HINTS OFF}
+
       FHTTP.IOHandler.Free;
       FHTTP.IOHandler := nil;
-{$HINTS ON}
+
+      {$HINTS ON}
+
     end;
   end;
   Result := self;
