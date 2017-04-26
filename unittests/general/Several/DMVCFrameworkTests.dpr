@@ -28,7 +28,8 @@ uses
   MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
-  BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas';
+  BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
+  MVCFramework.RESTClient.SystemJSONUtils in '..\..\..\sources\MVCFramework.RESTClient.SystemJSONUtils.pas';
 
 {$R *.RES}
 

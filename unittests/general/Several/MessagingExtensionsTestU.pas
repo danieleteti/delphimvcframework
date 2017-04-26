@@ -30,16 +30,18 @@ uses
   TestFramework,
   MVCFramework.RESTClient,
   LiveServerTestU;
-
-type
+{
+  type
   TMessagingExtensionsTestCase = class(TBaseServerTest)
   published
-    procedure TestSubscribeOnATopic;
-    procedure TestMultipleSubscribeOnSameTopic;
-    procedure TestMultipleSubscribeAndUnsubscribe;
-    procedure TestMultipleSubscribeAndUnsubscribeHARD;
-    procedure TestSubscribeAndReceive;
+  procedure TestSubscribeOnATopic;
+  procedure TestMultipleSubscribeOnSameTopic;
+  procedure TestMultipleSubscribeAndUnsubscribe;
+  procedure TestMultipleSubscribeAndUnsubscribeHARD;
+  procedure TestSubscribeAndReceive;
   end;
+
+}
 
 implementation
 
@@ -47,21 +49,27 @@ implementation
 
 uses
   System.SysUtils,
-{$IF CompilerVersion < 27}
+
+  {$IF CompilerVersion < 27}
+
   Data.DBXJSON,
-{$ELSE}
+
+  {$ELSE}
+
   System.JSON,
-{$ENDIF}
+
+  {$ENDIF}
+
   System.Classes,
   MVCFramework.Logger, MVCFramework.Commons, Winapi.Windows;
 
 { TMessagingExtensionsTestCase }
-
-procedure TMessagingExtensionsTestCase.TestMultipleSubscribeAndUnsubscribe;
-var
+{
+  procedure TMessagingExtensionsTestCase.TestMultipleSubscribeAndUnsubscribe;
+  var
   res: IRESTResponse;
   x: string;
-begin
+  begin
   RESTClient.ReadTimeout(- 1);
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
@@ -88,13 +96,13 @@ begin
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   DoLogout;
-end;
+  end;
 
-procedure TMessagingExtensionsTestCase.TestMultipleSubscribeAndUnsubscribeHARD;
-var
+  procedure TMessagingExtensionsTestCase.TestMultipleSubscribeAndUnsubscribeHARD;
+  var
   res: IRESTResponse;
   x: string;
-begin
+  begin
   RESTClient.ReadTimeout(-1);
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
@@ -110,8 +118,8 @@ begin
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals
-    ('/queue/test01;/queue/test010;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010',
-    x);
+  ('/queue/test01;/queue/test010;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010',
+  x);
 
   res := RESTClient.doDELETE('/messages/subscriptions/queue', ['test010']);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
@@ -119,14 +127,14 @@ begin
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
   CheckEquals
-    ('/queue/test01;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010', x);
+  ('/queue/test01;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010', x);
   DoLogout;
-end;
+  end;
 
-procedure TMessagingExtensionsTestCase.TestMultipleSubscribeOnSameTopic;
-var
+  procedure TMessagingExtensionsTestCase.TestMultipleSubscribeOnSameTopic;
+  var
   res: IRESTResponse;
-begin
+  begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
@@ -135,10 +143,10 @@ begin
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shoud not return an error
   DoLogout;
-end;
+  end;
 
-procedure TMessagingExtensionsTestCase.TestSubscribeAndReceive;
-var
+  procedure TMessagingExtensionsTestCase.TestSubscribeAndReceive;
+  var
   res: IRESTResponse;
   messages: TJSONArray;
   sid: string;
@@ -147,9 +155,9 @@ var
   o: TJSONObject;
   J: Integer;
   LUnique: string;
-const
+  const
   MSG_COUNT = 10;
-begin
+  begin
   LUnique := GetTickCount.ToString;
 
   DoLoginWith('guest');
@@ -159,62 +167,62 @@ begin
   RESTClient.ReadTimeout(- 1);
   sid := RESTClient.SessionID;
   TThread.CreateAnonymousThread(
-    procedure
-    var
-      RESTC: TRESTClient;
-      I: Integer;
-    begin
-      TThread.Sleep(1000);
-      RESTC := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
-      try
-        RESTC.doPOST('/messages/clients', ['my-other-unique-' + LUnique]);
-        RESTC.ReadTimeout(60 * 1000 * 30);
-        RESTC.doGET('/login', ['guest']);
-        for I := 1 to MSG_COUNT do
-        begin
-          RESTC.doPOST('/messages/queue/test02', [], TJSONObject.Create(TJSONPair.Create('hello',
-            TJSONNumber.Create(I))));
-          RESTC.doPOST('/messages/queue/test01', [], TJSONObject.Create(TJSONPair.Create('hello',
-            TJSONNumber.Create(I))));
-        end;
-      finally
-        RESTC.Free;
-      end;
-    end).Start;
+  procedure
+  var
+  RESTC: TRESTClient;
+  I: Integer;
+  begin
+  TThread.Sleep(1000);
+  RESTC := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
+  try
+  RESTC.doPOST('/messages/clients', ['my-other-unique-' + LUnique]);
+  RESTC.ReadTimeout(60 * 1000 * 30);
+  RESTC.doGET('/login', ['guest']);
+  for I := 1 to MSG_COUNT do
+  begin
+  RESTC.doPOST('/messages/queue/test02', [], TJSONObject.Create(TJSONPair.Create('hello',
+  TJSONNumber.Create(I))));
+  RESTC.doPOST('/messages/queue/test01', [], TJSONObject.Create(TJSONPair.Create('hello',
+  TJSONNumber.Create(I))));
+  end;
+  finally
+  RESTC.Free;
+  end;
+  end).Start;
 
   RMessageCount := 0;
   for J := 1 to MSG_COUNT * 2 do
   begin
-    res := RESTClient.doGET('/messages', []);
-    if res.ResponseCode = HTTP_STATUS.OK then
-    begin
-      CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONFalse);
-      CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
-      CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
-      CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray,
-        'Messages is not a TJSONArray');
-      messages := res.BodyAsJsonObject.Get('messages').JsonValue as TJSONArray;
-      if messages.Size > 0 then
-        for I := 0 to messages.Size - 1 do
-        begin
-          o := messages.Get(I) as TJSONObject;
-          logw(o.Get('message').ToString);
-        end;
-      RMessageCount := RMessageCount + messages.Size;
-    end;
-    if res.ResponseCode = HTTP_STATUS.RequestTimeout then // receive timeout
-      break;
+  res := RESTClient.doGET('/messages', []);
+  if res.ResponseCode = HTTP_STATUS.OK then
+  begin
+  CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONFalse);
+  CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
+  CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
+  CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray,
+  'Messages is not a TJSONArray');
+  messages := res.BodyAsJsonObject.Get('messages').JsonValue as TJSONArray;
+  if messages.Size > 0 then
+  for I := 0 to messages.Size - 1 do
+  begin
+  o := messages.Get(I) as TJSONObject;
+  logw(o.Get('message').ToString);
+  end;
+  RMessageCount := RMessageCount + messages.Size;
+  end;
+  if res.ResponseCode = HTTP_STATUS.RequestTimeout then // receive timeout
+  break;
   end;
   CheckEquals(MSG_COUNT * 2, RMessageCount, 'message count');
   res := RESTClient.doGET('/messages', []);
   CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONTrue);
   DoLogout;
-end;
+  end;
 
-procedure TMessagingExtensionsTestCase.TestSubscribeOnATopic;
-var
+  procedure TMessagingExtensionsTestCase.TestSubscribeOnATopic;
+  var
   res: IRESTResponse;
-begin
+  begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
@@ -222,12 +230,14 @@ begin
   res := RESTClient.doDELETE('/messages/subscriptions/queue/test01', []);
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   DoLogout;
-end;
-
+  end;
+}
 initialization
 
 {$IFDEF USE_MESSAGING}
+
   RegisterTest(TMessagingExtensionsTestCase.Suite);
+
 {$ENDIF}
 
 finalization

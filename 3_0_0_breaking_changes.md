@@ -26,3 +26,21 @@ end;
 - HTTP File Upload doesn't work on Linux because of a bug in Delphi 10.2 (https://quality.embarcadero.com/browse/RSP-17216).
 - ```[MapperJSONNaming(TJSONNameCase.JSONNameLowerCase)]``` now must be changed in ```[MVCNameCase(ncLowerCase)]```
 - ```[MapperJSONNaming(TJSONNameCase.JSONNameUpperCase)]``` now must be changed in ```[MVCNameCase(ncUpperCase)]```
+
+## TRESTClient
+Every reference to TJSON* has been removed from the TRESTClient public interface. To port the existing code, you have to include ```MVCFramework.RESTClient.SystemJSONUtils``` and change your code as following:
+
+Before
+    ```lMyJSONObject := Response.BodyAsJsonObject.Clone as TJSONObject;```
+After	
+	```delphi
+	lMyJSONObject := TSystemJSON.BodyAsJsonObject(Response) as TJSONObject;
+	try
+	  //use the object
+	finally
+	  lMyJSONObject.Free;
+	end;
+	```
+
+The memory allocated for the TJSONValue descendant (e.g. TJSONObject, TJSONArray and so on) *is no more managed by the TRESTClient itself* but must be feed by the calling code.	
+

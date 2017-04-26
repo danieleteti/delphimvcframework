@@ -152,6 +152,7 @@
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.RESTClient.pas"/>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.AppController.pas"/>
         <DCCReference Include="..\..\..\samples\commons\BusinessObjectsU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.SystemJSONUtils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

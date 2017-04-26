@@ -129,6 +129,8 @@ type
     property Name: string read GetName;
   end;
 
+  MapperJSONSer = MVCNameAsAttribute deprecated 'Use MVCNameAsAttribute';
+
   MVCListOfAttribute = class(TCustomAttribute)
   private
     FValue: TClass;

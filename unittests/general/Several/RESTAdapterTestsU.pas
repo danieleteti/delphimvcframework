@@ -31,14 +31,10 @@ interface
 uses
   MVCFramework.RESTAdapter, TestFramework, BusinessObjectsU,
   Generics.Collections,
-{$IFDEF SYSTEMJSON}
-  System.JSON,
-{$ELSE}
-  Data.DBXJSON,
-  Data.SqlExpr,
-  DBXCommon,
-{$ENDIF}
-  ObjectsMappers, MVCFramework.RESTClient, MVCFramework.Commons;
+  MVCFramework.TypesAliases,
+  MVCFramework.RESTClient,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons;
 
 type
 
@@ -47,11 +43,11 @@ type
     ['{58B9FA23-92F4-4B8E-814B-05232F32A41F}']
 
     [RESTResource(HttpGet, '/people')]
-    [MapperListOf(TPerson)]
+    [MVCListOf(TPerson)]
     function GetPeople: TObjectList<TPerson>;
 
     [RESTResource(HttpGet, '/people')]
-    [MapperListOf(TPerson)]
+    [MVCListOf(TPerson)]
     [Mapping(TPeople)]
     procedure GetPeopleAsynch(AAsynchRequest: IAsynchRequest);
 

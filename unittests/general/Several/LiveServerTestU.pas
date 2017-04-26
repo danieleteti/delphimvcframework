@@ -114,7 +114,7 @@ type
 implementation
 
 uses
-  System.Math,
+  System.Math, MVCFramework.Serializer.Defaults,
 
   {$IF CompilerVersion < 27}
 
@@ -132,7 +132,7 @@ uses
   System.SysUtils,
   BusinessObjectsU,
   ObjectsMappers,
-  Soap.EncdDecd, System.Classes;
+  Soap.EncdDecd, System.Classes, MVCFramework.RESTClient.SystemJSONUtils;
 
 { TServerTest }
 
@@ -213,7 +213,7 @@ begin
       begin
         try
           { TODO -oDaniele -cGeneral : Crea una unit con i metodi che mancano }
-          j := Response.BodyAsJsonObject.Clone as TJSONObject;
+          j := TSystemJSON.BodyAsJsonObject(Response) as TJSONObject;
         except
           // test should not block...never!
         end;
@@ -245,11 +245,12 @@ begin
   j := nil;
   evt := TEvent.Create;
   try
+
     RESTClient.Asynch(
       procedure(Response: IRESTResponse)
       begin
         try
-          j := Response.BodyAsJsonObject.Clone as TJSONObject;
+          j := TSystemJSON.BodyAsJsonObject(Response);
         except
           // test should not block...never!
         end;
@@ -258,7 +259,8 @@ begin
       procedure(E: Exception)
       begin
       end).doPOST('/echo', ['1', '2', '3'],
-      TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
+      TSystemJSON.JSONValueToString(TJSONObject.Create(TJSONPair.Create('from client', 'hello world')))
+      );
 
     // wait for thred finish
     repeat
@@ -286,7 +288,7 @@ begin
       procedure(Response: IRESTResponse)
       begin
         try
-          j := Response.BodyAsJsonObject.Clone as TJSONObject;
+          j := TSystemJSON.BodyAsJSONObject(Response);
         except
           // test should not block...never!
         end;
@@ -295,7 +297,7 @@ begin
       procedure(E: Exception)
       begin
       end).doPUT('/echo', ['1', '2', '3'],
-      TJSONObject.Create(TJSONPair.Create('from client', 'hello world')), true);
+      TSystemJSON.JSONValueToString(TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
 
     // wait for thred finish
     repeat
@@ -423,7 +425,7 @@ begin
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
-    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     CheckEquals('application/json', LRes.ContentType);
     CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
     CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
@@ -457,7 +459,7 @@ begin
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
-    LRes := RESTClient.Accept('text/html').doPOST('/system/users/logged', [], lJSON, false);
+    LRes := RESTClient.Accept('text/html').doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     CheckEquals('application/json', LRes.ContentType);
     CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
     CheckEquals('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
@@ -494,14 +496,14 @@ begin
       'Empty request body doesn''t return HTTP 400 Bad Request');
 
     // wrong request body 1
-    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
       'Invalid json doesn''t return HTTP 401 Unauthorized');
 
     // wrong request body 2
     lJSON.AddPair('username', '');
     lJSON.AddPair('password', '');
-    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
       'Empty username and password doesn''t return HTTP 401 Unauthorized');
 
@@ -510,7 +512,7 @@ begin
     lJSON.RemovePair('password');
     lJSON.AddPair('username', 'notvaliduser');
     lJSON.AddPair('password', 'notvalidpassword');
-    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     CheckEquals(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
       'Wrong username and password doesn''t return HTTP 401 Unauthorized');
   finally
@@ -532,7 +534,7 @@ begin
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
-    LRes := RESTClient.doPOST('/system/users/logged', [], lJSON, false);
+    LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
 
     CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
     lLogoutUrl := LRes.HeaderValue('X-LOGOUT-URL');
@@ -565,18 +567,25 @@ procedure TServerTest.TestEncodingRenderJSONValue;
 var
   res: IRESTResponse;
   s: string;
+  lJSONObj: TJSONObject;
 begin
   res := RESTClient.doGET('/encoding', []);
 
-  s := res.BodyAsJsonObject.Get('name1').JsonValue.Value;
+  lJSONObj := TSystemJSON.BodyAsJSONObject(res);
+  s := lJSONObj.Get('name1').JsonValue.Value;
   CheckEquals('j¯rn', s);
+  lJSONObj.Free;
 
-  s := res.BodyAsJsonObject.Get('name3').JsonValue.Value;
+  lJSONObj := TSystemJSON.BodyAsJSONObject(res);
+  s := lJSONObj.Get('name3').JsonValue.Value;
   CheckEquals('‡ËÈÏÚ˘', s);
+  lJSONObj.Free;
 
-  s := res.BodyAsJsonObject.Get('name2').JsonValue.Value;
+  lJSONObj := TSystemJSON.BodyAsJSONObject(res);
+  s := lJSONObj.Get('name2').JsonValue.Value;
   CheckEquals('äto je Unicode?', s,
     'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
+  lJSONObj.Free;
   { WARNING!!! }
   {
     If this test fail, check
@@ -609,11 +618,15 @@ var
 begin
   LRes := RESTClient.doGET('/wrappedpeople', []);
 
-  lJSONArr := LRes.BodyAsJSONArray;
-  for I := 0 to lJSONArr.Count - 1 do
-  begin
-    lJSONObj := lJSONArr.Items[I] as TJSONObject;
-    CheckFalse(lJSONObj.GetValue<string>('firstname').IsEmpty);
+  lJSONArr := TSystemJSON.BodyAsJSONArray(LRes);
+  try
+    for I := 0 to lJSONArr.Count - 1 do
+    begin
+      lJSONObj := lJSONArr.Items[I] as TJSONObject;
+      CheckFalse(lJSONObj.GetValue<string>('firstname').IsEmpty);
+    end;
+  finally
+    lJSONArr.Free;
   end;
 
 end;
@@ -675,7 +688,7 @@ begin
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
-      .doPOST('/objects', [], Mapper.ObjectToJSONObject(P));
+      .doPOST('/objects', [], GetDefaultSerializer.SerializeObject(P));
   finally
     P.Free;
   end;
@@ -703,7 +716,9 @@ begin
   LCustomers := TCustomer.GetList;
   try
     LRes := RESTClient.doPOST('/customers/list', [],
-      Mapper.ObjectListToJSONArray<TCustomer>(LCustomers));
+      GetDefaultSerializer.SerializeCollection(LCustomers)
+    { Mapper.ObjectListToJSONArray<TCustomer>(LCustomers) }
+      );
     CheckEquals(HTTP_STATUS.OK, LRes.ResponseCode);
   finally
     LCustomers.Free;
@@ -723,7 +738,10 @@ begin
     P.Married := true;
     try
       r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
-        .doPOST('/objects', [], Mapper.ObjectToJSONObject(P));
+        .doPOST('/objects', [],
+        GetDefaultSerializer.SerializeObject(P)
+      { Mapper.ObjectToJSONObject(P) }
+        );
     except
       Fail('If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
       { WARNING!!! }
@@ -737,8 +755,11 @@ begin
   finally
     P.Free;
   end;
-  P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
+
+  P := TPerson.Create;
   try
+    GetDefaultSerializer.DeserializeObject(r.BodyAsString, P);
+    // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
     CheckEquals('Daniele', P.FirstName);
     CheckEquals('‡Ú˘ËÈÏ', P.LastName);
     CheckEquals(true, P.Married);
@@ -755,9 +776,14 @@ var
 begin
   JSON := TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
-  r := RESTClient.doPOST('/echo', ['1', '2', '3'], JSON);
-  CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
-  CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
+  r := RESTClient.doPOST('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
+  JSON := TSystemJSON.BodyAsJSONObject(r);
+  try
+    CheckEquals('clientdata', JSON.Get('client').JsonValue.Value);
+    CheckEquals('from server', JSON.Get('echo').JsonValue.Value);
+  finally
+    JSON.Free;
+  end;
 end;
 
 procedure TServerTest.TestProducesConsumesWithWrongAcceptHeader;
@@ -767,7 +793,7 @@ begin
   res := RESTClient.Accept('text/plain')
   // action is waiting for a accept: application/json
     .ContentType('application/json').doPOST('/testconsumes', [],
-    TJSONString.Create('Hello World'));
+    TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')));
   CheckEquals(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
@@ -777,7 +803,7 @@ var
 begin
   res := RESTClient.Accept('application/json').ContentType('application/json')
     .ContentEncoding('utf-8').doPOST('/testconsumes', [],
-    TJSONString.Create('Hello World'));
+    TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')));
   CheckEquals(HTTP_STATUS.OK, res.ResponseCode);
   CheckEquals('Hello World', res.BodyAsString);
   CheckEquals('application/json', res.ContentType);
@@ -823,15 +849,22 @@ var
 begin
   JSON := TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
-  r := RESTClient.doPUT('/echo', ['1', '2', '3'], JSON);
-  CheckEquals('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
-  CheckEquals('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
+  r := RESTClient.doPUT('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
+
+  JSON := TSystemJSON.BodyAsJSONObject(r);
+  try
+    CheckEquals('clientdata', JSON.Get('client').JsonValue.Value);
+    CheckEquals('from server', JSON.Get('echo').JsonValue.Value);
+  finally
+    JSON.Free;
+  end;
 end;
 
 procedure TServerTest.TestReqWithParams;
 var
   r: IRESTResponse;
   ss: TStringStream;
+  lJSON: TJSONObject;
 begin
   r := RESTClient.doGET('/unknownurl/bla/bla', []);
 
@@ -854,20 +887,26 @@ begin
 
   r := RESTClient.doGET('/req/with/params', ['1', '2', '3']);
   CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
-  CheckEquals('1', r.BodyAsJsonObject.Get('par1').JsonValue.Value);
-  CheckEquals('2', r.BodyAsJsonObject.Get('par2').JsonValue.Value);
-  CheckEquals('3', r.BodyAsJsonObject.Get('par3').JsonValue.Value);
-  CheckEquals('GET', r.BodyAsJsonObject.Get('method').JsonValue.Value);
 
-  r := RESTClient.doPOST('/req/with/params', ['1', '2', '3']);
-  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode);
+  lJSON := TSystemJSON.BodyAsJSONObject(r);
+  try
+    CheckEquals('1', lJSON.Get('par1').JsonValue.Value);
+    CheckEquals('2', lJSON.Get('par2').JsonValue.Value);
+    CheckEquals('3', lJSON.Get('par3').JsonValue.Value);
+    CheckEquals('GET', lJSON.Get('method').JsonValue.Value);
 
-  r := RESTClient.doPUT('/req/with/params', ['1', '2', '3']);
-  CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode);
+    r := RESTClient.doPOST('/req/with/params', ['1', '2', '3']);
+    CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode);
 
-  r := RESTClient.doDELETE('/req/with/params', ['1', '2', '3']);
-  CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
-  CheckNull(r.BodyAsJsonObject);
+    r := RESTClient.doPUT('/req/with/params', ['1', '2', '3']);
+    CheckEquals(HTTP_STATUS.NotFound, r.ResponseCode);
+
+    r := RESTClient.doDELETE('/req/with/params', ['1', '2', '3']);
+    CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
+    CheckEquals('', r.BodyAsString);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 // procedure TServerTest.TestSerializationType;
@@ -936,18 +975,22 @@ begin
   res := RESTClient.doGET
     ('/typed/all/mystring/1234/12345678/12.3/1234.5678/1234.5678', []);
   CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  lJObj := res.BodyAsJsonObject;
-  CheckEquals('mystring', lJObj.GetValue('ParString').Value, 'ParString');
-  CheckEquals(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt,
-    'ParInteger');
-  CheckEquals(12345678, TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64,
-    'ParInt64');
-  CheckEquals(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble,
-    -1), 'ParSingle');
-  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble'))
-    .AsDouble, -4), 'ParDouble');
-  CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended'))
-    .AsDouble, -4), 'ParExtended');
+  lJObj := TSystemJSON.BodyAsJSONObject(res);
+  try
+    CheckEquals('mystring', lJObj.GetValue('ParString').Value, 'ParString');
+    CheckEquals(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt,
+      'ParInteger');
+    CheckEquals(12345678, TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64,
+      'ParInt64');
+    CheckEquals(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble,
+      -1), 'ParSingle');
+    CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble'))
+      .AsDouble, -4), 'ParDouble');
+    CheckEquals(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended'))
+      .AsDouble, -4), 'ParExtended');
+  finally
+    lJObj.Free;
+  end;
 end;
 
 procedure TServerTest.TestTypedBooleans;

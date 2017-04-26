@@ -180,14 +180,22 @@ type
 implementation
 
 uses
-  ObjectsMappers,
-{$IFDEF SYSTEMJSON}
+  // ObjectsMappers,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.Defaults,
+
+  {$IFDEF SYSTEMJSON}
+
   System.JSON,
-{$ELSE}
+
+  {$ELSE}
+
   Data.DBXJSON,
   Data.SqlExpr,
   DBXCommon,
-{$ENDIF}
+
+  {$ENDIF}
+
   MVCFramework.Rtti.Utils,
   MVCFramework.DuckTyping,
   Generics.Collections;
@@ -320,7 +328,7 @@ var
   I: Integer;
   _parameter: TRttiParameter;
   _param: BodyAttribute;
-  _attrlistof: MapperListOf;
+  _attrlistof: MVCListOfAttribute;
   Arg: TValue;
 begin
   _parameters := AMethod.GetParameters;
@@ -334,19 +342,30 @@ begin
       try
         if Arg.IsObject then
         begin
-          if TRttiUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
-            Exit(Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), true))
+
+          if TRttiUtils.HasAttribute<MVCListOfAttribute>(AMethod, _attrlistof) then
+            Exit(
+              GetDefaultSerializer.SerializeCollection(Arg.AsObject)
+            { Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), true) }
+              )
           else
-            Exit(Mapper.ObjectToJSONObjectString(Arg.AsObject));
+            Exit(
+              GetDefaultSerializer.SerializeObject(Arg.AsObject)
+            { Mapper.ObjectToJSONObjectString(Arg.AsObject) }
+              );
         end
         else
           Exit(TRttiUtils.TValueAsString(Arg, '', ''));
       finally
         if _param.OwnsObject and Arg.IsObject then
         begin
-{$HINTS OFF}
+
+          {$HINTS OFF}
+
           Arg.AsObject.Free;
-{$HINTS ON}
+
+          {$HINTS ON}
+
         end;
       end;
   end;
@@ -398,27 +417,32 @@ begin
   end;
 end;
 
-procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
-ARTTIType: TRttiType; out AResult: TValue);
+procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; ARTTIType: TRttiType; out AResult: TValue);
 var
-  _attrlistof: MapperListOf;
+  _attrlistof: MVCListOfAttribute;
 begin
   if ARTTIType.TypeKind = tkClass then
   begin
     // ListOf
-    if TRttiUtils.HasAttribute<MapperListOf>(AMethod, _attrlistof) then
+    if TRttiUtils.HasAttribute<MVCListOfAttribute>(AMethod, _attrlistof) then
     begin
       AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
-      Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
-        _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
+      GetDefaultSerializer.DeserializeCollection(AResp.BodyAsString, AResult.AsObject, _attrlistof.Value);
+      // Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
+      // _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
     end
     // JSONValue
     else if ARTTIType.AsInstance.MetaclassType.InheritsFrom(TJSONValue) then
-      AResult := TJSONObject.ParseJSONValue(AResp.BodyAsString)
+    begin
+      AResult := TJSONObject.ParseJSONValue(AResp.BodyAsString);
       // Object
+    end
     else
-      AResult := Mapper.JSONObjectToObject(ARTTIType.QualifiedName,
-        AResp.BodyAsJsonObject)
+    begin
+      AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
+      GetDefaultSerializer.DeserializeObject(AResp.BodyAsString, AResult.AsObject);
+      { AResult := Mapper.JSONObjectToObject(ARTTIType.QualifiedName, AResp.BodyAsJsonObject) }
+    end;
   end
   else
     // IRESTResponse

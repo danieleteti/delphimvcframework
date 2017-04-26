@@ -50,7 +50,7 @@ type
   TArrayOfString = array of string;
   THTTPCommand = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE);
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCaseAttribute(ncLowerCase)]
   TMVCExceptionObj = class(TObject)
   private
     FStatus: string;
@@ -59,11 +59,11 @@ type
     FHttp_error: Integer;
   public
     property Status: string read FStatus write FStatus;
-    [MapperJSONSer('classname')]
+    [MVCNameAs('classname')]
     property ExceptionClassname: string read Fclassname write Fclassname;
-    [MapperJSONSer('message')]
+    [MVCNameAs('message')]
     property ExceptionMessage: string read FMessage write FMessage;
-    [MapperJSONSer('http_error')]
+    [MVCNameAs('http_error')]
     property HTTPError: Integer read FHttp_error write FHttp_error;
   end;
 

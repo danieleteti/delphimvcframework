@@ -7,13 +7,15 @@ uses
   System.Classes,
   System.SysUtils,
   System.Generics.Collections,
-  ObjectsMappers,
+  // ObjectsMappers,
   MVCFramework,
   MVCFramework.Server,
   MVCFramework.Server.Impl,
   MVCFramework.RESTClient,
   MVCFramework.RESTAdapter,
   MVCFramework.Commons,
+  MVCFramework.Serializer.Defaults,
+  MVCFramework.Serializer.Commons,
   MVCFramework.Tests.AppController;
 
 type
@@ -31,11 +33,11 @@ type
     procedure PostUser([Body] pBody: TAppUser);
 
     [RESTResource(TMVCHTTPMethodType.httpGET, '/users')]
-    [MapperListOf(TAppUser)]
+    [MVCListOf(TAppUser)]
     function GetUsers(): TObjectList<TAppUser>;
 
     [RESTResource(TMVCHTTPMethodType.httpPOST, '/users/save')]
-    [MapperListOf(TAppUser)]
+    [MVCListOf(TAppUser)]
     procedure PostUsers([Body] pBody: TObjectList<TAppUser>);
   end;
 
@@ -62,7 +64,8 @@ type
 implementation
 
 uses
-  MVCFramework.Tests.WebModule1;
+  MVCFramework.Tests.WebModule1, MVCFramework.RESTClient.SystemJSONUtils,
+  MVCFramework.TypesAliases;
 
 { TTestRESTClient }
 
@@ -106,6 +109,7 @@ procedure TTestRESTClient.TestGetUser;
 var
   LUser: TAppUser;
   LResp: IRESTResponse;
+  lJObj: TJSONObject;
 begin
   FRESTClient.Resource('/user').Params([]);
   FRESTClient.Authentication('dmvc', '123');
@@ -118,8 +122,11 @@ begin
     );
 
   // Object
-  LUser := FRESTClient.doGET.BodyAsJSONObject.AsObject<TAppUser>();
+  // lJObj := TSystemJSON.BodyAsJSONObject(FRESTClient.doGET);
+
+  LUser := TAppUser.Create; // TSystemJSON.BodyAsJSONObject(FRESTClient.doGET).BodyAsJSONObject.AsObject<TAppUser>();
   try
+    GetDefaultSerializer.DeserializeObject(FRESTClient.doGET.BodyAsString, LUser);
     CheckTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
     FreeAndNil(LUser);
@@ -137,20 +144,23 @@ end;
 procedure TTestRESTClient.TestGetUsers;
 var
   LUsers: TObjectList<TAppUser>;
+  lBody: string;
 begin
   FRESTClient.Resource('/users').Params([]);
   FRESTClient.Authentication('dmvc', '123');
 
+  lBody := FRESTClient.doGET.BodyAsString;
   // String
   CheckEqualsString('[{"Cod":0,"Name":"Ezequiel 0","Pass":"0"},{"Cod":1,"Name":"Ezequiel 1","Pass":"1"},' +
     '{"Cod":2,"Name":"Ezequiel 2","Pass":"2"},{"Cod":3,"Name":"Ezequiel 3","Pass":"3"},{"Cod":4,"Name":"Ezequiel 4","Pass":"4"},' +
     '{"Cod":5,"Name":"Ezequiel 5","Pass":"5"},{"Cod":6,"Name":"Ezequiel 6","Pass":"6"},{"Cod":7,"Name":"Ezequiel 7","Pass":"7"},' +
     '{"Cod":8,"Name":"Ezequiel 8","Pass":"8"},{"Cod":9,"Name":"Ezequiel 9","Pass":"9"},{"Cod":10,"Name":"Ezequiel 10","Pass":"10"}]',
-    FRESTClient.doGET.BodyAsString);
+    lBody);
 
   // Objects
-  LUsers := FRESTClient.doGET.BodyAsJSONArray.AsObjectList<TAppUser>;
+  LUsers := TObjectList<TAppUser>.Create(True);
   try
+    GetDefaultSerializer.DeserializeCollection(lBody, lUsers, TAppUser); // BodyAsJSONArray.AsObjectList<TAppUser>;
     LUsers.OwnsObjects := True;
     CheckTrue(LUsers.Count > 0);
   finally
