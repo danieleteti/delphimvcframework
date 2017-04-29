@@ -31,9 +31,12 @@ type
 
 implementation
 
+uses
+  MVCFramework.Serializer.Commons;
+
 procedure TCustomersController.GetCustomer(const ID: UInt64);
 begin
-  Render(GetDAL.GetCustomerById(ID), true, true);
+  Render(GetDAL.GetCustomerById(ID), true, dstSingleRecord);
 end;
 
 procedure TCustomersController.GetCustomers;

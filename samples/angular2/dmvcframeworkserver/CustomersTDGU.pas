@@ -32,7 +32,8 @@ const
 
   { %CLASSGROUP 'Vcl.Controls.TControl' }
 
-{$R *.dfm}
+  {$R *.dfm}
+
   { TDataModule1 }
 
 procedure TCustomersTDG.DataModuleCreate(Sender: TObject);
@@ -68,7 +69,8 @@ var
 begin
   lParams := TStringList.Create;
   try
-    lParams.Add('Database=' + ExtractFilePath(GetModuleName(HInstance)) + '\CUSTOMERS.FDB');
+    // Use CUSTOMERS_FB25.FDB is you are using firebird 2.5
+    lParams.Add('Database=' + ExtractFilePath(GetModuleName(HInstance)) + '\CUSTOMERS_FB30.FDB');
     lParams.Add('Protocol=TCPIP');
     lParams.Add('Server=localhost');
     lParams.Add('User_Name=sysdba');
