@@ -64,7 +64,8 @@ type
 implementation
 
 uses
-  MVCFramework.Tests.WebModule1, MVCFramework.RESTClient.SystemJSONUtils,
+  MVCFramework.Tests.WebModule1,
+  MVCFramework.SystemJSONUtils,
   MVCFramework.TypesAliases;
 
 { TTestRESTClient }

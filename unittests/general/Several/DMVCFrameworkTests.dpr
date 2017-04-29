@@ -23,13 +23,13 @@ uses
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.Tests.WebModule2 in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule},
+  MVCFramework.Tests.WebModule2 in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule} ,
   MVCFramework.Tests.StandaloneServer in '..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas',
-  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
+  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule} ,
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
-  MVCFramework.RESTClient.SystemJSONUtils in '..\..\..\sources\MVCFramework.RESTClient.SystemJSONUtils.pas';
+  MVCFramework.SystemJSONUtils in '..\..\..\sources\MVCFramework.SystemJSONUtils.pas';
 
 {$R *.RES}
 
@@ -39,9 +39,11 @@ begin
 
   DUnitTestRunner.RunRegisteredTests;
 
-{$IFDEF CONSOLE_TESTRUNNER}
+  {$IFDEF CONSOLE_TESTRUNNER}
+
   write('Press return to continue...');
   ReadLn;
-{$ENDIF}
+
+  {$ENDIF}
 
 end.

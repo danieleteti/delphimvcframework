@@ -57,7 +57,11 @@ type
 
   TMVCDataType = (dtObject, dtArray);
 
+  TMVCDatasetSerializationType = (dstSingleRecord, dstAllRecords);
+
   TMVCIgnoredList = array of string;
+
+  TMVCSerializationAction = TProc<TObject, TMVCStringDictionary>;
 
   EMVCSerializationException = class(Exception)
   private

@@ -5,12 +5,10 @@ program MiddlewareSamples;
 
 uses
   System.SysUtils,
-  Winapi.Windows,
-  Winapi.ShellAPI,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   AppControllerU in 'AppControllerU.pas',
   MiddlewareSample1 in 'MiddlewareSample1.pas';
 
@@ -19,9 +17,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
@@ -29,16 +24,8 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    Writeln('Press RETURN to stop the server');
+    ReadLn;
   finally
     LServer.Free;
   end;

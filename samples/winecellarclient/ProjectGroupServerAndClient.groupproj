@@ -6,6 +6,9 @@
         <Projects Include="WineCellarClient.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\winecellarserver\WineCellarServer.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -23,14 +26,23 @@
     <Target Name="WineCellarClient:Make">
         <MSBuild Projects="WineCellarClient.dproj" Targets="Make"/>
     </Target>
+    <Target Name="WineCellarServer">
+        <MSBuild Projects="..\winecellarserver\WineCellarServer.dproj"/>
+    </Target>
+    <Target Name="WineCellarServer:Clean">
+        <MSBuild Projects="..\winecellarserver\WineCellarServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WineCellarServer:Make">
+        <MSBuild Projects="..\winecellarserver\WineCellarServer.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="WineCellarClient"/>
+        <CallTarget Targets="WineCellarClient;WineCellarServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="WineCellarClient:Clean"/>
+        <CallTarget Targets="WineCellarClient:Clean;WineCellarServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="WineCellarClient:Make"/>
+        <CallTarget Targets="WineCellarClient:Make;WineCellarServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

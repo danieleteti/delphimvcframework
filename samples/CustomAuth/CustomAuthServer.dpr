@@ -1,16 +1,14 @@
 program CustomAuthServer;
 
- {$APPTYPE CONSOLE}
+{$APPTYPE CONSOLE}
 
 uses
   System.SysUtils,
-  Winapi.Windows,
-  Winapi.ShellAPI,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   PublicControllerU in 'PublicControllerU.pas',
-  MyWebModuleU in 'MyWebModuleU.pas' {MyWebModule: TWebModule},
+  MyWebModuleU in 'MyWebModuleU.pas' {MyWebModule: TWebModule} ,
   PrivateControllerU in 'PrivateControllerU.pas',
   AuthHandlerU in 'AuthHandlerU.pas';
 
@@ -18,9 +16,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln('** DMVCFramework Server **');
@@ -29,17 +24,9 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    //ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    // ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
+    Writeln('Press RETURN to stop the server');
+    ReadLn;
   finally
     LServer.Free;
   end;
@@ -56,4 +43,5 @@ begin
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
   end;
+
 end.

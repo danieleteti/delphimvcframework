@@ -73,6 +73,12 @@ var
 begin
   // this a simple sychronous request...
   Res := Clt.doGET('/articles', []);
+  if Res.HasError then
+  begin
+    ShowError(Res);
+    Exit;
+  end;
+
   DataSet.DisableControls;
   try
     FLoading := true;

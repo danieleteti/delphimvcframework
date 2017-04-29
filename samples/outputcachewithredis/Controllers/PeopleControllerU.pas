@@ -61,9 +61,9 @@ type
 implementation
 
 uses
-  PersonBO, SysUtils, Data.DBXJSON, ObjectsMappers, System.Math, CommonsU,
+  PersonBO, SysUtils, Data.DBXJSON, System.Math, CommonsU,
   System.Classes, System.JSON, Redis.Client, Redis.NetLib.INDY, System.Generics.Collections,
-  Redis.Values;
+  Redis.Values, MVCFramework.SystemJSONUtils, MVCFramework.Serializer.Defaults;
 
 { TPeopleController }
 
@@ -230,12 +230,13 @@ var
   SearchText: string;
   CurrPage: Integer;
   JSON: TJSONArray;
+  lResponseBody: string;
 begin
   Filters := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
   try
     if not Assigned(Filters) then
       raise Exception.Create('Invalid search parameters');
-    SearchText := Mapper.GetStringDef(Filters, 'text');
+    SearchText := TSystemJSON.GetStringDef(Filters, 'text');
     CurrPage := System.Math.Max(1, StrToIntDef(Context.Request.Params['page'], 1));
 
     // define the redis key depending by the search term and the requested page
@@ -250,17 +251,21 @@ begin
 
     // we know that the cached version of the response is not available,
     // let's create the response from scratch
-    JSON := Mapper.ObjectListToJSONArray<TPerson>(PeopleModule.FindPeople(SearchText, CurrPage), True,
-      procedure(const Item: TJSONObject)
-      var
-        id: string;
-      begin
-        id := (Item.GetValue('ID') as TJSONNumber).AsInt.ToString;
-        Item.AddPair('_personuri', '/people/' + id);
-        Item.AddPair('_personphotouri', '/people/photo/' + id);
-      end);
-    Render(JSON.ToJSON);
-    JSON.Free;
+
+    lResponseBody := GetDefaultSerializer.SerializeCollection(PeopleModule.FindPeople(SearchText, CurrPage));
+    ResponseStream.Append(lResponseBody);
+    RenderResponseStream;
+    // JSON := Mapper.ObjectListToJSONArray<TPerson>(PeopleModule.FindPeople(SearchText, CurrPage), True,
+    // procedure(const Item: TJSONObject)
+    // var
+    // id: string;
+    // begin
+    // id := (Item.GetValue('ID') as TJSONNumber).AsInt.ToString;
+    // Item.AddPair('_personuri', '/people/' + id);
+    // Item.AddPair('_personphotouri', '/people/photo/' + id);
+    // end);
+    // Render(JSON.ToJSON);
+    // JSON.Free;
 
     MergePaginationMetainfos('/people/searches?page=%d', Context.Response.CustomHeaders, CurrPage);
 

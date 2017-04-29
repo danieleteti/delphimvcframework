@@ -114,25 +114,18 @@ type
 implementation
 
 uses
-  System.Math, MVCFramework.Serializer.Defaults,
-
-  {$IF CompilerVersion < 27}
-
-  Data.DBXJSON,
-
-  {$ELSE}
-
-  System.JSON,
-
-  {$ENDIF}
-
+  System.Math,
+  MVCFramework.Serializer.Defaults,
+  MVCFramework.TypesAliases,
   MVCFramework.Commons,
   System.SyncObjs,
   System.Generics.Collections,
   System.SysUtils,
   BusinessObjectsU,
   ObjectsMappers,
-  Soap.EncdDecd, System.Classes, MVCFramework.RESTClient.SystemJSONUtils;
+  Soap.EncdDecd,
+  System.Classes,
+  MVCFramework.SystemJSONUtils;
 
 { TServerTest }
 

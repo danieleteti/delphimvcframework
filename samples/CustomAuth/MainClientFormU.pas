@@ -74,7 +74,8 @@ var
 implementation
 
 uses
-  System.JSON;
+  System.JSON,
+  MVCFramework.SystemJSONUtils;
 
 {$R *.dfm}
 
@@ -109,7 +110,7 @@ begin
     try
       lJObj.AddPair('username', edtUsername.Text);
       lJObj.AddPair('password', edtPassword.Text);
-      lRes := FRESTClient.doPOST('/system/users/logged', [], lJObj, False);
+      lRes := FRESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJObj, False));
       if lRes.HasError then
       begin
         ShowMessage(lRes.Error.ExceptionMessage);

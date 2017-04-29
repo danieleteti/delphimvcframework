@@ -119,7 +119,8 @@ type
     function SerializeObject(
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
       ): string;
 
     function SerializeCollection(
@@ -919,8 +920,11 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeObject(
-  const AObject: TObject; const AType: TMVCSerializationType;
-  const AIgnoredAttributes: TMVCIgnoredList): string;
+  const AObject: TObject;
+  const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction
+  ): string;
 var
   JsonObject: TJsonObject;
   ChildJsonValue: TJsonBaseObject;

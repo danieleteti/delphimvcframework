@@ -63,7 +63,8 @@ type
     function SerializeObject(
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
       ): string;
 
     function SerializeCollection(

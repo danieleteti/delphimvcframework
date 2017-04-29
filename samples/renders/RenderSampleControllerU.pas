@@ -3,7 +3,9 @@
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, ObjectsMappers, System.JSON;
+  MVCFramework,
+  MVCFramework.Commons,
+  System.JSON;
 
 type
 
@@ -78,9 +80,15 @@ type
 implementation
 
 uses
-  System.SysUtils, BusinessObjectsU, Data.DBXJSON, WebModuleU,
+  BusinessObjectsU,
+  Data.DBXJSON,
   Generics.Collections,
-  System.Classes, MyDataModuleU;
+  MVCFramework.DataSet.Utils,
+  MVCFramework.Serializer.Commons,
+  MyDataModuleU,
+  System.Classes,
+  System.SysUtils,
+  WebModuleU;
 
 { TRoutingSampleController }
 
@@ -165,7 +173,7 @@ begin
     .Append('<html><body><ul>')
     .Append('<li>FirstName: Daniele</li>')
     .Append('<li>LastName: Teti')
-    .AppendFormat('<li>DOB: %s</li>', [ISODateToString(EncodeDate(1975, 5, 2))])
+    .AppendFormat('<li>DOB: %s</li>', [DateToISODate(EncodeDate(1975, 5, 2))])
     .Append('<li>Married: yes</li>')
     .Append('</ul></body></html>');
   RenderResponseStream;
@@ -241,7 +249,8 @@ var
 begin
   People := TObjectList<TPerson>.Create(True);
 
-{$REGION 'Fake data'}
+  {$REGION 'Fake data'}
+
   p := TPerson.Create;
   p.FirstName := 'Daniele';
   p.LastName := 'Teti';
@@ -262,7 +271,9 @@ begin
   p.DOB := EncodeDate(1883, 1, 5);
   p.Married := True;
   People.Add(p);
-{$ENDREGION}
+
+  {$ENDREGION}
+
   Render<TPerson>(People);
 end;
 
@@ -273,7 +284,7 @@ begin
   p := TJSONObject.Create;
   p.AddPair('FirstName', 'Daniele');
   p.AddPair('LastName', 'Teti');
-  p.AddPair('DOB', ISODateToString(EncodeDate(1975, 5, 2)));
+  p.AddPair('DOB', DateToISODate(EncodeDate(1975, 5, 2)));
   p.AddPair('Married', TJSONTrue.Create);
   Render(p);
 end;

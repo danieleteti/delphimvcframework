@@ -331,6 +331,18 @@ type
     { public declarations }
   end;
 
+  TMVCStringDictionary = class
+  strict protected
+    FDict: TDictionary<String, String>;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure Clear;
+    function AddProperty(const Name, Value: String): TMVCStringDictionary;
+    function Count: Integer;
+    function GetEnumerator: TDictionary<String, String>.TPairEnumerator;
+  end;
+
   TMVCViewDataObject = class(TObjectDictionary<string, string>)
   private
     { private declarations }
@@ -604,6 +616,42 @@ begin
   finally
     Jo.Free;
   end;
+end;
+
+{ TMVCStringDictionary }
+
+function TMVCStringDictionary.AddProperty(const Name,
+  Value: String): TMVCStringDictionary;
+begin
+  FDict.AddOrSetValue(Name, Value);
+  Result := Self;
+end;
+
+procedure TMVCStringDictionary.Clear;
+begin
+  FDict.Clear;
+end;
+
+function TMVCStringDictionary.Count: Integer;
+begin
+  Result := FDict.Count;
+end;
+
+constructor TMVCStringDictionary.Create;
+begin
+  inherited;
+  FDict := TDictionary<String, String>.Create;
+end;
+
+destructor TMVCStringDictionary.Destroy;
+begin
+  FDict.Free;
+  inherited;
+end;
+
+function TMVCStringDictionary.GetEnumerator: TDictionary<String, String>.TPairEnumerator;
+begin
+  Result := FDict.GetEnumerator;
 end;
 
 initialization
