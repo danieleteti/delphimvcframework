@@ -1,0 +1,1 @@
+7z a dmvcframeworksamples.zip -r -i@7ziplistfile.txt

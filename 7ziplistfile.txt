@@ -1,0 +1,7 @@
+.\samples\**\*.dpr
+.\samples\**\*.dproj
+.\samples\**\*.FDB
+.\samples\**\*.inc
+.\samples\**\*.pas
+.\samples\**\*.dfm
+.\samples\**\myproj*
