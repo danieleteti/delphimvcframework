@@ -185,6 +185,7 @@ type
     function GetParamAsInt64(const AParamName: string): Int64;
     function GetFiles: TAbstractWebRequestFiles;
     function GetParamNames: TArray<string>;
+    function GetParamsMulti(const AParamName: string): TArray<String>;
   protected
     { protected declarations }
   public
@@ -221,6 +222,7 @@ type
     property ParamsTable: TMVCRequestParamsTable read FParamsTable write FParamsTable;
     property ParamNames: TArray<string> read GetParamNames;
     property Params[const AParamName: string]: string read GetParams;
+    property ParamsMulti[const AParamName: string]: TArray<String> read GetParamsMulti;
     property ParamsAsInteger[const AParamName: string]: Integer read GetParamAsInteger;
     property ParamsAsInt64[const AParamName: string]: Int64 read GetParamAsInt64;
     property IsAjax: Boolean read GetIsAjax;
@@ -1088,11 +1090,37 @@ function TMVCWebRequest.GetParams(const AParamName: string): string;
 begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(AParamName, Result)) then
   begin
-    Result := FWebRequest.QueryFields.Values[AParamName];
+    Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
-      Result := FWebRequest.ContentFields.Values[AParamName];
+      Result := FWebRequest.QueryFields.Values[AParamName];
     if Result.IsEmpty then
       Result := FWebRequest.CookieFields.Values[AParamName];
+  end;
+end;
+
+function TMVCWebRequest.GetParamsMulti(
+  const AParamName: string): TArray<String>;
+var
+  lList: TList<String>;
+  lParamsList: TArray<TStrings>;
+  procedure AddParamsToList(const AStrings: TStrings; const AList: TList<String>);
+  var
+    I: Integer;
+  begin
+    for I := 0 to AStrings.Count - 1 do
+      if SameText(AStrings.Names[i], AParamName) then
+        AList.Add(AStrings.ValueFromIndex[i]);
+  end;
+
+begin
+  lList := TList<String>.Create;
+  try
+    AddParamsToList(FWebRequest.ContentFields, lList);
+    AddParamsToList(FWebRequest.QueryFields, lList);
+    AddParamsToList(FWebRequest.CookieFields, lList);
+    Result := lList.ToArray;
+  finally
+    lList.Free;
   end;
 end;
 

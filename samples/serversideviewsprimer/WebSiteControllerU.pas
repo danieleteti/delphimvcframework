@@ -3,7 +3,7 @@ unit WebSiteControllerU;
 interface
 
 uses
-  MVCFramework,  MVCFramework.Commons, System.Diagnostics, System.JSON;
+  MVCFramework, MVCFramework.Commons, System.Diagnostics, System.JSON;
 
 type
 
@@ -18,7 +18,7 @@ type
   public
     [MVCPath('/people')]
     [MVCHTTPMethods([httpGET])]
-    procedure PeopleList(CTX: TWebContext);
+    procedure PeopleList;
 
     [MVCPath('/people/($guid)')]
     [MVCHTTPMethods([httpDELETE])]
@@ -27,13 +27,13 @@ type
     [MVCPath('/people')]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes('application/x-www-form-urlencoded')]
-    procedure SavePerson(CTX: TWebContext);
+    procedure SavePerson;
     [MVCPath('/newperson')]
     [MVCHTTPMethods([httpGET])]
-    procedure NewPerson(CTX: TWebContext);
+    procedure NewPerson;
     [MVCPath('/')]
     [MVCHTTPMethods([httpGET])]
-    procedure Index(CTX: TWebContext);
+    procedure Index;
 
   end;
 
@@ -56,12 +56,12 @@ begin
   Result := TJSONString.Create(FStopWatch.Elapsed.TotalMilliseconds.ToString);
 end;
 
-procedure TWebSiteController.Index(CTX: TWebContext);
+procedure TWebSiteController.Index;
 begin
   Redirect('/people');
 end;
 
-procedure TWebSiteController.NewPerson(CTX: TWebContext);
+procedure TWebSiteController.NewPerson;
 begin
   PushToView('speed', GetSpeed.ToJSON);
   LoadView(['header', 'editperson', 'footer']);
@@ -77,7 +77,7 @@ begin
   FStopWatch := TStopwatch.StartNew;
 end;
 
-procedure TWebSiteController.PeopleList(CTX: TWebContext);
+procedure TWebSiteController.PeopleList;
 var
   LDAL: IPeopleDAL;
   lCookie: TCookie;
@@ -88,7 +88,7 @@ begin
   LoadView(['header', 'people_list', 'footer']);
 
   // send a cookie with the server datetime at the page rendering
-  lCookie := CTX.Response.Cookies.Add;
+  lCookie := Context.Response.Cookies.Add;
   lCookie.Name := 'lastresponse';
   lCookie.Value := DateTimeToStr(now);
   lCookie.Expires := 0; // session cookie
@@ -97,16 +97,18 @@ begin
   RenderResponseStream; // rember to call render!!!
 end;
 
-procedure TWebSiteController.SavePerson(CTX: TWebContext);
+procedure TWebSiteController.SavePerson;
 var
-  LFirstName: string;
-  LLastName: string;
-  LAge: String;
-  LPeopleDAL: IPeopleDAL;
+  lFirstName: string;
+  lLastName: string;
+  lAge: String;
+  lPeopleDAL: IPeopleDAL;
+  lItems: TArray<string>;
 begin
-  LFirstName := CTX.Request.Params['first_name'].Trim;
-  LLastName := CTX.Request.Params['last_name'].Trim;
-  LAge := CTX.Request.Params['age'];
+  lItems := Context.Request.ParamsMulti['items'];
+  lFirstName := Context.Request.Params['first_name'].Trim;
+  lLastName := Context.Request.Params['last_name'].Trim;
+  lAge := Context.Request.Params['age'];
 
   if LFirstName.IsEmpty or LLastName.IsEmpty or LAge.IsEmpty then
   begin
@@ -116,7 +118,7 @@ begin
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
-  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger());
+  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), lItems);
 
   Redirect('/people');
 end;

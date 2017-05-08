@@ -1,11 +1,18 @@
 program ServerSideViewsPrimer;
+
 {$APPTYPE CONSOLE}
 
 uses
   System.SysUtils,
-  Winapi.ShellAPI,
-  Winapi.Windows,
   IdHTTPWebBrokerBridge,
+
+  {$IFDEF MSWINDOWS}
+
+  Winapi.ShellApi,
+  Winapi.Windows,
+
+  {$ENDIF}
+
   Web.WebReq,
   Web.WebBroker,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
@@ -16,9 +23,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   ReportMemoryLeaksOnShutdown := True;
@@ -27,17 +31,15 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
+    Writeln('Press RETURN to stop the server');
+
+    {$IFDEF MSWINDOWS}
+
     ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      ReadConsoleInput(LHandle, LInputRecord, 1, LEvent);
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+
+    {$ENDIF}
+
+    ReadLn;
   finally
     LServer.Free;
   end;

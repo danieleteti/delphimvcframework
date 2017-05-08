@@ -9,7 +9,7 @@ type
   IPeopleDAL = interface
     ['{3E534A3E-EAEB-44ED-B74E-EFBBAAAE11B4}']
     function GetPeople: TJSONArray;
-    procedure AddPerson(FirstName, LastName: String; Age: Integer);
+    procedure AddPerson(FirstName, LastName: String; Age: Integer; Items: TArray<String>);
     procedure DeleteByGUID(GUID: String);
   end;
 
@@ -18,7 +18,7 @@ type
     DATAFILE: String = 'people.data';
   public
     function GetPeople: TJSONArray;
-    procedure AddPerson(FirstName, LastName: String; Age: Integer);
+    procedure AddPerson(FirstName, LastName: String; Age: Integer; Items: TArray<String>);
     procedure DeleteByGUID(GUID: String);
   end;
 
@@ -37,7 +37,7 @@ var
 
   { TSimpleDAL }
 
-procedure TPeopleDAL.AddPerson(FirstName, LastName: String; Age: Integer);
+procedure TPeopleDAL.AddPerson(FirstName, LastName: String; Age: Integer; Items: TArray<String>);
 var
   LJPeople: TJSONArray;
   LJPerson: TJSONObject;
@@ -52,6 +52,7 @@ begin
         .AddPair('first_name', FirstName)
         .AddPair('last_name', LastName)
         .AddPair('age', TJSONNumber.Create(Age))
+        .AddPair('items', String.Join(',', Items))
         .AddPair('guid', TGuid.NewGuid.ToString);
       TFile.WriteAllText(DATAFILE, LJPeople.ToJSON);
     finally
