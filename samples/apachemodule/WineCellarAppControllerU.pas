@@ -33,7 +33,7 @@ type
 
     [MVCPath('/wines')]
     [MVCHTTPMethod([httpPOST])]
-    procedure SaveWine(ctx: TWebContext);
+    procedure SaveWine;
 
     [MVCPath('/wines/search/($value)')]
     procedure FindWines(ctx: TWebContext);
@@ -48,13 +48,14 @@ type
 
     [MVCPath('/wines/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateWineById(ctx: TWebContext);
+    procedure UpdateWineById(id: Integer);
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.IOUtils;
+  System.SysUtils, System.Classes, System.IOUtils,
+  WinesBO;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
@@ -111,27 +112,29 @@ begin
   dm := TWineCellarDataModule.Create(nil);
 end;
 
-procedure TWineCellarApp.SaveWine(ctx: TWebContext);
+procedure TWineCellarApp.SaveWine;
 var
-  JSON: TJSONObject;
+  lWine: TWine;
 begin
-  JSON := TJSONObject.ParseJSONValue(ctx.Request.Body) as TJSONObject;
+  lWine := Context.Request.BodyAs<TWine>;
   try
-    dm.AddWine(JSON);
+    dm.AddWine(lWine);
   finally
-    JSON.Free;
+    lWine.Free;
   end;
 end;
 
-procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
+procedure TWineCellarApp.UpdateWineById(id: Integer);
 var
-  JSON: TJSONObject;
+  lWine: TWine;
 begin
-  JSON := TJSONObject.ParseJSONValue(ctx.Request.Body) as TJSONObject;
+  lWine := Context.Request.BodyAs<TWine>;
   try
-    Render(dm.UpdateWine(JSON));
+    lWine.id := id;
+    dm.UpdateWine(lWine);
+    Render(TMVCErrorResponse.Create(200, 'Wine Updated', ''));
   finally
-    JSON.Free;
+    lWine.Free;
   end;
 end;
 
