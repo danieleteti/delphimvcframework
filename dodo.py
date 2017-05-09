@@ -51,10 +51,7 @@ projects += glob.glob("*\**\**\*.dproj")
 #             ]
 releases_path = "releases"
 output = "bin"
-OutputFolder = ""  # defined ar runtime
-innosetupcompiler = "\"C:\\Program Files (x86)\\Inno Setup 5\\ISCC.exe\""
-OUTPUT_SFX_FILENAME = releases_path + "\\" + 'HOAsys_{}.exe'
-OUTPUT_CLOUD_SFX_FILENAME = releases_path + "\\" + 'HOAsys_Cloud_{}.exe'
+output_folder = ""  # defined at runtime
 ##########################################################################
 ############## END CONFIGURATION #########################################
 ##########################################################################
@@ -101,17 +98,17 @@ def buildProjects(config='RELEASE'):
 
 
 def copy_sources():
-    global OutputFolder
-    os.makedirs(OutputFolder + "\\sources", exist_ok=True)
-    os.makedirs(OutputFolder + "\\ideexpert", exist_ok=True)
+    global output_folder
+    os.makedirs(output_folder + "\\sources", exist_ok=True)
+    os.makedirs(output_folder + "\\ideexpert", exist_ok=True)
     # copying main sources
     header("Copying DMVCFramework Sources...")
     src = glob.glob("sources\\*.pas") + glob.glob("sources\\*.inc")
     for file in src:
-        print("Copying " + file + " to " + OutputFolder + "\\sources")
-        copy2(file, OutputFolder + "\\sources\\")
+        print("Copying " + file + " to " + output_folder + "\\sources")
+        copy2(file, output_folder + "\\sources\\")
     copy2("lib\\jsondataobjects\\Source\\JsonDataObjects.pas",
-          OutputFolder + "\\sources\\")
+          output_folder + "\\sources\\")
 
     # copying ideexperts
     header("Copying DMVCFramework IDEExpert...")
@@ -120,16 +117,16 @@ def copy_sources():
         glob.glob("ideexpert\\*.dfm") + glob.glob("ideexpert\\*.ico")
     src += glob.glob("ideexpert\\*.dpk") + glob.glob("ideexpert\\*.dproj")
     for file in src:
-        print("Copying " + file + " to " + OutputFolder + "\\ideexpert")
-        copy2(file, OutputFolder + "\\ideexpert\\")
+        print("Copying " + file + " to " + output_folder + "\\ideexpert")
+        copy2(file, output_folder + "\\ideexpert\\")
 
 
 def copy_libs():
-    global OutputFolder
+    global output_folder
 
     # loggerpro
     header("Copying libraries: LoggerPro...")
-    curr_folder = OutputFolder + "\\lib\\loggerpro"
+    curr_folder = output_folder + "\\lib\\loggerpro"
     os.makedirs(curr_folder, exist_ok=True)
     src = glob.glob("lib\\loggerpro\\*.pas")
     for file in src:
@@ -140,7 +137,7 @@ def copy_libs():
 
     # dmustache
     header("Copying libraries: dmustache...")
-    curr_folder = OutputFolder + "\\lib\\dmustache"
+    curr_folder = output_folder + "\\lib\\dmustache"
     os.makedirs(curr_folder, exist_ok=True)
     src = glob.glob("lib\\dmustache\\*.pas") + \
         glob.glob("lib\\dmustache\\*.inc")
@@ -152,45 +149,38 @@ def copy_libs():
 
 def create_build_tag(version):
     global GlobalBuildVersion
-    global OutputFolder
+    global output_folder
     global releases_path
     GlobalBuildVersion = version
-    OutputFolder = releases_path + "\\" + version
-    print('Output path: ' + OutputFolder)
+    output_folder = releases_path + "\\" + version
+    print('Output path: ' + output_folder)
     header("BUILD VERSION: " + GlobalBuildVersion)
-    rmtree(OutputFolder, True)    
-    os.makedirs(OutputFolder, exist_ok=True)
-    f = open(OutputFolder + "\\version.txt", "w")
+    rmtree(output_folder, True)
+    os.makedirs(output_folder, exist_ok=True)
+    f = open(output_folder + "\\version.txt", "w")
     f.write("VERSION " + GlobalBuildVersion + "\n")
     f.write("BUILD DATETIME " + datetime.now().isoformat() + "\n")
     f.close()
-    copy2("README.md", OutputFolder)
-    copy2("3_0_0_breaking_changes.md", OutputFolder)
-    copy2("roadmap.md", OutputFolder)
-    copy2("LICENSE", OutputFolder)
+    copy2("README.md", output_folder)
+    copy2("3_0_0_breaking_changes.md", output_folder)
+    copy2("roadmap.md", output_folder)
+    copy2("LICENSE", output_folder)
 
 
-def compileSetup():
-    return True
-    header("BUILDING TOOLS SETUP")
-    return subprocess.call(innosetupcompiler + " tools\hoasys_datamover.iss", shell=False) == 0
-
-
-def createsfx():
-    return True
+def create_zip(version):
     global GlobalBuildVersion
-    header("CREATING SFX")
-    cmdline = "scripts\\7z.exe a -sfxscripts\\7z.sfx " + OUTPUT_SFX_FILENAME.format(
-        GlobalBuildVersion) + " bin\\*.exe bin\\*.dll bin\\*.msg bin\\*.ini bin\\HOASYS-BUILD-TIMESTAMP.TXT bin\\i18n\\*.sil bin\\i18n\\*.dic"
-    return subprocess.call(cmdline, shell=True) == 0
-
-
-def createcloudsfx():
-    return True
-    global GlobalBuildVersion
-    header("CREATING CLOUDBIN SFX")
-    cmdline = "scripts\\7z.exe a -sfxscripts\\7z.sfx " + OUTPUT_CLOUD_SFX_FILENAME.format(
-        GlobalBuildVersion) + " cloudbin\\*.exe cloudbin\\*.dbmap cloudbin\\*.ini cloudbin\\HOASYS-BUILD-TIMESTAMP.TXT"
+    global releases_path
+    output_folder = releases_path + "\\" + version
+    header("CREATING ZIP")
+    archivename = "..\\dmvcframework_" + version + ".zip"
+    #switches = " -o.\\" + releases_path + " -w.\\" + output_folder
+    switches = ""
+    #switches = " -oD:\\DEV\\dmvcframework\\releases\\" + " -w " + output_folder
+    #filenames = output_folder + "\\*"
+    filenames = "*"
+    cmdline = "cd " + output_folder + " & 7z.exe a " + \
+        switches + " " + archivename + " " + filenames
+    print(cmdline)
     return subprocess.call(cmdline, shell=True) == 0
 
 
@@ -204,9 +194,27 @@ def task_build():
             # "echo %%date%% %%time:~0,8%% > " + releases_path + "\\DELPHIMVCFRAMEWORK-BUILD-TIMESTAMP.TXT",
             copy_sources,
             copy_libs,
-            compileSetup,
-            createsfx,
-            createcloudsfx],
+            create_zip],
+        'params': [{'name': 'version',
+                    'short': 'v',
+                    'long': 'version',
+                    'type': str,
+                    'default': 'DEVELOPMENT'},
+                   {'name': 'config',
+                    'short': 'c',
+                    'long': 'config',
+                    'type': str,
+                    'default': 'DEBUG'}
+                   ],
+        'verbosity': 2
+    }
+
+
+def task_zip():
+    '''Use: doit zip -v <VERSION>. Then creates SFX archive.'''
+    return {
+        'actions': [
+            create_zip],
         'params': [{'name': 'version',
                     'short': 'v',
                     'long': 'version',
@@ -229,13 +237,6 @@ def task_buildlight():
             'echo off && touch bin\\x.exe && del bin\\*.exe',
             buildProjects],
         'verbosity': 2
-    }
-
-
-def task_sfx():
-    '''creates the SFX self extractable archive from the contents of \\bin and \\cloudbin'''
-    return {
-        'actions': ['echo off && copy bin\\HOASYS-BUILD-TIMESTAMP.TXT cloudbin', createsfx, createcloudsfx]
     }
 
 

@@ -372,6 +372,21 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = Image1Click
     ExplicitWidth = 352
   end
+  object lblFrameworkVersion: TLabel
+    Left = 123
+    Top = 85
+    Width = 226
+    Height = 13
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = '3.0.0 hydrogen'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+  end
   object gbControllerUnitOptions: TGroupBox
     Left = 8
     Top = 256
@@ -407,7 +422,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Checked = True
       State = cbChecked
       TabOrder = 0
-      ExplicitWidth = 307
     end
     object edtClassName: TEdit
       Left = 16
@@ -416,7 +430,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 1
-      ExplicitWidth = 307
     end
     object chkCreateActionFiltersMethods: TCheckBox
       Left = 16
@@ -428,7 +441,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Checked = True
       State = cbChecked
       TabOrder = 2
-      ExplicitWidth = 307
     end
   end
   object btnOK: TButton
@@ -441,8 +453,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Default = True
     ModalResult = 1
     TabOrder = 3
-    ExplicitLeft = 191
-    ExplicitTop = 474
   end
   object btnCancel: TButton
     Left = 271
@@ -454,8 +464,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitLeft = 272
-    ExplicitTop = 474
   end
   object chkCreateControllerUnit: TCheckBox
     Left = 24

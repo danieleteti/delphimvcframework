@@ -33,6 +33,7 @@ type
     edtServerPort: TEdit;
     Label2: TLabel;
     Image1: TImage;
+    lblFrameworkVersion: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -64,7 +65,8 @@ var
 implementation
 
 uses
-  DMVC.Expert.CodeGen.Templates;
+  DMVC.Expert.CodeGen.Templates,
+  MVCFramework.Commons;
 
 {$R *.dfm}
 
@@ -81,6 +83,7 @@ begin
   edtClassName.TextHint := sDefaultControllerName;
   edtWebModuleName.TextHint := sDefaultWebModuleName;
   edtServerPort.TextHint := sDefaultServerPort;
+  lblFrameworkVersion.Caption := DMVCFRAMEWORK_VERSION;
 end;
 
 function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
