@@ -19,36 +19,6 @@ projects += glob.glob("unittests\**\*.dproj")
 projects += glob.glob("*\**\*.dproj")
 projects += glob.glob("*\**\**\*.dproj")
 
-# projects = [
-#             tools_project,
-#             #CLOUD SUPPORT
-#             'IDSource\Moduli\H2W_Cloud\h2wproxy\H2WProxy.dproj',
-#             'IDSource\Moduli\H2W_Cloud\h2wcloudserver\H2WCloudServer.dproj',
-#             'IDSource\IDServer\IDServer.dproj',
-#             #END-CLOUD SUPPORT
-#             'IDSource\pepeFile\DataManager.dproj',
-#             'IDSource\PepeSetup\SetupManager.dproj',
-#             'IDSource\POS\POS.dproj',
-#             'IDSource\IBBackup\IBBackup.dproj',
-#             'IDSource\IBSetup\IBSetup.dproj',
-#             'IDSource\IBUpdate\IBUpdate.dproj',
-#             'IDSource\Telefonia\PhoneManager\PhoneManager.dproj',
-#             'IDSource\Telefonia\Multicarrier\IDCallAccountEditor.dproj',
-#             'IDSource\Telefonia\IDSerial\IDSerial.dproj',
-#             'IDSource\Telefonia\IDCsta\IDCsta.dproj',
-#             'IDSource\Telefonia\IDCsta\IDHotelCsta\IDHotelCSTA.dproj',
-#             'IDSource\Telefonia\CilHotel\RX\CilHotelRX.dproj',
-#             'IDSource\Telefonia\CilHotel\TX\CilHotelTX.dproj',
-#             'IDSource\Telefonia\IDSAE3000\IDSAE3000.dproj',
-#             'IDSource\Telefonia\IDCsta\IDWatchDog\IDWatchDog.dproj',
-#             'IDSource\DLLDocumenti\EDW2003.dproj',
-#             'IDSource\DLLDocumenti\WordDocsDLL.dproj',
-#             'IDSource\pepe\Reception.dproj',
-#             'IDSource\Cont\Step1\pjHGWnew.dproj',
-#             'IDSource\Moduli\H2W\server\H2Ws.dproj',
-#             'IDSource\Personalizer\Personalizer.dproj',
-#             'IDSource\Boffice\BackOffice.dproj'
-#             ]
 releases_path = "releases"
 output = "bin"
 output_folder = ""  # defined at runtime
@@ -147,7 +117,7 @@ def copy_libs():
     copy2("lib\\dmustache\\README.md", curr_folder)
 
 
-def create_build_tag(version):
+def init_build(version):
     global GlobalBuildVersion
     global output_folder
     global releases_path
@@ -166,6 +136,12 @@ def create_build_tag(version):
     copy2("roadmap.md", output_folder)
     copy2("LICENSE", output_folder)
 
+
+def zip_samples(version):
+    global releases_path
+    output_folder = releases_path + "\\" + version
+    cmdline = "7z a " + output_folder + "\\dmvcframeworksamples.zip -r -i@7ziplistfile.txt"
+    return subprocess.call(cmdline, shell=True) == 0
 
 def create_zip(version):
     global GlobalBuildVersion
@@ -187,13 +163,14 @@ def create_zip(version):
 ##########################################################################
 
 def task_build():
-    '''Use: doit build -v <VERSION>. Then creates SFX archive.'''
+    '''Use: doit build -v <VERSION>.'''
     return {
         'actions': [
-            create_build_tag,
+            init_build,
             # "echo %%date%% %%time:~0,8%% > " + releases_path + "\\DELPHIMVCFRAMEWORK-BUILD-TIMESTAMP.TXT",
             copy_sources,
             copy_libs,
+            zip_samples,
             create_zip],
         'params': [{'name': 'version',
                     'short': 'v',
@@ -211,7 +188,7 @@ def task_build():
 
 
 def task_zip():
-    '''Use: doit zip -v <VERSION>. Then creates SFX archive.'''
+    '''Use: doit zip -v <VERSION>.'''
     return {
         'actions': [
             create_zip],
@@ -240,8 +217,17 @@ def task_buildlight():
     }
 
 
-# def task_tools():
-#     '''creates the tools setup'''
-#     return {
-#         'actions': [(buildProject, [tools_project]), compileSetup]
-#     }
+def task_samples():
+    '''creates the samples zip file'''
+    return {
+        'actions': [init_build, zip_samples],
+        'params': [
+                    {
+                        'name': 'version',
+                        'short': 'v',
+                        'long': 'version',
+                        'type': str,
+                        'default': 'DEVELOPMENT'
+                    }
+                  ]        
+    }
