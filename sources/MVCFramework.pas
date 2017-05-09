@@ -85,8 +85,7 @@ uses
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,
-  IdURI,
-  StompClient;
+  IdURI;
 
 type
 
@@ -413,7 +412,6 @@ type
 
     function GetClientId: string;
     function GetCurrentWebModule: TWebModule;
-    function GetNewStompClient(const AClientId: string = ''): IStompClient;
     function GetViewModel: TMVCViewDataObject;
     function GetViewDataSets: TObjectDictionary<string, TDataSet>;
     function GetRenderedView(const AViewNames: TArray<string>): string; virtual;
@@ -432,16 +430,6 @@ type
     /// It is equivalent to <code>ResponseStream.Append(AViewFragment);</code>
     /// </summary>
     procedure LoadViewFragment(const AViewFragment: string);
-
-    procedure EnqueueMessageOnTopicOrQueue(
-      const AMessage: TMVCStompMessage;
-      const AContentType: string = TMVCMediaType.APPLICATION_JSON;
-      const AOwns: Boolean = True); virtual;
-
-    function ReceiveMessageFromTopic(
-      const ATimeout: Int64;
-      out AMessage: TMVCStompMessage;
-      const AContentType: string = TMVCMediaType.APPLICATION_JSON): Boolean; virtual;
 
     function ResponseStream: TStringBuilder;
     function SessionAs<T: TWebSession>: T;
@@ -729,8 +717,7 @@ implementation
 
 uses
   MVCFramework.Router,
-  MVCFramework.SysControllers,
-  MVCFramework.MessagingController;
+  MVCFramework.SysControllers;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -1596,7 +1583,6 @@ begin
   Config[TMVCConfigKey.StompServerPort] := '61613';
   Config[TMVCConfigKey.StompUsername] := 'guest';
   Config[TMVCConfigKey.StompPassword] := 'guest';
-  Config[TMVCConfigKey.Messaging] := 'false';
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework';
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
@@ -2044,11 +2030,6 @@ procedure TMVCEngine.LoadSystemControllers;
 begin
   Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
   AddController(TMVCSystemController);
-  if Config[TMVCConfigKey.Messaging].ToLower.Equals('true') then
-  begin
-    AddController(TMVCBUSController);
-    Log(TLogLevel.levNormal, 'Loaded system controller ' + TMVCBUSController.QualifiedClassName);
-  end;
   Log(TLogLevel.levNormal, 'EXIT: LoadSystemControllers');
 end;
 
@@ -2276,28 +2257,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TMVCController.EnqueueMessageOnTopicOrQueue(
-  const AMessage: TMVCStompMessage;
-  const AContentType: string;
-  const AOwns: Boolean);
-var
-  Stomp: IStompClient;
-  Headers: IStompHeaders;
-begin
-  if Assigned(AMessage) then
-  begin
-    try
-      Stomp := GetNewStompClient(GetClientId);
-      Headers := StompUtils.NewHeaders.Add(StompUtils.NewPersistentHeader(True));
-      Stomp.Send(AMessage.SmTopic, Serializer(AContentType).SerializeObject(AMessage));
-      TThread.Sleep(100);
-    finally
-      if AOwns then
-        AMessage.Free;
-    end;
-  end;
-end;
-
 function TMVCController.GetClientId: string;
 begin
   Result := Session[CLIENTID_KEY];
@@ -2321,11 +2280,6 @@ end;
 function TMVCController.GetCurrentWebModule: TWebModule;
 begin
   Result := Engine.WebModule;
-end;
-
-function TMVCController.GetNewStompClient(const AClientId: string): IStompClient;
-begin
-  raise EMVCException.CreateFmt('Method %s not implemented.', ['TMVCController.GetNewStompClient']);
 end;
 
 function TMVCController.GetSession: TWebSession;
@@ -2419,25 +2373,6 @@ end;
 procedure TMVCController.RaiseSessionExpired;
 begin
   raise EMVCSessionExpiredException.Create('Session expired.');
-end;
-
-function TMVCController.ReceiveMessageFromTopic(
-  const ATimeout: Int64;
-  out AMessage: TMVCStompMessage;
-  const AContentType: string): Boolean;
-var
-  Stomp: IStompClient;
-  Frame: IStompFrame;
-begin
-  Result := False;
-  Stomp := GetNewStompClient(GetClientId);
-  if not Stomp.Receive(Frame, ATimeout) then
-    AMessage := nil
-  else
-  begin
-    AMessage := TMVCStompMessage.Create;
-    Serializer(AContentType).DeserializeObject(Frame.GetBody, AMessage);
-  end;
 end;
 
 procedure TMVCController.Redirect(const AUrl: string);

@@ -118,7 +118,6 @@ type
     StompServerPort = 'stompserverport';
     StompUsername = 'stompusername';
     StompPassword = 'stomppassword';
-    Messaging = 'messaging';
     AllowUnhandledAction = 'allow_unhandled_action';
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';

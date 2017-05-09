@@ -285,8 +285,6 @@ resourcestring
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
     '      //view path' + sLineBreak +
     '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
-    '      //Enable STOMP messaging controller' + sLineBreak +
-    '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
     '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
     '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' +

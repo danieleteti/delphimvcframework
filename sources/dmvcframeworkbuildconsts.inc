@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = '3.0.0 hydrogen RC0';
+  DMVCFRAMEWORK_VERSION = '3.0.0 hydrogen RC1';

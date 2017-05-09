@@ -33,7 +33,10 @@ package DMVC_IDE_Expert_D102Tokyo;
 requires
   rtl,
   designide,
-  ExpertsCreators;
+  ExpertsCreators,
+  IndySystem,
+  IndyProtocols,
+  IndyCore;
 
 contains
   DMVC.Expert.CodeGen.SourceFile in 'DMVC.Expert.CodeGen.SourceFile.pas',

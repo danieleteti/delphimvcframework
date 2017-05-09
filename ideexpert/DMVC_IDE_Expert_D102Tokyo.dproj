@@ -104,6 +104,9 @@
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="designide.dcp"/>
         <DCCReference Include="ExpertsCreators.dcp"/>
+        <DCCReference Include="IndySystem.dcp"/>
+        <DCCReference Include="IndyProtocols.dcp"/>
+        <DCCReference Include="IndyCore.dcp"/>
         <DCCReference Include="DMVC.Expert.CodeGen.SourceFile.pas"/>
         <DCCReference Include="DMVC.Expert.Registration.pas"/>
         <DCCReference Include="DMVC.Expert.Forms.NewUnitWizard.pas">

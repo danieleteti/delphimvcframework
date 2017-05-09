@@ -44,3 +44,7 @@ After
 
 The memory allocated for the TJSONValue descendant (e.g. TJSONObject, TJSONArray and so on) *is no more managed by the TRESTClient itself* but must be feed by the calling code.	
 
+- DelphiStompClient has been removed from the core. The following method is no more available in TMVCController.
+  ```delphi
+	function GetNewStompClient(const AClientId: string = ''): IStompClient;
+	```
