@@ -1,11 +1,18 @@
 program ServerSideViewsEx;
+
 {$APPTYPE CONSOLE}
 
 
 uses
   System.SysUtils,
+
+  {$IFDEF MSWINDOWS}
+
   Winapi.ShellAPI,
   Winapi.Windows,
+
+  {$ENDIF}
+
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
@@ -29,17 +36,15 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
+    Writeln('Press RETURN to stop the server');
+
+    {$IFDEF MSWINDOWS}
+
     ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      ReadConsoleInput(LHandle, LInputRecord, 1, LEvent);
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+
+    {$ENDIF}
+
+    ReadLn;
   finally
     LServer.Free;
   end;

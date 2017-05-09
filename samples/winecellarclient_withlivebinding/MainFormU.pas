@@ -68,14 +68,13 @@ var
 
 implementation
 
-{$R *.dfm}
+uses
+  MVCFramework.SystemJSONUtils,
+  MVCFramework.Serializer.Defaults,
+  MVCFramework.TypesAliases,
+  MVCFramework.Commons;
 
-uses ObjectsMappers,
-{$IF CompilerVersion <= 27}
-  Data.DBXJSON,
-{$ELSE}
-  System.JSON,
-{$ENDIF} MVCFramework.Commons;
+{$R *.dfm}
 
 procedure TForm5.BindNavigator1BeforeAction(Sender: TObject; Button: TNavigateButton);
 var
@@ -94,14 +93,14 @@ begin
             begin
               WinesAdapter.Post;
               Resp := RESTClient.doPUT('/wines', [(WinesAdapter.Current as TWine).id.ToString],
-                Mapper.ObjectToJSONObject(WinesAdapter.Current));
+                GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
               Abort;
             end;
           seInsert:
             begin
               WinesAdapter.Post;
               Resp := RESTClient.doPOST('/wines', [],
-                Mapper.ObjectToJSONObject(WinesAdapter.Current));
+                GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
               Abort;
             end;
         end;
@@ -119,7 +118,7 @@ begin
   response := RESTClient.doGET('/wines', []);
   Memo1.Lines.Text := response.BodyAsString;
   FWines.Clear;
-  Mapper.JSONArrayToObjectList<TWine>(FWines, response.BodyAsJsonValue as TJSONArray, false);
+  GetDefaultSerializer.DeserializeCollection(response.BodyAsString, FWines, TWine);
   WinesAdapter.SetList(FWines, false);
   WinesAdapter.Active := True;
 end;

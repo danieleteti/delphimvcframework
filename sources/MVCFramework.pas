@@ -666,7 +666,8 @@ type
   protected
     { protected declarations }
   public
-    constructor Create;
+    constructor Create; overload;
+    constructor Create(AStatusCode: Integer; AReasonString: String; AMessage: String); overload;
     destructor Destroy; override;
 
     property StatusCode: Integer read FStatusCode write FStatusCode;
@@ -1089,7 +1090,6 @@ function TMVCWebRequest.GetParamsMulti(
   const AParamName: string): TArray<String>;
 var
   lList: TList<String>;
-  lParamsList: TArray<TStrings>;
   procedure AddParamsToList(const AStrings: TStrings; const AList: TList<String>);
   var
     I: Integer;
@@ -2733,7 +2733,7 @@ begin
     end;
   end
   else
-    raise EMVCException.Create('Can not render an empty error object.');
+    raise EMVCException.Create('Cannot render an empty error object.');
 end;
 
 procedure TMVCController.Render(const ADataSet: TDataSet);
@@ -2767,6 +2767,15 @@ constructor TMVCErrorResponse.Create;
 begin
   inherited Create;
   FItems := TObjectList<TMVCErrorResponseItem>.Create;
+end;
+
+constructor TMVCErrorResponse.Create(AStatusCode: Integer; AReasonString,
+  AMessage: String);
+begin
+  Create;
+  StatusCode := AStatusCode;
+  ReasonString := AReasonString;
+  Message := AMessage;
 end;
 
 destructor TMVCErrorResponse.Destroy;

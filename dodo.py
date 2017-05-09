@@ -16,8 +16,9 @@ DOIT_CONFIG = {'verbosity': 2, 'default_tasks': ['build']}
 ##########################################################################
 projects = glob.glob("ideexpert\*.dproj")
 projects += glob.glob("unittests\**\*.dproj")
-projects += glob.glob("*\**\*.dproj")
-projects += glob.glob("*\**\**\*.dproj")
+projects += glob.glob("samples\**\*.dproj")
+
+#projects += glob.glob("*\**\**\*.dproj")
 
 releases_path = "releases"
 output = "bin"
@@ -29,7 +30,6 @@ output_folder = ""  # defined at runtime
 # if we are building an actual release, this will be replaced
 GlobalBuildVersion = 'DEV'
 
-
 def header(headers):
     elements = None
     if type(headers).__name__ == 'str':
@@ -37,11 +37,11 @@ def header(headers):
     else:
         elements = headers
 
-    print(Style.BRIGHT + Back.WHITE + Fore.RED + "*" * 70 + Style.RESET_ALL)
+    print(Style.BRIGHT + Back.WHITE + Fore.RED + "*" * 78 + Style.RESET_ALL)
     for txt in elements:
-        s = '{:^70}'.format(txt)
+        s = '{:^78}'.format(txt)
         print(Style.BRIGHT + Back.WHITE + Fore.RED + s + Style.RESET_ALL)
-    print(Style.BRIGHT + Back.WHITE + Fore.RED + "*" * 70 + Style.RESET_ALL)
+    print(Style.BRIGHT + Back.WHITE + Fore.RED + "*" * 78 + Style.RESET_ALL)
 
 
 def buildProject(project, config='DEBUG'):
@@ -60,12 +60,10 @@ def buildProject(project, config='DEBUG'):
 
 
 def buildProjects(config='RELEASE'):
+    res = True
     for project in projects:
-        res = buildProject(project, config)
-        if not res:
-            return False
-    return True
-
+        res = buildProject(project, config) and res
+    return res
 
 def copy_sources():
     global output_folder
@@ -77,8 +75,8 @@ def copy_sources():
     for file in src:
         print("Copying " + file + " to " + output_folder + "\\sources")
         copy2(file, output_folder + "\\sources\\")
-    copy2("lib\\jsondataobjects\\Source\\JsonDataObjects.pas",
-          output_folder + "\\sources\\")
+    # copy2("lib\\jsondataobjects\\Source\\JsonDataObjects.pas",
+    #       output_folder + "\\sources\\")
 
     # copying ideexperts
     header("Copying DMVCFramework IDEExpert...")
@@ -118,6 +116,7 @@ def copy_libs():
 
 
 def init_build(version):
+    '''Required by all tasks'''
     global GlobalBuildVersion
     global output_folder
     global releases_path
@@ -138,15 +137,12 @@ def init_build(version):
 
 
 def zip_samples(version):
-    global releases_path
-    output_folder = releases_path + "\\" + version
+    global output_folder
     cmdline = "7z a " + output_folder + "\\dmvcframeworksamples.zip -r -i@7ziplistfile.txt"
     return subprocess.call(cmdline, shell=True) == 0
 
 def create_zip(version):
-    global GlobalBuildVersion
-    global releases_path
-    output_folder = releases_path + "\\" + version
+    global output_folder        
     header("CREATING ZIP")
     archivename = "..\\dmvcframework_" + version + ".zip"
     #switches = " -o.\\" + releases_path + " -w.\\" + output_folder
@@ -166,8 +162,8 @@ def task_build():
     '''Use: doit build -v <VERSION>.'''
     return {
         'actions': [
+            buildProjects,
             init_build,
-            # "echo %%date%% %%time:~0,8%% > " + releases_path + "\\DELPHIMVCFRAMEWORK-BUILD-TIMESTAMP.TXT",
             copy_sources,
             copy_libs,
             zip_samples,

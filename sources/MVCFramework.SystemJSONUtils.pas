@@ -57,7 +57,6 @@ class function TSystemJSON.BodyAsJSONValue(const RESTResponse: IRESTResponse): T
 var
   lBodyAsJSONValue: TJSONValue;
 begin
-  lBodyAsJSONValue := nil;
   lBodyAsJSONValue := TJSONObject.ParseJSONValue(RESTResponse.BodyAsString);
   if lBodyAsJSONValue = nil then
     raise EMVCException.Create('Invalid JSON');

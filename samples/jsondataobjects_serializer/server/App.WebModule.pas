@@ -76,8 +76,6 @@ begin
       AConfig[TMVCConfigKey.DefaultViewFileExtension] := 'html';
       // view path
       AConfig[TMVCConfigKey.ViewPath] := 'templates';
-      // Enable STOMP messaging controller
-      AConfig[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       AConfig[TMVCConfigKey.ExposeServerSignature] := 'true';
       // Define a default URL for requests that don't map to a route or a file (useful for client side web app)

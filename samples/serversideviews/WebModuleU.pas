@@ -18,9 +18,10 @@ var
 
 implementation
 
-{ %CLASSGROUP 'Vcl.Controls.TControl' }
+uses
+  MVCFramework.View.Renderers.Mustache, WebSiteControllerU, MVCFramework.Commons;
 
-uses WebSiteControllerU, MVCFramework.Commons;
+{ %CLASSGROUP 'Vcl.Controls.TControl' }
 
 {$R *.dfm}
 
@@ -46,11 +47,11 @@ begin
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'mustache';
       // view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
-      // Enable STOMP messaging controller
-      Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end).AddController(TWebSiteController);
+    end)
+    .AddController(TWebSiteController)
+    .SetViewEngine(TMVCMustacheViewEngine);
 
 end;
 
