@@ -51,7 +51,7 @@ var
   ViewTemplate: RawUTF8;
   ViewEngine: TSynMustache;
   DataObj: TPair<string, string>;
-  lSJSON: String;
+  lSJSON: string;
   lFirst: Boolean;
 begin
   ViewFileName := GetRealFileName(ViewName);

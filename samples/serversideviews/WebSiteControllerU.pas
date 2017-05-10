@@ -143,10 +143,23 @@ end;
 procedure TWebSiteController.PeopleList;
 var
   LDAL: IPeopleDAL;
+  lPeople: TJSONArray;
+  lSpeed: TJSONString;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushToView('people', LDAL.GetPeople.ToJSON);
-  PushToView('speed', GetSpeed.ToJSON);
+  lPeople := LDAL.GetPeople;
+  try
+    PushToView('people', lPeople.ToJSON);
+  finally
+    lPEople.Free;
+  end;
+
+  lSpeed := GetSpeed;
+  try
+    PushToView('speed', lSpeed.ToJSON);
+  finally
+    lSpeed.Free;
+  end;
   LoadView(['header', 'people_list', 'footer']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;

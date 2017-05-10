@@ -7,7 +7,9 @@ uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework;
 type
   TWebModule1 = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
   private
+    FMVCEngine: TMVCEngine;
     { Private declarations }
   public
     { Public declarations }
@@ -27,7 +29,7 @@ uses
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  TMVCEngine.Create(Self,
+  FMVCEngine := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
       // enable static files
@@ -53,6 +55,11 @@ begin
     .AddController(TWebSiteController)
     .SetViewEngine(TMVCMustacheViewEngine);
 
+end;
+
+procedure TWebModule1.WebModuleDestroy(Sender: TObject);
+begin
+  FMVCEngine.Free;
 end;
 
 end.
