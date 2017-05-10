@@ -102,7 +102,7 @@ begin
     Jo.AddPair('CPU_architecture', GetEnumName(TypeInfo(TOSVersion.TArchitecture), Ord(TOSVersion.Architecture)));
     Jo.AddPair('system_time', FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
     ContentType := TMVCMediaType.APPLICATION_JSON;
-    Serializer.SerializeObject(Jo);
+    Render(Jo, False);
   finally
     Jo.Free;
   end;
@@ -200,7 +200,7 @@ begin
         end;
       end;
       ContentType := TMVCMediaType.APPLICATION_JSON;
-      Serializer.SerializeObject(LJoResp);
+      Render(LJoResp, False);
     finally
       LJoResp.Free;
     end;
@@ -234,7 +234,8 @@ begin
     Keys := Config.Keys;
     for Key in Keys do
       Jo.AddPair(Key, Config[Key]);
-    Serializer.SerializeObject(Jo);
+    ContentType := TMVCMediaType.APPLICATION_JSON;
+    Render(Jo, False);
   finally
     Jo.Free;
   end;

@@ -59,13 +59,13 @@ resourcestring
     'var' + sLineBreak +
     '  lServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
     '  lCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
-    '  lCmd, lStartupCommand: string;' + sLineBreak +
+    '  lCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
     '  if ParamCount >= 1 then' + sLineBreak +
-    '    lStartupCommand := ParamStr(1)' + sLineBreak +
+    '    lCmd := ParamStr(1)' + sLineBreak +
     '  else' + sLineBreak +
-    '    lStartupCommand := ''start'';' + sLineBreak +
+    '    lCmd := ''start'';' + sLineBreak +
     '' + sLineBreak +
     '  lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
     '    begin' + sLineBreak +
@@ -103,32 +103,28 @@ resourcestring
     '' + sLineBreak +
     '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
     '    repeat' + sLineBreak +
-    '      // TextColor(RED);' + sLineBreak +
-    '      // TextColor(LightRed);' + sLineBreak +
-    '      Write(''-> '');' + sLineBreak +
-    '      // TextColor(White);' + sLineBreak +
-    '      if lStartupCommand.IsEmpty then' + sLineBreak +
-    '        ReadLn(lCmd)' + sLineBreak +
-    '      else' + sLineBreak +
+    '      if lCmd.IsEmpty then' + sLineBreak +
     '      begin' + sLineBreak +
-    '        lCmd := lStartupCommand;' + sLineBreak +
-    '        lStartupCommand := '''';' + sLineBreak +
-    '        WriteLn(lCmd);' + sLineBreak +
+    '        Write(''-> '');' + sLineBreak +
+    '        ReadLn(lCmd)' + sLineBreak +
     '      end;' + sLineBreak +
-    '' + sLineBreak +
-    '      case HandleCommand(lCmd.ToLower, LServer, lCustomHandler) of' + sLineBreak +
-    '        THandleCommandResult.Continue:' + sLineBreak +
-    '          begin' + sLineBreak +
-    '            Continue;' + sLineBreak +
-    '          end;' + sLineBreak +
-    '        THandleCommandResult.Break:' + sLineBreak +
-    '          begin' + sLineBreak +
-    '            Break;' + sLineBreak +
-    '          end;' + sLineBreak +
-    '        THandleCommandResult.Unknown:' + sLineBreak +
-    '          begin' + sLineBreak +
-    '            REPLEmit(''Unknown command: '' + lCmd);' + sLineBreak +
-    '          end;' + sLineBreak +
+    '      try' + sLineBreak +
+    '        case HandleCommand(lCmd.ToLower, LServer, lCustomHandler) of' + sLineBreak +
+    '          THandleCommandResult.Continue:' + sLineBreak +
+    '            begin' + sLineBreak +
+    '              Continue;' + sLineBreak +
+    '            end;' + sLineBreak +
+    '          THandleCommandResult.Break:' + sLineBreak +
+    '            begin' + sLineBreak +
+    '              Break;' + sLineBreak +
+    '            end;' + sLineBreak +
+    '          THandleCommandResult.Unknown:' + sLineBreak +
+    '            begin' + sLineBreak +
+    '              REPLEmit(''Unknown command: '' + lCmd);' + sLineBreak +
+    '            end;' + sLineBreak +
+    '        end;' + sLineBreak +
+    '      finally' + sLineBreak +
+    '        lCmd := '''';' + sLineBreak +
     '      end;' + sLineBreak +
     '    until false;' + sLineBreak +
     '' + sLineBreak +

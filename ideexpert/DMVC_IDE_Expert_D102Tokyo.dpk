@@ -50,6 +50,8 @@ contains
   DMVC.Expert.CodeGen.NewControllerUnit in 'DMVC.Expert.CodeGen.NewControllerUnit.pas',
   DMVC.Expert.NewUnitWizardEx in 'DMVC.Expert.NewUnitWizardEx.pas',
   DMVC.Expert.ProjectWizardEx in 'DMVC.Expert.ProjectWizardEx.pas',
-  DMVC.Expert.CodeGen.NewWebModuleUnit in 'DMVC.Expert.CodeGen.NewWebModuleUnit.pas';
+  DMVC.Expert.CodeGen.NewWebModuleUnit in 'DMVC.Expert.CodeGen.NewWebModuleUnit.pas',
+  MVCFramework.TypesAliases in '..\sources\MVCFramework.TypesAliases.pas',
+  MVCFramework.Commons in '..\sources\MVCFramework.Commons.pas';
 
 end.
