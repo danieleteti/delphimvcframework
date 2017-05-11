@@ -151,10 +151,16 @@ end;
 
 procedure TMainForm.ShowError(const AResponse: IRESTResponse);
 begin
-  MessageDlg(
-    AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
-    AResponse.BodyAsString,
-    mtError, [mbOK], 0);
+  if AResponse.HasError then
+    MessageDlg(
+      AResponse.Error.HTTPError.ToString + ': ' + AResponse.Error.ExceptionMessage + sLineBreak +
+      '[' + AResponse.Error.ExceptionClassname + ']',
+      mtError, [mbOK], 0)
+  else
+    MessageDlg(
+      AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
+      AResponse.BodyAsString,
+      mtError, [mbOK], 0);
 end;
 
 end.

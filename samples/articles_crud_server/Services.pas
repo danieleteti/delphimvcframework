@@ -42,7 +42,8 @@ begin
   AArticolo.CheckInsert;
   Cmd := FDM.updArticles.Commands[arInsert];
   TFireDACUtils.ObjectToParameters(Cmd.Params, AArticolo, 'NEW_');
-  Cmd.OpenOrExecute;
+  Cmd.Execute;
+  AArticolo.ID := Cmd.ParamByName('ID').AsInteger;
 end;
 
 procedure TArticlesService.Delete(AArticolo: TArticle);

@@ -41,7 +41,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, System.RegularExpressions;
 
 { TBaseBO }
 
@@ -70,22 +70,23 @@ end;
 procedure TArticle.CheckDelete;
 begin
   inherited;
-//  if Price > 0 then
-//    raise Exception.Create('Cannot delete an article with a price greater than 0 (yes, it is a silly check)');
+  if Price <= 5 then
+    raise Exception.Create('Cannot delete an article with a price below 5 euros (yes, it is a silly check)');
 end;
 
 procedure TArticle.CheckInsert;
 begin
   inherited;
-  if length(Code) < 3 then
-    raise Exception.Create('Article code cannot be less than 3 chars');
+  if not TRegEx.IsMatch(Code, '^C[0-9]{2,4}') then
+    raise Exception.Create('Article code must be in the format "CXX or CXXX or CXXXX"');
 end;
 
 procedure TArticle.CheckUpdate;
 begin
   inherited;
-  if length(Code) < 3 then
-    raise Exception.Create('Article code cannot be less than 3 chars');
+  CheckInsert;
+  if Price <= 2 then
+    raise Exception.Create('We cannot sell so low cost pizzas!');
 end;
 
 procedure TArticle.SetCode(const Value: string);

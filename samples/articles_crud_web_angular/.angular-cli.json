@@ -19,14 +19,15 @@
       "mobile": false,
       "styles": [
         "styles.css",
-				"../node_modules/bootstrap/dist/css/bootstrap.min.css"
+				"../node_modules/bootstrap/dist/css/bootstrap.min.css",
+				"../node_modules/animate.css/animate.min.css"				
       ],
-      "scripts": [],
-      "environments": {
-        "source": "environments/environment.ts",
-        "dev": "environments/environment.ts",
-        "prod": "environments/environment.prod.ts"
-      }
+      "scripts": [],     
+			"environmentSource": "environments/environment.ts",
+			"environments": {
+				"dev": "environments/environment.ts",
+				"prod": "environments/environment.prod.ts"
+			}
     }
   ],
   "addons": [],
