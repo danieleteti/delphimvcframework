@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CF5DB084-7815-4A94-85E3-F9FC0074C8AC}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="CustomRoleAuthServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="CustomRoleAuthClient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="CustomRoleAuthServer">
+        <MSBuild Projects="CustomRoleAuthServer.dproj"/>
+    </Target>
+    <Target Name="CustomRoleAuthServer:Clean">
+        <MSBuild Projects="CustomRoleAuthServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomRoleAuthServer:Make">
+        <MSBuild Projects="CustomRoleAuthServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="CustomRoleAuthClient">
+        <MSBuild Projects="CustomRoleAuthClient.dproj"/>
+    </Target>
+    <Target Name="CustomRoleAuthClient:Clean">
+        <MSBuild Projects="CustomRoleAuthClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomRoleAuthClient:Make">
+        <MSBuild Projects="CustomRoleAuthClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="CustomRoleAuthServer;CustomRoleAuthClient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="CustomRoleAuthServer:Clean;CustomRoleAuthClient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="CustomRoleAuthServer:Make;CustomRoleAuthClient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
