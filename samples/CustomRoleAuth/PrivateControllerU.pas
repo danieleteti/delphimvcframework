@@ -27,7 +27,9 @@ unit PrivateControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, RoleBasedAuthHandler;
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
 type
 

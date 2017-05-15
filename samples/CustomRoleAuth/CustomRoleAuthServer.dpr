@@ -7,7 +7,6 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  PublicControllerU in 'PublicControllerU.pas',
   MyWebModuleU in 'MyWebModuleU.pas' {MyWebModule: TWebModule},
   PrivateControllerU in 'PrivateControllerU.pas',
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler in '..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas',

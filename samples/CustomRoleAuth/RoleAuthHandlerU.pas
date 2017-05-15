@@ -33,7 +33,7 @@ uses
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
 type
-  TCustomAuth = class(TRoleBasedAuthHandler)
+  TCustomRoleAuth = class(TRoleBasedAuthHandler)
   public
     // if authentication is required, this method must execute the user authentication
     procedure OnAuthentication(const UserName: string; const Password: string;
@@ -44,9 +44,9 @@ type
 
 implementation
 
-{ TCustomAuth }
+{ TCustomRoleAuth }
 
-procedure TCustomAuth.OnAuthentication(const UserName, Password: string;
+procedure TCustomRoleAuth.OnAuthentication(const UserName, Password: string;
   UserRoles: TList<System.string>; var IsValid: Boolean;
   const SessionData: TDictionary<System.string, System.string>);
 begin

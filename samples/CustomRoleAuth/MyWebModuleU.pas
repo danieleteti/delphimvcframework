@@ -51,7 +51,6 @@ implementation
 
 uses
   MVCFramework.Commons,
-  PublicControllerU,
   PrivateControllerU,
   MVCFramework.Middleware.Authentication,
   RoleAuthHandlerU;
@@ -78,11 +77,10 @@ begin
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
-  FMVC.AddController(TPublicController);
   FMVC.AddController(TPrivateController);
   FMVC.AddMiddleware(
     TMVCCustomAuthenticationMiddleware.Create(
-    TCustomAuth.Create,
+    TCustomRoleAuth.Create,
     '/system/users/logged'
     )
     );
