@@ -59,9 +59,19 @@ type
     [MVCRequiresRole('role1')]
     [MVCRequiresRole('role2')]
     procedure OnlyRole1And2;
+
+    [MVCPath('/role/($role)')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCRequiresRole('($role)')]
+    procedure AccessThisByRole(const role: string);
   end;
 
 implementation
+
+procedure TPrivateController.AccessThisByRole(const role: string);
+begin
+   Render('OK This ressource was accessed by role: ' + role);
+end;
 
 procedure TPrivateController.Index;
 begin

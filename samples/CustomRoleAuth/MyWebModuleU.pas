@@ -52,7 +52,7 @@ implementation
 uses
   MVCFramework.Commons,
   PrivateControllerU,
-  MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
   RoleAuthHandlerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -79,7 +79,7 @@ begin
     end);
   FMVC.AddController(TPrivateController);
   FMVC.AddMiddleware(
-    TMVCCustomAuthenticationMiddleware.Create(
+    TMVCRoleBasedAuthenticationMiddleware.Create(
     TCustomRoleAuth.Create,
     '/system/users/logged'
     )

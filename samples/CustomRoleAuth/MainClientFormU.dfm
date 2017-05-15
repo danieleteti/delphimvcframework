@@ -149,9 +149,9 @@ object Form7: TForm7
   end
   object Memo1: TMemo
     Left = 8
-    Top = 184
+    Top = 196
     Width = 586
-    Height = 136
+    Height = 124
     Anchors = [akLeft, akTop, akRight, akBottom]
     Lines.Strings = (
       'Memo1')
@@ -200,6 +200,16 @@ object Form7: TForm7
     Caption = 'Call action allowed only for "role1 and role2"'
     TabOrder = 7
     OnClick = Button4Click
+  end
+  object Button5: TButton
+    Left = 311
+    Top = 163
+    Width = 283
+    Height = 27
+    Anchors = [akLeft, akTop, akRight]
+    Caption = 'Call dynamic eval for admin'
+    TabOrder = 8
+    OnClick = Button5Click
   end
   object ApplicationEvents1: TApplicationEvents
     OnIdle = ApplicationEvents1Idle
