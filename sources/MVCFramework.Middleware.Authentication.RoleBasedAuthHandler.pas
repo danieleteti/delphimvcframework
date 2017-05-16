@@ -34,7 +34,9 @@ uses
   System.Rtti;
 
 type
-  MVCRequiresRoleAttribute = class(MVCBaseAttribute)
+  MVCRequiresAuthenticationAttribute = class(MVCBaseAttribute);
+
+  MVCRequiresRoleAttribute = class(MVCRequiresAuthenticationAttribute)
   private
     FRole: string;
   public
@@ -225,18 +227,19 @@ procedure TRoleBasedAuthHandler.OnRequest(const ControllerQualifiedClassName,
   ActionName: string; var AuthenticationRequired: Boolean);
 var
   vRttiType: TRttiType;
-  vAttributes: TArray<MVCRequiresRoleAttribute>;
+  vAttributes: TArray<MVCRequiresAuthenticationAttribute>;
   vRttiMethod: TRttiMethod;
 begin
   vRttiType := FRttiContext.FindType(ControllerQualifiedClassName);
 
   // Check class and Actions if they have role definitions.
-  AuthenticationRequired := TryGetAttributes<MVCRequiresRoleAttribute>
+  AuthenticationRequired := TryGetAttributes<MVCRequiresAuthenticationAttribute>
     (vRttiType.GetAttributes, vAttributes);
   if not AuthenticationRequired then
   begin
     vRttiMethod := vRttiType.GetMethod(ActionName);
-    AuthenticationRequired := TryGetAttributes<MVCRequiresRoleAttribute>
+    AuthenticationRequired :=
+      TryGetAttributes<MVCRequiresAuthenticationAttribute>
       (vRttiMethod.GetAttributes, vAttributes);
   end;
 end;

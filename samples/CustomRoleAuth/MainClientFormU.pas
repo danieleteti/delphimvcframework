@@ -53,6 +53,7 @@ type
     Label7: TLabel;
     Button4: TButton;
     Button5: TButton;
+    Button6: TButton;
     procedure FormCreate(Sender: TObject);
     procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
     procedure btnLogInLogOutClick(Sender: TObject);
@@ -62,6 +63,7 @@ type
     procedure ListBox1Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
   private
     FRESTClient: TRESTClient;
     FLogoutUrl: string;
@@ -173,6 +175,14 @@ var
   lRes: IRESTResponse;
 begin
   lRes := FRESTClient.doGET('/private/role/admin', []);
+  FillMemo(lRes);
+end;
+
+procedure TForm7.Button6Click(Sender: TObject);
+var
+  lRes: IRESTResponse;
+begin
+  lRes := FRESTClient.doGET('/private/authenticatedOnly', []);
   FillMemo(lRes);
 end;
 

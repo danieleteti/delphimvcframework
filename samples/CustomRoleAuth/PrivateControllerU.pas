@@ -44,6 +44,11 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure PublicAction;
 
+    [MVCPath('/authenticatedOnly')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCRequiresAuthentication]
+    procedure AuthenticatedAction;
+
     [MVCPath('/role1')]
     [MVCHTTPMethod([httpGET])]
     [MVCRequiresRole('role1')]
@@ -73,11 +78,15 @@ begin
    Render('OK This ressource was accessed by role: ' + role);
 end;
 
+procedure TPrivateController.AuthenticatedAction;
+begin
+  Render('OK from a Authenticated Action');
+end;
+
 procedure TPrivateController.Index;
 begin
   // use Context property to access to the HTTP request and response
   Render('Hello World');
-
 end;
 
 procedure TPrivateController.OnlyRole1;
