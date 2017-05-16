@@ -76,11 +76,16 @@ begin
     IsValid := True;
     UserRoles.Add('role2');
   end
-  else if (UserName = 'user3') and (Password = 'user3pass') then
+  else if (UserName = 'user1_2') and (Password = 'user1_2pass') then
   begin
     IsValid := True;
     UserRoles.Add('role1');
     UserRoles.Add('role2');
+  end
+  else if (UserName = 'user3') and (Password = 'user3pass') then
+  begin
+    IsValid := True;
+    UserRoles.Add('role3');
   end;
 
   // if you dont have "roles" concept in your system, you can also avoid to use them and

@@ -27,8 +27,10 @@ unit MainClientFormU;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.AppEvnts, MVCFramework.RESTClient,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.AppEvnts,
+  MVCFramework.RESTClient,
   Vcl.ExtCtrls;
 
 type
@@ -54,6 +56,7 @@ type
     Button4: TButton;
     Button5: TButton;
     Button6: TButton;
+    Button7: TButton;
     procedure FormCreate(Sender: TObject);
     procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
     procedure btnLogInLogOutClick(Sender: TObject);
@@ -64,6 +67,7 @@ type
     procedure Button4Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
+    procedure Button7Click(Sender: TObject);
   private
     FRESTClient: TRESTClient;
     FLogoutUrl: string;
@@ -84,7 +88,6 @@ uses
   MVCFramework.SystemJSONUtils;
 
 {$R *.dfm}
-
 
 procedure TForm7.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 begin
@@ -116,7 +119,8 @@ begin
     try
       lJObj.AddPair('username', edtUsername.Text);
       lJObj.AddPair('password', edtPassword.Text);
-      lRes := FRESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJObj, False));
+      lRes := FRESTClient.doPOST('/system/users/logged', [],
+        TSystemJSON.JSONValueToString(lJObj, False));
       if lRes.HasError then
       begin
         ShowMessage(lRes.Error.ExceptionMessage);
@@ -186,13 +190,18 @@ begin
   FillMemo(lRes);
 end;
 
+procedure TForm7.Button7Click(Sender: TObject);
+var
+  lRes: IRESTResponse;
+begin
+  lRes := FRESTClient.doGET('/private/role1or2', []);
+  FillMemo(lRes);
+end;
+
 procedure TForm7.FillMemo(Response: IRESTResponse);
 begin
-  Memo1.Lines.Add(
-    Format('[%s] [%s] %s',
-    [TimeToStr(Time),
-    Response.ResponseText,
-    Response.BodyAsString]));
+  Memo1.Lines.Add(Format('[%s] [%s] %s', [TimeToStr(Time),
+    Response.ResponseText, Response.BodyAsString]));
 end;
 
 procedure TForm7.FormCreate(Sender: TObject);

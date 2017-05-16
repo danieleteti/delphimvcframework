@@ -36,12 +36,23 @@ uses
 type
   MVCRequiresAuthenticationAttribute = class(MVCBaseAttribute);
 
+  MVCRoleEval = (reOR, reAND);
+
   MVCRequiresRoleAttribute = class(MVCRequiresAuthenticationAttribute)
+  public const
+    DefaultListSeparator = ';';
   private
     FRole: string;
+    FRoleEval: MVCRoleEval;
+    FListSep: Char;
   public
-    constructor Create(const aRole: string);
-    property Role: string read FRole;
+    constructor Create(const aRole: string); overload;
+    constructor Create(const aRole: string;
+      const aRoleEval: MVCRoleEval); overload;
+    constructor Create(const aRole: string; const aRoleEval: MVCRoleEval;
+      const aListSep: Char); overload;
+    function GetRoles: TArray<string>;
+    property RoleEval: MVCRoleEval read FRoleEval;
   end;
 
   IMVCRoleBasedAuthenticationHandler = interface(IMVCAuthenticationHandler)
@@ -116,8 +127,27 @@ uses
 
 constructor MVCRequiresRoleAttribute.Create(const aRole: string);
 begin
+  Self.Create(aRole, MVCRoleEval.reAND, DefaultListSeparator);
+end;
+
+constructor MVCRequiresRoleAttribute.Create(const aRole: string;
+  const aRoleEval: MVCRoleEval);
+begin
+  Self.Create(aRole, aRoleEval, DefaultListSeparator);
+end;
+
+constructor MVCRequiresRoleAttribute.Create(const aRole: string;
+  const aRoleEval: MVCRoleEval; const aListSep: Char);
+begin
   inherited Create;
   FRole := aRole;
+  FRoleEval := aRoleEval;
+  FListSep := aListSep;
+end;
+
+function MVCRequiresRoleAttribute.GetRoles: TArray<string>;
+begin
+  Result := FRole.Split([FListSep]);
 end;
 
 { TRoleBasedAuthHandler }
@@ -127,6 +157,7 @@ function TRoleBasedAuthHandler.CheckUserRoles(const AContext: TWebContext;
   const aRoleAttributes: TArray<MVCRequiresRoleAttribute>): Boolean;
 var
   vAttribute: MVCRequiresRoleAttribute;
+  vSingleRole: string;
 begin
   // By default we will say that you are good to go.
   Result := True;
@@ -135,8 +166,27 @@ begin
 
   // All Attributes MUST match -> AND evaluation
   for vAttribute in aRoleAttributes do
-    if not AUserRoles.Contains(ResolveRole(AContext, vAttribute.Role)) then
-      Exit(False);
+  // if not AUserRoles.Contains(ResolveRole(AContext, vAttribute.Role)) then
+  // Exit(False);
+  begin
+    if (vAttribute.RoleEval = MVCRoleEval.reAND) then
+    begin
+      for vSingleRole in vAttribute.GetRoles do
+        if not AUserRoles.Contains(ResolveRole(AContext, vSingleRole)) then
+          Exit(False);
+    end
+    else // OR evaluation
+    begin
+      // By default we assume we have not found the role.
+      Result := False;
+      for vSingleRole in vAttribute.GetRoles do
+        if AUserRoles.Contains(ResolveRole(AContext, vSingleRole)) then
+          Result := True;
+      // If one of the roles does not match we exit the check.
+      if not Result then
+        Exit;
+    end;
+  end;
 end;
 
 constructor TRoleBasedAuthHandler.Create;

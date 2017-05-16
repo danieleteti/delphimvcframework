@@ -149,9 +149,9 @@ object Form7: TForm7
   end
   object Memo1: TMemo
     Left = 8
-    Top = 248
+    Top = 262
     Width = 540
-    Height = 153
+    Height = 139
     Anchors = [akLeft, akTop, akRight, akBottom]
     Lines.Strings = (
       'Memo1')
@@ -181,11 +181,12 @@ object Form7: TForm7
     Left = 8
     Top = 51
     Width = 131
-    Height = 59
+    Height = 72
     ItemHeight = 13
     Items.Strings = (
       'user1:user1pass'
       'user2:user2pass'
+      'user1_2:user1_2pass'
       'user3:user3pass'
       'admin:adminpass')
     TabOrder = 6
@@ -203,7 +204,7 @@ object Form7: TForm7
   end
   object Button5: TButton
     Left = 311
-    Top = 196
+    Top = 229
     Width = 237
     Height = 27
     Anchors = [akLeft, akTop, akRight]
@@ -220,6 +221,16 @@ object Form7: TForm7
     Caption = 'Call Authenticated only'
     TabOrder = 9
     OnClick = Button6Click
+  end
+  object Button7: TButton
+    Left = 311
+    Top = 196
+    Width = 237
+    Height = 27
+    Anchors = [akLeft, akTop, akRight]
+    Caption = 'Call action allowed only for "role1 or role2"'
+    TabOrder = 10
+    OnClick = Button7Click
   end
   object ApplicationEvents1: TApplicationEvents
     OnIdle = ApplicationEvents1Idle

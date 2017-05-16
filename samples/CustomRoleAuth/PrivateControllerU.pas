@@ -63,7 +63,14 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCRequiresRole('role1')]
     [MVCRequiresRole('role2')]
+    // The following is the same as above (redundancy for the example)
+    [MVCRequiresRole('role1;role2', MVCRoleEval.reAND)]
     procedure OnlyRole1And2;
+
+    [MVCPath('/role1or2')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCRequiresRole('role1;role2', MVCRoleEval.reOR)]
+    procedure OnlyRole1or2;
 
     [MVCPath('/role/($role)')]
     [MVCHTTPMethod([httpGET])]
@@ -75,7 +82,7 @@ implementation
 
 procedure TPrivateController.AccessThisByRole(const role: string);
 begin
-   Render('OK This ressource was accessed by role: ' + role);
+  Render('OK This ressource was accessed by role: ' + role);
 end;
 
 procedure TPrivateController.AuthenticatedAction;
@@ -97,6 +104,11 @@ end;
 procedure TPrivateController.OnlyRole1And2;
 begin
   Render('OK from a "role1 and role2" action');
+end;
+
+procedure TPrivateController.OnlyRole1or2;
+begin
+  Render('OK from a "role1 or role2" action');
 end;
 
 procedure TPrivateController.OnlyRole2;
