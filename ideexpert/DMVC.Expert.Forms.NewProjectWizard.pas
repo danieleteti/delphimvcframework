@@ -34,6 +34,7 @@ type
     Label2: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
+    chkCreateCRUDMethods: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -46,6 +47,7 @@ type
     function GetWebModuleClassName: string;
     function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
+    function GetCreateCRUDMethods: boolean;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
@@ -53,6 +55,7 @@ type
     property CreateControllerUnit: boolean read GetCreateControllerUnit;
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
+    property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
     property CreateActionFiltersMethods: boolean
       read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
@@ -136,6 +139,11 @@ end;
 function TfrmDMVCNewProject.GetCreateControllerUnit: boolean;
 begin
   Result := chkCreateControllerUnit.Checked;
+end;
+
+function TfrmDMVCNewProject.GetCreateCRUDMethods: boolean;
+begin
+  Result := chkCreateCRUDMethods.Checked;
 end;
 
 function TfrmDMVCNewProject.GetControllerClassName: string;

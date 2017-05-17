@@ -357,8 +357,8 @@ begin
     if (not IsIgnoredAttribute(AIgnoredFields, FieldName)) and (not IsIgnoredComponent(ADataSet.Owner, ADataSet.Fields[I].Name)) then
     begin
       case ANameCase of
-        ncUpperCase: FieldName := UpperCase(ADataSet.Fields[I].FieldName);
-        ncLowerCase: FieldName := LowerCase(ADataSet.Fields[I].FieldName);
+        ncUpperCase: FieldName := UpperCase(FieldName);
+        ncLowerCase: FieldName := LowerCase(FieldName);
       end;
       if ADataSet.Fields[I].IsNull then
         AJSONObject.AddPair(FieldName, TJSONNull.Create)

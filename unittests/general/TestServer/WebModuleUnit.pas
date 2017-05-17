@@ -56,7 +56,7 @@ begin
   MVCEngine := TMVCEngine.Create(self,
     procedure(Config: TMVCConfig)
     begin
-      Config[TMVCConfigKey.Messaging] := 'true';
+        //no config here
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)

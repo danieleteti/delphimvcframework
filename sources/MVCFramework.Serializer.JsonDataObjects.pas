@@ -218,9 +218,9 @@ begin
     if Assigned(ChildJsonValue) then
     begin
       if ChildJsonValue is TJsonObject then
-        AJsonObject.O[AName] := ChildJsonValue as TJsonObject
+        AJsonObject.O[AName] := TJsonObject(ChildJsonValue)
       else if ChildJsonValue is TJsonArray then
-        AJsonObject.A[AName] := ChildJsonValue as TJsonArray
+        AJsonObject.A[AName] := TJsonArray(ChildJsonValue)
       else if ChildJsonValue is TJsonBaseObject then
         AJsonObject[AName] := ChildJsonValue
       else if ChildJsonValue is TJsonValue then
@@ -229,7 +229,7 @@ begin
         ChildJsonValue.Free;
       end
       else
-        raise EMVCSerializationException.CreateFmt('Can not serialize %s the serializer does not have a valid TJsonBaseObject type.', [AName]);
+        raise EMVCSerializationException.CreateFmt('Cannot serialize %s the serializer does not have a valid TJsonBaseObject type.', [AName]);
     end;
     Exit;
   end;
@@ -329,7 +329,7 @@ begin
             if CastValue.TryCast(ValueTypeAtt.ValueTypeInfo, CastedValue) then
               AttributeToJsonDataValue(AJsonObject, AName, CastedValue, stDefault, [], [])
             else
-              raise EMVCSerializationException.CreateFmt('Can not serialize %s of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).', [AName]);
+              raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).', [AName]);
           end
           else
           begin
@@ -340,17 +340,17 @@ begin
           end;
         end
         else
-          raise EMVCSerializationException.CreateFmt('Can not serialize %s of TypeKind tkRecord.', [AName]);
+          raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkRecord.', [AName]);
       end;
 
     tkSet:
-      raise EMVCSerializationException.CreateFmt('Can not serialize %s of TypeKind tkSet.', [AName]);
+      raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkSet.', [AName]);
 
     tkArray:
-      raise EMVCSerializationException.CreateFmt('Can not serialize %s of TypeKind tkArray.', [AName]);
+      raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkArray.', [AName]);
 
     tkUnknown:
-      raise EMVCSerializationException.CreateFmt('Can not serialize %s of TypeKind tkUnknown.', [AName]);
+      raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkUnknown.', [AName]);
   end;
 end;
 
@@ -641,9 +641,17 @@ begin
           AValue := TValue.FromVariant(AJsonObject[AName].O['value'].VariantValue)
         else
         begin
-          ChildObject := AValue.AsObject;
-          if Assigned(ChildObject) then
-            JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType), AIgnored);
+          // dt: if a key is null, jsondataobjects assign it the type jdtObject
+          if AJsonObject[AName].ObjectValue = nil then
+          begin
+            ChildObject := nil; // dt
+          end
+          else
+          begin
+            ChildObject := AValue.AsObject;
+            if Assigned(ChildObject) then
+              JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType), AIgnored);
+          end;
         end;
       end;
 
@@ -676,20 +684,20 @@ begin
   begin
     for Field in ADataSet.Fields do
     begin
-      Name := GetNameAs(ADataSet.Owner, Field.Name, Field.FieldName);
+      name := GetNameAs(ADataSet.Owner, Field.Name, Field.FieldName);
 
-      if (IsIgnoredAttribute(AIgnoredFields, Name)) or (IsIgnoredComponent(ADataSet.Owner, Field.Name)) then
+      if (IsIgnoredAttribute(AIgnoredFields, name)) or (IsIgnoredComponent(ADataSet.Owner, Field.Name)) then
         Continue;
 
       case GetNameCase(ADataSet, ANameCase) of
-        ncLowerCase: Name := LowerCase(Field.FieldName);
-        ncUpperCase: Name := UpperCase(Field.FieldName);
+        ncLowerCase: name := LowerCase(Field.FieldName);
+        ncUpperCase: name := UpperCase(Field.FieldName);
       end;
 
-      if not AJsonObject.Contains(Name) then
+      if not AJsonObject.Contains(name) then
         Continue;
 
-      if (AJsonObject[Name].Typ = jdtObject) and (AJsonObject.Values[Name].ObjectValue = nil) then // Nullable Type
+      if (AJsonObject[name].Typ = jdtObject) and (AJsonObject.Values[name].ObjectValue = nil) then // Nullable Type
       begin
         Field.Clear;
         Continue;
@@ -697,38 +705,38 @@ begin
 
       case field.DataType of
         TFieldType.ftBoolean:
-          Field.AsBoolean := AJsonObject.B[Name];
+          Field.AsBoolean := AJsonObject.B[name];
 
         TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
-          Field.AsInteger := AJsonObject.I[Name];
+          Field.AsInteger := AJsonObject.I[name];
 
         TFieldType.ftLargeint:
-          Field.AsLargeInt := AJsonObject.L[Name];
+          Field.AsLargeInt := AJsonObject.L[name];
 
         TFieldType.ftCurrency:
-          Field.AsCurrency := AJsonObject.F[Name];
+          Field.AsCurrency := AJsonObject.F[name];
 
         TFieldType.ftSingle:
-          Field.AsSingle := AJsonObject.F[Name];
+          Field.AsSingle := AJsonObject.F[name];
 
         TFieldType.ftFloat, TFieldType.ftFMTBcd, TFieldType.ftBCD:
-          Field.AsFloat := AJsonObject.F[Name];
+          Field.AsFloat := AJsonObject.F[name];
 
         ftString, ftWideString, ftMemo, ftWideMemo:
-          Field.AsWideString := AJsonObject.S[Name];
+          Field.AsWideString := AJsonObject.S[name];
 
         TFieldType.ftDate:
-          Field.AsDateTime := ISODateToDate(AJsonObject.S[Name]);
+          Field.AsDateTime := ISODateToDate(AJsonObject.S[name]);
 
         TFieldType.ftDateTime:
-          Field.AsDateTime := ISOTimeStampToDateTime(AJsonObject.S[Name]);
+          Field.AsDateTime := ISOTimeStampToDateTime(AJsonObject.S[name]);
 
         TFieldType.ftTimeStamp, TFieldType.ftTime:
-          Field.AsDateTime := ISOTimeToTime(AJsonObject.S[Name]);
+          Field.AsDateTime := ISOTimeToTime(AJsonObject.S[name]);
 
         TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
           begin
-            SS := TStringStream.Create(AJsonObject.S[Name]);
+            SS := TStringStream.Create(AJsonObject.S[name]);
             try
               SS.Position := 0;
               SM := TMemoryStream.Create;
@@ -754,12 +762,12 @@ begin
             case GetDataType(ADataSet.Owner, Field.Name, dtArray) of
               dtArray:
                 begin
-                  JsonArrayToDataSet(AJsonObject.A[Name], NestedDataSet, AIgnoredFields, ANameCase);
+                  JsonArrayToDataSet(AJsonObject.A[name], NestedDataSet, AIgnoredFields, ANameCase);
                 end;
               dtObject:
                 begin
                   NestedDataSet.Edit;
-                  JsonObjectToDataSet(AJsonObject.O[Name], NestedDataSet, AIgnoredFields, ANameCase);
+                  JsonObjectToDataSet(AJsonObject.O[name], NestedDataSet, AIgnoredFields, ANameCase);
                   NestedDataSet.Post;
                 end;
             end;
@@ -949,7 +957,7 @@ begin
         if ChildJsonValue is TJsonBaseObject then
           Result := ChildJsonValue.ToJSON(False)
         else
-          raise EMVCSerializationException.Create('Can not serialize the serializer does not have a valid TJsonBaseObject type.');
+          raise EMVCSerializationException.Create('Cannot serialize, the serializer does not have a valid TJsonBaseObject type.');
       finally
         ChildJsonValue.Free;
       end;

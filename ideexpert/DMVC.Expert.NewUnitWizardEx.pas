@@ -77,6 +77,7 @@ begin
           Project :=  GetActiveProject;
           ControllerUnit := ModuleServices.CreateModule(
                            TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod,
+                                                       WizardForm.CreateCRUDMethods,
                                                        WizardForm.CreateActionFiltersMethods,
                                                        WizardForm.ControllerClassName,
                                                        aPersonality));

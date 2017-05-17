@@ -11,6 +11,9 @@ type
 
   [MVCPath('/')]
   TRenderSampleController = class(TMVCController)
+  protected
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
+      var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id)')]
@@ -102,6 +105,13 @@ begin
   s := s + 'Co je Unicode? in Czech';
   s := s + '</body></html>';
   Render(s);
+end;
+
+procedure TRenderSampleController.OnBeforeAction(AContext: TWebContext;
+  const AActionName: string; var AHandled: Boolean);
+begin
+  inherited;
+
 end;
 
 procedure TRenderSampleController.RaiseException;

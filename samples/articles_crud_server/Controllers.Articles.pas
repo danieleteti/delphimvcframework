@@ -18,8 +18,8 @@ type
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-
     procedure GetArticleByID(id: Integer);
+
     [MVCDoc('Deletes the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpDelete])]

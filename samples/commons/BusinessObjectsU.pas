@@ -21,9 +21,9 @@ type
     procedure SetMarried(const Value: boolean);
   public
     function Equals(Obj: TObject): boolean; override;
-
     property FirstName: string read FFirstName write SetFirstName;
     property LastName: string read FLastName write SetLastName;
+
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
 

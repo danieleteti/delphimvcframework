@@ -168,14 +168,16 @@ resourcestring
     '  public' + sLineBreak +
     '%2:s' +
     '%4:s' +
+    '%6:s' +
     '  end;' + sLineBreak +
     sLineBreak +
     'implementation' + sLineBreak + sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework.Logger;' + sLineBreak +
+    '  System.SysUtils, MVCFramework.Logger, System.StrUtils;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
+    '%7:s' + sLineBreak +
     sLineBreak +
     'end.' + sLineBreak;
 
@@ -183,9 +185,9 @@ resourcestring
     '    [MVCPath(''/'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
     '    procedure Index;' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/hellos/($FirstName)'')]' + sLineBreak +
+    '    [MVCPath(''/reversedstrings/($Value)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure GetSpecializedHello(const FirstName: String);' + sLineBreak;
+    '    procedure GetReversedString(const Value: String);' + sLineBreak;
 
   // 0 - Class Name
   sIndexMethodImpl =
@@ -194,10 +196,52 @@ resourcestring
     '  //use Context property to access to the HTTP request and response ' + sLineBreak +
     '  Render(''Hello DelphiMVCFramework World'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.GetSpecializedHello(const FirstName: String);' + sLineBreak +
+    'procedure %0:s.GetReversedString(const Value: String);' + sLineBreak +
     'begin' + sLineBreak +
-    '  Render(''Hello '' + FirstName);' + sLineBreak +
+    '  Render(System.StrUtils.ReverseString(Value.Trim));' + sLineBreak +
     'end;' + sLineBreak;
+
+  sCRUDMethodsIntf =
+    sLineBreak +
+    '    //Sample CRUD Actions for a "Customer" entity' + sLineBreak +
+    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+    '    procedure GetCustomers;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+    '    procedure GetCustomer(id: Integer);' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpPOST])]' + sLineBreak +
+    '    procedure CreateCustomer;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpPUT])]' + sLineBreak +
+    '    procedure UpdateCustomer(id: Integer);' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpDELETE])]' + sLineBreak +
+    '    procedure DeleteCustomer(id: Integer);' + sLineBreak + sLineBreak;
+
+  sCRUDMethodsImpl =
+    '//Sample CRUD Actions for a "Customer" entity' + sLineBreak +
+    'procedure %0:s.GetCustomers;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: render a list of customers' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.GetCustomer(id: Integer);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: render the customer by id' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.CreateCustomer;' + sLineBreak + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: create a new customer' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.UpdateCustomer(id: Integer);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: update customer by id' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.DeleteCustomer(id: Integer);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: delete customer by id' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak;
 
   sActionFiltersIntf =
     '  protected' + sLineBreak +

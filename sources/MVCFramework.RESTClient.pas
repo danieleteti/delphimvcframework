@@ -57,13 +57,15 @@ type
     Fclassname: string;
     FMessage: string;
     FHttp_error: Integer;
+    FReasonString: string;
   public
+    [MVCNameAs('reasonstring')]
     property Status: string read FStatus write FStatus;
     [MVCNameAs('classname')]
     property ExceptionClassname: string read Fclassname write Fclassname;
     [MVCNameAs('message')]
     property ExceptionMessage: string read FMessage write FMessage;
-    [MVCNameAs('http_error')]
+    [MVCNameAs('statuscode')]
     property HTTPError: Integer read FHttp_error write FHttp_error;
   end;
 
@@ -113,15 +115,15 @@ type
     property HasError: Boolean read GetHasError write SetHasError;
   end;
 
-//  TJSONObjectResponseHelper = class helper for TJSONObject
-//  public
-//    function AsObject<T: class, constructor>(): T;
-//  end;
+  // TJSONObjectResponseHelper = class helper for TJSONObject
+  // public
+  // function AsObject<T: class, constructor>(): T;
+  // end;
 
-//  TJSONArrayResponseHelper = class helper for TJSONArray
-//  public
-//    function AsObjectList<T: class, constructor>(): TObjectList<T>;
-//  end;
+  // TJSONArrayResponseHelper = class helper for TJSONArray
+  // public
+  // function AsObjectList<T: class, constructor>(): TObjectList<T>;
+  // end;
 
   TRESTClient = class(TInterfacedObject)
   strict private
@@ -318,7 +320,7 @@ type
     FResponseCode: Word;
     FResponseText: string;
     FHeaders: TStringlist;
-//    FBodyAsJSONValue: TJSONValue;
+    // FBodyAsJSONValue: TJSONValue;
     FContentType: string;
     FContentEncoding: string;
     function GetHeader(const AValue: string): string;
@@ -405,14 +407,14 @@ begin
   FHeaders := TStringlist.Create;
   FCookies := TIdCookies.Create(nil);
   FBody := TStringStream.Create('', TEncoding.UTF8);
-//  FBodyAsJSONValue := nil;
+  // FBodyAsJSONValue := nil;
   FHasError := False;
 end;
 
 destructor TRESTResponse.Destroy;
 begin
-//  if Assigned(FBodyAsJSONValue) then
-//    FreeAndNil(FBodyAsJSONValue);
+  // if Assigned(FBodyAsJSONValue) then
+  // FreeAndNil(FBodyAsJSONValue);
   FreeAndNil(FHeaders);
   FreeAndNil(FBody);
   FreeAndNil(FCookies);
@@ -569,28 +571,28 @@ end;
 
 { TJSONObjectResponseHelper }
 
-//function TJSONObjectResponseHelper.AsObject<T>: T;
-//var
-//  lSerializer: IMVCSerializer;
-//begin
-//  lSerializer := GetDefaultSerializer;
-//  Result := T.Create;
-//  try
-//    lSerializer.DeserializeObject(Self.ToJSON, Result);
-//  except
-//    FreeAndNil(Result);
-//    raise;
-//  end;
-//  // Result := Mapper.JSONObjectToObject<T>(self);
-//end;
+// function TJSONObjectResponseHelper.AsObject<T>: T;
+// var
+// lSerializer: IMVCSerializer;
+// begin
+// lSerializer := GetDefaultSerializer;
+// Result := T.Create;
+// try
+// lSerializer.DeserializeObject(Self.ToJSON, Result);
+// except
+// FreeAndNil(Result);
+// raise;
+// end;
+// // Result := Mapper.JSONObjectToObject<T>(self);
+// end;
 
 { TJSONArrayResponseHelper }
 
-//function TJSONArrayResponseHelper.AsObjectList<T>: TObjectList<T>;
-//begin
-//  raise Exception.Create('Not Implemented');
-//  // Result := Mapper.JSONArrayToObjectList<T>(self, False, True);
-//end;
+// function TJSONArrayResponseHelper.AsObjectList<T>: TObjectList<T>;
+// begin
+// raise Exception.Create('Not Implemented');
+// // Result := Mapper.JSONArrayToObjectList<T>(self, False, True);
+// end;
 
 { TRESTClient }
 

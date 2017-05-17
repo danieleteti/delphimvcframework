@@ -175,7 +175,9 @@ begin
     // retrieve the token from the "authentication bearer" header
     AuthToken := '';
     if AuthHeader.StartsWith('bearer', True) then
+    begin
       AuthToken := AuthHeader.Remove(0, 'bearer'.Length).Trim;
+    end;
 
     // check the jwt
     if not JWTValue.IsValidToken(AuthToken, ErrorMsg) then
