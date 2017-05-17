@@ -1,11 +1,38 @@
-﻿unit RenderSampleControllerU;
+﻿// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+
+unit RenderSampleControllerU;
 
 interface
 
 uses
   MVCFramework,
   MVCFramework.Commons,
-  System.JSON;
+  MVCFramework.Serializer.Intf,
+  System.Rtti;
 
 type
 
@@ -78,20 +105,25 @@ type
     [MVCPath('/exception')]
     procedure RaiseException;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customserializationtype')]
+    procedure GetCustomSerializationType;
+
   end;
 
 implementation
 
 uses
   BusinessObjectsU,
-  Data.DBXJSON,
   Generics.Collections,
   MVCFramework.DataSet.Utils,
   MVCFramework.Serializer.Commons,
   MyDataModuleU,
   System.Classes,
   System.SysUtils,
-  WebModuleU;
+  WebModuleU,
+  JsonDataObjects,
+  MVCFramework.TypesAliases, CustomTypesU;
 
 { TRoutingSampleController }
 
@@ -175,6 +207,12 @@ begin
   finally
     lDM.Free;
   end;
+end;
+
+procedure TRenderSampleController.GetCustomSerializationType;
+begin
+  // TSysUser contains a type with a custom serializer
+  Render(TSysUser.Create('daniele', ['poweruser', 'role1', 'role2']), True);
 end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);

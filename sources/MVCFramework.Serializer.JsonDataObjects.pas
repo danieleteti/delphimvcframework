@@ -44,7 +44,8 @@ uses
   MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
-  JsonDataObjects;
+  MVCFramework.TypesAliases,
+  JsonDataObjects {JsonDataObjects must be after MVCFramework.TypesAliases};
 
 type
 
@@ -56,7 +57,6 @@ type
   public
     constructor Create; overload;
     constructor Create(const AValue: string); overload;
-
     property Value: string read FValue write FValue;
   end;
 
@@ -642,15 +642,10 @@ begin
         else
         begin
           // dt: if a key is null, jsondataobjects assign it the type jdtObject
-          if AJsonObject[AName].ObjectValue = nil then
-          begin
-            ChildObject := nil; // dt
-          end
-          else
+          if AJsonObject[AName].ObjectValue <> nil then
           begin
             ChildObject := AValue.AsObject;
-            if Assigned(ChildObject) then
-              JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType), AIgnored);
+            JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType), AIgnored);
           end;
         end;
       end;
@@ -941,10 +936,13 @@ begin
   Result := EmptyStr;
 
   if not Assigned(AObject) then
-    Exit;
+    Exit('null');
 
   if AObject is TJsonBaseObject then
-    Exit(TJsonBaseObject(AObject).ToJSON(False));
+    Exit(TJsonBaseObject(AObject).ToJSON(True));
+
+  if AObject is MVCFramework.TypesAliases.TJSONValue then
+    Exit(MVCFramework.TypesAliases.TJSONValue(AObject).ToJSON);
 
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   if GetTypeSerializers.ContainsKey(ObjType.Handle) then

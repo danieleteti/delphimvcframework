@@ -206,6 +206,8 @@
             <Form>MyDataModule</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
+        <DCCReference Include="CustomTypesU.pas"/>
+        <DCCReference Include="CustomTypesSerializersU.pas"/>
         <None Include="ModelSupport_renders\default.txaPackage"/>
         <None Include="ModelSupport_renders\default.txvpck"/>
         <None Include="ModelSupport_renders\WebModuleU\default.txaPackage"/>

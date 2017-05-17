@@ -54,6 +54,7 @@ type
   published
     { serialize declarations }
     procedure TestSerializeEntity;
+    procedure TestSerializeNil;
     procedure TestSerializeEntityUpperCaseNames;
     procedure TestSerializeEntityLowerCaseNames;
     procedure TestSerializeEntityNameAs;
@@ -1030,6 +1031,11 @@ begin
   finally
     O.Free;
   end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeNil;
+begin
+  CheckEquals('null', FSerializer.SerializeObject(nil));
 end;
 
 { TMVCEntityCustomSerializerJsonDataObjects }

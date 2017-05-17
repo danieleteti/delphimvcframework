@@ -56,7 +56,7 @@ begin
   MVCEngine := TMVCEngine.Create(self,
     procedure(Config: TMVCConfig)
     begin
-        //no config here
+      // no config here
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
