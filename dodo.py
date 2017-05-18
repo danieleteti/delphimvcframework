@@ -82,8 +82,11 @@ def copy_sources():
     header("Copying DMVCFramework IDEExpert...")
     print("Copying ideexpert")
     src = glob.glob("ideexpert\\*.pas") + \
-        glob.glob("ideexpert\\*.dfm") + glob.glob("ideexpert\\*.ico")
-    src += glob.glob("ideexpert\\*.dpk") + glob.glob("ideexpert\\*.dproj")
+          glob.glob("ideexpert\\*.dfm") + \
+					glob.glob("ideexpert\\*.ico") + \
+					glob.glob("ideexpert\\*.bmp") + \
+					glob.glob("ideexpert\\*.dpk") + \
+					glob.glob("ideexpert\\*.dproj")
     for file in src:
         print("Copying " + file + " to " + output_folder + "\\ideexpert")
         copy2(file, output_folder + "\\ideexpert\\")

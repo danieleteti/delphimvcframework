@@ -48,9 +48,9 @@ implementation
 uses
   DMVC.Expert.Forms.NewUnitWizard,
   DMVC.Expert.CodeGen.NewControllerUnit,
-  Controls,
-  Forms,
-  Windows,
+  Vcl.Controls,
+  Vcl.Forms,
+  WinApi.Windows,
   ExpertsRepository;
 
 resourcestring

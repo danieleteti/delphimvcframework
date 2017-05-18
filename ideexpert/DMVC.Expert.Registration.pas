@@ -30,7 +30,7 @@
 
 unit DMVC.Expert.Registration;
 
-{.$R DelphiMVCFrameworkSplash.res}
+{ .$R 'SplashScreenIcon.RES' }
 
 interface
 
@@ -41,66 +41,50 @@ implementation
 
 uses
   ToolsApi,
+  DesignIntf,
   System.SysUtils,
-  Vcl.Dialogs,
   DMVC.Expert.ProjectWizardEx,
   DMVC.Expert.NewUnitWizardEx,
-  Vcl.Graphics,
   Winapi.Windows;
-
-var
-  AboutBoxServices: IOTAAboutBoxServices = nil;
-  AboutBoxIndex: Integer = 0;
-
-resourcestring
-  resPackageName = 'DelphiMVCFramework';
-  resLicense = 'OpenSource (Apache 2)';
-  resAboutCopyright = 'Copyright Daniele Teti and the DMVCFramework Team';
-  resAboutTitle = 'DelphiMVCFramework';
-  resAboutDescription = 'https://github.com/danieleteti/delphimvcframework';
 
 procedure Register;
 begin
+  ForceDemandLoadState(dlDisable);
   TDMVCNewProjectWizard.RegisterDMVCProjectWizard(sDelphiPersonality);
   TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(sDelphiPersonality);
 end;
 
-procedure RegisterSplashScreen;
-var
-  LBmp: Vcl.Graphics.TBitmap;
-begin
-  LBmp := Vcl.Graphics.TBitmap.Create;
-  LBmp.LoadFromResourceName(HInstance, 'SPLASH');
-  SplashScreenServices.AddPluginBitmap(resPackageName, LBmp.Handle, False, resLicense, '');
-  LBmp.Free;
-end;
-
-procedure RegisterAboutBox;
-var
-  LProductImage: HBITMAP;
-begin
-  Supports(BorlandIDEServices, IOTAAboutBoxServices, AboutBoxServices);
-  LProductImage := LoadBitmap(FindResourceHInstance(HInstance), 'SPLASH');
-  AboutBoxIndex := AboutBoxServices.AddPluginInfo(resPackageName, resAboutDescription, LProductImage, False, resLicense);
-end;
-
-procedure UnregisterAboutBox;
-begin
-  if (AboutBoxIndex = 0) and Assigned(AboutBoxServices) then
-  begin
-    AboutBoxServices.RemovePluginInfo(AboutBoxIndex);
-    AboutBoxIndex := 0;
-    AboutBoxServices := nil;
-  end;
-end;
+// procedure RegisterSplashScreen;
+// var
+// LBmp: Vcl.Graphics.TBitmap;
+// begin
+// LBmp := Vcl.Graphics.TBitmap.Create;
+// LBmp.LoadFromResourceName(HInstance, 'SPLASH');
+// SplashScreenServices.AddPluginBitmap(resPackageName, LBmp.Handle, False, resLicense, '');
+// LBmp.Free;
+// end;
+//
+// procedure RegisterAboutBox;
+// var
+// LProductImage: HBITMAP;
+// begin
+// Supports(BorlandIDEServices, IOTAAboutBoxServices, AboutBoxServices);
+// LProductImage := LoadBitmap(FindResourceHInstance(HInstance), 'SPLASH');
+// AboutBoxIndex := AboutBoxServices.AddPluginInfo(resPackageName, resAboutDescription, LProductImage, False, resLicense);
+// end;
+//
+// procedure UnregisterAboutBox;
+// begin
+// if (AboutBoxIndex = 0) and Assigned(AboutBoxServices) then
+// begin
+// AboutBoxServices.RemovePluginInfo(AboutBoxIndex);
+// AboutBoxIndex := 0;
+// AboutBoxServices := nil;
+// end;
+// end;
 
 initialization
 
-// RegisterSplashScreen;
-// RegisterAboutBox;
-
 finalization
-
-// UnregisterAboutBox;
 
 end.
