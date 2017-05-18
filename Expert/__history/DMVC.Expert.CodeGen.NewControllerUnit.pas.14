@@ -1,0 +1,91 @@
+{***************************************************************************}
+{                                                                           }
+{           DUnitX                                                          }
+{                                                                           }
+{           Copyright (C) 2015 Vincent Parrett & Contributors               }
+{                                                                           }
+{           vincent@finalbuilder.com                                        }
+{           http://www.finalbuilder.com                                     }
+{                                                                           }
+{                                                                           }
+{***************************************************************************}
+{                                                                           }
+{  Licensed under the Apache License, Version 2.0 (the "License");          }
+{  you may not use this file except in compliance with the License.         }
+{  You may obtain a copy of the License at                                  }
+{                                                                           }
+{      http://www.apache.org/licenses/LICENSE-2.0                           }
+{                                                                           }
+{  Unless required by applicable law or agreed to in writing, software      }
+{  distributed under the License is distributed on an "AS IS" BASIS,        }
+{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{  See the License for the specific language governing permissions and      }
+{  limitations under the License.                                           }
+{                                                                           }
+{***************************************************************************}
+
+unit DMVC.Expert.CodeGen.NewControllerUnit;
+
+interface
+
+uses
+  ToolsApi,
+  DMVC.Expert.CodeGen.NewUnit;
+
+type
+  TNewControllerUnitEx = class(TNewUnit)
+  protected
+    FCreateIndexMethod : Boolean;
+    FControllerClassName : String;
+    function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string): IOTAFile; override;
+  public
+    constructor Create(const aCreateIndexMethod : boolean; const AControllerClassName: String; const APersonality : String = '' );
+  end;
+
+implementation
+
+uses
+  System.SysUtils,
+  VCL.Dialogs,
+  DMVC.Expert.CodeGen.Templates,
+  DMVC.Expert.CodeGen.SourceFile;
+
+
+constructor TNewControllerUnit.Create(const aCreateIndexMethod : boolean; const AControllerClassName : String; const APersonality : String = '' );
+begin
+  Assert(Length(AControllerClassName) > 0);
+  FAncestorName := '';
+  FFormName := '';
+  FImplFileName := '';
+  FIntfFileName := '';
+  FControllerClassName := AControllerClassName;
+  FCreateIndexMethod := aCreateIndexMethod;
+  Personality := APersonality;
+end;
+
+function TNewControllerUnitEx.NewImplSource(const ModuleIdent, FormIdent,  AncestorIdent: string): IOTAFile;
+var
+  lUnitIdent, lFormName, lFileName, lIndexMethodIntf, lIndexMethodImpl, lControllerUnit : String;
+ begin
+   if Personality.isEmpty or SameText(Personality, sDelphiPersonality) then
+    begin
+     lControllerUnit := sControllerUnit;
+
+     lIndexMethodIntf := sIndexMethodIntf;
+     lIndexMethodImpl := Format(sIndexMethodImpl,[FControllerClassName]);
+    end;
+
+
+   if not FCreateIndexMethod then
+   begin
+      lIndexMethodIntf := '';
+      lIndexMethodImpl := '';
+   end;
+    // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
+    // So using method mentioned by Marco Cantu.
+    (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName( '', lUnitIdent, lFormName, lFileName);
+   result := TSourceFile.Create(sControllerUnit, [lUnitIdent, FControllerClassName, lIndexMethodIntf, lIndexMethodImpl]);
+end;
+
+
+end.
