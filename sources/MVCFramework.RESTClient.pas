@@ -57,7 +57,6 @@ type
     Fclassname: string;
     FMessage: string;
     FHttp_error: Integer;
-    FReasonString: string;
   public
     [MVCNameAs('reasonstring')]
     property Status: string read FStatus write FStatus;
@@ -304,10 +303,12 @@ uses
   MVCFramework.Serializer.Defaults
 
   {$IFNDEF ANDROID OR IOS}
-  {$IF CompilerVersion > 30}
+  {$IFDEF BERLINORBETTER}
+  {$IFNDEF LINUX}
 
     , System.AnsiStrings
 
+  {$ENDIF}
   {$ENDIF}
   {$ENDIF}
 

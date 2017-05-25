@@ -342,7 +342,7 @@ type
     function GetEnumerator: TDictionary<String, String>.TPairEnumerator;
   end;
 
-  TMVCViewDataObject = class(TObjectDictionary<string, string>)
+  TMVCViewDataObject = class(TObjectDictionary<string, TObject>)
   private
     { private declarations }
   protected
@@ -504,7 +504,7 @@ end;
 
 constructor TMVCViewDataObject.Create;
 begin
-  inherited Create([]);
+  inherited Create([doOwnsValues]);
 end;
 
 { TMVCCriticalSectionHelper }

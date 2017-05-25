@@ -24,7 +24,7 @@ implementation
 
 {$R *.dfm}
 
-uses DiscogsClasses, ObjectsMappers, System.IOUtils,
+uses DiscogsClasses, MVCFramework.Serializer.Commons, System.IOUtils,
 {$IF CompilerVersion < 27}
     Data.DBXJSON,
 {$ELSE}

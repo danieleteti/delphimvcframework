@@ -6,12 +6,20 @@ uses
   MVCFramework, System.Diagnostics, System.JSON, MVCFramework.Commons;
 
 type
+  TSpeedValue = class
+  private
+    FValue: string;
+    procedure SetValue(const Value: string);
+  public
+    property Value: string read FValue write SetValue;
+    constructor Create(const aValue: string);
+  end;
 
   [MVCPath('/')]
   TWebSiteController = class(TMVCController)
   private
     FStopWatch: TStopwatch;
-    function GetSpeed: TJSONString;
+    function GetSpeed: TSpeedValue;
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
@@ -73,19 +81,19 @@ var
 begin
   lID := Context.Request.Params['id'];
   LDAL := TServicesFactory.GetPeopleDAL;
-  LDAL.DeleteById(lID);
+  LDAL.DeleteByGUID(lID);
   Redirect('/people');
 end;
 
 procedure TWebSiteController.EditPerson(guid: string);
 var
   LDAL: IPeopleDAL;
-  lPerson: TJSONObject;
+  lPerson: TPerson;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  lPerson := LDAL.GetPersonByID(guid);
-  PushToView('person', lPerson.ToJSON);
-  PushToView('speed', GetSpeed.ToJSON);
+  lPerson := LDAL.GetPersonByGUID(guid);
+  PushObjectToView('person', lPerson);
+  PushObjectToView('speed', GetSpeed);
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -109,14 +117,14 @@ var
   LDAL: IPeopleDAL;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushToView('people', LDAL.GetPeople.ToJSON);
+  PushObjectToView('people', LDAL.GetPeople);
   LoadView(['people_header.csv', 'people_list.csv']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;
 
-function TWebSiteController.GetSpeed: TJSONString;
+function TWebSiteController.GetSpeed: TSpeedValue;
 begin
-  Result := TJSONString.Create(FStopWatch.Elapsed.TotalMilliseconds.ToString);
+  Result := TSpeedValue.Create(FStopWatch.Elapsed.TotalMilliseconds.ToString);
 end;
 
 procedure TWebSiteController.Index;
@@ -126,7 +134,7 @@ end;
 
 procedure TWebSiteController.NewPerson;
 begin
-  PushToView('speed', GetSpeed.ToJSON);
+  PushObjectToView('speed', GetSpeed);
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -143,23 +151,12 @@ end;
 procedure TWebSiteController.PeopleList;
 var
   LDAL: IPeopleDAL;
-  lPeople: TJSONArray;
-  lSpeed: TJSONString;
+  lPeople: TPeople;
+  lSpeed: TSpeedValue;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  lPeople := LDAL.GetPeople;
-  try
-    PushToView('people', lPeople.ToJSON);
-  finally
-    lPEople.Free;
-  end;
-
-  lSpeed := GetSpeed;
-  try
-    PushToView('speed', lSpeed.ToJSON);
-  finally
-    lSpeed.Free;
-  end;
+  PushObjectToView('people', LDAL.GetPeople);
+  PushObjectToView('speed', GetSpeed);
   LoadView(['header', 'people_list', 'footer']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;
@@ -183,9 +180,22 @@ begin
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
-  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger());
+  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), []);
 
   Redirect('/people');
+end;
+
+{ TSpeedValue }
+
+constructor TSpeedValue.Create(const aValue: string);
+begin
+  inherited Create;
+  FValue := aValue;
+end;
+
+procedure TSpeedValue.SetValue(const Value: string);
+begin
+  FValue := Value;
 end;
 
 end.

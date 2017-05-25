@@ -476,7 +476,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure PushToView(const AModelName: string; const AModel: string);
+    // procedure PushToView(const AModelName: string; const AModel: string);
     procedure PushObjectToView(const AModelName: string; const AModel: TObject);
     procedure PushDataSetToView(const AModelName: string; const ADataSet: TDataSet);
   end;
@@ -550,7 +550,7 @@ type
       );
   end;
 
-  TMVCEngine = class
+  TMVCEngine = class(TComponent)
   private const
     ALLOWED_TYPED_ACTION_PARAMETERS_TYPES = 'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime and String';
   private
@@ -652,7 +652,7 @@ type
   protected
     { protected declarations }
   public
-    property Message: string read FMessage write FMessage;
+    property message: string read FMessage write FMessage;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -672,7 +672,7 @@ type
 
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write fReasonString;
-    property Message: string read FMessage write FMessage;
+    property message: string read FMessage write FMessage;
     property Classname: string read FClassname write FClassname;
 
     [MVCListOf(TMVCErrorResponseItem)]
@@ -693,7 +693,6 @@ type
     procedure SetOutput(const AOutput: string);
   public
     constructor Create(
-      const AViewName: string;
       const AEngine: TMVCEngine;
       const AWebContext: TWebContext;
       const AViewModel: TMVCViewDataObject;
@@ -701,7 +700,7 @@ type
       const AContentType: string); virtual;
     destructor Destroy; override;
 
-    procedure Execute; virtual; abstract;
+    procedure Execute(const ViewName: String); virtual; abstract;
 
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
@@ -1608,7 +1607,7 @@ constructor TMVCEngine.Create(
   const AConfigAction: TProc<TMVCConfig>;
   const ACustomLogger: ILogWriter);
 begin
-  inherited Create;
+  inherited Create(AWebModule);
   FWebModule := AWebModule;
   FConfig := TMVCConfig.Create;
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
@@ -2355,25 +2354,19 @@ begin
 end;
 
 procedure TMVCController.PushDataSetToView(const AModelName: string; const ADataSet: TDataSet);
-var
-  LSerializer: IMVCSerializer;
 begin
-  LSerializer := TMVCJSONSerializer.Create;
-  PushToView(AModelName, LSerializer.SerializeDataSet(ADataSet));
+  GetViewDataSets.Add(AModelName, ADataSet);
 end;
 
 procedure TMVCController.PushObjectToView(const AModelName: string; const AModel: TObject);
-var
-  LSerializer: IMVCSerializer;
-begin
-  LSerializer := TMVCJSONSerializer.Create;
-  PushToView(AModelName, LSerializer.SerializeObject(AModel));
-end;
-
-procedure TMVCController.PushToView(const AModelName: string; const AModel: string);
 begin
   GetViewModel.Add(AModelName, AModel);
 end;
+
+// procedure TMVCController.PushToView(const AModelName: string; const AModel: string);
+// begin
+// GetViewModel.Add(AModelName, AModel);
+// end;
 
 procedure TMVCController.RaiseSessionExpired;
 begin
@@ -2580,21 +2573,21 @@ begin
   SBuilder := TStringBuilder.Create;
   try
     try
-      for ViewName in AViewNames do
-      begin
-        View := FEngine.ViewEngineClass.Create(
-          ViewName,
-          Engine,
-          Context,
-          ViewModel,
-          ViewDataSets,
-          ContentType);
-        try
-          View.Execute;
+      View := FEngine.ViewEngineClass.Create(
+        Engine,
+        Context,
+        ViewModel,
+        ViewDataSets,
+        ContentType);
+      try
+
+        for ViewName in AViewNames do
+        begin
+          View.Execute(ViewName);
           SBuilder.Append(View.Output);
-        finally
-          View.Free;
         end;
+      finally
+        View.Free;
       end;
       Result := SBuilder.ToString;
     except
@@ -2775,7 +2768,7 @@ begin
   Create;
   StatusCode := AStatusCode;
   ReasonString := AReasonString;
-  Message := AMessage;
+  message := AMessage;
 end;
 
 destructor TMVCErrorResponse.Destroy;
@@ -2787,7 +2780,6 @@ end;
 { TMVCBaseView }
 
 constructor TMVCBaseViewEngine.Create(
-  const AViewName: string;
   const AEngine: TMVCEngine;
   const AWebContext: TWebContext;
   const AViewModel: TMVCViewDataObject;
@@ -2795,7 +2787,6 @@ constructor TMVCBaseViewEngine.Create(
   const AContentType: string);
 begin
   inherited Create;
-  FViewName := AViewName;
   Engine := AEngine;
   FWebContext := AWebContext;
   FViewModel := AViewModel;

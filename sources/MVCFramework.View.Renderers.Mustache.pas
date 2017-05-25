@@ -33,49 +33,74 @@ uses
 type
   { This class implements the mustache view engine for server side views }
   TMVCMustacheViewEngine = class(TMVCBaseViewEngine)
+  strict private
+    procedure PrepareModels;
+  private
+    FJSONModel: string;
   public
-    procedure Execute; override;
+    procedure Execute(const ViewName: string); override;
   end;
 
 implementation
 
 uses
   SynMustache,
-  SynCommons;
+  SynCommons,
+  MVCFramework.Serializer.Defaults,
+  MVCFramework.Serializer.Intf,
+  MVCFramework.DuckTyping;
 
 {$WARNINGS OFF}
 
-procedure TMVCMustacheViewEngine.Execute;
+procedure TMVCMustacheViewEngine.Execute(const ViewName: string);
 var
   ViewFileName: string;
   ViewTemplate: RawUTF8;
   ViewEngine: TSynMustache;
-  DataObj: TPair<string, string>;
-  lSJSON: string;
-  lFirst: Boolean;
 begin
+  PrepareModels;
   ViewFileName := GetRealFileName(ViewName);
   if not FileExists(ViewFileName) then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
-
   ViewTemplate := StringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
   ViewEngine := TSynMustache.Parse(ViewTemplate);
-  lSJSON := '{';
-  if Assigned(ViewModel) then
-  begin
-    lFirst := True;
-    for DataObj in ViewModel do
-    begin
-      if not lFirst then
-        lSJSON := lSJSON + ',';
-      lSJSON := lSJSON + '"' + DataObj.Key + '":' + DataObj.Value;
-      lFirst := False;
-    end;
-    lSJSON := lSJSON + '}';
-  end;
-  SetOutput(UTF8Tostring(ViewEngine.RenderJSON(lSJSON)));
+  SetOutput(UTF8Tostring(ViewEngine.RenderJSON(FJSONModel)));
 end;
 
 {$WARNINGS ON}
+
+procedure TMVCMustacheViewEngine.PrepareModels;
+var
+  lFirst: Boolean;
+  lList: IMVCList;
+  DataObj: TPair<string, TObject>;
+  lSJSON: string;
+  lJSON: string;
+  lSer: IMVCSerializer;
+begin
+  if (FJSONModel <> '{}') and (not FJSONModel.IsEmpty) then
+    Exit;
+  FJSONModel := '{}';
+  if Assigned(ViewModel) then
+  begin
+    lSer := GetDefaultSerializer;
+    lSJSON := '{';
+    lFirst := True;
+    for DataObj in ViewModel do
+    begin
+      lList := TDuckTypedList.Wrap(DataObj.Value);
+      if lList <> nil then
+        lJSON := lSer.SerializeCollection(DataObj.Value)
+      else
+        lJSON := lSer.SerializeObject(DataObj.Value);
+      if not lFirst then
+        lSJSON := lSJSON + ',';
+      lSJSON := lSJSON + '"' + DataObj.Key + '":' + lJSON;
+      lFirst := False;
+    end;
+    lSJSON := lSJSON + '}';
+    FJSONModel := lSJSON;
+  end;
+end;
 
 end.

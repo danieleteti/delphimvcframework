@@ -28,7 +28,7 @@ interface
 
 uses
   system.TimeSpan, system.SysUtils, generics.collections, system.Classes,
-  ObjectsMappers, system.Rtti, MVCFramework.Serializer.Commons;
+  system.Rtti, MVCFramework.Serializer.Commons;
 
 type
   TMyObject = class

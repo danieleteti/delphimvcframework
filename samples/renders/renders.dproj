@@ -5,7 +5,7 @@
         <FrameworkType>None</FrameworkType>
         <MainSource>renders.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>129</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -219,7 +219,6 @@
         <DCCReference Include="CustomTypesU.pas"/>
         <DCCReference Include="CustomTypesSerializersU.pas"/>
         <DCCReference Include="InMemoryDataU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
         <None Include="ModelSupport_renders\default.txaPackage"/>
         <None Include="ModelSupport_renders\default.txvpck"/>
         <None Include="ModelSupport_renders\WebModuleU\default.txaPackage"/>
@@ -328,6 +327,18 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\renders1\default.txaPackage" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\renders\default.txaPackage" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="ModelSupport_renders\WebModuleU\default.txaPackage" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Linux64">
                         <RemoteDir>.\</RemoteDir>
@@ -341,6 +352,24 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="ModelSupport_renders\default.txvpck" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\WebModuleU\default.txvpck" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\default.txaPackage" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\WebModuleU\default.txaPackage" Configuration="Release" Class="ProjectFile">
                     <Platform Name="Win32">
                         <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
@@ -369,6 +398,12 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\default.txvpck" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="ModelSupport_renders\renders\default.txaPackage" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Win32">
                         <RemoteDir>.\</RemoteDir>
@@ -377,6 +412,30 @@
                 </DeployFile>
                 <DeployFile LocalName="ModelSupport_renders\renders\default.txvpck" Configuration="Debug" Class="ProjectFile">
                     <Platform Name="Linux64">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\RenderSampleControllerU\default.txaPackage" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="bin\renders.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>renders.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\renders1\default.txvpck" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\renders\default.txvpck" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
                         <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
@@ -445,6 +504,12 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\BusinessObjectsU\default.txaPackage" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
                         <Overwrite>true</Overwrite>
@@ -453,6 +518,12 @@
                 <DeployFile LocalName="bin\renders" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Linux64">
                         <RemoteName>renders</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\BusinessObjectsU\default.txvpck" Configuration="Release" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -481,6 +552,12 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="ModelSupport_renders\WebModuleU\default.txaPackage" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ModelSupport_renders\RenderSampleControllerU\default.txvpck" Configuration="Release" Class="ProjectFile">
                     <Platform Name="Win32">
                         <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>

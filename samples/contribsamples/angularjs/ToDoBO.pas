@@ -8,7 +8,7 @@ uses
   system.Rtti,
   dorm.ObjectStatus,
   system.SysUtils,
-  ObjectsMappers,
+	MVCFramework.Serializer.Commons,
   Generics.Collections;
 
 type

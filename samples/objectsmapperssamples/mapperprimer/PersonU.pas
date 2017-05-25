@@ -3,7 +3,7 @@ unit PersonU;
 interface
 
 uses
-  ObjectsMappers;
+  MVCFramework.Serializer.Commons;
 
 type
   TPerson = class

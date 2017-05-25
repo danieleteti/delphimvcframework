@@ -5,7 +5,7 @@ interface
 uses
 //  System.JSON,
   Generics.Collections,
-  ObjectsMappers;
+  MVCFramework.Serializer.Commons;
 
 type
   TDiscogsArtist = class;

@@ -11,13 +11,11 @@ type
   TSystemJSON = class sealed
   private
     class var CTX: TRttiContext;
-    class function GetProperty(Obj: TObject;
-      const PropertyName: string): TValue; static;
   public
-    class function BodyAsJSONValue(const RESTResponse: IRESTResponse): TJSONValue;
-    class function BodyAsJSONObject(const RESTResponse: IRESTResponse): TJSONObject;
-    class function BodyAsJSONArray(const RESTResponse: IRESTResponse): TJSONArray;
-    class function JSONValueToString(JSONValue: TJSONValue; const Owns: Boolean = true): String;
+    class function StringToJSONValue(const Value: string): TJSONValue;
+    class function StringAsJSONObject(const Value: string): TJSONObject;
+    class function StringAsJSONArray(const Value: string): TJSONArray;
+    class function JSONValueToString(JSONValue: TJSONValue; const Owns: Boolean = true): string;
     class function GetPair(JSONObject: TJSONObject; PropertyName: string)
       : TJSONPair;
     class function GetStringDef(JSONObject: TJSONObject; PropertyName: string;
@@ -34,6 +32,8 @@ type
       DefaultValue: Int64 = 0): Int64;
     class function GetBooleanDef(JSONObject: TJSONObject; PropertyName: string;
       DefaultValue: boolean = false): boolean;
+    class function GetProperty(Obj: TObject;
+      const PropertyName: string): TValue; static;
     class function PropertyExists(JSONObject: TJSONObject;
       PropertyName: string): boolean;
   end;
@@ -41,30 +41,31 @@ type
 implementation
 
 uses
-  MVCFramework.Commons, System.SysUtils;
+  MVCFramework.Commons, System.SysUtils, MVCFramework.DuckTyping,
+  System.Classes, MVCFramework.Serializer.Commons;
 
-class function TSystemJSON.BodyAsJSONArray(const RESTResponse: IRESTResponse): TJSONArray;
+class function TSystemJSON.StringAsJSONArray(const Value: string): TJSONArray;
 begin
-  Result := TSystemJSON.BodyAsJSONValue(RESTResponse) as TJSONArray;
+  Result := TSystemJSON.StringToJSONValue(Value) as TJSONArray;
 end;
 
-class function TSystemJSON.BodyAsJSONObject(const RESTResponse: IRESTResponse): TJSONObject;
+class function TSystemJSON.StringAsJSONObject(const Value: string): TJSONObject;
 begin
-  Result := TSystemJSON.BodyAsJSONValue(RESTResponse) as TJSONObject;
+  Result := TSystemJSON.StringToJSONValue(Value) as TJSONObject;
 end;
 
-class function TSystemJSON.BodyAsJSONValue(const RESTResponse: IRESTResponse): TJSONValue;
+class function TSystemJSON.StringToJSONValue(const Value: string): TJSONValue;
 var
   lBodyAsJSONValue: TJSONValue;
 begin
-  lBodyAsJSONValue := TJSONObject.ParseJSONValue(RESTResponse.BodyAsString);
+  lBodyAsJSONValue := TJSONObject.ParseJSONValue(Value);
   if lBodyAsJSONValue = nil then
     raise EMVCException.Create('Invalid JSON');
   Result := lBodyAsJSONValue;
 end;
 
 class function TSystemJSON.JSONValueToString(JSONValue: TJSONValue;
-  const Owns: Boolean): String;
+  const Owns: Boolean): string;
 begin
   Result := JSONValue.ToJSON;
   if Owns then
@@ -213,5 +214,7 @@ begin
   else
     raise EMVCException.Create('Property is not a String Property');
 end;
+
+
 
 end.

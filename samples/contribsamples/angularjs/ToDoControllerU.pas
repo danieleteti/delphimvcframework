@@ -42,7 +42,7 @@ type
 
 implementation
 
-uses ObjectsMappers,
+uses MVCFramework.Serializer.Commons,
   Generics.Collections,
   dorm.ObjectStatus,
   dorm.Utils,

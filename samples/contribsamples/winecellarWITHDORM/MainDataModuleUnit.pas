@@ -28,7 +28,7 @@ implementation
 
 uses System.StrUtils,
   Data.DBXCommon,
-  ObjectsMappers,
+  MVCFramework.Serializer.Commons,
   WinesBO;
 
 { TCellarSM }

@@ -122,7 +122,7 @@ uses
   System.Generics.Collections,
   System.SysUtils,
   BusinessObjectsU,
-  ObjectsMappers,
+  MVCFramework.Serializer.Commons,
   Soap.EncdDecd,
   System.Classes,
   MVCFramework.SystemJSONUtils;
@@ -205,8 +205,7 @@ begin
       procedure(Response: IRESTResponse)
       begin
         try
-          { TODO -oDaniele -cGeneral : Crea una unit con i metodi che mancano }
-          j := TSystemJSON.BodyAsJsonObject(Response) as TJSONObject;
+          j := TSystemJSON.StringAsJSONObject(Response.BodyAsString);
         except
           // test should not block...never!
         end;
@@ -243,7 +242,7 @@ begin
       procedure(Response: IRESTResponse)
       begin
         try
-          j := TSystemJSON.BodyAsJsonObject(Response);
+          j := TSystemJSON.StringAsJSONObject(Response.BodyAsString);
         except
           // test should not block...never!
         end;
@@ -281,7 +280,7 @@ begin
       procedure(Response: IRESTResponse)
       begin
         try
-          j := TSystemJSON.BodyAsJSONObject(Response);
+          j := TSystemJSON.StringAsJSONObject(Response.BodyAsString);
         except
           // test should not block...never!
         end;
@@ -564,17 +563,17 @@ var
 begin
   res := RESTClient.doGET('/encoding', []);
 
-  lJSONObj := TSystemJSON.BodyAsJSONObject(res);
+  lJSONObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   s := lJSONObj.Get('name1').JsonValue.Value;
   CheckEquals('jørn', s);
   lJSONObj.Free;
 
-  lJSONObj := TSystemJSON.BodyAsJSONObject(res);
+  lJSONObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   s := lJSONObj.Get('name3').JsonValue.Value;
   CheckEquals('àèéìòù', s);
   lJSONObj.Free;
 
-  lJSONObj := TSystemJSON.BodyAsJSONObject(res);
+  lJSONObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   s := lJSONObj.Get('name2').JsonValue.Value;
   CheckEquals('Što je Unicode?', s,
     'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
@@ -611,7 +610,7 @@ var
 begin
   LRes := RESTClient.doGET('/wrappedpeople', []);
 
-  lJSONArr := TSystemJSON.BodyAsJSONArray(LRes);
+  lJSONArr := TSystemJSON.StringAsJSONArray(LRes.BodyAsString);
   try
     for I := 0 to lJSONArr.Count - 1 do
     begin
@@ -770,7 +769,7 @@ begin
   JSON := TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
   r := RESTClient.doPOST('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
-  JSON := TSystemJSON.BodyAsJSONObject(r);
+  JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
     CheckEquals('clientdata', JSON.Get('client').JsonValue.Value);
     CheckEquals('from server', JSON.Get('echo').JsonValue.Value);
@@ -844,7 +843,7 @@ begin
   JSON.AddPair('client', 'clientdata');
   r := RESTClient.doPUT('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
 
-  JSON := TSystemJSON.BodyAsJSONObject(r);
+  JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
     CheckEquals('clientdata', JSON.Get('client').JsonValue.Value);
     CheckEquals('from server', JSON.Get('echo').JsonValue.Value);
@@ -881,7 +880,7 @@ begin
   r := RESTClient.doGET('/req/with/params', ['1', '2', '3']);
   CheckEquals(HTTP_STATUS.OK, r.ResponseCode);
 
-  lJSON := TSystemJSON.BodyAsJSONObject(r);
+  lJSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
     CheckEquals('1', lJSON.Get('par1').JsonValue.Value);
     CheckEquals('2', lJSON.Get('par2').JsonValue.Value);
@@ -968,7 +967,7 @@ begin
   res := RESTClient.doGET
     ('/typed/all/mystring/1234/12345678/12.3/1234.5678/1234.5678', []);
   CheckTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  lJObj := TSystemJSON.BodyAsJSONObject(res);
+  lJObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   try
     CheckEquals('mystring', lJObj.GetValue('ParString').Value, 'ParString');
     CheckEquals(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt,

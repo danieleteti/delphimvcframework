@@ -53,8 +53,8 @@ type
 
     class function GetPropertyType(AObject: TObject; APropertyName: string): string;
     class function GetProperty(AObject: TObject; const APropertyName: string): TValue;
-    class function GetPropertyAsString(AObject: TObject; const APropertyName: string): string; overload;
-    class function GetPropertyAsString(AObject: TObject; AProperty: TRttiProperty): string; overload;
+//    class function GetPropertyAsString(AObject: TObject; const APropertyName: string): string; overload;
+//    class function GetPropertyAsString(AObject: TObject; AProperty: TRttiProperty): string; overload;
     class function ExistsProperty(AObject: TObject; const APropertyName: string; out AProperty: TRttiProperty): Boolean;
     class procedure SetProperty(AObject: TObject; const APropertyName: string; const AValue: TValue); overload; static;
 
@@ -88,7 +88,7 @@ type
     class function EqualValues(ASource, ADestination: TValue): Boolean;
     class function FindByProperty<T: class>(AList: TObjectList<T>; APropertyName: string; APropertyValue: TValue): T;
     class procedure ForEachProperty(AClazz: TClass; AProc: TProc<TRttiProperty>);
-    class function HasStringValueAttribute<T: class>(ARttiMember: TRttiMember; out AValue: string): Boolean;
+//  class function HasStringValueAttribute<T: class>(ARttiMember: TRttiMember; out AValue: string): Boolean;
     class function BuildClass(AQualifiedName: string; AParams: array of TValue): TObject;
     class function FindType(AQualifiedName: string): TRttiType;
     class function GetGUID<T>: TGUID;
@@ -100,7 +100,7 @@ implementation
 
 uses
   MVCFramework.DuckTyping,
-  ObjectsMappers;
+  MVCFramework.Serializer.Commons;
 
 class function TRttiUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
   ARaiseExceptionIfNotFound: Boolean): TValue;
@@ -198,33 +198,33 @@ begin
     raise Exception.CreateFmt('Property is not readable [%s.%s]', [ARttiType.ToString, APropertyName]);
 end;
 
-class function TRttiUtils.GetPropertyAsString(AObject: TObject; AProperty: TRttiProperty): string;
-var
-  P: TValue;
-  FT: string;
-  CustomFormat: string;
-begin
-  if AProperty.IsReadable then
-  begin
-    P := AProperty.GetValue(AObject);
-    FT := GetFieldType(AProperty);
-    HasStringValueAttribute<StringValueAttribute>(AProperty, CustomFormat);
-    Result := TValueAsString(P, FT, CustomFormat);
-  end
-  else
-    Result := '';
-end;
-
-class function TRttiUtils.GetPropertyAsString(AObject: TObject; const APropertyName: string): string;
-var
-  Prop: TRttiProperty;
-begin
-  Prop := GlContext.GetType(AObject.ClassType).GetProperty(APropertyName);
-  if Assigned(Prop) then
-    Result := GetPropertyAsString(AObject, Prop)
-  else
-    Result := '';
-end;
+//class function TRttiUtils.GetPropertyAsString(AObject: TObject; AProperty: TRttiProperty): string;
+//var
+//  P: TValue;
+//  FT: string;
+//  CustomFormat: string;
+//begin
+//  if AProperty.IsReadable then
+//  begin
+//    P := AProperty.GetValue(AObject);
+//    FT := GetFieldType(AProperty);
+//    HasStringValueAttribute<StringValueAttribute>(AProperty, CustomFormat);
+//    Result := TValueAsString(P, FT, CustomFormat);
+//  end
+//  else
+//    Result := '';
+//end;
+//
+//class function TRttiUtils.GetPropertyAsString(AObject: TObject; const APropertyName: string): string;
+//var
+//  Prop: TRttiProperty;
+//begin
+//  Prop := GlContext.GetType(AObject.ClassType).GetProperty(APropertyName);
+//  if Assigned(Prop) then
+//    Result := GetPropertyAsString(AObject, Prop)
+//  else
+//    Result := '';
+//end;
 
 class function TRttiUtils.GetPropertyType(AObject: TObject; APropertyName: string): string;
 begin
@@ -275,16 +275,16 @@ begin
   Result := Assigned(AAttribute);
 end;
 
-class function TRttiUtils.HasStringValueAttribute<T>(ARttiMember: TRttiMember; out AValue: string): Boolean;
-var
-  Attr: T; // StringValueAttribute;
-begin
-  Result := HasAttribute<T>(ARTTIMember, Attr);
-  if Result then
-    AValue := StringValueAttribute(Attr).Value
-  else
-    AValue := '';
-end;
+//class function TRttiUtils.HasStringValueAttribute<T>(ARttiMember: TRttiMember; out AValue: string): Boolean;
+//var
+//  Attr: T; // StringValueAttribute;
+//begin
+//  Result := HasAttribute<T>(ARTTIMember, Attr);
+//  if Result then
+//    AValue := StringValueAttribute(Attr).Value
+//  else
+//    AValue := '';
+//end;
 
 class procedure TRttiUtils.SetField(AObject: TObject; const APropertyName: string; const AValue: TValue);
 var

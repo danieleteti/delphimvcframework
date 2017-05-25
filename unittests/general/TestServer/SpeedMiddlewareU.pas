@@ -42,7 +42,7 @@ type
 implementation
 
 uses
-  ObjectsMappers, System.SysUtils, DateUtils;
+  MVCFramework.Serializer.Commons, System.SysUtils, DateUtils;
 
 { TMVCSpeedMiddleware }
 
@@ -50,7 +50,7 @@ procedure TMVCSpeedMiddleware.OnAfterControllerAction(Context: TWebContext; cons
   const Handled: Boolean);
 begin
   Context.Response.CustomHeaders.Values['request_gen_time'] :=
-    MilliSecondsBetween(Now, ISOStrToDateTime(Context.Data[classname + 'startup'])).ToString
+    MilliSecondsBetween(Now, ISOTimeStampToDateTime(Context.Data[classname + 'startup'])).ToString
 end;
 
 procedure TMVCSpeedMiddleware.OnBeforeControllerAction(Context: TWebContext;
@@ -70,7 +70,7 @@ begin
   end
   else
 
-    Context.Data.Add(classname + 'startup', ISODateTimeToString(Now));
+    Context.Data.Add(classname + 'startup', DateTimeToISOTimeStamp(Now));
 end;
 
 end.

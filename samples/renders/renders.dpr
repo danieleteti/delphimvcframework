@@ -40,8 +40,7 @@ uses
   MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule},
   CustomTypesU in 'CustomTypesU.pas',
   CustomTypesSerializersU in 'CustomTypesSerializersU.pas',
-  InMemoryDataU in 'InMemoryDataU.pas',
-  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas';
+  InMemoryDataU in 'InMemoryDataU.pas';
 
 {$R *.res}
 

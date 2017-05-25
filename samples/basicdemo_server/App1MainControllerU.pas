@@ -28,19 +28,15 @@ type
 
     [MVCPath('/div/($par1)/($par2)')]
     [MVCHTTPMethod([httpGET])]
-    procedure RaiseException(par1, par2: String);
+    procedure RaiseException(par1, par2: string);
   end;
 
 implementation
 
 uses
-  System.SysUtils
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$IFEND}
-    ;
+  System.SysUtils,
+  MVCFramework.SystemJSONUtils,
+  MVCFramework.TypesAliases;
 
 { TApp1MainController }
 
@@ -55,10 +51,8 @@ procedure TApp1MainController.HelloWorldPost;
 var
   JSON: TJSONObject;
 begin
-  JSON := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
+  JSON := TSystemJSON.StringAsJSONObject(Context.Request.Body);
   try
-    if not Assigned(JSON) then
-      raise EMVCException.Create('Invalid JSON');
     JSON.AddPair('modified', 'from server');
     Render(JSON, false);
   finally
@@ -72,7 +66,7 @@ begin
   Redirect('index.html');
 end;
 
-procedure TApp1MainController.RaiseException(par1, par2: String);
+procedure TApp1MainController.RaiseException(par1, par2: string);
 var
   R: Extended;
 begin

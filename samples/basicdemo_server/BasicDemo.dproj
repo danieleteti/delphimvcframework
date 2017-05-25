@@ -6,7 +6,7 @@
         <MainSource>BasicDemo.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <Platform Condition="'$(Platform)'==''">Linux64</Platform>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>129</TargetedPlatforms>
         <AppType>Console</AppType>
     </PropertyGroup>

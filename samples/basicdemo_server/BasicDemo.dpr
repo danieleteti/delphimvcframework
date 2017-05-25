@@ -25,7 +25,7 @@ begin
   if ParamCount >= 1 then
     lStartupCommand := ParamStr(1)
   else
-    lStartupCommand := '';
+    lStartupCommand := 'start';
 
   lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
     begin
@@ -105,7 +105,7 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
-    RunServer(3000);
+    RunServer(8080);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

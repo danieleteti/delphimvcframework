@@ -5,17 +5,13 @@ program ServerSideViewsPrimer;
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
-
   {$IFDEF MSWINDOWS}
-
   Winapi.ShellApi,
   Winapi.Windows,
-
-  {$ENDIF}
-
+  {$ENDIF }
   Web.WebReq,
   Web.WebBroker,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   WebSiteControllerU in 'WebSiteControllerU.pas',
   DAL in 'DAL.pas';
 

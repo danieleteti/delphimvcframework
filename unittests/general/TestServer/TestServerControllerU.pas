@@ -194,13 +194,10 @@ type
 implementation
 
 uses
-{$IF CompilerVersion < 27}
-  Data.DBXJSON,
-{$ELSE}
-  System.JSON,
-{$IFEND}
+  MVCFramework.TypesAliases,
   Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  ObjectsMappers, MVCFramework.DuckTyping, System.Classes;
+  MVCFramework.Serializer.Commons, MVCFramework.Serializer.Defaults,
+  MVCFramework.DuckTyping, System.Classes;
 
 { TTestServerController }
 
@@ -526,13 +523,13 @@ end;
 procedure TTestServerController.TestTypedActionTDate1(value: TDate);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(ISODateToString(value) + ' modified from server');
+  Render(DateToISODate(value) + ' modified from server');
 end;
 
 procedure TTestServerController.TestTypedActionTDateTime1(value: TDateTime);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(ISODateTimeToString(value) + ' modified from server');
+  Render(DateTimeToISOTimeStamp(value) + ' modified from server');
 end;
 
 procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3,
@@ -546,7 +543,7 @@ end;
 procedure TTestServerController.TestTypedActionTTime1(value: TTime);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(ISOTimeToString(value) + ' modified from server');
+  Render(TimeToISOTime(value) + ' modified from server');
 end;
 
 { TTestPrivateServerController }

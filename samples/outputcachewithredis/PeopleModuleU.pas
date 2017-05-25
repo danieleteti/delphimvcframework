@@ -27,7 +27,7 @@ type
 implementation
 
 uses
-  ObjectsMappers;
+  MVCFramework.Serializer.Commons;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 

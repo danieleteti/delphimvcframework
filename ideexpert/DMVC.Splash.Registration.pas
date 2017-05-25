@@ -24,9 +24,6 @@ resourcestring
 
 initialization
 
-{ Add Splash Screen, but this doesn't work in Tokyo
-  if there is a Register procedure in the same package. }
-
 bmSplashScreen := LoadBitmap(hInstance, 'SplashScreen');
 (SplashScreenServices as IOTASplashScreenServices).AddPluginBitmap(
   resPackageName,

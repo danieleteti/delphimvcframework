@@ -17,8 +17,7 @@ type
 implementation
 
 uses
-  BOCustomersU, WSHelperCustomersU, System.SysUtils, System.JSON,
-  ObjectsMappers;
+  BOCustomersU, WSHelperCustomersU, System.SysUtils, System.JSON, MVCFramework.Serializer.Defaults;
 
 function TSOAPCustomer.GetCustomers: string;
 var
@@ -30,7 +29,7 @@ begin
     begin
       Customers := WSHelperCustomers.GetCustomers;
       try
-        Result := Mapper.ObjectListToJSONArray<TCustomer>(Customers).ToJSON;
+        Result := GetDefaultSerializer.SerializeCollection(Customers);
       finally
         FreeAndNil(Customers);
       end;

@@ -3,8 +3,7 @@ unit BusinessObjectsU;
 interface
 
 uses
-  MVCFramework.Serializer.Commons,
-  ObjectsMappers, Generics.Collections;
+  MVCFramework.Serializer.Commons, Generics.Collections;
 
 type
 
@@ -50,10 +49,8 @@ type
     procedure SetName(const Value: string);
   public
     property name: string read FName write SetName;
-    [MapperTransient]
     [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
-    [MapperTransient]
     [MVCDoNotSerialize]
     property ContactLast: string read FContactLast write SetContactLast;
     property AddressLine1: string read FAddressLine1 write SetAddressLine1;

@@ -3,7 +3,7 @@ unit BusinessObjectsU;
 interface
 
 uses
-	ObjectsMappers, System.Generics.Collections;
+	MVCFramework.Serializer.Commons, System.Generics.Collections;
 
 type
 	TNested = class
