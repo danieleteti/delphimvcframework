@@ -853,7 +853,7 @@ begin
     Exit;
 
   if AList is TJsonBaseObject then
-    Exit(TJsonBaseObject(AList).ToJSON(False));
+    Exit(TJsonBaseObject(AList).ToJSON(True));
 
   ObjList := TDuckTypedList.Wrap(AList);
   if Assigned(ObjList) then
@@ -863,7 +863,7 @@ begin
       for Obj in ObjList do
         if Assigned(Obj) then
           ObjectToJsonObject(Obj, JsonArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes);
-      Result := JsonArray.ToJSON(False);
+      Result := JsonArray.ToJSON(True);
     finally
       JsonArray.Free;
     end;
@@ -892,7 +892,7 @@ begin
       DataSetToJsonObject(ADataSet, JsonArray.AddObject, GetNameCase(ADataSet, ANameCase), AIgnoredFields);
       ADataSet.Next;
     end;
-    Result := JsonArray.ToJSON(False);
+    Result := JsonArray.ToJSON(True);
   finally
     JsonArray.Free;
     if ADataSet.BookmarkValid(BookMark) then
@@ -916,7 +916,7 @@ begin
   JsonObject := TJsonObject.Create;
   try
     DataSetToJsonObject(ADataSet, JsonObject, GetNameCase(ADataSet, ANameCase), AIgnoredFields);
-    Result := JsonObject.ToJSON(False);
+    Result := JsonObject.ToJSON(True);
   finally
     JsonObject.Free;
   end;
@@ -953,7 +953,7 @@ begin
     begin
       try
         if ChildJsonValue is TJsonBaseObject then
-          Result := ChildJsonValue.ToJSON(False)
+          Result := ChildJsonValue.ToJSON(True)
         else
           raise EMVCSerializationException.Create('Cannot serialize, the serializer does not have a valid TJsonBaseObject type.');
       finally
@@ -966,7 +966,7 @@ begin
   JsonObject := TJsonObject.Create;
   try
     ObjectToJsonObject(AObject, JsonObject, GetSerializationType(AObject, AType), AIgnoredAttributes);
-    Result := JsonObject.ToJSON(False);
+    Result := JsonObject.ToJSON(True);
   finally
     JsonObject.Free;
   end;

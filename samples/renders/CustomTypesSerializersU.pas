@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -58,7 +58,7 @@ uses
 procedure TUserRolesSerializer.Deserialize(const ASerializedObject: TObject;
   var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
 begin
-  // todo: if you need, implement the deserilize method
+  // todo: if you need, implement the deserialize method
 end;
 
 procedure TUserRolesSerializer.Serialize(const AElementValue: TValue;

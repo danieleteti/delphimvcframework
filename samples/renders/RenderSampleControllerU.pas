@@ -63,6 +63,10 @@ type
     procedure GetPeople_AsObjectList;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/lotofobjects')]
+    procedure GetLotOfPeople;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/skilledpeople')]
     [MVCProduces('application/json')]
     procedure GetProgrammersAndPhilosophersAsObjectList;
@@ -123,7 +127,7 @@ uses
   System.SysUtils,
   WebModuleU,
   JsonDataObjects,
-  MVCFramework.TypesAliases, CustomTypesU;
+  MVCFramework.TypesAliases, CustomTypesU, InMemoryDataU;
 
 { TRoutingSampleController }
 
@@ -213,6 +217,11 @@ procedure TRenderSampleController.GetCustomSerializationType;
 begin
   // TSysUser contains a type with a custom serializer
   Render(TSysUser.Create('daniele', ['poweruser', 'role1', 'role2']), True);
+end;
+
+procedure TRenderSampleController.GetLotOfPeople;
+begin
+  Render<TPerson>(GetPeopleList, False);
 end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);

@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -39,7 +39,8 @@ uses
   BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
   MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule},
   CustomTypesU in 'CustomTypesU.pas',
-  CustomTypesSerializersU in 'CustomTypesSerializersU.pas';
+  CustomTypesSerializersU in 'CustomTypesSerializersU.pas',
+  InMemoryDataU in 'InMemoryDataU.pas';
 
 {$R *.res}
 

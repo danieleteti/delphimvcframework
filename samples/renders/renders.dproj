@@ -208,6 +208,7 @@
         </DCCReference>
         <DCCReference Include="CustomTypesU.pas"/>
         <DCCReference Include="CustomTypesSerializersU.pas"/>
+        <DCCReference Include="InMemoryDataU.pas"/>
         <None Include="ModelSupport_renders\default.txaPackage"/>
         <None Include="ModelSupport_renders\default.txvpck"/>
         <None Include="ModelSupport_renders\WebModuleU\default.txaPackage"/>
