@@ -130,7 +130,7 @@ type
     { protected declarations }
   public
     constructor Create(const AName: string);
-    property Name: string read GetName;
+    property name: string read GetName;
   end;
 
   MapperJSONSer = MVCNameAsAttribute deprecated 'Use MVCNameAsAttribute';
@@ -201,11 +201,13 @@ type
     class procedure DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string); static;
     class procedure DeSerializeBase64StringStream(AStream: TStream; const ABase64SerializedString: string); static;
 
-    class function GetTypeKindAsString(const ATypeKind: TTypeKind): String; static;
-    class function StringToTypeKind(const AValue: String): TTypeKind; static;
+    class function GetTypeKindAsString(const ATypeKind: TTypeKind): string; static;
+    class function StringToTypeKind(const AValue: string): TTypeKind; static;
 
     class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
     class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
+
+    class function IsAPropertyToSkip(const aPropName: string): Boolean; static;
   end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
@@ -474,7 +476,7 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelpful.GetTypeKindAsString(const ATypeKind: TTypeKind): String;
+class function TMVCSerializerHelpful.GetTypeKindAsString(const ATypeKind: TTypeKind): string;
 begin
   Result := GetEnumName(TypeInfo(TTypeKind), Ord(ATypeKind));
   Result := Result.Remove(0, 2).ToLower;
@@ -510,7 +512,13 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelpful.StringToTypeKind(const AValue: String): TTypeKind;
+class function TMVCSerializerHelpful.IsAPropertyToSkip(
+  const aPropName: string): Boolean;
+begin
+  Result := (aPropName = 'RefCount') or (aPropName = 'Disposed');
+end;
+
+class function TMVCSerializerHelpful.StringToTypeKind(const AValue: string): TTypeKind;
 begin
   Result := TTypeKind(GetEnumValue(TypeInfo(TTypeKind), 'tk' + AValue));
 end;

@@ -2,44 +2,33 @@ unit WebModuleU;
 
 interface
 
-uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework;
+uses System.SysUtils,
+  System.Classes,
+  Web.HTTPApp,
+  MVCFramework;
 
 type
-  TWebModule1 = class(TWebModule)
-    procedure WebModule1DefaultHandlerAction(Sender: TObject;
-      Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
+  TMyWebModule = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
   private
-    { Private declarations }
+    FMVC: TMVCEngine;
   public
     { Public declarations }
   end;
 
 var
-  WebModuleClass: TComponentClass = TWebModule1;
+  WebModuleClass: TComponentClass = TMyWebModule;
 
 implementation
 
-{ %CLASSGROUP 'Vcl.Controls.TControl' }
-
-uses WebSiteControllerU, MVCFramework.Commons,
-  {we need mustache engine for server side views}
-  MVCFramework.View.Renderers.Mustache
-    ;
-
 {$R *.dfm}
 
-procedure TWebModule1.WebModule1DefaultHandlerAction(Sender: TObject;
-  Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
-begin
-  Response.Content := '<html>' +
-    '<head><title>Web Server Application</title></head>' +
-    '<body>Web Server Application</body>' + '</html>';
-end;
+uses SSEControllerU, MVCFramework.Commons;
 
-procedure TWebModule1.WebModuleCreate(Sender: TObject);
+procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
-  TMVCEngine.Create(Self,
+  FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
       // enable static files
@@ -61,10 +50,15 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end)
-    .AddController(TWebSiteController)
-    .SetViewEngine(TMVCMustacheViewEngine);
+      // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
+      Config[TMVCConfigKey.FallbackResource] := 'index.html';
+    end);
+  FMVC.AddController(TSSEController);
+end;
 
+procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
+begin
+  FMVC.Free;
 end;
 
 end.

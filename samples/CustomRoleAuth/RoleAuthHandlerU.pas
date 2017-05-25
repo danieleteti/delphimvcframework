@@ -59,7 +59,7 @@ begin
     Moreover additional user properties can be added in the SessionData dictionary
   }
 
-  // We defined 3 statc users here: admin, user1, user2
+  // We defined 3 static users here: admin, user1, user2
   IsValid := False;
   if (UserName = 'admin') and (Password = 'adminpass') then
   begin

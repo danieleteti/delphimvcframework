@@ -790,6 +790,15 @@ begin
     stDefault, stProperties:
       begin
         for Prop in ObjType.GetProperties do
+        begin
+
+          {$IFDEF AUTOREFCOUNT}
+
+          if TMVCSerializerHelpful.IsAPropertyToSkip(Prop.Name) then
+            Continue;
+
+          {$ENDIF}
+
           if (Prop.IsWritable or Prop.GetValue(AObject).IsObject) and (not TMVCSerializerHelpful.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
           begin
             AttributeValue := Prop.GetValue(AObject);
@@ -797,6 +806,7 @@ begin
             if (not AttributeValue.IsEmpty) and Prop.IsWritable then
               Prop.SetValue(AObject, AttributeValue);
           end;
+        end;
       end;
     stFields:
       begin
@@ -827,8 +837,18 @@ begin
     stDefault, stProperties:
       begin
         for Prop in ObjType.GetProperties do
+        begin
+
+          {$IFDEF AUTOREFCOUNT}
+
+          if TMVCSerializerHelpful.IsAPropertyToSkip(Prop.Name) then
+            Continue;
+
+          {$ENDIF}
+
           if (not TMVCSerializerHelpful.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
             AttributeToJsonDataValue(AJsonObject, TMVCSerializerHelpful.GetKeyName(Prop, ObjType), Prop.GetValue(AObject), AType, AIgnoredAttributes, Prop.GetAttributes);
+        end;
       end;
     stFields:
       begin

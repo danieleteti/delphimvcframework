@@ -84,7 +84,7 @@ implementation
 
 procedure TPrivateController.AccessThisByRole(const role: string);
 begin
-  Render('OK This ressource was accessed by role: ' + role);
+  Render('OK This resource was accessed by role: ' + role);
 end;
 
 procedure TPrivateController.AuthenticatedAction;

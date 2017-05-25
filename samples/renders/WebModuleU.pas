@@ -62,8 +62,6 @@ procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   DMVC := TMVCEngine.Create(self,
     procedure(Config: TMVCConfig)
-    var
-      lX: TDictionary<string, IMVCSerializer>;
     begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
     end);
