@@ -91,7 +91,7 @@ procedure TMVCCORSMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled
 begin
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Methods'] := 'POST, GET, OPTIONS, PUT, DELETE';
-  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword';
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword, authentication';
   AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
   if (AContext.Request.HTTPMethod = httpOPTIONS) then
   begin
