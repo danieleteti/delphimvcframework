@@ -33,7 +33,7 @@ uses
   BOs,
   MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT,
   MVCFramework.Serializer.Intf, MVCFramework.Serializer.Defaults,
-  MVCFramework.MultiMap;
+  MVCFramework.MultiMap, MVCFramework.Commons;
 
 type
   TTestMappers = class(TTestCase)
@@ -41,40 +41,41 @@ type
     procedure SameFishesDataSet(ds, ds2: TDataSet);
 
   published
-//    procedure TestObjectToJSONObject;
-//    procedure TestObjectListToJSONArray;
-//    procedure TestObjectToJSONObject_Generics;
-//    procedure TestWrappedListToJSONArray;
-//    procedure TestJSONObjectToObjectAndBack;
-//    procedure TestLoadJSONObjectToObjectAndBack;
-//    procedure TestSerializeUsingProperties;
-//    procedure TestSerializeUsingFields;
-//    procedure TestSerializeUsingFieldsComplexObject;
-//    procedure TestSerializeUsingFieldsComplexObject2;
-//    procedure TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
-//    procedure TestComplexObjectToJSONObjectAndBack;
-//    procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
-//    procedure TestDataSetToJSONObject;
-//    procedure TestDataSetToJSONObjectWithNulls;
-//    procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
-//    procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
-//    procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
-//    procedure TestDataSetToJSONArray;
-//    procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
-//    procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
-//    procedure TestObjectToJSONObjectAndBackWithStream;
-//    procedure TestJSONArrayToObjectListNoGenerics;
-//    procedure TestJSONArrayToObjectListNoGenericsWrappedList;
-//    procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
-//    procedure TestJSONObjectToObjectWithNullInJSONString;
-//    procedure TestJSONObjectStringToObject;
-//    procedure TestJSONObjectStringToObjectWithWrongJSON;
+    // procedure TestObjectToJSONObject;
+    // procedure TestObjectListToJSONArray;
+    // procedure TestObjectToJSONObject_Generics;
+    // procedure TestWrappedListToJSONArray;
+    // procedure TestJSONObjectToObjectAndBack;
+    // procedure TestLoadJSONObjectToObjectAndBack;
+    // procedure TestSerializeUsingProperties;
+    // procedure TestSerializeUsingFields;
+    // procedure TestSerializeUsingFieldsComplexObject;
+    // procedure TestSerializeUsingFieldsComplexObject2;
+    // procedure TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
+    // procedure TestComplexObjectToJSONObjectAndBack;
+    // procedure TestComplexObjectToJSONObjectAndBackWithNilReference;
+    // procedure TestDataSetToJSONObject;
+    // procedure TestDataSetToJSONObjectWithNulls;
+    // procedure TestDataSetToJSONObjectFieldPolicyLowerCase;
+    // procedure TestDataSetToJSONObjectFieldPolicyUpperCase;
+    // procedure TestDataSetToJSONObjectFieldPolicyAsIsCase;
+    // procedure TestDataSetToJSONArray;
+    // procedure TestObjectToJSONObjectAndBackWithStringStreamUTF16;
+    // procedure TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+    // procedure TestObjectToJSONObjectAndBackWithStream;
+    // procedure TestJSONArrayToObjectListNoGenerics;
+    // procedure TestJSONArrayToObjectListNoGenericsWrappedList;
+    // procedure TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
+    // procedure TestJSONObjectToObjectWithNullInJSONString;
+    // procedure TestJSONObjectStringToObject;
+    // procedure TestJSONObjectStringToObjectWithWrongJSON;
   end;
 
   TTestRouting = class(TTestCase)
   private
     Router: TMVCRouter;
     Controllers: TObjectList<TMVCControllerDelegate>;
+    FMVCActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
 
   public
     procedure SetUp; override;
@@ -88,6 +89,7 @@ type
     procedure TestComplexRoutings;
     procedure TestProduceRoutings;
     procedure TestProduceRoutingsWithExplicitCharset;
+    // procedure TestRoutingSpeed;
 
     // objects mappers
   end;
@@ -150,22 +152,28 @@ implementation
 {$WARN SYMBOL_DEPRECATED OFF}
 
 
-uses System.DateUtils, System.Math, MVCFramework.Commons,
+uses System.DateUtils, System.Math,
   TestControllersU, DBClient,
   Web.HTTPApp, Soap.EncdDecd,
   IdHashMessageDigest, idHash,
   MVCFramework.Serializer.Commons,
-  MVCFramework.HMAC,
-{$IF CompilerVersion < 27}
+  MVCFramework.HMAC, System.Diagnostics,
+
+  {$IF CompilerVersion < 27}
+
   Data.DBXJSON,
-{$ELSE}
+
+  {$ELSE}
+
   System.JSON,
-{$ENDIF}
+
+  {$ENDIF}
+
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils;
 
 var
-  JWT_SECRET_KEY_TEST: String = 'myk3y';
+  JWT_SECRET_KEY_TEST: string = 'myk3y';
   HMAC_ALG_AND_RESULTS: array [0 .. 4] of array [0 .. 1] of string = (
     (
       'md5',
@@ -228,13 +236,15 @@ begin
   Controllers.Add(TMVCControllerDelegate.Create(TSimpleController, nil));
   Controllers.Add(TMVCControllerDelegate.Create(TNotSoSimpleController, nil));
   Controllers.Add(TMVCControllerDelegate.Create(TTestServerController, nil));
-  Router := TMVCRouter.Create(nil);
+  FMVCActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+  Router := TMVCRouter.Create(nil, FMVCActionParamsCache);
 end;
 
 procedure TTestRouting.TearDown;
 begin
   Router.Free;
   Controllers.Free;
+  FMVCActionParamsCache.Free;
 end;
 
 // procedure TTestRouting.TestClassNameMethodNameRouting;
@@ -255,86 +265,86 @@ end;
 // end;
 // end;
 
-//procedure TTestMappers.TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
-//var
-//  Obj: TMyStreamObject;
-//  JSONObj: TJSONObject;
-//  DesObj: TMyStreamObject;
-//begin
-//  // ARRANGE
-//  Obj := TMyStreamObject.Create;
-//  try
-//    Obj.PropStream := nil;
-//    Obj.Prop8Stream := nil;
-//    // ACT
-//    JSONObj := TSystemJSON.ObjectToJSONObject(Obj);
-//    try
-//      GetDefaultSerializer.de
-//      DesObj := TSystemJSON.JSONObjectToObject<TMyStreamObject>(JSONObj);
-//      try
-//        // ASSERT
-//        CheckTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
-//        CheckTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
-//      finally
-//        DesObj.Free;
-//      end;
-//    finally
-//      JSONObj.Free;
-//    end;
-//  finally
-//    Obj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestCheckMapperSerializeAsStringIsEmptyStrIfObjIsNil;
+// var
+// Obj: TMyStreamObject;
+// JSONObj: TJSONObject;
+// DesObj: TMyStreamObject;
+// begin
+// // ARRANGE
+// Obj := TMyStreamObject.Create;
+// try
+// Obj.PropStream := nil;
+// Obj.Prop8Stream := nil;
+// // ACT
+// JSONObj := TSystemJSON.ObjectToJSONObject(Obj);
+// try
+// GetDefaultSerializer.de
+// DesObj := TSystemJSON.JSONObjectToObject<TMyStreamObject>(JSONObj);
+// try
+// // ASSERT
+// CheckTrue(TStringStream(DesObj.PropStream).DataString.IsEmpty);
+// CheckTrue(TStringStream(DesObj.Prop8Stream).DataString.IsEmpty);
+// finally
+// DesObj.Free;
+// end;
+// finally
+// JSONObj.Free;
+// end;
+// finally
+// Obj.Free;
+// end;
+// end;
 
-//procedure TTestMappers.TestComplexObjectToJSONObjectAndBack;
-//var
-//  Obj: TMyComplexObject;
-//  JObj: TJSONObject;
-//  Obj2: TMyComplexObject;
-//begin
-//  Obj := GetMyComplexObject;
-//  try
-//    JObj := Mapper.ObjectToJSONObject(Obj);
-//    try
-//      Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
-//      try
-//        CheckTrue(Obj.Equals(Obj2));
-//      finally
-//        Obj2.Free;
-//      end;
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    Obj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestComplexObjectToJSONObjectAndBack;
+// var
+// Obj: TMyComplexObject;
+// JObj: TJSONObject;
+// Obj2: TMyComplexObject;
+// begin
+// Obj := GetMyComplexObject;
+// try
+// JObj := Mapper.ObjectToJSONObject(Obj);
+// try
+// Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
+// try
+// CheckTrue(Obj.Equals(Obj2));
+// finally
+// Obj2.Free;
+// end;
+// finally
+// JObj.Free;
+// end;
+// finally
+// Obj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestComplexObjectToJSONObjectAndBackWithNilReference;
-//var
-//  Obj: TMyComplexObject;
-//  JObj: TJSONObject;
-//  Obj2: TMyComplexObject;
-//begin
-//  Obj := GetMyComplexObject;
-//  try
-//    Obj.ChildObject.Free;
-//    Obj.ChildObject := nil;
-//    JObj := Mapper.ObjectToJSONObject(Obj);
-//    try
-//      Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
-//      try
-//        CheckTrue(Obj.Equals(Obj2));
-//      finally
-//        Obj2.Free;
-//      end;
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    Obj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestComplexObjectToJSONObjectAndBackWithNilReference;
+// var
+// Obj: TMyComplexObject;
+// JObj: TJSONObject;
+// Obj2: TMyComplexObject;
+// begin
+// Obj := GetMyComplexObject;
+// try
+// Obj.ChildObject.Free;
+// Obj.ChildObject := nil;
+// JObj := Mapper.ObjectToJSONObject(Obj);
+// try
+// Obj2 := Mapper.JSONObjectToObject<TMyComplexObject>(JObj);
+// try
+// CheckTrue(Obj.Equals(Obj2));
+// finally
+// Obj2.Free;
+// end;
+// finally
+// JObj.Free;
+// end;
+// finally
+// Obj.Free;
+// end;
+// end;
 
 procedure TTestRouting.TestComplexRoutings;
 var
@@ -381,550 +391,550 @@ begin
   end;
 end;
 
-//procedure TTestMappers.TestDataSetToJSONArray;
-//var
-//  ds: TClientDataSet;
-//  JObj: TJSONObject;
-//  ds2: TClientDataSet;
-//  JArr: TJSONArray;
-//begin
-//  ds := TClientDataSet.Create(nil);
-//  ds2 := TClientDataSet.Create(nil);
-//  try
-//    ds.LoadFromFile('..\..\fishes.xml');
-//    ds.First;
-//    // JArr := TJSONArray.Create;
-//    JArr := ds.AsJSONArray;
-//    try
-//      // Mapper.DataSetToJSONArray(ds, JArr, false);
-//      ds2.LoadFromFile('..\..\fishes.xml');
-//      ds2.EmptyDataSet;
-//      ds.First;
-//      while not ds.Eof do
-//      begin
-//        ds2.Insert;
-//        JObj := JArr.Get(ds.RecNo - 1) as TJSONObject;
-//        ds2.LoadFromJSONObject(JObj);
-//        // Mapper.JSONObjectToDataSet(JObj, ds2, false);
-//        ds2.Post;
-//        SameFishesDataSet(ds, ds2);
-//        ds.Next;
-//      end;
-//    finally
-//      JArr.Free;
-//    end;
-//  finally
-//    ds.Free;
-//    ds2.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestDataSetToJSONArray;
+// var
+// ds: TClientDataSet;
+// JObj: TJSONObject;
+// ds2: TClientDataSet;
+// JArr: TJSONArray;
+// begin
+// ds := TClientDataSet.Create(nil);
+// ds2 := TClientDataSet.Create(nil);
+// try
+// ds.LoadFromFile('..\..\fishes.xml');
+// ds.First;
+// // JArr := TJSONArray.Create;
+// JArr := ds.AsJSONArray;
+// try
+// // Mapper.DataSetToJSONArray(ds, JArr, false);
+// ds2.LoadFromFile('..\..\fishes.xml');
+// ds2.EmptyDataSet;
+// ds.First;
+// while not ds.Eof do
+// begin
+// ds2.Insert;
+// JObj := JArr.Get(ds.RecNo - 1) as TJSONObject;
+// ds2.LoadFromJSONObject(JObj);
+// // Mapper.JSONObjectToDataSet(JObj, ds2, false);
+// ds2.Post;
+// SameFishesDataSet(ds, ds2);
+// ds.Next;
+// end;
+// finally
+// JArr.Free;
+// end;
+// finally
+// ds.Free;
+// ds2.Free;
+// end;
+// end;
 
-//procedure TTestMappers.TestDataSetToJSONObject;
-//var
-//  ds: TClientDataSet;
-//  JObj: TJSONObject;
-//  ds2: TClientDataSet;
-//begin
-//  ds := TClientDataSet.Create(nil);
-//  ds2 := TClientDataSet.Create(nil);
-//  try
-//    ds.LoadFromFile('..\..\fishes.xml');
-//    JObj := ds.AsJSONObject;
-//    try
-//      ds2.LoadFromFile('..\..\fishes.xml');
-//      ds2.EmptyDataSet;
-//      ds2.Insert;
-//      ds2.LoadFromJSONObject(JObj);
-//      ds2.Post;
-//      SameFishesDataSet(ds, ds2);
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    ds.Free;
-//    ds2.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestDataSetToJSONObject;
+// var
+// ds: TClientDataSet;
+// JObj: TJSONObject;
+// ds2: TClientDataSet;
+// begin
+// ds := TClientDataSet.Create(nil);
+// ds2 := TClientDataSet.Create(nil);
+// try
+// ds.LoadFromFile('..\..\fishes.xml');
+// JObj := ds.AsJSONObject;
+// try
+// ds2.LoadFromFile('..\..\fishes.xml');
+// ds2.EmptyDataSet;
+// ds2.Insert;
+// ds2.LoadFromJSONObject(JObj);
+// ds2.Post;
+// SameFishesDataSet(ds, ds2);
+// finally
+// JObj.Free;
+// end;
+// finally
+// ds.Free;
+// ds2.Free;
+// end;
+// end;
 
-//procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyAsIsCase;
-//var
-//  ds: TClientDataSet;
-//  JObj: TJSONObject;
-//  ds2: TClientDataSet;
-//begin
-//  ds := TClientDataSet.Create(nil);
-//  ds2 := TClientDataSet.Create(nil);
-//  try
-//    ds.LoadFromFile('..\..\fishes.xml');
-//    JObj := ds.AsJSONObject(false, fpAsIs);
-//    try
-//      ds2.LoadFromFile('..\..\fishes.xml');
-//      ds2.EmptyDataSet;
-//      ds2.Insert;
-//      ds2.LoadFromJSONObject(JObj, fpAsIs);
-//      ds2.Post;
-//      SameFishesDataSet(ds, ds2);
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    ds.Free;
-//    ds2.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyAsIsCase;
+// var
+// ds: TClientDataSet;
+// JObj: TJSONObject;
+// ds2: TClientDataSet;
+// begin
+// ds := TClientDataSet.Create(nil);
+// ds2 := TClientDataSet.Create(nil);
+// try
+// ds.LoadFromFile('..\..\fishes.xml');
+// JObj := ds.AsJSONObject(false, fpAsIs);
+// try
+// ds2.LoadFromFile('..\..\fishes.xml');
+// ds2.EmptyDataSet;
+// ds2.Insert;
+// ds2.LoadFromJSONObject(JObj, fpAsIs);
+// ds2.Post;
+// SameFishesDataSet(ds, ds2);
+// finally
+// JObj.Free;
+// end;
+// finally
+// ds.Free;
+// ds2.Free;
+// end;
+// end;
 
-//procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyLowerCase;
-//var
-//  ds: TClientDataSet;
-//  JObj: TJSONObject;
-//  ds2: TClientDataSet;
-//begin
-//  ds := TClientDataSet.Create(nil);
-//  ds2 := TClientDataSet.Create(nil);
-//  try
-//    ds.LoadFromFile('..\..\fishes.xml');
-//    JObj := ds.AsJSONObject(false, fpLowerCase);
-//    try
-//      ds2.LoadFromFile('..\..\fishes.xml');
-//      ds2.EmptyDataSet;
-//      ds2.Insert;
-//      ds2.LoadFromJSONObject(JObj, fpLowerCase);
-//      ds2.Post;
-//      SameFishesDataSet(ds, ds2);
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    ds.Free;
-//    ds2.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyLowerCase;
+// var
+// ds: TClientDataSet;
+// JObj: TJSONObject;
+// ds2: TClientDataSet;
+// begin
+// ds := TClientDataSet.Create(nil);
+// ds2 := TClientDataSet.Create(nil);
+// try
+// ds.LoadFromFile('..\..\fishes.xml');
+// JObj := ds.AsJSONObject(false, fpLowerCase);
+// try
+// ds2.LoadFromFile('..\..\fishes.xml');
+// ds2.EmptyDataSet;
+// ds2.Insert;
+// ds2.LoadFromJSONObject(JObj, fpLowerCase);
+// ds2.Post;
+// SameFishesDataSet(ds, ds2);
+// finally
+// JObj.Free;
+// end;
+// finally
+// ds.Free;
+// ds2.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyUpperCase;
-//var
-//  ds: TClientDataSet;
-//  JObj: TJSONObject;
-//  ds2: TClientDataSet;
-//begin
-//  ds := TClientDataSet.Create(nil);
-//  ds2 := TClientDataSet.Create(nil);
-//  try
-//    ds.LoadFromFile('..\..\fishes.xml');
-//    JObj := ds.AsJSONObject(false, fpUpperCase);
-//    try
-//      ds2.LoadFromFile('..\..\fishes.xml');
-//      ds2.EmptyDataSet;
-//      ds2.Insert;
-//      ds2.LoadFromJSONObject(JObj, fpUpperCase);
-//      ds2.Post;
-//      SameFishesDataSet(ds, ds2);
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    ds.Free;
-//    ds2.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestDataSetToJSONObjectFieldPolicyUpperCase;
+// var
+// ds: TClientDataSet;
+// JObj: TJSONObject;
+// ds2: TClientDataSet;
+// begin
+// ds := TClientDataSet.Create(nil);
+// ds2 := TClientDataSet.Create(nil);
+// try
+// ds.LoadFromFile('..\..\fishes.xml');
+// JObj := ds.AsJSONObject(false, fpUpperCase);
+// try
+// ds2.LoadFromFile('..\..\fishes.xml');
+// ds2.EmptyDataSet;
+// ds2.Insert;
+// ds2.LoadFromJSONObject(JObj, fpUpperCase);
+// ds2.Post;
+// SameFishesDataSet(ds, ds2);
+// finally
+// JObj.Free;
+// end;
+// finally
+// ds.Free;
+// ds2.Free;
+// end;
+// end;
 
-//procedure TTestMappers.TestDataSetToJSONObjectWithNulls;
-//var
-//  ds: TClientDataSet;
-//  JObj: TJSONObject;
-//begin
-//  ds := TClientDataSet.Create(nil);
-//  try
-//    ds.FieldDefs.Add('string_value', ftString, 50);
-//    ds.FieldDefs.Add('integer_value', ftInteger);
-//    ds.FieldDefs.Add('float_value', ftFloat);
-//    ds.FieldDefs.Add('null_value', ftString, 50);
-//    ds.FieldDefs.Add('boolean_value', ftBoolean);
-//    ds.CreateDataSet;
-//    ds.Insert;
-//    ds.FieldByName('string_value').AsString := 'myStringValue';
-//    ds.FieldByName('integer_value').AsInteger := 123;
-//    ds.FieldByName('float_value').AsFloat := 123.456;
-//    ds.FieldByName('null_value').Clear;
-//    ds.FieldByName('boolean_value').AsBoolean := true;
-//    ds.Post;
-//    JObj := ds.AsJSONObject;
-//    try
-//      CheckEquals('myStringValue', JObj.Values['string_value'].Value);
-//      CheckEquals(123, JObj.Values['integer_value'].GetValue<TJSONNumber>().AsInt);
-//      CheckEquals(123.456, JObj.Values['float_value'].GetValue<TJSONNumber>().AsDouble, 0.0009);
-//      CheckTrue(JObj.Values['null_value'].GetValue<TJSONNull>().Null);
-//      CheckEquals(true, JObj.Values['boolean_value'].GetValue<TJSONBool>().AsBoolean);
-//      CheckTrue(JObj.ToJSON.Replace(' ', '').Contains('"null_value":null'));
-//      ds.Insert;
-//      ds.LoadFromJSONObject(JObj);
-//      ds.Post;
-//      CheckTrue(ds.FieldByName('null_value').IsNull);
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    ds.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestDataSetToJSONObjectWithNulls;
+// var
+// ds: TClientDataSet;
+// JObj: TJSONObject;
+// begin
+// ds := TClientDataSet.Create(nil);
+// try
+// ds.FieldDefs.Add('string_value', ftString, 50);
+// ds.FieldDefs.Add('integer_value', ftInteger);
+// ds.FieldDefs.Add('float_value', ftFloat);
+// ds.FieldDefs.Add('null_value', ftString, 50);
+// ds.FieldDefs.Add('boolean_value', ftBoolean);
+// ds.CreateDataSet;
+// ds.Insert;
+// ds.FieldByName('string_value').AsString := 'myStringValue';
+// ds.FieldByName('integer_value').AsInteger := 123;
+// ds.FieldByName('float_value').AsFloat := 123.456;
+// ds.FieldByName('null_value').Clear;
+// ds.FieldByName('boolean_value').AsBoolean := true;
+// ds.Post;
+// JObj := ds.AsJSONObject;
+// try
+// CheckEquals('myStringValue', JObj.Values['string_value'].Value);
+// CheckEquals(123, JObj.Values['integer_value'].GetValue<TJSONNumber>().AsInt);
+// CheckEquals(123.456, JObj.Values['float_value'].GetValue<TJSONNumber>().AsDouble, 0.0009);
+// CheckTrue(JObj.Values['null_value'].GetValue<TJSONNull>().Null);
+// CheckEquals(true, JObj.Values['boolean_value'].GetValue<TJSONBool>().AsBoolean);
+// CheckTrue(JObj.ToJSON.Replace(' ', '').Contains('"null_value":null'));
+// ds.Insert;
+// ds.LoadFromJSONObject(JObj);
+// ds.Post;
+// CheckTrue(ds.FieldByName('null_value').IsNull);
+// finally
+// JObj.Free;
+// end;
+// finally
+// ds.Free;
+// end;
+// end;
 
-//procedure TTestMappers.TestJSONArrayToObjectListNoGenerics;
-//var
-//  ListObj, RetList: TObjectList<TMyObject>;
-//  JSONArr: TJSONArray;
-//  I: Integer;
-//begin
-//  ListObj := TObjectList<TMyObject>.Create;
-//  try
-//    ListObj.Add(GetMyObject);
-//    ListObj.Add(GetMyObject);
-//    JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
-//    try
-//      RetList := TObjectList<TMyObject>(Mapper.JSONArrayToObjectList(TMyObject,
-//        JSONArr, false));
-//      try
-//        CheckEquals(2, RetList.Count);
-//        for I := 0 to ListObj.Count - 1 do
-//          CheckTrue(ListObj[I].Equals(RetList[I]));
-//      finally
-//        RetList.Free;
-//      end;
-//    finally
-//      JSONArr.Free;
-//    end;
-//  finally
-//    ListObj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestJSONArrayToObjectListNoGenerics;
+// var
+// ListObj, RetList: TObjectList<TMyObject>;
+// JSONArr: TJSONArray;
+// I: Integer;
+// begin
+// ListObj := TObjectList<TMyObject>.Create;
+// try
+// ListObj.Add(GetMyObject);
+// ListObj.Add(GetMyObject);
+// JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
+// try
+// RetList := TObjectList<TMyObject>(Mapper.JSONArrayToObjectList(TMyObject,
+// JSONArr, false));
+// try
+// CheckEquals(2, RetList.Count);
+// for I := 0 to ListObj.Count - 1 do
+// CheckTrue(ListObj[I].Equals(RetList[I]));
+// finally
+// RetList.Free;
+// end;
+// finally
+// JSONArr.Free;
+// end;
+// finally
+// ListObj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestJSONArrayToObjectListNoGenericsWrappedList;
-//var
-//  ListObj, RetList: TObjectList<TMyObject>;
-//  JSONArr: TJSONArray;
-//  I: Integer;
-//begin
-//  ListObj := TObjectList<TMyObject>.Create;
-//  try
-//    ListObj.Add(GetMyObject);
-//    ListObj.Add(GetMyObject);
-//    JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
-//    try
-//      RetList := TObjectList<TMyObject>.Create;
-//      try
-//        Mapper.JSONArrayToObjectList(WrapAsList(RetList), TMyObject,
-//          JSONArr, false);
-//        CheckEquals(2, RetList.Count);
-//        for I := 0 to ListObj.Count - 1 do
-//          CheckTrue(ListObj[I].Equals(RetList[I]));
-//      finally
-//        RetList.Free;
-//      end;
-//    finally
-//      JSONArr.Free;
-//    end;
-//  finally
-//    ListObj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestJSONArrayToObjectListNoGenericsWrappedList;
+// var
+// ListObj, RetList: TObjectList<TMyObject>;
+// JSONArr: TJSONArray;
+// I: Integer;
+// begin
+// ListObj := TObjectList<TMyObject>.Create;
+// try
+// ListObj.Add(GetMyObject);
+// ListObj.Add(GetMyObject);
+// JSONArr := Mapper.ObjectListToJSONArray<TMyObject>(ListObj);
+// try
+// RetList := TObjectList<TMyObject>.Create;
+// try
+// Mapper.JSONArrayToObjectList(WrapAsList(RetList), TMyObject,
+// JSONArr, false);
+// CheckEquals(2, RetList.Count);
+// for I := 0 to ListObj.Count - 1 do
+// CheckTrue(ListObj[I].Equals(RetList[I]));
+// finally
+// RetList.Free;
+// end;
+// finally
+// JSONArr.Free;
+// end;
+// finally
+// ListObj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestJSONObjectStringToObject;
-//const
-//  MYOBJECTJSON =
-//    '{"PropString":"Some text \u00E0\u00E8\u00E9\u00EC\u00F2\u00F9",' +
-//    '"PropAnsiString":"This is an ANSI text","PropInteger":-1234,' +
-//    '"PropUInt32":1234,"PropInt64":-1234567890,"PropUInt64":1234567890,' +
-//    '"PropUInt16":12345,"PropInt16":-12345,"PropBoolean":true,' +
-//    '"PropDate":"2010-10-20","PropTime":"10:20:30",' +
-//    '"PropDateTime":"2010-10-20 10:20:30",' +
-//    '"PropTimeStamp":63423339630040,"PropCurrency":1234.5678}';
-//var
-//  lMyObject: TMyObject;
-//  lMyObject2: TMyObject;
-//begin
-//  lMyObject := Mapper.JSONObjectStringToObject<TMyObject>(MYOBJECTJSON);
-//  try
-//    lMyObject2 := GetMyObject;
-//    try
-//      CheckTrue(lMyObject.Equals(lMyObject2));
-//    finally
-//      lMyObject2.Free;
-//    end;
-//  finally
-//    lMyObject.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestJSONObjectStringToObject;
+// const
+// MYOBJECTJSON =
+// '{"PropString":"Some text \u00E0\u00E8\u00E9\u00EC\u00F2\u00F9",' +
+// '"PropAnsiString":"This is an ANSI text","PropInteger":-1234,' +
+// '"PropUInt32":1234,"PropInt64":-1234567890,"PropUInt64":1234567890,' +
+// '"PropUInt16":12345,"PropInt16":-12345,"PropBoolean":true,' +
+// '"PropDate":"2010-10-20","PropTime":"10:20:30",' +
+// '"PropDateTime":"2010-10-20 10:20:30",' +
+// '"PropTimeStamp":63423339630040,"PropCurrency":1234.5678}';
+// var
+// lMyObject: TMyObject;
+// lMyObject2: TMyObject;
+// begin
+// lMyObject := Mapper.JSONObjectStringToObject<TMyObject>(MYOBJECTJSON);
+// try
+// lMyObject2 := GetMyObject;
+// try
+// CheckTrue(lMyObject.Equals(lMyObject2));
+// finally
+// lMyObject2.Free;
+// end;
+// finally
+// lMyObject.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestJSONObjectStringToObjectWithWrongJSON;
-//begin
-//  ExpectedException := EMapperException;
-//  Mapper.JSONObjectStringToObject<TObject>('{wrongjson}');
-//end;
+// procedure TTestMappers.TestJSONObjectStringToObjectWithWrongJSON;
+// begin
+// ExpectedException := EMapperException;
+// Mapper.JSONObjectStringToObject<TObject>('{wrongjson}');
+// end;
 //
-//procedure TTestMappers.TestJSONObjectToObjectAndBack;
-//var
-//  Obj: TMyObject;
-//  JObj: TJSONObject;
-//  Obj2: TMyObject;
-//begin
-//  Obj := GetMyObject;
-//  try
-//    JObj := Mapper.ObjectToJSONObject(Obj);
-//    try
-//      Obj2 := Mapper.JSONObjectToObject<TMyObject>(JObj);
-//      try
-//        CheckTrue(Obj.Equals(Obj2));
-//      finally
-//        Obj2.Free;
-//      end;
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    Obj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestJSONObjectToObjectAndBack;
+// var
+// Obj: TMyObject;
+// JObj: TJSONObject;
+// Obj2: TMyObject;
+// begin
+// Obj := GetMyObject;
+// try
+// JObj := Mapper.ObjectToJSONObject(Obj);
+// try
+// Obj2 := Mapper.JSONObjectToObject<TMyObject>(JObj);
+// try
+// CheckTrue(Obj.Equals(Obj2));
+// finally
+// Obj2.Free;
+// end;
+// finally
+// JObj.Free;
+// end;
+// finally
+// Obj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestJSONObjectToObjectWithNullInJSONString;
-//var
-//  LJSONObject: string;
-//  Obj: TMyStreamObject;
-//begin
-//  LJSONObject := '{"ImageStream":null}';
-//  Obj := Mapper.JSONObjectStringToObject<TMyStreamObject>(LJSONObject);
-//  CheckNull(Obj.ImageStream);
-//  Obj.Free;
-//end;
+// procedure TTestMappers.TestJSONObjectToObjectWithNullInJSONString;
+// var
+// LJSONObject: string;
+// Obj: TMyStreamObject;
+// begin
+// LJSONObject := '{"ImageStream":null}';
+// Obj := Mapper.JSONObjectStringToObject<TMyStreamObject>(LJSONObject);
+// CheckNull(Obj.ImageStream);
+// Obj.Free;
+// end;
 //
-//procedure TTestMappers.TestLoadJSONObjectToObjectAndBack;
-//var
-//  Obj: TMyObject;
-//  JObj: TJSONObject;
-//  Obj2: TMyObject;
-//begin
-//  Obj := GetMyObject;
-//  try
-//    JObj := Mapper.ObjectToJSONObject(Obj);
-//    try
-//      Obj2 := TMyObject.Create;
-//      try
-//        Mapper.LoadJSONObjectToObject<TMyObject>(JObj, Obj2);
-//        CheckTrue(Obj.Equals(Obj2));
-//      finally
-//        Obj2.Free;
-//      end;
-//    finally
-//      JObj.Free;
-//    end;
-//  finally
-//    Obj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestLoadJSONObjectToObjectAndBack;
+// var
+// Obj: TMyObject;
+// JObj: TJSONObject;
+// Obj2: TMyObject;
+// begin
+// Obj := GetMyObject;
+// try
+// JObj := Mapper.ObjectToJSONObject(Obj);
+// try
+// Obj2 := TMyObject.Create;
+// try
+// Mapper.LoadJSONObjectToObject<TMyObject>(JObj, Obj2);
+// CheckTrue(Obj.Equals(Obj2));
+// finally
+// Obj2.Free;
+// end;
+// finally
+// JObj.Free;
+// end;
+// finally
+// Obj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestObjectListToJSONArray;
-//var
-//  Obj: TMyObject;
-//  ObjList, Obj2List: TObjectList<TMyObject>;
-//  JSON: TJSONArray;
-//  I: Integer;
-//begin
-//  ObjList := TObjectList<TMyObject>.Create(true);
-//  try
-//    for I := 1 to 10 do
-//    begin
-//      Obj := GetMyObject;
-//      Obj.PropInteger := I;
-//      ObjList.Add(Obj);
-//    end;
-//    JSON := Mapper.ObjectListToJSONArray<TMyObject>(ObjList);
+// procedure TTestMappers.TestObjectListToJSONArray;
+// var
+// Obj: TMyObject;
+// ObjList, Obj2List: TObjectList<TMyObject>;
+// JSON: TJSONArray;
+// I: Integer;
+// begin
+// ObjList := TObjectList<TMyObject>.Create(true);
+// try
+// for I := 1 to 10 do
+// begin
+// Obj := GetMyObject;
+// Obj.PropInteger := I;
+// ObjList.Add(Obj);
+// end;
+// JSON := Mapper.ObjectListToJSONArray<TMyObject>(ObjList);
 //
-//    Obj2List := Mapper.JSONArrayToObjectList<TMyObject>(JSON);
-//    try
-//      CheckEquals(ObjList.Count, Obj2List.Count);
-//      for I := 0 to 9 do
-//      begin
-//        CheckTrue(Obj2List[I].Equals(ObjList[I]));
-//      end;
-//    finally
-//      Obj2List.Free;
-//    end;
-//  finally
-//    ObjList.Free;
-//  end;
-//end;
+// Obj2List := Mapper.JSONArrayToObjectList<TMyObject>(JSON);
+// try
+// CheckEquals(ObjList.Count, Obj2List.Count);
+// for I := 0 to 9 do
+// begin
+// CheckTrue(Obj2List[I].Equals(ObjList[I]));
+// end;
+// finally
+// Obj2List.Free;
+// end;
+// finally
+// ObjList.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestWrappedListToJSONArray;
-//var
-//  Obj: TMyObject;
-//  ObjList: TObjectList<TMyObject>;
-//  WrapList: IWrappedList;
-//  JSON: TJSONArray;
-//  I: Integer;
-//  LJSONObj: TJSONObject;
-//  LMyItem: TMyObject;
-//begin
-//  ObjList := TObjectList<TMyObject>.Create(true);
-//  try
-//    for I := 1 to 10 do
-//    begin
-//      Obj := GetMyObject;
-//      Obj.PropInteger := I;
-//      ObjList.Add(Obj);
-//    end;
-//    WrapList := WrapAsList(ObjList);
-//    JSON := Mapper.ObjectListToJSONArray(WrapList);
-//    try
-//      CheckEquals(WrapList.Count, JSON.Count);
-//      for I := 0 to 9 do
-//      begin
-//        LJSONObj := JSON.Items[I] as TJSONObject;
-//        LMyItem := WrapList.GetItem(I) as TMyObject;
-//        CheckEquals(LMyItem.PropInteger, LJSONObj.GetValue<Integer>('PropInteger'));
-//      end;
-//    finally
-//      JSON.Free;
-//    end;
-//  finally
-//    ObjList.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestWrappedListToJSONArray;
+// var
+// Obj: TMyObject;
+// ObjList: TObjectList<TMyObject>;
+// WrapList: IWrappedList;
+// JSON: TJSONArray;
+// I: Integer;
+// LJSONObj: TJSONObject;
+// LMyItem: TMyObject;
+// begin
+// ObjList := TObjectList<TMyObject>.Create(true);
+// try
+// for I := 1 to 10 do
+// begin
+// Obj := GetMyObject;
+// Obj.PropInteger := I;
+// ObjList.Add(Obj);
+// end;
+// WrapList := WrapAsList(ObjList);
+// JSON := Mapper.ObjectListToJSONArray(WrapList);
+// try
+// CheckEquals(WrapList.Count, JSON.Count);
+// for I := 0 to 9 do
+// begin
+// LJSONObj := JSON.Items[I] as TJSONObject;
+// LMyItem := WrapList.GetItem(I) as TMyObject;
+// CheckEquals(LMyItem.PropInteger, LJSONObj.GetValue<Integer>('PropInteger'));
+// end;
+// finally
+// JSON.Free;
+// end;
+// finally
+// ObjList.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestObjectToJSONObject;
-//var
-//  Obj: TMyObject;
-//  JSON: TJSONObject;
-//  Obj2: TMyObject;
-//begin
-//  Obj := GetMyObject;
-//  try
-//    JSON := Mapper.ObjectToJSONObject(Obj);
-//    try
-//      Obj2 := Mapper.JSONObjectToObject<TMyObject>(JSON);
-//      try
-//        CheckTrue(Obj.Equals(Obj2));
-//      finally
-//        Obj2.Free;
-//      end;
-//    finally
-//      JSON.Free;
-//    end;
-//  finally
-//    Obj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestObjectToJSONObject;
+// var
+// Obj: TMyObject;
+// JSON: TJSONObject;
+// Obj2: TMyObject;
+// begin
+// Obj := GetMyObject;
+// try
+// JSON := Mapper.ObjectToJSONObject(Obj);
+// try
+// Obj2 := Mapper.JSONObjectToObject<TMyObject>(JSON);
+// try
+// CheckTrue(Obj.Equals(Obj2));
+// finally
+// Obj2.Free;
+// end;
+// finally
+// JSON.Free;
+// end;
+// finally
+// Obj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestObjectToJSONObjectAndBackWithStream;
-//var
-//  SO: TMyStreamObject;
-//  JSONObj: TJSONObject;
-//  ResultSO: TMyStreamObject;
-//begin
-//  // ARRANGE
-//  SO := TMyStreamObject.Create;
-//  try
-//    // ACT
-//    TMemoryStream(SO.ImageStream)
-//      .LoadFromFile('..\..\..\..\..\samples\_\customer.png');
-//    JSONObj := Mapper.ObjectToJSONObject(SO);
-//    try
-//      ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
-//      try
-//        // ASSERT
-//        CheckEquals(SO.ImageStream.Size, ResultSO.ImageStream.Size);
-//        CheckEquals(MD5(SO.ImageStream), MD5(ResultSO.ImageStream));
-//      finally
-//        ResultSO.Free;
-//      end;
-//    finally
-//      JSONObj.Free;
-//    end;
-//  finally
-//    SO.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestObjectToJSONObjectAndBackWithStream;
+// var
+// SO: TMyStreamObject;
+// JSONObj: TJSONObject;
+// ResultSO: TMyStreamObject;
+// begin
+// // ARRANGE
+// SO := TMyStreamObject.Create;
+// try
+// // ACT
+// TMemoryStream(SO.ImageStream)
+// .LoadFromFile('..\..\..\..\..\samples\_\customer.png');
+// JSONObj := Mapper.ObjectToJSONObject(SO);
+// try
+// ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+// try
+// // ASSERT
+// CheckEquals(SO.ImageStream.Size, ResultSO.ImageStream.Size);
+// CheckEquals(MD5(SO.ImageStream), MD5(ResultSO.ImageStream));
+// finally
+// ResultSO.Free;
+// end;
+// finally
+// JSONObj.Free;
+// end;
+// finally
+// SO.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestObjectToJSONObjectAndBackWithStringStreamUTF16;
-//var
-//  SO: TMyStreamObject;
-//  JSONObj: TJSONObject;
-//  ResultSO: TMyStreamObject;
-//  ResultStr, str: UnicodeString;
-//begin
-//  // ARRANGE
-//  str := 'This is a UTF16 String (什么是)';
-//  SO := TMyStreamObject.Create;
-//  try
-//    // ACT
-//    SO.PropStream := TStringStream.Create(str, TEncoding.Unicode);
-//    JSONObj := Mapper.ObjectToJSONObject(SO);
-//    try
-//      ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
-//      try
-//        ResultStr := TStringStream(ResultSO.PropStream).DataString;
-//        // ASSERT
-//        CheckEquals(str, ResultStr);
-//      finally
-//        ResultSO.Free;
-//      end;
-//    finally
-//      JSONObj.Free;
-//    end;
-//  finally
-//    SO.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestObjectToJSONObjectAndBackWithStringStreamUTF16;
+// var
+// SO: TMyStreamObject;
+// JSONObj: TJSONObject;
+// ResultSO: TMyStreamObject;
+// ResultStr, str: UnicodeString;
+// begin
+// // ARRANGE
+// str := 'This is a UTF16 String (什么是)';
+// SO := TMyStreamObject.Create;
+// try
+// // ACT
+// SO.PropStream := TStringStream.Create(str, TEncoding.Unicode);
+// JSONObj := Mapper.ObjectToJSONObject(SO);
+// try
+// ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+// try
+// ResultStr := TStringStream(ResultSO.PropStream).DataString;
+// // ASSERT
+// CheckEquals(str, ResultStr);
+// finally
+// ResultSO.Free;
+// end;
+// finally
+// JSONObj.Free;
+// end;
+// finally
+// SO.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestObjectToJSONObjectAndBackWithStringStreamUTF8;
-//var
-//  SO: TMyStreamObject;
-//  JSONObj: TJSONObject;
-//  ResultSO: TMyStreamObject;
-//  ResultStr, str: UTF8String;
-//begin
-//  // ARRANGE
-//  str := 'This is a UTF8 String (什么是)';
-//  SO := TMyStreamObject.Create;
-//  try
-//    // ACT
-//    SO.Prop8Stream := TStringStream.Create(string(str), TEncoding.UTF8);
-//    JSONObj := Mapper.ObjectToJSONObject(SO);
-//    try
-//      ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
-//      try
-//        ResultStr := UTF8String(TStringStream(ResultSO.Prop8Stream).DataString);
-//        // ASSERT
-//        CheckEquals(str, ResultStr);
-//      finally
-//        ResultSO.Free;
-//      end;
-//    finally
-//      JSONObj.Free;
-//    end;
-//  finally
-//    SO.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestObjectToJSONObjectAndBackWithStringStreamUTF8;
+// var
+// SO: TMyStreamObject;
+// JSONObj: TJSONObject;
+// ResultSO: TMyStreamObject;
+// ResultStr, str: UTF8String;
+// begin
+// // ARRANGE
+// str := 'This is a UTF8 String (什么是)';
+// SO := TMyStreamObject.Create;
+// try
+// // ACT
+// SO.Prop8Stream := TStringStream.Create(string(str), TEncoding.UTF8);
+// JSONObj := Mapper.ObjectToJSONObject(SO);
+// try
+// ResultSO := Mapper.JSONObjectToObject<TMyStreamObject>(JSONObj);
+// try
+// ResultStr := UTF8String(TStringStream(ResultSO.Prop8Stream).DataString);
+// // ASSERT
+// CheckEquals(str, ResultStr);
+// finally
+// ResultSO.Free;
+// end;
+// finally
+// JSONObj.Free;
+// end;
+// finally
+// SO.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestObjectToJSONObject_Generics;
-//var
-//  lObjList: TObjectList<TMyClass>;
-//  lResponse: TResponseWrapper<TMyClass>;
-//  LJSONObj: TJSONObject;
-//begin
-//  lObjList := TObjectList<TMyClass>.Create();
-//  lObjList.Add(TMyClass.Create(1, 'pippo'));
-//  lObjList.Add(TMyClass.Create(2, 'pluto'));
-//  lResponse := TResponseWrapper<TMyClass>.Create(lObjList.Count, lObjList);
-//  try
-//    LJSONObj := Mapper.ObjectToJSONObject(lResponse);
-//    try
-//      CheckNotNull(LJSONObj.GetValue('Items'));
-//      CheckEquals(2, TJSONArray(LJSONObj.GetValue('Items')).Count);
-//    finally
-//      LJSONObj.Free;
-//    end;
-//  finally
-//    lResponse.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestObjectToJSONObject_Generics;
+// var
+// lObjList: TObjectList<TMyClass>;
+// lResponse: TResponseWrapper<TMyClass>;
+// LJSONObj: TJSONObject;
+// begin
+// lObjList := TObjectList<TMyClass>.Create();
+// lObjList.Add(TMyClass.Create(1, 'pippo'));
+// lObjList.Add(TMyClass.Create(2, 'pluto'));
+// lResponse := TResponseWrapper<TMyClass>.Create(lObjList.Count, lObjList);
+// try
+// LJSONObj := Mapper.ObjectToJSONObject(lResponse);
+// try
+// CheckNotNull(LJSONObj.GetValue('Items'));
+// CheckEquals(2, TJSONArray(LJSONObj.GetValue('Items')).Count);
+// finally
+// LJSONObj.Free;
+// end;
+// finally
+// lResponse.Free;
+// end;
+// end;
 
 procedure TTestRouting.TestPathButNoParameters;
 var
@@ -1026,155 +1036,190 @@ begin
   end;
 end;
 
-//procedure TTestMappers.TestSerializeUsingFields;
-//var
-//  lObj: TMyObjectWithLogic;
-//  lJObj: TJSONObject;
-//  lObj2: TObject;
-//begin
-//  lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
-//  try
-//    lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
-//    try
-//      CheckEquals(4, lJObj.Count); // 3 properties + $dmvc.classname
-//      CheckNotNull(lJObj.Get('FFirstName'));
-//      CheckNotNull(lJObj.Get('FLastName'));
-//      CheckNotNull(lJObj.Get('FAge'));
-//      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
-//      try
-//        CheckIs(lObj2, TMyObjectWithLogic,
-//          'wrong classtype for deserialized object');
-//        CheckTrue(lObj.Equals(lObj2),
-//          'restored object is different from the original');
-//      finally
-//        lObj2.Free;
-//      end;
-//    finally
-//      lJObj.Free;
-//    end;
-//  finally
-//    lObj.Free;
-//  end;
-//end;
+{ Use this test only if you want to test the speed of the router }
+// procedure TTestRouting.TestRoutingSpeed;
+// var
+// Params: TMVCRequestParamsTable;
+// ResponseContentType: string;
+// ResponseContentEncoding: string;
+// I: Integer;
+// lSW: TStopwatch;
+// begin
+// // procedure TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
+// Params := TMVCRequestParamsTable.Create;
+// try
+// lSW := TStopWatch.Create;
+// lSW.Start;
+// for I := 1 to 1000 do
+// begin
+// Params.Clear;
+// Router.ExecuteRouting(
+// '/typed/booleans/true/false/true/false',
+// httpGET,
+// TMVCMediaType.APPLICATION_JSON,
+// TMVCMediaType.APPLICATION_JSON,
+// Controllers,
+// TMVCMediaType.APPLICATION_JSON,
+// TMVCMediaType.APPLICATION_JSON,
+// Params,
+// ResponseContentType, ResponseContentEncoding);
+// end;
+// CheckTrue(false, lSW.ElapsedMilliseconds.ToString);
+// finally
+// Params.Free;
+// end;
 //
-//procedure TTestMappers.TestSerializeUsingFieldsComplexObject;
-//var
-//  lJObj: TJSONObject;
-//  lObj2: TObject;
-//  lObj: TMyComplexObject;
-//begin
-//  lObj := GetMyComplexObject;
-//  try
-//    lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
-//    try
-//      CheckEquals(5, lJObj.Count); // 4 properties + $dmvc.classname
-//      CheckNotNull(lJObj.Get('FProp1'));
-//      CheckNotNull(lJObj.Get('FChildObjectList'));
-//      CheckNotNull(lJObj.Get('FChildObject'));
-//      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
-//      try
-//        CheckIs(lObj2, TMyComplexObject,
-//          'wrong classtype for deserialized object');
-//        CheckTrue(lObj.Equals(lObj2),
-//          'restored object is different from the original');
-//      finally
-//        lObj2.Free;
-//      end;
-//    finally
-//      lJObj.Free;
-//    end;
-//  finally
-//    lObj.Free;
-//  end;
-//end;
+// end;
+
+// procedure TTestMappers.TestSerializeUsingFields;
+// var
+// lObj: TMyObjectWithLogic;
+// lJObj: TJSONObject;
+// lObj2: TObject;
+// begin
+// lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
+// try
+// lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
+// try
+// CheckEquals(4, lJObj.Count); // 3 properties + $dmvc.classname
+// CheckNotNull(lJObj.Get('FFirstName'));
+// CheckNotNull(lJObj.Get('FLastName'));
+// CheckNotNull(lJObj.Get('FAge'));
+// lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
+// try
+// CheckIs(lObj2, TMyObjectWithLogic,
+// 'wrong classtype for deserialized object');
+// CheckTrue(lObj.Equals(lObj2),
+// 'restored object is different from the original');
+// finally
+// lObj2.Free;
+// end;
+// finally
+// lJObj.Free;
+// end;
+// finally
+// lObj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestSerializeUsingFieldsComplexObject2;
-//var
-//  lJObj: TJSONObject;
-//  lObj2: TObject;
-//  lObj: TMyComplexObject;
-//begin
-//  lObj := GetMyComplexObjectWithNotInitializedChilds;
-//  try
-//    lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
-//    try
-//      CheckEquals(5, lJObj.Count); // 4 properties + $dmvc.classname
-//      CheckNotNull(lJObj.Get('FProp1'));
-//      CheckNotNull(lJObj.Get('FChildObjectList'));
-//      CheckNotNull(lJObj.Get('FChildObject'));
-//      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
-//      try
-//        CheckIs(lObj2, TMyComplexObject,
-//          'wrong classtype for deserialized object');
-//        CheckTrue(lObj.Equals(lObj2),
-//          'restored object is different from the original');
-//      finally
-//        lObj2.Free;
-//      end;
-//    finally
-//      lJObj.Free;
-//    end;
-//  finally
-//    lObj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestSerializeUsingFieldsComplexObject;
+// var
+// lJObj: TJSONObject;
+// lObj2: TObject;
+// lObj: TMyComplexObject;
+// begin
+// lObj := GetMyComplexObject;
+// try
+// lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
+// try
+// CheckEquals(5, lJObj.Count); // 4 properties + $dmvc.classname
+// CheckNotNull(lJObj.Get('FProp1'));
+// CheckNotNull(lJObj.Get('FChildObjectList'));
+// CheckNotNull(lJObj.Get('FChildObject'));
+// lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
+// try
+// CheckIs(lObj2, TMyComplexObject,
+// 'wrong classtype for deserialized object');
+// CheckTrue(lObj.Equals(lObj2),
+// 'restored object is different from the original');
+// finally
+// lObj2.Free;
+// end;
+// finally
+// lJObj.Free;
+// end;
+// finally
+// lObj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.
-//  TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
-//var
-//  lObj: TMyObjectWithLogic;
-//  lJObj: TJSONObject;
-//  lObj2: TMyObjectWithLogic;
-//begin
-//  lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
-//  try
-//    lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
-//    try
-//      lJObj.RemovePair('FFirstName').Free;
-//      lObj2 := Mapper.JSONObjectFieldsToObject(lJObj) as TMyObjectWithLogic;
-//      try
-//        CheckEquals('', lObj2.FirstName);
-//      finally
-//        lObj2.Free;
-//      end;
-//    finally
-//      lJObj.Free;
-//    end;
-//  finally
-//    lObj.Free;
-//  end;
-//end;
+// procedure TTestMappers.TestSerializeUsingFieldsComplexObject2;
+// var
+// lJObj: TJSONObject;
+// lObj2: TObject;
+// lObj: TMyComplexObject;
+// begin
+// lObj := GetMyComplexObjectWithNotInitializedChilds;
+// try
+// lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
+// try
+// CheckEquals(5, lJObj.Count); // 4 properties + $dmvc.classname
+// CheckNotNull(lJObj.Get('FProp1'));
+// CheckNotNull(lJObj.Get('FChildObjectList'));
+// CheckNotNull(lJObj.Get('FChildObject'));
+// lObj2 := Mapper.JSONObjectFieldsToObject(lJObj);
+// try
+// CheckIs(lObj2, TMyComplexObject,
+// 'wrong classtype for deserialized object');
+// CheckTrue(lObj.Equals(lObj2),
+// 'restored object is different from the original');
+// finally
+// lObj2.Free;
+// end;
+// finally
+// lJObj.Free;
+// end;
+// finally
+// lObj.Free;
+// end;
+// end;
 //
-//procedure TTestMappers.TestSerializeUsingProperties;
-//var
-//  lObj: TMyObjectWithLogic;
-//  lJObj: TJSONObject;
-//  lObj2: TMyObjectWithLogic;
-//begin
-//  lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
-//  try
-//    lJObj := Mapper.ObjectToJSONObject(lObj, []);
-//    try
-//      CheckEquals(5, lJObj.Count); // 5 properties
-//      CheckNotNull(lJObj.Get('FirstName'));
-//      CheckNotNull(lJObj.Get('LastName'));
-//      CheckNotNull(lJObj.Get('Age'));
-//      CheckNotNull(lJObj.Get('FullName'));
-//      CheckNotNull(lJObj.Get('IsAdult'));
-//      lObj2 := Mapper.JSONObjectToObject<TMyObjectWithLogic>(lJObj);
-//      try
-//        CheckTrue(lObj2.Equals(lObj),
-//          'deserialized object is not equals to the original object');
-//      finally
-//        lObj2.Free;
-//      end;
-//    finally
-//      lJObj.Free;
-//    end;
-//  finally
-//    lObj.Free;
-//  end;
-//end;
+// procedure TTestMappers.
+// TestSerializeUsingFieldsWithNotExixtentPropetyInJSONObject;
+// var
+// lObj: TMyObjectWithLogic;
+// lJObj: TJSONObject;
+// lObj2: TMyObjectWithLogic;
+// begin
+// lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
+// try
+// lJObj := Mapper.ObjectToJSONObjectFields(lObj, []);
+// try
+// lJObj.RemovePair('FFirstName').Free;
+// lObj2 := Mapper.JSONObjectFieldsToObject(lJObj) as TMyObjectWithLogic;
+// try
+// CheckEquals('', lObj2.FirstName);
+// finally
+// lObj2.Free;
+// end;
+// finally
+// lJObj.Free;
+// end;
+// finally
+// lObj.Free;
+// end;
+// end;
+//
+// procedure TTestMappers.TestSerializeUsingProperties;
+// var
+// lObj: TMyObjectWithLogic;
+// lJObj: TJSONObject;
+// lObj2: TMyObjectWithLogic;
+// begin
+// lObj := TMyObjectWithLogic.Create('Daniele', 'Teti', 35);
+// try
+// lJObj := Mapper.ObjectToJSONObject(lObj, []);
+// try
+// CheckEquals(5, lJObj.Count); // 5 properties
+// CheckNotNull(lJObj.Get('FirstName'));
+// CheckNotNull(lJObj.Get('LastName'));
+// CheckNotNull(lJObj.Get('Age'));
+// CheckNotNull(lJObj.Get('FullName'));
+// CheckNotNull(lJObj.Get('IsAdult'));
+// lObj2 := Mapper.JSONObjectToObject<TMyObjectWithLogic>(lJObj);
+// try
+// CheckTrue(lObj2.Equals(lObj),
+// 'deserialized object is not equals to the original object');
+// finally
+// lObj2.Free;
+// end;
+// finally
+// lJObj.Free;
+// end;
+// finally
+// lObj.Free;
+// end;
+// end;
 
 procedure TTestRouting.TestWithMethodTypes;
 var
@@ -1348,11 +1393,11 @@ end;
 
 procedure TTestJWT.TestHMAC;
 var
-  lAlg: String;
-  lValue: String;
+  lAlg: string;
+  lValue: string;
   I: Integer;
 begin
-  for I := Low(HMAC_ALG_AND_RESULTS) to High(HMAC_ALG_AND_RESULTS) do
+  for I := low(HMAC_ALG_AND_RESULTS) to high(HMAC_ALG_AND_RESULTS) do
   begin
     lAlg := HMAC_ALG_AND_RESULTS[I][0];
     lValue := HMAC_ALG_AND_RESULTS[I][1];
@@ -1441,7 +1486,7 @@ begin
   FJWT.Claims.NotBefore := Tomorrow;
   lToken := FJWT.GetToken;
   CheckFalse(FJWT.IsValidToken(lToken, lError),
-    'Still-not-valid token is considered valid');
+    'Still-not-valid token is considered valid (near midnight is ok... fix this test) ');
 
   FJWT.Claims.NotBefore := Now;
   lToken := FJWT.GetToken;
@@ -1517,7 +1562,9 @@ begin
   end;
 end;
 
-procedure TMVCSerUnSerTestCase.SetSerializer(const ASerializer: IMVCSerializer);
+procedure TMVCSerUnSerTestCase.SetSerializer(
+  const
+  ASerializer: IMVCSerializer);
 begin
   FSerializer := ASerializer;
 end;

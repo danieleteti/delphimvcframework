@@ -700,7 +700,7 @@ type
       const AContentType: string); virtual;
     destructor Destroy; override;
 
-    procedure Execute(const ViewName: String); virtual; abstract;
+    procedure Execute(const ViewName: string); virtual; abstract;
 
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
@@ -722,6 +722,7 @@ uses
 
 var
   _IsShuttingDown: Int64 = 0;
+  _MVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
 
 function IsShuttingDown: Boolean;
 begin
@@ -1677,7 +1678,7 @@ begin
       else
       begin
         LHandled := False;
-        LRouter := TMVCRouter.Create(FConfig);
+        LRouter := TMVCRouter.Create(FConfig, _MVCGlobalActionParamsCache);
         try
           ExecuteBeforeRoutingMiddleware(LContext, LHandled);
           if not LHandled then
@@ -2838,5 +2839,11 @@ end;
 initialization
 
 _IsShuttingDown := 0;
+
+_MVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+
+finalization
+
+FreeAndNil(_MVCGlobalActionParamsCache);
 
 end.

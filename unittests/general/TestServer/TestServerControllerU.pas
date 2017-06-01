@@ -21,8 +21,9 @@
 // limitations under the License.
 //
 // *************************************************************************** }
-
 unit TestServerControllerU;
+
+{$HINTS OFF}
 
 interface
 
@@ -374,7 +375,7 @@ begin
   ID := ctx.Request.Params['id'].ToInteger;
   PersonList := TPerson.GetList;
   try
-//    Render(PersonList[ID - 1], false, TDMVCSerializationType.Fields);
+    // Render(PersonList[ID - 1], false, TDMVCSerializationType.Fields);
   finally
     PersonList.Free;
   end;

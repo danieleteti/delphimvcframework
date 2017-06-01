@@ -332,14 +332,28 @@ type
 
   TMVCStringDictionary = class
   strict protected
-    FDict: TDictionary<String, String>;
+    FDict: TDictionary<string, string>;
   public
     constructor Create; virtual;
     destructor Destroy; override;
     procedure Clear;
-    function AddProperty(const Name, Value: String): TMVCStringDictionary;
+    function AddProperty(const Name, Value: string): TMVCStringDictionary;
+    function TryGetValue(const Name: string; out Value: string): Boolean;
     function Count: Integer;
-    function GetEnumerator: TDictionary<String, String>.TPairEnumerator;
+    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+  end;
+
+  { This type is thread safe }
+  TMVCStringObjectDictionary<T: class> = class
+  private
+    FMREWS: TMultiReadExclusiveWriteSynchronizer;
+  protected
+    FDict: TObjectDictionary<string, T>;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function TryGetValue(const Name: string; out Value: T): Boolean;
+    procedure Add(const Name: string; Value: T);
   end;
 
   TMVCViewDataObject = class(TObjectDictionary<string, TObject>)
@@ -351,7 +365,8 @@ type
     constructor Create;
   end;
 
-  TMVCCriticalSectionHelper = class helper for TCriticalSection
+  TMVCCriticalSectionHelper = class helper
+    for TCriticalSection
   public
     procedure WithLock(const AAction: TProc);
     function WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
@@ -620,9 +635,9 @@ end;
 { TMVCStringDictionary }
 
 function TMVCStringDictionary.AddProperty(const Name,
-  Value: String): TMVCStringDictionary;
+  Value: string): TMVCStringDictionary;
 begin
-  FDict.AddOrSetValue(Name, Value);
+  FDict.AddOrSetValue(name, Value);
   Result := Self;
 end;
 
@@ -639,7 +654,7 @@ end;
 constructor TMVCStringDictionary.Create;
 begin
   inherited;
-  FDict := TDictionary<String, String>.Create;
+  FDict := TDictionary<string, string>.Create;
 end;
 
 destructor TMVCStringDictionary.Destroy;
@@ -648,9 +663,52 @@ begin
   inherited;
 end;
 
-function TMVCStringDictionary.GetEnumerator: TDictionary<String, String>.TPairEnumerator;
+function TMVCStringDictionary.GetEnumerator: TDictionary<string, string>.TPairEnumerator;
 begin
   Result := FDict.GetEnumerator;
+end;
+
+function TMVCStringDictionary.TryGetValue(const Name: string;
+  out Value: string): Boolean;
+begin
+  Result := FDict.TryGetValue(name, Value);
+end;
+
+{ TMVCStringObjectDictionary }
+
+procedure TMVCStringObjectDictionary<T>.Add(const Name: string; Value: T);
+begin
+  FMREWS.BeginWrite;
+  try
+    if not FDict.ContainsKey(name) then
+      FDict.Add(name, Value);
+  finally
+    FMREWS.EndWrite;
+  end;
+end;
+
+constructor TMVCStringObjectDictionary<T>.Create;
+begin
+  inherited;
+  FDict := TObjectDictionary<string, T>.Create([doOwnsValues]);
+  FMREWS := TMultiReadExclusiveWriteSynchronizer.Create;
+end;
+
+destructor TMVCStringObjectDictionary<T>.Destroy;
+begin
+  FDict.Free;
+  FMREWS.Free;
+  inherited;
+end;
+
+function TMVCStringObjectDictionary<T>.TryGetValue(const Name: string; out Value: T): Boolean;
+begin
+  FMREWS.BeginRead;
+  try
+    Result := FDict.TryGetValue(name, Value);
+  finally
+    FMREWS.EndRead;
+  end;
 end;
 
 initialization
