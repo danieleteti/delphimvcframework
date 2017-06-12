@@ -1419,7 +1419,7 @@ begin
   Cookie.Value := ASessionID;
   LSessTimeout := StrToIntDef(AContext.Config[TMVCConfigKey.SessionTimeout], 0);
   if LSessTimeout = 0 then
-    Cookie.Expires := 0
+    Cookie.Expires := -1
   else
     Cookie.Expires := Now + OneMinute * LSessTimeout;
   Cookie.Path := '/';
