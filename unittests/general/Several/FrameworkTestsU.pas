@@ -73,9 +73,10 @@ type
 
   TTestRouting = class(TTestCase)
   private
-    Router: TMVCRouter;
-    Controllers: TObjectList<TMVCControllerDelegate>;
+    FRouter: TMVCRouter;
+    FControllers: TObjectList<TMVCControllerDelegate>;
     FMVCActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
+    FConfig: TMVCConfig;
 
   public
     procedure SetUp; override;
@@ -89,6 +90,7 @@ type
     procedure TestComplexRoutings;
     procedure TestProduceRoutings;
     procedure TestProduceRoutingsWithExplicitCharset;
+    procedure TestPathPrefix;
     // procedure TestRoutingSpeed;
 
     // objects mappers
@@ -232,19 +234,22 @@ end;
 
 procedure TTestRouting.SetUp;
 begin
-  Controllers := TObjectList<TMVCControllerDelegate>.Create;
-  Controllers.Add(TMVCControllerDelegate.Create(TSimpleController, nil));
-  Controllers.Add(TMVCControllerDelegate.Create(TNotSoSimpleController, nil));
-  Controllers.Add(TMVCControllerDelegate.Create(TTestServerController, nil));
+  FControllers := TObjectList<TMVCControllerDelegate>.Create;
+  FControllers.Add(TMVCControllerDelegate.Create(TSimpleController, nil));
+  FControllers.Add(TMVCControllerDelegate.Create(TNotSoSimpleController, nil));
+  FControllers.Add(TMVCControllerDelegate.Create(TTestServerController, nil));
   FMVCActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
-  Router := TMVCRouter.Create(nil, FMVCActionParamsCache);
+  FConfig := TMVCConfig.Create;
+  FConfig.Value[TMVCConfigKey.PathPrefix] := '';
+  FRouter := TMVCRouter.Create(FConfig, FMVCActionParamsCache);
 end;
 
 procedure TTestRouting.TearDown;
 begin
-  Router.Free;
-  Controllers.Free;
+  FRouter.Free;
+  FControllers.Free;
   FMVCActionParamsCache.Free;
+  FConfig.Free;
 end;
 
 // procedure TTestRouting.TestClassNameMethodNameRouting;
@@ -354,37 +359,37 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/path1/1', httpPOST, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/path1/1', httpPOST, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+    CheckEquals('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/path2/1/2/3', httpPOST, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/path2/1/2/3', httpPOST, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+    CheckEquals('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/path3/1/2/tre/3', httpPOST, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/path3/1/2/tre/3', httpPOST, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+    CheckEquals('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/path4/par1/2/par2/3/4', httpPOST,
-      'text/plain', 'text/plain', Controllers, 'text/plain',
+    CheckTrue(FRouter.ExecuteRouting('/path4/par1/2/par2/3/4', httpPOST,
+      'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
       ResponseContentEncoding));
-    CheckEquals('TestMultiplePaths', Router.MethodToCall.Name);
+    CheckEquals('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/path4/par1/par2/3/4/notvalidparameter',
-      httpPOST, 'text/plain', 'text/plain', Controllers, 'text/plain',
+    CheckFalse(FRouter.ExecuteRouting('/path4/par1/par2/3/4/notvalidparameter',
+      httpPOST, 'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
       ResponseContentEncoding));
-    CheckNull(Router.MethodToCall);
-    CheckFalse(Assigned(Router.ControllerClazz));
+    CheckNull(FRouter.MethodToCall);
+    CheckFalse(Assigned(FRouter.ControllerClazz));
 
   finally
     Params.Free;
@@ -944,16 +949,63 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, 'text/plain',
-      'text/plain', Controllers, 'text/plain',
+    CheckTrue(FRouter.ExecuteRouting('/orders', httpGET, 'text/plain',
+      'text/plain', FControllers, 'text/plain',
       TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
       ResponseContentEncoding));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('Orders', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('Orders', FRouter.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
   finally
     Params.Free;
+  end;
+end;
+
+procedure TTestRouting.TestPathPrefix;
+var
+  lControllers: TObjectList<TMVCControllerDelegate>;
+  lMVCActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
+  lConfig: TMVCConfig;
+  lRouter: TMVCRouter;
+  lParams: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
+begin
+  lControllers := TObjectList<TMVCControllerDelegate>.Create;
+  lControllers.Add(TMVCControllerDelegate.Create(TSimpleController, nil));
+  lControllers.Add(TMVCControllerDelegate.Create(TNotSoSimpleController, nil));
+  lControllers.Add(TMVCControllerDelegate.Create(TTestServerController, nil));
+  lMVCActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+  lConfig := TMVCConfig.Create;
+  lConfig.Value[TMVCConfigKey.PathPrefix] := '';
+  lRouter := TMVCRouter.Create(lConfig, FMVCActionParamsCache);
+  try
+    lParams := TMVCRequestParamsTable.Create;
+    try
+      CheckFalse(lRouter.ExecuteRouting('/api/orders', httpGET, 'text/plain',
+        'text/plain', FControllers, 'text/plain',
+        TMVCConstants.DEFAULT_CONTENT_CHARSET, lParams, ResponseContentType,
+        ResponseContentEncoding));
+
+      lConfig.Value[TMVCConfigKey.PathPrefix] := '/api';
+      CheckTrue(lRouter.ExecuteRouting('/api/orders', httpGET, 'text/plain',
+        'text/plain', FControllers, 'text/plain',
+        TMVCConstants.DEFAULT_CONTENT_CHARSET, lParams, ResponseContentType,
+        ResponseContentEncoding));
+      CheckEquals(0, lParams.Count);
+      CheckEquals('TSimpleController', lRouter.ControllerClazz.ClassName);
+      CheckEquals('Orders', lRouter.MethodToCall.Name);
+      CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
+    finally
+      lParams.Free;
+    end;
+
+  finally
+    lRouter.Free;
+    lControllers.Free;
+    lMVCActionParamsCache.Free;
+    lConfig.Free;
   end;
 end;
 
@@ -965,27 +1017,27 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('789', Params['ordernumber']);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('OrderNumber', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('OrderNumber', FRouter.MethodToCall.Name);
   finally
     Params.Free;
   end;
 
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/àèéìòù .-_\', httpGET,
-      'text/plain', 'text/plain', Controllers, 'text/plain',
+    CheckTrue(FRouter.ExecuteRouting('/orders/àèéìòù .-_\', httpGET,
+      'text/plain', 'text/plain', FControllers, 'text/plain',
       TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
       ResponseContentEncoding));
     CheckEquals(1, Params.Count);
     CheckEquals('àèéìòù .-_\', Params['ordernumber']);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('OrderNumber', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('OrderNumber', FRouter.MethodToCall.Name);
   finally
     Params.Free;
   end;
@@ -1001,13 +1053,13 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     // a GET request with a ACCEPT: application/json
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '', 'application/json',
-      Controllers, TMVCConstants.DEFAULT_CONTENT_TYPE,
+    CheckTrue(FRouter.ExecuteRouting('/orders', httpGET, '', 'application/json',
+      FControllers, TMVCConstants.DEFAULT_CONTENT_TYPE,
       TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
       ResponseContentCharset));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('OrdersProduceJSON', FRouter.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
     Params.Free;
@@ -1023,13 +1075,13 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     // a GET request with a ACCEPT: application/json
-    CheckTrue(Router.ExecuteRouting('/orders', httpGET, '',
-      'application/json; charset=UTF-8', Controllers,
+    CheckTrue(FRouter.ExecuteRouting('/orders', httpGET, '',
+      'application/json; charset=UTF-8', FControllers,
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET,
       Params, ResponseContentType, ResponseContentCharset));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('OrdersProduceJSON', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('OrdersProduceJSON', FRouter.MethodToCall.Name);
     CheckEquals(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
     Params.Free;
@@ -1229,55 +1281,55 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPOST, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/orders/789', httpPOST, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
+    CheckEquals('UpdateOrderNumber', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPUT, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/orders/789', httpPUT, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('UpdateOrderNumber', Router.MethodToCall.Name);
+    CheckEquals('UpdateOrderNumber', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpPATCH, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/orders/789', httpPATCH, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('PatchOrder', Router.MethodToCall.Name);
+    CheckEquals('PatchOrder', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpDELETE, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckFalse(FRouter.ExecuteRouting('/orders/789', httpDELETE, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckNull(Router.MethodToCall);
-    CheckFalse(Assigned(Router.ControllerClazz));
+    CheckNull(FRouter.MethodToCall);
+    CheckFalse(Assigned(FRouter.ControllerClazz));
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpHEAD, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckFalse(FRouter.ExecuteRouting('/orders/789', httpHEAD, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding), 'Resolved as HEAD');
-    CheckNull(Router.MethodToCall, 'Resolved as HEAD');
-    CheckFalse(Assigned(Router.ControllerClazz));
+    CheckNull(FRouter.MethodToCall, 'Resolved as HEAD');
+    CheckFalse(Assigned(FRouter.ControllerClazz));
 
     Params.Clear;
-    CheckFalse(Router.ExecuteRouting('/orders/789', httpOPTIONS, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckFalse(FRouter.ExecuteRouting('/orders/789', httpOPTIONS, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding), 'Resolved as OPTIONS');
-    CheckNull(Router.MethodToCall, 'Resolved as OPTIONS');
-    CheckFalse(Assigned(Router.ControllerClazz));
+    CheckNull(FRouter.MethodToCall, 'Resolved as OPTIONS');
+    CheckFalse(Assigned(FRouter.ControllerClazz));
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('OrderNumber', Router.MethodToCall.Name);
+    CheckEquals('OrderNumber', FRouter.MethodToCall.Name);
 
     Params.Clear;
-    CheckTrue(Router.ExecuteRouting('/orders/789', httpGET, 'text/plain',
-      'text/plain', Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain',
+      'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
-    CheckEquals('OrderNumber', Router.MethodToCall.Name);
+    CheckEquals('OrderNumber', FRouter.MethodToCall.Name);
   finally
     Params.Free;
   end;
@@ -1291,12 +1343,12 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('/', httpGET, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('/', httpGET, 'text/plain', 'text/plain',
+      FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('Index', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('Index', FRouter.MethodToCall.Name);
   finally
     Params.Free;
   end;
@@ -1310,12 +1362,12 @@ var
 begin
   Params := TMVCRequestParamsTable.Create;
   try
-    CheckTrue(Router.ExecuteRouting('', httpGET, 'text/plain', 'text/plain',
-      Controllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+    CheckTrue(FRouter.ExecuteRouting('', httpGET, 'text/plain', 'text/plain',
+      FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     CheckEquals(0, Params.Count);
-    CheckEquals('TSimpleController', Router.ControllerClazz.ClassName);
-    CheckEquals('Index', Router.MethodToCall.Name);
+    CheckEquals('TSimpleController', FRouter.ControllerClazz.ClassName);
+    CheckEquals('Index', FRouter.MethodToCall.Name);
   finally
     Params.Free;
   end;

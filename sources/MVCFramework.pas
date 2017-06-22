@@ -1169,11 +1169,7 @@ end;
 
 procedure TMVCWebResponse.Flush;
 begin
-  try
-    FWebResponse.SendResponse;
-  except
-    { TODO -oEzequiel -cException : Check why this exception is being eaten }
-  end;
+  FWebResponse.SendResponse;
 end;
 
 function TMVCWebResponse.GetContent: string;
@@ -1579,7 +1575,7 @@ begin
   Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
   Config[TMVCConfigKey.ViewPath] := 'templates';
-  Config[TMVCConfigKey.ISAPIPath] := '';
+  Config[TMVCConfigKey.PathPrefix] := '';
   Config[TMVCConfigKey.StompServer] := 'localhost';
   Config[TMVCConfigKey.StompServerPort] := '61613';
   Config[TMVCConfigKey.StompUsername] := 'guest';
@@ -2094,11 +2090,14 @@ begin
   Cookie := AContext.Response.Cookies.Add;
   Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionId;
-  SessionTimeout := StrToIntDef(AContext.Config[TMVCConfigKey.SessionTimeout], 0);
+  if not TryStrToInt(AContext.Config[TMVCConfigKey.SessionTimeout], SessionTimeout) then
+    raise EMVCException.Create('[Config::Session Timeout] is not a valid integer');
+
   if SessionTimeout = 0 then
-    Cookie.Expires := 0
+    Cookie.Expires := 0 // session cookie
   else
     Cookie.Expires := Now + OneMinute * SessionTimeout;
+
   Cookie.Path := '/';
   Result := ASessionId;
 end;

@@ -48,3 +48,5 @@ The memory allocated for the TJSONValue descendant (e.g. TJSONObject, TJSONArray
   ```delphi
 	function GetNewStompClient(const AClientId: string = ''): IStompClient;
 	```
+	
+- ```TMVCConfigKey.ISAPIPath``` has been substituted with ```TMVCConfigKey.PathPrefix``` and now is applicated to all kind of projects (not only ISAPI);

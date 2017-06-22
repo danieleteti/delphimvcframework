@@ -9,16 +9,17 @@ uses
   Web.WebReq,
   {$IFNDEF LINUX}
   Winapi.Windows,
-  {$ENDIF}
+  {$ENDIF }
   Web.WebBroker,
   MVCFramework.Commons,
-  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule} ,
+  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule},
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
   TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas',
   AuthHandlersU in 'AuthHandlersU.pas',
-  BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas';
+  BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
+  MVCFramework in '..\..\..\sources\MVCFramework.pas';
 
 {$R *.res}
 

@@ -113,7 +113,8 @@ type
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
-    ISAPIPath = 'isapi_path';
+    //ISAPIPath = 'isapi_path';
+    PathPrefix = 'pathprefix';
     StompServer = 'stompserver';
     StompServerPort = 'stompserverport';
     StompUsername = 'stompusername';

@@ -125,7 +125,7 @@ uses
   MVCFramework.Serializer.Commons,
   Soap.EncdDecd,
   System.Classes,
-  MVCFramework.SystemJSONUtils;
+  MVCFramework.SystemJSONUtils, IdCookie;
 
 { TServerTest }
 
@@ -929,11 +929,14 @@ procedure TServerTest.TestSession;
 var
   c1: TRESTClient;
   res: IRESTResponse;
+  s: string;
 begin
   c1 := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
   try
     c1.Accept(TMVCMediaType.APPLICATION_JSON);
-    c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
+    res := c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
+    s := res.HeaderValue('Set-Cookie');
+    CheckFalse(s.Contains('Expires'), 'Session cookie contains "expires" attribute');
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
     CheckEquals('daniele teti', res.BodyAsString);
     c1.Accept(TMVCMediaType.TEXT_PLAIN);

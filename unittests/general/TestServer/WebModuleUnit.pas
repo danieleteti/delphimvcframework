@@ -57,6 +57,7 @@ begin
     procedure(Config: TMVCConfig)
     begin
       // no config here
+      Config[TMVCConfigKey.SessionTimeout] := '0'; //settion cookie
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)

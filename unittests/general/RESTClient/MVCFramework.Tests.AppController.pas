@@ -56,11 +56,13 @@ var
   LUser: TAppUser;
 begin
   LUser := TAppUser.Create;
-  LUser.Cod := 1;
-  LUser.Name := 'Ezequiel';
-  LUser.Pass := '123';
-
-  Render(LUser);
+  try
+    LUser.Cod := 1;
+    LUser.Name := 'Ezequiel';
+    LUser.Pass := '123';
+  finally
+    Render(LUser, True);
+  end;
 end;
 
 procedure TAppController.GetUsers(ctx: TWebContext);
@@ -81,7 +83,7 @@ begin
     LUsers.Add(LUser);
   end;
 
-  Self.Render<TAppUser>(LUsers);
+  Self.Render<TAppUser>(LUsers, True);
 end;
 
 procedure TAppController.HelloWorld(ctx: TWebContext);
@@ -94,13 +96,14 @@ var
   LUser: TAppUser;
 begin
   LUser := ctx.Request.BodyAs<TAppUser>();
-
-  if (LUser.Cod > 0) then
-    Render('Sucess!')
-  else
-    Render('Error!');
-
-  LUser.Free;
+  try
+    if (LUser.Cod > 0) then
+      Render('Success!')
+    else
+      Render('Error!');
+  finally
+    LUser.Free;
+  end;
 end;
 
 procedure TAppController.PostUsers(ctx: TWebContext);
@@ -108,14 +111,17 @@ var
   LUsers: TObjectList<TAppUser>;
 begin
   LUsers := ctx.Request.BodyAsListOf<TAppUser>();
-  LUsers.OwnsObjects := True;
+  try
+    LUsers.OwnsObjects := True;
 
-  if (LUsers.Count > 0) then
-    Render('Sucess!')
-  else
-    Render('Error!');
+    if (LUsers.Count > 0) then
+      Render('Success!')
+    else
+      Render('Error!');
 
-  LUsers.Free;
+  finally
+    LUsers.Free;
+  end;
 end;
 
 end.

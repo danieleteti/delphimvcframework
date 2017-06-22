@@ -104,9 +104,9 @@ type
     procedure SetValueAsString(const Value: TValue);
   public
     function Equals(Obj: TObject): boolean; reintroduce;
-    [TValueAsType(TypeInfo(String))]
+    //[TValueAsType(TypeInfo(String))]
     property ValueAsString: TValue read FValueAsString write SetValueAsString;
-    [TValueAsType(TypeInfo(Integer))]
+    //[TValueAsType(TypeInfo(Integer))]
     property ValueAsInteger: TValue read FValueAsInteger write SetValueAsInteger;
     property Value1: TValue read FValue1 write FValue1;
     property Value2: TValue read FValue2 write FValue2;
@@ -115,7 +115,7 @@ type
     property Value5: TValue read FValue5 write FValue5;
   end;
 
-  [MapperListOf(TMyChildObject)]
+  [MVCListOf(TMyChildObject)]
   TMyChildObjectList = class(TObjectList<TMyChildObject>)
   end;
 

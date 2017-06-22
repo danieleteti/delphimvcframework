@@ -159,6 +159,7 @@ var
   LFound: Boolean;
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
+  lPathPrefix: string;
 begin
   Result := False;
 
@@ -178,15 +179,16 @@ begin
   end;
   LRequestPathInfo := TIdURI.PathEncode(LRequestPathInfo);
 
-  { ISAPI CHANGE THE REQUEST PATH INFO START }
-  if IsLibrary then
+  { CHANGE THE REQUEST PATH INFO START }
+  lPathPrefix := FConfig.Value[TMVCConfigKey.PathPrefix];
+  if not lPathPrefix.IsEmpty then
   begin
-    if string(LRequestPathInfo).StartsWith(FConfig.Value[TMVCConfigKey.ISAPIPath]) then
-      LRequestPathInfo := LRequestPathInfo.Remove(0, FConfig.Value[TMVCConfigKey.ISAPIPath].Length);
+    if string(LRequestPathInfo).StartsWith(lPathPrefix) then
+      LRequestPathInfo := LRequestPathInfo.Remove(0, lPathPrefix.Length);
     if Length(LRequestPathInfo) = 0 then
       LRequestPathInfo := '/';
   end;
-  { ISAPI CHANGE THE REQUEST PATH INFO END }
+  { CHANGE THE REQUEST PATH INFO END }
 
   TMonitor.Enter(Lock);
   try

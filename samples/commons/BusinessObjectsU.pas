@@ -98,7 +98,7 @@ end;
 
 class function TPerson.GetList: TObjectList<TPerson>;
 begin
-  Result := TObjectList<TPerson>.Create;
+  Result := TObjectList<TPerson>.Create(true);
   Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
   Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
   Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));

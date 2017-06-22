@@ -238,8 +238,8 @@ begin
   LUser.Cod := 1;
   LUser.Name := 'Ezequiel';
   LUser.Pass := '123';
-  LResp := FRESTClient.doPOST<TAppUser>(LUser);
-  CheckTrue(('Sucess!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  LResp := FRESTClient.doPOST<TAppUser>(LUser, True);
+  CheckTrue(('Success!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
   LUser := TAppUser.Create;
@@ -262,16 +262,20 @@ begin
   FRESTClient.ContentType('application/json;charset=utf-8');
 
   LUsers := TObjectList<TAppUser>.Create(True);
-  for I := 0 to 10 do
-  begin
-    LUser := TAppUser.Create;
-    LUser.Cod := I;
-    LUser.Name := 'Ezequiel צüבאחדץ÷s ' + IntToStr(I);
-    LUser.Pass := IntToStr(I);
-    LUsers.Add(LUser);
+  try
+    for I := 0 to 10 do
+    begin
+      LUser := TAppUser.Create;
+      LUser.Cod := I;
+      LUser.Name := 'Ezequiel צüבאחדץ÷s ' + IntToStr(I);
+      LUser.Pass := IntToStr(I);
+      LUsers.Add(LUser);
+    end;
+    LResp := FRESTClient.doPOST<TAppUser>(LUsers);
+  finally
+    LUsers.Free;
   end;
-  LResp := FRESTClient.doPOST<TAppUser>(LUsers);
-  CheckTrue(('Sucess!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  CheckTrue(('Success!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
   LUsers := TObjectList<TAppUser>.Create(True);
