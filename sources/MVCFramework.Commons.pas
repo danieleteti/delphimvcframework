@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -26,16 +26,23 @@ unit MVCFramework.Commons;
 
 interface
 
+{$I dmvcframework.inc}
+
 uses
-  System.SysUtils
-{$IF CompilerVersion < 27 }
-    , Data.DBXJSON
-{$ELSE}
+  System.SysUtils, Generics.Collections
+{$IFDEF SYSTEMJSON} // XE6
     , System.JSON
+{$ELSE}
+    , Data.DBXJSON
 {$ENDIF}
     , System.Generics.Collections, MVCFramework.Session, LoggerPro;
 
+{$I dmvcframeworkbuildconsts.inc}
+
 type
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
+    httpOPTIONS, httpPATCH, httpTRACE);
+  TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TMVCMimeType = class sealed
   public const
