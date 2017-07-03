@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2016 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -26,18 +26,14 @@ unit MVCFramework.JWT;
 
 interface
 
-{$I dmvcframework.inc}
-
-
 uses
   System.Generics.Collections
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
+{$IF CompilerVersion < 27 }
     , Data.DBXJSON
+{$ELSE}
+    , System.JSON
 {$ENDIF}
-    , MVCFramework.Patches, MVCFramework
-    ;
+;
 
 type
 {$SCOPEDENUMS ON}
@@ -182,7 +178,6 @@ type
 
   TJWTCustomClaims = class(TJWTDictionaryObject)
     property Items; default;
-    function AsCustomData: TMVCCustomData;
   end;
 
   TJWT = class
@@ -215,10 +210,7 @@ type
 implementation
 
 uses
-  System.SysUtils
-    , MVCFramework.Commons
-    , MVCFramework.HMAC
-    , System.DateUtils;
+  System.SysUtils, MVCFramework.Commons, MVCFramework.HMAC, System.DateUtils;
 
 { TJWTRegisteredClaims }
 
@@ -323,7 +315,7 @@ var
 begin
   if not TryStrToInt64(Items[Index], lIntValue) then
     raise Exception.Create('Item cannot be converted as Unix Epoch');
-  Result := UnixToDateTime(lIntValue, False);
+  Result := UnixToDateTime(lIntValue);
 end;
 
 function TJWTDictionaryObject.Keys: TArray<String>;
@@ -339,14 +331,7 @@ end;
 procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: String;
   const Value: TDateTime);
 begin
-  Items[Index] := IntToStr(DateTimeToUnix(Value, False));
-end;
-
-{ TJWTCustomClaims }
-
-function TJWTCustomClaims.AsCustomData: TMVCCustomData;
-begin
-  Result := TMVCCustomData.Create(FClaims);
+  Items[Index] := IntToStr(DateTimeToUnix(Value));
 end;
 
 { TJWT }
@@ -362,20 +347,20 @@ begin
   if not Assigned(lJValue) then
   begin
     Error := TJWTRegisteredClaimNames.ExpirationTime + ' not set';
-    Exit(False);
+    Exit(false);
   end;
 
   lValue := lJValue.Value;
   if not TryStrToInt64(lValue, lIntValue) then
   begin
     Error := TJWTRegisteredClaimNames.ExpirationTime + ' is not an integer';
-    Exit(False);
+    Exit(false);
   end;
 
-  if UnixToDateTime(lIntValue, False) <= Now - FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue) <= Now - FLeewaySeconds * OneSecond then
   begin
     Error := 'Token expired';
-    Exit(False);
+    Exit(false);
   end;
 
   Result := True;
@@ -391,20 +376,20 @@ begin
   if not Assigned(lJValue) then
   begin
     Error := TJWTRegisteredClaimNames.IssuedAt + ' not set';
-    Exit(False);
+    Exit(false);
   end;
 
   lValue := lJValue.Value;
   if not TryStrToInt64(lValue, lIntValue) then
   begin
     Error := TJWTRegisteredClaimNames.IssuedAt + ' is not an integer';
-    Exit(False);
+    Exit(false);
   end;
 
-  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue) >= Now + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token is issued in the future';
-    Exit(False);
+    Exit(false);
   end;
 
   Result := True;
@@ -420,20 +405,20 @@ begin
   if not Assigned(lJValue) then
   begin
     Error := TJWTRegisteredClaimNames.NotBefore + ' not set';
-    Exit(False);
+    Exit(false);
   end;
 
   lValue := lJValue.Value;
   if not TryStrToInt64(lValue, lIntValue) then
   begin
     Error := TJWTRegisteredClaimNames.NotBefore + ' is not an integer';
-    Exit(False);
+    Exit(false);
   end;
 
-  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue) >= Now + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token still not valid';
-    Exit(False);
+    Exit(false);
   end;
 
   Result := True;
@@ -490,11 +475,11 @@ begin
         lPayload.AddPair(lCustomClaimName, FCustomClaims[lCustomClaimName]);
       end;
 
-      lHeaderEncoded := B64Encode(lHeader.ToJSON);
-      lPayloadEncoded := B64Encode(lPayload.ToJSON);
+      lHeaderEncoded := URLSafeB64encode(lHeader.ToString, False);
+      lPayloadEncoded := URLSafeB64encode(lPayload.ToString, False);
       lToken := lHeaderEncoded + '.' + lPayloadEncoded;
       lBytes := HMAC(HMACAlgorithm, lToken, FSecretKey);
-      lHash := B64Encode(lBytes);
+      lHash := URLSafeB64encode(lBytes, false);
       Result := lToken + '.' + lHash;
     finally
       lPayload.Free;
@@ -517,35 +502,37 @@ begin
   if Length(lPieces) <> 3 then
   begin
     Error := 'Invalid Token';
-    Exit(False);
+    Exit(false);
   end;
 
-  lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
     if not Assigned(lJHeader) then
     begin
       Error := 'Invalid Token';
-      Exit(False);
+      Exit(false);
     end;
 
-    lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
+    lJPayload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
     try
       if not Assigned(lJPayload) then
       begin
         Error := 'Invalid Token';
-        Exit(False);
+        Exit(false);
       end;
 
-      if not lJHeader.TryGetValue<TJSONString>('alg', lJAlg) then
+      lJAlg := TJSONString(lJHeader.GetValue('alg'));
+      if lJAlg = nil then
       begin
         Error := 'Invalid Token';
-        Exit(False);
+        Exit(false);
       end;
 
       lAlgName := lJAlg.Value;
       Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
-        B64Encode(
-        HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey)
+        URLSafeB64encode(
+        HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey),
+        False
         );
 
       // if the token is correctly signed and has not been tampered,
@@ -557,7 +544,7 @@ begin
         begin
           if not CheckExpirationTime(lJPayload, Error) then
           begin
-            Exit(False);
+            Exit(false);
           end;
 
         end;
@@ -566,7 +553,7 @@ begin
         begin
           if not CheckNotBefore(lJPayload, Error) then
           begin
-            Exit(False);
+            Exit(false);
           end;
         end;
 
@@ -574,7 +561,7 @@ begin
         begin
           if not CheckIssuedAt(lJPayload, Error) then
           begin
-            Exit(False);
+            Exit(false);
           end;
         end;
       end;
@@ -609,16 +596,16 @@ begin
     lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
     try
       // loading data from token into self
-      FHMACAlgorithm := lJHeader.Values['alg'].Value;
+      FHMACAlgorithm := lJHeader.GetValue('alg').Value;
       // registered claims
       FRegisteredClaims.FClaims.Clear;
 
       // custom claims
       FCustomClaims.FClaims.Clear;
-      for i := 0 to lJPayload.Count - 1 do
+      for i := 0 to lJPayload.Size - 1 do
       begin
-        lIsRegistered := False;
-        lJPair := lJPayload.Pairs[i];
+        lIsRegistered := false;
+        lJPair := lJPayload.Get(i);
         lName := lJPair.JsonString.Value;
         lValue := lJPair.JsonValue.Value;
 
