@@ -602,7 +602,7 @@ var
   Strlen: Integer;
 begin
   Strlen := Length(Value);
-  while Value[Strlen]=TrimmedChar do
+  while (Strlen>0) and (Value[Strlen]=TrimmedChar) do
     dec(StrLen);
   result := copy(value, 1, StrLen)
 end;
