@@ -490,11 +490,11 @@ begin
         lPayload.AddPair(lCustomClaimName, FCustomClaims[lCustomClaimName]);
       end;
 
-      lHeaderEncoded := B64Encode(lHeader.ToJSON);
-      lPayloadEncoded := B64Encode(lPayload.ToJSON);
+      lHeaderEncoded := URLSafeB64encode(lHeader.ToString, False);
+      lPayloadEncoded := URLSafeB64encode(lPayload.ToString, False);
       lToken := lHeaderEncoded + '.' + lPayloadEncoded;
       lBytes := HMAC(HMACAlgorithm, lToken, FSecretKey);
-      lHash := B64Encode(lBytes);
+      lHash := URLSafeB64encode(lBytes, false);
       Result := lToken + '.' + lHash;
     finally
       lPayload.Free;
@@ -520,7 +520,7 @@ begin
     Exit(False);
   end;
 
-  lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
     if not Assigned(lJHeader) then
     begin
@@ -544,8 +544,9 @@ begin
 
       lAlgName := lJAlg.Value;
       Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
-        B64Encode(
-        HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey)
+        URLSafeB64encode(
+        HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey),
+        False
         );
 
       // if the token is correctly signed and has not been tampered,
@@ -604,9 +605,9 @@ begin
     raise EMVCJWTException.Create(lError);
 
   lPieces := Token.Split(['.']);
-  lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
-    lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
+    lJPayload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
     try
       // loading data from token into self
       FHMACAlgorithm := lJHeader.Values['alg'].Value;
