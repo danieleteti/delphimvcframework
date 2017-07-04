@@ -90,6 +90,7 @@ uses
 type
 
   TSessionData = TDictionary<string, string>;
+  TMVCCustomData = TSessionData;
   TMVCBaseViewEngine = class;
   TMVCViewEngineClass = class of TMVCBaseViewEngine;
 
@@ -798,15 +799,9 @@ end;
 function TMVCWebRequest.Body: string;
 var
   Encoding: TEncoding;
-  Buffer: TArray<Byte>;
-  I: Integer;
-
   {$IFNDEF BERLINORBETTER}
-
   BufferOut: TArray<Byte>;
-
   {$ENDIF}
-
 begin
   { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
@@ -815,17 +810,21 @@ begin
     try
 
       {$IFDEF BERLINORBETTER}
-
+      FWebRequest.ReadTotalContent; //Otherwise ISAPI Raises "Empty JSON BODY"
       if (FCharset = EmptyStr) then
       begin
-        SetLength(Buffer, 10);
-        for I := 0 to 9 do
-          Buffer[I] := FWebRequest.RawContent[I];
-        TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
-        SetLength(Buffer, 0);
+        TEncoding.GetBufferEncoding(FWebRequest.RawContent, Encoding, TEncoding.Default);
+//        SetLength(Buffer, 10);
+//        for I := 0 to 9 do
+//          Buffer[I] := FWebRequest.RawContent[I];
+//        TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
+//        SetLength(Buffer, 0);
       end
       else
+      begin
         Encoding := TEncoding.GetEncoding(FCharset);
+      end;
+
       FBody := Encoding.GetString(FWebRequest.RawContent);
 
       {$ELSE}
@@ -834,23 +833,25 @@ begin
       FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
       if (FCharset = EmptyStr) then
       begin
-        SetLength(BufferOut, 10);
-        for I := 0 to 9 do
-        begin
-          BufferOut[I] := Buffer[I];
-        end;
-        TEncoding.GetBufferEncoding(BufferOut, Encoding, TEncoding.Default);
-        SetLength(BufferOut, 0);
+        TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
+//        SetLength(BufferOut, 10);
+//        for I := 0 to 9 do
+//        begin
+//          BufferOut[I] := Buffer[I];
+//        end;
+//        TEncoding.GetBufferEncoding(BufferOut, Encoding, TEncoding.Default);
+//        SetLength(BufferOut, 0);
       end
       else
+      begin
         Encoding := TEncoding.GetEncoding(FCharset);
+      end;
       FBody := Encoding.GetString(Buffer);
 
       {$ENDIF}
 
     finally
-      if Assigned(Encoding) then
-        Encoding.Free;
+      Encoding.Free;
     end;
   end;
   Result := FBody;

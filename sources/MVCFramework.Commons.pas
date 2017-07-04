@@ -411,6 +411,10 @@ function B64Encode(const AValue: string): string; overload;
 function B64Encode(const AValue: TBytes): string; overload;
 function B64Decode(const AValue: string): string;
 
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): String;  overload;
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): String;  overload;
+function URLSafeB64Decode(const Value: string): String;
+
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 
@@ -418,6 +422,9 @@ var
   Lock: TObject;
 
 implementation
+
+uses
+  IdCoder3to4;
 
 const
   RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string =
@@ -455,16 +462,19 @@ end;
 
 function B64Encode(const AValue: string): string; overload;
 begin
+  //Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeString(AValue);
 end;
 
 function B64Encode(const AValue: TBytes): string; overload;
 begin
+  //Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeBytes(TIdBytes(AValue));
 end;
 
 function B64Decode(const AValue: string): string;
 begin
+  //Do not use TNetEncoding
   Result := TIdDecoderMIME.DecodeString(AValue);
 end;
 
@@ -712,9 +722,97 @@ begin
   end;
 end;
 
+type
+  TURLSafeEncode = class(TIdEncoder3to4)
+  protected
+    procedure InitComponent; override;
+  public
+
+  end;
+  TURLSafeDecode = class(TIdDecoder4to3)
+  protected
+    class var GSafeBaseBase64DecodeTable: TIdDecodeTable;
+    procedure InitComponent; override;
+  public
+
+  end;
+
+const
+  GURLSafeBase64CodeTable: string =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';    {Do not Localize}
+
+
+procedure TURLSafeEncode.InitComponent;
+begin
+  inherited;
+  FCodingTable := ToBytes(GURLSafeBase64CodeTable);
+  FFillChar := '=';  {Do not Localize}
+end;
+
+procedure TURLSafeDecode.InitComponent;
+begin
+  inherited;
+  FDecodeTable := GSafeBaseBase64DecodeTable;
+  FCodingTable := ToBytes(GURLSafeBase64CodeTable);
+  FFillChar := '=';  {Do not Localize}
+end;
+
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): String; overload;
+begin
+  if IncludePadding then
+    Result := TURLSafeEncode.EncodeString(Value)
+  else
+    Result := TURLSafeEncode.EncodeString(Value).Replace('=', '', [rfReplaceAll]);
+end;
+
+/// <summary>
+///   Remove "trimmed" character from the end of the string passed as parameter
+/// </summary>
+/// <param name="Value">Original string</param>
+/// <param name="TrimmedChar">Character to remove</param>
+/// <returns>Resulting string</returns>
+function RTrim(const Value: string; TrimmedChar: char): string;
+var
+  Strlen: Integer;
+begin
+  Strlen := Length(Value);
+  while (Strlen>0) and (Value[Strlen]=TrimmedChar) do
+    dec(StrLen);
+  result := copy(value, 1, StrLen)
+end;
+
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): String;  overload;
+begin
+
+  if IncludePadding then
+    Result := TURLSafeEncode.EncodeBytes(TIdBytes(Value))
+  else
+    Result := RTrim(TURLSafeEncode.EncodeBytes(TIdBytes(Value)), '=');
+end;
+
+function URLSafeB64Decode(const Value: string): String;
+begin
+  // SGR 2017-07-03 : b64url might not include padding. Need to add it before decoding
+  case Length(value) mod 4 of
+    0:
+    begin
+      Result := TURLSafeDecode.DecodeString(Value);
+    end;
+    2:
+      Result := TURLSafeDecode.DecodeString(Value + '==');
+    3:
+      Result := TURLSafeDecode.DecodeString(Value + '=');
+  else
+    raise EExternalException.Create('Illegal base64url length');
+  end;
+end;
+
 initialization
 
 Lock := TObject.Create;
+
+// SGR 2017-07-03 : Initialize decoding table for URLSafe Gb64 encoding
+TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable, TURLSafeDecode.GSafeBaseBase64DecodeTable);
 
 GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
 GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);
