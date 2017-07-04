@@ -605,9 +605,9 @@ begin
     raise EMVCJWTException.Create(lError);
 
   lPieces := Token.Split(['.']);
-  lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
-    lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
+    lJPayload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
     try
       // loading data from token into self
       FHMACAlgorithm := lJHeader.Values['alg'].Value;
