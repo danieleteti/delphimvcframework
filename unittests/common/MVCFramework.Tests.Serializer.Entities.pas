@@ -188,6 +188,22 @@ type
     property Name: string read FName write FName;
   end;
 
+  TColorEnum = (RED, GREEN, BLUE);
+
+  TEntityWithEnums = class
+  private
+    FId: Int64;
+    FCode: Integer;
+    FName: string;
+    FColor: TColorEnum;
+  public
+    property Id: Int64 read FId write FId;
+    property Code: Integer read FCode write FCode;
+    property Name: string read FName write FName;
+    property Color: TColorEnum read FColor write FColor;
+  end;
+
+
   [MVCSerialize(stFields)]
   TEntitySerializeFields = class
   private

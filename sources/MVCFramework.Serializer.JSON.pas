@@ -262,7 +262,9 @@ begin
             AJSONObject.AddPair(AName, TJSONBool.Create(False));
         end
         else
-          AJSONObject.AddPair(AName, TJSONNumber.Create(AValue.AsOrdinal));
+        begin
+          AJSONObject.AddPair(AName, GetEnumName(AValue.TypeInfo, AValue.AsOrdinal));
+        end;
       end;
 
     tkClass:
@@ -601,6 +603,9 @@ begin
 
         else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
           AValue := TValue.From<TTime>(ISOTimeToTime(AJSONObject.Values[AName].Value))
+
+        else if (AValue.Kind = tkEnumeration) then
+          TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject.Values[AName].Value), AValue.TypeInfo, AValue)
 
         else
           AValue := TValue.From<string>(AJSONObject.Values[AName].Value);

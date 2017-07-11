@@ -70,6 +70,8 @@ type
     procedure TestDeserializeEntitySerializationType;
     procedure TestDeserializeCollection;
     procedure TestDeserializeDataSet;
+    { full cycle }
+    procedure TestSerializeDeSerializeEntityWithEnums;
   end;
 
   TMVCEntityCustomSerializerJSON = class(TInterfacedObject, IMVCTypeSerializer)
@@ -1024,6 +1026,43 @@ begin
 
     S := FSerializer.SerializeObject(O);
     CheckEqualsString(JSON, S);
+  finally
+    O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJSON.TestSerializeDeSerializeEntityWithEnums;
+const
+  JSON =
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Daniele Teti",' +
+    '"Color":"RED"' +
+    '}';
+var
+  O: TEntityWithEnums;
+  S: string;
+begin
+  O := TEntityWithEnums.Create;
+  try
+    O.Id := 1;
+    O.Code := 2;
+    O.Name := 'Daniele Teti';
+    O.Color := TColorEnum.RED;
+    S := FSerializer.SerializeObject(O);
+    CheckEqualsString(JSON, S);
+  finally
+    O.Free;
+  end;
+
+  O := TEntityWithEnums.Create;
+  try
+    FSerializer.DeserializeObject(S, O);
+    CheckEquals(1, O.Id);
+    CheckEquals(2, O.Code);
+    CheckEquals('Daniele Teti', O.Name);
+    CheckEquals(Ord(TColorEnum.RED), Ord(O.Color));
   finally
     O.Free;
   end;
