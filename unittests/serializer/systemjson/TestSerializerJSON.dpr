@@ -42,6 +42,8 @@ program TestSerializerJSON;
 
 uses
   DUnitTestRunner,
+  TextTestRunner,
+  System.SysUtils,
   MVCFramework.Tests.Serializer.JSON in 'MVCFramework.Tests.Serializer.JSON.pas',
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   MVCFramework.Serializer.JSON in '..\..\..\sources\MVCFramework.Serializer.JSON.pas',
@@ -52,9 +54,13 @@ uses
 {$R *.RES}
 
 begin
-
+  FormatSettings.TimeSeparator := ':';
+{$IFDEF CONSOLE_TESTRUNNER}
+   //Halt(0);
+   TextTestRunner.RunRegisteredTests(rxbHaltOnFailures);
+{$ELSE}
   ReportMemoryLeaksOnShutdown := True;
-
   DUnitTestRunner.RunRegisteredTests;
+{$ENDIF}
 
 end.

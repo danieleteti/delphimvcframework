@@ -41,7 +41,10 @@ program TestSerializerJsonDataObjects;
 {$ENDIF}
 
 uses
+  TestFramework,
   DUnitTestRunner,
+  TextTestRunner,
+  System.SysUtils,
   MVCFramework.Tests.Serializer.JsonDataObjects in 'MVCFramework.Tests.Serializer.JsonDataObjects.pas',
   MVCFramework.Serializer.JsonDataObjects in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
@@ -52,9 +55,12 @@ uses
 {$R *.RES}
 
 begin
-
+  FormatSettings.TimeSeparator := ':';
+{$IFDEF CONSOLE_TESTRUNNER}
+   //Halt(0);
+   TextTestRunner.RunRegisteredTests(rxbHaltOnFailures);
+{$ELSE}
   ReportMemoryLeaksOnShutdown := True;
-
   DUnitTestRunner.RunRegisteredTests;
-
+{$ENDIF}
 end.

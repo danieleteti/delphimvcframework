@@ -317,7 +317,7 @@ const
     '"AccessDateTime":"2017-02-17 16:37:50",' +
     '"AccessTime":"16:40:50",' +
     '"Active":true,' +
-    '"Role":1,' +
+    '"Role":"roGuest",' +
     '"Teporization":63623032670000,' +
     '"Department":{' +
     '"Id":1,' +
@@ -358,7 +358,7 @@ const
     '"FAccessDateTime":"2017-02-17 16:37:50",' +
     '"FAccessTime":"16:40:50",' +
     '"FActive":true,' +
-    '"FRole":1,' +
+    '"FRole":"roGuest",' +
     '"FTeporization":63623032670000,' +
     '"FDepartment":{' +
     '"FId":1,' +
@@ -697,7 +697,7 @@ const
     '"AccessDateTime":"2017-02-17 16:37:50",' +
     '"AccessTime":"16:40:50",' +
     '"Active":true,' +
-    '"Role":1,' +
+    '"Role":"roGuest",' +
     '"Teporization":63623032670000,' +
     '"Department":{' +
     '"Id":1,' +
@@ -738,7 +738,7 @@ const
     '"FAccessDateTime":"2017-02-17 16:37:50",' +
     '"FAccessTime":"16:40:50",' +
     '"FActive":true,' +
-    '"FRole":1,' +
+    '"FRole":"roGuest",' +
     '"FTeporization":63623032670000,' +
     '"FDepartment":{' +
     '"FId":1,' +
@@ -779,7 +779,7 @@ const
     '"AccessDateTime":null,' +
     '"AccessTime":null,' +
     '"Active":true,' +
-    '"Role":1,' +
+    '"Role":"roGuest",' +
     '"Teporization":63623032670000,' +
     '"Department":{' +
     '"Id":1,' +
