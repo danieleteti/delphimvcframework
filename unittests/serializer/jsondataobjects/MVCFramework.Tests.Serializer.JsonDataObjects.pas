@@ -70,6 +70,8 @@ type
     procedure TestDeserializeEntitySerializationType;
     procedure TestDeserializeCollection;
     procedure TestDeserializeDataSet;
+        { full cycle }
+    procedure TestSerializeDeSerializeEntityWithEnums;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -116,36 +118,36 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeCollection;
 
 const
   JSON_PROPERTIES =
-    '[' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 1"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 2"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 3"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 4"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    ']' + LINE_BREAK;
+    '['  +
+    '{'  +
+    '"Description":"Description 1"'  +
+    '},'  +
+    '{'  +
+    '"Description":"Description 2"'  +
+    '},'  +
+    '{'  +
+    '"Description":"Description 3"'  +
+    '},'  +
+    '{'  +
+    '"Description":"Description 4"'  +
+    '}'  +
+    ']' ;
 
   JSON_FIELDS =
-    '[' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 1"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 2"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 3"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 4"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    ']' + LINE_BREAK;
+    '['  +
+    '{'  +
+    '"FDescription":"Description 1"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"Description 2"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"Description 3"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"Description 4"'  +
+    '}'  +
+    ']' ;
 var
   O: TObjectList<TNote>;
 begin
@@ -169,61 +171,61 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeDataSet;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"Salary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"Birthday": "1987-10-15",' + LINE_BREAK +
-    TAB_SPACE + '"AccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
-    TAB_SPACE + '"AccessTime": "16:40:50",' + LINE_BREAK +
-    TAB_SPACE + '"Active": true,' + LINE_BREAK +
-    TAB_SPACE + '"Amount": 100,' + LINE_BREAK +
-    TAB_SPACE + '"BlobFld": "PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' + LINE_BREAK +
-    TAB_SPACE + '"Items": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Name": "Ezequiel"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Id": 2,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Name": "Juliano"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"Departament": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name": "Depto1"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id":1,'  +
+    '"Code":2,'  +
+    '"Name":"Ezequiel Juliano Müller",'  +
+    '"Salary":100,'  +
+    '"Birthday":"1987-10-15",'  +
+    '"AccessDateTime":"2017-02-17 16:37:50",'  +
+    '"AccessTime":"16:40:50",'  +
+    '"Active":true,'  +
+    '"Amount":100,'  +
+    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",'  +
+    '"Items":['  +
+    '{'  +
+    '"Id":1,'  +
+    '"Name":"Ezequiel"'  +
+    '},'  +
+    '{'  +
+    '"Id":2,'  +
+    '"Name":"Juliano"'  +
+    '}'  +
+    '],'  +
+    '"Departament":{'  +
+    '"Name":"Depto1"'  +
+    '}'  +
+    '}' ;
 
   JSON_LOWERCASE =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"id":1,'  +
+    '"name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_UPPERCASE =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"ID": 1,' + LINE_BREAK +
-    TAB_SPACE + '"NAME": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"ID":1,'  +
+    '"NAME":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_ASIS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id_Id":1,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_LIST =
-    '[' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id_Id": 2,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    ']' + LINE_BREAK;
+    '['  +
+    '{'  +
+    '"Id_Id":1,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '},'  +
+    '{'  +
+    '"Id_Id":2,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '}'  +
+    ']' ;
 var
   Dm: TEntitiesModule;
 begin
@@ -310,86 +312,86 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
 
 const
   JSON_PROPERTIES =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"Salary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"Birthday": "1987-10-15",' + LINE_BREAK +
-    TAB_SPACE + '"AccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
-    TAB_SPACE + '"AccessTime": "16:40:50",' + LINE_BREAK +
-    TAB_SPACE + '"Active": true,' + LINE_BREAK +
-    TAB_SPACE + '"Role": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Teporization": 63623032670000,' + LINE_BREAK +
-    TAB_SPACE + '"Department": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name": "Development",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Notes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "DepNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "DepNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + ']' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"DepartmentNull": null,' + LINE_BREAK +
-    TAB_SPACE + '"Notes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "EntNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "EntNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"NotesEmpty": [],' + LINE_BREAK +
-    TAB_SPACE + '"AppreciationAs": "Yes",' + LINE_BREAK +
-    TAB_SPACE + '"Appreciation": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"type": "ustring",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"value": "Yes"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id":1,'  +
+    '"Code":2,'  +
+    '"Name":"Ezequiel Juliano Müller",'  +
+    '"Salary":100,'  +
+    '"Birthday":"1987-10-15",'  +
+    '"AccessDateTime":"2017-02-17 16:37:50",'  +
+    '"AccessTime":"16:40:50",'  +
+    '"Active":true,'  +
+    '"Role":"roGuest",'  +
+    '"Teporization":63623032670000,'  +
+    '"Department":{'  +
+    '"Id":1,'  +
+    '"Name":"Development",'  +
+    '"Notes":['  +
+    '{'  +
+    '"Description":"DepNote1"'  +
+    '},'  +
+    '{'  +
+    '"Description":"DepNote2"'  +
+    '}'  +
+    ']'  +
+    '},'  +
+    '"DepartmentNull":null,'  +
+    '"Notes":['  +
+    '{'  +
+    '"Description":"EntNote1"'  +
+    '},'  +
+    '{'  +
+    '"Description":"EntNote2"'  +
+    '}'  +
+    '],'  +
+    '"NotesEmpty":[],'  +
+    '"AppreciationAs":"Yes",'  +
+    '"Appreciation":{'  +
+    '"type":"ustring",'  +
+    '"value":"Yes"'  +
+    '}'  +
+    '}' ;
 
   JSON_FIELDS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"FId": 1,' + LINE_BREAK +
-    TAB_SPACE + '"FCode": 2,' + LINE_BREAK +
-    TAB_SPACE + '"FName": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"FSalary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"FBirthday": "1987-10-15",' + LINE_BREAK +
-    TAB_SPACE + '"FAccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
-    TAB_SPACE + '"FAccessTime": "16:40:50",' + LINE_BREAK +
-    TAB_SPACE + '"FActive": true,' + LINE_BREAK +
-    TAB_SPACE + '"FRole": 1,' + LINE_BREAK +
-    TAB_SPACE + '"FTeporization": 63623032670000,' + LINE_BREAK +
-    TAB_SPACE + '"FDepartment": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FId": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FName": "Development",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FNotes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "DepNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "DepNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + ']' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"FDepartmentNull": null,' + LINE_BREAK +
-    TAB_SPACE + '"FNotes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "EntNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "EntNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"FNotesEmpty": [],' + LINE_BREAK +
-    TAB_SPACE + '"FAppreciationAs": "Yes",' + LINE_BREAK +
-    TAB_SPACE + '"FAppreciation": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"type": "ustring",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"value": "Yes"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"FId":1,'  +
+    '"FCode":2,'  +
+    '"FName":"Ezequiel Juliano Müller",'  +
+    '"FSalary":100,'  +
+    '"FBirthday":"1987-10-15",'  +
+    '"FAccessDateTime":"2017-02-17 16:37:50",'  +
+    '"FAccessTime":"16:40:50",'  +
+    '"FActive":true,'  +
+    '"FRole":"roGuest",'  +
+    '"FTeporization":63623032670000,'  +
+    '"FDepartment":{'  +
+    '"FId":1,'  +
+    '"FName":"Development",'  +
+    '"FNotes":['  +
+    '{'  +
+    '"FDescription":"DepNote1"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"DepNote2"'  +
+    '}'  +
+    ']'  +
+    '},'  +
+    '"FDepartmentNull":null,'  +
+    '"FNotes":['  +
+    '{'  +
+    '"FDescription":"EntNote1"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"EntNote2"'  +
+    '}'  +
+    '],'  +
+    '"FNotesEmpty":[],'  +
+    '"FAppreciationAs":"Yes",'  +
+    '"FAppreciation":{'  +
+    '"type":"ustring",'  +
+    '"value":"Yes"'  +
+    '}'  +
+    '}' ;
 var
   O: TEntity;
 begin
@@ -413,15 +415,15 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomMemberSerializer;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Entity": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"AId": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"ACode": 2,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"AName": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"Notes": "RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + LINE_BREAK +
-    TAB_SPACE + '"NotesAsString": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Entity":{'  +
+    '"AId":1,'  +
+    '"ACode":2,'  +
+    '"AName":"Ezequiel Juliano Müller"'  +
+    '},'  +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",'  +
+    '"NotesAsString":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TSale;
 begin
@@ -441,11 +443,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomSerializer;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"AId": 1,' + LINE_BREAK +
-    TAB_SPACE + '"ACode": 2,' + LINE_BREAK +
-    TAB_SPACE + '"AName": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"AId":1,'  +
+    '"ACode":2,'  +
+    '"AName":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TEntityCustom;
 begin
@@ -463,18 +465,18 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
 const
   JSON_FIELDS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"FId": 1,' + LINE_BREAK +
-    TAB_SPACE + '"FCode": 2,' + LINE_BREAK +
-    TAB_SPACE + '"FName": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"FId":1,'  +
+    '"FCode":2,'  +
+    '"FName":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_PROPERTIES =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id":1,'  +
+    '"Code":2,'  +
+    '"Name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -503,36 +505,36 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeCollection;
 const
   JSON =
-    '[' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 1"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 2"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 3"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Description": "Description 4"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    ']' + LINE_BREAK;
+    '['  +
+    '{'  +
+    '"Description":"Description 1"'  +
+    '},'  +
+    '{'  +
+    '"Description":"Description 2"'  +
+    '},'  +
+    '{'  +
+    '"Description":"Description 3"'  +
+    '},'  +
+    '{'  +
+    '"Description":"Description 4"'  +
+    '}'  +
+    ']' ;
 
   JSON_FIELDS =
-    '[' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 1"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 2"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 3"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FDescription": "Description 4"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    ']' + LINE_BREAK;
+    '['  +
+    '{'  +
+    '"FDescription":"Description 1"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"Description 2"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"Description 3"'  +
+    '},'  +
+    '{'  +
+    '"FDescription":"Description 4"'  +
+    '}'  +
+    ']' ;
 var
   O: TObjectList<TNote>;
   S: string;
@@ -557,61 +559,61 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDataSet;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"Salary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"Birthday": "1987-10-15",' + LINE_BREAK +
-    TAB_SPACE + '"AccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
-    TAB_SPACE + '"AccessTime": "16:40:50",' + LINE_BREAK +
-    TAB_SPACE + '"Active": true,' + LINE_BREAK +
-    TAB_SPACE + '"Amount": 100,' + LINE_BREAK +
-    TAB_SPACE + '"BlobFld": "PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' + LINE_BREAK +
-    TAB_SPACE + '"Items": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Name": "Ezequiel"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Id": 2,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Name": "Juliano"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"Departament": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name": "Depto1"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id":1,'  +
+    '"Code":2,'  +
+    '"Name":"Ezequiel Juliano Müller",'  +
+    '"Salary":100,'  +
+    '"Birthday":"1987-10-15",'  +
+    '"AccessDateTime":"2017-02-17 16:37:50",'  +
+    '"AccessTime":"16:40:50",'  +
+    '"Active":true,'  +
+    '"Amount":100,'  +
+    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",'  +
+    '"Items":['  +
+    '{'  +
+    '"Id":1,'  +
+    '"Name":"Ezequiel"'  +
+    '},'  +
+    '{'  +
+    '"Id":2,'  +
+    '"Name":"Juliano"'  +
+    '}'  +
+    '],'  +
+    '"Departament":{'  +
+    '"Name":"Depto1"'  +
+    '}'  +
+    '}' ;
 
   JSON_LOWERCASE =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"id":1,'  +
+    '"name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_UPPERCASE =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"ID": 1,' + LINE_BREAK +
-    TAB_SPACE + '"NAME": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"ID":1,'  +
+    '"NAME":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_ASIS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id_Id":1,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_LIST =
-    '[' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id_Id": 2,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    ']' + LINE_BREAK;
+    '['  +
+    '{'  +
+    '"Id_Id":1,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '},'  +
+    '{'  +
+    '"Id_Id":2,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '}'  +
+    ']' ;
 var
   Dm: TEntitiesModule;
   S: string;
@@ -687,130 +689,167 @@ begin
   end;
 end;
 
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeSerializeEntityWithEnums;
+const
+  JSON =
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Daniele Teti",' +
+    '"Color":"RED"' +
+    '}';
+var
+  O: TEntityWithEnums;
+  S: string;
+begin
+  O := TEntityWithEnums.Create;
+  try
+    O.Id := 1;
+    O.Code := 2;
+    O.Name := 'Daniele Teti';
+    O.Color := TColorEnum.RED;
+    S := FSerializer.SerializeObject(O);
+    CheckEqualsString(JSON, S);
+  finally
+    O.Free;
+  end;
+
+  O := TEntityWithEnums.Create;
+  try
+    FSerializer.DeserializeObject(S, O);
+    CheckEquals(1, O.Id);
+    CheckEquals(2, O.Code);
+    CheckEquals('Daniele Teti', O.Name);
+    CheckEquals(Ord(TColorEnum.RED), Ord(O.Color));
+  finally
+    O.Free;
+  end;
+end;
+
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntity;
 const
   JSON_PROPERTIES =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"Salary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"Birthday": "1987-10-15",' + LINE_BREAK +
-    TAB_SPACE + '"AccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
-    TAB_SPACE + '"AccessTime": "16:40:50",' + LINE_BREAK +
-    TAB_SPACE + '"Active": true,' + LINE_BREAK +
-    TAB_SPACE + '"Role": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Teporization": 63623032670000,' + LINE_BREAK +
-    TAB_SPACE + '"Department": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name": "Development",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Notes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "DepNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "DepNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + ']' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"DepartmentNull": null,' + LINE_BREAK +
-    TAB_SPACE + '"Notes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "EntNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "EntNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"NotesEmpty": [],' + LINE_BREAK +
-    TAB_SPACE + '"AppreciationAs": "Yes",' + LINE_BREAK +
-    TAB_SPACE + '"Appreciation": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"type": "ustring",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"value": "Yes"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{' +
+     '"Id":1,' +
+     '"Code":2,' +
+     '"Name":"Ezequiel Juliano Müller",' +
+     '"Salary":100,' +
+     '"Birthday":"1987-10-15",' +
+     '"AccessDateTime":"2017-02-17 16:37:50",' +
+     '"AccessTime":"16:40:50",' +
+     '"Active":true,' +
+     '"Role":"roGuest",' +
+     '"Teporization":63623032670000,' +
+     '"Department":{' +
+      '"Id":1,' +
+      '"Name":"Development",' +
+      '"Notes":[' +
+       '{' +
+        '"Description":"DepNote1"' +
+       '},' +
+       '{' +
+        '"Description":"DepNote2"' +
+       '}' +
+      ']' +
+     '},' +
+     '"DepartmentNull":null,' +
+     '"Notes":[' +
+      '{' +
+       '"Description":"EntNote1"' +
+      '},' +
+      '{' +
+       '"Description":"EntNote2"' +
+      '}' +
+     '],' +
+     '"NotesEmpty":[],' +
+     '"AppreciationAs":"Yes",' +
+     '"Appreciation":{' +
+      '"type":"ustring",' +
+      '"value":"Yes"' +
+     '}' +
+    '}';
 
   JSON_FIELDS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"FId": 1,' + LINE_BREAK +
-    TAB_SPACE + '"FCode": 2,' + LINE_BREAK +
-    TAB_SPACE + '"FName": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"FSalary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"FBirthday": "1987-10-15",' + LINE_BREAK +
-    TAB_SPACE + '"FAccessDateTime": "2017-02-17 16:37:50",' + LINE_BREAK +
-    TAB_SPACE + '"FAccessTime": "16:40:50",' + LINE_BREAK +
-    TAB_SPACE + '"FActive": true,' + LINE_BREAK +
-    TAB_SPACE + '"FRole": 1,' + LINE_BREAK +
-    TAB_SPACE + '"FTeporization": 63623032670000,' + LINE_BREAK +
-    TAB_SPACE + '"FDepartment": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FId": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FName": "Development",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"FNotes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "DepNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "DepNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + ']' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"FDepartmentNull": null,' + LINE_BREAK +
-    TAB_SPACE + '"FNotes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "EntNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"FDescription": "EntNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"FNotesEmpty": [],' + LINE_BREAK +
-    TAB_SPACE + '"FAppreciationAs": "Yes",' + LINE_BREAK +
-    TAB_SPACE + '"FAppreciation": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"type": "ustring",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"value": "Yes"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{' +
+     '"FId":1,' +
+     '"FCode":2,' +
+     '"FName":"Ezequiel Juliano Müller",' +
+     '"FSalary":100,' +
+     '"FBirthday":"1987-10-15",' +
+     '"FAccessDateTime":"2017-02-17 16:37:50",' +
+     '"FAccessTime":"16:40:50",' +
+     '"FActive":true,' +
+     '"FRole":"roGuest",' +
+     '"FTeporization":63623032670000,' +
+     '"FDepartment":{' +
+      '"FId":1,' +
+      '"FName":"Development",' +
+      '"FNotes":[' +
+       '{' +
+        '"FDescription":"DepNote1"' +
+       '},' +
+       '{' +
+        '"FDescription":"DepNote2"' +
+       '}' +
+      ']' +
+     '},' +
+     '"FDepartmentNull":null,' +
+     '"FNotes":[' +
+      '{' +
+       '"FDescription":"EntNote1"' +
+      '},' +
+      '{' +
+       '"FDescription":"EntNote2"' +
+      '}' +
+     '],' +
+     '"FNotesEmpty":[],' +
+     '"FAppreciationAs":"Yes",' +
+     '"FAppreciation":{' +
+      '"type":"ustring",' +
+      '"value":"Yes"' +
+     '}' +
+    '}';
 
   JSON_NULLS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller",' + LINE_BREAK +
-    TAB_SPACE + '"Salary": 100,' + LINE_BREAK +
-    TAB_SPACE + '"Birthday": null,' + LINE_BREAK +
-    TAB_SPACE + '"AccessDateTime": null,' + LINE_BREAK +
-    TAB_SPACE + '"AccessTime": null,' + LINE_BREAK +
-    TAB_SPACE + '"Active": true,' + LINE_BREAK +
-    TAB_SPACE + '"Role": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Teporization": 63623032670000,' + LINE_BREAK +
-    TAB_SPACE + '"Department": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Name": "Development",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"Notes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "DepNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "DepNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + ']' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"DepartmentNull": null,' + LINE_BREAK +
-    TAB_SPACE + '"Notes": [' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "EntNote1"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '{' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + TAB_SPACE + '"Description": "EntNote2"' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '}' + LINE_BREAK +
-    TAB_SPACE + '],' + LINE_BREAK +
-    TAB_SPACE + '"NotesEmpty": [],' + LINE_BREAK +
-    TAB_SPACE + '"AppreciationAs": "Yes",' + LINE_BREAK +
-    TAB_SPACE + '"Appreciation": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"type": "ustring",' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"value": "Yes"' + LINE_BREAK +
-    TAB_SPACE + '}' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{' +
+     '"Id":1,' +
+     '"Code":2,' +
+     '"Name":"Ezequiel Juliano Müller",' +
+     '"Salary":100,' +
+     '"Birthday":null,' +
+     '"AccessDateTime":null,' +
+     '"AccessTime":null,' +
+     '"Active":true,' +
+     '"Role":"roGuest",' +
+     '"Teporization":63623032670000,' +
+     '"Department":{' +
+      '"Id":1,' +
+      '"Name":"Development",' +
+      '"Notes":[' +
+       '{' +
+        '"Description":"DepNote1"' +
+       '},' +
+       '{' +
+        '"Description":"DepNote2"' +
+       '}' +
+      ']' +
+     '},' +
+     '"DepartmentNull":null,' +
+     '"Notes":[' +
+      '{' +
+       '"Description":"EntNote1"' +
+      '},' +
+      '{' +
+       '"Description":"EntNote2"' +
+      '}' +
+     '],' +
+     '"NotesEmpty":[],' +
+     '"AppreciationAs":"Yes",' +
+     '"Appreciation":{' +
+      '"type":"ustring",' +
+      '"value":"Yes"' +
+     '}' +
+    '}';
 var
   O: TEntity;
   S: string;
@@ -857,15 +896,15 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomMemberSerializer;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Entity": {' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"AId": 1,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"ACode": 2,' + LINE_BREAK +
-    TAB_SPACE + TAB_SPACE + '"AName": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    TAB_SPACE + '},' + LINE_BREAK +
-    TAB_SPACE + '"Notes": "RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + LINE_BREAK +
-    TAB_SPACE + '"NotesAsString": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Entity":{'  +
+    '"AId":1,'  +
+    '"ACode":2,'  +
+    '"AName":"Ezequiel Juliano Müller"'  +
+    '},'  +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",'  +
+    '"NotesAsString":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TSale;
   S: string;
@@ -888,11 +927,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomSerializer;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"AId": 1,' + LINE_BREAK +
-    TAB_SPACE + '"ACode": 2,' + LINE_BREAK +
-    TAB_SPACE + '"AName": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"AId":1,'  +
+    '"ACode":2,'  +
+    '"AName":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TEntityCustom;
   S: string;
@@ -913,11 +952,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityLowerCaseNames;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"id":1,'  +
+    '"code":2,'  +
+    '"name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TEntityLowerCase;
   S: string;
@@ -938,11 +977,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityNameAs;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id_Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code_Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name_Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id_Id":1,'  +
+    '"Code_Code":2,'  +
+    '"Name_Name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TEntityNameAs;
   S: string;
@@ -966,18 +1005,18 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntitySerializationType;
 const
   JSON_FIELDS =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"FId": 1,' + LINE_BREAK +
-    TAB_SPACE + '"FCode": 2,' + LINE_BREAK +
-    TAB_SPACE + '"FName": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"FId":1,'  +
+    '"FCode":2,'  +
+    '"FName":"Ezequiel Juliano Müller"'  +
+    '}' ;
 
   JSON_PROPERTIES =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"Id": 1,' + LINE_BREAK +
-    TAB_SPACE + '"Code": 2,' + LINE_BREAK +
-    TAB_SPACE + '"Name": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"Id":1,'  +
+    '"Code":2,'  +
+    '"Name":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -1011,11 +1050,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityUpperCaseNames;
 const
   JSON =
-    '{' + LINE_BREAK +
-    TAB_SPACE + '"ID": 1,' + LINE_BREAK +
-    TAB_SPACE + '"CODE": 2,' + LINE_BREAK +
-    TAB_SPACE + '"NAME": "Ezequiel Juliano Müller"' + LINE_BREAK +
-    '}' + LINE_BREAK;
+    '{'  +
+    '"ID":1,'  +
+    '"CODE":2,'  +
+    '"NAME":"Ezequiel Juliano Müller"'  +
+    '}' ;
 var
   O: TEntityUpperCase;
   S: string;
