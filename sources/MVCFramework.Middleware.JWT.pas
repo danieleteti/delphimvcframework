@@ -48,6 +48,7 @@ type
     FSetupJWTClaims: TJWTClaimsSetup;
     FSecret: string;
     FLeewaySeconds: Cardinal;
+    FLoginURLSegment: String;
   protected
     procedure InternalRender(
       AJSONValue: TJSONValue;
@@ -85,6 +86,7 @@ type
     constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
       AConfigClaims: TJWTClaimsSetup;
       ASecret: string = 'D3lph1MVCFram3w0rk';
+      ALoginURLSegment: string = '/login';
       AClaimsToCheck: TJWTCheckableClaims = [
       TJWTCheckableClaim.ExpirationTime,
       TJWTCheckableClaim.NotBefore,
@@ -100,20 +102,22 @@ uses System.NetEncoding, System.DateUtils;
 { TMVCJWTAuthenticationMiddleware }
 
 constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  AConfigClaims: TJWTClaimsSetup;
-  ASecret: string = 'D3lph1MVCFram3w0rk';
-  AClaimsToCheck: TJWTCheckableClaims = [
-  TJWTCheckableClaim.ExpirationTime,
-  TJWTCheckableClaim.NotBefore,
-  TJWTCheckableClaim.IssuedAt
-  ];
-  ALeewaySeconds: Cardinal = 300);
+      AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk';
+      ALoginURLSegment: string = '/login';
+      AClaimsToCheck: TJWTCheckableClaims = [
+      TJWTCheckableClaim.ExpirationTime,
+      TJWTCheckableClaim.NotBefore,
+      TJWTCheckableClaim.IssuedAt
+      ];
+      ALeewaySeconds: Cardinal = 300);
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
   FSetupJWTClaims := AConfigClaims;
   FClaimsToChecks := AClaimsToCheck;
   FSecret := ASecret;
+  FLoginURLSegment := ALoginURLSegment;
   FLeewaySeconds := ALeewaySeconds;
 end;
 
@@ -245,7 +249,7 @@ var
   IsValid: Boolean;
   JWTValue: TJWT;
 begin
-  if SameText(AContext.Request.PathInfo, '/login') and (AContext.Request.HTTPMethod = httpPOST) then
+  if SameText(AContext.Request.PathInfo, FLoginURLSegment) and (AContext.Request.HTTPMethod = httpPOST) then
   begin
     UserName := AContext.Request.Headers['jwtusername'];
     Password := AContext.Request.Headers['jwtpassword'];

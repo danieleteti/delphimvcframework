@@ -432,8 +432,19 @@ begin
   if not Assigned(FErrorObject) then
   begin
     FErrorObject := TMVCExceptionObj.Create;
-    lSerializer := GetDefaultSerializer;
-    lSerializer.DeserializeObject(Self.BodyAsString, FErrorObject);
+    { if content-type is json then we can use a more evoluted deserialization, otherwise
+      we just copy some http information into FErrorObject }
+    if Self.ContentType.StartsWith('application/json', true) then
+    begin
+      lSerializer := GetDefaultSerializer;
+      lSerializer.DeserializeObject(Self.BodyAsString, FErrorObject);
+    end
+    else
+    begin
+      FErrorObject.Status := Self.ResponseText;
+      FErrorObject.ExceptionMessage := Self.BodyAsString;
+      FErrorObject.HTTPError := Self.ResponseCode;
+    end;
   end;
   Result := FErrorObject;
 end;

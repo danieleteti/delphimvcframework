@@ -49,7 +49,7 @@ begin
       // Here we dont use a fixed ExpirationTime but a LiveValidityWindowInSeconds
       // to make the ExpirationTime dynamic, incrementing the
       // ExpirationTime by LiveValidityWindowInSeconds seconds at each request
-      JWT.LiveValidityWindowInSeconds := 5; //60 * 60; // 1 hour
+      JWT.LiveValidityWindowInSeconds := 5; // 60 * 60; // 1 hour
     end;
 
   MVC := TMVCEngine.Create(Self);
@@ -61,11 +61,14 @@ begin
     TAuthenticationSample.Create,
     lClaimsSetup,
     'mys3cr37',
+    '/login',
     [
-      TJWTCheckableClaim.ExpirationTime,
-      TJWTCheckableClaim.NotBefore,
-      TJWTCheckableClaim.IssuedAt
-    ], 0));
+    TJWTCheckableClaim.ExpirationTime,
+    TJWTCheckableClaim.NotBefore,
+    TJWTCheckableClaim.IssuedAt
+    ],
+    0 // just for test, Leeway seconds is zero.
+    ));
 end;
 
 end.

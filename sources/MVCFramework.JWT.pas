@@ -188,7 +188,6 @@ type
     FCustomClaims: TJWTCustomClaims;
     FHMACAlgorithm: string;
     FRegClaimsToChecks: TJWTCheckableClaims;
-    FLiveValidityWindowInSeconds: Cardinal;
     FLeewaySeconds: Cardinal;
     procedure SetHMACAlgorithm(const Value: string);
     procedure SetChecks(const Value: TJWTCheckableClaims);
@@ -454,7 +453,6 @@ begin
   FLeewaySeconds := ALeewaySeconds;
   FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
     TJWTCheckableClaim.IssuedAt];
-  FLiveValidityWindowInSeconds := 0;
 end;
 
 destructor TJWT.Destroy;
