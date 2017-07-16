@@ -369,8 +369,8 @@ type
   TMVCCriticalSectionHelper = class helper
     for TCriticalSection
   public
-    procedure WithLock(const AAction: TProc);
-    function WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+    procedure DoWithLock(const AAction: TProc);
+    function DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
   end;
 
   TMVCConfig = class sealed
@@ -535,7 +535,7 @@ end;
 
 { TMVCCriticalSectionHelper }
 
-procedure TMVCCriticalSectionHelper.WithLock(const AAction: TProc);
+procedure TMVCCriticalSectionHelper.DoWithLock(const AAction: TProc);
 begin
   Self.Enter;
   try
@@ -545,7 +545,7 @@ begin
   end;
 end;
 
-function TMVCCriticalSectionHelper.WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
 begin
   Result := Self.WaitFor(ATimeOut);
   if (Result = TWaitResult.wrSignaled) then

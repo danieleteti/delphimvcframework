@@ -63,6 +63,11 @@ type
     procedure GetPeople_AsObjectList;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/people/withtiming')]
+    // [MVCProduces('application/json')]
+    procedure GetPeopleWithTiming;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/lotofobjects')]
     procedure GetLotOfPeople;
 
@@ -297,6 +302,48 @@ begin
   p.Skills := 'Delphi, JavaScript';
   List.Add(p);
   Render<TPerson>(List);
+end;
+
+procedure TRenderSampleController.GetPeopleWithTiming;
+var
+  p: TPerson;
+  People: TPeopleWithMetadata;
+begin
+  People := TPeopleWithMetadata.Create;
+  try
+    People.Metadata.StartProcessing := Now;
+
+    {$REGION 'Fake data'}
+
+    p := TPerson.Create;
+    p.FirstName := 'Daniele';
+    p.LastName := 'Teti';
+    p.DOB := EncodeDate(1979, 11, 4);
+    p.Married := True;
+    People.Items.Add(p);
+
+    p := TPerson.Create;
+    p.FirstName := 'John';
+    p.LastName := 'Doe';
+    p.DOB := EncodeDate(1879, 10, 2);
+    p.Married := False;
+    People.Items.Add(p);
+
+    p := TPerson.Create;
+    p.FirstName := 'Jane';
+    p.LastName := 'Doe';
+    p.DOB := EncodeDate(1883, 1, 5);
+    p.Married := True;
+    People.Items.Add(p);
+
+    {$ENDREGION}
+
+    People.Metadata.CustomData := Format('There are %d people in the list', [People.Items.Count]);
+    People.Metadata.StopProcessing := Now;
+    Render(People, False);
+  finally
+    People.Free;
+  end;
 end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList;

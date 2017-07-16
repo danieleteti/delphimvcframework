@@ -51,7 +51,7 @@ uses
 
 type
 
-  TMVCSerializationType = (stDefault, stProperties, stFields);
+  TMVCSerializationType = (stUnknown, stDefault, stProperties, stFields);
 
   TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase);
 
