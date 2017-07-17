@@ -800,7 +800,7 @@ function TMVCWebRequest.Body: string;
 var
   Encoding: TEncoding;
   {$IFNDEF BERLINORBETTER}
-  BufferOut: TArray<Byte>;
+  Buffer: TArray<Byte>;
   {$ENDIF}
 begin
   { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }

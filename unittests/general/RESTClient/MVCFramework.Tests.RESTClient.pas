@@ -109,7 +109,6 @@ procedure TTestRESTClient.TestGetUser;
 var
   LUser: TAppUser;
   LResp: IRESTResponse;
-  lJObj: TJSONObject;
 begin
   FRESTClient.Resource('/user').Params([]);
   FRESTClient.Authentication('dmvc', '123');

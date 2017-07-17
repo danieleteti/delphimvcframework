@@ -64,6 +64,10 @@
 {$DEFINE XE3ORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 30} // 10.0 Seattle
+{$DEFINE SEATTLEORBETTER}
+{$ENDIF}
+
 {$IF CompilerVersion >= 31} // 10.1 Berlin
 {$DEFINE BERLINORBETTER}
 {$ENDIF}
