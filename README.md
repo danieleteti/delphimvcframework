@@ -1,10 +1,10 @@
-![DelphiMVCFramework Logo](https://github.com/danieleteti/delphimvcframework/blob/master/docs/dmvcframework_logofacebook.png)
+![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
 
 
 ##DelphiMVCFramework Main Features
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
-  * [Project Roadmap](https://github.com/danieleteti/delphimvcframework/blob/pluggable_mapper/roadmap.md) is always public
+  * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
   * Stable and solid, used by small/mid/big projects since 2010
@@ -33,7 +33,7 @@
   * Automatic documentation through /system/describeserver.info
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
-  * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
+  * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
   
 ## How to correctly get the repository
@@ -41,7 +41,7 @@ DMVCFramework uses a couple of external open source projects, so whe you clone i
 ![How to get the repository](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/dmvcframework_installation.png)
 
 ## Roadmap
-DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](delphimvcframework/roadmap.md).
+DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
@@ -84,7 +84,7 @@ become
 
 ##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
-All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/tree/master/samples) folder.
+All samples are in [Samples](samples) folder.
 Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress).
 
 
