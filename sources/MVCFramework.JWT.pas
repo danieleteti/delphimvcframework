@@ -212,6 +212,31 @@ type
 
 implementation
 
+{$if compilerversion <= 27}
+
+{ Unix date conversion support, compatibility fix for XE5 }
+
+function DateTimeToUnix(const AValue: TDateTime; AInputIsUTC: Boolean): Int64;
+var
+  LDate: TDateTime;
+ begin
+  if AInputIsUTC then
+    LDate := AValue
+  else
+    LDate := TTimeZone.Local.ToUniversalTime(AValue);
+  Result := SecondsBetween(UnixDateDelta, LDate);
+  if LDate < UnixDateDelta then
+     Result := -Result;
+ end;
+
+function UnixToDateTime(const AValue: Int64; AReturnUTC: Boolean): TDateTime;
+begin
+  if AReturnUTC then
+    Result := IncSecond(UnixDateDelta, AValue)
+  else
+    Result := TTimeZone.Local.ToLocalTime(IncSecond(UnixDateDelta, AValue));
+end;
+{$endif}
 { TJWTRegisteredClaims }
 
 function TJWTRegisteredClaims.GetAudience: String;
@@ -315,7 +340,7 @@ var
 begin
   if not TryStrToInt64(Items[Index], lIntValue) then
     raise Exception.Create('Item cannot be converted as Unix Epoch');
-  Result := UnixToDateTime(lIntValue, False);
+  Result := UnixToDateTime(lIntValue, true);
 end;
 
 function TJWTDictionaryObject.Keys: TArray<String>;
@@ -331,7 +356,8 @@ end;
 procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: String;
   const Value: TDateTime);
 begin
-  Items[Index] := IntToStr(DateTimeToUnix(Value, False));
+  Items[Index] := IntToStr(DateTimeToUnix(Value, True));
+end;
 end;
 
 { TJWT }
@@ -357,7 +383,7 @@ begin
     Exit(False);
   end;
 
-  if UnixToDateTime(lIntValue, False) <= Now - FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, true) <= TTimeZone.Local.ToUniversalTime(Now) - FLeewaySeconds * OneSecond then
   begin
     Error := 'Token expired';
     Exit(False);
@@ -386,7 +412,7 @@ begin
     Exit(False);
   end;
 
-  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, true) >= TTimeZone.Local.ToUniversalTime(Now) + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token is issued in the future';
     Exit(False);
@@ -415,7 +441,7 @@ begin
     Exit(False);
   end;
 
-  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, true) >= TTimeZone.Local.ToUniversalTime(Now) + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token still not valid';
     Exit(False);
@@ -475,11 +501,11 @@ begin
         lPayload.AddPair(lCustomClaimName, FCustomClaims[lCustomClaimName]);
       end;
 
-      lHeaderEncoded := B64Encode(lHeader.ToJSON);
-      lPayloadEncoded := B64Encode(lPayload.ToJSON);
+      lHeaderEncoded := URLSafeB64encode(lHeader.ToString, False);
+      lPayloadEncoded := URLSafeB64encode(lPayload.ToString, False);
       lToken := lHeaderEncoded + '.' + lPayloadEncoded;
       lBytes := HMAC(HMACAlgorithm, lToken, FSecretKey);
-      lHash := B64Encode(lBytes);
+      lHash := URLSafeB64encode(lBytes, false);
       Result := lToken + '.' + lHash;
     finally
       lPayload.Free;
@@ -505,7 +531,7 @@ begin
     Exit(False);
   end;
 
-  lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
     if not Assigned(lJHeader) then
     begin
@@ -513,7 +539,7 @@ begin
       Exit(False);
     end;
 
-    lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
+    lJPayload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
     try
       if not Assigned(lJPayload) then
       begin
@@ -529,8 +555,9 @@ begin
 
       lAlgName := lJAlg.Value;
       Result := Token = lPieces[0] + '.' + lPieces[1] + '.' +
-        B64Encode(
-        HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey)
+        URLSafeB64encode(
+        HMAC(lAlgName, lPieces[0] + '.' + lPieces[1], FSecretKey),
+        False
         );
 
       // if the token is correctly signed and has not been tampered,
@@ -589,9 +616,9 @@ begin
     raise EMVCJWTException.Create(lError);
 
   lPieces := Token.Split(['.']);
-  lJHeader := TJSONObject.ParseJSONValue(B64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
-    lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
+    lJPayload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
     try
       // loading data from token into self
       FHMACAlgorithm := lJHeader.Values['alg'].Value;
