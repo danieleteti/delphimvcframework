@@ -32,10 +32,10 @@ interface
 uses
   System.RTTI,
   System.IOUtils,
-  DBXPLatform,
   DB,
   Generics.Collections,
 {$IFDEF USEDBX}
+  DBXPLatform,
   Data.SqlExpr,
   DBXCommon,
 {$IFEND}
