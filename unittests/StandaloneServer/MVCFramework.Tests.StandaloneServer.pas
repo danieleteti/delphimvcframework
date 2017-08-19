@@ -3,7 +3,7 @@ unit MVCFramework.Tests.StandaloneServer;
 interface
 
 uses
-  TestFramework,
+  DUnitX.TestFramework,
   System.Classes,
   System.SysUtils,
   System.Generics.Collections,
@@ -22,15 +22,21 @@ type
     procedure HelloWorld(ctx: TWebContext);
   end;
 
-  TTestMVCFrameworkServer = class(TTestCase)
+  [TestFixture]
+  TTestMVCFrameworkServer = class(TObject)
   private
 
   protected
-    procedure SetUp; override;
-    procedure TearDown; override;
+    [Setup]
+	procedure SetUp;
+    [TearDown]
+	procedure TearDown;
   published
-    procedure TestListener;
+    [Test]
+	procedure TestListener;
+    [Test]
     procedure TestListenerContext;
+    [Test]
     procedure TestServerListenerAndClient;
   end;
 
@@ -65,13 +71,13 @@ begin
     .SetWebModuleClass(TestWebModuleClass)
     );
 
-  CheckTrue(Assigned(LListener));
+  Assert.isTrue(Assigned(LListener));
 
   LListener.Start;
-  CheckTrue(LListener.Active);
+  Assert.isTrue(LListener.Active);
 
   LListener.Stop;
-  CheckFalse(LListener.Active);
+  Assert.isFalse(LListener.Active);
 end;
 
 procedure TTestMVCFrameworkServer.TestServerListenerAndClient;
@@ -86,22 +92,22 @@ begin
     .SetWebModuleClass(TestWebModuleClass)
     );
 
-  CheckTrue(Assigned(LListener));
+  Assert.isTrue(Assigned(LListener));
 
   LListener.Start;
-  CheckTrue(LListener.Active);
+  Assert.isTrue(LListener.Active);
 
   LClient := TRESTClient.Create('localhost', 6000);
   try
     LClient.UserName := 'dmvc';
     LClient.Password := '123';
-    CheckEqualsString('"Hello World called with GET"', LClient.doGET('/hello', []).BodyAsString);
+    Assert.areEqual('"Hello World called with GET"', LClient.doGET('/hello', []).BodyAsString);
   finally
     FreeAndNil(LClient);
   end;
 
   LListener.Stop;
-  CheckFalse(LListener.Active);
+  Assert.isFalse(LListener.Active);
 end;
 
 procedure TTestMVCFrameworkServer.TestListenerContext;
@@ -124,25 +130,25 @@ begin
     .SetWebModuleClass(TestWebModuleClass2)
     );
 
-  CheckTrue(Assigned(LListenerCtx.FindByName('Listener2')));
-  CheckTrue(Assigned(LListenerCtx.FindByName('Listener3')));
+  Assert.isTrue(Assigned(LListenerCtx.FindByName('Listener2')));
+  Assert.isTrue(Assigned(LListenerCtx.FindByName('Listener3')));
 
   LListenerCtx.StartAll;
 
-  CheckTrue(LListenerCtx.Count = 2);
-  CheckTrue(LListenerCtx.FindByName('Listener2').Active);
-  CheckTrue(LListenerCtx.FindByName('Listener3').Active);
+  Assert.isTrue(LListenerCtx.Count = 2);
+  Assert.isTrue(LListenerCtx.FindByName('Listener2').Active);
+  Assert.isTrue(LListenerCtx.FindByName('Listener3').Active);
 
   LListenerCtx.StopAll;
 
-  CheckFalse(LListenerCtx.FindByName('Listener2').Active);
-  CheckFalse(LListenerCtx.FindByName('Listener3').Active);
+  Assert.isFalse(LListenerCtx.FindByName('Listener2').Active);
+  Assert.isFalse(LListenerCtx.FindByName('Listener3').Active);
 
   LListenerCtx
     .Remove('Listener2')
     .Remove('Listener3');
 
-  CheckTrue(LListenerCtx.Count = 0);
+  Assert.isTrue(LListenerCtx.Count = 0);
 end;
 
 { TTestController }
@@ -154,6 +160,6 @@ end;
 
 initialization
 
-RegisterTest(TTestMVCFrameworkServer.Suite);
+TDUnitX.RegisterTestFixture(TTestMVCFrameworkServer);
 
 end.

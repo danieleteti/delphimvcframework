@@ -3,7 +3,7 @@ unit MVCFramework.Tests.RESTClient;
 interface
 
 uses
-  TestFramework,
+  DUnitX.TestFramework,
   System.Classes,
   System.SysUtils,
   System.Generics.Collections,
@@ -39,23 +39,32 @@ type
     procedure PostUsers([Body] pBody: TObjectList<TAppUser>);
   end;
 
-  TTestRESTClient = class(TTestCase)
+  [TestFixture]
+  TTestRESTClient = class(TObject)
   strict private
     FServerListener: IMVCListener;
     FRESTClient: TRESTClient;
     FRESTAdapter: TRESTAdapter<IAppResource>;
     FAppResource: IAppResource;
   protected
-    procedure SetUp; override;
-    procedure TearDown; override;
+    [Setup]
+    procedure SetUp;
+    [TearDown]
+    procedure TearDown;
   published
+    [Test]
     procedure TestCreateAndDestroy();
+    [Test]
     procedure TestInformation();
-
+    [Test]
     procedure TestHelloWorld();
+    [Test]
     procedure TestGetUser();
+    [Test]
     procedure TestPostUser();
+    [Test]
     procedure TestPostUsers();
+    [Test]
     procedure TestGetUsers();
   end;
 
@@ -97,9 +106,9 @@ var
   LClient: TRESTClient;
 begin
   LClient := TRESTClient.Create('', 80, nil);
-  CheckTrue(LClient <> nil);
+  Assert.IsTrue(LClient <> nil);
   FreeAndNil(LClient);
-  CheckTrue(LClient = nil);
+  Assert.IsTrue(LClient = nil);
 end;
 
 procedure TTestRESTClient.TestGetUser;
@@ -112,7 +121,7 @@ begin
 
   // String
   LResp := FRESTClient.doGET;
-  CheckTrue(
+  Assert.IsTrue(
     ('{"Cod":1,"Name":"Ezequiel","Pass":"123"}' = LResp.BodyAsString) and
     (LResp.ResponseCode = 200)
     );
@@ -120,7 +129,7 @@ begin
   // Object
   LUser := FRESTClient.doGET.BodyAsJSONObject.AsObject<TAppUser>();
   try
-    CheckTrue((LUser <> nil) and (LUser.Cod > 0));
+    Assert.IsTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
     FreeAndNil(LUser);
   end;
@@ -128,7 +137,7 @@ begin
   // Adapter
   LUser := FAppResource.GetUser;
   try
-    CheckTrue((LUser <> nil) and (LUser.Cod > 0));
+    Assert.IsTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
     FreeAndNil(LUser);
   end;
@@ -142,7 +151,7 @@ begin
   FRESTClient.Authentication('dmvc', '123');
 
   // String
-  CheckEqualsString('[{"Cod":0,"Name":"Ezequiel 0","Pass":"0"},{"Cod":1,"Name":"Ezequiel 1","Pass":"1"},' +
+  Assert.AreEqual('[{"Cod":0,"Name":"Ezequiel 0","Pass":"0"},{"Cod":1,"Name":"Ezequiel 1","Pass":"1"},' +
     '{"Cod":2,"Name":"Ezequiel 2","Pass":"2"},{"Cod":3,"Name":"Ezequiel 3","Pass":"3"},{"Cod":4,"Name":"Ezequiel 4","Pass":"4"},' +
     '{"Cod":5,"Name":"Ezequiel 5","Pass":"5"},{"Cod":6,"Name":"Ezequiel 6","Pass":"6"},{"Cod":7,"Name":"Ezequiel 7","Pass":"7"},' +
     '{"Cod":8,"Name":"Ezequiel 8","Pass":"8"},{"Cod":9,"Name":"Ezequiel 9","Pass":"9"},{"Cod":10,"Name":"Ezequiel 10","Pass":"10"}]',
@@ -152,7 +161,7 @@ begin
   LUsers := FRESTClient.doGET.BodyAsJSONArray.AsObjectList<TAppUser>;
   try
     LUsers.OwnsObjects := True;
-    CheckTrue(LUsers.Count > 0);
+    Assert.IsTrue(LUsers.Count > 0);
   finally
     FreeAndNil(LUsers);
   end;
@@ -161,7 +170,7 @@ begin
   LUsers := FAppResource.GetUsers;
   try
     LUsers.OwnsObjects := True;
-    CheckTrue(LUsers.Count > 0);
+    Assert.IsTrue(LUsers.Count > 0);
   finally
     FreeAndNil(LUsers);
   end;
@@ -173,10 +182,10 @@ begin
   FRESTClient.Authentication('dmvc', '123');
 
   // String
-  CheckEqualsString('"Hello World called with GET"', FRESTClient.doGET.BodyAsString);
+  Assert.AreEqual('"Hello World called with GET"', FRESTClient.doGET.BodyAsString);
 
   // Adapter
-  CheckEqualsString('"Hello World called with GET"', FAppResource.HelloWorld);
+  Assert.AreEqual('"Hello World called with GET"', FAppResource.HelloWorld);
 end;
 
 procedure TTestRESTClient.TestInformation;
@@ -196,22 +205,22 @@ begin
     .SSL
     .Compression;
 
-  CheckTrue(LClient.ReadTimeOut = 100);
-  CheckTrue(LClient.ConnectionTimeOut = 100);
-  CheckTrue(LClient.Username = 'dmvc');
-  CheckTrue(LClient.Password = 'dmvc');
-  CheckTrue(LClient.UseBasicAuthentication);
-  CheckTrue(LClient.Accept = 'application/json;charset=UTF-8');
-  CheckTrue(LClient.ContentType = 'application/json;charset=UTF-8');
-  CheckTrue(LClient.ContentEncoding = 'UTF-8');
-  CheckTrue(LClient.HasSSL);
-  CheckTrue(LClient.HasCompression);
+  Assert.IsTrue(LClient.ReadTimeOut = 100);
+  Assert.IsTrue(LClient.ConnectionTimeOut = 100);
+  Assert.IsTrue(LClient.Username = 'dmvc');
+  Assert.IsTrue(LClient.Password = 'dmvc');
+  Assert.IsTrue(LClient.UseBasicAuthentication);
+  Assert.IsTrue(LClient.Accept = 'application/json;charset=UTF-8');
+  Assert.IsTrue(LClient.ContentType = 'application/json;charset=UTF-8');
+  Assert.IsTrue(LClient.ContentEncoding = 'UTF-8');
+  Assert.IsTrue(LClient.HasSSL);
+  Assert.IsTrue(LClient.HasCompression);
 
-  CheckTrue(LClient.RawBody <> nil);
-  CheckTrue(LClient.MultiPartFormData <> nil);
-  CheckTrue(LClient.BodyParams <> nil);
-  CheckTrue(LClient.RequestHeaders <> nil);
-  CheckTrue(LClient.QueryStringParams <> nil);
+  Assert.IsTrue(LClient.RawBody <> nil);
+  Assert.IsTrue(LClient.MultiPartFormData <> nil);
+  Assert.IsTrue(LClient.BodyParams <> nil);
+  Assert.IsTrue(LClient.RequestHeaders <> nil);
+  Assert.IsTrue(LClient.QueryStringParams <> nil);
 
   FreeAndNil(LClient);
 end;
@@ -229,7 +238,7 @@ begin
   LUser.Name := 'Ezequiel';
   LUser.Pass := '123';
   LResp := FRESTClient.doPOST<TAppUser>(LUser);
-  CheckTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  Assert.IsTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
   LUser := TAppUser.Create;
@@ -261,7 +270,7 @@ begin
     LUsers.Add(LUser);
   end;
   LResp := FRESTClient.doPOST<TAppUser>(LUsers);
-  CheckTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  Assert.IsTrue(('"Sucess!"' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
 
   // Adapter
   LUsers := TObjectList<TAppUser>.Create(True);
@@ -277,7 +286,6 @@ begin
 end;
 
 initialization
-
-RegisterTest(TTestRESTClient.Suite);
+TDUnitX.RegisterTestFixture(TTestRESTClient);
 
 end.

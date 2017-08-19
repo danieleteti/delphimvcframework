@@ -27,17 +27,23 @@ unit MessagingExtensionsTestU;
 interface
 
 uses
-  TestFramework,
+  DUnitX.TestFramework,
   MVCFramework.RESTClient,
   LiveServerTestU;
 
 type
+  [TestFixture]
   TMessagingExtensionsTestCase = class(TBaseServerTest)
   published
+    [Test]
     procedure TestSubscribeOnATopic;
+    [Test]
     procedure TestMultipleSubscribeOnSameTopic;
+    [Test]
     procedure TestMultipleSubscribeAndUnsubscribe;
+    [Test]
     procedure TestMultipleSubscribeAndUnsubscribeHARD;
+    [Test]
     procedure TestSubscribeAndReceive;
   end;
 
@@ -66,26 +72,26 @@ begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
-  CheckEquals('/queue/test01', x);
+  Assert.areEqual('/queue/test01', x);
 
   res := RESTClient.doPOST('/messages/subscriptions/queue', ['test010']);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shoud not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
-  CheckEquals('/queue/test01;/queue/test010', x);
+  Assert.areEqual('/queue/test01;/queue/test010', x);
 
   res := RESTClient.doDELETE('/messages/subscriptions/queue/test01', []);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shoud not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
-  CheckEquals('/queue/test010', x);
+  Assert.areEqual('/queue/test010', x);
 
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   DoLogout;
 end;
@@ -105,20 +111,20 @@ begin
   res := RESTClient.doPOST('/messages/subscriptions/queue', ['test010101']);
   res := RESTClient.doPOST('/messages/subscriptions/queue', ['test0101010']);
 
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
-  CheckEquals
+  Assert.areEqual
     ('/queue/test01;/queue/test010;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010',
     x);
 
   res := RESTClient.doDELETE('/messages/subscriptions/queue', ['test010']);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shod not return an error
   res := RESTClient.doGET('/messages/subscriptions', []);
   x := Trim(res.BodyAsString);
-  CheckEquals
+  Assert.areEqual
     ('/queue/test01;/queue/test0101;/queue/test01010;/queue/test010101;/queue/test0101010', x);
   DoLogout;
 end;
@@ -130,9 +136,9 @@ begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   // server shoud not return an error
   DoLogout;
 end;
@@ -188,11 +194,11 @@ begin
     res := RESTClient.doGET('/messages', []);
     if res.ResponseCode = HTTP_STATUS.OK then
     begin
-      CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONFalse);
-      CheckNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
-      CheckNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
-      CheckIs(res.BodyAsJsonObject.Get('messages').JsonValue, TJSONArray,
-        'Messages is not a TJSONArray');
+      Assert.isTrue(res.BodyAsJsonObject.Get('_timeout').JsonValue is TJSONFalse);
+      Assert.isNotNull(res.BodyAsJsonObject.Get('_timestamp'), '_timestamp is not set');
+      Assert.isNotNull(res.BodyAsJsonObject.Get('messages'), 'messages is not set');
+      Assert.isTrue(res.BodyAsJsonObject.Get('messages').JsonValue is TJSONArray,
+                    'Messages is not a TJSONArray');
       messages := res.BodyAsJsonObject.Get('messages').JsonValue as TJSONArray;
       if messages.Size > 0 then
         for I := 0 to messages.Size - 1 do
@@ -205,9 +211,9 @@ begin
     if res.ResponseCode = HTTP_STATUS.RequestTimeout then // receive timeout
       break;
   end;
-  CheckEquals(MSG_COUNT * 2, RMessageCount, 'message count');
+  Assert.areEqual(MSG_COUNT * 2, RMessageCount, 'message count');
   res := RESTClient.doGET('/messages', []);
-  CheckIs(res.BodyAsJsonObject.Get('_timeout').JsonValue, TJSONTrue);
+  Assert.isTrue(res.BodyAsJsonObject.Get('_timeout').JsonValue is TJSONTrue);
   DoLogout;
 end;
 
@@ -218,16 +224,16 @@ begin
   DoLoginWith('guest');
   RESTClient.doPOST('/messages/clients', ['my-unique-id']);
   res := RESTClient.doPOST('/messages/subscriptions/queue/test01', []);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   res := RESTClient.doDELETE('/messages/subscriptions/queue/test01', []);
-  CheckEquals(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
+  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, res.ResponseText);
   DoLogout;
 end;
 
 initialization
 
 {$IFDEF USE_MESSAGING}
-  RegisterTest(TMessagingExtensionsTestCase.Suite);
+  TDUnitX.RegisterTestFixture(TMessagingExtensionsTestCase);
 {$ENDIF}
 
 finalization
