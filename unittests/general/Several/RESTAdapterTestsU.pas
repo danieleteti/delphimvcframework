@@ -29,7 +29,7 @@ unit RESTAdapterTestsU;
 interface
 
 uses
-  MVCFramework.RESTAdapter, TestFramework, BusinessObjectsU,
+  MVCFramework.RESTAdapter, DUnitX.TestFramework, BusinessObjectsU,
   Generics.Collections,
   MVCFramework.TypesAliases,
   MVCFramework.RESTClient,
@@ -84,22 +84,34 @@ type
 
   end;
 
-  TTestRESTAdapter = class(TTestCase)
+  [TestFixture]
+  TTestRESTAdapter = class(TObject)
   private
     RESTAdapter: TRESTAdapter<ITESTService>;
     TESTService: ITESTService;
   protected
-    procedure SetUp; override;
+    [SetUp]
+    procedure SetUp;
   published
+    [Test]
     procedure TestGetPeople;
+    [Test]
     procedure TestGetPeopleAsynch;
+    [Test]
     procedure TestGetTonyStark;
+    [Test]
     procedure TestGetTonyStarkAsynch;
+    [Test]
     procedure TestPostPerson;
+    [Test]
     procedure TestGetPersonByID;
+    [Test]
     procedure TestHeadersApplicationJSON;
+    [Test]
     procedure TestHeadersTextPlain;
+    [Test]
     procedure TestApplicationJSONWithHeaderTextPlain;
+    [Test]
     procedure TestGetPersonInJSONArray;
   end;
 
@@ -122,9 +134,9 @@ var
 begin;
   Person := TESTService.GetPersonByID(1);
   try
-    CheckEquals('Tony', Person.FirstName);
-    CheckEquals('Stark', Person.LastName);
-    CheckTrue(Person.Married);
+    Assert.AreEqual('Tony', Person.FirstName);
+    Assert.AreEqual('Stark', Person.LastName);
+    Assert.isTrue(Person.Married);
   finally
     Person.Free;
   end;
@@ -136,10 +148,10 @@ var
 begin
   JSONArray := TESTService.GetPersonInJSONArray;
   try
-    CheckTrue(JSONArray.ToString.Contains('Tony'));
-    CheckTrue(JSONArray.ToString.Contains('Stark'));
-    CheckTrue(JSONArray.ToString.Contains('Bruce'));
-    CheckTrue(JSONArray.ToString.Contains('Banner'));
+    Assert.isTrue(JSONArray.ToString.Contains('Tony'));
+    Assert.isTrue(JSONArray.ToString.Contains('Stark'));
+    Assert.isTrue(JSONArray.ToString.Contains('Bruce'));
+    Assert.isTrue(JSONArray.ToString.Contains('Banner'));
   finally
     JSONArray.Free;
   end;
@@ -151,9 +163,9 @@ var
 begin;
   Person := TESTService.GetTonyStark;
   try
-    CheckEquals('Tony', Person.FirstName);
-    CheckEquals('Stark', Person.LastName);
-    CheckTrue(Person.Married);
+    Assert.AreEqual('Tony', Person.FirstName);
+    Assert.AreEqual('Stark', Person.LastName);
+    Assert.isTrue(Person.Married);
   finally
     Person.Free;
   end;
@@ -175,12 +187,12 @@ begin
       end);
     TESTService.GetTonyStarkAsynch(AsynchRequest);
     // attend for max 5 seconds
-    CheckTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
-    CheckNotNull(Person);
+    Assert.isTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
+    Assert.IsNotNull(Person);
     try
-      CheckEquals('Tony', Person.FirstName);
-      CheckEquals('Stark', Person.LastName);
-      CheckTrue(Person.Married);
+      Assert.AreEqual('Tony', Person.FirstName);
+      Assert.AreEqual('Stark', Person.LastName);
+      Assert.isTrue(Person.Married);
     finally
       Person.Free;
     end;
@@ -195,7 +207,7 @@ var
 begin
   Res := TESTService.HeadersApplicationJSON as TJSONObject;
   try
-    CheckEquals('Hello World', Res.GetValue('key').Value);
+    Assert.AreEqual('Hello World', Res.GetValue('key').Value);
   finally
     Res.Free;
   end;
@@ -206,7 +218,7 @@ var
   Res: string;
 begin
   Res := TESTService.HeadersTextPlain;
-  CheckEquals('Hello World', Res);
+  Assert.AreEqual('Hello World', Res);
 end;
 
 procedure TTestRESTAdapter.TestPostPerson;
@@ -217,9 +229,9 @@ begin
   Person := TPerson.GetNew('Peter', 'Parker', 0, false);
   RetPerson := TESTService.SendPerson(Person);
   try
-    CheckEquals('Peter', RetPerson.FirstName);
-    CheckEquals('Parker', RetPerson.LastName);
-    CheckFalse(RetPerson.Married);
+    Assert.AreEqual('Peter', RetPerson.FirstName);
+    Assert.AreEqual('Parker', RetPerson.LastName);
+    Assert.IsFalse(RetPerson.Married);
   finally
     RetPerson.Free;
   end;
@@ -231,7 +243,7 @@ var
 begin
   // expected 404 because is not consumed text/plain
   Resp := TESTService.ApplicationJSONWithTextPlainHeader;
-  CheckEquals(404, Resp.ResponseCode);
+  Assert.AreEqual(404, Resp.ResponseCode);
 end;
 
 procedure TTestRESTAdapter.TestGetPeople;
@@ -240,9 +252,9 @@ var
 begin
   ListPerson := TESTService.GetPeople;
   try
-    CheckTrue(ListPerson.Count > 0);
-    CheckEquals('Tony', ListPerson[0].FirstName);
-    CheckEquals('Stark', ListPerson[0].LastName);
+    Assert.isTrue(ListPerson.Count > 0);
+    Assert.AreEqual('Tony', ListPerson[0].FirstName);
+    Assert.AreEqual('Stark', ListPerson[0].LastName);
   finally
     ListPerson.Free;
   end;
@@ -265,12 +277,12 @@ begin
     TESTService.GetPeopleAsynch(AsynchRequest);
 
     // attend for max 5 seconds
-    CheckTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
-    CheckNotNull(People);
+    Assert.isTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
+    Assert.IsNotNull(People);
     try
-      CheckTrue(People.Count > 0);
-      CheckEquals('Tony', People[0].FirstName);
-      CheckEquals('Stark', People[0].LastName);
+      Assert.isTrue(People.Count > 0);
+      Assert.AreEqual('Tony', People[0].FirstName);
+      Assert.AreEqual('Stark', People[0].LastName);
     finally
       People.Free;
     end;
@@ -281,7 +293,7 @@ end;
 
 initialization
 
-RegisterTest(TTestRESTAdapter.suite);
+TDUnitX.RegisterTestFixture(TTestRESTAdapter);
 
 finalization
 
