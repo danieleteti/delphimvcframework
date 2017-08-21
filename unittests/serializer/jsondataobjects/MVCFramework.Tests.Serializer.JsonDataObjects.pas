@@ -29,7 +29,7 @@ unit MVCFramework.Tests.Serializer.JsonDataObjects;
 interface
 
 uses
-  TestFramework,
+  DUnitX.TestFramework,
   System.Rtti,
   System.Classes,
   System.SysUtils,
@@ -45,32 +45,52 @@ uses
 
 type
 
-  TMVCTestSerializerJsonDataObjects = class(TTestCase, IMVCTestSerializer)
+  [TestFixture]
+  TMVCTestSerializerJsonDataObjects = class(TObject)
   private
     FSerializer: IMVCSerializer;
   protected
-    procedure SetUp; override;
-    procedure TearDown; override;
+    [Setup]
+    procedure SetUp;
+    [TearDown]
+    procedure TearDown;
   published
     { serialize declarations }
+    [Test]
     procedure TestSerializeEntity;
+    [Test]
     procedure TestSerializeNil;
+    [Test]
     procedure TestSerializeEntityUpperCaseNames;
+    [Test]
     procedure TestSerializeEntityLowerCaseNames;
+    [Test]
     procedure TestSerializeEntityNameAs;
+    [Test]
     procedure TestSerializeEntityCustomSerializer;
+    [Test]
     procedure TestSerializeEntityCustomMemberSerializer;
+    [Test]
     procedure TestSerializeEntitySerializationType;
+    [Test]
     procedure TestSerializeCollection;
+    [Test]
     procedure TestSerializeDataSet;
     { deserialize declarations }
+    [Test]
     procedure TestDeserializeEntity;
+    [Test]
     procedure TestDeserializeEntityCustomSerializer;
+    [Test]
     procedure TestDeserializeEntityCustomMemberSerializer;
+    [Test]
     procedure TestDeserializeEntitySerializationType;
+    [Test]
     procedure TestDeserializeCollection;
+    [Test]
     procedure TestDeserializeDataSet;
         { full cycle }
+    [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
   end;
 
@@ -109,11 +129,11 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeCollection;
 
   procedure CheckObjectList(const AList: TObjectList<TNote>);
   begin
-    CheckTrue(AList.Count = 4);
-    CheckTrue(AList.Items[0].Description = 'Description 1');
-    CheckTrue(AList.Items[1].Description = 'Description 2');
-    CheckTrue(AList.Items[2].Description = 'Description 3');
-    CheckTrue(AList.Items[3].Description = 'Description 4');
+    Assert.isTrue(AList.Count = 4);
+    Assert.isTrue(AList.Items[0].Description = 'Description 1');
+    Assert.isTrue(AList.Items[1].Description = 'Description 2');
+    Assert.isTrue(AList.Items[2].Description = 'Description 3');
+    Assert.isTrue(AList.Items[3].Description = 'Description 4');
   end;
 
 const
@@ -232,53 +252,53 @@ begin
   Dm := TEntitiesModule.Create(nil);
   try
     FSerializer.DeserializeDataSetRecord(JSON, Dm.Entity, ['Ignored']);
-    CheckTrue(Dm.EntityId.AsLargeInt = 1);
-    CheckTrue(Dm.EntityCode.AsInteger = 2);
-    CheckTrue(Dm.EntityName.AsString = 'Ezequiel Juliano Müller');
-    CheckTrue(Dm.EntityBirthday.AsDateTime = StrToDate('15/10/1987'));
-    CheckTrue(Dm.EntityAccessDateTime.AsDateTime = StrToDateTime('17/02/2017 16:37:50'));
-    CheckTrue(Dm.EntityAccessTime.AsDateTime = StrToTime('16:40:50'));
-    CheckTrue(Dm.EntityActive.AsBoolean = True);
-    CheckTrue(Dm.EntitySalary.AsCurrency = 100);
-    CheckTrue(Dm.EntityAmount.AsFloat = 100);
-    CheckTrue(Dm.EntityBlobFld.AsString = '<html><body><h1>BLOB</h1></body></html>');
+    Assert.isTrue(Dm.EntityId.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityCode.AsInteger = 2);
+    Assert.isTrue(Dm.EntityName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityBirthday.AsDateTime = StrToDate('15/10/1987'));
+    Assert.isTrue(Dm.EntityAccessDateTime.AsDateTime = StrToDateTime('17/02/2017 16:37:50'));
+    Assert.isTrue(Dm.EntityAccessTime.AsDateTime = StrToTime('16:40:50'));
+    Assert.isTrue(Dm.EntityActive.AsBoolean = True);
+    Assert.isTrue(Dm.EntitySalary.AsCurrency = 100);
+    Assert.isTrue(Dm.EntityAmount.AsFloat = 100);
+    Assert.isTrue(Dm.EntityBlobFld.AsString = '<html><body><h1>BLOB</h1></body></html>');
 
     Dm.Item.First;
-    CheckTrue(Dm.ItemId.AsLargeInt = 1);
-    CheckTrue(Dm.ItemName.AsString = 'Ezequiel');
+    Assert.isTrue(Dm.ItemId.AsLargeInt = 1);
+    Assert.isTrue(Dm.ItemName.AsString = 'Ezequiel');
 
     Dm.Item.Next;
-    CheckTrue(Dm.ItemId.AsLargeInt = 2);
-    CheckTrue(Dm.ItemName.AsString = 'Juliano');
+    Assert.isTrue(Dm.ItemId.AsLargeInt = 2);
+    Assert.isTrue(Dm.ItemName.AsString = 'Juliano');
 
     Dm.Departament.First;
-    CheckTrue(Dm.DepartamentName.AsString = 'Depto1');
+    Assert.isTrue(Dm.DepartamentName.AsString = 'Depto1');
 
     FSerializer.DeserializeDataSetRecord(JSON_LOWERCASE, Dm.EntityLowerCase);
-    CheckTrue(Dm.EntityLowerCaseId.AsLargeInt = 1);
-    CheckTrue(Dm.EntityLowerCaseName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityLowerCaseId.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityLowerCaseName.AsString = 'Ezequiel Juliano Müller');
 
     FSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase);
-    CheckTrue(Dm.EntityUpperCaseId.AsLargeInt = 1);
-    CheckTrue(Dm.EntityUpperCaseName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityUpperCaseId.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityUpperCaseName.AsString = 'Ezequiel Juliano Müller');
 
     FSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase2, [], ncUpperCase);
-    CheckTrue(Dm.EntityUpperCase2Id.AsLargeInt = 1);
-    CheckTrue(Dm.EntityUpperCase2Name.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityUpperCase2Id.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityUpperCase2Name.AsString = 'Ezequiel Juliano Müller');
 
     FSerializer.DeserializeDataSetRecord(JSON_ASIS, Dm.EntityAsIs);
-    CheckTrue(Dm.EntityAsIsId.AsLargeInt = 1);
-    CheckTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
 
     Dm.EntityAsIs.EmptyDataSet;
     FSerializer.DeserializeDataSet(JSON_LIST, Dm.EntityAsIs);
     Dm.EntityAsIs.First;
-    CheckTrue(Dm.EntityAsIsId.AsLargeInt = 1);
-    CheckTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
 
     Dm.EntityAsIs.Next;
-    CheckTrue(Dm.EntityAsIsId.AsLargeInt = 2);
-    CheckTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 2);
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
   finally
     Dm.Free;
   end;
@@ -288,26 +308,26 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
 
   procedure CheckObject(const AEntity: TEntity);
   begin
-    CheckTrue(AEntity.Id = 1);
-    CheckTrue(AEntity.Code = 2);
-    CheckTrue(AEntity.Name = 'Ezequiel Juliano Müller');
-    CheckTrue(AEntity.Salary = 100);
-    CheckTrue(DateToStr(AEntity.Birthday) = '15/10/1987');
-    CheckTrue(DateTimeToStr(AEntity.AccessDateTime) = '17/02/2017 16:37:50');
-    CheckTrue(TimeToStr(AEntity.AccessTime) = '16:40:50');
-    CheckTrue(AEntity.Active = True);
-    CheckTrue(AEntity.Role = TRole.roGuest);
-    CheckTrue(DateTimeToStr(TimeStampToDateTime(AEntity.Teporization)) = '17/02/2017 16:37:50');
-    CheckTrue(AEntity.Department <> nil);
-    CheckTrue(AEntity.Department.Id = 1);
-    CheckTrue(AEntity.Department.Name = 'Development');
-    CheckTrue(AEntity.DepartmentNull = nil);
-    CheckTrue(AEntity.Notes.Count = 2);
-    CheckTrue(AEntity.Notes[0].Description = 'EntNote1');
-    CheckTrue(AEntity.Notes[1].Description = 'EntNote2');
-    CheckTrue(AEntity.NotesEmpty.Count = 0);
-    CheckTrue(AEntity.AppreciationAs.AsString = 'Yes');
-    CheckTrue(AEntity.Appreciation.AsString = 'Yes');
+    Assert.isTrue(AEntity.Id = 1);
+    Assert.isTrue(AEntity.Code = 2);
+    Assert.isTrue(AEntity.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(AEntity.Salary = 100);
+    Assert.isTrue(DateToStr(AEntity.Birthday) = '15/10/1987');
+    Assert.isTrue(DateTimeToStr(AEntity.AccessDateTime) = '17/02/2017 16:37:50');
+    Assert.isTrue(TimeToStr(AEntity.AccessTime) = '16:40:50');
+    Assert.isTrue(AEntity.Active = True);
+    Assert.isTrue(AEntity.Role = TRole.roGuest);
+    Assert.isTrue(DateTimeToStr(TimeStampToDateTime(AEntity.Teporization)) = '17/02/2017 16:37:50');
+    Assert.isTrue(AEntity.Department <> nil);
+    Assert.isTrue(AEntity.Department.Id = 1);
+    Assert.isTrue(AEntity.Department.Name = 'Development');
+    Assert.isTrue(AEntity.DepartmentNull = nil);
+    Assert.isTrue(AEntity.Notes.Count = 2);
+    Assert.isTrue(AEntity.Notes[0].Description = 'EntNote1');
+    Assert.isTrue(AEntity.Notes[1].Description = 'EntNote2');
+    Assert.isTrue(AEntity.NotesEmpty.Count = 0);
+    Assert.isTrue(AEntity.AppreciationAs.AsString = 'Yes');
+    Assert.isTrue(AEntity.Appreciation.AsString = 'Yes');
   end;
 
 const
@@ -430,11 +450,11 @@ begin
   O := TSale.Create;
   try
     FSerializer.DeserializeObject(JSON, O);
-    CheckTrue(O.Entity.Id = 1);
-    CheckTrue(O.Entity.Code = 2);
-    CheckTrue(O.Entity.Name = 'Ezequiel Juliano Müller');
-    CheckTrue(O.Notes.DataString = 'Ezequiel Juliano Müller');
-    CheckTrue(O.NotesAsString.DataString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.Entity.Id = 1);
+    Assert.isTrue(O.Entity.Code = 2);
+    Assert.isTrue(O.Entity.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.Notes.DataString = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.NotesAsString.DataString = 'Ezequiel Juliano Müller');
   finally
     O.Free;
   end;
@@ -454,9 +474,9 @@ begin
   O := TEntityCustom.Create;
   try
     FSerializer.DeserializeObject(JSON, O);
-    CheckTrue(O.Id = 1);
-    CheckTrue(O.Code = 2);
-    CheckTrue(O.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(O.Id = 1);
+    Assert.isTrue(O.Code = 2);
+    Assert.isTrue(O.Name = 'Ezequiel Juliano Müller');
   finally
     O.Free;
   end;
@@ -484,9 +504,9 @@ begin
   OFields := TEntitySerializeFields.Create;
   try
     FSerializer.DeserializeObject(JSON_FIELDS, OFields);
-    CheckTrue(OFields.Id = 1);
-    CheckTrue(OFields.Code = 2);
-    CheckTrue(OFields.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(OFields.Id = 1);
+    Assert.isTrue(OFields.Code = 2);
+    Assert.isTrue(OFields.Name = 'Ezequiel Juliano Müller');
   finally
     OFields.Free;
   end;
@@ -494,9 +514,9 @@ begin
   OProperties := TEntitySerializeProperties.Create;
   try
     FSerializer.DeserializeObject(JSON_PROPERTIES, OProperties);
-    CheckTrue(OProperties.Id = 1);
-    CheckTrue(OProperties.Code = 2);
-    CheckTrue(OProperties.Name = 'Ezequiel Juliano Müller');
+    Assert.isTrue(OProperties.Id = 1);
+    Assert.isTrue(OProperties.Code = 2);
+    Assert.isTrue(OProperties.Name = 'Ezequiel Juliano Müller');
   finally
     OProperties.Free;
   end;
@@ -547,10 +567,10 @@ begin
     O.Add(TNote.Create('Description 4'));
 
     S := FSerializer.SerializeCollection(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
 
     S := FSerializer.SerializeCollection(O, stFields);
-    CheckEqualsString(JSON_FIELDS, S);
+    Assert.areEqual(JSON_FIELDS, S);
   finally
     O.Free;
   end;
@@ -648,42 +668,42 @@ begin
 
     Dm.Entity.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.Entity, ['Ignored'], ncAsIs);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
 
     Dm.EntityLowerCase.Insert;
     Dm.EntityLowerCaseId.AsLargeInt := 1;
     Dm.EntityLowerCaseName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityLowerCase.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityLowerCase);
-    CheckEqualsString(JSON_LOWERCASE, S);
+    Assert.areEqual(JSON_LOWERCASE, S);
 
     Dm.EntityUpperCase.Insert;
     Dm.EntityUpperCaseId.AsLargeInt := 1;
     Dm.EntityUpperCaseName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityUpperCase.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityUpperCase);
-    CheckEqualsString(JSON_UPPERCASE, S);
+    Assert.areEqual(JSON_UPPERCASE, S);
 
     Dm.EntityUpperCase2.Insert;
     Dm.EntityUpperCase2Id.AsLargeInt := 1;
     Dm.EntityUpperCase2Name.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityUpperCase2.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityUpperCase2, [], ncUpperCase);
-    CheckEqualsString(JSON_UPPERCASE, S);
+    Assert.areEqual(JSON_UPPERCASE, S);
 
     Dm.EntityAsIs.Insert;
     Dm.EntityAsIsId.AsLargeInt := 1;
     Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityAsIs.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityAsIs);
-    CheckEqualsString(JSON_ASIS, S);
+    Assert.areEqual(JSON_ASIS, S);
 
     Dm.EntityAsIs.Append;
     Dm.EntityAsIsId.AsLargeInt := 2;
     Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityAsIs.Post;
     S := FSerializer.SerializeDataSet(Dm.EntityAsIs);
-    CheckEqualsString(JSON_LIST, S);
+    Assert.areEqual(JSON_LIST, S);
   finally
     Dm.Free;
   end;
@@ -709,7 +729,7 @@ begin
     O.Name := 'Daniele Teti';
     O.Color := TColorEnum.RED;
     S := FSerializer.SerializeObject(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
   finally
     O.Free;
   end;
@@ -717,10 +737,10 @@ begin
   O := TEntityWithEnums.Create;
   try
     FSerializer.DeserializeObject(S, O);
-    CheckEquals(1, O.Id);
-    CheckEquals(2, O.Code);
-    CheckEquals('Daniele Teti', O.Name);
-    CheckEquals(Ord(TColorEnum.RED), Ord(O.Color));
+    Assert.areEqual(int64(1), O.Id);
+    Assert.areEqual(2, O.Code);
+    Assert.areEqual('Daniele Teti', O.Name);
+    Assert.areEqual(Ord(TColorEnum.RED), Ord(O.Color));
   finally
     O.Free;
   end;
@@ -878,16 +898,16 @@ begin
     O.Department.Notes.Add(TNote.Create('DepNote2'));
 
     S := FSerializer.SerializeObject(O, stProperties, ['Ignored']);
-    CheckEqualsString(JSON_PROPERTIES, S);
+    Assert.areEqual(JSON_PROPERTIES, S);
 
     S := FSerializer.SerializeObject(O, stFields, ['FIgnored']);
-    CheckEqualsString(JSON_FIELDS, S);
+    Assert.areEqual(JSON_FIELDS, S);
 
     O.Birthday := 0;
     O.AccessDateTime := 0;
     O.AccessTime := 0;
     S := FSerializer.SerializeObject(O, stProperties, ['Ignored']);
-    CheckEqualsString(JSON_NULLS, S);
+    Assert.areEqual(JSON_NULLS, S);
   finally
     O.Free;
   end;
@@ -918,7 +938,7 @@ begin
     O.NotesAsString.WriteString('Ezequiel Juliano Müller');
 
     S := FSerializer.SerializeObject(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
   finally
     O.Free;
   end;
@@ -943,7 +963,7 @@ begin
     O.Name := 'Ezequiel Juliano Müller';
 
     S := FSerializer.SerializeObject(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
   finally
     O.Free;
   end;
@@ -968,7 +988,7 @@ begin
     O.Name := 'Ezequiel Juliano Müller';
 
     S := FSerializer.SerializeObject(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
   finally
     O.Free;
   end;
@@ -993,10 +1013,10 @@ begin
     O.Name := 'Ezequiel Juliano Müller';
 
     S := FSerializer.SerializeObject(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
 
     S := FSerializer.SerializeObject(O, stFields);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
   finally
     O.Free;
   end;
@@ -1029,7 +1049,7 @@ begin
     OFields.Name := 'Ezequiel Juliano Müller';
 
     S := FSerializer.SerializeObject(OFields);
-    CheckEqualsString(JSON_FIELDS, S);
+    Assert.areEqual(JSON_FIELDS, S);
   finally
     OFields.Free;
   end;
@@ -1041,7 +1061,7 @@ begin
     OProperties.Name := 'Ezequiel Juliano Müller';
 
     S := FSerializer.SerializeObject(OProperties);
-    CheckEqualsString(JSON_PROPERTIES, S);
+    Assert.areEqual(JSON_PROPERTIES, S);
   finally
     OProperties.Free;
   end;
@@ -1066,7 +1086,7 @@ begin
     O.Name := 'Ezequiel Juliano Müller';
 
     S := FSerializer.SerializeObject(O);
-    CheckEqualsString(JSON, S);
+    Assert.areEqual(JSON, S);
   finally
     O.Free;
   end;
@@ -1074,7 +1094,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeNil;
 begin
-  CheckEquals('null', FSerializer.SerializeObject(nil));
+  Assert.areEqual('null', FSerializer.SerializeObject(nil));
 end;
 
 { TMVCEntityCustomSerializerJsonDataObjects }
@@ -1117,6 +1137,6 @@ end;
 
 initialization
 
-RegisterTest(TMVCTestSerializerJsonDataObjects.Suite);
+TDUnitX.RegisterTestFixture(TMVCTestSerializerJsonDataObjects);
 
 end.

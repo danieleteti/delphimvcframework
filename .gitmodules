@@ -4,3 +4,9 @@
 [submodule "lib/loggerpro"]
 	path = lib/loggerpro
 	url = https://github.com/danieleteti/loggerpro.git
+[submodule "lib/jsondataobjects"]
+	path = lib/jsondataobjects
+	url = https://github.com/ahausladen/JsonDataObjects.git
+[submodule "lib/dunitx"]
+	path = lib/dunitx
+	url = https://github.com/VSoftTechnologies/DUnitX.git
