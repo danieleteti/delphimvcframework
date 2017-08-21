@@ -43,6 +43,7 @@ const
   {$ENDIF}
 
 type
+
   [TestFixture]
   TBaseServerTest = class(TObject)
   protected
@@ -50,7 +51,7 @@ type
     procedure DoLoginWith(UserName: string);
     procedure DoLogout;
 
-  protected
+  public
     [SetUp]
     procedure SetUp;
     [TearDown]
@@ -59,58 +60,103 @@ type
   end;
 
   TServerTest = class(TBaseServerTest)
-  published
+  public
+    [Test]
     procedure TestReqWithParams;
+    [Test]
     procedure TestPOSTWithParamsAndJSONBody;
+    [Test]
     // procedure TestPATCHWithParamsAndJSONBody;
+    [Test]
     procedure TestPOSTWithObjectJSONBody;
+    [Test]
     procedure TestPUTWithParamsAndJSONBody;
+    [Test]
     procedure TestCookies;
+    [Test]
     procedure TestSessionWithLogin;
+    [Test]
     procedure TestSession;
+    [Test]
     procedure TestInvalidateSession;
+    [Test]
     procedure TestAsynchRequestPOST;
+    [Test]
     procedure TestAsynchRequestPUT;
+    [Test]
     procedure TestAsynchRequestGET;
+    [Test]
     procedure TestAsynchRequestDELETE;
+    [Test]
     procedure TestEncodingRenderJSONValue;
+    [Test]
     procedure TestRenderWrappedList;
+    [Test]
     procedure TestRenderStreamAndFreeWithOwnerFalse;
+    [Test]
     procedure TestRenderStreamAndFreeWithOwnerTrue;
+    [Test]
     // procedure TestSerializationType;
+    [Test]
     procedure TestProducesConsumes01;
+    [Test]
     procedure TestProducesConsumes02;
+    [Test]
     procedure TestProducesConsumes03;
+    [Test]
     procedure TestProducesConsumesWithWrongAcceptHeader;
+    [Test]
     procedure TestExceptionInMVCAfterCreate;
+    [Test]
     procedure TestExceptionInMVCBeforeDestroy;
+    [Test]
     procedure TestActionFiltersOnBeforeAction;
+    [Test]
     procedure TestMiddlewareSpeedMiddleware;
+    [Test]
     procedure TestMiddlewareHandler;
+    [Test]
     procedure TestPostAListOfObjects;
     // test authentication/authorization with BasicAuth
     procedure TestBasicAuth01;
+    [Test]
     procedure TestBasicAuth02;
+    [Test]
     procedure TestBasicAuth03;
+    [Test]
     procedure TestBasicAuth04;
+    [Test]
     procedure TestBasicAuth05;
-
     // test authentication/authorization with CustomAuth
+    [Test]
     procedure TestCustomAuthRequestWithoutLogin;
+    [Test]
     procedure TestCustomAuthRequestsWithValidLogin;
+    [Test]
     procedure TestCustomAuthRequestsWithValidLogin_HTML;
+    [Test]
     procedure TestCustomAuthWrongRequestBodies;
+    [Test]
     procedure TestCustomAuthLoginLogout;
 
     // typed actions
+    [Test]
     procedure TestTypedString1;
+    [Test]
     procedure TestTypedInteger1;
+    [Test]
     procedure TestTypedInt641;
+    [Test]
     procedure TestTypedSingle1;
+    [Test]
     procedure TestTypedDouble1;
+    [Test]
     procedure TestTypedExtended1;
+    [Test]
     procedure TestTypedAll;
+    [Test]
     procedure TestTypedDateTimeTypes;
+    [Test]
     procedure TestTypedBooleans;
   end;
 
@@ -158,10 +204,10 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/actionfilters/beforeaction/alwayscalled', []);
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
 
   res := RESTClient.doGET('/actionfilters/beforeaction/nevercalled', []);
-  Assert.areEqual(HTTP_STATUS.NotFound, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestAsynchRequestDELETE;
@@ -315,7 +361,7 @@ begin
   Assert.areEqual('user1', RESTClient.UserName);
   Assert.areEqual('user1', RESTClient.Password);
   LRes := RESTClient.doGET('/private/role1', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestBasicAuth02;
@@ -326,7 +372,7 @@ begin
   RESTClient.Password := '';
   RESTClient.UseBasicAuthentication := false;
   LRes := RESTClient.doGET('/private/role1', []);
-  Assert.areEqual(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestBasicAuth03;
@@ -337,7 +383,7 @@ begin
   RESTClient.Password := 'user1';
   RESTClient.UseBasicAuthentication := true;
   LRes := RESTClient.doGET('/private/role2', []);
-  Assert.areEqual(HTTP_STATUS.Forbidden, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestBasicAuth04;
@@ -348,9 +394,9 @@ begin
   RESTClient.Password := 'user1';
   RESTClient.UseBasicAuthentication := true;
   LRes := RESTClient.doGET('/private/role1', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/people', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestBasicAuth05;
@@ -363,16 +409,16 @@ begin
 
   // first
   LRes := RESTClient.doGET('/private/role1session?value=danieleteti', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/private/role1session', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   Assert.areEqual('danieleteti', LRes.BodyAsString);
 
   // second
   LRes := RESTClient.doGET('/private/role1session?value=johndoe', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/private/role1session', []);
-  Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   Assert.areEqual('johndoe', LRes.BodyAsString);
 end;
 
@@ -382,7 +428,7 @@ var
   I: Integer;
 begin
   res := RESTClient.doGET('/lotofcookies', []);
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual(4, res.Cookies.Count, 'Wrong number of cookies');
   for I := 0 to 3 do
   begin
@@ -400,12 +446,12 @@ var
   LRes: IRESTResponse;
 begin
   LRes := RESTClient.doGET('/privatecustom/role1', []);
-  Assert.areEqual(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
   Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
   Assert.areEqual('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
 
   LRes := RESTClient.doGET('/privatecustom/role2', []);
-  Assert.areEqual(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
   Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
   Assert.areEqual('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
 end;
@@ -422,7 +468,7 @@ begin
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     Assert.areEqual('application/json', LRes.ContentType);
-    Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
     Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
     Assert.areEqual('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
     Assert.areEqual('{"status":"OK"}', LRes.BodyAsString);
@@ -433,11 +479,11 @@ begin
       'Returned an invalid session token');
 
     LRes := RESTClient.doGET('/privatecustom/role2', []);
-    Assert.areEqual(HTTP_STATUS.Forbidden, LRes.ResponseCode,
+    Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, LRes.ResponseCode,
       'Authorization not respected for not allowed action');
 
     LRes := RESTClient.doGET('/privatecustom/role1', []);
-    Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode,
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode,
       'Authorization not respected for allowed action');
   finally
     lJSON.Free;
@@ -456,7 +502,7 @@ begin
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.Accept('text/html').doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
     Assert.areEqual('application/json', LRes.ContentType);
-    Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
     Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
     Assert.areEqual('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
     Assert.areEqual('{"status":"OK"}', LRes.BodyAsString);
@@ -467,11 +513,11 @@ begin
       'Returned an invalid session token');
 
     LRes := RESTClient.doGET('/privatecustom/role2', []);
-    Assert.areEqual(HTTP_STATUS.Forbidden, LRes.ResponseCode,
+    Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, LRes.ResponseCode,
       'Authorization not respected for not allowed action');
 
     LRes := RESTClient.doGET('/privatecustom/role1', []);
-    Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode,
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode,
       'Authorization not respected for allowed action');
   finally
     lJSON.Free;
@@ -487,28 +533,28 @@ begin
   try
     // no request body
     LRes := RESTClient.doPOST('/system/users/logged', []);
-    Assert.areEqual(HTTP_STATUS.BadRequest, LRes.ResponseCode,
+    Assert.AreEqual<Integer>(HTTP_STATUS.BadRequest, LRes.ResponseCode,
       'Empty request body doesn''t return HTTP 400 Bad Request');
 
     // wrong request body 1
     LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
-    Assert.areEqual(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
+    Assert.AreEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
       'Invalid json doesn''t return HTTP 401 Unauthorized');
 
     // wrong request body 2
     lJSON.AddPair('username', '');
     lJSON.AddPair('password', '');
     LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
-    Assert.areEqual(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
+    Assert.AreEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
       'Empty username and password doesn''t return HTTP 401 Unauthorized');
 
     // wrong username and password 3
-    lJSON.RemovePair('username');
-    lJSON.RemovePair('password');
+    lJSON.RemovePair('username').Free;
+    lJSON.RemovePair('password').Free;
     lJSON.AddPair('username', 'notvaliduser');
     lJSON.AddPair('password', 'notvalidpassword');
     LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
-    Assert.areEqual(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
+    Assert.AreEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode,
       'Wrong username and password doesn''t return HTTP 401 Unauthorized');
   finally
     lJSON.Free;
@@ -531,7 +577,7 @@ begin
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
 
-    Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
     lLogoutUrl := LRes.HeaderValue('X-LOGOUT-URL');
 
     LRes := RESTClient.doDELETE(lLogoutUrl, []);
@@ -593,7 +639,7 @@ var
   LRes: IRESTResponse;
 begin
   LRes := RESTClient.doGET('/renderstreamandfreewithownerfalse', []);
-  Assert.areEqual(200, LRes.ResponseCode);
+  Assert.areEqual<Integer>(200, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestRenderStreamAndFreeWithOwnerTrue;
@@ -601,7 +647,7 @@ var
   LRes: IRESTResponse;
 begin
   LRes := RESTClient.doGET('/renderstreamandfreewithownertrue', []);
-  Assert.areEqual(200, LRes.ResponseCode);
+  Assert.areEqual<Integer>(200, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestRenderWrappedList;
@@ -631,7 +677,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/exception/aftercreate/nevercalled', []);
-  Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode);
 end;
 
 procedure TServerTest.TestExceptionInMVCBeforeDestroy;
@@ -639,7 +685,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET('/exception/beforedestroy/nevercalled', []);
-  Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode);
 end;
 
 procedure TServerTest.TestInvalidateSession;
@@ -668,7 +714,7 @@ begin
   r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
     .doGET('/handledbymiddleware', []);
   Assert.areEqual('This is a middleware response', r.BodyAsString);
-  Assert.areEqual(HTTP_STATUS.OK, r.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode);
 end;
 
 procedure TServerTest.TestMiddlewareSpeedMiddleware;
@@ -714,7 +760,7 @@ begin
       GetDefaultSerializer.SerializeCollection(LCustomers)
     { Mapper.ObjectListToJSONArray<TCustomer>(LCustomers) }
       );
-    Assert.areEqual(HTTP_STATUS.OK, LRes.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   finally
     LCustomers.Free;
   end;
@@ -789,7 +835,7 @@ begin
   // action is waiting for a accept: application/json
     .ContentType('application/json').doPOST('/testconsumes', [],
     TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')));
-  Assert.areEqual(HTTP_STATUS.NotFound, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestProducesConsumes01;
@@ -799,7 +845,7 @@ begin
   res := RESTClient.Accept('application/json').ContentType('application/json')
     .ContentEncoding('utf-8').doPOST('/testconsumes', [],
     TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')));
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('Hello World', res.BodyAsString);
   Assert.areEqual('application/json', res.ContentType);
   Assert.areEqual('utf-8', res.ContentEncoding);
@@ -817,7 +863,7 @@ begin
 
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
-  Assert.areEqual(HTTP_STATUS.NotFound, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, res.ResponseCode);
 end;
 
 procedure TServerTest.TestProducesConsumes03;
@@ -830,7 +876,7 @@ begin
     .ContentEncoding('iso8859-1')
     .doPOST('/testconsumes/textiso8859_1', [],
     'אטילעש');
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('אטילעש', res.BodyAsString);
   Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
   Assert.areEqual('iso8859-1', res.ContentEncoding);
@@ -872,16 +918,16 @@ begin
     ss.Free;
   end;
 
-  Assert.areEqual(HTTP_STATUS.NotFound, r.ResponseCode, '/unknownurl/bla/bla');
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, r.ResponseCode, '/unknownurl/bla/bla');
 
   r := RESTClient.doGET('/req/with/params/', []);
-  Assert.areEqual(HTTP_STATUS.NotFound, r.ResponseCode, '/req/with/params/');
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, r.ResponseCode, '/req/with/params/');
 
   r := RESTClient.doGET('/req/with/params', []);
-  Assert.areEqual(HTTP_STATUS.NotFound, r.ResponseCode, '/req/with/params');
+  Assert.areEqual<Integer>(HTTP_STATUS.NotFound, r.ResponseCode, '/req/with/params');
 
   r := RESTClient.doGET('/req/with/params', ['1', '2', '3']);
-  Assert.areEqual(HTTP_STATUS.OK, r.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode);
 
   lJSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
@@ -891,13 +937,13 @@ begin
     Assert.areEqual('GET', lJSON.Get('method').JsonValue.Value);
 
     r := RESTClient.doPOST('/req/with/params', ['1', '2', '3']);
-    Assert.areEqual(HTTP_STATUS.NotFound, r.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.NotFound, r.ResponseCode);
 
     r := RESTClient.doPUT('/req/with/params', ['1', '2', '3']);
-    Assert.areEqual(HTTP_STATUS.NotFound, r.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.NotFound, r.ResponseCode);
 
     r := RESTClient.doDELETE('/req/with/params', ['1', '2', '3']);
-    Assert.areEqual(HTTP_STATUS.OK, r.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode);
     Assert.areEqual('', r.BodyAsString);
   finally
     lJSON.Free;
@@ -949,7 +995,7 @@ begin
 
     // aggiungo altri cookies
     res := c1.doGET('/lotofcookies', []); // rileggo il valore dalla sessione
-    Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
     c1.Accept(TMVCMediaType.TEXT_PLAIN);
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
     Assert.areEqual('daniele teti', res.BodyAsString);
@@ -1063,27 +1109,27 @@ var
 begin
   // TDate, wrong and correct
   res := RESTClient.doGET('/typed/tdate1/20161012', []);
-  Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDate');
+  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDate');
 
   res := RESTClient.doGET('/typed/tdate1/2016-10-12', []);
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('2016-10-12 modified from server', res.BodyAsString);
 
   // TDateTime, wrong and correct
   res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
-  Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode,
+  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode,
     'wrong TDateTime');
 
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('2016-10-12 12:12:12 modified from server', res.BodyAsString);
 
   // TTime, wrong and correct
   res := RESTClient.doGET('/typed/ttime1/121212', []);
-  Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TTime');
+  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TTime');
 
   res := RESTClient.doGET('/typed/ttime1/12:12:12', []);
-  Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('12:12:12 modified from server', res.BodyAsString);
 
 end;

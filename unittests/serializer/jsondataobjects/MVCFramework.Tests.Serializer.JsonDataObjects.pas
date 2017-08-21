@@ -49,12 +49,12 @@ type
   TMVCTestSerializerJsonDataObjects = class(TObject)
   private
     FSerializer: IMVCSerializer;
-  protected
+  public
     [Setup]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
+
     { serialize declarations }
     [Test]
     procedure TestSerializeEntity;
@@ -89,7 +89,7 @@ type
     procedure TestDeserializeCollection;
     [Test]
     procedure TestDeserializeDataSet;
-        { full cycle }
+    { full cycle }
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
   end;
@@ -138,36 +138,36 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeCollection;
 
 const
   JSON_PROPERTIES =
-    '['  +
-    '{'  +
-    '"Description":"Description 1"'  +
-    '},'  +
-    '{'  +
-    '"Description":"Description 2"'  +
-    '},'  +
-    '{'  +
-    '"Description":"Description 3"'  +
-    '},'  +
-    '{'  +
-    '"Description":"Description 4"'  +
-    '}'  +
-    ']' ;
+    '[' +
+    '{' +
+    '"Description":"Description 1"' +
+    '},' +
+    '{' +
+    '"Description":"Description 2"' +
+    '},' +
+    '{' +
+    '"Description":"Description 3"' +
+    '},' +
+    '{' +
+    '"Description":"Description 4"' +
+    '}' +
+    ']';
 
   JSON_FIELDS =
-    '['  +
-    '{'  +
-    '"FDescription":"Description 1"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"Description 2"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"Description 3"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"Description 4"'  +
-    '}'  +
-    ']' ;
+    '[' +
+    '{' +
+    '"FDescription":"Description 1"' +
+    '},' +
+    '{' +
+    '"FDescription":"Description 2"' +
+    '},' +
+    '{' +
+    '"FDescription":"Description 3"' +
+    '},' +
+    '{' +
+    '"FDescription":"Description 4"' +
+    '}' +
+    ']';
 var
   O: TObjectList<TNote>;
 begin
@@ -191,61 +191,61 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeDataSet;
 const
   JSON =
-    '{'  +
-    '"Id":1,'  +
-    '"Code":2,'  +
-    '"Name":"Ezequiel Juliano Müller",'  +
-    '"Salary":100,'  +
-    '"Birthday":"1987-10-15",'  +
-    '"AccessDateTime":"2017-02-17 16:37:50",'  +
-    '"AccessTime":"16:40:50",'  +
-    '"Active":true,'  +
-    '"Amount":100,'  +
-    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",'  +
-    '"Items":['  +
-    '{'  +
-    '"Id":1,'  +
-    '"Name":"Ezequiel"'  +
-    '},'  +
-    '{'  +
-    '"Id":2,'  +
-    '"Name":"Juliano"'  +
-    '}'  +
-    '],'  +
-    '"Departament":{'  +
-    '"Name":"Depto1"'  +
-    '}'  +
-    '}' ;
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller",' +
+    '"Salary":100,' +
+    '"Birthday":"1987-10-15",' +
+    '"AccessDateTime":"2017-02-17 16:37:50",' +
+    '"AccessTime":"16:40:50",' +
+    '"Active":true,' +
+    '"Amount":100,' +
+    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
+    '"Items":[' +
+    '{' +
+    '"Id":1,' +
+    '"Name":"Ezequiel"' +
+    '},' +
+    '{' +
+    '"Id":2,' +
+    '"Name":"Juliano"' +
+    '}' +
+    '],' +
+    '"Departament":{' +
+    '"Name":"Depto1"' +
+    '}' +
+    '}';
 
   JSON_LOWERCASE =
-    '{'  +
-    '"id":1,'  +
-    '"name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"id":1,' +
+    '"name":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_UPPERCASE =
-    '{'  +
-    '"ID":1,'  +
-    '"NAME":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"ID":1,' +
+    '"NAME":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_ASIS =
-    '{'  +
-    '"Id_Id":1,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_LIST =
-    '['  +
-    '{'  +
-    '"Id_Id":1,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '},'  +
-    '{'  +
-    '"Id_Id":2,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '}'  +
-    ']' ;
+    '[' +
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '},' +
+    '{' +
+    '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '}' +
+    ']';
 var
   Dm: TEntitiesModule;
 begin
@@ -332,86 +332,86 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
 
 const
   JSON_PROPERTIES =
-    '{'  +
-    '"Id":1,'  +
-    '"Code":2,'  +
-    '"Name":"Ezequiel Juliano Müller",'  +
-    '"Salary":100,'  +
-    '"Birthday":"1987-10-15",'  +
-    '"AccessDateTime":"2017-02-17 16:37:50",'  +
-    '"AccessTime":"16:40:50",'  +
-    '"Active":true,'  +
-    '"Role":"roGuest",'  +
-    '"Teporization":63623032670000,'  +
-    '"Department":{'  +
-    '"Id":1,'  +
-    '"Name":"Development",'  +
-    '"Notes":['  +
-    '{'  +
-    '"Description":"DepNote1"'  +
-    '},'  +
-    '{'  +
-    '"Description":"DepNote2"'  +
-    '}'  +
-    ']'  +
-    '},'  +
-    '"DepartmentNull":null,'  +
-    '"Notes":['  +
-    '{'  +
-    '"Description":"EntNote1"'  +
-    '},'  +
-    '{'  +
-    '"Description":"EntNote2"'  +
-    '}'  +
-    '],'  +
-    '"NotesEmpty":[],'  +
-    '"AppreciationAs":"Yes",'  +
-    '"Appreciation":{'  +
-    '"type":"ustring",'  +
-    '"value":"Yes"'  +
-    '}'  +
-    '}' ;
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller",' +
+    '"Salary":100,' +
+    '"Birthday":"1987-10-15",' +
+    '"AccessDateTime":"2017-02-17 16:37:50",' +
+    '"AccessTime":"16:40:50",' +
+    '"Active":true,' +
+    '"Role":"roGuest",' +
+    '"Teporization":63623032670000,' +
+    '"Department":{' +
+    '"Id":1,' +
+    '"Name":"Development",' +
+    '"Notes":[' +
+    '{' +
+    '"Description":"DepNote1"' +
+    '},' +
+    '{' +
+    '"Description":"DepNote2"' +
+    '}' +
+    ']' +
+    '},' +
+    '"DepartmentNull":null,' +
+    '"Notes":[' +
+    '{' +
+    '"Description":"EntNote1"' +
+    '},' +
+    '{' +
+    '"Description":"EntNote2"' +
+    '}' +
+    '],' +
+    '"NotesEmpty":[],' +
+    '"AppreciationAs":"Yes",' +
+    '"Appreciation":{' +
+    '"type":"ustring",' +
+    '"value":"Yes"' +
+    '}' +
+    '}';
 
   JSON_FIELDS =
-    '{'  +
-    '"FId":1,'  +
-    '"FCode":2,'  +
-    '"FName":"Ezequiel Juliano Müller",'  +
-    '"FSalary":100,'  +
-    '"FBirthday":"1987-10-15",'  +
-    '"FAccessDateTime":"2017-02-17 16:37:50",'  +
-    '"FAccessTime":"16:40:50",'  +
-    '"FActive":true,'  +
-    '"FRole":"roGuest",'  +
-    '"FTeporization":63623032670000,'  +
-    '"FDepartment":{'  +
-    '"FId":1,'  +
-    '"FName":"Development",'  +
-    '"FNotes":['  +
-    '{'  +
-    '"FDescription":"DepNote1"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"DepNote2"'  +
-    '}'  +
-    ']'  +
-    '},'  +
-    '"FDepartmentNull":null,'  +
-    '"FNotes":['  +
-    '{'  +
-    '"FDescription":"EntNote1"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"EntNote2"'  +
-    '}'  +
-    '],'  +
-    '"FNotesEmpty":[],'  +
-    '"FAppreciationAs":"Yes",'  +
-    '"FAppreciation":{'  +
-    '"type":"ustring",'  +
-    '"value":"Yes"'  +
-    '}'  +
-    '}' ;
+    '{' +
+    '"FId":1,' +
+    '"FCode":2,' +
+    '"FName":"Ezequiel Juliano Müller",' +
+    '"FSalary":100,' +
+    '"FBirthday":"1987-10-15",' +
+    '"FAccessDateTime":"2017-02-17 16:37:50",' +
+    '"FAccessTime":"16:40:50",' +
+    '"FActive":true,' +
+    '"FRole":"roGuest",' +
+    '"FTeporization":63623032670000,' +
+    '"FDepartment":{' +
+    '"FId":1,' +
+    '"FName":"Development",' +
+    '"FNotes":[' +
+    '{' +
+    '"FDescription":"DepNote1"' +
+    '},' +
+    '{' +
+    '"FDescription":"DepNote2"' +
+    '}' +
+    ']' +
+    '},' +
+    '"FDepartmentNull":null,' +
+    '"FNotes":[' +
+    '{' +
+    '"FDescription":"EntNote1"' +
+    '},' +
+    '{' +
+    '"FDescription":"EntNote2"' +
+    '}' +
+    '],' +
+    '"FNotesEmpty":[],' +
+    '"FAppreciationAs":"Yes",' +
+    '"FAppreciation":{' +
+    '"type":"ustring",' +
+    '"value":"Yes"' +
+    '}' +
+    '}';
 var
   O: TEntity;
 begin
@@ -435,15 +435,15 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomMemberSerializer;
 const
   JSON =
-    '{'  +
-    '"Entity":{'  +
-    '"AId":1,'  +
-    '"ACode":2,'  +
-    '"AName":"Ezequiel Juliano Müller"'  +
-    '},'  +
-    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",'  +
-    '"NotesAsString":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Entity":{' +
+    '"AId":1,' +
+    '"ACode":2,' +
+    '"AName":"Ezequiel Juliano Müller"' +
+    '},' +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' +
+    '"NotesAsString":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TSale;
 begin
@@ -463,11 +463,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomSerializer;
 const
   JSON =
-    '{'  +
-    '"AId":1,'  +
-    '"ACode":2,'  +
-    '"AName":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"AId":1,' +
+    '"ACode":2,' +
+    '"AName":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TEntityCustom;
 begin
@@ -485,18 +485,18 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
 const
   JSON_FIELDS =
-    '{'  +
-    '"FId":1,'  +
-    '"FCode":2,'  +
-    '"FName":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"FId":1,' +
+    '"FCode":2,' +
+    '"FName":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_PROPERTIES =
-    '{'  +
-    '"Id":1,'  +
-    '"Code":2,'  +
-    '"Name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller"' +
+    '}';
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -525,36 +525,36 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeCollection;
 const
   JSON =
-    '['  +
-    '{'  +
-    '"Description":"Description 1"'  +
-    '},'  +
-    '{'  +
-    '"Description":"Description 2"'  +
-    '},'  +
-    '{'  +
-    '"Description":"Description 3"'  +
-    '},'  +
-    '{'  +
-    '"Description":"Description 4"'  +
-    '}'  +
-    ']' ;
+    '[' +
+    '{' +
+    '"Description":"Description 1"' +
+    '},' +
+    '{' +
+    '"Description":"Description 2"' +
+    '},' +
+    '{' +
+    '"Description":"Description 3"' +
+    '},' +
+    '{' +
+    '"Description":"Description 4"' +
+    '}' +
+    ']';
 
   JSON_FIELDS =
-    '['  +
-    '{'  +
-    '"FDescription":"Description 1"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"Description 2"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"Description 3"'  +
-    '},'  +
-    '{'  +
-    '"FDescription":"Description 4"'  +
-    '}'  +
-    ']' ;
+    '[' +
+    '{' +
+    '"FDescription":"Description 1"' +
+    '},' +
+    '{' +
+    '"FDescription":"Description 2"' +
+    '},' +
+    '{' +
+    '"FDescription":"Description 3"' +
+    '},' +
+    '{' +
+    '"FDescription":"Description 4"' +
+    '}' +
+    ']';
 var
   O: TObjectList<TNote>;
   S: string;
@@ -579,61 +579,61 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDataSet;
 const
   JSON =
-    '{'  +
-    '"Id":1,'  +
-    '"Code":2,'  +
-    '"Name":"Ezequiel Juliano Müller",'  +
-    '"Salary":100,'  +
-    '"Birthday":"1987-10-15",'  +
-    '"AccessDateTime":"2017-02-17 16:37:50",'  +
-    '"AccessTime":"16:40:50",'  +
-    '"Active":true,'  +
-    '"Amount":100,'  +
-    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",'  +
-    '"Items":['  +
-    '{'  +
-    '"Id":1,'  +
-    '"Name":"Ezequiel"'  +
-    '},'  +
-    '{'  +
-    '"Id":2,'  +
-    '"Name":"Juliano"'  +
-    '}'  +
-    '],'  +
-    '"Departament":{'  +
-    '"Name":"Depto1"'  +
-    '}'  +
-    '}' ;
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller",' +
+    '"Salary":100,' +
+    '"Birthday":"1987-10-15",' +
+    '"AccessDateTime":"2017-02-17 16:37:50",' +
+    '"AccessTime":"16:40:50",' +
+    '"Active":true,' +
+    '"Amount":100,' +
+    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
+    '"Items":[' +
+    '{' +
+    '"Id":1,' +
+    '"Name":"Ezequiel"' +
+    '},' +
+    '{' +
+    '"Id":2,' +
+    '"Name":"Juliano"' +
+    '}' +
+    '],' +
+    '"Departament":{' +
+    '"Name":"Depto1"' +
+    '}' +
+    '}';
 
   JSON_LOWERCASE =
-    '{'  +
-    '"id":1,'  +
-    '"name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"id":1,' +
+    '"name":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_UPPERCASE =
-    '{'  +
-    '"ID":1,'  +
-    '"NAME":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"ID":1,' +
+    '"NAME":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_ASIS =
-    '{'  +
-    '"Id_Id":1,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_LIST =
-    '['  +
-    '{'  +
-    '"Id_Id":1,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '},'  +
-    '{'  +
-    '"Id_Id":2,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '}'  +
-    ']' ;
+    '[' +
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '},' +
+    '{' +
+    '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '}' +
+    ']';
 var
   Dm: TEntitiesModule;
   S: string;
@@ -750,125 +750,125 @@ procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntity;
 const
   JSON_PROPERTIES =
     '{' +
-     '"Id":1,' +
-     '"Code":2,' +
-     '"Name":"Ezequiel Juliano Müller",' +
-     '"Salary":100,' +
-     '"Birthday":"1987-10-15",' +
-     '"AccessDateTime":"2017-02-17 16:37:50",' +
-     '"AccessTime":"16:40:50",' +
-     '"Active":true,' +
-     '"Role":"roGuest",' +
-     '"Teporization":63623032670000,' +
-     '"Department":{' +
-      '"Id":1,' +
-      '"Name":"Development",' +
-      '"Notes":[' +
-       '{' +
-        '"Description":"DepNote1"' +
-       '},' +
-       '{' +
-        '"Description":"DepNote2"' +
-       '}' +
-      ']' +
-     '},' +
-     '"DepartmentNull":null,' +
-     '"Notes":[' +
-      '{' +
-       '"Description":"EntNote1"' +
-      '},' +
-      '{' +
-       '"Description":"EntNote2"' +
-      '}' +
-     '],' +
-     '"NotesEmpty":[],' +
-     '"AppreciationAs":"Yes",' +
-     '"Appreciation":{' +
-      '"type":"ustring",' +
-      '"value":"Yes"' +
-     '}' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller",' +
+    '"Salary":100,' +
+    '"Birthday":"1987-10-15",' +
+    '"AccessDateTime":"2017-02-17 16:37:50",' +
+    '"AccessTime":"16:40:50",' +
+    '"Active":true,' +
+    '"Role":"roGuest",' +
+    '"Teporization":63623032670000,' +
+    '"Department":{' +
+    '"Id":1,' +
+    '"Name":"Development",' +
+    '"Notes":[' +
+    '{' +
+    '"Description":"DepNote1"' +
+    '},' +
+    '{' +
+    '"Description":"DepNote2"' +
+    '}' +
+    ']' +
+    '},' +
+    '"DepartmentNull":null,' +
+    '"Notes":[' +
+    '{' +
+    '"Description":"EntNote1"' +
+    '},' +
+    '{' +
+    '"Description":"EntNote2"' +
+    '}' +
+    '],' +
+    '"NotesEmpty":[],' +
+    '"AppreciationAs":"Yes",' +
+    '"Appreciation":{' +
+    '"type":"ustring",' +
+    '"value":"Yes"' +
+    '}' +
     '}';
 
   JSON_FIELDS =
     '{' +
-     '"FId":1,' +
-     '"FCode":2,' +
-     '"FName":"Ezequiel Juliano Müller",' +
-     '"FSalary":100,' +
-     '"FBirthday":"1987-10-15",' +
-     '"FAccessDateTime":"2017-02-17 16:37:50",' +
-     '"FAccessTime":"16:40:50",' +
-     '"FActive":true,' +
-     '"FRole":"roGuest",' +
-     '"FTeporization":63623032670000,' +
-     '"FDepartment":{' +
-      '"FId":1,' +
-      '"FName":"Development",' +
-      '"FNotes":[' +
-       '{' +
-        '"FDescription":"DepNote1"' +
-       '},' +
-       '{' +
-        '"FDescription":"DepNote2"' +
-       '}' +
-      ']' +
-     '},' +
-     '"FDepartmentNull":null,' +
-     '"FNotes":[' +
-      '{' +
-       '"FDescription":"EntNote1"' +
-      '},' +
-      '{' +
-       '"FDescription":"EntNote2"' +
-      '}' +
-     '],' +
-     '"FNotesEmpty":[],' +
-     '"FAppreciationAs":"Yes",' +
-     '"FAppreciation":{' +
-      '"type":"ustring",' +
-      '"value":"Yes"' +
-     '}' +
+    '"FId":1,' +
+    '"FCode":2,' +
+    '"FName":"Ezequiel Juliano Müller",' +
+    '"FSalary":100,' +
+    '"FBirthday":"1987-10-15",' +
+    '"FAccessDateTime":"2017-02-17 16:37:50",' +
+    '"FAccessTime":"16:40:50",' +
+    '"FActive":true,' +
+    '"FRole":"roGuest",' +
+    '"FTeporization":63623032670000,' +
+    '"FDepartment":{' +
+    '"FId":1,' +
+    '"FName":"Development",' +
+    '"FNotes":[' +
+    '{' +
+    '"FDescription":"DepNote1"' +
+    '},' +
+    '{' +
+    '"FDescription":"DepNote2"' +
+    '}' +
+    ']' +
+    '},' +
+    '"FDepartmentNull":null,' +
+    '"FNotes":[' +
+    '{' +
+    '"FDescription":"EntNote1"' +
+    '},' +
+    '{' +
+    '"FDescription":"EntNote2"' +
+    '}' +
+    '],' +
+    '"FNotesEmpty":[],' +
+    '"FAppreciationAs":"Yes",' +
+    '"FAppreciation":{' +
+    '"type":"ustring",' +
+    '"value":"Yes"' +
+    '}' +
     '}';
 
   JSON_NULLS =
     '{' +
-     '"Id":1,' +
-     '"Code":2,' +
-     '"Name":"Ezequiel Juliano Müller",' +
-     '"Salary":100,' +
-     '"Birthday":null,' +
-     '"AccessDateTime":null,' +
-     '"AccessTime":null,' +
-     '"Active":true,' +
-     '"Role":"roGuest",' +
-     '"Teporization":63623032670000,' +
-     '"Department":{' +
-      '"Id":1,' +
-      '"Name":"Development",' +
-      '"Notes":[' +
-       '{' +
-        '"Description":"DepNote1"' +
-       '},' +
-       '{' +
-        '"Description":"DepNote2"' +
-       '}' +
-      ']' +
-     '},' +
-     '"DepartmentNull":null,' +
-     '"Notes":[' +
-      '{' +
-       '"Description":"EntNote1"' +
-      '},' +
-      '{' +
-       '"Description":"EntNote2"' +
-      '}' +
-     '],' +
-     '"NotesEmpty":[],' +
-     '"AppreciationAs":"Yes",' +
-     '"Appreciation":{' +
-      '"type":"ustring",' +
-      '"value":"Yes"' +
-     '}' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller",' +
+    '"Salary":100,' +
+    '"Birthday":null,' +
+    '"AccessDateTime":null,' +
+    '"AccessTime":null,' +
+    '"Active":true,' +
+    '"Role":"roGuest",' +
+    '"Teporization":63623032670000,' +
+    '"Department":{' +
+    '"Id":1,' +
+    '"Name":"Development",' +
+    '"Notes":[' +
+    '{' +
+    '"Description":"DepNote1"' +
+    '},' +
+    '{' +
+    '"Description":"DepNote2"' +
+    '}' +
+    ']' +
+    '},' +
+    '"DepartmentNull":null,' +
+    '"Notes":[' +
+    '{' +
+    '"Description":"EntNote1"' +
+    '},' +
+    '{' +
+    '"Description":"EntNote2"' +
+    '}' +
+    '],' +
+    '"NotesEmpty":[],' +
+    '"AppreciationAs":"Yes",' +
+    '"Appreciation":{' +
+    '"type":"ustring",' +
+    '"value":"Yes"' +
+    '}' +
     '}';
 var
   O: TEntity;
@@ -916,15 +916,15 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomMemberSerializer;
 const
   JSON =
-    '{'  +
-    '"Entity":{'  +
-    '"AId":1,'  +
-    '"ACode":2,'  +
-    '"AName":"Ezequiel Juliano Müller"'  +
-    '},'  +
-    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",'  +
-    '"NotesAsString":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Entity":{' +
+    '"AId":1,' +
+    '"ACode":2,' +
+    '"AName":"Ezequiel Juliano Müller"' +
+    '},' +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' +
+    '"NotesAsString":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TSale;
   S: string;
@@ -947,11 +947,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomSerializer;
 const
   JSON =
-    '{'  +
-    '"AId":1,'  +
-    '"ACode":2,'  +
-    '"AName":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"AId":1,' +
+    '"ACode":2,' +
+    '"AName":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TEntityCustom;
   S: string;
@@ -972,11 +972,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityLowerCaseNames;
 const
   JSON =
-    '{'  +
-    '"id":1,'  +
-    '"code":2,'  +
-    '"name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"id":1,' +
+    '"code":2,' +
+    '"name":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TEntityLowerCase;
   S: string;
@@ -997,11 +997,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityNameAs;
 const
   JSON =
-    '{'  +
-    '"Id_Id":1,'  +
-    '"Code_Code":2,'  +
-    '"Name_Name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Id_Id":1,' +
+    '"Code_Code":2,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TEntityNameAs;
   S: string;
@@ -1025,18 +1025,18 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntitySerializationType;
 const
   JSON_FIELDS =
-    '{'  +
-    '"FId":1,'  +
-    '"FCode":2,'  +
-    '"FName":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"FId":1,' +
+    '"FCode":2,' +
+    '"FName":"Ezequiel Juliano Müller"' +
+    '}';
 
   JSON_PROPERTIES =
-    '{'  +
-    '"Id":1,'  +
-    '"Code":2,'  +
-    '"Name":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller"' +
+    '}';
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -1070,11 +1070,11 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityUpperCaseNames;
 const
   JSON =
-    '{'  +
-    '"ID":1,'  +
-    '"CODE":2,'  +
-    '"NAME":"Ezequiel Juliano Müller"'  +
-    '}' ;
+    '{' +
+    '"ID":1,' +
+    '"CODE":2,' +
+    '"NAME":"Ezequiel Juliano Müller"' +
+    '}';
 var
   O: TEntityUpperCase;
   S: string;

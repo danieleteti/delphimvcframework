@@ -47,17 +47,15 @@ type
     FRESTClient: TRESTClient;
     FRESTAdapter: TRESTAdapter<IAppResource>;
     FAppResource: IAppResource;
-  protected
+  public
     [SetUp]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
     [Test]
     procedure TestCreateAndDestroy();
     [Test]
     procedure TestInformation();
-
     [Test]
     procedure TestHelloWorld();
     [Test]

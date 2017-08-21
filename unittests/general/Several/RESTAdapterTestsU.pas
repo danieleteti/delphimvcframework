@@ -89,10 +89,9 @@ type
   private
     RESTAdapter: TRESTAdapter<ITESTService>;
     TESTService: ITESTService;
-  protected
+  public
     [SetUp]
     procedure SetUp;
-  published
     [Test]
     procedure TestGetPeople;
     [Test]
@@ -243,7 +242,7 @@ var
 begin
   // expected 404 because is not consumed text/plain
   Resp := TESTService.ApplicationJSONWithTextPlainHeader;
-  Assert.AreEqual(404, Resp.ResponseCode);
+  Assert.AreEqual<Integer>(404, Resp.ResponseCode);
 end;
 
 procedure TTestRESTAdapter.TestGetPeople;
@@ -252,6 +251,7 @@ var
 begin
   ListPerson := TESTService.GetPeople;
   try
+    ListPerson.OwnsObjects := True;
     Assert.isTrue(ListPerson.Count > 0);
     Assert.AreEqual('Tony', ListPerson[0].FirstName);
     Assert.AreEqual('Stark', ListPerson[0].LastName);
@@ -276,10 +276,11 @@ begin
       end);
     TESTService.GetPeopleAsynch(AsynchRequest);
 
-    // attend for max 5 seconds
+    // wait for max 5 seconds
     Assert.isTrue(TWaitResult.wrSignaled = LEvt.WaitFor(5000), 'Timeout request');
     Assert.IsNotNull(People);
     try
+      People.OwnsObjects := True;
       Assert.isTrue(People.Count > 0);
       Assert.AreEqual('Tony', People[0].FirstName);
       Assert.AreEqual('Stark', People[0].LastName);

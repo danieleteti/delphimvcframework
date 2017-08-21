@@ -49,12 +49,11 @@ type
   TMVCTestSerializerJSON = class(TObject)
   private
     FSerializer: IMVCSerializer;
-  protected
+  public
     [SetUp]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
     { serialize declarations }
     [Test]
     procedure TestSerializeEntity;

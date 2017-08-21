@@ -32,7 +32,7 @@ type
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
+  public
     [Test]
     procedure TestListener;
     [Test]

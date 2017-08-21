@@ -42,7 +42,7 @@ type
     [Test]
     procedure SameFishesDataSet(ds, ds2: TDataSet);
 
-  published
+  public
     // procedure TestObjectToJSONObject;
     // procedure TestObjectListToJSONArray;
     // procedure TestObjectToJSONObject_Generics;
@@ -86,7 +86,6 @@ type
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
     [Test]
     procedure TestWithNoParameters;
     [Test]
@@ -119,7 +118,6 @@ type
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
     [Test]
     procedure TestHMAC;
     [Test]
@@ -152,7 +150,6 @@ type
     function GetObjectsWithStreamsList: TObjectList<TMyStreamObject>;
     function GetObjectsWithTValueList: TObjectList<TMyObjectWithTValue>;
     property Serializer: IMVCSerializer read FSerializer;
-  published
     [Test]
     procedure TestSerUnSerObject; virtual; abstract;
     [Test]
@@ -182,7 +179,6 @@ type
     procedure SetUp;
     [TearDown]
     procedure TearDown;
-  published
     [Test]
     procedure TestObjectMultiMapAdd;
     [Test]

@@ -387,7 +387,7 @@ var
 begin
   case ctx.Request.HTTPMethod of
     httpGET:
-      Render<TPerson>(TPerson.GetList);
+      Render<TPerson>(TPerson.GetList, True);
     httpPOST:
       begin
         Person := ctx.Request.BodyAs<TPerson>();

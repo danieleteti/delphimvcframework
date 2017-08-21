@@ -26,6 +26,7 @@ package DMVC_IDE_Expert_D102Tokyo;
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'DelphiMVCFramework IDE Expert'}
 {$IMPLICITBUILD ON}
 
 requires
@@ -49,6 +50,8 @@ contains
   DMVC.Expert.NewUnitWizardEx in 'DMVC.Expert.NewUnitWizardEx.pas',
   DMVC.Expert.ProjectWizardEx in 'DMVC.Expert.ProjectWizardEx.pas',
   DMVC.Expert.Registration in 'DMVC.Expert.Registration.pas',
-  DMVC.Splash.Registration in 'DMVC.Splash.Registration.pas';
+  DMVC.Splash.Registration in 'DMVC.Splash.Registration.pas',
+  MVCFramework.TypesAliases in '..\sources\MVCFramework.TypesAliases.pas',
+  MVCFramework.Commons in '..\sources\MVCFramework.Commons.pas';
 
 end.
