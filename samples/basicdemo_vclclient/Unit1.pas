@@ -34,7 +34,7 @@ procedure TForm1.Button1Click(Sender: TObject);
 var
   Clt: TRestClient;
 begin
-  Clt := MVCFramework.RESTClient.TRestClient.Create('http://localhost', 3000, nil);
+  Clt := MVCFramework.RESTClient.TRestClient.Create('http://localhost', 8080, nil);
   try
     // Clt.ProxyServer := 'localhost';
     // Clt.ProxyPort := 8888;
@@ -48,7 +48,7 @@ procedure TForm1.Button2Click(Sender: TObject);
 var
   Clt: TRestClient;
 begin
-  Clt := MVCFramework.RESTClient.TRestClient.Create('http://localhost', 3000, nil);
+  Clt := MVCFramework.RESTClient.TRestClient.Create('http://localhost', 8080, nil);
   try
     ShowMessage(Clt.doPOST('/hello', [], '{"name":"Bob дцья"}').BodyAsString);
   finally

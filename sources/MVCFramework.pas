@@ -799,9 +799,13 @@ end;
 function TMVCWebRequest.Body: string;
 var
   Encoding: TEncoding;
+
   {$IFNDEF BERLINORBETTER}
+
   Buffer: TArray<Byte>;
+
   {$ENDIF}
+
 begin
   { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
@@ -810,15 +814,16 @@ begin
     try
 
       {$IFDEF BERLINORBETTER}
-      FWebRequest.ReadTotalContent; //Otherwise ISAPI Raises "Empty JSON BODY"
+
+      FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty JSON BODY"
       if (FCharset = EmptyStr) then
       begin
         TEncoding.GetBufferEncoding(FWebRequest.RawContent, Encoding, TEncoding.Default);
-//        SetLength(Buffer, 10);
-//        for I := 0 to 9 do
-//          Buffer[I] := FWebRequest.RawContent[I];
-//        TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
-//        SetLength(Buffer, 0);
+        // SetLength(Buffer, 10);
+        // for I := 0 to 9 do
+        // Buffer[I] := FWebRequest.RawContent[I];
+        // TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
+        // SetLength(Buffer, 0);
       end
       else
       begin
@@ -834,13 +839,13 @@ begin
       if (FCharset = EmptyStr) then
       begin
         TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
-//        SetLength(BufferOut, 10);
-//        for I := 0 to 9 do
-//        begin
-//          BufferOut[I] := Buffer[I];
-//        end;
-//        TEncoding.GetBufferEncoding(BufferOut, Encoding, TEncoding.Default);
-//        SetLength(BufferOut, 0);
+        // SetLength(BufferOut, 10);
+        // for I := 0 to 9 do
+        // begin
+        // BufferOut[I] := Buffer[I];
+        // end;
+        // TEncoding.GetBufferEncoding(BufferOut, Encoding, TEncoding.Default);
+        // SetLength(BufferOut, 0);
       end
       else
       begin
@@ -1903,7 +1908,10 @@ begin
               WasDateTime := True;
               AActualParams[I] := ISOTimeStampToDateTime(StrValue);
             except
-              raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s]', [AActionFormalParams[I].Name]);
+              on E: Exception do
+              begin
+                raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s][%s]', [AActionFormalParams[I].Name, E.Message]);
+              end;
             end;
           end
           else if AActionFormalParams[I].ParamType.QualifiedName = 'System.TTime' then

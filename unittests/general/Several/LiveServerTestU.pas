@@ -1116,13 +1116,28 @@ begin
   Assert.areEqual('2016-10-12 modified from server', res.BodyAsString);
 
   // TDateTime, wrong and correct
-  res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
+  res := RESTClient.doGET('/typed/tdatetime1/20161', []);
   Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode,
-    'wrong TDateTime');
+    'wrong TDateTime (1)');
 
+  //Wrong
+  res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDateTime (2)');
+
+  //Correct without 'T'
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode, 'wrong TDateTime (3)');
+  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
+
+  //Correct in extended form
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('2016-10-12 12:12:12 modified from server', res.BodyAsString);
+  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
+
+  //Correct in extended form with timezone
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12.000Z', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
 
   // TTime, wrong and correct
   res := RESTClient.doGET('/typed/ttime1/121212', []);
