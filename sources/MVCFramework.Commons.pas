@@ -113,7 +113,7 @@ type
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
-    //ISAPIPath = 'isapi_path';
+    // ISAPIPath = 'isapi_path';
     PathPrefix = 'pathprefix';
     StompServer = 'stompserver';
     StompServerPort = 'stompserverport';
@@ -411,9 +411,9 @@ function B64Encode(const AValue: string): string; overload;
 function B64Encode(const AValue: TBytes): string; overload;
 function B64Decode(const AValue: string): string;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean): String;  overload;
-function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): String;  overload;
-function URLSafeB64Decode(const Value: string): String;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
+function URLSafeB64Decode(const Value: string): string;
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
@@ -462,19 +462,19 @@ end;
 
 function B64Encode(const AValue: string): string; overload;
 begin
-  //Do not use TNetEncoding
+  // Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeString(AValue);
 end;
 
 function B64Encode(const AValue: TBytes): string; overload;
 begin
-  //Do not use TNetEncoding
+  // Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeBytes(TIdBytes(AValue));
 end;
 
 function B64Decode(const AValue: string): string;
 begin
-  //Do not use TNetEncoding
+  // Do not use TNetEncoding
   Result := TIdDecoderMIME.DecodeString(AValue);
 end;
 
@@ -637,7 +637,17 @@ begin
   try
     for S in FConfig.Keys do
       Jo.AddPair(S, FConfig[S]);
+
+    {$IFDEF SYSTEMJSON}
+
+    Result := Jo.ToJSON;
+
+    {$ELSE}
+
     Result := Jo.ToString;
+
+    {$ENDIF}
+
   finally
     Jo.Free;
   end;
@@ -729,6 +739,7 @@ type
   public
 
   end;
+
   TURLSafeDecode = class(TIdDecoder4to3)
   protected
     class var GSafeBaseBase64DecodeTable: TIdDecodeTable;
@@ -739,14 +750,13 @@ type
 
 const
   GURLSafeBase64CodeTable: string =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';    {Do not Localize}
-
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; { Do not Localize }
 
 procedure TURLSafeEncode.InitComponent;
 begin
   inherited;
   FCodingTable := ToBytes(GURLSafeBase64CodeTable);
-  FFillChar := '=';  {Do not Localize}
+  FFillChar := '='; { Do not Localize }
 end;
 
 procedure TURLSafeDecode.InitComponent;
@@ -754,10 +764,10 @@ begin
   inherited;
   FDecodeTable := GSafeBaseBase64DecodeTable;
   FCodingTable := ToBytes(GURLSafeBase64CodeTable);
-  FFillChar := '=';  {Do not Localize}
+  FFillChar := '='; { Do not Localize }
 end;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean): String; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
 begin
   if IncludePadding then
     Result := TURLSafeEncode.EncodeString(Value)
@@ -766,7 +776,7 @@ begin
 end;
 
 /// <summary>
-///   Remove "trimmed" character from the end of the string passed as parameter
+/// Remove "trimmed" character from the end of the string passed as parameter
 /// </summary>
 /// <param name="Value">Original string</param>
 /// <param name="TrimmedChar">Character to remove</param>
@@ -776,12 +786,12 @@ var
   Strlen: Integer;
 begin
   Strlen := Length(Value);
-  while (Strlen>0) and (Value[Strlen]=TrimmedChar) do
+  while (Strlen > 0) and (Value[Strlen] = TrimmedChar) do
     dec(StrLen);
   result := copy(value, 1, StrLen)
 end;
 
-function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): String;  overload;
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 begin
 
   if IncludePadding then
@@ -790,14 +800,14 @@ begin
     Result := RTrim(TURLSafeEncode.EncodeBytes(TIdBytes(Value)), '=');
 end;
 
-function URLSafeB64Decode(const Value: string): String;
+function URLSafeB64Decode(const Value: string): string;
 begin
   // SGR 2017-07-03 : b64url might not include padding. Need to add it before decoding
   case Length(value) mod 4 of
     0:
-    begin
-      Result := TURLSafeDecode.DecodeString(Value);
-    end;
+      begin
+        Result := TURLSafeDecode.DecodeString(Value);
+      end;
     2:
       Result := TURLSafeDecode.DecodeString(Value + '==');
     3:

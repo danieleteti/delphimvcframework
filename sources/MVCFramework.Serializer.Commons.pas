@@ -230,12 +230,9 @@ const
 implementation
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
-var
-  fs: TFormatSettings;
 begin
   // fs.TimeSeparator := ':';
   Result := DateToISO8601(ADateTime, true)
-
   // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
 end;
 

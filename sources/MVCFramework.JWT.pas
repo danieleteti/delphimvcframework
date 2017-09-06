@@ -646,6 +646,8 @@ begin
           FCustomClaims.FClaims.AddOrSetValue(lName, lValue);
       end;
 
+      FCustomClaims.FClaims.TrimExcess;
+      FRegisteredClaims.FClaims.TrimExcess;
     finally
       lJPayload.Free;
     end;

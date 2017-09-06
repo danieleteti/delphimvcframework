@@ -50,7 +50,7 @@ uses
 type
 
   TMVCJSONSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
-  private
+  public
     procedure ObjectToJSONObject(
       const AObject: TObject;
       const AJSONObject: TJSONObject;
@@ -104,7 +104,7 @@ type
       const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase
       );
-  protected
+    { IMVCSerializer }
     function SerializeObject(
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
@@ -158,7 +158,7 @@ type
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs
       );
-  public
+
     procedure AfterConstruction; override;
   end;
 

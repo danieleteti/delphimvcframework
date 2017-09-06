@@ -873,13 +873,13 @@ begin
   res := RESTClient
     .Accept(TMVCMediaType.TEXT_PLAIN)
     .ContentType(TMVCMediaType.TEXT_PLAIN)
-    .ContentEncoding('iso8859-1')
+    .ContentEncoding('iso-8859-1')
     .doPOST('/testconsumes/textiso8859_1', [],
     'אטילעש');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('אטילעש', res.BodyAsString);
   Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
-  Assert.areEqual('iso8859-1', res.ContentEncoding);
+  Assert.areEqual('iso-8859-1', res.ContentEncoding.ToLower);
 
 end;
 

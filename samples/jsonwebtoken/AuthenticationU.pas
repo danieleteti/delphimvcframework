@@ -44,6 +44,11 @@ begin
       UserRoles.Add('role1');
       UserRoles.Add('role2');
     end;
+
+    // You can add custom data to the logged user
+    SessionData.AddOrSetValue('customkey1', 'customvalue1');
+    SessionData.AddOrSetValue('customkey2', 'customvalue2');
+
   end
   else
   begin

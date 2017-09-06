@@ -767,9 +767,9 @@ begin
   FQueryStringParams := nil;
   FRawBody := nil;
   FAccept := 'application/json';
-  FContentType := 'application/json; charset=utf-8';
+  FContentType := 'application/json';
   FResource := '';
-  FContentEncoding := '';
+  FContentEncoding := 'utf-8';
   FRequestHeaders := TStringlist.Create;
   FLastSessionID := '';
   FNextRequestIsAsynch := False;

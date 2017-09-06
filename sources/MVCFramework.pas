@@ -306,9 +306,9 @@ type
     FRoles: TList<string>;
     FLoggedSince: TDateTime;
     FRealm: string;
+    FCustomData: TMVCCustomData;
     procedure SetLoggedSince(const AValue: TDateTime);
-  protected
-    { protected declarations }
+    procedure SetCustomData(const Value: TMVCCustomData);
   public
     constructor Create;
     destructor Destroy; override;
@@ -323,6 +323,7 @@ type
     property Roles: TList<string> read FRoles;
     property LoggedSince: TDateTime read FLoggedSince write SetLoggedSince;
     property Realm: string read FRealm write FRealm;
+    property CustomData: TMVCCustomData read FCustomData write SetCustomData;
   end;
 
   TWebContext = class
@@ -1268,11 +1269,13 @@ constructor TUser.Create;
 begin
   inherited Create;
   FRoles := TList<string>.Create;
+  FCustomData := nil;
 end;
 
 destructor TUser.Destroy;
 begin
   FRoles.Free;
+  FreeAndNil(FCustomData);
   inherited Destroy;
 end;
 
@@ -1313,6 +1316,11 @@ begin
   else
     LRoles := '';
   AWebSession[TMVCConstants.CURRENT_USER_SESSION_KEY] := FUserName + '$$' + DateTimeToISOTimeStamp(FLoggedSince) + '$$' + FRealm + '$$' + LRoles;
+end;
+
+procedure TUser.SetCustomData(const Value: TMVCCustomData);
+begin
+  FCustomData := Value;
 end;
 
 procedure TUser.SetLoggedSince(const AValue: TDateTime);
@@ -2395,25 +2403,30 @@ end;
 procedure TMVCController.Render(const AContent: string);
 var
   LContentType: string;
-  OutEncoding: TEncoding;
+  LOutEncoding: TEncoding;
+  LSavedContentType: string;
 begin
+  LSavedContentType := ContentType;
   LContentType := ContentType + '; charset=' + ContentCharset;
-  GetContext.Response.RawWebResponse.ContentType := LContentType;
-  OutEncoding := TEncoding.GetEncoding(ContentCharset);
+  LOutEncoding := TEncoding.GetEncoding(ContentCharset);
   try
     if SameText('UTF-8', UpperCase(ContentCharset)) then
-      GetContext.Response.SetContentStream(TStringStream.Create(AContent, TEncoding.UTF8), LContentType)
+      GetContext.Response.SetContentStream(
+        TStringStream.Create(AContent, TEncoding.UTF8),
+        LContentType
+        )
     else
     begin
       GetContext.Response.SetContentStream(
         TBytesStream.Create(
-        TEncoding.Convert(TEncoding.Default, OutEncoding, TEncoding.Default.GetBytes(AContent))),
+        TEncoding.Convert(TEncoding.Default, LOutEncoding, TEncoding.Default.GetBytes(AContent))),
         LContentType
         );
     end;
   finally
-    OutEncoding.Free;
+    LOutEncoding.Free;
   end;
+  ContentType := LSavedContentType;
 end;
 
 procedure TMVCController.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean);
@@ -2484,6 +2497,8 @@ end;
 procedure TMVCController.SetContentType(const AValue: string);
 begin
   GetContext.Response.ContentType := AValue;
+  if AValue.Contains(';') then
+    GetContext.Response.ContentType := AValue;
 end;
 
 procedure TMVCController.SetStatusCode(const AValue: Integer);
