@@ -418,6 +418,13 @@ function URLSafeB64Decode(const Value: string): string;
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+function CreateContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+
+const
+  MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
+  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
+
 var
   Lock: TObject;
 
@@ -492,6 +499,43 @@ begin
   Result := EmptyStr;
   for B in ABytes do
     Result := Result + ByteToHex(B);
+end;
+
+function CreateContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+begin
+  if aContentCharSet = '' then
+  begin
+    Result := aContentMediaType;
+  end
+  else
+  begin
+    Result := aContentMediaType + ';charset=' + aContentCharSet;
+  end;
+  Result := Result.Trim.ToLower;
+end;
+
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+var
+  lContentTypeValues: TArray<string>;
+begin
+  if not aContentType.IsEmpty then
+  begin
+    lContentTypeValues := aContentType.Split([';']);
+    aContentMediaType := Trim(lContentTypeValues[0]);
+    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True)) then
+    begin
+      aContentCharSet := lContentTypeValues[1].Trim.Split(['='])[1].Trim;
+    end
+    else
+    begin
+      aContentCharSet := '';
+    end;
+  end
+  else
+  begin
+    aContentMediaType := '';
+    aContentCharSet := '';
+  end;
 end;
 
 { EMVCException }

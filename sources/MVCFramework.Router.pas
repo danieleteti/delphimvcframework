@@ -107,8 +107,8 @@ type
       const ADefaultContentType: string;
       const ADefaultContentCharset: string;
       var ARequestParams: TMVCRequestParamsTable;
-      out AResponseContentType: string;
-      out AResponseContentEncoding: string): Boolean;
+      out AResponseContentMediaType: string;
+      out AResponseContentCharset: string): Boolean;
 
     property MethodToCall: TRttiMethod read FMethodToCall;
     property ControllerClazz: TMVCControllerClazz read FControllerClazz;
@@ -143,8 +143,8 @@ function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
   const ADefaultContentType: string;
   const ADefaultContentCharset: string;
   var ARequestParams: TMVCRequestParamsTable;
-  out AResponseContentType: string;
-  out AResponseContentEncoding: string): Boolean;
+  out AResponseContentMediaType: string;
+  out AResponseContentCharset: string): Boolean;
 var
   LRequestPathInfo: string;
   LRequestAccept: string;
@@ -228,13 +228,13 @@ begin
                 LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
                 if Assigned(LProduceAttribute) then
                 begin
-                  AResponseContentType := LProduceAttribute.Value;
-                  AResponseContentEncoding := LProduceAttribute.Encoding;
+                  AResponseContentMediaType := LProduceAttribute.Value;
+                  AResponseContentCharset := LProduceAttribute.Charset;
                 end
                 else
                 begin
-                  AResponseContentType := ADefaultContentType;
-                  AResponseContentEncoding := ADefaultContentCharset;
+                  AResponseContentMediaType := ADefaultContentType;
+                  AResponseContentCharset := ADefaultContentCharset;
                 end;
                 Exit(True);
               end;
@@ -397,7 +397,7 @@ var
   MethodContentType: string;
   FoundOneAttConsumes: Boolean;
 begin
-  if ARequestMethodType in [httpGET, httpDELETE, httpHEAD, httpOPTIONS] then
+  if ARequestMethodType in MVC_HTTP_METHODS_WITHOUT_CONTENT then
     Exit(True);
 
   Result := False;

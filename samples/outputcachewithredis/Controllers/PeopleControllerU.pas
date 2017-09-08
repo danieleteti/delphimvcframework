@@ -229,7 +229,6 @@ var
   Filters: TJSONObject;
   SearchText: string;
   CurrPage: Integer;
-  JSON: TJSONArray;
   lResponseBody: string;
 begin
   Filters := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;

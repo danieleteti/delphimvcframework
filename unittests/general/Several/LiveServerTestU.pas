@@ -235,7 +235,7 @@ begin
       r := evt.WaitFor(2000);
     until r = TWaitResult.wrSignaled;
 
-    Assert.areEqual(true, OK);
+    Assert.AreEqual(true, OK);
   finally
     evt.Free;
   end;
@@ -270,7 +270,7 @@ begin
     until r = TWaitResult.wrSignaled;
 
     Assert.isTrue(Assigned(j));
-    Assert.areEqual('1', j.Get('par1').JsonValue.Value);
+    Assert.AreEqual('1', j.Get('par1').JsonValue.Value);
     j.Free;
   finally
     evt.Free;
@@ -309,7 +309,7 @@ begin
     until r = TWaitResult.wrSignaled;
 
     Assert.isTrue(Assigned(j));
-    Assert.areEqual('from server', j.Get('echo').JsonValue.Value);
+    Assert.AreEqual('from server', j.Get('echo').JsonValue.Value);
     j.Free;
   finally
     evt.Free;
@@ -346,7 +346,7 @@ begin
     until r = TWaitResult.wrSignaled;
 
     Assert.isTrue(Assigned(j));
-    Assert.areEqual('from server', j.Get('echo').JsonValue.Value);
+    Assert.AreEqual('from server', j.Get('echo').JsonValue.Value);
     j.Free;
   finally
     evt.Free;
@@ -358,8 +358,8 @@ var
   LRes: IRESTResponse;
 begin
   RESTClient.Authentication('user1', 'user1');
-  Assert.areEqual('user1', RESTClient.UserName);
-  Assert.areEqual('user1', RESTClient.Password);
+  Assert.AreEqual('user1', RESTClient.UserName);
+  Assert.AreEqual('user1', RESTClient.Password);
   LRes := RESTClient.doGET('/private/role1', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
 end;
@@ -412,14 +412,14 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/private/role1session', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
-  Assert.areEqual('danieleteti', LRes.BodyAsString);
+  Assert.AreEqual('danieleteti', LRes.BodyAsString);
 
   // second
   LRes := RESTClient.doGET('/private/role1session?value=johndoe', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   LRes := RESTClient.doGET('/private/role1session', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
-  Assert.areEqual('johndoe', LRes.BodyAsString);
+  Assert.AreEqual('johndoe', LRes.BodyAsString);
 end;
 
 procedure TServerTest.TestCookies;
@@ -429,14 +429,14 @@ var
 begin
   res := RESTClient.doGET('/lotofcookies', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual(4, res.Cookies.Count, 'Wrong number of cookies');
+  Assert.AreEqual(4, res.Cookies.Count, 'Wrong number of cookies');
   for I := 0 to 3 do
   begin
-    Assert.areEqual('usersettings' + IntToStr(I + 1),
+    Assert.AreEqual('usersettings' + IntToStr(I + 1),
       res.Cookies.Cookies[I].CookieName);
-    Assert.areEqual('usersettings' + IntToStr(I + 1) + '-value',
+    Assert.AreEqual('usersettings' + IntToStr(I + 1) + '-value',
       res.Cookies.Cookies[I].Value);
-    Assert.areEqual('/usersettings' + IntToStr(I + 1), res.Cookies.Cookies[I].Path);
+    Assert.AreEqual('/usersettings' + IntToStr(I + 1), res.Cookies.Cookies[I].Path);
   end;
 
 end;
@@ -447,13 +447,13 @@ var
 begin
   LRes := RESTClient.doGET('/privatecustom/role1', []);
   Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
-  Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
-  Assert.areEqual('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
+  Assert.AreEqual('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
+  Assert.AreEqual('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
 
   LRes := RESTClient.doGET('/privatecustom/role2', []);
   Assert.areEqual<Integer>(HTTP_STATUS.Unauthorized, LRes.ResponseCode);
-  Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
-  Assert.areEqual('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
+  Assert.AreEqual('/system/users/logged', LRes.HeaderValue('X-LOGIN-URL'));
+  Assert.AreEqual('POST', LRes.HeaderValue('X-LOGIN-METHOD'));
 end;
 
 procedure TServerTest.TestCustomAuthRequestsWithValidLogin;
@@ -467,11 +467,11 @@ begin
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
-    Assert.areEqual('application/json', LRes.ContentType);
+    Assert.AreEqual('application/json', LRes.ContentType);
     Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
-    Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
-    Assert.areEqual('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
-    Assert.areEqual('{"status":"OK"}', LRes.BodyAsString);
+    Assert.AreEqual('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
+    Assert.AreEqual('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
+    Assert.AreEqual('{"status":"OK"}', LRes.BodyAsString);
     lCookieValue := LRes.Cookies
       [LRes.Cookies.GetCookieIndex(TMVCConstants.SESSION_TOKEN_NAME)].Value;
     Assert.AreNotEqual('', lCookieValue, 'Session cookie not returned after login');
@@ -501,11 +501,11 @@ begin
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
     LRes := RESTClient.Accept('text/html').doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJSON, False));
-    Assert.areEqual('application/json', LRes.ContentType);
+    Assert.AreEqual('application/json', LRes.ContentType);
     Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
-    Assert.areEqual('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
-    Assert.areEqual('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
-    Assert.areEqual('{"status":"OK"}', LRes.BodyAsString);
+    Assert.AreEqual('/system/users/logged', LRes.HeaderValue('X-LOGOUT-URL'));
+    Assert.AreEqual('DELETE', LRes.HeaderValue('X-LOGOUT-METHOD'));
+    Assert.AreEqual('{"status":"OK"}', LRes.BodyAsString);
     lCookieValue := LRes.Cookies
       [LRes.Cookies.GetCookieIndex(TMVCConstants.SESSION_TOKEN_NAME)].Value;
     Assert.AreNotEqual('', lCookieValue, 'Session cookie not returned after login');
@@ -614,17 +614,17 @@ begin
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   s := lJSONObj.Get('name1').JsonValue.Value;
-  Assert.areEqual('jרrn', s);
+  Assert.AreEqual('jרrn', s);
   lJSONObj.Free;
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   s := lJSONObj.Get('name3').JsonValue.Value;
-  Assert.areEqual('אטילעש', s);
+  Assert.AreEqual('אטילעש', s);
   lJSONObj.Free;
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   s := lJSONObj.Get('name2').JsonValue.Value;
-  Assert.areEqual('to je Unicode?', s,
+  Assert.AreEqual('to je Unicode?', s,
     'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   lJSONObj.Free;
   { WARNING!!! }
@@ -698,10 +698,10 @@ begin
     c1.Accept(TMVCMediaType.APPLICATION_JSON);
     c1.doPOST('/session', ['daniele teti']); // imposto un valore in sessione
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    Assert.areEqual('daniele teti', res.BodyAsString);
+    Assert.AreEqual('daniele teti', res.BodyAsString);
     c1.SessionID := '';
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    Assert.areEqual('', res.BodyAsString);
+    Assert.AreEqual('', res.BodyAsString);
   finally
     c1.Free;
   end;
@@ -713,7 +713,7 @@ var
 begin
   r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
     .doGET('/handledbymiddleware', []);
-  Assert.areEqual('This is a middleware response', r.BodyAsString);
+  Assert.AreEqual('This is a middleware response', r.BodyAsString);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode);
 end;
 
@@ -745,8 +745,8 @@ end;
 // json := TJSONObject.Create;
 // json.AddPair('client', 'clientdata');
 // r := RESTClient.doPATCH('/echo', ['1', '2', '3'], json);
-// Assert.areEqual('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
-// Assert.areEqual('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
+// Assert.AreEqual('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
+// Assert.AreEqual('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
 // end;
 
 procedure TServerTest.TestPostAListOfObjects;
@@ -801,10 +801,10 @@ begin
   try
     GetDefaultSerializer.DeserializeObject(r.BodyAsString, P);
     // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
-    Assert.areEqual('Daniele', P.FirstName);
-    Assert.areEqual('אעשטיל', P.LastName);
-    Assert.areEqual(true, P.Married);
-    Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
+    Assert.AreEqual('Daniele', P.FirstName);
+    Assert.AreEqual('אעשטיל', P.LastName);
+    Assert.AreEqual(true, P.Married);
+    Assert.AreEqual(EncodeDate(1979, 1, 1), P.DOB);
   finally
     P.Free;
   end;
@@ -820,8 +820,8 @@ begin
   r := RESTClient.doPOST('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
   JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
-    Assert.areEqual('clientdata', JSON.Get('client').JsonValue.Value);
-    Assert.areEqual('from server', JSON.Get('echo').JsonValue.Value);
+    Assert.AreEqual('clientdata', JSON.Get('client').JsonValue.Value);
+    Assert.AreEqual('from server', JSON.Get('echo').JsonValue.Value);
   finally
     JSON.Free;
   end;
@@ -843,23 +843,24 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.Accept('application/json').ContentType('application/json')
-    .ContentEncoding('utf-8').doPOST('/testconsumes', [],
+    .ContentCharSet('utf-8').doPOST('/testconsumes', [],
     TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')));
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('Hello World', res.BodyAsString);
-  Assert.areEqual('application/json', res.ContentType);
-  Assert.areEqual('utf-8', res.ContentEncoding);
+  Assert.AreEqual('Hello World', res.BodyAsString);
+  Assert.AreEqual('application/json', res.ContentType);
+  Assert.AreEqual('utf-8', res.ContentEncoding);
 end;
 
 procedure TServerTest.TestProducesConsumes02;
 var
   res: IRESTResponse;
 begin
-  res := RESTClient.Accept('text/plain').ContentType('text/plain')
+  res := RESTClient.Accept('text/plain')
+    .ContentType('text/plain')
     .doPOST('/testconsumes', [], 'Hello World');
-  Assert.areEqual('Hello World', res.BodyAsString);
-  Assert.areEqual('text/plain', res.ContentType);
-  Assert.areEqual('UTF-8', res.ContentEncoding);
+  Assert.AreEqual('Hello World', res.BodyAsString);
+  Assert.AreEqual('text/plain', res.ContentType);
+  Assert.AreEqual('UTF-8', res.ContentEncoding);
 
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
@@ -872,14 +873,23 @@ var
 begin
   res := RESTClient
     .Accept(TMVCMediaType.TEXT_PLAIN)
-    .ContentType(TMVCMediaType.TEXT_PLAIN)
-    .ContentEncoding('iso-8859-1')
+    .ContentType(CreateContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591))
     .doPOST('/testconsumes/textiso8859_1', [],
     'אטילעש');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('אטילעש', res.BodyAsString);
-  Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
-  Assert.areEqual('iso-8859-1', res.ContentEncoding.ToLower);
+  Assert.AreNotEqual('אטילעש', res.BodyAsString, 'non iso8859-1 text is rendered ok whan should not');
+  Assert.AreEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
+  Assert.AreEqual(TMVCCharSet.ISO88591, res.ContentEncoding.ToLower);
+
+  res := RESTClient
+    .Accept(TMVCMediaType.TEXT_PLAIN)
+    .ContentType(CreateContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591))
+    .doPOST('/testconsumes/textiso8859_1', [],
+    'this is an iso8859-1 text');
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.AreEqual('this is an iso8859-1 text', res.BodyAsString);
+  Assert.AreEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
+  Assert.AreEqual(TMVCCharSet.ISO88591, res.ContentEncoding.ToLower);
 
 end;
 
@@ -894,8 +904,8 @@ begin
 
   JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
-    Assert.areEqual('clientdata', JSON.Get('client').JsonValue.Value);
-    Assert.areEqual('from server', JSON.Get('echo').JsonValue.Value);
+    Assert.AreEqual('clientdata', JSON.Get('client').JsonValue.Value);
+    Assert.AreEqual('from server', JSON.Get('echo').JsonValue.Value);
   finally
     JSON.Free;
   end;
@@ -912,7 +922,7 @@ begin
   ss := TStringStream.Create;
   try
     ss.CopyFrom(r.Body, 0);
-    Assert.areEqual(ss.DataString, r.BodyAsString,
+    Assert.AreEqual(ss.DataString, r.BodyAsString,
       'In case of rotocol error, the body doesn''t contain the same of BodyAsString');
   finally
     ss.Free;
@@ -931,10 +941,10 @@ begin
 
   lJSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
-    Assert.areEqual('1', lJSON.Get('par1').JsonValue.Value);
-    Assert.areEqual('2', lJSON.Get('par2').JsonValue.Value);
-    Assert.areEqual('3', lJSON.Get('par3').JsonValue.Value);
-    Assert.areEqual('GET', lJSON.Get('method').JsonValue.Value);
+    Assert.AreEqual('1', lJSON.Get('par1').JsonValue.Value);
+    Assert.AreEqual('2', lJSON.Get('par2').JsonValue.Value);
+    Assert.AreEqual('3', lJSON.Get('par3').JsonValue.Value);
+    Assert.AreEqual('GET', lJSON.Get('method').JsonValue.Value);
 
     r := RESTClient.doPOST('/req/with/params', ['1', '2', '3']);
     Assert.areEqual<Integer>(HTTP_STATUS.NotFound, r.ResponseCode);
@@ -944,7 +954,7 @@ begin
 
     r := RESTClient.doDELETE('/req/with/params', ['1', '2', '3']);
     Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode);
-    Assert.areEqual('', r.BodyAsString);
+    Assert.AreEqual('', r.BodyAsString);
   finally
     lJSON.Free;
   end;
@@ -962,7 +972,7 @@ end;
 // LResp := RESTClient.doGET('/people', ['1', 'asfields']);
 // LObj := Mapper.JSONObjectFieldsToObject(LResp.BodyAsJsonObject);
 // try
-// Assert.areEqual('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
+// Assert.AreEqual('BusinessObjectsU.TPerson', LObj.QualifiedClassName);
 // LPersonFlds := TPerson(LObj);
 // Assert.isTrue(LPersonFlds.Equals(LPersonProps),
 // 'Object tranferred using field serialization is different from the object serialized in the default way');
@@ -987,18 +997,18 @@ begin
     s := res.HeaderValue('Set-Cookie');
     Assert.isFalse(s.Contains('Expires'), 'Session cookie contains "expires" attribute');
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    Assert.areEqual('daniele teti', res.BodyAsString);
+    Assert.AreEqual('daniele teti', res.BodyAsString);
     c1.Accept(TMVCMediaType.TEXT_PLAIN);
     res := c1.doGET('/session', []);
     // rileggo il valore dalla sessione
-    Assert.areEqual('daniele teti', res.BodyAsString);
+    Assert.AreEqual('daniele teti', res.BodyAsString);
 
     // aggiungo altri cookies
     res := c1.doGET('/lotofcookies', []); // rileggo il valore dalla sessione
     Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
     c1.Accept(TMVCMediaType.TEXT_PLAIN);
     res := c1.doGET('/session', []); // rileggo il valore dalla sessione
-    Assert.areEqual('daniele teti', res.BodyAsString);
+    Assert.AreEqual('daniele teti', res.BodyAsString);
   finally
     c1.Free;
   end;
@@ -1021,16 +1031,16 @@ begin
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
   lJObj := TSystemJSON.StringAsJSONObject(res.BodyAsString);
   try
-    Assert.areEqual('mystring', lJObj.GetValue('ParString').Value, 'ParString');
-    Assert.areEqual(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt,
+    Assert.AreEqual('mystring', lJObj.GetValue('ParString').Value, 'ParString');
+    Assert.AreEqual(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt,
       'ParInteger');
-    Assert.areEqual(int64(12345678), TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64,
+    Assert.AreEqual(int64(12345678), TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64,
       'ParInt64');
-    Assert.areEqual(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble,
+    Assert.AreEqual(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble,
       -1), 'ParSingle');
-    Assert.areEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble'))
+    Assert.AreEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble'))
       .AsDouble, -4), 'ParDouble');
-    Assert.areEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended'))
+    Assert.AreEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended'))
       .AsDouble, -4), 'ParExtended');
   finally
     lJObj.Free;
@@ -1043,7 +1053,7 @@ var
 begin
   res := RESTClient.doGET('/typed/booleans/true/false/1/0', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('true.false.true.false', res.BodyAsString.ToLower);
+  Assert.AreEqual('true.false.true.false', res.BodyAsString.ToLower);
 end;
 
 procedure TServerTest.TestTypedDouble1;
@@ -1052,7 +1062,7 @@ var
 begin
   res := RESTClient.doGET('/typed/double1/1234.5678', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('1234.5678 modified from server', res.BodyAsString);
+  Assert.AreEqual('1234.5678 modified from server', res.BodyAsString);
 
 end;
 
@@ -1062,7 +1072,7 @@ var
 begin
   res := RESTClient.doGET('/typed/extended1/1234.5678', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('1234.5678 modified from server', res.BodyAsString);
+  Assert.AreEqual('1234.5678 modified from server', res.BodyAsString);
 
 end;
 
@@ -1072,7 +1082,7 @@ var
 begin
   res := RESTClient.doGET('/typed/int641/12345678', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('12345678 modified from server', res.BodyAsString);
+  Assert.AreEqual('12345678 modified from server', res.BodyAsString);
 end;
 
 procedure TServerTest.TestTypedInteger1;
@@ -1081,7 +1091,7 @@ var
 begin
   res := RESTClient.doGET('/typed/integer1/1234', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('1234 modified from server', res.BodyAsString);
+  Assert.AreEqual('1234 modified from server', res.BodyAsString);
 end;
 
 procedure TServerTest.TestTypedSingle1;
@@ -1090,7 +1100,7 @@ var
 begin
   res := RESTClient.doGET('/typed/single1/1234.5', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('1234.5 modified from server', res.BodyAsString);
+  Assert.AreEqual('1234.5 modified from server', res.BodyAsString);
 
 end;
 
@@ -1100,7 +1110,7 @@ var
 begin
   res := RESTClient.doGET('/typed/string1/daniele', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  Assert.areEqual('daniele modified from server', res.BodyAsString);
+  Assert.AreEqual('daniele modified from server', res.BodyAsString);
 end;
 
 procedure TServerTest.TestTypedDateTimeTypes;
@@ -1113,31 +1123,31 @@ begin
 
   res := RESTClient.doGET('/typed/tdate1/2016-10-12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('2016-10-12 modified from server', res.BodyAsString);
+  Assert.AreEqual('2016-10-12 modified from server', res.BodyAsString);
 
   // TDateTime, wrong and correct
   res := RESTClient.doGET('/typed/tdatetime1/20161', []);
   Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode,
     'wrong TDateTime (1)');
 
-  //Wrong
+  // Wrong
   res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
   Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDateTime (2)');
 
-  //Correct without 'T'
+  // Correct without 'T'
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode, 'wrong TDateTime (3)');
-  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
+  Assert.AreEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
 
-  //Correct in extended form
+  // Correct in extended form
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
+  Assert.AreEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
 
-  //Correct in extended form with timezone
+  // Correct in extended form with timezone
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12.000Z', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
+  Assert.AreEqual('2016-10-12T12:12:12.000Z modified from server', res.BodyAsString);
 
   // TTime, wrong and correct
   res := RESTClient.doGET('/typed/ttime1/121212', []);
@@ -1145,7 +1155,7 @@ begin
 
   res := RESTClient.doGET('/typed/ttime1/12:12:12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
-  Assert.areEqual('12:12:12 modified from server', res.BodyAsString);
+  Assert.AreEqual('12:12:12 modified from server', res.BodyAsString);
 
 end;
 

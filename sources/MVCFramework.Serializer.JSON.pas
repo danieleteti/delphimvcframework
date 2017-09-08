@@ -48,7 +48,6 @@ uses
   MVCFramework.DuckTyping;
 
 type
-
   TMVCJSONSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   public
     procedure ObjectToJSONObject(
@@ -257,9 +256,9 @@ begin
         if (AValue.TypeInfo = System.TypeInfo(Boolean)) then
         begin
           if AValue.AsBoolean then
-            AJSONObject.AddPair(AName, TJSONBool.Create(True))
+            AJSONObject.AddPair(AName, {$IFDEF JSONBOOL}TJSONBool.Create(True){$ELSE}TJSONTrue.Create{$ENDIF})
           else
-            AJSONObject.AddPair(AName, TJSONBool.Create(False));
+            AJSONObject.AddPair(AName, {$IFDEF JSONBOOL}TJSONBool.Create(False){$ELSE}TJSONFalse.Create{$ENDIF});
         end
         else
         begin
@@ -368,7 +367,22 @@ begin
       begin
         case ADataSet.Fields[I].DataType of
           ftBoolean:
-            AJSONObject.AddPair(FieldName, TJSONBool.Create(ADataSet.Fields[I].AsBoolean));
+            begin
+
+              {$IFDEF JSONBOOL}
+
+              AJSONObject.AddPair(FieldName, TJSONBool.Create(ADataSet.Fields[I].AsBoolean));
+
+              {$ELSE}
+
+              if ADataSet.Fields[I].AsBoolean then
+                AJSONObject.AddPair(FieldName, TJSONTrue.Create)
+              else
+                AJSONObject.AddPair(FieldName, TJSONFalse.Create);
+
+              {$ENDIF}
+
+            end;
 
           ftInteger, ftSmallint, ftShortint:
             AJSONObject.AddPair(FieldName, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
@@ -626,7 +640,17 @@ begin
       end;
     2 { TJSONBool } , 3 { TJSONTrue } , 4 { TJSONFalse } :
       begin
+
+        {$IFDEF JSONBOOL}
+
         AValue := TValue.From<Boolean>(TJSONBool(AJSONObject.Values[AName]).AsBoolean);
+
+        {$ELSE}
+
+        AValue := TValue.From<Boolean>(AJSONObject.Values[AName] is TJSONTrue);
+
+        {$ENDIF}
+
       end;
     5 { TJSONObject } :
       begin
@@ -692,7 +716,24 @@ begin
 
       case field.DataType of
         TFieldType.ftBoolean:
-          Field.AsBoolean := (Jv as TJSONBool).AsBoolean;
+          begin
+
+            {$IFDEF JSONBOOL}
+
+            Field.AsBoolean := (Jv as TJSONBool).AsBoolean;
+
+            {$ELSE}
+
+            if Jv is TJSONTrue then
+              Field.AsBoolean := true
+            else if Jv is TJSONFalse then
+              Field.AsBoolean := false
+            else
+              raise EMVCDeserializationException.Create('Invalid boolean value');
+
+            {$ENDIF}
+
+          end;
 
         TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
           Field.AsInteger := (Jv as TJSONNumber).AsInt;

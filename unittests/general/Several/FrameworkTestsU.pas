@@ -985,18 +985,18 @@ procedure TTestRouting.TestPathButNoParameters;
 var
   Params: TMVCRequestParamsTable;
   ResponseContentType: string;
-  ResponseContentEncoding: string;
+  ResponseContentCharset: string;
 begin
   Params := TMVCRequestParamsTable.Create;
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain',
       TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
-      ResponseContentEncoding));
+      ResponseContentCharset));
     Assert.areEqual(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Orders', FRouter.MethodToCall.Name);
-    Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentEncoding);
+    Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
     Params.Free;
   end;

@@ -154,6 +154,7 @@
         <DCCReference Include="..\..\..\samples\commons\BusinessObjectsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.SystemJSONUtils.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.Commons.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Patches.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
