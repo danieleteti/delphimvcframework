@@ -36,6 +36,7 @@ uses
   MVCFramework.MultiMap, MVCFramework.Commons;
 
 type
+
   [TestFixture]
   TTestMappers = class(TObject)
   protected
@@ -104,6 +105,8 @@ type
     procedure TestProduceRoutingsWithExplicitCharset;
     [Test]
     procedure TestPathPrefix;
+    [Test]
+    procedure TestReservedIPs;
     // procedure TestRoutingSpeed;
 
     // objects mappers
@@ -212,7 +215,8 @@ uses System.DateUtils, System.Math,
   {$ENDIF}
 
   TestServerControllerU, System.Classes,
-  MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils;
+  MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
+  IdGlobal;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -1125,6 +1129,18 @@ begin
     Assert.areEqual(TMVCConstants.DEFAULT_CONTENT_CHARSET, ResponseContentCharset);
   finally
     Params.Free;
+  end;
+end;
+
+procedure TTestRouting.TestReservedIPs;
+var
+  I: Integer;
+begin
+  // this test just tests the IP2Long implementation
+  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
+  begin
+    Assert.AreEqual(IPv4ToUInt32(RESERVED_IPS[I][1]), IP2Long(RESERVED_IPS[I][1]));
+    Assert.AreEqual(IPv4ToUInt32(RESERVED_IPS[I][2]), IP2Long(RESERVED_IPS[I][2]));
   end;
 end;
 

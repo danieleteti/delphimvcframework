@@ -404,8 +404,8 @@ type
   {$SCOPEDENUMS ON}
 
 function AppPath: string;
-function IsReservedOrPrivateIP(const AIP: string): Boolean;
-function IP2Long(const AIP: string): UInt32;
+function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
+function IP2Long(const AIP: string): UInt32; inline;
 
 function B64Encode(const AValue: string): string; overload;
 function B64Encode(const AValue: TBytes): string; overload;
@@ -428,11 +428,6 @@ const
 var
   Lock: TObject;
 
-implementation
-
-uses
-  IdCoder3to4;
-
 const
   RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string =
     (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
@@ -441,6 +436,11 @@ const
     ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
     ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
+
+implementation
+
+uses
+  IdCoder3to4;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -459,13 +459,26 @@ begin
   IntIP := IP2Long(AIP);
   for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
     if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
-      Exit(True)
+      Exit(True);
 end;
 
-function IP2Long(const AIP: string): UInt32;
+function IP2Long(const AIP: string): Cardinal;
+var
+  lPieces: TArray<string>;
 begin
-  Result := IdGlobal.IPv4ToUInt32(AIP);
+  if AIP.IsEmpty then
+    Exit(0);
+  lPieces := AIP.Split(['.']);
+  Result := (StrToInt(lPieces[0]) * 16777216) +
+    (StrToInt(lPieces[1]) * 65536) +
+    (StrToInt(lPieces[2]) * 256) +
+    StrToInt(lPieces[3]);
 end;
+
+// function IP2Long(const AIP: string): UInt32;
+// begin
+// Result := IdGlobal.IPv4ToUInt32(AIP);
+// end;
 
 function B64Encode(const AValue: string): string; overload;
 begin

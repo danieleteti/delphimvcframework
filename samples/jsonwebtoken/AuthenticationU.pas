@@ -12,10 +12,9 @@ type
     procedure OnRequest(const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
     procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>;
+      UserRoles: TList<System.string>;
       var IsValid: Boolean; const SessionData: TSessionData);
-    procedure OnAuthorization(UserRoles
-      : System.Generics.Collections.TList<System.string>;
+    procedure OnAuthorization(UserRoles: TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
   end;
@@ -25,7 +24,7 @@ implementation
 { TMVCAuthorization }
 
 procedure TAuthenticationSample.OnAuthentication(const UserName,
-  Password: string; UserRoles: System.Generics.Collections.TList<System.string>;
+  Password: string; UserRoles: TList<System.string>;
   var IsValid: Boolean; const SessionData: TSessionData);
 begin
   IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
@@ -57,7 +56,7 @@ begin
 end;
 
 procedure TAuthenticationSample.OnAuthorization
-  (UserRoles: System.Generics.Collections.TList<System.string>;
+  (UserRoles: TList<System.string>;
   const ControllerQualifiedClassName, ActionName: string;
   var IsAuthorized: Boolean);
 begin

@@ -156,7 +156,6 @@ var
   LRttiType: TRttiType;
   LMethods: TArray<TRTTIMethod>;
   LMethod: TRTTIMethod;
-  LFound: Boolean;
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
   lPathPrefix: string;
