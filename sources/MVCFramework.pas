@@ -2069,7 +2069,15 @@ begin
     FSerializers.Add(
       lDefaultSerializerContentType,
       TMVCJSONDataObjectsSerializer.Create);
-    // FSerializers.Add(TMVCMediaType.APPLICATION_JSON, TMVCJSONSerializer.Create);
+  end;
+
+  // register the same serializer without the charset in the contenttype
+  lDefaultSerializerContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, '');
+  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
+  begin
+    FSerializers.Add(
+      lDefaultSerializerContentType,
+      TMVCJSONDataObjectsSerializer.Create);
   end;
 end;
 

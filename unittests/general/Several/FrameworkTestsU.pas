@@ -1458,12 +1458,13 @@ begin
   FJWT.Claims.NotBefore := Yesterday;
   lToken := FJWT.GetToken;
   // TFile.WriteAllText('jwt_token.dat', lToken);
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError), 'Generated token is not valid');
+
+  Assert.isTrue(FJWT.LoadToken(lToken, lError), 'Generated token is not valid');
 end;
 
 procedure TTestJWT.TestDefaults;
 begin
-  Assert.areEqual('HS256', FJWT.HMACAlgorithm, 'Default algorithm should be HS256');
+  Assert.areEqual('HS512', FJWT.HMACAlgorithm, 'Default algorithm should be HS512');
   Assert.areEqual(300, FJWT.LeewaySeconds, 'Default leeway should be 5 minutes');
   if FJWT.RegClaimsToChecks * [TJWTCheckableClaim.ExpirationTime,
     TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt] <>
@@ -1480,22 +1481,22 @@ begin
   FJWT.RegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime];
   FJWT.Claims.ExpirationTime := Tomorrow;
   lToken := FJWT.GetToken;
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError),
+  Assert.isTrue(FJWT.LoadToken(lToken, lError),
     'Valid token is considered expired');
 
   FJWT.Claims.ExpirationTime := Yesterday;
   lToken := FJWT.GetToken;
-  Assert.isFalse(FJWT.IsValidToken(lToken, lError),
+  Assert.isFalse(FJWT.LoadToken(lToken, lError),
     'Expired token is considered valid');
 
   FJWT.Claims.ExpirationTime := Now;
   lToken := FJWT.GetToken;
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError),
+  Assert.isTrue(FJWT.LoadToken(lToken, lError),
     'Valid token is considered expired');
 
   FJWT.Claims.ExpirationTime := Now - (FJWT.LeewaySeconds + 1) * OneSecond;
   lToken := FJWT.GetToken;
-  Assert.isFalse(FJWT.IsValidToken(lToken, lError),
+  Assert.isFalse(FJWT.LoadToken(lToken, lError),
     'Expired token is considered valid');
 end;
 
@@ -1522,22 +1523,22 @@ begin
   FJWT.RegClaimsToChecks := [TJWTCheckableClaim.IssuedAt];
   FJWT.Claims.IssuedAt := Yesterday;
   lToken := FJWT.GetToken;
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError),
+  Assert.isTrue(FJWT.LoadToken(lToken, lError),
     'Valid token is considered not valid');
 
   FJWT.Claims.IssuedAt := Tomorrow;
   lToken := FJWT.GetToken;
-  Assert.isFalse(FJWT.IsValidToken(lToken, lError),
+  Assert.isFalse(FJWT.LoadToken(lToken, lError),
     'Still-not-valid token is considered valid');
 
   FJWT.Claims.IssuedAt := Now;
   lToken := FJWT.GetToken;
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError),
+  Assert.isTrue(FJWT.LoadToken(lToken, lError),
     'Valid token is considered not valid');
 
   FJWT.Claims.IssuedAt := Now + (FJWT.LeewaySeconds + 1) * OneSecond;
   lToken := FJWT.GetToken;
-  Assert.isFalse(FJWT.IsValidToken(lToken, lError),
+  Assert.isFalse(FJWT.LoadToken(lToken, lError),
     'Still-not-valid token is considered valid');
 end;
 
@@ -1545,6 +1546,7 @@ procedure TTestJWT.TestLoadToken;
 var
   lToken: string;
   lJWT: TJWT;
+  lError: string;
 begin
   FJWT.Claims.Issuer := 'bit Time Professionals';
   FJWT.Claims.Subject := 'DelphiMVCFramework';
@@ -1561,7 +1563,7 @@ begin
 
   lJWT := TJWT.Create(JWT_SECRET_KEY_TEST);
   try
-    lJWT.LoadToken(lToken);
+    lJWT.LoadToken(lToken, lError);
     Assert.areEqual('bit Time Professionals', lJWT.Claims.Issuer);
     Assert.areEqual('DelphiMVCFramework', lJWT.Claims.Subject);
     Assert.areEqual('DelphiDevelopers', lJWT.Claims.Audience);
@@ -1588,22 +1590,22 @@ begin
   FJWT.RegClaimsToChecks := [TJWTCheckableClaim.NotBefore];
   FJWT.Claims.NotBefore := Yesterday;
   lToken := FJWT.GetToken;
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError),
+  Assert.isTrue(FJWT.LoadToken(lToken, lError),
     'Valid token is considered not valid');
 
   FJWT.Claims.NotBefore := Tomorrow;
   lToken := FJWT.GetToken;
-  Assert.isFalse(FJWT.IsValidToken(lToken, lError),
+  Assert.isFalse(FJWT.LoadToken(lToken, lError),
     'Still-not-valid token is considered valid (near midnight is ok... fix this test) ');
 
   FJWT.Claims.NotBefore := Now;
   lToken := FJWT.GetToken;
-  Assert.isTrue(FJWT.IsValidToken(lToken, lError),
+  Assert.isTrue(FJWT.LoadToken(lToken, lError),
     'Valid token is considered not valid');
 
   FJWT.Claims.NotBefore := Now + (FJWT.LeewaySeconds + 1) * OneSecond;
   lToken := FJWT.GetToken;
-  Assert.isFalse(FJWT.IsValidToken(lToken, lError),
+  Assert.isFalse(FJWT.LoadToken(lToken, lError),
     'Still-not-valid token is considered valid');
 end;
 

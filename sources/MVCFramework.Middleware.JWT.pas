@@ -195,44 +195,49 @@ begin
     end;
 
     // check the jwt
-    if not JWTValue.IsValidToken(AuthToken, ErrorMsg) then
+    // if not JWTValue.IsValidToken(AuthToken, ErrorMsg) then
+    // begin
+    // RenderError(HTTP_STATUS.Unauthorized, ErrorMsg, AContext);
+    // AHandled := True;
+    // end
+    // else
+
+    if not JWTValue.LoadToken(AuthToken, ErrorMsg) then
     begin
       RenderError(HTTP_STATUS.Unauthorized, ErrorMsg, AContext);
+      AHandled := True;
+      Exit;
+    end;
+
+    if JWTValue.CustomClaims['username'].IsEmpty then
+    begin
+      RenderError(HTTP_STATUS.Unauthorized, 'Invalid Token, Authentication Required', AContext);
       AHandled := True;
     end
     else
     begin
-      JWTValue.LoadToken(AuthToken);
-      if JWTValue.CustomClaims['username'].IsEmpty then
+      IsAuthorized := False;
+
+      AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
+      AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
+      AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
+      AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
+
+      FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
+
+      if IsAuthorized then
       begin
-        RenderError(HTTP_STATUS.Unauthorized, 'Invalid Token, Authentication Required', AContext);
-        AHandled := True;
+        if JWTValue.LiveValidityWindowInSeconds > 0 then
+        begin
+          JWTValue.Claims.ExpirationTime := Now + JWTValue.LiveValidityWindowInSeconds * OneSecond;
+          AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
+        end;
+        AHandled := False
       end
       else
       begin
-        IsAuthorized := False;
-
-        AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
-        AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
-        AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
-        AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
-
-        FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
-
-        if IsAuthorized then
-        begin
-          if JWTValue.LiveValidityWindowInSeconds > 0 then
-          begin
-            JWTValue.Claims.ExpirationTime := Now + JWTValue.LiveValidityWindowInSeconds * OneSecond;
-            AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
-          end;
-          AHandled := False
-        end
-        else
-        begin
-          RenderError(HTTP_STATUS.Forbidden, 'Authorization Forbidden', AContext);
-          AHandled := True;
-        end;
+        RenderError(HTTP_STATUS.Forbidden, 'Authorization Forbidden', AContext);
+        AHandled := True;
       end;
     end;
   finally
