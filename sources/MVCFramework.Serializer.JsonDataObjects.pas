@@ -61,7 +61,13 @@ type
   end;
 
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
-  private
+  public
+    // procedure SerializeDynamicArray(
+    // const AValue: TValue;
+    // const AArray: TJsonArray;
+    // const AType: TMVCSerializationType;
+    // const AIgnoredAttributes: TMVCIgnoredList
+    // );
     procedure ObjectToJsonObject(
       const AObject: TObject;
       const AJsonObject: TJsonObject;
@@ -103,6 +109,12 @@ type
       const ANameCase: TMVCNameCase;
       const AIgnoredFields: TMVCIgnoredList
       );
+    procedure DataSetToJsonArray(
+      const ADataSet: TDataSet;
+      const AJsonArray: TJsonArray;
+      const ANameCase: TMVCNameCase;
+      const AIgnoredFields: TMVCIgnoredList
+      );
     procedure JsonObjectToDataSet(
       const AJsonObject: TJsonObject;
       const ADataSet: TDataSet;
@@ -115,7 +127,7 @@ type
       const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase
       );
-  protected
+    { IMVCSerializer }
     function SerializeObject(
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
@@ -284,7 +296,9 @@ begin
             AJsonObject.B[AName] := False
         end
         else
-          AJsonObject.L[AName] := AValue.AsOrdinal;
+          AJsonObject.S[AName] := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
+        // AJSONObject.AddPair(AName, GetEnumName(AValue.TypeInfo, AValue.AsOrdinal));
+        // AJsonObject.L[AName] := AValue.AsOrdinal;
       end;
 
     tkClass:
@@ -346,11 +360,32 @@ begin
     tkSet:
       raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkSet.', [AName]);
 
-    tkArray:
-      raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkArray.', [AName]);
+    tkArray, tkDynArray:
+      begin
+        raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkSet.', [AName]);
+        // ChildJsonArray := AJsonObject.A[AName];
+        // SerializeDynamicArray(AValue, ChildJsonArray, AType, AIgnored);
+      end;
 
     tkUnknown:
       raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkUnknown.', [AName]);
+  end;
+end;
+
+procedure TMVCJsonDataObjectsSerializer.DataSetToJsonArray(
+  const ADataSet: TDataSet;
+  const AJsonArray: TJsonArray;
+  const ANameCase: TMVCNameCase;
+  const AIgnoredFields: TMVCIgnoredList
+  );
+var
+  LJObj: TJsonObject;
+begin
+  while not ADataSet.Eof do
+  begin
+    LJobj := AJsonArray.AddObject;
+    DataSetToJsonObject(ADataSet, lJObj, ANameCase, AIgnoredFields);
+    ADataSet.Next;
   end;
 end;
 
@@ -401,8 +436,11 @@ begin
           ftDateTime:
             AJsonObject.S[FieldName] := DateTimeToISOTimeStamp(ADataSet.Fields[I].AsDateTime);
 
-          ftTime, ftTimeStamp:
+          ftTime:
             AJsonObject.S[FieldName] := SQLTimeStampToStr('hh:nn:ss', ADataSet.Fields[I].AsSQLTimeStamp);
+
+          ftTimeStamp:
+            AJsonObject.S[FieldName] := DateTimeToISOTimeStamp(SQLTimeStampToDateTime(ADataSet.Fields[I].AsSQLTimeStamp));
 
           ftCurrency:
             AJsonObject.F[FieldName] := ADataSet.Fields[I].AsCurrency;
@@ -606,16 +644,19 @@ begin
         else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
           AValue := TValue.From<TTime>(ISOTimeToTime(AJsonObject[AName].Value))
 
+        else if (AValue.Kind = tkEnumeration) then
+          TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject[AName].Value), AValue.TypeInfo, AValue)
+
         else
           AValue := TValue.From<string>(AJsonObject[AName].Value);
       end;
 
     jdtInt:
       begin
-        if (AValue.Kind = tkEnumeration) then
-          TValue.Make(AJsonObject[AName].IntValue, AValue.TypeInfo, AValue)
-        else
-          AValue := TValue.From<Integer>(AJsonObject[AName].IntValue);
+        // if (AValue.Kind = tkEnumeration) then
+        // TValue.Make(AJsonObject[AName].IntValue, AValue.TypeInfo, AValue)
+        // else
+        AValue := TValue.From<Integer>(AJsonObject[AName].IntValue);
       end;
 
     jdtLong, jdtULong:
@@ -941,6 +982,27 @@ begin
     JsonObject.Free;
   end;
 end;
+
+// procedure TMVCJsonDataObjectsSerializer.SerializeDynamicArray(
+// const AValue: TValue;
+// const AArray: TJsonArray;
+// const AType: TMVCSerializationType;
+// const AIgnoredAttributes: TMVCIgnoredList
+// );
+// var
+// I: Integer;
+// Obj: TObject;
+// begin
+// if AValue.GetArrayLength > 0 then
+// if not AValue.GetArrayElement(I).IsObject then
+// raise EMVCSerializationException.Create('Cannot serialize non-object in dynamic (or static) arrays');
+// for I := 0 to AValue.GetArrayLength - 1 do
+// begin
+// Obj := AValue.GetArrayElement(I).AsObject;
+// if Assigned(Obj) then
+// ObjectToJsonObject(Obj, AArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes);
+// end;
+// end;
 
 function TMVCJsonDataObjectsSerializer.SerializeObject(
   const AObject: TObject;

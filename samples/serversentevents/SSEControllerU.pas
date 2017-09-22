@@ -45,7 +45,8 @@ begin
   // setting up the correct SSE headers
   ContentType := 'text/event-stream';
   Context.Response.SetCustomHeader('Cache-Control', 'no-cache');
-  Context.Response.SetCustomHeader('Connection', 'keep-alive');
+  // WARNING!! keep-alive heaer has been set directly on the server!
+  // Context.Response.SetCustomHeader('Connection', 'keep-alive');
 
   // render the response using SSE compliant data format
 
@@ -57,7 +58,6 @@ begin
   // beginning with "retry:", followed by the number of milliseconds to wait
   // before trying to reconnect.
   ResponseStream.Append('retry: 100'#13);
-
 
   ResponseStream.Append('event: stockupdate'#13);
 

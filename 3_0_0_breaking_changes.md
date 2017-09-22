@@ -50,3 +50,5 @@ The memory allocated for the TJSONValue descendant (e.g. TJSONObject, TJSONArray
 	```
 	
 - ```TMVCConfigKey.ISAPIPath``` has been substituted with ```TMVCConfigKey.PathPrefix``` and now is applicated to all kind of projects (not only ISAPI);
+- ```MapperSerializeAsString``` attribute is now ```MVCSerializeAsString```
+- ```ContentCharset``` is no more available (everywhere). You have to properly set ContentType. To do that is available the function ```CreateContentType```.

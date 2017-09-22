@@ -27,7 +27,7 @@ unit MessagingExtensionsTestU;
 interface
 
 uses
-  TestFramework,
+  DUnitX.TestFramework,
   MVCFramework.RESTClient,
   LiveServerTestU;
 {
@@ -236,7 +236,7 @@ initialization
 
 {$IFDEF USE_MESSAGING}
 
-  RegisterTest(TMessagingExtensionsTestCase.Suite);
+  TDUnitX.RegisterTestFixture(TMessagingExtensionsTestCase);
 
 {$ENDIF}
 

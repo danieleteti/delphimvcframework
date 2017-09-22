@@ -40,7 +40,7 @@ uses
 
 type
 
-  TMVCAbstractSerializer = class abstract(TInterfacedObject)
+  TMVCAbstractSerializer = class Abstract(TInterfacedObject)
   private
     FRttiContext: TRttiContext;
     FTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
@@ -63,6 +63,8 @@ type
 implementation
 
 { TMVCAbstractSerializer }
+
+uses MVCFramework.Cache;
 
 constructor TMVCAbstractSerializer.Create;
 begin
@@ -155,12 +157,40 @@ function TMVCAbstractSerializer.GetSerializationType(
 var
   ObjType: TRttiType;
   Att: TCustomAttribute;
+  lSerializationTypeCacheKey: string;
+  lValue: TValue;
+  lFound: Boolean;
 begin
+  lSerializationTypeCacheKey := AObject.QualifiedClassName + '::sertype';
+  if TMVCCacheSingleton.Instance.Contains(lSerializationTypeCacheKey, lValue) then
+  begin
+    if TMVCSerializationType(lValue.AsOrdinal) = stUnknown then
+      { no serializationtype attribute is present in the rtti, just return the default value requested by the user }
+      Exit(ADefaultValue)
+    else
+      Exit(TMVCSerializationType(lValue.AsOrdinal));
+  end;
+
+  lFound := False;
   Result := ADefaultValue;
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   for Att in ObjType.GetAttributes do
+  begin
     if Att is MVCSerializeAttribute then
-      Exit(MVCSerializeAttribute(Att).SerializationType);
+    begin
+      Result := MVCSerializeAttribute(Att).SerializationType;
+      Assert(Result <> stUnknown, 'You cannot use stUnknown in the MVCSerialize attribute. It is for internal use only.');
+      { If the serialization type has been "searched" in the rtti, then we can save the
+        result of this expensive search in the cache }
+      TMVCCacheSingleton.Instance.SetValue(lSerializationTypeCacheKey, TValue.FromOrdinal(TypeInfo(TMVCSerializationType), Ord(Result)));
+      lFound := True;
+      Break;
+    end;
+  end;
+  { if no serializationtype attribute found in the type, then we can save in the cache this information
+    using the sentinal value stUnknown }
+  if not lFound then
+    TMVCCacheSingleton.Instance.SetValue(lSerializationTypeCacheKey, TValue.FromOrdinal(TypeInfo(TMVCSerializationType), Ord(stUnknown)));
 end;
 
 function TMVCAbstractSerializer.GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
@@ -173,7 +203,7 @@ var
   I: Integer;
 begin
   Result := False;
-  for I := Low(AAttributes) to High(AAttributes) do
+  for I := low(AAttributes) to high(AAttributes) do
     if (AAttributes[I] = AName) then
       Exit(True);
 end;

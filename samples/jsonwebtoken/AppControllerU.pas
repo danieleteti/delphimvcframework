@@ -23,6 +23,9 @@ type
 
   [MVCPath('/admin')]
   TAdminController = class(TMVCController)
+  protected
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
+      var AHandled: Boolean); override;
   public
     [MVCPath('/role1')]
     [MVCProduces('text/html')]
@@ -56,6 +59,15 @@ begin
 end;
 
 { TAdminController }
+
+procedure TAdminController.OnBeforeAction(AContext: TWebContext;
+  const AActionName: string; var AHandled: Boolean);
+begin
+  inherited;
+  Assert(AContext.LoggedUser.CustomData['customkey1'] = 'customvalue1', 'customkey1 not valid');
+  Assert(AContext.LoggedUser.CustomData['customkey2'] = 'customvalue2', 'customkey2 not valid');
+  AHandled := False;
+end;
 
 procedure TAdminController.OnlyRole1(ctx: TWebContext);
 begin

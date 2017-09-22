@@ -57,7 +57,9 @@ begin
     .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
     TAuthenticationSample.Create,
     lClaimsSetup,
-    'mys3cr37'));
+    'mys3cr37',
+    '/login'
+    ));
 end;
 
 end.

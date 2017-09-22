@@ -47,9 +47,7 @@ resourcestring
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
     '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
-    '  {$IFNDEF LINUX}' + sLineBreak +
-    '  ReqMulti, {Enables files upload. Why is disabled on Linux? See https://quality.embarcadero.com/browse/RSP-17216}' + sLineBreak +
-    '  {$ENDIF}' + sLineBreak +
+    '  Web.ReqMulti, {If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216}' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
@@ -301,7 +299,7 @@ resourcestring
     sLineBreak +
     '{$R *.dfm}' + sLineBreak +
     sLineBreak +
-    'uses %2:s, MVCFramework.Commons;' + sLineBreak +
+    'uses %2:s, System.IOUtils, MVCFramework.Commons;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
     'begin' + sLineBreak +
@@ -309,7 +307,7 @@ resourcestring
     '    procedure(Config: TMVCConfig)' + sLineBreak +
     '    begin' + sLineBreak +
     '      //enable static files' + sLineBreak +
-    '      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + ''\www'';'
+		'      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'');'
     + sLineBreak +
     '      // session timeout (0 means session cookie)' + sLineBreak +
     '      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +

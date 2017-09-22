@@ -24,91 +24,114 @@
 
 unit MVCFramework.HMAC;
 
-{$I dmvcframework.inc}
-
 interface
 
 uses
   System.SysUtils,
-  System.Generics.Collections,
   EncdDecd,
   IdHMAC;
 
 type
-
   EMVCHMACException = class(Exception)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
+
   end;
 
-  THMACClass = class of TIdHMAC;
+  IHMAC = interface
+    ['{95134024-BBAF-4E52-A4C3-54189672E18A}']
+    function HashValue(const Input, key: String): TBytes;
+  end;
 
-function HMAC(const AAlgorithm: String; const AInput, AKey: string): TBytes;
-procedure RegisterHMACAlgorithm(const AAlgorithm: String; AClazz: THMACClass);
-procedure UnRegisterHMACAlgorithm(const AAlgorithm: String);
+
+function HMAC(const Algorithm: String; const Input, Key: string): TBytes;
+procedure RegisterHMACAlgorithm(const Algorithm: String; Impl: IHMAC);
+procedure UnRegisterHMACAlgorithm(const Algorithm: String);
 
 implementation
 
 uses
-  IdSSLOpenSSL,
-  IdHash,
-  IdGlobal,
-  IdHMACMD5,
-  IdHMACSHA1;
+
+  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5,
+  IdHMACSHA1, System.Generics.Collections;
 
 var
-  GHMACRegistry: TDictionary<string, THMACClass>;
+  GHMACRegistry: TDictionary<string, IHMAC>;
 
-function HMAC(const AAlgorithm: String; const AInput, AKey: string): TBytes;
-var
-  LHMAC: TIdHMAC;
-begin
-  if not GHMACRegistry.ContainsKey(AAlgorithm) then
-    raise EMVCHMACException.CreateFmt('Unknown HMAC algorithm [%s]', [AAlgorithm]);
+type
+  THMACClass = class of TIdHMAC;
 
-  LHMAC := GHMACRegistry[AAlgorithm].Create;
-  try
-    LHMAC.Key := ToBytes(AKey);
-    Result := TBytes(LHMAC.HashValue(ToBytes(AInput)));
-  finally
-    LHMAC.Free;
+  TIdHMACWrapper = class(TInterfacedObject, IHMAC)
+  private
+    FClass: THMACClass;
+  public
+    constructor Create(IdClass: THMACClass);
+    function HashValue(const Input: string;
+      const key: string): System.TArray<System.Byte>;
+
   end;
+
+function HMAC(const Algorithm: String; const Input, Key: string): TBytes;
+begin
+  if not GHMACRegistry.ContainsKey(Algorithm) then
+    raise EMVCHMACException.CreateFmt('Unknown HMAC algorithm [%s]', [Algorithm]);
+
+  result := GHMACRegistry[Algorithm].HashValue(Input, Key);
 end;
 
-procedure RegisterHMACAlgorithm(const AAlgorithm: String; AClazz: THMACClass);
+procedure RegisterHMACAlgorithm(const Algorithm: String; Impl: IHMAC);
 begin
-  if GHMACRegistry.ContainsKey(AAlgorithm) then
+  if GHMACRegistry.ContainsKey(Algorithm) then
     raise EMVCHMACException.Create('Algorithm already registered');
-  GHMACRegistry.Add(AAlgorithm, AClazz);
+  GHMACRegistry.Add(Algorithm, Impl);
 end;
 
-procedure UnRegisterHMACAlgorithm(const AAlgorithm: String);
+procedure UnRegisterHMACAlgorithm(const Algorithm: String);
 begin
-  GHMACRegistry.Remove(AAlgorithm);
+  GHMACRegistry.Remove(Algorithm);
+end;
+
+
+
+{ TIdHMACWrapper }
+
+constructor TIdHMACWrapper.Create(IdClass: THMACClass);
+begin
+  FClass := IdClass;
+end;
+
+function TIdHMACWrapper.HashValue(const Input,
+  key: string): System.TArray<System.Byte>;
+var
+  lHMAC: TIdHMAC;
+begin
+  Assert(IdSSLOpenSSL.LoadOpenSSLLibrary, 'HMAC requires OpenSSL libraries');
+  lHMAC := FClass.Create;
+  try
+    lHMAC.Key := ToBytes(Key, IndyTextEncoding_UTF8);
+    Result := TBytes(lHMAC.HashValue(ToBytes(Input, IndyTextEncoding_UTF8)));
+  finally
+    lHMAC.Free;
+  end;
 end;
 
 initialization
 
-Assert(IdSSLOpenSSL.LoadOpenSSLLibrary, 'HMAC requires OpenSSL libraries');
 
-GHMACRegistry := TDictionary<string, THMACClass>.Create;
 
-// registering based on hash function
-RegisterHMACAlgorithm('md5', TIdHMACMD5);
-RegisterHMACAlgorithm('sha1', TIdHMACSHA1);
-RegisterHMACAlgorithm('sha224', TIdHMACSHA224);
-RegisterHMACAlgorithm('sha256', TIdHMACSHA256);
-RegisterHMACAlgorithm('sha384', TIdHMACSHA384);
-RegisterHMACAlgorithm('sha512', TIdHMACSHA512);
+GHMACRegistry := TDictionary<string, IHMAC>.Create;
 
-// the same using the JWT naming
-RegisterHMACAlgorithm('HS256', TIdHMACSHA256);
-RegisterHMACAlgorithm('HS384', TIdHMACSHA384);
-RegisterHMACAlgorithm('HS512', TIdHMACSHA512);
+//registering based on hash function
+RegisterHMACAlgorithm('md5', TIdHMACWrapper.create(TIdHMACMD5));
+RegisterHMACAlgorithm('sha1', TIdHMACWrapper.create(TIdHMACSHA1));
+RegisterHMACAlgorithm('sha224', TIdHMACWrapper.create(TIdHMACSHA224));
+RegisterHMACAlgorithm('sha256', TIdHMACWrapper.create(TIdHMACSHA256));
+RegisterHMACAlgorithm('sha384', TIdHMACWrapper.create(TIdHMACSHA384));
+RegisterHMACAlgorithm('sha512', TIdHMACWrapper.create(TIdHMACSHA512));
+
+
+//the same using the JWT naming
+RegisterHMACAlgorithm('HS256', TIdHMACWrapper.create(TIdHMACSHA256));
+RegisterHMACAlgorithm('HS384', TIdHMACWrapper.create(TIdHMACSHA384));
+RegisterHMACAlgorithm('HS512', TIdHMACWrapper.create(TIdHMACSHA512));
 
 finalization
 

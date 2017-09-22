@@ -48,9 +48,8 @@ uses
   MVCFramework.DuckTyping;
 
 type
-
   TMVCJSONSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
-  private
+  public
     procedure ObjectToJSONObject(
       const AObject: TObject;
       const AJSONObject: TJSONObject;
@@ -104,7 +103,7 @@ type
       const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase
       );
-  protected
+    { IMVCSerializer }
     function SerializeObject(
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
@@ -158,7 +157,7 @@ type
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs
       );
-  public
+
     procedure AfterConstruction; override;
   end;
 
@@ -257,12 +256,14 @@ begin
         if (AValue.TypeInfo = System.TypeInfo(Boolean)) then
         begin
           if AValue.AsBoolean then
-            AJSONObject.AddPair(AName, TJSONBool.Create(True))
+            AJSONObject.AddPair(AName, {$IFDEF JSONBOOL}TJSONBool.Create(True){$ELSE}TJSONTrue.Create{$ENDIF})
           else
-            AJSONObject.AddPair(AName, TJSONBool.Create(False));
+            AJSONObject.AddPair(AName, {$IFDEF JSONBOOL}TJSONBool.Create(False){$ELSE}TJSONFalse.Create{$ENDIF});
         end
         else
-          AJSONObject.AddPair(AName, TJSONNumber.Create(AValue.AsOrdinal));
+        begin
+          AJSONObject.AddPair(AName, GetEnumName(AValue.TypeInfo, AValue.AsOrdinal));
+        end;
       end;
 
     tkClass:
@@ -366,7 +367,22 @@ begin
       begin
         case ADataSet.Fields[I].DataType of
           ftBoolean:
-            AJSONObject.AddPair(FieldName, TJSONBool.Create(ADataSet.Fields[I].AsBoolean));
+            begin
+
+              {$IFDEF JSONBOOL}
+
+              AJSONObject.AddPair(FieldName, TJSONBool.Create(ADataSet.Fields[I].AsBoolean));
+
+              {$ELSE}
+
+              if ADataSet.Fields[I].AsBoolean then
+                AJSONObject.AddPair(FieldName, TJSONTrue.Create)
+              else
+                AJSONObject.AddPair(FieldName, TJSONFalse.Create);
+
+              {$ENDIF}
+
+            end;
 
           ftInteger, ftSmallint, ftShortint:
             AJSONObject.AddPair(FieldName, TJSONNumber.Create(ADataSet.Fields[I].AsInteger));
@@ -602,6 +618,9 @@ begin
         else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
           AValue := TValue.From<TTime>(ISOTimeToTime(AJSONObject.Values[AName].Value))
 
+        else if (AValue.Kind = tkEnumeration) then
+          TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject.Values[AName].Value), AValue.TypeInfo, AValue)
+
         else
           AValue := TValue.From<string>(AJSONObject.Values[AName].Value);
       end;
@@ -621,7 +640,17 @@ begin
       end;
     2 { TJSONBool } , 3 { TJSONTrue } , 4 { TJSONFalse } :
       begin
+
+        {$IFDEF JSONBOOL}
+
         AValue := TValue.From<Boolean>(TJSONBool(AJSONObject.Values[AName]).AsBoolean);
+
+        {$ELSE}
+
+        AValue := TValue.From<Boolean>(AJSONObject.Values[AName] is TJSONTrue);
+
+        {$ENDIF}
+
       end;
     5 { TJSONObject } :
       begin
@@ -687,7 +716,24 @@ begin
 
       case field.DataType of
         TFieldType.ftBoolean:
-          Field.AsBoolean := (Jv as TJSONBool).AsBoolean;
+          begin
+
+            {$IFDEF JSONBOOL}
+
+            Field.AsBoolean := (Jv as TJSONBool).AsBoolean;
+
+            {$ELSE}
+
+            if Jv is TJSONTrue then
+              Field.AsBoolean := true
+            else if Jv is TJSONFalse then
+              Field.AsBoolean := false
+            else
+              raise EMVCDeserializationException.Create('Invalid boolean value');
+
+            {$ENDIF}
+
+          end;
 
         TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
           Field.AsInteger := (Jv as TJSONNumber).AsInt;

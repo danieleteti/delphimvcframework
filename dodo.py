@@ -18,6 +18,8 @@ projects = glob.glob("ideexpert\*.dproj")
 projects += glob.glob("unittests\**\*.dproj")
 projects += glob.glob("samples\**\*.dproj")
 
+
+failed = []
 #projects += glob.glob("*\**\**\*.dproj")
 
 releases_path = "releases"
@@ -56,13 +58,48 @@ def buildProject(project, config='DEBUG'):
         rsvars_path = 'D:\\Program Files (x86)\\Embarcadero\\Studio\\19.0\\bin\\rsvars.bat'
         if not os.path.isfile(rsvars_path):
             return False
-    return subprocess.call('"' + rsvars_path + '"' + " & msbuild /t:Build /p:Config=" + config + " /p:Platform=Win32 \"" + project + "\"", shell=True) == 0
+    cmdline = '"' + rsvars_path + '"' + " & msbuild /t:Build /p:Config=" + config + " /p:Platform=Win32 \"" + project + "\""
+    print("Running: " + cmdline)
+    return subprocess.call(cmdline, shell=True) == 0
 
 
 def buildProjects(config='RELEASE'):
-    res = True
+    global failed
+    allres = True
     for project in projects:
-        res = buildProject(project, config) and res
+        res = buildProject(project, config)
+        allres &= res
+        if not res:
+            failed.append(project)
+            break        
+    return allres
+
+def run_unit_tests():
+    import os
+    apppath = os.path.dirname(os.path.realpath(__file__))
+    res = True
+    tests = [
+        "unittests\serializer\systemjson\TestSerializerJSON.dproj",
+        "unittests\serializer\jsondataobjects\TestSerializerJsonDataObjects.dproj"
+    ]
+    testsexe = [
+        "unittests\serializer\systemjson\Win32\CI\TestSerializerJSON.exe",
+        "unittests\serializer\jsondataobjects\Win32\CI\TestSerializerJsonDataObjects.exe"        
+    ]   
+    i = 0 
+    for test_project in tests:
+        res = buildProject(test_project, 'CI') and res
+        if res:
+            exename = apppath + "\\" + testsexe[i]
+            print("Running: " + exename)
+            retcode = subprocess.call(exename)
+            print("ExitCode = " + str(retcode))
+            res = retcode == 0
+            if not res:
+                print("UnitTest execution failed!")
+                return False
+            i = i + 1
+
     return res
 
 def copy_sources():
@@ -165,6 +202,7 @@ def task_build():
     '''Use: doit build -v <VERSION>.'''
     return {
         'actions': [
+            run_unit_tests,
             buildProjects,
             init_build,
             copy_sources,
@@ -182,6 +220,15 @@ def task_build():
                     'type': str,
                     'default': 'DEBUG'}
                    ],
+        'verbosity': 2
+    }
+
+def task_tests():
+    '''Use: doit tests'''
+    return {
+        'actions': [
+            run_unit_tests
+            ],
         'verbosity': 2
     }
 
@@ -210,7 +257,7 @@ def task_buildlight():
     '''Use: doit buildlight -> Builds all the projects.'''
     return {
         'actions': [
-            'echo off && touch bin\\x.exe && del bin\\*.exe',
+            #'echo off && touch bin\\x.exe && del bin\\*.exe',
             buildProjects],
         'verbosity': 2
     }

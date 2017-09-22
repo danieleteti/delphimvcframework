@@ -22,6 +22,8 @@ type
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/people/($id)')]
     [MVCProduces('application/json')]
+    { This action cannot be called by a browser address bar because requires the
+      ACCEPT header to be application/json. Use Postman or RAD Studio's RESTDebugger. }
     procedure GetPerson(id: Integer);
 
   end;

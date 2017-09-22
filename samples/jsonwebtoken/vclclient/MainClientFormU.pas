@@ -34,7 +34,7 @@ implementation
 
 
 uses
-  MVCFramework.RESTClient, ObjectsMappers,
+  MVCFramework.RESTClient,
   MVCFramework.SystemJSONUtils,
   MVCFramework.TypesAliases;
 
@@ -80,7 +80,13 @@ begin
       .Header('jwtusername', 'user1')
       .Header('jwtpassword', 'user1');
     lRest := lClient.doPOST('/login', []);
-    lJSON := TSystemJSON.BodyAsJSONObject(lRest);
+    if lRest.HasError then
+    begin
+      ShowMessage(lRest.Error.ExceptionMessage);
+      Exit;
+    end;
+
+    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
     try
       JWT := lJSON.GetValue('token').Value;
     finally

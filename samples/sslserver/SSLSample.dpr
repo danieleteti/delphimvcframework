@@ -45,9 +45,9 @@ begin
   try
     LGetSSLPassword := TGetSSLPassword.Create;
     LIOHandleSSL := TIdServerIOHandlerSSLOpenSSL.Create(LServer);
-    LIOHandleSSL.SSLOptions.CertFile := '..\..\cacert.pem';
+    LIOHandleSSL.SSLOptions.CertFile := 'cacert.pem';
     LIOHandleSSL.SSLOptions.RootCertFile := '';
-    LIOHandleSSL.SSLOptions.KeyFile := '..\..\privkey.pem';
+    LIOHandleSSL.SSLOptions.KeyFile := 'privkey.pem';
     LIOHandleSSL.OnGetPassword := LGetSSLPassword.OnGetSSLPassword;
     LServer.IOHandler := LIOHandleSSL;
     LServer.DefaultPort := APort;

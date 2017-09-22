@@ -48,7 +48,7 @@ type
   ERESTClientException = class(Exception);
 
   TArrayOfString = array of string;
-  THTTPCommand = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE);
+  // THTTPCommand = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE);
 
   [MVCNameCaseAttribute(ncLowerCase)]
   TMVCExceptionObj = class(TObject)
@@ -173,19 +173,19 @@ type
     function EncodeResourceParams(const AResourceParams
       : array of string): string;
 
-    procedure StartAsynchRequest(const ACommand: THTTPCommand;
+    procedure StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
       const AResource, ABody: string); overload;
-    procedure StartAsynchRequest(const ACommand: THTTPCommand;
+    procedure StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
       const AResource: string); overload;
 
-    function HTTPCommandToString(const ACommand: THTTPCommand): string;
+    function HTTPCommandToString(const ACommand: TMVCHTTPMethodType): string;
 
-    function SendHTTPCommand(const ACommand: THTTPCommand;
-      const AAccept, AContentType, AResource: string; ABodyParams: TStrings)
+    function SendHTTPCommand(const ACommand: TMVCHTTPMethodType;
+      const AAccept, AContentMediaType, AResource: string; ABodyParams: TStrings)
       : IRESTResponse;
 
-    function SendHTTPCommandWithBody(const ACommand: THTTPCommand;
-      const AAccept, AContentType, AContentEncoding, AResource, ABody: string): IRESTResponse;
+    function SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
+      const AAccept, AContentMediaType, AContentCharset, AResource, ABody: string): IRESTResponse;
 
     procedure OnHTTPRedirect(Sender: TObject; var dest: string; var NumRedirect: Integer;
       var Handled: Boolean; var VMethod: TIdHTTPMethod);
@@ -432,8 +432,19 @@ begin
   if not Assigned(FErrorObject) then
   begin
     FErrorObject := TMVCExceptionObj.Create;
-    lSerializer := GetDefaultSerializer;
-    lSerializer.DeserializeObject(Self.BodyAsString, FErrorObject);
+    { if content-type is json then we can use a more evoluted deserialization, otherwise
+      we just copy some http information into FErrorObject }
+    if Self.ContentType.StartsWith('application/json', true) then
+    begin
+      lSerializer := GetDefaultSerializer;
+      lSerializer.DeserializeObject(Self.BodyAsString, FErrorObject);
+    end
+    else
+    begin
+      FErrorObject.Status := Self.ResponseText;
+      FErrorObject.ExceptionMessage := Self.BodyAsString;
+      FErrorObject.HTTPError := Self.ResponseCode;
+    end;
   end;
   Result := FErrorObject;
 end;
@@ -756,7 +767,7 @@ begin
   FQueryStringParams := nil;
   FRawBody := nil;
   FAccept := 'application/json';
-  FContentType := 'application/json; charset=utf-8';
+  FContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   FResource := '';
   FContentEncoding := '';
   FRequestHeaders := TStringlist.Create;
@@ -1270,7 +1281,7 @@ begin
   Result := self;
 end;
 
-function TRESTClient.HTTPCommandToString(const ACommand: THTTPCommand): string;
+function TRESTClient.HTTPCommandToString(const ACommand: TMVCHTTPMethodType): string;
 begin
   case ACommand of
     httpGET:
@@ -1329,8 +1340,8 @@ begin
   Result := self;
 end;
 
-function TRESTClient.SendHTTPCommand(const ACommand: THTTPCommand;
-  const AAccept, AContentType, AResource: string; ABodyParams: TStrings)
+function TRESTClient.SendHTTPCommand(const ACommand: TMVCHTTPMethodType;
+  const AAccept, AContentMediaType, AResource: string; ABodyParams: TStrings)
   : IRESTResponse;
 begin
   Result := TRESTResponse.Create;
@@ -1338,7 +1349,8 @@ begin
   FHTTP.Request.RawHeaders.Clear;
   FHTTP.Request.CustomHeaders.Clear;
   FHTTP.Request.Accept := AAccept;
-  FHTTP.Request.ContentType := AContentType;
+  if ACommand in MVC_HTTP_METHODS_WITH_CONTENT then
+    FHTTP.Request.ContentType := AContentMediaType;
 
   HandleRequestCookies;
   try
@@ -1416,12 +1428,12 @@ begin
   Result.UpdateHeaders(FHTTP.Response.RawHeaders);
 end;
 
-function TRESTClient.SendHTTPCommandWithBody(const ACommand: THTTPCommand;
-  const AAccept, AContentType, AContentEncoding, AResource, ABody: string): IRESTResponse;
+function TRESTClient.SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
+  const AAccept, AContentMediaType, AContentCharset, AResource, ABody: string): IRESTResponse;
 var
   lBytes: TArray<Byte>;
-  lContentEncoding: string;
-  lContentTypeWithCharset: string;
+  lContentCharset: string;
+  lContentType: string;
   lEncoding: TEncoding;
 begin
   Result := TRESTResponse.Create;
@@ -1430,19 +1442,20 @@ begin
   FHTTP.Request.CustomHeaders.Clear;
   FHTTP.Request.Accept := AAccept;
 
-  lContentEncoding := 'UTF-8';
-  if AContentEncoding <> '' then
-    lContentEncoding := AContentEncoding;
-  lContentTypeWithCharset := AContentType + ';charset=' + FContentEncoding;
+  lContentCharset := 'UTF-8';
+  if AContentCharset <> '' then
+    lContentCharset := AContentCharset;
+  lContentType := CreateContentType(AContentMediaType, lContentCharset);
 
   // FHTTP.Request.ContentType := lContentTypeWithCharset;
-  FHTTP.Request.ContentType := AContentType;
-  FHTTP.Request.ContentEncoding := AContentEncoding;
+  FHTTP.Request.ContentType := lContentType;
+  // FHTTP.Request.CharSet := AContentCharset;
+  // FHTTP.Request.ContentEncoding := AContentCharset;
 
   HandleRequestCookies;
   try
-    if FHTTP.Request.CharSet = '' then
-      FHTTP.Request.CharSet := 'utf-8';
+    // if FHTTP.Request.CharSet = '' then
+    // FHTTP.Request.CharSet := 'utf-8';
 
     case ACommand of
       httpGET:
@@ -1458,7 +1471,7 @@ begin
           RawBody.Position := 0;
           RawBody.Size := 0;
 
-          lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
+          lEncoding := TEncoding.GetEncoding(lContentCharset);
           try
             lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
               TEncoding.Default.GetBytes(ABody));
@@ -1586,13 +1599,13 @@ begin
   Result := self;
 end;
 
-procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand;
+procedure TRESTClient.StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
   const AResource: string);
 begin
   StartAsynchRequest(ACommand, AResource, '');
 end;
 
-procedure TRESTClient.StartAsynchRequest(const ACommand: THTTPCommand;
+procedure TRESTClient.StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
   const AResource, ABody: string);
 var
   th: TThread;

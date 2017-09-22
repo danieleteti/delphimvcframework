@@ -113,7 +113,7 @@ type
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
-    //ISAPIPath = 'isapi_path';
+    // ISAPIPath = 'isapi_path';
     PathPrefix = 'pathprefix';
     StompServer = 'stompserver';
     StompServerPort = 'stompserverport';
@@ -369,8 +369,8 @@ type
   TMVCCriticalSectionHelper = class helper
     for TCriticalSection
   public
-    procedure WithLock(const AAction: TProc);
-    function WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+    procedure DoWithLock(const AAction: TProc);
+    function DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
   end;
 
   TMVCConfig = class sealed
@@ -404,20 +404,29 @@ type
   {$SCOPEDENUMS ON}
 
 function AppPath: string;
-function IsReservedOrPrivateIP(const AIP: string): Boolean;
-function IP2Long(const AIP: string): UInt32;
+function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
+function IP2Long(const AIP: string): UInt32; inline;
 
 function B64Encode(const AValue: string): string; overload;
 function B64Encode(const AValue: TBytes): string; overload;
 function B64Decode(const AValue: string): string;
 
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
+function URLSafeB64Decode(const Value: string): string;
+
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+function CreateContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+
+const
+  MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
+  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
+
 var
   Lock: TObject;
-
-implementation
 
 const
   RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string =
@@ -427,6 +436,11 @@ const
     ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
     ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
+
+implementation
+
+uses
+  IdCoder3to4;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -445,26 +459,42 @@ begin
   IntIP := IP2Long(AIP);
   for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
     if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
-      Exit(True)
+      Exit(True);
 end;
 
-function IP2Long(const AIP: string): UInt32;
+function IP2Long(const AIP: string): Cardinal;
+var
+  lPieces: TArray<string>;
 begin
-  Result := IdGlobal.IPv4ToUInt32(AIP);
+  if AIP.IsEmpty then
+    Exit(0);
+  lPieces := AIP.Split(['.']);
+  Result := (StrToInt(lPieces[0]) * 16777216) +
+    (StrToInt(lPieces[1]) * 65536) +
+    (StrToInt(lPieces[2]) * 256) +
+    StrToInt(lPieces[3]);
 end;
+
+// function IP2Long(const AIP: string): UInt32;
+// begin
+// Result := IdGlobal.IPv4ToUInt32(AIP);
+// end;
 
 function B64Encode(const AValue: string): string; overload;
 begin
+  // Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeString(AValue);
 end;
 
 function B64Encode(const AValue: TBytes): string; overload;
 begin
+  // Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeBytes(TIdBytes(AValue));
 end;
 
 function B64Decode(const AValue: string): string;
 begin
+  // Do not use TNetEncoding
   Result := TIdDecoderMIME.DecodeString(AValue);
 end;
 
@@ -482,6 +512,43 @@ begin
   Result := EmptyStr;
   for B in ABytes do
     Result := Result + ByteToHex(B);
+end;
+
+function CreateContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+begin
+  if aContentCharSet = '' then
+  begin
+    Result := aContentMediaType;
+  end
+  else
+  begin
+    Result := aContentMediaType + ';charset=' + aContentCharSet;
+  end;
+  Result := Result.Trim.ToLower;
+end;
+
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+var
+  lContentTypeValues: TArray<string>;
+begin
+  if not aContentType.IsEmpty then
+  begin
+    lContentTypeValues := aContentType.Split([';']);
+    aContentMediaType := Trim(lContentTypeValues[0]);
+    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True)) then
+    begin
+      aContentCharSet := lContentTypeValues[1].Trim.Split(['='])[1].Trim;
+    end
+    else
+    begin
+      aContentCharSet := '';
+    end;
+  end
+  else
+  begin
+    aContentMediaType := '';
+    aContentCharSet := '';
+  end;
 end;
 
 { EMVCException }
@@ -525,7 +592,7 @@ end;
 
 { TMVCCriticalSectionHelper }
 
-procedure TMVCCriticalSectionHelper.WithLock(const AAction: TProc);
+procedure TMVCCriticalSectionHelper.DoWithLock(const AAction: TProc);
 begin
   Self.Enter;
   try
@@ -535,7 +602,7 @@ begin
   end;
 end;
 
-function TMVCCriticalSectionHelper.WithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
 begin
   Result := Self.WaitFor(ATimeOut);
   if (Result = TWaitResult.wrSignaled) then
@@ -627,7 +694,17 @@ begin
   try
     for S in FConfig.Keys do
       Jo.AddPair(S, FConfig[S]);
+
+    {$IFDEF SYSTEMJSON}
+
+    Result := Jo.ToJSON;
+
+    {$ELSE}
+
     Result := Jo.ToString;
+
+    {$ENDIF}
+
   finally
     Jo.Free;
   end;
@@ -712,9 +789,97 @@ begin
   end;
 end;
 
+type
+  TURLSafeEncode = class(TIdEncoder3to4)
+  protected
+    procedure InitComponent; override;
+  public
+
+  end;
+
+  TURLSafeDecode = class(TIdDecoder4to3)
+  protected
+    class var GSafeBaseBase64DecodeTable: TIdDecodeTable;
+    procedure InitComponent; override;
+  public
+
+  end;
+
+const
+  GURLSafeBase64CodeTable: string =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; { Do not Localize }
+
+procedure TURLSafeEncode.InitComponent;
+begin
+  inherited;
+  FCodingTable := ToBytes(GURLSafeBase64CodeTable);
+  FFillChar := '='; { Do not Localize }
+end;
+
+procedure TURLSafeDecode.InitComponent;
+begin
+  inherited;
+  FDecodeTable := GSafeBaseBase64DecodeTable;
+  FCodingTable := ToBytes(GURLSafeBase64CodeTable);
+  FFillChar := '='; { Do not Localize }
+end;
+
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
+begin
+  if IncludePadding then
+    Result := TURLSafeEncode.EncodeString(Value)
+  else
+    Result := TURLSafeEncode.EncodeString(Value).Replace('=', '', [rfReplaceAll]);
+end;
+
+/// <summary>
+/// Remove "trimmed" character from the end of the string passed as parameter
+/// </summary>
+/// <param name="Value">Original string</param>
+/// <param name="TrimmedChar">Character to remove</param>
+/// <returns>Resulting string</returns>
+function RTrim(const Value: string; TrimmedChar: char): string;
+var
+  Strlen: Integer;
+begin
+  Strlen := Length(Value);
+  while (Strlen > 0) and (Value[Strlen] = TrimmedChar) do
+    dec(StrLen);
+  result := copy(value, 1, StrLen)
+end;
+
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
+begin
+
+  if IncludePadding then
+    Result := TURLSafeEncode.EncodeBytes(TIdBytes(Value))
+  else
+    Result := RTrim(TURLSafeEncode.EncodeBytes(TIdBytes(Value)), '=');
+end;
+
+function URLSafeB64Decode(const Value: string): string;
+begin
+  // SGR 2017-07-03 : b64url might not include padding. Need to add it before decoding
+  case Length(value) mod 4 of
+    0:
+      begin
+        Result := TURLSafeDecode.DecodeString(Value);
+      end;
+    2:
+      Result := TURLSafeDecode.DecodeString(Value + '==');
+    3:
+      Result := TURLSafeDecode.DecodeString(Value + '=');
+  else
+    raise EExternalException.Create('Illegal base64url length');
+  end;
+end;
+
 initialization
 
 Lock := TObject.Create;
+
+// SGR 2017-07-03 : Initialize decoding table for URLSafe Gb64 encoding
+TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable, TURLSafeDecode.GSafeBaseBase64DecodeTable);
 
 GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
 GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);

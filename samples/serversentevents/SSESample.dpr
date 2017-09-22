@@ -30,6 +30,7 @@ begin
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    LServer.KeepAlive := True;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     LogI(Format('Server started on port 8080', [APort]));

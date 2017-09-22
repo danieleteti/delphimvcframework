@@ -104,9 +104,9 @@ type
     procedure SetValueAsString(const Value: TValue);
   public
     function Equals(Obj: TObject): boolean; reintroduce;
-    //[TValueAsType(TypeInfo(String))]
+    // [TValueAsType(TypeInfo(String))]
     property ValueAsString: TValue read FValueAsString write SetValueAsString;
-    //[TValueAsType(TypeInfo(Integer))]
+    // [TValueAsType(TypeInfo(Integer))]
     property ValueAsInteger: TValue read FValueAsInteger write SetValueAsInteger;
     property Value1: TValue read FValue1 write FValue1;
     property Value2: TValue read FValue2 write FValue2;
@@ -153,9 +153,9 @@ type
     function Equals(Obj: TMyStreamObject): boolean; reintroduce;
     constructor Create;
     destructor Destroy; override;
-    [MapperSerializeAsString('utf-16')]
+    [MVCSerializeAsString]
     property PropStream: TStream read FPropStream write SetPropStream;
-    [MapperSerializeAsString('utf-8')]
+    [MVCSerializeAsString]
     // utf-8 is default
     property Prop8Stream: TStream read FProp8Stream write SetProp8Stream;
     property ImageStream: TStream read FImageStream write SetImageStream;
@@ -197,7 +197,7 @@ type
   IMyInterface = interface
     ['{B36E786B-5871-4211-88AD-365B453DC408}']
     function GetID: Integer;
-    function GetDescription: String;
+    function GetDescription: string;
   end;
 
   TMyIntfObject = class(TInterfacedObject, IMyInterface)
@@ -205,7 +205,7 @@ type
     FID: Integer;
     FValue: string;
   public
-    constructor Create(const ID: Integer; const Value: String);
+    constructor Create(const ID: Integer; const Value: string);
     function GetDescription: string;
     function GetID: Integer;
   end;
@@ -226,11 +226,11 @@ type
   TObjectWithCustomType = class
   private
     FPropStringList: TStringList;
-    FPropStringArray: TArray<String>;
+    FPropStringArray: TArray<string>;
     FPropStreamAsBASE64: TStringStream;
     FPropStreamAsString: TStringStream;
     procedure SetPropStringList(const Value: TStringList);
-    procedure SetPropStringArray(const Value: TArray<String>);
+    procedure SetPropStringArray(const Value: TArray<string>);
     procedure SetPropStreamAsBASE64(const Value: TStringStream);
     procedure SetPropStreamAsString(const Value: TStringStream);
   public
@@ -238,7 +238,7 @@ type
     destructor Destroy; override;
     function Equals(Obj: TObject): boolean; override;
     property PropStringList: TStringList read FPropStringList write SetPropStringList;
-    property PropStringArray: TArray<String> read FPropStringArray write SetPropStringArray;
+    property PropStringArray: TArray<string> read FPropStringArray write SetPropStringArray;
     [MVCSerializeAsString]
     property PropStreamAsString: TStringStream read FPropStreamAsString write SetPropStreamAsString;
     property PropStreamAsBASE64: TStringStream read FPropStreamAsBASE64 write SetPropStreamAsBASE64;
@@ -719,7 +719,7 @@ end;
 
 { TMyIntfObject }
 
-constructor TMyIntfObject.Create(const ID: Integer; const Value: String);
+constructor TMyIntfObject.Create(const ID: Integer; const Value: string);
 begin
   inherited Create;
   FID := ID;
@@ -763,7 +763,7 @@ begin
   lOther := TObjectWithCustomType(Obj);
   Result := true;
   Result := Result and (lOther.PropStringList.Text = Self.PropStringList.Text);
-  Result := Result and (String.Join(',', lOther.PropStringArray) = String.Join(',', Self.PropStringArray));
+  Result := Result and (string.Join(',', lOther.PropStringArray) = string.Join(',', Self.PropStringArray));
   Result := Result and (lOther.PropStreamAsString.DataString = PropStreamAsString.DataString);
   Result := Result and (lOther.PropStreamAsBASE64.DataString = PropStreamAsBASE64.DataString);
 end;
@@ -780,7 +780,7 @@ begin
   FPropStreamAsString := Value;
 end;
 
-procedure TObjectWithCustomType.SetPropStringArray(const Value: TArray<String>);
+procedure TObjectWithCustomType.SetPropStringArray(const Value: TArray<string>);
 begin
   FPropStringArray := Value;
 end;

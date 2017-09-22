@@ -74,7 +74,7 @@ type
     [MVCPath('/encoding')]
     [MVCHTTPMethod([httpGET])]
     // this is only for test!!!!
-    procedure TestEncoding(ctx: TWebContext);
+    procedure TestCharset(ctx: TWebContext);
 
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
@@ -85,7 +85,7 @@ type
     [MVCPath('/testconsumes/textiso8859_1')]
     [MVCHTTPMethod([httpPOST, httpPUT])]
     [MVCConsumes(TMVCMediaType.TEXT_PLAIN)]
-    [MVCProduces(TMVCMediaType.TEXT_PLAIN, 'iso8859-1')]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN, TMVCCharset.ISO88591)]
     procedure TestConsumesProducesTextISO8859_1;
 
     [MVCPath('/testconsumes')]
@@ -340,11 +340,11 @@ begin
   Render(Context.Request.Body);
 end;
 
-procedure TTestServerController.TestEncoding(ctx: TWebContext);
+procedure TTestServerController.TestCharset(ctx: TWebContext);
 var
   Obj: TJSONObject;
 begin
-  ContentCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  ContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   Obj := TJSONObject.Create;
   Obj.AddPair('name1', 'jørn');
   Obj.AddPair('name2', 'Što je Unicode?');
@@ -387,7 +387,7 @@ var
 begin
   case ctx.Request.HTTPMethod of
     httpGET:
-      Render<TPerson>(TPerson.GetList);
+      Render<TPerson>(TPerson.GetList, True);
     httpPOST:
       begin
         Person := ctx.Request.BodyAs<TPerson>();
