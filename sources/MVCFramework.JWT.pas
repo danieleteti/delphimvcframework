@@ -222,6 +222,32 @@ uses
     , MVCFramework.HMAC
     , System.DateUtils;
 
+{$if compilerversion <= 27}
+
+{ Unix date conversion support, compatibility fix for XE5 }
+
+function DateTimeToUnix(const AValue: TDateTime; AInputIsUTC: Boolean): Int64;
+var
+  LDate: TDateTime;
+ begin
+  if AInputIsUTC then
+    LDate := AValue
+  else
+    LDate := TTimeZone.Local.ToUniversalTime(AValue);
+  Result := SecondsBetween(UnixDateDelta, LDate);
+  if LDate < UnixDateDelta then
+     Result := -Result;
+ end;
+
+function UnixToDateTime(const AValue: Int64; AReturnUTC: Boolean): TDateTime;
+begin
+  if AReturnUTC then
+    Result := IncSecond(UnixDateDelta, AValue)
+  else
+    Result := TTimeZone.Local.ToLocalTime(IncSecond(UnixDateDelta, AValue));
+end;
+{$endif}
+
 { TJWTRegisteredClaims }
 
 function TJWTRegisteredClaims.GetAudience: string;
@@ -325,7 +351,7 @@ var
 begin
   if not TryStrToInt64(Items[index], lIntValue) then
     raise Exception.Create('Item cannot be converted as Unix Epoch');
-  Result := UnixToDateTime(lIntValue, False);
+  Result := UnixToDateTime(lIntValue, true);
 end;
 
 function TJWTDictionaryObject.Keys: TArray<string>;
@@ -341,7 +367,7 @@ end;
 procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: string;
   const Value: TDateTime);
 begin
-  Items[index] := IntToStr(DateTimeToUnix(Value, False));
+  Items[Index] := IntToStr(DateTimeToUnix(Value, True));
 end;
 
 { TJWTCustomClaims }
@@ -375,8 +401,7 @@ begin
     Exit(False);
   end;
 
-  lExpirationTimeAsDateTime := UnixToDateTime(lIntValue, False);
-  if lExpirationTimeAsDateTime <= Now - FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, true) <= TTimeZone.Local.ToUniversalTime(Now) - FLeewaySeconds * OneSecond then
   begin
     Error := 'Token expired';
     Exit(False);
@@ -405,7 +430,7 @@ begin
     Exit(False);
   end;
 
-  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, true) >= TTimeZone.Local.ToUniversalTime(Now) + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token is issued in the future';
     Exit(False);
@@ -434,7 +459,7 @@ begin
     Exit(False);
   end;
 
-  if UnixToDateTime(lIntValue, False) >= Now + FLeewaySeconds * OneSecond then
+  if UnixToDateTime(lIntValue, true) >= TTimeZone.Local.ToUniversalTime(Now) + FLeewaySeconds * OneSecond then
   begin
     Error := 'Token still not valid';
     Exit(False);
@@ -609,6 +634,7 @@ var
   lIsRegistered: Boolean;
   lValue: string;
 begin
+
   Result := IsValidToken(Token, lJHeader, lJPayload, Error);
   try
     if not Result then
