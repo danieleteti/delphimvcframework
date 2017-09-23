@@ -524,7 +524,7 @@ begin
   begin
     Result := aContentMediaType + ';charset=' + aContentCharSet;
   end;
-  Result := Result.Trim.ToLower;
+  Result := Result.ToLower.Replace(' ','',[rfReplaceAll]);
 end;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);

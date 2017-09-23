@@ -1065,7 +1065,7 @@ var
   ObjValue: TValue;
 begin
   if (ASerializedObject = EmptyStr) then
-    Exit;
+    raise Exception.Create('Invalid body');
 
   if not Assigned(AObject) then
     Exit;

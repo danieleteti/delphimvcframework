@@ -38,13 +38,26 @@ type
 
   IHMAC = interface
     ['{95134024-BBAF-4E52-A4C3-54189672E18A}']
-    function HashValue(const Input, key: String): TBytes;
+    function HashValue(const Input, key: string): TBytes;
   end;
 
+function HMAC(const Algorithm: string; const Input, Key: string): TBytes;
+procedure RegisterHMACAlgorithm(const Algorithm: string; Impl: IHMAC);
+procedure UnRegisterHMACAlgorithm(const Algorithm: string);
 
-function HMAC(const Algorithm: String; const Input, Key: string): TBytes;
-procedure RegisterHMACAlgorithm(const Algorithm: String; Impl: IHMAC);
-procedure UnRegisterHMACAlgorithm(const Algorithm: String);
+const
+  // registering based on hash function
+  HMAC_MD5 = 'md5';
+  HMAC_SHA1 = 'sha1';
+  HMAC_SHA224 = 'sha224';
+  HMAC_SHA256 = 'sha256';
+  HMAC_SHA384 = 'sha384';
+  HMAC_SHA512 = 'sha512';
+
+  // the same using the JWT naming
+  HMAC_HS256 = 'HS256';
+  HMAC_HS384 = 'HS384';
+  HMAC_HS512 = 'HS512';
 
 implementation
 
@@ -69,7 +82,7 @@ type
 
   end;
 
-function HMAC(const Algorithm: String; const Input, Key: string): TBytes;
+function HMAC(const Algorithm: string; const Input, Key: string): TBytes;
 begin
   if not GHMACRegistry.ContainsKey(Algorithm) then
     raise EMVCHMACException.CreateFmt('Unknown HMAC algorithm [%s]', [Algorithm]);
@@ -77,19 +90,17 @@ begin
   result := GHMACRegistry[Algorithm].HashValue(Input, Key);
 end;
 
-procedure RegisterHMACAlgorithm(const Algorithm: String; Impl: IHMAC);
+procedure RegisterHMACAlgorithm(const Algorithm: string; Impl: IHMAC);
 begin
   if GHMACRegistry.ContainsKey(Algorithm) then
     raise EMVCHMACException.Create('Algorithm already registered');
   GHMACRegistry.Add(Algorithm, Impl);
 end;
 
-procedure UnRegisterHMACAlgorithm(const Algorithm: String);
+procedure UnRegisterHMACAlgorithm(const Algorithm: string);
 begin
   GHMACRegistry.Remove(Algorithm);
 end;
-
-
 
 { TIdHMACWrapper }
 
@@ -116,10 +127,9 @@ end;
 initialization
 
 
-
 GHMACRegistry := TDictionary<string, IHMAC>.Create;
 
-//registering based on hash function
+// registering based on hash function
 RegisterHMACAlgorithm('md5', TIdHMACWrapper.create(TIdHMACMD5));
 RegisterHMACAlgorithm('sha1', TIdHMACWrapper.create(TIdHMACSHA1));
 RegisterHMACAlgorithm('sha224', TIdHMACWrapper.create(TIdHMACSHA224));
@@ -127,8 +137,7 @@ RegisterHMACAlgorithm('sha256', TIdHMACWrapper.create(TIdHMACSHA256));
 RegisterHMACAlgorithm('sha384', TIdHMACWrapper.create(TIdHMACSHA384));
 RegisterHMACAlgorithm('sha512', TIdHMACWrapper.create(TIdHMACSHA512));
 
-
-//the same using the JWT naming
+// the same using the JWT naming
 RegisterHMACAlgorithm('HS256', TIdHMACWrapper.create(TIdHMACSHA256));
 RegisterHMACAlgorithm('HS384', TIdHMACWrapper.create(TIdHMACSHA384));
 RegisterHMACAlgorithm('HS512', TIdHMACWrapper.create(TIdHMACSHA512));

@@ -799,11 +799,12 @@ end;
 
 function TMVCWebRequest.Body: string;
 var
-  Encoding: TEncoding;
+  lEncoding: TEncoding;
+  lCurrCharset: string;
 
   {$IFNDEF BERLINORBETTER}
 
-  Buffer: TArray<Byte>;
+  lBuffer: TArray<Byte>;
 
   {$ENDIF}
 
@@ -811,53 +812,28 @@ begin
   { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
   begin
-    Encoding := nil;
+    lEncoding := nil;
+    lCurrCharset := FCharset;
+    if (lCurrCharset = EmptyStr) then
+      lCurrCharset := 'UTF-8';
+    lEncoding := TEncoding.GetEncoding(lCurrCharset);
     try
 
       {$IFDEF BERLINORBETTER}
 
-      FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty JSON BODY"
-      if (FCharset = EmptyStr) then
-      begin
-        TEncoding.GetBufferEncoding(FWebRequest.RawContent, Encoding, TEncoding.Default);
-        // SetLength(Buffer, 10);
-        // for I := 0 to 9 do
-        // Buffer[I] := FWebRequest.RawContent[I];
-        // TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
-        // SetLength(Buffer, 0);
-      end
-      else
-      begin
-        Encoding := TEncoding.GetEncoding(FCharset);
-      end;
-
-      FBody := Encoding.GetString(FWebRequest.RawContent);
+      FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
+      FBody := lEncoding.GetString(FWebRequest.RawContent);
 
       {$ELSE}
 
-      SetLength(Buffer, FWebRequest.ContentLength);
-      FWebRequest.ReadClient(Buffer[0], FWebRequest.ContentLength);
-      if (FCharset = EmptyStr) then
-      begin
-        TEncoding.GetBufferEncoding(Buffer, Encoding, TEncoding.Default);
-        // SetLength(BufferOut, 10);
-        // for I := 0 to 9 do
-        // begin
-        // BufferOut[I] := Buffer[I];
-        // end;
-        // TEncoding.GetBufferEncoding(BufferOut, Encoding, TEncoding.Default);
-        // SetLength(BufferOut, 0);
-      end
-      else
-      begin
-        Encoding := TEncoding.GetEncoding(FCharset);
-      end;
-      FBody := Encoding.GetString(Buffer);
+      SetLength(lBuffer, FWebRequest.ContentLength);
+      FWebRequest.ReadClient(lBuffer[0], FWebRequest.ContentLength);
+      FBody := lEncoding.GetString(lBuffer);
 
       {$ENDIF}
 
     finally
-      Encoding.Free;
+      lEncoding.Free;
     end;
   end;
   Result := FBody;
@@ -866,47 +842,66 @@ end;
 function TMVCWebRequest.BodyAs<T>: T;
 var
   Obj: TObject;
+  lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if FSerializers.ContainsKey(ContentType) then
+  if FSerializers.TryGetValue(ContentType, lSerializer) then
   begin
     Obj := TMVCSerializerHelpful.CreateObject(TClass(T).QualifiedClassName);
-    FSerializers.Items[ContentType].DeserializeObject(Body, Obj);
-    Result := Obj as T;
+    try
+      lSerializer.DeserializeObject(Body, Obj);
+      Result := Obj as T;
+    except
+      on E: Exception do
+      begin
+        FreeAndNil(Obj);
+        raise;
+      end;
+    end;
   end
   else
-    raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+    raise EMVCDeserializationException.CreateFmt('Body ContentType %s not supported', [ContentType]);
 end;
 
 function TMVCWebRequest.BodyAsListOf<T>: TObjectList<T>;
 var
   List: TObjectList<T>;
+  lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if FSerializers.ContainsKey(ContentType) then
+  if FSerializers.TryGetValue(ContentType, lSerializer) then
   begin
-    List := TObjectList<T>.Create;
-    FSerializers.Items[ContentType].DeserializeCollection(Body, List, T);
-    Result := List;
+    List := TObjectList<T>.Create(True);
+    try
+      lSerializer.DeserializeCollection(Body, List, T);
+      Result := List;
+    except
+      FreeAndNil(List);
+      raise;
+    end;
   end
   else
     raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
 end;
 
 procedure TMVCWebRequest.BodyFor<T>(const AObject: T);
+var
+  lSerializer: IMVCSerializer;
 begin
   if Assigned(AObject) then
-    if FSerializers.ContainsKey(ContentType) then
-      FSerializers.Items[ContentType].DeserializeObject(Body, AObject)
+    if FSerializers.TryGetValue(ContentType, lSerializer) then
+      lSerializer.DeserializeObject(Body, AObject)
     else
       raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
 end;
 
 procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>);
+var
+  lSerializer: IMVCSerializer;
 begin
   if Assigned(AObjectList) then
-    if FSerializers.ContainsKey(ContentType) then
-      FSerializers.Items[ContentType].DeserializeCollection(Body, AObjectList, T)
+    if FSerializers.TryGetValue(ContentType, lSerializer) then
+      lSerializer.DeserializeCollection(Body, AObjectList, T)
     else
       raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
 end;
@@ -1743,28 +1738,28 @@ begin
                 except
                   on E: EMVCSessionExpiredException do
                   begin
-                    LogException(E, E.DetailedMessage);
+                    Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.ClassName, E.Message, E.DetailedMessage], LOGGERPRO_TAG);
                     LContext.SessionStop(false);
                     LSelectedController.ResponseStatus(E.HTTPErrorCode);
                     LSelectedController.Render(E);
                   end;
                   on E: EMVCException do
                   begin
-                    LogException(E, E.DetailedMessage);
+                    Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.ClassName, E.Message, E.DetailedMessage], LOGGERPRO_TAG);
                     LSelectedController.ResponseStatus(E.HTTPErrorCode);
                     LSelectedController.Render(E);
                   end;
                   on E: EInvalidOp do
                   begin
-                    LogException(E, 'Invalid OP');
+                    Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.ClassName, E.Message, 'Invalid Op'], LOGGERPRO_TAG);
                     LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
                     LSelectedController.Render(E);
                   end;
-                  on E: Exception do
+                  on Ex: Exception do
                   begin
-                    LogException(E, 'Global Action Exception Handler');
+                    Log.ErrorFmt('[%s] %s (Custom message: "%s")', [Ex.ClassName, Ex.Message, 'Global Action Exception Handler'], LOGGERPRO_TAG);
                     LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                    LSelectedController.Render(E);
+                    LSelectedController.Render(Ex);
                   end;
                 end;
 
@@ -2050,7 +2045,7 @@ begin
     except
       on E: Exception do
       begin
-        LogException(E);
+        Log.ErrorFmt('[%s] %s', [E.ClassName, E.Message], LOGGERPRO_TAG);
         AResponse.Content := E.Message;
         AResponse.SendResponse;
         AHandled := True;
@@ -2339,7 +2334,7 @@ begin
   except
     on E: Exception do
     begin
-      LogException(E);
+      Log.ErrorFmt('[%s] %s', [E.ClassName, E.Message], LOGGERPRO_TAG);
       ContentType := TMVCMediaType.TEXT_PLAIN;
       Render(E);
     end;
@@ -2491,10 +2486,13 @@ begin
 end;
 
 function TMVCController.Serializer(const AContentType: string): IMVCSerializer;
+var
+  lContentType: string;
 begin
-  if not Engine.Serializers.ContainsKey(AContentType) then
+  lContentType := AContentType.ToLower.Replace(' ', '', [rfReplaceAll]);
+  if not Engine.Serializers.ContainsKey(lContentType) then
     raise EMVCException.CreateFmt('The serializer for %s could not be found.', [AContentType]);
-  Result := Engine.Serializers.Items[AContentType];
+  Result := Engine.Serializers.Items[lContentType];
 end;
 
 function TMVCController.SessionAs<T>: T;

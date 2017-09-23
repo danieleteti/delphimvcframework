@@ -63,22 +63,10 @@ type
 
   TMVCSerializationAction = TProc<TObject, TMVCStringDictionary>;
 
-  EMVCSerializationException = class(Exception)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
+  EMVCSerializationException = class(EMVCException)
   end;
 
-  EMVCDeserializationException = class(Exception)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
+  EMVCDeserializationException = class(EMVCException)
   end;
 
   MVCValueAsTypeAttribute = class(TCustomAttribute)
@@ -215,9 +203,9 @@ function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
 
 /// <summary>
-///   Supports ISO8601 in the following formats:
-///  yyyy-mm-ddThh:nn:ss
-///  yyyy-mm-ddThh:nn:ss.000Z
+/// Supports ISO8601 in the following formats:
+/// yyyy-mm-ddThh:nn:ss
+/// yyyy-mm-ddThh:nn:ss.000Z
 /// </summary>
 function ISOTimeStampToDateTime(const ADateTime: string): TDateTime;
 function ISODateToDate(const ADate: string): TDate;

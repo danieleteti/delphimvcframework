@@ -72,8 +72,4 @@ begin
   // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;
 
-{ TSampleAuth }
-{ TBasicAuthHandler }
-{ TCustomAuthHandler }
-
 end.
