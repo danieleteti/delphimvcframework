@@ -26,7 +26,9 @@ uses
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
   MVCFramework.SystemJSONUtils in '..\..\..\sources\MVCFramework.SystemJSONUtils.pas',
   MVCFramework.Serializer.Commons in '..\..\..\sources\MVCFramework.Serializer.Commons.pas',
-  MVCFramework.Patches in '..\..\..\sources\MVCFramework.Patches.pas';
+  MVCFramework.Patches in '..\..\..\sources\MVCFramework.Patches.pas',
+  JSONRPCTestsU in 'JSONRPCTestsU.pas',
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
 
 {$R *.RES}
 

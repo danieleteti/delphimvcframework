@@ -491,13 +491,14 @@ type
   private
     FClazz: TMVCControllerClazz;
     FCreateAction: TMVCControllerCreateAction;
+    FURLSegment: string;
   protected
     { protected declarations }
   public
-    constructor Create(const AClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction);
-
+    constructor Create(const AClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = '');
     property Clazz: TMVCControllerClazz read FClazz;
     property CreateAction: TMVCControllerCreateAction read FCreateAction;
+    property URLSegment: string read FURLSegment;
   end;
 
   TMVCStaticContents = class(TMVCController)
@@ -605,8 +606,8 @@ type
 
     function AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer): TMVCEngine;
     function AddMiddleware(const AMiddleware: IMVCMiddleware): TMVCEngine;
-    function AddController(const AControllerClazz: TMVCControllerClazz): TMVCEngine; overload;
-    function AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction): TMVCEngine; overload;
+    function AddController(const AControllerClazz: TMVCControllerClazz; const AURLSegment: string = ''): TMVCEngine; overload;
+    function AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = ''): TMVCEngine; overload;
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
 
     procedure HTTP404(const AContext: TWebContext);
@@ -812,7 +813,6 @@ begin
   { TODO -oEzequiel -cRefactoring : Refactoring the method TMVCWebRequest.Body }
   if (FBody = EmptyStr) then
   begin
-    lEncoding := nil;
     lCurrCharset := FCharset;
     if (lCurrCharset = EmptyStr) then
       lCurrCharset := 'UTF-8';
@@ -1520,14 +1520,14 @@ end;
 
 { TMVCEngine }
 
-function TMVCEngine.AddController(const AControllerClazz: TMVCControllerClazz): TMVCEngine;
+function TMVCEngine.AddController(const AControllerClazz: TMVCControllerClazz; const AURLSegment: string): TMVCEngine;
 begin
-  Result := AddController(AControllerClazz, nil);
+  Result := AddController(AControllerClazz, nil, AURLSegment);
 end;
 
-function TMVCEngine.AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction): TMVCEngine;
+function TMVCEngine.AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string): TMVCEngine;
 begin
-  FControllers.Add(TMVCControllerDelegate.Create(AControllerClazz, ACreateAction));
+  FControllers.Add(TMVCControllerDelegate.Create(AControllerClazz, ACreateAction, AURLSegment));
   Result := Self;
 end;
 
@@ -2197,11 +2197,12 @@ end;
 
 { TMVCControllerDelegate }
 
-constructor TMVCControllerDelegate.Create(const AClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction);
+constructor TMVCControllerDelegate.Create(const AClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = '');
 begin
   inherited Create;
   FClazz := AClazz;
   FCreateAction := ACreateAction;
+  FURLSegment := AURLSegment;
 end;
 
 { TMVCStaticContents }

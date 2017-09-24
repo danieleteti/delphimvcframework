@@ -159,6 +159,7 @@ var
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
   lPathPrefix: string;
+  lURLSegment: string;
 begin
   Result := False;
 
@@ -196,11 +197,19 @@ begin
     begin
       SetLength(LAttributes, 0);
       LRttiType := FRttiContext.GetType(LControllerDelegate.Clazz.ClassInfo);
-      LAttributes := LRttiType.GetAttributes;
-      if (LAttributes = nil) then
-        Continue;
 
-      LControllerMappedPath := GetControllerMappedPath(LRttiType.Name, LAttributes);
+      lURLSegment := LControllerDelegate.URLSegment;
+      if lURLSegment.IsEmpty then
+      begin
+        LAttributes := LRttiType.GetAttributes;
+        if (LAttributes = nil) then
+          Continue;
+        LControllerMappedPath := GetControllerMappedPath(LRttiType.Name, LAttributes);
+      end
+      else
+      begin
+        LControllerMappedPath := lURLSegment;
+      end;
 
       if (LControllerMappedPath = '/') then
         LControllerMappedPath := '';
