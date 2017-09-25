@@ -19,7 +19,9 @@ uses
   TestServerControllerPrivateU in 'TestServerControllerPrivateU.pas',
   AuthHandlersU in 'AuthHandlersU.pas',
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
-  MVCFramework in '..\..\..\sources\MVCFramework.pas';
+  MVCFramework in '..\..\..\sources\MVCFramework.pas',
+  TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
 
 {$R *.res}
 

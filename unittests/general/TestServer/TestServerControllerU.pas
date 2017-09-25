@@ -44,11 +44,11 @@ type
 
     [MVCPath('/echo/($par1)/($par2)/($par3)')]
     [MVCHTTPMethod([httpPOST, httpPUT, httpPATCH])]
-    procedure EchoBody(ctx: TWebContext);
+    procedure EchoBody;
 
     [MVCPath('/session/($value)')]
     [MVCHTTPMethod([httpPOST])]
-    procedure SessionSet(ctx: TWebContext);
+    procedure SessionSet;
 
     [MVCPath('/session')]
     [MVCHTTPMethod([httpGET])]
@@ -80,7 +80,7 @@ type
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     [MVCConsumes('application/json')]
     [MVCProduces('application/json', 'utf-8')]
-    procedure TestConsumesProduces(ctx: TWebContext);
+    procedure TestConsumesProduces;
 
     [MVCPath('/testconsumes/textiso8859_1')]
     [MVCHTTPMethod([httpPOST, httpPUT])]
@@ -98,7 +98,7 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCConsumes('application/json')]
     [MVCProduces('application/json', 'utf-8')]
-    procedure TestConsumeJSON(ctx: TWebContext);
+    procedure TestConsumeJSON;
 
     [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
@@ -227,11 +227,11 @@ begin
   end;
 end;
 
-procedure TTestServerController.EchoBody(ctx: TWebContext);
+procedure TTestServerController.EchoBody;
 var
   JSON: TJSONObject;
 begin
-  JSON := TJSONObject.ParseJSONValue(ctx.Request.Body) as TJSONObject;
+  JSON := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
   JSON.AddPair('echo', 'from server');
   Render(JSON, True);
 end;
@@ -315,17 +315,17 @@ begin
   Render(s);
 end;
 
-procedure TTestServerController.SessionSet(ctx: TWebContext);
+procedure TTestServerController.SessionSet;
 begin
-  Session['value'] := ctx.Request.Params['value'];
+  Session['value'] := Context.Request.Params['value'];
 end;
 
-procedure TTestServerController.TestConsumeJSON(ctx: TWebContext);
+procedure TTestServerController.TestConsumeJSON;
 begin
   Render(TJSONObject.ParseJSONValue('{"key":"Hello World"}'));
 end;
 
-procedure TTestServerController.TestConsumesProduces(ctx: TWebContext);
+procedure TTestServerController.TestConsumesProduces;
 begin
   Render('Hello World');
 end;

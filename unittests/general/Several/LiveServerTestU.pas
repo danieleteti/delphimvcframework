@@ -27,6 +27,7 @@ unit LiveServerTestU;
 interface
 
 uses
+  JsonDataObjects,
   DUnitX.TestFramework,
   MVCFramework.RESTClient;
 
@@ -160,6 +161,19 @@ type
     procedure TestTypedBooleans;
   end;
 
+  [TestFixture]
+  TJSONRPCServerTest = class(TBaseServerTest)
+  public
+    [Test]
+    procedure TestRequestWithoutParams;
+    [Test]
+    procedure TestRequestToNotFoundMethod;
+    [Test]
+    procedure TestRequestWithParams;
+    [Test]
+    procedure TestRequestWithParamsAsObject;
+  end;
+
 implementation
 
 uses
@@ -174,7 +188,7 @@ uses
   MVCFramework.Serializer.Commons,
   Soap.EncdDecd,
   System.Classes,
-  MVCFramework.SystemJSONUtils, IdCookie;
+  MVCFramework.SystemJSONUtils, IdCookie, MVCFramework.JSONRPC;
 
 { TServerTest }
 
@@ -1167,8 +1181,84 @@ begin
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Login Failed');
 end;
 
+{ TJSONRPCServerTest }
+
+procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;
+var
+  lReq: TJSONRPCRequest;
+  lResp: IRESTResponse;
+  lJSON: TJDOJSONObject;
+begin
+  lReq := tjsonrpcrequest.Create;
+  lReq.Method := 'nonexist';
+  lResp := RESTClient
+    .ContentType(TMVCMediaType.APPLICATION_JSON)
+    .Accept(TMVCMediaType.APPLICATION_JSON)
+    .doPOST('/jsonrpc', [], lReq.AsJSONString);
+  Assert.IsNotEmpty(lResp.BodyAsString);
+  Assert.AreEqual(http_status.NotFound, Integer(lResp.ResponseCode));
+  lJSON := TJDOJSONObject.Parse(lResp.BodyAsString) as TJDOJSONObject;
+  try
+    Assert.AreEqual(jdtObject, lJSON.Types[JSONRPC_ERROR]);
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TJSONRPCServerTest.TestRequestWithoutParams;
+var
+  lReq: TJSONRPCRequest;
+  lResp: IRESTResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.Method := 'mynotify';
+    lResp := RESTClient
+      .ContentType(TMVCMediaType.APPLICATION_JSON)
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/jsonrpc', [], lReq.AsJSONString);
+    Assert.IsEmpty(lResp.BodyAsString);
+    Assert.AreEqual(http_status.NoContent, Integer(lResp.ResponseCode));
+  finally
+    lReq.Free;
+  end;
+end;
+
+procedure TJSONRPCServerTest.TestRequestWithParams;
+// var
+// lReq: IMVCJSONRPCMessage;
+// lResp: IRESTResponse;
+// lRPCResp: TMVCJSONRCPResponse;
+begin
+  // lReq := TMVCJSONRPCRequest.FromString('{"jsonrpc": "2.0", "method": "subtract", "params": [10,8], "id": 1234}');
+  // lResp := RESTClient
+  // .ContentType(TMVCMediaType.APPLICATION_JSON)
+  // .Accept(TMVCMediaType.APPLICATION_JSON)
+  // .doPOST('/jsonrpc', [], lReq.AsJSONRPCMessage);
+  // Assert.IsNotEmpty(lResp.BodyAsString);
+  // Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
+  // lRPCResp := TMVCJSONRCPResponse.FromString(lResp.BodyAsString);
+end;
+
+procedure TJSONRPCServerTest.TestRequestWithParamsAsObject;
+// var
+// lReq: IMVCJSONRPCMessage;
+// lResp: IRESTResponse;
+// lRPCResp: TMVCJSONRCPResponse;
+begin
+  // lReq := TMVCJSONRPCRequest.FromString('{"jsonrpc": "2.0", "method": "add", "params": {"op1":3, "op2": 4}, "id": 1234}');
+  // lResp := RESTClient
+  // .ContentType(TMVCMediaType.APPLICATION_JSON)
+  // .Accept(TMVCMediaType.APPLICATION_JSON)
+  // .doPOST('/jsonrpc', [], lReq.AsJSONRPCMessage);
+  // Assert.IsNotEmpty(lResp.BodyAsString);
+  // Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
+  // lRPCResp := TMVCJSONRCPResponse.FromString(lResp.BodyAsString);
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TServerTest);
+TDUnitX.RegisterTestFixture(TJSONRPCServerTest);
 
 end.

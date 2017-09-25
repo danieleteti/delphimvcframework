@@ -49,7 +49,8 @@ implementation
 uses
   TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication, System.Generics.Collections,
-  MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU;
+  MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU,
+  TestServerControllerJSONRPCU;
 
 procedure Tbas.WebModuleCreate(Sender: TObject);
 begin
@@ -57,7 +58,7 @@ begin
     procedure(Config: TMVCConfig)
     begin
       // no config here
-      Config[TMVCConfigKey.SessionTimeout] := '0'; //settion cookie
+      Config[TMVCConfigKey.SessionTimeout] := '0'; // settion cookie
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
@@ -65,6 +66,7 @@ begin
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
+    .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'));
