@@ -427,7 +427,10 @@ begin
           ftSingle, ftFloat:
             AJsonObject.F[FieldName] := ADataSet.Fields[I].AsFloat;
 
-          ftString, ftWideString, ftMemo, ftWideMemo:
+          ftString, ftMemo:
+            AJsonObject.S[FieldName] := ADataSet.Fields[I].AsString;
+
+          ftWideString, ftWideMemo:
             AJsonObject.S[FieldName] := ADataSet.Fields[I].AsWideString;
 
           ftDate:

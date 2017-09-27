@@ -47,7 +47,7 @@ uses
 
   {$ENDIF}
 
-  MVCFramework.Commons;
+  MVCFramework.Commons, Data.DB;
 
 type
 
@@ -607,5 +607,9 @@ procedure MVCColumnAttribute.SetIsPK(const Value: boolean);
 begin
   FIsPK := Value;
 end;
+
+{ TDataSetHelper }
+
+{ TDataSetHelper }
 
 end.

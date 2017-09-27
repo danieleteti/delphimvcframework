@@ -13,7 +13,8 @@ uses
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
   MainWebModuleU in 'MainWebModuleU.pas' {MyWebModule: TWebModule},
-  MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas';
+  MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas',
+  MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas';
 
 {$R *.res}
 

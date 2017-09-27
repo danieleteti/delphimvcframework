@@ -169,9 +169,13 @@ type
     [Test]
     procedure TestRequestToNotFoundMethod;
     [Test]
-    procedure TestRequestWithParams;
+    procedure TestRequestWithParams_I_I_ret_I;
     [Test]
-    procedure TestRequestWithParamsAsObject;
+    procedure TestRequestWithParams_I_I_I_ret_O;
+    [Test]
+    procedure TestRequest_S_I_ret_S;
+    [Test]
+    procedure TestRequestWithParams_I_I_ret_A;
   end;
 
 implementation
@@ -1186,22 +1190,31 @@ end;
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;
 var
   lReq: TJSONRPCRequest;
-  lResp: IRESTResponse;
-  lJSON: TJDOJSONObject;
+  lHttpResp: IRESTResponse;
+  lResp: TJSONRPCResponse;
 begin
   lReq := tjsonrpcrequest.Create;
-  lReq.Method := 'nonexist';
-  lResp := RESTClient
-    .ContentType(TMVCMediaType.APPLICATION_JSON)
-    .Accept(TMVCMediaType.APPLICATION_JSON)
-    .doPOST('/jsonrpc', [], lReq.AsJSONString);
-  Assert.IsNotEmpty(lResp.BodyAsString);
-  Assert.AreEqual(http_status.NotFound, Integer(lResp.ResponseCode));
-  lJSON := TJDOJSONObject.Parse(lResp.BodyAsString) as TJDOJSONObject;
   try
-    Assert.AreEqual(jdtObject, lJSON.Types[JSONRPC_ERROR]);
+    lReq.Method := 'nonexist';
+    lHttpResp := RESTClient
+      .ContentType(TMVCMediaType.APPLICATION_JSON)
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/jsonrpc', [], lReq.AsJSONString);
+    Assert.IsNotEmpty(lHttpResp.BodyAsString);
+    Assert.AreEqual(http_status.NotFound, Integer(lHttpResp.ResponseCode));
+
+    lResp := TJSONRPCResponse.Create;
+    try
+      lResp.AsJSONString := lHttpResp.BodyAsString;
+      Assert.IsNotNull(lResp.Error);
+      Assert.AreEqual(-32601, lResp.Error.Code);
+      Assert.IsTrue(lResp.Error.ErrMessage.StartsWith('Method not found'));
+    finally
+      lResp.Free;
+    end;
+
   finally
-    lJSON.Free;
+    lReq.Free;
   end;
 end;
 
@@ -1224,36 +1237,130 @@ begin
   end;
 end;
 
-procedure TJSONRPCServerTest.TestRequestWithParams;
-// var
-// lReq: IMVCJSONRPCMessage;
-// lResp: IRESTResponse;
-// lRPCResp: TMVCJSONRCPResponse;
+procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_I;
+var
+  lReq: TJSONRPCRequest;
+  lHttpResp: IRESTResponse;
+  lRPCResp: TJSONRPCResponse;
+  lResp: TJSONRPCResponse;
 begin
-  // lReq := TMVCJSONRPCRequest.FromString('{"jsonrpc": "2.0", "method": "subtract", "params": [10,8], "id": 1234}');
-  // lResp := RESTClient
-  // .ContentType(TMVCMediaType.APPLICATION_JSON)
-  // .Accept(TMVCMediaType.APPLICATION_JSON)
-  // .doPOST('/jsonrpc', [], lReq.AsJSONRPCMessage);
-  // Assert.IsNotEmpty(lResp.BodyAsString);
-  // Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
-  // lRPCResp := TMVCJSONRCPResponse.FromString(lResp.BodyAsString);
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.ID := 1234;
+    lReq.Method := 'subtract';
+    lReq.Params.Add(18);
+    lReq.Params.Add(8);
+    lHttpResp := RESTClient
+      .ContentType(TMVCMediaType.APPLICATION_JSON)
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/jsonrpc', [], lReq.AsJSONString);
+    Assert.IsNotEmpty(lHttpResp.BodyAsString);
+    Assert.AreEqual(http_status.OK, Integer(lHttpResp.ResponseCode));
+    lResp := TJSONRPCResponse.Create;
+    try
+      lResp.AsJSONString := lHttpResp.BodyAsString;
+      Assert.AreEqual(10, lResp.Result.AsInteger);
+      Assert.AreEqual(1234, lResp.ID.AsInteger);
+    finally
+      lResp.Free;
+    end;
+
+  finally
+    lReq.Free;
+  end;
 end;
 
-procedure TJSONRPCServerTest.TestRequestWithParamsAsObject;
-// var
-// lReq: IMVCJSONRPCMessage;
-// lResp: IRESTResponse;
-// lRPCResp: TMVCJSONRCPResponse;
+procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_A;
+var
+  lReq: TJSONRPCRequest;
+  lResp: IRESTResponse;
+  lRPCResp: TJSONRPCResponse;
+  lS: string;
+  lArr: TJDOJsonArray;
+  I: Integer;
+  x: Integer;
 begin
-  // lReq := TMVCJSONRPCRequest.FromString('{"jsonrpc": "2.0", "method": "add", "params": {"op1":3, "op2": 4}, "id": 1234}');
-  // lResp := RESTClient
-  // .ContentType(TMVCMediaType.APPLICATION_JSON)
-  // .Accept(TMVCMediaType.APPLICATION_JSON)
-  // .doPOST('/jsonrpc', [], lReq.AsJSONRPCMessage);
-  // Assert.IsNotEmpty(lResp.BodyAsString);
-  // Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
-  // lRPCResp := TMVCJSONRCPResponse.FromString(lResp.BodyAsString);
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "GetListFromTo", "params": [1, 5], "id": 1234}';
+    lResp := RESTClient
+      .ContentType(TMVCMediaType.APPLICATION_JSON)
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/jsonrpc', [], lReq.AsJSONString);
+    Assert.IsNotEmpty(lResp.BodyAsString);
+    Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
+    lRPCResp := TJSONRPCResponse.Create;
+    try
+      lRPCResp.AsJSONString := lResp.BodyAsString;
+      lArr := TJDOJsonArray(lRPCResp.Result.AsObject);
+      x := 1;
+      for I := 0 to lArr.Count - 1 do
+      begin
+        Assert.AreEqual(x, lArr[I].IntValue);
+        inc(x);
+      end;
+    finally
+      lRPCResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
+end;
+
+procedure TJSONRPCServerTest.TestRequestWithParams_I_I_I_ret_O;
+var
+  lReq: TJSONRPCRequest;
+  lResp: IRESTResponse;
+  lRPCResp: TJSONRPCResponse;
+  lS: string;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "add", "params": [3, 4, 5], "id": 1234}';
+    lResp := RESTClient
+      .ContentType(TMVCMediaType.APPLICATION_JSON)
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/jsonrpc', [], lReq.AsJSONString);
+    Assert.IsNotEmpty(lResp.BodyAsString);
+    Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
+    lRPCResp := TJSONRPCResponse.Create;
+    try
+      lRPCResp.AsJSONString := lResp.BodyAsString;
+      lS := (lRPCResp.Result.AsObject as TJDOJsonObject).ToJSON();
+      Assert.AreEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
+    finally
+      lRPCResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
+end;
+
+procedure TJSONRPCServerTest.TestRequest_S_I_ret_S;
+var
+  lReq: TJSONRPCRequest;
+  lResp: IRESTResponse;
+  lRPCResp: TJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "MultiplyString", "params": ["Daniele", 4], "id": 1234}';
+    lResp := RESTClient
+      .ContentType(TMVCMediaType.APPLICATION_JSON)
+      .Accept(TMVCMediaType.APPLICATION_JSON)
+      .doPOST('/jsonrpc', [], lReq.AsJSONString);
+    Assert.IsNotEmpty(lResp.BodyAsString);
+    Assert.AreEqual(http_status.OK, Integer(lResp.ResponseCode));
+    lRPCResp := TJSONRPCResponse.Create;
+    try
+      lRPCResp.AsJSONString := lResp.BodyAsString;
+      Assert.AreEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
+    finally
+      lRPCResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
 end;
 
 initialization

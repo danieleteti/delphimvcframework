@@ -10,7 +10,9 @@ type
   public
     function Subtract(aValue1, aValue2: Int64): Integer;
     procedure MyNotify;
-    function Add(aParams: TMVCJSONObject): TJsonObject;
+    function Add(aValue1, aValue2, aValue3: Int64): TJsonObject;
+    function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
+    function MultiplyString(aString: string; Multiplier: Int64): string;
   end;
 
 implementation
@@ -20,10 +22,31 @@ uses
 
 { TTestJSONRPCController }
 
-function TTestJSONRPCController.Add(aParams: TMVCJSONObject): TJsonObject;
+function TTestJSONRPCController.Add(aValue1, aValue2, aValue3: Int64): TJsonObject;
 begin
   Result := TJsonObject.Create;
-  Result.I['risultato'] := aParams.I['op1'] + aParams.I['op2'];
+  Result.I['res'] := aValue1 + aValue2 + aValue3;
+end;
+
+function TTestJSONRPCController.GetListFromTo(aFrom, aTo: Int64): TJsonArray;
+var
+  I: Int64;
+begin
+  Result := TJsonArray.Create;
+  for I := aFrom to aTo do
+    Result.Add(I);
+end;
+
+function TTestJSONRPCController.MultiplyString(aString: string;
+  Multiplier: Int64): string;
+var
+  I: Integer;
+begin
+  Result := aString;
+  for I := 2 to Multiplier do
+  begin
+    Result := Result + aString;
+  end;
 end;
 
 procedure TTestJSONRPCController.MyNotify;

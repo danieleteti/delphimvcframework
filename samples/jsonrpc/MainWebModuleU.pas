@@ -5,7 +5,9 @@ interface
 uses System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Param,
+  FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf,
+  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client;
 
 type
   TMyWebModule = class(TWebModule)
@@ -50,7 +52,7 @@ begin
       // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
       Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
-  FMVC.AddController(TMyDerivedController, '/json-rpc');
+  FMVC.AddController(TMyJSONRPCController, '/jsonrpc');
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

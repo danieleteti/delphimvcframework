@@ -3,10 +3,9 @@ unit MVCFramework.JSONRPC;
 interface
 
 uses
-  Classes,
-  SysUtils,
+  System.Classes, Data.DB, System.SysUtils,
   jsondataobjects, MVCFramework, MVCFramework.Commons, System.Rtti,
-  System.Generics.Collections;
+  System.Generics.Collections, MVCFramework.Serializer.Commons;
 
 const
   JSONRPC_VERSION = '2.0';
@@ -41,19 +40,19 @@ type
     function AsJSON: TJsonObject; virtual;
   end;
 
-  TJSONRPCRequestParams = TList<TValue>;
-
   TJSONRPCMessage = class(TObject)
   private
     FID: TValue;
     procedure SetID(const Value: TValue);
     function GetJSONString: string;
   protected
+    procedure SetJsonString(const Value: string); virtual;
     function GetJSON: TJsonObject; virtual;
+    procedure SetJSON(const Value: TJsonObject); virtual; abstract;
   public
     constructor Create; virtual;
-    property AsJSON: TJsonObject read GetJSON;
-    property AsJSONString: string read GetJSONString;
+    property AsJSON: TJsonObject read GetJSON write SetJSON;
+    property AsJSONString: string read GetJSONString write SetJsonString;
     property ID: TValue read FID write SetID;
   end;
 
@@ -63,12 +62,16 @@ type
 
   TJSONRPCRequest = class(TJSONRPCMessage)
   private
+    type
+    TJSONRPCRequestParams = TList<TValue>;
+  private
     FParams: TJSONRPCRequestParams;
     FMethod: string;
     procedure SetMethod(const Value: string);
     function GetRequestType: TJSONRPCRequestType;
   protected
     function GetJSON: TJsonObject; override;
+    procedure SetJSON(const JSON: TJsonObject); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -77,18 +80,19 @@ type
     property RequestType: TJSONRPCRequestType read GetRequestType;
   end;
 
-  TJSONRPCResponseError = class
+  TJSONRPCResponse = class(TJSONRPCMessage)
   private
-    FCode: Integer;
-    FMessage: string;
-    procedure SetCode(const Value: Integer);
-    procedure SetMessage(const Value: string);
-  public
-    property Code: Integer read FCode write SetCode;
-    property message: string read FMessage write SetMessage;
-  end;
-
-  TJSONRCPResponse = class(TJSONRPCMessage)
+    type
+    TJSONRPCResponseError = class
+    private
+      FCode: Integer;
+      FMessage: string;
+      procedure SetCode(const Value: Integer);
+      procedure SetMessage(const Value: string);
+    public
+      property Code: Integer read FCode write SetCode;
+      property ErrMessage: string read FMessage write SetMessage;
+    end;
   private
     FResult: TValue;
     FError: TJSONRPCResponseError;
@@ -96,6 +100,7 @@ type
     procedure SetError(const Value: TJSONRPCResponseError);
   protected
     function GetJSON: TJsonObject; override;
+    procedure SetJSON(const JSON: TJsonObject); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -135,7 +140,7 @@ type
 
   EMVCJSONRPCInvalidParams = class(EMVCJSONRPCErrorResponse)
   public
-    constructor Create(const Message: string);
+    constructor Create(const message: string);
   end;
 
   EMVCJSONRPCInternalError = class(EMVCJSONRPCErrorResponse)
@@ -146,7 +151,7 @@ type
   { -32000 to -32099	Server error	Reserved for implementation-defined server-errors. }
   EMVCJSONRPCServerError = class(EMVCJSONRPCErrorResponse)
   public
-    constructor Create(const JSONRPCError: Integer; const Message: string);
+    constructor Create(const JSONRPCError: Integer; const message: string);
   end;
 
   TMVCJSONObject = TJsonObject;
@@ -155,22 +160,21 @@ type
   TMVCJSONRPCController = class(TMVCController)
   protected
     function CreateError(const RequestID: TValue; const ErrorCode: Integer;
-      const Message: string): TJsonObject;
-    function CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRCPResponse;
+      const message: string): TJsonObject;
+    function CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
     function CreateRequest(const JSON: TJsonObject): TJSONRPCRequest;
   public
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
-    procedure Index; virtual;
+    procedure index; virtual;
   end;
 
 implementation
 
 uses
-  Data.DB, MVCFramework.Serializer.Intf, MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Intf, MVCFramework.Serializer.JsonDataObjects;
 
 function JSONDataValueToTValue(const JSONDataValue: TJsonDataValueHelper): TValue;
 begin
@@ -189,11 +193,11 @@ begin
       end;
     jdtArray:
       begin
-        Result := JSONDataValue.ArrayValue;
+        Result := TJsonArray.Parse(JSONDataValue.ArrayValue.ToJSON) as TJsonArray;
       end;
     jdtObject:
       begin
-        Result := JSONDataValue.ObjectValue;
+        Result := TJsonobject.Parse(JSONDataValue.ObjectValue.ToJSON) as TJsonObject;
       end;
     jdtInt:
       begin
@@ -215,7 +219,6 @@ end;
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJSONObject; const KeyName: string);
 var
   lSer: TMVCJsonDataObjectsSerializer;
-  lJArr: TJsonArray;
 begin
   case Value.Kind of
     tkInteger:
@@ -272,6 +275,71 @@ begin
   end;
 end;
 
+procedure AppendTValueToJsonArray(const Value: TValue; const JSONArr: TJsonArray);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJArr: TJsonArray;
+  lJObj: TJsonObject;
+begin
+  case Value.Kind of
+    tkInteger:
+      begin
+        JSONArr.Add(Value.AsInteger);
+      end;
+    tkFloat:
+      begin
+        JSONArr.Add(Value.AsExtended);
+      end;
+    tkString, tkUString, tkWChar, tkLString, tkWString:
+      begin
+        JSONArr.Add(Value.AsString);
+      end;
+    tkInt64:
+      begin
+        JSONArr.Add(Value.AsInt64);
+      end;
+    tkClass:
+      begin
+        if Value.AsObject is TJsonObject then
+        begin
+          lJObj := TJsonObject.Create;
+          JSONArr.Add(lJObj);
+          lJObj.Assign(TJsonObject(Value.AsObject));
+        end
+        else if Value.AsObject is TJsonArray then
+        begin
+          lJArr := TJsonArray.Create;
+          JSONArr.Add(lJArr);
+          lJArr.Assign(TJsonArray(Value.AsObject));
+        end
+        else if Value.AsObject is TDataSet then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            lJArr := TJsonArray.Create;
+            JSONArr.Add(lJArr);
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), lJArr, TMVCNameCase.ncLowerCase, []);
+          finally
+            lSer.Free;
+          end
+        end
+        else
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            lJObj := TJsonObject.Create;
+            JSONArr.Add(lJObj);
+            lSer.ObjectToJsonObject(Value.AsObject, lJObj, TMVCSerializationType.stProperties, []);
+          finally
+            lSer.Free;
+          end;
+        end;
+      end;
+  else
+    raise EMVCJSONRPCException.Create('Invalid parameter type');
+  end;
+end;
+
 function StringToJSON(const aValue: string): TJsonObject;
 var
   lJSON: TJSONObject;
@@ -302,7 +370,8 @@ begin
   Result := fJSON.ToJSON();
 end;
 
-class procedure TMVCJSONRPCMessage.CheckID(const aJSON: TMVCJSONObject; out aIsNotification: Boolean);
+class
+  procedure TMVCJSONRPCMessage.CheckID(const aJSON: TMVCJSONObject; out aIsNotification: Boolean);
 begin
   {
     id
@@ -318,13 +387,15 @@ begin
   end;
 end;
 
-class procedure TMVCJSONRPCMessage.CheckMethod(const aJSON: TMVCJSONObject);
+class
+  procedure TMVCJSONRPCMessage.CheckMethod(const aJSON: TMVCJSONObject);
 begin
   if (aJSON.Types[JSONRPC_METHOD] <> jdtString) then
     raise EMVCJSONRPCException.Create('Invalid ''method''');
 end;
 
-class procedure TMVCJSONRPCMessage.CheckVersion(const aJSON: TMVCJSONObject);
+class
+  procedure TMVCJSONRPCMessage.CheckVersion(const aJSON: TMVCJSONObject);
 begin
   if not Assigned(aJSON) then
     raise EMVCJSONRPCException.Create('JSON not assigned');
@@ -342,16 +413,16 @@ end;
 { TMVCJSONRPCController }
 
 function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer;
-  const Message: string): TJsonObject;
+  const message: string): TJsonObject;
 var
-  lErrResp: TJSONRCPResponse;
+  lErrResp: TJSONRPCResponse;
 begin
-  lErrResp := TJSONRCPResponse.Create;
+  lErrResp := TJSONRPCResponse.Create;
   try
     lErrResp.ID := RequestID;
-    lErrResp.Error := TJSONRPCResponseError.Create;
+    lErrResp.Error := TJSONRPCResponse.TJSONRPCResponseError.Create;
     lErrResp.Error.Code := ErrorCode;
-    lErrResp.Error.Message := message;
+    lErrResp.Error.ErrMessage := message;
     Result := lErrResp.AsJSON;
   finally
     lErrResp.Free;
@@ -364,37 +435,41 @@ var
   I: Integer;
   lParams: TJsonArray;
 begin
-  Result := TJSONRPCRequest.Create;
-  if JSON.Types[JSONRPC_ID] = jdtString then
-    Result.ID := JSON.S[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] = jdtInt then
-    Result.ID := JSON.I[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] = jdtLong then
-    Result.ID := JSON.L[JSONRPC_ID]
-  else if JSON.Types[JSONRPC_ID] = jdtULong then
-    Result.ID := JSON.U[JSONRPC_ID]
-  else
-    Result.ID := TValue.Empty;
+  try
+    Result := TJSONRPCRequest.Create;
+    if JSON.Types[JSONRPC_ID] = jdtString then
+      Result.ID := JSON.S[JSONRPC_ID]
+    else if JSON.Types[JSONRPC_ID] = jdtInt then
+      Result.ID := JSON.I[JSONRPC_ID]
+    else if JSON.Types[JSONRPC_ID] = jdtLong then
+      Result.ID := JSON.L[JSONRPC_ID]
+    else if JSON.Types[JSONRPC_ID] = jdtULong then
+      Result.ID := JSON.U[JSONRPC_ID]
+    else
+      Result.ID := TValue.Empty;
 
-  Result.Method := JSON.S[JSONRPC_METHOD];
+    Result.Method := JSON.S[JSONRPC_METHOD];
 
-  if JSON.Types[JSONRPC_PARAMS] = jdtArray then
-  begin
-    lParams := JSON.A[JSONRPC_PARAMS];
-    for I := 0 to lParams.Count - 1 do
+    if JSON.Types[JSONRPC_PARAMS] = jdtArray then
     begin
-      Result.Params.Add(JSONDataValueToTValue(lParams[I]));
+      lParams := JSON.A[JSONRPC_PARAMS];
+      for I := 0 to lParams.Count - 1 do
+      begin
+        Result.Params.Add(JSONDataValueToTValue(lParams[I]));
+      end;
+    end
+    else if JSON.Types[JSONRPC_PARAMS] <> jdtNone then
+    begin
+      raise EMVCJSONRPCException.Create('Params must be a JSON array or null');
     end;
-  end
-  else if JSON.Types[JSONRPC_PARAMS] <> jdtNone then
-  begin
-    raise EMVCJSONRPCException.Create('Params must be a JSON array or null');
+  finally
+    JSON.Free;
   end;
 end;
 
-function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRCPResponse;
+function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
 begin
-  Result := TJSONRCPResponse.Create;
+  Result := TJSONRPCResponse.Create;
   Result.ID := RequestID;
   Result.Result := Value;
 end;
@@ -408,7 +483,7 @@ var
   lRTTIMethod: TRttiMethod;
   lRTTIMethodParams: TArray<TRttiParameter>;
   lRes: TValue;
-  lJSONRPCResponse: TJSONRCPResponse;
+  lJSONRPCResponse: TJSONRPCResponse;
   lParamsToInject: TArray<TValue>;
   lReqID: TValue;
 begin
@@ -439,6 +514,8 @@ begin
             end;
             if lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification then
             begin
+              if lRes.IsObjectInstance then
+                lRes.AsObject.Free;
               ResponseStatus(HTTP_STATUS.NoContent);
             end
             else
@@ -452,8 +529,8 @@ begin
               end;
             end;
           finally
-            if lRes.IsObject or lres.IsObjectInstance then
-              lRes.AsObject.Free;
+            // if lRes.IsObject or lres.IsObjectInstance then
+            // lRes.AsObject.Free;
           end;
         end
         else
@@ -570,11 +647,16 @@ function TJSONRPCRequest.GetJSON: TJsonObject;
 var
   I: Integer;
 begin
+  if FMethod.IsEmpty then
+    raise EMVCJSONRPCException.Create('JSON-RPC "Method" cannot be empty');
   Result := inherited;
   Result.S[JSONRPC_METHOD] := FMethod;
-  for I := 0 to FParams.Count - 1 do
+  if FParams.Count > 0 then
   begin
-    TValueToJsonElement(FParams[I], Result, JSONRPC_PARAMS);
+    for I := 0 to FParams.Count - 1 do
+    begin
+      AppendTValueToJsonArray(FParams[I], Result.A[JSONRPC_PARAMS]);
+    end;
   end;
 end;
 
@@ -586,6 +668,38 @@ begin
     Result := TJSONRPCRequestType.Request;
 end;
 
+procedure TJSONRPCRequest.SetJSON(const JSON: TJsonObject);
+var
+  I: Integer;
+  lParams: TJsonArray;
+begin
+  if JSON.Types[JSONRPC_ID] = jdtString then
+    ID := JSON.S[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtInt then
+    ID := JSON.I[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtLong then
+    ID := JSON.L[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtULong then
+    ID := JSON.U[JSONRPC_ID]
+  else
+    ID := TValue.Empty;
+
+  Method := JSON.S[JSONRPC_METHOD];
+  Params.Clear;
+  if JSON.Types[JSONRPC_PARAMS] = jdtArray then
+  begin
+    lParams := JSON.A[JSONRPC_PARAMS];
+    for I := 0 to lParams.Count - 1 do
+    begin
+      Params.Add(JSONDataValueToTValue(lParams[I]));
+    end;
+  end
+  else if JSON.Types[JSONRPC_PARAMS] <> jdtNone then
+  begin
+    raise EMVCJSONRPCException.Create('Params must be a JSON array or null');
+  end;
+end;
+
 procedure TJSONRPCRequest.SetMethod(const Value: string);
 begin
   FMethod := Value;
@@ -593,19 +707,21 @@ end;
 
 { TJSONRCPResponse }
 
-constructor TJSONRCPResponse.Create;
+constructor TJSONRPCResponse.Create;
 begin
   inherited;
   FError := nil;
 end;
 
-destructor TJSONRCPResponse.Destroy;
+destructor TJSONRPCResponse.Destroy;
 begin
   FreeAndNil(FError);
+  if FResult.IsObjectInstance then
+    FResult.AsObject.Free;
   inherited;
 end;
 
-function TJSONRCPResponse.GetJSON: TJsonObject;
+function TJSONRPCResponse.GetJSON: TJsonObject;
 begin
   Result := inherited;
   // Must generate something like the following:
@@ -614,7 +730,7 @@ begin
     if Assigned(FError) then
     begin
       Result.O[JSONRPC_ERROR].I[JSONRPC_CODE] := FError.Code;
-      Result.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE] := FError.Message;
+      Result.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE] := FError.ErrMessage;
     end
     else
     begin
@@ -626,12 +742,44 @@ begin
   end;
 end;
 
-procedure TJSONRCPResponse.SetError(const Value: TJSONRPCResponseError);
+procedure TJSONRPCResponse.SetError(const Value: TJSONRPCResponseError);
 begin
   FError := Value;
 end;
 
-procedure TJSONRCPResponse.SetResult(const Value: TValue);
+procedure TJSONRPCResponse.SetJSON(const JSON: TJsonObject);
+begin
+  if JSON.Types[JSONRPC_ID] = jdtString then
+    ID := JSON.S[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtInt then
+    ID := JSON.I[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtLong then
+    ID := JSON.L[JSONRPC_ID]
+  else if JSON.Types[JSONRPC_ID] = jdtULong then
+    ID := JSON.U[JSONRPC_ID]
+  else
+    ID := TValue.Empty;
+
+  if JSON.Contains(JSONRPC_RESULT) then
+  begin
+    FreeAndNil(FError);
+    FResult := JSONDataValueToTValue(JSON.Values[JSONRPC_RESULT]);
+  end
+  else
+  begin
+    FResult := TValue.Empty;
+    if JSON.Contains(JSONRPC_ERROR) then
+    begin
+      FError := TJSONRPCResponseError.Create;
+      FError.Code := JSON.O[JSONRPC_ERROR].I[JSONRPC_CODE];
+      FError.ErrMessage := JSON.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE];
+    end
+    else
+      raise EMVCJSONRPCException.Create('Response message must have ''result'' or ''error''');
+  end;
+end;
+
+procedure TJSONRPCResponse.SetResult(const Value: TValue);
 begin
   FResult := Value;
 end;
@@ -683,14 +831,30 @@ begin
   FID := Value;
 end;
 
+procedure TJSONRPCMessage.SetJsonString(const Value: string);
+var
+  lJSON: TJsonObject;
+begin
+  try
+    lJSON := TJsonObject.Parse(Value) as TJsonObject;
+  except
+    raise EMVCJSONRPCParseError.Create;
+  end;
+  try
+    AsJSON := lJSON;
+  finally
+    lJSON.Free;
+  end;
+end;
+
 { TJSONRPCResponseError }
 
-procedure TJSONRPCResponseError.SetCode(const Value: Integer);
+procedure TJSONRPCResponse.TJSONRPCResponseError.SetCode(const Value: Integer);
 begin
   FCode := Value;
 end;
 
-procedure TJSONRPCResponseError.SetMessage(const Value: string);
+procedure TJSONRPCResponse.TJSONRPCResponseError.SetMessage(const Value: string);
 begin
   FMessage := Value;
 end;
