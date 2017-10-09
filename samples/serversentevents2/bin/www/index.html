@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Delphi MVC Framework Push Notification Sample</title>
+		<link rel="stylesheet" href="milligram.min.css"/>
+		<link rel="stylesheet" href="animate.css"/>		
+    <style media="screen" type="text/css">
+				body {
+				  margin: 100px auto;
+				}
+				
+        H1 {
+           text-align: center;
+           color: black;
+        }
+        
+        H2 {
+            text-align: center;           
+        }
+        
+        #notification {
+				  color: #25272A;
+					font-size: 200%;
+				}
+				
+        DIV.quote {
+					margin: 120px auto;			
+					border: 2px solid #175A8B;
+					padding: 20px;
+					width: 70%;
+					text-align: center;
+					font-size: 170%;
+					background-color: #F0F0F1;
+        }
+        
+        DIV.name {
+					display: inline-block;
+					width: 100px;
+					padding: 3px;
+        }
+                
+        DIV#log {
+            margin: 10px auto;
+            width: 600px;
+            height: 200px;
+            background: gainsboro;
+            padding: 5px;
+            overflow-y: scroll;
+        }
+        
+        DIV#notSupported {
+            display: none;
+            margin: 10px auto;
+            text-align: center;
+            color: red;
+            font-size: 150%;
+        }
+                
+    </style>
+
+    <script type="text/javascript">
+		function start_updates() {
+						id = -1;
+            if (!!window.EventSource) {
+								//can be also local. We use a global var to allow to be stopped from outside.
+                window.source = new EventSource("/api/notifications/messages");
+								
+                source.addEventListener("statusupdate", function(e) {
+                    console.log(e);
+                    updateQuote(e.data);
+                }, false);
+
+                source.addEventListener("open", function(e) {
+                    console.log(e);
+                }, false);
+
+                source.addEventListener("error", function(e) {
+                    console.log(e);
+                    if (e.readyState == EventSource.CLOSED) {
+                        logMessage("CLOSED");
+                    }
+                }, false);
+            } else {
+                document.getElementById("notSupported").style.display = "block";
+            }
+        }
+
+        window.onload = start_updates; 
+
+        function updateQuote(data) {
+            var messagedata = JSON.parse(data);
+						console.log(messagedata);
+            if (id === messagedata.id)
+						  return;
+						id = messagedata.id; /*this must be global*/
+						var el = document.getElementById("notification");
+						var note = document.getElementById("note");
+						var box = document.getElementById("box");							
+						box.className = "quote";							
+						setTimeout(function(){
+							box.className = "quote animated bounce";
+							el.innerHTML = messagedata.value;		
+							note.innerHTML = messagedata.pushedat;
+						}, 1);
+        }
+    </script>
+
+</head>
+
+<body>
+
+    <h1>Delphi MVC Framework Push Notification Sample</h1>
+
+    <div id="notSupported">
+        Your browser does not support Server Sent Events. Please use <a href="https://www.mozilla.org/firefox/new/">Firefox</a> or <a href="https://www.google.com/chrome/browser">Google Chrome</a>.
+    </div>
+
+    <h2>Here's the message!</h2>
+
+    <div id="quotes">
+        <div id="box" class="quote">
+            <div id="notification">Loading...</div>
+						<div id="note"></div>
+        </div>
+    </div>
+
+
+</body>
+
+</html>

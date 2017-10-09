@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{ADAE99DA-182B-4A28-A961-412F0C84BE57}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="serversentevents2.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="serversentevents2sender.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="serversentevents2viewer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="serversentevents2">
+        <MSBuild Projects="serversentevents2.dproj"/>
+    </Target>
+    <Target Name="serversentevents2:Clean">
+        <MSBuild Projects="serversentevents2.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="serversentevents2:Make">
+        <MSBuild Projects="serversentevents2.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="serversentevents2sender">
+        <MSBuild Projects="serversentevents2sender.dproj"/>
+    </Target>
+    <Target Name="serversentevents2sender:Clean">
+        <MSBuild Projects="serversentevents2sender.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="serversentevents2sender:Make">
+        <MSBuild Projects="serversentevents2sender.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="serversentevents2viewer">
+        <MSBuild Projects="serversentevents2viewer.dproj"/>
+    </Target>
+    <Target Name="serversentevents2viewer:Clean">
+        <MSBuild Projects="serversentevents2viewer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="serversentevents2viewer:Make">
+        <MSBuild Projects="serversentevents2viewer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="serversentevents2;serversentevents2sender;serversentevents2viewer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="serversentevents2:Clean;serversentevents2sender:Clean;serversentevents2viewer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="serversentevents2:Make;serversentevents2sender:Make;serversentevents2viewer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
