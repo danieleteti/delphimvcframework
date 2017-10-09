@@ -201,6 +201,7 @@ resourcestring
 
   sCRUDMethodsIntf =
     sLineBreak +
+		'  public' + sLineBreak + 
     '    //Sample CRUD Actions for a "Customer" entity' + sLineBreak +
     '    [MVCPath(''/customers'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +

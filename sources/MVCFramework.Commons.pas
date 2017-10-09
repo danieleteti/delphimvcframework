@@ -103,6 +103,8 @@ type
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
+    SSE_RETRY_DEFAULT = 100;
+    SSE_LAST_EVENT_ID = 'Last-Event-ID';
   end;
 
   TMVCConfigKey = record
@@ -322,6 +324,10 @@ type
     { public declarations }
   end;
 
+  EMVCViewError = class(EMVCException)
+
+  end;
+
   TMVCRequestParamsTable = class(TDictionary<string, string>)
   private
     { private declarations }
@@ -366,16 +372,23 @@ type
     constructor Create;
   end;
 
-  TMVCCriticalSectionHelper = class helper
-    for TCriticalSection
+  TMVCCriticalSectionHelper = class helper for TCriticalSection
   public
     procedure DoWithLock(const AAction: TProc);
     function DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
   end;
 
+  TMultiReadExclusiveWriteSynchronizerHelper = class helper
+    for TMultiReadExclusiveWriteSynchronizer
+  public
+    procedure DoWithWriteLock(const AAction: TProc);
+    procedure DoWithReadLock(const AAction: TProc);
+  end;
+
   TMVCConfig = class sealed
   private
     FConfig: TDictionary<string, string>;
+
     function GetValue(const AIndex: string): string;
     function GetValueAsInt64(const AIndex: string): Int64;
     procedure SetValue(const AIndex: string; const AValue: string);
@@ -419,7 +432,7 @@ function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
-function CreateContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
@@ -514,7 +527,7 @@ begin
     Result := Result + ByteToHex(B);
 end;
 
-function CreateContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 begin
   if aContentCharSet = '' then
   begin
@@ -524,7 +537,7 @@ begin
   begin
     Result := aContentMediaType + ';charset=' + aContentCharSet;
   end;
-  Result := Result.ToLower.Replace(' ','',[rfReplaceAll]);
+  Result := Result.ToLower.Replace(' ', '', [rfReplaceAll]);
 end;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
@@ -871,6 +884,30 @@ begin
       Result := TURLSafeDecode.DecodeString(Value + '=');
   else
     raise EExternalException.Create('Illegal base64url length');
+  end;
+end;
+
+{ TMultiReadExclusiveWriteSynchronizerHelper }
+
+procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithReadLock(
+  const AAction: TProc);
+begin
+  Self.BeginRead;
+  try
+    AAction();
+  finally
+    Self.EndRead;
+  end;
+end;
+
+procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithWriteLock(
+  const AAction: TProc);
+begin
+  Self.BeginWrite;
+  try
+    AAction();
+  finally
+    Self.EndWrite;
   end;
 end;
 

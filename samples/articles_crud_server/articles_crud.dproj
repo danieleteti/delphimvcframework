@@ -104,11 +104,6 @@
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JSON.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Intf.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.FireDAC.Utils.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.DataSet.Utils.pas"/>
         <None Include="ModelSupport_ordersmanager\default.txvpck"/>
         <None Include="ModelSupport_ordersmanager\Services\default.txvpck"/>
         <None Include="ModelSupport_ordersmanager\ordersmanager\default.txvpck"/>

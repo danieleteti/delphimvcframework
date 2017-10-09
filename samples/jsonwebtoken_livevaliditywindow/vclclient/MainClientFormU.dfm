@@ -37,8 +37,6 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     TabOrder = 0
-    ExplicitTop = 49
-    ExplicitWidth = 513
   end
   object Memo2: TMemo
     Left = 0
@@ -54,9 +52,6 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     TabOrder = 1
-    ExplicitTop = 150
-    ExplicitWidth = 513
-    ExplicitHeight = 229
   end
   object Panel1: TPanel
     Left = 0
@@ -104,7 +99,6 @@ object MainForm: TMainForm
       Caption = 'Login'
       TabOrder = 1
       OnClick = btnLOGINClick
-      ExplicitHeight = 41
     end
   end
 end

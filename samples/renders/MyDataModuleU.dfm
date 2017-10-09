@@ -4,13 +4,13 @@ object MyDataModule: TMyDataModule
   Width = 560
   object FDConnection1: TFDConnection
     Params.Strings = (
-      'Database=employee'
+      'Database=C:\FB30\examples\empbuild\EMPLOYEE.FDB'
       'User_Name=sysdba'
       'Password=masterkey'
       'Protocol=TCPIP'
       'Server=localhost'
       'DriverID=FB')
-    ConnectedStoredUsage = [auDesignTime]
+    ConnectedStoredUsage = []
     Connected = True
     LoginPrompt = False
     Left = 160
@@ -19,7 +19,6 @@ object MyDataModule: TMyDataModule
   object qryCustomers: TFDQuery
     Connection = FDConnection1
     FetchOptions.AssignedValues = [evUnidirectional]
-    FetchOptions.Unidirectional = True
     UpdateOptions.AssignedValues = [uvEDelete, uvEInsert, uvEUpdate]
     UpdateOptions.EnableDelete = False
     UpdateOptions.EnableInsert = False

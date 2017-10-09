@@ -4,7 +4,7 @@ interface
 
 uses
   MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects,
-  Data.DB;
+  Data.DB, BusinessObjectsU;
 
 type
   TMyJSONRPCController = class(TMVCJSONRPCController)
@@ -12,6 +12,7 @@ type
     function Subtract(aValue1, aValue2: Integer): Integer;
     function ReverseString(aString: string): string;
     function GetCustomers(aString: string): TDataSet;
+    function GetUser(aUserName: string): TPerson;
     procedure DoSomething;
 
   end;
@@ -63,6 +64,15 @@ begin
     lMt.Free;
     raise;
   end;
+end;
+
+function TMyJSONRPCController.GetUser(aUserName: string): TPerson;
+begin
+  Result := TPerson.Create;
+  Result.FirstName := 'Daniele (a.k.a. ' + aUserName + ')';
+  Result.LastName := 'Teti';
+  Result.DOB := EncodeDate(1932, 11, 4); // hey, it is a joke :-)
+  Result.Married := True;
 end;
 
 function TMyJSONRPCController.ReverseString(aString: string): string;

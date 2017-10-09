@@ -31,7 +31,7 @@ uses
   MVCFramework.Commons, System.IOUtils;
 
 type
-  { This class implements the mustache view engine for server side views }
+  { This class implements the TemplatePro view engine for server side views }
   TMVCTemplateProViewEngine = class(TMVCBaseViewEngine)
   public
     procedure Execute(const ViewName: string); override;
@@ -94,22 +94,5 @@ begin
     lTP.Free;
   end;
 end;
-
-// procedure TMVCTemplateProViewEngine.Execute(const ViewName: string);
-// var
-// ViewFileName: string;
-// ViewTemplate: RawUTF8;
-// ViewEngine: TSynMustache;
-// begin
-// PrepareModels;
-// ViewFileName := GetRealFileName(ViewName);
-// if not FileExists(ViewFileName) then
-// raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
-// ViewTemplate := StringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
-// ViewEngine := TSynMustache.Parse(ViewTemplate);
-// SetOutput(UTF8Tostring(ViewEngine.RenderJSON(FJSONModel)));
-// end;
-
-{$WARNINGS ON}
 
 end.

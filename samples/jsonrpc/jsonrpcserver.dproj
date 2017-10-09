@@ -143,7 +143,7 @@
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
+        <DCCReference Include="..\commons\BusinessObjectsU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

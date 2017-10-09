@@ -467,13 +467,16 @@ type
     procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = ''); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil; const AOwns: Boolean = True); overload;
     procedure Render(const AError: TMVCErrorResponse; const AOwns: Boolean = True); overload;
-
+    // SSE Support
+    procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = ''; const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
+    // Properties
     property Context: TWebContext read GetContext write FContext;
     property Session: TWebSession read GetSession;
     property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ViewModel: TMVCViewDataObject read GetViewModel;
     property ViewDataSets: TObjectDictionary<string, TDataSet> read GetViewDataSets;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -712,6 +715,8 @@ type
     property ContentType: string read FContentType;
     property Output: string read FOutput;
   end;
+
+
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
@@ -988,7 +993,7 @@ end;
 procedure TMVCWebRequest.DefineContentType;
 begin
   SplitContentMediaTypeAndCharset(FWebRequest.GetFieldByName('Content-Type'), FContentMediaType, FCharset);
-  FContentType := CreateContentType(FContentMediaType, FCharset);
+  FContentType := BuildContentType(FContentMediaType, FCharset);
 end;
 
 destructor TMVCWebRequest.Destroy;
@@ -1708,7 +1713,7 @@ begin
                   LSelectedController.MVCControllerAfterCreate;
                   try
                     LHandled := False;
-                    LSelectedController.ContentType := CreateContentType(LResponseContentMediaType, LResponseContentCharset);
+                    LSelectedController.ContentType := BuildContentType(LResponseContentMediaType, LResponseContentCharset);
                     // LSelectedController.ContentCharset := LResponseContentCharset;
                     if not LHandled then
                     begin
@@ -2058,7 +2063,7 @@ procedure TMVCEngine.RegisterDefaultsSerializers;
 var
   lDefaultSerializerContentType: string;
 begin
-  lDefaultSerializerContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
+  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
   begin
     FSerializers.Add(
@@ -2067,7 +2072,7 @@ begin
   end;
 
   // register the same serializer without the charset in the contenttype
-  lDefaultSerializerContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, '');
+  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, '');
   if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
   begin
     FSerializers.Add(
@@ -2126,9 +2131,9 @@ begin
   if TFile.Exists(AFileName) then
   begin
     if FMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), LContentType) then
-      LContentType := CreateContentType(lContentType, FConfig[TMVCConfigKey.DefaultContentCharset])
+      LContentType := BuildContentType(lContentType, FConfig[TMVCConfigKey.DefaultContentCharset])
     else
-      LContentType := CreateContentType(TMVCMediaType.APPLICATION_OCTETSTREAM, '');
+      LContentType := BuildContentType(TMVCMediaType.APPLICATION_OCTETSTREAM, '');
     TMVCStaticContents.SendFile(AFileName, LContentType, AContext);
     Result := True;
   end;
@@ -2411,7 +2416,7 @@ begin
     lCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   if LContentType.IsEmpty then
     LContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
-  lContentType := CreateContentType(LContentType, lCharset);
+  lContentType := BuildContentType(LContentType, lCharset);
 
   LOutEncoding := TEncoding.GetEncoding(lCharset);
   try
@@ -2646,6 +2651,41 @@ end;
 procedure TMVCController.RenderResponseStream;
 begin
   Render(ResponseStream.ToString);
+end;
+
+procedure TMVCController.RenderSSE(const EventID, EventData: string;
+  EventName: string; const Retry: Integer);
+begin
+  // setting up the correct SSE headers
+  ContentType := 'text/event-stream';
+  Context.Response.SetCustomHeader('Cache-Control', 'no-cache');
+  Context.Response.StatusCode := HTTP_STATUS.OK;
+
+  // render the response using SSE compliant data format
+
+  // current event id (the client will resend this number at the next request)
+  ResponseStream.Append(Format('id: %s'#13, [EventID]));
+
+  // The browser attempts to reconnect to the source roughly 3 seconds after
+  // each connection is closed. You can change that timeout by including a line
+  // beginning with "retry:", followed by the number of milliseconds to wait
+  // before trying to reconnect.
+
+  if Retry > -1 then
+  begin
+    ResponseStream.Append(Format('retry: %d'#13, [Retry]));
+  end;
+
+  if not EventName.IsEmpty then
+  begin
+    ResponseStream.Append(Format('event: %s'#13, [EventName]));
+  end;
+
+  // actual message
+  ResponseStream.Append('data: ' + EventData + #13#13);
+
+  // render all the stuff
+  RenderResponseStream;
 end;
 
 procedure TMVCController.Render(const ACollection: IMVCList);

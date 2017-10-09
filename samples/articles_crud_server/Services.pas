@@ -65,7 +65,6 @@ end;
 
 function TArticlesService.GetByID(const AID: Integer): TArticle;
 begin
-  Result := nil;
   FDM.dsArticles.Open('SELECT * FROM ARTICOLI WHERE ID = :ID', [AID]);
   try
     if not FDM.dsArticles.Eof then

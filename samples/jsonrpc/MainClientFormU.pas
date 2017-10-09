@@ -26,9 +26,13 @@ type
     FDMemTable1: TFDMemTable;
     FDMemTable1Code: TIntegerField;
     FDMemTable1Name: TStringField;
+    edtUserName: TEdit;
+    btnGetUser: TButton;
+    lbPerson: TListBox;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
+    procedure btnGetUserClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -79,6 +83,38 @@ begin
     end;
   finally
     lSS.Free;
+  end;
+end;
+
+procedure TForm10.btnGetUserClick(Sender: TObject);
+var
+  lReq: TJSONRPCRequest;
+  lResp: TJSONRPCResponse;
+  lJSON: TJsonObject;
+begin
+  lbPerson.Clear;
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.Method := 'getuser';
+    lReq.ID := Random(1000);
+    lReq.Params.Add(edtUserName.Text);
+    JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
+    try
+      if Assigned(lResp.Error) then
+        raise Exception.Create(lResp.Error.ErrMessage);
+
+      // Remember that TObject descendants (but TDataset, TJDOJSONObject and TJDOJSONArray)
+      // are serialized as JSON objects
+      lJSON := lResp.Result.AsObject as TJsonObject;
+      lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
+      lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
+      lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
+      lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+    finally
+      lResp.Free;
+    end;
+  finally
+    lReq.Free;
   end;
 end;
 

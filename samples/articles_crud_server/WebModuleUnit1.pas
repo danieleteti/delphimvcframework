@@ -26,7 +26,6 @@ uses Controllers.Articles, MVCFramework.Middleware.CORS;
 
 {$R *.dfm}
 
-
 procedure TWebModule1.WebModule1DefaultHandlerAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
 begin

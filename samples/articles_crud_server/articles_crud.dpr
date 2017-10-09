@@ -8,18 +8,13 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   Controllers.Base in 'Controllers.Base.pas',
   Controllers.Articles in 'Controllers.Articles.pas',
   Services in 'Services.pas',
   BusinessObjects in 'BusinessObjects.pas',
-  MainDM in 'MainDM.pas' {dmMain: TDataModule} ,
-  Commons in 'Commons.pas',
-  MVCFramework.Serializer.JSON in '..\..\sources\MVCFramework.Serializer.JSON.pas',
-  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
-  MVCFramework.Serializer.Intf in '..\..\sources\MVCFramework.Serializer.Intf.pas',
-  MVCFramework.FireDAC.Utils in '..\..\sources\MVCFramework.FireDAC.Utils.pas',
-  MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas';
+  MainDM in 'MainDM.pas' {dmMain: TDataModule},
+  Commons in 'Commons.pas';
 
 {$R *.res}
 

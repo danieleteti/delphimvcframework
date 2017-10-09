@@ -14,7 +14,7 @@ uses
   MainControllerU in 'MainControllerU.pas',
   MainWebModuleU in 'MainWebModuleU.pas' {MyWebModule: TWebModule},
   MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas',
-  MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas';
+  BusinessObjectsU in '..\commons\BusinessObjectsU.pas';
 
 {$R *.res}
 

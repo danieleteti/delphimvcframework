@@ -79,9 +79,9 @@ begin
   // Register a custom serializer for TUserRoles (is compatible only with the default serializer)
   DMVC
     .Serializers
-    .Items[CreateContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
+    .Items[BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
     .RegisterTypeSerializer(TypeInfo(TUserRoles), TUserRolesSerializer.Create);
-  // You can check if this custom type serializer works
+  // You can check how this custom type serializer works
   // calling http://localhost:8080/customserializationtype
 end;
 

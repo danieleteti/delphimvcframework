@@ -6,13 +6,7 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,
-
-  {$IFNDEF LINUX}
-
   ReqMulti,
-
-  {$ENDIF}
-
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,

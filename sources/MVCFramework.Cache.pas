@@ -49,14 +49,14 @@ type
   TMVCCache = class sealed
   private
     FStorage: TObjectDictionary<string, TMVCCacheItem>;
-    FCriticalSection: TCriticalSection;
+    FMREW: TMultiReadExclusiveWriteSynchronizer;
   public
     constructor Create;
     destructor Destroy; override;
     procedure SetValue(const AName: string; const AValue: TValue);
     function Contains(const AName: string; out AValue: TValue): Boolean;
     function GetValue(const AName: string): TValue;
-    function ExecOnItem(const AName: string; const AAction: TProc<TValue>): Boolean;
+    function ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
   end;
 
   TMVCCacheSingleton = class
@@ -84,7 +84,7 @@ var
 begin
   lValue := AValue;
 
-  FCriticalSection.DoWithLock(
+  FMREW.DoWithWriteLock(
     procedure
     var
       lItem: TMVCCacheItem;
@@ -107,12 +107,12 @@ begin
     end);
 end;
 
-function TMVCCache.ExecOnItem(const AName: string; const AAction: TProc<TValue>): Boolean;
+function TMVCCache.ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
 var
   lItem: TMVCCacheItem;
 begin
   Result := False;
-  FCriticalSection.Enter;
+  FMREW.BeginWrite;
   try
     if FStorage.TryGetValue(AName, lItem) then
     begin
@@ -120,7 +120,7 @@ begin
       AAction(lItem.Value);
     end;
   finally
-    FCriticalSection.Leave;
+    FMREW.EndWrite;
   end;
 end;
 
@@ -129,7 +129,7 @@ var
   lValue: TMVCCacheItem;
   lRes: Boolean;
 begin
-  FCriticalSection.DoWithLock(
+  FMREW.DoWithReadLock(
     procedure
     begin
       lRes := FStorage.TryGetValue(AName, lValue);
@@ -143,12 +143,12 @@ constructor TMVCCache.Create;
 begin
   inherited Create;
   FStorage := TObjectDictionary<string, TMVCCacheItem>.Create([doOwnsValues]);
-  FCriticalSection := TCriticalSection.Create;
+  FMREW := TMultiReadExclusiveWriteSynchronizer.Create;
 end;
 
 destructor TMVCCache.Destroy;
 begin
-  FCriticalSection.Free;
+  FMREW.Free;
   FStorage.Free;
   inherited;
 end;
@@ -159,7 +159,7 @@ var
   lResult: TValue;
 begin
   Result := TValue.Empty;
-  FCriticalSection.DoWithLock(
+  FMREW.DoWithReadLock(
     procedure
     begin
       if FStorage.TryGetValue(AName, lItem) then

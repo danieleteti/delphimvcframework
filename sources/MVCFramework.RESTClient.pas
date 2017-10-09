@@ -767,7 +767,7 @@ begin
   FQueryStringParams := nil;
   FRawBody := nil;
   FAccept := 'application/json';
-  FContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
+  FContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   FResource := '';
   FContentEncoding := '';
   FRequestHeaders := TStringlist.Create;
@@ -1433,7 +1433,6 @@ function TRESTClient.SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
 var
   lBytes: TArray<Byte>;
   lContentCharset: string;
-  lContentType: string;
   lEncoding: TEncoding;
 begin
   Result := TRESTResponse.Create;
@@ -1445,18 +1444,11 @@ begin
   lContentCharset := 'UTF-8';
   if AContentCharset <> '' then
     lContentCharset := AContentCharset;
-  lContentType := CreateContentType(AContentMediaType, lContentCharset);
 
-  // FHTTP.Request.ContentType := lContentTypeWithCharset;
-  FHTTP.Request.ContentType := lContentType;
-  // FHTTP.Request.CharSet := AContentCharset;
-  // FHTTP.Request.ContentEncoding := AContentCharset;
+  FHTTP.Request.ContentType := BuildContentType(AContentMediaType, lContentCharset);
 
   HandleRequestCookies;
   try
-    // if FHTTP.Request.CharSet = '' then
-    // FHTTP.Request.CharSet := 'utf-8';
-
     case ACommand of
       httpGET:
         begin
@@ -1491,22 +1483,6 @@ begin
           raise ERESTClientException.Create
             ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
         end;
-
-      // httpPUT:
-      // begin
-      // RawBody.Position := 0;
-      // RawBody.Size := 0;
-      // lEncoding := TEncoding.GetEncoding(FHTTP.Request.CharSet);
-      // try
-      // lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
-      // TEncoding.Default.GetBytes(ABody));
-      // RawBody.WriteData(lBytes, Length(lBytes));
-      // finally
-      // lEncoding.Free;
-      // end;
-      //
-      // FHTTP.Put(AResource, RawBody, Result.Body);
-      // end;
 
       httpDELETE:
         begin
