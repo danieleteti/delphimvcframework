@@ -8,10 +8,15 @@ uses
   System.Net.URLClient, System.Net.HttpClient, Data.DB, Vcl.Grids, Vcl.DBGrids,
   FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Param,
   FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf,
-  FireDAC.Comp.DataSet, FireDAC.Comp.Client;
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client, Vcl.ComCtrls, Vcl.ExtCtrls;
 
 type
   TForm10 = class(TForm)
+    DataSource1: TDataSource;
+    FDMemTable1: TFDMemTable;
+    FDMemTable1Code: TIntegerField;
+    FDMemTable1Name: TStringField;
+    GroupBox1: TGroupBox;
     edtValue1: TEdit;
     edtValue2: TEdit;
     btnSubstract: TButton;
@@ -19,20 +24,33 @@ type
     edtReverseString: TEdit;
     btnReverseString: TButton;
     edtReversedString: TEdit;
-    edtFilter: TEdit;
-    edtGetCustomers: TButton;
-    DBGrid1: TDBGrid;
-    DataSource1: TDataSource;
-    FDMemTable1: TFDMemTable;
-    FDMemTable1Code: TIntegerField;
-    FDMemTable1Name: TStringField;
+    GroupBox2: TGroupBox;
     edtUserName: TEdit;
     btnGetUser: TButton;
     lbPerson: TListBox;
+    GroupBox3: TGroupBox;
+    edtFilter: TEdit;
+    edtGetCustomers: TButton;
+    DBGrid1: TDBGrid;
+    GroupBox4: TGroupBox;
+    edtFirstName: TLabeledEdit;
+    edtLastName: TLabeledEdit;
+    chkMarried: TCheckBox;
+    dtDOB: TDateTimePicker;
+    btnSave: TButton;
+    dtNextMonday: TDateTimePicker;
+    btnAddDay: TButton;
+    btnInvalid1: TButton;
+    btnInvalid2: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
     procedure btnGetUserClick(Sender: TObject);
+    procedure btnSaveClick(Sender: TObject);
+    procedure btnAddDayClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure btnInvalid1Click(Sender: TObject);
+    procedure btnInvalid2Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -46,7 +64,8 @@ implementation
 
 uses
   MVCFramework.JSONRPC, MVCFramework.Serializer.JsonDataObjects,
-  JsonDataObjects, MVCFramework.Serializer.Commons, MVCFramework.DataSet.Utils;
+  JsonDataObjects, MVCFramework.Serializer.Commons, MVCFramework.DataSet.Utils,
+  BusinessObjectsU;
 
 {$R *.dfm}
 
@@ -86,6 +105,27 @@ begin
   end;
 end;
 
+procedure TForm10.btnAddDayClick(Sender: TObject);
+var
+  lReq: TJSONRPCRequest;
+  lResp: TJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.Method := 'getnextmonday';
+    lReq.RequestID := Random(1000);
+    lReq.Params.Add(dtNextMonday.Date);
+    JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
+    try
+      dtNextMonday.Date := ISOTimeStampToDateTime(lResp.Result.AsString);
+    finally
+      lResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
+end;
+
 procedure TForm10.btnGetUserClick(Sender: TObject);
 var
   lReq: TJSONRPCRequest;
@@ -96,7 +136,7 @@ begin
   lReq := TJSONRPCRequest.Create;
   try
     lReq.Method := 'getuser';
-    lReq.ID := Random(1000);
+    lReq.RequestID := Random(1000);
     lReq.Params.Add(edtUserName.Text);
     JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
     try
@@ -118,6 +158,47 @@ begin
   end;
 end;
 
+procedure TForm10.btnInvalid1Click(Sender: TObject);
+var
+  lReq: TJSONRPCRequest;
+  lResp: TJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.Method := 'invalidmethod1';
+    lReq.Params.Add(1);
+    JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
+    try
+      ShowMessage(lResp.Error.ErrMessage);
+    finally
+      lResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
+end;
+
+procedure TForm10.btnInvalid2Click(Sender: TObject);
+var
+  lReq: TJSONRPCRequest;
+  lResp: TJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.Method := 'invalidmethod2';
+    lReq.Params.Add(1);
+    JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
+    try
+      ShowMessage(lResp.Error.ErrMessage);
+    finally
+      lResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
+
+end;
+
 procedure TForm10.btnReverseStringClick(Sender: TObject);
 var
   lReq: TJSONRPCRequest;
@@ -126,11 +207,38 @@ begin
   lReq := TJSONRPCRequest.Create;
   try
     lReq.Method := 'reversestring';
-    lReq.ID := Random(1000);
+    lReq.RequestID := Random(1000);
     lReq.Params.Add(edtReverseString.Text);
     JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
     try
       edtReversedString.Text := lResp.Result.AsString;
+    finally
+      lResp.Free;
+    end;
+  finally
+    lReq.Free;
+  end;
+end;
+
+procedure TForm10.btnSaveClick(Sender: TObject);
+var
+  lPerson: TPerson;
+  lReq: TJSONRPCRequest;
+  lResp: TJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  try
+    lReq.Method := 'saveperson';
+    lReq.RequestID := Random(1000);
+    lPerson := TPerson.Create;
+    lReq.Params.Add(lperson);
+    lPerson.FirstName := edtFirstName.Text;
+    lPerson.LastName := edtLastName.Text;
+    lPerson.Married := chkMarried.Checked;
+    lPerson.DOB := dtDOB.Date;
+    JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
+    try
+      ShowMessage('Person saved with ID = ' + lResp.Result.AsInteger.ToString);
     finally
       lResp.Free;
     end;
@@ -147,7 +255,7 @@ begin
   lReq := TJSONRPCRequest.Create;
   try
     lReq.Method := 'subtract';
-    lReq.ID := Random(1000);
+    lReq.RequestID := Random(1000);
     lReq.Params.Add(StrToInt(edtValue1.Text));
     lReq.Params.Add(StrToInt(edtValue2.Text));
 
@@ -171,7 +279,7 @@ begin
   lReq := TJSONRPCRequest.Create;
   try
     lReq.Method := 'getcustomers';
-    lReq.ID := Random(1000);
+    lReq.RequestID := Random(1000);
     lReq.Params.Add(edtFilter.Text);
     JSONRPCExec('http://localhost:8080/jsonrpc', lReq, lResp);
     try
@@ -183,6 +291,11 @@ begin
   finally
     lReq.Free;
   end;
+end;
+
+procedure TForm10.FormCreate(Sender: TObject);
+begin
+  dtNextMonday.Date := Date;
 end;
 
 end.

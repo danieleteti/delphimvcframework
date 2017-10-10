@@ -5,7 +5,8 @@ interface
 uses
   System.Classes, Data.DB, System.SysUtils,
   jsondataobjects, MVCFramework, MVCFramework.Commons, System.Rtti,
-  System.Generics.Collections, MVCFramework.Serializer.Commons;
+  System.Generics.Collections, MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.JsonDataObjects;
 
 const
   JSONRPC_VERSION = '2.0';
@@ -53,7 +54,7 @@ type
     constructor Create; virtual;
     property AsJSON: TJsonObject read GetJSON write SetJSON;
     property AsJSONString: string read GetJSONString write SetJsonString;
-    property ID: TValue read FID write SetID;
+    property RequestID: TValue read FID write SetID;
   end;
 
   {$SCOPEDENUMS ON}
@@ -158,23 +159,28 @@ type
   TMVCJSONArray = TJDOJsonArray;
 
   TMVCJSONRPCController = class(TMVCController)
+  private
+    fSerializer: TMVCJsonDataObjectsSerializer;
+    function GetSerializer: TMVCJsonDataObjectsSerializer;
   protected
     function CreateError(const RequestID: TValue; const ErrorCode: Integer;
       const message: string): TJsonObject;
     function CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
     function CreateRequest(const JSON: TJsonObject): TJSONRPCRequest;
+    function JSONObjectAs<T: class, constructor>(const JSON: TJsonObject): T;
   public
     [MVCPath]
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure index; virtual;
+    destructor Destroy; override;
   end;
 
 implementation
 
 uses
-  MVCFramework.Serializer.Intf, MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.Intf, System.TypInfo;
 
 function JSONDataValueToTValue(const JSONDataValue: TJsonDataValueHelper): TValue;
 begin
@@ -419,7 +425,7 @@ var
 begin
   lErrResp := TJSONRPCResponse.Create;
   try
-    lErrResp.ID := RequestID;
+    lErrResp.RequestID := RequestID;
     lErrResp.Error := TJSONRPCResponse.TJSONRPCResponseError.Create;
     lErrResp.Error.Code := ErrorCode;
     lErrResp.Error.ErrMessage := message;
@@ -438,15 +444,15 @@ begin
   try
     Result := TJSONRPCRequest.Create;
     if JSON.Types[JSONRPC_ID] = jdtString then
-      Result.ID := JSON.S[JSONRPC_ID]
+      Result.RequestID := JSON.S[JSONRPC_ID]
     else if JSON.Types[JSONRPC_ID] = jdtInt then
-      Result.ID := JSON.I[JSONRPC_ID]
+      Result.RequestID := JSON.I[JSONRPC_ID]
     else if JSON.Types[JSONRPC_ID] = jdtLong then
-      Result.ID := JSON.L[JSONRPC_ID]
+      Result.RequestID := JSON.L[JSONRPC_ID]
     else if JSON.Types[JSONRPC_ID] = jdtULong then
-      Result.ID := JSON.U[JSONRPC_ID]
+      Result.RequestID := JSON.U[JSONRPC_ID]
     else
-      Result.ID := TValue.Empty;
+      Result.RequestID := TValue.Empty;
 
     Result.Method := JSON.S[JSONRPC_METHOD];
 
@@ -470,8 +476,21 @@ end;
 function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
 begin
   Result := TJSONRPCResponse.Create;
-  Result.ID := RequestID;
+  Result.RequestID := RequestID;
   Result.Result := Value;
+end;
+
+destructor TMVCJSONRPCController.Destroy;
+begin
+  fSerializer.Free;
+  inherited;
+end;
+
+function TMVCJSONRPCController.GetSerializer: TMVCJsonDataObjectsSerializer;
+begin
+  if not Assigned(fSerializer) then
+    fSerializer := TMVCJsonDataObjectsSerializer.Create;
+  Result := fSerializer;
 end;
 
 procedure TMVCJSONRPCController.Index;
@@ -486,6 +505,7 @@ var
   lJSONRPCResponse: TJSONRPCResponse;
   lParamsToInject: TArray<TValue>;
   lReqID: TValue;
+  lRTTIMethodParam: TRttiParameter;
 begin
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
@@ -502,6 +522,12 @@ begin
           lRTTIMethodParams := lRTTIMethod.GetParameters;
           if (Length(lRTTIMethodParams) <> lJSONRPCReq.Params.Count) then
             raise EMVCJSONRPCInvalidParams.Create('Wrong parameters count');
+
+          for lRTTIMethodParam in lRTTIMethodParams do
+          begin
+            if lRTTIMethodParam.Flags * [pfVar, pfOut, pfArray, pfReference] <> [] then
+              raise EMVCJSONRPCInvalidParams.CreateFmt('Parameter modifier not supported for formal parameter [%s]. Only const and value modifiers are allowed.', [lRTTIMethodParam.Name])
+          end;
 
           try
             try
@@ -520,7 +546,7 @@ begin
             end
             else
             begin
-              lJSONRPCResponse := CreateResponse(lJSONRPCReq.ID, lRes);
+              lJSONRPCResponse := CreateResponse(lJSONRPCReq.RequestID, lRes);
               try
                 ResponseStatus(200);
                 Render(lJSONRPCResponse.AsJSON);
@@ -568,6 +594,17 @@ begin
     begin
       Render(CreateError(lReqID, 0, E.Message), True);
     end;
+  end;
+end;
+
+function TMVCJSONRPCController.JSONObjectAs<T>(const JSON: TJsonObject): T;
+begin
+  Result := T.Create;
+  try
+    GetSerializer.JsonObjectToObject(JSON, Result, TMVCSerializationType.stProperties, []);
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
@@ -619,8 +656,6 @@ begin
   FJSONRPCErrorCode := JSONRPCError;
 
 end;
-
-{ TMVCJSONRCPResponse }
 
 { TJSONRPCRequest }
 
@@ -674,15 +709,15 @@ var
   lParams: TJsonArray;
 begin
   if JSON.Types[JSONRPC_ID] = jdtString then
-    ID := JSON.S[JSONRPC_ID]
+    RequestID := JSON.S[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtInt then
-    ID := JSON.I[JSONRPC_ID]
+    RequestID := JSON.I[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtLong then
-    ID := JSON.L[JSONRPC_ID]
+    RequestID := JSON.L[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtULong then
-    ID := JSON.U[JSONRPC_ID]
+    RequestID := JSON.U[JSONRPC_ID]
   else
-    ID := TValue.Empty;
+    RequestID := TValue.Empty;
 
   Method := JSON.S[JSONRPC_METHOD];
   Params.Clear;
@@ -750,15 +785,15 @@ end;
 procedure TJSONRPCResponse.SetJSON(const JSON: TJsonObject);
 begin
   if JSON.Types[JSONRPC_ID] = jdtString then
-    ID := JSON.S[JSONRPC_ID]
+    RequestID := JSON.S[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtInt then
-    ID := JSON.I[JSONRPC_ID]
+    RequestID := JSON.I[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtLong then
-    ID := JSON.L[JSONRPC_ID]
+    RequestID := JSON.L[JSONRPC_ID]
   else if JSON.Types[JSONRPC_ID] = jdtULong then
-    ID := JSON.U[JSONRPC_ID]
+    RequestID := JSON.U[JSONRPC_ID]
   else
-    ID := TValue.Empty;
+    RequestID := TValue.Empty;
 
   if JSON.Contains(JSONRPC_RESULT) then
   begin

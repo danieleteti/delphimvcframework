@@ -11,16 +11,21 @@ type
   public
     function Subtract(aValue1, aValue2: Integer): Integer;
     function ReverseString(aString: string): string;
+    function GetNextMonday(const aDate: TDate): TDate;
     function GetCustomers(aString: string): TDataSet;
     function GetUser(aUserName: string): TPerson;
+    function SavePerson(const aPerson: TJsonObject): Integer;
     procedure DoSomething;
+    // invalid parameters modifiers
+    procedure InvalidMethod1(var MyVarParam: Integer);
+    procedure InvalidMethod2(out MyOutParam: Integer);
 
   end;
 
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils, FireDAC.Comp.Client;
+  System.SysUtils, MVCFramework.Logger, System.StrUtils, FireDAC.Comp.Client, System.DateUtils;
 
 { TMyDerivedController }
 
@@ -66,6 +71,18 @@ begin
   end;
 end;
 
+function TMyJSONRPCController.GetNextMonday(const aDate: TDate): TDate;
+var
+  lDate: TDate;
+begin
+  lDate := aDate + 1;
+  while DayOfTheWeek(lDate) <> 1 do
+  begin
+    lDate := lDate + 1;
+  end;
+  Result := lDate;
+end;
+
 function TMyJSONRPCController.GetUser(aUserName: string): TPerson;
 begin
   Result := TPerson.Create;
@@ -75,9 +92,34 @@ begin
   Result.Married := True;
 end;
 
+procedure TMyJSONRPCController.InvalidMethod1(var MyVarParam: Integer);
+begin
+  // do nothing
+end;
+
+procedure TMyJSONRPCController.InvalidMethod2(out MyOutParam: Integer);
+begin
+  // do nothing
+end;
+
 function TMyJSONRPCController.ReverseString(aString: string): string;
 begin
   Result := System.StrUtils.ReverseString(aString);
+end;
+
+function TMyJSONRPCController.SavePerson(const aPerson: TJsonObject): Integer;
+var
+  lPerson: TPerson;
+begin
+  lPerson := JSONObjectAs<TPerson>(aPerson);
+  try
+    // do something with lPerson
+  finally
+    lPerson.Free;
+  end;
+
+  // this maybe the id of the newly created person
+  Result := Random(1000);
 end;
 
 function TMyJSONRPCController.Subtract(aValue1, aValue2: Integer): Integer;
