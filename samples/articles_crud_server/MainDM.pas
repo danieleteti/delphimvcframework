@@ -30,8 +30,8 @@ procedure TdmMain.ConnectionBeforeConnect(Sender: TObject);
 begin
   // currently, this demo uses firebird 2.5
   // if you want to use firebird 2.5, you can use the file ORDERSMANAGER_FB25.FDB
-  // Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB30.FDB';
-  Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB25.FDB';
+  Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB30.FDB';
+  // Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB25.FDB';
 end;
 
 end.

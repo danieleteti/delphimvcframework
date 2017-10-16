@@ -27,9 +27,26 @@ procedure TCompressionMiddleware.OnAfterControllerAction(Context: TWebContext;
 var
   lMemStream: TMemoryStream;
   lContentStream: TStream;
+  lAcceptEncoding: string;
+  lEncodings: TArray<string>;
+  lItem: string;
+  lFound: Boolean;
 begin
-  { TODO -oDaniele -cGeneral : It doesn0t work! }
-  if Context.Request.Headers['Accept-Encoding'].Trim.ToLower <> 'deflate' then
+  lAcceptEncoding := Context.Request.Headers['Accept-Encoding'].ToLower.Trim;
+  if lAcceptEncoding.IsEmpty then
+    Exit;
+
+  lFound := False;
+  lEncodings := lAcceptEncoding.Split([',']);
+  for lItem in lEncodings do
+  begin
+    if lItem.Trim = 'deflate' then
+    begin
+      lFound := True;
+      Break;
+    end;
+  end;
+  if not lFound then
     Exit;
 
   lContentStream := Context.Response.RawWebResponse.ContentStream;

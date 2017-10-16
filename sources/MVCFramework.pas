@@ -63,7 +63,7 @@ uses
 
   {$ENDIF}
 
-  // Delphi XE4 (all update) and XE5 (with no update) dont contains this unit. Look for the bug in QC
+  // Delphi XE4 (all update) and XE5 (with no update) don't contains this unit. Look for the bug in QC
   // https://quality.embarcadero.com/browse/RSP-17216
 
   {$IFNDEF VER320}
@@ -715,8 +715,6 @@ type
     property ContentType: string read FContentType;
     property Output: string read FOutput;
   end;
-
-
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
@@ -1610,6 +1608,7 @@ constructor TMVCEngine.Create(
 begin
   inherited Create(AWebModule);
   FWebModule := AWebModule;
+  FixUpWebModule;
   FConfig := TMVCConfig.Create;
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
@@ -1621,7 +1620,6 @@ begin
   WebRequestHandler.CacheConnections := True;
   WebRequestHandler.MaxConnections := 4096;
 
-  FixUpWebModule;
   MVCFramework.Logger.SetDefaultLogger(ACustomLogger);
   ConfigDefaultValues;
 
@@ -2041,8 +2039,12 @@ end;
 procedure TMVCEngine.OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse; var AHandled: Boolean);
 begin
   AHandled := False;
-  if Assigned(FSavedOnBeforeDispatch) then
-    FSavedOnBeforeDispatch(ASender, ARequest, AResponse, AHandled);
+  { there is a bug in WebBroker Linux on 10.2.1 tokyo }
+  // if Assigned(FSavedOnBeforeDispatch) then
+  // begin
+  // FSavedOnBeforeDispatch(ASender, ARequest, AResponse, AHandled);
+  // end;
+
   if not AHandled then
   begin
     try

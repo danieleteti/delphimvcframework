@@ -7,12 +7,17 @@ uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
+
   {$IFNDEF LINUX}
+
   Winapi.Windows,
+
   {$ENDIF }
+
   Web.WebBroker,
   MVCFramework.Commons,
-  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule},
+  MVCFramework.Console,
+  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule} ,
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -28,13 +33,9 @@ uses
 
 procedure Logo;
 begin
-
-  {$IFNDEF LINUX}
-
-  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED or FOREGROUND_INTENSITY);
-
-  {$ENDIF}
-
+  SetMode(TConsoleMode.Bright);
+  TextBackground(TConsoleColor.Black);
+  TextColor(TConsoleColor.Red);
   WriteLn(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
   WriteLn(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
   WriteLn(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
@@ -42,22 +43,9 @@ begin
   WriteLn(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
   WriteLn(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
   WriteLn(' ');
-
-  {$IFNDEF LINUX}
-
-  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or FOREGROUND_INTENSITY);
-
-  {$ENDIF}
-
+  TextColor(TConsoleColor.Yellow);
   WriteLn('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
-
-  {$IFNDEF LINUX}
-
-  SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE or FOREGROUND_GREEN or
-    FOREGROUND_RED);
-
-  {$ENDIF}
-
+  TextColor(TConsoleColor.White);
 end;
 
 procedure RunServer(APort: Integer);

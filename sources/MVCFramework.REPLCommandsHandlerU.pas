@@ -10,26 +10,26 @@ type
   {$SCOPEDENUMS ON}
 
   THandleCommandResult = (Continue, Break, Unknown);
-  TMVCCustomREPLCommandsHandler = reference to function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult;
+  TMVCCustomREPLCommandsHandler = reference to function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult;
 
-function HandleCommand(const Value: String; const Server: TIdHTTPWebBrokerBridge; const CustomCommandsHandler: TMVCCustomREPLCommandsHandler = nil): THandleCommandResult;
-procedure REPLEmit(const Value: String);
+function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge; const CustomCommandsHandler: TMVCCustomREPLCommandsHandler = nil): THandleCommandResult;
+procedure REPLEmit(const Value: string);
 
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Commons;
+  System.SysUtils, MVCFramework.Commons, MVCFramework.Logger;
 
-procedure REPLEmit(const Value: String);
+procedure REPLEmit(const Value: string);
 begin
   // TextColor(LightGreen);
-  Write('#> ');
+  write('#> ');
   // TextColor(White);
   WriteLn(Value);
   // TextColor(White);
 end;
 
-function HandleCommand(const Value: String; const Server: TIdHTTPWebBrokerBridge; const CustomCommandsHandler: TMVCCustomREPLCommandsHandler): THandleCommandResult;
+function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge; const CustomCommandsHandler: TMVCCustomREPLCommandsHandler): THandleCommandResult;
 var
   lTempCommandResult: THandleCommandResult;
   lHandled: Boolean;
@@ -77,6 +77,7 @@ begin
     begin
       REPLEmit(Format('Starting server on port %d...', [Server.Bindings.DefaultPort]));
       Server.Active := True;
+      LogI('Server started on port ' + Server.Bindings.DefaultPort.ToString);
       REPLEmit('done!');
     end;
     Result := THandleCommandResult.Continue;

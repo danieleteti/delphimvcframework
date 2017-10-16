@@ -35,7 +35,7 @@ const
 
   {$IFDEF LINUX_SERVER}
 
-  TEST_SERVER_ADDRESS = '192.168.3.88';
+  TEST_SERVER_ADDRESS = '192.168.1.8';
 
   {$ELSE}
 
@@ -891,7 +891,7 @@ var
 begin
   res := RESTClient
     .Accept(TMVCMediaType.TEXT_PLAIN)
-    .ContentType(CreateContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591))
+    .ContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591))
     .doPOST('/testconsumes/textiso8859_1', [],
     'אטילעש');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
@@ -901,7 +901,7 @@ begin
 
   res := RESTClient
     .Accept(TMVCMediaType.TEXT_PLAIN)
-    .ContentType(CreateContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591))
+    .ContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591))
     .doPOST('/testconsumes/textiso8859_1', [],
     'this is an iso8859-1 text');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
@@ -1246,7 +1246,7 @@ var
 begin
   lReq := TJSONRPCRequest.Create;
   try
-    lReq.ID := 1234;
+    lReq.RequestID := 1234;
     lReq.Method := 'subtract';
     lReq.Params.Add(18);
     lReq.Params.Add(8);
@@ -1260,7 +1260,7 @@ begin
     try
       lResp.AsJSONString := lHttpResp.BodyAsString;
       Assert.AreEqual(10, lResp.Result.AsInteger);
-      Assert.AreEqual(1234, lResp.ID.AsInteger);
+      Assert.AreEqual(1234, lResp.RequestID.AsInteger);
     finally
       lResp.Free;
     end;

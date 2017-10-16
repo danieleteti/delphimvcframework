@@ -9,14 +9,12 @@ object dmMain: TdmMain
       'Password=masterkey'
       'DriverID=FB')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     BeforeConnect = ConnectionBeforeConnect
     Left = 64
     Top = 48
   end
   object dsArticles: TFDQuery
-    Active = True
     Connection = Connection
     UpdateOptions.AssignedValues = [uvFetchGeneratorsPoint, uvGeneratorName]
     UpdateOptions.FetchGeneratorsPoint = gpImmediate

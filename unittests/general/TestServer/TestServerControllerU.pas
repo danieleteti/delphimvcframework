@@ -344,7 +344,7 @@ procedure TTestServerController.TestCharset(ctx: TWebContext);
 var
   Obj: TJSONObject;
 begin
-  ContentType := CreateContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
+  ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
   Obj := TJSONObject.Create;
   Obj.AddPair('name1', 'jørn');
   Obj.AddPair('name2', 'Što je Unicode?');

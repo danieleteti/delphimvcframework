@@ -610,6 +610,8 @@ var
   lIsRegistered: Boolean;
   lValue: string;
 begin
+  lJHeader := nil;
+  lJPayload := nil;
   Result := IsValidToken(Token, lJHeader, lJPayload, Error);
   try
     if not Result then

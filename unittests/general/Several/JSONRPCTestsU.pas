@@ -75,8 +75,8 @@ begin
     lReq.Method := 'subtract';
     lReq.Params.Add(42);
     lReq.Params.Add(23);
-    lReq.ID := 1;
-    Assert.AreEqual(1, lReq.ID.AsInteger);
+    lReq.RequestID := 1;
+    Assert.AreEqual(1, lReq.RequestID.AsInteger);
     Assert.AreEqual(42, lReq.Params[0].AsInteger);
     Assert.AreEqual(23, lReq.Params[1].AsInteger);
     Assert.AreEqual('subtract', lReq.Method);
@@ -109,7 +109,7 @@ begin
   lReq := TJSONRPCRequest.Create;
   try
     lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "subtract", "id": 1}';
-    Assert.AreEqual(1, lReq.ID.AsInteger);
+    Assert.AreEqual(1, lReq.RequestID.AsInteger);
     Assert.AreEqual(0, lReq.Params.Count);
     Assert.AreEqual('subtract', lReq.Method);
     Assert.AreEqual(TJSONRPCRequestType.Request, lReq.RequestType);
