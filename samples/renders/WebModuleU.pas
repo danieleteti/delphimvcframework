@@ -52,11 +52,14 @@ implementation
 {$R *.dfm}
 
 uses
-  MVCFramework.Commons, RenderSampleControllerU, CustomTypesU,
+  MVCFramework.Commons,
+  RenderSampleControllerU,
+  CustomTypesU,
   CustomTypesSerializersU,
   MVCFramework.Serializer.JSON,
   MVCFramework.Serializer.Intf,
-  System.Generics.Collections;
+  System.Generics.Collections,
+  MVCFramework.View.Renderers.Mustache;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -75,6 +78,8 @@ begin
   // ------------------------------------
 
   DMVC.AddController(TRenderSampleController);
+  DMVC.SetViewEngine(TMVCMustacheViewEngine);
+
 
   // Register a custom serializer for TUserRoles (is compatible only with the default serializer)
   DMVC

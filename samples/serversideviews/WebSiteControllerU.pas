@@ -76,12 +76,12 @@ uses DAL, System.SysUtils, Web.HTTPApp;
 
 procedure TWebSiteController.DeletePerson;
 var
-  lID: string;
+  lGUID: string;
   LDAL: IPeopleDAL;
 begin
-  lID := Context.Request.Params['id'];
+  lGUID := Context.Request.Params['guid'];
   LDAL := TServicesFactory.GetPeopleDAL;
-  LDAL.DeleteByGUID(lID);
+  LDAL.DeleteByGUID(lGUID);
   Redirect('/people');
 end;
 
@@ -151,8 +151,6 @@ end;
 procedure TWebSiteController.PeopleList;
 var
   LDAL: IPeopleDAL;
-  lPeople: TPeople;
-  lSpeed: TSpeedValue;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   PushObjectToView('people', LDAL.GetPeople);

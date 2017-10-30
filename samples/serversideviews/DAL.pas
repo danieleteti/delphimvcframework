@@ -87,7 +87,7 @@ begin
       lPerson.LastName := LastName;
       lPerson.Age := Age;
       lPerson.Items := string.Join(',', Items);
-      lPerson.GUID := TGuid.NewGuid.ToString;
+      lPerson.GUID := TGuid.NewGuid.ToString.Replace('{', '').Replace('}', '').Replace('-', '');
       TFile.WriteAllText(DATAFILE, GetDefaultSerializer.SerializeCollection(lPeople));
     finally
       lPeople.Free;

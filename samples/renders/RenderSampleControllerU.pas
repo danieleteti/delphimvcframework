@@ -64,13 +64,14 @@ type
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/people/withtiming')]
-    // [MVCProduces('application/json')]
+    [MVCProduces('application/json')]
     procedure GetPeopleWithTiming;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/lotofobjects')]
     procedure GetLotOfPeople;
 
+    //this action is polymorphic
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/skilledpeople')]
     [MVCProduces('application/json')]
@@ -83,7 +84,7 @@ type
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id).html')]
-    [MVCProduces('text/html', 'UTF-8')]
+    [MVCProduces('text/html')]
     procedure GetPerson_AsHTML(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGET])]
@@ -127,12 +128,15 @@ uses
   Generics.Collections,
   MVCFramework.DataSet.Utils,
   MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.Defaults,
   MyDataModuleU,
   System.Classes,
   System.SysUtils,
   WebModuleU,
+  CustomTypesU,
+  InMemoryDataU,
   JsonDataObjects,
-  MVCFramework.TypesAliases, CustomTypesU, InMemoryDataU;
+  MVCFramework.Serializer.JsonDataObjects;
 
 { TRoutingSampleController }
 
@@ -186,17 +190,25 @@ procedure TRenderSampleController.GetCustomersAndCountry_AsDataSet;
 var
   lDM: TMyDataModule;
   lJObj: TJSONObject;
+  lSer: TMVCJsonDataObjectsSerializer;
 begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
     lDM.qryCountry.Open;
+
     lJObj := TJSONObject.Create;
     try
-      lJObj.AddPair('customers', lDM.qryCustomers.AsJSONArray);
-      lJObj.AddPair('countries', lDM.qryCountry.AsJSONArray);
+      // We need a non standard representation, let's create a specific serializer.
+      lSer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.A['customers'], TMVCNameCase.ncLowerCase, []);
+        lSer.DataSetToJsonArray(lDM.qryCountry, lJObj.A['countries'], TMVCNameCase.ncLowerCase, []);
+      finally
+        lSer.Free;
+      end;
       Render(lJObj);
-    except // avoid memory leaks
+    except // avoid memory leaks in case of exceptions
       lJObj.Free;
       raise;
     end;
@@ -275,8 +287,7 @@ begin
   RenderResponseStream;
 end;
 
-procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList
-  ;
+procedure TRenderSampleController.GetProgrammersAndPhilosophersAsObjectList;
 var
   List: TObjectList<TPerson>;
   p: TProgrammer;
@@ -314,6 +325,7 @@ begin
     People.Metadata.StartProcessing := Now;
 
     {$REGION 'Fake data'}
+    Sleep(1000); //processing...
 
     p := TPerson.Create;
     p.FirstName := 'Daniele';
@@ -386,10 +398,10 @@ var
   p: TJSONObject;
 begin
   p := TJSONObject.Create;
-  p.AddPair('FirstName', 'Daniele');
-  p.AddPair('LastName', 'Teti');
-  p.AddPair('DOB', DateToISODate(EncodeDate(1975, 5, 2)));
-  p.AddPair('Married', TJSONTrue.Create);
+  p.S['FirstName'] := 'Daniele';
+  p.S['LastName'] := 'Teti';
+  p.S['DOB'] := DateToISODate(EncodeDate(1975, 5, 2));
+  p.B['Married'] := True;
   Render(p);
 end;
 

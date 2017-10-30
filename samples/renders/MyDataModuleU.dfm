@@ -11,7 +11,6 @@ object MyDataModule: TMyDataModule
       'Server=localhost'
       'DriverID=FB')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     Left = 160
     Top = 40

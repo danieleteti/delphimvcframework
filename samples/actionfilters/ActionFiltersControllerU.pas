@@ -55,7 +55,7 @@ procedure TActionFiltersController.MVCControllerAfterCreate;
 begin
   inherited;
   // raise Exception.Create('Error Message');
-  LogI('MVCControllerAfterCreate');
+  Log.Info('MVCControllerAfterCreate', 'ACTIONFILTERS');
 end;
 
 procedure TActionFiltersController.MVCControllerBeforeDestroy;

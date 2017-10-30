@@ -4,4 +4,7 @@
 .\samples\**\*.inc
 .\samples\**\*.pas
 .\samples\**\*.dfm
+.\samples\**\*.fmx
+.\samples\**\*.html
+.\samples\**\*.mustache
 .\samples\**\myproj*

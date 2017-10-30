@@ -34,6 +34,7 @@ uses
   MVCFramework.Commons,
   Web.WebReq,
   Web.WebBroker,
+  MVCFramework.Console,
   WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   RenderSampleControllerU in 'RenderSampleControllerU.pas',
   BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
@@ -53,7 +54,10 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
+    SetMode(TConsoleMode.Bright);
+    TextColor(Red);
     Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
+    ResetConsole;
     Writeln('Press RETURN to stop the server');
     ReadLn;
     Writeln('Stopping...');
