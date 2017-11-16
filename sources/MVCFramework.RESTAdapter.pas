@@ -307,6 +307,8 @@ begin
       Resp := FRESTClient.doPUT(URL, [], Body);
     httpPOST:
       Resp := FRESTClient.doPOST(URL, [], Body);
+    httpDELETE:
+      Resp := FRESTClient.doDELETE(URL, []);
   end;
 
   // if the response code is > 400 raise exception
