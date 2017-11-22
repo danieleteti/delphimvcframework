@@ -2,11 +2,13 @@
 
 
 
-##DelphiMVCFramework Main Features
+## DelphiMVCFramework Main Features
+
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
   * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
+  * JSON-RPC 2.0 Support
   * Stable and solid, used by small/mid/big projects since 2010
   * Support group at https://www.facebook.com/groups/delphimvcframework with more than 950 active members
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
