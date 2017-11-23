@@ -74,7 +74,7 @@ end;
 
 procedure TWebSiteController.NewPerson;
 begin
-  PushObjectToView('speed', GetSpeed);
+  ViewData['speed'] := GetSpeed;
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -94,8 +94,8 @@ var
   lCookie: TCookie;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushObjectToView('people', LDAL.GetPeople);
-  PushObjectToView('speed', GetSpeed);
+  ViewData['people'] := LDAL.GetPeople;
+  ViewData['speed'] := GetSpeed;
   LoadView(['header', 'people_list', 'footer']);
 
   // send a cookie with the server datetime at the page rendering

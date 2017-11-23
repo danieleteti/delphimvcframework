@@ -397,13 +397,17 @@ type
     FContentCharset: string;
     FResponseStream: TStringBuilder;
     FViewModel: TMVCViewDataObject;
-    FViewDataSets: TObjectDictionary<string, TDataSet>;
+    FViewDataSets: TMVCViewDataSet;
     function GetContext: TWebContext;
     function GetSession: TWebSession;
     function GetContentType: string;
     function GetStatusCode: Integer;
     procedure SetContentType(const AValue: string);
     procedure SetStatusCode(const AValue: Integer);
+    function GetViewData(const aModelName: String): TObject;
+    function GetViewDataset(const aDataSetName: String): TDataSet;
+    procedure SetViewData(const aModelName: String; const Value: TObject);
+    procedure SetViewDataset(const aDataSetName: String; const Value: TDataSet);
   protected const
     CLIENTID_KEY = '__clientid';
   protected
@@ -416,7 +420,7 @@ type
     function GetClientId: string;
     function GetCurrentWebModule: TWebModule;
     function GetViewModel: TMVCViewDataObject;
-    function GetViewDataSets: TObjectDictionary<string, TDataSet>;
+    function GetViewDataSets: TMVCViewDataSet;
     function GetRenderedView(const AViewNames: TArray<string>): string; virtual;
 
     /// <summary>
@@ -474,16 +478,19 @@ type
     property Session: TWebSession read GetSession;
     property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
-    property ViewModel: TMVCViewDataObject read GetViewModel;
-    property ViewDataSets: TObjectDictionary<string, TDataSet> read GetViewDataSets;
+    property ViewModelList: TMVCViewDataObject read GetViewModel;
+    property ViewDataSetList: TMVCViewDataSet read GetViewDataSets;
 
   public
     constructor Create;
     destructor Destroy; override;
 
     // procedure PushToView(const AModelName: string; const AModel: string);
-    procedure PushObjectToView(const AModelName: string; const AModel: TObject);
-    procedure PushDataSetToView(const AModelName: string; const ADataSet: TDataSet);
+    procedure PushObjectToView(const AModelName: string; const AModel: TObject); deprecated 'Use "ViewData"';
+    procedure PushDataSetToView(const AModelName: string; const ADataSet: TDataSet); deprecated 'Use "ViewDataSet"';
+
+    property ViewData[const aModelName: String]: TObject read GetViewData write SetViewData;
+    property ViewDataset[const aDataSetName: String]: TDataSet read GetViewDataset write SetViewDataset;
   end;
 
   TMVCControllerClazz = class of TMVCController;
@@ -2320,10 +2327,22 @@ begin
   Result := GetContext.Response.StatusCode;
 end;
 
-function TMVCController.GetViewDataSets: TObjectDictionary<string, TDataSet>;
+function TMVCController.GetViewData(const aModelName: String): TObject;
+begin
+  if not FViewModel.TryGetValue(aModelName, Result) then
+    Result := nil;
+end;
+
+function TMVCController.GetViewDataset(const aDataSetName: String): TDataSet;
+begin
+  if not FViewDataSets.TryGetValue(aDataSetName, Result) then
+    Result := nil;
+end;
+
+function TMVCController.GetViewDataSets: TMVCViewDataSet;
 begin
   if not Assigned(FViewDataSets) then
-    FViewDataSets := TObjectDictionary<string, TDataSet>.Create;
+    FViewDataSets := TMVCViewDataSet.Create;
   Result := FViewDataSets;
 end;
 
@@ -2518,6 +2537,17 @@ begin
   GetContext.Response.StatusCode := AValue;
 end;
 
+procedure TMVCController.SetViewData(const aModelName: String; const Value: TObject);
+begin
+  GetViewModel.Add(AModelName, Value);
+end;
+
+procedure TMVCController.SetViewDataset(const aDataSetName: String;
+  const Value: TDataSet);
+begin
+  GetViewDataSets.Add(aDataSetName, Value);
+end;
+
 procedure TMVCController.Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType);
 begin
   try
@@ -2612,8 +2642,8 @@ begin
       View := FEngine.ViewEngineClass.Create(
         Engine,
         Context,
-        ViewModel,
-        ViewDataSets,
+        ViewModelList,
+        ViewDataSetList,
         ContentType);
       try
 

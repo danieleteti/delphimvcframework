@@ -36,6 +36,7 @@ uses
   System.IOUtils,
   System.Generics.Collections,
   MVCFramework.TypesAliases,
+  Data.DB,
   IdGlobal,
   IdCoderMIME;
 
@@ -105,6 +106,7 @@ type
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
     SSE_RETRY_DEFAULT = 100;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
   end;
 
   TMVCConfigKey = record
@@ -372,6 +374,15 @@ type
     constructor Create;
   end;
 
+  TMVCViewDataSet = class(TObjectDictionary<string, TDataSet>)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    constructor Create;
+  end;
+
   TMVCCriticalSectionHelper = class helper for TCriticalSection
   public
     procedure DoWithLock(const AAction: TProc);
@@ -600,7 +611,7 @@ end;
 
 constructor TMVCViewDataObject.Create;
 begin
-  inherited Create([doOwnsValues]);
+  inherited Create([]);
 end;
 
 { TMVCCriticalSectionHelper }
@@ -909,6 +920,13 @@ begin
   finally
     Self.EndWrite;
   end;
+end;
+
+{ TMVCViewDataSet }
+
+constructor TMVCViewDataSet.Create;
+begin
+  inherited Create([]);
 end;
 
 initialization

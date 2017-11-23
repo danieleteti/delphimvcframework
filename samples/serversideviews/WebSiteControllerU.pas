@@ -92,8 +92,8 @@ var
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lPerson := LDAL.GetPersonByGUID(guid);
-  PushObjectToView('person', lPerson);
-  PushObjectToView('speed', GetSpeed);
+  ViewData['person'] := lPerson;
+  ViewData['speed'] := GetSpeed;
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -117,7 +117,7 @@ var
   LDAL: IPeopleDAL;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushObjectToView('people', LDAL.GetPeople);
+  ViewData['people'] := LDAL.GetPeople;
   LoadView(['people_header.csv', 'people_list.csv']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;
@@ -134,7 +134,7 @@ end;
 
 procedure TWebSiteController.NewPerson;
 begin
-  PushObjectToView('speed', GetSpeed);
+  ViewData['speed'] := GetSpeed;
   LoadView(['header', 'editperson', 'footer']);
   RenderResponseStream;
 end;
@@ -153,8 +153,8 @@ var
   LDAL: IPeopleDAL;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushObjectToView('people', LDAL.GetPeople);
-  PushObjectToView('speed', GetSpeed);
+  ViewData['people'] := LDAL.GetPeople;
+  ViewData['speed'] := GetSpeed;
   LoadView(['header', 'people_list', 'footer']);
   RenderResponseStream; // rember to call RenderResponseStream!!!
 end;

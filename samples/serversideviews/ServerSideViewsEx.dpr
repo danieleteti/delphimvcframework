@@ -5,20 +5,17 @@ program ServerSideViewsEx;
 
 uses
   System.SysUtils,
-
   {$IFDEF MSWINDOWS}
-
   Winapi.ShellAPI,
   Winapi.Windows,
-
-  {$ENDIF}
-
+  {$ENDIF }
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
   WebSiteControllerU in 'WebSiteControllerU.pas',
-  DAL in 'DAL.pas';
+  DAL in 'DAL.pas',
+  MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule};
 
 {$R *.res}
 

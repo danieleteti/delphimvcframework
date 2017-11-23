@@ -307,7 +307,7 @@ function TMVCRouter.IsCompatiblePath(
   begin
     Result := V;
     for S in Names do
-      Result := StringReplace(Result, '($' + S + ')', '([ אטישעל@\.\_\,%\w\d\x2D\x3A]*)', [rfReplaceAll]);
+      Result := StringReplace(Result, '($' + S + ')', '([' + TMVCConstants.URL_MAPPED_PARAMS_ALLOWED_CHARS + ']*)', [rfReplaceAll]);
   end;
 
 var

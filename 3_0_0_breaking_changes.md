@@ -53,3 +53,7 @@ The memory allocated for the TJSONValue descendant (e.g. TJSONObject, TJSONArray
 - ```MapperSerializeAsString``` attribute is now ```MVCSerializeAsString```
 - ```ContentCharset``` is no more available (everywhere). You have to properly set ContentType. To do that is available the function ```CreateContentType```.
 - Removed ```LogEx``` and ```LogException```. Use ```Log.ErrorFmt``` instead.
+- `PushObjectToView` has been deprecated. Use `ViewData` property;
+- `PushDataSetToView` has been deprecated. Use `ViewDataSet` property;
+- `ViewModels` has been renamed in `ViewModelList`;
+- `ViewDataSets` has been renamed in `ViewDatasetList`;

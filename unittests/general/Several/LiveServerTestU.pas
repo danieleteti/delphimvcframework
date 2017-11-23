@@ -64,6 +64,18 @@ type
   public
     [Test]
     procedure TestReqWithParams;
+
+    // URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
+    [Test]
+    [TestCase('1', ' א,ט')]
+    [TestCase('2', 'י,ש,ע')]
+    [TestCase('2', 'ל,@,[')]
+    [TestCase('2', '],{,}')]
+    [TestCase('2', '(,),\')]
+    [TestCase('2', '=,;,&')]
+    [TestCase('2', '#,.,_')]
+    [TestCase('2', '%, , ')]
+    procedure TestReqWithURLMappedParams(const par1, par2, par3: string);
     [Test]
     procedure TestPOSTWithParamsAndJSONBody;
     [Test]
@@ -931,9 +943,9 @@ end;
 
 procedure TServerTest.TestReqWithParams;
 var
-  r: IRESTResponse;
   ss: TStringStream;
   lJSON: TJSONObject;
+  r: IRESTResponse;
 begin
   r := RESTClient.doGET('/unknownurl/bla/bla', []);
 
@@ -941,7 +953,7 @@ begin
   try
     ss.CopyFrom(r.Body, 0);
     Assert.AreEqual(ss.DataString, r.BodyAsString,
-      'In case of rotocol error, the body doesn''t contain the same of BodyAsString');
+      'In case of protocol error, the body doesn''t contain the same of BodyAsString');
   finally
     ss.Free;
   end;
@@ -976,6 +988,16 @@ begin
   finally
     lJSON.Free;
   end;
+
+end;
+
+procedure TServerTest.TestReqWithURLMappedParams(const par1, par2, par3: string);
+var
+  r: IRESTResponse;
+begin
+  r := RESTClient.doGET('/req/with/params', [par1, par2, par3]);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode,
+    Format('URL mapped fails for these characters: "%s","%s","%s"', [par1, par2, par3]));
 end;
 
 // procedure TServerTest.TestSerializationType;
