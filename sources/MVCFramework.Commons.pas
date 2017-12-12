@@ -674,28 +674,32 @@ var
   S: string;
   Jo: TJSONObject;
   P: TJSONPair;
-  Jv: TJSONValue;
+  lJConfig: TJSONValue;
   I: Integer;
 begin
   { TODO -oEzequiel -cRefactoring : Replace for custom serializers }
   S := TFile.ReadAllText(AFileName);
-  Jv := TJSONObject.ParseJSONValue(S);
-  if Assigned(Jv) then
-  begin
-    if Jv is TJSONObject then
+  lJConfig := TJSONObject.ParseJSONValue(S);
+  try
+    if Assigned(lJConfig) then
     begin
-      Jo := TJSONObject(Jv);
-      for I := 0 to Jo.Count - 1 do
+      if lJConfig is TJSONObject then
       begin
-        P := Jo.Pairs[I];
-        FConfig.AddOrSetValue(P.JsonString.Value, P.JsonValue.Value);
+        Jo := TJSONObject(lJConfig);
+        for I := 0 to Jo.Count - 1 do
+        begin
+          P := Jo.Pairs[I];
+          FConfig.AddOrSetValue(P.JsonString.Value, P.JsonValue.Value);
+        end
       end
+      else
+        raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName + '] does not contain a valid JSONObject');
     end
     else
-      raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName + '] does not contain a valid JSONObject');
-  end
-  else
-    raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+      raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+  finally
+    lJConfig.Free;
+  end;
 end;
 
 procedure TMVCConfig.SaveToFile(const AFileName: string);

@@ -214,7 +214,8 @@ const
     '],' +
     '"Departament":{' +
     '"Name":"Depto1"' +
-    '}' +
+    '},' +
+    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"'+
     '}';
 
   JSON_LOWERCASE =
@@ -262,6 +263,7 @@ begin
     Assert.isTrue(Dm.EntitySalary.AsCurrency = 100);
     Assert.isTrue(Dm.EntityAmount.AsFloat = 100);
     Assert.isTrue(Dm.EntityBlobFld.AsString = '<html><body><h1>BLOB</h1></body></html>');
+    Assert.IsTrue(GUIDToString(Dm.EntityGUID.AsGuid) = '{9386C957-5379-4370-8492-8FA464A9CF0C}');
 
     Dm.Item.First;
     Assert.isTrue(Dm.ItemId.AsLargeInt = 1);
@@ -602,7 +604,8 @@ const
     '],' +
     '"Departament":{' +
     '"Name":"Depto1"' +
-    '}' +
+    '},' +
+    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"'+
     '}';
 
   JSON_LOWERCASE =
@@ -651,6 +654,7 @@ begin
     Dm.EntitySalary.AsCurrency := 100;
     Dm.EntityAmount.AsFloat := 100;
     Dm.EntityBlobFld.AsString := '<html><body><h1>BLOB</h1></body></html>';
+    Dm.EntityGUID.AsGuid := StringToGUID('{9386C957-5379-4370-8492-8FA464A9CF0C}');
 
     Dm.Item.Insert;
     Dm.ItemId.AsLargeInt := 1;
@@ -675,35 +679,35 @@ begin
     Dm.EntityLowerCaseName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityLowerCase.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityLowerCase);
-    Assert.areEqual(JSON_LOWERCASE, S);
+    Assert.areEqual(JSON_LOWERCASE, S, 'json lowercase');
 
     Dm.EntityUpperCase.Insert;
     Dm.EntityUpperCaseId.AsLargeInt := 1;
     Dm.EntityUpperCaseName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityUpperCase.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityUpperCase);
-    Assert.areEqual(JSON_UPPERCASE, S);
+    Assert.areEqual(JSON_UPPERCASE, S, 'json uppercase (1)');
 
     Dm.EntityUpperCase2.Insert;
     Dm.EntityUpperCase2Id.AsLargeInt := 1;
     Dm.EntityUpperCase2Name.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityUpperCase2.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityUpperCase2, [], ncUpperCase);
-    Assert.areEqual(JSON_UPPERCASE, S);
+    Assert.areEqual(JSON_UPPERCASE, S, 'json uppercase (2)');
 
     Dm.EntityAsIs.Insert;
     Dm.EntityAsIsId.AsLargeInt := 1;
     Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityAsIs.Post;
     S := FSerializer.SerializeDataSetRecord(Dm.EntityAsIs);
-    Assert.areEqual(JSON_ASIS, S);
+    Assert.areEqual(JSON_ASIS, S, 'json as is');
 
     Dm.EntityAsIs.Append;
     Dm.EntityAsIsId.AsLargeInt := 2;
     Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityAsIs.Post;
     S := FSerializer.SerializeDataSet(Dm.EntityAsIs);
-    Assert.areEqual(JSON_LIST, S);
+    Assert.areEqual(JSON_LIST, S, 'json list');
   finally
     Dm.Free;
   end;

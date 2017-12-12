@@ -56,6 +56,10 @@ object EntitiesModule: TEntitiesModule
     object EntityDepartament: TDataSetField
       FieldName = 'Departament'
     end
+    object EntityGUID: TGuidField
+      FieldName = 'GUID'
+      Size = 38
+    end
   end
   object EntityLowerCase: TClientDataSet
     Aggregates = <>

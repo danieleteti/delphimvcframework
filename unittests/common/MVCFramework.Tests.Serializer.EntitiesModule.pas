@@ -86,6 +86,7 @@ type
 
     [MVCNameAs('Name_Name')]
     EntityAsIsName: TStringField;
+    EntityGUID: TGuidField;
 
     procedure DataModuleCreate(Sender: TObject);
   private
