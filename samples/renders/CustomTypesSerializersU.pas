@@ -48,10 +48,25 @@ type
       );
   end;
 
+  // Custom serializer for TNullableAliasSerializer type
+  TNullableAliasSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure Serialize(
+      const AElementValue: TValue;
+      var ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>
+      );
+    procedure Deserialize(
+      const ASerializedObject: TObject;
+      var AElementValue: TValue;
+      const AAttributes: TArray<TCustomAttribute>
+      );
+  end;
+
 implementation
 
 uses
-  JsonDataObjects, CustomTypesU;
+  JsonDataObjects, CustomTypesU, MVCFramework.Serializer.JsonDataObjects;
 
 { TUserPasswordSerializer }
 
@@ -87,6 +102,21 @@ begin
     lJSONArr.Add(lRole);
   end;
   lJSONArr.Add('--end--'); { just to prove that the custom serializaion happends }
+end;
+
+{ TNullableAliasSerializer }
+
+procedure TNullableAliasSerializer.Deserialize(const ASerializedObject: TObject;
+  var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+begin
+
+end;
+
+procedure TNullableAliasSerializer.Serialize(const AElementValue: TValue;
+  var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  ASerializerObject := TJsonValue.Create;
+  TJsonValue(ASerializerObject).Value := AElementValue.AsType<TNullableRecordAlias>.Value;
 end;
 
 end.

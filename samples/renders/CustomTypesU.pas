@@ -33,6 +33,12 @@ type
   // useful to identify all the fields that must be serialized
   // using the custom serializer defined for this type
   TUserRoles = TArray<string>;
+  TNullableRecord<T> = record
+    Value: T;
+    HasValue: Boolean;
+  end;
+
+  TNullableRecordAlias = TNullableRecord<String>;
 
   // This is the main object which uses the
   // custom serialized type as property Roles
@@ -40,6 +46,7 @@ type
   private
     FUserName: string;
     FRoles: TUserRoles;
+    fRecordAlias: TNullableRecordAlias;
     procedure SetUserName(const Value: string);
     function GetUserRoles: TUserRoles;
   public
@@ -47,6 +54,7 @@ type
     property UserName: string read FUserName write SetUserName;
     // Here we are using the custom-serialized type TUserRoles
     property Roles: TUserRoles read GetUserRoles;
+    property RecordAlias: TNullableRecordAlias read fRecordAlias write fRecordAlias;
   end;
 
 implementation

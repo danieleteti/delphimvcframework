@@ -7,12 +7,16 @@ uses
 
 type
   TCompressionMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  private
+    fCompressionThreshold: Integer;
   protected
     procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
       const Handled: Boolean);
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
+  public
+    constructor Create(aCompressionThreshold: Integer = 1024); virtual;
   end;
 
 implementation
@@ -21,6 +25,12 @@ uses
   System.SysUtils, System.ZLib, System.Classes;
 
 { TMVCSalutationMiddleware }
+
+constructor TCompressionMiddleware.Create(aCompressionThreshold: Integer);
+begin
+  inherited Create;
+  fCompressionThreshold := aCompressionThreshold;
+end;
 
 procedure TCompressionMiddleware.OnAfterControllerAction(Context: TWebContext;
   const AActionNAme: string; const Handled: Boolean);
@@ -32,6 +42,10 @@ var
   lItem: string;
   lFound: Boolean;
 begin
+  lContentStream := Context.Response.RawWebResponse.ContentStream;
+  if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold) then
+    Exit;
+
   lAcceptEncoding := Context.Request.Headers['Accept-Encoding'].ToLower.Trim;
   if lAcceptEncoding.IsEmpty then
     Exit;
@@ -47,10 +61,6 @@ begin
     end;
   end;
   if not lFound then
-    Exit;
-
-  lContentStream := Context.Response.RawWebResponse.ContentStream;
-  if lContentStream = nil then
     Exit;
 
   lContentStream.Position := 0;

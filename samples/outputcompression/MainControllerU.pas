@@ -14,6 +14,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure GetCustomers;
 
+    [MVCPath('/tallcustomers')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetCustomersSmallList;
+
     [MVCPath('/customers/($id)')]
     [MVCHTTPMethod([httpGET])]
     procedure GetCustomer(id: Integer);
@@ -42,6 +46,11 @@ uses
 procedure TMyController.GetCustomers;
 begin
   Render<TPerson>(GetPeopleList, False);
+end;
+
+procedure TMyController.GetCustomersSmallList;
+begin
+  Render<TPerson>(GetPeopleSmallList, False);
 end;
 
 procedure TMyController.GetCustomer(id: Integer);

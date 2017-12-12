@@ -88,6 +88,11 @@ begin
     .RegisterTypeSerializer(TypeInfo(TUserRoles), TUserRolesSerializer.Create);
   // You can check how this custom type serializer works
   // calling http://localhost:8080/customserializationtype
+
+  DMVC
+    .Serializers
+    .Items[BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
+    .RegisterTypeSerializer(TypeInfo(TNullableRecordAlias), TNullableAliasSerializer.Create);
 end;
 
 end.

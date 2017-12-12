@@ -1,6 +1,6 @@
 program OutputCompressionSample;
 
- {$APPTYPE CONSOLE}
+{$APPTYPE CONSOLE}
 
 uses
   System.SysUtils,
@@ -12,7 +12,7 @@ uses
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
   InMemoryDataU in '..\renders\InMemoryDataU.pas',
   BusinessObjectsU in '..\commons\BusinessObjectsU.pas';
 
@@ -30,7 +30,7 @@ begin
   else
     lCmd := 'start';
 
-  lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
+  lCustomHandler := function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
     begin
       Handled := False;
       Result := THandleCommandResult.Unknown;
@@ -64,11 +64,17 @@ begin
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
 
+    { ************* }
+    WriteLn('To test the compression middleware call the following URL:');
+    WriteLn('  http://localhost:8080/customers  (compression enabled)');
+    WriteLn('  http://localhost:8080/tallcustomers  (compression disable because response length < 1024 bytes)');
+    { ************* }
+
     WriteLn('Write "quit" or "exit" to shutdown the server');
     repeat
       if lCmd.IsEmpty then
       begin
-        Write('-> ');
+        write('-> ');
         ReadLn(lCmd)
       end;
       try
@@ -108,4 +114,5 @@ begin
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
   end;
+
 end.
