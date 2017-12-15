@@ -7,4 +7,7 @@
 .\samples\**\*.fmx
 .\samples\**\*.html
 .\samples\**\*.mustache
+.\samples\**\*.jpg
+.\samples\**\*.js
+.\samples\**\*.css
 .\samples\**\myproj*
