@@ -3,7 +3,11 @@
 
 ### [DelphiMVCFramework 3.0.0](https://github.com/danieleteti/delphimvcframework/tree/pluggable_mapper/releases) is in RC stage! Check it out the new features!
 
+### Getting Started!
 
+Version 3.x is the suggested version for new projects. Please, use the following link to download it.
+
+[Download the latest version](https://github.com/danieleteti/delphimvcframework/releases/latest)
 
 ## DelphiMVCFramework 2.x Main Features
 
