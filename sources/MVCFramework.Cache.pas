@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -38,12 +38,14 @@ type
   private
     FCriticalSection: TCriticalSection;
     FValue: TValue;
+    FTimeStamp: TDateTime;
     function GetValue: TValue;
     procedure SetValue(const Value: TValue);
   public
     constructor Create;
     destructor Destroy; override;
     property Value: TValue read GetValue write SetValue;
+    property TimeStamp: TDateTime read FTimeStamp;
   end;
 
   TMVCCache = class sealed
@@ -53,8 +55,9 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure SetValue(const AName: string; const AValue: TValue);
+    function SetValue(const AName: string; const AValue: TValue): TMVCCacheItem;
     function Contains(const AName: string; out AValue: TValue): Boolean;
+    function ContainsItem(const AName: string; out AItem: TMVCCacheItem): Boolean;
     function GetValue(const AName: string): TValue;
     function ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
   end;
@@ -78,9 +81,10 @@ uses
 
 { TCache }
 
-procedure TMVCCache.SetValue(const AName: string; const AValue: TValue);
+function TMVCCache.SetValue(const AName: string; const AValue: TValue): TMVCCacheItem;
 var
   lValue: TValue;
+  lCacheItem: TMVCCacheItem;
 begin
   lValue := AValue;
 
@@ -95,16 +99,17 @@ begin
       end
       else
       begin
-        lItem := TMVCCacheItem.Create;
+        lCacheItem := TMVCCacheItem.Create;
         try
-          lItem.Value := lValue;
-          FStorage.Add(AName, lItem);
+          lCacheItem.Value := lValue;
+          FStorage.Add(AName, lCacheItem);
         except
-          lItem.Free;
+          lCacheItem.Free;
           raise;
         end;
       end;
     end);
+  Result := lCacheItem;
 end;
 
 function TMVCCache.ExecOnItemWithWriteLock(const AName: string; const AAction: TProc<TValue>): Boolean;
@@ -126,17 +131,27 @@ end;
 
 function TMVCCache.Contains(const AName: string; out AValue: TValue): Boolean;
 var
-  lValue: TMVCCacheItem;
+  lItem: TMVCCacheItem;
+begin
+  Result := ContainsItem(AName, lItem);
+  if Result then
+    AValue := lItem.Value;
+end;
+
+function TMVCCache.ContainsItem(const AName: string;
+out AItem: TMVCCacheItem): Boolean;
+var
+  lItem: TMVCCacheItem;
   lRes: Boolean;
 begin
   FMREW.DoWithReadLock(
     procedure
     begin
-      lRes := FStorage.TryGetValue(AName, lValue);
+      lRes := FStorage.TryGetValue(AName, lItem);
     end);
   Result := lRes;
   if Result then
-    AValue := lValue.Value;
+    AItem := lItem;
 end;
 
 constructor TMVCCache.Create;
@@ -177,6 +192,7 @@ begin
   inherited Create;
   FCriticalSection := TCriticalSection.Create;
   FValue := TValue.Empty;
+  FTimeStamp := 0;
 end;
 
 destructor TMVCCacheItem.Destroy;
@@ -193,6 +209,7 @@ end;
 procedure TMVCCacheItem.SetValue(const Value: TValue);
 begin
   FValue := Value;
+  FTimeStamp := Now;
 end;
 
 { TMVCCacheSingleton }

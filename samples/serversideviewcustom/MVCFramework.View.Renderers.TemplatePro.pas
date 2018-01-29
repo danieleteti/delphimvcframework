@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -28,13 +28,13 @@ interface
 
 uses
   MVCFramework, System.Generics.Collections, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils;
+  MVCFramework.Commons, System.IOUtils, System.Classes;
 
 type
   { This class implements the TemplatePro view engine for server side views }
   TMVCTemplateProViewEngine = class(TMVCBaseViewEngine)
   public
-    procedure Execute(const ViewName: string); override;
+    procedure Execute(const ViewName: string; const OutputStream: TStream); override;
   end;
 
 implementation
@@ -45,50 +45,39 @@ uses
   MVCFramework.DuckTyping,
   TemplateProU,
   MVCFramework.Cache,
-  System.Classes,
   Data.DB, System.Rtti;
 
 {$WARNINGS OFF}
 
-procedure TMVCTemplateProViewEngine.Execute(const ViewName: string);
+procedure TMVCTemplateProViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
   lTP: TTemplateProEngine;
   lViewFileName: string;
-  lViewTemplate: string;
-  lSS: TStringStream;
-  lValue: TValue;
+  lViewTemplate: UTF8String;
+  lCacheItem: TMVCCacheItem;
 begin
   lTP := TTemplateProEngine.Create;
   try
     lViewFileName := GetRealFileName(ViewName);
     if not FileExists(lViewFileName) then
+    begin
       raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
-
-    if not TMVCCacheSingleton.Instance.Contains(lViewFileName, lValue) then
-    begin
-      lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
-      TMVCCacheSingleton.Instance.SetValue(lViewFileName, lViewTemplate);
-    end
-    else
-    begin
-      lViewTemplate := lValue.AsString;
     end;
 
-    lSS := TStringStream.Create;
+    if not TMVCCacheSingleton.Instance.ContainsItem(lViewFileName, lCacheItem) then
+    begin
+      lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
+      lCacheItem := TMVCCacheSingleton.Instance.SetValue(lViewFileName, lViewTemplate);
+    end;
+
+    lViewTemplate := lCacheItem.Value.AsString;
     try
-      try
-        lTP.Execute(lViewTemplate, ViewDataSets, lSS);
-      except
-        on E: EParserException do
-        begin
-          raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)', [ViewName, E.Message, E.ClassName]);
-        end;
-      end;
-      lSS.Position := 0;
-      SetOutput(lSS.DataString);
+      lTP.Execute(lViewTemplate, TTPObjectListDictionary(ViewModel), TTPDatasetDictionary(ViewDataSets), OutputStream);
     except
-      lSS.Free;
-      raise;
+      on E: EParserException do
+      begin
+        raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)', [ViewName, E.Message, E.ClassName]);
+      end;
     end;
   finally
     lTP.Free;

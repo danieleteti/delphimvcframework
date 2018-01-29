@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -404,10 +404,10 @@ type
     function GetStatusCode: Integer;
     procedure SetContentType(const AValue: string);
     procedure SetStatusCode(const AValue: Integer);
-    function GetViewData(const aModelName: String): TObject;
-    function GetViewDataset(const aDataSetName: String): TDataSet;
-    procedure SetViewData(const aModelName: String; const Value: TObject);
-    procedure SetViewDataset(const aDataSetName: String; const Value: TDataSet);
+    function GetViewData(const aModelName: string): TObject;
+    function GetViewDataset(const aDataSetName: string): TDataSet;
+    procedure SetViewData(const aModelName: string; const Value: TObject);
+    procedure SetViewDataset(const aDataSetName: string; const Value: TDataSet);
   protected const
     CLIENTID_KEY = '__clientid';
   protected
@@ -489,8 +489,8 @@ type
     procedure PushObjectToView(const AModelName: string; const AModel: TObject); deprecated 'Use "ViewData"';
     procedure PushDataSetToView(const AModelName: string; const ADataSet: TDataSet); deprecated 'Use "ViewDataSet"';
 
-    property ViewData[const aModelName: String]: TObject read GetViewData write SetViewData;
-    property ViewDataset[const aDataSetName: String]: TDataSet read GetViewDataset write SetViewDataset;
+    property ViewData[const aModelName: string]: TObject read GetViewData write SetViewData;
+    property ViewDataset[const aDataSetName: string]: TDataSet read GetViewDataset write SetViewDataset;
   end;
 
   TMVCControllerClazz = class of TMVCController;
@@ -703,7 +703,6 @@ type
   protected
     function GetRealFileName(const AViewName: string): string; virtual;
     function IsCompiledVersionUpToDate(const AFileName, ACompiledFileName: string): Boolean; virtual; abstract;
-    procedure SetOutput(const AOutput: string);
   public
     constructor Create(
       const AEngine: TMVCEngine;
@@ -713,7 +712,7 @@ type
       const AContentType: string); virtual;
     destructor Destroy; override;
 
-    procedure Execute(const ViewName: string); virtual; abstract;
+    procedure Execute(const ViewName: string; const OutputStream: TStream); virtual; abstract;
 
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
@@ -2327,13 +2326,13 @@ begin
   Result := GetContext.Response.StatusCode;
 end;
 
-function TMVCController.GetViewData(const aModelName: String): TObject;
+function TMVCController.GetViewData(const aModelName: string): TObject;
 begin
   if not FViewModel.TryGetValue(aModelName, Result) then
     Result := nil;
 end;
 
-function TMVCController.GetViewDataset(const aDataSetName: String): TDataSet;
+function TMVCController.GetViewDataset(const aDataSetName: string): TDataSet;
 begin
   if not FViewDataSets.TryGetValue(aDataSetName, Result) then
     Result := nil;
@@ -2537,12 +2536,12 @@ begin
   GetContext.Response.StatusCode := AValue;
 end;
 
-procedure TMVCController.SetViewData(const aModelName: String; const Value: TObject);
+procedure TMVCController.SetViewData(const aModelName: string; const Value: TObject);
 begin
   GetViewModel.Add(AModelName, Value);
 end;
 
-procedure TMVCController.SetViewDataset(const aDataSetName: String;
+procedure TMVCController.SetViewDataset(const aDataSetName: string;
   const Value: TDataSet);
 begin
   GetViewDataSets.Add(aDataSetName, Value);
@@ -2622,57 +2621,32 @@ begin
 end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;
-
-{$IFNDEF LINUX}
-
 var
-  View: TMVCBaseViewEngine;
-  ViewName: string;
-  SBuilder: TStringBuilder;
-
-  {$ENDIF}
-
+  lView: TMVCBaseViewEngine;
+  lViewName: string;
+  lStrStream: TStringStream;
 begin
-
-  {$IFNDEF LINUX}
-
-  SBuilder := TStringBuilder.Create;
+  lStrStream := TStringStream.Create('', TEncoding.UTF8);
   try
+    lView := FEngine.ViewEngineClass.Create(
+      Engine,
+      Context,
+      ViewModelList,
+      ViewDataSetList,
+      ContentType);
     try
-      View := FEngine.ViewEngineClass.Create(
-        Engine,
-        Context,
-        ViewModelList,
-        ViewDataSetList,
-        ContentType);
-      try
-
-        for ViewName in AViewNames do
-        begin
-          View.Execute(ViewName);
-          SBuilder.Append(View.Output);
-        end;
-      finally
-        View.Free;
-      end;
-      Result := SBuilder.ToString;
-    except
-      on E: Exception do
+      for lViewName in AViewNames do
       begin
-        ContentType := TMVCMediaType.TEXT_PLAIN;
-        Render(E);
+        lView.Execute(lViewName, lStrStream);
       end;
+    finally
+      lView.Free;
     end;
+    lStrStream.Position := 0;
+    Result := lStrStream.DataString;
   finally
-    SBuilder.Free;
+    lStrStream.Free;
   end;
-
-  {$ELSE}
-
-  raise EMVCException.Create('Server Side Views are not supported on Linux');
-
-  {$ENDIF}
-
 end;
 
 procedure TMVCController.Render<T>(const ACollection: TObjectList<T>);
@@ -2928,11 +2902,6 @@ begin
     Result := FileName
   else
     Result := EmptyStr;
-end;
-
-procedure TMVCBaseViewEngine.SetOutput(const AOutput: string);
-begin
-  FOutput := AOutput;
 end;
 
 initialization

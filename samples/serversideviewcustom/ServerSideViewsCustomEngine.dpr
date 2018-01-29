@@ -16,7 +16,8 @@ uses
   WebSiteControllerU in 'WebSiteControllerU.pas',
   MVCFramework.View.Renderers.TemplatePro in 'MVCFramework.View.Renderers.TemplatePro.pas',
   TemplateProU in 'lib\TemplateProU.pas',
-  MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule};
+  MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
+  MVCFramework.Cache in '..\..\sources\MVCFramework.Cache.pas';
 
 {$R *.res}
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -418,15 +418,15 @@ begin
           ftBoolean:
             AJsonObject.B[FieldName] := ADataSet.Fields[I].AsBoolean;
 
-          ftInteger, ftSmallint, ftShortint:
+          ftInteger, ftSmallint, ftShortint, ftByte:
             AJsonObject.I[FieldName] := ADataSet.Fields[I].AsInteger;
 
           ftLargeint, ftAutoInc:
             AJsonObject.L[FieldName] := ADataSet.Fields[I].AsLargeInt;
-
+{$IFDEF TOKYOORBETTER}
           ftGuid:
             AJsonObject.S[FieldName] := GUIDToString(ADataSet.Fields[I].AsGuid);
-
+{$ENDIF}
           ftSingle, ftFloat:
             AJsonObject.F[FieldName] := ADataSet.Fields[I].AsFloat;
 
@@ -749,7 +749,7 @@ begin
         TFieldType.ftBoolean:
           Field.AsBoolean := AJsonObject.B[name];
 
-        TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint:
+        TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint, TFieldType.ftByte:
           Field.AsInteger := AJsonObject.I[name];
 
         TFieldType.ftLargeint:
@@ -776,8 +776,10 @@ begin
         TFieldType.ftTimeStamp, TFieldType.ftTime:
           Field.AsDateTime := ISOTimeToTime(AJsonObject.S[name]);
 
+{$IFDEF TOKYOORBETTER}
         TFieldType.ftGuid:
           Field.AsGuid := StringToGUID(AJsonObject.S[name]);
+{$ENDIF}
 
         TFieldType.ftGraphic, TFieldType.ftBlob, TFieldType.ftStream:
           begin

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -28,7 +28,7 @@ interface
 
 uses
   MVCFramework, System.Generics.Collections, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils;
+  MVCFramework.Commons, System.IOUtils, System.Classes;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -38,7 +38,8 @@ type
   private
     FJSONModel: string;
   public
-    procedure Execute(const ViewName: string); override;
+    procedure Execute(const ViewName: string; const OutputStream: TStream);
+      override;
   end;
 
 implementation
@@ -52,11 +53,12 @@ uses
 
 {$WARNINGS OFF}
 
-procedure TMVCMustacheViewEngine.Execute(const ViewName: string);
+procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
   ViewFileName: string;
   ViewTemplate: RawUTF8;
   ViewEngine: TSynMustache;
+  lSW: TStreamWriter;
 begin
   PrepareModels;
   ViewFileName := GetRealFileName(ViewName);
@@ -64,7 +66,12 @@ begin
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
   ViewTemplate := StringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
   ViewEngine := TSynMustache.Parse(ViewTemplate);
-  SetOutput(UTF8Tostring(ViewEngine.RenderJSON(FJSONModel)));
+  lSW := TStreamWriter.Create(OutputStream);
+  try
+    lSW.Write(UTF8Tostring(ViewEngine.RenderJSON(FJSONModel)));
+  finally
+    lSW.Free;
+  end;
 end;
 
 {$WARNINGS ON}
