@@ -1263,7 +1263,6 @@ procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_I;
 var
   lReq: TJSONRPCRequest;
   lHttpResp: IRESTResponse;
-  lRPCResp: TJSONRPCResponse;
   lResp: TJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;
@@ -1297,7 +1296,6 @@ var
   lReq: TJSONRPCRequest;
   lResp: IRESTResponse;
   lRPCResp: TJSONRPCResponse;
-  lS: string;
   lArr: TJDOJsonArray;
   I: Integer;
   x: Integer;
