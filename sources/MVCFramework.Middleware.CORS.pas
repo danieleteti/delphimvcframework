@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,68 +24,80 @@
 
 unit MVCFramework.Middleware.CORS;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
-  MVCFramework;
+  System.StrUtils,
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
-  TCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
+
+  TMVCCORSMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     FAllowedOriginURL: string;
     FAllowsCredentials: string;
+  protected
+    procedure OnBeforeRouting(
+      AContext: TWebContext;
+      var AHandled: Boolean
+      );
+
+    procedure OnBeforeControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
+      var AHandled: Boolean
+      );
+
+    procedure OnAfterControllerAction(
+      AContext: TWebContext;
+      const AActionName: string;
+      const AHandled: Boolean
+      );
   public
-    constructor Create(const AllowedOriginURL: string = '*';
-      const AllowsCredentials: Boolean = true); virtual;
-    procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
-    procedure OnAfterControllerAction(Context: TWebContext;
-      const AActionNAme: string; const Handled: Boolean);
-    procedure OnBeforeControllerAction(Context: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionNAme: string;
-      var Handled: Boolean);
+    constructor Create(const AAllowedOriginURL: string = '*'; const AAllowsCredentials: Boolean = True); virtual;
   end;
+
+  TCORSMiddleware = TMVCCORSMiddleware;
 
 implementation
 
-uses
-  System.StrUtils, MVCFramework.Commons, System.Classes;
+{ TMVCCORSMiddleware }
 
-{ TCORSMiddleware }
-
-constructor TCORSMiddleware.Create(const AllowedOriginURL: string;
-  const AllowsCredentials: Boolean);
+constructor TMVCCORSMiddleware.Create(const AAllowedOriginURL: string; const AAllowsCredentials: Boolean);
 begin
   inherited Create;
-  FAllowedOriginURL := AllowedOriginURL;
-  FAllowsCredentials := ifthen(AllowsCredentials, 'true', 'false');
+  FAllowedOriginURL := AAllowedOriginURL;
+  FAllowsCredentials := IfThen(AAllowsCredentials, 'true', 'false');
 end;
 
-procedure TCORSMiddleware.OnAfterControllerAction(Context: TWebContext;
-  const AActionNAme: string; const Handled: Boolean);
+procedure TMVCCORSMiddleware.OnAfterControllerAction(AContext: TWebContext;
+  const AActionName: string; const AHandled: Boolean);
 begin
+  // Implement as needed
 end;
 
-procedure TCORSMiddleware.OnBeforeControllerAction(Context: TWebContext;
-  const AControllerQualifiedClassName, AActionNAme: string;
-  var Handled: Boolean);
+procedure TMVCCORSMiddleware.OnBeforeControllerAction(
+  AContext: TWebContext; const AControllerQualifiedClassName,
+  AActionName: string; var AHandled: Boolean);
 begin
-  // do nothing
+  // Implement as needed
 end;
 
-procedure TCORSMiddleware.OnBeforeRouting(Context: TWebContext;
-  var Handled: Boolean);
-var
-  lCustomHeaders: TStrings;
+procedure TMVCCORSMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 begin
-  lCustomHeaders := Context.Response.RawWebResponse.CustomHeaders;
-  lCustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
-  lCustomHeaders.Values['Access-Control-Allow-Methods'] := 'POST, GET, OPTIONS, PUT, DELETE';
-  lCustomHeaders.Values['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword, authentication';
-  lCustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
-  if Context.Request.HTTPMethod = httpOPTIONS then
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Origin'] := FAllowedOriginURL;
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Methods'] := 'POST, GET, OPTIONS, PUT, DELETE';
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Headers'] := 'Content-Type, Accept, jwtusername, jwtpassword, authentication';
+  AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Allow-Credentials'] := FAllowsCredentials;
+	AContext.Response.RawWebResponse.CustomHeaders.Values['Access-Control-Expose-Headers'] := 'authentication, authorization';	
+  if (AContext.Request.HTTPMethod = httpOPTIONS) then
   begin
-    Context.Response.StatusCode := 200;
-    Handled := true;
+    AContext.Response.StatusCode := HTTP_STATUS.OK;
+    AHandled := True;
   end;
 end;
 

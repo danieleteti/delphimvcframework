@@ -2,9 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -23,6 +25,8 @@
 // ***************************************************************************
 
 unit MVCFramework.Server;
+
+{$I dmvcframework.inc}
 
 interface
 

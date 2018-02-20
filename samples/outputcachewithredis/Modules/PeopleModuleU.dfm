@@ -49,7 +49,6 @@ object PeopleModule: TPeopleModule
         'utputCacheWithRedisdb'
       'DriverID=SQLite')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     AfterConnect = ConnAfterConnect
     BeforeConnect = ConnBeforeConnect

@@ -3,7 +3,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'New DMVCFramework Project Wizard'
-  ClientHeight = 506
+  ClientHeight = 543
   ClientWidth = 354
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnCreate = FormCreate
   DesignSize = (
     354
-    506)
+    543)
   PixelsPerInch = 96
   TextHeight = 13
   object lblWbModule: TLabel
@@ -30,7 +30,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Label2: TLabel
     Left = 24
-    Top = 410
+    Top = 442
     Width = 55
     Height = 13
     Caption = 'Server Port'
@@ -372,20 +372,35 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = Image1Click
     ExplicitWidth = 352
   end
+  object lblFrameworkVersion: TLabel
+    Left = 123
+    Top = 85
+    Width = 226
+    Height = 13
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = '3.0.0 hydrogen'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+  end
   object gbControllerUnitOptions: TGroupBox
     Left = 8
     Top = 256
     Width = 338
-    Height = 137
+    Height = 169
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Controller Unit Options'
     TabOrder = 2
     DesignSize = (
       338
-      137)
+      169)
     object lblClassName: TLabel
       Left = 16
-      Top = 86
+      Top = 118
       Width = 105
       Height = 13
       Caption = 'Controller Class Name'
@@ -403,20 +418,18 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Width = 306
       Height = 17
       Anchors = [akLeft, akTop, akRight]
-      Caption = 'Create Index And Sample Methods'
+      Caption = 'Create Index And Sample Actions'
       Checked = True
       State = cbChecked
       TabOrder = 0
-      ExplicitWidth = 307
     end
     object edtClassName: TEdit
       Left = 16
-      Top = 105
+      Top = 137
       Width = 306
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 1
-      ExplicitWidth = 307
     end
     object chkCreateActionFiltersMethods: TCheckBox
       Left = 16
@@ -428,12 +441,22 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Checked = True
       State = cbChecked
       TabOrder = 2
-      ExplicitWidth = 307
+    end
+    object chkCreateCRUDMethods: TCheckBox
+      Left = 16
+      Top = 77
+      Width = 306
+      Height = 17
+      Anchors = [akLeft, akTop, akRight]
+      Caption = 'Create Sample CRUD Actions'
+      Checked = True
+      State = cbChecked
+      TabOrder = 3
     end
   end
   object btnOK: TButton
     Left = 190
-    Top = 473
+    Top = 510
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
@@ -441,12 +464,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Default = True
     ModalResult = 1
     TabOrder = 3
-    ExplicitLeft = 191
-    ExplicitTop = 474
   end
   object btnCancel: TButton
     Left = 271
-    Top = 473
+    Top = 510
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
@@ -454,8 +475,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
-    ExplicitLeft = 272
-    ExplicitTop = 474
   end
   object chkCreateControllerUnit: TCheckBox
     Left = 24
@@ -489,7 +508,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object edtServerPort: TEdit
     Left = 24
-    Top = 429
+    Top = 461
     Width = 65
     Height = 21
     TabOrder = 6

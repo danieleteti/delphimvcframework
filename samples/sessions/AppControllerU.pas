@@ -2,7 +2,8 @@ unit AppControllerU;
 
 interface
 
-uses MVCFramework,
+uses
+  MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Logger,
   Web.HTTPApp;
@@ -18,7 +19,7 @@ type
 
     [MVCPath('/login/($username)')]
     [MVCHTTPMethod([httpGET])]
-    procedure DoLogin(username: String);
+    procedure DoLogin(username: string);
 
     [MVCPath('/logout')]
     [MVCHTTPMethod([httpGET])]
@@ -30,7 +31,7 @@ implementation
 
 { TApp1MainController }
 
-procedure TApp1MainController.DoLogin(username: String);
+procedure TApp1MainController.DoLogin(username: string);
 begin
   Session['username'] := username;
   Render(200, 'Logged in');
@@ -44,8 +45,6 @@ end;
 
 procedure TApp1MainController.Index;
 begin
-  ContentType := TMVCMediaType.TEXT_PLAIN;
-
   // do not create session if not already created
   if Context.SessionStarted then
   begin

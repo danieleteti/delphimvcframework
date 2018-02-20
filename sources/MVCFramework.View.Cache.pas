@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,14 +24,10 @@
 
 unit MVCFramework.View.Cache;
 
+{$I dmvcframework.inc}
+
 interface
 
-uses
-  Generics.Collections;
-
 implementation
-
-uses
-  System.SysUtils;
 
 end.

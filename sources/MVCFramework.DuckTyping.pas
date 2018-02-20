@@ -2,9 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -24,105 +26,129 @@
 
 unit MVCFramework.DuckTyping;
 
+{$I dmvcframework.inc}
+
 {$LEGACYIFEND ON}
 
 interface
 
 uses
-  RTTI,
-  Classes,
-  // superobject,
-  Generics.Collections,
-  SysUtils,
-  TypInfo;
+  System.Rtti,
+  System.Generics.Collections,
+  System.SysUtils,
+  System.TypInfo,
+  System.Math;
 
 type
-  TDuckTypedList = class;
 
-  IList = interface
-    ['{2A1BCB3C-17A2-4F8D-B6FB-32B2A1BFE840}']
-    function Add(const Value: TObject): Integer;
-    procedure Clear;
-    function Count: Integer;
-    function GetItem(index: Integer): TObject;
-  end;
-
-  TDuckListEnumerator = class(TEnumerator<TObject>)
-  protected
-    FPosition: Int64;
-    FDuckTypedList: TDuckTypedList;
-
-  protected
-    function DoGetCurrent: TObject; override;
-    function DoMoveNext: boolean; override;
-
-  public
-    constructor Create(ADuckTypedList: TDuckTypedList);
-  end;
+  EMVCDuckTypingException = class(Exception);
 
   TSortingType = (soAscending, soDescending);
 
-  IWrappedList = interface
-    ['{B60AF5A6-7C31-4EAA-8DFB-D8BD3E112EE7}']
-    function Count: Integer;
-    function GetItem(const index: Integer): TObject;
-    procedure Add(const AObject: TObject);
-    procedure Clear;
-    function GetEnumerator: TDuckListEnumerator;
-    function WrappedObject: TObject;
-    procedure Sort(const PropertyName: string;
-      Order: TSortingType = soAscending);
-    function GetOwnsObjects: boolean;
-    procedure SetOwnsObjects(const Value: boolean);
-    property OwnsObjects: boolean read GetOwnsObjects write SetOwnsObjects;
+  TDuckTypedList = class;
+
+  TDuckListEnumerator = class(TEnumerator<TObject>)
+  private
+    FPosition: Int64;
+    FDuckTypedList: TDuckTypedList;
+  protected
+    function DoGetCurrent: TObject; override;
+    function DoMoveNext: Boolean; override;
+  public
+    constructor Create(const ADuckTypedList: TDuckTypedList);
   end;
 
-  TDuckTypedList = class(TInterfacedObject, IWrappedList)
+  IMVCList = interface
+    ['{D5958EC5-60FF-4C7B-81AF-96312174E719}']
+    function GetItem(const AIndex: Integer): TObject;
+    function GetEnumerator: TDuckListEnumerator;
+    function GetOwnsObjects: Boolean;
+    procedure SetOwnsObjects(const AValue: Boolean);
+
+    procedure Add(const AObject: TObject);
+    function Count: Integer;
+    procedure Clear;
+
+    function IsWrappedList: Boolean; overload;
+
+    function WrappedObject: TObject;
+    procedure Sort(const APropertyName: string; const AOrder: TSortingType = soAscending);
+
+    property OwnsObjects: Boolean read GetOwnsObjects write SetOwnsObjects;
+  end;
+
+  IWrappedList = IMVCList;
+
+  TDuckTypedList = class(TInterfacedObject, IMVCList)
   private
-    FOwnsObject: boolean;
-  protected
-    FCTX: TRTTIContext;
+    FOwnsObject: Boolean;
     FObjectAsDuck: TObject;
+    FContext: TRttiContext;
+    FObjType: TRttiType;
     FAddMethod: TRttiMethod;
     FClearMethod: TRttiMethod;
     FCountProperty: TRttiProperty;
     FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
-    function Count: Integer;
-    function GetItem(const index: Integer): TObject;
-    procedure Add(const AObject: TObject);
-    procedure Clear;
-    function WrappedObject: TObject;
-    procedure QuickSort(List: IWrappedList; L, R: Integer;
-      SCompare: TFunc<TObject, TObject, Integer>); overload;
-
-    procedure QuickSort(List: IWrappedList;
-      SCompare: TFunc<TObject, TObject, Integer>); overload;
-    procedure Sort(const PropertyName: string;
-      Order: TSortingType = soAscending);
-
-  public
-    constructor Create(AObjectAsDuck: TObject; aOwnsObject: boolean = false);
-    destructor Destroy; override;
+  protected
+    function GetItem(const AIndex: Integer): TObject;
     function GetEnumerator: TDuckListEnumerator;
-    function GetOwnsObjects: boolean;
-    procedure SetOwnsObjects(const Value: boolean);
-    property OwnsObjects: boolean read GetOwnsObjects write SetOwnsObjects;
-    class function CanBeWrappedAsList(const AObjectAsDuck: TObject)
-      : boolean; overload;
-    class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface)
-      : boolean; overload;
+    function GetOwnsObjects: Boolean;
+    procedure SetOwnsObjects(const AValue: Boolean);
+
+    procedure Add(const AObject: TObject);
+    function Count: Integer;
+    procedure Clear;
+
+    function WrappedObject: TObject;
+    procedure Sort(const APropertyName: string; const AOrder: TSortingType = soAscending);
+
+    procedure QuickSort(const AList: IMVCList; ALeft, ARigth: Integer; ACompare: TFunc<TObject, TObject, Integer>); overload;
+    procedure QuickSort(const AList: IMVCList; ACompare: TFunc<TObject, TObject, Integer>); overload;
+  public
+    constructor Create(const AObjectAsDuck: TObject; const AOwnsObject: Boolean = False); overload;
+    constructor Create(const AInterfaceAsDuck: IInterface; const AOwnsObject: Boolean = False); overload;
+    destructor Destroy; override;
+
+    function IsWrappedList: Boolean; overload;
+
+    class function CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean; overload; static;
+    class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean; overload; static;
+    class function Wrap(const AObjectAsDuck: TObject; const AOwnsObject: Boolean = False): IMVCList; static;
   end;
 
-function WrapAsList(const AObject: TObject; aOwnsObject: boolean = false)
-  : IWrappedList;
+function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
 implementation
 
-uses System.Math,
-  MVCFramework.RTTIUtils, MVCFramework.Commons;
+function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
+begin
+  Result := TDuckTypedList.Wrap(AObject, AOwnsObject);
+end;
 
-constructor TDuckListEnumerator.Create(ADuckTypedList: TDuckTypedList);
+function CompareValue(const ALeft, ARight: TValue): Integer;
+begin
+  if ALeft.IsOrdinal then
+  begin
+    Result := System.Math.CompareValue(ALeft.AsOrdinal, ARight.AsOrdinal);
+  end
+  else if ALeft.Kind = tkFloat then
+  begin
+    Result := System.Math.CompareValue(ALeft.AsExtended, ARight.AsExtended);
+  end
+  else if ALeft.Kind in [tkString, tkUString, tkWString, tkLString] then
+  begin
+    Result := CompareText(ALeft.AsString, ARight.AsString);
+  end
+  else
+  begin
+    Result := 0;
+  end;
+end;
+
+{ TDuckListEnumerator }
+
+constructor TDuckListEnumerator.Create(const ADuckTypedList: TDuckTypedList);
 begin
   inherited Create;
   FDuckTypedList := ADuckTypedList;
@@ -131,160 +157,167 @@ end;
 
 function TDuckListEnumerator.DoGetCurrent: TObject;
 begin
-  if FPosition > -1 then
+  if (FPosition > -1) then
     Result := FDuckTypedList.GetItem(FPosition)
   else
-    raise Exception.Create('Enumerator error: Call MoveNext first');
+    raise EMVCDuckTypingException.Create('TDuckListEnumerator exception: call MoveNext first.');
 end;
 
-function TDuckListEnumerator.DoMoveNext: boolean;
+function TDuckListEnumerator.DoMoveNext: Boolean;
 begin
-  if FPosition < FDuckTypedList.Count - 1 then
+  Result := False;
+  if (FPosition < FDuckTypedList.Count - 1) then
   begin
     Inc(FPosition);
     Result := True;
-  end
-  else
-    Result := false;
+  end;
 end;
 
-function TDuckTypedList.GetEnumerator: TDuckListEnumerator;
-begin
-  Result := TDuckListEnumerator.Create(self);
-end;
+{ TDuckTypedList }
 
 procedure TDuckTypedList.Add(const AObject: TObject);
 begin
+  if not Assigned(FAddMethod) then
+    raise EMVCDuckTypingException.Create('Cannot find method "Add" in the Duck Object.');
   FAddMethod.Invoke(FObjectAsDuck, [AObject]);
 end;
 
-class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck
-  : TObject): boolean;
-var
-  FCTX: TRTTIContext;
+class function TDuckTypedList.CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean;
 begin
-  Result := (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add') <> nil) and
-    (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear') <> nil)
-
-{$IF CompilerVersion >= 23}
-    and (FCTX.GetType(AObjectAsDuck.ClassInfo).GetIndexedProperty('Items')
-    .ReadMethod <> nil)
-
-{$IFEND}
-    and ((FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetItem') <> nil) or
-    (FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('GetElement') <> nil)) and
-    (FCTX.GetType(AObjectAsDuck.ClassInfo).GetProperty('Count') <> nil)
-
+  Result := CanBeWrappedAsList(TObject(AInterfaceAsDuck));
 end;
 
-class function TDuckTypedList.CanBeWrappedAsList(const AInterfaceAsDuck
-  : IInterface): boolean;
+class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean;
 var
-  FCTX: TRTTIContext;
-  LType: TRttiType;
+  List: IMVCList;
 begin
-  LType := FCTX.GetType(TObject(AInterfaceAsDuck).ClassInfo);
-  Result := (LType.GetMethod('Add') <> nil) and
-    (LType.GetMethod('Clear') <> nil)
-
-{$IF CompilerVersion >= 23}
-    and (LType.GetIndexedProperty('Items').ReadMethod <> nil)
-
-{$IFEND}
-    and (LType.GetMethod('GetItem') <> nil) or
-    (LType.GetMethod('GetElement') <> nil) and
-    (LType.GetProperty('Count') <> nil)
-
+  List := TDuckTypedList.Create(AObjectAsDuck);
+  Result := List.IsWrappedList;
 end;
 
 procedure TDuckTypedList.Clear;
 begin
+  if not Assigned(FClearMethod) then
+    raise EMVCDuckTypingException.Create('Cannot find method "Clear" in the Duck Object.');
   FClearMethod.Invoke(FObjectAsDuck, []);
 end;
 
 function TDuckTypedList.Count: Integer;
 begin
+  Result := 0;
+
+  if (not Assigned(FGetCountMethod)) and (not Assigned(FCountProperty)) then
+    raise EMVCDuckTypingException.Create('Cannot find property/method "Count" in the Duck Object.');
+
   if Assigned(FCountProperty) then
     Result := FCountProperty.GetValue(FObjectAsDuck).AsInteger
-  else
+  else if Assigned(FGetCountMethod) then
     Result := FGetCountMethod.Invoke(FObjectAsDuck, []).AsInteger;
-
 end;
 
-constructor TDuckTypedList.Create(AObjectAsDuck: TObject; aOwnsObject: boolean);
+constructor TDuckTypedList.Create(const AInterfaceAsDuck: IInterface; const AOwnsObject: Boolean);
+begin
+  Create(TObject(AInterfaceAsDuck), AOwnsObject);
+end;
+
+constructor TDuckTypedList.Create(const AObjectAsDuck: TObject; const AOwnsObject: Boolean);
 begin
   inherited Create;
-  FOwnsObject := aOwnsObject;
+  FOwnsObject := AOwnsObject;
   FObjectAsDuck := AObjectAsDuck;
-  FAddMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Add');
-  if not Assigned(FAddMethod) then
-    raise EMVCException.Create('Cannot find method "Add" in the duck object');
-  FClearMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Clear');
-  if not Assigned(FClearMethod) then
-    raise EMVCException.Create('Cannot find method "Clear" in the duck object');
+
+  if not Assigned(FObjectAsDuck) then
+    raise EMVCDuckTypingException.Create('Duck Object can not be null.');
+
+  FContext := TRttiContext.Create;
+  FObjType := FContext.GetType(FObjectAsDuck.ClassInfo);
+
+  FAddMethod := nil;
+  FClearMethod := nil;
   FGetItemMethod := nil;
+  FGetCountMethod := nil;
+  FCountProperty := nil;
 
-{$IF CompilerVersion >= 23}
-  FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-    .GetIndexedProperty('Items').ReadMethod;
-
-{$IFEND}
-  if not Assigned(FGetItemMethod) then
-    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-      .GetMethod('GetItem');
-  if not Assigned(FGetItemMethod) then
-    FGetItemMethod := FCTX.GetType(AObjectAsDuck.ClassInfo)
-      .GetMethod('GetElement');
-  if not Assigned(FGetItemMethod) then
-    raise EMVCException.Create
-      ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the duck object');
-  FCountProperty := FCTX.GetType(AObjectAsDuck.ClassInfo).GetProperty('Count');
-  if not Assigned(FCountProperty) then
+  if IsWrappedList then
   begin
-    FGetCountMethod := FCTX.GetType(AObjectAsDuck.ClassInfo).GetMethod('Count');
-    if not Assigned(FGetCountMethod) then
+    FAddMethod := FObjType.GetMethod('Add');
+    FClearMethod := FObjType.GetMethod('Clear');
 
-      raise EMVCException.Create
-        ('Cannot find property/method "Count" in the duck object');
+    {$IF CompilerVersion >= 23}
+
+    if Assigned(FObjType.GetIndexedProperty('Items')) then
+      FGetItemMethod := FObjType.GetIndexedProperty('Items').ReadMethod;
+
+    {$IFEND}
+
+    if not Assigned(FGetItemMethod) then
+      FGetItemMethod := FObjType.GetMethod('GetItem');
+
+    if not Assigned(FGetItemMethod) then
+      FGetItemMethod := FObjType.GetMethod('GetElement');
+
+    FGetCountMethod := nil;
+    FCountProperty := FObjType.GetProperty('Count');
+    if not Assigned(FCountProperty) then
+      FGetCountMethod := FObjType.GetMethod('Count');
   end;
 end;
 
 destructor TDuckTypedList.Destroy;
 begin
-  if FOwnsObject then
-    FreeAndNil(FObjectAsDuck);
-  inherited;
+  if FOwnsObject and Assigned(FObjectAsDuck) then
+    FObjectAsDuck.Free;
+  FContext.Free;
+  inherited Destroy;
 end;
 
-function TDuckTypedList.GetItem(const index: Integer): TObject;
+function TDuckTypedList.GetEnumerator: TDuckListEnumerator;
 begin
-  Result := FGetItemMethod.Invoke(FObjectAsDuck, [index]).AsObject;
+  Result := TDuckListEnumerator.Create(Self);
 end;
 
-function TDuckTypedList.GetOwnsObjects: boolean;
+function TDuckTypedList.GetItem(const AIndex: Integer): TObject;
 begin
-  Result := TRTTIUtils.GetProperty(FObjectAsDuck, 'OwnsObjects').AsBoolean
+  if not Assigned(FGetItemMethod) then
+    raise EMVCDuckTypingException.Create('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the Duck Object.');
+  Result := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]).AsObject;
 end;
 
-function TDuckTypedList.WrappedObject: TObject;
+function TDuckTypedList.GetOwnsObjects: Boolean;
+var
+  Prop: TRttiProperty;
 begin
-  Result := FObjectAsDuck;
+  Result := False;
+  Prop := FObjType.GetProperty('OwnsObjects');
+  if Assigned(Prop) then
+    if Prop.IsReadable then
+      Result := Prop.GetValue(FObjectAsDuck).AsBoolean;
 end;
 
-function WrapAsList(const AObject: TObject; aOwnsObject: boolean): IWrappedList;
+function TDuckTypedList.IsWrappedList: Boolean;
+var
+  ObjectType: TRttiType;
 begin
-  try
-    Result := TDuckTypedList.Create(AObject, aOwnsObject);
-  except
-    Result := nil;
-  end;
+  ObjectType := FContext.GetType(FObjectAsDuck.ClassInfo);
+
+  Result := (ObjectType.GetMethod('Add') <> nil) and (ObjectType.GetMethod('Clear') <> nil)
+
+  {$IF CompilerVersion >= 23}
+
+    and (ObjectType.GetIndexedProperty('Items') <> nil) and (ObjectType.GetIndexedProperty('Items').ReadMethod <> nil)
+
+  {$IFEND}
+
+    and (ObjectType.GetMethod('GetItem') <> nil) or (ObjectType.GetMethod('GetElement') <> nil) and (ObjectType.GetProperty('Count') <> nil);
 end;
 
-procedure TDuckTypedList.QuickSort(List: IWrappedList; L, R: Integer;
-  SCompare: TFunc<TObject, TObject, Integer>);
+procedure TDuckTypedList.QuickSort(const AList: IMVCList; ALeft,
+  ARigth: Integer; ACompare: TFunc<TObject, TObject, Integer>);
 var
   I, J: Integer;
-  p: TObject;
+  P: TObject;
+  M: TRttiMethod;
+  T: TRttiType;
 begin
   { 07/08/2013: This method is based on QuickSort procedure from
     Classes.pas, (c) Borland Software Corp.
@@ -294,74 +327,87 @@ begin
     The Borland version delegates to a pure function
     pointer, which is problematic in some cases. }
   repeat
-    I := L;
-    J := R;
-    p := List.GetItem((L + R) shr 1);
+    I := ALeft;
+    J := ARigth;
+    P := AList.GetItem((ALeft + ARigth) shr 1);
     repeat
-      while SCompare(TObject(List.GetItem(I)), p) < 0 do
+      while ACompare(TObject(AList.GetItem(I)), P) < 0 do
         Inc(I);
-      while SCompare(TObject(List.GetItem(J)), p) > 0 do
+      while ACompare(TObject(AList.GetItem(J)), P) > 0 do
         Dec(J);
       if I <= J then
       begin
-        TRTTIUtils.MethodCall(List.WrappedObject, 'Exchange', [I, J]);
+        T := FContext.GetType(AList.WrappedObject.ClassInfo);
+        M := T.GetMethod('Exchange');
+        if Assigned(M) then
+          M.Invoke(AList.WrappedObject, [I, J])
+        else
+          raise EMVCDuckTypingException.CreateFmt('Cannot find compatible method "%s" in the object', ['Exchange']);
         Inc(I);
         Dec(J);
       end;
     until I > J;
-    if L < J then
-      QuickSort(List, L, J, SCompare);
-    L := I;
-  until I >= R;
+    if ALeft < J then
+      QuickSort(AList, ALeft, J, ACompare);
+    ALeft := I;
+  until I >= ARigth;
 end;
 
-procedure TDuckTypedList.QuickSort(List: IWrappedList;
-  SCompare: TFunc<TObject, TObject, Integer>);
+procedure TDuckTypedList.QuickSort(const AList: IMVCList;
+  ACompare: TFunc<TObject, TObject, Integer>);
 begin
-  QuickSort(List, 0, List.Count - 1, SCompare);
+  QuickSort(AList, 0, AList.Count - 1, ACompare);
 end;
 
-function CompareValue(const Left, Right: TValue): Integer;
+procedure TDuckTypedList.SetOwnsObjects(const AValue: Boolean);
+var
+  Prop: TRttiProperty;
 begin
-  if Left.IsOrdinal then
-  begin
-    Result := System.Math.CompareValue(Left.AsOrdinal, Right.AsOrdinal);
-  end
-  else if Left.Kind = tkFloat then
-  begin
-    Result := System.Math.CompareValue(Left.AsExtended, Right.AsExtended);
-  end
-  else if Left.Kind in [tkString, tkUString, tkWString, tkLString] then
-  begin
-    Result := CompareText(Left.AsString, Right.AsString);
-  end
-  else
-  begin
-    Result := 0;
-  end;
+  Prop := FObjType.GetProperty('OwnsObjects');
+  if Assigned(Prop) then
+    if Prop.IsWritable then
+      Prop.SetValue(FObjectAsDuck, AValue)
 end;
 
-procedure TDuckTypedList.SetOwnsObjects(const Value: boolean);
+procedure TDuckTypedList.Sort(const APropertyName: string; const AOrder: TSortingType);
 begin
-  TRTTIUtils.SetProperty(FObjectAsDuck, 'OwnsObjects', Value);
-end;
-
-procedure TDuckTypedList.Sort(const PropertyName: string; Order: TSortingType);
-begin
-  if Order = soAscending then
-    QuickSort(self,
-      function(Left, Right: TObject): Integer
+  if (AOrder = soAscending) then
+    QuickSort(Self,
+      function(ALeft, ARight: TObject): Integer
+      var
+        PropLeft, PropRight: TRttiProperty;
       begin
-        Result := CompareValue(TRTTIUtils.GetProperty(Left, PropertyName),
-          TRTTIUtils.GetProperty(Right, PropertyName));
+        PropLeft := FContext.GetType(ALeft).GetProperty(APropertyName);
+        PropRight := FContext.GetType(ARight).GetProperty(APropertyName);
+        Result := CompareValue(PropLeft, PropRight);
       end)
   else
-    QuickSort(self,
-      function(Left, Right: TObject): Integer
+    QuickSort(Self,
+      function(ALeft, ARight: TObject): Integer
+      var
+        PropLeft, PropRight: TRttiProperty;
       begin
-        Result := -1 * CompareValue(TRTTIUtils.GetProperty(Left, PropertyName),
-          TRTTIUtils.GetProperty(Right, PropertyName));
+        PropLeft := FContext.GetType(ALeft).GetProperty(APropertyName);
+        PropRight := FContext.GetType(ARight).GetProperty(APropertyName);
+        Result := -1 * CompareValue(PropLeft, PropRight);
       end);
+end;
+
+class function TDuckTypedList.Wrap(const AObjectAsDuck: TObject; const AOwnsObject: Boolean): IMVCList;
+var
+  List: IMVCList;
+begin
+  if AObjectAsDuck is TDuckTypedList then
+    Exit(AObjectAsDuck as TDuckTypedList);
+  Result := nil;
+  List := TDuckTypedList.Create(AObjectAsDuck, AOwnsObject);
+  if List.IsWrappedList then
+    Result := List;
+end;
+
+function TDuckTypedList.WrappedObject: TObject;
+begin
+  Result := FObjectAsDuck;
 end;
 
 end.

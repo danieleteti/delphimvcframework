@@ -12,7 +12,8 @@ uses
   PeopleControllerU in 'Controllers\PeopleControllerU.pas',
   PeopleModuleU in 'Modules\PeopleModuleU.pas' {PeopleModule: TDataModule},
   PersonBO in 'BusinessObjects\PersonBO.pas',
-  CommonsU in 'CommonsU.pas';
+  CommonsU in 'CommonsU.pas',
+  MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas';
 
 {$R *.res}
 

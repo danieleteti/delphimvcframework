@@ -1,20 +1,14 @@
-![DelphiMVCFramework Logo](https://github.com/danieleteti/delphimvcframework/blob/master/docs/dmvcframework_logofacebook.png)
+![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
 
-### [DelphiMVCFramework 3.0.0](https://github.com/danieleteti/delphimvcframework/tree/pluggable_mapper/releases) is in RC stage! Check it out the new features!
 
-### Getting Started!
-
-Version 3.x is the suggested version for new projects. Please, use the following link to download it.
-
-[Download the latest version](https://github.com/danieleteti/delphimvcframework/releases/latest)
-
-## DelphiMVCFramework 2.x Main Features
+## DelphiMVCFramework Main Features
 
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
-  * [Project Roadmap](https://github.com/danieleteti/delphimvcframework/blob/master/roadmap.md) is always public
+  * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
+  * JSON-RPC 2.0 Support
   * Stable and solid, used by small/mid/big projects since 2010
   * Support group at https://www.facebook.com/groups/delphimvcframework with more than 950 active members
   * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
@@ -31,7 +25,7 @@ Version 3.x is the suggested version for new projects. Please, use the following
   * Powerful mapper to map json to objects and datasets to objects
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
-  * Works with XE3, XE4, XE5, XE6, XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin
+  * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
@@ -41,7 +35,7 @@ Version 3.x is the suggested version for new projects. Please, use the following
   * Automatic documentation through /system/describeserver.info
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
-  * Simple and [documented](https://github.com/danieleteti/delphimvcframework/blob/master/docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
+  * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
   
 ## How to correctly get the repository
@@ -49,7 +43,7 @@ DMVCFramework uses a couple of external open source projects, so whe you clone i
 ![How to get the repository](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/dmvcframework_installation.png)
 
 ## Roadmap
-DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](delphimvcframework/roadmap.md).
+DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
@@ -75,21 +69,6 @@ become
 ```{$DEFINE STARTEREDITION}```
 
 ## Release Notes
-
-**2.1.6 (carbon)**
-- FIX https://github.com/danieleteti/delphimvcframework/issues/74
-- Updated jsonwebtoken sample
-- Improved support for customclaims into the controller actions
-
-**2.1.5 (boron)**
-- MERGE https://github.com/danieleteti/delphimvcframework/pull/73
-- Removed memory leaks in TMVCWebRequest (which affect also TRESTClient)
-- Defined conditionals for XE7, XE8 and 10 Seattle
-- Refactoring
-
-**2.1.4 (beryllium)**
-  - FIX https://github.com/danieleteti/delphimvcframework/issues/71
-  
 **2.1.3 (lithium)**
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions
@@ -105,14 +84,14 @@ become
   - ADDED unit tests about Mapper and dataset fields nullability
   - The current version is available in constant ```DMVCFRAMEWORK_VERSION``` defined in ```MVCFramework.Commons.pas```
 
-## Samples and documentation
+##Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
-All samples are in [Samples](https://github.com/danieleteti/delphimvcframework/tree/master/samples) folder.
+All samples are in [Samples](samples) folder.
 Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress).
 
 
-# Getting Started
-Below there is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
+#Getting Started
+Below the is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
 The project containes an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
 
 To create this server, you have to create a new ```Delphi Projects -> WebBroker -> WebServerApplication```. Then add the following changes to the webmodule.
@@ -162,7 +141,7 @@ end.
 Remember that the files inside the redist folder *must* be in the executable path or in the system path. If starting the server whithin the IDE doesn't works, try to run the executable outside the IDE and check the dependencies.
 That's it! You have just created your first DelphiMVCFramework. Now you have to add a controller to respond to the http request.
 
-# Sample Controller
+#Sample Controller
 Below a basic sample of a DMVCFramework controller with 2 action
 
 ```delphi
@@ -264,7 +243,7 @@ Now you have a performant RESTful server wich respond to the following URLs:
 - PUT /users/($id)		(eg. /users/1, /users/45 etc with the JSON data in the request body)
 - POST /users			(the JSON data must be in the request body)
 
-### Quick Creation of DelphiMVCFramework Server
+###Quick Creation of DelphiMVCFramework Server
 
 If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one listener application server into one single executable. In this case, the process is a bit different and involves the creation of a listener context. However, create a new server is a simple task:
 
@@ -349,7 +328,7 @@ begin
 end;  
 ```
 
-### Links
+###Links
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
 
 http://www.danieleteti.it/2013/04/18/sneak-peek-to-simple-integration-between-dmvcframework-and-dorm/

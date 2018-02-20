@@ -22,7 +22,8 @@ type
     dsrcArticles: TDataSource;
     DBNavigator1: TDBNavigator;
     btnOpen: TButton;
-    btnClose: TButton;
+    btnRefreshRecord: TButton;
+    Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure dsArticlesBeforePost(DataSet: TDataSet);
     procedure dsArticlesBeforeDelete(DataSet: TDataSet);
@@ -32,6 +33,7 @@ type
     procedure btnOpenClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
+    procedure btnRefreshRecordClick(Sender: TObject);
   private
     FLoading: Boolean;
     Clt: TRESTClient;
@@ -45,7 +47,7 @@ var
 implementation
 
 uses
-  ObjectsMappers, System.UITypes;
+  System.UITypes, MVCFramework.DataSet.Utils;
 
 {$R *.dfm}
 
@@ -60,16 +62,27 @@ begin
   dsArticles.Open;
 end;
 
+procedure TMainForm.btnRefreshRecordClick(Sender: TObject);
+begin
+  dsArticles.RefreshRecord;
+end;
+
 procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
 var
   Res: IRESTResponse;
 begin
   // this a simple sychronous request...
   Res := Clt.doGET('/articles', []);
+  if Res.HasError then
+  begin
+    ShowError(Res);
+    Exit;
+  end;
+
   DataSet.DisableControls;
   try
     FLoading := true;
-    dsArticles.AppendFromJSONArrayString(Res.BodyAsString);
+    dsArticles.LoadFromJSONArrayString(Res.BodyAsString);
     FLoading := false;
     dsArticles.First;
   finally
@@ -111,23 +124,19 @@ begin
 end;
 
 procedure TMainForm.dsArticlesBeforeRefresh(DataSet: TDataSet);
-//var
-//  Res: IRESTResponse;
 begin
   DataSet.Close;
   DataSet.Open;
-//
-//  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
-//  FLoading := true;
-//  dsArticles.Edit;
-//  dsArticles.LoadFromJSONObjectString(Res.BodyAsString);
-//  dsArticles.Post;
-//  FLoading := false;
 end;
 
 procedure TMainForm.dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
+var
+  Res: IRESTResponse;
 begin
-  ShowMessage('RowRequest');
+  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
+  FLoading := true;
+  DataSet.LoadFromJSONObjectString(Res.BodyAsString);
+  FLoading := false;
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -142,10 +151,16 @@ end;
 
 procedure TMainForm.ShowError(const AResponse: IRESTResponse);
 begin
-  MessageDlg(
-    AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
-    AResponse.BodyAsJsonObject.Get('message').JsonValue.Value,
-    mtError, [mbOK], 0);
+  if AResponse.HasError then
+    MessageDlg(
+      AResponse.Error.HTTPError.ToString + ': ' + AResponse.Error.ExceptionMessage + sLineBreak +
+      '[' + AResponse.Error.ExceptionClassname + ']',
+      mtError, [mbOK], 0)
+  else
+    MessageDlg(
+      AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
+      AResponse.BodyAsString,
+      mtError, [mbOK], 0);
 end;
 
 end.

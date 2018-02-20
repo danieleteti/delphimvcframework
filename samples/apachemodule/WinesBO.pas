@@ -2,10 +2,12 @@ unit WinesBO;
 
 interface
 
-uses ObjectsMappers;
+uses
+  MVCFramework.Serializer.Commons;
 
 type
-  [MapperJSONNaming(JSONNameLowerCase)]
+
+  [MVCNameCase(ncLowerCase)]
   TWine = class
   private
     FYEAR: string;

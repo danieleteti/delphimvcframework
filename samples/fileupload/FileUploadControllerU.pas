@@ -49,7 +49,7 @@ begin
   ResponseStream.AppendLine('</ul>')
     .AppendLine('<p><a href="/fileupload.html">back to upload form</a></p>')
     .AppendLine('</body></html>');
-  Render;
+  RenderResponseStream;
 end;
 
 procedure TFileUploadController.SaveFile(CTX: TWebContext);

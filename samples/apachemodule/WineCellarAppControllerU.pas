@@ -5,6 +5,7 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
+  MVCFramework.TypesAliases,
   MainDataModuleUnit;
 
 type
@@ -32,7 +33,7 @@ type
 
     [MVCPath('/wines')]
     [MVCHTTPMethod([httpPOST])]
-    procedure SaveWine(ctx: TWebContext);
+    procedure SaveWine;
 
     [MVCPath('/wines/search/($value)')]
     procedure FindWines(ctx: TWebContext);
@@ -47,13 +48,14 @@ type
 
     [MVCPath('/wines/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateWineById(ctx: TWebContext);
+    procedure UpdateWineById(id: Integer);
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.IOUtils;
+  System.SysUtils, System.Classes, System.IOUtils,
+  WinesBO;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
@@ -110,14 +112,30 @@ begin
   dm := TWineCellarDataModule.Create(nil);
 end;
 
-procedure TWineCellarApp.SaveWine(ctx: TWebContext);
+procedure TWineCellarApp.SaveWine;
+var
+  lWine: TWine;
 begin
-  dm.AddWine(ctx.Request.BodyAsJSONObject);
+  lWine := Context.Request.BodyAs<TWine>;
+  try
+    dm.AddWine(lWine);
+  finally
+    lWine.Free;
+  end;
 end;
 
-procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
+procedure TWineCellarApp.UpdateWineById(id: Integer);
+var
+  lWine: TWine;
 begin
-  Render(dm.UpdateWine(ctx.Request.BodyAsJSONObject));
+  lWine := Context.Request.BodyAs<TWine>;
+  try
+    lWine.id := id;
+    dm.UpdateWine(lWine);
+    Render(TMVCErrorResponse.Create(200, 'Wine Updated', ''));
+  finally
+    lWine.Free;
+  end;
 end;
 
 procedure TWineCellarApp.WineById(ctx: TWebContext);

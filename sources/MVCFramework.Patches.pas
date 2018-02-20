@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,10 +24,9 @@
 
 unit MVCFramework.Patches;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
   System.Classes
@@ -45,7 +44,10 @@ uses
 type
   TJSONValueHelper = class helper for TJSONValue
   public
+    function GetItem(const Index: Integer): TJSONValue;
     function ToJSON: String;
+    function Count: Integer;
+    property Items[const Index: Integer]: TJSONValue read GetItem;
   end;
 {$ENDIF}
 
@@ -55,6 +57,16 @@ implementation
 
 {$IFNDEF TOJSON}
 
+
+function TJSONValueHelper.Count: Integer;
+begin
+  Result := Size;
+end;
+
+function TJSONValueHelper.GetItem(const Index: Integer): TJSONValue;
+begin
+  Result := Get(Index);
+end;
 
 function TJSONValueHelper.ToJSON: String;
 begin

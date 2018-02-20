@@ -26,13 +26,16 @@ implementation
 {$R *.dfm}
 
 
-uses AppControllerU;
+uses AppControllerU, MVCFramework.Commons;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(Self);
-  MVC.Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
-  MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
+  MVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
+      Config[TMVCConfigKey.DefaultContentType] := 'application/json';
+    end);
   MVC.AddController(TApp1MainController);
 end;
 

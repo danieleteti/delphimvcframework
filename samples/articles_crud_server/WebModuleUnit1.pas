@@ -22,10 +22,9 @@ implementation
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
-uses Controllers.Articles, MVCFramework.Middleware.CORS;
+uses Controllers.Articles, MVCFramework.Middleware.CORS, MVCFramework.Middleware.Compression;
 
 {$R *.dfm}
-
 
 procedure TWebModule1.WebModule1DefaultHandlerAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
@@ -42,6 +41,8 @@ begin
   FEngine := TMVCEngine.Create(self);
   FEngine.AddController(TArticlesController);
   FEngine.AddMiddleware(TCORSMiddleware.Create);
+  FEngine.AddMiddleware(TCompressionMiddleware.Create);
+
 end;
 
 end.

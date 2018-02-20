@@ -11,11 +11,10 @@ type
   protected
     procedure OnRequest(const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
-    procedure OnAuthentication(const UserName,
-  Password: string; UserRoles: System.Generics.Collections.TList<System.string>;
-  var IsValid: Boolean; const CustomData: TMVCCustomData);
-    procedure OnAuthorization(UserRoles
-      : System.Generics.Collections.TList<System.string>;
+    procedure OnAuthentication(const UserName: string; const Password: string;
+      UserRoles: TList<System.string>;
+      var IsValid: Boolean; const SessionData: TSessionData);
+    procedure OnAuthorization(UserRoles: TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
   end;
@@ -25,8 +24,8 @@ implementation
 { TMVCAuthorization }
 
 procedure TAuthenticationSample.OnAuthentication(const UserName,
-  Password: string; UserRoles: System.Generics.Collections.TList<System.string>;
-  var IsValid: Boolean; const CustomData: TMVCCustomData);
+  Password: string; UserRoles: TList<System.string>;
+  var IsValid: Boolean; const SessionData: TSessionData);
 begin
   IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
@@ -44,8 +43,11 @@ begin
       UserRoles.Add('role1');
       UserRoles.Add('role2');
     end;
-    CustomData.Add('customclaim1', 'hello world');
-    CustomData.Add('customclaim2', 'daniele teti');
+
+    // You can add custom data to the logged user
+    SessionData.AddOrSetValue('customkey1', 'customvalue1');
+    SessionData.AddOrSetValue('customkey2', 'customvalue2');
+
   end
   else
   begin
@@ -54,7 +56,7 @@ begin
 end;
 
 procedure TAuthenticationSample.OnAuthorization
-  (UserRoles: System.Generics.Collections.TList<System.string>;
+  (UserRoles: TList<System.string>;
   const ControllerQualifiedClassName, ActionName: string;
   var IsAuthorized: Boolean);
 begin
