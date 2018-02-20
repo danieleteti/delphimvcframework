@@ -1584,10 +1584,6 @@ begin
   Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
   Config[TMVCConfigKey.ViewPath] := 'templates';
   Config[TMVCConfigKey.PathPrefix] := '';
-  Config[TMVCConfigKey.StompServer] := 'localhost';
-  Config[TMVCConfigKey.StompServerPort] := '61613';
-  Config[TMVCConfigKey.StompUsername] := 'guest';
-  Config[TMVCConfigKey.StompPassword] := 'guest';
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework';
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
@@ -1719,27 +1715,28 @@ begin
                     LHandled := False;
                     LSelectedController.ContentType := BuildContentType(LResponseContentMediaType, LResponseContentCharset);
                     // LSelectedController.ContentCharset := LResponseContentCharset;
+                    LActionFormalParams := LRouter.MethodToCall.GetParameters;
+                    if (Length(LActionFormalParams) = 0) then
+                      SetLength(LActualParams, 0)
+                    else if (Length(LActionFormalParams) = 1) and (SameText(LActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
+                    begin
+                      SetLength(LActualParams, 1);
+                      LActualParams[0] := LContext;
+                    end
+                    else
+                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name, LActualParams);
+
+                    LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
+
                     if not LHandled then
                     begin
-                      LActionFormalParams := LRouter.MethodToCall.GetParameters;
-                      if (Length(LActionFormalParams) = 0) then
-                        SetLength(LActualParams, 0)
-                      else if (Length(LActionFormalParams) = 1) and (SameText(LActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
-                      begin
-                        SetLength(LActualParams, 1);
-                        LActualParams[0] := LContext;
-                      end
-                      else
-                        FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name, LActualParams);
-
-                      LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
-                      if not LHandled then
-                        try
-                          LRouter.MethodToCall.Invoke(LSelectedController, LActualParams);
-                        finally
-                          LSelectedController.OnAfterAction(LContext, LRouter.MethodToCall.Name);
-                        end;
+                      try
+                        LRouter.MethodToCall.Invoke(LSelectedController, LActualParams);
+                      finally
+                        LSelectedController.OnAfterAction(LContext, LRouter.MethodToCall.Name);
+                      end;
                     end;
+
                   finally
                     LSelectedController.MVCControllerBeforeDestroy;
                   end;

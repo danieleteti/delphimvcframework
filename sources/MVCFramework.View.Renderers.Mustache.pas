@@ -55,20 +55,20 @@ uses
 
 procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
-  ViewFileName: string;
-  ViewTemplate: RawUTF8;
-  ViewEngine: TSynMustache;
+  lViewFileName: string;
+  lViewTemplate: RawUTF8;
+  lViewEngine: TSynMustache;
   lSW: TStreamWriter;
 begin
   PrepareModels;
-  ViewFileName := GetRealFileName(ViewName);
-  if not FileExists(ViewFileName) then
+  lViewFileName := GetRealFileName(ViewName);
+  if not FileExists(lViewFileName) then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
-  ViewTemplate := StringToUTF8(TFile.ReadAllText(ViewFileName, TEncoding.UTF8));
-  ViewEngine := TSynMustache.Parse(ViewTemplate);
+  lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
+  lViewEngine := TSynMustache.Parse(lViewTemplate);
   lSW := TStreamWriter.Create(OutputStream);
   try
-    lSW.Write(UTF8Tostring(ViewEngine.RenderJSON(FJSONModel)));
+    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel)));
   finally
     lSW.Free;
   end;

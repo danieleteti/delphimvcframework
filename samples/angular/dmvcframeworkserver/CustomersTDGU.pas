@@ -76,8 +76,7 @@ begin
     lParams.Add('User_Name=sysdba');
     lParams.Add('Password=masterkey');
     lParams.Add('Pooled=true');
-    FDManager.AddConnectionDef(PRIV
-    ATE_CONN_DEF_NAME, 'FB', lParams);
+    FDManager.AddConnectionDef(PRIVATE_CONN_DEF_NAME, 'FB', lParams);
   finally
     lParams.Free;
   end;

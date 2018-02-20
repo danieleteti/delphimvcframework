@@ -119,10 +119,6 @@ type
     DefaultViewFileExtension = 'default_view_file_extension';
     // ISAPIPath = 'isapi_path';
     PathPrefix = 'pathprefix';
-    StompServer = 'stompserver';
-    StompServerPort = 'stompserverport';
-    StompUsername = 'stompusername';
-    StompPassword = 'stomppassword';
     AllowUnhandledAction = 'allow_unhandled_action';
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';

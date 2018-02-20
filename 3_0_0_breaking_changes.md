@@ -1,5 +1,5 @@
 # 3.0.0 breaking changes
-
+- XE6 and previous versions are not more supported.
 - ```RenderListAsProperty<T>``` has been removed from TMVCController. You can set such kind of specialized serializations in your custom base controller.
 - ```RenderJSONArrayAsProperty``` has been removed from TMVCController. You can set such kind of specialized serializations in your custom base controller.
 - ```Render``` has been removed from TMVCController (was deprecated).
