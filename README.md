@@ -1,6 +1,6 @@
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
-
+### DElphiMVCFramework 3.0.0-hydrogen is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen)!
 
 ## DelphiMVCFramework Main Features
 
@@ -10,37 +10,40 @@
   * RESTful (RMM Level 3) compliant
   * JSON-RPC 2.0 Support
   * Stable and solid, used by small/mid/big projects since 2010
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 950 active members
-  * Can be used in load balanced environment using Redis (http://Redis.io) [dev]
-  * Can be used in load balanced environment using MySQL [user contrib]
+  * Fast, fast, fast!
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 1400 active members
+  * Can be used in load balanced environment
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
   * JSON Web Token Support (JWT)
   * Extendable using middlewares (simple hooks to handle request/response)
+  * Flexible yet simple to use, authorization/authentication framework based on industry standards.
+    * HTTP Basic Authentication
+    * JWT Authentication
+    * Custom Authentication
   * CORS support
-  * Basic Authentication
-  * Controllers inheritance
+  * Controllers inheritance! You can define your own base controller and inherith from it.
   * Fancy URL with parameter mappings
-  * Specialied renders to generate text, HTML, JSON
-  * Powerful mapper to map json to objects and datasets to objects
+  * Specialied renders to generate text, HTML, JSON.
+  * Powerful and customizable mapper to serialize/deserialize data.
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
   * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo
+  * Works on Linux (Delphi 10.2 Tokyo or better)
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
-  * Specific trainings are available (ask me for a date and a place)
-  * Messaging extension using STOMP (beta)
+  * Specific trainings are available (email to professionals@bittime.it for a date and a place)
+  * Messaging extension using ServerSentEvents
   * Automatic documentation through /system/describeserver.info
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
   
-## How to correctly get the repository
-DMVCFramework uses a couple of external open source projects, so whe you clone its repository you must retrieve also all the submodule. In the developers guide all the speps are explained, but the git procedure is also repeated below in the screenshot.
-![How to get the repository](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/dmvcframework_installation.png)
+## How to correctly get the source
+It is not needed to download the git reporitory. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen) and you are ok.
 
 ## Roadmap
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
@@ -49,18 +52,8 @@ DelphiMVCFramework roadmap is always updated as-soon-as the features planned are
 As you know, good support on open source software is a must for professional users.
 If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
 
-
-## Sub Projects
-DelphiMVCFramework contains also a lot of indipendent code that can be used in other kind of project. 
-
-These are the most notable:
-
-  * Mapper (convert JSON in Object and back, ObjectList in JSONArray and back, DataSets in JSONArray or ObjectList and back)
-  * DelphiRedisClient (https://github.com/danieleteti/delphiredisclient)
-  * LoggerPro (https://github.com/danieleteti/loggerpro)
-  
-### Using ObjectsMappers in Delphi Starter Edition
-A lot of users ask about it, now is possible to use the Mapper also in Delphi Started Edition. To enable the "StarterEditionMode" open ```sources\dmvcframework.inc``` and remove the dot (.) after the curly brace in the following line
+### Using mapping framework in Delphi Starter Edition
+A lot of users ask about it, now is possible to use the mapper framework also in Delphi Started Edition. To enable the "StarterEditionMode" open ```sources\dmvcframework.inc``` and remove the dot (.) after the curly brace in the following line
 
 ```{.$DEFINE STARTEREDITION}```
 
@@ -69,6 +62,9 @@ become
 ```{$DEFINE STARTEREDITION}```
 
 ## Release Notes
+**3.0.0 (hydrogen)**
+  - First release of the 3.0.0 version
+
 **2.1.3 (lithium)**
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions
@@ -331,4 +327,3 @@ end;
 ###Links
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
 
-http://www.danieleteti.it/2013/04/18/sneak-peek-to-simple-integration-between-dmvcframework-and-dorm/
