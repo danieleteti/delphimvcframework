@@ -1,6 +1,6 @@
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
-### DElphiMVCFramework 3.0.0-hydrogen is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen)!
+# DelphiMVCFramework 3.0.0-hydrogen is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen)!
 
 ## DelphiMVCFramework Main Features
 
