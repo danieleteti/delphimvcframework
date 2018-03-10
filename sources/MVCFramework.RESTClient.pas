@@ -161,6 +161,8 @@ type
     procedure SetSessionID(const AValue: string);
     procedure SetProxyServer(const AValue: string);
     procedure SetProxyPort(const AValue: Integer);
+    procedure SetProxyPassword(const AValue: string);
+    procedure SetProxyUsername(const AValue: string);
   private
     FSerializer: IMVCSerializer;
   strict protected
@@ -295,6 +297,8 @@ type
     property QueryStringParams: TStringlist read GetQueryStringParams;
     property ProxyServer: string write SetProxyServer;
     property ProxyPort: Integer write SetProxyPort;
+    property ProxyUsername: string write SetProxyUsername;
+    property ProxyPassword: string write SetProxyPassword;
   end;
 
 implementation
@@ -1537,6 +1541,16 @@ end;
 procedure TRESTClient.SetProxyServer(const AValue: string);
 begin
   FHTTP.ProxyParams.ProxyServer := AValue;
+end;
+
+procedure TRESTClient.SetProxyUsername(const AValue: string);
+begin
+  FHTTP.ProxyParams.ProxyUsername := AValue;
+end;
+
+procedure TRESTClient.SetProxyPassword(const AValue: string);
+begin
+  FHTTP.ProxyParams.ProxyPassword := AValue;
 end;
 
 procedure TRESTClient.SetSessionID(const AValue: string);
