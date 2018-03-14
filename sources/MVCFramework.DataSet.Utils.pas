@@ -190,7 +190,7 @@ procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
 begin
   Self.DisableControls;
   try
-    raise Exception.Create('Not Implemented');    
+    raise Exception.Create('Not Implemented');
   finally
     Self.EnableControls;
   end;
@@ -278,6 +278,7 @@ var
   Value: TValue;
   FoundAttribute: boolean;
   FoundTransientAttribute: boolean;
+  LField: TField;
 begin
   _dict := TDictionary<string, string>.Create();
   _keys := TDictionary<string, boolean>.Create();
@@ -307,21 +308,28 @@ begin
   end;
   for _field in _fields do
   begin
+
     if not _dict.TryGetValue(_field.Name, field_name) then
       Continue;
+
+    LField := ADataSet.FindField(field_name);
+
+    if not Assigned(LField) then
+      Continue;
+
     case _field.PropertyType.TypeKind of
       tkEnumeration: // tristan
         begin
           if _field.PropertyType.Handle = TypeInfo(boolean) then
           begin
-            case ADataSet.FieldByName(field_name).DataType of
+            case LField.DataType of
               ftInteger, ftSmallint, ftLargeint:
                 begin
-                  Value := (ADataSet.FieldByName(field_name).AsInteger = 1);
+                  Value := (LField.AsInteger = 1);
                 end;
               ftBoolean:
                 begin
-                  Value := ADataSet.FieldByName(field_name).AsBoolean;
+                  Value := LField.AsBoolean;
                 end;
             else
               Continue;
@@ -329,15 +337,15 @@ begin
           end;
         end;
       tkInteger:
-        Value := ADataSet.FieldByName(field_name).AsInteger;
+        Value := LField.AsInteger;
       tkInt64:
-        Value := ADataSet.FieldByName(field_name).AsLargeInt;
+        Value := LField.AsLargeInt;
       tkFloat:
-        Value := ADataSet.FieldByName(field_name).AsFloat;
+        Value := LField.AsFloat;
       tkString:
-        Value := ADataSet.FieldByName(field_name).AsString;
+        Value := LField.AsString;
       tkUString, tkWChar, tkLString, tkWString:
-        Value := ADataSet.FieldByName(field_name).AsWideString;
+        Value := LField.AsWideString;
     else
       Continue;
     end;
