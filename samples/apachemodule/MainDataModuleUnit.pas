@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-  Data.DB,
+  Data.DB, System.IOUtils,
   MVCFramework.TypesAliases,
   FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client,
@@ -59,7 +59,8 @@ procedure TWineCellarDataModule.ConnectionBeforeConnect(Sender: TObject);
 begin
   Connection.Params.Values['Database'] :=
   { change this path to be compliant with your system }
-    'D:\DEV\dmvcframework\samples\winecellarserver\WINES.FDB';
+    TPath.Combine(AppPath, '..\..\..\winecellarserver\WINES_FB30.FDB');
+//    'D:\DEV\dmvcframework\samples\winecellarserver\WINES.FDB';
 end;
 
 function TWineCellarDataModule.FindWines(Search: string): TDataSet;

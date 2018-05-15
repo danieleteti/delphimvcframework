@@ -4,9 +4,13 @@ object WineCellarDataModule: TWineCellarDataModule
   Width = 336
   object Connection: TFDConnection
     Params.Strings = (
-      'Database=C:\DEV\DMVCFramework\samples\winecellar\WINES.FDB'
+      
+        'Database=C:\DEV\dmvcframework\samples\winecellarserver\WINES_FB3' +
+        '0.FDB'
       'User_Name=sysdba'
       'Password=masterkey'
+      'Protocol=TCPIP'
+      'Server=localhost'
       'DriverID=FB')
     ConnectedStoredUsage = [auDesignTime]
     LoginPrompt = False

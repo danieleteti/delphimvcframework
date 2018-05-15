@@ -55,7 +55,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.IOUtils,
-  WinesBO;
+  WinesBO, MVCFramework.Serializer.Commons;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
@@ -149,7 +149,7 @@ begin
       end;
     httpGET:
       begin
-        Render(dm.GetWineById(StrToInt(ctx.Request.Params['id'])));
+        Render(dm.GetWineById(StrToInt(ctx.Request.Params['id'])), False, dstSingleRecord);
       end
   else
     raise Exception.Create('Invalid http method for action');

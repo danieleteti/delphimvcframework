@@ -80,13 +80,13 @@ become
   - ADDED unit tests about Mapper and dataset fields nullability
   - The current version is available in constant ```DMVCFRAMEWORK_VERSION``` defined in ```MVCFramework.Commons.pas```
 
-##Samples and documentation
+## Samples and documentation
 DMVCFramework is provided with a lot of examples focused on specific functionality.
 All samples are in [Samples](samples) folder.
 Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress).
 
 
-#Getting Started
+# Getting Started
 Below the is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
 The project containes an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
 
@@ -137,7 +137,7 @@ end.
 Remember that the files inside the redist folder *must* be in the executable path or in the system path. If starting the server whithin the IDE doesn't works, try to run the executable outside the IDE and check the dependencies.
 That's it! You have just created your first DelphiMVCFramework. Now you have to add a controller to respond to the http request.
 
-#Sample Controller
+## Sample Controller
 Below a basic sample of a DMVCFramework controller with 2 action
 
 ```delphi
@@ -239,7 +239,7 @@ Now you have a performant RESTful server wich respond to the following URLs:
 - PUT /users/($id)		(eg. /users/1, /users/45 etc with the JSON data in the request body)
 - POST /users			(the JSON data must be in the request body)
 
-###Quick Creation of DelphiMVCFramework Server
+### Quick Creation of DelphiMVCFramework Server
 
 If you dont plan to deploy your DMVCFramework server behind a webserver (apache or IIS) you can also pack more than one listener application server into one single executable. In this case, the process is a bit different and involves the creation of a listener context. However, create a new server is a simple task:
 
@@ -324,6 +324,6 @@ begin
 end;  
 ```
 
-###Links
+### Links
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
 

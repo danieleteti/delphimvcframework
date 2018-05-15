@@ -3,7 +3,7 @@ unit WinesBO;
 interface
 
 uses
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, System.Classes;
 
 type
 
@@ -81,5 +81,12 @@ procedure TWine.SetYEAR(const Value: string);
 begin
   FYEAR := Value;
 end;
+
+
+initialization
+
+TThread.CreateAnonymousThread(procedure begin end).Start;
+
+finalization
 
 end.
