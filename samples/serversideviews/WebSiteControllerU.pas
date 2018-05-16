@@ -80,7 +80,6 @@ var
   lPerson: TPerson;
   lDevices: TDeviceList;
   lItem: TDevice;
-  lIdx: Integer;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
   lPerson := LDAL.GetPersonByGUID(guid);

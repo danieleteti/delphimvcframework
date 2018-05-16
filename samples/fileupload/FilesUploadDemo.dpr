@@ -16,13 +16,7 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-
-  {$IFNDEF LINUX}
-
   ReqMulti, // if compiler doesn't find this unit, update with the last update
-
-  {$ENDIF}
-
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   FileUploadControllerU in 'FileUploadControllerU.pas';
 

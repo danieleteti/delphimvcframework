@@ -3,7 +3,8 @@ program jsonrpcclient;
 uses
   Vcl.Forms,
   MainClientFormU in 'MainClientFormU.pas' {Form10},
-  BusinessObjectsU in '..\commons\BusinessObjectsU.pas';
+  BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
+  MVCFramework.JSONRPC.Client in '..\..\sources\MVCFramework.JSONRPC.Client.pas';
 
 {$R *.res}
 

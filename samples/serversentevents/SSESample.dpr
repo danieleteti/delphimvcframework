@@ -6,6 +6,10 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,
+{$IFDEF MSWINDOWS}
+  Winapi.Windows,
+  Winapi.ShellAPI,
+{$ENDIF}
   ReqMulti,
   Web.WebReq,
   Web.WebBroker,
@@ -34,6 +38,10 @@ begin
     { more info about ListenQueue
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
+    { Comment the next line to avoid the default browser startup }
+{$IFDEF MSWINDOWS}
+    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
+{$ENDIF}
     Writeln('Press RETURN to stop the server');
     ReadLn;
   finally

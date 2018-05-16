@@ -286,7 +286,6 @@ type
     destructor Destroy; override;
 
     procedure Flush;
-    procedure SendHeaders;
     procedure SetCustomHeader(const AName, AValue: string);
     procedure SetContentStream(const AStream: TStream; const AContentType: string);
 
@@ -388,7 +387,6 @@ type
     property ApplicationSession: TWebApplicationSession read GetApplicationSession write SetApplicationSession;
   end;
 
-  TMVCStompMessage = class;
   TMVCErrorResponse = class;
 
   TMVCController = class(TMVCBase)
@@ -589,7 +587,6 @@ type
     procedure ConfigDefaultValues; virtual;
     procedure LoadSystemControllers; virtual;
     procedure FixUpWebModule;
-
     procedure ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
     procedure ExecuteBeforeControllerActionMiddleware(
       const AContext: TWebContext;
@@ -630,32 +627,6 @@ type
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property ApplicationSession: TWebApplicationSession read FApplicationSession write FApplicationSession;
-  end;
-
-  TMVCStompMessage = class
-  private
-    FSmTimestamp: TDateTime;
-    FSmQueue: string;
-    FSmUsername: string;
-    FSmTopic: string;
-    FSmMessage: string;
-  protected
-    { protected declarations }
-  public
-    [MVCNameAs('message')]
-    property SmMessage: string read FSmMessage write FSmMessage;
-
-    [MVCNameAs('_queue')]
-    property SmQueue: string read FSmQueue write FSmQueue;
-
-    [MVCNameAs('_topic')]
-    property SmTopic: string read FSmTopic write FSmTopic;
-
-    [MVCNameAs('_username')]
-    property SmUsername: string read FSmUsername write FSmUsername;
-
-    [MVCNameAs('_timestamp')]
-    property SmTimestamp: TDateTime read FSmTimestamp write FSmTimestamp;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -1164,13 +1135,16 @@ end;
 destructor TMVCWebResponse.Destroy;
 begin
   if FFlushOnDestroy then
+  begin
     Flush;
+  end;
   inherited Destroy;
 end;
 
 procedure TMVCWebResponse.Flush;
 begin
-  FWebResponse.SendResponse;
+  if not FWebResponse.Sent then
+    FWebResponse.SendResponse;
 end;
 
 function TMVCWebResponse.GetContent: string;
@@ -1206,11 +1180,6 @@ end;
 function TMVCWebResponse.GetStatusCode: Integer;
 begin
   Result := FWebResponse.StatusCode;
-end;
-
-procedure TMVCWebResponse.SendHeaders;
-begin
-  FWebResponse.SendResponse;
 end;
 
 procedure TMVCWebResponse.SetContent(const AValue: string);

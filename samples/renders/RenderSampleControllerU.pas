@@ -88,6 +88,11 @@ type
     procedure GetPerson_AsHTML(CTX: TWebContext);
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers.csv')]
+    procedure GetPeopleAsCSV;
+
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/unicode/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetUnicodeText_AsHTML(CTX: TWebContext);
@@ -313,6 +318,16 @@ begin
   p.Skills := 'Delphi, JavaScript';
   List.Add(p);
   Render<TPerson>(List);
+end;
+
+procedure TRenderSampleController.GetPeopleAsCSV;
+begin
+  ResponseStream.AppendLine('first_name;last_name;age');
+  ResponseStream.AppendLine('Daniele;Teti;38');
+  ResponseStream.AppendLine('Peter;Parker;22');
+  ResponseStream.AppendLine('Bruce;Banner;60');
+  ContentType := TMVCMediaType.TEXT_CSV;
+  RenderResponseStream;
 end;
 
 procedure TRenderSampleController.GetPeopleWithTiming;

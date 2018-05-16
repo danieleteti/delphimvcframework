@@ -4,7 +4,7 @@ object MyDataModule: TMyDataModule
   Width = 560
   object FDConnection1: TFDConnection
     Params.Strings = (
-      'Database=C:\FB30\examples\empbuild\EMPLOYEE.FDB'
+      'Database=employee'
       'User_Name=sysdba'
       'Password=masterkey'
       'Protocol=TCPIP'

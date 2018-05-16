@@ -80,8 +80,8 @@ object Form10: TForm10
       TabOrder = 6
     end
     object dtNextMonday: TDateTimePicker
-      Left = 501
-      Top = 30
+      Left = 564
+      Top = 16
       Width = 102
       Height = 21
       Date = 43018.469176562500000000
@@ -89,8 +89,8 @@ object Form10: TForm10
       TabOrder = 7
     end
     object btnAddDay: TButton
-      Left = 609
-      Top = 30
+      Left = 672
+      Top = 14
       Width = 128
       Height = 25
       Caption = 'Get Next Monday'
@@ -98,9 +98,9 @@ object Form10: TForm10
       OnClick = btnAddDayClick
     end
     object btnInvalid1: TButton
-      Left = 582
+      Left = 638
       Top = 78
-      Width = 112
+      Width = 84
       Height = 43
       Caption = 'Passing VAR parameters'
       Font.Charset = DEFAULT_CHARSET
@@ -114,9 +114,9 @@ object Form10: TForm10
       OnClick = btnInvalid1Click
     end
     object btnInvalid2: TButton
-      Left = 700
+      Left = 728
       Top = 78
-      Width = 112
+      Width = 84
       Height = 43
       Caption = 'Passing OUT parameters'
       Font.Charset = DEFAULT_CHARSET
@@ -128,6 +128,38 @@ object Form10: TForm10
       TabOrder = 10
       WordWrap = True
       OnClick = btnInvalid2Click
+    end
+    object btnNotification: TButton
+      Left = 476
+      Top = 78
+      Width = 75
+      Height = 43
+      Caption = 'Send Notification'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clScrollBar
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 11
+      WordWrap = True
+      OnClick = btnNotificationClick
+    end
+    object btnInvalidMethod: TButton
+      Left = 557
+      Top = 78
+      Width = 75
+      Height = 43
+      Caption = 'Invalid Method'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clScrollBar
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 12
+      WordWrap = True
+      OnClick = btnInvalidMethodClick
     end
   end
   object GroupBox2: TGroupBox

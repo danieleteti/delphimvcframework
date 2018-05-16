@@ -104,6 +104,7 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="..\commons\BusinessObjectsU.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

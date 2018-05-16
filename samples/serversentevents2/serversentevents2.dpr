@@ -11,9 +11,9 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
   SysConstantsU in 'SysConstantsU.pas',
-  MainDMU in 'MainDMU.pas' {dmMain: TDataModule},
+  MainDMU in 'MainDMU.pas' {dmMain: TDataModule} ,
   StatusControllerU in 'StatusControllerU.pas',
   EntitiesU in 'entities\EntitiesU.pas',
   StatusesServiceU in 'services\StatusesServiceU.pas',
@@ -41,7 +41,7 @@ begin
     LServer.ListenQueue := 200;
     Writeln('Press RETURN to stop the server');
     ReadLn;
-    EnterInShutdownState;
+    EnterInShutdownState; { WARNING! }
   finally
     LServer.Free;
   end;
