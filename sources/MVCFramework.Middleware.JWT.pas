@@ -50,67 +50,40 @@ type
     FLeewaySeconds: Cardinal;
     FLoginURLSegment: string;
   protected
-    procedure InternalRender(
-      AJSONValue: TJSONValue;
-      AContentType: string;
-      AContentEncoding: string;
-      AContext: TWebContext;
-      AInstanceOwner: Boolean = True
-      );
+    function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
+    procedure ExtendExpirationTime(const JWTValue: TJWT);
+    procedure InternalRender(AJSONValue: TJSONValue; AContentType: string; AContentEncoding: string;
+      AContext: TWebContext; AInstanceOwner: Boolean = True);
 
-    procedure RenderError(
-      const AErrorCode: UInt16;
-      const AErrorMessage: string;
-      const AContext: TWebContext;
-      const AErrorClassName: string = ''
-      );
+    procedure RenderError(const AErrorCode: UInt16; const AErrorMessage: string; const AContext: TWebContext;
+      const AErrorClassName: string = '');
 
-    procedure OnBeforeRouting(
-      AContext: TWebContext;
-      var AHandled: Boolean
-      );
+    procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 
-    procedure OnBeforeControllerAction(
-      AContext: TWebContext;
-      const AControllerQualifiedClassName: string;
-      const AActionName: string;
-      var AHandled: Boolean
-      );
+    procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionName: string; var AHandled: Boolean);
 
-    procedure OnAfterControllerAction(
-      AContext: TWebContext;
-      const AActionName: string;
-      const AHandled: Boolean
-      );
+    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
   public
-    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-      AConfigClaims: TJWTClaimsSetup;
-      ASecret: string = 'D3lph1MVCFram3w0rk';
-      ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = [
-      TJWTCheckableClaim.ExpirationTime,
-      TJWTCheckableClaim.NotBefore,
-      TJWTCheckableClaim.IssuedAt
-      ];
-      ALeewaySeconds: Cardinal = 300); virtual;
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
+      AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+      TJWTCheckableClaim.IssuedAt]; ALeewaySeconds: Cardinal = 300); virtual;
   end;
 
 implementation
 
-uses System.NetEncoding, System.DateUtils;
+uses
+  System.NetEncoding,
+  System.DateUtils,
+  System.Math;
 
 { TMVCJWTAuthenticationMiddleware }
 
 constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  AConfigClaims: TJWTClaimsSetup;
-  ASecret: string = 'D3lph1MVCFram3w0rk';
-  ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [
-  TJWTCheckableClaim.ExpirationTime,
-  TJWTCheckableClaim.NotBefore,
-  TJWTCheckableClaim.IssuedAt
-  ];
-  ALeewaySeconds: Cardinal = 300);
+  AConfigClaims: TJWTClaimsSetup; ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
+  AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+  TJWTCheckableClaim.IssuedAt]; ALeewaySeconds: Cardinal = 300);
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
@@ -121,8 +94,13 @@ begin
   FLeewaySeconds := ALeewaySeconds;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.InternalRender(
-  AJSONValue: TJSONValue; AContentType, AContentEncoding: string;
+procedure TMVCJWTAuthenticationMiddleware.ExtendExpirationTime(const JWTValue: TJWT);
+begin
+  JWTValue.Claims.ExpirationTime := Max(JWTValue.Claims.ExpirationTime, Now) +
+    (JWTValue.LeewaySeconds + JWTValue.LiveValidityWindowInSeconds) * OneSecond;
+end;
+
+procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONValue: TJSONValue; AContentType, AContentEncoding: string;
   AContext: TWebContext; AInstanceOwner: Boolean);
 var
   Encoding: TEncoding;
@@ -135,9 +113,8 @@ begin
 
   Encoding := TEncoding.GetEncoding(AContentEncoding);
   try
-    AContext.Response.SetContentStream(
-      TBytesStream.Create(TEncoding.Convert(TEncoding.Default, Encoding, TEncoding.Default.GetBytes(JValue))),
-      ContentType);
+    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, Encoding,
+      TEncoding.Default.GetBytes(JValue))), ContentType);
   finally
     Encoding.Free;
   end;
@@ -146,16 +123,28 @@ begin
     FreeAndNil(AJSONValue)
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(
-  AContext: TWebContext; const AActionName: string;
+function TMVCJWTAuthenticationMiddleware.NeedsToBeExtended(const JWTValue: TJWT): Boolean;
+var
+  lWillExpireIn: Int64;
+begin
+  lWillExpireIn := SecondsBetween(Now, JWTValue.Claims.ExpirationTime);
+  Result := lWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
+//  Log.Debug('--------------------------', 'EXPIRE');
+//  Log.DebugFmt('Now             : %s', [TimeToStr(Now)], 'EXPIRE');
+//  Log.DebugFmt('ExpirationTime  : %s', [TimeToStr(JWTValue.Claims.ExpirationTime)], 'EXPIRE');
+//  Log.DebugFmt('WillExpireIn    : %d', [lWillExpireIn], 'EXPIRE');
+//  Log.DebugFmt('LVW             : %d', [JWTValue.LiveValidityWindowInSeconds], 'EXPIRE');
+//  Log.DebugFmt('NeedsToBeExtened: %s', [BoolToStr(Result, True)], 'EXPIRE');
+end;
+
+procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
   const AHandled: Boolean);
 begin
   // Implement as needed
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.OnBeforeControllerAction(
-  AContext: TWebContext; const AControllerQualifiedClassName,
-  AActionName: string; var AHandled: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.OnBeforeControllerAction(AContext: TWebContext;
+  const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 var
   AuthRequired: Boolean;
   IsAuthorized: Boolean;
@@ -223,14 +212,19 @@ begin
       AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
       AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
 
-      FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
+      FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
+        IsAuthorized);
 
       if IsAuthorized then
       begin
         if JWTValue.LiveValidityWindowInSeconds > 0 then
         begin
-          JWTValue.Claims.ExpirationTime := Now + JWTValue.LiveValidityWindowInSeconds * OneSecond;
-          AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
+          if NeedsToBeExtended(JWTValue) then
+          begin
+            ExtendExpirationTime(JWTValue);
+            // .Claims.ExpirationTime := Now + JWTValue.LiveValidityWindowInSeconds * OneSecond;
+            AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
+          end;
         end;
         AHandled := False
       end
@@ -245,8 +239,7 @@ begin
   end;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.OnBeforeRouting(
-  AContext: TWebContext; var AHandled: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 var
   UserName: string;
   Password: string;
@@ -284,7 +277,8 @@ begin
 
             // these claims are mandatory and managed by the middleware
             if not JWTValue.CustomClaims['username'].IsEmpty then
-              raise EMVCJWTException.Create('Custom claim "username" is reserved and cannot be modified in the JWT setup');
+              raise EMVCJWTException.Create
+                ('Custom claim "username" is reserved and cannot be modified in the JWT setup');
 
             if not JWTValue.CustomClaims['roles'].IsEmpty then
               raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
@@ -294,7 +288,10 @@ begin
 
             if JWTValue.LiveValidityWindowInSeconds > 0 then
             begin
-              JWTValue.Claims.ExpirationTime := Now + (JWTValue.LeewaySeconds + JWTValue.LiveValidityWindowInSeconds) * OneSecond;
+              if NeedsToBeExtended(JWTValue) then
+              begin
+                ExtendExpirationTime(JWTValue);
+              end;
             end;
 
             // setup the current logged user from the JWT
@@ -315,12 +312,8 @@ begin
               end;
             end;
 
-            InternalRender(
-              TJSONObject.Create(TJSONPair.Create('token', JWTValue.GetToken)),
-              TMVCMediaType.APPLICATION_JSON,
-              TMVCConstants.DEFAULT_CONTENT_CHARSET,
-              AContext
-              );
+            InternalRender(TJSONObject.Create(TJSONPair.Create('token', JWTValue.GetToken)),
+              TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
             AHandled := True;
           finally
             JWTValue.Free;
@@ -340,9 +333,8 @@ begin
   end;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.RenderError(const AErrorCode: UInt16;
-  const AErrorMessage: string; const AContext: TWebContext;
-  const AErrorClassName: string);
+procedure TMVCJWTAuthenticationMiddleware.RenderError(const AErrorCode: UInt16; const AErrorMessage: string;
+  const AContext: TWebContext; const AErrorClassName: string);
 var
   Jo: TJSONObject;
   Status: string;

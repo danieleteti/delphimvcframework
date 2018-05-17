@@ -82,7 +82,6 @@ object Form5: TForm5
       Caption = 'Get a protected resource'
       TabOrder = 0
       OnClick = btnGetClick
-      ExplicitTop = 2
     end
     object btnLOGIN: TButton
       AlignWithMargins = True

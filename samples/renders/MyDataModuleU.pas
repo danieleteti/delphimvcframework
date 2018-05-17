@@ -64,8 +64,6 @@ type
     { Public declarations }
   end;
 
-var
-  MyDataModule: TMyDataModule;
 
 implementation
 

@@ -55,10 +55,11 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.IOUtils,
-  WinesBO, MVCFramework.Serializer.Commons;
+  WinesBO, MVCFramework.Serializer.Commons, MVCFramework.Logger;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
+  Log.Debug('','MYTAG');
   Render(dm.FindWines(ctx.Request.Params['value']));
 end;
 

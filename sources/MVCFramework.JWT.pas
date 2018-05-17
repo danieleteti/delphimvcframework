@@ -208,8 +208,9 @@ type
     property LeewaySeconds: Cardinal read FLeewaySeconds;
     property RegClaimsToChecks: TJWTCheckableClaims read FRegClaimsToChecks write SetChecks;
     /// <summary>
-    /// Use LiveValidityWindowInSeconds to make the ExpirationTime dynamic at each request,
-    /// incrementing the ExpirationTime by LiveValidityWindowInSeconds seconds at each request
+    /// Use LiveValidityWindowInSeconds to make the ExpirationTime dynamic at each request.
+    /// ExpirationTime will be incremented by LiveValidityWindowInSeconds seconds automatically
+    /// if the remaining seconds are less than the LiveValidityWindowInSeconds.
     /// </summary>
     property LiveValidityWindowInSeconds: Cardinal read GetLiveValidityWindowInSeconds write SetLiveValidityWindowInSeconds;
   end;

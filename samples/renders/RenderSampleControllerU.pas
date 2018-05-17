@@ -229,7 +229,7 @@ begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
-    Render(lDM.qryCustomers);
+    Render(lDM.qryCustomers, False);
   finally
     lDM.Free;
   end;
