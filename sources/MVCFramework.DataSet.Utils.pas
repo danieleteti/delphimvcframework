@@ -28,44 +28,44 @@ unit MVCFramework.DataSet.Utils;
 
 interface
 
-uses System.SysUtils, Data.DB, System.Generics.Collections, System.JSON,
-  System.Rtti, JsonDataObjects, MVCFramework.Serializer.Commons;
+uses
+  System.SysUtils,
+  Data.DB,
+  System.Generics.Collections,
+  System.JSON,
+  System.Rtti,
+  JsonDataObjects,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons;
 
 type
   TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);
 
   TDataSetHelper = class helper for TDataSet
   public
-    procedure LoadFromTValue(const Value: TValue;
-      const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
+    procedure LoadFromTValue(const Value: TValue; const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
     function AsJSONArray: string;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
-      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
-      AIgnoredFields: TArray<string>;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.
-      fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string;
-      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+    procedure LoadFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
-      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: string;
-      AIgnoredFields: TArray<string>); overload;
+    procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
-    procedure AppendFromJSONArrayString(AJSONArrayString: string;
-      AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll
-      : boolean = false): TObjectList<T>;
-    function AsObject<T: class, constructor>(CloseAfterScroll
-      : boolean = false): T;
+    procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
+    function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
   end;
 
   TDataSetUtils = class sealed
@@ -75,15 +75,27 @@ type
     class constructor Create;
     class destructor Destroy;
     class procedure DataSetToObject(ADataSet: TDataSet; AObject: TObject);
-    class procedure DataSetToObjectList<T: class, constructor>
-      (ADataSet: TDataSet; AObjectList: TObjectList<T>;
+    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
       ACloseDataSetAfterScroll: boolean = True);
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TDataSetHolder = class
+  private
+    FDataSet: TDataSet;
+    FMetadata: TMVCStringDictionary;
+  public
+    constructor Create(ADataSet: TDataSet); virtual;
+    destructor Destroy; override;
+    property Items: TDataSet read FDataSet;
+    [MVCNameAs('meta')]
+    property Metadata: TMVCStringDictionary read FMetadata;
   end;
 
 implementation
 
 uses
-  MVCFramework.Serializer.JSONDataObjects,
+  MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
 
 { TDataSetHelper }
@@ -92,12 +104,12 @@ procedure TDataSetHelper.LoadFromTValue(const Value: TValue; const aNameCase: TM
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and {$ENDIF} (Value.AsObject is TJsonArray)) then
+  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and {$ENDIF} (Value.AsObject is TJSONArray)) then
     raise Exception.Create('LoadFromTValue requires a TValue containing a TJDOJsonArray');
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
   try
-    lSer.JsonArrayToDataSet(TJsonArray(Value.AsObject), Self, [], TMVCNameCase.ncLowerCase);
+    lSer.JsonArrayToDataSet(TJSONArray(Value.AsObject), Self, [], TMVCNameCase.ncLowerCase);
   finally
     lSer.Free;
   end;
@@ -169,8 +181,7 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: string;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: string; AFieldNamePolicy: TFieldNamePolicy);
 var
   lSerializer: IMVCSerializer;
 begin
@@ -185,8 +196,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   Self.DisableControls;
   try
@@ -196,8 +207,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
 end;
@@ -207,8 +218,8 @@ begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
 end;
 
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   LoadFromJSONArray(AJSONArrayString, AFieldNamePolicy);
 end;
@@ -218,16 +229,15 @@ begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create());
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
-  AIgnoredFields: TArray<string>; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   raise Exception.Create('Not Implemented');
   // Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false,
   // AFieldNamePolicy);
 end;
 
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string;
-  AIgnoredFields: TArray<string>);
+procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>);
 var
   lSerializer: IMVCSerializer;
 begin
@@ -246,8 +256,7 @@ begin
   // end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy);
 begin
   LoadFromJSONObject(AJSONObject, TArray<string>.Create());
 end;
@@ -264,8 +273,7 @@ begin
   TDataSetUtils.CTX := TRttiContext.Create;
 end;
 
-class procedure TDataSetUtils.DataSetToObject(ADataSet: TDataSet;
-  AObject: TObject);
+class procedure TDataSetUtils.DataSetToObject(ADataSet: TDataSet; AObject: TObject);
 var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
@@ -355,8 +363,8 @@ begin
   _keys.Free;
 end;
 
-class procedure TDataSetUtils.DataSetToObjectList<T>(ADataSet: TDataSet;
-  AObjectList: TObjectList<T>; ACloseDataSetAfterScroll: boolean);
+class procedure TDataSetUtils.DataSetToObjectList<T>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
+  ACloseDataSetAfterScroll: boolean);
 var
   Obj: T;
   SavedPosition: TArray<Byte>;
@@ -383,6 +391,21 @@ end;
 class destructor TDataSetUtils.Destroy;
 begin
   CTX.Free;
+end;
+
+{ TDataSetHolder }
+
+constructor TDataSetHolder.Create(ADataSet: TDataSet);
+begin
+  inherited Create;
+  FDataSet := ADataSet;
+  FMetadata := TMVCStringDictionary.Create;
+end;
+
+destructor TDataSetHolder.Destroy;
+begin
+  inherited;
+  FMetadata.Free;
 end;
 
 end.

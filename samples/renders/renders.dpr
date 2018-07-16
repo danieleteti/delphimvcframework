@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -41,7 +41,8 @@ uses
   MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule},
   CustomTypesU in 'CustomTypesU.pas',
   CustomTypesSerializersU in 'CustomTypesSerializersU.pas',
-  InMemoryDataU in 'InMemoryDataU.pas';
+  InMemoryDataU in 'InMemoryDataU.pas',
+  MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas';
 
 {$R *.res}
 

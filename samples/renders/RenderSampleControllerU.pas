@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -39,8 +39,7 @@ type
   [MVCPath('/')]
   TRenderSampleController = class(TMVCController)
   protected
-    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
-      var AHandled: Boolean); override;
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id)')]
@@ -51,6 +50,11 @@ type
     [MVCPath('/customers')]
     [MVCProduces('application/json')]
     procedure GetCustomers_AsDataSet(CTX: TWebContext);
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/metadata')]
+    [MVCProduces('application/json')]
+    procedure GetDataSetWithMetadata;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/multi')]
@@ -71,7 +75,7 @@ type
     [MVCPath('/lotofobjects')]
     procedure GetLotOfPeople;
 
-    //this action is polymorphic
+    // this action is polymorphic
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/skilledpeople')]
     [MVCProduces('application/json')]
@@ -90,7 +94,6 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers.csv')]
     procedure GetPeopleAsCSV;
-
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/unicode/($id).html')]
@@ -157,8 +160,8 @@ begin
   Render(s);
 end;
 
-procedure TRenderSampleController.OnBeforeAction(AContext: TWebContext;
-  const AActionName: string; var AHandled: Boolean);
+procedure TRenderSampleController.OnBeforeAction(AContext: TWebContext; const AActionName: string;
+  var AHandled: Boolean);
 begin
   inherited;
 
@@ -207,8 +210,8 @@ begin
       // We need a non standard representation, let's create a specific serializer.
       lSer := TMVCJsonDataObjectsSerializer.Create;
       try
-        lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.A['customers'], TMVCNameCase.ncLowerCase, []);
-        lSer.DataSetToJsonArray(lDM.qryCountry, lJObj.A['countries'], TMVCNameCase.ncLowerCase, []);
+        lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.a['customers'], TMVCNameCase.ncLowerCase, []);
+        lSer.DataSetToJsonArray(lDM.qryCountry, lJObj.a['countries'], TMVCNameCase.ncLowerCase, []);
       finally
         lSer.Free;
       end;
@@ -241,6 +244,24 @@ begin
   Render(TSysUser.Create('daniele', ['poweruser', 'role1', 'role2']), True);
 end;
 
+procedure TRenderSampleController.GetDataSetWithMetadata;
+var
+  lDM: TMyDataModule;
+  lHolder: TDataSetHolder;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    lHolder := TDataSetHolder.Create(lDM.qryCustomers);
+    lHolder.Metadata.AddProperty('page', '1');
+    lHolder.Metadata.AddProperty('count', lDM.qryCustomers.RecordCount.ToString);
+    Render(lHolder);
+  finally
+    lDM.Free;
+  end;
+
+end;
+
 procedure TRenderSampleController.GetLotOfPeople;
 begin
   Render<TPerson>(GetPeopleList, False);
@@ -248,12 +269,8 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);
 begin
-  ResponseStream
-    .Append('<html><body><ul>')
-    .Append('<li>FirstName: Daniele</li>')
-    .Append('<li>LastName: Teti')
-    .AppendFormat('<li>DOB: %s</li>', [DateToISODate(EncodeDate(1975, 5, 2))])
-    .Append('<li>Married: yes</li>')
+  ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>').Append('<li>LastName: Teti')
+    .AppendFormat('<li>DOB: %s</li>', [DateToISODate(EncodeDate(1975, 5, 2))]).Append('<li>Married: yes</li>')
     .Append('</ul></body></html>');
   RenderResponseStream;
 end;
@@ -283,11 +300,8 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsText(const id: Integer);
 begin
-  ResponseStream
-    .AppendLine('ID        :  ' + id.ToString)
-    .AppendLine('FirstName : Daniele')
-    .AppendLine('LastName  : Teti')
-    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+  ResponseStream.AppendLine('ID        :  ' + id.ToString).AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti').AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
     .AppendLine('Married   : yes');
   RenderResponseStream;
 end;
@@ -339,8 +353,8 @@ begin
   try
     People.Metadata.StartProcessing := Now;
 
-    {$REGION 'Fake data'}
-    Sleep(1000); //processing...
+{$REGION 'Fake data'}
+    Sleep(1000); // processing...
 
     p := TPerson.Create;
     p.FirstName := 'Daniele';
@@ -363,8 +377,7 @@ begin
     p.Married := True;
     People.Items.Add(p);
 
-    {$ENDREGION}
-
+{$ENDREGION}
     People.Metadata.CustomData := Format('There are %d people in the list', [People.Items.Count]);
     People.Metadata.StopProcessing := Now;
     Render(People, False);
@@ -380,8 +393,7 @@ var
 begin
   People := TObjectList<TPerson>.Create(True);
 
-  {$REGION 'Fake data'}
-
+{$REGION 'Fake data'}
   p := TPerson.Create;
   p.FirstName := 'Daniele';
   p.LastName := 'Teti';
@@ -403,8 +415,7 @@ begin
   p.Married := True;
   People.Add(p);
 
-  {$ENDREGION}
-
+{$ENDREGION}
   Render<TPerson>(People);
 end;
 
@@ -413,9 +424,9 @@ var
   p: TJSONObject;
 begin
   p := TJSONObject.Create;
-  p.S['FirstName'] := 'Daniele';
-  p.S['LastName'] := 'Teti';
-  p.S['DOB'] := DateToISODate(EncodeDate(1975, 5, 2));
+  p.s['FirstName'] := 'Daniele';
+  p.s['LastName'] := 'Teti';
+  p.s['DOB'] := DateToISODate(EncodeDate(1975, 5, 2));
   p.B['Married'] := True;
   Render(p);
 end;
@@ -430,8 +441,7 @@ procedure TRenderSampleController.GetPersonPhotoAsStream(CTX: TWebContext);
 var
   LPhoto: TFileStream;
 begin
-  LPhoto := TFileStream.Create('..\..\_\customer.png',
-    fmOpenRead or fmShareDenyWrite);
+  LPhoto := TFileStream.Create('..\..\_\customer.png', fmOpenRead or fmShareDenyWrite);
   ContentType := 'image/png'; // you can also use MVCProduces attribute
 
   // LPhoto is a plain TStream descendant, so it can be rendered as usual

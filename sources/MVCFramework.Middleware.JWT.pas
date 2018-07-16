@@ -76,7 +76,7 @@ implementation
 uses
   System.NetEncoding,
   System.DateUtils,
-  System.Math;
+  System.Math, MVCFramework.Logger;
 
 { TMVCJWTAuthenticationMiddleware }
 

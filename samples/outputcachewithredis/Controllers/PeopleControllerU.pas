@@ -103,7 +103,7 @@ begin
     raise;
   end;
   Render<TPerson>(lPeople);
-  SetCache(20);
+  SetCache(60);
 end;
 
 procedure TPeopleController.CreateBulkData(CTX: TWebContext);

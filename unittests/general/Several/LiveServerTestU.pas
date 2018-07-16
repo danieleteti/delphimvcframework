@@ -1224,6 +1224,7 @@ begin
   try
     lReq.Method := 'mynotify';
     FExecutor.ExecuteNotification(lReq);
+    Assert.Pass();
   finally
     lReq.Free;
   end;
