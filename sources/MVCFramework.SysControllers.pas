@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,53 +24,46 @@
 
 unit MVCFramework.SysControllers;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
-  MVCFramework, MVCFramework.Commons;
+  System.SysUtils,
+  System.Classes,
+  System.TypInfo,
+  System.DateUtils,
+  System.Rtti,
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.TypesAliases;
 
 type
 
   [MVCPath('/system')]
-  [MVCDoc('Built-in DelphiMVCFramework System controller')]
+  [MVCDoc('Built-in DelphiMVCFramework System Controller')]
   TMVCSystemController = class(TMVCController)
+  private
+    { private declarations }
   protected
-    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
-      var Handled: Boolean); override;
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
     function GetUpTime: string;
   public
     [MVCPath('/describeserver.info')]
     [MVCHTTPMethods([httpGET, httpPOST])]
-    [MVCDoc('Describe controllers and actions published by the RESTful server per resources')
-      ]
-    procedure DescribeServer(Context: TWebContext);
+    [MVCDoc('Describe controllers and actions published by the RESTful server per resources')]
+    procedure DescribeServer(AContext: TWebContext);
 
     [MVCPath('/describeplatform.info')]
     [MVCDoc('Describe the system where server is running')]
-    procedure DescribePlatform(Context: TWebContext);
+    procedure DescribePlatform(AContext: TWebContext);
 
     [MVCPath('/serverconfig.info')]
     [MVCDoc('Server configuration')]
-    procedure ServerConfig(Context: TWebContext);
+    procedure ServerConfig(AContext: TWebContext);
   end;
 
 implementation
-
-uses
-  System.SysUtils
-    , System.Rtti
-    , System.Classes
-    , Winapi.Windows
-    , System.TypInfo
-{$IFDEF SYSTEMJSON} // XE6
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    ;
 
 function MSecToTime(mSec: Int64): string;
 const
@@ -98,35 +91,32 @@ end;
 
 { TMVCSystemController }
 
-procedure TMVCSystemController.DescribePlatform(Context: TWebContext);
+procedure TMVCSystemController.DescribePlatform(AContext: TWebContext);
 var
-  LJRes: TJSONObject;
+  Jo: TJSONObject;
 begin
-  LJRes := TJSONObject.Create;
+  Jo := TJSONObject.Create;
   try
-    LJRes.AddPair('OS', TOSVersion.ToString);
-    LJRes.AddPair('CPU_count', TJSONNumber.Create(TThread.ProcessorCount));
-    LJRes.AddPair('CPU_architecture',
-      GetEnumName(TypeInfo(TOSVersion.TArchitecture),
-      Ord(TOSVersion.Architecture)));
-    // LJRes.AddPair('system_uptime', GetUpTime);
-    LJRes.AddPair('system_time', FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
+    Jo.AddPair('OS', TOSVersion.ToString);
+    Jo.AddPair('CPU_count', TJSONNumber.Create(TThread.ProcessorCount));
+    Jo.AddPair('CPU_architecture', GetEnumName(TypeInfo(TOSVersion.TArchitecture), Ord(TOSVersion.Architecture)));
+    Jo.AddPair('system_time', FormatDateTime('YYYY-MM-DD HH:NN:SS', Now));
     ContentType := TMVCMediaType.APPLICATION_JSON;
-    Render(LJRes, False);
+    Render(Jo, False);
   finally
-    LJRes.Free;
+    Jo.Free;
   end;
 end;
 
-procedure TMVCSystemController.DescribeServer(Context: TWebContext);
+procedure TMVCSystemController.DescribeServer(AContext: TWebContext);
 var
-  LJResp: TJSONObject;
-  LControllerRoutable: TMVCControllerRoutable;
-  ControllerInfo: TJSONObject;
-  LRTTIType: TRttiInstanceType;
-  LCTX: TRttiContext;
+  LJoResp: TJSONObject;
+  LController: TMVCControllerDelegate;
+  LJoControllerInfo: TJSONObject;
+  LRttiType: TRttiInstanceType;
+  LRttiCtx: TRttiContext;
   LAttribute: TCustomattribute;
-  LJMethods: TJSONArray;
+  LJaMethods: TJSONArray;
   LMethods: TArray<TRttiMethod>;
   LMethod: TRttiMethod;
   LFoundAttrib: Boolean;
@@ -135,33 +125,29 @@ var
   LStrDoc: string;
   LStrConsumes: string;
   LStrProduces: string;
-  LJMethod: TJSONObject;
+  LJoMethod: TJSONObject;
 begin
-  LCTX := TRttiContext.Create;
+  LRttiCtx := TRttiContext.Create;
   try
-    LJResp := TJSONObject.Create;
+    LJoResp := TJSONObject.Create;
     try
-      for LControllerRoutable in GetMVCEngine.RegisteredControllers do
+      for LController in Engine.Controllers do
       begin
-        ControllerInfo := TJSONObject.Create;
-        LJResp.AddPair(LControllerRoutable.&Class.QualifiedClassName,
-          ControllerInfo);
+        LJoControllerInfo := TJSONObject.Create;
+        LJoResp.AddPair(LController.Clazz.QualifiedClassName, LJoControllerInfo);
 
-        LRTTIType := LCTX.GetType(LControllerRoutable.&Class)
-          as TRttiInstanceType;
-        for LAttribute in LRTTIType.GetAttributes do
+        LRttiType := LRttiCtx.GetType(LController.Clazz) as TRttiInstanceType;
+        for LAttribute in LRttiType.GetAttributes do
         begin
           if LAttribute is MVCPathAttribute then
-            ControllerInfo.AddPair('resource_path',
-              MVCPathAttribute(LAttribute).Path);
+            LJoControllerInfo.AddPair('resource_path', MVCPathAttribute(LAttribute).Path);
           if LAttribute is MVCDocAttribute then
-            ControllerInfo.AddPair('description',
-              MVCDocAttribute(LAttribute).Value);
+            LJoControllerInfo.AddPair('description', MVCDocAttribute(LAttribute).Value);
         end;
 
-        LJMethods := TJSONArray.Create;
-        ControllerInfo.AddPair('actions', LJMethods);
-        LMethods := LRTTIType.GetDeclaredMethods;
+        LJaMethods := TJSONArray.Create;
+        LJoControllerInfo.AddPair('actions', LJaMethods);
+        LMethods := LRttiType.GetDeclaredMethods;
         for LMethod in LMethods do
         begin
           LFoundAttrib := False;
@@ -170,8 +156,7 @@ begin
           LStrConsumes := '';
           LStrProduces := '';
           LStrDoc := '';
-          LStrHTTPMethods :=
-            'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
+          LStrHTTPMethods := 'httpGET,httpPOST,httpPUT,httpDELETE,httpHEAD,httpOPTIONS,httpPATCH,httpTRACE';
           for LAttribute in LMethod.GetAttributes do
           begin
             if LAttribute is MVCDocAttribute then
@@ -186,8 +171,7 @@ begin
             end;
             if LAttribute is MVCHTTPMethodAttribute then
             begin
-              LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute)
-                .MVCHTTPMethodsAsString;
+              LStrHTTPMethods := MVCHTTPMethodAttribute(LAttribute).MVCHTTPMethodsAsString;
               LFoundAttrib := true;
             end;
             if LAttribute is MVCConsumesAttribute then
@@ -204,63 +188,57 @@ begin
 
           if LFoundAttrib then
           begin
-            LJMethod := TJSONObject.Create;
-            LJMethod.AddPair('action_name', LMethod.Name);
-            LJMethod.AddPair('relative_path', LStrRelativePath);
-            LJMethod.AddPair('consumes', LStrConsumes);
-            LJMethod.AddPair('produces', LStrProduces);
-            LJMethod.AddPair('http_methods', LStrHTTPMethods);
-            LJMethod.AddPair('description', LStrDoc);
-            LJMethods.AddElement(LJMethod);
+            LJoMethod := TJSONObject.Create;
+            LJoMethod.AddPair('action_name', LMethod.Name);
+            LJoMethod.AddPair('relative_path', LStrRelativePath);
+            LJoMethod.AddPair('consumes', LStrConsumes);
+            LJoMethod.AddPair('produces', LStrProduces);
+            LJoMethod.AddPair('http_methods', LStrHTTPMethods);
+            LJoMethod.AddPair('description', LStrDoc);
+            LJaMethods.AddElement(LJoMethod);
           end;
         end;
       end;
       ContentType := TMVCMediaType.APPLICATION_JSON;
-      Render(LJResp, False);
+      Render(LJoResp, False);
     finally
-      LJResp.Free;
+      LJoResp.Free;
     end;
   finally
-    LCTX.Free;
+    LRttiCtx.Free;
   end;
 end;
 
 function TMVCSystemController.GetUpTime: string;
 begin
-  Result := MSecToTime(GetTickCount);
+  Result := MSecToTime(MilliSecondsBetween(Now, 0));
 end;
 
-procedure TMVCSystemController.OnBeforeAction(Context: TWebContext;
-  const AActionNAme: string; var Handled: Boolean);
+procedure TMVCSystemController.OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean);
 var
-  LClientIP: string;
+  ClientIp: string;
 begin
   inherited;
-  LClientIP := Context.Request.ClientIP;
-  Handled := not((LClientIP = '::1') or (LClientIP = '127.0.0.1') or
-    (LClientIP = '0:0:0:0:0:0:0:1') or (LClientIP.ToLower = 'localhost'));
+  ClientIp := Context.Request.ClientIp;
+  AHandled := not((ClientIp = '::1') or (ClientIp = '127.0.0.1') or (ClientIp = '0:0:0:0:0:0:0:1') or (ClientIp.ToLower = 'localhost'));
 end;
 
-procedure TMVCSystemController.ServerConfig(Context: TWebContext);
+procedure TMVCSystemController.ServerConfig(AContext: TWebContext);
 var
-  LKeys: TArray<string>;
-  LKey: string;
-  LJRes: TJSONObject;
+  Keys: TArray<string>;
+  Key: string;
+  Jo: TJSONObject;
 begin
-  ContentType := TMVCMediaType.APPLICATION_JSON;
-
-  LJRes := TJSONObject.Create;
+  Jo := TJSONObject.Create;
   try
-    LKeys := Config.Keys;
-    for LKey in LKeys do
-    begin
-      LJRes.AddPair(LKey, Config[LKey]);
-    end;
-  except
-    LJRes.Free;
-    raise;
+    Keys := Config.Keys;
+    for Key in Keys do
+      Jo.AddPair(Key, Config[Key]);
+    ContentType := TMVCMediaType.APPLICATION_JSON;
+    Render(Jo, False);
+  finally
+    Jo.Free;
   end;
-  Render(LJRes, true);
 end;
 
 end.

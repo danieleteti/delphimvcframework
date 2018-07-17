@@ -27,7 +27,7 @@ implementation
 {$R *.dfm}
 
 
-uses App1MainControllerU;
+uses App1MainControllerU, MVCFramework.Commons;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin

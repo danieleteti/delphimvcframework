@@ -20,9 +20,9 @@ type
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
   private
-    FJWT: String;
-    procedure SetJWT(const Value: String);
-    property JWT: String read FJWT write SetJWT;
+    FJWT: string;
+    procedure SetJWT(const Value: string);
+    property JWT: string read FJWT write SetJWT;
   public
     { Public declarations }
   end;
@@ -36,7 +36,9 @@ implementation
 
 
 uses
-  MVCFramework.RESTClient, ObjectsMappers;
+  MVCFramework.RESTClient,
+  MVCFramework.SystemJSONUtils,
+  MVCFramework.TypesAliases;
 
 procedure TForm5.btnGetClick(Sender: TObject);
 var
@@ -92,6 +94,7 @@ procedure TForm5.btnLOGINClick(Sender: TObject);
 var
   lClient: TRESTClient;
   lRest: IRESTResponse;
+  lJSON: TJSONObject;
 begin
   lClient := TRESTClient.Create('localhost', 8080);
   try
@@ -100,13 +103,24 @@ begin
       .Header('jwtusername', 'user1')
       .Header('jwtpassword', 'user1');
     lRest := lClient.doPOST('/login', []);
-    JWT := lRest.BodyAsJSONObject.GetValue('token').Value;
+    if lRest.HasError then
+    begin
+      ShowMessage(lRest.Error.ExceptionMessage);
+      Exit;
+    end;
+
+    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
+    try
+      JWT := lJSON.GetValue('token').Value;
+    finally
+      lJSON.Free;
+    end;
   finally
     lClient.Free;
   end;
 end;
 
-procedure TForm5.SetJWT(const Value: String);
+procedure TForm5.SetJWT(const Value: string);
 begin
   FJWT := Value;
   Memo1.Lines.Text := Value;

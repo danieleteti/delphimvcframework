@@ -48,9 +48,9 @@ implementation
 uses
   DMVC.Expert.Forms.NewUnitWizard,
   DMVC.Expert.CodeGen.NewControllerUnit,
-  Controls,
-  Forms,
-  Windows,
+  Vcl.Controls,
+  Vcl.Forms,
+  WinApi.Windows,
   ExpertsRepository;
 
 resourcestring
@@ -61,7 +61,7 @@ class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const aPersonality:
 begin
   RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(aPersonality,
                         sNewDMVCProjectHint, sNewDMVCUnitCaption, 'DMVC.Wizard.NewUnitWizard',  // do not localize
-                        'DMVC', 'DelphiMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
+                        'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
       WizardForm     : TfrmDMVCNewUnit;
@@ -77,6 +77,7 @@ begin
           Project :=  GetActiveProject;
           ControllerUnit := ModuleServices.CreateModule(
                            TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod,
+                                                       WizardForm.CreateCRUDMethods,
                                                        WizardForm.CreateActionFiltersMethods,
                                                        WizardForm.ControllerClassName,
                                                        aPersonality));

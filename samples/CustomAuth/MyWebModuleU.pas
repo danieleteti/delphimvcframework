@@ -74,8 +74,6 @@ begin
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
       // view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
-      // Enable STOMP messaging controller
-      Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);

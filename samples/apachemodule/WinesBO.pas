@@ -2,10 +2,12 @@ unit WinesBO;
 
 interface
 
-uses ObjectsMappers;
+uses
+  MVCFramework.Serializer.Commons, System.Classes;
 
 type
-  [MapperJSONNaming(JSONNameLowerCase)]
+
+  [MVCNameCase(ncLowerCase)]
   TWine = class
   private
     FYEAR: string;
@@ -79,5 +81,12 @@ procedure TWine.SetYEAR(const Value: string);
 begin
   FYEAR := Value;
 end;
+
+
+initialization
+
+TThread.CreateAnonymousThread(procedure begin end).Start;
+
+finalization
 
 end.

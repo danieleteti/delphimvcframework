@@ -4,10 +4,9 @@ interface
 
 {$I dmvcframework.inc}
 
-
 uses MVCFramework,
   MVCFramework.Logger,
-	 MVCFramework.Commons,
+  MVCFramework.Commons,
   Web.HTTPApp;
 
 type
@@ -29,19 +28,15 @@ type
 
     [MVCPath('/div/($par1)/($par2)')]
     [MVCHTTPMethod([httpGET])]
-    procedure RaiseException(par1, par2: String);
+    procedure RaiseException(par1, par2: string);
   end;
 
 implementation
 
 uses
-  System.SysUtils
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$IFEND}
-    ;
+  System.SysUtils,
+  MVCFramework.SystemJSONUtils,
+  MVCFramework.TypesAliases;
 
 { TApp1MainController }
 
@@ -56,9 +51,13 @@ procedure TApp1MainController.HelloWorldPost;
 var
   JSON: TJSONObject;
 begin
-  JSON := Context.Request.BodyAsJSONObject;
-  JSON.AddPair('modified', 'from server');
-  Render(JSON, false);
+  JSON := TSystemJSON.StringAsJSONObject(Context.Request.Body);
+  try
+    JSON.AddPair('modified', 'from server');
+    Render(JSON, false);
+  finally
+    JSON.Free;
+  end;
   Log.Info('Hello world called with POST', 'basicdemo');
 end;
 
@@ -67,7 +66,7 @@ begin
   Redirect('index.html');
 end;
 
-procedure TApp1MainController.RaiseException(par1, par2: String);
+procedure TApp1MainController.RaiseException(par1, par2: string);
 var
   R: Extended;
 begin

@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import { Http, Response, Headers, RequestOptions } from '@angular/http';
 import { Article } from '../models/articolo';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable()
 export class ArticlesService {
-  private _articoliUrl = 'http://localhost:8080/articles';  // URL to web api
+  private _articoliUrl = environment.URL; // 'http://localhost:8080/articles';  // URL to web api
 
   constructor(private http: Http) { }
 
@@ -25,7 +26,14 @@ export class ArticlesService {
   private handleError(error: Response) {
     // in a real world app, we may send the error to some remote logging infrastructure
     // instead of just logging it to the console
-    console.error(error.text);
+    let err = null;
+    try {
+      err = error.json();
+    } catch (ex) {
+      err = { 'reasonstring': 'empty reasonstring', 'message': 'empty message' };
+    }
+    console.error(err);
+    alert(err.message);
     return Observable.throw(error.text || 'Server error');
     //  return Observable.throw('Server error');
   }
@@ -54,6 +62,6 @@ export class ArticlesService {
   }
 
   public removeArticolo(articolo: Article) {
-    return this.http.delete(this._articoliUrl + '/' + articolo.id);
+    return this.http.delete(this._articoliUrl + '/' + articolo.id).catch(this.handleError);
   }
 }

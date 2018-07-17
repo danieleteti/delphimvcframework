@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Server Sent Events DelphiMVCFramework Example - Stock Tickets</title>
+
+    <style media="screen" type="text/css">
+        body {
+            font-family: "Verdana", Tahoma, serif;
+        }		
+
+        H1 {
+            text-align: center;
+            font-size: 150%;
+            margin-bottom: 60px;
+        }
+        
+        H2 {
+            text-align: center;
+            font-size: 125%;
+            margin-bottom: 15px;
+        }
+        
+        DIV#quotes {
+            margin: 10px auto 80px auto;
+            font-size: 140%;
+        }
+        
+        DIV.quote {
+            margin: 5px auto;
+            width: 250px;
+            font-size: 100%;
+        }
+        
+        DIV.name {
+            display: inline-block;
+            width: 100px;
+            padding: 3px;
+        }
+        
+        DIV.price {
+            display: inline-block;
+            width: 100px;
+            padding: 3px;
+            text-align: right;
+            transition: all 0.2s ease-out;
+        }
+        
+        DIV#log {
+            margin: 10px auto;
+            width: 600px;
+            height: 200px;
+            background: gainsboro;
+            padding: 5px;
+            overflow-y: scroll;
+        }
+        
+        DIV#notSupported {
+            display: none;
+            margin: 10px auto;
+            text-align: center;
+            color: red;
+            font-size: 150%;
+        }
+        
+        P.hint {
+            width: 600px;
+            margin: 10px auto;
+            text-align: justify;
+            text-indent: 20px;
+            line-height: 135%;
+        }
+    </style>
+
+    <script type="text/javascript">
+		function start_updates() {
+            if (!!window.EventSource) {
+								//can be also local. We use a global var to allow to be stopped from outside.
+                window.source = new EventSource("/stocks");
+
+                // //this is a listener for a generic "message"
+                // source.addEventListener("message", function(e) {
+                //     console.log(e);
+                //     updateQuote(e.data);
+                //     logMessage(e);
+                // }, false);
+
+                //this is a listener for a specific message named "stockupdate"
+                source.addEventListener("stockupdate", function(e) {
+                    console.log(e);
+                    updateQuote(e.data);
+                }, false);
+
+                source.addEventListener("open", function(e) {
+                    console.log(e);
+                }, false);
+
+                source.addEventListener("error", function(e) {
+                    console.log(e);
+                    if (e.readyState == EventSource.CLOSED) {
+                        logMessage("CLOSED");
+                    }
+                }, false);
+            } else {
+                document.getElementById("notSupported").style.display = "block";
+            }
+        }
+
+        window.onload = start_updates; 
+
+        function updateQuote(data) {
+            var stock_data = JSON.parse(data);
+            var stock_name = stock_data.stock;
+            var stock_value = parseFloat(Math.round(stock_data.value * 100) / 100).toFixed(2);
+            var el = document.getElementById("t_" + stock_name);
+            var old_stock_value = el.innerHTML;
+            el.innerHTML = stock_value;
+            if (parseFloat(old_stock_value) < parseFloat(stock_value)) {
+                el.style.backgroundColor = "lightgreen";
+            } else {
+                el.style.backgroundColor = "tomato";
+            }
+            window.setTimeout(function clearBackground() {
+                el.style.backgroundColor = "white";
+            }, 500);
+        }
+
+				function toggle_updates(){
+					if (source){
+						source.close();
+						source = null;
+					} else {
+						start_updates();
+					}
+				}
+    </script>
+
+</head>
+
+<body>
+
+    <h1>Server Sent Events DelphiMVCFramework Example</h1>
+
+    <div id="notSupported">
+        Your browser does not support Server Sent Events. Please use <a href="https://www.mozilla.org/firefox/new/">Firefox</a> or <a href="https://www.google.com/chrome/browser">Google Chrome</a>.
+    </div>
+
+    <p class="hint">
+        This is a simple Server Sent Events (SSE) example using DelphiMVCFramework that updates stock prices when market moves. Data source is predefined array with titles. These is random delay between 500 msec and 1 sec between each event.
+    </p>
+
+    <h2>Quotes</h2>
+
+    <div id="quotes">
+        <div class="quote">
+            <div class="name">IBM</div>
+            <div class="price" id="t_IBM">0</div>
+        </div>
+        <div class="quote">
+            <div class="name">AAPL</div>
+            <div class="price" id="t_AAPL">0</div>
+        </div>
+        <div class="quote">
+            <div class="name">GOOG</div>
+            <div class="price" id="t_GOOG">0</div>
+        </div>
+        <div class="quote">
+            <div class="name">MSFT</div>
+            <div class="price" id="t_MSFT">0</div>
+        </div>
+
+        <div class="quote">
+						<button onclick="toggle_updates()">Toggle Updates</button>
+        </div>
+				
+    </div>
+
+
+</body>
+
+</html>

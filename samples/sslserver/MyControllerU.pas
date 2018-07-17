@@ -27,7 +27,7 @@ var
   List: TObjectList<TPerson>;
 begin
   List := TObjectList<TPerson>.Create(True);
-  List.Add(TPerson.Create('Daniele', 'Teti', 30));
+  List.Add(TPerson.Create('Daniele', 'Teti', 38));
   List.Add(TPerson.Create('John', 'Doe', 35));
   List.Add(TPerson.Create('Jane', 'Doe', 32));
   List.Add(TPerson.Create('Bruce', 'Banner', 60));
@@ -36,7 +36,7 @@ end;
 
 procedure TMyController.Index(CTX: TWebContext);
 begin
-  Render(TPerson.Create('Daniele', 'Teti', 35));
+  Render(TPerson.Create('Daniele', 'Teti', 38));
 end;
 
 end.

@@ -3,7 +3,7 @@ unit TestCommonsU;
 interface
 
 uses
-  TestFramework;
+  DUnitX.TestFramework;
 
 type
   TTestCommons = class(TTestCase)
@@ -67,6 +67,6 @@ end;
 initialization
 
 // Register any test cases with the test runner
-RegisterTest(TTestCommons.Suite);
+DUnitX.RegisterTestFixture(TTestCommons);
 
 end.

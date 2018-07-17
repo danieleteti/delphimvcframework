@@ -1,19 +1,19 @@
 program articles_crud;
+
 {$APPTYPE CONSOLE}
 
 
 uses
   System.SysUtils,
-  Winapi.Windows,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   Controllers.Base in 'Controllers.Base.pas',
   Controllers.Articles in 'Controllers.Articles.pas',
   Services in 'Services.pas',
   BusinessObjects in 'BusinessObjects.pas',
-  MainDM in 'MainDM.pas' {dmMain: TDataModule} ,
+  MainDM in 'MainDM.pas' {dmMain: TDataModule},
   Commons in 'Commons.pas';
 
 {$R *.res}
@@ -21,9 +21,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   WriteLn('ARTICLES CRUD Sample. Use articles_crud_vcl_client.dproj to manage data');
@@ -32,16 +29,8 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    WriteLn('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      ReadConsoleInput(LHandle, LInputRecord, 1, LEvent);
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    WriteLn('Press RETURN to stop the server');
+    ReadLn;
   finally
     LServer.Free;
   end;

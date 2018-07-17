@@ -1,6 +1,7 @@
 object WebModule1: TWebModule1
   OldCreateOrder = False
   OnCreate = WebModuleCreate
+  OnDestroy = WebModuleDestroy
   Actions = <
     item
       Default = True

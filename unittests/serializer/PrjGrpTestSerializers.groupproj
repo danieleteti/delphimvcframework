@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{5EBAAE63-B9A8-4F8B-A32A-D85A689B5CA7}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="systemjson\TestSerializerJSON.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="jsondataobjects\TestSerializerJsonDataObjects.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="TestSerializerJSON">
+        <MSBuild Projects="systemjson\TestSerializerJSON.dproj"/>
+    </Target>
+    <Target Name="TestSerializerJSON:Clean">
+        <MSBuild Projects="systemjson\TestSerializerJSON.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestSerializerJSON:Make">
+        <MSBuild Projects="systemjson\TestSerializerJSON.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestSerializerJsonDataObjects">
+        <MSBuild Projects="jsondataobjects\TestSerializerJsonDataObjects.dproj"/>
+    </Target>
+    <Target Name="TestSerializerJsonDataObjects:Clean">
+        <MSBuild Projects="jsondataobjects\TestSerializerJsonDataObjects.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestSerializerJsonDataObjects:Make">
+        <MSBuild Projects="jsondataobjects\TestSerializerJsonDataObjects.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="TestSerializerJSON;TestSerializerJsonDataObjects"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="TestSerializerJSON:Clean;TestSerializerJsonDataObjects:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="TestSerializerJSON:Make;TestSerializerJsonDataObjects:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

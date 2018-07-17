@@ -3,10 +3,10 @@ unit BusinessObjectsU;
 interface
 
 uses
-  ObjectsMappers;
+  MVCFramework.Serializer.Commons;
 
 type
-  [MapperJSONNaming(TJSONNameCase.JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TPerson = class
   private
     FLastName: String;

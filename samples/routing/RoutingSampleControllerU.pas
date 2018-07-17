@@ -3,7 +3,7 @@ unit RoutingSampleControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, ObjectsMappers;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
@@ -11,7 +11,7 @@ type
   TRoutingSampleController = class(TMVCController)
   public
     [MVCPath('/')]
-    procedure Index(CTX: TWebContext);
+    procedure Index;
 
     { This action requires that the ACCEPT header is text/plain to be invocated }
     [MVCHTTPMethod([httpGet])]
@@ -57,7 +57,7 @@ begin
   lPerson := Context.Request.BodyAs<TPerson>;
   lPerson.Validate;
   // SavePerson(lPerson);
-  Render(200, 'Person saved');
+  Render(HTTP_STATUS.Created, 'Person created');
 end;
 
 procedure TRoutingSampleController.DeletePerson(const id: Integer);
@@ -83,7 +83,7 @@ begin
   Render(P);
 end;
 
-procedure TRoutingSampleController.Index(CTX: TWebContext);
+procedure TRoutingSampleController.Index;
 begin
   Render('This is the root path');
 end;

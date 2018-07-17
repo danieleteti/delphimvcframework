@@ -9,14 +9,12 @@ object dmMain: TdmMain
       'Password=masterkey'
       'DriverID=FB')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     BeforeConnect = ConnectionBeforeConnect
     Left = 64
     Top = 48
   end
   object dsArticles: TFDQuery
-    Active = True
     Connection = Connection
     UpdateOptions.AssignedValues = [uvFetchGeneratorsPoint, uvGeneratorName]
     UpdateOptions.FetchGeneratorsPoint = gpImmediate
@@ -35,13 +33,15 @@ object dmMain: TdmMain
       'INSERT INTO ARTICOLI'
       '(ID, CODICE, DESCRIZIONE, PREZZO)'
       'VALUES (:NEW_ID, :NEW_CODICE, :NEW_DESCRIZIONE, :NEW_PREZZO)'
-      'RETURNING ID, CODICE, DESCRIZIONE, PREZZO')
+      'RETURNING ID {INTO :ID}')
     ModifySQL.Strings = (
       'UPDATE ARTICOLI'
-      'SET CODICE = :NEW_CODICE, DESCRIZIONE = :NEW_DESCRIZIONE, '
+      
+        'SET ID = :NEW_ID, CODICE = :NEW_CODICE, DESCRIZIONE = :NEW_DESCR' +
+        'IZIONE, '
       '  PREZZO = :NEW_PREZZO'
       'WHERE ID = :OLD_ID'
-      'RETURNING ID, CODICE, DESCRIZIONE, PREZZO')
+      'RETURNING ID')
     DeleteSQL.Strings = (
       'DELETE FROM ARTICOLI'
       'WHERE ID = :OLD_ID')

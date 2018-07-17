@@ -4,12 +4,11 @@
 program SSLSample;
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
-  Winapi.Windows,
   IdHTTPWebBrokerBridge,
   IdSSLOpenSSL,
+  System.IOUtils,
   Web.WebReq,
   Web.HTTPApp,
   Web.WebBroker,
@@ -18,7 +17,6 @@ uses
   MyObjectsU in 'MyObjectsU.pas';
 
 {$R *.res}
-
 
 type
   TGetSSLPassword = class
@@ -32,9 +30,6 @@ end;
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
   LGetSSLPassword: TGetSSLPassword;
   LIOHandleSSL: TIdServerIOHandlerSSLOpenSSL;
@@ -45,36 +40,46 @@ begin
   try
     LGetSSLPassword := TGetSSLPassword.Create;
     LIOHandleSSL := TIdServerIOHandlerSSLOpenSSL.Create(LServer);
-    LIOHandleSSL.SSLOptions.CertFile := '..\..\cacert.pem';
+    LIOHandleSSL.SSLOptions.CertFile := 'cacert.pem';
     LIOHandleSSL.SSLOptions.RootCertFile := '';
-    LIOHandleSSL.SSLOptions.KeyFile := '..\..\privkey.pem';
+    LIOHandleSSL.SSLOptions.KeyFile := 'privkey.pem';
     LIOHandleSSL.OnGetPassword := LGetSSLPassword.OnGetSSLPassword;
     LServer.IOHandler := LIOHandleSSL;
     LServer.DefaultPort := APort;
 
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
-
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    Writeln('Press RETURN to stop the server');
+    ReadLn;
   finally
     LServer.Free;
     LGetSSLPassword.Free;
   end;
 end;
 
+const
+  OPENSSL_LIBS: array of string = ['libeay32.dll', 'ssleay32.dll'];
+
+procedure CheckOPENSSLLibs;
+var
+  lOpenSSLLib: String;
 begin
+  // Just a check for
+  for lOpenSSLLib in OPENSSL_LIBS do
+  begin
+    Write('Checking ', lOpenSSLLib, '...');
+    if not TFile.Exists(lOpenSSLLib) then
+      raise Exception.CreateFmt('Required OPENSSL library not found in the exe folder: %s' + sLineBreak +
+        'Download INDY compatible OpenSSL Libraries from http://indy.fulgan.com/SSL/', [lOpenSSLLib]);
+    Writeln('OK');
+  end;
+end;
+
+begin
+  CheckOPENSSLLibs;
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    RunServer(8080);
+    RunServer(443 { standard https port } );
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

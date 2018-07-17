@@ -6,7 +6,13 @@ program WineCellarServer;
 uses
   WinApi.ShellAPI,
   System.SysUtils,
+
+  {$IFDEF MSWINDOWS}
+
   WinApi.Windows,
+
+  {$ENDIF}
+
   Web.WebReq,
   Web.WebBroker,
   MainWebModuleUnit in 'MainWebModuleUnit.pas' {wm: TWebModule} ,
@@ -20,9 +26,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
@@ -30,18 +33,16 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
+    Writeln('Press RETURN to stop the server');
+
+    {$IFDEF MSWINDOWS}
+
     // Just to start the WEB client
     ShellExecute(0, 'open', 'http://localhost:3000', nil, nil, SW_SHOW);
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+
+    {$ENDIF}
+
+    ReadLn;
   finally
     LServer.Free;
   end;

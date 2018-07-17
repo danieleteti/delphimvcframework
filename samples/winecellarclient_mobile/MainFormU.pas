@@ -11,7 +11,8 @@ uses
   System.Bindings.Outputs, FMX.Bind.Editors, Data.Bind.Components,
   Data.Bind.DBScope, REST.Client, Data.DB, FireDAC.Comp.DataSet,
   FireDAC.Comp.Client, REST.Response.Adapter, Data.Bind.ObjectScope,
-  FMX.ListView, FMX.Controls.Presentation;
+  FMX.ListView, FMX.Controls.Presentation, FMX.ListView.Appearances,
+  FMX.ListView.Adapters.Base;
 
 type
   THeaderFooterForm = class(TForm)

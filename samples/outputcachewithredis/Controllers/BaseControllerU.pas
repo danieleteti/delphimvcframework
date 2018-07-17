@@ -3,7 +3,7 @@ unit BaseControllerU;
 interface
 
 uses
-  MVCFramework, BaseDataModuleU, FireDAC.Comp.Client, ObjectsMappers;
+  MVCFramework, BaseDataModuleU, FireDAC.Comp.Client, MVCFramework.Serializer.Commons;
 
 type
   TBaseController = class(TMVCController)

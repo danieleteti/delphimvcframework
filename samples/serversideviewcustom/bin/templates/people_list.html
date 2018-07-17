@@ -1,0 +1,36 @@
+<div class="row_fluid">
+    <div class="col-sm-12">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>&nbsp</th>										
+                </tr>
+            </thead>
+            <tbody>
+                {loop(people)}
+                <tr>                    
+                    <td>{:people.customer}</td>								
+                    <td>{:people.contact_first}</td>
+                    <td>{:people.contact_last}</td>
+										<td class="text-right">
+                        <a class="btn btn-default" href="javascript:alert('Not implemented, check the main demo');">
+												<span class="glyphicon glyphicon-pencil"></span> View</a>
+                    </td>										
+                </tr>
+                {endloop}
+            </tbody>
+        </table>
+    </div>
+</div>
+<br>
+<div class="row_fluid">
+    <div class="col-sm-2">
+        <a class="btn btn-default btn-block" href="javascript:alert('Not implemented, check the main demo');">Export as CSV</a>
+    </div>
+    <div class="col-sm-2 col-sm-offset-8">
+        <a class="btn btn-primary btn-block" href="javascript:alert('Not implemented, check the main demo');">Add New Person</a>
+    </div>
+</div>

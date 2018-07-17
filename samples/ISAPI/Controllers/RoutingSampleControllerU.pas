@@ -3,7 +3,7 @@ unit RoutingSampleControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, ObjectsMappers;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
