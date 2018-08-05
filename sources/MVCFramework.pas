@@ -47,7 +47,6 @@ uses
   System.DateUtils,
   System.Generics.Collections,
   System.Rtti,
-  MVCFramework.Commons,
   Data.DB,
   MVCFramework.Session,
   MVCFramework.DuckTyping,
@@ -84,7 +83,8 @@ uses
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,
-  IdURI;
+  IdURI, 
+  MVCFramework.Commons;
 
 type
 
@@ -617,6 +617,7 @@ type
     function AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = ''): TMVCEngine; overload;
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
 
+    function GetServerSignature(const AContext: TWebContext): String;
     procedure HTTP404(const AContext: TWebContext);
     procedure HTTP500(const AContext: TWebContext; const AReasonString: string = '');
 
@@ -1608,7 +1609,7 @@ end;
 procedure TMVCEngine.DefineDefaultReponseHeaders(const AContext: TWebContext);
 begin
   if Config[TMVCConfigKey.ExposeServerSignature] = 'true' then
-    AContext.Response.CustomHeaders.Values['Server'] := Config[TMVCConfigKey.ServerName];
+    AContext.Response.CustomHeaders.Values['Server'] := GetServerSignature(AContext);
   AContext.Response.RawWebResponse.Date := Now;
 end;
 
@@ -1753,7 +1754,10 @@ begin
               if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
               begin
                 if not Config[TMVCConfigKey.FallbackResource].IsEmpty then
-                  Result := SendStaticFileIfPresent(LContext, TPath.Combine(Config[TMVCConfigKey.DocumentRoot], Config[TMVCConfigKey.FallbackResource]));
+                begin
+                  if (LContext.Request.PathInfo = '/') or (LContext.Request.PathInfo = '') then //useful for SPA
+                    Result := SendStaticFileIfPresent(LContext, TPath.Combine(Config[TMVCConfigKey.DocumentRoot], Config[TMVCConfigKey.FallbackResource]));
+                end;
                 if not Result then
                 begin
                   HTTP404(LContext);
@@ -1968,6 +1972,18 @@ begin
   end;
 end;
 
+function TMVCEngine.GetServerSignature(const AContext: TWebContext): String;
+begin
+  if AContext.Config.Value[TMVCConfigKey.ExposeServerSignature] = 'true' then
+  begin
+    Result := 'DelphiMVCFramework ' + DMVCFRAMEWORK_VERSION;
+  end
+  else
+  begin
+    Result := '';
+  end;
+end;
+
 function TMVCEngine.GetSessionBySessionId(const ASessionId: string): TWebSession;
 begin
   Result := TMVCEngine.GetCurrentSession(StrToInt64(Config[TMVCConfigKey.SessionTimeout]), ASessionId, False);
@@ -1985,20 +2001,23 @@ end;
 procedure TMVCEngine.HTTP404(const AContext: TWebContext);
 begin
   AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+  AContext.Response.CustomHeaders.Values['Content-Type'] := BuildContentType(TMVCMediaType.TEXT_PLAIN, AContext.Config[TMVCConfigKey.DefaultContentCharset]);
   AContext.Response.ReasonString := 'Not Found';
-  AContext.Response.Content := 'Not Found';
+  AContext.Response.Content := 'Not Found' + GetServerSignature(AContext);
 end;
 
 procedure TMVCEngine.HTTP500(const AContext: TWebContext; const AReasonString: string);
 begin
   AContext.Response.StatusCode := HTTP_STATUS.InternalServerError;;
+  AContext.Response.CustomHeaders.Values['Content-Type'] := BuildContentType(TMVCMediaType.TEXT_PLAIN, AContext.Config[TMVCConfigKey.DefaultContentCharset]);
   AContext.Response.ReasonString := 'Internal server error: ' + AReasonString;
-  AContext.Response.Content := 'Internal server error: ' + AReasonString;
+  AContext.Response.Content := 'Internal server error' + GetServerSignature(AContext) + ': ' + AReasonString;
 end;
 
 function TMVCEngine.IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;
 begin
-  Result := (not FConfig[TMVCConfigKey.DocumentRoot].IsEmpty) and (TMVCStaticContents.IsStaticFile(TPath.Combine(AppPath, FConfig[TMVCConfigKey.DocumentRoot]), ARequest.PathInfo, AFileName));
+  Result := (not FConfig[TMVCConfigKey.DocumentRoot].IsEmpty) and
+    (TMVCStaticContents.IsStaticFile(FConfig[TMVCConfigKey.DocumentRoot], ARequest.PathInfo, AFileName));
 end;
 
 procedure TMVCEngine.LoadSystemControllers;

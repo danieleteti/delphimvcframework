@@ -1,11 +1,11 @@
 { *************************************************************************** }
-{ }
-{ Delphi MVC Framework }
-{ }
-{ Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team }
-{ }
-{ https://github.com/danieleteti/delphimvcframework }
-{ }
+{                                                                             }
+{ Delphi MVC Framework                                                        }
+{                                                                             }
+{ Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team             }
+{                                                                             }
+{ https://github.com/danieleteti/delphimvcframework                           }
+{                                                                             }
 { *************************************************************************** }
 { }
 { Licensed under the Apache License, Version 2.0 (the "License"); }

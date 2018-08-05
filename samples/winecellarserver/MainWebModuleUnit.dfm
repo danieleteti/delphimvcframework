@@ -1,14 +1,7 @@
 object wm: Twm
   OldCreateOrder = False
   OnCreate = WebModuleCreate
-  OnDestroy = WebModuleDestroy
-  Actions = <
-    item
-      Default = True
-      Name = 'DefaultHandler'
-      PathInfo = '/'
-      OnAction = WebModule1DefaultHandlerAction
-    end>
+  Actions = <>
   Height = 230
   Width = 415
 end

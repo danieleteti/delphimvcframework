@@ -92,16 +92,18 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="MainDataModuleUnit.pas">
-            <Form>WineCellarDataModule</Form>
-            <DesignClass>TDataModule</DesignClass>
-        </DCCReference>
-        <DCCReference Include="MainWebModuleUnit.pas">
+        <DCCReference Include="..\winecellarserver\MainWebModuleUnit.pas">
             <Form>wm</Form>
+            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="WineCellarAppControllerU.pas"/>
-        <DCCReference Include="WinesBO.pas"/>
+        <DCCReference Include="..\winecellarserver\MainDataModuleUnit.pas">
+            <Form>WineCellarDataModule</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\winecellarserver\WineCellarAppControllerU.pas"/>
+        <DCCReference Include="..\winecellarserver\WinesBO.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -128,6 +130,12 @@
                 </Source>
             </Delphi.Personality>
             <Deployment Version="3">
+                <DeployFile LocalName="Apache24\modules\mod_dmvc.dll" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>mod_dmvc.dll</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>

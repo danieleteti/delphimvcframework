@@ -35,6 +35,7 @@ type
     Image1: TImage;
     lblFrameworkVersion: TLabel;
     chkCreateCRUDMethods: TCheckBox;
+    chkAnalyticsMiddleware: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -48,6 +49,8 @@ type
     function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
     function GetCreateCRUDMethods: boolean;
+    function GetAnalyticsSupport: boolean;
+    function GetMiddlewares: TArray<String>;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
@@ -56,6 +59,8 @@ type
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
+    property AnalyticsSupport: boolean read GetAnalyticsSupport;
+    property Middlewares: TArray<String> read GetMiddlewares;
     property CreateActionFiltersMethods: boolean
       read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
@@ -94,9 +99,23 @@ begin
   Result := chkAddToProjectGroup.Checked;
 end;
 
+function TfrmDMVCNewProject.GetAnalyticsSupport: boolean;
+begin
+  Result := chkAnalyticsMiddleware.Checked;
+end;
+
 function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
+end;
+
+function TfrmDMVCNewProject.GetMiddlewares: TArray<String>;
+begin
+  Result := [];
+  if AnalyticsSupport then
+  begin
+    Result := Result + ['TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics)'];
+  end;
 end;
 
 function TfrmDMVCNewProject.GetServerPort: Integer;

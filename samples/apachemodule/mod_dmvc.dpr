@@ -8,10 +8,12 @@ uses
   Web.ApacheApp,
   Web.HTTPD24Impl,
   MVCFramework.Logger,
-  MainDataModuleUnit in 'MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule} ,
-  MainWebModuleUnit in 'MainWebModuleUnit.pas' {wm: TWebModule} ,
-  WineCellarAppControllerU in 'WineCellarAppControllerU.pas',
-  WinesBO in 'WinesBO.pas', Winapi.Windows, System.Classes;
+  Winapi.Windows,
+  System.Classes,
+  MainWebModuleUnit in '..\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
+  MainDataModuleUnit in '..\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
+  WineCellarAppControllerU in '..\winecellarserver\WineCellarAppControllerU.pas',
+  WinesBO in '..\winecellarserver\WinesBO.pas';
 
 {$R *.res}
 // httpd.conf entries:

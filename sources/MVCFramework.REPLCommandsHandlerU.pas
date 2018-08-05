@@ -3,22 +3,26 @@ unit MVCFramework.REPLCommandsHandlerU;
 interface
 
 uses
-  IdHTTPWebBrokerBridge;
+  IdHTTPWebBrokerBridge,
+  MVCFramework;
 
 type
 
-  {$SCOPEDENUMS ON}
-
+{$SCOPEDENUMS ON}
   THandleCommandResult = (Continue, Break, Unknown);
-  TMVCCustomREPLCommandsHandler = reference to function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult;
+  TMVCCustomREPLCommandsHandler = reference to function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean)
+    : THandleCommandResult;
 
-function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge; const CustomCommandsHandler: TMVCCustomREPLCommandsHandler = nil): THandleCommandResult;
+function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge;
+  const CustomCommandsHandler: TMVCCustomREPLCommandsHandler = nil): THandleCommandResult;
 procedure REPLEmit(const Value: string);
 
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Commons, MVCFramework.Logger;
+  System.SysUtils,
+  MVCFramework.Commons,
+  MVCFramework.Logger;
 
 procedure REPLEmit(const Value: string);
 begin
@@ -29,7 +33,8 @@ begin
   // TextColor(White);
 end;
 
-function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge; const CustomCommandsHandler: TMVCCustomREPLCommandsHandler): THandleCommandResult;
+function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge;
+  const CustomCommandsHandler: TMVCCustomREPLCommandsHandler): THandleCommandResult;
 var
   lTempCommandResult: THandleCommandResult;
   lHandled: Boolean;
@@ -45,6 +50,7 @@ begin
   // Handling standard REPL commands
   if (Value = 'quit') or (Value = 'exit') then
   begin
+    EnterInShutdownState;
     REPLEmit('Shutting down...');
     Result := THandleCommandResult.Break;
   end

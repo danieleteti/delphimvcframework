@@ -31,7 +31,6 @@ unit MVCFramework.Serializer.JsonDataObjects;
 interface
 
 uses
-  System.SysUtils,
   System.Classes,
   System.Rtti,
   System.TypInfo,
@@ -120,7 +119,8 @@ type
 implementation
 
 uses
-  MVCFramework.Serializer.JsonDataObjects.CustomTypes, MVCFramework.Commons;
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes, MVCFramework.Commons,
+  System.SysUtils;
 
 { TMVCJsonDataObjectsSerializer }
 
@@ -776,11 +776,13 @@ var
   Prop: TRttiProperty;
   Fld: TRttiField;
   AttributeValue: TValue;
+  lKeyName: string;
 begin
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
       begin
+      try
         for Prop in ObjType.GetProperties do
         begin
 
@@ -794,25 +796,40 @@ begin
             (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
           begin
             AttributeValue := Prop.GetValue(AObject);
-            JsonDataValueToAttribute(AJsonObject, TMVCSerializerHelpful.GetKeyName(Prop, ObjType), AttributeValue,
+            lKeyName := TMVCSerializerHelpful.GetKeyName(Prop, ObjType);
+            JsonDataValueToAttribute(AJsonObject, lKeyName, AttributeValue,
               AType, AIgnoredAttributes, Prop.GetAttributes);
             if (not AttributeValue.IsEmpty) and Prop.IsWritable then
               Prop.SetValue(AObject, AttributeValue);
           end;
         end;
+      except
+        on E: EInvalidCast do
+        begin
+          raise EMVCException.CreateFmt('Invalid class typecast for property "%s"', [lKeyName]);
+        end;
+      end;
       end;
     stFields:
       begin
-        for Fld in ObjType.GetFields do
-          if (not TMVCSerializerHelpful.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
+        try
+          for Fld in ObjType.GetFields do
+            if (not TMVCSerializerHelpful.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
+              (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
+            begin
+              AttributeValue := Fld.GetValue(AObject);
+              lKeyName := TMVCSerializerHelpful.GetKeyName(Fld, ObjType);
+              JsonDataValueToAttribute(AJsonObject, lKeyName, AttributeValue, AType,
+                AIgnoredAttributes, Fld.GetAttributes);
+              if not AttributeValue.IsEmpty then
+                Fld.SetValue(AObject, AttributeValue);
+            end;
+        except
+          on E: EInvalidCast do
           begin
-            AttributeValue := Fld.GetValue(AObject);
-            JsonDataValueToAttribute(AJsonObject, TMVCSerializerHelpful.GetKeyName(Fld, ObjType), AttributeValue, AType,
-              AIgnoredAttributes, Fld.GetAttributes);
-            if not AttributeValue.IsEmpty then
-              Fld.SetValue(AObject, AttributeValue);
+            raise EMVCException.CreateFmt('Invalid class typecast for field "%s"', [lKeyName]);
           end;
+        end;
       end;
   end;
 end;

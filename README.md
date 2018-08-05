@@ -41,6 +41,16 @@
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
+
+
+## What's New
+
+### 3.1.0 lithium (currently in beta)
+- `Config[TMVCConfigKey.FallbackResource]` is served only if request path is empty or `/`.
+- Now the JSON-RPC executor provides methods to handle HTTP headers for JSON-RPC requests and notifications.
+- FIX for [issue #141](https://github.com/danieleteti/delphimvcframework/issues/141)
+- `TDataSetHolder` is a new render that is able to render a dataset with a set of custom metadata (eg `count`,`page` etc). Check [issue #137](https://github.com/danieleteti/delphimvcframework/issues/137)
+
   
 ## How to correctly get the source
 It is not needed to download the git reporitory. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen) and you are ok.
@@ -51,6 +61,7 @@ DelphiMVCFramework roadmap is always updated as-soon-as the features planned are
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
 If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
+
 
 ### Using mapping framework in Delphi Starter Edition
 A lot of users ask about it, now is possible to use the mapper framework also in Delphi Started Edition. To enable the "StarterEditionMode" open ```sources\dmvcframework.inc``` and remove the dot (.) after the curly brace in the following line
