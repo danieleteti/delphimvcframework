@@ -52,6 +52,9 @@
 - `TDataSetHolder` is a new render that is able to render a dataset with a set of custom metadata (eg `count`,`page` etc). Check [issue #137](https://github.com/danieleteti/delphimvcframework/issues/137)
 - `404` and `500` status code returns always a `text/plain` content-type
 - Refactored ISAPI sample
+- Speed improvement! Removed enhanced visibility for action methods. Now only public and published methods can be used as actions.
+- `TMVCController.Create` is `virtual`! Now on your base controllers can be even more powerful!
+- FIX for [issue #143](https://github.com/danieleteti/delphimvcframework/issues/143)
 
   
 ## How to correctly get the source

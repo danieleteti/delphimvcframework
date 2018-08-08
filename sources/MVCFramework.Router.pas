@@ -117,6 +117,9 @@ type
 
 implementation
 
+uses
+  System.TypInfo;
+
 { TMVCRouter }
 
 constructor TMVCRouter.Create(const aConfig: TMVCConfig; const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
@@ -217,9 +220,13 @@ begin
       if (not LControllerMappedPath.IsEmpty) and (Pos(LControllerMappedPath, LRequestPathInfo) <> 1) then
         Continue;
 
-      LMethods := LRttiType.GetMethods;
+
+      LMethods := LRttiType.GetMethods; {do not use GetDeclaredMethods because JSONRPC rely on this!!}
       for LMethod in LMethods do
       begin
+        if (LMethod.MethodKind <> mkProcedure) or LMethod.IsClassMethod then
+          Continue;
+
         LAttributes := LMethod.GetAttributes;
         for LAtt in LAttributes do
           if LAtt is MVCPathAttribute then

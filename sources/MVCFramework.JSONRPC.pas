@@ -1,4 +1,33 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.JSONRPC;
+
+{
+JSON-RPC over HTTP implemented as described here
+https://www.jsonrpc.org/historical/json-rpc-over-http.html
+}
 
 interface
 
@@ -151,7 +180,7 @@ type
 
   EMVCJSONRPCMethodNotFound = class(EMVCJSONRPCErrorResponse)
   public
-    constructor Create(const MethodName: String);
+    constructor Create(const MethodName: string);
   end;
 
   EMVCJSONRPCInvalidParams = class(EMVCJSONRPCErrorResponse)
@@ -188,7 +217,7 @@ type
     [MVCHTTPMethods([httpPOST])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
-    procedure index; virtual;
+    procedure Index; virtual;
     destructor Destroy; override;
   end;
 
@@ -429,8 +458,7 @@ end;
 
 { TMVCJSONRPCController }
 
-function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const message: string)
-  : TJsonObject;
+function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const message: string): TJsonObject;
 var
   lErrResp: TJSONRPCResponse;
 begin
@@ -521,7 +549,7 @@ begin
   Result := fSerializer;
 end;
 
-procedure TMVCJSONRPCController.index;
+procedure TMVCJSONRPCController.Index;
 var
   lJSONRPCReq: TJSONRPCRequest;
   lMethod: string;
@@ -643,8 +671,7 @@ end;
 
 constructor EMVCJSONRPCParseError.Create;
 begin
-  inherited Create
-    ('Parse error. Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text');
+  inherited Create('Parse error. Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text');
   FJSONRPCErrorCode := -32700;
 end;
 
@@ -658,7 +685,7 @@ end;
 
 { EMVCJSONRPCMethodNotFound }
 
-constructor EMVCJSONRPCMethodNotFound.Create(const MethodName: String);
+constructor EMVCJSONRPCMethodNotFound.Create(const MethodName: string);
 begin
   inherited CreateFmt('Method "%s" not found. The method does not exist / is not available.', [MethodName]);
   FJSONRPCErrorCode := -32601;

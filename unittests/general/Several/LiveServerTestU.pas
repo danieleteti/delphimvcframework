@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -61,6 +61,11 @@ type
 
   TServerTest = class(TBaseServerTest)
   public
+    [Test]
+    [TestCase('/fault', '/fault')]
+    [TestCase('/fault2', '/fault2')]
+    procedure TestControllerWithExceptionInCreate(const URLSegment: string);
+
     [Test]
     procedure TestReqWithParams;
 
@@ -454,6 +459,17 @@ begin
   LRes := RESTClient.doGET('/private/role1session', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, LRes.ResponseCode);
   Assert.areEqual('johndoe', LRes.BodyAsString);
+end;
+
+procedure TServerTest.TestControllerWithExceptionInCreate(
+  const URLSegment: string);
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET(URLSegment, []);
+  Assert.AreEqual(HTTP_STATUS.InternalServerError,  res.ResponseCode);
+  Assert.Contains(res.ContentType, 'text/plain', true, 'Is not a text/plain in case of error');
+  Assert.Contains(res.BodyAsString, 'Cannot create controller', true, 'Exception message in body is not correct');
 end;
 
 procedure TServerTest.TestCookies;
@@ -1202,6 +1218,7 @@ begin
   try
     lReq.Method := 'nonexist';
     lReq.RequestID := 1234;
+
     lResp := FExecutor.ExecuteRequest(lReq);
     try
       Assert.IsNotNull(lResp.Error);
