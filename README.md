@@ -50,6 +50,8 @@
 - Now the JSON-RPC executor provides methods to handle HTTP headers for JSON-RPC requests and notifications.
 - FIX for [issue #141](https://github.com/danieleteti/delphimvcframework/issues/141)
 - `TDataSetHolder` is a new render that is able to render a dataset with a set of custom metadata (eg `count`,`page` etc). Check [issue #137](https://github.com/danieleteti/delphimvcframework/issues/137)
+- `404` and `500` status code returns always a `text/plain` content-type
+- Refactored ISAPI sample
 
   
 ## How to correctly get the source

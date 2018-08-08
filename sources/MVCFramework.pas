@@ -2000,18 +2000,18 @@ end;
 
 procedure TMVCEngine.HTTP404(const AContext: TWebContext);
 begin
-  AContext.Response.StatusCode := HTTP_STATUS.NotFound;
-  AContext.Response.CustomHeaders.Values['Content-Type'] := BuildContentType(TMVCMediaType.TEXT_PLAIN, AContext.Config[TMVCConfigKey.DefaultContentCharset]);
-  AContext.Response.ReasonString := 'Not Found';
-  AContext.Response.Content := 'Not Found' + GetServerSignature(AContext);
+  AContext.Response.SetStatusCode(HTTP_STATUS.NotFound);
+  AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN, AContext.Config[TMVCConfigKey.DefaultContentCharset]));
+  AContext.Response.SetReasonString('Not Found');
+  AContext.Response.SetContent('Not Found' + sLineBreak + GetServerSignature(AContext));
 end;
 
 procedure TMVCEngine.HTTP500(const AContext: TWebContext; const AReasonString: string);
 begin
-  AContext.Response.StatusCode := HTTP_STATUS.InternalServerError;;
-  AContext.Response.CustomHeaders.Values['Content-Type'] := BuildContentType(TMVCMediaType.TEXT_PLAIN, AContext.Config[TMVCConfigKey.DefaultContentCharset]);
-  AContext.Response.ReasonString := 'Internal server error: ' + AReasonString;
-  AContext.Response.Content := 'Internal server error' + GetServerSignature(AContext) + ': ' + AReasonString;
+  AContext.Response.SetStatusCode(HTTP_STATUS.InternalServerError);
+  AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN, AContext.Config[TMVCConfigKey.DefaultContentCharset]));
+  AContext.Response.SetReasonString('Internal server error: ' + AReasonString);
+  AContext.Response.SetContent('Internal server error' + sLineBreak + GetServerSignature(AContext) + ': ' + AReasonString);
 end;
 
 function TMVCEngine.IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;

@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{848C41EB-8EF5-472E-8C10-A70151A657B3}</ProjectGuid>
-        <ProjectVersion>18.2</ProjectVersion>
+        <ProjectVersion>18.4</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>isapiapp.dpr</MainSource>
         <Base>True</Base>
@@ -77,8 +77,8 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
-        <Debugger_HostApplication>c:\windows\SysWOW64\inetsrv\w3wp.exe</Debugger_HostApplication>
-        <Debugger_RunParams>-debug</Debugger_RunParams>
+        <Debugger_HostApplication>..\..\apachemodule\Apache24\bin\httpd.exe</Debugger_HostApplication>
+        <Debugger_RunParams>-X</Debugger_RunParams>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
@@ -93,13 +93,18 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\WebModules\WebModuleU.pas">
-            <Form>WebModule1</Form>
+        <DCCReference Include="..\..\winecellarserver\MainDataModuleUnit.pas">
+            <Form>WineCellarDataModule</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\winecellarserver\MainWebModuleUnit.pas">
+            <Form>wm</Form>
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="..\BO\BusinessObjectsU.pas"/>
-        <DCCReference Include="..\Controllers\RoutingSampleControllerU.pas"/>
+        <DCCReference Include="..\..\winecellarserver\WineCellarAppControllerU.pas"/>
+        <DCCReference Include="..\..\winecellarserver\WinesBO.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -178,6 +183,12 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
+                <DeployFile LocalName="..\bin\isapiapp.dll" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>isapiapp.dll</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">
                         <Operation>1</Operation>
