@@ -44,8 +44,10 @@ type
   private
     { private declarations }
   protected
-    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
-    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
   public
     { public declarations }
   end;
@@ -56,7 +58,8 @@ implementation
 
 procedure TStreamSerializerJSON.Deserialize(
   const ASerializedObject: TObject; var AElementValue: TValue;
-  const AAttributes: TArray<TCustomAttribute>);
+  const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
 var
   JSONValue: TJSONValue;
   Stream: TStream;
@@ -94,7 +97,8 @@ end;
 
 procedure TStreamSerializerJSON.Serialize(const AElementValue: TValue;
   var ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>);
+  const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
 var
   Stream: TStream;
   SS: TStringStream;

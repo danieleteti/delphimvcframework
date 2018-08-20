@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,26 +43,26 @@ type
   private
     { private declarations }
   protected
-    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>);
-    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
-      const AAttributes: TArray<TCustomAttribute>);
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
   public
     { public declarations }
   end;
 
   TMVCStringDictionarySerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
-    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
   end;
 
 implementation
 
 uses
-  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.JsonDataObjects;
   Data.DB,
   MVCFramework.Commons,
   System.Generics.Collections,
@@ -70,8 +70,11 @@ uses
 
 { TStreamSerializerJsonDataObject }
 
-procedure TStreamSerializerJsonDataObject.Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
-  const AAttributes: TArray<TCustomAttribute>);
+procedure TStreamSerializerJsonDataObject.Deserialize(
+  const ASerializedObject: TObject; var AElementValue: TValue;
+  const AAttributes: TArray<TCustomAttribute>;
+  const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
 var
   JsonValue: TJsonValue;
   Stream: TStream;
@@ -107,8 +110,11 @@ begin
   end;
 end;
 
-procedure TStreamSerializerJsonDataObject.Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>);
+procedure TStreamSerializerJsonDataObject.Serialize(
+  const AElementValue: TValue; var ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>;
+  const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
 var
   Stream: TStream;
   SS: TStringStream;
@@ -146,13 +152,15 @@ end;
 { TMVCStringDictionarySerializer }
 
 procedure TMVCStringDictionarySerializer.Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
-  const AAttributes: System.TArray<System.TCustomAttribute>);
+  const AAttributes: System.TArray<System.TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
 begin
   raise EMVCDeserializationException.Create('Not Implemented');
 end;
 
 procedure TMVCStringDictionarySerializer.Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>);
+  const AAttributes: System.TArray<System.TCustomAttribute>; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []);
 var
   lStringDict: TMVCStringDictionary;
   lPair: TPair<string, string>;

@@ -111,6 +111,13 @@ type
       const ASerializationAction: TMVCSerializationAction = nil
       ): string;
 
+    function SerializeInterface(
+      const AInterface: IUnknown;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string;
+
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
@@ -135,6 +142,12 @@ type
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = []
       );
+    procedure DeserializeInterface(
+      const ASerializedObject: string;
+      const AInterface: IUnknown;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+    );
 
     procedure DeserializeCollection(
       const ASerializedList: string;
@@ -526,6 +539,14 @@ begin
   finally
     JSONObject.Free;
   end;
+end;
+
+procedure TMVCJSONSerializer.DeserializeInterface(const ASerializedObject: string;
+  const AInterface: IInterface; const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList);
+begin
+ if AInterface is Tobject then
+  DeserializeObject(ASerializedObject, (AInterface as TObject), AType, AIgnoredAttributes);
 end;
 
 procedure TMVCJSONSerializer.DeserializeObject(
@@ -959,6 +980,16 @@ begin
   finally
     JSONObject.Free;
   end;
+end;
+
+function TMVCJSONSerializer.SerializeInterface(const AInterface: IInterface;
+  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction): string;
+begin
+  if AInterface is TObject then
+   Result := SerializeObject((AInterface as TObject), AType, AIgnoredAttributes, ASerializationAction)
+  else
+   raise EMVCSerializationException.Create('Cannot serialize. Unknown interface type');
 end;
 
 function TMVCJSONSerializer.SerializeObject(

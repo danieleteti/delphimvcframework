@@ -46,13 +46,17 @@ type
     procedure Serialize(
       const AElementValue: TValue;
       var ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
       );
 
     procedure Deserialize(
       const ASerializedObject: TObject;
       var AElementValue: TValue;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
       );
   end;
 
@@ -66,6 +70,14 @@ type
       const AIgnoredAttributes: TMVCIgnoredList = [];
       const ASerializationAction: TMVCSerializationAction = nil
       ): string;
+
+    function SerializeInterface(
+      const AInterface: IUnknown;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string;
+
 
     function SerializeCollection(
       const AList: TObject;
@@ -91,6 +103,13 @@ type
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = []
       );
+
+    procedure DeserializeInterface(
+      const ASerializedObject: string;
+      const AInterface: IUnknown;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+    );
 
     procedure DeserializeCollection(
       const ASerializedList: string;
