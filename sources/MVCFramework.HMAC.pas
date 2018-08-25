@@ -63,7 +63,7 @@ implementation
 
 uses
 
-  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5, System.Hash,
+  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5, {$IFDEF VER320} System.Hash,{$ENDIF}
   IdHMACSHA1, System.Generics.Collections;
 
 var
@@ -189,7 +189,7 @@ RegisterHMACAlgorithm('HS256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SH
 RegisterHMACAlgorithm('HS384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
 RegisterHMACAlgorithm('HS512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
 
-{$else}
+{$ELSE}
 RegisterHMACAlgorithm('md5', TIdHMACWrapper.create(TIdHMACMD5));
 RegisterHMACAlgorithm('sha1', TIdHMACWrapper.create(TIdHMACSHA1));
 RegisterHMACAlgorithm('sha224', TIdHMACWrapper.create(TIdHMACSHA224));
@@ -201,7 +201,7 @@ RegisterHMACAlgorithm('sha512', TIdHMACWrapper.create(TIdHMACSHA512));
 RegisterHMACAlgorithm('HS256', TIdHMACWrapper.create(TIdHMACSHA256));
 RegisterHMACAlgorithm('HS384', TIdHMACWrapper.create(TIdHMACSHA384));
 RegisterHMACAlgorithm('HS512', TIdHMACWrapper.create(TIdHMACSHA512));
-{$endif}
+{$ENDIF}
 
 finalization
 
