@@ -27,9 +27,7 @@ unit MVCFramework.HMAC;
 interface
 
 uses
-  System.SysUtils,
-  EncdDecd,
-  IdHMAC;
+  System.SysUtils;
 
 type
   EMVCHMACException = class(Exception)
@@ -59,28 +57,30 @@ const
   HMAC_HS384 = 'HS384';
   HMAC_HS512 = 'HS512';
 
+{$IFDEF CONDITIONALEXPRESSIONS}
+  {$IF CompilerVersion >= 30.0}
+    {$DEFINE USEBUILTINHMAC}
+  {$ENDIF}
+{$ENDIF}
+
+
 implementation
 
 uses
 
-  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5, {$IFDEF VER320} System.Hash,{$ENDIF}
-  IdHMACSHA1, System.Generics.Collections;
+{$IFDEF USEBUILTINHMAC}
+  System.Hash,
+{$ELSE}
+  IdHMAC, IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5, IdHMACSHA1,
+{$ENDIF}
+  System.Generics.Collections;
 
 var
   GHMACRegistry: TDictionary<string, IHMAC>;
 
 type
-  THMACClass = class of TIdHMAC;
 
-  TIdHMACWrapper = class(TInterfacedObject, IHMAC)
-  private
-    FClass: THMACClass;
-  public
-    constructor Create(IdClass: THMACClass);
-    function HashValue(const Input: string;
-      const key: string): System.TArray<System.Byte>;
-
-  end;
+{$IFDEF USEBUILTINHMAC}
 
   TSHA2HMACWrapper = class(TInterfacedObject, IHMAC)
   private
@@ -99,6 +99,43 @@ type
   public
     function HashValue(const Input: string; const key: string): TBytes;
  end;
+
+{$ELSE}
+
+  THMACClass = class of TIdHMAC;
+
+  TIdHMACWrapper = class(TInterfacedObject, IHMAC)
+  private
+    FClass: THMACClass;
+  public
+    constructor Create(IdClass: THMACClass);
+    function HashValue(const Input: string;
+      const key: string): System.TArray<System.Byte>;
+
+  end;
+
+{ TIdHMACWrapper }
+constructor TIdHMACWrapper.Create(IdClass: THMACClass);
+begin
+  FClass := IdClass;
+end;
+
+function TIdHMACWrapper.HashValue(const Input,
+  key: string): System.TArray<System.Byte>;
+var
+  lHMAC: TIdHMAC;
+begin
+  Assert(IdSSLOpenSSL.LoadOpenSSLLibrary, 'HMAC requires OpenSSL libraries');
+  lHMAC := FClass.Create;
+  try
+    lHMAC.Key := ToBytes(Key, IndyTextEncoding_UTF8);
+    Result := TBytes(lHMAC.HashValue(ToBytes(Input, IndyTextEncoding_UTF8)));
+  finally
+    lHMAC.Free;
+  end;
+end;
+
+{$ENDIF}
 
 
 function HMAC(const Algorithm: string; const Input, Key: string): TBytes;
@@ -121,30 +158,11 @@ begin
   GHMACRegistry.Remove(Algorithm);
 end;
 
-{ TIdHMACWrapper }
 
-constructor TIdHMACWrapper.Create(IdClass: THMACClass);
-begin
-  FClass := IdClass;
-end;
-
-function TIdHMACWrapper.HashValue(const Input,
-  key: string): System.TArray<System.Byte>;
-var
-  lHMAC: TIdHMAC;
-begin
-  Assert(IdSSLOpenSSL.LoadOpenSSLLibrary, 'HMAC requires OpenSSL libraries');
-  lHMAC := FClass.Create;
-  try
-    lHMAC.Key := ToBytes(Key, IndyTextEncoding_UTF8);
-    Result := TBytes(lHMAC.HashValue(ToBytes(Input, IndyTextEncoding_UTF8)));
-  finally
-    lHMAC.Free;
-  end;
-end;
 
 { THMACSHA256 }
 
+{$IFDEF USEBUILTINHMAC}
 constructor TSHA2HMACWrapper.Create(HMACType: THashSHA2.TSHA2Version);
 begin
   FHMACType := HMACType;
@@ -169,6 +187,38 @@ begin
   Result := THashMD5.GetHMACAsBytes(Input,Key);
 end;
 
+procedure RegisterBuiltinHMACFunctions;
+begin
+  RegisterHMACAlgorithm('md5', TMD5HMACWrapper.create);
+  RegisterHMACAlgorithm('sha1', TSHA1HMACWrapper.create);
+  RegisterHMACAlgorithm('sha224', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA224));
+  RegisterHMACAlgorithm('sha256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA256));
+  RegisterHMACAlgorithm('sha384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
+  RegisterHMACAlgorithm('sha512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
+
+  // the same using the JWT naming
+  RegisterHMACAlgorithm('HS256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA256));
+  RegisterHMACAlgorithm('HS384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
+  RegisterHMACAlgorithm('HS512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
+end;
+{$ELSE}
+
+procedure RegisterIndyHMACFunctions;
+begin
+  RegisterHMACAlgorithm('md5', TIdHMACWrapper.create(TIdHMACMD5));
+  RegisterHMACAlgorithm('sha1', TIdHMACWrapper.create(TIdHMACSHA1));
+  RegisterHMACAlgorithm('sha224', TIdHMACWrapper.create(TIdHMACSHA224));
+  RegisterHMACAlgorithm('sha256', TIdHMACWrapper.create(TIdHMACSHA256));
+  RegisterHMACAlgorithm('sha384', TIdHMACWrapper.create(TIdHMACSHA384));
+  RegisterHMACAlgorithm('sha512', TIdHMACWrapper.create(TIdHMACSHA512));
+
+  // the same using the JWT naming
+  RegisterHMACAlgorithm('HS256', TIdHMACWrapper.create(TIdHMACSHA256));
+  RegisterHMACAlgorithm('HS384', TIdHMACWrapper.create(TIdHMACSHA384));
+  RegisterHMACAlgorithm('HS512', TIdHMACWrapper.create(TIdHMACSHA512));
+end;
+{$ENDIF}
+
 initialization
 
 
@@ -176,31 +226,10 @@ GHMACRegistry := TDictionary<string, IHMAC>.Create;
 
 // registering based on hash function
 
-{$IFDEF VER320}
-RegisterHMACAlgorithm('md5', TMD5HMACWrapper.create);
-RegisterHMACAlgorithm('sha1', TSHA1HMACWrapper.create);
-RegisterHMACAlgorithm('sha224', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA224));
-RegisterHMACAlgorithm('sha256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA256));
-RegisterHMACAlgorithm('sha384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
-RegisterHMACAlgorithm('sha512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
-
-// the same using the JWT naming
-RegisterHMACAlgorithm('HS256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA256));
-RegisterHMACAlgorithm('HS384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
-RegisterHMACAlgorithm('HS512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
-
+{$IFDEF USEBUILTINHMAC}
+RegisterBuiltinHMACFunctions;
 {$ELSE}
-RegisterHMACAlgorithm('md5', TIdHMACWrapper.create(TIdHMACMD5));
-RegisterHMACAlgorithm('sha1', TIdHMACWrapper.create(TIdHMACSHA1));
-RegisterHMACAlgorithm('sha224', TIdHMACWrapper.create(TIdHMACSHA224));
-RegisterHMACAlgorithm('sha256', TIdHMACWrapper.create(TIdHMACSHA256));
-RegisterHMACAlgorithm('sha384', TIdHMACWrapper.create(TIdHMACSHA384));
-RegisterHMACAlgorithm('sha512', TIdHMACWrapper.create(TIdHMACSHA512));
-
-// the same using the JWT naming
-RegisterHMACAlgorithm('HS256', TIdHMACWrapper.create(TIdHMACSHA256));
-RegisterHMACAlgorithm('HS384', TIdHMACWrapper.create(TIdHMACSHA384));
-RegisterHMACAlgorithm('HS512', TIdHMACWrapper.create(TIdHMACSHA512));
+RegisterIndyHMACFunctions;
 {$ENDIF}
 
 finalization
