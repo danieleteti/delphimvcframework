@@ -63,7 +63,7 @@ implementation
 
 uses
 
-  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5,
+  IdSSLOpenSSL, IdHash, IdGlobal, IdHMACMD5, System.Hash,
   IdHMACSHA1, System.Generics.Collections;
 
 var
@@ -81,6 +81,25 @@ type
       const key: string): System.TArray<System.Byte>;
 
   end;
+
+  TSHA2HMACWrapper = class(TInterfacedObject, IHMAC)
+  private
+    FHMACType : THashSHA2.TSHA2Version;
+  public
+    constructor Create(HMACType: THashSHA2.TSHA2Version);
+    function HashValue(const Input: string; const key: string): TBytes;
+ end;
+
+  TSHA1HMACWrapper = class(TInterfacedObject, IHMAC)
+  public
+    function HashValue(const Input: string; const key: string): TBytes;
+ end;
+
+  TMD5HMACWrapper = class(TInterfacedObject, IHMAC)
+  public
+    function HashValue(const Input: string; const key: string): TBytes;
+ end;
+
 
 function HMAC(const Algorithm: string; const Input, Key: string): TBytes;
 begin
@@ -124,12 +143,53 @@ begin
   end;
 end;
 
+{ THMACSHA256 }
+
+constructor TSHA2HMACWrapper.Create(HMACType: THashSHA2.TSHA2Version);
+begin
+  FHMACType := HMACType;
+end;
+
+function TSHA2HMACWrapper.HashValue(const Input, key: string): TBytes;
+begin
+  Result := THashSHA2.GetHMACAsBytes(Input,key,FHMACType);
+end;
+
+{ TSHA1HMACWrapper }
+
+function TSHA1HMACWrapper.HashValue(const Input, key: string): TBytes;
+begin
+  Result := THashSHA1.GetHMACAsBytes(Input,Key);
+end;
+
+{ TMD5HMACWrapper }
+
+function TMD5HMACWrapper.HashValue(const Input, key: string): TBytes;
+begin
+  Result := THashMD5.GetHMACAsBytes(Input,Key);
+end;
+
 initialization
 
 
 GHMACRegistry := TDictionary<string, IHMAC>.Create;
 
 // registering based on hash function
+
+{$IFDEF VER320}
+RegisterHMACAlgorithm('md5', TMD5HMACWrapper.create);
+RegisterHMACAlgorithm('sha1', TSHA1HMACWrapper.create);
+RegisterHMACAlgorithm('sha224', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA224));
+RegisterHMACAlgorithm('sha256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA256));
+RegisterHMACAlgorithm('sha384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
+RegisterHMACAlgorithm('sha512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
+
+// the same using the JWT naming
+RegisterHMACAlgorithm('HS256', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA256));
+RegisterHMACAlgorithm('HS384', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA384));
+RegisterHMACAlgorithm('HS512', TSHA2HMACWrapper.create(THashSHA2.TSHA2Version.SHA512));
+
+{$else}
 RegisterHMACAlgorithm('md5', TIdHMACWrapper.create(TIdHMACMD5));
 RegisterHMACAlgorithm('sha1', TIdHMACWrapper.create(TIdHMACSHA1));
 RegisterHMACAlgorithm('sha224', TIdHMACWrapper.create(TIdHMACSHA224));
@@ -141,6 +201,7 @@ RegisterHMACAlgorithm('sha512', TIdHMACWrapper.create(TIdHMACSHA512));
 RegisterHMACAlgorithm('HS256', TIdHMACWrapper.create(TIdHMACSHA256));
 RegisterHMACAlgorithm('HS384', TIdHMACWrapper.create(TIdHMACSHA384));
 RegisterHMACAlgorithm('HS512', TIdHMACWrapper.create(TIdHMACSHA512));
+{$endif}
 
 finalization
 
