@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'Articles CRUD SAMPLE'
   ClientHeight = 391
-  ClientWidth = 669
+  ClientWidth = 876
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,19 +18,21 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 669
+    Width = 876
     Height = 39
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 669
     object DBNavigator1: TDBNavigator
       AlignWithMargins = True
-      Left = 378
+      Left = 585
       Top = 4
       Width = 287
       Height = 31
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 0
+      ExplicitLeft = 378
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -69,7 +71,7 @@ object MainForm: TMainForm
   object DBGrid1: TDBGrid
     Left = 0
     Top = 39
-    Width = 669
+    Width = 876
     Height = 352
     Align = alClient
     DataSource = dsrcArticles

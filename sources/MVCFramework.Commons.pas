@@ -277,7 +277,8 @@ type
     { protected declarations }
   public
     constructor Create(const AMsg: string); overload; virtual;
-    constructor Create(const AMsg: string; const ADetailedMessage: string; const AAppErrorCode: UInt16; const AHttpErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
+    constructor Create(const AMsg: string; const ADetailedMessage: string; const AAppErrorCode: UInt16;
+      const AHttpErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
     constructor Create(const AHttpErrorCode: UInt16; const AMsg: string); overload; virtual;
     constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce;
 
@@ -385,8 +386,7 @@ type
     function DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
   end;
 
-  TMultiReadExclusiveWriteSynchronizerHelper = class helper
-    for TMultiReadExclusiveWriteSynchronizer
+  TMultiReadExclusiveWriteSynchronizerHelper = class helper for TMultiReadExclusiveWriteSynchronizer
   public
     procedure DoWithWriteLock(const AAction: TProc);
     procedure DoWithReadLock(const AAction: TProc);
@@ -417,11 +417,13 @@ type
   IMVCAuthenticationHandler = interface
     ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
     procedure OnRequest(const AControllerQualifiedClassName, AActionName: string; var AAuthenticationRequired: Boolean);
-    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean; const ASessionData: TDictionary<string, string>);
-    procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string; var AIsAuthorized: Boolean);
+    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
+      const ASessionData: TDictionary<string, string>);
+    procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string;
+      var AIsAuthorized: Boolean);
   end;
 
-  {$SCOPEDENUMS ON}
+{$SCOPEDENUMS ON}
 
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
@@ -449,13 +451,10 @@ var
   Lock: TObject;
 
 const
-  RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string =
-    (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
-    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
-    ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
-    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
-    ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
-    ('240.0.0.0', '255.255.255.255'));
+  RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
+    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'), ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
+    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
+    ('224.0.0.0', '239.255.255.255'), ('240.0.0.0', '255.255.255.255'));
 
 implementation
 
@@ -489,10 +488,7 @@ begin
   if AIP.IsEmpty then
     Exit(0);
   lPieces := AIP.Split(['.']);
-  Result := (StrToInt(lPieces[0]) * 16777216) +
-    (StrToInt(lPieces[1]) * 65536) +
-    (StrToInt(lPieces[2]) * 256) +
-    StrToInt(lPieces[3]);
+  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) + (StrToInt(lPieces[2]) * 256) + StrToInt(lPieces[3]);
 end;
 
 // function IP2Long(const AIP: string): UInt32;
@@ -591,6 +587,10 @@ end;
 
 constructor EMVCException.Create(const AHttpErrorCode: UInt16; const AMsg: string);
 begin
+  if (AHttpErrorCode div 100 = 0) or (AHttpErrorCode div 100 > 5) then
+  begin
+    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHttpErrorCode]);
+  end;
   Create(AMsg);
   FHttpErrorCode := AHttpErrorCode;
 end;
@@ -719,16 +719,13 @@ begin
     for S in FConfig.Keys do
       Jo.AddPair(S, FConfig[S]);
 
-    {$IFDEF SYSTEMJSON}
-
+{$IFDEF SYSTEMJSON}
     Result := Jo.ToJSON;
 
-    {$ELSE}
-
+{$ELSE}
     Result := Jo.ToString;
 
-    {$ENDIF}
-
+{$ENDIF}
   finally
     Jo.Free;
   end;
@@ -736,8 +733,7 @@ end;
 
 { TMVCStringDictionary }
 
-function TMVCStringDictionary.AddProperty(const Name,
-  Value: string): TMVCStringDictionary;
+function TMVCStringDictionary.AddProperty(const Name, Value: string): TMVCStringDictionary;
 begin
   FDict.AddOrSetValue(name, Value);
   Result := Self;
@@ -770,8 +766,7 @@ begin
   Result := FDict.GetEnumerator;
 end;
 
-function TMVCStringDictionary.TryGetValue(const Name: string;
-  out Value: string): Boolean;
+function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
 begin
   Result := FDict.TryGetValue(name, Value);
 end;
@@ -830,8 +825,7 @@ type
   end;
 
 const
-  GURLSafeBase64CodeTable: string =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; { Do not Localize }
+  GURLSafeBase64CodeTable: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; { Do not Localize }
 
 procedure TURLSafeEncode.InitComponent;
 begin
@@ -862,14 +856,14 @@ end;
 /// <param name="Value">Original string</param>
 /// <param name="TrimmedChar">Character to remove</param>
 /// <returns>Resulting string</returns>
-function RTrim(const Value: string; TrimmedChar: char): string;
+function RTrim(const Value: string; TrimmedChar: Char): string;
 var
   Strlen: Integer;
 begin
   Strlen := Length(Value);
   while (Strlen > 0) and (Value[Strlen] = TrimmedChar) do
-    dec(StrLen);
-  result := copy(value, 1, StrLen)
+    dec(Strlen);
+  Result := copy(Value, 1, Strlen)
 end;
 
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
@@ -884,7 +878,7 @@ end;
 function URLSafeB64Decode(const Value: string): string;
 begin
   // SGR 2017-07-03 : b64url might not include padding. Need to add it before decoding
-  case Length(value) mod 4 of
+  case Length(Value) mod 4 of
     0:
       begin
         Result := TURLSafeDecode.DecodeString(Value);
@@ -900,8 +894,7 @@ end;
 
 { TMultiReadExclusiveWriteSynchronizerHelper }
 
-procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithReadLock(
-  const AAction: TProc);
+procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithReadLock(const AAction: TProc);
 begin
   Self.BeginRead;
   try
@@ -911,8 +904,7 @@ begin
   end;
 end;
 
-procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithWriteLock(
-  const AAction: TProc);
+procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithWriteLock(const AAction: TProc);
 begin
   Self.BeginWrite;
   try

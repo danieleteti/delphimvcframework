@@ -46,6 +46,7 @@
 ## What's New
 
 ### 3.1.0 lithium (currently in beta)
+- ActiveRecord support (check sample `activerecord_crud`)
 - `Config[TMVCConfigKey.FallbackResource]` is served only if request path is empty or `/`.
 - Now the JSON-RPC executor provides methods to handle HTTP headers for JSON-RPC requests and notifications.
 - FIX for [issue #141](https://github.com/danieleteti/delphimvcframework/issues/141)

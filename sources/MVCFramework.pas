@@ -577,7 +577,7 @@ type
       const AActionName: string; var AHandled: Boolean);
     procedure ExecuteAfterControllerActionMiddleware(const AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
 
-    procedure DefineDefaultReponseHeaders(const AContext: TWebContext);
+    procedure DefineDefaultResponseHeaders(const AContext: TWebContext);
     procedure OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse; var AHandled: Boolean); virtual;
     procedure ResponseErrorPage(const AException: Exception; const ARequest: TWebRequest; const AResponse: TWebResponse); virtual;
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest; const AResponse: TWebResponse): Boolean; virtual;
@@ -817,7 +817,7 @@ begin
     end;
   end
   else
-    raise EMVCDeserializationException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+    raise EMVCDeserializationException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
 end;
 
 function TMVCWebRequest.BodyAsListOf<T>: TObjectList<T>;
@@ -838,7 +838,7 @@ begin
     end;
   end
   else
-    raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+    raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
 end;
 
 procedure TMVCWebRequest.BodyFor<T>(const AObject: T);
@@ -849,7 +849,7 @@ begin
     if FSerializers.TryGetValue(ContentType, lSerializer) then
       lSerializer.DeserializeObject(Body, AObject)
     else
-      raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+      raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
 end;
 
 procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>);
@@ -860,7 +860,7 @@ begin
     if FSerializers.TryGetValue(ContentType, lSerializer) then
       lSerializer.DeserializeCollection(Body, AObjectList, T)
     else
-      raise EMVCException.CreateFmt('Body ContentType %s not supported', [ContentType]);
+      raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
 end;
 
 function TMVCWebRequest.ClientIp: string;
@@ -1573,7 +1573,7 @@ begin
   LoadSystemControllers;
 end;
 
-procedure TMVCEngine.DefineDefaultReponseHeaders(const AContext: TWebContext);
+procedure TMVCEngine.DefineDefaultResponseHeaders(const AContext: TWebContext);
 begin
   if Config[TMVCConfigKey.ExposeServerSignature] = 'true' then
     AContext.Response.CustomHeaders.Values['Server'] := GetServerSignature(AContext);
@@ -1609,7 +1609,7 @@ begin
   try
     LContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
     try
-      DefineDefaultReponseHeaders(LContext);
+      DefineDefaultResponseHeaders(LContext);
       if IsStaticFileRequest(ARequest, LFileName) then
         Result := SendStaticFileIfPresent(LContext, LFileName)
       else
@@ -2710,6 +2710,7 @@ begin
   if Assigned(AError) then
   begin
     try
+      Context.Response.StatusCode := AError.StatusCode;
       Render(AError, False, stProperties);
     finally
       if AOwns then
