@@ -54,6 +54,11 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure GetEntities(const entityname: string); virtual;
 
+    [MVCPath('/($entityname)/searches')]
+    [MVCHTTPMethod([httpGET])]
+    [MVCHTTPMethod([httpPOST])]
+    procedure GetEntitiesByRQL(const entityname: string); virtual;
+
     [MVCPath('/($entityname)/($id)')]
     [MVCHTTPMethod([httpGET])]
     procedure GetEntity(const entityname: string; const id: Integer); virtual;
@@ -75,7 +80,8 @@ type
 implementation
 
 uses
-  MVCFramework.Logger;
+  MVCFramework.Logger,
+  JsonDataObjects;
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
@@ -88,6 +94,37 @@ begin
     Exit;
   end;
   Render<TMVCActiveRecord>(TMVCActiveRecord.All(lARClassRef), True);
+end;
+
+procedure TMVCActiveRecordController.GetEntitiesByRQL(const entityname: string);
+var
+  lARClassRef: TMVCActiveRecordClass;
+  lRQL: string;
+  lJSON: TJsonObject;
+begin
+  lARClassRef := ActiveRecordMappingRegistry.GetByURLSegment(entityname);
+  if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
+  begin
+    Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
+    Exit;
+  end;
+
+  case Context.Request.HTTPMethod of
+    httpGET:
+      begin
+        lRQL := Context.Request.QueryStringParam('rql');
+      end;
+    httpPOST:
+      begin
+        lJSON := TJsonObject.ParseUtf8(Context.Request.Body) as TJsonObject;
+        try
+          lRQL := lJSON.s['rql'];
+        finally
+          lJSON.Free;
+        end;
+      end;
+  end;
+  Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL), True);
 end;
 
 procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: Integer);

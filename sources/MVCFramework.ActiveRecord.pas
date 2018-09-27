@@ -148,7 +148,10 @@ type
     class function Select<T: TMVCActiveRecord>(const SQL: string; const Params: array of Variant): TObjectList<T>; overload;
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
       : TObjectList<TMVCActiveRecord>; overload;
-    class function Where<T: TMVCActiveRecord>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
+    class function SelectRQL(const aClass: TMVCActiveRecordClass; const RQL: string): TObjectList<TMVCActiveRecord>; overload;
+    class function Where<T: TMVCActiveRecord>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>; overload;
+    class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string; const Params: array of Variant)
+      : TObjectList<TMVCActiveRecord>; overload;
     class function All<T: TMVCActiveRecord>: TObjectList<T>; overload;
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>; overload;
     class function SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
@@ -208,7 +211,8 @@ uses
 
   FireDAC.Stan.Option,
   System.IOUtils,
-  System.Classes;
+  System.Classes,
+  MVCFramework.RQL2SQL;
 
 threadvar gCtx: TRttiContext;
 threadvar gCtxInitialized: boolean;
@@ -851,6 +855,21 @@ begin
   Result := TMVCActiveRecord.ExecQuery(SQL, Params);
 end;
 
+class function TMVCActiveRecord.SelectRQL(const aClass: TMVCActiveRecordClass;
+  const RQL: string): TObjectList<TMVCActiveRecord>;
+var
+  lRQL: TRQL2SQL;
+  lSQL: string;
+begin
+  lRQL := TRQL2SQL.Create;
+  try
+    lRQL.Execute(RQL, lSQL);
+    Result := Where(aClass, lSQL, []);
+  finally
+    lRQL.Free;
+  end;
+end;
+
 procedure TMVCActiveRecord.SetPK(const aValue: TValue);
 begin
   if fPrimaryKeyFieldName.IsEmpty then
@@ -917,13 +936,33 @@ begin
   end;
 end;
 
+class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
+  const Params: array of Variant): TObjectList<TMVCActiveRecord>;
+var
+  lAR: TMVCActiveRecord;
+begin
+  lAR := aClass.Create;
+  try
+    Result := Select(aClass, lAR.CreateSelectSQL + SQLWhere, Params);
+  finally
+    lAR.Free;
+  end;
+end;
+
 class function TMVCActiveRecord.Where<T>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
 var
   lAR: TMVCActiveRecord;
 begin
   lAR := T.Create;
   try
-    Result := Select<T>(lAR.CreateSelectSQL + ' WHERE ' + SQLWhere, Params);
+    if not SQLWhere.Trim.IsEmpty then
+    begin
+      Result := Select<T>(lAR.CreateSelectSQL + ' WHERE ' + SQLWhere, Params);
+    end
+    else
+    begin
+      Result := Select<T>(lAR.CreateSelectSQL, Params);
+    end;
   finally
     lAR.Free;
   end;
