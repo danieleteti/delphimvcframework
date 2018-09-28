@@ -7,7 +7,21 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.Phys.MySQL,
+  FireDAC.Phys.MySQLDef,
+  FireDAC.VCLUI.Wait,
+  Data.DB,
+  FireDAC.Comp.Client;
 
 type
   TMyWebModule = class(TWebModule)
@@ -32,7 +46,6 @@ uses
   MVCFramework.Commons,
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
-  FireDAC.Comp.Client,
   FDConnectionConfigU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -66,7 +79,8 @@ begin
         function: TFDConnection
         begin
           Result := TFDConnection.Create(nil);
-          Result.ConnectionDefName := CON_DEF_NAME;
+          // Result.ConnectionDefName := CON_DEF_NAME_FIREBIRD;
+          Result.ConnectionDefName := CON_DEF_NAME_MYSQL;
           Result.Open;
         end,
         function(aContext: TWebContext; aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean

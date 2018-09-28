@@ -13,11 +13,12 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   Entities in 'Entities.pas',
   FDConnectionConfigU in 'FDConnectionConfigU.pas',
   MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
-  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas';
+  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
+  MVCFramework.RQL.AST2MySQL in '..\..\sources\MVCFramework.RQL.AST2MySQL.pas';
 
 {$R *.res}
 
@@ -104,7 +105,8 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
   try
-    CreatePrivateConnDef;
+    CreateFirebirdPrivateConnDef(True);
+    CreateMySQLPrivateConnDef(True);
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;

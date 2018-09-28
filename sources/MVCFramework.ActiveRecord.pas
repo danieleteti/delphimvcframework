@@ -156,7 +156,7 @@ type
       const Connection: TFDConnection)
       : TObjectList<TMVCActiveRecord>; overload;
     class function SelectRQL(const aClass: TMVCActiveRecordClass;
-      const RQL: string; const Mapping: TMVCFieldsMapping): TObjectList<TMVCActiveRecord>; overload;
+      const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend): TObjectList<TMVCActiveRecord>; overload;
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
       overload;
     class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string; const Params: array of Variant)
@@ -216,14 +216,13 @@ function ActiveRecordMappingRegistry: IMVCEntitiesRegistry;
 implementation
 
 uses
-  SysUtils,
-  TypInfo,
+  System.SysUtils,
+  System.TypInfo,
+  System.IOUtils,
+  System.Classes,
   MVCFramework.DataSet.Utils,
   MVCFramework.Logger,
-
-  FireDAC.Stan.Option,
-  System.IOUtils,
-  System.Classes;
+  FireDAC.Stan.Option;
 
 threadvar gCtx: TRttiContext;
 threadvar gCtxInitialized: boolean;
@@ -657,7 +656,7 @@ begin
       begin
         Result := aField.AsLargeInt;
       end;
-    ftInteger, ftSmallint:
+    ftInteger, ftSmallint, ftShortint:
       begin
         Result := aField.AsInteger;
       end;
@@ -926,15 +925,14 @@ begin
 end;
 
 class function TMVCActiveRecord.SelectRQL(const aClass: TMVCActiveRecordClass;
-  const RQL: string; const Mapping: TMVCFieldsMapping): TObjectList<TMVCActiveRecord>;
+  const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend): TObjectList<TMVCActiveRecord>;
 var
   lRQL: TRQL2SQL;
   lSQL: string;
 begin
   lRQL := TRQL2SQL.Create;
   try
-    { TODO -oDanieleT -cGeneral : Let the backend be inferred by the current connection... }
-    lRQL.Execute(RQL, lSQL, Mapping, cbFirebird);
+    lRQL.Execute(RQL, lSQL, Mapping, RQLBackend);
     LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
     Result := Where(aClass, lSQL, []);
   finally

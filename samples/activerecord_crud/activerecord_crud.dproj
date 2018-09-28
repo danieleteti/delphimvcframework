@@ -144,6 +144,7 @@
         <DCCReference Include="FDConnectionConfigU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecordController.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MySQL.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -80,7 +80,7 @@ type
 
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
-  TRQLBackend = (cbFirebird);
+  TRQLBackend = (cbFirebird, cbMySQL);
 
   TRQLCustom = class;
 

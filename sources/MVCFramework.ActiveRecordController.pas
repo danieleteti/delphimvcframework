@@ -90,6 +90,8 @@ function TMVCActiveRecordController.GetBackEndByConnection(
 begin
   if aConnection.DriverName = 'FB' then
     Exit(cbFirebird);
+  if aConnection.DriverName = 'MySQL' then
+    Exit(cbMySQL);
   raise ERQLException.CreateFmt('Unknown driver fro RQL backend "%s"', [aConnection.DriverName]);
 end;
 
@@ -119,7 +121,7 @@ begin
     finally
       lInstance.Free;
     end;
-    Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping), True);
+    Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend), True);
   except
     on E: ERQLCompilerNotFound do
     begin
