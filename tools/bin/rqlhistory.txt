@@ -1,3 +1,9 @@
+sort(+last_name);limit(0,1)
+limit(1,5)
+sort(+nome, -cognome)
+ge(nome,"pi\ppo");
+   and ( eq (     nome      , "Daniele" ) ,      eq ( cognome , "Teti" ) );sort(-nome);limit(10,20)
+ge(nome,"pi\ppo");limit(0,10)
 eq(last_name,"TE\"%20/*TI")*/
  ge ( nome,  "hello world")
    and ( eq (     nome      , "Daniele" ) ,      eq ( cognome , "Teti" ) )
@@ -6,7 +12,7 @@ and ( eq ( nome , "Daniele" ) , eq ( cognome , "Teti" ) )
 and ( eq ( nome , "Daniele" ) , eq ( cognome , "Teti" ) )
 ge(nome,"")
 ge(nome,"pi\ppo")
-and(eq(nome,"Daniele"),eq(cognome,"Teti"),or(eq(field1,"Ciao"),eq(field2,"Mondo")))&sort(+nome,-cognome)
+and(eq(nome,"Daniele"),eq(cognome,"Teti"),or(eq(field1,"Ciao"),eq(field2,"Mondo")));sort(+nome,-cognome)
 sort(+nome)
 and(eq(nome,"Daniele"),eq(cognome,"Teti"),or(eq(field1,"Ciao"),eq(field2,"Mondo")))
 and(eq(nome,"Daniele"),eq(cognome,"Teti"), or(eq(field1,"Ciao"),eq(field2,"Mondo")))

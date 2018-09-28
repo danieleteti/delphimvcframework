@@ -34,7 +34,8 @@ uses
   FireDAC.Stan.Def,
   FireDAC.Stan.Pool,
   FireDAC.Stan.Async,
-  FireDAC.Comp.Client;
+  FireDAC.Comp.Client,
+  MVCFramework.RQL.Parser;
 
 type
 {$SCOPEDENUMS ON}
@@ -44,6 +45,7 @@ type
   TMVCActiveRecordController = class(TMVCController)
   private
     fAuthorization: TMVCActiveRecordAuthFunc;
+    function GetBackEndByConnection(aConnection: TFDConnection): TRQLBackend;
   protected
     function CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean; virtual;
   public
@@ -55,8 +57,7 @@ type
     procedure GetEntities(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/searches')]
-    [MVCHTTPMethod([httpGET])]
-    [MVCHTTPMethod([httpPOST])]
+    [MVCHTTPMethod([httpGET, httpPOST])]
     procedure GetEntitiesByRQL(const entityname: string); virtual;
 
     [MVCPath('/($entityname)/($id)')]
@@ -80,12 +81,26 @@ type
 implementation
 
 uses
+
   MVCFramework.Logger,
   JsonDataObjects;
+
+function TMVCActiveRecordController.GetBackEndByConnection(
+  aConnection: TFDConnection): TRQLBackend;
+begin
+  if aConnection.DriverName = 'FB' then
+    Exit(cbFirebird);
+  raise ERQLException.CreateFmt('Unknown driver fro RQL backend "%s"', [aConnection.DriverName]);
+end;
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
   lARClassRef: TMVCActiveRecordClass;
+  lRQL: string;
+  lInstance: TMVCActiveRecord;
+  lMapping: TMVCFieldsMapping;
+  lConnection: TFDConnection;
+  lRQLBackend: TRQLBackend;
 begin
   lARClassRef := ActiveRecordMappingRegistry.GetByURLSegment(entityname);
   if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
@@ -93,38 +108,43 @@ begin
     Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
     Exit;
   end;
-  Render<TMVCActiveRecord>(TMVCActiveRecord.All(lARClassRef), True);
+  lRQL := Context.Request.QueryStringParam('rql');
+  try
+    lConnection := ActiveRecordConnectionsRegistry.GetCurrent;
+    lRQLBackend := GetBackEndByConnection(lConnection);
+    LogD('[RQL PARSE]: ' + lRQL);
+    lInstance := lARClassRef.Create(True);
+    try
+      lMapping := lInstance.GetMapping;
+    finally
+      lInstance.Free;
+    end;
+    Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping), True);
+  except
+    on E: ERQLCompilerNotFound do
+    begin
+      LogE('RQL Compiler not found. Did you included MVCFramework.RQL.AST2<yourdatabase>.pas?');
+      raise;
+    end;
+  end;
 end;
 
 procedure TMVCActiveRecordController.GetEntitiesByRQL(const entityname: string);
 var
-  lARClassRef: TMVCActiveRecordClass;
   lRQL: string;
   lJSON: TJsonObject;
 begin
-  lARClassRef := ActiveRecordMappingRegistry.GetByURLSegment(entityname);
-  if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
+  if Context.Request.HTTPMethod = httpPOST then
   begin
-    Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
-    Exit;
+    lJSON := TJsonObject.Parse(Context.Request.Body) as TJsonObject;
+    try
+      lRQL := lJSON.s['rql'];
+    finally
+      lJSON.Free;
+    end;
+    Context.Request.QueryStringParams.Values['rql'] := lRQL;
   end;
-
-  case Context.Request.HTTPMethod of
-    httpGET:
-      begin
-        lRQL := Context.Request.QueryStringParam('rql');
-      end;
-    httpPOST:
-      begin
-        lJSON := TJsonObject.ParseUtf8(Context.Request.Body) as TJsonObject;
-        try
-          lRQL := lJSON.s['rql'];
-        finally
-          lJSON.Free;
-        end;
-      end;
-  end;
-  Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL), True);
+  GetEntities(entityname);
 end;
 
 procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: Integer);

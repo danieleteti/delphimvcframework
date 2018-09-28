@@ -44,7 +44,7 @@ implementation
 
 uses
   System.IOUtils,
-  MVCFramework.RQL2SQL;
+  MVCFramework.RQL.Parser;
 
 {$R *.dfm}
 
@@ -73,7 +73,7 @@ var
 begin
   lParser := TRQL2SQL.Create;
   try
-    lParser.Execute(edtExpression.Text, lSQL);
+    lParser.Execute(edtExpression.Text, lSQL, []);
     mmSQL.Lines.Text := lSQL;
   finally
     lParser.Free;

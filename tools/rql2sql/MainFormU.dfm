@@ -44,10 +44,6 @@ object MainForm: TMainForm
     Padding.Right = 5
     Padding.Bottom = 5
     TabOrder = 1
-    ExplicitLeft = 119
-    ExplicitTop = 48
-    ExplicitWidth = 754
-    ExplicitHeight = 353
     object Splitter1: TSplitter
       Left = 6
       Top = 247
@@ -73,9 +69,6 @@ object MainForm: TMainForm
       Font.Style = []
       ParentFont = False
       TabOrder = 0
-      ExplicitLeft = -217
-      ExplicitTop = -88
-      ExplicitWidth = 770
     end
     object lbRQL: TListBox
       AlignWithMargins = True
@@ -93,10 +86,6 @@ object MainForm: TMainForm
       ParentFont = False
       TabOrder = 1
       OnClick = lbRQLClick
-      ExplicitLeft = 6
-      ExplicitTop = 39
-      ExplicitWidth = 806
-      ExplicitHeight = 216
     end
     object Panel3: TPanel
       Left = 6
@@ -107,9 +96,6 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       Caption = 'Panel3'
       TabOrder = 2
-      ExplicitLeft = 1
-      ExplicitTop = 1
-      ExplicitWidth = 806
       object edtExpression: TEdit
         AlignWithMargins = True
         Left = 3
@@ -118,10 +104,6 @@ object MainForm: TMainForm
         Height = 21
         Align = alClient
         TabOrder = 0
-        ExplicitLeft = 5
-        ExplicitTop = -6
-        ExplicitWidth = 731
-        ExplicitHeight = 41
       end
       object btnAdd: TButton
         AlignWithMargins = True
@@ -133,9 +115,6 @@ object MainForm: TMainForm
         Caption = 'Add'
         TabOrder = 1
         OnClick = btnAddClick
-        ExplicitLeft = 677
-        ExplicitTop = 6
-        ExplicitHeight = 25
       end
     end
   end
