@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,36 +24,33 @@
 
 unit MVCFramework.JWT;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
 
 uses
-  System.Generics.Collections
-{$IFDEF SYSTEMJSON}
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    , MVCFramework.Patches, MVCFramework
-    ;
+  System.Generics.Collections,
+  MVCFramework,
+  MVCFramework.TypesAliases,
+  MVCFramework.Patches;
 
 type
-{$SCOPEDENUMS ON}
+
+  {$SCOPEDENUMS ON}
+
   TJWTCheckableClaim = (ExpirationTime, NotBefore, IssuedAt);
   TJWTCheckableClaims = set of TJWTCheckableClaim;
 
   TJWTRegisteredClaimNames = class sealed
   public
     const
-    Issuer: String = 'iss';
-    Subject: String = 'sub';
-    Audience: String = 'aud';
-    ExpirationTime: String = 'exp';
-    NotBefore: String = 'nbf';
-    IssuedAt: String = 'iat';
-    JWT_ID: String = 'jti';
+    Issuer: string = 'iss';
+    Subject: string = 'sub';
+    Audience: string = 'aud';
+    ExpirationTime: string = 'exp';
+    NotBefore: string = 'nbf';
+    IssuedAt: string = 'iat';
+    JWT_ID: string = 'jti';
     Names: array [0 .. 6] of string = (
       'iss',
       'sub',
@@ -67,16 +64,15 @@ type
   TJWTDictionaryObject = class
   private
     FClaims: TDictionary<string, string>;
-    function GetItem(const Index: String): String;
-    procedure SetItem(const Index, Value: String);
-    function GetItemAsDateTime(const Index: String): TDateTime;
-    procedure SetItemAsDateTime(const Index: String; const Value: TDateTime);
-    property ItemsAsDateTime[const Index: String]: TDateTime read GetItemAsDateTime
-      write SetItemAsDateTime;
-    property Items[const Index: String]: String read GetItem write SetItem; default;
+    function GetItem(const Index: string): string;
+    procedure SetItem(const Index, Value: string);
+    function GetItemAsDateTime(const Index: string): TDateTime;
+    procedure SetItemAsDateTime(const Index: string; const Value: TDateTime);
+    property ItemsAsDateTime[const index: string]: TDateTime read GetItemAsDateTime write SetItemAsDateTime;
+    property Items[const index: string]: string read GetItem write SetItem; default;
   protected
-    function Contains(const Index: String): Boolean;
-    function Keys: TArray<String>;
+    function Contains(const Index: string): Boolean;
+    function Keys: TArray<string>;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -87,20 +83,20 @@ type
   /// </summary>
   TJWTRegisteredClaims = class(TJWTDictionaryObject)
   private
-    procedure SetAudience(const Value: String);
+    procedure SetAudience(const Value: string);
     procedure SetExpirationTime(const Value: TDateTime);
     procedure SetIssuedAt(const Value: TDateTime);
-    procedure SetISSUER(const Value: String);
-    procedure SetJWT_ID(const Value: String);
+    procedure SetISSUER(const Value: string);
+    procedure SetJWT_ID(const Value: string);
     procedure SetNotBefore(const Value: TDateTime);
-    procedure SetSubject(const Value: String);
-    function GetAudience: String;
+    procedure SetSubject(const Value: string);
+    function GetAudience: string;
     function GetExpirationTime: TDateTime;
     function GetIssuedAt: TDateTime;
-    function GetJWT_ID: String;
+    function GetJWT_ID: string;
     function GetNotBefore: TDateTime;
-    function GetSubject: String;
-    function GetIssuer: String;
+    function GetSubject: string;
+    function GetIssuer: string;
   public
     /// <summary>
     /// "iss" (Issuer) Claim
@@ -109,7 +105,7 @@ type
     /// The " iss " value is a case-sensitive string containing a StringOrURI
     /// value.Use of this claim is OPTIONAL.
     /// </summary>
-    property Issuer: String read GetIssuer write SetISSUER;
+    property Issuer: string read GetIssuer write SetISSUER;
     /// <summary>
     /// "sub" (Subject) Claim
     /// The "sub" (subject) claim identifies the principal that is the
@@ -120,7 +116,7 @@ type
     /// "sub" value is a case-sensitive string containing a StringOrURI
     /// value.  Use of this claim is OPTIONAL.
     /// </summary>
-    property Subject: String read GetSubject write SetSubject;
+    property Subject: string read GetSubject write SetSubject;
     /// <summary>
     /// "aud" (Audience) Claim
     /// The "aud" (audience) claim identifies the recipients that the JWT is
@@ -135,7 +131,7 @@ type
     /// interpretation of audience values is generally application specific.
     /// Use of this claim is OPTIONAL.
     /// </summary>
-    property Audience: String read GetAudience write SetAudience;
+    property Audience: string read GetAudience write SetAudience;
     /// <summary>
     /// "exp" (Expiration Time) Claim
     /// The "exp" (expiration time) claim identifies the expiration time on
@@ -177,7 +173,7 @@ type
     /// to prevent the JWT from being replayed.  The "jti" value is a case-
     /// sensitive string.  Use of this claim is OPTIONAL.
     /// </summary>
-    property JWT_ID: String read GetJWT_ID write SetJWT_ID;
+    property JWT_ID: string read GetJWT_ID write SetJWT_ID;
   end;
 
   TJWTCustomClaims = class(TJWTDictionaryObject)
@@ -190,26 +186,33 @@ type
     FSecretKey: string;
     FRegisteredClaims: TJWTRegisteredClaims;
     FCustomClaims: TJWTCustomClaims;
-    FHMACAlgorithm: String;
-    FLeewaySeconds: Int64;
+    FHMACAlgorithm: string;
     FRegClaimsToChecks: TJWTCheckableClaims;
-    procedure SetHMACAlgorithm(const Value: String);
-    procedure SetLeewaySeconds(const Value: Int64);
+    FLeewaySeconds: Cardinal;
+    procedure SetHMACAlgorithm(const Value: string);
     procedure SetChecks(const Value: TJWTCheckableClaims);
-    function CheckExpirationTime(Payload: TJSONObject; out Error: String): Boolean;
-    function CheckNotBefore(Payload: TJSONObject; out Error: String): Boolean;
-    function CheckIssuedAt(Payload: TJSONObject; out Error: String): Boolean;
+    function CheckExpirationTime(Payload: TJSONObject; out Error: string): Boolean;
+    function CheckNotBefore(Payload: TJSONObject; out Error: string): Boolean;
+    function CheckIssuedAt(Payload: TJSONObject; out Error: string): Boolean;
+    procedure SetLiveValidityWindowInSeconds(const Value: Cardinal);
+    function GetLiveValidityWindowInSeconds: Cardinal;
+    function IsValidToken(const Token: string; out Header, Payload: TJSONObject; out Error: string): Boolean;
   public
-    constructor Create(const SecretKey: String); virtual;
+    constructor Create(const SecretKey: string; const ALeewaySeconds: Cardinal = 300); virtual;
     destructor Destroy; override;
-    function GetToken: String;
-    function IsValidToken(const Token: String; out Error: String): Boolean;
-    procedure LoadToken(const Token: String);
+    function GetToken: string;
+    function LoadToken(const Token: string; out Error: string): Boolean;
     property Claims: TJWTRegisteredClaims read FRegisteredClaims;
     property CustomClaims: TJWTCustomClaims read FCustomClaims;
-    property HMACAlgorithm: String read FHMACAlgorithm write SetHMACAlgorithm;
-    property LeewaySeconds: Int64 read FLeewaySeconds write SetLeewaySeconds;
+    property HMACAlgorithm: string read FHMACAlgorithm write SetHMACAlgorithm;
+    property LeewaySeconds: Cardinal read FLeewaySeconds;
     property RegClaimsToChecks: TJWTCheckableClaims read FRegClaimsToChecks write SetChecks;
+    /// <summary>
+    /// Use LiveValidityWindowInSeconds to make the ExpirationTime dynamic at each request.
+    /// ExpirationTime will be incremented by LiveValidityWindowInSeconds seconds automatically
+    /// if the remaining seconds are less than the LiveValidityWindowInSeconds.
+    /// </summary>
+    property LiveValidityWindowInSeconds: Cardinal read GetLiveValidityWindowInSeconds write SetLiveValidityWindowInSeconds;
   end;
 
 implementation
@@ -222,7 +225,7 @@ uses
 
 { TJWTRegisteredClaims }
 
-function TJWTRegisteredClaims.GetAudience: String;
+function TJWTRegisteredClaims.GetAudience: string;
 begin
   Result := Items[TJWTRegisteredClaimNames.Audience];
 end;
@@ -237,12 +240,12 @@ begin
   Result := ItemsAsDateTime[TJWTRegisteredClaimNames.IssuedAt];
 end;
 
-function TJWTRegisteredClaims.GetIssuer: String;
+function TJWTRegisteredClaims.GetIssuer: string;
 begin
   Result := Items[TJWTRegisteredClaimNames.Issuer];
 end;
 
-function TJWTRegisteredClaims.GetJWT_ID: String;
+function TJWTRegisteredClaims.GetJWT_ID: string;
 begin
   Result := Items[TJWTRegisteredClaimNames.JWT_ID];
 end;
@@ -252,12 +255,12 @@ begin
   Result := ItemsAsDateTime[TJWTRegisteredClaimNames.NotBefore];
 end;
 
-function TJWTRegisteredClaims.GetSubject: String;
+function TJWTRegisteredClaims.GetSubject: string;
 begin
   Result := Items[TJWTRegisteredClaimNames.Subject];
 end;
 
-procedure TJWTRegisteredClaims.SetAudience(const Value: String);
+procedure TJWTRegisteredClaims.SetAudience(const Value: string);
 begin
   Items[TJWTRegisteredClaimNames.Audience] := Value;
 end;
@@ -272,12 +275,12 @@ begin
   ItemsAsDateTime[TJWTRegisteredClaimNames.IssuedAt] := Value;
 end;
 
-procedure TJWTRegisteredClaims.SetISSUER(const Value: String);
+procedure TJWTRegisteredClaims.SetISSUER(const Value: string);
 begin
   Items[TJWTRegisteredClaimNames.Issuer] := Value;
 end;
 
-procedure TJWTRegisteredClaims.SetJWT_ID(const Value: String);
+procedure TJWTRegisteredClaims.SetJWT_ID(const Value: string);
 begin
   Items[TJWTRegisteredClaimNames.JWT_ID] := Value;
 end;
@@ -287,22 +290,22 @@ begin
   ItemsAsDateTime[TJWTRegisteredClaimNames.NotBefore] := Value;
 end;
 
-procedure TJWTRegisteredClaims.SetSubject(const Value: String);
+procedure TJWTRegisteredClaims.SetSubject(const Value: string);
 begin
   Items[TJWTRegisteredClaimNames.Subject] := Value;
 end;
 
 { TJWTCustomClaims }
 
-function TJWTDictionaryObject.Contains(const Index: String): Boolean;
+function TJWTDictionaryObject.Contains(const Index: string): Boolean;
 begin
-  Result := FClaims.ContainsKey(Index);
+  Result := FClaims.ContainsKey(index);
 end;
 
 constructor TJWTDictionaryObject.Create;
 begin
   inherited;
-  FClaims := TDictionary<String, String>.Create;
+  FClaims := TDictionary<string, string>.Create;
 end;
 
 destructor TJWTDictionaryObject.Destroy;
@@ -311,35 +314,35 @@ begin
   inherited;
 end;
 
-function TJWTDictionaryObject.GetItem(const Index: String): String;
+function TJWTDictionaryObject.GetItem(const Index: string): string;
 begin
-  if not FClaims.TryGetValue(Index, Result) then
+  if not FClaims.TryGetValue(index, Result) then
     Result := '';
 end;
 
-function TJWTDictionaryObject.GetItemAsDateTime(const Index: String): TDateTime;
+function TJWTDictionaryObject.GetItemAsDateTime(const Index: string): TDateTime;
 var
   lIntValue: Int64;
 begin
-  if not TryStrToInt64(Items[Index], lIntValue) then
+  if not TryStrToInt64(Items[index], lIntValue) then
     raise Exception.Create('Item cannot be converted as Unix Epoch');
   Result := UnixToDateTime(lIntValue, False);
 end;
 
-function TJWTDictionaryObject.Keys: TArray<String>;
+function TJWTDictionaryObject.Keys: TArray<string>;
 begin
   Result := FClaims.Keys.ToArray;
 end;
 
-procedure TJWTDictionaryObject.SetItem(const Index, Value: String);
+procedure TJWTDictionaryObject.SetItem(const Index, Value: string);
 begin
-  FClaims.AddOrSetValue(Index, Value);
+  FClaims.AddOrSetValue(index, Value);
 end;
 
-procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: String;
+procedure TJWTDictionaryObject.SetItemAsDateTime(const Index: string;
   const Value: TDateTime);
 begin
-  Items[Index] := IntToStr(DateTimeToUnix(Value, False));
+  Items[index] := IntToStr(DateTimeToUnix(Value, False));
 end;
 
 { TJWTCustomClaims }
@@ -352,11 +355,12 @@ end;
 { TJWT }
 
 function TJWT.CheckExpirationTime(Payload: TJSONObject;
-  out Error: String): Boolean;
+  out Error: string): Boolean;
 var
   lJValue: TJSONValue;
   lIntValue: Int64;
   lValue: string;
+  lExpirationTimeAsDateTime: TDateTime;
 begin
   lJValue := Payload.GetValue(TJWTRegisteredClaimNames.ExpirationTime);
   if not Assigned(lJValue) then
@@ -372,7 +376,8 @@ begin
     Exit(False);
   end;
 
-  if UnixToDateTime(lIntValue, False) <= Now - FLeewaySeconds * OneSecond then
+  lExpirationTimeAsDateTime := UnixToDateTime(lIntValue, False);
+  if lExpirationTimeAsDateTime <= Now - FLeewaySeconds * OneSecond then
   begin
     Error := 'Token expired';
     Exit(False);
@@ -381,7 +386,7 @@ begin
   Result := True;
 end;
 
-function TJWT.CheckIssuedAt(Payload: TJSONObject; out Error: String): Boolean;
+function TJWT.CheckIssuedAt(Payload: TJSONObject; out Error: string): Boolean;
 var
   lJValue: TJSONValue;
   lIntValue: Int64;
@@ -410,7 +415,7 @@ begin
   Result := True;
 end;
 
-function TJWT.CheckNotBefore(Payload: TJSONObject; out Error: String): Boolean;
+function TJWT.CheckNotBefore(Payload: TJSONObject; out Error: string): Boolean;
 var
   lJValue: TJSONValue;
   lIntValue: Int64;
@@ -439,14 +444,14 @@ begin
   Result := True;
 end;
 
-constructor TJWT.Create(const SecretKey: String);
+constructor TJWT.Create(const SecretKey: string; const ALeewaySeconds: Cardinal = 300);
 begin
   inherited Create;
   FSecretKey := SecretKey;
   FRegisteredClaims := TJWTRegisteredClaims.Create;
   FCustomClaims := TJWTCustomClaims.Create;
-  FHMACAlgorithm := 'HS256';
-  FLeewaySeconds := 300; // 5 minutes of leeway
+  FHMACAlgorithm := HMAC_HS512;
+  FLeewaySeconds := ALeewaySeconds;
   FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
     TJWTCheckableClaim.IssuedAt];
 end;
@@ -458,13 +463,18 @@ begin
   inherited;
 end;
 
-function TJWT.GetToken: String;
+function TJWT.GetLiveValidityWindowInSeconds: Cardinal;
+begin
+  Result := StrToIntDef(FCustomClaims.Items['lvw'], 0);
+end;
+
+function TJWT.GetToken: string;
 var
   lHeader, lPayload: TJSONObject;
-  lHeaderEncoded, lPayloadEncoded, lToken, lHash: String;
+  lHeaderEncoded, lPayloadEncoded, lToken, lHash: string;
   lBytes: TBytes;
-  lRegClaimName: String;
-  lCustomClaimName: String;
+  lRegClaimName: string;
+  lCustomClaimName: string;
 begin
   lHeader := TJSONObject.Create;
   try
@@ -504,14 +514,13 @@ begin
   end;
 end;
 
-function TJWT.IsValidToken(const Token: String; out Error: String): Boolean;
+function TJWT.IsValidToken(const Token: string; out Header, Payload: TJSONObject; out Error: string): Boolean;
 var
-  lPieces: TArray<String>;
-  lJHeader: TJSONObject;
+  lPieces: TArray<string>;
   lJAlg: TJSONString;
   lAlgName: string;
-  lJPayload: TJSONObject;
 begin
+  Result := False;
   Error := '';
   lPieces := Token.Split(['.']);
   if Length(lPieces) <> 3 then
@@ -520,23 +529,23 @@ begin
     Exit(False);
   end;
 
-  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
+  Header := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
   try
-    if not Assigned(lJHeader) then
+    if not Assigned(Header) then
     begin
       Error := 'Invalid Token';
       Exit(False);
     end;
 
-    lJPayload := TJSONObject.ParseJSONValue(B64Decode(lPieces[1])) as TJSONObject;
+    Payload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
     try
-      if not Assigned(lJPayload) then
+      if not Assigned(Payload) then
       begin
         Error := 'Invalid Token';
         Exit(False);
       end;
 
-      if not lJHeader.TryGetValue<TJSONString>('alg', lJAlg) then
+      if not Header.TryGetValue<TJSONString>('alg', lJAlg) then
       begin
         Error := 'Invalid Token';
         Exit(False);
@@ -556,7 +565,7 @@ begin
       begin
         if TJWTCheckableClaim.ExpirationTime in RegClaimsToChecks then
         begin
-          if not CheckExpirationTime(lJPayload, Error) then
+          if not CheckExpirationTime(Payload, Error) then
           begin
             Exit(False);
           end;
@@ -565,7 +574,7 @@ begin
 
         if TJWTCheckableClaim.NotBefore in RegClaimsToChecks then
         begin
-          if not CheckNotBefore(lJPayload, Error) then
+          if not CheckNotBefore(Payload, Error) then
           begin
             Exit(False);
           end;
@@ -573,7 +582,7 @@ begin
 
         if TJWTCheckableClaim.IssuedAt in RegClaimsToChecks then
         begin
-          if not CheckIssuedAt(lJPayload, Error) then
+          if not CheckIssuedAt(Payload, Error) then
           begin
             Exit(False);
           end;
@@ -581,16 +590,18 @@ begin
       end;
 
     finally
-      lJPayload.Free;
+      if not Result then
+        FreeAndNil(Payload);
     end;
   finally
-    lJHeader.Free;
+    if not Result then
+      FreeAndNil(Header);
   end;
 end;
 
-procedure TJWT.LoadToken(const Token: String);
+function TJWT.LoadToken(const Token: string; out Error: string): Boolean;
 var
-  lPieces: TArray<String>;
+  lPieces: TArray<string>;
   lJHeader: TJSONObject;
   lJPayload: TJSONObject;
   lJPair: TJSONPair;
@@ -599,49 +610,48 @@ var
   j: Integer;
   lIsRegistered: Boolean;
   lValue: string;
-  lError: String;
 begin
-  if not IsValidToken(Token, lError) then
-    raise EMVCJWTException.Create(lError);
-
-  lPieces := Token.Split(['.']);
-  lJHeader := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[0])) as TJSONObject;
+  lJHeader := nil;
+  lJPayload := nil;
+  Result := IsValidToken(Token, lJHeader, lJPayload, Error);
   try
-    lJPayload := TJSONObject.ParseJSONValue(URLSafeB64Decode(lPieces[1])) as TJSONObject;
-    try
-      // loading data from token into self
-      FHMACAlgorithm := lJHeader.Values['alg'].Value;
-      // registered claims
-      FRegisteredClaims.FClaims.Clear;
+    if not Result then
+      Exit(False);
 
-      // custom claims
-      FCustomClaims.FClaims.Clear;
-      for i := 0 to lJPayload.Count - 1 do
+    lPieces := Token.Split(['.']);
+    // loading data from token into self
+    FHMACAlgorithm := lJHeader.Values['alg'].Value;
+    // registered claims
+    FRegisteredClaims.FClaims.Clear;
+
+    // custom claims
+    FCustomClaims.FClaims.Clear;
+    for i := 0 to lJPayload.Count - 1 do
+    begin
+      lIsRegistered := False;
+      lJPair := lJPayload.Pairs[i];
+      lName := lJPair.JsonString.Value;
+      lValue := lJPair.JsonValue.Value;
+
+      // if is a registered claim, load it in the proper dictionary...
+      for j := 0 to high(TJWTRegisteredClaimNames.Names) do
       begin
-        lIsRegistered := False;
-        lJPair := lJPayload.Pairs[i];
-        lName := lJPair.JsonString.Value;
-        lValue := lJPair.JsonValue.Value;
-
-        // if is a registered claim, load it in the proper dictionary...
-        for j := 0 to High(TJWTRegisteredClaimNames.Names) do
+        if lName = TJWTRegisteredClaimNames.Names[j] then
         begin
-          if lName = TJWTRegisteredClaimNames.Names[j] then
-          begin
-            FRegisteredClaims.FClaims.AddOrSetValue(lName, lValue);
-            lIsRegistered := True;
-            Break;
-          end;
+          FRegisteredClaims.FClaims.AddOrSetValue(lName, lValue);
+          lIsRegistered := True;
+          Break;
         end;
-        if not lIsRegistered then
-          FCustomClaims.FClaims.AddOrSetValue(lName, lValue);
       end;
-
-    finally
-      lJPayload.Free;
+      if not lIsRegistered then
+        FCustomClaims.FClaims.AddOrSetValue(lName, lValue);
     end;
+
+    FCustomClaims.FClaims.TrimExcess;
+    FRegisteredClaims.FClaims.TrimExcess;
   finally
-    lJHeader.Free;
+    FreeAndNil(lJHeader);
+    FreeAndNil(lJPayload);
   end;
 end;
 
@@ -650,14 +660,14 @@ begin
   FRegClaimsToChecks := Value;
 end;
 
-procedure TJWT.SetHMACAlgorithm(const Value: String);
+procedure TJWT.SetHMACAlgorithm(const Value: string);
 begin
   FHMACAlgorithm := Value;
 end;
 
-procedure TJWT.SetLeewaySeconds(const Value: Int64);
+procedure TJWT.SetLiveValidityWindowInSeconds(const Value: Cardinal);
 begin
-  FLeewaySeconds := Value;
+  FCustomClaims.Items['lvw'] := Value.ToString;
 end;
 
 end.

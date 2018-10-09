@@ -3,11 +3,11 @@ unit BusinessObjectsU;
 interface
 
 uses
-  ObjectsMappers, Generics.Collections;
+  MVCFramework.Serializer.Commons, Generics.Collections;
 
 type
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TPerson = class
   private
     FLastName: string;
@@ -20,19 +20,46 @@ type
     procedure SetMarried(const Value: boolean);
   public
     function Equals(Obj: TObject): boolean; override;
-    // [MapperJsonSer('nome')]
     property FirstName: string read FFirstName write SetFirstName;
-    // [DoNotSerialize]
     property LastName: string read FLastName write SetLastName;
+
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
+
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList: TObjectList<TPerson>;
   end;
 
   TPeople = class(TObjectList<TPerson>);
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
+  TMetadata = class
+  private
+    FCustomData: string;
+    FStopProcessing: TDateTime;
+    FStartProcessing: TDateTime;
+    procedure SetCustomData(const Value: string);
+    procedure SetStartProcessing(const Value: TDateTime);
+    procedure SetStopProcessing(const Value: TDateTime);
+  public
+    property StartProcessing: TDateTime read FStartProcessing write SetStartProcessing;
+    property StopProcessing: TDateTime read FStopProcessing write SetStopProcessing;
+    property CustomData: string read FCustomData write SetCustomData;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TPeopleWithMetadata = class(TObject)
+  private
+    FItems: TPeople;
+    FMetadata: TMetadata;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Items: TPeople read FItems;
+    property Metadata: TMetadata read FMetadata;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
   TCustomer = class
   private
     FName: string;
@@ -49,9 +76,9 @@ type
     procedure SetName(const Value: string);
   public
     property name: string read FName write SetName;
-    [MapperTransient]
+    [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
-    [MapperTransient]
+    [MVCDoNotSerialize]
     property ContactLast: string read FContactLast write SetContactLast;
     property AddressLine1: string read FAddressLine1 write SetAddressLine1;
     property AddressLine2: string read FAddressLine2 write SetAddressLine2;
@@ -59,7 +86,7 @@ type
     class function GetList: TObjectList<TCustomer>;
   end;
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TProgrammer = class(TPerson)
   private
     FSkills: string;
@@ -68,7 +95,7 @@ type
     property Skills: string read FSkills write SetSkills;
   end;
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TPhilosopher = class(TPerson)
   private
     FMentors: string;
@@ -98,7 +125,7 @@ end;
 
 class function TPerson.GetList: TObjectList<TPerson>;
 begin
-  Result := TObjectList<TPerson>.Create;
+  Result := TObjectList<TPerson>.Create(true);
   Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
   Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
   Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
@@ -213,6 +240,39 @@ end;
 procedure TPhilosopher.SetMentors(const Value: string);
 begin
   FMentors := Value;
+end;
+
+{ TMetadata }
+
+procedure TMetadata.SetCustomData(const Value: string);
+begin
+  FCustomData := Value;
+end;
+
+procedure TMetadata.SetStartProcessing(const Value: TDateTime);
+begin
+  FStartProcessing := Value;
+end;
+
+procedure TMetadata.SetStopProcessing(const Value: TDateTime);
+begin
+  FStopProcessing := Value;
+end;
+
+{ TPeopleWithMetadata }
+
+constructor TPeopleWithMetadata.Create;
+begin
+  inherited;
+  FMetadata := TMetadata.Create;
+  FItems := TPeople.Create(true);
+end;
+
+destructor TPeopleWithMetadata.Destroy;
+begin
+  FMetadata.Free;
+  FItems.Free;
+  inherited;
 end;
 
 end.

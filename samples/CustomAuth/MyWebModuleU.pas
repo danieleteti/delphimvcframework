@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -74,8 +74,6 @@ begin
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
       // view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
-      // Enable STOMP messaging controller
-      Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);

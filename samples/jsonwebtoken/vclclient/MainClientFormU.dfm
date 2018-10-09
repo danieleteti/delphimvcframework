@@ -49,7 +49,6 @@ object Form5: TForm5
     ParentFont = False
     ReadOnly = True
     TabOrder = 0
-    ExplicitWidth = 513
   end
   object Memo2: TMemo
     Left = 0
@@ -65,8 +64,6 @@ object Form5: TForm5
     ParentFont = False
     ReadOnly = True
     TabOrder = 1
-    ExplicitWidth = 513
-    ExplicitHeight = 229
   end
   object Panel1: TPanel
     Left = 0
@@ -75,7 +72,6 @@ object Form5: TForm5
     Height = 49
     Align = alTop
     TabOrder = 2
-    ExplicitWidth = 513
     object btnGet: TButton
       AlignWithMargins = True
       Left = 171

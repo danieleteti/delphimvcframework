@@ -3,7 +3,7 @@ unit ActionFiltersControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, ObjectsMappers;
+  MVCFramework, MVCFramework.Commons;
 
 type
 
@@ -22,6 +22,8 @@ type
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/people/($id)')]
     [MVCProduces('application/json')]
+    { This action cannot be called by a browser address bar because requires the
+      ACCEPT header to be application/json. Use Postman or RAD Studio's RESTDebugger. }
     procedure GetPerson(id: Integer);
 
   end;
@@ -53,7 +55,7 @@ procedure TActionFiltersController.MVCControllerAfterCreate;
 begin
   inherited;
   // raise Exception.Create('Error Message');
-  LogI('MVCControllerAfterCreate');
+  Log.Info('MVCControllerAfterCreate', 'ACTIONFILTERS');
 end;
 
 procedure TActionFiltersController.MVCControllerBeforeDestroy;

@@ -1,9 +1,6 @@
-[submodule "lib/delphistompclient"]
-	path = lib/delphistompclient
-	url = https://github.com/danieleteti/delphistompclient.git
-[submodule "lib/dmustache"]
-	path = lib/dmustache
-	url = https://github.com/synopse/dmustache.git
-[submodule "lib/loggerpro"]
-	path = lib/loggerpro
+[submodule "lib\\loggerpro"]
+	path = lib\\loggerpro
 	url = https://github.com/danieleteti/loggerpro.git
+[submodule "lib\\dmustache"]
+	path = lib\\dmustache
+	url = https://github.com/synopse/dmustache.git

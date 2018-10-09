@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -24,9 +24,14 @@
 
 unit MVCFramework.Session;
 
+{$I dmvcframework.inc}
+
 interface
 
-uses System.SysUtils,
+uses
+  System.SyncObjs,
+  System.SysUtils,
+  System.DateUtils,
   System.Generics.Collections;
 
 const
@@ -34,23 +39,25 @@ const
   DEFAULT_SESSION_INACTIVITY = 60; // in minutes
 
 type
+
   TWebSession = class abstract
-  strict protected
-    FSessionID: string;
+  private
+    FSessionId: string;
     FLastAccess: TDateTime;
     FTimeout: UInt64;
-    function GetItems(const Key: string): string; virtual; abstract;
-    procedure SetItems(const Key, Value: string); virtual; abstract;
-
+  protected
+    function GetItems(const AKey: string): string; virtual; abstract;
+    procedure SetItems(const AKey, AValue: string); virtual; abstract;
   public
-    constructor Create(const SessionID: string; const Timeout: UInt64); virtual;
+    constructor Create(const ASessionId: string; const ATimeout: UInt64); virtual;
     destructor Destroy; override;
+
     procedure MarkAsUsed;
     function ToString: string; override;
     function IsExpired: Boolean;
-    property Items[const Key: string]: string read GetItems
-      write SetItems; default;
-    property SessionID: string read FSessionID;
+
+    property Items[const AKey: string]: string read GetItems write SetItems; default;
+    property SessionId: string read FSessionId;
     property LastAccess: TDateTime read FLastAccess;
     property Timeout: UInt64 read FTimeout;
   end;
@@ -58,98 +65,101 @@ type
   TWebSessionClass = class of TWebSession;
 
   TWebSessionMemory = class(TWebSession)
-  strict protected
+  private
     FData: TDictionary<string, string>;
-    function GetItems(const Key: string): string; override;
-    procedure SetItems(const Key, Value: string); override;
-
+  protected
+    function GetItems(const AKey: string): string; override;
+    procedure SetItems(const AKey, AValue: string); override;
   public
-    function ToString: string; override;
-    constructor Create(const SessionID: string; const Timeout: UInt64); override;
+    constructor Create(const ASessionId: string; const ATimeout: UInt64); override;
     destructor Destroy; override;
+
+    function ToString: String; override;
+
+    property Data: TDictionary<string, string> read FData;
   end;
 
   TMVCSessionFactory = class sealed
-  protected
-    FRegisteredSessionTypes: TDictionary<string, TWebSessionClass>;
-    class var FInstance: TMVCSessionFactory;
-    constructor Create;
-
+  private
+    FRegisteredSessionTypes: TDictionary<String, TWebSessionClass>;
+  private
+    class var Instance: TMVCSessionFactory;
   public
-    procedure RegisterSessionType(const AName: string; AWebSessionClass: TWebSessionClass);
-    class function GetInstance: TMVCSessionFactory;
-    function CreateNewByType(const AName, ASessionID: string; const ATimeout: UInt64): TWebSession;
+    constructor Create;
     destructor Destroy; override;
+
+    procedure RegisterSessionType(const AName: String; AWebSessionClass: TWebSessionClass);
+    function CreateNewByType(const AName, ASessionId: string; const ATimeout: UInt64): TWebSession;
+
+    class function GetInstance: TMVCSessionFactory; static;
+    class procedure DestroyInstance; static;
   end;
 
-function SessionList: TObjectDictionary<string, TWebSession>;
+function GlobalSessionList: TObjectDictionary<string, TWebSession>;
 
 implementation
 
-uses
-  System.dateutils,
-  System.SyncObjs;
-
 var
-  GSessionlist: TObjectDictionary<string, TWebSession>;
-  GLastSessionListClear: TDateTime;
-  CS: TCriticalSection;
+  GlSessionList: TObjectDictionary<string, TWebSession> = nil;
+  GlLastSessionListClear: TDateTime;
+  GlCriticalSection: TCriticalSection;
 
-function SessionList: TObjectDictionary<string, TWebSession>;
+function GlobalSessionList: TObjectDictionary<string, TWebSession>;
 var
-  k: string;
+  S: string;
 begin
-  if not Assigned(GSessionlist) then
+  if not Assigned(GlSessionList) then
   begin
-    CS.Enter;
+    GlCriticalSection.Enter;
     try
-      if not Assigned(GSessionlist) then // double check
-        GSessionlist := TObjectDictionary<string, TWebSession>.Create([doOwnsValues]);
+      if not Assigned(GlSessionList) then
+        GlSessionList := TObjectDictionary<string, TWebSession>.Create([doOwnsValues]);
     finally
-      CS.Leave;
+      GlCriticalSection.Leave;
     end;
   end;
 
-  if MinutesBetween(now, GLastSessionListClear) >= 1 then
+  if MinutesBetween(Now, GlLastSessionListClear) >= 1 then
   begin
-    TMonitor.Enter(GSessionlist);
+    TMonitor.Enter(GlSessionList);
     try
-      for k in GSessionlist.Keys do
-        if GSessionlist.Items[k].IsExpired then
-          // if MinutesBetween(now, GSessionlist.Items[k].LastAccess) > 30 then
-          GSessionlist.Remove(k);
-      GLastSessionListClear := now;
+      for S in GlSessionList.Keys do
+        if TWebSession(GlSessionList.Items[S]).IsExpired then
+          GlSessionList.Remove(S);
+      GlLastSessionListClear := Now;
     finally
-      TMonitor.Exit(GSessionlist);
+      TMonitor.Exit(GlSessionList);
     end;
   end;
-  Result := GSessionlist;
+
+  Result := GlSessionList;
 end;
 
-constructor TWebSession.Create(const SessionID: string; const Timeout: UInt64);
+{ TWebSession }
+
+constructor TWebSession.Create(const ASessionId: string; const ATimeout: UInt64);
 begin
   inherited Create;
-  FSessionID := SessionID;
-  FTimeout := Timeout;
+  FSessionId := ASessionId;
+  FTimeout := ATimeout;
 end;
 
 destructor TWebSession.Destroy;
 begin
-  inherited;
+  inherited Destroy;
 end;
 
 function TWebSession.IsExpired: Boolean;
 begin
-  // spinettaro sessiontimeout -- if a session cookie has been choosed the inactivity time is 60 minutes
-  if FTimeout = 0 then
-    Result := MinutesBetween(now, LastAccess) > DEFAULT_SESSION_INACTIVITY
+  if (FTimeout = 0) then
+    Result := MinutesBetween(Now, LastAccess) > DEFAULT_SESSION_INACTIVITY
   else
-    Result := MinutesBetween(now, LastAccess) > FTimeout;
+    Result := MinutesBetween(Now, LastAccess) > FTimeout;
 end;
 
 procedure TWebSession.MarkAsUsed;
 begin
-  FLastAccess := now;
+  FLastAccess := Now;
 end;
 
 function TWebSession.ToString: string;
@@ -157,83 +167,87 @@ begin
   Result := '';
 end;
 
-constructor TWebSessionMemory.Create(const SessionID: string; const Timeout: UInt64);
+{ TWebSessionMemory }
+
+constructor TWebSessionMemory.Create(const ASessionId: string; const ATimeout: UInt64);
 begin
-  inherited;
+  inherited Create(ASessionId, ATimeout);
   FData := TDictionary<string, string>.Create;
 end;
 
 destructor TWebSessionMemory.Destroy;
 begin
   FData.Free;
-  inherited;
+  inherited Destroy;
 end;
 
-function TWebSessionMemory.GetItems(const Key: string): string;
+function TWebSessionMemory.GetItems(const AKey: string): string;
 begin
   TMonitor.Enter(Self);
   try
-    if not FData.TryGetValue(Key, Result) then
+    if not FData.TryGetValue(AKey, Result) then
       Result := '';
   finally
     TMonitor.Exit(Self);
   end;
 end;
 
-procedure TWebSessionMemory.SetItems(const Key, Value: string);
+procedure TWebSessionMemory.SetItems(const AKey, AValue: string);
 begin
   TMonitor.Enter(Self);
   try
-    FData.AddOrSetValue(Key, Value);
+    FData.AddOrSetValue(AKey, AValue);
   finally
     TMonitor.Exit(Self);
   end;
 end;
 
-function TWebSessionMemory.ToString: string;
+function TWebSessionMemory.ToString: String;
 var
-  Key: string;
+  LKey: string;
 begin
   Result := '';
-  for Key in FData.Keys do
-  begin
-    Result := Result + Key + '=' + QuotedStr(FData.Items[Key]) + sLineBreak;
-  end;
+  for LKey in FData.Keys do
+    Result := Result + LKey + '=' + QuotedStr(FData.Items[LKey]) + sLineBreak;
 end;
 
-{ TMVCSessionManager }
+{ TMVCSessionFactory }
 
 constructor TMVCSessionFactory.Create;
 begin
-  inherited;
+  inherited Create;
   FRegisteredSessionTypes := TDictionary<string, TWebSessionClass>.Create;
 end;
 
-function TMVCSessionFactory.CreateNewByType(const AName, ASessionID: string; const ATimeout: UInt64)
-  : TWebSession;
+function TMVCSessionFactory.CreateNewByType(const AName, ASessionId: string; const ATimeout: UInt64): TWebSession;
 var
-  clazz: TWebSessionClass;
+  Clazz: TWebSessionClass;
 begin
-  if not FRegisteredSessionTypes.TryGetValue(AName, clazz) then
-    raise Exception.Create('Unknown session type');
-  Result := clazz.Create(ASessionID, ATimeout);
+  if not FRegisteredSessionTypes.TryGetValue(AName, Clazz) then
+    raise Exception.Create('Unknown application session type');
+  Result := Clazz.Create(ASessionId, ATimeout);
 end;
 
 destructor TMVCSessionFactory.Destroy;
 begin
   FRegisteredSessionTypes.Free;
-  inherited;
+  inherited Destroy;
 end;
 
-class
-  function TMVCSessionFactory.GetInstance: TMVCSessionFactory;
+class procedure TMVCSessionFactory.DestroyInstance;
 begin
-  if not Assigned(FInstance) then
-    FInstance := TMVCSessionFactory.Create;
-  Result := FInstance;
+  if Assigned(Instance) then
+    Instance.Free;
 end;
 
-procedure TMVCSessionFactory.RegisterSessionType(const AName: string; AWebSessionClass: TWebSessionClass);
+class function TMVCSessionFactory.GetInstance: TMVCSessionFactory;
+begin
+  if not Assigned(Instance) then
+    Instance := TMVCSessionFactory.Create;
+  Result := Instance;
+end;
+
+procedure TMVCSessionFactory.RegisterSessionType(const AName: String; AWebSessionClass: TWebSessionClass);
 begin
   FRegisteredSessionTypes.AddOrSetValue(AName, AWebSessionClass);
 end;
@@ -241,12 +255,14 @@ end;
 initialization
 
 TMVCSessionFactory.GetInstance.RegisterSessionType('memory', TWebSessionMemory);
-CS := TCriticalSection.Create;
+GlCriticalSection := TCriticalSection.Create;
 
 finalization
 
-TMVCSessionFactory.FInstance.Free;
-FreeAndNil(GSessionlist);
-FreeAndNil(CS);
+TMVCSessionFactory.DestroyInstance;
+FreeAndNil(GlCriticalSection);
+
+if Assigned(GlSessionList) then
+  FreeAndNil(GlSessionList);
 
 end.

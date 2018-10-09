@@ -3,11 +3,27 @@ unit MainDM;
 interface
 
 uses
-  System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option,
-  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
-  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.FB, Data.DB,
-  FireDAC.Comp.Client, FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf,
-  FireDAC.DApt, FireDAC.Comp.DataSet;
+  System.SysUtils,
+  System.Classes,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.Phys.FB,
+  Data.DB,
+  FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Phys.FBDef,
+  FireDAC.VCLUI.Wait;
 
 type
   TdmMain = class(TDataModule)
@@ -24,12 +40,17 @@ type
 implementation
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
-
 {$R *.dfm}
 
 procedure TdmMain.ConnectionBeforeConnect(Sender: TObject);
 begin
-  Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER.FDB';
+{$IFNDEF WINDOWSSERVICE}
+  // if you want to use firebird 2.5, you can use the file ORDERSMANAGER_FB25.FDB
+  Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB30.FDB';
+  // Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB25.FDB';
+{$ELSE}
+  Connection.Params.Values['Database'] := 'C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FDB';
+{$ENDIF}
 end;
 
 end.

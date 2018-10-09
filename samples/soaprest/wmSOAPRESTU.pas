@@ -5,7 +5,7 @@ interface
 uses System.SysUtils, System.Classes, Web.HTTPApp, Soap.InvokeRegistry,
   Soap.WSDLIntf, System.TypInfo, Soap.WebServExp, Soap.WSDLBind, Xml.XMLSchema,
   Soap.WSDLPub, Soap.SOAPPasInv, Soap.SOAPHTTPPasInv, Soap.SOAPHTTPDisp,
-  Soap.WebBrokerSOAP, MVCFramework;
+  Soap.WebBrokerSOAP, MVCFramework, MVCFramework.Commons;
 
 type
   TwmSOAPREST = class(TWebModule)

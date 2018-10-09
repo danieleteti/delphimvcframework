@@ -40,6 +40,7 @@ type
   TNewWebModuleUnitEx = class(TNewUnit)
   private
     FUnitIdent, FFormName, FFileName : String;
+    FMiddlewares: TArray<String>;
   protected
     FWebModuleClassName : string;
     FControllerClassName: string;
@@ -48,7 +49,7 @@ type
     function NewFormFile(const FormIdent, AncestorIdent: string): IOTAFile; override;
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string): IOTAFile; override;
   public
-    constructor Create(const aWebModuleClassName: string; aControllerClassName: string; aControllerUnit: string; const APersonality : String = '' );
+    constructor Create(const aWebModuleClassName: string; aControllerClassName: string; aControllerUnit: string; const aMiddlewares: TArray<String>; const APersonality : String);
   end;
 
 implementation
@@ -60,7 +61,7 @@ uses
   DMVC.Expert.CodeGen.Templates,
   DMVC.Expert.CodeGen.SourceFile;
 
-constructor TNewWebModuleUnitEx.Create(const aWebModuleClassName : string; aControllerClassName: string; aControllerUnit: string; const APersonality : String = '' );
+constructor TNewWebModuleUnitEx.Create(const aWebModuleClassName : string; aControllerClassName: string; aControllerUnit: string; const aMiddlewares: TArray<String>; const APersonality : String);
 begin
   Assert(Length(aWebModuleClassName) > 0);
   FAncestorName := '';
@@ -70,6 +71,7 @@ begin
   FWebModuleClassName := aWebModuleClassName;
   FControllerClassName := aControllerClassName;
   FControllerUnit := aControllerUnit;
+  FMiddlewares := AMiddlewares;
   Personality := APersonality;
   (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName( '', FUnitIdent, FFormName, FFileName);
 end;
@@ -89,7 +91,7 @@ begin
   //ModuleIdent is blank for some reason.
   // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
   // So using method mentioned by Marco Cantu.
-  Result := TSourceFile.Create(sWebModuleUnit, [FUnitIdent, FWebModuleClassName, FControllerUnit, FControllerClassName]);
+  Result := TSourceFile.Create(sWebModuleUnit, [FUnitIdent, FWebModuleClassName, FControllerUnit, FControllerClassName, FMiddlewares]);
 end;
 
 

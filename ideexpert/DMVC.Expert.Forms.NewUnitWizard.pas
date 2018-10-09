@@ -1,32 +1,32 @@
-{***************************************************************************}
-{                                                                           }
-{                      Delphi MVC Framework                                 }
-{                                                                           }
-{     Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team       }
-{                                                                           }
-{           https://github.com/danieleteti/delphimvcframework               }
-{                                                                           }
-{***************************************************************************}
-{                                                                           }
-{  Licensed under the Apache License, Version 2.0 (the "License");          }
-{  you may not use this file except in compliance with the License.         }
-{  You may obtain a copy of the License at                                  }
-{                                                                           }
-{      http://www.apache.org/licenses/LICENSE-2.0                           }
-{                                                                           }
-{  Unless required by applicable law or agreed to in writing, software      }
-{  distributed under the License is distributed on an "AS IS" BASIS,        }
-{  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
-{  See the License for the specific language governing permissions and      }
-{  limitations under the License.                                           }
-{                                                                           }
-{  This IDE expert is based off of the one included with the DUnitX         }
-{  project.  Original source by Robert Love.  Adapted by Nick Hodges.       }
-{                                                                           }
-{  The DUnitX project is run by Vincent Parrett and can be found at:        }
-{                                                                           }
-{            https://github.com/VSoftTechnologies/DUnitX                    }
-{***************************************************************************}
+{ *************************************************************************** }
+{ }
+{ Delphi MVC Framework }
+{ }
+{ Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team }
+{ }
+{ https://github.com/danieleteti/delphimvcframework }
+{ }
+{ *************************************************************************** }
+{ }
+{ Licensed under the Apache License, Version 2.0 (the "License"); }
+{ you may not use this file except in compliance with the License. }
+{ You may obtain a copy of the License at }
+{ }
+{ http://www.apache.org/licenses/LICENSE-2.0 }
+{ }
+{ Unless required by applicable law or agreed to in writing, software }
+{ distributed under the License is distributed on an "AS IS" BASIS, }
+{ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. }
+{ See the License for the specific language governing permissions and }
+{ limitations under the License. }
+{ }
+{ This IDE expert is based off of the one included with the DUnitX }
+{ project.  Original source by Robert Love.  Adapted by Nick Hodges. }
+{ }
+{ The DUnitX project is run by Vincent Parrett and can be found at: }
+{ }
+{ https://github.com/VSoftTechnologies/DUnitX }
+{ *************************************************************************** }
 
 unit DMVC.Expert.Forms.NewUnitWizard;
 
@@ -53,16 +53,19 @@ type
     edtClassName: TEdit;
     chkCreateIndexMethod: TCheckBox;
     chkCreateActionFiltersMethods: TCheckBox;
+    chkCreateCRUDMethods: TCheckBox;
     procedure FormCreate(Sender: TObject);
   private
     function GetCreateIndexMethod: boolean;
     function GetControllerClassName: string;
     function GetCreateActionFiltersMethods: boolean;
+    function GetCreateCRUDMethods: boolean;
     { Private declarations }
   public
     { Public declarations }
-    property ControllerClassName : string read GetControllerClassName;
-    property CreateIndexMethod : boolean read GetCreateIndexMethod;
+    property ControllerClassName: string read GetControllerClassName;
+    property CreateIndexMethod: boolean read GetCreateIndexMethod;
+    property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
     property CreateActionFiltersMethods: boolean read GetCreateActionFiltersMethods;
 
   end;
@@ -87,6 +90,11 @@ begin
   Result := chkCreateActionFiltersMethods.Checked;
 end;
 
+function TfrmDMVCNewUnit.GetCreateCRUDMethods: boolean;
+begin
+  Result := chkCreateCRUDMethods.Checked;
+end;
+
 function TfrmDMVCNewUnit.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
@@ -97,7 +105,8 @@ begin
   if Trim(edtClassName.Text) = '' then
   begin
     Result := sDefaultControllerName
-  end else
+  end
+  else
   begin
     Result := Trim(edtClassName.Text);
   end;

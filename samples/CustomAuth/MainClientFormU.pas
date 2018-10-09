@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -74,7 +74,8 @@ var
 implementation
 
 uses
-  System.JSON;
+  System.JSON,
+  MVCFramework.SystemJSONUtils;
 
 {$R *.dfm}
 
@@ -109,7 +110,7 @@ begin
     try
       lJObj.AddPair('username', edtUsername.Text);
       lJObj.AddPair('password', edtPassword.Text);
-      lRes := FRESTClient.doPOST('/system/users/logged', [], lJObj, False);
+      lRes := FRESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJObj, False));
       if lRes.HasError then
       begin
         ShowMessage(lRes.Error.ExceptionMessage);

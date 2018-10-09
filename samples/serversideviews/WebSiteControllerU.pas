@@ -9,9 +9,6 @@ type
 
   [MVCPath('/')]
   TWebSiteController = class(TMVCController)
-  private
-    FStopWatch: TStopwatch;
-    function GetSpeed: TJSONString;
   protected
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
@@ -68,26 +65,41 @@ uses DAL, System.SysUtils, Web.HTTPApp;
 
 procedure TWebSiteController.DeletePerson;
 var
-  lID: string;
+  lGUID: string;
   LDAL: IPeopleDAL;
 begin
-  lID := Context.Request.Params['id'];
+  lGUID := Context.Request.Params['guid'];
   LDAL := TServicesFactory.GetPeopleDAL;
-  LDAL.DeleteById(lID);
+  LDAL.DeleteByGUID(lGUID);
   Redirect('/people');
 end;
 
 procedure TWebSiteController.EditPerson(guid: string);
 var
   LDAL: IPeopleDAL;
-  lPerson: TJSONObject;
+  lPerson: TPerson;
+  lDevices: TDeviceList;
+  lItem: TDevice;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  lPerson := LDAL.GetPersonByID(guid);
-  PushJSONToView('person', lPerson);
-  PushJSONToView('speed', GetSpeed);
-  LoadView(['header', 'editperson', 'footer']);
-  RenderResponseStream;
+  lPerson := LDAL.GetPersonByGUID(guid);
+  try
+    lDevices := LDAL.GetDevicesList;
+    try
+      ViewData['person'] := lPerson;
+      for lItem in lDevices do
+      begin
+        lItem.Selected := lPerson.Items.Contains(lItem.DeviceName);
+      end;
+      ViewData['deviceslist'] := lDevices;
+      LoadView(['header', 'editperson', 'footer']);
+      RenderResponseStream;
+    finally
+      lDevices.Free;
+    end;
+  finally
+    lPerson.Free;
+  end;
 end;
 
 procedure TWebSiteController.ExportPeopleListAsCSV;
@@ -107,16 +119,17 @@ end;
 procedure TWebSiteController.GeneratePeopleListAsCSV;
 var
   LDAL: IPeopleDAL;
+  lPeople: TPeople;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushJSONToView('people', LDAL.GetPeople);
-  LoadView(['people_header.csv', 'people_list.csv']);
-  RenderResponseStream; // rember to call RenderResponseStream!!!
-end;
-
-function TWebSiteController.GetSpeed: TJSONString;
-begin
-  Result := TJSONString.Create(FStopWatch.Elapsed.TotalMilliseconds.ToString);
+  lPeople := LDAL.GetPeople;
+  try
+    ViewData['people'] := lPeople;
+    LoadView(['people_header.csv', 'people_list.csv']);
+    RenderResponseStream; // rember to call RenderResponseStream!!!
+  finally
+    lPeople.Free;
+  end;
 end;
 
 procedure TWebSiteController.Index;
@@ -125,10 +138,19 @@ begin
 end;
 
 procedure TWebSiteController.NewPerson;
+var
+  lDAL: IPeopleDAL;
+  lDevices: TDeviceList;
 begin
-  PushJSONToView('speed', GetSpeed);
-  LoadView(['header', 'editperson', 'footer']);
-  RenderResponseStream;
+  lDAL := TServicesFactory.GetPeopleDAL;
+  lDevices := LDAL.GetDevicesList;
+  try
+    ViewData['deviceslist'] := lDevices;
+    LoadView(['header', 'editperson', 'footer']);
+    RenderResponseStream;
+  finally
+    lDevices.Free;
+  end;
 end;
 
 procedure TWebSiteController.OnBeforeAction(Context: TWebContext;
@@ -137,18 +159,23 @@ begin
   inherited;
   ContentType := 'text/html';
   Handled := False;
-  FStopWatch := TStopwatch.StartNew;
 end;
 
 procedure TWebSiteController.PeopleList;
 var
   LDAL: IPeopleDAL;
+  lPeople: TPeople;
 begin
   LDAL := TServicesFactory.GetPeopleDAL;
-  PushJSONToView('people', LDAL.GetPeople);
-  PushJSONToView('speed', GetSpeed);
-  LoadView(['header', 'people_list', 'footer']);
-  RenderResponseStream; // rember to call RenderResponseStream!!!
+  lPeople := LDAL.GetPeople;
+  try
+    ViewData['people'] := lPeople;
+    LoadView(['header', 'people_list', 'footer']);
+    RenderResponseStream; // rember to call RenderResponseStream!!!
+  finally
+    lPeople.Free;
+  end;
+
 end;
 
 procedure TWebSiteController.SavePerson;
@@ -157,10 +184,12 @@ var
   LLastName: string;
   LAge: string;
   LPeopleDAL: IPeopleDAL;
+  lDevices: TArray<string>;
 begin
   LFirstName := Context.Request.Params['first_name'].Trim;
   LLastName := Context.Request.Params['last_name'].Trim;
   LAge := Context.Request.Params['age'];
+  lDevices := Context.Request.ParamsMulti['items'];
 
   if LFirstName.IsEmpty or LLastName.IsEmpty or LAge.IsEmpty then
   begin
@@ -170,7 +199,7 @@ begin
   end;
 
   LPeopleDAL := TServicesFactory.GetPeopleDAL;
-  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger());
+  LPeopleDAL.AddPerson(LFirstName, LLastName, LAge.ToInteger(), lDevices);
 
   Redirect('/people');
 end;

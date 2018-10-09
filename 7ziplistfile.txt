@@ -1,0 +1,13 @@
+.\samples\**\*.dpr
+.\samples\**\*.dproj
+.\samples\**\*.FDB
+.\samples\**\*.inc
+.\samples\**\*.pas
+.\samples\**\*.dfm
+.\samples\**\*.fmx
+.\samples\**\*.html
+.\samples\**\*.mustache
+.\samples\**\*.jpg
+.\samples\**\*.js
+.\samples\**\*.css
+.\samples\**\myproj*

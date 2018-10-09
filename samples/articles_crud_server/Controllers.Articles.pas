@@ -18,8 +18,8 @@ type
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
-
     procedure GetArticleByID(id: Integer);
+
     [MVCDoc('Deletes the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpDelete])]
@@ -40,7 +40,7 @@ implementation
 
 { TArticlesController }
 
-uses Services, BusinessObjects, Commons;
+uses Services, BusinessObjects, Commons, mvcframework.Serializer.Intf;
 
 procedure TArticlesController.CreateArticle(Context: TWebContext);
 var
@@ -61,8 +61,7 @@ var
 begin
   GetArticlesService.StartTransaction;
   try
-    Article := GetArticlesService.GetByID
-      (Context.Request.ParamsAsInteger['id']);
+    Article := GetArticlesService.GetByID(id);
     try
       GetArticlesService.Delete(Article);
     finally
@@ -86,7 +85,7 @@ var
 begin
   Article := Context.Request.BodyAs<TArticle>;
   try
-    Article.id := Context.Request.ParamsAsInteger['id'];
+    Article.id := id;
     GetArticlesService.Update(Article);
     Render(200, 'Article Updated');
   finally
@@ -99,8 +98,7 @@ var
   Article: TArticle;
 begin
   try
-    Article := GetArticlesService.GetByID
-      (Context.Request.ParamsAsInteger['id']);
+    Article := GetArticlesService.GetByID(id);
     Render(Article);
   except
     on E: EServiceException do

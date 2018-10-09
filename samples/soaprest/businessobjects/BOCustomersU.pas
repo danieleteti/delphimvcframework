@@ -2,11 +2,13 @@ unit BOCustomersU;
 
 interface
 
-uses ObjectsMappers, System.Generics.Collections;
+uses MVCFramework.Serializer.Commons, System.Generics.Collections;
 
 type
-{$M+}
-  [MapperJSONNaming(JSONNameLowerCase)]
+
+  {$M+}
+
+  [MVCNameCase(ncLowerCase)]
   TCustomer = class
   private
     FSurname: string;

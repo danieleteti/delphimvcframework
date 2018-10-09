@@ -9,23 +9,16 @@ uses
 
 type
 
-  [MVCPath('/')]
+  [MVCPath('/api')]
   TWineCellarApp = class(TMVCController)
   private
-    dm: TWineCellarDataModule;
+    FDataModule: TWineCellarDataModule;
 
   protected
-    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
-      var Handled: Boolean);
-      override;
-    procedure OnAfterAction(Context: TWebContext;
-      const AActionNAme: string); override;
+    procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean); override;
+    procedure OnAfterAction(Context: TWebContext; const AActionNAme: string); override;
 
   public
-    [MVCPath('/')]
-    [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
-
     [MVCPath('/wines')]
     [MVCHTTPMethod([httpGET])]
     procedure WinesList(ctx: TWebContext);
@@ -49,56 +42,51 @@ type
 implementation
 
 uses
-  System.SysUtils, WinesBO, MVCFramework.Logger;
+  System.SysUtils,
+  WinesBO,
+  MVCFramework.Logger,
+  MVCFramework.Serializer.Commons;
 
 procedure TWineCellarApp.FindWines(ctx: TWebContext);
 begin
-  Render(dm.FindWines(ctx.Request.Params['value']));
+  Render(FDataModule.FindWines(ctx.Request.Params['value']));
 end;
 
-procedure TWineCellarApp.Index(ctx: TWebContext);
-begin
-  Redirect('/index.html');
-end;
-
-procedure TWineCellarApp.OnAfterAction(Context: TWebContext;
-  const AActionNAme: string);
+procedure TWineCellarApp.OnAfterAction(Context: TWebContext; const AActionNAme: string);
 begin
   inherited;
-  dm.Free;
+  FDataModule.Free;
 end;
 
-procedure TWineCellarApp.OnBeforeAction(Context: TWebContext;
-  const AActionNAme: string;
-  var Handled: Boolean);
+procedure TWineCellarApp.OnBeforeAction(Context: TWebContext; const AActionNAme: string; var Handled: Boolean);
 begin
   inherited;
-  dm := TWineCellarDataModule.Create(nil);
+  FDataModule := TWineCellarDataModule.Create(nil);
 end;
 
 procedure TWineCellarApp.SaveWine(ctx: TWebContext);
 var
-  Wine: TWine;
+  lWine: TWine;
 begin
-  Wine := ctx.Request.BodyAs<TWine>;
+  lWine := ctx.Request.BodyAs<TWine>;
   try
-    dm.AddWine(Wine);
+    FDataModule.AddWine(lWine);
     Log.Info('Wine correctly saved', 'WINESERVER');
   finally
-    Wine.Free;
+    lWine.Free;
   end;
 end;
 
 procedure TWineCellarApp.UpdateWineById(ctx: TWebContext);
 var
-  Wine: TWine;
+  lWine: TWine;
 begin
-  Wine := ctx.Request.BodyAs<TWine>;
+  lWine := ctx.Request.BodyAs<TWine>;
   try
-    dm.UpdateWine(Wine);
+    FDataModule.UpdateWine(lWine);
     Log.Info('Wine correctly updated', 'WINESERVER');
   finally
-    Wine.Free;
+    lWine.Free;
   end;
   Render(200, 'Wine updated');
 end;
@@ -109,13 +97,13 @@ begin
   case ctx.Request.HTTPMethod of
     httpDELETE:
       begin
-        dm.DeleteWine(StrToInt(ctx.Request.Params['id']));
+        FDataModule.DeleteWine(StrToInt(ctx.Request.Params['id']));
         Log.Info('Wine deleted', 'WINESERVER');
         Render(200, 'Wine deleted');
       end;
     httpGET:
       begin
-        Render(dm.GetWineById(StrToInt(ctx.Request.Params['id'])));
+        Render(FDataModule.GetWineById(StrToInt(ctx.Request.Params['id'])), False, dstSingleRecord);
       end
   else
     raise Exception.Create('Invalid http method for action');
@@ -125,7 +113,7 @@ end;
 
 procedure TWineCellarApp.WinesList(ctx: TWebContext);
 begin
-  Render(dm.FindWines(''));
+  Render(FDataModule.GetAllWines, False);
   Log.Info('Getting Wines list', 'WINESERVER');
 end;
 

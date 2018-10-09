@@ -4,7 +4,7 @@ interface
 
 uses
   Generics.Collections, WinesBO, MVCFramework.RESTAdapter,
-  ObjectsMappers, MVCFramework.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Commons;
 
 type
 
@@ -12,7 +12,7 @@ type
     ['{068C51B2-F413-48ED-97CE-463234DB3E41}']
 
     [RESTResource(HttpGet, '/wines')]
-    [MapperListOf(TWine)]
+    [MVCListOf(TWine)]
     [Mapping(TWines)]
     procedure GetWineList(AAsynchReq: IAsynchRequest);
 

@@ -48,8 +48,6 @@ object Form9: TForm9
       'Memo1')
     ParentFont = False
     TabOrder = 1
-    ExplicitWidth = 664
-    ExplicitHeight = 240
   end
   object Button2: TButton
     Left = 111
@@ -70,7 +68,7 @@ object Form9: TForm9
     Accept = 'application/json, text/plain; q=0.9, text/html;q=0.8,'
     AcceptCharset = 'UTF-8, *;q=0.8'
     AcceptEncoding = 'identity'
-    BaseURL = 'https://localhost:8080'
+    BaseURL = 'https://localhost/'
     Params = <>
     HandleRedirects = True
     Left = 32
@@ -80,6 +78,7 @@ object Form9: TForm9
     Client = RESTClient1
     Params = <>
     Resource = 'people'
+    SynchronizedEvents = False
     Left = 32
     Top = 112
   end

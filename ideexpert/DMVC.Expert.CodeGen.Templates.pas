@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -37,7 +37,8 @@ resourcestring
   { Delphi template code }
   // 0 - project name
   // 1 - http/s port
-  sDMVCDPR = 'program %0:s;' + sLineBreak +
+  sDMVCDPR =
+    'program %0:s;' + sLineBreak +
     sLineBreak +
     ' {$APPTYPE CONSOLE}' + sLineBreak +
     '' + sLineBreak +
@@ -45,53 +46,90 @@ resourcestring
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
-    '  Winapi.Windows,' + sLineBreak +
-    '  Winapi.ShellAPI,' + sLineBreak +
-    '  ReqMulti, {enables files upload}' + sLineBreak +
+    '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
+    '  Web.ReqMulti, {If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216}' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
     '' + sLineBreak +
-    '{$R *.res}' + sLineBreak +
-    sLineBreak +
+    '{$R *.res}' + sLineBreak + sLineBreak +
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
-    '  LInputRecord: TInputRecord;' + sLineBreak +
-    '  LEvent: DWord;' + sLineBreak +
-    '  LHandle: THandle;' + sLineBreak +
-    '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
+    '  lServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
+    '  lCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
+    '  lCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
-    '  Writeln(Format(''Starting HTTP Server on port %%d'', [APort]));' + sLineBreak +
+    '  if ParamCount >= 1 then' + sLineBreak +
+    '    lCmd := ParamStr(1)' + sLineBreak +
+    '  else' + sLineBreak +
+    '    lCmd := ''start'';' + sLineBreak +
+    '' + sLineBreak +
+    '  lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      Handled := False;' + sLineBreak +
+    '      Result := THandleCommandResult.Unknown;' + sLineBreak +
+    '' + sLineBreak +
+    '      // Write here your custom command for the REPL using the following form...' + sLineBreak +
+    '      // ***' + sLineBreak +
+    '      // Handled := False;' + sLineBreak +
+    '      // if (Value = ''apiversion'') then' + sLineBreak +
+    '      // begin' + sLineBreak +
+    '      // REPLEmit(''Print my API version number'');' + sLineBreak +
+    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
+    '      // Handled := True;' + sLineBreak +
+    '      // end' + sLineBreak +
+    '      // else if (Value = ''datetime'') then' + sLineBreak +
+    '      // begin' + sLineBreak +
+    '      // REPLEmit(DateTimeToStr(Now));' + sLineBreak +
+    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
+    '      // Handled := True;' + sLineBreak +
+    '      // end;' + sLineBreak +
+    '    end;' + sLineBreak +
+    '' + sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.Active := True;' + sLineBreak +
-    '    LogI(Format(''Server started on port %d'', [APort]));' + sLineBreak +
-    '    { more info about MaxConnections ' + sLineBreak +
-    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html}'
-    + sLineBreak +
+    '' + sLineBreak +
+    '    { more info about MaxConnections' + sLineBreak +
+    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }' + sLineBreak +
     '    LServer.MaxConnections := 0;' + sLineBreak +
-    '    { more info about ListenQueue ' + sLineBreak +
-    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html}'
-    + sLineBreak +
+    '' + sLineBreak +
+    '    { more info about ListenQueue' + sLineBreak +
+    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
-    '    { Comment the next line to avoid the default browser startup }' + sLineBreak +
-    '    ShellExecute(0, ''open'', PChar(''http://localhost:'' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);'
-    + sLineBreak +
-    '    Writeln(''Press ESC to stop the server'');' + sLineBreak +
-    '    LHandle := GetStdHandle(STD_INPUT_HANDLE);' + sLineBreak +
-    '    while True do' + sLineBreak +
-    '    begin' + sLineBreak +
-    '      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));' + sLineBreak +
-    '      if (LInputRecord.EventType = KEY_EVENT) and' + sLineBreak +
-    '        LInputRecord.Event.KeyEvent.bKeyDown and' + sLineBreak +
-    '        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then' + sLineBreak +
-    '        break;' + sLineBreak +
-    '    end;' + sLineBreak +
+    '' + sLineBreak +
+    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
+    '    repeat' + sLineBreak +
+    '      if lCmd.IsEmpty then' + sLineBreak +
+    '      begin' + sLineBreak +
+    '        Write(''-> '');' + sLineBreak +
+    '        ReadLn(lCmd)' + sLineBreak +
+    '      end;' + sLineBreak +
+    '      try' + sLineBreak +
+    '        case HandleCommand(lCmd.ToLower, LServer, lCustomHandler) of' + sLineBreak +
+    '          THandleCommandResult.Continue:' + sLineBreak +
+    '            begin' + sLineBreak +
+    '              Continue;' + sLineBreak +
+    '            end;' + sLineBreak +
+    '          THandleCommandResult.Break:' + sLineBreak +
+    '            begin' + sLineBreak +
+    '              Break;' + sLineBreak +
+    '            end;' + sLineBreak +
+    '          THandleCommandResult.Unknown:' + sLineBreak +
+    '            begin' + sLineBreak +
+    '              REPLEmit(''Unknown command: '' + lCmd);' + sLineBreak +
+    '            end;' + sLineBreak +
+    '        end;' + sLineBreak +
+    '      finally' + sLineBreak +
+    '        lCmd := '''';' + sLineBreak +
+    '      end;' + sLineBreak +
+    '    until false;' + sLineBreak +
+    '' + sLineBreak +
     '  finally' + sLineBreak +
     '    LServer.Free;' + sLineBreak +
     '  end;' + sLineBreak +
+
     'end;' + sLineBreak +
     sLineBreak +
     'begin' + sLineBreak +
@@ -123,19 +161,21 @@ resourcestring
     sLineBreak +
     'type' + sLineBreak +
     sLineBreak +
-    '  [MVCPath(''/'')]' + sLineBreak +
+    '  [MVCPath(''/api'')]' + sLineBreak +
     '  %1:s = class(TMVCController) ' + sLineBreak +
     '  public' + sLineBreak +
     '%2:s' +
     '%4:s' +
+    '%6:s' +
     '  end;' + sLineBreak +
     sLineBreak +
     'implementation' + sLineBreak + sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework.Logger;' + sLineBreak +
+    '  System.SysUtils, MVCFramework.Logger, System.StrUtils;' + sLineBreak +
     sLineBreak +
     '%3:s' + sLineBreak +
     '%5:s' + sLineBreak +
+    '%7:s' + sLineBreak +
     sLineBreak +
     'end.' + sLineBreak;
 
@@ -143,9 +183,9 @@ resourcestring
     '    [MVCPath(''/'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
     '    procedure Index;' + sLineBreak + sLineBreak +
-    '    [MVCPath(''/hellos/($FirstName)'')]' + sLineBreak +
+    '    [MVCPath(''/reversedstrings/($Value)'')]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
-    '    procedure GetSpecializedHello(const FirstName: String);' + sLineBreak;
+    '    procedure GetReversedString(const Value: String);' + sLineBreak;
 
   // 0 - Class Name
   sIndexMethodImpl =
@@ -154,10 +194,53 @@ resourcestring
     '  //use Context property to access to the HTTP request and response ' + sLineBreak +
     '  Render(''Hello DelphiMVCFramework World'');' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.GetSpecializedHello(const FirstName: String);' + sLineBreak +
+    'procedure %0:s.GetReversedString(const Value: String);' + sLineBreak +
     'begin' + sLineBreak +
-    '  Render(''Hello '' + FirstName);' + sLineBreak +
+    '  Render(System.StrUtils.ReverseString(Value.Trim));' + sLineBreak +
     'end;' + sLineBreak;
+
+  sCRUDMethodsIntf =
+    sLineBreak +
+		'  public' + sLineBreak + 
+    '    //Sample CRUD Actions for a "Customer" entity' + sLineBreak +
+    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+    '    procedure GetCustomers;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
+    '    procedure GetCustomer(id: Integer);' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpPOST])]' + sLineBreak +
+    '    procedure CreateCustomer;' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpPUT])]' + sLineBreak +
+    '    procedure UpdateCustomer(id: Integer);' + sLineBreak + sLineBreak +
+    '    [MVCPath(''/customers/($id)'')]' + sLineBreak +
+    '    [MVCHTTPMethod([httpDELETE])]' + sLineBreak +
+    '    procedure DeleteCustomer(id: Integer);' + sLineBreak + sLineBreak;
+
+  sCRUDMethodsImpl =
+    '//Sample CRUD Actions for a "Customer" entity' + sLineBreak +
+    'procedure %0:s.GetCustomers;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: render a list of customers' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.GetCustomer(id: Integer);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: render the customer by id' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.CreateCustomer;' + sLineBreak + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: create a new customer' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.UpdateCustomer(id: Integer);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: update customer by id' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'procedure %0:s.DeleteCustomer(id: Integer);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  //todo: delete customer by id' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak;
 
   sActionFiltersIntf =
     '  protected' + sLineBreak +
@@ -217,7 +300,7 @@ resourcestring
     sLineBreak +
     '{$R *.dfm}' + sLineBreak +
     sLineBreak +
-    'uses %2:s, MVCFramework.Commons;' + sLineBreak +
+    'uses %2:s, System.IOUtils, MVCFramework.Commons;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
     'begin' + sLineBreak +
@@ -225,7 +308,7 @@ resourcestring
     '    procedure(Config: TMVCConfig)' + sLineBreak +
     '    begin' + sLineBreak +
     '      //enable static files' + sLineBreak +
-    '      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + ''\www'';'
+		'      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'');'
     + sLineBreak +
     '      // session timeout (0 means session cookie)' + sLineBreak +
     '      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +
@@ -241,8 +324,6 @@ resourcestring
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
     '      //view path' + sLineBreak +
     '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
-    '      //Enable STOMP messaging controller' + sLineBreak +
-    '      Config[TMVCConfigKey.Messaging] := ''false'';' + sLineBreak +
     '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
     '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' +

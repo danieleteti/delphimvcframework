@@ -33,7 +33,10 @@ package DMVC_IDE_Expert_D101Berlin;
 requires
   rtl,
   designide,
-  ExpertsCreators;
+  ExpertsCreators,
+  IndySystem,
+  IndyProtocols,
+  IndyCore;
 
 contains
   DMVC.Expert.CodeGen.SourceFile in 'DMVC.Expert.CodeGen.SourceFile.pas',
@@ -47,6 +50,7 @@ contains
   DMVC.Expert.CodeGen.NewControllerUnit in 'DMVC.Expert.CodeGen.NewControllerUnit.pas',
   DMVC.Expert.NewUnitWizardEx in 'DMVC.Expert.NewUnitWizardEx.pas',
   DMVC.Expert.ProjectWizardEx in 'DMVC.Expert.ProjectWizardEx.pas',
-  DMVC.Expert.CodeGen.NewWebModuleUnit in 'DMVC.Expert.CodeGen.NewWebModuleUnit.pas';
+  DMVC.Expert.CodeGen.NewWebModuleUnit in 'DMVC.Expert.CodeGen.NewWebModuleUnit.pas',
+  DMVC.Splash.Registration in 'DMVC.Splash.Registration.pas';
 
 end.

@@ -10,7 +10,7 @@
 <div class="row_fluid">
   <div class="col-sm-12">
     <form class="form form-horizontal" id="myForm" name="myForm" method="POST" action="/people">
-      <input type="hidden" value="{{person.id}}" name="id">
+      <input type="hidden" value="{{person.guid}}" name="guid">
       <div class="row">
         <div class="col-sm-offset-2 col-sm-8">
           {{^person}}
@@ -49,6 +49,20 @@
       </div>
 
 
+			<div class="row">				
+				<div class="form-group">			
+					<label for="items" class="col-sm-2 control-label">Devices</label>					
+					<div class="col-sm-4">
+						<select name="items" multiple class="form-control">
+						{{#deviceslist}}
+							<option value="{{devicename}}" {{#selected}}selected{{/selected}}>{{devicename}}</option>
+						{{/deviceslist}}							
+						</select>			
+						<span style="font-size: 80%">(Ctrl+Click to select multiple devices)</span>						
+					</div>		
+				</div>		
+			</div>
+						
       <div class="form-group">
         <div class="col-sm-offset-2 col-sm-2">
           <button type="button" class="btn btn-default btn-block" onclick="history.back()">Return to the list</button>

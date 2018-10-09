@@ -1,5 +1,5 @@
 // The root URL for the RESTful services
-var rootURL = "/wines";
+var rootURL = "/api/wines";
 
 var currentWine;
 
@@ -142,11 +142,10 @@ function updateWine() {
 		data: formToJSON(),
     processData: false,
 		success: function(data, textStatus, jqXHR){
-            debugger;
 			alert('Wine updated successfully');
 		},
 		error: function(jqXHR, textStatus, errorThrown){
-			alert('updateWine error: ' + textStatus);
+			alert('updateWine error: ' + jqXHR.statusText);
 		}
 	});
 }
@@ -161,7 +160,7 @@ function deleteWine() {
             findAll();
 		},
 		error: function(jqXHR, textStatus, errorThrown){
-			alert('deleteWine error');
+			alert('deleteWine error: ' + jqXHR.statusText);
 		}
 	});
 }
@@ -191,7 +190,7 @@ function renderDetails(wine) {
 // Helper function to serialize all the form fields into a JSON string
 function formToJSON() {
 	return JSON.stringify({
-		"id": $('#wineId').val(),
+		"id": parseInt($('#wineId').val()),
 		"name": $('#name').val(),
 		"grapes": $('#grapes').val(),
 		"country": $('#country').val(),

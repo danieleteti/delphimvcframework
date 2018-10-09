@@ -7,11 +7,11 @@ unit WinesBO;
 
 interface
 
-uses ObjectsMappers, System.Generics.Collections;
+uses System.Generics.Collections, MVCFramework.Serializer.Commons;
 
 type
 
-  [MapperJSONNaming(JSONNameLowerCase)]
+  [MVCNameCase(ncLowerCase)]
   TWine = class
   private
     FYEAR: string;

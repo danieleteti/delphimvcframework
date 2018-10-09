@@ -2,9 +2,11 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -24,42 +26,29 @@
 
 unit MVCFramework.Commons;
 
-interface
-
 {$I dmvcframework.inc}
 
+interface
+
 uses
-  System.SysUtils, Generics.Collections
-{$IFDEF SYSTEMJSON} // XE6
-    , System.JSON
-{$ELSE}
-    , Data.DBXJSON
-{$ENDIF}
-    , System.Generics.Collections, MVCFramework.Session, LoggerPro;
+  System.SysUtils,
+  System.SyncObjs,
+  System.IOUtils,
+  System.Generics.Collections,
+  MVCFramework.TypesAliases,
+  Data.DB,
+  IdGlobal,
+  IdCoderMIME;
 
 {$I dmvcframeworkbuildconsts.inc}
 
 type
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD,
-    httpOPTIONS, httpPATCH, httpTRACE);
+
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH, httpTRACE);
+
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
-  TMVCMimeType = class sealed
-  public const
-    APPLICATION_JSON = 'application/json';
-    TEXT_HTML = 'text/html';
-    TEXT_PLAIN = 'text/plain';
-    TEXT_XML = 'text/xml';
-    TEXT_CSS = 'text/css';
-    TEXT_JAVASCRIPT = 'text/javascript';
-    IMAGE_JPEG = 'image/jpeg';
-    IMAGE_PNG = 'image/x-png';
-    TEXT_CACHEMANIFEST = 'text/cache-manifest';
-    APPLICATION_OCTETSTREAM = 'application/octet-stream';
-    TEXT_EVENTSTREAM = 'text/event-stream';
-  end deprecated 'use TMVCMediaType';
-
-  TMVCMediaType = class sealed
+  TMVCMediaType = record
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';
     APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
@@ -68,6 +57,7 @@ type
     APPLICATION_SVG_XML = 'application/svg+xml';
     APPLICATION_XHTML_XML = 'application/xhtml+xml';
     APPLICATION_XML = 'application/xml';
+    APPLICATION_OCTETSTREAM = 'application/octet-stream';
     MEDIA_TYPE_WILDCARD = '*';
     MULTIPART_FORM_DATA = 'multipart/form-data';
     TEXT_HTML = 'text/html';
@@ -77,13 +67,13 @@ type
     TEXT_JAVASCRIPT = 'text/javascript';
     TEXT_CACHEMANIFEST = 'text/cache-manifest';
     TEXT_EVENTSTREAM = 'text/event-stream';
-    TEXT_CSV = 'text/csv'; // https://tools.ietf.org/html/rfc7111
+    TEXT_CSV = 'text/csv';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_PNG = 'image/x-png';
     WILDCARD = '*/*';
   end;
 
-  TMVCCharSet = class sealed
+  TMVCCharSet = record
   public const
     US_ASCII = 'US-ASCII';
     WINDOWS_1250 = 'windows-1250';
@@ -107,92 +97,34 @@ type
     UTF_16LE = 'UTF-16LE';
   end;
 
-  TMVCConstants = class sealed
+  TMVCConstants = record
   public const
     SESSION_TOKEN_NAME = 'dtsessionid';
     DEFAULT_CONTENT_CHARSET = 'UTF-8';
     DEFAULT_CONTENT_TYPE = TMVCMediaType.APPLICATION_JSON;
     CURRENT_USER_SESSION_KEY = '__DMVC_CURRENT_USER__';
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
+    SSE_RETRY_DEFAULT = 100;
+    SSE_LAST_EVENT_ID = 'Last-Event-ID';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' àèéùòì@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
   end;
 
-  EMVCException = class(Exception)
-  private
-    FHTTPErrorCode: UInt16;
-    FApplicationErrorCode: UInt16;
-    procedure SetDetailedMessage(const Value: string);
-
-  strict protected
-    FDetailedMessage: string;
-
-  public
-    constructor Create(const Msg: string); overload; virtual;
-    constructor Create(const Msg: string; const DetailedMessage: string;
-      const ApplicationErrorCode: UInt16; const HTTPErrorCode: UInt16 = 500);
-      overload; virtual;
-    constructor Create(const HTTPErrorCode: UInt16; const Msg: string);
-      overload; virtual;
-    constructor CreateFmt(const Msg: string; const Args: array of const);
-    property HTTPErrorCode: UInt16 read FHTTPErrorCode;
-    property DetailedMessage: string read FDetailedMessage
-      write SetDetailedMessage;
-    property ApplicationErrorCode: UInt16 read FApplicationErrorCode
-      write FApplicationErrorCode;
-  end;
-
-  EMVCSessionExpiredException = class(EMVCException)
-
-  end;
-
-  EMVCConfigException = class(EMVCException)
-
-  end;
-
-  EMVCFrameworkView = class(EMVCException)
-
-  end;
-
-  EMVCJWTException = class(EMVCException)
-
-  end;
-
-  TMVCRequestParamsTable = class(TDictionary<string, string>)
-
-  end;
-
-  TMVCDataObjects = class(TObjectDictionary<string, TJSONValue>)
-    constructor Create;
-  end;
-
-  TMVCConfig = class sealed
-  private
-    FConfig: TDictionary<string, string>;
-    function GetValue(AIndex: string): string;
-    procedure SetValue(AIndex: string; const Value: string);
-    function GetValueAsInt64(AIndex: string): Int64;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    function Keys: TArray<string>;
-    property Value[AIndex: string]: string read GetValue
-      write SetValue; default;
-    property AsInt64[AIndex: string]: Int64 read GetValueAsInt64;
-    function ToString: string; override;
-    procedure SaveToFile(const AFileName: string);
-    procedure LoadFromFile(const AFileName: string);
-  end;
-
-  IMVCAuthenticationHandler = interface
-    ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
-    procedure OnRequest(const ControllerQualifiedClassName, ActionName: string;
-      var AuthenticationRequired: Boolean);
-    procedure OnAuthentication(const UserName, Password: string;
-      UserRoles: TList<string>; var IsValid: Boolean;
-      const SessionData: TDictionary<string, string>);
-    procedure OnAuthorization(UserRoles: TList<string>;
-      const ControllerQualifiedClassName: string; const ActionName: string;
-      var IsAuthorized: Boolean);
-
+  TMVCConfigKey = record
+  public const
+    SessionTimeout = 'sessiontimeout';
+    DocumentRoot = 'document_root';
+    ViewPath = 'view_path';
+    DefaultContentType = 'default_content_type';
+    DefaultContentCharset = 'default_content_charset';
+    DefaultViewFileExtension = 'default_view_file_extension';
+    // ISAPIPath = 'isapi_path';
+    PathPrefix = 'pathprefix';
+    AllowUnhandledAction = 'allow_unhandled_action';
+    ServerName = 'server_name';
+    ExposeServerSignature = 'server_signature';
+    IndexDocument = 'index_document';
+    SessionType = 'session_type';
+    FallbackResource = 'fallback_resource';
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -223,7 +155,7 @@ type
     /// The 202 response is intentionally non-committal. Its purpose is to allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agent's connection to the server persist until the process is completed. The entity returned with this response SHOULD include an indication of the request's current status and either a pointer to a status monitor or some estimate of when the user can expect the request to be fulfilled.
     /// </summary>
     Accepted = 202;
-
+    ///
     NonAuthoritativeInformation = 203;
     /// <summary>
     /// 204 No Content
@@ -336,104 +268,386 @@ type
     HTTPVersionNotSupported = 505;
   end;
 
+  EMVCException = class(Exception)
+  private
+    FHttpErrorCode: UInt16;
+    FAppErrorCode: UInt16;
+    FDetailedMessage: string;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AMsg: string); overload; virtual;
+    constructor Create(const AMsg: string; const ADetailedMessage: string; const AAppErrorCode: UInt16;
+      const AHttpErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
+    constructor Create(const AHttpErrorCode: UInt16; const AMsg: string); overload; virtual;
+    constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce;
+
+    property HttpErrorCode: UInt16 read FHttpErrorCode;
+    property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
+    property ApplicationErrorCode: UInt16 read FAppErrorCode write FAppErrorCode;
+  end;
+
+  EMVCSessionExpiredException = class(EMVCException)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  EMVCConfigException = class(EMVCException)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  EMVCFrameworkViewException = class(EMVCException)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  EMVCJWTException = class(EMVCException)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  EMVCViewError = class(EMVCException)
+
+  end;
+
+  TMVCRequestParamsTable = class(TDictionary<string, string>)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  TMVCStringDictionary = class
+  strict protected
+    FDict: TDictionary<string, string>;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure Clear;
+    function AddProperty(const Name, Value: string): TMVCStringDictionary;
+    function TryGetValue(const Name: string; out Value: string): Boolean;
+    function Count: Integer;
+    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+  end;
+
+  { This type is thread safe }
+  TMVCStringObjectDictionary<T: class> = class
+  private
+    FMREWS: TMultiReadExclusiveWriteSynchronizer;
+  protected
+    FDict: TObjectDictionary<string, T>;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function TryGetValue(const Name: string; out Value: T): Boolean;
+    procedure Add(const Name: string; Value: T);
+  end;
+
+  TMVCViewDataObject = class(TObjectDictionary<string, TObject>)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    constructor Create;
+  end;
+
+  TMVCViewDataSet = class(TObjectDictionary<string, TDataSet>)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    constructor Create;
+  end;
+
+  TMVCCriticalSectionHelper = class helper for TCriticalSection
+  public
+    procedure DoWithLock(const AAction: TProc);
+    function DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+  end;
+
+  TMultiReadExclusiveWriteSynchronizerHelper = class helper for TMultiReadExclusiveWriteSynchronizer
+  public
+    procedure DoWithWriteLock(const AAction: TProc);
+    procedure DoWithReadLock(const AAction: TProc);
+  end;
+
+  TMVCConfig = class sealed
+  private
+    FConfig: TDictionary<string, string>;
+
+    function GetValue(const AIndex: string): string;
+    function GetValueAsInt64(const AIndex: string): Int64;
+    procedure SetValue(const AIndex: string; const AValue: string);
+  protected
+    { protected declarations }
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Keys: TArray<string>;
+    function ToString: string; override;
+    procedure SaveToFile(const AFileName: string);
+    procedure LoadFromFile(const AFileName: string);
+
+    property Value[const AIndex: string]: string read GetValue write SetValue; default;
+    property AsInt64[const AIndex: string]: Int64 read GetValueAsInt64;
+  end;
+
+  IMVCAuthenticationHandler = interface
+    ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
+    procedure OnRequest(const AControllerQualifiedClassName, AActionName: string; var AAuthenticationRequired: Boolean);
+    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
+      const ASessionData: TDictionary<string, string>);
+    procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string;
+      var AIsAuthorized: Boolean);
+  end;
+
 {$SCOPEDENUMS ON}
 
-
-type
-  THttpMethod = (GET, POST, PUT, DELETE, HEAD);
-
 function AppPath: string;
-function IsReservedOrPrivateIP(const IP: string): Boolean;
-function IP2Long(const IP: string): UInt32;
+function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
+function IP2Long(const AIP: string): UInt32; inline;
 
-function B64Encode(const Value: string): string; overload;
-function B64Encode(const Value: TBytes): string; overload;
-function B64Decode(const Value: string): string;
+function B64Encode(const AValue: string): string; overload;
+function B64Encode(const AValue: TBytes): string; overload;
+function B64Decode(const AValue: string): string;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean): String;  overload;
-function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): String;  overload;
-function URLSafeB64Decode(const Value: string): String;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
+function URLSafeB64Decode(const Value: string): string;
 
+function ByteToHex(AInByte: Byte): string;
+function BytesToHex(ABytes: TBytes): string;
 
-function ByteToHex(InByte: byte): string;
-function BytesToHex(Bytes: TBytes): string;
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+
+const
+  MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
+  MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
 
 var
   Lock: TObject;
 
+const
+  RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
+    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'), ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
+    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
+    ('224.0.0.0', '239.255.255.255'), ('240.0.0.0', '255.255.255.255'));
+
 implementation
 
-{$WARN SYMBOL_DEPRECATED OFF}
-
-
 uses
-  System.IOUtils,
-  idGlobal,
-  System.StrUtils,
-  idCoderMIME,
   IdCoder3to4;
 
-const
-  ReservedIPs: array [1 .. 11] of array [1 .. 2] of string =
-    (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
-    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
-    ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
-    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'),
-    ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
-    ('240.0.0.0', '255.255.255.255'));
-
 var
-  gAppName, gAppPath, gAppExe: string;
-
-function IP2Long(const IP: string): UInt32;
-begin
-  Result := idGlobal.IPv4ToDWord(IP);
-end;
-
-function IsReservedOrPrivateIP(const IP: string): Boolean;
-var
-  i: Integer;
-  IntIP: Cardinal;
-begin
-  Result := False;
-  IntIP := IP2Long(IP);
-  for i := low(ReservedIPs) to high(ReservedIPs) do
-  begin
-    if (IntIP >= IP2Long(ReservedIPs[i][1])) and
-      (IntIP <= IP2Long(ReservedIPs[i][2])) then
-    begin
-      Exit(True)
-    end;
-  end;
-end;
+  GlobalAppName, GlobalAppPath, GlobalAppExe: string;
 
 function AppPath: string;
 begin
-  Result := gAppPath; // TPath.GetDirectoryName(GetModuleName(HInstance));
+  Result := GlobalAppPath;
 end;
 
-{ TMVCDataObjects }
-
-constructor TMVCDataObjects.Create;
+function IsReservedOrPrivateIP(const AIP: string): Boolean;
+var
+  I: Integer;
+  IntIP: Cardinal;
 begin
-  inherited Create([doOwnsValues]);
+  Result := False;
+  IntIP := IP2Long(AIP);
+  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
+    if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
+      Exit(True);
+end;
+
+function IP2Long(const AIP: string): Cardinal;
+var
+  lPieces: TArray<string>;
+begin
+  if AIP.IsEmpty then
+    Exit(0);
+  lPieces := AIP.Split(['.']);
+  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) + (StrToInt(lPieces[2]) * 256) + StrToInt(lPieces[3]);
+end;
+
+// function IP2Long(const AIP: string): UInt32;
+// begin
+// Result := IdGlobal.IPv4ToUInt32(AIP);
+// end;
+
+function B64Encode(const AValue: string): string; overload;
+begin
+  // Do not use TNetEncoding
+  Result := TIdEncoderMIME.EncodeString(AValue);
+end;
+
+function B64Encode(const AValue: TBytes): string; overload;
+begin
+  // Do not use TNetEncoding
+  Result := TIdEncoderMIME.EncodeBytes(TIdBytes(AValue));
+end;
+
+function B64Decode(const AValue: string): string;
+begin
+  // Do not use TNetEncoding
+  Result := TIdDecoderMIME.DecodeString(AValue);
+end;
+
+function ByteToHex(AInByte: Byte): string;
+const
+  DIGITS: array [0 .. 15] of Char = '0123456789abcdef';
+begin
+  Result := DIGITS[AInByte shr 4] + DIGITS[AInByte and $0F];
+end;
+
+function BytesToHex(ABytes: TBytes): string;
+var
+  B: Byte;
+begin
+  Result := EmptyStr;
+  for B in ABytes do
+    Result := Result + ByteToHex(B);
+end;
+
+function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+begin
+  if aContentCharSet = '' then
+  begin
+    Result := aContentMediaType;
+  end
+  else
+  begin
+    Result := aContentMediaType + ';charset=' + aContentCharSet;
+  end;
+  Result := Result.ToLower.Replace(' ', '', [rfReplaceAll]);
+end;
+
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+var
+  lContentTypeValues: TArray<string>;
+begin
+  if not aContentType.IsEmpty then
+  begin
+    lContentTypeValues := aContentType.Split([';']);
+    aContentMediaType := Trim(lContentTypeValues[0]);
+    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True)) then
+    begin
+      aContentCharSet := lContentTypeValues[1].Trim.Split(['='])[1].Trim;
+    end
+    else
+    begin
+      aContentCharSet := '';
+    end;
+  end
+  else
+  begin
+    aContentMediaType := '';
+    aContentCharSet := '';
+  end;
+end;
+
+{ EMVCException }
+
+constructor EMVCException.Create(const AMsg: string);
+begin
+  inherited Create(AMsg);
+  FHttpErrorCode := HTTP_STATUS.InternalServerError;
+  FDetailedMessage := EmptyStr;
+  FAppErrorCode := 0;
+end;
+
+constructor EMVCException.Create(const AMsg, ADetailedMessage: string; const AAppErrorCode, AHttpErrorCode: UInt16);
+begin
+  Create(AMsg);
+  FHttpErrorCode := AHttpErrorCode;
+  FAppErrorCode := AAppErrorCode;
+  FDetailedMessage := ADetailedMessage;
+end;
+
+constructor EMVCException.Create(const AHttpErrorCode: UInt16; const AMsg: string);
+begin
+  if (AHttpErrorCode div 100 = 0) or (AHttpErrorCode div 100 > 5) then
+  begin
+    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHttpErrorCode]);
+  end;
+  Create(AMsg);
+  FHttpErrorCode := AHttpErrorCode;
+end;
+
+constructor EMVCException.CreateFmt(const AMsg: string; const AArgs: array of const);
+begin
+  inherited CreateFmt(AMsg, AArgs);
+  FHttpErrorCode := HTTP_STATUS.InternalServerError;
+  FDetailedMessage := EmptyStr;
+  FAppErrorCode := 0;
+end;
+
+{ TMVCViewDataObject }
+
+constructor TMVCViewDataObject.Create;
+begin
+  inherited Create([]);
+end;
+
+{ TMVCCriticalSectionHelper }
+
+procedure TMVCCriticalSectionHelper.DoWithLock(const AAction: TProc);
+begin
+  Self.Enter;
+  try
+    AAction();
+  finally
+    Self.Leave;
+  end;
+end;
+
+function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+begin
+  Result := Self.WaitFor(ATimeOut);
+  if (Result = TWaitResult.wrSignaled) then
+    try
+      AAction();
+    finally
+      Self.Leave;
+    end;
 end;
 
 { TMVCConfig }
 
 constructor TMVCConfig.Create;
 begin
-  inherited;
+  inherited Create;
   FConfig := TDictionary<string, string>.Create;
 end;
 
 destructor TMVCConfig.Destroy;
 begin
   FConfig.Free;
-  inherited;
+  inherited Destroy;
 end;
 
-function TMVCConfig.GetValue(AIndex: string): string;
+function TMVCConfig.GetValue(const AIndex: string): string;
 begin
   if FConfig.ContainsKey(AIndex) then
     Result := FConfig.Items[AIndex]
@@ -441,7 +655,7 @@ begin
     raise EMVCConfigException.CreateFmt('Invalid config key [%s]', [AIndex]);
 end;
 
-function TMVCConfig.GetValueAsInt64(AIndex: string): Int64;
+function TMVCConfig.GetValueAsInt64(const AIndex: string): Int64;
 begin
   Result := StrToInt64(Value[AIndex]);
 end;
@@ -454,31 +668,34 @@ end;
 procedure TMVCConfig.LoadFromFile(const AFileName: string);
 var
   S: string;
-  jobj: TJSONObject;
-  p: TJSONPair;
-  JSON: TJSONValue;
-  i: Integer;
+  Jo: TJSONObject;
+  P: TJSONPair;
+  lJConfig: TJSONValue;
+  I: Integer;
 begin
+  { TODO -oEzequiel -cRefactoring : Replace for custom serializers }
   S := TFile.ReadAllText(AFileName);
-  JSON := TJSONObject.ParseJSONValue(S);
-  if Assigned(JSON) then
-  begin
-    if JSON is TJSONObject then
+  lJConfig := TJSONObject.ParseJSONValue(S);
+  try
+    if Assigned(lJConfig) then
     begin
-      jobj := TJSONObject(JSON);
-      for i := 0 to jobj.Size - 1 do
+      if lJConfig is TJSONObject then
       begin
-        p := jobj.GET(i);
-        FConfig.AddOrSetValue(p.JsonString.Value, p.JsonValue.Value);
+        Jo := TJSONObject(lJConfig);
+        for I := 0 to Jo.Count - 1 do
+        begin
+          P := Jo.Pairs[I];
+          FConfig.AddOrSetValue(P.JsonString.Value, P.JsonValue.Value);
+        end
       end
+      else
+        raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName + '] does not contain a valid JSONObject');
     end
     else
-      raise EMVCConfigException.Create('DMVCFramework configuration file [' +
-        AFileName + '] does not contain a valid JSONObject');
-  end
-  else
-    raise EMVCConfigException.Create
-      ('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+      raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+  finally
+    lJConfig.Free;
+  end;
 end;
 
 procedure TMVCConfig.SaveToFile(const AFileName: string);
@@ -486,66 +703,109 @@ begin
   TFile.WriteAllText(AFileName, ToString, TEncoding.ASCII);
 end;
 
-procedure TMVCConfig.SetValue(AIndex: string; const Value: string);
+procedure TMVCConfig.SetValue(const AIndex, AValue: string);
 begin
-  FConfig.AddOrSetValue(AIndex, Value);
+  FConfig.AddOrSetValue(AIndex, AValue);
 end;
 
 function TMVCConfig.ToString: string;
 var
-  k: string;
-  JSON: TJSONObject;
+  S: string;
+  Jo: TJSONObject;
 begin
-  JSON := TJSONObject.Create;
+  { TODO -oEzequiel -cRefactoring : Replace for custom serializers }
+  Jo := TJSONObject.Create;
   try
-    for k in FConfig.Keys do
-      JSON.AddPair(k, FConfig[k]);
-    Result := JSON.ToString;
+    for S in FConfig.Keys do
+      Jo.AddPair(S, FConfig[S]);
+
+{$IFDEF SYSTEMJSON}
+    Result := Jo.ToJSON;
+
+{$ELSE}
+    Result := Jo.ToString;
+
+{$ENDIF}
   finally
-    JSON.Free;
+    Jo.Free;
   end;
 end;
 
-{ EMVCException }
+{ TMVCStringDictionary }
 
-constructor EMVCException.Create(const Msg: string);
+function TMVCStringDictionary.AddProperty(const Name, Value: string): TMVCStringDictionary;
 begin
-  inherited Create(Msg);
-  FHTTPErrorCode := 500;
-  FDetailedMessage := 'N.A.';
-  FApplicationErrorCode := 0;
+  FDict.AddOrSetValue(name, Value);
+  Result := Self;
 end;
 
-constructor EMVCException.Create(const Msg, DetailedMessage: string;
-  const ApplicationErrorCode: UInt16; const HTTPErrorCode: UInt16);
+procedure TMVCStringDictionary.Clear;
 begin
-  Create(Msg);
-  FHTTPErrorCode := HTTPErrorCode;
-  FApplicationErrorCode := ApplicationErrorCode;
-  FDetailedMessage := DetailedMessage;
+  FDict.Clear;
 end;
 
-constructor EMVCException.Create(const HTTPErrorCode: UInt16;
-  const Msg: string);
+function TMVCStringDictionary.Count: Integer;
 begin
-  Create(Msg);
-  FHTTPErrorCode := HTTPErrorCode;
-  FApplicationErrorCode := 0;
-  FDetailedMessage := '';
+  Result := FDict.Count;
 end;
 
-constructor EMVCException.CreateFmt(const Msg: string;
-  const Args: array of const);
+constructor TMVCStringDictionary.Create;
 begin
   inherited;
-  FHTTPErrorCode := 500;
-  FDetailedMessage := 'N.A.';
-  FApplicationErrorCode := 0;
+  FDict := TDictionary<string, string>.Create;
 end;
 
-procedure EMVCException.SetDetailedMessage(const Value: string);
+destructor TMVCStringDictionary.Destroy;
 begin
-  FDetailedMessage := Value;
+  FDict.Free;
+  inherited;
+end;
+
+function TMVCStringDictionary.GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+begin
+  Result := FDict.GetEnumerator;
+end;
+
+function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
+begin
+  Result := FDict.TryGetValue(name, Value);
+end;
+
+{ TMVCStringObjectDictionary }
+
+procedure TMVCStringObjectDictionary<T>.Add(const Name: string; Value: T);
+begin
+  FMREWS.BeginWrite;
+  try
+    if not FDict.ContainsKey(name) then
+      FDict.Add(name, Value);
+  finally
+    FMREWS.EndWrite;
+  end;
+end;
+
+constructor TMVCStringObjectDictionary<T>.Create;
+begin
+  inherited;
+  FDict := TObjectDictionary<string, T>.Create([doOwnsValues]);
+  FMREWS := TMultiReadExclusiveWriteSynchronizer.Create;
+end;
+
+destructor TMVCStringObjectDictionary<T>.Destroy;
+begin
+  FDict.Free;
+  FMREWS.Free;
+  inherited;
+end;
+
+function TMVCStringObjectDictionary<T>.TryGetValue(const Name: string; out Value: T): Boolean;
+begin
+  FMREWS.BeginRead;
+  try
+    Result := FDict.TryGetValue(name, Value);
+  finally
+    FMREWS.EndRead;
+  end;
 end;
 
 type
@@ -555,6 +815,7 @@ type
   public
 
   end;
+
   TURLSafeDecode = class(TIdDecoder4to3)
   protected
     class var GSafeBaseBase64DecodeTable: TIdDecodeTable;
@@ -564,15 +825,13 @@ type
   end;
 
 const
-  GURLSafeBase64CodeTable: string =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';    {Do not Localize}
-
+  GURLSafeBase64CodeTable: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; { Do not Localize }
 
 procedure TURLSafeEncode.InitComponent;
 begin
   inherited;
   FCodingTable := ToBytes(GURLSafeBase64CodeTable);
-  FFillChar := '=';  {Do not Localize}
+  FFillChar := '='; { Do not Localize }
 end;
 
 procedure TURLSafeDecode.InitComponent;
@@ -580,10 +839,10 @@ begin
   inherited;
   FDecodeTable := GSafeBaseBase64DecodeTable;
   FCodingTable := ToBytes(GURLSafeBase64CodeTable);
-  FFillChar := '=';  {Do not Localize}
+  FFillChar := '='; { Do not Localize }
 end;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean): String; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
 begin
   if IncludePadding then
     Result := TURLSafeEncode.EncodeString(Value)
@@ -592,22 +851,22 @@ begin
 end;
 
 /// <summary>
-///   Remove "trimmed" character from the end of the string passed as parameter
+/// Remove "trimmed" character from the end of the string passed as parameter
 /// </summary>
 /// <param name="Value">Original string</param>
 /// <param name="TrimmedChar">Character to remove</param>
 /// <returns>Resulting string</returns>
-function RTrim(const Value: string; TrimmedChar: char): string;
+function RTrim(const Value: string; TrimmedChar: Char): string;
 var
   Strlen: Integer;
 begin
   Strlen := Length(Value);
-  while (Strlen>0) and (Value[Strlen]=TrimmedChar) do
-    dec(StrLen);
-  result := copy(value, 1, StrLen)
+  while (Strlen > 0) and (Value[Strlen] = TrimmedChar) do
+    dec(Strlen);
+  Result := copy(Value, 1, Strlen)
 end;
 
-function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): String;  overload;
+function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 begin
 
   if IncludePadding then
@@ -616,14 +875,14 @@ begin
     Result := RTrim(TURLSafeEncode.EncodeBytes(TIdBytes(Value)), '=');
 end;
 
-function URLSafeB64Decode(const Value: string): String;
+function URLSafeB64Decode(const Value: string): string;
 begin
   // SGR 2017-07-03 : b64url might not include padding. Need to add it before decoding
-  case Length(value) mod 4 of
+  case Length(Value) mod 4 of
     0:
-    begin
-      Result := TURLSafeDecode.DecodeString(Value);
-    end;
+      begin
+        Result := TURLSafeDecode.DecodeString(Value);
+      end;
     2:
       Result := TURLSafeDecode.DecodeString(Value + '==');
     3:
@@ -633,92 +892,45 @@ begin
   end;
 end;
 
-function B64Encode(const Value: string): string;
-overload
-// var
-// lB64: TBase64Encoding;
-begin
-  Result := TIdEncoderMIME.EncodeString(Value);
+{ TMultiReadExclusiveWriteSynchronizerHelper }
 
-  // WARNING!!! Using TNetEncoding.Base64.Encode the resultant string is
-  // subdivided in multiple lines of 72 chars eacg. This  invalidate the token which doesn't have to
-  // contains more than 1 line. So I had to create directly TBase64Encoding.Create(0) using 0 to
-  // instruct the class to not use multiline
-  // lB64 := TBase64Encoding.Create(0);
-  // try
-  // Result := lB64.Encode(Value);
-  // finally
-  // lB64.Free;
-  // end;
-end;
-
-function B64Encode(const Value: TBytes): string; overload;
-// var
-// lB64: TBase64Encoding;
+procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithReadLock(const AAction: TProc);
 begin
-  Result := TIdEncoderMIME.EncodeBytes(TidBytes(Value));
-  // WARNING!!! Using TNetEncoding.Base64.Encode the resultant string is
-  // subdivided in multiple lines of 72 chars eacg. This  invalidate the token which doesn't have to
-  // contains more than 1 line. So I had to create directly TBase64Encoding.Create(0) using 0 to
-  // instruct the class to not use multiline
-  // lB64 := TBase64Encoding.Create(0);
-  // try
-  // Result := lB64.EncodeBytesToString(Value);
-  // finally
-  // lB64.Free;
-  // end;
-  // Result := String(EncodeBase64(Value, Length(Value)));
-end;
-
-function B64Decode(const Value: string): string;
-// var
-// lB64: TBase64Encoding;
-begin
-  Result := TIdDecoderMIME.DecodeString(Value);
-  // WARNING!!! Using TNetEncoding.Base64.Encode the resultant string is
-  // subdivided in multiple lines of 72 chars eacg. This  invalidate the token which doesn't have to
-  // contains more than 1 line. So I had to create directly TBase64Encoding.Create(0) using 0 to
-  // instruct the class to not use multiline
-  // lB64 := TBase64Encoding.Create(MaxLongInt);
-  // try
-  // Result := lB64.Decode(Value);
-  // finally
-  // lB64.Free;
-  // end;
-  // Result := DecodeString(Value);
-end;
-
-function ByteToHex(InByte: byte): string;
-const
-  Digits: array [0 .. 15] of Char = '0123456789abcdef';
-begin
-  Result := Digits[InByte shr 4] + Digits[InByte and $0F];
-end;
-
-function BytesToHex(Bytes: TBytes): string;
-var
-  lByte: byte;
-begin
-  Result := '';
-  for lByte in Bytes do
-  begin
-    Result := Result + ByteToHex(lByte);
+  Self.BeginRead;
+  try
+    AAction();
+  finally
+    Self.EndRead;
   end;
+end;
+
+procedure TMultiReadExclusiveWriteSynchronizerHelper.DoWithWriteLock(const AAction: TProc);
+begin
+  Self.BeginWrite;
+  try
+    AAction();
+  finally
+    Self.EndWrite;
+  end;
+end;
+
+{ TMVCViewDataSet }
+
+constructor TMVCViewDataSet.Create;
+begin
+  inherited Create([]);
 end;
 
 initialization
 
 Lock := TObject.Create;
+
 // SGR 2017-07-03 : Initialize decoding table for URLSafe Gb64 encoding
 TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable, TURLSafeDecode.GSafeBaseBase64DecodeTable);
 
-gAppExe := ExtractFileName(GetModuleName(HInstance) { ParamStr(0) } );
-gAppName := ChangeFileExt(gAppExe, '');
-// if not IsConsole then
-// gAppPath := IncludeTrailingPathDelimiter(TPath.GetPublicPath)
-// else
-gAppPath := IncludeTrailingPathDelimiter
-  (ExtractFilePath(GetModuleName(HInstance) { ParamStr(0) } ));
+GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
+GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);
+GlobalAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(GetModuleName(HInstance)));
 
 finalization
 

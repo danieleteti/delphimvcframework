@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -30,27 +30,6 @@
 { .$DEFINE STARTEREDITION }
 { ------------ DO NOT CHANGE UNDER THIS LINE -------------------- }
 
-{$IF CompilerVersion >= 27} // XE6
-{$DEFINE SYSTEMJSON}
-{$DEFINE WEBAPACHEHTTP}
-{$DEFINE USEFIREDAC}
-{$ELSE}
-{$IF CompilerVersion >= 26} // XE5
-{$DEFINE USEFIREDAC}
-{$ELSE}
-{$DEFINE USEDBX} // XE3, XE4
-{$ENDIF}
-{$ENDIF}
-
-{$IF CompilerVersion >= 28} // XE7
-{$DEFINE SYSTEMNETENCODING}
-{$DEFINE TOJSON}
-{$ENDIF}
-
-{$IF CompilerVersion >= 30} // SEATTLE
-{$DEFINE JSONBOOL}
-{$ENDIF}
-
 {$IFDEF STARTEREDITION}
 {$UNDEF USEFIREDAC}
 {$UNDEF USEDBX}
@@ -64,15 +43,21 @@
 {$DEFINE XE3ORBETTER}
 {$ENDIF}
 
+
+{$IF CompilerVersion >= 26} // XE5
+{$DEFINE XE5ORBETTER}
+{$ENDIF}
+
+{$IF CompilerVersion >= 27} // XE6
+{$DEFINE XE6ORBETTER}
+{$ENDIF}
+
 {$IF CompilerVersion >= 28} // XE7
 {$DEFINE XE7ORBETTER}
 {$ENDIF}
 
-{$IF CompilerVersion >= 29} // XE8
-{$DEFINE XE8ORBETTER}
-{$ENDIF}
 
-{$IF CompilerVersion >= 30} // 10 Seattle
+{$IF CompilerVersion >= 30} // 10.0 Seattle
 {$DEFINE SEATTLEORBETTER}
 {$ENDIF}
 
@@ -80,7 +65,33 @@
 {$DEFINE BERLINORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 32} // 10.2 Tokyo
+{$DEFINE TOKYOORBETTER}
+{$ENDIF}
+
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
 {$ENDIF}
 
+{$IFDEF SEATTLEORBETTER}
+{$DEFINE JSONBOOL}
+{$ENDIF}
+
+
+{$IFDEF XE7ORBETTER}
+{$DEFINE SYSTEMNETENCODING}
+{$DEFINE TOJSON}
+{$ENDIF}
+
+
+{$IFDEF XE6ORBETTER} // XE6
+{$DEFINE SYSTEMJSON}
+{$DEFINE WEBAPACHEHTTP}
+{$DEFINE USEFIREDAC}
+{$ELSE}
+{$IFDEF XE5ORBETTER} // XE5
+{$DEFINE USEFIREDAC}
+{$ELSE}
+{$DEFINE USEDBX} // XE3, XE4
+{$ENDIF}
+{$ENDIF}

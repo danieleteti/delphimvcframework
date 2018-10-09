@@ -33,7 +33,7 @@ type
 implementation
 
 uses
-  ObjectsMappers, System.Math, CommonsU, System.IOUtils;
+  System.Math, CommonsU, System.IOUtils, MVCFramework.DataSet.Utils, MVCFramework.FireDAC.Utils;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
@@ -59,7 +59,7 @@ var
   InsCommand: TFDCustomCommand;
 begin
   InsCommand := updPeople.Commands[arInsert];
-  Mapper.ObjectToFDParameters(InsCommand.Params, APerson, 'NEW_');
+  TFireDACUtils.ObjectToParameters(InsCommand.Params, APerson, 'NEW_');
   InsCommand.Execute;
   APerson.ID := Conn.GetLastAutoGenValue('');
 end;
@@ -123,7 +123,7 @@ var
   UpdCommand: TFDCustomCommand;
 begin
   UpdCommand := updPeople.Commands[arUpdate];
-  Mapper.ObjectToFDParameters(
+  TFireDACUtils.ObjectToParameters(
     UpdCommand.Params,
     APerson, 'NEW_');
   UpdCommand.ParamByName('OLD_ID').AsInteger := APerson.ID;

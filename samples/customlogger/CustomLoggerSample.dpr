@@ -6,8 +6,14 @@ program CustomLoggerSample;
 uses
   System.SysUtils,
   MVCFramework.Logger,
+
+  {$IFDEF MSWINDOWS}
+
   Winapi.Windows,
   Winapi.ShellAPI,
+
+  {$ENDIF}
+
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
@@ -17,12 +23,8 @@ uses
 
 {$R *.res}
 
-
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   SetDefaultLogger(GetLogger); // setting the custom logger
@@ -35,18 +37,16 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
+
+    {$IFDEF MSWINDOWS}
+
     ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil,
       SW_SHOWMAXIMIZED);
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+
+    {$ENDIF}
+
+    Writeln('Press RETURN to stop the server');
+    ReadLn;
   finally
     LServer.Free;
   end;

@@ -3,11 +3,31 @@ unit MainFormU;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, IPPeerClient, Vcl.StdCtrls, MVCFramework.RESTClient, REST.Client,
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  IPPeerClient,
+  Vcl.StdCtrls,
+  MVCFramework.RESTClient,
+  REST.Client,
   Data.Bind.Components,
-  Data.Bind.ObjectScope, IdIOHandler, IdIOHandlerSocket, IdIOHandlerStack, IdSSL, IdSSLOpenSSL, IdBaseComponent,
-  IdComponent, IdTCPConnection, IdTCPClient, IdHTTP;
+  Data.Bind.ObjectScope,
+  IdIOHandler,
+  IdIOHandlerSocket,
+  IdIOHandlerStack,
+  IdSSL,
+  IdSSLOpenSSL,
+  IdBaseComponent,
+  IdComponent,
+  IdTCPConnection,
+  IdTCPClient,
+  IdHTTP;
 
 type
   TForm9 = class(TForm)
@@ -33,9 +53,7 @@ var
 
 implementation
 
-
 {$R *.dfm}
-
 
 procedure TForm9.Button1Click(Sender: TObject);
 begin
@@ -52,7 +70,15 @@ begin
     procedure(Resp: IRESTResponse)
     begin
       Memo1.Lines.Text := Resp.BodyAsString;
-    end, nil, nil, true).doGET('/people', []);
+    end,
+    procedure(E: Exception)
+    begin
+      ShowMessage(E.Message);
+    end,
+    procedure
+    begin
+      Memo1.Lines.Add('Request Terminated');
+    end, true).doGET('/people', []);
 end;
 
 procedure TForm9.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -62,7 +88,7 @@ end;
 
 procedure TForm9.FormCreate(Sender: TObject);
 begin
-  Clt := MVCFramework.RESTClient.TRESTClient.Create('https://localhost', 8080, IdSSLIOHandlerSocketOpenSSL1);
+  Clt := MVCFramework.RESTClient.TRESTClient.Create('https://localhost', 443, IdSSLIOHandlerSocketOpenSSL1);
 end;
 
 end.

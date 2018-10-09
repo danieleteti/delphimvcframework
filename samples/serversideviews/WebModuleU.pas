@@ -7,7 +7,9 @@ uses System.SysUtils, System.Classes, Web.HTTPApp, MVCFramework;
 type
   TWebModule1 = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
+    procedure WebModuleDestroy(Sender: TObject);
   private
+    FMVCEngine: TMVCEngine;
     { Private declarations }
   public
     { Public declarations }
@@ -18,15 +20,16 @@ var
 
 implementation
 
-{ %CLASSGROUP 'Vcl.Controls.TControl' }
+uses
+  MVCFramework.View.Renderers.Mustache, WebSiteControllerU, MVCFramework.Commons;
 
-uses WebSiteControllerU, MVCFramework.Commons;
+{ %CLASSGROUP 'Vcl.Controls.TControl' }
 
 {$R *.dfm}
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  TMVCEngine.Create(Self,
+  FMVCEngine := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
       // enable static files
@@ -46,12 +49,17 @@ begin
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'mustache';
       // view path
       Config[TMVCConfigKey.ViewPath] := 'templates';
-      // Enable STOMP messaging controller
-      Config[TMVCConfigKey.Messaging] := 'false';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-    end).AddController(TWebSiteController);
+    end)
+    .AddController(TWebSiteController)
+    .SetViewEngine(TMVCMustacheViewEngine);
 
+end;
+
+procedure TWebModule1.WebModuleDestroy(Sender: TObject);
+begin
+  FMVCEngine.Free;
 end;
 
 end.

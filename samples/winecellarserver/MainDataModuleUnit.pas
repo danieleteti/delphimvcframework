@@ -2,22 +2,39 @@ unit MainDataModuleUnit;
 
 interface
 
-uses System.SysUtils,
+uses
+  System.SysUtils,
   System.Classes,
-  Data.DBXFirebird,
   Data.DB,
   Data.SqlExpr,
+
 {$IF CompilerVersion <= 27}
   Data.DBXJSON,
+
 {$ELSE}
   System.JSON,
+
 {$ENDIF}
-  FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
-  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Comp.Client,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.Comp.Client,
   FireDAC.Stan.Param,
-  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Comp.DataSet, FireDAC.Phys.IBBase,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet,
+  FireDAC.Phys.IBBase,
   FireDAC.Phys.FB,
-  WinesBO, FireDAC.Phys.FBDef, FireDAC.VCLUI.Wait;
+  WinesBO,
+  FireDAC.Phys.FBDef,
+  FireDAC.VCLUI.Wait;
 
 type
   TWineCellarDataModule = class(TDataModule)
@@ -28,8 +45,9 @@ type
     procedure ConnectionBeforeConnect(Sender: TObject);
 
   public
-    function GetWineById(id: Integer): TJSONObject;
-    function FindWines(Search: string): TJSONArray;
+    function GetWineById(id: Integer): TDataSet;
+    function FindWines(Search: string): TDataSet;
+    function GetAllWines: TDataSet;
     procedure AddWine(AWine: TWine);
     procedure UpdateWine(AWine: TWine);
     procedure DeleteWine(id: Integer);
@@ -39,15 +57,16 @@ implementation
 
 {$R *.dfm}
 
-uses System.StrUtils,
+uses
+  System.StrUtils,
   Data.DBXCommon,
-  ObjectsMappers;
+  MVCFramework.FireDAC.Utils;
 
 { TCellarSM }
 
 procedure TWineCellarDataModule.AddWine(AWine: TWine);
 begin
-  Mapper.ObjectToFDParameters(updWines.Commands[arInsert].Params, AWine, 'NEW_');
+  TFireDACUtils.ObjectToParameters(updWines.Commands[arInsert].Params, AWine, 'NEW_');
   updWines.Commands[arInsert].Execute;
 end;
 
@@ -59,27 +78,42 @@ end;
 
 procedure TWineCellarDataModule.ConnectionBeforeConnect(Sender: TObject);
 begin
-  Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\WINES.FDB';
+  // if you are using firebird 2.5, uses the file WINES_FB25.FDB
+  if not IsLibrary then
+  begin
+    // Is compiled as EXE
+    Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\WINES_FB30.FDB';
+  end
+  else
+  begin
+    // Is compiled as Apache Module
+    Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\..\winecellarserver\WINES_FB30.FDB';
+  end;
 end;
 
-function TWineCellarDataModule.FindWines(Search: string): TJSONArray;
+function TWineCellarDataModule.FindWines(Search: string): TDataSet;
 begin
   if Search.IsEmpty then
     qryWines.Open('SELECT * FROM wine')
   else
     qryWines.Open('SELECT * FROM wine where NAME CONTAINING ?', [Search]);
-  Result := qryWines.AsJSONArray;
+  Result := qryWines;
 end;
 
-function TWineCellarDataModule.GetWineById(id: Integer): TJSONObject;
+function TWineCellarDataModule.GetAllWines: TDataSet;
+begin
+  Result := FindWines('');
+end;
+
+function TWineCellarDataModule.GetWineById(id: Integer): TDataSet;
 begin
   qryWines.Open('SELECT * FROM wine where id = ?', [id]);
-  Result := qryWines.AsJSONObject;
+  Result := qryWines;
 end;
 
 procedure TWineCellarDataModule.UpdateWine(AWine: TWine);
 begin
-  Mapper.ObjectToFDParameters(updWines.Commands[arUpdate].Params, AWine, 'NEW_');
+  TFireDACUtils.ObjectToParameters(updWines.Commands[arUpdate].Params, AWine, 'NEW_');
   updWines.Commands[arUpdate].Params.ParamByName('OLD_ID').AsInteger := AWine.id;
   updWines.Commands[arUpdate].Execute;
 end;
