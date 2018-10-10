@@ -3,7 +3,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Top = 0
   BorderStyle = bsDialog
   Caption = 'New DMVCFramework Project Wizard'
-  ClientHeight = 543
+  ClientHeight = 572
   ClientWidth = 354
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnCreate = FormCreate
   DesignSize = (
     354
-    543)
+    572)
   PixelsPerInch = 96
   TextHeight = 13
   object lblWbModule: TLabel
@@ -30,7 +30,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Label2: TLabel
     Left = 24
-    Top = 442
+    Top = 467
     Width = 55
     Height = 13
     Caption = 'Server Port'
@@ -384,12 +384,12 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Font.Color = clWindowText
     Font.Height = -11
     Font.Name = 'Tahoma'
-    Font.Style = []
+    Font.Style = [fsBold]
     ParentFont = False
   end
   object gbControllerUnitOptions: TGroupBox
     Left = 8
-    Top = 256
+    Top = 281
     Width = 338
     Height = 169
     Anchors = [akLeft, akTop, akRight]
@@ -456,7 +456,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnOK: TButton
     Left = 190
-    Top = 510
+    Top = 539
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
@@ -467,7 +467,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object btnCancel: TButton
     Left = 271
-    Top = 510
+    Top = 539
     Width = 75
     Height = 25
     Anchors = [akRight, akBottom]
@@ -478,7 +478,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object chkCreateControllerUnit: TCheckBox
     Left = 24
-    Top = 219
+    Top = 226
     Width = 287
     Height = 17
     Anchors = [akLeft, akTop, akRight]
@@ -508,10 +508,21 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object edtServerPort: TEdit
     Left = 24
-    Top = 461
+    Top = 486
     Width = 65
     Height = 21
     TabOrder = 6
     TextHint = '8080'
+  end
+  object chkAnalyticsMiddleware: TCheckBox
+    Left = 24
+    Top = 203
+    Width = 287
+    Height = 17
+    Anchors = [akLeft, akTop, akRight]
+    Caption = 'Add analytics support'
+    TabOrder = 7
+    Visible = False
+    OnClick = chkCreateControllerUnitClick
   end
 end

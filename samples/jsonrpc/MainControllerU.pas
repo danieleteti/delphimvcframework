@@ -3,11 +3,17 @@ unit MainControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects,
-  Data.DB, BusinessObjectsU;
+  MVCFramework,
+  MVCFramework.Commons,
+  MVCFramework.JSONRPC,
+  JsonDataObjects,
+  Data.DB,
+  BusinessObjectsU;
 
 type
   TMyJSONRPCController = class(TMVCJSONRPCController)
+  protected
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     function Subtract(aValue1, aValue2: Integer): Integer;
     function ReverseString(aString: string): string;
@@ -25,7 +31,11 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils, FireDAC.Comp.Client, System.DateUtils;
+  System.SysUtils,
+  MVCFramework.Logger,
+  System.StrUtils,
+  FireDAC.Comp.Client,
+  System.DateUtils;
 
 { TMyDerivedController }
 
@@ -66,7 +76,7 @@ begin
     lMT.First;
     Result := lMT;
   except
-    lMt.Free;
+    lMT.Free;
     raise;
   end;
 end;
@@ -100,6 +110,16 @@ end;
 procedure TMyJSONRPCController.InvalidMethod2(out MyOutParam: Integer);
 begin
   // do nothing
+end;
+
+procedure TMyJSONRPCController.OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean);
+begin
+  inherited;
+  AHandled := False;
+  if AContext.Request.Headers['x-token'] = '' then
+  begin
+    raise EMVCException.Create('Token is required');
+  end;
 end;
 
 function TMyJSONRPCController.ReverseString(aString: string): string;

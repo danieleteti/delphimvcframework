@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -27,7 +27,10 @@ unit TestServerControllerU;
 
 interface
 
-uses MVCFramework, System.SysUtils, MVCFramework.Commons;
+uses
+  MVCFramework,
+  System.SysUtils,
+  MVCFramework.Commons;
 
 type
 
@@ -156,8 +159,7 @@ type
     procedure TestTypedActionExtended1(value: Extended);
 
     [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')]
-    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer;
-      ParInt64: Int64; ParSingle: Single; ParDouble: Double;
+    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
       ParExtended: Extended);
 
     [MVCPath('/typed/tdatetime1/($value)')]
@@ -192,13 +194,33 @@ type
     procedure OnlyRole2(ctx: TWebContext);
   end;
 
+  [MVCPath('/fault')]
+  TTestFaultController = class(TMVCController)
+  public
+    [MVCPath]
+    procedure NeverExecuted;
+    constructor Create; override;
+  end;
+
+  [MVCPath('/fault2')]
+  TTestFault2Controller = class(TTestFaultController)
+  public
+    [MVCPath]
+    procedure NeverExecuted;
+    constructor Create; override;
+  end;
+
 implementation
 
 uses
   MVCFramework.TypesAliases,
-  Web.HTTPApp, BusinessObjectsU, Generics.Collections,
-  MVCFramework.Serializer.Commons, MVCFramework.Serializer.Defaults,
-  MVCFramework.DuckTyping, System.Classes;
+  Web.HTTPApp,
+  BusinessObjectsU,
+  Generics.Collections,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.Defaults,
+  MVCFramework.DuckTyping,
+  System.Classes;
 
 { TTestServerController }
 
@@ -300,10 +322,8 @@ end;
 
 procedure TTestServerController.ReqWithParams(ctx: TWebContext);
 begin
-  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1'])
-    .AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
-    ctx.Request.Params['par3']).AddPair('method',
-    ctx.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
+    ctx.Request.Params['par3']).AddPair('method', ctx.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet;
@@ -469,9 +489,8 @@ begin
   Render(LStream, True);
 end;
 
-procedure TTestServerController.TestTypedActionAllTypes(ParString: string;
-  ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
-  ParExtended: Extended);
+procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;
+  ParDouble: Double; ParExtended: Extended);
 var
   lJObj: TJSONObject;
 begin
@@ -533,12 +552,10 @@ begin
   Render(DateTimeToISOTimeStamp(value) + ' modified from server');
 end;
 
-procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3,
-  bool4: Boolean);
+procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True),
-    BoolToStr(bool3, True), BoolToStr(bool4, True)]));
+  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True), BoolToStr(bool3, True), BoolToStr(bool4, True)]));
 end;
 
 procedure TTestServerController.TestTypedActionTTime1(value: TTime);
@@ -569,6 +586,31 @@ end;
 procedure TTestPrivateServerController.OnlyRole2(ctx: TWebContext);
 begin
   Render(ctx.LoggedUser.UserName);
+end;
+
+{ TTestFaultController }
+
+constructor TTestFaultController.Create;
+begin
+  inherited;
+  raise Exception.Create('BOOOM!!!');
+end;
+
+procedure TTestFaultController.NeverExecuted;
+begin
+  // do nothing
+end;
+
+{ TTestFault2Controller }
+
+constructor TTestFault2Controller.Create;
+begin
+  inherited;
+end;
+
+procedure TTestFault2Controller.NeverExecuted;
+begin
+  //do nothing
 end;
 
 end.

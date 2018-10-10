@@ -10,6 +10,7 @@ uses
   TestInsight.DUnitX,
   {$ENDIF }
   DUnitX.Loggers.Console,
+  DUnitX.Loggers.GUIX,
   DUnitX.Loggers.Xml.NUnit,
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',

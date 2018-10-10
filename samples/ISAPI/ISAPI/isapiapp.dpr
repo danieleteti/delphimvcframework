@@ -1,14 +1,19 @@
 library isapiapp;
 
+
+
+
+
 uses
   Winapi.ActiveX,
   System.Win.ComObj,
   Web.WebBroker,
   Web.Win.ISAPIApp,
   Web.Win.ISAPIThreadPool,
-  WebModuleU in '..\WebModules\WebModuleU.pas' {WebModule1: TWebModule},
-  BusinessObjectsU in '..\BO\BusinessObjectsU.pas',
-  RoutingSampleControllerU in '..\Controllers\RoutingSampleControllerU.pas';
+  MainDataModuleUnit in '..\..\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
+  MainWebModuleUnit in '..\..\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
+  WineCellarAppControllerU in '..\..\winecellarserver\WineCellarAppControllerU.pas',
+  WinesBO in '..\..\winecellarserver\WinesBO.pas';
 
 {$R *.res}
 

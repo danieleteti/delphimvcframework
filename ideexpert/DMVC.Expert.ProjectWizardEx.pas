@@ -50,8 +50,8 @@ implementation
 uses
   DccStrs,
   System.IOUtils,
-  Vcl.Controls,
-  Vcl.Forms,
+  VCL.Controls,
+  VCL.Forms,
   WinApi.Windows,
   System.SysUtils,
   DMVC.Expert.Forms.NewProjectWizard,
@@ -73,8 +73,8 @@ end;
 
 class procedure TDMVCNewProjectWizard.RegisterDMVCProjectWizard(const APersonality: string);
 begin
-  RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality,
-    sNewDMVCProjectHint, sNewDMVCProjectCaption, 'DMVC.Wizard.NewProjectWizard', // do not localize
+  RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality, sNewDMVCProjectHint, sNewDMVCProjectCaption,
+    'DMVC.Wizard.NewProjectWizard', // do not localize
     'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
@@ -111,7 +111,8 @@ begin
           // Create Controller Unit
           if WizardForm.CreateControllerUnit then
           begin
-            ControllerCreator := TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod, WizardForm.CreateCRUDMethods, WizardForm.CreateActionFiltersMethods, WizardForm.ControllerClassName, aPersonality);
+            ControllerCreator := TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod, WizardForm.CreateCRUDMethods,
+              WizardForm.CreateActionFiltersMethods, WizardForm.ControllerClassName, APersonality);
             ControllerUnit := ModuleServices.CreateModule(ControllerCreator);
             if Project <> nil then
             begin
@@ -120,7 +121,8 @@ begin
           end;
 
           // Create Webmodule Unit
-          WebModuleCreator := TNewWebModuleUnitEx.Create(WizardForm.WebModuleClassName, WizardForm.ControllerClassName, GetUnitName(ControllerUnit.FileName), APersonality);
+          WebModuleCreator := TNewWebModuleUnitEx.Create(WizardForm.WebModuleClassName, WizardForm.ControllerClassName,
+            GetUnitName(ControllerUnit.FileName), WizardForm.Middlewares, APersonality);
           WebModuleUnit := ModuleServices.CreateModule(WebModuleCreator);
           if Project <> nil then
           begin
@@ -134,9 +136,7 @@ begin
     function: Cardinal
     begin
       Result := LoadIcon(HInstance, 'DMVCNewProjectIcon');
-    end,
-    TArray<string>.Create(cWin32Platform, cWin64Platform),
-    nil));
+    end, TArray<string>.Create(cWin32Platform, cWin64Platform), nil));
 end;
 
 end.

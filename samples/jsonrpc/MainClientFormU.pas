@@ -315,6 +315,15 @@ procedure TForm10.FormCreate(Sender: TObject);
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpc');
   dtNextMonday.Date := Date;
+
+  // these are the methods to handle http headers in JSONRPC
+  // the following line and the check on the server is just for demo
+  Assert(FExecutor.HTTPHeadersCount = 0);
+  FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
+  Assert(FExecutor.HTTPHeadersCount = 1);
+  FExecutor.ClearHTTPHeaders;
+  Assert(FExecutor.HTTPHeadersCount = 0);
+  FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
 end;
 
 end.
