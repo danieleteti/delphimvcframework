@@ -24,6 +24,10 @@
 
 unit MVCFramework.ActiveRecordController;
 
+{ TODO -oDanieleT -cGeneral : Define Entities Processors for all HTTP VERBS }
+{ TODO -oDanieleT -cGeneral : Investigate on Table Inheritance }
+{ TODO -oDanieleT -cGeneral : Check the generator... what and where generate classes? }
+
 interface
 
 uses
@@ -45,7 +49,6 @@ type
   TMVCActiveRecordController = class(TMVCController)
   private
     fAuthorization: TMVCActiveRecordAuthFunc;
-    function GetBackEndByConnection(aConnection: TFDConnection): TRQLBackend;
   protected
     function CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean; virtual;
   public
@@ -85,15 +88,6 @@ uses
   MVCFramework.Logger,
   JsonDataObjects;
 
-function TMVCActiveRecordController.GetBackEndByConnection(
-  aConnection: TFDConnection): TRQLBackend;
-begin
-  if aConnection.DriverName = 'FB' then
-    Exit(cbFirebird);
-  if aConnection.DriverName = 'MySQL' then
-    Exit(cbMySQL);
-  raise ERQLException.CreateFmt('Unknown driver fro RQL backend "%s"', [aConnection.DriverName]);
-end;
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
@@ -103,15 +97,36 @@ var
   lMapping: TMVCFieldsMapping;
   lConnection: TFDConnection;
   lRQLBackend: TRQLBackend;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
-  lARClassRef := ActiveRecordMappingRegistry.GetByURLSegment(entityname);
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.GetEntities(Context, self, entityname, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClassRef) then
+  begin
+    raise EMVCException.CreateFmt('Cannot find entity not processor for entity "%s"', [entityname]);
+  end;
   if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
   begin
     Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
     Exit;
   end;
+
   lRQL := Context.Request.QueryStringParam('rql');
   try
+    if lRQL.IsEmpty then
+    begin
+      lRQL := 'limit(0,20)';
+    end;
     lConnection := ActiveRecordConnectionsRegistry.GetCurrent;
     lRQLBackend := GetBackEndByConnection(lConnection);
     LogD('[RQL PARSE]: ' + lRQL);
@@ -152,8 +167,13 @@ end;
 procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: Integer);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Retrieve) then
     begin
@@ -188,17 +208,46 @@ end;
 
 constructor TMVCActiveRecordController.Create(const aConnectionFactory: TFunc<TFDConnection>;
   const aAuthorization: TMVCActiveRecordAuthFunc = nil);
+var
+  lConn: TFDConnection;
 begin
   inherited Create;
-  ActiveRecordConnectionsRegistry.AddConnection('default', aConnectionFactory());
+  try
+    lConn := aConnectionFactory();
+  except
+    on E: Exception do
+    begin
+      LogE(Format('Connection factory error [ClassName: %s]: "%s"', [E.ClassName, E.Message]));
+      raise;
+    end;
+  end;
+  ActiveRecordConnectionsRegistry.AddConnection('default', lConn);
   fAuthorization := aAuthorization;
 end;
 
 procedure TMVCActiveRecordController.CreateEntity(const entityname: string);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.CreateEntity(Context, self, entityname, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Create) then
     begin
@@ -222,14 +271,21 @@ end;
 procedure TMVCActiveRecordController.UpdateEntity(const entityname: string; const id: Integer);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Update) then
     begin
       Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot update ' + entityname, ''));
       Exit;
     end;
+    lAR.CheckAction(TMVCEntityAction.eaUpdate);
     if not lAR.LoadByPK(id) then
       raise EMVCException.Create('Cannot find entity');
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
@@ -252,8 +308,14 @@ end;
 procedure TMVCActiveRecordController.DeleteEntity(const entityname: string; const id: Integer);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR), TMVCActiveRecordAction.Delete) then
     begin
@@ -262,7 +324,6 @@ begin
     end;
     if not lAR.LoadByPK(id) then
       raise EMVCException.Create('Cannot find entity');
-    Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.SetPK(id);
     lAR.Delete;
     Render(http_status.OK, entityname.ToLower + ' deleted');

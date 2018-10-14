@@ -51,7 +51,7 @@ type
     FSerializer: IMVCSerializer;
   public
     [Setup]
-    procedure SetUp;
+    procedure Setup;
     [TearDown]
     procedure TearDown;
 
@@ -82,6 +82,8 @@ type
     [Test]
     procedure TestDeserializeEntityCustomSerializer;
     [Test]
+    procedure TestDeserializeEntityCustomValueTypeSerializer;
+    [Test]
     procedure TestDeserializeEntityCustomMemberSerializer;
     [Test]
     procedure TestDeserializeEntitySerializationType;
@@ -104,6 +106,16 @@ type
     { public declarations }
   end;
 
+  TMVCNullableSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
+  private
+    { private declarations }
+  protected
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+  public
+    { public declarations }
+  end;
+
 implementation
 
 const
@@ -112,11 +124,12 @@ const
 
   { TMVCTestSerializerJsonDataObjects }
 
-procedure TMVCTestSerializerJsonDataObjects.SetUp;
+procedure TMVCTestSerializerJsonDataObjects.Setup;
 begin
   inherited;
   FSerializer := TMVCJsonDataObjectsSerializer.Create;
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>), TMVCNullableSerializerJsonDataObjects.Create);
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TearDown;
@@ -215,7 +228,7 @@ const
     '"Departament":{' +
     '"Name":"Depto1"' +
     '},' +
-    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"'+
+    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' +
     '}';
 
   JSON_LOWERCASE =
@@ -263,7 +276,7 @@ begin
     Assert.isTrue(Dm.EntitySalary.AsCurrency = 100);
     Assert.isTrue(Dm.EntityAmount.AsFloat = 100);
     Assert.isTrue(Dm.EntityBlobFld.AsString = '<html><body><h1>BLOB</h1></body></html>');
-    Assert.IsTrue(GUIDToString(Dm.EntityGUID.AsGuid) = '{9386C957-5379-4370-8492-8FA464A9CF0C}');
+    Assert.isTrue(GUIDToString(Dm.EntityGUID.AsGuid) = '{9386C957-5379-4370-8492-8FA464A9CF0C}');
 
     Dm.Item.First;
     Assert.isTrue(Dm.ItemId.AsLargeInt = 1);
@@ -484,6 +497,29 @@ begin
   end;
 end;
 
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomValueTypeSerializer;
+const
+  JSON =
+    '{' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller",' +
+    '"NullableInteger":3' +
+    '}';
+var
+  O: TEntityCustomWithNullables;
+begin
+  O := TEntityCustomWithNullables.Create;
+  try
+    FSerializer.DeserializeObject(JSON, O);
+    Assert.isTrue(O.Id = 1);
+    Assert.isTrue(O.Code = 2);
+    Assert.isTrue(O.Name = 'Ezequiel Juliano Müller');
+  finally
+    O.Free;
+  end;
+end;
+
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
 const
   JSON_FIELDS =
@@ -605,7 +641,7 @@ const
     '"Departament":{' +
     '"Name":"Depto1"' +
     '},' +
-    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"'+
+    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' +
     '}';
 
   JSON_LOWERCASE =
@@ -1137,6 +1173,32 @@ begin
     TJsonObject(ASerializerObject).I['ACode'] := EntityCustom.Code;
     TJsonObject(ASerializerObject).S['AName'] := EntityCustom.Name;
   end;
+end;
+
+{ TMVCNullableSerializerJsonDataObjects }
+
+procedure TMVCNullableSerializerJsonDataObjects.Deserialize(
+  const ASerializedObject: TObject; var AElementValue: TValue;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lNullInt: TMVCNullableInteger;
+begin
+  lNullInt := AElementValue.AsType<TMVCNullableInteger>;
+  if PJsonDataValue(Pointer(ASerializedObject)).Typ = jdtInt then
+  begin
+    lNullInt.Value := PJsonDataValue(Pointer(ASerializedObject)).LongValue;
+  end
+  else
+  begin
+    lNullInt.Clear;
+  end;
+end;
+
+procedure TMVCNullableSerializerJsonDataObjects.Serialize(
+  const AElementValue: TValue; var ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+begin
+
 end;
 
 initialization

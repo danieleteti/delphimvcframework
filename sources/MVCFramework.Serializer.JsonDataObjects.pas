@@ -119,7 +119,8 @@ type
 implementation
 
 uses
-  MVCFramework.Serializer.JsonDataObjects.CustomTypes, MVCFramework.Commons,
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes,
+  MVCFramework.Commons,
   System.SysUtils;
 
 { TMVCJsonDataObjectsSerializer }
@@ -174,7 +175,8 @@ begin
         ChildJsonValue.Free;
       end
       else
-        raise EMVCSerializationException.CreateFmt('Cannot serialize %s the serializer does not have a valid TJsonBaseObject type.', [AName]);
+        raise EMVCSerializationException.CreateFmt
+          ('Cannot serialize %s the serializer does not have a valid TJsonBaseObject type.', [AName]);
     end;
     Exit;
   end;
@@ -284,7 +286,8 @@ begin
             if CastValue.TryCast(ValueTypeAtt.ValueTypeInfo, CastedValue) then
               AttributeToJsonDataValue(AJsonObject, AName, CastedValue, stDefault, [], [])
             else
-              raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).', [AName]);
+              raise EMVCSerializationException.CreateFmt
+                ('Cannot serialize %s of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).', [AName]);
           end
           else
           begin
@@ -324,8 +327,8 @@ var
 begin
   while not ADataSet.Eof do
   begin
-    LJobj := AJsonArray.AddObject;
-    DataSetToJsonObject(ADataSet, lJObj, ANameCase, AIgnoredFields);
+    LJObj := AJsonArray.AddObject;
+    DataSetToJsonObject(ADataSet, LJObj, ANameCase, AIgnoredFields);
     ADataSet.Next;
   end;
 end;
@@ -348,8 +351,10 @@ begin
     if (not IsIgnoredAttribute(AIgnoredFields, FieldName)) and (not IsIgnoredComponent(ADataSet.Owner, ADataSet.Fields[I].Name)) then
     begin
       case ANameCase of
-        ncUpperCase: FieldName := UpperCase(ADataSet.Fields[I].FieldName);
-        ncLowerCase: FieldName := LowerCase(ADataSet.Fields[I].FieldName);
+        ncUpperCase:
+          FieldName := UpperCase(ADataSet.Fields[I].FieldName);
+        ncLowerCase:
+          FieldName := LowerCase(ADataSet.Fields[I].FieldName);
       end;
       if ADataSet.Fields[I].IsNull then
         AJsonObject[FieldName] := Null
@@ -564,6 +569,8 @@ begin
         GetTypeSerializers.Items[AValue.TypeInfo].Deserialize(AJsonObject[AName].ArrayValue, AValue, ACustomAttributes);
     else
       begin
+      {TODO -oDanieleT -cGeneral : Improve serialization of simple values}
+//        GetTypeSerializers.Items[AValue.TypeInfo].Deserialize(TObject(Pointer(AJsonObject.Items[AJsonObject.IndexOf(AName)])), AValue, ACustomAttributes);
         ChildJsonValue := TJsonValue.Create;
         try
           ChildJsonValue.Value := AJsonObject[AName].Value;
@@ -647,7 +654,8 @@ begin
           if TMVCSerializerHelpful.AttributeExists<MVCListOfAttribute>(ACustomAttributes, ChildListOfAtt) then
             JsonArrayToList(AJsonObject.A[AName], ChildList, ChildListOfAtt.Value, AType, AIgnored)
           else
-            raise EMVCDeserializationException.CreateFmt('You can not deserialize a list %s without the attribute MVCListClassTypeAttribute.', [AName]);
+            raise EMVCDeserializationException.CreateFmt
+              ('You can not deserialize a list %s without the attribute MVCListClassTypeAttribute.', [AName]);
         end;
       end;
   end;
@@ -673,8 +681,10 @@ begin
         Continue;
 
       case GetNameCase(ADataSet, ANameCase) of
-        ncLowerCase: name := LowerCase(Field.FieldName);
-        ncUpperCase: name := UpperCase(Field.FieldName);
+        ncLowerCase:
+          name := LowerCase(Field.FieldName);
+        ncUpperCase:
+          name := UpperCase(Field.FieldName);
       end;
 
       if not AJsonObject.Contains(name) then
@@ -686,7 +696,7 @@ begin
         Continue;
       end;
 
-      case field.DataType of
+      case Field.DataType of
         TFieldType.ftBoolean:
           Field.AsBoolean := AJsonObject.B[name];
 
@@ -782,33 +792,33 @@ begin
   case AType of
     stDefault, stProperties:
       begin
-      try
-        for Prop in ObjType.GetProperties do
-        begin
+        try
+          for Prop in ObjType.GetProperties do
+          begin
 
 {$IFDEF AUTOREFCOUNT}
-          if TMVCSerializerHelpful.IsAPropertyToSkip(Prop.Name) then
-            Continue;
+            if TMVCSerializerHelpful.IsAPropertyToSkip(Prop.Name) then
+              Continue;
 
 {$ENDIF}
-          if (Prop.IsWritable or Prop.GetValue(AObject).IsObject) and
-            (not TMVCSerializerHelpful.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
+            if (Prop.IsWritable or Prop.GetValue(AObject).IsObject) and
+              (not TMVCSerializerHelpful.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
+              (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
+            begin
+              AttributeValue := Prop.GetValue(AObject);
+              lKeyName := TMVCSerializerHelpful.GetKeyName(Prop, ObjType);
+              JsonDataValueToAttribute(AJsonObject, lKeyName, AttributeValue,
+                AType, AIgnoredAttributes, Prop.GetAttributes);
+              if (not AttributeValue.IsEmpty) and Prop.IsWritable then
+                Prop.SetValue(AObject, AttributeValue);
+            end;
+          end;
+        except
+          on E: EInvalidCast do
           begin
-            AttributeValue := Prop.GetValue(AObject);
-            lKeyName := TMVCSerializerHelpful.GetKeyName(Prop, ObjType);
-            JsonDataValueToAttribute(AJsonObject, lKeyName, AttributeValue,
-              AType, AIgnoredAttributes, Prop.GetAttributes);
-            if (not AttributeValue.IsEmpty) and Prop.IsWritable then
-              Prop.SetValue(AObject, AttributeValue);
+            raise EMVCException.CreateFmt('Invalid class typecast for property "%s"', [lKeyName]);
           end;
         end;
-      except
-        on E: EInvalidCast do
-        begin
-          raise EMVCException.CreateFmt('Invalid class typecast for property "%s"', [lKeyName]);
-        end;
-      end;
       end;
     stFields:
       begin

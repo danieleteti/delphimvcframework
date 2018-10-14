@@ -286,7 +286,7 @@ begin
   Cust.AddressLine1 := 'Rome Street 12';
   Cust.AddressLine2 := '00100';
   Cust.City := 'ROME';
-  PushObjectToView('customer', Cust);
+  ViewData['customer'] := Cust;
   LoadView(['header', 'customer', 'footer']);
   RenderResponseStream;
   { If you need more flexibility, you can use GetRenderedView to compose your

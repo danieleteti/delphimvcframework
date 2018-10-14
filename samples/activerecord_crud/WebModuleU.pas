@@ -21,10 +21,13 @@ uses
   FireDAC.Phys.MySQLDef,
   FireDAC.VCLUI.Wait,
   Data.DB,
-  FireDAC.Comp.Client;
+  FireDAC.Comp.Client, FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf,
+  FireDAC.DApt, FireDAC.Comp.DataSet;
 
 type
   TMyWebModule = class(TWebModule)
+    FDQuery1: TFDQuery;
+    FDConnection1: TFDConnection;
     procedure WebModuleCreate(Sender: TObject);
     procedure WebModuleDestroy(Sender: TObject);
   private
@@ -35,6 +38,7 @@ type
 
 var
   WebModuleClass: TComponentClass = TMyWebModule;
+  ConnectionDefinitionName: String = '';
 
 implementation
 
@@ -79,8 +83,7 @@ begin
         function: TFDConnection
         begin
           Result := TFDConnection.Create(nil);
-          // Result.ConnectionDefName := CON_DEF_NAME_FIREBIRD;
-          Result.ConnectionDefName := CON_DEF_NAME_MYSQL;
+          Result.ConnectionDefName := ConnectionDefinitionName;
           Result.Open;
         end,
         function(aContext: TWebContext; aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean
@@ -91,7 +94,7 @@ begin
           end
           else
           begin
-            Result := not(aAction in [TMVCActiveRecordAction.Delete]);
+            Result := True; //not(aAction in [TMVCActiveRecordAction.Delete]);
           end;
         end);
     end, '/api/entities');

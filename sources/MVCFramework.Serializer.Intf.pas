@@ -45,11 +45,13 @@ type
     ['{806EC547-D1CB-4DA9-92D3-A8A7C0BD4009}']
     procedure Serialize(
       const AElementValue: TValue;
+      {TODO -oDanieleT -cGeneral : Valutare TValue}
       var ASerializerObject: TObject;
       const AAttributes: TArray<TCustomAttribute>
       );
 
     procedure Deserialize(
+      {TODO -oDanieleT -cGeneral : Valutare TValue}
       const ASerializedObject: TObject;
       var AElementValue: TValue;
       const AAttributes: TArray<TCustomAttribute>
