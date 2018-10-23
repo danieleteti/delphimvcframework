@@ -1,0 +1,25 @@
+{
+  "search_pathes": [{
+    "pathes": ".",
+    "platforms": "Win32;Win64"
+  }],
+  "browsing_pathes": [{
+    "pathes": ".",
+    "platforms": "Win32;Win64"
+  }],
+  "source_folders": [{
+    "folder": "."
+  },
+  {
+    "folder": "docs",
+    "recursive": true
+  },
+  {
+    "folder": "samples",
+    "recursive": true
+  },
+  {
+    "folder": "unittests",
+    "recursive": true
+  }]
+}
