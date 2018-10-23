@@ -2,7 +2,8 @@ unit WebModuleU;
 
 interface
 
-uses System.SysUtils,
+uses
+  System.SysUtils,
   System.Classes,
   Web.HTTPApp,
   MVCFramework;
@@ -24,7 +25,12 @@ implementation
 
 {$R *.dfm}
 
-uses System.IOUtils, MVCFramework.Commons, MainControllerU, MVCFramework.Middleware.Compression;
+
+uses
+  System.IOUtils,
+  MVCFramework.Commons,
+  MainControllerU,
+  MVCFramework.Middleware.Compression;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -53,7 +59,7 @@ begin
   FMVC.AddController(TMyController);
 
   // To enable compression, just add this middleware as the last one
-  FMVC.AddMiddleware(TCompressionMiddleware.Create);
+  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

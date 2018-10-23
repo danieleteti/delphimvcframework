@@ -108,6 +108,7 @@
         </DCCReference>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.Parser.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MySQL.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

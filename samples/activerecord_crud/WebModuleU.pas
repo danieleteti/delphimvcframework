@@ -3,7 +3,6 @@ unit WebModuleU;
 interface
 
 uses
-  MVCFramework.RQL.AST2FirebirdSQL, {RQL Compiler for firebirdsql}
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
@@ -21,8 +20,12 @@ uses
   FireDAC.Phys.MySQLDef,
   FireDAC.VCLUI.Wait,
   Data.DB,
-  FireDAC.Comp.Client, FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf,
-  FireDAC.DApt, FireDAC.Comp.DataSet;
+  FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  FireDAC.Comp.DataSet;
 
 type
   TMyWebModule = class(TWebModule)
@@ -38,7 +41,7 @@ type
 
 var
   WebModuleClass: TComponentClass = TMyWebModule;
-  ConnectionDefinitionName: String = '';
+  ConnectionDefinitionName: string = '';
 
 implementation
 
@@ -84,7 +87,6 @@ begin
         begin
           Result := TFDConnection.Create(nil);
           Result.ConnectionDefName := ConnectionDefinitionName;
-          Result.Open;
         end,
         function(aContext: TWebContext; aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean
         begin
@@ -94,7 +96,7 @@ begin
           end
           else
           begin
-            Result := True; //not(aAction in [TMVCActiveRecordAction.Delete]);
+            Result := True; // not(aAction in [TMVCActiveRecordAction.Delete]);
           end;
         end);
     end, '/api/entities');

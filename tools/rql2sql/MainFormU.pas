@@ -26,6 +26,9 @@ type
     Panel3: TPanel;
     edtExpression: TEdit;
     btnAdd: TButton;
+    rgBackend: TRadioGroup;
+    Memo1: TMemo;
+    Splitter2: TSplitter;
     procedure FormCreate(Sender: TObject);
     procedure btnAddClick(Sender: TObject);
     procedure btnParseClick(Sender: TObject);
@@ -44,17 +47,27 @@ implementation
 
 uses
   System.IOUtils,
-  MVCFramework.RQL.Parser;
+  MVCFramework.RQL.Parser,
+  System.TypInfo;
 
 {$R *.dfm}
 
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  I: TRQLBackend;
 begin
   if TFile.Exists('rqlhistory.txt') then
   begin
     lbRQL.Items.LoadFromFile('rqlhistory.txt');
   end;
+
+  rgBackend.Items.Clear;
+  for I := low(TRQLBackend) to high(TRQLBackend) do
+  begin
+    rgBackend.Items.Add(GetEnumName(TypeInfo(TRQLBackend), Ord(I)));
+  end;
+  rgBackend.ItemIndex := 0;
 end;
 
 procedure TMainForm.btnAddClick(Sender: TObject);
@@ -73,8 +86,15 @@ var
 begin
   lParser := TRQL2SQL.Create;
   try
-    lParser.Execute(edtExpression.Text, lSQL, []);
-    mmSQL.Lines.Text := lSQL;
+    try
+      lParser.Execute(edtExpression.Text, lSQL, nil, TRQLBackend(rgBackend.ItemIndex));
+      mmSQL.Lines.Text := lSQL;
+    except
+      on E: Exception do
+      begin
+        Memo1.Lines.Text := E.Message;
+      end;
+    end;
   finally
     lParser.Free;
   end;

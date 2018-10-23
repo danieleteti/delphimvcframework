@@ -70,18 +70,18 @@ type
 
   end;
 
-  TableAttribute = class(MVCActiveRecordCustomAttribute)
+  MVCTableAttribute = class(MVCActiveRecordCustomAttribute)
     Name: string;
     constructor Create(aName: string);
   end;
 
-  TableFieldAttribute = class(MVCActiveRecordCustomAttribute)
+  MVCTableFieldAttribute = class(MVCActiveRecordCustomAttribute)
   public
     FieldName: string;
     constructor Create(aFieldName: string);
   end;
 
-  PrimaryKeyAttribute = class(MVCActiveRecordCustomAttribute)
+  MVCPrimaryKeyAttribute = class(MVCActiveRecordCustomAttribute)
   public
     FieldName: string;
     FieldOptions: TMVCActiveRecordFieldOptions;
@@ -89,12 +89,19 @@ type
     constructor Create(const aFieldName: string); overload;
   end;
 
-  EntityActionsAttribute = class(MVCActiveRecordCustomAttribute)
+  MVCEntityActionsAttribute = class(MVCActiveRecordCustomAttribute)
   private
     EntityAllowedActions: TMVCEntityActions;
   public
     constructor Create(const aEntityAllowedActions: TMVCEntityActions);
 
+  end;
+
+  TMVCActiveRecord = class;
+
+  TMVCActiveRecordList = class(TObjectList<TMVCActiveRecord>)
+  public
+    constructor Create; virtual;
   end;
 
   TMVCActiveRecord = class
@@ -114,7 +121,7 @@ type
     fTableName: string;
     fMap: TDictionary<TRttiField, string>;
     fPrimaryKey: TRttiField;
-    function Connection: TFDConnection;
+    function SelfConnection: TFDConnection;
     procedure InitTableInfo;
     function CreateInsertSQL: string; virtual;
     function CreateSelectByPKSQL(aPrimaryKey: int64): string; virtual;
@@ -149,13 +156,22 @@ type
     /// <summary>
     /// Called before insert the object state to database
     /// </summary>
-
     procedure OnBeforeInsert; virtual;
+
+    /// <summary>
+    /// Called after insert the object state to database
+    /// </summary>
+    procedure OnAfterInsert; virtual;
+
     /// <summary>
     /// Called before update the object state to database
     /// </summary>
-
     procedure OnBeforeUpdate; virtual;
+
+    /// <summary>
+    /// Called after update the object state to database
+    /// </summary>
+    procedure OnAfterUpdate; virtual;
 
     /// <summary>
     /// Called before delete object from database
@@ -163,9 +179,19 @@ type
     procedure OnBeforeDelete; virtual;
 
     /// <summary>
+    /// Called after delete object from database
+    /// </summary>
+    procedure OnAfterDelete; virtual;
+
+    /// <summary>
     /// Called before insert or update the object to the database
     /// </summary>
     procedure OnBeforeInsertOrUpdate; virtual;
+
+    /// <summary>
+    /// Called after insert or update the object to the database
+    /// </summary>
+    procedure OnAfterInsertOrUpdate; virtual;
 
   public
     constructor Create(aLazyLoadConnection: Boolean); overload; { cannot be virtual! }
@@ -174,7 +200,7 @@ type
     function CheckAction(const aEntityAction: TMVCEntityAction; const aRaiseException: Boolean = True): Boolean;
     procedure Insert;
     function GetMapping: TMVCFieldsMapping;
-    function LoadByPK(id: int64): Boolean;
+    function LoadByPK(id: int64): Boolean; virtual;
     procedure Update;
     procedure Delete;
     function TableInfo: string;
@@ -185,22 +211,28 @@ type
     class function GetByPrimaryKey(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord; overload;
     class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant): TObjectList<T>; overload;
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
-      : TObjectList<TMVCActiveRecord>; overload;
+      : TMVCActiveRecordList; overload;
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant;
       const Connection: TFDConnection)
-      : TObjectList<TMVCActiveRecord>; overload;
+      : TMVCActiveRecordList; overload;
     class function SelectRQL(const aClass: TMVCActiveRecordClass;
-      const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend): TObjectList<TMVCActiveRecord>; overload;
+      const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend; const MaxRecordCount: Integer)
+      : TMVCActiveRecordList; overload;
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
       overload;
+    class function GetOneByWhere<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant;
+      const RaiseExceptionIfNotFound: Boolean = True): T;
+    class function GetFirstByWhere<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant;
+      const RaiseExceptionIfNotFound: Boolean = True): T;
     class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string; const Params: array of Variant)
-      : TObjectList<TMVCActiveRecord>; overload;
+      : TMVCActiveRecordList; overload;
     class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string; const Params: array of Variant;
       const Connection: TFDConnection)
-      : TObjectList<TMVCActiveRecord>; overload;
+      : TMVCActiveRecordList; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>; overload;
     class function SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
+    class function CurrentConnection: TFDConnection;
   end;
 
   IMVCEntitiesRegistry = interface
@@ -440,7 +472,7 @@ end;
 
 { TableFieldAttribute }
 
-constructor TableFieldAttribute.Create(aFieldName: string);
+constructor MVCTableFieldAttribute.Create(aFieldName: string);
 begin
   inherited Create;
   FieldName := aFieldName;
@@ -448,7 +480,7 @@ end;
 
 { TableAttribute }
 
-constructor TableAttribute.Create(aName: string);
+constructor MVCTableAttribute.Create(aName: string);
 begin
   inherited Create;
   name := aName;
@@ -598,14 +630,14 @@ begin
   fObjAttributes := fRTTIType.GetAttributes;
   for lAttribute in fObjAttributes do
   begin
-    if lAttribute is TableAttribute then
+    if lAttribute is MVCTableAttribute then
     begin
-      fTableName := TableAttribute(lAttribute).Name;
+      fTableName := MVCTableAttribute(lAttribute).Name;
       continue;
     end;
-    if lAttribute is EntityActionsAttribute then
+    if lAttribute is MVCEntityActionsAttribute then
     begin
-      fEntityAllowedActions := EntityActionsAttribute(lAttribute).EntityAllowedActions;
+      fEntityAllowedActions := MVCEntityActionsAttribute(lAttribute).EntityAllowedActions;
       Break;
     end;
   end;
@@ -621,15 +653,15 @@ begin
       continue;
     for lAttribute in fPropsAttributes do
     begin
-      if lAttribute is TableFieldAttribute then
+      if lAttribute is MVCTableFieldAttribute then
       begin
-        fMap.Add(lRTTIField, { fTableName + '.' + } TableFieldAttribute(lAttribute).FieldName);
+        fMap.Add(lRTTIField, { fTableName + '.' + } MVCTableFieldAttribute(lAttribute).FieldName);
       end
-      else if lAttribute is PrimaryKeyAttribute then
+      else if lAttribute is MVCPrimaryKeyAttribute then
       begin
         fPrimaryKey := lRTTIField;
-        fPrimaryKeyFieldName := PrimaryKeyAttribute(lAttribute).FieldName;
-        fPrimaryKeyOptions := PrimaryKeyAttribute(lAttribute).FieldOptions;
+        fPrimaryKeyFieldName := MVCPrimaryKeyAttribute(lAttribute).FieldName;
+        fPrimaryKeyOptions := MVCPrimaryKeyAttribute(lAttribute).FieldOptions;
       end;
     end;
   end;
@@ -645,6 +677,8 @@ begin
   OnBeforeInsertOrUpdate;
   SQL := CreateInsertSQL;
   ExecNonQuery(SQL, True);
+  OnAfterInsert;
+  OnAfterInsertOrUpdate;
 end;
 
 constructor TMVCActiveRecord.Create(aLazyLoadConnection: Boolean);
@@ -653,7 +687,7 @@ begin
   fConn := nil;
   if not aLazyLoadConnection then
   begin
-    Connection;
+    SelfConnection;
   end;
   fMap := TDictionary<TRttiField, string>.Create;
   InitTableInfo;
@@ -690,6 +724,26 @@ begin
   lActiveRecord.LoadByPK(aValue);
 end;
 
+class function TMVCActiveRecord.GetFirstByWhere<T>(const SQLWhere: string;
+  const Params: array of Variant; const RaiseExceptionIfNotFound: Boolean): T;
+var
+  lList: TObjectList<T>;
+begin
+  lList := Where<T>(SQLWhere, Params);
+  try
+    if lList.Count = 0 then
+    begin
+      if RaiseExceptionIfNotFound then
+        raise EMVCActiveRecord.Create('Got 0 rows');
+      Exit(nil);
+    end;
+    lList.OwnsObjects := false;
+    Result := lList.First;
+  finally
+    lList.Free;
+  end;
+end;
+
 function TMVCActiveRecord.GetMapping: TMVCFieldsMapping;
 var
   lPair: TPair<TRttiField, string>;
@@ -715,6 +769,17 @@ begin
   end;
 end;
 
+class function TMVCActiveRecord.GetOneByWhere<T>(const SQLWhere: string; const Params: array of Variant;
+  const RaiseExceptionIfNotFound: Boolean): T;
+begin
+  Result := GetFirstByWhere<T>(SQLWhere, Params, false);
+  if Result = nil then
+  begin
+    if RaiseExceptionIfNotFound then
+      raise EMVCActiveRecord.Create('Got 0 rows when exactly 1 was expected');
+  end;
+end;
+
 function TMVCActiveRecord.GetPK: TValue;
 begin
   if fPrimaryKeyFieldName.IsEmpty then
@@ -730,7 +795,12 @@ begin
     raise EMVCActiveRecord.CreateFmt('Action not allowed on "%s"', [ClassName]);
 end;
 
-function TMVCActiveRecord.Connection: TFDConnection;
+class function TMVCActiveRecord.CurrentConnection: TFDConnection;
+begin
+  Result := ActiveRecordConnectionsRegistry.GetCurrent;
+end;
+
+function TMVCActiveRecord.SelfConnection: TFDConnection;
 begin
   if fConn = nil then
   begin
@@ -803,15 +873,16 @@ procedure TMVCActiveRecord.Delete;
 var
   SQL: string;
 begin
+  OnBeforeDelete;
   if not Assigned(fPrimaryKey) then
     raise Exception.CreateFmt('Cannot delete %s without a primary key', [ClassName]);
   SQL := CreateDeleteSQL;
   ExecNonQuery(SQL, false);
+  OnAfterDelete;
 end;
 
 procedure TMVCActiveRecord.MapColumnToTValue(const aFieldName: string; const aField: TField; const aRTTIField: TRttiField);
 var
-  lMS: TMemoryStream;
   lInternalStream: TStream;
 begin
   case aField.DataType of
@@ -819,7 +890,7 @@ begin
       begin
         aRTTIField.SetValue(Self, aField.AsString);
       end;
-    ftLargeint:
+    ftLargeint, ftAutoInc:
       begin
         aRTTIField.SetValue(Self, aField.AsLargeInt);
       end;
@@ -1081,9 +1152,6 @@ end;
 procedure TMVCActiveRecord.LoadByDataset(const aDataSet: TDataSet);
 var
   lItem: TPair<TRttiField, string>;
-  lValue: TValue;
-  lDestField: TValue;
-  lStream: TStream;
 begin
   CheckAction(TMVCEntityAction.eaRetrieve);
   OnBeforeLoad;
@@ -1117,7 +1185,27 @@ begin
   end;
 end;
 
+procedure TMVCActiveRecord.OnAfterDelete;
+begin
+  // do nothing
+end;
+
+procedure TMVCActiveRecord.OnAfterInsert;
+begin
+  // do nothing
+end;
+
+procedure TMVCActiveRecord.OnAfterInsertOrUpdate;
+begin
+  // do nothing
+end;
+
 procedure TMVCActiveRecord.OnAfterLoad;
+begin
+  // do nothing
+end;
+
+procedure TMVCActiveRecord.OnAfterUpdate;
 begin
   // do nothing
 end;
@@ -1153,19 +1241,19 @@ begin
 end;
 
 class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
-  : TObjectList<TMVCActiveRecord>;
+  : TMVCActiveRecordList;
 begin
   Result := Select(aClass, SQL, Params, nil);
 end;
 
 class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass;
   const SQL: string; const Params: array of Variant;
-  const Connection: TFDConnection): TObjectList<TMVCActiveRecord>;
+  const Connection: TFDConnection): TMVCActiveRecordList;
 var
   lDataSet: TDataSet;
   lAR: TMVCActiveRecord;
 begin
-  Result := TObjectList<TMVCActiveRecord>.Create(True);
+  Result := TMVCActiveRecordList.Create;
   try
     lDataSet := ExecQuery(SQL, Params, Connection);
     try
@@ -1219,12 +1307,12 @@ begin
 end;
 
 class function TMVCActiveRecord.SelectRQL(const aClass: TMVCActiveRecordClass;
-  const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend): TObjectList<TMVCActiveRecord>;
+  const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend; const MaxRecordCount: Integer): TMVCActiveRecordList;
 var
   lRQL: TRQL2SQL;
   lSQL: string;
 begin
-  lRQL := TRQL2SQL.Create;
+  lRQL := TRQL2SQL.Create(MaxRecordCount);
   try
     lRQL.Execute(RQL, lSQL, Mapping, RQLBackend);
     LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
@@ -1275,6 +1363,8 @@ begin
   OnBeforeInsertOrUpdate;
   SQL := CreateUpdateSQL;
   ExecNonQuery(SQL, false);
+  OnAfterUpdate;
+  OnAfterInsertOrUpdate;
 end;
 
 class function TMVCActiveRecord.All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>;
@@ -1302,14 +1392,14 @@ begin
 end;
 
 class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
-  const Params: array of Variant): TObjectList<TMVCActiveRecord>;
+  const Params: array of Variant): TMVCActiveRecordList;
 begin
-  Result := Where(aClass, SQLWhere, Params, nil)
+  Result := Where(aClass, SQLWhere, Params, nil);
 end;
 
 class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass;
   const SQLWhere: string; const Params: array of Variant;
-  const Connection: TFDConnection): TObjectList<TMVCActiveRecord>;
+  const Connection: TFDConnection): TMVCActiveRecordList;
 var
   lAR: TMVCActiveRecord;
 begin
@@ -1341,12 +1431,12 @@ begin
 end;
 { PrimaryKeyAttribute }
 
-constructor PrimaryKeyAttribute.Create(const aFieldName: string);
+constructor MVCPrimaryKeyAttribute.Create(const aFieldName: string);
 begin
   Create(aFieldName, []);
 end;
 
-constructor PrimaryKeyAttribute.Create(const aFieldName: string; const aFieldOptions: TMVCActiveRecordFieldOptions);
+constructor MVCPrimaryKeyAttribute.Create(const aFieldName: string; const aFieldOptions: TMVCActiveRecordFieldOptions);
 begin
   inherited Create;
   FieldName := aFieldName;
@@ -1400,11 +1490,18 @@ end;
 
 { EntityActionsAttribute }
 
-constructor EntityActionsAttribute.Create(
+constructor MVCEntityActionsAttribute.Create(
   const aEntityAllowedActions: TMVCEntityActions);
 begin
   inherited Create;
   EntityAllowedActions := aEntityAllowedActions;
+end;
+
+{ TMVCActiveRecordList }
+
+constructor TMVCActiveRecordList.Create;
+begin
+  inherited Create(True);
 end;
 
 initialization

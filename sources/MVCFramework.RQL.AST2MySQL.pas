@@ -39,7 +39,7 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
   public
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree; out aSQL: string); override;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
 implementation
@@ -175,7 +175,7 @@ begin
   Result := ' where ';
 end;
 
-procedure TRQLMySQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree;
+procedure TRQLMySQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
   out aSQL: string);
 var
   lBuff: TStringBuilder;

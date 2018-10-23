@@ -24,10 +24,6 @@
 
 unit MVCFramework.ActiveRecordController;
 
-{ TODO -oDanieleT -cGeneral : Define Entities Processors for all HTTP VERBS }
-{ TODO -oDanieleT -cGeneral : Investigate on Table Inheritance }
-{ TODO -oDanieleT -cGeneral : Check the generator... what and where generate classes? }
-
 interface
 
 uses
@@ -39,7 +35,9 @@ uses
   FireDAC.Stan.Pool,
   FireDAC.Stan.Async,
   FireDAC.Comp.Client,
-  MVCFramework.RQL.Parser;
+  MVCFramework.RQL.Parser,
+  System.Generics.Collections,
+  MVCFramework.Serializer.Commons;
 
 type
 {$SCOPEDENUMS ON}
@@ -50,6 +48,7 @@ type
   private
     fAuthorization: TMVCActiveRecordAuthFunc;
   protected
+    function GetMaxRecordCount: Integer;
     function CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean; virtual;
   public
     constructor Create(const aConnectionFactory: TFunc<TFDConnection>; const aAuthorization: TMVCActiveRecordAuthFunc = nil); reintroduce;
@@ -81,13 +80,27 @@ type
 
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  TMVCActiveRecordListResponse = class
+  private
+    FList: TMVCActiveRecordList;
+    FMetadata: TMVCStringDictionary;
+    FOwns: Boolean;
+  public
+    constructor Create(AList: TMVCActiveRecordList; AOwns: Boolean = True); virtual;
+    destructor Destroy; override;
+    [MVCListOf(TMVCActiveRecord)]
+    property Items: TMVCActiveRecordList read FList;
+    [MVCNameAs('meta')]
+    property Metadata: TMVCStringDictionary read FMetadata;
+  end;
+
 implementation
 
 uses
 
   MVCFramework.Logger,
   JsonDataObjects;
-
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
@@ -99,6 +112,7 @@ var
   lRQLBackend: TRQLBackend;
   lProcessor: IMVCEntityProcessor;
   lHandled: Boolean;
+  lResp: TMVCActiveRecordListResponse;
 begin
   lProcessor := nil;
   if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
@@ -123,10 +137,10 @@ begin
 
   lRQL := Context.Request.QueryStringParam('rql');
   try
-    if lRQL.IsEmpty then
-    begin
-      lRQL := 'limit(0,20)';
-    end;
+    // if lRQL.IsEmpty then
+    // begin
+    // lRQL := Format('limit(0,%d)', [GetMaxRecordCount]);
+    // end;
     lConnection := ActiveRecordConnectionsRegistry.GetCurrent;
     lRQLBackend := GetBackEndByConnection(lConnection);
     LogD('[RQL PARSE]: ' + lRQL);
@@ -136,7 +150,18 @@ begin
     finally
       lInstance.Free;
     end;
-    Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend), True);
+
+    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend,
+      GetMaxRecordCount), True);
+    try
+      lResp.Metadata.AddProperty('count', lResp.Items.Count.ToString);
+      Render(lResp);
+    except
+      lResp.Free;
+      raise;
+    end;
+
+    // Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend), True);
   except
     on E: ERQLCompilerNotFound do
     begin
@@ -168,7 +193,20 @@ procedure TMVCActiveRecordController.GetEntity(const entityname: string; const i
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.GetEntity(Context, self, entityname, id, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
     raise EMVCException.Create('Cannot find class for entity');
@@ -192,6 +230,11 @@ begin
   finally
     lAR.Free;
   end;
+end;
+
+function TMVCActiveRecordController.GetMaxRecordCount: Integer;
+begin
+  Result := StrToIntDef(Config[TMVCConfigKey.MaxEntitiesRecordCount], 20);
 end;
 
 function TMVCActiveRecordController.CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean;
@@ -259,9 +302,14 @@ begin
     lAR.Insert;
     StatusCode := http_status.Created;
     Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
+
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(lAR, False);
+      Render(http_status.Created, entityname.ToLower + ' created', '', lAR);
+    end
+    else
+    begin
+      Render(http_status.Created, entityname.ToLower + ' created');
     end;
   finally
     lAR.Free;
@@ -292,9 +340,10 @@ begin
     lAR.SetPK(id);
     lAR.Update;
     Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
+
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(lAR, False);
+      Render(http_status.OK, entityname.ToLower + ' updated', '', lAR);
     end
     else
     begin
@@ -335,6 +384,26 @@ end;
 destructor TMVCActiveRecordController.Destroy;
 begin
   ActiveRecordConnectionsRegistry.RemoveConnection('default');
+  inherited;
+end;
+
+{ TObjectListSetHolder }
+
+constructor TMVCActiveRecordListResponse.Create(AList: TMVCActiveRecordList; AOwns: Boolean = True);
+begin
+  inherited Create;
+  FOwns := AOwns;
+  FList := AList;
+  FMetadata := TMVCStringDictionary.Create;
+end;
+
+destructor TMVCActiveRecordListResponse.Destroy;
+begin
+  if FOwns then
+  begin
+    FList.Free
+  end;
+  FMetadata.Free;
   inherited;
 end;
 

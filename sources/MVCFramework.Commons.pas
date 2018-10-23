@@ -42,6 +42,7 @@ uses
 
 {$I dmvcframeworkbuildconsts.inc}
 
+
 type
 
   TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH, httpTRACE);
@@ -125,6 +126,7 @@ type
     IndexDocument = 'index_document';
     SessionType = 'session_type';
     FallbackResource = 'fallback_resource';
+    MaxEntitiesRecordCount = 'max_entities_record_count';
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -425,6 +427,8 @@ type
 
 {$SCOPEDENUMS ON}
 
+  TMVCCompressionType = (ctNone, ctDeflate, ctGZIP);
+
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
@@ -446,6 +450,11 @@ function BuildContentType(const aContentMediaType: string; const aContentCharSet
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
   MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
+
+
+const
+  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none', 'deflate', 'gzip');
+  MVC_COMPRESSION_ZLIB_WINDOW_BITS: array [TMVCCompressionType] of Integer = (0, -15, 31); // WindowBits: http://zlib.net/manual.html#Advanced
 
 var
   Lock: TObject;

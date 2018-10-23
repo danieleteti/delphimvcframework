@@ -42,7 +42,8 @@ uses
   CustomTypesU in 'CustomTypesU.pas',
   CustomTypesSerializersU in 'CustomTypesSerializersU.pas',
   InMemoryDataU in 'InMemoryDataU.pas',
-  MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas';
+  MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas',
+  RandomUtilsU in '..\commons\RandomUtilsU.pas';
 
 {$R *.res}
 

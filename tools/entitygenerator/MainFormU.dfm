@@ -1,7 +1,7 @@
 object MainForm: TMainForm
   Left = 0
   Top = 0
-  Caption = 'MVCActiveRecord Entity Generator'
+  Caption = 'MVCActiveRecord Entity Generator (alpha)'
   ClientHeight = 630
   ClientWidth = 863
   Color = clBtnFace
@@ -31,10 +31,9 @@ object MainForm: TMainForm
     Height = 41
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 838
     object cboConnectionDefs: TComboBox
       Left = 4
-      Top = 11
+      Top = 14
       Width = 145
       Height = 21
       TabOrder = 0
@@ -79,7 +78,6 @@ object MainForm: TMainForm
       Font.Style = []
       ParentFont = False
       TabOrder = 0
-      ExplicitWidth = 448
     end
   end
   object Panel3: TPanel
@@ -90,10 +88,6 @@ object MainForm: TMainForm
     Align = alClient
     Caption = 'Panel3'
     TabOrder = 2
-    ExplicitLeft = 48
-    ExplicitTop = 184
-    ExplicitWidth = 361
-    ExplicitHeight = 137
     object Panel4: TPanel
       Left = 1
       Top = 1
@@ -102,9 +96,8 @@ object MainForm: TMainForm
       Align = alTop
       BevelOuter = bvNone
       Caption = 'Panel4'
+      ShowCaption = False
       TabOrder = 0
-      ExplicitLeft = 2
-      ExplicitTop = -1
       object btnGenEntities: TButton
         AlignWithMargins = True
         Left = 129
@@ -121,9 +114,6 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 0
         OnClick = btnGenEntitiesClick
-        ExplicitLeft = 8
-        ExplicitTop = 0
-        ExplicitHeight = 41
       end
       object btnGetTables: TButton
         AlignWithMargins = True
@@ -141,9 +131,6 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 1
         OnClick = btnGetTablesClick
-        ExplicitLeft = 8
-        ExplicitTop = 0
-        ExplicitHeight = 41
       end
     end
     object PageControl1: TPageControl
@@ -152,13 +139,11 @@ object MainForm: TMainForm
       Top = 45
       Width = 855
       Height = 409
-      ActivePage = TabSheet2
+      ActivePage = TabSheet1
       Align = alClient
       TabOrder = 1
       object TabSheet1: TTabSheet
         Caption = 'Tables'
-        ExplicitWidth = 281
-        ExplicitHeight = 165
         object veTablesMapping: TValueListEditor
           Left = 0
           Top = 0
@@ -171,10 +156,6 @@ object MainForm: TMainForm
           TitleCaptions.Strings = (
             'Table'
             'ClassName')
-          ExplicitLeft = 144
-          ExplicitTop = 48
-          ExplicitWidth = 306
-          ExplicitHeight = 300
           ColWidths = (
             254
             587)
@@ -183,8 +164,6 @@ object MainForm: TMainForm
       object TabSheet2: TTabSheet
         Caption = 'Generated Code'
         ImageIndex = 1
-        ExplicitWidth = 281
-        ExplicitHeight = 165
         object mmOutput: TMemo
           Left = 0
           Top = 41
@@ -198,10 +177,6 @@ object MainForm: TMainForm
           Font.Style = []
           ParentFont = False
           TabOrder = 0
-          ExplicitLeft = 328
-          ExplicitTop = 144
-          ExplicitWidth = 185
-          ExplicitHeight = 89
         end
         object Panel5: TPanel
           Left = 0
@@ -210,10 +185,8 @@ object MainForm: TMainForm
           Height = 41
           Align = alTop
           Caption = 'Panel5'
+          ShowCaption = False
           TabOrder = 1
-          ExplicitLeft = 328
-          ExplicitTop = 168
-          ExplicitWidth = 185
           object btnSaveCode: TButton
             AlignWithMargins = True
             Left = 4
@@ -224,17 +197,8 @@ object MainForm: TMainForm
             Caption = '&Save'
             TabOrder = 0
             OnClick = btnSaveCodeClick
-            ExplicitLeft = 384
-            ExplicitTop = 8
-            ExplicitHeight = 25
           end
         end
-      end
-      object TabSheet3: TTabSheet
-        Caption = 'TabSheet3'
-        ImageIndex = 2
-        ExplicitWidth = 281
-        ExplicitHeight = 165
       end
     end
   end
@@ -279,5 +243,9 @@ object MainForm: TMainForm
     Options = []
     Left = 424
     Top = 320
+  end
+  object FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink
+    Left = 432
+    Top = 328
   end
 end

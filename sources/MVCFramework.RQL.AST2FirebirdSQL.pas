@@ -39,7 +39,7 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
   public
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree; out aSQL: string); override;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
 implementation
@@ -176,7 +176,7 @@ begin
   Result := ' where ';
 end;
 
-procedure TRQLFirebirdCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree;
+procedure TRQLFirebirdCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
   out aSQL: string);
 var
   lBuff: TStringBuilder;
@@ -205,9 +205,11 @@ end;
 initialization
 
 TRQLCompilerRegistry.Instance.RegisterCompiler(cbFirebird, TRQLFirebirdCompiler);
+TRQLCompilerRegistry.Instance.RegisterCompiler(cbInterbase, TRQLFirebirdCompiler);
 
 finalization
 
 TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbFirebird);
+TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbInterbase);
 
 end.

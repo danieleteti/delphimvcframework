@@ -300,7 +300,7 @@ resourcestring
     sLineBreak +
     '{$R *.dfm}' + sLineBreak +
     sLineBreak +
-    'uses %2:s, System.IOUtils, MVCFramework.Commons;' + sLineBreak +
+    'uses %2:s, System.IOUtils, MVCFramework.Commons, MVCFramework.Middleware.Compression;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
     'begin' + sLineBreak +
@@ -324,13 +324,16 @@ resourcestring
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
     '      //view path' + sLineBreak +
     '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
-    '      //Enable Server Signature in response' + sLineBreak +
+    '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
+    '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
+	'      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' +
-    sLineBreak +
+    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
     '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +
+    '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
+    '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +

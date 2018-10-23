@@ -65,13 +65,15 @@ def buildProject(project, config='DEBUG'):
 
 def buildProjects(config='RELEASE'):
     global failed
+    failed = list()
     allres = True
     for project in projects:
         res = buildProject(project, config)
         allres &= res
         if not res:
             failed.append(project)
-            break        
+    if not allres:
+        print(failed)
     return allres
 
 def run_unit_tests():

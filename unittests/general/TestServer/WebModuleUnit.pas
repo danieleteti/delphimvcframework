@@ -50,7 +50,7 @@ uses
   TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication, System.Generics.Collections,
   MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU,
-  TestServerControllerJSONRPCU;
+  TestServerControllerJSONRPCU, MVCFramework.Middleware.Compression;
 
 procedure Tbas.WebModuleCreate(Sender: TObject);
 begin
@@ -75,7 +75,8 @@ begin
       end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
-    .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'));
+    .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
+    .AddMiddleware(TMVCCompressionMiddleware.Create);
 
   // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;

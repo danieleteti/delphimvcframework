@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{7858CF3A-8BF0-4468-A6C7-227F080340B1}</ProjectGuid>
-        <ProjectVersion>18.2</ProjectVersion>
+        <ProjectVersion>18.4</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <MainSource>OutputCompressionSample.dpr</MainSource>
         <Base>True</Base>
@@ -144,6 +144,7 @@
         </DCCReference>
         <DCCReference Include="..\renders\InMemoryDataU.pas"/>
         <DCCReference Include="..\commons\BusinessObjectsU.pas"/>
+        <DCCReference Include="..\commons\RandomUtilsU.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

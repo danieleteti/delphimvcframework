@@ -29,7 +29,8 @@ uses
   MVCFramework.Serializer.Commons in '..\..\..\sources\MVCFramework.Serializer.Commons.pas',
   MVCFramework.Patches in '..\..\..\sources\MVCFramework.Patches.pas',
   JSONRPCTestsU in 'JSONRPCTestsU.pas',
-  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas';
 
 {$R *.RES}
 

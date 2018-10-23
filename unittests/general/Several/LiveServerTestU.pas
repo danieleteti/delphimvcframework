@@ -27,7 +27,6 @@ unit LiveServerTestU;
 interface
 
 uses
-  JsonDataObjects,
   DUnitX.TestFramework,
   MVCFramework.RESTClient,
   MVCFramework.JSONRPC.Client;
@@ -41,6 +40,7 @@ const
   TEST_SERVER_ADDRESS = '127.0.0.1';
 
 {$ENDIF}
+
 
 type
 
@@ -108,6 +108,8 @@ type
     procedure TestEncodingRenderJSONValue;
     [Test]
     procedure TestRenderWrappedList;
+    [Test]
+    procedure TestRenderWrappedListWithCompression;
     [Test]
     procedure TestRenderStreamAndFreeWithOwnerFalse;
     [Test]
@@ -203,6 +205,8 @@ implementation
 uses
   System.Math,
   MVCFramework.Serializer.Defaults,
+  JsonDataObjects,
+  MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.TypesAliases,
   MVCFramework.Commons,
   System.SyncObjs,
@@ -285,7 +289,7 @@ procedure TServerTest.TestAsynchRequestGET;
 var
   evt: TEvent;
   r: TWaitResult;
-  j: TJSONObject;
+  j: MVCFramework.TypesAliases.TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -321,7 +325,7 @@ procedure TServerTest.TestAsynchRequestPOST;
 var
   evt: TEvent;
   r: TWaitResult;
-  j: TJSONObject;
+  j: MVCFramework.TypesAliases.TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -340,7 +344,7 @@ begin
       procedure(E: Exception)
       begin
       end).doPOST('/echo', ['1', '2', '3'],
-      TSystemJSON.JSONValueToString(TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
+      TSystemJSON.JSONValueToString(MVCFramework.TypesAliases.TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
 
     // wait for thred finish
     repeat
@@ -359,7 +363,7 @@ procedure TServerTest.TestAsynchRequestPUT;
 var
   evt: TEvent;
   r: TWaitResult;
-  j: TJSONObject;
+  j: MVCFramework.TypesAliases.TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -467,7 +471,7 @@ var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET(URLSegment, []);
-  Assert.AreEqual(HTTP_STATUS.InternalServerError,  res.ResponseCode);
+  Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode);
   Assert.Contains(res.ContentType, 'text/plain', true, 'Is not a text/plain in case of error');
   Assert.Contains(res.BodyAsString, 'Cannot create controller', true, 'Exception message in body is not correct');
 end;
@@ -713,6 +717,43 @@ begin
 
 end;
 
+procedure TServerTest.TestRenderWrappedListWithCompression;
+var
+  LRes: IRESTResponse;
+  lJSONArr: TJDOJSONArray;
+  I: Integer;
+  lCompType: string;
+  j: Integer;
+const
+  CompressionTypes: array [1 .. 9] of string =
+    ('deflate', 'gzip', 'deflate,gzip', 'gzip,deflate',
+    'gzip,invalid', 'deflate,notvalid', 'notvalid,gzip', 'invalid', '');
+  CompressionTypeResult: array [1 .. 9] of string =
+    ('deflate', 'gzip', 'deflate', 'gzip',
+    'gzip', 'deflate', 'gzip', '', '');
+begin
+  j := 1;
+  for lCompType in CompressionTypes do
+  begin
+    RESTClient.RequestHeaders.Values['Accept-Encoding'] := lCompType;
+    LRes := RESTClient.doGET('/wrappedpeople', [], ['count'], ['100']);
+    Assert.areEqual(CompressionTypeResult[j], LRes.HeaderValue('Content-Encoding'));
+    lJSONArr := TMVCJsonDataObjectsSerializer.ParseArray(LRes.BodyAsString);
+    try
+      for I := 0 to lJSONArr.Count - 1 do
+      begin
+        Assert.isFalse(lJSONArr.O[I].s['firstname'].IsEmpty);
+        Assert.isFalse(lJSONArr.O[I].s['lastname'].IsEmpty);
+        Assert.isFalse(lJSONArr.O[I].s['dob'].IsEmpty);
+        Assert.areEqual<TJsonDataType>(jdtBool, lJSONArr.O[I].Types['married']);
+      end;
+    finally
+      lJSONArr.Free;
+    end;
+    Inc(j);
+  end;
+end;
+
 procedure TServerTest.TestExceptionInMVCAfterCreate;
 var
   res: IRESTResponse;
@@ -885,7 +926,7 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('Hello World', res.BodyAsString);
   Assert.areEqual('application/json', res.ContentType);
-  Assert.areEqual('utf-8', res.ContentEncoding);
+  Assert.areEqual('utf-8', res.ContentTypeCharset);
 end;
 
 procedure TServerTest.TestProducesConsumes02;
@@ -895,7 +936,7 @@ begin
   res := RESTClient.Accept('text/plain').ContentType('text/plain').doPOST('/testconsumes', [], 'Hello World');
   Assert.areEqual('Hello World', res.BodyAsString);
   Assert.areEqual('text/plain', res.ContentType);
-  Assert.areEqual('UTF-8', res.ContentEncoding);
+  Assert.areEqual('UTF-8', res.ContentTypeCharset);
 
   res := RESTClient.Accept('text/plain').ContentType('application/json')
     .doPOST('/testconsumes', [], '{"name": "Daniele"}');
@@ -912,7 +953,7 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.AreNotEqual('אטילעש', res.BodyAsString, 'non iso8859-1 text is rendered ok whan should not');
   Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
-  Assert.areEqual(TMVCCharSet.ISO88591, res.ContentEncoding.ToLower);
+  Assert.areEqual(TMVCCharSet.ISO88591, res.ContentTypeCharset.ToLower);
 
   res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN)
     .ContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591)).doPOST('/testconsumes/textiso8859_1',
@@ -920,7 +961,7 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
   Assert.areEqual('this is an iso8859-1 text', res.BodyAsString);
   Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType);
-  Assert.areEqual(TMVCCharSet.ISO88591, res.ContentEncoding.ToLower);
+  Assert.areEqual(TMVCCharSet.ISO88591, res.ContentTypeCharset.ToLower);
 
 end;
 
@@ -1211,7 +1252,6 @@ end;
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;
 var
   lReq: TJSONRPCRequest;
-  lHttpResp: IRESTResponse;
   lResp: TJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;
@@ -1235,7 +1275,6 @@ end;
 procedure TJSONRPCServerTest.TestRequestWithoutParams;
 var
   lReq: TJSONRPCNotification;
-  lResp: IRESTResponse;
 begin
   lReq := TJSONRPCNotification.Create;
   try
@@ -1250,7 +1289,6 @@ end;
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_I;
 var
   lReq: TJSONRPCRequest;
-  lHttpResp: IRESTResponse;
   lResp: TJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;
@@ -1274,9 +1312,8 @@ end;
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_A;
 var
   lReq: TJSONRPCRequest;
-  lResp: IRESTResponse;
   lRPCResp: TJSONRPCResponse;
-  lArr: TJDOJsonArray;
+  lArr: TJDOJSONArray;
   I: Integer;
   x: Integer;
 begin
@@ -1288,12 +1325,12 @@ begin
     lReq.RequestID := 1234;
     lRPCResp := FExecutor.ExecuteRequest(lReq);
     try
-      lArr := TJDOJsonArray(lRPCResp.Result.AsObject);
+      lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
       x := 1;
       for I := 0 to lArr.Count - 1 do
       begin
         Assert.areEqual(x, lArr[I].IntValue);
-        inc(x);
+        Inc(x);
       end;
     finally
       lRPCResp.Free;
@@ -1306,7 +1343,6 @@ end;
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_I_ret_O;
 var
   lReq: TJSONRPCRequest;
-  lResp: IRESTResponse;
   lRPCResp: TJSONRPCResponse;
   lS: string;
 begin
@@ -1339,7 +1375,6 @@ end;
 procedure TJSONRPCServerTest.TestRequest_S_I_ret_S;
 var
   lReq: TJSONRPCRequest;
-  lResp: IRESTResponse;
   lRPCResp: TJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;

@@ -383,11 +383,13 @@ type
     property ApplicationSession: TWebApplicationSession read GetApplicationSession write SetApplicationSession;
   end;
 
+  TMVCResponse = class;
   TMVCErrorResponse = class;
 
   IMVCRenderer = interface
     ['{2FF6DAC8-2F19-4C78-B9EC-A86296847D39}']
-    procedure Render(const AContent: string); overload;
+    procedure Render(const AContent: string);
+      overload;
     procedure Render(const AObject: TObject); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
@@ -404,7 +406,7 @@ type
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
     procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = ''); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil; const AOwns: Boolean = True); overload;
-    procedure Render(const AError: TMVCErrorResponse; const AOwns: Boolean = True); overload;
+    procedure Render(const AResponse: TMVCResponse; const AOwns: Boolean = True); overload;
     // SSE Support
     procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = '';
       const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
@@ -457,9 +459,10 @@ type
       const ASerializationType: TMVCDatasetSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
-    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = ''); overload;
+    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = '';
+      const ADataObject: TObject = nil); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil; const AOwns: Boolean = True); overload;
-    procedure Render(const AError: TMVCErrorResponse; const AOwns: Boolean = True); overload;
+    procedure Render(const AResponse: TMVCResponse; const AOwns: Boolean = True); overload;
     // SSE Support
     procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = '';
       const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
@@ -662,25 +665,32 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
-  TMVCErrorResponse = class
+  TMVCResponse = class
   private
     FStatusCode: Integer;
     FReasonString: string;
     FMessage: string;
-    FClassname: string;
-    FItems: TObjectList<TMVCErrorResponseItem>;
+    fDataObject: TObject;
   protected
     { protected declarations }
   public
-    constructor Create; overload;
+    constructor Create; overload; virtual;
     constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
-    destructor Destroy; override;
-
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write FReasonString;
     property message: string read FMessage write FMessage;
-    property Classname: string read FClassname write FClassname;
+    property Data: TObject read fDataObject write fDataObject;
+  end;
 
+  [MVCNameCase(ncLowerCase)]
+  TMVCErrorResponse = class(TMVCResponse)
+  private
+    FClassname: string;
+    FItems: TObjectList<TMVCErrorResponseItem>;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    property Classname: string read FClassname write FClassname;
     [MVCListOf(TMVCErrorResponseItem)]
     property Items: TObjectList<TMVCErrorResponseItem> read FItems;
   end;
@@ -1565,6 +1575,7 @@ begin
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
   Config[TMVCConfigKey.SessionType] := 'memory';
   Config[TMVCConfigKey.IndexDocument] := 'index.html';
+  Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
 
   FMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
   FMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
@@ -1842,7 +1853,7 @@ var
   WasDateTime: Boolean;
 begin
   if AContext.Request.SegmentParamsCount <> Length(AActionFormalParams) then
-    raise EMVCException.CreateFmt('Paramaters count mismatch (expected %d actual %d) for action "%s"',
+    raise EMVCException.CreateFmt('Parameters count mismatch (expected %d actual %d) for action "%s"',
       [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AActionName]);
 
   SetLength(AActualParams, Length(AActionFormalParams));
@@ -1851,7 +1862,7 @@ begin
     ParamName := AActionFormalParams[I].Name;
 
     if not AContext.Request.SegmentParam(ParamName, StrValue) then
-      raise EMVCException.CreateFmt('Invalid paramater %s for action %s (Hint: Here parameters names are case-sensitive)',
+      raise EMVCException.CreateFmt('Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
         [ParamName, AActionName]);
 
     case AActionFormalParams[I].ParamType.TypeKind of
@@ -2524,7 +2535,7 @@ begin
   SendStream(AStream, AOwns);
 end;
 
-procedure TMVCRenderer.Render(const AErrorCode: Integer; const AErrorMessage, AErrorClassName: string);
+procedure TMVCRenderer.Render(const AErrorCode: Integer; const AErrorMessage, AErrorClassName: string; const ADataObject: TObject);
 var
   R: TMVCErrorResponse;
 begin
@@ -2538,6 +2549,7 @@ begin
       R.ReasonString := 'error';
     R.Message := AErrorMessage;
     R.Classname := AErrorClassName;
+    R.Data := ADataObject;
     Render(R, False, stProperties);
   finally
     R.Free;
@@ -2736,20 +2748,20 @@ begin
   end;
 end;
 
-procedure TMVCRenderer.Render(const AError: TMVCErrorResponse; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const AResponse: TMVCResponse; const AOwns: Boolean);
 begin
-  if Assigned(AError) then
+  if Assigned(AResponse) then
   begin
     try
-      GetContext.Response.StatusCode := AError.StatusCode;
-      Render(AError, False, stProperties);
+      GetContext.Response.StatusCode := AResponse.StatusCode;
+      Render(AResponse, False, stProperties);
     finally
       if AOwns then
-        AError.Free;
+        AResponse.Free;
     end;
   end
   else
-    raise EMVCException.Create('Cannot render an empty error object.');
+    raise EMVCException.Create('Cannot render an empty response object.');
 end;
 
 procedure TMVCRenderer.Render(const ADataSet: TDataSet);
@@ -2778,15 +2790,18 @@ begin
   Render(ADataSet, AOwns, [], ASerializationType);
 end;
 
-{ TMVCErrorResponse }
+constructor TMVCResponse.Create;
+begin
+  inherited Create;
+end;
 
 constructor TMVCErrorResponse.Create;
 begin
   inherited Create;
-  FItems := TObjectList<TMVCErrorResponseItem>.Create;
+  FItems := TObjectList<TMVCErrorResponseItem>.Create(True);
 end;
 
-constructor TMVCErrorResponse.Create(AStatusCode: Integer; AReasonString, AMessage: string);
+constructor TMVCResponse.Create(AStatusCode: Integer; AReasonString, AMessage: string);
 begin
   Create;
   StatusCode := AStatusCode;

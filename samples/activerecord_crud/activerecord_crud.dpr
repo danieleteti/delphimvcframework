@@ -4,7 +4,7 @@ program activerecord_crud;
 
 
 uses
-//  FastMM4,
+  // FastMM4,
   FireDAC.Phys.FB,
   System.SysUtils,
   MVCFramework.Logger,
@@ -32,6 +32,7 @@ var
   lCustomHandler: TMVCCustomREPLCommandsHandler;
   lCmd: string;
 begin
+  ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   if ParamCount >= 1 then
     lCmd := ParamStr(1)
@@ -41,6 +42,7 @@ begin
   lCustomHandler := function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
     begin
       Handled := False;
+      Result := THandleCommandResult.Continue;
       if (Value = '/firebird') then
       begin
         REPLEmit('Using FirebirdSQL');
