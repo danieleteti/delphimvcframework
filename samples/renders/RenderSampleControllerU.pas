@@ -49,7 +49,7 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
     [MVCProduces('application/json')]
-    procedure GetCustomers_AsDataSet(CTX: TWebContext);
+    procedure GetCustomers_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/metadata')]
@@ -225,7 +225,7 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers_AsDataSet(CTX: TWebContext);
+procedure TRenderSampleController.GetCustomers_AsDataSet;
 var
   lDM: TMyDataModule;
 begin

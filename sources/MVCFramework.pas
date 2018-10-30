@@ -54,7 +54,7 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Serializer.JSON,
+  //MVCFramework.Serializer.JSON,
 
 {$IFDEF WEBAPACHEHTTP}
   Web.ApacheHTTP, // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP

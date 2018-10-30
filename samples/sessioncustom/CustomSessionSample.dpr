@@ -10,7 +10,7 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   AppControllerU in 'AppControllerU.pas',
   MemoryWebSessionController in 'MemoryWebSessionController.pas';
 
@@ -19,9 +19,6 @@ uses
 
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
@@ -29,17 +26,9 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort)+'/login/john'), nil, nil, SW_SHOW);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/login/john'), nil, nil, SW_SHOW);
+    Writeln('Press RETURN to Exit');
+    ReadLn;
   finally
     LServer.Free;
   end;
@@ -55,6 +44,6 @@ begin
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
-  end
+  end;
 
 end.

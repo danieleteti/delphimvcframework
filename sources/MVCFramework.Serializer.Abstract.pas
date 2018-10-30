@@ -64,7 +64,9 @@ implementation
 
 { TMVCAbstractSerializer }
 
-uses MVCFramework.Cache;
+uses
+  MVCFramework.Cache,
+  MVCFramework.Logger;
 
 constructor TMVCAbstractSerializer.Create;
 begin
@@ -92,7 +94,8 @@ begin
       Exit(MVCNameCaseAttribute(Att).KeyCase);
 end;
 
-function TMVCAbstractSerializer.GetDataType(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: TMVCDataType): TMVCDataType;
+function TMVCAbstractSerializer.GetDataType(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: TMVCDataType)
+  : TMVCDataType;
 var
   ObjType: TRttiType;
   ObjFld: TRttiField;
@@ -228,6 +231,7 @@ end;
 
 procedure TMVCAbstractSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
 begin
+  LogD('Registering TypeSerializer for: ' + string(ATypeInfo.Name));
   FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
 end;
 

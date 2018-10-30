@@ -80,12 +80,10 @@ def run_unit_tests():
     import os
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
-    tests = [
-        "unittests\serializer\systemjson\TestSerializerJSON.dproj",
+    tests = [        
         "unittests\serializer\jsondataobjects\TestSerializerJsonDataObjects.dproj"
     ]
     testsexe = [
-        "unittests\serializer\systemjson\Win32\CI\TestSerializerJSON.exe",
         "unittests\serializer\jsondataobjects\Win32\CI\TestSerializerJsonDataObjects.exe"        
     ]   
     i = 0 

@@ -81,6 +81,7 @@
 - New! Added `gzip` and `deflate` support in `TRestClient` when reading responses
 - `TCompressionMiddleware` has been renamed in `TMVCCompressionMiddleware`
 - New! `TMVCCompressionMiddleware` is added by IDE Expert by default
+- Removed the old JSON serializer based on `System.JSON.pas', now the only available JSON serializer is based on [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (Thank you Andreas Hausladen).
 
   
 ## How to correctly get the source
