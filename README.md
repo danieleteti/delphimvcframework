@@ -84,6 +84,7 @@
 - Removed the old JSON serializer based on `System.JSON.pas', now the only available JSON serializer is based on [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (Thank you Andreas Hausladen).
 - Changed! Custom Types Serializer *must* be registered by media-type only, without charset definition (e.g. just `application/json` and not `application/json;charset=utf-8`)
 - Changed! `IMVCTypeSerializer` is more powerful and simple to use!
+- Sending wrongly formatted JSON now returns a more correctly `400 Bad Request` and not `500 Internal Server Error` as in the previous versions
 - New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
 
   
