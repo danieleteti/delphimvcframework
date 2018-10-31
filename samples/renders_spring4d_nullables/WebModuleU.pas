@@ -64,11 +64,11 @@ begin
   FMVC.AddController(TMyController);
   // To enable compression (deflate, gzip) just add this middleware as the last one
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
-  FMVC.Serializers.Items[BuildContentType('application/json', 'utf-8')]
+  FMVC.Serializers.Items['application/json']
     .RegisterTypeSerializer(typeinfo(Nullable<System.Integer>), TNullableIntegerSerializer.Create);
-  FMVC.Serializers.Items[BuildContentType('application/json', 'utf-8')]
+  FMVC.Serializers.Items['application/json']
     .RegisterTypeSerializer(typeinfo(Nullable<System.Currency>), TNullableCurrencySerializer.Create);
-  FMVC.Serializers.Items[BuildContentType('application/json', 'utf-8')]
+  FMVC.Serializers.Items['application/json']
     .RegisterTypeSerializer(typeinfo(Nullable<System.string>), TNullableStringSerializer.Create);
   // FMVC.Serializers.Items[BuildContentType('application/json', 'utf-8')]
   // .RegisterTypeSerializer(typeinfo(TPerson), TPersonSerializer.Create);

@@ -188,7 +188,7 @@ begin
   if not IsValid then
   begin
     AuthHeader := AContext.Request.Headers['Authorization'];
-    AuthHeader := TMVCSerializerHelpful.DecodeString(AuthHeader.Remove(0, 'Basic'.Length).Trim);
+    AuthHeader := TMVCSerializerHelper.DecodeString(AuthHeader.Remove(0, 'Basic'.Length).Trim);
     AuthPieces := AuthHeader.Split([':']);
     if AuthHeader.IsEmpty or (Length(AuthPieces) <> 2) then
     begin

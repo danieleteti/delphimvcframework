@@ -177,6 +177,10 @@ type
     procedure TestTypedDateTimeTypes;
     [Test]
     procedure TestTypedBooleans;
+    [Test]
+    procedure TestStringDictionary;
+    [Test]
+    procedure TestWrongJSONBody;
   end;
 
   [TestFixture]
@@ -1102,6 +1106,31 @@ begin
   DoLogout;
 end;
 
+procedure TServerTest.TestStringDictionary;
+var
+  LRes: IRESTResponse;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lDict: TMVCStringDictionary;
+begin
+  LRes := RESTClient.doPOST('/stringdictionary', [], '{"prop1":"value1","prop2":"value2"}');
+  Assert.areEqual(200, LRes.ResponseCode);
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lDict := TMVCStringDictionary.Create;
+    try
+      lSer.DeserializeObject(LRes.BodyAsString, lDict);
+      Assert.areEqual(3, lDict.Count);
+      Assert.areEqual('value1', lDict['prop1']);
+      Assert.areEqual('value2', lDict['prop2']);
+      Assert.areEqual('changed', lDict['fromserver']);
+    finally
+      lDict.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+
 procedure TServerTest.TestTypedAll;
 var
   res: IRESTResponse;
@@ -1187,6 +1216,14 @@ begin
   res := RESTClient.doGET('/typed/string1/daniele', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
   Assert.areEqual('daniele modified from server', res.BodyAsString);
+end;
+
+procedure TServerTest.TestWrongJSONBody;
+var
+  LRes: IRESTResponse;
+begin
+  LRes := RESTClient.doPOST('/stringdictionary', [], '{"prop1","value1"}');
+  Assert.areEqual(HTTP_STATUS.BadRequest, LRes.ResponseCode);
 end;
 
 procedure TServerTest.TestTypedDateTimeTypes;

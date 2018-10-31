@@ -158,6 +158,7 @@
         <DCCReference Include="JSONRPCTestsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

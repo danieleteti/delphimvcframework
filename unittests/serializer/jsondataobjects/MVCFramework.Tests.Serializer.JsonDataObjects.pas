@@ -94,6 +94,9 @@ type
     { full cycle }
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
+    [Test]
+    procedure TestStringDictionary;
+
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -109,9 +112,36 @@ type
     procedure SerializeAttribute(const AElementValue: TValue;
       const APropertyName: string; const ASerializerObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject;
+      const AObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeAttribute(var AElementValue: TValue;
+      const APropertyName: string; const ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+
+  end;
+
+  TMVCNullableIntegerSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure DeserializeAttribute(var AElementValue: TValue;
+      const APropertyName: string; const ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject;
+      const AObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure SerializeAttribute(const AElementValue: TValue;
+      const APropertyName: string; const ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject;
+      out ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
   end;
 
 implementation
+
+uses
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes,
+  MVCFramework.Commons;
 
 const
   LINE_BREAK = #$A;
@@ -123,7 +153,11 @@ procedure TMVCTestSerializerJsonDataObjects.Setup;
 begin
   inherited;
   FSerializer := TMVCJsonDataObjectsSerializer.Create;
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TStream), TStreamSerializerJsonDataObject.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TStringStream), TStreamSerializerJsonDataObject.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMemoryStream), TStreamSerializerJsonDataObject.Create);
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>), TMVCNullableIntegerSerializerJsonDataObjects.Create);
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TearDown;
@@ -446,9 +480,9 @@ const
   JSON =
     '{' +
     '"Entity":{' +
-    '"AId":1,' +
-    '"ACode":2,' +
-    '"AName":"Ezequiel Juliano Müller"' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller"' +
     '},' +
     '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' +
     '"NotesAsString":"Ezequiel Juliano Müller"' +
@@ -473,9 +507,9 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomSerialize
 const
   JSON =
     '{' +
-    '"AId":1,' +
-    '"ACode":2,' +
-    '"AName":"Ezequiel Juliano Müller"' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"Ezequiel Juliano Müller"' +
     '}';
 var
   O: TEntityCustom;
@@ -1131,6 +1165,35 @@ begin
   Assert.areEqual('null', FSerializer.SerializeObject(nil));
 end;
 
+procedure TMVCTestSerializerJsonDataObjects.TestStringDictionary;
+var
+  lDict: TMVCStringDictionary;
+  lSerString: string;
+  lDict2: TMVCStringDictionary;
+begin
+  lDict := TMVCStringDictionary.Create;
+  try
+    lDict['prop1'] := 'value1';
+    lDict['prop2'] := 'value2';
+    lDict['prop3'] := 'value3';
+    lSerString := FSerializer.SerializeObject(lDict);
+    lDict2 := TMVCStringDictionary.Create;
+    try
+      FSerializer.DeserializeObject(lSerString, lDict2);
+      Assert.isTrue(lDict2.ContainsKey('prop1'));
+      Assert.isTrue(lDict2.ContainsKey('prop2'));
+      Assert.isTrue(lDict2.ContainsKey('prop3'));
+      Assert.areEqual(lDict['prop1'], lDict2['prop1']);
+      Assert.areEqual(lDict['prop2'], lDict2['prop2']);
+      Assert.areEqual(lDict['prop3'], lDict2['prop3']);
+    finally
+      lDict2.Free;
+    end;
+  finally
+    lDict.Free;
+  end;
+end;
+
 { TMVCEntityCustomSerializerJsonDataObjects }
 
 procedure TMVCEntityCustomSerializerJsonDataObjects.Deserialize(
@@ -1150,6 +1213,50 @@ begin
       EntityCustom.Code := JsonObject['ACode'].IntValue;
       EntityCustom.Name := JsonObject['AName'].Value;
     end;
+  end;
+end;
+
+procedure TMVCEntityCustomSerializerJsonDataObjects.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+  DeserializeRoot(ASerializerObject, AElementValue.AsObject, AAttributes);
+end;
+
+procedure TMVCEntityCustomSerializerJsonDataObjects.DeserializeRoot(
+  const ASerializerObject, AObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+var
+  lEntity: TEntityCustom;
+  lJSON: TJDOJsonObject;
+  lAttr: TCustomAttribute;
+  lAsLowerCase: Boolean;
+begin
+  lEntity := TEntityCustom(AObject);
+  lJSON := ASerializerObject as TJDOJsonObject;
+  lAsLowerCase := False;
+  for lAttr in AAttributes do
+  begin
+    if lAttr is MVCNameCaseAttribute then
+    begin
+      lAsLowerCase := MVCNameCaseAttribute(lAttr).KeyCase = ncLowerCase;
+      break;
+    end;
+  end;
+
+  if lAsLowerCase then
+  begin
+    lEntity.Id := lJSON.I['id'];
+    lEntity.Code := lJSON.I['code'];
+    lEntity.Name := lJSON.S['name'];
+  end
+  else
+  begin
+    // as is (upper case is not supported by the custom type serializer)
+    lEntity.Id := lJSON.I['Id'];
+    lEntity.Code := lJSON.I['Code'];
+    lEntity.Name := lJSON.S['Name'];
   end;
 end;
 
@@ -1204,6 +1311,38 @@ begin
     TJsonObject(ASerializerObject).I['ACode'] := lEntityCustom.Code;
     TJsonObject(ASerializerObject).S['AName'] := lEntityCustom.Name;
   end;
+end;
+
+{ TMVCNullableIntegerSerializerJsonDataObjects }
+
+procedure TMVCNullableIntegerSerializerJsonDataObjects.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TMVCNullableIntegerSerializerJsonDataObjects.DeserializeRoot(
+  const ASerializerObject, AObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeAttribute(
+  const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeRoot(
+  const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
 end;
 
 initialization

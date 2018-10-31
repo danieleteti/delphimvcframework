@@ -180,6 +180,9 @@ type
     [MVCPath('/renderstreamandfreewithownertrue')]
     procedure TestRenderStreamAndFreeWithOwnerTrue;
 
+    [MVCPath('/stringdictionary')]
+    procedure TestStringDictionary;
+
   end;
 
   [MVCPath('/private')]
@@ -494,6 +497,19 @@ var
 begin
   LStream := TMemoryStream.Create;
   Render(LStream, True);
+end;
+
+procedure TTestServerController.TestStringDictionary;
+var
+  lDict: TMVCStringDictionary;
+begin
+  lDict := Context.Request.BodyAs<TMVCStringDictionary>;
+  try
+    lDict['fromserver'] := 'changed';
+    Render(lDict, false);
+  finally
+    lDict.Free;
+  end;
 end;
 
 procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;

@@ -210,8 +210,10 @@ type
   TEntityCustomWithNullables = class(TEntityCustom)
   private
     FNullableInteger: TMVCNullable<Integer>;
+    FNullableString: TMVCNullable<string>;
   public
     property NullableInteger: TMVCNullable<Integer> read FNullableInteger write FNullableInteger;
+    property NullableString: TMVCNullable<string> read FNullableString write FNullableString;
   end;
 
   TColorEnum = (RED, GREEN, BLUE);
@@ -225,6 +227,7 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
+    [MVCNameAs('Name')]
     property name: string read FName write FName;
     property Color: TColorEnum read FColor write FColor;
   end;
@@ -250,6 +253,7 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
+    [MVCNameAs('Name')]
     property name: string read FName write FName;
   end;
 

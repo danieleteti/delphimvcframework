@@ -54,7 +54,7 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
-  //MVCFramework.Serializer.JSON,
+  // MVCFramework.Serializer.JSON,
 
 {$IFDEF WEBAPACHEHTTP}
   Web.ApacheHTTP, // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
@@ -848,9 +848,9 @@ var
   lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if FSerializers.TryGetValue(ContentType, lSerializer) then
+  if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
-    Obj := TMVCSerializerHelpful.CreateObject(TClass(T).QualifiedClassName);
+    Obj := TMVCSerializerHelper.CreateObject(TClass(T).QualifiedClassName);
     try
       lSerializer.DeserializeObject(Body, Obj);
       Result := Obj as T;
@@ -872,7 +872,7 @@ var
   lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if FSerializers.TryGetValue(ContentType, lSerializer) then
+  if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
     List := TObjectList<T>.Create(True);
     try
@@ -892,7 +892,7 @@ var
   lSerializer: IMVCSerializer;
 begin
   if Assigned(AObject) then
-    if FSerializers.TryGetValue(ContentType, lSerializer) then
+    if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
       lSerializer.DeserializeObject(Body, AObject)
     else
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
@@ -903,7 +903,7 @@ var
   lSerializer: IMVCSerializer;
 begin
   if Assigned(AObjectList) then
-    if FSerializers.TryGetValue(ContentType, lSerializer) then
+    if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
       lSerializer.DeserializeCollection(Body, AObjectList, T)
     else
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);

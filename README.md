@@ -57,7 +57,7 @@
   
 ## What's New
 
-### 3.1.0 lithium (currently in beta)
+### DelphiMVCFramework 3.1.0 lithium (currently in beta)
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
 - New! Added `TMVCActiveRecordController` (check sample `activerecord_crud`)
 - Automatic permissions handling for `TMVCActiveRecordController` (check sample `activerecord_crud`)
@@ -72,7 +72,7 @@
 - New! Added method `TMVCJsonDataObjectsSerializer.ListToJsonArray`
 - New! `TMVCResponse` for handle generic (non error) response
 - New! `TMVCErrorResponse` for handle generic error response
-- New! Added class `TMVCActiveRecordList` used in the no-automatic `TMVCActiveRecord` programming
+- New! Added class `TMVCActiveRecordList` used in the manual `TMVCActiveRecord` programming
 - New! Added `gzip` compression support in addition to `deflate` in `TCompressionMiddleware`
 - FIX for [issue #143](https://github.com/danieleteti/delphimvcframework/issues/143)
 - FIX for [issue #141](https://github.com/danieleteti/delphimvcframework/issues/141)
@@ -82,6 +82,9 @@
 - `TCompressionMiddleware` has been renamed in `TMVCCompressionMiddleware`
 - New! `TMVCCompressionMiddleware` is added by IDE Expert by default
 - Removed the old JSON serializer based on `System.JSON.pas', now the only available JSON serializer is based on [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (Thank you Andreas Hausladen).
+- Changed! Custom Types Serializer *must* be registered by media-type only, without charset definition (e.g. just `application/json` and not `application/json;charset=utf-8`)
+- Changed! `IMVCTypeSerializer` is more powerful and simple to use!
+- New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
 
   
 ## How to correctly get the source

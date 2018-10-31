@@ -339,7 +339,11 @@ type
   end;
 
   TMVCStringDictionary = class
-  strict protected
+  strict
+    private
+    function GetItems(const Key: string): string;
+    procedure SetItems(const Key, Value: string);
+  protected
     FDict: TDictionary<string, string>;
   public
     constructor Create; virtual;
@@ -349,6 +353,8 @@ type
     function TryGetValue(const Name: string; out Value: string): Boolean;
     function Count: Integer;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+    function ContainsKey(const Key: string): Boolean;
+    property Items[const Key: string]: string read GetItems write SetItems; default;
   end;
 
   { This type is thread safe }
@@ -451,10 +457,10 @@ const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
   MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
 
-
 const
   MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none', 'deflate', 'gzip');
-  MVC_COMPRESSION_ZLIB_WINDOW_BITS: array [TMVCCompressionType] of Integer = (0, -15, 31); // WindowBits: http://zlib.net/manual.html#Advanced
+  MVC_COMPRESSION_ZLIB_WINDOW_BITS: array [TMVCCompressionType] of Integer = (0, -15, 31);
+  // WindowBits: http://zlib.net/manual.html#Advanced
 
 var
   Lock: TObject;
@@ -753,6 +759,11 @@ begin
   FDict.Clear;
 end;
 
+function TMVCStringDictionary.ContainsKey(const Key: string): Boolean;
+begin
+  Result := FDict.ContainsKey(Key);
+end;
+
 function TMVCStringDictionary.Count: Integer;
 begin
   Result := FDict.Count;
@@ -773,6 +784,17 @@ end;
 function TMVCStringDictionary.GetEnumerator: TDictionary<string, string>.TPairEnumerator;
 begin
   Result := FDict.GetEnumerator;
+end;
+
+function TMVCStringDictionary.GetItems(const Key: string): string;
+begin
+  Result := '';
+  FDict.TryGetValue(Key, Result);
+end;
+
+procedure TMVCStringDictionary.SetItems(const Key, Value: string);
+begin
+  FDict.AddOrSetValue(Key, Value);
 end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
