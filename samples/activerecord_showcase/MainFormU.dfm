@@ -78,12 +78,21 @@ object MainForm: TMainForm
   end
   object btnMultiThreading: TButton
     Left = 8
-    Top = 207
+    Top = 247
     Width = 121
     Height = 34
     Caption = 'Multi Threading'
     TabOrder = 6
     OnClick = btnMultiThreadingClick
+  end
+  object btnRQL: TButton
+    Left = 8
+    Top = 207
+    Width = 121
+    Height = 34
+    Caption = 'RQL Query'
+    TabOrder = 7
+    OnClick = btnRQLClick
   end
   object FDConnection1: TFDConnection
     Params.Strings = (

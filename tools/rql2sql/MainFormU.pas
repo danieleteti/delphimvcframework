@@ -48,14 +48,16 @@ implementation
 uses
   System.IOUtils,
   MVCFramework.RQL.Parser,
-  System.TypInfo;
+  System.TypInfo,
+  MVCFramework.RQL.AST2FirebirdSQL,
+  MVCFramework.RQL.AST2MySQL;
 
 {$R *.dfm}
 
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  I: TRQLBackend;
+  lComp: string;
 begin
   if TFile.Exists('rqlhistory.txt') then
   begin
@@ -63,9 +65,9 @@ begin
   end;
 
   rgBackend.Items.Clear;
-  for I := low(TRQLBackend) to high(TRQLBackend) do
+  for lComp in TRQLCompilerRegistry.Instance.RegisteredCompilers do
   begin
-    rgBackend.Items.Add(GetEnumName(TypeInfo(TRQLBackend), Ord(I)));
+    rgBackend.Items.AddObject(lComp, TRQLCompilerRegistry.Instance.GetCompiler(lComp).Create(nil));
   end;
   rgBackend.ItemIndex := 0;
 end;
@@ -87,7 +89,7 @@ begin
   lParser := TRQL2SQL.Create;
   try
     try
-      lParser.Execute(edtExpression.Text, lSQL, nil, TRQLBackend(rgBackend.ItemIndex));
+      lParser.Execute(edtExpression.Text, lSQL, TRQLCompiler(rgBackend.Items.Objects[rgBackend.ItemIndex]));
       mmSQL.Lines.Text := lSQL;
     except
       on E: Exception do
@@ -101,8 +103,14 @@ begin
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
+var
+  i: Integer;
 begin
   SaveHistory;
+  for i := 0 to rgBackend.Items.count - 1 do
+  begin
+    rgBackend.Items.Objects[i].Free;
+  end;
 end;
 
 procedure TMainForm.lbRQLClick(Sender: TObject);

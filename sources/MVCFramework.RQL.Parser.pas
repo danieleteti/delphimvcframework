@@ -28,9 +28,9 @@ interface
 
 uses
   System.Generics.Collections,
-
   System.Math,
-  System.SysUtils;
+  System.SysUtils,
+  MVCFramework.Commons;
 
 {
   http://www.persvr.org/rql/
@@ -75,15 +75,6 @@ uses
 }
 
 type
-  TMVCFieldMap = record
-    InstanceFieldName: string;
-    DatabaseFieldName: string;
-  end;
-
-  TMVCFieldsMapping = TArray<TMVCFieldMap>;
-
-  TRQLBackend = (cbFirebird, cbMySQL, cbInterbase);
-
   TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF, tkOpenPar, tkClosedPar,
     tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote, tkQuote, tkSpace, tkUnknown);
 
@@ -206,7 +197,10 @@ type
   public
     constructor Create(const MaxRecordCount: Integer = -1);
     destructor Destroy; override;
-    procedure Execute(const RQL: string; out SQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend);
+    procedure Execute(
+      const RQL: string;
+      out SQL: string;
+      const RQLCompiler: TRQLCompiler);
   end;
 
   TRQLCompilerRegistry = class sealed
@@ -215,7 +209,7 @@ type
 
   class var
     _Lock: TObject;
-    fCompilers: TDictionary<TRQLBackend, TRQLCompilerClass>;
+    fCompilers: TDictionary<string, TRQLCompilerClass>;
   protected
     constructor Create;
   public
@@ -223,9 +217,12 @@ type
     class function Instance: TRQLCompilerRegistry;
     class destructor Destroy;
     class constructor Create;
-    procedure RegisterCompiler(const aBackend: TRQLBackend; const aRQLBackendClass: TRQLCompilerClass);
-    procedure UnRegisterCompiler(const aBackend: TRQLBackend);
-    function GetCompiler(const aBackend: TRQLBackend): TRQLCompilerClass;
+    procedure RegisterCompiler(
+      const aBackend: string;
+      const aRQLBackendClass: TRQLCompilerClass);
+    procedure UnRegisterCompiler(const aBackend: string);
+    function GetCompiler(const aBackend: string): TRQLCompilerClass;
+    function RegisteredCompilers: TArray<string>;
   end;
 
 implementation
@@ -304,10 +301,11 @@ begin
   raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]);
 end;
 
-procedure TRQL2SQL.Execute(const RQL: string; out SQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend);
+procedure TRQL2SQL.Execute(
+  const RQL: string;
+  out SQL: string;
+  const RQLCompiler: TRQLCompiler);
 var
-  lCompilerClass: TRQLCompilerClass;
-  lCompiler: TRQLCompiler;
   lLimit: TRQLLimit;
 begin
   fAST.Clear;
@@ -351,13 +349,16 @@ begin
   end;
 
   // Emit code from AST using backend
-  lCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(RQLBackend);
-  lCompiler := lCompilerClass.Create(Mapping);
-  try
-    lCompiler.AST2SQL(fAST, SQL);
-  finally
-    lCompiler.Free;
-  end;
+  RQLCompiler.AST2SQL(fAST, SQL);
+
+  // Emit code from AST using backend
+  // lCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(RQLBackend);
+  // lCompiler := lCompilerClass.Create(Mapping);
+  // try
+  // lCompiler.AST2SQL(fAST, SQL);
+  // finally
+  // lCompiler.Free;
+  // end;
 end;
 
 function TRQL2SQL.GetToken:
@@ -869,7 +870,7 @@ end;
 constructor TRQLCompilerRegistry.Create;
 begin
   inherited;
-  fCompilers := TDictionary<TRQLBackend, TRQLCompilerClass>.Create;
+  fCompilers := TDictionary<string, TRQLCompilerClass>.Create;
 end;
 
 destructor TRQLCompilerRegistry.Destroy;
@@ -889,8 +890,7 @@ begin
   sInstance.Free;
 end;
 
-function TRQLCompilerRegistry.GetCompiler(
-  const aBackend: TRQLBackend): TRQLCompilerClass;
+function TRQLCompilerRegistry.GetCompiler(const aBackend: string): TRQLCompilerClass;
 begin
   if not fCompilers.TryGetValue(aBackend, Result) then
   begin
@@ -916,15 +916,17 @@ begin
   Result := sInstance;
 end;
 
-procedure TRQLCompilerRegistry.RegisterCompiler(const aBackend: TRQLBackend; const aRQLBackendClass: TRQLCompilerClass);
+procedure TRQLCompilerRegistry.RegisterCompiler(const aBackend: string; const aRQLBackendClass: TRQLCompilerClass);
 begin
   fCompilers.Add(aBackend, aRQLBackendClass);
 end;
 
-procedure TRQLCompilerRegistry.UnRegisterCompiler(
-  const
-  aBackend:
-  TRQLBackend);
+function TRQLCompilerRegistry.RegisteredCompilers: TArray<string>;
+begin
+  Result := fCompilers.Keys.ToArray;
+end;
+
+procedure TRQLCompilerRegistry.UnRegisterCompiler(const aBackend: string);
 begin
   fCompilers.Remove(aBackend);
 end;

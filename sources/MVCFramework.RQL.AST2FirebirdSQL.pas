@@ -31,13 +31,13 @@ uses
 
 type
   TRQLFirebirdCompiler = class(TRQLCompiler)
-  private
-    function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
-    function RQLSortToSQL(const aRQLSort: TRQLSort): string;
-    function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
-    function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
-    function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
-    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
+  protected
+    function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string; virtual;
+    function RQLSortToSQL(const aRQLSort: TRQLSort): string; virtual;
+    function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string; virtual;
+    function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string; virtual;
+    function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string; virtual;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual;
   public
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
@@ -45,7 +45,8 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  MVCFramework.ActiveRecord;
 
 { TRQLFirebirdCompiler }
 
@@ -204,12 +205,10 @@ end;
 
 initialization
 
-TRQLCompilerRegistry.Instance.RegisterCompiler(cbFirebird, TRQLFirebirdCompiler);
-TRQLCompilerRegistry.Instance.RegisterCompiler(cbInterbase, TRQLFirebirdCompiler);
+TRQLCompilerRegistry.Instance.RegisterCompiler('firebird', TRQLFirebirdCompiler);
 
 finalization
 
-TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbFirebird);
-TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbInterbase);
+TRQLCompilerRegistry.Instance.UnRegisterCompiler('firebird');
 
 end.

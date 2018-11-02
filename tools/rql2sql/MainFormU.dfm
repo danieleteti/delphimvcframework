@@ -82,9 +82,9 @@ object MainForm: TMainForm
     object lbRQL: TListBox
       AlignWithMargins = True
       Left = 9
-      Top = 103
+      Top = 117
       Width = 758
-      Height = 93
+      Height = 79
       Align = alClient
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -95,16 +95,19 @@ object MainForm: TMainForm
       ParentFont = False
       TabOrder = 1
       OnClick = lbRQLClick
+      ExplicitTop = 103
+      ExplicitHeight = 93
     end
     object Panel3: TPanel
       Left = 6
-      Top = 73
+      Top = 87
       Width = 764
       Height = 27
       Align = alTop
       BevelOuter = bvNone
       Caption = 'Panel3'
       TabOrder = 2
+      ExplicitTop = 73
       object edtExpression: TEdit
         AlignWithMargins = True
         Left = 3
@@ -130,7 +133,7 @@ object MainForm: TMainForm
       Left = 6
       Top = 6
       Width = 764
-      Height = 67
+      Height = 81
       Align = alTop
       Caption = 'RQL Backend'
       TabOrder = 3

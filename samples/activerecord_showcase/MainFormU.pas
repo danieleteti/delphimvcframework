@@ -38,10 +38,12 @@ type
     btnInheritance: TButton;
     btnValidation: TButton;
     btnMultiThreading: TButton;
+    btnRQL: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
     procedure btnRelationsClick(Sender: TObject);
+    procedure btnRQLClick(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
     procedure btnValidationClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -133,16 +135,25 @@ var
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
 begin
-  TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC STARTING ''Company ''');
-  lProc := procedure
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
+    TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC STARTING ''Company ''')
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
+    TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC LIKE ''Company %''')
+  else
+    raise Exception.Create('Unknown backend for direct SQL execution');
+
+  lProc :=
+      procedure
     var
       lConn: TFDConnection;
-      lCustomer: TCustomer;
-      I: Integer;
+      lCustomer:
+        TCustomer;
+      I:
+        Integer;
     begin
       lConn := TFDConnection.Create(nil);
       try
-        lConn.ConnectionDefName := CON_DEF_NAME_FIREBIRD;
+        lConn.ConnectionDefName := CON_DEF_NAME;
         ActiveRecordConnectionsRegistry.AddConnection('default', lConn);
         lConn.Params.Assign(FDConnection1.Params);
         lConn.Open;
@@ -183,7 +194,56 @@ var
   lOrder: TOrder;
   lOrderRows: TObjectList<TOrderDetail>;
   lOrderRow: TOrderDetail;
+  lOrderDetail: TOrderDetail;
+  I: Integer;
+  j: Integer;
 begin
+  TCustomerEx.CurrentConnection.ExecSQL('DELETE FROM CLIENTI');
+
+  lOrder := TOrder.Create;
+  try
+    lOrder.CustomerID := 123;
+    lOrder.OrderDate := EncodeDate(2018, 10, 20);
+    lOrder.Total := 1234;
+    lOrder.Insert;
+  finally
+    lOrder.Free;
+  end;
+
+  lCustomer := TCustomerEx.Create;
+  try
+    lCustomer.Code := '001';
+    lCustomer.CompanyName := 'Google Inc.';
+    lCustomer.Insert;
+    for I := 1 to 3 do
+    begin
+      lCustomer.Orders.Add(TOrder.Create);
+      lCustomer.Orders.Last.CustomerID := lCustomer.ID;
+      lCustomer.Orders.Last.OrderDate := EncodeDate(2018, 5 + I, 20 + I);
+      lCustomer.Orders.Last.Total := I * 3;
+      lCustomer.Orders.Last.Insert;
+
+      for j := 1 to 4 do
+      begin
+        lOrderDetail := TOrderDetail.Create;
+        try
+          lOrderDetail.OrderID := lCustomer.Orders.Last.ID;
+          lOrderDetail.ArticleID := j;
+          lOrderDetail.Price := Random(j * 10);
+          lOrderDetail.Discount := j;
+          lOrderDetail.Quantity := j * 2;
+          lOrderDetail.Description := 'MY PRODUCT ' + I.ToString + '/' + j.ToString;
+          lOrderDetail.Total := j * j * j;
+          lOrderDetail.Insert;
+        finally
+          lOrderDetail.Free;
+        end;
+      end;
+    end;
+  finally
+    lCustomer.Free;
+  end;
+
   lCustomer := TCustomerEx.GetOneByWhere<TCustomerEx>('Codice = ?', ['001']);
   try
     Log(lCustomer.CompanyName);
@@ -206,6 +266,24 @@ begin
   end;
 end;
 
+procedure TMainForm.btnRQLClick(Sender: TObject);
+var
+  lList: TMVCActiveRecordList;
+  lItem: TMVCActiveRecord;
+  lCustomer: TCustomer;
+begin
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, 'eq(City,"Rome")', 20);
+  try
+    for lItem in lList do
+    begin
+      lCustomer := TCustomer(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
+  end;
+end;
+
 procedure TMainForm.btnSelectClick(Sender: TObject);
 var
   lCustomers: TObjectList<TCustomer>;
@@ -213,7 +291,10 @@ var
   lDS: TDataSet;
 begin
   Log('** Query SQL');
-  lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google']);
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
+  else
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', []);
   try
     for lCustomer in lCustomers do
     begin
@@ -224,7 +305,10 @@ begin
   end;
 
   Log('** Query SQL returning DataSet');
-  lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google']);
+  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
+    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
+  else
+    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', []);
   try
     while not lDS.Eof do
     begin
@@ -265,13 +349,21 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  // To use Firebird uncomment the following line (and comment the next one)
   FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
+
+  // To use MySQL uncomment the following line  (and comment the previous one)
+  // FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+
   FDConnection1.Params.Clear;
-  FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME_FIREBIRD;
+  FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
   ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
 end;
 
-procedure TMainForm.Log(const Value: string);
+procedure TMainForm.Log(
+  const
+  Value:
+  string);
 begin
   Memo1.Lines.Add(Value);
   Memo1.Update;

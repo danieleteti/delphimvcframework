@@ -431,8 +431,14 @@ type
       var AIsAuthorized: Boolean);
   end;
 
-{$SCOPEDENUMS ON}
+  TMVCFieldMap = record
+    InstanceFieldName: string;
+    DatabaseFieldName: string;
+  end;
 
+  TMVCFieldsMapping = TArray<TMVCFieldMap>;
+
+{$SCOPEDENUMS ON}
   TMVCCompressionType = (ctNone, ctDeflate, ctGZIP);
 
 function AppPath: string;

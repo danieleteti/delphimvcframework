@@ -36,6 +36,7 @@ uses
   Data.DB,
   MVCFramework.Commons,
   MVCFramework.RQL.Parser,
+
   MVCFramework,
   MVCFramework.Serializer.Intf,
   FireDAC.Comp.Client,
@@ -52,6 +53,7 @@ type
   TMVCActiveRecordFieldOptions = set of TMVCActiveRecordFieldOption;
   TMVCEntityAction = (eaCreate, eaRetrieve, eaUpdate, eaDelete);
   TMVCEntityActions = set of TMVCEntityAction;
+  // TMVCActiveRecordBackend = (cbFirebird, cbMySQL, cbInterbase);
 
   IMVCEntityProcessor = interface
     ['{E7CD11E6-9FF9-46D2-B7B0-DA5B38EAA14E}']
@@ -99,6 +101,8 @@ type
 
   TMVCActiveRecord = class;
 
+  TMVCSQLGenerator = class;
+
   TMVCActiveRecordList = class(TObjectList<TMVCActiveRecord>)
   public
     constructor Create; virtual;
@@ -107,10 +111,11 @@ type
   TMVCActiveRecord = class
   private
     fConn: TFDConnection;
+    fSQLGenerator: TMVCSQLGenerator;
     fPrimaryKeyFieldName: string;
     fPrimaryKeyOptions: TMVCActiveRecordFieldOptions;
     fEntityAllowedActions: TMVCEntityActions;
-    function TableFieldsDelimited(const Delimiter: string = ','): string;
+    fRQL2SQL: TRQL2SQL;
     procedure MapColumnToTValue(const aFieldName: string; const aField: TField; const aRTTIField: TRttiField);
     procedure MapTValueToParam(const aValue: TValue; const aParam: TFDParam);
   protected
@@ -121,15 +126,11 @@ type
     fTableName: string;
     fMap: TDictionary<TRttiField, string>;
     fPrimaryKey: TRttiField;
+    fBackendDriver: string;
+    fMapping: TMVCFieldsMapping;
+    function GetBackEnd: string;
     function SelfConnection: TFDConnection;
     procedure InitTableInfo;
-    function CreateInsertSQL: string; virtual;
-    function CreateSelectByPKSQL(aPrimaryKey: int64): string; virtual;
-    function CreateSelectSQL: string; virtual;
-    function CreateUpdateSQL: string; virtual;
-    function CreateDeleteSQL: string; virtual;
-    function GetWhereByPrimaryKey: string; virtual;
-    function GetWhereByPrimaryKeyWithValue: string; virtual;
     class function ExecQuery(const SQL: string; const Values: array of Variant): TDataSet; overload;
     class function ExecQuery(const SQL: string; const Values: array of Variant; const Connection: TFDConnection): TDataSet; overload;
 
@@ -193,6 +194,7 @@ type
     /// </summary>
     procedure OnAfterInsertOrUpdate; virtual;
 
+    function GenerateSelectSQL: string;
   public
     constructor Create(aLazyLoadConnection: Boolean); overload; { cannot be virtual! }
     constructor Create; overload; virtual;
@@ -208,30 +210,54 @@ type
     procedure SetPK(const aValue: TValue);
     function GetPK: TValue;
     class function GetByPrimaryKey<T: TMVCActiveRecord, constructor>(const aValue: int64): T; overload;
-    class function GetByPrimaryKey(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord; overload;
-    class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant): TObjectList<T>; overload;
-    class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
-      : TMVCActiveRecordList; overload;
-    class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant;
-      const Connection: TFDConnection)
-      : TMVCActiveRecordList; overload;
-    class function SelectRQL(const aClass: TMVCActiveRecordClass;
-      const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend; const MaxRecordCount: Integer)
-      : TMVCActiveRecordList; overload;
-    class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
-      overload;
-    class function GetOneByWhere<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant;
+    class function GetByPrimaryKey(
+      const aClass: TMVCActiveRecordClass;
+      const aValue: int64): TMVCActiveRecord; overload;
+    class function Select<T: TMVCActiveRecord, constructor>(
+      const SQL: string;
+      const Params:
+      array of Variant): TObjectList<T>; overload;
+    class function Select(
+      const aClass: TMVCActiveRecordClass;
+      const SQL: string;
+      const Params: array of Variant): TMVCActiveRecordList; overload;
+    class function Select(
+      const aClass: TMVCActiveRecordClass;
+      const SQL: string;
+      const Params: array of Variant;
+      const Connection: TFDConnection): TMVCActiveRecordList; overload;
+    class function SelectRQL(
+      const aClass: TMVCActiveRecordClass;
+      const RQL: string;
+      const MaxRecordCount: Integer): TMVCActiveRecordList; overload;
+    function SelectRQL(
+      const RQL: string;
+      const MaxRecordCount: Integer): TMVCActiveRecordList; overload;
+    class function Where<T: TMVCActiveRecord, constructor>(
+      const SQLWhere: string;
+      const Params: array of Variant): TObjectList<T>; overload;
+    class function GetOneByWhere<T: TMVCActiveRecord, constructor>(
+      const SQLWhere: string;
+      const Params: array of Variant;
       const RaiseExceptionIfNotFound: Boolean = True): T;
-    class function GetFirstByWhere<T: TMVCActiveRecord, constructor>(const SQLWhere: string; const Params: array of Variant;
+    class function GetFirstByWhere<T: TMVCActiveRecord, constructor>(
+      const SQLWhere: string;
+      const Params: array of Variant;
       const RaiseExceptionIfNotFound: Boolean = True): T;
-    class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string; const Params: array of Variant)
-      : TMVCActiveRecordList; overload;
-    class function Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string; const Params: array of Variant;
-      const Connection: TFDConnection)
-      : TMVCActiveRecordList; overload;
+    class function Where(
+      const aClass: TMVCActiveRecordClass;
+      const SQLWhere: string;
+      const Params: array of Variant): TMVCActiveRecordList; overload;
+    class function Where(
+      const aClass: TMVCActiveRecordClass;
+      const SQLWhere: string;
+      const Params: array of Variant;
+      const Connection: TFDConnection): TMVCActiveRecordList; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>; overload;
-    class function SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
+    class function SelectDataSet(
+      const SQL: string;
+      const Params: array of Variant): TDataSet;
     class function CurrentConnection: TFDConnection;
   end;
 
@@ -264,6 +290,7 @@ type
     procedure RemoveConnection(const aName: string);
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
+    function GetCurrentBackend: string;
   end;
 
   TMVCConnectionsRepository = class(TInterfacedObject, IMVCActiveRecordConnections)
@@ -280,13 +307,80 @@ type
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
     function GetByName(const aName: string): TFDConnection;
+    function GetCurrentBackend: string;
+  end;
+
+  TMVCSQLGenerator = class abstract
+  private
+    fMapping: TMVCFieldsMapping;
+    fCompiler: TRQLCompiler;
+    fRQL2SQL: TRQL2SQL;
+  protected
+    function GetRQLParser: TRQL2SQL;
+    function GetCompiler: TRQLCompiler;
+    function GetCompilerClass: TRQLCompilerClass; virtual; abstract;
+    function GetMapping: TMVCFieldsMapping;
+    function TableFieldsDelimited(const Map: TDictionary<TRttiField, string>; const PKFieldName: string; const Delimiter: string): string;
+  public
+    constructor Create(Mapping: TMVCFieldsMapping); virtual;
+    destructor Destroy; override;
+    function CreateSelectSQLByRQL(
+      const RQL: string;
+      const Mapping: TMVCFieldsMapping): string; virtual; abstract;
+    function CreateSelectSQL(
+      const TableName: string;
+      const Map: TDictionary<TRttiField, string>;
+      const PKFieldName: string;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
+    function CreateSelectByPKSQL(
+      const TableName: string;
+      const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+      const PKOptions: TMVCActiveRecordFieldOptions;
+      const PrimaryKeyValue: int64): string; virtual; abstract;
+    function CreateInsertSQL(
+      const TableName: string;
+      const Map: TDictionary<TRttiField, string>;
+      const PKFieldName: string;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
+    function CreateUpdateSQL(
+      const TableName: string;
+      const Map: TDictionary<TRttiField, string>;
+      const PKFieldName: string;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
+    function CreateDeleteSQL(
+      const TableName: string;
+      const Map: TDictionary<TRttiField, string>;
+      const PKFieldName: string;
+      const PKOptions: TMVCActiveRecordFieldOptions;
+      const PrimaryKeyValue: int64): string; virtual; abstract;
+  end;
+
+  TMVCSQLGeneratorClass = class of TMVCSQLGenerator;
+
+  TMVCSQLGeneratorRegistry = class sealed
+  private
+    class var sInstance: TMVCSQLGeneratorRegistry;
+
+  class var
+    _Lock: TObject;
+    fSQLGenerators: TDictionary<string, TMVCSQLGeneratorClass>;
+  protected
+    constructor Create;
+  public
+    destructor Destroy; override;
+    class function Instance: TMVCSQLGeneratorRegistry;
+    class destructor Destroy;
+    class constructor Create;
+    procedure RegisterSQLGenerator(const aBackend: string; const aRQLBackendClass: TMVCSQLGeneratorClass);
+    procedure UnRegisterSQLGenerator(const aBackend: string);
+    function GetSQLGenerator(const aBackend: string): TMVCSQLGeneratorClass;
   end;
 
 function ActiveRecordConnectionsRegistry: IMVCActiveRecordConnections;
 
 function ActiveRecordMappingRegistry: IMVCEntitiesRegistry;
 
-function GetBackEndByConnection(aConnection: TFDConnection): TRQLBackend;
+function GetBackEndByConnection(aConnection: TFDConnection): string;
 
 implementation
 
@@ -305,13 +399,48 @@ var
   gConnections: IMVCActiveRecordConnections;
   gLock: TObject;
 
-function GetBackEndByConnection(aConnection: TFDConnection): TRQLBackend;
+function GetBackEndByConnection(aConnection: TFDConnection): string;
 begin
-  if aConnection.DriverName = 'FB' then
-    Exit(cbFirebird);
-  if aConnection.DriverName = 'MySQL' then
-    Exit(cbMySQL);
-  raise ERQLException.CreateFmt('Unknown driver fro RQL backend "%s"', [aConnection.DriverName]);
+  case aConnection.RDBMSKind of
+    0:
+      Exit('unknown');
+    1:
+      Exit('oracle');
+    2:
+      Exit('mssQL');
+    3:
+      Exit('msaccess');
+    4:
+      Exit('mysql');
+    5:
+      Exit('db2');
+    6:
+      Exit('sqlanywhere');
+    7:
+      Exit('advantage');
+    8:
+      Exit('interbase');
+    9:
+      Exit('firebird');
+    10:
+      Exit('sqlite');
+    11:
+      Exit('postgresql');
+    12:
+      Exit('nexusdb');
+    13:
+      Exit('dataSnap');
+    14:
+      Exit('informix');
+    15:
+      Exit('teradata');
+    16:
+      Exit('mongodb');
+    17:
+      Exit('other');
+  else
+    raise EMVCActiveRecord.Create('Unknown RDBMS Kind');
+  end;
 end;
 
 function ActiveRecordConnectionsRegistry: IMVCActiveRecordConnections;
@@ -400,6 +529,11 @@ begin
   finally
     fMREW.EndRead;
   end;
+end;
+
+function TMVCConnectionsRepository.GetCurrentBackend: string;
+begin
+  Result := GetBackEndByConnection(GetCurrent);
 end;
 
 function TMVCConnectionsRepository.GetKeyName(const aName: string): string;
@@ -491,7 +625,9 @@ end;
 destructor TMVCActiveRecord.Destroy;
 begin
   fMap.Free;
-  fConn := nil;
+  fSQLGenerator.Free;
+  fRQL2SQL.Free;
+  fConn := nil; // do not free it!!
   inherited;
 end;
 
@@ -578,7 +714,8 @@ end;
 // Result := ExecNonQuery(SQL, Values, nil);
 // end;
 
-class function TMVCActiveRecord.ExecQuery(const SQL: string;
+class
+  function TMVCActiveRecord.ExecQuery(const SQL: string;
   const Values: array of Variant; const Connection: TFDConnection): TDataSet;
 var
   lQry: TFDQuery;
@@ -604,19 +741,10 @@ begin
   end;
 end;
 
-class function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant): TDataSet;
+class
+  function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant): TDataSet;
 begin
   Result := ExecQuery(SQL, Values, nil);
-end;
-
-function TMVCActiveRecord.GetWhereByPrimaryKey: string;
-begin
-  Result := ' ' + fPrimaryKeyFieldName + '= :' + fPrimaryKeyFieldName;
-end;
-
-function TMVCActiveRecord.GetWhereByPrimaryKeyWithValue: string;
-begin
-  Result := ' ' + fPrimaryKeyFieldName + '= ' + IntToStr(fPrimaryKey.GetValue(Self).AsInt64);
 end;
 
 procedure TMVCActiveRecord.InitTableInfo;
@@ -624,7 +752,8 @@ var
   lAttribute: TCustomAttribute;
   lRTTIField: TRttiField;
 begin
-  fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve, TMVCEntityAction.eaUpdate, TMVCEntityAction.eaDelete];
+  fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve, TMVCEntityAction.eaUpdate,
+    TMVCEntityAction.eaDelete];
   fTableName := '';
   fRTTIType := gCtx.GetType(Self.ClassInfo);
   fObjAttributes := fRTTIType.GetAttributes;
@@ -675,7 +804,7 @@ begin
   OnValidation;
   OnBeforeInsert;
   OnBeforeInsertOrUpdate;
-  SQL := CreateInsertSQL;
+  SQL := fSQLGenerator.CreateInsertSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
   ExecNonQuery(SQL, True);
   OnAfterInsert;
   OnAfterInsertOrUpdate;
@@ -685,37 +814,40 @@ constructor TMVCActiveRecord.Create(aLazyLoadConnection: Boolean);
 begin
   inherited Create;
   fConn := nil;
-  if not aLazyLoadConnection then
-  begin
-    SelfConnection;
-  end;
+  SetLength(fMapping, 0);
+  { TODO -oDanieleT -cGeneral : Consider lazyconnection }
+  // if not aLazyLoadConnection then
+  // begin
+  SelfConnection;
+  // end;
   fMap := TDictionary<TRttiField, string>.Create;
   InitTableInfo;
+  fSQLGenerator := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd).Create(GetMapping);
 end;
 
-function TMVCActiveRecord.CreateUpdateSQL: string;
-var
-  keyvalue: TPair<TRttiField, string>;
+function TMVCActiveRecord.GenerateSelectSQL: string;
 begin
-  Result := 'UPDATE ' + fTableName + ' SET ';
-  for keyvalue in fMap do
-  begin
-    Result := Result + keyvalue.value + ' = :' + keyvalue.value + ',';
-  end;
-  Result[Length(Result)] := ' ';
-  if Assigned(fPrimaryKey) then
-  begin
-    Result := Result + ' where ' + GetWhereByPrimaryKey;
-  end;
+  Result := fSQLGenerator.CreateSelectSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
 end;
 
-class function TMVCActiveRecord.GetByPrimaryKey(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord;
+function TMVCActiveRecord.GetBackEnd: string;
+begin
+  if fBackendDriver.IsEmpty then
+  begin
+    fBackendDriver := GetBackEndByConnection(fConn);
+  end;
+  Result := fBackendDriver;
+end;
+
+class
+  function TMVCActiveRecord.GetByPrimaryKey(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord;
 begin
   Result := aClass.Create;
   Result.LoadByPK(aValue);
 end;
 
-class function TMVCActiveRecord.GetByPrimaryKey<T>(const aValue: int64): T;
+class
+  function TMVCActiveRecord.GetByPrimaryKey<T>(const aValue: int64): T;
 var
   lActiveRecord: TMVCActiveRecord;
 begin
@@ -724,7 +856,8 @@ begin
   lActiveRecord.LoadByPK(aValue);
 end;
 
-class function TMVCActiveRecord.GetFirstByWhere<T>(const SQLWhere: string;
+class
+  function TMVCActiveRecord.GetFirstByWhere<T>(const SQLWhere: string;
   const Params: array of Variant; const RaiseExceptionIfNotFound: Boolean): T;
 var
   lList: TObjectList<T>;
@@ -749,27 +882,33 @@ var
   lPair: TPair<TRttiField, string>;
   i: Integer;
 begin
-  if not fPrimaryKeyFieldName.IsEmpty then
-    SetLength(Result, fMap.Count + 1)
-  else
-    SetLength(Result, fMap.Count);
-
-  i := 0;
-  for lPair in fMap do
+  if Length(fMapping) = 0 then
   begin
-    Result[i].InstanceFieldName := lPair.Key.Name.Substring(1).ToLower;
-    Result[i].DatabaseFieldName := lPair.value;
-    inc(i);
-  end;
+    if not fPrimaryKeyFieldName.IsEmpty then
+      SetLength(fMapping, fMap.Count + 1)
+    else
+      SetLength(fMapping, fMap.Count);
 
-  if not fPrimaryKeyFieldName.IsEmpty then
-  begin
-    Result[i].InstanceFieldName := fPrimaryKey.Name.Substring(1).ToLower;
-    Result[i].DatabaseFieldName := fPrimaryKeyFieldName;
+    i := 0;
+    for lPair in fMap do
+    begin
+      fMapping[i].InstanceFieldName := lPair.Key.Name.Substring(1).ToLower;
+      fMapping[i].DatabaseFieldName := lPair.value;
+      inc(i);
+    end;
+
+    if not fPrimaryKeyFieldName.IsEmpty then
+    begin
+      fMapping[i].InstanceFieldName := fPrimaryKey.Name.Substring(1).ToLower;
+      fMapping[i].DatabaseFieldName := fPrimaryKeyFieldName;
+    end;
   end;
+  Result := fMapping;
 end;
 
-class function TMVCActiveRecord.GetOneByWhere<T>(const SQLWhere: string; const Params: array of Variant;
+class function TMVCActiveRecord.GetOneByWhere<T>(
+  const SQLWhere: string;
+  const Params: array of Variant;
   const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetFirstByWhere<T>(SQLWhere, Params, false);
@@ -795,7 +934,8 @@ begin
     raise EMVCActiveRecord.CreateFmt('Action not allowed on "%s"', [ClassName]);
 end;
 
-class function TMVCActiveRecord.CurrentConnection: TFDConnection;
+class
+  function TMVCActiveRecord.CurrentConnection: TFDConnection;
 begin
   Result := ActiveRecordConnectionsRegistry.GetCurrent;
 end;
@@ -814,61 +954,6 @@ begin
   Create(false);
 end;
 
-function TMVCActiveRecord.CreateDeleteSQL: string;
-begin
-  Result := 'DELETE FROM ' + fTableName + ' WHERE ' + GetWhereByPrimaryKeyWithValue;
-end;
-
-function TMVCActiveRecord.CreateInsertSQL: string;
-var
-  keyvalue: TPair<TRttiField, string>;
-  lSB: TStringBuilder;
-begin
-  lSB := TStringBuilder.Create;
-  try
-    lSB.Append('INSERT INTO ' + fTableName + '(');
-    for keyvalue in fMap do
-      lSB.Append(keyvalue.value + ',');
-    lSB.Remove(lSB.Length - 1, 1);
-    lSB.Append(') values (');
-    for keyvalue in fMap do
-    begin
-      lSB.Append(':' + keyvalue.value + ',');
-    end;
-    lSB.Remove(lSB.Length - 1, 1);
-    lSB.Append(')');
-
-    if foAutoGenerated in fPrimaryKeyOptions then
-    begin
-      case GetBackEndByConnection(fConn) of
-        cbFirebird:
-          begin
-            lSB.Append(' RETURNING ' + fPrimaryKeyFieldName);
-          end;
-        cbMySQL:
-          begin
-            lSB.Append(';SELECT LAST_INSERT_ID() as ' + fPrimaryKeyFieldName);
-          end;
-      else
-        raise EMVCActiveRecord.Create('Unsupported backend engine');
-      end;
-    end;
-    Result := lSB.ToString;
-  finally
-    lSB.Free;
-  end;
-end;
-
-function TMVCActiveRecord.CreateSelectByPKSQL(aPrimaryKey: int64): string;
-begin
-  Result := CreateSelectSQL + ' WHERE ' + fPrimaryKeyFieldName + ' = :' + fPrimaryKeyFieldName;
-end;
-
-function TMVCActiveRecord.CreateSelectSQL: string;
-begin
-  Result := 'SELECT ' + TableFieldsDelimited + ' FROM ' + fTableName;
-end;
-
 procedure TMVCActiveRecord.Delete;
 var
   SQL: string;
@@ -876,7 +961,7 @@ begin
   OnBeforeDelete;
   if not Assigned(fPrimaryKey) then
     raise Exception.CreateFmt('Cannot delete %s without a primary key', [ClassName]);
-  SQL := CreateDeleteSQL;
+  SQL := fSQLGenerator.CreateDeleteSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions, fPrimaryKey.GetValue(Self).AsInt64);
   ExecNonQuery(SQL, false);
   OnAfterDelete;
 end;
@@ -1004,6 +1089,14 @@ begin
         else if aValue.TypeInfo.Name = 'TDateTime' then
         begin
           aParam.AsDateTime := aValue.AsExtended;
+        end
+        else if aValue.TypeInfo.Name = 'Currency' then
+        begin
+          aParam.AsCurrency := aValue.AsCurrency;
+        end
+        else
+        begin
+          aParam.AsFloat := aValue.AsExtended;
         end;
       end;
     tkClass:
@@ -1172,8 +1265,8 @@ var
   lDataSet: TDataSet;
 begin
   CheckAction(TMVCEntityAction.eaRetrieve);
-  SQL := CreateSelectByPKSQL(id);
-  lDataSet := ExecQuery(SQL, [id]);
+  SQL := fSQLGenerator.CreateSelectByPKSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions, id);
+  lDataSet := ExecQuery(SQL, [id], fConn);
   try
     Result := not lDataSet.Eof;
     if Result then
@@ -1240,13 +1333,15 @@ begin
   // do nothing
 end;
 
-class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
+class
+  function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
   : TMVCActiveRecordList;
 begin
   Result := Select(aClass, SQL, Params, nil);
 end;
 
-class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass;
+class
+  function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass;
   const SQL: string; const Params: array of Variant;
   const Connection: TFDConnection): TMVCActiveRecordList;
 var
@@ -1276,7 +1371,9 @@ begin
 
 end;
 
-class function TMVCActiveRecord.Select<T>(const SQL: string; const Params: array of Variant): TObjectList<T>;
+class function TMVCActiveRecord.Select<T>(
+  const SQL: string;
+  const Params: array of Variant): TObjectList<T>;
 var
   lDataSet: TDataSet;
   lAR: TMVCActiveRecord;
@@ -1301,24 +1398,36 @@ begin
   end;
 end;
 
-class function TMVCActiveRecord.SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
+class function TMVCActiveRecord.SelectDataSet(
+  const SQL: string;
+  const Params: array of Variant): TDataSet;
 begin
   Result := TMVCActiveRecord.ExecQuery(SQL, Params);
 end;
 
-class function TMVCActiveRecord.SelectRQL(const aClass: TMVCActiveRecordClass;
-  const RQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend; const MaxRecordCount: Integer): TMVCActiveRecordList;
+function TMVCActiveRecord.SelectRQL(const RQL: string;
+  const MaxRecordCount: Integer): TMVCActiveRecordList;
 var
-  lRQL: TRQL2SQL;
   lSQL: string;
 begin
-  lRQL := TRQL2SQL.Create(MaxRecordCount);
+  lSQL := fSQLGenerator.CreateSelectSQLByRQL(RQL, GetMapping);
+  LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
+  Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
+end;
+
+class
+  function TMVCActiveRecord.SelectRQL(
+  const aClass: TMVCActiveRecordClass;
+  const RQL: string;
+  const MaxRecordCount: Integer): TMVCActiveRecordList;
+var
+  lAR: TMVCActiveRecord;
+begin
+  lAR := aClass.Create(True);
   try
-    lRQL.Execute(RQL, lSQL, Mapping, RQLBackend);
-    LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
-    Result := Where(aClass, lSQL, []);
+    Result := lAR.SelectRQL(RQL, MaxRecordCount);
   finally
-    lRQL.Free;
+    lAR.Free;
   end;
 end;
 
@@ -1327,21 +1436,6 @@ begin
   if fPrimaryKeyFieldName.IsEmpty then
     raise Exception.Create('No primary key defined');
   fPrimaryKey.SetValue(Self, aValue);
-end;
-
-function TMVCActiveRecord.TableFieldsDelimited(const Delimiter: string): string;
-var
-  lPair: TPair<TRttiField, string>;
-begin
-  for lPair in fMap do
-  begin
-    Result := Result + lPair.value + Delimiter;
-  end;
-  Result := Copy(Result, 1, Length(Result) - Length(Delimiter));
-  if not fPrimaryKeyFieldName.IsEmpty then
-  begin
-    Result := fPrimaryKeyFieldName + ',' + Result;
-  end;
 end;
 
 function TMVCActiveRecord.TableInfo: string;
@@ -1361,43 +1455,47 @@ begin
   OnValidation;
   OnBeforeUpdate;
   OnBeforeInsertOrUpdate;
-  SQL := CreateUpdateSQL;
+  SQL := fSQLGenerator.CreateUpdateSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
   ExecNonQuery(SQL, false);
   OnAfterUpdate;
   OnAfterInsertOrUpdate;
 end;
 
-class function TMVCActiveRecord.All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>;
+class
+  function TMVCActiveRecord.All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>;
 var
   lAR: TMVCActiveRecord;
 begin
   lAR := aClass.Create;
   try
-    Result := Select(aClass, lAR.CreateSelectSQL, []);
+    Result := Select(aClass, lAR.GenerateSelectSQL, []);
   finally
     lAR.Free;
   end;
 end;
 
-class function TMVCActiveRecord.All<T>: TObjectList<T>;
+class
+  function TMVCActiveRecord.All<T>: TObjectList<T>;
 var
   lAR: TMVCActiveRecord;
 begin
   lAR := T.Create;
   try
-    Result := Select<T>(lAR.CreateSelectSQL, []);
+    Result := Select<T>(lAR.GenerateSelectSQL, []);
   finally
     lAR.Free;
   end;
 end;
 
-class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
+class
+  function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
   const Params: array of Variant): TMVCActiveRecordList;
 begin
   Result := Where(aClass, SQLWhere, Params, nil);
 end;
 
-class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass;
+class
+  function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass;
   const SQLWhere: string; const Params: array of Variant;
   const Connection: TFDConnection): TMVCActiveRecordList;
 var
@@ -1405,13 +1503,14 @@ var
 begin
   lAR := aClass.Create;
   try
-    Result := Select(aClass, lAR.CreateSelectSQL + SQLWhere, Params, Connection);
+    Result := Select(aClass, lAR.GenerateSelectSQL + SQLWhere, Params, Connection);
   finally
     lAR.Free;
   end;
 end;
 
-class function TMVCActiveRecord.Where<T>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
+class
+  function TMVCActiveRecord.Where<T>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
 var
   lAR: TMVCActiveRecord;
 begin
@@ -1419,11 +1518,11 @@ begin
   try
     if not SQLWhere.Trim.IsEmpty then
     begin
-      Result := Select<T>(lAR.CreateSelectSQL + ' WHERE ' + SQLWhere, Params);
+      Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params);
     end
     else
     begin
-      Result := Select<T>(lAR.CreateSelectSQL, Params);
+      Result := Select<T>(lAR.GenerateSelectSQL, Params);
     end;
   finally
     lAR.Free;
@@ -1476,7 +1575,8 @@ begin
   Result := fEntitiesDict.TryGetValue(aURLSegment.ToLower, aMVCActiveRecordClass);
 end;
 
-function TMVCEntitiesRegistry.FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor): Boolean;
+function TMVCEntitiesRegistry.FindProcessorByURLSegment(const aURLSegment: string;
+  out aMVCEntityProcessor: IMVCEntityProcessor): Boolean;
 begin
   Result := fProcessorsDict.TryGetValue(aURLSegment.ToLower, aMVCEntityProcessor);
 end;
@@ -1502,6 +1602,124 @@ end;
 constructor TMVCActiveRecordList.Create;
 begin
   inherited Create(True);
+end;
+
+{ TMVCSQLGeneratorRegistry }
+
+constructor TMVCSQLGeneratorRegistry.Create;
+begin
+  inherited;
+  fSQLGenerators := TDictionary<string, TMVCSQLGeneratorClass>.Create;
+end;
+
+class constructor TMVCSQLGeneratorRegistry.Create;
+begin
+  _Lock := TObject.Create;
+end;
+
+class destructor TMVCSQLGeneratorRegistry.Destroy;
+begin
+  _Lock.Free;
+  sInstance.Free;
+end;
+
+destructor TMVCSQLGeneratorRegistry.Destroy;
+begin
+  fSQLGenerators.Free;
+  inherited;
+end;
+
+function TMVCSQLGeneratorRegistry.GetSQLGenerator(
+  const aBackend: string): TMVCSQLGeneratorClass;
+begin
+  if not fSQLGenerators.TryGetValue(aBackend, Result) then
+  begin
+    raise ERQLCompilerNotFound.CreateFmt('SQLGenerator not found for "%s"', [aBackend]);
+  end;
+end;
+
+class
+  function TMVCSQLGeneratorRegistry.Instance: TMVCSQLGeneratorRegistry;
+begin
+  if not Assigned(sInstance) then
+  begin
+    TMonitor.Enter(_Lock);
+    try
+      if not Assigned(sInstance) then
+      begin
+        sInstance := TMVCSQLGeneratorRegistry.Create;
+      end;
+    finally
+      TMonitor.Exit(_Lock);
+    end;
+  end;
+  Result := sInstance;
+end;
+
+procedure TMVCSQLGeneratorRegistry.RegisterSQLGenerator(const aBackend: string;
+  const aRQLBackendClass: TMVCSQLGeneratorClass);
+begin
+  fSQLGenerators.Add(aBackend, aRQLBackendClass);
+end;
+
+procedure TMVCSQLGeneratorRegistry.UnRegisterSQLGenerator(
+  const aBackend: string);
+begin
+  fSQLGenerators.Remove(aBackend);
+end;
+
+{ TMVCSQLGenerator }
+
+constructor TMVCSQLGenerator.Create(Mapping: TMVCFieldsMapping);
+begin
+  inherited Create;
+  fMapping := Mapping;
+end;
+
+function TMVCSQLGenerator.GetMapping: TMVCFieldsMapping;
+begin
+  Result := fMapping;
+end;
+
+destructor TMVCSQLGenerator.Destroy;
+begin
+  fCompiler.Free;
+  fRQL2SQL.Free;
+  inherited;
+end;
+
+function TMVCSQLGenerator.GetCompiler: TRQLCompiler;
+begin
+  if fCompiler = nil then
+  begin
+    fCompiler := GetCompilerClass.Create(fMapping);
+  end;
+  Result := fCompiler;
+end;
+
+function TMVCSQLGenerator.GetRQLParser: TRQL2SQL;
+begin
+  if fRQL2SQL = nil then
+  begin
+    fRQL2SQL := TRQL2SQL.Create(20);
+  end;
+  Result := fRQL2SQL;
+end;
+
+function TMVCSQLGenerator.TableFieldsDelimited(const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Delimiter: string): string;
+var
+  lPair: TPair<TRttiField, string>;
+begin
+  for lPair in Map do
+  begin
+    Result := Result + lPair.value + Delimiter;
+  end;
+  Result := Copy(Result, 1, Length(Result) - Length(Delimiter));
+  if not PKFieldName.IsEmpty then
+  begin
+    Result := PKFieldName + ',' + Result;
+  end;
 end;
 
 initialization

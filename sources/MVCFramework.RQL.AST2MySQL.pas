@@ -45,7 +45,8 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  MVCFramework.RQL.AST2FirebirdSQL;
 
 { TRQLMySQLCompiler }
 
@@ -203,10 +204,10 @@ end;
 
 initialization
 
-TRQLCompilerRegistry.Instance.RegisterCompiler(cbMySQL, TRQLMySQLCompiler);
+TRQLCompilerRegistry.Instance.RegisterCompiler('mysql', TRQLMySQLCompiler);
 
 finalization
 
-TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbMySQL);
+TRQLCompilerRegistry.Instance.UnRegisterCompiler('mysql');
 
 end.

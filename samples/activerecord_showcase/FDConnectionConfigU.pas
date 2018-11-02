@@ -3,8 +3,7 @@ unit FDConnectionConfigU;
 interface
 
 const
-  CON_DEF_NAME_FIREBIRD = 'MyConnFB';
-  CON_DEF_NAME_MYSQL = 'MyConnMYSQL';
+  CON_DEF_NAME = 'MyConnX';
 
 procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
@@ -37,7 +36,7 @@ begin
     begin
       LParams.Add('Pooled=False');
     end;
-    FDManager.AddConnectionDef(CON_DEF_NAME_MYSQL, 'MySQL', LParams);
+    FDManager.AddConnectionDef(CON_DEF_NAME, 'MySQL', LParams);
   finally
     LParams.Free;
   end;
@@ -63,7 +62,7 @@ begin
     begin
       LParams.Add('Pooled=False');
     end;
-    FDManager.AddConnectionDef(CON_DEF_NAME_FIREBIRD, 'FB', LParams);
+    FDManager.AddConnectionDef(CON_DEF_NAME, 'FB', LParams);
   finally
     LParams.Free;
   end;
