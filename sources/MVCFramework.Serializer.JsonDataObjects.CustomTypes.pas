@@ -163,27 +163,20 @@ begin
   Stream := AElementValue.AsObject as TStream;
   if Assigned(Stream) then
   begin
-    if TMVCSerializerHelper.AttributeExists<MVCSerializeAsStringAttribute>(AAttributes) then
-    begin
-      SS := TStringStream.Create;
-      try
-        Stream.Position := 0;
-        SS.CopyFrom(Stream, Stream.Size);
-        TJsonObject(ASerializerObject).S[APropertyName] := SS.DataString;
-      finally
-        SS.Free;
-      end;
-    end
-    else
-    begin
-      SS := TStringStream.Create;
-      try
-        Stream.Position := 0;
+    SS := TStringStream.Create('', TEncoding.Unicode);
+    try
+      Stream.Position := 0;
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeAsStringAttribute>(AAttributes) then
+      begin
+        SS.CopyFrom(Stream, 0);
+      end
+      else
+      begin
         TMVCSerializerHelper.EncodeStream(Stream, SS);
-        TJsonObject(ASerializerObject).S[APropertyName] := SS.DataString;
-      finally
-        SS.Free;
       end;
+      TJsonObject(ASerializerObject).S[APropertyName] := SS.DataString;
+    finally
+      SS.Free;
     end;
   end
   else

@@ -89,7 +89,7 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPrimaryKey<TCustomer>(lID);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
   try
     lCustomer.Code := '5678';
     lCustomer.Update;
@@ -107,7 +107,7 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPrimaryKey<TCustomer>(lID);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
   try
     lCustomer.Delete;
     Log('Just deleted Customer ' + lID.ToString);
@@ -337,7 +337,7 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TCustomer.GetByPrimaryKey<TCustomerWithLogic>(lID);
+  lCustomer := TCustomer.GetByPK<TCustomerWithLogic>(lID);
   try
     Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' + BoolToStr(lCustomer.IsLocatedInRome, True));
     lCustomer.Code := '';

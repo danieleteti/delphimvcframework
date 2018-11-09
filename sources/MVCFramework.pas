@@ -1851,6 +1851,7 @@ var
   StrValue: string;
   FormatSettings: TFormatSettings;
   WasDateTime: Boolean;
+  lQualifiedName: string;
 begin
   if AContext.Request.SegmentParamsCount <> Length(AActionFormalParams) then
     raise EMVCException.CreateFmt('Parameters count mismatch (expected %d actual %d) for action "%s"',
@@ -1866,9 +1867,13 @@ begin
         [ParamName, AActionName]);
 
     case AActionFormalParams[I].ParamType.TypeKind of
-      tkInteger, tkInt64:
+      tkInteger:
         begin
           AActualParams[I] := StrToInt(StrValue);
+        end;
+      tkInt64:
+        begin
+          AActualParams[I] := StrToInt64(StrValue);
         end;
       tkUString:
         begin
@@ -1877,7 +1882,8 @@ begin
       tkFloat:
         begin
           WasDateTime := False;
-          if AActionFormalParams[I].ParamType.QualifiedName = 'System.TDate' then
+          lQualifiedName := AActionFormalParams[I].ParamType.QualifiedName;
+          if lQualifiedName = 'System.TDate' then
           begin
             try
               WasDateTime := True;
@@ -1886,7 +1892,7 @@ begin
               raise EMVCException.CreateFmt('Invalid TDate value for param [%s]', [AActionFormalParams[I].Name]);
             end;
           end
-          else if AActionFormalParams[I].ParamType.QualifiedName = 'System.TDateTime' then
+          else if lQualifiedName = 'System.TDateTime' then
           begin
             try
               WasDateTime := True;
@@ -1898,7 +1904,7 @@ begin
               end;
             end;
           end
-          else if AActionFormalParams[I].ParamType.QualifiedName = 'System.TTime' then
+          else if lQualifiedName = 'System.TTime' then
           begin
             try
               WasDateTime := True;

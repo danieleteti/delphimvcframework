@@ -209,8 +209,8 @@ type
     procedure LoadByDataset(const aDataSet: TDataSet);
     procedure SetPK(const aValue: TValue);
     function GetPK: TValue;
-    class function GetByPrimaryKey<T: TMVCActiveRecord, constructor>(const aValue: int64): T; overload;
-    class function GetByPrimaryKey(
+    class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: int64): T; overload;
+    class function GetByPK(
       const aClass: TMVCActiveRecordClass;
       const aValue: int64): TMVCActiveRecord; overload;
     class function Select<T: TMVCActiveRecord, constructor>(
@@ -230,6 +230,9 @@ type
       const aClass: TMVCActiveRecordClass;
       const RQL: string;
       const MaxRecordCount: Integer): TMVCActiveRecordList; overload;
+    class function SelectRQL<T: constructor, TMVCActiveRecord>(
+      const RQL: string;
+      const MaxRecordCount: Integer): TObjectList<T>; overload;
     function SelectRQL(
       const RQL: string;
       const MaxRecordCount: Integer): TMVCActiveRecordList; overload;
@@ -286,7 +289,7 @@ type
 
   IMVCActiveRecordConnections = interface
     ['{7B87473C-1784-489F-A838-925E7DDD0DE2}']
-    procedure AddConnection(const aName: string; const aConnection: TFDConnection);
+    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const Owns: Boolean = false);
     procedure RemoveConnection(const aName: string);
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
@@ -295,14 +298,22 @@ type
 
   TMVCConnectionsRepository = class(TInterfacedObject, IMVCActiveRecordConnections)
   private
+    type
+    TConnHolder = class
+      Connection: TFDConnection;
+      OwnsConnection: Boolean;
+      destructor Destroy; override;
+    end;
+
+  var
     fMREW: TMultiReadExclusiveWriteSynchronizer;
-    fConnectionsDict: TDictionary<string, TFDConnection>;
+    fConnectionsDict: TDictionary<string, TConnHolder>;
     fCurrentConnectionsByThread: TDictionary<TThreadID, string>;
     function GetKeyName(const aName: string): string;
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure AddConnection(const aName: string; const aConnection: TFDConnection);
+    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const aOwns: Boolean = false);
     procedure RemoveConnection(const aName: string);
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
@@ -359,10 +370,10 @@ type
 
   TMVCSQLGeneratorRegistry = class sealed
   private
-    class var sInstance: TMVCSQLGeneratorRegistry;
+    class var cInstance: TMVCSQLGeneratorRegistry;
 
   class var
-    _Lock: TObject;
+    cLock: TObject;
     fSQLGenerators: TDictionary<string, TMVCSQLGeneratorClass>;
   protected
     constructor Create;
@@ -407,7 +418,7 @@ begin
     1:
       Exit('oracle');
     2:
-      Exit('mssQL');
+      Exit('mssql');
     3:
       Exit('msaccess');
     4:
@@ -462,18 +473,22 @@ end;
 
 { TConnectionsRepository }
 
-procedure TMVCConnectionsRepository.AddConnection(const aName: string; const aConnection: TFDConnection);
+procedure TMVCConnectionsRepository.AddConnection(const aName: string; const aConnection: TFDConnection; const aOwns: Boolean = false);
 var
   lName: string;
   lConnKeyName: string;
+  lConnHolder: TConnHolder;
 begin
   lName := aName.ToLower;
   lConnKeyName := GetKeyName(lName);
 
   fMREW.BeginWrite;
   try
-    fConnectionsDict.AddOrSetValue(lConnKeyName, aConnection);
-    if lName = 'default' then
+    lConnHolder := TConnHolder.Create;
+    lConnHolder.Connection := aConnection;
+    lConnHolder.OwnsConnection := aOwns;
+    fConnectionsDict.Add(lConnKeyName, lConnHolder); // raise exception on duplicates
+    if (lName = 'default') and (not fCurrentConnectionsByThread.ContainsKey(TThread.CurrentThread.ThreadID)) then
     begin
       fCurrentConnectionsByThread.AddOrSetValue(TThread.CurrentThread.ThreadID, lName);
     end;
@@ -486,7 +501,7 @@ constructor TMVCConnectionsRepository.Create;
 begin
   inherited;
   fMREW := TMultiReadExclusiveWriteSynchronizer.Create;
-  fConnectionsDict := TDictionary<string, TFDConnection>.Create;
+  fConnectionsDict := TDictionary<string, TConnHolder>.Create;
   fCurrentConnectionsByThread := TDictionary<TThreadID, string>.Create;
 end;
 
@@ -501,12 +516,14 @@ end;
 function TMVCConnectionsRepository.GetByName(const aName: string): TFDConnection;
 var
   lKeyName: string;
+  lConnHolder: TConnHolder;
 begin
   lKeyName := GetKeyName(aName.ToLower);
   fMREW.BeginRead;
   try
-    if not fConnectionsDict.TryGetValue(lKeyName, Result) then
+    if not fConnectionsDict.TryGetValue(lKeyName, lConnHolder) then
       raise Exception.CreateFmt('Unknown connection %s', [aName]);
+    Result := lConnHolder.Connection;
   finally
     fMREW.EndRead;
   end;
@@ -538,25 +555,25 @@ end;
 
 function TMVCConnectionsRepository.GetKeyName(const aName: string): string;
 begin
-  Result := Format('%10d::%s', [TThread.Current.ThreadID, aName]);
+  Result := Format('%10.10d::%s', [TThread.Current.ThreadID, aName]);
 end;
 
 procedure TMVCConnectionsRepository.RemoveConnection(const aName: string);
 var
   lName: string;
-  lConn: TFDConnection;
   lKeyName: string;
+  lConnHolder: TConnHolder;
 begin
   lName := aName.ToLower;
   lKeyName := GetKeyName(lName);
 
   fMREW.BeginWrite;
   try
-    if not fConnectionsDict.TryGetValue(lKeyName, lConn) then
+    if not fConnectionsDict.TryGetValue(lKeyName, lConnHolder) then
       raise Exception.CreateFmt('Unknown connection %s', [aName]);
     fConnectionsDict.Remove(lKeyName);
     try
-      FreeAndNil(lConn);
+      FreeAndNil(lConnHolder);
     except
       on E: Exception do
       begin
@@ -840,14 +857,14 @@ begin
 end;
 
 class
-  function TMVCActiveRecord.GetByPrimaryKey(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord;
+  function TMVCActiveRecord.GetByPK(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord;
 begin
   Result := aClass.Create;
   Result.LoadByPK(aValue);
 end;
 
 class
-  function TMVCActiveRecord.GetByPrimaryKey<T>(const aValue: int64): T;
+  function TMVCActiveRecord.GetByPK<T>(const aValue: int64): T;
 var
   lActiveRecord: TMVCActiveRecord;
 begin
@@ -969,6 +986,7 @@ end;
 procedure TMVCActiveRecord.MapColumnToTValue(const aFieldName: string; const aField: TField; const aRTTIField: TRttiField);
 var
   lInternalStream: TStream;
+  lSStream: TStringStream;
 begin
   case aField.DataType of
     ftString, ftWideString:
@@ -995,13 +1013,39 @@ begin
       begin
         aRTTIField.SetValue(Self, aField.AsDateTime);
       end;
+    ftTimeStamp:
+      begin
+        aRTTIField.SetValue(Self, aField.AsDateTime);
+      end;
     ftBoolean:
       begin
         aRTTIField.SetValue(Self, aField.AsBoolean);
       end;
     ftMemo, ftWideMemo:
       begin
-        aRTTIField.SetValue(Self, aField.AsString);
+        if aRTTIField.FieldType.TypeKind in [tkString, tkUString, tkWideString] then
+        begin
+          // In case you want to map a "TEXT" blob into a Delphi String
+          lSStream := TStringStream.Create('', TEncoding.Unicode);
+          try
+            TBlobField(aField).SaveToStream(lSStream);
+            aRTTIField.SetValue(Self, lSStream.DataString);
+          finally
+            lSStream.Free;
+          end;
+        end
+        else
+        begin
+          // In case you want to map a bynary blob into a Delphi Stream
+          lInternalStream := aRTTIField.GetValue(Self).AsObject as TStream;
+          if lInternalStream = nil then
+          begin
+            raise EMVCActiveRecord.CreateFmt('Property target for %s field is nil', [aFieldName]);
+          end;
+          lInternalStream.Position := 0;
+          TBlobField(aField).SaveToStream(lInternalStream);
+          lInternalStream.Position := 0;
+        end;
       end;
     ftBCD:
       begin
@@ -1415,6 +1459,24 @@ begin
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;
 
+class function TMVCActiveRecord.SelectRQL<T>(const RQL: string;
+  const MaxRecordCount: Integer): TObjectList<T>;
+var
+  lAR: TMVCActiveRecord;
+  lSQL: string;
+begin
+  lAR := T.Create;
+  try
+    lSQL := lAR.fSQLGenerator.CreateSelectSQLByRQL(RQL, lAR.GetMapping).Trim;
+    LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
+    if lSQL.StartsWith('where', True) then
+      lSQL := lSQL.Remove(0, 5).Trim;
+    Result := Where<T>(lSQL, []);
+  finally
+    lAR.Free;
+  end;
+end;
+
 class
   function TMVCActiveRecord.SelectRQL(
   const aClass: TMVCActiveRecordClass;
@@ -1614,13 +1676,13 @@ end;
 
 class constructor TMVCSQLGeneratorRegistry.Create;
 begin
-  _Lock := TObject.Create;
+  cLock := TObject.Create;
 end;
 
 class destructor TMVCSQLGeneratorRegistry.Destroy;
 begin
-  _Lock.Free;
-  sInstance.Free;
+  cLock.Free;
+  cInstance.Free;
 end;
 
 destructor TMVCSQLGeneratorRegistry.Destroy;
@@ -1641,19 +1703,19 @@ end;
 class
   function TMVCSQLGeneratorRegistry.Instance: TMVCSQLGeneratorRegistry;
 begin
-  if not Assigned(sInstance) then
+  if not Assigned(cInstance) then
   begin
-    TMonitor.Enter(_Lock);
+    TMonitor.Enter(cLock);
     try
-      if not Assigned(sInstance) then
+      if not Assigned(cInstance) then
       begin
-        sInstance := TMVCSQLGeneratorRegistry.Create;
+        cInstance := TMVCSQLGeneratorRegistry.Create;
       end;
     finally
-      TMonitor.Exit(_Lock);
+      TMonitor.Exit(cLock);
     end;
   end;
-  Result := sInstance;
+  Result := cInstance;
 end;
 
 procedure TMVCSQLGeneratorRegistry.RegisterSQLGenerator(const aBackend: string;
@@ -1720,6 +1782,15 @@ begin
   begin
     Result := PKFieldName + ',' + Result;
   end;
+end;
+
+{ TMVCConnectionsRepository.TConnHolder }
+
+destructor TMVCConnectionsRepository.TConnHolder.Destroy;
+begin
+  if OwnsConnection then
+    FreeAndNil(Connection);
+  inherited;
 end;
 
 initialization

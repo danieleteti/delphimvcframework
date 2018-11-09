@@ -47,6 +47,7 @@ object MainForm: TMainForm
     Font.Name = 'Consolas'
     Font.Style = []
     ParentFont = False
+    ScrollBars = ssVertical
     TabOrder = 2
   end
   object btnRelations: TButton
