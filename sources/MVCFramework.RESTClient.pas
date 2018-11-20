@@ -146,6 +146,9 @@ type
     procedure SetProxyUsername(const AValue: string);
   private
     FSerializer: IMVCSerializer;
+    FURL: string;
+
+    function GetURL: string;
   strict protected
     procedure HandleRequestCookies();
     procedure HandleCookies(aCookies: TIdCookies; aRESTResponse: IRESTResponse);
@@ -255,6 +258,7 @@ type
     property ProxyPort: Integer write SetProxyPort;
     property ProxyUsername: string write SetProxyUsername;
     property ProxyPassword: string write SetProxyPassword;
+    property URL: string read GetURL write FURL;
   end;
 
 implementation
@@ -796,7 +800,7 @@ function TRESTClient.doDELETE(const AResource: string; const AParams: array of s
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
+  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
     EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -855,7 +859,7 @@ function TRESTClient.doGET(const AResource: string; const AParams: array of stri
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource + EncodeResourceParams(AParams);
+  URL := Self.URL + AResource + EncodeResourceParams(AParams);
   if aQueryStringParams = nil then
     URL := URL + EncodeQueryStringParams(FQueryStringParams)
   else
@@ -878,7 +882,7 @@ var
   s: string;
 begin
   try
-    Result := SendHTTPCommand(httpPOST, FAccept, FContentType, FProtocol + '://' + FHost + ':' + IntToStr(FPort) +
+    Result := SendHTTPCommand(httpPOST, FAccept, FContentType, Self.URL +
       AResource + EncodeResourceParams(AParams) + EncodeQueryStringParams(FQueryStringParams), FBodyParams);
   except
     on E: EIdHTTPProtocolException do
@@ -892,7 +896,7 @@ function TRESTClient.doPATCH(const AResource: string; const AParams: array of st
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
+  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
     EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -949,7 +953,7 @@ function TRESTClient.doPOST(const AResource: string; const AParams: array of str
 var
   URL { , lContentTypeWithCharset } : string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
+  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
     EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -1009,7 +1013,7 @@ end;
 
 function TRESTClient.doPUT(const AResource: string; const AParams: array of string): IRESTResponse;
 begin
-  Result := SendHTTPCommand(httpPUT, FAccept, FContentType, FProtocol + '://' + FHost + ':' + IntToStr(FPort) +
+  Result := SendHTTPCommand(httpPUT, FAccept, FContentType, Self.URL +
     AResource + EncodeResourceParams(AParams) + EncodeQueryStringParams(QueryStringParams), FBodyParams);
   ClearAllParams;
 end;
@@ -1018,7 +1022,7 @@ function TRESTClient.doPUT(const AResource: string; const AParams: array of stri
 var
   URL: string;
 begin
-  URL := FProtocol + '://' + FHost + ':' + IntToStr(FPort) + AResource + EncodeResourceParams(AParams) +
+  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
     EncodeQueryStringParams(QueryStringParams);
 
   if FNextRequestIsAsynch then
@@ -1156,6 +1160,14 @@ end;
 function TRESTClient.GetSessionID: string;
 begin
   Result := FLastSessionID;
+end;
+
+function TRESTClient.GetURL: string;
+begin
+  if FURL = EmptyStr then
+    Result := FProtocol + '://' + FHost + ':' + IntToStr(FPort)
+  else
+    Result := FURL;
 end;
 
 function TRESTClient.GetUserName: string;
