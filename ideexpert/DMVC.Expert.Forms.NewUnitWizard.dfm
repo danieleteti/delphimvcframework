@@ -45,7 +45,7 @@ object frmDMVCNewUnit: TfrmDMVCNewUnit
       Width = 229
       Height = 21
       Anchors = [akLeft, akTop, akRight]
-      TabOrder = 1
+      TabOrder = 3
     end
     object chkCreateIndexMethod: TCheckBox
       Left = 16
@@ -67,7 +67,7 @@ object frmDMVCNewUnit: TfrmDMVCNewUnit
       Caption = 'Create Action Filters Methods'
       Checked = True
       State = cbChecked
-      TabOrder = 2
+      TabOrder = 1
     end
     object chkCreateCRUDMethods: TCheckBox
       Left = 16
@@ -78,7 +78,7 @@ object frmDMVCNewUnit: TfrmDMVCNewUnit
       Caption = 'Create CRUD Actions'
       Checked = True
       State = cbChecked
-      TabOrder = 3
+      TabOrder = 2
     end
   end
   object btnOK: TButton
