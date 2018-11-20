@@ -370,7 +370,6 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       4F1140101111F11401041111114F1140101111F11401041111114FFD0F3B403E
       DAAF5C25370000000049454E44AE426082}
     OnClick = Image1Click
-    ExplicitWidth = 352
   end
   object lblFrameworkVersion: TLabel
     Left = 123
@@ -394,7 +393,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Height = 169
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Controller Unit Options'
-    TabOrder = 2
+    TabOrder = 4
     DesignSize = (
       338
       169)
@@ -429,7 +428,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Width = 306
       Height = 21
       Anchors = [akLeft, akTop, akRight]
-      TabOrder = 1
+      TabOrder = 3
     end
     object chkCreateActionFiltersMethods: TCheckBox
       Left = 16
@@ -440,7 +439,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Caption = 'Create Action Filters Methods'
       Checked = True
       State = cbChecked
-      TabOrder = 2
+      TabOrder = 1
     end
     object chkCreateCRUDMethods: TCheckBox
       Left = 16
@@ -451,7 +450,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Caption = 'Create Sample CRUD Actions'
       Checked = True
       State = cbChecked
-      TabOrder = 3
+      TabOrder = 2
     end
   end
   object btnOK: TButton
@@ -463,7 +462,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'OK'
     Default = True
     ModalResult = 1
-    TabOrder = 3
+    TabOrder = 6
   end
   object btnCancel: TButton
     Left = 271
@@ -474,7 +473,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
-    TabOrder = 4
+    TabOrder = 7
   end
   object chkCreateControllerUnit: TCheckBox
     Left = 24
@@ -485,7 +484,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Create Controller Unit'
     Checked = True
     State = cbChecked
-    TabOrder = 1
+    TabOrder = 3
     OnClick = chkCreateControllerUnitClick
   end
   object chkAddToProjectGroup: TCheckBox
@@ -504,14 +503,14 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Top = 176
     Width = 305
     Height = 21
-    TabOrder = 5
+    TabOrder = 1
   end
   object edtServerPort: TEdit
     Left = 24
     Top = 486
     Width = 65
     Height = 21
-    TabOrder = 6
+    TabOrder = 5
     TextHint = '8080'
   end
   object chkAnalyticsMiddleware: TCheckBox
@@ -521,7 +520,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Add analytics support'
-    TabOrder = 7
+    TabOrder = 2
     Visible = False
     OnClick = chkCreateControllerUnitClick
   end
