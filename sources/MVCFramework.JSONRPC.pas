@@ -25,8 +25,8 @@
 unit MVCFramework.JSONRPC;
 
 {
-JSON-RPC over HTTP implemented as described here
-https://www.jsonrpc.org/historical/json-rpc-over-http.html
+  JSON-RPC over HTTP implemented as described here
+  https://www.jsonrpc.org/historical/json-rpc-over-http.html
 }
 
 interface
@@ -205,6 +205,8 @@ type
   TMVCJSONRPCController = class(TMVCController)
   private
     fSerializer: TMVCJsonDataObjectsSerializer;
+    fRPCInstance: TObject;
+    fOwsRPCInstance: Boolean;
     function GetSerializer: TMVCJsonDataObjectsSerializer;
     procedure InjectParams(lJSONRPCReq: TJSONRPCRequest; lRTTIMethod: TRttiMethod);
   protected
@@ -218,7 +220,13 @@ type
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure Index; virtual;
+    constructor Create; overload; override;
     destructor Destroy; override;
+  end;
+
+  TMVCJSONRPCPublisher = class(TMVCJSONRPCController)
+  public
+    constructor Create(const RPCInstance: TObject; const Owns: Boolean = True); reintroduce; overload;
   end;
 
 implementation
@@ -458,6 +466,20 @@ end;
 
 { TMVCJSONRPCController }
 
+constructor TMVCJSONRPCPublisher.Create(const RPCInstance: TObject; const Owns: Boolean);
+begin
+  inherited Create;
+  fRPCInstance := RPCInstance;
+  fOwsRPCInstance := Owns;
+end;
+
+constructor TMVCJSONRPCController.Create;
+begin
+  inherited Create;
+  fRPCInstance := Self;
+  fOwsRPCInstance := False;
+end;
+
 function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const message: string): TJsonObject;
 var
   lErrResp: TJSONRPCResponse;
@@ -520,6 +542,10 @@ end;
 
 destructor TMVCJSONRPCController.Destroy;
 begin
+  if Assigned(fRPCInstance) and fOwsRPCInstance then
+  begin
+    fRPCInstance.Free;
+  end;
   fSerializer.Free;
   inherited;
 end;
@@ -560,11 +586,15 @@ var
   lJSONRPCResponse: TJSONRPCResponse;
   lParamsToInject: TArray<TValue>;
   lReqID: TValue;
+  lJSON: TJsonObject;
 begin
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
   try
-    lJSONRPCReq := CreateRequest(StringToJSON(Context.Request.Body));
+    lJSON := StringToJSON(Context.Request.Body);
+    if not Assigned(lJSON) then
+      raise EMVCJSONRPCParseError.Create;
+    lJSONRPCReq := CreateRequest(lJSON);
     try
       lMethod := lJSONRPCReq.Method;
 
@@ -577,13 +607,13 @@ begin
 
       lRTTI := TRTTIContext.Create;
       try
-        lRTTIType := lRTTI.GetType(ClassType);
+        lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
         lRTTIMethod := lRTTIType.GetMethod(lMethod);
         if Assigned(lRTTIMethod) then
         begin
           InjectParams(lJSONRPCReq, lRTTIMethod);
           try
-            lRes := lRTTIMethod.Invoke(Self, lJSONRPCReq.Params.ToArray);
+            lRes := lRTTIMethod.Invoke(fRPCInstance, lJSONRPCReq.Params.ToArray);
           except
             on E: EInvalidCast do
             begin
@@ -687,7 +717,7 @@ end;
 
 constructor EMVCJSONRPCMethodNotFound.Create(const MethodName: string);
 begin
-  inherited CreateFmt('Method "%s" not found. The method does not exist / is not available.', [MethodName]);
+  inherited CreateFmt('Method "%s" not found. The method does not exist or is not available.', [MethodName]);
   FJSONRPCErrorCode := -32601;
 end;
 

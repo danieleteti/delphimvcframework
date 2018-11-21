@@ -765,7 +765,7 @@ begin
           begin
 
 {$IFDEF AUTOREFCOUNT}
-            if TMVCSerializerHelpful.IsAPropertyToSkip(Prop.Name) then
+            if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
               Continue;
 
 {$ENDIF}
@@ -841,7 +841,7 @@ begin
         begin
 
 {$IFDEF AUTOREFCOUNT}
-          if TMVCSerializerHelpful.IsAPropertyToSkip(Prop.Name) then
+          if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
             Continue;
 
 {$ENDIF}

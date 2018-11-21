@@ -32,7 +32,7 @@ uses
   System.RTTI,
 
   FireDAC.DApt,
-  FireDAC.Stan.Param,
+
   Data.DB,
   MVCFramework.Commons,
   MVCFramework.RQL.Parser,
@@ -40,6 +40,7 @@ uses
   MVCFramework,
   MVCFramework.Serializer.Intf,
   FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
   System.SysUtils;
 
 type
@@ -1517,6 +1518,7 @@ begin
   OnValidation;
   OnBeforeUpdate;
   OnBeforeInsertOrUpdate;
+  { TODO -oDanieleT -cSQLGenerators : Add a parameter to update to allow to update only selected fields }
   SQL := fSQLGenerator.CreateUpdateSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
   ExecNonQuery(SQL, false);
   OnAfterUpdate;
@@ -1549,15 +1551,13 @@ begin
   end;
 end;
 
-class
-  function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
+class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass; const SQLWhere: string;
   const Params: array of Variant): TMVCActiveRecordList;
 begin
   Result := Where(aClass, SQLWhere, Params, nil);
 end;
 
-class
-  function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass;
+class function TMVCActiveRecord.Where(const aClass: TMVCActiveRecordClass;
   const SQLWhere: string; const Params: array of Variant;
   const Connection: TFDConnection): TMVCActiveRecordList;
 var

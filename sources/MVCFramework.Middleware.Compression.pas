@@ -113,15 +113,14 @@ begin
       lZStream.Free;
     end;
     lMemStream.Position := 0;
-  except
-    lMemStream.Free;
-    raise;
-  end;
 
-  Context.Response.Content := '';
-  lContentStream.Size := 0;
-  lContentStream.CopyFrom(lMemStream, 0);
-  Context.Response.RawWebResponse.ContentEncoding := MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
+    Context.Response.Content := '';
+    lContentStream.Size := 0;
+    lContentStream.CopyFrom(lMemStream, 0);
+    Context.Response.RawWebResponse.ContentEncoding := MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
+  finally
+    lMemStream.Free;
+  end;	
 end;
 
 procedure TMVCCompressionMiddleware.OnBeforeControllerAction(Context: TWebContext;

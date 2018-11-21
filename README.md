@@ -86,6 +86,7 @@
 - Changed! `IMVCTypeSerializer` is more powerful and simple to use!
 - Sending wrongly formatted JSON now returns a more correctly `400 Bad Request` and not `500 Internal Server Error` as in the previous versions
 - New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
+- New! `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even datamodules) through a JSON-RPC 2.0 interface!
 
   
 ## How to correctly get the source
