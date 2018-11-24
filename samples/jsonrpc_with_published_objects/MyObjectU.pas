@@ -137,8 +137,8 @@ begin
 end;
 
 function TMyObject.SavePerson(const aPerson: TJsonObject): Integer;
-var
-  lPerson: TPerson;
+// var
+// lPerson: TPerson;
 begin
 //  lPerson := JSONObjectAs<TPerson>(aPerson);
 //  try

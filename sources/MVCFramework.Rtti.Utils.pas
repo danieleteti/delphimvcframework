@@ -66,12 +66,7 @@ type
     class function Clone(AObject: TObject): TObject; static;
     class procedure CopyObject(ASourceObject, ATargetObject: TObject); static;
 
-    {$IFDEF XE3ORBETTER} // not supported before xe3
-
     class procedure CopyObjectAS<T: class>(ASourceObject, ATargetObject: TObject); static;
-
-    {$ENDIF}
-
     class function CreateObject(ARttiType: TRttiType): TObject; overload; static;
     class function CreateObject(AQualifiedClassName: string): TObject; overload; static;
 

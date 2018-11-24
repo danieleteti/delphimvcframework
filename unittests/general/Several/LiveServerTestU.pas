@@ -208,10 +208,10 @@ implementation
 
 uses
   System.Math,
+  System.JSON,
   MVCFramework.Serializer.Defaults,
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.TypesAliases,
   MVCFramework.Commons,
   System.SyncObjs,
   System.Generics.Collections,
@@ -293,7 +293,7 @@ procedure TServerTest.TestAsynchRequestGET;
 var
   evt: TEvent;
   r: TWaitResult;
-  j: MVCFramework.TypesAliases.TJSONObject;
+  j: System.JSON.TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -329,7 +329,7 @@ procedure TServerTest.TestAsynchRequestPOST;
 var
   evt: TEvent;
   r: TWaitResult;
-  j: MVCFramework.TypesAliases.TJSONObject;
+  j: System.JSON.TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -348,7 +348,7 @@ begin
       procedure(E: Exception)
       begin
       end).doPOST('/echo', ['1', '2', '3'],
-      TSystemJSON.JSONValueToString(MVCFramework.TypesAliases.TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
+      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
 
     // wait for thred finish
     repeat
@@ -367,7 +367,7 @@ procedure TServerTest.TestAsynchRequestPUT;
 var
   evt: TEvent;
   r: TWaitResult;
-  j: MVCFramework.TypesAliases.TJSONObject;
+  j: System.JSON.TJSONObject;
 begin
   j := nil;
   evt := TEvent.Create;
@@ -385,7 +385,7 @@ begin
       procedure(E: Exception)
       begin
       end).doPUT('/echo', ['1', '2', '3'],
-      TSystemJSON.JSONValueToString(TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
+      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(System.JSON.TJSONPair.Create('from client', 'hello world'))));
 
     // wait for thred finish
     repeat
@@ -515,10 +515,10 @@ end;
 procedure TServerTest.TestCustomAuthRequestsWithValidLogin;
 var
   LRes: IRESTResponse;
-  lJSON: TJSONObject;
+  lJSON: System.JSON.TJSONObject;
   lCookieValue: string;
 begin
-  lJSON := TJSONObject.Create;
+  lJSON := System.JSON.TJSONObject.Create;
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
@@ -546,10 +546,10 @@ end;
 procedure TServerTest.TestCustomAuthRequestsWithValidLogin_HTML;
 var
   LRes: IRESTResponse;
-  lJSON: TJSONObject;
+  lJSON: System.JSON.TJSONObject;
   lCookieValue: string;
 begin
-  lJSON := TJSONObject.Create;
+  lJSON := System.JSON.TJSONObject.Create;
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
@@ -578,9 +578,9 @@ end;
 procedure TServerTest.TestCustomAuthWrongRequestBodies;
 var
   LRes: IRESTResponse;
-  lJSON: TJSONObject;
+  lJSON: System.JSON.TJSONObject;
 begin
-  lJSON := TJSONObject.Create;
+  lJSON := System.JSON.TJSONObject.Create;
   try
     // no request body
     LRes := RESTClient.doPOST('/system/users/logged', []);
@@ -615,14 +615,14 @@ end;
 procedure TServerTest.TestCustomAuthLoginLogout;
 var
   LRes: IRESTResponse;
-  lJSON: TJSONObject;
+  lJSON: System.JSON.TJSONObject;
   lLogoutUrl: string;
   lValue: string;
   I: Integer;
   lPieces: TArray<string>;
   lPass: boolean;
 begin
-  lJSON := TJSONObject.Create;
+  lJSON := System.JSON.TJSONObject.Create;
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
@@ -658,7 +658,7 @@ procedure TServerTest.TestEncodingRenderJSONValue;
 var
   res: IRESTResponse;
   s: string;
-  lJSONObj: TJSONObject;
+  lJSONObj: System.JSON.TJSONObject;
 begin
   res := RESTClient.doGET('/encoding', []);
 
@@ -702,9 +702,9 @@ end;
 procedure TServerTest.TestRenderWrappedList;
 var
   LRes: IRESTResponse;
-  lJSONArr: TJSONArray;
+  lJSONArr: System.JSON.TJSONArray;
   I: Integer;
-  lJSONObj: TJSONObject;
+  lJSONObj: System.JSON.TJSONObject;
 begin
   LRes := RESTClient.doGET('/wrappedpeople', []);
 
@@ -712,7 +712,7 @@ begin
   try
     for I := 0 to lJSONArr.Count - 1 do
     begin
-      lJSONObj := lJSONArr.Items[I] as TJSONObject;
+      lJSONObj := lJSONArr.Items[I] as System.JSON.TJSONObject;
       Assert.isFalse(lJSONObj.GetValue<string>('firstname').IsEmpty);
     end;
   finally
@@ -896,9 +896,9 @@ end;
 procedure TServerTest.TestPOSTWithParamsAndJSONBody;
 var
   r: IRESTResponse;
-  JSON: TJSONObject;
+  JSON: System.JSON.TJSONObject;
 begin
-  JSON := TJSONObject.Create;
+  JSON := System.JSON.TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
   r := RESTClient.doPOST('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
   JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
@@ -972,9 +972,9 @@ end;
 procedure TServerTest.TestPUTWithParamsAndJSONBody;
 var
   r: IRESTResponse;
-  JSON: TJSONObject;
+  JSON: System.JSON.TJSONObject;
 begin
-  JSON := TJSONObject.Create;
+  JSON := System.JSON.TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
   r := RESTClient.doPUT('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
 
@@ -990,7 +990,7 @@ end;
 procedure TServerTest.TestReqWithParams;
 var
   ss: TStringStream;
-  lJSON: TJSONObject;
+  lJSON: System.JSON.TJSONObject;
   r: IRESTResponse;
 begin
   r := RESTClient.doGET('/unknownurl/bla/bla', []);
@@ -1134,7 +1134,7 @@ end;
 procedure TServerTest.TestTypedAll;
 var
   res: IRESTResponse;
-  lJObj: TJSONObject;
+  lJObj: System.JSON.TJSONObject;
 begin
   // ----------------------'/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')', []);
   res := RESTClient.doGET('/typed/all/mystring/1234/12345678/12.3/1234.5678/1234.5678', []);

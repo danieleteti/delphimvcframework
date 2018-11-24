@@ -43,7 +43,8 @@ uses
   MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
-  MVCFramework.TypesAliases, {do not remove this!! Require a custom type serializer!}
+  System.JSON,
+//  MVCFramework.TypesAliases, {do not remove this!! Require a custom type serializer!}
   JsonDataObjects {JsonDataObjects must be after MVCFramework.TypesAliases, if present};
 
 type
@@ -978,8 +979,8 @@ begin
   if AObject is TDataSet then
     Exit(self.SerializeDataSet(TDataSet(AObject)));
 
-  if AObject is MVCFramework.TypesAliases.TJsonValue then
-    Exit(MVCFramework.TypesAliases.TJsonValue(AObject).ToJSON);
+  if AObject is TJsonValue then
+    Exit(TJsonValue(AObject).ToJSON);
 
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   if GetTypeSerializers.ContainsKey(ObjType.Handle) then

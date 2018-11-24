@@ -918,7 +918,7 @@ end;
 
 procedure TRQLCompilerRegistry.RegisterCompiler(const aBackend: string; const aRQLBackendClass: TRQLCompilerClass);
 begin
-  fCompilers.Add(aBackend, aRQLBackendClass);
+  fCompilers.AddOrSetValue(aBackend, aRQLBackendClass);
 end;
 
 function TRQLCompilerRegistry.RegisteredCompilers: TArray<string>;

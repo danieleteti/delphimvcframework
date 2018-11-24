@@ -532,6 +532,7 @@ type
   TMVCControllerClazz = class of TMVCController;
 
   TMVCControllerCreateAction = reference to function: TMVCController;
+  TMVCObjectCreatorDelegate = reference to function: TObject;
 
   TMVCControllerDelegate = class
   private
@@ -639,6 +640,7 @@ type
     function AddController(const AControllerClazz: TMVCControllerClazz; const AURLSegment: string = ''): TMVCEngine; overload;
     function AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction;
       const AURLSegment: string = ''): TMVCEngine; overload;
+    function PublishObject(const AObjectCreatorDelegate: TMVCObjectCreatorDelegate; const AURLSegment: string): TMVCEngine;
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
 
     function GetServerSignature(const AContext: TWebContext): string;
@@ -729,7 +731,7 @@ implementation
 uses
   MVCFramework.Router,
   MVCFramework.SysControllers,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.JSONRPC;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -2065,6 +2067,17 @@ begin
       end;
     end;
   end;
+end;
+
+function TMVCEngine.PublishObject(
+  const AObjectCreatorDelegate: TMVCObjectCreatorDelegate;
+  const AURLSegment: string): TMVCEngine;
+begin
+  Result := AddController(TMVCJSONRPCPublisher,
+    function: TMVCController
+    begin
+      Result := TMVCJSONRPCPublisher.Create(AObjectCreatorDelegate(), True);
+    end, AURLSegment);
 end;
 
 procedure TMVCEngine.RegisterDefaultsSerializers;

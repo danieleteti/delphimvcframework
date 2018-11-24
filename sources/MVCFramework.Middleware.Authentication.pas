@@ -32,10 +32,10 @@ uses
   System.SysUtils,
   System.StrUtils,
   System.Generics.Collections,
+  System.JSON,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Serializer.Commons,
-  MVCFramework.TypesAliases;
+  MVCFramework.Serializer.Commons;
 
 type
 

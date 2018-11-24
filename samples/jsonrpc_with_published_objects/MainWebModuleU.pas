@@ -35,7 +35,6 @@ implementation
 
 {$R *.dfm}
 
-
 uses
   System.IOUtils,
   MVCFramework.Commons,
@@ -67,17 +66,16 @@ begin
       // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
       Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
-  FMVC.AddController(TMVCJSONRPCPublisher,
-    function: TMVCController
+  FMVC.PublishObject(
+    function: TObject
     begin
-      Result := TMVCJSONRPCPublisher.Create(TMyObject.Create);
+      Result := TMyObject.Create;
     end, '/jsonrpc');
-  FMVC.AddController(TMVCJSONRPCPublisher,
-    function: TMVCController
+  FMVC.PublishObject(
+    function: TObject
     begin
-      Result := TMVCJSONRPCPublisher.Create(TdmMain.Create(nil));
+      Result := TdmMain.Create(nil);
     end, '/datamodule');
-
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

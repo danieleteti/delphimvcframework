@@ -5,7 +5,7 @@ unit MVCFramework.SystemJSONUtils;
 interface
 
 uses
-  MVCFramework.TypesAliases, MVCFramework.RESTClient, System.Rtti;
+  System.JSON, MVCFramework.RESTClient, System.Rtti;
 
 type
   TSystemJSON = class sealed

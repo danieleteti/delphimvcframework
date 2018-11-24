@@ -30,8 +30,8 @@ interface
 
 uses
   System.Generics.Collections,
+  System.JSON,
   MVCFramework,
-  MVCFramework.TypesAliases,
   MVCFramework.Patches;
 
 type

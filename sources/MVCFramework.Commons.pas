@@ -35,7 +35,7 @@ uses
   System.SyncObjs,
   System.IOUtils,
   System.Generics.Collections,
-  MVCFramework.TypesAliases,
+  System.JSON,
   Data.DB,
   IdGlobal,
   IdCoderMIME;
