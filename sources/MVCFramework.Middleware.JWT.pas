@@ -35,7 +35,7 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.JWT,
-  MVCFramework.TypesAliases;
+  JsonDataObjects;
 
 type
 
@@ -52,7 +52,7 @@ type
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
-    procedure InternalRender(AJSONValue: TJSONValue; AContentType: string; AContentEncoding: string;
+    procedure InternalRender(AJSONObject: TJsonObject; AContentType: string; AContentEncoding: string;
       AContext: TWebContext; AInstanceOwner: Boolean = True);
 
     procedure RenderError(const AErrorCode: UInt16; const AErrorMessage: string; const AContext: TWebContext;
@@ -76,7 +76,9 @@ implementation
 uses
   System.NetEncoding,
   System.DateUtils,
-  System.Math, MVCFramework.Logger;
+  System.Math,
+  MVCFramework.Logger,
+  System.Variants;
 
 { TMVCJWTAuthenticationMiddleware }
 
@@ -100,13 +102,13 @@ begin
     (JWTValue.LeewaySeconds + JWTValue.LiveValidityWindowInSeconds) * OneSecond;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONValue: TJSONValue; AContentType, AContentEncoding: string;
+procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONObject: TJsonObject; AContentType, AContentEncoding: string;
   AContext: TWebContext; AInstanceOwner: Boolean);
 var
   Encoding: TEncoding;
   ContentType, JValue: string;
 begin
-  JValue := AJSONValue.ToJSON;
+  JValue := AJSONObject.ToJSON;
 
   AContext.Response.RawWebResponse.ContentType := AContentType + '; charset=' + AContentEncoding;
   ContentType := AContentType + '; charset=' + AContentEncoding;
@@ -120,7 +122,7 @@ begin
   end;
 
   if AInstanceOwner then
-    FreeAndNil(AJSONValue)
+    FreeAndNil(AJSONObject)
 end;
 
 function TMVCJWTAuthenticationMiddleware.NeedsToBeExtended(const JWTValue: TJWT): Boolean;
@@ -248,6 +250,7 @@ var
   IsValid: Boolean;
   JWTValue: TJWT;
   lCustomPair: TPair<string, string>;
+  LJsonObject: TJsonObject;
 begin
   if SameText(AContext.Request.PathInfo, FLoginURLSegment) and (AContext.Request.HTTPMethod = httpPOST) then
   begin
@@ -312,8 +315,9 @@ begin
               end;
             end;
 
-            InternalRender(TJSONObject.Create(TJSONPair.Create('token', JWTValue.GetToken)),
-              TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
+            LJsonObject := TJsonObject.Create;
+            LJsonObject.S['token'] := JWTValue.GetToken;
+            InternalRender(LjsonObject, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
             AHandled := True;
           finally
             JWTValue.Free;
@@ -336,7 +340,7 @@ end;
 procedure TMVCJWTAuthenticationMiddleware.RenderError(const AErrorCode: UInt16; const AErrorMessage: string;
   const AContext: TWebContext; const AErrorClassName: string);
 var
-  Jo: TJSONObject;
+  LJsonOb: TJsonObject;
   Status: string;
 begin
   AContext.Response.StatusCode := AErrorCode;
@@ -346,17 +350,17 @@ begin
   if (AErrorCode div 100) = 2 then
     Status := 'ok';
 
-  Jo := TJSONObject.Create;
-  Jo.AddPair('status', Status);
+  LJsonOb := TJSONObject.Create;
+  LJsonOb.S['status'] := Status;
 
   if AErrorClassName = '' then
-    Jo.AddPair('classname', TJSONNull.Create)
+    LJsonOb.Values['classname'] := Null
   else
-    Jo.AddPair('classname', AErrorClassName);
+    LJsonOb.S['classname'] := AErrorClassName;
 
-  Jo.AddPair('message', AErrorMessage);
+  LJsonOb.S['message'] := AErrorMessage;
 
-  InternalRender(Jo, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
+  InternalRender(LJsonOb, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
 end;
 
 end.
