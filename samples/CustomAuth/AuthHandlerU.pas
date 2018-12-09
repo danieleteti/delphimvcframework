@@ -33,17 +33,17 @@ type
   TCustomAuth = class(TInterfacedObject, IMVCAuthenticationHandler)
   public
     // called at each request to know if the request requires an authentication
-    procedure OnRequest(const ControllerQualifiedClassName: string;
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
 
     // if authentication is required, this method must execute the user authentication
-    procedure OnAuthentication(const UserName: string; const Password: string;
+    procedure OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
       UserRoles: TList<System.string>;
       var IsValid: Boolean;
       const SessionData: System.Generics.Collections.TDictionary<System.string, System.string>);
 
     // if authenticated, this method defines the user roles
-    procedure OnAuthorization(UserRoles: System.Generics.Collections.TList<System.string>;
+    procedure OnAuthorization(const AContext: TWebContext; UserRoles: System.Generics.Collections.TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
 
@@ -53,9 +53,10 @@ implementation
 
 { TCustomAuth }
 
-procedure TCustomAuth.OnAuthentication(const UserName, Password: string;
-  UserRoles: TList<System.string>; var IsValid: Boolean;
-  const SessionData: TDictionary<System.string, System.string>);
+procedure TCustomAuth.OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
+      UserRoles: TList<System.string>;
+      var IsValid: Boolean;
+      const SessionData: System.Generics.Collections.TDictionary<System.string, System.string>);
 begin
   {
     Here you should do the actual query on database or other "users store" to
@@ -86,10 +87,9 @@ begin
   // sets only IsValid := True;
 end;
 
-procedure TCustomAuth.OnAuthorization(
-  UserRoles: System.Generics.Collections.TList<System.string>;
-  const ControllerQualifiedClassName, ActionName: string;
-  var IsAuthorized: Boolean);
+procedure TCustomAuth.OnAuthorization(const AContext: TWebContext; UserRoles: System.Generics.Collections.TList<System.string>;
+      const ControllerQualifiedClassName: string; const ActionName: string;
+      var IsAuthorized: Boolean);
 begin
   if ControllerQualifiedClassName = 'PrivateControllerU.TPrivateController' then
   begin
@@ -107,8 +107,8 @@ begin
 
 end;
 
-procedure TCustomAuth.OnRequest(const ControllerQualifiedClassName,
-  ActionName: string; var AuthenticationRequired: Boolean);
+procedure TCustomAuth.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
 begin
   {
     This is the the auth schema implemented: All the actions present in the

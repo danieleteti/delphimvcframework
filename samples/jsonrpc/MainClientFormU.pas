@@ -94,7 +94,7 @@ uses
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.DataSet.Utils,
-  BusinessObjectsU;
+  BusinessObjectsU, MVCFramework.Commons;
 
 {$R *.dfm}
 
@@ -313,6 +313,7 @@ end;
 
 procedure TForm10.FormCreate(Sender: TObject);
 begin
+  Caption := 'JSON-RPC 2.0 Sample - DMVCFramework ' + DMVCFRAMEWORK_VERSION;
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpc');
   dtNextMonday.Date := Date;
 

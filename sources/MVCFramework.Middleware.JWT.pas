@@ -32,10 +32,10 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
+  System.JSON,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.JWT,
-  MVCFramework.TypesAliases;
+  MVCFramework.JWT;
 
 type
 
@@ -154,7 +154,7 @@ var
   ErrorMsg: string;
 begin
   // check if the resource is protected
-  FAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, AuthRequired);
+  FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
 
   if not AuthRequired then
   begin
@@ -212,7 +212,7 @@ begin
       AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
       AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
 
-      FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
+      FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
         IsAuthorized);
 
       if IsAuthorized then
@@ -251,8 +251,8 @@ var
 begin
   if SameText(AContext.Request.PathInfo, FLoginURLSegment) and (AContext.Request.HTTPMethod = httpPOST) then
   begin
-    UserName := AContext.Request.Headers['jwtusername'];
-    Password := AContext.Request.Headers['jwtpassword'];
+    UserName := TNetEncoding.URL.Decode(AContext.Request.Headers['jwtusername']);
+    Password := TNetEncoding.URL.Decode(AContext.Request.Headers['jwtpassword']);
     if (UserName.IsEmpty) or (Password.IsEmpty) then
     begin
       RenderError(HTTP_STATUS.Unauthorized, 'Username and password Required', AContext);
@@ -265,7 +265,7 @@ begin
     try
       SessionData := TSessionData.Create;
       try
-        FAuthenticationHandler.OnAuthentication(UserName, Password, RolesList, IsValid, SessionData);
+        FAuthenticationHandler.OnAuthentication(AContext, UserName, Password, RolesList, IsValid, SessionData);
         if IsValid then
         begin
           JWTValue := TJWT.Create(FSecret, FLeewaySeconds);

@@ -143,7 +143,6 @@
         <DCCReference Include="DMVC.Expert.ProjectWizardEx.pas"/>
         <DCCReference Include="DMVC.Expert.Registration.pas"/>
         <DCCReference Include="DMVC.Splash.Registration.pas"/>
-        <DCCReference Include="..\sources\MVCFramework.TypesAliases.pas"/>
         <DCCReference Include="..\sources\MVCFramework.Commons.pas"/>
         <RcItem Include="DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
@@ -206,6 +205,11 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="$(BDS)\Redist\iossimulator\libpcre.dylib" Class="DependencyModule">
+                    <Platform Name="iOSSimulator">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\DMVC_IDE_Expert_D103Rio.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>DMVC_IDE_Expert_D103Rio.bpl</RemoteName>
@@ -214,11 +218,6 @@
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgsqlite3.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\iossimulator\libpcre.dylib" Class="DependencyModule">
-                    <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

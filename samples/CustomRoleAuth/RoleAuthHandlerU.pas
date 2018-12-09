@@ -38,19 +38,22 @@ type
   TCustomRoleAuth = class(TRoleBasedAuthHandler)
   public
     // if authentication is required, this method must execute the user authentication
-    procedure OnAuthentication(const UserName: string; const Password: string;
-      UserRoles: TList<System.string>; var IsValid: Boolean;
-      const SessionData: System.Generics.Collections.TDictionary<System.string,
-      System.string>); override;
+    procedure OnAuthentication(const AContext: TWebContext;
+      const UserName: string;
+      const Password: string;
+      UserRoles: TList<System.string>;
+      var IsValid: Boolean;
+      const SessionData: TDictionary<string,string>); override;
   end;
 
 implementation
 
 { TCustomRoleAuth }
 
-procedure TCustomRoleAuth.OnAuthentication(const UserName, Password: string;
-  UserRoles: TList<System.string>; var IsValid: Boolean;
-  const SessionData: TDictionary<System.string, System.string>);
+procedure TCustomRoleAuth.OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
+      UserRoles: TList<System.string>; var IsValid: Boolean;
+      const SessionData: System.Generics.Collections.TDictionary<System.string,
+      System.string>);
 begin
   {
     Here you should do the actual query on database or other "users store" to

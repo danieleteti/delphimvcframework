@@ -19,7 +19,7 @@ object MainForm: TMainForm
     Top = 0
     Width = 846
     Height = 527
-    ActivePage = TabSheet2
+    ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
     object TabSheet1: TTabSheet
@@ -94,8 +94,8 @@ object MainForm: TMainForm
           Top = 16
           Width = 102
           Height = 21
-          Date = 43018.469176562500000000
-          Time = 43018.469176562500000000
+          Date = 43018.000000000000000000
+          Time = 0.469176562502980200
           TabOrder = 7
         end
         object btnAddDay: TButton
@@ -291,8 +291,8 @@ object MainForm: TMainForm
           Top = 88
           Width = 102
           Height = 21
-          Date = 29163.469176562500000000
-          Time = 29163.469176562500000000
+          Date = 29163.000000000000000000
+          Time = 0.469176562499342300
           TabOrder = 3
         end
         object btnSave: TButton

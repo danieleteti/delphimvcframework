@@ -422,15 +422,6 @@ type
     property AsInt64[const AIndex: string]: Int64 read GetValueAsInt64;
   end;
 
-  IMVCAuthenticationHandler = interface
-    ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
-    procedure OnRequest(const AControllerQualifiedClassName, AActionName: string; var AAuthenticationRequired: Boolean);
-    procedure OnAuthentication(const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
-      const ASessionData: TDictionary<string, string>);
-    procedure OnAuthorization(AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string;
-      var AIsAuthorized: Boolean);
-  end;
-
   TMVCFieldMap = record
     InstanceFieldName: string;
     DatabaseFieldName: string;
@@ -974,3 +965,4 @@ finalization
 FreeAndNil(Lock);
 
 end.
+

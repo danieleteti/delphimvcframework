@@ -232,8 +232,8 @@ type
 implementation
 
 uses
-  MVCFramework.Serializer.Intf,
-  System.TypInfo;
+  MVCFramework.Serializer.Intf, MVCFramework.Logger,
+  System.TypInfo, MVCFramework.DuckTyping;
 
 function JSONDataValueToTValue(const JSONDataValue: TJsonDataValueHelper): TValue;
 begin
@@ -278,6 +278,7 @@ end;
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJsonObject; const KeyName: string);
 var
   lSer: TMVCJsonDataObjectsSerializer;
+  lMVCList: IMVCList;
 begin
   case Value.Kind of
     tkInteger:
@@ -286,8 +287,15 @@ begin
       end;
     tkFloat:
       begin
-        JSON.D[KeyName] := Value.AsExtended;
-      end;
+        if Value.TypeInfo.Name = 'TDate' then
+        begin
+          JSON.DUtc[KeyName] := Value.AsExtended;
+        end
+        else
+        begin
+          JSON.F[KeyName] := Value.AsExtended;
+        end;
+    end;
     tkString, tkUString, tkWChar, tkLString, tkWString:
       begin
         JSON.S[KeyName] := Value.AsString;
@@ -314,6 +322,16 @@ begin
           try
             JSON.A[KeyName] := TJsonArray.Create;
             lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSON.A[KeyName], TMVCNameCase.ncLowerCase, []);
+          finally
+            lSer.Free;
+          end;
+        end
+        else if TDuckTypedList.CanBeWrappedAsList(Value.AsObject, lMVCList) then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.A[KeyName] := TJsonArray.Create;
+            lSer.ListToJsonArray(lMVCList, JSON.A[KeyName], TMVCSerializationType.stDefault, nil);
           finally
             lSer.Free;
           end;
@@ -611,6 +629,12 @@ begin
         lRTTIMethod := lRTTIType.GetMethod(lMethod);
         if Assigned(lRTTIMethod) then
         begin
+          if (lRTTIMethod.Visibility <> mvPublic) or (not (lRTTIMethod.MethodKind in [mkProcedure, mkFunction])) then
+          begin
+            LogW(Format('Method %s cannot be called. Only public functions or procedures can be called. ', [lMethod]));
+            raise EMVCJSONRPCMethodNotFound.Create(lMethod);
+          end;
+
           InjectParams(lJSONRPCReq, lRTTIMethod);
           try
             lRes := lRTTIMethod.Invoke(fRPCInstance, lJSONRPCReq.Params.ToArray);
@@ -624,7 +648,7 @@ begin
           case lJSONRPCReq.RequestType of
             TJSONRPCRequestType.Notification:
               begin
-                if lRes.IsObjectInstance then
+                if lRes.IsObject then
                   lRes.AsObject.Free;
                 ResponseStatus(HTTP_STATUS.NoContent);
               end;
@@ -643,7 +667,10 @@ begin
           end;
         end
         else
+        begin
+          LogW(Format('Method %s has not be found in %s. Only public methods can be invoked.', [lMethod, fRPCInstance.QualifiedClassName]));
           raise EMVCJSONRPCMethodNotFound.Create(lMethod);
+        end;
       finally
         lRTTI.Free;
       end;
@@ -804,7 +831,7 @@ var
 begin
   for lValue in FParams do
   begin
-    if lValue.IsObjectInstance then
+    if lValue.IsObject then
       lValue.AsObject.Free;
   end;
   FParams.Free;
@@ -844,7 +871,7 @@ end;
 destructor TJSONRPCResponse.Destroy;
 begin
   FreeAndNil(FError);
-  if FResult.IsObjectInstance then
+  if FResult.IsObject then
     FResult.AsObject.Free;
   inherited;
 end;

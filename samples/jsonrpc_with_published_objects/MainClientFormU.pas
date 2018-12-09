@@ -362,7 +362,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpc');
-  FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/datamodule');
+  FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
   dtNextMonday.Date := Date;
 
   // these are the methods to handle http headers in JSONRPC

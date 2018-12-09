@@ -56,7 +56,6 @@ uses
   RenderSampleControllerU,
   CustomTypesU,
   CustomTypesSerializersU,
-  MVCFramework.Serializer.JSON,
   MVCFramework.Serializer.Intf,
   System.Generics.Collections,
   MVCFramework.View.Renderers.Mustache;

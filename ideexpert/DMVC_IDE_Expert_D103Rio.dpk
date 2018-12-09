@@ -52,7 +52,6 @@ contains
   DMVC.Expert.ProjectWizardEx in 'DMVC.Expert.ProjectWizardEx.pas',
   DMVC.Expert.Registration in 'DMVC.Expert.Registration.pas',
   DMVC.Splash.Registration in 'DMVC.Splash.Registration.pas',
-  MVCFramework.TypesAliases in '..\sources\MVCFramework.TypesAliases.pas',
   MVCFramework.Commons in '..\sources\MVCFramework.Commons.pas';
 
 end.

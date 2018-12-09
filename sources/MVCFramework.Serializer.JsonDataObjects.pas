@@ -44,8 +44,7 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   System.JSON,
-//  MVCFramework.TypesAliases, {do not remove this!! Require a custom type serializer!}
-  JsonDataObjects {JsonDataObjects must be after MVCFramework.TypesAliases, if present};
+  JsonDataObjects;
 
 type
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)

@@ -153,9 +153,9 @@ procedure TMVCTestSerializerJsonDataObjects.Setup;
 begin
   inherited;
   FSerializer := TMVCJsonDataObjectsSerializer.Create;
-  FSerializer.RegisterTypeSerializer(System.TypeInfo(TStream), TStreamSerializerJsonDataObject.Create);
-  FSerializer.RegisterTypeSerializer(System.TypeInfo(TStringStream), TStreamSerializerJsonDataObject.Create);
-  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMemoryStream), TStreamSerializerJsonDataObject.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TStream), TMVCStreamSerializerJsonDataObject.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TStringStream), TMVCStreamSerializerJsonDataObject.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMemoryStream), TMVCStreamSerializerJsonDataObject.Create);
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>), TMVCNullableIntegerSerializerJsonDataObjects.Create);
 end;

@@ -34,7 +34,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  MVCFramework.Commons;
+  MVCFramework.Commons, MVCFramework;
 
 type
 

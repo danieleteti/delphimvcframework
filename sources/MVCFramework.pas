@@ -422,6 +422,15 @@ type
     function Serializer(const AContentType: string): IMVCSerializer; overload;
   end;
 
+  IMVCAuthenticationHandler = interface
+    ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
+    procedure OnRequest(const AContext: TWebContext; const AControllerQualifiedClassName, AActionName: string; var AAuthenticationRequired: Boolean);
+    procedure OnAuthentication(const AContext: TWebContext; const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
+      const ASessionData: TDictionary<string, string>);
+    procedure OnAuthorization(const AContext: TWebContext; AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string;
+      var AIsAuthorized: Boolean);
+  end;
+
   TMVCRenderer = class(TMVCBase)
   protected
     FContext: TWebContext;
@@ -2801,7 +2810,7 @@ end;
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
   const ASerializationType: TMVCDatasetSerializationType);
 begin
-  Render(ADataSet, AOwns, [], ncLowerCase, ASerializationType);
+  Render(ADataSet, AOwns, AIgnoredFields, ncLowerCase, ASerializationType);
 end;
 
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationType: TMVCDatasetSerializationType);

@@ -178,7 +178,6 @@
         <DCCReference Include="DMVC.Expert.ProjectWizardEx.pas"/>
         <DCCReference Include="DMVC.Expert.Registration.pas"/>
         <DCCReference Include="DMVC.Splash.Registration.pas"/>
-        <DCCReference Include="..\sources\MVCFramework.TypesAliases.pas"/>
         <DCCReference Include="..\sources\MVCFramework.Commons.pas"/>
         <RcItem Include="DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>

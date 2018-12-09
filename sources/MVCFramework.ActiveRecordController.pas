@@ -109,7 +109,7 @@ var
   lInstance: TMVCActiveRecord;
   lMapping: TMVCFieldsMapping;
   lConnection: TFDConnection;
-  lRQLBackend: TRQLBackend;
+  lRQLBackend: string;
   lProcessor: IMVCEntityProcessor;
   lHandled: Boolean;
   lResp: TMVCActiveRecordListResponse;
@@ -151,8 +151,7 @@ begin
       lInstance.Free;
     end;
 
-    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend,
-      GetMaxRecordCount), True);
+    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, GetMaxRecordCount), True);
     try
       lResp.Metadata.AddProperty('count', lResp.Items.Count.ToString);
       Render(lResp);
