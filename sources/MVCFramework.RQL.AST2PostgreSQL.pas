@@ -22,7 +22,7 @@
 //
 // ***************************************************************************
 
-unit MVCFramework.RQL.AST2MySQL;
+unit MVCFramework.RQL.AST2PostgreSQL;
 
 interface
 
@@ -30,7 +30,7 @@ uses
   MVCFramework.RQL.Parser;
 
 type
-  TRQLMySQLCompiler = class(TRQLCompiler)
+  TRQLPostgreSQLCompiler = class(TRQLCompiler)
   private
     function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
     function RQLSortToSQL(const aRQLSort: TRQLSort): string;
@@ -48,9 +48,9 @@ uses
   System.SysUtils,
   MVCFramework.RQL.AST2FirebirdSQL;
 
-{ TRQLMySQLCompiler }
+{ TRQLPostgreSQLCompiler }
 
-function TRQLMySQLCompiler.RQLCustom2SQL(
+function TRQLPostgreSQLCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;
 begin
   if aRQLCustom is TRQLFilter then
@@ -77,7 +77,7 @@ begin
     raise ERQLException.CreateFmt('Unknown token in compiler: %s', [aRQLCustom.ClassName]);
 end;
 
-function TRQLMySQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
+function TRQLPostgreSQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
 var
   lValue, lDBFieldName: string;
 begin
@@ -120,12 +120,12 @@ begin
   end;
 end;
 
-function TRQLMySQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
+function TRQLPostgreSQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  Result := Format(' LIMIT %d, %d', [aRQLLimit.Start, aRQLLimit.Count]);
+  Result := Format(' LIMIT %d OFFSET %d', [aRQLLimit.Count, aRQLLimit.Start]);
 end;
 
-function TRQLMySQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
+function TRQLPostgreSQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
 var
   lJoin: string;
   lRQLCustom: TRQLCustom;
@@ -158,7 +158,7 @@ begin
   Result := '(' + Result + ')';
 end;
 
-function TRQLMySQLCompiler.RQLSortToSQL(const aRQLSort: TRQLSort): string;
+function TRQLPostgreSQLCompiler.RQLSortToSQL(const aRQLSort: TRQLSort): string;
 var
   I: Integer;
 begin
@@ -175,12 +175,12 @@ begin
   end;
 end;
 
-function TRQLMySQLCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
+function TRQLPostgreSQLCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
 begin
-  Result := ' where ';
+  Result := ' WHERE ';
 end;
 
-procedure TRQLMySQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
+procedure TRQLPostgreSQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
   out aSQL: string);
 var
   lBuff: TStringBuilder;
@@ -208,10 +208,10 @@ end;
 
 initialization
 
-TRQLCompilerRegistry.Instance.RegisterCompiler('mysql', TRQLMySQLCompiler);
+TRQLCompilerRegistry.Instance.RegisterCompiler('postgresql', TRQLPostgreSQLCompiler);
 
 finalization
 
-TRQLCompilerRegistry.Instance.UnRegisterCompiler('mysql');
+TRQLCompilerRegistry.Instance.UnRegisterCompiler('postgresql');
 
 end.

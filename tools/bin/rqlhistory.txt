@@ -1,3 +1,4 @@
+contains(nome,"João")
 sort(+last_name);limit(0,1)
 limit(1,5)
 sort(+nome, -cognome)

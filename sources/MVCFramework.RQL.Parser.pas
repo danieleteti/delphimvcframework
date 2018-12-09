@@ -76,8 +76,8 @@ uses
 
 type
   TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF, tkOpenPar, tkClosedPar,
-    tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote, tkQuote, tkSpace, tkUnknown);
-
+    tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote, tkQuote, tkSpace, tkContains, tkUnknown);
+  
   TRQLCustom = class;
 
   TRQLAbstractSyntaxTree = class(TObjectList<TRQLCustom>)
@@ -486,6 +486,12 @@ begin
     fCurrToken := tkLimit;
     Exit(fCurrToken);
   end;
+  if (lChar = 'c') and (C(1) = 'o') and (C(2) = 'n') and (C(3) = 't') and (C(4) = 'a') and (C(5) = 'i') and (C(6) = 'n') and (C(7) = 's') then
+  begin
+    Skip(8);
+    fCurrToken := tkContains;
+    Exit(fCurrToken);
+  end;
   if (lChar = ' ') then
   begin
     fCurrToken := tkSpace;
@@ -562,7 +568,7 @@ begin
   Result := True;
   lTk := GetToken;
   case lTk of
-    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe:
+    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains:
       begin
         ParseBinOperator(lTk, fAST);
       end;
@@ -640,7 +646,7 @@ begin
     EatWhiteSpaces;
     lToken := GetToken;
     case lToken of
-      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe:
+      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
         end;
