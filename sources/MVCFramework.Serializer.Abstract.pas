@@ -54,8 +54,8 @@ type
     function GetNameAs(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: string): string;
     function IsIgnoredAttribute(const AAttributes: TMVCIgnoredList; const AName: string): Boolean;
     function IsIgnoredComponent(const AOwner: TComponent; const AComponentName: string): Boolean;
-    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
   public
+    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
     constructor Create;
     destructor Destroy; override;
   end;

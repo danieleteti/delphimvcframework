@@ -34,13 +34,19 @@ type
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateArticle(Context: TWebContext);
+
+    [MVCDoc('Creates new articles from a list and returns "201: Created"')]
+    [MVCPath('/bulk')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure CreateArticles(Context: TWebContext);
   end;
 
 implementation
 
 { TArticlesController }
 
-uses Services, BusinessObjects, Commons, mvcframework.Serializer.Intf;
+uses Services, BusinessObjects, Commons, mvcframework.Serializer.Intf,
+  System.Generics.Collections;
 
 procedure TArticlesController.CreateArticle(Context: TWebContext);
 var
@@ -52,6 +58,23 @@ begin
     Render(201, 'Article Created');
   finally
     Article.Free;
+  end;
+end;
+
+procedure TArticlesController.CreateArticles(Context: TWebContext);
+var
+  lArticles: TObjectList<TArticle>;
+  lArticle: TArticle;
+begin
+  lArticles := Context.Request.BodyAsListOf<TArticle>;
+  try
+    for lArticle in lArticles do
+    begin
+      GetArticlesService.Add(lArticle);
+    end;
+    Render(201, 'Articles Created');
+  finally
+    lArticles.Free;
   end;
 end;
 

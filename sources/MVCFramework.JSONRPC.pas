@@ -233,7 +233,8 @@ implementation
 
 uses
   MVCFramework.Serializer.Intf, MVCFramework.Logger,
-  System.TypInfo, MVCFramework.DuckTyping;
+  System.TypInfo, MVCFramework.DuckTyping,
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes;
 
 function JSONDataValueToTValue(const JSONDataValue: TJsonDataValueHelper): TValue;
 begin
@@ -340,8 +341,8 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            JSON.O[KeyName] := TJsonObject.Create;
-            lSer.ObjectToJsonObject(Value.AsObject, JSON.O[KeyName], TMVCSerializationType.stProperties, []);
+            lSer.RegisterTypeSerializer(TypeInfo(TMVCStringDictionary), TMVCStringDictionarySerializer.Create);
+            JSON.O[KeyName] := lSer.SerializeObjectToJSON(Value.AsObject, TMVCSerializationType.stProperties, [], nil);
           finally
             lSer.Free;
           end;
@@ -404,9 +405,8 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            lJObj := TJsonObject.Create;
+            lJObj := lSer.SerializeObjectToJSON(Value.AsObject, TMVCSerializationType.stProperties, [], nil);
             JSONArr.Add(lJObj);
-            lSer.ObjectToJsonObject(Value.AsObject, lJObj, TMVCSerializationType.stProperties, []);
           finally
             lSer.Free;
           end;
