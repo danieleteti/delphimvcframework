@@ -236,6 +236,9 @@ uses
   System.TypInfo, MVCFramework.DuckTyping,
   MVCFramework.Serializer.JsonDataObjects.CustomTypes;
 
+const
+  CALL_TYPE: array[mkProcedure..mkFunction] of string = ('PROCEDURE','FUNCTION');
+
 function JSONDataValueToTValue(const JSONDataValue: TJsonDataValueHelper): TValue;
 begin
   case JSONDataValue.Typ of
@@ -473,12 +476,23 @@ begin
         begin
           if (lRTTIMethod.Visibility <> mvPublic) or (not (lRTTIMethod.MethodKind in [mkProcedure, mkFunction])) then
           begin
-            LogW(Format('Method %s cannot be called. Only public functions or procedures can be called. ', [lMethod]));
+            LogW(Format('Method "%s" cannot be called. Only public functions or procedures can be called. ', [lMethod]));
             raise EMVCJSONRPCMethodNotFound.Create(lMethod);
+          end;
+
+          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Request) and (lRTTIMethod.MethodKind <> mkFunction) then
+          begin
+            raise EMVCJSONRPCInvalidParams.Create('Cannot call a procedure using a JSON-RPC request. [HINT] Use requests for functions and notifications for procedures');
+          end;
+
+          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification) and (lRTTIMethod.MethodKind <> mkProcedure) then
+          begin
+            raise EMVCJSONRPCInvalidParams.Create('Cannot call a function using a JSON-RPC notification. [HINT] Use requests for functions and notifications for procedures');
           end;
 
           InjectParams(lJSONRPCReq, lRTTIMethod);
           try
+            LogD('[JSON-RPC][CALL][' + CALL_TYPE[lRTTIMethod.MethodKind] + '] ' + lRTTIMethod.Name);
             lRes := lRTTIMethod.Invoke(fRPCInstance, lJSONRPCReq.Params.ToArray);
           except
             on E: EInvalidCast do
@@ -510,7 +524,7 @@ begin
         end
         else
         begin
-          LogW(Format('Method %s has not be found in %s. Only public methods can be invoked.', [lMethod, fRPCInstance.QualifiedClassName]));
+          LogW(Format('Method "%s" has not be found in %s. Only public methods can be invoked.', [lMethod, fRPCInstance.QualifiedClassName]));
           raise EMVCJSONRPCMethodNotFound.Create(lMethod);
         end;
       finally
@@ -547,10 +561,12 @@ begin
           ResponseStatus(500);
       end;
       Render(CreateError(lReqID, E.JSONRPCErrorCode, E.message), True);
+      LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]',[E.ClassName, E.JSONRPCErrorCode,E.Message]));
     end;
     on E: Exception do
     begin
       Render(CreateError(lReqID, 0, E.message), True);
+      LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]',[E.ClassName, E.Message]));
     end;
   end;
 end;
