@@ -106,6 +106,10 @@ type
     procedure AfterConstruction; override;
   end;
 
+procedure TValueToJsonElement(const Value: TValue; const JSON: TJsonObject; const KeyName: string);
+procedure AppendTValueToJsonArray(const Value: TValue; const JSONArr: TJsonArray);
+function StringToJSON(const aValue: string): TJsonObject;
+
 implementation
 
 uses
@@ -1059,5 +1063,163 @@ begin
     JsonObject.Free;
   end;
 end;
+
+procedure TValueToJsonElement(const Value: TValue; const JSON: TJsonObject; const KeyName: string);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lMVCList: IMVCList;
+begin
+  case Value.Kind of
+    tkInteger:
+      begin
+        JSON.I[KeyName] := Value.AsInteger;
+      end;
+    tkFloat:
+      begin
+        if Value.TypeInfo.Name = 'TDate' then
+        begin
+          JSON.DUtc[KeyName] := Value.AsExtended;
+        end
+        else
+        begin
+          JSON.F[KeyName] := Value.AsExtended;
+        end;
+    end;
+    tkString, tkUString, tkWChar, tkLString, tkWString:
+      begin
+        JSON.S[KeyName] := Value.AsString;
+      end;
+    tkInt64:
+      begin
+        JSON.I[KeyName] := Value.AsInt64;
+      end;
+    tkClass:
+      begin
+        if Value.AsObject is TJsonObject then
+        begin
+          JSON.O[KeyName] := TJsonObject.Create;
+          JSON.O[KeyName].Assign(TJsonObject(Value.AsObject));
+        end
+        else if Value.AsObject is TJsonArray then
+        begin
+          JSON.A[KeyName] := TJsonArray.Create;
+          JSON.A[KeyName].Assign(TJsonArray(Value.AsObject));
+        end
+        else if Value.AsObject is TDataSet then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.A[KeyName] := TJsonArray.Create;
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSON.A[KeyName], TMVCNameCase.ncLowerCase, []);
+          finally
+            lSer.Free;
+          end;
+        end
+        else if TDuckTypedList.CanBeWrappedAsList(Value.AsObject, lMVCList) then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.A[KeyName] := TJsonArray.Create;
+            lSer.ListToJsonArray(lMVCList, JSON.A[KeyName], TMVCSerializationType.stDefault, nil);
+          finally
+            lSer.Free;
+          end;
+        end
+        else
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.O[KeyName] := lSer.SerializeObjectToJSON(Value.AsObject, TMVCSerializationType.stProperties, [], nil);
+          finally
+            lSer.Free;
+          end;
+        end;
+      end;
+  else
+    raise EMVCException.Create('Invalid type');
+  end;
+end;
+
+procedure AppendTValueToJsonArray(const Value: TValue; const JSONArr: TJsonArray);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJArr: TJsonArray;
+  lJObj: TJsonObject;
+begin
+  case Value.Kind of
+    tkInteger:
+      begin
+        JSONArr.Add(Value.AsInteger);
+      end;
+    tkFloat:
+      begin
+        JSONArr.Add(Value.AsExtended);
+      end;
+    tkString, tkUString, tkWChar, tkLString, tkWString:
+      begin
+        JSONArr.Add(Value.AsString);
+      end;
+    tkInt64:
+      begin
+        JSONArr.Add(Value.AsInt64);
+      end;
+    tkClass:
+      begin
+        if Value.AsObject is TJsonObject then
+        begin
+          lJObj := TJsonObject.Create;
+          JSONArr.Add(lJObj);
+          lJObj.Assign(TJsonObject(Value.AsObject));
+        end
+        else if Value.AsObject is TJsonArray then
+        begin
+          lJArr := TJsonArray.Create;
+          JSONArr.Add(lJArr);
+          lJArr.Assign(TJsonArray(Value.AsObject));
+        end
+        else if Value.AsObject is TDataSet then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            lJArr := TJsonArray.Create;
+            JSONArr.Add(lJArr);
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), lJArr, TMVCNameCase.ncLowerCase, []);
+          finally
+            lSer.Free;
+          end
+        end
+        else
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            lJObj := lSer.SerializeObjectToJSON(Value.AsObject, TMVCSerializationType.stProperties, [], nil);
+            JSONArr.Add(lJObj);
+          finally
+            lSer.Free;
+          end;
+        end;
+      end;
+  else
+    raise EMVCException.Create('Invalid type');
+  end;
+end;
+
+function StringToJSON(const aValue: string): TJsonObject;
+var
+  lJSON: TJsonObject;
+begin
+  lJSON := nil;
+  try
+    lJSON := TJsonObject.Parse(aValue) as TJsonObject;
+    Result := lJSON;
+  except
+    on E: Exception do
+    begin
+      lJSON.Free;
+      raise EMVCDeserializationException.Create('Invalid JSON');
+    end;
+  end;
+end;
+
 
 end.

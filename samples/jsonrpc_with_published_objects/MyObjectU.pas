@@ -29,15 +29,33 @@ interface
 uses
   JsonDataObjects,
   Data.DB,
-  BusinessObjectsU;
+  BusinessObjectsU, FireDAC.Comp.Client, MVCFramework.Serializer.Commons,
+  MVCFramework.Commons;
 
 type
+
+  [MVCNameCase(ncLowerCase)]
+  TMultiDataset = class
+  private
+    fCustomers2: TDataset;
+    fCustomers1: TDataset;
+  public
+    property Customers: TDataset read fCustomers1 write fCustomers1;
+    property People: TDataset read fCustomers2 write fCustomers2;
+    destructor Destroy; override;
+  end;
+
   TMyObject = class
+  private
+    function GetCustomersDataset: TFDMemTable;
+    function GetPeopleDataset: TFDMemTable;
   public
     function Subtract(aValue1, aValue2: Integer): Integer;
     function ReverseString(aString: string): string;
     function GetNextMonday(const aDate: TDate): TDate;
-    function GetCustomers(aString: string): TDataSet;
+    function GetCustomers(aString: string): TDataset;
+    function GetMulti: TMultiDataset;
+    function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const aPerson: TJsonObject): Integer;
     procedure DoSomething;
@@ -53,7 +71,6 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   System.StrUtils,
-  FireDAC.Comp.Client,
   System.DateUtils;
 
 { TMyDerivedController }
@@ -63,14 +80,32 @@ begin
 
 end;
 
-function TMyObject.GetCustomers(aString: string): TDataSet;
+function TMyObject.GetCustomers(aString: string): TDataset;
+var
+  lMT: TFDMemTable;
+begin
+  lMT := GetCustomersDataset;
+  try
+    if not aString.IsEmpty then
+    begin
+      lMT.Filter := aString;
+      lMT.Filtered := True;
+    end;
+    lMT.First;
+    Result := lMT;
+  except
+    lMT.Free;
+    raise;
+  end;
+end;
+
+function TMyObject.GetCustomersDataset: TFDMemTable;
 var
   lMT: TFDMemTable;
 begin
   lMT := TFDMemTable.Create(nil);
   try
     lMT.FieldDefs.Clear;
-
     lMT.FieldDefs.Add('Code', ftInteger);
     lMT.FieldDefs.Add('Name', ftString, 20);
     lMT.Active := True;
@@ -87,17 +122,19 @@ begin
     lMT.AppendRecord([11, 'Volkswagen']);
     lMT.AppendRecord([12, 'Audi']);
     lMT.AppendRecord([13, 'Skoda']);
-    if not aString.IsEmpty then
-    begin
-      lMT.Filter := aString;
-      lMT.Filtered := True;
-    end;
     lMT.First;
     Result := lMT;
   except
     lMT.Free;
     raise;
   end;
+end;
+
+function TMyObject.GetMulti: TMultiDataset;
+begin
+  Result := TMultiDataset.Create;
+  Result.Customers := GetCustomersDataset;
+  Result.People := GetPeopleDataset;
 end;
 
 function TMyObject.GetNextMonday(const aDate: TDate): TDate;
@@ -110,6 +147,38 @@ begin
     lDate := lDate + 1;
   end;
   Result := lDate;
+end;
+
+function TMyObject.GetPeopleDataset: TFDMemTable;
+var
+  lMT: TFDMemTable;
+begin
+  lMT := TFDMemTable.Create(nil);
+  try
+    lMT.FieldDefs.Clear;
+    lMT.FieldDefs.Add('FirstName', ftString, 20);
+    lMT.FieldDefs.Add('LastName', ftString, 20);
+    lMT.Active := True;
+    lMT.AppendRecord(['Daniele', 'Teti']);
+    lMT.AppendRecord(['Peter', 'Parker']);
+    lMT.AppendRecord(['Bruce', 'Banner']);
+    lMT.AppendRecord(['Scott', 'Summers']);
+    lMT.AppendRecord(['Sue', 'Storm']);
+    lMT.First;
+    Result := lMT;
+  except
+    lMT.Free;
+    raise;
+  end;
+end;
+
+function TMyObject.GetStringDictionary: TMVCStringDictionary;
+begin
+  Result := TMVCStringDictionary.Create;
+  Result.AddProperty('key1', 'value1');
+  Result.AddProperty('key2', 'value2');
+  Result.AddProperty('key3', 'value3');
+  Result.AddProperty('key4', 'value4');
 end;
 
 function TMyObject.GetUser(aUserName: string): TPerson;
@@ -140,12 +209,12 @@ function TMyObject.SavePerson(const aPerson: TJsonObject): Integer;
 // var
 // lPerson: TPerson;
 begin
-//  lPerson := JSONObjectAs<TPerson>(aPerson);
-//  try
-//    // do something with lPerson
-//  finally
-//    lPerson.Free;
-//  end;
+  // lPerson := JSONObjectAs<TPerson>(aPerson);
+  // try
+  // // do something with lPerson
+  // finally
+  // lPerson.Free;
+  // end;
 
   // this maybe the id of the newly created person
   Result := Random(1000);
@@ -154,6 +223,15 @@ end;
 function TMyObject.Subtract(aValue1, aValue2: Integer): Integer;
 begin
   Result := aValue1 - aValue2;
+end;
+
+{ TData }
+
+destructor TMultiDataset.Destroy;
+begin
+  fCustomers1.Free;
+  fCustomers2.Free;
+  inherited;
 end;
 
 end.
