@@ -109,6 +109,7 @@ type
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJsonObject; const KeyName: string);
 procedure AppendTValueToJsonArray(const Value: TValue; const JSONArr: TJsonArray);
 function StringToJSON(const aValue: string): TJsonObject;
+procedure JsonObjectToObject(const AJsonObject: TJsonObject; const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
 implementation
 
@@ -1218,6 +1219,18 @@ begin
       lJSON.Free;
       raise EMVCDeserializationException.Create('Invalid JSON');
     end;
+  end;
+end;
+
+procedure JsonObjectToObject(const AJsonObject: TJsonObject; const AObject: TObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+begin
+  lSer :=  TMVCJsonDataObjectsSerializer.Create;
+  try
+    lSer.JsonObjectToObject(AJsonObject, AObject, AType, AIgnoredAttributes);
+  finally
+    lSer.Free;
   end;
 end;
 

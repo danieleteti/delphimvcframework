@@ -330,6 +330,8 @@ resourcestring
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
     '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
     '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
+    '      // Max request size in bytes' + sLineBreak +
+    '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +
     '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +

@@ -57,7 +57,7 @@ type
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
@@ -196,21 +196,31 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>;
-  AFieldNamePolicy: TFieldNamePolicy);
-begin
-  Self.DisableControls;
-  try
-    raise Exception.Create('Not Implemented');
-  finally
-    Self.EnableControls;
-  end;
-end;
-
 procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
   AFieldNamePolicy: TFieldNamePolicy);
 begin
   AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
+end;
+
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy);
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+  lBookmark: TArray<Byte>;
+begin
+  lBookmark := Self.Bookmark;
+  Self.DisableControls;
+  try
+    lSerializer := TMVCJsonDataObjectsSerializer.Create;
+    try
+      lSerializer.JsonArrayToDataSet(AJSONArray, Self, nil, ncAsIs);
+    finally
+      lSerializer.Free;
+    end;
+    if Self.BookmarkValid(lBookmark) then
+      Self.GotoBookmark(lBookmark);
+  finally
+    Self.EnableControls;
+  end;
 end;
 
 procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
@@ -243,17 +253,6 @@ var
 begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
   lSerializer.DeserializeDataSetRecord(AJSONObjectString, Self, nil, ncAsIs);
-
-  // JV := TJSONObject.ParseJSONValue(AJSONObjectString);
-  // try
-  // if JV is TJSONObject then
-  // LoadFromJSONObject(TJSONObject(JV), AIgnoredFields)
-  // else
-  // raise EMapperException.Create
-  // ('Extected JSONObject in LoadFromJSONObjectString');
-  // finally
-  // JV.Free;
-  // end;
 end;
 
 procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy);
@@ -409,4 +408,3 @@ begin
 end;
 
 end.
-

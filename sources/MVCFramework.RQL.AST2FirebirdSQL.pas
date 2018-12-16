@@ -119,7 +119,7 @@ end;
 function TRQLFirebirdCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
   // firebird ROWS requires Start > 0. Limit function is 0 based, so we have to add 1 to start.
-  Result := Format(' ROWS %d to %d', [aRQLLimit.Start + 1, aRQLLimit.Start + aRQLLimit.Count]);
+  Result := Format(' /*limit*/  ROWS %d to %d', [aRQLLimit.Start + 1, aRQLLimit.Start + aRQLLimit.Count]);
 end;
 
 function TRQLFirebirdCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
@@ -159,7 +159,7 @@ function TRQLFirebirdCompiler.RQLSortToSQL(const aRQLSort: TRQLSort): string;
 var
   I: Integer;
 begin
-  Result := ' ORDER BY';
+  Result := ' /*sort*/ ORDER BY';
   for I := 0 to aRQLSort.Fields.Count - 1 do
   begin
     if I > 0 then

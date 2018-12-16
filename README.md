@@ -69,6 +69,7 @@
 - Refactored ISAPI sample
 - Speed improvement! Removed enhanced visibility for action methods. Now only public and published methods can be used as actions.
 - `TMVCController.Create` is `virtual`! Now on your base controllers can be even more powerful!
+- New! Added `MAX_REQUEST_SIZE` for limiting the size of the incoming HTTP requests. IDE Expert is updated too!
 - New! Added method `TMVCJsonDataObjectsSerializer.ListToJsonArray`
 - New! `TMVCResponse` for handle generic (non error) response
 - New! `TMVCErrorResponse` for handle generic error response
@@ -87,6 +88,7 @@
 - Sending wrongly formatted JSON now returns a more correctly `400 Bad Request` and not `500 Internal Server Error` as in the previous versions
 - New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
 - New! `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even datamodules) through a JSON-RPC 2.0 interface!
+- *Breaking Change!* The JSON RPC Client layer is now interface based.
 
   
 ## How to correctly get the source

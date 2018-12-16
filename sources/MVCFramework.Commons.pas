@@ -108,6 +108,9 @@ type
     SSE_RETRY_DEFAULT = 100;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
     URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
+    OneMiB = 1048576;
+    OneKiB = 1024;
+    DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; //5 MiB
   end;
 
   TMVCConfigKey = record
@@ -127,6 +130,7 @@ type
     SessionType = 'session_type';
     FallbackResource = 'fallback_resource';
     MaxEntitiesRecordCount = 'max_entities_record_count';
+    MaxRequestSize = 'max_request_size'; //bytes
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html

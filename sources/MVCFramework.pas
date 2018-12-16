@@ -605,6 +605,7 @@ type
     FViewEngineClass: TMVCViewEngineClass;
     FWebModule: TWebModule;
     FConfig: TMVCConfig;
+    FConfigCache_MaxRequestSize: Int64;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -619,6 +620,7 @@ type
     function GetViewEngineClass: TMVCViewEngineClass;
   protected
     procedure ConfigDefaultValues; virtual;
+    procedure SaveCacheConfigValues;
     procedure LoadSystemControllers; virtual;
     procedure FixUpWebModule;
     procedure ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
@@ -1587,6 +1589,7 @@ begin
   Config[TMVCConfigKey.SessionType] := 'memory';
   Config[TMVCConfigKey.IndexDocument] := 'index.html';
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
+  Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
 
   FMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
   FMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
@@ -1626,7 +1629,7 @@ begin
     AConfigAction(FConfig);
     LogExitMethod('Custom configuration method');
   end;
-
+  SaveCacheConfigValues;
   RegisterDefaultsSerializers;
   LoadSystemControllers;
 end;
@@ -1662,6 +1665,12 @@ var
   LActualParams: TArray<TValue>;
 begin
   Result := False;
+
+  ARequest.ReadTotalContent;
+  if ARequest.ContentLength > fConfigCache_MaxRequestSize then
+  begin
+    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB]', [(FConfigCache_MaxRequestSize div 1024)]);
+  end;
 
   LParamsTable := TMVCRequestParamsTable.Create;
   try
@@ -2125,6 +2134,11 @@ var
 begin
   SId := StringReplace(StringReplace(StringReplace(GUIDToString(TGUID.NewGuid), '}', '', []), '{', '', []), '-', '', [rfReplaceAll]);
   Result := SendSessionCookie(AContext, SId);
+end;
+
+procedure TMVCEngine.SaveCacheConfigValues;
+begin
+  FConfigCache_MaxRequestSize := StrToInt64Def(Config[TMVCConfigKey.MaxRequestSize], TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
@@ -2904,3 +2918,4 @@ finalization
 FreeAndNil(_MVCGlobalActionParamsCache);
 
 end.
+

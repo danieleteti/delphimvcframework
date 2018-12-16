@@ -4,7 +4,6 @@ program activerecord_crud;
 
 
 uses
-  // FastMM4,
   FireDAC.Phys.FB,
   System.SysUtils,
   MVCFramework.Logger,
@@ -14,14 +13,16 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   Entities in 'Entities.pas',
   FDConnectionConfigU in 'FDConnectionConfigU.pas',
   MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.RQL.AST2MySQL in '..\..\sources\MVCFramework.RQL.AST2MySQL.pas',
   MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
-  EntitiesProcessors in 'EntitiesProcessors.pas';
+  EntitiesProcessors in 'EntitiesProcessors.pas',
+  MVCFramework.RQL.AST2InterbaseSQL in '..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
+  MVCFramework.RQL.AST2PostgreSQL in '..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas';
 
 {$R *.res}
 

@@ -72,85 +72,139 @@ type
     procedure Build(const aJSON: TJsonObject); virtual; abstract;
     { IMVCJSONRPCMessage }
     function AsJSONRPCMessage: string;
-  public
     function AsJSON: TJsonObject; virtual;
   end;
 
-  TJSONRPCObject = class(TObject)
+  IJSONRPCObject = interface
+    ['{98E161EE-B106-4023-8722-3C2CB1B4CE87}']
+    procedure SetJsonString(const Value: string);
+    function GetJSONString: string;
+    function GetJSON: TJsonObject;
+    procedure SetJSON(const Value: TJsonObject);
+    property AsJSON: TJsonObject read GetJSON write SetJSON;
+    property AsJSONString: string read GetJSONString write SetJsonString;
+  end;
+
+  TJSONRPCObject = class(TInterfacedObject, IJSONRPCObject)
   protected
     procedure SetJsonString(const Value: string); virtual;
     function GetJSONString: string; virtual;
     function GetJSON: TJsonObject; virtual;
     procedure SetJSON(const Value: TJsonObject); virtual;
-  public
-    constructor Create; virtual;
     property AsJSON: TJsonObject read GetJSON write SetJSON;
     property AsJSONString: string read GetJSONString write SetJsonString;
+  public
+    constructor Create; virtual;
   end;
 
-  TJSONRPCNotification = class(TJSONRPCObject)
-  protected type
-    TJSONRPCRequestParams = TList<TValue>;
+  TJSONRPCRequestParams = TList<TValue>;
+
+  IJSONRPCNotification = interface(IJSONRPCObject)
+    ['{FAA65A29-3305-4303-833E-825BDBD3FF7F}']
+    procedure SetMethod(const Value: string);
+    function GetMethod: string;
+    function GetParams: TJSONRPCRequestParams;
+    property Method: string read GetMethod write SetMethod;
+    property Params: TJSONRPCRequestParams read GetParams;
+  end;
+
+  TJSONRPCNotification = class(TJSONRPCObject, IJSONRPCObject, IJSONRPCNotification)
   protected
     FMethod: string;
     FParams: TJSONRPCRequestParams;
     procedure SetMethod(const Value: string);
-  protected
+    function GetMethod: string;
+    function GetParams: TJSONRPCRequestParams;
     function GetJSON: TJsonObject; override;
+    property Method: string read GetMethod write SetMethod;
+    property Params: TJSONRPCRequestParams read GetParams;
   public
-    constructor Create; override;
+    constructor Create; overload; override;
+    constructor Create(const aMethod: String); reintroduce; overload;
     destructor Destroy; override;
-    property Method: string read FMethod write SetMethod;
-    property Params: TJSONRPCRequestParams read FParams;
   end;
 
 {$SCOPEDENUMS ON}
 
   TJSONRPCRequestType = (Request, Notification);
 
-  TJSONRPCRequest = class(TJSONRPCNotification)
+  IJSONRPCRequest = interface(IJSONRPCNotification)
+    ['{D8318032-0261-4273-B99D-121899AD52FB}']
+    function GetRequestType: TJSONRPCRequestType;
+    function GetID: TValue;
+    procedure SetID(const Value: TValue);
+    property RequestType: TJSONRPCRequestType read GetRequestType;
+    property RequestID: TValue read GetID write SetID;
+  end;
+
+  TJSONRPCRequest = class(TJSONRPCNotification, IJSONRPCRequest)
   private
     FID: TValue;
     function GetRequestType: TJSONRPCRequestType;
+    function GetID: TValue;
   protected
     procedure SetJSON(const JSON: TJsonObject); override;
     function GetJSON: TJsonObject; override;
     procedure SetID(const Value: TValue);
-  public
-    constructor Create; override;
-    destructor Destroy; override;
     property RequestType: TJSONRPCRequestType read GetRequestType;
-    property RequestID: TValue read FID write SetID;
+    property RequestID: TValue read GetID write SetID;
+  public
+    constructor Create(const aID: TValue; const aMethod: String); overload; virtual;
+    constructor Create(const aID: TValue); overload; virtual;
+    constructor Create; reintroduce; overload; virtual;
+    destructor Destroy; override;
   end;
 
-  TJSONRPCResponse = class(TJSONRPCObject)
-  private type
-    TJSONRPCResponseError = class
-    private
-      FCode: Integer;
-      FMessage: string;
-      procedure SetCode(const Value: Integer);
-      procedure SetMessage(const Value: string);
-    public
-      property Code: Integer read FCode write SetCode;
-      property ErrMessage: string read FMessage write SetMessage;
-    end;
+  TJSONRPCResponseError = class
+  private
+    FCode: Integer;
+    FMessage: string;
+    procedure SetCode(const Value: Integer);
+    procedure SetMessage(const Value: string);
+  public
+    property Code: Integer read FCode write SetCode;
+    property ErrMessage: string read FMessage write SetMessage;
+  end;
+
+  IJSONRPCResponse = interface(IJSONRPCObject)
+    ['{69B43409-14DC-4A36-9E12-425A1626FF3C}']
+    function GetID: TValue;
+    procedure SetID(const Value: TValue);
+    function GetResult: TValue;
+    procedure SetResult(const Value: TValue);
+    function GetError: TJSONRPCResponseError;
+    procedure SetError(const Value: TJSONRPCResponseError);
+    function IsError: Boolean;
+    function ResultAsJSONObject: TJsonObject;
+    function ResultAsJSONArray: TJsonArray;
+    property Result: TValue read GetResult write SetResult;
+    property Error: TJSONRPCResponseError read GetError write SetError;
+    property RequestID: TValue read GetID write SetID;
+  end;
+
+  TJSONRPCResponse = class(TJSONRPCObject, IJSONRPCResponse)
   private
     FResult: TValue;
     FError: TJSONRPCResponseError;
     FID: TValue;
-    procedure SetID(const Value: TValue);
-    procedure SetResult(const Value: TValue);
-    procedure SetError(const Value: TJSONRPCResponseError);
+    function GetResult: TValue;
   protected
     function GetJSON: TJsonObject; override;
     procedure SetJSON(const JSON: TJsonObject); override;
+    procedure SetID(const Value: TValue);
+    procedure SetResult(const Value: TValue);
+    procedure SetError(const Value: TJSONRPCResponseError);
+    function GetError: TJSONRPCResponseError;
+    function GetID: TValue;
+    function ResultAsJSONObject: TJsonObject;
+    function ResultAsJSONArray: TJsonArray;
+    function IsError: Boolean;
+    property Result: TValue read GetResult write SetResult;
+    property Error: TJSONRPCResponseError read GetError write SetError;
+    property RequestID: TValue read GetID write SetID;
   public
     constructor Create; override;
     destructor Destroy; override;
-    property Result: TValue read FResult write SetResult;
-    property Error: TJSONRPCResponseError read FError write SetError;
-    property RequestID: TValue read FID write SetID;
   end;
 
   EMVCJSONRPCInvalidVersion = class(Exception)
@@ -220,6 +274,11 @@ type
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure Index; virtual;
+
+    [MVCPath]
+    [MVCHTTPMethods([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_PLAIN)]
+    procedure GetProxyCode; virtual;
     constructor Create; overload; override;
     destructor Destroy; override;
   end;
@@ -229,15 +288,31 @@ type
     constructor Create(const RPCInstance: TObject; const Owns: Boolean = True); reintroduce; overload;
   end;
 
+  TJSONRPCProxyGenerator = class abstract
+  public
+    constructor Create; virtual;
+    procedure StartGeneration; virtual;
+    procedure EndGeneration; virtual;
+    procedure VisitMethod(const aRTTIMethod: TRttiMethod); virtual; abstract;
+    function GetCode: String; virtual; abstract;
+  end;
+
+  TJSONRPCProxyGeneratorClass = class of TJSONRPCProxyGenerator;
+
+procedure RegisterJSONRPCProxyGenerator(const aLanguage: String; const aClass: TJSONRPCProxyGeneratorClass);
+
 implementation
 
 uses
   MVCFramework.Serializer.Intf, MVCFramework.Logger,
   System.TypInfo, MVCFramework.DuckTyping,
-  MVCFramework.Serializer.JsonDataObjects.CustomTypes;
+  MVCFramework.Serializer.jsondataobjects.CustomTypes;
 
 const
-  CALL_TYPE: array[mkProcedure..mkFunction] of string = ('PROCEDURE','FUNCTION');
+  CALL_TYPE: array [mkProcedure .. mkFunction] of string = ('PROCEDURE', 'FUNCTION');
+
+var
+  GProxyGeneratorsRegister: TDictionary<String, TJSONRPCProxyGeneratorClass>;
 
 function JSONDataValueToTValue(const JSONDataValue: TJsonDataValueHelper): TValue;
 begin
@@ -260,6 +335,7 @@ begin
       end;
     jdtObject:
       begin
+        { TODO -oDanieleT -cGeneral : Can be deserialized in a PODO? }
         Result := TJsonObject.Parse(JSONDataValue.ObjectValue.ToJSON) as TJsonObject;
       end;
     jdtInt:
@@ -343,14 +419,15 @@ begin
   fOwsRPCInstance := False;
 end;
 
-function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const message: string): TJsonObject;
+function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const message: string)
+  : TJsonObject;
 var
   lErrResp: TJSONRPCResponse;
 begin
   lErrResp := TJSONRPCResponse.Create;
   try
     lErrResp.RequestID := RequestID;
-    lErrResp.Error := TJSONRPCResponse.TJSONRPCResponseError.Create;
+    lErrResp.Error := TJSONRPCResponseError.Create;
     lErrResp.Error.Code := ErrorCode;
     lErrResp.Error.ErrMessage := message;
     Result := lErrResp.AsJSON;
@@ -363,21 +440,23 @@ function TMVCJSONRPCController.CreateRequest(const JSON: TJsonObject): TJSONRPCR
 var
   I: Integer;
   lParams: TJsonArray;
+  lReqID: TValue;
+  lMethodName: String;
 begin
   try
-    Result := TJSONRPCRequest.Create;
     if JSON.Types[JSONRPC_ID] = jdtString then
-      Result.RequestID := JSON.S[JSONRPC_ID]
+      lReqID := JSON.S[JSONRPC_ID]
     else if JSON.Types[JSONRPC_ID] = jdtInt then
-      Result.RequestID := JSON.I[JSONRPC_ID]
+      lReqID := JSON.I[JSONRPC_ID]
     else if JSON.Types[JSONRPC_ID] = jdtLong then
-      Result.RequestID := JSON.L[JSONRPC_ID]
+      lReqID := JSON.L[JSONRPC_ID]
     else if JSON.Types[JSONRPC_ID] = jdtULong then
-      Result.RequestID := JSON.U[JSONRPC_ID]
+      lReqID := JSON.U[JSONRPC_ID]
     else
-      Result.RequestID := TValue.Empty;
+      lReqID := TValue.Empty;
 
-    Result.Method := JSON.S[JSONRPC_METHOD];
+    lMethodName := JSON.S[JSONRPC_METHOD];
+    Result := TJSONRPCRequest.Create(lReqID, lMethodName);
 
     if JSON.Types[JSONRPC_PARAMS] = jdtArray then
     begin
@@ -431,6 +510,54 @@ begin
   end;
 end;
 
+procedure TMVCJSONRPCController.GetProxyCode;
+var
+  lLanguage: string;
+  lClass: TJSONRPCProxyGeneratorClass;
+  lGenerator: TJSONRPCProxyGenerator;
+  lRTTI: TRTTIContext;
+  lRTTIType: TRttiType;
+  lMethod: TRttiMethod;
+begin
+  if not Context.Request.QueryStringParamExists('language') then
+  begin
+    raise EMVCJSONRPCException.Create('Query string parameter "language" is required');
+  end;
+
+  lLanguage := Context.Request.Params['language'].ToLower;
+
+  if not Assigned(GProxyGeneratorsRegister) then
+  begin
+    raise EMVCJSONRPCException.Create
+      ('No Proxy Generators have been registered. [HINT] Use RegisterJSONRPCProxyGenerator function');
+  end;
+
+  if not GProxyGeneratorsRegister.TryGetValue(lLanguage, lClass) then
+  begin
+    raise EMVCJSONRPCException.CreateFmt('Unknown language [%s]', [lLanguage]);
+  end;
+
+  lGenerator := lClass.Create;
+  try
+    lRTTI := TRTTIContext.Create;
+    try
+      lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
+      lGenerator.StartGeneration();
+      for lMethod in lRTTIType.GetMethods do
+      begin
+        lGenerator.VisitMethod(lMethod);
+      end;
+      lGenerator.EndGeneration();
+      Context.Response.ContentType := 'text/plain';
+      Render(lGenerator.GetCode);
+    finally
+      lRTTI.Free;
+    end;
+  finally
+    lGenerator.Free;
+  end;
+end;
+
 function TMVCJSONRPCController.GetSerializer: TMVCJsonDataObjectsSerializer;
 begin
   if not Assigned(fSerializer) then
@@ -474,20 +601,24 @@ begin
         lRTTIMethod := lRTTIType.GetMethod(lMethod);
         if Assigned(lRTTIMethod) then
         begin
-          if (lRTTIMethod.Visibility <> mvPublic) or (not (lRTTIMethod.MethodKind in [mkProcedure, mkFunction])) then
+          if (lRTTIMethod.Visibility <> mvPublic) or (not(lRTTIMethod.MethodKind in [mkProcedure, mkFunction])) then
           begin
-            LogW(Format('Method "%s" cannot be called. Only public functions or procedures can be called. ', [lMethod]));
+            LogW(Format('Method "%s" cannot be called. Only public functions or procedures can be called. ',
+              [lMethod]));
             raise EMVCJSONRPCMethodNotFound.Create(lMethod);
           end;
 
           if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Request) and (lRTTIMethod.MethodKind <> mkFunction) then
           begin
-            raise EMVCJSONRPCInvalidParams.Create('Cannot call a procedure using a JSON-RPC request. [HINT] Use requests for functions and notifications for procedures');
+            raise EMVCJSONRPCInvalidParams.Create
+              ('Cannot call a procedure using a JSON-RPC request. [HINT] Use requests for functions and notifications for procedures');
           end;
 
-          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification) and (lRTTIMethod.MethodKind <> mkProcedure) then
+          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification) and (lRTTIMethod.MethodKind <> mkProcedure)
+          then
           begin
-            raise EMVCJSONRPCInvalidParams.Create('Cannot call a function using a JSON-RPC notification. [HINT] Use requests for functions and notifications for procedures');
+            raise EMVCJSONRPCInvalidParams.Create
+              ('Cannot call a function using a JSON-RPC notification. [HINT] Use requests for functions and notifications for procedures');
           end;
 
           InjectParams(lJSONRPCReq, lRTTIMethod);
@@ -524,7 +655,8 @@ begin
         end
         else
         begin
-          LogW(Format('Method "%s" has not be found in %s. Only public methods can be invoked.', [lMethod, fRPCInstance.QualifiedClassName]));
+          LogW(Format('Method "%s" has not be found in %s. Only public methods can be invoked.',
+            [lMethod, fRPCInstance.QualifiedClassName]));
           raise EMVCJSONRPCMethodNotFound.Create(lMethod);
         end;
       finally
@@ -561,12 +693,12 @@ begin
           ResponseStatus(500);
       end;
       Render(CreateError(lReqID, E.JSONRPCErrorCode, E.message), True);
-      LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]',[E.ClassName, E.JSONRPCErrorCode,E.Message]));
+      LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode, E.message]));
     end;
     on E: Exception do
     begin
       Render(CreateError(lReqID, 0, E.message), True);
-      LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]',[E.ClassName, E.Message]));
+      LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [E.ClassName, E.message]));
     end;
   end;
 end;
@@ -586,7 +718,8 @@ end;
 
 constructor EMVCJSONRPCParseError.Create;
 begin
-  inherited Create('Parse error. Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text');
+  inherited Create
+    ('Parse error. Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text');
   FJSONRPCErrorCode := -32700;
 end;
 
@@ -632,6 +765,18 @@ begin
 end;
 
 { TJSONRPCRequest }
+
+constructor TJSONRPCRequest.Create(const aID: TValue; const aMethod: String);
+begin
+  inherited Create(aMethod);
+  SetID(aID);
+end;
+
+constructor TJSONRPCRequest.Create(const aID: TValue);
+begin
+  inherited Create;
+  SetID(aID);
+end;
 
 constructor TJSONRPCRequest.Create;
 begin
@@ -683,6 +828,12 @@ begin
   end;
 end;
 
+constructor TJSONRPCNotification.Create(const aMethod: String);
+begin
+  Create;
+  Method := aMethod;
+end;
+
 destructor TJSONRPCNotification.Destroy;
 var
   lValue: TValue;
@@ -713,6 +864,16 @@ begin
   end;
 end;
 
+function TJSONRPCNotification.GetMethod: string;
+begin
+  Result := FMethod;
+end;
+
+function TJSONRPCNotification.GetParams: TJSONRPCRequestParams;
+begin
+  Result := FParams;
+end;
+
 procedure TJSONRPCNotification.SetMethod(const Value: string);
 begin
   FMethod := Value;
@@ -732,6 +893,16 @@ begin
   if FResult.IsObject then
     FResult.AsObject.Free;
   inherited;
+end;
+
+function TJSONRPCResponse.GetError: TJSONRPCResponseError;
+begin
+  Result := FError;
+end;
+
+function TJSONRPCResponse.GetID: TValue;
+begin
+  Result := FID;
 end;
 
 function TJSONRPCResponse.GetJSON: TJsonObject;
@@ -773,6 +944,26 @@ begin
     Result.Free;
     raise;
   end;
+end;
+
+function TJSONRPCResponse.GetResult: TValue;
+begin
+  Result := FResult;
+end;
+
+function TJSONRPCResponse.IsError: Boolean;
+begin
+  Result := Assigned(FError);
+end;
+
+function TJSONRPCResponse.ResultAsJSONArray: TJsonArray;
+begin
+  Result := Self.Result.AsObject as TJsonArray;
+end;
+
+function TJSONRPCResponse.ResultAsJSONObject: TJsonObject;
+begin
+  Result := Self.Result.AsObject as TJsonObject;
 end;
 
 procedure TJSONRPCResponse.SetError(const Value: TJSONRPCResponseError);
@@ -882,17 +1073,22 @@ end;
 
 { TJSONRPCResponseError }
 
-procedure TJSONRPCResponse.TJSONRPCResponseError.SetCode(const Value: Integer);
+procedure TJSONRPCResponseError.SetCode(const Value: Integer);
 begin
   FCode := Value;
 end;
 
-procedure TJSONRPCResponse.TJSONRPCResponseError.SetMessage(const Value: string);
+procedure TJSONRPCResponseError.SetMessage(const Value: string);
 begin
   FMessage := Value;
 end;
 
 { TJSONRPCMessage }
+
+function TJSONRPCRequest.GetID: TValue;
+begin
+  Result := FID;
+end;
 
 function TJSONRPCRequest.GetJSON: TJsonObject;
 begin
@@ -916,5 +1112,37 @@ begin
   end;
 
 end;
+
+{ TJSONRPCProxyGenerator }
+
+constructor TJSONRPCProxyGenerator.Create;
+begin
+  inherited;
+end;
+
+procedure RegisterJSONRPCProxyGenerator(const aLanguage: String; const aClass: TJSONRPCProxyGeneratorClass);
+begin
+  if not Assigned(GProxyGeneratorsRegister) then
+  begin
+    GProxyGeneratorsRegister := TDictionary<String, TJSONRPCProxyGeneratorClass>.Create();
+  end;
+  GProxyGeneratorsRegister.AddOrSetValue(aLanguage.ToLower, aClass);
+end;
+
+procedure TJSONRPCProxyGenerator.EndGeneration;
+begin
+  // do nothing
+end;
+
+procedure TJSONRPCProxyGenerator.StartGeneration;
+begin
+  // do nothing
+end;
+
+initialization
+
+finalization
+
+FreeAndNil(GProxyGeneratorsRegister);
 
 end.

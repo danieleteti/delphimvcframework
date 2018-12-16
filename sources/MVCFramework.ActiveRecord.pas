@@ -26,8 +26,6 @@ unit MVCFramework.ActiveRecord;
 
 interface
 
-
-
 uses
   System.Generics.Defaults,
   System.Generics.Collections,
@@ -112,7 +110,6 @@ type
   public
     constructor Create; virtual;
   end;
-
 
   TMVCActiveRecord = class
   private
@@ -221,8 +218,8 @@ type
     function GetPK: TValue;
     class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: int64): T; overload;
     class function GetByPK(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord; overload;
-    class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant; const Options: TMVCActiveRecordLoadOptions = [])
-      : TObjectList<T>; overload;
+    class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant;
+      const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
       : TMVCActiveRecordList; overload;
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant;
@@ -970,6 +967,10 @@ begin
       begin
         aRTTIField.SetValue(Self, aField.AsLongWord);
       end;
+    ftFMTBcd:
+      begin
+        aRTTIField.SetValue(Self, BCDtoCurrency(aField.AsBCD));
+      end;
     ftDate:
       begin
         aRTTIField.SetValue(Self, Trunc(aField.AsDateTime));
@@ -1267,7 +1268,8 @@ begin
       if TMVCActiveRecordLoadOption.loIgnoreNotExistentFields in aOptions then
         continue
       else
-        raise EMVCActiveRecord.CreateFmt('Field [%s] not found in dataset. [HINT] If you dont need it, use loIgnoreNotExistentFields', [lItem.Value]);
+        raise EMVCActiveRecord.CreateFmt
+          ('Field [%s] not found in dataset. [HINT] If you dont need it, use loIgnoreNotExistentFields', [lItem.value]);
     end;
     MapColumnToTValue(lItem.value, lField, lItem.Key);
   end;
@@ -1387,7 +1389,8 @@ begin
 
 end;
 
-class function TMVCActiveRecord.Select<T>(const SQL: string; const Params: array of Variant; const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
+class function TMVCActiveRecord.Select<T>(const SQL: string; const Params: array of Variant;
+  const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
 var
   lDataSet: TDataSet;
   lAR: TMVCActiveRecord;
@@ -1546,13 +1549,13 @@ var
 begin
   lAR := T.Create;
   try
-    if not SQLWhere.Trim.IsEmpty then
+    if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or SQLWhere.Trim.StartsWith('/*sort*/') then
     begin
-      Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params);
+      Result := Select<T>(lAR.GenerateSelectSQL + SQLWhere, Params);
     end
     else
     begin
-      Result := Select<T>(lAR.GenerateSelectSQL, Params);
+      Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params);
     end;
   finally
     lAR.Free;
