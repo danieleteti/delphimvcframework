@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -41,6 +41,11 @@ type
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
+    function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+    function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
+      : IMVCJSONRPCExecutor;
+    function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
+      : IMVCJSONRPCExecutor;
   end;
 
   TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor)
@@ -52,15 +57,20 @@ type
     function GetHTTPRequestHeaders: TList<TNetHeader>;
   protected
     function InternalExecute(const aJSONRPCObject: IJSONRPCObject): IJSONRPCResponse;
-  public
-    constructor Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True); virtual;
-    destructor Destroy; override;
     function ExecuteRequest(const aJSONRPCRequest: IJSONRPCRequest): IJSONRPCResponse;
     procedure ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification);
     // Http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
+    function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+    function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
+      : IMVCJSONRPCExecutor;
+    function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
+      : IMVCJSONRPCExecutor;
+  public
+    constructor Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True); virtual;
+    destructor Destroy; override;
   end;
 
 implementation
@@ -69,7 +79,8 @@ uses
   System.Classes,
   System.SysUtils;
 
-procedure JSONRPCExec(const aJSONRPCURL: string; const aJSONRPCRequest: IJSONRPCRequest; out aJSONRPCResponse: IJSONRPCResponse);
+procedure JSONRPCExec(const aJSONRPCURL: string; const aJSONRPCRequest: IJSONRPCRequest;
+  out aJSONRPCResponse: IJSONRPCResponse);
 var
   lSS: TStringStream;
   lHttpResp: IHTTPResponse;
@@ -80,8 +91,8 @@ begin
     lSS.Position := 0;
     lHTTP := THTTPClient.Create;
     try
-      lHttpResp := lHTTP.Post('http://localhost:8080/jsonrpc', lSS, nil, [TNetHeader.Create('content-type', 'application/json'),
-        TNetHeader.Create('accept', 'application/json')]);
+      lHttpResp := lHTTP.Post('http://localhost:8080/jsonrpc', lSS, nil,
+        [TNetHeader.Create('content-type', 'application/json'), TNetHeader.Create('accept', 'application/json')]);
       if (lHttpResp.StatusCode <> 204) then
       begin
         aJSONRPCResponse := TJSONRPCResponse.Create;
@@ -119,6 +130,7 @@ begin
   FURL := aURL;
   FHTTP := THTTPClient.Create;
   FHTTPRequestHeaders := nil;
+  SetOnReceiveData(nil).SetOnNeedClientCertificate(nil).SetOnValidateServerCertificate(nil);
 end;
 
 destructor TMVCJSONRPCExecutor.Destroy;
@@ -174,11 +186,11 @@ begin
   end;
 
   Result := nil;
-  lSS := TStringStream.Create(aJSONRPCObject.AsJSONString);
+  lSS := TStringStream.Create(aJSONRPCObject.AsJSONString, TEncoding.UTF8);
   try
     lSS.Position := 0;
-    lHttpResp := FHTTP.Post(FURL, lSS, nil, [TNetHeader.Create('content-type', 'application/json'),
-      TNetHeader.Create('accept', 'application/json')] + lCustomHeaders);
+    lHttpResp := FHTTP.Post(FURL, lSS, nil, [TNetHeader.Create('content-type', 'application/json;charset=utf8'),
+      TNetHeader.Create('accept', 'application/json;charset=utf8')] + lCustomHeaders);
     if (lHttpResp.StatusCode <> HTTP_STATUS.NoContent) then
     begin
       lJSONRPCResponse := TJSONRPCResponse.Create;
@@ -190,6 +202,27 @@ begin
   finally
     lSS.Free;
   end;
+end;
+
+function TMVCJSONRPCExecutor.SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
+  : IMVCJSONRPCExecutor;
+begin
+  FHTTP.OnNeedClientCertificate := aOnNeedClientCertificate;
+  Result := Self;
+end;
+
+function TMVCJSONRPCExecutor.SetOnReceiveData(
+  const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+begin
+  FHTTP.OnReceiveData := aOnReceiveData;
+  Result := Self;
+end;
+
+function TMVCJSONRPCExecutor.SetOnValidateServerCertificate(const aOnValidateServerCertificate
+  : TValidateCertificateEvent): IMVCJSONRPCExecutor;
+begin
+  FHTTP.OnValidateServerCertificate := aOnValidateServerCertificate;
+  Result := self;
 end;
 
 end.

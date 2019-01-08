@@ -8260,3 +8260,4 @@ initialization
   JSONFormatSettings.DecimalSeparator := '.';
 
 end.
+

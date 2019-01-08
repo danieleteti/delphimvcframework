@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title>Cellar</title>
+	<link rel="stylesheet" href="css/milligram.css" />
+	<link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+
+	<div class="header">
+		<input type="text" id="searchKey" />
+		<button class="button" id="btnSearch">Search</button>
+		<button class="button" id="btnAdd">New Wine</button>
+	</div>
+
+
+	<div class="leftArea">
+		<ul id="wineList"></ul>
+	</div>
+
+	<form id="wineForm">
+
+		<div class="mainArea">
+
+			<label>Id:</label>
+			<input id="wineId" name="id" type="text" style="width: 50px" disabled />
+
+			<label>Name:</label>
+			<input type="text" id="name" name="name" required>
+
+			<label>Grapes:</label>
+			<input type="text" id="grapes" name="grapes" />
+
+			<label>Country:</label>
+			<input type="text" id="country" name="country" />
+
+			<label>Region:</label>
+			<input type="text" id="region" name="region" />
+
+			<label>Year:</label>
+			<select id="year" name="year">
+				<option value=""></option>
+			</select>
+			<div class="padding02">
+				<button class="button" id="btnSave">Save</button>
+				<button class="button" id="btnDelete">Delete</button>
+			</div>
+		</div>
+
+		<div class="rightArea">
+
+			<img id="pic" height="300" />
+
+			<label>Notes:</label>
+			<textarea id="description" name="description"></textarea>
+		</div>
+
+	</form>
+
+	<script src="js/jquery-1.7.1.min.js"></script>
+	<script src="js/main.js"></script>
+
+	<div class="footer textcenter padding02">The client code of this demo is slightly based on
+		<a target="_blank" href="http://coenraets.org/blog/2011/12/restful-services-with-jquery-php-and-the-slim-framework/">"RESTful services with jQuery, PHP and the Slim Framework"</a>
+	</div>
+</body>
+
+</html>

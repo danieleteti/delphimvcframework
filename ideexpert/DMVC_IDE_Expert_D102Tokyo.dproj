@@ -161,6 +161,7 @@
         <DCCReference Include="IndyProtocols.dcp"/>
         <DCCReference Include="IndyCore.dcp"/>
         <DCCReference Include="dbrtl.dcp"/>
+        <DCCReference Include="dmvcframeworkRT.dcp"/>
         <DCCReference Include="DMVC.Expert.CodeGen.NewControllerUnit.pas"/>
         <DCCReference Include="DMVC.Expert.CodeGen.NewDMVCProject.pas"/>
         <DCCReference Include="DMVC.Expert.CodeGen.NewProject.pas"/>
@@ -178,7 +179,6 @@
         <DCCReference Include="DMVC.Expert.ProjectWizardEx.pas"/>
         <DCCReference Include="DMVC.Expert.Registration.pas"/>
         <DCCReference Include="DMVC.Splash.Registration.pas"/>
-        <DCCReference Include="..\sources\MVCFramework.Commons.pas"/>
         <RcItem Include="DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
             <ResourceId>DMVCNewProjectIcon</ResourceId>

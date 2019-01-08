@@ -1,0 +1,41 @@
+﻿<div class="row_fluid">
+    <div class="col-sm-12">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>First name</th>
+                    <th>Last name</th>
+                    <th>Age</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{^people}}
+                <tr>
+                    <td class="text-center" colspan="5">&lt;&lt;No People Found&gt;&gt;</td>
+                </tr>
+                {{/people}} {{#people}}
+                <tr>
+                    <td>{{-index}}</td>
+                    <td>{{first_name}}</td>
+                    <td>{{last_name}}</td>
+                    <td>{{age}}</td>
+                    <td class="text-right">
+                        <a class="btn btn-default" href="/edit/{{guid}}"><span class="glyphicon glyphicon-pencil"></span> View</a>
+                    </td>
+                </tr>
+                {{/people}}
+            </tbody>
+        </table>
+    </div>
+</div>
+<br>
+<div class="row_fluid">
+    <div class="col-sm-2">
+        <a class="btn btn-default btn-block" href="/people/formats/csv">Export as CSV</a>
+    </div>
+    <div class="col-sm-2 col-sm-offset-8">
+        <a class="btn btn-primary btn-block" href="/new">Add New Person</a>
+    </div>
+</div>

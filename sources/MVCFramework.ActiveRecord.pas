@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -76,6 +76,7 @@ type
   end;
 
   MVCTableAttribute = class(MVCActiveRecordCustomAttribute)
+  public
     Name: string;
     constructor Create(aName: string);
   end;
@@ -218,6 +219,7 @@ type
     function GetPK: TValue;
     class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: int64): T; overload;
     class function GetByPK(const aClass: TMVCActiveRecordClass; const aValue: int64): TMVCActiveRecord; overload;
+    class function GetScalar(const SQL: string; const Params: array of Variant): Variant;
     class function Select<T: TMVCActiveRecord, constructor>(const SQL: string; const Params: array of Variant;
       const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
     class function Select(const aClass: TMVCActiveRecordClass; const SQL: string; const Params: array of Variant)
@@ -283,6 +285,7 @@ type
   TMVCConnectionsRepository = class(TInterfacedObject, IMVCActiveRecordConnections)
   private type
     TConnHolder = class
+    public
       Connection: TFDConnection;
       OwnsConnection: Boolean;
       destructor Destroy; override;
@@ -905,6 +908,12 @@ begin
   Result := fPrimaryKey.GetValue(Self);
 end;
 
+class function TMVCActiveRecord.GetScalar(const SQL: string;
+  const Params: array of Variant): Variant;
+begin
+  Result := CurrentConnection.ExecSQLScalar(SQL, Params);
+end;
+
 function TMVCActiveRecord.CheckAction(const aEntityAction: TMVCEntityAction; const aRaiseException: Boolean): Boolean;
 begin
   Result := aEntityAction in fEntityAllowedActions;
@@ -1437,7 +1446,7 @@ begin
   lAR := T.Create;
   try
     lSQL := lAR.SQLGenerator.CreateSelectSQLByRQL(RQL, lAR.GetMapping).Trim;
-    LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
+    //LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
     if lSQL.StartsWith('where', True) then
       lSQL := lSQL.Remove(0, 5).Trim;
     Result := Where<T>(lSQL, []);
@@ -1772,3 +1781,4 @@ gCtx.Free;
 gLock.Free;
 
 end.
+

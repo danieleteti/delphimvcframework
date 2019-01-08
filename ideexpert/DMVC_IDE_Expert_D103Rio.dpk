@@ -36,7 +36,8 @@ requires
   IndySystem,
   IndyProtocols,
   IndyCore,
-  dbrtl;
+  dbrtl,
+  dmvcframeworkRT;
 
 contains
   DMVC.Expert.CodeGen.NewControllerUnit in 'DMVC.Expert.CodeGen.NewControllerUnit.pas',
@@ -51,7 +52,6 @@ contains
   DMVC.Expert.NewUnitWizardEx in 'DMVC.Expert.NewUnitWizardEx.pas',
   DMVC.Expert.ProjectWizardEx in 'DMVC.Expert.ProjectWizardEx.pas',
   DMVC.Expert.Registration in 'DMVC.Expert.Registration.pas',
-  DMVC.Splash.Registration in 'DMVC.Splash.Registration.pas',
-  MVCFramework.Commons in '..\sources\MVCFramework.Commons.pas';
+  DMVC.Splash.Registration in 'DMVC.Splash.Registration.pas';
 
 end.

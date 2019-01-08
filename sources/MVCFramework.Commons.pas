@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -41,7 +41,6 @@ uses
   IdCoderMIME;
 
 {$I dmvcframeworkbuildconsts.inc}
-
 
 type
 
@@ -110,7 +109,7 @@ type
     URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
     OneMiB = 1048576;
     OneKiB = 1024;
-    DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; //5 MiB
+    DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
   end;
 
   TMVCConfigKey = record
@@ -130,7 +129,7 @@ type
     SessionType = 'session_type';
     FallbackResource = 'fallback_resource';
     MaxEntitiesRecordCount = 'max_entities_record_count';
-    MaxRequestSize = 'max_request_size'; //bytes
+    MaxRequestSize = 'max_request_size'; // bytes
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -343,8 +342,7 @@ type
   end;
 
   TMVCStringDictionary = class
-  strict
-    private
+  strict private
     function GetItems(const Key: string): string;
     procedure SetItems(const Key, Value: string);
   protected
@@ -354,7 +352,8 @@ type
     destructor Destroy; override;
     procedure Clear;
     function AddProperty(const Name, Value: string): TMVCStringDictionary;
-    function TryGetValue(const Name: string; out Value: string): Boolean;
+    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
     function Count: Integer;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
@@ -451,7 +450,8 @@ function URLSafeB64Decode(const Value: string): string;
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 
-procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
+  var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
 const
@@ -467,10 +467,11 @@ var
   Lock: TObject;
 
 const
-  RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'), ('10.0.0.0', '10.255.255.255'),
-    ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'), ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'),
-    ('192.88.99.0', '192.88.99.255'), ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
-    ('224.0.0.0', '239.255.255.255'), ('240.0.0.0', '255.255.255.255'));
+  RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'),
+    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
+    ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'), ('192.88.99.0', '192.88.99.255'),
+    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
+    ('240.0.0.0', '255.255.255.255'));
 
 implementation
 
@@ -504,7 +505,8 @@ begin
   if AIP.IsEmpty then
     Exit(0);
   lPieces := AIP.Split(['.']);
-  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) + (StrToInt(lPieces[2]) * 256) + StrToInt(lPieces[3]);
+  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) + (StrToInt(lPieces[2]) * 256) +
+    StrToInt(lPieces[3]);
 end;
 
 // function IP2Long(const AIP: string): UInt32;
@@ -559,7 +561,8 @@ begin
   Result := Result.ToLower.Replace(' ', '', [rfReplaceAll]);
 end;
 
-procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string; var aContentCharSet: string);
+procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
+  var aContentCharSet: string);
 var
   lContentTypeValues: TArray<string>;
 begin
@@ -705,7 +708,8 @@ begin
         end
       end
       else
-        raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName + '] does not contain a valid JSONObject');
+        raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName +
+          '] does not contain a valid JSONObject');
     end
     else
       raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
@@ -798,6 +802,13 @@ begin
   FDict.AddOrSetValue(Key, Value);
 end;
 
+function TMVCStringDictionary.TryGetValue(const Name: string; out Value: Integer): Boolean;
+var
+  lTmp: String;
+begin
+  Result := TryGetValue(Name, lTmp) and TryStrToInt(lTmp, Value);
+end;
+
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
 begin
   Result := FDict.TryGetValue(name, Value);
@@ -857,7 +868,8 @@ type
   end;
 
 const
-  GURLSafeBase64CodeTable: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; { Do not Localize }
+  GURLSafeBase64CodeTable: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  { Do not Localize }
 
 procedure TURLSafeEncode.InitComponent;
 begin
@@ -969,5 +981,3 @@ finalization
 FreeAndNil(Lock);
 
 end.
-
-

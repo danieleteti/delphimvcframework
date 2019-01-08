@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -64,7 +64,7 @@ type
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: boolean = true): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
   end;
 
@@ -167,16 +167,16 @@ begin
     Result := nil;
 end;
 
-function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean): TObjectList<T>;
+function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean; OwnsObjects: boolean): TObjectList<T>;
 var
-  Objs: TObjectList<T>;
+  lObjs: TObjectList<T>;
 begin
-  Objs := TObjectList<T>.Create(True);
+  lObjs := TObjectList<T>.Create(OwnsObjects);
   try
-    TDataSetUtils.DataSetToObjectList<T>(Self, Objs, CloseAfterScroll);
-    Result := Objs;
+    TDataSetUtils.DataSetToObjectList<T>(Self, lObjs, CloseAfterScroll);
+    Result := lObjs;
   except
-    FreeAndNil(Objs);
+    FreeAndNil(lObjs);
     raise;
   end;
 end;
@@ -189,8 +189,6 @@ begin
   try
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
     lSerializer.DeserializeDataSet(AJSONArray, Self, nil, ncAsIs);
-    // Mapper.JSONArrayToDataSet(AJSONArray, Self, TArray<string>.Create(), false,
-    // AFieldNamePolicy);
   finally
     Self.EnableControls;
   end;

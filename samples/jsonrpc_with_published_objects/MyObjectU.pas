@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -51,8 +51,9 @@ type
     function GetPeopleDataset: TFDMemTable;
   public
     function Subtract(aValue1, aValue2: Integer): Integer;
-    function ReverseString(aString: string): string;
+    function ReverseString(const aString: string; const aUpperCase: Boolean): string;
     function GetNextMonday(const aDate: TDate): TDate;
+    function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime): TDateTime;
     function GetCustomers(aString: string): TDataset;
     function GetMulti: TMultiDataset;
     function GetStringDictionary: TMVCStringDictionary;
@@ -200,9 +201,16 @@ begin
   // do nothing
 end;
 
-function TMyObject.ReverseString(aString: string): string;
+function TMyObject.PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime): TDateTime;
+begin
+  Result := aDateAndTime + aDate + aTime + TDateTime(aJustAFloat);
+end;
+
+function TMyObject.ReverseString(const aString: string; const aUpperCase: Boolean): string;
 begin
   Result := System.StrUtils.ReverseString(aString);
+  if aUpperCase then
+    Result := Result.ToUpper;
 end;
 
 function TMyObject.SavePerson(const aPerson: TJsonObject): Integer;

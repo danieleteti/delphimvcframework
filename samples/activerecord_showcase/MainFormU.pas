@@ -47,6 +47,7 @@ type
     procedure btnSelectClick(Sender: TObject);
     procedure btnValidationClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     procedure Log(const Value: string);
   public
@@ -59,7 +60,6 @@ var
 implementation
 
 {$R *.dfm}
-
 
 uses
   MVCFramework.ActiveRecord,
@@ -142,14 +142,11 @@ begin
   else
     raise Exception.Create('Unknown backend for direct SQL execution');
 
-  lProc :=
-      procedure
+  lProc := procedure
     var
       lConn: TFDConnection;
-      lCustomer:
-        TCustomer;
-      I:
-        Integer;
+      lCustomer: TCustomer;
+      I: Integer;
     begin
       lConn := TFDConnection.Create(nil);
       try
@@ -174,17 +171,8 @@ begin
       end;
     end;
 
-  lTasks := [
-    TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    , TTask.Run(lProc)
-    ];
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 end;
 
@@ -360,10 +348,12 @@ begin
   ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
 end;
 
-procedure TMainForm.Log(
-  const
-  Value:
-  string);
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  ActiveRecordConnectionsRegistry.RemoveConnection('default');
+end;
+
+procedure TMainForm.Log(const Value: string);
 begin
   Memo1.Lines.Add(Value);
   Memo1.Update;

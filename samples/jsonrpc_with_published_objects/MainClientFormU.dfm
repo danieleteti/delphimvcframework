@@ -34,21 +34,21 @@ object MainForm: TMainForm
         object edtValue1: TEdit
           Left = 17
           Top = 32
-          Width = 70
+          Width = 32
           Height = 21
           TabOrder = 0
           Text = '42'
         end
         object edtValue2: TEdit
-          Left = 93
+          Left = 55
           Top = 32
-          Width = 70
+          Width = 26
           Height = 21
           TabOrder = 1
           Text = '10'
         end
         object btnSubstract: TButton
-          Left = 169
+          Left = 87
           Top = 30
           Width = 100
           Height = 25
@@ -57,9 +57,9 @@ object MainForm: TMainForm
           OnClick = btnSubstractClick
         end
         object edtResult: TEdit
-          Left = 273
+          Left = 193
           Top = 32
-          Width = 70
+          Width = 27
           Height = 21
           ReadOnly = True
           TabOrder = 3
@@ -67,31 +67,31 @@ object MainForm: TMainForm
         object edtReverseString: TEdit
           Left = 17
           Top = 80
-          Width = 144
+          Width = 88
           Height = 21
           TabOrder = 4
           Text = 'Daniele Teti'
         end
         object btnReverseString: TButton
-          Left = 167
+          Left = 111
           Top = 78
-          Width = 100
+          Width = 109
           Height = 25
           Caption = 'Reverse String'
           TabOrder = 5
           OnClick = btnReverseStringClick
         end
         object edtReversedString: TEdit
-          Left = 273
+          Left = 320
           Top = 80
-          Width = 178
+          Width = 131
           Height = 21
           ReadOnly = True
           TabOrder = 6
         end
         object dtNextMonday: TDateTimePicker
-          Left = 564
-          Top = 16
+          Left = 253
+          Top = 32
           Width = 102
           Height = 21
           Date = 43018.000000000000000000
@@ -99,9 +99,9 @@ object MainForm: TMainForm
           TabOrder = 7
         end
         object btnAddDay: TButton
-          Left = 672
-          Top = 14
-          Width = 128
+          Left = 361
+          Top = 30
+          Width = 104
           Height = 25
           Caption = 'Get Next Monday'
           TabOrder = 8
@@ -170,6 +170,23 @@ object MainForm: TMainForm
           TabOrder = 12
           WordWrap = True
           OnClick = btnInvalidMethodClick
+        end
+        object CheckBox1: TCheckBox
+          Left = 226
+          Top = 82
+          Width = 88
+          Height = 17
+          Caption = 'As Uppercase'
+          TabOrder = 13
+        end
+        object btnDates: TButton
+          Left = 635
+          Top = 30
+          Width = 165
+          Height = 25
+          Caption = 'PlayWithDates'
+          TabOrder = 14
+          OnClick = btnDatesClick
         end
       end
       object GroupBox2: TGroupBox

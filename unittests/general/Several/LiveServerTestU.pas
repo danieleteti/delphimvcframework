@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -385,7 +385,8 @@ begin
       procedure(E: Exception)
       begin
       end).doPUT('/echo', ['1', '2', '3'],
-      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(System.JSON.TJSONPair.Create('from client', 'hello world'))));
+      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(System.JSON.TJSONPair.Create('from client',
+      'hello world'))));
 
     // wait for thred finish
     repeat
@@ -1288,154 +1289,95 @@ end;
 
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;
 var
-  lReq: TJSONRPCRequest;
-  lResp: TJSONRPCResponse;
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;
-  try
-    lReq.Method := 'nonexist';
-    lReq.RequestID := 1234;
-
-    lResp := FExecutor.ExecuteRequest(lReq);
-    try
-      Assert.IsNotNull(lResp.Error);
-      Assert.areEqual(-32601, lResp.Error.Code);
-      Assert.isTrue(lResp.Error.ErrMessage.StartsWith('Method "nonexist" not found.'));
-    finally
-      lResp.Free;
-    end;
-  finally
-    lReq.Free;
-  end;
+  lReq.Method := 'nonexist';
+  lReq.RequestID := 1234;
+  lResp := FExecutor.ExecuteRequest(lReq);
+  Assert.IsNotNull(lResp.Error);
+  Assert.areEqual(-32601, lResp.Error.Code);
+  Assert.isTrue(lResp.Error.ErrMessage.StartsWith('Method "nonexist" not found.'));
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithoutParams;
 var
-  lReq: TJSONRPCNotification;
+  lReq: IJSONRPCNotification;
 begin
   lReq := TJSONRPCNotification.Create;
-  try
-    lReq.Method := 'mynotify';
-    FExecutor.ExecuteNotification(lReq);
-    Assert.Pass();
-  finally
-    lReq.Free;
-  end;
+  lReq.Method := 'mynotify';
+  FExecutor.ExecuteNotification(lReq);
+  Assert.Pass();
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_I;
 var
-  lReq: TJSONRPCRequest;
-  lResp: TJSONRPCResponse;
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;
-  try
-    lReq.RequestID := 1234;
-    lReq.Method := 'subtract';
-    lReq.Params.Add(18);
-    lReq.Params.Add(8);
-    lResp := FExecutor.ExecuteRequest(lReq);
-    try
-      Assert.areEqual(10, lResp.Result.AsInteger);
-      Assert.areEqual(1234, lResp.RequestID.AsInteger);
-    finally
-      lResp.Free;
-    end;
-  finally
-    lReq.Free;
-  end;
+  lReq.RequestID := 1234;
+  lReq.Method := 'subtract';
+  lReq.Params.Add(18);
+  lReq.Params.Add(8);
+  lResp := FExecutor.ExecuteRequest(lReq);
+  Assert.areEqual(10, lResp.Result.AsInteger);
+  Assert.areEqual(1234, lResp.RequestID.AsInteger);
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_A;
 var
-  lReq: TJSONRPCRequest;
-  lRPCResp: TJSONRPCResponse;
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
   lArr: TJDOJSONArray;
   I: Integer;
   x: Integer;
 begin
   lReq := TJSONRPCRequest.Create;
-  try
-    lReq.Method := 'GetListFromTo';
-    lReq.Params.Add(1);
-    lReq.Params.Add(5);
-    lReq.RequestID := 1234;
-    lRPCResp := FExecutor.ExecuteRequest(lReq);
-    try
-      lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
-      x := 1;
-      for I := 0 to lArr.Count - 1 do
-      begin
-        Assert.areEqual(x, lArr[I].IntValue);
-        Inc(x);
-      end;
-    finally
-      lRPCResp.Free;
-    end;
-  finally
-    lReq.Free;
+  lReq.Method := 'GetListFromTo';
+  lReq.Params.Add(1);
+  lReq.Params.Add(5);
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor.ExecuteRequest(lReq);
+  lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
+  x := 1;
+  for I := 0 to lArr.Count - 1 do
+  begin
+    Assert.areEqual(x, lArr[I].IntValue);
+    Inc(x);
   end;
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_I_ret_O;
 var
-  lReq: TJSONRPCRequest;
-  lRPCResp: TJSONRPCResponse;
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
   lS: string;
 begin
   lReq := TJSONRPCRequest.Create;
-  try
-    // lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "add", "params": [3, 4, 5], "id": 1234}';
-    lReq.Method := 'add';
-    lReq.Params.Add(3);
-    lReq.Params.Add(4);
-    lReq.Params.Add(5);
-    lReq.RequestID := 1234;
-    // lResp := RESTClient.ContentType(TMVCMediaType.APPLICATION_JSON).Accept(TMVCMediaType.APPLICATION_JSON)
-    // .doPOST('/jsonrpc', [], lReq.AsJSONString);
-    lRPCResp := FExecutor.ExecuteRequest(lReq);
-    // Assert.IsNotEmpty(lResp.BodyAsString);
-    // Assert.areEqual(HTTP_STATUS.OK, Integer(lResp.ResponseCode));
-    // lRPCResp := TJSONRPCResponse.Create;
-    try
-      // lRPCResp.AsJSONString := lResp.BodyAsString;
-      lS := (lRPCResp.Result.AsObject as TJDOJsonObject).ToJSON();
-      Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
-    finally
-      lRPCResp.Free;
-    end;
-  finally
-    lReq.Free;
-  end;
+  lReq.Method := 'add';
+  lReq.Params.Add(3);
+  lReq.Params.Add(4);
+  lReq.Params.Add(5);
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor.ExecuteRequest(lReq);
+  lS := (lRPCResp.Result.AsObject as TJDOJsonObject).ToJSON();
+  Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
 end;
 
 procedure TJSONRPCServerTest.TestRequest_S_I_ret_S;
 var
-  lReq: TJSONRPCRequest;
-  lRPCResp: TJSONRPCResponse;
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
 begin
   lReq := TJSONRPCRequest.Create;
-  try
-    lReq.Method := 'MultiplyString';
-    lReq.Params.Add('Daniele');
-    lReq.Params.Add(4);
-    lReq.RequestID := 1234;
-    lRPCResp := FExecutor.ExecuteRequest(lReq);
-    // lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "MultiplyString", "params": ["Daniele", 4], "id": 1234}';
-    // lResp := RESTClient.ContentType(TMVCMediaType.APPLICATION_JSON).Accept(TMVCMediaType.APPLICATION_JSON)
-    // .doPOST('/jsonrpc', [], lReq.AsJSONString);
-    // Assert.IsNotEmpty(lResp.BodyAsString);
-    // Assert.areEqual(HTTP_STATUS.OK, Integer(lResp.ResponseCode));
-    // lRPCResp := TJSONRPCResponse.Create;
-    try
-      // lRPCResp.AsJSONString := lResp.BodyAsString;
-      Assert.areEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
-    finally
-      lRPCResp.Free;
-    end;
-  finally
-    lReq.Free;
-  end;
+  lReq.Method := 'MultiplyString';
+  lReq.Params.Add('Daniele');
+  lReq.Params.Add(4);
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor.ExecuteRequest(lReq);
+  Assert.areEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
 end;
 
 initialization
