@@ -1,6 +1,11 @@
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
-# DelphiMVCFramework 3.0.0-hydrogen is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen)!
+# DelphiMVCFramework 3.1.0-lithium is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.1.0-lithium)!
+
+DelphiMVCFramework is the most popular Delphi project on github!
+
+Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
+
 
 ## DelphiMVCFramework Main Features
 
@@ -8,10 +13,10 @@
   * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
-  * JSON-RPC 2.0 Support
+  * JSON-RPC 2.0 Support with automatic objects remotization
   * Stable and solid, used by small/mid/big projects since 2010
-  * Fast, fast, fast!
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 1400 active members
+  * Very fast! (3.x is 60% faster than the 2.x)
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2100 active members
   * Can be used in load balanced environment
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
@@ -40,7 +45,6 @@
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
-  * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
 
 
 ## What users says about DMVCFramework
@@ -57,7 +61,7 @@
   
 ## What's New
 
-### DelphiMVCFramework 3.1.0 lithium (currently in beta)
+### DelphiMVCFramework 3.1.0 lithium
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
 - New! Added `TMVCActiveRecordController` (check sample `activerecord_crud`)
 - Automatic permissions handling for `TMVCActiveRecordController` (check sample `activerecord_crud`)
