@@ -16,6 +16,7 @@ uses
 
 type
   TLoggerProUDPSyslogAppender = class(TLoggerProAppenderBase)
+  private
     FLoggerProSyslogAppenderClient: TIdUDPClient;
     FIP: string;
     FPort: Integer;
@@ -26,7 +27,6 @@ type
     FProcID: string;
     FUnixLineBreaks: Boolean;
     FUTF8BOM: Boolean;
-
 
   public
     constructor Create(pIP: string; pPort: Integer; pHostName: string; pUserName: string; pApplication: string;

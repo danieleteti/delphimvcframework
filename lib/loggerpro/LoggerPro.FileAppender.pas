@@ -82,7 +82,7 @@ type
       @item LogTag
       )
     }
-    DEFAULT_FILENAME_FORMAT = '%0:s.%1:2.2d.%2:s.log';
+    DEFAULT_FILENAME_FORMAT = '%s.%2.2d.%s.log';
     { @abstract(Defines number of log file set to mantain during logs rotation) }
     DEFAULT_MAX_BACKUP_FILE_COUNT = 5;
     { @abstract(Defines the max size of each log file)
@@ -325,3 +325,4 @@ begin
 end;
 
 end.
+

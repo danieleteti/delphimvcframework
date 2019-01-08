@@ -61,6 +61,7 @@ def zip_samples(version):
     cmdline = "7z a " + g_output_folder + f"\\..\\dmvcframework_{version}_samples.zip -r -i@7ziplistfile.txt"
     return subprocess.call(cmdline, shell=True) == 0
 
+
 def create_zip(ctx, version):
     global g_output_folder
     print("CREATING ZIP")
@@ -71,7 +72,6 @@ def create_zip(ctx, version):
     print(cmdline)
     with ctx.cd(g_output_folder):
         ctx.run(cmdline, hide=False)
-    #return subprocess.call(cmdline, shell=True) == 0
 
 
 def copy_sources():
@@ -110,9 +110,6 @@ def copy_sources():
     copy2(r"packages\d103\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d103")
 
 
-
-
-
 def copy_libs():
     global g_output_folder
 
@@ -124,7 +121,7 @@ def copy_libs():
     for file in src:
         print("Copying " + file + " to " + curr_folder)
         copy2(file, curr_folder)
-    copy2("lib\\loggerpro\\LICENSE", curr_folder)
+    copy2("lib\\loggerpro\\License.txt", curr_folder)
     copy2("lib\\loggerpro\\VERSION.TXT", curr_folder)
 
     # dmustache
@@ -139,6 +136,10 @@ def copy_libs():
     copy2("lib\\dmustache\\README.md", curr_folder)
 
 
+def printkv(key, value):
+    print(Fore.RESET + (key + ': ').ljust(50) + Fore.GREEN + value + Fore.RESET)
+
+
 def init_build(version):
     """Required by all tasks"""
     global g_version
@@ -146,8 +147,8 @@ def init_build(version):
     global g_releases_path
     g_version = version
     g_output_folder = g_releases_path + "\\" + g_version
-    print('Output path: ' + g_output_folder)
-    print("BUILD VERSION: " + g_version)
+    printkv("BUILD VERSION", g_version)
+    printkv('Output path', g_output_folder)
     rmtree(g_output_folder, True)
     os.makedirs(g_output_folder, exist_ok=True)
     f = open(g_output_folder + "\\version.txt", "w")
@@ -182,6 +183,7 @@ def build_delphi_project_list(ctx, projects, config="DEBUG", filter='', delphi_v
 
 @task
 def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+    """Builds and execute the unit tests"""
     import os
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
@@ -196,7 +198,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
         res = build_delphi_project(ctx, test_project, 'CI', delphi_version) and res
         if res:
             exename = apppath + "\\" + testsexe[i]
-            print("Running: " + exename)
+            printkv("Running", exename)
             res = ctx.run(exename, hide=False)
             if not res:
                 print("UnitTest execution failed!")
@@ -206,8 +208,8 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
 
 @task(pre=[tests])
-def build(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build = False):
-    """Builds all the binaries and execute integration tests"""
+def build(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False):
+    """Builds all the projects and execute integration tests"""
     init_build(version)
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build()
@@ -216,6 +218,7 @@ def build(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_buil
     copy_libs()
     zip_samples(version)
     create_zip(ctx, version)
+
 
 @task
 def build_samples(ctx, version="DEBUG", filter="", delphi_version=DEFAULT_DELPHI_VERSION):

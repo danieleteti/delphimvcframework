@@ -2,7 +2,7 @@
 //
 // LoggerPro
 //
-// Copyright (c) 2010-2019 Daniele Teti
+// Copyright (c) 2010-2018 Daniele Teti
 //
 // https://github.com/danieleteti/loggerpro
 //
@@ -29,7 +29,7 @@ interface
 uses
   System.Generics.Collections,
   System.Types,
-  System.SyncObjs;
+  System.SyncObjs, System.SysUtils;
 
 type
   TThreadSafeQueue<T: class> = class
@@ -52,13 +52,21 @@ type
     destructor Destroy; override;
   end;
 
-implementation
+  TMREWObjectList<T: class> = class(TObject)
+  private
+    fList: TObjectList<T>;
+    fMREWSync: TMultiReadExclusiveWriteSynchronizer;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function BeginRead: TObjectList<T>;
+    procedure EndRead;
+    function BeginWrite: TObjectList<T>;
+    procedure EndWrite;
+  end;
 
-uses
-{$IFDEF MSWINDOWS}
-  Winapi.Windows,
-{$ENDIF}
-  System.SysUtils;
+
+implementation
 
 { TThreadQueue<T> }
 
@@ -183,5 +191,45 @@ begin
   end;
 
 end;
+
+{ TMREWObjectList<T> }
+
+function TMREWObjectList<T>.BeginWrite: TObjectList<T>;
+begin
+  fMREWSync.BeginWrite;
+  Result := fList;
+end;
+
+constructor TMREWObjectList<T>.Create;
+begin
+  inherited;
+  fMREWSync := TMultiReadExclusiveWriteSynchronizer.Create;
+  fList := TObjectList<T>.Create(true);
+end;
+
+destructor TMREWObjectList<T>.Destroy;
+begin
+  fMREWSync.Free;
+  fList.Free;
+  inherited;
+end;
+
+function TMREWObjectList<T>.BeginRead: TObjectList<T>;
+begin
+  fMREWSync.BeginRead;
+  Result := fList;
+end;
+
+procedure TMREWObjectList<T>.EndRead;
+begin
+  fMREWSync.EndRead;
+end;
+
+procedure TMREWObjectList<T>.EndWrite;
+begin
+  fMREWSync.EndWrite;
+end;
+
+
 
 end.

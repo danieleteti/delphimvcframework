@@ -93,7 +93,7 @@ type
     property OnNetSendError: TOnNetSendError read FOnNetSendError write SetOnNetSendError;
     property Topic: string read GetTopic write SetTopic;
     procedure TearDown; override;
-    procedure Setup;
+    procedure Setup; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
     function CreateData(const SrcLogItem: TLogItem): TStream; virtual;
     function FormatLog(const aLogItem: TLogItem): string; virtual;

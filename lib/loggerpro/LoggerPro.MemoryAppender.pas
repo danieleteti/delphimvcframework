@@ -28,22 +28,10 @@ unit LoggerPro.MemoryAppender;
 interface
 
 uses
-  LoggerPro, System.Generics.Collections, System.SyncObjs, System.SysUtils;
+  LoggerPro, System.Generics.Collections, System.SyncObjs, System.SysUtils,
+  ThreadSafeQueueU;
 
 type
-  TMREWObjectList<T: class> = class(TObject)
-  private
-    fList: TObjectList<T>;
-    fMREWSync: TMultiReadExclusiveWriteSynchronizer;
-  public
-    constructor Create; virtual;
-    destructor Destroy; override;
-    function BeginRead: TObjectList<T>;
-    procedure EndRead;
-    function BeginWrite: TObjectList<T>;
-    procedure EndWrite;
-  end;
-
   TMREWLogItemList = class(TMREWObjectList<TLogItem>)
   end;
 
@@ -51,12 +39,12 @@ type
   private
     fMREWLogList: TMREWLogItemList;
     fTag: string;
-    fMaxSize: UInt32;
+    fMaxSize: Int32;
   public
     procedure Setup; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
     procedure TearDown; override;
-    constructor Create(aLogList: TMREWLogItemList; aTag: string; aMaxSize: UInt32); virtual;
+    constructor Create(aLogList: TMREWLogItemList; aTag: string; aMaxSize: Int32); reintroduce; virtual;
   end;
 
 implementation
@@ -66,7 +54,7 @@ var
 
   { TLoggerProMemoryAppender }
 
-constructor TLoggerProMemoryAppender.Create(aLogList: TMREWLogItemList; aTag: string; aMaxSize: UInt32);
+constructor TLoggerProMemoryAppender.Create(aLogList: TMREWLogItemList; aTag: string; aMaxSize: Int32);
 begin
   inherited Create;
   fMREWLogList := aLogList;
@@ -102,44 +90,6 @@ begin
   finally
     fMREWLogList.EndWrite;
   end;
-end;
-
-{ TMREWObjectList<T> }
-
-function TMREWObjectList<T>.BeginWrite: TObjectList<T>;
-begin
-  fMREWSync.BeginWrite;
-  Result := fList;
-end;
-
-constructor TMREWObjectList<T>.Create;
-begin
-  inherited;
-  fMREWSync := TMultiReadExclusiveWriteSynchronizer.Create;
-  fList := TObjectList<T>.Create(true);
-end;
-
-destructor TMREWObjectList<T>.Destroy;
-begin
-  fMREWSync.Free;
-  fList.Free;
-  inherited;
-end;
-
-function TMREWObjectList<T>.BeginRead: TObjectList<T>;
-begin
-  fMREWSync.BeginRead;
-  Result := fList;
-end;
-
-procedure TMREWObjectList<T>.EndRead;
-begin
-  fMREWSync.EndRead;
-end;
-
-procedure TMREWObjectList<T>.EndWrite;
-begin
-  fMREWSync.EndWrite;
 end;
 
 initialization
