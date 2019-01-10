@@ -531,8 +531,12 @@ begin
       jdtNone:
         Exit;
       jdtObject:
-        GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ObjectValue,
-          ACustomAttributes);
+        begin
+          /// <summary>JsonDataObjects assumes values null as jdtObject</summary>
+          if AJsonObject[AName].ObjectValue <> nil then
+            GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ObjectValue,
+              ACustomAttributes);
+        end;
       jdtArray:
         GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ArrayValue,
           ACustomAttributes);
