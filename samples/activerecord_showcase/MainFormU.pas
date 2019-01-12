@@ -279,6 +279,7 @@ var
   lDS: TDataSet;
 begin
   Log('** Query SQL');
+  //Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
     lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
   else

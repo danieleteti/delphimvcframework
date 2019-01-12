@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{84344511-1DC2-41BA-8689-9F36C1D475BE}</ProjectGuid>
-        <MainSource>DMVC_IDE_Expert_D103Rio.dpk</MainSource>
+        <MainSource>dmvcframeworkDT.dpk</MainSource>
         <ProjectVersion>18.5</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
@@ -67,7 +67,7 @@
         <GenPackage>true</GenPackage>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
-        <SanitizedProjectName>DMVC_IDE_Expert_D103Rio</SanitizedProjectName>
+        <SanitizedProjectName>dmvcframeworkDT</SanitizedProjectName>
         <VerInfo_Locale>1040</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <DCC_Description>DelphiMVCFramework IDE Expert</DCC_Description>
@@ -86,7 +86,7 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_UsePackage>rtl;IndySystem;IndyProtocols;IndyCore;dbrtl;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;IndySystem;IndyProtocols;IndyCore;dbrtl;dmvcframeworkRT;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_Description>DelphiMVCFramework IDE Expert</DCC_Description>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
@@ -104,6 +104,7 @@
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <DllSuffix>102</DllSuffix>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -127,34 +128,34 @@
         <DCCReference Include="IndyCore.dcp"/>
         <DCCReference Include="dbrtl.dcp"/>
         <DCCReference Include="dmvcframeworkRT.dcp"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.NewControllerUnit.pas"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.NewDMVCProject.pas"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.NewProject.pas"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.NewUnit.pas"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.NewWebModuleUnit.pas"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.SourceFile.pas"/>
-        <DCCReference Include="DMVC.Expert.CodeGen.Templates.pas"/>
-        <DCCReference Include="DMVC.Expert.Forms.NewProjectWizard.pas">
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewControllerUnit.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewDMVCProject.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewProject.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewUnit.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.NewWebModuleUnit.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.SourceFile.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.CodeGen.Templates.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.NewProjectWizard.pas">
             <Form>frmDMVCNewProject</Form>
         </DCCReference>
-        <DCCReference Include="DMVC.Expert.Forms.NewUnitWizard.pas">
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Forms.NewUnitWizard.pas">
             <Form>frmDMVCNewUnit</Form>
         </DCCReference>
-        <DCCReference Include="DMVC.Expert.NewUnitWizardEx.pas"/>
-        <DCCReference Include="DMVC.Expert.ProjectWizardEx.pas"/>
-        <DCCReference Include="DMVC.Expert.Registration.pas"/>
-        <DCCReference Include="DMVC.Splash.Registration.pas"/>
-        <RcItem Include="DMVC.Expert.NewProject.ico">
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.NewUnitWizardEx.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.ProjectWizardEx.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Expert.Registration.pas"/>
+        <DCCReference Include="..\..\ideexpert\DMVC.Splash.Registration.pas"/>
+        <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
-            <ResourceId>DMVCNewProjectIcon</ResourceId>
+            <ResourceId>Icon_1</ResourceId>
         </RcItem>
-        <RcItem Include="DMVC.Expert.NewUnit.ico">
+        <RcItem Include="..\..\ideexpert\DMVC.Expert.NewUnit.ico">
             <ResourceType>ICON</ResourceType>
-            <ResourceId>DMVCNewUnitIcon</ResourceId>
+            <ResourceId>Icon_2</ResourceId>
         </RcItem>
-        <RcItem Include="SplashScreen.bmp">
+        <RcItem Include="..\..\ideexpert\SplashScreen.bmp">
             <ResourceType>BITMAP</ResourceType>
-            <ResourceId>SplashScreen</ResourceId>
+            <ResourceId>Bitmap_1</ResourceId>
         </RcItem>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
@@ -174,19 +175,24 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">DMVC_IDE_Expert_D103Rio.dpk</Source>
+                    <Source Name="MainSource">dmvcframeworkDT.dpk</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\19.0\Bpl\DMVC_IDE_Expert_D102Tokyo.bpl">DelphiMVCFramework IDE Expert</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k250.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp250.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k250.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp250.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\dmvcframeworkDT103.bpl" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>dmvcframeworkDT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -210,12 +216,6 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\DMVC_IDE_Expert_D103Rio.bpl" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win32">
-                        <RemoteName>DMVC_IDE_Expert_D103Rio.bpl</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgsqlite3.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
                         <Overwrite>true</Overwrite>
@@ -226,6 +226,7 @@
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="Win32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
                         <Operation>0</Operation>
                     </Platform>
                 </DeployClass>
@@ -359,20 +360,12 @@
                         <Operation>1</Operation>
                         <Extensions>.framework</Extensions>
                     </Platform>
-                    <Platform Name="OSX64">
-                        <Operation>1</Operation>
-                        <Extensions>.framework</Extensions>
-                    </Platform>
                     <Platform Name="Win32">
                         <Operation>0</Operation>
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="DependencyModule">
                     <Platform Name="OSX32">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="OSX64">
                         <Operation>1</Operation>
                         <Extensions>.dylib</Extensions>
                     </Platform>
@@ -398,10 +391,6 @@
                         <Operation>1</Operation>
                         <Extensions>.dylib</Extensions>
                     </Platform>
-                    <Platform Name="OSX64">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
                     <Platform Name="Win32">
                         <Operation>0</Operation>
                         <Extensions>.bpl</Extensions>
@@ -421,9 +410,6 @@
                         <Operation>0</Operation>
                     </Platform>
                     <Platform Name="OSX32">
-                        <Operation>0</Operation>
-                    </Platform>
-                    <Platform Name="OSX64">
                         <Operation>0</Operation>
                     </Platform>
                     <Platform Name="Win32">
@@ -544,10 +530,6 @@
                         <RemoteDir>Contents\Resources</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
-                    <Platform Name="OSX64">
-                        <RemoteDir>Contents\Resources</RemoteDir>
-                        <Operation>1</Operation>
-                    </Platform>
                 </DeployClass>
                 <DeployClass Required="true" Name="ProjectOutput">
                     <Platform Name="Android">
@@ -567,9 +549,6 @@
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="OSX32">
-                        <Operation>1</Operation>
-                    </Platform>
-                    <Platform Name="OSX64">
                         <Operation>1</Operation>
                     </Platform>
                     <Platform Name="Win32">
