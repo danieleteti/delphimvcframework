@@ -147,15 +147,15 @@
         <DCCReference Include="..\..\ideexpert\DMVC.Splash.Registration.pas"/>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewProject.ico">
             <ResourceType>ICON</ResourceType>
-            <ResourceId>Icon_1</ResourceId>
+            <ResourceId>DMVCNewProjectIcon</ResourceId>
         </RcItem>
         <RcItem Include="..\..\ideexpert\DMVC.Expert.NewUnit.ico">
             <ResourceType>ICON</ResourceType>
-            <ResourceId>Icon_2</ResourceId>
+            <ResourceId>DMVCNewUnitIcon</ResourceId>
         </RcItem>
         <RcItem Include="..\..\ideexpert\SplashScreen.bmp">
             <ResourceType>BITMAP</ResourceType>
-            <ResourceId>Bitmap_1</ResourceId>
+            <ResourceId>SplashScreen</ResourceId>
         </RcItem>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
