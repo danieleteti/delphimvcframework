@@ -69,6 +69,8 @@ type
     function CreateSelectSQLByRQL(
       const RQL: string;
       const Mapping: TMVCFieldsMapping): string; override;
+    function CreateSelectCount(
+      const TableName: String): String; override;
   end;
 
 implementation
@@ -115,6 +117,12 @@ function TMVCSQLGeneratorMySQL.CreateSelectByPKSQL(
 begin
   Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
     PKFieldName + '= :' + PKFieldName; // IntToStr(PrimaryKeyValue);
+end;
+
+function TMVCSQLGeneratorMySQL.CreateSelectCount(
+  const TableName: String): String;
+begin
+  Result := 'SELECT count(*) FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorMySQL.CreateSelectSQL(const TableName: string;

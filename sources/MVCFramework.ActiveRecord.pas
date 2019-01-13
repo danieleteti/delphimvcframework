@@ -243,6 +243,9 @@ type
       const Connection: TFDConnection): TMVCActiveRecordList; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>; overload;
+    function Count: int64; overload;
+    class function Count<T: TMVCActiveRecord>: int64; overload;
+    class function Count(const aClass: TMVCActiveRecordClass): int64; overload;
     class function SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
     class function CurrentConnection: TFDConnection;
   end;
@@ -335,6 +338,7 @@ type
     function CreateDeleteSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
       const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: int64): string;
       virtual; abstract;
+    function CreateSelectCount(const TableName: String): String; virtual; abstract;
   end;
 
   TMVCSQLGeneratorClass = class of TMVCSQLGenerator;
@@ -921,6 +925,29 @@ begin
     raise EMVCActiveRecord.CreateFmt('Action not allowed on "%s"', [ClassName]);
 end;
 
+class function TMVCActiveRecord.Count(
+  const aClass: TMVCActiveRecordClass): int64;
+var
+  lAR: TMVCActiveRecord;
+begin
+  lAR := aClass.Create;
+  try
+    Result := lAR.Count;
+  finally
+    lAR.Free;
+  end;
+end;
+
+function TMVCActiveRecord.Count: int64;
+begin
+  Result := GetScalar(Self.SQLGenerator.CreateSelectCount(fTableName), []);
+end;
+
+class function TMVCActiveRecord.Count<T>: int64;
+begin
+  Result := Count(TMVCActiveRecordClass(T));
+end;
+
 class function TMVCActiveRecord.CurrentConnection: TFDConnection;
 begin
   Result := ActiveRecordConnectionsRegistry.GetCurrent;
@@ -1446,7 +1473,7 @@ begin
   lAR := T.Create;
   try
     lSQL := lAR.SQLGenerator.CreateSelectSQLByRQL(RQL, lAR.GetMapping).Trim;
-    //LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
+    // LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
     if lSQL.StartsWith('where', True) then
       lSQL := lSQL.Remove(0, 5).Trim;
     Result := Where<T>(lSQL, []);
@@ -1781,4 +1808,3 @@ gCtx.Free;
 gLock.Free;
 
 end.
-

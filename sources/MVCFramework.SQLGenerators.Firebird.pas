@@ -69,6 +69,8 @@ type
     function CreateSelectSQLByRQL(
       const RQL: string;
       const Mapping: TMVCFieldsMapping): string; override;
+    function CreateSelectCount(
+      const TableName: String): String; override;
   end;
 
 implementation
@@ -127,6 +129,12 @@ function TMVCSQLGeneratorFirebird.CreateSelectByPKSQL(
 begin
   Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
     PKFieldName + '= :' + PKFieldName; // IntToStr(PrimaryKeyValue);
+end;
+
+function TMVCSQLGeneratorFirebird.CreateSelectCount(
+  const TableName: String): String;
+begin
+  Result := 'SELECT count(*) FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorFirebird.CreateSelectSQL(const TableName: string;

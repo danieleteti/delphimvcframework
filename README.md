@@ -58,10 +58,19 @@ Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delp
 >"I'm looking at DMVCFramework project in it works great - for my use case scenarios is much better than *'Similar commercial product'*."  -- Luka
 
 >"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
+
+>"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
+Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
+
   
 ## What's New
 
-### DelphiMVCFramework 3.1.0 lithium
+### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
+- New! Added SQLGenerator for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
+- Better packages organization (check `packages` folder)
+- New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
+
+### DelphiMVCFramework 3.1.0-lithium
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
 - New! Added `TMVCActiveRecordController` (check sample `activerecord_crud`)
 - Automatic permissions handling for `TMVCActiveRecordController` (check sample `activerecord_crud`)

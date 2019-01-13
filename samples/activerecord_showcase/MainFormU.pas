@@ -79,6 +79,8 @@ var
   lCustomer: TCustomer;
   lID: Integer;
 begin
+  ShowMessage('There are ' + TMVCActiveRecord.Count(TCustomer).ToString + ' row/s for entity ' + TCustomer.ClassName);
+
   Log('Simple CRUD test');
   lCustomer := TCustomer.Create;
   try
