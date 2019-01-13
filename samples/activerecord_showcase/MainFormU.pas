@@ -26,7 +26,9 @@ uses
   Data.DB,
   FireDAC.Comp.Client,
   FireDAC.Phys.FB,
-  FireDAC.Phys.FBDef;
+  FireDAC.Phys.FBDef,
+  FireDAC.Phys.PGDef,
+  FireDAC.Phys.PG;
 
 type
   TMainForm = class(TForm)
@@ -60,6 +62,7 @@ var
 implementation
 
 {$R *.dfm}
+
 
 uses
   MVCFramework.ActiveRecord,
@@ -132,6 +135,7 @@ procedure TMainForm.btnMultiThreadingClick(Sender: TObject);
 var
   lTasks: TArray<ITask>;
   lProc: TProc;
+  lConnParams: string;
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
 begin
@@ -139,9 +143,12 @@ begin
     TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC STARTING ''Company ''')
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
     TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC LIKE ''Company %''')
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+    TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC LIKE ''Company %''')
   else
     raise Exception.Create('Unknown backend for direct SQL execution');
 
+  lConnParams := FDConnection1.Params.Text;
   lProc := procedure
     var
       lConn: TFDConnection;
@@ -151,8 +158,8 @@ begin
       lConn := TFDConnection.Create(nil);
       try
         lConn.ConnectionDefName := CON_DEF_NAME;
-        ActiveRecordConnectionsRegistry.AddConnection('default', lConn);
-        lConn.Params.Assign(FDConnection1.Params);
+        ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
+        lConn.Params.Text := lConnParams;
         lConn.Open;
         for I := 1 to 10 do
         begin
@@ -260,6 +267,7 @@ var
   lItem: TMVCActiveRecord;
   lCustomer: TCustomer;
 begin
+  Log('**RQL Query');
   lList := TMVCActiveRecord.SelectRQL(TCustomer, 'eq(City,"Rome")', 20);
   try
     for lItem in lList do
@@ -279,11 +287,16 @@ var
   lDS: TDataSet;
 begin
   Log('** Query SQL');
-  //Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
+  // Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
     lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', [])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC ILIKE ''%google%''', [])
   else
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', []);
+    raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
+
   try
     for lCustomer in lCustomers do
     begin
@@ -296,8 +309,13 @@ begin
   Log('** Query SQL returning DataSet');
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
     lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
+    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', [])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC ILIKE ''%google%''', [])
   else
-    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', []);
+    raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
+
   try
     while not lDS.Eof do
     begin
@@ -338,15 +356,19 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  // To use Firebird uncomment the following line (and comment the next one)
+  // To use Firebird uncomment the following line (and comment the others one)
   FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
 
-  // To use MySQL uncomment the following line  (and comment the previous one)
+  // To use MySQL uncomment the following line  (and comment the others one)
   // FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+
+  // To use Postgresql uncomment the following line (and comment the others one)
+  // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
 
   FDConnection1.Params.Clear;
   FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
   ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
+  Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);

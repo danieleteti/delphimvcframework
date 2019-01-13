@@ -7,6 +7,7 @@ const
 
 procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
+procedure CreatePostgresqlPrivateConnDef(AIsPooled: boolean);
 
 implementation
 
@@ -67,5 +68,32 @@ begin
     LParams.Free;
   end;
 end;
+
+procedure CreatePostgresqlPrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+begin
+  LParams := TStringList.Create;
+  try
+    LParams.Add('Database=activerecorddb');
+    LParams.Add('Protocol=TCPIP');
+    LParams.Add('Server=localhost');
+    LParams.Add('User_Name=postgres');
+    LParams.Add('Password=daniele');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(CON_DEF_NAME, 'PG', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
 
 end.
