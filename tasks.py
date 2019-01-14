@@ -24,10 +24,11 @@ g_output_folder = ""  # defined at runtime
 g_version = 'DEV'
 
 
-def get_delphi_projects_to_build(which=''):
+def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION):
     projects = []
-    if not which or which == 'ide':
-        projects += glob.glob(r"ideexpert\*.dproj")
+    dversion = 'd' + delphi_version.replace('.','')
+    if not which or which == 'core':
+        projects += glob.glob(r"packages\{dversion}\*.groupproj".format(dversion=dversion))
     if not which or which == 'tests':
         projects += glob.glob(r"unittests\**\*.dproj")
     if not which or which == 'samples':
@@ -37,16 +38,15 @@ def get_delphi_projects_to_build(which=''):
 
 def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG', delphi_version=DEFAULT_DELPHI_VERSION):
     delphi_versions = {
-        "10.2": "19.0",
-        "10.3": "20.0"
+        "10.1": {"path": "18.0", "desc":"Delphi 10.1 Seattle"},
+        "10.2": {"path": "19.0", "desc":"Delphi 10.2 Tokyo"},
+        "10.3": {"path": "20.0", "desc":"Delphi 10.3 Rio"},
     }
+
     assert delphi_version in delphi_versions, "Invalid Delphi version: " + delphi_version
-    version_path = delphi_versions[delphi_version]
-    p = project_filename.replace('.dproj', '.cfg')
-    if os.path.isfile(p):
-        if os.path.isfile(p + '.unused'):
-            os.remove(p + '.unused')
-        os.rename(p, p + '.unused')
+    print("[" + delphi_versions[delphi_version]["desc"] + "] ", end="")
+    version_path = delphi_versions[delphi_version]["path"]
+
     rsvars_path = f'C:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat'
     if not os.path.isfile(rsvars_path):
         rsvars_path = f'D:\\Program Files (x86)\\Embarcadero\\Studio\\{version_path}\\bin\\rsvars.bat'
@@ -91,12 +91,17 @@ def copy_sources():
     src = glob.glob("ideexpert\\*.pas") + \
           glob.glob("ideexpert\\*.dfm") + \
           glob.glob("ideexpert\\*.ico") + \
-          glob.glob("ideexpert\\*.bmp") + \
-          glob.glob("ideexpert\\*.dpk") + \
-          glob.glob("ideexpert\\*.dproj")
+          glob.glob("ideexpert\\*.bmp")
+
     for file in src:
         print("Copying " + file + " to " + g_output_folder + "\\ideexpert")
         copy2(file, g_output_folder + "\\ideexpert\\")
+
+    # copying packages
+    print("Copying DMVCFramework Delphi 10.1 Seattle packages...")
+    os.makedirs(g_output_folder + "\\packages\\d101", exist_ok=True)
+    copy2(r"packages\d101\dmvcframeworkRT.dpk", g_output_folder + "\\packages\\d102")
+    copy2(r"packages\d101\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d102")
 
     # copying packages
     print("Copying DMVCFramework Delphi 10.2 Tokyo packages...")
@@ -169,7 +174,7 @@ def build_delphi_project_list(ctx, projects, config="DEBUG", filter='', delphi_v
             continue
         msg = f"Building: {os.path.basename(delphi_project)}  ({config})"
         print(Fore.RESET + msg.ljust(70, '.'), end="")
-        res = build_delphi_project(ctx, delphi_project, 'DEBUG')
+        res = build_delphi_project(ctx, delphi_project, 'DEBUG', delphi_version)
         if res.ok:
             print(Fore.GREEN + 'OK' + Fore.RESET)
         else:
@@ -208,12 +213,12 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
 
 
 @task(pre=[tests])
-def build(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False):
-    """Builds all the projects and execute integration tests"""
+def release(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False):
+    """Builds all the projects, executes integration tests and prepare the release"""
     init_build(version)
     if not skip_build:
-        delphi_projects = get_delphi_projects_to_build()
-        build_delphi_project_list(ctx, delphi_projects, "DEBUG", '', delphi_version)
+        delphi_projects = get_delphi_projects_to_build('', delphi_version)
+        build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
     copy_sources()
     copy_libs()
     zip_samples(version)
@@ -224,13 +229,13 @@ def build(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_buil
 def build_samples(ctx, version="DEBUG", filter="", delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds samples"""
     init_build(version)
-    delphi_projects = get_delphi_projects_to_build('samples')
-    build_delphi_project_list(ctx, delphi_projects, "DEBUG", filter, delphi_version)
+    delphi_projects = get_delphi_projects_to_build('samples', delphi_version)
+    build_delphi_project_list(ctx, delphi_projects, version, filter, delphi_version)
 
 
 @task
-def build_ide(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
-    """Builds IDE extensions"""
+def build_core(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
+    """Builds core packages extensions"""
     init_build(version)
-    delphi_projects = get_delphi_projects_to_build('ide')
-    build_delphi_project_list(ctx, delphi_projects, "DEBUG", '', delphi_version)
+    delphi_projects = get_delphi_projects_to_build('core', delphi_version)
+    build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
