@@ -43,6 +43,8 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.jsondataobjects;
 
+{$I DMVCFramework.inc}
+
 const
   JSONRPC_VERSION = '2.0';
   JSONRPC_HEADER = 'jsonrpc';
@@ -363,7 +365,7 @@ begin
       end;
     pdtDateTime:
       begin
-        JSONArr.Add(DateTimeToISOTimeStamp(TDateTime(Value.AsExtended)));
+        JSONArr.Add(DateTimeToISOTimeStamp(FloatToDateTime(Value.AsExtended)));
       end;
     pdtDate:
       begin
