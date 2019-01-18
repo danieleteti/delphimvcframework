@@ -100,8 +100,8 @@ def copy_sources():
     # copying packages
     print("Copying DMVCFramework Delphi 10.1 Seattle packages...")
     os.makedirs(g_output_folder + "\\packages\\d101", exist_ok=True)
-    copy2(r"packages\d101\dmvcframeworkRT.dpk", g_output_folder + "\\packages\\d102")
-    copy2(r"packages\d101\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d102")
+    copy2(r"packages\d101\dmvcframeworkRT.dpk", g_output_folder + "\\packages\\d101")
+    copy2(r"packages\d101\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d101")
 
     # copying packages
     print("Copying DMVCFramework Delphi 10.2 Tokyo packages...")
