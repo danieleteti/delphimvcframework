@@ -122,7 +122,7 @@ end;
 
 function TRQLMySQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  Result := Format(' LIMIT %d, %d', [aRQLLimit.Start, aRQLLimit.Count]);
+  Result := Format(' /*limit*/ LIMIT %d, %d', [aRQLLimit.Start, aRQLLimit.Count]);
 end;
 
 function TRQLMySQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
@@ -162,7 +162,7 @@ function TRQLMySQLCompiler.RQLSortToSQL(const aRQLSort: TRQLSort): string;
 var
   I: Integer;
 begin
-  Result := ' ORDER BY';
+  Result := ' /*sort*/ ORDER BY';
   for I := 0 to aRQLSort.Fields.Count - 1 do
   begin
     if I > 0 then

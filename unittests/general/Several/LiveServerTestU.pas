@@ -29,7 +29,7 @@ interface
 uses
   DUnitX.TestFramework,
   MVCFramework.RESTClient,
-  MVCFramework.JSONRPC.Client;
+  MVCFramework.JSONRPC.Client, System.DateUtils;
 
 const
 
@@ -187,6 +187,7 @@ type
   TJSONRPCServerTest = class(TBaseServerTest)
   protected
     FExecutor: IMVCJSONRPCExecutor;
+    FExecutor2: IMVCJSONRPCExecutor;
   public
     [SetUp]
     procedure SetUp;
@@ -202,6 +203,8 @@ type
     procedure TestRequest_S_I_ret_S;
     [Test]
     procedure TestRequestWithParams_I_I_ret_A;
+    [Test]
+    procedure TestRequestWithParams_DT_T_ret_DT;
   end;
 
 implementation
@@ -1285,6 +1288,7 @@ end;
 procedure TJSONRPCServerTest.SetUp;
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:9999/jsonrpc', false);
+  FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:9999/jsonrpcclass', false);
 end;
 
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;
@@ -1301,6 +1305,34 @@ begin
   Assert.isTrue(lResp.Error.ErrMessage.StartsWith('Method "nonexist" not found.'));
 end;
 
+procedure TJSONRPCServerTest.TestRequestWithParams_DT_T_ret_DT;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lArr: TJDOJSONArray;
+  I: Integer;
+  x: Integer;
+  LRes: TDateTime;
+  lYear: Word;
+  lMonth: Word;
+  lDay: Word;
+  lHour: Word;
+  lMinute: Word;
+  lSecond: Word;
+  lMillisecond: Word;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'addtimetodatetime';
+  lReq.Params.Add(EncodeDate(2000, 10, 1) + EncodeTime(12, 0, 0, 0), TJSONRPCParamDataType.pdtDateTime);
+  lReq.Params.Add(EncodeTime(1, 0, 0, 0), TJSONRPCParamDataType.pdtTime);
+  lReq.RequestID := 1234;
+
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  LRes := lRPCResp.Result.AsType<TDateTime>();
+  DecodeDateTime(LRes, lYear, lMonth, lDay, lHour, lMinute, lSecond, lMillisecond);
+  Assert.AreEqual(2000, lYear);
+end;
+
 procedure TJSONRPCServerTest.TestRequestWithoutParams;
 var
   lReq: IJSONRPCNotification;
@@ -1308,6 +1340,7 @@ begin
   lReq := TJSONRPCNotification.Create;
   lReq.Method := 'mynotify';
   FExecutor.ExecuteNotification(lReq);
+  FExecutor2.ExecuteNotification(lReq);
   Assert.Pass();
 end;
 
@@ -1322,6 +1355,10 @@ begin
   lReq.Params.Add(18);
   lReq.Params.Add(8);
   lResp := FExecutor.ExecuteRequest(lReq);
+  Assert.areEqual(10, lResp.Result.AsInteger);
+  Assert.areEqual(1234, lResp.RequestID.AsInteger);
+
+  lResp := FExecutor2.ExecuteRequest(lReq);
   Assert.areEqual(10, lResp.Result.AsInteger);
   Assert.areEqual(1234, lResp.RequestID.AsInteger);
 end;
@@ -1339,6 +1376,7 @@ begin
   lReq.Params.Add(1);
   lReq.Params.Add(5);
   lReq.RequestID := 1234;
+
   lRPCResp := FExecutor.ExecuteRequest(lReq);
   lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
   x := 1;
@@ -1347,6 +1385,16 @@ begin
     Assert.areEqual(x, lArr[I].IntValue);
     Inc(x);
   end;
+
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
+  x := 1;
+  for I := 0 to lArr.Count - 1 do
+  begin
+    Assert.areEqual(x, lArr[I].IntValue);
+    Inc(x);
+  end;
+
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithParams_I_I_I_ret_O;
@@ -1361,7 +1409,12 @@ begin
   lReq.Params.Add(4);
   lReq.Params.Add(5);
   lReq.RequestID := 1234;
+
   lRPCResp := FExecutor.ExecuteRequest(lReq);
+  lS := (lRPCResp.Result.AsObject as TJDOJsonObject).ToJSON();
+  Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
+
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
   lS := (lRPCResp.Result.AsObject as TJDOJsonObject).ToJSON();
   Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
 end;
@@ -1377,6 +1430,9 @@ begin
   lReq.Params.Add(4);
   lReq.RequestID := 1234;
   lRPCResp := FExecutor.ExecuteRequest(lReq);
+  Assert.areEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
+
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
   Assert.areEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
 end;
 

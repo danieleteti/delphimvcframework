@@ -113,6 +113,10 @@ begin
       begin
         Result := Format('(%s != %s)', [lDBFieldName, lValue]);
       end;
+    tkContains:
+      begin
+        Result := Format('(%s containing ''%s'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+      end;
   end;
 end;
 

@@ -766,10 +766,19 @@ var
   lChar: Char;
 begin
   Result := True;
+  lFieldValue := '';
   lChar := C(0);
-  if IsDigit(lChar) then
+
+  if CharInSet(lChar, ['+','-']) then
   begin
     lFieldValue := lChar;
+    Skip(1);
+    lChar := C(0);
+  end;
+
+  if IsDigit(lChar) then
+  begin
+    lFieldValue := lFieldValue + lChar;
     while True do
     begin
       Skip(1);

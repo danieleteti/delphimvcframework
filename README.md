@@ -69,6 +69,18 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - New! Added SQLGenerator for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
+- Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
+- New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
+- New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
+
+|Delphi Version|Project Group|
+|---|---|
+|Delphi 10.3 Rio| `packages\d103\dmvcframework_group.groupproj`|
+|Delphi 10.2 Tokyo| `packages\d102\dmvcframework_group.groupproj`|
+|Delphi 10.1 Berlin| `packages\d101\dmvcframework_group.groupproj`|
+
+For older Delphi versions still there aren't complete packages available, but DMVCFramework is usable from XE7 without any issues. If you use a version previous of `Delphi 10.1 Berlin` and you want to contribute, please provide your group project using the distributed packages as example.
+
 
 ### DelphiMVCFramework 3.1.0-lithium
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)

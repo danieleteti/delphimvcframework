@@ -180,7 +180,7 @@ begin
     if AuthHeader.StartsWith('bearer', True) then
     begin
       AuthToken := AuthHeader.Remove(0, 'bearer'.Length).Trim;
-      AuthToken := Trim(TNetEncoding.URL.URLDecode(AuthToken));
+      AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
     end;
 
     // check the jwt

@@ -67,12 +67,17 @@ begin
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
     .AddController(TTestJSONRPCController, '/jsonrpc')
-    .AddController(TTestFaultController) //this will raise an exception
+    .PublishObject(
+    function: TObject
+    begin
+      Result := TTestJSONRPCClass.Create
+    end, '/jsonrpcclass')
+    .AddController(TTestFaultController) // this will raise an exception
     .AddController(TTestFault2Controller,
-      function: TMVCController
-      begin
-        Result := TTestFault2Controller.Create; //this will raise an exception
-      end)
+    function: TMVCController
+    begin
+      Result := TTestFault2Controller.Create; // this will raise an exception
+    end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
