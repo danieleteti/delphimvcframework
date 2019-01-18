@@ -25,6 +25,7 @@ implementation
 
 {$R *.dfm}
 
+
 uses
   MainControllerU,
   System.IOUtils,
@@ -38,6 +39,8 @@ var
   GLock: TObject = nil;
 
 function GetLoggerForAnalytics: ILogWriter;
+var
+  lLog: ILogAppender;
 begin
   if GLogWriter = nil then
   begin
@@ -45,7 +48,13 @@ begin
     try
       if GLogWriter = nil then // double check locking (https://en.wikipedia.org/wiki/Double-checked_locking)
       begin
-        GLogWriter := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics')]);
+        lLog := TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics', [], '%s.%2.2d.%s.csv');
+        TLoggerProFileAppender(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
+          begin
+            LogRow := Format('%s;%s;%s;%s', [datetimetostr(LogItem.TimeStamp),
+              LogItem.LogTypeAsString, LogItem.LogMessage, LogItem.LogTag]);
+          end;
+        GLogWriter := BuildLogWriter([lLog]);
       end;
     finally
       TMonitor.Exit(GLock);

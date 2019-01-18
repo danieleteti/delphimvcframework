@@ -71,6 +71,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
 - Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
 - New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
+- New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
 
 |Delphi Version|Project Group|

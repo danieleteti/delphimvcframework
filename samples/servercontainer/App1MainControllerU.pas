@@ -21,53 +21,61 @@ type
 
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpGET])]
-    procedure HelloWorld(ctx: TWebContext);
+    procedure HelloWorld;
 
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpPOST])]
-    procedure HelloWorldPost(ctx: TWebContext);
+    procedure HelloWorldPost;
 
     [MVCPath('/div/($par1)/($par2)')]
     [MVCHTTPMethod([httpGET])]
-    procedure RaiseException(ctx: TWebContext);
+    procedure RaiseException;
   end;
 
 implementation
 
 uses
-
-  {$IFDEF SYSTEMJSON}
-
-  System.JSON,
-
-  {$ELSE}
-
-  Data.DBXJSON,
-
-  {$ENDIF}
-
+  //
+  // {$IFDEF SYSTEMJSON}
+  //
+  // System.JSON,
+  //
+  // {$ELSE}
+  //
+  // Data.DBXJSON,
+  //
+  // {$ENDIF}
+  //
+  JsonDataObjects,
+  MVCFramework.Serializer.JsonDataObjects,
   System.SysUtils;
 
 { TApp1MainController }
 
-procedure TApp1MainController.HelloWorld(ctx: TWebContext);
+procedure TApp1MainController.HelloWorld;
 begin
   Render('Hello World called with GET');
-  if ctx.Request.ThereIsRequestBody then
-    Log('Body:' + ctx.Request.Body);
+  if Context.Request.ThereIsRequestBody then
+    Log('Body:' + Context.Request.Body);
 end;
 
-procedure TApp1MainController.HelloWorldPost(ctx: TWebContext);
+procedure TApp1MainController.HelloWorldPost;
 var
   JSON: TJSONObject;
+  lSer: TMVCJsonDataObjectsSerializer;
 begin
-  JSON := TJSONObject.ParseJSONValue(Context.Request.Body) as TJSONObject;
+  lSer := TMVCJsonDataObjectsSerializer.Create;
   try
-    JSON.AddPair('modified', 'from server');
-    Render(JSON.ToJSON);
-    Log('Hello world called with POST');
+    JSON := lSer.ParseObject(Context.Request.Body);
+    try
+      JSON.S['modified'] := 'from server';
+      Render(JSON);
+      Log('Hello world called with POST');
+    finally
+      JSON.Free;
+    end;
   finally
-    JSON.Free;
+    lSer.Free;
   end;
 end;
 
@@ -76,15 +84,18 @@ begin
   Redirect('index.html');
 end;
 
-procedure TApp1MainController.RaiseException(ctx: TWebContext);
+procedure TApp1MainController.RaiseException;
 var
   R: Extended;
+  lJSON: TJSONObject;
 begin
-  Log('Parameter1=' + ctx.Request.Params['par1'].QuotedString);
-  Log('Parameter2=' + ctx.Request.Params['par2'].QuotedString);
-  R := StrToInt(ctx.Request.Params['par1']) /
-    StrToInt(ctx.Request.Params['par2']);
-  Render(TJSONObject.Create(TJSONPair.Create('result', TJSONNumber.Create(R))));
+  Log('Parameter1=' + Context.Request.Params['par1'].QuotedString);
+  Log('Parameter2=' + Context.Request.Params['par2'].QuotedString);
+  R := StrToInt(Context.Request.Params['par1']) /
+    StrToInt(Context.Request.Params['par2']);
+  lJSON := TJSONObject.Create;
+  lJSON.F['result'] := R;
+  Render(lJSON);
 end;
 
 end.
