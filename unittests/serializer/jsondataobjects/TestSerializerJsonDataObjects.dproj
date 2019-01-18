@@ -48,7 +48,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <SanitizedProjectName>TestSerializerJsonDataObjects</SanitizedProjectName>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <DCC_Define>_CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
+        <DCC_Define>_CONSOLE_TESTRUNNER;TESTINSIGHT;$(DCC_Define)</DCC_Define>
         <VerInfo_Locale>1046</VerInfo_Locale>
         <DCC_DcpOutput>.\$(Platform)\$(Config)\dcp</DCC_DcpOutput>
         <DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\..\..\sources;..\..\..\lib\loggerpro;..\..\..\lib\dmustache;..\..\..\lib\delphistompclient;..\..\..\lib\jsondataobjects\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
@@ -104,12 +104,12 @@
             <Form>EntitiesModule</Form>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
-        <BuildConfiguration Include="Base">
-            <Key>Base</Key>
-        </BuildConfiguration>
         <BuildConfiguration Include="CI">
             <Key>Cfg_4</Key>
             <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Base">
+            <Key>Base</Key>
         </BuildConfiguration>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_1</Key>

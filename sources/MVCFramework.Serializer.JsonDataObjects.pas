@@ -468,25 +468,26 @@ end;
 procedure TMVCJsonDataObjectsSerializer.DeserializeDataSetRecord(const ASerializedDataSetRecord: string;
   const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 var
-  lJsonObject: TJDOJsonObject;
+  lJsonBase: TJDOJsonBaseObject;
 begin
   if (ASerializedDataSetRecord = EmptyStr) or (not Assigned(ADataSet)) then
     Exit;
 
+  lJsonBase := TJDOJsonObject.Parse(ASerializedDataSetRecord);
   try
-    lJsonObject := TJDOJsonObject.Parse(ASerializedDataSetRecord) as TJDOJsonObject;
-  except
-    on E: EJsonParserException do
+    if lJsonBase is TJsonObject then
     begin
-      raise EMVCException.Create(http_status.BadRequest, 'Invalid body');
+      ADataSet.Edit;
+      JsonObjectToDataSet(TJsonObject(lJsonBase), ADataSet, AIgnoredFields, ANameCase);
+      ADataSet.Post;
+    end
+    else
+    begin
+      raise EMVCSerializationException.Create
+            ('Cannot deserialize, expected json object');
     end;
-  end;
-  try
-    ADataSet.Edit;
-    JsonObjectToDataSet(lJsonObject, ADataSet, AIgnoredFields, ANameCase);
-    ADataSet.Post;
   finally
-    lJsonObject.Free;
+    lJsonBase.Free;
   end;
 end;
 
