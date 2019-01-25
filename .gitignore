@@ -67,3 +67,4 @@ __recovery/
 
 .doit.db.dat
 .doit.db.dir
+*.log

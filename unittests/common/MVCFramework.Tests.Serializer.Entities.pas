@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -60,7 +60,8 @@ type
     destructor Destroy; override;
 
     property Id: Int64 read FId write FId;
-    property Name: string read FName write FName;
+    [MVCNameAs('Name')]
+    property name: string read FName write FName;
 
     [MVCListOf(TNote)]
     property Notes: TObjectList<TNote> read FNotes write FNotes;
@@ -104,7 +105,8 @@ type
 
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    [MVCNameAs('Name')]
+    property name: string read FName write FName;
     property Salary: Double read FSalary write FSalary;
     property Birthday: TDate read FBirthday write FBirthday;
     property AccessDateTime: TDateTime read FAccessDateTime write FAccessDateTime;
@@ -125,7 +127,7 @@ type
     property AppreciationAs: TValue read FAppreciationAs write FAppreciationAs;
 
     property Appreciation: TValue read FAppreciation write FAppreciation;
-    property Ignored: string read FIgnored write fIgnored;
+    property Ignored: string read FIgnored write FIgnored;
 
     [MVCDoNotSerialize]
     property Transient: string read FTransient write FTransient;
@@ -140,7 +142,7 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    property name: string read FName write FName;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -152,7 +154,7 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    property name: string read FName write FName;
   end;
 
   // The MVCNameAsAttribute attribute can be placed in Field or Property
@@ -174,8 +176,23 @@ type
     property Code: Integer read FCode write FCode;
 
     [MVCNameAs('Name_Name')]
-    property Name: string read FName write FName;
+    property name: string read FName write FName;
   end;
+
+  TMVCNullable<T> = record
+  private
+    fValue: T;
+    fHasValue: Boolean;
+    function GetHasValue: Boolean; inline;
+    procedure SetValue(const Value: T);
+  public
+    procedure Clear;
+    property HasValue: Boolean read GetHasValue;
+    property Value: T read fValue write SetValue;
+  end;
+
+  TMVCNullableInteger = TMVCNullable<Integer>;
+  TMVCNullableString = TMVCNullable<string>;
 
   TEntityCustom = class
   private
@@ -185,7 +202,18 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    [MVCNameAs('Name')]
+    property name: string read FName write FName;
+
+  end;
+
+  TEntityCustomWithNullables = class(TEntityCustom)
+  private
+    FNullableInteger: TMVCNullable<Integer>;
+    FNullableString: TMVCNullable<string>;
+  public
+    property NullableInteger: TMVCNullable<Integer> read FNullableInteger write FNullableInteger;
+    property NullableString: TMVCNullable<string> read FNullableString write FNullableString;
   end;
 
   TColorEnum = (RED, GREEN, BLUE);
@@ -199,10 +227,10 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    [MVCNameAs('Name')]
+    property name: string read FName write FName;
     property Color: TColorEnum read FColor write FColor;
   end;
-
 
   [MVCSerialize(stFields)]
   TEntitySerializeFields = class
@@ -213,7 +241,7 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    property name: string read FName write FName;
   end;
 
   [MVCSerialize(stProperties)]
@@ -225,7 +253,8 @@ type
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
-    property Name: string read FName write FName;
+    [MVCNameAs('Name')]
+    property name: string read FName write FName;
   end;
 
   TSale = class
@@ -301,6 +330,25 @@ begin
   FNotes.Free;
   FNotesAsString.Free;
   inherited;
+end;
+
+{ TMVCNullable<T> }
+
+procedure TMVCNullable<T>.Clear;
+begin
+  fHasValue := False;
+  fValue := default (T);
+end;
+
+function TMVCNullable<T>.GetHasValue: Boolean;
+begin
+  Result := fHasValue;
+end;
+
+procedure TMVCNullable<T>.SetValue(const Value: T);
+begin
+  fValue := Value;
+  fHasValue := True;
 end;
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -36,87 +36,124 @@ type
   // Custom serializer for TUserRoles type
   TUserRolesSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure Serialize(
-      const AElementValue: TValue;
-      var ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
-    procedure Deserialize(
-      const ASerializedObject: TObject;
-      var AElementValue: TValue;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    // procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
+    // const AAttributes: TArray<TCustomAttribute>);
+    // procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
+    // const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
   end;
 
   // Custom serializer for TNullableAliasSerializer type
   TNullableAliasSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure Serialize(
-      const AElementValue: TValue;
-      var ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
-    procedure Deserialize(
-      const ASerializedObject: TObject;
-      var AElementValue: TValue;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
+      const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: System.TArray<System.TCustomAttribute>);
   end;
 
 implementation
 
 uses
-  JsonDataObjects, CustomTypesU, MVCFramework.Serializer.JsonDataObjects;
+  JsonDataObjects, CustomTypesU, MVCFramework.Serializer.JsonDataObjects,
+  System.SysUtils, MVCFramework.Serializer.Commons;
 
 { TUserPasswordSerializer }
 
-procedure TUserRolesSerializer.Deserialize(const ASerializedObject: TObject;
-  var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+procedure TUserRolesSerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
 begin
-  // todo: if you need, implement the deserialize method
+  raise Exception.Create('To implement');
 end;
 
-procedure TUserRolesSerializer.Serialize(const AElementValue: TValue;
-  var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TUserRolesSerializer.DeserializeRoot(const ASerializerObject, AObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TUserRolesSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
 var
   lJSONArr: TJDOJsonArray;
   lRole: string;
   I: Integer;
 begin
-  { Here I want to serialize the userroles array as json array }
-
   // I know that the selected serializer uses JsonDataObject as serialization engine.
   // You have to check the serializer documentation to find out what are the
   // correct objects to create here!
-  lJSONArr := TJDOJsonArray.Create;
 
-  // Assign to the var parameter the correct object
-  ASerializerObject := lJSONArr;
-
-  // Then fill the returned object with the correct values
+  lJSONArr := (ASerializerObject as TJDOJsonObject).A[APropertyName];
+  { Here I want to serialize the userroles array as json array }
   // reading from the AElementValue
-  lJSONArr.Add('--begin--'); { just to prove that the custom serializaion happends }
+  lJSONArr.Add('--begin--'); { just to prove that the custom serialization happends }
   for I := 0 to AElementValue.GetArrayLength - 1 do
   begin
-    lRole := AElementValue.GetArrayElement(i).AsString;
+    lRole := AElementValue.GetArrayElement(I).AsString;
     lJSONArr.Add(lRole);
   end;
-  lJSONArr.Add('--end--'); { just to prove that the custom serializaion happends }
+  lJSONArr.Add('--end--'); { just to prove that the custom serialization happends }
 end;
 
 { TNullableAliasSerializer }
 
-procedure TNullableAliasSerializer.Deserialize(const ASerializedObject: TObject;
-  var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+procedure TNullableAliasSerializer.Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
+  const AAttributes: TArray<TCustomAttribute>);
 begin
 
 end;
 
-procedure TNullableAliasSerializer.Serialize(const AElementValue: TValue;
-  var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TNullableAliasSerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
 begin
-  ASerializerObject := TJsonValue.Create;
-  TJsonValue(ASerializerObject).Value := AElementValue.AsType<TNullableRecordAlias>.Value;
+
+end;
+
+procedure TNullableAliasSerializer.DeserializeRoot(const ASerializerObject, AObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TNullableAliasSerializer.Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+begin
+  raise Exception.Create('TODO');
+  // ASerializerObject := TJsonValue.Create;
+  // TJsonValue(ASerializerObject).Value := AElementValue.AsType<TNullableRecordAlias>.Value;
+end;
+
+procedure TNullableAliasSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+
+end;
+
+procedure TNullableAliasSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+  raise EMVCSerializationException.CreateFmt('%s cannot be used as root object', [ClassName]);
+end;
+
+procedure TUserRolesSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: System.TArray<System.TCustomAttribute>);
+begin
+  raise EMVCSerializationException.CreateFmt('%s cannot be used as root object', [ClassName]);
 end;
 
 end.

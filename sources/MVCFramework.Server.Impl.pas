@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -35,7 +35,7 @@ uses
   System.Classes,
   System.Generics.Collections,
   IdHTTPWebBrokerBridge,
-  MVCFramework.Server;
+  MVCFramework.Server, MVCFramework;
 
 type
 
@@ -101,16 +101,20 @@ type
     FAuthenticationDelegate: TMVCAuthenticationDelegate;
     FAuthorizationDelegate: TMVCAuthorizationDelegate;
   protected
-    procedure OnRequest(const AControllerQualifiedClassName, AActionName: string;
+    procedure OnRequest(
+      const AContext: TWebContext;
+      const AControllerQualifiedClassName, AActionName: string;
       var AAuthenticationRequired: Boolean);
 
     procedure OnAuthentication(
+      const AContext: TWebContext;
       const AUserName, APassword: string;
       AUserRoles: TList<string>;
       var IsValid: Boolean;
       const ASessionData: TDictionary<string, string>);
 
     procedure OnAuthorization(
+      const AContext: TWebContext;
       AUserRoles: TList<string>;
       const AControllerQualifiedClassName: string;
       const AActionName: string;
@@ -309,27 +313,32 @@ begin
   Result := TMVCDefaultAuthenticationHandler.Create;
 end;
 
-procedure TMVCDefaultAuthenticationHandler.OnAuthentication(const AUserName, APassword: string;
-AUserRoles: TList<string>;
-var IsValid: Boolean; const ASessionData: TDictionary<string, string>);
+procedure TMVCDefaultAuthenticationHandler.OnAuthentication(
+      const AContext: TWebContext;
+      const AUserName, APassword: string;
+      AUserRoles: TList<string>;
+      var IsValid: Boolean;
+      const ASessionData: TDictionary<string, string>);
 begin
   IsValid := True;
   if Assigned(FAuthenticationDelegate) then
     FAuthenticationDelegate(AUserName, APassword, AUserRoles, IsValid, ASessionData);
 end;
 
-procedure TMVCDefaultAuthenticationHandler.OnAuthorization(AUserRoles: TList<string>;
-const AControllerQualifiedClassName,
-  AActionName: string; var IsAuthorized: Boolean);
+procedure TMVCDefaultAuthenticationHandler.OnAuthorization(
+      const AContext: TWebContext;
+      AUserRoles: TList<string>;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
+      var IsAuthorized: Boolean);
 begin
   IsAuthorized := True;
   if Assigned(FAuthorizationDelegate) then
     FAuthorizationDelegate(AUserRoles, AControllerQualifiedClassName, AActionName, IsAuthorized);
 end;
 
-procedure TMVCDefaultAuthenticationHandler.OnRequest(const AControllerQualifiedClassName,
-  AActionName: string;
-var AAuthenticationRequired: Boolean);
+procedure TMVCDefaultAuthenticationHandler.OnRequest(const AContext: TWebContext; const AControllerQualifiedClassName, AActionName: string;
+      var AAuthenticationRequired: Boolean);
 begin
   AAuthenticationRequired := True;
   if Assigned(FRequestDelegate) then

@@ -46,7 +46,7 @@ object MainForm: TMainForm
     TabOrder = 1
     object Splitter1: TSplitter
       Left = 6
-      Top = 247
+      Top = 199
       Width = 764
       Height = 3
       Cursor = crVSplit
@@ -55,10 +55,19 @@ object MainForm: TMainForm
       ExplicitTop = 1
       ExplicitWidth = 62
     end
+    object Splitter2: TSplitter
+      Left = 6
+      Top = 369
+      Width = 764
+      Height = 4
+      Cursor = crVSplit
+      Align = alBottom
+      ExplicitTop = 368
+    end
     object mmSQL: TMemo
       AlignWithMargins = True
       Left = 9
-      Top = 253
+      Top = 205
       Width = 758
       Height = 161
       Align = alBottom
@@ -73,9 +82,9 @@ object MainForm: TMainForm
     object lbRQL: TListBox
       AlignWithMargins = True
       Left = 9
-      Top = 36
+      Top = 117
       Width = 758
-      Height = 208
+      Height = 79
       Align = alClient
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -86,16 +95,19 @@ object MainForm: TMainForm
       ParentFont = False
       TabOrder = 1
       OnClick = lbRQLClick
+      ExplicitTop = 103
+      ExplicitHeight = 93
     end
     object Panel3: TPanel
       Left = 6
-      Top = 6
+      Top = 87
       Width = 764
       Height = 27
       Align = alTop
       BevelOuter = bvNone
       Caption = 'Panel3'
       TabOrder = 2
+      ExplicitTop = 73
       object edtExpression: TEdit
         AlignWithMargins = True
         Left = 3
@@ -116,6 +128,32 @@ object MainForm: TMainForm
         TabOrder = 1
         OnClick = btnAddClick
       end
+    end
+    object rgBackend: TRadioGroup
+      Left = 6
+      Top = 6
+      Width = 764
+      Height = 81
+      Align = alTop
+      Caption = 'RQL Backend'
+      TabOrder = 3
+    end
+    object Memo1: TMemo
+      AlignWithMargins = True
+      Left = 9
+      Top = 376
+      Width = 758
+      Height = 38
+      Align = alBottom
+      Color = clScrollBar
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 4
     end
   end
 end

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -37,17 +37,15 @@ uses
   System.DateUtils,
   System.TypInfo,
 
-  {$IFDEF SYSTEMNETENCODING}
-
+{$IFDEF SYSTEMNETENCODING}
   System.NetEncoding,
 
-  {$ELSE}
-
+{$ELSE}
   Soap.EncdDecd,
 
-  {$ENDIF}
-
-  MVCFramework.Commons, Data.DB;
+{$ENDIF}
+  MVCFramework.Commons,
+  Data.DB;
 
 type
 
@@ -167,18 +165,19 @@ type
     property IsPK: boolean read FIsPK write SetIsPK;
   end;
 
-  TMVCSerializerHelpful = record
+  TMVCSerializerHelper = record
   private
     { private declarations }
   public
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
 
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): Boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): boolean; overload; static;
 
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): Boolean; overload; static;
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): Boolean; overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): boolean;
+      overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): boolean; overload; static;
 
     class procedure EncodeStream(AInput, AOutput: TStream); static;
     class procedure DecodeStream(AInput, AOutput: TStream); static;
@@ -195,7 +194,7 @@ type
     class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
     class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
 
-    class function IsAPropertyToSkip(const aPropName: string): Boolean; static;
+    class function IsAPropertyToSkip(const aPropName: string): boolean; static;
   end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
@@ -243,7 +242,8 @@ var
 begin
   lDateTime := ADateTime;
   if lDateTime.Length < 19 then
-    raise Exception.CreateFmt('Invalid parameter "%s". Hint: DateTime parameters must be formatted in ISO8601 (e.g. 2010-10-12T10:12:23)', [ADateTime]);
+    raise Exception.CreateFmt('Invalid parameter "%s". Hint: DateTime parameters must be formatted in ISO8601 (e.g. 2010-10-12T10:12:23)',
+      [ADateTime]);
 
   if lDateTime.Chars[10] = ' ' then
   begin
@@ -264,9 +264,9 @@ begin
   Result := EncodeTime(StrToInt(Copy(ATime, 1, 2)), StrToInt(Copy(ATime, 4, 2)), StrToInt(Copy(ATime, 7, 2)), 0);
 end;
 
-{ TMVCSerializerHelpful }
+{ TMVCSerializerHelper }
 
-class procedure TMVCSerializerHelpful.DeSerializeBase64StringStream(
+class procedure TMVCSerializerHelper.DeSerializeBase64StringStream(
   AStream: TStream; const ABase64SerializedString: string);
 var
   SS: TStringStream;
@@ -281,7 +281,7 @@ begin
   end;
 end;
 
-class procedure TMVCSerializerHelpful.DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string);
+class procedure TMVCSerializerHelper.DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string);
 var
   Encoding: TEncoding;
   SS: TStringStream;
@@ -297,7 +297,7 @@ begin
   end;
 end;
 
-class function TMVCSerializerHelpful.GetKeyName(const AField: TRttiField; const AType: TRttiType): string;
+class function TMVCSerializerHelper.GetKeyName(const AField: TRttiField; const AType: TRttiType): string;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -326,7 +326,7 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelpful.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): Boolean;
+class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): boolean;
 var
   Att: TCustomAttribute;
 begin
@@ -340,18 +340,18 @@ begin
   Result := (AAttribute <> nil);
 end;
 
-class function TMVCSerializerHelpful.AttributeExists<T>(
-  const AAttributes: TArray<TCustomAttribute>): Boolean;
+class function TMVCSerializerHelper.AttributeExists<T>(
+  const AAttributes: TArray<TCustomAttribute>): boolean;
 var
   Att: TCustomAttribute;
 begin
-  Result := False;
+  Result := false;
   for Att in AAttributes do
     if Att is T then
-      Exit(True);
+      Exit(true);
 end;
 
-class function TMVCSerializerHelpful.CreateObject(const AObjectType: TRttiType): TObject;
+class function TMVCSerializerHelper.CreateObject(const AObjectType: TRttiType): TObject;
 var
   MetaClass: TClass;
   Method: TRttiMethod;
@@ -373,7 +373,7 @@ begin
     raise EMVCException.CreateFmt('Cannot find a propert constructor for %s', [AObjectType.ToString]);
 end;
 
-class function TMVCSerializerHelpful.CreateObject(const AQualifiedClassName: string): TObject;
+class function TMVCSerializerHelper.CreateObject(const AQualifiedClassName: string): TObject;
 var
   Context: TRttiContext;
   ObjectType: TRttiType;
@@ -390,67 +390,59 @@ begin
   end;
 end;
 
-class procedure TMVCSerializerHelpful.DecodeStream(AInput, AOutput: TStream);
+class procedure TMVCSerializerHelper.DecodeStream(AInput, AOutput: TStream);
 begin
 
-  {$IFDEF SYSTEMNETENCODING}
-
+{$IFDEF SYSTEMNETENCODING}
   TNetEncoding.Base64.Decode(AInput, AOutput);
 
-  {$ELSE}
-
+{$ELSE}
   Soap.EncdDecd.DecodeStream(AInput, AOutput);
 
-  {$ENDIF}
+{$ENDIF}
 
 end;
 
-class function TMVCSerializerHelpful.DecodeString(const AInput: string): string;
+class function TMVCSerializerHelper.DecodeString(const AInput: string): string;
 begin
 
-  {$IFDEF SYSTEMNETENCODING}
-
+{$IFDEF SYSTEMNETENCODING}
   Result := TNetEncoding.Base64.Decode(AInput);
 
-  {$ELSE}
-
+{$ELSE}
   Result := Soap.EncdDecd.DecodeString(AInput);
 
-  {$ENDIF}
+{$ENDIF}
 
 end;
 
-class procedure TMVCSerializerHelpful.EncodeStream(AInput, AOutput: TStream);
+class procedure TMVCSerializerHelper.EncodeStream(AInput, AOutput: TStream);
 begin
 
-  {$IFDEF SYSTEMNETENCODING}
-
+{$IFDEF SYSTEMNETENCODING}
   TNetEncoding.Base64.Encode(AInput, AOutput);
 
-  {$ELSE}
-
+{$ELSE}
   Soap.EncdDecd.EncodeStream(AInput, AOutput);
 
-  {$ENDIF}
+{$ENDIF}
 
 end;
 
-class function TMVCSerializerHelpful.EncodeString(const AInput: string): string;
+class function TMVCSerializerHelper.EncodeString(const AInput: string): string;
 begin
 
-  {$IFDEF SYSTEMNETENCODING}
-
+{$IFDEF SYSTEMNETENCODING}
   Result := TNetEncoding.Base64.Encode(AInput);
 
-  {$ELSE}
-
+{$ELSE}
   Result := Soap.EncdDecd.EncodeString(AInput);
 
-  {$ENDIF}
+{$ENDIF}
 
 end;
 
-class function TMVCSerializerHelpful.GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
+class function TMVCSerializerHelper.GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -479,49 +471,49 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelpful.GetTypeKindAsString(const ATypeKind: TTypeKind): string;
+class function TMVCSerializerHelper.GetTypeKindAsString(const ATypeKind: TTypeKind): string;
 begin
   Result := GetEnumName(TypeInfo(TTypeKind), Ord(ATypeKind));
   Result := Result.Remove(0, 2).ToLower;
 end;
 
-class function TMVCSerializerHelpful.HasAttribute<T>(const AMember: TRttiNamedObject): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject): boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
 begin
-  Result := False;
+  Result := false;
   Attrs := AMember.GetAttributes;
   if Length(Attrs) = 0 then
-    Exit(False);
+    Exit(false);
   for Attr in Attrs do
     if Attr is T then
-      Exit(True);
+      Exit(true);
 end;
 
-class function TMVCSerializerHelpful.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
 begin
   AAttribute := nil;
-  Result := False;
+  Result := false;
   Attrs := AMember.GetAttributes;
   for Attr in Attrs do
     if Attr is T then
     begin
       AAttribute := T(Attr);
-      Exit(True);
+      Exit(true);
     end;
 end;
 
-class function TMVCSerializerHelpful.IsAPropertyToSkip(
-  const aPropName: string): Boolean;
+class function TMVCSerializerHelper.IsAPropertyToSkip(
+  const aPropName: string): boolean;
 begin
   Result := (aPropName = 'RefCount') or (aPropName = 'Disposed');
 end;
 
-class function TMVCSerializerHelpful.StringToTypeKind(const AValue: string): TTypeKind;
+class function TMVCSerializerHelper.StringToTypeKind(const AValue: string): TTypeKind;
 begin
   Result := TTypeKind(GetEnumValue(TypeInfo(TTypeKind), 'tk' + AValue));
 end;

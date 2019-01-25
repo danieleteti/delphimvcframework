@@ -40,7 +40,9 @@ uses
   FireDAC.Phys.FBDef,
   Vcl.ComCtrls,
   Vcl.Grids,
-  Vcl.ValEdit;
+  Vcl.ValEdit,
+  FireDAC.Phys.MySQLDef,
+  FireDAC.Phys.MySQL;
 
 type
   TMainForm = class(TForm)
@@ -61,13 +63,13 @@ type
     PageControl1: TPageControl;
     TabSheet1: TTabSheet;
     TabSheet2: TTabSheet;
-    TabSheet3: TTabSheet;
     btnGetTables: TButton;
     veTablesMapping: TValueListEditor;
     mmOutput: TMemo;
     Panel5: TPanel;
     btnSaveCode: TButton;
     FileSaveDialog1: TFileSaveDialog;
+    FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink;
     procedure btnGenEntitiesClick(Sender: TObject);
     procedure btnGetTablesClick(Sender: TObject);
     procedure btnSaveCodeClick(Sender: TObject);
@@ -75,8 +77,10 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    Buff: TStringStream;
+    fIntfBuff, fImplBuff: TStringStream;
     FHistoryFileName: string;
+    lTypesName: TArray<string>;
+    procedure EmitHeaderComments;
     function GetClassName(const aTableName: string): string;
     procedure EmitUnit;
     procedure EmitUnitEnd;
@@ -85,7 +89,7 @@ type
     procedure EmitClass(const aTableName, aClassName: string);
     procedure EmitClassEnd;
     function GetDelphiType(FT: TFieldType): string;
-    function GetProperCase(const Value: string): string;
+    function GetFieldName(const Value: string): string;
   public
     { Public declarations }
   end;
@@ -100,14 +104,17 @@ uses
 
 {$R *.dfm}
 
+
 procedure TMainForm.btnGenEntitiesClick(Sender: TObject);
 var
   I: Integer;
   lTableName: string;
   lClassName: string;
   F: Integer;
+  lFieldsName: TArray<string>;
 begin
-  Buff.Clear;
+  fIntfBuff.Clear;
+  EmitHeaderComments;
   EmitUnit;
   for I := 1 to veTablesMapping.RowCount - 1 do
   begin
@@ -116,13 +123,43 @@ begin
     EmitClass(lTableName, lClassName);
     qry.Open('select * from ' + lTableName + ' where 1=0');
 
-    Buff.WriteString('private' + sLineBreak);
+    lFieldsName := [];
+    lTypesName := [];
+    fIntfBuff.WriteString('private' + sLineBreak);
     for F := 0 to qry.Fields.Count - 1 do
     begin
       EmitField(qry.Fields[F]);
+
+      if GetDelphiType(qry.Fields[F].DataType) = 'TStream' then
+      begin
+        lFieldsName := lFieldsName + [GetFieldName(qry.Fields[F].FieldName)];
+        lTypesName := lTypesName + ['TMemoryStream'];
+      end;
+
     end;
 
-    Buff.WriteString('public' + sLineBreak);
+    fIntfBuff.WriteString('public' + sLineBreak);
+    fIntfBuff.WriteString('  constructor Create; override;' + sLineBreak);
+
+    fImplBuff.WriteString('constructor ' + lClassName + '.Create;' + sLineBreak);
+    fImplBuff.WriteString('begin' + sLineBreak);
+    fImplBuff.WriteString('  inherited Create;' + sLineBreak);
+    for F := low(lFieldsName) to high(lFieldsName) do
+    begin
+      fImplBuff.WriteString('  ' + lFieldsName[F] + ' := ' + lTypesName[F] + '.Create;' + sLineBreak);
+    end;
+    fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
+
+    fIntfBuff.WriteString('  destructor Destroy; override;' + sLineBreak);
+    fImplBuff.WriteString('destructor ' + lClassName + '.Destroy;' + sLineBreak);
+    fImplBuff.WriteString('begin' + sLineBreak);
+    for F := low(lFieldsName) to high(lFieldsName) do
+    begin
+      fImplBuff.WriteString('  ' + lFieldsName[F] + '.Free;' + sLineBreak);
+    end;
+    fImplBuff.WriteString('  inherited;' + sLineBreak);
+    fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
+
     for F := 0 to qry.Fields.Count - 1 do
     begin
       EmitProperty(qry.Fields[F]);
@@ -131,7 +168,7 @@ begin
     EmitClassEnd;
   end;
   EmitUnitEnd;
-  mmOutput.Lines.Text := Buff.DataString;
+  mmOutput.Lines.Text := fIntfBuff.DataString + fImplBuff.DataString;
 
   // mmOutput.Lines.SaveToFile(
   // mmConnectionParams.Lines.SaveToFile(FHistoryFileName);
@@ -174,65 +211,99 @@ end;
 procedure TMainForm.cboConnectionDefsChange(Sender: TObject);
 begin
   FDManager.GetConnectionDefParams(cboConnectionDefs.Text, mmConnectionParams.Lines);
+  // cbSchema.Items.Clear;
+  // FDConnection1.GetSchemaNames('', '', cbSchema.Items);
 end;
 
 procedure TMainForm.EmitClass(const aTableName, aClassName: string);
 begin
-  Buff.WriteString('[MVCNameCase(ncLowerCase)]' + sLineBreak);
-  Buff.WriteString(Format('[Table(''%s'')]', [aTableName]) + sLineBreak);
+  fIntfBuff.WriteString('[MVCNameCase(ncLowerCase)]' + sLineBreak);
+  fIntfBuff.WriteString(Format('[MVCTable(''%s'')]', [aTableName]) + sLineBreak);
   if trim(aClassName) = '' then
     raise Exception.Create('Invalid class name');
-  Buff.WriteString(aClassName + ' = class' + sLineBreak);
+  fIntfBuff.WriteString(aClassName + ' = class(TMVCActiveRecord)' + sLineBreak);
 end;
 
 procedure TMainForm.EmitClassEnd;
 begin
-  Buff.WriteString('end;' + sLineBreak + sLineBreak);
+  fIntfBuff.WriteString('end;' + sLineBreak + sLineBreak);
 end;
 
 procedure TMainForm.EmitField(F: TField);
 begin
-  Buff.WriteString(Format('  [TableField(''%s'')]', [F.FieldName]) + sLineBreak + '  f' + GetProperCase(F.FieldName) + ': ' +
+  fIntfBuff.WriteString(Format('  [MVCTableField(''%s'')]', [F.FieldName]) + sLineBreak + '  ' + GetFieldName(F.FieldName) + ': ' +
     GetDelphiType(F.DataType) + ';' + sLineBreak);
+end;
+
+procedure TMainForm.EmitHeaderComments;
+begin
+  fIntfBuff.WriteString('// *************************************************************************** }' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// Delphi MVC Framework' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// https://github.com/danieleteti/delphimvcframework' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// ***************************************************************************' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// Licensed under the Apache License, Version 2.0 (the "License");' + sLineBreak);
+  fIntfBuff.WriteString('// you may not use this file except in compliance with the License.' + sLineBreak);
+  fIntfBuff.WriteString('// You may obtain a copy of the License at' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// http://www.apache.org/licenses/LICENSE-2.0' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// Unless required by applicable law or agreed to in writing, software' + sLineBreak);
+  fIntfBuff.WriteString('// distributed under the License is distributed on an "AS IS" BASIS,' + sLineBreak);
+  fIntfBuff.WriteString('// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.' + sLineBreak);
+  fIntfBuff.WriteString('// See the License for the specific language governing permissions and' + sLineBreak);
+  fIntfBuff.WriteString('// limitations under the License.' + sLineBreak);
+  fIntfBuff.WriteString('//' + sLineBreak);
+  fIntfBuff.WriteString('// ***************************************************************************' + sLineBreak);
+  fIntfBuff.WriteString(sLineBreak);
 end;
 
 procedure TMainForm.EmitProperty(F: TField);
 begin
   // Buff.WriteString(Format('  [TableField(''%s'')]', [F.FieldName]) + sLineBreak + '  property ' + GetProperCase(F.FieldName) + ': ' +
   // GetDelphiType(F.DataType) + ';' + sLineBreak);
-  Buff.WriteString('  property ' + GetProperCase(F.FieldName) + ': ' + GetDelphiType(F.DataType));
-  Buff.WriteString(' read f' + GetProperCase(F.FieldName) + ' write f' + GetProperCase(F.FieldName));
-  Buff.WriteString(';' + sLineBreak);
+  fIntfBuff.WriteString('  property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' + GetDelphiType(F.DataType));
+  fIntfBuff.WriteString(' read ' + GetFieldName(F.FieldName) + ' write ' + GetFieldName(F.FieldName));
+  fIntfBuff.WriteString(';' + sLineBreak);
 end;
 
 procedure TMainForm.EmitUnit;
 begin
-  Buff.WriteString('unit Entities;' + sLineBreak);
-  Buff.WriteString('' + sLineBreak);
-  Buff.WriteString('interface' + sLineBreak);
-  Buff.WriteString('' + sLineBreak);
-  Buff.WriteString('uses' + sLineBreak);
-  Buff.WriteString('  MVCFramework.Serializer.Commons,' + sLineBreak);
-  Buff.WriteString('  MVCFramework.ActiveRecord,' + sLineBreak);
-  Buff.WriteString('  System.Classes;' + sLineBreak);
-  Buff.WriteString('' + sLineBreak);
-  Buff.WriteString('type' + sLineBreak);
-  Buff.WriteString('' + sLineBreak);
+  fIntfBuff.WriteString('unit Entities;' + sLineBreak);
+  fIntfBuff.WriteString('' + sLineBreak);
+  fIntfBuff.WriteString('interface' + sLineBreak);
+  fIntfBuff.WriteString('' + sLineBreak);
+  fIntfBuff.WriteString('uses' + sLineBreak);
+  fIntfBuff.WriteString('  MVCFramework.Serializer.Commons,' + sLineBreak);
+  fIntfBuff.WriteString('  MVCFramework.ActiveRecord,' + sLineBreak);
+  fIntfBuff.WriteString('  System.Classes;' + sLineBreak);
+  fIntfBuff.WriteString('' + sLineBreak);
+  fIntfBuff.WriteString('type' + sLineBreak);
+  fIntfBuff.WriteString('' + sLineBreak);
+
+  fImplBuff.WriteString('implementation' + sLineBreak + sLineBreak);
 end;
 
 procedure TMainForm.EmitUnitEnd;
 begin
-  Buff.WriteString(sLineBreak + 'end.');
+  fImplBuff.WriteString(sLineBreak + 'end.');
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  Buff.Free;
+  fIntfBuff.Free;
+  fImplBuff.Free;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  Buff := TStringStream.Create;
+  fIntfBuff := TStringStream.Create;
+  fImplBuff := TStringStream.Create;
   FHistoryFileName := TPath.GetDocumentsPath + PathDelim + 'eg.history';
   try
     if TFile.Exists(FHistoryFileName) then
@@ -304,13 +375,13 @@ begin
   end;
 end;
 
-function TMainForm.GetProperCase(const Value: string): string;
+function TMainForm.GetFieldName(const Value: string): string;
 var
   Pieces: TArray<string>;
   s: string;
 begin
   if Value.Length <= 2 then
-    exit(Value.ToUpper);
+    exit('f' + Value.ToUpper);
 
   Result := '';
   Pieces := Value.ToLower.Split(['_']);
@@ -321,6 +392,7 @@ begin
     else
       Result := Result + UpperCase(s.Chars[0]) + s.Substring(1);
   end;
+  Result := 'f' + Result;
 end;
 
 end.

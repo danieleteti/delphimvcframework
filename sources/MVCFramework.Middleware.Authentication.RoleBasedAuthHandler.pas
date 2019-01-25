@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // Contributor of this file: Janidan - https://github.com/janidan
 //
@@ -59,10 +59,10 @@ type
 
   IMVCRoleBasedAuthenticationHandler = interface(IMVCAuthenticationHandler)
     ['{07ABEF93-DBCC-4C55-BD39-BD1F48490A73}']
-    procedure OnAuthorization(const AContext: TWebContext;
-      const AUserRoles: TList<string>;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var AIsAuthorized: Boolean);
+//    procedure OnAuthorization(const AContext: TWebContext;
+//      const AUserRoles: TList<string>;
+//      const AControllerQualifiedClassName: string; const AActionName: string;
+//      var AIsAuthorized: Boolean);
   end;
 
   TRoleBasedAuthHandler = class(TInterfacedObject, IMVCAuthenticationHandler,
@@ -81,21 +81,24 @@ type
       const aRole: string): string;
     function CreateParameterNameList(const aTemplate: string): TList<string>;
   public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
 
-    procedure OnAuthentication(const UserName: string; const Password: string;
+    procedure OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
       UserRoles: TList<string>; var IsValid: Boolean;
       const SessionData: TDictionary<string, string>); virtual; abstract;
 
-    procedure OnAuthorization(UserRoles: TList<string>;
-      const ControllerQualifiedClassName: string; const ActionName: string;
+    procedure OnAuthorization(
+      const AContext: TWebContext;
+      UserRoles: TList<string>;
+      const ControllerQualifiedClassName: string;
+      const ActionName: string;
       var IsAuthorized: Boolean); overload;
 
-    procedure OnAuthorization(const AContext: TWebContext;
-      const AUserRoles: TList<string>;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var AIsAuthorized: Boolean); overload;
+//    procedure OnAuthorization(const AContext: TWebContext;
+//      const AUserRoles: TList<string>;
+//      const AControllerQualifiedClassName: string; const AActionName: string;
+//      var AIsAuthorized: Boolean); overload;
 
     constructor Create;
     destructor Destroy; override;
@@ -106,8 +109,9 @@ type
   private
     FAuthenticationHandler: IMVCRoleBasedAuthenticationHandler;
 
-    procedure DoRoleBasedBeforeControllerAction(const aHandler
-      : IMVCRoleBasedAuthenticationHandler; const AContext: TWebContext;
+    procedure DoRoleBasedBeforeControllerAction(
+      const AContext: TWebContext;
+      const aHandler: IMVCRoleBasedAuthenticationHandler;
       const AControllerQualifiedClassName: string; const AActionName: string;
       var AHandled: Boolean);
   protected
@@ -233,50 +237,45 @@ begin
   inherited;
 end;
 
-procedure TRoleBasedAuthHandler.OnAuthorization(UserRoles: TList<string>;
-  const ControllerQualifiedClassName, ActionName: string;
-  var IsAuthorized: Boolean);
-begin
-  Self.OnAuthorization(nil, UserRoles, ControllerQualifiedClassName, ActionName,
-    IsAuthorized);
-end;
-
-procedure TRoleBasedAuthHandler.OnAuthorization(const AContext: TWebContext;
-  const AUserRoles: TList<string>; const AControllerQualifiedClassName,
-  AActionName: string; var AIsAuthorized: Boolean);
+procedure TRoleBasedAuthHandler.OnAuthorization(
+      const AContext: TWebContext;
+      UserRoles: TList<string>;
+      const ControllerQualifiedClassName: string;
+      const ActionName: string;
+      var IsAuthorized: Boolean);
 var
   vRttiType: TRttiType;
   vAttributes: TArray<MVCRequiresRoleAttribute>;
   vRttiMethod: TRttiMethod;
 begin
   // If there are no restrictions we will allow access to the ressource. (public API)
-  AIsAuthorized := True;
+  IsAuthorized := True;
 
   // Check all Role requirements on the controller level
-  vRttiType := FRttiContext.FindType(AControllerQualifiedClassName);
+  vRttiType := FRttiContext.FindType(ControllerQualifiedClassName);
   if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiType.GetAttributes,
     vAttributes) then
-    if not CheckUserRoles(AContext, AUserRoles, vAttributes) then
+    if not CheckUserRoles(AContext, UserRoles, vAttributes) then
     begin
-      AIsAuthorized := False;
+      IsAuthorized := False;
       Exit;
     end;
 
   // At this point the conttoller either has no restrictions or
   // we have successfully cleared these.
   // Verify all roles on the Action.
-  vRttiMethod := vRttiType.GetMethod(AActionName);
+  vRttiMethod := vRttiType.GetMethod(ActionName);
   if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiMethod.GetAttributes,
     vAttributes) then
-    if not CheckUserRoles(AContext, AUserRoles, vAttributes) then
+    if not CheckUserRoles(AContext, UserRoles, vAttributes) then
     begin
-      AIsAuthorized := False;
+      IsAuthorized := False;
       Exit;
     end;
 end;
 
-procedure TRoleBasedAuthHandler.OnRequest(const ControllerQualifiedClassName,
-  ActionName: string; var AuthenticationRequired: Boolean);
+procedure TRoleBasedAuthHandler.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
 var
   vRttiType: TRttiType;
   vAttributes: TArray<MVCRequiresAuthenticationAttribute>;
@@ -357,10 +356,11 @@ begin
 end;
 
 procedure TMVCRoleBasedAuthenticationMiddleware.
-  DoRoleBasedBeforeControllerAction(const aHandler
-  : IMVCRoleBasedAuthenticationHandler; const AContext: TWebContext;
-  const AControllerQualifiedClassName, AActionName: string;
-  var AHandled: Boolean);
+  DoRoleBasedBeforeControllerAction(
+      const AContext: TWebContext;
+      const aHandler: IMVCRoleBasedAuthenticationHandler;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      var AHandled: Boolean);
 var
   IsValid: Boolean;
   IsAuthorized: Boolean;
@@ -369,7 +369,7 @@ begin
   // This procedure is a basic copy of the inherited OnBeforeControllerAction procedure.
   // Extention is by enabling the Authorization based on the context the call is being performed.
 
-  aHandler.OnRequest(AControllerQualifiedClassName, AActionName, AuthRequired);
+  aHandler.OnRequest(nil, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
     AHandled := False;
@@ -410,7 +410,7 @@ procedure TMVCRoleBasedAuthenticationMiddleware.OnBeforeControllerAction
   AActionName: string; var AHandled: Boolean);
 begin
   if Assigned(FAuthenticationHandler) then
-    DoRoleBasedBeforeControllerAction(FAuthenticationHandler, AContext,
+    DoRoleBasedBeforeControllerAction(AContext, FAuthenticationHandler,
       AControllerQualifiedClassName, AActionName, AHandled)
   else
     inherited OnBeforeControllerAction(AContext, AControllerQualifiedClassName,

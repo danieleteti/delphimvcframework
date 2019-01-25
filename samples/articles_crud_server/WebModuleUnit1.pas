@@ -29,7 +29,7 @@ begin
   FEngine := TMVCEngine.Create(self);
   FEngine.AddController(TArticlesController);
   FEngine.AddMiddleware(TCORSMiddleware.Create);
-  FEngine.AddMiddleware(TCompressionMiddleware.Create(256));
+  FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
 
 end;
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -135,7 +135,7 @@ begin
       obj_fields := _rttiType.GetProperties;
       for obj_field in obj_fields do
       begin
-        if TMVCSerializerHelpful.HasAttribute<MVCColumnAttribute>(obj_field, obj_field_attr) then
+        if TMVCSerializerHelper.HasAttribute<MVCColumnAttribute>(obj_field, obj_field_attr) then
         begin
           Map.Add(MVCColumnAttribute(obj_field_attr).FieldName.ToLower,
             obj_field);

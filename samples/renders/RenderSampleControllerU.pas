@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -49,7 +49,7 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
     [MVCProduces('application/json')]
-    procedure GetCustomers_AsDataSet(CTX: TWebContext);
+    procedure GetCustomers_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/metadata')]
@@ -225,7 +225,7 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers_AsDataSet(CTX: TWebContext);
+procedure TRenderSampleController.GetCustomers_AsDataSet;
 var
   lDM: TMyDataModule;
 begin
@@ -286,7 +286,7 @@ begin
   Cust.AddressLine1 := 'Rome Street 12';
   Cust.AddressLine2 := '00100';
   Cust.City := 'ROME';
-  PushObjectToView('customer', Cust);
+  ViewData['customer'] := Cust;
   LoadView(['header', 'customer', 'footer']);
   RenderResponseStream;
   { If you need more flexibility, you can use GetRenderedView to compose your

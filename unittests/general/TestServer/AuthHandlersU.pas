@@ -27,31 +27,31 @@ unit AuthHandlersU;
 interface
 
 uses
-  MVCFramework.Commons, System.Generics.Collections;
+  MVCFramework.Commons, System.Generics.Collections, MVCFramework;
 
 type
   TAuthHandlerBase = class abstract(TInterfacedObject, IMVCAuthenticationHandler)
   public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean); virtual; abstract;
-    procedure OnAuthentication(const UserName: string; const Password: string;
+    procedure OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
       UserRoles: System.Generics.Collections.TList<System.string>;
       var IsValid: Boolean; const SessionData: TDictionary<string, string>); virtual;
-    procedure OnAuthorization(UserRoles
-      : System.Generics.Collections.TList<System.string>;
+    procedure OnAuthorization(const AContext: TWebContext;
+      UserRoles: System.Generics.Collections.TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean); virtual;
   end;
 
   TBasicAuthHandler = class(TAuthHandlerBase)
   public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean); override;
   end;
 
   TCustomAuthHandler = class(TAuthHandlerBase)
   public
-    procedure OnRequest(const ControllerQualifiedClassName: string;
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean); override;
   end;
 
@@ -61,6 +61,7 @@ uses
   System.SysUtils;
 
 procedure TAuthHandlerBase.OnAuthentication(
+  const AContext: TWebContext;
   const UserName: string; const Password: string;
   UserRoles: System.Generics.Collections.TList<System.string>; var IsValid: Boolean;
   const SessionData: TDictionary<string, string>);
@@ -81,13 +82,11 @@ begin
   end;
 end;
 
-procedure TAuthHandlerBase.OnAuthorization(UserRoles
-  : System.Generics.Collections.TList<System.string>;
-  const
-  ControllerQualifiedClassName, ActionName: string;
-  var
-  IsAuthorized:
-  Boolean);
+procedure TAuthHandlerBase.OnAuthorization(
+  const AContext: TWebContext;
+  UserRoles: System.Generics.Collections.TList<System.string>;
+  const ControllerQualifiedClassName, ActionName: string;
+  var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
   if (ActionName = 'OnlyRole1') or (ActionName = 'OnlyRole1Session') then
@@ -96,15 +95,15 @@ begin
     IsAuthorized := UserRoles.Contains('role2');
 end;
 
-procedure TBasicAuthHandler.OnRequest(const ControllerQualifiedClassName, ActionName: string;
-  var AuthenticationRequired: Boolean);
+procedure TBasicAuthHandler.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName.EndsWith
     ('TTestPrivateServerController');
 end;
 
-procedure TCustomAuthHandler.OnRequest(const ControllerQualifiedClassName,
-  ActionName: string; var AuthenticationRequired: Boolean);
+procedure TCustomAuthHandler.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+      const ActionName: string; var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName.EndsWith
     ('TTestPrivateServerControllerCustomAuth');

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -31,21 +31,22 @@ uses
 
 type
   TRQLFirebirdCompiler = class(TRQLCompiler)
-  private
-    function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
-    function RQLSortToSQL(const aRQLSort: TRQLSort): string;
-    function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
-    function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
-    function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
-    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
+  protected
+    function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string; virtual;
+    function RQLSortToSQL(const aRQLSort: TRQLSort): string; virtual;
+    function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string; virtual;
+    function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string; virtual;
+    function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string; virtual;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual;
   public
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree; out aSQL: string); override;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  MVCFramework.ActiveRecord;
 
 { TRQLFirebirdCompiler }
 
@@ -112,13 +113,17 @@ begin
       begin
         Result := Format('(%s != %s)', [lDBFieldName, lValue]);
       end;
+    tkContains:
+      begin
+        Result := Format('(%s containing ''%s'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+      end;
   end;
 end;
 
 function TRQLFirebirdCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
   // firebird ROWS requires Start > 0. Limit function is 0 based, so we have to add 1 to start.
-  Result := Format(' ROWS %d to %d', [aRQLLimit.Start + 1, aRQLLimit.Start + aRQLLimit.Count]);
+  Result := Format(' /*limit*/  ROWS %d to %d', [aRQLLimit.Start + 1, aRQLLimit.Start + aRQLLimit.Count]);
 end;
 
 function TRQLFirebirdCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
@@ -158,7 +163,7 @@ function TRQLFirebirdCompiler.RQLSortToSQL(const aRQLSort: TRQLSort): string;
 var
   I: Integer;
 begin
-  Result := ' ORDER BY';
+  Result := ' /*sort*/ ORDER BY';
   for I := 0 to aRQLSort.Fields.Count - 1 do
   begin
     if I > 0 then
@@ -176,7 +181,7 @@ begin
   Result := ' where ';
 end;
 
-procedure TRQLFirebirdCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree;
+procedure TRQLFirebirdCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
   out aSQL: string);
 var
   lBuff: TStringBuilder;
@@ -204,10 +209,10 @@ end;
 
 initialization
 
-TRQLCompilerRegistry.Instance.RegisterCompiler(cbFirebird, TRQLFirebirdCompiler);
+TRQLCompilerRegistry.Instance.RegisterCompiler('firebird', TRQLFirebirdCompiler);
 
 finalization
 
-TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbFirebird);
+TRQLCompilerRegistry.Instance.UnRegisterCompiler('firebird');
 
 end.

@@ -71,7 +71,7 @@ implementation
 uses
   MVCFramework.SystemJSONUtils,
   MVCFramework.Serializer.Defaults,
-  MVCFramework.TypesAliases,
+  System.JSON,
   MVCFramework.Commons;
 
 {$R *.dfm}

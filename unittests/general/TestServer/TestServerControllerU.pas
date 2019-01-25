@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,7 +43,7 @@ type
   public
     [MVCPath('/req/with/params/($par1)/($par2)/($par3)')]
     [MVCHTTPMethod([httpGET, httpDELETE])]
-    procedure ReqWithParams(ctx: TWebContext);
+    procedure ReqWithParams;
 
     [MVCPath('/echo/($par1)/($par2)/($par3)')]
     [MVCHTTPMethod([httpPOST, httpPUT, httpPATCH])]
@@ -58,13 +58,13 @@ type
     procedure SessionGet;
 
     [MVCPath('/headers')]
-    procedure EchoHeaders(ctx: TWebContext);
+    procedure EchoHeaders;
 
     [MVCPath('/lotofcookies')]
-    procedure GenerateCookies(ctx: TWebContext);
+    procedure GenerateCookies;
 
     [MVCPath('/dataset/($datasetname)')]
-    procedure DataSetHandling(ctx: TWebContext);
+    procedure DataSetHandling;
 
     [MVCPath('/login/($username)')]
     // this is only for test!!!!
@@ -77,7 +77,7 @@ type
     [MVCPath('/encoding')]
     [MVCHTTPMethod([httpGET])]
     // this is only for test!!!!
-    procedure TestCharset(ctx: TWebContext);
+    procedure TestCharset;
 
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
@@ -95,7 +95,7 @@ type
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     [MVCConsumes('text/plain')]
     [MVCProduces('text/plain')]
-    procedure TestConsumesProducesText(ctx: TWebContext);
+    procedure TestConsumesProducesText;
 
     [MVCPath('/testconsumejson')]
     [MVCHTTPMethod([httpGET])]
@@ -105,11 +105,11 @@ type
 
     [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
-    procedure TestGetPersonByID(ctx: TWebContext);
+    procedure TestGetPersonByID;
 
     [MVCPath('/people/($id)/asfields')]
     [MVCHTTPMethod([httpGET])]
-    procedure TestGetPersonByIDAsFields(ctx: TWebContext);
+    procedure TestGetPersonByIDAsFields;
 
     [MVCPath('/customers/list')]
     [MVCHTTPMethod([httpPOST])]
@@ -117,27 +117,27 @@ type
 
     [MVCPath('/people')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
-    procedure TestGetPersons(ctx: TWebContext);
+    procedure TestGetPersons;
 
     [MVCPath('/wrappedpeople')]
     [MVCHTTPMethod([httpGET])]
-    procedure TestGetWrappedPersons(ctx: TWebContext);
+    procedure TestGetWrappedPeople;
 
     [MVCPath('/objects')]
     [MVCHTTPMethod([httpPOST, httpPUT])]
     [MVCProduces('application/json')]
-    procedure TestPOSTObject(ctx: TWebContext);
+    procedure TestPOSTObject;
 
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
-    procedure TestHelloWorld(ctx: TWebContext);
+    procedure TestHelloWorld;
 
     [MVCPath('/path1/($id)')]
     [MVCPath('/path2/($id)/2/($par)')]
     [MVCPath('/path3/($id)/2/($par)/3')]
     [MVCPath('/path4/($id)/2/($par)/3/4')]
     [MVCHTTPMethod([httpPOST, httpPUT])]
-    procedure TestMultiplePaths(ctx: TWebContext);
+    procedure TestMultiplePaths;
 
     { Strongly typed actions }
     [MVCPath('/typed/string1/($value)')]
@@ -180,18 +180,21 @@ type
     [MVCPath('/renderstreamandfreewithownertrue')]
     procedure TestRenderStreamAndFreeWithOwnerTrue;
 
+    [MVCPath('/stringdictionary')]
+    procedure TestStringDictionary;
+
   end;
 
   [MVCPath('/private')]
   TTestPrivateServerController = class(TMVCController)
   public
     [MVCPath('/role1')]
-    procedure OnlyRole1(ctx: TWebContext);
+    procedure OnlyRole1;
     [MVCPath('/role1session')]
     [MVCHTTPMethods([httpGET])]
-    procedure OnlyRole1Session(ctx: TWebContext);
+    procedure OnlyRole1Session;
     [MVCPath('/role2')]
-    procedure OnlyRole2(ctx: TWebContext);
+    procedure OnlyRole2;
   end;
 
   [MVCPath('/fault')]
@@ -213,7 +216,7 @@ type
 implementation
 
 uses
-  MVCFramework.TypesAliases,
+  System.JSON,
   Web.HTTPApp,
   BusinessObjectsU,
   Generics.Collections,
@@ -224,9 +227,9 @@ uses
 
 { TTestServerController }
 
-procedure TTestServerController.DataSetHandling(ctx: TWebContext);
+procedure TTestServerController.DataSetHandling;
 begin
-  case ctx.Request.HTTPMethod of
+  case Context.Request.HTTPMethod of
     httpGET:
       begin
 
@@ -258,38 +261,38 @@ begin
   Render(JSON, True);
 end;
 
-procedure TTestServerController.EchoHeaders(ctx: TWebContext);
+procedure TTestServerController.EchoHeaders;
 begin
-  ctx.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(ctx.Request.Headers['ACCEPT']);
+  Context.Response.ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(Context.Request.Headers['ACCEPT']);
 end;
 
-procedure TTestServerController.GenerateCookies(ctx: TWebContext);
+procedure TTestServerController.GenerateCookies;
 var
   c: TCookie;
   v: string;
 begin
-  v := ctx.Request.Cookie('usersettings');
+  v := Context.Request.Cookie('usersettings');
 
-  c := ctx.Response.Cookies.Add;
+  c := Context.Response.Cookies.Add;
   c.Name := 'usersettings1';
   c.value := 'usersettings1-value';
   c.Path := '/usersettings1';
   c.Expires := 0;
 
-  c := ctx.Response.Cookies.Add;
+  c := Context.Response.Cookies.Add;
   c.Name := 'usersettings2';
   c.value := 'usersettings2-value';
   c.Path := '/usersettings2';
   c.Expires := 0;
 
-  c := ctx.Response.Cookies.Add;
+  c := Context.Response.Cookies.Add;
   c.Name := 'usersettings3';
   c.value := 'usersettings3-value';
   c.Path := '/usersettings3';
   c.Expires := 0;
 
-  c := ctx.Response.Cookies.Add;
+  c := Context.Response.Cookies.Add;
   c.Name := 'usersettings4';
   c.value := 'usersettings4-value';
   c.Path := '/usersettings4';
@@ -320,10 +323,10 @@ begin
   FFormatSettings.DecimalSeparator := '.';
 end;
 
-procedure TTestServerController.ReqWithParams(ctx: TWebContext);
+procedure TTestServerController.ReqWithParams;
 begin
-  Render(TJSONObject.Create.AddPair('par1', ctx.Request.Params['par1']).AddPair('par2', ctx.Request.Params['par2']).AddPair('par3',
-    ctx.Request.Params['par3']).AddPair('method', ctx.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', Context.Request.Params['par1']).AddPair('par2', Context.Request.Params['par2']).AddPair('par3',
+    Context.Request.Params['par3']).AddPair('method', Context.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet;
@@ -350,7 +353,7 @@ begin
   Render('Hello World');
 end;
 
-procedure TTestServerController.TestConsumesProducesText(ctx: TWebContext);
+procedure TTestServerController.TestConsumesProducesText;
 begin
   Render('Hello World');
 end;
@@ -360,7 +363,7 @@ begin
   Render(Context.Request.Body);
 end;
 
-procedure TTestServerController.TestCharset(ctx: TWebContext);
+procedure TTestServerController.TestCharset;
 var
   Obj: TJSONObject;
 begin
@@ -372,12 +375,12 @@ begin
   Render(Obj);
 end;
 
-procedure TTestServerController.TestGetPersonByID(ctx: TWebContext);
+procedure TTestServerController.TestGetPersonByID;
 var
   PersonList: TObjectList<TPerson>;
   ID: Integer;
 begin
-  ID := ctx.Request.Params['id'].ToInteger;
+  ID := Context.Request.Params['id'].ToInteger;
   PersonList := TPerson.GetList;
   try
     Render(PersonList[ID - 1], false);
@@ -386,13 +389,13 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestGetPersonByIDAsFields(ctx: TWebContext);
+procedure TTestServerController.TestGetPersonByIDAsFields;
 var
   PersonList: TObjectList<TPerson>;
   ID: Integer;
 begin
   raise Exception.Create('Not implemented');
-  ID := ctx.Request.Params['id'].ToInteger;
+  ID := Context.Request.Params['id'].ToInteger;
   PersonList := TPerson.GetList;
   try
     // Render(PersonList[ID - 1], false, TDMVCSerializationType.Fields);
@@ -401,16 +404,16 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestGetPersons(ctx: TWebContext);
+procedure TTestServerController.TestGetPersons;
 var
   Person: TPerson;
 begin
-  case ctx.Request.HTTPMethod of
+  case Context.Request.HTTPMethod of
     httpGET:
       Render<TPerson>(TPerson.GetList, True);
     httpPOST:
       begin
-        Person := ctx.Request.BodyAs<TPerson>();
+        Person := Context.Request.BodyAs<TPerson>();
         Render(Person);
       end;
     httpPUT:
@@ -419,12 +422,19 @@ begin
 
 end;
 
-procedure TTestServerController.TestGetWrappedPersons(ctx: TWebContext);
+procedure TTestServerController.TestGetWrappedPeople;
 var
   LWrappedList: IWrappedList;
   lObj: TObject;
 begin
-  lObj := TPerson.GetList;
+  if not Context.Request.QueryStringParamExists('count') then
+  begin
+    lObj := TPerson.GetList;
+  end
+  else
+  begin
+    lObj := TPerson.GetList(Context.Request.ParamsAsInt64['count']);
+  end;
   try
     LWrappedList := WrapAsList(lObj);
     Render(LWrappedList);
@@ -433,7 +443,7 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestHelloWorld(ctx: TWebContext);
+procedure TTestServerController.TestHelloWorld;
 begin
   ContentType := 'text/plain';
   Render('hello world');
@@ -455,17 +465,17 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestMultiplePaths(ctx: TWebContext);
+procedure TTestServerController.TestMultiplePaths;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(ctx.Request.Params['id']);
+  Render(Context.Request.Params['id']);
 end;
 
-procedure TTestServerController.TestPOSTObject(ctx: TWebContext);
+procedure TTestServerController.TestPOSTObject;
 var
   Person: TPerson;
 begin
-  Person := ctx.Request.BodyAs<TPerson>();
+  Person := Context.Request.BodyAs<TPerson>();
   Render(Person);
 end;
 
@@ -487,6 +497,19 @@ var
 begin
   LStream := TMemoryStream.Create;
   Render(LStream, True);
+end;
+
+procedure TTestServerController.TestStringDictionary;
+var
+  lDict: TMVCStringDictionary;
+begin
+  lDict := Context.Request.BodyAs<TMVCStringDictionary>;
+  try
+    lDict['fromserver'] := 'changed';
+    Render(lDict, false);
+  finally
+    lDict.Free;
+  end;
 end;
 
 procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;
@@ -566,16 +589,16 @@ end;
 
 { TTestPrivateServerController }
 
-procedure TTestPrivateServerController.OnlyRole1(ctx: TWebContext);
+procedure TTestPrivateServerController.OnlyRole1;
 begin
-  Render(ctx.LoggedUser.UserName);
+  Render(Context.LoggedUser.UserName);
 end;
 
-procedure TTestPrivateServerController.OnlyRole1Session(ctx: TWebContext);
+procedure TTestPrivateServerController.OnlyRole1Session;
 begin
-  if ctx.Request.QueryStringParamExists('value') then
+  if Context.Request.QueryStringParamExists('value') then
   begin
-    Session['value'] := ctx.Request.Params['value'];
+    Session['value'] := Context.Request.Params['value'];
   end
   else
   begin
@@ -583,9 +606,9 @@ begin
   end;
 end;
 
-procedure TTestPrivateServerController.OnlyRole2(ctx: TWebContext);
+procedure TTestPrivateServerController.OnlyRole2;
 begin
-  Render(ctx.LoggedUser.UserName);
+  Render(Context.LoggedUser.UserName);
 end;
 
 { TTestFaultController }
@@ -610,7 +633,7 @@ end;
 
 procedure TTestFault2Controller.NeverExecuted;
 begin
-  //do nothing
+  // do nothing
 end;
 
 end.

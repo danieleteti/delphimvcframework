@@ -10,7 +10,7 @@ uses
   TestInsight.DUnitX,
   {$ENDIF }
   DUnitX.Loggers.Console,
-  DUnitX.Loggers.GUIX,
+//  DUnitX.Loggers.GUIX,
   DUnitX.Loggers.Xml.NUnit,
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',
@@ -29,7 +29,9 @@ uses
   MVCFramework.Serializer.Commons in '..\..\..\sources\MVCFramework.Serializer.Commons.pas',
   MVCFramework.Patches in '..\..\..\sources\MVCFramework.Patches.pas',
   JSONRPCTestsU in 'JSONRPCTestsU.pas',
-  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas';
+  MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
+  MVCFramework.Serializer.JsonDataObjects in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas';
 
 {$R *.RES}
 

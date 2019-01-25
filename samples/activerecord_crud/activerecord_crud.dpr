@@ -18,7 +18,11 @@ uses
   FDConnectionConfigU in 'FDConnectionConfigU.pas',
   MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.RQL.AST2MySQL in '..\..\sources\MVCFramework.RQL.AST2MySQL.pas';
+  MVCFramework.RQL.AST2MySQL in '..\..\sources\MVCFramework.RQL.AST2MySQL.pas',
+  MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
+  EntitiesProcessors in 'EntitiesProcessors.pas',
+  MVCFramework.RQL.AST2InterbaseSQL in '..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
+  MVCFramework.RQL.AST2PostgreSQL in '..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas';
 
 {$R *.res}
 
@@ -29,6 +33,7 @@ var
   lCustomHandler: TMVCCustomREPLCommandsHandler;
   lCmd: string;
 begin
+  ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   if ParamCount >= 1 then
     lCmd := ParamStr(1)
@@ -38,23 +43,23 @@ begin
   lCustomHandler := function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
     begin
       Handled := False;
-      Result := THandleCommandResult.Unknown;
-
-      // Write here your custom command for the REPL using the following form...
-      // ***
-      // Handled := False;
-      // if (Value = 'apiversion') then
-      // begin
-      // REPLEmit('Print my API version number');
-      // Result := THandleCommandResult.Continue;
-      // Handled := True;
-      // end
-      // else if (Value = 'datetime') then
-      // begin
-      // REPLEmit(DateTimeToStr(Now));
-      // Result := THandleCommandResult.Continue;
-      // Handled := True;
-      // end;
+      Result := THandleCommandResult.Continue;
+      if (Value = '/firebird') then
+      begin
+        REPLEmit('Using FirebirdSQL');
+        Result := THandleCommandResult.Continue;
+        ConnectionDefinitionName := CON_DEF_NAME_FIREBIRD;
+        Handled := True;
+        Server.Active := True;
+      end
+      else if (Value = '/mysql') then
+      begin
+        REPLEmit('Using MySQL');
+        Result := THandleCommandResult.Continue;
+        ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
+        Handled := True;
+        Server.Active := True;
+      end;
     end;
 
   lServer := TIdHTTPWebBrokerBridge.Create(nil);
@@ -107,6 +112,36 @@ begin
   try
     CreateFirebirdPrivateConnDef(True);
     CreateMySQLPrivateConnDef(True);
+
+    // if ParamCount = 0 then
+    // begin
+    // ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
+    // end
+    // else if ParamCount = 1 then
+    // begin
+    // if FindCmdLineSwitch('firebird', ['/', '-'], True) then
+    // begin
+    // ConnectionDefinitionName := CON_DEF_NAME_FIREBIRD;
+    // end
+    // else if FindCmdLineSwitch('mysql', ['/', '-'], True) then
+    // begin
+    // ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
+    // end
+    // else
+    // raise Exception.Create('Unknown option in command line');
+    // end
+    // else
+    // begin
+    // raise Exception.Create('Unknown options in command line');
+    // end;
+
+
+    // To use MySQL decomment the following line
+    // ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
+
+    // To use FirebirdSQL decomment the following line
+    // ConnectionDefinitionName := CON_DEF_NAME_FIREBIRD;
+
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -39,13 +39,14 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
   public
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree; out aSQL: string); override;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  MVCFramework.RQL.AST2FirebirdSQL;
 
 { TRQLMySQLCompiler }
 
@@ -112,12 +113,16 @@ begin
       begin
         Result := Format('(%s != %s)', [lDBFieldName, lValue]);
       end;
+    tkContains:
+      begin
+        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+      end;
   end;
 end;
 
 function TRQLMySQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  Result := Format(' LIMIT %d, %d', [aRQLLimit.Start, aRQLLimit.Count]);
+  Result := Format(' /*limit*/ LIMIT %d, %d', [aRQLLimit.Start, aRQLLimit.Count]);
 end;
 
 function TRQLMySQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
@@ -157,7 +162,7 @@ function TRQLMySQLCompiler.RQLSortToSQL(const aRQLSort: TRQLSort): string;
 var
   I: Integer;
 begin
-  Result := ' ORDER BY';
+  Result := ' /*sort*/ ORDER BY';
   for I := 0 to aRQLSort.Fields.Count - 1 do
   begin
     if I > 0 then
@@ -175,7 +180,7 @@ begin
   Result := ' where ';
 end;
 
-procedure TRQLMySQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree;
+procedure TRQLMySQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
   out aSQL: string);
 var
   lBuff: TStringBuilder;
@@ -203,10 +208,10 @@ end;
 
 initialization
 
-TRQLCompilerRegistry.Instance.RegisterCompiler(cbMySQL, TRQLMySQLCompiler);
+TRQLCompilerRegistry.Instance.RegisterCompiler('mysql', TRQLMySQLCompiler);
 
 finalization
 
-TRQLCompilerRegistry.Instance.UnRegisterCompiler(cbMySQL);
+TRQLCompilerRegistry.Instance.UnRegisterCompiler('mysql');
 
 end.

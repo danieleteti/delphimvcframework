@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -57,14 +57,14 @@ type
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>;
+    procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false): TObjectList<T>;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: boolean = true): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
   end;
 
@@ -167,16 +167,16 @@ begin
     Result := nil;
 end;
 
-function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean): TObjectList<T>;
+function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean; OwnsObjects: boolean): TObjectList<T>;
 var
-  Objs: TObjectList<T>;
+  lObjs: TObjectList<T>;
 begin
-  Objs := TObjectList<T>.Create(True);
+  lObjs := TObjectList<T>.Create(OwnsObjects);
   try
-    TDataSetUtils.DataSetToObjectList<T>(Self, Objs, CloseAfterScroll);
-    Result := Objs;
+    TDataSetUtils.DataSetToObjectList<T>(Self, lObjs, CloseAfterScroll);
+    Result := lObjs;
   except
-    FreeAndNil(Objs);
+    FreeAndNil(lObjs);
     raise;
   end;
 end;
@@ -189,19 +189,6 @@ begin
   try
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
     lSerializer.DeserializeDataSet(AJSONArray, Self, nil, ncAsIs);
-    // Mapper.JSONArrayToDataSet(AJSONArray, Self, TArray<string>.Create(), false,
-    // AFieldNamePolicy);
-  finally
-    Self.EnableControls;
-  end;
-end;
-
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AIgnoredFields: TArray<string>;
-  AFieldNamePolicy: TFieldNamePolicy);
-begin
-  Self.DisableControls;
-  try
-    raise Exception.Create('Not Implemented');
   finally
     Self.EnableControls;
   end;
@@ -211,6 +198,27 @@ procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AIgno
   AFieldNamePolicy: TFieldNamePolicy);
 begin
   AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
+end;
+
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy);
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+  lBookmark: TArray<Byte>;
+begin
+  lBookmark := Self.Bookmark;
+  Self.DisableControls;
+  try
+    lSerializer := TMVCJsonDataObjectsSerializer.Create;
+    try
+      lSerializer.JsonArrayToDataSet(AJSONArray, Self, nil, ncAsIs);
+    finally
+      lSerializer.Free;
+    end;
+    if Self.BookmarkValid(lBookmark) then
+      Self.GotoBookmark(lBookmark);
+  finally
+    Self.EnableControls;
+  end;
 end;
 
 procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
@@ -243,17 +251,6 @@ var
 begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
   lSerializer.DeserializeDataSetRecord(AJSONObjectString, Self, nil, ncAsIs);
-
-  // JV := TJSONObject.ParseJSONValue(AJSONObjectString);
-  // try
-  // if JV is TJSONObject then
-  // LoadFromJSONObject(TJSONObject(JV), AIgnoredFields)
-  // else
-  // raise EMapperException.Create
-  // ('Extected JSONObject in LoadFromJSONObjectString');
-  // finally
-  // JV.Free;
-  // end;
 end;
 
 procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy);

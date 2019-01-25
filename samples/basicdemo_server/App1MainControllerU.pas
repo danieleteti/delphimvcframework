@@ -36,7 +36,7 @@ implementation
 uses
   System.SysUtils,
   MVCFramework.SystemJSONUtils,
-  MVCFramework.TypesAliases;
+  System.JSON;
 
 { TApp1MainController }
 

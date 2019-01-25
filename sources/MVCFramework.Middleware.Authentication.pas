@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -32,10 +32,10 @@ uses
   System.SysUtils,
   System.StrUtils,
   System.Generics.Collections,
+  System.JSON,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Serializer.Commons,
-  MVCFramework.TypesAliases;
+  MVCFramework.Serializer.Commons;
 
 type
 
@@ -176,7 +176,7 @@ var
   SessionData: TSessionData;
   SessionPair: TPair<string, string>;
 begin
-  FAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, AuthRequired);
+  FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
     AHandled := False;
@@ -188,7 +188,7 @@ begin
   if not IsValid then
   begin
     AuthHeader := AContext.Request.Headers['Authorization'];
-    AuthHeader := TMVCSerializerHelpful.DecodeString(AuthHeader.Remove(0, 'Basic'.Length).Trim);
+    AuthHeader := TMVCSerializerHelper.DecodeString(AuthHeader.Remove(0, 'Basic'.Length).Trim);
     AuthPieces := AuthHeader.Split([':']);
     if AuthHeader.IsEmpty or (Length(AuthPieces) <> 2) then
     begin
@@ -200,7 +200,7 @@ begin
     try
       SessionData := TSessionData.Create;
       try
-        FAuthenticationHandler.OnAuthentication(AuthPieces[0], AuthPieces[1], RolesList, IsValid, SessionData);
+        FAuthenticationHandler.OnAuthentication(AContext, AuthPieces[0], AuthPieces[1], RolesList, IsValid, SessionData);
         if IsValid then
         begin
           AContext.LoggedUser.Roles.AddRange(RolesList);
@@ -221,7 +221,7 @@ begin
 
   IsAuthorized := False;
   if IsValid then
-    FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
+    FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
 
   if IsAuthorized then
     AHandled := False
@@ -303,7 +303,7 @@ begin
       SessionData := TSessionData.Create;
       try
         IsValid := False;
-        FAuthenticationHandler.OnAuthentication(UserName, Password, RolesList, IsValid, SessionData);
+        FAuthenticationHandler.OnAuthentication(AContext, UserName, Password, RolesList, IsValid, SessionData);
         if not IsValid then
         begin
           SendResponse(AContext, AHandled);
@@ -360,7 +360,7 @@ var
   IsAuthorized: Boolean;
   AuthRequired: Boolean;
 begin
-  FAuthenticationHandler.OnRequest(AControllerQualifiedClassName, AActionName, AuthRequired);
+  FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
     AHandled := False;
@@ -377,7 +377,7 @@ begin
   end;
 
   IsAuthorized := False;
-  FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
+  FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
   if IsAuthorized then
     AHandled := False
   else

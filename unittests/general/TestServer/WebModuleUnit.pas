@@ -50,7 +50,7 @@ uses
   TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication, System.Generics.Collections,
   MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU,
-  TestServerControllerJSONRPCU;
+  TestServerControllerJSONRPCU, MVCFramework.Middleware.Compression;
 
 procedure Tbas.WebModuleCreate(Sender: TObject);
 begin
@@ -67,15 +67,21 @@ begin
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
     .AddController(TTestJSONRPCController, '/jsonrpc')
-    .AddController(TTestFaultController) //this will raise an exception
+    .PublishObject(
+    function: TObject
+    begin
+      Result := TTestJSONRPCClass.Create
+    end, '/jsonrpcclass')
+    .AddController(TTestFaultController) // this will raise an exception
     .AddController(TTestFault2Controller,
-      function: TMVCController
-      begin
-        Result := TTestFault2Controller.Create; //this will raise an exception
-      end)
+    function: TMVCController
+    begin
+      Result := TTestFault2Controller.Create; // this will raise an exception
+    end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
-    .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'));
+    .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
+    .AddMiddleware(TMVCCompressionMiddleware.Create);
 
   // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
 end;

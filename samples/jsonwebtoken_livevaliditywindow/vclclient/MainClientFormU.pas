@@ -37,7 +37,7 @@ implementation
 uses
   MVCFramework.RESTClient,
   MVCFramework.SystemJSONUtils,
-  MVCFramework.TypesAliases,
+  System.JSON,
   System.NetEncoding;
 
 procedure TMainForm.btnGetClick(Sender: TObject);

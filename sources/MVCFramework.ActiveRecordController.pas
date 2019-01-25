@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -35,7 +35,9 @@ uses
   FireDAC.Stan.Pool,
   FireDAC.Stan.Async,
   FireDAC.Comp.Client,
-  MVCFramework.RQL.Parser;
+  MVCFramework.RQL.Parser,
+  System.Generics.Collections,
+  MVCFramework.Serializer.Commons;
 
 type
 {$SCOPEDENUMS ON}
@@ -45,8 +47,8 @@ type
   TMVCActiveRecordController = class(TMVCController)
   private
     fAuthorization: TMVCActiveRecordAuthFunc;
-    function GetBackEndByConnection(aConnection: TFDConnection): TRQLBackend;
   protected
+    function GetMaxRecordCount: Integer;
     function CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean; virtual;
   public
     constructor Create(const aConnectionFactory: TFunc<TFDConnection>; const aAuthorization: TMVCActiveRecordAuthFunc = nil); reintroduce;
@@ -78,22 +80,27 @@ type
 
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  TMVCActiveRecordListResponse = class
+  private
+    FList: TMVCActiveRecordList;
+    FMetadata: TMVCStringDictionary;
+    FOwns: Boolean;
+  public
+    constructor Create(AList: TMVCActiveRecordList; AOwns: Boolean = True); virtual;
+    destructor Destroy; override;
+    [MVCListOf(TMVCActiveRecord)]
+    property Items: TMVCActiveRecordList read FList;
+    [MVCNameAs('meta')]
+    property Metadata: TMVCStringDictionary read FMetadata;
+  end;
+
 implementation
 
 uses
 
   MVCFramework.Logger,
   JsonDataObjects;
-
-function TMVCActiveRecordController.GetBackEndByConnection(
-  aConnection: TFDConnection): TRQLBackend;
-begin
-  if aConnection.DriverName = 'FB' then
-    Exit(cbFirebird);
-  if aConnection.DriverName = 'MySQL' then
-    Exit(cbMySQL);
-  raise ERQLException.CreateFmt('Unknown driver fro RQL backend "%s"', [aConnection.DriverName]);
-end;
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
@@ -102,16 +109,38 @@ var
   lInstance: TMVCActiveRecord;
   lMapping: TMVCFieldsMapping;
   lConnection: TFDConnection;
-  lRQLBackend: TRQLBackend;
+  lRQLBackend: string;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
+  lResp: TMVCActiveRecordListResponse;
 begin
-  lARClassRef := ActiveRecordMappingRegistry.GetByURLSegment(entityname);
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.GetEntities(Context, self, entityname, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClassRef) then
+  begin
+    raise EMVCException.CreateFmt('Cannot find entity not processor for entity "%s"', [entityname]);
+  end;
   if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
   begin
     Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot read ' + entityname, ''));
     Exit;
   end;
+
   lRQL := Context.Request.QueryStringParam('rql');
   try
+    // if lRQL.IsEmpty then
+    // begin
+    // lRQL := Format('limit(0,%d)', [GetMaxRecordCount]);
+    // end;
     lConnection := ActiveRecordConnectionsRegistry.GetCurrent;
     lRQLBackend := GetBackEndByConnection(lConnection);
     LogD('[RQL PARSE]: ' + lRQL);
@@ -121,7 +150,17 @@ begin
     finally
       lInstance.Free;
     end;
-    Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend), True);
+
+    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, GetMaxRecordCount), True);
+    try
+      lResp.Metadata.AddProperty('count', lResp.Items.Count.ToString);
+      Render(lResp);
+    except
+      lResp.Free;
+      raise;
+    end;
+
+    // Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend), True);
   except
     on E: ERQLCompilerNotFound do
     begin
@@ -152,8 +191,26 @@ end;
 procedure TMVCActiveRecordController.GetEntity(const entityname: string; const id: Integer);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.GetEntity(Context, self, entityname, id, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Retrieve) then
     begin
@@ -174,6 +231,11 @@ begin
   end;
 end;
 
+function TMVCActiveRecordController.GetMaxRecordCount: Integer;
+begin
+  Result := StrToIntDef(Config[TMVCConfigKey.MaxEntitiesRecordCount], 20);
+end;
+
 function TMVCActiveRecordController.CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean;
 begin
   if Assigned(fAuthorization) then
@@ -188,17 +250,46 @@ end;
 
 constructor TMVCActiveRecordController.Create(const aConnectionFactory: TFunc<TFDConnection>;
   const aAuthorization: TMVCActiveRecordAuthFunc = nil);
+var
+  lConn: TFDConnection;
 begin
   inherited Create;
-  ActiveRecordConnectionsRegistry.AddConnection('default', aConnectionFactory());
+  try
+    lConn := aConnectionFactory();
+  except
+    on E: Exception do
+    begin
+      LogE(Format('Connection factory error [ClassName: %s]: "%s"', [E.ClassName, E.Message]));
+      raise;
+    end;
+  end;
+  ActiveRecordConnectionsRegistry.AddConnection('default', lConn);
   fAuthorization := aAuthorization;
 end;
 
 procedure TMVCActiveRecordController.CreateEntity(const entityname: string);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.CreateEntity(Context, self, entityname, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Create) then
     begin
@@ -210,9 +301,14 @@ begin
     lAR.Insert;
     StatusCode := http_status.Created;
     Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
+
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(lAR, False);
+      Render(http_status.Created, entityname.ToLower + ' created', '', lAR);
+    end
+    else
+    begin
+      Render(http_status.Created, entityname.ToLower + ' created');
     end;
   finally
     lAR.Free;
@@ -222,23 +318,31 @@ end;
 procedure TMVCActiveRecordController.UpdateEntity(const entityname: string; const id: Integer);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType), TMVCActiveRecordAction.Update) then
     begin
       Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot update ' + entityname, ''));
       Exit;
     end;
+    lAR.CheckAction(TMVCEntityAction.eaUpdate);
     if not lAR.LoadByPK(id) then
       raise EMVCException.Create('Cannot find entity');
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.SetPK(id);
     lAR.Update;
     Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
+
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
-      Render(lAR, False);
+      Render(http_status.OK, entityname.ToLower + ' updated', '', lAR);
     end
     else
     begin
@@ -252,8 +356,14 @@ end;
 procedure TMVCActiveRecordController.DeleteEntity(const entityname: string; const id: Integer);
 var
   lAR: TMVCActiveRecord;
+  lARClass: TMVCActiveRecordClass;
 begin
-  lAR := ActiveRecordMappingRegistry.GetByURLSegment(entityname).Create;
+  // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
+  if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
+  begin
+    raise EMVCException.Create('Cannot find class for entity');
+  end;
+  lAR := lARClass.Create;
   try
     if not CheckAuthorization(TMVCActiveRecordClass(lAR), TMVCActiveRecordAction.Delete) then
     begin
@@ -262,7 +372,6 @@ begin
     end;
     if not lAR.LoadByPK(id) then
       raise EMVCException.Create('Cannot find entity');
-    Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.SetPK(id);
     lAR.Delete;
     Render(http_status.OK, entityname.ToLower + ' deleted');
@@ -274,6 +383,26 @@ end;
 destructor TMVCActiveRecordController.Destroy;
 begin
   ActiveRecordConnectionsRegistry.RemoveConnection('default');
+  inherited;
+end;
+
+{ TObjectListSetHolder }
+
+constructor TMVCActiveRecordListResponse.Create(AList: TMVCActiveRecordList; AOwns: Boolean = True);
+begin
+  inherited Create;
+  FOwns := AOwns;
+  FList := AList;
+  FMetadata := TMVCStringDictionary.Create;
+end;
+
+destructor TMVCActiveRecordListResponse.Destroy;
+begin
+  if FOwns then
+  begin
+    FList.Free
+  end;
+  FMetadata.Free;
   inherited;
 end;
 

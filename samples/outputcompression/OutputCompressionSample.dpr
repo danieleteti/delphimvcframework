@@ -12,9 +12,10 @@ uses
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   InMemoryDataU in '..\renders\InMemoryDataU.pas',
-  BusinessObjectsU in '..\commons\BusinessObjectsU.pas';
+  BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
+  RandomUtilsU in '..\commons\RandomUtilsU.pas';
 
 {$R *.res}
 

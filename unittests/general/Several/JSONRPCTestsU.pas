@@ -52,38 +52,28 @@ uses MVCFramework.JSONRPC;
 
 procedure TTestJSONRPC.TestNotificationWithNoParameters;
 var
-  lReq: TJSONRPCRequest;
+  lReq: IJSONRPCRequest;
 begin
   lReq := TJSONRPCRequest.Create; // FromString('{"jsonrpc": "2.0", "method": "subtract"}');
-  try
-    lReq.Method := 'subtract';
-    Assert.AreEqual(TJSONRPCRequestType.Notification, lReq.RequestType);
-    Assert.AreEqual(0, lReq.Params.Count);
-    Assert.AreEqual('subtract', lReq.Method);
-  finally
-    lReq.Free;
-  end;
+  lReq.Method := 'subtract';
+  Assert.AreEqual(TJSONRPCRequestType.Notification, lReq.RequestType);
+  Assert.AreEqual(0, lReq.Params.Count);
+  Assert.AreEqual('subtract', lReq.Method);
 end;
 
 procedure TTestJSONRPC.TestRequestWithArrayParameters;
 var
-  lReq: TJSONRPCRequest;
+  lReq: IJSONRPCRequest;
 begin
   lReq := TJSONRPCRequest.Create;
-  // FromString('{"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1}');
-  try
-    lReq.Method := 'subtract';
-    lReq.Params.Add(42);
-    lReq.Params.Add(23);
-    lReq.RequestID := 1;
-    Assert.AreEqual(1, lReq.RequestID.AsInteger);
-    Assert.AreEqual(42, lReq.Params[0].AsInteger);
-    Assert.AreEqual(23, lReq.Params[1].AsInteger);
-    Assert.AreEqual('subtract', lReq.Method);
-    // Assert.AreNotEqual(tjsonrpc lReq.IsNotification);
-  finally
-    lReq.Free;
-  end;
+  lReq.Method := 'subtract';
+  lReq.Params.Add(42);
+  lReq.Params.Add(23);
+  lReq.RequestID := 1;
+  Assert.AreEqual(1, lReq.RequestID.AsInteger);
+  Assert.AreEqual(42, lReq.Params[0].AsInteger);
+  Assert.AreEqual(23, lReq.Params[1].AsInteger);
+  Assert.AreEqual('subtract', lReq.Method);
 end;
 
 procedure TTestJSONRPC.TestRequestWithMalformedJSON;
@@ -91,31 +81,23 @@ begin
   Assert.WillRaise(
     procedure
     var
-      lReq: TJSONRPCRequest;
+      lReq: IJSONRPCRequest;
     begin
       lReq := TJSONRPCRequest.Create;
-      try
-        lReq.AsJSONString := '{"jsonrpc": "2.0", this is wrong}';
-      finally
-        lReq.Free;
-      end;
+      lReq.AsJSONString := '{"jsonrpc": "2.0", this is wrong}';
     end, EMVCJSONRPCParseError);
 end;
 
 procedure TTestJSONRPC.TestRequestWithNoParameters;
 var
-  lReq: TJSONRPCRequest;
+  lReq: IJSONRPCRequest;
 begin
   lReq := TJSONRPCRequest.Create;
-  try
-    lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "subtract", "id": 1}';
-    Assert.AreEqual(1, lReq.RequestID.AsInteger);
-    Assert.AreEqual(0, lReq.Params.Count);
-    Assert.AreEqual('subtract', lReq.Method);
-    Assert.AreEqual(TJSONRPCRequestType.Request, lReq.RequestType);
-  finally
-    lReq.Free;
-  end;
+  lReq.AsJSONString := '{"jsonrpc": "2.0", "method": "subtract", "id": 1}';
+  Assert.AreEqual(1, lReq.RequestID.AsInteger);
+  Assert.AreEqual(0, lReq.Params.Count);
+  Assert.AreEqual('subtract', lReq.Method);
+  Assert.AreEqual(TJSONRPCRequestType.Request, lReq.RequestType);
 end;
 
 initialization

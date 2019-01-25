@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -113,6 +113,7 @@ type
     function IsWrappedList: Boolean; overload;
 
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean; overload; static;
+    class function CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: IMVCList): Boolean; overload; static;
     class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean; overload; static;
     class function Wrap(const AObjectAsDuck: TObject; const AOwnsObject: Boolean = False): IMVCList; static;
   end;
@@ -189,10 +190,20 @@ end;
 
 class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean;
 var
+  lList: IMVCList;
+begin
+  Result := CanBeWrappedAsList(AObjectAsDuck, lList);
+end;
+
+class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject;
+  out AMVCList: IMVCList): Boolean;
+var
   List: IMVCList;
 begin
   List := TDuckTypedList.Create(AObjectAsDuck);
   Result := List.IsWrappedList;
+  if Result then
+    AMVCList := List;
 end;
 
 procedure TDuckTypedList.Clear;

@@ -13,12 +13,12 @@ implementation
 
 uses
   System.Classes,
+  System.IOUtils,
   FireDAC.Comp.Client;
 
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
-  LConnName: string;
 begin
   LParams := TStringList.Create;
   try
@@ -31,6 +31,7 @@ begin
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
     end
     else
     begin
@@ -45,11 +46,10 @@ end;
 procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
-  LConnName: string;
 begin
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=C:\DEV\dmvcframework\samples\data\ACTIVERECORDDB.FDB');
+    LParams.Add('Database=' + TPath.GetFullPath(TPath.Combine('..\..\..', 'data\ACTIVERECORDDB.FDB')));
     LParams.Add('Protocol=TCPIP');
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=sysdba');
@@ -57,6 +57,7 @@ begin
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
     end
     else
     begin

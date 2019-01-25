@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{EA879EE4-1245-4456-AED9-57FDF63577E5}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="dmvcframeworkRT.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="dmvcframeworkDT.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="loggerproRT">
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj"/>
+    </Target>
+    <Target Name="loggerproRT:Clean">
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="loggerproRT:Make">
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="dmvcframeworkRT">
+        <MSBuild Projects="dmvcframeworkRT.dproj"/>
+    </Target>
+    <Target Name="dmvcframeworkRT:Clean">
+        <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="dmvcframeworkRT:Make">
+        <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="dmvcframeworkDT">
+        <MSBuild Projects="dmvcframeworkDT.dproj"/>
+    </Target>
+    <Target Name="dmvcframeworkDT:Clean">
+        <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="dmvcframeworkDT:Make">
+        <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="loggerproRT;dmvcframeworkRT;dmvcframeworkDT"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="loggerproRT:Clean;dmvcframeworkRT:Clean;dmvcframeworkDT:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="loggerproRT:Make;dmvcframeworkRT:Make;dmvcframeworkDT:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

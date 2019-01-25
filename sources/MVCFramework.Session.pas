@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -51,10 +51,9 @@ type
   public
     constructor Create(const ASessionId: string; const ATimeout: UInt64); virtual;
     destructor Destroy; override;
-
-    procedure MarkAsUsed;
+    procedure MarkAsUsed; virtual;
     function ToString: string; override;
-    function IsExpired: Boolean;
+    function IsExpired: Boolean; virtual;
 
     property Items[const AKey: string]: string read GetItems write SetItems; default;
     property SessionId: string read FSessionId;
@@ -74,25 +73,24 @@ type
     constructor Create(const ASessionId: string; const ATimeout: UInt64); override;
     destructor Destroy; override;
 
-    function ToString: String; override;
+    function ToString: string; override;
 
     property Data: TDictionary<string, string> read FData;
   end;
 
   TMVCSessionFactory = class sealed
   private
-    FRegisteredSessionTypes: TDictionary<String, TWebSessionClass>;
-  private
-    class var Instance: TMVCSessionFactory;
-  public
+    FRegisteredSessionTypes: TDictionary<string, TWebSessionClass>;
+  protected
+    class var cInstance: TMVCSessionFactory;
     constructor Create;
+  public
     destructor Destroy; override;
-
-    procedure RegisterSessionType(const AName: String; AWebSessionClass: TWebSessionClass);
+    procedure RegisterSessionType(const AName: string; AWebSessionClass: TWebSessionClass);
     function CreateNewByType(const AName, ASessionId: string; const ATimeout: UInt64): TWebSession;
 
     class function GetInstance: TMVCSessionFactory; static;
-    class procedure DestroyInstance; static;
+    // class procedure DestroyInstance; static;
   end;
 
 function GlobalSessionList: TObjectDictionary<string, TWebSession>;
@@ -202,7 +200,7 @@ begin
   end;
 end;
 
-function TWebSessionMemory.ToString: String;
+function TWebSessionMemory.ToString: string;
 var
   LKey: string;
 begin
@@ -234,20 +232,20 @@ begin
   inherited Destroy;
 end;
 
-class procedure TMVCSessionFactory.DestroyInstance;
-begin
-  if Assigned(Instance) then
-    Instance.Free;
-end;
+// class procedure TMVCSessionFactory.DestroyInstance;
+// begin
+// if Assigned(cInstance) then
+// cInstance.Free;
+// end;
 
 class function TMVCSessionFactory.GetInstance: TMVCSessionFactory;
 begin
-  if not Assigned(Instance) then
-    Instance := TMVCSessionFactory.Create;
-  Result := Instance;
+  if not Assigned(cInstance) then
+    cInstance := TMVCSessionFactory.Create;
+  Result := cInstance;
 end;
 
-procedure TMVCSessionFactory.RegisterSessionType(const AName: String; AWebSessionClass: TWebSessionClass);
+procedure TMVCSessionFactory.RegisterSessionType(const AName: string; AWebSessionClass: TWebSessionClass);
 begin
   FRegisteredSessionTypes.AddOrSetValue(AName, AWebSessionClass);
 end;
@@ -259,7 +257,7 @@ GlCriticalSection := TCriticalSection.Create;
 
 finalization
 
-TMVCSessionFactory.DestroyInstance;
+FreeAndNil(TMVCSessionFactory.cInstance);
 FreeAndNil(GlCriticalSection);
 
 if Assigned(GlSessionList) then

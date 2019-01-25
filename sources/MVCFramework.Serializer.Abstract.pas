@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -54,8 +54,8 @@ type
     function GetNameAs(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: string): string;
     function IsIgnoredAttribute(const AAttributes: TMVCIgnoredList; const AName: string): Boolean;
     function IsIgnoredComponent(const AOwner: TComponent; const AComponentName: string): Boolean;
-    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
   public
+    procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
     constructor Create;
     destructor Destroy; override;
   end;
@@ -64,7 +64,9 @@ implementation
 
 { TMVCAbstractSerializer }
 
-uses MVCFramework.Cache;
+uses
+  MVCFramework.Cache,
+  MVCFramework.Logger;
 
 constructor TMVCAbstractSerializer.Create;
 begin
@@ -92,7 +94,8 @@ begin
       Exit(MVCNameCaseAttribute(Att).KeyCase);
 end;
 
-function TMVCAbstractSerializer.GetDataType(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: TMVCDataType): TMVCDataType;
+function TMVCAbstractSerializer.GetDataType(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: TMVCDataType)
+  : TMVCDataType;
 var
   ObjType: TRttiType;
   ObjFld: TRttiField;
@@ -228,6 +231,7 @@ end;
 
 procedure TMVCAbstractSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
 begin
+  LogD('Registering TypeSerializer for: ' + string(ATypeInfo.Name));
   FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
 end;
 

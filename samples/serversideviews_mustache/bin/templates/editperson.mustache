@@ -1,0 +1,78 @@
+﻿<script>
+  function doDelete(id) {
+    if (confirm('Are you sure?')) {
+      let form = document.getElementById("myForm");
+      form.action = "/deleteperson";
+      form.submit();
+    }
+  }
+</script>
+<div class="row_fluid">
+  <div class="col-sm-12">
+    <form class="form form-horizontal" id="myForm" name="myForm" method="POST" action="/people">
+      <input type="hidden" value="{{person.guid}}" name="guid">
+      <div class="row">
+        <div class="col-sm-offset-2 col-sm-8">
+          {{^person}}
+          <h3>New Person</h3>
+          {{/person}} {{#person}}
+          <h3>Edit Person</h3>
+          {{/person}}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="first_name" class="col-sm-2 control-label">First name</label>
+          <div class="col-sm-4">
+            <input type="text" value="{{person.first_name}}" class="form-control" id="first_name" placeholder="First name" name="first_name">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="last_name" class="col-sm-2 control-label">Last name</label>
+          <div class="col-sm-4">
+            <input type="text" value="{{person.last_name}}" class="form-control" id="last_name" placeholder="Last name" name="last_name">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="age" class="col-sm-2 control-label">Age</label>
+          <div class="col-sm-4">
+            <input type="number" value="{{person.age}}" class="form-control" id="age" placeholder="Age" name="age">
+          </div>
+        </div>
+      </div>
+
+
+			<div class="row">				
+				<div class="form-group">			
+					<label for="items" class="col-sm-2 control-label">Devices</label>					
+					<div class="col-sm-4">
+						<select name="items" multiple class="form-control">
+						{{#deviceslist}}
+							<option value="{{devicename}}" {{#selected}}selected{{/selected}}>{{devicename}}</option>
+						{{/deviceslist}}							
+						</select>			
+						<span style="font-size: 80%">(Ctrl+Click to select multiple devices)</span>						
+					</div>		
+				</div>		
+			</div>
+						
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-2">
+          <button type="button" class="btn btn-default btn-block" onclick="history.back()">Return to the list</button>
+        </div>
+        <div class="col-sm-2">
+          {{#person}}
+          <button type="button" onclick="doDelete()" class="btn btn-primary btn-block">Delete</button> {{/person}} {{^person}}
+          <button type="submit" class="btn btn-primary btn-block">Save</button> {{/person}}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

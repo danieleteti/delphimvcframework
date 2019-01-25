@@ -1,6 +1,11 @@
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
-# DelphiMVCFramework 3.0.0-hydrogen is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen)!
+# DelphiMVCFramework 3.1.0-lithium is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.1.0-lithium)!
+
+DelphiMVCFramework is the most popular Delphi project on github!
+
+Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
+
 
 ## DelphiMVCFramework Main Features
 
@@ -8,10 +13,10 @@
   * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
-  * JSON-RPC 2.0 Support
+  * JSON-RPC 2.0 Support with automatic objects remotization
   * Stable and solid, used by small/mid/big projects since 2010
-  * Fast, fast, fast!
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 1400 active members
+  * Very fast! (3.x is 60% faster than the 2.x)
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2100 active members
   * Can be used in load balanced environment
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
@@ -40,26 +45,80 @@
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
-  * Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphimvcframework/content/) (work in progress)
 
 
+## What users says about DMVCFramework
+
+>"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
+
+>"Wow! To do that in J2EE it takes 2 days" -- a training participant after a 5 minutes demo.
+
+>"I'm starting with the DMVCFramework and I'm finding it fantastic, congratulations for the project!" -- Rafael
+
+>"I'm looking at DMVCFramework project in it works great - for my use case scenarios is much better than *'Similar commercial product'*."  -- Luka
+
+>"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
+
+>"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
+Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
+
+  
 ## What's New
 
-### 3.1.0 lithium (currently in beta)
-- ActiveRecord support (check sample `activerecord_crud`)
+### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
+- New! Added SQLGenerator for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
+- Better packages organization (check `packages` folder)
+- New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
+- Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
+- New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
+- New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
+- New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
+
+|Delphi Version|Project Group|
+|---|---|
+|Delphi 10.3 Rio| `packages\d103\dmvcframework_group.groupproj`|
+|Delphi 10.2 Tokyo| `packages\d102\dmvcframework_group.groupproj`|
+|Delphi 10.1 Berlin| `packages\d101\dmvcframework_group.groupproj`|
+
+For older Delphi versions still there aren't complete packages available, but DMVCFramework is usable from XE7 without any issues. If you use a version previous of `Delphi 10.1 Berlin` and you want to contribute, please provide your group project using the distributed packages as example.
+
+
+### DelphiMVCFramework 3.1.0-lithium
+- New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
+- New! Added `TMVCActiveRecordController` (check sample `activerecord_crud`)
+- Automatic permissions handling for `TMVCActiveRecordController` (check sample `activerecord_crud`)
+- EntityProcessor for `TMVCActiveRecordController` (check sample `activerecord_crud`)
 - `Config[TMVCConfigKey.FallbackResource]` is served only if request path is empty or `/`.
-- Now the JSON-RPC executor provides methods to handle HTTP headers for JSON-RPC requests and notifications.
-- FIX for [issue #141](https://github.com/danieleteti/delphimvcframework/issues/141)
+- New! Now the JSON-RPC executor provides methods to handle HTTP headers for JSON-RPC requests and notifications.
 - `TDataSetHolder` is a new render that is able to render a dataset with a set of custom metadata (eg `count`,`page` etc). Check [issue #137](https://github.com/danieleteti/delphimvcframework/issues/137)
 - `404` and `500` status code returns always a `text/plain` content-type
 - Refactored ISAPI sample
 - Speed improvement! Removed enhanced visibility for action methods. Now only public and published methods can be used as actions.
 - `TMVCController.Create` is `virtual`! Now on your base controllers can be even more powerful!
+- New! Added `MAX_REQUEST_SIZE` for limiting the size of the incoming HTTP requests. IDE Expert is updated too!
+- New! Added method `TMVCJsonDataObjectsSerializer.ListToJsonArray`
+- New! `TMVCResponse` for handle generic (non error) response
+- New! `TMVCErrorResponse` for handle generic error response
+- New! Added class `TMVCActiveRecordList` used in the manual `TMVCActiveRecord` programming
+- New! Added `gzip` compression support in addition to `deflate` in `TCompressionMiddleware`
 - FIX for [issue #143](https://github.com/danieleteti/delphimvcframework/issues/143)
+- FIX for [issue #141](https://github.com/danieleteti/delphimvcframework/issues/141)
+- Removed deprecated methods in `IRESTResponse`
+- FIX misspelled header name in `IRESTResponse`
+- New! Added `gzip` and `deflate` support in `TRestClient` when reading responses
+- `TCompressionMiddleware` has been renamed in `TMVCCompressionMiddleware`
+- New! `TMVCCompressionMiddleware` is added by IDE Expert by default
+- Removed the old JSON serializer based on `System.JSON.pas', now the only available JSON serializer is based on [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (Thank you Andreas Hausladen).
+- Changed! Custom Types Serializer *must* be registered by media-type only, without charset definition (e.g. just `application/json` and not `application/json;charset=utf-8`)
+- Changed! `IMVCTypeSerializer` is more powerful and simple to use!
+- Sending wrongly formatted JSON now returns a more correctly `400 Bad Request` and not `500 Internal Server Error` as in the previous versions
+- New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
+- New! `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even datamodules) through a JSON-RPC 2.0 interface!
+- *Breaking Change!* The JSON RPC Client layer is now interface based.
 
   
 ## How to correctly get the source
-It is not needed to download the git reporitory. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen) and you are ok.
+It is not needed to download the git repository. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen) and you are ok.
 
 ## Roadmap
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).

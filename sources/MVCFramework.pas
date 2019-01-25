@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -54,7 +54,7 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Serializer.JSON,
+  // MVCFramework.Serializer.JSON,
 
 {$IFDEF WEBAPACHEHTTP}
   Web.ApacheHTTP, // Apache Support since XE6 http://docwiki.embarcadero.com/Libraries/XE6/de/Web.ApacheHTTP
@@ -383,21 +383,105 @@ type
     property ApplicationSession: TWebApplicationSession read GetApplicationSession write SetApplicationSession;
   end;
 
+  TMVCResponse = class;
   TMVCErrorResponse = class;
 
-  TMVCController = class(TMVCBase)
-  private
+  IMVCRenderer = interface
+    ['{2FF6DAC8-2F19-4C78-B9EC-A86296847D39}']
+    procedure Render(const AContent: string);
+      overload;
+    procedure Render(const AObject: TObject); overload;
+    procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
+    procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
+    procedure Render(const ACollection: IMVCList); overload;
+    procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
+    procedure Render(const ADataSet: TDataSet); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
+      const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
+      const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
+    procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
+    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = ''); overload;
+    procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil; const AOwns: Boolean = True); overload;
+    procedure Render(const AResponse: TMVCResponse; const AOwns: Boolean = True); overload;
+    // SSE Support
+    procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = '';
+      const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
+
+    procedure SendStream(const AStream: TStream; const AOwns: Boolean = True; const ARewind: Boolean = False);
+    procedure SendFile(const AFileName: string);
+    procedure RenderResponseStream;
+    function ResponseStream: TStringBuilder;
+    procedure Redirect(const AUrl: string);
+    procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = '');
+    // Serializer access
+    function Serializer: IMVCSerializer; overload;
+    function Serializer(const AContentType: string): IMVCSerializer; overload;
+  end;
+
+  IMVCAuthenticationHandler = interface
+    ['{19B580EA-8A47-4364-A302-EEF3C6207A9F}']
+    procedure OnRequest(const AContext: TWebContext; const AControllerQualifiedClassName, AActionName: string; var AAuthenticationRequired: Boolean);
+    procedure OnAuthentication(const AContext: TWebContext; const AUserName, APassword: string; AUserRoles: TList<string>; var AIsValid: Boolean;
+      const ASessionData: TDictionary<string, string>);
+    procedure OnAuthorization(const AContext: TWebContext; AUserRoles: TList<string>; const AControllerQualifiedClassName: string; const AActionName: string;
+      var AIsAuthorized: Boolean);
+  end;
+
+  TMVCRenderer = class(TMVCBase)
+  protected
     FContext: TWebContext;
     FContentCharset: string;
     FResponseStream: TStringBuilder;
-    FViewModel: TMVCViewDataObject;
-    FViewDataSets: TMVCViewDataSet;
-    function GetContext: TWebContext;
-    function GetSession: TWebSession;
+  public
     function GetContentType: string;
     function GetStatusCode: Integer;
     procedure SetContentType(const AValue: string);
     procedure SetStatusCode(const AValue: Integer);
+    function GetContext: TWebContext;
+    procedure Redirect(const AUrl: string); virtual;
+    procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
+    function Serializer: IMVCSerializer; overload;
+    function Serializer(const AContentType: string): IMVCSerializer; overload;
+    procedure SendStream(const AStream: TStream; const AOwns: Boolean = True; const ARewind: Boolean = False); virtual;
+    procedure SendFile(const AFileName: string); virtual;
+    procedure RenderResponseStream; virtual;
+    function ResponseStream: TStringBuilder;
+    procedure Render(const AContent: string); overload;
+    procedure Render(const AObject: TObject); overload;
+    procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
+    procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
+    procedure Render<T: class>(const ACollection: TObjectList<T>); overload;
+    procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean); overload;
+    procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
+    procedure Render(const ACollection: IMVCList); overload;
+    procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
+    procedure Render(const ADataSet: TDataSet); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
+      const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
+      const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
+    procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
+    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = '';
+      const ADataObject: TObject = nil); overload;
+    procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil; const AOwns: Boolean = True); overload;
+    procedure Render(const AResponse: TMVCResponse; const AOwns: Boolean = True); overload;
+    // SSE Support
+    procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = '';
+      const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
+  end;
+
+  TMVCController = class(TMVCRenderer)
+  private
+    FViewModel: TMVCViewDataObject;
+    FViewDataSets: TMVCViewDataSet;
+    function GetSession: TWebSession;
     function GetViewData(const aModelName: string): TObject;
     function GetViewDataset(const aDataSetName: string): TDataSet;
     procedure SetViewData(const aModelName: string; const Value: TObject);
@@ -432,44 +516,9 @@ type
     /// </summary>
     procedure LoadViewFragment(const AViewFragment: string);
 
-    function ResponseStream: TStringBuilder;
     function SessionAs<T: TWebSession>: T;
-
-    procedure SendStream(const AStream: TStream; const AOwns: Boolean = True; const ARewind: Boolean = False); virtual;
-    procedure SendFile(const AFileName: string); virtual;
-    procedure RenderResponseStream; virtual;
-
     procedure RaiseSessionExpired; virtual;
-    procedure Redirect(const AUrl: string); virtual;
-    procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
 
-    function Serializer: IMVCSerializer; overload;
-    function Serializer(const AContentType: string): IMVCSerializer; overload;
-
-    procedure Render(const AContent: string); overload;
-    procedure Render(const AObject: TObject); overload;
-    procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
-    procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
-    procedure Render<T: class>(const ACollection: TObjectList<T>); overload;
-    procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean); overload;
-    procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
-    procedure Render(const ACollection: IMVCList); overload;
-    procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-      const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
-      const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
-    procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
-    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = ''); overload;
-    procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil; const AOwns: Boolean = True); overload;
-    procedure Render(const AError: TMVCErrorResponse; const AOwns: Boolean = True); overload;
-    // SSE Support
-    procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = '';
-      const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
     // Properties
     property Context: TWebContext read GetContext write FContext;
     property Session: TWebSession read GetSession;
@@ -477,7 +526,6 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ViewModelList: TMVCViewDataObject read GetViewModel;
     property ViewDataSetList: TMVCViewDataSet read GetViewDataSets;
-
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -493,6 +541,7 @@ type
   TMVCControllerClazz = class of TMVCController;
 
   TMVCControllerCreateAction = reference to function: TMVCController;
+  TMVCObjectCreatorDelegate = reference to function: TObject;
 
   TMVCControllerDelegate = class
   private
@@ -556,6 +605,7 @@ type
     FViewEngineClass: TMVCViewEngineClass;
     FWebModule: TWebModule;
     FConfig: TMVCConfig;
+    FConfigCache_MaxRequestSize: Int64;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -570,6 +620,7 @@ type
     function GetViewEngineClass: TMVCViewEngineClass;
   protected
     procedure ConfigDefaultValues; virtual;
+    procedure SaveCacheConfigValues;
     procedure LoadSystemControllers; virtual;
     procedure FixUpWebModule;
     procedure ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
@@ -600,6 +651,7 @@ type
     function AddController(const AControllerClazz: TMVCControllerClazz; const AURLSegment: string = ''): TMVCEngine; overload;
     function AddController(const AControllerClazz: TMVCControllerClazz; const ACreateAction: TMVCControllerCreateAction;
       const AURLSegment: string = ''): TMVCEngine; overload;
+    function PublishObject(const AObjectCreatorDelegate: TMVCObjectCreatorDelegate; const AURLSegment: string): TMVCEngine;
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
 
     function GetServerSignature(const AContext: TWebContext): string;
@@ -626,25 +678,32 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
-  TMVCErrorResponse = class
+  TMVCResponse = class
   private
     FStatusCode: Integer;
     FReasonString: string;
     FMessage: string;
-    FClassname: string;
-    FItems: TObjectList<TMVCErrorResponseItem>;
+    fDataObject: TObject;
   protected
     { protected declarations }
   public
-    constructor Create; overload;
+    constructor Create; overload; virtual;
     constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
-    destructor Destroy; override;
-
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write FReasonString;
     property message: string read FMessage write FMessage;
-    property Classname: string read FClassname write FClassname;
+    property Data: TObject read fDataObject write fDataObject;
+  end;
 
+  [MVCNameCase(ncLowerCase)]
+  TMVCErrorResponse = class(TMVCResponse)
+  private
+    FClassname: string;
+    FItems: TObjectList<TMVCErrorResponseItem>;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    property Classname: string read FClassname write FClassname;
     [MVCListOf(TMVCErrorResponseItem)]
     property Items: TObjectList<TMVCErrorResponseItem> read FItems;
   end;
@@ -683,7 +742,7 @@ implementation
 uses
   MVCFramework.Router,
   MVCFramework.SysControllers,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.JSONRPC;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -802,9 +861,9 @@ var
   lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if FSerializers.TryGetValue(ContentType, lSerializer) then
+  if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
-    Obj := TMVCSerializerHelpful.CreateObject(TClass(T).QualifiedClassName);
+    Obj := TMVCSerializerHelper.CreateObject(TClass(T).QualifiedClassName);
     try
       lSerializer.DeserializeObject(Body, Obj);
       Result := Obj as T;
@@ -826,7 +885,7 @@ var
   lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if FSerializers.TryGetValue(ContentType, lSerializer) then
+  if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
     List := TObjectList<T>.Create(True);
     try
@@ -846,7 +905,7 @@ var
   lSerializer: IMVCSerializer;
 begin
   if Assigned(AObject) then
-    if FSerializers.TryGetValue(ContentType, lSerializer) then
+    if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
       lSerializer.DeserializeObject(Body, AObject)
     else
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
@@ -857,7 +916,7 @@ var
   lSerializer: IMVCSerializer;
 begin
   if Assigned(AObjectList) then
-    if FSerializers.TryGetValue(ContentType, lSerializer) then
+    if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
       lSerializer.DeserializeCollection(Body, AObjectList, T)
     else
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
@@ -1529,6 +1588,8 @@ begin
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
   Config[TMVCConfigKey.SessionType] := 'memory';
   Config[TMVCConfigKey.IndexDocument] := 'index.html';
+  Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
+  Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
 
   FMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
   FMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
@@ -1568,7 +1629,7 @@ begin
     AConfigAction(FConfig);
     LogExitMethod('Custom configuration method');
   end;
-
+  SaveCacheConfigValues;
   RegisterDefaultsSerializers;
   LoadSystemControllers;
 end;
@@ -1604,6 +1665,12 @@ var
   LActualParams: TArray<TValue>;
 begin
   Result := False;
+
+  ARequest.ReadTotalContent;
+  if ARequest.ContentLength > fConfigCache_MaxRequestSize then
+  begin
+    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB]', [(FConfigCache_MaxRequestSize div 1024)]);
+  end;
 
   LParamsTable := TMVCRequestParamsTable.Create;
   try
@@ -1804,9 +1871,10 @@ var
   StrValue: string;
   FormatSettings: TFormatSettings;
   WasDateTime: Boolean;
+  lQualifiedName: string;
 begin
   if AContext.Request.SegmentParamsCount <> Length(AActionFormalParams) then
-    raise EMVCException.CreateFmt('Paramaters count mismatch (expected %d actual %d) for action "%s"',
+    raise EMVCException.CreateFmt('Parameters count mismatch (expected %d actual %d) for action "%s"',
       [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AActionName]);
 
   SetLength(AActualParams, Length(AActionFormalParams));
@@ -1815,13 +1883,17 @@ begin
     ParamName := AActionFormalParams[I].Name;
 
     if not AContext.Request.SegmentParam(ParamName, StrValue) then
-      raise EMVCException.CreateFmt('Invalid paramater %s for action %s (Hint: Here parameters names are case-sensitive)',
+      raise EMVCException.CreateFmt('Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
         [ParamName, AActionName]);
 
     case AActionFormalParams[I].ParamType.TypeKind of
-      tkInteger, tkInt64:
+      tkInteger:
         begin
           AActualParams[I] := StrToInt(StrValue);
+        end;
+      tkInt64:
+        begin
+          AActualParams[I] := StrToInt64(StrValue);
         end;
       tkUString:
         begin
@@ -1830,7 +1902,8 @@ begin
       tkFloat:
         begin
           WasDateTime := False;
-          if AActionFormalParams[I].ParamType.QualifiedName = 'System.TDate' then
+          lQualifiedName := AActionFormalParams[I].ParamType.QualifiedName;
+          if lQualifiedName = 'System.TDate' then
           begin
             try
               WasDateTime := True;
@@ -1839,7 +1912,7 @@ begin
               raise EMVCException.CreateFmt('Invalid TDate value for param [%s]', [AActionFormalParams[I].Name]);
             end;
           end
-          else if AActionFormalParams[I].ParamType.QualifiedName = 'System.TDateTime' then
+          else if lQualifiedName = 'System.TDateTime' then
           begin
             try
               WasDateTime := True;
@@ -1851,7 +1924,7 @@ begin
               end;
             end;
           end
-          else if AActionFormalParams[I].ParamType.QualifiedName = 'System.TTime' then
+          else if lQualifiedName = 'System.TTime' then
           begin
             try
               WasDateTime := True;
@@ -2014,6 +2087,17 @@ begin
   end;
 end;
 
+function TMVCEngine.PublishObject(
+  const AObjectCreatorDelegate: TMVCObjectCreatorDelegate;
+  const AURLSegment: string): TMVCEngine;
+begin
+  Result := AddController(TMVCJSONRPCPublisher,
+    function: TMVCController
+    begin
+      Result := TMVCJSONRPCPublisher.Create(AObjectCreatorDelegate(), True);
+    end, AURLSegment);
+end;
+
 procedure TMVCEngine.RegisterDefaultsSerializers;
 var
   lDefaultSerializerContentType: string;
@@ -2052,6 +2136,11 @@ begin
   Result := SendSessionCookie(AContext, SId);
 end;
 
+procedure TMVCEngine.SaveCacheConfigValues;
+begin
+  FConfigCache_MaxRequestSize := StrToInt64Def(Config[TMVCConfigKey.MaxRequestSize], TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
+end;
+
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
 var
   Cookie: TCookie;
@@ -2075,16 +2164,16 @@ end;
 
 function TMVCEngine.SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
 var
-  LContentType: string;
+  lContentType: string;
 begin
   Result := False;
   if TFile.Exists(AFileName) then
   begin
-    if FMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), LContentType) then
-      LContentType := BuildContentType(LContentType, FConfig[TMVCConfigKey.DefaultContentCharset])
+    if FMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
+      lContentType := BuildContentType(lContentType, FConfig[TMVCConfigKey.DefaultContentCharset])
     else
-      LContentType := BuildContentType(TMVCMediaType.APPLICATION_OCTETSTREAM, '');
-    TMVCStaticContents.SendFile(AFileName, LContentType, AContext);
+      lContentType := BuildContentType(TMVCMediaType.APPLICATION_OCTETSTREAM, '');
+    TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
   end;
 end;
@@ -2240,12 +2329,12 @@ begin
       'Hint: Messaging extensions require a valid clientid. Did you call /messages/clients/YOUR_CLIENT_ID ?');
 end;
 
-function TMVCController.GetContentType: string;
+function TMVCRenderer.GetContentType: string;
 begin
   Result := GetContext.Response.ContentType;
 end;
 
-function TMVCController.GetContext: TWebContext;
+function TMVCRenderer.GetContext: TWebContext;
 begin
   if not Assigned(FContext) then
     raise EMVCException.CreateFmt('Context already set on %s.', [Classname]);
@@ -2262,7 +2351,7 @@ begin
   Result := GetContext.Session;
 end;
 
-function TMVCController.GetStatusCode: Integer;
+function TMVCRenderer.GetStatusCode: Integer;
 begin
   Result := GetContext.Response.StatusCode;
 end;
@@ -2346,82 +2435,77 @@ begin
   GetViewModel.Add(aModelName, AModel);
 end;
 
-// procedure TMVCController.PushToView(const AModelName: string; const AModel: string);
-// begin
-// GetViewModel.Add(AModelName, AModel);
-// end;
-
 procedure TMVCController.RaiseSessionExpired;
 begin
   raise EMVCSessionExpiredException.Create('Session expired.');
 end;
 
-procedure TMVCController.Redirect(const AUrl: string);
+procedure TMVCRenderer.Redirect(const AUrl: string);
 begin
   GetContext.Response.RawWebResponse.SendRedirect(AUrl);
 end;
 
-procedure TMVCController.Render(const AObject: TObject; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean);
 begin
   Render(AObject, AOwns, stDefault);
 end;
 
-procedure TMVCController.Render(const AContent: string);
+procedure TMVCRenderer.Render(const AContent: string);
 var
-  LContentType: string;
-  LOutEncoding: TEncoding;
+  lContentType: string;
+  lOutEncoding: TEncoding;
   lCharset: string;
 begin
-  SplitContentMediaTypeAndCharset(ContentType, LContentType, lCharset);
+  SplitContentMediaTypeAndCharset(GetContentType, lContentType, lCharset);
   if lCharset.IsEmpty then
     lCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
-  if LContentType.IsEmpty then
-    LContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
-  LContentType := BuildContentType(LContentType, lCharset);
+  if lContentType.IsEmpty then
+    lContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+  lContentType := BuildContentType(lContentType, lCharset);
 
-  LOutEncoding := TEncoding.GetEncoding(lCharset);
+  lOutEncoding := TEncoding.GetEncoding(lCharset);
   try
     if SameText('UTF-8', UpperCase(lCharset)) then
-      GetContext.Response.SetContentStream(TStringStream.Create(AContent, TEncoding.UTF8), LContentType)
+      GetContext.Response.SetContentStream(TStringStream.Create(AContent, TEncoding.UTF8), lContentType)
     else
     begin
-      GetContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, LOutEncoding,
-        TEncoding.Default.GetBytes(AContent))), LContentType);
+      GetContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, lOutEncoding,
+        TEncoding.Default.GetBytes(AContent))), lContentType);
     end;
   finally
-    LOutEncoding.Free;
+    lOutEncoding.Free;
   end;
 end;
 
-procedure TMVCController.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean);
+procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean);
 begin
   Self.Render<T>(ACollection, AOwns, stDefault);
 end;
 
-procedure TMVCController.ResponseStatus(const AStatusCode: Integer; const AReasonString: string);
+procedure TMVCRenderer.ResponseStatus(const AStatusCode: Integer; const AReasonString: string);
 begin
-  StatusCode := AStatusCode;
+  SetStatusCode(AStatusCode);
   GetContext.Response.ReasonString := AReasonString;
 end;
 
-function TMVCController.ResponseStream: TStringBuilder;
+function TMVCRenderer.ResponseStream: TStringBuilder;
 begin
   if not Assigned(FResponseStream) then
     FResponseStream := TStringBuilder.Create;
   Result := FResponseStream;
 end;
 
-function TMVCController.Serializer: IMVCSerializer;
+function TMVCRenderer.Serializer: IMVCSerializer;
 begin
-  Result := Serializer(ContentType);
+  Result := Serializer(GetContentType);
 end;
 
-procedure TMVCController.SendFile(const AFileName: string);
+procedure TMVCRenderer.SendFile(const AFileName: string);
 begin
-  TMVCStaticContents.SendFile(AFileName, ContentType, Context);
+  TMVCStaticContents.SendFile(AFileName, GetContentType, GetContext);
 end;
 
-procedure TMVCController.SendStream(const AStream: TStream; const AOwns: Boolean; const ARewind: Boolean);
+procedure TMVCRenderer.SendStream(const AStream: TStream; const AOwns: Boolean; const ARewind: Boolean);
 var
   S: TStream;
 begin
@@ -2438,19 +2522,19 @@ begin
     S := AStream;
 
   GetContext.Response.RawWebResponse.Content := EmptyStr;
-  GetContext.Response.RawWebResponse.ContentType := ContentType;
+  GetContext.Response.RawWebResponse.ContentType := GetContentType;
   GetContext.Response.RawWebResponse.ContentStream := S;
   GetContext.Response.RawWebResponse.FreeContentStream := True;
 end;
 
-function TMVCController.Serializer(const AContentType: string): IMVCSerializer;
+function TMVCRenderer.Serializer(const AContentType: string): IMVCSerializer;
 var
-  LContentType: string;
+  lContentType: string;
 begin
-  LContentType := AContentType.ToLower.Replace(' ', '', [rfReplaceAll]);
-  if not Engine.Serializers.ContainsKey(LContentType) then
+  lContentType := AContentType.ToLower.Replace(' ', '', [rfReplaceAll]);
+  if not Engine.Serializers.ContainsKey(lContentType) then
     raise EMVCException.CreateFmt('The serializer for %s could not be found.', [AContentType]);
-  Result := Engine.Serializers.Items[LContentType];
+  Result := Engine.Serializers.Items[lContentType];
 end;
 
 function TMVCController.SessionAs<T>: T;
@@ -2458,12 +2542,12 @@ begin
   Result := Session as T;
 end;
 
-procedure TMVCController.SetContentType(const AValue: string);
+procedure TMVCRenderer.SetContentType(const AValue: string);
 begin
   GetContext.Response.ContentType := AValue;
 end;
 
-procedure TMVCController.SetStatusCode(const AValue: Integer);
+procedure TMVCRenderer.SetStatusCode(const AValue: Integer);
 begin
   GetContext.Response.StatusCode := AValue;
 end;
@@ -2478,22 +2562,22 @@ begin
   GetViewDataSets.Add(aDataSetName, Value);
 end;
 
-procedure TMVCController.Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType);
+procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType);
 begin
   try
-    Render(Serializer(ContentType).SerializeObject(AObject, AType));
+    Render(Serializer(GetContentType).SerializeObject(AObject, AType));
   finally
     if AOwns then
       AObject.Free;
   end;
 end;
 
-procedure TMVCController.Render(const AStream: TStream; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const AStream: TStream; const AOwns: Boolean);
 begin
   SendStream(AStream, AOwns);
 end;
 
-procedure TMVCController.Render(const AErrorCode: Integer; const AErrorMessage, AErrorClassName: string);
+procedure TMVCRenderer.Render(const AErrorCode: Integer; const AErrorMessage, AErrorClassName: string; const ADataObject: TObject);
 var
   R: TMVCErrorResponse;
 begin
@@ -2507,22 +2591,23 @@ begin
       R.ReasonString := 'error';
     R.Message := AErrorMessage;
     R.Classname := AErrorClassName;
+    R.Data := ADataObject;
     Render(R, False, stProperties);
   finally
     R.Free;
   end;
 end;
 
-procedure TMVCController.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
+procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
   const ANameCase: TMVCNameCase; const ASerializationType: TMVCDatasetSerializationType);
 begin
   if Assigned(ADataSet) then
   begin
     try
       if ASerializationType = dstSingleRecord then
-        Render(Serializer(ContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase))
+        Render(Serializer(GetContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase))
       else
-        Render(Serializer(ContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase))
+        Render(Serializer(GetContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase))
     finally
       if AOwns then
         ADataSet.Free;
@@ -2532,12 +2617,12 @@ begin
     raise EMVCException.Create('Can not render an empty dataset.');
 end;
 
-procedure TMVCController.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean; const AType: TMVCSerializationType);
+procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean; const AType: TMVCSerializationType);
 begin
   if Assigned(ACollection) then
   begin
     try
-      Render(Serializer(ContentType).SerializeCollection(ACollection, AType));
+      Render(Serializer(GetContentType).SerializeCollection(ACollection, AType));
     finally
       if AOwns then
         ACollection.Free;
@@ -2571,22 +2656,22 @@ begin
   end;
 end;
 
-procedure TMVCController.Render<T>(const ACollection: TObjectList<T>);
+procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>);
 begin
   Self.Render<T>(ACollection, True);
 end;
 
-procedure TMVCController.RenderResponseStream;
+procedure TMVCRenderer.RenderResponseStream;
 begin
   Render(ResponseStream.ToString);
 end;
 
-procedure TMVCController.RenderSSE(const EventID, EventData: string; EventName: string; const Retry: Integer);
+procedure TMVCRenderer.RenderSSE(const EventID, EventData: string; EventName: string; const Retry: Integer);
 begin
   // setting up the correct SSE headers
-  ContentType := 'text/event-stream';
-  Context.Response.SetCustomHeader('Cache-Control', 'no-cache');
-  Context.Response.StatusCode := HTTP_STATUS.OK;
+  SetContentType('text/event-stream');
+  GetContext.Response.SetCustomHeader('Cache-Control', 'no-cache');
+  GetContext.Response.StatusCode := HTTP_STATUS.OK;
 
   // render the response using SSE compliant data format
 
@@ -2615,20 +2700,20 @@ begin
   RenderResponseStream;
 end;
 
-procedure TMVCController.Render(const ACollection: IMVCList);
+procedure TMVCRenderer.Render(const ACollection: IMVCList);
 begin
   Render(ACollection, stDefault);
 end;
 
-procedure TMVCController.Render(const ACollection: IMVCList; const AType: TMVCSerializationType);
+procedure TMVCRenderer.Render(const ACollection: IMVCList; const AType: TMVCSerializationType);
 begin
   if Assigned(ACollection) then
-    Render(Serializer(ContentType).SerializeCollection(TObject(ACollection), AType))
+    Render(Serializer(GetContentType).SerializeCollection(TObject(ACollection), AType))
   else
     raise EMVCException.Create('Can not render an empty collection.');
 end;
 
-procedure TMVCController.Render(const ATextWriter: TTextWriter; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const ATextWriter: TTextWriter; const AOwns: Boolean);
 begin
   if Assigned(ATextWriter) then
   begin
@@ -2643,7 +2728,7 @@ begin
     raise EMVCException.Create('Can not render an empty textwriter.');
 end;
 
-procedure TMVCController.Render(const AException: Exception; AExceptionItems: TList<string>; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const AException: Exception; AExceptionItems: TList<string>; const AOwns: Boolean);
 var
   S: string;
   R: TMVCErrorResponse;
@@ -2658,7 +2743,7 @@ begin
 
     if (not GetContext.Request.IsAjax) and (GetContext.Request.ClientPrefer(TMVCMediaType.TEXT_HTML)) then
     begin
-      ContentType := TMVCMediaType.TEXT_HTML;
+      SetContentType(TMVCMediaType.TEXT_HTML);
       ResponseStream.Clear;
       ResponseStream.Append('<html><head><style>pre { color: #000000; background-color: #d0d0d0; }</style></head><body>')
         .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>').AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
@@ -2705,57 +2790,60 @@ begin
   end;
 end;
 
-procedure TMVCController.Render(const AError: TMVCErrorResponse; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const AResponse: TMVCResponse; const AOwns: Boolean);
 begin
-  if Assigned(AError) then
+  if Assigned(AResponse) then
   begin
     try
-      Context.Response.StatusCode := AError.StatusCode;
-      Render(AError, False, stProperties);
+      GetContext.Response.StatusCode := AResponse.StatusCode;
+      Render(AResponse, False, stProperties);
     finally
       if AOwns then
-        AError.Free;
+        AResponse.Free;
     end;
   end
   else
-    raise EMVCException.Create('Cannot render an empty error object.');
+    raise EMVCException.Create('Cannot render an empty response object.');
 end;
 
-procedure TMVCController.Render(const ADataSet: TDataSet);
+procedure TMVCRenderer.Render(const ADataSet: TDataSet);
 begin
   Render(ADataSet, True);
 end;
 
-procedure TMVCController.Render(const ADataSet: TDataSet; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean);
 begin
   Render(ADataSet, AOwns, dstAllRecords);
 end;
 
-procedure TMVCController.Render(const AObject: TObject);
+procedure TMVCRenderer.Render(const AObject: TObject);
 begin
   Render(AObject, True);
 end;
 
-procedure TMVCController.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
+procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
   const ASerializationType: TMVCDatasetSerializationType);
 begin
-  Render(ADataSet, AOwns, [], ncLowerCase, ASerializationType);
+  Render(ADataSet, AOwns, AIgnoredFields, ncLowerCase, ASerializationType);
 end;
 
-procedure TMVCController.Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationType: TMVCDatasetSerializationType);
+procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationType: TMVCDatasetSerializationType);
 begin
   Render(ADataSet, AOwns, [], ASerializationType);
 end;
 
-{ TMVCErrorResponse }
+constructor TMVCResponse.Create;
+begin
+  inherited Create;
+end;
 
 constructor TMVCErrorResponse.Create;
 begin
   inherited Create;
-  FItems := TObjectList<TMVCErrorResponseItem>.Create;
+  FItems := TObjectList<TMVCErrorResponseItem>.Create(True);
 end;
 
-constructor TMVCErrorResponse.Create(AStatusCode: Integer; AReasonString, AMessage: string);
+constructor TMVCResponse.Create(AStatusCode: Integer; AReasonString, AMessage: string);
 begin
   Create;
   StatusCode := AStatusCode;
@@ -2830,3 +2918,4 @@ finalization
 FreeAndNil(_MVCGlobalActionParamsCache);
 
 end.
+

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -39,13 +39,8 @@
 {$DEFINE MOBILE}
 {$ENDIF}
 
-{$IF CompilerVersion >= 24.0} // xe3
-{$DEFINE XE3ORBETTER}
-{$ENDIF}
-
-
-{$IF CompilerVersion >= 26} // XE5
-{$DEFINE XE5ORBETTER}
+{$IF CompilerVersion < 27} // XE5-
+DelphiMVCFramework is compatible with Delphi version XE6 or better
 {$ENDIF}
 
 {$IF CompilerVersion >= 27} // XE6
@@ -68,6 +63,11 @@
 {$IF CompilerVersion >= 32} // 10.2 Tokyo
 {$DEFINE TOKYOORBETTER}
 {$ENDIF}
+
+{$IF CompilerVersion >= 33} // 10.3 Rio
+{$DEFINE RIOORBETTER}
+{$ENDIF}
+
 
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -28,7 +28,9 @@ interface
 
 uses
   System.Generics.Collections,
-  System.SysUtils;
+  System.Math,
+  System.SysUtils,
+  MVCFramework.Commons;
 
 {
   http://www.persvr.org/rql/
@@ -73,19 +75,15 @@ uses
 }
 
 type
-  TMVCFieldMap = record
-    InstanceFieldName: string;
-    DatabaseFieldName: string;
-  end;
-
-  TMVCFieldsMapping = TArray<TMVCFieldMap>;
-
-  TRQLBackend = (cbFirebird, cbMySQL);
-
+  TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF, tkOpenPar, tkClosedPar,
+    tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote, tkQuote, tkSpace, tkContains, tkUnknown);
+  
   TRQLCustom = class;
 
-  TRQLAbstractSyntaxThree = class(TObjectList<TRQLCustom>)
+  TRQLAbstractSyntaxTree = class(TObjectList<TRQLCustom>)
+  public
     constructor Create;
+    function TreeContainsToken(const aToken: TRQLToken): Boolean;
   end;
 
   TRQLCompiler = class abstract
@@ -95,13 +93,10 @@ type
     function GetDatabaseFieldName(const RQLPropertyName: string): string;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxThree; out aSQL: string); virtual; abstract;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual; abstract;
   end;
 
   TRQLCompilerClass = class of TRQLCompiler;
-
-  TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF, tkOpenPar, tkClosedPar,
-    tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote, tkQuote, tkSpace, tkUnknown);
 
   TRQLCustom = class abstract
   public
@@ -169,11 +164,12 @@ type
   private
     fCurIdx: Integer;
     fInput: string;
-    fAST: TRQLAbstractSyntaxThree;
+    fAST: TRQLAbstractSyntaxTree;
     fSavedPos: Integer;
     fInputLength: Integer;
     fCurr: Char;
     fCurrToken: TRQLToken;
+    fMaxRecordCount: Int64;
   protected
     /// /// RQL Sections
     function ParseFilters: Boolean;
@@ -199,9 +195,12 @@ type
     procedure EatWhiteSpaces;
     procedure CheckEOF(const Token: TRQLToken);
   public
-    constructor Create;
+    constructor Create(const MaxRecordCount: Integer = -1);
     destructor Destroy; override;
-    procedure Execute(const RQL: string; out SQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend);
+    procedure Execute(
+      const RQL: string;
+      out SQL: string;
+      const RQLCompiler: TRQLCompiler);
   end;
 
   TRQLCompilerRegistry = class sealed
@@ -210,7 +209,7 @@ type
 
   class var
     _Lock: TObject;
-    fCompilers: TDictionary<TRQLBackend, TRQLCompilerClass>;
+    fCompilers: TDictionary<string, TRQLCompilerClass>;
   protected
     constructor Create;
   public
@@ -218,16 +217,20 @@ type
     class function Instance: TRQLCompilerRegistry;
     class destructor Destroy;
     class constructor Create;
-    procedure RegisterCompiler(const aBackend: TRQLBackend; const aRQLBackendClass: TRQLCompilerClass);
-    procedure UnRegisterCompiler(const aBackend: TRQLBackend);
-    function GetCompiler(const aBackend: TRQLBackend): TRQLCompilerClass;
+    procedure RegisterCompiler(
+      const aBackend: string;
+      const aRQLBackendClass: TRQLCompilerClass);
+    procedure UnRegisterCompiler(const aBackend: string);
+    function GetCompiler(const aBackend: string): TRQLCompilerClass;
+    function RegisteredCompilers: TArray<string>;
   end;
 
 implementation
 
 
 uses
-  System.Character;
+  System.Character,
+  System.StrUtils;
 
 { TRQL2SQL }
 
@@ -250,10 +253,11 @@ begin
     Error('Unexpected end of expression');
 end;
 
-constructor TRQL2SQL.Create;
+constructor TRQL2SQL.Create(const MaxRecordCount: Integer);
 begin
-  inherited;
-  fAST := TRQLAbstractSyntaxThree.Create;
+  inherited Create;
+  fAST := TRQLAbstractSyntaxTree.Create;
+  fMaxRecordCount := MaxRecordCount;
 end;
 
 destructor TRQL2SQL.Destroy;
@@ -283,26 +287,32 @@ begin
 end;
 
 procedure TRQL2SQL.Error(const Message: string);
+var
+  I: Integer;
+  lMsg: string;
 begin
-  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, C(0) + C(1) + C(2) + C(3) + C(4)]);
+  lMsg := '';
+  for I := 0 to 4 do
+  begin
+    lMsg := lMsg + IfThen(C(I) = #0, '', C(I));
+  end;
+  if lMsg.Trim.IsEmpty then
+    lMsg := '<EOF>';
+  raise ERQLException.CreateFmt('[Error] %s (column %d - found %s)', [message, fCurIdx, lMsg]);
 end;
 
-procedure TRQL2SQL.Execute(const RQL: string; out SQL: string; const Mapping: TMVCFieldsMapping; const RQLBackend: TRQLBackend);
+procedure TRQL2SQL.Execute(
+  const RQL: string;
+  out SQL: string;
+  const RQLCompiler: TRQLCompiler);
 var
-  lCompilerClass: TRQLCompilerClass;
-  lCompiler: TRQLCompiler;
+  lLimit: TRQLLimit;
 begin
   fAST.Clear;
   fCurIdx := 0;
   fCurrToken := tkUnknown;
   fInput := RQL.Trim;
   fInputLength := Length(RQL);
-  if fInputLength = 0 then
-  begin
-    SQL := '';
-    Exit;
-  end;
-
   {
     filters&sort&limit
     filters&sort
@@ -328,13 +338,27 @@ begin
   if GetToken <> tkEOF then
     Error('Expected EOF');
 
-  lCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(RQLBackend);
-  lCompiler := lCompilerClass.Create(Mapping);
-  try
-    lCompiler.AST2SQL(fAST, SQL);
-  finally
-    lCompiler.Free;
+  // add artificial limit
+  if (fMaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit)) then
+  begin
+    lLimit := TRQLLimit.Create;
+    fAST.Add(lLimit);
+    lLimit.Token := tkLimit;
+    lLimit.Start := 0;
+    lLimit.Count := fMaxRecordCount;
   end;
+
+  // Emit code from AST using backend
+  RQLCompiler.AST2SQL(fAST, SQL);
+
+  // Emit code from AST using backend
+  // lCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(RQLBackend);
+  // lCompiler := lCompilerClass.Create(Mapping);
+  // try
+  // lCompiler.AST2SQL(fAST, SQL);
+  // finally
+  // lCompiler.Free;
+  // end;
 end;
 
 function TRQL2SQL.GetToken:
@@ -462,6 +486,12 @@ begin
     fCurrToken := tkLimit;
     Exit(fCurrToken);
   end;
+  if (lChar = 'c') and (C(1) = 'o') and (C(2) = 'n') and (C(3) = 't') and (C(4) = 'a') and (C(5) = 'i') and (C(6) = 'n') and (C(7) = 's') then
+  begin
+    Skip(8);
+    fCurrToken := tkContains;
+    Exit(fCurrToken);
+  end;
   if (lChar = ' ') then
   begin
     fCurrToken := tkSpace;
@@ -538,7 +568,7 @@ begin
   Result := True;
   lTk := GetToken;
   case lTk of
-    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe:
+    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains:
       begin
         ParseBinOperator(lTk, fAST);
       end;
@@ -583,8 +613,16 @@ begin
 
   lRQLLimit := TRQLLimit.Create;
   fAST.Add(lRQLLimit);
+  lRQLLimit.Token := tkLimit;
   lRQLLimit.Start := lStart.ToInt64;
-  lRQLLimit.Count := lCount.ToInt64;
+  if fMaxRecordCount > -1 then
+  begin
+    lRQLLimit.Count := Min(lCount.ToInt64, fMaxRecordCount);
+  end
+  else
+  begin
+    lRQLLimit.Count := lCount.ToInt64;
+  end;
   Result := True;
 end;
 
@@ -608,7 +646,7 @@ begin
     EatWhiteSpaces;
     lToken := GetToken;
     case lToken of
-      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe:
+      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
         end;
@@ -648,6 +686,7 @@ begin
     Error('Expected "("');
   lSort := TRQLSort.Create;
   fAST.Add(lSort);
+  lSort.Token := tkSort;
 
   while True do
   begin
@@ -683,7 +722,7 @@ begin
     BackToLastPos;
   end;
   lFoundLimit := ParseLimit;
-  if not(lFoundSort or lFoundLimit) then
+  if Required and (not(lFoundSort or lFoundLimit)) then
     Error('Expected "sort" and/or "limit"');
 end;
 
@@ -727,10 +766,19 @@ var
   lChar: Char;
 begin
   Result := True;
+  lFieldValue := '';
   lChar := C(0);
-  if IsDigit(lChar) then
+
+  if CharInSet(lChar, ['+','-']) then
   begin
     lFieldValue := lChar;
+    Skip(1);
+    lChar := C(0);
+  end;
+
+  if IsDigit(lChar) then
+  begin
+    lFieldValue := lFieldValue + lChar;
     while True do
     begin
       Skip(1);
@@ -837,7 +885,7 @@ end;
 constructor TRQLCompilerRegistry.Create;
 begin
   inherited;
-  fCompilers := TDictionary<TRQLBackend, TRQLCompilerClass>.Create;
+  fCompilers := TDictionary<string, TRQLCompilerClass>.Create;
 end;
 
 destructor TRQLCompilerRegistry.Destroy;
@@ -857,8 +905,7 @@ begin
   sInstance.Free;
 end;
 
-function TRQLCompilerRegistry.GetCompiler(
-  const aBackend: TRQLBackend): TRQLCompilerClass;
+function TRQLCompilerRegistry.GetCompiler(const aBackend: string): TRQLCompilerClass;
 begin
   if not fCompilers.TryGetValue(aBackend, Result) then
   begin
@@ -884,15 +931,17 @@ begin
   Result := sInstance;
 end;
 
-procedure TRQLCompilerRegistry.RegisterCompiler(const aBackend: TRQLBackend; const aRQLBackendClass: TRQLCompilerClass);
+procedure TRQLCompilerRegistry.RegisterCompiler(const aBackend: string; const aRQLBackendClass: TRQLCompilerClass);
 begin
-  fCompilers.Add(aBackend, aRQLBackendClass);
+  fCompilers.AddOrSetValue(aBackend, aRQLBackendClass);
 end;
 
-procedure TRQLCompilerRegistry.UnRegisterCompiler(
-  const
-  aBackend:
-  TRQLBackend);
+function TRQLCompilerRegistry.RegisteredCompilers: TArray<string>;
+begin
+  Result := fCompilers.Keys.ToArray;
+end;
+
+procedure TRQLCompilerRegistry.UnRegisterCompiler(const aBackend: string);
 begin
   fCompilers.Remove(aBackend);
 end;
@@ -928,11 +977,24 @@ begin
   raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL', [RQLPropertyName]);
 end;
 
-{ TRQLAbstractSyntaxThree }
+{ TRQLAbstractSyntaxTree }
 
-constructor TRQLAbstractSyntaxThree.Create;
+constructor TRQLAbstractSyntaxTree.Create;
 begin
   inherited Create(True);
+end;
+
+function TRQLAbstractSyntaxTree.TreeContainsToken(
+  const aToken: TRQLToken): Boolean;
+var
+  lItem: TRQLCustom;
+begin
+  Result := False;
+  for lItem in Self do
+  begin
+    if lItem.Token = aToken then
+      Exit(True);
+  end;
 end;
 
 end.

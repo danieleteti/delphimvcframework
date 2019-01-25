@@ -1,9 +1,34 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit BusinessObjectsU;
 
 interface
 
 uses
-  MVCFramework.Serializer.Commons, Generics.Collections;
+  MVCFramework.Serializer.Commons,
+  Generics.Collections;
 
 type
 
@@ -27,7 +52,7 @@ type
     property Married: boolean read FMarried write SetMarried;
 
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
-    class function GetList: TObjectList<TPerson>;
+    class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
 
   TPeople = class(TObjectList<TPerson>);
@@ -107,7 +132,8 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  RandomUtilsU;
 
 { TPerson }
 
@@ -123,12 +149,25 @@ begin
   end;
 end;
 
-class function TPerson.GetList: TObjectList<TPerson>;
+class function TPerson.GetList(const aCount: Integer): TObjectList<TPerson>;
+var
+  I: Integer;
 begin
-  Result := TObjectList<TPerson>.Create(true);
-  Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
-  Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
-  Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
+  if aCount = 3 then
+  begin // retrocompatibility
+    Result := TObjectList<TPerson>.Create(true);
+    Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
+    Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
+    Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
+  end
+  else
+  begin
+    Result := TObjectList<TPerson>.Create(true);
+    for I := 1 to aCount do
+    begin
+      Result.Add(TPerson.GetNew(GetRndFirstName, GetRndLastName, EncodeDate(1900 + Random(100), Random(12) + 1, Random(27) + 1), true));
+    end;
+  end;
 end;
 
 class function TPerson.GetNew(AFirstName, ALastName: string; ADOB: TDate;
