@@ -129,30 +129,40 @@ def copy_sources():
         copy2(file, output_folder + "\\ideexpert\\")
 
 
-def copy_libs():
+def copy_libs(ctx):
     global output_folder
 
     # loggerpro
     header("Copying libraries: LoggerPro...")
     curr_folder = output_folder + "\\lib\\loggerpro"
     os.makedirs(curr_folder, exist_ok=True)
-    src = glob.glob("lib\\loggerpro\\*.pas")
-    for file in src:
-        print("Copying " + file + " to " + curr_folder)
-        copy2(file, curr_folder)
-    copy2("lib\\loggerpro\\LICENSE", curr_folder)
-    copy2("lib\\loggerpro\\VERSION.TXT", curr_folder)
+    if not ctx.run(rf"xcopy lib\loggerpro\*.* {curr_folder}\*.* /E /Y /R /V /F"):
+        raise Exception("Cannot copy loggerpro")
 
-    # dmustache
     header("Copying libraries: dmustache...")
     curr_folder = output_folder + "\\lib\\dmustache"
     os.makedirs(curr_folder, exist_ok=True)
-    src = glob.glob("lib\\dmustache\\*.pas") + \
-        glob.glob("lib\\dmustache\\*.inc")
-    for file in src:
-        print("Copying " + file + " to " + curr_folder)
-        copy2(file, curr_folder)
-    copy2("lib\\dmustache\\README.md", curr_folder)
+    if not ctx.run(rf"xcopy lib\dmustache\*.* {curr_folder}\*.* /E /Y /R /V /F"):
+        raise Exception("Cannot copy dmustache")
+
+
+    # src = glob.glob("lib\\loggerpro\\*.pas")
+    # for file in src:
+    #     print("Copying " + file + " to " + curr_folder)
+    #     copy2(file, curr_folder)
+    # copy2("lib\\loggerpro\\LICENSE", curr_folder)
+    # copy2("lib\\loggerpro\\VERSION.TXT", curr_folder)
+    #
+    # # dmustache
+    # header("Copying libraries: dmustache...")
+    # curr_folder = output_folder + "\\lib\\dmustache"
+    # os.makedirs(curr_folder, exist_ok=True)
+    # src = glob.glob("lib\\dmustache\\*.pas") + \
+    #     glob.glob("lib\\dmustache\\*.inc")
+    # for file in src:
+    #     print("Copying " + file + " to " + curr_folder)
+    #     copy2(file, curr_folder)
+    # copy2("lib\\dmustache\\README.md", curr_folder)
 
 
 def init_build(version):
