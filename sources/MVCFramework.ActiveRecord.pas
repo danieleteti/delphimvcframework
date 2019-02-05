@@ -885,22 +885,23 @@ begin
   if Length(fMapping) = 0 then
   begin
     if not fPrimaryKeyFieldName.IsEmpty then
-      SetLength(fMapping, fMap.Count + 1)
+    begin
+      SetLength(fMapping, fMap.Count + 1);
+      fMapping[0].InstanceFieldName := fPrimaryKey.Name.Substring(1).ToLower;
+      fMapping[0].DatabaseFieldName := fPrimaryKeyFieldName;
+      i := 1;
+    end
     else
+    begin
       SetLength(fMapping, fMap.Count);
+      i := 0;
+    end;
 
-    i := 0;
     for lPair in fMap do
     begin
       fMapping[i].InstanceFieldName := lPair.Key.Name.Substring(1).ToLower;
       fMapping[i].DatabaseFieldName := lPair.value;
       inc(i);
-    end;
-
-    if not fPrimaryKeyFieldName.IsEmpty then
-    begin
-      fMapping[i].InstanceFieldName := fPrimaryKey.Name.Substring(1).ToLower;
-      fMapping[i].DatabaseFieldName := fPrimaryKeyFieldName;
     end;
   end;
   Result := fMapping;
