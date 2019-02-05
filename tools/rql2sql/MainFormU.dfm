@@ -95,8 +95,6 @@ object MainForm: TMainForm
       ParentFont = False
       TabOrder = 1
       OnClick = lbRQLClick
-      ExplicitTop = 103
-      ExplicitHeight = 93
     end
     object Panel3: TPanel
       Left = 6
@@ -107,7 +105,6 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       Caption = 'Panel3'
       TabOrder = 2
-      ExplicitTop = 73
       object edtExpression: TEdit
         AlignWithMargins = True
         Left = 3
@@ -136,6 +133,7 @@ object MainForm: TMainForm
       Height = 81
       Align = alTop
       Caption = 'RQL Backend'
+      Columns = 2
       TabOrder = 3
     end
     object Memo1: TMemo
