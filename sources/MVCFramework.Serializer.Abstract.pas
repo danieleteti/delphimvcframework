@@ -231,7 +231,12 @@ end;
 
 procedure TMVCAbstractSerializer.RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
 begin
+  {$IFDEF NEXTGEN}
+  LogD('Registering TypeSerializer for: ' + PChar(Pointer(ATypeInfo.Name)));
+  {$ELSE}
   LogD('Registering TypeSerializer for: ' + string(ATypeInfo.Name));
+  {$ENDIF}
+
   FTypeSerializers.AddOrSetValue(ATypeInfo, AInstance);
 end;
 
