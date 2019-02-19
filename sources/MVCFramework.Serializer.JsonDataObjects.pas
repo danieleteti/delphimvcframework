@@ -366,7 +366,7 @@ begin
           ftFMTBcd, ftBCD:
             AJsonObject.F[FieldName] := BcdToDouble(ADataSet.Fields[I].AsBcd);
 
-          ftGraphic, ftBlob, ftStream:
+          ftGraphic, ftBlob, ftStream, ftOraBlob:
             begin
               MS := TMemoryStream.Create;
               try
@@ -1085,7 +1085,11 @@ begin
       end;
     tkFloat:
       begin
+        {$IFDEF NEXTGEN}
+        if PChar(Pointer(Value.TypeInfo.Name)) = 'TDate' then
+        {$ELSE}
         if Value.TypeInfo.Name = 'TDate' then
+        {$ENDIF}
         begin
           JSON.DUtc[KeyName] := Value.AsExtended;
         end
