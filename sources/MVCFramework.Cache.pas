@@ -84,7 +84,10 @@ uses
 function TMVCCache.SetValue(const AName: string; const AValue: TValue): TMVCCacheItem;
 var
   lCacheItem: TMVCCacheItem;
+  Value: TValue;
 begin
+  Value := AValue;
+
   FMREW.DoWithWriteLock(
     procedure
     var
@@ -92,13 +95,13 @@ begin
     begin
       if FStorage.TryGetValue(AName, lItem) then
       begin
-        lItem.Value := AValue;
+        lItem.Value := Value;
       end
       else
       begin
         lCacheItem := TMVCCacheItem.Create;
         try
-          lCacheItem.Value := AValue;
+          lCacheItem.Value := Value;
           FStorage.Add(AName, lCacheItem);
         except
           lCacheItem.Free;
