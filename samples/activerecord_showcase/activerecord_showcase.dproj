@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{F8576ED6-649F-4E28-B364-1F60687C75F2}</ProjectGuid>
-        <ProjectVersion>18.5</ProjectVersion>
+        <ProjectVersion>18.6</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>activerecord_showcase.dpr</MainSource>
         <Base>True</Base>
@@ -117,6 +117,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

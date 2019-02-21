@@ -51,6 +51,7 @@ uses
   or(<query>,<query>,...) - The union of the given queries
   sort(<+|-><property) - Sorts by the given property in order specified by the prefix (+ for ascending, - for descending)
   limit(count,start,maxCount) - Returns the given range of objects from the result set
+  contains(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
 
 
 
@@ -61,7 +62,6 @@ uses
   distinct() - Returns a result set with duplicates removed
   in(<property>,<array-of-values>) - Filters for objects where the specified property's value is in the provided array
   out(<property>,<array-of-values>) - Filters for objects where the specified property's value is not in the provided array
-  contains(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
   excludes(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array does not contain any of value that equals the provided value or satisfies the provided expression.
   rel(<relation name?>,<query>) - Applies the provided query against the linked data of the provided relation name.
   sum(<property?>) - Finds the sum of every value in the array or if the property argument is provided, returns the sum of the value of property for every object in the array
@@ -198,9 +198,10 @@ type
     constructor Create(const MaxRecordCount: Integer = -1);
     destructor Destroy; override;
     procedure Execute(
-      const RQL: string;
-      out SQL: string;
-      const RQLCompiler: TRQLCompiler);
+  const RQL: string;
+  out SQL: string;
+  const RQLCompiler: TRQLCompiler;
+  const UseLimit: Boolean = true);
   end;
 
   TRQLCompilerRegistry = class sealed
@@ -304,7 +305,8 @@ end;
 procedure TRQL2SQL.Execute(
   const RQL: string;
   out SQL: string;
-  const RQLCompiler: TRQLCompiler);
+  const RQLCompiler: TRQLCompiler;
+  const UseLimit: Boolean);
 var
   lLimit: TRQLLimit;
 begin
@@ -339,7 +341,7 @@ begin
     Error('Expected EOF');
 
   // add artificial limit
-  if (fMaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit)) then
+  if UseLimit and (fMaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit)) then
   begin
     lLimit := TRQLLimit.Create;
     fAST.Add(lLimit);

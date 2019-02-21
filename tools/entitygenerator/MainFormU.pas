@@ -42,7 +42,9 @@ uses
   Vcl.Grids,
   Vcl.ValEdit,
   FireDAC.Phys.MySQLDef,
-  FireDAC.Phys.MySQL;
+  FireDAC.Phys.MySQL, FireDAC.Phys.PGDef, FireDAC.Phys.PG, FireDAC.Phys.IBDef,
+  FireDAC.Phys.IB, FireDAC.Stan.ExprFuncs, FireDAC.Phys.SQLiteDef,
+  FireDAC.Phys.SQLite;
 
 type
   TMainForm = class(TForm)
@@ -70,6 +72,11 @@ type
     btnSaveCode: TButton;
     FileSaveDialog1: TFileSaveDialog;
     FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink;
+    FDPhysPgDriverLink1: TFDPhysPgDriverLink;
+    FDPhysFBDriverLink2: TFDPhysFBDriverLink;
+    FDPhysIBDriverLink1: TFDPhysIBDriverLink;
+    FDPhysMySQLDriverLink2: TFDPhysMySQLDriverLink;
+    FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink;
     procedure btnGenEntitiesClick(Sender: TObject);
     procedure btnGetTablesClick(Sender: TObject);
     procedure btnSaveCodeClick(Sender: TObject);
@@ -186,7 +193,7 @@ begin
 
   lTables := TStringList.Create;
   try
-    FDConnection1.GetTableNames('', '', '', lTables);
+    FDConnection1.GetTableNames('', 'public', '', lTables);
     veTablesMapping.Row := 1;
     for lTable in lTables do
     begin

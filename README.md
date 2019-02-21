@@ -66,12 +66,16 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 ## What's New
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
-- New! Added SQLGenerator for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
+- New! Added SQLGenerator and RQL compiler for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
 - Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
 - New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
 - New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
+- New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
+- New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.
+- New! Microsoft SQLServer Support in ActiveRecord and RQL (thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework)
+- Improved! `ActiveRecordShowCase` sample is much better now.
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
 
 |Delphi Version|Project Group|

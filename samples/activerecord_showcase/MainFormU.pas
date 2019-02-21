@@ -63,7 +63,6 @@ implementation
 
 {$R *.dfm}
 
-
 uses
   MVCFramework.ActiveRecord,
   EntitiesU,
@@ -79,7 +78,8 @@ var
   lCustomer: TCustomer;
   lID: Integer;
 begin
-  ShowMessage('There are ' + TMVCActiveRecord.Count(TCustomer).ToString + ' row/s for entity ' + TCustomer.ClassName);
+  ShowMessage('There are ' + TMVCActiveRecord.Count(TCustomer).ToString +
+    ' row/s for entity ' + TCustomer.ClassName);
 
   Log('Simple CRUD test');
   lCustomer := TCustomer.Create;
@@ -139,16 +139,10 @@ var
   lProc: TProc;
   lConnParams: string;
 const
-  Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
+  Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne',
+    'Berlin');
 begin
-  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
-    TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC STARTING ''Company ''')
-  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-    TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC LIKE ''Company %''')
-  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-    TMVCActiveRecord.CurrentConnection.ExecSQL('DELETE FROM CLIENTI WHERE RAG_SOC LIKE ''Company %''')
-  else
-    raise Exception.Create('Unknown backend for direct SQL execution');
+  TMVCActiveRecord.DeleteRQL(TCustomer, 'contains(CompanyName, "Company ")');
 
   lConnParams := FDConnection1.Params.Text;
   lProc := procedure
@@ -180,8 +174,9 @@ begin
       end;
     end;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 end;
 
@@ -195,17 +190,7 @@ var
   I: Integer;
   j: Integer;
 begin
-  TCustomerEx.CurrentConnection.ExecSQL('DELETE FROM CLIENTI');
-
-  lOrder := TOrder.Create;
-  try
-    lOrder.CustomerID := 123;
-    lOrder.OrderDate := EncodeDate(2018, 10, 20);
-    lOrder.Total := 1234;
-    lOrder.Insert;
-  finally
-    lOrder.Free;
-  end;
+  TMVCActiveRecord.DeleteAll(TCustomerEx);
 
   lCustomer := TCustomerEx.Create;
   try
@@ -229,7 +214,8 @@ begin
           lOrderDetail.Price := Random(j * 10);
           lOrderDetail.Discount := j;
           lOrderDetail.Quantity := j * 2;
-          lOrderDetail.Description := 'MY PRODUCT ' + I.ToString + '/' + j.ToString;
+          lOrderDetail.Description := 'MY PRODUCT ' + I.ToString + '/' +
+            j.ToString;
           lOrderDetail.Total := j * j * j;
           lOrderDetail.Insert;
         finally
@@ -241,17 +227,20 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TCustomerEx.GetOneByWhere<TCustomerEx>('Codice = ?', ['001']);
+  lCustomer := TCustomerEx.GetOneByWhere<TCustomerEx>('Code = ?', ['001']);
   try
     Log(lCustomer.CompanyName);
     for lOrder in lCustomer.Orders do
     begin
-      Log(Format('  %5.5d - %s - %m', [lOrder.ID, datetostr(lOrder.OrderDate), lOrder.Total]));
-      lOrderRows := TOrderDetail.Where<TOrderDetail>('ID_ORDINE = ?', [lOrder.ID]);
+      Log(Format('  %5.5d - %s - %m', [lOrder.ID, datetostr(lOrder.OrderDate),
+        lOrder.Total]));
+      lOrderRows := TOrderDetail.Where<TOrderDetail>('id_order = ?',
+        [lOrder.ID]);
       try
         for lOrderRow in lOrderRows do
         begin
-          Log(Format('         %-20s - %4d - %m', [lOrderRow.Description, lOrderRow.Quantity, lOrder.Total]));
+          Log(Format('         %-20s - %4d - %m', [lOrderRow.Description,
+            lOrderRow.Quantity, lOrder.Total]));
         end;
         Log('');
       finally
@@ -275,7 +264,8 @@ begin
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
-      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName, lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName,
+        lCustomer.City]));
     end;
   finally
     lList.Free;
@@ -290,14 +280,19 @@ var
 begin
   Log('** Query SQL');
   // Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
+  // This is just a sample, you can do the "select" also using the RQL engine
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description CONTAINING ?', ['google'])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM CLIENTI WHERE RAG_SOC ILIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
   else
-    raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
+    raise Exception.Create('Unsupported backend: ' +
+      ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
   try
     for lCustomer in lCustomers do
@@ -309,19 +304,12 @@ begin
   end;
 
   Log('** Query SQL returning DataSet');
-  if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
-    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC CONTAINING ?', ['google'])
-  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC LIKE ''%google%''', [])
-  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-    lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM CLIENTI WHERE RAG_SOC ILIKE ''%google%''', [])
-  else
-    raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
-
+  lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM customers', []);
   try
     while not lDS.Eof do
     begin
-      Log(Format('%8.5s - %s', [lDS.FieldByName('CODICE').AsString, lDS.FieldByName('RAG_SOC').AsString]));
+      Log(Format('%8.5s - %s', [lDS.FieldByName('code').AsString,
+        lDS.FieldByName('description').AsString]));
       lDS.Next;
     end;
   finally
@@ -348,7 +336,8 @@ begin
 
   lCustomer := TCustomer.GetByPK<TCustomerWithLogic>(lID);
   try
-    Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' + BoolToStr(lCustomer.IsLocatedInRome, True));
+    Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' +
+      BoolToStr(lCustomer.IsLocatedInRome, True));
     lCustomer.Code := '';
     lCustomer.Update; // raise exception
   finally
@@ -358,19 +347,20 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  // To use Postgresql uncomment the following line (and comment the others one)
+  // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+
   // To use Firebird uncomment the following line (and comment the others one)
   FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
 
   // To use MySQL uncomment the following line  (and comment the others one)
   // FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
 
-  // To use Postgresql uncomment the following line (and comment the others one)
-  // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
-
   FDConnection1.Params.Clear;
   FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
   ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
-  Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
+  Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.
+    GetCurrentBackend + ')';
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);

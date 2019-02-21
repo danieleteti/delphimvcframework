@@ -49,7 +49,7 @@ var
 begin
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=' + TPath.GetFullPath(TPath.Combine('..\..', 'data\ORDERSMANAGER_FB30.FDB')));
+    LParams.Add('Database=' + TPath.GetFullPath(TPath.Combine('..\..', 'data\ACTIVERECORDDB.FDB')));
     LParams.Add('Protocol=TCPIP');
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=sysdba');

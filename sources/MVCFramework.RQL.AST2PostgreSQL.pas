@@ -115,7 +115,7 @@ begin
       end;
     tkContains:
       begin
-        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+        Result := Format('(%s ILIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
       end;
   end;
 end;

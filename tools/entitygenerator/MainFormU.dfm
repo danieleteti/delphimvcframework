@@ -248,4 +248,24 @@ object MainForm: TMainForm
     Left = 432
     Top = 328
   end
+  object FDPhysPgDriverLink1: TFDPhysPgDriverLink
+    Left = 440
+    Top = 336
+  end
+  object FDPhysFBDriverLink2: TFDPhysFBDriverLink
+    Left = 448
+    Top = 344
+  end
+  object FDPhysIBDriverLink1: TFDPhysIBDriverLink
+    Left = 456
+    Top = 352
+  end
+  object FDPhysMySQLDriverLink2: TFDPhysMySQLDriverLink
+    Left = 464
+    Top = 360
+  end
+  object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
+    Left = 472
+    Top = 368
+  end
 end

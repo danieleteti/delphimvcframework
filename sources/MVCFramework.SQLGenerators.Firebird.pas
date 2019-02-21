@@ -37,6 +37,7 @@ uses
 
 type
   TMVCSQLGeneratorFirebird = class(TMVCSQLGenerator)
+
   protected
     function GetCompilerClass: TRQLCompilerClass; override;
   public
@@ -61,14 +62,17 @@ type
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
+    function CreateDeleteAllSQL(
+      const TableName: string): string; override;
     function CreateSelectByPKSQL(
       const TableName: string;
       const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
-    function CreateSelectSQLByRQL(
+    function CreateSQLWhereByRQL(
       const RQL: string;
-      const Mapping: TMVCFieldsMapping): string; override;
+      const Mapping: TMVCFieldsMapping;
+      const UseArtificialLimit: Boolean = True): string; override;
     function CreateSelectCount(
       const TableName: String): String; override;
   end;
@@ -144,14 +148,16 @@ begin
   Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + TableName;
 end;
 
-function TMVCSQLGeneratorFirebird.CreateSelectSQLByRQL(const RQL: string;
-  const Mapping: TMVCFieldsMapping): string;
+function TMVCSQLGeneratorFirebird.CreateSQLWhereByRQL(
+      const RQL: string;
+      const Mapping: TMVCFieldsMapping;
+      const UseArtificialLimit: Boolean): string;
 var
   lFirebirdCompiler: TRQLFirebirdCompiler;
 begin
   lFirebirdCompiler := TRQLFirebirdCompiler.Create(Mapping);
   try
-    GetRQLParser.Execute(RQL, Result, lFirebirdCompiler);
+    GetRQLParser.Execute(RQL, Result, lFirebirdCompiler, UseArtificialLimit);
   finally
     lFirebirdCompiler.Free;
   end;
@@ -179,10 +185,17 @@ begin
   Result := TRQLFirebirdCompiler;
 end;
 
+function TMVCSQLGeneratorFirebird.CreateDeleteAllSQL(
+  const TableName: string): string;
+begin
+  Result := 'DELETE FROM ' + TableName;
+end;
+
+
 function TMVCSQLGeneratorFirebird.CreateDeleteSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: Int64): string;
 begin
-  Result := 'DELETE FROM ' + TableName + ' WHERE ' + PKFieldName + '= ' + IntToStr(PrimaryKeyValue);
+  Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + PKFieldName + '=' + IntToStr(PrimaryKeyValue);
 end;
 
 initialization

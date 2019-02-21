@@ -27,11 +27,12 @@ unit MVCFramework.RQL.AST2MSSQL;
 interface
 
 uses
-  MVCFramework.RQL.Parser;
+  MVCFramework.RQL.Parser, MVCFramework.Commons;
 
 type
   TRQLMSSQLCompiler = class(TRQLCompiler)
   private
+    FMapping: TMVCFieldsMapping;
     function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
     function RQLSortToSQL(const aRQLSort: TRQLSort): string;
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
@@ -39,6 +40,7 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
   public
+    constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
@@ -48,6 +50,12 @@ uses
   System.SysUtils;
 
 { TRQLMSSQLCompiler }
+
+constructor TRQLMSSQLCompiler.Create(const Mapping: TMVCFieldsMapping);
+begin
+  inherited Create(Mapping);
+  FMapping := Mapping;
+end;
 
 function TRQLMSSQLCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;
@@ -121,8 +129,7 @@ end;
 
 function TRQLMSSQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-//  Result := Format(' /*limit*/ LIMIT %d, %d', [aRQLLimit.Start, aRQLLimit.Count]);
-  raise ERQLException.Create('Token LIMIT not implemented for this compiler');
+  Result := Format(' /*limit*/ OFFSET %d ROWS FETCH NEXT %d ROWS ONLY', [aRQLLimit.Start, aRQLLimit.Count]);
 end;
 
 function TRQLMSSQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
@@ -185,6 +192,8 @@ procedure TRQLMSSQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
 var
   lBuff: TStringBuilder;
   lItem: TRQLCustom;
+  LFoundSort: Boolean;
+  LitemSort: TRQLSort;
 begin
   inherited;
 
@@ -194,11 +203,24 @@ begin
     For MSSQL syntax you need to rearrange in: limit, filters, sort
   }
 
+  LFoundSort := False;
   lBuff := TStringBuilder.Create;
   try
     for lItem in aRQLAST do
     begin
+
+      if (lItem is TRQLLimit) and (not LFoundSort) then
+      begin
+        LitemSort := TRQLSort.Create;
+        LitemSort.Add('+',FMapping[0].InstanceFieldName);
+        lBuff.Append(RQLCustom2SQL(lItemSort));
+      end;
+
       lBuff.Append(RQLCustom2SQL(lItem));
+
+      if (litem is TRQLSort) then
+        LFoundSort := True;
+
     end;
     aSQL := lBuff.ToString;
   finally
