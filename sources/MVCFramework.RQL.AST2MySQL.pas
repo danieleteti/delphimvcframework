@@ -45,8 +45,7 @@ type
 implementation
 
 uses
-  System.SysUtils,
-  MVCFramework.RQL.AST2FirebirdSQL;
+  System.SysUtils;
 
 { TRQLMySQLCompiler }
 

@@ -97,7 +97,7 @@ var
 begin
   lSB := TStringBuilder.Create;
   try
-    lSB.Append('INSERT INTO ' + TableName.QuotedString('"') + ' (');
+    lSB.Append('INSERT INTO ' + TableName + ' (');
     for lKeyValue in Map do
       lSB.Append(lKeyValue.value + ',');
     lSB.Remove(lSB.Length - 1, 1);
@@ -144,14 +144,14 @@ end;
 function TMVCSQLGeneratorPostgreSQL.CreateSelectCount(
   const TableName: String): String;
 begin
-  Result := 'SELECT count(*) FROM ' + TableName.QuotedString('"');
+  Result := 'SELECT count(*) FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSelectSQL(const TableName: string;
   const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
-  Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + TableName.QuotedString('"');
+  Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSQLWhereByRQL(
@@ -174,7 +174,7 @@ function TMVCSQLGeneratorPostgreSQL.CreateUpdateSQL(const TableName: string; con
 var
   keyvalue: TPair<TRttiField, string>;
 begin
-  Result := 'UPDATE ' + TableName.QuotedString('"') + ' SET ';
+  Result := 'UPDATE ' + TableName + ' SET ';
   for keyvalue in Map do
   begin
     Result := Result + keyvalue.value + ' = :' + keyvalue.value + ',';
@@ -194,7 +194,7 @@ end;
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteAllSQL(
   const TableName: string): string;
 begin
-  Result := 'DELETE FROM ' + TableName.QuotedString('"');
+  Result := 'DELETE FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;

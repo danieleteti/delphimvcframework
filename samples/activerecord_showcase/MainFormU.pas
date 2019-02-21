@@ -41,6 +41,7 @@ type
     btnValidation: TButton;
     btnMultiThreading: TButton;
     btnRQL: TButton;
+    btnTransientFields: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -50,6 +51,7 @@ type
     procedure btnValidationClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure btnTransientFieldsClick(Sender: TObject);
   private
     procedure Log(const Value: string);
   public
@@ -318,6 +320,46 @@ begin
 
 end;
 
+procedure TMainForm.btnTransientFieldsClick(Sender: TObject);
+var
+  lCustomer: TCustomerWithTransient;
+  lID: Integer;
+begin
+  Log('Transient CRUD test');
+  lCustomer := TCustomerWithTransient.Create;
+  try
+    {
+      'Code' and City will not be persisted because defined as 'transient'
+    }
+    lCustomer.Code := '1234';
+    lCustomer.CompanyName := 'Google Inc.';
+    lCustomer.City := 'Montain View, CA';
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Log('Just inserted "transient" Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithTransient>(lID);
+  try
+    lCustomer.CompanyName := lCustomer.CompanyName + ' changed!';
+    lCustomer.Code := 'this code will not be saved';
+    lCustomer.Update;
+    Log('Just updated Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithTransient>(lID);
+  try
+    lCustomer.Delete;
+    Log('Just deleted "transient" Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+end;
+
 procedure TMainForm.btnValidationClick(Sender: TObject);
 var
   lCustomer: TCustomerWithLogic;
@@ -348,10 +390,10 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // To use Postgresql uncomment the following line (and comment the others one)
-  // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+  FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
 
   // To use Firebird uncomment the following line (and comment the others one)
-  FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
+  // FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
 
   // To use MySQL uncomment the following line  (and comment the others one)
   // FDConnectionConfigU.CreateMySQLPrivateConnDef(True);

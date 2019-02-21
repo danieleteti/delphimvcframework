@@ -127,7 +127,7 @@ begin
 
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClassRef) then
   begin
-    raise EMVCException.CreateFmt('Cannot find entity not processor for entity "%s"', [entityname]);
+    raise EMVCException.CreateFmt('Cannot find entity nor processor for entity "%s"', [entityname]);
   end;
   if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
   begin
@@ -263,7 +263,7 @@ begin
       raise;
     end;
   end;
-  ActiveRecordConnectionsRegistry.AddConnection('default', lConn);
+  ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
   fAuthorization := aAuthorization;
 end;
 

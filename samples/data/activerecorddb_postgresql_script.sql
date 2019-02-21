@@ -64,3 +64,14 @@ CREATE TABLE people (
 	photo bytea NULL,
 	CONSTRAINT people_pkey PRIMARY KEY (id)
 );
+
+create table phones (
+  id bigserial primary key,
+  phone_number varchar(200) not null,
+  number_type varchar(200) not null,  
+  dob date,
+  id_person bigint not null references people(id)
+);
+
+ALTER TABLE orders ADD CONSTRAINT orders_customers_fk FOREIGN KEY (id_customer) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE order_details ADD CONSTRAINT order_details_orders_fk FOREIGN KEY (id_order) REFERENCES orders(id) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 299
+  ClientHeight = 401
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   DesignSize = (
     635
-    299)
+    401)
   PixelsPerInch = 96
   TextHeight = 13
   object btnCRUD: TButton
@@ -29,7 +29,7 @@ object MainForm: TMainForm
   end
   object btnSelect: TButton
     Left = 8
-    Top = 47
+    Top = 86
     Width = 121
     Height = 33
     Caption = 'Queries'
@@ -40,7 +40,7 @@ object MainForm: TMainForm
     Left = 135
     Top = 8
     Width = 492
-    Height = 283
+    Height = 385
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -53,7 +53,7 @@ object MainForm: TMainForm
   end
   object btnRelations: TButton
     Left = 8
-    Top = 86
+    Top = 125
     Width = 121
     Height = 35
     Caption = 'Relations'
@@ -62,7 +62,7 @@ object MainForm: TMainForm
   end
   object btnInheritance: TButton
     Left = 8
-    Top = 127
+    Top = 166
     Width = 121
     Height = 34
     Caption = 'Inheritance'
@@ -71,7 +71,7 @@ object MainForm: TMainForm
   end
   object btnValidation: TButton
     Left = 8
-    Top = 167
+    Top = 206
     Width = 121
     Height = 34
     Caption = 'Validation'
@@ -80,7 +80,7 @@ object MainForm: TMainForm
   end
   object btnMultiThreading: TButton
     Left = 8
-    Top = 247
+    Top = 286
     Width = 121
     Height = 34
     Caption = 'Multi Threading'
@@ -89,12 +89,21 @@ object MainForm: TMainForm
   end
   object btnRQL: TButton
     Left = 8
-    Top = 207
+    Top = 246
     Width = 121
     Height = 34
     Caption = 'RQL Query'
     TabOrder = 7
     OnClick = btnRQLClick
+  end
+  object btnTransientFields: TButton
+    Left = 8
+    Top = 47
+    Width = 121
+    Height = 33
+    Caption = 'CRUD Transient'
+    TabOrder = 8
+    OnClick = btnTransientFieldsClick
   end
   object FDConnection1: TFDConnection
     Params.Strings = (

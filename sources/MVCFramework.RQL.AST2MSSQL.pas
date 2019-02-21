@@ -40,7 +40,7 @@ type
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
   public
-    constructor Create(const Mapping: TMVCFieldsMapping); virtual;
+    constructor Create(const Mapping: TMVCFieldsMapping); override;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
