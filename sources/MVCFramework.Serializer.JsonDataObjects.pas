@@ -611,12 +611,17 @@ begin
         ChildObject := AValue.AsObject;
         if Assigned(ChildObject) then
         begin
-          ChildList := TDuckTypedList.Wrap(ChildObject);
-          if TMVCSerializerHelper.AttributeExists<MVCListOfAttribute>(ACustomAttributes, ChildListOfAtt) then
-            JsonArrayToList(AJsonObject.A[AName], ChildList, ChildListOfAtt.Value, AType, AIgnored)
+          if ChildObject is TDataSet then
+            JsonArrayToDataSet(AJsonObject.A[AName], ChildObject as TDataSet, AIgnored, ncLowerCase)
           else
-            raise EMVCDeserializationException.CreateFmt
-              ('You can not deserialize a list %s without the attribute MVCListClassTypeAttribute.', [AName]);
+          begin
+            ChildList := TDuckTypedList.Wrap(ChildObject);
+            if TMVCSerializerHelper.AttributeExists<MVCListOfAttribute>(ACustomAttributes, ChildListOfAtt) then
+              JsonArrayToList(AJsonObject.A[AName], ChildList, ChildListOfAtt.Value, AType, AIgnored)
+            else
+              raise EMVCDeserializationException.CreateFmt
+                ('You can not deserialize a list %s without the attribute MVCListClassTypeAttribute.', [AName]);
+          end;
         end;
       end;
   end;
