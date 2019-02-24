@@ -770,8 +770,16 @@ begin
     Dm.EntityAsIsId.AsLargeInt := 2;
     Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityAsIs.Post;
+
+
+    //serialize dataset
     S := FSerializer.SerializeDataSet(Dm.EntityAsIs);
     Assert.areEqual(JSON_LIST, S, 'json list');
+
+    //serialize dataset as object
+    S := FSerializer.SerializeObject(Dm.EntityAsIs);
+    Assert.areEqual(JSON_LIST, S, 'json list');
+
   finally
     Dm.Free;
   end;
