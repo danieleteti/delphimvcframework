@@ -41,10 +41,8 @@ const
 
 {$ENDIF}
 
-
 type
 
-  [TestFixture]
   TBaseServerTest = class(TObject)
   protected
     RESTClient: TRESTClient;
@@ -59,11 +57,12 @@ type
 
   end;
 
+  [TestFixture]
   TServerTest = class(TBaseServerTest)
   public
     [Test]
-    [TestCase('/fault', '/fault')]
-    [TestCase('/fault2', '/fault2')]
+    [TestCase('request url /fault', '/fault')]
+    [TestCase('request url /fault2', '/fault2')]
     procedure TestControllerWithExceptionInCreate(const URLSegment: string);
 
     [Test]
@@ -73,12 +72,12 @@ type
     [Test]
     [TestCase('1', ' à,è')]
     [TestCase('2', 'é,ù,ò')]
-    [TestCase('2', 'ì,@,[')]
-    [TestCase('2', '],{,}')]
-    [TestCase('2', '(,),\')]
-    [TestCase('2', '=,;,&')]
-    [TestCase('2', '#,.,_')]
-    [TestCase('2', '%, , ')]
+    [TestCase('3', 'ì,@,[')]
+    [TestCase('4', '],{,}')]
+    [TestCase('5', '(,),\')]
+    [TestCase('6', '=,;,&')]
+    [TestCase('7', '#,.,_')]
+    [TestCase('8', '%, , ')]
     procedure TestReqWithURLMappedParams(const par1, par2, par3: string);
     [Test]
     procedure TestPOSTWithParamsAndJSONBody;
@@ -473,15 +472,16 @@ begin
   Assert.areEqual('johndoe', LRes.BodyAsString);
 end;
 
-procedure TServerTest.TestControllerWithExceptionInCreate(
-  const URLSegment: string);
+procedure TServerTest.TestControllerWithExceptionInCreate(const URLSegment: string);
 var
   res: IRESTResponse;
 begin
   res := RESTClient.doGET(URLSegment, []);
   Assert.areEqual(HTTP_STATUS.InternalServerError, res.ResponseCode);
-  Assert.Contains(res.ContentType, 'text/plain', true, 'Is not a text/plain in case of error');
+  //Assert.Contains(res.ContentType, 'text/plain', true, 'Is not a text/plain in case of error');
+  Assert.Contains(res.ContentType, 'application/json', true, 'Is not a application/json in case of error');
   Assert.Contains(res.BodyAsString, 'Cannot create controller', true, 'Exception message in body is not correct');
+  //Assert.Contains(res.BodyAsString, 'Cannot create controller', true, 'Exception message in body is not correct');
 end;
 
 procedure TServerTest.TestCookies;
@@ -733,12 +733,10 @@ var
   lCompType: string;
   j: Integer;
 const
-  CompressionTypes: array [1 .. 9] of string =
-    ('deflate', 'gzip', 'deflate,gzip', 'gzip,deflate',
-    'gzip,invalid', 'deflate,notvalid', 'notvalid,gzip', 'invalid', '');
-  CompressionTypeResult: array [1 .. 9] of string =
-    ('deflate', 'gzip', 'deflate', 'gzip',
-    'gzip', 'deflate', 'gzip', '', '');
+  CompressionTypes: array [1 .. 9] of string = ('deflate', 'gzip', 'deflate,gzip', 'gzip,deflate', 'gzip,invalid',
+    'deflate,notvalid', 'notvalid,gzip', 'invalid', '');
+  CompressionTypeResult: array [1 .. 9] of string = ('deflate', 'gzip', 'deflate', 'gzip', 'gzip', 'deflate',
+    'gzip', '', '');
 begin
   j := 1;
   for lCompType in CompressionTypes do
@@ -1330,7 +1328,7 @@ begin
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   LRes := lRPCResp.Result.AsType<TDateTime>();
   DecodeDateTime(LRes, lYear, lMonth, lDay, lHour, lMinute, lSecond, lMillisecond);
-  Assert.AreEqual(2000, lYear);
+  Assert.areEqual(2000, lYear);
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithoutParams;

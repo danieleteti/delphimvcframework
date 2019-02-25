@@ -76,7 +76,10 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.
 - New! Microsoft SQLServer Support in ActiveRecord and RQL (thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework)
 - Improved! `ActiveRecordShowCase` sample is much better now.
+- Improved! In case of unhandled exception `TMVCEngine` is compliant with the default response content-type (usually it did would reply using `text/plain`).
+- Fix! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184).
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
+
 
 |Delphi Version|Project Group|
 |---|---|

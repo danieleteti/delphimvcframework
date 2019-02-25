@@ -1,16 +1,19 @@
 program DMVCFrameworkTests;
 
 {$IFNDEF TESTINSIGHT}
+{$IFNDEF GUI_TESTRUNNER}
 {$APPTYPE CONSOLE}
-{$ENDIF}{$STRONGLINKTYPES ON}
+{$ENDIF}{$ENDIF}{$STRONGLINKTYPES ON}
 
 uses
   System.SysUtils,
-  {$IFDEF TESTINSIGHT}
-  TestInsight.DUnitX,
-  {$ENDIF }
+{$IFDEF GUI_TESTRUNNER}
+  Vcl.Forms,
+  DUnitX.Loggers.GUI.Vcl,
+{$ENDIF}
+{$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
-//  DUnitX.Loggers.GUIX,
+{$ENDIF}
   DUnitX.Loggers.Xml.NUnit,
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',
@@ -19,9 +22,10 @@ uses
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.Tests.WebModule2 in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule},
+  MVCFramework.Tests.WebModule2
+    in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule} ,
   MVCFramework.Tests.StandaloneServer in '..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas',
-  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
+  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule} ,
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
@@ -34,51 +38,67 @@ uses
   MVCFramework.Serializer.JsonDataObjects in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas';
 
 {$R *.RES}
+{$IFDEF CONSOLE_TESTRUNNER}
 
+procedure MainConsole();
 var
-  runner : ITestRunner;
-  results : IRunResults;
-  logger : ITestLogger;
-  nunitLogger : ITestLogger;
+  runner: ITestRunner;
+  results: IRunResults;
+  logger: ITestLogger;
+  nunitLogger: ITestLogger;
 begin
-  ReportMemoryLeaksOnShutdown := True;
-
-{$IFDEF TESTINSIGHT}
-  TestInsight.DUnitX.RunRegisteredTests;
-  exit;
-{$ENDIF}
-
   try
-    //Check command line options, will exit if invalid
+    // Check command line options, will exit if invalid
     TDUnitX.CheckCommandLine;
-    //Create the test runner
+    // Create the test runner
     runner := TDUnitX.CreateRunner;
-    //Tell the runner to use RTTI to find Fixtures
+    // Tell the runner to use RTTI to find Fixtures
     runner.UseRTTI := True;
-    //tell the runner how we will log things
-    //Log to the console window
-    logger := TDUnitXConsoleLogger.Create(true);
+    // tell the runner how we will log things
+    // Log to the console window
+    logger := TDUnitXConsoleLogger.Create(True);
     runner.AddLogger(logger);
-    //Generate an NUnit compatible XML File
-    nunitLogger := TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile);
-    runner.AddLogger(nunitLogger);
-    runner.FailsOnNoAsserts := False; //When true, Assertions must be made during tests;
+    // Generate an NUnit compatible XML File
+    // nunitLogger := TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile);
+    // runner.AddLogger(nunitLogger);
+    runner.FailsOnNoAsserts := False; // When true, Assertions must be made during tests;
 
-    //Run tests
+    // Run tests
     results := runner.Execute;
     if not results.AllPassed then
       System.ExitCode := EXIT_ERRORS;
 
-    {$IFNDEF CI}
-    //We don't want this happening when running under CI.
+{$IFNDEF CI}
+    // We don't want this happening when running under CI.
     if TDUnitX.Options.ExitBehavior = TDUnitXExitBehavior.Pause then
     begin
       System.Write('Done.. press <Enter> key to quit.');
       System.Readln;
     end;
-    {$ENDIF}
+{$ENDIF}
   except
     on E: Exception do
       System.Writeln(E.ClassName, ': ', E.Message);
   end;
+end;
+{$ENDIF}
+{$IFDEF GUI_TESTRUNNER}
+
+procedure MainGUI;
+begin
+  Application.Initialize;
+  Application.CreateForm(TGUIVCLTestRunner, GUIVCLTestRunner);
+  Application.Run;
+end;
+{$ENDIF}
+
+begin
+  ReportMemoryLeaksOnShutdown := True;
+{$IFDEF CONSOLE_TESTRUNNER}
+  MainConsole();
+{$ENDIF}
+{$IFDEF GUI_TESTRUNNER}
+  MainGUI();
+{$ENDIF}
+
 end.
