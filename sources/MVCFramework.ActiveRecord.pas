@@ -1924,7 +1924,7 @@ function TMVCSQLGenerator.GetRQLParser: TRQL2SQL;
 begin
   if fRQL2SQL = nil then
   begin
-    fRQL2SQL := TRQL2SQL.Create(20);
+    fRQL2SQL := TRQL2SQL.Create;//(20);
   end;
   Result := fRQL2SQL;
 end;
