@@ -275,8 +275,6 @@ type
     procedure SetContentType(const AValue: string);
     procedure SetLocation(const AValue: string);
     procedure SetContent(const AValue: string);
-  protected
-    { protected declarations }
   public
     constructor Create(const AWebResponse: TWebResponse);
     destructor Destroy; override;
@@ -284,7 +282,6 @@ type
     procedure Flush;
     procedure SetCustomHeader(const AName, AValue: string);
     procedure SetContentStream(const AStream: TStream; const AContentType: string);
-
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ReasonString: string read GetReasonString write SetReasonString;
     property ContentType: string read GetContentType write SetContentType;
@@ -1012,7 +1009,7 @@ constructor TMVCWebRequest.Create(const AWebRequest: TWebRequest;
 begin
   inherited Create;
   FBody := EmptyStr;
-  FContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+  // FContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
   FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   FWebRequest := AWebRequest;
   FSerializers := ASerializers;
@@ -1243,12 +1240,13 @@ end;
 
 procedure TMVCWebResponse.SetContentStream(const AStream: TStream; const AContentType: string);
 begin
-  FWebResponse.ContentType := AContentType;
+  ContentType := AContentType;
   FWebResponse.ContentStream := AStream;
 end;
 
 procedure TMVCWebResponse.SetContentType(const AValue: string);
 begin
+  FWebResponse.ContentType := '';
   FWebResponse.ContentType := AValue;
 end;
 
@@ -1802,7 +1800,6 @@ begin
                 // end;
 
                 LContext.Response.ContentType := LSelectedController.ContentType;
-
                 Log(TLogLevel.levNormal, ARequest.Method + ':' + ARequest.RawPathInfo + ' -> ' +
                   LRouter.ControllerClazz.QualifiedClassName + ' - ' + IntToStr(AResponse.StatusCode) + ' ' +
                   AResponse.ReasonString)
@@ -2635,23 +2632,30 @@ end;
 
 procedure TMVCRenderer.SendStream(const AStream: TStream; const AOwns: Boolean; const ARewind: Boolean);
 var
-  S: TStream;
+  lTemp: TStream;
 begin
   if ARewind then
-    AStream.Position := 0;
-
-  if not AOwns then
   begin
-    S := TMemoryStream.Create;
-    S.CopyFrom(AStream, 0);
-    S.Position := 0;
-  end
-  else
-    S := AStream;
+    AStream.Position := 0;
+  end;
+
+  lTemp := TMemoryStream.Create;
+  try
+    lTemp.CopyFrom(AStream, 0);
+    lTemp.Position := 0;
+  except
+    lTemp.Free;
+    raise;
+  end;
+
+  if AOwns then
+  begin
+    AStream.Free;
+  end;
 
   GetContext.Response.RawWebResponse.Content := EmptyStr;
   GetContext.Response.RawWebResponse.ContentType := GetContentType;
-  GetContext.Response.RawWebResponse.ContentStream := S;
+  GetContext.Response.RawWebResponse.ContentStream := lTemp;
   GetContext.Response.RawWebResponse.FreeContentStream := True;
 end;
 

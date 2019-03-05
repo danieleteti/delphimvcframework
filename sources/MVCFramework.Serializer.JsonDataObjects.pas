@@ -122,11 +122,15 @@ uses
 { TMVCJsonDataObjectsSerializer }
 
 procedure TMVCJsonDataObjectsSerializer.AfterConstruction;
+var
+  lStreamSerializer: IMVCTypeSerializer;
 begin
   inherited AfterConstruction;
-  GetTypeSerializers.Add(TypeInfo(TStream), TMVCStreamSerializerJsonDataObject.Create);
-  GetTypeSerializers.Add(TypeInfo(TStringStream), TMVCStreamSerializerJsonDataObject.Create);
-  GetTypeSerializers.Add(TypeInfo(TMemoryStream), TMVCStreamSerializerJsonDataObject.Create);
+  lStreamSerializer := TMVCStreamSerializerJsonDataObject.Create;
+  GetTypeSerializers.Add(TypeInfo(TStream), lStreamSerializer);
+  GetTypeSerializers.Add(TypeInfo(TStringStream), lStreamSerializer);
+  GetTypeSerializers.Add(TypeInfo(TFileStream), lStreamSerializer);
+  GetTypeSerializers.Add(TypeInfo(TMemoryStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), TMVCStringDictionarySerializer.Create);
 end;
 
@@ -483,8 +487,7 @@ begin
     end
     else
     begin
-      raise EMVCSerializationException.Create
-            ('Cannot deserialize, expected json object');
+      raise EMVCSerializationException.Create('Cannot deserialize, expected json object');
     end;
   finally
     lJsonBase.Free;
@@ -535,8 +538,8 @@ begin
         begin
           /// <summary>JsonDataObjects assumes values null as jdtObject</summary>
           if AJsonObject[AName].ObjectValue <> nil then
-            GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ObjectValue,
-              ACustomAttributes);
+            GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName,
+              AJsonObject[AName].ObjectValue, ACustomAttributes);
         end;
       jdtArray:
         GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ArrayValue,
@@ -620,7 +623,7 @@ begin
               JsonArrayToList(AJsonObject.A[AName], ChildList, ChildListOfAtt.Value, AType, AIgnored)
             else
               raise EMVCDeserializationException.CreateFmt
-                ('You can not deserialize a list %s without the attribute MVCListClassTypeAttribute.', [AName]);
+                ('You can not deserialize a list %s without the MVCListOf attribute.', [AName]);
           end;
         end;
       end;
@@ -1046,6 +1049,7 @@ procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObjec
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 var
   JsonObject: TJDOJsonObject;
+  JsonBase: TJsonBaseObject;
 begin
   if (ASerializedObject = EmptyStr) then
     raise EMVCException.Create(http_status.BadRequest, 'Invalid body');
@@ -1054,7 +1058,13 @@ begin
     Exit;
 
   try
-    JsonObject := TJDOJsonObject.Parse(ASerializedObject) as TJDOJsonObject;
+    JsonBase := TJDOJsonObject.Parse(ASerializedObject);
+    if not(JsonBase is TJDOJsonObject) then
+    begin
+      raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+        [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+    end;
+    JsonObject := TJDOJsonObject(JsonBase);
   except
     on E: EJsonParserException do
     begin
@@ -1090,11 +1100,11 @@ begin
       end;
     tkFloat:
       begin
-        {$IFDEF NEXTGEN}
+{$IFDEF NEXTGEN}
         if PChar(Pointer(Value.TypeInfo.Name)) = 'TDate' then
-        {$ELSE}
+{$ELSE}
         if Value.TypeInfo.Name = 'TDate' then
-        {$ENDIF}
+{$ENDIF}
         begin
           JSON.DUtc[KeyName] := Value.AsExtended;
         end
@@ -1206,4 +1216,3 @@ begin
 end;
 
 end.
-
