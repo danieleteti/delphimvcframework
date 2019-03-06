@@ -167,10 +167,14 @@ begin
   JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
   try
     JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
-    AuthHeader := AContext.Request.Headers['Authentication'];
+    AuthHeader := AContext.Request.Headers['Authorization'];
+	
+	{ Authentication is deprecated. Use Authorization. Maintained only for compatibility }
+    if AuthHeader.IsEmpty then
+      AuthHeader := AContext.Request.Headers['Authentication'];
     if AuthHeader.IsEmpty then
     begin
-      RenderError(HTTP_STATUS.Unauthorized, 'Authentication Required', AContext);
+      RenderError(HTTP_STATUS.Unauthorized, 'Authorization Required', AContext);
       AHandled := True;
       Exit;
     end;
@@ -223,7 +227,7 @@ begin
           begin
             ExtendExpirationTime(JWTValue);
             // .Claims.ExpirationTime := Now + JWTValue.LiveValidityWindowInSeconds * OneSecond;
-            AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
+            AContext.Response.SetCustomHeader('Authorization', 'bearer ' + JWTValue.GetToken);
           end;
         end;
         AHandled := False
@@ -252,8 +256,8 @@ var
 begin
   if SameText(AContext.Request.PathInfo, FLoginURLSegment) and (AContext.Request.HTTPMethod = httpPOST) then
   begin
-    UserName := TNetEncoding.URL.Decode(AContext.Request.Headers['jwtusername']);
-    Password := TNetEncoding.URL.Decode(AContext.Request.Headers['jwtpassword']);
+    UserName := TNetEncoding.URL.Decode(AContext.Request.Headers['username']);
+    Password := TNetEncoding.URL.Decode(AContext.Request.Headers['password']);
     if (UserName.IsEmpty) or (Password.IsEmpty) then
     begin
       RenderError(HTTP_STATUS.Unauthorized, 'Username and password Required', AContext);
