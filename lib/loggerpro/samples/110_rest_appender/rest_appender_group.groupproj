@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{5BA437FC-4365-4824-8F39-36A3387CD280}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="RESTAppenderSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\rest_logs_collector\RESTLogsCollector.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="RESTAppenderSample">
+        <MSBuild Projects="RESTAppenderSample.dproj"/>
+    </Target>
+    <Target Name="RESTAppenderSample:Clean">
+        <MSBuild Projects="RESTAppenderSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RESTAppenderSample:Make">
+        <MSBuild Projects="RESTAppenderSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="RESTLogsCollector">
+        <MSBuild Projects="..\rest_logs_collector\RESTLogsCollector.dproj"/>
+    </Target>
+    <Target Name="RESTLogsCollector:Clean">
+        <MSBuild Projects="..\rest_logs_collector\RESTLogsCollector.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RESTLogsCollector:Make">
+        <MSBuild Projects="..\rest_logs_collector\RESTLogsCollector.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="RESTAppenderSample;RESTLogsCollector"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="RESTAppenderSample:Clean;RESTLogsCollector:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="RESTAppenderSample:Make;RESTLogsCollector:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
