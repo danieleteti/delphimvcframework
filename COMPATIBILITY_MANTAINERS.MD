@@ -17,7 +17,7 @@ If you use a Delphi version that is not the latest, and you find an issue, check
 
 ### What is expected by a compatibility mantainer?
 
-A compatibility maintainer is in charge to test each release randidate and each main version to ensure that the core packages and all the samples works for the Delphi version in charge to him. These are the steps to follow:
+A compatibility maintainer is in charge to test each release candidate and each main version to ensure that the core packages and all the samples works for the Delphi version in charge to him. These are the steps to follow:
 
 ### Testing Installation
 
@@ -29,7 +29,7 @@ A compatibility maintainer is in charge to test each release randidate and each 
 ### Testing IDE Integration
 
 - Close Delphi
-- Restart Delphi and check if the DMVCFramedork splash appears in the RAD Studio splash screen.
+- Restart Delphi and check if the DMVCFramework splash appears in the RAD Studio splash screen.
 - `File->New->Project` you should see the DMVCFramework Node to create a new project
 - Create a new project, leave all the defaults and run it (should run without problems)
 
