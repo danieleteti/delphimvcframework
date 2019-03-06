@@ -1,6 +1,0 @@
-[submodule "lib\\loggerpro"]
-	path = lib\\loggerpro
-	url = https://github.com/danieleteti/loggerpro.git
-[submodule "lib\\dmustache"]
-	path = lib\\dmustache
-	url = https://github.com/synopse/dmustache.git
