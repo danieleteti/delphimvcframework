@@ -6,7 +6,6 @@ DelphiMVCFramework is the most popular Delphi project on github!
 
 Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
 
-
 ## DelphiMVCFramework Main Features
 
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!

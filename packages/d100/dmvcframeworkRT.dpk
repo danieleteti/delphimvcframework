@@ -26,7 +26,7 @@ package dmvcframeworkRT;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'DMVCFramework 3.x'}
-{$LIBSUFFIX '103'}
+{$LIBSUFFIX '100'}
 {$RUNONLY}
 {$IMPLICITBUILD ON}
 
@@ -96,5 +96,4 @@ contains
   MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas';
 
 end.
-
 
