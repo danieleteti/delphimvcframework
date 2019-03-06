@@ -71,6 +71,8 @@ type
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
     IMAGE_PNG = 'image/png';
+	APPLICATION_PDF = 'application/pdf';
+	APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';
   end;
 

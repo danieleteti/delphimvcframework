@@ -2661,12 +2661,13 @@ end;
 
 function TMVCRenderer.Serializer(const AContentType: string): IMVCSerializer;
 var
-  lContentType: string;
+  lContentMediaType: string;
+  lContentCharSet: string;
 begin
-  lContentType := AContentType.ToLower.Replace(' ', '', [rfReplaceAll]);
-  if not Engine.Serializers.ContainsKey(lContentType) then
-    raise EMVCException.CreateFmt('The serializer for %s could not be found.', [AContentType]);
-  Result := Engine.Serializers.Items[lContentType];
+  SplitContentMediaTypeAndCharset(AContentType.ToLower, lContentMediaType, lContentCharSet);
+  if not Engine.Serializers.ContainsKey(lContentMediaType) then
+    raise EMVCException.CreateFmt('The serializer for %s could not be found.', [lContentMediaType]);
+  Result := Engine.Serializers.Items[lContentMediaType];
 end;
 
 function TMVCController.SessionAs<T>: T;

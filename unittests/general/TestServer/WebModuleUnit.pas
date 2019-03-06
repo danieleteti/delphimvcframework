@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -58,7 +58,7 @@ begin
     procedure(Config: TMVCConfig)
     begin
       // no config here
-      Config[TMVCConfigKey.SessionTimeout] := '0'; // settion cookie
+      Config[TMVCConfigKey.SessionTimeout] := '0'; // setting cookie
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
