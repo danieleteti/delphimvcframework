@@ -100,8 +100,8 @@ begin
     (JWTValue.LeewaySeconds + JWTValue.LiveValidityWindowInSeconds) * OneSecond;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONOb: TJDOJsonObject; AContentType, AContentEncoding: string;
-  AContext: TWebContext; AInstanceOwner: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONOb: TJDOJsonObject;
+  AContentType, AContentEncoding: string; AContext: TWebContext; AInstanceOwner: Boolean);
 var
   Encoding: TEncoding;
   ContentType, JValue: string;
@@ -129,12 +129,12 @@ var
 begin
   lWillExpireIn := SecondsBetween(Now, JWTValue.Claims.ExpirationTime);
   Result := lWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
-//  Log.Debug('--------------------------', 'EXPIRE');
-//  Log.DebugFmt('Now             : %s', [TimeToStr(Now)], 'EXPIRE');
-//  Log.DebugFmt('ExpirationTime  : %s', [TimeToStr(JWTValue.Claims.ExpirationTime)], 'EXPIRE');
-//  Log.DebugFmt('WillExpireIn    : %d', [lWillExpireIn], 'EXPIRE');
-//  Log.DebugFmt('LVW             : %d', [JWTValue.LiveValidityWindowInSeconds], 'EXPIRE');
-//  Log.DebugFmt('NeedsToBeExtened: %s', [BoolToStr(Result, True)], 'EXPIRE');
+  // Log.Debug('--------------------------', 'EXPIRE');
+  // Log.DebugFmt('Now             : %s', [TimeToStr(Now)], 'EXPIRE');
+  // Log.DebugFmt('ExpirationTime  : %s', [TimeToStr(JWTValue.Claims.ExpirationTime)], 'EXPIRE');
+  // Log.DebugFmt('WillExpireIn    : %d', [lWillExpireIn], 'EXPIRE');
+  // Log.DebugFmt('LVW             : %d', [JWTValue.LiveValidityWindowInSeconds], 'EXPIRE');
+  // Log.DebugFmt('NeedsToBeExtened: %s', [BoolToStr(Result, True)], 'EXPIRE');
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
@@ -212,8 +212,8 @@ begin
       AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
       AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
 
-      FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
-        IsAuthorized);
+      FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName,
+        AActionName, IsAuthorized);
 
       if IsAuthorized then
       begin
@@ -222,7 +222,6 @@ begin
           if NeedsToBeExtended(JWTValue) then
           begin
             ExtendExpirationTime(JWTValue);
-            // .Claims.ExpirationTime := Now + JWTValue.LiveValidityWindowInSeconds * OneSecond;
             AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
           end;
         end;
@@ -280,10 +279,12 @@ begin
 
               // these claims are mandatory and managed by the middleware
               if not JWTValue.CustomClaims['username'].IsEmpty then
-                raise EMVCJWTException.Create('Custom claim "username" is reserved and cannot be modified in the JWT setup');
+                raise EMVCJWTException.Create
+                  ('Custom claim "username" is reserved and cannot be modified in the JWT setup');
 
               if not JWTValue.CustomClaims['roles'].IsEmpty then
-                raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
+                raise EMVCJWTException.Create
+                  ('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
 
               JWTValue.CustomClaims['username'] := UserName;
               JWTValue.CustomClaims['roles'] := string.Join(',', RolesList.ToArray);
@@ -315,11 +316,16 @@ begin
               end;
 
               LObj := TJDOJsonObject.Create;
-              LObj.S['token'] := JWTValue.GetToken;
-              InternalRender(LObj, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
+              try
+                LObj.S['token'] := JWTValue.GetToken;
+                InternalRender(LObj, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET,
+                  AContext, False);
+              finally
+                LObj.Free;
+              end;
               AHandled := True;
             finally
-                JWTValue.Free;
+              JWTValue.Free;
             end;
           end
           else
@@ -328,7 +334,7 @@ begin
             AHandled := True;
           end;
         except
-          on E : Exception do
+          on E: Exception do
           begin
             RenderError(HTTP_STATUS.Forbidden, E.Message, AContext);
             AHandled := True;
