@@ -6,6 +6,22 @@ DelphiMVCFramework is the most popular Delphi project on github!
 
 Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
 
+## What users says about DMVCFramework
+
+>"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
+
+>"Wow! To do that in J2EE it takes 2 days" -- a training participant after a 5 minutes demo.
+
+>"I'm starting with the DMVCFramework and I'm finding it fantastic, congratulations for the project!" -- Rafael
+
+>"I'm looking at DMVCFramework project in it works great - for my use case scenarios is much better than *'Similar commercial product'*."  -- Luka
+
+>"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
+
+>"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
+Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
+  
+
 ## DelphiMVCFramework Main Features
 
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
@@ -32,36 +48,20 @@ Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delp
   * Powerful and customizable mapper to serialize/deserialize data.
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
-  * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo
+  * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
   * Works on Linux (Delphi 10.2 Tokyo or better)
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
-  * Specific trainings are available (email to professionals@bittime.it for a date and a place)
+  * Specific trainings are available (email to `professionals@bittime.it` for a date and a place)
   * Messaging extension using ServerSentEvents
-  * Automatic documentation through /system/describeserver.info
+  * Automatic documentation through `/system/describeserver.info`
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
+  * Continuosly tested for Delphi versions incompatibilities by the proud [compatibility mantainers](COMPATIBILITY_MANTAINERS.MD) 
 
-
-## What users says about DMVCFramework
-
->"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
-
->"Wow! To do that in J2EE it takes 2 days" -- a training participant after a 5 minutes demo.
-
->"I'm starting with the DMVCFramework and I'm finding it fantastic, congratulations for the project!" -- Rafael
-
->"I'm looking at DMVCFramework project in it works great - for my use case scenarios is much better than *'Similar commercial product'*."  -- Luka
-
->"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
-
->"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
-Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
-
-  
 ## What's New
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
