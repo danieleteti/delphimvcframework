@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{84344511-1DC2-41BA-8689-9F36C1D475BE}</ProjectGuid>
         <MainSource>dmvcframeworkDT.dpk</MainSource>
-        <ProjectVersion>18.5</ProjectVersion>
+        <ProjectVersion>18.6</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>

@@ -69,7 +69,10 @@ type
     TEXT_EVENTSTREAM = 'text/event-stream';
     TEXT_CSV = 'text/csv';
     IMAGE_JPEG = 'image/jpeg';
-    IMAGE_PNG = 'image/x-png';
+    IMAGE_X_PNG = 'image/x-png';
+    IMAGE_PNG = 'image/png';
+	APPLICATION_PDF = 'application/pdf';
+	APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';
   end;
 
@@ -549,16 +552,30 @@ begin
 end;
 
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
+var
+  lContentMediaType: String;
 begin
-  if aContentCharSet = '' then
+  lContentMediaType := aContentMediaType.ToLower.Trim.Replace(' ', '', [rfReplaceAll]);
+
+  if lContentMediaType = '' then
   begin
-    Result := aContentMediaType;
+    Result := '';
   end
   else
   begin
-    Result := aContentMediaType + ';charset=' + aContentCharSet;
+    if aContentCharSet.IsEmpty then
+    begin
+      Result := lContentMediaType;
+    end
+    else if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/') then
+    begin
+      Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
+    end
+    else
+    begin
+      Result := lContentMediaType;
+    end;
   end;
-  Result := Result.ToLower.Replace(' ', '', [rfReplaceAll]);
 end;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;

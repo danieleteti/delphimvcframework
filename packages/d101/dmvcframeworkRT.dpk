@@ -43,6 +43,11 @@ requires
   loggerproRT;
 
 contains
+  Web.ApacheConst,
+  Web.Win.IsapiHTTP,
+  Web.ApacheHTTP,
+  Web.HTTPDMethods,
+  Web.HTTPDImpl,
   JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',

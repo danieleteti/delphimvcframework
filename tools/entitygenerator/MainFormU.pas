@@ -377,6 +377,8 @@ begin
       Result := 'String; {fixedchar}';
     ftWideString:
       Result := 'String';
+    ftGuid:
+      Result := 'TGuid';
   else
     Result := '<UNSUPPORTED TYPE: ' + IntToStr(Ord(FT)) + '>';
   end;
@@ -391,7 +393,7 @@ begin
     exit('f' + Value.ToUpper);
 
   Result := '';
-  Pieces := Value.ToLower.Split(['_']);
+  Pieces := Value.ToLower.Split(['_'], TStringSplitOptions.ExcludeEmpty);
   for s in Pieces do
   begin
     if s = 'id' then

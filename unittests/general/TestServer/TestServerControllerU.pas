@@ -94,7 +94,7 @@ type
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     [MVCConsumes('text/plain')]
-    [MVCProduces('text/plain')]
+    [MVCProduces('text/plain', 'utf-8')]
     procedure TestConsumesProducesText;
 
     [MVCPath('/testconsumejson')]
@@ -159,8 +159,8 @@ type
     procedure TestTypedActionExtended1(value: Extended);
 
     [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')]
-    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
-      ParExtended: Extended);
+    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;
+      ParDouble: Double; ParExtended: Extended);
 
     [MVCPath('/typed/tdatetime1/($value)')]
     procedure TestTypedActionTDateTime1(value: TDateTime);
@@ -182,6 +182,10 @@ type
 
     [MVCPath('/stringdictionary')]
     procedure TestStringDictionary;
+
+    [MVCPath('/image/png')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetImagePng;
 
   end;
 
@@ -223,6 +227,7 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
+  System.IOUtils,
   System.Classes;
 
 { TTestServerController }
@@ -325,8 +330,9 @@ end;
 
 procedure TTestServerController.ReqWithParams;
 begin
-  Render(TJSONObject.Create.AddPair('par1', Context.Request.Params['par1']).AddPair('par2', Context.Request.Params['par2']).AddPair('par3',
-    Context.Request.Params['par3']).AddPair('method', Context.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', Context.Request.Params['par1']).AddPair('par2',
+    Context.Request.Params['par2']).AddPair('par3', Context.Request.Params['par3']).AddPair('method',
+    Context.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet;
@@ -373,6 +379,12 @@ begin
   Obj.AddPair('name2', 'to je Unicode?');
   Obj.AddPair('name3', 'אטילעש');
   Render(Obj);
+end;
+
+procedure TTestServerController.TestGetImagePng;
+begin
+  ContentType := TMVCMediaType.IMAGE_PNG;
+  Render(TFile.OpenRead('..\..\sample.png'));
 end;
 
 procedure TTestServerController.TestGetPersonByID;
@@ -512,8 +524,8 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;
-  ParDouble: Double; ParExtended: Extended);
+procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64;
+  ParSingle: Single; ParDouble: Double; ParExtended: Extended);
 var
   lJObj: TJSONObject;
 begin
@@ -578,7 +590,8 @@ end;
 procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True), BoolToStr(bool3, True), BoolToStr(bool4, True)]));
+  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True), BoolToStr(bool3, True),
+    BoolToStr(bool4, True)]));
 end;
 
 procedure TTestServerController.TestTypedActionTTime1(value: TTime);

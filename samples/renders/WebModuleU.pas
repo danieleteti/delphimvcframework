@@ -79,18 +79,18 @@ begin
   DMVC.AddController(TRenderSampleController);
   DMVC.SetViewEngine(TMVCMustacheViewEngine);
 
-
   // Register a custom serializer for TUserRoles (is compatible only with the default serializer)
   DMVC
     .Serializers
-    .Items[BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
+    .Items[TMVCMediaType.APPLICATION_JSON]
     .RegisterTypeSerializer(TypeInfo(TUserRoles), TUserRolesSerializer.Create);
+
   // You can check how this custom type serializer works
   // calling http://localhost:8080/customserializationtype
 
   DMVC
     .Serializers
-    .Items[BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
+    .Items[TMVCMediaType.APPLICATION_JSON]
     .RegisterTypeSerializer(TypeInfo(TNullableRecordAlias), TNullableAliasSerializer.Create);
 end;
 
