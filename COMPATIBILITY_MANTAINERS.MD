@@ -10,7 +10,7 @@ If you use a Delphi version that is not the latest, and you find an issue, check
 |Delphi Version | Compatibility Mantainer |
 |---|---|
 |Delphi 10.3.1 Rio		|Daniele Teti, João Fernandes, Emilio Perez		|
-|Delphi 10.2.3 Tokyo|Moh Pal, Akrom Obidov, MJ Wille 				|
+|Delphi 10.2.3 Tokyo|Mohammed Nasman, Akrom Obidov, MJ Wille 				|
 |Delphi 10.1.2 Berlin 	| Emilio Perez, Akrom Obidov, Akbar Khayitov 	|
 |Delphi 10.0 Seattle	| Davut Eryılmaz 								|
 |Delphi XE7				| Daniele Barbato, Emilio Perez  				|
