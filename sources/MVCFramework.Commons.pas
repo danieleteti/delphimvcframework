@@ -980,7 +980,7 @@ var
   UFTStr: UTF8String;
 begin
   UFTStr := UTF8String(AString);
-  Self.WriteBuffer(UFTStr[1], Length(UFTStr));
+  Self.WriteBuffer(UFTStr[Low(UFTStr)], Length(UFTStr));
 end;
 
 initialization
