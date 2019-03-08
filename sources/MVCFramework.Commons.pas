@@ -31,6 +31,7 @@ unit MVCFramework.Commons;
 interface
 
 uses
+  System.Classes,
   System.SysUtils,
   System.SyncObjs,
   System.IOUtils,
@@ -430,6 +431,11 @@ type
     property AsInt64[const AIndex: string]: Int64 read GetValueAsInt64;
   end;
 
+  TMVCStreamHelper = class helper for TStream
+  public
+    procedure WriteUTF8(const AString: string);
+  end;
+
   TMVCFieldMap = record
     InstanceFieldName: string;
     DatabaseFieldName: string;
@@ -481,7 +487,7 @@ const
 implementation
 
 uses
-  IdCoder3to4, System.Classes, JsonDataObjects, MVCFramework.Serializer.JsonDataObjects;
+  IdCoder3to4, JsonDataObjects, MVCFramework.Serializer.JsonDataObjects;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -965,6 +971,16 @@ end;
 constructor TMVCViewDataSet.Create;
 begin
   inherited Create([]);
+end;
+
+{ TMVCStreamHelper }
+
+procedure TMVCStreamHelper.WriteUTF8(const AString: string);
+var
+  UFTStr: UTF8String;
+begin
+  UFTStr := UTF8String(AString);
+  Self.WriteBuffer(UFTStr[1], Length(UFTStr));
 end;
 
 initialization
