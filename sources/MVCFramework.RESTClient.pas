@@ -1361,16 +1361,7 @@ begin
     on E: EIdHTTPProtocolException do
     begin
       Result.HasError := True;
-      Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-
-{$IF CompilerVersion > 30}
-        ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
-
-{$ELSE}
-        ElementToCharLen(UTF8Encode(E.ErrorMessage),
-
-{$ENDIF}
-        Length(E.ErrorMessage) * 2));
+      Result.Body.WriteUTF8(E.ErrorMessage);
     end
     else
       raise;
@@ -1477,16 +1468,7 @@ begin
     on E: EIdHTTPProtocolException do
     begin
       Result.HasError := True;
-      Result.Body.Write(UTF8Encode(E.ErrorMessage)[1],
-
-{$IF CompilerVersion > 30}
-        ElementToCharLen(string(UTF8Encode(E.ErrorMessage)),
-
-{$ELSE}
-        ElementToCharLen(UTF8Encode(E.ErrorMessage),
-
-{$ENDIF}
-        Length(E.ErrorMessage) * 2));
+      Result.Body.WriteUTF8(E.ErrorMessage);
     end
     else
       raise;
