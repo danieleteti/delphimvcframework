@@ -829,6 +829,7 @@ var
   Prop: TRttiProperty;
   Fld: TRttiField;
 begin
+  {TODO -oDanieleT -cGeneral : Find a way to automatically add HATEOS}
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:

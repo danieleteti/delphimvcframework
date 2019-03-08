@@ -35,7 +35,7 @@ uses
   System.SyncObjs,
   System.IOUtils,
   System.Generics.Collections,
-  System.JSON,
+  // System.JSON,
   Data.DB,
   IdGlobal,
   IdCoderMIME;
@@ -71,8 +71,8 @@ type
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
     IMAGE_PNG = 'image/png';
-	APPLICATION_PDF = 'application/pdf';
-	APPLICATION_X_PDF = 'application/x-pdf';
+    APPLICATION_PDF = 'application/pdf';
+    APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';
   end;
 
@@ -360,6 +360,7 @@ type
     function Count: Integer;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
+    function Keys: TArray<String>;
     property Items[const Key: string]: string read GetItems write SetItems; default;
   end;
 
@@ -408,7 +409,7 @@ type
 
   TMVCConfig = class sealed
   private
-    FConfig: TDictionary<string, string>;
+    FConfig: TMVCStringDictionary;
 
     function GetValue(const AIndex: string): string;
     function GetValueAsInt64(const AIndex: string): Int64;
@@ -479,7 +480,7 @@ const
 implementation
 
 uses
-  IdCoder3to4;
+  IdCoder3to4, System.Classes, JsonDataObjects, MVCFramework.Serializer.JsonDataObjects;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -674,7 +675,7 @@ end;
 constructor TMVCConfig.Create;
 begin
   inherited Create;
-  FConfig := TDictionary<string, string>.Create;
+  FConfig := TMVCStringDictionary.Create;
 end;
 
 destructor TMVCConfig.Destroy;
@@ -698,40 +699,29 @@ end;
 
 function TMVCConfig.Keys: TArray<string>;
 begin
-  Result := FConfig.Keys.ToArray;
+  Result := FConfig.Keys;
 end;
 
 procedure TMVCConfig.LoadFromFile(const AFileName: string);
 var
-  S: string;
-  Jo: TJSONObject;
-  P: TJSONPair;
-  lJConfig: TJSONValue;
-  I: Integer;
+  lConfigString: string;
+  lStreamReader: TStreamReader;
+  lSer: TMVCJsonDataObjectsSerializer;
 begin
-  { TODO -oEzequiel -cRefactoring : Replace for custom serializers }
-  S := TFile.ReadAllText(AFileName);
-  lJConfig := TJSONObject.ParseJSONValue(S);
+  lStreamReader := TStreamReader.Create(TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite), TEncoding.ASCII);
   try
-    if Assigned(lJConfig) then
-    begin
-      if lJConfig is TJSONObject then
-      begin
-        Jo := TJSONObject(lJConfig);
-        for I := 0 to Jo.Count - 1 do
-        begin
-          P := Jo.Pairs[I];
-          FConfig.AddOrSetValue(P.JsonString.Value, P.JsonValue.Value);
-        end
-      end
-      else
-        raise EMVCConfigException.Create('DMVCFramework configuration file [' + AFileName +
-          '] does not contain a valid JSONObject');
-    end
-    else
-      raise EMVCConfigException.Create('Cannot load DMVCFramework configuration file [' + AFileName + ']');
+    lStreamReader.OwnStream;
+    lConfigString := lStreamReader.ReadToEnd;
   finally
-    lJConfig.Free;
+    lStreamReader.Free;
+  end;
+
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    FConfig.Clear;
+    lSer.DeserializeObject(lConfigString, FConfig);
+  finally
+    lSer.Free;
   end;
 end;
 
@@ -742,29 +732,18 @@ end;
 
 procedure TMVCConfig.SetValue(const AIndex, AValue: string);
 begin
-  FConfig.AddOrSetValue(AIndex, AValue);
+  FConfig.AddProperty(AIndex, AValue);
 end;
 
 function TMVCConfig.ToString: string;
 var
-  S: string;
-  Jo: TJSONObject;
+  lSer: TMVCJsonDataObjectsSerializer;
 begin
-  { TODO -oEzequiel -cRefactoring : Replace for custom serializers }
-  Jo := TJSONObject.Create;
+  lSer := TMVCJsonDataObjectsSerializer.Create;
   try
-    for S in FConfig.Keys do
-      Jo.AddPair(S, FConfig[S]);
-
-{$IFDEF SYSTEMJSON}
-    Result := Jo.ToJSON;
-
-{$ELSE}
-    Result := Jo.ToString;
-
-{$ENDIF}
+    Result := lSer.SerializeObject(FConfig);
   finally
-    Jo.Free;
+    lSer.Free;
   end;
 end;
 
@@ -812,6 +791,11 @@ function TMVCStringDictionary.GetItems(const Key: string): string;
 begin
   Result := '';
   FDict.TryGetValue(Key, Result);
+end;
+
+function TMVCStringDictionary.Keys: TArray<String>;
+begin
+  Result := FDict.Keys.ToArray;
 end;
 
 procedure TMVCStringDictionary.SetItems(const Key, Value: string);
