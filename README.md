@@ -66,6 +66,16 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
 - New! Added SQLGenerator and RQL compiler for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
+- Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` in `renders.dproj` sample)
+```delphi
+    //Now is really easy to add "_links" property automatically for each collection element while rendering
+	  Render<TPerson>(People, True,
+		procedure(const Person: TPerson; const Dict: TMVCStringDictionary)
+		begin
+		  Dict['x-ref'] := '/api/people/' + Person.ID;
+		  Dict['x-child-ref'] := '/api/people/' + Person.ID + '/child';
+		end);
+```		
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
 - Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found

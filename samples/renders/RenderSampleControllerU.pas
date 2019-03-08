@@ -67,6 +67,11 @@ type
     procedure GetPeople_AsObjectList;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/people/hateos')]
+    [MVCProduces('application/json')]
+    procedure GetPeople_AsObjectList_HATEOS;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/people/withtiming')]
     [MVCProduces('application/json')]
     procedure GetPeopleWithTiming;
@@ -253,8 +258,8 @@ begin
   try
     lDM.qryCustomers.Open;
     lHolder := TDataSetHolder.Create(lDM.qryCustomers);
-    lHolder.Metadata.AddProperty('page', '1');
-    lHolder.Metadata.AddProperty('count', lDM.qryCustomers.RecordCount.ToString);
+    lHolder.Metadata.Add('page', '1');
+    lHolder.Metadata.Add('count', lDM.qryCustomers.RecordCount.ToString);
     Render(lHolder);
   finally
     lDM.Free;
@@ -417,6 +422,44 @@ begin
 
 {$ENDREGION}
   Render<TPerson>(People);
+end;
+
+procedure TRenderSampleController.GetPeople_AsObjectList_HATEOS;
+var
+  p: TPerson;
+  People: TObjectList<TPerson>;
+begin
+  People := TObjectList<TPerson>.Create(True);
+
+{$REGION 'Fake data'}
+  p := TPerson.Create;
+  p.FirstName := 'Daniele';
+  p.LastName := 'Teti';
+  p.DOB := EncodeDate(1979, 11, 4);
+  p.Married := True;
+  People.Add(p);
+
+  p := TPerson.Create;
+  p.FirstName := 'John';
+  p.LastName := 'Doe';
+  p.DOB := EncodeDate(1879, 10, 2);
+  p.Married := False;
+  People.Add(p);
+
+  p := TPerson.Create;
+  p.FirstName := 'Jane';
+  p.LastName := 'Doe';
+  p.DOB := EncodeDate(1883, 1, 5);
+  p.Married := True;
+  People.Add(p);
+
+{$ENDREGION}
+  Render<TPerson>(People, True,
+    procedure(const APerson: TPerson; const Dict: TMVCStringDictionary)
+    begin
+      Dict['ref'] := '/api/people/' + APerson.LastName;
+      Dict['x-ref'] := '/api/people/' + APerson.LastName;
+    end);
 end;
 
 procedure TRenderSampleController.GetPersonJSON;

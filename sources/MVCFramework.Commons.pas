@@ -133,6 +133,7 @@ type
     FallbackResource = 'fallback_resource';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
+    HATEOSPropertyName = 'hateos';
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -354,7 +355,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     procedure Clear;
-    function AddProperty(const Name, Value: string): TMVCStringDictionary;
+    function Add(const Name, Value: string): TMVCStringDictionary;
     function TryGetValue(const Name: string; out Value: string): Boolean; overload;
     function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
     function Count: Integer;
@@ -732,7 +733,7 @@ end;
 
 procedure TMVCConfig.SetValue(const AIndex, AValue: string);
 begin
-  FConfig.AddProperty(AIndex, AValue);
+  FConfig.Add(AIndex, AValue);
 end;
 
 function TMVCConfig.ToString: string;
@@ -749,7 +750,7 @@ end;
 
 { TMVCStringDictionary }
 
-function TMVCStringDictionary.AddProperty(const Name, Value: string): TMVCStringDictionary;
+function TMVCStringDictionary.Add(const Name, Value: string): TMVCStringDictionary;
 begin
   FDict.AddOrSetValue(name, Value);
   Result := Self;

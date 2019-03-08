@@ -59,7 +59,8 @@ type
 
   TMVCIgnoredList = array of string;
 
-  TMVCSerializationAction = TProc<TObject, TMVCStringDictionary>;
+  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const ADictionary: TMVCStringDictionary);
+  TMVCSerializationAction = reference to procedure(const AObject: TObject; const ADictionary: TMVCStringDictionary);
 
   EMVCSerializationException = class(EMVCException)
   end;
@@ -173,11 +174,13 @@ type
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
 
     class function HasAttribute<T: class>(const AMember: TRttiNamedObject): boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): boolean; overload; static;
-
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): boolean;
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): boolean;
       overload; static;
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): boolean; overload; static;
+
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T)
+      : boolean; overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): boolean;
+      overload; static;
 
     class procedure EncodeStream(AInput, AOutput: TStream); static;
     class procedure DecodeStream(AInput, AOutput: TStream); static;
@@ -185,7 +188,8 @@ type
     class function EncodeString(const AInput: string): string; static;
     class function DecodeString(const AInput: string): string; static;
 
-    class procedure DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string); static;
+    class procedure DeSerializeStringStream(AStream: TStream; const ASerializedString: string;
+      const AEncoding: string); static;
     class procedure DeSerializeBase64StringStream(AStream: TStream; const ABase64SerializedString: string); static;
 
     class function GetTypeKindAsString(const ATypeKind: TTypeKind): string; static;
@@ -196,6 +200,8 @@ type
 
     class function IsAPropertyToSkip(const aPropName: string): boolean; static;
   end;
+
+  TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
@@ -242,7 +248,8 @@ var
 begin
   lDateTime := ADateTime;
   if lDateTime.Length < 19 then
-    raise Exception.CreateFmt('Invalid parameter "%s". Hint: DateTime parameters must be formatted in ISO8601 (e.g. 2010-10-12T10:12:23)',
+    raise Exception.CreateFmt
+      ('Invalid parameter "%s". Hint: DateTime parameters must be formatted in ISO8601 (e.g. 2010-10-12T10:12:23)',
       [ADateTime]);
 
   if lDateTime.Chars[10] = ' ' then
@@ -266,8 +273,8 @@ end;
 
 { TMVCSerializerHelper }
 
-class procedure TMVCSerializerHelper.DeSerializeBase64StringStream(
-  AStream: TStream; const ABase64SerializedString: string);
+class procedure TMVCSerializerHelper.DeSerializeBase64StringStream(AStream: TStream;
+  const ABase64SerializedString: string);
 var
   SS: TStringStream;
 begin
@@ -281,7 +288,8 @@ begin
   end;
 end;
 
-class procedure TMVCSerializerHelper.DeSerializeStringStream(AStream: TStream; const ASerializedString: string; const AEncoding: string);
+class procedure TMVCSerializerHelper.DeSerializeStringStream(AStream: TStream; const ASerializedString: string;
+  const AEncoding: string);
 var
   Encoding: TEncoding;
   SS: TStringStream;
@@ -326,7 +334,8 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T): boolean;
+class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>;
+  out AAttribute: T): boolean;
 var
   Att: TCustomAttribute;
 begin
@@ -340,8 +349,7 @@ begin
   Result := (AAttribute <> nil);
 end;
 
-class function TMVCSerializerHelper.AttributeExists<T>(
-  const AAttributes: TArray<TCustomAttribute>): boolean;
+class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>): boolean;
 var
   Att: TCustomAttribute;
 begin
@@ -384,7 +392,8 @@ begin
     if Assigned(ObjectType) then
       Result := CreateObject(ObjectType)
     else
-      raise Exception.CreateFmt('Cannot find Rtti for %s. Hint: Is the specified classtype linked in the module?', [AQualifiedClassName]);
+      raise Exception.CreateFmt('Cannot find Rtti for %s. Hint: Is the specified classtype linked in the module?',
+        [AQualifiedClassName]);
   finally
     Context.Free;
   end;
@@ -400,7 +409,6 @@ begin
   Soap.EncdDecd.DecodeStream(AInput, AOutput);
 
 {$ENDIF}
-
 end;
 
 class function TMVCSerializerHelper.DecodeString(const AInput: string): string;
@@ -413,7 +421,6 @@ begin
   Result := Soap.EncdDecd.DecodeString(AInput);
 
 {$ENDIF}
-
 end;
 
 class procedure TMVCSerializerHelper.EncodeStream(AInput, AOutput: TStream);
@@ -426,7 +433,6 @@ begin
   Soap.EncdDecd.EncodeStream(AInput, AOutput);
 
 {$ENDIF}
-
 end;
 
 class function TMVCSerializerHelper.EncodeString(const AInput: string): string;
@@ -439,7 +445,6 @@ begin
   Result := Soap.EncdDecd.EncodeString(AInput);
 
 {$ENDIF}
-
 end;
 
 class function TMVCSerializerHelper.GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
@@ -507,8 +512,7 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelper.IsAPropertyToSkip(
-  const aPropName: string): boolean;
+class function TMVCSerializerHelper.IsAPropertyToSkip(const aPropName: string): boolean;
 begin
   Result := (aPropName = 'RefCount') or (aPropName = 'Disposed');
 end;

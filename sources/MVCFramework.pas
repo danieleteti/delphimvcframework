@@ -456,10 +456,12 @@ type
     procedure Render(const AObject: TObject); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
-    procedure Render<T: class>(const ACollection: TObjectList<T>); overload;
-    procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean); overload;
+    procedure Render<T: class>(const ACollection: TObjectList<T>;
+      const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean;
-      const AType: TMVCSerializationType); overload;
+      const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
+    procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean;
+      const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render(const ACollection: IMVCList); overload;
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ADataSet: TDataSet); overload;
@@ -1609,6 +1611,7 @@ begin
   Config[TMVCConfigKey.IndexDocument] := 'index.html';
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
+  Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
 
   FMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
   FMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
@@ -2602,9 +2605,10 @@ begin
   end;
 end;
 
-procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean);
+procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean;
+const ASerializationAction: TMVCSerializationAction<T>);
 begin
-  Self.Render<T>(ACollection, AOwns, stDefault);
+  Self.Render<T>(ACollection, AOwns, stDefault, ASerializationAction);
 end;
 
 procedure TMVCRenderer.ResponseStatus(const AStatusCode: Integer; const AReasonString: string);
@@ -2752,12 +2756,25 @@ begin
 end;
 
 procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean;
-const AType: TMVCSerializationType);
+const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction<T>);
+var
+  lSerializationAction: TMVCSerializationAction;
 begin
   if Assigned(ACollection) then
   begin
     try
-      Render(Serializer(GetContentType).SerializeCollection(ACollection, AType));
+      if Assigned(ASerializationAction) then
+      begin
+        lSerializationAction := procedure(const AObject: TObject; const Dict: TMVCStringDictionary)
+          begin
+            ASerializationAction(T(AObject), Dict);
+          end;
+      end
+      else
+      begin
+        lSerializationAction := nil;
+      end;
+      Render(Serializer(GetContentType).SerializeCollection(ACollection, AType, [], lSerializationAction));
     finally
       if AOwns then
         ACollection.Free;
@@ -2791,9 +2808,10 @@ begin
   end;
 end;
 
-procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>);
+procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>;
+const ASerializationAction: TMVCSerializationAction<T>);
 begin
-  Self.Render<T>(ACollection, True);
+  Self.Render<T>(ACollection, True, ASerializationAction);
 end;
 
 procedure TMVCRenderer.RenderResponseStream;

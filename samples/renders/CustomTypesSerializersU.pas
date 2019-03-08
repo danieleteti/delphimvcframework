@@ -30,7 +30,7 @@ interface
 
 uses
   MVCFramework.Serializer.Intf,
-  System.Rtti;
+  System.Rtti, MVCFramework.Serializer.Commons;
 
 type
   // Custom serializer for TUserRoles type
@@ -43,7 +43,8 @@ type
     procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
       const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
     procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
+      const AAttributes: System.TArray<System.TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil);
     procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
       const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
@@ -60,7 +61,8 @@ type
     procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
       const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
     procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
+      const AAttributes: System.TArray<System.TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction);
     procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
       const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
@@ -71,7 +73,7 @@ implementation
 
 uses
   JsonDataObjects, CustomTypesU, MVCFramework.Serializer.JsonDataObjects,
-  System.SysUtils, MVCFramework.Serializer.Commons;
+  System.SysUtils;
 
 { TUserPasswordSerializer }
 
@@ -145,13 +147,14 @@ begin
 end;
 
 procedure TNullableAliasSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>);
+      const AAttributes: System.TArray<System.TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction);
 begin
   raise EMVCSerializationException.CreateFmt('%s cannot be used as root object', [ClassName]);
 end;
 
 procedure TUserRolesSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>);
+  const AAttributes: System.TArray<System.TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 begin
   raise EMVCSerializationException.CreateFmt('%s cannot be used as root object', [ClassName]);
 end;
