@@ -62,37 +62,39 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
   * Continuosly tested for Delphi versions incompatibilities by the proud [compatibility mantainers](COMPATIBILITY_MANTAINERS.MD) 
 
-## What's New
+## What's Cooking in the Lab
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
 - New! Added SQLGenerator and RQL compiler for PostgreSQL and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
-- Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` in `renders.dproj` sample)
+- Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` and all the others actions end with `HATEOS` in `renders.dproj` sample)
+
 ```delphi
-    //Now is really easy to add "_links" property automatically for each collection element while rendering
-	  Render<TPerson>(People, True,
-		procedure(const Person: TPerson; const Dict: TMVCStringDictionary)
-		begin
-		  Dict['x-ref'] := '/api/people/' + Person.ID;
-		  Dict['x-child-ref'] := '/api/people/' + Person.ID + '/child';
-		end);
+//Now is really easy to add "_links" property automatically for each collection element while rendering
+Render<TPerson>(People, True,
+  procedure(const Person: TPerson; const Links: TMVCStringDictionary)
+  begin
+    Links['x-ref'] := '/api/people/' + Person.ID;
+    Links['x-child-ref'] := '/api/people/' + Person.ID + '/child';
+  end);
 		
-	//Datasets have a similar anon method to do the same thing
-    Render(lDM.qryCustomers, False,
-      procedure(const DS: TDataset; const Links: TMVCStringDictionary)
-      begin
-        Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
-		Links['x-ref-orders'] := '/api/customers/' + DS.FieldByName('cust_no').AsString + '/orders';		
-      end);
+//Datasets have a similar anon method to do the same thing
+Render(lDM.qryCustomers, False,
+  procedure(const DS: TDataset; const Links: TMVCStringDictionary)
+  begin
+    Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
+    Links['x-ref-orders'] := '/api/customers/' + DS.FieldByName('cust_no').AsString + '/orders';		
+  end);
+
+//Single object rendering allows HATEOAS too!
+Render(lPerson, False,
+  procedure(const AObject: TObject; const Links: TMVCStringDictionary)
+  begin
+    Links['x-self'] := '/people/' + TPerson(AObject).ID.ToString;
+    Links['x-self-list'] := '/people';
+  end);	
 	
-	//Single object rendering allows HATEOAS too!
-    Render(lPerson, False,
-      procedure(const AObject: TObject; const Links: TMVCStringDictionary)
-      begin
-        Links['x-self'] := '/people/' + TPerson(AObject).ID.ToString;
-        Links['x-self-list'] := '/people';
-      end);	
-	
-```		
+```	
+
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
 - Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
