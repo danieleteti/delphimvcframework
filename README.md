@@ -65,7 +65,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 ## What's New
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
-- New! Added SQLGenerator and RQL compiler for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
+- New! Added SQLGenerator and RQL compiler for PostgreSQL and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
 - Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` in `renders.dproj` sample)
 ```delphi
     //Now is really easy to add "_links" property automatically for each collection element while rendering
@@ -83,6 +83,14 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
         Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
 		Links['x-ref-orders'] := '/api/customers/' + DS.FieldByName('cust_no').AsString + '/orders';		
       end);
+	
+	//Single object rendering allows HATEOAS too!
+    Render(lPerson, False,
+      procedure(const AObject: TObject; const Links: TMVCStringDictionary)
+      begin
+        Links['x-self'] := '/people/' + TPerson(AObject).ID.ToString;
+        Links['x-self-list'] := '/people';
+      end);	
 	
 ```		
 - Better packages organization (check `packages` folder)
@@ -108,9 +116,9 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 |Delphi 10.3 Rio| `packages\d103\dmvcframework_group.groupproj`|
 |Delphi 10.2 Tokyo| `packages\d102\dmvcframework_group.groupproj`|
 |Delphi 10.1 Berlin| `packages\d101\dmvcframework_group.groupproj`|
-
-For older Delphi versions still there aren't complete packages available, but DMVCFramework is usable from XE7 without any issues. If you use a version previous of `Delphi 10.1 Berlin` and you want to contribute, please provide your group project using the distributed packages as example.
-
+|Delphi 10.0 Seattle| `packages\d100\dmvcframework_group.groupproj`|
+|Delphi XE8| `packages\dxe8\dmvcframework_group.groupproj`|
+|Delphi XE7| `packages\dxe7\dmvcframework_group.groupproj`|
 
 ### DelphiMVCFramework 3.1.0-lithium
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
