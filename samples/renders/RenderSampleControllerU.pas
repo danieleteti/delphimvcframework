@@ -39,7 +39,8 @@ type
   [MVCPath('/')]
   TRenderSampleController = class(TMVCController)
   protected
-    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
+      var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id)')]
@@ -47,7 +48,12 @@ type
     procedure GetPerson_AsText(const id: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers')]
+    [MVCPath('/customers/hateoas')]
+    [MVCProduces('application/json')]
+    procedure GetCustomers_AsDataSet_HATEOAS;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/')]
     [MVCProduces('application/json')]
     procedure GetCustomers_AsDataSet;
 
@@ -67,14 +73,19 @@ type
     procedure GetPeople_AsObjectList;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/people/hateos')]
+    [MVCPath('/people/hateoas')]
     [MVCProduces('application/json')]
-    procedure GetPeople_AsObjectList_HATEOS;
+    procedure GetPeople_AsObjectList_HATEOAS;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/people/withtiming')]
     [MVCProduces('application/json')]
     procedure GetPeopleWithTiming;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/people/($id)')]
+    [MVCProduces('application/json')]
+    procedure GetPersonById(const id: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/lotofobjects')]
@@ -149,7 +160,8 @@ uses
   CustomTypesU,
   InMemoryDataU,
   JsonDataObjects,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects,
+  Data.DB;
 
 { TRoutingSampleController }
 
@@ -215,7 +227,8 @@ begin
       // We need a non standard representation, let's create a specific serializer.
       lSer := TMVCJsonDataObjectsSerializer.Create;
       try
-        lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.a['customers'], TMVCNameCase.ncLowerCase, []);
+        lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.a['customers'],
+          TMVCNameCase.ncLowerCase, []);
         lSer.DataSetToJsonArray(lDM.qryCountry, lJObj.a['countries'], TMVCNameCase.ncLowerCase, []);
       finally
         lSer.Free;
@@ -238,6 +251,23 @@ begin
   try
     lDM.qryCustomers.Open;
     Render(lDM.qryCustomers, False);
+  finally
+    lDM.Free;
+  end;
+end;
+
+procedure TRenderSampleController.GetCustomers_AsDataSet_HATEOAS;
+var
+  lDM: TMyDataModule;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    Render(lDM.qryCustomers, False,
+      procedure(const DS: TDataset; const Links: TMVCStringDictionary)
+      begin
+        Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
+      end);
   finally
     lDM.Free;
   end;
@@ -274,8 +304,10 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);
 begin
-  ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>').Append('<li>LastName: Teti')
-    .AppendFormat('<li>DOB: %s</li>', [DateToISODate(EncodeDate(1975, 5, 2))]).Append('<li>Married: yes</li>')
+  ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>')
+    .Append('<li>LastName: Teti')
+    .AppendFormat('<li>DOB: %s</li>', [DateToISODate(EncodeDate(1975, 5, 2))])
+    .Append('<li>Married: yes</li>')
     .Append('</ul></body></html>');
   RenderResponseStream;
 end;
@@ -305,8 +337,11 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsText(const id: Integer);
 begin
-  ResponseStream.AppendLine('ID        :  ' + id.ToString).AppendLine('FirstName : Daniele')
-    .AppendLine('LastName  : Teti').AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+  ResponseStream
+    .AppendLine('ID        :  ' + id.ToString)
+    .AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti')
+    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
     .AppendLine('Married   : yes');
   RenderResponseStream;
 end;
@@ -424,7 +459,7 @@ begin
   Render<TPerson>(People);
 end;
 
-procedure TRenderSampleController.GetPeople_AsObjectList_HATEOS;
+procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;
 var
   p: TPerson;
   People: TObjectList<TPerson>;
@@ -462,16 +497,38 @@ begin
     end);
 end;
 
+procedure TRenderSampleController.GetPersonById(const id: Integer);
+var
+  lPerson: TPerson;
+begin
+  lPerson := TPerson.Create;
+  try
+    lPerson.id := id;
+    lPerson.FirstName := 'Daniele';
+    lPerson.LastName := 'Daniele';
+    lPerson.DOB := EncodeDate(1979, 11, 4);
+    lPerson.Married := True;
+    Render(lPerson, False,
+      procedure(const AObject: TObject; const Links: TMVCStringDictionary)
+      begin
+        Links['x-self'] := '/people/' + TPerson(AObject).id.ToString;
+        Links['x-self-list'] := '/people';
+      end);
+  finally
+    lPerson.Free;
+  end;
+end;
+
 procedure TRenderSampleController.GetPersonJSON;
 var
-  p: TJSONObject;
+  lJSONPerson: TJSONObject;
 begin
-  p := TJSONObject.Create;
-  p.s['FirstName'] := 'Daniele';
-  p.s['LastName'] := 'Teti';
-  p.s['DOB'] := DateToISODate(EncodeDate(1975, 5, 2));
-  p.B['Married'] := True;
-  Render(p);
+  lJSONPerson := TJSONObject.Create;
+  lJSONPerson.s['FirstName'] := 'Daniele';
+  lJSONPerson.s['LastName'] := 'Teti';
+  lJSONPerson.s['DOB'] := DateToISODate(EncodeDate(1975, 5, 2));
+  lJSONPerson.B['Married'] := True;
+  Render(lJSONPerson);
 end;
 
 procedure TRenderSampleController.GetPersonPhoto;

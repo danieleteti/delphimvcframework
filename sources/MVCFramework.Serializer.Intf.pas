@@ -89,14 +89,14 @@ type
       const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs;
-      const ASerializationAction: TMVCSerializationAction = nil
+      const ASerializationAction: TMVCDatasetSerializationAction = nil
       ): string;
 
     function SerializeDataSetRecord(
       const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs;
-      const ASerializationAction: TMVCSerializationAction = nil
+      const ASerializationAction: TMVCDatasetSerializationAction = nil
       ): string;
 
     procedure DeserializeObject(

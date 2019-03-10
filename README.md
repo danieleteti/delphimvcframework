@@ -75,6 +75,15 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 		  Dict['x-ref'] := '/api/people/' + Person.ID;
 		  Dict['x-child-ref'] := '/api/people/' + Person.ID + '/child';
 		end);
+		
+	//Datasets have a similar anon method to do the same thing
+    Render(lDM.qryCustomers, False,
+      procedure(const DS: TDataset; const Links: TMVCStringDictionary)
+      begin
+        Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
+		Links['x-ref-orders'] := '/api/customers/' + DS.FieldByName('cust_no').AsString + '/orders';		
+      end);
+	
 ```		
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)

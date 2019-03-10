@@ -39,18 +39,21 @@ type
     FDOB: TDate;
     FFirstName: string;
     FMarried: boolean;
+    fID: Int64;
     procedure SetDOB(const Value: TDate);
     procedure SetFirstName(const Value: string);
     procedure SetLastName(const Value: string);
     procedure SetMarried(const Value: boolean);
   public
     function Equals(Obj: TObject): boolean; override;
+
+    property ID: Int64 read fID write fID;
     property FirstName: string read FFirstName write SetFirstName;
     property LastName: string read FLastName write SetLastName;
 
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-
+    constructor Create; virtual;
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
@@ -137,6 +140,12 @@ uses
 
 { TPerson }
 
+constructor TPerson.Create;
+begin
+  inherited Create;
+  fID := 1000 + Random(1000);
+end;
+
 function TPerson.Equals(Obj: TObject): boolean;
 begin
   Result := Obj is TPerson;
@@ -157,7 +166,7 @@ begin
   begin // retrocompatibility
     Result := TObjectList<TPerson>.Create(true);
     Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
-    Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
+    Result.Add(TPerson.GetNew('Steve', 'Rogers', 0, true));
     Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
   end
   else
@@ -165,7 +174,8 @@ begin
     Result := TObjectList<TPerson>.Create(true);
     for I := 1 to aCount do
     begin
-      Result.Add(TPerson.GetNew(GetRndFirstName, GetRndLastName, EncodeDate(1900 + Random(100), Random(12) + 1, Random(27) + 1), true));
+      Result.Add(TPerson.GetNew(GetRndFirstName, GetRndLastName, EncodeDate(1900 + Random(100),
+        Random(12) + 1, Random(27) + 1), true));
     end;
   end;
 end;
@@ -313,5 +323,9 @@ begin
   FItems.Free;
   inherited;
 end;
+
+initialization
+
+Randomize;
 
 end.

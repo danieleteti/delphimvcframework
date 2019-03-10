@@ -698,9 +698,9 @@ begin
   try
     for I := 0 to lJArr.Count - 1 do
     begin
-      Assert.isFalse(lJArr[I].O['_links'].IsNull, '_links doesn''t exists');
-      Assert.isFalse(lJArr[I].O['_links']['x-ref-lastname'].IsNull, '_links.x-ref-lastname doesn''t exists');
-      Assert.isFalse(lJArr[I].O['_links']['x-ref-firstname'].IsNull, '_links.x-ref-firstname doesn''t exists');
+      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME].IsNull, '_links doesn''t exists');
+      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME]['x-ref-lastname'].IsNull, '_links.x-ref-lastname doesn''t exists');
+      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME]['x-ref-firstname'].IsNull, '_links.x-ref-firstname doesn''t exists');
     end;
   finally
     lJArr.Free;

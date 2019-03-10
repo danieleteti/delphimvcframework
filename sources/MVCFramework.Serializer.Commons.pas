@@ -61,6 +61,7 @@ type
 
   TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const ADictionary: TMVCStringDictionary);
   TMVCSerializationAction = reference to procedure(const AObject: TObject; const ADictionary: TMVCStringDictionary);
+  TMVCDatasetSerializationAction = reference to procedure(const ADataSet: TDataset; const ADictionary: TMVCStringDictionary);
 
   EMVCSerializationException = class(EMVCException)
   end;
@@ -257,8 +258,6 @@ begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
   Result := ISO8601ToDate(lDateTime, true);
-  // Result := EncodeDateTime(StrToInt(Copy(ADateTime, 1, 4)), StrToInt(Copy(ADateTime, 6, 2)), StrToInt(Copy(ADateTime, 9, 2)),
-  // StrToInt(Copy(ADateTime, 12, 2)), StrToInt(Copy(ADateTime, 15, 2)), StrToInt(Copy(ADateTime, 18, 2)), 0);
 end;
 
 function ISODateToDate(const ADate: string): TDate;
@@ -392,7 +391,7 @@ begin
     if Assigned(ObjectType) then
       Result := CreateObject(ObjectType)
     else
-      raise Exception.CreateFmt('Cannot find Rtti for %s. Hint: Is the specified classtype linked in the module?',
+      raise Exception.CreateFmt('Cannot find RTTI for %s. Hint: Is the specified classtype linked in the module?',
         [AQualifiedClassName]);
   finally
     Context.Free;

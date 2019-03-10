@@ -114,6 +114,7 @@ type
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
+    HATEOS_PROP_NAME = '_links';
   end;
 
   TMVCConfigKey = record

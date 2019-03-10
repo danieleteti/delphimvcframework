@@ -393,14 +393,32 @@ type
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
     procedure Render(const ACollection: IMVCList); overload;
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean;
-      const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-      const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-      const ANameCase: TMVCNameCase; const ASerializationType: TMVCDatasetSerializationType); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil
+      ); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const ASerializationType: TMVCDatasetSerializationType;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const AIgnoredFields: TMVCIgnoredList;
+      const ASerializationType: TMVCDatasetSerializationType;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const AIgnoredFields: TMVCIgnoredList;
+      const ANameCase: TMVCNameCase;
+      const ASerializationType: TMVCDatasetSerializationType;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
     procedure Render(const AErrorCode: Integer; const AErrorMessage: string;
@@ -453,9 +471,11 @@ type
     procedure RenderResponseStream; virtual;
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
-    procedure Render(const AObject: TObject); overload;
-    procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
-    procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
+    //PODO renders
+    procedure Render(const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AObject: TObject; const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    //PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
       const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean;
@@ -464,14 +484,6 @@ type
       const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render(const ACollection: IMVCList); overload;
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean;
-      const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-      const ASerializationType: TMVCDatasetSerializationType); overload;
-    procedure Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-      const ANameCase: TMVCNameCase; const ASerializationType: TMVCDatasetSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
     procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = '';
@@ -479,6 +491,33 @@ type
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil;
       const AOwns: Boolean = True); overload;
     procedure Render(const AResponse: TMVCResponse; const AOwns: Boolean = True); overload;
+    //Dataset support
+    procedure Render(
+      const ADataSet: TDataSet;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil
+      ); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const ASerializationType: TMVCDatasetSerializationType;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const AIgnoredFields: TMVCIgnoredList;
+      const ASerializationType: TMVCDatasetSerializationType;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
+    procedure Render(
+      const ADataSet: TDataSet;
+      const AOwns: Boolean;
+      const AIgnoredFields: TMVCIgnoredList;
+      const ANameCase: TMVCNameCase;
+      const ASerializationType: TMVCDatasetSerializationType;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil); overload;
     // SSE Support
     procedure RenderSSE(const EventID: string; const EventData: string; EventName: string = '';
       const Retry: Integer = TMVCConstants.SSE_RETRY_DEFAULT);
@@ -2573,9 +2612,9 @@ begin
   GetContext.Response.RawWebResponse.SendRedirect(AUrl);
 end;
 
-procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction = nil);
 begin
-  Render(AObject, AOwns, stDefault);
+  Render(AObject, AOwns, stDefault, ASerializationAction);
 end;
 
 procedure TMVCRenderer.Render(const AContent: string);
@@ -2699,10 +2738,10 @@ begin
   GetViewDataSets.Add(aDataSetName, Value);
 end;
 
-procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType);
+procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction = nil);
 begin
   try
-    Render(Serializer(GetContentType).SerializeObject(AObject, AType));
+    Render(Serializer(GetContentType).SerializeObject(AObject, AType, [], ASerializationAction));
   finally
     if AOwns then
       AObject.Free;
@@ -2737,15 +2776,15 @@ begin
 end;
 
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-const ANameCase: TMVCNameCase; const ASerializationType: TMVCDatasetSerializationType);
+const ANameCase: TMVCNameCase; const ASerializationType: TMVCDatasetSerializationType; const ASerializationAction: TMVCDatasetSerializationAction);
 begin
   if Assigned(ADataSet) then
   begin
     try
       if ASerializationType = dstSingleRecord then
-        Render(Serializer(GetContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase))
+        Render(Serializer(GetContentType).SerializeDataSetRecord(ADataSet, AIgnoredFields, ANameCase, ASerializationAction))
       else
-        Render(Serializer(GetContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase))
+        Render(Serializer(GetContentType).SerializeDataSet(ADataSet, AIgnoredFields, ANameCase, ASerializationAction))
     finally
       if AOwns then
         ADataSet.Free;
@@ -2961,31 +3000,38 @@ begin
     raise EMVCException.Create('Cannot render an empty response object.');
 end;
 
-procedure TMVCRenderer.Render(const ADataSet: TDataSet);
+procedure TMVCRenderer.Render(const ADataSet: TDataSet; const ASerializationAction: TMVCDatasetSerializationAction);
 begin
-  Render(ADataSet, True);
+  Render(ADataSet, True, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean);
+procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const ASerializationAction: TMVCDatasetSerializationAction);
 begin
-  Render(ADataSet, AOwns, dstAllRecords);
+  Render(ADataSet, AOwns, dstAllRecords, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const AObject: TObject);
+procedure TMVCRenderer.Render(const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil);
 begin
-  Render(AObject, True);
+  Render(AObject, True, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean; const AIgnoredFields: TMVCIgnoredList;
-const ASerializationType: TMVCDatasetSerializationType);
+procedure TMVCRenderer.Render(
+  const ADataSet: TDataSet;
+  const AOwns: Boolean;
+  const AIgnoredFields: TMVCIgnoredList;
+  const ASerializationType: TMVCDatasetSerializationType;
+  const ASerializationAction: TMVCDatasetSerializationAction);
 begin
-  Render(ADataSet, AOwns, AIgnoredFields, ncLowerCase, ASerializationType);
+  Render(ADataSet, AOwns, AIgnoredFields, ncLowerCase, ASerializationType, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
-const ASerializationType: TMVCDatasetSerializationType);
+procedure TMVCRenderer.Render(
+  const ADataSet: TDataSet;
+  const AOwns: Boolean;
+  const ASerializationType: TMVCDatasetSerializationType;
+  const ASerializationAction: TMVCDatasetSerializationAction);
 begin
-  Render(ADataSet, AOwns, [], ASerializationType);
+  Render(ADataSet, AOwns, [], ASerializationType, ASerializationAction);
 end;
 
 constructor TMVCResponse.Create;

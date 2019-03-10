@@ -29,12 +29,28 @@ unit MyDataModuleU;
 interface
 
 uses
-  System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option,
-  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
-  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.FB,
-  FireDAC.Phys.FBDef, FireDAC.Stan.Param, FireDAC.DatS,
-  FireDAC.DApt.Intf, FireDAC.DApt, FireDAC.Phys.IBBase, Data.DB,
-  FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.ConsoleUI.Wait,
+  System.SysUtils,
+  System.Classes,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.Phys.FB,
+  FireDAC.Phys.FBDef,
+  FireDAC.Stan.Param,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  FireDAC.Phys.IBBase,
+  Data.DB,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
+  FireDAC.ConsoleUI.Wait,
   FireDAC.Comp.UI,
   MVCFramework.Serializer.Commons;
 
@@ -63,7 +79,6 @@ type
   public
     { Public declarations }
   end;
-
 
 implementation
 
