@@ -2,7 +2,10 @@
 
 dmvcframework-core-team uses always the latest version of Delphi, so testing in previous versions is a problem and some users could have problems with the new DMVCFramework versions. We usually publish a number of RCs but not all the users test them, so when the main version is released some "late adopters" could find anomalies on old Delphi versions.
 In the list below there are all the *Compatibility Mantainers* for each specific Delphi versions supported.
-The *Compatibility Mantainers* run unit tests for each RC and each finally releases and raise [issues](https://github.com/danieleteti/delphimvcframework/issues) if problems arises during these tests.
+The *Compatibility Mantainers* run unit tests for each RC and each finally releases and raise [issues](https://github.com/danieleteti/delphimvcframework/issues) if problems arises during these tests. 
+
+>The issues should be created on github project using the label `COMPATIBILITY MANTAINER`.
+
 If you use a Delphi version that is not the latest, and you find an issue, check here the *Compatibility Mantainers* for your version and create an issue with reference to him (you can also talk about the issue mentioning the mantainer using the facebook group).
 
 ## COMPATIBILITY MANTAINERS
@@ -10,7 +13,8 @@ If you use a Delphi version that is not the latest, and you find an issue, check
 |Delphi Version | Compatibility Mantainer |
 |---|---|
 |Delphi 10.3.1 Rio		|Daniele Teti, João Fernandes, Emilio Perez		|
-|Delphi 10.2.3 Tokyo|Mohammed Nasman, Akrom Obidov, MJ Wille 				|
+|Delphi 10.2.3 Tokyo  |Daniele Barbato, Mohammed Nasman, MJ Wille 				|
+|Delphi 10.2 Community Edition|Akrom Obidov|
 |Delphi 10.1.2 Berlin 	| Emilio Perez, Akrom Obidov, Akbar Khayitov 	|
 |Delphi 10.0 Seattle	| Davut Eryılmaz 								|
 |Delphi XE7				| Daniele Barbato, Emilio Perez  				|
