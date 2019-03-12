@@ -53,7 +53,7 @@ type
     procedure GetCustomers_AsDataSet_HATEOAS;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/')]
+    [MVCPath('/customers')]
     [MVCProduces('application/json')]
     procedure GetCustomers_AsDataSet;
 

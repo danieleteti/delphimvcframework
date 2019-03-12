@@ -16,9 +16,11 @@ type
     Some ideas from NSQ appender from Stéphane "Fulgan" GROBETY (https://github.com/Fulgan/)
   }
 
-  TOnCreateData = reference to procedure(const Sender: TObject; const LogItem: TLogItem; const ExtendedInfo: TLoggerProExtendedInfo;
+  TOnCreateData = reference to procedure(const Sender: TObject; const LogItem: TLogItem;
+    const ExtendedInfo: TLoggerProExtendedInfo;
     var Data: TStream);
-  TOnNetSendError = reference to procedure(const Sender: TObject; const LogItem: TLogItem; const NetError: Exception;
+  TOnNetSendError = reference to procedure(const Sender: TObject; const LogItem: TLogItem;
+    const NetError: Exception;
     var RetryCount: Integer);
 
   TLoggerProRESTAppender = class(TLoggerProAppenderBase, ILogAppender)
@@ -38,16 +40,19 @@ type
     function GetExtendedInfo: string;
   protected const
     DEFAULT_LOG_FORMAT = '%0:s [TID %1:10u][%2:-8s] %3:s {EI%4:s}[%5:s]';
-    DEFAULT_EXTENDED_INFO = [TLogExtendedInfo.EIUserName, TLogExtendedInfo.EIComputerName, TLogExtendedInfo.EIProcessName,
+    DEFAULT_EXTENDED_INFO = [TLogExtendedInfo.EIUserName, TLogExtendedInfo.EIComputerName,
+      TLogExtendedInfo.EIProcessName,
       TLogExtendedInfo.EIProcessID, TLogExtendedInfo.EIDeviceID];
     DEFAULT_REST_URL = 'http://127.0.0.1:8080/api/logs';
-    procedure InternalWriteLog(const aURI: string; const aLogItem: TLogItem; const aStream: TStream);
+    procedure InternalWriteLog(const aURI: string; const aLogItem: TLogItem;
+      const aStream: TStream);
   public
     function GetRESTUrl: string;
     procedure SetRESTUrl(const Value: string);
     procedure WriteLog(const aLogItem: TLogItem); override;
     constructor Create(aRESTUrl: string = DEFAULT_REST_URL; aContentType: string = 'text/plain';
-      aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO; aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
+      aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO;
+      aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
     property RESTUrl: string read GetRESTUrl write SetRESTUrl;
     property OnCreateData: TOnCreateData read FOnCreateData write SetOnCreateData;
     property OnNetSendError: TOnNetSendError read FOnNetSendError write SetOnNetSendError;
@@ -103,8 +108,10 @@ end;
 {$ENDIF}
 
 
-constructor TLoggerProRESTAppender.Create(aRESTUrl: string = DEFAULT_REST_URL; aContentType: string = 'text/plain';
-  aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO; aLogFormat: string = DEFAULT_LOG_FORMAT);
+constructor TLoggerProRESTAppender.Create(aRESTUrl: string = DEFAULT_REST_URL;
+  aContentType: string = 'text/plain';
+  aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO;
+  aLogFormat: string = DEFAULT_LOG_FORMAT);
 begin
   inherited Create;
   fRESTUrl := aRESTUrl;
@@ -140,7 +147,8 @@ end;
 
 function TLoggerProRESTAppender.FormatLog(const aLogItem: TLogItem): string;
 begin
-  Result := Format(fLogFormat, [datetimetostr(aLogItem.TimeStamp, fFormatSettings), aLogItem.ThreadID, aLogItem.LogTypeAsString,
+  Result := Format(fLogFormat, [datetimetostr(aLogItem.TimeStamp, fFormatSettings),
+    aLogItem.ThreadID, aLogItem.LogTypeAsString,
     aLogItem.LogMessage, GetExtendedInfo, aLogItem.LogTag]);
 end;
 
@@ -197,7 +205,8 @@ begin
   end;
   if TLogExtendedInfo.EIProcessName in fExtendedInfo then
   begin
-    fExtendedInfoData[TLogExtendedInfo.EIProcessName] := TPath.GetFileName(GetModuleName(HInstance));
+    fExtendedInfoData[TLogExtendedInfo.EIProcessName] :=
+      TPath.GetFileName(GetModuleName(HInstance));
   end;
   if TLogExtendedInfo.EIProcessID in fExtendedInfo then
   begin
@@ -238,7 +247,8 @@ begin
   inherited;
 end;
 
-procedure TLoggerProRESTAppender.InternalWriteLog(const aURI: string; const aLogItem: TLogItem; const aStream: TStream);
+procedure TLoggerProRESTAppender.InternalWriteLog(const aURI: string; const aLogItem: TLogItem;
+  const aStream: TStream);
 var
   lHTTPCli: THTTPClient;
   lRetryCount: Integer;
@@ -252,10 +262,13 @@ begin
       repeat
         try
           // Set very short timeouts: this is a local call and we don't want to block the queue for too long.
+{$IF CompilerVersion >= 31}
           lHTTPCli.ConnectionTimeout := 100;
           lHTTPCli.ResponseTimeout := 200;
+{$ENDIF}
           aStream.Seek(0, soFromBeginning);
-          lResp := lHTTPCli.Post(aURI, aStream, nil, [TNetHeader.Create('content-type', fContentType)]);
+          lResp := lHTTPCli.Post(aURI, aStream, nil,
+            [TNetHeader.Create('content-type', fContentType)]);
           if not(lResp.StatusCode in [200, 201]) then
           begin
             raise ELoggerPro.Create(lResp.ContentAsString);
@@ -293,7 +306,8 @@ var
   lURI: string;
   lData: TStream;
 begin
-  lURI := RESTUrl + '/' + TNetEncoding.URL.Encode(aLogItem.LogTag.Trim) + '/' + TNetEncoding.URL.Encode(aLogItem.LogTypeAsString);
+  lURI := RESTUrl + '/' + TNetEncoding.URL.Encode(aLogItem.LogTag.Trim) + '/' +
+    TNetEncoding.URL.Encode(aLogItem.LogTypeAsString);
   lData := CreateData(aLogItem);
   try
     if Assigned(lData) then
