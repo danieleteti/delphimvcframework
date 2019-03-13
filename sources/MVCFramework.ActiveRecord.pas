@@ -1127,7 +1127,13 @@ end;
 procedure TMVCActiveRecord.MapTValueToParam(const aValue: TValue; const aParam: TFDParam);
 var
   lStream: TStream;
+  lName: String;
 begin
+  {$IFDEF NEXTGEN}
+    lName := aValue.TypeInfo.NameFld.ToString;
+  {$ELSE}
+    lName := aValue.TypeInfo.Name;
+  {$ENDIF}
   case aValue.TypeInfo.Kind of
     // tkUnknown:
     // begin
@@ -1182,15 +1188,15 @@ begin
       end;
     tkFloat:
       begin
-        if aValue.TypeInfo.Name = 'TDate' then
+        if lName = 'TDate'  then
         begin
           aParam.AsDate := Trunc(aValue.AsExtended);
         end
-        else if aValue.TypeInfo.Name = 'TDateTime' then
+        else if lName = 'TDateTime'  then
         begin
           aParam.AsDateTime := aValue.AsExtended;
         end
-        else if aValue.TypeInfo.Name = 'Currency' then
+        else if lName = 'Currency'  then
         begin
           aParam.AsCurrency := aValue.AsCurrency;
         end
