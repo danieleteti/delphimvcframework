@@ -176,10 +176,10 @@ end;
 function TMyObject.GetStringDictionary: TMVCStringDictionary;
 begin
   Result := TMVCStringDictionary.Create;
-  Result.AddProperty('key1', 'value1');
-  Result.AddProperty('key2', 'value2');
-  Result.AddProperty('key3', 'value3');
-  Result.AddProperty('key4', 'value4');
+  Result.Add('key1', 'value1');
+  Result.Add('key2', 'value2');
+  Result.Add('key3', 'value3');
+  Result.Add('key4', 'value4');
 end;
 
 function TMyObject.GetUser(aUserName: string): TPerson;

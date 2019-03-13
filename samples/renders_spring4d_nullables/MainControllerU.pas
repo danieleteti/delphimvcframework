@@ -63,9 +63,9 @@ var
   lDict: TMVCStringDictionary;
 begin
   lDict := TMVCStringDictionary.Create;
-  lDict.AddProperty('prop1', 'one');
-  lDict.AddProperty('prop2', 'two');
-  lDict.AddProperty('prop3', 'three');
+  lDict.Add('prop1', 'one');
+  lDict.Add('prop2', 'two');
+  lDict.Add('prop3', 'three');
   Render(lDict);
 end;
 

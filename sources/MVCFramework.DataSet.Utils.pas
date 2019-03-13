@@ -43,12 +43,14 @@ type
 
   TDataSetHelper = class helper for TDataSet
   public
-    procedure LoadFromTValue(const Value: TValue; const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
-    function AsJSONArray( AIgnoredFields: TArray<string> = nil): string;
+    procedure LoadFromTValue(const Value: TValue;
+      const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
+    function AsJSONArray: string;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
-    function AsJSONObject(AFieldNamePolicy: TFieldNamePolicy = fpLowerCase; AIgnoredFields: TArray<string> = nil): string;
+    function AsJSONObject(AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
+      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: string;
@@ -57,17 +59,19 @@ type
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArrayString(AJSONArrayString: string;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArrayStringItems(AJSONArrayString: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
+    procedure LoadFromJSONObjectString(AJSONObjectString: string;
+      AIgnoredFields: TArray<string>); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: boolean = true): TObjectList<T>;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false;
+      OwnsObjects: boolean = true): TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
+    procedure LoadFromJSONArrayStringItems(AJSONArrayString: string;
+      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
   end;
 
   TDataSetUtils = class sealed
@@ -77,8 +81,9 @@ type
     class constructor Create;
     class destructor Destroy;
     class procedure DataSetToObject(ADataSet: TDataSet; AObject: TObject);
-    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
-      ACloseDataSetAfterScroll: boolean = True);
+    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet;
+      AObjectList: TObjectList<T>;
+      ACloseDataSetAfterScroll: boolean = true);
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -106,7 +111,8 @@ procedure TDataSetHelper.LoadFromTValue(const Value: TValue; const aNameCase: TM
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and {$ENDIF} (Value.AsObject is TJSONArray)) then
+  if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and
+    {$ENDIF} (Value.AsObject is TJSONArray)) then
     raise Exception.Create('LoadFromTValue requires a TValue containing a TJDOJsonArray');
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
@@ -118,7 +124,7 @@ begin
 
 end;
 
-function TDataSetHelper.AsJSONArray( AIgnoredFields: TArray<string>): string;
+function TDataSetHelper.AsJSONArray: string;
 var
   lSerializer: IMVCSerializer;
 begin
@@ -126,7 +132,7 @@ begin
   if not Eof then
   begin
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
-    Result := lSerializer.SerializeDataSet(Self, TMVCIgnoredList(AIgnoredFields), ncLowerCase);
+    Result := lSerializer.SerializeDataSet(Self, [], ncLowerCase);
     // TDataSetUtils.DataSetToJSONArray(Self, JArr, false);
   end;
 end;
@@ -136,12 +142,12 @@ begin
   Result := AsJSONArray;
 end;
 
-function TDataSetHelper.AsJSONObject(AFieldNamePolicy: TFieldNamePolicy; AIgnoredFields: TArray<string>): string;
+function TDataSetHelper.AsJSONObject(AFieldNamePolicy: TFieldNamePolicy): string;
 var
   lSerializer: IMVCSerializer;
 begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
-  Result := lSerializer.SerializeDataSetRecord(Self, TMVCIgnoredList(AIgnoredFields), ncAsIs);
+  Result := lSerializer.SerializeDataSetRecord(Self, [], ncAsIs);
   // Mapper.DataSetToJSONObject(Self, JObj, false);
 end;
 
@@ -169,7 +175,8 @@ begin
     Result := nil;
 end;
 
-function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean; OwnsObjects: boolean): TObjectList<T>;
+function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean; OwnsObjects: boolean)
+  : TObjectList<T>;
 var
   lObjs: TObjectList<T>;
 begin
@@ -196,13 +203,15 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
+  AIgnoredFields: TArray<string>;
   AFieldNamePolicy: TFieldNamePolicy);
 begin
   AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
+  AFieldNamePolicy: TFieldNamePolicy);
 var
   lSerializer: TMVCJsonDataObjectsSerializer;
   lBookmark: TArray<Byte>;
@@ -223,13 +232,14 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
 end;
 
 procedure TDataSetHelper.LoadFromJSONArrayStringItems(AJSONArrayString: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
+  AFieldNamePolicy: TFieldNamePolicy);
 var aJson:TJsonObject;
 begin
   aJson := TJsonObject.Create;
@@ -242,7 +252,8 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;
+  AIgnoredFields: TArray<string>;
   AFieldNamePolicy: TFieldNamePolicy);
 begin
   LoadFromJSONArray(AJSONArrayString, AFieldNamePolicy);
@@ -261,7 +272,8 @@ begin
   // AFieldNamePolicy);
 end;
 
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>);
+procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string;
+  AIgnoredFields: TArray<string>);
 var
   lSerializer: IMVCSerializer;
 begin
@@ -269,7 +281,8 @@ begin
   lSerializer.DeserializeDataSetRecord(AJSONObjectString, Self, nil, ncAsIs);
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
+  AFieldNamePolicy: TFieldNamePolicy);
 begin
   LoadFromJSONObject(AJSONObject, TArray<string>.Create());
 end;
@@ -313,13 +326,13 @@ begin
     begin
       if _attribute is MVCColumnAttribute then
       begin
-        FoundAttribute := True;
+        FoundAttribute := true;
         mf := MVCColumnAttribute(_attribute);
         _dict.Add(_field.Name, mf.FieldName);
         _keys.Add(_field.Name, mf.IsPK);
       end
       else if _attribute is MVCDoNotSerializeAttribute then
-        FoundTransientAttribute := True;
+        FoundTransientAttribute := true;
     end;
     if ((not FoundAttribute) and (not FoundTransientAttribute)) then
     begin

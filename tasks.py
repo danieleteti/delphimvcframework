@@ -108,6 +108,7 @@ def copy_sources():
     ]
 
     folders = [
+        "d100",	
         "d101",
         "d102",
         "d103"

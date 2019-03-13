@@ -144,7 +144,6 @@
         <DCC_Define>_CONSOLE_TESTRUNNER;GUI_TESTRUNNER;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_3_Win32)'!=''">
-        <DCC_Define>GUI_TESTRUNNER;$(DCC_Define)</DCC_Define>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
     </PropertyGroup>
@@ -188,9 +187,10 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
-        <BuildConfiguration Include="CI">
-            <Key>Cfg_5</Key>
-            <CfgParent>Cfg_4</CfgParent>
+        <DCCReference Include="..\..\..\sources\JsonDataObjects.pas"/>
+        <BuildConfiguration Include="Release">
+            <Key>Cfg_2</Key>
+            <CfgParent>Base</CfgParent>
         </BuildConfiguration>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
@@ -199,9 +199,9 @@
             <Key>Cfg_4</Key>
             <CfgParent>Cfg_1</CfgParent>
         </BuildConfiguration>
-        <BuildConfiguration Include="Release">
-            <Key>Cfg_2</Key>
-            <CfgParent>Base</CfgParent>
+        <BuildConfiguration Include="CI">
+            <Key>Cfg_5</Key>
+            <CfgParent>Cfg_4</CfgParent>
         </BuildConfiguration>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_1</Key>
@@ -294,7 +294,19 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="Win32\GUI\DMVCFrameworkTests.exe" Configuration="GUI" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>DMVCFrameworkTests.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="Win32\Debug\DMVCFrameworkTests.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win32">
+                        <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="Win32\GUI\DMVCFrameworkTests.rsm" Configuration="GUI" Class="DebugSymbols">
                     <Platform Name="Win32">
                         <RemoteName>DMVCFrameworkTests.rsm</RemoteName>
                         <Overwrite>true</Overwrite>

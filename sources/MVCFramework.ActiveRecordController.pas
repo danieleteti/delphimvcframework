@@ -153,7 +153,7 @@ begin
 
     lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, GetMaxRecordCount), True);
     try
-      lResp.Metadata.AddProperty('count', lResp.Items.Count.ToString);
+      lResp.Metadata.Add('count', lResp.Items.Count.ToString);
       Render(lResp);
     except
       lResp.Free;

@@ -106,6 +106,8 @@ type
     [Test]
     procedure TestRenderWrappedList;
     [Test]
+    procedure TestRenderActionInCollections;
+    [Test]
     procedure TestRenderWrappedListWithCompression;
     [Test]
     procedure TestRenderStreamAndFreeWithOwnerFalse;
@@ -685,6 +687,26 @@ begin
   }
 end;
 
+procedure TServerTest.TestRenderActionInCollections;
+var
+  lRes: IRESTResponse;
+  lJArr: TJDOJsonArray;
+  I: Integer;
+begin
+  lRes := RESTClient.doGET('/people/renderaction', []);
+  lJArr := TJsonBaseObject.Parse(lRes.BodyAsString) as TJDOJsonArray;
+  try
+    for I := 0 to lJArr.Count - 1 do
+    begin
+      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME].IsNull, '_links doesn''t exists');
+      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME]['x-ref-lastname'].IsNull, '_links.x-ref-lastname doesn''t exists');
+      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME]['x-ref-firstname'].IsNull, '_links.x-ref-firstname doesn''t exists');
+    end;
+  finally
+    lJArr.Free;
+  end;
+end;
+
 procedure TServerTest.TestRenderStreamAndFreeWithOwnerFalse;
 var
   lRes: IRESTResponse;
@@ -726,7 +748,7 @@ end;
 procedure TServerTest.TestRenderWrappedListWithCompression;
 var
   lRes: IRESTResponse;
-  lJSONArr: TJDOJSONArray;
+  lJSONArr: TJDOJsonArray;
   I: Integer;
   lCompType: string;
   j: Integer;
@@ -1377,7 +1399,7 @@ procedure TJSONRPCServerTest.TestRequestWithParams_I_I_ret_A;
 var
   lReq: IJSONRPCRequest;
   lRPCResp: IJSONRPCResponse;
-  lArr: TJDOJSONArray;
+  lArr: TJDOJsonArray;
   I: Integer;
   x: Integer;
 begin
@@ -1388,7 +1410,7 @@ begin
   lReq.RequestID := 1234;
 
   lRPCResp := FExecutor.ExecuteRequest(lReq);
-  lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
+  lArr := TJDOJsonArray(lRPCResp.Result.AsObject);
   x := 1;
   for I := 0 to lArr.Count - 1 do
   begin
@@ -1397,7 +1419,7 @@ begin
   end;
 
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lArr := TJDOJSONArray(lRPCResp.Result.AsObject);
+  lArr := TJDOJsonArray(lRPCResp.Result.AsObject);
   x := 1;
   for I := 0 to lArr.Count - 1 do
   begin

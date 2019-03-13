@@ -103,6 +103,10 @@ type
     [MVCProduces('application/json', 'utf-8')]
     procedure TestConsumeJSON;
 
+    [MVCPath('/people/renderaction')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetPersonsHateos;
+
     [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
     procedure TestGetPersonByID;
@@ -434,6 +438,16 @@ begin
 
 end;
 
+procedure TTestServerController.TestGetPersonsHateos;
+begin
+  Render<TPerson>(TPerson.GetList, True,
+    procedure(const Person: TPerson; const Links: TMVCStringDictionary)
+    begin
+      Links['x-ref-firstname'] := '/api/people/' + Person.FirstName;
+      Links['x-ref-lastname'] := '/api/people/' + Person.LastName;
+    end);
+end;
+
 procedure TTestServerController.TestGetWrappedPeople;
 var
   LWrappedList: IWrappedList;
@@ -525,7 +539,7 @@ begin
 end;
 
 procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64;
-  ParSingle: Single; ParDouble: Double; ParExtended: Extended);
+ParSingle: Single; ParDouble: Double; ParExtended: Extended);
 var
   lJObj: TJSONObject;
 begin
