@@ -1103,6 +1103,10 @@ begin
       begin
         aRTTIField.SetValue(Self, BCDtoCurrency(aField.AsBCD));
       end;
+    ftFloat:
+      begin
+        aRTTIField.SetValue(Self, aField.AsFloat);
+      end;
     ftBlob:
       begin
         lInternalStream := aRTTIField.GetValue(Self).AsObject as TStream;
