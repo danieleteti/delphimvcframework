@@ -42,8 +42,13 @@ uses
   Vcl.Grids,
   Vcl.ValEdit,
   FireDAC.Phys.MySQLDef,
-  FireDAC.Phys.MySQL, FireDAC.Phys.PGDef, FireDAC.Phys.PG, FireDAC.Phys.IBDef,
-  FireDAC.Phys.IB, FireDAC.Stan.ExprFuncs, FireDAC.Phys.SQLiteDef,
+  FireDAC.Phys.MySQL,
+  FireDAC.Phys.PGDef,
+  FireDAC.Phys.PG,
+  FireDAC.Phys.IBDef,
+  FireDAC.Phys.IB,
+  FireDAC.Stan.ExprFuncs,
+  FireDAC.Phys.SQLiteDef,
   FireDAC.Phys.SQLite;
 
 type
@@ -153,7 +158,8 @@ begin
     fImplBuff.WriteString('  inherited Create;' + sLineBreak);
     for F := low(lFieldsName) to high(lFieldsName) do
     begin
-      fImplBuff.WriteString('  ' + lFieldsName[F] + ' := ' + lTypesName[F] + '.Create;' + sLineBreak);
+      fImplBuff.WriteString('  ' + lFieldsName[F] + ' := ' + lTypesName[F] + '.Create;' +
+        sLineBreak);
     end;
     fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
 
@@ -237,46 +243,81 @@ begin
 end;
 
 procedure TMainForm.EmitField(F: TField);
+var
+  lAttrib, lField: String;
 begin
-  fIntfBuff.WriteString(Format('  [MVCTableField(''%s'')]', [F.FieldName]) + sLineBreak + '  ' + GetFieldName(F.FieldName) + ': ' +
-    GetDelphiType(F.DataType) + ';' + sLineBreak);
+  lAttrib := Format('  [MVCTableField(''%s'')]', [F.FieldName]);
+  lField := GetFieldName(F.FieldName) + ': ' + GetDelphiType(F.DataType) + ';' + sLineBreak;
+
+  if GetDelphiType(F.DataType).ToUpper.Contains('UNSUPPORTED TYPE') then
+  begin
+    lAttrib := '  //' + lAttrib;
+    lField := '  //' + lField;
+  end
+  else
+  begin
+    lField := '  ' + lField;
+    lAttrib := '  ' + lAttrib;
+  end;
+  fIntfBuff.WriteString(lAttrib + sLineBreak + lField);
 end;
 
 procedure TMainForm.EmitHeaderComments;
 begin
-  fIntfBuff.WriteString('// *************************************************************************** }' + sLineBreak);
+  fIntfBuff.WriteString
+    ('// *************************************************************************** }' +
+    sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// Delphi MVC Framework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team' + sLineBreak);
+  fIntfBuff.WriteString('// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team' +
+    sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// https://github.com/danieleteti/delphimvcframework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// ***************************************************************************' + sLineBreak);
+  fIntfBuff.WriteString
+    ('// ***************************************************************************' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Licensed under the Apache License, Version 2.0 (the "License");' + sLineBreak);
-  fIntfBuff.WriteString('// you may not use this file except in compliance with the License.' + sLineBreak);
+  fIntfBuff.WriteString('// Licensed under the Apache License, Version 2.0 (the "License");' +
+    sLineBreak);
+  fIntfBuff.WriteString('// you may not use this file except in compliance with the License.' +
+    sLineBreak);
   fIntfBuff.WriteString('// You may obtain a copy of the License at' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// http://www.apache.org/licenses/LICENSE-2.0' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Unless required by applicable law or agreed to in writing, software' + sLineBreak);
-  fIntfBuff.WriteString('// distributed under the License is distributed on an "AS IS" BASIS,' + sLineBreak);
-  fIntfBuff.WriteString('// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.' + sLineBreak);
-  fIntfBuff.WriteString('// See the License for the specific language governing permissions and' + sLineBreak);
+  fIntfBuff.WriteString('// Unless required by applicable law or agreed to in writing, software' +
+    sLineBreak);
+  fIntfBuff.WriteString('// distributed under the License is distributed on an "AS IS" BASIS,' +
+    sLineBreak);
+  fIntfBuff.WriteString
+    ('// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.' + sLineBreak);
+  fIntfBuff.WriteString('// See the License for the specific language governing permissions and' +
+    sLineBreak);
   fIntfBuff.WriteString('// limitations under the License.' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// ***************************************************************************' + sLineBreak);
+  fIntfBuff.WriteString
+    ('// ***************************************************************************' + sLineBreak);
   fIntfBuff.WriteString(sLineBreak);
 end;
 
 procedure TMainForm.EmitProperty(F: TField);
+var
+  lProp: String;
 begin
-  // Buff.WriteString(Format('  [TableField(''%s'')]', [F.FieldName]) + sLineBreak + '  property ' + GetProperCase(F.FieldName) + ': ' +
-  // GetDelphiType(F.DataType) + ';' + sLineBreak);
-  fIntfBuff.WriteString('  property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' + GetDelphiType(F.DataType));
-  fIntfBuff.WriteString(' read ' + GetFieldName(F.FieldName) + ' write ' + GetFieldName(F.FieldName));
-  fIntfBuff.WriteString(';' + sLineBreak);
+  lProp := 'property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' +
+    GetDelphiType(F.DataType) +
+    ' read ' + GetFieldName(F.FieldName) + ' write ' + GetFieldName(F.FieldName) + ';' + sLineBreak;
+
+  if GetDelphiType(F.DataType).ToUpper.Contains('UNSUPPORTED TYPE') then
+  begin
+    lProp := '  //' + lProp
+  end
+  else
+  begin
+    lProp := '  ' + lProp;
+  end;
+  fIntfBuff.WriteString(lProp)
 end;
 
 procedure TMainForm.EmitUnit;
@@ -359,7 +400,7 @@ begin
       Result := 'Boolean';
     ftFloat, ftSingle, ftExtended:
       Result := 'Double';
-    ftCurrency, ftBCD:
+    ftCurrency, ftBCD, ftFMTBcd:
       Result := 'Currency';
     ftDate:
       Result := 'TDate';

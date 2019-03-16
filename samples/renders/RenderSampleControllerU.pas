@@ -105,7 +105,7 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id).html')]
     [MVCProduces('text/html')]
-    procedure GetPerson_AsHTML(CTX: TWebContext);
+    procedure GetPerson_AsHTML;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers.csv')]
@@ -114,7 +114,7 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/unicode/($id).html')]
     [MVCProduces('text/html', 'UTF-8')]
-    procedure GetUnicodeText_AsHTML(CTX: TWebContext);
+    procedure GetUnicodeText_AsHTML;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($id)')]
@@ -133,7 +133,16 @@ type
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/images/customers/($id)')]
-    procedure GetPersonPhotoAsStream(CTX: TWebContext);
+    procedure GetPersonPhotoAsStream;
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCConsumes(TMVCMediaType.MULTIPART_FORM_DATA)]
+    [MVCPath('/files')]
+    procedure UploadBinaryData;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/files/($filename)')]
+    procedure GetBinaryData(const filename: string);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/exception')]
@@ -153,7 +162,9 @@ uses
   MVCFramework.DataSet.Utils,
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
+  MVCFramework.Logger,
   MyDataModuleU,
+  System.IOUtils,
   System.Classes,
   System.SysUtils,
   WebModuleU,
@@ -161,11 +172,12 @@ uses
   InMemoryDataU,
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
-  Data.DB;
+  Data.DB,
+  Web.HTTPApp;
 
 { TRoutingSampleController }
 
-procedure TRenderSampleController.GetUnicodeText_AsHTML(CTX: TWebContext);
+procedure TRenderSampleController.GetUnicodeText_AsHTML;
 var
   s: string;
 begin
@@ -190,6 +202,76 @@ var
 begin
   a := 0;
   Render(IntToStr(10 div a));
+end;
+
+procedure TRenderSampleController.UploadBinaryData;
+var
+  lFile: TAbstractWebRequestFile;
+  lFileExt: string;
+  lOutputFileName: string;
+  lOutputFullPath: string;
+  lOutFile: TFileStream;
+  lOutputFolder: string;
+begin
+  if Context.Request.Files.Count <> 1 then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.BadRequest, 'Expected exactly 1 file');
+  end;
+  lFile := Context.Request.Files[0];
+
+  LogI(Format('Upload: [FieldName: %s] [FileName: %s] [ContentType: %s] [Size: %d bytes]',
+    [lFile.FieldName, lFile.filename, lFile.ContentType, lFile.Stream.Size]));
+
+  { Be sure that our data directory always exists. We could also do it in the server startup. }
+  lOutputFolder := TPath.Combine(AppPath, 'uploadedfiles');
+  if not TDirectory.Exists(lOutputFolder) then
+  begin
+    TDirectory.CreateDirectory(lOutputFolder);
+  end;
+
+  lFileExt := TPath.GetExtension(lFile.filename);
+  {
+    Here we could check for allowed extensions or check the file contents looking for
+    accepted file headers (e.g. Zip, PNG, BMP, TIFF etc).
+    In this case we just use the extension of the filename sent by the client.
+  }
+
+  { Find a valid random filename to store the stream on disk. }
+  repeat
+    lOutputFileName := TPath.ChangeExtension(TPath.GetRandomFileName, lFileExt);
+    lOutputFullPath := TPath.Combine(lOutputFolder, lOutputFileName);
+  until not TFile.Exists(lOutputFullPath);
+
+  lOutFile := TFileStream.Create(lOutputFullPath, fmCreate);
+  try
+    lOutFile.CopyFrom(lFile.Stream, 0);
+  finally
+    lOutFile.Free;
+  end;
+
+  { Inform the client about the name assigned to the file
+    on disk and how to retrieve it. }
+  Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
+  Context.Response.StatusCode := HTTP_STATUS.OK;
+  Render(Dict(['filename', 'ref'], [lOutputFileName, '/files/' + lOutputFileName]));
+end;
+
+procedure TRenderSampleController.GetBinaryData(const filename: string);
+var
+  lFilesFolder: string;
+  lFullFilePath: string;
+begin
+  lFilesFolder := TPath.Combine(AppPath, 'uploadedfiles');
+  lFullFilePath := TPath.Combine(lFilesFolder, filename);
+  if not TFile.Exists(lFullFilePath) then
+  begin
+    raise EMVCException.Create('File not found');
+  end;
+  Context.Response.ContentType := TMVCMediaType.APPLICATION_OCTET_STREAM;
+  Context.Response.StatusCode := HTTP_STATUS.OK;
+  Context.Response.CustomHeaders.Values['Content-Disposition'] := 'attachment; filename=' +
+    filename + ';';
+  Render(TFileStream.Create(lFullFilePath, fmOpenRead or fmShareDenyNone));
 end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const id: Integer);
@@ -302,7 +384,7 @@ begin
   Render<TPerson>(GetPeopleList, False);
 end;
 
-procedure TRenderSampleController.GetPerson_AsHTML(CTX: TWebContext);
+procedure TRenderSampleController.GetPerson_AsHTML;
 begin
   ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>')
     .Append('<li>LastName: Teti')
@@ -537,7 +619,7 @@ begin
   SendFile('..\..\_\customer.png');
 end;
 
-procedure TRenderSampleController.GetPersonPhotoAsStream(CTX: TWebContext);
+procedure TRenderSampleController.GetPersonPhotoAsStream;
 var
   LPhoto: TFileStream;
 begin
