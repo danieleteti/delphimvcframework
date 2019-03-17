@@ -717,7 +717,7 @@ var
 begin
   lQry := TFDQuery.Create(nil);
   try
-    lQry.FetchOptions.Unidirectional := True;
+    lQry.FetchOptions.Unidirectional := False; //True;
     if Connection = nil then
     begin
       lQry.Connection := ActiveRecordConnectionsRegistry.GetCurrent;
