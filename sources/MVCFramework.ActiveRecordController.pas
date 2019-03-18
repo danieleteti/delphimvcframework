@@ -319,7 +319,19 @@ procedure TMVCActiveRecordController.UpdateEntity(const entityname: string; cons
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.UpdateEntity(Context, self, entityname,id ,lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
   // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
