@@ -43,16 +43,17 @@ uses
 
 {$I dmvcframeworkbuildconsts.inc}
 
+
 type
 
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH, httpTRACE);
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH,
+    httpTRACE);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
   TMVCMediaType = record
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';
-    APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
     APPLICATION_JSON = 'application/json';
     APPLICATION_OCTET_STREAM = 'application/octet-stream';
     APPLICATION_SVG_XML = 'application/svg+xml';
@@ -61,6 +62,7 @@ type
     APPLICATION_OCTETSTREAM = 'application/octet-stream';
     MEDIA_TYPE_WILDCARD = '*';
     MULTIPART_FORM_DATA = 'multipart/form-data';
+    APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
     TEXT_HTML = 'text/html';
     TEXT_PLAIN = 'text/plain';
     TEXT_XML = 'text/xml';
@@ -288,7 +290,8 @@ type
     { protected declarations }
   public
     constructor Create(const AMsg: string); overload; virtual;
-    constructor Create(const AMsg: string; const ADetailedMessage: string; const AAppErrorCode: UInt16;
+    constructor Create(const AMsg: string; const ADetailedMessage: string;
+      const AAppErrorCode: UInt16;
       const AHttpErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
     constructor Create(const AHttpErrorCode: UInt16; const AMsg: string); overload; virtual;
     constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce;
@@ -354,7 +357,8 @@ type
   protected
     FDict: TDictionary<string, string>;
   public
-    constructor Create; virtual;
+    constructor Create; overload; virtual;
+    constructor Create(const aKey, aValue: String); overload; virtual;
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name, Value: string): TMVCStringDictionary;
@@ -416,7 +420,7 @@ type
 
     function GetValue(const AIndex: string): string;
     function GetValueAsInt64(const AIndex: string): Int64;
-    procedure SetValue(const AIndex: string; const AValue: string);
+    procedure SetValue(const AIndex: string; const aValue: string);
   protected
     { protected declarations }
   public
@@ -451,9 +455,9 @@ function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
 
-function B64Encode(const AValue: string): string; overload;
-function B64Encode(const AValue: TBytes): string; overload;
-function B64Decode(const AValue: string): string;
+function B64Encode(const aValue: string): string; overload;
+function B64Encode(const aValue: TBytes): string; overload;
+function B64Decode(const aValue: string): string;
 
 function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
@@ -466,12 +470,17 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
+function Dict: TMVCStringDictionary; overload;
+function Dict(const aKeys: array of string; const aValues: array of string)
+  : TMVCStringDictionary; overload;
+
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
   MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
 
 const
-  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none', 'deflate', 'gzip');
+  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none',
+    'deflate', 'gzip');
   MVC_COMPRESSION_ZLIB_WINDOW_BITS: array [TMVCCompressionType] of Integer = (0, -15, 31);
   // WindowBits: http://zlib.net/manual.html#Advanced
 
@@ -480,15 +489,19 @@ var
 
 const
   RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'),
-    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
+    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'),
+    ('169.254.0.0', '169.254.255.255'),
     ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'), ('192.88.99.0', '192.88.99.255'),
-    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
+    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
+    ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
 
 implementation
 
 uses
-  IdCoder3to4, JsonDataObjects, MVCFramework.Serializer.JsonDataObjects;
+  IdCoder3to4,
+  JsonDataObjects,
+  MVCFramework.Serializer.JsonDataObjects;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -517,7 +530,8 @@ begin
   if AIP.IsEmpty then
     Exit(0);
   lPieces := AIP.Split(['.']);
-  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) + (StrToInt(lPieces[2]) * 256) +
+  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) +
+    (StrToInt(lPieces[2]) * 256) +
     StrToInt(lPieces[3]);
 end;
 
@@ -526,22 +540,22 @@ end;
 // Result := IdGlobal.IPv4ToUInt32(AIP);
 // end;
 
-function B64Encode(const AValue: string): string; overload;
+function B64Encode(const aValue: string): string; overload;
 begin
   // Do not use TNetEncoding
-  Result := TIdEncoderMIME.EncodeString(AValue);
+  Result := TIdEncoderMIME.EncodeString(aValue);
 end;
 
-function B64Encode(const AValue: TBytes): string; overload;
+function B64Encode(const aValue: TBytes): string; overload;
 begin
   // Do not use TNetEncoding
-  Result := TIdEncoderMIME.EncodeBytes(TIdBytes(AValue));
+  Result := TIdEncoderMIME.EncodeBytes(TIdBytes(aValue));
 end;
 
-function B64Decode(const AValue: string): string;
+function B64Decode(const aValue: string): string;
 begin
   // Do not use TNetEncoding
-  Result := TIdDecoderMIME.DecodeString(AValue);
+  Result := TIdDecoderMIME.DecodeString(aValue);
 end;
 
 function ByteToHex(AInByte: Byte): string;
@@ -576,7 +590,8 @@ begin
     begin
       Result := lContentMediaType;
     end
-    else if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/') then
+    else if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
+    then
     begin
       Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
     end
@@ -596,7 +611,8 @@ begin
   begin
     lContentTypeValues := aContentType.Split([';']);
     aContentMediaType := Trim(lContentTypeValues[0]);
-    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True)) then
+    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True))
+    then
     begin
       aContentCharSet := lContentTypeValues[1].Trim.Split(['='])[1].Trim;
     end
@@ -622,7 +638,8 @@ begin
   FAppErrorCode := 0;
 end;
 
-constructor EMVCException.Create(const AMsg, ADetailedMessage: string; const AAppErrorCode, AHttpErrorCode: UInt16);
+constructor EMVCException.Create(const AMsg, ADetailedMessage: string;
+  const AAppErrorCode, AHttpErrorCode: UInt16);
 begin
   Create(AMsg);
   FHttpErrorCode := AHttpErrorCode;
@@ -667,7 +684,8 @@ begin
   end;
 end;
 
-function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
+function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32)
+  : TWaitResult;
 begin
   Result := Self.WaitFor(ATimeOut);
   if (Result = TWaitResult.wrSignaled) then
@@ -716,7 +734,8 @@ var
   lStreamReader: TStreamReader;
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  lStreamReader := TStreamReader.Create(TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite), TEncoding.ASCII);
+  lStreamReader := TStreamReader.Create(TFileStream.Create(AFileName,
+    fmOpenRead or fmShareDenyWrite), TEncoding.ASCII);
   try
     lStreamReader.OwnStream;
     lConfigString := lStreamReader.ReadToEnd;
@@ -738,9 +757,9 @@ begin
   TFile.WriteAllText(AFileName, ToString, TEncoding.ASCII);
 end;
 
-procedure TMVCConfig.SetValue(const AIndex, AValue: string);
+procedure TMVCConfig.SetValue(const AIndex, aValue: string);
 begin
-  FConfig.Add(AIndex, AValue);
+  FConfig.Add(AIndex, aValue);
 end;
 
 function TMVCConfig.ToString: string;
@@ -776,6 +795,12 @@ end;
 function TMVCStringDictionary.Count: Integer;
 begin
   Result := FDict.Count;
+end;
+
+constructor TMVCStringDictionary.Create(const aKey, aValue: String);
+begin
+  Create;
+  Add(aKey, aValue);
 end;
 
 constructor TMVCStringDictionary.Create;
@@ -877,7 +902,8 @@ type
   end;
 
 const
-  GURLSafeBase64CodeTable: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  GURLSafeBase64CodeTable
+    : string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   { Do not Localize }
 
 procedure TURLSafeEncode.InitComponent;
@@ -984,12 +1010,35 @@ begin
   Self.WriteBuffer(UFTStr[Low(UFTStr)], Length(UFTStr));
 end;
 
+function Dict: TMVCStringDictionary; overload;
+begin
+  Result := TMVCStringDictionary.Create;
+end;
+
+function Dict(const aKeys: array of string; const aValues: array of string)
+  : TMVCStringDictionary; overload;
+var
+  I: Integer;
+begin
+  if Length(aKeys) <> Length(aValues) then
+  begin
+    raise EMVCException.CreateFmt('Dict error. Got %d keys but %d values',
+      [Length(aKeys), Length(aValues)]);
+  end;
+  Result := Dict();
+  for I := Low(aKeys) to High(aKeys) do
+  begin
+    Result.Add(aKeys[i], aValues[i]);
+  end;
+end;
+
 initialization
 
 Lock := TObject.Create;
 
 // SGR 2017-07-03 : Initialize decoding table for URLSafe Gb64 encoding
-TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable, TURLSafeDecode.GSafeBaseBase64DecodeTable);
+TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable,
+  TURLSafeDecode.GSafeBaseBase64DecodeTable);
 
 GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
 GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);
