@@ -193,6 +193,11 @@ type
     procedure OnBeforeInsertOrUpdate; virtual;
 
     /// <summary>
+    /// Called before execute sql
+    /// </summary>
+    procedure OnBeforeExecuteSQL(var SQL:String); virtual;
+
+    /// <summary>
     /// Called after insert or update the object to the database
     /// </summary>
     procedure OnAfterInsertOrUpdate; virtual;
@@ -633,11 +638,14 @@ var
   lPar: TFDParam;
   lPair: TPair<TRttiField, string>;
   lValue: TValue;
+  lSQL : String;
 begin
   lQry := TFDQuery.Create(nil);
   try
     lQry.Connection := fConn;
-    lQry.SQL.Text := SQL;
+    lSQL := SQL;
+    OnBeforeExecuteSQL(lSQL);
+    lQry.SQL.Text := lSQL;
     // lQry.Prepare;
     for lPair in fMap do
     begin
@@ -669,7 +677,7 @@ begin
     end
     else
     begin
-      lQry.ExecSQL(SQL);
+      lQry.ExecSQL(lSQL);
     end;
 
     Result := lQry.RowsAffected;
@@ -1136,7 +1144,7 @@ begin
   {$IFDEF NEXTGEN}
     lName := aValue.TypeInfo.NameFld.ToString;
   {$ELSE}
-    lName := aValue.TypeInfo.Name;
+    lName := String(aValue.TypeInfo.Name);
   {$ENDIF}
   case aValue.TypeInfo.Kind of
     // tkUnknown:
@@ -1437,6 +1445,11 @@ begin
 end;
 
 procedure TMVCActiveRecord.OnBeforeDelete;
+begin
+  // do nothing
+end;
+
+procedure TMVCActiveRecord.OnBeforeExecuteSQL(var SQL:String);
 begin
   // do nothing
 end;
@@ -1872,7 +1885,11 @@ end;
 destructor TMVCConnectionsRepository.TConnHolder.Destroy;
 begin
   if OwnsConnection then
+  Begin
+    if Connection.connected then
+       Connection.connected := False;
     FreeAndNil(Connection);
+  End;
   inherited;
 end;
 
