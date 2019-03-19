@@ -41,7 +41,8 @@ uses
   MVCFramework.Tests.Serializer.Intf,
   MVCFramework.Tests.Serializer.Entities,
   MVCFramework.Tests.Serializer.EntitiesModule,
-  JsonDataObjects;
+  JsonDataObjects,
+  MVCFramework.DataSet.Utils;
 
 type
 
@@ -108,7 +109,8 @@ type
   public
     procedure SerializeRoot(const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
+      const AAttributes: System.TArray<System.TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil);
     procedure SerializeAttribute(const AElementValue: TValue;
       const APropertyName: string; const ASerializerObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>);
@@ -134,7 +136,8 @@ type
       const AAttributes: System.TArray<System.TCustomAttribute>);
     procedure SerializeRoot(const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
+      const AAttributes: System.TArray<System.TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil);
   end;
 
 implementation
@@ -288,6 +291,20 @@ const
     '"Name_Name":"Ezequiel Juliano Müller"' +
     '}' +
     ']';
+
+  JSON_ITEMS=
+    '{' +
+    '"items":[' +
+    '{' +
+    '"Id_Id":1,' +
+    '"Name_Name":"Pedro Henrique de Oliveira"' +
+    '},' +
+    '{' +
+    '"Id_Id":2,' +
+    '"Name_Name":"Rogers Abe"' +
+    '}' +
+    '],' +
+    '"meta":{"count":"2"}}';
 var
   Dm: TEntitiesModule;
 begin
@@ -342,6 +359,16 @@ begin
     Dm.EntityAsIs.Next;
     Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 2);
     Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
+
+    Dm.EntityAsIs.EmptyDataSet;
+    Dm.EntityAsIs.LoadFromJSONArrayStringItems(JSON_ITEMS);
+    Dm.EntityAsIs.First;
+    Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Pedro Henrique de Oliveira');
+
+    Dm.EntityAsIs.Next;
+    Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 2);
+    Assert.isTrue(Dm.EntityAsIsName.AsString = 'Rogers Abe');
   finally
     Dm.Free;
   end;
@@ -701,6 +728,7 @@ const
     '"Name_Name":"Ezequiel Juliano Müller"' +
     '}' +
     ']';
+
 var
   Dm: TEntitiesModule;
   S: string;
@@ -1306,7 +1334,8 @@ end;
 
 procedure TMVCEntityCustomSerializerJsonDataObjects.SerializeRoot(
   const AObject: TObject; out ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>);
+  const AAttributes: System.TArray<System.TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
 var
   lEntityCustom: TEntityCustom;
 begin
@@ -1348,7 +1377,8 @@ end;
 
 procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeRoot(
   const AObject: TObject; out ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>);
+  const AAttributes: System.TArray<System.TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
 begin
 
 end;

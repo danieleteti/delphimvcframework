@@ -193,6 +193,11 @@ type
     procedure OnBeforeInsertOrUpdate; virtual;
 
     /// <summary>
+    /// Called before execute sql
+    /// </summary>
+    procedure OnBeforeExecuteSQL(var SQL:String); virtual;
+
+    /// <summary>
     /// Called after insert or update the object to the database
     /// </summary>
     procedure OnAfterInsertOrUpdate; virtual;
@@ -633,11 +638,14 @@ var
   lPar: TFDParam;
   lPair: TPair<TRttiField, string>;
   lValue: TValue;
+  lSQL : String;
 begin
   lQry := TFDQuery.Create(nil);
   try
     lQry.Connection := fConn;
-    lQry.SQL.Text := SQL;
+    lSQL := SQL;
+    OnBeforeExecuteSQL(lSQL);
+    lQry.SQL.Text := lSQL;
     // lQry.Prepare;
     for lPair in fMap do
     begin
@@ -669,7 +677,7 @@ begin
     end
     else
     begin
-      lQry.ExecSQL(SQL);
+      lQry.ExecSQL(lSQL);
     end;
 
     Result := lQry.RowsAffected;
@@ -1103,6 +1111,10 @@ begin
       begin
         aRTTIField.SetValue(Self, BCDtoCurrency(aField.AsBCD));
       end;
+    ftFloat:
+      begin
+        aRTTIField.SetValue(Self, aField.AsFloat);
+      end;
     ftBlob:
       begin
         lInternalStream := aRTTIField.GetValue(Self).AsObject as TStream;
@@ -1127,7 +1139,13 @@ end;
 procedure TMVCActiveRecord.MapTValueToParam(const aValue: TValue; const aParam: TFDParam);
 var
   lStream: TStream;
+  lName: String;
 begin
+  {$IFDEF NEXTGEN}
+    lName := aValue.TypeInfo.NameFld.ToString;
+  {$ELSE}
+    lName := String(aValue.TypeInfo.Name);
+  {$ENDIF}
   case aValue.TypeInfo.Kind of
     // tkUnknown:
     // begin
@@ -1182,15 +1200,15 @@ begin
       end;
     tkFloat:
       begin
-        if aValue.TypeInfo.Name = 'TDate' then
+        if lName = 'TDate'  then
         begin
           aParam.AsDate := Trunc(aValue.AsExtended);
         end
-        else if aValue.TypeInfo.Name = 'TDateTime' then
+        else if lName = 'TDateTime'  then
         begin
           aParam.AsDateTime := aValue.AsExtended;
         end
-        else if aValue.TypeInfo.Name = 'Currency' then
+        else if lName = 'Currency'  then
         begin
           aParam.AsCurrency := aValue.AsCurrency;
         end
@@ -1427,6 +1445,11 @@ begin
 end;
 
 procedure TMVCActiveRecord.OnBeforeDelete;
+begin
+  // do nothing
+end;
+
+procedure TMVCActiveRecord.OnBeforeExecuteSQL(var SQL:String);
 begin
   // do nothing
 end;
@@ -1836,7 +1859,7 @@ function TMVCSQLGenerator.GetRQLParser: TRQL2SQL;
 begin
   if fRQL2SQL = nil then
   begin
-    fRQL2SQL := TRQL2SQL.Create(20);
+    fRQL2SQL := TRQL2SQL.Create;//(20);
   end;
   Result := fRQL2SQL;
 end;
@@ -1862,7 +1885,11 @@ end;
 destructor TMVCConnectionsRepository.TConnHolder.Destroy;
 begin
   if OwnsConnection then
+  Begin
+    if Connection.connected then
+       Connection.connected := False;
     FreeAndNil(Connection);
+  End;
   inherited;
 end;
 
