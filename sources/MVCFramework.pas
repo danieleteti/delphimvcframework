@@ -54,7 +54,6 @@ uses
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
-  // MVCFramework.Serializer.JSON,
 
 {$IFDEF WEBAPACHEHTTP}
   Web.ApacheHTTP,
@@ -896,12 +895,10 @@ begin
 {$IFDEF BERLINORBETTER}
       FWebRequest.ReadTotalContent; // Otherwise ISAPI Raises "Empty BODY"
       FBody := lEncoding.GetString(FWebRequest.RawContent);
-
 {$ELSE}
       SetLength(lBuffer, FWebRequest.ContentLength);
       FWebRequest.ReadClient(lBuffer[0], FWebRequest.ContentLength);
       FBody := lEncoding.GetString(lBuffer);
-
 {$ENDIF}
     finally
       lEncoding.Free;
@@ -1728,12 +1725,22 @@ var
 begin
   Result := False;
 
-  ARequest.ReadTotalContent;
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
-    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB]',
+    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB] (1)',
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
+
+{$IFDEF BERLINORBETTER}
+  ARequest.ReadTotalContent;
+
+  //Double check for malicious content-length header
+  if ARequest.ContentLength > FConfigCache_MaxRequestSize then
+  begin
+    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB] (2)',
+      [(FConfigCache_MaxRequestSize div 1024)]);
+  end;
+{$ENDIF}
 
   LParamsTable := TMVCRequestParamsTable.Create;
   try

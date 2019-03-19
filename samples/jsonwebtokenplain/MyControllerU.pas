@@ -3,7 +3,8 @@ unit MyControllerU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons;
+  MVCFramework,
+  MVCFramework.Commons;
 
 type
 
@@ -24,7 +25,9 @@ type
 implementation
 
 uses
-  MVCFramework.JWT, System.SysUtils, System.DateUtils;
+  MVCFramework.JWT,
+  System.SysUtils,
+  System.DateUtils;
 
 procedure TMyController.DoLogin(ctx: TWebContext);
 begin
@@ -72,11 +75,8 @@ begin
   end;
 
   // JWT checking
-  lJWT := TJWT.Create('mysecret');
+  lJWT := TJWT.Create('mysecret', 0 { in this demo, no tolerance... so no LEEWAY time } );
   try
-    // in this demo, no tolerance... so no LEEWAY time
-    lJWT.LeewaySeconds := 0;
-
     lAuthHeader := Context.Request.Headers['Authentication'];
     if lAuthHeader.IsEmpty then
     begin
@@ -90,21 +90,22 @@ begin
       lToken := lAuthHeader.Remove(0, 'bearer'.Length).Trim;
     end;
 
-    if not lJWT.IsValidToken(lToken, lError) then
+    if not lJWT.LoadToken(lToken, lError) then
     begin
       Render(http_status.Unauthorized, 'Invalid Token, Authentication Required');
       Handled := True;
     end
     else
     begin
-      lJWT.LoadToken(lToken);
       if lJWT.CustomClaims['username'].IsEmpty then
       begin
         Render(http_status.Unauthorized, 'Invalid Token, Authentication Required');
         Handled := True;
       end
       else
+      begin
         Handled := False;
+      end;
     end;
   finally
     lJWT.Free;

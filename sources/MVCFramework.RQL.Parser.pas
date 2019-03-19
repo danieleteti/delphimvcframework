@@ -616,14 +616,14 @@ begin
   lRQLLimit := TRQLLimit.Create;
   fAST.Add(lRQLLimit);
   lRQLLimit.Token := tkLimit;
-  lRQLLimit.Start := lStart.ToInt64;
+  lRQLLimit.Start := StrToInt64(lStart); //XE7 compat
   if fMaxRecordCount > -1 then
   begin
-    lRQLLimit.Count := Min(lCount.ToInt64, fMaxRecordCount);
+    lRQLLimit.Count := Min(StrToInt64(lCount), fMaxRecordCount);
   end
   else
   begin
-    lRQLLimit.Count := lCount.ToInt64;
+    lRQLLimit.Count := StrToInt64(lCount);
   end;
   Result := True;
 end;

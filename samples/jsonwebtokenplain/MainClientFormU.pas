@@ -3,8 +3,16 @@ unit MainClientFormU;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls;
 
 type
   TForm7 = class(TForm)
@@ -31,8 +39,8 @@ uses
 
 {$R *.dfm}
 
-
 procedure TForm7.Button1Click(Sender: TObject);
+
 var
   lClt: TRESTClient;
   lResp: IRESTResponse;
@@ -40,7 +48,7 @@ begin
   lClt := TRESTClient.Create('localhost', 8080);
   try
     lResp := lClt.doPOST('/login', [], '');
-    Token := lResp.BodyAsJSONValue.Value;
+    Token := lResp.BodyAsString;
   finally
     lClt.Free;
   end;
@@ -58,7 +66,7 @@ begin
     lClt.Header('Authentication', 'bearer ' + FToken);
     lResp := lClt.doGET('/', []);
     ShowMessage(lResp.ResponseText + sLineBreak +
-      lResp.BodyAsJSONValue.Value);
+      lResp.BodyAsString);
   finally
     lClt.Free;
   end;

@@ -110,6 +110,8 @@ Render(lPerson, False,
 - Added! New overloads for all the Log\* calls. Now it is possibile to call `LogD(lMyObject)` to get logged `lMyObject` as JSON (custom type serializers not supported in log).
 - Fixed! [issue164](https://github.com/danieleteti/delphimvcframework/issues/164)
 - Fixed! [issue182](https://github.com/danieleteti/delphimvcframework/issues/182)
+- New! `Dict(array of string, array of string)` function allows to render a dictionary of strings in a really simple way.
+- Improved! Exceptions rendering while using MIME types different to `application/json`.
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
 
 

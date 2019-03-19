@@ -568,7 +568,7 @@ procedure JSONDataValueToTValueParam(const JSONDataValue: TJsonDataValueHelper; 
   const JSONRPCRequestParams: TJSONRPCRequestParams);
 begin
   case RTTIParameter.ParamType.TypeKind of
-    tkString, tkUString, tkAnsiString:
+    tkString, tkUString {$IF CompilerVersion > 28}, tkAnsiString {$ENDIF}:
       begin
         if JSONDataValue.Typ <> jdtString then
         begin
