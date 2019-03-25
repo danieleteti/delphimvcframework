@@ -767,7 +767,6 @@ end;
 function TRQL2SQL.MatchFieldArrayValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
-  lToken: TRQLToken;
 begin
   Result := True;
   while True do
