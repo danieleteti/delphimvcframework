@@ -52,7 +52,7 @@ uses
   sort(<+|-><property) - Sorts by the given property in order specified by the prefix (+ for ascending, - for descending)
   limit(count,start,maxCount) - Returns the given range of objects from the result set
   contains(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
-
+  in(<property>,<array-of-values>) - Filters for objects where the specified property's value is in the provided array
 
 
   //////NOT AVAILABLES
@@ -60,7 +60,6 @@ uses
   values(<property>) - Returns an array of the given property value for each object
   aggregate(<property|function>,...) - Aggregates the array, grouping by objects that are distinct for the provided properties, and then reduces the remaining other property values using the provided functions
   distinct() - Returns a result set with duplicates removed
-  in(<property>,<array-of-values>) - Filters for objects where the specified property's value is in the provided array
   out(<property>,<array-of-values>) - Filters for objects where the specified property's value is not in the provided array
   excludes(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array does not contain any of value that equals the provided value or satisfies the provided expression.
   rel(<relation name?>,<query>) - Applies the provided query against the linked data of the provided relation name.
@@ -75,8 +74,9 @@ uses
 }
 
 type
-  TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF, tkOpenPar, tkClosedPar,
-    tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote, tkQuote, tkSpace, tkContains, tkUnknown);
+  TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF,
+    tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
+    tkQuote, tkSpace, tkContains, tkIn, tkUnknown);
   
   TRQLCustom = class;
 
@@ -183,6 +183,7 @@ type
     function MatchFieldName(out lFieldName: string): Boolean;
     function MatchFieldStringValue(out lFieldValue: string): Boolean;
     function MatchFieldNumericValue(out lFieldValue: string): Boolean;
+    function MatchFieldArrayValue(out lFieldValue: string): Boolean;
     function MatchSymbol(const Symbol: Char): Boolean;
     procedure SaveCurPos;
     procedure BackToLastPos;
@@ -363,8 +364,7 @@ begin
   // end;
 end;
 
-function TRQL2SQL.GetToken:
-  TRQLToken;
+function TRQL2SQL.GetToken: TRQLToken;
 var
   lChar: Char;
 begin
@@ -426,6 +426,18 @@ begin
   begin
     Skip(1);
     fCurrToken := tkClosedPar;
+    Exit(fCurrToken);
+  end;
+  if (lChar = '[') then
+  begin
+    Skip(1);
+    fCurrToken := tkOpenBracket;
+    Exit(fCurrToken);
+  end;
+  if (lChar = ']') then
+  begin
+    Skip(1);
+    fCurrToken := tkCloseBracket;
     Exit(fCurrToken);
   end;
   if (lChar = 'e') and (C(1) = 'q') then
@@ -494,6 +506,12 @@ begin
     fCurrToken := tkContains;
     Exit(fCurrToken);
   end;
+  if (lChar = 'i') and (C(1) = 'n') then
+  begin
+    Skip(2);
+    fCurrToken := tkIn;
+    Exit(fCurrToken);
+  end;
   if (lChar = ' ') then
   begin
     fCurrToken := tkSpace;
@@ -543,6 +561,14 @@ begin
       Error('Unclosed string');
     lValueIsString := True;
   end
+  else if (aToken = tkIn) and (lToken = tkOpenBracket) then
+  begin
+    if not MatchFieldArrayValue(lFieldValue) then
+      Error('Expected array value');
+    if not MatchSymbol(']') then
+      Error('Unclosed bracket');
+    lValueIsString := False;
+  end
   else
   begin
     BackToLastPos;
@@ -570,7 +596,7 @@ begin
   Result := True;
   lTk := GetToken;
   case lTk of
-    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains:
+    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn:
       begin
         ParseBinOperator(lTk, fAST);
       end;
@@ -648,7 +674,7 @@ begin
     EatWhiteSpaces;
     lToken := GetToken;
     case lToken of
-      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains:
+      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
         end;
@@ -738,6 +764,46 @@ begin
   Inc(fCurIdx, Count);
 end;
 
+function TRQL2SQL.MatchFieldArrayValue(out lFieldValue: string): Boolean;
+var
+  lChar: Char;
+  lToken: TRQLToken;
+begin
+  Result := True;
+  while True do
+  begin
+    lChar := C(0);
+    // escape chars
+    if lChar = '\' then
+    begin
+      if C(1) = '[' then
+      begin
+        lFieldValue := lFieldValue + '[';
+        Skip(2);
+        Continue;
+      end;
+      if C(1) = ']' then
+      begin
+        lFieldValue := lFieldValue + ']';
+        Skip(2);
+        Continue;
+      end;
+    end;
+
+    SaveCurPos;
+    CheckEOF(GetToken);
+    BackToLastPos;
+
+    if lChar <> ']' then
+    begin
+      lFieldValue := lFieldValue + lChar;
+    end
+    else
+      Break;
+    Skip(1);
+  end;
+end;
+
 function TRQL2SQL.MatchFieldName(out lFieldName: string): Boolean;
 var
   lChar: Char;
@@ -815,6 +881,10 @@ begin
         Continue;
       end;
     end;
+
+    SaveCurPos;
+    CheckEOF(GetToken);
+    BackToLastPos;
 
     if lChar <> '"' then
     begin
