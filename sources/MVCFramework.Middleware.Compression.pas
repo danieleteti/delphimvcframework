@@ -73,7 +73,7 @@ var
   lTmpItem: string;
 begin
   lContentStream := Context.Response.RawWebResponse.ContentStream;
-  if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold) then
+  if (lContentStream = nil) or (lContentStream is TFileStream) or (lContentStream.Size <= fCompressionThreshold) then
     Exit;
 
   lAcceptEncoding := Context.Request.Headers['Accept-Encoding'];
