@@ -149,7 +149,7 @@ begin
     fLogsFolder := TPath.GetDirectoryName(GetModuleName(HInstance));
 {$ENDIF}
 {$IF Defined(Android) or Defined(IOS)}
-    fLogsFolder := TPath.GetSharedDocumentsPath();
+    fLogsFolder := TPath.GetPublicPath();
 {$ENDIF}
   end;
   if not TDirectory.Exists(fLogsFolder) then

@@ -1195,11 +1195,12 @@ begin
   if AObject is TDataSet then
   begin
     raise Exception.Create('Not supported yet');
-    // Exit(self.SerializeDataSet(TDataSet(AObject)));
   end;
 
   if AObject is TJsonValue then
+  begin
     Exit(TJDOJsonObject.Parse(TJsonValue(AObject).ToJSON) as TJDOJsonObject);
+  end;
 
   ObjType := GetRttiContext.GetType(AObject.ClassType);
 

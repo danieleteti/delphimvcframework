@@ -159,6 +159,11 @@ type
     property Path: string read FPath;
   end;
 
+  MVCInheritableAttribute = class(MVCBaseAttribute)
+
+  end;
+
+
   TMVCWebRequest = class
   private
     FWebRequest: TWebRequest;

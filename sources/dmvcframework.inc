@@ -39,12 +39,8 @@
 {$DEFINE MOBILE}
 {$ENDIF}
 
-{$IF CompilerVersion < 27} // XE5-
-DelphiMVCFramework is compatible with Delphi version XE6 or better
-{$ENDIF}
-
-{$IF CompilerVersion >= 27} // XE6
-{$DEFINE XE6ORBETTER}
+{$IF CompilerVersion <= 27} // XE6
+DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$ENDIF}
 
 {$IF CompilerVersion >= 28} // XE7
@@ -84,14 +80,14 @@ DelphiMVCFramework is compatible with Delphi version XE6 or better
 {$ENDIF}
 
 
-{$IFDEF XE6ORBETTER} // XE6
+//{$IFDEF XE6ORBETTER} // XE6
 {$DEFINE SYSTEMJSON}
 {$DEFINE WEBAPACHEHTTP}
 {$DEFINE USEFIREDAC}
-{$ELSE}
-{$IFDEF XE5ORBETTER} // XE5
-{$DEFINE USEFIREDAC}
-{$ELSE}
-{$DEFINE USEDBX} // XE3, XE4
-{$ENDIF}
-{$ENDIF}
+//{$ELSE}
+//{$IFDEF XE5ORBETTER} // XE5
+//{$DEFINE USEFIREDAC}
+//{$ELSE}
+//{$DEFINE USEDBX} // XE3, XE4
+//{$ENDIF}
+//{$ENDIF}
