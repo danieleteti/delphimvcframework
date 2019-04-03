@@ -1,3 +1,6 @@
+in(name,['joão','duarte'])
+and(eq(name,"João"),in(codperson,[1,2,3]))
+in(codperson,[1,2,3])
 eq(name,-1)
 contains(nome,"João")
 sort(+last_name);limit(0,1)

@@ -116,6 +116,10 @@ begin
       begin
         Result := Format('(%s ILIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
       end;
+    tkIn:
+      begin
+        Result := Format('(%s IN (%s))', [lDBFieldName, lValue])
+      end;
   end;
 end;
 
