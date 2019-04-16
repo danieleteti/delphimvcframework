@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{1611FBE6-5266-48FE-BDF5-E46EEAA922BE}</ProjectGuid>
         <MainSource>loggerproRT.dpk</MainSource>
-        <ProjectVersion>18.5</ProjectVersion>
+        <ProjectVersion>18.6</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>

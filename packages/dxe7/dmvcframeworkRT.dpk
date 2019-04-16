@@ -93,7 +93,8 @@ contains
   MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
   MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
   MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas',
-  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas';
+  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
+  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas';
 
 end.
 

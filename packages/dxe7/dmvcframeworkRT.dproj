@@ -147,6 +147,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SystemJSONUtils.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.View.Cache.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Controllers.Register.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -205,7 +206,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\dmvcframeworkRT100.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\dmvcframeworkRTxe7.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>dmvcframeworkRT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

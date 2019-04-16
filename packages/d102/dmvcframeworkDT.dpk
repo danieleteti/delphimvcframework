@@ -53,6 +53,7 @@ contains
   DMVC.Expert.NewUnitWizardEx in '..\..\ideexpert\DMVC.Expert.NewUnitWizardEx.pas',
   DMVC.Expert.ProjectWizardEx in '..\..\ideexpert\DMVC.Expert.ProjectWizardEx.pas',
   DMVC.Expert.Registration in '..\..\ideexpert\DMVC.Expert.Registration.pas',
-  DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas';
+  DMVC.Splash.Registration in '..\..\ideexpert\DMVC.Splash.Registration.pas',
+  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas';
 
 end.
