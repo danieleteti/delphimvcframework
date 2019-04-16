@@ -113,6 +113,8 @@ Render(lPerson, False,
 - New! `Dict(array of string, array of string)` function allows to render a dictionary of strings in a really simple way.
 - Improved! Exceptions rendering while using MIME types different to `application/json`.
 - Improved! JSONRPC Automatic Object Publishing can not invoke inherited methods if not explicitely defined with `MVCInheritable` attribute.
+- Improved! Datasets serialization speed improvement. In some case the performace [improves of 2 order of magnitude](https://github.com/danieleteti/delphimvcframework/issues/205#issuecomment-479513158). (Thanks to https://github.com/pedrooliveira01)
+- New! Added `in` operator in RQL parser (Thank you [João Antônio Duarte](https://github.com/joaoduarte19))
 - New! Calling `<jsonrpcendpoint>/describe` returns the methods list available for that endpoint.
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
 

@@ -4,10 +4,8 @@ interface
 
 uses
   LoggerPro,
-  System.Net.HttpClientComponent,
   System.SysUtils,
-  LoggerPro.RESTAppender,
-  System.Net.HttpClient;
+  LoggerPro.RESTAppender;
 
 type
 
@@ -17,8 +15,6 @@ type
   }
 
   TLoggerProElasticSearchAppender = class(TLoggerProRESTAppender)
-  private
-    fHTTP: THTTPClient;
   public
     constructor Create(aElasticHost: string; aElasticPort: integer;
       aElasticIndex: string); reintroduce;
@@ -43,14 +39,12 @@ constructor TLoggerProElasticSearchAppender.Create(aElasticHost: string;
 var
   lUrl: string;
 begin
-  fHTTP := THTTPClient.Create;
   lUrl := Format('%s:%d/%s/_doc', [aElasticHost, aElasticPort, aElasticIndex.ToLower]);
   inherited Create(lUrl, 'application/json');
 end;
 
 destructor TLoggerProElasticSearchAppender.Destroy;
 begin
-  fHTTP.Free;
   inherited;
 end;
 

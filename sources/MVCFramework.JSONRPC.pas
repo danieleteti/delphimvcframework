@@ -1004,10 +1004,10 @@ begin
       LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode,
         E.Message]));
     end;
-    on E: Exception do
+    on Ex: Exception do  //use another name for exception variable, otherwise E is nil!!
     begin
-      Render(CreateError(lReqID, 0, E.Message), True);
-      LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [E.ClassName, E.Message]));
+      Render(CreateError(lReqID, 0, Ex.Message), True);
+      LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [Ex.ClassName, Ex.Message]));
     end;
   end;
 end;
