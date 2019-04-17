@@ -50,10 +50,9 @@ uses
 type
 
   TMVCDataSetField = record
-    FieldName: String;
+    FieldName: string;
     DataType: TFieldType;
     I: Integer;
-    IsNull: Boolean;
   end;
 
   TMVCDataSetFields = TList<TMVCDataSetField>;
@@ -377,7 +376,7 @@ begin
   for lField in ADataSetFields do
   begin
     begin
-      if lField.IsNull then
+      if ADataSet.Fields[lField.I].IsNull then
         AJsonObject[lField.FieldName] := Null
       else
       begin
@@ -1315,7 +1314,6 @@ begin
       ADataSet.Fields[I].FieldName);
     lField.DataType := ADataSet.Fields[I].DataType;
     lField.I := I;
-    lField.IsNull := ADataSet.Fields[I].IsNull;
     case ANameCase of
       ncUpperCase:
         lField.FieldName := UpperCase(ADataSet.Fields[I].FieldName);
