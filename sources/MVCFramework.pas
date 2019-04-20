@@ -648,6 +648,8 @@ type
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
   end;
 
+  TMVCExceptionHandlerProc = reference to procedure(E: Exception; SelectedController: TMVCController; WebContext: TWebContext; var ExceptionHandled: Boolean);
+
   TMVCEngine = class(TComponent)
   private const
     ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
@@ -663,6 +665,7 @@ type
     FMediaTypes: TDictionary<string, string>;
     FApplicationSession: TWebApplicationSession;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
+    FOnException: TMVCExceptionHandlerProc;
     function IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
     procedure FillActualParamsForAction(const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
@@ -670,6 +673,7 @@ type
     procedure RegisterDefaultsSerializers;
     function GetViewEngineClass: TMVCViewEngineClass;
   protected
+    function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController; const AContext: TWebContext): Boolean;
     procedure ConfigDefaultValues; virtual;
     procedure SaveCacheConfigValues;
     procedure LoadSystemControllers; virtual;
@@ -710,6 +714,7 @@ type
     function PublishObject(const AObjectCreatorDelegate: TMVCObjectCreatorDelegate; const AURLSegment: string)
       : TMVCEngine;
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
+    function SetExceptionHandler(const AExceptionHandlerProc: TMVCExceptionHandlerProc): TMVCEngine;
 
     function GetServerSignature(const AContext: TWebContext): string;
     procedure HTTP404(const AContext: TWebContext);
@@ -1697,6 +1702,19 @@ begin
   LoadSystemControllers;
 end;
 
+function TMVCEngine.CustomExceptionHandling(const Ex: Exception;
+  const ASelectedController: TMVCController;
+  const AContext: TWebContext): Boolean;
+begin
+  Result := False;
+  if Assigned(FOnException) then
+  begin
+    Log.ErrorFmt('[%s] %s',
+      [Ex.Classname, Ex.Message], LOGGERPRO_TAG);
+    FOnException(Ex, ASelectedController, AContext, Result);
+  end;
+end;
+
 procedure TMVCEngine.DefineDefaultResponseHeaders(const AContext: TWebContext);
 begin
   if Config[TMVCConfigKey.ExposeServerSignature] = 'true' then
@@ -1823,35 +1841,6 @@ begin
                   LSelectedController.MVCControllerBeforeDestroy;
                 end;
                 ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.Name, LHandled);
-                // except
-                // on E: EMVCSessionExpiredException do
-                // begin
-                // Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage], LOGGERPRO_TAG);
-                // LContext.SessionStop(False);
-                // LSelectedController.ResponseStatus(E.HTTPErrorCode);
-                // LSelectedController.Render(E);
-                // end;
-                // on E: EMVCException do
-                // begin
-                // Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage], LOGGERPRO_TAG);
-                // LSelectedController.ResponseStatus(E.HTTPErrorCode);
-                // LSelectedController.Render(E);
-                // end;
-                // on E: EInvalidOp do
-                // begin
-                // Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, 'Invalid Op'], LOGGERPRO_TAG);
-                // LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                // LSelectedController.Render(E);
-                // end;
-                // on Ex: Exception do
-                // begin
-                // Log.ErrorFmt('[%s] %s (Custom message: "%s")', [Ex.Classname, Ex.Message, 'Global Action Exception Handler'],
-                // LOGGERPRO_TAG);
-                // LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                // LSelectedController.Render(Ex);
-                // end;
-                // end;
-
                 LContext.Response.ContentType := LSelectedController.ContentType;
                 Log(TLogLevel.levNormal, ARequest.Method + ':' + ARequest.RawPathInfo + ' -> ' +
                   LRouter.ControllerClazz.QualifiedClassName + ' - ' + IntToStr(AResponse.StatusCode) + ' ' +
@@ -1885,55 +1874,67 @@ begin
               end; // end-execute-routing
             end; // if not handled by beforerouting
           except
-            on E: EMVCSessionExpiredException do
+            on ESess: EMVCSessionExpiredException do
             begin
-              Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage],
-                LOGGERPRO_TAG);
-              LContext.SessionStop(False);
-              LSelectedController.ResponseStatus(E.HTTPErrorCode);
-              LSelectedController.Render(E);
+              if not CustomExceptionHandling(ESess, LSelectedController, LContext) then
+              begin
+                Log.ErrorFmt('[%s] %s (Custom message: "%s")', [ESess.Classname, ESess.Message, ESess.DetailedMessage],
+                  LOGGERPRO_TAG);
+                LContext.SessionStop(False);
+                LSelectedController.ResponseStatus(ESess.HTTPErrorCode);
+                LSelectedController.Render(ESess);
+              end;
             end;
             on E: EMVCException do
             begin
-              Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage],
-                LOGGERPRO_TAG);
-              if Assigned(LSelectedController) then
+              if not CustomExceptionHandling(E, LSelectedController, LContext) then
               begin
-                LSelectedController.ResponseStatus(E.HTTPErrorCode);
-                LSelectedController.Render(E);
-              end
-              else
-              begin
-                SendRawHTTPStatus(LContext, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]), E.ClassName);
+                Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage],
+                  LOGGERPRO_TAG);
+                if Assigned(LSelectedController) then
+                begin
+                  LSelectedController.ResponseStatus(E.HTTPErrorCode);
+                  LSelectedController.Render(E);
+                end
+                else
+                begin
+                  SendRawHTTPStatus(LContext, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]), E.ClassName);
+                end;
               end;
             end;
-            on E: EInvalidOp do
+            on EIO: EInvalidOp do
             begin
-              Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, 'Invalid Op'], LOGGERPRO_TAG);
-              if Assigned(LSelectedController) then
+              if not CustomExceptionHandling(EIO, LSelectedController, LContext) then
               begin
-                LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                LSelectedController.Render(E);
-              end
-              else
-              begin
-                SendRawHTTPStatus(LContext, HTTP_STATUS.InternalServerError,
-                  Format('[%s] %s', [E.Classname, E.Message]), E.Classname);
+                Log.ErrorFmt('[%s] %s (Custom message: "%s")', [EIO.Classname, EIO.Message, 'Invalid Op'], LOGGERPRO_TAG);
+                if Assigned(LSelectedController) then
+                begin
+                  LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
+                  LSelectedController.Render(EIO);
+                end
+                else
+                begin
+                  SendRawHTTPStatus(LContext, HTTP_STATUS.InternalServerError,
+                    Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
+                end;
               end;
             end;
-            on E: Exception do
+            on Ex: Exception do
             begin
-              Log.ErrorFmt('[%s] %s (Custom message: "%s")',
-                [E.Classname, E.Message, 'Global Action Exception Handler'], LOGGERPRO_TAG);
-              if Assigned(LSelectedController) then
+              if not CustomExceptionHandling(Ex, LSelectedController, LContext) then
               begin
-                LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                LSelectedController.Render(E);
-              end
-              else
-              begin
-                SendRawHTTPStatus(LContext, HTTP_STATUS.InternalServerError,
-                  Format('[%s] %s', [E.Classname, E.Message]), E.Classname);
+                Log.ErrorFmt('[%s] %s (Custom message: "%s")',
+                  [Ex.Classname, Ex.Message, 'Global Action Exception Handler'], LOGGERPRO_TAG);
+                if Assigned(LSelectedController) then
+                begin
+                  LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
+                  LSelectedController.Render(Ex);
+                end
+                else
+                begin
+                  SendRawHTTPStatus(LContext, HTTP_STATUS.InternalServerError,
+                  Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+                end;
               end;
             end;
           end;
@@ -2347,6 +2348,13 @@ begin
     TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
     Result := True;
   end;
+end;
+
+function TMVCEngine.SetExceptionHandler(
+  const AExceptionHandlerProc: TMVCExceptionHandlerProc): TMVCEngine;
+begin
+  FOnException := AExceptionHandlerProc;
+  Result := Self;
 end;
 
 function TMVCEngine.SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
