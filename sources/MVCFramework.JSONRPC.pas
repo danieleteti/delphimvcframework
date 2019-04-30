@@ -29,6 +29,8 @@ unit MVCFramework.JSONRPC;
   https://www.jsonrpc.org/historical/json-rpc-over-http.html
 }
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -913,9 +915,11 @@ begin
         begin
           if not CanBeRemotelyInvoked(lRTTIMethod) then
           begin
-            LogW(Format
+            {$IFDEF LOGENABLED}
+			LogW(Format
               ('Method "%s" cannot be called. Only public functions or procedures can be called. ',
               [lMethod]));
+			{$ENDIF}  
             raise EMVCJSONRPCMethodNotFound.Create(lMethod);
           end;
 
@@ -936,7 +940,9 @@ begin
 
           lJSONRPCReq.FillParameters(lJSON, lRTTIMethod);
           try
-            LogD('[JSON-RPC][CALL][' + CALL_TYPE[lRTTIMethod.MethodKind] + '] ' + lRTTIMethod.Name);
+            {$IFDEF LOGENABLED}
+			LogD('[JSON-RPC][CALL][' + CALL_TYPE[lRTTIMethod.MethodKind] + '] ' + lRTTIMethod.Name);
+			{$ENDIF}
             // CheckInputParametersTypes(lRTTIMethod);
             lRes := lRTTIMethod.Invoke(fRPCInstance, lJSONRPCReq.Params.ToArray);
           except
@@ -963,8 +969,10 @@ begin
         end
         else
         begin
-          LogW(Format('Method "%s" has not be found in %s. Only public methods can be invoked.',
+          {$IFDEF LOGENABLED}
+		  LogW(Format('Method "%s" has not be found in %s. Only public methods can be invoked.',
             [lMethod, fRPCInstance.QualifiedClassName]));
+		  {$ENDIF}	
           raise EMVCJSONRPCMethodNotFound.Create(lMethod);
         end;
       finally
@@ -1001,13 +1009,17 @@ begin
           ResponseStatus(500);
       end;
       Render(CreateError(lReqID, E.JSONRPCErrorCode, E.Message), True);
-      LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode,
+      {$IFDEF LOGENABLED}
+	  LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode,
         E.Message]));
+	  {$ENDIF}	
     end;
     on Ex: Exception do  //use another name for exception variable, otherwise E is nil!!
     begin
       Render(CreateError(lReqID, 0, Ex.Message), True);
-      LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [Ex.ClassName, Ex.Message]));
+      {$IFDEF LOGENABLED}
+	  LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [Ex.ClassName, Ex.Message]));
+	  {$ENDIF}
     end;
   end;
 end;

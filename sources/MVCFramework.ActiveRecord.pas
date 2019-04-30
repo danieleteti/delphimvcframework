@@ -24,6 +24,8 @@
 
 unit MVCFramework.ActiveRecord;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -561,7 +563,9 @@ begin
     except
       on E: Exception do
       begin
-        LogE('ActiveRecord: ' + E.ClassName + ' > ' + E.Message);
+        {$IFDEF LOGENABLED}
+		LogE('ActiveRecord: ' + E.ClassName + ' > ' + E.Message);
+		{$ENDIF}
         raise;
       end;
     end;
@@ -1550,7 +1554,9 @@ var
   lSQL: string;
 begin
   lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping);
+  {$IFDEF LOGENABLED}
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
+  {$ENDIF}
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;
 

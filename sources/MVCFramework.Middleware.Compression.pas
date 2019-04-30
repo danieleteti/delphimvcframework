@@ -27,8 +27,7 @@ unit MVCFramework.Middleware.Compression;
 interface
 
 uses
-  MVCFramework,
-  MVCFramework.Logger;
+  MVCFramework;
 
 type
   TMVCCompressionMiddleware = class(TInterfacedObject, IMVCMiddleware)

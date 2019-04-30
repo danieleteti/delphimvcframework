@@ -24,6 +24,8 @@
 
 unit MVCFramework.ActiveRecordController;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -143,7 +145,9 @@ begin
     // end;
     lConnection := ActiveRecordConnectionsRegistry.GetCurrent;
     lRQLBackend := GetBackEndByConnection(lConnection);
+	{$IFDEF LOGENABLED}
     LogD('[RQL PARSE]: ' + lRQL);
+	{$ENDIF}
     lInstance := lARClassRef.Create(True);
     try
       lMapping := lInstance.GetMapping;
@@ -164,7 +168,9 @@ begin
   except
     on E: ERQLCompilerNotFound do
     begin
-      LogE('RQL Compiler not found. Did you included MVCFramework.RQL.AST2<yourdatabase>.pas?');
+      {$IFDEF LOGENABLED}
+	  LogE('RQL Compiler not found. Did you included MVCFramework.RQL.AST2<yourdatabase>.pas?');
+	  {$ENDIF}
       raise;
     end;
   end;
@@ -259,7 +265,9 @@ begin
   except
     on E: Exception do
     begin
+	  {$IFDEF LOGENABLED}
       LogE(Format('Connection factory error [ClassName: %s]: "%s"', [E.ClassName, E.Message]));
+	  {$ENDIF}
       raise;
     end;
   end;

@@ -1639,7 +1639,9 @@ end;
 
 procedure TMVCEngine.ConfigDefaultValues;
 begin
+  {$IFDEF LOGENABLED}
   Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
+  {$ENDIF}
 
   Config[TMVCConfigKey.SessionTimeout] := '30' { 30 minutes };
   Config[TMVCConfigKey.DocumentRoot] := '.\www';
@@ -1668,7 +1670,9 @@ begin
   FMediaTypes.Add('.png', TMVCMediaType.IMAGE_PNG);
   FMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
 
+  {$IFDEF LOGENABLED}
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
+  {$ENDIF}
 end;
 
 constructor TMVCEngine.Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig>;
@@ -1688,14 +1692,20 @@ begin
   WebRequestHandler.CacheConnections := True;
   WebRequestHandler.MaxConnections := 4096;
 
-  MVCFramework.Logger.SetDefaultLogger(ACustomLogger);
+  if ACustomLogger <> nil then
+    MVCFramework.Logger.SetDefaultLogger(ACustomLogger);
+
   ConfigDefaultValues;
 
   if Assigned(AConfigAction) then
   begin
+    {$IFDEF LOGENABLED}
     LogEnterMethod('Custom configuration method');
+    {$ENDIF}
     AConfigAction(FConfig);
+    {$IFDEF LOGENABLED}
     LogExitMethod('Custom configuration method');
+    {$ENDIF}
   end;
   SaveCacheConfigValues;
   RegisterDefaultsSerializers;
@@ -1709,8 +1719,10 @@ begin
   Result := False;
   if Assigned(FOnException) then
   begin
+    {$IFDEF LOGENABLED}
     Log.ErrorFmt('[%s] %s',
       [Ex.Classname, Ex.Message], LOGGERPRO_TAG);
+    {$ENDIF}
     FOnException(Ex, ASelectedController, AContext, Result);
   end;
 end;
@@ -1792,8 +1804,10 @@ begin
                 except
                   on Ex: Exception do
                   begin
+                    {$IFDEF LOGENABLED}
                     Log.ErrorFmt('[%s] %s (Custom message: "%s")',
                       [Ex.Classname, Ex.Message, 'Cannot create controller'], LOGGERPRO_TAG);
+                    {$ENDIF}
                     raise EMVCException.Create(HTTP_STATUS.InternalServerError, 'Cannot create controller');
                     // HTTP500(LContext, 'Cannot create controller');
                     // Result := False;
@@ -1842,9 +1856,11 @@ begin
                 end;
                 ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.Name, LHandled);
                 LContext.Response.ContentType := LSelectedController.ContentType;
+                {$IFDEF LOGENABLED}
                 Log(TLogLevel.levNormal, ARequest.Method + ':' + ARequest.RawPathInfo + ' -> ' +
                   LRouter.ControllerClazz.QualifiedClassName + ' - ' + IntToStr(AResponse.StatusCode) + ' ' +
                   AResponse.ReasonString)
+                {$ENDIF}
 
               end
               else // execute-routing
@@ -1864,8 +1880,10 @@ begin
                   if not Result then
                   begin
                     // HTTP404(LContext);
+                    {$IFDEF LOGENABLED}
                     Log(TLogLevel.levNormal, ARequest.Method + ':' + ARequest.RawPathInfo + ' -> NO ACTION ' + ' - ' +
                       IntToStr(AResponse.StatusCode) + ' ' + AResponse.ReasonString);
+                    {$ENDIF}
                     raise EMVCException.Create(HTTP_STATUS.NotFound, 'Not Found');
                   end;
                 end
@@ -1878,8 +1896,10 @@ begin
             begin
               if not CustomExceptionHandling(ESess, LSelectedController, LContext) then
               begin
+                {$IFDEF LOGENABLED}
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [ESess.Classname, ESess.Message, ESess.DetailedMessage],
                   LOGGERPRO_TAG);
+                {$ENDIF}
                 LContext.SessionStop(False);
                 LSelectedController.ResponseStatus(ESess.HTTPErrorCode);
                 LSelectedController.Render(ESess);
@@ -1889,8 +1909,10 @@ begin
             begin
               if not CustomExceptionHandling(E, LSelectedController, LContext) then
               begin
+                {$IFDEF LOGENABLED}
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage],
                   LOGGERPRO_TAG);
+                {$ENDIF}
                 if Assigned(LSelectedController) then
                 begin
                   LSelectedController.ResponseStatus(E.HTTPErrorCode);
@@ -1906,7 +1928,9 @@ begin
             begin
               if not CustomExceptionHandling(EIO, LSelectedController, LContext) then
               begin
+                {$IFDEF LOGENABLED}
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [EIO.Classname, EIO.Message, 'Invalid Op'], LOGGERPRO_TAG);
+                {$ENDIF}
                 if Assigned(LSelectedController) then
                 begin
                   LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
@@ -1923,8 +1947,10 @@ begin
             begin
               if not CustomExceptionHandling(Ex, LSelectedController, LContext) then
               begin
+                {$IFDEF LOGENABLED}
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")',
                   [Ex.Classname, Ex.Message, 'Global Action Exception Handler'], LOGGERPRO_TAG);
+                {$ENDIF}
                 if Assigned(LSelectedController) then
                 begin
                   LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
@@ -2226,9 +2252,13 @@ end;
 
 procedure TMVCEngine.LoadSystemControllers;
 begin
+  {$IFDEF LOGENABLED}
   Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
+  {$ENDIF}
   AddController(TMVCSystemController);
+  {$IFDEF LOGENABLED}
   Log(TLogLevel.levNormal, 'EXIT: LoadSystemControllers');
+  {$ENDIF}
 end;
 
 procedure TMVCEngine.OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse;
@@ -2248,7 +2278,9 @@ begin
     except
       on E: Exception do
       begin
+        {$IFDEF LOGENABLED}
         Log.ErrorFmt('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
+        {$ENDIF}
         AResponse.Content := E.Message;
         AResponse.SendResponse;
         AHandled := True;
@@ -2575,7 +2607,9 @@ begin
   except
     on E: Exception do
     begin
+      {$IFDEF LOGENABLED}
       Log.ErrorFmt('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
+      {$ENDIF}
       ContentType := TMVCMediaType.TEXT_PLAIN;
       Render(E);
     end;
