@@ -30,7 +30,8 @@
 { .$DEFINE STARTEREDITION }
 { ------------ DO NOT CHANGE UNDER THIS LINE -------------------- }
 
-{.$DEFINE LOGENABLED}
+// Enable/disable log generation
+{$DEFINE LOGENABLED}
 
 {$IFDEF STARTEREDITION}
 {$UNDEF USEFIREDAC}
