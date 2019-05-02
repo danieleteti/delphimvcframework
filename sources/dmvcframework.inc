@@ -47,7 +47,6 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE XE7ORBETTER}
 {$ENDIF}
 
-
 {$IF CompilerVersion >= 30} // 10.0 Seattle
 {$DEFINE SEATTLEORBETTER}
 {$ENDIF}
@@ -64,7 +63,6 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE RIOORBETTER}
 {$ENDIF}
 
-
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
 {$ENDIF}
@@ -73,21 +71,14 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE JSONBOOL}
 {$ENDIF}
 
-
 {$IFDEF XE7ORBETTER}
 {$DEFINE SYSTEMNETENCODING}
 {$DEFINE TOJSON}
 {$ENDIF}
 
-
-//{$IFDEF XE6ORBETTER} // XE6
 {$DEFINE SYSTEMJSON}
+{$IFNDEF MOBILE}
 {$DEFINE WEBAPACHEHTTP}
+{$ENDIF}
 {$DEFINE USEFIREDAC}
-//{$ELSE}
-//{$IFDEF XE5ORBETTER} // XE5
-//{$DEFINE USEFIREDAC}
-//{$ELSE}
-//{$DEFINE USEDBX} // XE3, XE4
-//{$ENDIF}
-//{$ENDIF}
+

@@ -59,6 +59,7 @@ begin
     begin
       // no config here
       Config[TMVCConfigKey.SessionTimeout] := '0'; // setting cookie
+      Config[TMVCConfigKey.PathPrefix] := '';
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)

@@ -51,15 +51,15 @@ type
     [MVCPath('/describeserver.info')]
     [MVCHTTPMethods([httpGET, httpPOST])]
     [MVCDoc('Describe controllers and actions published by the RESTful server per resources')]
-    procedure DescribeServer(AContext: TWebContext);
+    procedure DescribeServer;
 
     [MVCPath('/describeplatform.info')]
     [MVCDoc('Describe the system where server is running')]
-    procedure DescribePlatform(AContext: TWebContext);
+    procedure DescribePlatform;
 
     [MVCPath('/serverconfig.info')]
     [MVCDoc('Server configuration')]
-    procedure ServerConfig(AContext: TWebContext);
+    procedure ServerConfig;
   end;
 
 implementation
@@ -93,7 +93,7 @@ end;
 
 { TMVCSystemController }
 
-procedure TMVCSystemController.DescribePlatform(AContext: TWebContext);
+procedure TMVCSystemController.DescribePlatform;
 var
   Jo: TJSONObject;
 begin
@@ -110,7 +110,7 @@ begin
   end;
 end;
 
-procedure TMVCSystemController.DescribeServer(AContext: TWebContext);
+procedure TMVCSystemController.DescribeServer;
 var
   LJoResp: TJSONObject;
   LController: TMVCControllerDelegate;
@@ -221,9 +221,13 @@ begin
   ClientIp := Context.Request.ClientIp;
   AHandled := not((ClientIp = '::1') or (ClientIp = '127.0.0.1') or (ClientIp = '0:0:0:0:0:0:0:1') or
     (ClientIp.ToLower = 'localhost'));
+  if AHandled then
+  begin
+    AContext.Response.StatusCode := HTTP_STATUS.Forbidden;
+  end;
 end;
 
-procedure TMVCSystemController.ServerConfig(AContext: TWebContext);
+procedure TMVCSystemController.ServerConfig;
 var
   Keys: TArray<string>;
   Key: string;

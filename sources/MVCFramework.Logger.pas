@@ -75,7 +75,9 @@ var
 implementation
 
 uses
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.DuckTyping;
+  System.IOUtils,
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.DuckTyping;
 
 var
   _lock: TObject;
@@ -249,12 +251,19 @@ begin
 end;
 
 procedure InitializeDefaultLogger;
+var
+  lLogsFolder: String;
 begin
   { This procedure must be called in a synchronized context
     (Normally only SetDefaultLogger should be the caller) }
   if not Assigned(_DefaultLogger) then
   begin
-    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, AppPath + 'logs')]);
+{$IF NOT DEFINED(MOBILE)}
+    lLogsFolder := AppPath + 'logs';
+{$ELSE}
+    lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
+{$ENDIF}
+    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
   end;
 end;
 

@@ -27,8 +27,8 @@
 unit MVCFramework;
 
 {$I dmvcframework.inc}
-{$IFDEF ANDROID OR IOS}
-{$MESSAGE Fatal 'This unit is not compilable on mobile platforms'}
+{$IF IOS}
+{$MESSAGE Fatal 'This unit is not compilable on iOS'}
 {$ENDIF}
 {$RTTI EXPLICIT
   METHODS(DefaultMethodRttiVisibility)
@@ -64,15 +64,13 @@ uses
   // Delphi XE4 (all update) and XE5 (with no update) don't contains this unit. Look for the bug in QC
   // https://quality.embarcadero.com/browse/RSP-17216
 
-{$IFNDEF VER320}
+{$IFNDEF MOBILE} //file upload is not supported on mobile
   Web.ReqMulti,
-
 {$ENDIF}
   Web.HTTPApp,
 
-{$IFNDEF LINUX}
+{$IFDEF MSWINDOWS}
   Web.Win.IsapiHTTP,
-
 {$ENDIF}
   Web.WebReq,
   LoggerPro,
