@@ -501,7 +501,7 @@ const
   // WindowBits: http://zlib.net/manual.html#Advanced
 
 var
-  Lock: TObject;
+  gLock: TObject;
 
 const
   RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'),
@@ -1051,7 +1051,7 @@ end;
 
 initialization
 
-Lock := TObject.Create;
+gLock := TObject.Create;
 
 // SGR 2017-07-03 : Initialize decoding table for URLSafe Gb64 encoding
 TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable,
@@ -1063,6 +1063,6 @@ GlobalAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(GetModuleName(HIns
 
 finalization
 
-FreeAndNil(Lock);
+FreeAndNil(gLock);
 
 end.

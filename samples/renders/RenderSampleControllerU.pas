@@ -43,9 +43,9 @@ type
       var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($id)')]
+    [MVCPath('/customers/($ID)')]
     [MVCProduces('text/plain')]
-    procedure GetPerson_AsText(const id: Integer);
+    procedure GetPerson_AsText(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/hateoas')]
@@ -83,9 +83,9 @@ type
     procedure GetPeopleWithTiming;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/people/($id)')]
+    [MVCPath('/people/($ID)')]
     [MVCProduces('application/json')]
-    procedure GetPersonById(const id: Integer);
+    procedure GetPersonById(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/lotofobjects')]
@@ -98,12 +98,12 @@ type
     procedure GetProgrammersAndPhilosophersAsObjectList;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/view/($id).html')]
+    [MVCPath('/customers/view/($ID).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetPerson_AsHTMLView;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($id).html')]
+    [MVCPath('/customers/($ID).html')]
     [MVCProduces('text/html')]
     procedure GetPerson_AsHTML;
 
@@ -112,14 +112,14 @@ type
     procedure GetPeopleAsCSV;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/unicode/($id).html')]
+    [MVCPath('/customers/unicode/($ID).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetUnicodeText_AsHTML;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($id)')]
+    [MVCPath('/customers/($ID)')]
     [MVCProduces('application/json')]
-    procedure GetCustomerByID_AsTObject(const id: Integer);
+    procedure GetCustomerByID_AsTObject(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/files/customers.json')]
@@ -132,7 +132,7 @@ type
     procedure GetPersonPhoto;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/images/customers/($id)')]
+    [MVCPath('/images/customers/($ID)')]
     procedure GetPersonPhotoAsStream;
 
     [MVCHTTPMethod([httpPOST])]
@@ -274,11 +274,11 @@ begin
   Render(TFileStream.Create(lFullFilePath, fmOpenRead or fmShareDenyNone));
 end;
 
-procedure TRenderSampleController.GetCustomerByID_AsTObject(const id: Integer);
+procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
 var
   Cust: TCustomer;
 begin
-  if id = 7 then // just a sample
+  if ID = 7 then // just a sample
     Render(HTTP_STATUS.NotFound, 'Customer Not Found')
   else
   begin
@@ -419,10 +419,10 @@ begin
   }
 end;
 
-procedure TRenderSampleController.GetPerson_AsText(const id: Integer);
+procedure TRenderSampleController.GetPerson_AsText(const ID: Integer);
 begin
   ResponseStream
-    .AppendLine('ID        :  ' + id.ToString)
+    .AppendLine('ID        :  ' + ID.ToString)
     .AppendLine('FirstName : Daniele')
     .AppendLine('LastName  : Teti')
     .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
@@ -576,29 +576,29 @@ begin
   Render<TPerson>(People, True,
     procedure(const APerson: TPerson; const Dict: TMVCStringDictionary)
     begin
-      Dict[HATEOAS.HREF] := '/people/' + APerson.id.ToString;
+      Dict[HATEOAS.HREF] := '/people/' + APerson.ID.ToString;
       Dict[HATEOAS.REL] := 'self';
       Dict[HATEOAS._TYPE] := 'application/json';
       Dict['title'] := 'Details for ' + APerson.FullName;
     end);
 end;
 
-procedure TRenderSampleController.GetPersonById(const id: Integer);
+procedure TRenderSampleController.GetPersonById(const ID: Integer);
 var
   lPerson: TPerson;
 begin
   lPerson := TPerson.Create;
   try
-    lPerson.id := id;
+    lPerson.ID := ID;
     lPerson.FirstName := 'Daniele';
-    lPerson.LastName := 'Daniele';
+    lPerson.LastName := 'Teti';
     lPerson.DOB := EncodeDate(1979, 11, 4);
     lPerson.Married := True;
     Render(lPerson, False,
       procedure(const AObject: TObject; const Links: TMVCStringDictionary)
       begin
-        Links[HATEOAS.HREF] := '/people';
-        Links[HATEOAS.REL] := 'list';
+        Links[HATEOAS.HREF] := '/people/' + TPerson(AObject).ID.ToString;
+        Links[HATEOAS.REL] := 'self';
         Links[HATEOAS._TYPE] := TMVCMediaType.APPLICATION_JSON;
       end);
   finally

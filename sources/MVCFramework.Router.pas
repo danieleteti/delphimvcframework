@@ -188,7 +188,7 @@ begin
   end;
   { CHANGE THE REQUEST PATH INFO END }
 
-  TMonitor.Enter(Lock);
+  TMonitor.Enter(gLock);
   try
     LControllerMappedPath := EmptyStr;
     for LControllerDelegate in AControllers do
@@ -259,7 +259,7 @@ begin
       end; //for in Methods
     end; //for in Controllers
   finally
-    TMonitor.Exit(Lock);
+    TMonitor.Exit(gLock);
   end;
 end;
 
