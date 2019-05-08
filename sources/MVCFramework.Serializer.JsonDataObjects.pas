@@ -980,7 +980,7 @@ begin
   if Assigned(ASerializationAction) then
   begin
     ASerializationAction(AObject, Dict);
-    Serializer.SerializeAttribute(Dict, TMVCConstants.HATEOS_PROP_NAME, AJsonObject, []);
+    Serializer.SerializeAttribute(Dict, TMVCConstants.HATEOAS_PROP_NAME, AJsonObject, []);
   end;
 end;
 
@@ -1096,7 +1096,6 @@ begin
         begin
           LJObj := JsonArray.AddObject;
           DataSetToJsonObject(ADataSet, LJObj, lNameCase, AIgnoredFields, lDataSetFields);
-          ADataSet.Next;
           if Assigned(ASerializationAction) then
           begin
             lLinks.Clear;
@@ -1104,6 +1103,7 @@ begin
             TMVCStringDictionarySerializer(fStringDictionarySerializer)
               .Serialize(lLinks, LJObj.O['_links']);
           end;
+          ADataSet.Next;
         end;
         Result := JsonArray.ToJSON(True);
       finally

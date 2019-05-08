@@ -116,7 +116,23 @@ type
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
-    HATEOS_PROP_NAME = '_links';
+    HATEOAS_PROP_NAME = '_links';
+  end;
+
+  HATEOAS = record
+  public const
+    /// <summary>
+    /// Target URI: It indicates the target resource URI. This is represented by the href attribute.
+    /// </summary>
+    HREF = 'href';
+    /// <summary>
+    /// Link relation: The link relation type describes how the current context is related to the target resource. This is represented by the rel attribute.
+    /// </summary>
+    REL = 'rel';
+    /// <summary>
+    /// Type: This indicates the expected resource media type. This is represented by the type attribute.
+    /// </summary>
+    _TYPE = 'type';
   end;
 
   TMVCConfigKey = record
@@ -590,15 +606,16 @@ begin
     begin
       Result := lContentMediaType;
     end
-    else if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
-    then
-    begin
-      Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
-    end
     else
-    begin
-      Result := lContentMediaType;
-    end;
+      if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
+      then
+      begin
+        Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
+      end
+      else
+      begin
+        Result := lContentMediaType;
+      end;
   end;
 end;
 
@@ -1028,7 +1045,7 @@ begin
   Result := Dict();
   for I := Low(aKeys) to High(aKeys) do
   begin
-    Result.Add(aKeys[i], aValues[i]);
+    Result.Add(aKeys[I], aValues[I]);
   end;
 end;
 

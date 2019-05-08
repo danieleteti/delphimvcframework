@@ -348,7 +348,9 @@ begin
     Render(lDM.qryCustomers, False,
       procedure(const DS: TDataset; const Links: TMVCStringDictionary)
       begin
-        Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
+        Links[HATEOAS.HREF] := '/customers/' + DS.FieldByName('cust_no').AsString;
+        Links[HATEOAS.REL] := 'self';
+        Links[HATEOAS._TYPE] := 'application/json';
       end);
   finally
     lDM.Free;
@@ -574,8 +576,10 @@ begin
   Render<TPerson>(People, True,
     procedure(const APerson: TPerson; const Dict: TMVCStringDictionary)
     begin
-      Dict['ref'] := '/api/people/' + APerson.LastName;
-      Dict['x-ref'] := '/api/people/' + APerson.LastName;
+      Dict[HATEOAS.HREF] := '/people/' + APerson.id.ToString;
+      Dict[HATEOAS.REL] := 'self';
+      Dict[HATEOAS._TYPE] := 'application/json';
+      Dict['title'] := 'Details for ' + APerson.FullName;
     end);
 end;
 
@@ -593,8 +597,9 @@ begin
     Render(lPerson, False,
       procedure(const AObject: TObject; const Links: TMVCStringDictionary)
       begin
-        Links['x-self'] := '/people/' + TPerson(AObject).id.ToString;
-        Links['x-self-list'] := '/people';
+        Links[HATEOAS.HREF] := '/people';
+        Links[HATEOAS.REL] := 'list';
+        Links[HATEOAS._TYPE] := TMVCMediaType.APPLICATION_JSON;
       end);
   finally
     lPerson.Free;

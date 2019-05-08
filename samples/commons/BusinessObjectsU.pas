@@ -44,13 +44,14 @@ type
     procedure SetFirstName(const Value: string);
     procedure SetLastName(const Value: string);
     procedure SetMarried(const Value: boolean);
+    function GetFullName: String;
   public
     function Equals(Obj: TObject): boolean; override;
 
     property ID: Int64 read fID write fID;
     property FirstName: string read FFirstName write SetFirstName;
     property LastName: string read FLastName write SetLastName;
-
+    property FullName: String read GetFullName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
     constructor Create; virtual;
@@ -156,6 +157,11 @@ begin
     Result := Result and (TPerson(Obj).Married = Self.Married);
     Result := Result and (TPerson(Obj).DOB = Self.DOB);
   end;
+end;
+
+function TPerson.GetFullName: String;
+begin
+  Result := Format('%s, %s', [FFirstName, FLastName]);
 end;
 
 class function TPerson.GetList(const aCount: Integer): TObjectList<TPerson>;
