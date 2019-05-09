@@ -61,6 +61,8 @@ type
 
   [TestFixture]
   TServerTest = class(TBaseServerTest)
+  private
+
   public
     [Test]
     [TestCase('request url /fault', '/fault')]
@@ -85,6 +87,8 @@ type
     procedure TestPOSTWithParamsAndJSONBody;
     [Test]
     procedure TestPOSTWithObjectJSONBody;
+    [Test]
+    procedure TestXHTTPMethodOverride_POST_as_PUT;
     [Test]
     procedure TestPUTWithParamsAndJSONBody;
     [Test]
@@ -1027,6 +1031,27 @@ begin
     JSON.Free;
   end;
 end;
+
+procedure TServerTest.TestXHTTPMethodOverride_POST_as_PUT;
+var
+  r: IRESTResponse;
+  JSON: System.JSON.TJSONObject;
+begin
+  JSON := System.JSON.TJSONObject.Create;
+  JSON.AddPair('client', 'clientdata');
+  r := RESTClient
+    .Header(TMVCConstants.X_HTTP_Method_Override, 'PUT')
+    .doPOST('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
+
+  JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
+  try
+    Assert.areEqual('clientdata', JSON.Get('client').JsonValue.Value);
+    Assert.areEqual('from server', JSON.Get('echo').JsonValue.Value);
+  finally
+    JSON.Free;
+  end;
+end;
+
 
 procedure TServerTest.TestReqWithParams;
 var

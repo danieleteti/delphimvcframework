@@ -192,6 +192,7 @@ type
     function ClientIp: string;
     function ClientPrefer(const AMediaType: string): Boolean;
     function ClientPreferHTML: Boolean;
+    function GetOverwrittenHTTPMethod: TMVCHTTPMethodType;
 
     function SegmentParam(const AParamName: string; out AValue: string): Boolean;
     function SegmentParamsCount: Integer;
@@ -687,7 +688,6 @@ type
       const AControllerQualifiedClassName: string; const AActionName: string; var AHandled: Boolean);
     procedure ExecuteAfterControllerActionMiddleware(const AContext: TWebContext; const AActionName: string;
       const AHandled: Boolean);
-
     procedure DefineDefaultResponseHeaders(const AContext: TWebContext);
     procedure OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse;
       var AHandled: Boolean); virtual;
@@ -1124,6 +1124,21 @@ end;
 function TMVCWebRequest.GetIsAjax: Boolean;
 begin
   Result := LowerCase(FWebRequest.GetFieldByName('X-Requested-With')) = 'xmlhttprequest';
+end;
+
+function TMVCWebRequest.GetOverwrittenHTTPMethod: TMVCHTTPMethodType;
+var
+  lOverriddenMethod: string;
+begin
+  lOverriddenMethod := Headers[TMVCConstants.X_HTTP_Method_Override];
+  if lOverriddenMethod.IsEmpty then
+  begin
+    Exit(HTTPMethod);
+  end
+  else
+  begin
+    Result := TMVCRouter.StringMethodToHTTPMetod(FWebRequest.Method);
+  end;
 end;
 
 function TMVCWebRequest.GetParamAsInt64(const AParamName: string): Int64;
@@ -1766,6 +1781,7 @@ var
   LSelectedController: TMVCController;
   LActionFormalParams: TArray<TRttiParameter>;
   LActualParams: TArray<TValue>;
+  lHTTPMethod: TMVCHTTPMethodType;
 begin
   Result := False;
 
@@ -1799,8 +1815,8 @@ begin
             ExecuteBeforeRoutingMiddleware(LContext, LHandled);
             if not LHandled then
             begin
-              {TODO -oDanieleT -cGeneral : Allow for HTTP method override}
-              if LRouter.ExecuteRouting(ARequest.PathInfo, LContext.Request.HTTPMethod,
+              { TODO -oDanieleT -cGeneral : Allow for HTTP method override }
+              if LRouter.ExecuteRouting(ARequest.PathInfo, LContext.Request.GetOverwrittenHTTPMethod { LContext.Request.HTTPMethod } ,
                 ARequest.ContentType, ARequest.Accept, FControllers, FConfig[TMVCConfigKey.DefaultContentType],
                 FConfig[TMVCConfigKey.DefaultContentCharset], LParamsTable, LResponseContentMediaType,
                 LResponseContentCharset) then

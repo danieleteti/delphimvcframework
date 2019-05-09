@@ -358,7 +358,6 @@ begin
           .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
           .Add(HATEOAS.REL, 'orders')
           .Add(HATEOAS._TYPE, 'application/json');
-
       end);
   finally
     lDM.Free;
@@ -614,6 +613,10 @@ begin
         .Add(HATEOAS.REL, 'self')
         .Add(HATEOAS._TYPE, 'application/json')
         .Add('title', 'Details for ' + APerson.FullName);
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people')
+        .Add(HATEOAS.REL, 'people')
+        .Add(HATEOAS._TYPE, 'application/json');
     end);
 end;
 

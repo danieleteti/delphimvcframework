@@ -71,27 +71,47 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 ```delphi
 //Now is really easy to add "_links" property automatically for each collection element while rendering
 Render<TPerson>(People, True,
-  procedure(const Person: TPerson; const Links: TMVCStringDictionary)
-  begin
-    Links['x-ref'] := '/api/people/' + Person.ID;
-    Links['x-child-ref'] := '/api/people/' + Person.ID + '/child';
-  end);
+    procedure(const APerson: TPerson; const Links: IMVCLinks)
+    begin
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+        .Add(HATEOAS.REL, 'self')
+        .Add(HATEOAS._TYPE, 'application/json')
+        .Add('title', 'Details for ' + APerson.FullName);
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people')
+        .Add(HATEOAS.REL, 'people')
+        .Add(HATEOAS._TYPE, 'application/json');
+    end);
+
 		
 //Datasets have a similar anon method to do the same thing
 Render(lDM.qryCustomers, False,
-  procedure(const DS: TDataset; const Links: TMVCStringDictionary)
+  procedure(const DS: TDataset; const Links: IMVCLinks)
   begin
-    Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
-    Links['x-ref-orders'] := '/api/customers/' + DS.FieldByName('cust_no').AsString + '/orders';		
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+	  .Add(HATEOAS.REL, 'self')
+	  .Add(HATEOAS._TYPE, 'application/json');
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+	  .Add(HATEOAS.REL, 'orders')
+	  .Add(HATEOAS._TYPE, 'application/json');
   end);
 
 //Single object rendering allows HATEOAS too!
 Render(lPerson, False,
-  procedure(const AObject: TObject; const Links: TMVCStringDictionary)
+  procedure(const AObject: TObject; const Links: IMVCLinks)
   begin
-    Links['x-self'] := '/people/' + TPerson(AObject).ID.ToString;
-    Links['x-self-list'] := '/people';
-  end);	
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/people/' + TPerson(AObject).ID.ToString)
+	  .Add(HATEOAS.REL, 'self')
+	  .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/people')
+	  .Add(HATEOAS.REL, 'people')
+	  .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+  end);
 	
 ```	
 
@@ -116,8 +136,10 @@ Render(lPerson, False,
 - Improved! JSONRPC Automatic Object Publishing can not invoke inherited methods if not explicitely defined with `MVCInheritable` attribute.
 - Improved! Datasets serialization speed improvement. In some case the performace [improves of 2 order of magnitude](https://github.com/danieleteti/delphimvcframework/issues/205#issuecomment-479513158). (Thanks to https://github.com/pedrooliveira01)
 - New! Added `in` operator in RQL parser (Thank you [João Antônio Duarte](https://github.com/joaoduarte19))
+- New! Added `TMVCActiveRecord.Count<T>(RQL)` to count record based on RQL criteria
 - New! Calling `<jsonrpcendpoint>/describe` returns the methods list available for that endpoint.
 - New! Experimental (alpha stage) support for Android servers!
+- New! Added support for `X-HTTP-Method-Override` to work behind corporate firewalls.
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
 
 

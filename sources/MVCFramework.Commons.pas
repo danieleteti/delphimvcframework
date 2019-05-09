@@ -117,6 +117,7 @@ type
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
     HATEOAS_PROP_NAME = '_links';
+    X_HTTP_Method_Override = 'X-HTTP-Method-Override';
   end;
 
   HATEOAS = record

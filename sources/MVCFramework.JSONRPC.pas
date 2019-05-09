@@ -1126,19 +1126,6 @@ begin
     RequestID := TValue.Empty;
   Method := JSON.S[JSONRPC_METHOD];
   Params.Clear;
-  // if JSON.Types[JSONRPC_PARAMS] = jdtArray then
-  // begin
-  // lParams := JSON.A[JSONRPC_PARAMS];
-  // for I := 0 to lParams.Count - 1 do
-  // begin
-  // { TODO -oDanieleT -cGeneral : Qui devo sapere cosa si aspetta la classe, altrimenti non posso castare al tipo corretto }
-  // AddParam(Params,lParams[I]);
-  // end;
-  // end
-  // else if JSON.Types[JSONRPC_PARAMS] <> jdtNone then
-  // begin
-  // raise EMVCJSONRPCException.Create('Params must be a JSON array or null');
-  // end;
 end;
 
 constructor TJSONRPCNotification.Create(const aMethod: String);
