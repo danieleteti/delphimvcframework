@@ -48,14 +48,16 @@ type
     procedure GetPerson_AsText(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/hateoas')]
-    [MVCProduces('application/json')]
-    procedure GetCustomers_AsDataSet_HATEOAS;
+    [MVCPath('/customers/simple')]
+    procedure GetCustomers_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
-    [MVCProduces('application/json')]
-    procedure GetCustomers_AsDataSet;
+    procedure GetCustomersAsDataSetWithRefLinks;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/($ID)')]
+    procedure GetCustomer_AsDataSetRecord(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/metadata')]
@@ -253,7 +255,7 @@ begin
     on disk and how to retrieve it. }
   Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
   Context.Response.StatusCode := HTTP_STATUS.OK;
-  Render(Dict(['filename', 'ref'], [lOutputFileName, '/files/' + lOutputFileName]));
+  Render(StrDict(['filename', 'ref'], [lOutputFileName, '/files/' + lOutputFileName]));
 end;
 
 procedure TRenderSampleController.GetBinaryData(const filename: string);
@@ -338,7 +340,7 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers_AsDataSet_HATEOAS;
+procedure TRenderSampleController.GetCustomersAsDataSetWithRefLinks;
 var
   lDM: TMyDataModule;
 begin
@@ -346,11 +348,42 @@ begin
   try
     lDM.qryCustomers.Open;
     Render(lDM.qryCustomers, False,
-      procedure(const DS: TDataset; const Links: TMVCStringDictionary)
+      procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
-        Links[HATEOAS.HREF] := '/customers/' + DS.FieldByName('cust_no').AsString;
-        Links[HATEOAS.REL] := 'self';
-        Links[HATEOAS._TYPE] := 'application/json';
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, 'application/json');
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+          .Add(HATEOAS.REL, 'orders')
+          .Add(HATEOAS._TYPE, 'application/json');
+
+      end);
+  finally
+    lDM.Free;
+  end;
+end;
+
+procedure TRenderSampleController.GetCustomer_AsDataSetRecord(
+  const ID: Integer);
+var
+  lDM: TMyDataModule;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open('SELECT * FROM CUSTOMER WHERE CUST_NO = ?', [ID]);
+    Render(lDM.qryCustomers, False, [], dstSingleRecord,
+      procedure(const DS: TDataset; const Links: IMVCLinks)
+      begin
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers')
+          .Add(HATEOAS.REL, 'customers')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
       end);
   finally
     lDM.Free;
@@ -574,12 +607,13 @@ begin
 
 {$ENDREGION}
   Render<TPerson>(People, True,
-    procedure(const APerson: TPerson; const Dict: TMVCStringDictionary)
+    procedure(const APerson: TPerson; const Links: IMVCLinks)
     begin
-      Dict[HATEOAS.HREF] := '/people/' + APerson.ID.ToString;
-      Dict[HATEOAS.REL] := 'self';
-      Dict[HATEOAS._TYPE] := 'application/json';
-      Dict['title'] := 'Details for ' + APerson.FullName;
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+        .Add(HATEOAS.REL, 'self')
+        .Add(HATEOAS._TYPE, 'application/json')
+        .Add('title', 'Details for ' + APerson.FullName);
     end);
 end;
 
@@ -595,11 +629,16 @@ begin
     lPerson.DOB := EncodeDate(1979, 11, 4);
     lPerson.Married := True;
     Render(lPerson, False,
-      procedure(const AObject: TObject; const Links: TMVCStringDictionary)
+      procedure(const AObject: TObject; const Links: IMVCLinks)
       begin
-        Links[HATEOAS.HREF] := '/people/' + TPerson(AObject).ID.ToString;
-        Links[HATEOAS.REL] := 'self';
-        Links[HATEOAS._TYPE] := TMVCMediaType.APPLICATION_JSON;
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/people/' + TPerson(AObject).ID.ToString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/people')
+          .Add(HATEOAS.REL, 'people')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
       end);
   finally
     lPerson.Free;

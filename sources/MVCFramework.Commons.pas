@@ -387,6 +387,43 @@ type
     property Items[const Key: string]: string read GetItems write SetItems; default;
   end;
 
+  TMVCStringDictionaryList = class(TObjectList<TMVCStringDictionary>)
+  public
+    constructor Create;
+  end;
+
+  IMVCLinkItem = interface
+    ['{8BC70061-0DD0-4D0A-B135-F83A5C86629B}']
+    function Add(const PropName: String; const PropValue: String): IMVCLinkItem;
+  end;
+
+  IMVCLinks = interface
+    ['{8A116BED-9A10-4885-AD4B-DF38A7F0D7DF}']
+    function AddRefLink: IMVCLinkItem;
+    function Clear: IMVCLinks;
+    function LinksData: TMVCStringDictionaryList;
+  end;
+
+  TMVCLinks = class(TInterfacedObject, IMVCLinks)
+  private
+    fData: TMVCStringDictionaryList;
+  protected
+    function AddRefLink: IMVCLinkItem;
+    function Clear: IMVCLinks;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function LinksData: TMVCStringDictionaryList;
+  end;
+
+  TMVCDecoratorObject = class(TInterfacedObject, IMVCLinkItem)
+  private
+    fData: TMVCStringDictionary;
+  public
+    constructor Create(const aData: TMVCStringDictionary);
+    function Add(const PropName: String; const PropValue: String): IMVCLinkItem;
+  end;
+
   { This type is thread safe }
   TMVCStringObjectDictionary<T: class> = class
   private
@@ -486,8 +523,8 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
-function Dict: TMVCStringDictionary; overload;
-function Dict(const aKeys: array of string; const aValues: array of string)
+function StrDict: TMVCStringDictionary; overload;
+function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
 
 const
@@ -1027,12 +1064,12 @@ begin
   Self.WriteBuffer(UFTStr[Low(UFTStr)], Length(UFTStr));
 end;
 
-function Dict: TMVCStringDictionary; overload;
+function StrDict: TMVCStringDictionary; overload;
 begin
   Result := TMVCStringDictionary.Create;
 end;
 
-function Dict(const aKeys: array of string; const aValues: array of string)
+function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
 var
   I: Integer;
@@ -1042,11 +1079,71 @@ begin
     raise EMVCException.CreateFmt('Dict error. Got %d keys but %d values',
       [Length(aKeys), Length(aValues)]);
   end;
-  Result := Dict();
+  Result := StrDict();
   for I := Low(aKeys) to High(aKeys) do
   begin
     Result.Add(aKeys[I], aValues[I]);
   end;
+end;
+
+{ TMVCDecorator }
+
+function TMVCLinks.AddRefLink: IMVCLinkItem;
+begin
+  if not Assigned(fData) then
+  begin
+    fData := TMVCStringDictionaryList.Create;
+  end;
+
+  Result := TMVCDecoratorObject.Create(fData[fData.Add(TMVCStringDictionary.Create)]);
+end;
+
+function TMVCLinks.Clear: IMVCLinks;
+begin
+  if Assigned(fData) then
+  begin
+    fData.Clear;
+  end;
+  Result := Self;
+end;
+
+constructor TMVCLinks.Create;
+begin
+  inherited Create;
+  fData := nil;
+end;
+
+function TMVCLinks.LinksData: TMVCStringDictionaryList;
+begin
+  Result := fData;
+end;
+
+destructor TMVCLinks.Destroy;
+begin
+  FreeAndNil(fData);
+  inherited;
+end;
+
+{ TMVCDecoratorObject }
+
+function TMVCDecoratorObject.Add(const PropName,
+  PropValue: String): IMVCLinkItem;
+begin
+  fData.Items[PropName] := PropValue;
+  Result := Self;
+end;
+
+constructor TMVCDecoratorObject.Create(const aData: TMVCStringDictionary);
+begin
+  inherited Create;
+  fData := aData;
+end;
+
+{ TMVCNamedPairList }
+
+constructor TMVCStringDictionaryList.Create;
+begin
+  inherited Create(True);
 end;
 
 initialization

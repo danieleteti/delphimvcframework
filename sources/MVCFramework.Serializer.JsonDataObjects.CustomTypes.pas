@@ -210,7 +210,6 @@ procedure TMVCStringDictionarySerializer.SerializeAttribute(const AElementValue:
   const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
   lStringDict: TMVCStringDictionary;
-//  lPair: TPair<string, string>;
   lOutObject: TJsonObject;
   lJsonDict: TJsonObject;
 begin

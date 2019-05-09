@@ -104,7 +104,7 @@ type
     procedure SetContactLast(const Value: string);
     procedure SetName(const Value: string);
   public
-    property name: string read FName write SetName;
+    property Name: string read FName write SetName;
     [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
     [MVCDoNotSerialize]

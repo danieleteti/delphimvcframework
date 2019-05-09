@@ -29,7 +29,8 @@ interface
 uses
   DUnitX.TestFramework,
   MVCFramework.RESTClient,
-  MVCFramework.JSONRPC.Client, System.DateUtils;
+  MVCFramework.JSONRPC.Client,
+  System.DateUtils;
 
 const
 
@@ -40,6 +41,7 @@ const
   TEST_SERVER_ADDRESS = '127.0.0.1';
 
 {$ENDIF}
+
 
 type
 
@@ -698,9 +700,9 @@ begin
   try
     for I := 0 to lJArr.Count - 1 do
     begin
-      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME].IsNull, '_links doesn''t exists');
-      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME]['x-ref-lastname'].IsNull, '_links.x-ref-lastname doesn''t exists');
-      Assert.isFalse(lJArr[I].O[TMVCConstants.HATEOS_PROP_NAME]['x-ref-firstname'].IsNull, '_links.x-ref-firstname doesn''t exists');
+      Assert.isTrue(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].Count = 2, '_links doesn''t exists');
+      Assert.areEqual(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].O[0].s[HATEOAS.REL], 'test0');
+      Assert.areEqual(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].O[1].s[HATEOAS.REL], 'test1');
     end;
   finally
     lJArr.Free;
