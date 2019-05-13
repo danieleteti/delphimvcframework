@@ -195,7 +195,7 @@ type
     /// <summary>
     /// Called before execute sql
     /// </summary>
-    procedure OnBeforeExecuteSQL(var SQL:String); virtual;
+    procedure OnBeforeExecuteSQL(var SQL: String); virtual;
 
     /// <summary>
     /// Called after insert or update the object to the database
@@ -248,8 +248,10 @@ type
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>; overload;
     class function DeleteAll(const aClass: TMVCActiveRecordClass): int64; overload;
-    function Count: int64; overload;
+    function Count(const RQL: String = ''): int64; overload;
+    class function Count<T: TMVCActiveRecord>(const RQL: String = ''): int64; overload;
     class function Count<T: TMVCActiveRecord>: int64; overload;
+    class function Count(const aClass: TMVCActiveRecordClass; const RQL: String = ''): int64; overload;
     class function Count(const aClass: TMVCActiveRecordClass): int64; overload;
     class function SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
     class function CurrentConnection: TFDConnection;
@@ -284,7 +286,9 @@ type
   IMVCActiveRecordConnections = interface
     ['{7B87473C-1784-489F-A838-925E7DDD0DE2}']
     procedure AddConnection(const aName: string; const aConnection: TFDConnection; const Owns: Boolean = false);
+    procedure AddDefaultConnection(const aConnection: TFDConnection; const Owns: Boolean = false);
     procedure RemoveConnection(const aName: string);
+    procedure RemoveDefaultConnection;
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
     function GetCurrentBackend: string;
@@ -308,7 +312,9 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     procedure AddConnection(const aName: string; const aConnection: TFDConnection; const aOwns: Boolean = false);
+    procedure AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean = false);
     procedure RemoveConnection(const aName: string);
+    procedure RemoveDefaultConnection;
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
     function GetByName(const aName: string): TFDConnection;
@@ -481,6 +487,12 @@ begin
   end;
 end;
 
+procedure TMVCConnectionsRepository.AddDefaultConnection(
+  const aConnection: TFDConnection; const aOwns: Boolean);
+begin
+  AddConnection('default', aConnection, aOwns);
+end;
+
 constructor TMVCConnectionsRepository.Create;
 begin
   inherited;
@@ -570,6 +582,11 @@ begin
   end;
 end;
 
+procedure TMVCConnectionsRepository.RemoveDefaultConnection;
+begin
+  RemoveConnection('default');
+end;
+
 procedure TMVCConnectionsRepository.SetCurrent(const aName: string);
 var
   lName: string;
@@ -638,7 +655,7 @@ var
   lPar: TFDParam;
   lPair: TPair<TRttiField, string>;
   lValue: TValue;
-  lSQL : String;
+  lSQL: String;
 begin
   lQry := TFDQuery.Create(nil);
   try
@@ -725,7 +742,7 @@ var
 begin
   lQry := TFDQuery.Create(nil);
   try
-    lQry.FetchOptions.Unidirectional := False; //True;
+    lQry.FetchOptions.Unidirectional := false; // True;
     if Connection = nil then
     begin
       lQry.Connection := ActiveRecordConnectionsRegistry.GetCurrent;
@@ -959,26 +976,43 @@ begin
     raise EMVCActiveRecord.CreateFmt('Action not allowed on "%s"', [ClassName]);
 end;
 
-class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass): int64;
+class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass; const RQL: String): int64;
 var
   lAR: TMVCActiveRecord;
 begin
   lAR := aClass.Create;
   try
-    Result := lAR.Count;
+    Result := lAR.Count(RQL);
   finally
     lAR.Free;
   end;
 end;
 
-function TMVCActiveRecord.Count: int64;
+class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass): int64;
 begin
-  Result := GetScalar(Self.SQLGenerator.CreateSelectCount(fTableName), []);
+  Result := TMVCActiveRecord.Count(aClass, '');
+end;
+
+function TMVCActiveRecord.Count(const RQL: String = ''): int64;
+var
+  lSQL: string;
+begin
+  lSQL := Self.SQLGenerator.CreateSelectCount(fTableName);
+  if not RQL.IsEmpty then
+  begin
+    lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, false);
+  end;
+  Result := GetScalar(lSQL, []);
+end;
+
+class function TMVCActiveRecord.Count<T>(const RQL: String = ''): int64;
+begin
+  Result := TMVCActiveRecord.Count(TMVCActiveRecordClass(T), RQL);
 end;
 
 class function TMVCActiveRecord.Count<T>: int64;
 begin
-  Result := Count(TMVCActiveRecordClass(T));
+  Result := Count<T>('');
 end;
 
 class function TMVCActiveRecord.CurrentConnection: TFDConnection;
@@ -1141,11 +1175,11 @@ var
   lStream: TStream;
   lName: String;
 begin
-  {$IFDEF NEXTGEN}
-    lName := aValue.TypeInfo.NameFld.ToString;
-  {$ELSE}
-    lName := String(aValue.TypeInfo.Name);
-  {$ENDIF}
+{$IFDEF NEXTGEN}
+  lName := aValue.TypeInfo.NameFld.ToString;
+{$ELSE}
+  lName := String(aValue.TypeInfo.Name);
+{$ENDIF}
   case aValue.TypeInfo.Kind of
     // tkUnknown:
     // begin
@@ -1200,22 +1234,24 @@ begin
       end;
     tkFloat:
       begin
-        if lName = 'TDate'  then
+        if lName = 'TDate' then
         begin
           aParam.AsDate := Trunc(aValue.AsExtended);
         end
-        else if lName = 'TDateTime'  then
-        begin
-          aParam.AsDateTime := aValue.AsExtended;
-        end
-        else if lName = 'Currency'  then
-        begin
-          aParam.AsCurrency := aValue.AsCurrency;
-        end
         else
-        begin
-          aParam.AsFloat := aValue.AsExtended;
-        end;
+          if lName = 'TDateTime' then
+          begin
+            aParam.AsDateTime := aValue.AsExtended;
+          end
+          else
+            if lName = 'Currency' then
+            begin
+              aParam.AsCurrency := aValue.AsCurrency;
+            end
+            else
+            begin
+              aParam.AsFloat := aValue.AsExtended;
+            end;
       end;
     tkClass:
       begin
@@ -1449,7 +1485,7 @@ begin
   // do nothing
 end;
 
-procedure TMVCActiveRecord.OnBeforeExecuteSQL(var SQL:String);
+procedure TMVCActiveRecord.OnBeforeExecuteSQL(var SQL: String);
 begin
   // do nothing
 end;
@@ -1859,7 +1895,7 @@ function TMVCSQLGenerator.GetRQLParser: TRQL2SQL;
 begin
   if fRQL2SQL = nil then
   begin
-    fRQL2SQL := TRQL2SQL.Create;//(20);
+    fRQL2SQL := TRQL2SQL.Create; // (20);
   end;
   Result := fRQL2SQL;
 end;
@@ -1886,8 +1922,8 @@ destructor TMVCConnectionsRepository.TConnHolder.Destroy;
 begin
   if OwnsConnection then
   Begin
-    if Connection.connected then
-       Connection.connected := False;
+    if Connection.Connected then
+      Connection.Connected := false;
     FreeAndNil(Connection);
   End;
   inherited;

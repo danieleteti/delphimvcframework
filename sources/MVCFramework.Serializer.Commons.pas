@@ -59,9 +59,9 @@ type
 
   TMVCIgnoredList = array of string;
 
-  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const ADictionary: TMVCStringDictionary);
-  TMVCSerializationAction = reference to procedure(const AObject: TObject; const ADictionary: TMVCStringDictionary);
-  TMVCDatasetSerializationAction = reference to procedure(const ADataSet: TDataset; const ADictionary: TMVCStringDictionary);
+  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const Links: IMVCLinks);
+  TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
+  TMVCDatasetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
 
   EMVCSerializationException = class(EMVCException)
   end;

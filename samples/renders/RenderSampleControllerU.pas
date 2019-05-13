@@ -43,19 +43,21 @@ type
       var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($id)')]
+    [MVCPath('/customers/($ID)')]
     [MVCProduces('text/plain')]
-    procedure GetPerson_AsText(const id: Integer);
+    procedure GetPerson_AsText(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/hateoas')]
-    [MVCProduces('application/json')]
-    procedure GetCustomers_AsDataSet_HATEOAS;
+    [MVCPath('/customers/simple')]
+    procedure GetCustomers_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
-    [MVCProduces('application/json')]
-    procedure GetCustomers_AsDataSet;
+    procedure GetCustomersAsDataSetWithRefLinks;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/($ID)')]
+    procedure GetCustomer_AsDataSetRecord(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/metadata')]
@@ -83,9 +85,9 @@ type
     procedure GetPeopleWithTiming;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/people/($id)')]
+    [MVCPath('/people/($ID)')]
     [MVCProduces('application/json')]
-    procedure GetPersonById(const id: Integer);
+    procedure GetPersonById(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/lotofobjects')]
@@ -98,12 +100,12 @@ type
     procedure GetProgrammersAndPhilosophersAsObjectList;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/view/($id).html')]
+    [MVCPath('/customers/view/($ID).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetPerson_AsHTMLView;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($id).html')]
+    [MVCPath('/customers/($ID).html')]
     [MVCProduces('text/html')]
     procedure GetPerson_AsHTML;
 
@@ -112,14 +114,14 @@ type
     procedure GetPeopleAsCSV;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/unicode/($id).html')]
+    [MVCPath('/customers/unicode/($ID).html')]
     [MVCProduces('text/html', 'UTF-8')]
     procedure GetUnicodeText_AsHTML;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($id)')]
+    [MVCPath('/customers/($ID)')]
     [MVCProduces('application/json')]
-    procedure GetCustomerByID_AsTObject(const id: Integer);
+    procedure GetCustomerByID_AsTObject(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/files/customers.json')]
@@ -132,7 +134,7 @@ type
     procedure GetPersonPhoto;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/images/customers/($id)')]
+    [MVCPath('/images/customers/($ID)')]
     procedure GetPersonPhotoAsStream;
 
     [MVCHTTPMethod([httpPOST])]
@@ -253,7 +255,7 @@ begin
     on disk and how to retrieve it. }
   Context.Response.ContentType := TMVCMediaType.APPLICATION_JSON;
   Context.Response.StatusCode := HTTP_STATUS.OK;
-  Render(Dict(['filename', 'ref'], [lOutputFileName, '/files/' + lOutputFileName]));
+  Render(StrDict(['filename', 'ref'], [lOutputFileName, '/files/' + lOutputFileName]));
 end;
 
 procedure TRenderSampleController.GetBinaryData(const filename: string);
@@ -274,11 +276,11 @@ begin
   Render(TFileStream.Create(lFullFilePath, fmOpenRead or fmShareDenyNone));
 end;
 
-procedure TRenderSampleController.GetCustomerByID_AsTObject(const id: Integer);
+procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
 var
   Cust: TCustomer;
 begin
-  if id = 7 then // just a sample
+  if ID = 7 then // just a sample
     Render(HTTP_STATUS.NotFound, 'Customer Not Found')
   else
   begin
@@ -338,7 +340,7 @@ begin
   end;
 end;
 
-procedure TRenderSampleController.GetCustomers_AsDataSet_HATEOAS;
+procedure TRenderSampleController.GetCustomersAsDataSetWithRefLinks;
 var
   lDM: TMyDataModule;
 begin
@@ -346,9 +348,41 @@ begin
   try
     lDM.qryCustomers.Open;
     Render(lDM.qryCustomers, False,
-      procedure(const DS: TDataset; const Links: TMVCStringDictionary)
+      procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
-        Links['x-ref'] := '/api/customers/' + DS.FieldByName('cust_no').AsString;
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, 'application/json');
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+          .Add(HATEOAS.REL, 'orders')
+          .Add(HATEOAS._TYPE, 'application/json');
+      end);
+  finally
+    lDM.Free;
+  end;
+end;
+
+procedure TRenderSampleController.GetCustomer_AsDataSetRecord(
+  const ID: Integer);
+var
+  lDM: TMyDataModule;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open('SELECT * FROM CUSTOMER WHERE CUST_NO = ?', [ID]);
+    Render(lDM.qryCustomers, False, [], dstSingleRecord,
+      procedure(const DS: TDataset; const Links: IMVCLinks)
+      begin
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers')
+          .Add(HATEOAS.REL, 'customers')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
       end);
   finally
     lDM.Free;
@@ -417,10 +451,10 @@ begin
   }
 end;
 
-procedure TRenderSampleController.GetPerson_AsText(const id: Integer);
+procedure TRenderSampleController.GetPerson_AsText(const ID: Integer);
 begin
   ResponseStream
-    .AppendLine('ID        :  ' + id.ToString)
+    .AppendLine('ID        :  ' + ID.ToString)
     .AppendLine('FirstName : Daniele')
     .AppendLine('LastName  : Teti')
     .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
@@ -572,29 +606,42 @@ begin
 
 {$ENDREGION}
   Render<TPerson>(People, True,
-    procedure(const APerson: TPerson; const Dict: TMVCStringDictionary)
+    procedure(const APerson: TPerson; const Links: IMVCLinks)
     begin
-      Dict['ref'] := '/api/people/' + APerson.LastName;
-      Dict['x-ref'] := '/api/people/' + APerson.LastName;
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+        .Add(HATEOAS.REL, 'self')
+        .Add(HATEOAS._TYPE, 'application/json')
+        .Add('title', 'Details for ' + APerson.FullName);
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people')
+        .Add(HATEOAS.REL, 'people')
+        .Add(HATEOAS._TYPE, 'application/json');
     end);
 end;
 
-procedure TRenderSampleController.GetPersonById(const id: Integer);
+procedure TRenderSampleController.GetPersonById(const ID: Integer);
 var
   lPerson: TPerson;
 begin
   lPerson := TPerson.Create;
   try
-    lPerson.id := id;
+    lPerson.ID := ID;
     lPerson.FirstName := 'Daniele';
-    lPerson.LastName := 'Daniele';
+    lPerson.LastName := 'Teti';
     lPerson.DOB := EncodeDate(1979, 11, 4);
     lPerson.Married := True;
     Render(lPerson, False,
-      procedure(const AObject: TObject; const Links: TMVCStringDictionary)
+      procedure(const AObject: TObject; const Links: IMVCLinks)
       begin
-        Links['x-self'] := '/people/' + TPerson(AObject).id.ToString;
-        Links['x-self-list'] := '/people';
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/people/' + TPerson(AObject).ID.ToString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+        Links.AddRefLink
+          .Add(HATEOAS.HREF, '/people')
+          .Add(HATEOAS.REL, 'people')
+          .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
       end);
   finally
     lPerson.Free;

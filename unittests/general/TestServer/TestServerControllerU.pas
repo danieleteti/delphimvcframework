@@ -441,10 +441,16 @@ end;
 procedure TTestServerController.TestGetPersonsHateos;
 begin
   Render<TPerson>(TPerson.GetList, True,
-    procedure(const Person: TPerson; const Links: TMVCStringDictionary)
+    procedure(const Person: TPerson; const Links: IMVCLinks)
     begin
-      Links['x-ref-firstname'] := '/api/people/' + Person.FirstName;
-      Links['x-ref-lastname'] := '/api/people/' + Person.LastName;
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/api/people/' + Person.ID.ToString)
+        .Add(HATEOAS.REL, 'test0')
+        .Add(HATEOAS._TYPE, 'application/json');
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/api/test/' + Person.ID.ToString)
+        .Add(HATEOAS.REL, 'test1')
+        .Add(HATEOAS._TYPE, 'application/json')
     end);
 end;
 

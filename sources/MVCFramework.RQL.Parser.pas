@@ -77,7 +77,7 @@ type
   TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF,
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
     tkQuote, tkSpace, tkContains, tkIn, tkUnknown);
-  
+
   TRQLCustom = class;
 
   TRQLAbstractSyntaxTree = class(TObjectList<TRQLCustom>)
@@ -199,10 +199,10 @@ type
     constructor Create(const MaxRecordCount: Integer = -1);
     destructor Destroy; override;
     procedure Execute(
-  const RQL: string;
-  out SQL: string;
-  const RQLCompiler: TRQLCompiler;
-  const UseLimit: Boolean = true);
+      const RQL: string;
+      out SQL: string;
+      const RQLCompiler: TRQLCompiler;
+      const UseLimit: Boolean = true);
   end;
 
   TRQLCompilerRegistry = class sealed
@@ -272,7 +272,7 @@ procedure TRQL2SQL.EatWhiteSpaces;
 var
   lToken: TRQLToken;
 begin
-  while True do
+  while true do
   begin
     SaveCurPos;
     lToken := GetToken;
@@ -330,7 +330,7 @@ begin
     fAST.Insert(0, TRQLWhere.Create);
     if GetToken = tkSemicolon then
     begin
-      ParseSortLimit(True);
+      ParseSortLimit(true);
     end;
   end
   else
@@ -500,7 +500,8 @@ begin
     fCurrToken := tkLimit;
     Exit(fCurrToken);
   end;
-  if (lChar = 'c') and (C(1) = 'o') and (C(2) = 'n') and (C(3) = 't') and (C(4) = 'a') and (C(5) = 'i') and (C(6) = 'n') and (C(7) = 's') then
+  if (lChar = 'c') and (C(1) = 'o') and (C(2) = 'n') and (C(3) = 't') and (C(4) = 'a') and (C(5) = 'i') and
+    (C(6) = 'n') and (C(7) = 's') then
   begin
     Skip(8);
     fCurrToken := tkContains;
@@ -559,23 +560,24 @@ begin
       Error('Expected string value');
     if not MatchSymbol('"') then
       Error('Unclosed string');
-    lValueIsString := True;
-  end
-  else if (aToken = tkIn) and (lToken = tkOpenBracket) then
-  begin
-    if not MatchFieldArrayValue(lFieldValue) then
-      Error('Expected array value');
-    if not MatchSymbol(']') then
-      Error('Unclosed bracket');
-    lValueIsString := False;
+    lValueIsString := true;
   end
   else
-  begin
-    BackToLastPos;
-    if not MatchFieldNumericValue(lFieldValue) then
-      Error('Expected numeric value');
-    lValueIsString := False;
-  end;
+    if (aToken = tkIn) and (lToken = tkOpenBracket) then
+    begin
+      if not MatchFieldArrayValue(lFieldValue) then
+        Error('Expected array value');
+      if not MatchSymbol(']') then
+        Error('Unclosed bracket');
+      lValueIsString := False;
+    end
+    else
+    begin
+      BackToLastPos;
+      if not MatchFieldNumericValue(lFieldValue) then
+        Error('Expected numeric value');
+      lValueIsString := False;
+    end;
   EatWhiteSpaces;
   if GetToken <> tkClosedPar then
     Error('Expected ")"');
@@ -593,7 +595,7 @@ var
 begin
   EatWhiteSpaces;
   SaveCurPos;
-  Result := True;
+  Result := true;
   lTk := GetToken;
   case lTk of
     tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn:
@@ -642,7 +644,7 @@ begin
   lRQLLimit := TRQLLimit.Create;
   fAST.Add(lRQLLimit);
   lRQLLimit.Token := tkLimit;
-  lRQLLimit.Start := StrToInt64(lStart); //XE7 compat
+  lRQLLimit.Start := StrToInt64(lStart); // XE7 compat
   if fMaxRecordCount > -1 then
   begin
     lRQLLimit.Count := Min(StrToInt64(lCount), fMaxRecordCount);
@@ -651,7 +653,7 @@ begin
   begin
     lRQLLimit.Count := StrToInt64(lCount);
   end;
-  Result := True;
+  Result := true;
 end;
 
 procedure TRQL2SQL.ParseLogicOperator(const aToken: TRQLToken;
@@ -669,7 +671,7 @@ begin
   EatWhiteSpaces;
   lLogicOp := TRQLLogicOperator.Create(aToken);
   aAST.Add(lLogicOp);
-  while True do
+  while true do
   begin
     EatWhiteSpaces;
     lToken := GetToken;
@@ -702,7 +704,7 @@ var
   lFieldName: string;
   lSort: TRQLSort;
 begin
-  Result := True;
+  Result := true;
   SaveCurPos;
   if GetToken <> tkSort then
   begin
@@ -716,7 +718,7 @@ begin
   fAST.Add(lSort);
   lSort.Token := tkSort;
 
-  while True do
+  while true do
   begin
     EatWhiteSpaces;
     lToken := GetToken;
@@ -768,8 +770,8 @@ function TRQL2SQL.MatchFieldArrayValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
 begin
-  Result := True;
-  while True do
+  Result := true;
+  while true do
   begin
     lChar := C(0);
     // escape chars
@@ -807,12 +809,12 @@ function TRQL2SQL.MatchFieldName(out lFieldName: string): Boolean;
 var
   lChar: Char;
 begin
-  Result := True;
+  Result := true;
   lChar := C(0);
   if IsLetter(lChar) then
   begin
     lFieldName := lChar;
-    while True do
+    while true do
     begin
       Skip(1);
       lChar := C(0);
@@ -832,11 +834,11 @@ function TRQL2SQL.MatchFieldNumericValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
 begin
-  Result := True;
+  Result := true;
   lFieldValue := '';
   lChar := C(0);
 
-  if CharInSet(lChar, ['+','-']) then
+  if CharInSet(lChar, ['+', '-']) then
   begin
     lFieldValue := lChar;
     Skip(1);
@@ -846,7 +848,7 @@ begin
   if IsDigit(lChar) then
   begin
     lFieldValue := lFieldValue + lChar;
-    while True do
+    while true do
     begin
       Skip(1);
       lChar := C(0);
@@ -866,8 +868,8 @@ function TRQL2SQL.MatchFieldStringValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
 begin
-  Result := True;
-  while True do
+  Result := true;
+  while true do
   begin
     lChar := C(0);
     // escape chars
@@ -921,7 +923,7 @@ constructor TRQLLogicOperator.Create(const Token: TRQLToken);
 begin
   inherited Create;
   Self.Token := Token;
-  fRQLFilter := TObjectList<TRQLCustom>.Create(True);
+  fRQLFilter := TObjectList<TRQLCustom>.Create(true);
 end;
 
 destructor TRQLLogicOperator.Destroy;
@@ -1045,14 +1047,15 @@ begin
     if lField.InstanceFieldName = lRQLProperty then
       Exit(lField.DatabaseFieldName);
   end;
-  raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL', [RQLPropertyName]);
+  raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
+    [RQLPropertyName]);
 end;
 
 { TRQLAbstractSyntaxTree }
 
 constructor TRQLAbstractSyntaxTree.Create;
 begin
-  inherited Create(True);
+  inherited Create(true);
 end;
 
 function TRQLAbstractSyntaxTree.TreeContainsToken(
@@ -1064,7 +1067,7 @@ begin
   for lItem in Self do
   begin
     if lItem.Token = aToken then
-      Exit(True);
+      Exit(true);
   end;
 end;
 
