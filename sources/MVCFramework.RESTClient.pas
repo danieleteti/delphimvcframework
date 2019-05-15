@@ -747,6 +747,7 @@ begin
   FHTTP.HandleRedirects := False; // DT 2016/09/16
   FHTTP.OnRedirect := OnHTTPRedirect; // DT 2016/09/16
   FHTTP.ReadTimeOut := 20000;
+  FHTTP.Request.UserAgent := 'Mozilla/3.0 (compatible; IndyLibrary)';  // Resolve 403 Forbidden error in REST API SSL
 
   if (AIOHandler <> nil) then
     FHTTP.IOHandler := AIOHandler
