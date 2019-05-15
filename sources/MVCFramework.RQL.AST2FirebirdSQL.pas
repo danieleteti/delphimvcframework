@@ -57,24 +57,28 @@ begin
   begin
     Result := RQLFilterToSQL(TRQLFilter(aRQLCustom));
   end
-  else if aRQLCustom is TRQLLogicOperator then
-  begin
-    Result := RQLLogicOperatorToSQL(TRQLLogicOperator(aRQLCustom));
-  end
-  else if aRQLCustom is TRQLSort then
-  begin
-    Result := RQLSortToSQL(TRQLSort(aRQLCustom));
-  end
-  else if aRQLCustom is TRQLLimit then
-  begin
-    Result := RQLLimitToSQL(TRQLLimit(aRQLCustom));
-  end
-  else if aRQLCustom is TRQLWhere then
-  begin
-    Result := RQLWhereToSQL(TRQLWhere(aRQLCustom));
-  end
   else
-    raise ERQLException.CreateFmt('Unknown token in compiler: %s', [aRQLCustom.ClassName]);
+    if aRQLCustom is TRQLLogicOperator then
+    begin
+      Result := RQLLogicOperatorToSQL(TRQLLogicOperator(aRQLCustom));
+    end
+    else
+      if aRQLCustom is TRQLSort then
+      begin
+        Result := RQLSortToSQL(TRQLSort(aRQLCustom));
+      end
+      else
+        if aRQLCustom is TRQLLimit then
+        begin
+          Result := RQLLimitToSQL(TRQLLimit(aRQLCustom));
+        end
+        else
+          if aRQLCustom is TRQLWhere then
+          begin
+            Result := RQLWhereToSQL(TRQLWhere(aRQLCustom));
+          end
+          else
+            raise ERQLException.CreateFmt('Unknown token in compiler: %s', [aRQLCustom.ClassName]);
 end;
 
 function TRQLFirebirdCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
@@ -115,11 +119,12 @@ begin
       end;
     tkContains:
       begin
-        Result := Format('(%s containing ''%s'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+        Result := Format('(%s containing ''%s'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
       end;
     tkIn:
       begin
-        Result := Format('(%s IN (%s))', [lDBFieldName, lValue])
+        { TODO -oDanieleT -cGeneral : Remove this hugly patch!! }
+        Result := Format('(%s IN (%s))', [lDBFieldName, lValue.Replace('"', '''', [rfReplaceAll])]);
       end;
   end;
 end;

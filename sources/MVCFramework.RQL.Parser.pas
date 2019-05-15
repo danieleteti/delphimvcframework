@@ -769,8 +769,53 @@ end;
 function TRQL2SQL.MatchFieldArrayValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
+  lStrFieldValue: string;
+  lFoundStrings: Boolean;
+  lNumFieldValue: string;
 begin
+  { TODO -oDanieleT -cGeneral : bug in firebird (others?) using ""in(status,["Rome","Milan"])"" }
   Result := true;
+
+//  lFoundStrings := False;
+//  EatWhiteSpaces;
+//  if GetToken = tkDblQuote then
+//  begin
+//    while MatchFieldStringValue(lStrFieldValue) do
+//    begin
+//      lFoundStrings := true;
+//      EatWhiteSpaces;
+//      MatchSymbol('"');
+//      if GetToken <> tkComma then
+//      begin
+//        Exit(true);
+//      end
+//      else
+//      begin
+//        Skip(1);
+//        if GetToken <> tkDblQuote then
+//        begin
+//          Exit(True);
+//        end;
+//      end;
+//    end;
+//  end;
+//
+//  while MatchFieldNumericValue(lNumFieldValue) do
+//  begin
+//    lFoundStrings := False;
+//    EatWhiteSpaces;
+//    if MatchSymbol(',') then
+//    begin
+//      Continue;
+//    end
+//    else
+//    begin
+//      Exit(true);
+//    end;
+//  end;
+//
+//  Exit(False);
+//
   while true do
   begin
     lChar := C(0);

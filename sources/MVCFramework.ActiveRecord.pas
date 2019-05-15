@@ -252,7 +252,6 @@ type
     class function Count<T: TMVCActiveRecord>(const RQL: String = ''): int64; overload;
     class function Count<T: TMVCActiveRecord>: int64; overload;
     class function Count(const aClass: TMVCActiveRecordClass; const RQL: String = ''): int64; overload;
-    class function Count(const aClass: TMVCActiveRecordClass): int64; overload;
     class function SelectDataSet(const SQL: string; const Params: array of Variant): TDataSet;
     class function CurrentConnection: TFDConnection;
   end;
@@ -986,11 +985,6 @@ begin
   finally
     lAR.Free;
   end;
-end;
-
-class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass): int64;
-begin
-  Result := TMVCActiveRecord.Count(aClass, '');
 end;
 
 function TMVCActiveRecord.Count(const RQL: String = ''): int64;

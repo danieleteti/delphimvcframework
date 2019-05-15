@@ -46,6 +46,7 @@ type
     procedure LoadFromTValue(const Value: TValue;
       const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
     function AsJSONArray: string;
+    function AsJDOJSONArray: TJDOJsonArray;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
@@ -112,7 +113,7 @@ var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
   if not({$IFDEF TOKYOORBETTER}Value.IsObjectInstance and
-    {$ENDIF} (Value.AsObject is TJSONArray)) then
+{$ENDIF} (Value.AsObject is TJDOJsonArray)) then
     raise Exception.Create('LoadFromTValue requires a TValue containing a TJDOJsonArray');
 
   lSer := TMVCJsonDataObjectsSerializer.Create;
@@ -124,6 +125,27 @@ begin
 
 end;
 
+function TDataSetHelper.AsJDOJSONArray: TJDOJsonArray;
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+begin
+  Result := TJDOJsonArray.Create;
+  try
+    if not Eof then
+    begin
+      lSerializer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lSerializer.DataSetToJsonArray(Self, Result, ncLowerCase, []);
+      finally
+        lSerializer.Free;
+      end;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
 function TDataSetHelper.AsJSONArray: string;
 var
   lSerializer: IMVCSerializer;
@@ -133,7 +155,6 @@ begin
   begin
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
     Result := lSerializer.SerializeDataSet(Self, [], ncLowerCase);
-    // TDataSetUtils.DataSetToJSONArray(Self, JArr, false);
   end;
 end;
 
@@ -240,9 +261,9 @@ end;
 
 procedure TDataSetHelper.LoadFromJSONArrayStringItems(AJSONArrayString: string;
   AFieldNamePolicy: TFieldNamePolicy);
-var aJson:TJsonObject;
+var aJson: TJSONObject;
 begin
-  aJson := TJsonObject.Create;
+  aJson := TJSONObject.Create;
   try
     aJson.FromJSON(AJSONArrayString);
     AJSONArrayString := aJson.ExtractArray('items').ToString;

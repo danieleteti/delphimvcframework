@@ -40,7 +40,8 @@ requires
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
-  loggerproRT;
+  loggerproRT,
+  soaprtl;
 
 contains
   Web.ApacheConst in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas',

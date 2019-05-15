@@ -1781,7 +1781,6 @@ var
   LSelectedController: TMVCController;
   LActionFormalParams: TArray<TRttiParameter>;
   LActualParams: TArray<TValue>;
-  lHTTPMethod: TMVCHTTPMethodType;
 begin
   Result := False;
 

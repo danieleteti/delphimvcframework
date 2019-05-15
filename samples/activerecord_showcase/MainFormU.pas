@@ -65,6 +65,7 @@ implementation
 
 {$R *.dfm}
 
+
 uses
   MVCFramework.ActiveRecord,
   EntitiesU,
@@ -260,7 +261,20 @@ var
   lItem: TMVCActiveRecord;
   lCustomer: TCustomer;
 begin
-  Log('**RQL Query');
+  Log('**RQL Query (1)');
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, 'in(City,["Rome","Milan"])', 20);
+  try
+    for lItem in lList do
+    begin
+      lCustomer := TCustomer(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName,
+        lCustomer.City]));
+    end;
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (2)');
   lList := TMVCActiveRecord.SelectRQL(TCustomer, 'eq(City,"Rome")', 20);
   try
     for lItem in lList do
@@ -272,6 +286,7 @@ begin
   finally
     lList.Free;
   end;
+
 end;
 
 procedure TMainForm.btnSelectClick(Sender: TObject);
@@ -286,15 +301,17 @@ begin
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
     lCustomers := TMVCActiveRecord.Select<TCustomer>
       ('SELECT * FROM customers WHERE description CONTAINING ?', ['google'])
-  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>
-      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
-  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>
-      ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
   else
-    raise Exception.Create('Unsupported backend: ' +
-      ActiveRecordConnectionsRegistry.GetCurrentBackend);
+    if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
+      lCustomers := TMVCActiveRecord.Select<TCustomer>
+        ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+    else
+      if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+        lCustomers := TMVCActiveRecord.Select<TCustomer>
+          ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
+      else
+        raise Exception.Create('Unsupported backend: ' +
+          ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
   try
     for lCustomer in lCustomers do
@@ -390,10 +407,10 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // To use Postgresql uncomment the following line (and comment the others one)
-  FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+  // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
 
   // To use Firebird uncomment the following line (and comment the others one)
-  // FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
+  FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
 
   // To use MySQL uncomment the following line  (and comment the others one)
   // FDConnectionConfigU.CreateMySQLPrivateConnDef(True);

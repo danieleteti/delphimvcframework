@@ -519,6 +519,8 @@ function URLSafeB64Decode(const Value: string): string;
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
+procedure Base64StringToFile(const aBase64String, AFileName: String; const aOverwrite: Boolean = False);
+function FileToBase64String(const FileName: String): String;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
   var aContentCharSet: string);
@@ -555,6 +557,8 @@ implementation
 uses
   IdCoder3to4,
   JsonDataObjects,
+  Soap.EncdDecd,
+  System.NetEncoding,
   MVCFramework.Serializer.JsonDataObjects;
 
 var
@@ -646,14 +650,14 @@ begin
     end
     else
       if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
-      then
-      begin
-        Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
-      end
-      else
-      begin
-        Result := lContentMediaType;
-      end;
+    then
+    begin
+      Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
+    end
+    else
+    begin
+      Result := lContentMediaType;
+    end;
   end;
 end;
 
@@ -1145,6 +1149,54 @@ end;
 constructor TMVCStringDictionaryList.Create;
 begin
   inherited Create(True);
+end;
+
+procedure Base64StringToFile(const aBase64String, AFileName: String; const aOverwrite: Boolean = False);
+var
+  lSS: TStringStream;
+  lFile: TFileStream;
+begin
+  lSS := TStringStream.Create;
+  try
+    lSS.WriteString(aBase64String);
+    lSS.Position := 0;
+    if aOverwrite then
+    begin
+      if TFile.Exists(AFileName) then
+      begin
+        TFile.Delete(AFileName);
+      end;
+    end;
+
+    lFile := TFileStream.Create(AFileName, fmCreate);
+    try
+      DecodeStream(lSS, lFile);
+    finally
+      lFile.Free;
+    end;
+  finally
+    lSS.Free;
+  end;
+end;
+
+
+function FileToBase64String(const FileName: String): String;
+var
+  lTemplateFileB64: TStringStream;
+  lTemplateFile: TFileStream;
+begin
+  lTemplateFileB64 := TStringStream.Create;
+  try
+    lTemplateFile := TFileStream.Create(FileName, fmOpenRead);
+    try
+      EncodeStream(lTemplateFile, lTemplateFileB64);
+    finally
+      lTemplateFile.Free;
+    end;
+    Result := lTemplateFileB64.DataString;
+  finally
+    lTemplateFileB64.Free;
+  end;
 end;
 
 initialization

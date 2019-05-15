@@ -1,3 +1,6 @@
+and(eq(owneruserid, "%s"),in(status,["ERROR","TO_SEND","NOT_COMPLETED"]))
+and(eq(owneruserid, 1),in(status,["ERROR","TO_SEND","NOT_COMPLETED"]))
+'and(eq(owneruserid, 1),in(status,["ERROR","TO_SEND","NOT_COMPLETED"]))
 in(name,['joão','duarte'])
 and(eq(name,"João"),in(codperson,[1,2,3]))
 in(codperson,[1,2,3])
