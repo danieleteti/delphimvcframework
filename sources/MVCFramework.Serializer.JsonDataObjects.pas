@@ -96,6 +96,7 @@ type
       const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
     procedure JsonArrayToDataSet(const AJsonArray: TJDOJsonArray; const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
+    function JsonArrayToArray(const AJsonArray: TJDOJsonArray):TValue;
     { IMVCSerializer }
     function SerializeObject(const AObject: TObject; const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = [];
@@ -189,6 +190,7 @@ var
   ChildList: IMVCList;
   ValueTypeAtt: MVCValueAsTypeAttribute;
   CastValue, CastedValue: TValue;
+  i:integer;
 begin
   if AValue.IsEmpty then
   begin
@@ -340,8 +342,23 @@ begin
 
     tkArray, tkDynArray:
       begin
-        raise EMVCSerializationException.CreateFmt
-          ('Cannot serialize %s of TypeKind tkArray or tkDynArray.', [AName]);
+        if aValue.getarraylength>0 then
+        Begin
+          for i := 0 to aValue.getarraylength-1 do
+          Begin
+            case aValue.GetArrayElement(i).Kind of
+              tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
+                AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsString);
+              tkInteger:
+                AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsInteger);
+              tkInt64:
+                AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsInt64);
+            else
+              raise EMVCSerializationException.CreateFmt
+                ('Cannot serialize %s of TypeKind tkArray or tkDynArray.', [AName]);
+            end;
+          End;
+        End;
       end;
 
     tkUnknown:
@@ -571,6 +588,24 @@ begin
   end;
 end;
 
+function TMVCJsonDataObjectsSerializer.JsonArrayToArray(
+  const AJsonArray: TJDOJsonArray):TValue;
+var i:integer;
+    lStrArr:TArray<String>;
+    lIntArr:TArray<Integer>;
+begin
+  for I := 0 to Pred(AJsonArray.Count) do
+    case AJsonArray.types[0] of
+      jdtString : lStrArr := lStrArr + [AJsonArray.Items[i].Value];
+      jdtInt    : lIntArr := lIntArr + [AJsonArray.Items[i].Value.ToInteger];
+    end;
+
+  if Length(lStrArr)>0 then
+    result := TValue.From<TArray<String>>(lStrArr)
+  else
+    result := TValue.From<TArray<Integer>>(lIntArr);
+end;
+
 procedure TMVCJsonDataObjectsSerializer.JsonArrayToDataSet(const AJsonArray: TJDOJsonArray;
   const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
@@ -716,7 +751,11 @@ begin
               raise EMVCDeserializationException.CreateFmt
                 ('You can not deserialize a list %s without the MVCListOf attribute.', [AName]);
           end;
-        end;
+        end
+        else if AValue.isArray then
+        Begin
+          AValue := JsonArrayToArray(AJsonObject.A[AName]);
+        End;
       end;
   end;
 end;
