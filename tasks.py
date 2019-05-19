@@ -36,7 +36,7 @@ def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION
         projects += glob.glob(r"samples\**\*.dproj")
         projects += glob.glob(r"samples\**\**\*.dproj")
         projects += glob.glob(r"samples\**\**\**\*.dproj")
-    return projects
+    return sorted(projects)
 
 
 def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG', delphi_version=DEFAULT_DELPHI_VERSION):
@@ -61,14 +61,14 @@ def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG',
 
 def zip_samples(version):
     global g_output_folder
-    cmdline = "7z a " + g_output_folder + f"\\..\\dmvcframework_{version}_samples.zip -r -i@7ziplistfile.txt"
+    cmdline = "7z a " + g_output_folder + f"\\..\\{version}_samples.zip -r -i@7ziplistfile.txt"
     return subprocess.call(cmdline, shell=True) == 0
 
 
 def create_zip(ctx, version):
     global g_output_folder
     print("CREATING ZIP")
-    archive_name = r"..\dmvcframework_" + version + ".zip"
+    archive_name = "..\\" + version + ".zip"
     switches = ""
     files_name = "*"
     cmdline = f"..\\..\\7z.exe a {switches} {archive_name} *"
@@ -165,7 +165,7 @@ def copy_libs(ctx):
 
 
 def printkv(key, value):
-    print(Fore.RESET + key + ': ' + Fore.GREEN + value.rjust(50) + Fore.RESET)
+    print(Fore.RESET + key + ': ' + Fore.GREEN + value.rjust(60) + Fore.RESET)
 
 
 def init_build(version):
@@ -175,8 +175,11 @@ def init_build(version):
     global g_releases_path
     g_version = version
     g_output_folder = g_releases_path + "\\" + g_version
-    print(Fore.RESET + "BUILD VERSION".ljust(70) + g_version)
-    print(Fore.RESET + "OUTPUT PATH".ljust(70) + g_output_folder)
+    print()
+    print(Fore.RESET + Fore.RED + "*" * 80)
+    print(Fore.RESET + Fore.RED + " BUILD VERSION: " + g_version + Fore.RESET)
+    print(Fore.RESET + Fore.RED + " OUTPUT PATH  : " + g_output_folder + Fore.RESET)
+    print(Fore.RESET + Fore.RED + "*" * 80)    
 
     rmtree(g_output_folder, True)
     os.makedirs(g_output_folder, exist_ok=True)
@@ -197,7 +200,7 @@ def build_delphi_project_list(ctx, projects, config="DEBUG", filter='', delphi_v
             print(f"Skipped {os.path.basename(delphi_project)}")
             continue
         msg = f"Building: {os.path.basename(delphi_project)}  ({config})"
-        print(Fore.RESET + msg.ljust(70, '.'), end="")
+        print(Fore.RESET + msg.ljust(90, '.'), end="")
         res = build_delphi_project(ctx, delphi_project, 'DEBUG', delphi_version)
         if res.ok:
             print(Fore.GREEN + 'OK' + Fore.RESET)
@@ -278,7 +281,7 @@ def release(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_bu
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build('', delphi_version)
         if not build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version):
-            return false #fails build
+            return False #fails build
     copy_sources()
     copy_libs(ctx)
     clean(ctx)

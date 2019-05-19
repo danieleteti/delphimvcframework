@@ -144,8 +144,10 @@ var
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne',
     'Berlin');
+  CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
+  Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
 begin
-  TMVCActiveRecord.DeleteRQL(TCustomer, 'contains(CompanyName, "Company ")');
+  TMVCActiveRecord.DeleteRQL(TCustomer, 'in(City,["Rome","New York","London","Melbourne","Berlin"])');
 
   lConnParams := FDConnection1.Params.Text;
   lProc := procedure
@@ -160,13 +162,17 @@ begin
         ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
         lConn.Params.Text := lConnParams;
         lConn.Open;
-        for I := 1 to 10 do
+        for I := 1 to 30 do
         begin
           lCustomer := TCustomer.Create;
           try
             lCustomer.Code := Format('%5.5d', [TThread.Current.ThreadID, I]);
-            lCustomer.CompanyName := Format('Company %5.5d', [Random(99999)]);
             lCustomer.City := Cities[Random(high(Cities) + 1)];
+            lCustomer.CompanyName := Format('%s %s %s', [
+              lCustomer.City,
+              Stuff[Random(High(Stuff) + 1)],
+              CompanySuffix[Random(High(CompanySuffix) + 1)]
+              ]);
             lCustomer.Insert;
           finally
             lCustomer.Free;
@@ -179,8 +185,13 @@ begin
 
   lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc)];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
+
+  ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
+    'in(City,["Rome","New York","London","Melbourne","Berlin"])').ToString + ' records');
 end;
 
 procedure TMainForm.btnRelationsClick(Sender: TObject);
@@ -260,10 +271,14 @@ var
   lList: TMVCActiveRecordList;
   lItem: TMVCActiveRecord;
   lCustomer: TCustomer;
+const
+  cRQL1 = 'in(City,["Rome","London"])';
+  cRQL2 = 'and(eq(City,"Rome"),contains(CompanyName,"GAS"))';
 begin
-  Log('**RQL Query (1)');
-  lList := TMVCActiveRecord.SelectRQL(TCustomer, 'in(City,["Rome","Milan"])', 20);
+  Log('**RQL Query (1) - ' + cRQL1);
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20);
   try
+    Log(lList.Count.ToString + ' record/s found');
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
@@ -274,9 +289,10 @@ begin
     lList.Free;
   end;
 
-  Log('**RQL Query (2)');
-  lList := TMVCActiveRecord.SelectRQL(TCustomer, 'eq(City,"Rome")', 20);
+  Log('**RQL Query (2) - ' + cRQL2);
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL2, 20);
   try
+    Log(lList.Count.ToString + ' record/s found');
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
@@ -303,15 +319,15 @@ begin
       ('SELECT * FROM customers WHERE description CONTAINING ?', ['google'])
   else
     if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-      lCustomers := TMVCActiveRecord.Select<TCustomer>
-        ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
-    else
-      if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-        lCustomers := TMVCActiveRecord.Select<TCustomer>
-          ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
-      else
-        raise Exception.Create('Unsupported backend: ' +
-          ActiveRecordConnectionsRegistry.GetCurrentBackend);
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+  else
+    if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
+  else
+    raise Exception.Create('Unsupported backend: ' +
+      ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
   try
     for lCustomer in lCustomers do
@@ -406,15 +422,21 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  // To use Postgresql uncomment the following line (and comment the others one)
-  // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+  // To use Postgresql enable POSTGRESQL build configuration
+{$IFDEF POSTGRESQL}
+  FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+{$ENDIF}
 
-  // To use Firebird uncomment the following line (and comment the others one)
+  // To use FirebirdSQL enable FIREBIRD build configuration
+{$IFDEF FIREBIRD}
   FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
+{$ENDIF}
 
-  // To use MySQL uncomment the following line  (and comment the others one)
-  // FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
-
+  // To use MySQL enable MYSQL build configuration
+{$IFDEF MYSQL}
+  FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+{$ENDIF}
+  { ************* }
   FDConnection1.Params.Clear;
   FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
   ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
@@ -430,7 +452,7 @@ end;
 procedure TMainForm.Log(const Value: string);
 begin
   Memo1.Lines.Add(Value);
-  Memo1.Update;
+  // Memo1.Update;
 end;
 
 end.
