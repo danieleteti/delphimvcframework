@@ -273,6 +273,17 @@ type
     property NotesAsString: TStringStream read FNotesAsString write FNotesAsString;
   end;
 
+  TEntityWithArray = class
+  private
+    FId: Int64;
+    FNames: TArray<String>;
+    FValues: TArray<Integer>;
+  public
+    property Id: Int64 read FId write FId;
+    property Names: TArray<String> read FNames write FNames;
+    property Values: TArray<Integer> read FValues write FValues;
+  end;
+
 implementation
 
 

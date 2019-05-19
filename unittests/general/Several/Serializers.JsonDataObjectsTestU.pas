@@ -64,6 +64,8 @@ type
     [Test]
     procedure TestSerializeEntityUpperCaseNames;
     [Test]
+    procedure TestSerializeEntityWithArray;
+    [Test]
     procedure TestSerializeEntityLowerCaseNames;
     [Test]
     procedure TestSerializeEntityNameAs;
@@ -77,8 +79,6 @@ type
     procedure TestSerializeCollection;
     [Test]
     procedure TestSerializeDataSet;
-    [Test]
-    procedure TestSerializeEmptyDataSet;
     { deserialize declarations }
     [Test]
     procedure TestDeserializeEntity;
@@ -94,6 +94,10 @@ type
     procedure TestDeserializeCollection;
     [Test]
     procedure TestDeserializeDataSet;
+    [Test]
+    procedure TestSerializeEmptyDataSet;
+    [Test]
+    procedure TestDeserializeEntityWithArray;
     { full cycle }
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
@@ -620,6 +624,35 @@ begin
   end;
 end;
 
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityWithArray;
+  procedure CheckObject(const AEntity: TEntityWithArray);
+  begin
+    Assert.isTrue(AEntity.Id = 1);
+    Assert.isTrue(AEntity.Names[0] = 'Pedro');
+    Assert.isTrue(AEntity.Names[1] = 'Oliveira');
+    Assert.isTrue(AEntity.Values[0] = 1);
+    Assert.isTrue(AEntity.Values[1] = 2);
+  end;
+
+const
+  JSON_WITH_ARRAY =
+    '{' +
+    '"Id":1,' +
+    '"Names":["Pedro","Oliveira"],' +
+    '"Values":[1,2]' +
+    '}';
+var
+  O: TEntityWithArray;
+begin
+  O := TEntityWithArray.Create;
+  try
+    FSerializer.DeserializeObject(JSON_WITH_ARRAY, O);
+    CheckObject(O);
+  finally
+    O.Free;
+  end;
+end;
+
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeCollection;
 const
   JSON =
@@ -863,7 +896,7 @@ begin
   try
     Dm.Entity.EmptyDataSet;
     S := FSerializer.SerializeDataSet(Dm.Entity);
-    Assert.AreEqual('[]', S);
+    Assert.areEqual('[]', S);
   finally
     Dm.Free;
   end;
@@ -1210,6 +1243,31 @@ begin
 
     S := FSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
+  finally
+    O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityWithArray;
+const
+  JSON_WITH_ARRAY =
+    '{' +
+    '"Id":1,' +
+    '"Names":["Pedro","Oliveira"],' +
+    '"Values":[1,2]' +
+    '}';
+var
+  O: TEntityWithArray;
+  S: string;
+begin
+  O := TEntityWithArray.Create;
+  try
+    O.Id := 1;
+    O.Names := ['Pedro', 'Oliveira'];
+    O.Values := [1, 2];
+
+    S := FSerializer.SerializeObject(O);
+    Assert.areEqual(JSON_WITH_ARRAY, S);
   finally
     O.Free;
   end;
