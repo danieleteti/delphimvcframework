@@ -1471,30 +1471,30 @@ begin
   FIsSessionStarted := False;
   FSessionMustBeClose := False;
   FWebSession := nil;
+  FRequest := nil;
 
-  if IsLibrary then
+  if not IsLibrary then
   begin
-
-{$IFDEF WEBAPACHEHTTP}
-    if ARequest is TApacheRequest then
-      FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
-
-{$IFNDEF LINUX}
-    else
-      if ARequest is TISAPIRequest then
-        FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
-
-{$ENDIF}
-      else
-        raise EMVCException.Create('Unknown request type ' + ARequest.Classname);
-
-{$ELSE}
-      FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
-
-{$ENDIF}
+    FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
   end
   else
-    FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+  begin
+{$IFDEF WEBAPACHEHTTP}
+    if ARequest.ClassType = TApacheRequest then
+    begin
+      FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
+    end else
+{$IFNDEF LINUX}
+    if ARequest.ClassType = TISAPIRequest then
+    begin
+      FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+    end else
+{$ENDIF}
+{$ENDIF}
+    begin
+      FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+    end;
+  end;
 
   FResponse := TMVCWebResponse.Create(AResponse);
   FConfig := AConfig;
@@ -1814,8 +1814,8 @@ begin
             ExecuteBeforeRoutingMiddleware(LContext, LHandled);
             if not LHandled then
             begin
-              { TODO -oDanieleT -cGeneral : Allow for HTTP method override }
-              if LRouter.ExecuteRouting(ARequest.PathInfo, LContext.Request.GetOverwrittenHTTPMethod { LContext.Request.HTTPMethod } ,
+              if LRouter.ExecuteRouting(ARequest.PathInfo,
+                LContext.Request.GetOverwrittenHTTPMethod { LContext.Request.HTTPMethod } ,
                 ARequest.ContentType, ARequest.Accept, FControllers, FConfig[TMVCConfigKey.DefaultContentType],
                 FConfig[TMVCConfigKey.DefaultContentCharset], LParamsTable, LResponseContentMediaType,
                 LResponseContentCharset) then
@@ -1856,14 +1856,14 @@ begin
                     SetLength(LActualParams, 0)
                   else
                     if (Length(LActionFormalParams) = 1) and
-                      (SameText(LActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
-                    begin
-                      SetLength(LActualParams, 1);
-                      LActualParams[0] := LContext;
-                    end
-                    else
-                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
-                        LActualParams);
+                    (SameText(LActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
+                  begin
+                    SetLength(LActualParams, 1);
+                    LActualParams[0] := LContext;
+                  end
+                  else
+                    FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
+                      LActualParams);
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
 
@@ -2087,28 +2087,28 @@ begin
           end
           else
             if lQualifiedName = 'System.TDateTime' then
-            begin
-              try
-                WasDateTime := True;
-                AActualParams[I] := ISOTimeStampToDateTime(StrValue);
-              except
-                on E: Exception do
-                begin
-                  raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s][%s]',
-                    [AActionFormalParams[I].Name, E.Message]);
-                end;
-              end;
-            end
-            else
-              if lQualifiedName = 'System.TTime' then
+          begin
+            try
+              WasDateTime := True;
+              AActualParams[I] := ISOTimeStampToDateTime(StrValue);
+            except
+              on E: Exception do
               begin
-                try
-                  WasDateTime := True;
-                  AActualParams[I] := ISOTimeToTime(StrValue);
-                except
-                  raise EMVCException.CreateFmt('Invalid TTime value for param [%s]', [AActionFormalParams[I].Name]);
-                end;
+                raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s][%s]',
+                  [AActionFormalParams[I].Name, E.Message]);
               end;
+            end;
+          end
+          else
+            if lQualifiedName = 'System.TTime' then
+          begin
+            try
+              WasDateTime := True;
+              AActualParams[I] := ISOTimeToTime(StrValue);
+            except
+              raise EMVCException.CreateFmt('Invalid TTime value for param [%s]', [AActionFormalParams[I].Name]);
+            end;
+          end;
           if not WasDateTime then
           begin
             FormatSettings.DecimalSeparator := '.';
@@ -2123,11 +2123,11 @@ begin
               AActualParams[I] := True
             else
               if SameText(StrValue, 'false') or SameText(StrValue, '0') then
-                AActualParams[I] := False
-              else
-                raise EMVCException.CreateFmt
-                  ('Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
-                  [ParamName]);
+              AActualParams[I] := False
+            else
+              raise EMVCException.CreateFmt
+                ('Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
+                [ParamName]);
           end
           else
             raise EMVCException.CreateFmt('Invalid type for parameter %s. Allowed types are ' +
@@ -2333,6 +2333,7 @@ const AResponse: TWebResponse);
 begin
   AResponse.SetCustomHeader('x-mvc-error', AException.Classname + ': ' + AException.Message);
   AResponse.StatusCode := HTTP_STATUS.OK;
+
   begin
     AResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
     AResponse.Content := Config[TMVCConfigKey.ServerName] + ' ERROR:' + sLineBreak + 'Exception raised of class: ' +
