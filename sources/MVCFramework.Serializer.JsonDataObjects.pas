@@ -1082,8 +1082,10 @@ var
 begin
   Result := EmptyStr;
 
-  if (not Assigned(ADataSet)) or (ADataSet.IsEmpty) then
-    Exit;
+  if (not Assigned(ADataSet)) then
+    Exit('null');
+  if ADataSet.IsEmpty then
+    Exit('[]'); // https://github.com/danieleteti/delphimvcframework/issues/219
 
   lLinks := nil;
   if Assigned(ASerializationAction) then
@@ -1131,8 +1133,9 @@ var
   lLinks: IMVCLinks;
 begin
   Result := EmptyStr;
-  if (not Assigned(ADataSet)) or (ADataSet.IsEmpty) then
-    Exit;
+  if (not Assigned(ADataSet)) or ADataSet.IsEmpty then
+    Exit('null');
+
   lDataSetFields := GetDataSetFields(ADataSet, AIgnoredFields, GetNameCase(ADataSet, ANameCase));
   try
     JsonObject := TJDOJsonObject.Create;

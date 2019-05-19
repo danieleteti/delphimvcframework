@@ -78,6 +78,8 @@ type
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
     tkQuote, tkSpace, tkContains, tkIn, tkUnknown);
 
+  TRQLValueType = (vtInteger, vtString, vtIntegerArray, vtStringArray);
+
   TRQLCustom = class;
 
   TRQLAbstractSyntaxTree = class(TObjectList<TRQLCustom>)
@@ -124,7 +126,8 @@ type
   public
     OpLeft: string;
     OpRight: string;
-    RightIsString: Boolean;
+    OpRightArray: TArray<String>;
+    RightValueType: TRQLValueType;
   end;
 
   TRQLLogicOperator = class(TRQLCustom)
@@ -538,8 +541,10 @@ procedure TRQL2SQL.ParseBinOperator(const aToken: TRQLToken; const aAST: TObject
 var
   lFieldName, lFieldValue: string;
   lBinOp: TRQLFilter;
-  lValueIsString: Boolean;
+  lValueType: TRQLValueType;
   lToken: TRQLToken;
+  lList: TList<String>;
+  lArrayValue: TArray<String>;
 begin
   EatWhiteSpaces;
   if GetToken <> tkOpenPar then
@@ -560,24 +565,58 @@ begin
       Error('Expected string value');
     if not MatchSymbol('"') then
       Error('Unclosed string');
-    lValueIsString := true;
+    lValueType := vtString;
   end
-  else
-    if (aToken = tkIn) and (lToken = tkOpenBracket) then
-    begin
-      if not MatchFieldArrayValue(lFieldValue) then
-        Error('Expected array value');
+  else if (aToken = tkIn) and (lToken = tkOpenBracket) then
+  begin
+    lList := TList<String>.Create;
+    try
+      // if not MatchFieldArrayValue(lFieldValue) then
+      // Error('Expected array value');
+      EatWhiteSpaces;
+      if C(0) = '"' then
+      begin
+        Skip(1);
+        lValueType := vtStringArray;
+        while MatchFieldStringValue(lFieldValue) do
+        begin
+          lList.Add(lFieldValue);
+          if not MatchSymbol('"') then
+            Error('Expected ''"''');
+          EatWhiteSpaces;
+          if not MatchSymbol(',') then
+            Break;
+          EatWhiteSpaces;
+          if GetToken <> tkDblQuote then
+            Error('Expected ["]');
+        end;
+      end
+      else
+      begin
+        lValueType := vtIntegerArray;
+        while MatchFieldNumericValue(lFieldValue) do
+        begin
+          lList.Add(lFieldValue);
+          EatWhiteSpaces;
+          if not MatchSymbol(',') then
+            Break;
+          EatWhiteSpaces;
+        end;
+      end;
       if not MatchSymbol(']') then
         Error('Unclosed bracket');
-      lValueIsString := False;
-    end
-    else
-    begin
-      BackToLastPos;
-      if not MatchFieldNumericValue(lFieldValue) then
-        Error('Expected numeric value');
-      lValueIsString := False;
+      lArrayValue := lList.ToArray;
+    finally
+      lList.Free;
     end;
+  end
+  else
+  begin
+    BackToLastPos;
+    if not MatchFieldNumericValue(lFieldValue) then
+      Error('Expected numeric value');
+    lValueType := vtInteger;
+  end;
   EatWhiteSpaces;
   if GetToken <> tkClosedPar then
     Error('Expected ")"');
@@ -585,8 +624,11 @@ begin
   aAST.Add(lBinOp);
   lBinOp.Token := aToken;
   lBinOp.OpLeft := lFieldName;
-  lBinOp.RightIsString := lValueIsString;
-  lBinOp.OpRight := lFieldValue;
+  lBinOp.RightValueType := lValueType;
+  if lBinOp.RightValueType in [vtIntegerArray, vtStringArray] then
+    lBinOp.OpRightArray := lArrayValue
+  else
+    lBinOp.OpRight := lFieldValue;
 end;
 
 function TRQL2SQL.ParseFilters: Boolean;
@@ -768,86 +810,51 @@ end;
 
 function TRQL2SQL.MatchFieldArrayValue(out lFieldValue: string): Boolean;
 var
-  lChar: Char;
   lStrFieldValue: string;
-  lFoundStrings: Boolean;
   lNumFieldValue: string;
+  lIntValue: string;
 begin
-  { TODO -oDanieleT -cGeneral : bug in firebird (others?) using ""in(status,["Rome","Milan"])"" }
-  Result := true;
-
-//  lFoundStrings := False;
-//  EatWhiteSpaces;
-//  if GetToken = tkDblQuote then
-//  begin
-//    while MatchFieldStringValue(lStrFieldValue) do
-//    begin
-//      lFoundStrings := true;
-//      EatWhiteSpaces;
-//      MatchSymbol('"');
-//      if GetToken <> tkComma then
-//      begin
-//        Exit(true);
-//      end
-//      else
-//      begin
-//        Skip(1);
-//        if GetToken <> tkDblQuote then
-//        begin
-//          Exit(True);
-//        end;
-//      end;
-//    end;
-//  end;
-//
-//  while MatchFieldNumericValue(lNumFieldValue) do
-//  begin
-//    lFoundStrings := False;
-//    EatWhiteSpaces;
-//    if MatchSymbol(',') then
-//    begin
-//      Continue;
-//    end
-//    else
-//    begin
-//      Exit(true);
-//    end;
-//  end;
-//
-//  Exit(False);
-//
-  while true do
+  EatWhiteSpaces;
+  if GetToken = tkDblQuote then
   begin
-    lChar := C(0);
-    // escape chars
-    if lChar = '\' then
+    while MatchFieldStringValue(lStrFieldValue) do
     begin
-      if C(1) = '[' then
+      MatchSymbol('"');
+      EatWhiteSpaces;
+      if GetToken = tkComma then
       begin
-        lFieldValue := lFieldValue + '[';
-        Skip(2);
+        EatWhiteSpaces;
+        MatchSymbol('"');
         Continue;
-      end;
-      if C(1) = ']' then
+      end
+      else
       begin
-        lFieldValue := lFieldValue + ']';
-        Skip(2);
-        Continue;
+        Skip(1);
+        if GetToken <> tkDblQuote then
+        begin
+          Exit(true);
+        end;
       end;
     end;
+  end
+  else
+  begin
+    MatchFieldNumericValue(lIntValue);
+  end;
 
-    SaveCurPos;
-    CheckEOF(GetToken);
-    BackToLastPos;
-
-    if lChar <> ']' then
+  while MatchFieldNumericValue(lNumFieldValue) do
+  begin
+    EatWhiteSpaces;
+    if MatchSymbol(',') then
     begin
-      lFieldValue := lFieldValue + lChar;
+      Continue;
     end
     else
-      Break;
-    Skip(1);
+    begin
+      Exit(true);
+    end;
   end;
+  Result := False;
 end;
 
 function TRQL2SQL.MatchFieldName(out lFieldName: string): Boolean;

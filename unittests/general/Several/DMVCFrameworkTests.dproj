@@ -188,6 +188,14 @@
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
         <DCCReference Include="..\..\..\sources\JsonDataObjects.pas"/>
+        <DCCReference Include="Serializers.JsonDataObjectsTestU.pas"/>
+        <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
+        <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas">
+            <Form>EntitiesModule</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Intf.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

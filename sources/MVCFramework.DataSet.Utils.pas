@@ -266,7 +266,7 @@ begin
   aJson := TJSONObject.Create;
   try
     aJson.FromJSON(AJSONArrayString);
-    AJSONArrayString := aJson.ExtractArray('items').ToString;
+    AJSONArrayString := aJson.A['items'].ToString;
     AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
   finally
     aJson.Free;

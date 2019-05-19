@@ -27,7 +27,8 @@ unit MVCFramework.RQL.AST2MSSQL;
 interface
 
 uses
-  MVCFramework.RQL.Parser, MVCFramework.Commons;
+  MVCFramework.RQL.Parser,
+  MVCFramework.Commons;
 
 type
   TRQLMSSQLCompiler = class(TRQLCompiler)
@@ -88,7 +89,7 @@ function TRQLMSSQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
 var
   lValue, lDBFieldName: string;
 begin
-  if aRQLFIlter.RightIsString then
+  if aRQLFIlter.RightValueType = vtString then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
   else
     lValue := aRQLFIlter.OpRight;
@@ -122,11 +123,26 @@ begin
       end;
     tkContains:
       begin
-        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
       end;
     tkIn:
       begin
-        Result := Format('(%s IN (%s))', [lDBFieldName, lValue])
+        case aRQLFIlter.RightValueType of
+          vtIntegerArray: // if array is empty, RightValueType is always vtIntegerArray
+            begin
+              Result := Format('(%s IN (%s))', [
+                lDBFieldName, string.Join(',', aRQLFIlter.OpRightArray)
+                ]);
+            end;
+          vtStringArray:
+            begin
+              Result := Format('(%s IN (''%s''))', [
+                lDBFieldName, string.Join(''',''', aRQLFIlter.OpRightArray)
+                ]);
+            end;
+        else
+          raise ERQLException.Create('Invalid RightValueType for tkIn');
+        end;
       end;
   end;
 end;
@@ -216,13 +232,13 @@ begin
       if (lItem is TRQLLimit) and (not LFoundSort) then
       begin
         LitemSort := TRQLSort.Create;
-        LitemSort.Add('+',FMapping[0].InstanceFieldName);
-        lBuff.Append(RQLCustom2SQL(lItemSort));
+        LitemSort.Add('+', FMapping[0].InstanceFieldName);
+        lBuff.Append(RQLCustom2SQL(LitemSort));
       end;
 
       lBuff.Append(RQLCustom2SQL(lItem));
 
-      if (litem is TRQLSort) then
+      if (lItem is TRQLSort) then
         LFoundSort := True;
 
     end;

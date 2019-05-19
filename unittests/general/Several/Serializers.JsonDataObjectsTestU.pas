@@ -24,7 +24,7 @@
 //
 // ***************************************************************************
 
-unit MVCFramework.Tests.Serializer.JsonDataObjects;
+unit Serializers.JsonDataObjectsTestU;
 
 interface
 
@@ -77,6 +77,8 @@ type
     procedure TestSerializeCollection;
     [Test]
     procedure TestSerializeDataSet;
+    [Test]
+    procedure TestSerializeEmptyDataSet;
     { deserialize declarations }
     [Test]
     procedure TestDeserializeEntity;
@@ -104,8 +106,10 @@ type
   private
     { private declarations }
   protected
-    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
-    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
+      const AAttributes: TArray<TCustomAttribute>);
   public
     procedure SerializeRoot(const AObject: TObject;
       out ASerializerObject: TObject;
@@ -160,7 +164,8 @@ begin
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TStringStream), TMVCStreamSerializerJsonDataObject.Create);
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TMemoryStream), TMVCStreamSerializerJsonDataObject.Create);
   FSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
-  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>), TMVCNullableIntegerSerializerJsonDataObjects.Create);
+  FSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>),
+    TMVCNullableIntegerSerializerJsonDataObjects.Create);
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TearDown;
@@ -292,7 +297,7 @@ const
     '}' +
     ']';
 
-  JSON_ITEMS=
+  JSON_ITEMS =
     '{' +
     '"items":[' +
     '{' +
@@ -799,12 +804,11 @@ begin
     Dm.EntityAsIsName.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityAsIs.Post;
 
-
-    //serialize dataset
+    // serialize dataset
     S := FSerializer.SerializeDataSet(Dm.EntityAsIs);
     Assert.areEqual(JSON_LIST, S, 'json list');
 
-    //serialize dataset as object
+    // serialize dataset as object
     S := FSerializer.SerializeObject(Dm.EntityAsIs);
     Assert.areEqual(JSON_LIST, S, 'json list');
 
@@ -847,6 +851,21 @@ begin
     Assert.areEqual(Ord(TColorEnum.RED), Ord(O.Color));
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeEmptyDataSet;
+var
+  Dm: TEntitiesModule;
+  S: string;
+begin
+  Dm := TEntitiesModule.Create(nil);
+  try
+    Dm.Entity.EmptyDataSet;
+    S := FSerializer.SerializeDataSet(Dm.Entity);
+    Assert.AreEqual('[]', S);
+  finally
+    Dm.Free;
   end;
 end;
 

@@ -35,7 +35,11 @@ uses
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
   RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
   MVCFramework.Serializer.JsonDataObjects in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
-  JsonDataObjects in '..\..\..\sources\JsonDataObjects.pas';
+  JsonDataObjects in '..\..\..\sources\JsonDataObjects.pas',
+  Serializers.JsonDataObjectsTestU in 'Serializers.JsonDataObjectsTestU.pas',
+  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
+  MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule},
+  MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas';
 
 {$R *.RES}
 {$IFDEF CONSOLE_TESTRUNNER}
