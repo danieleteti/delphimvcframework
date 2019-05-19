@@ -34,6 +34,8 @@ def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION
         projects += glob.glob(r"unittests\**\*.dproj")
     if not which or which == 'samples':
         projects += glob.glob(r"samples\**\*.dproj")
+        projects += glob.glob(r"samples\**\**\*.dproj")
+        projects += glob.glob(r"samples\**\**\**\*.dproj")
     return projects
 
 
@@ -275,7 +277,8 @@ def release(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_bu
     init_build(version)
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build('', delphi_version)
-        build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
+        if not build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version):
+            return false #fails build
     copy_sources()
     copy_libs(ctx)
     clean(ctx)
@@ -288,7 +291,7 @@ def build_samples(ctx, version="DEBUG", filter="", delphi_version=DEFAULT_DELPHI
     """Builds samples"""
     init_build(version)
     delphi_projects = get_delphi_projects_to_build('samples', delphi_version)
-    build_delphi_project_list(ctx, delphi_projects, version, filter, delphi_version)
+    return build_delphi_project_list(ctx, delphi_projects, version, filter, delphi_version)
 
 
 @task
@@ -296,4 +299,4 @@ def build_core(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds core packages extensions"""
     init_build(version)
     delphi_projects = get_delphi_projects_to_build('core', delphi_version)
-    build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
+    return build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)

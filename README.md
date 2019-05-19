@@ -6,6 +6,11 @@ DelphiMVCFramework is the most popular Delphi project on github!
 
 Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
 
+## How to correctly get the source
+It is not needed to download the git repository. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+If you want to partecipate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
+Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
+
 ## What users says about DMVCFramework
 
 >"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
@@ -202,10 +207,6 @@ end;
 - New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
 - New! `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even datamodules) through a JSON-RPC 2.0 interface!
 - *Breaking Change!* The JSON RPC Client layer is now interface based.
-
-  
-## How to correctly get the source
-It is not needed to download the git repository. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen) and you are ok.
 
 ## Roadmap
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
