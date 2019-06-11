@@ -91,6 +91,13 @@ var
 begin
   if aRQLFIlter.RightValueType = vtString then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
+  else if aRQLFIlter.RightValueType = vtBoolean then
+  begin
+    if SameText(aRQLFIlter.OpRight, 'true') then
+      lValue := '1'
+    else
+      lValue := '0';
+  end
   else
     lValue := aRQLFIlter.OpRight;
 
