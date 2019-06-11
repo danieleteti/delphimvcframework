@@ -48,7 +48,7 @@ object Form5: TForm5
     Font.Style = []
     ParentFont = False
     ReadOnly = True
-    TabOrder = 0
+    TabOrder = 1
   end
   object Memo2: TMemo
     Left = 0
@@ -63,7 +63,7 @@ object Form5: TForm5
     Font.Style = []
     ParentFont = False
     ReadOnly = True
-    TabOrder = 1
+    TabOrder = 2
   end
   object Panel1: TPanel
     Left = 0
@@ -71,7 +71,7 @@ object Form5: TForm5
     Width = 647
     Height = 49
     Align = alTop
-    TabOrder = 2
+    TabOrder = 0
     object btnGet: TButton
       AlignWithMargins = True
       Left = 171
@@ -80,8 +80,9 @@ object Form5: TForm5
       Height = 41
       Align = alLeft
       Caption = 'Get a protected resource'
-      TabOrder = 0
+      TabOrder = 1
       OnClick = btnGetClick
+      ExplicitTop = 2
     end
     object btnLOGIN: TButton
       AlignWithMargins = True
@@ -91,7 +92,7 @@ object Form5: TForm5
       Height = 41
       Align = alLeft
       Caption = 'Login'
-      TabOrder = 1
+      TabOrder = 0
       OnClick = btnLOGINClick
     end
   end

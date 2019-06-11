@@ -58,7 +58,12 @@ begin
     TAuthenticationSample.Create,
     lClaimsSetup,
     'mys3cr37',
-    '/login'
+    '/login',
+    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+    300,
+    'Authorization',
+    'username',
+    'password'
     ));
 end;
 

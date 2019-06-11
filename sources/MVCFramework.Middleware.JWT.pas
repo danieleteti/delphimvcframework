@@ -38,6 +38,21 @@ uses
   JsonDataObjects;
 
 type
+  TMVCJWTDefaults = class sealed
+  public const
+    /// <summary>
+    ///   Default authorization header name
+    /// </summary>
+    AUTHORIZATION_HEADER = 'Authentication';
+    /// <summary>
+    ///   Default username header name
+    /// </summary>
+    USERNAME_HEADER = 'jwtusername';
+    /// <summary>
+    ///   Default password header name
+    /// </summary>
+    PASSWORD_HEADER = 'jwtpassword';
+  end;
 
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
 
@@ -49,6 +64,9 @@ type
     FSecret: string;
     FLeewaySeconds: Cardinal;
     FLoginURLSegment: string;
+    FAuthorizationHeaderName: string;
+    FUserNameHeaderName: string;
+    FPasswordHeaderName: string;
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
@@ -65,10 +83,16 @@ type
 
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
   public
-    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; AConfigClaims: TJWTClaimsSetup;
-      ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
-      TJWTCheckableClaim.IssuedAt]; ALeewaySeconds: Cardinal = 300); virtual;
+    constructor Create(
+      AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk';
+      ALoginURLSegment: string = '/login';
+      AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+      ALeewaySeconds: Cardinal = 300;
+      AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
+      AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
+      APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER); virtual;
   end;
 
 implementation
@@ -81,9 +105,14 @@ uses
 { TMVCJWTAuthenticationMiddleware }
 
 constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  AConfigClaims: TJWTClaimsSetup; ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
-  TJWTCheckableClaim.IssuedAt]; ALeewaySeconds: Cardinal = 300);
+  AConfigClaims: TJWTClaimsSetup;
+  ASecret: string = 'D3lph1MVCFram3w0rk';
+  ALoginURLSegment: string = '/login';
+  AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+  ALeewaySeconds: Cardinal = 300;
+  AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
+  AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
+  APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER);
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
@@ -92,6 +121,9 @@ begin
   FSecret := ASecret;
   FLoginURLSegment := ALoginURLSegment;
   FLeewaySeconds := ALeewaySeconds;
+  FAuthorizationHeaderName := AAuthorizationHeaderName;
+  FUserNameHeaderName := AUserNameHeaderName;
+  FPasswordHeaderName := APasswordHeaderName;
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.ExtendExpirationTime(const JWTValue: TJWT);
@@ -129,12 +161,6 @@ var
 begin
   lWillExpireIn := SecondsBetween(Now, JWTValue.Claims.ExpirationTime);
   Result := lWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
-  // Log.Debug('--------------------------', 'EXPIRE');
-  // Log.DebugFmt('Now             : %s', [TimeToStr(Now)], 'EXPIRE');
-  // Log.DebugFmt('ExpirationTime  : %s', [TimeToStr(JWTValue.Claims.ExpirationTime)], 'EXPIRE');
-  // Log.DebugFmt('WillExpireIn    : %d', [lWillExpireIn], 'EXPIRE');
-  // Log.DebugFmt('LVW             : %d', [JWTValue.LiveValidityWindowInSeconds], 'EXPIRE');
-  // Log.DebugFmt('NeedsToBeExtened: %s', [BoolToStr(Result, True)], 'EXPIRE');
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
@@ -167,10 +193,10 @@ begin
   JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
   try
     JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
-    AuthHeader := AContext.Request.Headers['Authentication'];
+    AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
     if AuthHeader.IsEmpty then
     begin
-      RenderError(HTTP_STATUS.Unauthorized, 'Authentication Required', AContext);
+      RenderError(HTTP_STATUS.Unauthorized, 'Authorization Required', AContext);
       AHandled := True;
       Exit;
     end;
@@ -183,14 +209,6 @@ begin
       AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
     end;
 
-    // check the jwt
-    // if not JWTValue.IsValidToken(AuthToken, ErrorMsg) then
-    // begin
-    // RenderError(HTTP_STATUS.Unauthorized, ErrorMsg, AContext);
-    // AHandled := True;
-    // end
-    // else
-
     if not JWTValue.LoadToken(AuthToken, ErrorMsg) then
     begin
       RenderError(HTTP_STATUS.Unauthorized, ErrorMsg, AContext);
@@ -200,7 +218,7 @@ begin
 
     if JWTValue.CustomClaims['username'].IsEmpty then
     begin
-      RenderError(HTTP_STATUS.Unauthorized, 'Invalid Token, Authentication Required', AContext);
+      RenderError(HTTP_STATUS.Unauthorized, 'Invalid Token, Authorization Required', AContext);
       AHandled := True;
     end
     else
@@ -222,7 +240,7 @@ begin
           if NeedsToBeExtended(JWTValue) then
           begin
             ExtendExpirationTime(JWTValue);
-            AContext.Response.SetCustomHeader('Authentication', 'bearer ' + JWTValue.GetToken);
+            AContext.Response.SetCustomHeader(FAuthorizationHeaderName, 'bearer ' + JWTValue.GetToken);
           end;
         end;
         AHandled := False
@@ -251,8 +269,8 @@ var
 begin
   if SameText(AContext.Request.PathInfo, FLoginURLSegment) and (AContext.Request.HTTPMethod = httpPOST) then
   begin
-    UserName := TNetEncoding.URL.Decode(AContext.Request.Headers['jwtusername']);
-    Password := TNetEncoding.URL.Decode(AContext.Request.Headers['jwtpassword']);
+    UserName := TNetEncoding.URL.Decode(AContext.Request.Headers[FUserNameHeaderName]);
+    Password := TNetEncoding.URL.Decode(AContext.Request.Headers[FPasswordHeaderName]);
     if (UserName.IsEmpty) or (Password.IsEmpty) then
     begin
       RenderError(HTTP_STATUS.Unauthorized, 'Username and password Required', AContext);
