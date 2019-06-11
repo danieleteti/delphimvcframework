@@ -78,7 +78,7 @@ type
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
     tkQuote, tkSpace, tkContains, tkIn, tkUnknown);
 
-  TRQLValueType = (vtInteger, vtString, vtIntegerArray, vtStringArray);
+  TRQLValueType = (vtInteger, vtString, vtBoolean, vtIntegerArray, vtStringArray);
 
   TRQLCustom = class;
 
@@ -187,6 +187,7 @@ type
     function MatchFieldStringValue(out lFieldValue: string): Boolean;
     function MatchFieldNumericValue(out lFieldValue: string): Boolean;
     function MatchFieldArrayValue(out lFieldValue: string): Boolean;
+    function MatchFieldBooleanValue(out lFieldValue: string): Boolean;
     function MatchSymbol(const Symbol: Char): Boolean;
     procedure SaveCurPos;
     procedure BackToLastPos;
@@ -613,9 +614,13 @@ begin
   else
   begin
     BackToLastPos;
-    if not MatchFieldNumericValue(lFieldValue) then
-      Error('Expected numeric value');
-    lValueType := vtInteger;
+
+    if MatchFieldBooleanValue(lFieldValue) then
+      lValueType := vtBoolean
+    else if MatchFieldNumericValue(lFieldValue) then
+      lValueType := vtInteger
+    else
+      Error('Expected numeric or boolean value');
   end;
   EatWhiteSpaces;
   if GetToken <> tkClosedPar then
@@ -855,6 +860,30 @@ begin
     end;
   end;
   Result := False;
+end;
+
+function TRQL2SQL.MatchFieldBooleanValue(out lFieldValue: string): Boolean;
+var
+  lChar: Char;
+begin
+  Result := True;
+  lFieldValue := '';
+  lChar := C(0).ToLower;
+
+  if (lChar = 't') and (C(1).ToLower = 'r') and (C(2).ToLower = 'u') and (C(3).ToLower = 'e') then
+  begin
+    Skip(4);
+    Result := True;
+    lFieldValue := 'true';
+  end
+  else if (lChar = 'f') and (C(1).ToLower = 'a') and (C(2).ToLower = 'l') and (C(3).ToLower = 's') and (C(4).ToLower = 'e') then
+  begin
+    Skip(5);
+    Result := True;
+    lFieldValue := 'false';
+  end
+  else
+    Exit(False)
 end;
 
 function TRQL2SQL.MatchFieldName(out lFieldName: string): Boolean;
