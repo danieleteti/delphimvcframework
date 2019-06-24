@@ -35,7 +35,7 @@ uses
   System.Classes,
   System.Generics.Collections,
   IdHTTPWebBrokerBridge,
-  MVCFramework.Server, MVCFramework;
+  MVCFramework.Server, MVCFramework, IdContext;
 
 type
 

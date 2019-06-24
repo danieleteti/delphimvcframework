@@ -3,7 +3,11 @@ unit Services;
 interface
 
 uses
-  System.Generics.Collections, BusinessObjects, MainDM, System.SysUtils, Commons;
+  System.Generics.Collections,
+  BusinessObjects,
+  MainDM,
+  System.SysUtils,
+  Commons;
 
 type
 
@@ -20,6 +24,7 @@ type
   TArticlesService = class(TServiceBase)
   public
     function GetAll: TObjectList<TArticle>;
+    function GetArticles(const aTextSearch: String): TObjectList<TArticle>;
     function GetByID(const AID: Integer): TArticle;
     procedure Delete(AArticolo: TArticle);
     procedure Add(AArticolo: TArticle);
@@ -29,8 +34,11 @@ type
 implementation
 
 uses
-  FireDAC.Stan.Option, FireDAC.Comp.Client, FireDAC.Stan.Param,
-  MVCFramework.FireDAC.Utils, MVCFramework.DataSet.Utils,
+  FireDAC.Stan.Option,
+  FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
+  MVCFramework.FireDAC.Utils,
+  MVCFramework.DataSet.Utils,
   MVCFramework.Serializer.Commons;
 
 { TArticoliService }
@@ -58,9 +66,20 @@ end;
 
 function TArticlesService.GetAll: TObjectList<TArticle>;
 begin
-  FDM.dsArticles.Open('SELECT * FROM ARTICOLI ORDER BY ID');
+  FDM.dsArticles.Open('SELECT * FROM ARTICOLI ORDER BY ID', []);
   Result := FDM.dsArticles.AsObjectList<TArticle>;
   FDM.dsArticles.Close;
+end;
+
+function TArticlesService.GetArticles(
+  const aTextSearch: String): TObjectList<TArticle>;
+begin
+  FDM.dsArticles.Open('SELECT * FROM ARTICOLI WHERE DESCRIZIONE CONTAINING ? ORDER BY ID', [aTextSearch]);
+  try
+    Result := FDM.dsArticles.AsObjectList<TArticle>()
+  finally
+    FDM.dsArticles.Close;
+  end;
 end;
 
 function TArticlesService.GetByID(const AID: Integer): TArticle;

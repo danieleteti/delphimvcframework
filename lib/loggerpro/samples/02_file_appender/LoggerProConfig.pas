@@ -45,7 +45,7 @@ initialization
 }
 
 // Creates log in the ..\..\ folder without PID in the filename
-_Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5, '..\..',[TFileAppenderOption.IncludePID])]);
+_Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5, '..\..', [])]);
 // Create logs in the exe' same folder
 // _Log := BuildLogWriter([TLoggerProFileAppender.Create(10, 5)]);
 

@@ -547,6 +547,7 @@ var
   lList: TList<String>;
   lArrayValue: TArray<String>;
 begin
+  lValueType := TRQLValueType.vtInteger; //default
   EatWhiteSpaces;
   if GetToken <> tkOpenPar then
     Error('Expected "("');
@@ -866,7 +867,6 @@ function TRQL2SQL.MatchFieldBooleanValue(out lFieldValue: string): Boolean;
 var
   lChar: Char;
 begin
-  Result := True;
   lFieldValue := '';
   lChar := C(0).ToLower;
 

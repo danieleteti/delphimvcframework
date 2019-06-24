@@ -6,6 +6,7 @@ uses
   FireDAC.Phys.FB,
   FireDAC.Phys.PG,
   FireDAC.Phys.MySQL,
+  FireDAC.Phys.SQLite,
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,

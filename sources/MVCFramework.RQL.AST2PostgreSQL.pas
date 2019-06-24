@@ -45,7 +45,8 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  FireDAC.Phys.PG;
 
 { TRQLPostgreSQLCompiler }
 

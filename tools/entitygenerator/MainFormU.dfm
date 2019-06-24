@@ -132,6 +132,13 @@ object MainForm: TMainForm
         TabOrder = 1
         OnClick = btnGetTablesClick
       end
+      object edtReplace: TEdit
+        Left = 255
+        Top = 10
+        Width = 121
+        Height = 21
+        TabOrder = 2
+      end
     end
     object PageControl1: TPageControl
       AlignWithMargins = True
@@ -164,10 +171,6 @@ object MainForm: TMainForm
       object TabSheet2: TTabSheet
         Caption = 'Generated Code'
         ImageIndex = 1
-        ExplicitLeft = 0
-        ExplicitTop = 0
-        ExplicitWidth = 0
-        ExplicitHeight = 0
         object mmOutput: TMemo
           Left = 0
           Top = 41
@@ -253,23 +256,23 @@ object MainForm: TMainForm
     Top = 328
   end
   object FDPhysPgDriverLink1: TFDPhysPgDriverLink
-    Left = 440
-    Top = 336
+    Left = 496
+    Top = 384
   end
   object FDPhysFBDriverLink2: TFDPhysFBDriverLink
-    Left = 448
-    Top = 344
+    Left = 400
+    Top = 408
   end
   object FDPhysIBDriverLink1: TFDPhysIBDriverLink
-    Left = 456
+    Left = 304
     Top = 352
   end
   object FDPhysMySQLDriverLink2: TFDPhysMySQLDriverLink
-    Left = 464
+    Left = 616
     Top = 360
   end
   object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
-    Left = 472
-    Top = 368
+    Left = 608
+    Top = 280
   end
 end

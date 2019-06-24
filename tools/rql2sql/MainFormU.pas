@@ -50,6 +50,10 @@ uses
   MVCFramework.RQL.Parser,
   System.TypInfo,
   MVCFramework.RQL.AST2FirebirdSQL,
+  MVCFramework.RQL.AST2InterbaseSQL,
+  MVCFramework.RQL.AST2SQLite,
+  MVCFramework.RQL.AST2PostgreSQL,
+  MVCFramework.RQL.AST2MSSQL,
   MVCFramework.RQL.AST2MySQL;
 
 {$R *.dfm}

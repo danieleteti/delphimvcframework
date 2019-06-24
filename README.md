@@ -128,6 +128,7 @@ Render(lPerson, False,
 - New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
 - New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.
 - New! Microsoft SQLServer Support in ActiveRecord and RQL (thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework)
+- New! SQLite Support in ActiveRecord and RQL, so that MVCActiveRecord can be used also for Delphi mobile projects!
 - Improved! `ActiveRecordShowCase` sample is much better now.
 - Improved! In case of unhandled exception `TMVCEngine` is compliant with the default response content-type (usually it did would reply using `text/plain`).
 - Fix! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184).

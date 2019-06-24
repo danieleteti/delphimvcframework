@@ -106,14 +106,7 @@ object MainForm: TMainForm
     OnClick = btnTransientFieldsClick
   end
   object FDConnection1: TFDConnection
-    Params.Strings = (
-      'User_Name=sysdba'
-      'Password=masterkey'
-      
-        'Database=C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FD' +
-        'B'
-      'DriverID=FB')
-    Left = 184
-    Top = 40
+    Left = 176
+    Top = 56
   end
 end

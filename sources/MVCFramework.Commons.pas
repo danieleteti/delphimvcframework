@@ -557,9 +557,8 @@ implementation
 uses
   IdCoder3to4,
   JsonDataObjects,
-  Soap.EncdDecd,
   System.NetEncoding,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1170,7 +1169,7 @@ begin
 
     lFile := TFileStream.Create(AFileName, fmCreate);
     try
-      DecodeStream(lSS, lFile);
+      TMVCSerializerHelper.DecodeStream(lSS, lFile);
     finally
       lFile.Free;
     end;
@@ -1189,7 +1188,7 @@ begin
   try
     lTemplateFile := TFileStream.Create(FileName, fmOpenRead);
     try
-      EncodeStream(lTemplateFile, lTemplateFileB64);
+      TMVCSerializerHelper.EncodeStream(lTemplateFile, lTemplateFileB64);
     finally
       lTemplateFile.Free;
     end;

@@ -23,17 +23,12 @@ uses
   FireDAC.Stan.Async,
   FireDAC.Phys,
   FireDAC.VCLUI.Wait,
-  Data.DB,
-  FireDAC.Comp.Client,
-  FireDAC.Phys.FB,
-  FireDAC.Phys.FBDef,
-  FireDAC.Phys.PGDef,
-  FireDAC.Phys.PG;
+  Data.DB, FireDAC.Comp.Client;
+
 
 type
   TMainForm = class(TForm)
     btnCRUD: TButton;
-    FDConnection1: TFDConnection;
     btnSelect: TButton;
     Memo1: TMemo;
     btnRelations: TButton;
@@ -42,6 +37,7 @@ type
     btnMultiThreading: TButton;
     btnRQL: TButton;
     btnTransientFields: TButton;
+    FDConnection1: TFDConnection;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -183,7 +179,8 @@ begin
       end;
     end;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+  lTasks := [
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
@@ -271,9 +268,10 @@ var
   lList: TMVCActiveRecordList;
   lItem: TMVCActiveRecord;
   lCustomer: TCustomer;
+  lCustList: TObjectList<TCustomer>;
 const
-  cRQL1 = 'in(City,["Rome","London"])';
-  cRQL2 = 'and(eq(City,"Rome"),contains(CompanyName,"GAS"))';
+  cRQL1 = 'in(City,["Rome","London"]);sort(+code);limit(0,50)';
+  cRQL2 = 'and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))';
 begin
   Log('**RQL Query (1) - ' + cRQL1);
   lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20);
@@ -290,6 +288,19 @@ begin
   end;
 
   Log('**RQL Query (2) - ' + cRQL2);
+  lCustList := TMVCActiveRecord.SelectRQL<TCustomer>(cRQL2, 20);
+  try
+    Log(lCustList.Count.ToString + ' record/s found');
+    for lCustomer in lCustList do
+    begin
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName,
+        lCustomer.City]));
+    end;
+  finally
+    lCustList.Free;
+  end;
+
+  Log('**RQL Query (3) - ' + cRQL2);
   lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL2, 20);
   try
     Log(lList.Count.ToString + ' record/s found');
@@ -325,6 +336,10 @@ begin
     if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
     lCustomers := TMVCActiveRecord.Select<TCustomer>
       ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
+  else
+    if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else
     raise Exception.Create('Unsupported backend: ' +
       ActiveRecordConnectionsRegistry.GetCurrentBackend);
@@ -435,6 +450,11 @@ begin
   // To use MySQL enable MYSQL build configuration
 {$IFDEF MYSQL}
   FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+{$ENDIF}
+
+  // To use SQLite enable SQLite build configuration
+{$IFDEF SQLITE}
+  FDConnectionConfigU.CreateSqlitePrivateConnDef(True);
 {$ENDIF}
   { ************* }
   FDConnection1.Params.Clear;
