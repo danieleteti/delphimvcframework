@@ -49,9 +49,10 @@ begin
   { Getting JSON response }
   lClient := TRESTClient.Create('localhost', 8080);
   try
+    lClient.UseBasicAuthentication := False;
     lClient.ReadTimeOut(0);
     if not FJWT.IsEmpty then
-      lClient.RequestHeaders.Values['Authentication'] := 'bearer ' + FJWT;
+      lClient.RequestHeaders.Values['Authorization'] := 'bearer ' + FJWT;
     lQueryStringParams := TStringList.Create;
     try
       lQueryStringParams.Values['firstname'] := 'Daniele';
@@ -70,9 +71,12 @@ begin
   { Getting HTML response }
   lClient := TRESTClient.Create('localhost', 8080);
   try
+    // when the JWT authorization header is named "Authorization", the basic authorization must be disabled
+    lClient.UseBasicAuthentication := False;
+
     lClient.ReadTimeOut(0);
     if not FJWT.IsEmpty then
-      lClient.RequestHeaders.Values['Authentication'] := 'bearer ' + FJWT;
+      lClient.RequestHeaders.Values['Authorization'] := 'bearer ' + FJWT;
     lQueryStringParams := TStringList.Create;
     try
       lQueryStringParams.Values['firstname'] := 'Daniele';
@@ -100,8 +104,8 @@ begin
   try
     lClient.ReadTimeOut(0);
     lClient
-      .Header('jwtusername', 'user1')
-      .Header('jwtpassword', 'user1');
+      .Header('username', 'user1')
+      .Header('password', 'user1');
     lRest := lClient.doPOST('/login', []);
     if lRest.HasError then
     begin
