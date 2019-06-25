@@ -26,10 +26,12 @@ unit WebModuleUnit;
 
 interface
 
-uses System.SysUtils,
+uses
+  System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;
 
 type
   Tbas = class(TWebModule)
@@ -47,10 +49,16 @@ implementation
 
 
 uses
-  TestServerControllerU, TestServerControllerExceptionU, SpeedMiddlewareU,
-  MVCFramework.Middleware.Authentication, System.Generics.Collections,
-  MVCFramework.Commons, TestServerControllerPrivateU, AuthHandlersU,
-  TestServerControllerJSONRPCU, MVCFramework.Middleware.Compression;
+  TestServerControllerU,
+  TestServerControllerExceptionU,
+  SpeedMiddlewareU,
+  MVCFramework.Middleware.Authentication,
+  System.Generics.Collections,
+  MVCFramework.Commons,
+  TestServerControllerPrivateU,
+  AuthHandlersU,
+  TestServerControllerJSONRPCU,
+  MVCFramework.Middleware.Compression;
 
 procedure Tbas.WebModuleCreate(Sender: TObject);
 begin
@@ -84,7 +92,7 @@ begin
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
 
-  // MVCEngine.Config[TMVCConfigKey.Messaging] := 'false';
+  RegisterOptionalCustomTypesSerializersForJSON(MVCEngine.Serializers);
 end;
 
 end.

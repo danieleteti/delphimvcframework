@@ -44,7 +44,9 @@ uses
   CustomTypesSerializersU in 'CustomTypesSerializersU.pas',
   InMemoryDataU in 'InMemoryDataU.pas',
   MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas',
-  RandomUtilsU in '..\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\commons\RandomUtilsU.pas',
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+    in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
 
 {$R *.res}
 

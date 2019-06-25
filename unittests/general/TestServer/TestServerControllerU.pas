@@ -132,6 +132,11 @@ type
     [MVCProduces('application/json')]
     procedure TestPOSTObject;
 
+    [MVCPath('/customerecho')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces('application/json')]
+    procedure TestCustomerEcho;
+
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
     procedure TestHelloWorld;
@@ -224,6 +229,7 @@ type
 implementation
 
 uses
+  JsonDataObjects,
   System.JSON,
   Web.HTTPApp,
   BusinessObjectsU,
@@ -373,16 +379,32 @@ begin
   Render(Context.Request.Body);
 end;
 
+procedure TTestServerController.TestCustomerEcho;
+var
+  lCustomer: TCustomer;
+begin
+  lCustomer := Context.Request.BodyAs<TCustomer>();
+  // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
+  lCustomer.Name := lCustomer.Name + ' changed';
+  lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
+  Render(lCustomer, True);
+end;
+
 procedure TTestServerController.TestCharset;
 var
-  Obj: TJSONObject;
+  Obj: TJDOJSONObject;
 begin
   ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
-  Obj := TJSONObject.Create;
-  Obj.AddPair('name1', 'jørn');
-  Obj.AddPair('name2', 'Što je Unicode?');
-  Obj.AddPair('name3', 'àèéìòù');
-  Render(Obj);
+  Obj := TJDOJSONObject.Create;
+  try
+    Obj.s['name1'] := 'jørn';
+    Obj.s['name2'] := 'Što je Unicode?';
+    Obj.s['name3'] := 'àèéìòù';
+    Render(Obj, false);
+  finally
+    Obj.Free;
+  end;
 end;
 
 procedure TTestServerController.TestGetImagePng;
@@ -483,17 +505,17 @@ end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;
 var
-  vUsers: TObjectList<TCustomer>;
+  lUsers: TObjectList<TCustomer>;
 begin
-  vUsers := Context.Request.BodyAsListOf<TCustomer>();
+  lUsers := Context.Request.BodyAsListOf<TCustomer>();
   try
-    vUsers.OwnsObjects := True;
-    if (vUsers.Count = 3000) then
+    lUsers.OwnsObjects := True;
+    if (lUsers.Count = 3000) then
       Render('Success!')
     else
       Render('Error!');
   finally
-    FreeAndNil(vUsers);
+    FreeAndNil(lUsers);
   end;
 end;
 

@@ -76,7 +76,8 @@ uses
   CustomTypesSerializersU,
   MVCFramework.Serializer.Intf,
   System.Generics.Collections,
-  MVCFramework.View.Renderers.Mustache;
+  MVCFramework.View.Renderers.Mustache,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -110,6 +111,9 @@ begin
     .Serializers
     .Items[TMVCMediaType.APPLICATION_JSON]
     .RegisterTypeSerializer(TypeInfo(TNullableRecordAlias), TNullableAliasSerializer.Create);
+
+  // This line registers custom serializers for TBitmap, TPngImage (Only MSWindows) and TJPEGImage (Only MSWindows)
+  RegisterOptionalCustomTypesSerializers(DMVC.Serializers);
 end;
 
 end.

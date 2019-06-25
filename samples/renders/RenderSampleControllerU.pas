@@ -56,8 +56,13 @@ type
     procedure GetCustomersAsDataSetWithRefLinks;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($ID)')]
+    [MVCPath('/customers/($ID)/asdataset')]
     procedure GetCustomer_AsDataSetRecord(const ID: Integer);
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/($ID)')]
+    [MVCProduces('application/json')]
+    procedure GetCustomerByID_AsTObject(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/metadata')]
@@ -119,11 +124,6 @@ type
     procedure GetUnicodeText_AsHTML;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($ID)')]
-    [MVCProduces('application/json')]
-    procedure GetCustomerByID_AsTObject(const ID: Integer);
-
-    [MVCHTTPMethod([httpGET])]
     [MVCPath('/files/customers.json')]
     [MVCProduces('application/json')]
     procedure GetPersonJSON;
@@ -175,8 +175,26 @@ uses
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
   Data.DB,
-  Web.HTTPApp;
+  Web.HTTPApp,
+  Graphics,
+  System.Types;
 
+procedure DrawLogo(const Logo: TBitmap);
+var
+  lRect: TRect;
+  lText: string;
+begin
+  lRect := Rect(0, 0, 300, 200);
+  lText := 'DMVCFramework';
+  Logo.SetSize(lRect.Width, lRect.Height);
+  Logo.Canvas.Brush.Color := clRed;
+  Logo.Canvas.FillRect(lRect);
+  Logo.Canvas.Font.Size := 24;
+  Logo.Canvas.Font.Name := 'Tahoma';
+  Logo.Canvas.Font.Color := clWhite;
+  lRect.Inflate(-20, -60);
+  Logo.Canvas.TextRect(lRect, lText, [TTextFormats.tfCenter]);
+end;
 { TRoutingSampleController }
 
 procedure TRenderSampleController.GetUnicodeText_AsHTML;
@@ -291,6 +309,7 @@ begin
     Cust.AddressLine1 := 'Rome Street 12';
     Cust.AddressLine2 := '00100';
     Cust.City := 'ROME';
+    DrawLogo(Cust.Logo);
     Render(Cust);
   end;
 end;

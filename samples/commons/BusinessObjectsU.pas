@@ -28,7 +28,8 @@ interface
 
 uses
   MVCFramework.Serializer.Commons,
-  Generics.Collections;
+  Generics.Collections,
+  Graphics;
 
 type
 
@@ -97,13 +98,17 @@ type
     FContactFirst: string;
     FCity: string;
     FContactLast: string;
+    fLogo: TBitmap;
     procedure SetAddressLine1(const Value: string);
     procedure SetAddressLine2(const Value: string);
     procedure SetCity(const Value: string);
     procedure SetContactFirst(const Value: string);
     procedure SetContactLast(const Value: string);
     procedure SetName(const Value: string);
+    procedure SetLogo(const Value: TBitmap);
   public
+    constructor Create;
+    destructor Destroy; override;
     property Name: string read FName write SetName;
     [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
@@ -112,6 +117,7 @@ type
     property AddressLine1: string read FAddressLine1 write SetAddressLine1;
     property AddressLine2: string read FAddressLine2 write SetAddressLine2;
     property City: string read FCity write SetCity;
+    property Logo: TBitmap read fLogo write SetLogo;
     class function GetList: TObjectList<TCustomer>;
   end;
 
@@ -218,6 +224,18 @@ end;
 
 { TCustomer }
 
+constructor TCustomer.Create;
+begin
+  inherited;
+  fLogo := TBitmap.Create;
+end;
+
+destructor TCustomer.Destroy;
+begin
+  fLogo.Free;
+  inherited;
+end;
+
 class function TCustomer.GetList: TObjectList<TCustomer>;
 var
   C1: TCustomer;
@@ -276,6 +294,11 @@ end;
 procedure TCustomer.SetContactLast(const Value: string);
 begin
   FContactLast := Value;
+end;
+
+procedure TCustomer.SetLogo(const Value: TBitmap);
+begin
+  fLogo := Value;
 end;
 
 procedure TCustomer.SetName(const Value: string);

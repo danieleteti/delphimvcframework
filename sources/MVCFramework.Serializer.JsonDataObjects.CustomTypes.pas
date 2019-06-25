@@ -35,7 +35,9 @@ uses
   System.Classes,
   System.SysUtils,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons, JsonDataObjects, MVCFramework.Commons;
+  MVCFramework.Serializer.Commons,
+  JsonDataObjects,
+  MVCFramework.Commons;
 
 type
 
@@ -231,7 +233,7 @@ procedure TMVCStringDictionarySerializer.SerializeRoot(const AObject: TObject; o
   const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 var
   lStringDict: TMVCStringDictionary;
-  //lPair: TPair<string, string>;
+  // lPair: TPair<string, string>;
   lOutObject: TJsonObject;
 begin
   lStringDict := AObject as TMVCStringDictionary;

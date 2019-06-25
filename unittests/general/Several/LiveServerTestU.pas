@@ -30,7 +30,8 @@ uses
   DUnitX.TestFramework,
   MVCFramework.RESTClient,
   MVCFramework.JSONRPC.Client,
-  System.DateUtils;
+  System.DateUtils,
+  System.Hash;
 
 const
 
@@ -87,6 +88,8 @@ type
     procedure TestPOSTWithParamsAndJSONBody;
     [Test]
     procedure TestPOSTWithObjectJSONBody;
+    [Test]
+    procedure TestCustomerEcho;
     [Test]
     procedure TestXHTTPMethodOverride_POST_as_PUT;
     [Test]
@@ -230,7 +233,10 @@ uses
   System.Classes,
   MVCFramework.SystemJSONUtils,
   IdCookie,
-  MVCFramework.JSONRPC;
+  MVCFramework.JSONRPC,
+  MVCFramework.Serializer.Intf,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
+  Vcl.Graphics;
 
 { TServerTest }
 
@@ -622,6 +628,47 @@ begin
   end;
 end;
 
+procedure TServerTest.TestCustomerEcho;
+var
+  r: IRESTResponse;
+  lCustomer: TCustomer;
+  lSer: IMVCSerializer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.Name := 'bit Time Professionals';
+    lCustomer.ContactFirst := 'Daniele'; // transient
+    lCustomer.ContactLast := 'Teti'; // transient
+    lCustomer.AddressLine1 := 'Via Roma 10';
+    lCustomer.AddressLine2 := '00100, ROMA';
+    lCustomer.Logo.SetSize(100, 100);
+    lCustomer.Logo.Canvas.FillRect(Rect(0, 0, 100, 100));
+    lCustomer.Logo.Canvas.Font.Color := clRed;
+    lCustomer.Logo.Canvas.TextOut(10, 50, 'From Client');
+    lCustomer.Logo.SaveToFile('pippo_client_before_send.bmp');
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer);
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doPOST('/customerecho', [],
+      lSer.SerializeObject(lCustomer));
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer);
+    lSer.DeserializeObject(r.BodyAsString, lCustomer);
+    Assert.areEqual('bit Time Professionals changed', lCustomer.Name);
+    Assert.areEqual('', lCustomer.ContactFirst);
+    Assert.areEqual('', lCustomer.ContactLast);
+    lCustomer.Logo.SaveToFile('customer_logo.bmp');
+    Assert.areEqual('de2a29ec62fc1f0b3abbb6b74223d214', THashMD5.GetHashStringFromFile('customer_logo.bmp'));
+  finally
+    lCustomer.Free;
+  end;
+end;
+
 procedure TServerTest.TestCustomAuthLoginLogout;
 var
   lRes: IRESTResponse;
@@ -883,12 +930,13 @@ procedure TServerTest.TestPostAListOfObjects;
 var
   lRes: IRESTResponse;
   LCustomers: TObjectList<TCustomer>;
+  lSer: IMVCSerializer;
 begin
   LCustomers := TCustomer.GetList;
   try
-    lRes := RESTClient.doPOST('/customers/list', [], GetDefaultSerializer.SerializeCollection(LCustomers)
-    { Mapper.ObjectListToJSONArray<TCustomer>(LCustomers) }
-      );
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer); // TBitmap
+    lRes := RESTClient.doPOST('/customers/list', [], lSer.SerializeCollection(LCustomers));
     Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.ResponseCode);
   finally
     LCustomers.Free;
@@ -1051,7 +1099,6 @@ begin
     JSON.Free;
   end;
 end;
-
 
 procedure TServerTest.TestReqWithParams;
 var
