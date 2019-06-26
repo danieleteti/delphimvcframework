@@ -74,6 +74,36 @@ type
     class procedure Serialize(const ADict: TMVCStringDictionary; const AJSONObject: TJsonObject); inline;
   end;
 
+  TMVCGUIDSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(
+      const AElementValue: TValue;
+      const APropertyName: string;
+      const ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>
+      );
+
+    procedure SerializeRoot(
+      const AObject: TObject;
+      out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
+      );
+
+    procedure DeserializeAttribute(
+      var AElementValue: TValue;
+      const APropertyName: string;
+      const ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>
+      );
+
+    procedure DeserializeRoot(
+      const ASerializerObject: TObject;
+      const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>
+      );
+  end;
+
 implementation
 
 uses
@@ -248,5 +278,60 @@ begin
   end;
   ASerializerObject := lOutObject;
 end;
+
+{ TMVCGUIDSerializer }
+
+procedure TMVCGUIDSerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+
+  function GUIDFromString(const AString: string): TGUID;
+  var
+    LGuidStr: string;
+  begin
+    // delphi uuid format: {ae502abe-430b-b23a-2878-2d18d6a6e465}
+
+    // string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465
+    if AString.Length = 32 then
+      LGuidStr := Format('{%s-%s-%s-%s-%s}', [AString.Substring(0, 8), AString.Substring(8, 4),
+        AString.Substring(12, 4), AString.Substring(16, 4),AString.Substring(20, 12)])
+
+    // string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465
+    else if AString.Length = 36 then
+      LGuidStr := Format('{%s}', [AString])
+    else
+      LGuidStr := AString;
+    Result := StringToGUID(LGuidStr);
+  end;
+
+var
+  LJson: TJDOJsonObject;
+  LGuid: TGUID;
+begin
+  LJson := ASerializerObject as TJDOJsonObject;
+  if LJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
+    LGuid := TGUID.Empty
+  else
+    LGuid := GUIDFromString(LJSON.S[APropertyName]);
+  AElementValue := TValue.From<TGUID>(LGuid);
+end;
+
+procedure TMVCGUIDSerializer.DeserializeRoot(const ASerializerObject, AObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+begin
+  // not implemented
+end;
+
+procedure TMVCGUIDSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  (ASerializerObject as TJDOJsonObject).S[APropertyName] := AElementValue.AsType<TGUID>.ToString;
+end;
+
+procedure TMVCGUIDSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction);
+begin
+  // not implemented
+end;
+
 
 end.
