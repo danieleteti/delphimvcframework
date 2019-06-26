@@ -176,6 +176,8 @@ begin
   GetTypeSerializers.Add(TypeInfo(TMemoryStream), lStreamSerializer);
   fStringDictionarySerializer := TMVCStringDictionarySerializer.Create;
   GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), TMVCStringDictionarySerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
+
 end;
 
 procedure TMVCJsonDataObjectsSerializer.AttributeToJsonDataValue(const AJsonObject: TJDOJsonObject;
