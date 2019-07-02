@@ -513,7 +513,7 @@ function B64Encode(const aValue: string): string; overload;
 function B64Encode(const aValue: TBytes): string; overload;
 function B64Decode(const aValue: string): string;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string): string;
 
@@ -979,12 +979,12 @@ begin
   FFillChar := '='; { Do not Localize }
 end;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean): string; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
 begin
   if IncludePadding then
-    Result := TURLSafeEncode.EncodeString(Value)
+    Result := TURLSafeEncode.EncodeString(Value, AByteEncoding)
   else
-    Result := TURLSafeEncode.EncodeString(Value).Replace('=', '', [rfReplaceAll]);
+    Result := TURLSafeEncode.EncodeString(Value, AByteEncoding).Replace('=', '', [rfReplaceAll]);
 end;
 
 /// <summary>
