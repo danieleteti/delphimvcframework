@@ -1,3 +1,5 @@
+ne(value,null)
+eq(value,null)
 eq(value,false)
 eq(value,true)
 in ( value , [ 1 , 2 , 3 ] ) 
