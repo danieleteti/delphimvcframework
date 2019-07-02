@@ -154,7 +154,7 @@ implementation
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
   MVCFramework.Logger,
-  System.SysUtils, Graphics;
+  System.SysUtils;
 
 type
   TJDOLinks = class(TMVCLinks)
