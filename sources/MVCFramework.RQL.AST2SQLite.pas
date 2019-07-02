@@ -92,7 +92,10 @@ begin
   case aRQLFIlter.Token of
     tkEq:
       begin
-        Result := Format('(%s = %s)', [lDBFieldName, lValue]);
+        if aRQLFIlter.RightValueType = vtNull then
+          Result := Format('(%s IS NULL)', [lDBFieldName])
+        else
+          Result := Format('(%s = %s)', [lDBFieldName, lValue]);
       end;
     tkLt:
       begin
@@ -112,7 +115,10 @@ begin
       end;
     tkNe:
       begin
-        Result := Format('(%s != %s)', [lDBFieldName, lValue]);
+        if aRQLFIlter.RightValueType = vtNull then
+          Result := Format('(%s IS NOT NULL)', [lDBFieldName])
+        else
+          Result := Format('(%s != %s)', [lDBFieldName, lValue]);
       end;
     tkContains:
       begin
