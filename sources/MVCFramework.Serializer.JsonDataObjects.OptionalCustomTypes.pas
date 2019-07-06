@@ -26,6 +26,10 @@
 
 unit MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;
 
+{$IFDEF LINUX}
+{$ERROR 'This unit is not compatible with linux!'}
+{$ENDIF}
+
 interface
 
 uses
@@ -69,8 +73,10 @@ uses
 
 procedure RegisterOptionalCustomTypesSerializers(const JDOSerializer: IMVCSerializer);
 begin
+{$IF Defined(Android) or Defined(IOS)}
   JDOSerializer
     .RegisterTypeSerializer(TypeInfo(TBitmap), TMVCBitmapSerializerJsonDataObject.Create);
+{$ENDIF}
 {$IFDEF MSWINDOWS}
   JDOSerializer
     .RegisterTypeSerializer(TypeInfo(TPngImage), TMVCBitmapSerializerJsonDataObject.Create);

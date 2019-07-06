@@ -281,8 +281,7 @@ resourcestring
     'uses System.SysUtils,' + sLineBreak +
     '     System.Classes,' + sLineBreak +
     '     Web.HTTPApp,' + sLineBreak +
-    '     MVCFramework,' + sLineBreak +
-    '     MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;' + sLineBreak +
+    '     MVCFramework;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
     '  %1:s = class(TWebModule)' + sLineBreak +
@@ -337,8 +336,6 @@ resourcestring
     '  FMVC.AddController(%3:s);' + sLineBreak +
     '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
     '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
-    '  // Register custom serializers for TBitmap, TPngImage (Only MSWindows) and TJPEGImage (Only MSWindows) ' + sLineBreak +
-    '  RegisterOptionalCustomTypesSerializersForJSON(FMVC.Serializers); ' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +
