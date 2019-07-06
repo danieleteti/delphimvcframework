@@ -216,6 +216,13 @@ type
     property NullableString: TMVCNullable<string> read FNullableString write FNullableString;
   end;
 
+  TEntityCustomWithGuid = class(TEntityCustom)
+  private
+    FGuidValue: TGUID;
+  public
+    property GuidValue: TGUID read FGuidValue write FGuidValue;
+  end;
+
   TColorEnum = (RED, GREEN, BLUE);
 
   TEntityWithEnums = class

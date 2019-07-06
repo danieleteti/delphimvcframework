@@ -103,6 +103,8 @@ type
     procedure TestSerializeDeSerializeEntityWithEnums;
     [Test]
     procedure TestStringDictionary;
+    [Test]
+    procedure TestSerializeDeserializeGuid;
 
   end;
 
@@ -1270,6 +1272,44 @@ begin
     Assert.areEqual(JSON_WITH_ARRAY, S);
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
+const
+  JSON =
+    '{' +
+    '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' +
+    '"Id":1,' +
+    '"Code":2,' +
+    '"Name":"João Antônio"' +
+    '}';
+var
+  LEntity: TEntityCustomWithGuid;
+  LJson: string;
+begin
+  LEntity := TEntityCustomWithGuid.Create;
+  try
+    LEntity.Id := 1;
+    LEntity.Code := 2;
+    LEntity.name := 'João Antônio';
+    LEntity.GuidValue := StringToGuid('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}');
+
+    LJson := FSerializer.SerializeObject(LEntity);
+    Assert.AreEqual(JSON, LJson);
+  finally
+    LEntity.Free;
+  end;
+
+  LEntity := TEntityCustomWithGuid.Create;
+  try
+    FSerializer.DeserializeObject(LJson, LEntity);
+    Assert.AreEqual(Int64(1), LEntity.Id);
+    Assert.AreEqual(Integer(2), LEntity.Code);
+    Assert.AreEqual('João Antônio', LEntity.name);
+    Assert.AreEqual(StringToGuid('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
+  finally
+    LEntity.Free;
   end;
 end;
 
