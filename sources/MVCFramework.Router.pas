@@ -43,8 +43,8 @@ uses
   {$ENDIF}
 
   MVCFramework,
-  MVCFramework.Commons,
-  IdURI;
+  MVCFramework.Commons
+  ;
 
 type
   TMVCActionParamCacheItem = class
