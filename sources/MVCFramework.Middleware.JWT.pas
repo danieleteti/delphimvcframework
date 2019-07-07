@@ -41,15 +41,15 @@ type
   TMVCJWTDefaults = class sealed
   public const
     /// <summary>
-    ///   Default authorization header name
+    /// Default authorization header name
     /// </summary>
     AUTHORIZATION_HEADER = 'Authentication';
     /// <summary>
-    ///   Default username header name
+    /// Default username header name
     /// </summary>
     USERNAME_HEADER = 'jwtusername';
     /// <summary>
-    ///   Default password header name
+    /// Default password header name
     /// </summary>
     PASSWORD_HEADER = 'jwtpassword';
   end;
@@ -88,7 +88,8 @@ type
       AConfigClaims: TJWTClaimsSetup;
       ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+      AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+      TJWTCheckableClaim.IssuedAt];
       ALeewaySeconds: Cardinal = 300;
       AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
       AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
@@ -100,7 +101,8 @@ implementation
 uses
   System.NetEncoding,
   System.DateUtils,
-  System.Math, MVCFramework.Logger;
+  System.Math,
+  MVCFramework.Logger;
 
 { TMVCJWTAuthenticationMiddleware }
 
@@ -108,7 +110,8 @@ constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCA
   AConfigClaims: TJWTClaimsSetup;
   ASecret: string = 'D3lph1MVCFram3w0rk';
   ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+  AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore,
+  TJWTCheckableClaim.IssuedAt];
   ALeewaySeconds: Cardinal = 300;
   AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
   AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
@@ -352,11 +355,15 @@ begin
             AHandled := True;
           end;
         except
-          on E: Exception do
+          on Err: EMVCException do
           begin
-            RenderError(HTTP_STATUS.Forbidden, E.Message, AContext);
+            RenderError(Err.HttpErrorCode, Err.Message, AContext, Err.ClassName);
             AHandled := True;
-            Exit;
+          end;
+          on e: Exception do
+          begin
+            RenderError(HTTP_STATUS.Forbidden, e.Message, AContext);
+            AHandled := True;
           end;
         end;
       finally

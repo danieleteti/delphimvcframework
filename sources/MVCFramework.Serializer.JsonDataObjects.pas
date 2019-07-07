@@ -322,7 +322,7 @@ begin
               AttributeToJsonDataValue(AJsonObject, AName, CastedValue, stDefault, [], [])
             else
               raise EMVCSerializationException.CreateFmt
-                ('Cannot serialize %s of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).',
+                ('Cannot serialize property or field "%s" of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).',
                 [AName]);
           end
           else
@@ -336,11 +336,11 @@ begin
         end
         else
           raise EMVCSerializationException.CreateFmt
-            ('Cannot serialize %s of TypeKind tkRecord.', [AName]);
+            ('Cannot serialize property or field "%s" of TypeKind tkRecord.', [AName]);
       end;
 
     tkSet:
-      raise EMVCSerializationException.CreateFmt('Cannot serialize %s of TypeKind tkSet.', [AName]);
+      raise EMVCSerializationException.CreateFmt('Cannot serialize property or field "%s" of TypeKind tkSet.', [AName]);
 
     tkArray, tkDynArray:
       begin
@@ -357,7 +357,7 @@ begin
                 AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsInt64);
             else
               raise EMVCSerializationException.CreateFmt
-                ('Cannot serialize %s of TypeKind tkArray or tkDynArray.', [AName]);
+                ('Cannot serialize property or field "%s" of TypeKind tkArray or tkDynArray.', [AName]);
             end;
           End;
         End;
@@ -365,7 +365,7 @@ begin
 
     tkUnknown:
       raise EMVCSerializationException.CreateFmt
-        ('Cannot serialize %s of TypeKind tkUnknown.', [AName]);
+        ('Cannot serialize property or field "%s" of TypeKind tkUnknown.', [AName]);
   end;
 end;
 
@@ -1020,11 +1020,13 @@ begin
     stFields:
       begin
         for Fld in ObjType.GetFields do
+        begin
           if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
             (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
             AttributeToJsonDataValue(AJsonObject, TMVCSerializerHelper.GetKeyName(Fld, ObjType),
               Fld.GetValue(AObject),
               AType, AIgnoredAttributes, Fld.GetAttributes);
+        end;
       end;
   end;
 

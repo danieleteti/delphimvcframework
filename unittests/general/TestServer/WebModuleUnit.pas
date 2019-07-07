@@ -30,8 +30,12 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework,
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;
+  MVCFramework
+{$IFDEF MSWINDOWS}
+    ,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+{$ENDIF}
+    ;
 
 type
   Tbas = class(TWebModule)
@@ -91,8 +95,9 @@ begin
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
-
-  RegisterOptionalCustomTypesSerializersForJSON(MVCEngine.Serializers);
+{$IFDEF MSWINDOWS}
+  RegisterOptionalCustomTypesSerializers(MVCEngine.Serializers[TMVCMediaType.APPLICATION_JSON]);
+{$ENDIF}
 end;
 
 end.

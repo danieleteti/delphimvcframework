@@ -234,9 +234,12 @@ uses
   MVCFramework.SystemJSONUtils,
   IdCookie,
   MVCFramework.JSONRPC,
-  MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
-  Vcl.Graphics;
+  MVCFramework.Serializer.Intf
+  {$IFDEF MSWINDOWS}
+  ,MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+  ,Vcl.Graphics
+  {$ENDIF}
+  ;
 
 { TServerTest }
 

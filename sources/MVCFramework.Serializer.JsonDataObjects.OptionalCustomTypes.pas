@@ -73,11 +73,9 @@ uses
 
 procedure RegisterOptionalCustomTypesSerializers(const JDOSerializer: IMVCSerializer);
 begin
-{$IF Defined(Android) or Defined(IOS)}
+{$IFDEF MSWINDOWS}
   JDOSerializer
     .RegisterTypeSerializer(TypeInfo(TBitmap), TMVCBitmapSerializerJsonDataObject.Create);
-{$ENDIF}
-{$IFDEF MSWINDOWS}
   JDOSerializer
     .RegisterTypeSerializer(TypeInfo(TPngImage), TMVCBitmapSerializerJsonDataObject.Create);
   JDOSerializer
