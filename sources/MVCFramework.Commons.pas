@@ -304,13 +304,15 @@ type
     FAppErrorCode: UInt16;
     FDetailedMessage: string;
   protected
-    { protected declarations }
+    procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
   public
     constructor Create(const AMsg: string); overload; virtual;
     constructor Create(const AMsg: string; const ADetailedMessage: string;
-      const AAppErrorCode: UInt16;
-      const AHttpErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
-    constructor Create(const AHttpErrorCode: UInt16; const AMsg: string); overload; virtual;
+      const AAppErrorCode: UInt16 = 0;
+      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
+    constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
+    constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
+      overload; virtual;
     constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce;
 
     property HttpErrorCode: UInt16 read FHttpErrorCode;
@@ -558,7 +560,8 @@ uses
   IdCoder3to4,
   JsonDataObjects,
   System.NetEncoding,
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -697,22 +700,37 @@ begin
 end;
 
 constructor EMVCException.Create(const AMsg, ADetailedMessage: string;
-  const AAppErrorCode, AHttpErrorCode: UInt16);
+  const AAppErrorCode, AHTTPErrorCode: UInt16);
 begin
   Create(AMsg);
-  FHttpErrorCode := AHttpErrorCode;
+  CheckHTTPErrorCode(AHTTPErrorCode);
+  FHttpErrorCode := AHTTPErrorCode;
   FAppErrorCode := AAppErrorCode;
   FDetailedMessage := ADetailedMessage;
 end;
 
-constructor EMVCException.Create(const AHttpErrorCode: UInt16; const AMsg: string);
+constructor EMVCException.Create(const AHTTPErrorCode: UInt16; const AMsg: string);
 begin
-  if (AHttpErrorCode div 100 = 0) or (AHttpErrorCode div 100 > 5) then
-  begin
-    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHttpErrorCode]);
-  end;
+  CheckHTTPErrorCode(AHTTPErrorCode);
   Create(AMsg);
-  FHttpErrorCode := AHttpErrorCode;
+  FHttpErrorCode := AHTTPErrorCode;
+end;
+
+procedure EMVCException.CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
+begin
+  if (AHTTPErrorCode div 100 = 0) or (AHTTPErrorCode div 100 > 5) then
+  begin
+    raise EMVCException.CreateFmt('Invalid HTTP_STATUS [%d]', [AHTTPErrorCode]);
+  end;
+end;
+
+constructor EMVCException.Create(const AHTTPErrorCode: UInt16;
+  const AAppErrorCode: Integer; const AMsg: string);
+begin
+  CheckHTTPErrorCode(AHTTPErrorCode);
+  Create(AMsg);
+  FHttpErrorCode := AHTTPErrorCode;
+  FAppErrorCode := AAppErrorCode;
 end;
 
 constructor EMVCException.CreateFmt(const AMsg: string; const AArgs: array of const);
@@ -1177,7 +1195,6 @@ begin
     lSS.Free;
   end;
 end;
-
 
 function FileToBase64String(const FileName: String): String;
 var

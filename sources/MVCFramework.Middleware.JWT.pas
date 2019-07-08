@@ -73,8 +73,8 @@ type
     procedure InternalRender(AJSONOb: TJDOJsonObject; AContentType: string; AContentEncoding: string;
       AContext: TWebContext; AInstanceOwner: Boolean = True);
 
-    procedure RenderError(const AErrorCode: UInt16; const AErrorMessage: string; const AContext: TWebContext;
-      const AErrorClassName: string = '');
+    procedure RenderError(const AHTTPStatusCode: UInt16; const AErrorMessage: string;
+  const AContext: TWebContext; const AErrorClassName: string = ''; const AErrorNumber: Integer = 0);
 
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 
@@ -357,7 +357,7 @@ begin
         except
           on Err: EMVCException do
           begin
-            RenderError(Err.HttpErrorCode, Err.Message, AContext, Err.ClassName);
+            RenderError(Err.HttpErrorCode, Err.Message, AContext, Err.ClassName, Err.ApplicationErrorCode);
             AHandled := True;
           end;
           on e: Exception do
@@ -375,30 +375,40 @@ begin
   end;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.RenderError(const AErrorCode: UInt16; const AErrorMessage: string;
-  const AContext: TWebContext; const AErrorClassName: string);
+procedure TMVCJWTAuthenticationMiddleware.RenderError(const AHTTPStatusCode: UInt16; const AErrorMessage: string;
+  const AContext: TWebContext; const AErrorClassName: string; const AErrorNumber: Integer);
 var
-  LJo: TJDOJsonObject;
-  LStatus: string;
+  lJObj: TJDOJsonObject;
+  lStatus: string;
 begin
-  AContext.Response.StatusCode := AErrorCode;
+  AContext.Response.StatusCode := AHTTPStatusCode;
   AContext.Response.ReasonString := AErrorMessage;
 
-  LStatus := 'error';
-  if (AErrorCode div 100) = 2 then
-    LStatus := 'ok';
+  lStatus := 'error';
+  if (AHTTPStatusCode div 100) = 2 then
+    lStatus := 'ok';
 
-  LJo := TJDOJsonObject.Create;
-  LJo.S['status'] := LStatus;
+  lJObj := TJDOJsonObject.Create;
+  lJObj.S['status'] := lStatus;
+  lJObj.I['statuscode'] := AHTTPStatusCode;
+  lJObj.S['message'] := AErrorMessage;
 
   if AErrorClassName = '' then
-    LJo.Values['classname'] := nil
+  begin
+    lJObj.Values['classname'] := nil
+  end
   else
-    LJo.S['classname'] := AErrorClassName;
+  begin
+    lJObj.S['classname'] := AErrorClassName;
+  end;
 
-  LJo.S['message'] := AErrorMessage;
 
-  InternalRender(LJo, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
+  if AErrorNumber <> 0 then
+  begin
+    lJObj.I['errornumber'] := AErrorNumber;
+  end;
+
+  InternalRender(lJObj, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
 end;
 
 end.

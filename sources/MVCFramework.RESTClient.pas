@@ -60,6 +60,7 @@ type
     Fclassname: string;
     FMessage: string;
     FHttp_error: Integer;
+    FErrorNumber: Integer;
   public
     [MVCNameAs('reasonstring')]
     property Status: string read FStatus write FStatus;
@@ -69,6 +70,8 @@ type
     property ExceptionMessage: string read FMessage write FMessage;
     [MVCNameAs('statuscode')]
     property HTTPError: Integer read FHttp_error write FHttp_error;
+    [MVCNameAs('errornumber')]
+    property ErrorNumber: Integer read FErrorNumber write FErrorNumber;
   end;
 
   IRESTResponse = interface

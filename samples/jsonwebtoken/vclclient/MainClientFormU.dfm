@@ -82,7 +82,6 @@ object Form5: TForm5
       Caption = 'Get a protected resource'
       TabOrder = 1
       OnClick = btnGetClick
-      ExplicitTop = 2
     end
     object btnLOGIN: TButton
       AlignWithMargins = True
@@ -94,6 +93,18 @@ object Form5: TForm5
       Caption = 'Login'
       TabOrder = 0
       OnClick = btnLOGINClick
+    end
+    object btnLoginWithException: TButton
+      AlignWithMargins = True
+      Left = 464
+      Top = 4
+      Width = 179
+      Height = 41
+      Align = alRight
+      Caption = 'Custom Exception in OnAuthenticate'
+      TabOrder = 2
+      WordWrap = True
+      OnClick = btnLoginWithExceptionClick
     end
   end
   object Memo3: TMemo
