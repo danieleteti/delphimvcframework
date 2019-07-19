@@ -268,12 +268,47 @@ type
     Conflict = 409;
     Gone = 410;
     LengthRequired = 411;
+    /// <summary>
+    /// 412 Precondition Failed
+    /// Any request can contain a conditional header defined in HTTP (If-
+    /// Match, If-Modified-Since, etc.) or the "If" or "Overwrite"
+    /// conditional headers defined in this specification.  If the server
+    /// evaluates a conditional header, and if that condition fails to hold,
+    /// then this error code MUST be returned.  On the other hand, if the
+    /// client did not include a conditional header in the request, then the
+    /// server MUST NOT use this status code.
+    /// </summary>
     PreconditionFailed = 412;
     RequestEntityTooLarge = 413;
     RequestURITooLong = 414;
     UnsupportedMediaType = 415;
     RequestedRangeNotSatisfiable = 416;
     ExpectationFailed = 417;
+    /// <summary>
+    ///   The 422 (Unprocessable Entity) status code means the server
+    ///   understands the content type of the request entity (hence a
+    ///   415(Unsupported Media Type) status code is inappropriate), and the
+    ///   syntax of the request entity is correct (thus a 400 (Bad Request)
+    ///   status code is inappropriate) but was unable to process the contained
+    ///   instructions.  For example, this error condition may occur if an XML
+    ///   request body contains well-formed (i.e., syntactically correct), but
+    ///   semantically erroneous, XML instructions.
+    /// </summary>
+    UnprocessableEntity = 422;
+    /// <summary>
+    ///  The 423 (Locked) status code means the source or destination resource
+    ///  of a method is locked.  This response SHOULD contain an appropriate
+    ///  precondition or postcondition code, such as 'lock-token-submitted' or 'no-conflicting-lock
+    /// </summary>
+    Locked = 423;
+    /// <summary>
+    /// The 424 (Failed Dependency) status code means that the method could
+    /// not be performed on the resource because the requested action
+    /// depended on another action and that action failed.  For example, if a
+    /// command in a PROPPATCH method fails, then, at minimum, the rest of
+    /// the commands will also fail with 424 (Failed Dependency).
+    /// </summary>
+    FailedDependency = 424;
     // Server Error 5xx
     /// <summary>
     /// 500 Internal Server Error
@@ -296,6 +331,16 @@ type
     ServiceUnavailable = 503;
     GatewayTimeout = 504;
     HTTPVersionNotSupported = 505;
+
+    /// <summary>
+    /// The 507 (Insufficient Storage) status code means the method could not
+    /// be performed on the resource because the server is unable to store
+    /// the representation needed to successfully complete the request.
+    /// This condition is considered to be temporary.  If the request that
+    /// received this status code was the result of a user action, the
+    /// request MUST NOT be repeated until it is requested by a separate user action.
+    /// </summary>
+    InsufficientStorage = 507;
   end;
 
   EMVCException = class(Exception)

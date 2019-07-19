@@ -106,6 +106,7 @@ begin
   lContentStream.Position := 0;
   lMemStream := TMemoryStream.Create;
   try
+    {TODO -oDanieleT -cGeneral : Use directly lContentStream?}
     lZStream := TZCompressionStream.Create(lMemStream, TZCompressionLevel.zcMax, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lRespCompressionType]);
     try
       lZStream.CopyFrom(lContentStream, 0);
