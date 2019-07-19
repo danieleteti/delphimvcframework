@@ -517,7 +517,7 @@ function B64Decode(const aValue: string): string;
 
 function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
-function URLSafeB64Decode(const Value: string): string;
+function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
@@ -1030,18 +1030,18 @@ begin
     Result := RTrim(TURLSafeEncode.EncodeBytes(TIdBytes(Value)), '=');
 end;
 
-function URLSafeB64Decode(const Value: string): string;
+function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 begin
   // SGR 2017-07-03 : b64url might not include padding. Need to add it before decoding
   case Length(Value) mod 4 of
     0:
       begin
-        Result := TURLSafeDecode.DecodeString(Value);
+        Result := TURLSafeDecode.DecodeString(Value, AByteEncoding);
       end;
     2:
-      Result := TURLSafeDecode.DecodeString(Value + '==');
+      Result := TURLSafeDecode.DecodeString(Value + '==', AByteEncoding);
     3:
-      Result := TURLSafeDecode.DecodeString(Value + '=');
+      Result := TURLSafeDecode.DecodeString(Value + '=', AByteEncoding);
   else
     raise EExternalException.Create('Illegal base64url length');
   end;
