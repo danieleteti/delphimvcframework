@@ -270,7 +270,7 @@ var
   lCustomPair: TPair<string, string>;
   LObj: TJDOJsonObject;
 begin
-  if SameText(AContext.Request.PathInfo, FLoginURLSegment) and (AContext.Request.HTTPMethod = httpPOST) then
+  if SameText(AContext.Request.PathInfo, FLoginURLSegment) then
   begin
     UserName := TNetEncoding.URL.Decode(AContext.Request.Headers[FUserNameHeaderName]);
     Password := TNetEncoding.URL.Decode(AContext.Request.Headers[FPasswordHeaderName]);
