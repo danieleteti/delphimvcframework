@@ -39,7 +39,7 @@ uses
   // System.JSON,
   Data.DB,
   IdGlobal,
-  IdCoderMIME;
+  IdCoderMIME, IdContext;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -598,6 +598,14 @@ const
     ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
     ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
+
+
+type
+  TMVCParseAuthentication = class
+  public
+    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
+      VPassword: String; var VHandled: Boolean);
+  end;
 
 implementation
 
@@ -1259,6 +1267,13 @@ begin
     lTemplateFileB64.Free;
   end;
 end;
+
+class procedure TMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
+      VPassword: String; var VHandled: Boolean);
+begin
+  VHandled := SameText(LowerCase(AAuthType), 'bearer');
+end;
+
 
 initialization
 

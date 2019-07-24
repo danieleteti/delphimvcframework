@@ -113,7 +113,7 @@ begin
     .RegisterTypeSerializer(TypeInfo(TNullableRecordAlias), TNullableAliasSerializer.Create);
 
   // This line registers custom serializers for TBitmap, TPngImage (Only MSWindows) and TJPEGImage (Only MSWindows)
-  RegisterOptionalCustomTypesSerializers(DMVC.Serializers);
+  RegisterOptionalCustomTypesSerializersForJSON(DMVC.Serializers);
 end;
 
 end.

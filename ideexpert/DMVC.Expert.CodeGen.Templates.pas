@@ -55,12 +55,6 @@ resourcestring
     sLineBreak +
     '{$R *.res}' + sLineBreak +
     sLineBreak +
-    'type' + sLineBreak +
-    '  TDMVCParseAuthentication = class' + sLineBreak +
-    '  public' + sLineBreak +
-    '    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,' + sLineBreak +
-    '      VPassword: String; var VHandled: Boolean);' + sLineBreak +
-    '  end;' + sLineBreak +
     sLineBreak +
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
@@ -97,7 +91,7 @@ resourcestring
     sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
-    '    LServer.OnParseAuthentication := TDMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
+    '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
     sLineBreak +
     '    { more info about MaxConnections' + sLineBreak +

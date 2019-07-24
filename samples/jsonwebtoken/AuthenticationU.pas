@@ -30,7 +30,7 @@ procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; co
   UserRoles: TList<System.string>;
   var IsValid: Boolean; const SessionData: TSessionData);
 begin
-  IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
+  IsValid := (not UserName.IsEmpty) and UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
   begin
     if UserName = 'user_raise_exception' then

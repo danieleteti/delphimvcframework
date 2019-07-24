@@ -179,6 +179,8 @@ var
   AuthHeader: string;
   AuthToken: string;
   ErrorMsg: string;
+const
+  AUTH_SCHEMA = 'Bearer';
 begin
   // check if the resource is protected
   FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
@@ -202,11 +204,11 @@ begin
       Exit;
     end;
 
-    // retrieve the token from the "authentication bearer" header
+    // retrieve the token from the "authentication Bearer" header
     AuthToken := '';
-    if AuthHeader.StartsWith('bearer', True) then
+    if AuthHeader.Substring(0, AUTH_SCHEMA.Length).ToLower = 'bearer' then
     begin
-      AuthToken := AuthHeader.Remove(0, 'bearer'.Length).Trim;
+      AuthToken := AuthHeader.Remove(0, AUTH_SCHEMA.Length).Trim;
       AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
     end;
 
@@ -240,7 +242,7 @@ begin
           if NeedsToBeExtended(JWTValue) then
           begin
             ExtendExpirationTime(JWTValue);
-            AContext.Response.SetCustomHeader(FAuthorizationHeaderName, 'bearer ' + JWTValue.GetToken);
+            AContext.Response.SetCustomHeader(FAuthorizationHeaderName, 'Bearer ' + JWTValue.GetToken);
           end;
         end;
         AHandled := False

@@ -761,7 +761,7 @@ begin
 
   FHTTP.HandleRedirects := True;
   FHTTP.Request.CustomHeaders.FoldLines := False;
-  FHTTP.Request.BasicAuthentication := True;
+  FHTTP.Request.BasicAuthentication := False; //DT 2018/07/24
 
   FSerializer := GetDefaultSerializer;
 end;

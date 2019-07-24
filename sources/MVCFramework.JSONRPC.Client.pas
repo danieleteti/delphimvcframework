@@ -138,6 +138,7 @@ begin
   FRaiseExceptionOnError := aRaiseExceptionOnError;
   FURL := aURL;
   FHTTP := THTTPClient.Create;
+  FHTTP.ResponseTimeout := MaxInt;
   FHTTPRequestHeaders := nil;
   SetOnReceiveResponse(nil)
     .SetOnReceiveData(nil)

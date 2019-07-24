@@ -61,9 +61,9 @@ begin
     '/login',
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
     300,
-    'Authorization',
-    'username',
-    'password'
+    TMVCJWTDefaults.AUTHORIZATION_HEADER,
+    TMVCJWTDefaults.USERNAME_HEADER,
+    TMVCJWTDefaults.PASSWORD_HEADER
     ));
 end;
 
