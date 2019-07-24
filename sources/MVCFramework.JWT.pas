@@ -324,9 +324,13 @@ function TJWTDictionaryObject.GetItemAsDateTime(const Index: string): TDateTime;
 var
   lIntValue: Int64;
 begin
-  if not TryStrToInt64(Items[index], lIntValue) then
-    raise Exception.Create('Item cannot be converted as Unix Epoch');
-  Result := UnixToDateTime(lIntValue, False);
+  Result := -693594;
+  if Trim(Items[index]) <> EmptyStr then
+  begin
+    if not TryStrToInt64(Items[index], lIntValue) then
+      raise Exception.Create('Item cannot be converted as Unix Epoch');
+    Result := UnixToDateTime(lIntValue, False);
+  end;
 end;
 
 function TJWTDictionaryObject.Keys: TArray<string>;
