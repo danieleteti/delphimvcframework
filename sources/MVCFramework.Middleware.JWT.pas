@@ -378,37 +378,29 @@ end;
 procedure TMVCJWTAuthenticationMiddleware.RenderError(const AHTTPStatusCode: UInt16; const AErrorMessage: string;
   const AContext: TWebContext; const AErrorClassName: string; const AErrorNumber: Integer);
 var
-  lJObj: TJDOJsonObject;
-  lStatus: string;
+  LJObj: TJDOJsonObject;
+  LStatus: string;
 begin
   AContext.Response.StatusCode := AHTTPStatusCode;
   AContext.Response.ReasonString := AErrorMessage;
 
-  lStatus := 'error';
+  LStatus := 'error';
   if (AHTTPStatusCode div 100) = 2 then
-    lStatus := 'ok';
+    LStatus := 'ok';
 
-  lJObj := TJDOJsonObject.Create;
-  lJObj.S['status'] := lStatus;
-  lJObj.I['statuscode'] := AHTTPStatusCode;
-  lJObj.S['message'] := AErrorMessage;
+  LJObj := TJDOJsonObject.Create;
+  LJObj.S['status'] := LStatus;
+  LJObj.I['statuscode'] := AHTTPStatusCode;
+  LJObj.S['message'] := AErrorMessage;
 
-  if AErrorClassName = '' then
-  begin
-    lJObj.Values['classname'] := nil
-  end
-  else
-  begin
-    lJObj.S['classname'] := AErrorClassName;
-  end;
-
+  LJObj.Values['classname'] := nil;
+  if AErrorClassName <> '' then
+    LJObj.S['classname'] := AErrorClassName;
 
   if AErrorNumber <> 0 then
-  begin
-    lJObj.I['errornumber'] := AErrorNumber;
-  end;
+    LJObj.I['errornumber'] := AErrorNumber;
 
-  InternalRender(lJObj, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
+  InternalRender(LJObj, TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext);
 end;
 
 end.
