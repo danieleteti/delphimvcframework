@@ -88,7 +88,7 @@ type
       AConfigClaims: TJWTClaimsSetup;
       ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+      AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
       AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
       AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
@@ -109,7 +109,7 @@ constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCA
   AConfigClaims: TJWTClaimsSetup;
   ASecret: string = 'D3lph1MVCFram3w0rk';
   ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
+  AClaimsToCheck: TJWTCheckableClaims = [];
   ALeewaySeconds: Cardinal = 300;
   AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
   AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
