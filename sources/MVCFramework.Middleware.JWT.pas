@@ -28,13 +28,7 @@ unit MVCFramework.Middleware.JWT;
 
 interface
 
-uses
-  System.SysUtils,
-  System.Classes,
-  System.Generics.Collections,
-  MVCFramework,
-  MVCFramework.Commons,
-  MVCFramework.JWT,
+uses System.SysUtils, System.Classes, System.Generics.Collections, MVCFramework, MVCFramework.Commons, MVCFramework.JWT,
   JsonDataObjects;
 
 type
@@ -92,28 +86,41 @@ type
       ALeewaySeconds: Cardinal = 300;
       AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
       AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
-      APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER); virtual;
+      APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER); overload; virtual;
+      deprecated 'Issue #244: IETF (RFC-6750) - This constructor will be removed soon, please use the new one';
+    constructor Create(
+      ASecret: string = 'D3lph1MVCFram3w0rk';
+      AAuthenticationHandler: IMVCAuthenticationHandler = nil;
+      ALoginURLSegment: string = '/login';
+      AConfigClaims: TJWTClaimsSetup = nil;
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300); overload; virtual;
   end;
 
 implementation
 
-uses
-  System.NetEncoding,
-  System.DateUtils,
-  System.Math,
-  MVCFramework.Logger;
+uses System.NetEncoding, System.DateUtils, System.Math, MVCFramework.Logger;
 
 { TMVCJWTAuthenticationMiddleware }
 
+constructor TMVCJWTAuthenticationMiddleware.Create(ASecret: string; AAuthenticationHandler: IMVCAuthenticationHandler;
+  ALoginURLSegment: string; AConfigClaims: TJWTClaimsSetup; AClaimsToCheck: TJWTCheckableClaims; ALeewaySeconds: Cardinal);
+begin
+  inherited Create;
+  FAuthenticationHandler := AAuthenticationHandler;
+  FSetupJWTClaims := AConfigClaims;
+  FClaimsToChecks := AClaimsToCheck;
+  FSecret := ASecret;
+  FLoginURLSegment := ALoginURLSegment;
+  FLeewaySeconds := ALeewaySeconds;
+  FAuthorizationHeaderName := TMVCJWTDefaults.AUTHORIZATION_HEADER;
+  FUserNameHeaderName := TMVCJWTDefaults.USERNAME_HEADER;
+  FPasswordHeaderName := TMVCJWTDefaults.PASSWORD_HEADER;
+end;
+
 constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  AConfigClaims: TJWTClaimsSetup;
-  ASecret: string = 'D3lph1MVCFram3w0rk';
-  ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [];
-  ALeewaySeconds: Cardinal = 300;
-  AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
-  AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
-  APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER);
+  AConfigClaims: TJWTClaimsSetup; ASecret, ALoginURLSegment: string; AClaimsToCheck: TJWTCheckableClaims;
+  ALeewaySeconds: Cardinal; AAuthorizationHeaderName, AUserNameHeaderName, APasswordHeaderName: string);
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
@@ -136,20 +143,20 @@ end;
 procedure TMVCJWTAuthenticationMiddleware.InternalRender(AJSONOb: TJDOJsonObject;
   AContentType, AContentEncoding: string; AContext: TWebContext; AInstanceOwner: Boolean);
 var
-  Encoding: TEncoding;
-  ContentType, JValue: string;
+  LEncoding: TEncoding;
+  LContentType, LJValue: string;
 begin
-  JValue := AJSONOb.ToJSON;
+  LJValue := AJSONOb.ToJSON;
 
   AContext.Response.RawWebResponse.ContentType := AContentType + '; charset=' + AContentEncoding;
-  ContentType := AContentType + '; charset=' + AContentEncoding;
+  LContentType := AContentType + '; charset=' + AContentEncoding;
 
-  Encoding := TEncoding.GetEncoding(AContentEncoding);
+  LEncoding := TEncoding.GetEncoding(AContentEncoding);
   try
-    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, Encoding,
-      TEncoding.Default.GetBytes(JValue))), ContentType);
+    AContext.Response.SetContentStream(TBytesStream.Create(TEncoding.Convert(TEncoding.Default, LEncoding,
+      TEncoding.Default.GetBytes(LJValue))), LContentType);
   finally
-    Encoding.Free;
+    LEncoding.Free;
   end;
 
   if AInstanceOwner then
@@ -158,10 +165,10 @@ end;
 
 function TMVCJWTAuthenticationMiddleware.NeedsToBeExtended(const JWTValue: TJWT): Boolean;
 var
-  lWillExpireIn: Int64;
+  LWillExpireIn: Int64;
 begin
-  lWillExpireIn := SecondsBetween(Now, JWTValue.Claims.ExpirationTime);
-  Result := lWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
+  LWillExpireIn := SecondsBetween(Now, JWTValue.Claims.ExpirationTime);
+  Result := LWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
@@ -173,88 +180,80 @@ end;
 procedure TMVCJWTAuthenticationMiddleware.OnBeforeControllerAction(AContext: TWebContext;
   const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 var
-  AuthRequired: Boolean;
-  IsAuthorized: Boolean;
-  JWTValue: TJWT;
-  AuthHeader: string;
-  AuthToken: string;
-  ErrorMsg: string;
-const
-  AUTH_SCHEMA = 'Bearer';
+  LJWTValue: TJWT;
+  LAuthRequired, LIsAuthorized: Boolean;
+  LAuthHeader, LAuthToken, LErrorMsg: string;
 begin
-  // check if the resource is protected
-  FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, AuthRequired);
-
-  if not AuthRequired then
+  if Assigned(FAuthenticationHandler) then
   begin
-    AHandled := False;
-    Exit;
+    FAuthenticationHandler.OnRequest(AContext, AControllerQualifiedClassName, AActionName, LAuthRequired);
+    if not LAuthRequired then
+    begin
+      AHandled := False;
+      Exit;
+    end;
   end;
 
   // Checking token in subsequent requests
-  // ***************************************************
-  JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+  LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
   try
-    JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
-    AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
-    if AuthHeader.IsEmpty then
+    LJWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
+    LAuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
+    if LAuthHeader.IsEmpty then
     begin
       RenderError(HTTP_STATUS.Unauthorized, 'Authorization Required', AContext);
       AHandled := True;
       Exit;
     end;
 
-    // retrieve the token from the "authentication Bearer" header
-    AuthToken := '';
-    if AuthHeader.Substring(0, AUTH_SCHEMA.Length).ToLower = 'bearer' then
+    // retrieve the token from the "authentication bearer" header
+    LAuthToken := '';
+    if LAuthHeader.StartsWith('bearer', True) then
     begin
-      AuthToken := AuthHeader.Remove(0, AUTH_SCHEMA.Length).Trim;
-      AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+      LAuthToken := LAuthHeader.Remove(0, 'bearer'.Length).Trim;
+      LAuthToken := Trim(TNetEncoding.URL.Decode(LAuthToken));
     end;
 
-    if not JWTValue.LoadToken(AuthToken, ErrorMsg) then
+    if not LJWTValue.LoadToken(LAuthToken, LErrorMsg) then
     begin
-      RenderError(HTTP_STATUS.Unauthorized, ErrorMsg, AContext);
+      RenderError(HTTP_STATUS.Unauthorized, LErrorMsg, AContext);
       AHandled := True;
       Exit;
     end;
 
-    if JWTValue.CustomClaims['username'].IsEmpty then
+    if LJWTValue.CustomClaims['username'].IsEmpty then
     begin
       RenderError(HTTP_STATUS.Unauthorized, 'Invalid Token, Authorization Required', AContext);
       AHandled := True;
-    end
-    else
+      Exit;
+    end;
+
+    AContext.LoggedUser.UserName := LJWTValue.CustomClaims['username'];
+    AContext.LoggedUser.Roles.AddRange(LJWTValue.CustomClaims['roles'].Split([',']));
+    AContext.LoggedUser.LoggedSince := LJWTValue.Claims.IssuedAt;
+    AContext.LoggedUser.CustomData := LJWTValue.CustomClaims.AsCustomData;
+
+    if Assigned(FAuthenticationHandler) then
     begin
-      IsAuthorized := False;
-
-      AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
-      AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
-      AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
-      AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
-
-      FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
-
-      if IsAuthorized then
-      begin
-        if JWTValue.LiveValidityWindowInSeconds > 0 then
-        begin
-          if NeedsToBeExtended(JWTValue) then
-          begin
-            ExtendExpirationTime(JWTValue);
-            AContext.Response.SetCustomHeader(FAuthorizationHeaderName, 'Bearer ' + JWTValue.GetToken);
-          end;
-        end;
-        AHandled := False
-      end
-      else
+      FAuthenticationHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, LIsAuthorized);
+      if not LIsAuthorized then
       begin
         RenderError(HTTP_STATUS.Forbidden, 'Authorization Forbidden', AContext);
         AHandled := True;
+        Exit;
       end;
     end;
+
+    if LJWTValue.LiveValidityWindowInSeconds > 0 then
+      if NeedsToBeExtended(LJWTValue) then
+      begin
+        ExtendExpirationTime(LJWTValue);
+        AContext.Response.SetCustomHeader(FAuthorizationHeaderName, 'bearer ' + LJWTValue.GetToken);
+      end;
+
+    AHandled := False;
   finally
-    JWTValue.Free;
+    LJWTValue.Free;
   end;
 end;
 
@@ -308,65 +307,66 @@ begin
       LSessionData := TSessionData.Create;
       try
         try
-          FAuthenticationHandler.OnAuthentication(AContext, LUsername, LPassword, LRolesList, LIsValid, LSessionData);
-          if LIsValid then
+          if Assigned(FAuthenticationHandler) then
           begin
-            LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
-            try
-              // let's user config claims and custom claims
-              if not Assigned(FSetupJWTClaims) then
-                raise EMVCJWTException.Create('SetupJWTClaims not set');
-
-              FSetupJWTClaims(LJWTValue);
-
-              // these claims are mandatory and managed by the middleware
-              if not LJWTValue.CustomClaims['username'].IsEmpty then
-                raise EMVCJWTException.Create('Custom claim "username" is reserved and cannot be modified in the JWT setup');
-
-              if not LJWTValue.CustomClaims['roles'].IsEmpty then
-                raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
-
-              LJWTValue.CustomClaims['username'] := LUsername;
-              LJWTValue.CustomClaims['roles'] := string.Join(',', LRolesList.ToArray);
-
-              if LJWTValue.LiveValidityWindowInSeconds > 0 then
-                if NeedsToBeExtended(LJWTValue) then
-                  ExtendExpirationTime(LJWTValue);
-
-              // setup the current logged user from the JWT
-              AContext.LoggedUser.Roles.AddRange(LRolesList);
-              AContext.LoggedUser.UserName := LJWTValue.CustomClaims['username'];
-              AContext.LoggedUser.LoggedSince := LJWTValue.Claims.IssuedAt;
-              AContext.LoggedUser.Realm := LJWTValue.Claims.Subject;
-
-              if LSessionData.Count > 0 then
-              begin
-                AContext.LoggedUser.CustomData := TMVCCustomData.Create;
-                for LCustomPair in LSessionData do
-                begin
-                  AContext.LoggedUser.CustomData.AddOrSetValue(LCustomPair.Key, LCustomPair.Value);
-                  if not LJWTValue.CustomClaims.Items[LCustomPair.Key].IsEmpty then
-                    raise EMVCJWTException.CreateFmt('JWT Error: "%s" is a reserved key name', [LCustomPair.Key]);
-                  LJWTValue.CustomClaims.Items[LCustomPair.Key] := LCustomPair.Value;
-                end;
-              end;
-
-              LJsonObject := TJDOJsonObject.Create;
-              try
-                LJsonObject.S['token'] := LJWTValue.GetToken;
-                InternalRender(LJsonObject, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext, False);
-              finally
-                LJsonObject.Free;
-              end;
+            FAuthenticationHandler.OnAuthentication(AContext, LUsername, LPassword, LRolesList, LIsValid, LSessionData);
+            if not LIsValid then
+            begin
+              RenderError(HTTP_STATUS.Forbidden, 'Forbidden', AContext);
               AHandled := True;
-            finally
-              LJWTValue.Free;
+              Exit;
             end;
-          end
-          else
-          begin
-            RenderError(HTTP_STATUS.Forbidden, 'Forbidden', AContext);
+          end;
+          LJWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+          try
+            // let's user config claims and custom claims
+            if not Assigned(FSetupJWTClaims) then
+              raise EMVCJWTException.Create('SetupJWTClaims not set');
+
+            FSetupJWTClaims(LJWTValue);
+
+            // these claims are mandatory and managed by the middleware
+            if not LJWTValue.CustomClaims['username'].IsEmpty then
+              raise EMVCJWTException.Create('Custom claim "username" is reserved and cannot be modified in the JWT setup');
+
+            if not LJWTValue.CustomClaims['roles'].IsEmpty then
+              raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
+
+            LJWTValue.CustomClaims['username'] := LUsername;
+            LJWTValue.CustomClaims['roles'] := string.Join(',', LRolesList.ToArray);
+
+            if LJWTValue.LiveValidityWindowInSeconds > 0 then
+              if NeedsToBeExtended(LJWTValue) then
+                ExtendExpirationTime(LJWTValue);
+
+            // setup the current logged user from the JWT
+            AContext.LoggedUser.Roles.AddRange(LRolesList);
+            AContext.LoggedUser.UserName := LJWTValue.CustomClaims['username'];
+            AContext.LoggedUser.LoggedSince := LJWTValue.Claims.IssuedAt;
+            AContext.LoggedUser.Realm := LJWTValue.Claims.Subject;
+
+            if LSessionData.Count > 0 then
+            begin
+              AContext.LoggedUser.CustomData := TMVCCustomData.Create;
+              for LCustomPair in LSessionData do
+              begin
+                AContext.LoggedUser.CustomData.AddOrSetValue(LCustomPair.Key, LCustomPair.Value);
+                if not LJWTValue.CustomClaims.Items[LCustomPair.Key].IsEmpty then
+                  raise EMVCJWTException.CreateFmt('JWT Error: "%s" is a reserved key name', [LCustomPair.Key]);
+                LJWTValue.CustomClaims.Items[LCustomPair.Key] := LCustomPair.Value;
+              end;
+            end;
+
+            LJsonObject := TJDOJsonObject.Create;
+            try
+              LJsonObject.S['token'] := LJWTValue.GetToken;
+              InternalRender(LJsonObject, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext, False);
+            finally
+              LJsonObject.Free;
+            end;
             AHandled := True;
+          finally
+            LJWTValue.Free;
           end;
         except
           on Err: EMVCException do
