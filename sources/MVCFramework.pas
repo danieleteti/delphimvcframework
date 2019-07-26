@@ -817,7 +817,7 @@ uses
   MVCFramework.Router,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.JSONRPC, System.JSON;
+  MVCFramework.JSONRPC;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -939,11 +939,6 @@ var
   lSerializer: IMVCSerializer;
 begin
   Result := nil;
-  if T.ClassName = TJSONObject.ClassName then
-  begin
-    Result := (TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(Body), 0) as TJSONObject) as T;
-    Exit;
-  end;
   if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
     Obj := TMVCSerializerHelper.CreateObject(TClass(T).QualifiedClassName);
