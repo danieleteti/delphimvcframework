@@ -177,6 +177,7 @@ type
     FParamsTable: TMVCRequestParamsTable;
     FContentMediaType: string;
     procedure DefineContentType;
+    function GetContentFields: TDictionary<string, string>;
     function GetHeader(const AName: string): string;
     function GetPathInfo: string;
     function GetParams(const AParamName: string): string;
@@ -221,6 +222,7 @@ type
     property ContentMediaType: string read FContentMediaType;
     property ContentType: string read FContentType;
     property ContentCharset: string read FCharset;
+    property ContentFields: TDictionary<string, string> read GetContentFields;
     property Headers[const AHeaderName: string]: string read GetHeader;
     property PathInfo: string read GetPathInfo;
     property ParamsTable: TMVCRequestParamsTable read FParamsTable write FParamsTable;
@@ -1105,6 +1107,25 @@ procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
 begin
   if GetParams(AName).IsEmpty then
     raise EMVCException.CreateFmt('Parameter "%s" required', [AName]);
+end;
+
+function TMVCWebRequest.GetContentFields: TDictionary<string, string>;
+var
+  I: Integer;
+  lParam: TStrings;
+begin
+  Result := TDictionary<string, string>.Create;
+  lParam := TStringList.Create;
+  try
+    lParam.Delimiter := '=';
+    for I := 0 to Pred(FWebRequest.ContentFields.Count) do
+    begin
+      lParam.DelimitedText := FWebRequest.ContentFields[I];
+      Result.Add(lParam[0], lParam[1]);
+    end;
+  finally
+    lParam.Free;
+  end;
 end;
 
 function TMVCWebRequest.GetFiles: TAbstractWebRequestFiles;
