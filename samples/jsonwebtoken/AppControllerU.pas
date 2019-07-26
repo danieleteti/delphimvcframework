@@ -2,20 +2,16 @@ unit AppControllerU;
 
 interface
 
-uses
-  MVCFramework,
-  MVCFramework.Commons,
-  MVCFramework.Logger,
-  Web.HTTPApp;
+uses MVCFramework, MVCFramework.Commons, MVCFramework.Logger, Web.HTTPApp;
 
 type
-
   [MVCPath('/')]
   TApp1MainController = class(TMVCController)
   public
     [MVCPath('/public')]
     [MVCHTTPMethod([httpGET])]
     procedure PublicSection(ctx: TWebContext);
+
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
     procedure Index(ctx: TWebContext);
@@ -24,17 +20,18 @@ type
   [MVCPath('/admin')]
   TAdminController = class(TMVCController)
   protected
-    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string;
-      var AHandled: Boolean); override;
+    procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCPath('/role1')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
     procedure OnlyRole1(ctx: TWebContext);
+
     [MVCPath('/role1')]
     [MVCProduces('application/json')]
     [MVCHTTPMethod([httpGET])]
     procedure OnlyRole1EmittingJSON;
+
     [MVCPath('/role2')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
@@ -43,8 +40,7 @@ type
 
 implementation
 
-uses
-  System.SysUtils, System.JSON, System.Classes, System.Generics.Collections;
+uses System.SysUtils, System.JSON, System.Classes, System.Generics.Collections;
 
 { TApp1MainController }
 
@@ -60,8 +56,7 @@ end;
 
 { TAdminController }
 
-procedure TAdminController.OnBeforeAction(AContext: TWebContext;
-  const AActionName: string; var AHandled: Boolean);
+procedure TAdminController.OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean);
 begin
   inherited;
   Assert(AContext.LoggedUser.CustomData['customkey1'] = 'customvalue1', 'customkey1 not valid');
@@ -71,52 +66,43 @@ end;
 
 procedure TAdminController.OnlyRole1(ctx: TWebContext);
 var
-  lPair: TPair<String, String>;
+  LPair: TPair<String, String>;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   ResponseStream.AppendLine('Hey! Hello ' + ctx.LoggedUser.UserName +
     ', now you are a logged user and this is a protected content!');
   ResponseStream.AppendLine('As logged user you have the following roles: ' +
     sLineBreak + string.Join(sLineBreak, Context.LoggedUser.Roles.ToArray));
-  ResponseStream.AppendLine('You CustomClaims are: ' +
-    sLineBreak);
-  for lPair in Context.LoggedUser.CustomData do
-  begin
-    ResponseStream.AppendFormat('%s = %s' + sLineBreak, [lPair.Key, lPair.Value]);
-  end;
+  ResponseStream.AppendLine('You CustomClaims are: ' + sLineBreak);
+  for LPair in Context.LoggedUser.CustomData do
+    ResponseStream.AppendFormat('%s = %s' + sLineBreak, [LPair.Key, LPair.Value]);
   RenderResponseStream;
 end;
 
 procedure TAdminController.OnlyRole1EmittingJSON;
 var
-  lJObj: TJSONObject;
-  lJArr: TJSONArray;
-  lQueryParams: TStrings;
+  LJObj: TJSONObject;
+  LJArr: TJSONArray;
+  LQueryParams: TStrings;
   I: Integer;
-  lPair: TPair<String, String>;
+  LPair: TPair<String, String>;
 begin
   ContentType := TMVCMediaType.APPLICATION_JSON;
-  lJObj := TJSONObject.Create;
-  lJObj.AddPair('message', 'This is protected content accessible only by user1');
-  lJArr := TJSONArray.Create;
-  lJObj.AddPair('querystringparameters', lJArr);
+  LJObj := TJSONObject.Create;
+  LJObj.AddPair('message', 'This is protected content accessible only by user1');
+  LJArr := TJSONArray.Create;
+  LJObj.AddPair('querystringparameters', LJArr);
 
-  lQueryParams := Context.Request.QueryStringParams;
-  for I := 0 to lQueryParams.Count - 1 do
-  begin
-    lJArr.AddElement(TJSONObject.Create(TJSONPair.Create(
-      lQueryParams.Names[I],
-      lQueryParams.ValueFromIndex[I])));
-  end;
+  LQueryParams := Context.Request.QueryStringParams;
+  for I := 0 to LQueryParams.Count - 1 do
+    LJArr.AddElement(TJSONObject.Create(TJSONPair.Create(LQueryParams.Names[I], LQueryParams.ValueFromIndex[I])));
 
-  lJArr := TJSONArray.Create;
-  lJObj.AddPair('customclaims', lJArr);
-  for lPair in Context.LoggedUser.CustomData do
-  begin
-    lJArr.AddElement(TJSONObject.Create(TJSONPair.Create(lPair.Key, lPair.Value)));
-  end;
+  LJArr := TJSONArray.Create;
+  LJObj.AddPair('customclaims', LJArr);
+  for LPair in Context.LoggedUser.CustomData do
+    LJArr.AddElement(TJSONObject.Create(TJSONPair.Create(LPair.Key, LPair.Value)));
 
-  Render(lJObj);
+  Render(LJObj);
 end;
 
 procedure TAdminController.OnlyRole2(ctx: TWebContext);
