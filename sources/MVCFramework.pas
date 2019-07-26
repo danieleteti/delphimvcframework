@@ -497,7 +497,7 @@ type
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
-    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = '';
+    procedure Render(const AErrorCode: Integer; const AErrorMessage: string = ''; const AErrorClassName: string = '';
       const ADataObject: TObject = nil); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil;
       const AOwns: Boolean = True); overload;
@@ -817,7 +817,7 @@ uses
   MVCFramework.Router,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.JSONRPC;
+  MVCFramework.JSONRPC, System.JSON;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -939,6 +939,11 @@ var
   lSerializer: IMVCSerializer;
 begin
   Result := nil;
+  if T.ClassName = TJSONObject.ClassName then
+  begin
+    Result := (TJSONObject.ParseJSONValue(TEncoding.ASCII.GetBytes(Body), 0) as TJSONObject) as T;
+    Exit;
+  end;
   if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
   begin
     Obj := TMVCSerializerHelper.CreateObject(TClass(T).QualifiedClassName);
