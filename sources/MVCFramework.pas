@@ -169,6 +169,7 @@ type
 
   TMVCWebRequest = class
   private
+    FContentFields: TDictionary<string, string>;
     FWebRequest: TWebRequest;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FBody: string;
@@ -1101,6 +1102,10 @@ end;
 destructor TMVCWebRequest.Destroy;
 begin
   inherited Destroy;
+  if Assigned(FContentFields) then
+  begin
+    FContentFields.Free;
+  end;
 end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
@@ -1114,18 +1119,24 @@ var
   I: Integer;
   lParam: TStrings;
 begin
-  Result := TDictionary<string, string>.Create;
+  if Assigned(FContentFields) then
+  begin
+    Result := FContentFields;
+    Exit;
+  end;
+  FContentFields := TDictionary<string, string>.Create;
   lParam := TStringList.Create;
   try
     lParam.Delimiter := '=';
     for I := 0 to Pred(FWebRequest.ContentFields.Count) do
     begin
       lParam.DelimitedText := FWebRequest.ContentFields[I];
-      Result.Add(lParam[0], lParam[1]);
+      FContentFields.Add(lParam[0], lParam[1]);
     end;
   finally
     lParam.Free;
   end;
+  Result := FContentFields;
 end;
 
 function TMVCWebRequest.GetFiles: TAbstractWebRequestFiles;
