@@ -159,7 +159,12 @@ type
   end;
 
   MVCInheritableAttribute = class(MVCBaseAttribute)
-
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
   end;
 
   TMVCWebRequest = class
