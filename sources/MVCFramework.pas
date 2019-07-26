@@ -1131,7 +1131,7 @@ begin
     for I := 0 to Pred(FWebRequest.ContentFields.Count) do
     begin
       lParam.DelimitedText := FWebRequest.ContentFields[I];
-      FContentFields.Add(lParam[0], lParam[1]);
+      FContentFields.Add(LowerCase(lParam[0]), lParam[1]);
     end;
   finally
     lParam.Free;
