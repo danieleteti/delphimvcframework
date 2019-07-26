@@ -1427,7 +1427,7 @@ begin
     LoggedSince := ISOTimeStampToDateTime(Pieces[1]);
     Realm := Pieces[2];
     Roles.Clear;
-    for I := 2 to Length(Pieces) - 1 do
+    for I := 3 to Length(Pieces) - 1 do //https://github.com/danieleteti/delphimvcframework/issues/225
       Roles.Add(Pieces[I]);
   end;
 end;

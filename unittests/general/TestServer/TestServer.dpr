@@ -54,6 +54,7 @@ begin
   WriteLn(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     { more info about MaxConnections
