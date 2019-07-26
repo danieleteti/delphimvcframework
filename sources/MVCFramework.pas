@@ -1101,11 +1101,11 @@ end;
 
 destructor TMVCWebRequest.Destroy;
 begin
-  inherited Destroy;
   if Assigned(FContentFields) then
   begin
     FContentFields.Free;
   end;
+  inherited Destroy;
 end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
@@ -1117,24 +1117,14 @@ end;
 function TMVCWebRequest.GetContentFields: TDictionary<string, string>;
 var
   I: Integer;
-  lParam: TStrings;
 begin
-  if Assigned(FContentFields) then
+  if not Assigned(FContentFields) then
   begin
-    Result := FContentFields;
-    Exit;
-  end;
-  FContentFields := TDictionary<string, string>.Create;
-  lParam := TStringList.Create;
-  try
-    lParam.Delimiter := '=';
+    FContentFields := TDictionary<string, string>.Create;
     for I := 0 to Pred(FWebRequest.ContentFields.Count) do
     begin
-      lParam.DelimitedText := FWebRequest.ContentFields[I];
-      FContentFields.Add(LowerCase(lParam[0]), lParam[1]);
+      FContentFields.Add(LowerCase(FWebRequest.ContentFields.Names[I]), FWebRequest.ContentFields.ValueFromIndex[I]);
     end;
-  finally
-    lParam.Free;
   end;
   Result := FContentFields;
 end;
