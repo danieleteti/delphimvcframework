@@ -159,11 +159,17 @@ type
   end;
 
   MVCInheritableAttribute = class(MVCBaseAttribute)
-
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
   end;
 
   TMVCWebRequest = class
   private
+    FContentFields: TDictionary<string, string>;
     FWebRequest: TWebRequest;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FBody: string;
@@ -172,6 +178,7 @@ type
     FParamsTable: TMVCRequestParamsTable;
     FContentMediaType: string;
     procedure DefineContentType;
+    function GetContentFields: TDictionary<string, string>;
     function GetHeader(const AName: string): string;
     function GetPathInfo: string;
     function GetParams(const AParamName: string): string;
@@ -216,6 +223,7 @@ type
     property ContentMediaType: string read FContentMediaType;
     property ContentType: string read FContentType;
     property ContentCharset: string read FCharset;
+    property ContentFields: TDictionary<string, string> read GetContentFields;
     property Headers[const AHeaderName: string]: string read GetHeader;
     property PathInfo: string read GetPathInfo;
     property ParamsTable: TMVCRequestParamsTable read FParamsTable write FParamsTable;
@@ -476,6 +484,7 @@ type
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
     // PODO renders
+    procedure Render(const AStatusCode: Integer; const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
@@ -492,7 +501,7 @@ type
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
     procedure Render(const AStream: TStream; const AOwns: Boolean = True); overload;
-    procedure Render(const AErrorCode: Integer; const AErrorMessage: string; const AErrorClassName: string = '';
+    procedure Render(const AErrorCode: Integer; const AErrorMessage: string = ''; const AErrorClassName: string = '';
       const ADataObject: TObject = nil); overload;
     procedure Render(const AException: Exception; AExceptionItems: TList<string> = nil;
       const AOwns: Boolean = True); overload;
@@ -1093,12 +1102,41 @@ end;
 destructor TMVCWebRequest.Destroy;
 begin
   inherited Destroy;
+  if Assigned(FContentFields) then
+  begin
+    FContentFields.Free;
+  end;
 end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
 begin
   if GetParams(AName).IsEmpty then
     raise EMVCException.CreateFmt('Parameter "%s" required', [AName]);
+end;
+
+function TMVCWebRequest.GetContentFields: TDictionary<string, string>;
+var
+  I: Integer;
+  lParam: TStrings;
+begin
+  if Assigned(FContentFields) then
+  begin
+    Result := FContentFields;
+    Exit;
+  end;
+  FContentFields := TDictionary<string, string>.Create;
+  lParam := TStringList.Create;
+  try
+    lParam.Delimiter := '=';
+    for I := 0 to Pred(FWebRequest.ContentFields.Count) do
+    begin
+      lParam.DelimitedText := FWebRequest.ContentFields[I];
+      FContentFields.Add(LowerCase(lParam[0]), lParam[1]);
+    end;
+  finally
+    lParam.Free;
+  end;
+  Result := FContentFields;
 end;
 
 function TMVCWebRequest.GetFiles: TAbstractWebRequestFiles;
@@ -2887,6 +2925,13 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty dataset.');
+end;
+
+procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: TObject;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  ResponseStatus(AStatusCode);
+  Render(AObject, True, ASerializationAction);
 end;
 
 procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean;

@@ -36,7 +36,6 @@ uses
   System.SyncObjs,
   System.IOUtils,
   System.Generics.Collections,
-  // System.JSON,
   Data.DB,
   IdGlobal,
   IdCoderMIME, IdContext;
@@ -402,7 +401,12 @@ type
   end;
 
   EMVCViewError = class(EMVCException)
-
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
   end;
 
   TMVCRequestParamsTable = class(TDictionary<string, string>)
