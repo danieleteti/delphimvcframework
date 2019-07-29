@@ -8,7 +8,8 @@ uses
   Swag.Common.Types,
   MVCFramework.Commons,
   Swag.Doc.Path.Operation.RequestParameter,
-  Swag.Doc.Path.Operation;
+  Swag.Doc.Path.Operation,
+  System.JSON;
 
 type
   TMVCSwaggerInfo = record
@@ -60,14 +61,31 @@ type
     FParamDescription: string;
     FParamType: TMVCSwagParamType;
     FRequired: Boolean;
+    FJsonSchema: string;
+    FJsonSchemaClass: TClass;
   public
-    constructor Create(const AParamLocation: TMVCSwagParamLocation; const AParamName, AParamDescription: string;
-      const AParamType: TMVCSwagParamType; const ARequired: Boolean = True);
+    constructor Create(
+      const AParamLocation: TMVCSwagParamLocation;
+      const AParamName: string;
+      const AParamDescription: string;
+      const AParamType: TMVCSwagParamType;
+      const ARequired: Boolean = True;
+      const AJsonSchema: string = ''); overload;
+    constructor Create(
+      const AParamLocation: TMVCSwagParamLocation;
+      const AParamName: string;
+      const AParamDescription: string;
+      const AJsonSchemaClass: TClass;
+      const AParamType: TMVCSwagParamType = ptNotDefined;
+      const ARequired: Boolean = True); overload;
+
     property ParamLocation: TMVCSwagParamLocation read FParamLocation;
     property ParamName: string read FParamName;
     property ParamDescription: string read FParamDescription;
     property ParamType: TMVCSwagParamType read FParamType;
     property Required: Boolean read FRequired;
+    property JsonSchema: string read FJsonSchema;
+    property JsonSchemaClass: TClass read FJsonSchemaClass;
   end;
 
   TMVCSwagger = class sealed
@@ -77,6 +95,7 @@ type
     class function MVCParamLocationToSwagRequestParamInLocation(
       const AMVCSwagParamLocation: TMVCSwagParamLocation): TSwagRequestParameterInLocation;
     class function MVCParamTypeToSwagTypeParameter(const AMVSwagParamType: TMVCSwagParamType): TSwagTypeParameter;
+    class function ExtractJsonSchemaFromClass(const AClass: TClass): TJSONObject;
   public
     class constructor Create;
     class destructor Destroy;
@@ -95,7 +114,7 @@ uses
   System.SysUtils,
   MVCFramework,
   Swag.Doc.Path.Operation.Response,
-  System.Json;
+  System.Classes, MVCFramework.Serializer.Commons;
 
 { TSwaggerUtils }
 
@@ -132,6 +151,50 @@ end;
 class destructor TMVCSwagger.Destroy;
 begin
   FRttiContext.Free;
+end;
+
+class function TMVCSwagger.ExtractJsonSchemaFromClass(const AClass: TClass): TJSONObject;
+var
+  LObjType: TRttiType;
+  LProp: TRttiProperty;
+  LJsonSchema: TJsonSchema;
+  LPropName: string;
+begin
+  LObjType := FRttiContext.GetType(AClass);
+  LJsonSchema := TJsonSchema.Create;
+  try
+    for LProp in LObjType.GetProperties do
+    begin
+      LPropName := TMVCSerializerHelper.GetKeyName(LProp, LObjType);
+      case LProp.PropertyType.TypeKind of
+        tkInteger, tkInt64:
+          LJsonSchema.AddField<Integer>(LPropName);
+        tkChar, tkString, tkWChar, tkLString, tkWString, tkUString, tkVariant:
+          LJsonSchema.AddField<string>(LPropName);
+        tkEnumeration:
+          if (LProp.Handle = TypeInfo(Boolean)) then
+            LJsonSchema.AddField<string>(LPropName);
+        tkFloat:
+          if (LProp.Handle = TypeInfo(TDateTime)) or
+            (LProp.Handle = TypeInfo(TDate)) or
+            (LProp.Handle = TypeInfo(TTime)) then
+            LJsonSchema.AddField<string>(LPropName)
+          else
+            LJsonSchema.AddField<Currency>(LPropName);
+        tkClass:
+          if (LProp.Handle = TypeInfo(TStream)) or
+            (LProp.Handle = TypeInfo(TStringStream)) or
+            (LProp.Handle = TypeInfo(TMemoryStream)) then
+            LJsonSchema.AddField<string>(LPropName);
+        tkRecord:
+          if LProp.Handle = TypeInfo(TGUID) then
+            LJsonSchema.AddField<string>(LPropName);
+      end;
+    end;
+    Result := LJsonSchema.ToJson;
+  finally
+    LJsonSchema.Free;
+  end;
 end;
 
 class procedure TMVCSwagger.FillOperationSummary(const ASwagPathOperation: TSwagPathOperation;
@@ -257,6 +320,10 @@ begin
           LSwagParam.Required := LMVCParam.Required;
           LSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(LMVCParam.ParamType);
           LSwagParam.Description := LMVCParam.ParamDescription;
+          if not LMVCParam.JsonSchema.IsEmpty then
+            LSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(LMVCParam.JsonSchema) as TJSONObject
+          else if Assigned(LMVCParam.JsonSchemaClass) then
+            LSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(LMVCParam.JsonSchemaClass);
           Delete(LMVCSwagParams, LIndex, 1);
         end
         else
@@ -280,6 +347,11 @@ begin
     LSwagParam.Required := LMVCSwagParams[I].Required;
     LSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(LMVCSwagParams[I].ParamType);
     LSwagParam.Description := LMVCSwagParams[I].ParamDescription;
+    if not LMVCSwagParams[I].JsonSchema.IsEmpty then
+      LSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(LMVCSwagParams[I].JsonSchema) as TJSONObject
+    else if Assigned(LMVCSwagParams[I].JsonSchemaClass) then
+      LSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(LMVCSwagParams[I].JsonSchemaClass);
+
     Insert([LSwagParam], Result, High(Result));
   end;
 
@@ -382,13 +454,28 @@ end;
 { MVCSwagParamAttribute }
 
 constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation; const AParamName,
-  AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean);
+  AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean; const AJsonSchema: string);
 begin
   FParamLocation := AParamLocation;
   FParamName := AParamName;
   FParamDescription := AParamDescription;
   FParamType := AParamType;
   FRequired := ARequired;
+  FJsonSchema := AJsonSchema;
+  FJsonSchemaClass := nil;
+end;
+
+constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation; const AParamName,
+  AParamDescription: string; const AJsonSchemaClass: TClass; const AParamType: TMVCSwagParamType;
+  const ARequired: Boolean);
+begin
+  FParamLocation := AParamLocation;
+  FParamName := AParamName;
+  FParamDescription := AParamDescription;
+  FParamType := AParamType;
+  FRequired := ARequired;
+  FJsonSchema := '';
+  FJsonSchemaClass := AJsonSchemaClass;
 end;
 
 end.

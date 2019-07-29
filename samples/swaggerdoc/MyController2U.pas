@@ -5,9 +5,21 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Swagger.Commons;
+  MVCFramework.Swagger.Commons,
+  MVCFramework.Serializer.Commons;
 
 type
+  [MVCNameCase(ncLowerCase)]
+  TPerson = class
+  private
+    FName: string;
+    FAge: Integer;
+    FCountry: string;
+  public
+    property Name: string read FName write FName;
+    property Age: Integer read FAge write FAge;
+    property Country: string read FCountry write FCountry;
+  end;
 
   [MVCPath('/person')]
   TMyController2 = class(TMVCController)
@@ -24,12 +36,12 @@ type
 
     [MVCPath('')]
     [MVCSwagSummary('Person', 'Insert Person')]
+    [MVCSwagParam(plBody, '', 'Person object', TPerson, ptNotDefined, True)]
     [MVCSwagResponses(201, 'Created')]
     [MVCSwagResponses(500, 'Internal Server Error')]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCHTTPMethod([httpPOST])]
     procedure InsertPerson;
-
   end;
 
 implementation
@@ -38,18 +50,6 @@ uses
   MVCFramework.Controllers.Register;
 
 { TMyController2 }
-
-type
-  TPerson = class
-  private
-    FName: string;
-    FAge: Integer;
-    FCountry: string;
-  public
-    property Name: string read FName write FName;
-    property Age: Integer read FAge write FAge;
-    property Country: string read FCountry write FCountry;
-  end;
 
 procedure TMyController2.GetPerson;
 var
