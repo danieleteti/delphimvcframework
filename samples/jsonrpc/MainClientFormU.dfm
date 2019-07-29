@@ -84,8 +84,8 @@ object Form10: TForm10
       Top = 16
       Width = 102
       Height = 21
-      Date = 43018.469176562500000000
-      Time = 43018.469176562500000000
+      Date = 43018.000000000000000000
+      Time = 0.469176562502980200
       TabOrder = 7
     end
     object btnAddDay: TButton
@@ -281,8 +281,8 @@ object Form10: TForm10
       Top = 88
       Width = 102
       Height = 21
-      Date = 29163.469176562500000000
-      Time = 29163.469176562500000000
+      Date = 29163.000000000000000000
+      Time = 0.469176562499342300
       TabOrder = 3
     end
     object btnSave: TButton

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -40,36 +40,38 @@ resourcestring
   sDMVCDPR =
     'program %0:s;' + sLineBreak +
     sLineBreak +
-    ' {$APPTYPE CONSOLE}' + sLineBreak +
-    '' + sLineBreak +
+    '{$APPTYPE CONSOLE}' + sLineBreak +
+    sLineBreak +
     'uses' + sLineBreak +
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
     '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
-    '  Web.ReqMulti, {If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216}' + sLineBreak +
+    '  Web.ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
+    '  IdContext,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
-    '' + sLineBreak +
-    '{$R *.res}' + sLineBreak + sLineBreak +
+    sLineBreak +
+    '{$R *.res}' + sLineBreak +
+    sLineBreak +
+    sLineBreak +
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
-    '  lServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
-    '  lCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
-    '  lCmd: string;' + sLineBreak +
+    '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
+    '  LCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
+    '  LCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
+    '  LCmd := ''start'';' + sLineBreak +
     '  if ParamCount >= 1 then' + sLineBreak +
-    '    lCmd := ParamStr(1)' + sLineBreak +
-    '  else' + sLineBreak +
-    '    lCmd := ''start'';' + sLineBreak +
-    '' + sLineBreak +
-    '  lCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
+    '    LCmd := ParamStr(1);' + sLineBreak +
+    sLineBreak +
+    '  LCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
     '    begin' + sLineBreak +
     '      Handled := False;' + sLineBreak +
     '      Result := THandleCommandResult.Unknown;' + sLineBreak +
-    '' + sLineBreak +
+    sLineBreak +
     '      // Write here your custom command for the REPL using the following form...' + sLineBreak +
     '      // ***' + sLineBreak +
     '      // Handled := False;' + sLineBreak +
@@ -86,28 +88,29 @@ resourcestring
     '      // Handled := True;' + sLineBreak +
     '      // end;' + sLineBreak +
     '    end;' + sLineBreak +
-    '' + sLineBreak +
+    sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
+    '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '' + sLineBreak +
+    sLineBreak +
     '    { more info about MaxConnections' + sLineBreak +
     '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }' + sLineBreak +
     '    LServer.MaxConnections := 0;' + sLineBreak +
-    '' + sLineBreak +
+    sLineBreak +
     '    { more info about ListenQueue' + sLineBreak +
     '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
-    '' + sLineBreak +
+    sLineBreak +
     '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
     '    repeat' + sLineBreak +
-    '      if lCmd.IsEmpty then' + sLineBreak +
+    '      if LCmd.IsEmpty then' + sLineBreak +
     '      begin' + sLineBreak +
     '        Write(''-> '');' + sLineBreak +
-    '        ReadLn(lCmd)' + sLineBreak +
+    '        ReadLn(LCmd)' + sLineBreak +
     '      end;' + sLineBreak +
     '      try' + sLineBreak +
-    '        case HandleCommand(lCmd.ToLower, LServer, lCustomHandler) of' + sLineBreak +
+    '        case HandleCommand(LCmd.ToLower, LServer, LCustomHandler) of' + sLineBreak +
     '          THandleCommandResult.Continue:' + sLineBreak +
     '            begin' + sLineBreak +
     '              Continue;' + sLineBreak +
@@ -118,18 +121,23 @@ resourcestring
     '            end;' + sLineBreak +
     '          THandleCommandResult.Unknown:' + sLineBreak +
     '            begin' + sLineBreak +
-    '              REPLEmit(''Unknown command: '' + lCmd);' + sLineBreak +
+    '              REPLEmit(''Unknown command: '' + LCmd);' + sLineBreak +
     '            end;' + sLineBreak +
     '        end;' + sLineBreak +
     '      finally' + sLineBreak +
-    '        lCmd := '''';' + sLineBreak +
+    '        LCmd := '''';' + sLineBreak +
     '      end;' + sLineBreak +
-    '    until false;' + sLineBreak +
+    '    until False;' + sLineBreak +
     '' + sLineBreak +
     '  finally' + sLineBreak +
     '    LServer.Free;' + sLineBreak +
     '  end;' + sLineBreak +
-
+    'end;' + sLineBreak +
+    sLineBreak +
+    'class procedure TDMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String;' + sLineBreak +
+    '  var VUsername, VPassword: String; var VHandled: Boolean);' + sLineBreak +
+    'begin' + sLineBreak +
+    '  VHandled := SameText(LowerCase(AAuthType), ''bearer'');' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'begin' + sLineBreak +
@@ -300,7 +308,7 @@ resourcestring
     sLineBreak +
     '{$R *.dfm}' + sLineBreak +
     sLineBreak +
-    'uses %2:s, System.IOUtils, MVCFramework.Commons;' + sLineBreak +
+    'uses %2:s, System.IOUtils, MVCFramework.Commons, MVCFramework.Middleware.Compression;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
     'begin' + sLineBreak +
@@ -324,13 +332,18 @@ resourcestring
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
     '      //view path' + sLineBreak +
     '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
-    '      //Enable Server Signature in response' + sLineBreak +
+    '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
+    '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
+	'      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' +
-    sLineBreak +
+    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
     '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
+    '      // Max request size in bytes' + sLineBreak +
+    '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak +
+    '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
+    '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +

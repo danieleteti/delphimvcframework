@@ -73,7 +73,7 @@ implementation
 uses
   MVCFramework.Tests.WebModule1,
   MVCFramework.SystemJSONUtils,
-  MVCFramework.TypesAliases;
+  System.JSON;
 
 { TTestRESTClient }
 

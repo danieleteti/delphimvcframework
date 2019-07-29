@@ -2,7 +2,10 @@ unit Controllers.Articles;
 
 interface
 
-uses mvcframework, mvcframework.Commons, Controllers.Base;
+uses
+  mvcframework,
+  mvcframework.Commons,
+  Controllers.Base;
 
 type
 
@@ -14,6 +17,11 @@ type
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     procedure GetArticles;
+
+    [MVCDoc('Returns the list of articles')]
+    [MVCPath('/searches')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetArticlesByDescription;
 
     [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
@@ -34,13 +42,23 @@ type
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateArticle(Context: TWebContext);
+
+    [MVCDoc('Creates new articles from a list and returns "201: Created"')]
+    [MVCPath('/bulk')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure CreateArticles(Context: TWebContext);
   end;
 
 implementation
 
 { TArticlesController }
 
-uses Services, BusinessObjects, Commons, mvcframework.Serializer.Intf;
+uses
+  Services,
+  BusinessObjects,
+  Commons,
+  mvcframework.Serializer.Intf,
+  System.Generics.Collections;
 
 procedure TArticlesController.CreateArticle(Context: TWebContext);
 var
@@ -52,6 +70,23 @@ begin
     Render(201, 'Article Created');
   finally
     Article.Free;
+  end;
+end;
+
+procedure TArticlesController.CreateArticles(Context: TWebContext);
+var
+  lArticles: TObjectList<TArticle>;
+  lArticle: TArticle;
+begin
+  lArticles := Context.Request.BodyAsListOf<TArticle>;
+  try
+    for lArticle in lArticles do
+    begin
+      GetArticlesService.Add(lArticle);
+    end;
+    Render(201, 'Articles Created');
+  finally
+    lArticles.Free;
   end;
 end;
 
@@ -77,6 +112,29 @@ end;
 procedure TArticlesController.GetArticles;
 begin
   Render<TArticle>(GetArticlesService.GetAll);
+end;
+
+procedure TArticlesController.GetArticlesByDescription;
+var
+  lSearch: String;
+begin
+  try
+    if random(10) < 2 then
+      raise EMVCException.Create('ERRORONE!!!');
+
+    lSearch := Context.Request.Params['q'];
+    if lSearch = '' then
+      Render<TArticle>(GetArticlesService.GetAll)
+    else
+      Render<TArticle>(GetArticlesService.GetArticles(lSearch));
+  except
+    on E: EServiceException do
+    begin
+      raise EMVCException.Create(E.Message, '', 0, 404);
+    end
+    else
+      raise;
+  end;
 end;
 
 procedure TArticlesController.UpdateArticleByID(id: Integer);

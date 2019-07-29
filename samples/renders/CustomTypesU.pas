@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -33,6 +33,7 @@ type
   // useful to identify all the fields that must be serialized
   // using the custom serializer defined for this type
   TUserRoles = TArray<string>;
+
   TNullableRecord<T> = record
     Value: T;
     HasValue: Boolean;

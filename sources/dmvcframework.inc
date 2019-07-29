@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -39,23 +39,13 @@
 {$DEFINE MOBILE}
 {$ENDIF}
 
-{$IF CompilerVersion >= 24.0} // xe3
-{$DEFINE XE3ORBETTER}
-{$ENDIF}
-
-
-{$IF CompilerVersion >= 26} // XE5
-{$DEFINE XE5ORBETTER}
-{$ENDIF}
-
-{$IF CompilerVersion >= 27} // XE6
-{$DEFINE XE6ORBETTER}
+{$IF CompilerVersion <= 27} // XE6
+DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$ENDIF}
 
 {$IF CompilerVersion >= 28} // XE7
 {$DEFINE XE7ORBETTER}
 {$ENDIF}
-
 
 {$IF CompilerVersion >= 30} // 10.0 Seattle
 {$DEFINE SEATTLEORBETTER}
@@ -69,6 +59,10 @@
 {$DEFINE TOKYOORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 33} // 10.3 Rio
+{$DEFINE RIOORBETTER}
+{$ENDIF}
+
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
 {$ENDIF}
@@ -77,21 +71,14 @@
 {$DEFINE JSONBOOL}
 {$ENDIF}
 
-
 {$IFDEF XE7ORBETTER}
 {$DEFINE SYSTEMNETENCODING}
 {$DEFINE TOJSON}
 {$ENDIF}
 
-
-{$IFDEF XE6ORBETTER} // XE6
 {$DEFINE SYSTEMJSON}
+{$IFNDEF MOBILE}
 {$DEFINE WEBAPACHEHTTP}
-{$DEFINE USEFIREDAC}
-{$ELSE}
-{$IFDEF XE5ORBETTER} // XE5
-{$DEFINE USEFIREDAC}
-{$ELSE}
-{$DEFINE USEDBX} // XE3, XE4
 {$ENDIF}
-{$ENDIF}
+{$DEFINE USEFIREDAC}
+

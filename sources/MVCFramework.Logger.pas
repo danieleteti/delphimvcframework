@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,9 +43,17 @@ type
 
 function LogLevelAsString(ALogLevel: TLogLevel): string;
 procedure Log(AMessage: string); overload;
+procedure Log(AObject: TObject); overload;
+
 procedure LogD(AMessage: string); overload;
-procedure LogI(AMessage: string);
-procedure LogW(AMessage: string);
+procedure LogD(AMessage: TObject); overload;
+
+procedure LogI(AMessage: string); overload;
+procedure LogI(AObject: TObject); overload;
+
+procedure LogW(AMessage: string); overload;
+procedure LogW(AObject: TObject); overload;
+
 procedure LogE(AMessage: string);
 procedure Log(LogLevel: TLogLevel; const AMessage: string); overload;
 procedure LogEnterMethod(const AMethodName: string);
@@ -66,11 +74,15 @@ var
 
 implementation
 
+uses
+  System.IOUtils,
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.DuckTyping;
+
 var
   _lock: TObject;
   _DefaultLogger: ILogWriter;
-  _LevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType =
-    (
+  _LevelsMap: array [TLogLevel.levDebug .. TLogLevel.levException] of LoggerPro.TLogType = (
     (
       TLogType.Debug
     ),
@@ -111,6 +123,25 @@ begin
       Result := 'EXCEPTION';
   else
     Result := 'UNKNOWN';
+  end;
+end;
+
+function ObjectToJSON(const AObject: TObject): String;
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    if TDuckTypedList.CanBeWrappedAsList(AObject) then
+    begin
+      Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeCollection(AObject);
+    end
+    else
+    begin
+      Result := '[' + AObject.QualifiedClassName + '] ' + lSer.SerializeObject(AObject);
+    end;
+  finally
+    lSer.Free;
   end;
 end;
 
@@ -164,6 +195,11 @@ begin
   LogI(AMessage);
 end;
 
+procedure Log(AObject: TObject); overload;
+begin
+  Log(ObjectToJSON(AObject));
+end;
+
 procedure LogI(AMessage: string); overload;
 begin
   Log.Info(AMessage, LOGGERPRO_TAG);
@@ -172,6 +208,21 @@ end;
 procedure LogD(AMessage: string); overload;
 begin
   Log.Debug(AMessage, LOGGERPRO_TAG);
+end;
+
+procedure LogD(AMessage: TObject); overload;
+begin
+  LogD(ObjectToJSON(AMessage));
+end;
+
+procedure LogI(AObject: TObject); overload;
+begin
+  LogI(ObjectToJSON(AObject));
+end;
+
+procedure LogW(AObject: TObject); overload;
+begin
+  LogW(ObjectToJSON(AObject));
 end;
 
 procedure SetDefaultLogger(const aLogWriter: ILogWriter);
@@ -200,12 +251,19 @@ begin
 end;
 
 procedure InitializeDefaultLogger;
+var
+  lLogsFolder: String;
 begin
   { This procedure must be called in a synchronized context
     (Normally only SetDefaultLogger should be the caller) }
   if not Assigned(_DefaultLogger) then
   begin
-    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, AppPath + 'logs')]);
+{$IF NOT DEFINED(MOBILE)}
+    lLogsFolder := AppPath + 'logs';
+{$ELSE}
+    lLogsFolder := TPath.Combine(TPath.GetDocumentsPath, 'logs');
+{$ENDIF}
+    _DefaultLogger := BuildLogWriter([TLoggerProFileAppender.Create(5, 2000, lLogsFolder)]);
   end;
 end;
 

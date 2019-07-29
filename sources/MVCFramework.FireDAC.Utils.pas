@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -43,7 +43,7 @@ type
     class function ExecuteQueryNoResult(AQuery: TFDQuery;
       AObject: TObject): Int64;
     class procedure ExecuteQuery(AQuery: TFDQuery; AObject: TObject);
-    class procedure ObjectToParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string = '');
+    class procedure ObjectToParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string = ''; ASetParamTypes: Boolean = True);
   end;
 
 implementation
@@ -79,7 +79,7 @@ begin
 end;
 
 class procedure TFireDACUtils.ObjectToParameters(AFDParams: TFDParams;
-  AObject: TObject; AParamPrefix: string);
+  AObject: TObject; AParamPrefix: string; ASetParamTypes: Boolean);
 var
   I: Integer;
   pname: string;
@@ -135,7 +135,7 @@ begin
       obj_fields := _rttiType.GetProperties;
       for obj_field in obj_fields do
       begin
-        if TMVCSerializerHelpful.HasAttribute<MVCColumnAttribute>(obj_field, obj_field_attr) then
+        if TMVCSerializerHelper.HasAttribute<MVCColumnAttribute>(obj_field, obj_field_attr) then
         begin
           Map.Add(MVCColumnAttribute(obj_field_attr).FieldName.ToLower,
             obj_field);
@@ -154,7 +154,12 @@ begin
       if Map.TryGetValue(pname, f) then
       begin
         fv := f.GetValue(AObject);
-        AFDParams[I].DataType := KindToFieldType(fv.Kind, f);
+        // #001: Erro ao definir parametros
+        if ASetParamTypes then
+        begin
+          AFDParams[I].DataType := KindToFieldType(fv.Kind, f);
+        end;
+        // #001: FIM
         // DmitryG - 2014-03-28
         AFDParams[I].Value := fv.AsVariant;
       end

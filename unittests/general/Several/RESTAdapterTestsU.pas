@@ -31,7 +31,7 @@ interface
 uses
   MVCFramework.RESTAdapter, DUnitX.TestFramework, BusinessObjectsU,
   Generics.Collections,
-  MVCFramework.TypesAliases,
+  System.JSON,
   MVCFramework.RESTClient,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons;

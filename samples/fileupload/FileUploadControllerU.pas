@@ -3,21 +3,27 @@ unit FileUploadControllerU;
 interface
 
 uses
+  ReqMulti, // this unit is required to enable file uploading
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Logger;
 
 type
 
-  [MVCPath('/file')]
+  [MVCPath]
   TFileUploadController = class(TMVCController)
   private const
     UPLOAD_FOLDER = 'uploadedfiles';
   public
-    [MVCPath]
+    [MVCPath('/')]
+    [MVCHTTPMethod([httpGET])]
+    procedure Index;
+
+    [MVCPath('/file/upload')]
     [MVCHTTPMethod([httpPOST])]
     procedure SaveFile(CTX: TWebContext);
-    [MVCPath('/list')]
+
+    [MVCPath('/file/list')]
     [MVCProduces('text/html')]
     [MVCHTTPMethod([httpGET])]
     procedure FileList(CTX: TWebContext);
@@ -35,43 +41,50 @@ uses
 
 procedure TFileUploadController.FileList(CTX: TWebContext);
 var
-  UploadedFiles: TStringDynArray;
-  fname: string;
+  lUploadedFiles: TStringDynArray;
+  lFName: string;
 begin
-  ResponseStream.AppendLine('<!doctype html><html><body>');
+  LoadView(['header']);
+  // ResponseStream.AppendLine('<!doctype html><html><body>');
   ResponseStream.AppendLine('<h2>**Upload Folder Content**</h2>');
-  UploadedFiles := TDirectory.GetFiles(UPLOAD_FOLDER);
+  lUploadedFiles := TDirectory.GetFiles(UPLOAD_FOLDER);
   ResponseStream.AppendLine('<ul>');
-  for fname in UploadedFiles do
+  for lFName in lUploadedFiles do
   begin
-    ResponseStream.AppendLine('<li>' + ExtractFileName(fname) + '</li>');
+    ResponseStream.AppendLine('<li>' + ExtractFileName(lFName) + '</li>');
   end;
   ResponseStream.AppendLine('</ul>')
-    .AppendLine('<p><a href="/fileupload.html">back to upload form</a></p>')
-    .AppendLine('</body></html>');
+    .AppendLine('<p><a href="/">&lt;&lt; BACK TO HOME</a></p>');
+  LoadView(['footer']);
   RenderResponseStream;
+end;
+
+procedure TFileUploadController.Index;
+begin
+  LoadView(['header', 'fileupload', 'footer']);
+  RenderResponseStream();
 end;
 
 procedure TFileUploadController.SaveFile(CTX: TWebContext);
 var
-  fname: string;
+  lFName: string;
   I: Integer;
-  fs: TFileStream;
+  lFile: TFileStream;
 begin
   TDirectory.CreateDirectory(UPLOAD_FOLDER);
   for I := 0 to CTX.Request.RawWebRequest.Files.Count - 1 do
   begin
-    fname := String(CTX.Request.Files[I].FileName);
-    fname := TPath.GetFileName(fname.Trim(['"']));
-    if not TPath.HasValidFileNameChars(fname, false) then
+    lFName := String(CTX.Request.Files[I].FileName);
+    lFName := TPath.GetFileName(lFName.Trim(['"']));
+    if not TPath.HasValidFileNameChars(lFName, false) then
       raise EMVCException.Create
-        (fname + ' is not a valid filename for the hosting OS');
-    Log('Uploading ' + fname);
-    fs := TFile.Create(TPath.Combine(UPLOAD_FOLDER, fname));
+        (lFName + ' is not a valid filename for the hosting OS');
+    Log('Uploading ' + lFName);
+    lFile := TFile.Create(TPath.Combine(UPLOAD_FOLDER, lFName));
     try
-      fs.CopyFrom(CTX.Request.Files[I].Stream, 0);
+      lFile.CopyFrom(CTX.Request.Files[I].Stream, 0);
     finally
-      fs.free;
+      lFile.free;
     end;
   end;
 

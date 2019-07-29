@@ -10,8 +10,8 @@ uses
   MVCFramework.Logger,
   Winapi.Windows,
   System.Classes,
-  MainWebModuleUnit in '..\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule},
-  MainDataModuleUnit in '..\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule},
+  MainWebModuleUnit in '..\winecellarserver\MainWebModuleUnit.pas' {wm: TWebModule} ,
+  MainDataModuleUnit in '..\winecellarserver\MainDataModuleUnit.pas' {WineCellarDataModule: TDataModule} ,
   WineCellarAppControllerU in '..\winecellarserver\WineCellarAppControllerU.pas',
   WinesBO in '..\winecellarserver\WinesBO.pas';
 
@@ -41,12 +41,15 @@ var
 exports
   GModuleData name 'dmvc_module';
 
+{
+  Navigate to http://localhost/winecellar/
+}
+
 begin
   CoInitFlags := COINIT_MULTITHREADED;
   Web.ApacheApp.InitApplication(@GModuleData);
   Application.Initialize;
   Application.WebModuleClass := WebModuleClass;
   Application.Run;
-
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2018 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -83,10 +83,10 @@ uses
 
 function TMVCCache.SetValue(const AName: string; const AValue: TValue): TMVCCacheItem;
 var
-  lValue: TValue;
   lCacheItem: TMVCCacheItem;
+  Value: TValue;
 begin
-  lValue := AValue;
+  Value := AValue;
 
   FMREW.DoWithWriteLock(
     procedure
@@ -95,13 +95,13 @@ begin
     begin
       if FStorage.TryGetValue(AName, lItem) then
       begin
-        lItem.Value := lValue;
+        lItem.Value := Value;
       end
       else
       begin
         lCacheItem := TMVCCacheItem.Create;
         try
-          lCacheItem.Value := lValue;
+          lCacheItem.Value := Value;
           FStorage.Add(AName, lCacheItem);
         except
           lCacheItem.Free;

@@ -3,18 +3,20 @@ unit AuthenticationU;
 interface
 
 uses
-  System.SysUtils, MVCFramework.Commons, System.Generics.Collections,
+  System.SysUtils,
+  MVCFramework.Commons,
+  System.Generics.Collections,
   MVCFramework;
 
 type
   TAuthenticationSample = class(TInterfacedObject, IMVCAuthenticationHandler)
   protected
-    procedure OnRequest(const ControllerQualifiedClassName: string;
+    procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
-    procedure OnAuthentication(const UserName: string; const Password: string;
+    procedure OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
       UserRoles: TList<System.string>;
       var IsValid: Boolean; const SessionData: TSessionData);
-    procedure OnAuthorization(UserRoles: TList<System.string>;
+    procedure OnAuthorization(const AContext: TWebContext; UserRoles: TList<System.string>;
       const ControllerQualifiedClassName: string; const ActionName: string;
       var IsAuthorized: Boolean);
   end;
@@ -23,13 +25,19 @@ implementation
 
 { TMVCAuthorization }
 
-procedure TAuthenticationSample.OnAuthentication(const UserName,
-  Password: string; UserRoles: TList<System.string>;
+procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName: string;
+  const Password: string;
+  UserRoles: TList<System.string>;
   var IsValid: Boolean; const SessionData: TSessionData);
 begin
-  IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
+  IsValid := (not UserName.IsEmpty) and UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
   begin
+    if UserName = 'user_raise_exception' then
+    begin
+      raise EMVCException.Create(500, 1024, 'This is a custom exception raised in "TAuthenticationSample.OnAuthentication"');
+    end;
+
     if UserName = 'user1' then
     begin
       UserRoles.Add('role1');
@@ -56,8 +64,8 @@ begin
 end;
 
 procedure TAuthenticationSample.OnAuthorization
-  (UserRoles: TList<System.string>;
-  const ControllerQualifiedClassName, ActionName: string;
+  (const AContext: TWebContext; UserRoles: TList<System.string>;
+  const ControllerQualifiedClassName: string; const ActionName: string;
   var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
@@ -71,8 +79,8 @@ begin
     IsAuthorized := UserRoles.Contains('role1');
 end;
 
-procedure TAuthenticationSample.OnRequest(const ControllerQualifiedClassName,
-  ActionName: string; var AuthenticationRequired: Boolean);
+procedure TAuthenticationSample.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
+  const ActionName: string; var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName =
     'AppControllerU.TAdminController';

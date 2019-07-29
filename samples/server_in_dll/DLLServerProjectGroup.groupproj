@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{C0FDB024-7144-4A97-83F6-4747B50091D5}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="dll\DMVCServerDLL.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="host_application\UsingServerInDLL.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DMVCServerDLL">
+        <MSBuild Projects="dll\DMVCServerDLL.dproj"/>
+    </Target>
+    <Target Name="DMVCServerDLL:Clean">
+        <MSBuild Projects="dll\DMVCServerDLL.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DMVCServerDLL:Make">
+        <MSBuild Projects="dll\DMVCServerDLL.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="UsingServerInDLL">
+        <MSBuild Projects="host_application\UsingServerInDLL.dproj"/>
+    </Target>
+    <Target Name="UsingServerInDLL:Clean">
+        <MSBuild Projects="host_application\UsingServerInDLL.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="UsingServerInDLL:Make">
+        <MSBuild Projects="host_application\UsingServerInDLL.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DMVCServerDLL;UsingServerInDLL"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DMVCServerDLL:Clean;UsingServerInDLL:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DMVCServerDLL:Make;UsingServerInDLL:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

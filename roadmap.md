@@ -7,18 +7,18 @@ As we are in the detailed planning stages for these features, we will share addi
  - (DONE) Remove eLua support and switch to [Mustache](https://github.com/synopse/dmustache) for server side view
  - (DONE) Implement JWT support
  - (DONE) Implement Strongly Typed Actions
- - (DOME) Implement Custom Authentication and Authorization Middleware
- - (ALMOST DONE) Use a middleware to implement response compression for console type projects
- - Implement Swagger support (we need a good self contained YAML parser/generator...)
- - Linux support (compatibly with the [Next Delphi version with codename Godzilla](http://community.embarcadero.com/article/news/16211-embarcadero-rad-studio-2016-product-approach-and-roadmap-2))
- - (WORKING) Update Mapper framework to make it extensible and configurable
+ - (DONE) Implement Custom Authentication and Authorization Middleware
+ - (DONE) Use a middleware to implement response compression for console type projects
+ - (INITIAL)Implement Swagger support (we need a good self contained YAML parser/generator...)
+ - (DONE) Linux support
+ - (DONE) Update Mapper framework to make it extensible and configurable
    - The default mapper interface will be the same as the current version so that no breaking changes happend
    - Will be possible to register a specific serializer/deserializer engine for each type or property name
- - (WORKING) Switch from the System.JSON parser to the [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (which is more than 10 times faster).
+ - (DONE) Switch from the System.JSON parser to the [JsonDataObjects](https://github.com/ahausladen/JsonDataObjects) parser (which is more than 10 times faster).
    - This point has the max priority!
  - (DONE, BUT WE NEED MORE) Improve the IDE expert
  - Add the XML support for the Mapper using the [OmniXML](https://github.com/mremec/omnixml) project (low priority: looking for volunteers)
- - Create a mechanism to allows a fast and dirty CRUD interface based on tables
+ - (DONE) Create a mechanism to allows a fast CRUD interface based on tables
    - With this features you can simply define the resource name, the database table name which that resource points to and the allowed standard CRUD actions, and you have a complete CRUD system. Will be a lot useful for all that simple entities which don't have complex business logic.
    - Will be based on FireDAC
 

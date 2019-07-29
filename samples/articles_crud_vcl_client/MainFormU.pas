@@ -146,7 +146,7 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  Clt := TRESTClient.Create('localhost', 8080);
+  Clt := MVCFramework.RESTClient.TRESTClient.Create('localhost', 8080);
 end;
 
 procedure TMainForm.ShowError(const AResponse: IRESTResponse);
