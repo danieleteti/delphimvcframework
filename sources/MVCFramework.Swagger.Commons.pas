@@ -70,14 +70,13 @@ type
     property Required: Boolean read FRequired;
   end;
 
-
   TMVCSwagger = class sealed
   private
     class var FRttiContext: TRttiContext;
     class function GetMVCSwagParamsFromMethod(const AMethod: TRttiMethod): TArray<MVCSwagParamAttribute>;
     class function MVCParamLocationToSwagRequestParamInLocation(
-      const AMVCSwagParamLocation: TMVCSwagParamLocation):TSwagRequestParameterInLocation;
-    class function MVCParamTypeToSwagTypeParameter(const AMVSwagParamType: TMVCSwagParamType):TSwagTypeParameter;
+      const AMVCSwagParamLocation: TMVCSwagParamLocation): TSwagRequestParameterInLocation;
+    class function MVCParamTypeToSwagTypeParameter(const AMVSwagParamType: TMVCSwagParamType): TSwagTypeParameter;
   public
     class constructor Create;
     class destructor Destroy;
@@ -89,14 +88,14 @@ type
     class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod);
   end;
 
-
 implementation
 
 uses
   System.RegularExpressions,
   System.SysUtils,
   MVCFramework,
-  Swag.Doc.Path.Operation.Response;
+  Swag.Doc.Path.Operation.Response,
+  System.Json;
 
 { TSwaggerUtils }
 
@@ -164,7 +163,8 @@ begin
       LSwagResponse.StatusCode := MVCSwagResponsesAttribute(LAttr).StatusCode.ToString;
       LSwagResponse.Description := MVCSwagResponsesAttribute(LAttr).Description;
       if not MVCSwagResponsesAttribute(LAttr).JsonSchema.IsEmpty then
-        LSwagResponse.Schema.JsonSchema.ParseJSONValue(TEncoding.UTF8.GetBytes(MVCSwagResponsesAttribute(LAttr).JsonSchema), 0);
+        LSwagResponse.Schema.JsonSchema :=
+          TJSONObject.ParseJSONValue(MVCSwagResponsesAttribute(LAttr).JsonSchema) as TJSONObject;
       ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
     end;
   end;
@@ -214,7 +214,7 @@ class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string;
   begin
     Result := False;
     AMVCParam := nil;
-    AIndex := -1;
+    AIndex := - 1;
     for I := Low(AParams) to High(AParams) do
       if SameText(AParams[I].ParamName, AParamName) and (AParams[I].ParamLocation = plPath) then
       begin
@@ -270,7 +270,7 @@ begin
     end;
   end;
 
-  //Other parameters
+  // Other parameters
   for I := Low(LMVCSwagParams) to High(LMVCSwagParams) do
   begin
     LSwagParam := TSwagRequestParameter.Create;

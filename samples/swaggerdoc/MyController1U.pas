@@ -7,6 +7,26 @@ uses
   MVCFramework.Commons,
   MVCFramework.Swagger.Commons;
 
+const
+  INDEX_JSON_SCHEMA =
+    '{' + sLineBreak +
+    '    "type": "object",' + sLineBreak +
+    '    "properties": {' + sLineBreak +
+    '        "application": {' + sLineBreak +
+    '            "type": "string",' + sLineBreak +
+    '            "description": "Application Name"' + sLineBreak +
+    '        },' + sLineBreak +
+    '        "online": {' + sLineBreak +
+    '            "type": "boolean",' + sLineBreak +
+    '            "description": "Defines if the server is online"' + sLineBreak +
+    '        },' + sLineBreak +
+    '        "serverdatetime": {' + sLineBreak +
+    '            "type": "string",' + sLineBreak +
+    '            "description": "Current server time"' + sLineBreak +
+    '        }' + sLineBreak +
+    '    }' + sLineBreak +
+    '}';
+
 type
 
   [MVCPath('/status')]
@@ -14,7 +34,7 @@ type
   public
     [MVCPath('')]
     [MVCSwagSummary('Status', 'API Status')]
-    [MVCSwagResponses(200, 'Sucess')]
+    [MVCSwagResponses(200, 'Sucess', INDEX_JSON_SCHEMA)]
     [MVCSwagResponses(500, 'Internal Server Error')]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     [MVCHTTPMethod([httpGET])]
