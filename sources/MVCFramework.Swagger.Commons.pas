@@ -256,6 +256,7 @@ begin
           LSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(LMVCParam.ParamLocation);
           LSwagParam.Required := LMVCParam.Required;
           LSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(LMVCParam.ParamType);
+          LSwagParam.Description := LMVCParam.ParamDescription;
           Delete(LMVCSwagParams, LIndex, 1);
         end
         else
@@ -278,6 +279,7 @@ begin
     LSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(LMVCSwagParams[I].ParamLocation);
     LSwagParam.Required := LMVCSwagParams[I].Required;
     LSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(LMVCSwagParams[I].ParamType);
+    LSwagParam.Description := LMVCSwagParams[I].ParamDescription;
     Insert([LSwagParam], Result, High(Result));
   end;
 
