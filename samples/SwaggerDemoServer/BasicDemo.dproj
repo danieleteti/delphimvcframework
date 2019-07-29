@@ -115,7 +115,6 @@
         </DCCReference>
         <DCCReference Include="App1MainControllerU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Controllers.Swagger.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.TypesAliases.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.pas"/>
         <BuildConfiguration Include="Release">

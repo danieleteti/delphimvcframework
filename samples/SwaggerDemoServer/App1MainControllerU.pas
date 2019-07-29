@@ -7,6 +7,7 @@ interface
 uses MVCFramework,
   MVCFramework.Logger,
   MVCFramework.Commons,
+  System.Json,
   Web.HTTPApp;
 
 type
@@ -110,8 +111,7 @@ implementation
 
 uses
   System.SysUtils,
-  MVCFramework.SystemJSONUtils,
-  MVCFramework.TypesAliases;
+  MVCFramework.SystemJSONUtils;
 
 { TApp1MainController }
 

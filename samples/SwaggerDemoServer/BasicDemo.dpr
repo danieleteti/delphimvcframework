@@ -13,7 +13,6 @@ uses
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   App1MainControllerU in 'App1MainControllerU.pas',
   MVCFramework.Controllers.Swagger in '..\..\sources\MVCFramework.Controllers.Swagger.pas',
-  MVCFramework.TypesAliases in '..\..\sources\MVCFramework.TypesAliases.pas',
   MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
   MVCFramework in '..\..\sources\MVCFramework.pas';
 
