@@ -36,8 +36,8 @@ uses
   System.Generics.Collections,
   System.RegularExpressions,
   MVCFramework,
-  MVCFramework.Commons
-  ;
+  MVCFramework.Commons,
+  IdURI;
 
 type
   TMVCActionParamCacheItem = class

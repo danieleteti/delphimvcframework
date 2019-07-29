@@ -74,6 +74,9 @@ uses
 {$ENDIF}
   Web.WebReq,
   LoggerPro,
+  IdGlobal,
+  IdGlobalProtocols,
+  IdURI,
   MVCFramework.Commons;
 
 type
