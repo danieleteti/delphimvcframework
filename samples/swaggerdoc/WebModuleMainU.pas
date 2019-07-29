@@ -33,6 +33,7 @@ uses
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
 
+
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 var
   LSwagInfo: TMVCSwaggerInfo;
@@ -42,7 +43,6 @@ begin
   // Path prefix will be swagger basepath
   FEngine.Config[TMVCConfigKey.PathPrefix] := '/api';
   FEngine.Config[TMVCConfigKey.DocumentRoot] := '.\www';
-
 
   LSwagInfo.Title := 'Sample Swagger API';
   LSwagInfo.Version := 'v1';
@@ -58,8 +58,7 @@ begin
 
   /// Add your registered controllers to engine.
   /// Only registered controls such as "MyServerName" will be added
-    TControllersRegister.Instance.AddControllersInEngine(FEngine,
-    'MyServerName');
+  TControllersRegister.Instance.AddControllersInEngine(FEngine, 'MyServerName');
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);
