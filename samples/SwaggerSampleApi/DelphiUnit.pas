@@ -3,8 +3,13 @@ unit DelphiUnit;
 interface
 
 uses
-  classes, system.json, System.SysUtils, System.Rtti, System.TypInfo,
-  System.Generics.Collections;
+  classes,
+  system.json,
+  System.SysUtils,
+  System.Rtti,
+  System.TypInfo,
+  System.Generics.Collections
+  ;
 
 type
   TUnitTypeDefinition = class;
@@ -156,84 +161,84 @@ end;
 
 function TDelphiUnit.GenerateImplementationSectionStart: string;
 var
-  implementationSection: TStringList;
+  LImplementationSection: TStringList;
 begin
-  implementationSection := TStringList.Create;
+  LImplementationSection := TStringList.Create;
   try
-    implementationSection.Add('');
-    implementationSection.Add('implementation');
-    implementationSection.Add('');
-    Result := implementationSection.Text;
+    LImplementationSection.Add('');
+    LImplementationSection.Add('implementation');
+    LImplementationSection.Add('');
+    Result := LImplementationSection.Text;
   finally
-    FreeAndNil(implementationSection);
+    FreeAndNil(LImplementationSection);
   end;
 end;
 
 function TDelphiUnit.GenerateImplementationUses: string;
 var
-  usesSL: TStringList;
+  LUsesSL: TStringList;
   i: Integer;
 begin
-  usesSL := TStringList.Create;
+  LUsesSL := TStringList.Create;
   try
     if FImplementationUses.Count > 0 then
     begin
-      usesSL.Add('uses');
+      LUsesSL.Add('uses');
       for i := 0 to FImplementationUses.Count - 1 do
       begin
         if i = 0 then
-          usesSL.Add('    ' + FImplementationUses[i])
+          LUsesSL.Add('    ' + FImplementationUses[i])
         else
-          usesSL.Add('  , ' + FImplementationUses[i]);
+          LUsesSL.Add('  , ' + FImplementationUses[i]);
       end;
-      usesSL.Add('  ;');
+      LUsesSL.Add('  ;');
     end;
-    usesSL.Add('');
-    Result := usesSL.Text;
+    LUsesSL.Add('');
+    Result := LUsesSL.Text;
   finally
-    FreeAndNil(usesSL);
+    FreeAndNil(LUsesSL);
   end;
 end;
 
 function TDelphiUnit.GenerateInterfaceSectionStart: string;
 var
-  interfaceSection: TStringList;
+  LInterfaceSection: TStringList;
 begin
-  interfaceSection := TStringList.Create;
+  LInterfaceSection := TStringList.Create;
   try
-    interfaceSection.Add('unit ' + UnitFile + ';');
-    interfaceSection.Add('');
-    interfaceSection.Add('interface');
-    interfaceSection.Add('');
-    Result := interfaceSection.Text;
+    LInterfaceSection.Add('unit ' + UnitFile + ';');
+    LInterfaceSection.Add('');
+    LInterfaceSection.Add('interface');
+    LInterfaceSection.Add('');
+    Result := LInterfaceSection.Text;
   finally
-    FreeAndNil(interfaceSection);
+    FreeAndNil(LInterfaceSection);
   end;
 end;
 
 function TDelphiUnit.GenerateInterfaceUses: string;
 var
-  usesSL: TStringList;
+  LUsesSL: TStringList;
   i: Integer;
 begin
-  usesSL := TStringList.Create;
+  LUsesSL := TStringList.Create;
   try
     if FInterfaceUses.Count > 0 then
     begin
-      usesSL.Add('uses');
+      LUsesSL.Add('uses');
       for i := 0 to FInterfaceUses.Count - 1 do
       begin
         if i = 0 then
-          usesSL.Add('    ' + FInterfaceUses[i])
+          LUsesSL.Add('    ' + FInterfaceUses[i])
         else
-          usesSL.Add('  , ' + FInterfaceUses[i]);
+          LUsesSL.Add('  , ' + FInterfaceUses[i]);
       end;
-      usesSL.Add('  ;');
+      LUsesSL.Add('  ;');
     end;
-    usesSL.Add('');
-    Result := usesSL.Text;
+    LUsesSL.Add('');
+    Result := LUsesSL.Text;
   finally
-    FreeAndNil(usesSL);
+    FreeAndNil(LUsesSL);
   end;
 end;
 
@@ -261,37 +266,37 @@ end;
 
 function TUnitTypeDefinition.GenerateInterface: string;
 var
-  interfaceSL: TStringList;
+  LInterfaceSL: TStringList;
   i: Integer;
   j: Integer;
 begin
-  interfaceSL := TStringList.Create;
+  LInterfaceSL := TStringList.Create;
   try
     for i := 0 to FAttributes.Count - 1 do
     begin
-      interfaceSL.Add(FAttributes[i]);
+      LInterfaceSL.Add(FAttributes[i]);
     end;
     if TypeInherited.Length > 0 then
-      interfaceSL.Add('  ' + TypeName + ' = class(' + TypeInherited + ')')
+      LInterfaceSL.Add('  ' + TypeName + ' = class(' + TypeInherited + ')')
     else
-      interfaceSL.Add('  ' + TypeName + ' = class');
+      LInterfaceSL.Add('  ' + TypeName + ' = class');
 
     for j := 0 to Fields.Count - 1 do
     begin
-      interfaceSL.Add(Fields[j].GenerateInterface);
+      LInterfaceSL.Add(Fields[j].GenerateInterface);
     end;
 
     for j := 0 to FMethods.Count - 1 do
     begin
-      interfaceSL.Add(TrimRight(FMethods[j].GenerateInterface));
-      interfaceSL.Add('');
+      LInterfaceSL.Add(TrimRight(FMethods[j].GenerateInterface));
+      LInterfaceSL.Add('');
     end;
 
-    interfaceSL.Add('  end;');
+    LInterfaceSL.Add('  end;');
 
-    Result := interfaceSL.Text;
+    Result := LInterfaceSL.Text;
   finally
-    FreeAndNil(interfaceSL);
+    FreeAndNil(LInterfaceSL);
   end;
 end;
 
@@ -381,162 +386,162 @@ end;
 
 function TUnitMethod.GenerateImplementation(inOnType: TUnitTypeDefinition): string;
 var
-  procTypeString: string;
-  hasReturn: Boolean;
-  param: TUnitParameter;
-  paramFlagString: string;
-  paramString: string;
-  classNameProcIn: string;
+  LProcTypeString: string;
+  LHasReturn: Boolean;
+  LParam: TUnitParameter;
+  LParamFlagString: string;
+  LParamString: string;
+  LClassNameProcIn: string;
   i: Integer;
-  funcSL: TStringList;
+  LFuncSL: TStringList;
 begin
-  hasReturn := False;
-  classNameProcIn := '';
+  LHasReturn := False;
+  LClassNameProcIn := '';
   case MethodKind of
     mkProcedure:
-      procTypeString := 'procedure';
+      LProcTypeString := 'procedure';
     mkFunction:
       begin
-        procTypeString := 'function';
-        hasReturn := True;
+        LProcTypeString := 'function';
+        LHasReturn := True;
       end;
     mkDestructor:
-      procTypeString := 'destructor';
+      LProcTypeString := 'destructor';
     mkConstructor:
-      procTypeString := 'constructor';
+      LProcTypeString := 'constructor';
     mkClassFunction:
       begin
-        procTypeString := 'class function';
-        hasReturn := True;
+        LProcTypeString := 'class function';
+        LHasReturn := True;
       end;
     mkClassProcedure:
-      procTypeString := 'class procedure';
+      LProcTypeString := 'class procedure';
     mkClassConstructor:
-      procTypeString := 'class constructor';
+      LProcTypeString := 'class constructor';
     mkClassDestructor:
-      procTypeString := 'class destructor';
+      LProcTypeString := 'class destructor';
   else
-    procTypeString := 'unknown'; // invalid ... will cause a compile error
+    LProcTypeString := 'unknown'; // invalid ... will cause a compile error
   end;
 
   if Assigned(inOnType) then
-    classNameProcIn := inOnType.TypeName + '.';
+    LClassNameProcIn := inOnType.TypeName + '.';
 
-  paramString := '(';
-  for param in GetParameters do
+  LParamString := '(';
+  for LParam in GetParameters do
   begin
-    paramFlagString := '';
-    if pfConst in param.Flags then
-      paramFlagString := 'const'
-    else if pfVar in param.Flags then
-      paramFlagString := 'var';
+    LParamFlagString := '';
+    if pfConst in LParam.Flags then
+      LParamFlagString := 'const'
+    else if pfVar in LParam.Flags then
+      LParamFlagString := 'var';
 
-    if paramFlagString.Length > 0 then
-      paramFlagString := paramFlagString + ' ';
+    if LParamFlagString.Length > 0 then
+      LParamFlagString := LParamFlagString + ' ';
 
-    paramString := paramString + paramFlagString + param.ParamName + ': ' + param.FType.FTypeName + ';';
+    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + ';';
   end;
 
-  if paramString.EndsWith(';') then
-    paramString := paramString.Remove(paramString.Length - 1);
+  if LParamString.EndsWith(';') then
+    LParamString := LParamString.Remove(LParamString.Length - 1);
 
-  paramString := paramString + ')';
+  LParamString := LParamString + ')';
 
-  if paramString = '()' then
-    paramString := '';
+  if LParamString = '()' then
+    LParamString := '';
 
-  if hasReturn then
-    Result := procTypeString + ' ' + classNameProcIn + FName + paramString + ': ' + ReturnType.FTypeName + ';'
+  if LHasReturn then
+    Result := LProcTypeString + ' ' + LClassNameProcIn + FName + LParamString + ': ' + ReturnType.FTypeName + ';'
   else
-    Result := procTypeString + ' ' + classNameProcIn + FName + paramString + ';';
+    Result := LProcTypeString + ' ' + LClassNameProcIn + FName + LParamString + ';';
 
-  funcSL := TStringList.Create;
+  LFuncSL := TStringList.Create;
   try
-    funcSL.Text := Result;
+    LFuncSL.Text := Result;
     if FVars.Count > 0 then
     begin
-      funcSL.Add('var');
+      LFuncSL.Add('var');
       for i := 0 to FVars.Count - 1 do
       begin
-        funcSL.Add('  ' + FVars[i].ParamName + ' : ' + FVars[i].ParamType.TypeName + ';');
+        LFuncSL.Add('  ' + FVars[i].ParamName + ' : ' + FVars[i].ParamType.TypeName + ';');
       end;
     end;
-    funcSL.Add('begin');
-    funcSL.Add(Content.Text);
-    funcSL.Add('end;');
+    LFuncSL.Add('begin');
+    LFuncSL.Add(Content.Text);
+    LFuncSL.Add('end;');
 
-    Result := funcSL.Text;
+    Result := LFuncSL.Text;
   finally
-    FreeAndNil(funcSL);
+    FreeAndNil(LFuncSL);
   end;
 end;
 
 function TUnitMethod.GenerateInterface: string;
 var
-  procTypeString: string;
-  hasReturn: Boolean;
-  param: TUnitParameter;
-  paramFlagString: string;
-  paramString: string;
-  attributeString: string;
+  LProcTypeString: string;
+  LHasReturn: Boolean;
+  LParam: TUnitParameter;
+  LParamFlagString: string;
+  LParamString: string;
+  LAttributeString: string;
 begin
-  hasReturn := False;
+  LHasReturn := False;
   case MethodKind of
     mkProcedure:
-      procTypeString := 'procedure';
+      LProcTypeString := 'procedure';
     mkFunction:
       begin
-        procTypeString := 'function';
-        hasReturn := True;
+        LProcTypeString := 'function';
+        LHasReturn := True;
       end;
     mkDestructor:
-      procTypeString := 'destructor';
+      LProcTypeString := 'destructor';
     mkConstructor:
-      procTypeString := 'constructor';
+      LProcTypeString := 'constructor';
     mkClassFunction:
       begin
-        procTypeString := 'class function';
-        hasReturn := True;
+        LProcTypeString := 'class function';
+        LHasReturn := True;
       end;
     mkClassProcedure:
-      procTypeString := 'class procedure';
+      LProcTypeString := 'class procedure';
     mkClassConstructor:
-      procTypeString := 'class constructor';
+      LProcTypeString := 'class constructor';
     mkClassDestructor:
-      procTypeString := 'class destructor';
+      LProcTypeString := 'class destructor';
   else
-    procTypeString := 'unknown'; // invalid ... will cause a compile error
+    LProcTypeString := 'unknown'; // invalid ... will cause a compile error
   end;
 
-  paramString := '(';
-  for param in GetParameters do
+  LParamString := '(';
+  for LParam in GetParameters do
   begin
-    paramFlagString := '';
-    if pfConst in param.Flags then
-      paramFlagString := 'const'
-    else if pfVar in param.Flags then
-      paramFlagString := 'var';
+    LParamFlagString := '';
+    if pfConst in LParam.Flags then
+      LParamFlagString := 'const'
+    else if pfVar in LParam.Flags then
+      LParamFlagString := 'var';
 
-    if paramFlagString.Length > 0 then
-      paramFlagString := paramFlagString + ' ';
-    paramString := paramString + paramFlagString + param.ParamName + ': ' + param.FType.FTypeName + ';';
+    if LParamFlagString.Length > 0 then
+      LParamFlagString := LParamFlagString + ' ';
+    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + ';';
   end;
 
-  if paramString.EndsWith(';') then
-    paramString := paramString.Remove(paramString.Length - 1);
+  if LParamString.EndsWith(';') then
+    LParamString := LParamString.Remove(LParamString.Length - 1);
 
-  paramString := paramString + ')';
+  LParamString := LParamString + ')';
 
-  if paramString = '()' then
-    paramString := '';
+  if LParamString = '()' then
+    LParamString := '';
 
-  if hasReturn then
-    Result := '    ' + procTypeString + ' ' + FName + paramString + ': ' + ReturnType.FTypeName + ';'
+  if LHasReturn then
+    Result := '    ' + LProcTypeString + ' ' + FName + LParamString + ': ' + ReturnType.FTypeName + ';'
   else
-    Result := '    ' + procTypeString + ' ' + FName + paramString + ';';
+    Result := '    ' + LProcTypeString + ' ' + FName + LParamString + ';';
 
-  attributeString := FAttributes.Text;
-  Result := attributeString + Result;
+  LAttributeString := FAttributes.Text;
+  Result := LAttributeString + Result;
 end;
 
 function TUnitMethod.GetParameters: TArray<TUnitParameter>;

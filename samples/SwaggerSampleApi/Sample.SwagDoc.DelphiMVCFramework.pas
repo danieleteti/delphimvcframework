@@ -98,105 +98,105 @@ var
   i: Integer;
   j: Integer;
   k: Integer;
-  delphiUnit : TDelphiUnit;
-  MVCController : TUnitTypeDefinition;
-  method : TUnitMethod;
-  param : TUnitParameter;
-  paramType : TUnitTypeDefinition;
-  response : TPair<string,TSwagResponse>;
-  schemaObj : TJsonObject;
-  resultParam : TUnitParameter;
-  ref : String;
+  LDelphiUnit : TDelphiUnit;
+  LMVCController : TUnitTypeDefinition;
+  LMethod : TUnitMethod;
+  LParam : TUnitParameter;
+  LParamType : TUnitTypeDefinition;
+  LResponse : TPair<string, TSwagResponse>;
+  LSchemaObj : TJsonObject;
+  LResultParam : TUnitParameter;
+  LRef : String;
 begin
-  delphiUnit := nil;
+  LDelphiUnit := nil;
   try
-    delphiUnit := TDelphiUnit.Create;
-    delphiUnit.UnitFile := 'mvccontroller';
-    delphiUnit.AddInterfaceUnit('MVCFramework');
-    delphiUnit.AddInterfaceUnit('MVCFramework.Commons');
-    delphiUnit.AddInterfaceUnit('MVCFramework.Logger');
-    delphiUnit.AddInterfaceUnit('MVCFramework.JWT');
-    delphiUnit.AddImplementationUnit('Swag.Doc');
+    LDelphiUnit := TDelphiUnit.Create;
+    LDelphiUnit.UnitFile := 'mvccontroller';
+    LDelphiUnit.AddInterfaceUnit('MVCFramework');
+    LDelphiUnit.AddInterfaceUnit('MVCFramework.Commons');
+    LDelphiUnit.AddInterfaceUnit('MVCFramework.Logger');
+    LDelphiUnit.AddInterfaceUnit('MVCFramework.JWT');
+    LDelphiUnit.AddImplementationUnit('Swag.Doc');
 
-    MVCController := TUnitTypeDefinition.Create;
-    MVCController.TypeName := 'TMyMVCController';
-    MVCController.TypeInherited := 'TMVCController';
-    MVCController.AddAttribute('  [MVCPath(''' + fSwagDoc.BasePath + ''')]');
+    LMVCController := TUnitTypeDefinition.Create;
+    LMVCController.TypeName := 'TMyMVCController';
+    LMVCController.TypeInherited := 'TMVCController';
+    LMVCController.AddAttribute('  [MVCPath(''' + fSwagDoc.BasePath + ''')]');
 
-    delphiUnit.AddType(MVCController);
-    ConvertSwaggerDefinitionsToTypeDefinitions(delphiUnit);
+    LDelphiUnit.AddType(LMVCController);
+    ConvertSwaggerDefinitionsToTypeDefinitions(LDelphiUnit);
 
     for i := 0 to fSwagDoc.Paths.Count - 1 do
     begin
       for j := 0 to fSwagDoc.Paths[i].Operations.Count - 1 do
       begin
-        method := TUnitMethod.Create;
-        method.AddAttribute('    [MVCDoc(' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Description) + ')]');
-        method.AddAttribute('    [MVCPath(''' + TidyUpURI(fSwagDoc.Paths[i].Uri) + ''')]');
-        method.AddAttribute('    [MVCHTTPMethod([http' + fSwagDoc.Paths[i].Operations[j].OperationToString + '])]');
-        method.Name := OperationIdToFunctionName(fSwagDoc.Paths[i].Operations[j]);
+        LMethod := TUnitMethod.Create;
+        LMethod.AddAttribute('    [MVCDoc(' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Description) + ')]');
+        LMethod.AddAttribute('    [MVCPath(''' + TidyUpURI(fSwagDoc.Paths[i].Uri) + ''')]');
+        LMethod.AddAttribute('    [MVCHTTPMethod([http' + fSwagDoc.Paths[i].Operations[j].OperationToString + '])]');
+        LMethod.Name := OperationIdToFunctionName(fSwagDoc.Paths[i].Operations[j]);
 
 
-        for response in FSwagDoc.Paths[i].Operations[j].Responses do
+        for LResponse in FSwagDoc.Paths[i].Operations[j].Responses do
         begin
 //        MVCResponse(200, 'success', TEmployee)
-          schemaObj := response.Value.Schema.JsonSchema;
-          if schemaObj = nil then
+          LSchemaObj := LResponse.Value.Schema.JsonSchema;
+          if LSchemaObj = nil then
             continue;
-          if schemaObj.TryGetValue('$ref', ref) then
+          if LSchemaObj.TryGetValue('$ref', LRef) then
           begin
-            method.AddAttribute('    [MVCResponse(' + response.Key + ', ' +
-                                                   QuotedStr(response.Value.Description) + ', ' + ConvertRefToType(ref) + ')]');
-            resultParam := TUnitParameter.Create;
-            resultParam.ParamName := ConvertRefToVarName(ref);
-            resultParam.ParamType := TUnitTypeDefinition.Create;
-            resultParam.ParamType.TypeName := ConvertRefToType(ref);
-            method.AddLocalVariable(resultParam);
-            method.Content.Add('  ' + ConvertRefToVarName(ref) + ' := ' + ConvertRefToType(ref) + '.Create;');
+            LMethod.AddAttribute('    [MVCResponse(' + LResponse.Key + ', ' +
+                                                   QuotedStr(LResponse.Value.Description) + ', ' + ConvertRefToType(LRef) + ')]');
+            LResultParam := TUnitParameter.Create;
+            LResultParam.ParamName := ConvertRefToVarName(LRef);
+            LResultParam.ParamType := TUnitTypeDefinition.Create;
+            LResultParam.ParamType.TypeName := ConvertRefToType(LRef);
+            LMethod.AddLocalVariable(LResultParam);
+            LMethod.Content.Add('  ' + ConvertRefToVarName(LRef) + ' := ' + ConvertRefToType(LRef) + '.Create;');
               for k := 0 to FSwagDoc.Paths[i].Operations[j].Parameters.Count - 1 do
               begin
                 if fSwagDoc.Paths[i].Operations[j].Parameters[k].InLocation <> rpiPath then
                 begin
-                  resultParam := TUnitParameter.Create;
-                  resultParam.ParamName := 'param' + TidyUpTypeName(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name);
-                  resultParam.ParamType := TUnitTypeDefinition.Create;
-                  resultParam.ParamType.TypeName := 'String';
-                  method.AddLocalVariable(resultParam);
-                  method.Content.Add('  param' + TidyUpTypeName(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + ' := Context.Request.Params[' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + '];');
+                  LResultParam := TUnitParameter.Create;
+                  LResultParam.ParamName := 'param' + TidyUpTypeName(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name);
+                  LResultParam.ParamType := TUnitTypeDefinition.Create;
+                  LResultParam.ParamType.TypeName := 'String';
+                  LMethod.AddLocalVariable(LResultParam);
+                  LMethod.Content.Add('  param' + TidyUpTypeName(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + ' := Context.Request.Params[' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + '];');
                 end;
               end;
 //            method.Content.Add('  Render(' + response.Key + ', ' + ConvertRefToVarName(ref) + ');');
           end
           else
           begin
-            if not schemaObj.TryGetValue('properties', schemaObj) then
+            if not LSchemaObj.TryGetValue('properties', LSchemaObj) then
               continue;
-            if not schemaObj.TryGetValue('employees', schemaObj) then
+            if not LSchemaObj.TryGetValue('employees', LSchemaObj) then
               continue;
-            if not schemaObj.TryGetValue('items', schemaObj) then
+            if not LSchemaObj.TryGetValue('items', LSchemaObj) then
               continue;
-            if schemaObj.TryGetValue('$ref', ref) then
+            if LSchemaObj.TryGetValue('$ref', LRef) then
             begin
-              method.AddAttribute('    [MVCResponseList(' + response.Key + ', ' +
-                                                     QuotedStr(response.Value.Description) + ', ' + ConvertRefToType(ref) + ')]');
-              resultParam := TUnitParameter.Create;
-              resultParam.ParamName := ConvertRefToVarName(ref);
-              resultParam.ParamType := TUnitTypeDefinition.Create;
-              resultParam.ParamType.TypeName := 'TObjectList<' + ConvertRefToType(ref) + '>';
-              method.AddLocalVariable(resultParam);
-              delphiUnit.AddInterfaceUnit('Generics.Collections');
-              method.Content.Add('  ' + ConvertRefToVarName(ref) + ' := TObjectList<' + ConvertRefToType(ref) + '>.Create;');
+              LMethod.AddAttribute('    [MVCResponseList(' + LResponse.Key + ', ' +
+                                                     QuotedStr(LResponse.Value.Description) + ', ' + ConvertRefToType(LRef) + ')]');
+              LResultParam := TUnitParameter.Create;
+              LResultParam.ParamName := ConvertRefToVarName(LRef);
+              LResultParam.ParamType := TUnitTypeDefinition.Create;
+              LResultParam.ParamType.TypeName := 'TObjectList<' + ConvertRefToType(LRef) + '>';
+              LMethod.AddLocalVariable(LResultParam);
+              LDelphiUnit.AddInterfaceUnit('Generics.Collections');
+              LMethod.Content.Add('  ' + ConvertRefToVarName(LRef) + ' := TObjectList<' + ConvertRefToType(LRef) + '>.Create;');
 
               for k := 0 to FSwagDoc.Paths[i].Operations[j].Parameters.Count - 1 do
               begin
                 if fSwagDoc.Paths[i].Operations[j].Parameters[k].InLocation <> rpiPath then
                 begin
-                  resultParam := TUnitParameter.Create;
-                  resultParam.ParamName := 'param' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name;
-                  resultParam.ParamType := TUnitTypeDefinition.Create;
-                  resultParam.ParamType.TypeName := 'String';
-                  method.AddLocalVariable(resultParam);
-                  method.Content.Add('  ' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name + ' := Context.Request.Params[' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + '];');
+                  LResultParam := TUnitParameter.Create;
+                  LResultParam.ParamName := 'param' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name;
+                  LResultParam.ParamType := TUnitTypeDefinition.Create;
+                  LResultParam.ParamType.TypeName := 'String';
+                  LMethod.AddLocalVariable(LResultParam);
+                  LMethod.Content.Add('  ' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name + ' := Context.Request.Params[' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + '];');
                 end;
               end;
 
@@ -210,16 +210,16 @@ begin
               begin
                 if fSwagDoc.Paths[i].Operations[j].Parameters[k].InLocation <> rpiPath then
                 begin
-                  resultParam := TUnitParameter.Create;
-                  resultParam.ParamName := 'param' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name;
-                  resultParam.ParamType := TUnitTypeDefinition.Create;
-                  resultParam.ParamType.TypeName := 'String';
-                  method.AddLocalVariable(resultParam);
-                  method.Content.Add('  ' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name + ' := Context.Request.Params[' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + '];');
+                  LResultParam := TUnitParameter.Create;
+                  LResultParam.ParamName := 'param' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name;
+                  LResultParam.ParamType := TUnitTypeDefinition.Create;
+                  LResultParam.ParamType.TypeName := 'String';
+                  LMethod.AddLocalVariable(LResultParam);
+                  LMethod.Content.Add('  ' + fSwagDoc.Paths[i].Operations[j].Parameters[k].Name + ' := Context.Request.Params[' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Parameters[k].Name) + '];');
                 end;
               end;
-              method.AddAttribute('    [MVCResponse(' + response.Key + ', ' +
-                                                   QuotedStr(response.Value.Description) + ')]');
+              LMethod.AddAttribute('    [MVCResponse(' + LResponse.Key + ', ' +
+                                                   QuotedStr(LResponse.Value.Description) + ')]');
             end;
           end;
         end;
@@ -229,112 +229,112 @@ begin
         begin
           if fSwagDoc.Paths[i].Operations[j].Parameters[k].InLocation = rpiPath then
           begin
-            param := TUnitParameter.Create;
-            param.ParamName := fSwagDoc.Paths[i].Operations[j].Parameters[k].Name;
-            paramType := TUnitTypeDefinition.Create;
-            paramType.TypeName := TypeParam(fSwagDoc.Paths[i].Operations[j].Parameters[k].TypeParameter);
-            param.ParamType := paramType;
-            method.AddParameter(param);
+            LParam := TUnitParameter.Create;
+            LParam.ParamName := fSwagDoc.Paths[i].Operations[j].Parameters[k].Name;
+            LParamType := TUnitTypeDefinition.Create;
+            LParamType.TypeName := TypeParam(fSwagDoc.Paths[i].Operations[j].Parameters[k].TypeParameter);
+            LParam.ParamType := LParamType;
+            LMethod.AddParameter(LParam);
           end;
         end;
-        MVCController.FMethods.Add(method);
+        LMVCController.FMethods.Add(LMethod);
       end;
     end;
 
-    SortTypeDefinitions(delphiUnit);
+    SortTypeDefinitions(LDelphiUnit);
 
-    Result := GenerateUnitText(delphiUnit);
+    Result := GenerateUnitText(LDelphiUnit);
   finally
     fSwagDoc.Free;
-    delphiUnit.Free;
+    LDelphiUnit.Free;
   end;
 end;
 
 
 procedure TSwagDocToDelphiMVCFrameworkBuilder.ChildType(DelphiUnit : TDelphiUnit; json: TJSONPair);
 var
-  TypeInfo: TUnitTypeDefinition;
-  jsonProps: TJSONObject;
-  FieldInfo: TUnitFieldDefinition;
-  typeObj: TJSONObject;
+  LTypeInfo: TUnitTypeDefinition;
+  LJsonProps: TJSONObject;
+  LFieldInfo: TUnitFieldDefinition;
+  LTypeObj: TJSONObject;
   i: Integer;
   j: Integer;
-  value : string;
-  schemaObj : TJSONObject;
+  LValue : string;
+  LSchemaObj : TJSONObject;
 begin
   OutputDebugString(PChar('Child: ' + json.ToJSON));
-  TypeInfo := TUnitTypeDefinition.Create;
-  TypeInfo.TypeName := 'T' + TidyUpTypeName(json.JSONString.Value);
+  LTypeInfo := TUnitTypeDefinition.Create;
+  LTypeInfo.TypeName := 'T' + TidyUpTypeName(json.JSONString.Value);
 
-  jsonProps := (json.JSONValue as TJSONObject).Values['properties'] as TJSONObject;
-  for j := 0 to jsonProps.Count - 1 do
+  LJsonProps := (json.JSONValue as TJSONObject).Values['properties'] as TJSONObject;
+  for j := 0 to LJsonProps.Count - 1 do
   begin
-    OutputDebugString(PChar(jsonProps.Pairs[j].ToJSON));
-    FieldInfo := TUnitFieldDefinition.Create;
-    FieldInfo.FieldName := jsonProps.Pairs[j].JsonString.Value;
-    typeObj := jsonProps.Pairs[j].JsonValue as TJSONObject;
-    FieldInfo.FieldType := typeObj.Values['type'].Value;
-    if FieldInfo.FieldType = 'number' then
-      FieldInfo.FieldType := 'Double'
-    else if FieldInfo.FieldType = 'object' then
+    OutputDebugString(PChar(LJsonProps.Pairs[j].ToJSON));
+    LFieldInfo := TUnitFieldDefinition.Create;
+    LFieldInfo.FieldName := LJsonProps.Pairs[j].JsonString.Value;
+    LTypeObj := LJsonProps.Pairs[j].JsonValue as TJSONObject;
+    LFieldInfo.FieldType := LTypeObj.Values['type'].Value;
+    if LFieldInfo.FieldType = 'number' then
+      LFieldInfo.FieldType := 'Double'
+    else if LFieldInfo.FieldType = 'object' then
     begin
-      FieldInfo.FieldType := 'T' + TidyUpTypeName(jsonProps.Pairs[j].JsonString.Value);
-      ChildType(DelphiUnit, jsonProps.Pairs[j]);
+      LFieldInfo.FieldType := 'T' + TidyUpTypeName(LJsonProps.Pairs[j].JsonString.Value);
+      ChildType(DelphiUnit, LJsonProps.Pairs[j]);
     end;
-    if typeObj.TryGetValue('description', value) then
-      FieldInfo.AddAttribute('[MVCDoc(' + QuotedStr(value) + ')]');
-    if typeObj.TryGetValue('format', value) then
-      FieldInfo.AddAttribute('[MVCFormat(' + QuotedStr(value) + ')]');
-    if typeObj.TryGetValue('maxLength', value) then
-      FieldInfo.AddAttribute('[MVCMaxLength(' + value + ')]');
-    TypeInfo.Fields.Add(FieldInfo);
+    if LTypeObj.TryGetValue('description', LValue) then
+      LFieldInfo.AddAttribute('[MVCDoc(' + QuotedStr(LValue) + ')]');
+    if LTypeObj.TryGetValue('format', LValue) then
+      LFieldInfo.AddAttribute('[MVCFormat(' + QuotedStr(LValue) + ')]');
+    if LTypeObj.TryGetValue('maxLength', LValue) then
+      LFieldInfo.AddAttribute('[MVCMaxLength(' + LValue + ')]');
+    LTypeInfo.Fields.Add(LFieldInfo);
   end;
-  delphiUnit.AddType(TypeInfo);
+  delphiUnit.AddType(LTypeInfo);
 end;
 
 procedure TSwagDocToDelphiMVCFrameworkBuilder.ConvertSwaggerDefinitionsToTypeDefinitions(delphiUnit: TDelphiUnit);
 var
-  TypeInfo: TUnitTypeDefinition;
-  jsonProps: TJSONObject;
-  FieldInfo: TUnitFieldDefinition;
-  typeObj: TJSONObject;
+  LTypeInfo: TUnitTypeDefinition;
+  LJsonProps: TJSONObject;
+  LFieldInfo: TUnitFieldDefinition;
+  LTypeObj: TJSONObject;
   i: Integer;
   j: Integer;
-  value : string;
-  schemaObj : TJSONObject;
+  LValue : string;
+  LSchemaObj : TJSONObject;
 begin
   for i := 0 to fSwagDoc.Definitions.Count - 1 do
   begin
-    TypeInfo := TUnitTypeDefinition.Create;
-    TypeInfo.TypeName := 'T' + TidyUpTypeName(fSwagDoc.Definitions[i].Name);
-    jsonProps := fSwagDoc.Definitions[i].JsonSchema.Values['properties'] as TJSONObject;
-    for j := 0 to jsonProps.Count - 1 do
+    LTypeInfo := TUnitTypeDefinition.Create;
+    LTypeInfo.TypeName := 'T' + TidyUpTypeName(fSwagDoc.Definitions[i].Name);
+    LJsonProps := fSwagDoc.Definitions[i].JsonSchema.Values['properties'] as TJSONObject;
+    for j := 0 to LJsonProps.Count - 1 do
     begin
-      OutputDebugString(PChar(jsonProps.Pairs[j].ToJSON));
-      FieldInfo := TUnitFieldDefinition.Create;
-      FieldInfo.FieldName := jsonProps.Pairs[j].JsonString.Value;
-      typeObj := jsonProps.Pairs[j].JsonValue as TJSONObject;
-      FieldInfo.FieldType := typeObj.Values['type'].Value;
-      if FieldInfo.FieldType = 'number' then
-        FieldInfo.FieldType := 'Double'
-      else if FieldInfo.FieldType = 'object' then
+      OutputDebugString(PChar(LJsonProps.Pairs[j].ToJSON));
+      LFieldInfo := TUnitFieldDefinition.Create;
+      LFieldInfo.FieldName := LJsonProps.Pairs[j].JsonString.Value;
+      LTypeObj := LJsonProps.Pairs[j].JsonValue as TJSONObject;
+      LFieldInfo.FieldType := LTypeObj.Values['type'].Value;
+      if LFieldInfo.FieldType = 'number' then
+        LFieldInfo.FieldType := 'Double'
+      else if LFieldInfo.FieldType = 'object' then
       begin
-        FieldInfo.FieldType := 'T' + TidyUpTypeName(jsonProps.Pairs[j].JsonString.Value);
-        ChildType(DelphiUnit, jsonProps.Pairs[j]);
+        LFieldInfo.FieldType := 'T' + TidyUpTypeName(LJsonProps.Pairs[j].JsonString.Value);
+        ChildType(DelphiUnit, LJsonProps.Pairs[j]);
       end;
-      if typeObj.TryGetValue('description', value) then
-        FieldInfo.AddAttribute('[MVCDoc(' + QuotedStr(value) + ')]');
-      if typeObj.TryGetValue('format', value) then
-        FieldInfo.AddAttribute('[MVCFormat(' + QuotedStr(value) + ')]');
-      if typeObj.TryGetValue('maxLength', value) then
-        FieldInfo.AddAttribute('[MVCMaxLength(' + value + ')]');
-      if typeObj.TryGetValue('minimum', value) then
-        FieldInfo.AddAttribute('[MVCMinimum(' + value + ')]');
-      if typeObj.TryGetValue('maximum', value) then
-        FieldInfo.AddAttribute('[MVCMaximum(' + value + ')]');
-      TypeInfo.Fields.Add(FieldInfo);
+      if LTypeObj.TryGetValue('description', LValue) then
+        LFieldInfo.AddAttribute('[MVCDoc(' + QuotedStr(LValue) + ')]');
+      if LTypeObj.TryGetValue('format', LValue) then
+        LFieldInfo.AddAttribute('[MVCFormat(' + QuotedStr(LValue) + ')]');
+      if LTypeObj.TryGetValue('maxLength', LValue) then
+        LFieldInfo.AddAttribute('[MVCMaxLength(' + LValue + ')]');
+      if LTypeObj.TryGetValue('minimum', LValue) then
+        LFieldInfo.AddAttribute('[MVCMinimum(' + LValue + ')]');
+      if LTypeObj.TryGetValue('maximum', LValue) then
+        LFieldInfo.AddAttribute('[MVCMaximum(' + LValue + ')]');
+      LTypeInfo.Fields.Add(LFieldInfo);
     end;
-    delphiUnit.AddType(TypeInfo);
+    delphiUnit.AddType(LTypeInfo);
   end;
 end;
 
@@ -342,43 +342,43 @@ function TSwagDocToDelphiMVCFrameworkBuilder.GenerateUnitText(delphiUnit: TDelph
 var
   i: Integer;
   j: Integer;
-  method: TUnitMethod;
-  mvcFile: TStringList;
-  typedefinition : string;
+  LMethod: TUnitMethod;
+  LMvcFile: TStringList;
+  LTypeDefinition : string;
 begin
-  mvcFile := TStringList.Create;
+  LMvcFile := TStringList.Create;
   try
-    mvcFile.Add(delphiUnit.GenerateInterfaceSectionStart);
-    mvcFile.Add(delphiUnit.GenerateInterfaceUses);
-    mvcFile.Add('(*');
-    mvcFile.Add('Title: ' + fSwagDoc.Info.Title);
-    mvcFile.Add('Description: ' + fSwagDoc.Info.Description);
-    mvcFile.Add('License: ' + fSwagDoc.Info.License.Name);
-    mvcFile.Add('*)');
-    mvcFile.Add('');
-    mvcFile.Add('type');
+    LMvcFile.Add(delphiUnit.GenerateInterfaceSectionStart);
+    LMvcFile.Add(delphiUnit.GenerateInterfaceUses);
+    LMvcFile.Add('(*');
+    LMvcFile.Add('Title: ' + fSwagDoc.Info.Title);
+    LMvcFile.Add('Description: ' + fSwagDoc.Info.Description);
+    LMvcFile.Add('License: ' + fSwagDoc.Info.License.Name);
+    LMvcFile.Add('*)');
+    LMvcFile.Add('');
+    LMvcFile.Add('type');
 
     SortTypeDefinitions(delphiUnit);
 
     for i := 0 to delphiUnit.TypeDefinitions.Count - 1 do
     begin
-      mvcFile.Add(delphiUnit.TypeDefinitions[i].GenerateInterface);
+      LMvcFile.Add(delphiUnit.TypeDefinitions[i].GenerateInterface);
     end;
-    mvcFile.Add(delphiUnit.GenerateImplementationSectionStart);
-    mvcFile.Add(delphiUnit.GenerateImplementationUses);
-    mvcFile.Add('');
+    LMvcFile.Add(delphiUnit.GenerateImplementationSectionStart);
+    LMvcFile.Add(delphiUnit.GenerateImplementationUses);
+    LMvcFile.Add('');
     for j := 0 to delphiUnit.TypeDefinitions.Count - 1 do
     begin
-      for method in delphiUnit.TypeDefinitions[j].GetMethods do
+      for LMethod in delphiUnit.TypeDefinitions[j].GetMethods do
       begin
-        mvcFile.Add(method.GenerateImplementation(delphiUnit.TypeDefinitions[j]));
+        LMvcFile.Add(LMethod.GenerateImplementation(delphiUnit.TypeDefinitions[j]));
       end;
     end;
-    mvcFile.Add('end.');
-    Result := mvcFile.Text;
-    mvcFile.SaveToFile('C:\Programming\SwagDoc\Demos\SampleApi\mvccontroller.pas');
+    LMvcFile.Add('end.');
+    Result := LMvcFile.Text;
+    LMvcFile.SaveToFile('C:\Programming\SwagDoc\Demos\SampleApi\mvccontroller.pas');
   finally
-    FreeAndNil(mvcFile);
+    FreeAndNil(LMvcFile);
   end;
 end;
 
