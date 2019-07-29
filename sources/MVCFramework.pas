@@ -119,6 +119,16 @@ type
     property Value: string read FValue;
   end;
 
+  MVCIntegerAttribute = class(MVCBaseAttribute)
+  private
+    FValue: Int64;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AValue: Int64);
+    property Value: Int64 read FValue;
+  end;
+
   MVCConsumesAttribute = class(MVCStringAttribute)
   private
     { private declarations }
@@ -148,6 +158,52 @@ type
     { public declarations }
   end;
 
+  MVCFormatAttribute = class(MVCStringAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMaxLengthAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMinimumAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMaximumAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCInheritableAttribute = class(MVCBaseAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+
   MVCPathAttribute = class(MVCBaseAttribute)
   private
     FPath: string;
@@ -158,13 +214,46 @@ type
     property Path: string read FPath;
   end;
 
-  MVCInheritableAttribute = class(MVCBaseAttribute)
+  MVCParameterAttribute = class(MVCStringAttribute)
+  end;
+  MVCResponseAttribute = class(MVCBaseAttribute)
   private
-    { private declarations }
+    FStatusCode: Integer;
+    FDescription : string;
+    FResponseClass : TClass;
   protected
     { protected declarations }
   public
-    { public declarations }
+    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    property StatusCode: Integer read FStatusCode;
+    property Description: string read FDescription;
+    property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCResponseListAttribute = class(MVCBaseAttribute)
+  private
+    FStatusCode: Integer;
+    FDescription : string;
+    FResponseClass : TClass;
+  protected
+    { protected declarations }
+  public
+    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    property StatusCode: Integer read FStatusCode;
+    property Description: string read FDescription;
+    property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCPatternAttribute = class(MVCStringAttribute)
+
+  end;
+
+  MVCStringEnumAttribute = class(MVCBaseAttribute)
+  private
+    fValues : String;
+  public
+    constructor Create(const enumValue: String);
+    property Values : string read FValues write FValues;
   end;
 
   TMVCWebRequest = class
@@ -894,6 +983,29 @@ constructor MVCPathAttribute.Create(const APath: string);
 begin
   inherited Create;
   FPath := APath;
+end;
+
+constructor MVCResponseAttribute.Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass);
+begin
+  FStatusCode := inStatusCode;
+  FDescription := inDescription;
+  FResponseClass := inResponseClass;
+end;
+
+{ MVCResponseListAttribute }
+
+constructor MVCResponseListAttribute.Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass);
+begin
+  FStatusCode := inStatusCode;
+  FDescription := inDescription;
+  FResponseClass := inResponseClass;
+end;
+
+{ MVCStringEnumAttribute }
+
+constructor MVCStringEnumAttribute.Create(const enumValue: String);
+begin
+  FValues := enumValue;
 end;
 
 { TMVCWebRequest }
@@ -3244,6 +3356,14 @@ begin
     Result := FileName
   else
     Result := EmptyStr;
+end;
+
+
+{ MVCIntegerAttribute }
+
+constructor MVCIntegerAttribute.Create(const AValue: Int64);
+begin
+  FValue := AValue;
 end;
 
 initialization
