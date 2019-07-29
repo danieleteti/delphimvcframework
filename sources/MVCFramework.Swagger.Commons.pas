@@ -164,10 +164,13 @@ begin
       LSwagResponse.StatusCode := MVCSwagResponsesAttribute(LAttr).StatusCode.ToString;
       LSwagResponse.Description := MVCSwagResponsesAttribute(LAttr).Description;
       if not MVCSwagResponsesAttribute(LAttr).JsonSchema.IsEmpty then
-        LSwagResponse.Schema.JsonSchema.Parse(TEncoding.UTF8.GetBytes(MVCSwagResponsesAttribute(LAttr).JsonSchema), 0);
+        LSwagResponse.Schema.JsonSchema.ParseJSONValue(TEncoding.UTF8.GetBytes(MVCSwagResponsesAttribute(LAttr).JsonSchema), 0);
       ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
     end;
   end;
+
+  if ASwagPathOperation.Tags.Count = 0 then
+    ASwagPathOperation.Tags.Add(AMethod.Parent.QualifiedName);
 
   if ASwagPathOperation.Produces.Count <= 0 then
     ASwagPathOperation.Produces.Add(TMVCMediaType.APPLICATION_JSON);

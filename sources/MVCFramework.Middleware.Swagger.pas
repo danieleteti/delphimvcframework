@@ -75,7 +75,6 @@ var
   LMVCHttpMethods: TMVCHTTPMethods;
   LSwagPathOp: TSwagPathOperation;
   I: TMVCHTTPMethodType;
-  LSwagResp: TSwagResponse;
 begin
   LRttiContext := TRttiContext.Create;
   try
