@@ -12,6 +12,9 @@ uses
   System.JSON;
 
 type
+  /// <summary>
+  /// Swagger info object
+  /// </summary>
   TMVCSwaggerInfo = record
     Title: string;
     Version: string;
@@ -24,6 +27,10 @@ type
     LicenseUrl: string;
   end;
 
+  /// <summary>
+  /// Specify swagger path summary. See <see href="https://swagger.io/docs/specification/2-0/paths-and-operations/">
+  /// Swagger path and operations</see>
+  /// </summary>
   MVCSwagSummaryAttribute = class(TCustomAttribute)
   private
     FTags: string;
@@ -39,6 +46,9 @@ type
     property Deprecated: Boolean read FDeprecated;
   end;
 
+  /// <summary>
+  /// Specify swagger path responses.
+  /// </summary>
   MVCSwagResponsesAttribute = class(TCustomAttribute)
   private
     FStatusCode: Integer;

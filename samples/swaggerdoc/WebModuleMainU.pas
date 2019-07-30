@@ -28,7 +28,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.Controllers.Register,
   MVCFramework.Middleware.Swagger,
-  MVCFramework.Swagger.Commons;
+  MVCFramework.Swagger.Commons,
+  MVCFramework.Middleware.JWT;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
@@ -54,6 +55,7 @@ begin
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
 
+  FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(nil));
   FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json'));
 
   /// Add your registered controllers to engine.
