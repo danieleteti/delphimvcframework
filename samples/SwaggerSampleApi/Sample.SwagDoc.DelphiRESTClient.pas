@@ -115,7 +115,7 @@ begin
     LMVCControllerClient := TUnitTypeDefinition.Create;
     LMVCControllerClient.TypeName := 'TMyMVCControllerClient';
     LMVCControllerClient.TypeInherited := 'TObject';
-    LMVCControllerClient.AddAttribute('  [MVCPath(''' + fSwagDoc.BasePath + ''')]');
+    LMVCControllerClient.AddAttribute('  [MVCPath(''' + RewriteUriToSwaggerWay(fSwagDoc.BasePath) + ''')]');
 
     LField := TUnitFieldDefinition.Create;
     LField.FieldName := 'RESTClient';
@@ -141,7 +141,7 @@ begin
       begin
         LMethod := TUnitMethod.Create;
         LMethod.AddAttribute('    [MVCDoc(' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Description) + ')]');
-        LMethod.AddAttribute('    [MVCPath(''' + RewriteUriToSwaggerWay(fSwagDoc.Paths[i].Uri) + ''')]');
+        LMethod.AddAttribute('    [MVCPath(''' + fSwagDoc.Paths[i].Uri + ''')]');
         LMethod.AddAttribute('    [MVCHTTPMethod([http' + fSwagDoc.Paths[i].Operations[j].OperationToString + '])]');
         LMethod.Name := OperationIdToFunctionName(fSwagDoc.Paths[i].Operations[j]);
 
