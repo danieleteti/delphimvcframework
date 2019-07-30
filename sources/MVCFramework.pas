@@ -216,6 +216,7 @@ type
 
   MVCParameterAttribute = class(MVCStringAttribute)
   end;
+
   MVCResponseAttribute = class(MVCBaseAttribute)
   private
     FStatusCode: Integer;

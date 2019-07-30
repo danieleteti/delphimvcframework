@@ -98,5 +98,6 @@ object Form1: TForm1
     Size.PlatformDefault = False
     TabOrder = 5
     Text = 'btnGenerateClient'
+    OnClick = btnGenerateClientClick
   end
 end

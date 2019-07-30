@@ -52,6 +52,7 @@ type
     TabItem2: TTabItem;
     Memo2: TMemo;
     btnGenerateClient: TButton;
+    procedure btnGenerateClientClick(Sender: TObject);
     procedure btnGenerateDelphiMVCControllerClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
   private
@@ -70,8 +71,28 @@ implementation
 uses
   Swag.Doc,
   Sample.SwagDoc,
-  Sample.SwagDoc.DelphiMVCFramework
+  Sample.SwagDoc.DelphiMVCFramework,
+  Sample.SwagDoc.DelphiRESTClient
   ;
+
+procedure TForm1.btnGenerateClientClick(Sender: TObject);
+var
+  vSampleDocApi: TSampleApiSwagDocBuilder;
+  mvcFramework : TSwagDocToDelphiRESTClientBuilder;
+begin
+  vSampleDocApi := nil;
+  mvcFramework := nil;
+  try
+    vSampleDocApi := TSampleApiSwagDocBuilder.Create;
+    vSampleDocApi.DeployFolder := ExtractFilePath(ParamStr(0));
+    vSampleDocApi.Generate;
+    mvcFramework := TSwagDocToDelphiRESTClientBuilder.Create(vSampleDocApi.SwagDoc);
+    memo2.Lines.Text := mvcFramework.Generate;
+  finally
+    FreeAndNil(mvcFramework);
+    FreeAndNil(vSampleDocApi);
+  end;
+end;
 
 procedure TForm1.btnGenerateDelphiMVCControllerClick(Sender: TObject);
 var

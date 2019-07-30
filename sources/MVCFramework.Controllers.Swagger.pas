@@ -67,10 +67,10 @@ type
   private
     procedure ProcessControllerMethods(aClass: TClass);
     procedure processObject(schema: TJSONSchema; aClass:TClass);
-    function MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
-    function ProcessURL(params: TStringList; const rootPath:string; const path:string): string;
     procedure processObjectForDefinition(aClass:TClass);
   public
+    class function ProcessAndRewriteURL(params: TStringList; const rootPath:string; const path:string): string;
+    class function MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
     [MVCDoc('This is some documentation')]
     [MVCPath('/swagger')]
     [MVCHTTPMethod([httpGET])]
@@ -108,7 +108,29 @@ begin
   inherited;
 end;
 
-function TMVCSwaggerController.ProcessURL(params: TStringList; const rootPath:string; const path:string):string;
+class function TMVCSwaggerController.MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
+begin
+  if inMethod = httpGET then
+    Result := TSwagPathTypeOperation.ohvGet
+  else if inMethod = httpPOST then
+    Result := TSwagPathTypeOperation.ohvPost
+  else if inMethod = httpPUT then
+    Result := TSwagPathTypeOperation.ohvPut
+  else if inMethod = httpDELETE then
+    Result := TSwagPathTypeOperation.ohvDelete
+  else if inMethod = httpPATCH then
+    Result := TSwagPathTypeOperation.ohvPatch
+  else if inMethod = httpOPTIONS then
+    Result := TSwagPathTypeOperation.ohvOptions
+  else if inMethod = httpHead then
+    Result := TSwagPathTypeOperation.ohvHead
+  else if inMethod = httpTRACE then
+    Result := TSwagPathTypeOperation.ohvTRACE
+  else
+    Result := TSwagPathTypeOperation.ohvNotDefined;
+end;
+
+class function TMVCSwaggerController.ProcessAndRewriteURL(params: TStringList; const rootPath:string; const path:string):string;
 var
   LRegEx : TRegEx;
   LMatches: TMatchCollection;
@@ -178,7 +200,7 @@ begin
       begin
         if LAttribute is MVCPathAttribute then
         begin
-          LPath := ProcessURL(LEndpoint.params, LRootPath, MVCPathAttribute(LAttribute).Path);
+          LPath := TMVCSwaggerController.ProcessAndRewriteURL(LEndpoint.params, LRootPath, MVCPathAttribute(LAttribute).Path);
         end
         else if LAttribute is MVCHTTPMethodAttribute then
         begin
@@ -204,14 +226,22 @@ begin
           LStatus.ReturnType := MVCResponseAttribute(LAttribute).ResponseClass;
           LEndpoint.statuses.Add(LStatus);
         end
+        else if LAttribute is MVCResponseListAttribute then
+        begin
+          LStatus := TMVCStatusResponses.Create;
+          LStatus.statusCode := MVCResponseListAttribute(LAttribute).StatusCode;
+          LStatus.statusDescription := MVCResponseListAttribute(LAttribute).Description;
+          LStatus.ReturnType := MVCResponseListAttribute(LAttribute).ResponseClass;
+          LEndpoint.statuses.Add(LStatus);
+        end
       end;
 
-      LEndpoint.operationId := LMethod.Name;
+      LEndpoint.OperationId := LMethod.Name;
       LEndpoint.Documentation := LDocumentation;
-      LEndpoint.method := LHttpMethod;
-      LEndpoint.path := LPath;
-      LEndpoint.produces := LProduces;
-      LEndpoint.consumes := LConsumes;
+      LEndpoint.Method := LHttpMethod;
+      LEndpoint.Path := LPath;
+      LEndpoint.Produces := LProduces;
+      LEndpoint.Consumes := LConsumes;
 
       fEndpoints.Add(LEndpoint);
     end;
@@ -220,29 +250,6 @@ begin
     LRttiContext.Free;
   end;
 end;
-
-function TMVCSwaggerController.MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
-begin
-  if inMethod = httpGET then
-    Result := TSwagPathTypeOperation.ohvGet
-  else if inMethod = httpPOST then
-    Result := TSwagPathTypeOperation.ohvPost
-  else if inMethod = httpPUT then
-    Result := TSwagPathTypeOperation.ohvPut
-  else if inMethod = httpDELETE then
-    Result := TSwagPathTypeOperation.ohvDelete
-  else if inMethod = httpPATCH then
-    Result := TSwagPathTypeOperation.ohvPatch
-  else if inMethod = httpOPTIONS then
-    Result := TSwagPathTypeOperation.ohvOptions
-  else if inMethod = httpHead then
-    Result := TSwagPathTypeOperation.ohvHead
-  else if inMethod = httpTRACE then
-    Result := TSwagPathTypeOperation.ohvTRACE
-  else
-    Result := TSwagPathTypeOperation.ohvNotDefined;
-end;
-
 
 procedure TMVCSwaggerController.processObjectForDefinition(aClass:TClass);
 var
@@ -298,7 +305,6 @@ begin
       begin
         LField := LSchema.AddField<Double>(LProperty.Name,'');
       end
-
       else if (LProperty.PropertyType.TypeKind = tkClass) then
       begin
         if LProperty.PropertyType.Name='TRttiInstanceType' then continue;
@@ -442,7 +448,7 @@ begin
     for LHttpMethod in fEndpoints[i].method do
     begin
       LPathOperation := TSwagPathOperation.Create;
-      LPathOperation.Operation := MVCMethodToSwaggerOperation(LHttpMethod);
+      LPathOperation.Operation := TMVCSwaggerController.MVCMethodToSwaggerOperation(LHttpMethod);
       LPathOperation.Description := fEndpoints[i].Documentation;
       
       for p := fEndpoints[i].params.Count - 1 downto 0 do
