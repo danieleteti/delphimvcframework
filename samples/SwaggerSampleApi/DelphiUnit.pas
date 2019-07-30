@@ -439,11 +439,11 @@ begin
     if LParamFlagString.Length > 0 then
       LParamFlagString := LParamFlagString + ' ';
 
-    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + ';';
+    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + '; ';
   end;
 
-  if LParamString.EndsWith(';') then
-    LParamString := LParamString.Remove(LParamString.Length - 1);
+  if LParamString.EndsWith('; ') then
+    LParamString := LParamString.Remove(LParamString.Length - 2);
 
   LParamString := LParamString + ')';
 
@@ -524,11 +524,11 @@ begin
 
     if LParamFlagString.Length > 0 then
       LParamFlagString := LParamFlagString + ' ';
-    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + ';';
+    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + '; ';
   end;
 
-  if LParamString.EndsWith(';') then
-    LParamString := LParamString.Remove(LParamString.Length - 1);
+  if LParamString.EndsWith('; ') then
+    LParamString := LParamString.Remove(LParamString.Length - 2);
 
   LParamString := LParamString + ')';
 
