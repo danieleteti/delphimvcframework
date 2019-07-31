@@ -114,6 +114,7 @@
         <DCCReference Include="MyController2U.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
+        <DCCReference Include="AuthHandler.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -140,7 +141,7 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="Win32\Debug\SwaggerDocApi.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="bin\SwaggerDocApi.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>SwaggerDocApi.exe</RemoteName>
                         <Overwrite>true</Overwrite>

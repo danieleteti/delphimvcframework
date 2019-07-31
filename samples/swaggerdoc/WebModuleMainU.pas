@@ -29,7 +29,8 @@ uses
   MVCFramework.Controllers.Register,
   MVCFramework.Middleware.Swagger,
   MVCFramework.Swagger.Commons,
-  MVCFramework.Middleware.JWT;
+  MVCFramework.Middleware.JWT,
+  AuthHandler, MVCFramework.JWT, System.DateUtils;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
@@ -38,6 +39,7 @@ uses
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 var
   LSwagInfo: TMVCSwaggerInfo;
+  LClaimsSetup: TJWTClaimsSetup;
 begin
   FEngine := TMVCEngine.Create(Self);
 
@@ -54,9 +56,23 @@ begin
   LSwagInfo.ContactUrl := 'https://github.com/joaoduarte19';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
-
-  FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(nil));
   FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json'));
+
+  LClaimsSetup := procedure(const JWT: TJWT)
+    begin
+      JWT.Claims.Issuer := 'Delphi MVC Framework Swagger Documentation';
+      JWT.Claims.ExpirationTime := Now + OneHour;  // valid for 1 hour
+      JWT.Claims.NotBefore := Now - OneMinute * 5; // valid since 5 minutes ago
+      JWT.Claims.IssuedAt := Now;
+    end;
+
+  FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+      TAuthHandler.Create,
+      'D3lph1MVCFram3w0rk',
+      '/api/login',
+      LClaimsSetup,
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
+      ));
 
   /// Add your registered controllers to engine.
   /// Only registered controls such as "MyServerName" will be added

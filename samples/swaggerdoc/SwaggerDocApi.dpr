@@ -10,7 +10,8 @@ uses
   MyController1U in 'MyController1U.pas',
   MyController2U in 'MyController2U.pas',
   MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',
-  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas';
+  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
+  AuthHandler in 'AuthHandler.pas';
 
 {$R *.res}
 

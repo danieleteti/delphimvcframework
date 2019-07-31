@@ -6,7 +6,8 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Swagger.Commons,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
 type
   [MVCNameCase(ncLowerCase)]
@@ -41,6 +42,7 @@ type
     [MVCSwagResponses(500, 'Internal Server Error')]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCHTTPMethod([httpPOST])]
+    [MVCRequiresAuthentication]
     procedure InsertPerson;
   end;
 

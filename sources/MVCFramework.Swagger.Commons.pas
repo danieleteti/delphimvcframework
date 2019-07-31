@@ -115,6 +115,7 @@ type
       const AMethod: TRttiMethod): TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
     class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod);
+    class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType): Boolean;
   end;
 
 implementation
@@ -124,7 +125,9 @@ uses
   System.SysUtils,
   MVCFramework,
   Swag.Doc.Path.Operation.Response,
-  System.Classes, MVCFramework.Serializer.Commons;
+  System.Classes,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
 { TSwaggerUtils }
 
@@ -365,6 +368,21 @@ begin
     Insert([LSwagParam], Result, High(Result));
   end;
 
+end;
+
+class function TMVCSwagger.MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType): Boolean;
+var
+  LAttr: TCustomAttribute;
+begin
+  Result := False;
+
+  for LAttr in AMethod.GetAttributes do
+    if LAttr is MVCRequiresAuthenticationAttribute then
+      Exit(True);
+
+  for LAttr in AType.GetAttributes do
+    if LAttr is MVCRequiresAuthenticationAttribute then
+      Exit(True);
 end;
 
 class function TMVCSwagger.MVCHttpMethodToSwagPathOperation(
