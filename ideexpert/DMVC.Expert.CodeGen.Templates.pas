@@ -134,12 +134,6 @@ resourcestring
     '  end;' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
-    'class procedure TDMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String;' + sLineBreak +
-    '  var VUsername, VPassword: String; var VHandled: Boolean);' + sLineBreak +
-    'begin' + sLineBreak +
-    '  VHandled := SameText(LowerCase(AAuthType), ''bearer'');' + sLineBreak +
-    'end;' + sLineBreak +
-    sLineBreak +
     'begin' + sLineBreak +
     '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
     '  IsMultiThread := True;' + sLineBreak +
