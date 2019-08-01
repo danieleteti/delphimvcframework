@@ -58,11 +58,23 @@ type
     FStatusCode: Integer;
     FDescription: string;
     FJsonSchema: string;
+    FJsonSchemaClass: TClass;
   public
-    constructor Create(const AStatusCode: Integer; const ADescription: string; const AJsonSchema: string = '');
+    constructor Create(
+      const AStatusCode: Integer;
+      const ADescription: string;
+      const AJsonSchema: string = ''
+      ); overload;
+    constructor Create(
+      const AStatusCode: Integer;
+      const ADescription: string;
+      const AJsonSchemaClass: TClass
+      ); overload;
+
     property StatusCode: Integer read FStatusCode;
     property Description: string read FDescription;
     property JsonSchema: string read FJsonSchema;
+    property JsonSchemaClass: TClass read FJsonSchemaClass;
   end;
 
   MVCSwagParamAttribute = class(TCustomAttribute)
@@ -112,8 +124,8 @@ type
     class destructor Destroy;
     class function MVCHttpMethodToSwagPathOperation(const AMVCHTTPMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
     class function MVCPathToSwagPath(const AResourcePath: string): string;
-    class function GetParamsFromMethod(const AResourcePath: string;
-      const AMethod: TRttiMethod): TArray<TSwagRequestParameter>;
+    class function GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod):
+      TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
     class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod);
     class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType): Boolean;
@@ -125,13 +137,13 @@ const
   SECURITY_BASIC_NAME = 'basic';
   JWT_JSON_SCHEMA =
     '{' + sLineBreak +
-    '	"type": "object",' + sLineBreak +
-    '	"properties": {' + sLineBreak +
-    '		"token": {' + sLineBreak +
-    '			"type": "string",' + sLineBreak +
-    '			"description": "JWT Token"' + sLineBreak +
-    '		}' + sLineBreak +
-    '	}' + sLineBreak +
+    '	 "type": "object",' + sLineBreak +
+    '	 "properties": {' + sLineBreak +
+    '		 "token": {' + sLineBreak +
+    '			 "type": "string",' + sLineBreak +
+    '			 "description": "JWT Token"' + sLineBreak +
+    '		 }' + sLineBreak +
+    '	 }' + sLineBreak +
     '}';
 
 implementation
@@ -231,6 +243,7 @@ class procedure TMVCSwagger.FillOperationSummary(const ASwagPathOperation: TSwag
 var
   LAttr: TCustomAttribute;
   LSwagResponse: TSwagResponse;
+  LSwagResponsesAttr: MVCSwagResponsesAttribute;
 begin
   for LAttr in AMethod.GetAttributes do
   begin
@@ -251,12 +264,16 @@ begin
     end;
     if LAttr is MVCSwagResponsesAttribute then
     begin
+      LSwagResponsesAttr := MVCSwagResponsesAttribute(LAttr);
+
       LSwagResponse := TSwagResponse.Create;
-      LSwagResponse.StatusCode := MVCSwagResponsesAttribute(LAttr).StatusCode.ToString;
-      LSwagResponse.Description := MVCSwagResponsesAttribute(LAttr).Description;
-      if not MVCSwagResponsesAttribute(LAttr).JsonSchema.IsEmpty then
-        LSwagResponse.Schema.JsonSchema :=
-          TJSONObject.ParseJSONValue(MVCSwagResponsesAttribute(LAttr).JsonSchema) as TJSONObject;
+      LSwagResponse.StatusCode := LSwagResponsesAttr.StatusCode.ToString;
+      LSwagResponse.Description := LSwagResponsesAttr.Description;
+      if not LSwagResponsesAttr.JsonSchema.IsEmpty then
+        LSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(LSwagResponsesAttr.JsonSchema) as TJSONObject
+      else if Assigned(LSwagResponsesAttr.JsonSchemaClass) then
+        LSwagResponse.Schema.JsonSchema := ExtractJsonSchemaFromClass(LSwagResponsesAttr.JsonSchemaClass);
+
       ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
     end;
   end;
@@ -270,12 +287,12 @@ begin
   if ASwagPathOperation.Responses.Count <= 0 then
   begin
     LSwagResponse := TSwagResponse.Create;
-    LSwagResponse.StatusCode := '200';
+    LSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
     LSwagResponse.Description := 'Ok';
     ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
 
     LSwagResponse := TSwagResponse.Create;
-    LSwagResponse.StatusCode := '500';
+    LSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
     LSwagResponse.Description := 'Internal server error';
     ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
   end;
@@ -531,6 +548,14 @@ begin
   FStatusCode := AStatusCode;
   FDescription := ADescription;
   FJsonSchema := AJsonSchema;
+  FJsonSchemaClass := nil;
+end;
+
+constructor MVCSwagResponsesAttribute.Create(const AStatusCode: Integer; const ADescription: string;
+  const AJsonSchemaClass: TClass);
+begin
+  Create(AStatusCode, ADescription, '');
+  FJsonSchemaClass := AJsonSchemaClass;
 end;
 
 { MVCSwagParamAttribute }
@@ -551,12 +576,7 @@ constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLoca
   AParamDescription: string; const AJsonSchemaClass: TClass; const AParamType: TMVCSwagParamType;
   const ARequired: Boolean);
 begin
-  FParamLocation := AParamLocation;
-  FParamName := AParamName;
-  FParamDescription := AParamDescription;
-  FParamType := AParamType;
-  FRequired := ARequired;
-  FJsonSchema := '';
+  Create(AParamLocation, AParamName, AParamDescription, AParamType, ARequired, '');
   FJsonSchemaClass := AJsonSchemaClass;
 end;
 
