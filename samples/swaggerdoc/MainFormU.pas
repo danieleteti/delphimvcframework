@@ -3,9 +3,19 @@ unit MainFormU;
 interface
 
 uses
-  Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  Vcl.AppEvnts, Vcl.StdCtrls, IdHTTPWebBrokerBridge, Web.HTTPApp;
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.AppEvnts,
+  Vcl.StdCtrls,
+  IdHTTPWebBrokerBridge,
+  Web.HTTPApp,
+  IdContext;
 
 type
   TForm1 = class(TForm)
@@ -24,6 +34,9 @@ type
   private
     FServer: TIdHTTPWebBrokerBridge;
     procedure StartServer;
+    procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String;
+      var VUsername, VPassword: String; var VHandled: Boolean);
+
     { Private declarations }
   public
     { Public declarations }
@@ -52,9 +65,7 @@ var
 begin
   StartServer;
   LURL := Format('http://localhost:%s/swagger/index.html', [EditPort.Text]);
-  ShellExecute(0,
-        nil,
-        PChar(LURL), nil, nil, SW_SHOWNOACTIVATE);
+  ShellExecute(0, nil, PChar(LURL), nil, nil, SW_SHOWNOACTIVATE);
 end;
 
 procedure TForm1.ButtonStartClick(Sender: TObject);
@@ -71,11 +82,19 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   FServer := TIdHTTPWebBrokerBridge.Create(Self);
+  FServer.OnParseAuthentication := OnParseAuthentication;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
   ButtonOpenBrowser.Click;
+end;
+
+procedure TForm1.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
+  VPassword: String; var VHandled: Boolean);
+begin
+  if SameText(AAuthType, 'Bearer') then
+    VHandled := True;
 end;
 
 procedure TForm1.StartServer;

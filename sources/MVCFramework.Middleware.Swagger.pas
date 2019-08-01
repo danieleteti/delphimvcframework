@@ -5,7 +5,10 @@ interface
 uses
   MVCFramework,
   Swag.Doc,
-  MVCFramework.Swagger.Commons;
+  MVCFramework.Swagger.Commons,
+  Swag.Doc.SecurityDefinition,
+  Swag.Common.Types,
+  System.JSON;
 
 type
   TMVCSwaggerMiddleware = class(TInterfacedObject, IMVCMiddleware)
@@ -15,7 +18,7 @@ type
     FSwagDocURL: string;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
-    procedure DocumentApiSecurityDefsJWT(const ASwagDoc: TSwagDoc);
+    procedure DocumentApiJWTAuthentication(const ASwagDoc: TSwagDoc);
     procedure DocumentApi(ASwagDoc: TSwagDoc);
     procedure InternalRender(AContent: string; AContext: TWebContext);
     procedure RenderError(const AContext: TWebContext; const AErrorMessage, AErrorClassName: string);
@@ -32,15 +35,18 @@ type
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
   end;
 
-const
-  SECURITY_BEARER_NAME = 'bearer';
+  TSwagSecurityDefinitionBasic = class(TSwagSecurityDefinition)
+  protected
+    function GetTypeSecurity: TSwagSecurityDefinitionType; override;
+  public
+    function GenerateJsonObject: System.JSON.TJSONObject; override;
+  end;
 
 implementation
 
 uses
   System.SysUtils,
   MVCFramework.Commons,
-  Swag.Common.Types,
   System.Classes,
   JsonDataObjects,
   System.Rtti,
@@ -48,8 +54,8 @@ uses
   Swag.Doc.Path.Operation,
   Swag.Doc.Path.Operation.Response,
   MVCFramework.Middleware.JWT,
-  System.JSON, Swag.Doc.Path.Operation.RequestParameter,
-  Swag.Doc.SecurityDefinition, Swag.Doc.SecurityDefinitionApiKey;
+  Swag.Doc.Path.Operation.RequestParameter,
+  Swag.Doc.SecurityDefinitionApiKey;
 
 { TMVCSwaggerMiddleware }
 
@@ -159,19 +165,7 @@ begin
   ASwagDoc.Info.License.Url := FSwaggerInfo.LicenseUrl;
 end;
 
-procedure TMVCSwaggerMiddleware.DocumentApiSecurityDefsJWT(const ASwagDoc: TSwagDoc);
-const
-  JWT_SCHEMA =
-    '{' + sLineBreak +
-    '	"type": "object",' + sLineBreak +
-    '	"properties": {' + sLineBreak +
-    '		"token": {' + sLineBreak +
-    '			"type": "string",' + sLineBreak +
-    '			"description": "JWT Token"' + sLineBreak +
-    '		}' + sLineBreak +
-    '	}' + sLineBreak +
-    '}';
-
+procedure TMVCSwaggerMiddleware.DocumentApiJWTAuthentication(const ASwagDoc: TSwagDoc);
 var
   LMiddleware: IMVCMiddleware;
   LJWTMiddleware: TMVCJWTAuthenticationMiddleware;
@@ -179,11 +173,8 @@ var
   LObjType: TRttiType;
   LJwtUrlField: TRttiField;
   LJwtUrlSegment: string;
-  LSwagPath: TSwagPath;
-  LSwagPathOp: TSwagPathOperation;
-  LSwagResponse: TSwagResponse;
-  LSwagParam: TSwagRequestParameter;
-  LSecurityDefs: TSwagSecurityDefinitionApiKey;
+  LSecurityDefsBearer: TSwagSecurityDefinitionApiKey;
+  LSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
   LJWTMiddleware := nil;
   for LMiddleware in FEngine.Middlewares do
@@ -204,62 +195,33 @@ begin
       if Assigned(LJwtUrlField) then
       begin
         LJwtUrlSegment := LJwtUrlField.GetValue(LJWTMiddleware).AsString;
+        if LJwtUrlSegment.StartsWith(ASwagDoc.BasePath) then
+          LJwtUrlSegment := LJwtUrlSegment.Remove(0, ASwagDoc.BasePath.Length);
+        if not LJwtUrlSegment.StartsWith('/') then
+          LJwtUrlSegment.Insert(0, '/');
 
-        LSwagPath := TSwagPath.Create;
-        LSwagPath.Uri := LJwtUrlSegment;
+        // Path operation Middleware JWT
+        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(LJwtUrlSegment));
 
-        LSwagPathOp := TSwagPathOperation.Create;
-        LSwagPathOp.Tags.Add('JWT Authentication');
-        LSwagPathOp.Operation := ohvPost;
-        LSwagPathOp.Description := 'Create JSON Web Token';
-        LSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
+        // basic auth is used by jwt middleware to generate json web token
+        LSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
+        LSecurityDefsBasic.SchemaName := SECURITY_BASIC_NAME;
+        LSecurityDefsBasic.Description := 'Send UserName and Password to return JWT Token';
+        ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBasic);
 
-        LSwagResponse := TSwagResponse.Create;
-        LSwagResponse.StatusCode := HTTP_STATUS.Unauthorized.ToString;
-        LSwagResponse.Description := 'Invalid authorization type';
-        LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
-
-        LSwagResponse := TSwagResponse.Create;
-        LSwagResponse.StatusCode := HTTP_STATUS.Forbidden.ToString;
-        LSwagResponse.Description := 'Forbidden';
-        LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
-
-        LSwagResponse := TSwagResponse.Create;
-        LSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
-        LSwagResponse.Description := 'Internal server error';
-        LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
-
-        LSwagResponse := TSwagResponse.Create;
-        LSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
-        LSwagResponse.Description := 'OK';
-        LSwagResponse.Schema.JsonSchema := System.JSON.TJSONObject.ParseJSONValue(JWT_SCHEMA) as System.JSON.TJSONObject;
-        LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
-
-        LSwagParam := TSwagRequestParameter.Create;
-        LSwagParam.InLocation := rpiHeader;
-        LSwagParam.Name := 'Authorization';
-        LSwagParam.Required := True;
-        LSwagParam.TypeParameter := stpString;
-        LSwagParam.Description := 'Contains the word Basic word followed by a space and a base64-encoded ' +
-          'string username:password';
-        LSwagPathOp.Parameters.Add(LSwagParam);
-
-        LSwagPath.Operations.Add(LSwagPathOp);
-        ASwagDoc.Paths.Add(LSwagPath);
-
-        LSecurityDefs := TSwagSecurityDefinitionApiKey.Create;
-        LSecurityDefs.SchemaName := SECURITY_BEARER_NAME;
-        LSecurityDefs.InLocation := kilHeader;
-        LSecurityDefs.Name := 'Authorization';
-        LSecurityDefs.Description :=
+        // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
+        LSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
+        LSecurityDefsBearer.SchemaName := SECURITY_BEARER_NAME;
+        LSecurityDefsBearer.InLocation := kilHeader;
+        LSecurityDefsBearer.Name := 'Authorization';
+        LSecurityDefsBearer.Description :=
           'For accessing the API a valid JWT token must be passed in all the queries ' +
           'in the ''Authorization'' header.' + sLineBreak + sLineBreak +
           'A valid JWT token is generated by the API and retourned as answer of a call ' +
           'to the route `' + LJwtUrlSegment + '` giving a valid username and password.' + sLineBreak + sLineBreak +
           'The following syntax must be used in the ''Authorization'' header :' + sLineBreak + sLineBreak +
           '    Bearer xxxxxx.yyyyyyy.zzzzzz' + sLineBreak;
-
-        ASwagDoc.SecurityDefinitions.Add(LSecurityDefs);
+        ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBearer);
       end;
     finally
       LRttiContext.Free;
@@ -318,7 +280,7 @@ begin
       try
         DocumentApiInfo(LSwagDoc);
         DocumentApiSettings(AContext, LSwagDoc);
-        DocumentApiSecurityDefsJWT(LSwagDoc);
+        DocumentApiJWTAuthentication(LSwagDoc);
         DocumentApi(LSwagDoc);
 
         LSwagDoc.GenerateSwaggerJson;
@@ -361,6 +323,20 @@ begin
   finally
     LJSonOb.Free;
   end;
+end;
+
+{ TSwagSecurityDefinitionBasic }
+
+function TSwagSecurityDefinitionBasic.GenerateJsonObject: System.JSON.TJSONObject;
+begin
+  Result := System.JSON.TJsonObject.Create;
+  Result.AddPair('type', ReturnTypeSecurityToString);
+  Result.AddPair('description', fDescription);
+end;
+
+function TSwagSecurityDefinitionBasic.GetTypeSecurity: TSwagSecurityDefinitionType;
+begin
+  Result := ssdBasic;
 end;
 
 end.

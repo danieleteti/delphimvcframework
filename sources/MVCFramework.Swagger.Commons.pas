@@ -9,9 +9,13 @@ uses
   MVCFramework.Commons,
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.Path.Operation,
+  Swag.Doc.Path,
   System.JSON;
 
 type
+  TMVCSwagParamLocation = (plNotDefined, plQuery, plHeader, plPath, plFormData, plBody);
+  TMVCSwagParamType = (ptNotDefined, ptString, ptNumber, ptInteger, ptBoolean, ptArray, ptFile);
+
   /// <summary>
   /// Swagger info object
   /// </summary>
@@ -60,9 +64,6 @@ type
     property Description: string read FDescription;
     property JsonSchema: string read FJsonSchema;
   end;
-
-  TMVCSwagParamLocation = (plNotDefined, plQuery, plHeader, plPath, plFormData, plBody);
-  TMVCSwagParamType = (ptNotDefined, ptString, ptNumber, ptInteger, ptBoolean, ptArray, ptFile);
 
   MVCSwagParamAttribute = class(TCustomAttribute)
   private
@@ -116,7 +117,22 @@ type
     class function RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
     class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod);
     class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType): Boolean;
+    class function GetJWTAuthenticationPath(const AJWTUrlSegment: string): TSwagPath;
   end;
+
+const
+  SECURITY_BEARER_NAME = 'bearer';
+  SECURITY_BASIC_NAME = 'basic';
+  JWT_JSON_SCHEMA =
+    '{' + sLineBreak +
+    '	"type": "object",' + sLineBreak +
+    '	"properties": {' + sLineBreak +
+    '		"token": {' + sLineBreak +
+    '			"type": "string",' + sLineBreak +
+    '			"description": "JWT Token"' + sLineBreak +
+    '		}' + sLineBreak +
+    '	}' + sLineBreak +
+    '}';
 
 implementation
 
@@ -264,6 +280,44 @@ begin
     ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
   end;
 
+end;
+
+class function TMVCSwagger.GetJWTAuthenticationPath(const AJWTUrlSegment: string): TSwagPath;
+var
+  LSwagPathOp: TSwagPathOperation;
+  LSwagResponse: TSwagResponse;
+begin
+  LSwagPathOp := TSwagPathOperation.Create;
+  LSwagPathOp.Tags.Add('JWT Authentication');
+  LSwagPathOp.Operation := ohvPost;
+  LSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
+  LSwagPathOp.Description := 'Create JSON Web Token';
+  LSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
+
+  LSwagResponse := TSwagResponse.Create;
+  LSwagResponse.StatusCode := HTTP_STATUS.Unauthorized.ToString;
+  LSwagResponse.Description := 'Invalid authorization type';
+  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+
+  LSwagResponse := TSwagResponse.Create;
+  LSwagResponse.StatusCode := HTTP_STATUS.Forbidden.ToString;
+  LSwagResponse.Description := 'Forbidden';
+  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+
+  LSwagResponse := TSwagResponse.Create;
+  LSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
+  LSwagResponse.Description := 'Internal server error';
+  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+
+  LSwagResponse := TSwagResponse.Create;
+  LSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
+  LSwagResponse.Description := 'OK';
+  LSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(JWT_JSON_SCHEMA) as TJSONObject;
+  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+
+  Result := TSwagPath.Create;
+  Result.Uri := AJwtUrlSegment;
+  Result.Operations.Add(LSwagPathOp);
 end;
 
 class function TMVCSwagger.GetMVCSwagParamsFromMethod(const AMethod: TRttiMethod): TArray<MVCSwagParamAttribute>;
