@@ -138,7 +138,6 @@ type
     destructor Destroy; override;
   end;
 
-
 implementation
 
 function DelphiVarName(const inVarname: string):string;
@@ -164,7 +163,10 @@ var
 begin
   IntIndex := FInterfaceUses.IndexOf(inFilename);
   if IntIndex < 0 then
-    FImplementationUses.Add(inFilename);
+  begin
+    if FImplementationUses.IndexOf(inFilename) < 0 then
+      FImplementationUses.Add(inFilename);
+  end;
 end;
 
 procedure TDelphiUnit.AddInterfaceConstant(const inName, inValue: string);
@@ -180,7 +182,8 @@ begin
   if ImpIndex >= 0 then
     FImplementationUses.Delete(ImpIndex);
 
-  FInterfaceUses.Add(inFilename);
+  if FInterfaceUses.IndexOf(inFilename) < 0 then
+    FInterfaceUses.Add(inFilename);
 end;
 
 procedure TDelphiUnit.AddType(inTypeInfo: TUnitTypeDefinition);
@@ -191,13 +194,9 @@ end;
 constructor TDelphiUnit.Create;
 begin
   FInterfaceUses := TStringList.Create;
-  FInterfaceUses.Duplicates := dupIgnore;
   FInterfaceConstant := TStringList.Create;
-  FInterfaceConstant.Duplicates := dupIgnore;
   FImplementationConstant := TStringList.Create;
-  FImplementationConstant.Duplicates := dupIgnore;
   FImplementationUses := TStringList.Create;
-  FImplementationUses.Duplicates := dupIgnore;
   TypeDefinitions := TObjectList<TUnitTypeDefinition>.Create;
 end;
 
