@@ -18,9 +18,13 @@ type
     FCountry: string;
     FCode: Integer;
   public
+    [MVCSwagJsonSchemaField(stInteger, 'code', 'person id', True, False)]
     property Code: Integer read FCode write FCode;
+    [MVCSwagJsonSchemaField('name', 'person name', True, False)]
     property Name: string read FName write FName;
+    [MVCSwagJsonSchemaField('age', 'person age', True, False)]
     property Age: Integer read FAge write FAge;
+    [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False)]
     property Country: string read FCountry write FCountry;
   end;
 
@@ -39,7 +43,7 @@ type
 
     [MVCPath('')]
     [MVCSwagSummary('Person', 'Insert Person')]
-    [MVCSwagParam(plBody, '', 'Person object', TPerson, ptNotDefined, True)]
+    [MVCSwagParam(plBody, 'entity', 'Person object', TPerson, ptNotDefined, True)]
     [MVCSwagResponses(201, 'Created')]
     [MVCSwagResponses(401, 'Requires Authentication')]
     [MVCSwagResponses(500, 'Internal Server Error')]
