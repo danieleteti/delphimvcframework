@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano MÃ¼ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -384,8 +384,7 @@ class function TMVCSerializerHelper.CreateObject(const AQualifiedClassName: stri
 var
   Context: TRttiContext;
   ObjectType: TRttiType;
-begin
-  Result := nil;
+begin  
   Context := TRttiContext.Create;
   try
     ObjectType := Context.FindType(AQualifiedClassName);
