@@ -85,14 +85,21 @@ type
     FTypeName: string;
     FTypeInheritedFrom: string;
     FAttributes: TStringList;
+    FTypeKind: TTypeKind;
+    FForwardDeclare: Boolean;
+    FGuid : TGUID;
   public
     Fields: TObjectList<TUnitFieldDefinition>;
     FMethods: TObjectList<TUnitMethod>;
+    property Guid: TGUID read FGuid write FGuid;
     property TypeName: string read FTypeName write FTypeName;
+    property TypeKind: TTypeKind read FTypeKind write FTypeKind;
     property TypeInherited: string read FTypeInheritedFrom write FTypeInheritedFrom;
+    property ForwardDeclare: Boolean read FForwardDeclare write FForwardDeclare;
     function GetMethods(): TArray<TUnitMethod>;
     procedure AddAttribute(const inAttribute: string);
     function GenerateInterface: string;
+    function GenerateForwardInterface: string;
     constructor Create;
     destructor Destroy; override;
   end;
@@ -114,6 +121,7 @@ type
     function GenerateImplementationSectionStart: string; virtual;
     function GenerateImplementationUses: string; virtual;
     function GenerateImplementationConstants: string; virtual;
+    function CreateGUID: TGuid;
   public
     property UnitFile: string read FUnitName write FUnitName;
     property Title: String read FTitle write FTitle;
@@ -313,7 +321,9 @@ var
   j: Integer;
   LMethod: TUnitMethod;
   LMvcFile: TStringList;
+  LForwardAlreadyDeclared : Boolean;
 begin
+  LForwardAlreadyDeclared := False;
   LMvcFile := TStringList.Create;
   try
     LMvcFile.Add(GenerateInterfaceSectionStart);
@@ -339,6 +349,17 @@ begin
 
     for i := 0 to TypeDefinitions.Count - 1 do
     begin
+      if TypeDefinitions[i].ForwardDeclare then
+      begin
+        if not LForwardAlreadyDeclared then
+          LMvcFile.Add('  // Forward Declarations');
+        LMvcFile.Add(TypeDefinitions[i].GenerateForwardInterface);
+        LForwardAlreadyDeclared := True;
+      end;
+    end;
+
+    for i := 0 to TypeDefinitions.Count - 1 do
+    begin
       LMvcFile.Add(TypeDefinitions[i].GenerateInterface);
     end;
 
@@ -358,6 +379,14 @@ begin
   finally
     FreeAndNil(LMvcFile);
   end;
+end;
+
+function TDelphiUnit.CreateGUID:TGuid;
+var
+  guid : TGUID;
+begin
+  System.SysUtils.CreateGuid(guid);
+  Result := guid;
 end;
 
 procedure TDelphiUnit.SortTypeDefinitions;
@@ -387,6 +416,8 @@ begin
   FAttributes := TStringList.Create;
   Fields := TObjectList<TUnitFieldDefinition>.Create;
   FMethods := TObjectList<TUnitMethod>.Create;
+  FTypeKind := tkClass;
+  FForwardDeclare := False;
 end;
 
 destructor TUnitTypeDefinition.Destroy;
@@ -395,6 +426,16 @@ begin
   FreeAndNil(Fields);
   FreeAndNil(FMethods);
   inherited;
+end;
+
+function TUnitTypeDefinition.GenerateForwardInterface: string;
+begin
+  if FTypeKind = tkClass then
+    Result := '  ' + TypeName + ' : class;'
+  else if FTypeKind = tkInterface then
+    Result := '  ' + TypeName + ' : interface;'
+  else
+    Result := '  ' + TypeName + 'xxxx';
 end;
 
 function TUnitTypeDefinition.GenerateInterface: string;
@@ -409,10 +450,26 @@ begin
     begin
       LInterfaceSL.Add(FAttributes[i]);
     end;
-    if TypeInherited.Length > 0 then
-      LInterfaceSL.Add('  ' + TypeName + ' = class(' + TypeInherited + ')')
-    else
-      LInterfaceSL.Add('  ' + TypeName + ' = class');
+    if FTypeKind = tkClass then
+    begin
+      if TypeInherited.Length > 0 then
+        LInterfaceSL.Add('  ' + TypeName + ' = class(' + TypeInherited + ')')
+      else
+        LInterfaceSL.Add('  ' + TypeName + ' = class');
+    end
+    else if FTypeKind = tkInterface then
+    begin
+      if TypeInherited.Length > 0 then
+      begin
+        LInterfaceSL.Add('  ' + TypeName + ' = interface(' + TypeInherited + ')');
+        LInterfaceSL.Add('    [' + GUIDToString(FGuid).QuotedString + ']');
+      end
+      else
+      begin
+        LInterfaceSL.Add('  ' + TypeName + ' = interface');
+        LInterfaceSL.Add('    [' + GUIDToString(FGuid).QuotedString + ']');
+      end;
+    end;
 
     for j := 0 to Fields.Count - 1 do
     begin
