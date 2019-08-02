@@ -8,7 +8,8 @@ uses
   System.SysUtils,
   System.Rtti,
   System.TypInfo,
-  System.Generics.Collections
+  System.Generics.Collections,
+  System.Generics.Defaults
   ;
 
 type
@@ -49,19 +50,22 @@ type
     FName: string;
     FIsStatic: Boolean;
     FIsClassMethod: Boolean;
-    FIsConstructor: Boolean;
-    FIsDestructor: Boolean;
     FReturnType: TUnitTypeDefinition;
     FParams: TObjectList<TUnitParameter>;
     FVars: TObjectList<TUnitParameter>;
     FContent: TStringList;
+    function MethodKindToDelphiString(var LHasReturn: Boolean): string;
+    procedure ParametersToDelphiString(var LParamString: string);
+    procedure MethodLocalVarsToDelphiString(LFuncSL: TStringList);
+    function GetIsConstructor: Boolean;
+    function GetIsDestructor: Boolean;
   public
     property Content: TStringList read FContent write FContent;
     property MethodKind: TMethodKind read FMethodKind write FMethodKind;
     property Visibility: TMemberVisibility read FVisibility write FVisibility;
     property Name: string read FName write FName;
-    property IsConstructor: Boolean read FIsConstructor write FIsConstructor;
-    property IsDestructor: Boolean read FIsDestructor write FIsDestructor;
+    property IsConstructor: Boolean read GetIsConstructor;
+    property IsDestructor: Boolean read GetIsDestructor;
     property IsClassMethod: Boolean read FIsClassMethod write FIsClassMethod;
     // Static: No 'Self' parameter
     property IsStatic: Boolean read FIsStatic write FIsStatic;
@@ -98,6 +102,9 @@ type
     FInterfaceUses: TStringList;
     FImplementationUses: TStringList;
     FUnitName: string;
+    FTitle: String;
+    FDescription: string;
+    FLicense: string;
   public
     TypeDefinitions: TObjectList<TUnitTypeDefinition>;
     function GenerateInterfaceSectionStart: string; virtual;
@@ -106,14 +113,29 @@ type
     function GenerateImplementationUses: string; virtual;
   public
     property UnitFile: string read FUnitName write FUnitName;
+    property Title: String read FTitle write FTitle;
+    property Description: string read FDescription write FDescription;
+    property License: string read FLicense write FLicense;
     procedure AddInterfaceUnit(const inFilename: string); virtual;
     procedure AddImplementationUnit(const inFilename: string); virtual;
     procedure AddType(inTypeInfo: TUnitTypeDefinition);
+    procedure SortTypeDefinitions;
+    function Generate: string;
     constructor Create; virtual;
     destructor Destroy; override;
   end;
 
 implementation
+
+function DelphiVarName(const inVarname: string):string;
+begin
+  Result := inVarname;
+  if Result.ToLower = 'type' then
+    Result := '&' + Result
+  else if Result.ToLower = 'file' then
+    Result := '&' + Result;
+end;
+
 
 { TDelphiUnit }
 
@@ -242,6 +264,63 @@ begin
   end;
 end;
 
+function TDelphiUnit.Generate:string;
+var
+  i: Integer;
+  j: Integer;
+  LMethod: TUnitMethod;
+  LMvcFile: TStringList;
+begin
+  LMvcFile := TStringList.Create;
+  try
+    LMvcFile.Add(GenerateInterfaceSectionStart);
+    LMvcFile.Add(GenerateInterfaceUses);
+    LMvcFile.Add('(*');
+    LMvcFile.Add('Title: ' + Title);
+    LMvcFile.Add('Description: ' + Description);
+    LMvcFile.Add('License: ' + License);
+    LMvcFile.Add('*)');
+    LMvcFile.Add('');
+    LMvcFile.Add('type');
+
+    SortTypeDefinitions;
+
+    for i := 0 to TypeDefinitions.Count - 1 do
+    begin
+      LMvcFile.Add(TypeDefinitions[i].GenerateInterface);
+    end;
+    LMvcFile.Add(GenerateImplementationSectionStart);
+    LMvcFile.Add(GenerateImplementationUses);
+    LMvcFile.Add('');
+    for j := 0 to TypeDefinitions.Count - 1 do
+    begin
+      for LMethod in TypeDefinitions[j].GetMethods do
+      begin
+        LMvcFile.Add(LMethod.GenerateImplementation(TypeDefinitions[j]));
+      end;
+    end;
+    LMvcFile.Add('end.');
+    Result := LMvcFile.Text;
+  finally
+    FreeAndNil(LMvcFile);
+  end;
+end;
+
+procedure TDelphiUnit.SortTypeDefinitions;
+begin
+  { TODO : Make this much more advanced to handle dependency ordering of declarations }
+
+  TypeDefinitions.Sort(TComparer<TUnitTypeDefinition>.Construct(function (const L, R: TUnitTypeDefinition): integer
+  begin
+    if L.TypeName = 'TMyMVCController' then
+      Result := 1
+    else if R.TypeName = 'TMyMVCController' then
+      Result := -1
+    else
+      Result := CompareText(L.TypeName, R.TypeName);
+  end));
+end;
+
 { TTypeDefinition }
 
 procedure TUnitTypeDefinition.AddAttribute(const inAttribute: string);
@@ -331,19 +410,22 @@ end;
 
 function TUnitFieldDefinition.GenerateInterface: string;
 var
-  i: Integer;
-  SL: TStringList;
+  i : Integer;
+  SL : TStringList;
+  LType : string;
 begin
   SL := TStringList.Create;
   try
+    LType := FFieldType;
     for i := 0 to FAttributes.Count - 1 do
     begin
       SL.Add('    ' + FAttributes[i]);
     end;
+
     if Description.Length > 0 then
       SL.Add('    [MVCDoc(' + QuotedStr(Description) + ')]');
-    SL.Add('    ' + FFieldName + ' : ' + FFieldType + ';');
 
+    SL.Add('    ' + DelphiVarName(FFieldName) + ' : ' + LType + ';');
     Result := SL.Text;
   finally
     FreeAndNil(SL);
@@ -384,49 +466,26 @@ begin
   inherited;
 end;
 
-function TUnitMethod.GenerateImplementation(inOnType: TUnitTypeDefinition): string;
+procedure TUnitMethod.MethodLocalVarsToDelphiString(LFuncSL: TStringList);
 var
-  LProcTypeString: string;
-  LHasReturn: Boolean;
+  i: Integer;
+begin
+  if FVars.Count > 0 then
+  begin
+    LFuncSL.Add('var');
+    for i := 0 to FVars.Count - 1 do
+    begin
+      LFuncSL.Add('  ' + FVars[i].ParamName + ' : ' + FVars[i].ParamType.TypeName + ';');
+    end;
+  end;
+end;
+
+procedure TUnitMethod.ParametersToDelphiString(var LParamString: string);
+var
   LParam: TUnitParameter;
   LParamFlagString: string;
-  LParamString: string;
-  LClassNameProcIn: string;
-  i: Integer;
-  LFuncSL: TStringList;
+  LParamName: string;
 begin
-  LHasReturn := False;
-  LClassNameProcIn := '';
-  case MethodKind of
-    mkProcedure:
-      LProcTypeString := 'procedure';
-    mkFunction:
-      begin
-        LProcTypeString := 'function';
-        LHasReturn := True;
-      end;
-    mkDestructor:
-      LProcTypeString := 'destructor';
-    mkConstructor:
-      LProcTypeString := 'constructor';
-    mkClassFunction:
-      begin
-        LProcTypeString := 'class function';
-        LHasReturn := True;
-      end;
-    mkClassProcedure:
-      LProcTypeString := 'class procedure';
-    mkClassConstructor:
-      LProcTypeString := 'class constructor';
-    mkClassDestructor:
-      LProcTypeString := 'class destructor';
-  else
-    LProcTypeString := 'unknown'; // invalid ... will cause a compile error
-  end;
-
-  if Assigned(inOnType) then
-    LClassNameProcIn := inOnType.TypeName + '.';
-
   LParamString := '(';
   for LParam in GetParameters do
   begin
@@ -434,21 +493,69 @@ begin
     if pfConst in LParam.Flags then
       LParamFlagString := 'const'
     else if pfVar in LParam.Flags then
-      LParamFlagString := 'var';
-
+      LParamFlagString := 'var'
+    else if pfOut in LParam.Flags then
+      LParamFlagString := 'out'
+    else if pfArray in LParam.Flags then
+      LParamFlagString := 'array of';
     if LParamFlagString.Length > 0 then
       LParamFlagString := LParamFlagString + ' ';
 
-    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + '; ';
+    LParamName := DelphiVarName(LParam.ParamName);
+    LParamString := LParamString + LParamFlagString + LParamName + ': ' + LParam.FType.FTypeName + '; ';
   end;
-
   if LParamString.EndsWith('; ') then
     LParamString := LParamString.Remove(LParamString.Length - 2);
-
   LParamString := LParamString + ')';
-
   if LParamString = '()' then
     LParamString := '';
+end;
+
+function TUnitMethod.MethodKindToDelphiString(var LHasReturn: Boolean): string;
+begin
+  case MethodKind of
+    mkProcedure:
+      Result := 'procedure';
+    mkFunction:
+      begin
+        Result := 'function';
+        LHasReturn := True;
+      end;
+    mkDestructor:
+      Result := 'destructor';
+    mkConstructor:
+      Result := 'constructor';
+    mkClassFunction:
+      begin
+        Result := 'class function';
+        LHasReturn := True;
+      end;
+    mkClassProcedure:
+      Result := 'class procedure';
+    mkClassConstructor:
+      Result := 'class constructor';
+    mkClassDestructor:
+      Result := 'class destructor';
+  else
+    Result := 'unknown';
+  end;
+end;
+
+function TUnitMethod.GenerateImplementation(inOnType: TUnitTypeDefinition): string;
+var
+  LProcTypeString: string;
+  LHasReturn: Boolean;
+  LParamString: string;
+  LClassNameProcIn: string;
+  LFuncSL: TStringList;
+begin
+  LHasReturn := False;
+  LClassNameProcIn := '';
+  LProcTypeString := MethodKindToDelphiString(LHasReturn);
+
+  if Assigned(inOnType) then
+    LClassNameProcIn := inOnType.TypeName + '.';
+  ParametersToDelphiString(LParamString);
 
   if LHasReturn then
     Result := LProcTypeString + ' ' + LClassNameProcIn + FName + LParamString + ': ' + ReturnType.FTypeName + ';'
@@ -458,14 +565,9 @@ begin
   LFuncSL := TStringList.Create;
   try
     LFuncSL.Text := Result;
-    if FVars.Count > 0 then
-    begin
-      LFuncSL.Add('var');
-      for i := 0 to FVars.Count - 1 do
-      begin
-        LFuncSL.Add('  ' + FVars[i].ParamName + ' : ' + FVars[i].ParamType.TypeName + ';');
-      end;
-    end;
+
+    MethodLocalVarsToDelphiString(LFuncSL);
+
     LFuncSL.Add('begin');
     LFuncSL.Add(Content.Text);
     LFuncSL.Add('end;');
@@ -480,60 +582,14 @@ function TUnitMethod.GenerateInterface: string;
 var
   LProcTypeString: string;
   LHasReturn: Boolean;
-  LParam: TUnitParameter;
-  LParamFlagString: string;
   LParamString: string;
   LAttributeString: string;
 begin
   LHasReturn := False;
-  case MethodKind of
-    mkProcedure:
-      LProcTypeString := 'procedure';
-    mkFunction:
-      begin
-        LProcTypeString := 'function';
-        LHasReturn := True;
-      end;
-    mkDestructor:
-      LProcTypeString := 'destructor';
-    mkConstructor:
-      LProcTypeString := 'constructor';
-    mkClassFunction:
-      begin
-        LProcTypeString := 'class function';
-        LHasReturn := True;
-      end;
-    mkClassProcedure:
-      LProcTypeString := 'class procedure';
-    mkClassConstructor:
-      LProcTypeString := 'class constructor';
-    mkClassDestructor:
-      LProcTypeString := 'class destructor';
-  else
-    LProcTypeString := 'unknown'; // invalid ... will cause a compile error
-  end;
 
-  LParamString := '(';
-  for LParam in GetParameters do
-  begin
-    LParamFlagString := '';
-    if pfConst in LParam.Flags then
-      LParamFlagString := 'const'
-    else if pfVar in LParam.Flags then
-      LParamFlagString := 'var';
+  LProcTypeString := MethodKindToDelphiString(LHasReturn);
 
-    if LParamFlagString.Length > 0 then
-      LParamFlagString := LParamFlagString + ' ';
-    LParamString := LParamString + LParamFlagString + LParam.ParamName + ': ' + LParam.FType.FTypeName + '; ';
-  end;
-
-  if LParamString.EndsWith('; ') then
-    LParamString := LParamString.Remove(LParamString.Length - 2);
-
-  LParamString := LParamString + ')';
-
-  if LParamString = '()' then
-    LParamString := '';
+  ParametersToDelphiString(LParamString);
 
   if LHasReturn then
     Result := '    ' + LProcTypeString + ' ' + FName + LParamString + ': ' + ReturnType.FTypeName + ';'
@@ -542,6 +598,16 @@ begin
 
   LAttributeString := FAttributes.Text;
   Result := LAttributeString + Result;
+end;
+
+function TUnitMethod.GetIsConstructor: Boolean;
+begin
+  Result := MethodKind = mkConstructor;
+end;
+
+function TUnitMethod.GetIsDestructor: Boolean;
+begin
+  Result := MethodKind = mkDestructor;
 end;
 
 function TUnitMethod.GetParameters: TArray<TUnitParameter>;
