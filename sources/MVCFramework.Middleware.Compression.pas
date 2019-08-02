@@ -118,7 +118,7 @@ begin
     Context.Response.Content := '';
     lContentStream.Size := 0;
     lContentStream.CopyFrom(lMemStream, 0);
-    Context.Response.RawWebResponse.ContentEncoding := MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
+    Context.Response.RawWebResponse.ContentEncoding := string(MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType]);
   finally
     lMemStream.Free;
   end;	
