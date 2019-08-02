@@ -291,8 +291,7 @@ var
   lFileStream: TFileStream;
   lFileAccessMode: Word;
   lRetries: Integer;
-begin
-  Result := nil;
+begin  
   lFileAccessMode := fmOpenWrite or fmShareDenyNone;
   if not TFile.Exists(aFileName) then
     lFileAccessMode := lFileAccessMode or fmCreate;
