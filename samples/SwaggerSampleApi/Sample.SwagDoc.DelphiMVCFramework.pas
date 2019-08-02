@@ -17,8 +17,6 @@ uses
   ;
 
 type
-
-
   TSwagDocToDelphiMVCFrameworkBuilder = class(TObject)
   private
     FSwagDoc : TSwagDoc;
@@ -45,6 +43,7 @@ uses
   Json.Common.Helpers
   , Winapi.Windows
   , System.IOUtils
+  , MVCFramework.Commons
   ;
 
 { TSwagDocToDelphiMVCFrameworkBuilder }
@@ -70,7 +69,6 @@ begin
   else
     Result := typeName;
 end;
-
 
 constructor TSwagDocToDelphiMVCFrameworkBuilder.Create(SwagDoc: TSwagDoc);
 begin
@@ -110,14 +108,12 @@ begin
 
     ConvertSwaggerDefinitionsToTypeDefinitions(LDelphiUnit);
 
-
     LMVCController := TUnitTypeDefinition.Create;
     LMVCController.TypeName := 'TMyMVCController';
     LMVCController.TypeInherited := 'TMVCController';
     LMVCController.AddAttribute('  [MVCPath(''' + fSwagDoc.BasePath + ''')]');
 
     LDelphiUnit.AddType(LMVCController);
-
 
     for i := 0 to fSwagDoc.Paths.Count - 1 do
     begin
@@ -144,6 +140,21 @@ begin
   end;
 end;
 
+function ReturnStatusCode(inStatusCode: string):string;
+begin
+  inStatusCode := inStatusCode.ToLower;
+  if (inStatusCode = 'default') or (inStatusCode = '200') then
+    Result := 'HTTP_STATUS.OK'
+  else if inStatusCode = '400' then
+    Result := 'HTTP_STATUS.BadRequest'
+  else if inStatusCode = '404' then
+    Result := 'HTTP_STATUS.NotFound'
+  else if inStatusCode = '405' then
+    Result := 'HTTP_STATUS.MethodNotAllowed'
+  else
+    Result := inStatusCode;
+end;
+
 procedure TSwagDocToDelphiMVCFrameworkBuilder.ConvertSwaggerResponsesToDelphiMethods(ADelphiUnit: TDelphiUnit; AMethod: TUnitMethod; AOperation: TSwagPathOperation);
 var
   LResponse: System.Generics.Collections.TPair<string, TSwagResponse>;
@@ -158,76 +169,43 @@ begin
     if LSchemaObj = nil then  // No Return Info to Http Method
     begin
       AMethod.Content.Add('  // ' + LResponse.Key + ' ' + LResponse.Value.Description);
-      AMethod.AddAttribute('    [MVCResponse(' + LResponse.Key + ', ' + QuotedStr(LResponse.Value.Description) + ')]');
+      AMethod.AddAttribute('    [MVCResponse(' + ReturnStatusCode(LResponse.Key) + ', ' + QuotedStr(LResponse.Value.Description) + ')]');
       continue;
-    end;
+    end
     else if LSchemaObj.TryGetValue('$ref', LRef) then
     begin
-      AMethod.AddAttribute('    [MVCResponse(' + LResponse.Key + ', ' + QuotedStr(LResponse.Value.Description) + ', ' + ConvertRefToType(LRef) + ')]');
+      AMethod.AddAttribute('    [MVCResponse(' + ReturnStatusCode(LResponse.Key) + ', ' + QuotedStr(LResponse.Value.Description) + ', ' + ConvertRefToType(LRef) + ')]');
       LResultParam := TUnitParameter.Create;
       LResultParam.ParamName := ConvertRefToVarName(LRef);
       LResultParam.ParamType := TUnitTypeDefinition.Create;
       LResultParam.ParamType.TypeName := ConvertRefToType(LRef);
       AMethod.AddLocalVariable(LResultParam);
       AMethod.Content.Add('  ' + ConvertRefToVarName(LRef) + ' := ' + ConvertRefToType(LRef) + '.Create;');
-      for k := 0 to AOperation.Parameters.Count - 1 do
-      begin
-        if AOperation.Parameters[k].InLocation <> rpiPath then
-        begin
-          LResultParam := TUnitParameter.Create;
-          LResultParam.ParamName := 'param' + CapitalizeFirstLetter(AOperation.Parameters[k].Name);
-          LResultParam.ParamType := TUnitTypeDefinition.Create;
-          LResultParam.ParamType.TypeName := 'String';
-          AMethod.AddLocalVariable(LResultParam);
-          AMethod.Content.Add('  param' + CapitalizeFirstLetter(AOperation.Parameters[k].Name) + ' := Context.Request.Params[' + QuotedStr(AOperation.Parameters[k].Name) + '];');
-        end;
-      end;
+      AMethod.Content.Add('');
+      AMethod.Content.Add('  {TODO: Implement filling ' + ConvertRefToVarName(LRef) + ' }');
+      AMethod.Content.Add('  Render(' + ReturnStatusCode(LResponse.Key) + ', ' + ConvertRefToVarName(LRef) + ');');
     end
     else
     begin
-      if not LSchemaObj.TryGetValue('properties', LSchemaObj) then
-        continue;
-      if not LSchemaObj.TryGetValue('employees', LSchemaObj) then
-        continue;
       if not LSchemaObj.TryGetValue('items', LSchemaObj) then
         continue;
       if LSchemaObj.TryGetValue('$ref', LRef) then
       begin
-        AMethod.AddAttribute('    [MVCResponseList(' + LResponse.Key + ', ' + QuotedStr(LResponse.Value.Description) + ', ' + ConvertRefToType(LRef) + ')]');
+        ADelphiUnit.AddInterfaceUnit('Generics.Collections');
+        AMethod.AddAttribute('    [MVCResponseList(' + ReturnStatusCode(LResponse.Key) + ', ' + QuotedStr(LResponse.Value.Description) + ', ' + ConvertRefToType(LRef) + ')]');
         LResultParam := TUnitParameter.Create;
         LResultParam.ParamName := ConvertRefToVarName(LRef);
         LResultParam.ParamType := TUnitTypeDefinition.Create;
         LResultParam.ParamType.TypeName := 'TObjectList<' + ConvertRefToType(LRef) + '>';
         AMethod.AddLocalVariable(LResultParam);
-        ADelphiUnit.AddInterfaceUnit('Generics.Collections');
-        AMethod.Content.Add('  ' + ConvertRefToVarName(LRef) + ' := TObjectList<' + ConvertRefToType(LRef) + '>.Create;');
-        for k := 0 to AOperation.Parameters.Count - 1 do
-        begin
-          if AOperation.Parameters[k].InLocation <> rpiPath then
-          begin
-            LResultParam := TUnitParameter.Create;
-            LResultParam.ParamName := 'param' + AOperation.Parameters[k].Name;
-            LResultParam.ParamType := TUnitTypeDefinition.Create;
-            LResultParam.ParamType.TypeName := 'String';
-            AMethod.AddLocalVariable(LResultParam);
-            AMethod.Content.Add('  ' + AOperation.Parameters[k].Name + ' := Context.Request.Params[' + QuotedStr(AOperation.Parameters[k].Name) + '];');
-          end;
-        end;
+        AMethod.Content.Add('  ' + ConvertRefToVarName(LRef) + ' := Context.Request.BodyAsListOf<' + ConvertRefToType(LRef) + '>;');
+        AMethod.Content.Add('');
+        AMethod.Content.Add('  {TODO: Implement filling ' + ConvertRefToVarName(LRef) + ' }');
+        AMethod.Content.Add('');
+        AMethod.Content.Add('  Render(' + ReturnStatusCode(LResponse.Key) + ', ' + ConvertRefToVarName(LRef) + ');');
       end
       else
       begin
-        for k := 0 to AOperation.Parameters.Count - 1 do
-        begin
-          if AOperation.Parameters[k].InLocation <> rpiPath then
-          begin
-            LResultParam := TUnitParameter.Create;
-            LResultParam.ParamName := 'param' + AOperation.Parameters[k].Name;
-            LResultParam.ParamType := TUnitTypeDefinition.Create;
-            LResultParam.ParamType.TypeName := 'String';
-            AMethod.AddLocalVariable(LResultParam);
-            AMethod.Content.Add('  ' + AOperation.Parameters[k].Name + ' := Context.Request.Params[' + QuotedStr(AOperation.Parameters[k].Name) + '];');
-          end;
-        end;
         AMethod.AddAttribute('    [MVCResponse(' + LResponse.Key + ', ' + QuotedStr(LResponse.Value.Description) + ')]');
       end;
     end;
