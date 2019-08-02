@@ -41,6 +41,7 @@ def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION
 
 def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG', delphi_version=DEFAULT_DELPHI_VERSION):
     delphi_versions = {
+        "XE7": {"path": "15.0", "desc": "Delphi XE7"},
         "10.1": {"path": "18.0", "desc": "Delphi 10.1 Seattle"},
         "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
         "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},

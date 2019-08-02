@@ -63,8 +63,8 @@ implementation
 uses
   Graphics, {do not specialize VCL or FMX, let use the UnitScope defined in the project}
 {$IFDEF MSWINDOWS}
-  Imaging.pngimage, {do not specialize VCL or FMX, le use the UnitScope defined in the project}
-  Imaging.jpeg, {do not specialize VCL or FMX, le use the UnitScope defined in the project}
+  Vcl.Imaging.pngimage, {do not specialize VCL or FMX, le use the UnitScope defined in the project}
+  Vcl.Imaging.jpeg, {do not specialize VCL or FMX, le use the UnitScope defined in the project}
 {$ENDIF}
   System.Classes,
   System.SysUtils,

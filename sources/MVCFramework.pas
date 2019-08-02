@@ -65,7 +65,11 @@ uses
   // https://quality.embarcadero.com/browse/RSP-17216
 
 {$IFNDEF MOBILE} // file upload is not supported on mobile
+{$IF Defined(SeattleOrBetter)}
   Web.ReqMulti,
+{$ELSE}
+  ReqMulti,
+{$ENDIF}
 {$ENDIF}
   Web.HTTPApp,
 

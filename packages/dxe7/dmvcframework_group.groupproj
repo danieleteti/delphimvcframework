@@ -6,11 +6,8 @@
         <Projects Include="..\..\lib\loggerpro\packages\dxe7\loggerproRT.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="dmvcframeworkRT.dproj">
-            <Dependencies>..\..\lib\loggerpro\packages\dxe7\loggerproRT.dproj</Dependencies>
-        </Projects>
         <Projects Include="dmvcframeworkDT.dproj">
-            <Dependencies>dmvcframeworkRT.dproj</Dependencies>
+            <Dependencies/>
         </Projects>
     </ItemGroup>
     <ProjectExtensions>
@@ -29,32 +26,23 @@
     <Target Name="loggerproRT:Make">
         <MSBuild Projects="..\..\lib\loggerpro\packages\dxe7\loggerproRT.dproj" Targets="Make"/>
     </Target>
-    <Target Name="dmvcframeworkRT" DependsOnTargets="loggerproRT">
-        <MSBuild Projects="dmvcframeworkRT.dproj"/>
-    </Target>
-    <Target Name="dmvcframeworkRT:Clean" DependsOnTargets="loggerproRT:Clean">
-        <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="dmvcframeworkRT:Make" DependsOnTargets="loggerproRT:Make">
-        <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Make"/>
-    </Target>
-    <Target Name="dmvcframeworkDT" DependsOnTargets="dmvcframeworkRT">
+    <Target Name="dmvcframeworkDT">
         <MSBuild Projects="dmvcframeworkDT.dproj"/>
     </Target>
-    <Target Name="dmvcframeworkDT:Clean" DependsOnTargets="dmvcframeworkRT:Clean">
+    <Target Name="dmvcframeworkDT:Clean">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="dmvcframeworkDT:Make" DependsOnTargets="dmvcframeworkRT:Make">
+    <Target Name="dmvcframeworkDT:Make">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="loggerproRT;dmvcframeworkRT;dmvcframeworkDT"/>
+        <CallTarget Targets="loggerproRT;dmvcframeworkDT"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="loggerproRT:Clean;dmvcframeworkRT:Clean;dmvcframeworkDT:Clean"/>
+        <CallTarget Targets="loggerproRT:Clean;dmvcframeworkDT:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="loggerproRT:Make;dmvcframeworkRT:Make;dmvcframeworkDT:Make"/>
+        <CallTarget Targets="loggerproRT:Make;dmvcframeworkDT:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

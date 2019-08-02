@@ -32,6 +32,8 @@ unit DMVC.Expert.CodeGen.Templates;
 
 interface
 
+{$I dmvcframework.inc}
+
 resourcestring
 
   { Delphi template code }
@@ -47,9 +49,15 @@ resourcestring
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
     '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
+    {$IF Defined(SeattleOrBetter)}
     '  Web.ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
     '  Web.WebBroker,' + sLineBreak +
+    {$ELSE}
+    '  ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
+    '  WebReq,' + sLineBreak +
+    '  WebBroker,' + sLineBreak +
+    {$ENDIF}
     '  IdContext,' + sLineBreak +
     '  IdHTTPWebBrokerBridge;' + sLineBreak +
     sLineBreak +

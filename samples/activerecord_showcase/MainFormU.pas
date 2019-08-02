@@ -77,7 +77,7 @@ var
   lCustomer: TCustomer;
   lID: Integer;
 begin
-  ShowMessage('There are ' + TMVCActiveRecord.Count(TCustomer).ToString +
+  ShowMessage('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString +
     ' row/s for entity ' + TCustomer.ClassName);
 
   Log('Simple CRUD test');
@@ -162,7 +162,7 @@ begin
         begin
           lCustomer := TCustomer.Create;
           try
-            lCustomer.Code := Format('%5.5d', [TThread.Current.ThreadID, I]);
+            lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
             lCustomer.City := Cities[Random(high(Cities) + 1)];
             lCustomer.CompanyName := Format('%s %s %s', [
               lCustomer.City,
@@ -238,14 +238,14 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TCustomerEx.GetOneByWhere<TCustomerEx>('Code = ?', ['001']);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerEx>('Code = ?', ['001']);
   try
     Log(lCustomer.CompanyName);
     for lOrder in lCustomer.Orders do
     begin
       Log(Format('  %5.5d - %s - %m', [lOrder.ID, datetostr(lOrder.OrderDate),
         lOrder.Total]));
-      lOrderRows := TOrderDetail.Where<TOrderDetail>('id_order = ?',
+      lOrderRows := TMVCActiveRecord.Where<TOrderDetail>('id_order = ?',
         [lOrder.ID]);
       try
         for lOrderRow in lOrderRows do
@@ -424,7 +424,7 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TCustomer.GetByPK<TCustomerWithLogic>(lID);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithLogic>(lID);
   try
     Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' +
       BoolToStr(lCustomer.IsLocatedInRome, True));

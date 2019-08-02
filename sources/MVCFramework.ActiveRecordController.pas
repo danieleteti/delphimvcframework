@@ -300,7 +300,8 @@ begin
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.Insert;
     StatusCode := http_status.Created;
-    Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
+    //Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
+    Context.Response.CustomHeaders.Add('X-REF:' + Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
 
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
@@ -350,7 +351,8 @@ begin
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.SetPK(id);
     lAR.Update;
-    Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
+    //Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
+    Context.Response.CustomHeaders.Add('X-REF:' + Context.Request.PathInfo);
 
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
