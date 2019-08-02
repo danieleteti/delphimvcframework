@@ -101,6 +101,8 @@ type
   private
     FInterfaceUses: TStringList;
     FImplementationUses: TStringList;
+    FInterfaceConstant: TStringList;
+    FImplementationConstant: TStringList;
     FUnitName: string;
     FTitle: String;
     FDescription: string;
@@ -111,19 +113,23 @@ type
     function GenerateInterfaceUses: string; virtual;
     function GenerateImplementationSectionStart: string; virtual;
     function GenerateImplementationUses: string; virtual;
+    function GenerateImplementationConstants: string; virtual;
   public
     property UnitFile: string read FUnitName write FUnitName;
     property Title: String read FTitle write FTitle;
     property Description: string read FDescription write FDescription;
     property License: string read FLicense write FLicense;
     procedure AddInterfaceUnit(const inFilename: string); virtual;
+    procedure AddInterfaceConstant(const inName:string; const inValue:string);
     procedure AddImplementationUnit(const inFilename: string); virtual;
+    procedure AddImplementationConstant(const inName:string; const inValue:string);
     procedure AddType(inTypeInfo: TUnitTypeDefinition);
     procedure SortTypeDefinitions;
     function Generate: string;
     constructor Create; virtual;
     destructor Destroy; override;
   end;
+
 
 implementation
 
@@ -139,6 +145,11 @@ end;
 
 { TDelphiUnit }
 
+procedure TDelphiUnit.AddImplementationConstant(const inName, inValue: string);
+begin
+  FImplementationConstant.AddPair(inName, inValue);
+end;
+
 procedure TDelphiUnit.AddImplementationUnit(const inFilename: string);
 var
   IntIndex : Integer;
@@ -146,6 +157,11 @@ begin
   IntIndex := FInterfaceUses.IndexOf(inFilename);
   if IntIndex < 0 then
     FImplementationUses.Add(inFilename);
+end;
+
+procedure TDelphiUnit.AddInterfaceConstant(const inName, inValue: string);
+begin
+  FInterfaceConstant.AddPair(inName, inValue);
 end;
 
 procedure TDelphiUnit.AddInterfaceUnit(const inFilename: string);
@@ -168,6 +184,10 @@ constructor TDelphiUnit.Create;
 begin
   FInterfaceUses := TStringList.Create;
   FInterfaceUses.Duplicates := dupIgnore;
+  FInterfaceConstant := TStringList.Create;
+  FInterfaceConstant.Duplicates := dupIgnore;
+  FImplementationConstant := TStringList.Create;
+  FImplementationConstant.Duplicates := dupIgnore;
   FImplementationUses := TStringList.Create;
   FImplementationUses.Duplicates := dupIgnore;
   TypeDefinitions := TObjectList<TUnitTypeDefinition>.Create;
@@ -177,8 +197,31 @@ destructor TDelphiUnit.Destroy;
 begin
   FreeAndNil(FInterfaceUses);
   FreeAndNil(FImplementationUses);
+  FreeAndNil(FInterfaceConstant);
+  FreeAndNil(FImplementationConstant);
   FreeAndNil(TypeDefinitions);
   inherited;
+end;
+
+function TDelphiUnit.GenerateImplementationConstants: string;
+var
+  SL : TStringList;
+  i : Integer;
+begin
+  SL := TStringList.Create;
+  try
+    if FImplementationConstant.Count > 0 then
+    begin
+      SL.Add('const');
+      for i := 0 to FImplementationConstant.Count - 1 do
+      begin
+        SL.Add('  ' + FImplementationConstant.Names[i] + ' = ' + FImplementationConstant.ValueFromIndex[i] + ';');
+      end;
+    end;
+    Result := SL.Text;
+  finally
+    FreeAndNil(SL);
+  end;
 end;
 
 function TDelphiUnit.GenerateImplementationSectionStart: string;
@@ -285,13 +328,24 @@ begin
 
     SortTypeDefinitions;
 
+    if FInterfaceConstant.Count > 0 then
+    begin
+      LMvcFile.Add('const');
+      for i := 0 to FInterfaceConstant.Count - 1 do
+      begin
+        LMvcFile.Add('  ' + FInterfaceConstant.Names[i] + ' = ' + FInterfaceConstant.ValueFromIndex[i] + ';');
+      end;
+    end;
+
     for i := 0 to TypeDefinitions.Count - 1 do
     begin
       LMvcFile.Add(TypeDefinitions[i].GenerateInterface);
     end;
+
     LMvcFile.Add(GenerateImplementationSectionStart);
     LMvcFile.Add(GenerateImplementationUses);
     LMvcFile.Add('');
+    GenerateImplementationConstants;
     for j := 0 to TypeDefinitions.Count - 1 do
     begin
       for LMethod in TypeDefinitions[j].GetMethods do
