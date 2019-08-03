@@ -36,10 +36,16 @@ type
     FFlags: TParamFlags;
     FType: TUnitTypeDefinition;
     FParamName: string;
+    FAttributes: TStringList;
   public
+    property Attributes: TStringList read FAttributes write FAttributes;
     property ParamName: string read FParamName write FParamName;
     property Flags: TParamFlags read FFlags write FFlags;
     property ParamType: TUnitTypeDefinition read FType write FType;
+    procedure AddAttribute(const inAttribute: string);
+    constructor Create;
+    destructor Destroy; override;
+
   end;
 
   TUnitMethod = class
@@ -595,6 +601,8 @@ var
   LParam: TUnitParameter;
   LParamFlagString: string;
   LParamName: string;
+  LParamAttributeString : string;
+  I: Integer;
 begin
   LParamString := '(';
   for LParam in GetParameters do
@@ -611,8 +619,16 @@ begin
     if LParamFlagString.Length > 0 then
       LParamFlagString := LParamFlagString + ' ';
 
+    for I := 0 to LParam.Attributes.Count - 1 do
+    begin
+      LParamAttributeString := LParamAttributeString + ' ' + LParam.Attributes[i];
+    end;
+
+    LParamAttributeString := Trim(LParamAttributeString) + ' ';
+
+
     LParamName := DelphiVarName(LParam.ParamName);
-    LParamString := LParamString + LParamFlagString + LParamName + ': ' + LParam.FType.FTypeName + '; ';
+    LParamString := LParamString + LParamAttributeString + LParamFlagString + LParamName + ': ' + LParam.FType.FTypeName + '; ';
   end;
   if LParamString.EndsWith('; ') then
     LParamString := LParamString.Remove(LParamString.Length - 2);
@@ -729,6 +745,24 @@ begin
   begin
     Result[i] := FParams[i];
   end;
+end;
+
+{ TUnitParameter }
+
+procedure TUnitParameter.AddAttribute(const inAttribute: string);
+begin
+  FAttributes.Add(inAttribute);
+end;
+
+constructor TUnitParameter.Create;
+begin
+  FAttributes := TStringList.Create;
+end;
+
+destructor TUnitParameter.Destroy;
+begin
+  FreeAndNil(FAttributes);
+  inherited;
 end;
 
 end.

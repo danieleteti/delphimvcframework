@@ -32,6 +32,9 @@ type
     procedure ConvertSwaggerDefinitionsToTypeDefinitions(delphiUnit: TDelphiUnit);
     procedure ConvertSwaggerRequestParametersToDelphi(AMethod: TUnitMethod; AParameters: TObjectList<TSwagRequestParameter>);
     procedure ConvertSwaggerResponsesToDelphiMethods(ADelphiUnit: TDelphiUnit; AMethod: TUnitMethod; AOperation: TSwagPathOperation);
+    function SwaggerTypeAsString(ASwaggerType: TSwagTypeParameter): string;
+    procedure CreatePathParam(LSwagParam: TSwagRequestParameter; LParam: TUnitParameter);
+    function HandleFormatOnParameter(inParamType: string; param: TSwagRequestParameter): string;
   public
     constructor Create(SwagDoc: TSwagDoc);
     function Generate: string;
@@ -44,6 +47,7 @@ uses
   , Winapi.Windows
   , System.IOUtils
   , MVCFramework.Commons
+  , TypInfo
   ;
 
 { TSwagDocToDelphiMVCFrameworkBuilder }
@@ -104,6 +108,8 @@ begin
     LDelphiUnit.AddInterfaceUnit('MVCFramework.Logger');
     LDelphiUnit.AddInterfaceUnit('MVCFramework.JWT');
     LDelphiUnit.AddInterfaceUnit('Generics.Collections');
+    LDelphiUnit.AddInterfaceUnit('Swag.Common.Types');
+
     LDelphiUnit.AddImplementationUnit('Swag.Doc');
 
     ConvertSwaggerDefinitionsToTypeDefinitions(LDelphiUnit);
@@ -138,6 +144,26 @@ begin
   finally
     LDelphiUnit.Free;
   end;
+end;
+
+procedure TSwagDocToDelphiMVCFrameworkBuilder.CreatePathParam(LSwagParam: TSwagRequestParameter; LParam: TUnitParameter);
+var
+  param1 : string;
+  param2 : string;
+  param3 : string;
+  params : string;
+begin
+  param1 := SwaggerTypeAsString(LSwagParam.TypeParameter);
+  param2 := LSwagParam.Description;
+  param3 := LSwagParam.Format;
+
+  params := param1;
+  if param3.Length > 0 then
+    params := params + ', ' + param2.QuotedString + ', ' + param3.QuotedString
+  else if param2.Length > 0 then
+    params := params + ', ' + param2.QuotedString;
+
+  LParam.AddAttribute('[MVCPathParam(' + params + ')]');
 end;
 
 function ReturnStatusCode(inStatusCode: string):string;
@@ -212,6 +238,21 @@ begin
   end;
 end;
 
+
+function TSwagDocToDelphiMVCFrameworkBuilder.HandleFormatOnParameter(inParamType:string; param: TSwagRequestParameter): string;
+begin
+  if param.Format.ToLower = 'int64' then
+  begin
+    Result := 'Int64';
+    if inParamType.ToLower <> 'integer' then
+       raise Exception.Create('Parameter Type and Format do not match');
+  end
+  else
+  begin
+    Result := inParamType;
+  end;
+end;
+
 procedure TSwagDocToDelphiMVCFrameworkBuilder.ConvertSwaggerRequestParametersToDelphi(AMethod: TUnitMethod; AParameters: TObjectList<TSwagRequestParameter>);
 var
   LType: string;
@@ -219,6 +260,7 @@ var
   LParamType: TUnitTypeDefinition;
   LSwagParam : TSwagRequestParameter;
   LResultParam : TUnitParameter;
+  LAttributeString : string;
 begin
   for LSwagParam in AParameters do
   begin
@@ -227,6 +269,7 @@ begin
       LResultParam := TUnitParameter.Create;
       LResultParam.ParamName := 'param' + CapitalizeFirstLetter(LSwagParam.Name);
       LResultParam.ParamType := ConvertSwaggerTypeToDelphiType(LSwagParam);
+
       AMethod.AddLocalVariable(LResultParam);
       if LResultParam.ParamType.TypeName.StartsWith('array of') then
       begin
@@ -250,7 +293,9 @@ begin
     begin
       LParam := TUnitParameter.Create;
       LParam.ParamName := LSwagParam.Name;
+      CreatePathParam(LSwagParam, LParam);
       LParamType := ConvertSwaggerTypeToDelphiType(LSwagParam);
+      LParamType.TypeName := HandleFormatOnParameter(LParamType.TypeName, LSwagParam);
       LParam.ParamType := LParamType;
       AMethod.AddParameter(LParam);
     end;
@@ -385,6 +430,12 @@ begin
     end;
     delphiUnit.AddType(LTypeInfo);
   end;
+end;
+
+
+function TSwagDocToDelphiMVCFrameworkBuilder.SwaggerTypeAsString(ASwaggerType: TSwagTypeParameter):string;
+begin
+  Result := TypInfo.GetEnumName(System.TypeInfo(TSwagTypeParameter), Integer(ASwaggerType));
 end;
 
 function TSwagDocToDelphiMVCFrameworkBuilder.ConvertSwaggerTypeToDelphiType(inSwaggerType: TSwagRequestParameter): TUnitTypeDefinition;

@@ -77,6 +77,7 @@ uses
   IdGlobal,
   IdGlobalProtocols,
   IdURI,
+  Swag.Common.Types,
   MVCFramework.Commons;
 
 type
@@ -243,6 +244,15 @@ type
     property StatusCode: Integer read FStatusCode;
     property Description: string read FDescription;
     property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCPathParamAttribute = class(MVCBaseAttribute)
+  private
+    FType : TSwagTypeParameter;
+    FFormat : string;
+    FValue : string;
+  public
+    constructor Create(AType : TSwagTypeParameter; ADescription: string = ''; AFormat: string = '');
   end;
 
   MVCPatternAttribute = class(MVCStringAttribute)
@@ -3365,6 +3375,15 @@ end;
 constructor MVCIntegerAttribute.Create(const AValue: Int64);
 begin
   FValue := AValue;
+end;
+
+{ MVCPathParamAttribute }
+
+constructor MVCPathParamAttribute.Create(AType: TSwagTypeParameter; ADescription, AFormat: string);
+begin
+  FType := AType;
+  FValue := ADescription;
+  FFormat := AFormat;
 end;
 
 initialization
