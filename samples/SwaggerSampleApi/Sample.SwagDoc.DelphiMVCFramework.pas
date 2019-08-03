@@ -34,7 +34,7 @@ type
     procedure ConvertSwaggerResponsesToDelphiMethods(ADelphiUnit: TDelphiUnit; AMethod: TUnitMethod; AOperation: TSwagPathOperation);
     function SwaggerTypeAsString(ASwaggerType: TSwagTypeParameter): string;
     procedure CreatePathParam(LSwagParam: TSwagRequestParameter; LParam: TUnitParameter);
-    function HandleFormatOnParameter(inParamType: string; param: TSwagRequestParameter): string;
+    function HandleFormatOnParameter(const inParamType:string; param: TSwagRequestParameter): string;
   public
     constructor Create(SwagDoc: TSwagDoc);
     function Generate: string;
@@ -154,7 +154,7 @@ var
   params : string;
 begin
   param1 := SwaggerTypeAsString(LSwagParam.TypeParameter);
-  param2 := LSwagParam.Description;
+  param2 := LSwagParam.Pattern;
   param3 := LSwagParam.Format;
 
   params := param1;
@@ -162,6 +162,11 @@ begin
     params := params + ', ' + param2.QuotedString + ', ' + param3.QuotedString
   else if param2.Length > 0 then
     params := params + ', ' + param2.QuotedString;
+
+  if LSwagParam.Description.Trim <> '' then
+  begin
+  LParam.AddAttribute('[MVCDoc(' + LSwagParam.Description.QuotedString + ')]');
+  end;
 
   LParam.AddAttribute('[MVCPathParam(' + params + ')]');
 end;
@@ -187,7 +192,6 @@ var
   LSchemaObj: TJSONObject;
   LRef: string;
   LResultParam: TUnitParameter;
-  k: Integer;
 begin
   for LResponse in AOperation.Responses do
   begin
@@ -239,7 +243,7 @@ begin
 end;
 
 
-function TSwagDocToDelphiMVCFrameworkBuilder.HandleFormatOnParameter(inParamType:string; param: TSwagRequestParameter): string;
+function TSwagDocToDelphiMVCFrameworkBuilder.HandleFormatOnParameter(const inParamType:string; param: TSwagRequestParameter): string;
 begin
   if param.Format.ToLower = 'int64' then
   begin
@@ -260,7 +264,6 @@ var
   LParamType: TUnitTypeDefinition;
   LSwagParam : TSwagRequestParameter;
   LResultParam : TUnitParameter;
-  LAttributeString : string;
 begin
   for LSwagParam in AParameters do
   begin

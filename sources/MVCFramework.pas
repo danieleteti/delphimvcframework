@@ -252,7 +252,10 @@ type
     FFormat : string;
     FValue : string;
   public
-    constructor Create(AType : TSwagTypeParameter; ADescription: string = ''; AFormat: string = '');
+    constructor Create(AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = '');
+    property ParamType: TSwagTypeParameter read FType;
+    property Format: string read FFormat;
+    property Pattern: string read FValue;
   end;
 
   MVCPatternAttribute = class(MVCStringAttribute)
@@ -3379,10 +3382,10 @@ end;
 
 { MVCPathParamAttribute }
 
-constructor MVCPathParamAttribute.Create(AType: TSwagTypeParameter; ADescription, AFormat: string);
+constructor MVCPathParamAttribute.Create(AType: TSwagTypeParameter; APattern, AFormat: string);
 begin
   FType := AType;
-  FValue := ADescription;
+  FValue := APattern;
   FFormat := AFormat;
 end;
 
