@@ -61,7 +61,7 @@ type
     FVars: TObjectList<TUnitParameter>;
     FContent: TStringList;
     function MethodKindToDelphiString(var LHasReturn: Boolean): string;
-    procedure ParametersToDelphiString(var LParamString: string);
+    procedure ParametersToDelphiString(var AParamString: string; AIncludeAttributes: Boolean);
     procedure MethodLocalVarsToDelphiString(LFuncSL: TStringList);
     function GetIsConstructor: Boolean;
     function GetIsDestructor: Boolean;
@@ -596,7 +596,7 @@ begin
   end;
 end;
 
-procedure TUnitMethod.ParametersToDelphiString(var LParamString: string);
+procedure TUnitMethod.ParametersToDelphiString(var AParamString: string; AIncludeAttributes: Boolean);
 var
   LParam: TUnitParameter;
   LParamFlagString: string;
@@ -604,7 +604,7 @@ var
   LParamAttributeString : string;
   I: Integer;
 begin
-  LParamString := '(';
+  AParamString := '(';
   for LParam in GetParameters do
   begin
     LParamFlagString := '';
@@ -619,22 +619,25 @@ begin
     if LParamFlagString.Length > 0 then
       LParamFlagString := LParamFlagString + ' ';
 
-    for I := 0 to LParam.Attributes.Count - 1 do
+    if AIncludeAttributes then
     begin
-      LParamAttributeString := LParamAttributeString + ' ' + LParam.Attributes[i];
-    end;
+      for I := 0 to LParam.Attributes.Count - 1 do
+      begin
+        LParamAttributeString := LParamAttributeString + ' ' + LParam.Attributes[i];
+      end;
 
-    LParamAttributeString := Trim(LParamAttributeString) + ' ';
+      LParamAttributeString := Trim(LParamAttributeString) + ' ';
+    end;
 
 
     LParamName := DelphiVarName(LParam.ParamName);
-    LParamString := LParamString + LParamAttributeString + LParamFlagString + LParamName + ': ' + LParam.FType.FTypeName + '; ';
+    AParamString := AParamString + LParamAttributeString + LParamFlagString + LParamName + ': ' + LParam.FType.FTypeName + '; ';
   end;
-  if LParamString.EndsWith('; ') then
-    LParamString := LParamString.Remove(LParamString.Length - 2);
-  LParamString := LParamString + ')';
-  if LParamString = '()' then
-    LParamString := '';
+  if AParamString.EndsWith('; ') then
+    AParamString := AParamString.Remove(AParamString.Length - 2);
+  AParamString := AParamString + ')';
+  if AParamString = '()' then
+    AParamString := '';
 end;
 
 function TUnitMethod.MethodKindToDelphiString(var LHasReturn: Boolean): string;
@@ -681,7 +684,7 @@ begin
 
   if Assigned(inOnType) then
     LClassNameProcIn := inOnType.TypeName + '.';
-  ParametersToDelphiString(LParamString);
+  ParametersToDelphiString(LParamString, False);
 
   if LHasReturn then
     Result := LProcTypeString + ' ' + LClassNameProcIn + FName + LParamString + ': ' + ReturnType.FTypeName + ';'
@@ -715,7 +718,7 @@ begin
 
   LProcTypeString := MethodKindToDelphiString(LHasReturn);
 
-  ParametersToDelphiString(LParamString);
+  ParametersToDelphiString(LParamString, True);
 
   if LHasReturn then
     Result := '    ' + LProcTypeString + ' ' + FName + LParamString + ': ' + ReturnType.FTypeName + ';'
