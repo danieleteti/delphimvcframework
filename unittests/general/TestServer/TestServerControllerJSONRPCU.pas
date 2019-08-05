@@ -40,7 +40,7 @@ end;
 
 function TTestJSONRPCController.GetListFromTo(aFrom, aTo: Int64): TJsonArray;
 var
-  I: Int64;
+  I: Cardinal;
 begin
   Result := TJsonArray.Create;
   for I := aFrom to aTo do
@@ -86,7 +86,7 @@ end;
 
 function TTestJSONRPCClass.GetListFromTo(aFrom, aTo: Int64): TJsonArray;
 var
-  I: Int64;
+  I: Cardinal;
 begin
   Result := TJsonArray.Create;
   for I := aFrom to aTo do

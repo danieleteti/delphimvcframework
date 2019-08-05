@@ -47,6 +47,10 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE XE7ORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 29} // XE8
+{$DEFINE XE8ORBETTER}
+{$ENDIF}
+
 {$IF CompilerVersion >= 30} // 10.0 Seattle
 {$DEFINE SEATTLEORBETTER}
 {$ENDIF}

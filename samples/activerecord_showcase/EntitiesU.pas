@@ -234,7 +234,7 @@ procedure TCustomerEx.OnAfterLoad;
 begin
   inherited;
   fOrders.Free;
-  fOrders := TOrder.Where<TOrder>('id_customer = ?', [Self.ID]);
+  fOrders := TMVCActiveRecord.Where<TOrder>('id_customer = ?', [Self.ID]);
 end;
 
 { TCustomerWithLogic }

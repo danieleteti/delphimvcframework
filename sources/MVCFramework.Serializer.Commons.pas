@@ -385,6 +385,9 @@ var
   Context: TRttiContext;
   ObjectType: TRttiType;
 begin
+{$IF not Defined(SeattleOrBetter)}
+  Result := nil;
+{$ENDIF}
   Context := TRttiContext.Create;
   try
     ObjectType := Context.FindType(AQualifiedClassName);

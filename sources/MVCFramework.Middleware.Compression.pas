@@ -24,6 +24,8 @@
 
 unit MVCFramework.Middleware.Compression;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -118,7 +120,11 @@ begin
     Context.Response.Content := '';
     lContentStream.Size := 0;
     lContentStream.CopyFrom(lMemStream, 0);
+{$IF Defined(SeattleOrBetter)}
     Context.Response.RawWebResponse.ContentEncoding := MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
+{$ELSE}
+    Context.Response.RawWebResponse.ContentEncoding := AnsiString(MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType]);
+{$ENDIF}
   finally
     lMemStream.Free;
   end;	

@@ -102,7 +102,7 @@ var
 begin
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=C:\DEV\dmvcframework\samples\data\activerecorddb.db');
+    LParams.Add('Database=C:\DEV\delphimvcframework\samples\data\activerecorddb.db');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
