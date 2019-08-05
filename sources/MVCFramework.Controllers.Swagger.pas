@@ -35,6 +35,8 @@ type
     property ReturnType: TClass read FReturnType write FReturnType;
     property Kind: TTypeKind read FKind write FKind;
     function GetReturnTypeName:string;
+    constructor Create(AAttribute: MVCResponseAttribute); overload;
+    constructor Create(AAttribute: MVCResponseListAttribute); overload;
   end;
 
   TMVCEndPoint = class
@@ -165,8 +167,6 @@ begin
       else
         raise Exception.Create('Format not valid on ' + AField.ClassName);
     end;
-
-
   end;
 end;
 
@@ -259,24 +259,15 @@ begin
         end
         else if LAttribute is MVCResponseAttribute then
         begin
-          LStatus := TMVCStatusResponses.Create;
-          LStatus.statusCode := MVCResponseAttribute(LAttribute).StatusCode;
-          LStatus.statusDescription := MVCResponseAttribute(LAttribute).Description;
-          LStatus.ReturnType := MVCResponseAttribute(LAttribute).ResponseClass;
-          LStatus.Kind := tkClass;
+          LStatus := TMVCStatusResponses.Create(MVCResponseAttribute(LAttribute));
           LEndpoint.statuses.Add(LStatus);
         end
         else if LAttribute is MVCResponseListAttribute then
         begin
-          LStatus := TMVCStatusResponses.Create;
-          LStatus.statusCode := MVCResponseListAttribute(LAttribute).StatusCode;
-          LStatus.statusDescription := MVCResponseListAttribute(LAttribute).Description;
-          LStatus.ReturnType := MVCResponseListAttribute(LAttribute).ResponseClass;
-          LStatus.Kind := tkArray;
+          LStatus := TMVCStatusResponses.Create(MVCResponseListAttribute(LAttribute));
           LEndpoint.statuses.Add(LStatus);
         end
       end;
-
       LEndpoint.OperationId := LMethod.Name;
       fEndpoints.Add(LEndpoint);
     end;
@@ -552,6 +543,22 @@ begin
 end;
 
 { TStatusResponses }
+
+constructor TMVCStatusResponses.Create(AAttribute: MVCResponseAttribute);
+begin
+  StatusCode := AAttribute.StatusCode;
+  StatusDescription := AAttribute.Description;
+  ReturnType := AAttribute.ResponseClass;
+  Kind := tkClass;
+end;
+
+constructor TMVCStatusResponses.Create(AAttribute: MVCResponseListAttribute);
+begin
+  StatusCode := AAttribute.StatusCode;
+  StatusDescription := AAttribute.Description;
+  ReturnType := AAttribute.ResponseClass;
+  Kind := tkArray;
+end;
 
 // Possibly use this method to strip the Default 'T' off the start of an object name
 function TMVCStatusResponses.GetReturnTypeName: string;
