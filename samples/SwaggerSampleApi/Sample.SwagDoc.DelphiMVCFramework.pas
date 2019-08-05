@@ -33,8 +33,10 @@ type
     procedure ConvertSwaggerRequestParametersToDelphi(AMethod: TUnitMethod; AParameters: TObjectList<TSwagRequestParameter>);
     procedure ConvertSwaggerResponsesToDelphiMethods(ADelphiUnit: TDelphiUnit; AMethod: TUnitMethod; AOperation: TSwagPathOperation);
     function SwaggerTypeAsString(ASwaggerType: TSwagTypeParameter): string;
-    procedure CreatePathParam(LSwagParam: TSwagRequestParameter; LParam: TUnitParameter);
+    procedure CreatePathParam(ASwagParam: TSwagRequestParameter; AParam: TUnitParameter);
     function HandleFormatOnParameter(const inParamType:string; param: TSwagRequestParameter): string;
+    procedure CreateNonPathParam(ASwagParam: TSwagRequestParameter; AMethod : TUnitMethod);
+    function InLocationAsString(ASwaggerType: TSwagRequestParameterInLocation): string;
   public
     constructor Create(SwagDoc: TSwagDoc);
     function Generate: string;
@@ -129,7 +131,7 @@ begin
         if fSwagDoc.Paths[i].Operations[j].Description.Trim.Length > 0 then
           LMethod.AddAttribute('    [MVCDoc(' + QuotedStr(fSwagDoc.Paths[i].Operations[j].Description) + ')]');
         LMethod.AddAttribute('    [MVCPath(''' + RewriteUriToSwaggerWay(fSwagDoc.Paths[i].Uri) + ''')]');
-        LMethod.AddAttribute('    [MVCHTTPMethod([http' + fSwagDoc.Paths[i].Operations[j].OperationToString + '])]');
+        LMethod.AddAttribute('    [MVCHTTPMethod([http' + fSwagDoc.Paths[i].Operations[j].OperationToString.ToUpper + '])]');
         LMethod.Name := OperationIdToFunctionName(fSwagDoc.Paths[i].Operations[j]);
 
         ConvertSwaggerRequestParametersToDelphi(LMethod, FSwagDoc.Paths[i].Operations[j].Parameters);
@@ -146,16 +148,58 @@ begin
   end;
 end;
 
-procedure TSwagDocToDelphiMVCFrameworkBuilder.CreatePathParam(LSwagParam: TSwagRequestParameter; LParam: TUnitParameter);
+procedure TSwagDocToDelphiMVCFrameworkBuilder.CreateNonPathParam(ASwagParam: TSwagRequestParameter; AMethod : TUnitMethod);
+var
+  param1 : string;
+  param2 : string;
+  paramType : string;
+  param4 : string;
+  param5 : string;
+  params : string;
+
+begin
+  param1 := ASwagParam.Name;
+  param2 := InLocationAsString(ASwagParam.InLocation);
+  paramType := SwaggerTypeAsString(ASwagParam.TypeParameter);
+  param4 := ASwagParam.Pattern;
+  param5 := ASwagParam.Format;
+
+  if ASwagParam.TypeParameter = stpNotDefined then
+  begin
+    if ASwagParam.Schema.JsonSchema.Values['$ref']<>nil then
+      paramType := ConvertRefToType(ASwagParam.Schema.JsonSchema.Values['$ref'].Value);
+  end;
+
+
+  if param1.Length = 0 then
+    raise Exception.Create('Parameter name not specified');
+
+  if ASwagParam.InLocation = rpiNotDefined then
+    raise Exception.Create('Parameter location not specified');
+
+  if paramType.Length = 0 then
+    raise Exception.Create('Parameter type not specified');
+
+  params := param1.QuotedString + ', ' + param2 + ', '+ paramType;
+  if param5.Length > 0 then
+    params := params + ', ' + param4.QuotedString + ', ' + param5.QuotedString
+  else if param4.Length > 0 then
+  params := params + ', ' + param4.QuotedString;
+
+  AMethod.AddAttribute('[MVCParam(' + params + ')]');
+end;
+
+
+procedure TSwagDocToDelphiMVCFrameworkBuilder.CreatePathParam(ASwagParam: TSwagRequestParameter; AParam: TUnitParameter);
 var
   param1 : string;
   param2 : string;
   param3 : string;
   params : string;
 begin
-  param1 := SwaggerTypeAsString(LSwagParam.TypeParameter);
-  param2 := LSwagParam.Pattern;
-  param3 := LSwagParam.Format;
+  param1 := SwaggerTypeAsString(ASwagParam.TypeParameter);
+  param2 := ASwagParam.Pattern;
+  param3 := ASwagParam.Format;
 
   params := param1;
   if param3.Length > 0 then
@@ -163,12 +207,12 @@ begin
   else if param2.Length > 0 then
     params := params + ', ' + param2.QuotedString;
 
-  if LSwagParam.Description.Trim <> '' then
+  if ASwagParam.Description.Trim <> '' then
   begin
-  LParam.AddAttribute('[MVCDoc(' + LSwagParam.Description.QuotedString + ')]');
+  AParam.AddAttribute('[MVCDoc(' + ASwagParam.Description.QuotedString + ')]');
   end;
 
-  LParam.AddAttribute('[MVCPathParam(' + params + ')]');
+  AParam.AddAttribute('[MVCPathParam(' + params + ')]');
 end;
 
 function ReturnStatusCode(inStatusCode: string):string;
@@ -273,6 +317,8 @@ begin
       LResultParam.ParamName := 'param' + CapitalizeFirstLetter(LSwagParam.Name);
       LResultParam.ParamType := ConvertSwaggerTypeToDelphiType(LSwagParam);
 
+      CreateNonPathParam(LSwagParam, AMethod);
+
       AMethod.AddLocalVariable(LResultParam);
       if LResultParam.ParamType.TypeName.StartsWith('array of') then
       begin
@@ -288,6 +334,7 @@ begin
       LResultParam := TUnitParameter.Create;
       LResultParam.ParamName := 'param' + CapitalizeFirstLetter(LSwagParam.Name);
       LResultParam.ParamType := TUnitTypeDefinition.Create;
+      CreateNonPathParam(LSwagParam, AMethod);
       LResultParam.ParamType.TypeName := 'String';
       AMethod.AddLocalVariable(LResultParam);
       AMethod.Content.Add('  param' + CapitalizeFirstLetter(LSwagParam.Name) + ' := Context.Request.Params[' + QuotedStr(LSwagParam.Name) + '];');
@@ -440,6 +487,12 @@ function TSwagDocToDelphiMVCFrameworkBuilder.SwaggerTypeAsString(ASwaggerType: T
 begin
   Result := TypInfo.GetEnumName(System.TypeInfo(TSwagTypeParameter), Integer(ASwaggerType));
 end;
+
+function TSwagDocToDelphiMVCFrameworkBuilder.InLocationAsString(ASwaggerType: TSwagRequestParameterInLocation):string;
+begin
+  Result := TypInfo.GetEnumName(System.TypeInfo(TSwagRequestParameterInLocation), Integer(ASwaggerType));
+end;
+
 
 function TSwagDocToDelphiMVCFrameworkBuilder.ConvertSwaggerTypeToDelphiType(inSwaggerType: TSwagRequestParameter): TUnitTypeDefinition;
 var
