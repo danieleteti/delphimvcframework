@@ -271,6 +271,7 @@ begin
     for LProp in LObjType.GetProperties do
     begin
       LSkipProp := False;
+      LFieldSchemaDef := TFieldSchemaDefinition.Create;
 
       for LAttr in LProp.GetAttributes do
       begin

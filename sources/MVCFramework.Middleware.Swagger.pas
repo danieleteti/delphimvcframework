@@ -88,6 +88,8 @@ var
   LMVCHttpMethods: TMVCHTTPMethods;
   LSwagPathOp: TSwagPathOperation;
   I: TMVCHTTPMethodType;
+  LPathUri: string;
+  LIndex: Integer;
 begin
   LRttiContext := TRttiContext.Create;
   try
@@ -128,8 +130,23 @@ begin
 
         if LFoundAttr then
         begin
-          LSwagPath := TSwagPath.Create;
-          LSwagPath.Uri := TMVCSwagger.MVCPathToSwagPath(LControllerPath + LMethodPath);
+          LSwagPath := nil;
+          LPathUri := TMVCSwagger.MVCPathToSwagPath(LControllerPath + LMethodPath);
+          for LIndex := 0 to Pred(ASwagDoc.Paths.Count) do
+          begin
+            if SameText(ASwagDoc.Paths[LIndex].Uri, LPathUri) then
+            begin
+              LSwagPath := ASwagDoc.Paths[LIndex];
+              Break;
+            end;
+          end;
+
+          if not Assigned(LSwagPath) then
+          begin
+            LSwagPath := TSwagPath.Create;
+            LSwagPath.Uri := LPathUri;
+            ASwagDoc.Paths.Add(LSwagPath);
+          end;
 
           for I in LMVCHttpMethods do
           begin
@@ -143,7 +160,6 @@ begin
             LSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
             LSwagPath.Operations.Add(LSwagPathOp);
           end;
-          ASwagDoc.Paths.Add(LSwagPath);
         end;
       end;
     end;
@@ -284,7 +300,6 @@ begin
         DocumentApi(LSwagDoc);
 
         LSwagDoc.GenerateSwaggerJson;
-
         InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
         AHandled := True;
       except
