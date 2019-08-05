@@ -4,6 +4,7 @@ interface
 
 uses
     Classes
+  , System.TypInfo
   , MVCFramework
   , MVCFramework.Commons
   , System.Generics.Collections
@@ -20,6 +21,7 @@ uses
   , Json.Schema.Field.Arrays
   , Json.Schema.Field.Objects
   , Json.Schema.Field.Numbers
+  , Json.Schema.Field.DateTimes
   ;
 
 type
@@ -74,6 +76,7 @@ type
     procedure ProcessControllerMethods(aClass: TClass);
     procedure ProcessObject(schema: TJSONSchema; aClass:TClass);
     procedure ProcessObjectForDefinition(aClass:TClass);
+    function JsonFieldFromRttiTypeInfo(LSchema: TJsonSchema; LTypeKind : TTypeKind; TypeHandle: PTypeInfo; LPropertyName: string): TJsonField;
   public
     class function ProcessAndRewriteURL(params: TStringList; const rootPath:string; const path:string): string;
     class function MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
@@ -276,6 +279,37 @@ begin
   end;
 end;
 
+function TMVCSwaggerController.JsonFieldFromRttiTypeInfo(LSchema: TJsonSchema; LTypeKind : TTypeKind; TypeHandle: PTypeInfo; LPropertyName: string): TJsonField;
+begin
+  Result := nil;
+  case LTypeKind of
+    tkClassRef, tkPointer, tkProcedure, tkMRecord, tkInterface,
+    tkMethod, tkVariant, tkSet: ;
+    tkWChar, tkLString, tkWString, tkString, tkUString, tkChar:
+      Result := LSchema.AddField<String>(LPropertyName);
+    tkEnumeration:
+      if (TypeHandle = TypeInfo(Boolean)) then
+        LSchema.AddField<Boolean>(LPropertyName);
+    tkRecord:
+      if (TypeHandle = TypeInfo(TGUID)) then
+        LSchema.AddField<String>(LPropertyName);
+    tkInteger:
+      Result := LSchema.AddField<Integer>(LPropertyName);
+    tkInt64:
+      Result := LSchema.AddField<Int64>(LPropertyName);
+    tkFloat:
+      if TypeHandle  = TypeInfo(TDateTime) then
+        Result := LSchema.AddField<TJsonFieldDateTime>(LPropertyName)
+      else if TypeHandle = TypeInfo(TDate) then
+        Result := LSchema.AddField<TJsonFieldDate>(LPropertyName)
+      else if TypeHandle = TypeInfo(TTime) then
+        Result := LSchema.AddField<TJsonFieldTime>(LPropertyName)
+      else
+        Result := LSchema.AddField<Double>(LPropertyName);
+  end;
+end;
+
+
 procedure TMVCSwaggerController.ProcessObjectForDefinition(aClass:TClass);
 var
   LRttiContext: TRttiContext;
@@ -299,20 +333,8 @@ begin
     begin
       LTypeKind := LIndexedProperty.PropertyType.TypeKind;
       LPropertyName := LIndexedProperty.Name;
-      case LTypeKind of
-        tkClassRef, tkPointer, tkProcedure, tkMRecord, tkInterface,
-        tkEnumeration, tkMethod, tkVariant, tkSet, tkRecord: ;
-        tkWChar, tkLString, tkWString, tkString, tkUString, tkChar:
-          LField := LSchema.AddField<String>(LPropertyName);
-        tkUnknown:
-          LField := LSchema.AddField<String>(LPropertyName);
-        tkInteger:
-          LField := LSchema.AddField<Integer>(LPropertyName);
-        tkInt64:
-          LField := LSchema.AddField<Int64>(LPropertyName);
-        tkFloat:
-          LField := LSchema.AddField<Double>(LPropertyName);
-        tkClass:
+      LField := JsonFieldFromRttiTypeInfo(LSchema, LTypeKind, LIndexedProperty.PropertyType.Handle, LPropertyName);
+      if LTypeKind = tkClass then
         begin
           LField := LSchema.AddField<TJsonFieldArray>(LPropertyName);
           LChildObject := TJsonFieldObject.Create;
@@ -321,12 +343,11 @@ begin
 
           (LField as TJsonFieldArray).ItemFieldType := LChildObject;
           OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
-        end;
-        tkArray:
+        end
+      else if LTypeKind = tkArray then
+          OutputDebugString(PChar(LIndexedProperty.PropertyType.Name))
+      else if LTypeKind = tkDynArray then
           OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
-        tkDynArray:
-          OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
-      end;
       LAttributes := LIndexedProperty.GetAttributes;
       ConvertFieldAttributesToSwagger(LField, LAttributes);
     end;
@@ -334,23 +355,9 @@ begin
     for LProperty in LRttiType.GetProperties do
     begin
       LPropertyName := LProperty.Name;
-      if (LProperty.PropertyType.TypeKind = tkInteger) then
-      begin
-        LField := LSchema.AddField<Integer>(LPropertyName);
-      end
-      else if (LProperty.PropertyType.TypeKind = tkInt64) then
-      begin
-        LField := LSchema.AddField<Int64>(LPropertyName);
-      end
-      else if (LProperty.PropertyType.TypeKind = tkFloat) then
-      begin
-        LField := LSchema.AddField<Double>(LPropertyName);
-      end
-      else if (LProperty.PropertyType.TypeKind = tkWString) then
-      begin
-        LField := LSchema.AddField<WideString>(LPropertyName);
-      end
-      else if (LProperty.PropertyType.TypeKind = tkClass) then
+      LTypeKind := LProperty.PropertyType.TypeKind;
+      LField := JsonFieldFromRttiTypeInfo(LSchema, LTypeKind, LProperty.PropertyType.Handle, LPropertyName);
+      if (LProperty.PropertyType.TypeKind = tkClass) then
       begin
         if LProperty.PropertyType.Name='TRttiInstanceType' then continue;
         if LProperty.PropertyType.Name.StartsWith('TRtti') then continue;
