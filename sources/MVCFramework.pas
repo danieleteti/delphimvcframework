@@ -215,9 +215,6 @@ type
     property Path: string read FPath;
   end;
 
-  MVCParameterAttribute = class(MVCStringAttribute)
-  end;
-
   MVCResponseAttribute = class(MVCBaseAttribute)
   private
     FStatusCode: Integer;
@@ -257,6 +254,27 @@ type
     property Format: string read FFormat;
     property Pattern: string read FValue;
   end;
+
+  MVCParamAttribute = class(MVCStringAttribute)
+  private
+    FName : string;
+    FLocation : TSwagRequestParameterInLocation;
+    FType : TSwagTypeParameter;
+    FClassType : TClass;
+    FPattern : string;
+    FFormat : string;
+  public
+    property Name : string read FName write FName;
+    property Location: TSwagRequestParameterInLocation read FLocation write FLocation;
+    property ParamType: TSwagTypeParameter read FType write Ftype;
+    property ClassType: TClass read FClassType write FClassType;
+    property Pattern: string read FPattern write FPattern;
+    property Format: string read FFormat write FFormat;
+
+    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = ''); overload;
+    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TClass; APattern: string = ''; AFormat: string = ''); overload;
+  end;
+
 
   MVCPatternAttribute = class(MVCStringAttribute)
 
@@ -3386,6 +3404,30 @@ constructor MVCPathParamAttribute.Create(AType: TSwagTypeParameter; APattern, AF
 begin
   FType := AType;
   FValue := APattern;
+  FFormat := AFormat;
+end;
+
+{ MVCParamAttribute }
+
+constructor MVCParamAttribute.Create(name: string;
+  location: TSwagRequestParameterInLocation; AType: TSwagTypeParameter;
+  APattern, AFormat: string);
+begin
+  fName := name;
+  FLocation := location;
+  FType := AType;
+  FPattern := APattern;
+  FFormat := AFormat;
+end;
+
+constructor MVCParamAttribute.Create(name: string;
+  location: TSwagRequestParameterInLocation; AType: TClass; APattern,
+  AFormat: string);
+begin
+  FName := name;
+  FLocation := location;
+  FClassType := AType;
+  FPattern := APattern;
   FFormat := AFormat;
 end;
 

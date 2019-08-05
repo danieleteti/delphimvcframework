@@ -19,6 +19,7 @@ uses
   , Json.Schema.Field.Strings
   , Json.Schema.Field.Arrays
   , Json.Schema.Field.Objects
+  , Json.Schema.Field.Numbers
   ;
 
 type
@@ -27,10 +28,12 @@ type
     FStatusCode : Integer;
     FStatusDescription : String;
     FReturnType : TClass;
+    FKind: TTypeKind;
   public
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property StatusDescription : string read FStatusDescription write FStatusDescription;
     property ReturnType: TClass read FReturnType write FReturnType;
+    property Kind: TTypeKind read FKind write FKind;
     function GetReturnTypeName:string;
   end;
 
@@ -43,8 +46,8 @@ type
     FConsumes : string;
     FPath : string;
   public
-    statuses : TObjectList<TMVCStatusResponses>;
-    params : TStringList;
+    Statuses : TObjectList<TMVCStatusResponses>;
+    Params : TStringList;
     property Documentation : string read FDoc write FDoc;
     property Method : TMVCHTTPMethods read FMethod write FMethod;
     property OperationId : string read FOperationId write FOperationId;
@@ -64,10 +67,11 @@ type
     fEndpoints : TObjectList<TMVCEndPoint>;
     fSwagDoc: TSwagDoc;
     fDefinitions : TList<TClass>;
+    procedure ConvertFieldAttributesToSwagger(AField: TJsonField; AAttributes: TArray<TCustomAttribute>);
   private
     procedure ProcessControllerMethods(aClass: TClass);
-    procedure processObject(schema: TJSONSchema; aClass:TClass);
-    procedure processObjectForDefinition(aClass:TClass);
+    procedure ProcessObject(schema: TJSONSchema; aClass:TClass);
+    procedure ProcessObjectForDefinition(aClass:TClass);
   public
     class function ProcessAndRewriteURL(params: TStringList; const rootPath:string; const path:string): string;
     class function MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
@@ -108,26 +112,78 @@ begin
   inherited;
 end;
 
+procedure TMVCSwaggerController.ConvertFieldAttributesToSwagger(AField: TJsonField; AAttributes: TArray<TCustomAttribute>);
+var
+  LAttribute: TCustomAttribute;
+begin
+  for LAttribute in AAttributes do
+  begin
+    if LAttribute is MVCDocAttribute then
+    begin
+      AField.Description := MVCDocAttribute(LAttribute).Value;
+    end
+    else if LAttribute is MVCPatternAttribute then
+    begin
+      (AField as TJSONFieldString).Pattern := MVCPatternAttribute(LAttribute).Value;
+    end
+    else if LAttribute is MVCMaxLengthAttribute then
+    begin
+      (AField as TJSONFieldString).MaxLength := MVCMaxLengthAttribute(LAttribute).Value;
+    end
+    else if LAttribute is MVCMinimumAttribute then
+    begin
+      if AField is TJsonFieldInt64 then
+        (AField as TJsonFieldInt64).MinValue := MVCMinimumAttribute(LAttribute).Value
+      else if AField is TJsonFieldInteger then
+        (AField as TJsonFieldInteger).MinValue := MVCMinimumAttribute(LAttribute).Value
+      else if AField is TJsonFieldNumber then
+        (AField as TJsonFieldNumber).MinValue := MVCMinimumAttribute(LAttribute).Value
+      else
+        raise Exception.Create('Minimum not valid on ' + AField.ClassName);
+    end
+    else if LAttribute is MVCMaximumAttribute then
+    begin
+      if AField is TJsonFieldInt64 then
+        (AField as TJsonFieldInt64).MaxValue := MVCMaximumAttribute(LAttribute).Value
+      else if AField is TJsonFieldInteger then
+        (AField as TJsonFieldInteger).MaxValue := MVCMaximumAttribute(LAttribute).Value
+      else if AField is TJsonFieldNumber then
+        (AField as TJsonFieldNumber).MaxValue := MVCMaximumAttribute(LAttribute).Value
+      else
+        raise Exception.Create('Maximum not valid on ' + AField.ClassName);
+    end
+    else if LAttribute is MVCFormatAttribute then
+    begin
+      if AField is TJsonFieldString then
+        (AField as TJsonFieldString).Format := MVCFormatAttribute(LAttribute).Value
+      else if AField is TJsonFieldString then
+        (AField as TJsonFieldInteger).Format := MVCFormatAttribute(LAttribute).Value
+      else if AField is TJsonFieldInt64 then
+        (AField as TJsonFieldInt64).Format := MVCFormatAttribute(LAttribute).Value
+      else if AField is TJsonFieldNumber then
+        (AField as TJsonFieldNumber).Format := MVCFormatAttribute(LAttribute).Value
+      else
+        raise Exception.Create('Format not valid on ' + AField.ClassName);
+    end;
+
+
+  end;
+end;
+
 class function TMVCSwaggerController.MVCMethodToSwaggerOperation(inMethod:TMVCHTTPMethodType): TSwagPathTypeOperation;
 begin
-  if inMethod = httpGET then
-    Result := TSwagPathTypeOperation.ohvGet
-  else if inMethod = httpPOST then
-    Result := TSwagPathTypeOperation.ohvPost
-  else if inMethod = httpPUT then
-    Result := TSwagPathTypeOperation.ohvPut
-  else if inMethod = httpDELETE then
-    Result := TSwagPathTypeOperation.ohvDelete
-  else if inMethod = httpPATCH then
-    Result := TSwagPathTypeOperation.ohvPatch
-  else if inMethod = httpOPTIONS then
-    Result := TSwagPathTypeOperation.ohvOptions
-  else if inMethod = httpHead then
-    Result := TSwagPathTypeOperation.ohvHead
-  else if inMethod = httpTRACE then
-    Result := TSwagPathTypeOperation.ohvTRACE
+  case inMethod of
+    httpGET: Result := TSwagPathTypeOperation.ohvGet;
+    httpPOST: Result := TSwagPathTypeOperation.ohvPost;
+    httpPUT: Result := TSwagPathTypeOperation.ohvPut;
+    httpDELETE: Result := TSwagPathTypeOperation.ohvDelete;
+    httpHEAD: Result := TSwagPathTypeOperation.ohvHead;
+    httpOPTIONS: Result := TSwagPathTypeOperation.ohvOptions;
+    httpPATCH: Result := TSwagPathTypeOperation.ohvPatch;
+    httpTRACE: Result := TSwagPathTypeOperation.ohvTrace;
   else
     Result := TSwagPathTypeOperation.ohvNotDefined;
+  end;
 end;
 
 class function TMVCSwaggerController.ProcessAndRewriteURL(params: TStringList; const rootPath:string; const path:string):string;
@@ -161,20 +217,11 @@ var
   LMethods : TArray<TRttiMethod>;
   LMethod: TRttiMethod;
   LRootPath : string;
-  LDocumentation : string;
-  LHttpMethod : TMVCHTTPMethods;
-  LPath : string;
   LEndpoint : TMVCEndPoint;
   LStatus : TMVCStatusResponses;
-  LProduces : string;
-  LConsumes : string;
-  LOperationId : string;
-  LParams : TStringList;
 begin
-  LParams := nil;
   try
     LRttiContext := TRttiContext.Create;
-    LParams := TStringList.Create;
     LRttiType := LRttiContext.GetType(aClass);
     for LAttribute in LRttiType.GetAttributes do
     begin
@@ -187,36 +234,28 @@ begin
     LMethods := LRttiType.GetMethods;
     for LMethod in LMethods do
     begin
-      LDocumentation := '';
-      LHttpMethod := [];
-      LPath := '';
       LEndpoint := TMVCEndPoint.Create;
-      LStatus := nil;
-      LProduces := '';
-      LConsumes := '';
-      LOperationId := '';
-      LParams.Clear;
       for LAttribute in LMethod.GetAttributes do
       begin
         if LAttribute is MVCPathAttribute then
         begin
-          LPath := TMVCSwaggerController.ProcessAndRewriteURL(LEndpoint.params, LRootPath, MVCPathAttribute(LAttribute).Path);
+          LEndpoint.Path := TMVCSwaggerController.ProcessAndRewriteURL(LEndpoint.params, LRootPath, MVCPathAttribute(LAttribute).Path);
         end
         else if LAttribute is MVCHTTPMethodAttribute then
         begin
-          LHttpMethod := MVCHTTPMethodAttribute(LAttribute).MVCHTTPMethods;
+          LEndpoint.Method := MVCHTTPMethodAttribute(LAttribute).MVCHTTPMethods;
         end
         else if LAttribute is MVCDocAttribute then
         begin
-          LDocumentation := MVCDocAttribute(LAttribute).Value;
+          LEndpoint.Documentation := MVCDocAttribute(LAttribute).Value;
         end
         else if LAttribute is MVCProducesAttribute then
         begin
-          LProduces := MVCProducesAttribute(LAttribute).Value;
+          LEndpoint.Produces := MVCProducesAttribute(LAttribute).Value;
         end
         else if LAttribute is MVCConsumesAttribute then
         begin
-          LConsumes := MVCConsumesAttribute(LAttribute).Value;
+          LEndpoint.Consumes := MVCConsumesAttribute(LAttribute).Value;
         end
         else if LAttribute is MVCResponseAttribute then
         begin
@@ -224,6 +263,7 @@ begin
           LStatus.statusCode := MVCResponseAttribute(LAttribute).StatusCode;
           LStatus.statusDescription := MVCResponseAttribute(LAttribute).Description;
           LStatus.ReturnType := MVCResponseAttribute(LAttribute).ResponseClass;
+          LStatus.Kind := tkClass;
           LEndpoint.statuses.Add(LStatus);
         end
         else if LAttribute is MVCResponseListAttribute then
@@ -232,38 +272,33 @@ begin
           LStatus.statusCode := MVCResponseListAttribute(LAttribute).StatusCode;
           LStatus.statusDescription := MVCResponseListAttribute(LAttribute).Description;
           LStatus.ReturnType := MVCResponseListAttribute(LAttribute).ResponseClass;
+          LStatus.Kind := tkArray;
           LEndpoint.statuses.Add(LStatus);
         end
       end;
 
       LEndpoint.OperationId := LMethod.Name;
-      LEndpoint.Documentation := LDocumentation;
-      LEndpoint.Method := LHttpMethod;
-      LEndpoint.Path := LPath;
-      LEndpoint.Produces := LProduces;
-      LEndpoint.Consumes := LConsumes;
-
       fEndpoints.Add(LEndpoint);
     end;
   finally
-    FreeAndNil(LParams);
     LRttiContext.Free;
   end;
 end;
 
-procedure TMVCSwaggerController.processObjectForDefinition(aClass:TClass);
+procedure TMVCSwaggerController.ProcessObjectForDefinition(aClass:TClass);
 var
   LRttiContext: TRttiContext;
   LRttiType: TRttiType;
-  LProperty : TRttiProperty;
-  LAttribute : TCustomAttribute;
   LField : TJsonField;
   LChildschema : TJsonSchema;
   LDefinition : TSwagDefinition;
   LSchema : TJsonSchema;
   LIndexedProperty: TRttiIndexedProperty;
-  LJsonArray : TJsonFieldArray;
+  LProperty : TRttiProperty;
   LChildObject : TJSONFieldObject;
+  LTypeKind : TTypeKind;
+  LPropertyName : string;
+  LAttributes : TArray<TCustomAttribute>;
 begin
   LSchema := TJsonSchema.Create;
   LRttiContext := TRttiContext.Create;
@@ -271,39 +306,58 @@ begin
     LRttiType := LRttiContext.GetType(aClass);
     for LIndexedProperty in LRttiType.GetIndexedProperties do
     begin
-      if (LIndexedProperty.PropertyType.TypeKind = tkArray) then
-      begin
-        OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
-      end
-      else if (LIndexedProperty.PropertyType.TypeKind = tkDynArray) then
-      begin
-        OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
-      end
-      else if (LIndexedProperty.PropertyType.TypeKind = tkClass) then
-      begin
-        LField := LSchema.AddField<TJsonFieldArray>(LIndexedProperty.Name,'');
-        LChildObject := TJsonFieldObject.Create;
-        LChildObject.Ref := '#/definitions/' + TRttiInstanceType(LIndexedProperty.PropertyType).MetaclassType.ClassName;
-        OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
+      LTypeKind := LIndexedProperty.PropertyType.TypeKind;
+      LPropertyName := LIndexedProperty.Name;
+      case LTypeKind of
+        tkClassRef, tkPointer, tkProcedure, tkMRecord, tkInterface,
+        tkEnumeration, tkMethod, tkVariant, tkSet, tkRecord: ;
+        tkWChar, tkLString, tkWString, tkString, tkUString, tkChar:
+          LField := LSchema.AddField<String>(LPropertyName);
+        tkUnknown:
+          LField := LSchema.AddField<String>(LPropertyName);
+        tkInteger:
+          LField := LSchema.AddField<Integer>(LPropertyName);
+        tkInt64:
+          LField := LSchema.AddField<Int64>(LPropertyName);
+        tkFloat:
+          LField := LSchema.AddField<Double>(LPropertyName);
+        tkClass:
+        begin
+          LField := LSchema.AddField<TJsonFieldArray>(LPropertyName);
+          LChildObject := TJsonFieldObject.Create;
+          LChildObject.Ref := '#/definitions/' + TRttiInstanceType(LIndexedProperty.PropertyType).MetaclassType.ClassName;
+          OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
 
-        (LField as TJsonFieldArray).ItemFieldType := LChildObject;
-        OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
-      end
+          (LField as TJsonFieldArray).ItemFieldType := LChildObject;
+          OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
+        end;
+        tkArray:
+          OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
+        tkDynArray:
+          OutputDebugString(PChar(LIndexedProperty.PropertyType.Name));
+      end;
+      LAttributes := LIndexedProperty.GetAttributes;
+      ConvertFieldAttributesToSwagger(LField, LAttributes);
     end;
 
     for LProperty in LRttiType.GetProperties do
     begin
+      LPropertyName := LProperty.Name;
       if (LProperty.PropertyType.TypeKind = tkInteger) then
       begin
-        LField := LSchema.AddField<Integer>(LProperty.Name,'');
+        LField := LSchema.AddField<Integer>(LPropertyName);
       end
       else if (LProperty.PropertyType.TypeKind = tkInt64) then
       begin
-        LField := LSchema.AddField<Int64>(LProperty.Name,'');
+        LField := LSchema.AddField<Int64>(LPropertyName);
       end
       else if (LProperty.PropertyType.TypeKind = tkFloat) then
       begin
-        LField := LSchema.AddField<Double>(LProperty.Name,'');
+        LField := LSchema.AddField<Double>(LPropertyName);
+      end
+      else if (LProperty.PropertyType.TypeKind = tkWString) then
+      begin
+        LField := LSchema.AddField<WideString>(LPropertyName);
       end
       else if (LProperty.PropertyType.TypeKind = tkClass) then
       begin
@@ -313,33 +367,19 @@ begin
         LChildschema.Ref := '#/definitions/' + TRttiInstanceType(LProperty.PropertyType).MetaclassType.ClassName;
         OutputDebugString(PChar(LProperty.PropertyType.Name));
         LField := LSchema.AddField(LChildschema);
-        LField.Name := LProperty.Name;
-      end
-      else if (LProperty.PropertyType.TypeKind = tkWString) then
-      begin
-        LField := LSchema.AddField<WideString>(LProperty.Name,'');
+        LField.Name := LPropertyName;
       end
       else
       begin
-        LField := LSchema.AddField<string>(LProperty.Name,'');
+        LField := LSchema.AddField<string>(LPropertyName);
       end;
-      for LAttribute in LProperty.GetAttributes do
-      begin
-        if LAttribute is MVCDocAttribute then
-        begin
-          LField.Description := MVCDocAttribute(LAttribute).Value;
-        end
-        else if LAttribute is MVCPatternAttribute then
-        begin
-          (LField as TJSONFieldString).Pattern := MVCPatternAttribute(LAttribute).Value;
-        end;
 
-      end;
+      LAttributes := LProperty.GetAttributes;
+      ConvertFieldAttributesToSwagger(LField, LAttributes);
     end;
     LDefinition := TSwagDefinition.Create;
     LDefinition.SetJsonSchema(aClass.ClassName, LSchema);
     fSwagDoc.Definitions.Add(LDefinition);
-
   finally
     LRttiContext.Free;
   end;
@@ -347,7 +387,7 @@ end;
 
 
 
-procedure TMVCSwaggerController.processObject(schema: TJSONSchema; aClass:TClass);
+procedure TMVCSwaggerController.ProcessObject(schema: TJSONSchema; aClass:TClass);
 var
   LRttiContext: TRttiContext;
   LRttiType: TRttiType;
@@ -355,24 +395,24 @@ var
   LAttribute : TCustomAttribute;
   LField : TJsonField;
   LChildschema : TJsonSchema;
-  LDefinition : TSwagDefinition;
 begin
   LRttiContext := TRttiContext.Create;
+  LField := nil;
   try
     LRttiType := LRttiContext.GetType(aClass);
     for LProperty in LRttiType.GetProperties do
     begin
       if (LProperty.PropertyType.TypeKind = tkInteger) then
       begin
-        LField := schema.AddField<Integer>(LProperty.Name,'');
+        LField := schema.AddField<Integer>(LProperty.Name);
       end
       else if (LProperty.PropertyType.TypeKind = tkInt64) then
       begin
-        LField := schema.AddField<Int64>(LProperty.Name,'');
+        LField := schema.AddField<Int64>(LProperty.Name);
       end
       else if (LProperty.PropertyType.TypeKind = tkFloat) then
       begin
-        LField := schema.AddField<Double>(LProperty.Name,'');
+        LField := schema.AddField<Double>(LProperty.Name);
       end
       else if (LProperty.PropertyType.TypeKind = tkArray) then
       begin
@@ -390,18 +430,18 @@ begin
           continue;
         LChildschema := TJsonSchema.Create;
         OutputDebugString(PChar(LProperty.PropertyType.Name));
-        processObject(LChildschema, TRttiInstanceType(LProperty.PropertyType).MetaclassType);
+        ProcessObject(LChildschema, TRttiInstanceType(LProperty.PropertyType).MetaclassType);
         fDefinitions.Add(TRttiInstanceType(LProperty.PropertyType).MetaclassType);
         LField := schema.AddField(LChildschema);
         LField.Name := LProperty.Name;
       end
       else if (LProperty.PropertyType.TypeKind = tkWString) then
       begin
-        LField := schema.AddField<WideString>(LProperty.Name,'');
+        LField := schema.AddField<WideString>(LProperty.Name);
       end
       else
       begin
-        LField := schema.AddField<string>(LProperty.Name,'');
+        LField := schema.AddField<string>(LProperty.Name);
       end;
       for LAttribute in LProperty.GetAttributes do
       begin
@@ -415,7 +455,6 @@ begin
           if LField is TJsonFieldString then
             (LField as TJsonFieldString).Pattern := MVCPatternAttribute(LAttribute).Value;
         end;
-
       end;
     end;
   finally
@@ -425,7 +464,6 @@ end;
 
 procedure TMVCSwaggerController.Swagger;
 var
-  iControllers : Integer;
   i, p, j: Integer;
   k: Integer;
   LPath : TSwagPath;
@@ -434,11 +472,14 @@ var
   LHttpMethod : TMVCHTTPMethodType;
   LParam : TSwagRequestParameter;
   LSchema : TJsonSchema;
+  LController : TMVCControllerDelegate;
+  LDefinition : TClass;
 begin
-  for iControllers := 0 to Engine.Controllers.Count - 1 do
+  for LController in Engine.Controllers do
   begin
-    ProcessControllerMethods(Engine.Controllers[iControllers].Clazz);
+    ProcessControllerMethods(LController.Clazz);
   end;
+
   Context.Response.ContentType := 'application/json';
 
   for i := 0 to fEndpoints.Count - 1 do
@@ -459,37 +500,36 @@ begin
         LPathOperation.Parameters.Add(LParam);
       end;
       
-      if fEndpoints[i].produces.length > 0 then
+      if fEndpoints[i].Produces.length > 0 then
         LPathOperation.Produces.Add(fEndpoints[i].produces);
 
-      if fEndpoints[i].consumes.length > 0 then
+      if fEndpoints[i].Consumes.length > 0 then
         LPathOperation.Consumes.Add(fEndpoints[i].consumes);
 
       for j := 0 to fEndpoints[i].statuses.Count - 1 do
       begin
         LSwagResponse := TSwagResponse.Create;
-        LSwagResponse.StatusCode := fEndpoints[i].statuses[j].statusCode.ToString;
-        LSwagResponse.Description := fEndpoints[i].statuses[j].statusDescription;
+        LSwagResponse.StatusCode := fEndpoints[i].Statuses[j].statusCode.ToString;
+        LSwagResponse.Description := fEndpoints[i].Statuses[j].statusDescription;
         LSchema := TJsonSchema.Create;
-        if Assigned(fEndpoints[i].statuses[j].ReturnType) then
+        if Assigned(fEndpoints[i].Statuses[j].ReturnType) then
         begin
-          processObjectForDefinition(fEndpoints[i].statuses[j].ReturnType);
-          processObject(LSchema, fEndpoints[i].statuses[j].ReturnType);
-          LSwagResponse.Schema.SetJsonSchema(fEndpoints[i].statuses[j].ReturnType.ClassName, LSchema);
+          ProcessObjectForDefinition(fEndpoints[i].Statuses[j].ReturnType);
+          ProcessObject(LSchema, fEndpoints[i].Statuses[j].ReturnType);
+          LSwagResponse.Schema.SetJsonSchema(fEndpoints[i].Statuses[j].ReturnType.ClassName, LSchema);
         end;
-        LPathOperation.Responses.Add(fEndpoints[i].statuses[j].statusCode.ToString, LSwagResponse);
+        LPathOperation.Responses.Add(fEndpoints[i].Statuses[j].StatusCode.ToString, LSwagResponse);
       end;
       OutputDebugString(PChar(TRttiEnumerationType.GetName(LPathOperation.Operation) + ' ' + LPath.Uri ));
-      LPathOperation.OperationId := fEndpoints[i].operationId;
+      LPathOperation.OperationId := fEndpoints[i].OperationId;
       LPath.Operations.Add(LPathOperation);
-      LPathOperation := nil;
     end;
     fSwagDoc.Paths.Add(LPath);
   end;
 
-  for k := 0 to fDefinitions.Count - 1 do
+  for LDefinition in fDefinitions do
   begin
-    processObjectForDefinition(fDefinitions[k]);
+    ProcessObjectForDefinition(LDefinition);
   end;
 
   fSwagDoc.GenerateSwaggerJson;
