@@ -24,6 +24,8 @@
 
 unit MVCFramework.ActiveRecord;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -534,7 +536,9 @@ var
   lKeyName: string;
   lConnHolder: TConnHolder;
 begin
+{$IF not Defined(SeattleOrBetter)}
   Result := nil;
+{$ENDIF}
   lKeyName := GetKeyName(aName.ToLower);
   fMREW.BeginRead;
   try
@@ -550,7 +554,9 @@ function TMVCConnectionsRepository.GetCurrent: TFDConnection;
 var
   lName: string;
 begin
+{$IF not Defined(SeattleOrBetter)}
   Result := nil;
+{$ENDIF}
   fMREW.BeginRead;
   try
     if fCurrentConnectionsByThread.TryGetValue(TThread.CurrentThread.ThreadID, lName) then

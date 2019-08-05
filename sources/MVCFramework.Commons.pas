@@ -586,7 +586,7 @@ const
   MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
 
 const
-  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of ansistring = ('none',
+  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none',
     'deflate', 'gzip');
   MVC_COMPRESSION_ZLIB_WINDOW_BITS: array [TMVCCompressionType] of Integer = (0, -15, 31);
   // WindowBits: http://zlib.net/manual.html#Advanced
