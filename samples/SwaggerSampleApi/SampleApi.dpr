@@ -4,10 +4,6 @@ uses
   System.StartUpCopy,
   FMX.Forms,
   Sample.Main in 'Sample.Main.pas' {Form1},
-  Sample.Data.Employee in 'Sample.Data.Employee.pas',
-  Sample.SwagDoc in 'Sample.SwagDoc.pas',
-  Sample.Api.Employee in 'Sample.Api.Employee.pas',
-  Sample.Data.Address in 'Sample.Data.Address.pas',
   mvccontroller in 'mvccontroller.pas',
   Sample.SwagDoc.DelphiMVCFramework in 'Sample.SwagDoc.DelphiMVCFramework.pas',
   DelphiUnit in 'DelphiUnit.pas';

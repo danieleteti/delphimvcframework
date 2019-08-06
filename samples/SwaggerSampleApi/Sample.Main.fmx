@@ -8,20 +8,13 @@ object Form1: TForm1
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   DesignerMasterStyle = 0
-  object Button1: TButton
-    Position.X = 16.000000000000000000
-    Position.Y = 8.000000000000000000
-    TabOrder = 1
-    Text = 'Generate'
-    OnClick = Button1Click
-  end
   object btnGenerateDelphiMVCController: TButton
     Position.X = 128.000000000000000000
     Position.Y = 8.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 22.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 3
+    TabOrder = 2
     Text = 'Generate DelphiMVCController'
     OnClick = btnGenerateDelphiMVCControllerClick
   end
@@ -32,7 +25,7 @@ object Form1: TForm1
     Size.Height = 645.000000000000000000
     Size.PlatformDefault = False
     TabIndex = 1
-    TabOrder = 4
+    TabOrder = 3
     TabPosition = PlatformDefault
     Sizes = (
       605s
@@ -89,15 +82,5 @@ object Form1: TForm1
         Viewport.Height = 615.000000000000000000
       end
     end
-  end
-  object btnGenerateClient: TButton
-    Position.X = 328.000000000000000000
-    Position.Y = 8.000000000000000000
-    Size.Width = 121.000000000000000000
-    Size.Height = 22.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 5
-    Text = 'btnGenerateClient'
-    OnClick = btnGenerateClientClick
   end
 end

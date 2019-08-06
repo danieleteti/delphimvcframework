@@ -44,17 +44,13 @@ uses
 
 type
   TForm1 = class(TForm)
-    Button1: TButton;
     Memo1: TMemo;
     btnGenerateDelphiMVCController: TButton;
     TabControl1: TTabControl;
     TabItem1: TTabItem;
     TabItem2: TTabItem;
     Memo2: TMemo;
-    btnGenerateClient: TButton;
-    procedure btnGenerateClientClick(Sender: TObject);
     procedure btnGenerateDelphiMVCControllerClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -70,59 +66,27 @@ implementation
 
 uses
   Swag.Doc,
-  Sample.SwagDoc,
   Sample.SwagDoc.DelphiMVCFramework,
-  Sample.SwagDoc.DelphiRESTClient
+  Sample.SwagDoc.DelphiRESTClient,
+  System.IOUtils
   ;
-
-procedure TForm1.btnGenerateClientClick(Sender: TObject);
-var
-  vSampleDocApi: TSampleApiSwagDocBuilder;
-  mvcFramework : TSwagDocToDelphiRESTClientBuilder;
-begin
-  vSampleDocApi := nil;
-  mvcFramework := nil;
-  try
-    vSampleDocApi := TSampleApiSwagDocBuilder.Create;
-    vSampleDocApi.DeployFolder := ExtractFilePath(ParamStr(0));
-    vSampleDocApi.Generate;
-    mvcFramework := TSwagDocToDelphiRESTClientBuilder.Create(vSampleDocApi.SwagDoc);
-    memo2.Lines.Text := mvcFramework.Generate;
-  finally
-    FreeAndNil(mvcFramework);
-    FreeAndNil(vSampleDocApi);
-  end;
-end;
 
 procedure TForm1.btnGenerateDelphiMVCControllerClick(Sender: TObject);
 var
-  vSampleDocApi: TSampleApiSwagDocBuilder;
   mvcFramework : TSwagDocToDelphiMVCFrameworkBuilder;
+  swagDoc : TSwagDoc;
+  filename : string;
 begin
-  vSampleDocApi := nil;
   mvcFramework := nil;
   try
-    vSampleDocApi := TSampleApiSwagDocBuilder.Create;
-    vSampleDocApi.DeployFolder := ExtractFilePath(ParamStr(0));
-    vSampleDocApi.Generate;
-    mvcFramework := TSwagDocToDelphiMVCFrameworkBuilder.Create(vSampleDocApi.SwagDoc);
+    swagDoc := TSwagDoc.Create;
+    swagDoc.LoadFromFile(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\swagger.json');
+    mvcFramework := TSwagDocToDelphiMVCFrameworkBuilder.Create(swagDoc);
     memo2.Lines.Text := mvcFramework.Generate;
+    filename := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\mvccontroller.pas');
+    TFile.WriteAllText(filename, memo2.Lines.Text);
   finally
     FreeAndNil(mvcFramework);
-    FreeAndNil(vSampleDocApi);
-  end;
-end;
-
-procedure TForm1.Button1Click(Sender: TObject);
-var
-  vSampleDocApi: TSampleApiSwagDocBuilder;
-begin
-  vSampleDocApi := TSampleApiSwagDocBuilder.Create;
-  try
-    vSampleDocApi.DeployFolder := ExtractFilePath(ParamStr(0));
-    memo1.Lines.Text := vSampleDocApi.Generate;
-  finally
-    FreeAndNil(vSampleDocApi);
   end;
 end;
 
