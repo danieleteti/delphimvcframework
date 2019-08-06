@@ -53,7 +53,7 @@ type
     function GetAddress(index: Integer): TAddress;
     procedure SetAddress(index: Integer; const Value: TAddress);
   published
-
+    [JSONName('ID')]
     property Id: Int64 read fId write fId;
     property Name: String read fName write fName;
     property Phone: String read fPhone write fPhone;
@@ -104,7 +104,7 @@ type
     [MVCProduces('application/json')]
     [MVCResponse(200, 'success')]
     [MVCResponse(401, 'unauthorized')]
-    procedure RaiseException([MVCParameter('Something')] [MVCParameter('Something')] par1, par2: string);
+    procedure RaiseException([MVCDoc('First Parameter')] par1, [MVCDoc('Second Parameter')] par2: string);
   end;
 
 implementation
