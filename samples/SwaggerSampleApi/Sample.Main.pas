@@ -67,7 +67,6 @@ implementation
 uses
   Swag.Doc,
   Sample.SwagDoc.DelphiMVCFramework,
-  Sample.SwagDoc.DelphiRESTClient,
   System.IOUtils
   ;
 
@@ -80,7 +79,7 @@ begin
   mvcFramework := nil;
   try
     swagDoc := TSwagDoc.Create;
-    swagDoc.LoadFromFile(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\swagger.json');
+    swagDoc.LoadFromFile(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\swagger.json'));
     mvcFramework := TSwagDocToDelphiMVCFrameworkBuilder.Create(swagDoc);
     memo2.Lines.Text := mvcFramework.Generate;
     filename := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\mvccontroller.pas');

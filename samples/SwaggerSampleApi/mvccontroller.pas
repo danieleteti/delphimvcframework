@@ -58,6 +58,14 @@ type
 
   end;
 
+  TTag = class
+    [MVCFormat('int64')]
+    id : Int64;
+
+    name : string;
+
+  end;
+
   TPet = class
     [MVCFormat('int64')]
     id : Int64;
@@ -75,13 +83,7 @@ type
 
   end;
 
-  TTag = class
-    [MVCFormat('int64')]
-    id : Int64;
 
-    name : string;
-
-  end;
 
   TUser = class
     [MVCFormat('int64')]
