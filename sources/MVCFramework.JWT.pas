@@ -187,10 +187,8 @@ type
     FRegisteredClaims: TJWTRegisteredClaims;
     FCustomClaims: TJWTCustomClaims;
     FHMACAlgorithm: string;
-    FRegClaimsToChecks: TJWTCheckableClaims;
     FLeewaySeconds: Cardinal;
     procedure SetHMACAlgorithm(const Value: string);
-    procedure SetChecks(const Value: TJWTCheckableClaims);
     function CheckExpirationTime(Payload: TJDOJSONObject; out Error: string): Boolean;
     function CheckNotBefore(Payload: TJDOJSONObject; out Error: string): Boolean;
     function CheckIssuedAt(Payload: TJDOJSONObject; out Error: string): Boolean;
@@ -206,7 +204,6 @@ type
     property CustomClaims: TJWTCustomClaims read FCustomClaims;
     property HMACAlgorithm: string read FHMACAlgorithm write SetHMACAlgorithm;
     property LeewaySeconds: Cardinal read FLeewaySeconds;
-    property RegClaimsToChecks: TJWTCheckableClaims read FRegClaimsToChecks write SetChecks;
     /// <summary>
     /// Use LiveValidityWindowInSeconds to make the ExpirationTime dynamic at each request.
     /// ExpirationTime will be incremented by LiveValidityWindowInSeconds seconds automatically
@@ -366,10 +363,7 @@ var
   lExpirationTimeAsDateTime: TDateTime;
 begin
   if not Payload.Contains(TJWTRegisteredClaimNames.ExpirationTime) then
-  begin
-    Error := TJWTRegisteredClaimNames.ExpirationTime + ' not set';
-    Exit(False);
-  end;
+    Exit(True);
 
   lValue := Payload.S[TJWTRegisteredClaimNames.ExpirationTime];
   if not TryStrToInt64(lValue, lIntValue) then
@@ -394,10 +388,7 @@ var
   lValue: string;
 begin
   if not Payload.Contains(TJWTRegisteredClaimNames.IssuedAt) then
-  begin
-    Error := TJWTRegisteredClaimNames.IssuedAt + ' not set';
-    Exit(False);
-  end;
+    Exit(True);
 
   lValue := Payload.S[TJWTRegisteredClaimNames.IssuedAt];
   if not TryStrToInt64(lValue, lIntValue) then
@@ -421,10 +412,7 @@ var
   lValue: string;
 begin
   if not Payload.Contains(TJWTRegisteredClaimNames.NotBefore) then
-  begin
-    Error := TJWTRegisteredClaimNames.NotBefore + ' not set';
-    Exit(False);
-  end;
+    Exit(True);
 
   lValue := Payload.S[TJWTRegisteredClaimNames.NotBefore];
   if not TryStrToInt64(lValue, lIntValue) then
@@ -450,7 +438,6 @@ begin
   FCustomClaims := TJWTCustomClaims.Create;
   FHMACAlgorithm := HMAC_HS512;
   FLeewaySeconds := ALeewaySeconds;
-  FRegClaimsToChecks := [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt];
 end;
 
 destructor TJWT.Destroy;
@@ -556,29 +543,19 @@ begin
       // the RegClaimsToCheck property
       if Result then
       begin
-        if TJWTCheckableClaim.ExpirationTime in RegClaimsToChecks then
+        if not CheckExpirationTime(Payload, Error) then
         begin
-          if not CheckExpirationTime(Payload, Error) then
-          begin
-            Exit(False);
-          end;
-
+          Exit(False);
         end;
 
-        if TJWTCheckableClaim.NotBefore in RegClaimsToChecks then
+        if not CheckNotBefore(Payload, Error) then
         begin
-          if not CheckNotBefore(Payload, Error) then
-          begin
-            Exit(False);
-          end;
+          Exit(False);
         end;
 
-        if TJWTCheckableClaim.IssuedAt in RegClaimsToChecks then
+        if not CheckIssuedAt(Payload, Error) then
         begin
-          if not CheckIssuedAt(Payload, Error) then
-          begin
-            Exit(False);
-          end;
+          Exit(False);
         end;
       end;
 
@@ -645,11 +622,6 @@ begin
     FreeAndNil(lJHeader);
     FreeAndNil(lJPayload);
   end;
-end;
-
-procedure TJWT.SetChecks(const Value: TJWTCheckableClaims);
-begin
-  FRegClaimsToChecks := Value;
 end;
 
 procedure TJWT.SetHMACAlgorithm(const Value: string);

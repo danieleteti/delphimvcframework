@@ -59,7 +59,6 @@ type
   TMVCJWTAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     FAuthenticationHandler: IMVCAuthenticationHandler;
-    FClaimsToChecks: TJWTCheckableClaims;
     FSetupJWTClaims: TJWTClaimsSetup;
     FSecret: string;
     FLeewaySeconds: Cardinal;
@@ -88,7 +87,6 @@ type
       AConfigClaims: TJWTClaimsSetup;
       ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300;
       AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
       AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
@@ -99,7 +97,6 @@ type
       ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login';
       AConfigClaims: TJWTClaimsSetup = nil;
-      AClaimsToCheck: TJWTCheckableClaims = [];
       ALeewaySeconds: Cardinal = 300); overload; virtual;
   end;
 
@@ -117,7 +114,6 @@ constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCA
   AConfigClaims: TJWTClaimsSetup;
   ASecret: string = 'D3lph1MVCFram3w0rk';
   ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [];
   ALeewaySeconds: Cardinal = 300;
   AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
   AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
@@ -126,7 +122,6 @@ begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
   FSetupJWTClaims := AConfigClaims;
-  FClaimsToChecks := AClaimsToCheck;
   FSecret := ASecret;
   FLoginURLSegment := ALoginURLSegment;
   FLeewaySeconds := ALeewaySeconds;
@@ -136,12 +131,11 @@ begin
 end;
 
 constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler; ASecret,
-  ALoginURLSegment: string; AConfigClaims: TJWTClaimsSetup; AClaimsToCheck: TJWTCheckableClaims; ALeewaySeconds: Cardinal);
+  ALoginURLSegment: string; AConfigClaims: TJWTClaimsSetup; ALeewaySeconds: Cardinal);
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
   FSetupJWTClaims := AConfigClaims;
-  FClaimsToChecks := AClaimsToCheck;
   FSecret := ASecret;
   FLoginURLSegment := ALoginURLSegment;
   FLeewaySeconds := ALeewaySeconds;
@@ -220,7 +214,6 @@ begin
   // ***************************************************
   JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
   try
-    JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
     AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
     if AuthHeader.IsEmpty then
     begin
