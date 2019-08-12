@@ -224,6 +224,7 @@ type
   end;
 
   TColorEnum = (RED, GREEN, BLUE);
+  TMonthEnum = (meJanuary, meFebruary, meMarch, meApril);
 
   TEntityWithEnums = class
   private
@@ -231,12 +232,18 @@ type
     FCode: Integer;
     FName: string;
     FColor: TColorEnum;
+    FMonthName: TMonthEnum;
+    FMonthOrder: TMonthEnum;
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
     [MVCNameAs('Name')]
     property name: string read FName write FName;
     property Color: TColorEnum read FColor write FColor;
+    [MVCEnumAs(estEnumName, 'me')]
+    property MonthName: TMonthEnum read FMonthName write FMonthName;
+    [MVCEnumAs(estEnumOrd)]
+    property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
   end;
 
   [MVCSerialize(stFields)]
