@@ -57,6 +57,8 @@ type
 
   TMVCDatasetSerializationType = (dstSingleRecord, dstAllRecords);
 
+  TMVCEnumSerializationType = (estEnumName, estEnumOrd);
+
   TMVCIgnoredList = array of string;
 
   TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const Links: IMVCLinks);
@@ -165,6 +167,16 @@ type
     constructor Create(AFieldName: string; AIsPK: boolean = false);
     property FieldName: string read FFieldName write SetFieldName;
     property IsPK: boolean read FIsPK write SetIsPK;
+  end;
+
+  MVCEnumAsAttribute = class(TCustomAttribute)
+  private
+    FEnumPrefix: string;
+    FEnumSerializationType: TMVCEnumSerializationType;
+  public
+    constructor Create(const AEnumSerializationType: TMVCEnumSerializationType; const AEnumPrefix: string = '');
+    property EnumSerializationType: TMVCEnumSerializationType read FEnumSerializationType;
+    property EnumPrefix: string read FEnumPrefix;
   end;
 
   TMVCSerializerHelper = record
@@ -606,8 +618,13 @@ begin
   FIsPK := Value;
 end;
 
-{ TDataSetHelper }
+{ MVCEnumAsAttribute }
 
-{ TDataSetHelper }
+constructor MVCEnumAsAttribute.Create(const AEnumSerializationType: TMVCEnumSerializationType;
+  const AEnumPrefix: string);
+begin
+  FEnumSerializationType := AEnumSerializationType;
+  FEnumPrefix := AEnumPrefix;
+end;
 
 end.
