@@ -269,7 +269,7 @@ procedure TMVCJWTAuthenticationMiddleware.OnBeforeRouting(AContext: TWebContext;
 var
   LUsername: string;
   LPassword: string;
-  LBasicAuthEncoded: string;
+  LBasicAuthHeader: string;
   LBasicAuthParts: TArray<string>;
   LRolesList: TList<string>;
   LSessionData: TSessionData;
@@ -280,8 +280,8 @@ var
 begin
   if SameText(AContext.Request.PathInfo, FLoginURLSegment) then
   begin
-    LBasicAuthEncoded := AContext.Request.Headers[FAuthorizationHeaderName];
-    if LBasicAuthEncoded.IsEmpty then
+    LBasicAuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
+    if LBasicAuthHeader.IsEmpty then
     begin
       LUsername := TNetEncoding.URL.Decode(AContext.Request.Headers[FUserNameHeaderName]);
       LPassword := TNetEncoding.URL.Decode(AContext.Request.Headers[FPasswordHeaderName]);
@@ -290,13 +290,13 @@ begin
     end
     else
     begin
-      if not LBasicAuthEncoded.StartsWith('basic', True) then
+      if not LBasicAuthHeader.StartsWith('basic', True) then
         raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid authorization type');
 
-      LBasicAuthEncoded := LBasicAuthEncoded.Replace('basic ', '', [rfIgnoreCase]);
-      LBasicAuthParts := TBase64Encoding.Base64.Decode(LBasicAuthEncoded).Split([':']);
+      LBasicAuthHeader := LBasicAuthHeader.Remove(0, 'basic'.Length).Trim;
+      LBasicAuthParts := TBase64Encoding.Base64.Decode(LBasicAuthHeader).Split([':']);
 
-      if Length(LBasicAuthParts) < 2 then
+      if Length(LBasicAuthParts) <> 2 then
         raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid authorization type');
 
       LUserName := LBasicAuthParts[0];
