@@ -193,7 +193,7 @@ var
   ValueTypeAtt: MVCValueAsTypeAttribute;
   CastValue, CastedValue: TValue;
   i:integer;
-  LEnumAsAttr: MVCEnumAsAttribute;
+  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
   LEnumSerType: TMVCEnumSerializationType;
   LEnumPrefix: string;
   LEnumName: string;
@@ -266,7 +266,7 @@ begin
         begin
           LEnumSerType := estEnumName;
           LEnumPrefix := '';
-          if TMVCSerializerHelper.AttributeExists<MVCEnumAsAttribute>(ACustomAttributes, LEnumAsAttr) then
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr) then
           begin
             LEnumSerType := LEnumAsAttr.EnumSerializationType;
             LEnumPrefix := LEnumAsAttr.EnumPrefix;
@@ -674,7 +674,7 @@ var
   ChildObject: TObject;
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
-  LEnumAsAttr: MVCEnumAsAttribute;
+  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
   LEnumPrefix: string;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
@@ -718,7 +718,7 @@ begin
         else if (AValue.Kind = tkEnumeration) then
           begin
             LEnumPrefix := '';
-            if TMVCSerializerHelper.AttributeExists<MVCEnumAsAttribute>(ACustomAttributes, LEnumAsAttr) then
+            if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr) then
               LEnumPrefix := LEnumAsAttr.EnumPrefix;
 
             TValue.Make(GetEnumValue(AValue.TypeInfo, LEnumPrefix + AJsonObject[AName].Value),

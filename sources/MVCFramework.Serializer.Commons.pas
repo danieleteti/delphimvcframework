@@ -169,7 +169,7 @@ type
     property IsPK: boolean read FIsPK write SetIsPK;
   end;
 
-  MVCEnumAsAttribute = class(TCustomAttribute)
+  MVCEnumSerializationTypeAttribute = class(TCustomAttribute)
   private
     FEnumPrefix: string;
     FEnumSerializationType: TMVCEnumSerializationType;
@@ -618,9 +618,9 @@ begin
   FIsPK := Value;
 end;
 
-{ MVCEnumAsAttribute }
+{ MVCEnumSerializationTypeAttribute }
 
-constructor MVCEnumAsAttribute.Create(const AEnumSerializationType: TMVCEnumSerializationType;
+constructor MVCEnumSerializationTypeAttribute.Create(const AEnumSerializationType: TMVCEnumSerializationType;
   const AEnumPrefix: string);
 begin
   FEnumSerializationType := AEnumSerializationType;

@@ -240,9 +240,9 @@ type
     [MVCNameAs('Name')]
     property name: string read FName write FName;
     property Color: TColorEnum read FColor write FColor;
-    [MVCEnumAs(estEnumName, 'me')]
+    [MVCEnumSerializationTypeAttribute(estEnumName, 'me')]
     property MonthName: TMonthEnum read FMonthName write FMonthName;
-    [MVCEnumAs(estEnumOrd)]
+    [MVCEnumSerializationTypeAttribute(estEnumOrd)]
     property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
   end;
 
