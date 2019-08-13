@@ -2282,7 +2282,8 @@ begin
     finally
       lError.Free;
     end;
-    AContext.Response.SetContentType(AContext.Config[TMVCConfigKey.DefaultContentType]);
+    AContext.Response.SetContentType(BuildContentType(AContext.Config[TMVCConfigKey.DefaultContentType],
+      AContext.Config[TMVCConfigKey.DefaultContentCharset]));
   end
   else
   begin
