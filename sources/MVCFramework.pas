@@ -488,6 +488,7 @@ type
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
     // PODO renders
+    procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AStatusCode: Integer; const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean;
@@ -2919,6 +2920,13 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty dataset.');
+end;
+
+procedure TMVCRenderer.Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  ResponseStatus(AStatusCode);
+  Render(AObject, AOwns, ASerializationAction);
 end;
 
 procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: TObject;
