@@ -173,6 +173,7 @@ type
 
   TMVCWebRequest = class
   private
+    FQueryParams: TDictionary<string, string>;
     FContentFields: TDictionary<string, string>;
     FWebRequest: TWebRequest;
     FSerializers: TDictionary<string, IMVCSerializer>;
@@ -183,6 +184,7 @@ type
     FContentMediaType: string;
     procedure DefineContentType;
     function GetContentFields: TDictionary<string, string>;
+    function GetQueryParams: TDictionary<string, string>;
     function GetHeader(const AName: string): string;
     function GetPathInfo: string;
     function GetParams(const AParamName: string): string;
@@ -228,6 +230,7 @@ type
     property ContentType: string read FContentType;
     property ContentCharset: string read FCharset;
     property ContentFields: TDictionary<string, string> read GetContentFields;
+    property QueryParams: TDictionary<string, string> read GetQueryParams;
     property Headers[const AHeaderName: string]: string read GetHeader;
     property PathInfo: string read GetPathInfo;
     property ParamsTable: TMVCRequestParamsTable read FParamsTable write FParamsTable;
@@ -1110,6 +1113,10 @@ begin
   begin
     FContentFields.Free;
   end;
+  if Assigned(FQueryParams) then
+  begin
+    FQueryParams.Free;
+  end;
   inherited Destroy;
 end;
 
@@ -1253,6 +1260,21 @@ end;
 function TMVCWebRequest.GetPathInfo: string;
 begin
   Result := FWebRequest.PathInfo;
+end;
+
+function TMVCWebRequest.GetQueryParams: TDictionary<string, string>;
+var
+  I: Integer;
+begin
+  if not Assigned(FQueryParams) then
+  begin
+    FQueryParams := TDictionary<string, string>.Create;
+    for I := 0 to Pred(FWebRequest.QueryFields.Count) do
+    begin
+      FQueryParams.Add(LowerCase(FWebRequest.QueryFields.Names[I]), FWebRequest.QueryFields.ValueFromIndex[I]);
+    end;
+  end;
+  Result := FQueryParams;
 end;
 
 function TMVCWebRequest.QueryStringParam(const AName: string): string;
