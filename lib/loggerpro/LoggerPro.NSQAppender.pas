@@ -215,8 +215,10 @@ begin
       repeat
         try
           // Set very short timeouts: this is a local call and we don't want to block the queue for too long.
+{$IF CompilerVersion >= 31}
           FHTTPCli.ConnectionTimeout := 100;
           FHTTPCli.ResponseTimeout := 200;
+{$ENDIF}
           Data.Seek(0, soFromBeginning);
           // ignore the respnse: as long as NSQD has accepted the POST, it will handle the result
           FHTTPCli.Post(URI, Data);

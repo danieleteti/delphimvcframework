@@ -23,6 +23,7 @@ type
     procedure btnERRORClick(Sender: TObject);
     procedure btnINFOClick(Sender: TObject);
     procedure btnWARNINGClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -36,8 +37,16 @@ implementation
 
 {$R *.fmx}
 
+
 uses
-  LoggerProConfig;
+  LoggerProConfig,
+  System.Permissions,
+{$IFDEF ANDROID}
+  Androidapi.JNI.Os,
+  Androidapi.JNI.JavaTypes,
+  Androidapi.Helpers,
+{$ENDIF}
+  FMX.DialogService;
 
 procedure TForm2.btnDEBUGClick(Sender: TObject);
 begin
@@ -57,6 +66,31 @@ end;
 procedure TForm2.btnWARNINGClick(Sender: TObject);
 begin
   Log.Warn('This is a warning message with TAG1 from mobile', 'TAG1');
+end;
+
+procedure TForm2.FormCreate(Sender: TObject);
+begin
+{$IFDEF ANDROID}
+  PermissionsService.RequestPermissions
+    ([JStringToString(TJManifest_permission.JavaClass.WRITE_EXTERNAL_STORAGE)],
+    procedure(const APermissions: TArray<string>; const AGrantResults: TArray<TPermissionStatus>)
+    begin
+      if not((Length(AGrantResults) = 1) and (AGrantResults[0] = TPermissionStatus.Granted)) then
+      begin
+        TDialogService.ShowMessage('LoggerPro will not work');
+      end;
+    end,
+    procedure(const APermissions: TArray<string>; const APostRationaleProc: TProc)
+    begin
+      TDialogService.ShowMessage('The app needs to access to the storage, please allows the next request',
+       procedure(const AResult: TModalResult)
+       begin
+         APostRationaleProc();
+       end
+      );
+    end
+    );
+{$ENDIF}
 end;
 
 end.

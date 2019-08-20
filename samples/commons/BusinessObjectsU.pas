@@ -28,7 +28,8 @@ interface
 
 uses
   MVCFramework.Serializer.Commons,
-  Generics.Collections;
+  Generics.Collections,
+  Graphics;
 
 type
 
@@ -39,18 +40,22 @@ type
     FDOB: TDate;
     FFirstName: string;
     FMarried: boolean;
+    fID: Int64;
     procedure SetDOB(const Value: TDate);
     procedure SetFirstName(const Value: string);
     procedure SetLastName(const Value: string);
     procedure SetMarried(const Value: boolean);
+    function GetFullName: String;
   public
     function Equals(Obj: TObject): boolean; override;
+
+    property ID: Int64 read fID write fID;
     property FirstName: string read FFirstName write SetFirstName;
     property LastName: string read FLastName write SetLastName;
-
+    property FullName: String read GetFullName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
-
+    constructor Create; virtual;
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
@@ -93,14 +98,18 @@ type
     FContactFirst: string;
     FCity: string;
     FContactLast: string;
+    fLogo: TBitmap;
     procedure SetAddressLine1(const Value: string);
     procedure SetAddressLine2(const Value: string);
     procedure SetCity(const Value: string);
     procedure SetContactFirst(const Value: string);
     procedure SetContactLast(const Value: string);
     procedure SetName(const Value: string);
+    procedure SetLogo(const Value: TBitmap);
   public
-    property name: string read FName write SetName;
+    constructor Create;
+    destructor Destroy; override;
+    property Name: string read FName write SetName;
     [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
     [MVCDoNotSerialize]
@@ -108,6 +117,7 @@ type
     property AddressLine1: string read FAddressLine1 write SetAddressLine1;
     property AddressLine2: string read FAddressLine2 write SetAddressLine2;
     property City: string read FCity write SetCity;
+    property Logo: TBitmap read fLogo write SetLogo;
     class function GetList: TObjectList<TCustomer>;
   end;
 
@@ -137,6 +147,12 @@ uses
 
 { TPerson }
 
+constructor TPerson.Create;
+begin
+  inherited Create;
+  fID := 1000 + Random(1000);
+end;
+
 function TPerson.Equals(Obj: TObject): boolean;
 begin
   Result := Obj is TPerson;
@@ -149,6 +165,11 @@ begin
   end;
 end;
 
+function TPerson.GetFullName: String;
+begin
+  Result := Format('%s, %s', [FFirstName, FLastName]);
+end;
+
 class function TPerson.GetList(const aCount: Integer): TObjectList<TPerson>;
 var
   I: Integer;
@@ -157,7 +178,7 @@ begin
   begin // retrocompatibility
     Result := TObjectList<TPerson>.Create(true);
     Result.Add(TPerson.GetNew('Tony', 'Stark', EncodeDate(1965, 5, 15), true));
-    Result.Add(TPerson.GetNew('Stevene', 'Rogers', 0, true));
+    Result.Add(TPerson.GetNew('Steve', 'Rogers', 0, true));
     Result.Add(TPerson.GetNew('Bruce', 'Banner', 0, true));
   end
   else
@@ -165,7 +186,8 @@ begin
     Result := TObjectList<TPerson>.Create(true);
     for I := 1 to aCount do
     begin
-      Result.Add(TPerson.GetNew(GetRndFirstName, GetRndLastName, EncodeDate(1900 + Random(100), Random(12) + 1, Random(27) + 1), true));
+      Result.Add(TPerson.GetNew(GetRndFirstName, GetRndLastName, EncodeDate(1900 + Random(100),
+        Random(12) + 1, Random(27) + 1), true));
     end;
   end;
 end;
@@ -201,6 +223,18 @@ begin
 end;
 
 { TCustomer }
+
+constructor TCustomer.Create;
+begin
+  inherited;
+  fLogo := TBitmap.Create;
+end;
+
+destructor TCustomer.Destroy;
+begin
+  fLogo.Free;
+  inherited;
+end;
 
 class function TCustomer.GetList: TObjectList<TCustomer>;
 var
@@ -262,6 +296,11 @@ begin
   FContactLast := Value;
 end;
 
+procedure TCustomer.SetLogo(const Value: TBitmap);
+begin
+  fLogo := Value;
+end;
+
 procedure TCustomer.SetName(const Value: string);
 begin
   FName := Value;
@@ -313,5 +352,9 @@ begin
   FItems.Free;
   inherited;
 end;
+
+initialization
+
+Randomize;
 
 end.

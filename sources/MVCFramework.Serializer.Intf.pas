@@ -49,7 +49,8 @@ type
     procedure SerializeRoot(
       const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
       );
 
     procedure DeserializeAttribute(
@@ -80,19 +81,22 @@ type
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
       ): string;
 
     function SerializeDataSet(
       const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList = [];
-      const ANameCase: TMVCNameCase = ncAsIs
+      const ANameCase: TMVCNameCase = ncAsIs;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil
       ): string;
 
     function SerializeDataSetRecord(
       const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList = [];
-      const ANameCase: TMVCNameCase = ncAsIs
+      const ANameCase: TMVCNameCase = ncAsIs;
+      const ASerializationAction: TMVCDatasetSerializationAction = nil
       ): string;
 
     procedure DeserializeObject(

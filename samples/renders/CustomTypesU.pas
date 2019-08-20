@@ -33,6 +33,7 @@ type
   // useful to identify all the fields that must be serialized
   // using the custom serializer defined for this type
   TUserRoles = TArray<string>;
+
   TNullableRecord<T> = record
     Value: T;
     HasValue: Boolean;

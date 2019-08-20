@@ -264,3 +264,4 @@ if Assigned(GlSessionList) then
   FreeAndNil(GlSessionList);
 
 end.
+

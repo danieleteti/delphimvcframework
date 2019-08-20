@@ -12,11 +12,18 @@ LoggerPro is compatibile with
 - Delphi XE8
 - Delphi 10 Seattle
 - Delphi 10.1 Berlin
-- Delphi 10.2 Tokyo (Linux compatibility)
+- Delphi 10.2 Tokyo (Added Linux compatibility)
+- Delphi 10.3 Rio
+
+## What's new in 1.3.2
+- Added support for Android API level 26 in mobile demo
+- Added packages for Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin and Delphi 10.0 Seattle.
+- Added packages for Delphi XE7 and Delphi XE8 (these packages do not contain appenders which uses `System.Net.HttpClient`)
+- Added support for Linux in `TLoggerProFileAppender` (Thank you [charoit](https://github.com/charoit))
 
 ## What's new in 1.3.0
-- Replace `TThreadedList<T>` a custom implementation (`TThreadSafeQueue<T>`) because of a [bug](https://forums.embarcadero.com/thread.jspa?messageID=941762) and [this](https://quality.embarcadero.com/browse/RSP-19993) in `TMonitor`.
-  - ``TThreadSafeQueue<T>` is not a drop-in replacement for the `TThreadedQueue<T>` but can be used in other projects if you are fighting with the same bug.
+- Replace `TThreadedList<T>` with a custom implementation (`TThreadSafeQueue<T>`) because of a [bug](https://forums.embarcadero.com/thread.jspa?messageID=941762) and [this](https://quality.embarcadero.com/browse/RSP-19993) in `TMonitor`.
+  - `TThreadSafeQueue<T>` is not a drop-in replacement for the `TThreadedQueue<T>` but can be used in other projects if you are fighting with the same bug.
 - `TVCLMemoLogAppender.Create` gots new parameter: `aClearOnStartup` which optionally clear the memo at the startup.
 - Improvement to the `TLoggerProConsoleAppender` (Thanks to [Fulgan](https://github.com/Fulgan))
 - Improvement to the `TLoggerProFileAppender`; now there is a `OnLogRow` callback that can be used to customize log row format.

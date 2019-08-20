@@ -7,6 +7,7 @@ uses
   System.SysUtils,
   Winapi.Windows,
   Winapi.ShellAPI,
+  MVCFramework.Commons,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
@@ -24,6 +25,7 @@ begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     Writeln('THIS SERVER USES JWT WITH LIVEVALIDITYWINDOWS FEATURE');

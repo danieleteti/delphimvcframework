@@ -5,6 +5,14 @@ interface
 uses
   LoggerPro;
 
+const
+{$IF Defined(MSWINDOWS)}
+  REST_LOGS_COLLECTOR_URL = 'http://pippo:8080';
+{$ENDIF}
+{$IF Defined(Android)}
+  REST_LOGS_COLLECTOR_URL = 'http://192.168.1.7:8080';
+{$ENDIF}
+
 function Log: ILogWriter;
 
 implementation
@@ -29,20 +37,17 @@ initialization
 
 _Events := TLoggerProEventsHandler.Create;
 _Events.OnAppenderError :=
-    procedure(const AppenderClassName: string; const aFailedLogItem: TLogItem; const Reason: TLogErrorReason; var Action: TLogErrorAction)
+    procedure(const AppenderClassName: string; const aFailedLogItem: TLogItem;
+    const Reason: TLogErrorReason; var Action: TLogErrorAction)
   begin
-    Action := TLogErrorAction.SkipNewest;
+    Action := TLogErrorAction.DiscardOlder;
   end;
 
-DefaultLoggerProAppenderQueueSize := 100;
-{$IF Defined(MSWINDOWS)}
-_RESTAppender := TLoggerProRESTAppender.Create;
-{$ENDIF}
-{$IF Defined(Android)}
-_RESTAppender := TLoggerProRESTAppender.Create('http://192.168.1.6:8080/api/logs');
-{$ENDIF}
+DefaultLoggerProAppenderQueueSize := 10;
+_RESTAppender := TLoggerProRESTAppender.Create(REST_LOGS_COLLECTOR_URL + '/api/logs');
 TLoggerProRESTAppender(_RESTAppender).OnNetSendError :=
-    procedure(const Sender: TObject; const LogItem: TLogItem; const NetError: Exception; var RetryCount: Integer)
+    procedure(const Sender: TObject; const LogItem: TLogItem; const NetError: Exception;
+    var RetryCount: Integer)
   begin
     // retries to send log for 5 times, then discard the logitem
     if RetryCount = 5 then

@@ -9,9 +9,10 @@ object dmMain: TdmMain
         'B'
       'User_Name=sysdba'
       'Password=masterkey'
+      'Protocol=TCPIP'
+      'Server=localhost'
       'DriverID=FB')
     ConnectedStoredUsage = []
-    Connected = True
     LoginPrompt = False
     BeforeConnect = ConnectionBeforeConnect
     Left = 64

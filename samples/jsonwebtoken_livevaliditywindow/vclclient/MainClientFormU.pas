@@ -36,6 +36,7 @@ implementation
 
 uses
   MVCFramework.RESTClient,
+  MVCFramework.Middleware.JWT,
   MVCFramework.SystemJSONUtils,
   System.JSON,
   System.NetEncoding;
@@ -52,7 +53,7 @@ begin
   try
     lClient.ReadTimeOut(0);
     if not FJWT.IsEmpty then
-      lClient.RequestHeaders.Values['Authentication'] := 'bearer ' + FJWT;
+      lClient.RequestHeaders.Values[TMVCJWTDefaults.AUTHORIZATION_HEADER] := 'Bearer ' + FJWT;
     lQueryStringParams := TStringList.Create;
     try
       lQueryStringParams.Values['firstname'] := 'Daniele';
@@ -68,10 +69,10 @@ begin
     Memo2.Lines.Text := lResp.BodyAsString;
 
     // NEW CODE
-    tokenNew := lResp.HeaderValue('Authentication');
-    if tokenNew.StartsWith('bearer', True) then
+    tokenNew := lResp.HeaderValue(TMVCJWTDefaults.AUTHORIZATION_HEADER);
+    if tokenNew.StartsWith('Bearer', True) then
     begin
-      tokenNew := tokenNew.Remove(0, 'bearer'.Length).Trim;
+      tokenNew := tokenNew.Remove(0, 'Bearer'.Length).Trim;
       tokenNew := TNetEncoding.URL.URLDecode(tokenNew).Trim;
       JWT := tokenNew;
     end; // END NEW CODE
@@ -90,8 +91,8 @@ begin
   try
     lClient.ReadTimeOut(0);
     lClient
-      .Header('jwtusername', 'user1')
-      .Header('jwtpassword', 'user1');
+      .Header(TMVCJWTDefaults.USERNAME_HEADER, 'user1')
+      .Header(TMVCJWTDefaults.PASSWORD_HEADER, 'user1');
     lRest := lClient.doPOST('/login', []);
     lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
     try

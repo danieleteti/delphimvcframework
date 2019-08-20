@@ -3,7 +3,9 @@ unit AuthenticationU;
 interface
 
 uses
-  System.SysUtils, MVCFramework.Commons, System.Generics.Collections,
+  System.SysUtils,
+  MVCFramework.Commons,
+  System.Generics.Collections,
   MVCFramework;
 
 type
@@ -23,13 +25,19 @@ implementation
 
 { TMVCAuthorization }
 
-procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
-      UserRoles: TList<System.string>;
-      var IsValid: Boolean; const SessionData: TSessionData);
+procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName: string;
+  const Password: string;
+  UserRoles: TList<System.string>;
+  var IsValid: Boolean; const SessionData: TSessionData);
 begin
-  IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
+  IsValid := (not UserName.IsEmpty) and UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
   begin
+    if UserName = 'user_raise_exception' then
+    begin
+      raise EMVCException.Create(500, 1024, 'This is a custom exception raised in "TAuthenticationSample.OnAuthentication"');
+    end;
+
     if UserName = 'user1' then
     begin
       UserRoles.Add('role1');
@@ -57,8 +65,8 @@ end;
 
 procedure TAuthenticationSample.OnAuthorization
   (const AContext: TWebContext; UserRoles: TList<System.string>;
-      const ControllerQualifiedClassName: string; const ActionName: string;
-      var IsAuthorized: Boolean);
+  const ControllerQualifiedClassName: string; const ActionName: string;
+  var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
   if ActionName = 'Logout' then
@@ -72,7 +80,7 @@ begin
 end;
 
 procedure TAuthenticationSample.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean);
+  const ActionName: string; var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName =
     'AppControllerU.TAdminController';

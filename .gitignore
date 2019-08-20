@@ -68,3 +68,6 @@ __recovery/
 .doit.db.dat
 .doit.db.dir
 *.log
+venv/
+releases/
+__pycache__/

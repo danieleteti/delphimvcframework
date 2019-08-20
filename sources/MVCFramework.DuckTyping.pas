@@ -27,7 +27,6 @@
 unit MVCFramework.DuckTyping;
 
 {$I dmvcframework.inc}
-
 {$LEGACYIFEND ON}
 
 interface
@@ -103,7 +102,8 @@ type
     function WrappedObject: TObject;
     procedure Sort(const APropertyName: string; const AOrder: TSortingType = soAscending);
 
-    procedure QuickSort(const AList: IMVCList; ALeft, ARigth: Integer; ACompare: TFunc<TObject, TObject, Integer>); overload;
+    procedure QuickSort(const AList: IMVCList; ALeft, ARigth: Integer;
+      ACompare: TFunc<TObject, TObject, Integer>); overload;
     procedure QuickSort(const AList: IMVCList; ACompare: TFunc<TObject, TObject, Integer>); overload;
   public
     constructor Create(const AObjectAsDuck: TObject; const AOwnsObject: Boolean = False); overload;
@@ -195,8 +195,7 @@ begin
   Result := CanBeWrappedAsList(AObjectAsDuck, lList);
 end;
 
-class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject;
-  out AMVCList: IMVCList): Boolean;
+class function TDuckTypedList.CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: IMVCList): Boolean;
 var
   List: IMVCList;
 begin
@@ -254,13 +253,11 @@ begin
     FAddMethod := FObjType.GetMethod('Add');
     FClearMethod := FObjType.GetMethod('Clear');
 
-    {$IF CompilerVersion >= 23}
-
+{$IF CompilerVersion >= 23}
     if Assigned(FObjType.GetIndexedProperty('Items')) then
       FGetItemMethod := FObjType.GetIndexedProperty('Items').ReadMethod;
 
-    {$IFEND}
-
+{$IFEND}
     if not Assigned(FGetItemMethod) then
       FGetItemMethod := FObjType.GetMethod('GetItem');
 
@@ -288,10 +285,18 @@ begin
 end;
 
 function TDuckTypedList.GetItem(const AIndex: Integer): TObject;
+var
+  lValue: TValue;
 begin
   if not Assigned(FGetItemMethod) then
-    raise EMVCDuckTypingException.Create('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the Duck Object.');
-  Result := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]).AsObject;
+    raise EMVCDuckTypingException.Create
+      ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the Duck Object.');
+  lValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
+  if not lValue.IsObject then
+  begin
+    raise EMVCDuckTypingException.Create('Items in list can be only objects');
+  end;
+  Result := lValue.AsObject;
 end;
 
 function TDuckTypedList.GetOwnsObjects: Boolean;
@@ -313,17 +318,16 @@ begin
 
   Result := (ObjectType.GetMethod('Add') <> nil) and (ObjectType.GetMethod('Clear') <> nil)
 
-  {$IF CompilerVersion >= 23}
-
+{$IF CompilerVersion >= 23}
     and (ObjectType.GetIndexedProperty('Items') <> nil) and (ObjectType.GetIndexedProperty('Items').ReadMethod <> nil)
 
-  {$IFEND}
-
-    and (ObjectType.GetMethod('GetItem') <> nil) or (ObjectType.GetMethod('GetElement') <> nil) and (ObjectType.GetProperty('Count') <> nil);
+{$IFEND}
+    and (ObjectType.GetMethod('GetItem') <> nil) or (ObjectType.GetMethod('GetElement') <> nil) and
+    (ObjectType.GetProperty('Count') <> nil);
 end;
 
-procedure TDuckTypedList.QuickSort(const AList: IMVCList; ALeft,
-  ARigth: Integer; ACompare: TFunc<TObject, TObject, Integer>);
+procedure TDuckTypedList.QuickSort(const AList: IMVCList; ALeft, ARigth: Integer;
+  ACompare: TFunc<TObject, TObject, Integer>);
 var
   I, J: Integer;
   P: TObject;
@@ -364,8 +368,7 @@ begin
   until I >= ARigth;
 end;
 
-procedure TDuckTypedList.QuickSort(const AList: IMVCList;
-  ACompare: TFunc<TObject, TObject, Integer>);
+procedure TDuckTypedList.QuickSort(const AList: IMVCList; ACompare: TFunc<TObject, TObject, Integer>);
 begin
   QuickSort(AList, 0, AList.Count - 1, ACompare);
 end;

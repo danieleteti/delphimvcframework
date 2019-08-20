@@ -24,11 +24,11 @@ projects = [
 			('samples\\60_logging_inside_dll\\MainProgram.dproj','Win32'),
 			('samples\\60_logging_inside_dll\\mydll.dproj','Win32'),
 		    ('samples\\70_isapi_sample\\loggerproisapisample.dproj','Win32'),
-			('samples\\90_remote_logging_with_redis\\RemoteRedisAppenderSample.dproj','Win32'),
-			('samples\\90_remote_logging_with_redis\\redis_logs_viewer\\RedisLogsViewer.dproj','Win32'),
+			('samples\\90_remote_logging_with_redis\\REDISAppenderSample.dproj','Win32'),
+			('samples\\90_remote_logging_with_redis\\redis_logs_viewer\\REDISLogsViewer.dproj','Win32'),
             ('samples\\100_udp_syslog\\udp_syslog.dproj','Win32'),
             ('samples\\110_rest_appender\RESTAppenderSample.dproj','Win32'),
-            ('samples\\110_rest_appender_mobile\MobileRESTAppenderSample.dproj','Android'),
+            ('samples\\110_rest_appender_mobile\RESTAppenderMobileSample.dproj','Android'),
             ('samples\\120_elastic_search_appender\\ElasticSearchAppenderSample.dproj','Win32'),
             ('samples\\rest_logs_collector\RESTLogsCollector.dproj','Win32')
 ]

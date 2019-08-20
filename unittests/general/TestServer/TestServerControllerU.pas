@@ -94,7 +94,7 @@ type
     [MVCPath('/testconsumes')]
     [MVCHTTPMethod([httpGET, httpPOST, httpPUT])]
     [MVCConsumes('text/plain')]
-    [MVCProduces('text/plain')]
+    [MVCProduces('text/plain', 'utf-8')]
     procedure TestConsumesProducesText;
 
     [MVCPath('/testconsumejson')]
@@ -102,6 +102,10 @@ type
     [MVCConsumes('application/json')]
     [MVCProduces('application/json', 'utf-8')]
     procedure TestConsumeJSON;
+
+    [MVCPath('/people/renderaction')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetPersonsHateos;
 
     [MVCPath('/people/($id)')]
     [MVCHTTPMethod([httpGET])]
@@ -127,6 +131,11 @@ type
     [MVCHTTPMethod([httpPOST, httpPUT])]
     [MVCProduces('application/json')]
     procedure TestPOSTObject;
+
+    [MVCPath('/customerecho')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces('application/json')]
+    procedure TestCustomerEcho;
 
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
@@ -159,8 +168,8 @@ type
     procedure TestTypedActionExtended1(value: Extended);
 
     [MVCPath('/typed/all/($ParString)/($ParInteger)/($ParInt64)/($ParSingle)/($ParDouble)/($ParExtended)')]
-    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single; ParDouble: Double;
-      ParExtended: Extended);
+    procedure TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;
+      ParDouble: Double; ParExtended: Extended);
 
     [MVCPath('/typed/tdatetime1/($value)')]
     procedure TestTypedActionTDateTime1(value: TDateTime);
@@ -182,6 +191,10 @@ type
 
     [MVCPath('/stringdictionary')]
     procedure TestStringDictionary;
+
+    [MVCPath('/image/png')]
+    [MVCHTTPMethod([httpGET])]
+    procedure TestGetImagePng;
 
   end;
 
@@ -216,6 +229,7 @@ type
 implementation
 
 uses
+  JsonDataObjects,
   System.JSON,
   Web.HTTPApp,
   BusinessObjectsU,
@@ -223,6 +237,7 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
+  System.IOUtils,
   System.Classes;
 
 { TTestServerController }
@@ -325,8 +340,9 @@ end;
 
 procedure TTestServerController.ReqWithParams;
 begin
-  Render(TJSONObject.Create.AddPair('par1', Context.Request.Params['par1']).AddPair('par2', Context.Request.Params['par2']).AddPair('par3',
-    Context.Request.Params['par3']).AddPair('method', Context.Request.HTTPMethodAsString));
+  Render(TJSONObject.Create.AddPair('par1', Context.Request.Params['par1']).AddPair('par2',
+    Context.Request.Params['par2']).AddPair('par3', Context.Request.Params['par3']).AddPair('method',
+    Context.Request.HTTPMethodAsString));
 end;
 
 procedure TTestServerController.SessionGet;
@@ -363,16 +379,38 @@ begin
   Render(Context.Request.Body);
 end;
 
+procedure TTestServerController.TestCustomerEcho;
+var
+  lCustomer: TCustomer;
+begin
+  lCustomer := Context.Request.BodyAs<TCustomer>();
+  // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
+  lCustomer.Name := lCustomer.Name + ' changed';
+  lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
+  Render(lCustomer, True);
+end;
+
 procedure TTestServerController.TestCharset;
 var
-  Obj: TJSONObject;
+  Obj: TJDOJSONObject;
 begin
   ContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
-  Obj := TJSONObject.Create;
-  Obj.AddPair('name1', 'jørn');
-  Obj.AddPair('name2', 'Što je Unicode?');
-  Obj.AddPair('name3', 'àèéìòù');
-  Render(Obj);
+  Obj := TJDOJSONObject.Create;
+  try
+    Obj.s['name1'] := 'jørn';
+    Obj.s['name2'] := 'Što je Unicode?';
+    Obj.s['name3'] := 'àèéìòù';
+    Render(Obj, false);
+  finally
+    Obj.Free;
+  end;
+end;
+
+procedure TTestServerController.TestGetImagePng;
+begin
+  ContentType := TMVCMediaType.IMAGE_PNG;
+  Render(TFile.OpenRead('..\..\sample.png'));
 end;
 
 procedure TTestServerController.TestGetPersonByID;
@@ -422,6 +460,22 @@ begin
 
 end;
 
+procedure TTestServerController.TestGetPersonsHateos;
+begin
+  Render<TPerson>(TPerson.GetList, True,
+    procedure(const Person: TPerson; const Links: IMVCLinks)
+    begin
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/api/people/' + Person.ID.ToString)
+        .Add(HATEOAS.REL, 'test0')
+        .Add(HATEOAS._TYPE, 'application/json');
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/api/test/' + Person.ID.ToString)
+        .Add(HATEOAS.REL, 'test1')
+        .Add(HATEOAS._TYPE, 'application/json')
+    end);
+end;
+
 procedure TTestServerController.TestGetWrappedPeople;
 var
   LWrappedList: IWrappedList;
@@ -451,17 +505,17 @@ end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;
 var
-  vUsers: TObjectList<TCustomer>;
+  lUsers: TObjectList<TCustomer>;
 begin
-  vUsers := Context.Request.BodyAsListOf<TCustomer>();
+  lUsers := Context.Request.BodyAsListOf<TCustomer>();
   try
-    vUsers.OwnsObjects := True;
-    if (vUsers.Count = 3000) then
+    lUsers.OwnsObjects := True;
+    if (lUsers.Count = 3000) then
       Render('Success!')
     else
       Render('Error!');
   finally
-    FreeAndNil(vUsers);
+    FreeAndNil(lUsers);
   end;
 end;
 
@@ -512,8 +566,8 @@ begin
   end;
 end;
 
-procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64; ParSingle: Single;
-  ParDouble: Double; ParExtended: Extended);
+procedure TTestServerController.TestTypedActionAllTypes(ParString: string; ParInteger: Integer; ParInt64: Int64;
+ParSingle: Single; ParDouble: Double; ParExtended: Extended);
 var
   lJObj: TJSONObject;
 begin
@@ -578,7 +632,8 @@ end;
 procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True), BoolToStr(bool3, True), BoolToStr(bool4, True)]));
+  Render(Format('%s.%s.%s.%s', [BoolToStr(bool1, True), BoolToStr(bool2, True), BoolToStr(bool3, True),
+    BoolToStr(bool4, True)]));
 end;
 
 procedure TTestServerController.TestTypedActionTTime1(value: TTime);

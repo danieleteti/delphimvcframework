@@ -29,12 +29,29 @@ unit WebModuleU;
 interface
 
 uses
-  System.SysUtils, System.Classes,
-  Web.HTTPApp, MVCFramework, FireDAC.Stan.Intf, FireDAC.Stan.Option,
-  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
-  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Stan.Param,
-  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB, FireDAC.Comp.DataSet,
-  FireDAC.Comp.Client, FireDAC.Phys.IBBase, FireDAC.Phys.IB, FireDAC.Phys.FB,
+  System.SysUtils,
+  System.Classes,
+  Web.HTTPApp,
+  MVCFramework,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Error,
+  FireDAC.UI.Intf,
+  FireDAC.Phys.Intf,
+  FireDAC.Stan.Def,
+  FireDAC.Stan.Pool,
+  FireDAC.Stan.Async,
+  FireDAC.Phys,
+  FireDAC.Stan.Param,
+  FireDAC.DatS,
+  FireDAC.DApt.Intf,
+  FireDAC.DApt,
+  Data.DB,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
+  FireDAC.Phys.IBBase,
+  FireDAC.Phys.IB,
+  FireDAC.Phys.FB,
   FireDAC.Phys.FBDef;
 
 type
@@ -51,6 +68,7 @@ implementation
 
 {$R *.dfm}
 
+
 uses
   MVCFramework.Commons,
   RenderSampleControllerU,
@@ -58,7 +76,8 @@ uses
   CustomTypesSerializersU,
   MVCFramework.Serializer.Intf,
   System.Generics.Collections,
-  MVCFramework.View.Renderers.Mustache;
+  MVCFramework.View.Renderers.Mustache,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -79,19 +98,22 @@ begin
   DMVC.AddController(TRenderSampleController);
   DMVC.SetViewEngine(TMVCMustacheViewEngine);
 
-
   // Register a custom serializer for TUserRoles (is compatible only with the default serializer)
   DMVC
     .Serializers
-    .Items[BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
+    .Items[TMVCMediaType.APPLICATION_JSON]
     .RegisterTypeSerializer(TypeInfo(TUserRoles), TUserRolesSerializer.Create);
+
   // You can check how this custom type serializer works
   // calling http://localhost:8080/customserializationtype
 
   DMVC
     .Serializers
-    .Items[BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharSet.UTF_8)]
+    .Items[TMVCMediaType.APPLICATION_JSON]
     .RegisterTypeSerializer(TypeInfo(TNullableRecordAlias), TNullableAliasSerializer.Create);
+
+  // This line registers custom serializers for TBitmap, TPngImage (Only MSWindows) and TJPEGImage (Only MSWindows)
+  RegisterOptionalCustomTypesSerializersForJSON(DMVC.Serializers);
 end;
 
 end.

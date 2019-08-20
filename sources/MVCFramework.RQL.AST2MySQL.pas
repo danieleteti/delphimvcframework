@@ -45,8 +45,7 @@ type
 implementation
 
 uses
-  System.SysUtils,
-  MVCFramework.RQL.AST2FirebirdSQL;
+  System.SysUtils;
 
 { TRQLMySQLCompiler }
 
@@ -81,8 +80,15 @@ function TRQLMySQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
 var
   lValue, lDBFieldName: string;
 begin
-  if aRQLFIlter.RightIsString then
+  if aRQLFIlter.RightValueType = vtString then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
+  else if aRQLFIlter.RightValueType = vtBoolean then
+  begin
+    if SameText(aRQLFIlter.OpRight, 'true') then
+      lValue := '1'
+    else
+      lValue := '0';
+  end
   else
     lValue := aRQLFIlter.OpRight;
 
@@ -91,7 +97,10 @@ begin
   case aRQLFIlter.Token of
     tkEq:
       begin
-        Result := Format('(%s = %s)', [lDBFieldName, lValue]);
+        if aRQLFIlter.RightValueType = vtNull then
+          Result := Format('(%s IS NULL)', [lDBFieldName])
+        else
+          Result := Format('(%s = %s)', [lDBFieldName, lValue]);
       end;
     tkLt:
       begin
@@ -111,11 +120,33 @@ begin
       end;
     tkNe:
       begin
-        Result := Format('(%s != %s)', [lDBFieldName, lValue]);
+        if aRQLFIlter.RightValueType = vtNull then
+          Result := Format('(%s IS NOT NULL)', [lDBFieldName])
+        else
+          Result := Format('(%s != %s)', [lDBFieldName, lValue]);
       end;
     tkContains:
       begin
-        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower ])
+        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
+      end;
+    tkIn:
+      begin
+        case aRQLFIlter.RightValueType of
+          vtIntegerArray: // if array is empty, RightValueType is always vtIntegerArray
+            begin
+              Result := Format('(%s IN (%s))', [
+                lDBFieldName, string.Join(',', aRQLFIlter.OpRightArray)
+                ]);
+            end;
+          vtStringArray:
+            begin
+              Result := Format('(%s IN (''%s''))', [
+                lDBFieldName, string.Join(''',''', aRQLFIlter.OpRightArray)
+                ]);
+            end;
+        else
+          raise ERQLException.Create('Invalid RightValueType for tkIn');
+        end;
       end;
   end;
 end;

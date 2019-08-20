@@ -23,7 +23,8 @@ uses
   MVCFramework in '..\..\..\sources\MVCFramework.pas',
   TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
-  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
 
 {$R *.res}
 
@@ -53,6 +54,7 @@ begin
   WriteLn(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     { more info about MaxConnections

@@ -40,9 +40,15 @@ requires
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
-  loggerproRT;
+  loggerproRT,
+  FireDACPgDriver;
 
 contains
+  Web.ApacheConst in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas',
+  Web.Win.IsapiHTTP in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas',
+  Web.ApacheHTTP in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheHTTP.pas',
+  Web.HTTPDMethods in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.HTTPDMethods.pas',
+  Web.HTTPDImpl,
   JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
@@ -88,7 +94,9 @@ contains
   MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
   MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
   MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas',
-  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas';
+  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
+  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas';
 
 end.
+
 

@@ -35,7 +35,7 @@ uses
   System.Classes,
   System.Generics.Collections,
   IdHTTPWebBrokerBridge,
-  MVCFramework.Server, MVCFramework;
+  MVCFramework.Server, MVCFramework, IdContext;
 
 type
 
@@ -65,6 +65,9 @@ type
   TMVCListener = class(TInterfacedObject, IMVCListener)
   private
     FBridge: TIdHTTPWebBrokerBridge;
+    procedure OnParseAuthentication(AContext: TIdContext; const AAuthType,
+      AAuthData: String; var VUsername, VPassword: String;
+      var VHandled: Boolean);
   protected
     function GetActive: Boolean;
 
@@ -204,6 +207,7 @@ begin
   FBridge := TIdHTTPWebBrokerBridge.Create(nil);
   FBridge.DefaultPort := AProperties.GetPort;
   FBridge.MaxConnections := AProperties.GetMaxConnections;
+  FBridge.OnParseAuthentication := OnParseAuthentication;
   FBridge.RegisterWebModuleClass(AProperties.GetWebModuleClass);
 end;
 
@@ -212,6 +216,11 @@ begin
   if Assigned(FBridge) then
     FBridge.Free;
   inherited Destroy;
+end;
+
+procedure TMVCListener.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername, VPassword: String; var VHandled: Boolean);
+begin
+  vhandled := True;
 end;
 
 function TMVCListener.GetActive: Boolean;

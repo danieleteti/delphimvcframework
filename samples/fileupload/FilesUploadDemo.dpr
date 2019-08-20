@@ -5,18 +5,17 @@ program FilesUploadDemo;
 
 uses
   System.SysUtils,
-
-{$IFDEF MSWINDOWS}
+  {$IFDEF MSWINDOWS}
   Winapi.Windows,
   Winapi.ShellAPI,
-
-{$ENDIF}
+  {$ENDIF }
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
-  ReqMulti, // if compiler doesn't find this unit, update with the last update
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
-  FileUploadControllerU in 'FileUploadControllerU.pas';
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
+  FileUploadControllerU in 'FileUploadControllerU.pas',
+  MVCFramework.View.Renderers.TemplatePro in '..\serversideviewcustom\MVCFramework.View.Renderers.TemplatePro.pas',
+  TemplateProU in '..\serversideviewcustom\lib\TemplateProU.pas';
 
 {$R *.res}
 
@@ -33,7 +32,7 @@ begin
     Writeln('Press RETURN to stop the server');
 
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', 'http://localhost:3000/fileupload.html', nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', 'http://localhost:3000', nil, nil, SW_SHOW);
 
 {$ENDIF}
     ReadLn;

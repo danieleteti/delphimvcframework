@@ -2,9 +2,11 @@ program activerecord_crud;
 
 {$APPTYPE CONSOLE}
 
-
 uses
   FireDAC.Phys.FB,
+  FireDAC.Phys.PG,
+  FireDAC.Phys.MySQL,
+  FireDAC.Phys.SQLite,
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,
@@ -13,19 +15,20 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  MVCFramework.SQLGenerators.PostgreSQL,
+  MVCFramework.SQLGenerators.Firebird,
+  MVCFramework.SQLGenerators.Interbase,
+  MVCFramework.SQLGenerators.MSSQL,
+  MVCFramework.SQLGenerators.MySQL,
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
   Entities in 'Entities.pas',
-  FDConnectionConfigU in 'FDConnectionConfigU.pas',
-  MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
+  MVCFramework.ActiveRecordController
+    in '..\..\sources\MVCFramework.ActiveRecordController.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.RQL.AST2MySQL in '..\..\sources\MVCFramework.RQL.AST2MySQL.pas',
-  MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
   EntitiesProcessors in 'EntitiesProcessors.pas',
-  MVCFramework.RQL.AST2InterbaseSQL in '..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
-  MVCFramework.RQL.AST2PostgreSQL in '..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas';
+  FDConnectionConfigU in '..\activerecord_showcase\FDConnectionConfigU.pas';
 
 {$R *.res}
-
 
 procedure RunServer(APort: Integer);
 var
@@ -33,14 +36,16 @@ var
   lCustomHandler: TMVCCustomREPLCommandsHandler;
   lCmd: string;
 begin
-  ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
+  ConnectionDefinitionName := CON_DEF_NAME;
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   if ParamCount >= 1 then
     lCmd := ParamStr(1)
   else
     lCmd := 'start';
 
-  lCustomHandler := function(const Value: string; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult
+  lCustomHandler :=
+      function(const Value: string; const Server: TIdHTTPWebBrokerBridge;
+      out Handled: Boolean): THandleCommandResult
     begin
       Handled := False;
       Result := THandleCommandResult.Continue;
@@ -48,17 +53,28 @@ begin
       begin
         REPLEmit('Using FirebirdSQL');
         Result := THandleCommandResult.Continue;
-        ConnectionDefinitionName := CON_DEF_NAME_FIREBIRD;
+        CreateFirebirdPrivateConnDef(True);
         Handled := True;
         Server.Active := True;
+        Writeln('Server listening on port ', Server.DefaultPort);
       end
       else if (Value = '/mysql') then
       begin
         REPLEmit('Using MySQL');
         Result := THandleCommandResult.Continue;
-        ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
+        CreateMySQLPrivateConnDef(True);
         Handled := True;
         Server.Active := True;
+        Writeln('Server listening on port ', Server.DefaultPort);
+      end
+      else if (Value = 'start') or (Value = '/postgresql') then
+      begin
+        REPLEmit('Using PostgreSQL');
+        Result := THandleCommandResult.Continue;
+        CreatePostgreSQLPrivateConnDef(True);
+        Handled := True;
+        Server.Active := True;
+        Writeln('Server listening on port ', Server.DefaultPort);
       end;
     end;
 
@@ -110,38 +126,6 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
   try
-    CreateFirebirdPrivateConnDef(True);
-    CreateMySQLPrivateConnDef(True);
-
-    // if ParamCount = 0 then
-    // begin
-    // ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
-    // end
-    // else if ParamCount = 1 then
-    // begin
-    // if FindCmdLineSwitch('firebird', ['/', '-'], True) then
-    // begin
-    // ConnectionDefinitionName := CON_DEF_NAME_FIREBIRD;
-    // end
-    // else if FindCmdLineSwitch('mysql', ['/', '-'], True) then
-    // begin
-    // ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
-    // end
-    // else
-    // raise Exception.Create('Unknown option in command line');
-    // end
-    // else
-    // begin
-    // raise Exception.Create('Unknown options in command line');
-    // end;
-
-
-    // To use MySQL decomment the following line
-    // ConnectionDefinitionName := CON_DEF_NAME_MYSQL;
-
-    // To use FirebirdSQL decomment the following line
-    // ConnectionDefinitionName := CON_DEF_NAME_FIREBIRD;
-
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;

@@ -5,6 +5,7 @@ from colorama import *
 import glob
 from shutil import copy2, rmtree
 from datetime import datetime
+import pathlib
 
 # import markdown
 # from markdown.extensions.tables import TableExtension
@@ -26,21 +27,24 @@ g_version = 'DEV'
 
 def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION):
     projects = []
-    dversion = 'd' + delphi_version.replace('.','')
+    dversion = 'd' + delphi_version.replace('.', '')
     if not which or which == 'core':
         projects += glob.glob(r"packages\{dversion}\*.groupproj".format(dversion=dversion))
     if not which or which == 'tests':
         projects += glob.glob(r"unittests\**\*.dproj")
     if not which or which == 'samples':
         projects += glob.glob(r"samples\**\*.dproj")
-    return projects
+        projects += glob.glob(r"samples\**\**\*.dproj")
+        projects += glob.glob(r"samples\**\**\**\*.dproj")
+    return sorted(projects)
 
 
 def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG', delphi_version=DEFAULT_DELPHI_VERSION):
     delphi_versions = {
-        "10.1": {"path": "18.0", "desc":"Delphi 10.1 Seattle"},
-        "10.2": {"path": "19.0", "desc":"Delphi 10.2 Tokyo"},
-        "10.3": {"path": "20.0", "desc":"Delphi 10.3 Rio"},
+        "XE7": {"path": "15.0", "desc": "Delphi XE7"},
+        "10.1": {"path": "18.0", "desc": "Delphi 10.1 Seattle"},
+        "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
+        "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
     }
 
     assert delphi_version in delphi_versions, "Invalid Delphi version: " + delphi_version
@@ -58,14 +62,14 @@ def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG',
 
 def zip_samples(version):
     global g_output_folder
-    cmdline = "7z a " + g_output_folder + f"\\..\\dmvcframework_{version}_samples.zip -r -i@7ziplistfile.txt"
+    cmdline = "7z a " + g_output_folder + f"\\..\\{version}_samples.zip -r -i@7ziplistfile.txt"
     return subprocess.call(cmdline, shell=True) == 0
 
 
 def create_zip(ctx, version):
     global g_output_folder
     print("CREATING ZIP")
-    archive_name = r"..\dmvcframework_" + version + ".zip"
+    archive_name = "..\\" + version + ".zip"
     switches = ""
     files_name = "*"
     cmdline = f"..\\..\\7z.exe a {switches} {archive_name} *"
@@ -97,52 +101,72 @@ def copy_sources():
         print("Copying " + file + " to " + g_output_folder + "\\ideexpert")
         copy2(file, g_output_folder + "\\ideexpert\\")
 
-    # copying packages
-    print("Copying DMVCFramework Delphi 10.1 Seattle packages...")
-    os.makedirs(g_output_folder + "\\packages\\d101", exist_ok=True)
-    copy2(r"packages\d101\dmvcframeworkRT.dpk", g_output_folder + "\\packages\\d101")
-    copy2(r"packages\d101\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d101")
+    files = [
+        "dmvcframeworkDTResource.rc",
+        "dmvcframework_group.groupproj",
+        "dmvcframeworkRT.dproj",
+        "dmvcframeworkRT.dpk",
+        "dmvcframeworkDT.dproj",
+        "dmvcframeworkDT.dpk"
+    ]
 
-    # copying packages
-    print("Copying DMVCFramework Delphi 10.2 Tokyo packages...")
-    os.makedirs(g_output_folder + "\\packages\\d102", exist_ok=True)
-    copy2(r"packages\d102\dmvcframeworkRT.dpk", g_output_folder + "\\packages\\d102")
-    copy2(r"packages\d102\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d102")
+    folders = [
+        "d100",	
+        "d101",
+        "d102",
+        "d103"
+    ]
 
-    print("Copying DMVCFramework Delphi 10.3 Rio packages...")
-    os.makedirs(g_output_folder + "\\packages\\d103", exist_ok=True)
-    copy2(r"packages\d103\dmvcframeworkRT.dpk", g_output_folder + "\\packages\\d103")
-    copy2(r"packages\d103\dmvcframeworkRT.dproj", g_output_folder + "\\packages\\d103")
+    for folder in folders:
+        print(f"Copying DMVCFramework Delphi {folder} packages...")
+        for file in files:
+            os.makedirs(g_output_folder + f"\\packages\\{folder}", exist_ok=True)
+            copy2(rf"packages\{folder}\{file}", g_output_folder + rf"\packages\{folder}")
 
 
-def copy_libs():
+def copy_libs(ctx):
     global g_output_folder
 
     # loggerpro
     print("Copying libraries: LoggerPro...")
     curr_folder = g_output_folder + "\\lib\\loggerpro"
     os.makedirs(curr_folder, exist_ok=True)
-    src = glob.glob("lib\\loggerpro\\*.pas")
-    for file in src:
-        print("Copying " + file + " to " + curr_folder)
-        copy2(file, curr_folder)
-    copy2("lib\\loggerpro\\License.txt", curr_folder)
-    copy2("lib\\loggerpro\\VERSION.TXT", curr_folder)
+    if not ctx.run(rf"xcopy lib\loggerpro\*.* {curr_folder}\*.* /E /Y /R /V /F"):
+        raise Exception("Cannot copy loggerpro")
 
-    # dmustache
     print("Copying libraries: dmustache...")
     curr_folder = g_output_folder + "\\lib\\dmustache"
     os.makedirs(curr_folder, exist_ok=True)
-    src = glob.glob("lib\\dmustache\\*.pas") + \
-          glob.glob("lib\\dmustache\\*.inc")
-    for file in src:
-        print("Copying " + file + " to " + curr_folder)
-        copy2(file, curr_folder)
-    copy2("lib\\dmustache\\README.md", curr_folder)
+    if not ctx.run(rf"xcopy lib\dmustache\*.* {curr_folder}\*.* /E /Y /R /V /F"):
+        raise Exception("Cannot copy dmustache")
+
+    # # loggerpro
+    # print("Copying libraries: LoggerPro...")
+    # curr_folder = g_output_folder + "\\lib\\loggerpro"
+    # os.makedirs(curr_folder, exist_ok=True)
+    # src = glob.glob("lib\\loggerpro\\*.pas")
+    # for file in src:
+    #     print("Copying " + file + " to " + curr_folder)
+    #     copy2(file, curr_folder)
+    # copy2("lib\\loggerpro\\License.txt", curr_folder)
+    # copy2("lib\\loggerpro\\VERSION.TXT", curr_folder)
+    #
+    #
+    #
+    # # dmustache
+    # print("Copying libraries: dmustache...")
+    # curr_folder = g_output_folder + "\\lib\\dmustache"
+    # os.makedirs(curr_folder, exist_ok=True)
+    # src = glob.glob("lib\\dmustache\\*.pas") + \
+    #       glob.glob("lib\\dmustache\\*.inc")
+    # for file in src:
+    #     print("Copying " + file + " to " + curr_folder)
+    #     copy2(file, curr_folder)
+    # copy2("lib\\dmustache\\README.md", curr_folder)
 
 
 def printkv(key, value):
-    print(Fore.RESET + (key + ': ').ljust(50) + Fore.GREEN + value + Fore.RESET)
+    print(Fore.RESET + key + ': ' + Fore.GREEN + value.rjust(60) + Fore.RESET)
 
 
 def init_build(version):
@@ -152,8 +176,12 @@ def init_build(version):
     global g_releases_path
     g_version = version
     g_output_folder = g_releases_path + "\\" + g_version
-    printkv("BUILD VERSION", g_version)
-    printkv('Output path', g_output_folder)
+    print()
+    print(Fore.RESET + Fore.RED + "*" * 80)
+    print(Fore.RESET + Fore.RED + " BUILD VERSION: " + g_version + Fore.RESET)
+    print(Fore.RESET + Fore.RED + " OUTPUT PATH  : " + g_output_folder + Fore.RESET)
+    print(Fore.RESET + Fore.RED + "*" * 80)    
+
     rmtree(g_output_folder, True)
     os.makedirs(g_output_folder, exist_ok=True)
     f = open(g_output_folder + "\\version.txt", "w")
@@ -173,7 +201,7 @@ def build_delphi_project_list(ctx, projects, config="DEBUG", filter='', delphi_v
             print(f"Skipped {os.path.basename(delphi_project)}")
             continue
         msg = f"Building: {os.path.basename(delphi_project)}  ({config})"
-        print(Fore.RESET + msg.ljust(70, '.'), end="")
+        print(Fore.RESET + msg.ljust(90, '.'), end="")
         res = build_delphi_project(ctx, delphi_project, 'DEBUG', delphi_version)
         if res.ok:
             print(Fore.GREEN + 'OK' + Fore.RESET)
@@ -212,15 +240,52 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     return res
 
 
+@task
+def clean(ctx):
+    global g_output_folder
+    import os
+    import glob
+    print(f"Cleaning from {g_output_folder}...")
+
+    output = pathlib.Path(g_output_folder)
+
+    rmtree(g_output_folder + r"\lib\loggerpro\Win32", True)
+    rmtree(g_output_folder + r"\lib\loggerpro\packages\d101\__history", True)
+    rmtree(g_output_folder + r"\lib\loggerpro\packages\d101\Win32\Debug", True)
+    rmtree(g_output_folder + r"\lib\loggerpro\packages\d102\__history", True)
+    rmtree(g_output_folder + r"\lib\loggerpro\packages\d102\Win32\Debug", True)
+    rmtree(g_output_folder + r"\lib\loggerpro\packages\d103\__history", True)
+    rmtree(g_output_folder + r"\lib\loggerpro\packages\d103\Win32\Debug", True)
+    rmtree(g_output_folder + r"\lib\dmustache\.git", True)
+
+    to_delete = []
+    to_delete += glob.glob(g_output_folder + r"\**\*.dcu", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.stat", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.res", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.map", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.~*", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.rsm", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.drc", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.log", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.local", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.gitignore", recursive=True)
+    to_delete += glob.glob(g_output_folder + r"\**\*.gitattributes", recursive=True)
+
+    for f in to_delete:
+        os.remove(f)
+
+
 @task(pre=[tests])
 def release(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_build=False):
     """Builds all the projects, executes integration tests and prepare the release"""
     init_build(version)
     if not skip_build:
         delphi_projects = get_delphi_projects_to_build('', delphi_version)
-        build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
+        if not build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version):
+            return False #fails build
     copy_sources()
-    copy_libs()
+    copy_libs(ctx)
+    clean(ctx)
     zip_samples(version)
     create_zip(ctx, version)
 
@@ -230,7 +295,7 @@ def build_samples(ctx, version="DEBUG", filter="", delphi_version=DEFAULT_DELPHI
     """Builds samples"""
     init_build(version)
     delphi_projects = get_delphi_projects_to_build('samples', delphi_version)
-    build_delphi_project_list(ctx, delphi_projects, version, filter, delphi_version)
+    return build_delphi_project_list(ctx, delphi_projects, version, filter, delphi_version)
 
 
 @task
@@ -238,4 +303,4 @@ def build_core(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds core packages extensions"""
     init_build(version)
     delphi_projects = get_delphi_projects_to_build('core', delphi_version)
-    build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
+    return build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)

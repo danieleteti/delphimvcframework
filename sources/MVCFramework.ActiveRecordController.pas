@@ -127,7 +127,7 @@ begin
 
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClassRef) then
   begin
-    raise EMVCException.CreateFmt('Cannot find entity not processor for entity "%s"', [entityname]);
+    raise EMVCException.CreateFmt('Cannot find entity nor processor for entity "%s"', [entityname]);
   end;
   if not CheckAuthorization(lARClassRef, TMVCActiveRecordAction.Retrieve) then
   begin
@@ -153,7 +153,7 @@ begin
 
     lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, GetMaxRecordCount), True);
     try
-      lResp.Metadata.AddProperty('count', lResp.Items.Count.ToString);
+      lResp.Metadata.Add('count', lResp.Items.Count.ToString);
       Render(lResp);
     except
       lResp.Free;
@@ -263,7 +263,7 @@ begin
       raise;
     end;
   end;
-  ActiveRecordConnectionsRegistry.AddConnection('default', lConn);
+  ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
   fAuthorization := aAuthorization;
 end;
 
@@ -300,7 +300,8 @@ begin
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.Insert;
     StatusCode := http_status.Created;
-    Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
+    //Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
+    Context.Response.CustomHeaders.Add('X-REF:' + Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
 
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
@@ -319,7 +320,19 @@ procedure TMVCActiveRecordController.UpdateEntity(const entityname: string; cons
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.UpdateEntity(Context, self, entityname,id ,lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
   // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
@@ -338,7 +351,8 @@ begin
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.SetPK(id);
     lAR.Update;
-    Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
+    //Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
+    Context.Response.CustomHeaders.Add('X-REF:' + Context.Request.PathInfo);
 
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin

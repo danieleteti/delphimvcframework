@@ -1,4 +1,4 @@
-program RedisLogsViewer;
+program REDISLogsViewer;
 
 uses
   Vcl.Forms,

@@ -35,7 +35,9 @@ uses
   System.Classes,
   System.SysUtils,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons,
+  JsonDataObjects,
+  MVCFramework.Commons;
 
 type
 
@@ -43,27 +45,15 @@ type
   protected
     // procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
     // const AAttributes: TArray<TCustomAttribute>);
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject; const AObject: TObject;
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: TArray<TCustomAttribute>);
 
   public
@@ -72,17 +62,34 @@ type
 
   TMVCStringDictionarySerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+    // internal use
+    class procedure Serialize(const ADict: TMVCStringDictionary; const AJSONObject: TJsonObject); inline;
+  end;
+
+  TMVCGUIDSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
     procedure SerializeAttribute(
       const AElementValue: TValue;
       const APropertyName: string;
       const ASerializerObject: TObject;
       const AAttributes: TArray<TCustomAttribute>
       );
+
     procedure SerializeRoot(
       const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
       );
+
     procedure DeserializeAttribute(
       var AElementValue: TValue;
       const APropertyName: string;
@@ -102,16 +109,10 @@ implementation
 uses
   MVCFramework.Serializer.JsonDataObjects,
   Data.DB,
-  MVCFramework.Commons,
-  System.Generics.Collections,
-  JsonDataObjects;
+  System.Generics.Collections;
 
-procedure TMVCStreamSerializerJsonDataObject.DeserializeAttribute(
-  var AElementValue: TValue;
-  const APropertyName: string;
-  const ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>
-  );
+procedure TMVCStreamSerializerJsonDataObject.DeserializeAttribute(var AElementValue: TValue;
+  const APropertyName: string; const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
   lStream: TStream;
   SS: TStringStream;
@@ -142,8 +143,7 @@ begin
   end;
 end;
 
-procedure TMVCStreamSerializerJsonDataObject.DeserializeRoot(
-  const ASerializerObject: TObject; const AObject: TObject;
+procedure TMVCStreamSerializerJsonDataObject.DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
   const AAttributes: TArray<TCustomAttribute>);
 var
   lValue: TValue;
@@ -152,31 +152,29 @@ begin
   DeserializeAttribute(lValue, 'data', ASerializerObject, AAttributes);
 end;
 
-procedure TMVCStreamSerializerJsonDataObject.SerializeAttribute(
-  const AElementValue: TValue; const APropertyName: string;
-  const ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>);
+procedure TMVCStreamSerializerJsonDataObject.SerializeAttribute(const AElementValue: TValue;
+  const APropertyName: string; const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
-  Stream: TStream;
-  SS: TStringStream;
+  lStream: TStream;
+  lStringStream: TStringStream;
 begin
-  Stream := AElementValue.AsObject as TStream;
-  if Assigned(Stream) then
+  lStream := AElementValue.AsObject as TStream;
+  if Assigned(lStream) then
   begin
-    SS := TStringStream.Create('', TEncoding.Default);
+    lStringStream := TStringStream.Create('', TEncoding.Default);
     try
-      Stream.Position := 0;
+      lStream.Position := 0;
       if TMVCSerializerHelper.AttributeExists<MVCSerializeAsStringAttribute>(AAttributes) then
       begin
-        SS.CopyFrom(Stream, 0);
+        lStringStream.CopyFrom(lStream, 0);
       end
       else
       begin
-        TMVCSerializerHelper.EncodeStream(Stream, SS);
+        TMVCSerializerHelper.EncodeStream(lStream, lStringStream);
       end;
-      TJsonObject(ASerializerObject).S[APropertyName] := SS.DataString;
+      TJDOJsonObject(ASerializerObject).S[APropertyName] := lStringStream.DataString;
     finally
-      SS.Free;
+      lStringStream.Free;
     end;
   end
   else
@@ -185,28 +183,22 @@ begin
   end;
 end;
 
-procedure TMVCStreamSerializerJsonDataObject.SerializeRoot(const AObject: TObject;
-  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
-var
-  lSerializerObject: TJsonObject;
+procedure TMVCStreamSerializerJsonDataObject.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 begin
-  lSerializerObject := TJsonObject.Create;
+  ASerializerObject := TJsonObject.Create;
   try
     SerializeAttribute(AObject, 'data', ASerializerObject, AAttributes);
   except
-    lSerializerObject.Free;
+    ASerializerObject.Free;
     raise;
   end;
 end;
 
 { TMVCStringDictionarySerializer }
 
-procedure TMVCStringDictionarySerializer.DeserializeAttribute(
-  var AElementValue: TValue;
-  const APropertyName: string;
-  const ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>
-  );
+procedure TMVCStringDictionarySerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
   lStringDict: TMVCStringDictionary;
   lJSON: TJDOJsonObject;
@@ -216,15 +208,12 @@ begin
   lJSON := ASerializerObject as TJDOJsonObject;
   for i := 0 to lJSON.O[APropertyName].Count - 1 do
   begin
-    lStringDict.AddProperty(lJSON.Names[i], lJSON.S[lJSON.Names[i]])
+    lStringDict.Add(lJSON.Names[i], lJSON.S[lJSON.Names[i]])
   end;
 end;
 
-procedure TMVCStringDictionarySerializer.DeserializeRoot(
-  const ASerializerObject: TObject;
-  const AObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>
-  );
+procedure TMVCStringDictionarySerializer.DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
 var
   lStringDict: TMVCStringDictionary;
   lJSON: TJDOJsonObject;
@@ -234,17 +223,25 @@ begin
   lJSON := ASerializerObject as TJDOJsonObject;
   for i := 0 to lJSON.Count - 1 do
   begin
-    lStringDict.AddProperty(lJSON.Names[i], lJSON.S[lJSON.Names[i]])
+    lStringDict.Add(lJSON.Names[i], lJSON.S[lJSON.Names[i]])
   end;
 end;
 
-procedure TMVCStringDictionarySerializer.SerializeAttribute(
-  const AElementValue: TValue; const APropertyName: string;
-  const ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>);
+class procedure TMVCStringDictionarySerializer.Serialize(const ADict: TMVCStringDictionary;
+  const AJSONObject: TJsonObject);
+var
+  lPair: TPair<String, String>;
+begin
+  for lPair in ADict do
+  begin
+    AJSONObject.S[lPair.Key] := lPair.Value;
+  end;
+end;
+
+procedure TMVCStringDictionarySerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
   lStringDict: TMVCStringDictionary;
-  lPair: TPair<string, string>;
   lOutObject: TJsonObject;
   lJsonDict: TJsonObject;
 begin
@@ -254,30 +251,87 @@ begin
   lJsonDict := lOutObject.O[APropertyName];
   if Assigned(lStringDict) then
   begin
-    for lPair in lStringDict do
-    begin
-      lJsonDict.S[lPair.Key] := lPair.Value;
-    end;
+    Serialize(lStringDict, lJsonDict);
+    // for lPair in lStringDict do
+    // begin
+    // lJsonDict.S[lPair.Key] := lPair.Value;
+    // end;
   end;
 end;
 
-procedure TMVCStringDictionarySerializer.SerializeRoot(const AObject: TObject;
-  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TMVCStringDictionarySerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 var
   lStringDict: TMVCStringDictionary;
-  lPair: TPair<string, string>;
+  // lPair: TPair<string, string>;
   lOutObject: TJsonObject;
 begin
   lStringDict := AObject as TMVCStringDictionary;
   lOutObject := TJsonObject.Create;
   if Assigned(lStringDict) then
   begin
-    for lPair in lStringDict do
-    begin
-      lOutObject.S[lPair.Key] := lPair.Value;
-    end;
+    Serialize(lStringDict, lOutObject);
+    // for lPair in lStringDict do
+    // begin
+    // lOutObject.S[lPair.Key] := lPair.Value;
+    // end;
   end;
   ASerializerObject := lOutObject;
 end;
+
+{ TMVCGUIDSerializer }
+
+procedure TMVCGUIDSerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+
+  function GUIDFromString(const AString: string): TGUID;
+  var
+    LGuidStr: string;
+  begin
+    // delphi uuid format: {ae502abe-430b-b23a-2878-2d18d6a6e465}
+
+    // string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465
+    if AString.Length = 32 then
+      LGuidStr := Format('{%s-%s-%s-%s-%s}', [AString.Substring(0, 8), AString.Substring(8, 4),
+        AString.Substring(12, 4), AString.Substring(16, 4),AString.Substring(20, 12)])
+
+    // string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465
+    else if AString.Length = 36 then
+      LGuidStr := Format('{%s}', [AString])
+    else
+      LGuidStr := AString;
+    Result := StringToGUID(LGuidStr);
+  end;
+
+var
+  LJson: TJDOJsonObject;
+  LGuid: TGUID;
+begin
+  LJson := ASerializerObject as TJDOJsonObject;
+  if LJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
+    LGuid := TGUID.Empty
+  else
+    LGuid := GUIDFromString(LJSON.S[APropertyName]);
+  AElementValue := TValue.From<TGUID>(LGuid);
+end;
+
+procedure TMVCGUIDSerializer.DeserializeRoot(const ASerializerObject, AObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+begin
+  // not implemented
+end;
+
+procedure TMVCGUIDSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  (ASerializerObject as TJDOJsonObject).S[APropertyName] := AElementValue.AsType<TGUID>.ToString;
+end;
+
+procedure TMVCGUIDSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction);
+begin
+  // not implemented
+end;
+
 
 end.

@@ -216,6 +216,13 @@ type
     property NullableString: TMVCNullable<string> read FNullableString write FNullableString;
   end;
 
+  TEntityCustomWithGuid = class(TEntityCustom)
+  private
+    FGuidValue: TGUID;
+  public
+    property GuidValue: TGUID read FGuidValue write FGuidValue;
+  end;
+
   TColorEnum = (RED, GREEN, BLUE);
 
   TEntityWithEnums = class
@@ -271,6 +278,17 @@ type
 
     [MVCSerializeAsString]
     property NotesAsString: TStringStream read FNotesAsString write FNotesAsString;
+  end;
+
+  TEntityWithArray = class
+  private
+    FId: Int64;
+    FNames: TArray<String>;
+    FValues: TArray<Integer>;
+  public
+    property Id: Int64 read FId write FId;
+    property Names: TArray<String> read FNames write FNames;
+    property Values: TArray<Integer> read FValues write FValues;
   end;
 
 implementation

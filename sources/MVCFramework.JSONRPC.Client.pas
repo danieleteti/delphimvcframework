@@ -30,7 +30,9 @@ uses
   MVCFramework.JSONRPC,
   System.Net.HttpClient,
   System.Net.URLClient,
-  System.Generics.Collections, MVCFramework.Commons;
+  System.Generics.Collections,
+  System.SysUtils,
+  MVCFramework.Commons;
 
 type
   IMVCJSONRPCExecutor = interface
@@ -42,6 +44,9 @@ type
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
     function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+    function SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
+      : IMVCJSONRPCExecutor;
+    function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
@@ -54,6 +59,8 @@ type
     FHTTP: THTTPClient;
     FRaiseExceptionOnError: Boolean;
     FHTTPRequestHeaders: TList<TNetHeader>;
+    fOnReceiveResponse: TProc<IJSONRPCObject, IJSONRPCObject>;
+    fOnSendCommand: TProc<IJSONRPCObject>;
     function GetHTTPRequestHeaders: TList<TNetHeader>;
   protected
     function InternalExecute(const aJSONRPCObject: IJSONRPCObject): IJSONRPCResponse;
@@ -64,6 +71,9 @@ type
     procedure ClearHTTPHeaders;
     function HTTPHeadersCount: Integer;
     function SetOnReceiveData(const aOnReceiveData: TReceiveDataEvent): IMVCJSONRPCExecutor;
+    function SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
+      : IMVCJSONRPCExecutor;
+    function SetOnSendCommand(const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
     function SetOnNeedClientCertificate(const aOnNeedClientCertificate: TNeedClientCertificateEvent)
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
@@ -76,8 +86,7 @@ type
 implementation
 
 uses
-  System.Classes,
-  System.SysUtils;
+  System.Classes;
 
 procedure JSONRPCExec(const aJSONRPCURL: string; const aJSONRPCRequest: IJSONRPCRequest;
   out aJSONRPCResponse: IJSONRPCResponse);
@@ -129,8 +138,12 @@ begin
   FRaiseExceptionOnError := aRaiseExceptionOnError;
   FURL := aURL;
   FHTTP := THTTPClient.Create;
+  FHTTP.ResponseTimeout := MaxInt;
   FHTTPRequestHeaders := nil;
-  SetOnReceiveData(nil).SetOnNeedClientCertificate(nil).SetOnValidateServerCertificate(nil);
+  SetOnReceiveResponse(nil)
+    .SetOnReceiveData(nil)
+    .SetOnNeedClientCertificate(nil)
+    .SetOnValidateServerCertificate(nil);
 end;
 
 destructor TMVCJSONRPCExecutor.Destroy;
@@ -189,14 +202,23 @@ begin
   lSS := TStringStream.Create(aJSONRPCObject.AsJSONString, TEncoding.UTF8);
   try
     lSS.Position := 0;
+    if Assigned(fOnSendCommand) then
+    begin
+      fOnSendCommand(aJSONRPCObject);
+    end;
     lHttpResp := FHTTP.Post(FURL, lSS, nil, [TNetHeader.Create('content-type', 'application/json;charset=utf8'),
       TNetHeader.Create('accept', 'application/json;charset=utf8')] + lCustomHeaders);
     if (lHttpResp.StatusCode <> HTTP_STATUS.NoContent) then
     begin
       lJSONRPCResponse := TJSONRPCResponse.Create;
       lJSONRPCResponse.AsJSONString := lHttpResp.ContentAsString;
+      if Assigned(fOnReceiveResponse) then
+      begin
+        fOnReceiveResponse(aJSONRPCObject, lJSONRPCResponse);
+      end;
       if Assigned(lJSONRPCResponse.Error) and FRaiseExceptionOnError then
-        raise Exception.CreateFmt('Error [%d]: %s', [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
+        raise EMVCJSONRPCException.CreateFmt('Error [%d]: %s',
+          [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
       Result := lJSONRPCResponse;
     end;
   finally
@@ -218,11 +240,25 @@ begin
   Result := Self;
 end;
 
+function TMVCJSONRPCExecutor.SetOnReceiveResponse(const aOnReceiveResponseProc: TProc<IJSONRPCObject, IJSONRPCObject>)
+  : IMVCJSONRPCExecutor;
+begin
+  fOnReceiveResponse := aOnReceiveResponseProc;
+  Result := Self;
+end;
+
+function TMVCJSONRPCExecutor.SetOnSendCommand(
+  const aOnSendCommandProc: TProc<IJSONRPCObject>): IMVCJSONRPCExecutor;
+begin
+  fOnSendCommand := aOnSendCommandProc;
+  Result := Self;
+end;
+
 function TMVCJSONRPCExecutor.SetOnValidateServerCertificate(const aOnValidateServerCertificate
   : TValidateCertificateEvent): IMVCJSONRPCExecutor;
 begin
   FHTTP.OnValidateServerCertificate := aOnValidateServerCertificate;
-  Result := self;
+  Result := Self;
 end;
 
 end.

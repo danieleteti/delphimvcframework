@@ -34,7 +34,8 @@ type
   { This class implements the TemplatePro view engine for server side views }
   TMVCTemplateProViewEngine = class(TMVCBaseViewEngine)
   public
-    procedure Execute(const ViewName: string; const OutputStream: TStream); override;
+    procedure Execute(const ViewName: string;
+      const OutputStream: TStream); override;
   end;
 
 implementation
@@ -49,7 +50,8 @@ uses
 
 {$WARNINGS OFF}
 
-procedure TMVCTemplateProViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
+procedure TMVCTemplateProViewEngine.Execute(const ViewName: string;
+  const OutputStream: TStream);
 var
   lTP: TTemplateProEngine;
   lViewFileName: string;
@@ -61,22 +63,36 @@ begin
     lViewFileName := GetRealFileName(ViewName);
     if not FileExists(lViewFileName) then
     begin
-      raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
+      raise EMVCFrameworkViewException.CreateFmt('View [%s] not found',
+        [ViewName]);
     end;
 
-    if not TMVCCacheSingleton.Instance.ContainsItem(lViewFileName, lCacheItem) then
+    if not TMVCCacheSingleton.Instance.ContainsItem(lViewFileName, lCacheItem)
+    then
     begin
       lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
-      lCacheItem := TMVCCacheSingleton.Instance.SetValue(lViewFileName, lViewTemplate);
+      lCacheItem := TMVCCacheSingleton.Instance.SetValue(lViewFileName,
+        lViewTemplate);
+    end
+    else
+    begin
+      if lCacheItem.TimeStamp < TFile.GetLastWriteTime(lViewFileName) then
+      begin
+        lViewTemplate := TFile.ReadAllText(lViewFileName, TEncoding.UTF8);
+        TMVCCacheSingleton.Instance.SetValue(lViewFileName,
+          lViewTemplate);
+      end;
     end;
 
     lViewTemplate := lCacheItem.Value.AsString;
     try
-      lTP.Execute(lViewTemplate, TTPObjectListDictionary(ViewModel), TTPDatasetDictionary(ViewDataSets), OutputStream);
+      lTP.Execute(lViewTemplate, TTPObjectListDictionary(ViewModel),
+        TTPDatasetDictionary(ViewDataSets), OutputStream);
     except
       on E: EParserException do
       begin
-        raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)', [ViewName, E.Message, E.ClassName]);
+        raise EMVCViewError.CreateFmt('View [%s] error: %s (%s)',
+          [ViewName, E.Message, E.ClassName]);
       end;
     end;
   finally

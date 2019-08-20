@@ -51,6 +51,9 @@ type
 
 implementation
 
+uses
+  System.SysUtils;
+
 { TCustomAuth }
 
 procedure TCustomAuth.OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;

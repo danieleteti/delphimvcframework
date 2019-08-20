@@ -28,7 +28,7 @@ interface
 
 uses
   MVCFramework.Serializer.Intf,
-  System.Rtti;
+  System.Rtti, MVCFramework.Serializer.Commons;
 
 type
   // Custom serializer for TNullableAliasSerializer type
@@ -43,7 +43,8 @@ type
     procedure SerializeRoot(
       const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
       );
 
     procedure DeserializeAttribute(
@@ -77,7 +78,8 @@ type
     procedure SerializeRoot(
       const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
       );
 
     procedure DeserializeAttribute(
@@ -111,7 +113,8 @@ type
     procedure SerializeRoot(
       const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
       );
 
     procedure DeserializeAttribute(
@@ -145,7 +148,8 @@ type
     procedure SerializeRoot(
       const AObject: TObject;
       out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
       );
 
     procedure DeserializeAttribute(
@@ -173,8 +177,7 @@ uses
   Spring,
   MVCFramework.Serializer.JsonDataObjects,
   BusinessObjectsU,
-  System.SysUtils,
-  MVCFramework.Serializer.Commons;
+  System.SysUtils;
 
 procedure TNullableIntegerSerializer.Deserialize(const ASerializedObject: TObject;
   var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
@@ -224,8 +227,12 @@ begin
     (ASerializerObject as TJDOJsonObject).Values[APropertyName] := nil;
 end;
 
-procedure TNullableIntegerSerializer.SerializeRoot(const AObject: TObject;
-  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TNullableIntegerSerializer.SerializeRoot(
+      const AObject: TObject;
+      out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
+      );
 begin
   raise EMVCSerializationException.Create('Not supported');
 end;
@@ -281,8 +288,12 @@ begin
     (ASerializerObject as TJDOJsonObject).Values[APropertyName] := nil;
 end;
 
-procedure TNullableCurrencySerializer.SerializeRoot(const AObject: TObject;
-  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TNullableCurrencySerializer.SerializeRoot(
+      const AObject: TObject;
+      out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
+      );
 begin
   raise EMVCSerializationException.Create('Not supported');
 end;
@@ -338,8 +349,12 @@ begin
     (ASerializerObject as TJDOJsonObject).Values[APropertyName] := nil;
 end;
 
-procedure TNullableStringSerializer.SerializeRoot(const AObject: TObject;
-  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TNullableStringSerializer.SerializeRoot(
+      const AObject: TObject;
+      out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
+      );
 begin
   raise EMVCSerializationException.Create('Not supported');
 end;
@@ -382,8 +397,12 @@ begin
   TJDOJsonObject(ASerializerObject).O[APropertyName] := lJSON;
 end;
 
-procedure TPersonSerializer.SerializeRoot(const AObject: TObject;
-  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TPersonSerializer.SerializeRoot(
+      const AObject: TObject;
+      out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>;
+      const ASerializationAction: TMVCSerializationAction = nil
+      );
 var
   lPerson: TPerson;
   lJSON: TJDOJsonObject;

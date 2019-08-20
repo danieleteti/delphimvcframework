@@ -28,6 +28,7 @@ program renders;
 
 {$APPTYPE CONSOLE}
 
+
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
@@ -35,17 +36,20 @@ uses
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Console,
-  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule},
+  WebModuleU in 'WebModuleU.pas' {WebModule1: TWebModule} ,
   RenderSampleControllerU in 'RenderSampleControllerU.pas',
   BusinessObjectsU in '..\commons\BusinessObjectsU.pas',
-  MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule},
+  MyDataModuleU in 'MyDataModuleU.pas' {MyDataModule: TDataModule} ,
   CustomTypesU in 'CustomTypesU.pas',
   CustomTypesSerializersU in 'CustomTypesSerializersU.pas',
   InMemoryDataU in 'InMemoryDataU.pas',
   MVCFramework.DataSet.Utils in '..\..\sources\MVCFramework.DataSet.Utils.pas',
-  RandomUtilsU in '..\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\commons\RandomUtilsU.pas',
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+    in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
 
 {$R *.res}
+
 
 procedure RunServer(APort: Integer);
 var

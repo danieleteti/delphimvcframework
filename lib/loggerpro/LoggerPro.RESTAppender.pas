@@ -243,6 +243,8 @@ var
   lHTTPCli: THTTPClient;
   lRetryCount: Integer;
   lResp: IHTTPResponse;
+const
+  MAX_RETRY_COUNT = 5;
 begin
   lRetryCount := 0;
   lHTTPCli := THTTPClient.Create;
@@ -251,35 +253,28 @@ begin
     begin
       repeat
         try
-          // Set very short timeouts: this is a local call and we don't want to block the queue for too long.
-          lHTTPCli.ConnectionTimeout := 100;
-          lHTTPCli.ResponseTimeout := 200;
+{$IF CompilerVersion >= 31}
+          lHTTPCli.ConnectionTimeout := 1000;
+          lHTTPCli.ResponseTimeout := 3000;
+{$ENDIF}
           aStream.Seek(0, soFromBeginning);
           lResp := lHTTPCli.Post(aURI, aStream, nil, [TNetHeader.Create('content-type', fContentType)]);
           if not(lResp.StatusCode in [200, 201]) then
           begin
             raise ELoggerPro.Create(lResp.ContentAsString);
           end;
+          Break;
         except
-          // on E: ENetHTTPClientException do
-          // begin
-          // // if there is an event handler for net exception, call it
-          // if Assigned(FOnNetSendError) then
-          // OnNetSendError(Self, aLogItem, E, lRetryCount);
-          // // if the handler has set FRetryCount to a positive value then retry the call
-          // if lRetryCount <= 0 then
-          // break;
-          // end;
           on E: Exception do
           begin
             // if there is an event handler for net exception, call it
             if Assigned(FOnNetSendError) then
               OnNetSendError(Self, aLogItem, E, lRetryCount);
+            Inc(lRetryCount);
             // if the handler has set FRetryCount to a positive value then retry the call
-            if lRetryCount <= 0 then
+            if lRetryCount >= MAX_RETRY_COUNT then
               break;
           end;
-
         end;
       until False;
     end;

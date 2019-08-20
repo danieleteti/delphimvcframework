@@ -132,6 +132,13 @@ object MainForm: TMainForm
         TabOrder = 1
         OnClick = btnGetTablesClick
       end
+      object edtReplace: TEdit
+        Left = 255
+        Top = 10
+        Width = 121
+        Height = 21
+        TabOrder = 2
+      end
     end
     object PageControl1: TPageControl
       AlignWithMargins = True
@@ -247,5 +254,25 @@ object MainForm: TMainForm
   object FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink
     Left = 432
     Top = 328
+  end
+  object FDPhysPgDriverLink1: TFDPhysPgDriverLink
+    Left = 496
+    Top = 384
+  end
+  object FDPhysFBDriverLink2: TFDPhysFBDriverLink
+    Left = 400
+    Top = 408
+  end
+  object FDPhysIBDriverLink1: TFDPhysIBDriverLink
+    Left = 304
+    Top = 352
+  end
+  object FDPhysMySQLDriverLink2: TFDPhysMySQLDriverLink
+    Left = 616
+    Top = 360
+  end
+  object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
+    Left = 608
+    Top = 280
   end
 end

@@ -6,6 +6,26 @@ DelphiMVCFramework is the most popular Delphi project on github!
 
 Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
 
+## How to correctly get the source
+It is not needed to download the git repository. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+If you want to partecipate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
+Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
+
+## What users says about DMVCFramework
+
+>"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
+
+>"Wow! To do that in J2EE it takes 2 days" -- a training participant after a 5 minutes demo.
+
+>"I'm starting with the DMVCFramework and I'm finding it fantastic, congratulations for the project!" -- Rafael
+
+>"I'm looking at DMVCFramework project in it works great - for my use case scenarios is much better than *'Similar commercial product'*."  -- Luka
+
+>"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
+
+>"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
+Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
+  
 
 ## DelphiMVCFramework Main Features
 
@@ -33,55 +53,130 @@ Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delp
   * Powerful and customizable mapper to serialize/deserialize data.
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
-  * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo
+  * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
   * Works on Linux (Delphi 10.2 Tokyo or better)
   * Completely unit tested
   * There is a sample for each functionality
   * There is a complete set of trainings about it, but the samples are included in the project
   * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
-  * Specific trainings are available (email to professionals@bittime.it for a date and a place)
+  * Specific trainings are available (email to `professionals@bittime.it` for a date and a place)
   * Messaging extension using ServerSentEvents
-  * Automatic documentation through /system/describeserver.info
+  * Automatic documentation through `/system/describeserver.info`
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
+  * Continuosly tested for Delphi versions incompatibilities by the proud [compatibility mantainers](COMPATIBILITY_MANTAINERS.MD) 
 
-
-## What users says about DMVCFramework
-
->"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
-
->"Wow! To do that in J2EE it takes 2 days" -- a training participant after a 5 minutes demo.
-
->"I'm starting with the DMVCFramework and I'm finding it fantastic, congratulations for the project!" -- Rafael
-
->"I'm looking at DMVCFramework project in it works great - for my use case scenarios is much better than *'Similar commercial product'*."  -- Luka
-
->"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
-
->"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
-Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
-
-  
-## What's New
+## What's Cooking in the Lab
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
-- New! Added SQLGenerator for PostgreSQL (in addition to MySQL, MariaDB, Firebird and Interbase)
+- New! Added SQLGenerator and RQL compiler for PostgreSQL and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
+- Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` and all the others actions end with `HATEOS` in `renders.dproj` sample)
+
+```delphi
+//Now is really easy to add "_links" property automatically for each collection element while rendering
+Render<TPerson>(People, True,
+    procedure(const APerson: TPerson; const Links: IMVCLinks)
+    begin
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+        .Add(HATEOAS.REL, 'self')
+        .Add(HATEOAS._TYPE, 'application/json')
+        .Add('title', 'Details for ' + APerson.FullName);
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, '/people')
+        .Add(HATEOAS.REL, 'people')
+        .Add(HATEOAS._TYPE, 'application/json');
+    end);
+
+		
+//Datasets have a similar anon method to do the same thing
+Render(lDM.qryCustomers, False,
+  procedure(const DS: TDataset; const Links: IMVCLinks)
+  begin
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+	  .Add(HATEOAS.REL, 'self')
+	  .Add(HATEOAS._TYPE, 'application/json');
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+	  .Add(HATEOAS.REL, 'orders')
+	  .Add(HATEOAS._TYPE, 'application/json');
+  end);
+
+//Single object rendering allows HATEOAS too!
+Render(lPerson, False,
+  procedure(const AObject: TObject; const Links: IMVCLinks)
+  begin
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/people/' + TPerson(AObject).ID.ToString)
+	  .Add(HATEOAS.REL, 'self')
+	  .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+	Links.AddRefLink
+	  .Add(HATEOAS.HREF, '/people')
+	  .Add(HATEOAS.REL, 'people')
+	  .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
+  end);
+	
+```	
+
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
 - Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
 - New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
 - New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
+- New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
+- New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.
+- New! Microsoft SQLServer Support in ActiveRecord and RQL (thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework)
+- New! SQLite Support in ActiveRecord and RQL, so that MVCActiveRecord can be used also for Delphi mobile projects!
+- Improved! `ActiveRecordShowCase` sample is much better now.
+- Improved! In case of unhandled exception `TMVCEngine` is compliant with the default response content-type (usually it did would reply using `text/plain`).
+- Fix! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184).
+- Breaking Change! In `MVCActiveRecord` attribute `MVCPrimaryKey` has been removed and merged with `MVCTableField`, so now `TMVCActiveRecordFieldOption` is a set of `foPrimaryKey`, `foAutoGenerated`, `foTransient` (check `activerecord_showcase.dproj` sample).
+- Added! New overloads for all the Log\* calls. Now it is possibile to call `LogD(lMyObject)` to get logged `lMyObject` as JSON (custom type serializers not supported in log).
+- Fixed! [issue164](https://github.com/danieleteti/delphimvcframework/issues/164)
+- Fixed! [issue182](https://github.com/danieleteti/delphimvcframework/issues/182)
+- New! `StrDict(array of string, array of string)` function allows to render a dictionary of strings in a really simple way. See the following action sample.
+```delphi
+procedure TMy.GetPeople(const Value: Integer);
+begin
+  if Value mod 2 <> 0 then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.NotAcceptable, 'We don''t like odd numbers');
+  end;
+  Render(
+    StrDict(
+      ['id', 'message'],
+      ['123', 'We like even numbers, thank you for your ' + Value.ToString]
+    ));
+end;
+```
+- New! Custom Exception Handling (Based on work of [David Moorhouse](https://github.com/fastbike)). Sample "custom_exception_handling" show how to use it.
+- Improved! Exceptions rendering while using MIME types different to `application/json`.
+- Improved! JSONRPC Automatic Object Publishing can not invoke inherited methods if not explicitely defined with `MVCInheritable` attribute.
+- Improved! Datasets serialization speed improvement. In some case the performace [improves of 2 order of magnitude](https://github.com/danieleteti/delphimvcframework/issues/205#issuecomment-479513158). (Thanks to https://github.com/pedrooliveira01)
+- New! Added `in` operator in RQL parser (Thank you to [João Antônio Duarte](https://github.com/joaoduarte19) for his initial work on this)
+- New! Added `TMVCActiveRecord.Count<T>(RQL)` to count record based on RQL criteria
+- New! Calling `<jsonrpcendpoint>/describe` returns the methods list available for that endpoint.
+- New! Experimental (alpha stage) support for Android servers!
+- New! Added support for `X-HTTP-Method-Override` to work behind corporate firewalls.
+- New Sample! Server in DLL
+- Improved! New consts defined in `HTTP_STATUS` to better describe the http status response.
+- Improved! Now Firebird RQL' SQLGenerator can include primary key in "createinsert" if not autogenerated.
+- New! Added support for `TArray<String>` and `TArray<Integer>` in default json serializer (Thank you [Pedro Oliveira](https://github.com/pedrooliveira01))
+- Improved JWT Standard Compliance! Thanks to [Vinicius Sanchez](https://github.com/viniciussanchez) for his work on [issue #241](https://github.com/danieleteti/delphimvcframework/issues/241)
+- Improved! DMVCFramework now has 130+ unit tests that checks its funtionalities at each build!
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
+
 
 |Delphi Version|Project Group|
 |---|---|
 |Delphi 10.3 Rio| `packages\d103\dmvcframework_group.groupproj`|
 |Delphi 10.2 Tokyo| `packages\d102\dmvcframework_group.groupproj`|
 |Delphi 10.1 Berlin| `packages\d101\dmvcframework_group.groupproj`|
-
-For older Delphi versions still there aren't complete packages available, but DMVCFramework is usable from XE7 without any issues. If you use a version previous of `Delphi 10.1 Berlin` and you want to contribute, please provide your group project using the distributed packages as example.
-
+|Delphi 10.0 Seattle| `packages\d100\dmvcframework_group.groupproj`|
+|Delphi XE8| `packages\dxe8\dmvcframework_group.groupproj`|
+|Delphi XE7| `packages\dxe7\dmvcframework_group.groupproj`|
 
 ### DelphiMVCFramework 3.1.0-lithium
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
@@ -115,10 +210,6 @@ For older Delphi versions still there aren't complete packages available, but DM
 - New! Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
 - New! `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even datamodules) through a JSON-RPC 2.0 interface!
 - *Breaking Change!* The JSON RPC Client layer is now interface based.
-
-  
-## How to correctly get the source
-It is not needed to download the git repository. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.0.0-hydrogen) and you are ok.
 
 ## Roadmap
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).

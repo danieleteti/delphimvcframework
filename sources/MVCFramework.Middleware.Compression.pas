@@ -24,6 +24,8 @@
 
 unit MVCFramework.Middleware.Compression;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -73,7 +75,7 @@ var
   lTmpItem: string;
 begin
   lContentStream := Context.Response.RawWebResponse.ContentStream;
-  if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold) then
+  if (lContentStream = nil) or (lContentStream is TFileStream) or (lContentStream.Size <= fCompressionThreshold) then
     Exit;
 
   lAcceptEncoding := Context.Request.Headers['Accept-Encoding'];
@@ -106,6 +108,7 @@ begin
   lContentStream.Position := 0;
   lMemStream := TMemoryStream.Create;
   try
+    {TODO -oDanieleT -cGeneral : Use directly lContentStream?}
     lZStream := TZCompressionStream.Create(lMemStream, TZCompressionLevel.zcMax, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lRespCompressionType]);
     try
       lZStream.CopyFrom(lContentStream, 0);
@@ -117,7 +120,11 @@ begin
     Context.Response.Content := '';
     lContentStream.Size := 0;
     lContentStream.CopyFrom(lMemStream, 0);
+{$IF Defined(SeattleOrBetter)}
     Context.Response.RawWebResponse.ContentEncoding := MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
+{$ELSE}
+    Context.Response.RawWebResponse.ContentEncoding := AnsiString(MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType]);
+{$ENDIF}
   finally
     lMemStream.Free;
   end;	
