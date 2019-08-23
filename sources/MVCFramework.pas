@@ -405,6 +405,8 @@ type
     procedure Render(const AObject: TObject); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
+    procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const ACollection: IMVCList); overload;
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(
@@ -488,11 +490,14 @@ type
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
     // PODO renders
-    procedure Render(const AStatusCode: Integer; const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AStatusCode: Integer; const AObject: TObject;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     // PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
@@ -1431,7 +1436,7 @@ begin
     LoggedSince := ISOTimeStampToDateTime(Pieces[1]);
     Realm := Pieces[2];
     Roles.Clear;
-    for I := 3 to Length(Pieces) - 1 do //https://github.com/danieleteti/delphimvcframework/issues/225
+    for I := 3 to Length(Pieces) - 1 do // https://github.com/danieleteti/delphimvcframework/issues/225
       Roles.Add(Pieces[I]);
   end;
 end;
@@ -1515,17 +1520,19 @@ begin
     if ARequest.ClassType = TApacheRequest then
     begin
       FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
-    end else
+    end
+    else
 {$IFNDEF LINUX}
-    if ARequest.ClassType = TISAPIRequest then
-    begin
-      FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
-    end else
+      if ARequest.ClassType = TISAPIRequest then
+      begin
+        FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+      end
+      else
 {$ENDIF}
 {$ENDIF}
-    begin
-      FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
-    end;
+      begin
+        FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+      end;
   end;
 
   FResponse := TMVCWebResponse.Create(AResponse);
@@ -2922,8 +2929,15 @@ begin
     raise EMVCException.Create('Can not render an empty dataset.');
 end;
 
+procedure TMVCRenderer.Render(const AStatusCode: Integer; AObject: TObject;
+  const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction);
+begin
+  ResponseStatus(AStatusCode);
+  Render(AObject, AOwns, ASerializationAction);
+end;
+
 procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: TObject;
-  const ASerializationAction: TMVCSerializationAction);
+const ASerializationAction: TMVCSerializationAction);
 begin
   ResponseStatus(AStatusCode);
   Render(AObject, True, ASerializationAction);
