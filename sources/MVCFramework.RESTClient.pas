@@ -1306,6 +1306,8 @@ var
   lDecomp: TZDecompressionStream;
   lCompressionType: TMVCCompressionType;
 begin
+  FHTTP.Request.BasicAuthentication := not Username.IsEmpty; //DT 2019/08/23
+
   FContentEncoding := '';
   Result := TRESTResponse.Create;
 
