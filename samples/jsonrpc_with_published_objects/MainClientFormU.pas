@@ -75,6 +75,7 @@ type
     ListBox1: TListBox;
     CheckBox1: TCheckBox;
     btnDates: TButton;
+    btnFloatsTests: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -88,6 +89,7 @@ type
     procedure btnInvalidMethodClick(Sender: TObject);
     procedure btnSearchClick(Sender: TObject);
     procedure btnDatesClick(Sender: TObject);
+    procedure btnFloatsTestsClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
@@ -106,9 +108,12 @@ uses
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.DataSet.Utils,
-  BusinessObjectsU, System.Rtti;
+  BusinessObjectsU,
+  System.Math,
+  System.Rtti;
 
 {$R *.dfm}
+
 
 procedure TMainForm.btnAddDayClick(Sender: TObject);
 var
@@ -135,6 +140,29 @@ begin
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest(lReq);
   ShowMessage(DateTimeToStr(lResp.Result.AsType<TDateTime>));
+end;
+
+procedure TMainForm.btnFloatsTestsClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lRes: Extended;
+begin
+  lReq := TJSONRPCRequest.Create(1234, 'floatstest');
+  lReq.Params.Add(1234.5678, pdtFloat);
+  lReq.Params.Add(2345.6789, pdtFloat);
+  lResp := FExecutor.ExecuteRequest(lReq);
+  lRes := lResp.Result.AsType<Extended>;
+  lRes := RoundTo(lRes, -4);
+  Assert(SameValue(lRes, 3580.2467), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18,9));
+
+  lReq := TJSONRPCRequest.Create(1234, 'floatstest');
+  lReq.Params.Add(123);
+  lReq.Params.Add(234);
+  lResp := FExecutor.ExecuteRequest(lReq);
+  lRes := lResp.Result.AsType<Extended>;
+  lRes := RoundTo(lRes, -4);
+  Assert(SameValue(lRes, 357), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18,9));
 end;
 
 procedure TMainForm.btnGetUserClick(Sender: TObject);
@@ -300,11 +328,11 @@ begin
 
   // these are the methods to handle http headers in JSONRPC
   // the following line and the check on the server is just for demo
-  Assert(FExecutor.HTTPHeadersCount = 0);
+  assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
-  Assert(FExecutor.HTTPHeadersCount = 1);
+  assert(FExecutor.HTTPHeadersCount = 1);
   FExecutor.ClearHTTPHeaders;
-  Assert(FExecutor.HTTPHeadersCount = 0);
+  assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
 end;
 
