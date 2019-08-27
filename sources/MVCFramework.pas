@@ -455,6 +455,7 @@ type
     function ResponseStream: TStringBuilder;
     procedure Redirect(const AUrl: string);
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = '');
+    procedure ResponseCreated(const Location: String = '');
     // Serializer access
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExcpIfNotExists: Boolean = True)
@@ -484,6 +485,7 @@ type
     function GetContext: TWebContext;
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
+    procedure ResponseCreated(const Location: String = ''); virtual;
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean = True)
       : IMVCSerializer; overload;
@@ -2775,6 +2777,15 @@ begin
   Self.Render<T>(ACollection, AOwns, stDefault, ASerializationAction);
 end;
 
+procedure TMVCRenderer.ResponseCreated(const Location: String);
+begin
+  if not Location.IsEmpty then
+  begin
+    FContext.Response.CustomHeaders.AddPair('location', Location);
+  end;
+  ResponseStatus(HTTP_STATUS.Created);
+end;
+
 procedure TMVCRenderer.ResponseStatus(const AStatusCode: Integer; const AReasonString: string);
 begin
   SetStatusCode(AStatusCode);
@@ -2952,7 +2963,7 @@ begin
 end;
 
 procedure TMVCRenderer.Render(const AStatusCode: Integer; AObject: TObject;
-  const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction);
+const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction);
 begin
   ResponseStatus(AStatusCode);
   Render(AObject, AOwns, ASerializationAction);

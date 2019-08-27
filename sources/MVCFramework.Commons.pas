@@ -38,7 +38,9 @@ uses
   System.Generics.Collections,
   Data.DB,
   IdGlobal,
-  IdCoderMIME, IdContext;
+  IdCoderMIME,
+  IdContext,
+  JsonDataObjects;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -615,7 +617,6 @@ implementation
 
 uses
   IdCoder3to4,
-  JsonDataObjects,
   System.NetEncoding,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Commons;

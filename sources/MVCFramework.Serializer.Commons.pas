@@ -51,7 +51,7 @@ type
 
   TMVCSerializationType = (stUnknown, stDefault, stProperties, stFields);
 
-  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase);
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase);
 
   TMVCDataType = (dtObject, dtArray);
 
@@ -328,6 +328,10 @@ begin
         ncLowerCase:
           begin
             Exit(LowerCase(AField.Name));
+          end;
+        ncCamelCase:
+          begin
+            Exit(LowerCase(AField.Name.Chars[0]) + AField.Name.Substring(1));
           end;
       end;
     end;
