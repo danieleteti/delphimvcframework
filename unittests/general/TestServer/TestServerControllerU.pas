@@ -196,6 +196,19 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestGetImagePng;
 
+    // Response Objects Tests
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/responses/created')]
+    procedure TestResponseCreated;
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/responses/accepted')]
+    procedure TestResponseAccepted;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/responses/nocontent')]
+    procedure TestResponseNoContent;
+
   end;
 
   [MVCPath('/private')]
@@ -551,6 +564,21 @@ var
 begin
   LStream := TMemoryStream.Create;
   Render(LStream, True);
+end;
+
+procedure TTestServerController.TestResponseAccepted;
+begin
+  ResponseAccepted('http://pippo.it/1234','1234','thisisthereason');
+end;
+
+procedure TTestServerController.TestResponseCreated;
+begin
+  ResponseCreated('thisisthelocation','thisisthereason');
+end;
+
+procedure TTestServerController.TestResponseNoContent;
+begin
+  ResponseNoContent('thisisthereason');
 end;
 
 procedure TTestServerController.TestStringDictionary;
