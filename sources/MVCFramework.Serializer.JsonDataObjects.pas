@@ -416,7 +416,7 @@ begin
           ftInteger, ftSmallint, ftShortint, ftByte:
             AJsonObject.I[lField.FieldName] := ADataSet.Fields[lField.I].AsInteger;
 
-          ftLargeint, ftAutoInc:
+          ftLargeint, ftAutoInc, ftLongword:
             AJsonObject.L[lField.FieldName] := ADataSet.Fields[lField.I].AsLargeInt;
 {$IFDEF TOKYOORBETTER}
           ftGuid:
