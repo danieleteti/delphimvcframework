@@ -218,7 +218,7 @@ begin
     for lTable in lTables do
     begin
       lClassName := GetClassName(lTable);
-      lClassName := ReplaceFix(lTable, );
+//      lClassName := ReplaceFix(lTable, );
       veTablesMapping.InsertRow(lTable, lClassName, True);
       // var lList := TStringList.Create;
       // try
