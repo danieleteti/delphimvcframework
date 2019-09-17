@@ -291,6 +291,31 @@ type
     property Values: TArray<Integer> read FValues write FValues;
   end;
 
+  IEntityWithInterface = interface
+  ['{81B1323F-B3FF-4FBD-84F3-9BDBA9997D8E}']
+    function GetId: Integer;
+    procedure SetId(const Value: Integer);
+    function GetName: string;
+    procedure SetName(const Value: string);
+
+    property Id: Integer read GetId write SetId;
+    property Name: string read GetName write SetName;
+  end;
+
+  TEntityWithInterface = class(TInterfacedObject, IEntityWithInterface)
+  private
+    FId: Integer;
+    FName: string;
+    function GetId: Integer;
+    procedure SetId(const Value: Integer);
+    function GetName: string;
+    procedure SetName(const Value: string);
+  public
+    property Id: Integer read GetId write SetId;
+    property Name: string read GetName write SetName;
+  end;
+
+
 implementation
 
 
@@ -368,5 +393,28 @@ begin
   fValue := Value;
   fHasValue := True;
 end;
+
+{ TEntityWithInterface }
+
+function TEntityWithInterface.GetId: Integer;
+begin
+  Result := FId;
+end;
+
+function TEntityWithInterface.GetName: string;
+begin
+  Result := FName;
+end;
+
+procedure TEntityWithInterface.SetId(const Value: Integer);
+begin
+  FId := Value;
+end;
+
+procedure TEntityWithInterface.SetName(const Value: string);
+begin
+  FName := Value;
+end;
+
 
 end.

@@ -105,7 +105,8 @@ type
     procedure TestStringDictionary;
     [Test]
     procedure TestSerializeDeserializeGuid;
-
+    [Test]
+    procedure TestSerializeDeserializeEntityWithInterface;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -1273,6 +1274,30 @@ begin
   finally
     O.Free;
   end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeEntityWithInterface;
+const
+  JSON =
+    '{' +
+    '"Id":1,' +
+    '"Name":"João Antônio Duarte"' +
+    '}';
+var
+  LEntity: IEntityWithInterface;
+  LJson: string;
+begin
+  LEntity := TEntityWithInterface.Create;
+  LEntity.Id := 1;
+  LEntity.Name := 'João Antônio Duarte';
+
+  LJson := FSerializer.SerializeObject(LEntity);
+  Assert.AreEqual(JSON, LJson);
+
+  LEntity := TEntityWithInterface.Create;
+  FSerializer.DeserializeObject(LJson, LEntity);
+  Assert.AreEqual(Int64(1), LEntity.Id);
+  Assert.AreEqual('João Antônio Duarte', LEntity.Name);
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
