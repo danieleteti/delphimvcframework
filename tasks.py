@@ -30,6 +30,8 @@ def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION
     dversion = 'd' + delphi_version.replace('.', '')
     if not which or which == 'core':
         projects += glob.glob(r"packages\{dversion}\*.groupproj".format(dversion=dversion))
+        projects += glob.glob(r"tools\rql2sql\RQL2SQL.dproj")
+        projects += glob.glob(r"tools\entitygenerator\MVCAREntitiesGenerator.dproj")
     if not which or which == 'tests':
         projects += glob.glob(r"unittests\**\*.dproj")
     if not which or which == 'samples':
@@ -83,12 +85,20 @@ def copy_sources():
     os.makedirs(g_output_folder + "\\sources", exist_ok=True)
     os.makedirs(g_output_folder + "\\ideexpert", exist_ok=True)
     os.makedirs(g_output_folder + "\\packages", exist_ok=True)
+    os.makedirs(g_output_folder + "\\tools", exist_ok=True)
     # copying main sources
     print("Copying DMVCFramework Sources...")
     src = glob.glob("sources\\*.pas") + glob.glob("sources\\*.inc")
     for file in src:
         print("Copying " + file + " to " + g_output_folder + "\\sources")
         copy2(file, g_output_folder + "\\sources\\")
+
+    # copying tools
+    print("Copying tools binaries...")
+    src = glob.glob("tools\\bin\\*.*")
+    for file in src:
+        print("Copying " + file + " to " + g_output_folder + "\\tools")
+        copy2(file, g_output_folder + "\\tools\\")
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")

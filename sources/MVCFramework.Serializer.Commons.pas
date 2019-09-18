@@ -204,6 +204,34 @@ type
 
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
+  // Well Known Response Objects
+  [MVCNameCase(ncLowerCase)]
+  TMVCResponseBase = class abstract
+
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TMVCTask = class
+  private
+    fID: String;
+    fHREF: String;
+  public
+    property HREF: String read fHREF write fHREF;
+    property ID: String read fID write fID;
+    constructor Create(const HREF, ID: String);
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TMVCAcceptedResponse = class(TMVCResponseBase)
+  private
+    fTask: TMVCTask;
+  public
+    property Task: TMVCTask read fTask;
+//    constructor Create(const aTask: TMVCTask); overload;
+    constructor Create(const HREF, ID: String);
+    destructor Destroy; override;
+  end;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -613,5 +641,34 @@ end;
 { TDataSetHelper }
 
 { TDataSetHelper }
+
+{ TMVCTask }
+
+constructor TMVCTask.Create(const HREF, ID: String);
+begin
+  inherited Create;
+  fHREF := HREF;
+  fID := ID;
+end;
+
+{ TMVCAcceptedResponse }
+
+//constructor TMVCAcceptedResponse.Create(const aTask: TMVCTask);
+//begin
+//  inherited Create;
+//  fTask := aTask;
+//end;
+
+constructor TMVCAcceptedResponse.Create(const HREF, ID: String);
+begin
+  inherited Create;
+  fTask := TMVCTask.Create(HREF, ID);
+end;
+
+destructor TMVCAcceptedResponse.Destroy;
+begin
+  fTask.Free;
+  inherited;
+end;
 
 end.

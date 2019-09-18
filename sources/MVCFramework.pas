@@ -53,7 +53,6 @@ uses
   MVCFramework.Logger,
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons,
 
 {$IFDEF WEBAPACHEHTTP}
   Web.ApacheHTTP,
@@ -81,7 +80,8 @@ uses
   IdGlobal,
   IdGlobalProtocols,
   IdURI,
-  MVCFramework.Commons;
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons;
 
 type
 
@@ -485,7 +485,28 @@ type
     function GetContext: TWebContext;
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
-    procedure ResponseCreated(const Location: String = ''); virtual;
+    /// <summary>
+    /// HTTP Status 201 indicates that as a result of HTTP POST request, one or more new resources have been successfully created on server.
+    /// The response may contain URI in Location header field in HTTP headers list, which can have reference to the newly created resource. Also, response payload also may include an entity containing a list of resource characteristics and location(s) from which the user or user agent can choose the one most appropriate.
+    /// WARNING: The origin server MUST create the resource before returning the 201 status code. If the action cannot be carried out immediately, the server SHOULD respond with 202 (Accepted) response instead.
+    /// </summary>
+    /// <remarks>
+    /// https://restfulapi.net/http-status-201-created/
+    /// </remarks>
+    procedure ResponseCreated(const Location: String = ''; const Reason: String = 'Created'); virtual;
+    /// <summary>
+    /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agent’s connection to the server persist until the process is completed.
+    /// The entity returned with this response SHOULD describe the request’s current status and point to (or embed) a status monitor that can provide the user with (or without) an estimate of when the request will be fulfilled.
+    /// </summary>
+    /// <remarks>
+    /// https://restfulapi.net/http-status-202-accepted/
+    /// </remarks>
+    procedure ResponseAccepted(const HREF: String; const ID: String; const Reason: String = 'Accepted'); virtual;
+    /// <summary>
+    /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current document’s active view if any.
+    /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
+    /// </summary>
+    procedure ResponseNoContent(const Reason: String = 'No Content'); virtual;
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean = True)
       : IMVCSerializer; overload;
@@ -1632,12 +1653,12 @@ end;
 
 procedure TWebContext.SessionStart;
 var
-  Id: string;
+  ID: string;
 begin
   if not Assigned(FWebSession) then
   begin
-    Id := TMVCEngine.SendSessionCookie(Self);
-    FWebSession := AddSessionToTheSessionList(Config[TMVCConfigKey.SessionType], Id,
+    ID := TMVCEngine.SendSessionCookie(Self);
+    FWebSession := AddSessionToTheSessionList(Config[TMVCConfigKey.SessionType], ID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
@@ -2777,13 +2798,28 @@ begin
   Self.Render<T>(ACollection, AOwns, stDefault, ASerializationAction);
 end;
 
-procedure TMVCRenderer.ResponseCreated(const Location: String);
+procedure TMVCRenderer.ResponseAccepted(const HREF: String; const ID: String; const Reason: String);
+begin
+  if HREF.IsEmpty then
+  begin
+    raise EMVCException.Create('Cannot send 202 without provide an HREF');
+  end;
+  ResponseStatus(HTTP_STATUS.Accepted, Reason);
+  Render(TMVCAcceptedResponse.Create(HREF, ID));
+end;
+
+procedure TMVCRenderer.ResponseCreated(const Location, Reason: String);
 begin
   if not Location.IsEmpty then
   begin
     FContext.Response.CustomHeaders.AddPair('location', Location);
   end;
-  ResponseStatus(HTTP_STATUS.Created);
+  ResponseStatus(HTTP_STATUS.Created, Reason);
+end;
+
+procedure TMVCRenderer.ResponseNoContent(const Reason: String);
+begin
+  ResponseStatus(HTTP_STATUS.NoContent, Reason);
 end;
 
 procedure TMVCRenderer.ResponseStatus(const AStatusCode: Integer; const AReasonString: string);
