@@ -312,6 +312,7 @@ type
 
   TUser = class
   private
+    FToken: string;
     FUserName: string;
     FRoles: TList<string>;
     FLoggedSince: TDateTime;
@@ -329,6 +330,7 @@ type
     procedure SaveToSession(const AWebSession: TWebSession);
     function LoadFromSession(const AWebSession: TWebSession): Boolean;
 
+    property Token: string read FToken write FToken;
     property UserName: string read FUserName write FUserName;
     property Roles: TList<string> read FRoles;
     property LoggedSince: TDateTime read FLoggedSince write SetLoggedSince;

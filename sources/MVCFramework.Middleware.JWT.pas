@@ -237,6 +237,7 @@ begin
     if JWTValue.CustomClaims['username'].IsEmpty then
       raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid Token, Authorization Required');
 
+    AContext.LoggedUser.Token := AuthToken;
     AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
     AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
     AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
