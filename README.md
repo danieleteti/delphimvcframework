@@ -7,11 +7,11 @@ DelphiMVCFramework is the **most popular** Delphi project on GitHub!
 Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
 
 ## How to install DMVCFramework
-*It is not needed to download the git repository*. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+*It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
 If you want to participate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
 Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
 
-## What users says about DMVCFramework
+## What users say about DMVCFramework
 
 >"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
 
@@ -58,7 +58,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Works on Linux (Delphi 10.2 Tokyo or better)
   * Completely unit tested (more than 130 unit tests)
   * There is a sample for each functionality (check the [dmvcframework_(yourversion)_samples.zip](https://github.com/danieleteti/delphimvcframework/releases))
-  * Fully supported by [bitTime Professionals](http://www.bittimeprofessionals.it) (trainings, consultancy, custom development etc.)
+  * Fully supported by [bitTime Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
   * Server side generated pages using [Mustache for Delphi](https://github.com/synopse/dmustache)
   * Specific trainings are available (email to `professionals@bittime.it` for a date and a place)
   * Messaging extension using [ServerSentEvents](https://github.com/danieleteti/delphimvcframework/tree/master/samples/serversentevents)
@@ -66,7 +66,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
-  * Continuously tested for Delphi versions incompatibilities by the proud [compatibility mantainers](COMPATIBILITY_MANTAINERS.MD) 
+  * Continuously tested for Delphi versions incompatibilities by the proud [compatibility maintainers](COMPATIBILITY_MANTAINERS.MD) 
 
 ## What's Cooking in the Lab
 
