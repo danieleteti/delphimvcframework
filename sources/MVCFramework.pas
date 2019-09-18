@@ -318,6 +318,7 @@ type
     FLoggedSince: TDateTime;
     FRealm: string;
     FCustomData: TMVCCustomData;
+    function GetToken: string;
     procedure SetLoggedSince(const AValue: TDateTime);
     procedure SetCustomData(const Value: TMVCCustomData);
   public
@@ -330,7 +331,7 @@ type
     procedure SaveToSession(const AWebSession: TWebSession);
     function LoadFromSession(const AWebSession: TWebSession): Boolean;
 
-    property Token: string read FToken write FToken;
+    property Token: string read GetToken write FToken;
     property UserName: string read FUserName write FUserName;
     property Roles: TList<string> read FRoles;
     property LoggedSince: TDateTime read FLoggedSince write SetLoggedSince;
@@ -1458,6 +1459,11 @@ begin
   FRoles.Free;
   FreeAndNil(FCustomData);
   inherited Destroy;
+end;
+
+function TUser.GetToken: string;
+begin
+  Result := 'Bearer ' + FToken;
 end;
 
 function TUser.IsValid: Boolean;
