@@ -244,16 +244,14 @@ begin
           else
             AJsonObject.S[AName] := DateToISODate(AValue.AsExtended);
         end
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
         begin
           if (AValue.AsExtended = 0) then
             AJsonObject[AName] := Null
           else
             AJsonObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsExtended);
         end
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TTime)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
         begin
           if (AValue.AsExtended = 0) then
             AJsonObject[AName] := Null
@@ -280,9 +278,14 @@ begin
           AJsonObject.S[AName] := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
       end;
 
-    tkClass:
+    tkClass, tkInterface:
       begin
-        ChildObject := AValue.AsObject;
+        ChildObject := nil;
+        if not AValue.IsEmpty and (AValue.Kind = tkInterface) then
+          ChildObject := TObject(AValue.AsInterface)
+        else if AValue.Kind = tkClass then
+          ChildObject := AValue.AsObject;
+		  
         if Assigned(ChildObject) then
         begin
           if ChildObject is TDataSet then
@@ -329,8 +332,7 @@ begin
         begin
           AJsonObject.F[AName] := TimeStampToMsecs(AValue.AsType<TTimeStamp>);
         end
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TValue)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TValue)) then
         begin
           if TMVCSerializerHelper.AttributeExists<MVCValueAsTypeAttribute>(ACustomAttributes,
             ValueTypeAtt) then
@@ -362,17 +364,17 @@ begin
 
     tkArray, tkDynArray:
       begin
-        if aValue.getarraylength>0 then
+        if AValue.GetArrayLength > 0 then
         Begin
-          for i := 0 to aValue.getarraylength-1 do
+          for i := 0 to AValue.GetArrayLength - 1 do
           Begin
-            case aValue.GetArrayElement(i).Kind of
+            case AValue.GetArrayElement(i).Kind of
               tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-                AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsString);
+                AJsonObject.A[AName].Add(AValue.GetArrayElement(i).AsString);
               tkInteger:
-                AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsInteger);
+                AJsonObject.A[AName].Add(AValue.GetArrayElement(i).AsInteger);
               tkInt64:
-                AJsonObject.A[AName].Add(aValue.GetArrayElement(i).AsInt64);
+                AJsonObject.A[AName].Add(AValue.GetArrayElement(i).AsInt64);
             else
               raise EMVCSerializationException.CreateFmt
                 ('Cannot serialize property or field "%s" of TypeKind tkArray or tkDynArray.', [AName]);
@@ -710,16 +712,13 @@ begin
         if (AValue.TypeInfo = System.TypeInfo(TDate)) then
           AValue := TValue.From<TDate>(ISODateToDate(AJsonObject[AName].Value))
 
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
           AValue := TValue.From<TDateTime>(ISOTimeStampToDateTime(AJsonObject[AName].Value))
 
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TTime)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
           AValue := TValue.From<TTime>(ISOTimeToTime(AJsonObject[AName].Value))
 
-        else
-          if (AValue.Kind = tkEnumeration) then
+        else if (AValue.Kind = tkEnumeration) then
           TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject[AName].Value),
             AValue.TypeInfo, AValue)
 
@@ -758,7 +757,10 @@ begin
           // dt: if a key is null, jsondataobjects assign it the type jdtObject
           if AJsonObject[AName].ObjectValue <> nil then
           begin
-            ChildObject := AValue.AsObject;
+			      if AValue.Kind = tkInterface then
+              ChildObject := TObject(AValue.AsInterface)
+            else
+              ChildObject := AValue.AsObject;
             JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject,
               AType), AIgnored);
           end;
@@ -767,7 +769,10 @@ begin
 
     jdtArray:
       begin
-        ChildObject := AValue.AsObject;
+		    if AValue.Kind = tkInterface then
+          ChildObject := TObject(AValue.AsInterface)
+        else
+          ChildObject := AValue.AsObject;
         if Assigned(ChildObject) then
         begin
           if ChildObject is TDataSet then
@@ -785,9 +790,9 @@ begin
           end;
         end
         else if AValue.isArray then
-        Begin
+        begin
           AValue := JsonArrayToArray(AJsonObject.A[AName]);
-        End;
+        end;
       end;
   end;
 end;
@@ -1477,9 +1482,12 @@ begin
         Value.TryAsOrdinal(lOrdinalValue);
         JSON.I[KeyName] := lOrdinalValue;
       end;
-    tkClass:
+    tkClass, tkInterface:
       begin
-        lValueAsObj := Value.AsObject;
+        if Value.Kind = tkInterface then
+          lValueAsObj := TObject(Value.AsInterface)
+        else
+          lValueAsObj := Value.AsObject;
         lValueAsObjQualifClassName := lValueAsObj.QualifiedClassName.ToLower;
         if (lValueAsObj is TJDOJsonObject) or (lValueAsObj is TJsonObject)
 {$IFDEF RIOORBETTER} or
@@ -1493,8 +1501,7 @@ begin
           JSON.O[KeyName] := TJDOJsonObject.Create;
           JSON.O[KeyName].Assign(TJDOJsonObject(Value.AsObject));
         end
-        else
-          if (lValueAsObj is TJDOJsonArray) or (lValueAsObj is TJsonArray)
+        else if (lValueAsObj is TJDOJsonArray) or (lValueAsObj is TJsonArray)
 {$IFDEF RIOORBETTER} or
         { this is for a bug in delphi103rio }
           (lValueAsObj.QualifiedClassName = 'jsondataobjects.tjsonarray') or
@@ -1506,8 +1513,7 @@ begin
           JSON.A[KeyName] := TJDOJsonArray.Create;
           JSON.A[KeyName].Assign(TJDOJsonArray(Value.AsObject));
         end
-        else
-          if lValueAsObj is TDataSet then
+        else if lValueAsObj is TDataSet then
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
@@ -1518,8 +1524,7 @@ begin
             lSer.Free;
           end;
         end
-        else
-          if TDuckTypedList.CanBeWrappedAsList(lValueAsObj, lMVCList) then
+        else if TDuckTypedList.CanBeWrappedAsList(lValueAsObj, lMVCList) then
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try

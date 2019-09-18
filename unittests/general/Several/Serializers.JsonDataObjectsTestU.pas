@@ -1281,7 +1281,11 @@ const
   JSON =
     '{' +
     '"Id":1,' +
-    '"Name":"João Antônio Duarte"' +
+    '"Name":"João Antônio Duarte",' +
+    '"ChildEntity":{'+
+    '"Code":10,'+
+    '"Description":"Child Entity"'+
+    '}' +
     '}';
 var
   LEntity: IEntityWithInterface;
@@ -1290,14 +1294,18 @@ begin
   LEntity := TEntityWithInterface.Create;
   LEntity.Id := 1;
   LEntity.Name := 'João Antônio Duarte';
+  LEntity.ChildEntity.Code := 10;
+  LEntity.ChildEntity.Description := 'Child Entity';
 
   LJson := FSerializer.SerializeObject(LEntity);
   Assert.AreEqual(JSON, LJson);
 
   LEntity := TEntityWithInterface.Create;
   FSerializer.DeserializeObject(LJson, LEntity);
-  Assert.AreEqual(Int64(1), LEntity.Id);
+  Assert.AreEqual(Integer(1), LEntity.Id);
   Assert.AreEqual('João Antônio Duarte', LEntity.Name);
+  Assert.AreEqual(Integer(10), LEntity.ChildEntity.Code);
+  Assert.AreEqual('Child Entity', LEntity.ChildEntity.Description);
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
