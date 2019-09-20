@@ -44,7 +44,9 @@ def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION
 def build_delphi_project(ctx: context.Context, project_filename, config='DEBUG', delphi_version=DEFAULT_DELPHI_VERSION):
     delphi_versions = {
         "XE7": {"path": "15.0", "desc": "Delphi XE7"},
-        "10.1": {"path": "18.0", "desc": "Delphi 10.1 Seattle"},
+		"XE8": {"path": "16.0", "desc": "Delphi XE8"},
+		"10": {"path": "17.0", "desc": "Delphi 10 Seattle"},
+        "10.1": {"path": "18.0", "desc": "Delphi 10.1 Berlin"},
         "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
         "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
     }
@@ -94,11 +96,11 @@ def copy_sources():
         copy2(file, g_output_folder + "\\sources\\")
 
     # copying tools
-    print("Copying tools binaries...")
-    src = glob.glob("tools\\bin\\*.*")
-    for file in src:
-        print("Copying " + file + " to " + g_output_folder + "\\tools")
-        copy2(file, g_output_folder + "\\tools\\")
+    # print("Copying tools binaries...")
+    # src = glob.glob("tools\\bin\\*.*")
+    # for file in src:
+    #     print("Copying " + file + " to " + g_output_folder + "\\tools")
+    #     copy2(file, g_output_folder + "\\tools\\")
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")
