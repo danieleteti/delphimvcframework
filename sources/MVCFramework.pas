@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano MÃ¼ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -80,7 +80,9 @@ uses
   IdGlobal,
   IdGlobalProtocols,
   IdURI,
-  MVCFramework.Commons,
+  SwagDoc
+  Swag.Common.Types,
+  MVCFramework.Commons
   MVCFramework.Serializer.Commons;
 
 type
@@ -123,6 +125,16 @@ type
     property Value: string read FValue;
   end;
 
+  MVCIntegerAttribute = class(MVCBaseAttribute)
+  private
+    FValue: Int64;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AValue: Int64);
+    property Value: Int64 read FValue;
+  end;
+
   MVCConsumesAttribute = class(MVCStringAttribute)
   private
     { private declarations }
@@ -152,6 +164,52 @@ type
     { public declarations }
   end;
 
+  MVCFormatAttribute = class(MVCStringAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMaxLengthAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMinimumAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMaximumAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCInheritableAttribute = class(MVCBaseAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+
   MVCPathAttribute = class(MVCBaseAttribute)
   private
     FPath: string;
@@ -162,13 +220,77 @@ type
     property Path: string read FPath;
   end;
 
-  MVCInheritableAttribute = class(MVCBaseAttribute)
+  MVCResponseAttribute = class(MVCBaseAttribute)
   private
-    { private declarations }
+    FStatusCode: Integer;
+    FDescription : string;
+    FResponseClass : TClass;
   protected
     { protected declarations }
   public
-    { public declarations }
+    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    property StatusCode: Integer read FStatusCode;
+    property Description: string read FDescription;
+    property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCResponseListAttribute = class(MVCBaseAttribute)
+  private
+    FStatusCode: Integer;
+    FDescription : string;
+    FResponseClass : TClass;
+  protected
+    { protected declarations }
+  public
+    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    property StatusCode: Integer read FStatusCode;
+    property Description: string read FDescription;
+    property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCPathParamAttribute = class(MVCBaseAttribute)
+  private
+    FType : TSwagTypeParameter;
+    FFormat : string;
+    FValue : string;
+  public
+    constructor Create(AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = '');
+    property ParamType: TSwagTypeParameter read FType;
+    property Format: string read FFormat;
+    property Pattern: string read FValue;
+  end;
+
+  MVCParamAttribute = class(MVCStringAttribute)
+  private
+    FName : string;
+    FLocation : TSwagRequestParameterInLocation;
+    FType : TSwagTypeParameter;
+    FClassType : TClass;
+    FPattern : string;
+    FFormat : string;
+  public
+    property Name : string read FName write FName;
+    property Location: TSwagRequestParameterInLocation read FLocation write FLocation;
+    property ParamType: TSwagTypeParameter read FType write Ftype;
+    property ClassType: TClass read FClassType write FClassType;
+    property Pattern: string read FPattern write FPattern;
+    property Format: string read FFormat write FFormat;
+
+    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = ''); overload;
+    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TClass; APattern: string = ''; AFormat: string = ''); overload;
+  end;
+
+
+  MVCPatternAttribute = class(MVCStringAttribute)
+
+  end;
+
+  MVCStringEnumAttribute = class(MVCBaseAttribute)
+  private
+    fValues : String;
+  public
+    constructor Create(const enumValue: String);
+    property Values : string read FValues write FValues;
   end;
 
   TMVCWebRequest = class
@@ -495,15 +617,15 @@ type
     /// </remarks>
     procedure ResponseCreated(const Location: String = ''; const Reason: String = 'Created'); virtual;
     /// <summary>
-    /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agent’s connection to the server persist until the process is completed.
-    /// The entity returned with this response SHOULD describe the request’s current status and point to (or embed) a status monitor that can provide the user with (or without) an estimate of when the request will be fulfilled.
+    /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agentÂ’s connection to the server persist until the process is completed.
+    /// The entity returned with this response SHOULD describe the requestÂ’s current status and point to (or embed) a status monitor that can provide the user with (or without) an estimate of when the request will be fulfilled.
     /// </summary>
     /// <remarks>
     /// https://restfulapi.net/http-status-202-accepted/
     /// </remarks>
     procedure ResponseAccepted(const HREF: String; const ID: String; const Reason: String = 'Accepted'); virtual;
     /// <summary>
-    /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current document’s active view if any.
+    /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current documentÂ’s active view if any.
     /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
     /// </summary>
     procedure ResponseNoContent(const Reason: String = 'No Content'); virtual;
@@ -929,6 +1051,29 @@ constructor MVCPathAttribute.Create(const APath: string);
 begin
   inherited Create;
   FPath := APath;
+end;
+
+constructor MVCResponseAttribute.Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass);
+begin
+  FStatusCode := inStatusCode;
+  FDescription := inDescription;
+  FResponseClass := inResponseClass;
+end;
+
+{ MVCResponseListAttribute }
+
+constructor MVCResponseListAttribute.Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass);
+begin
+  FStatusCode := inStatusCode;
+  FDescription := inDescription;
+  FResponseClass := inResponseClass;
+end;
+
+{ MVCStringEnumAttribute }
+
+constructor MVCStringEnumAttribute.Create(const enumValue: String);
+begin
+  FValues := enumValue;
 end;
 
 { TMVCWebRequest }
@@ -3332,6 +3477,47 @@ begin
     Result := FileName
   else
     Result := EmptyStr;
+end;
+
+
+{ MVCIntegerAttribute }
+
+constructor MVCIntegerAttribute.Create(const AValue: Int64);
+begin
+  FValue := AValue;
+end;
+
+{ MVCPathParamAttribute }
+
+constructor MVCPathParamAttribute.Create(AType: TSwagTypeParameter; APattern, AFormat: string);
+begin
+  FType := AType;
+  FValue := APattern;
+  FFormat := AFormat;
+end;
+
+{ MVCParamAttribute }
+
+constructor MVCParamAttribute.Create(name: string;
+  location: TSwagRequestParameterInLocation; AType: TSwagTypeParameter;
+  APattern, AFormat: string);
+begin
+  fName := name;
+  FLocation := location;
+  FType := AType;
+  FPattern := APattern;
+  FFormat := AFormat;
+end;
+
+constructor MVCParamAttribute.Create(name: string;
+  location: TSwagRequestParameterInLocation; AType: TClass; APattern,
+  AFormat: string);
+begin
+  FName := name;
+  FLocation := location;
+  FClassType := AType;
+  FPattern := APattern;
+  FFormat := AFormat;
 end;
 
 initialization
