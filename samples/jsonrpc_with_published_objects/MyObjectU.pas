@@ -29,7 +29,9 @@ interface
 uses
   JsonDataObjects,
   Data.DB,
-  BusinessObjectsU, FireDAC.Comp.Client, MVCFramework.Serializer.Commons,
+  BusinessObjectsU,
+  FireDAC.Comp.Client,
+  MVCFramework.Serializer.Commons,
   MVCFramework.Commons;
 
 type
@@ -53,12 +55,14 @@ type
     function Subtract(aValue1, aValue2: Integer): Integer;
     function ReverseString(const aString: string; const aUpperCase: Boolean): string;
     function GetNextMonday(const aDate: TDate): TDate;
-    function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime): TDateTime;
+    function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
+      const aDateAndTime: TDateTime): TDateTime;
     function GetCustomers(aString: string): TDataset;
     function GetMulti: TMultiDataset;
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const aPerson: TJsonObject): Integer;
+    function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
     // invalid parameters modifiers
     procedure InvalidMethod1(var MyVarParam: Integer);
@@ -79,6 +83,12 @@ uses
 procedure TMyObject.DoSomething;
 begin
 
+end;
+
+function TMyObject.FloatsTest(const aDouble: Double;
+  const aExtended: Extended): Extended;
+begin
+  Result := aDouble + aExtended;
 end;
 
 function TMyObject.GetCustomers(aString: string): TDataset;
@@ -201,7 +211,8 @@ begin
   // do nothing
 end;
 
-function TMyObject.PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime): TDateTime;
+function TMyObject.PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
+  const aDateAndTime: TDateTime): TDateTime;
 begin
   Result := aDateAndTime + aDate + aTime + TDateTime(aJustAFloat);
 end;

@@ -51,7 +51,7 @@ type
 
   TMVCSerializationType = (stUnknown, stDefault, stProperties, stFields);
 
-  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase);
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase);
 
   TMVCDataType = (dtObject, dtArray);
 
@@ -61,7 +61,7 @@ type
 
   TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const Links: IMVCLinks);
   TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
-  TMVCDatasetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
+  TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
 
   EMVCSerializationException = class(EMVCException)
   end;
@@ -204,6 +204,34 @@ type
 
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
+  // Well Known Response Objects
+  [MVCNameCase(ncLowerCase)]
+  TMVCResponseBase = class abstract
+
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TMVCTask = class
+  private
+    fID: String;
+    fHREF: String;
+  public
+    property HREF: String read fHREF write fHREF;
+    property ID: String read fID write fID;
+    constructor Create(const HREF, ID: String);
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TMVCAcceptedResponse = class(TMVCResponseBase)
+  private
+    fTask: TMVCTask;
+  public
+    property Task: TMVCTask read fTask;
+    // constructor Create(const aTask: TMVCTask); overload;
+    constructor Create(const HREF, ID: String);
+    destructor Destroy; override;
+  end;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -328,6 +356,10 @@ begin
         ncLowerCase:
           begin
             Exit(LowerCase(AField.Name));
+          end;
+        ncCamelCase:
+          begin
+            Exit(LowerCase(AField.Name.Chars[0]) + AField.Name.Substring(1));
           end;
       end;
     end;
@@ -609,5 +641,34 @@ end;
 { TDataSetHelper }
 
 { TDataSetHelper }
+
+{ TMVCTask }
+
+constructor TMVCTask.Create(const HREF, ID: String);
+begin
+  inherited Create;
+  fHREF := HREF;
+  fID := ID;
+end;
+
+{ TMVCAcceptedResponse }
+
+// constructor TMVCAcceptedResponse.Create(const aTask: TMVCTask);
+// begin
+// inherited Create;
+// fTask := aTask;
+// end;
+
+constructor TMVCAcceptedResponse.Create(const HREF, ID: String);
+begin
+  inherited Create;
+  fTask := TMVCTask.Create(HREF, ID);
+end;
+
+destructor TMVCAcceptedResponse.Destroy;
+begin
+  fTask.Free;
+  inherited;
+end;
 
 end.

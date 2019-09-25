@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano M�ller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -53,7 +53,6 @@ uses
   MVCFramework.Logger,
   MVCFramework.ApplicationSession,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons,
 
 {$IFDEF WEBAPACHEHTTP}
   Web.ApacheHTTP,
@@ -81,7 +80,10 @@ uses
   IdGlobal,
   IdGlobalProtocols,
   IdURI,
-  MVCFramework.Commons;
+  Swag.Doc,
+  Swag.Common.Types,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons;
 
 type
 
@@ -123,6 +125,16 @@ type
     property Value: string read FValue;
   end;
 
+  MVCIntegerAttribute = class(MVCBaseAttribute)
+  private
+    FValue: Int64;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const AValue: Int64);
+    property Value: Int64 read FValue;
+  end;
+
   MVCConsumesAttribute = class(MVCStringAttribute)
   private
     { private declarations }
@@ -152,14 +164,40 @@ type
     { public declarations }
   end;
 
-  MVCPathAttribute = class(MVCBaseAttribute)
+  MVCFormatAttribute = class(MVCStringAttribute)
   private
-    FPath: string;
+    { private declarations }
   protected
     { protected declarations }
   public
-    constructor Create(const APath: string); overload;
-    property Path: string read FPath;
+    { public declarations }
+  end;
+
+  MVCMaxLengthAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMinimumAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  MVCMaximumAttribute = class(MVCIntegerAttribute)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
   end;
 
   MVCInheritableAttribute = class(MVCBaseAttribute)
@@ -171,8 +209,93 @@ type
     { public declarations }
   end;
 
+
+  MVCPathAttribute = class(MVCBaseAttribute)
+  private
+    FPath: string;
+  protected
+    { protected declarations }
+  public
+    constructor Create(const APath: string); overload;
+    property Path: string read FPath;
+  end;
+
+  MVCResponseAttribute = class(MVCBaseAttribute)
+  private
+    FStatusCode: Integer;
+    FDescription : string;
+    FResponseClass : TClass;
+  protected
+    { protected declarations }
+  public
+    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    property StatusCode: Integer read FStatusCode;
+    property Description: string read FDescription;
+    property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCResponseListAttribute = class(MVCBaseAttribute)
+  private
+    FStatusCode: Integer;
+    FDescription : string;
+    FResponseClass : TClass;
+  protected
+    { protected declarations }
+  public
+    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    property StatusCode: Integer read FStatusCode;
+    property Description: string read FDescription;
+    property ResponseClass: TClass read FResponseClass;
+  end;
+
+  MVCPathParamAttribute = class(MVCBaseAttribute)
+  private
+    FType : TSwagTypeParameter;
+    FFormat : string;
+    FValue : string;
+  public
+    constructor Create(AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = '');
+    property ParamType: TSwagTypeParameter read FType;
+    property Format: string read FFormat;
+    property Pattern: string read FValue;
+  end;
+
+  MVCParamAttribute = class(MVCStringAttribute)
+  private
+    FName : string;
+    FLocation : TSwagRequestParameterInLocation;
+    FType : TSwagTypeParameter;
+    FClassType : TClass;
+    FPattern : string;
+    FFormat : string;
+  public
+    property Name : string read FName write FName;
+    property Location: TSwagRequestParameterInLocation read FLocation write FLocation;
+    property ParamType: TSwagTypeParameter read FType write Ftype;
+    property ClassType: TClass read FClassType write FClassType;
+    property Pattern: string read FPattern write FPattern;
+    property Format: string read FFormat write FFormat;
+
+    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = ''); overload;
+    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TClass; APattern: string = ''; AFormat: string = ''); overload;
+  end;
+
+
+  MVCPatternAttribute = class(MVCStringAttribute)
+
+  end;
+
+  MVCStringEnumAttribute = class(MVCBaseAttribute)
+  private
+    fValues : String;
+  public
+    constructor Create(const enumValue: String);
+    property Values : string read FValues write FValues;
+  end;
+
   TMVCWebRequest = class
   private
+    FQueryParams: TDictionary<string, string>;
     FContentFields: TDictionary<string, string>;
     FWebRequest: TWebRequest;
     FSerializers: TDictionary<string, IMVCSerializer>;
@@ -183,6 +306,7 @@ type
     FContentMediaType: string;
     procedure DefineContentType;
     function GetContentFields: TDictionary<string, string>;
+    function GetQueryParams: TDictionary<string, string>;
     function GetHeader(const AName: string): string;
     function GetPathInfo: string;
     function GetParams(const AParamName: string): string;
@@ -228,6 +352,7 @@ type
     property ContentType: string read FContentType;
     property ContentCharset: string read FCharset;
     property ContentFields: TDictionary<string, string> read GetContentFields;
+    property QueryParams: TDictionary<string, string> read GetQueryParams;
     property Headers[const AHeaderName: string]: string read GetHeader;
     property PathInfo: string read GetPathInfo;
     property ParamsTable: TMVCRequestParamsTable read FParamsTable write FParamsTable;
@@ -405,6 +530,8 @@ type
     procedure Render(const AObject: TObject); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType); overload;
+    procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const ACollection: IMVCList); overload;
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(
@@ -450,6 +577,7 @@ type
     function ResponseStream: TStringBuilder;
     procedure Redirect(const AUrl: string);
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = '');
+    procedure ResponseCreated(const Location: String = '');
     // Serializer access
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExcpIfNotExists: Boolean = True)
@@ -479,6 +607,28 @@ type
     function GetContext: TWebContext;
     procedure Redirect(const AUrl: string); virtual;
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = ''); virtual;
+    /// <summary>
+    /// HTTP Status 201 indicates that as a result of HTTP POST request, one or more new resources have been successfully created on server.
+    /// The response may contain URI in Location header field in HTTP headers list, which can have reference to the newly created resource. Also, response payload also may include an entity containing a list of resource characteristics and location(s) from which the user or user agent can choose the one most appropriate.
+    /// WARNING: The origin server MUST create the resource before returning the 201 status code. If the action cannot be carried out immediately, the server SHOULD respond with 202 (Accepted) response instead.
+    /// </summary>
+    /// <remarks>
+    /// https://restfulapi.net/http-status-201-created/
+    /// </remarks>
+    procedure ResponseCreated(const Location: String = ''; const Reason: String = 'Created'); virtual;
+    /// <summary>
+    /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agents connection to the server persist until the process is completed.
+    /// The entity returned with this response SHOULD describe the requests current status and point to (or embed) a status monitor that can provide the user with (or without) an estimate of when the request will be fulfilled.
+    /// </summary>
+    /// <remarks>
+    /// https://restfulapi.net/http-status-202-accepted/
+    /// </remarks>
+    procedure ResponseAccepted(const HREF: String; const ID: String; const Reason: String = 'Accepted'); virtual;
+    /// <summary>
+    /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current documents active view if any.
+    /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
+    /// </summary>
+    procedure ResponseNoContent(const Reason: String = 'No Content'); virtual;
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean = True)
       : IMVCSerializer; overload;
@@ -488,11 +638,14 @@ type
     function ResponseStream: TStringBuilder;
     procedure Render(const AContent: string); overload;
     // PODO renders
-    procedure Render(const AStatusCode: Integer; const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AStatusCode: Integer; const AObject: TObject;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean; const AType: TMVCSerializationType;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     // PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
@@ -900,6 +1053,29 @@ begin
   FPath := APath;
 end;
 
+constructor MVCResponseAttribute.Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass);
+begin
+  FStatusCode := inStatusCode;
+  FDescription := inDescription;
+  FResponseClass := inResponseClass;
+end;
+
+{ MVCResponseListAttribute }
+
+constructor MVCResponseListAttribute.Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass);
+begin
+  FStatusCode := inStatusCode;
+  FDescription := inDescription;
+  FResponseClass := inResponseClass;
+end;
+
+{ MVCStringEnumAttribute }
+
+constructor MVCStringEnumAttribute.Create(const enumValue: String);
+begin
+  FValues := enumValue;
+end;
+
 { TMVCWebRequest }
 
 function TMVCWebRequest.Accept: string;
@@ -1109,6 +1285,10 @@ begin
   begin
     FContentFields.Free;
   end;
+  if Assigned(FQueryParams) then
+  begin
+    FQueryParams.Free;
+  end;
   inherited Destroy;
 end;
 
@@ -1252,6 +1432,21 @@ end;
 function TMVCWebRequest.GetPathInfo: string;
 begin
   Result := FWebRequest.PathInfo;
+end;
+
+function TMVCWebRequest.GetQueryParams: TDictionary<string, string>;
+var
+  I: Integer;
+begin
+  if not Assigned(FQueryParams) then
+  begin
+    FQueryParams := TDictionary<string, string>.Create;
+    for I := 0 to Pred(FWebRequest.QueryFields.Count) do
+    begin
+      FQueryParams.Add(LowerCase(FWebRequest.QueryFields.Names[I]), FWebRequest.QueryFields.ValueFromIndex[I]);
+    end;
+  end;
+  Result := FQueryParams;
 end;
 
 function TMVCWebRequest.QueryStringParam(const AName: string): string;
@@ -1431,7 +1626,7 @@ begin
     LoggedSince := ISOTimeStampToDateTime(Pieces[1]);
     Realm := Pieces[2];
     Roles.Clear;
-    for I := 3 to Length(Pieces) - 1 do //https://github.com/danieleteti/delphimvcframework/issues/225
+    for I := 3 to Length(Pieces) - 1 do // https://github.com/danieleteti/delphimvcframework/issues/225
       Roles.Add(Pieces[I]);
   end;
 end;
@@ -1515,17 +1710,19 @@ begin
     if ARequest.ClassType = TApacheRequest then
     begin
       FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
-    end else
+    end
+    else
 {$IFNDEF LINUX}
-    if ARequest.ClassType = TISAPIRequest then
-    begin
-      FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
-    end else
+      if ARequest.ClassType = TISAPIRequest then
+      begin
+        FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+      end
+      else
 {$ENDIF}
 {$ENDIF}
-    begin
-      FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
-    end;
+      begin
+        FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+      end;
   end;
 
   FResponse := TMVCWebResponse.Create(AResponse);
@@ -1601,12 +1798,12 @@ end;
 
 procedure TWebContext.SessionStart;
 var
-  Id: string;
+  ID: string;
 begin
   if not Assigned(FWebSession) then
   begin
-    Id := TMVCEngine.SendSessionCookie(Self);
-    FWebSession := AddSessionToTheSessionList(Config[TMVCConfigKey.SessionType], Id,
+    ID := TMVCEngine.SendSessionCookie(Self);
+    FWebSession := AddSessionToTheSessionList(Config[TMVCConfigKey.SessionType], ID,
       StrToInt64(Config[TMVCConfigKey.SessionTimeout]));
     FIsSessionStarted := True;
     FSessionMustBeClose := False;
@@ -2282,7 +2479,8 @@ begin
     finally
       lError.Free;
     end;
-    AContext.Response.SetContentType(AContext.Config[TMVCConfigKey.DefaultContentType]);
+    AContext.Response.SetContentType(BuildContentType(AContext.Config[TMVCConfigKey.DefaultContentType],
+      AContext.Config[TMVCConfigKey.DefaultContentCharset]));
   end
   else
   begin
@@ -2745,6 +2943,30 @@ begin
   Self.Render<T>(ACollection, AOwns, stDefault, ASerializationAction);
 end;
 
+procedure TMVCRenderer.ResponseAccepted(const HREF: String; const ID: String; const Reason: String);
+begin
+  if HREF.IsEmpty then
+  begin
+    raise EMVCException.Create('Cannot send 202 without provide an HREF');
+  end;
+  ResponseStatus(HTTP_STATUS.Accepted, Reason);
+  Render(TMVCAcceptedResponse.Create(HREF, ID));
+end;
+
+procedure TMVCRenderer.ResponseCreated(const Location, Reason: String);
+begin
+  if not Location.IsEmpty then
+  begin
+    FContext.Response.CustomHeaders.AddPair('location', Location);
+  end;
+  ResponseStatus(HTTP_STATUS.Created, Reason);
+end;
+
+procedure TMVCRenderer.ResponseNoContent(const Reason: String);
+begin
+  ResponseStatus(HTTP_STATUS.NoContent, Reason);
+end;
+
 procedure TMVCRenderer.ResponseStatus(const AStatusCode: Integer; const AReasonString: string);
 begin
   SetStatusCode(AStatusCode);
@@ -2921,8 +3143,15 @@ begin
     raise EMVCException.Create('Can not render an empty dataset.');
 end;
 
+procedure TMVCRenderer.Render(const AStatusCode: Integer; AObject: TObject;
+const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction);
+begin
+  ResponseStatus(AStatusCode);
+  Render(AObject, AOwns, ASerializationAction);
+end;
+
 procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: TObject;
-  const ASerializationAction: TMVCSerializationAction);
+const ASerializationAction: TMVCSerializationAction);
 begin
   ResponseStatus(AStatusCode);
   Render(AObject, True, ASerializationAction);
@@ -3248,6 +3477,47 @@ begin
     Result := FileName
   else
     Result := EmptyStr;
+end;
+
+
+{ MVCIntegerAttribute }
+
+constructor MVCIntegerAttribute.Create(const AValue: Int64);
+begin
+  FValue := AValue;
+end;
+
+{ MVCPathParamAttribute }
+
+constructor MVCPathParamAttribute.Create(AType: TSwagTypeParameter; APattern, AFormat: string);
+begin
+  FType := AType;
+  FValue := APattern;
+  FFormat := AFormat;
+end;
+
+{ MVCParamAttribute }
+
+constructor MVCParamAttribute.Create(name: string;
+  location: TSwagRequestParameterInLocation; AType: TSwagTypeParameter;
+  APattern, AFormat: string);
+begin
+  fName := name;
+  FLocation := location;
+  FType := AType;
+  FPattern := APattern;
+  FFormat := AFormat;
+end;
+
+constructor MVCParamAttribute.Create(name: string;
+  location: TSwagRequestParameterInLocation; AType: TClass; APattern,
+  AFormat: string);
+begin
+  FName := name;
+  FLocation := location;
+  FClassType := AType;
+  FPattern := APattern;
+  FFormat := AFormat;
 end;
 
 initialization

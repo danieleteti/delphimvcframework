@@ -122,6 +122,8 @@
         <DCCReference Include="FireDACMySQLDriver.dcp"/>
         <DCCReference Include="loggerproRT.dcp"/>
         <DCCReference Include="FireDACPgDriver.dcp"/>
+        <DCCReference Include="FireDACCommonODBC.dcp"/>
+        <DCCReference Include="FireDACMSSQLDriver.dcp"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheHTTP.pas"/>
@@ -167,12 +169,18 @@
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Session.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SystemJSONUtils.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.View.Cache.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Controllers.Register.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Interbase.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MSSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2SQLite.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

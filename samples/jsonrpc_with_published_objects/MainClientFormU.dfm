@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'JSON-RPC 2.0 Client'
   ClientHeight = 527
-  ClientWidth = 846
+  ClientWidth = 842
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,13 +17,15 @@ object MainForm: TMainForm
   object PageControl1: TPageControl
     Left = 0
     Top = 0
-    Width = 846
+    Width = 842
     Height = 527
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
+    ExplicitWidth = 846
     object TabSheet1: TTabSheet
       Caption = 'Invoking Plain PODO'
+      ExplicitWidth = 838
       object GroupBox1: TGroupBox
         Left = 3
         Top = 22
@@ -188,6 +190,15 @@ object MainForm: TMainForm
           TabOrder = 14
           OnClick = btnDatesClick
         end
+        object btnFloatsTests: TButton
+          Left = 545
+          Top = 30
+          Width = 75
+          Height = 25
+          Caption = 'Floats'
+          TabOrder = 15
+          OnClick = btnFloatsTestsClick
+        end
       end
       object GroupBox2: TGroupBox
         Left = 3
@@ -326,6 +337,7 @@ object MainForm: TMainForm
     object TabSheet2: TTabSheet
       Caption = 'Invoking DataModule Methods'
       ImageIndex = 1
+      ExplicitWidth = 838
       object GroupBox5: TGroupBox
         Left = 11
         Top = 18
