@@ -71,3 +71,5 @@ __recovery/
 venv/
 releases/
 __pycache__/
+*.ini
+*.bmp
