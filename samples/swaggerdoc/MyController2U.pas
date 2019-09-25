@@ -32,23 +32,23 @@ type
   TMyController2 = class(TMVCController)
   public
     [MVCPath('/($Id)')]
+    [MVCHTTPMethod([httpGET])]
     [MVCSwagSummary('Person', 'List Persons', '66e83aa7-d170-44a7-a502-8f25ddd2a18a')]
     [MVCSwagParam(plPath, 'Id', 'Person id', ptInteger)]
     [MVCSwagParam(plQuery, 'filter', 'Search filter', ptString)]
     [MVCSwagParam(plQuery, 'per_page', 'Items per page', ptInteger)]
-    [MVCSwagResponses(200, 'Sucess', TPerson)]
+    [MVCSwagResponses(200, 'Success', TPerson)]
     [MVCSwagResponses(500, 'Internal Server Error')]
-    [MVCHTTPMethod([httpGET])]
     procedure GetPerson(const Id: Integer);
 
     [MVCPath('')]
+    [MVCHTTPMethod([httpPOST])]
     [MVCSwagSummary('Person', 'Insert Person')]
     [MVCSwagParam(plBody, 'entity', 'Person object', TPerson, ptNotDefined, True)]
     [MVCSwagResponses(201, 'Created')]
     [MVCSwagResponses(401, 'Requires Authentication')]
     [MVCSwagResponses(500, 'Internal Server Error')]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
-    [MVCHTTPMethod([httpPOST])]
     [MVCRequiresAuthentication]
     procedure InsertPerson;
   end;

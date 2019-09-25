@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -80,9 +80,9 @@ uses
   IdGlobal,
   IdGlobalProtocols,
   IdURI,
-  SwagDoc
+  Swag.Doc,
   Swag.Common.Types,
-  MVCFramework.Commons
+  MVCFramework.Commons,
   MVCFramework.Serializer.Commons;
 
 type

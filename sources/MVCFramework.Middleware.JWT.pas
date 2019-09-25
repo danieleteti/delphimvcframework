@@ -70,35 +70,27 @@ type
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
-    procedure InternalRender(AJSONOb: TJDOJsonObject; AContentType: string; AContentEncoding: string; AContext: TWebContext;
-      AInstanceOwner: Boolean = True);
+    procedure InternalRender(AJSONOb: TJDOJsonObject; AContentType: string; AContentEncoding: string;
+      AContext: TWebContext; AInstanceOwner: Boolean = True);
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
   public
     /// <remarks>
-    ///   The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow
-    ///   the IETF national convention - RFC 6750;
+    /// The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow
+    /// the IETF national convention - RFC 6750;
     /// </remarks>
-    constructor Create(
-      AAuthenticationHandler: IMVCAuthenticationHandler;
-      AConfigClaims: TJWTClaimsSetup;
-      ASecret: string = 'D3lph1MVCFram3w0rk';
-      ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = [];
-      ALeewaySeconds: Cardinal = 300;
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
+      AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300;
       AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
       AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
       APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER); overload; virtual;
       deprecated 'Issue #244: IETF (RFC-6750) - This constructor will be removed soon, please use the new one';
-    constructor Create(
-      AAuthenticationHandler: IMVCAuthenticationHandler;
-      ASecret: string = 'D3lph1MVCFram3w0rk';
-      ALoginURLSegment: string = '/login';
-      AConfigClaims: TJWTClaimsSetup = nil;
-      AClaimsToCheck: TJWTCheckableClaims = [];
-      ALeewaySeconds: Cardinal = 300); overload; virtual;
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; ASecret: string = 'D3lph1MVCFram3w0rk';
+      ALoginURLSegment: string = '/login'; AConfigClaims: TJWTClaimsSetup = nil;
+      AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300); overload; virtual;
   end;
 
 implementation
@@ -112,11 +104,8 @@ uses
 { TMVCJWTAuthenticationMiddleware }
 
 constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  AConfigClaims: TJWTClaimsSetup;
-  ASecret: string = 'D3lph1MVCFram3w0rk';
-  ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = [];
-  ALeewaySeconds: Cardinal = 300;
+  AConfigClaims: TJWTClaimsSetup; ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
+  AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300;
   AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
   AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
   APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER);
@@ -133,8 +122,9 @@ begin
   FPasswordHeaderName := APasswordHeaderName;
 end;
 
-constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler; ASecret,
-  ALoginURLSegment: string; AConfigClaims: TJWTClaimsSetup; AClaimsToCheck: TJWTCheckableClaims; ALeewaySeconds: Cardinal);
+constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
+  ASecret, ALoginURLSegment: string; AConfigClaims: TJWTClaimsSetup; AClaimsToCheck: TJWTCheckableClaims;
+  ALeewaySeconds: Cardinal);
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
@@ -277,14 +267,43 @@ var
   LJWTValue: TJWT;
   LCustomPair: TPair<string, string>;
   LJsonObject: TJDOJsonObject;
+  lJObj: TJsonObject;
 begin
   if SameText(AContext.Request.PathInfo, FLoginURLSegment) then
   begin
     LBasicAuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
     if LBasicAuthHeader.IsEmpty then
     begin
+      // read from headers
       LUsername := TNetEncoding.URL.Decode(AContext.Request.Headers[FUserNameHeaderName]);
       LPassword := TNetEncoding.URL.Decode(AContext.Request.Headers[FPasswordHeaderName]);
+
+      // read from content
+      if LUsername.IsEmpty then
+      begin
+        LUsername := AContext.Request.ContentFields[FUserNameHeaderName];
+        LPassword := AContext.Request.ContentFields[FPasswordHeaderName];
+      end;
+
+      // read from json content
+      if LUsername.IsEmpty then
+      begin
+        lJObj := nil;
+        try
+          lJObj := TJsonBaseObject.Parse(AContext.Request.Body) as TJsonObject;
+        except
+        end;
+        try
+          if Assigned(lJObj) then
+          begin
+            LUsername := lJObj.S[FUserNameHeaderName];
+            LPassword := lJObj.S[FPasswordHeaderName];
+          end;
+        finally
+          lJObj.Free;
+        end;
+      end;
+
       if (LUsername.IsEmpty) or (LPassword.IsEmpty) then
         raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Username and password required');
     end
@@ -299,7 +318,7 @@ begin
       if Length(LBasicAuthParts) <> 2 then
         raise EMVCJWTException.Create(HTTP_STATUS.Unauthorized, 'Invalid authorization type');
 
-      LUserName := LBasicAuthParts[0];
+      LUsername := LBasicAuthParts[0];
       LPassword := LBasicAuthParts[1];
     end;
 
@@ -325,7 +344,8 @@ begin
 
           // these claims are mandatory and managed by the middleware
           if not LJWTValue.CustomClaims['username'].IsEmpty then
-            raise EMVCJWTException.Create('Custom claim "username" is reserved and cannot be modified in the JWT setup');
+            raise EMVCJWTException.Create
+              ('Custom claim "username" is reserved and cannot be modified in the JWT setup');
 
           if not LJWTValue.CustomClaims['roles'].IsEmpty then
             raise EMVCJWTException.Create('Custom claim "roles" is reserved and cannot be modified in the JWT setup');
@@ -358,7 +378,8 @@ begin
           LJsonObject := TJDOJsonObject.Create;
           try
             LJsonObject.S['token'] := LJWTValue.GetToken;
-            InternalRender(LJsonObject, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET, AContext, False);
+            InternalRender(LJsonObject, TMVCMediaType.APPLICATION_JSON, TMVCConstants.DEFAULT_CONTENT_CHARSET,
+              AContext, False);
           finally
             LJsonObject.Free;
           end;
