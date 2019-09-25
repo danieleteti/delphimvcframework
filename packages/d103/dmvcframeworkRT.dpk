@@ -41,7 +41,9 @@ requires
   FireDACIBDriver,
   FireDACMySQLDriver,
   loggerproRT,
-  FireDACPgDriver;
+  FireDACPgDriver,
+  FireDACCommonODBC,
+  FireDACMSSQLDriver;
 
 contains
   Web.ApacheConst in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas',
@@ -90,12 +92,18 @@ contains
   MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
   MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
   MVCFramework.Session in '..\..\sources\MVCFramework.Session.pas',
-  MVCFramework.SQLGenerators.Firebird in '..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
-  MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
   MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
   MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas',
   MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
-  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas';
+  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas',
+  MVCFramework.SQLGenerators.Firebird in '..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
+  MVCFramework.SQLGenerators.Interbase in '..\..\sources\MVCFramework.SQLGenerators.Interbase.pas',
+  MVCFramework.SQLGenerators.MSSQL in '..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
+  MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
+  MVCFramework.SQLGenerators.PostgreSQL in '..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas',
+  MVCFramework.SQLGenerators.Sqlite in '..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas',
+  MVCFramework.RQL.AST2MSSQL in '..\..\sources\MVCFramework.RQL.AST2MSSQL.pas',
+  MVCFramework.RQL.AST2SQLite in '..\..\sources\MVCFramework.RQL.AST2SQLite.pas';
 
 end.
 

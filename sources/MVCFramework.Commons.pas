@@ -629,18 +629,6 @@ begin
   Result := GlobalAppPath;
 end;
 
-function IsReservedOrPrivateIP(const AIP: string): Boolean;
-var
-  I: Integer;
-  IntIP: Cardinal;
-begin
-  Result := False;
-  IntIP := IP2Long(AIP);
-  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
-    if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
-      Exit(True);
-end;
-
 function IP2Long(const AIP: string): Cardinal;
 var
   lPieces: TArray<string>;
@@ -651,6 +639,18 @@ begin
   Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) +
     (StrToInt(lPieces[2]) * 256) +
     StrToInt(lPieces[3]);
+end;
+
+function IsReservedOrPrivateIP(const AIP: string): Boolean;
+var
+  I: Integer;
+  IntIP: Cardinal;
+begin
+  Result := False;
+  IntIP := IP2Long(AIP);
+  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
+    if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
+      Exit(True);
 end;
 
 // function IP2Long(const AIP: string): UInt32;

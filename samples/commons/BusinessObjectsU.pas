@@ -28,8 +28,7 @@ interface
 
 uses
   MVCFramework.Serializer.Commons,
-  Generics.Collections,
-  Graphics;
+  Generics.Collections, Vcl.Graphics;
 
 type
 
