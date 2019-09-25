@@ -99,10 +99,12 @@ end;
 procedure CreateSqlitePrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
+  lFName: string;
 begin
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=C:\DEV\dmvcframework\samples\data\activerecorddb.db');
+    lFName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\data\activerecorddb.db');
+    LParams.Add('Database=' + lFName);
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');

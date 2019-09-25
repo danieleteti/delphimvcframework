@@ -1306,6 +1306,8 @@ var
   lDecomp: TZDecompressionStream;
   lCompressionType: TMVCCompressionType;
 begin
+  FHTTP.Request.BasicAuthentication := not Username.IsEmpty; //DT 2019/08/23
+
   FContentEncoding := '';
   Result := TRESTResponse.Create;
 
@@ -1394,7 +1396,11 @@ begin
   lTmp := TMemoryStream.Create;
   try
     Result.Body.Position := 0;
+    {$IF Defined(SeattleOrBetter)}
     lDecomp := TZDecompressionStream.Create(Result.Body, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
+    {$ELSE}
+    lDecomp := TZDecompressionStream.Create(Result.Body, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType]);
+    {$ENDIF}
     try
       lTmp.CopyFrom(lDecomp, 0);
       Result.Body.Size := 0;

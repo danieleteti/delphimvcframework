@@ -189,6 +189,14 @@ type
     procedure TestStringDictionary;
     [Test]
     procedure TestWrongJSONBody;
+
+    // test responses objects
+    [Test]
+    procedure TestResponseCreated;
+    [Test]
+    procedure TestResponseNoContent;
+    [Test]
+    procedure TestResponseAccepted;
   end;
 
   [TestFixture]
@@ -235,11 +243,13 @@ uses
   IdCookie,
   MVCFramework.JSONRPC,
   MVCFramework.Serializer.Intf
-  {$IFDEF MSWINDOWS}
-  ,MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
-  ,Vcl.Graphics
-  {$ENDIF}
-  ;
+{$IFDEF MSWINDOWS}
+    ,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+    ,
+  Vcl.Graphics
+{$ENDIF}
+    ;
 
 { TServerTest }
 
@@ -1160,6 +1170,44 @@ begin
   r := RESTClient.doGET('/req/with/params', [par1, par2, par3]);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, r.ResponseCode,
     Format('URL mapped fails for these characters: "%s","%s","%s"', [par1, par2, par3]));
+end;
+
+procedure TServerTest.TestResponseAccepted;
+var
+  r: IRESTResponse;
+  lJSON: TJDOJsonObject;
+begin
+  r := RESTClient.doPOST('/responses/accepted', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.Accepted, r.ResponseCode);
+  Assert.isTrue(r.ResponseText.Contains('thisisthereason'));
+  lJSON := StringToJSON(r.BodyAsString);
+  try
+    Assert.areEqual(2, lJSON.O['task'].Count);
+    Assert.areEqual('http://pippo.it/1234', lJSON.O['task'].s['href']);
+    Assert.areEqual('1234', lJSON.O['task'].s['id']);
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestResponseCreated;
+var
+  r: IRESTResponse;
+begin
+  r := RESTClient.doPOST('/responses/created', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.Created, r.ResponseCode);
+  Assert.isTrue(r.ResponseText.Contains('thisisthereason'));
+  Assert.IsEmpty(r.BodyAsString);
+end;
+
+procedure TServerTest.TestResponseNoContent;
+var
+  r: IRESTResponse;
+begin
+  r := RESTClient.doGET('/responses/nocontent', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.NoContent, r.ResponseCode);
+  Assert.isTrue(r.ResponseText.Contains('thisisthereason'));
+  Assert.IsEmpty(r.BodyAsString);
 end;
 
 // procedure TServerTest.TestSerializationType;

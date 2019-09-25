@@ -55,6 +55,8 @@ type
     I: Integer;
   end;
 
+  TMVCDataSetFieldSerializationAction = reference to procedure(const AField: TField; const AJsonObject: TJsonObject; var Handled: Boolean);
+
   TMVCDataSetFields = TList<TMVCDataSetField>;
 
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
@@ -89,9 +91,9 @@ type
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
     procedure DataSetToJsonObject(const ADataSet: TDataSet; const AJsonObject: TJDOJsonObject;
       const ANameCase: TMVCNameCase; const AIgnoredFields: TMVCIgnoredList;
-      const ADataSetFields: TMVCDataSetFields);
+      const ADataSetFields: TMVCDataSetFields; const ASerializationCallback: TMVCDataSetFieldSerializationAction = nil);
     procedure DataSetToJsonArray(const ADataSet: TDataSet; const AJsonArray: TJDOJsonArray;
-      const ANameCase: TMVCNameCase; const AIgnoredFields: TMVCIgnoredList);
+      const ANameCase: TMVCNameCase; const AIgnoredFields: TMVCIgnoredList; const ASerializationCallback: TMVCDataSetFieldSerializationAction = nil);
     procedure JsonObjectToDataSet(const AJsonObject: TJDOJsonObject; const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
     procedure JsonArrayToDataSet(const AJsonArray: TJDOJsonArray; const ADataSet: TDataSet;
@@ -371,7 +373,8 @@ end;
 
 procedure TMVCJsonDataObjectsSerializer.DataSetToJsonArray(const ADataSet: TDataSet;
   const AJsonArray: TJDOJsonArray;
-  const ANameCase: TMVCNameCase; const AIgnoredFields: TMVCIgnoredList);
+  const ANameCase: TMVCNameCase; const AIgnoredFields: TMVCIgnoredList;
+  const ASerializationCallback: TMVCDataSetFieldSerializationAction);
 var
   LJObj: TJDOJsonObject;
   lDataSetFields: TMVCDataSetFields;
@@ -381,7 +384,7 @@ begin
     while not ADataSet.Eof do
     begin
       LJObj := AJsonArray.AddObject;
-      DataSetToJsonObject(ADataSet, LJObj, ANameCase, AIgnoredFields, lDataSetFields);
+      DataSetToJsonObject(ADataSet, LJObj, ANameCase, AIgnoredFields, lDataSetFields, ASerializationCallback);
       ADataSet.Next;
     end;
   finally
@@ -392,7 +395,7 @@ end;
 procedure TMVCJsonDataObjectsSerializer.DataSetToJsonObject(const ADataSet: TDataSet;
   const AJsonObject: TJDOJsonObject;
   const ANameCase: TMVCNameCase; const AIgnoredFields: TMVCIgnoredList;
-  const ADataSetFields: TMVCDataSetFields);
+  const ADataSetFields: TMVCDataSetFields; const ASerializationCallback: TMVCDataSetFieldSerializationAction);
 var
   lMS: TMemoryStream;
   lSS: TStringStream;
@@ -401,10 +404,21 @@ var
   lChildJsonObject: TJDOJsonObject;
   lField: TMVCDataSetField;
   lDataSetFieldsDetail: TMVCDataSetFields;
+  lHandled: Boolean;
 begin
   for lField in ADataSetFields do
   begin
     begin
+      if Assigned(ASerializationCallback) then
+      begin
+        lHandled := False;
+        ASerializationCallback(ADataSet.Fields[lField.I], AJsonObject, lHandled);
+        if lHandled then
+        begin
+          continue;
+        end;
+      end;
+
       if ADataSet.Fields[lField.I].IsNull then
         AJsonObject[lField.FieldName] := Null
       else
@@ -416,7 +430,7 @@ begin
           ftInteger, ftSmallint, ftShortint, ftByte:
             AJsonObject.I[lField.FieldName] := ADataSet.Fields[lField.I].AsInteger;
 
-          ftLargeint, ftAutoInc:
+          ftLargeint, ftAutoInc, ftLongword:
             AJsonObject.L[lField.FieldName] := ADataSet.Fields[lField.I].AsLargeInt;
 {$IFDEF TOKYOORBETTER}
           ftGuid:
@@ -486,7 +500,7 @@ begin
                       begin
                         DataSetToJsonObject(lNestedDataSet, lChildJsonArray.AddObject,
                           GetNameCase(lNestedDataSet, ANameCase), AIgnoredFields,
-                          lDataSetFieldsDetail);
+                          lDataSetFieldsDetail, ASerializationCallBack);
                         lNestedDataSet.Next;
                       end;
                     end;
@@ -495,7 +509,7 @@ begin
                       lChildJsonObject := AJsonObject.O[lField.FieldName];
                       DataSetToJsonObject(lNestedDataSet, lChildJsonObject,
                         GetNameCase(lNestedDataSet, ANameCase),
-                        AIgnoredFields, lDataSetFieldsDetail);
+                        AIgnoredFields, lDataSetFieldsDetail, ASerializationCallBack);
                     end;
                 end;
               finally

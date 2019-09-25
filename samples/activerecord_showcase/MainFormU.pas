@@ -25,7 +25,6 @@ uses
   FireDAC.VCLUI.Wait,
   Data.DB, FireDAC.Comp.Client;
 
-
 type
   TMainForm = class(TForm)
     btnCRUD: TButton;
@@ -45,9 +44,9 @@ type
     procedure btnRQLClick(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
     procedure btnValidationClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnTransientFieldsClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     procedure Log(const Value: string);
   public
@@ -61,7 +60,6 @@ implementation
 
 {$R *.dfm}
 
-
 uses
   MVCFramework.ActiveRecord,
   EntitiesU,
@@ -70,15 +68,14 @@ uses
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
-  FDConnectionConfigU;
+  FDConnectionConfigU, EngineChoiceFormU;
 
 procedure TMainForm.btnCRUDClick(Sender: TObject);
 var
   lCustomer: TCustomer;
   lID: Integer;
 begin
-  ShowMessage('There are ' + TMVCActiveRecord.Count(TCustomer).ToString +
-    ' row/s for entity ' + TCustomer.ClassName);
+  ShowMessage('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
 
   Log('Simple CRUD test');
   lCustomer := TCustomer.Create;
@@ -138,8 +135,7 @@ var
   lProc: TProc;
   lConnParams: string;
 const
-  Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne',
-    'Berlin');
+  Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
 begin
@@ -162,13 +158,10 @@ begin
         begin
           lCustomer := TCustomer.Create;
           try
-            lCustomer.Code := Format('%5.5d', [TThread.Current.ThreadID, I]);
+            lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
             lCustomer.City := Cities[Random(high(Cities) + 1)];
-            lCustomer.CompanyName := Format('%s %s %s', [
-              lCustomer.City,
-              Stuff[Random(High(Stuff) + 1)],
-              CompanySuffix[Random(High(CompanySuffix) + 1)]
-              ]);
+            lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(High(Stuff) + 1)],
+              CompanySuffix[Random(High(CompanySuffix) + 1)]]);
             lCustomer.Insert;
           finally
             lCustomer.Free;
@@ -179,12 +172,10 @@ begin
       end;
     end;
 
-  lTasks := [
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
@@ -225,8 +216,7 @@ begin
           lOrderDetail.Price := Random(j * 10);
           lOrderDetail.Discount := j;
           lOrderDetail.Quantity := j * 2;
-          lOrderDetail.Description := 'MY PRODUCT ' + I.ToString + '/' +
-            j.ToString;
+          lOrderDetail.Description := 'MY PRODUCT ' + I.ToString + '/' + j.ToString;
           lOrderDetail.Total := j * j * j;
           lOrderDetail.Insert;
         finally
@@ -238,20 +228,17 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TCustomerEx.GetOneByWhere<TCustomerEx>('Code = ?', ['001']);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerEx>('Code = ?', ['001']);
   try
     Log(lCustomer.CompanyName);
     for lOrder in lCustomer.Orders do
     begin
-      Log(Format('  %5.5d - %s - %m', [lOrder.ID, datetostr(lOrder.OrderDate),
-        lOrder.Total]));
-      lOrderRows := TOrderDetail.Where<TOrderDetail>('id_order = ?',
-        [lOrder.ID]);
+      Log(Format('  %5.5d - %s - %m', [lOrder.ID, datetostr(lOrder.OrderDate), lOrder.Total]));
+      lOrderRows := TMVCActiveRecord.Where<TOrderDetail>('id_order = ?', [lOrder.ID]);
       try
         for lOrderRow in lOrderRows do
         begin
-          Log(Format('         %-20s - %4d - %m', [lOrderRow.Description,
-            lOrderRow.Quantity, lOrder.Total]));
+          Log(Format('         %-20s - %4d - %m', [lOrderRow.Description, lOrderRow.Quantity, lOrder.Total]));
         end;
         Log('');
       finally
@@ -280,8 +267,7 @@ begin
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
-      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName,
-        lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName, lCustomer.City]));
     end;
   finally
     lList.Free;
@@ -293,8 +279,7 @@ begin
     Log(lCustList.Count.ToString + ' record/s found');
     for lCustomer in lCustList do
     begin
-      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName,
-        lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName, lCustomer.City]));
     end;
   finally
     lCustList.Free;
@@ -307,8 +292,7 @@ begin
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
-      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName,
-        lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code, lCustomer.CompanyName, lCustomer.City]));
     end;
   finally
     lList.Free;
@@ -326,23 +310,16 @@ begin
   // Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
   // This is just a sample, you can do the "select" also using the RQL engine
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>
-      ('SELECT * FROM customers WHERE description CONTAINING ?', ['google'])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description CONTAINING ?',
+      ['google'])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else
-    if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>
-      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
-  else
-    if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>
-      ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
-  else
-    if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>
-      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
-  else
-    raise Exception.Create('Unsupported backend: ' +
-      ActiveRecordConnectionsRegistry.GetCurrentBackend);
+    raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
   try
     for lCustomer in lCustomers do
@@ -358,8 +335,7 @@ begin
   try
     while not lDS.Eof do
     begin
-      Log(Format('%8.5s - %s', [lDS.FieldByName('code').AsString,
-        lDS.FieldByName('description').AsString]));
+      Log(Format('%8.5s - %s', [lDS.FieldByName('code').AsString, lDS.FieldByName('description').AsString]));
       lDS.Next;
     end;
   finally
@@ -424,10 +400,9 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TCustomer.GetByPK<TCustomerWithLogic>(lID);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithLogic>(lID);
   try
-    Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' +
-      BoolToStr(lCustomer.IsLocatedInRome, True));
+    Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' + BoolToStr(lCustomer.IsLocatedInRome, True));
     lCustomer.Code := '';
     lCustomer.Update; // raise exception
   finally
@@ -435,38 +410,53 @@ begin
   end;
 end;
 
-procedure TMainForm.FormCreate(Sender: TObject);
-begin
-  // To use Postgresql enable POSTGRESQL build configuration
-{$IFDEF POSTGRESQL}
-  FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
-{$ENDIF}
-
-  // To use FirebirdSQL enable FIREBIRD build configuration
-{$IFDEF FIREBIRD}
-  FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
-{$ENDIF}
-
-  // To use MySQL enable MYSQL build configuration
-{$IFDEF MYSQL}
-  FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
-{$ENDIF}
-
-  // To use SQLite enable SQLite build configuration
-{$IFDEF SQLITE}
-  FDConnectionConfigU.CreateSqlitePrivateConnDef(True);
-{$ENDIF}
-  { ************* }
-  FDConnection1.Params.Clear;
-  FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
-  ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
-  Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.
-    GetCurrentBackend + ')';
-end;
-
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   ActiveRecordConnectionsRegistry.RemoveConnection('default');
+end;
+
+procedure TMainForm.FormShow(Sender: TObject);
+begin
+  case TEngineChoiceForm.Execute of
+    TRDBMSEngine.PostgreSQL:
+      begin
+        FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+      end;
+    TRDBMSEngine.Firebird:
+      begin
+        FDConnectionConfigU.CreateFirebirdPrivateConnDef(True);
+      end;
+    TRDBMSEngine.Interbase:
+      begin
+        raise Exception.Create('This DEMO doesn''t support Interbase (while the framework does)');
+      end;
+    TRDBMSEngine.MySQL:
+      begin
+        FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+      end;
+    TRDBMSEngine.MariaDB:
+      begin
+        FDConnectionConfigU.CreateMySQLPrivateConnDef(True);
+      end;
+    TRDBMSEngine.SQLite:
+      begin
+        FDConnectionConfigU.CreateSqlitePrivateConnDef(True);
+      end;
+    TRDBMSEngine.MSSQLServer:
+      begin
+        // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
+        raise Exception.Create('This DEMO doesn''t support MSSQLServer (while the framework does)');
+      end;
+  else
+    raise Exception.Create('Unknown RDBMS');
+  end;
+
+  FDConnection1.Params.Clear;
+  FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
+  FDConnection1.Connected := True;
+
+  ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
+  Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
 end;
 
 procedure TMainForm.Log(const Value: string);
