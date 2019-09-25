@@ -167,6 +167,37 @@ end;
 - New! Added support for `TArray<String>` and `TArray<Integer>` in default json serializer (Thank you [Pedro Oliveira](https://github.com/pedrooliveira01))
 - Improved JWT Standard Compliance! Thanks to [Vinicius Sanchez](https://github.com/viniciussanchez) for his work on [issue #241](https://github.com/danieleteti/delphimvcframework/issues/241)
 - Improved! DMVCFramework now has 130+ unit tests that checks its funtionalities at each build!
+- New! Serialization callback for custom `TDataSet` descendants serialization in `TMVCJsonDataObjectsSerializer`.
+```delphi
+procedure TMainForm.btnDataSetToJSONArrayClick(Sender: TObject);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJArray: TJSONArray;
+begin
+  FDQuery1.Open();
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lJArray := TJSONArray.Create;
+    try
+      lSer.DataSetToJsonArray(FDQuery1, lJArray, TMVCNameCase.ncLowerCase, [],
+        procedure(const aField: TField; const aJsonObject: TJSONObject; var Handled: Boolean)
+        begin
+          if SameText(aField.FieldName, 'created_at') then
+          begin
+            aJsonObject.S['year_and_month'] := FormatDateTime('yyyy-mm', TDateTimeField(aField).Value);
+            Handled := True;
+          end;
+        end);
+	  //The json objects will not contains "created_at" anymore, but only "year_and_month".
+      Memo1.Lines.Text := lJArray.ToJSON(false);
+    finally
+      lJArray.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+```
 - New! Shortcut render' methods which simplify RESTful API development
     - `procedure ResponseCreated(const Location: String = ''; const Reason: String = 'Created'); virtual;`
     - `    procedure ResponseAccepted(const HREF: String; const ID: String; const Reason: String = 'Accepted'); virtual;`
