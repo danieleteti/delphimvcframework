@@ -2,16 +2,16 @@
 
 # DelphiMVCFramework 3.1.0-lithium is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3.1.0-lithium)!
 
-DelphiMVCFramework is the most popular Delphi project on github!
+DelphiMVCFramework is the **most popular** Delphi project on GitHub!
 
 Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
 
-## How to correctly get the source
-It is not needed to download the git repository. Just download the [latest version as zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
-If you want to partecipate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
+## How to install DMVCFramework
+*It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+If you want to participate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
 Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
 
-## What users says about DMVCFramework
+## What users say about DMVCFramework
 
 >"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
 
@@ -23,54 +23,55 @@ Take in mind that, even if RCs are usually very stable, they are still not ready
 
 >"It's fantastic! Just define your entities and you are up and running in 5 minutes. Nothing comparable on the market." -- Marco
 
->"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish Apis and Rest resources.
+>"The best framework for creating web servers with Delphi! It is very easy to create Delphi servers and publish APIs and Rest resources.
 Congratulations to Daniele Teti and all the staff for the excellent work!" -- Marcos N.
-  
 
-## DelphiMVCFramework Main Features
+> We started the process of migrating our systems to micro services and are loving the DMVCFramework "DMVCFramework is definitely part of our lives right now". -- E. Costa
 
-  * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less!
+## DMVCFramework Main Features
+
+  * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less! (the guide is a bit outdated - a new book is being written by Daniele Teti. Let us know if you are interested in [DMVCFramework Handbook](https://leanpub.com/delphimvcframework))
   * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
   * RESTful (RMM Level 3) compliant
-  * JSON-RPC 2.0 Support with automatic objects remotization
+  * JSON-RPC 2.0 Support with automatic objects remotization (check [sample](https://github.com/danieleteti/delphimvcframework/tree/master/samples/jsonrpc_with_published_objects))
   * Stable and solid, used by small/mid/big projects since 2010
-  * Very fast! (3.x is 60% faster than the 2.x)
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2100 active members
+  * Very fast! (2.x was pretty fast and now, 3.x is 60% faster than the 2.x!)
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2500 active members
   * Can be used in load balanced environment
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
-  * JSON Web Token Support (JWT)
-  * Extendable using middlewares (simple hooks to handle request/response)
+  * JSON Web Token Support (JWT) (check [sample](https://github.com/danieleteti/delphimvcframework/tree/master/samples/jsonwebtoken))
+  * Extendable using middleware - simple hooks to handle request/response (check [sample](https://github.com/danieleteti/delphimvcframework/tree/master/samples/middleware))
   * Flexible yet simple to use, authorization/authentication framework based on industry standards.
     * HTTP Basic Authentication
     * JWT Authentication
     * Custom Authentication
   * CORS support
-  * Controllers inheritance! You can define your own base controller and inherith from it.
+  * Controllers inheritance! You can define your own base controller and inherit from it.
   * Fancy URL with parameter mappings
-  * Specialied renders to generate text, HTML, JSON.
+  * Specialized renders to generate text, HTML, JSON.
   * Powerful and customizable mapper to serialize/deserialize data.
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated RESTClient
   * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
   * Works on Linux (Delphi 10.2 Tokyo or better)
-  * Completely unit tested
-  * There is a sample for each functionality
-  * There is a complete set of trainings about it, but the samples are included in the project
-  * Server side generated pages using Mustache (https://mustache.github.io/) for Delphi (https://github.com/synopse/dmustache)
+  * Completely unit tested (more than 130 unit tests)
+  * There is a sample for each functionality (check the [dmvcframework_(yourversion)_samples.zip](https://github.com/danieleteti/delphimvcframework/releases))
+  * Fully supported by [bitTime Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
+  * Server side generated pages using [Mustache for Delphi](https://github.com/synopse/dmustache)
   * Specific trainings are available (email to `professionals@bittime.it` for a date and a place)
-  * Messaging extension using ServerSentEvents
+  * Messaging extension using [ServerSentEvents](https://github.com/danieleteti/delphimvcframework/tree/master/samples/serversentevents)
   * Automatic documentation through `/system/describeserver.info`
   * Driven by its huge community (Facebook group https://www.facebook.com/groups/delphimvcframework)
   * Semantic Versioning
   * Simple and [documented](docs/ITDevCON%202013%20-%20Introduction%20to%20DelphiMVCFramework.pdf)
-  * Continuosly tested for Delphi versions incompatibilities by the proud [compatibility mantainers](COMPATIBILITY_MANTAINERS.MD) 
+  * Continuously tested for Delphi versions incompatibilities by the proud [compatibility maintainers](COMPATIBILITY_MANTAINERS.MD) 
 
 ## What's Cooking in the Lab
 
 ### DelphiMVCFramework 3.1.1-beryllium (currently in `RC` phase)
-- New! Added SQLGenerator and RQL compiler for PostgreSQL and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
+- New! Added SQLGenerator and RQL compiler for PostgreSQL, SQLite and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
 - Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` and all the others actions end with `HATEOS` in `renders.dproj` sample)
 
 ```delphi
@@ -118,7 +119,7 @@ Render(lPerson, False,
 	  .Add(HATEOAS._TYPE, TMVCMediaType.APPLICATION_JSON);
   end);
 	
-```	
+```
 
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
@@ -127,8 +128,8 @@ Render(lPerson, False,
 - New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
 - New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
 - New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.
-- New! Microsoft SQLServer Support in ActiveRecord and RQL (thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework)
-- New! SQLite Support in ActiveRecord and RQL, so that MVCActiveRecord can be used also for Delphi mobile projects!
+- New! Microsoft SQLServer Support in ActiveRecord and RQL (*thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework*)
+- New! SQLite Support in MVCActiveRecord and RQL, so that MVCActiveRecord can be used also for Delphi mobile projects!
 - Improved! `ActiveRecordShowCase` sample is much better now.
 - Improved! In case of unhandled exception `TMVCEngine` is compliant with the default response content-type (usually it did would reply using `text/plain`).
 - Fix! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184).
@@ -166,8 +167,42 @@ end;
 - New! Added support for `TArray<String>` and `TArray<Integer>` in default json serializer (Thank you [Pedro Oliveira](https://github.com/pedrooliveira01))
 - Improved JWT Standard Compliance! Thanks to [Vinicius Sanchez](https://github.com/viniciussanchez) for his work on [issue #241](https://github.com/danieleteti/delphimvcframework/issues/241)
 - Improved! DMVCFramework now has 130+ unit tests that checks its funtionalities at each build!
+- New! Serialization callback for custom `TDataSet` descendants serialization in `TMVCJsonDataObjectsSerializer`.
+```delphi
+procedure TMainForm.btnDataSetToJSONArrayClick(Sender: TObject);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJArray: TJSONArray;
+begin
+  FDQuery1.Open();
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lJArray := TJSONArray.Create;
+    try
+      lSer.DataSetToJsonArray(FDQuery1, lJArray, TMVCNameCase.ncLowerCase, [],
+        procedure(const aField: TField; const aJsonObject: TJSONObject; var Handled: Boolean)
+        begin
+          if SameText(aField.FieldName, 'created_at') then
+          begin
+            aJsonObject.S['year_and_month'] := FormatDateTime('yyyy-mm', TDateTimeField(aField).Value);
+            Handled := True;
+          end;
+        end);
+	  //The json objects will not contains "created_at" anymore, but only "year_and_month".
+      Memo1.Lines.Text := lJArray.ToJSON(false);
+    finally
+      lJArray.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+```
+- New! Shortcut render' methods which simplify RESTful API development
+    - `procedure ResponseCreated(const Location: String = ''; const Reason: String = 'Created'); virtual;`
+    - `    procedure ResponseAccepted(const HREF: String; const ID: String; const Reason: String = 'Accepted'); virtual;`
+    - `procedure ResponseNoContent(const Reason: String = 'No Content'); virtual;`
 - New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
-
 
 |Delphi Version|Project Group|
 |---|---|
@@ -218,16 +253,6 @@ DelphiMVCFramework roadmap is always updated as-soon-as the features planned are
 As you know, good support on open source software is a must for professional users.
 If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
 
-
-### Using mapping framework in Delphi Starter Edition
-A lot of users ask about it, now is possible to use the mapper framework also in Delphi Started Edition. To enable the "StarterEditionMode" open ```sources\dmvcframework.inc``` and remove the dot (.) after the curly brace in the following line
-
-```{.$DEFINE STARTEREDITION}```
-
-become
-
-```{$DEFINE STARTEREDITION}```
-
 ## Release Notes
 **3.0.0 (hydrogen)**
   - First release of the 3.0.0 version
@@ -235,7 +260,7 @@ become
 **2.1.3 (lithium)**
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions
-  
+
 **2.1.2 (helium)**
   - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
   - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
@@ -243,7 +268,7 @@ become
 **2.1.1 (hydrogen)**
   - Updated the IDE Expert to show the current version of the framework
   - FIX to the mapper about the datasets null values (needs to be checked in old Delphi versions)
-  - ADDED support for boolean values in datasets serialization
+  - ADDED support for Boolean values in datasets serialization
   - ADDED unit tests about Mapper and dataset fields nullability
   - The current version is available in constant ```DMVCFRAMEWORK_VERSION``` defined in ```MVCFramework.Commons.pas```
 
@@ -255,7 +280,7 @@ Check the [DMVCFramework Developer Guide](https://danieleteti.gitbooks.io/delphi
 
 # Getting Started
 Below the is a basic sample of a DMVCFramework server wich can be deployed as standa-alone application, as an Apache module or as ISAPI dll. This flexibility is provided by the Delphi WebBroker framework (built-in in Delphi since Delphi 4).
-The project containes an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
+The project contains an IDE Expert which make creating DMVCFramework project a breeze. However not all the Delphi version are supported, so here's the manual version (which is not complicated at all).
 
 To create this server, you have to create a new ```Delphi Projects -> WebBroker -> WebServerApplication```. Then add the following changes to the webmodule.
 ```delphi
@@ -301,7 +326,6 @@ end;
 end.
 ```
 
-Remember that the files inside the redist folder *must* be in the executable path or in the system path. If starting the server whithin the IDE doesn't works, try to run the executable outside the IDE and check the dependencies.
 That's it! You have just created your first DelphiMVCFramework. Now you have to add a controller to respond to the http request.
 
 ## Sample Controller
