@@ -3,6 +3,7 @@ object ArticlesService: TArticlesService
   OnCreate = ServiceCreate
   AllowPause = False
   DisplayName = 'DMVCFramework Articles RESTServer'
+  OnExecute = ServiceExecute
   OnStart = ServiceStart
   OnStop = ServiceStop
   Height = 150
