@@ -232,6 +232,25 @@ type
     destructor Destroy; override;
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  TDataObjectHolder = class
+  private
+    FData: TObject;
+    FMetadata: TMVCStringDictionary;
+    FOwns: boolean;
+    FDataSetSerializationType: TMVCDatasetSerializationType;
+  public
+    constructor Create(const AObject: TObject; const AOwns: boolean = false;
+      const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
+      dstAllRecords); virtual;
+    destructor Destroy; override;
+    function SerializationType: TMVCDatasetSerializationType;
+    [MVCNameAs('data')]
+    property Items: TObject read FData;
+    [MVCNameAs('meta')]
+    property Metadata: TMVCStringDictionary read FMetadata;
+  end;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -249,7 +268,36 @@ const
   JSONNameLowerCase = ncLowerCase deprecated 'Use MVCNameCaseAttribute(ncLowerCase)';
   JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
+function NewDataObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+
 implementation
+
+uses
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.Intf;
+
+function NewDataObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+begin
+  Result := TDataObjectHolder.Create(AObject, AOwns, dstSingleRecord);
+  if Assigned(AMetaFiller) then
+  begin
+    AMetaFiller(Result.FMetadata);
+  end;
+end;
+
+function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+begin
+  Result := TDataObjectHolder.Create(AList, AOwns, dstAllRecords);
+  if Assigned(AMetaFiller) then
+  begin
+    AMetaFiller(Result.FMetadata);
+  end;
+end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
@@ -669,6 +717,33 @@ destructor TMVCAcceptedResponse.Destroy;
 begin
   fTask.Free;
   inherited;
+end;
+
+{ TDataObjectHolder }
+
+constructor TDataObjectHolder.Create(const AObject: TObject; const AOwns: boolean;
+  const ADataSetSerializationType: TMVCDatasetSerializationType);
+begin
+  inherited Create;
+  FData := AObject;
+  FMetadata := TMVCStringDictionary.Create;
+  FOwns := AOwns;
+  FDataSetSerializationType := ADataSetSerializationType;
+end;
+
+destructor TDataObjectHolder.Destroy;
+begin
+  FMetadata.Free;
+  if FOwns then
+  begin
+    FData.Free;
+  end;
+  inherited;
+end;
+
+function TDataObjectHolder.SerializationType: TMVCDatasetSerializationType;
+begin
+
 end;
 
 end.

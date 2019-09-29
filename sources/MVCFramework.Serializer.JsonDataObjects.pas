@@ -62,10 +62,10 @@ type
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
     fStringDictionarySerializer: IMVCTypeSerializer;
+  public
     function GetDataSetFields(const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
-  public
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
     procedure InternalObjectToJsonObject(const AObject: TObject;
@@ -147,7 +147,7 @@ type
 
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJDOJsonObject;
   const KeyName: string);
-function StringToJSON(const AValue: string): TJDOJsonObject;
+function StrToJSONObject(const AValue: string): TJDOJsonObject;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
@@ -156,7 +156,7 @@ implementation
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
   MVCFramework.Logger,
-  System.SysUtils;
+  System.SysUtils, MVCFramework.DataSet.Utils;
 
 type
   TJDOLinks = class(TMVCLinks)
@@ -169,8 +169,11 @@ type
 procedure TMVCJsonDataObjectsSerializer.AfterConstruction;
 var
   lStreamSerializer: IMVCTypeSerializer;
+  lDataSetHolderSerializer: TMVCDataSetHolderSerializer;
 begin
   inherited AfterConstruction;
+  lDataSetHolderSerializer := TMVCDataSetHolderSerializer.Create;
+  GetTypeSerializers.Add(TypeInfo(TDataSetHolder), lDataSetHolderSerializer);
   lStreamSerializer := TMVCStreamSerializerJsonDataObject.Create;
   GetTypeSerializers.Add(TypeInfo(TStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TStringStream), lStreamSerializer);
@@ -406,6 +409,7 @@ var
   lDataSetFieldsDetail: TMVCDataSetFields;
   lHandled: Boolean;
 begin
+  Assert(Assigned(ADataSetFields));
   for lField in ADataSetFields do
   begin
     begin
@@ -1503,7 +1507,7 @@ begin
   end;
 end;
 
-function StringToJSON(const AValue: string): TJDOJsonObject;
+function StrToJSONObject(const AValue: string): TJDOJsonObject;
 var
   lJSON: TJDOJsonObject;
 begin
