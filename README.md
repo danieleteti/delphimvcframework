@@ -143,6 +143,7 @@ Render(lPerson, False,
 - Added! New overloads for all the Log\* calls. Now it is possible to call `LogD(lMyObject)` to get logged `lMyObject` as JSON (custom type serializers not supported in log).
 - Fixed! [issue164](https://github.com/danieleteti/delphimvcframework/issues/164)
 - Fixed! [issue182](https://github.com/danieleteti/delphimvcframework/issues/182)
+- Fixed! [issue232](https://github.com/danieleteti/delphimvcframework/issues/232) (Thanks to João Antônio Duarte)
 - New! `StrDict(array of string, array of string)` function allows to render a dictionary of strings in a really simple way. See the following action sample.
 ```delphi
 procedure TMy.GetPeople(const Value: Integer);

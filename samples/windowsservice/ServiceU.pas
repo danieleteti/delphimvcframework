@@ -57,6 +57,7 @@ begin
   while not Terminated do
   begin
     ServiceThread.ProcessRequests(True);
+    Sleep(1000);
   end;
 end;
 

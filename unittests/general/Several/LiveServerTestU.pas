@@ -1180,7 +1180,7 @@ begin
   r := RESTClient.doPOST('/responses/accepted', []);
   Assert.areEqual<Integer>(HTTP_STATUS.Accepted, r.ResponseCode);
   Assert.isTrue(r.ResponseText.Contains('thisisthereason'));
-  lJSON := StringToJSON(r.BodyAsString);
+  lJSON := StrToJSONObject(r.BodyAsString);
   try
     Assert.areEqual(2, lJSON.O['task'].Count);
     Assert.areEqual('http://pippo.it/1234', lJSON.O['task'].s['href']);
