@@ -20,8 +20,7 @@ type
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiJWTAuthentication(const ASwagDoc: TSwagDoc);
     procedure DocumentApi(ASwagDoc: TSwagDoc);
-    procedure InternalRender(AContent: string; AContext: TWebContext);
-    procedure RenderError(const AContext: TWebContext; const AErrorMessage, AErrorClassName: string);
+    procedure InternalRender(AContent: string; AContext: TWebContext);    
   public
     constructor Create(
       const AEngine: TMVCEngine;
@@ -292,51 +291,19 @@ begin
   if SameText(AContext.Request.PathInfo, FSwagDocURL) and (AContext.Request.HTTPMethod in [httpGET, httpPOST]) then
   begin
     LSwagDoc := TSwagDoc.Create;
-    try
-      try
-        DocumentApiInfo(LSwagDoc);
-        DocumentApiSettings(AContext, LSwagDoc);
-        DocumentApiJWTAuthentication(LSwagDoc);
-        DocumentApi(LSwagDoc);
+    try      
+      DocumentApiInfo(LSwagDoc);
+      DocumentApiSettings(AContext, LSwagDoc);
+      DocumentApiJWTAuthentication(LSwagDoc);
+      DocumentApi(LSwagDoc);
 
-        LSwagDoc.GenerateSwaggerJson;
-        InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
-        AHandled := True;
-      except
-        on E: Exception do
-        begin
-          RenderError(AContext, E.Message, E.ClassName);
-          AHandled := True;
-        end;
-      end;
+      LSwagDoc.GenerateSwaggerJson;
+      InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
+      AHandled := True;
+      
     finally
       LSwagDoc.Free;
     end;
-  end;
-end;
-
-procedure TMVCSwaggerMiddleware.RenderError(const AContext: TWebContext;
-  const AErrorMessage, AErrorClassName: string);
-var
-  LJSonOb: TJDOJsonObject;
-begin
-  AContext.Response.StatusCode := HTTP_STATUS.InternalServerError;
-  AContext.Response.ReasonString := AErrorMessage;
-
-  LJSonOb := TJDOJsonObject.Create;
-  try
-    LJSonOb.S['status'] := 'error';
-
-    if AErrorClassName = '' then
-      LJSonOb.Values['classname'] := nil
-    else
-      LJSonOb.S['classname'] := AErrorClassName;
-
-    LJSonOb.S['message'] := AErrorMessage;
-
-    InternalRender(LJSonOb.ToJSON, AContext);
-  finally
-    LJSonOb.Free;
   end;
 end;
 

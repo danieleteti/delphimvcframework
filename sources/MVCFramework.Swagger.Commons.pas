@@ -262,6 +262,7 @@ var
   LFieldSchemaDef: TFieldSchemaDefinition;
   LJsonField: TJsonField;
   LSkipProp: Boolean;
+  LJsonFieldClass: TJsonFieldClass;
 begin
   LObjType := FRttiContext.GetType(AClass.ClassInfo);
   LJsonSchema := TJsonSchema.Create;
@@ -302,7 +303,11 @@ begin
         LFieldSchemaDef.FieldName := TMVCSerializerHelper.GetKeyName(LProp, LObjType);
       end;
 
-      LJsonField := GetJsonFieldClass(LFieldSchemaDef.SchemaFieldType).Create;
+      LJsonFieldClass := GetJsonFieldClass(LFieldSchemaDef.SchemaFieldType);
+      if not Assigned(LJsonFieldClass) then
+        Continue;
+
+      LJsonField := LJsonFieldClass.Create;
 
       if not Assigned(LJsonField) then
         Continue;
