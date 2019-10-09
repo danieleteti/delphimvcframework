@@ -554,6 +554,10 @@ begin
           begin
             Exit(LowerCase(AProperty.Name));
           end;
+        ncCamelCase:
+          begin
+            Exit(LowerCase(AProperty.Name.Chars[0]) + AProperty.Name.Substring(1));
+          end;
       end;
     end;
 end;

@@ -18,7 +18,7 @@ uses
   IdContext;
 
 type
-  TForm1 = class(TForm)
+  TMainForm = class(TForm)
     ButtonStart: TButton;
     ButtonStop: TButton;
     EditPort: TEdit;
@@ -43,7 +43,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
@@ -52,14 +52,14 @@ implementation
 uses
   WinApi.Windows, Winapi.ShellApi;
 
-procedure TForm1.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
+procedure TMainForm.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 begin
   ButtonStart.Enabled := not FServer.Active;
   ButtonStop.Enabled := FServer.Active;
   EditPort.Enabled := not FServer.Active;
 end;
 
-procedure TForm1.ButtonOpenBrowserClick(Sender: TObject);
+procedure TMainForm.ButtonOpenBrowserClick(Sender: TObject);
 var
   LURL: string;
 begin
@@ -68,36 +68,36 @@ begin
   ShellExecute(0, nil, PChar(LURL), nil, nil, SW_SHOWNOACTIVATE);
 end;
 
-procedure TForm1.ButtonStartClick(Sender: TObject);
+procedure TMainForm.ButtonStartClick(Sender: TObject);
 begin
   StartServer;
 end;
 
-procedure TForm1.ButtonStopClick(Sender: TObject);
+procedure TMainForm.ButtonStopClick(Sender: TObject);
 begin
   FServer.Active := False;
   FServer.Bindings.Clear;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FServer := TIdHTTPWebBrokerBridge.Create(Self);
   FServer.OnParseAuthentication := OnParseAuthentication;
 end;
 
-procedure TForm1.FormShow(Sender: TObject);
+procedure TMainForm.FormShow(Sender: TObject);
 begin
   ButtonOpenBrowser.Click;
 end;
 
-procedure TForm1.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
+procedure TMainForm.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
   VPassword: String; var VHandled: Boolean);
 begin
   if SameText(AAuthType, 'Bearer') then
     VHandled := True;
 end;
 
-procedure TForm1.StartServer;
+procedure TMainForm.StartServer;
 begin
   if not FServer.Active then
   begin

@@ -1,7 +1,7 @@
-object Form1: TForm1
+object MainForm: TMainForm
   Left = 271
   Top = 114
-  Caption = 'Form1'
+  Caption = 'Swagger Doc API'
   ClientHeight = 165
   ClientWidth = 376
   Color = clBtnFace

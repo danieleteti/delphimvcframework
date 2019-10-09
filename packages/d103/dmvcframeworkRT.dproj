@@ -123,7 +123,6 @@
         <DCCReference Include="loggerproRT.dcp"/>
         <DCCReference Include="SwagDoc.dcp"/>
         <DCCReference Include="FireDACPgDriver.dcp"/>
-        <DCCReference Include="FireDACCommonODBC.dcp"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheHTTP.pas"/>
@@ -160,6 +159,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MySQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2SQLite.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.RQL.Parser.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Rtti.Utils.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.Abstract.pas"/>
@@ -178,7 +178,8 @@
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2SQLite.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
