@@ -914,7 +914,7 @@ begin
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
   try
-    lJSON := StringToJSON(Context.Request.Body);
+    lJSON := StrToJSONObject(Context.Request.Body);
     try
       if not Assigned(lJSON) then
         raise EMVCJSONRPCParseError.Create;

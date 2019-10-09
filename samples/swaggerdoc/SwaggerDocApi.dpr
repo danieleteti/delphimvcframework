@@ -5,7 +5,7 @@ uses
   Vcl.Forms,
   Web.WebReq,
   IdHTTPWebBrokerBridge,
-  MainFormU in 'MainFormU.pas' {Form1},
+  MainFormU in 'MainFormU.pas' {MainForm},
   WebModuleMainU in 'WebModuleMainU.pas' {WebModule1: TWebModule},
   MyController1U in 'MyController1U.pas',
   MyController2U in 'MyController2U.pas',
@@ -19,6 +19,6 @@ begin
   if WebRequestHandler <> nil then
     WebRequestHandler.WebModuleClass := WebModuleClass;
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
