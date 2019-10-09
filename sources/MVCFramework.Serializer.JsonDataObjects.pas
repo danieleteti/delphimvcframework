@@ -198,6 +198,10 @@ var
   ValueTypeAtt: MVCValueAsTypeAttribute;
   CastValue, CastedValue: TValue;
   i:integer;
+  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
+  LEnumSerType: TMVCEnumSerializationType;
+  LEnumPrefix: string;
+  LEnumName: string;
 begin
   if AValue.IsEmpty then
   begin
@@ -264,7 +268,30 @@ begin
             AJsonObject.B[AName] := False
         end
         else
-          AJsonObject.S[AName] := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
+        begin
+          LEnumSerType := estEnumName;
+          LEnumPrefix := '';
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr) then
+          begin
+            LEnumSerType := LEnumAsAttr.EnumSerializationType;
+            LEnumPrefix := LEnumAsAttr.EnumPrefix;
+          end;
+
+          case LEnumSerType of
+            estEnumName:
+              begin
+                LEnumName := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
+                if not LEnumPrefix.IsEmpty and LEnumName.StartsWith(LEnumPrefix) then
+                  LEnumName := LEnumName.Remove(0, LEnumPrefix.Length);
+
+                AJsonObject.S[AName] := LEnumName;
+              end;
+            estEnumOrd:
+              begin
+                AJsonObject.I[AName] := AValue.AsOrdinal;
+              end;
+          end;
+        end;
       end;
 
     tkClass:
@@ -665,6 +692,8 @@ var
   ChildObject: TObject;
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
+  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
+  LEnumPrefix: string;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
@@ -698,26 +727,36 @@ begin
         if (AValue.TypeInfo = System.TypeInfo(TDate)) then
           AValue := TValue.From<TDate>(ISODateToDate(AJsonObject[AName].Value))
 
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TDateTime)) then
           AValue := TValue.From<TDateTime>(ISOTimeStampToDateTime(AJsonObject[AName].Value))
 
-        else
-          if (AValue.TypeInfo = System.TypeInfo(TTime)) then
+        else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
           AValue := TValue.From<TTime>(ISOTimeToTime(AJsonObject[AName].Value))
 
-        else
-          if (AValue.Kind = tkEnumeration) then
-          TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject[AName].Value),
-            AValue.TypeInfo, AValue)
+        else if (AValue.Kind = tkEnumeration) then
+          begin
+            LEnumPrefix := '';
+            if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr) then
+              LEnumPrefix := LEnumAsAttr.EnumPrefix;
 
+            TValue.Make(GetEnumValue(AValue.TypeInfo, LEnumPrefix + AJsonObject[AName].Value),
+              AValue.TypeInfo, AValue)
+          end
         else
           AValue := TValue.From<string>(AJsonObject[AName].Value);
       end;
 
     jdtInt:
       begin
-        AValue := TValue.From<Integer>(AJsonObject[AName].IntValue);
+        if (AValue.Kind = tkEnumeration) then
+        begin
+          TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, AJsonObject[AName].IntValue)),
+            AValue.TypeInfo, AValue)
+        end
+        else
+        begin
+          AValue := TValue.From<Integer>(AJsonObject[AName].IntValue);
+        end;
       end;
 
     jdtLong, jdtULong:
