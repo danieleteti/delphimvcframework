@@ -1,3 +1,30 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators on this file:
+//    João Antônio Duarte (https://github.com/joaoduarte19)
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.Swagger.Commons;
 
 interface
@@ -262,6 +289,7 @@ var
   LFieldSchemaDef: TFieldSchemaDefinition;
   LJsonField: TJsonField;
   LSkipProp: Boolean;
+  LJsonFieldClass: TJsonFieldClass;
 begin
   LObjType := FRttiContext.GetType(AClass.ClassInfo);
   LJsonSchema := TJsonSchema.Create;
@@ -302,7 +330,11 @@ begin
         LFieldSchemaDef.FieldName := TMVCSerializerHelper.GetKeyName(LProp, LObjType);
       end;
 
-      LJsonField := GetJsonFieldClass(LFieldSchemaDef.SchemaFieldType).Create;
+      LJsonFieldClass := GetJsonFieldClass(LFieldSchemaDef.SchemaFieldType);
+      if not Assigned(LJsonFieldClass) then
+        Continue;
+
+      LJsonField := LJsonFieldClass.Create;
 
       if not Assigned(LJsonField) then
         Continue;

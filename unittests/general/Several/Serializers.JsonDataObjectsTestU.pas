@@ -155,7 +155,7 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.Commons;
+  MVCFramework.Commons, System.TypInfo;
 
 const
   LINE_BREAK = #$A;
@@ -860,7 +860,9 @@ const
     '"Id":1,' +
     '"Code":2,' +
     '"Name":"Daniele Teti",' +
-    '"Color":"RED"' +
+    '"Color":"RED",' +
+    '"MonthName":"January",' +
+    '"MonthOrder":0' +
     '}';
 var
   O: TEntityWithEnums;
@@ -872,6 +874,8 @@ begin
     O.Code := 2;
     O.Name := 'Daniele Teti';
     O.Color := TColorEnum.RED;
+    O.MonthName := TMonthEnum.meJanuary;
+    O.MonthOrder := TMonthEnum.meJanuary;
     S := FSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
   finally
@@ -884,6 +888,8 @@ begin
     Assert.areEqual(int64(1), O.Id);
     Assert.areEqual(2, O.Code);
     Assert.areEqual('Daniele Teti', O.Name);
+    Assert.areEqual(Ord(TMonthEnum.meJanuary), Ord(O.MonthName));
+    Assert.areEqual(Ord(TMonthEnum.meJanuary), Ord(O.MonthOrder));
     Assert.areEqual(Ord(TColorEnum.RED), Ord(O.Color));
   finally
     O.Free;

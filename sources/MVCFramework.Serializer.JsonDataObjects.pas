@@ -62,10 +62,10 @@ type
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
     fStringDictionarySerializer: IMVCTypeSerializer;
+  public
     function GetDataSetFields(const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
-  public
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
     procedure InternalObjectToJsonObject(const AObject: TObject;
@@ -165,7 +165,7 @@ type
 
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJDOJsonObject;
   const KeyName: string);
-function StringToJSON(const AValue: string): TJDOJsonObject;
+function StrToJSONObject(const AValue: string): TJDOJsonObject;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
@@ -174,7 +174,7 @@ implementation
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
   MVCFramework.Logger,
-  System.SysUtils;
+  System.SysUtils, MVCFramework.DataSet.Utils;
 
 type
   TJDOLinks = class(TMVCLinks)
@@ -187,8 +187,11 @@ type
 procedure TMVCJsonDataObjectsSerializer.AfterConstruction;
 var
   lStreamSerializer: IMVCTypeSerializer;
+  lDataSetHolderSerializer: TMVCDataSetHolderSerializer;
 begin
   inherited AfterConstruction;
+  lDataSetHolderSerializer := TMVCDataSetHolderSerializer.Create;
+  GetTypeSerializers.Add(TypeInfo(TDataSetHolder), lDataSetHolderSerializer);
   lStreamSerializer := TMVCStreamSerializerJsonDataObject.Create;
   GetTypeSerializers.Add(TypeInfo(TStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TStringStream), lStreamSerializer);
@@ -213,6 +216,10 @@ var
   ValueTypeAtt: MVCValueAsTypeAttribute;
   CastValue, CastedValue: TValue;
   i:integer;
+  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
+  LEnumSerType: TMVCEnumSerializationType;
+  LEnumPrefix: string;
+  LEnumName: string;
 begin
   if AValue.IsEmpty then
   begin
@@ -277,7 +284,30 @@ begin
             AJsonObject.B[AName] := False
         end
         else
-          AJsonObject.S[AName] := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
+        begin
+          LEnumSerType := estEnumName;
+          LEnumPrefix := '';
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr) then
+          begin
+            LEnumSerType := LEnumAsAttr.EnumSerializationType;
+            LEnumPrefix := LEnumAsAttr.EnumPrefix;
+          end;
+
+          case LEnumSerType of
+            estEnumName:
+              begin
+                LEnumName := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
+                if not LEnumPrefix.IsEmpty and LEnumName.StartsWith(LEnumPrefix) then
+                  LEnumName := LEnumName.Remove(0, LEnumPrefix.Length);
+
+                AJsonObject.S[AName] := LEnumName;
+              end;
+            estEnumOrd:
+              begin
+                AJsonObject.I[AName] := AValue.AsOrdinal;
+              end;
+          end;
+        end;
       end;
 
     tkClass, tkInterface:
@@ -426,6 +456,7 @@ var
   lDataSetFieldsDetail: TMVCDataSetFields;
   lHandled: Boolean;
 begin
+  Assert(Assigned(ADataSetFields));
   for lField in ADataSetFields do
   begin
     begin
@@ -693,6 +724,8 @@ var
   ChildObject: TObject;
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
+  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
+  LEnumPrefix: string;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
@@ -733,16 +766,29 @@ begin
           AValue := TValue.From<TTime>(ISOTimeToTime(AJsonObject[AName].Value))
 
         else if (AValue.Kind = tkEnumeration) then
-          TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject[AName].Value),
-            AValue.TypeInfo, AValue)
+          begin
+            LEnumPrefix := '';
+            if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr) then
+              LEnumPrefix := LEnumAsAttr.EnumPrefix;
 
+            TValue.Make(GetEnumValue(AValue.TypeInfo, LEnumPrefix + AJsonObject[AName].Value),
+              AValue.TypeInfo, AValue)
+          end
         else
           AValue := TValue.From<string>(AJsonObject[AName].Value);
       end;
 
     jdtInt:
       begin
-        AValue := TValue.From<Integer>(AJsonObject[AName].IntValue);
+        if (AValue.Kind = tkEnumeration) then
+        begin
+          TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, AJsonObject[AName].IntValue)),
+            AValue.TypeInfo, AValue)
+        end
+        else
+        begin
+          AValue := TValue.From<Integer>(AJsonObject[AName].IntValue);
+        end;
       end;
 
     jdtLong, jdtULong:
@@ -1564,7 +1610,7 @@ begin
   end;
 end;
 
-function StringToJSON(const AValue: string): TJDOJsonObject;
+function StrToJSONObject(const AValue: string): TJDOJsonObject;
 var
   lJSON: TJDOJsonObject;
 begin

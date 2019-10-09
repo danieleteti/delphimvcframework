@@ -16,6 +16,7 @@ uses
 type
   TArticlesService = class(TService)
     procedure ServiceCreate(Sender: TObject);
+    procedure ServiceExecute(Sender: TService);
     procedure ServiceStart(Sender: TService; var Started: Boolean);
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
   private
@@ -49,6 +50,15 @@ procedure TArticlesService.ServiceCreate(Sender: TObject);
 begin
   if WebRequestHandler <> nil then
     WebRequestHandler.WebModuleClass := WebModuleClass;
+end;
+
+procedure TArticlesService.ServiceExecute(Sender: TService);
+begin
+  while not Terminated do
+  begin
+    ServiceThread.ProcessRequests(True);
+    Sleep(1000);
+  end;
 end;
 
 procedure TArticlesService.ServiceStart(Sender: TService; var Started: Boolean);

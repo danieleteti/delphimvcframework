@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file: Ezequiel Juliano MÃ¼ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -56,6 +56,8 @@ type
   TMVCDataType = (dtObject, dtArray);
 
   TMVCDatasetSerializationType = (dstSingleRecord, dstAllRecords);
+
+  TMVCEnumSerializationType = (estEnumName, estEnumOrd);
 
   TMVCIgnoredList = array of string;
 
@@ -167,6 +169,16 @@ type
     property IsPK: boolean read FIsPK write SetIsPK;
   end;
 
+  MVCEnumSerializationTypeAttribute = class(TCustomAttribute)
+  private
+    FEnumPrefix: string;
+    FEnumSerializationType: TMVCEnumSerializationType;
+  public
+    constructor Create(const AEnumSerializationType: TMVCEnumSerializationType; const AEnumPrefix: string = '');
+    property EnumSerializationType: TMVCEnumSerializationType read FEnumSerializationType;
+    property EnumPrefix: string read FEnumPrefix;
+  end;
+
   TMVCSerializerHelper = record
   private
     { private declarations }
@@ -232,6 +244,25 @@ type
     destructor Destroy; override;
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  TDataObjectHolder = class
+  private
+    FData: TObject;
+    FMetadata: TMVCStringDictionary;
+    FOwns: boolean;
+    FDataSetSerializationType: TMVCDatasetSerializationType;
+  public
+    constructor Create(const AObject: TObject; const AOwns: boolean = false;
+      const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
+      dstAllRecords); virtual;
+    destructor Destroy; override;
+    function SerializationType: TMVCDatasetSerializationType;
+    [MVCNameAs('data')]
+    property Items: TObject read FData;
+    [MVCNameAs('meta')]
+    property Metadata: TMVCStringDictionary read FMetadata;
+  end;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -249,7 +280,36 @@ const
   JSONNameLowerCase = ncLowerCase deprecated 'Use MVCNameCaseAttribute(ncLowerCase)';
   JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
+function NewDataObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+
 implementation
+
+uses
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.Intf;
+
+function NewDataObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+begin
+  Result := TDataObjectHolder.Create(AObject, AOwns, dstSingleRecord);
+  if Assigned(AMetaFiller) then
+  begin
+    AMetaFiller(Result.FMetadata);
+  end;
+end;
+
+function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+  const AOwns: boolean = false): TDataObjectHolder;
+begin
+  Result := TDataObjectHolder.Create(AList, AOwns, dstAllRecords);
+  if Assigned(AMetaFiller) then
+  begin
+    AMetaFiller(Result.FMetadata);
+  end;
+end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
@@ -506,6 +566,10 @@ begin
           begin
             Exit(LowerCase(AProperty.Name));
           end;
+        ncCamelCase:
+          begin
+            Exit(LowerCase(AProperty.Name.Chars[0]) + AProperty.Name.Substring(1));
+          end;
       end;
     end;
 end;
@@ -638,9 +702,14 @@ begin
   FIsPK := Value;
 end;
 
-{ TDataSetHelper }
+{ MVCEnumSerializationTypeAttribute }
 
-{ TDataSetHelper }
+constructor MVCEnumSerializationTypeAttribute.Create(const AEnumSerializationType: TMVCEnumSerializationType;
+  const AEnumPrefix: string);
+begin
+  FEnumSerializationType := AEnumSerializationType;
+  FEnumPrefix := AEnumPrefix;
+end;
 
 { TMVCTask }
 
@@ -669,6 +738,33 @@ destructor TMVCAcceptedResponse.Destroy;
 begin
   fTask.Free;
   inherited;
+end;
+
+{ TDataObjectHolder }
+
+constructor TDataObjectHolder.Create(const AObject: TObject; const AOwns: boolean;
+  const ADataSetSerializationType: TMVCDatasetSerializationType);
+begin
+  inherited Create;
+  FData := AObject;
+  FMetadata := TMVCStringDictionary.Create;
+  FOwns := AOwns;
+  FDataSetSerializationType := ADataSetSerializationType;
+end;
+
+destructor TDataObjectHolder.Destroy;
+begin
+  FMetadata.Free;
+  if FOwns then
+  begin
+    FData.Free;
+  end;
+  inherited;
+end;
+
+function TDataObjectHolder.SerializationType: TMVCDatasetSerializationType;
+begin
+  Result := FDataSetSerializationType;
 end;
 
 end.
