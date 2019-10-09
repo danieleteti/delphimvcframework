@@ -35,7 +35,7 @@ uses
   System.DateUtils,
   System.Rtti,
   MVCFramework,
-  MVCFramework.Commons;
+  MVCFramework.Commons, MVCFramework.Swagger.Commons;
 
 type
 
@@ -49,16 +49,21 @@ type
     function GetUpTime: string;
   public
     [MVCPath('/describeserver.info')]
-    [MVCHTTPMethods([httpGET, httpPOST])]
+    [MVCHTTPMethods([httpGET])]
     [MVCDoc('Describe controllers and actions published by the RESTful server per resources')]
+    [MVCSwagSummary('DMVCFramework System Controller', 'Describe controllers and actions published by the RESTful server per resources')]
     procedure DescribeServer;
 
     [MVCPath('/describeplatform.info')]
     [MVCDoc('Describe the system where server is running')]
+    [MVCHTTPMethods([httpGET])]
+    [MVCSwagSummary('DMVCFramework System Controller', 'Describe the system where server is running')]
     procedure DescribePlatform;
 
     [MVCPath('/serverconfig.info')]
+    [MVCHTTPMethods([httpGET])]
     [MVCDoc('Server configuration')]
+    [MVCSwagSummary('DMVCFramework System Controller', 'Server configuration')]
     procedure ServerConfig;
   end;
 

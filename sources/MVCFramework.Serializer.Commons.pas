@@ -686,10 +686,6 @@ begin
   FIsPK := Value;
 end;
 
-{ TDataSetHelper }
-
-{ TDataSetHelper }
-
 { TMVCTask }
 
 constructor TMVCTask.Create(const HREF, ID: String);
@@ -743,7 +739,7 @@ end;
 
 function TDataObjectHolder.SerializationType: TMVCDatasetSerializationType;
 begin
-
+  Result := FDataSetSerializationType;
 end;
 
 end.

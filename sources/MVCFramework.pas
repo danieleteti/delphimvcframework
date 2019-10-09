@@ -6,7 +6,9 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators on this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators on this file:
+//    Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+//    João Antônio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
