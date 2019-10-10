@@ -76,14 +76,28 @@ type
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = [];
       const ASerializationAction: TMVCSerializationAction = nil
-      ): string;
+      ): string; overload;
+
+    function SerializeObject(
+      const AObject: IInterface;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string; overload;
 
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = [];
       const ASerializationAction: TMVCSerializationAction = nil
-      ): string;
+      ): string; overload;
+
+    function SerializeCollection(
+      const AList: IInterface;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string; overload;
 
     function SerializeDataSet(
       const ADataSet: TDataSet;
@@ -104,7 +118,14 @@ type
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = []
-      );
+      ); overload;
+
+    procedure DeserializeObject(
+      const ASerializedObject: string;
+      const AObject: IInterface;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+      ); overload;
 
     procedure DeserializeCollection(
       const ASerializedList: string;
@@ -112,7 +133,15 @@ type
       const AClazz: TClass;
       const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = []
-      );
+      ); overload;
+
+    procedure DeserializeCollection(
+      const ASerializedList: string;
+      const AList: IInterface;
+      const AClazz: TClass;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []
+      ); overload;
 
     procedure DeserializeDataSet(
       const ASerializedDataSet: string;

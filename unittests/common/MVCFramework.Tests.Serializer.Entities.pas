@@ -298,6 +298,63 @@ type
     property Values: TArray<Integer> read FValues write FValues;
   end;
 
+  IChildEntity = interface
+  ['{4A4CF508-D64F-4205-9783-E91B888A8987}']
+    function GetCode: Integer;
+    procedure SetCode(const Value: Integer);
+    function GetDescription: string;
+    procedure SetDescription(const Value: string);
+
+    property Code: Integer read GetCode write SetCode;
+    property Description: string read GetDescription write SetDescription;
+  end;
+
+  IEntityWithInterface = interface
+  ['{81B1323F-B3FF-4FBD-84F3-9BDBA9997D8E}']
+    function GetId: Integer;
+    procedure SetId(const Value: Integer);
+    function GetName: string;
+    procedure SetName(const Value: string);
+    function GetChildEntity: IChildEntity;
+    procedure SetChildEntity(const Value: IChildEntity);
+
+    property Id: Integer read GetId write SetId;
+    property Name: string read GetName write SetName;
+    property ChildEntity: IChildEntity read GetChildEntity write SetChildEntity;
+  end;
+
+  TEntityWithInterface = class(TInterfacedObject, IEntityWithInterface)
+  private
+    FId: Integer;
+    FName: string;
+    FChildEntity: IChildEntity;
+    function GetId: Integer;
+    procedure SetId(const Value: Integer);
+    function GetName: string;
+    procedure SetName(const Value: string);
+    function GetChildEntity: IChildEntity;
+    procedure SetChildEntity(const Value: IChildEntity);
+  public
+    constructor Create;
+    property Id: Integer read GetId write SetId;
+    property Name: string read GetName write SetName;
+    property ChildEntity: IChildEntity read GetChildEntity write SetChildEntity;
+  end;
+
+  TChildEntity = class(TInterfacedObject, IChildEntity)
+  private
+    FCode: Integer;
+    FDescription: string;
+    function GetCode: Integer;
+    procedure SetCode(const Value: Integer);
+    function GetDescription: string;
+    procedure SetDescription(const Value: string);
+  public
+    property Code: Integer read GetCode write SetCode;
+    property Description: string read GetDescription write SetDescription;
+  end;
+
+
 implementation
 
 
@@ -374,6 +431,66 @@ procedure TMVCNullable<T>.SetValue(const Value: T);
 begin
   fValue := Value;
   fHasValue := True;
+end;
+
+{ TEntityWithInterface }
+
+constructor TEntityWithInterface.Create;
+begin
+  FChildEntity := TChildEntity.Create;
+end;
+
+function TEntityWithInterface.GetChildEntity: IChildEntity;
+begin
+  Result := FChildEntity;
+end;
+
+function TEntityWithInterface.GetId: Integer;
+begin
+  Result := FId;
+end;
+
+function TEntityWithInterface.GetName: string;
+begin
+  Result := FName;
+end;
+
+procedure TEntityWithInterface.SetChildEntity(const Value: IChildEntity);
+begin
+  FChildEntity := Value;
+end;
+
+procedure TEntityWithInterface.SetId(const Value: Integer);
+begin
+  FId := Value;
+end;
+
+procedure TEntityWithInterface.SetName(const Value: string);
+begin
+  FName := Value;
+end;
+
+
+{ TChildEntity }
+
+function TChildEntity.GetCode: Integer;
+begin
+  Result := FCode;
+end;
+
+function TChildEntity.GetDescription: string;
+begin
+  Result := FDescription;
+end;
+
+procedure TChildEntity.SetCode(const Value: Integer);
+begin
+  FCode := Value;
+end;
+
+procedure TChildEntity.SetDescription(const Value: string);
+begin
+  FDescription := Value;
 end;
 
 end.
