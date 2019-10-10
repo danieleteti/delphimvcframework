@@ -1,18 +1,34 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.Console;
 
 interface
 
 type
   TConsoleMode = (Normal, Bright);
-  TConsoleColor = (
-    Black = 30,
-    Red = 31,
-    Green = 32,
-    Yellow = 33,
-    Blue = 34,
-    Magenta = 35,
-    Cyan = 36,
-    White = 37);
+  TConsoleColor = (Black = 30, Red = 31, Green = 32, Yellow = 33, Blue = 34, Magenta = 35, Cyan = 36, White = 37);
 
 procedure ResetConsole;
 procedure TextColor(const Color: TConsoleColor);
@@ -23,12 +39,10 @@ implementation
 
 uses
 
-  {$IFDEF MSWINDOWS}
-
+{$IFDEF MSWINDOWS}
   WinApi.Windows,
 
-  {$ENDIF}
-
+{$ENDIF}
   System.SysUtils;
 
 const
@@ -37,7 +51,7 @@ const
 var
   GForeGround: TConsoleColor;
   GBackGround: TConsoleColor;
-  GMode: TConsoleMode = TConsolemode.Normal;
+  GMode: TConsoleMode = TConsoleMode.Normal;
 
 function ToBackGround(const ForeGround: Byte): Byte;
 begin

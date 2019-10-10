@@ -601,6 +601,7 @@ type
     FContext: TWebContext;
     FContentCharset: string;
     FResponseStream: TStringBuilder;
+    function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
   public
     function GetContentType: string;
     function GetStatusCode: Integer;
@@ -3058,6 +3059,11 @@ end;
 procedure TMVCRenderer.SetStatusCode(const AValue: Integer);
 begin
   GetContext.Response.StatusCode := AValue;
+end;
+
+function TMVCRenderer.ToMVCList(const AObject: TObject; AOwnsObject: Boolean): IMVCList;
+begin
+  Result :=  MVCFramework.DuckTyping.WrapAsList(AObject,AOwnsObject);
 end;
 
 procedure TMVCController.SetViewData(const aModelName: string; const Value: TObject);

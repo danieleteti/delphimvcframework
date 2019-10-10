@@ -8,6 +8,7 @@ uses
 
 function GetPeopleList: TObjectList<TPerson>;
 function GetPeopleSmallList: TObjectList<TPerson>;
+function GetInterfacedPeopleList: TList<IPerson>;
 
 implementation
 
@@ -16,6 +17,23 @@ uses
 
 var
   GPeople, GPeopleSmall: TObjectList<TPerson>;
+
+function GetInterfacedPeopleList: TList<IPerson>;
+var
+  lPerson: IPerson;
+begin
+  Result := TList<IPerson>.Create;
+  lPerson := TInterfacedPerson.Create;
+  lPerson.Name := 'Daniele Teti';
+  lPerson.Age := 40;
+  lPerson.DOB := EncodeDate(1979, 11, 4);
+  Result.Add(lPerson);
+  lPerson := TInterfacedPerson.Create;
+  lPerson.Name := 'Peter Parker';
+  lPerson.Age := 35;
+  lPerson.DOB := EncodeDate(1984, 11, 4);
+  Result.Add(lPerson);
+end;
 
 procedure PopulateList;
 var

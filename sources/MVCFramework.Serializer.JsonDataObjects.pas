@@ -221,6 +221,11 @@ var
   LEnumPrefix: string;
   LEnumName: string;
 begin
+  if SameText(AName, 'RefCount') then
+  begin
+    Exit;
+  end;
+
   if AValue.IsEmpty then
   begin
     AJsonObject[AName] := Null;
@@ -1369,9 +1374,8 @@ begin
   LIgnoredAttrs := TList<string>.Create;
   try
     LIgnoredAttrs.AddRange(AIgnoredAttributes);
-    if Assigned(GetRttiContext.GetType(TObject(AObject).ClassType).GetProperty('RefCount')) then
-      LIgnoredAttrs.Add('RefCount');
-
+//    if Assigned(GetRttiContext.GetType(TObject(AObject).ClassType).GetProperty('RefCount')) then
+//      LIgnoredAttrs.Add('RefCount');
     Result := SerializeObject(TObject(AObject), AType, TMVCIgnoredList(LIgnoredAttrs.ToArray), ASerializationAction);
   finally
     LIgnoredAttrs.Free;
