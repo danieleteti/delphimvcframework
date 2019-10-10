@@ -217,7 +217,7 @@ begin
         fOnReceiveResponse(aJSONRPCObject, lJSONRPCResponse);
       end;
       if Assigned(lJSONRPCResponse.Error) and FRaiseExceptionOnError then
-        raise EMVCJSONRPCException.CreateFmt('Error [%d]: %s',
+        raise EMVCJSONRPCException.CreateFmt('[REMOTE EXCEPTION][%d]: %s',
           [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
       Result := lJSONRPCResponse;
     end;
