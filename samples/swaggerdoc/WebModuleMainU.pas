@@ -56,7 +56,8 @@ begin
   LSwagInfo.ContactUrl := 'https://github.com/joaoduarte19';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
-  FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json'));
+  FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json',
+   'Method for authentication using JSON Web Token (JWT)'));
 
   LClaimsSetup := procedure(const JWT: TJWT)
     begin
