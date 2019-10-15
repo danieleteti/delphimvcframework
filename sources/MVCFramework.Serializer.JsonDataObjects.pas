@@ -731,6 +731,7 @@ var
   ChildListOfAtt: MVCListOfAttribute;
   LEnumAsAttr: MVCEnumSerializationTypeAttribute;
   LEnumPrefix: string;
+  LClazz: TClass;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
@@ -845,10 +846,14 @@ begin
           else
           begin
             ChildList := TDuckTypedList.Wrap(ChildObject);
-            if TMVCSerializerHelper.AttributeExists<MVCListOfAttribute>(ACustomAttributes,
-              ChildListOfAtt) then
-              JsonArrayToList(AJsonObject.A[AName], ChildList, ChildListOfAtt.Value,
-                AType, AIgnored)
+
+            if TMVCSerializerHelper.AttributeExists<MVCListOfAttribute>(ACustomAttributes, ChildListOfAtt) then
+              LClazz := ChildListOfAtt.Value
+            else
+              LClazz := GetObjectTypeOfGenericList(AValue.TypeInfo);
+
+            if Assigned(LClazz) then
+              JsonArrayToList(AJsonObject.A[AName], ChildList, LClazz, AType, AIgnored)
             else
               raise EMVCDeserializationException.CreateFmt
                 ('You can not deserialize a list %s without the MVCListOf attribute.', [AName]);

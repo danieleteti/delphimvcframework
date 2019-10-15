@@ -354,6 +354,19 @@ type
     property Description: string read GetDescription write SetDescription;
   end;
 
+  TGenericEntity<T: class> = class
+  private
+    FCode: Integer;
+    FItems: TObjectList<T>;
+    FDescription: string;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Code: Integer read FCode write FCode;
+    property Description: string read FDescription write FDescription;
+    property Items: TObjectList<T> read FItems write FItems;
+  end;
+
 
 implementation
 
@@ -491,6 +504,20 @@ end;
 procedure TChildEntity.SetDescription(const Value: string);
 begin
   FDescription := Value;
+end;
+
+{ TGenericEntity<T> }
+
+constructor TGenericEntity<T>.Create;
+begin
+  inherited Create;
+  FItems := TObjectList<T>.Create;
+end;
+
+destructor TGenericEntity<T>.Destroy;
+begin
+  FItems.Free;
+  inherited Destroy;
 end;
 
 end.

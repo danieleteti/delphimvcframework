@@ -107,6 +107,9 @@ type
     procedure TestSerializeDeserializeGuid;
     [Test]
     procedure TestSerializeDeserializeEntityWithInterface;
+
+    [Test]
+    procedure TestSerializeDeserializeGenericEntity;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -1312,6 +1315,61 @@ begin
   Assert.AreEqual('João Antônio Duarte', LEntity.Name);
   Assert.AreEqual(Integer(10), LEntity.ChildEntity.Code);
   Assert.AreEqual('Child Entity', LEntity.ChildEntity.Description);
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGenericEntity;
+const
+  JSON =
+    '{' +
+    '"Code":1,'  +
+    '"Description":"General Description",' +
+    '"Items":[' +
+    '{"Description":"Description 01"},' +
+    '{"Description":"Description 02"},' +
+    '{"Description":"Description 03"},' +
+    '{"Description":"Description 04"},' +
+    '{"Description":"Description 05"}' +
+    ']'+
+    '}';
+var
+  LGenericEntity: TGenericEntity<TNote>;
+  LJson: string;
+begin
+  LGenericEntity := TGenericEntity<TNote>.Create;
+  try
+    LGenericEntity.Code := 1;
+    LGenericEntity.Description := 'General Description';
+
+    LGenericEntity.Items.Add(TNote.Create('Description 01'));
+    LGenericEntity.Items.Add(TNote.Create('Description 02'));
+    LGenericEntity.Items.Add(TNote.Create('Description 03'));
+    LGenericEntity.Items.Add(TNote.Create('Description 04'));
+    LGenericEntity.Items.Add(TNote.Create('Description 05'));
+
+    LJson := FSerializer.SerializeObject(LGenericEntity);
+
+    Assert.AreEqual(JSON, LJson);
+  finally
+    LGenericEntity.Free;
+  end;
+
+  LGenericEntity := TGenericEntity<TNote>.Create;
+  try
+    FSerializer.DeserializeObject(LJson, LGenericEntity);
+
+    Assert.AreEqual(Integer(1), LGenericEntity.Code);
+    Assert.AreEqual('General Description', LGenericEntity.Description);
+    Assert.AreEqual(Integer(5), LGenericEntity.Items.Count);
+    Assert.AreEqual('Description 01', LGenericEntity.Items[0].Description);
+    Assert.AreEqual('Description 02', LGenericEntity.Items[1].Description);
+    Assert.AreEqual('Description 03', LGenericEntity.Items[2].Description);
+    Assert.AreEqual('Description 04', LGenericEntity.Items[3].Description);
+    Assert.AreEqual('Description 05', LGenericEntity.Items[4].Description);
+
+  finally
+    LGenericEntity.Free;
+  end;
+
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
