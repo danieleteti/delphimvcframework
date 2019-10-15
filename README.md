@@ -239,7 +239,16 @@ end;
 
 - Fixed! [issue232](https://github.com/danieleteti/delphimvcframework/issues/232) (Thanks to Thank you to [João Antônio Duarte](https://github.com/joaoduarte19))
 
-- New Installation procedure! Just open the project group, build all and install the design-time package (which is `dmvcframeworkDT`)
+- New Installation procedure! 
+
+    - Open the project group (select the correct one from the following table)
+    - Build all 
+    - Install the design-time package (`dmvcframeworkDT`)
+    - Add the following paths in the Delphi Library Path (here, `C:\DEV\dmvcframework` is the `dmvcframework` main folder)
+        - `C:\DEV\dmvcframework\sources`
+        - `C:\DEV\dmvcframework\lib\loggerpro`
+        - `C:\DEV\dmvcframework\lib\swagdoc\Source`
+        - `C:\DEV\dmvcframework\lib\dmustache`
 
 |Delphi Version|Project Group|
 |---|---|

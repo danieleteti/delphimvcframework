@@ -40,7 +40,9 @@ requires
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
-  loggerproRT;
+  loggerproRT,
+  FireDACPgDriver,
+  SwagDoc;
 
 contains
   Web.ApacheConst,
@@ -94,7 +96,12 @@ contains
   MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
   MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas',
   MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
-  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas';
+  MVCFramework.Controllers.Register in '..\..\sources\MVCFramework.Controllers.Register.pas',
+  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
+  MVCFramework.SQLGenerators.Interbase in '..\..\sources\MVCFramework.SQLGenerators.Interbase.pas',
+  MVCFramework.SQLGenerators.PostgreSQL in '..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas',
+  MVCFramework.SQLGenerators.Sqlite in '..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas',
+  MVCFramework.RQL.AST2SQLite in '..\..\sources\MVCFramework.RQL.AST2SQLite.pas';
 
 end.
 

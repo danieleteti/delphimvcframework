@@ -45,10 +45,10 @@ requires
   FireDACPgDriver;
 
 contains
-  Web.ApacheConst,
-  Web.Win.IsapiHTTP,
-  Web.ApacheHTTP,
-  Web.HTTPDMethods,
+  Web.ApacheConst in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas',
+  Web.Win.IsapiHTTP in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas',
+  Web.ApacheHTTP in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheHTTP.pas',
+  Web.HTTPDMethods in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.HTTPDMethods.pas',
   Web.HTTPDImpl,
   JsonDataObjects in '..\..\sources\JsonDataObjects.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',

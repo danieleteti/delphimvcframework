@@ -40,7 +40,9 @@ requires
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
-  loggerproRT;
+  loggerproRT,
+  FireDACPgDriver,
+  SwagDoc;
 
 contains
   Web.ApacheConst,
@@ -89,11 +91,16 @@ contains
   MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
   MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas',
   MVCFramework.Session in '..\..\sources\MVCFramework.Session.pas',
-  MVCFramework.SQLGenerators.Firebird in '..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
-  MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
   MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas',
   MVCFramework.SystemJSONUtils in '..\..\sources\MVCFramework.SystemJSONUtils.pas',
-  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas';
+  MVCFramework.View.Cache in '..\..\sources\MVCFramework.View.Cache.pas',
+  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
+  MVCFramework.RQL.AST2SQLite in '..\..\sources\MVCFramework.RQL.AST2SQLite.pas',
+  MVCFramework.SQLGenerators.Firebird in '..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
+  MVCFramework.SQLGenerators.Interbase in '..\..\sources\MVCFramework.SQLGenerators.Interbase.pas',
+  MVCFramework.SQLGenerators.MySQL in '..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
+  MVCFramework.SQLGenerators.PostgreSQL in '..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas',
+  MVCFramework.SQLGenerators.Sqlite in '..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas';
 
 end.
 

@@ -367,6 +367,21 @@ type
     property Items: TObjectList<T> read FItems write FItems;
   end;
 
+  TMultipleGenericEntity<T1: class; T2: class> = class
+  private
+    FCode: Integer;
+    FItems: TObjectList<T1>;
+    FItems2: TObjectList<T2>;
+    FDescription: string;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Code: Integer read FCode write FCode;
+    property Description: string read FDescription write FDescription;
+    property Items: TObjectList<T1> read FItems write FItems;
+    property Items2: TObjectList<T2> read FItems2 write FItems2;
+  end;
+
 
 implementation
 
@@ -519,5 +534,20 @@ begin
   FItems.Free;
   inherited Destroy;
 end;
+
+constructor TMultipleGenericEntity<T1,T2>.Create;
+begin
+  inherited Create;
+  FItems := TObjectList<T1>.Create;
+  FItems2 := TObjectList<T2>.Create;
+end;
+
+destructor TMultipleGenericEntity<T1,T2>.Destroy;
+begin
+  FItems.Free;
+  FItems2.Free;
+  inherited Destroy;
+end;
+
 
 end.

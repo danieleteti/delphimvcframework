@@ -3,7 +3,7 @@ import os
 import subprocess
 from colorama import *
 import glob
-from shutil import copy2, rmtree
+from shutil import copy2, rmtree, copytree
 from datetime import datetime
 import pathlib
 
@@ -96,11 +96,9 @@ def copy_sources():
         copy2(file, g_output_folder + "\\sources\\")
 
     # copying tools
-    # print("Copying tools binaries...")
-    # src = glob.glob("tools\\bin\\*.*")
-    # for file in src:
-    #     print("Copying " + file + " to " + g_output_folder + "\\tools")
-    #     copy2(file, g_output_folder + "\\tools\\")
+    print("Copying tools...")
+    copytree('tools\\entitygenerator', g_output_folder + "\\tools\\entitygenerator")
+    copytree('tools\\rql2sql', g_output_folder + "\\tools\\rql2sql")
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")
@@ -139,6 +137,14 @@ def copy_sources():
 def copy_libs(ctx):
     global g_output_folder
 
+    
+    # swagdoc
+    print("Copying libraries: SwagDoc...")
+    curr_folder = g_output_folder + "\\lib\\swagdoc"
+    os.makedirs(curr_folder, exist_ok=True)
+    if not ctx.run(rf"xcopy lib\swagdoc\*.* {curr_folder}\*.* /E /Y /R /V /F"):
+        raise Exception("Cannot copy SwagDoc")
+
     # loggerpro
     print("Copying libraries: LoggerPro...")
     curr_folder = g_output_folder + "\\lib\\loggerpro"
@@ -146,6 +152,7 @@ def copy_libs(ctx):
     if not ctx.run(rf"xcopy lib\loggerpro\*.* {curr_folder}\*.* /E /Y /R /V /F"):
         raise Exception("Cannot copy loggerpro")
 
+    # dmustache
     print("Copying libraries: dmustache...")
     curr_folder = g_output_folder + "\\lib\\dmustache"
     os.makedirs(curr_folder, exist_ok=True)
@@ -203,6 +210,7 @@ def init_build(version):
     copy2("README.md", g_output_folder)
     copy2("3_0_0_breaking_changes.md", g_output_folder)
     copy2("3_1_0_breaking_changes.md", g_output_folder)
+    copy2("3_2_0_breaking_changes.md", g_output_folder)
     copy2("License.txt", g_output_folder)
 
 
@@ -269,8 +277,12 @@ def clean(ctx):
     rmtree(g_output_folder + r"\lib\loggerpro\packages\d103\__history", True)
     rmtree(g_output_folder + r"\lib\loggerpro\packages\d103\Win32\Debug", True)
     rmtree(g_output_folder + r"\lib\dmustache\.git", True)
+    rmtree(g_output_folder + r"\lib\swagdoc\lib", True)
+    rmtree(g_output_folder + r"\lib\swagdoc\deploy", True)
+    rmtree(g_output_folder + r"\lib\swagdoc\demos", True)
 
     to_delete = []
+    to_delete += glob.glob(g_output_folder + r"\**\*.exe", recursive=True)
     to_delete += glob.glob(g_output_folder + r"\**\*.dcu", recursive=True)
     to_delete += glob.glob(g_output_folder + r"\**\*.stat", recursive=True)
     to_delete += glob.glob(g_output_folder + r"\**\*.res", recursive=True)
@@ -295,6 +307,7 @@ def release(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION, skip_bu
         delphi_projects = get_delphi_projects_to_build('', delphi_version)
         if not build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version):
             return False #fails build
+    print(Fore.RESET)
     copy_sources()
     copy_libs(ctx)
     clean(ctx)
