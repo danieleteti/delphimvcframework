@@ -58,7 +58,10 @@ contains
   Swag.Doc.Path in 'Swag.Doc.Path.pas',
   Swag.Doc.SecurityDefinition in 'Swag.Doc.SecurityDefinition.pas',
   Swag.Doc.SecurityDefinitionApiKey in 'Swag.Doc.SecurityDefinitionApiKey.pas',
-  Swag.Doc in 'Swag.Doc.pas';
+  Swag.Doc.SecurityDefinitionBasic in 'Swag.Doc.SecurityDefinitionBasic.pas',
+  Swag.Doc.SecurityDefinitionOAuth2 in 'Swag.Doc.SecurityDefinitionOAuth2.pas',
+  Swag.Doc.Tags in 'Swag.Doc.Tags.pas',
+  Swag.Doc in 'Swag.Doc.pas',
+  Swag.Doc.FileLoader in 'Swag.Doc.FileLoader.pas';
 
 end.
-

@@ -43,6 +43,11 @@ type
     procedure ToType(const pTransferProtocolSchemeString: string);
   end;
 
+  TSwagSecurityDefinitionTypeHelper = record helper for TSwagSecurityDefinitionType
+  public
+    procedure ToType(const pSecurityDefinitionTypeString: string);
+  end;
+
   TSwagTransferProtocolSchemesHelper = record helper for TSwagTransferProtocolSchemes
   public
     procedure Add(const pScheme: TSwagTransferProtocolScheme); overload;
@@ -131,6 +136,21 @@ begin
     if (LowerCase(c_SwagTypeParameter[vSwagTypeParameter]) = LowerCase(pTypeParameter)) then
     begin
       Self := vSwagTypeParameter;
+      Break;
+    end;
+end;
+
+{ TSwagSecurityDefinitionTypeHelper }
+
+procedure TSwagSecurityDefinitionTypeHelper.ToType(const pSecurityDefinitionTypeString: string);
+var
+  vSecurityDefinitionType: TSwagSecurityDefinitionType;
+begin
+  Self := ssdNotDefined;
+  for vSecurityDefinitionType := Low(TSwagSecurityDefinitionType) to High(TSwagSecurityDefinitionType) do
+    if (LowerCase(c_SwagSecurityDefinitionType[vSecurityDefinitionType]) = LowerCase(pSecurityDefinitionTypeString.Trim)) then
+    begin
+      Self := vSecurityDefinitionType;
       Break;
     end;
 end;

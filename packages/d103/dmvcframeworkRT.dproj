@@ -122,7 +122,6 @@
         <DCCReference Include="FireDACIBDriver.dcp"/>
         <DCCReference Include="FireDACMySQLDriver.dcp"/>
         <DCCReference Include="loggerproRT.dcp"/>
-        <DCCReference Include="SwagDoc.dcp"/>
         <DCCReference Include="FireDACPgDriver.dcp"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas"/>
@@ -181,6 +180,36 @@
         <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Common.Helpers.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Common.Types.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Arrays.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Booleans.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.DateTimes.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Enums.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Numbers.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Objects.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.Field.Strings.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Json.Schema.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Common.Consts.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Common.Types.Helpers.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Common.Types.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Definition.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.FileLoader.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Info.Contact.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Info.License.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Info.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.RequestParameter.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.Response.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.Operation.ResponseHeaders.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Path.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinition.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionApiKey.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionBasic.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionOAuth2.pas"/>
+        <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

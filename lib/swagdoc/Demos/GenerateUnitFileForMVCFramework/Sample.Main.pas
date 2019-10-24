@@ -76,16 +76,18 @@ var
   vSwagDoc: TSwagDoc;
   vFilename: string;
 begin
-  vClientBuilder := nil;
+  vSwagDoc := TSwagDoc.Create;
   try
-    vSwagDoc := TSwagDoc.Create;
     vFilename := ExtractFilePath(ParamStr(0)) + 'Swagger.json';
     vSwagDoc.LoadFromFile(vFilename);
     memo1.Lines.Text := TFile.ReadAllText(vFilename);
     vClientBuilder := TSwagDocToDelphiRESTClientBuilder.Create(vSwagDoc);
-    memo2.Lines.Text := vClientBuilder.Generate;
+    try
+      memo2.Lines.Text := vClientBuilder.Generate;
+    finally
+      FreeAndNil(vClientBuilder);
+    end;
   finally
-    FreeAndNil(vClientBuilder);
     FreeAndNil(vSwagDoc);
   end;
 end;

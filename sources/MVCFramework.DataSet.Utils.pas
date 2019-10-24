@@ -46,6 +46,7 @@ type
     procedure LoadFromTValue(const Value: TValue; const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
     function AsJSONArray: string;
     function AsJDOJSONArray: TJDOJsonArray;
+    function AsJSONArrayOfValues: TJDOJsonArray;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
@@ -163,6 +164,27 @@ begin
       lSerializer := TMVCJsonDataObjectsSerializer.Create;
       try
         lSerializer.DataSetToJsonArray(Self, Result, ncLowerCase, []);
+      finally
+        lSerializer.Free;
+      end;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+function TDataSetHelper.AsJSONArrayOfValues: TJDOJsonArray;
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+begin
+  Result := TJDOJsonArray.Create;
+  try
+    if not Eof then
+    begin
+      lSerializer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lSerializer.DataSetToJsonArrayOfValues(Self, Result, []);
       finally
         lSerializer.Free;
       end;

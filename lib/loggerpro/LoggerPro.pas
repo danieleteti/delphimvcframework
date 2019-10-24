@@ -732,6 +732,7 @@ begin
   lStatus := TAppenderStatus.BeforeSetup;
   try
     { the appender tries to log all the messages before terminate... }
+    //dt
     while (not Terminated) or (FAppenderQueue.QueueSize > 0) do
     begin
       { ...but if the thread should be terminated, and the appender is failing,

@@ -125,9 +125,8 @@ var
   vField: TUnitFieldDefinition;
   vRef: String;
 begin
-  vDelphiUnit := nil;
+  vDelphiUnit := TDelphiUnit.Create;
   try
-    vDelphiUnit := TDelphiUnit.Create;
     vDelphiUnit.UnitFile := 'UnitFilenameMvcControllerClient';
     vDelphiUnit.AddInterfaceUnit('IPPeerClient');
     vDelphiUnit.AddInterfaceUnit('REST.Client');
@@ -177,7 +176,6 @@ begin
         begin
           vResultParam := TUnitParameter.Create;
           vResultParam.ParamName := CapitalizeFirstLetter(fSwagDoc.Paths[vPathIndex].Operations[vOperationIndex].Parameters[vParameterIndex].Name);
-          vResultParam.ParamType := TUnitTypeDefinition.Create;
           vResultParam.ParamType := ConvertSwaggerTypeToDelphiType(fSwagDoc.Paths[vPathIndex].Operations[vOperationIndex].Parameters[vParameterIndex]);
           vMethod.AddParameter(vResultParam);
         end;

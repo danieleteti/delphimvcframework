@@ -200,4 +200,7 @@ begin
   Result.AddPair('properties', vJsonProperities);
 end;
 
+initialization
+  ReportMemoryLeaksOnShutdown := True;
+
 end.

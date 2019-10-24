@@ -20,77 +20,65 @@
 {                                                                              }
 {******************************************************************************}
 
-unit Swag.Doc.Path.Operation.ResponseHeaders;
+unit Swag.Doc.SecurityDefinitionBasic;
 
 interface
 
 uses
   System.SysUtils,
-  System.Json;
+  System.JSON,
+  Swag.Common.Types,
+  Swag.Doc.SecurityDefinition;
 
 type
   /// <summary>
-  /// Lists the headers that can be sent as part of a response.
+  /// The security scheme object Basic
   /// </summary>
-  TSwagHeaders = class(TObject)
+  [ASecurityDefinition(ssdBasic)]
+  TSwagSecurityDefinitionBasic = class(TSwagSecurityDefinition)
   private
     fName: string;
-    fDescription: string;
-    fType: string;
-    fFormat: string;
+  protected
+    function GetTypeSecurity: TSwagSecurityDefinitionType; override;
   public
-    function GenerateJsonObject: TJSONObject;
-    procedure Load(pJson : TJSONObject);
+    function GenerateJsonObject: TJSONObject; override;
+    procedure Load(pJson: TJSONObject); override;
 
-    /// <summary>
-    /// A header name alias.
-    /// </summary>
     property Name: string read fName write fName;
-
-    /// <summary>
-    /// A short description of the header.
-    /// </summary>
-    property Description: string read fDescription write fDescription;
-
-    /// <summary>
-    /// Required. The type of the object. The value MUST be one of "string", "number", "integer", "boolean", or "array".
-    /// </summary>
-    property ValueType: string read fType write fType;
-
-    property Format: string read fFormat write fFormat;
   end;
 
 implementation
 
+uses
+  System.Classes;
+
 const
-  c_SwagHeadersDescription = 'description';
-  c_SwagHeadersType = 'type';
-  c_SwagHeadersFormat = 'format';
+  c_SwagSecurityDefinitionBasicType = 'type';
+  c_SwagSecurityDefinitionBasicName = 'name';
 
-{ TSwagHeaders }
+{ TSwagSecurityDefinitionApiKey }
 
-function TSwagHeaders.GenerateJsonObject: TJSONObject;
+function TSwagSecurityDefinitionBasic.GenerateJsonObject: TJSONObject;
 var
-  vJsonObject: TJsonObject;
+  vJsonItem: TJsonObject;
 begin
-  vJsonObject := TJSONObject.Create;
-  if fDescription.Length > 0 then
-    vJsonObject.AddPair(c_SwagHeadersDescription, fDescription);
-  if fType.Length > 0 then
-    vJsonObject.AddPair(c_SwagHeadersType, fType);
-  if fFormat.Length > 0 then
-    vJsonObject.AddPair(c_SwagHeadersFormat, fFormat);
-  Result := vJsonObject;
+  vJsonItem := TJsonObject.Create;
+  vJsonItem.AddPair(c_SwagSecurityDefinitionBasicType, ReturnTypeSecurityToString);
+  Result := vJsonItem;
 end;
 
-procedure TSwagHeaders.Load(pJson: TJSONObject);
+function TSwagSecurityDefinitionBasic.GetTypeSecurity: TSwagSecurityDefinitionType;
 begin
-  if Assigned(pJson.Values[c_SwagHeadersDescription]) then
-    fDescription := pJson.Values[c_SwagHeadersDescription].Value;
-  if Assigned(pJson.Values[c_SwagHeadersType]) then
-    fType := pJson.Values[c_SwagHeadersType].Value;
-  if Assigned(pJson.Values[c_SwagHeadersFormat]) then
-    fFormat := pJson.Values[c_SwagHeadersFormat].Value;
+  Result := ssdBasic;
 end;
+
+procedure TSwagSecurityDefinitionBasic.Load(pJson: TJSONObject);
+begin
+  if Assigned(pJson.Values[c_SwagSecurityDefinitionBasicName]) then
+    fName := pJson.Values[c_SwagSecurityDefinitionBasicName].Value;
+end;
+
+initialization
+  RegisterClass(TSwagSecurityDefinitionBasic);
 
 end.

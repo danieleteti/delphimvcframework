@@ -29,6 +29,7 @@ uses
   System.JSON,
   Swag.Common.Types,
   Swag.Doc.Path.Operation.Response,
+  Swag.Doc.Tags,
   Swag.Doc.Path.Operation.RequestParameter;
 
 type
@@ -43,10 +44,12 @@ type
     fProduces: TList<TSwagMimeType>;
     fParameters: TObjectList<TSwagRequestParameter>;
     fResponses: TObjectDictionary<TSwagStatusCode, TSwagResponse>;
-    fSecurity: TList<TSwagSecuritySchemaName>;
+    fSecurity: TList<TSwagSecuritySchemeName>;
     fTags: TList<string>;
+    fExternalDocs: TSwagExternalDocs;
     fOperationId: string;
     fDeprecated: Boolean;
+    fSummary: string;
     function GetOperationToString: string;
   protected
     function GenerateTagsJsonArray(pTagList: TList<string>): TJSONArray;
@@ -63,6 +66,7 @@ type
     property Operation: TSwagPathTypeOperation read fOperation write fOperation;
     property OperationToString: string read GetOperationToString;
     property OperationId : string read fOperationId write fOperationId;
+    property Summary: string read fSummary write fSummary;
 
     /// <summary>
     /// A list of tags for API documentation control.
@@ -118,13 +122,16 @@ type
     /// OR between the security requirements). This definition overrides any declared top-level security.
     /// To remove a top-level security declaration, an empty array can be used.
     /// </summary>
-    property Security: TList<TSwagSecuritySchemaName> read fSecurity;
+    property Security: TList<TSwagSecuritySchemeName> read fSecurity;
+
+    property ExternalDocs: TSwagExternalDocs read fExternalDocs;
   end;
 
 implementation
 
 uses
   System.SysUtils,
+  Swag.Doc.Path,
   Swag.Common.Consts;
 
 const
@@ -137,19 +144,22 @@ const
   c_SwagPathOperationParameters = 'parameters';
   c_SwagPathOperationResponses = 'responses';
   c_SwagPathOperationSecurity = 'security';
+  c_SwagPathOperationSummary = 'summary';
+  c_SwagPathOperationExternalDocs = 'externalDocs';
+
 
 { TSwagPathOperation }
 
 constructor TSwagPathOperation.Create;
 begin
   inherited Create;
-
   fTags := TList<string>.Create;
   fConsumes := TList<TSwagMimeType>.Create;
   fProduces := TList<TSwagMimeType>.Create;
   fParameters := TObjectList<TSwagRequestParameter>.Create;
   fResponses := TObjectDictionary<TSwagStatusCode, TSwagResponse>.Create([doOwnsValues]);
-  fSecurity := TList<TSwagSecuritySchemaName>.Create;
+  fSecurity := TList<TSwagSecuritySchemeName>.Create;
+  fExternalDocs := TSwagExternalDocs.Create;
 end;
 
 destructor TSwagPathOperation.Destroy;
@@ -160,6 +170,7 @@ begin
   FreeAndNil(fParameters);
   FreeAndNil(fSecurity);
   FreeAndNil(fTags);
+  FreeAndNil(fExternalDocs);
 
   inherited Destroy;
 end;
@@ -234,13 +245,20 @@ var
   vJsonObject: TJsonObject;
 begin
   vJsonObject := TJsonObject.Create;
-  vJsonObject.AddPair(c_SwagPathOperationDescription, fDescription);
-  if fDeprecated then
-    vJsonObject.AddPair(c_SwagPathOperationDeprecated, TJSONBool.Create(FDeprecated));
-  if not fOperationId.IsEmpty then
-    vJsonObject.AddPair(c_SwagPathOperationOperationId, fOperationId);
   if (fTags.Count > 0) then
     vJsonObject.AddPair(c_SwagPathOperationTags, GenerateTagsJsonArray(fTags));
+
+  if fSummary.Length > 0 then
+    vJsonObject.AddPair(c_SwagPathOperationSummary, fSummary);
+  if fDescription.Length > 0  then
+    vJsonObject.AddPair(c_SwagPathOperationDescription, fDescription);
+  if (not fExternalDocs.url.IsEmpty) or (not fExternalDocs.description.IsEmpty) then
+    vJsonObject.AddPair(c_SwagPathOperationExternalDocs, fExternalDocs.GenerateJsonObject);
+  
+  if fDeprecated then
+    vJsonObject.AddPair(c_SwagPathOperationDeprecated, TJSONBool.Create(fDeprecated));
+  if not fOperationId.IsEmpty then
+    vJsonObject.AddPair(c_SwagPathOperationOperationId, fOperationId);
   if (fConsumes.Count > 0) then
     vJsonObject.AddPair(c_SwagPathOperationConsumes, GenerateMimeTypesJsonArray(fConsumes));
   if (fProduces.Count > 0) then

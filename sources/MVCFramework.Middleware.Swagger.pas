@@ -247,13 +247,13 @@ begin
 
         // basic auth is used by jwt middleware to generate json web token
         LSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
-        LSecurityDefsBasic.SchemaName := SECURITY_BASIC_NAME;
+        LSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
         LSecurityDefsBasic.Description := 'Send UserName and Password to return JWT Token';
         ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBasic);
 
         // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
         LSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
-        LSecurityDefsBearer.SchemaName := SECURITY_BEARER_NAME;
+        LSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
         LSecurityDefsBearer.InLocation := kilHeader;
         LSecurityDefsBearer.Name := 'Authorization';
         LSecurityDefsBearer.Description := FJWTDescription;
