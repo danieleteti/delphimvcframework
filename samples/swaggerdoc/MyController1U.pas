@@ -5,7 +5,8 @@ interface
 uses
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Swagger.Commons;
+  MVCFramework.Swagger.Commons,
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
 const
   INDEX_JSON_SCHEMA =
@@ -34,7 +35,7 @@ type
   public
     [MVCPath('')]
     [MVCSwagSummary('Status', 'API Status')]
-    [MVCSwagResponses(200, 'Sucess', INDEX_JSON_SCHEMA)]
+    [MVCSwagResponses(200, 'Success', INDEX_JSON_SCHEMA)]
     [MVCSwagResponses(500, 'Internal Server Error')]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     [MVCHTTPMethod([httpGET])]
@@ -50,6 +51,7 @@ uses
   MVCFramework.Controllers.Register;
 
 { TMyController1 }
+
 
 procedure TMyController1.Index;
 var

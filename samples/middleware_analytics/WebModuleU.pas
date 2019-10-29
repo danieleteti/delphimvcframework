@@ -30,8 +30,10 @@ uses
   MainControllerU,
   System.IOUtils,
   MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
   LoggerPro.FileAppender,
   LoggerPro,
+  System.DateUtils,
   MVCFramework.Middleware.Analytics;
 
 var
@@ -51,8 +53,11 @@ begin
         lLog := TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics', [], '%s.%2.2d.%s.csv');
         TLoggerProFileAppender(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
           begin
-            LogRow := Format('%s;%s;%s;%s', [datetimetostr(LogItem.TimeStamp),
-              LogItem.LogTypeAsString, LogItem.LogMessage, LogItem.LogTag]);
+            LogRow := Format('%s;%s;%s;%s', [
+              FormatDateTime('yyyy-mm-dd hh:nn:ss', LogItem.TimeStamp),
+              LogItem.LogTypeAsString,
+              LogItem.LogMessage,
+              LogItem.LogTag]);
           end;
         GLogWriter := BuildLogWriter([lLog]);
       end;

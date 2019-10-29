@@ -55,6 +55,11 @@ type
     procedure GetCustomersAsDataSetWithRefLinks;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/withcallback')]
+    [MVCProduces('application/json')]
+    procedure GetCustomersWithCallback;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($ID)/asdataset')]
     procedure GetCustomer_AsDataSetRecord(const ID: Integer);
 
@@ -371,11 +376,91 @@ begin
     Render(lDM.qryCustomers, False,
       procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString).Add(HATEOAS.REL, 'self')
-          .Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
-          .Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self')
+            .Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+            .Add(HATEOAS.REL, 'orders')
+            .Add(HATEOAS._TYPE, 'application/json');
       end);
+  finally
+    lDM.Free;
+  end;
+end;
+
+procedure TRenderSampleController.GetCustomersWithCallback;
+var
+  lDM: TMyDataModule;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJArray: TJsonArray;
+  lJobj: TJsonObject;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open('SELECT * FROM CUSTOMER ORDER BY CUST_NO');
+    lSer := TMVCJsonDataObjectsSerializer.Create;
+    try
+      lJobj := TJsonObject.Create;
+      lJArray := lJObj.A['customers'];
+      lSer.DataSetToJsonArray(lDM.qryCustomers, lJArray, TMVCNameCase.ncLowerCase, [],
+              procedure(const aField: TField; const aJsonObject: TJSONObject;
+                    var Handled: Boolean)
+              var
+                lTmp: String;
+                lPieces: TArray<String>;
+              begin
+                //ignore one attribute
+                if SameText(aField.FieldName, 'contact_last') then
+                begin
+                  Handled := True;
+                end;
+
+                //change the attribute value
+                if SameText(aField.FieldName, 'on_hold') then
+                begin
+                  aJsonObject.B['on_hold'] := not aField.IsNull;
+                  Handled := True;
+                end;
+
+                //change the attribute type!
+                if SameText(aField.FieldName, 'phone_no') then
+                begin
+                  lTmp := aField.AsString.Replace('(','').Replace(')','').Replace('-',' ').Replace('  ',' ', [rfReplaceAll]).Trim;
+                  if lTmp.IsEmpty then
+                  begin
+                    Handled := True;
+                    Exit;
+                  end;
+                  lPieces := lTmp.Split([' ']);
+                  aJsonObject.O['phone'].S['intl_prefix'] := lPieces[0];
+                  Delete(lPieces,0,1);
+                  aJsonObject.O['phone'].S['number'] := String.Join('-', lPieces);
+                  Handled := True;
+                end;
+
+                //add an attribute
+                if SameText(aField.FieldName, 'country') then
+                begin
+                  aJsonObject.B['is_usa_customer'] := SameText(aField.AsString,'usa');
+                end;
+
+                //merge 2 or more attributes
+                if SameText(aField.FieldName, 'contact_first') then
+                begin
+                  aJsonObject.S['contact_full_name'] :=
+                    aField.DataSet.FieldByName('contact_first').AsString + ', ' +
+                    aField.DataSet.FieldByName('contact_last').AsString;
+                  Handled := True;
+                end;
+              end);
+    finally
+      lSer.Free;
+    end;
+    Render(lJobj);
   finally
     lDM.Free;
   end;
@@ -620,9 +705,17 @@ begin
   Render<TPerson>(People, True,
     procedure(const APerson: TPerson; const Links: IMVCLinks)
     begin
-      Links.AddRefLink.Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString).Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE,
-        'application/json').Add('title', 'Details for ' + APerson.FullName);
-      Links.AddRefLink.Add(HATEOAS.HREF, '/people').Add(HATEOAS.REL, 'people').Add(HATEOAS._TYPE, 'application/json');
+      Links
+        .AddRefLink
+          .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, 'application/json')
+          .Add('title', 'Details for ' + APerson.FullName);
+      Links
+        .AddRefLink
+          .Add(HATEOAS.HREF, '/people')
+          .Add(HATEOAS.REL, 'people')
+          .Add(HATEOAS._TYPE, 'application/json');
     end);
 end;
 

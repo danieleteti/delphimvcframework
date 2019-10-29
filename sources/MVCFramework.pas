@@ -103,6 +103,10 @@ type
     { public declarations }
   end;
 
+  MVCRequiresAuthenticationAttribute = class(MVCBaseAttribute)
+
+  end;
+
   MVCHTTPMethodsAttribute = class(MVCBaseAttribute)
   private
     FMVCHTTPMethods: TMVCHTTPMethods;

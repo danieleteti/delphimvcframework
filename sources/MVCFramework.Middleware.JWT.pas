@@ -78,8 +78,9 @@ type
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
   public
     /// <remarks>
-    /// The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow
+    /// WARNING! The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow
     /// the IETF national convention - RFC 6750;
+    /// Please use the other constructor!
     /// </remarks>
     constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; AConfigClaims: TJWTClaimsSetup;
       ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';

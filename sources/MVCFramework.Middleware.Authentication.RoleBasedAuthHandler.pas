@@ -36,8 +36,6 @@ uses
   System.Rtti;
 
 type
-  MVCRequiresAuthenticationAttribute = class(MVCBaseAttribute);
-
   MVCRoleEval = (reOR, reAND);
 
   MVCRequiresRoleAttribute = class(MVCRequiresAuthenticationAttribute)

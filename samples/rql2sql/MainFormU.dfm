@@ -11,6 +11,7 @@ object MainForm: TMainForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
@@ -27,7 +28,7 @@ object MainForm: TMainForm
       Top = 8
       Width = 105
       Height = 65
-      Caption = 'Parse'
+      Caption = 'RQL to SQL'
       TabOrder = 0
       OnClick = btnParseClick
     end
@@ -132,7 +133,7 @@ object MainForm: TMainForm
       Width = 764
       Height = 81
       Align = alTop
-      Caption = 'RQL Backend'
+      Caption = 'Available RQL Backends'
       Columns = 2
       TabOrder = 3
     end

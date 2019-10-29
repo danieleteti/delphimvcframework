@@ -70,13 +70,13 @@ type
     FTags: string;
     FDeprecated: Boolean;
     FDescription: string;
-    FPathId: string;
+    FOperationId: string;
   public
-    constructor Create(const ATags, ADescription: string; const APathId: string = ''; ADeprecated: Boolean = False);
+    constructor Create(const ATags, ADescription: string; const AOperationID: string = ''; ADeprecated: Boolean = False);
     function GetTags: TArray<string>;
     property Tags: string read FTags;
     property Description: string read FDescription;
-    property PathId: string read FPathId;
+    property OperationID: string read FOperationId;
     property Deprecated: Boolean read FDeprecated;
   end;
 
@@ -372,7 +372,7 @@ begin
     begin
       ASwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(LAttr).GetTags);
       ASwagPathOperation.Description := MVCSwagSummaryAttribute(LAttr).Description;
-      ASwagPathOperation.OperationId := MVCSwagSummaryAttribute(LAttr).PathId;
+      ASwagPathOperation.OperationId := MVCSwagSummaryAttribute(LAttr).OperationID;
       ASwagPathOperation.Deprecated := MVCSwagSummaryAttribute(LAttr).Deprecated;
     end;
     if LAttr is MVCConsumesAttribute then
@@ -391,9 +391,13 @@ begin
       LSwagResponse.StatusCode := LSwagResponsesAttr.StatusCode.ToString;
       LSwagResponse.Description := LSwagResponsesAttr.Description;
       if not LSwagResponsesAttr.JsonSchema.IsEmpty then
+      begin
         LSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(LSwagResponsesAttr.JsonSchema) as TJSONObject
+      end
       else if Assigned(LSwagResponsesAttr.JsonSchemaClass) then
+      begin
         LSwagResponse.Schema.JsonSchema := ExtractJsonSchemaFromClass(LSwagResponsesAttr.JsonSchemaClass);
+      end;
 
       ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
     end;
@@ -654,12 +658,20 @@ begin
   Result := False;
 
   for LAttr in AMethod.GetAttributes do
+  begin
     if LAttr is MVCRequiresAuthenticationAttribute then
+    begin
       Exit(True);
+    end;
+  end;
 
   for LAttr in AType.GetAttributes do
+  begin
     if LAttr is MVCRequiresAuthenticationAttribute then
+    begin
       Exit(True);
+    end;
+  end;
 end;
 
 class function TMVCSwagger.MVCHttpMethodToSwagPathOperation(const AMVCHTTPMethod: TMVCHTTPMethodType):
@@ -731,12 +743,12 @@ end;
 
 { MVCSwagSummary }
 
-constructor MVCSwagSummaryAttribute.Create(const ATags, ADescription: string; const APathId: string;
+constructor MVCSwagSummaryAttribute.Create(const ATags, ADescription: string; const AOperationID: string;
   ADeprecated: Boolean);
 begin
   FTags := ATags;
   FDescription := ADescription;
-  FPathId := APathId;
+  FOperationId := AOperationID;
   FDeprecated := ADeprecated;
 end;
 

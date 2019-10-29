@@ -51,7 +51,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, System.DateUtils;
 
 { TMVCAnalyticsMiddleware }
 
@@ -69,12 +69,7 @@ end;
 procedure TMVCAnalyticsMiddleware.OnBeforeControllerAction(Context: TWebContext; const AControllerQualifiedClassName, AActionNAme: string;
   var Handled: Boolean);
 begin
-  // WriteLn(CSVFile, 'DateTime, IpAddress, ControllerName, ActionName, DomainName, Host');
-  // WriteLn(CSVFile, DateTimeToStr(Now), ',', Context.Request.ClientIp, ',', AControllerQualifiedClassName, ',', AActionNAme, ',',
-  // Context.Request.RawWebRequest.Referer, ',', Context.Request.RawWebRequest.Host);
-  // CloseFile(CSVFile);
-
-  FLogWriter.Info(DateTimeToStr(Now) + ';' + Context.Request.ClientIp + ';' + AControllerQualifiedClassName + ';' + AActionNAme + ';' +
+  FLogWriter.Info(Context.Request.ClientIp + ';' + AControllerQualifiedClassName + ';' + AActionNAme + ';' +
     Context.Request.RawWebRequest.Method + ';' + Context.Request.RawWebRequest.PathTranslated + ';' + Context.Request.RawWebRequest.PathInfo
     + ';' + Context.Request.RawWebRequest.Referer + ';' + Context.Request.RawWebRequest.Host, 'analytics');
 end;
