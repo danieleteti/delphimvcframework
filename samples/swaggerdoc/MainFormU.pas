@@ -81,6 +81,8 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  ReportMemoryLeaksOnShutdown := True;
+
   FServer := TIdHTTPWebBrokerBridge.Create(Self);
   FServer.OnParseAuthentication := OnParseAuthentication;
 end;
