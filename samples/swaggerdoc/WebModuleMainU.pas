@@ -30,7 +30,9 @@ uses
   MVCFramework.Middleware.Swagger,
   MVCFramework.Swagger.Commons,
   MVCFramework.Middleware.JWT,
-  AuthHandler, MVCFramework.JWT, System.DateUtils;
+  AuthHandler,
+  MVCFramework.JWT,
+  System.DateUtils;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}

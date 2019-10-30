@@ -44,27 +44,22 @@ type
     FSwaggerInfo: TMVCSwaggerInfo;
     FSwagDocURL: string;
     FJWTDescription: string;
+    FEnableBasicAuthentication: Boolean;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
-    procedure DocumentApiJWTAuthentication(const ASwagDoc: TSwagDoc);
+    procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
     procedure DocumentApi(ASwagDoc: TSwagDoc);
     procedure InternalRender(AContent: string; AContext: TWebContext);
   public
     constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
       const ASwaggerDocumentationURL: string = '/swagger.json';
-      const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION);
+      const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
+      const AEnableBasicAuthentication: Boolean = False);
     destructor Destroy; override;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
-  end;
-
-  TSwagSecurityDefinitionBasic = class(TSwagSecurityDefinition)
-  protected
-    function GetTypeSecurity: TSwagSecurityDefinitionType; override;
-  public
-    function GenerateJsonObject: System.JSON.TJSONObject; override;
   end;
 
 implementation
@@ -80,18 +75,20 @@ uses
   Swag.Doc.Path.Operation.Response,
   MVCFramework.Middleware.JWT,
   Swag.Doc.Path.Operation.RequestParameter,
-  Swag.Doc.SecurityDefinitionApiKey;
+  Swag.Doc.SecurityDefinitionApiKey,
+  Swag.Doc.SecurityDefinitionBasic;
 
 { TMVCSwaggerMiddleware }
 
 constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
-  const ASwaggerDocumentationURL, AJWTDescription: string);
+  const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean);
 begin
   inherited Create;
   FSwagDocURL := ASwaggerDocumentationURL;
   FEngine := AEngine;
   FSwaggerInfo := ASwaggerInfo;
   FJWTDescription := AJWTDescription;
+  FEnableBasicAuthentication := AEnableBasicAuthentication;
 end;
 
 destructor TMVCSwaggerMiddleware.Destroy;
@@ -116,6 +113,7 @@ var
   I: TMVCHTTPMethodType;
   LPathUri: string;
   LIndex: Integer;
+  LAuthTypeName: string;
 begin
   LRttiContext := TRttiContext.Create;
   try
@@ -179,8 +177,8 @@ begin
             LSwagPathOp := TSwagPathOperation.Create;
             TMVCSwagger.FillOperationSummary(LSwagPathOp, LMethod);
 
-            if TMVCSwagger.MethodRequiresAuthentication(LMethod, LObjType) then
-              LSwagPathOp.Security.Add(SECURITY_BEARER_NAME);
+            if TMVCSwagger.MethodRequiresAuthentication(LMethod, LObjType, LAuthTypeName) then
+              LSwagPathOp.Security.Add(LAuthTypeName);
 
             LSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(LSwagPath.Uri, LMethod));
             LSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
@@ -207,7 +205,7 @@ begin
   ASwagDoc.Info.License.Url := FSwaggerInfo.LicenseUrl;
 end;
 
-procedure TMVCSwaggerMiddleware.DocumentApiJWTAuthentication(const ASwagDoc: TSwagDoc);
+procedure TMVCSwaggerMiddleware.DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
 var
   LMiddleware: IMVCMiddleware;
   LJWTMiddleware: TMVCJWTAuthenticationMiddleware;
@@ -228,6 +226,14 @@ begin
     end;
   end;
 
+  if Assigned(LJWTMiddleware) or FEnableBasicAuthentication then
+  begin
+    LSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
+    LSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
+    LSecurityDefsBasic.Description := 'Send username and password for authentication';
+    ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBasic);
+  end;
+
   if Assigned(LJWTMiddleware) then
   begin
     LRttiContext := TRttiContext.Create;
@@ -244,12 +250,6 @@ begin
 
         // Path operation Middleware JWT
         ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(LJwtUrlSegment));
-
-        // basic auth is used by jwt middleware to generate json web token
-        LSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
-        LSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
-        LSecurityDefsBasic.Description := 'Send UserName and Password to return JWT Token';
-        ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBasic);
 
         // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
         LSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
@@ -315,7 +315,7 @@ begin
     try
       DocumentApiInfo(LSwagDoc);
       DocumentApiSettings(AContext, LSwagDoc);
-      DocumentApiJWTAuthentication(LSwagDoc);
+      DocumentApiAuthentication(LSwagDoc);
       DocumentApi(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
@@ -326,20 +326,6 @@ begin
       LSwagDoc.Free;
     end;
   end;
-end;
-
-{ TSwagSecurityDefinitionBasic }
-
-function TSwagSecurityDefinitionBasic.GenerateJsonObject: System.JSON.TJSONObject;
-begin
-  Result := System.JSON.TJSONObject.Create;
-  Result.AddPair('type', ReturnTypeSecurityToString);
-  Result.AddPair('description', fDescription);
-end;
-
-function TSwagSecurityDefinitionBasic.GetTypeSecurity: TSwagSecurityDefinitionType;
-begin
-  Result := ssdBasic;
 end;
 
 end.
