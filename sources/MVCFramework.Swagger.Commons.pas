@@ -209,6 +209,7 @@ type
       : TJSONObject; overload;
     class function GetJsonFieldClass(const ASchemaFieldType: TMVCSwagSchemaType): TJsonFieldClass;
     class function TypeKindToMVCSwagSchemaType(APropType: TRttiType): TMVCSwagSchemaType; static;
+    class function RttiTypeIsObjectList(const ARttiType: TRttiType): Boolean; static;
   public
     class constructor Create;
     class destructor Destroy;
@@ -297,6 +298,12 @@ begin
   FRttiContext.Free;
 end;
 
+
+class function TMVCSwagger.RttiTypeIsObjectList(const ARttiType: TRttiType): Boolean;
+begin
+  Result := ARttiType.QualifiedName.ToLower.Contains('tobjectlist<');
+end;
+
 type
   TFieldSchemaDefinition = record
     SchemaFieldType: TMVCSwagSchemaType;
@@ -310,12 +317,6 @@ type
   THackMVCAbstractSerializer = class(TMVCAbstractSerializer);
 
 class procedure TMVCSwagger.ExtractJsonSchemaFromClass(const AJsonFieldRoot: TJsonFieldObject; const AClass: TClass);
-
-  function RttiTypeIsObjectList(const ARttiType: TRttiType): Boolean;
-  begin
-    Result := ARttiType.QualifiedName.ToLower.Contains('tobjectlist<');
-  end;
-
 var
   LFieldSchemaDef: TFieldSchemaDefinition;
   LObjType: TRttiType;
@@ -535,6 +536,8 @@ begin
           (APropType.Handle = TypeInfo(TMemoryStream)) or
           (APropType.Handle = TypeInfo(TStringStream)) then
           Result := stString
+        else if RttiTypeIsObjectList(APropType) then
+          Result := stArray
         else
           Result := stObject;
       end;

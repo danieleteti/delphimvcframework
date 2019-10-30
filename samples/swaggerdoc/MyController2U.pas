@@ -55,9 +55,9 @@ type
     property Age: Integer read FAge write FAge;
     [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False)]
     property Country: string read FCountry write FCountry;
-    [MVCSwagJsonSchemaField(stObject, 'address', 'Address')]
+//    [MVCSwagJsonSchemaField(stObject, 'address', 'Address')]
     property Address: TAddress read FAddress write FAddress;
-    [MVCSwagJsonSchemaField(stArray, 'phones', 'Contact phones of the person', False, True)]
+//    [MVCSwagJsonSchemaField(stArray, 'phones', 'Contact phones of the person', False, True)]
     property Phones: TObjectList<TPhone> read FPhones write FPhones;
   end;
 
