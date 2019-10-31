@@ -72,13 +72,13 @@ type
     FTags: string;
     FDeprecated: Boolean;
     FDescription: string;
-    FPathId: string;
+    FOperationID: string;
   public
     constructor Create(const ATags, ADescription: string; const APathId: string = ''; ADeprecated: Boolean = False);
     function GetTags: TArray<string>;
     property Tags: string read FTags;
     property Description: string read FDescription;
-    property PathId: string read FPathId;
+    property OperationID: string read FOperationID;
     property Deprecated: Boolean read FDeprecated;
   end;
 
@@ -301,7 +301,7 @@ end;
 
 class function TMVCSwagger.RttiTypeIsObjectList(const ARttiType: TRttiType): Boolean;
 begin
-  Result := ARttiType.QualifiedName.ToLower.Contains('tobjectlist<');
+  Result := ARttiType.GetMethod('GetEnumerator') <> nil;
 end;
 
 type
@@ -441,7 +441,7 @@ begin
     begin
       ASwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(LAttr).GetTags);
       ASwagPathOperation.Description := MVCSwagSummaryAttribute(LAttr).Description;
-      ASwagPathOperation.OperationId := MVCSwagSummaryAttribute(LAttr).PathId;
+      ASwagPathOperation.OperationId := MVCSwagSummaryAttribute(LAttr).OperationID;
       ASwagPathOperation.Deprecated := MVCSwagSummaryAttribute(LAttr).Deprecated;
     end;
     if LAttr is MVCConsumesAttribute then
@@ -842,7 +842,7 @@ constructor MVCSwagSummaryAttribute.Create(const ATags, ADescription: string; co
 begin
   FTags := ATags;
   FDescription := ADescription;
-  FPathId := APathId;
+  FOperationID := APathId;
   FDeprecated := ADeprecated;
 end;
 

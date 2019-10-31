@@ -155,25 +155,31 @@ function TMVCAbstractSerializer.GetObjectTypeOfGenericList(const ATypeInfo: PTyp
 
   function ExtractGenericArguments(ATypeInfo: PTypeInfo): string;
   var
-    I: Integer;
+    LOpen: Integer;
+    LClose: Integer;
     LTypeInfoName: string;
   begin
     LTypeInfoName := UTF8ToString(ATypeInfo.Name);
-    I := Pos('<', LTypeInfoName);
+    LOpen := Pos('<', LTypeInfoName);
+    LClose := Pos('>', LTypeInfoName);
 
-    if I <= 0 then
+    if LOpen <= 0 then
       Exit('');
 
-    Result := Copy(LTypeInfoName, Succ(I), Length(LTypeInfoName) - Succ(I));
+    Result := LTypeInfoName.Substring(LOpen, LClose - LOpen - 1);
   end;
 
 var
   LType: string;
+  LGetEnumerator: TRttiMethod;
 begin
-  LType := ExtractGenericArguments(ATypeInfo);
-  if LType.IsEmpty then
+  LGetEnumerator := GetRttiContext.GetType(ATypeInfo).GetMethod('GetEnumerator');
+  if not Assigned(LGetEnumerator) then
+  begin
     Exit(nil);
+  end;
 
+  LType := ExtractGenericArguments(LGetEnumerator.ReturnType.Handle);
   Result := GetRttiContext.FindType(LType).AsInstance.MetaclassType;
 end;
 
