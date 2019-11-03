@@ -16,8 +16,10 @@ type
     btnLOGIN: TButton;
     Splitter1: TSplitter;
     Label1: TLabel;
+    btnLoginWithHeaderBasic: TButton;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
+    procedure btnLoginWithHeaderBasicClick(Sender: TObject);
   private
     FJWT: string;
     procedure SetJWT(const Value: string);
@@ -33,13 +35,13 @@ implementation
 
 {$R *.dfm}
 
-
 uses
   MVCFramework.RESTClient,
   MVCFramework.Middleware.JWT,
+  MVCFramework.Serializer.JSONDataObjects,
   MVCFramework.SystemJSONUtils,
-  System.JSON,
-  System.NetEncoding;
+  System.NetEncoding,
+  JsonDataObjects;
 
 procedure TMainForm.btnGetClick(Sender: TObject);
 var
@@ -53,7 +55,9 @@ begin
   try
     lClient.ReadTimeOut(0);
     if not FJWT.IsEmpty then
+    begin
       lClient.RequestHeaders.Values[TMVCJWTDefaults.AUTHORIZATION_HEADER] := 'Bearer ' + FJWT;
+    end;
     lQueryStringParams := TStringList.Create;
     try
       lQueryStringParams.Values['firstname'] := 'Daniele';
@@ -61,7 +65,7 @@ begin
       lResp := lClient.doGET('/admin/role1', [], lQueryStringParams);
 
       if lResp.HasError then
-        ShowMessage(lResp.Error.ExceptionMessage);
+        ShowMessage(lResp.Error.Status + sLineBreak + lResp.Error.ExceptionMessage);
 
     finally
       lQueryStringParams.Free;
@@ -90,13 +94,33 @@ begin
   lClient := TRESTClient.Create('localhost', 8080);
   try
     lClient.ReadTimeOut(0);
-    lClient
-      .Header(TMVCJWTDefaults.USERNAME_HEADER, 'user1')
-      .Header(TMVCJWTDefaults.PASSWORD_HEADER, 'user1');
-    lRest := lClient.doPOST('/login', []);
-    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
+    lClient.Header(TMVCJWTDefaults.USERNAME_HEADER, 'user1').Header(TMVCJWTDefaults.PASSWORD_HEADER, 'user1');
+    lRest := lClient.doGET('/login', []); { any HTTP verbs is OK }
+    lJSON := StrToJSONObject(lRest.BodyAsString);
     try
-      JWT := lJSON.GetValue('token').Value;
+      JWT := lJSON.S['token'];
+    finally
+      lJSON.Free;
+    end;
+  finally
+    lClient.Free;
+  end;
+end;
+
+procedure TMainForm.btnLoginWithHeaderBasicClick(Sender: TObject);
+var
+  lClient: TRESTClient;
+  lRest: IRESTResponse;
+  lJSON: TJSONObject;
+begin
+  lClient := TRESTClient.Create('localhost', 8080);
+  try
+    lClient.ReadTimeOut(0);
+    lClient.Authentication('user1', 'user1');
+    lRest := lClient.doPOST('/login', []);
+    lJSON := StrToJSONObject(lRest.BodyAsString);
+    try
+      JWT := lJSON.S['token'];
     finally
       lJSON.Free;
     end;

@@ -163,6 +163,10 @@ type
     [MVCPath('/customserializationtype')]
     procedure GetCustomSerializationType;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/simplearray')]
+    procedure GetSimpleArrays;
+
   end;
 
 implementation
@@ -585,6 +589,11 @@ begin
   p.Skills := 'Delphi, JavaScript';
   List.Add(p);
   Render<TPerson>(List);
+end;
+
+procedure TRenderSampleController.GetSimpleArrays;
+begin
+  Render(TArrayTest.Create);
 end;
 
 procedure TRenderSampleController.GetPeopleAsCSV;
