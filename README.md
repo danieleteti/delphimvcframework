@@ -37,7 +37,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * JSON-RPC 2.0 Support with automatic objects remotization (check [sample](https://github.com/danieleteti/delphimvcframework/tree/master/samples/jsonrpc_with_published_objects))
   * Stable and solid, used by small/mid/big projects since 2010
   * Very fast! (2.x was pretty fast and now, 3.x is 60% faster than the 2.x!)
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2500 active members
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2600 active members
   * Can be used in load balanced environment
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
