@@ -86,13 +86,17 @@ type
     fID: Integer;
     [MVCTableField('code', [foTransient])]
     fCode: string;
+    [MVCTableField('', [foTransient])]
+    fFormattedCode: string;
     [MVCTableField('description')]
     fCompanyName: string;
-    [MVCTableField('city', [foTransient])]
+    [MVCTableField('city')]
     fCity: string;
+    procedure SetFormattedCode(const Value: String);
   public
     property ID: Integer read fID write fID;
     property Code: string read fCode write fCode;
+    property FormattedCode: String read FFormattedCode write SetFormattedCode;
     property CompanyName: string read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
   end;
@@ -257,6 +261,13 @@ begin
   inherited;
   if fCompanyName.Trim.IsEmpty or fCity.Trim.IsEmpty or fCode.Trim.IsEmpty then
     raise Exception.Create('CompanyName, City and Code are required');
+end;
+
+{ TCustomerWithTransient }
+
+procedure TCustomerWithTransient.SetFormattedCode(const Value: String);
+begin
+  FFormattedCode := Value;
 end;
 
 end.
