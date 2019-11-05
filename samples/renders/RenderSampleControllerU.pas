@@ -167,6 +167,11 @@ type
     [MVCPath('/simplearray')]
     procedure GetSimpleArrays;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/objectwithjson')]
+    procedure GetObjectWithJSONProperty;
+
+
   end;
 
 implementation
@@ -522,6 +527,17 @@ end;
 procedure TRenderSampleController.GetLotOfPeople;
 begin
   Render<TPerson>(GetPeopleList, False);
+end;
+
+procedure TRenderSampleController.GetObjectWithJSONProperty;
+var
+  lObj: TObjectWithJSONObject;
+begin
+  lObj := TObjectWithJSONObject.Create;
+  lObj.StringProp := 'Daniele Teti';
+  lObj.JSONObject.S['stringprop'] := 'String Prop';
+  lObj.JSONObject.O['innerobj'].S['innerstringprop'] := 'Inner String Prop';
+  Render(lObj);
 end;
 
 procedure TRenderSampleController.GetPerson_AsHTML;

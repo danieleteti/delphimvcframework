@@ -186,7 +186,6 @@ begin
   fStringDictionarySerializer := TMVCStringDictionarySerializer.Create;
   GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), TMVCStringDictionarySerializer.Create);
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
-
 end;
 
 procedure TMVCJsonDataObjectsSerializer.AttributeToJsonDataValue(const AJsonObject: TJDOJsonObject; const AName: string;
@@ -314,6 +313,10 @@ begin
           begin
             ChildJsonArray := AJsonObject.A[AName];
             DataSetToJsonArray(TDataSet(ChildObject), ChildJsonArray, TMVCNameCase.ncLowerCase, []);
+          end
+          else if ChildObject is TJsonObject then
+          begin
+            AJsonObject.O[AName] := TJsonObject(ChildObject).Clone as TJsonObject;
           end
           else
           begin
@@ -1092,6 +1095,16 @@ var
   AttributeValue: TValue;
   lKeyName: string;
 begin
+  if AObject is TJsonObject then
+  begin
+    if not Assigned(AObject) then
+    begin
+      raise EMVCDeserializationException.Create(AObject.ClassName + ' is not assigned');
+    end;
+    TJsonObject(AObject).Assign(AJsonObject);
+    Exit;
+  end;
+
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:

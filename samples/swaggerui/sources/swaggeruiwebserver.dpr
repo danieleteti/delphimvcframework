@@ -3,6 +3,10 @@ program swaggeruiwebserver;
 {$APPTYPE CONSOLE}
 
 uses
+{$IFDEF MSWINDOWS}
+  WinAPI.ShellAPI,
+  WinAPI.Windows,
+{$ENDIF}
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,

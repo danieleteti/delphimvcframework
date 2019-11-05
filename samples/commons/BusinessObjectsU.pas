@@ -28,7 +28,7 @@ interface
 
 uses
   MVCFramework.Serializer.Commons,
-  Generics.Collections, Vcl.Graphics;
+  Generics.Collections, Vcl.Graphics, JsonDataObjects;
 
 type
 
@@ -71,6 +71,19 @@ type
     property Age: Integer read GetAge write SetAge;
     property DOB: TDate read GetDOB write SetDOB;
   end;
+
+  TObjectWithJSONObject = class
+  private
+    fJSONObject: TJSONObject;
+    FStringProp: String;
+    procedure SetStringProp(const Value: String);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property StringProp: String read FStringProp write SetStringProp;
+    property JSONObject: TJSONObject read fJSONObject;
+  end;
+
 
   [MVCNameCase(ncCamelCase)]
   TInterfacedPerson = class(TInterfacedObject, IPerson)
@@ -414,6 +427,25 @@ end;
 procedure TInterfacedPerson.SetName(const Value: String);
 begin
   fName := Value;
+end;
+
+{ TObjectWithJSONObject }
+
+constructor TObjectWithJSONObject.Create;
+begin
+  inherited;
+  fJSONObject := TJsonObject.Create;
+end;
+
+destructor TObjectWithJSONObject.Destroy;
+begin
+  fJSONObject.Free;
+  inherited;
+end;
+
+procedure TObjectWithJSONObject.SetStringProp(const Value: String);
+begin
+  FStringProp := Value;
 end;
 
 initialization

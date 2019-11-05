@@ -43,8 +43,6 @@ type
 
   TMVCStreamSerializerJsonDataObject = class(TInterfacedObject, IMVCTypeSerializer)
   protected
-    // procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
-    // const AAttributes: TArray<TCustomAttribute>);
     procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
       const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
     procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
