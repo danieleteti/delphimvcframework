@@ -45,7 +45,7 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   System.JSON,
-  JsonDataObjects;
+  JsonDataObjects, System.SysUtils;
 
 type
 
@@ -59,6 +59,11 @@ type
     var Handled: Boolean);
 
   TMVCDataSetFields = TList<TMVCDataSetField>;
+
+  TJSONObjectHelper = class helper for TJsonObject
+  public
+    procedure LoadFromString(const Value: String; Encoding: TEncoding = nil; Utf8WithoutBOM: Boolean = True);
+  end;
 
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
@@ -159,8 +164,7 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.Logger,
-  System.SysUtils, MVCFramework.DataSet.Utils;
+  MVCFramework.Logger, MVCFramework.DataSet.Utils;
 
 type
   TJDOLinks = class(TMVCLinks)
@@ -427,7 +431,7 @@ begin
     begin
       if ADataSet.Fields[lField.I].IsNull then
       begin
-        AJsonArray.Add(TJSONObject(nil));
+        AJsonArray.Add(TJsonObject(nil));
       end
       else
       begin
@@ -502,18 +506,16 @@ begin
                       lNestedDataSet.First;
                       while not lNestedDataSet.Eof do
                       begin
-                        DataSetRowToJsonArrayOfValues(
-                          lNestedDataSet,
-                          lChildJsonArray,
-                          AIgnoredFields, lDataSetFieldsDetail);
+                        DataSetRowToJsonArrayOfValues(lNestedDataSet, lChildJsonArray, AIgnoredFields,
+                          lDataSetFieldsDetail);
                         lNestedDataSet.Next;
                       end;
                     end;
                   dtObject:
                     begin
                       lChildJsonArray := AJsonArray.AddArray;
-                      DataSetRowToJsonArrayOfValues(lNestedDataSet, lChildJsonArray,
-                        AIgnoredFields, lDataSetFieldsDetail);
+                      DataSetRowToJsonArrayOfValues(lNestedDataSet, lChildJsonArray, AIgnoredFields,
+                        lDataSetFieldsDetail);
                     end;
                 end;
               finally
@@ -1745,6 +1747,28 @@ end;
 procedure TJDOLinks.FillJSONArray(const AJsonArray: TJsonArray);
 begin
   MVCStringDictionaryListToJSONArray(LinksData, AJsonArray);
+end;
+
+{ TJSONObjectHelper }
+
+procedure TJSONObjectHelper.LoadFromString(const Value: String; Encoding: TEncoding; Utf8WithoutBOM: Boolean);
+var
+  lSS: TStringStream;
+begin
+  if Assigned(Encoding) then
+  begin
+    lSS := TStringStream.Create(Value, Encoding);
+  end
+  else
+  begin
+    lSS := TStringStream.Create(Value);
+  end;
+  try
+    lSS.Position := 0;
+    LoadFromStream(lSS, Encoding, Utf8WithoutBOM);
+  finally
+    lSS.Free;
+  end;
 end;
 
 end.

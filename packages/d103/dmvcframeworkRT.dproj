@@ -99,7 +99,6 @@
         <DCC_Description>DMVCFramework 3.x</DCC_Description>
         <DllSuffix>103</DllSuffix>
         <Debugger_IncludeSystemVars>true</Debugger_IncludeSystemVars>
-        <Debugger_EnvVars>DMS_DEBUG=true;DMS_HOME=C:\DEV\dmscontainer3\bin\;$(Debugger_EnvVars)</Debugger_EnvVars>
         <DCC_UNSUPPORTED_CONSTRUCT>false</DCC_UNSUPPORTED_CONSTRUCT>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
