@@ -56,7 +56,6 @@ type
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/withcallback')]
-    [MVCProduces('application/json')]
     procedure GetCustomersWithCallback;
 
     [MVCHTTPMethod([httpGET])]

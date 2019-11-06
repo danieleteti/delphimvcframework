@@ -32,7 +32,7 @@ uses
   BusinessObjectsU,
   FireDAC.Comp.Client,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Commons;
+  MVCFramework.Commons, MVCFramework;
 
 type
 
@@ -52,8 +52,11 @@ type
     function GetCustomersDataset: TFDMemTable;
     function GetPeopleDataset: TFDMemTable;
   public
+    [MVCDoc('You know, returns aValue1 - aValue2')]
     function Subtract(aValue1, aValue2: Integer): Integer;
+    [MVCDoc('Returns the revers of the string passed as input')]
     function ReverseString(const aString: string; const aUpperCase: Boolean): string;
+    [MVCDoc('Returns the next monday starting from aDate')]
     function GetNextMonday(const aDate: TDate): TDate;
     function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
       const aDateAndTime: TDateTime): TDateTime;
