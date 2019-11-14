@@ -25,7 +25,6 @@ unit Swag.Doc.Path;
 interface
 
 uses
-  WinApi.Windows,
   System.Classes,
   System.Generics.Collections,
   System.RegularExpressions,
