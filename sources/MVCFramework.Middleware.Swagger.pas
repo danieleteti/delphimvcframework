@@ -52,8 +52,7 @@ type
     procedure InternalRender(AContent: string; AContext: TWebContext);
   public
     constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
-      const ASwaggerDocumentationURL: string = '/swagger.json';
-      const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
+      const ASwaggerDocumentationURL: string = '/swagger.json'; const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
       const AEnableBasicAuthentication: Boolean = False);
     destructor Destroy; override;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
@@ -76,7 +75,7 @@ uses
   MVCFramework.Middleware.JWT,
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.SecurityDefinitionApiKey,
-  Swag.Doc.SecurityDefinitionBasic;
+  Swag.Doc.SecurityDefinitionBasic, Swag.Doc.Definition;
 
 { TMVCSwaggerMiddleware }
 
@@ -176,10 +175,10 @@ begin
           begin
             LSwagPathOp := TSwagPathOperation.Create;
             TMVCSwagger.FillOperationSummary(LSwagPathOp, LMethod);
-
             if TMVCSwagger.MethodRequiresAuthentication(LMethod, LObjType, LAuthTypeName) then
+            begin
               LSwagPathOp.Security.Add(LAuthTypeName);
-
+            end;
             LSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(LSwagPath.Uri, LMethod));
             LSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
             LSwagPath.Operations.Add(LSwagPathOp);

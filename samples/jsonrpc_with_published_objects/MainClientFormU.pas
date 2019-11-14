@@ -76,6 +76,7 @@ type
     CheckBox1: TCheckBox;
     btnDates: TButton;
     btnFloatsTests: TButton;
+    btnWithJSON: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -90,6 +91,7 @@ type
     procedure btnSearchClick(Sender: TObject);
     procedure btnDatesClick(Sender: TObject);
     procedure btnFloatsTestsClick(Sender: TObject);
+    procedure btnWithJSONClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
@@ -305,6 +307,25 @@ begin
   lReq.Params.Add(StrToInt(edtValue2.Text));
   lResp := FExecutor.ExecuteRequest(lReq);
   edtResult.Text := lResp.Result.AsInteger.ToString;
+end;
+
+procedure TMainForm.btnWithJSONClick(Sender: TObject);
+var
+  lPerson: TJsonObject;
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'SaveObjectWithJSON';
+  lReq.RequestID := 1234;
+  lPerson := TJsonObject.Create;
+  lReq.Params.Add(lPerson, pdTJDOJsonObject);
+  lPerson.S['StringProp'] := 'Hello World';
+  lPerson.O['JSONObject'] := TJsonObject.Parse('{"name":"Daniele"}') as TJsonObject;
+  lResp := FExecutor.ExecuteRequest(lReq);
+
+  lPerson := lResp.Result.AsObject as TJsonObject;
+  ShowMessage(lPerson.ToJSON(False));
 end;
 
 procedure TMainForm.edtGetCustomersClick(Sender: TObject);

@@ -9,6 +9,9 @@
         <Projects Include="jsonrpcclientwithobjects.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\custom_exception_handling\custom_exception_handling.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="jsonrpcclientwithobjects:Make">
         <MSBuild Projects="jsonrpcclientwithobjects.dproj" Targets="Make"/>
     </Target>
+    <Target Name="custom_exception_handling">
+        <MSBuild Projects="..\custom_exception_handling\custom_exception_handling.dproj"/>
+    </Target>
+    <Target Name="custom_exception_handling:Clean">
+        <MSBuild Projects="..\custom_exception_handling\custom_exception_handling.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="custom_exception_handling:Make">
+        <MSBuild Projects="..\custom_exception_handling\custom_exception_handling.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="jsonrpcserverwithobjects;jsonrpcclientwithobjects"/>
+        <CallTarget Targets="jsonrpcserverwithobjects;jsonrpcclientwithobjects;custom_exception_handling"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="jsonrpcserverwithobjects:Clean;jsonrpcclientwithobjects:Clean"/>
+        <CallTarget Targets="jsonrpcserverwithobjects:Clean;jsonrpcclientwithobjects:Clean;custom_exception_handling:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="jsonrpcserverwithobjects:Make;jsonrpcclientwithobjects:Make"/>
+        <CallTarget Targets="jsonrpcserverwithobjects:Make;jsonrpcclientwithobjects:Make;custom_exception_handling:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

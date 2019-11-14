@@ -32,7 +32,7 @@ uses
   BusinessObjectsU,
   FireDAC.Comp.Client,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Commons;
+  MVCFramework.Commons, MVCFramework;
 
 type
 
@@ -52,8 +52,11 @@ type
     function GetCustomersDataset: TFDMemTable;
     function GetPeopleDataset: TFDMemTable;
   public
+    [MVCDoc('You know, returns aValue1 - aValue2')]
     function Subtract(aValue1, aValue2: Integer): Integer;
+    [MVCDoc('Returns the revers of the string passed as input')]
     function ReverseString(const aString: string; const aUpperCase: Boolean): string;
+    [MVCDoc('Returns the next monday starting from aDate')]
     function GetNextMonday(const aDate: TDate): TDate;
     function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
       const aDateAndTime: TDateTime): TDateTime;
@@ -64,10 +67,15 @@ type
     function SavePerson(const aPerson: TJsonObject): Integer;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
+    function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
     // invalid parameters modifiers
     procedure InvalidMethod1(var MyVarParam: Integer);
     procedure InvalidMethod2(out MyOutParam: Integer);
 
+  end;
+
+  TUtils = class sealed
+    class function JSONObjectAs<T: constructor, class>(const JSON: TJsonObject): T;
   end;
 
 implementation
@@ -76,7 +84,27 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   System.StrUtils,
-  System.DateUtils;
+  System.DateUtils, MVCFramework.Serializer.JsonDataObjects;
+
+class function TUtils.JSONObjectAs<T>(const JSON: TJsonObject): T;
+var
+  lObj: TObject;
+  lSerializer: TMVCJsonDataObjectsSerializer;
+begin
+  lObj := T.Create;
+  try
+    lSerializer := TMVCJsonDataObjectsSerializer.Create;
+    try
+      lSerializer.JsonObjectToObject(JSON, lObj, TMVCSerializationType.stProperties, []);
+    finally
+      lSerializer.Free;
+    end;
+  except
+    lObj.Free;
+    raise;
+  end;
+  Result := T(lObj);
+end;
 
 { TMyDerivedController }
 
@@ -85,8 +113,7 @@ begin
 
 end;
 
-function TMyObject.FloatsTest(const aDouble: Double;
-  const aExtended: Extended): Extended;
+function TMyObject.FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
 begin
   Result := aDouble + aExtended;
 end;
@@ -222,6 +249,19 @@ begin
   Result := System.StrUtils.ReverseString(aString);
   if aUpperCase then
     Result := Result.ToUpper;
+end;
+
+function TMyObject.SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
+var
+  lObj: TObjectWithJSONObject;
+begin
+  lObj := TUtils.JSONObjectAs<TObjectWithJSONObject>(WithJSON);
+  try
+    LogD(lObj);
+    Result := WithJSON.Clone as TJsonObject;
+  finally
+    lObj.Free;
+  end;
 end;
 
 function TMyObject.SavePerson(const aPerson: TJsonObject): Integer;

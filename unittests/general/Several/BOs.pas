@@ -28,7 +28,7 @@ interface
 
 uses
   system.TimeSpan, system.SysUtils, generics.collections, system.Classes,
-  system.Rtti, MVCFramework.Serializer.Commons;
+  system.Rtti, MVCFramework.Serializer.Commons, JsonDataObjects;
 
 type
   TMyObject = class
@@ -47,6 +47,7 @@ type
     FPropTimeStamp: TTimeStamp;
     FPropTime: TTime;
     FPropCurrency: Currency;
+    fPropJSONObject: TJSONObject;
     procedure SetPropAnsiString(const Value: AnsiString);
     procedure SetPropString(const Value: string);
     procedure SetPropInt64(const Value: Int64);
@@ -62,6 +63,8 @@ type
     procedure SetPropTime(const Value: TTime);
     procedure SetPropCurrency(const Value: Currency);
   public
+    constructor Create;
+    destructor Destroy; override;
     function Equals(Obj: TMyObject): boolean; reintroduce;
     property PropString: string read FPropString write SetPropString;
     property PropAnsiString: AnsiString read FPropAnsiString
@@ -79,6 +82,7 @@ type
     property PropTimeStamp: TTimeStamp read FPropTimeStamp
       write SetPropTimeStamp;
     property PropCurrency: Currency read FPropCurrency write SetPropCurrency;
+    property PropJSONObject: TJSONObject read fPropJSONObject;
   end;
 
   TMyChildObject = class
@@ -345,6 +349,25 @@ begin
   Result.PropTime := EncodeTime(10, 20, 30, 40);
   Result.PropDateTime := Result.PropDate + Result.PropTime;
   Result.PropTimeStamp := DateTimeToTimeStamp(Result.PropDateTime + 1);
+  Result.PropJSONObject.S['stringprop1'] := 'This is a string prop';
+  Result.PropJSONObject.I['intprop1'] := 1234;
+  Result.PropJSONObject.A['arrprop'].Add(1234);
+  Result.PropJSONObject.A['arrprop'].Add('Hello World');
+  Result.PropJSONObject.O['objprop'].S['innerprop1'] := 'value1';
+  Result.PropJSONObject.O['objprop'].S['innerprop2'] := 'value2';
+  Result.PropJSONObject.O['objprop'].S['innerprop3'] := 'value3';
+end;
+
+constructor TMyObject.Create;
+begin
+  inherited;
+  fPropJSONObject := TJsonObject.Create;
+end;
+
+destructor TMyObject.Destroy;
+begin
+  fPropJSONObject.Free;
+  inherited;
 end;
 
 function TMyObject.Equals(Obj: TMyObject): boolean;
@@ -366,6 +389,7 @@ begin
     Obj.PropDateTime) = 0);
   Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and
     (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
+  Result := Result and (Self.fPropJSONObject.ToJSON() = Obj.PropJSONObject.ToJSON());
 end;
 
 procedure TMyObject.SetPropAnsiString(const Value: AnsiString);

@@ -62,9 +62,9 @@ object MainForm: TMainForm
     TabOrder = 2
     object Label1: TLabel
       AlignWithMargins = True
-      Left = 338
+      Left = 417
       Top = 4
-      Width = 379
+      Width = 300
       Height = 73
       Align = alClient
       Caption = 
@@ -74,12 +74,13 @@ object MainForm: TMainForm
         'alidityWindowInSeconds seconds. It is useful to mimic the classi' +
         'c session cookie with the semplicity of the JWT.'
       WordWrap = True
+      ExplicitLeft = 338
       ExplicitWidth = 368
       ExplicitHeight = 65
     end
     object btnGet: TButton
       AlignWithMargins = True
-      Left = 171
+      Left = 250
       Top = 4
       Width = 161
       Height = 73
@@ -88,17 +89,31 @@ object MainForm: TMainForm
       TabOrder = 0
       WordWrap = True
       OnClick = btnGetClick
+      ExplicitLeft = 171
     end
     object btnLOGIN: TButton
       AlignWithMargins = True
       Left = 4
       Top = 4
-      Width = 161
+      Width = 117
       Height = 73
       Align = alLeft
-      Caption = 'Login'
+      Caption = 'Login (Custom headers)'
       TabOrder = 1
+      WordWrap = True
       OnClick = btnLOGINClick
+    end
+    object btnLoginWithHeaderBasic: TButton
+      AlignWithMargins = True
+      Left = 127
+      Top = 4
+      Width = 117
+      Height = 73
+      Align = alLeft
+      Caption = 'Login (with Basic Schema)'
+      TabOrder = 2
+      WordWrap = True
+      OnClick = btnLoginWithHeaderBasicClick
     end
   end
 end

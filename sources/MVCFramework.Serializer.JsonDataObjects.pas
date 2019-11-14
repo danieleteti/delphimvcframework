@@ -45,7 +45,7 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   System.JSON,
-  JsonDataObjects;
+  JsonDataObjects, System.SysUtils;
 
 type
 
@@ -59,6 +59,11 @@ type
     var Handled: Boolean);
 
   TMVCDataSetFields = TList<TMVCDataSetField>;
+
+  TJSONObjectHelper = class helper for TJsonObject
+  public
+    procedure LoadFromString(const Value: String; Encoding: TEncoding = nil; Utf8WithoutBOM: Boolean = True);
+  end;
 
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
@@ -159,8 +164,7 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.Logger,
-  System.SysUtils, MVCFramework.DataSet.Utils;
+  MVCFramework.Logger, MVCFramework.DataSet.Utils;
 
 type
   TJDOLinks = class(TMVCLinks)
@@ -186,7 +190,6 @@ begin
   fStringDictionarySerializer := TMVCStringDictionarySerializer.Create;
   GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), TMVCStringDictionarySerializer.Create);
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
-
 end;
 
 procedure TMVCJsonDataObjectsSerializer.AttributeToJsonDataValue(const AJsonObject: TJDOJsonObject; const AName: string;
@@ -315,6 +318,10 @@ begin
             ChildJsonArray := AJsonObject.A[AName];
             DataSetToJsonArray(TDataSet(ChildObject), ChildJsonArray, TMVCNameCase.ncLowerCase, []);
           end
+          else if ChildObject is TJsonObject then
+          begin
+            AJsonObject.O[AName] := TJsonObject(ChildObject).Clone as TJsonObject;
+          end
           else
           begin
             ChildList := TDuckTypedList.Wrap(ChildObject);
@@ -392,6 +399,8 @@ begin
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsInteger);
               tkInt64:
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsInt64);
+              tkFloat:
+                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsExtended);
             else
               raise EMVCSerializationException.CreateFmt
                 ('Cannot serialize property or field "%s" of TypeKind tkArray or tkDynArray.', [AName]);
@@ -422,7 +431,7 @@ begin
     begin
       if ADataSet.Fields[lField.I].IsNull then
       begin
-        AJsonArray.Add(TJSONObject(nil));
+        AJsonArray.Add(TJsonObject(nil));
       end
       else
       begin
@@ -497,18 +506,16 @@ begin
                       lNestedDataSet.First;
                       while not lNestedDataSet.Eof do
                       begin
-                        DataSetRowToJsonArrayOfValues(
-                          lNestedDataSet,
-                          lChildJsonArray,
-                          AIgnoredFields, lDataSetFieldsDetail);
+                        DataSetRowToJsonArrayOfValues(lNestedDataSet, lChildJsonArray, AIgnoredFields,
+                          lDataSetFieldsDetail);
                         lNestedDataSet.Next;
                       end;
                     end;
                   dtObject:
                     begin
                       lChildJsonArray := AJsonArray.AddArray;
-                      DataSetRowToJsonArrayOfValues(lNestedDataSet, lChildJsonArray,
-                        AIgnoredFields, lDataSetFieldsDetail);
+                      DataSetRowToJsonArrayOfValues(lNestedDataSet, lChildJsonArray, AIgnoredFields,
+                        lDataSetFieldsDetail);
                     end;
                 end;
               finally
@@ -1090,6 +1097,16 @@ var
   AttributeValue: TValue;
   lKeyName: string;
 begin
+  if AObject is TJsonObject then
+  begin
+    if not Assigned(AObject) then
+    begin
+      raise EMVCDeserializationException.Create(AObject.ClassName + ' is not assigned');
+    end;
+    TJsonObject(AObject).Assign(AJsonObject);
+    Exit;
+  end;
+
   ObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
@@ -1730,6 +1747,28 @@ end;
 procedure TJDOLinks.FillJSONArray(const AJsonArray: TJsonArray);
 begin
   MVCStringDictionaryListToJSONArray(LinksData, AJsonArray);
+end;
+
+{ TJSONObjectHelper }
+
+procedure TJSONObjectHelper.LoadFromString(const Value: String; Encoding: TEncoding; Utf8WithoutBOM: Boolean);
+var
+  lSS: TStringStream;
+begin
+  if Assigned(Encoding) then
+  begin
+    lSS := TStringStream.Create(Value, Encoding);
+  end
+  else
+  begin
+    lSS := TStringStream.Create(Value);
+  end;
+  try
+    lSS.Position := 0;
+    LoadFromStream(lSS, Encoding, Utf8WithoutBOM);
+  finally
+    lSS.Free;
+  end;
 end;
 
 end.

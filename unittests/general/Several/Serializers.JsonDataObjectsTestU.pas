@@ -58,6 +58,10 @@ type
 
     { serialize declarations }
     [Test]
+    procedure TestSerializeAllTypes;
+    [Test]
+    procedure TestSerializeAllTypesInList;
+    [Test]
     procedure TestSerializeEntity;
     [Test]
     procedure TestSerializeNil;
@@ -160,7 +164,7 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.Commons, System.TypInfo;
+  MVCFramework.Commons, System.TypInfo, BOs;
 
 const
   LINE_BREAK = #$A;
@@ -658,6 +662,59 @@ begin
     CheckObject(O);
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllTypes;
+var
+  lObj1, lObj2: TMyObject;
+  lSer: string;
+begin
+  lObj1 := GetMyObject;
+  try
+    lSer := FSerializer.SerializeObject(lObj1);
+    lObj2 := TMyObject.Create;
+    try
+      FSerializer.DeserializeObject(lSer, lObj2);
+      Assert.IsTrue(lObj1.Equals(lObj2));
+    finally
+      lObj2.Free;
+    end;
+  finally
+    lObj1.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllTypesInList;
+var
+  lList1, lList2: TObjectList<TMyObject>;
+  lSer: string;
+  I: Integer;
+  lObj: TMyObject;
+begin
+  lList1 := TObjectList<TMyObject>.Create;
+  try
+    for I := 0 to 9 do
+    begin
+      lObj :=GetMyObject;
+      lObj.PropJSONObject.I['value'] := I;
+      lList1.Add(lObj);
+    end;
+
+    lSer := FSerializer.SerializeCollection(lList1);
+
+    lList2 := TObjectList<TMyObject>.Create;
+    try
+      FSerializer.DeserializeCollection(lSer, lList2, TMyObject);
+      for I := 0 to 9 do
+      begin
+        Assert.IsTrue(lList1[I].Equals(lList2[I]));
+      end;
+    finally
+      lList2.Free;
+    end;
+  finally
+    lList1.Free;
   end;
 end;
 

@@ -3319,7 +3319,7 @@ begin
       SetContentType(TMVCMediaType.TEXT_HTML);
       ResponseStream.Clear;
       ResponseStream.Append
-        ('<html><head><style>pre { color: #000000; background-color: #d0d0d0; }</style></head><body>')
+        ('<html><head><style>pre { padding: 15px; color: #000000; background-color: #e0e0e0; }</style></head><body>')
         .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
         .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak, [GetContext.Response.StatusCode])
         .AppendFormat('HTTP Reason Text: "%s"</pre>', [GetContext.Response.ReasonString]).Append('<h3><pre>')

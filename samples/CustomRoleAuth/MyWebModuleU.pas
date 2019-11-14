@@ -81,7 +81,7 @@ begin
     end);
   FMVC.AddController(TPrivateController);
   FMVC.AddMiddleware(
-    TMVCRoleBasedAuthenticationMiddleware.Create(
+    TMVCRoleBasedAuthMiddleware.Create(
     TCustomRoleAuth.Create,
     '/system/users/logged'
     )

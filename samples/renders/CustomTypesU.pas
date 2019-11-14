@@ -58,8 +58,22 @@ type
     property RecordAlias: TNullableRecordAlias read fRecordAlias write fRecordAlias;
   end;
 
+  TArrayTest = class
+  private
+    fStrings: TArray<String>;
+    fIntegers: TArray<Integer>;
+    fDoubles: TArray<Double>;
+  public
+    constructor Create;
+    property Integers: TArray<Integer> read fIntegers write fIntegers;
+    property Strings: TArray<String> read fStrings write fStrings;
+    property Doubles: TArray<Double> read fDoubles write fDoubles;
+  end;
+
 implementation
 
+uses
+  System.SysUtils, System.Math;
 
 { TSysUser }
 
@@ -78,6 +92,30 @@ end;
 procedure TSysUser.SetUserName(const Value: string);
 begin
   FUserName := Value;
+end;
+
+{ TArrayTest }
+
+constructor TArrayTest.Create;
+var
+  I: Integer;
+begin
+  inherited;
+  SetLength(fStrings, 5);
+  for I := 0 to Length(fStrings) - 1 do
+  begin
+    fStrings[I] := 'Value ' + I.ToString;
+  end;
+  SetLength(fIntegers, 5);
+  for I := 0 to Length(fIntegers) - 1 do
+  begin
+    fIntegers[I] := I;
+  end;
+  SetLength(fDoubles, 5);
+  for I := 0 to Length(fDoubles) - 1 do
+  begin
+    fDoubles[I] := Power(I, I) * 1.1;
+  end;
 end;
 
 end.

@@ -177,6 +177,10 @@ begin
   Result := 'UPDATE ' + TableName + ' SET ';
   for keyvalue in Map do
   begin
+    if keyvalue.Value.IsEmpty then
+    begin
+      Continue;
+    end;
     Result := Result + keyvalue.value + ' = :' + keyvalue.value + ',';
   end;
   Result[Length(Result)] := ' ';

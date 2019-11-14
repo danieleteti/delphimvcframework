@@ -56,7 +56,6 @@ type
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/withcallback')]
-    [MVCProduces('application/json')]
     procedure GetCustomersWithCallback;
 
     [MVCHTTPMethod([httpGET])]
@@ -162,6 +161,15 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customserializationtype')]
     procedure GetCustomSerializationType;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/simplearray')]
+    procedure GetSimpleArrays;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/objectwithjson')]
+    procedure GetObjectWithJSONProperty;
+
 
   end;
 
@@ -520,6 +528,17 @@ begin
   Render<TPerson>(GetPeopleList, False);
 end;
 
+procedure TRenderSampleController.GetObjectWithJSONProperty;
+var
+  lObj: TObjectWithJSONObject;
+begin
+  lObj := TObjectWithJSONObject.Create;
+  lObj.StringProp := 'Daniele Teti';
+  lObj.JSONObject.S['stringprop'] := 'String Prop';
+  lObj.JSONObject.O['innerobj'].S['innerstringprop'] := 'Inner String Prop';
+  Render(lObj);
+end;
+
 procedure TRenderSampleController.GetPerson_AsHTML;
 begin
   ResponseStream.Append('<html><body><ul>').Append('<li>FirstName: Daniele</li>').Append('<li>LastName: Teti')
@@ -585,6 +604,11 @@ begin
   p.Skills := 'Delphi, JavaScript';
   List.Add(p);
   Render<TPerson>(List);
+end;
+
+procedure TRenderSampleController.GetSimpleArrays;
+begin
+  Render(TArrayTest.Create);
 end;
 
 procedure TRenderSampleController.GetPeopleAsCSV;

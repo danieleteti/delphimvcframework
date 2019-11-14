@@ -1464,6 +1464,10 @@ begin
   OnBeforeLoad;
   for lItem in fMap do
   begin
+    if lItem.Value.IsEmpty then
+    begin
+      Continue;
+    end;
     lField := aDataSet.FindField(lItem.value);
     if lField = nil then
     begin
@@ -1949,7 +1953,10 @@ var
 begin
   for lPair in Map do
   begin
-    Result := Result + lPair.value + Delimiter;
+    if not lPair.Value.IsEmpty then
+    begin
+      Result := Result + lPair.value + Delimiter;
+    end;
   end;
   Result := Copy(Result, 1, Length(Result) - Length(Delimiter));
   if not PKFieldName.IsEmpty then

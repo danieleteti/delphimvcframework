@@ -11,6 +11,7 @@ uses
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
 
 type
+
   [MVCNameCase(ncLowerCase)]
   TAddress = class
   private
@@ -33,6 +34,9 @@ type
     property Number: string read FNumber write FNumber;
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  TPhones = class(TObjectList<TPhone>)
+  end;
 
   [MVCNameCase(ncLowerCase)]
   TPerson = class
@@ -42,7 +46,7 @@ type
     FCountry: string;
     FCode: Integer;
     FAddress: TAddress;
-    FPhones: TObjectList<TPhone>;
+    FPhones: TPhones;
   public
     constructor Create;
     destructor Destroy; override;
@@ -55,27 +59,29 @@ type
     property Age: Integer read FAge write FAge;
     [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False)]
     property Country: string read FCountry write FCountry;
-//    [MVCSwagJsonSchemaField(stObject, 'address', 'Address')]
     property Address: TAddress read FAddress write FAddress;
-//    [MVCSwagJsonSchemaField(stArray, 'phones', 'Contact phones of the person', False, True)]
-    property Phones: TObjectList<TPhone> read FPhones write FPhones;
+    property Phones: TPhones read FPhones write FPhones;
   end;
 
-  [MVCPath('/person')]
+  [MVCNameCase(ncLowerCase)]
+  TPeople = class(TObjectList<TPerson>)
+  end;
+
+  [MVCPath('/people')]
   [MVCSwagAuthentication(atBasic)]
   TMyController2 = class(TMVCController)
   public
     [MVCPath('')]
     [MVCHTTPMethod([httpGET])]
-    [MVCSwagSummary('Person', 'List all persons')]
+    [MVCSwagSummary('People', 'List all persons', 'getPeople')]
     [MVCSwagParam(plQuery, 'per_page', 'Items per page', ptInteger)]
     [MVCSwagResponses(200, 'Success', TPerson, True)]
     [MVCSwagResponses(500, 'Internal Server Error')]
-    procedure GetAllPerson;
+    procedure GetAllPeople;
 
     [MVCPath('/($Id)')]
     [MVCHTTPMethod([httpGET])]
-    [MVCSwagSummary('Person', 'List Persons by Id', '66e83aa7-d170-44a7-a502-8f25ddd2a18a')]
+    [MVCSwagSummary('People', 'List Persons by Id', 'getPersonById')]
     [MVCSwagParam(plPath, 'Id', 'Person id', ptInteger)]
     [MVCSwagResponses(200, 'Success', TPerson)]
     [MVCSwagResponses(500, 'Internal Server Error')]
@@ -83,7 +89,7 @@ type
 
     [MVCPath('')]
     [MVCHTTPMethod([httpPOST])]
-    [MVCSwagSummary('Person', 'Insert Person')]
+    [MVCSwagSummary('People', 'Insert Person', 'createPerson')]
     [MVCSwagParam(plBody, 'entity', 'Person object', TPerson)]
     [MVCSwagResponses(201, 'Created')]
     [MVCSwagResponses(401, 'Requires Authentication')]
@@ -94,12 +100,11 @@ type
 
 implementation
 
-uses
-  MVCFramework.Controllers.Register;
+uses MVCFramework.Controllers.Register;
 
 { TMyController2 }
 
-procedure TMyController2.GetAllPerson;
+procedure TMyController2.GetAllPeople;
 var
   LPerson: TPerson;
   LPersons: TObjectList<TPerson>;
@@ -142,7 +147,7 @@ constructor TPerson.Create;
 begin
   inherited;
   FAddress := TAddress.Create;
-  FPhones := TObjectList<TPhone>.Create;
+  FPhones := TPhones.Create;
 end;
 
 destructor TPerson.Destroy;

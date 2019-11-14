@@ -63,7 +63,7 @@ type
     constructor Create; virtual;
 
     function GenerateJsonObject: TJSONObject; virtual; abstract;
-    procedure Load(pJson: TJSONObject); virtual; abstract;
+    procedure Load(pJson: TJSONObject); virtual;
 
     /// <summary>
     /// A single security scheme definition, mapping a "name" to the scheme it defines.
@@ -151,6 +151,11 @@ end;
 constructor TSwagSecurityDefinition.Create;
 begin
   inherited Create;
+end;
+
+procedure TSwagSecurityDefinition.Load(pJson: TJSONObject);
+begin
+  //do nothing
 end;
 
 function TSwagSecurityDefinition.ReturnTypeSecurityToString: string;

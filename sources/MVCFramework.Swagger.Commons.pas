@@ -33,19 +33,20 @@ uses
   Json.Schema,
   System.Rtti,
   Swag.Common.Types,
+  System.SysUtils,
   MVCFramework.Commons,
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.Path.Operation,
   Swag.Doc.Path,
-  System.JSON,
+  System.Json,
   Json.Schema.Field,
-  Json.Schema.Field.Objects;
+  Json.Schema.Field.Objects, Swag.Doc.Definition;
 
 type
   TMVCSwagParamLocation = (plNotDefined, plQuery, plHeader, plPath, plFormData, plBody);
   TMVCSwagParamType = (ptNotDefined, ptString, ptNumber, ptInteger, ptBoolean, ptArray, ptFile);
-  TMVCSwagSchemaType = (stUnknown, stInteger, stInt64, stNumber, stDateTime, stDate, stTime,
-    stEnumeration, stBoolean, stObject, stArray, stString, stChar, stGuid);
+  TMVCSwagSchemaType = (stUnknown, stInteger, stInt64, stNumber, stDateTime, stDate, stTime, stEnumeration, stBoolean,
+    stObject, stArray, stString, stChar, stGuid);
   TMVCSwagAuthenticationType = (atBasic, atJsonWebToken);
 
   /// <summary>
@@ -69,20 +70,21 @@ type
   /// </summary>
   MVCSwagSummaryAttribute = class(TCustomAttribute)
   private
-    FTags: string;
-    FDeprecated: Boolean;
-    FDescription: string;
-    FOperationID: string;
+    fTags: string;
+    fDeprecated: Boolean;
+    fDescription: string;
+    fOperationID: string;
   public
-    constructor Create(const ATags, ADescription: string; const APathId: string = ''; ADeprecated: Boolean = False);
+    constructor Create(const ATags, ADescription: string; const AOperationId: string = '';
+      ADeprecated: Boolean = False);
     function GetTags: TArray<string>;
-    property Tags: string read FTags;
-    property Description: string read FDescription;
-    property OperationID: string read FOperationID;
-    property Deprecated: Boolean read FDeprecated;
+    property Tags: string read fTags;
+    property Description: string read fDescription;
+    property OperationID: string read fOperationID;
+    property Deprecated: Boolean read fDeprecated;
   end;
 
-/// <summary>
+  /// <summary>
   /// Specifies your controller authentication type
   /// </summary>
   MVCSwagAuthenticationAttribute = class(TCustomAttribute)
@@ -98,30 +100,23 @@ type
   /// </summary>
   MVCSwagResponsesAttribute = class(TCustomAttribute)
   private
-    FStatusCode: Integer;
-    FDescription: string;
-    FJsonSchema: string;
-    FJsonSchemaClass: TClass;
-    FIsArray: Boolean;
+    fStatusCode: Integer;
+    fDescription: string;
+    fJsonSchema: string;
+    fJsonSchemaClass: TClass;
+    fIsArray: Boolean;
   public
-    constructor Create(
-      const AStatusCode: Integer;
-      const ADescription: string;
-      const AJsonSchema: string = ''
-      ); overload;
+    constructor Create(const AStatusCode: Integer; const ADescription: string; const AJsonSchema: string = '');
+      overload;
 
-    constructor Create(
-      const AStatusCode: Integer;
-      const ADescription: string;
-      const AJsonSchemaClass: TClass;
-      const AIsArray: Boolean = False
-      ); overload;
+    constructor Create(const AStatusCode: Integer; const ADescription: string; const AJsonSchemaClass: TClass;
+      const AIsArray: Boolean = False); overload;
 
-    property StatusCode: Integer read FStatusCode;
-    property Description: string read FDescription;
-    property JsonSchema: string read FJsonSchema;
-    property JsonSchemaClass: TClass read FJsonSchemaClass;
-    property IsArray: Boolean read FIsArray;
+    property StatusCode: Integer read fStatusCode;
+    property Description: string read fDescription;
+    property JsonSchema: string read fJsonSchema;
+    property JsonSchemaClass: TClass read fJsonSchemaClass;
+    property IsArray: Boolean read fIsArray;
   end;
 
   /// <summary>
@@ -129,68 +124,51 @@ type
   /// </summary>
   MVCSwagParamAttribute = class(TCustomAttribute)
   private
-    FParamLocation: TMVCSwagParamLocation;
-    FParamName: string;
-    FParamDescription: string;
-    FParamType: TMVCSwagParamType;
-    FRequired: Boolean;
-    FJsonSchema: string;
-    FJsonSchemaClass: TClass;
+    fParamLocation: TMVCSwagParamLocation;
+    fParamName: string;
+    fParamDescription: string;
+    fParamType: TMVCSwagParamType;
+    fRequired: Boolean;
+    fJsonSchema: string;
+    fJsonSchemaClass: TClass;
   public
-    constructor Create(
-      const AParamLocation: TMVCSwagParamLocation;
-      const AParamName: string;
-      const AParamDescription: string;
-      const AParamType: TMVCSwagParamType;
-      const ARequired: Boolean = True;
+    constructor Create(const AParamLocation: TMVCSwagParamLocation; const AParamName: string;
+      const AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean = True;
       const AJsonSchema: string = ''); overload;
-    constructor Create(
-      const AParamLocation: TMVCSwagParamLocation;
-      const AParamName: string;
-      const AParamDescription: string;
-      const AJsonSchemaClass: TClass;
-      const AParamType: TMVCSwagParamType = ptNotDefined;
-      const ARequired: Boolean = True); overload;
+    constructor Create(const AParamLocation: TMVCSwagParamLocation; const AParamName: string;
+      const AParamDescription: string; const AJsonSchemaClass: TClass;
+      const AParamType: TMVCSwagParamType = ptNotDefined; const ARequired: Boolean = True); overload;
 
-    property ParamLocation: TMVCSwagParamLocation read FParamLocation;
-    property ParamName: string read FParamName;
-    property ParamDescription: string read FParamDescription;
-    property ParamType: TMVCSwagParamType read FParamType;
-    property Required: Boolean read FRequired;
-    property JsonSchema: string read FJsonSchema;
-    property JsonSchemaClass: TClass read FJsonSchemaClass;
+    property ParamLocation: TMVCSwagParamLocation read fParamLocation;
+    property ParamName: string read fParamName;
+    property ParamDescription: string read fParamDescription;
+    property ParamType: TMVCSwagParamType read fParamType;
+    property Required: Boolean read fRequired;
+    property JsonSchema: string read fJsonSchema;
+    property JsonSchemaClass: TClass read fJsonSchemaClass;
   end;
 
   /// <summary>
   /// Specifies the field definition in the json schema.
   /// Use this attribute on a class property that will be mapped to a json schema
   /// </summary>
-  MVCSwagJsonSchemaFieldAttribute = class(TCustomAttribute)
+  MVCSwagJSONSchemaFieldAttribute = class(TCustomAttribute)
   private
     FSchemaFieldType: TMVCSwagSchemaType;
     FFieldName: string;
-    FDescription: string;
-    FRequired: Boolean;
+    fDescription: string;
+    fRequired: Boolean;
     FNullable: Boolean;
   public
-    constructor Create(
-      const ASchemaFieldType: TMVCSwagSchemaType;
-      const AFieldName: string;
-      const ADescription: string;
-      const ARequired: Boolean = True;
-      const ANullable: Boolean = False
-      ); overload;
-    constructor Create(
-      const AFieldName: string;
-      const ADescription: string;
-      const ARequired: Boolean = True;
-      const ANullable: Boolean = False
-      ); overload;
+    constructor Create(const ASchemaFieldType: TMVCSwagSchemaType; const AFieldName: string; const ADescription: string;
+      const ARequired: Boolean = True; const ANullable: Boolean = False); overload;
+    constructor Create(const AFieldName: string; const ADescription: string; const ARequired: Boolean = True;
+      const ANullable: Boolean = False); overload;
 
     property SchemaFieldType: TMVCSwagSchemaType read FSchemaFieldType;
     property FieldName: string read FFieldName;
-    property Description: string read FDescription;
-    property Required: Boolean read FRequired;
+    property Description: string read fDescription;
+    property Required: Boolean read fRequired;
     property Nullable: Boolean read FNullable;
   end;
 
@@ -201,22 +179,22 @@ type
   private
     class var FRttiContext: TRttiContext;
     class function GetMVCSwagParamsFromMethod(const AMethod: TRttiMethod): TArray<MVCSwagParamAttribute>;
-    class function MVCParamLocationToSwagRequestParamInLocation(const AMVCSwagParamLocation: TMVCSwagParamLocation):
-      TSwagRequestParameterInLocation;
+    class function MVCParamLocationToSwagRequestParamInLocation(const AMVCSwagParamLocation: TMVCSwagParamLocation)
+      : TSwagRequestParameterInLocation;
     class function MVCParamTypeToSwagTypeParameter(const AMVSwagParamType: TMVCSwagParamType): TSwagTypeParameter;
     class procedure ExtractJsonSchemaFromClass(const AJsonFieldRoot: TJsonFieldObject; const AClass: TClass); overload;
     class function ExtractJsonSchemaFromClass(const AClass: TClass; const AIsArray: Boolean = False)
       : TJSONObject; overload;
     class function GetJsonFieldClass(const ASchemaFieldType: TMVCSwagSchemaType): TJsonFieldClass;
     class function TypeKindToMVCSwagSchemaType(APropType: TRttiType): TMVCSwagSchemaType; static;
-    class function RttiTypeIsObjectList(const ARttiType: TRttiType): Boolean; static;
+    class function TypeIsEnumerable(const ARttiType: TRttiType): Boolean; static;
   public
     class constructor Create;
     class destructor Destroy;
     class function MVCHttpMethodToSwagPathOperation(const AMVCHTTPMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
     class function MVCPathToSwagPath(const AResourcePath: string): string;
-    class function GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod):
-      TArray<TSwagRequestParameter>;
+    class function GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod)
+      : TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
     class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod);
     class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType;
@@ -227,16 +205,9 @@ type
 const
   SECURITY_BEARER_NAME = 'bearer';
   SECURITY_BASIC_NAME = 'basic';
-  JWT_JSON_SCHEMA =
-    '{' + sLineBreak +
-    '	 "type": "object",' + sLineBreak +
-    '	 "properties": {' + sLineBreak +
-    '		 "token": {' + sLineBreak +
-    '			 "type": "string",' + sLineBreak +
-    '			 "description": "JWT Token"' + sLineBreak +
-    '		 }' + sLineBreak +
-    '	 }' + sLineBreak +
-    '}';
+  JWT_JSON_SCHEMA = '{' + sLineBreak + '	 "type": "object",' + sLineBreak + '	 "properties": {' + sLineBreak +
+    '		 "token": {' + sLineBreak + '			 "type": "string",' + sLineBreak + '			 "description": "JWT Token"' +
+    sLineBreak + '		 }' + sLineBreak + '	 }' + sLineBreak + '}';
   JWT_DEFAULT_DESCRIPTION = 'For accessing the API a valid JWT token must be passed in all the queries ' +
     'in the ''Authorization'' header.' + sLineBreak + sLineBreak +
     'A valid JWT token is generated by the API and retourned as answer of a call ' + 'to the route defined ' +
@@ -249,11 +220,9 @@ implementation
 uses
   System.Classes,
   System.RegularExpressions,
-  System.SysUtils,
   MVCFramework,
   MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
   Swag.Doc.Path.Operation.Response,
   Json.Schema.Field.Numbers,
   Json.Schema.Field.Strings,
@@ -277,8 +246,7 @@ begin
     tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
       Result := stpString;
     tkFloat:
-      if (ARttiType.Handle = TypeInfo(TDateTime)) or
-        (ARttiType.Handle = TypeInfo(TDate)) or
+      if (ARttiType.Handle = TypeInfo(TDateTime)) or (ARttiType.Handle = TypeInfo(TDate)) or
         (ARttiType.Handle = TypeInfo(TTime)) then
         Result := stpString
       else
@@ -298,8 +266,7 @@ begin
   FRttiContext.Free;
 end;
 
-
-class function TMVCSwagger.RttiTypeIsObjectList(const ARttiType: TRttiType): Boolean;
+class function TMVCSwagger.TypeIsEnumerable(const ARttiType: TRttiType): Boolean;
 begin
   Result := ARttiType.GetMethod('GetEnumerator') <> nil;
 end;
@@ -318,154 +285,169 @@ type
 
 class procedure TMVCSwagger.ExtractJsonSchemaFromClass(const AJsonFieldRoot: TJsonFieldObject; const AClass: TClass);
 var
-  LFieldSchemaDef: TFieldSchemaDefinition;
-  LObjType: TRttiType;
-  LProp: TRttiProperty;
-  LSkipProp: Boolean;
-  LAttr: TCustomAttribute;
-  LJSFieldAttr: MVCSwagJsonSchemaFieldAttribute;
-  LJsonFieldClass: TJsonFieldClass;
-  LJsonField: TJsonField;
-  LJsonFieldObject: TJsonFieldObject;
-  LAbstractSer: THackMVCAbstractSerializer;
-  LClass: TClass;
+  lFieldSchemaDef: TFieldSchemaDefinition;
+  lObjType: TRttiType;
+  lProp: TRttiProperty;
+  lSkipProp: Boolean;
+  lAttr: TCustomAttribute;
+  lJSFieldAttr: MVCSwagJSONSchemaFieldAttribute;
+  lJsonFieldClass: TJsonFieldClass;
+  lJsonField: TJsonField;
+  lJsonFieldObject: TJsonFieldObject;
+  lAbstractSer: THackMVCAbstractSerializer;
+  lClass: TClass;
 begin
-  LObjType := FRttiContext.GetType(AClass);
-  for LProp in LObjType.GetProperties do
+  lObjType := FRttiContext.GetType(AClass);
+  for lProp in lObjType.GetProperties do
   begin
-    LSkipProp := False;
-    LFieldSchemaDef := TFieldSchemaDefinition.Create;
+    lSkipProp := False;
+    lFieldSchemaDef := TFieldSchemaDefinition.Create;
 
-    for LAttr in LProp.GetAttributes do
+    for lAttr in lProp.GetAttributes do
     begin
-      if LAttr is MVCDoNotSerializeAttribute then
+      if lAttr is MVCDoNotSerializeAttribute then
       begin
-        LSkipProp := True;
+        lSkipProp := True;
         Break;
       end;
 
-      if LAttr is MVCSwagJsonSchemaFieldAttribute then
+      if lAttr is MVCSwagJSONSchemaFieldAttribute then
       begin
-        LJSFieldAttr := MVCSwagJsonSchemaFieldAttribute(LAttr);
-        LFieldSchemaDef.SchemaFieldType := LJSFieldAttr.SchemaFieldType;
-        LFieldSchemaDef.FieldName := LJSFieldAttr.FieldName;
-        LFieldSchemaDef.Description := LJSFieldAttr.Description;
-        LFieldSchemaDef.Required := LJSFieldAttr.Required;
-        LFieldSchemaDef.Nullable := LJSFieldAttr.Nullable;
+        lJSFieldAttr := MVCSwagJSONSchemaFieldAttribute(lAttr);
+        lFieldSchemaDef.SchemaFieldType := lJSFieldAttr.SchemaFieldType;
+        lFieldSchemaDef.FieldName := lJSFieldAttr.FieldName;
+        lFieldSchemaDef.Description := lJSFieldAttr.Description;
+        lFieldSchemaDef.Required := lJSFieldAttr.Required;
+        lFieldSchemaDef.Nullable := lJSFieldAttr.Nullable;
         Break;
       end;
     end;
 
-    if LSkipProp then
+    if lSkipProp then
       Continue;
 
-    if LFieldSchemaDef.SchemaFieldType = stUnknown then
+    if lFieldSchemaDef.SchemaFieldType = stUnknown then
     begin
-      LFieldSchemaDef.SchemaFieldType := TypeKindToMVCSwagSchemaType(LProp.PropertyType);
-      LFieldSchemaDef.FieldName := TMVCSerializerHelper.GetKeyName(LProp, LObjType);
+      lFieldSchemaDef.SchemaFieldType := TypeKindToMVCSwagSchemaType(lProp.PropertyType);
+      lFieldSchemaDef.FieldName := TMVCSerializerHelper.GetKeyName(lProp, lObjType);
     end;
 
-    LJsonFieldClass := GetJsonFieldClass(LFieldSchemaDef.SchemaFieldType);
-    if not Assigned(LJsonFieldClass) then
+    lJsonFieldClass := GetJsonFieldClass(lFieldSchemaDef.SchemaFieldType);
+    if not Assigned(lJsonFieldClass) then
       Continue;
 
-    LJsonField := LJsonFieldClass.Create;
+    lJsonField := lJsonFieldClass.Create;
 
-    if (LJsonField is TJsonFieldObject) and (not RttiTypeIsObjectList(LProp.PropertyType)) then
+    if (lJsonField is TJsonFieldObject) and (not TypeIsEnumerable(lProp.PropertyType)) then
     begin
-      ExtractJsonSchemaFromClass((LJsonField as TJsonFieldObject), LProp.PropertyType.AsInstance.MetaClassType);
+      ExtractJsonSchemaFromClass((lJsonField as TJsonFieldObject), lProp.PropertyType.AsInstance.MetaClassType);
     end;
 
-    if (LJsonField is TJsonFieldArray) and RttiTypeIsObjectList(LProp.PropertyType) then
+    if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lProp.PropertyType) then
     begin
-      LJsonFieldObject := TJsonFieldObject.Create;
+      lJsonFieldObject := TJsonFieldObject.Create;
 
-      LAbstractSer := THackMVCAbstractSerializer.Create;
+      lAbstractSer := THackMVCAbstractSerializer.Create;
       try
-        LClass := LAbstractSer.GetObjectTypeOfGenericList(LProp.PropertyType.Handle);
-        ExtractJsonSchemaFromClass(LJsonFieldObject, LClass);
-        (LJsonField as TJsonFieldArray).ItemFieldType := LJsonFieldObject;
+        lClass := lAbstractSer.GetObjectTypeOfGenericList(lProp.PropertyType.Handle);
+        ExtractJsonSchemaFromClass(lJsonFieldObject, lClass);
+        (lJsonField as TJsonFieldArray).ItemFieldType := lJsonFieldObject;
       finally
-        LAbstractSer.Free;
+        lAbstractSer.Free;
       end;
     end;
 
-    LJsonField.Name := LFieldSchemaDef.FieldName;
-    LJsonField.Required := LFieldSchemaDef.Required;
-    LJsonField.Nullable := LFieldSchemaDef.Nullable;
-    if not LFieldSchemaDef.Description.IsEmpty then
-      TJsonFieldInteger(LJsonField).Description := LFieldSchemaDef.Description;
+    lJsonField.Name := lFieldSchemaDef.FieldName;
+    lJsonField.Required := lFieldSchemaDef.Required;
+    lJsonField.Nullable := lFieldSchemaDef.Nullable;
+    if not lFieldSchemaDef.Description.IsEmpty then
+      TJsonFieldInteger(lJsonField).Description := lFieldSchemaDef.Description;
 
-    AJsonFieldRoot.AddField(LJsonField);
+    AJsonFieldRoot.AddField(lJsonField);
   end;
 end;
 
 class function TMVCSwagger.ExtractJsonSchemaFromClass(const AClass: TClass; const AIsArray: Boolean): TJSONObject;
 var
-  LJsonSchema: TJsonField;
-  LJsonRoot: TJsonFieldObject;
+  lJsonSchema: TJsonField;
+  lJsonRoot: TJsonFieldObject;
 begin
+  var
+  lClassName := AClass.ClassName;
   if AIsArray then
-    LJsonSchema := TJsonFieldArray.Create
+  begin
+    lJsonSchema := TJsonFieldArray.Create
+  end
   else
-    LJsonSchema := TJsonFieldObject.Create;
+  begin
+    lJsonSchema := TJsonFieldObject.Create;
+  end;
   try
     if AIsArray then
     begin
-      LJsonRoot := TJsonFieldObject.Create;
-      TJsonFieldArray(LJsonSchema).ItemFieldType := LJsonRoot;
-      TJsonFieldArray(LJsonSchema).Name := 'items';
+      lJsonRoot := TJsonFieldObject.Create;
+      TJsonFieldArray(lJsonSchema).ItemFieldType := lJsonRoot;
+      TJsonFieldArray(lJsonSchema).Name := 'items';
     end
     else
     begin
-      LJsonRoot := LJsonSchema as TJsonFieldObject;
+      lJsonRoot := lJsonSchema as TJsonFieldObject;
     end;
 
-    ExtractJsonSchemaFromClass(LJsonRoot, AClass);
-    Result := LJsonSchema.ToJsonSchema;
+    ExtractJsonSchemaFromClass(lJsonRoot, AClass);
+    Result := lJsonSchema.ToJsonSchema;
   finally
-    LJsonSchema.Free;
+    lJsonSchema.Free;
   end;
 end;
 
 class procedure TMVCSwagger.FillOperationSummary(const ASwagPathOperation: TSwagPathOperation;
   const AMethod: TRttiMethod);
 var
-  LAttr: TCustomAttribute;
-  LSwagResponse: TSwagResponse;
-  LSwagResponsesAttr: MVCSwagResponsesAttribute;
+  lAttr: TCustomAttribute;
+  lSwagResponse: TSwagResponse;
+  lSwagResponsesAttr: MVCSwagResponsesAttribute;
 begin
-  for LAttr in AMethod.GetAttributes do
+  for lAttr in AMethod.GetAttributes do
   begin
-    if LAttr is MVCSwagSummaryAttribute then
+    if lAttr is MVCSwagSummaryAttribute then
     begin
-      ASwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(LAttr).GetTags);
-      ASwagPathOperation.Description := MVCSwagSummaryAttribute(LAttr).Description;
-      ASwagPathOperation.OperationId := MVCSwagSummaryAttribute(LAttr).OperationID;
-      ASwagPathOperation.Deprecated := MVCSwagSummaryAttribute(LAttr).Deprecated;
+      ASwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(lAttr).GetTags);
+      ASwagPathOperation.Description := MVCSwagSummaryAttribute(lAttr).Description;
+      ASwagPathOperation.OperationID := MVCSwagSummaryAttribute(lAttr).OperationID;
+      // dt [2019-10-31] Ensure OperationID is always defined
+      if ASwagPathOperation.OperationID.IsEmpty then
+      begin
+        ASwagPathOperation.OperationID := AMethod.Name;
+      end;
+      // dt [2019-10-31]
+      ASwagPathOperation.Deprecated := MVCSwagSummaryAttribute(lAttr).Deprecated;
     end;
-    if LAttr is MVCConsumesAttribute then
+    if lAttr is MVCConsumesAttribute then
     begin
-      ASwagPathOperation.Consumes.Add(MVCConsumesAttribute(LAttr).Value)
+      ASwagPathOperation.Consumes.Add(MVCConsumesAttribute(lAttr).Value)
     end;
-    if LAttr is MVCProducesAttribute then
+    if lAttr is MVCProducesAttribute then
     begin
-      ASwagPathOperation.Produces.Add(MVCProducesAttribute(LAttr).Value)
+      ASwagPathOperation.Produces.Add(MVCProducesAttribute(lAttr).Value)
     end;
-    if LAttr is MVCSwagResponsesAttribute then
+    if lAttr is MVCSwagResponsesAttribute then
     begin
-      LSwagResponsesAttr := MVCSwagResponsesAttribute(LAttr);
+      lSwagResponsesAttr := MVCSwagResponsesAttribute(lAttr);
 
-      LSwagResponse := TSwagResponse.Create;
-      LSwagResponse.StatusCode := LSwagResponsesAttr.StatusCode.ToString;
-      LSwagResponse.Description := LSwagResponsesAttr.Description;
-      if not LSwagResponsesAttr.JsonSchema.IsEmpty then
-        LSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(LSwagResponsesAttr.JsonSchema) as TJSONObject
-      else if Assigned(LSwagResponsesAttr.JsonSchemaClass) then
-        LSwagResponse.Schema.JsonSchema := ExtractJsonSchemaFromClass(LSwagResponsesAttr.JsonSchemaClass,
-          LSwagResponsesAttr.IsArray);
-
-      ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+      lSwagResponse := TSwagResponse.Create;
+      lSwagResponse.StatusCode := lSwagResponsesAttr.StatusCode.ToString;
+      lSwagResponse.Description := lSwagResponsesAttr.Description;
+      if not lSwagResponsesAttr.JsonSchema.IsEmpty then
+      begin
+        lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(lSwagResponsesAttr.JsonSchema) as TJSONObject
+      end
+      else if Assigned(lSwagResponsesAttr.JsonSchemaClass) then
+      begin
+        lSwagResponse.Schema.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
+          lSwagResponsesAttr.IsArray);
+      end;
+      ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
     end;
   end;
 
@@ -477,15 +459,15 @@ begin
 
   if ASwagPathOperation.Responses.Count <= 0 then
   begin
-    LSwagResponse := TSwagResponse.Create;
-    LSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
-    LSwagResponse.Description := 'Ok';
-    ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+    lSwagResponse := TSwagResponse.Create;
+    lSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
+    lSwagResponse.Description := 'Ok';
+    ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
-    LSwagResponse := TSwagResponse.Create;
-    LSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
-    LSwagResponse.Description := 'Internal server error';
-    ASwagPathOperation.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+    lSwagResponse := TSwagResponse.Create;
+    lSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
+    lSwagResponse.Description := 'Internal server error';
+    ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
   end;
 
 end;
@@ -532,11 +514,10 @@ begin
   case APropType.TypeKind of
     tkClass:
       begin
-        if (APropType.Handle = TypeInfo(TStream)) or
-          (APropType.Handle = TypeInfo(TMemoryStream)) or
+        if (APropType.Handle = TypeInfo(TStream)) or (APropType.Handle = TypeInfo(TMemoryStream)) or
           (APropType.Handle = TypeInfo(TStringStream)) then
           Result := stString
-        else if RttiTypeIsObjectList(APropType) then
+        else if TypeIsEnumerable(APropType) then
           Result := stArray
         else
           Result := stObject;
@@ -577,71 +558,67 @@ end;
 
 class function TMVCSwagger.GetJWTAuthenticationPath(const AJWTUrlSegment: string): TSwagPath;
 var
-  LSwagPathOp: TSwagPathOperation;
-  LSwagResponse: TSwagResponse;
+  lSwagPathOp: TSwagPathOperation;
+  lSwagResponse: TSwagResponse;
 begin
-  LSwagPathOp := TSwagPathOperation.Create;
-  LSwagPathOp.Tags.Add('JWT Authentication');
-  LSwagPathOp.Operation := ohvPost;
-  LSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
-  LSwagPathOp.Description := 'Create JSON Web Token';
-  LSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
+  lSwagPathOp := TSwagPathOperation.Create;
+  lSwagPathOp.Tags.Add('JWT Authentication');
+  lSwagPathOp.Operation := ohvPost;
+  lSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
+  lSwagPathOp.Description := 'Create JSON Web Token';
+  lSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
 
-  LSwagResponse := TSwagResponse.Create;
-  LSwagResponse.StatusCode := HTTP_STATUS.Unauthorized.ToString;
-  LSwagResponse.Description := 'Invalid authorization type';
-  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+  lSwagResponse := TSwagResponse.Create;
+  lSwagResponse.StatusCode := HTTP_STATUS.Unauthorized.ToString;
+  lSwagResponse.Description := 'Invalid authorization type';
+  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
-  LSwagResponse := TSwagResponse.Create;
-  LSwagResponse.StatusCode := HTTP_STATUS.Forbidden.ToString;
-  LSwagResponse.Description := 'Forbidden';
-  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+  lSwagResponse := TSwagResponse.Create;
+  lSwagResponse.StatusCode := HTTP_STATUS.Forbidden.ToString;
+  lSwagResponse.Description := 'Forbidden';
+  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
-  LSwagResponse := TSwagResponse.Create;
-  LSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
-  LSwagResponse.Description := 'Internal server error';
-  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+  lSwagResponse := TSwagResponse.Create;
+  lSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
+  lSwagResponse.Description := 'Internal server error';
+  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
-  LSwagResponse := TSwagResponse.Create;
-  LSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
-  LSwagResponse.Description := 'OK';
-  LSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(JWT_JSON_SCHEMA) as TJSONObject;
-  LSwagPathOp.Responses.Add(LSwagResponse.StatusCode, LSwagResponse);
+  lSwagResponse := TSwagResponse.Create;
+  lSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
+  lSwagResponse.Description := 'OK';
+  lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(JWT_JSON_SCHEMA) as TJSONObject;
+  lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
   Result := TSwagPath.Create;
-  Result.Uri := AJwtUrlSegment;
-  Result.Operations.Add(LSwagPathOp);
+  Result.Uri := AJWTUrlSegment;
+  Result.Operations.Add(lSwagPathOp);
 end;
 
 class function TMVCSwagger.GetMVCSwagParamsFromMethod(const AMethod: TRttiMethod): TArray<MVCSwagParamAttribute>;
 var
-  LAttr: TCustomAttribute;
+  lAttr: TCustomAttribute;
 begin
   SetLength(Result, 0);
-  for LAttr in AMethod.GetAttributes do
+  for lAttr in AMethod.GetAttributes do
   begin
-    if LAttr is MVCSwagParamAttribute then
+    if lAttr is MVCSwagParamAttribute then
     begin
-      Insert([MVCSwagParamAttribute(LAttr)], Result, High(Result));
+      Insert([MVCSwagParamAttribute(lAttr)], Result, High(Result));
     end;
   end;
 end;
 
-class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod):
-  TArray<TSwagRequestParameter>;
+class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod)
+  : TArray<TSwagRequestParameter>;
 
-  function TryGetMVCPathParamByName(const AParams: TArray<MVCSwagParamAttribute>;
-    const
-    AParamName:
-    string;
-    out AMVCParam: MVCSwagParamAttribute;
-    out AIndex: Integer): Boolean;
+  function TryGetMVCPathParamByName(const AParams: TArray<MVCSwagParamAttribute>; const AParamName: string;
+    out AMVCParam: MVCSwagParamAttribute; out AIndex: Integer): Boolean;
   var
     I: Integer;
   begin
     Result := False;
     AMVCParam := nil;
-    AIndex := - 1;
+    AIndex := -1;
     for I := Low(AParams) to High(AParams) do
       if SameText(AParams[I].ParamName, AParamName) and (AParams[I].ParamLocation = plPath) then
       begin
@@ -652,73 +629,81 @@ class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string; cons
   end;
 
 var
-  LMatches: TMatchCollection;
-  LMatch: TMatch;
-  LParamName: string;
-  LMethodParam: TRttiParameter;
-  LSwagParam: TSwagRequestParameter;
-  LMVCSwagParams: TArray<MVCSwagParamAttribute>;
-  LMVCParam: MVCSwagParamAttribute;
-  LIndex: Integer;
+  lMatches: TMatchCollection;
+  lMatch: TMatch;
+  lParamName: string;
+  lMethodParam: TRttiParameter;
+  lSwagParam: TSwagRequestParameter;
+  lMVCSwagParams: TArray<MVCSwagParamAttribute>;
+  lMVCParam: MVCSwagParamAttribute;
+  lIndex: Integer;
   I: Integer;
 begin
-  LMVCSwagParams := GetMVCSwagParamsFromMethod(AMethod);
+  lMVCSwagParams := GetMVCSwagParamsFromMethod(AMethod);
 
   SetLength(Result, 0);
 
   // Path parameters
-  LMatches := TRegEx.Matches(AResourcePath, '({)([\w_]+)(})', [roIgnoreCase, roMultiLine]);
-  for LMatch in LMatches do
+  lMatches := TRegEx.Matches(AResourcePath, '({)([\w_]+)(})', [roIgnoreCase, roMultiLine]);
+  for lMatch in lMatches do
   begin
-    LParamName := LMatch.Groups[2].Value;
-    for LMethodParam in AMethod.GetParameters do
+    lParamName := lMatch.Groups[2].Value;
+    for lMethodParam in AMethod.GetParameters do
     begin
-      if SameText(LMethodParam.Name, LParamName) then
+      if SameText(lMethodParam.Name, lParamName) then
       begin
-        LSwagParam := TSwagRequestParameter.Create;
+        lSwagParam := TSwagRequestParameter.Create;
 
-        if TryGetMVCPathParamByName(LMVCSwagParams, LParamName, LMVCParam, LIndex) then
+        if TryGetMVCPathParamByName(lMVCSwagParams, lParamName, lMVCParam, lIndex) then
         begin
-          LSwagParam.Name := LParamName;
-          LSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(LMVCParam.ParamLocation);
-          LSwagParam.Required := LMVCParam.Required;
-          LSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(LMVCParam.ParamType);
-          LSwagParam.Description := LMVCParam.ParamDescription;
-          if not LMVCParam.JsonSchema.IsEmpty then
-            LSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(LMVCParam.JsonSchema) as TJSONObject
-          else if Assigned(LMVCParam.JsonSchemaClass) then
-            LSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(LMVCParam.JsonSchemaClass,
-              LMVCParam.ParamType = ptArray);
-          Delete(LMVCSwagParams, LIndex, 1);
+          lSwagParam.Name := lParamName;
+          lSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
+          lSwagParam.Required := lMVCParam.Required;
+          lSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
+          lSwagParam.Description := lMVCParam.ParamDescription;
+          if not lMVCParam.JsonSchema.IsEmpty then
+          begin
+            lSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
+          end
+          else if Assigned(lMVCParam.JsonSchemaClass) then
+          begin
+            lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCParam.JsonSchemaClass,
+              lMVCParam.ParamType = ptArray);
+          end;
+          Delete(lMVCSwagParams, lIndex, 1);
         end
         else
         begin
-          LSwagParam.Name := LParamName;
-          LSwagParam.InLocation := rpiPath;
-          LSwagParam.Required := True;
-          LSwagParam.TypeParameter := RttiTypeToSwagType(LMethodParam.ParamType);
+          lSwagParam.Name := lParamName;
+          lSwagParam.InLocation := rpiPath;
+          lSwagParam.Required := True;
+          lSwagParam.TypeParameter := RttiTypeToSwagType(lMethodParam.ParamType);
         end;
-        Insert([LSwagParam], Result, High(Result));
+        Insert([lSwagParam], Result, High(Result));
       end;
     end;
   end;
 
   // Other parameters
-  for I := Low(LMVCSwagParams) to High(LMVCSwagParams) do
+  for I := Low(lMVCSwagParams) to High(lMVCSwagParams) do
   begin
-    LSwagParam := TSwagRequestParameter.Create;
-    LSwagParam.Name := LMVCSwagParams[I].ParamName;
-    LSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(LMVCSwagParams[I].ParamLocation);
-    LSwagParam.Required := LMVCSwagParams[I].Required;
-    LSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(LMVCSwagParams[I].ParamType);
-    LSwagParam.Description := LMVCSwagParams[I].ParamDescription;
-    if not LMVCSwagParams[I].JsonSchema.IsEmpty then
-      LSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(LMVCSwagParams[I].JsonSchema) as TJSONObject
-    else if Assigned(LMVCSwagParams[I].JsonSchemaClass) then
-      LSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(LMVCSwagParams[I].JsonSchemaClass,
-        LMVCSwagParams[I].ParamType = ptArray);
+    lSwagParam := TSwagRequestParameter.Create;
+    lSwagParam.Name := lMVCSwagParams[I].ParamName;
+    lSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
+    lSwagParam.Required := lMVCSwagParams[I].Required;
+    lSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
+    lSwagParam.Description := lMVCSwagParams[I].ParamDescription;
+    if not lMVCSwagParams[I].JsonSchema.IsEmpty then
+    begin
+      lSwagParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
+    end
+    else if Assigned(lMVCSwagParams[I].JsonSchemaClass) then
+    begin
+      lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass,
+        lMVCSwagParams[I].ParamType = ptArray);
+    end;
 
-    Insert([LSwagParam], Result, High(Result));
+    Insert([lSwagParam], Result, High(Result));
   end;
 
 end;
@@ -726,20 +711,20 @@ end;
 class function TMVCSwagger.MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType;
   out AAuthenticationTypeName: string): Boolean;
 var
-  LAttr: TCustomAttribute;
+  lAttr: TCustomAttribute;
 begin
   Result := False;
   AAuthenticationTypeName := '';
 
-  for LAttr in AMethod.GetAttributes do
-    if LAttr is MVCRequiresAuthenticationAttribute then
+  for lAttr in AMethod.GetAttributes do
+    if lAttr is MVCRequiresAuthenticationAttribute then
     begin
       AAuthenticationTypeName := SECURITY_BEARER_NAME;
       Exit(True);
     end
-    else if LAttr is MVCSwagAuthenticationAttribute then
+    else if lAttr is MVCSwagAuthenticationAttribute then
     begin
-      case MVCSwagAuthenticationAttribute(LAttr).AuthenticationType of
+      case MVCSwagAuthenticationAttribute(lAttr).AuthenticationType of
         atBasic:
           AAuthenticationTypeName := SECURITY_BASIC_NAME;
         atJsonWebToken:
@@ -748,15 +733,15 @@ begin
       Exit(True);
     end;
 
-  for LAttr in AType.GetAttributes do
-    if LAttr is MVCRequiresAuthenticationAttribute then
+  for lAttr in AType.GetAttributes do
+    if lAttr is MVCRequiresAuthenticationAttribute then
     begin
       AAuthenticationTypeName := SECURITY_BEARER_NAME;
       Exit(True);
     end
-    else if LAttr is MVCSwagAuthenticationAttribute then
+    else if lAttr is MVCSwagAuthenticationAttribute then
     begin
-      case MVCSwagAuthenticationAttribute(LAttr).AuthenticationType of
+      case MVCSwagAuthenticationAttribute(lAttr).AuthenticationType of
         atBasic:
           AAuthenticationTypeName := SECURITY_BASIC_NAME;
         atJsonWebToken:
@@ -766,8 +751,8 @@ begin
     end;
 end;
 
-class function TMVCSwagger.MVCHttpMethodToSwagPathOperation(const AMVCHTTPMethod: TMVCHTTPMethodType):
-  TSwagPathTypeOperation;
+class function TMVCSwagger.MVCHttpMethodToSwagPathOperation(const AMVCHTTPMethod: TMVCHTTPMethodType)
+  : TSwagPathTypeOperation;
 begin
   case AMVCHTTPMethod of
     httpGET:
@@ -790,8 +775,7 @@ begin
 end;
 
 class function TMVCSwagger.MVCParamLocationToSwagRequestParamInLocation(const AMVCSwagParamLocation
-  : TMVCSwagParamLocation)
-  : TSwagRequestParameterInLocation;
+  : TMVCSwagParamLocation): TSwagRequestParameterInLocation;
 begin
   case AMVCSwagParamLocation of
     plQuery:
@@ -837,18 +821,18 @@ end;
 
 { MVCSwagSummary }
 
-constructor MVCSwagSummaryAttribute.Create(const ATags, ADescription: string; const APathId: string;
+constructor MVCSwagSummaryAttribute.Create(const ATags, ADescription: string; const AOperationId: string;
   ADeprecated: Boolean);
 begin
-  FTags := ATags;
-  FDescription := ADescription;
-  FOperationID := APathId;
-  FDeprecated := ADeprecated;
+  fTags := ATags;
+  fDescription := ADescription;
+  fOperationID := AOperationId;
+  fDeprecated := ADeprecated;
 end;
 
 function MVCSwagSummaryAttribute.GetTags: TArray<string>;
 begin
-  Result := FTags.Split([',']);
+  Result := fTags.Split([',']);
 end;
 
 { MVCSwagResponsesAttribute }
@@ -856,57 +840,58 @@ end;
 constructor MVCSwagResponsesAttribute.Create(const AStatusCode: Integer; const ADescription: string;
   const AJsonSchema: string);
 begin
-  FStatusCode := AStatusCode;
-  FDescription := ADescription;
-  FJsonSchema := AJsonSchema;
-  FJsonSchemaClass := nil;
+  fStatusCode := AStatusCode;
+  fDescription := ADescription;
+  fJsonSchema := AJsonSchema;
+  fJsonSchemaClass := nil;
 end;
 
 constructor MVCSwagResponsesAttribute.Create(const AStatusCode: Integer; const ADescription: string;
   const AJsonSchemaClass: TClass; const AIsArray: Boolean);
 begin
   Create(AStatusCode, ADescription, '');
-  FJsonSchemaClass := AJsonSchemaClass;
-  FIsArray := AIsArray;
+  fJsonSchemaClass := AJsonSchemaClass;
+  fIsArray := AIsArray;
 end;
 
 { MVCSwagParamAttribute }
 
-constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation; const AParamName,
-  AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean; const AJsonSchema: string);
+constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation;
+  const AParamName, AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean;
+  const AJsonSchema: string);
 begin
-  FParamLocation := AParamLocation;
-  FParamName := AParamName;
-  FParamDescription := AParamDescription;
-  FParamType := AParamType;
-  FRequired := ARequired;
-  FJsonSchema := AJsonSchema;
-  FJsonSchemaClass := nil;
+  fParamLocation := AParamLocation;
+  fParamName := AParamName;
+  fParamDescription := AParamDescription;
+  fParamType := AParamType;
+  fRequired := ARequired;
+  fJsonSchema := AJsonSchema;
+  fJsonSchemaClass := nil;
 end;
 
-constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation; const AParamName,
-  AParamDescription: string; const AJsonSchemaClass: TClass; const AParamType: TMVCSwagParamType;
+constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation;
+  const AParamName, AParamDescription: string; const AJsonSchemaClass: TClass; const AParamType: TMVCSwagParamType;
   const ARequired: Boolean);
 begin
   Create(AParamLocation, AParamName, AParamDescription, AParamType, ARequired, '');
-  FJsonSchemaClass := AJsonSchemaClass;
+  fJsonSchemaClass := AJsonSchemaClass;
 end;
 
-{ MVCSwagJsonSchemaFieldAttribute }
+{ MVCSwagJSONSchemaFieldAttribute }
 
-constructor MVCSwagJsonSchemaFieldAttribute.Create(const AFieldName, ADescription: string; const ARequired,
-  ANullable: Boolean);
+constructor MVCSwagJSONSchemaFieldAttribute.Create(const AFieldName, ADescription: string;
+  const ARequired, ANullable: Boolean);
 begin
   Create(stUnknown, AFieldName, ADescription, ARequired, ANullable);
 end;
 
-constructor MVCSwagJsonSchemaFieldAttribute.Create(const ASchemaFieldType: TMVCSwagSchemaType; const AFieldName,
-  ADescription: string; const ARequired, ANullable: Boolean);
+constructor MVCSwagJSONSchemaFieldAttribute.Create(const ASchemaFieldType: TMVCSwagSchemaType;
+  const AFieldName, ADescription: string; const ARequired, ANullable: Boolean);
 begin
   FSchemaFieldType := ASchemaFieldType;
   FFieldName := AFieldName;
-  FDescription := ADescription;
-  FRequired := ARequired;
+  fDescription := ADescription;
+  fRequired := ARequired;
   FNullable := ANullable;
 end;
 

@@ -53,7 +53,7 @@ type
     FName: string;
 
     // The MVCListOfAttribute attribute can be placed in Field or Property
-    [MVCListOf(TNote)]
+    //[MVCListOf(TNote)]
     FNotes: TObjectList<TNote>;
   public
     constructor Create;
@@ -63,7 +63,7 @@ type
     [MVCNameAs('Name')]
     property name: string read FName write FName;
 
-    [MVCListOf(TNote)]
+//    [MVCListOf(TNote)]
     property Notes: TObjectList<TNote> read FNotes write FNotes;
   end;
 
@@ -82,10 +82,10 @@ type
     FDepartment: TDepartment;
     FDepartmentNull: TDepartment;
 
-    [MVCListOf(TNote)]
+//    [MVCListOf(TNote)]
     FNotes: TObjectList<TNote>;
 
-    [MVCListOf(TNote)]
+  //  [MVCListOf(TNote)]
     FNotesEmpty: TObjectList<TNote>;
 
     // The MVCValueAsTypeAttribute attribute can be placed in Field or Property
@@ -117,10 +117,10 @@ type
     property Department: TDepartment read FDepartment write FDepartment;
     property DepartmentNull: TDepartment read FDepartmentNull write FDepartmentNull;
 
-    [MVCListOf(TNote)]
+    //[MVCListOf(TNote)]
     property Notes: TObjectList<TNote> read FNotes;
 
-    [MVCListOf(TNote)]
+    //[MVCListOf(TNote)]
     property NotesEmpty: TObjectList<TNote> read FNotesEmpty;
 
     [MVCValueAsType(System.TypeInfo(string))]

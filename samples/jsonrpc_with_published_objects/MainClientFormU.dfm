@@ -22,10 +22,8 @@ object MainForm: TMainForm
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 846
     object TabSheet1: TTabSheet
       Caption = 'Invoking Plain PODO'
-      ExplicitWidth = 838
       object GroupBox1: TGroupBox
         Left = 3
         Top = 22
@@ -182,18 +180,18 @@ object MainForm: TMainForm
           TabOrder = 13
         end
         object btnDates: TButton
-          Left = 635
+          Left = 716
           Top = 30
-          Width = 165
+          Width = 84
           Height = 25
           Caption = 'PlayWithDates'
           TabOrder = 14
           OnClick = btnDatesClick
         end
         object btnFloatsTests: TButton
-          Left = 545
+          Left = 626
           Top = 30
-          Width = 75
+          Width = 84
           Height = 25
           Caption = 'Floats'
           TabOrder = 15
@@ -337,7 +335,6 @@ object MainForm: TMainForm
     object TabSheet2: TTabSheet
       Caption = 'Invoking DataModule Methods'
       ImageIndex = 1
-      ExplicitWidth = 838
       object GroupBox5: TGroupBox
         Left = 11
         Top = 18
@@ -377,6 +374,15 @@ object MainForm: TMainForm
         end
       end
     end
+  end
+  object btnWithJSON: TButton
+    Left = 552
+    Top = 76
+    Width = 75
+    Height = 25
+    Caption = 'JSON Prop'
+    TabOrder = 1
+    OnClick = btnWithJSONClick
   end
   object DataSource1: TDataSource
     DataSet = FDMemTable1
