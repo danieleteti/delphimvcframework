@@ -493,7 +493,7 @@ begin
   if aEnd<=aStart then
     exit;
   if fTagCount>=length(fTemplate.fTags) then
-    SetLength(fTemplate.fTags,fTagCount+fTagCount shr 3+32);
+    SetLength(fTemplate.fTags,NextGrow(fTagCount));
   with fTemplate.fTags[fTagCount] do begin
     Kind := aKind;
     SectionOppositeIndex := -1;
@@ -1062,7 +1062,7 @@ class procedure TSynMustache.Equals_(const Value: variant; out result: variant);
 begin // {{#Equals .,12}}
   with _Safe(Value)^ do
     if (Kind=dvArray) and (Count=2) and
-       (SortDynArrayVariant(Values[0],Values[1])=0) then
+       (SortDynArrayVariantComp(TVarData(Values[0]),TVarData(Values[1]),false)=0) then
       result := true else
       SetVariantNull(result);
 end;
@@ -1077,7 +1077,7 @@ begin // {{#if .<>""}} or {{#if .,"=",123}}
     if (Kind=dvArray) and (Count=3) then begin
       VariantToUTF8(Values[1],oper,wasString);
       if wasString and (oper<>'') then begin
-        cmp := SortDynArrayVariant(Values[0],Values[2]);
+        cmp := SortDynArrayVariantComp(TVarData(Values[0]),TVarData(Values[2]),false);
         case PWord(oper)^ of
         ord('='): if cmp=0 then result := True;
         ord('>'): if cmp>0 then result := True;
