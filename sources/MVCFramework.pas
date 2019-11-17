@@ -2552,11 +2552,11 @@ procedure TMVCEngine.RegisterDefaultsSerializers;
 var
   lDefaultSerializerContentType: string;
 begin
-  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
-  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
-  begin
-    FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create);
-  end;
+//  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
+//  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
+//  begin
+//    FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create);
+//  end;
 
   // register the same serializer without the charset in the contenttype
   lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, '');

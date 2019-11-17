@@ -1,13 +1,32 @@
 // ***************************************************************************
 //
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators on this file: João Antônio Duarte (joao.antonioduarte@hotmail.com)
+//
 // TNullabletypes requires spring4d framework
 //
 // https://bitbucket.org/sglienke/spring4d.git
 //
-// Contributor: 2019 - João Antônio Duarte (joao.antonioduarte@hotmail.com)
-//
-//
 // ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
 
 unit MVCFramework.Serializer.JsonDataObjects.NullableTypes;
 
@@ -22,248 +41,128 @@ type
 
   TNullableIntegerSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableInt64Serializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableCurrencySerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableStringSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableDateTimeSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableDateSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableTimeSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
   TNullableGuidSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   private
     function GuidFromString(const AGuidStr: string): TGUID;
   public
-    procedure SerializeAttribute(
-      const AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure SerializeRoot(
-      const AObject: TObject;
-      out ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>;
-      const ASerializationAction: TMVCSerializationAction = nil
-      );
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
 
-    procedure DeserializeAttribute(
-      var AElementValue: TValue;
-      const APropertyName: string;
-      const ASerializerObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 
-    procedure DeserializeRoot(
-      const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: TArray<TCustomAttribute>
-      );
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
   end;
 
-/// <summary>Register all NullablesSerializers in your serializer</summary>
-/// <param name="ASerializer">Your Serializer</param>
+  /// <summary>Register all NullablesSerializers in your serializer</summary>
+  /// <param name="ASerializer">Your Serializer</param>
 procedure RegisterNullableTypeSerializersInSerializer(ASerializer: IMVCSerializer);
 
 implementation
@@ -275,6 +174,8 @@ uses
 
 procedure RegisterNullableTypeSerializersInSerializer(ASerializer: IMVCSerializer);
 begin
+  Assert(TObject(ASerializer).ClassName = 'TMVCJsonDataObjectsSerializer',
+    'Nullables Custom Serializer can be used only with "TMVCJsonDataObjectsSerializer"');
   ASerializer.RegisterTypeSerializer(TypeInfo(TNullableInteger), TNullableIntegerSerializer.Create);
   ASerializer.RegisterTypeSerializer(TypeInfo(TNullableInt64), TNullableInt64Serializer.Create);
   ASerializer.RegisterTypeSerializer(TypeInfo(TNullableCurrency), TNullableCurrencySerializer.Create);
@@ -390,7 +291,7 @@ begin
   begin
     LNullCurrency := Currency(LJSON.F[APropertyName]);
   end;
-  AElementValue := TValue.From<TNullableCurrency>(lNullCurrency);
+  AElementValue := TValue.From<TNullableCurrency>(LNullCurrency);
 end;
 
 procedure TNullableCurrencySerializer.DeserializeRoot(const ASerializerObject, AObject: TObject;
@@ -632,9 +533,9 @@ begin
   // string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465
   if AGuidStr.Length = 32 then
     LGuidStr := Format('{%s-%s-%s-%s-%s}', [AGuidStr.Substring(0, 8), AGuidStr.Substring(8, 4),
-      AGuidStr.Substring(12, 4), AGuidStr.Substring(16, 4),AGuidStr.Substring(20, 12)])
+      AGuidStr.Substring(12, 4), AGuidStr.Substring(16, 4), AGuidStr.Substring(20, 12)])
 
-  // string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465
+    // string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465
   else if AGuidStr.Length = 36 then
     LGuidStr := Format('{%s}', [AGuidStr])
   else
@@ -659,6 +560,5 @@ procedure TNullableGuidSerializer.SerializeRoot(const AObject: TObject; out ASer
 begin
   raise EMVCSerializationException.Create('Not implemented');
 end;
-
 
 end.

@@ -30,8 +30,8 @@ uses
   System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.Compression,
-  CustomTypesSerializersU,
-  Spring,
+  MVCFramework.NullableTypes,
+  MVCFramework.Serializer.JsonDataObjects.NullableTypes,
   BusinessObjectsU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -63,12 +63,9 @@ begin
   FMVC.AddController(TMyController);
   // To enable compression (deflate, gzip) just add this middleware as the last one
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
-  FMVC.Serializers.Items['application/json'].RegisterTypeSerializer(typeinfo(Nullable<System.Integer>),
-    TNullableIntegerSerializer.Create);
-  FMVC.Serializers.Items['application/json'].RegisterTypeSerializer(typeinfo(Nullable<System.Currency>),
-    TNullableCurrencySerializer.Create);
-  FMVC.Serializers.Items['application/json'].RegisterTypeSerializer(typeinfo(Nullable<System.string>),
-    TNullableStringSerializer.Create);
+
+  //Enable Spring4D nullables support
+  RegisterNullableTypeSerializersInSerializer(FMVC.Serializers.Items['application/json']);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

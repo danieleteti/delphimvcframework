@@ -57,6 +57,9 @@ type
 
 implementation
 
+uses
+  MVCFramework.Serializer.JsonDataObjects.NullableTypes;
+
 { TPerson }
 
 constructor TPerson.Create;
