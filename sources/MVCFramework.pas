@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -2104,7 +2104,7 @@ begin
                         LActualParams);
                     Except
                       on e:Exception do
-                        SendRawHTTPStatus(Lcontext, 400, e.Message, e.ClassName);
+                        SendRawHTTPStatus(Lcontext, HTTP_STATUS.BadRequest, e.Message, e.ClassName);
                     end;
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
