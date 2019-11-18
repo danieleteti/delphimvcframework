@@ -372,8 +372,6 @@ var
   lJsonSchema: TJsonField;
   lJsonRoot: TJsonFieldObject;
 begin
-  var
-  lClassName := AClass.ClassName;
   if AIsArray then
   begin
     lJsonSchema := TJsonFieldArray.Create
