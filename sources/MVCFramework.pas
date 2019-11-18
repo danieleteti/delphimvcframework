@@ -2099,8 +2099,13 @@ begin
                     LActualParams[0] := LContext;
                   end
                   else
-                    FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
-                      LActualParams);
+                    try
+                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
+                        LActualParams);
+                    Except
+                      on e:Exception do
+                        SendRawHTTPStatus(Lcontext, HTTP_STATUS.BadRequest, e.Message, e.ClassName);
+                    end;
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
 
@@ -2298,12 +2303,16 @@ begin
 
     case AActionFormalParams[I].ParamType.TypeKind of
       tkInteger:
-        begin
+        try
           AActualParams[I] := StrToInt(StrValue);
+        except
+          raise EMVCException.CreateFmt('Invalid Integer value for param [%s]', [AActionFormalParams[I].Name]);
         end;
       tkInt64:
-        begin
+        try
           AActualParams[I] := StrToInt64(StrValue);
+        except
+          raise EMVCException.CreateFmt('Invalid Int64 value for param [%s]', [AActionFormalParams[I].Name]);
         end;
       tkUString:
         begin
@@ -2347,9 +2356,11 @@ begin
             end;
           end;
           if not WasDateTime then
-          begin
+          try
             FormatSettings.DecimalSeparator := '.';
             AActualParams[I] := StrToFloat(StrValue, FormatSettings);
+          except
+            raise EMVCException.CreateFmt('Invalid Float value for param [%s]', [AActionFormalParams[I].Name]);
           end;
         end;
       tkEnumeration:
