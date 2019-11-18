@@ -2099,8 +2099,13 @@ begin
                     LActualParams[0] := LContext;
                   end
                   else
-                    FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
-                      LActualParams);
+                    try
+                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
+                        LActualParams);
+                    Except
+                      on e:Exception do
+                        SendRawHTTPStatus(Lcontext, 400, e.Message, e.ClassName);
+                    end;
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
 
