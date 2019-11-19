@@ -47,13 +47,13 @@ begin
 
   // Path prefix will be swagger basepath
   FEngine.Config[TMVCConfigKey.PathPrefix] := '/api';
-  FEngine.Config[TMVCConfigKey.DocumentRoot] := '..\..\swaggerui\www';
+  FEngine.Config[TMVCConfigKey.DocumentRoot] := '..\..\wwwswaggerui';
 
   LSwagInfo.Title := 'Sample Swagger API';
   LSwagInfo.Version := 'v1';
   LSwagInfo.TermsOfService := 'http://www.apache.org/licenses/LICENSE-2.0.txt';
   LSwagInfo.Description := 'Swagger Documentation Example';
-  LSwagInfo.ContactName := 'Joï¿½o Antï¿½nio Duarte';
+  LSwagInfo.ContactName := 'João Antônio Duarte';
   LSwagInfo.ContactEmail := 'joao.antonioduarte@hotmail.com';
   LSwagInfo.ContactUrl := 'https://github.com/joaoduarte19';
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
