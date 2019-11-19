@@ -558,6 +558,7 @@ class function TMVCSwagger.GetJWTAuthenticationPath(const AJWTUrlSegment: string
 var
   lSwagPathOp: TSwagPathOperation;
   lSwagResponse: TSwagResponse;
+  lSwagParam: TSwagRequestParameter;
 begin
   lSwagPathOp := TSwagPathOperation.Create;
   lSwagPathOp.Tags.Add('JWT Authentication');
@@ -565,6 +566,19 @@ begin
   lSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
   lSwagPathOp.Description := 'Create JSON Web Token';
   lSwagPathOp.Produces.Add(TMVCMediaType.APPLICATION_JSON);
+  lSwagParam := TSwagRequestParameter.Create;
+  lSwagParam.Name := AUserNameHeaderName;
+  lSwagParam.TypeParameter := stpString;
+  lSwagParam.Required := true;
+  lSwagParam.InLocation := rpiHeader;
+  lSwagPathOp.Parameters.Add(lSwagParam);
+
+  lSwagParam := TSwagRequestParameter.Create;
+  lSwagParam.Name := APasswordHeaderName;
+  lSwagParam.TypeParameter := stpString;
+  lSwagParam.Required := true;
+  lSwagParam.InLocation := rpiHeader;
+  lSwagPathOp.Parameters.Add(lSwagParam);
 
   lSwagResponse := TSwagResponse.Create;
   lSwagResponse.StatusCode := HTTP_STATUS.Unauthorized.ToString;

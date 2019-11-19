@@ -248,7 +248,8 @@ begin
           LJwtUrlSegment.Insert(0, '/');
 
         // Path operation Middleware JWT
-        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(LJwtUrlSegment));
+        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(LJwtUrlSegment,
+          LJWTMiddleware.UserNameHeaderName, LJWTMiddleware.PasswordHeaderName));
 
         // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
         LSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
