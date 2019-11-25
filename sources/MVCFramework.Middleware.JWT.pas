@@ -92,6 +92,9 @@ type
     constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login'; AConfigClaims: TJWTClaimsSetup = nil;
       AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300); overload; virtual;
+    property AuthorizationHeaderName: string read FAuthorizationHeaderName;
+    property UserNameHeaderName: string read FUserNameHeaderName;
+    property PasswordHeaderName: string read FPasswordHeaderName;
   end;
 
 implementation
