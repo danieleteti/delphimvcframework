@@ -51,6 +51,7 @@ type
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
+    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
   end;
 
   TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor)
@@ -78,6 +79,7 @@ type
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
+    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
   public
     constructor Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True); virtual;
     destructor Destroy; override;
@@ -130,6 +132,12 @@ begin
   begin
     FHTTPRequestHeaders.Clear;
   end;
+end;
+
+function TMVCJSONRPCExecutor.ConfigureHTTPClient(
+  const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
+begin
+  aConfigProc(FHTTP);
 end;
 
 constructor TMVCJSONRPCExecutor.Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True);
