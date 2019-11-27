@@ -64,7 +64,7 @@ var
   LURL: string;
 begin
   StartServer;
-  LURL := Format('http://localhost:%s/index.html', [EditPort.Text]);
+  LURL := Format('http://localhost:%s/swagger/index.html', [EditPort.Text]);
   ShellExecute(0, nil, PChar(LURL), nil, nil, SW_SHOWNOACTIVATE);
 end;
 

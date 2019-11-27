@@ -40,11 +40,11 @@ uses
 type
   TMVCSwaggerMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
-    FEngine: TMVCEngine;
-    FSwaggerInfo: TMVCSwaggerInfo;
-    FSwagDocURL: string;
-    FJWTDescription: string;
-    FEnableBasicAuthentication: Boolean;
+    fEngine: TMVCEngine;
+    fSwaggerInfo: TMVCSwaggerInfo;
+    fSwagDocURL: string;
+    fJWTDescription: string;
+    fEnableBasicAuthentication: Boolean;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
@@ -75,7 +75,8 @@ uses
   MVCFramework.Middleware.JWT,
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.SecurityDefinitionApiKey,
-  Swag.Doc.SecurityDefinitionBasic, Swag.Doc.Definition;
+  Swag.Doc.SecurityDefinitionBasic,
+  Swag.Doc.Definition;
 
 { TMVCSwaggerMiddleware }
 
@@ -83,11 +84,11 @@ constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwagg
   const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean);
 begin
   inherited Create;
-  FSwagDocURL := ASwaggerDocumentationURL;
-  FEngine := AEngine;
-  FSwaggerInfo := ASwaggerInfo;
-  FJWTDescription := AJWTDescription;
-  FEnableBasicAuthentication := AEnableBasicAuthentication;
+  fSwagDocURL := ASwaggerDocumentationURL;
+  fEngine := AEngine;
+  fSwaggerInfo := ASwaggerInfo;
+  fJWTDescription := AJWTDescription;
+  fEnableBasicAuthentication := AEnableBasicAuthentication;
 end;
 
 destructor TMVCSwaggerMiddleware.Destroy;
@@ -98,110 +99,120 @@ end;
 
 procedure TMVCSwaggerMiddleware.DocumentApi(ASwagDoc: TSwagDoc);
 var
-  LRttiContext: TRttiContext;
-  LObjType: TRttiType;
-  LController: TMVCControllerDelegate;
-  LSwagPath: TSwagPath;
-  LAttr: TCustomAttribute;
-  LControllerPath: string;
-  LMethodPath: string;
-  LMethod: TRttiMethod;
-  LFoundAttr: Boolean;
-  LMVCHttpMethods: TMVCHTTPMethods;
-  LSwagPathOp: TSwagPathOperation;
+  lRttiContext: TRttiContext;
+  lObjType: TRttiType;
+  lController: TMVCControllerDelegate;
+  lSwagPath: TSwagPath;
+  lAttr: TCustomAttribute;
+  lControllerPath: string;
+  lMethodPath: string;
+  lMethod: TRttiMethod;
+  lFoundAttr: Boolean;
+  lMVCHttpMethods: TMVCHTTPMethods;
+  lSwagPathOp: TSwagPathOperation;
   I: TMVCHTTPMethodType;
-  LPathUri: string;
-  LIndex: Integer;
-  LAuthTypeName: string;
+  lPathUri: string;
+  lIndex: Integer;
+  lAuthTypeName: string;
+  lIsIgnoredPath: Boolean;
 begin
-  LRttiContext := TRttiContext.Create;
+  lRttiContext := TRttiContext.Create;
   try
-    for LController in FEngine.Controllers do
+    for lController in fEngine.Controllers do
     begin
-      LControllerPath := '';
-      LObjType := LRttiContext.GetType(LController.Clazz);
-      for LAttr in LObjType.GetAttributes do
+      lControllerPath := '';
+      lObjType := lRttiContext.GetType(lController.Clazz);
+      for lAttr in lObjType.GetAttributes do
       begin
-        if LAttr is MVCPathAttribute then
+        if lAttr is MVCSwagIgnorePathAttribute then
         begin
-          LControllerPath := MVCPathAttribute(LAttr).Path;
+          lControllerPath := '';
           Break;
+        end;
+        if lAttr is MVCPathAttribute then
+        begin
+          lControllerPath := MVCPathAttribute(lAttr).Path;
         end;
       end;
 
-      if LControllerPath.IsEmpty then
+      if lControllerPath.IsEmpty then
         Continue;
 
-      for LMethod in LObjType.GetDeclaredMethods do
+      for lMethod in lObjType.GetDeclaredMethods do
       begin
-        LFoundAttr := False;
-        LMVCHttpMethods := [];
-        LMethodPath := '';
+        lIsIgnoredPath := False;
+        lFoundAttr := False;
+        lMVCHttpMethods := [];
+        lMethodPath := '';
 
-        for LAttr in LMethod.GetAttributes do
+        for lAttr in lMethod.GetAttributes do
         begin
-          if LAttr is MVCPathAttribute then
+          if lAttr is MVCSwagIgnorePathAttribute then
           begin
-            LMethodPath := MVCPathAttribute(LAttr).Path;
-            LFoundAttr := True;
+            lIsIgnoredPath := True;
           end;
-          if LAttr is MVCHTTPMethodsAttribute then
+          if lAttr is MVCPathAttribute then
           begin
-            LMVCHttpMethods := MVCHTTPMethodsAttribute(LAttr).MVCHTTPMethods;
+            lMethodPath := MVCPathAttribute(lAttr).Path;
+            lFoundAttr := True;
+          end;
+          if lAttr is MVCHTTPMethodsAttribute then
+          begin
+            lMVCHttpMethods := MVCHTTPMethodsAttribute(lAttr).MVCHTTPMethods;
           end;
         end;
 
-        if LFoundAttr then
+        if (not lIsIgnoredPath) and lFoundAttr then
         begin
-          LSwagPath := nil;
-          LPathUri := TMVCSwagger.MVCPathToSwagPath(LControllerPath + LMethodPath);
-          for LIndex := 0 to Pred(ASwagDoc.Paths.Count) do
+          lSwagPath := nil;
+          lPathUri := TMVCSwagger.MVCPathToSwagPath(lControllerPath + lMethodPath);
+          for lIndex := 0 to Pred(ASwagDoc.Paths.Count) do
           begin
-            if SameText(ASwagDoc.Paths[LIndex].Uri, LPathUri) then
+            if SameText(ASwagDoc.Paths[lIndex].Uri, lPathUri) then
             begin
-              LSwagPath := ASwagDoc.Paths[LIndex];
+              lSwagPath := ASwagDoc.Paths[lIndex];
               Break;
             end;
           end;
 
-          if not Assigned(LSwagPath) then
+          if not Assigned(lSwagPath) then
           begin
-            LSwagPath := TSwagPath.Create;
-            LSwagPath.Uri := LPathUri;
-            ASwagDoc.Paths.Add(LSwagPath);
+            lSwagPath := TSwagPath.Create;
+            lSwagPath.Uri := lPathUri;
+            ASwagDoc.Paths.Add(lSwagPath);
           end;
 
-          for I in LMVCHttpMethods do
+          for I in lMVCHttpMethods do
           begin
-            LSwagPathOp := TSwagPathOperation.Create;
-            TMVCSwagger.FillOperationSummary(LSwagPathOp, LMethod);
-            if TMVCSwagger.MethodRequiresAuthentication(LMethod, LObjType, LAuthTypeName) then
+            lSwagPathOp := TSwagPathOperation.Create;
+            TMVCSwagger.FillOperationSummary(lSwagPathOp, lMethod);
+            if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
             begin
-              LSwagPathOp.Security.Add(LAuthTypeName);
+              lSwagPathOp.Security.Add(lAuthTypeName);
             end;
-            LSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(LSwagPath.Uri, LMethod));
-            LSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
-            LSwagPath.Operations.Add(LSwagPathOp);
+            lSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(lSwagPath.Uri, lMethod));
+            lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
+            lSwagPath.Operations.Add(lSwagPathOp);
           end;
         end;
       end;
     end;
   finally
-    LRttiContext.Free;
+    lRttiContext.Free;
   end;
 end;
 
 procedure TMVCSwaggerMiddleware.DocumentApiInfo(const ASwagDoc: TSwagDoc);
 begin
-  ASwagDoc.Info.Title := FSwaggerInfo.Title;
-  ASwagDoc.Info.Version := FSwaggerInfo.Version;
-  ASwagDoc.Info.TermsOfService := FSwaggerInfo.TermsOfService;
-  ASwagDoc.Info.Description := FSwaggerInfo.Description;
-  ASwagDoc.Info.Contact.Name := FSwaggerInfo.ContactName;
-  ASwagDoc.Info.Contact.Email := FSwaggerInfo.ContactEmail;
-  ASwagDoc.Info.Contact.Url := FSwaggerInfo.ContactUrl;
-  ASwagDoc.Info.License.Name := FSwaggerInfo.LicenseName;
-  ASwagDoc.Info.License.Url := FSwaggerInfo.LicenseUrl;
+  ASwagDoc.Info.Title := fSwaggerInfo.Title;
+  ASwagDoc.Info.Version := fSwaggerInfo.Version;
+  ASwagDoc.Info.TermsOfService := fSwaggerInfo.TermsOfService;
+  ASwagDoc.Info.Description := fSwaggerInfo.Description;
+  ASwagDoc.Info.Contact.Name := fSwaggerInfo.ContactName;
+  ASwagDoc.Info.Contact.Email := fSwaggerInfo.ContactEmail;
+  ASwagDoc.Info.Contact.Url := fSwaggerInfo.ContactUrl;
+  ASwagDoc.Info.License.Name := fSwaggerInfo.LicenseName;
+  ASwagDoc.Info.License.Url := fSwaggerInfo.LicenseUrl;
 end;
 
 procedure TMVCSwaggerMiddleware.DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
@@ -216,7 +227,7 @@ var
   LSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
   LJWTMiddleware := nil;
-  for LMiddleware in FEngine.Middlewares do
+  for LMiddleware in fEngine.Middlewares do
   begin
     if LMiddleware is TMVCJWTAuthenticationMiddleware then
     begin
@@ -225,7 +236,7 @@ begin
     end;
   end;
 
-  if Assigned(LJWTMiddleware) or FEnableBasicAuthentication then
+  if Assigned(LJWTMiddleware) or fEnableBasicAuthentication then
   begin
     LSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
     LSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
@@ -256,7 +267,7 @@ begin
         LSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
         LSecurityDefsBearer.InLocation := kilHeader;
         LSecurityDefsBearer.Name := 'Authorization';
-        LSecurityDefsBearer.Description := FJWTDescription;
+        LSecurityDefsBearer.Description := fJWTDescription;
         ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBearer);
       end;
     finally
@@ -268,7 +279,7 @@ end;
 procedure TMVCSwaggerMiddleware.DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
 begin
   ASwagDoc.Host := Format('%s:%d', [AContext.Request.RawWebRequest.Host, AContext.Request.RawWebRequest.ServerPort]);
-  ASwagDoc.BasePath := FEngine.Config[TMVCConfigKey.PathPrefix];
+  ASwagDoc.BasePath := fEngine.Config[TMVCConfigKey.PathPrefix];
 
   if ASwagDoc.BasePath.IsEmpty then
     ASwagDoc.BasePath := '/';
@@ -309,7 +320,7 @@ procedure TMVCSwaggerMiddleware.OnBeforeRouting(AContext: TWebContext; var AHand
 var
   LSwagDoc: TSwagDoc;
 begin
-  if SameText(AContext.Request.PathInfo, FSwagDocURL) and (AContext.Request.HTTPMethod in [httpGET, httpPOST]) then
+  if SameText(AContext.Request.PathInfo, fSwagDocURL) and (AContext.Request.HTTPMethod in [httpGET, httpPOST]) then
   begin
     LSwagDoc := TSwagDoc.Create;
     try

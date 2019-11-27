@@ -47,7 +47,7 @@ begin
 
   // Path prefix will be swagger basepath
   FEngine.Config[TMVCConfigKey.PathPrefix] := '/api';
-  FEngine.Config[TMVCConfigKey.DocumentRoot] := '..\..\wwwswaggerui';
+  FEngine.Config[TMVCConfigKey.DocumentRoot] := '.\www';
 
   LSwagInfo.Title := 'Sample Swagger API';
   LSwagInfo.Version := 'v1';
