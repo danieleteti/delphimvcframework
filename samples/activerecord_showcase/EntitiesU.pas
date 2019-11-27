@@ -30,7 +30,8 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord,
   System.Generics.Collections,
-  System.Classes;
+  MVCFramework.NullableTypes,
+  System.Classes, FireDAC.Stan.Param;
 
 type
 
@@ -41,7 +42,7 @@ type
     [MVCTableField('ID')]
     fID: Integer;
     [MVCTableField('code')]
-    fCodice: string;
+    fCodice: String;
     [MVCTableField('description')]
     fDescrizione: string;
     [MVCTableField('price')]
@@ -50,7 +51,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
     property ID: Integer read fID write fID;
-    property Code: string read fCodice write fCodice;
+    property Code: String read fCodice write fCodice;
     property Description: string read fDescrizione write fDescrizione;
     property Price: Currency read fPrezzo write fPrezzo;
   end;
@@ -183,7 +184,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, Data.DB;
 
 constructor TArticle.Create;
 begin

@@ -109,6 +109,8 @@ resourcestring
     '    { more info about ListenQueue' + sLineBreak +
     '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
+	'    {required if you use JWT middleware }' + sLineBreak +
+    '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     sLineBreak +
     '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
     '    repeat' + sLineBreak +

@@ -185,6 +185,7 @@ type
     procedure SetEventsHandlers(const Value: TLoggerProEventsHandler);
   protected
     procedure Execute; override;
+    procedure DoTerminate; override;
   public
     constructor Create(aAppenders: TLogAppenderList);
     destructor Destroy; override;
@@ -193,7 +194,13 @@ type
     property LogWriterQueue: TThreadSafeQueue<TLogItem> read FQueue;
   end;
 
-  TLogWriter = class(TInterfacedObject, ILogWriter)
+  TLoggerProInterfacedObject = class(TInterfacedObject)
+  protected
+    function _AddRef: Integer; stdcall;
+    function _Release: Integer; stdcall;
+  end;
+
+  TLogWriter = class(TLoggerProInterfacedObject, ILogWriter)
   private
     FLoggerThread: TLoggerThread;
     FLogAppenders: TLogAppenderList;
@@ -525,6 +532,12 @@ begin
   end;
 end;
 
+procedure TLoggerThread.DoTerminate;
+begin
+
+  inherited;
+end;
+
 procedure TLoggerThread.Execute;
 var
   lQSize: UInt64;
@@ -836,6 +849,18 @@ end;
 constructor TLoggerThread.TAppenderAdaptersList.Create;
 begin
   inherited Create(true);
+end;
+
+{ TLoggerProInterfacedObject }
+
+function TLoggerProInterfacedObject._AddRef: Integer;
+begin
+  Result := inherited;
+end;
+
+function TLoggerProInterfacedObject._Release: Integer;
+begin
+  Result := inherited;
 end;
 
 end.

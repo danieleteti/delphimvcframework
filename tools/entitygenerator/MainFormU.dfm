@@ -45,8 +45,6 @@ object MainForm: TMainForm
       Align = alRight
       Caption = 'Select a FireDAC Connection Definitions'
       Layout = tlCenter
-      ExplicitLeft = 524
-      ExplicitTop = 1
       ExplicitHeight = 13
     end
     object cboConnectionDefs: TComboBox
@@ -62,8 +60,6 @@ object MainForm: TMainForm
       Align = alRight
       TabOrder = 0
       OnChange = cboConnectionDefsChange
-      ExplicitLeft = 721
-      ExplicitTop = 14
     end
   end
   object Panel2: TPanel
@@ -80,7 +76,6 @@ object MainForm: TMainForm
     Font.Style = []
     ParentFont = False
     TabOrder = 1
-    ExplicitTop = 41
     object Label2: TLabel
       AlignWithMargins = True
       Left = 4
@@ -108,7 +103,6 @@ object MainForm: TMainForm
       TabOrder = 0
       WordWrap = False
       OnChange = mmConnectionParamsChange
-      ExplicitHeight = 101
     end
     object Panel6: TPanel
       Left = 496
@@ -120,7 +114,6 @@ object MainForm: TMainForm
       Caption = 'Panel6'
       ShowCaption = False
       TabOrder = 1
-      ExplicitHeight = 107
       object GroupBox1: TGroupBox
         AlignWithMargins = True
         Left = 3
@@ -134,10 +127,6 @@ object MainForm: TMainForm
         Padding.Right = 5
         Padding.Bottom = 5
         TabOrder = 0
-        ExplicitLeft = 88
-        ExplicitTop = 0
-        ExplicitWidth = 185
-        ExplicitHeight = 105
         object lstSchema: TListBox
           AlignWithMargins = True
           Left = 215
@@ -148,10 +137,6 @@ object MainForm: TMainForm
           ItemHeight = 13
           TabOrder = 0
           OnDblClick = lstSchemaDblClick
-          ExplicitLeft = 120
-          ExplicitTop = 0
-          ExplicitWidth = 121
-          ExplicitHeight = 97
         end
         object lstCatalog: TListBox
           AlignWithMargins = True
@@ -174,9 +159,6 @@ object MainForm: TMainForm
           Caption = 'Refresh'
           TabOrder = 2
           OnClick = btnRefreshCatalogClick
-          ExplicitLeft = 8
-          ExplicitTop = 19
-          ExplicitHeight = 114
         end
       end
     end
@@ -189,8 +171,6 @@ object MainForm: TMainForm
     Align = alClient
     Caption = 'Panel3'
     TabOrder = 2
-    ExplicitTop = 172
-    ExplicitHeight = 458
     object Panel4: TPanel
       Left = 1
       Top = 1
@@ -245,10 +225,8 @@ object MainForm: TMainForm
       ActivePage = TabSheet1
       Align = alClient
       TabOrder = 1
-      ExplicitHeight = 409
       object TabSheet1: TTabSheet
         Caption = 'Tables'
-        ExplicitHeight = 381
         object DBGrid1: TDBGrid
           Left = 0
           Top = 0
@@ -267,7 +245,6 @@ object MainForm: TMainForm
       object TabSheet2: TTabSheet
         Caption = 'Generated Code'
         ImageIndex = 1
-        ExplicitHeight = 381
         object mmOutput: TMemo
           AlignWithMargins = True
           Left = 3
@@ -288,10 +265,6 @@ object MainForm: TMainForm
           ScrollBars = ssBoth
           TabOrder = 0
           WordWrap = False
-          ExplicitLeft = 0
-          ExplicitTop = 41
-          ExplicitWidth = 847
-          ExplicitHeight = 340
         end
         object Panel5: TPanel
           Left = 0
@@ -319,7 +292,7 @@ object MainForm: TMainForm
   end
   object FDConnection1: TFDConnection
     Params.Strings = (
-      'DriverID=MSSQL')
+      'ConnectionDef=EMPLOYEE_FB')
     ConnectedStoredUsage = []
     LoginPrompt = False
     Left = 256
@@ -415,5 +388,81 @@ object MainForm: TMainForm
     DataSet = dsTablesMapping
     Left = 48
     Top = 368
+  end
+  object FDQuery1: TFDQuery
+    Connection = FDConnection1
+    FetchOptions.AssignedValues = [evRecsMax, evRowsetSize, evAutoFetchAll]
+    FetchOptions.RowsetSize = 1
+    FetchOptions.RecsMax = 1
+    FetchOptions.AutoFetchAll = afDisable
+    UpdateOptions.AssignedValues = [uvEDelete, uvEInsert, uvEUpdate]
+    UpdateOptions.EnableDelete = False
+    UpdateOptions.EnableInsert = False
+    UpdateOptions.EnableUpdate = False
+    SQL.Strings = (
+      'select * from customer')
+    Left = 336
+    Top = 208
+    object FDQuery1CUST_NO: TIntegerField
+      FieldName = 'CUST_NO'
+      Origin = 'CUST_NO'
+      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
+      Required = True
+    end
+    object FDQuery1CUSTOMER: TStringField
+      FieldName = 'CUSTOMER'
+      Origin = 'CUSTOMER'
+      Required = True
+      Size = 25
+    end
+    object FDQuery1CONTACT_FIRST: TStringField
+      FieldName = 'CONTACT_FIRST'
+      Origin = 'CONTACT_FIRST'
+      Size = 15
+    end
+    object FDQuery1CONTACT_LAST: TStringField
+      FieldName = 'CONTACT_LAST'
+      Origin = 'CONTACT_LAST'
+    end
+    object FDQuery1PHONE_NO: TStringField
+      FieldName = 'PHONE_NO'
+      Origin = 'PHONE_NO'
+    end
+    object FDQuery1ADDRESS_LINE1: TStringField
+      FieldName = 'ADDRESS_LINE1'
+      Origin = 'ADDRESS_LINE1'
+      Size = 30
+    end
+    object FDQuery1ADDRESS_LINE2: TStringField
+      FieldName = 'ADDRESS_LINE2'
+      Origin = 'ADDRESS_LINE2'
+      Size = 30
+    end
+    object FDQuery1CITY: TStringField
+      FieldName = 'CITY'
+      Origin = 'CITY'
+      Size = 25
+    end
+    object FDQuery1STATE_PROVINCE: TStringField
+      FieldName = 'STATE_PROVINCE'
+      Origin = 'STATE_PROVINCE'
+      Size = 15
+    end
+    object FDQuery1COUNTRY: TStringField
+      FieldName = 'COUNTRY'
+      Origin = 'COUNTRY'
+      Size = 15
+    end
+    object FDQuery1POSTAL_CODE: TStringField
+      FieldName = 'POSTAL_CODE'
+      Origin = 'POSTAL_CODE'
+      Size = 12
+    end
+    object FDQuery1ON_HOLD: TStringField
+      FieldName = 'ON_HOLD'
+      Origin = 'ON_HOLD'
+      FixedChar = True
+      Size = 1
+    end
   end
 end

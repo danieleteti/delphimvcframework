@@ -63,14 +63,13 @@ type
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
+    procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: String; const aFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: boolean = true)
       : TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
-    procedure LoadFromJSONArrayStringItems(AJSONArrayString: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
   end;
 
   TDataSetUtils = class sealed
@@ -151,6 +150,19 @@ begin
     lSer.Free;
   end;
 
+end;
+
+procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: String; const aFieldNamePolicy: TFieldNamePolicy);
+var
+  lJson: TJSONObject;
+begin
+  lJson := TJSONObject.Create;
+  try
+    lJson.FromJSON(AJSONObjectString);
+    LoadFromJSONArray(lJson.A[aPropertyName], aFieldNamePolicy);
+  finally
+    lJson.Free;
+  end;
 end;
 
 function TDataSetHelper.AsJDOJSONArray: TJDOJsonArray;
@@ -302,20 +314,6 @@ end;
 procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
 begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
-end;
-
-procedure TDataSetHelper.LoadFromJSONArrayStringItems(AJSONArrayString: string; AFieldNamePolicy: TFieldNamePolicy);
-var
-  aJson: TJSONObject;
-begin
-  aJson := TJSONObject.Create;
-  try
-    aJson.FromJSON(AJSONArrayString);
-    AJSONArrayString := aJson.A['items'].ToString;
-    AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
-  finally
-    aJson.Free;
-  end;
 end;
 
 procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;

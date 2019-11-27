@@ -1012,7 +1012,7 @@ begin
         TFieldType.ftBoolean:
           Field.AsBoolean := AJsonObject.B[name];
 
-        TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint, TFieldType.ftByte:
+        TFieldType.ftInteger, TFieldType.ftSmallint, TFieldType.ftShortint, TFieldType.ftByte, TFieldType.ftLongWord, TFieldType.ftWord, TFieldType.ftAutoInc:
           Field.AsInteger := AJsonObject.I[name];
 
         TFieldType.ftLargeint:
