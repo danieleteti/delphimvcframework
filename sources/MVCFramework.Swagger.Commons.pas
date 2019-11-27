@@ -40,7 +40,8 @@ uses
   Swag.Doc.Path,
   System.Json,
   Json.Schema.Field,
-  Json.Schema.Field.Objects, Swag.Doc.Definition;
+  Json.Schema.Field.Objects,
+  Swag.Doc.Definition;
 
 type
   TMVCSwagParamLocation = (plNotDefined, plQuery, plHeader, plPath, plFormData, plBody);
@@ -171,6 +172,11 @@ type
     property Required: Boolean read fRequired;
     property Nullable: Boolean read FNullable;
   end;
+
+  /// <summary>
+  /// Use this attribute in the class or method to ignore the path in creating swagger documentation.
+  /// </summary>
+  MVCSwagIgnorePathAttribute = class(TCustomAttribute);
 
   /// <summary>
   /// SwaggerDoc Methods

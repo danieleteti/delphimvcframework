@@ -67,6 +67,7 @@ type
   TPeople = class(TObjectList<TPerson>)
   end;
 
+//  [MVCSwagIgnorePath] { Ignore all methods of controller }
   [MVCPath('/people')]
   [MVCSwagAuthentication(atBasic)]
   TMyController2 = class(TMVCController)
@@ -87,6 +88,7 @@ type
     [MVCSwagResponses(500, 'Internal Server Error')]
     procedure GetPerson(const Id: Integer);
 
+//    [MVCSwagIgnorePath]  { Ignore this method only }
     [MVCPath('')]
     [MVCHTTPMethod([httpPOST])]
     [MVCSwagSummary('People', 'Insert Person', 'createPerson')]
