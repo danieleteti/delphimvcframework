@@ -78,6 +78,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - New! Added SQLGenerator and RQL compiler for PostgreSQL, SQLite and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
 - New! Added support for interfaces serialization - now it is possible to serialize Spring4D collections (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - New! Added support for Spring4D Nullable Types - check  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Added `TMVCJSONRPCExecutor.ConfigHTTPClient` to fully customize the inner `THTTPClient` (e.g. `ConnectionTimeout`, `ResponseTimeout` and so on)
 - Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` and all the others actions end with `HATEOS` in `renders.dproj` sample)
 
 ```delphi
@@ -232,6 +233,8 @@ end;
 
     Before it was not possible because you should add the `MVCListOf` attribute to the `TObjectList` type property.
 
+- New! The **MVCAREntitiesGenerator** can optionally register all the generated entities also in the `ActiveRecordMappingRegistry` (Thanks to [Fabrizio Bitti](https://twitter.com/fabriziobitti) from [bit Time Software](http://www.bittime.it))
+
 - Fixed! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184)
 
 - Fixed! [issue278](https://github.com/danieleteti/delphimvcframework/issues/278)
@@ -240,7 +243,7 @@ end;
 
 - Fixed! [issue182](https://github.com/danieleteti/delphimvcframework/issues/182)
 
-- Fixed! [issue232](https://github.com/danieleteti/delphimvcframework/issues/232) (Thanks to Thank you to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fixed! [issue232](https://github.com/danieleteti/delphimvcframework/issues/232) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 
 - New Installation procedure! 
 

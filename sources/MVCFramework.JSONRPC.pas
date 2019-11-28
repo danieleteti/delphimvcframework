@@ -1397,7 +1397,9 @@ begin
       FError.ErrMessage := JSON.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE];
     end
     else
+    begin
       raise EMVCJSONRPCException.Create('Response message must have ''result'' or ''error''');
+    end;
   end;
 end;
 

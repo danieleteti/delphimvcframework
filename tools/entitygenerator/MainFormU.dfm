@@ -215,6 +215,18 @@ object MainForm: TMainForm
         TabOrder = 1
         OnClick = btnGetTablesClick
       end
+      object chGenerateMapping: TCheckBox
+        Left = 255
+        Top = 12
+        Width = 514
+        Height = 17
+        Caption = 
+          'Register entities in ActiveRecordMappingRegistry (needed by TMVC' +
+          'ActiveRecordController)'
+        Checked = True
+        State = cbChecked
+        TabOrder = 2
+      end
     end
     object PageControl1: TPageControl
       AlignWithMargins = True
@@ -292,7 +304,7 @@ object MainForm: TMainForm
   end
   object FDConnection1: TFDConnection
     Params.Strings = (
-      'ConnectionDef=EMPLOYEE_FB')
+      'DriverID=MSSQL')
     ConnectedStoredUsage = []
     LoginPrompt = False
     Left = 256
@@ -309,8 +321,8 @@ object MainForm: TMainForm
     UpdateOptions.EnableDelete = False
     UpdateOptions.EnableInsert = False
     UpdateOptions.EnableUpdate = False
-    Left = 328
-    Top = 200
+    Left = 304
+    Top = 152
   end
   object FDPhysFBDriverLink1: TFDPhysFBDriverLink
     Left = 616
@@ -388,81 +400,5 @@ object MainForm: TMainForm
     DataSet = dsTablesMapping
     Left = 48
     Top = 368
-  end
-  object FDQuery1: TFDQuery
-    Connection = FDConnection1
-    FetchOptions.AssignedValues = [evRecsMax, evRowsetSize, evAutoFetchAll]
-    FetchOptions.RowsetSize = 1
-    FetchOptions.RecsMax = 1
-    FetchOptions.AutoFetchAll = afDisable
-    UpdateOptions.AssignedValues = [uvEDelete, uvEInsert, uvEUpdate]
-    UpdateOptions.EnableDelete = False
-    UpdateOptions.EnableInsert = False
-    UpdateOptions.EnableUpdate = False
-    SQL.Strings = (
-      'select * from customer')
-    Left = 336
-    Top = 208
-    object FDQuery1CUST_NO: TIntegerField
-      FieldName = 'CUST_NO'
-      Origin = 'CUST_NO'
-      ProviderFlags = [pfInUpdate, pfInWhere, pfInKey]
-      Required = True
-    end
-    object FDQuery1CUSTOMER: TStringField
-      FieldName = 'CUSTOMER'
-      Origin = 'CUSTOMER'
-      Required = True
-      Size = 25
-    end
-    object FDQuery1CONTACT_FIRST: TStringField
-      FieldName = 'CONTACT_FIRST'
-      Origin = 'CONTACT_FIRST'
-      Size = 15
-    end
-    object FDQuery1CONTACT_LAST: TStringField
-      FieldName = 'CONTACT_LAST'
-      Origin = 'CONTACT_LAST'
-    end
-    object FDQuery1PHONE_NO: TStringField
-      FieldName = 'PHONE_NO'
-      Origin = 'PHONE_NO'
-    end
-    object FDQuery1ADDRESS_LINE1: TStringField
-      FieldName = 'ADDRESS_LINE1'
-      Origin = 'ADDRESS_LINE1'
-      Size = 30
-    end
-    object FDQuery1ADDRESS_LINE2: TStringField
-      FieldName = 'ADDRESS_LINE2'
-      Origin = 'ADDRESS_LINE2'
-      Size = 30
-    end
-    object FDQuery1CITY: TStringField
-      FieldName = 'CITY'
-      Origin = 'CITY'
-      Size = 25
-    end
-    object FDQuery1STATE_PROVINCE: TStringField
-      FieldName = 'STATE_PROVINCE'
-      Origin = 'STATE_PROVINCE'
-      Size = 15
-    end
-    object FDQuery1COUNTRY: TStringField
-      FieldName = 'COUNTRY'
-      Origin = 'COUNTRY'
-      Size = 15
-    end
-    object FDQuery1POSTAL_CODE: TStringField
-      FieldName = 'POSTAL_CODE'
-      Origin = 'POSTAL_CODE'
-      Size = 12
-    end
-    object FDQuery1ON_HOLD: TStringField
-      FieldName = 'ON_HOLD'
-      Origin = 'ON_HOLD'
-      FixedChar = True
-      Size = 1
-    end
   end
 end
