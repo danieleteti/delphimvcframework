@@ -30,7 +30,6 @@ def get_delphi_projects_to_build(which='', delphi_version=DEFAULT_DELPHI_VERSION
     dversion = 'd' + delphi_version.replace('.', '')
     if not which or which == 'core':
         projects += glob.glob(r"packages\{dversion}\*.groupproj".format(dversion=dversion))
-        projects += glob.glob(r"tools\rql2sql\RQL2SQL.dproj")
         projects += glob.glob(r"tools\entitygenerator\MVCAREntitiesGenerator.dproj")
     if not which or which == 'tests':
         projects += glob.glob(r"unittests\**\*.dproj")
@@ -98,7 +97,7 @@ def copy_sources():
     # copying tools
     print("Copying tools...")
     copytree('tools\\entitygenerator', g_output_folder + "\\tools\\entitygenerator")
-    copytree('tools\\rql2sql', g_output_folder + "\\tools\\rql2sql")
+    #copytree('tools\\rql2sql', g_output_folder + "\\tools\\rql2sql")
 
     # copying ideexperts
     print("Copying DMVCFramework IDEExpert...")

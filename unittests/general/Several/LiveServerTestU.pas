@@ -1396,7 +1396,7 @@ var
 begin
   // TDate, wrong and correct
   res := RESTClient.doGET('/typed/tdate1/20161012', []);
-  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDate');
+  Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, res.ResponseCode, 'wrong TDate');
 
   res := RESTClient.doGET('/typed/tdate1/2016-10-12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
@@ -1404,11 +1404,11 @@ begin
 
   // TDateTime, wrong and correct
   res := RESTClient.doGET('/typed/tdatetime1/20161', []);
-  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDateTime (1)');
+  Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, res.ResponseCode, 'wrong TDateTime (1)');
 
   // Wrong
   res := RESTClient.doGET('/typed/tdatetime1/20161012121212', []);
-  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TDateTime (2)');
+  Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, res.ResponseCode, 'wrong TDateTime (2)');
 
   // Correct without 'T'
   res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
@@ -1427,7 +1427,7 @@ begin
 
   // TTime, wrong and correct
   res := RESTClient.doGET('/typed/ttime1/121212', []);
-  Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode, 'wrong TTime');
+  Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, res.ResponseCode, 'wrong TTime');
 
   res := RESTClient.doGET('/typed/ttime1/12:12:12', []);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);

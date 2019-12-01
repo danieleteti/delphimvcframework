@@ -1,6 +1,7 @@
 program jwtplainserver;
 
- {$APPTYPE CONSOLE}
+{$APPTYPE CONSOLE}
+
 
 uses
   System.SysUtils,
@@ -10,9 +11,10 @@ uses
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MyControllerU in 'MyControllerU.pas',
-  MainWebModuleU in 'MainWebModuleU.pas' {MyWebModule: TWebModule};
+  MainWebModuleU in 'MainWebModuleU.pas', MVCFramework.Commons {MyWebModule: TWebModule};
 
 {$R *.res}
+
 
 procedure RunServer(APort: Integer);
 var
@@ -25,9 +27,10 @@ begin
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
-//    ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
+    // ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
     Writeln('Press ESC to stop the server');
     LHandle := GetStdHandle(STD_INPUT_HANDLE);
     while True do
@@ -54,4 +57,5 @@ begin
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
   end;
+
 end.
