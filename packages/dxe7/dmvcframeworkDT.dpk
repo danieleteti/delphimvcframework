@@ -37,7 +37,9 @@ requires
   IndySystem,
   IndyProtocols,
   IndyCore,
-  dbrtl;
+  dbrtl,
+  loggerproRT,
+  dmvcframeworkRT;
 
 contains
   DMVC.Expert.CodeGen.NewControllerUnit in '..\..\ideexpert\DMVC.Expert.CodeGen.NewControllerUnit.pas',
