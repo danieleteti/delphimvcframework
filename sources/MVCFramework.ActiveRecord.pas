@@ -1282,11 +1282,11 @@ begin
           end;
         ftMemo:
           begin
-            aParam.AsMemo := aValue.AsString;
+            aParam.AsMemo := AnsiString(aValue.AsString);
           end;
         else
           begin
-            raise EMVCActiveRecord.CreateFmt('Invalid data type for (tkString, tkUString) [%s]', [lName]);
+            raise EMVCActiveRecord.CreateFmt('Invalid parameter type for (tkString, tkUString) [%s]', [lName]);
           end;
         end;
       end;

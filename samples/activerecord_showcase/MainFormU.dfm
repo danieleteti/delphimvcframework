@@ -42,14 +42,21 @@ object MainForm: TMainForm
     Width = 492
     Height = 385
     Anchors = [akLeft, akTop, akRight, akBottom]
+    Ctl3D = True
+    DoubleBuffered = True
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
     Font.Name = 'Consolas'
     Font.Style = []
+    ParentCtl3D = False
+    ParentDoubleBuffered = False
     ParentFont = False
-    ScrollBars = ssVertical
+    ReadOnly = True
+    ScrollBars = ssBoth
     TabOrder = 2
+    WantReturns = False
+    WordWrap = False
   end
   object btnRelations: TButton
     Left = 8

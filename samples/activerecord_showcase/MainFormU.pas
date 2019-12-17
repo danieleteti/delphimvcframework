@@ -75,9 +75,8 @@ var
   lCustomer: TCustomer;
   lID: Integer;
 begin
-  ShowMessage('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
-
-  Log('Simple CRUD test');
+  Log('** Simple CRUD test');
+  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
   lCustomer := TCustomer.Create;
   try
     lCustomer.Code := '1234';
@@ -121,6 +120,7 @@ procedure TMainForm.btnInheritanceClick(Sender: TObject);
 var
   lCustomerEx: TCustomerEx;
 begin
+  Log('** Inheritace test');
   lCustomerEx := TCustomerEx.Create;
   try
     lCustomerEx.LoadByPK(1);
@@ -139,6 +139,7 @@ const
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
 begin
+  Log('** Multithreading test');
   TMVCActiveRecord.DeleteRQL(TCustomer, 'in(City,["Rome","New York","London","Melbourne","Berlin"])');
 
   lConnParams := FDConnection1.Params.Text;
@@ -192,6 +193,7 @@ var
   I: Integer;
   j: Integer;
 begin
+  Log('** Relations test');
   TMVCActiveRecord.DeleteAll(TCustomerEx);
 
   lCustomer := TCustomerEx.Create;
@@ -260,7 +262,8 @@ const
   cRQL1 = 'in(City,["Rome","London"]);sort(+code);limit(0,50)';
   cRQL2 = 'and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))';
 begin
-  Log('**RQL Query (1) - ' + cRQL1);
+  Log('** RQL Queries Test');
+  Log('>> RQL Query (1) - ' + cRQL1);
   lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20);
   try
     Log(lList.Count.ToString + ' record/s found');
@@ -273,7 +276,7 @@ begin
     lList.Free;
   end;
 
-  Log('**RQL Query (2) - ' + cRQL2);
+  Log('>> RQL Query (2) - ' + cRQL2);
   lCustList := TMVCActiveRecord.SelectRQL<TCustomer>(cRQL2, 20);
   try
     Log(lCustList.Count.ToString + ' record/s found');
@@ -349,7 +352,7 @@ var
   lCustomer: TCustomerWithTransient;
   lID: Integer;
 begin
-  Log('Transient CRUD test');
+  Log('** CRUD test with transient fields');
   lCustomer := TCustomerWithTransient.Create;
   try
     {
@@ -389,6 +392,7 @@ var
   lCustomer: TCustomerWithLogic;
   lID: Integer;
 begin
+  Log('** Validation test (some exceptions will be raised)');
   lCustomer := TCustomerWithLogic.Create;
   try
     lCustomer.Code := '1234';
@@ -412,7 +416,7 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  ActiveRecordConnectionsRegistry.RemoveConnection('default');
+  ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
 end;
 
 procedure TMainForm.FormShow(Sender: TObject);
@@ -455,14 +459,14 @@ begin
   FDConnection1.ConnectionDefName := FDConnectionConfigU.CON_DEF_NAME;
   FDConnection1.Connected := True;
 
-  ActiveRecordConnectionsRegistry.AddConnection('default', FDConnection1);
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(FDConnection1);
   Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
 end;
 
 procedure TMainForm.Log(const Value: string);
 begin
   Memo1.Lines.Add(Value);
-  // Memo1.Update;
+  Memo1.Update;
 end;
 
 end.
