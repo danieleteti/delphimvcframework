@@ -19,7 +19,7 @@ object MainForm: TMainForm
     Top = 0
     Width = 842
     Height = 527
-    ActivePage = TabSheet1
+    ActivePage = TabSheet2
     Align = alClient
     TabOrder = 0
     object TabSheet1: TTabSheet
@@ -197,6 +197,15 @@ object MainForm: TMainForm
           TabOrder = 15
           OnClick = btnFloatsTestsClick
         end
+        object btnWithJSON: TButton
+          Left = 545
+          Top = 30
+          Width = 75
+          Height = 25
+          Caption = 'JSON Prop'
+          TabOrder = 16
+          OnClick = btnWithJSONClick
+        end
       end
       object GroupBox2: TGroupBox
         Left = 3
@@ -339,9 +348,12 @@ object MainForm: TMainForm
         Left = 11
         Top = 18
         Width = 489
-        Height = 159
+        Height = 391
         Caption = 'Returning Objects'
         TabOrder = 0
+        DesignSize = (
+          489
+          391)
         object edtSearchText: TEdit
           Left = 16
           Top = 24
@@ -363,7 +375,8 @@ object MainForm: TMainForm
           Left = 16
           Top = 53
           Width = 435
-          Height = 82
+          Height = 316
+          Anchors = [akLeft, akTop, akRight, akBottom]
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
           Font.Height = -13
@@ -374,15 +387,6 @@ object MainForm: TMainForm
         end
       end
     end
-  end
-  object btnWithJSON: TButton
-    Left = 552
-    Top = 76
-    Width = 75
-    Height = 25
-    Caption = 'JSON Prop'
-    TabOrder = 1
-    OnClick = btnWithJSONClick
   end
   object DataSource1: TDataSource
     DataSet = FDMemTable1

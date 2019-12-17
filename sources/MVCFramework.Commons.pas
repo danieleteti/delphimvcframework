@@ -345,11 +345,10 @@ type
   end;
 
   EMVCException = class(Exception)
-  private
+  protected
     FHttpErrorCode: UInt16;
     FAppErrorCode: UInt16;
     FDetailedMessage: string;
-  protected
     procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
   public
     constructor Create(const AMsg: string); overload; virtual;

@@ -701,10 +701,10 @@ begin
     lQry.SQL.Text := lSQL;
 
     lHandled := False;
+    //lQry.Prepare;
     MapObjectToParams(lQry.Params, lHandled);
     if not lHandled then
     begin
-      // lQry.Prepare;
       for lPair in fMap do
       begin
         lPar := lQry.FindParam(lPair.value);
@@ -1271,7 +1271,24 @@ begin
     // end;
     tkString, tkUString:
       begin
-        aParam.AsString := aValue.AsString;
+        case aParam.DataType of
+        ftUnknown, ftString, ftWideString:
+          begin
+            aParam.AsString := aValue.AsString;
+          end;
+        ftWideMemo:
+          begin
+            aParam.AsWideMemo := aValue.AsString;
+          end;
+        ftMemo:
+          begin
+            aParam.AsMemo := aValue.AsString;
+          end;
+        else
+          begin
+            raise EMVCActiveRecord.CreateFmt('Invalid data type for (tkString, tkUString) [%s]', [lName]);
+          end;
+        end;
       end;
 {$IF Defined(SeattleOrBetter)}
     tkWideString:

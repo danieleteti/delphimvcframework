@@ -1,4 +1,4 @@
-// ***************************************************************************
+﻿// ***************************************************************************
 //
 // Delphi MVC Framework
 //
@@ -280,7 +280,7 @@ const
   JSONNameLowerCase = ncLowerCase deprecated 'Use MVCNameCaseAttribute(ncLowerCase)';
   JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
-function NewDataObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
   const AOwns: boolean = false): TDataObjectHolder;
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
   const AOwns: boolean = false): TDataObjectHolder;
@@ -291,7 +291,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
 
-function NewDataObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
+function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
   const AOwns: boolean = false): TDataObjectHolder;
 begin
   Result := TDataObjectHolder.Create(AObject, AOwns, dstSingleRecord);

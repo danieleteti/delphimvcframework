@@ -272,8 +272,9 @@ var
   lResp: IJSONRPCResponse;
   lJSON: TJsonArray;
   I: Integer;
+  lJObj: TJsonObject;
 begin
-  lbPerson.Clear;
+  ListBox1.Clear;
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'searchproducts';
   lReq.RequestID := 1234;
@@ -287,7 +288,8 @@ begin
   lJSON := lResp.Result.AsObject as TJsonArray;
   for I := 0 to lJSON.Count - 1 do
   begin
-    ListBox1.Items.Add(lJSON[I].ObjectValue.ToJSON());
+    lJObj := lJSON[I].ObjectValue;
+    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f',[lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
   end;
   // lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
   // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
@@ -339,6 +341,7 @@ begin
   lResp := FExecutor.ExecuteRequest(lReq);
   FDMemTable1.Active := True;
   FDMemTable1.LoadFromTValue(lResp.Result);
+  FDMemTable1.First;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);

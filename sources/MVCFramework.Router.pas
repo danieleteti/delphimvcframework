@@ -392,6 +392,10 @@ var
   FoundOneAttProduces: Boolean;
 begin
   Result := False;
+  if AAccept = '*/*' then
+  begin
+    Exit(True);
+  end;
 
   FoundOneAttProduces := False;
   for I := 0 to high(AAttributes) do
