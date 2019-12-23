@@ -4,7 +4,9 @@
 
 DelphiMVCFramework is the **most popular** Delphi project on GitHub!
 
-Daniele is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!
+**Daniele Teti is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!**
+
+![](docs/delphimvcframework_handbook_cover.png)
 
 ## How to install DMVCFramework
 *It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
@@ -33,11 +35,12 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less! (the guide is a bit outdated - a new book is being written by Daniele Teti. Let us know if you are interested in [DMVCFramework Handbook](https://leanpub.com/delphimvcframework))
   * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
+* Commercially supported by [bit Time Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
   * RESTful (RMM Level 3) compliant
   * JSON-RPC 2.0 Support with automatic objects remotization (check [sample](https://github.com/danieleteti/delphimvcframework/tree/master/samples/jsonrpc_with_published_objects))
   * Stable and solid, used by small/mid/big projects since 2010
   * Very fast! (2.x was pretty fast and now, 3.x is 60% faster than the 2.x!)
-  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2600 active members
+  * Support group at https://www.facebook.com/groups/delphimvcframework with more than 2700 active members
   * Can be used in load balanced environment
   * Wizard for the Delphi IDE. It makes DelphiMVCFramework even more simple to use!
   * Optional session support
@@ -53,12 +56,11 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Specialized renders to generate text, HTML, JSON.
   * Powerful and customizable mapper to serialize/deserialize data.
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
-  * Integrated RESTClient
-  * Works with XE7, XE8, Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
+  * Integrated REST Client
+  * Works with Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
   * Works on Linux (Delphi 10.2 Tokyo or better)
   * Completely unit tested (more than 130 unit tests)
   * There is a sample for each functionality (check the [dmvcframework_(yourversion)_samples.zip](https://github.com/danieleteti/delphimvcframework/releases))
-  * Fully supported by [bitTime Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
   * Server side generated pages using [Mustache for Delphi](https://github.com/synopse/dmustache)
   * Specific trainings are available (email to `professionals@bittime.it` for a date and a place)
   * Messaging extension using [ServerSentEvents](https://github.com/danieleteti/delphimvcframework/tree/master/samples/serversentevents)
@@ -162,6 +164,7 @@ end;
 - New! Custom Exception Handling (Based on work of [David Moorhouse](https://github.com/fastbike)). Sample "custom_exception_handling" show how to use it.
 - Improved! Exceptions rendering while using MIME types different to `application/json`.
 - Improved! JSONRPC Automatic Object Publishing can not invoke inherited methods if not explicitly defined with `MVCInheritable` attribute.
+- SSL Server support for `TMVCListener` (Thanks to [Sven Harazim](https://github.com/landrix))
 - Improved! Datasets serialization speed improvement. In some case the performance [improves of 2 order of magnitude](https://github.com/danieleteti/delphimvcframework/issues/205#issuecomment-479513158). (Thanks to https://github.com/pedrooliveira01)
 - New! Added `in` operator in RQL parser (Thank you to [João Antônio Duarte](https://github.com/joaoduarte19) for his initial work on this)
 - New! Added `TMVCActiveRecord.Count<T>(RQL)` to count record based on RQL criteria
@@ -266,7 +269,8 @@ end;
 |Delphi XE8| `packages\dxe8\dmvcframework_group.groupproj`|
 |Delphi XE7| `packages\dxe7\dmvcframework_group.groupproj`|
 
-### DelphiMVCFramework 3.1.0-lithium (Current Release)
+## DelphiMVCFramework 3.1.0-lithium (Current Release)
+
 - New! Added `TMVCActiveRecord` framework (check sample `activerecord_showcase` and `activerecord_crud`)
 - New! Added `TMVCActiveRecordController` (check sample `activerecord_crud`)
 - Automatic permissions handling for `TMVCActiveRecordController` (check sample `activerecord_crud`)
@@ -304,21 +308,42 @@ DelphiMVCFramework roadmap is always updated as-soon-as the features planned are
 
 ## Trainings, consultancy or custom development service
 As you know, good support on open source software is a must for professional users.
-If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bittimeprofessionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, al the main developers works there.
+If you need trainings, consultancy or custom developments on DelphiMVCFramework, send an email to *dmvcframework at bittime dot it*. Alternatively you can send a request using the [contacts forms](http://www.bittimeprofessionals.it/contatti) on [bit Time Professionals website](http://www.bittimeprofessionals.it). bit Time Professionals is the company behind DelphiMVCFramework, all the main developers works there.
 
 ## Release Notes
-**3.0.0 (hydrogen)**
+#### 3.1.0 (lithium)
+
+- `TMVCActiveRecord` framework
+- `TMVCActiveRecordController`  with automatic RESTful interface generation and permissions handling
+- EntityProcessor for `TMVCActiveRecordController` to handle complex cases
+- JSON-RPC executor allows to configure HTTP headers for JSON-RPC requests and notifications.
+- `TDataSetHolder` 
+- `404` and `500` status code returns always a `text/plain` content-type
+- Speed improvement! 
+- `MAX_REQUEST_SIZE` can now limit the size of the incoming HTTP requests.
+- `TMVCResponse` can handle generic (non error) responses
+- `gzip` compression support in addition to `deflate` in `TCompressionMiddleware`
+- `TCompressionMiddleware` has been renamed in `TMVCCompressionMiddleware`
+- Support for Spring4d nullable types (check `samples\renders_spring4d_nullables`)
+- `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even data modules) through a JSON-RPC 2.0 interface!
+- *Breaking Change!* The JSON RPC Client layer is now interface based.
+
+#### 3.0.0 (hydrogen)
+
   - First release of the 3.0.0 version
 
-**2.1.3 (lithium)**
+#### 2.1.3 (lithium)
+
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions
 
-**2.1.2 (helium)**
+#### 2.1.2 (helium)
+
   - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
   - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
 
-**2.1.1 (hydrogen)**
+#### 2.1.1 (hydrogen)
+
   - Updated the IDE Expert to show the current version of the framework
   - FIX to the mapper about the datasets null values (needs to be checked in old Delphi versions)
   - ADDED support for Boolean values in datasets serialization
