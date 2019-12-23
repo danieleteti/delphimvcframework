@@ -660,6 +660,8 @@ type
       const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
+    procedure Render<T: class>(const AStatusCode: Integer; const ACollection: TObjectList<T>; const AOwns: Boolean;
+      const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean;
       const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render(const ACollection: IMVCList); overload;
@@ -3213,6 +3215,14 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty collection.');
+end;
+
+procedure TMVCRenderer.Render<T>(const AStatusCode: Integer;
+  const ACollection: TObjectList<T>; const AOwns: Boolean;
+  const ASerializationAction: TMVCSerializationAction<T>);
+begin
+  SetStatusCode(AStatusCode);
+  Render<T>(ACollection, AOwns, ASerializationAction);
 end;
 
 function TMVCController.GetRenderedView(const AViewNames: TArray<string>): string;

@@ -693,7 +693,7 @@ begin
   People.Add(p);
 
 {$ENDREGION}
-  Render<TPerson>(People);
+  Render<TPerson>(HTTP_STATUS.OK, People, True);
 end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;
