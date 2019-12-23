@@ -70,6 +70,8 @@ type
     fCompanyName: string;
     [MVCTableField('city')]
     fCity: string;
+    [MVCTableField('note')]
+    fNote: String;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -77,6 +79,7 @@ type
     property Code: string read fCode write fCode;
     property CompanyName: string read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
+    property Note: String read fNote write fNote;
   end;
 
   [MVCNameCase(ncLowerCase)]

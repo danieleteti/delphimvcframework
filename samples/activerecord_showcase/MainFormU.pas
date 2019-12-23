@@ -82,6 +82,7 @@ begin
     lCustomer.Code := '1234';
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
+    lCustomer.Note := 'Hello there!';
     lCustomer.Insert;
     lID := lCustomer.ID;
     Log('Just inserted Customer ' + lID.ToString);
@@ -92,6 +93,7 @@ begin
   lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
   try
     lCustomer.Code := '5678';
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678';
     lCustomer.Update;
     Log('Just updated Customer ' + lID.ToString);
   finally
@@ -163,6 +165,7 @@ begin
             lCustomer.City := Cities[Random(high(Cities) + 1)];
             lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(High(Stuff) + 1)],
               CompanySuffix[Random(High(CompanySuffix) + 1)]]);
+            lCustomer.Note := lCustomer.CompanyName + ' is from ' + lCustomer.City;
             lCustomer.Insert;
           finally
             lCustomer.Free;

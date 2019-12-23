@@ -1447,7 +1447,9 @@ begin
     end
     else
     begin
-      raise EMVCJSONRPCException.Create('Response message must have ''result'' or ''error''');
+      raise EMVCJSONRPCException.Create('Response message must have ''result'' or ''error''.' + sLineBreak +
+        'Raw message is: ' + sLineBreak +
+        JSON.ToJSON());
     end;
   end;
 end;
