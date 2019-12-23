@@ -53,6 +53,9 @@ type
 
     function GetWebModuleClass: TComponentClass;
     function SetWebModuleClass(AValue: TComponentClass): IMVCListenerProperties;
+
+    function GetSSLOptions(out SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): Boolean;
+    function SetSSLOptions(const SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): IMVCListenerProperties;
   end;
 
   IMVCListener = interface
