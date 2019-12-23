@@ -249,6 +249,8 @@ end;
 
 - Fixed! [issue232](https://github.com/danieleteti/delphimvcframework/issues/232) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 
+- Fixed! [issue312](https://github.com/danieleteti/delphimvcframework/issues/312)
+
 - New Installation procedure! 
 
     - Open the project group (select the correct one from the following table)
