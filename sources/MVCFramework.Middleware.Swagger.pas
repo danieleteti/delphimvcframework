@@ -49,6 +49,7 @@ type
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
     procedure DocumentApi(ASwagDoc: TSwagDoc);
+    procedure SortApiPaths(ASwagDoc: TSwagDoc);
     procedure InternalRender(AContent: string; AContext: TWebContext);
   public
     constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
@@ -76,7 +77,8 @@ uses
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.SecurityDefinitionApiKey,
   Swag.Doc.SecurityDefinitionBasic,
-  Swag.Doc.Definition;
+  Swag.Doc.Definition,
+  System.Generics.Defaults;
 
 { TMVCSwaggerMiddleware }
 
@@ -329,6 +331,7 @@ begin
       DocumentApiSettings(AContext, LSwagDoc);
       DocumentApiAuthentication(LSwagDoc);
       DocumentApi(LSwagDoc);
+      SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
       InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
@@ -338,6 +341,18 @@ begin
       LSwagDoc.Free;
     end;
   end;
+end;
+
+procedure TMVCSwaggerMiddleware.SortApiPaths(ASwagDoc: TSwagDoc);
+var
+  lComparer: IComparer<TSwagPath>;
+begin
+  lComparer := TDelegatedComparer<TSwagPath>.Create(
+  function(const Left, Right: TSwagPath): Integer
+  begin
+    Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
+  end);
+  ASwagDoc.Paths.Sort(lComparer);
 end;
 
 end.
