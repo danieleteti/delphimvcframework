@@ -49,6 +49,7 @@ type
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
     procedure DocumentApi(ASwagDoc: TSwagDoc);
+    procedure SortApiPaths(ASwagDoc: TSwagDoc);
     procedure InternalRender(AContent: string; AContext: TWebContext);
   public
     constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
@@ -76,7 +77,8 @@ uses
   Swag.Doc.Path.Operation.RequestParameter,
   Swag.Doc.SecurityDefinitionApiKey,
   Swag.Doc.SecurityDefinitionBasic,
-  Swag.Doc.Definition;
+  Swag.Doc.Definition,
+  System.Generics.Defaults;
 
 { TMVCSwaggerMiddleware }
 
@@ -185,12 +187,13 @@ begin
           for I in lMVCHttpMethods do
           begin
             lSwagPathOp := TSwagPathOperation.Create;
-            TMVCSwagger.FillOperationSummary(lSwagPathOp, lMethod);
+            TMVCSwagger.FillOperationSummary(lSwagPathOp, lMethod, ASwagDoc.Definitions);
             if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
             begin
               lSwagPathOp.Security.Add(lAuthTypeName);
             end;
-            lSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(lSwagPath.Uri, lMethod));
+            lSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(lSwagPath.Uri, lMethod,
+              ASwagDoc.Definitions));
             lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
             lSwagPath.Operations.Add(lSwagPathOp);
           end;
@@ -328,6 +331,7 @@ begin
       DocumentApiSettings(AContext, LSwagDoc);
       DocumentApiAuthentication(LSwagDoc);
       DocumentApi(LSwagDoc);
+      SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
       InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
@@ -337,6 +341,40 @@ begin
       LSwagDoc.Free;
     end;
   end;
+end;
+
+procedure TMVCSwaggerMiddleware.SortApiPaths(ASwagDoc: TSwagDoc);
+var
+  lPathComparer: IComparer<TSwagPath>;
+  lOperationComparer: IComparer<TSwagPathOperation>;
+  lSwagPath: TSwagPath;
+begin
+  // Sort paths
+  lPathComparer := TDelegatedComparer<TSwagPath>.Create(
+  function(const Left, Right: TSwagPath): Integer
+  begin
+    Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
+  end);
+
+  ASwagDoc.Paths.Sort(lPathComparer);
+
+  // Sort paths operations
+  lOperationComparer := TDelegatedComparer<TSwagPathOperation>.Create(
+  function(const Left, Right: TSwagPathOperation): Integer
+  begin
+    if Ord(Left.Operation) > Ord(Right.Operation) then
+      Result := -1
+    else if Ord(Left.Operation) < Ord(Right.Operation) then
+      Result := 1
+    else
+      Result := 0;
+  end);
+
+  for lSwagPath in ASwagDoc.Paths do
+  begin
+    lSwagPath.Operations.Sort(lOperationComparer);
+  end;
+
 end;
 
 end.
