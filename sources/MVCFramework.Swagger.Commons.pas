@@ -41,7 +41,8 @@ uses
   System.Json,
   Json.Schema.Field,
   Json.Schema.Field.Objects,
-  Swag.Doc.Definition;
+  Swag.Doc.Definition,
+  System.Generics.Collections;
 
 type
   TMVCSwagParamLocation = (plNotDefined, plQuery, plHeader, plPath, plFormData, plBody);
@@ -199,10 +200,11 @@ type
     class destructor Destroy;
     class function MVCHttpMethodToSwagPathOperation(const AMVCHTTPMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
     class function MVCPathToSwagPath(const AResourcePath: string): string;
-    class function GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod)
-      : TArray<TSwagRequestParameter>;
+    class function GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod;
+      const ASwagDefinitions: TObjectList<TSwagDefinition>): TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
-    class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod);
+    class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod;
+      const ASwagDefinitions: TObjectList<TSwagDefinition>);
     class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType;
       out AAuthenticationTypeName: string): Boolean;
     class function GetJWTAuthenticationPath(const AJWTUrlSegment: string; AUserNameHeaderName, APasswordHeaderName: string): TSwagPath;
@@ -235,7 +237,7 @@ uses
   Json.Schema.Field.Arrays,
   Json.Schema.Field.DateTimes,
   Json.Schema.Field.Enums,
-  Json.Schema.Field.Booleans;
+  Json.Schema.Field.Booleans, System.Generics.Defaults;
 
 { TSwaggerUtils }
 
@@ -406,11 +408,16 @@ begin
 end;
 
 class procedure TMVCSwagger.FillOperationSummary(const ASwagPathOperation: TSwagPathOperation;
-  const AMethod: TRttiMethod);
+  const AMethod: TRttiMethod; const ASwagDefinitions: TObjectList<TSwagDefinition>);
 var
   lAttr: TCustomAttribute;
   lSwagResponse: TSwagResponse;
   lSwagResponsesAttr: MVCSwagResponsesAttribute;
+  lComparer: IComparer<TSwagDefinition>;
+  lSwagDefinition: TSwagDefinition;
+  lSwagDef: TSwagDefinition;
+  lClassName: string;
+  lIndex: Integer;
 begin
   for lAttr in AMethod.GetAttributes do
   begin
@@ -448,8 +455,32 @@ begin
       end
       else if Assigned(lSwagResponsesAttr.JsonSchemaClass) then
       begin
-        lSwagResponse.Schema.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
-          lSwagResponsesAttr.IsArray);
+        lComparer := TDelegatedComparer<TSwagDefinition>.Create(
+          function(const Left, Right: TSwagDefinition): Integer
+          begin
+            Result := CompareText(Left.Name, Right.Name);
+          end);
+
+        lClassName := lSwagResponsesAttr.JsonSchemaClass.ClassName;
+        if lClassName.ToUpper.StartsWith('T') then
+          lClassName := lClassName.Remove(0, 1);
+
+        ASwagDefinitions.Sort(lComparer);
+        lSwagDef := TSwagDefinition.Create;
+        try
+          lSwagDef.Name := lClassName;
+          if not ASwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
+          begin
+            lSwagDefinition := TSwagDefinition.Create;
+            lSwagDefinition.Name := lClassName;
+            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
+              lSwagResponsesAttr.IsArray);
+            ASwagDefinitions.Add(lSwagDefinition);
+          end;
+        finally
+          lSwagDef.Free;
+        end;
+        lSwagResponse.Schema.Name := lClassName;
       end;
       ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
     end;
@@ -626,8 +657,8 @@ begin
   end;
 end;
 
-class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod)
-  : TArray<TSwagRequestParameter>;
+class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string; const AMethod: TRttiMethod;
+  const ASwagDefinitions: TObjectList<TSwagDefinition>): TArray<TSwagRequestParameter>;
 
   function TryGetMVCPathParamByName(const AParams: TArray<MVCSwagParamAttribute>; const AParamName: string;
     out AMVCParam: MVCSwagParamAttribute; out AIndex: Integer): Boolean;
@@ -656,6 +687,10 @@ var
   lMVCParam: MVCSwagParamAttribute;
   lIndex: Integer;
   I: Integer;
+  lComparer: IComparer<TSwagDefinition>;
+  lClassName: string;
+  lSwagDef: TSwagDefinition;
+  lSwagDefinition: TSwagDefinition;
 begin
   lMVCSwagParams := GetMVCSwagParamsFromMethod(AMethod);
 
@@ -685,8 +720,32 @@ begin
           end
           else if Assigned(lMVCParam.JsonSchemaClass) then
           begin
-            lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCParam.JsonSchemaClass,
+            lComparer := TDelegatedComparer<TSwagDefinition>.Create(
+              function(const Left, Right: TSwagDefinition): Integer
+              begin
+                Result := CompareText(Left.Name, Right.Name);
+              end);
+
+            lClassName := lMVCParam.JsonSchemaClass.ClassName;
+            if lClassName.ToUpper.StartsWith('T') then
+              lClassName := lClassName.Remove(0, 1);
+
+            ASwagDefinitions.Sort(lComparer);
+            lSwagDef := TSwagDefinition.Create;
+            try
+              lSwagDef.Name := lClassName;
+              if not ASwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
+              begin
+                lSwagDefinition := TSwagDefinition.Create;
+                lSwagDefinition.Name := lClassName;
+                lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lMVCParam.JsonSchemaClass,
               lMVCParam.ParamType = ptArray);
+                ASwagDefinitions.Add(lSwagDefinition);
+              end;
+            finally
+              lSwagDef.Free;
+            end;
+            lSwagParam.Schema.Name := lClassName;
           end;
           Delete(lMVCSwagParams, lIndex, 1);
         end
