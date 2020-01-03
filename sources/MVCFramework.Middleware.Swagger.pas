@@ -345,14 +345,36 @@ end;
 
 procedure TMVCSwaggerMiddleware.SortApiPaths(ASwagDoc: TSwagDoc);
 var
-  lComparer: IComparer<TSwagPath>;
+  lPathComparer: IComparer<TSwagPath>;
+  lOperationComparer: IComparer<TSwagPathOperation>;
+  lSwagPath: TSwagPath;
 begin
-  lComparer := TDelegatedComparer<TSwagPath>.Create(
+  // Sort paths
+  lPathComparer := TDelegatedComparer<TSwagPath>.Create(
   function(const Left, Right: TSwagPath): Integer
   begin
     Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
   end);
-  ASwagDoc.Paths.Sort(lComparer);
+
+  ASwagDoc.Paths.Sort(lPathComparer);
+
+  // Sort paths operations
+  lOperationComparer := TDelegatedComparer<TSwagPathOperation>.Create(
+  function(const Left, Right: TSwagPathOperation): Integer
+  begin
+    if Ord(Left.Operation) > Ord(Right.Operation) then
+      Result := -1
+    else if Ord(Left.Operation) < Ord(Right.Operation) then
+      Result := 1
+    else
+      Result := 0;
+  end);
+
+  for lSwagPath in ASwagDoc.Paths do
+  begin
+    lSwagPath.Operations.Sort(lOperationComparer);
+  end;
+
 end;
 
 end.

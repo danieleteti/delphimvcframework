@@ -133,19 +133,22 @@ type
     fRequired: Boolean;
     fJsonSchema: string;
     fJsonSchemaClass: TClass;
+    fDefaultValue: string;
   public
     constructor Create(const AParamLocation: TMVCSwagParamLocation; const AParamName: string;
       const AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean = True;
-      const AJsonSchema: string = ''); overload;
+      const ADefaultValue: string = ''; const AJsonSchema: string = ''); overload;
     constructor Create(const AParamLocation: TMVCSwagParamLocation; const AParamName: string;
       const AParamDescription: string; const AJsonSchemaClass: TClass;
-      const AParamType: TMVCSwagParamType = ptNotDefined; const ARequired: Boolean = True); overload;
+      const AParamType: TMVCSwagParamType = ptNotDefined; const ARequired: Boolean = True;
+      const ADefaultValue: string = ''); overload;
 
     property ParamLocation: TMVCSwagParamLocation read fParamLocation;
     property ParamName: string read fParamName;
     property ParamDescription: string read fParamDescription;
     property ParamType: TMVCSwagParamType read fParamType;
     property Required: Boolean read fRequired;
+    property DefaultValue: string read fDefaultValue;
     property JsonSchema: string read fJsonSchema;
     property JsonSchemaClass: TClass read fJsonSchemaClass;
   end;
@@ -712,6 +715,7 @@ begin
           lSwagParam.Name := lParamName;
           lSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
           lSwagParam.Required := lMVCParam.Required;
+          lSwagParam.Default := lMVCParam.DefaultValue;
           lSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
           lSwagParam.Description := lMVCParam.ParamDescription;
           if not lMVCParam.JsonSchema.IsEmpty then
@@ -768,6 +772,7 @@ begin
     lSwagParam.Name := lMVCSwagParams[I].ParamName;
     lSwagParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
     lSwagParam.Required := lMVCSwagParams[I].Required;
+    lSwagParam.Default := lMVCSwagParams[I].DefaultValue;
     lSwagParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
     lSwagParam.Description := lMVCSwagParams[I].ParamDescription;
     if not lMVCSwagParams[I].JsonSchema.IsEmpty then
@@ -935,22 +940,23 @@ end;
 
 constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation;
   const AParamName, AParamDescription: string; const AParamType: TMVCSwagParamType; const ARequired: Boolean;
-  const AJsonSchema: string);
+  const ADefaultValue, AJsonSchema: string);
 begin
   fParamLocation := AParamLocation;
   fParamName := AParamName;
   fParamDescription := AParamDescription;
   fParamType := AParamType;
   fRequired := ARequired;
+  fDefaultValue := ADefaultValue;
   fJsonSchema := AJsonSchema;
   fJsonSchemaClass := nil;
 end;
 
 constructor MVCSwagParamAttribute.Create(const AParamLocation: TMVCSwagParamLocation;
   const AParamName, AParamDescription: string; const AJsonSchemaClass: TClass; const AParamType: TMVCSwagParamType;
-  const ARequired: Boolean);
+  const ARequired: Boolean; const ADefaultValue: string);
 begin
-  Create(AParamLocation, AParamName, AParamDescription, AParamType, ARequired, '');
+  Create(AParamLocation, AParamName, AParamDescription, AParamType, ARequired, ADefaultValue, '');
   fJsonSchemaClass := AJsonSchemaClass;
 end;
 
