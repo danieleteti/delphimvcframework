@@ -635,7 +635,7 @@ type
     /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current documents active view if any.
     /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
     /// </summary>
-    procedure ResponseNoContent(const Reason: String = 'No Content'); virtual;
+    procedure ResponseNoContent(const Location: String = ''; const Reason: String = 'No Content'); virtual;
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean = True)
       : IMVCSerializer; overload;
@@ -2983,8 +2983,12 @@ begin
   ResponseStatus(HTTP_STATUS.Created, Reason);
 end;
 
-procedure TMVCRenderer.ResponseNoContent(const Reason: String);
+procedure TMVCRenderer.ResponseNoContent(const Location, Reason: String);
 begin
+  if not Location.IsEmpty then
+  begin
+    FContext.Response.CustomHeaders.AddPair('location', Location);
+  end;
   ResponseStatus(HTTP_STATUS.NoContent, Reason);
 end;
 

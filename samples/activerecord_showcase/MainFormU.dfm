@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 401
+  ClientHeight = 452
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     635
-    401)
+    452)
   PixelsPerInch = 96
   TextHeight = 13
   object btnCRUD: TButton
@@ -40,7 +40,7 @@ object MainForm: TMainForm
     Left = 135
     Top = 8
     Width = 492
-    Height = 385
+    Height = 436
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -111,6 +111,33 @@ object MainForm: TMainForm
     Caption = 'CRUD Transient'
     TabOrder = 8
     OnClick = btnTransientFieldsClick
+  end
+  object Button1: TButton
+    Left = 152
+    Top = 335
+    Width = 75
+    Height = 25
+    Caption = 'Button1'
+    TabOrder = 9
+    OnClick = Button1Click
+  end
+  object btnNullables: TButton
+    Left = 8
+    Top = 326
+    Width = 121
+    Height = 34
+    Caption = 'Nullables'
+    TabOrder = 10
+    OnClick = btnNullablesClick
+  end
+  object btnNullTest: TButton
+    Left = 8
+    Top = 366
+    Width = 121
+    Height = 34
+    Caption = 'Nullables Test'
+    TabOrder = 11
+    OnClick = btnNullTestClick
   end
   object FDConnection1: TFDConnection
     Left = 176

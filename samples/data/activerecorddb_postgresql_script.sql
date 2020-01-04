@@ -18,6 +18,7 @@ CREATE TABLE customers (
 	code varchar(20) NULL,
 	description varchar(200) NULL,
 	city varchar(200) NULL,
+	rating int8 NULL,	
 	note text NULL,	
 	CONSTRAINT customers_pk PRIMARY KEY (id)
 );

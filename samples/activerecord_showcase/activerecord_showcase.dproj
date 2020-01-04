@@ -113,6 +113,7 @@
             <Form>EngineChoiceForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
         <BuildConfiguration Include="BULD">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -137,7 +138,7 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="SQLITE" Class="ProjectOutput">
+                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>activerecord_showcase.exe</RemoteName>
                         <Overwrite>true</Overwrite>
@@ -149,7 +150,13 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="BULD" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>activerecord_showcase.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="SQLITE" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>activerecord_showcase.exe</RemoteName>
                         <Overwrite>true</Overwrite>

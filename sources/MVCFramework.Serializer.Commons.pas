@@ -245,7 +245,7 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
-  TDataObjectHolder = class
+  TObjectResponseBase = class(TMVCResponseBase)
   private
     FData: TObject;
     FMetadata: TMVCStringDictionary;
@@ -261,6 +261,20 @@ type
     property Items: TObject read FData;
     [MVCNameAs('meta')]
     property Metadata: TMVCStringDictionary read FMetadata;
+  end;
+
+  TDataObjectHolder = TObjectResponseBase deprecated 'Use one of the specialized versions';
+
+  THTTPStatusCode = 100 .. 599;
+
+  TMVCObjectListResponse = class(TObjectResponseBase)
+  public
+    constructor Create(const AObject: TObject; Owns: boolean = True); reintroduce;
+  end;
+
+  TMVCObjectResponse = class(TObjectResponseBase)
+  public
+    constructor Create(const AObject: TObject; Owns: boolean = True); reintroduce;
   end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
@@ -281,9 +295,9 @@ const
   JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
 function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataObjectHolder;
+  const AOwns: boolean = false): TMVCObjectResponse;
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataObjectHolder;
+  const AOwns: boolean = false): TMVCObjectListResponse;
 
 implementation
 
@@ -292,9 +306,9 @@ uses
   MVCFramework.Serializer.Intf;
 
 function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataObjectHolder;
+  const AOwns: boolean = false): TMVCObjectResponse;
 begin
-  Result := TDataObjectHolder.Create(AObject, AOwns, dstSingleRecord);
+  Result := TMVCObjectResponse.Create(AObject, AOwns);
   if Assigned(AMetaFiller) then
   begin
     AMetaFiller(Result.FMetadata);
@@ -302,9 +316,9 @@ begin
 end;
 
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataObjectHolder;
+  const AOwns: boolean = false): TMVCObjectListResponse;
 begin
-  Result := TDataObjectHolder.Create(AList, AOwns, dstAllRecords);
+  Result := TMVCObjectListResponse.Create(AList, AOwns);
   if Assigned(AMetaFiller) then
   begin
     AMetaFiller(Result.FMetadata);
@@ -314,7 +328,7 @@ end;
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
   // fs.TimeSeparator := ':';
-  Result := DateToISO8601(ADateTime, true)
+  Result := DateToISO8601(ADateTime, True)
   // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
 end;
 
@@ -345,7 +359,7 @@ begin
   begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
-  Result := ISO8601ToDate(lDateTime, true);
+  Result := ISO8601ToDate(lDateTime, True);
 end;
 
 function ISODateToDate(const ADate: string): TDate;
@@ -447,7 +461,7 @@ begin
   Result := false;
   for Att in AAttributes do
     if Att is T then
-      Exit(true);
+      Exit(True);
 end;
 
 class function TMVCSerializerHelper.CreateObject(const AObjectType: TRttiType): TObject;
@@ -591,7 +605,7 @@ begin
     Exit(false);
   for Attr in Attrs do
     if Attr is T then
-      Exit(true);
+      Exit(True);
 end;
 
 class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): boolean;
@@ -606,7 +620,7 @@ begin
     if Attr is T then
     begin
       AAttribute := T(Attr);
-      Exit(true);
+      Exit(True);
     end;
 end;
 
@@ -765,6 +779,20 @@ end;
 function TDataObjectHolder.SerializationType: TMVCDatasetSerializationType;
 begin
   Result := FDataSetSerializationType;
+end;
+
+{ TMVCObjectListResponse }
+
+constructor TMVCObjectListResponse.Create(const AObject: TObject; Owns: boolean);
+begin
+  inherited Create(AObject, Owns, dstAllRecords);
+end;
+
+{ TMVCObjectResponse }
+
+constructor TMVCObjectResponse.Create(const AObject: TObject; Owns: boolean = True);
+begin
+  inherited Create(AObject, Owns, dstSingleRecord);
 end;
 
 end.

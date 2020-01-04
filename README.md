@@ -133,7 +133,7 @@ Render(lPerson, False,
 
 - Better packages organization (check `packages` folder)
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
-- Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception if the record is not found
+- Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception by default if the record is not found - optionally can returns `nil` using new parameter `RaiseExceptionIfNotFound` 
 - New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
 - New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
 - New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
@@ -248,6 +248,12 @@ end;
 - Fixed! [issue182](https://github.com/danieleteti/delphimvcframework/issues/182)
 
 - Fixed! [issue232](https://github.com/danieleteti/delphimvcframework/issues/232) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fixed! [issue289](https://github.com/danieleteti/delphimvcframework/issues/289) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fixed! [issue291](https://github.com/danieleteti/delphimvcframework/issues/291) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fixed! [issue305](https://github.com/danieleteti/delphimvcframework/issues/305) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 
 - Fixed! [issue312](https://github.com/danieleteti/delphimvcframework/issues/312)
 

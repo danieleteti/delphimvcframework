@@ -18,7 +18,8 @@ uses
   MVCFramework.SQLGenerators.Sqlite in '..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas',
   MVCFramework.RQL.AST2SQLite in '..\..\sources\MVCFramework.RQL.AST2SQLite.pas',
   MVCFramework.SQLGenerators.MSSQL in '..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
-  EngineChoiceFormU in 'EngineChoiceFormU.pas' {EngineChoiceForm};
+  EngineChoiceFormU in 'EngineChoiceFormU.pas' {EngineChoiceForm},
+  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas';
 
 {$R *.res}
 
