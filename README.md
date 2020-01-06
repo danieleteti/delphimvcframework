@@ -76,6 +76,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > WARNING! Considering the huge amount of features added in 3.1.1-beryllium during its RC phase, the dmvcframework-3.1.1-beryllium has been renamed to dmvcframework-3.2.0-boron
 
+- New! Added Nullable support in MVCActiveRecord! Check *activerecord_showcase* sample.
 - New! Added Swagger support (thanks to [João Antônio Duarte](https://github.com/joaoduarte19) and [Geoffrey Smith](https://github.com/geoffsmith82))
 - New! Added SQLGenerator and RQL compiler for PostgreSQL, SQLite and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
 - New! Added support for interfaces serialization - now it is possible to serialize Spring4D collections (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
