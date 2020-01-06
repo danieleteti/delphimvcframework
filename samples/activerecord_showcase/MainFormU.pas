@@ -37,8 +37,6 @@ type
     btnRQL: TButton;
     btnTransientFields: TButton;
     FDConnection1: TFDConnection;
-    Button1: TButton;
-    btnNullables: TButton;
     btnNullTest: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
@@ -50,7 +48,6 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure btnTransientFieldsClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
     procedure btnNullablesClick(Sender: TObject);
     procedure btnNullTestClick(Sender: TObject);
   private
@@ -253,59 +250,69 @@ end;
 procedure TMainForm.btnNullTestClick(Sender: TObject);
 var
   lTest: TNullablesTest;
+  lCustomer: TCustomer;
+  lID: Integer;
 begin
-  // TMVCActiveRecord.DeleteAll(TNullablesTest);
-  //
-  // lTest := TNullablesTest.Create();
-  // try
-  // lTest.f_int2 := 2;
-  // lTest.f_int4 := 4;
-  // lTest.f_int8 := 8;
-  // lTest.Insert;
-  // finally
-  // lTest.Free;
-  // end;
-  //
-  // lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
-  // try
-  // Assert(lTest.f_int2.HasValue);
-  // Assert(lTest.f_int4.HasValue);
-  // Assert(lTest.f_int8.HasValue);
-  // Assert(not lTest.f_string.HasValue);
-  // Assert(not lTest.f_bool.HasValue);
-  // Assert(not lTest.f_date.HasValue);
-  // Assert(not lTest.f_time.HasValue);
-  // Assert(not lTest.f_datetime.HasValue);
-  // Assert(not lTest.f_float4.HasValue);
-  // Assert(not lTest.f_float8.HasValue);
-  // Assert(not lTest.f_bool.HasValue);
-  // lTest.f_int2 := lTest.f_int2.Value + 2;
-  // lTest.f_int4 := lTest.f_int4.Value + 4;
-  // lTest.f_int8 := lTest.f_int8.Value + 8;
-  // lTest.Update;
-  // finally
-  // lTest.Free;
-  // end;
-  //
-  // lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [4]);
-  // try
-  // Assert(lTest.f_int2.ValueOrDefault = 4);
-  // Assert(lTest.f_int4.ValueOrDefault = 8);
-  // Assert(lTest.f_int8.ValueOrDefault = 16);
-  // Assert(not lTest.f_string.HasValue);
-  // Assert(not lTest.f_bool.HasValue);
-  // Assert(not lTest.f_date.HasValue);
-  // Assert(not lTest.f_time.HasValue);
-  // Assert(not lTest.f_datetime.HasValue);
-  // Assert(not lTest.f_float4.HasValue);
-  // Assert(not lTest.f_float8.HasValue);
-  // Assert(not lTest.f_bool.HasValue);
-  // TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
-  // finally
-  // lTest.Free;
-  // end;
-  //
-  // Assert(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False) = nil);
+  Log('** Nullables Test');
+  TMVCActiveRecord.DeleteAll(TNullablesTest);
+
+  lTest := TNullablesTest.Create();
+  try
+    lTest.f_int2 := 2;
+    lTest.f_int4 := 4;
+    lTest.f_int8 := 8;
+    lTest.f_blob := TStringStream.Create('Hello World');
+    lTest.Insert;
+    Log('Inserting nulls');
+  finally
+    lTest.Free;
+  end;
+
+  Log('Loading records with nulls');
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [2]);
+  try
+    Assert(lTest.f_int2.HasValue);
+    Assert(lTest.f_int4.HasValue);
+    Assert(lTest.f_int8.HasValue);
+    Assert(not lTest.f_string.HasValue);
+    Assert(not lTest.f_bool.HasValue);
+    Assert(not lTest.f_date.HasValue);
+    Assert(not lTest.f_time.HasValue);
+    Assert(not lTest.f_datetime.HasValue);
+    Assert(not lTest.f_float4.HasValue);
+    Assert(not lTest.f_float8.HasValue);
+    Assert(not lTest.f_bool.HasValue);
+    Assert(Assigned(lTest));
+    lTest.f_int2 := lTest.f_int2.Value + 2;
+    lTest.f_int4 := lTest.f_int4.Value + 4;
+    lTest.f_int8 := lTest.f_int8.Value + 8;
+    lTest.f_blob.Free;
+    lTest.f_blob := nil;
+    lTest.Update;
+  finally
+    lTest.Free;
+  end;
+
+  lTest := TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = ?', [4]);
+  try
+    Assert(lTest.f_int2.ValueOrDefault = 4);
+    Assert(lTest.f_int4.ValueOrDefault = 8);
+    Assert(lTest.f_int8.ValueOrDefault = 16);
+    Assert(not lTest.f_string.HasValue);
+    Assert(not lTest.f_bool.HasValue);
+    Assert(not lTest.f_date.HasValue);
+    Assert(not lTest.f_time.HasValue);
+    Assert(not lTest.f_datetime.HasValue);
+    Assert(not lTest.f_float4.HasValue);
+    Assert(not lTest.f_float8.HasValue);
+    Assert(not lTest.f_bool.HasValue);
+    Assert(not Assigned(lTest.f_blob), 'Blob contains a value when should not');
+    TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
+  finally
+    lTest.Free;
+  end;
+
+  Assert(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False) = nil);
 
   lTest := TNullablesTest.Create;
   try
@@ -323,6 +330,56 @@ begin
     lTest.Insert;
   finally
     lTest.Free;
+  end;
+
+  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'Google Inc.';
+    lCustomer.City := 'Montain View, CA';
+    lCustomer.Note := 'Hello there!';
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert(not lCustomer.Code.HasValue);
+    Log('Just inserted Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert(not lCustomer.Code.HasValue);
+    Assert(not lCustomer.Rating.HasValue);
+    Assert(lCustomer.Rating.ValueOrDefault = 0);
+    lCustomer.Code.Value := '5678';
+    lCustomer.Rating.Value := 3;
+    Assert(lCustomer.Code.HasValue);
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678';
+    lCustomer.Update;
+    Assert(lCustomer.Code.HasValue);
+    Assert(lCustomer.Rating.HasValue);
+    Log('Just updated Customer ' + lID.ToString + ' with nulls');
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert(lCustomer.Code.HasValue);
+    Assert(lCustomer.Rating.HasValue);
+    Assert(lCustomer.Code.ValueOrDefault = '5678');
+    Assert(lCustomer.Rating.ValueOrDefault = 3);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    lCustomer.Code.Value := '9012';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
   end;
 
 end;
@@ -558,25 +615,6 @@ begin
     lCustomer.Update; // raise exception
   finally
     lCustomer.Free;
-  end;
-end;
-
-procedure TMainForm.Button1Click(Sender: TObject);
-var
-  l: NullableString;
-begin
-  Assert(not l.HasValue);
-  l := 'Ciao Mondo';
-  Assert(l.HasValue);
-  var ss: String := l;
-  Assert(l.HasValue);
-  Assert(l = 'Ciao Mondo');
-  Assert(l.HasValue);
-  l.SetNull;
-  Assert(not l.HasValue);
-  try
-    var s: String := l;
-  except
   end;
 end;
 

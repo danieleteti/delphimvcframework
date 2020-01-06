@@ -112,31 +112,13 @@ object MainForm: TMainForm
     TabOrder = 8
     OnClick = btnTransientFieldsClick
   end
-  object Button1: TButton
-    Left = 152
-    Top = 335
-    Width = 75
-    Height = 25
-    Caption = 'Button1'
-    TabOrder = 9
-    OnClick = Button1Click
-  end
-  object btnNullables: TButton
+  object btnNullTest: TButton
     Left = 8
     Top = 326
     Width = 121
     Height = 34
     Caption = 'Nullables'
-    TabOrder = 10
-    OnClick = btnNullablesClick
-  end
-  object btnNullTest: TButton
-    Left = 8
-    Top = 366
-    Width = 121
-    Height = 34
-    Caption = 'Nullables Test'
-    TabOrder = 11
+    TabOrder = 9
     OnClick = btnNullTestClick
   end
   object FDConnection1: TFDConnection

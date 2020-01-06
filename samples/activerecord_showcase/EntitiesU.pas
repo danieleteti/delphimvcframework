@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -30,7 +30,6 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord,
   System.Generics.Collections,
-//  MVCFramework.NullableTypes,
   System.Classes,
   FireDAC.Stan.Param,
   MVCFramework.Nullables;
@@ -216,7 +215,11 @@ type
     ff_string: NullableString;
     [MVCTableField('f_currency')]
     ff_currency: NullableCurrency;
+    [MVCTableField('f_blob')]
+    ff_blob: TStream;
   public
+    constructor Create; override;
+    destructor Destroy; override;
 //	f_int2 int2 NULL,
     property f_int2: NullableInt16 read ff_int2 write ff_int2;
 //	f_int4 int4 NULL,
@@ -239,6 +242,8 @@ type
     property f_float8: NullableDouble read ff_float8 write ff_float8;
 //	f_currency numeric(18,4) NULL
     property f_currency: NullableCurrency read ff_currency write ff_currency;
+//	f_blob bytea NULL
+    property f_blob: TStream read ff_blob write ff_blob;
   end;
 
 implementation
@@ -329,6 +334,20 @@ end;
 procedure TCustomerWithTransient.SetFormattedCode(const Value: String);
 begin
   FFormattedCode := Value;
+end;
+
+{ TNullablesTest }
+
+constructor TNullablesTest.Create;
+begin
+  inherited Create;
+//  ff_blob := TMemoryStream.Create;
+end;
+
+destructor TNullablesTest.Destroy;
+begin
+  ff_blob.Free;
+  inherited;
 end;
 
 end.

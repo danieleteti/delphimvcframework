@@ -336,7 +336,7 @@ begin
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// Delphi MVC Framework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team' + sLineBreak);
+  fIntfBuff.WriteString('// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// https://github.com/danieleteti/delphimvcframework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
