@@ -84,6 +84,7 @@ uses Generics.Collections;
 
 {$R *.fmx}
 
+
 procedure TTabbedForm.acSaveWineExecute(Sender: TObject);
 var
   Wine: TWine;
@@ -111,7 +112,6 @@ begin
   AsynchReq := TAsynchRequest.Create(
     procedure(AValue: TValue)
     begin
-      WinesAdapter.Active := false;
       WinesAdapter.SetList(AValue.AsType<TWines>);
       WinesAdapter.Active := true;
     end, nil, nil, true);

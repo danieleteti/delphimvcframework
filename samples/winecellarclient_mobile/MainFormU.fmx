@@ -57,9 +57,8 @@ object HeaderFooterForm: THeaderFooterForm
   object RESTClient1: TRESTClient
     Accept = 'application/json, text/plain; q=0.9, text/html;q=0.8,'
     AcceptCharset = 'UTF-8, *;q=0.8'
-    BaseURL = 'http://192.168.3.85:3000/'
+    BaseURL = 'http://localhost:3000/api'
     Params = <>
-    HandleRedirects = True
     Left = 104
     Top = 104
   end

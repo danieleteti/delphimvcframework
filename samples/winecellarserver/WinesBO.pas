@@ -42,7 +42,9 @@ type
     property picture: string read FPICTURE write SetPICTURE;
   end;
 
-  TWines = class(TObjectList<TWine>);
+  TWines = class(TObjectList<TWine>)
+    constructor Create;
+  end;
 
 implementation
 
@@ -86,6 +88,13 @@ end;
 procedure TWine.SetYEAR(const Value: string);
 begin
   FYEAR := Value;
+end;
+
+{ TWines }
+
+constructor TWines.Create;
+begin
+  inherited Create(True);
 end;
 
 end.
