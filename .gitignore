@@ -74,3 +74,4 @@ __pycache__/
 *.ini
 *.bmp
 samples/renders/bin/uploadedfiles/
+samples/winecellarclient_mobile/Android/

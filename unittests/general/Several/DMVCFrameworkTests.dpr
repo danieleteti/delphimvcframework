@@ -40,7 +40,8 @@ uses
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule},
   MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
+  ActiveRecordTestsU in 'ActiveRecordTestsU.pas';
 
 {$R *.RES}
 {$IFDEF CONSOLE_TESTRUNNER}

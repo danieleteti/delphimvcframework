@@ -1206,7 +1206,7 @@ var
 begin
   r := RESTClient.doGET('/responses/nocontent', []);
   Assert.areEqual<Integer>(HTTP_STATUS.NoContent, r.ResponseCode);
-  Assert.isTrue(r.ResponseText.Contains('thisisthereason'));
+  Assert.isTrue(r.ResponseText.Contains('No Content'));
   Assert.IsEmpty(r.BodyAsString);
 end;
 
