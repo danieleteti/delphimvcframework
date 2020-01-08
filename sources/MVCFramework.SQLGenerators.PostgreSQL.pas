@@ -74,6 +74,9 @@ type
       const UseArtificialLimit: Boolean = True): string; override;
     function CreateSelectCount(
       const TableName: String): String; override;
+    function GetSequenceValueSQL(const PKFieldName: string;
+      const SequenceName: string;
+      const Step: Integer = 1): string; override;
   end;
 
 implementation
@@ -155,9 +158,9 @@ begin
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSQLWhereByRQL(
-      const RQL: string;
-      const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean): string;
+  const RQL: string;
+  const Mapping: TMVCFieldsMapping;
+  const UseArtificialLimit: Boolean): string;
 var
   lPostgreSQLCompiler: TRQLPostgreSQLCompiler;
 begin
@@ -189,6 +192,12 @@ end;
 function TMVCSQLGeneratorPostgreSQL.GetCompilerClass: TRQLCompilerClass;
 begin
   Result := TRQLPostgreSQLCompiler;
+end;
+
+function TMVCSQLGeneratorPostgreSQL.GetSequenceValueSQL(const PKFieldName,
+  SequenceName: string; const Step: Integer): string;
+begin
+  Result := Format('SELECT nextval(''%s'') %s', [SequenceName, PKFieldName]);
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteAllSQL(

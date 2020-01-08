@@ -525,6 +525,8 @@ begin
     lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite' then
     lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else
     raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
@@ -636,7 +638,7 @@ begin
       end;
     TRDBMSEngine.Interbase:
       begin
-        raise Exception.Create('This DEMO doesn''t support Interbase (while the framework does)');
+        FDConnectionConfigU.CreateInterbasePrivateConnDef(True);
       end;
     TRDBMSEngine.MySQL:
       begin
@@ -665,6 +667,11 @@ begin
 
   ActiveRecordConnectionsRegistry.AddDefaultConnection(FDConnection1);
   Caption := Caption + ' (Curr Backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend + ')';
+{$IFDEF USE_SEQUENCES}
+  Caption := Caption + ' USE_SEQUENCES';
+{$ELSE}
+  Caption := Caption + ' WITHOUT SEQUENCES';
+{$ENDIF}
 end;
 
 procedure TMainForm.Log(const Value: string);

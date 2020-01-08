@@ -6,6 +6,7 @@ const
   CON_DEF_NAME = 'MyConnX';
 
 procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
+procedure CreateInterbasePrivateConnDef(AIsPooled: boolean);
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
 procedure CreatePostgresqlPrivateConnDef(AIsPooled: boolean);
 procedure CreateSqlitePrivateConnDef(AIsPooled: boolean);
@@ -69,6 +70,33 @@ begin
     LParams.Free;
   end;
 end;
+
+procedure CreateInterbasePrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+begin
+  LParams := TStringList.Create;
+  try
+    LParams.Add('Database=' + TPath.GetFullPath(TPath.Combine('..\..', 'data\ACTIVERECORDDB.IB')));
+    LParams.Add('Protocol=TCPIP');
+    LParams.Add('Server=localhost');
+    LParams.Add('User_Name=sysdba');
+    LParams.Add('Password=masterkey');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(CON_DEF_NAME, 'IB', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
 
 procedure CreatePostgresqlPrivateConnDef(AIsPooled: boolean);
 var
