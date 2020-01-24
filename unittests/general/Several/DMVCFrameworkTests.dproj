@@ -192,7 +192,6 @@
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas">
             <Form>EntitiesModule</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Intf.pas"/>

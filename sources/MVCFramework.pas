@@ -1506,7 +1506,11 @@ destructor TMVCWebResponse.Destroy;
 begin
   if FFlushOnDestroy then
   begin
-    Flush;
+    try
+      Flush;
+    except
+      //do nothing
+    end;
   end;
   inherited Destroy;
 end;
@@ -1744,11 +1748,23 @@ end;
 
 destructor TWebContext.Destroy;
 begin
-  FResponse.Free;
-  FRequest.Free;
-  FData.Free;
-  if Assigned(FLoggedUser) then
-    FLoggedUser.Free;
+  try
+    FResponse.Free;
+  except
+  end;
+  try
+    FRequest.Free;
+  except
+  end;
+  try
+    FData.Free;
+  except
+  end;
+  try
+    if Assigned(FLoggedUser) then
+      FLoggedUser.Free;
+  except
+  end;
   inherited Destroy;
 end;
 
@@ -2093,21 +2109,24 @@ begin
                   LActionFormalParams := LRouter.MethodToCall.GetParameters;
                   if (Length(LActionFormalParams) = 0) then
                     SetLength(LActualParams, 0)
-                  else
-                    if (Length(LActionFormalParams) = 1) and
+                  else if (Length(LActionFormalParams) = 1) and
                     (SameText(LActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
                   begin
                     SetLength(LActualParams, 1);
                     LActualParams[0] := LContext;
                   end
                   else
+                  begin
                     try
                       FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
                         LActualParams);
-                    Except
-                      on e:Exception do
-                        SendRawHTTPStatus(Lcontext, HTTP_STATUS.BadRequest, e.Message, e.ClassName);
+                    except
+                      on E: Exception do
+                      begin
+                        SendRawHTTPStatus(LContext, HTTP_STATUS.BadRequest, e.Message, e.ClassName);
+                      end;
                     end;
+                  end;
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
 

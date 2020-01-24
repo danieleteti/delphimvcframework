@@ -20,7 +20,8 @@ implementation
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
-uses Controllers.Articles, MVCFramework.Middleware.CORS, MVCFramework.Middleware.Compression;
+uses Controllers.Articles, MVCFramework.Middleware.CORS, MVCFramework.Middleware.Compression,
+  Controllers.Base;
 
 {$R *.dfm}
 
@@ -28,6 +29,9 @@ procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   FEngine := TMVCEngine.Create(self);
   FEngine.AddController(TArticlesController);
+  {$IFDEF TESTINSTANCE}
+  FEngine.AddController(TPrivateController);
+  {$ENDIF}
   FEngine.AddMiddleware(TCORSMiddleware.Create);
   FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
 

@@ -27,6 +27,7 @@ type
     function GetArticles(const aTextSearch: String): TObjectList<TArticle>;
     function GetByID(const AID: Integer): TArticle;
     procedure Delete(AArticolo: TArticle);
+    procedure DeleteAllArticles;
     procedure Add(AArticolo: TArticle);
     procedure Update(AArticolo: TArticle);
   end;
@@ -62,6 +63,11 @@ begin
   Cmd := FDM.updArticles.Commands[arDelete];
   TFireDACUtils.ObjectToParameters(Cmd.Params, AArticolo, 'OLD_');
   Cmd.Execute;
+end;
+
+procedure TArticlesService.DeleteAllArticles;
+begin
+  FDM.Connection.ExecSQL('delete from articoli');
 end;
 
 function TArticlesService.GetAll: TObjectList<TArticle>;

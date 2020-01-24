@@ -42,6 +42,10 @@ type
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/withcallback')]
+    procedure GetCustomersWithCallback;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($ID)')]
     [MVCProduces('text/plain')]
     procedure GetPerson_AsText(const ID: Integer);
@@ -53,10 +57,6 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
     procedure GetCustomersAsDataSetWithRefLinks;
-
-    [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/withcallback')]
-    procedure GetCustomersWithCallback;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($ID)/asdataset')]
