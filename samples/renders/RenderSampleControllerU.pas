@@ -170,6 +170,15 @@ type
     [MVCPath('/objectwithjson')]
     procedure GetObjectWithJSONProperty;
 
+    // Nullables
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/nullables/single')]
+    procedure GetOneNullableObject;
+
+    // Nullables
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/nullables/many')]
+    procedure GetManyNullableObjects;
 
   end;
 
@@ -386,14 +395,14 @@ begin
       begin
         Links
           .AddRefLink
-            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-            .Add(HATEOAS.REL, 'self')
-            .Add(HATEOAS._TYPE, 'application/json');
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, 'application/json');
         Links
           .AddRefLink
-            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
-            .Add(HATEOAS.REL, 'orders')
-            .Add(HATEOAS._TYPE, 'application/json');
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+          .Add(HATEOAS.REL, 'orders')
+          .Add(HATEOAS._TYPE, 'application/json');
       end);
   finally
     lDM.Free;
@@ -405,70 +414,71 @@ var
   lDM: TMyDataModule;
   lSer: TMVCJsonDataObjectsSerializer;
   lJArray: TJsonArray;
-  lJobj: TJsonObject;
+  lJObj: TJSONObject;
 begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open('SELECT * FROM CUSTOMER ORDER BY CUST_NO');
     lSer := TMVCJsonDataObjectsSerializer.Create;
     try
-      lJobj := TJsonObject.Create;
-      lJArray := lJObj.A['customers'];
+      lJObj := TJSONObject.Create;
+      lJArray := lJObj.a['customers'];
       lSer.DataSetToJsonArray(lDM.qryCustomers, lJArray, TMVCNameCase.ncLowerCase, [],
-              procedure(const aField: TField; const aJsonObject: TJSONObject;
-                    var Handled: Boolean)
-              var
-                lTmp: String;
-                lPieces: TArray<String>;
-              begin
-                //ignore one attribute
-                if SameText(aField.FieldName, 'contact_last') then
-                begin
-                  Handled := True;
-                end;
+        procedure(const aField: TField; const aJsonObject: TJSONObject;
+          var Handled: Boolean)
+        var
+          lTmp: String;
+          lPieces: TArray<String>;
+        begin
+          // ignore one attribute
+          if SameText(aField.FieldName, 'contact_last') then
+          begin
+            Handled := True;
+          end;
 
-                //change the attribute value
-                if SameText(aField.FieldName, 'on_hold') then
-                begin
-                  aJsonObject.B['on_hold'] := not aField.IsNull;
-                  Handled := True;
-                end;
+          // change the attribute value
+          if SameText(aField.FieldName, 'on_hold') then
+          begin
+            aJsonObject.B['on_hold'] := not aField.IsNull;
+            Handled := True;
+          end;
 
-                //change the attribute type!
-                if SameText(aField.FieldName, 'phone_no') then
-                begin
-                  lTmp := aField.AsString.Replace('(','').Replace(')','').Replace('-',' ').Replace('  ',' ', [rfReplaceAll]).Trim;
-                  if lTmp.IsEmpty then
-                  begin
-                    Handled := True;
-                    Exit;
-                  end;
-                  lPieces := lTmp.Split([' ']);
-                  aJsonObject.O['phone'].S['intl_prefix'] := lPieces[0];
-                  Delete(lPieces,0,1);
-                  aJsonObject.O['phone'].S['number'] := String.Join('-', lPieces);
-                  Handled := True;
-                end;
+          // change the attribute type!
+          if SameText(aField.FieldName, 'phone_no') then
+          begin
+            lTmp := aField.AsString.Replace('(', '').Replace(')', '').Replace('-', ' ').Replace('  ', ' ',
+              [rfReplaceAll]).Trim;
+            if lTmp.IsEmpty then
+            begin
+              Handled := True;
+              Exit;
+            end;
+            lPieces := lTmp.Split([' ']);
+            aJsonObject.O['phone'].s['intl_prefix'] := lPieces[0];
+            Delete(lPieces, 0, 1);
+            aJsonObject.O['phone'].s['number'] := String.Join('-', lPieces);
+            Handled := True;
+          end;
 
-                //add an attribute
-                if SameText(aField.FieldName, 'country') then
-                begin
-                  aJsonObject.B['is_usa_customer'] := SameText(aField.AsString,'usa');
-                end;
+          // add an attribute
+          if SameText(aField.FieldName, 'country') then
+          begin
+            aJsonObject.B['is_usa_customer'] := SameText(aField.AsString, 'usa');
+          end;
 
-                //merge 2 or more attributes
-                if SameText(aField.FieldName, 'contact_first') then
-                begin
-                  aJsonObject.S['contact_full_name'] :=
-                    aField.DataSet.FieldByName('contact_first').AsString + ', ' +
-                    aField.DataSet.FieldByName('contact_last').AsString;
-                  Handled := True;
-                end;
-              end);
+          // merge 2 or more attributes
+          if SameText(aField.FieldName, 'contact_first') then
+          begin
+            aJsonObject.s['contact_full_name'] :=
+              aField.DataSet.FieldByName('contact_first').AsString + ', ' +
+              aField.DataSet.FieldByName('contact_last').AsString;
+            Handled := True;
+          end;
+        end);
     finally
       lSer.Free;
     end;
-    Render(lJobj);
+    Render(lJObj);
   finally
     lDM.Free;
   end;
@@ -528,15 +538,34 @@ begin
   Render<TPerson>(GetPeopleList, False);
 end;
 
+procedure TRenderSampleController.GetManyNullableObjects;
+var
+  lList: TObjectList<TNullablesTest>;
+  I: Integer;
+begin
+  lList := TObjectList<TNullablesTest>.Create(True);
+  for I := 1 to 10 do
+  begin
+    lList.Add(TNullablesTest.Create);
+    lList.Last.LoadSomeData;
+  end;
+  Render<TNullablesTest>(lList);
+end;
+
 procedure TRenderSampleController.GetObjectWithJSONProperty;
 var
   lObj: TObjectWithJSONObject;
 begin
   lObj := TObjectWithJSONObject.Create;
   lObj.StringProp := 'Daniele Teti';
-  lObj.JSONObject.S['stringprop'] := 'String Prop';
-  lObj.JSONObject.O['innerobj'].S['innerstringprop'] := 'Inner String Prop';
+  lObj.JSONObject.s['stringprop'] := 'String Prop';
+  lObj.JSONObject.O['innerobj'].s['innerstringprop'] := 'Inner String Prop';
   Render(lObj);
+end;
+
+procedure TRenderSampleController.GetOneNullableObject;
+begin
+  Render(TNullablesTest.Create);
 end;
 
 procedure TRenderSampleController.GetPerson_AsHTML;
@@ -731,15 +760,15 @@ begin
     begin
       Links
         .AddRefLink
-          .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
-          .Add(HATEOAS.REL, 'self')
-          .Add(HATEOAS._TYPE, 'application/json')
-          .Add('title', 'Details for ' + APerson.FullName);
+        .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+        .Add(HATEOAS.REL, 'self')
+        .Add(HATEOAS._TYPE, 'application/json')
+        .Add('title', 'Details for ' + APerson.FullName);
       Links
         .AddRefLink
-          .Add(HATEOAS.HREF, '/people')
-          .Add(HATEOAS.REL, 'people')
-          .Add(HATEOAS._TYPE, 'application/json');
+        .Add(HATEOAS.HREF, '/people')
+        .Add(HATEOAS.REL, 'people')
+        .Add(HATEOAS._TYPE, 'application/json');
     end);
 end;
 

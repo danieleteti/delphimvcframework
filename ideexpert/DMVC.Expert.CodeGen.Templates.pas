@@ -192,7 +192,7 @@ resourcestring
     'end.' + sLineBreak;
 
   sIndexMethodIntf =
-    '    [MVCPath(''/'')]' + sLineBreak +
+    '    [MVCPath]' + sLineBreak +
     '    [MVCHTTPMethod([httpGET])]' + sLineBreak +
     '    procedure Index;' + sLineBreak + sLineBreak +
     '    [MVCPath(''/reversedstrings/($Value)'')]' + sLineBreak +

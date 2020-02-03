@@ -6,12 +6,7 @@ import glob
 from shutil import copy2, rmtree, copytree
 from datetime import datetime
 import pathlib
-
-# import markdown
-# from markdown.extensions.tables import TableExtension
-# from markdown.extensions.toc import TocExtension
-# from markdown.extensions.fenced_code import FencedCodeExtension
-# from markdown.extensions.codehilite import CodeHiliteExtension
+from typing import *
 
 from pathlib import Path
 
@@ -328,3 +323,88 @@ def build_core(ctx, version="DEBUG", delphi_version=DEFAULT_DELPHI_VERSION):
     init_build(version)
     delphi_projects = get_delphi_projects_to_build('core', delphi_version)
     return build_delphi_project_list(ctx, delphi_projects, version, '', delphi_version)
+
+
+
+def parse_template(tmpl: List[str]):
+    main_tmpl = []
+    intf_tmpl = []
+    impl_tmpl = []
+
+    state = 'verbatim'
+    for row in tmpl:
+        if row.upper().strip() == '///INTERFACE.BEGIN':
+            state = 'parsing.interface'
+            continue
+        if row.upper().strip() == '///IMPLEMENTATION.BEGIN':
+            state = 'parsing.implementation'
+            continue
+        if row.upper().strip() in ['///INTERFACE.END','///IMPLEMENTATION.END']:
+            if state == 'parsing.interface':
+                main_tmpl.append('$INTERFACE$')                
+            if state == 'parsing.implementation':
+                main_tmpl.append('$IMPLEMENTATION$')
+            state = 'verbatim'
+            continue
+        
+        if state == 'parsing.interface':
+            intf_tmpl.append(row)
+        elif state == 'parsing.implementation':
+            impl_tmpl.append(row)
+        elif state == 'verbatim':
+            main_tmpl.append(row)
+    return main_tmpl, intf_tmpl, impl_tmpl
+
+@task
+def generate_nullables(ctx):
+    import pathlib
+    src_folder = pathlib.Path(__file__).parent.joinpath("sources")
+    template_unitname = src_folder.joinpath("MVCFramework.Nullables.pas.template")
+    output_unitname =  src_folder.joinpath("MVCFramework.Nullables.pas")
+
+    with open(template_unitname, 'r') as f:
+        rows = f.readlines()
+
+    main_tmpl, intf_tmpl, impl_tmpl = parse_template(rows)
+
+    delphi_types = [
+        'String','Currency','Boolean',
+        'TDate','TTime','TDateTime',
+        'Single','Double','Extended',
+        'Int16','UInt16',
+        'Int32','UInt32',
+        'Int64','UInt64'
+        ]
+    
+    str_main_tmpl = "".join(main_tmpl)
+    str_intf_tmpl = "".join(intf_tmpl)
+    str_impl_tmpl = "".join(impl_tmpl)
+
+    intf_out = ""
+    impl_out = ""
+    for delphi_type in delphi_types:
+        intf_out += f"//**************************\n// ** Nullable{delphi_type}\n//**************************\n\n" + \
+			str_intf_tmpl.replace('$TYPE$',delphi_type)
+        impl_out += str_impl_tmpl.replace('$TYPE$',delphi_type) + "\n"
+
+    str_main_tmpl = str_main_tmpl \
+        .replace('$INTERFACE$',intf_out) \
+        .replace('$IMPLEMENTATION$', impl_out)
+
+
+    with open(output_unitname, 'w') as f:
+        f.writelines(str_main_tmpl)
+
+    with open(src_folder.joinpath('main.out.txt'), 'w') as f:
+        f.writelines(main_tmpl)
+
+    with open(src_folder.joinpath('interface.out.txt'), 'w') as f:
+        f.writelines(intf_tmpl)
+
+    with open(src_folder.joinpath('implementation.out.txt'), 'w') as f:
+        f.writelines(impl_tmpl)
+
+
+
+
+

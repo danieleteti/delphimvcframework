@@ -3,7 +3,6 @@ program activerecord_showcase;
 uses
   Vcl.Forms,
   MainFormU in 'MainFormU.pas' {MainForm},
-  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   EntitiesU in 'EntitiesU.pas',
   FDConnectionConfigU in 'FDConnectionConfigU.pas',
   MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
@@ -19,8 +18,10 @@ uses
   MVCFramework.RQL.AST2SQLite in '..\..\sources\MVCFramework.RQL.AST2SQLite.pas',
   MVCFramework.SQLGenerators.MSSQL in '..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
   EngineChoiceFormU in 'EngineChoiceFormU.pas' {EngineChoiceForm},
+  MVCFramework.SQLGenerators.Interbase in '..\..\sources\MVCFramework.SQLGenerators.Interbase.pas',
+  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
-  MVCFramework.SQLGenerators.Interbase in '..\..\sources\MVCFramework.SQLGenerators.Interbase.pas';
+  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas';
 
 {$R *.res}
 

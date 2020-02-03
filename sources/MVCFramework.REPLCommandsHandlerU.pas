@@ -48,6 +48,8 @@ begin
   if (Value = 'quit') or (Value = 'exit') then
   begin
     EnterInShutdownState;
+    REPLEmit('Stop listening...');
+    Server.StopListening;
     REPLEmit('Shutting down...');
     Result := THandleCommandResult.Break;
   end

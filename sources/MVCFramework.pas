@@ -2260,7 +2260,8 @@ procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWeb
 var
   I: Integer;
 begin
-  for I := FMiddlewares.Count - 1 downto 0 do
+  //for I := FMiddlewares.Count - 1 downto 0 do
+  for I := 0 to FMiddlewares.Count - 1 do
     FMiddlewares[I].OnAfterControllerAction(AContext, AActionName, AHandled);
 end;
 
@@ -2553,6 +2554,14 @@ begin
   // begin
   // FSavedOnBeforeDispatch(ASender, ARequest, AResponse, AHandled);
   // end;
+
+  if IsShuttingDown then
+  begin
+    AResponse.StatusCode := HTTP_STATUS.ServiceUnavailable;
+    AResponse.ContentType := TMVCMediaType.TEXT_PLAIN;
+    AResponse.Content := 'Server is shutting down';
+    AHandled := True;
+  end;
 
   if not AHandled then
   begin

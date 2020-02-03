@@ -28,7 +28,11 @@ interface
 
 uses
   MVCFramework.Serializer.Commons,
-  Generics.Collections, Vcl.Graphics, JsonDataObjects;
+  MVCFramework.Nullables,
+  MVCFramework.ActiveRecord,
+  System.Generics.Collections,
+  Vcl.Graphics,
+  JsonDataObjects, System.Classes;
 
 type
 
@@ -59,6 +63,67 @@ type
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('nullables_test')]
+  TNullablesTest = class(TMVCActiveRecord)
+  private
+    [MVCTableField('f_int2')]
+    ff_int2: NullableInt16;
+    [MVCTableField('f_int4')]
+    ff_int4: NullableInt32;
+    [MVCTableField('f_int8')]
+    ff_int8: NullableInt64;
+    [MVCTableField('f_date')]
+    ff_date: NullableTDate;
+    [MVCTableField('f_time')]
+    ff_time: NullableTTime;
+    [MVCTableField('f_bool')]
+    ff_bool: NullableBoolean;
+    [MVCTableField('f_datetime')]
+    ff_datetime: NullableTDateTime;
+    [MVCTableField('f_float4')]
+    ff_float4: NullableSingle;
+    [MVCTableField('f_float8')]
+    ff_float8: NullableDouble;
+    [MVCTableField('f_string')]
+    ff_string: NullableString;
+    [MVCTableField('f_currency')]
+    ff_currency: NullableCurrency;
+    [MVCTableField('f_blob')]
+    ff_blob: TStream;
+  public
+    destructor Destroy; override;
+    function Equals(Obj: TObject): boolean; override;
+    // f_int2 int2 NULL,
+    property f_int2: NullableInt16 read ff_int2 write ff_int2;
+    // f_int4 int4 NULL,
+    property f_int4: NullableInt32 read ff_int4 write ff_int4;
+    // f_int8 int8 NULL,
+    property f_int8: NullableInt64 read ff_int8 write ff_int8;
+    // f_string varchar NULL,
+    property f_string: NullableString read ff_string write ff_string;
+    // f_bool bool NULL,
+    property f_bool: NullableBoolean read ff_bool write ff_bool;
+    // f_date date NULL,
+    property f_date: NullableTDate read ff_date write ff_date;
+    // f_time time NULL,
+    property f_time: NullableTTime read ff_time write ff_time;
+    // f_datetime timestamp NULL,
+    property f_datetime: NullableTDateTime read ff_datetime write ff_datetime;
+    // f_float4 float4 NULL,
+    property f_float4: NullableSingle read ff_float4 write ff_float4;
+    // f_float8 float8 NULL,
+    property f_float8: NullableDouble read ff_float8 write ff_float8;
+    // f_currency numeric(18,4) NULL
+    property f_currency: NullableCurrency read ff_currency write ff_currency;
+    // f_blob bytea NULL
+    [MVCSerializeAsString]
+    property f_blob: TStream read ff_blob write ff_blob;
+
+    procedure LoadSomeData;
+  end;
+
   IPerson = interface
     ['{1D00C67A-A6D9-4B31-8291-705B339CDE9B}']
     function GetName: String;
@@ -84,7 +149,6 @@ type
     property JSONObject: TJSONObject read fJSONObject;
   end;
 
-
   [MVCNameCase(ncCamelCase)]
   TInterfacedPerson = class(TInterfacedObject, IPerson)
   private
@@ -103,7 +167,6 @@ type
     property Age: Integer read GetAge write SetAge;
     property DOB: TDate read GetDOB write SetDOB;
   end;
-
 
   TPeople = class(TObjectList<TPerson>);
 
@@ -434,7 +497,7 @@ end;
 constructor TObjectWithJSONObject.Create;
 begin
   inherited;
-  fJSONObject := TJsonObject.Create;
+  fJSONObject := TJSONObject.Create;
 end;
 
 destructor TObjectWithJSONObject.Destroy;
@@ -446,6 +509,50 @@ end;
 procedure TObjectWithJSONObject.SetStringProp(const Value: String);
 begin
   FStringProp := Value;
+end;
+
+{ TPersonWithNulls }
+
+function TNullablesTest.Equals(Obj: TObject): boolean;
+var
+  lOtherObj: TNullablesTest;
+begin
+  lOtherObj := Obj as TNullablesTest;
+  Result := true;
+  Result := Result and Self.ff_int2.Equals(lOtherObj.ff_int2);
+  Result := Result and Self.ff_int4.Equals(lOtherObj.ff_int4);
+  Result := Result and Self.ff_int8.Equals(lOtherObj.ff_int8);
+  Result := Result and Self.ff_date.Equals(lOtherObj.ff_date);
+  Result := Result and Self.ff_time.Equals(lOtherObj.ff_time);
+  Result := Result and Self.ff_bool.Equals(lOtherObj.ff_bool);
+  Result := Result and Self.ff_datetime.Equals(lOtherObj.ff_datetime);
+  Result := Result and Self.ff_float4.Equals(lOtherObj.ff_float4);
+  Result := Result and Self.ff_float8.Equals(lOtherObj.ff_float8);
+  Result := Result and Self.ff_string.Equals(lOtherObj.ff_string);
+  Result := Result and Self.ff_currency.Equals(lOtherObj.ff_currency);
+  Result := Result and Self.ff_blob.Equals(lOtherObj.ff_blob);
+end;
+
+procedure TNullablesTest.LoadSomeData;
+begin
+  ff_int2 := Random(100);
+  ff_int4 := Random(100);
+  ff_int8 := Random(100);
+  ff_date := Date;
+  ff_time := Time;
+  ff_datetime := Now;
+  ff_bool := Random(10) > 5;
+  ff_float4 := Random(100) / 100;
+  ff_float8 := Random(100) / 100;
+  ff_string := RandomUtilsU.GetRndFirstName;
+  ff_currency := Random(100000) / 10000;
+  ff_blob := TStringStream.Create(RandomUtilsU.GetRndCountry);
+end;
+
+destructor TNullablesTest.Destroy;
+begin
+  ff_blob.Free;
+  inherited;
 end;
 
 initialization
