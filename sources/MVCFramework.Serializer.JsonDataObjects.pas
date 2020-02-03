@@ -888,9 +888,28 @@ begin
         else if (AValue.TypeInfo = System.TypeInfo(TTime)) then
           AValue := TValue.From<TTime>(ISOTimeToTime(AJsonObject[AName].Value))
 
-        else if (AValue.Kind = tkRecord) then { nullables }
-          AValue := TValue.From<NullableString>(NullableString(AJsonObject[AName].Value))
-
+        else if (AValue.Kind = tkRecord) and (AValue.TypeInfo <> TypeInfo(TValue)) then { nullables }
+        begin
+          if AValue.TypeInfo = TypeInfo(NullableString) then
+          begin
+            AValue := TValue.From<NullableString>(NullableString(AJsonObject[AName].Value))
+          end
+          else if AValue.TypeInfo = TypeInfo(NullableTDate) then
+          begin
+            AValue := TValue.From<NullableTDate>(NullableTDate(ISODateToDate(AJsonObject[AName].Value)))
+          end
+          else if AValue.TypeInfo = TypeInfo(NullableTDateTime) then
+          begin
+            AValue := TValue.From<NullableTDateTime>
+              (NullableTDateTime(ISOTimeStampToDateTime(AJsonObject[AName].Value)))
+          end
+          else if AValue.TypeInfo = TypeInfo(NullableTTime) then
+          begin
+            AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJsonObject[AName].Value)))
+          end
+          else
+            raise EMVCSerializationException.CreateFmt('Cannot deserialize property %s from string', [AName]);
+        end
         else if (AValue.Kind = tkEnumeration) then
         begin
           LEnumPrefix := '';
@@ -925,6 +944,10 @@ begin
             AValue := TValue.From<NullableInt16>(NullableInt16(AJsonObject[AName].IntValue))
           else if AValue.TypeInfo = TypeInfo(NullableUInt16) then
             AValue := TValue.From<NullableUInt16>(NullableUInt16(AJsonObject[AName].IntValue))
+          else if AValue.TypeInfo = TypeInfo(NullableInt64) then
+            AValue := TValue.From<NullableInt64>(NullableInt64(AJsonObject[AName].LongValue))
+          else if AValue.TypeInfo = TypeInfo(NullableUInt64) then
+            AValue := TValue.From<NullableUInt64>(NullableUInt64(AJsonObject[AName].LongValue))
           else
             raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for ', [AName]);
         end;
@@ -960,12 +983,14 @@ begin
       begin
         if AValue.TypeInfo = TypeInfo(NullableSingle) then
           AValue := TValue.From<NullableSingle>(NullableSingle(AJsonObject[AName].FloatValue))
+        else if AValue.TypeInfo = TypeInfo(NullableCurrency) then
+          AValue := TValue.From<NullableCurrency>(NullableCurrency(AJsonObject[AName].FloatValue))
         else if AValue.TypeInfo = TypeInfo(NullableDouble) then
           AValue := TValue.From<NullableDouble>(NullableDouble(AJsonObject[AName].FloatValue))
         else if AValue.TypeInfo = TypeInfo(NullableExtended) then
           AValue := TValue.From<NullableExtended>(NullableExtended(AJsonObject[AName].FloatValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for ', [AName]);
+          raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for %s', [AName]);
       end;
 
     jdtDateTime:
@@ -1660,7 +1685,7 @@ begin
   begin
     if AValue.AsType<NullableTDate>().HasValue then
     begin
-      AJsonObject.DUtc[AName] := AValue.AsType<NullableTDate>().Value;
+      AJsonObject.S[AName] := DateToISODate(AValue.AsType<NullableTDate>().Value);
     end
     else
     begin
@@ -1673,7 +1698,7 @@ begin
   begin
     if AValue.AsType<NullableTDateTime>().HasValue then
     begin
-      AJsonObject.DUtc[AName] := AValue.AsType<NullableTDateTime>().Value;
+      AJsonObject.S[AName] := DateTimeToISOTimeStamp(AValue.AsType<NullableTDateTime>().Value);
     end
     else
     begin
@@ -1686,7 +1711,7 @@ begin
   begin
     if AValue.AsType<NullableTTime>().HasValue then
     begin
-      AJsonObject.DUtc[AName] := AValue.AsType<NullableTTime>().Value;
+      AJsonObject.S[AName] := TimeToISOTime(AValue.AsType<NullableTTime>().Value);
     end
     else
     begin

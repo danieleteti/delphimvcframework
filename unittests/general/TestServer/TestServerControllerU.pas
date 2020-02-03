@@ -196,6 +196,16 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestGetImagePng;
 
+    //Nullables Tests
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/nullables/pingpong')]
+    procedure TestDeserializeAndSerializeNullables;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/nullables/getsingle')]
+    procedure TestSerializeNullables;
+
+
     // Response Objects Tests
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/responses/created')]
@@ -404,6 +414,14 @@ begin
   Render(lCustomer, True);
 end;
 
+procedure TTestServerController.TestDeserializeAndSerializeNullables;
+var
+  lNullablesTest: TNullablesTest;
+begin
+  lNullablesTest := Context.Request.BodyAs<TNullablesTest>;
+  Render(lNullablesTest);
+end;
+
 procedure TTestServerController.TestCharset;
 var
   Obj: TJDOJSONObject;
@@ -579,6 +597,15 @@ end;
 procedure TTestServerController.TestResponseNoContent;
 begin
   ResponseNoContent('thisisthereason');
+end;
+
+procedure TTestServerController.TestSerializeNullables;
+var
+  lObj: TNullablesTest;
+begin
+  lObj := TNullablesTest.Create();
+  lObj.LoadSomeData;
+  Render(lObj);
 end;
 
 procedure TTestServerController.TestStringDictionary;

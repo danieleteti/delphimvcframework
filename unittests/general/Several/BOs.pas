@@ -53,7 +53,7 @@ type
     [MVCTableField('city')]
     fCity: string;
     [MVCTableField('rating')]
-    fRating: NullableInteger;
+    fRating: NullableInt32;
     [MVCTableField('note')]
     fNote: String;
   public
@@ -61,7 +61,7 @@ type
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
-    property Rating: NullableInteger read fRating write fRating;
+    property Rating: NullableInt32 read fRating write fRating;
     property Note: String read fNote write fNote;
   end;
 
@@ -102,13 +102,13 @@ type
     [MVCTableField('f_int8')]
     ff_int8: NullableInt64;
     [MVCTableField('f_date')]
-    ff_date: NullableDate;
+    ff_date: NullableTDate;
     [MVCTableField('f_time')]
-    ff_time: NullableTime;
+    ff_time: NullableTTime;
     [MVCTableField('f_bool')]
     ff_bool: NullableBoolean;
     [MVCTableField('f_datetime')]
-    ff_datetime: NullableDateTime;
+    ff_datetime: NullableTDateTime;
     [MVCTableField('f_float4')]
     ff_float4: NullableSingle;
     [MVCTableField('f_float8')]
@@ -132,11 +132,11 @@ type
     // f_bool bool NULL,
     property f_bool: NullableBoolean read ff_bool write ff_bool;
     // f_date date NULL,
-    property f_date: NullableDate read ff_date write ff_date;
+    property f_date: NullableTDate read ff_date write ff_date;
     // f_time time NULL,
-    property f_time: NullableTime read ff_time write ff_time;
+    property f_time: NullableTTime read ff_time write ff_time;
     // f_datetime timestamp NULL,
-    property f_datetime: NullableDateTime read ff_datetime write ff_datetime;
+    property f_datetime: NullableTDateTime read ff_datetime write ff_datetime;
     // f_float4 float4 NULL,
     property f_float4: NullableSingle read ff_float4 write ff_float4;
     // f_float8 float8 NULL,

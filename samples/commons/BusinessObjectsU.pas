@@ -251,6 +251,7 @@ implementation
 
 uses
   System.SysUtils,
+  System.Math,
   RandomUtilsU;
 
 { TPerson }
@@ -522,31 +523,32 @@ begin
   Result := Result and Self.ff_int2.Equals(lOtherObj.ff_int2);
   Result := Result and Self.ff_int4.Equals(lOtherObj.ff_int4);
   Result := Result and Self.ff_int8.Equals(lOtherObj.ff_int8);
-  Result := Result and Self.ff_date.Equals(lOtherObj.ff_date);
-  Result := Result and Self.ff_time.Equals(lOtherObj.ff_time);
   Result := Result and Self.ff_bool.Equals(lOtherObj.ff_bool);
-  Result := Result and Self.ff_datetime.Equals(lOtherObj.ff_datetime);
+  Result := Result and (DateToISODate(Self.ff_date) = DateToISODate(lOtherObj.ff_date));
+  Result := Result and (TimeToISOTime(Self.ff_time) = TimeToISOTime(lOtherObj.ff_time));
+  Result := Result and (DateTimeToISOTimeStamp(Self.ff_datetime) = DateTimeToISOTimeStamp(lOtherObj.ff_datetime));
   Result := Result and Self.ff_float4.Equals(lOtherObj.ff_float4);
   Result := Result and Self.ff_float8.Equals(lOtherObj.ff_float8);
   Result := Result and Self.ff_string.Equals(lOtherObj.ff_string);
   Result := Result and Self.ff_currency.Equals(lOtherObj.ff_currency);
-  Result := Result and Self.ff_blob.Equals(lOtherObj.ff_blob);
+  { TODO -oDanieleT -cGeneral : Deserialize a stream over a nil pointer... should we create the TMemoryStream? }
+  // Result := Result and ((Self.ff_blob as TStringStream).DataString = (lOtherObj.ff_blob as TStringStream).DataString);
 end;
 
 procedure TNullablesTest.LoadSomeData;
 begin
-  ff_int2 := Random(100);
-  ff_int4 := Random(100);
-  ff_int8 := Random(100);
-  ff_date := Date;
-  ff_time := Time;
-  ff_datetime := Now;
-  ff_bool := Random(10) > 5;
-  ff_float4 := Random(100) / 100;
-  ff_float8 := Random(100) / 100;
-  ff_string := RandomUtilsU.GetRndFirstName;
-  ff_currency := Random(100000) / 10000;
-  ff_blob := TStringStream.Create(RandomUtilsU.GetRndCountry);
+  ff_int2 := 2;
+  ff_int4 := 4;
+  ff_int8 := 8;
+  ff_date := EncodeDate(2011, 11, 17);
+  ff_time := encodetime(12, 24, 36, 48);
+  ff_datetime := ff_date.Value + ff_time.Value;
+  ff_bool := true;
+  ff_float4 := 10 / 4;
+  ff_float8 := 10 / 8;
+  ff_string := '0123456789';
+  ff_currency := 98765.4321;
+  ff_blob := TStringStream.Create(ff_string);
 end;
 
 destructor TNullablesTest.Destroy;

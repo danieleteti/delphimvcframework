@@ -201,8 +201,6 @@ end;
 procedure TTestActiveRecord.TestNullables;
 var
   lTest: TNullablesTest;
-  lCustomer: TCustomer;
-  lID: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TNullablesTest);
 

@@ -119,9 +119,9 @@ begin
   if Assigned(lJSON) then
   begin
     lStream := AElementValue.AsObject as TStream;
-    lStream.Size := 0;
     if Assigned(lStream) then
     begin
+      lStream.Size := 0;
       SS := TStringStream.Create(lJSON.S[APropertyName]);
       try
         SS.Position := 0;

@@ -190,6 +190,12 @@ type
     [Test]
     procedure TestWrongJSONBody;
 
+    // test nullables
+    [Test]
+    procedure TestDeserializeNullables;
+    [Test]
+    procedure TestSerializeAndDeserializeNullables;
+
     // test responses objects
     [Test]
     procedure TestResponseCreated;
@@ -1233,6 +1239,80 @@ end;
 // LPersonProps.Free;
 // end;
 // end;
+
+procedure TServerTest.TestDeserializeNullables;
+var
+  lRes: IRESTResponse;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lNullableTest: TNullablesTest;
+begin
+  lRes := RESTClient.doGET('/nullables/getsingle', []);
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lNullableTest := TNullablesTest.Create();
+    try
+      lSer.DeserializeObject(lRes.BodyAsString, lNullableTest);
+      Assert.areEqual<Int16>(2, lNullableTest.f_int2.Value);
+      Assert.areEqual(4, lNullableTest.f_int4.Value);
+      Assert.areEqual<Int32>(8, lNullableTest.f_int8.Value);
+      Assert.areEqual('2011-11-17', DateToISODate(lNullableTest.f_date.Value));
+      Assert.areEqual('12:24:36', TimeToISOTime(lNullableTest.f_time.Value));
+      Assert.areEqual('2011-11-17T12:24:36.048Z', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
+      Assert.areEqual<boolean>(true, lNullableTest.f_bool.Value);
+      Assert.areEqual(10 / 4, lNullableTest.f_float4.Value, 0.0000009);
+      Assert.areEqual(10 / 8, lNullableTest.f_float8.Value, 0.0000000000009);
+      Assert.areEqual('0123456789', lNullableTest.f_string.Value);
+      Assert.areEqual(98765.4321, lNullableTest.f_currency.Value, 0);
+      { TODO -oDanieleT -cGeneral : Compare streams too }
+      // Assert.AreEqual('0123456789', lNullableTest.f_blob.Value, 0);
+    finally
+      lNullableTest.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+
+procedure TServerTest.TestSerializeAndDeserializeNullables;
+var
+  lRes: IRESTResponse;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lNullableTest: TNullablesTest;
+begin
+  lRes := RESTClient.doGET('/nullables/getsingle', []);
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lNullableTest := TNullablesTest.Create();
+    try
+      lSer.DeserializeObject(lRes.BodyAsString, lNullableTest);
+      lRes := RESTClient.doPOST('/nullables/pingpong', [], lSer.SerializeObject(lNullableTest));
+    finally
+      lNullableTest.Free;
+    end;
+
+    lNullableTest := TNullablesTest.Create();
+    try
+      lSer.DeserializeObject(lRes.BodyAsString, lNullableTest);
+      Assert.areEqual<Int16>(2, lNullableTest.f_int2.Value);
+      Assert.areEqual(4, lNullableTest.f_int4.Value);
+      Assert.areEqual<Int32>(8, lNullableTest.f_int8.Value);
+      Assert.areEqual('2011-11-17', DateToISODate(lNullableTest.f_date.Value));
+      Assert.areEqual('12:24:36', TimeToISOTime(lNullableTest.f_time.Value));
+      Assert.areEqual('2011-11-17T12:24:36.048Z', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
+      Assert.areEqual<boolean>(true, lNullableTest.f_bool.Value);
+      Assert.areEqual(10 / 4, lNullableTest.f_float4.Value, 0.0000009);
+      Assert.areEqual(10 / 8, lNullableTest.f_float8.Value, 0.0000000000009);
+      Assert.areEqual('0123456789', lNullableTest.f_string.Value);
+      Assert.areEqual(98765.4321, lNullableTest.f_currency.Value, 0);
+      { TODO -oDanieleT -cGeneral : Compare streams too }
+      // Assert.AreEqual('0123456789', lNullableTest.f_blob.Value, 0);
+    finally
+      lNullableTest.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
 
 procedure TServerTest.TestSession;
 var
