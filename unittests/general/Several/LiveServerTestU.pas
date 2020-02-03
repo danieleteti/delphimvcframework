@@ -192,7 +192,9 @@ type
 
     // test nullables
     [Test]
-    procedure TestDeserializeNullables;
+    procedure TestDeserializeNullablesWithValue;
+    [Test]
+    procedure TestDeserializeNullablesWithNulls;
     [Test]
     procedure TestSerializeAndDeserializeNullables;
 
@@ -1240,12 +1242,50 @@ end;
 // end;
 // end;
 
-procedure TServerTest.TestDeserializeNullables;
+procedure TServerTest.TestDeserializeNullablesWithNulls;
 var
   lRes: IRESTResponse;
   lSer: TMVCJsonDataObjectsSerializer;
   lNullableTest: TNullablesTest;
 begin
+  /// nullables/getsinglewithnulls
+
+  lRes := RESTClient.doGET('/nullables/getsinglewithnulls', []);
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lNullableTest := TNullablesTest.Create();
+    try
+      lSer.DeserializeObject(lRes.BodyAsString, lNullableTest);
+      Assert.isFalse(lNullableTest.f_int2.HasValue);
+      Assert.isFalse(lNullableTest.f_int4.HasValue);
+      Assert.isFalse(lNullableTest.f_int8.HasValue);
+      Assert.isFalse(lNullableTest.f_date.HasValue);
+      Assert.isFalse(lNullableTest.f_time.HasValue);
+      Assert.isFalse(lNullableTest.f_datetime.HasValue);
+      Assert.isFalse(lNullableTest.f_bool.HasValue);
+      Assert.isFalse(lNullableTest.f_float4.HasValue);
+      Assert.isFalse(lNullableTest.f_float8.HasValue);
+      Assert.isFalse(lNullableTest.f_string.HasValue);
+      Assert.isFalse(lNullableTest.f_currency.HasValue);
+      { TODO -oDanieleT -cGeneral : Compare streams too }
+      // Assert.AreEqual('0123456789', lNullableTest.f_blob.Value, 0);
+    finally
+      lNullableTest.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+
+end;
+
+procedure TServerTest.TestDeserializeNullablesWithValue;
+var
+  lRes: IRESTResponse;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lNullableTest: TNullablesTest;
+begin
+  /// nullables/getsinglewithnulls
+
   lRes := RESTClient.doGET('/nullables/getsingle', []);
   lSer := TMVCJsonDataObjectsSerializer.Create;
   try

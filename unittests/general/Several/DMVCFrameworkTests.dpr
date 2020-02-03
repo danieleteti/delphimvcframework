@@ -18,7 +18,6 @@ uses
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
-  MessagingExtensionsTestU in 'MessagingExtensionsTestU.pas',
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',

@@ -44,6 +44,8 @@ type
     [Test]
     procedure TestCRUD;
     [Test]
+    procedure TestStore;
+    [Test]
     procedure TestLifeCycle;
     [Test]
     procedure TestRQL;
@@ -299,6 +301,39 @@ begin
   end;
   TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
+end;
+
+procedure TTestActiveRecord.TestStore;
+var
+  lCustomer: TCustomerWithNullablePK;
+  lID: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithNullablePK>());
+  lCustomer := TCustomerWithNullablePK.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.Store; { pk is not set, so it should do an insert }
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithNullablePK>(lID);
+  try
+    Assert.IsFalse(lCustomer.Code.HasValue);
+    Assert.IsFalse(lCustomer.Rating.HasValue);
+    lCustomer.Code := '1234';
+    lCustomer.Rating := 3;
+    lCustomer.Note := lCustomer.Note + 'noteupdated';
+    lCustomer.Store; { pk is set, so it should do an update }
+    Assert.AreEqual<Int64>(1, lCustomer.ID.Value);
+  finally
+    lCustomer.Free;
+  end;
+
 end;
 
 procedure TTestActiveRecord.LoadData;

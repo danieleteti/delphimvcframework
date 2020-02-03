@@ -164,7 +164,6 @@
         </DelphiCompile>
         <DCCReference Include="FrameworkTestsU.pas"/>
         <DCCReference Include="LiveServerTestU.pas"/>
-        <DCCReference Include="MessagingExtensionsTestU.pas"/>
         <DCCReference Include="BOs.pas"/>
         <DCCReference Include="..\TestServer\TestServerControllerU.pas"/>
         <DCCReference Include="RESTAdapterTestsU.pas"/>

@@ -205,6 +205,10 @@ type
     [MVCPath('/nullables/getsingle')]
     procedure TestSerializeNullables;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/nullables/getsinglewithnulls')]
+    procedure TestSerializeNullablesWithNulls;
+
 
     // Response Objects Tests
     [MVCHTTPMethod([httpPOST])]
@@ -605,6 +609,14 @@ var
 begin
   lObj := TNullablesTest.Create();
   lObj.LoadSomeData;
+  Render(lObj);
+end;
+
+procedure TTestServerController.TestSerializeNullablesWithNulls;
+var
+  lObj: TNullablesTest;
+begin
+  lObj := TNullablesTest.Create();
   Render(lObj);
 end;
 
