@@ -126,9 +126,6 @@ type
     fPrimaryKeySequenceName: String;
     fEntityAllowedActions: TMVCEntityActions;
     fRQL2SQL: TRQL2SQL;
-    procedure MapColumnToTValue(const aFieldName: string; const aField: TField; const aRTTIField: TRttiField);
-    function MapNullableColumnToTValue(const aValue: TValue;
-      const aField: TField; const aRTTIField: TRttiField): Boolean;
     procedure MapTValueToParam(aValue: TValue; const aParam: TFDParam);
     function MapNullableTValueToParam(aValue: TValue;
       const aParam: TFDParam): Boolean;
@@ -755,7 +752,7 @@ begin
 
       if (lValue.Kind = tkRecord) then
       begin
-        MapNullableColumnToTValue(lValue, lQry.Fields[0], fPrimaryKey);
+        MapDataSetFieldToNullableRTTIField(lValue, lQry.Fields[0], fPrimaryKey, Self);
         // if SameText(lValue.TypeInfo.Name, 'Nullable<System.Integer>') then
         // begin
         // lInteger :=lQry.FieldByName(fPrimaryKeyFieldName).AsInteger;
@@ -848,7 +845,7 @@ begin
     end;
     lDS := ExecQuery(lSQL, []);
     try
-      MapColumnToTValue(fPrimaryKeyFieldName, lDS.Fields[0], fPrimaryKey);
+      MapDataSetFieldToRTTIField(lDS.Fields[0], fPrimaryKey, Self);
     finally
       lDS.Free;
     end;
@@ -1057,7 +1054,7 @@ begin
         raise EMVCActiveRecord.Create('Got 0 rows');
       Exit(nil);
     end;
-    Result := lList.ExtractAt(0);
+    Result := lList.Extract(lList.First);
   finally
     lList.Free;
   end;
@@ -1215,311 +1212,6 @@ begin
   end;
 end;
 
-function TMVCActiveRecord.MapNullableColumnToTValue(const aValue: TValue; const aField: TField;
-  const aRTTIField: TRttiField): Boolean;
-begin
-  Assert(aValue.Kind = tkRecord);
-  Result := false;
-  if aValue.IsType(TypeInfo(NullableString)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableString>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableString>(aField.AsString));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableInt32)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableInt32>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableInt32>(aField.AsLargeInt));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableUInt32)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableUInt32>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableUInt32>(aField.AsLargeInt));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableInt64)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableInt64>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableInt64>(aField.AsLargeInt));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableUInt64)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableUInt64>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableUInt64>(aField.AsLargeInt));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableInt16)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableInt16>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableInt16>(aField.AsLargeInt));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableUInt16)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableUInt16>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableUInt16>(aField.AsInteger));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableTDate)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableTDate>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableTDate>(aField.AsDateTime));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableTDateTime)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableTDateTime>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableTDateTime>(aField.AsDateTime));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableTTime)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableTTime>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableTTime>(aField.AsDateTime));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableBoolean)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableBoolean>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableBoolean>(aField.AsBoolean));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableDouble)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableDouble>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableDouble>(aField.AsFloat));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableSingle)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableSingle>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableSingle>(aField.AsSingle));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableExtended)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableExtended>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableExtended>(aField.AsExtended));
-    end;
-    Result := True;
-  end
-  else if aValue.IsType(TypeInfo(NullableCurrency)) then
-  begin
-    if aField.IsNull then
-    begin
-      aRTTIField.GetValue(Self).AsType<NullableCurrency>().Clear;
-    end
-    else
-    begin
-      aRTTIField.SetValue(Self, TValue.From<NullableCurrency>(aField.AsCurrency));
-    end;
-    Result := True;
-  end
-end;
-
-procedure TMVCActiveRecord.MapColumnToTValue(const aFieldName: string; const aField: TField;
-  const aRTTIField: TRttiField);
-var
-  lInternalStream: TStream;
-  lSStream: TStringStream;
-  lValue: TValue;
-begin
-  lValue := aRTTIField.GetValue(Self);
-  if lValue.Kind = tkRecord then
-  begin
-    if MapNullableColumnToTValue(lValue, aField, aRTTIField) then
-    begin
-      Exit;
-    end;
-  end;
-
-  // if we reached this point, the field is not a nullable type...
-  case aField.DataType of
-    ftString, ftWideString:
-      begin
-        aRTTIField.SetValue(Self, aField.AsString);
-      end;
-    ftLargeint, ftAutoInc:
-      begin
-        aRTTIField.SetValue(Self, aField.AsLargeInt);
-      end;
-    ftInteger, ftSmallint, ftShortint:
-      begin
-        aRTTIField.SetValue(Self, aField.AsInteger);
-      end;
-    ftLongWord, ftWord:
-      begin
-        aRTTIField.SetValue(Self, aField.AsLongWord);
-      end;
-    ftFMTBcd:
-      begin
-        aRTTIField.SetValue(Self, BCDtoCurrency(aField.AsBCD));
-      end;
-    ftDate:
-      begin
-        aRTTIField.SetValue(Self, Trunc(aField.AsDateTime));
-      end;
-    ftDateTime:
-      begin
-        aRTTIField.SetValue(Self, Trunc(aField.AsDateTime));
-      end;
-    ftTimeStamp:
-      begin
-        aRTTIField.SetValue(Self, aField.AsDateTime);
-      end;
-    ftBoolean:
-      begin
-        aRTTIField.SetValue(Self, aField.AsBoolean);
-      end;
-    ftMemo, ftWideMemo:
-      begin
-        if aRTTIField.FieldType.TypeKind in [tkString, tkUString { , tkWideString } ] then
-        begin
-          // In case you want to map a "TEXT" blob into a Delphi String
-          lSStream := TStringStream.Create('', TEncoding.Unicode);
-          try
-            TBlobField(aField).SaveToStream(lSStream);
-            aRTTIField.SetValue(Self, lSStream.DataString);
-          finally
-            lSStream.Free;
-          end;
-        end
-        else
-        begin
-          // In case you want to map a binary blob into a Delphi Stream
-          lInternalStream := aRTTIField.GetValue(Self).AsObject as TStream;
-          if lInternalStream = nil then
-          begin
-            raise EMVCActiveRecord.CreateFmt('Property target for %s field is nil', [aFieldName]);
-          end;
-          lInternalStream.Position := 0;
-          TBlobField(aField).SaveToStream(lInternalStream);
-          lInternalStream.Position := 0;
-        end;
-      end;
-    ftBCD:
-      begin
-        aRTTIField.SetValue(Self, BCDtoCurrency(aField.AsBCD));
-      end;
-    ftFloat:
-      begin
-        aRTTIField.SetValue(Self, aField.AsFloat);
-      end;
-    ftBlob:
-      begin
-        lInternalStream := aRTTIField.GetValue(Self).AsObject as TStream;
-        if aField.IsNull then
-        begin
-          lInternalStream.Free;
-          aRTTIField.SetValue(Self, nil);
-          Exit;
-        end;
-        if lInternalStream = nil then
-        begin
-          lInternalStream := TMemoryStream.Create;
-          aRTTIField.SetValue(Self, lInternalStream);
-          // raise EMVCActiveRecord.CreateFmt('Property target for %s field is nil', [aFieldName]);
-        end;
-        lInternalStream.Position := 0;
-        TBlobField(aField).SaveToStream(lInternalStream);
-        lInternalStream.Position := 0;
-      end;
-{$IF Defined(SeattleOrBetter)}
-    ftGuid:
-      begin
-        aRTTIField.SetValue(Self, TValue.From<TGUID>(aField.AsGuid));
-      end;
-{$ENDIF}
-  else
-    raise EMVCActiveRecord.CreateFmt('Unsupported FieldType (%d) for field %s', [Ord(aField.DataType), aFieldName]);
-  end;
-
-end;
 
 procedure TMVCActiveRecord.MapDatasetToObject(const DataSet: TDataSet;
   const Options: TMVCActiveRecordLoadOptions;
@@ -1992,11 +1684,11 @@ begin
             ('Field [%s] not found in dataset. [HINT] If you dont need it, use loIgnoreNotExistentFields',
             [lItem.Value]);
       end;
-      MapColumnToTValue(lItem.Value, lField, lItem.Key);
+      MapDataSetFieldToRTTIField(lField, lItem.Key, Self);
     end;
     if not fPrimaryKeyFieldName.IsEmpty then
     begin
-      MapColumnToTValue(fPrimaryKeyFieldName, aDataSet.FieldByName(fPrimaryKeyFieldName), fPrimaryKey);
+      MapDataSetFieldToRTTIField(aDataSet.FieldByName(fPrimaryKeyFieldName), fPrimaryKey, Self);
     end;
   end;
   OnAfterLoad;

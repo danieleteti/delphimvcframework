@@ -32,9 +32,10 @@ implementation
 
 uses
   Web.WebReq,
-  WebModuleUnit1;
+  WebModuleUnit1, MVCFramework.Commons;
 
 {$R *.DFM}
+
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin

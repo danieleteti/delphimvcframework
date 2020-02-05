@@ -174,9 +174,9 @@ var
 begin
   // You can write your own entity which already load relations
   // The following is the manual approach
-  lContact := TContact.GetByPK<TContact>(id);
+  lContact := TMVCActiveRecord.GetByPK<TContact>(id);
   try
-    lPhones := TPhone.Where<TPhone>('id_person = ?', [id]);
+    lPhones := TMVCActiveRecord.Where<TPhone>('id_person = ?', [id]);
     try
       lSer := TMVCJsonDataObjectsSerializer.Create;
       try

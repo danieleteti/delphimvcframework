@@ -3,7 +3,7 @@ unit BusinessObjects;
 interface
 
 uses
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Nullables;
 
 type
   TBaseBO = class
@@ -22,9 +22,9 @@ type
   private
     FPrice: Currency;
     FCode: string;
-    FDescription: string;
+    FDescription: String;
     procedure SetCode(const Value: string);
-    procedure SetDescription(const Value: string);
+    procedure SetDescription(const Value: String);
     procedure SetPrice(const Value: Currency);
   public
     procedure CheckInsert; override;
@@ -33,7 +33,7 @@ type
     [MVCColumn('CODICE')]
     property Code: string read FCode write SetCode;
     [MVCColumn('DESCRIZIONE')]
-    property Description: string read FDescription write SetDescription;
+    property Description: String read FDescription write SetDescription;
     [MVCColumn('PREZZO')]
     property Price: Currency read FPrice write SetPrice;
   end;
@@ -94,7 +94,7 @@ begin
   FCode := Value;
 end;
 
-procedure TArticle.SetDescription(const Value: string);
+procedure TArticle.SetDescription(const Value: String);
 begin
   FDescription := Value;
 end;

@@ -512,6 +512,7 @@ var
   lCustomers: TObjectList<TCustomer>;
   lCustomer: TCustomer;
   lDS: TDataSet;
+  lID: NullableInt64;
 begin
   Log('** Query SQL');
   // Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
@@ -549,6 +550,23 @@ begin
     end;
   finally
     lDS.Free;
+  end;
+
+  Log('** GetFirstByWhere');
+  lCustomer := TMVCActiveRecord.GetFirstByWhere<TCustomer>('id > ?', [1]);
+  try
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+    lID := lCustomer.ID;
+  finally
+    lCustomer.Free;
+  end;
+
+  Log('** GetOneByWhere');
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID.Value]);
+  try
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+  finally
+    lCustomer.Free;
   end;
 
 end;

@@ -8,7 +8,6 @@ uses
   FireDAC.Phys.MySQL,
   FireDAC.Phys.SQLite,
   System.SysUtils,
-  MVCFramework.Logger,
   MVCFramework.Commons,
   MVCFramework.REPLCommandsHandlerU,
   Web.ReqMulti,

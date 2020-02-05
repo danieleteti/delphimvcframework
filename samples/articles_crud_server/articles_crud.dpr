@@ -14,7 +14,8 @@ uses
   Services in 'Services.pas',
   BusinessObjects in 'BusinessObjects.pas',
   MainDM in 'MainDM.pas' {dmMain: TDataModule},
-  Commons in 'Commons.pas';
+  Commons in 'Commons.pas',
+  MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas';
 
 {$R *.res}
 

@@ -196,7 +196,7 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestGetImagePng;
 
-    //Nullables Tests
+    // Nullables Tests
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/nullables/pingpong')]
     procedure TestDeserializeAndSerializeNullables;
@@ -208,7 +208,6 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/nullables/getsinglewithnulls')]
     procedure TestSerializeNullablesWithNulls;
-
 
     // Response Objects Tests
     [MVCHTTPMethod([httpPOST])]
@@ -413,7 +412,9 @@ begin
   lCustomer := Context.Request.BodyAs<TCustomer>();
   // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
   lCustomer.Name := lCustomer.Name + ' changed';
+{$IFNDEF LINUX}
   lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+{$ENDIF}
   // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
   Render(lCustomer, True);
 end;
@@ -590,12 +591,12 @@ end;
 
 procedure TTestServerController.TestResponseAccepted;
 begin
-  ResponseAccepted('http://pippo.it/1234','1234','thisisthereason');
+  ResponseAccepted('http://pippo.it/1234', '1234', 'thisisthereason');
 end;
 
 procedure TTestServerController.TestResponseCreated;
 begin
-  ResponseCreated('thisisthelocation','thisisthereason');
+  ResponseCreated('thisisthelocation', 'thisisthereason');
 end;
 
 procedure TTestServerController.TestResponseNoContent;

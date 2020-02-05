@@ -77,6 +77,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > WARNING! Considering the huge amount of features added in 3.1.1-beryllium during its RC phase, the dmvcframework-3.1.1-beryllium has been renamed to dmvcframework-3.2.0-boron
 
 - New! Added Nullable support in MVCActiveRecord! Check *activerecord_showcase* sample.
+- New! Complete support for nullable types in the default serializer.
 - New! Added Swagger support (thanks to [João Antônio Duarte](https://github.com/joaoduarte19) and [Geoffrey Smith](https://github.com/geoffsmith82))
 - New! Added SQLGenerator and RQL compiler for PostgreSQL, SQLite and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
 - New! Added support for interfaces serialization - now it is possible to serialize Spring4D collections (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
@@ -139,6 +140,7 @@ Render(lPerson, False,
 - New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
 - New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
 - New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.
+- New! `TMVCActiveRecord.Store` which automatically executes Insert or Update considering primary key value.
 - New! Microsoft SQLServer Support in `MVCActiveRecord` and RQL (*thanks to one of the biggest Delphi based company in Italy which heavily uses DMVCFramework* and *[DMSContainer](http://www.bittimeprofessionals.it/prodotti/dmscontainer)*)
 - New! SQLite support in `MVCActiveRecord` and RQL, so that `MVCActiveRecord` can be used also for Delphi mobile projects!
 - Default JSON Serializer can verbatim pass properties with type `JsonDataObjects.TJSONObject` without  using `string` as carrier of JSON

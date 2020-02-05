@@ -63,7 +63,8 @@ type
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
-    procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: String; const aFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
+    procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: String;
+      const AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
@@ -152,14 +153,15 @@ begin
 
 end;
 
-procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: String; const aFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string;
+  const aPropertyName: String; const AFieldNamePolicy: TFieldNamePolicy);
 var
   lJson: TJSONObject;
 begin
   lJson := TJSONObject.Create;
   try
     lJson.FromJSON(AJSONObjectString);
-    LoadFromJSONArray(lJson.A[aPropertyName], aFieldNamePolicy);
+    LoadFromJSONArray(lJson.A[aPropertyName], AFieldNamePolicy);
   finally
     lJson.Free;
   end;
@@ -364,7 +366,7 @@ class procedure TDataSetUtils.DataSetToObject(ADataSet: TDataSet; AObject: TObje
 var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
-  _field: TRttiProperty;
+  lRttiProp: TRttiProperty;
   _attribute: TCustomAttribute;
   _dict: TDictionary<string, string>;
   _keys: TDictionary<string, boolean>;
@@ -379,32 +381,32 @@ begin
   _keys := TDictionary<string, boolean>.Create();
   _type := CTX.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
-  for _field in _fields do
+  for lRttiProp in _fields do
   begin
     FoundAttribute := false;
     FoundTransientAttribute := false;
-    for _attribute in _field.GetAttributes do
+    for _attribute in lRttiProp.GetAttributes do
     begin
       if _attribute is MVCColumnAttribute then
       begin
         FoundAttribute := true;
         mf := MVCColumnAttribute(_attribute);
-        _dict.Add(_field.Name, mf.FieldName);
-        _keys.Add(_field.Name, mf.IsPK);
+        _dict.Add(lRttiProp.Name, mf.FieldName);
+        _keys.Add(lRttiProp.Name, mf.IsPK);
       end
       else if _attribute is MVCDoNotSerializeAttribute then
         FoundTransientAttribute := true;
     end;
     if ((not FoundAttribute) and (not FoundTransientAttribute)) then
     begin
-      _dict.Add(_field.Name, _field.Name);
-      _keys.Add(_field.Name, false);
+      _dict.Add(lRttiProp.Name, lRttiProp.Name);
+      _keys.Add(lRttiProp.Name, false);
     end;
   end;
-  for _field in _fields do
+  for lRttiProp in _fields do
   begin
 
-    if not _dict.TryGetValue(_field.Name, field_name) then
+    if not _dict.TryGetValue(lRttiProp.Name, field_name) then
       Continue;
 
     LField := ADataSet.FindField(field_name);
@@ -412,10 +414,10 @@ begin
     if not Assigned(LField) then
       Continue;
 
-    case _field.PropertyType.TypeKind of
+    case lRttiProp.PropertyType.TypeKind of
       tkEnumeration: // tristan
         begin
-          if _field.PropertyType.Handle = TypeInfo(boolean) then
+          if lRttiProp.PropertyType.Handle = TypeInfo(boolean) then
           begin
             case LField.DataType of
               ftInteger, ftSmallint, ftLargeint:
@@ -441,10 +443,15 @@ begin
         Value := LField.AsString;
       tkUString, tkWChar, tkLString, tkWString:
         Value := LField.AsWideString;
+      { TODO -oDanieleT -cGeneral : This doesn0t work with nullable types }
+      // tkRecord:
+      // begin
+      /// /        MapDataSetFieldToNullableRTTIField(Value, LField, _field, AObject);
+      // end
     else
       Continue;
     end;
-    _field.SetValue(AObject, Value);
+    lRttiProp.SetValue(AObject, Value);
   end;
   _dict.Free;
   _keys.Free;

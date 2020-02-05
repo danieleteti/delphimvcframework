@@ -35,8 +35,8 @@ type
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
     procedure btnRefreshRecordClick(Sender: TObject);
   private
-    FLoading: Boolean;
-    Clt: TRESTClient;
+    fLoading: Boolean;
+    fRESTClient: TRESTClient;
     { Private declarations }
     procedure ShowError(const AResponse: IRESTResponse);
   end;
@@ -72,7 +72,7 @@ var
   Res: IRESTResponse;
 begin
   // this a simple sychronous request...
-  Res := Clt.doGET('/articles', []);
+  Res := fRESTClient.doGET('/articles', []);
   if Res.HasError then
   begin
     ShowError(Res);
@@ -81,9 +81,9 @@ begin
 
   DataSet.DisableControls;
   try
-    FLoading := true;
+    fLoading := true;
     dsArticles.LoadFromJSONArrayString(Res.BodyAsString);
-    FLoading := false;
+    fLoading := false;
     dsArticles.First;
   finally
     DataSet.EnableControls;
@@ -95,7 +95,7 @@ var
   Res: IRESTResponse;
 begin
   if dsArticles.State = dsBrowse then
-    Res := Clt.DataSetDelete('/articles', dsArticlesid.AsString);
+    Res := fRESTClient.DataSetDelete('/articles', dsArticlesid.AsString);
   if not(Res.ResponseCode in [200]) then
   begin
     ShowError(Res);
@@ -107,19 +107,21 @@ procedure TMainForm.dsArticlesBeforePost(DataSet: TDataSet);
 var
   Res: IRESTResponse;
 begin
-  if not FLoading then
+  if not fLoading then
   begin
     if dsArticles.State = dsInsert then
-      Res := Clt.DataSetInsert('/articles', dsArticles)
+      Res := fRESTClient.DataSetInsert('/articles', dsArticles)
     else
-      Res := Clt.DataSetUpdate('/articles', dsArticles, dsArticlesid.AsString);
+      Res := fRESTClient.DataSetUpdate('/articles', dsArticles, dsArticlesid.AsString);
     if not(Res.ResponseCode in [200, 201]) then
     begin
       ShowError(Res);
       Abort;
     end
     else
+    begin
       DataSet.Refresh;
+    end;
   end;
 end;
 
@@ -133,20 +135,20 @@ procedure TMainForm.dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
 var
   Res: IRESTResponse;
 begin
-  Res := Clt.doGET('/articles', [DataSet.FieldByName('id').AsString]);
-  FLoading := true;
+  Res := fRESTClient.doGET('/articles', [DataSet.FieldByName('id').AsString]);
+  fLoading := true;
   DataSet.LoadFromJSONObjectString(Res.BodyAsString);
-  FLoading := false;
+  fLoading := false;
 end;
 
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  Clt.Free;
+  fRESTClient.Free;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  Clt := MVCFramework.RESTClient.TRESTClient.Create('localhost', 8080);
+  fRESTClient := MVCFramework.RESTClient.TRESTClient.Create('localhost', 8080);
 end;
 
 procedure TMainForm.ShowError(const AResponse: IRESTResponse);

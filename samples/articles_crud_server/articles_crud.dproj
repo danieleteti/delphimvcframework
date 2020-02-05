@@ -104,6 +104,7 @@
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
         <DCCReference Include="Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <None Include="ModelSupport_ordersmanager\default.txvpck"/>
         <None Include="ModelSupport_ordersmanager\Services\default.txvpck"/>
         <None Include="ModelSupport_ordersmanager\ordersmanager\default.txvpck"/>
