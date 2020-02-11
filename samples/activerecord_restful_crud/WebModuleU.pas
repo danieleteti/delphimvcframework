@@ -53,7 +53,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
-  FDConnectionConfigU;
+  FDConnectionConfigU, CustomControllerU, OtherControllerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -79,6 +79,8 @@ begin
       // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
       Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
+
+  FMVC.AddController(TOtherController, '/api/foo');
   FMVC.AddController(TMVCActiveRecordController,
     function: TMVCController
     begin

@@ -1,4 +1,4 @@
-program activerecord_crud;
+program activerecord_restful_crud;
 
 {$APPTYPE CONSOLE}
 
@@ -19,13 +19,13 @@ uses
   MVCFramework.SQLGenerators.Interbase,
   MVCFramework.SQLGenerators.MSSQL,
   MVCFramework.SQLGenerators.MySQL,
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   Entities in 'Entities.pas',
-  MVCFramework.ActiveRecordController
-    in '..\..\sources\MVCFramework.ActiveRecordController.pas',
+  MVCFramework.ActiveRecordController in '..\..\sources\MVCFramework.ActiveRecordController.pas',
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   EntitiesProcessors in 'EntitiesProcessors.pas',
-  FDConnectionConfigU in '..\activerecord_showcase\FDConnectionConfigU.pas';
+  FDConnectionConfigU in '..\activerecord_showcase\FDConnectionConfigU.pas',
+  OtherControllerU in 'OtherControllerU.pas';
 
 {$R *.res}
 
