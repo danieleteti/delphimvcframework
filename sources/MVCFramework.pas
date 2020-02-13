@@ -2155,8 +2155,11 @@ begin
                   if not Config[TMVCConfigKey.FallbackResource].IsEmpty then
                   begin
                     if (LContext.Request.PathInfo = '/') or (LContext.Request.PathInfo = '') then // useful for SPA
-                      Result := SendStaticFileIfPresent(LContext, TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
+                    begin
+                      lFileName := TPath.GetFullPath(TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
                         Config[TMVCConfigKey.FallbackResource]));
+                      Result := SendStaticFileIfPresent(LContext, lFileName);
+                    end;
                   end;
                   if (not Result) and (IsStaticFileRequest(ARequest, LFileName)) then
                   begin
@@ -2761,13 +2764,22 @@ end;
 class function TMVCStaticContents.IsStaticFile(const AViewPath, AWebRequestPath: string;
 out ARealFileName: string): Boolean;
 var
-  FileName: string;
+  lFileName, lWebRoot: string;
 begin
   if TDirectory.Exists(AViewPath) then
-    FileName := AViewPath + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar)
+  begin
+    lWebRoot := TPath.GetFullPath(AViewPath);
+  end
   else
-    FileName := GetApplicationFileNamePath + AViewPath + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar);
-  ARealFileName := FileName;
+  begin
+    lWebRoot := TPath.GetFullPath(GetApplicationFileNamePath + AViewPath);
+  end;
+  lFileName := TPath.GetFullPath(lWebRoot + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar));
+  if not lFileName.StartsWith(lWebRoot) then
+  begin
+    Exit(False);
+  end;
+  ARealFileName := lFileName;
   Result := TFile.Exists(ARealFileName);
 end;
 
