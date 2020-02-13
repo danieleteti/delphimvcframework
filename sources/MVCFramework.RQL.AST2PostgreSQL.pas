@@ -81,7 +81,7 @@ function TRQLPostgreSQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): st
 var
   lValue, lDBFieldName: string;
 begin
-  if aRQLFIlter.RightValueType = vtString then
+  if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
   else
     lValue := aRQLFIlter.OpRight;
@@ -121,7 +121,8 @@ begin
       end;
     tkContains:
       begin
-        Result := Format('(%s ILIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
+        lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        Result := Format('(%s ILIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:
       begin
@@ -134,8 +135,8 @@ begin
             end;
           vtStringArray:
             begin
-              Result := Format('(%s IN (''%s''))', [
-                lDBFieldName, string.Join(''',''', aRQLFIlter.OpRightArray)
+              Result := Format('(%s IN (%s))', [
+                lDBFieldName, string.Join(',', QuoteStringArray(aRQLFIlter.OpRightArray))
                 ]);
             end;
         else

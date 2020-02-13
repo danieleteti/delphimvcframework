@@ -1,3 +1,5 @@
+and(eq(nome,"Marca d'água"), contains(nome,"Marca d'água"), in(nome, ["Marca", "D'água"]))
+and(eq(nome,"Marca d'água"), contains(nome,"Marca d'água"))
 ne(value,null)
 eq(value,null)
 eq(value,false)
