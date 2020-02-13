@@ -205,6 +205,10 @@ type
     procedure TestResponseNoContent;
     [Test]
     procedure TestResponseAccepted;
+
+    // test web server
+    [Test]
+    procedure TestDirectoryTraversal1;
   end;
 
   [TestFixture]
@@ -1310,6 +1314,33 @@ begin
     end;
   finally
     lSer.Free;
+  end;
+end;
+
+procedure TServerTest.TestDirectoryTraversal1;
+var
+  lRes: IRESTResponse;
+  I: Integer;
+  lUrl: String;
+begin
+  lRes := RESTClient
+    .Accept(TMVCMediaType.TEXT_HTML)
+    .doGET('/index.html', []);
+  Assert.areEqual(200, lRes.ResponseCode);
+
+  lRes := RESTClient
+    .Accept(TMVCMediaType.TEXT_HTML)
+    .doGET('/..\donotdeleteme.txt', []);
+  Assert.areEqual(404, lRes.ResponseCode);
+
+  lUrl := 'Windows\win.ini';
+  for I := 1 to 20 do
+  begin
+    lUrl := '..\' + lUrl;
+    lRes := RESTClient
+      .Accept(TMVCMediaType.TEXT_HTML)
+      .doGET('/' + lUrl, []);
+    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/' + lUrl);
   end;
 end;
 

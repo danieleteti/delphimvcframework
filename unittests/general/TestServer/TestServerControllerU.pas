@@ -221,7 +221,6 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/responses/nocontent')]
     procedure TestResponseNoContent;
-
   end;
 
   [MVCPath('/private')]

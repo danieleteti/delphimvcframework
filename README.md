@@ -264,6 +264,8 @@ end;
 
 - **Breaking Change!** `TDataSetHolder` doesn't renders dataset in a property called `items` but in a property named `data` (to be more standard).
 
+- Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
+
 - New Installation procedure! 
 
     - Open the project group (select the correct one from the following table)

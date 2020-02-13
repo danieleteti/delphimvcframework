@@ -38,14 +38,14 @@ uses
     ;
 
 type
-  Tbas = class(TWebModule)
+  TMainWebModule = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
   private
     MVCEngine: TMVCEngine;
   end;
 
 var
-  WebModuleClass: TComponentClass = Tbas;
+  WebModuleClass: TComponentClass = TMainWebModule;
 
 implementation
 
@@ -64,7 +64,7 @@ uses
   TestServerControllerJSONRPCU,
   MVCFramework.Middleware.Compression;
 
-procedure Tbas.WebModuleCreate(Sender: TObject);
+procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
   MVCEngine := TMVCEngine.Create(self,
     procedure(Config: TMVCConfig)
@@ -72,6 +72,7 @@ begin
       // no config here
       Config[TMVCConfigKey.SessionTimeout] := '0'; // setting cookie
       Config[TMVCConfigKey.PathPrefix] := '';
+      Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
