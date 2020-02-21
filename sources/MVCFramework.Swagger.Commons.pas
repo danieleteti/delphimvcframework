@@ -501,12 +501,12 @@ begin
   if ASwagPathOperation.Responses.Count <= 0 then
   begin
     lSwagResponse := TSwagResponse.Create;
-    lSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
+    lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
     lSwagResponse.Description := 'Ok';
     ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
     lSwagResponse := TSwagResponse.Create;
-    lSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
+    lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.InternalServerError);
     lSwagResponse.Description := 'Internal server error';
     ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
   end;
@@ -624,22 +624,22 @@ begin
   lSwagPathOp.Parameters.Add(lSwagParam);
 
   lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := HTTP_STATUS.Unauthorized.ToString;
+  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.Unauthorized);
   lSwagResponse.Description := 'Invalid authorization type';
   lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
   lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := HTTP_STATUS.Forbidden.ToString;
+  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.Forbidden);
   lSwagResponse.Description := 'Forbidden';
   lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
   lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := HTTP_STATUS.InternalServerError.ToString;
+  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.InternalServerError);
   lSwagResponse.Description := 'Internal server error';
   lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
   lSwagResponse := TSwagResponse.Create;
-  lSwagResponse.StatusCode := HTTP_STATUS.OK.ToString;
+  lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
   lSwagResponse.Description := 'OK';
   lSwagResponse.Schema.JsonSchema := TJSONObject.ParseJSONValue(JWT_JSON_SCHEMA) as TJSONObject;
   lSwagPathOp.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
