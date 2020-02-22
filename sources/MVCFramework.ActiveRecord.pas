@@ -554,7 +554,7 @@ var
   lKeyName: string;
   lConnHolder: TConnHolder;
 begin
-{$IF not Defined(SeattleOrBetter)}
+{$IF not Defined(TokyoOrBetter)}
   Result := nil;
 {$ENDIF}
   lKeyName := GetKeyName(aName.ToLower);
@@ -572,7 +572,7 @@ function TMVCConnectionsRepository.GetCurrent: TFDConnection;
 var
   lName: string;
 begin
-{$IF not Defined(SeattleOrBetter)}
+{$IF not Defined(TokyoOrBetter)}
   Result := nil;
 {$ENDIF}
   fMREW.BeginRead;

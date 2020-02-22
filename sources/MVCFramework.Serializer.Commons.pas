@@ -495,7 +495,7 @@ var
   Context: TRttiContext;
   ObjectType: TRttiType;
 begin
-{$IF not Defined(SeattleOrBetter)}
+{$IF not Defined(TokyoOrBetter)}
   Result := nil;
 {$ENDIF}
   Context := TRttiContext.Create;
@@ -804,6 +804,9 @@ var
   lInternalStream: TStream;
   lSStream: TStringStream;
   lValue: TValue;
+{$IF not Defined(TokyoOrBetter)}
+  lFieldValue: string;
+{$ENDIF}
 begin
   lValue := aRTTIField.GetValue(AObject);
   if lValue.Kind = tkRecord then
@@ -905,12 +908,19 @@ begin
         TBlobField(AField).SaveToStream(lInternalStream);
         lInternalStream.Position := 0;
       end;
-{$IF Defined(SeattleOrBetter)}
     ftGuid:
       begin
+{$IF Defined(TokyoOrBetter)}
         aRTTIField.SetValue(AObject, TValue.From<TGUID>(AField.AsGuid));
-      end;
+{$ELSE}
+        lFieldValue := AField.AsString;
+        if lFieldValue.IsEmpty then
+        begin
+          lFieldValue := '{00000000-0000-0000-0000-000000000000}';
+        end;
+        aRTTIField.SetValue(AObject, TValue.From<TGUID>(StringToGUID(lFieldValue)));
 {$ENDIF}
+      end;
   else
     raise EMVCException.CreateFmt('Unsupported FieldType (%d) for field %s', [Ord(AField.DataType), AField.Name]);
   end;
