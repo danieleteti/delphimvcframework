@@ -93,6 +93,7 @@ type
     fMapping: TMVCFieldsMapping;
   protected
     function GetDatabaseFieldName(const RQLPropertyName: string): string;
+    function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual; abstract;
@@ -1150,6 +1151,18 @@ begin
   end;
   raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
     [RQLPropertyName]);
+end;
+
+function TRQLCompiler.QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
+var
+  lValue: string;
+begin
+  SetLength(Result, 0);
+  for lValue in aStringArray do
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[High(Result)] := lValue.QuotedString('''');
+  end;
 end;
 
 { TRQLAbstractSyntaxTree }
