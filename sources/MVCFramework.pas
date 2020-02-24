@@ -985,6 +985,7 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: String; co
 implementation
 
 uses
+  MVCFramework.Log,
   MVCFramework.Router,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
@@ -2143,10 +2144,7 @@ begin
                 end;
                 ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.Name, LHandled);
                 LContext.Response.ContentType := LSelectedController.ContentType;
-                Log(TLogLevel.levNormal, ARequest.Method + ':' + ARequest.RawPathInfo + ' -> ' +
-                  LRouter.ControllerClazz.QualifiedClassName + ' - ' + IntToStr(AResponse.StatusCode) + ' ' +
-                  AResponse.ReasonString)
-
+                TMVCFrameworkLog.LogAction(LRouter, ARequest, AResponse);
               end
               else // execute-routing
               begin
@@ -2168,8 +2166,7 @@ begin
                   if not Result then
                   begin
                     // HTTP404(LContext);
-                    Log(TLogLevel.levNormal, ARequest.Method + ':' + ARequest.RawPathInfo + ' -> NO ACTION ' + ' - ' +
-                      IntToStr(AResponse.StatusCode) + ' ' + AResponse.ReasonString);
+                    TMVCFrameworkLog.LogNoAction(ARequest, AResponse);
                     raise EMVCException.Create(HTTP_STATUS.NotFound, 'Not Found');
                   end;
                 end
