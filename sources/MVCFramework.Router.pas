@@ -51,7 +51,7 @@ type
     function Params: TList<string>; // this should be read-only...
   end;
 
-  TMVCRouter = class
+  TMVCRouter = class(TMVCCustomRouter)
   private
     FRttiContext: TRttiContext;
     FConfig: TMVCConfig;
@@ -87,10 +87,8 @@ type
       const aControllerAttributes: TArray<TCustomAttribute>): string;
   public
     class function StringMethodToHTTPMetod(const AValue: string): TMVCHTTPMethodType; static;
-  public
     constructor Create(const aConfig: TMVCConfig; const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
     destructor Destroy; override;
-
     function ExecuteRouting(
       const ARequestPathInfo: string;
       const ARequestMethodType: TMVCHTTPMethodType;
@@ -102,6 +100,7 @@ type
       var ARequestParams: TMVCRequestParamsTable;
       out AResponseContentMediaType: string;
       out AResponseContentCharset: string): Boolean;
+    function GetQualifiedActionName: string; override;
 
     property MethodToCall: TRttiMethod read FMethodToCall;
     property ControllerClazz: TMVCControllerClazz read FControllerClazz;
@@ -380,6 +379,11 @@ begin
     lList.Free;
     raise;
   end;
+end;
+
+function TMVCRouter.GetQualifiedActionName: string;
+begin
+  Result := Self.FControllerClazz.QualifiedClassName + '.' + Self.MethodToCall.Name;
 end;
 
 function TMVCRouter.IsHTTPAcceptCompatible(

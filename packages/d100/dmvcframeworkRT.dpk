@@ -130,7 +130,8 @@ contains
   Json.Schema.Field.Booleans in '..\..\lib\swagdoc\Source\Json.Schema.Field.Booleans.pas',
   Json.Schema.Field.Arrays in '..\..\lib\swagdoc\Source\Json.Schema.Field.Arrays.pas',
   Json.Schema.Common.Types in '..\..\lib\swagdoc\Source\Json.Schema.Common.Types.pas',
-  Json.Common.Helpers in '..\..\lib\swagdoc\Source\Json.Common.Helpers.pas';
+  Json.Common.Helpers in '..\..\lib\swagdoc\Source\Json.Common.Helpers.pas',
+  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas';
 
 end.
 

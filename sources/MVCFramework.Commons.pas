@@ -552,6 +552,12 @@ type
     DatabaseFieldName: string;
   end;
 
+  TMVCCustomRouter = class abstract
+  public
+    function GetQualifiedActionName(): String; virtual; abstract;
+  end;
+
+
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
 {$SCOPEDENUMS ON}

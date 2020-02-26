@@ -7,8 +7,8 @@
 // https://github.com/danieleteti/delphimvcframework
 //
 // Collaborators on this file:
-//    Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
-//    João Antônio Duarte (https://github.com/joaoduarte19)
+// Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// João Antônio Duarte (https://github.com/joaoduarte19)
 //
 // ***************************************************************************
 //
@@ -215,7 +215,6 @@ type
     { public declarations }
   end;
 
-
   MVCPathAttribute = class(MVCBaseAttribute)
   private
     FPath: string;
@@ -229,12 +228,12 @@ type
   MVCResponseAttribute = class(MVCBaseAttribute)
   private
     FStatusCode: Integer;
-    FDescription : string;
-    FResponseClass : TClass;
+    FDescription: string;
+    FResponseClass: TClass;
   protected
     { protected declarations }
   public
-    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    constructor Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass = nil); overload;
     property StatusCode: Integer read FStatusCode;
     property Description: string read FDescription;
     property ResponseClass: TClass read FResponseClass;
@@ -243,12 +242,12 @@ type
   MVCResponseListAttribute = class(MVCBaseAttribute)
   private
     FStatusCode: Integer;
-    FDescription : string;
-    FResponseClass : TClass;
+    FDescription: string;
+    FResponseClass: TClass;
   protected
     { protected declarations }
   public
-    constructor Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass = nil); overload;
+    constructor Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass = nil); overload;
     property StatusCode: Integer read FStatusCode;
     property Description: string read FDescription;
     property ResponseClass: TClass read FResponseClass;
@@ -256,11 +255,11 @@ type
 
   MVCPathParamAttribute = class(MVCBaseAttribute)
   private
-    FType : TSwagTypeParameter;
-    FFormat : string;
-    FValue : string;
+    FType: TSwagTypeParameter;
+    FFormat: string;
+    FValue: string;
   public
-    constructor Create(AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = '');
+    constructor Create(AType: TSwagTypeParameter; APattern: string = ''; AFormat: string = '');
     property ParamType: TSwagTypeParameter read FType;
     property Format: string read FFormat;
     property Pattern: string read FValue;
@@ -268,24 +267,25 @@ type
 
   MVCParamAttribute = class(MVCStringAttribute)
   private
-    FName : string;
-    FLocation : TSwagRequestParameterInLocation;
-    FType : TSwagTypeParameter;
-    FClassType : TClass;
-    FPattern : string;
-    FFormat : string;
+    FName: string;
+    FLocation: TSwagRequestParameterInLocation;
+    FType: TSwagTypeParameter;
+    FClassType: TClass;
+    FPattern: string;
+    FFormat: string;
   public
-    property Name : string read FName write FName;
+    property Name: string read FName write FName;
     property Location: TSwagRequestParameterInLocation read FLocation write FLocation;
-    property ParamType: TSwagTypeParameter read FType write Ftype;
+    property ParamType: TSwagTypeParameter read FType write FType;
     property ClassType: TClass read FClassType write FClassType;
     property Pattern: string read FPattern write FPattern;
     property Format: string read FFormat write FFormat;
 
-    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TSwagTypeParameter; APattern: string = ''; AFormat: string = ''); overload;
-    constructor Create(name: string; location: TSwagRequestParameterInLocation; AType : TClass; APattern: string = ''; AFormat: string = ''); overload;
+    constructor Create(name: string; Location: TSwagRequestParameterInLocation; AType: TSwagTypeParameter;
+      APattern: string = ''; AFormat: string = ''); overload;
+    constructor Create(name: string; Location: TSwagRequestParameterInLocation; AType: TClass; APattern: string = '';
+      AFormat: string = ''); overload;
   end;
-
 
   MVCPatternAttribute = class(MVCStringAttribute)
 
@@ -293,10 +293,10 @@ type
 
   MVCStringEnumAttribute = class(MVCBaseAttribute)
   private
-    fValues : String;
+    fValues: String;
   public
     constructor Create(const enumValue: String);
-    property Values : string read FValues write FValues;
+    property Values: string read fValues write fValues;
   end;
 
   TMVCWebRequest = class
@@ -829,6 +829,11 @@ type
 
   TMVCExceptionHandlerProc = reference to procedure(E: Exception; SelectedController: TMVCController;
     WebContext: TWebContext; var ExceptionHandled: Boolean);
+  TMVCRouterLogState = (rlsRouteFound, rlsRouteNotFound);
+  TMVCRouterLogHandlerProc = reference to procedure(
+    const Router: TMVCCustomRouter;
+    const RouterLogState: TMVCRouterLogState;
+    const WebContext: TWebContext);
 
   TMVCEngine = class(TComponent)
   private const
@@ -846,6 +851,7 @@ type
     FApplicationSession: TWebApplicationSession;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
+    fOnRouterLog: TMVCRouterLogHandlerProc;
     function IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
     procedure FillActualParamsForAction(const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
@@ -909,6 +915,7 @@ type
     property Middlewares: TList<IMVCMiddleware> read FMiddlewares;
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property ApplicationSession: TWebApplicationSession read FApplicationSession write FApplicationSession;
+    property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -985,11 +992,9 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: String; co
 implementation
 
 uses
-  MVCFramework.Log,
-  MVCFramework.Router,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.JSONRPC;
+  MVCFramework.JSONRPC, MVCFramework.Router;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -1064,7 +1069,7 @@ begin
   FPath := APath;
 end;
 
-constructor MVCResponseAttribute.Create(inStatusCode:Integer; const inDescription: string; inResponseClass : TClass);
+constructor MVCResponseAttribute.Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass);
 begin
   FStatusCode := inStatusCode;
   FDescription := inDescription;
@@ -1073,7 +1078,8 @@ end;
 
 { MVCResponseListAttribute }
 
-constructor MVCResponseListAttribute.Create(inStatusCode: Integer; const inDescription: string; inResponseClass: TClass);
+constructor MVCResponseListAttribute.Create(inStatusCode: Integer; const inDescription: string;
+  inResponseClass: TClass);
 begin
   FStatusCode := inStatusCode;
   FDescription := inDescription;
@@ -1084,7 +1090,7 @@ end;
 
 constructor MVCStringEnumAttribute.Create(const enumValue: String);
 begin
-  FValues := enumValue;
+  fValues := enumValue;
 end;
 
 { TMVCWebRequest }
@@ -1510,7 +1516,7 @@ begin
     try
       Flush;
     except
-      //do nothing
+      // do nothing
     end;
   end;
   inherited Destroy;
@@ -1860,7 +1866,7 @@ begin
   FResponse.Cookies.Clear;
 
   Cookie := FResponse.Cookies.Add;
-  Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
+  Cookie.name := TMVCConstants.SESSION_TOKEN_NAME;
 
   Cookie.Value := GUIDToString(TGUID.NewGuid) + 'invalid' + GUIDToString(TGUID.NewGuid);
   Cookie.Expires := EncodeDate(1970, 1, 1);
@@ -1922,7 +1928,7 @@ begin
     if I = ACookies.Count then
       Break;
     Cookie := ACookies[I];
-    if LowerCase(Cookie.Name) = SessionCookieName then
+    if LowerCase(Cookie.name) = SessionCookieName then
       ACookies.Delete(I)
     else
       Inc(I);
@@ -1961,6 +1967,28 @@ begin
   FMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
 
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
+
+  fOnRouterLog :=
+      procedure(const Sender: TMVCCustomRouter; const RouterLogState: TMVCRouterLogState; const Context: TWebContext)
+    begin
+      case RouterLogState of
+        rlsRouteFound:
+          begin
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' [' +
+              Context.Request.ClientIp + '] -> ' +
+              Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+              Context.Response.ReasonString);
+          end;
+        rlsRouteNotFound:
+          begin
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' [' +
+              Context.Request.ClientIp + '] -> {NOT FOUND} - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+              Context.Response.ReasonString);
+          end;
+      else
+        raise EMVCException.Create('Invalid RouterLogState');
+      end;
+    end;
 end;
 
 constructor TMVCEngine.Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig>;
@@ -2097,7 +2125,7 @@ begin
                 LSelectedController.ApplicationSession := FApplicationSession;
                 LContext.ParamsTable := LParamsTable;
                 ExecuteBeforeControllerActionMiddleware(LContext, LRouter.ControllerClazz.QualifiedClassName,
-                  LRouter.MethodToCall.Name, LHandled);
+                  LRouter.MethodToCall.name, LHandled);
                 if LHandled then
                   Exit(True);
 
@@ -2119,32 +2147,32 @@ begin
                   else
                   begin
                     try
-                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.Name,
+                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.name,
                         LActualParams);
                     except
                       on E: Exception do
                       begin
-                        SendRawHTTPStatus(LContext, HTTP_STATUS.BadRequest, e.Message, e.ClassName);
+                        SendRawHTTPStatus(LContext, HTTP_STATUS.BadRequest, E.Message, E.Classname);
                       end;
                     end;
                   end;
 
-                  LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.Name, LHandled);
+                  LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.name, LHandled);
 
                   if not LHandled then
                   begin
                     try
                       LRouter.MethodToCall.Invoke(LSelectedController, LActualParams);
                     finally
-                      LSelectedController.OnAfterAction(LContext, LRouter.MethodToCall.Name);
+                      LSelectedController.OnAfterAction(LContext, LRouter.MethodToCall.name);
                     end;
                   end;
                 finally
                   LSelectedController.MVCControllerBeforeDestroy;
                 end;
-                ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.Name, LHandled);
+                ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.name, LHandled);
                 LContext.Response.ContentType := LSelectedController.ContentType;
-                TMVCFrameworkLog.LogAction(LRouter, ARequest, AResponse);
+                fOnRouterLog(LRouter, rlsRouteFound, LContext);
               end
               else // execute-routing
               begin
@@ -2154,9 +2182,9 @@ begin
                   begin
                     if (LContext.Request.PathInfo = '/') or (LContext.Request.PathInfo = '') then // useful for SPA
                     begin
-                      lFileName := TPath.GetFullPath(TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
+                      LFileName := TPath.GetFullPath(TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
                         Config[TMVCConfigKey.FallbackResource]));
-                      Result := SendStaticFileIfPresent(LContext, lFileName);
+                      Result := SendStaticFileIfPresent(LContext, LFileName);
                     end;
                   end;
                   if (not Result) and (IsStaticFileRequest(ARequest, LFileName)) then
@@ -2165,9 +2193,10 @@ begin
                   end;
                   if not Result then
                   begin
-                    // HTTP404(LContext);
-                    TMVCFrameworkLog.LogNoAction(ARequest, AResponse);
-                    raise EMVCException.Create(HTTP_STATUS.NotFound, 'Not Found');
+                    LContext.Response.StatusCode := HTTP_STATUS.NotFound;
+                    LContext.Response.ReasonString := 'Not Found';
+                    fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
+                    raise EMVCException.Create(LContext.Response.StatusCode, LContext.Response.ReasonString);
                   end;
                 end
                 else
@@ -2260,7 +2289,7 @@ procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWeb
 var
   I: Integer;
 begin
-  //for I := FMiddlewares.Count - 1 downto 0 do
+  // for I := FMiddlewares.Count - 1 downto 0 do
   for I := 0 to FMiddlewares.Count - 1 do
     FMiddlewares[I].OnAfterControllerAction(AContext, AActionName, AHandled);
 end;
@@ -2316,7 +2345,7 @@ begin
   SetLength(AActualParams, Length(AActionFormalParams));
   for I := 0 to Length(AActionFormalParams) - 1 do
   begin
-    ParamName := AActionFormalParams[I].Name;
+    ParamName := AActionFormalParams[I].name;
 
     if not AContext.Request.SegmentParam(ParamName, StrValue) then
       raise EMVCException.CreateFmt
@@ -2328,13 +2357,13 @@ begin
         try
           AActualParams[I] := StrToInt(StrValue);
         except
-          raise EMVCException.CreateFmt('Invalid Integer value for param [%s]', [AActionFormalParams[I].Name]);
+          raise EMVCException.CreateFmt('Invalid Integer value for param [%s]', [AActionFormalParams[I].name]);
         end;
       tkInt64:
         try
           AActualParams[I] := StrToInt64(StrValue);
         except
-          raise EMVCException.CreateFmt('Invalid Int64 value for param [%s]', [AActionFormalParams[I].Name]);
+          raise EMVCException.CreateFmt('Invalid Int64 value for param [%s]', [AActionFormalParams[I].name]);
         end;
       tkUString:
         begin
@@ -2350,7 +2379,7 @@ begin
               WasDateTime := True;
               AActualParams[I] := ISODateToDate(StrValue);
             except
-              raise EMVCException.CreateFmt('Invalid TDate value for param [%s]', [AActionFormalParams[I].Name]);
+              raise EMVCException.CreateFmt('Invalid TDate value for param [%s]', [AActionFormalParams[I].name]);
             end;
           end
           else
@@ -2363,7 +2392,7 @@ begin
               on E: Exception do
               begin
                 raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s][%s]',
-                  [AActionFormalParams[I].Name, E.Message]);
+                  [AActionFormalParams[I].name, E.Message]);
               end;
             end;
           end
@@ -2374,16 +2403,16 @@ begin
               WasDateTime := True;
               AActualParams[I] := ISOTimeToTime(StrValue);
             except
-              raise EMVCException.CreateFmt('Invalid TTime value for param [%s]', [AActionFormalParams[I].Name]);
+              raise EMVCException.CreateFmt('Invalid TTime value for param [%s]', [AActionFormalParams[I].name]);
             end;
           end;
           if not WasDateTime then
-          try
-            FormatSettings.DecimalSeparator := '.';
-            AActualParams[I] := StrToFloat(StrValue, FormatSettings);
-          except
-            raise EMVCException.CreateFmt('Invalid Float value for param [%s]', [AActionFormalParams[I].Name]);
-          end;
+            try
+              FormatSettings.DecimalSeparator := '.';
+              AActualParams[I] := StrToFloat(StrValue, FormatSettings);
+            except
+              raise EMVCException.CreateFmt('Invalid Float value for param [%s]', [AActionFormalParams[I].name]);
+            end;
         end;
       tkEnumeration:
         begin
@@ -2507,8 +2536,6 @@ var
   lSer: IMVCSerializer;
   lError: TMVCErrorResponse;
 begin
-  AContext.Response.SetStatusCode(HTTPStatusCode);
-  AContext.Response.SetReasonString(AReasonString);
   if Serializers.TryGetValue(AContext.Config[TMVCConfigKey.DefaultContentType], lSer) then
   begin
     lError := TMVCErrorResponse.Create;
@@ -2530,6 +2557,8 @@ begin
     AContext.Response.SetContent(GetServerSignature(AContext) + sLineBreak + 'HTTP ' + HTTPStatusCode.ToString + ': ' +
       AReasonString);
   end;
+  AContext.Response.SetStatusCode(HTTPStatusCode);
+  AContext.Response.SetReasonString(AReasonString);
 end;
 
 function TMVCEngine.IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;
@@ -2593,11 +2622,11 @@ procedure TMVCEngine.RegisterDefaultsSerializers;
 var
   lDefaultSerializerContentType: string;
 begin
-//  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
-//  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
-//  begin
-//    FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create);
-//  end;
+  // lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, TMVCCharset.UTF_8);
+  // if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
+  // begin
+  // FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create);
+  // end;
 
   // register the same serializer without the charset in the contenttype
   lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, '');
@@ -2643,7 +2672,7 @@ var
 begin
   ClearSessionCookiesAlreadySet(AContext.Response.Cookies);
   Cookie := AContext.Response.Cookies.Add;
-  Cookie.Name := TMVCConstants.SESSION_TOKEN_NAME;
+  Cookie.name := TMVCConstants.SESSION_TOKEN_NAME;
   Cookie.Value := ASessionId;
   if not TryStrToInt(AContext.Config[TMVCConfigKey.SessionTimeout], SessionTimeout) then
     raise EMVCException.Create('[Config::Session Timeout] is not a valid integer');
@@ -2761,7 +2790,7 @@ end;
 class function TMVCStaticContents.IsStaticFile(const AViewPath, AWebRequestPath: string;
 out ARealFileName: string): Boolean;
 var
-  lFileName, lWebRoot: string;
+  LFileName, lWebRoot: string;
 begin
   if TDirectory.Exists(AViewPath) then
   begin
@@ -2771,12 +2800,12 @@ begin
   begin
     lWebRoot := TPath.GetFullPath(GetApplicationFileNamePath + AViewPath);
   end;
-  lFileName := TPath.GetFullPath(lWebRoot + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar));
-  if not lFileName.StartsWith(lWebRoot) then
+  LFileName := TPath.GetFullPath(lWebRoot + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar));
+  if not LFileName.StartsWith(lWebRoot) then
   begin
     Exit(False);
   end;
-  ARealFileName := lFileName;
+  ARealFileName := LFileName;
   Result := TFile.Exists(ARealFileName);
 end;
 
@@ -3121,7 +3150,7 @@ end;
 
 function TMVCRenderer.ToMVCList(const AObject: TObject; AOwnsObject: Boolean): IMVCList;
 begin
-  Result :=  MVCFramework.DuckTyping.WrapAsList(AObject,AOwnsObject);
+  Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
 end;
 
 procedure TMVCController.SetViewData(const aModelName: string; const Value: TObject);
@@ -3259,8 +3288,8 @@ begin
 end;
 
 procedure TMVCRenderer.Render<T>(const AStatusCode: Integer;
-  const ACollection: TObjectList<T>; const AOwns: Boolean;
-  const ASerializationAction: TMVCSerializationAction<T>);
+const ACollection: TObjectList<T>; const AOwns: Boolean;
+const ASerializationAction: TMVCSerializationAction<T>);
 begin
   SetStatusCode(AStatusCode);
   Render<T>(ACollection, AOwns, ASerializationAction);
@@ -3559,7 +3588,6 @@ begin
     Result := EmptyStr;
 end;
 
-
 { MVCIntegerAttribute }
 
 constructor MVCIntegerAttribute.Create(const AValue: Int64);
@@ -3579,22 +3607,22 @@ end;
 { MVCParamAttribute }
 
 constructor MVCParamAttribute.Create(name: string;
-  location: TSwagRequestParameterInLocation; AType: TSwagTypeParameter;
-  APattern, AFormat: string);
+Location: TSwagRequestParameterInLocation; AType: TSwagTypeParameter;
+APattern, AFormat: string);
 begin
-  fName := name;
-  FLocation := location;
+  FName := name;
+  FLocation := Location;
   FType := AType;
   FPattern := APattern;
   FFormat := AFormat;
 end;
 
 constructor MVCParamAttribute.Create(name: string;
-  location: TSwagRequestParameterInLocation; AType: TClass; APattern,
+Location: TSwagRequestParameterInLocation; AType: TClass; APattern,
   AFormat: string);
 begin
   FName := name;
-  FLocation := location;
+  FLocation := Location;
   FClassType := AType;
   FPattern := APattern;
   FFormat := AFormat;

@@ -25,7 +25,7 @@ implementation
 {$R *.dfm}
 
 
-uses MVCFramework.Commons, MyControllerU;
+uses MVCFramework.Commons, MyControllerU, MVCFramework.Logger;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -50,6 +50,32 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TMyController);
+
+  { This is a custom router log. It is not mandatory; you can use it to log
+    more (or less or different) information than the default ones logs }
+  FMVC.OnRouterLog :=
+      procedure(const Sender: TMVCCustomRouter; const RouterLogState: TMVCRouterLogState; const Context: TWebContext)
+    begin
+      Log('** CUSTOM ROUTER LOG **');
+      case RouterLogState of
+        rlsRouteFound:
+          begin
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' -> ' +
+              Context.Request.ClientIp + ' ' +
+              Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+              Context.Response.ReasonString);
+          end;
+        rlsRouteNotFound:
+          begin
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' -> ' +
+              ' <NOT FOUND> - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+              Context.Response.ReasonString);
+          end;
+      else
+        raise EMVCException.Create('Invalid RouterLogState');
+      end;
+    end;
+
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
