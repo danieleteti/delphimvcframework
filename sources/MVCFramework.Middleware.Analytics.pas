@@ -37,15 +37,16 @@ uses
 type
   TMVCAnalyticsMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
-    FLogWriter: ILogWriter;
+    fLogWriter: ILogWriter;
   protected
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string; const Handled: Boolean);
-    procedure OnBeforeControllerAction(Context: TWebContext; const AControllerQualifiedClassName: string; const AActionNAme: string;
+    procedure OnBeforeControllerAction(Context: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionNAme: string;
       var Handled: Boolean);
   public
     constructor Create(const ALogWriter: ILogWriter); virtual;
-
+    property LogWriter: ILogWriter read fLogWriter;
   end;
 
 implementation
@@ -58,19 +59,22 @@ uses
 constructor TMVCAnalyticsMiddleware.Create(const ALogWriter: ILogWriter);
 begin
   inherited Create;
-  FLogWriter := ALogWriter;
+  fLogWriter := ALogWriter;
 end;
 
-procedure TMVCAnalyticsMiddleware.OnAfterControllerAction(Context: TWebContext; const AActionNAme: string; const Handled: Boolean);
+procedure TMVCAnalyticsMiddleware.OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
+  const Handled: Boolean);
 begin
   // do nothing
 end;
 
-procedure TMVCAnalyticsMiddleware.OnBeforeControllerAction(Context: TWebContext; const AControllerQualifiedClassName, AActionNAme: string;
+procedure TMVCAnalyticsMiddleware.OnBeforeControllerAction(Context: TWebContext;
+  const AControllerQualifiedClassName, AActionNAme: string;
   var Handled: Boolean);
 begin
-  FLogWriter.Info(Context.Request.ClientIp + ';' + AControllerQualifiedClassName + ';' + AActionNAme + ';' +
-    Context.Request.RawWebRequest.Method + ';' + Context.Request.RawWebRequest.PathTranslated + ';' + Context.Request.RawWebRequest.PathInfo
+  fLogWriter.Info(Context.Request.ClientIp + ';' + AControllerQualifiedClassName + ';' + AActionNAme + ';' +
+    Context.Request.RawWebRequest.Method + ';' + Context.Request.RawWebRequest.PathTranslated + ';' +
+    Context.Request.RawWebRequest.PathInfo
     + ';' + Context.Request.RawWebRequest.Referer + ';' + Context.Request.RawWebRequest.Host, 'analytics');
 end;
 
