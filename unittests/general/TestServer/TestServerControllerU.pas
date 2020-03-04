@@ -681,7 +681,7 @@ end;
 procedure TTestServerController.TestTypedActionString1(value: string);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
-  Render(value + ' modified from server');
+  Render('*' + value + '*');
 end;
 
 procedure TTestServerController.TestTypedActionTDate1(value: TDate);
