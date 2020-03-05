@@ -24,15 +24,20 @@ var
 
 implementation
 
-uses FileUploadControllerU, MVCFramework.Commons,
-  MVCFramework.View.Renderers.TemplatePro;
+uses
+  FileUploadControllerU,
+  MVCFramework.Commons,
+  MVCFramework.View.Renderers.TemplatePro,
+  MVCFramework.Middleware.Trace;
 
 {$R *.dfm}
+
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(self);
   MVC.AddController(TFileUploadController);
+  MVC.AddMiddleware(TMVCTraceMiddleware.Create);
   MVC.SetViewEngine(TMVCTemplateProViewEngine);
   MVC.Config[TMVCConfigKey.ViewPath] := ExtractFilePath(GetModuleName(HInstance)
     ) + '..\..\templates';

@@ -145,6 +145,7 @@ type
     [Test]
     procedure TestPostAListOfObjects;
     // test authentication/authorization with BasicAuth
+    [Test]
     procedure TestBasicAuth01;
     [Test]
     procedure TestBasicAuth02;

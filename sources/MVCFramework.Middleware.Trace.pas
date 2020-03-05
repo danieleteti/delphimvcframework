@@ -85,14 +85,22 @@ end;
 procedure TMVCTraceMiddleware.OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
 var
   lContentStream: TStringStream;
+  lContentType: string;
 begin
   lContentStream := TStringStream.Create;
   try
     Context.Request.RawWebRequest.ReadTotalContent;
     Log.Debug('[REQUEST][URL] ' + Context.Request.RawWebRequest.PathInfo, 'trace');
     Log.Debug('[REQUEST][QUERYSTRING] ' + Context.Request.RawWebRequest.QueryFields.DelimitedText, 'trace');
-    lContentStream.WriteString(EncodingGetString(Context.Request.Headers['content-type'],
-      Context.Request.RawWebRequest.RawContent));
+    lContentType := Context.Request.Headers['content-type'].ToLower;
+    if lContentType.Equals(TMVCMediaType.APPLICATION_JSON) or
+      lContentType.Equals(TMVCMediaType.APPLICATION_XML) or
+      lContentType.Equals(TMVCMediaType.APPLICATION_FORM_URLENCODED) or
+      lContentType.StartsWith('text/') then
+    begin
+      lContentStream.WriteString(EncodingGetString(lContentType,
+        Context.Request.RawWebRequest.RawContent));
+    end;
     Log.Debug('[REQUEST][BODY] ' + lContentStream.DataString, 'trace');
   finally
     lContentStream.Free;
