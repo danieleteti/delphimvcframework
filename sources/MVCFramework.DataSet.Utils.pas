@@ -63,7 +63,7 @@ type
       AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string; AIgnoredFields: TArray<string>); overload;
-    procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: String;
+    procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: string;
       const AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
@@ -154,7 +154,7 @@ begin
 end;
 
 procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string;
-  const aPropertyName: String; const AFieldNamePolicy: TFieldNamePolicy);
+  const aPropertyName: string; const AFieldNamePolicy: TFieldNamePolicy);
 var
   lJson: TJSONObject;
 begin
@@ -373,7 +373,7 @@ var
   mf: MVCColumnAttribute;
   field_name: string;
   Value: TValue;
-  FoundAttribute: boolean;
+  lNeedToSet, FoundAttribute: boolean;
   FoundTransientAttribute: boolean;
   LField: TField;
 begin
@@ -405,15 +405,12 @@ begin
   end;
   for lRttiProp in _fields do
   begin
-
     if not _dict.TryGetValue(lRttiProp.Name, field_name) then
       Continue;
-
     LField := ADataSet.FindField(field_name);
-
     if not Assigned(LField) then
       Continue;
-
+    lNeedToSet := true;
     case lRttiProp.PropertyType.TypeKind of
       tkEnumeration: // tristan
         begin
@@ -443,15 +440,18 @@ begin
         Value := LField.AsString;
       tkUString, tkWChar, tkLString, tkWString:
         Value := LField.AsWideString;
-      { TODO -oDanieleT -cGeneral : This doesn0t work with nullable types }
-      // tkRecord:
-      // begin
-      /// /        MapDataSetFieldToNullableRTTIField(Value, LField, _field, AObject);
-      // end
+      tkRecord:
+        begin
+          MapDataSetFieldToNullableRTTIProperty(lRttiProp.GetValue(AObject), LField, lRttiProp, AObject);
+          lNeedToSet := false;
+        end
     else
       Continue;
     end;
-    lRttiProp.SetValue(AObject, Value);
+    if lNeedToSet then
+    begin
+      lRttiProp.SetValue(AObject, Value);
+    end;
   end;
   _dict.Free;
   _keys.Free;
