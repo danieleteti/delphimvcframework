@@ -66,8 +66,8 @@ type
 
   public
     [Test]
-    [TestCase('request url /fault', '/fault')]
-    [TestCase('request url /fault2', '/fault2')]
+    [TestCase('request url /fault', '/exception/fault')]
+    [TestCase('request url /fault2', '/exception/fault2')]
     procedure TestControllerWithExceptionInCreate(const URLSegment: string);
 
     [Test]
@@ -1537,7 +1537,7 @@ begin
   lValues[3] := '"daniele teti"';
   lValues[4] := '"daniele" "teti"';
   lValues[5] := '"daniele" "teti"!';
-  lValues[6] := ' _\"daniele" "teti"!/_ ';
+  lValues[6] := ' _\"daniele" "teti"!_ ';
 
   for s in lValues do
   begin

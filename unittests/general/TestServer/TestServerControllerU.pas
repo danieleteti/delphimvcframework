@@ -97,7 +97,7 @@ type
     [MVCProduces('text/plain', 'utf-8')]
     procedure TestConsumesProducesText;
 
-    [MVCPath('/testconsumejson')]
+    [MVCPath('/adapter/testconsumejson')]
     [MVCHTTPMethod([httpGET])]
     [MVCConsumes('application/json')]
     [MVCProduces('application/json', 'utf-8')]
@@ -221,6 +221,14 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/responses/nocontent')]
     procedure TestResponseNoContent;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/($projectid)')]
+    procedure GetProject;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/($projectid)/pictures/($imageuuid)')]
+    procedure GetImage;
   end;
 
   [MVCPath('/private')]
@@ -235,7 +243,7 @@ type
     procedure OnlyRole2;
   end;
 
-  [MVCPath('/fault')]
+  [MVCPath('/exception/fault')]
   TTestFaultController = class(TMVCController)
   public
     [MVCPath]
@@ -243,7 +251,7 @@ type
     constructor Create; override;
   end;
 
-  [MVCPath('/fault2')]
+  [MVCPath('/exception/fault2')]
   TTestFault2Controller = class(TTestFaultController)
   public
     [MVCPath]
@@ -338,6 +346,16 @@ begin
   c.Path := '/usersettings4';
   c.Expires := 0;
 
+end;
+
+procedure TTestServerController.GetImage;
+begin
+  // do nothing
+end;
+
+procedure TTestServerController.GetProject;
+begin
+  // do nothing
 end;
 
 procedure TTestServerController.Login;

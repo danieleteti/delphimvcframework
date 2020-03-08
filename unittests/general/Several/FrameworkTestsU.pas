@@ -100,6 +100,8 @@ type
     [Test]
     procedure TestComplexRoutings;
     [Test]
+    procedure TestIssue338;
+    [Test]
     procedure TestProduceRoutings;
     [Test]
     procedure TestProduceRoutingsWithExplicitCharset;
@@ -204,16 +206,13 @@ uses System.DateUtils, System.Math,
   MVCFramework.Serializer.Commons,
   MVCFramework.HMAC, System.Diagnostics,
 
-  {$IF CompilerVersion < 27}
-
+{$IF CompilerVersion < 27}
   Data.DBXJSON,
 
-  {$ELSE}
-
+{$ELSE}
   System.JSON,
 
-  {$ENDIF}
-
+{$ENDIF}
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
   IdGlobal;
@@ -435,6 +434,36 @@ begin
     Assert.isNull(FRouter.MethodToCall);
     Assert.isFalse(Assigned(FRouter.ControllerClazz));
 
+  finally
+    Params.Free;
+  end;
+end;
+
+procedure TTestRouting.TestIssue338;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
+begin
+  // https://github.com/danieleteti/delphimvcframework/issues/338
+  Params := TMVCRequestParamsTable.Create;
+  try
+    Params.Clear;
+    Assert.isTrue(FRouter.ExecuteRouting('/projectid/pictures/imageuuid', httpGET,
+      'text/plain', 'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
+    Assert.areEqual('GetImage', FRouter.MethodToCall.Name);
+    Assert.areEqual(2, Params.Count);
+    Assert.areEqual('projectid', Params['projectid']);
+    Assert.areEqual('imageuuid', Params['imageuuid']);
+
+    Params.Clear;
+    Assert.isTrue(FRouter.ExecuteRouting('/projectid', httpGET,
+      'text/plain', 'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
+      ResponseContentType, ResponseContentEncoding));
+    Assert.areEqual('GetProject', FRouter.MethodToCall.Name);
+    Assert.areEqual(1, Params.Count);
+    Assert.areEqual('projectid', Params['projectid']);
   finally
     Params.Free;
   end;
@@ -1139,8 +1168,8 @@ begin
   // this test just tests the IP2Long implementation
   for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
   begin
-    Assert.AreEqual(IPv4ToUInt32(RESERVED_IPS[I][1]), IP2Long(RESERVED_IPS[I][1]));
-    Assert.AreEqual(IPv4ToUInt32(RESERVED_IPS[I][2]), IP2Long(RESERVED_IPS[I][2]));
+    Assert.areEqual(IPv4ToUInt32(RESERVED_IPS[I][1]), IP2Long(RESERVED_IPS[I][1]));
+    Assert.areEqual(IPv4ToUInt32(RESERVED_IPS[I][2]), IP2Long(RESERVED_IPS[I][2]));
   end;
 end;
 
