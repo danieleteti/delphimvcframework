@@ -614,7 +614,7 @@ begin
           ftBoolean:
             AJsonObject.B[lField.FieldName] := ADataSet.Fields[lField.I].AsBoolean;
 
-          ftInteger, ftSmallint, ftShortint, ftByte:
+          ftInteger, ftSmallint, ftShortint, ftByte, ftWord:
             AJsonObject.I[lField.FieldName] := ADataSet.Fields[lField.I].AsInteger;
 
           ftLargeint, ftAutoInc, ftLongword:
