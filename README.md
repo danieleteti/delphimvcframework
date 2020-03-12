@@ -269,6 +269,32 @@ end;
 
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
+- Added ability to serialize/deserialize types enumerated by an array of mapped values (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+    ```delphi
+    type
+      TMonthEnum = (meJanuary, meFebruary, meMarch, meApril);
+    
+      TEntityWithEnums = class
+      private
+        FMonthMappedNames: TMonthEnum;
+        FMonthEnumName: TMonthEnum;    
+        FMonthOrder: TMonthEnum;    
+      public
+        // List items separated by comma or semicolon
+        [MVCEnumSerializationType(estEnumMappedValues,
+        	'January,February,March,April')]
+        property MonthMappedNames: TMonthEnum 
+        	read FMonthMappedNames write FMonthMappedNames;
+        [MVCEnumSerializationType(estEnumName)]
+        property MonthEnumName: TMonthEnum 
+        	read FMonthEnumName write FMonthEnumName;
+        [MVCEnumSerializationType(estEnumOrd)]
+        property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
+      end;
+    ...
+    ```
+
 - New Installation procedure! 
 
     - Open the project group (select the correct one from the following table)
