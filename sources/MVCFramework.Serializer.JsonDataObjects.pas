@@ -206,7 +206,7 @@ var
   ValueTypeAtt: MVCValueAsTypeAttribute;
   CastValue, CastedValue: TValue;
   I: Integer;
-  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
+  LEnumAsAttr: MVCEnumSerializationAttribute;
   LEnumSerType: TMVCEnumSerializationType;
   LEnumMappedValues: TList<string>;
   LEnumName: string;
@@ -281,7 +281,7 @@ begin
         begin
           LEnumSerType := estEnumName;
           LEnumMappedValues := nil;
-          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr)
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr)
           then
           begin
             LEnumSerType := LEnumAsAttr.SerializationType;
@@ -853,7 +853,7 @@ var
   ChildObject: TObject;
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
-  LEnumAsAttr: MVCEnumSerializationTypeAttribute;
+  LEnumAsAttr: MVCEnumSerializationAttribute;
   LEnumMappedValues: TList<string>;
   LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
@@ -919,7 +919,7 @@ begin
         end
         else if (AValue.Kind = tkEnumeration) then
         begin
-          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr)
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr)
           then
           begin
             LEnumSerType := LEnumAsAttr.SerializationType;

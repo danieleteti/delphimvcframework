@@ -267,7 +267,7 @@ type
   end;
 
   EMVCJSONRPCErrorResponse = class abstract(Exception)
-  private
+  protected
     fJSONRPCErrorCode: Integer;
   public
     property JSONRPCErrorCode: Integer read fJSONRPCErrorCode;

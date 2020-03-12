@@ -92,10 +92,10 @@ type
   public
     FieldName: string;
     FieldOptions: TMVCActiveRecordFieldOptions;
-    SequenceName: string;
+    SequenceName, DataTypeName: string;
     constructor Create(const aFieldName: string; const aFieldOptions: TMVCActiveRecordFieldOptions;
-      const aSequenceName: String = ''); overload;
-    constructor Create(aFieldName: string); overload;
+      const aSequenceName: String = ''; const aDataTypeName: String = ''); overload;
+    constructor Create(aFieldName: string; const aDataTypeName: String = ''); overload;
   end;
 
   MVCPrimaryKeyAttribute = MVCTableFieldAttribute deprecated '(ERROR) Use MVCTableFieldAttribute';
@@ -139,6 +139,7 @@ type
     fTableName: string;
     fMap: TDictionary<TRttiField, string>;
     fMapNonTransientFields: TDictionary<TRttiField, string>;
+    fMapFieldDataTypes: TDictionary<string, string>;
     fPrimaryKey: TRttiField;
     fBackendDriver: string;
     fMapping: TMVCFieldsMapping;
@@ -670,9 +671,9 @@ end;
 
 { TableFieldAttribute }
 
-constructor MVCTableFieldAttribute.Create(aFieldName: string);
+constructor MVCTableFieldAttribute.Create(aFieldName: string; const aDataTypeName: String = '');
 begin
-  Create(aFieldName, []);
+  Create(aFieldName, [], '', aDataTypeName);
 end;
 
 { TableAttribute }
@@ -689,6 +690,7 @@ destructor TMVCActiveRecord.Destroy;
 begin
   fMap.Free;
   fMapNonTransientFields.Free;
+  fMapFieldDataTypes.Free;
   fSQLGenerator.Free;
   fRQL2SQL.Free;
   fConn := nil; // do not free it!!
@@ -708,6 +710,7 @@ var
   lValue: TValue;
   lSQL: String;
   lHandled: Boolean;
+  lDataType: string;
 begin
   lQry := TFDQuery.Create(nil);
   try
@@ -727,6 +730,10 @@ begin
         if lPar <> nil then
         begin
           lValue := lPair.Key.GetValue(Self);
+          if fMapFieldDataTypes.TryGetValue(lpar.Name, lDataType) then
+          begin
+            lPar.DataTypeName := lDataType;
+          end;
           MapTValueToParam(lValue, lPar);
         end
       end;
@@ -906,6 +913,8 @@ begin
         fMap.Add(lRTTIField, { fTableName + '.' + } MVCTableFieldAttribute(lAttribute).FieldName);
         if not(foTransient in MVCTableFieldAttribute(lAttribute).FieldOptions) then
           fMapNonTransientFields.Add(lRTTIField, MVCTableFieldAttribute(lAttribute).FieldName);
+        if not MVCTableFieldAttribute(lAttribute).DataTypeName.IsEmpty then
+          fMapFieldDataTypes.Add(MVCTableFieldAttribute(lAttribute).FieldName.ToUpper, MVCTableFieldAttribute(lAttribute).DataTypeName);
       end;
     end;
   end;
@@ -985,6 +994,7 @@ begin
   end;
   fMap := TDictionary<TRttiField, string>.Create;
   fMapNonTransientFields := TDictionary<TRttiField, string>.Create;
+  fMapFieldDataTypes := TDictionary<string, string>.Create;
   InitTableInfo;
 end;
 
@@ -2353,12 +2363,13 @@ begin
 end;
 
 constructor MVCTableFieldAttribute.Create(const aFieldName: string; const aFieldOptions: TMVCActiveRecordFieldOptions;
-  const aSequenceName: String);
+  const aSequenceName: String; const aDataTypeName: String);
 begin
   inherited Create;
   FieldName := aFieldName;
   FieldOptions := aFieldOptions;
   SequenceName := aSequenceName;
+  DataTypeName := aDataTypeName;
 end;
 
 { EMVCActiveRecordNotFound }

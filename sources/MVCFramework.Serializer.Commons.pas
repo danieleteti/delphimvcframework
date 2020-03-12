@@ -170,7 +170,7 @@ type
     property IsPK: boolean read FIsPK write SetIsPK;
   end;
 
-  MVCEnumSerializationTypeAttribute = class(TCustomAttribute)
+  MVCEnumSerializationAttribute = class(TCustomAttribute)
   private
     FSerializationType: TMVCEnumSerializationType;
     FMappedValues: TList<string>;
@@ -729,7 +729,7 @@ end;
 
 { MVCEnumSerializationTypeAttribute }
 
-constructor MVCEnumSerializationTypeAttribute.Create(const ASerializationType: TMVCEnumSerializationType;
+constructor MVCEnumSerializationAttribute.Create(const ASerializationType: TMVCEnumSerializationType;
   const AMappedValues: string);
 begin
   FMappedValues := TList<string>.Create;
@@ -744,7 +744,7 @@ begin
   end;
 end;
 
-destructor MVCEnumSerializationTypeAttribute.Destroy;
+destructor MVCEnumSerializationAttribute.Destroy;
 begin
   FMappedValues.Free;
   inherited;
