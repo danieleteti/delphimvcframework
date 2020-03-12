@@ -947,6 +947,7 @@ const
     '"Name":"Daniele Teti",' +
     '"Color":"RED",' +
     '"MonthName":"January",' +
+    '"MonthName2":"meFebruary",' +
     '"MonthOrder":0' +
     '}';
 var
@@ -960,6 +961,7 @@ begin
     O.Name := 'Daniele Teti';
     O.Color := TColorEnum.RED;
     O.MonthName := TMonthEnum.meJanuary;
+    O.MonthName2 := TMonthEnum.meFebruary;
     O.MonthOrder := TMonthEnum.meJanuary;
     S := FSerializer.SerializeObject(O);
     Assert.areEqual(JSON, S);
@@ -974,6 +976,7 @@ begin
     Assert.areEqual(2, O.Code);
     Assert.areEqual('Daniele Teti', O.Name);
     Assert.areEqual(Ord(TMonthEnum.meJanuary), Ord(O.MonthName));
+    Assert.areEqual(Ord(TMonthEnum.meFebruary), Ord(O.MonthName2));
     Assert.areEqual(Ord(TMonthEnum.meJanuary), Ord(O.MonthOrder));
     Assert.areEqual(Ord(TColorEnum.RED), Ord(O.Color));
   finally

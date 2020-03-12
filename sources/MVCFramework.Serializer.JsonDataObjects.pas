@@ -208,7 +208,7 @@ var
   I: Integer;
   LEnumAsAttr: MVCEnumSerializationTypeAttribute;
   LEnumSerType: TMVCEnumSerializationType;
-  LEnumPrefix: string;
+  LEnumMappedValues: TList<string>;
   LEnumName: string;
 begin
   if SameText(AName, 'RefCount') then
@@ -280,26 +280,31 @@ begin
         else
         begin
           LEnumSerType := estEnumName;
-          LEnumPrefix := '';
+          LEnumMappedValues := nil;
           if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr)
           then
           begin
-            LEnumSerType := LEnumAsAttr.EnumSerializationType;
-            LEnumPrefix := LEnumAsAttr.EnumPrefix;
+            LEnumSerType := LEnumAsAttr.SerializationType;
+            LEnumMappedValues := LEnumAsAttr.MappedValues;
           end;
 
           case LEnumSerType of
             estEnumName:
               begin
                 LEnumName := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
-                if not LEnumPrefix.IsEmpty and LEnumName.StartsWith(LEnumPrefix) then
-                  LEnumName := LEnumName.Remove(0, LEnumPrefix.Length);
 
                 AJsonObject.S[AName] := LEnumName;
               end;
             estEnumOrd:
               begin
                 AJsonObject.I[AName] := AValue.AsOrdinal;
+              end;
+            estEnumMappedValues:
+              begin
+                if (LEnumMappedValues.Count - 1) < AValue.AsOrdinal then
+                  raise EMVCException.Create('Enumerator value is not mapped in MappedValues');
+
+                AJsonObject.S[AName] := LEnumMappedValues[AValue.AsOrdinal];
               end;
           end;
         end;
@@ -849,8 +854,10 @@ var
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
   LEnumAsAttr: MVCEnumSerializationTypeAttribute;
-  LEnumPrefix: string;
+  LEnumMappedValues: TList<string>;
+  LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
+  LMappedValueIndex: Integer;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
@@ -912,12 +919,23 @@ begin
         end
         else if (AValue.Kind = tkEnumeration) then
         begin
-          LEnumPrefix := '';
           if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationTypeAttribute>(ACustomAttributes, LEnumAsAttr)
           then
-            LEnumPrefix := LEnumAsAttr.EnumPrefix;
+          begin
+            LEnumSerType := LEnumAsAttr.SerializationType;
+            LEnumMappedValues := LEnumAsAttr.MappedValues;
+          end;
 
-          TValue.Make(GetEnumValue(AValue.TypeInfo, LEnumPrefix + AJsonObject[AName].Value), AValue.TypeInfo, AValue)
+          if LEnumSerType = estEnumName then
+          begin
+            TValue.Make(GetEnumValue(AValue.TypeInfo, AJsonObject[AName].Value), AValue.TypeInfo, AValue)
+          end
+          else
+          begin
+            LMappedValueIndex := LEnumMappedValues.IndexOf(AJsonObject[AName].Value);
+            TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
+              AValue.TypeInfo, AValue)
+          end;
         end
         else
           AValue := TValue.From<string>(AJsonObject[AName].Value);
