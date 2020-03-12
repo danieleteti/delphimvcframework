@@ -45,7 +45,8 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.DuckTyping,
   System.JSON,
-  JsonDataObjects, System.SysUtils;
+  JsonDataObjects,
+  System.SysUtils;
 
 type
 
@@ -165,7 +166,8 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
-  MVCFramework.Logger, MVCFramework.DataSet.Utils,
+  MVCFramework.Logger,
+  MVCFramework.DataSet.Utils,
   MVCFramework.Nullables;
 
 type
@@ -404,9 +406,9 @@ begin
     tkArray, tkDynArray:
       begin
         if AValue.GetArrayLength > 0 then
-        Begin
+        begin
           for I := 0 to AValue.GetArrayLength - 1 do
-          Begin
+          begin
             case AValue.GetArrayElement(I).Kind of
               tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsString);
@@ -420,8 +422,8 @@ begin
               raise EMVCSerializationException.CreateFmt
                 ('Cannot serialize property or field "%s" of TypeKind tkArray or tkDynArray.', [AName]);
             end;
-          End;
-        End;
+          end;
+        end;
       end;
 
     tkUnknown:
@@ -919,8 +921,9 @@ begin
         end
         else if (AValue.Kind = tkEnumeration) then
         begin
-          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr)
-          then
+          LEnumSerType := estEnumName;
+          LEnumMappedValues := nil;
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr) then
           begin
             LEnumSerType := LEnumAsAttr.SerializationType;
             LEnumMappedValues := LEnumAsAttr.MappedValues;
