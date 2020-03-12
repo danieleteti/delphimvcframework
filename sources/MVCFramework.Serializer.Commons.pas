@@ -45,7 +45,8 @@ uses
 
 {$ENDIF}
   MVCFramework.Commons,
-  Data.DB;
+  Data.DB,
+  System.Generics.Collections;
 
 type
 
@@ -57,7 +58,7 @@ type
 
   TMVCDatasetSerializationType = (dstSingleRecord, dstAllRecords);
 
-  TMVCEnumSerializationType = (estEnumName, estEnumOrd);
+  TMVCEnumSerializationType = (estEnumName, estEnumOrd, estEnumMappedValues);
 
   TMVCIgnoredList = array of string;
 
@@ -171,12 +172,13 @@ type
 
   MVCEnumSerializationTypeAttribute = class(TCustomAttribute)
   private
-    FEnumPrefix: string;
-    FEnumSerializationType: TMVCEnumSerializationType;
+    FSerializationType: TMVCEnumSerializationType;
+    FMappedValues: TList<string>;
   public
-    constructor Create(const AEnumSerializationType: TMVCEnumSerializationType; const AEnumPrefix: string = '');
-    property EnumSerializationType: TMVCEnumSerializationType read FEnumSerializationType;
-    property EnumPrefix: string read FEnumPrefix;
+    constructor Create(const ASerializationType: TMVCEnumSerializationType; const AMappedValues: string = '');
+    destructor Destroy; override;
+    property SerializationType: TMVCEnumSerializationType read FSerializationType;
+    property MappedValues: TList<string> read FMappedValues;
   end;
 
   TMVCSerializerHelper = record
@@ -310,7 +312,9 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Intf, Data.FmtBcd, MVCFramework.Nullables;
+  MVCFramework.Serializer.Intf,
+  Data.FmtBcd,
+  MVCFramework.Nullables;
 
 function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
   const AOwns: boolean = false): TMVCObjectResponse;
@@ -725,11 +729,25 @@ end;
 
 { MVCEnumSerializationTypeAttribute }
 
-constructor MVCEnumSerializationTypeAttribute.Create(const AEnumSerializationType: TMVCEnumSerializationType;
-  const AEnumPrefix: string);
+constructor MVCEnumSerializationTypeAttribute.Create(const ASerializationType: TMVCEnumSerializationType;
+  const AMappedValues: string);
 begin
-  FEnumSerializationType := AEnumSerializationType;
-  FEnumPrefix := AEnumPrefix;
+  FMappedValues := TList<string>.Create;
+  FSerializationType := ASerializationType;
+
+  if (FSerializationType = estEnumMappedValues) then
+  begin
+    if AMappedValues.Trim.IsEmpty then
+      raise EMVCException.Create('Mapped values are required for estEnumMappedValues type.');
+
+    FMappedValues.AddRange(AMappedValues.Split([',', ';', ' ']));
+  end;
+end;
+
+destructor MVCEnumSerializationTypeAttribute.Destroy;
+begin
+  FMappedValues.Free;
+  inherited;
 end;
 
 { TMVCTask }
@@ -761,9 +779,9 @@ begin
   inherited;
 end;
 
-{ TDataObjectHolder }
+{ TObjectResponseBase }
 
-constructor TDataObjectHolder.Create(const AObject: TObject; const AOwns: boolean;
+constructor TObjectResponseBase.Create(const AObject: TObject; const AOwns: boolean;
   const ADataSetSerializationType: TMVCDatasetSerializationType);
 begin
   inherited Create;
@@ -773,7 +791,7 @@ begin
   FDataSetSerializationType := ADataSetSerializationType;
 end;
 
-destructor TDataObjectHolder.Destroy;
+destructor TObjectResponseBase.Destroy;
 begin
   FMetadata.Free;
   if FOwns then
@@ -783,7 +801,7 @@ begin
   inherited;
 end;
 
-function TDataObjectHolder.SerializationType: TMVCDatasetSerializationType;
+function TObjectResponseBase.SerializationType: TMVCDatasetSerializationType;
 begin
   Result := FDataSetSerializationType;
 end;
