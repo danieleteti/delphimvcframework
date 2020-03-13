@@ -936,6 +936,9 @@ begin
           else
           begin
             LMappedValueIndex := LEnumMappedValues.IndexOf(AJsonObject[AName].Value);
+            if LMappedValueIndex < 0 then
+              raise EMVCSerializationException.CreateFmt('Cannot deserialize property %s from mapped values', [AName]);
+
             TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
               AValue.TypeInfo, AValue)
           end;
