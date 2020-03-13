@@ -314,7 +314,8 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf,
   Data.FmtBcd,
-  MVCFramework.Nullables;
+  MVCFramework.Nullables,
+  System.Generics.Defaults;
 
 function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
   const AOwns: boolean = false): TMVCObjectResponse;
@@ -732,7 +733,12 @@ end;
 constructor MVCEnumSerializationAttribute.Create(const ASerializationType: TMVCEnumSerializationType;
   const AMappedValues: string);
 begin
-  FMappedValues := TList<string>.Create;
+  FMappedValues := TList<string>.Create(TDelegatedComparer<string>.Create(
+    function(const Left, Right: string): Integer
+    begin
+      Result := CompareText(Left, Right);
+    end));
+
   FSerializationType := ASerializationType;
 
   if (FSerializationType = estEnumMappedValues) then
