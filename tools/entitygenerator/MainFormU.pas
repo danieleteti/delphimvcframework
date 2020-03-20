@@ -264,6 +264,7 @@ begin
   FDConnection1.Open;
   lstCatalog.Items.Clear;
   FDConnection1.GetCatalogNames('', lstCatalog.Items);
+  PageControl1.ActivePageIndex := 0;
 end;
 
 procedure TMainForm.btnSaveCodeClick(Sender: TObject);
@@ -304,7 +305,7 @@ end;
 
 procedure TMainForm.EmitField(F: TField; const IsPK: Boolean);
 var
-  lAttrib, lField: String;
+  lAttrib, lField: string;
 begin
   if IsPK then
   begin
@@ -360,10 +361,15 @@ end;
 
 procedure TMainForm.EmitProperty(F: TField);
 var
-  lProp: String;
+  lProp: string;
 begin
-  lProp := 'property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' + GetDelphiType(F.DataType) +
-    ' read ' + GetFieldName(F.FieldName) + ' write ' + GetFieldName(F.FieldName) + ';' + sLineBreak;
+  if GetFieldName(F.FieldName).Substring(1).ToLower <> F.FieldName then
+  begin
+    lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
+  end;
+  lProp := lProp + 'property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' +
+    GetDelphiType(F.DataType) + ' read ' + GetFieldName(F.FieldName) + ' write ' + GetFieldName(F.FieldName) + ';' +
+    sLineBreak;
 
   if GetDelphiType(F.DataType).ToUpper.Contains('UNSUPPORTED TYPE') then
   begin
@@ -449,7 +455,7 @@ end;
 function TMainForm.GetDelphiType(FT: TFieldType): string;
 begin
   case FT of
-    ftString:
+    ftString, ftMemo, ftFmtMemo, ftWideMemo:
       Result := 'String';
     ftSmallint, ftInteger, ftWord, ftLongWord, ftShortint:
       Result := 'Integer';
@@ -473,7 +479,7 @@ begin
       Result := 'TDateTime {timestamp}';
     ftAutoInc:
       Result := 'Integer {autoincrement}';
-    ftBlob, ftMemo, ftGraphic, ftFmtMemo, ftWideMemo, ftStream:
+    ftBlob, { ftMemo, } ftGraphic, { ftFmtMemo, ftWideMemo, } ftStream:
       Result := 'TStream';
     ftFixedChar:
       Result := 'String {fixedchar}';

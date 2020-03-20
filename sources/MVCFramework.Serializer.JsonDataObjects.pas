@@ -782,7 +782,10 @@ begin
   try
     if lJsonBase is TJsonObject then
     begin
-      ADataSet.Edit;
+      if not (ADataSet.State in [dsInsert, dsEdit]) then
+      begin
+        ADataSet.Edit;
+      end;
       JsonObjectToDataSet(TJsonObject(lJsonBase), ADataSet, AIgnoredFields, ANameCase);
       ADataSet.Post;
     end

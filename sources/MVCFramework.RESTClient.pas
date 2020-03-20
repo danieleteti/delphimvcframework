@@ -34,7 +34,6 @@ uses
   IdURI,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.DataSet.Utils,
   IdMultipartFormData,
   System.SysUtils,
   Data.DB,
@@ -201,7 +200,8 @@ type
     function doGET(): IRESTResponse; overload;
     function doGET(const AResource: string; const AParams: array of string; const aQueryStringParams: TStrings = nil)
       : IRESTResponse; overload;
-    function doGET(const AResource: string; const AParams: array of string; const aQueryStringParamNames: array of string;
+    function doGET(const AResource: string; const AParams: array of string;
+      const aQueryStringParamNames: array of string;
       const aQueryStringParamValues: array of string): IRESTResponse; overload;
     function doPOST(const ABody: string): IRESTResponse; overload;
     function doPOST<TBodyType: class>(ABody: TBodyType; const AOwnsBody: Boolean = True): IRESTResponse; overload;
@@ -267,9 +267,8 @@ type
 implementation
 
 uses
-  MVCFramework.Serializer.Defaults
-
-    ,
+  MVCFramework.Serializer.Defaults,
+  MVCFramework.DataSet.Utils,
   System.ZLib
 
 {$IFNDEF ANDROID OR IOS}
@@ -750,7 +749,7 @@ begin
   FHTTP.HandleRedirects := False; // DT 2016/09/16
   FHTTP.OnRedirect := OnHTTPRedirect; // DT 2016/09/16
   FHTTP.ReadTimeOut := 20000;
-  FHTTP.Request.UserAgent := 'Mozilla/3.0 (compatible; IndyLibrary)';  // Resolve 403 Forbidden error in REST API SSL
+  FHTTP.Request.UserAgent := 'Mozilla/3.0 (compatible; IndyLibrary)'; // Resolve 403 Forbidden error in REST API SSL
 
   if (AIOHandler <> nil) then
     FHTTP.IOHandler := AIOHandler
@@ -761,7 +760,7 @@ begin
 
   FHTTP.HandleRedirects := True;
   FHTTP.Request.CustomHeaders.FoldLines := False;
-  FHTTP.Request.BasicAuthentication := False; //DT 2018/07/24
+  FHTTP.Request.BasicAuthentication := False; // DT 2018/07/24
 
   FSerializer := GetDefaultSerializer;
 end;
@@ -1306,7 +1305,7 @@ var
   lDecomp: TZDecompressionStream;
   lCompressionType: TMVCCompressionType;
 begin
-  FHTTP.Request.BasicAuthentication := not Username.IsEmpty; //DT 2019/08/23
+  FHTTP.Request.BasicAuthentication := not Username.IsEmpty; // DT 2019/08/23
 
   FContentEncoding := '';
   Result := TRESTResponse.Create;
@@ -1396,11 +1395,11 @@ begin
   lTmp := TMemoryStream.Create;
   try
     Result.Body.Position := 0;
-    {$IF Defined(SeattleOrBetter)}
+{$IF Defined(SeattleOrBetter)}
     lDecomp := TZDecompressionStream.Create(Result.Body, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
-    {$ELSE}
+{$ELSE}
     lDecomp := TZDecompressionStream.Create(Result.Body, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType]);
-    {$ENDIF}
+{$ENDIF}
     try
       lTmp.CopyFrom(lDecomp, 0);
       Result.Body.Size := 0;

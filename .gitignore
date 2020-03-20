@@ -94,3 +94,5 @@ samples/winecellarclient_mobile/WinesClient/res/values/styles.xml
 samples/winecellarclient_mobile/WinesClient/AndroidManifest.xml
 unittests/serializer/jsondataobjects/Win32/CI/dunitx-results.xml
 unittests/serializer/jsondataobjects/Win32/Debug/dunitx-results.xml
+unittests/general/Several/Win32/CI/sqlitetest.db
+unittests/general/Several/Win32/CONSOLE/sqlitetest.db
