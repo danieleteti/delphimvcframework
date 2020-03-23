@@ -1250,9 +1250,9 @@ begin
               continue;
 
 {$ENDIF}
-            if (Prop.IsWritable or Prop.GetValue(AObject).IsObject) and
-              (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
-              (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) then
+            if ((not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
+               (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) and
+               (Prop.IsWritable or Prop.GetValue(AObject).IsObject)) then
             begin
               AttributeValue := Prop.GetValue(AObject);
               lKeyName := TMVCSerializerHelper.GetKeyName(Prop, ObjType);

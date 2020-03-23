@@ -167,8 +167,8 @@ begin
           try
             lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
             lCustomer.City := Cities[Random(high(Cities) + 1)];
-            lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(High(Stuff) + 1)],
-              CompanySuffix[Random(High(CompanySuffix) + 1)]]);
+            lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
+              CompanySuffix[Random(high(CompanySuffix) + 1)]]);
             lCustomer.Note := lCustomer.CompanyName + ' is from ' + lCustomer.City;
             lCustomer.Insert;
           finally
@@ -552,6 +552,35 @@ begin
     lDS.Free;
   end;
 
+  lDS := TMVCActiveRecord.SelectDataSet
+    ('SELECT * FROM orders o join customers c on c.id = o.id_customer where o.order_date >= ?', [Date - 5000],
+    [ftDate]);
+  try
+    while not lDS.Eof do
+    begin
+      Log(Format('OrderDate: %12s - Customer: %s', [datetostr(lDS.FieldByName('order_date').AsDateTime),
+        lDS.FieldByName('description').AsString]));
+      lDS.Next;
+    end;
+  finally
+    lDS.Free;
+  end;
+
+  lDS := TMVCActiveRecord.SelectDataSet
+    ('SELECT * FROM orders o left join customers c on c.id = o.id_customer where o.order_date >= ? and c.id > ?',
+    [Date - 5000, 1],
+    [ftDate]);
+  try
+    while not lDS.Eof do
+    begin
+      Log(Format('OrderDate: %12s - Customer: %s', [datetostr(lDS.FieldByName('order_date').AsDateTime),
+        lDS.FieldByName('description').AsString]));
+      lDS.Next;
+    end;
+  finally
+    lDS.Free;
+  end;
+
   Log('** GetFirstByWhere');
   lCustomer := TMVCActiveRecord.GetFirstByWhere<TCustomer>('id > ?', [1]);
   try
@@ -561,8 +590,23 @@ begin
     lCustomer.Free;
   end;
 
+  lCustomer := TMVCActiveRecord.GetFirstByWhere<TCustomer>('id > ?', [1], [ftInteger]);
+  try
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+    lID := lCustomer.ID;
+  finally
+    lCustomer.Free;
+  end;
+
   Log('** GetOneByWhere');
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID.Value]);
+  try
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID.Value], [ftInteger]);
   try
     Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
   finally
