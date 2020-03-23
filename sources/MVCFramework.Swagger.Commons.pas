@@ -91,10 +91,10 @@ type
   /// </summary>
   MVCSwagAuthenticationAttribute = class(TCustomAttribute)
   private
-    FAuthenticationType: TMVCSwagAuthenticationType;
+    fAuthenticationType: TMVCSwagAuthenticationType;
   public
     constructor Create(const AAuthenticationType: TMVCSwagAuthenticationType = atJsonWebToken);
-    property AuthenticationType: TMVCSwagAuthenticationType read FAuthenticationType;
+    property AuthenticationType: TMVCSwagAuthenticationType read fAuthenticationType;
   end;
 
   /// <summary>
@@ -162,22 +162,22 @@ type
   /// </summary>
   MVCSwagJSONSchemaFieldAttribute = class(TCustomAttribute)
   private
-    FSchemaFieldType: TMVCSwagSchemaType;
-    FFieldName: string;
+    fSchemaFieldType: TMVCSwagSchemaType;
+    fFieldName: string;
     fDescription: string;
     fRequired: Boolean;
-    FNullable: Boolean;
+    fNullable: Boolean;
   public
     constructor Create(const ASchemaFieldType: TMVCSwagSchemaType; const AFieldName: string; const ADescription: string;
       const ARequired: Boolean = True; const ANullable: Boolean = False); overload;
     constructor Create(const AFieldName: string; const ADescription: string; const ARequired: Boolean = True;
       const ANullable: Boolean = False); overload;
 
-    property SchemaFieldType: TMVCSwagSchemaType read FSchemaFieldType;
-    property FieldName: string read FFieldName;
+    property SchemaFieldType: TMVCSwagSchemaType read fSchemaFieldType;
+    property FieldName: string read fFieldName;
     property Description: string read fDescription;
     property Required: Boolean read fRequired;
-    property Nullable: Boolean read FNullable;
+    property Nullable: Boolean read fNullable;
   end;
 
   /// <summary>
@@ -190,7 +190,7 @@ type
   /// </summary>
   TMVCSwagger = class sealed
   private
-    class var FRttiContext: TRttiContext;
+    class var fRttiContext: TRttiContext;
     class function GetMVCSwagParamsFromMethod(const AMethod: TRttiMethod): TArray<MVCSwagParamAttribute>;
     class function MVCParamLocationToSwagRequestParamInLocation(const AMVCSwagParamLocation: TMVCSwagParamLocation)
       : TSwagRequestParameterInLocation;
@@ -213,7 +213,8 @@ type
       const ASwagDefinitions: TObjectList<TSwagDefinition>);
     class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType;
       out AAuthenticationTypeName: string): Boolean;
-    class function GetJWTAuthenticationPath(const AJWTUrlSegment: string; AUserNameHeaderName, APasswordHeaderName: string): TSwagPath;
+    class function GetJWTAuthenticationPath(const AJWTUrlSegment: string;
+      AUserNameHeaderName, APasswordHeaderName: string): TSwagPath;
   end;
 
 const
@@ -243,13 +244,14 @@ uses
   Json.Schema.Field.Arrays,
   Json.Schema.Field.DateTimes,
   Json.Schema.Field.Enums,
-  Json.Schema.Field.Booleans, System.Generics.Defaults;
+  Json.Schema.Field.Booleans,
+  System.Generics.Defaults;
 
 { TSwaggerUtils }
 
 class constructor TMVCSwagger.Create;
 begin
-  FRttiContext := TRttiContext.Create;
+  fRttiContext := TRttiContext.Create;
 end;
 
 class function TMVCSwagger.RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
@@ -277,7 +279,7 @@ end;
 
 class destructor TMVCSwagger.Destroy;
 begin
-  FRttiContext.Free;
+  fRttiContext.Free;
 end;
 
 class function TMVCSwagger.TypeIsEnumerable(const ARttiType: TRttiType): Boolean;
@@ -311,7 +313,7 @@ var
   lAbstractSer: THackMVCAbstractSerializer;
   lClass: TClass;
 begin
-  lObjType := FRttiContext.GetType(AClass);
+  lObjType := fRttiContext.GetType(AClass);
   for lProp in lObjType.GetProperties do
   begin
     lSkipProp := False;
@@ -510,7 +512,6 @@ begin
     lSwagResponse.Description := 'Internal server error';
     ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
   end;
-
 end;
 
 class function TMVCSwagger.GetJsonFieldClass(const ASchemaFieldType: TMVCSwagSchemaType): TJsonFieldClass;
@@ -597,7 +598,8 @@ begin
   end;
 end;
 
-class function TMVCSwagger.GetJWTAuthenticationPath(const AJWTUrlSegment: string; AUserNameHeaderName, APasswordHeaderName: string): TSwagPath;
+class function TMVCSwagger.GetJWTAuthenticationPath(const AJWTUrlSegment: string;
+  AUserNameHeaderName, APasswordHeaderName: string): TSwagPath;
 var
   lSwagPathOp: TSwagPathOperation;
   lSwagResponse: TSwagResponse;
@@ -612,14 +614,14 @@ begin
   lSwagParam := TSwagRequestParameter.Create;
   lSwagParam.Name := AUserNameHeaderName;
   lSwagParam.TypeParameter := stpString;
-  lSwagParam.Required := true;
+  lSwagParam.Required := False;
   lSwagParam.InLocation := rpiHeader;
   lSwagPathOp.Parameters.Add(lSwagParam);
 
   lSwagParam := TSwagRequestParameter.Create;
   lSwagParam.Name := APasswordHeaderName;
   lSwagParam.TypeParameter := stpString;
-  lSwagParam.Required := true;
+  lSwagParam.Required := False;
   lSwagParam.InLocation := rpiHeader;
   lSwagPathOp.Parameters.Add(lSwagParam);
 
@@ -673,7 +675,7 @@ class function TMVCSwagger.GetParamsFromMethod(const AResourcePath: string; cons
   begin
     Result := False;
     AMVCParam := nil;
-    AIndex := -1;
+    AIndex := - 1;
     for I := Low(AParams) to High(AParams) do
       if SameText(AParams[I].ParamName, AParamName) and (AParams[I].ParamLocation = plPath) then
       begin
@@ -747,7 +749,7 @@ begin
                 lSwagDefinition := TSwagDefinition.Create;
                 lSwagDefinition.Name := lClassName;
                 lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lMVCParam.JsonSchemaClass,
-              lMVCParam.ParamType = ptArray);
+                  lMVCParam.ParamType = ptArray);
                 ASwagDefinitions.Add(lSwagDefinition);
               end;
             finally
@@ -974,19 +976,19 @@ end;
 { MVCSwagJSONSchemaFieldAttribute }
 
 constructor MVCSwagJSONSchemaFieldAttribute.Create(const AFieldName, ADescription: string;
-  const ARequired, ANullable: Boolean);
+const ARequired, ANullable: Boolean);
 begin
   Create(stUnknown, AFieldName, ADescription, ARequired, ANullable);
 end;
 
 constructor MVCSwagJSONSchemaFieldAttribute.Create(const ASchemaFieldType: TMVCSwagSchemaType;
-  const AFieldName, ADescription: string; const ARequired, ANullable: Boolean);
+const AFieldName, ADescription: string; const ARequired, ANullable: Boolean);
 begin
-  FSchemaFieldType := ASchemaFieldType;
-  FFieldName := AFieldName;
+  fSchemaFieldType := ASchemaFieldType;
+  fFieldName := AFieldName;
   fDescription := ADescription;
   fRequired := ARequired;
-  FNullable := ANullable;
+  fNullable := ANullable;
 end;
 
 { TFieldSchemaDefinition }
@@ -1004,7 +1006,7 @@ end;
 
 constructor MVCSwagAuthenticationAttribute.Create(const AAuthenticationType: TMVCSwagAuthenticationType);
 begin
-  FAuthenticationType := AAuthenticationType;
+  fAuthenticationType := AAuthenticationType;
 end;
 
 end.

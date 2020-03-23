@@ -220,61 +220,61 @@ end;
 
 procedure TMVCSwaggerMiddleware.DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
 var
-  LMiddleware: IMVCMiddleware;
-  LJWTMiddleware: TMVCJWTAuthenticationMiddleware;
-  LRttiContext: TRttiContext;
-  LObjType: TRttiType;
-  LJwtUrlField: TRttiField;
-  LJwtUrlSegment: string;
-  LSecurityDefsBearer: TSwagSecurityDefinitionApiKey;
-  LSecurityDefsBasic: TSwagSecurityDefinitionBasic;
+  lMiddleware: IMVCMiddleware;
+  lJWTMiddleware: TMVCJWTAuthenticationMiddleware;
+  lRttiContext: TRttiContext;
+  lObjType: TRttiType;
+  lJwtUrlField: TRttiField;
+  lJwtUrlSegment: string;
+  lSecurityDefsBearer: TSwagSecurityDefinitionApiKey;
+  lSecurityDefsBasic: TSwagSecurityDefinitionBasic;
 begin
-  LJWTMiddleware := nil;
-  for LMiddleware in fEngine.Middlewares do
+  lJWTMiddleware := nil;
+  for lMiddleware in fEngine.Middlewares do
   begin
-    if LMiddleware is TMVCJWTAuthenticationMiddleware then
+    if lMiddleware is TMVCJWTAuthenticationMiddleware then
     begin
-      LJWTMiddleware := LMiddleware as TMVCJWTAuthenticationMiddleware;
+      lJWTMiddleware := lMiddleware as TMVCJWTAuthenticationMiddleware;
       Break;
     end;
   end;
 
-  if Assigned(LJWTMiddleware) or fEnableBasicAuthentication then
+  if Assigned(lJWTMiddleware) or fEnableBasicAuthentication then
   begin
-    LSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
-    LSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
-    LSecurityDefsBasic.Description := 'Send username and password for authentication';
-    ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBasic);
+    lSecurityDefsBasic := TSwagSecurityDefinitionBasic.Create;
+    lSecurityDefsBasic.SchemeName := SECURITY_BASIC_NAME;
+    lSecurityDefsBasic.Description := 'Send username and password for authentication';
+    ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBasic);
   end;
 
-  if Assigned(LJWTMiddleware) then
+  if Assigned(lJWTMiddleware) then
   begin
-    LRttiContext := TRttiContext.Create;
+    lRttiContext := TRttiContext.Create;
     try
-      LObjType := LRttiContext.GetType(LJWTMiddleware.ClassInfo);
-      LJwtUrlField := LObjType.GetField('FLoginURLSegment');
-      if Assigned(LJwtUrlField) then
+      lObjType := lRttiContext.GetType(lJWTMiddleware.ClassInfo);
+      lJwtUrlField := lObjType.GetField('FLoginURLSegment');
+      if Assigned(lJwtUrlField) then
       begin
-        LJwtUrlSegment := LJwtUrlField.GetValue(LJWTMiddleware).AsString;
-        if LJwtUrlSegment.StartsWith(ASwagDoc.BasePath) then
-          LJwtUrlSegment := LJwtUrlSegment.Remove(0, ASwagDoc.BasePath.Length);
-        if not LJwtUrlSegment.StartsWith('/') then
-          LJwtUrlSegment.Insert(0, '/');
+        lJwtUrlSegment := lJwtUrlField.GetValue(lJWTMiddleware).AsString;
+        if lJwtUrlSegment.StartsWith(ASwagDoc.BasePath) then
+          lJwtUrlSegment := lJwtUrlSegment.Remove(0, ASwagDoc.BasePath.Length);
+        if not lJwtUrlSegment.StartsWith('/') then
+          lJwtUrlSegment.Insert(0, '/');
 
         // Path operation Middleware JWT
-        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(LJwtUrlSegment,
-          LJWTMiddleware.UserNameHeaderName, LJWTMiddleware.PasswordHeaderName));
+        ASwagDoc.Paths.Add(TMVCSwagger.GetJWTAuthenticationPath(lJwtUrlSegment,
+          lJWTMiddleware.UserNameHeaderName, lJWTMiddleware.PasswordHeaderName));
 
         // Methods that have the MVCRequiresAuthentication attribute use bearer authentication.
-        LSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
-        LSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
-        LSecurityDefsBearer.InLocation := kilHeader;
-        LSecurityDefsBearer.Name := 'Authorization';
-        LSecurityDefsBearer.Description := fJWTDescription;
-        ASwagDoc.SecurityDefinitions.Add(LSecurityDefsBearer);
+        lSecurityDefsBearer := TSwagSecurityDefinitionApiKey.Create;
+        lSecurityDefsBearer.SchemeName := SECURITY_BEARER_NAME;
+        lSecurityDefsBearer.InLocation := kilHeader;
+        lSecurityDefsBearer.Name := 'Authorization';
+        lSecurityDefsBearer.Description := fJWTDescription;
+        ASwagDoc.SecurityDefinitions.Add(lSecurityDefsBearer);
       end;
     finally
-      LRttiContext.Free;
+      lRttiContext.Free;
     end;
   end;
 end;
