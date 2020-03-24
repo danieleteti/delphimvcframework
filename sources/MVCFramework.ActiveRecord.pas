@@ -923,6 +923,7 @@ begin
           continue;
         end;
 
+        {TODO -oDanieleT -cGeneral : Definire TFieldInfo per tute le info del field}
         fMap.Add(lRTTIField, { fTableName + '.' + } MVCTableFieldAttribute(lAttribute).FieldName);
         if not(foTransient in MVCTableFieldAttribute(lAttribute).FieldOptions) then
           fMapNonTransientFields.Add(lRTTIField, MVCTableFieldAttribute(lAttribute).FieldName);

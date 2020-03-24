@@ -32,7 +32,7 @@ uses
   BusinessObjectsU,
   FireDAC.Comp.Client,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Commons, MVCFramework;
+  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
 
 type
 
@@ -51,6 +51,11 @@ type
   private
     function GetCustomersDataset: TFDMemTable;
     function GetPeopleDataset: TFDMemTable;
+  public
+    procedure OnBeforeCall(const JSONRequest: TJDOJsonObject);
+    procedure OnBeforeRouting(const JSON: TJDOJsonObject);
+    procedure OnBeforeSendResponse(
+  const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]
     function Subtract(aValue1, aValue2: Integer): Integer;
@@ -291,6 +296,30 @@ begin
   fCustomers1.Free;
   fCustomers2.Free;
   inherited;
+end;
+
+{ TMyObjectWithHooks }
+
+procedure TMyObject.OnBeforeCall(const JSONRequest: TJDOJsonObject);
+begin
+  Log.Info('TMyObjectWithHooks.OnBeforeCall >> ', 'jsonrpc');
+  Log.Info(JSONRequest.ToJSON(false), 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeCall << ', 'jsonrpc');
+end;
+
+procedure TMyObject.OnBeforeRouting(const JSON: TJDOJsonObject);
+begin
+  Log.Info('TMyObjectWithHooks.OnBeforeRouting >> ', 'jsonrpc');
+  Log.Info(JSON.ToJSON(false), 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeRouting << ', 'jsonrpc');
+end;
+
+procedure TMyObject.OnBeforeSendResponse(
+  const JSONResponse: TJDOJsonObject);
+begin
+  Log.Info('TMyObjectWithHooks.OnBeforeSendResponse >> ', 'jsonrpc');
+  Log.Info(JSONResponse.ToJSON(false), 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeSendResponse << ', 'jsonrpc');
 end;
 
 end.
