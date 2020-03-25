@@ -278,6 +278,11 @@ type
     property JSONRPCErrorCode: Integer read fJSONRPCErrorCode;
   end;
 
+  EMVCJSONRPCError = class(EMVCJSONRPCErrorResponse)
+  public
+    constructor Create(const ErrCode: Integer; const Msg: string);
+  end;
+
   EMVCJSONRPCParseError = class(EMVCJSONRPCErrorResponse)
   public
     constructor Create;
@@ -1878,6 +1883,15 @@ const
 begin
   FParamsValue.Add(Value);
   FParamsType.Add(ParamType);
+end;
+
+{ EMVCJSONRPCException }
+
+constructor EMVCJSONRPCError.Create(const ErrCode: Integer;
+const Msg: string);
+begin
+  inherited Create(Msg);
+  fJSONRPCErrorCode := ErrCode;
 end;
 
 initialization
