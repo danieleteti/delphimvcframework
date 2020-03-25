@@ -33,7 +33,7 @@ uses
   System.Generics.Collections,
   MVCFramework.RQL.Parser,
   MVCFramework.ActiveRecord,
-  MVCFramework.Commons ;
+  MVCFramework.Commons;
 
 type
   TMVCSQLGeneratorMySQL = class(TMVCSQLGenerator)
@@ -42,22 +42,22 @@ type
   public
     function CreateSelectSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateInsertSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateUpdateSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateDeleteSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
@@ -65,7 +65,7 @@ type
       const TableName: string): string; override;
     function CreateSelectByPKSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+      const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
     function CreateSQLWhereByRQL(
@@ -73,7 +73,7 @@ type
       const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True): string; override;
     function CreateSelectCount(
-      const TableName: String): String; override;
+      const TableName: string): string; override;
   end;
 
 implementation
@@ -82,22 +82,31 @@ uses
   System.SysUtils,
   MVCFramework.RQL.AST2MySQL;
 
-function TMVCSQLGeneratorMySQL.CreateInsertSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorMySQL.CreateInsertSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  lKeyValue: TPair<TRttiField, string>;
+  lKeyValue: TPair<TRttiField, TFieldInfo>;
   lSB: TStringBuilder;
 begin
   lSB := TStringBuilder.Create;
   try
     lSB.Append('INSERT INTO ' + TableName + '(');
     for lKeyValue in Map do
-      lSB.Append(lKeyValue.value + ',');
+    begin
+      if lKeyValue.Value.Writeable then
+      begin
+        lSB.Append(lKeyValue.Value.FieldName + ',');
+      end;
+    end;
+
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(') values (');
     for lKeyValue in Map do
     begin
-      lSB.Append(':' + lKeyValue.value + ',');
+      if lKeyValue.Value.Writeable then
+      begin
+        lSB.Append(':' + lKeyValue.Value.FieldName + ',');
+      end;
     end;
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(')');
@@ -114,7 +123,7 @@ end;
 
 function TMVCSQLGeneratorMySQL.CreateSelectByPKSQL(
   const TableName: string;
-  const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions;
   const PrimaryKeyValue: Int64): string;
 begin
@@ -123,22 +132,22 @@ begin
 end;
 
 function TMVCSQLGeneratorMySQL.CreateSelectCount(
-  const TableName: String): String;
+  const TableName: string): string;
 begin
   Result := 'SELECT count(*) FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorMySQL.CreateSelectSQL(const TableName: string;
-  const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorMySQL.CreateSQLWhereByRQL(
-      const RQL: string;
-      const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean = True): string;
+  const RQL: string;
+  const Mapping: TMVCFieldsMapping;
+  const UseArtificialLimit: Boolean = True): string;
 var
   lMySQLCompiler: TRQLMySQLCompiler;
 begin
@@ -150,15 +159,18 @@ begin
   end;
 end;
 
-function TMVCSQLGeneratorMySQL.CreateUpdateSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorMySQL.CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  keyvalue: TPair<TRttiField, string>;
+  lKeyValue: TPair<TRttiField, TFieldInfo>;
 begin
   Result := 'UPDATE ' + TableName + ' SET ';
-  for keyvalue in Map do
+  for lKeyValue in Map do
   begin
-    Result := Result + keyvalue.value + ' = :' + keyvalue.value + ',';
+    if lKeyValue.Value.Writeable then
+    begin
+      Result := Result + lKeyValue.Value.FieldName + ' = :' + lKeyValue.Value.FieldName + ',';
+    end;
   end;
   Result[Length(Result)] := ' ';
   if not PKFieldName.IsEmpty then
@@ -178,7 +190,7 @@ begin
   Result := 'DELETE FROM ' + TableName;
 end;
 
-function TMVCSQLGeneratorMySQL.CreateDeleteSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorMySQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: Int64): string;
 begin
   Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + PKFieldName + '=' + IntToStr(PrimaryKeyValue);

@@ -33,7 +33,7 @@ uses
   System.Generics.Collections,
   MVCFramework.RQL.Parser,
   MVCFramework.ActiveRecord,
-  MVCFramework.Commons ;
+  MVCFramework.Commons;
 
 type
   TMVCSQLGeneratorMSSQL = class(TMVCSQLGenerator)
@@ -42,28 +42,28 @@ type
   public
     function CreateSelectSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateInsertSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateUpdateSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateDeleteSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
     function CreateSelectByPKSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+      const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
     function CreateSQLWhereByRQL(
@@ -78,22 +78,30 @@ uses
   System.SysUtils,
   MVCFramework.RQL.AST2MSSQL;
 
-function TMVCSQLGeneratorMSSQL.CreateInsertSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorMSSQL.CreateInsertSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  lKeyValue: TPair<TRttiField, string>;
+  lKeyValue: TPair<TRttiField, TFieldInfo>;
   lSB: TStringBuilder;
 begin
   lSB := TStringBuilder.Create;
   try
     lSB.Append('INSERT INTO ' + TableName + '(');
     for lKeyValue in Map do
-      lSB.Append(lKeyValue.value + ',');
+    begin
+      if lKeyValue.Value.Writeable then
+      begin
+        lSB.Append(lKeyValue.Value.FieldName + ',');
+      end;
+    end;
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(') values (');
     for lKeyValue in Map do
     begin
-      lSB.Append(':' + lKeyValue.value + ',');
+      if lKeyValue.Value.Writeable then
+      begin
+        lSB.Append(':' + lKeyValue.Value.FieldName + ',');
+      end;
     end;
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(')');
@@ -110,7 +118,7 @@ end;
 
 function TMVCSQLGeneratorMSSQL.CreateSelectByPKSQL(
   const TableName: string;
-  const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions;
   const PrimaryKeyValue: Int64): string;
 begin
@@ -119,7 +127,7 @@ begin
 end;
 
 function TMVCSQLGeneratorMSSQL.CreateSelectSQL(const TableName: string;
-  const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + TableName;
@@ -138,15 +146,18 @@ begin
   end;
 end;
 
-function TMVCSQLGeneratorMSSQL.CreateUpdateSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorMSSQL.CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  keyvalue: TPair<TRttiField, string>;
+  lKeyValue: TPair<TRttiField, TFieldInfo>;
 begin
   Result := 'UPDATE ' + TableName + ' SET ';
-  for keyvalue in Map do
+  for lKeyValue in Map do
   begin
-    Result := Result + keyvalue.value + ' = :' + keyvalue.value + ',';
+    if lKeyValue.Value.Writeable then
+    begin
+      Result := Result + lKeyValue.Value.FieldName + ' = :' + lKeyValue.Value.FieldName + ',';
+    end;
   end;
   Result[Length(Result)] := ' ';
   if not PKFieldName.IsEmpty then
@@ -160,7 +171,7 @@ begin
   Result := TRQLMSSQLCompiler;
 end;
 
-function TMVCSQLGeneratorMSSQL.CreateDeleteSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorMSSQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: Int64): string;
 begin
   Result := 'DELETE FROM ' + TableName + ' WHERE ' + PKFieldName + '= ' + IntToStr(PrimaryKeyValue);

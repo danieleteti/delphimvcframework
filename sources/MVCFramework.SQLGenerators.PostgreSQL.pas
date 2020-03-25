@@ -42,22 +42,22 @@ type
   public
     function CreateSelectSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateInsertSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateUpdateSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateDeleteSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>;
+      const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
@@ -65,7 +65,7 @@ type
       const TableName: string): string; override;
     function CreateSelectByPKSQL(
       const TableName: string;
-      const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+      const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions;
       const PrimaryKeyValue: Int64): string; override;
     function CreateSQLWhereByRQL(
@@ -73,7 +73,7 @@ type
       const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True): string; override;
     function CreateSelectCount(
-      const TableName: String): String; override;
+      const TableName: string): string; override;
     function GetSequenceValueSQL(const PKFieldName: string;
       const SequenceName: string;
       const Step: Integer = 1): string; override;
@@ -92,22 +92,31 @@ uses
   System.SysUtils,
   MVCFramework.RQL.AST2PostgreSQL;
 
-function TMVCSQLGeneratorPostgreSQL.CreateInsertSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorPostgreSQL.CreateInsertSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  lKeyValue: TPair<TRttiField, string>;
+  lKeyValue: TPair<TRttiField, TFieldInfo>;
   lSB: TStringBuilder;
 begin
   lSB := TStringBuilder.Create;
   try
     lSB.Append('INSERT INTO ' + TableName + ' (');
     for lKeyValue in Map do
-      lSB.Append(lKeyValue.value + ',');
+    begin
+      // if not(foTransient in lKeyValue.Value.FieldOptions) then
+      if lKeyValue.Value.Writeable then
+      begin
+        lSB.Append(lKeyValue.Value.FieldName + ',');
+      end;
+    end;
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(') values (');
     for lKeyValue in Map do
     begin
-      lSB.Append(':' + lKeyValue.value + ',');
+      if lKeyValue.Value.Writeable then
+      begin
+        lSB.Append(':' + lKeyValue.Value.FieldName + ',');
+      end;
     end;
     lSB.Remove(lSB.Length - 1, 1);
     lSB.Append(')');
@@ -124,7 +133,7 @@ end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSelectByPKSQL(
   const TableName: string;
-  const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions;
   const PrimaryKeyValue: Int64): string;
 begin
@@ -133,13 +142,13 @@ begin
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSelectCount(
-  const TableName: String): String;
+  const TableName: string): string;
 begin
   Result := 'SELECT count(*) FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSelectSQL(const TableName: string;
-  const Map: TDictionary<TRttiField, string>; const PKFieldName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + TableName;
@@ -160,15 +169,18 @@ begin
   end;
 end;
 
-function TMVCSQLGeneratorPostgreSQL.CreateUpdateSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorPostgreSQL.CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  keyvalue: TPair<TRttiField, string>;
+  lPair: TPair<TRttiField, TFieldInfo>;
 begin
   Result := 'UPDATE ' + TableName + ' SET ';
-  for keyvalue in Map do
+  for lPair in Map do
   begin
-    Result := Result + keyvalue.value + ' = :' + keyvalue.value + ',';
+    if lPair.Value.Writeable then
+    begin
+      Result := Result + lPair.Value.FieldName + ' = :' + lPair.Value.FieldName + ',';
+    end;
   end;
   Result[Length(Result)] := ' ';
   if not PKFieldName.IsEmpty then
@@ -194,7 +206,7 @@ begin
   Result := 'DELETE FROM ' + TableName;
 end;
 
-function TMVCSQLGeneratorPostgreSQL.CreateDeleteSQL(const TableName: string; const Map: TDictionary<TRttiField, string>;
+function TMVCSQLGeneratorPostgreSQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
   const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: Int64): string;
 begin
   Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + PKFieldName + '=' + IntToStr(PrimaryKeyValue);

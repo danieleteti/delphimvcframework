@@ -958,17 +958,16 @@ var
   lJSON: TJDOJsonObject;
   lJSONResp: TJDOJsonObject;
 begin
+  lRTTIType := nil;
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
   lRTTI := TRTTIContext.Create;
   try
-
     try
       lJSON := StrToJSONObject(Context.Request.Body);
       try
         if not Assigned(lJSON) then
           raise EMVCJSONRPCParseError.Create;
-
         lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
         TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_BEFORE_ROUTING, lJSON, 'JSON');
         lJSONRPCReq := CreateRequest(lJSON);
@@ -1140,6 +1139,10 @@ var
   lHookParamParamType: string;
   lHookParamName: string;
 begin
+  if not Assigned(aRTTIType) then
+  begin
+    Exit;
+  end;
   lHookMethod := aRTTIType.GetMethod(MethodName);
   if Assigned(lHookMethod) then
   begin
