@@ -79,7 +79,7 @@ type
     [MVCTableField('rating')]
     fRating: NullableInt32;
     [MVCTableField('note')]
-    fNote: String;
+    fNote: string;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -88,7 +88,7 @@ type
     property CompanyName: NullableString read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
-    property Note: String read fNote write fNote;
+    property Note: string read fNote write fNote;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -109,11 +109,11 @@ type
     fCompanyName: string;
     [MVCTableField('city')]
     fCity: string;
-    procedure SetFormattedCode(const Value: String);
+    procedure SetFormattedCode(const Value: string);
   public
     property ID: Integer read fID write fID;
     property Code: string read fCode write fCode;
-    property FormattedCode: String read fFormattedCode write SetFormattedCode;
+    property FormattedCode: string read fFormattedCode write SetFormattedCode;
     property CompanyName: string read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
   end;
@@ -153,6 +153,31 @@ type
     property Quantity: Integer read fQuantity write fQuantity;
     property Description: string read fDescription write fDescription;
     property Total: Currency read fTotal write fTotal;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers_plain')]
+  TCustomerPlain = class(TMVCActiveRecord)
+  private
+    [MVCTableField('id', [foPrimaryKey])]
+    fID: NullableInt64;
+    [MVCTableField('code')]
+    fCode: NullableString;
+    [MVCTableField('description')]
+    fCompanyName: NullableString;
+    [MVCTableField('city')]
+    fCity: string;
+    [MVCTableField('rating')]
+    fRating: NullableInt32;
+    [MVCTableField('note')]
+    fNote: string;
+  public
+    property ID: NullableInt64 read fID write fID;
+    property Code: NullableString read fCode write fCode;
+    property CompanyName: NullableString read fCompanyName write fCompanyName;
+    property City: string read fCity write fCity;
+    property Rating: NullableInt32 read fRating write fRating;
+    property Note: string read fNote write fNote;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -366,7 +391,7 @@ end;
 
 { TCustomerWithTransient }
 
-procedure TCustomerWithTransient.SetFormattedCode(const Value: String);
+procedure TCustomerWithTransient.SetFormattedCode(const Value: string);
 begin
   fFormattedCode := Value;
 end;

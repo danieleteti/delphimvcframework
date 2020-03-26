@@ -23,6 +23,16 @@ CREATE TABLE customers (
 	CONSTRAINT customers_pk PRIMARY KEY (id)
 );
 
+CREATE TABLE customers_plain (
+	id int8 NOT NULL,
+	code varchar(20) NULL,
+	description varchar(200) NULL,
+	city varchar(200) NULL,
+	note text NULL,
+	rating int4 NULL,
+	CONSTRAINT customers_plain_pk PRIMARY KEY (id)
+);
+
 -- Drop table
 
 -- DROP TABLE public.order_details
