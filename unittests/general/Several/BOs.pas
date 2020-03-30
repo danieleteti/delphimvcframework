@@ -99,7 +99,7 @@ type
     function GetHistory: String;
     procedure ClearHistory;
   protected
-    procedure OnValidation; override;
+    procedure OnValidation(const Action: TMVCEntityAction); override;
     procedure OnAfterLoad; override;
     procedure OnBeforeLoad; override;
     procedure OnBeforeInsert; override;
@@ -1058,7 +1058,7 @@ begin
   fHistory.Add('OnBeforeUpdate');
 end;
 
-procedure TCustomerWithLF.OnValidation;
+procedure TCustomerWithLF.OnValidation(const Action: TMVCEntityAction);
 begin
   inherited;
   fHistory.Add('OnValidation');

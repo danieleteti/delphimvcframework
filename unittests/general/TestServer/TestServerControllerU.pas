@@ -608,17 +608,17 @@ end;
 
 procedure TTestServerController.TestResponseAccepted;
 begin
-  ResponseAccepted('http://pippo.it/1234', '1234', 'thisisthereason');
+  Render202Accepted('http://pippo.it/1234', '1234', 'thisisthereason');
 end;
 
 procedure TTestServerController.TestResponseCreated;
 begin
-  ResponseCreated('thisisthelocation', 'thisisthereason');
+  Render201Created('thisisthelocation', 'thisisthereason');
 end;
 
 procedure TTestServerController.TestResponseNoContent;
 begin
-  ResponseNoContent('thisisthereason');
+  Render204NoContent('thisisthereason');
 end;
 
 procedure TTestServerController.TestSerializeNullables;

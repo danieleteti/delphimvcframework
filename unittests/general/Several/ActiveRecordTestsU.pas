@@ -188,7 +188,7 @@ begin
     Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad', lCustomer.GetHistory);
     lCustomer.ClearHistory;
     lCustomer.Delete;
-    Assert.AreEqual('OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete', lCustomer.GetHistory);
+    Assert.AreEqual('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete', lCustomer.GetHistory);
   finally
     lCustomer.Free;
   end;

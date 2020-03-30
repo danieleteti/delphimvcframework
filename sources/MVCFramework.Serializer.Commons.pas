@@ -912,7 +912,7 @@ begin
       begin
         aRTTIField.SetValue(AObject, BCDtoCurrency(AField.AsBCD));
       end;
-    ftFloat:
+    ftFloat, ftSingle:
       begin
         aRTTIField.SetValue(AObject, AField.AsFloat);
       end;
