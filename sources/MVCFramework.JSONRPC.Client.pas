@@ -102,7 +102,7 @@ begin
     lSS.Position := 0;
     lHTTP := THTTPClient.Create;
     try
-      lHttpResp := lHTTP.Post('http://localhost:8080/jsonrpc', lSS, nil,
+      lHttpResp := lHTTP.Post(aJSONRPCURL, lSS, nil,
         [TNetHeader.Create('content-type', 'application/json'), TNetHeader.Create('accept', 'application/json')]);
       if (lHttpResp.StatusCode <> 204) then
       begin

@@ -185,7 +185,7 @@ type
     /// <summary>
     /// Called everywhere before persist object into database
     /// </summary>
-    procedure OnValidation; virtual;
+    procedure OnValidation(const EntityAction: TMVCEntityAction); virtual;
 
     /// <summary>
     /// Called just after load the object state from database
@@ -258,6 +258,7 @@ type
     constructor Create; overload; virtual;
     destructor Destroy; override;
     procedure EnsureConnection;
+    procedure InvalidateConnection(const ReacquireAfterInvalidate: Boolean = false);
     /// <summary>
     /// Executes an Insert or an Update if primary key is defined or not
     /// </summary>
@@ -310,6 +311,14 @@ type
       const Params: array of Variant;
       const ParamTypes: array of TFieldType;
       const Options: TMVCActiveRecordLoadOptions = []): TObjectList<T>; overload;
+    class function SelectOne<T: TMVCActiveRecord, constructor>(const SQL: string;
+      const Params: array of Variant;
+      const ParamTypes: array of TFieldType;
+      const Options: TMVCActiveRecordLoadOptions = [];
+      const RaiseExceptionIfNotFound: Boolean = True): T; overload;
+    class function SelectOne<T: TMVCActiveRecord, constructor>(const SQL: string;
+      const Params: array of Variant;
+      const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function SelectRQL<T: constructor, TMVCActiveRecord>(const RQL: string; const MaxRecordCount: Integer)
       : TObjectList<T>; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
@@ -375,6 +384,7 @@ type
     procedure SetCurrent(const aName: string);
     function GetCurrent: TFDConnection;
     function GetCurrentBackend: string;
+    procedure SetDefault;
   end;
 
   TMVCConnectionsRepository = class(TInterfacedObject, IMVCActiveRecordConnections)
@@ -402,6 +412,7 @@ type
     function GetCurrent: TFDConnection;
     function GetByName(const aName: string): TFDConnection;
     function GetCurrentBackend: string;
+    procedure SetDefault;
   end;
 
   TMVCSQLGenerator = class abstract
@@ -706,6 +717,11 @@ begin
   end;
 end;
 
+procedure TMVCConnectionsRepository.SetDefault;
+begin
+  SetCurrent('default');
+end;
+
 function ActiveRecordMappingRegistry: IMVCEntitiesRegistry;
 begin
   if gEntitiesRegistry = nil then
@@ -812,41 +828,6 @@ begin
       if (lValue.Kind = tkRecord) then
       begin
         MapDataSetFieldToNullableRTTIField(lValue, lQry.Fields[0], fPrimaryKey, Self);
-        // if SameText(lValue.TypeInfo.Name, 'Nullable<System.Integer>') then
-        // begin
-        // lInteger :=lQry.FieldByName(fPrimaryKeyFieldName).AsInteger;
-        // TValue.MakeWithoutCopy(@lInteger, TypeInfo(NullableInteger), lValue);
-        // //lValue := TValue.From<NullableInteger>(Nullable<Integer>(lQry.FieldByName(fPrimaryKeyFieldName).AsInteger))
-        // // if lValue.IsType<NullableInt32> then
-        // // lValue := TValue.From<NullableInt32>(NullableInt32(lQry.FieldByName(fPrimaryKeyFieldName).AsInteger))
-        // end
-        // else if SameText(lValue.TypeInfo.Name, 'Nullable<System.Int64>') then
-        // begin
-        /// /          lLargeInt :=lQry.FieldByName(fPrimaryKeyFieldName).AsLargeInt;
-        /// /          TValue.MakeWithoutCopy(@lLargeInt, TypeInfo(NullableInt64), lValue);
-        // lNullableInt64.Value := lQry.FieldByName(fPrimaryKeyFieldName).AsLargeInt;
-        /// /          fPrimaryKey.SetValue(Self, TValue.From<Nullable<System.Int64>>(lNullableInt64));
-        // TValue.Make(@lNullableInt64, TypeInfo(NullableInt64), lOutValue);
-        // fPrimaryKey.SetValue(Self,3);
-        // //fPrimaryKey.SetValue(Self,lOutValue);
-        //
-        /// /          TValue.MakeWithoutCopy(@lNullableInt64, TypeInfo(NullableInt64), lValue);
-        // //lValue := TValue.From<NullableInt64>(lQry.FieldByName(fPrimaryKeyFieldName).AsLargeInt)
-        // // else if lValue.IsType<NullableInt64> then
-        // // lValue := TValue.From<NullableInt64>(NullableInt64(lQry.FieldByName(fPrimaryKeyFieldName).AsLargeInt))
-        // end
-        // else if SameText(lValue.TypeInfo.Name, 'Nullable<System.UInt32>') then
-        // lValue := lQry.FieldByName(fPrimaryKeyFieldName).AsInteger
-        /// /        else if lValue.IsType<NullableUInt32> then
-        /// /          lValue := TValue.From<NullableUInt32>(NullableUInt32(lQry.FieldByName(fPrimaryKeyFieldName).AsInteger))
-        // else if lValue.IsType<NullableUInt64> then
-        // lValue := TValue.From<NullableUInt64>(NullableUInt64(lQry.FieldByName(fPrimaryKeyFieldName).AsLargeInt))
-        // else if lValue.IsType<NullableInt16> then
-        // lValue := TValue.From<NullableInt16>(NullableInt16(lQry.FieldByName(fPrimaryKeyFieldName).AsInteger))
-        // else if lValue.IsType<NullableUInt16> then
-        // lValue := TValue.From<NullableUInt16>(NullableUInt16(lQry.FieldByName(fPrimaryKeyFieldName).AsInteger))
-        // else
-        // raise EMVCActiveRecord.Create('Invalid type for primary key');
       end
       else
       begin
@@ -922,7 +903,12 @@ begin
   end;
 
   if fTableName = '' then
-    raise Exception.Create('Cannot find TableNameAttribute');
+  begin
+    if [eaCreate, eaUpdate, eaDelete] * fEntityAllowedActions <> [] then
+    begin
+      raise Exception.Create('Cannot find TableNameAttribute');
+    end;
+  end;
 
   fProps := fRTTIType.GetFields;
   for lRTTIField in fProps do
@@ -975,7 +961,7 @@ var
   SQL: string;
 begin
   CheckAction(TMVCEntityAction.eaCreate);
-  OnValidation;
+  OnValidation(TMVCEntityAction.eaCreate);
   OnBeforeInsert;
   OnBeforeInsertOrUpdate;
   if fMap.NonTransientFieldsCount = 0 then
@@ -1259,6 +1245,8 @@ procedure TMVCActiveRecord.Delete;
 var
   SQL: string;
 begin
+  CheckAction(TMVCEntityAction.eaDelete);
+  OnValidation(TMVCEntityAction.eaDelete);
   OnBeforeDelete;
   if not Assigned(fPrimaryKey) then
     raise Exception.CreateFmt('Cannot delete %s without a primary key', [ClassName]);
@@ -1848,9 +1836,18 @@ begin
   // do nothing
 end;
 
-procedure TMVCActiveRecord.OnValidation;
+procedure TMVCActiveRecord.OnValidation(const EntityAction: TMVCEntityAction);
 begin
   // do nothing
+end;
+
+procedure TMVCActiveRecord.InvalidateConnection(const ReacquireAfterInvalidate: Boolean = false);
+begin
+  FreeAndNil(fConn);
+  if ReacquireAfterInvalidate then
+  begin
+    EnsureConnection;
+  end;
 end;
 
 class function TMVCActiveRecord.Select(const aClass: TMVCActiveRecordClass; const SQL: string;
@@ -1935,6 +1932,43 @@ begin
   except
     Result.Free;
     raise;
+  end;
+end;
+
+class function TMVCActiveRecordHelper.SelectOne<T>(const SQL: string;
+  const Params: array of Variant; const RaiseExceptionIfNotFound: Boolean): T;
+begin
+  Result := SelectOne<T>(SQL, Params, [], [], RaiseExceptionIfNotFound);
+end;
+
+class function TMVCActiveRecordHelper.SelectOne<T>(const SQL: string;
+  const Params: array of Variant;
+  const ParamTypes: array of TFieldType;
+  const Options: TMVCActiveRecordLoadOptions;
+  const RaiseExceptionIfNotFound: Boolean): T;
+var
+  lDataSet: TDataSet;
+  lAR: TMVCActiveRecord;
+  lHandled: Boolean;
+  lList: TObjectList<T>;
+begin
+  Result := nil;
+  lList := Select<T>(SQL, Params, ParamTypes, Options);
+  try
+    if (lList.Count = 0) then
+    begin
+      if RaiseExceptionIfNotFound then
+        raise EMVCActiveRecordNotFound.Create('Got 0 rows when exactly 1 was expected')
+      else
+        Exit(nil);
+    end;
+    if lList.Count > 1 then
+    begin
+      raise EMVCActiveRecordNotFound.CreateFmt('Got %d rows when exactly 1 was expected', [lList.Count]);
+    end;
+    Result := lList.ExtractAt(0);
+  finally
+    lList.Free;
   end;
 end;
 
@@ -2172,7 +2206,7 @@ var
   SQL: string;
 begin
   CheckAction(TMVCEntityAction.eaUpdate);
-  OnValidation;
+  OnValidation(TMVCEntityAction.eaUpdate);
   OnBeforeUpdate;
   OnBeforeInsertOrUpdate;
   if fMap.NonTransientFieldsCount = 0 then

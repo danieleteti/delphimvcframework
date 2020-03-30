@@ -56,9 +56,14 @@ const
   JSONRPC_DATA = 'data';
 
 const
-  JSONRPC_HOOKS_ON_BEFORE_ROUTING = 'OnBeforeRouting';
-  JSONRPC_HOOKS_ON_BEFORE_CALL = 'OnBeforeCall';
-  JSONRPC_HOOKS_ON_BEFORE_SEND_RESPONSE = 'OnBeforeSendResponse';
+  JSONRPC_HOOKS_ON_BEFORE_ROUTING = 'OnBeforeRoutingHook';
+  JSONRPC_HOOKS_ON_BEFORE_CALL = 'OnBeforeCallHook';
+  JSONRPC_HOOKS_ON_BEFORE_SEND_RESPONSE = 'OnBeforeSendResponseHook';
+  JSONRPC_HOOKS_METHOD_NAMES: array [0 .. 2] of string = (
+    JSONRPC_HOOKS_ON_BEFORE_ROUTING,
+    JSONRPC_HOOKS_ON_BEFORE_CALL,
+    JSONRPC_HOOKS_ON_BEFORE_SEND_RESPONSE
+    );
 
   {
     http://www.jsonrpc.org/historical/json-rpc-over-http.html#response-codes
@@ -396,6 +401,20 @@ const
 var
   GProxyGeneratorsRegister: TDictionary<string, TJSONRPCProxyGeneratorClass>;
 
+function IsReservedMethodName(const MethodName: string): Boolean;
+var
+  lMethod: string;
+begin
+  Result := False;
+  for lMethod in JSONRPC_HOOKS_METHOD_NAMES do
+  begin
+    if SameText(MethodName, lMethod) then
+    begin
+      Exit(True);
+    end;
+  end;
+end;
+
 procedure AppendTValueToJsonArray(const Value: TValue; const ParamType: TJSONRPCParamDataType;
   const JSONArr: TJDOJsonArray);
 var
@@ -724,6 +743,7 @@ function TMVCJSONRPCController.CanBeRemotelyInvoked(
 begin
   Result := (RTTIMethod.Visibility = mvPublic) and
     (RTTIMethod.MethodKind in [mkProcedure, mkFunction]);
+  Result := Result and not IsReservedMethodName(RTTIMethod.Name);
 end;
 
 constructor TMVCJSONRPCController.Create;
@@ -932,6 +952,10 @@ begin
     var
       lAtt: MVCDocAttribute;
     begin
+      if IsReservedMethodName(aRTTIMethod.Name) then
+      begin
+        Exit;
+      end;
       lAtt := TRTTIUtils.GetAttribute<MVCDocAttribute>(aRTTIMethod);
       if Assigned(lAtt) then
       begin

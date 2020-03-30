@@ -274,7 +274,7 @@ type
     FPattern: string;
     FFormat: string;
   public
-    property Name: string read FName write FName;
+    property name: string read FName write FName;
     property Location: TSwagRequestParameterInLocation read FLocation write FLocation;
     property ParamType: TSwagTypeParameter read FType write FType;
     property ClassType: TClass read FClassType write FClassType;
@@ -293,9 +293,9 @@ type
 
   MVCStringEnumAttribute = class(MVCBaseAttribute)
   private
-    fValues: String;
+    fValues: string;
   public
-    constructor Create(const enumValue: String);
+    constructor Create(const enumValue: string);
     property Values: string read fValues write fValues;
   end;
 
@@ -583,7 +583,7 @@ type
     function ResponseStream: TStringBuilder;
     procedure Redirect(const AUrl: string);
     procedure ResponseStatus(const AStatusCode: Integer; const AReasonString: string = '');
-    procedure ResponseCreated(const Location: String = '');
+    procedure Render201Created(const Location: string = '');
     // Serializer access
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExcpIfNotExists: Boolean = True)
@@ -622,7 +622,7 @@ type
     /// <remarks>
     /// https://restfulapi.net/http-status-201-created/
     /// </remarks>
-    procedure ResponseCreated(const Location: String = ''; const Reason: String = 'Created'); virtual;
+    procedure Render201Created(const Location: string = ''; const Reason: string = 'Created'); virtual;
     /// <summary>
     /// Allow a server to accept a request for some other process (perhaps a batch-oriented process that is only run once per day) without requiring that the user agents connection to the server persist until the process is completed.
     /// The entity returned with this response SHOULD describe the requests current status and point to (or embed) a status monitor that can provide the user with (or without) an estimate of when the request will be fulfilled.
@@ -630,12 +630,12 @@ type
     /// <remarks>
     /// https://restfulapi.net/http-status-202-accepted/
     /// </remarks>
-    procedure ResponseAccepted(const HREF: String; const ID: String; const Reason: String = 'Accepted'); virtual;
+    procedure Render202Accepted(const HREF: string; const ID: string; const Reason: string = 'Accepted'); virtual;
     /// <summary>
     /// HTTP Status 204 (No Content) indicates that the server has successfully fulfilled the request and that there is no content to send in the response payload body. The server might want to return updated meta information in the form of entity-headers, which if present SHOULD be applied to current documents active view if any.
     /// The 204 response MUST NOT include a message-body and thus is always terminated by the first empty line after the header fields.
     /// </summary>
-    procedure ResponseNoContent(const Location: String = ''; const Reason: String = 'No Content'); virtual;
+    procedure Render204NoContent(const Location: string = ''; const Reason: string = 'No Content'); virtual;
     function Serializer: IMVCSerializer; overload;
     function Serializer(const AContentType: string; const ARaiseExceptionIfNotExists: Boolean = True)
       : IMVCSerializer; overload;
@@ -906,7 +906,7 @@ type
     procedure HTTP404(const AContext: TWebContext);
     procedure HTTP500(const AContext: TWebContext; const AReasonString: string = '');
     procedure SendRawHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
-      const AReasonString: string; const AClassName: String = '');
+      const AReasonString: string; const AClassName: string = '');
 
     property ViewEngineClass: TMVCViewEngineClass read GetViewEngineClass;
     property WebModule: TWebModule read FWebModule;
@@ -987,7 +987,7 @@ type
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
-function CreateResponse(const StatusCode: UInt16; const ReasonString: String; const Message: String = ''): TMVCResponse;
+function CreateResponse(const StatusCode: UInt16; const ReasonString: string; const Message: string = ''): TMVCResponse;
 
 implementation
 
@@ -1010,9 +1010,9 @@ begin
   TInterlocked.Add(_IsShuttingDown, 1);
 end;
 
-function CreateResponse(const StatusCode: UInt16; const ReasonString: String; const Message: String = ''): TMVCResponse;
+function CreateResponse(const StatusCode: UInt16; const ReasonString: string; const Message: string = ''): TMVCResponse;
 begin
-  Result := TMVCResponse.Create(StatusCode, ReasonString, Message);
+  Result := TMVCResponse.Create(StatusCode, ReasonString, message);
 end;
 
 { MVCHTTPMethodsAttribute }
@@ -1088,7 +1088,7 @@ end;
 
 { MVCStringEnumAttribute }
 
-constructor MVCStringEnumAttribute.Create(const enumValue: String);
+constructor MVCStringEnumAttribute.Create(const enumValue: string);
 begin
   fValues := enumValue;
 end;
@@ -2531,7 +2531,7 @@ begin
 end;
 
 procedure TMVCEngine.SendRawHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
-  const AReasonString: string; const AClassName: String);
+  const AReasonString: string; const AClassName: string);
 var
   lSer: IMVCSerializer;
   lError: TMVCErrorResponse;
@@ -3030,7 +3030,7 @@ begin
   Self.Render<T>(ACollection, AOwns, stDefault, ASerializationAction);
 end;
 
-procedure TMVCRenderer.ResponseAccepted(const HREF: String; const ID: String; const Reason: String);
+procedure TMVCRenderer.Render202Accepted(const HREF: string; const ID: string; const Reason: string);
 begin
   if HREF.IsEmpty then
   begin
@@ -3040,7 +3040,7 @@ begin
   Render(TMVCAcceptedResponse.Create(HREF, ID));
 end;
 
-procedure TMVCRenderer.ResponseCreated(const Location, Reason: String);
+procedure TMVCRenderer.Render201Created(const Location, Reason: string);
 begin
   if not Location.IsEmpty then
   begin
@@ -3049,7 +3049,7 @@ begin
   ResponseStatus(HTTP_STATUS.Created, Reason);
 end;
 
-procedure TMVCRenderer.ResponseNoContent(const Location, Reason: String);
+procedure TMVCRenderer.Render204NoContent(const Location, Reason: string);
 begin
   if not Location.IsEmpty then
   begin
