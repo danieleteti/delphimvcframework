@@ -181,6 +181,28 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers_with_code')]
+  TCustomerWithCode = class(TMVCActiveRecord)
+  private
+    [MVCTableField('code', [foPrimaryKey])]
+    fCode: NullableString;
+    [MVCTableField('description')]
+    fCompanyName: NullableString;
+    [MVCTableField('city')]
+    fCity: string;
+    [MVCTableField('rating')]
+    fRating: NullableInt32;
+    [MVCTableField('note')]
+    fNote: string;
+  public
+    property Code: NullableString read fCode write fCode;
+    property CompanyName: NullableString read fCompanyName write fCompanyName;
+    property City: string read fCity write fCity;
+    property Rating: NullableInt32 read fRating write fRating;
+    property Note: string read fNote write fNote;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
   [MVCTable('orders')]
   TOrder = class(TMVCActiveRecord)
   private
@@ -227,7 +249,7 @@ type
   protected
     procedure OnAfterLoad; override;
     procedure OnBeforeInsertOrUpdate; override;
-    procedure OnValidation; override;
+    procedure OnValidation(const Action: TMVCEntityAction); override;
   public
     property IsLocatedInRome: Boolean read fIsLocatedInRome;
   end;
@@ -382,7 +404,7 @@ begin
   fCity := fCity.ToUpper;
 end;
 
-procedure TCustomerWithLogic.OnValidation;
+procedure TCustomerWithLogic.OnValidation(const Action: TMVCEntityAction);
 begin
   inherited;
   if fCompanyName.ValueOrDefault.IsEmpty or fCity.Trim.IsEmpty or fCode.Value.Trim.IsEmpty then

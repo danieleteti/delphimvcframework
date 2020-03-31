@@ -62,15 +62,13 @@ type
       const TableName: string;
       const Map: TFieldsMap;
       const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions;
-      const PrimaryKeyValue: Int64): string; override;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateDeleteAllSQL(
       const TableName: string): string; override;
     function CreateSelectByPKSQL(
       const TableName: string;
       const Map: TFieldsMap; const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions;
-      const PrimaryKeyValue: Int64): string; override;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateSQLWhereByRQL(
       const RQL: string;
       const Mapping: TMVCFieldsMapping;
@@ -136,8 +134,7 @@ end;
 function TMVCSQLGeneratorFirebird.CreateSelectByPKSQL(
   const TableName: string;
   const Map: TFieldsMap; const PKFieldName: string;
-  const PKOptions: TMVCActiveRecordFieldOptions;
-  const PrimaryKeyValue: Int64): string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
     PKFieldName + '= :' + PKFieldName; // IntToStr(PrimaryKeyValue);
@@ -209,9 +206,9 @@ begin
 end;
 
 function TMVCSQLGeneratorFirebird.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
-  const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: Int64): string;
+  const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
-  Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + PKFieldName + '=' + IntToStr(PrimaryKeyValue);
+  Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + PKFieldName + '=:' + PKFieldName;
 end;
 
 initialization

@@ -39,6 +39,7 @@ type
     FDConnection1: TFDConnection;
     btnNullTest: TButton;
     btnCRUDNoAutoInc: TButton;
+    btnCRUDWithStringPKs: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -52,6 +53,7 @@ type
     procedure btnNullablesClick(Sender: TObject);
     procedure btnNullTestClick(Sender: TObject);
     procedure btnCRUDNoAutoIncClick(Sender: TObject);
+    procedure btnCRUDWithStringPKsClick(Sender: TObject);
   private
     procedure Log(const Value: string);
   public
@@ -187,6 +189,73 @@ begin
   try
     lCustomer.Delete;
     Log('Just deleted Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+end;
+
+procedure TMainForm.btnCRUDWithStringPKsClick(Sender: TObject);
+var
+  lCustomer: TCustomerWithCode;
+  lCode: string;
+  I: Integer;
+begin
+  Log('** Simple CRUD (with string pks) test');
+  Log('There are ' + TMVCActiveRecord.Count<TCustomerWithCode>().ToString + ' row/s for entity ' +
+    TCustomerWithCode.ClassName);
+  TMVCActiveRecord.DeleteAll(TCustomerWithCode);
+  Log('Deleting all entities ' + TCustomerWithCode.ClassName);
+  for I := 1 to 100 do
+  begin
+    lCustomer := TCustomerWithCode.Create;
+    try
+      lCustomer.Code := I.ToString.PadLeft(4, '0');
+      // just for test!!
+      case I mod 3 of
+        0:
+          lCustomer.CompanyName := 'Google Inc.';
+        1:
+          lCustomer.CompanyName := 'bit Time Professionals';
+        2:
+          lCustomer.CompanyName := 'Walt Disney Corp.';
+      end;
+      lCustomer.City := 'Montain View, CA';
+      lCustomer.Note := 'Hello there!';
+      lCustomer.Insert;
+      lCode := lCustomer.Code.Value;
+      Log('Just inserted Customer ' + lCode);
+    finally
+      lCustomer.Free;
+    end;
+  end;
+
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithCode>().ToString + ' row/s for entity ' +
+    TCustomerPlain.ClassName);
+  TMVCActiveRecord.DeleteRQL(TCustomerWithCode, 'lt(code,"0090")');
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>(lCode);
+  try
+    Assert(lCustomer.Code.HasValue);
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Note changed!';
+    lCustomer.Update;
+    Log('Just updated Customer ' + lCode);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomerWithCode.Create;
+  try
+    lCustomer.LoadByPK(lCode);
+    lCustomer.CompanyName := 'My New Company!';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>(lCode);
+  try
+    lCustomer.Delete;
+    Log('Just deleted Customer ' + lCode);
   finally
     lCustomer.Free;
   end;

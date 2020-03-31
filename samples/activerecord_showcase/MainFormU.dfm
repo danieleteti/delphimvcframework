@@ -29,7 +29,7 @@ object MainForm: TMainForm
   end
   object btnSelect: TButton
     Left = 8
-    Top = 125
+    Top = 164
     Width = 121
     Height = 33
     Caption = 'Queries'
@@ -60,7 +60,7 @@ object MainForm: TMainForm
   end
   object btnRelations: TButton
     Left = 8
-    Top = 164
+    Top = 203
     Width = 121
     Height = 35
     Caption = 'Relations'
@@ -69,7 +69,7 @@ object MainForm: TMainForm
   end
   object btnInheritance: TButton
     Left = 8
-    Top = 205
+    Top = 244
     Width = 121
     Height = 34
     Caption = 'Inheritance'
@@ -78,7 +78,7 @@ object MainForm: TMainForm
   end
   object btnValidation: TButton
     Left = 8
-    Top = 245
+    Top = 284
     Width = 121
     Height = 34
     Caption = 'Validation'
@@ -87,7 +87,7 @@ object MainForm: TMainForm
   end
   object btnMultiThreading: TButton
     Left = 8
-    Top = 325
+    Top = 364
     Width = 121
     Height = 34
     Caption = 'Multi Threading'
@@ -96,7 +96,7 @@ object MainForm: TMainForm
   end
   object btnRQL: TButton
     Left = 8
-    Top = 285
+    Top = 324
     Width = 121
     Height = 34
     Caption = 'RQL Query'
@@ -105,7 +105,7 @@ object MainForm: TMainForm
   end
   object btnTransientFields: TButton
     Left = 8
-    Top = 86
+    Top = 125
     Width = 121
     Height = 33
     Caption = 'CRUD Transient'
@@ -114,7 +114,7 @@ object MainForm: TMainForm
   end
   object btnNullTest: TButton
     Left = 8
-    Top = 365
+    Top = 404
     Width = 121
     Height = 34
     Caption = 'Nullables'
@@ -129,6 +129,15 @@ object MainForm: TMainForm
     Caption = 'CRUD (no autoinc)'
     TabOrder = 10
     OnClick = btnCRUDNoAutoIncClick
+  end
+  object btnCRUDWithStringPKs: TButton
+    Left = 8
+    Top = 86
+    Width = 121
+    Height = 33
+    Caption = 'CRUD (string pks)'
+    TabOrder = 11
+    OnClick = btnCRUDWithStringPKsClick
   end
   object FDConnection1: TFDConnection
     Left = 176

@@ -59,13 +59,11 @@ type
       const TableName: string;
       const Map: TFieldsMap;
       const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions;
-      const PrimaryKeyValue: Int64): string; override;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateSelectByPKSQL(
       const TableName: string;
       const Map: TFieldsMap; const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions;
-      const PrimaryKeyValue: Int64): string; override;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateSQLWhereByRQL(
       const RQL: string;
       const Mapping: TMVCFieldsMapping;
@@ -127,8 +125,7 @@ end;
 function TMVCSQLGeneratorMSSQL.CreateSelectByPKSQL(
   const TableName: string;
   const Map: TFieldsMap; const PKFieldName: string;
-  const PKOptions: TMVCActiveRecordFieldOptions;
-  const PrimaryKeyValue: Int64): string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
     PKFieldName + '= :' + PKFieldName; // IntToStr(PrimaryKeyValue);
@@ -179,10 +176,13 @@ begin
   Result := TRQLMSSQLCompiler;
 end;
 
-function TMVCSQLGeneratorMSSQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
-  const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions; const PrimaryKeyValue: Int64): string;
+function TMVCSQLGeneratorMSSQL.CreateDeleteSQL(
+  const TableName: string;
+  const Map: TFieldsMap;
+  const PKFieldName: string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
-  Result := 'DELETE FROM ' + TableName + ' WHERE ' + PKFieldName + '= ' + IntToStr(PrimaryKeyValue);
+  Result := 'DELETE FROM ' + TableName + ' WHERE ' + PKFieldName + '=:' + PKFieldName;
 end;
 
 initialization

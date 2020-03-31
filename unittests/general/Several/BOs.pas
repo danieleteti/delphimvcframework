@@ -32,8 +32,9 @@ uses
   MVCFramework.SQLGenerators.SQLite, FireDAC.Stan.Param, Data.DB;
 
 const
-  SQLs: array [0 .. 1] of string = (
+  SQLs: array [0 .. 2] of string = (
     'CREATE TABLE customers (id INTEGER NOT NULL, code varchar (20), description varchar (200), city varchar (200), note TEXT, rating INTEGER, PRIMARY KEY (id))',
+    'CREATE TABLE customers_with_code (code varchar (20) not null, description varchar (200), city varchar (200), note TEXT, rating INTEGER, PRIMARY KEY(code))',
     'CREATE TABLE nullables_test(f_int2 int2, f_int8 int8, f_int4 int4, f_string varchar, f_bool BOOLEAN, ' +
     'f_date TIMESTAMP, f_time TIMESTAMP, f_datetime TIMESTAMP, f_float4 float4, f_float8 float8, ' +
     'f_currency numeric(18,4), f_blob BLOB)'
@@ -55,14 +56,35 @@ type
     [MVCTableField('rating')]
     fRating: NullableInt32;
     [MVCTableField('note')]
-    fNote: String;
+    fNote: string;
   public
     property ID: Integer read fID write fID;
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
-    property Note: String read fNote write fNote;
+    property Note: string read fNote write fNote;
+  end;
+
+  [MVCTable('customers_with_code')]
+  TCustomerWithCode = class(TMVCActiveRecord)
+  private
+    [MVCTableField('code', [foPrimaryKey])]
+    fCode: string;
+    [MVCTableField('description')]
+    fCompanyName: NullableString;
+    [MVCTableField('city')]
+    fCity: string;
+    [MVCTableField('rating')]
+    fRating: NullableInt32;
+    [MVCTableField('note')]
+    fNote: string;
+  public
+    property Code: string read fCode write fCode;
+    property CompanyName: NullableString read fCompanyName write fCompanyName;
+    property City: string read fCity write fCity;
+    property Rating: NullableInt32 read fRating write fRating;
+    property Note: string read fNote write fNote;
   end;
 
   [MVCTable('customers')]
@@ -79,24 +101,24 @@ type
     [MVCTableField('rating')]
     fRating: NullableInt32;
     [MVCTableField('note')]
-    fNote: String;
+    fNote: string;
   public
     property ID: NullableInt64 read fID write fID;
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
-    property Note: String read fNote write fNote;
+    property Note: string read fNote write fNote;
   end;
 
   [MVCTable('customers')]
   TCustomerWithLF = class(TCustomer)
   private
-    fHistory: TList<String>;
+    fHistory: TList<string>;
   public
     constructor Create; override;
     destructor Destroy; override;
-    function GetHistory: String;
+    function GetHistory: string;
     procedure ClearHistory;
   protected
     procedure OnValidation(const Action: TMVCEntityAction); override;
@@ -109,7 +131,7 @@ type
     procedure OnBeforeDelete; override;
     procedure OnAfterDelete; override;
     procedure OnBeforeInsertOrUpdate; override;
-    procedure OnBeforeExecuteSQL(var SQL: String); override;
+    procedure OnBeforeExecuteSQL(var SQL: string); override;
     procedure OnAfterInsertOrUpdate; override;
     procedure MapObjectToParams(const Params: TFDParams; var Handled: Boolean); override;
     procedure MapDatasetToObject(const DataSet: TDataSet; const Options: TMVCActiveRecordLoadOptions;
@@ -964,7 +986,7 @@ end;
 constructor TCustomerWithLF.Create;
 begin
   inherited;
-  fHistory := TList<String>.Create;
+  fHistory := TList<string>.Create;
 end;
 
 destructor TCustomerWithLF.Destroy;
@@ -973,9 +995,9 @@ begin
   inherited;
 end;
 
-function TCustomerWithLF.GetHistory: String;
+function TCustomerWithLF.GetHistory: string;
 begin
-  Result := String.Join('|', fHistory.ToArray);
+  Result := string.Join('|', fHistory.ToArray);
 end;
 
 procedure TCustomerWithLF.MapDatasetToObject(const DataSet: TDataSet;
@@ -1028,7 +1050,7 @@ begin
   fHistory.Add('OnBeforeDelete');
 end;
 
-procedure TCustomerWithLF.OnBeforeExecuteSQL(var SQL: String);
+procedure TCustomerWithLF.OnBeforeExecuteSQL(var SQL: string);
 begin
   inherited;
   fHistory.Add('OnBeforeExecuteSQL');

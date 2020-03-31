@@ -44,6 +44,8 @@ type
     [Test]
     procedure TestCRUD;
     [Test]
+    procedure TestCRUDStringPK;
+    [Test]
     procedure TestSelectWithExceptions;
     [Test]
     procedure TestStore;
@@ -151,6 +153,57 @@ begin
 
 end;
 
+procedure TTestActiveRecord.TestCRUDStringPK;
+var
+  lCustomer: TCustomerWithCode;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithCode>());
+  lCustomer := TCustomerWithCode.Create;
+  try
+    lCustomer.Code := '1000';
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.Insert;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000');
+  try
+    Assert.IsFalse(lCustomer.Rating.HasValue);
+    lCustomer.Rating := 3;
+    lCustomer.Note := lCustomer.Note + 'noteupdated';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000');
+  try
+    Assert.AreEqual('1000', lCustomer.Code);
+    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual('note1noteupdated', lCustomer.Note);
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000');
+  try
+    lCustomer.Delete;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000', False);
+  Assert.IsNull(lCustomer);
+
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'], [ftString], False);
+  Assert.IsNull(lCustomer);
+end;
+
 procedure TTestActiveRecord.TestLifeCycle;
 var
   lCustomer: TCustomerWithLF;
@@ -188,7 +241,8 @@ begin
     Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad', lCustomer.GetHistory);
     lCustomer.ClearHistory;
     lCustomer.Delete;
-    Assert.AreEqual('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete', lCustomer.GetHistory);
+    Assert.AreEqual('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete',
+      lCustomer.GetHistory);
   finally
     lCustomer.Free;
   end;
