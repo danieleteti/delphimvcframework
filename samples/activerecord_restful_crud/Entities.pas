@@ -45,7 +45,7 @@ type
   protected
     procedure OnAfterLoad; override;
     procedure OnBeforeInsertOrUpdate; override;
-    procedure OnValidation; override;
+    procedure OnValidation(const Action: TMVCEntityAction); override;
     procedure OnBeforeInsert; override;
   public
     constructor Create; override;
@@ -82,7 +82,7 @@ type
     [MVCTableField('id_person')]
     fIDPerson: Integer;
   protected
-    procedure OnValidation; override;
+    procedure OnValidation(const Action: TMVCEntityAction); override;
   public
     property ID: Integer read fID write fID;
     property IDPerson: Integer read fIDPerson write fIDPerson;
@@ -155,7 +155,7 @@ begin
   fFullName := fFirstName + ' ' + fLastName;
 end;
 
-procedure TPerson.OnValidation;
+procedure TPerson.OnValidation(const Action: TMVCEntityAction);
 begin
   inherited;
   if fLastName.Trim.IsEmpty or fFirstName.Trim.IsEmpty then
@@ -211,7 +211,7 @@ end;
 
 { TPhone }
 
-procedure TPhone.OnValidation;
+procedure TPhone.OnValidation(const Action: TMVCEntityAction);
 begin
   inherited;
   if fPhoneNumber.Trim.IsEmpty then

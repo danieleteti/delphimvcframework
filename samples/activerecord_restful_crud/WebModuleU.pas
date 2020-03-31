@@ -53,7 +53,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
-  FDConnectionConfigU, CustomControllerU, OtherControllerU;
+  FDConnectionConfigU, OtherControllerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
