@@ -180,6 +180,9 @@ type
     [MVCPath('/typed/ttime1/($value)')]
     procedure TestTypedActionTTime1(value: TTime);
 
+    [MVCPath('/typed/tguid1/($value)')]
+    procedure TestTypedActionTGuid1(value: TGUID);
+
     [MVCPath('/typed/booleans/($bool1)/($bool2)/($bool3)/($bool4)')]
     procedure TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
 
@@ -712,6 +715,12 @@ procedure TTestServerController.TestTypedActionTDateTime1(value: TDateTime);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(DateTimeToISOTimeStamp(value) + ' modified from server');
+end;
+
+procedure TTestServerController.TestTypedActionTGuid1(value: TGUID);
+begin
+  ContentType := TMVCMediaType.TEXT_PLAIN;
+  Render(GuidToString(value) + ' modified from server');
 end;
 
 procedure TTestServerController.TestTypedActionBooleans(bool1, bool2, bool3, bool4: Boolean);
