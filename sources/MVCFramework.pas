@@ -1964,6 +1964,7 @@ begin
   FMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
   FMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
   FMediaTypes.Add('.png', TMVCMediaType.IMAGE_PNG);
+  FMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
   FMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
 
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);

@@ -74,6 +74,7 @@ type
     TEXT_CSV = 'text/csv';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
+    IMAGE_X_ICON = 'image/x-icon';
     IMAGE_PNG = 'image/png';
     APPLICATION_PDF = 'application/pdf';
     APPLICATION_X_PDF = 'application/x-pdf';
