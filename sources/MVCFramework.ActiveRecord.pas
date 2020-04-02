@@ -2056,7 +2056,7 @@ begin
     begin
       raise EMVCActiveRecordNotFound.CreateFmt('Got %d rows when exactly 1 was expected', [lList.Count]);
     end;
-    Result := lList.ExtractAt(0);
+    Result := lList.Extract(lList.First);
   finally
     lList.Free;
   end;
