@@ -285,8 +285,8 @@ begin
       // read from content
       if LUsername.IsEmpty then
       begin
-        LUsername := AContext.Request.ContentFields[FUserNameHeaderName];
-        LPassword := AContext.Request.ContentFields[FPasswordHeaderName];
+        LUsername := AContext.Request.ContentParam(FUserNameHeaderName);
+        LPassword := AContext.Request.ContentParam(FPasswordHeaderName);
       end;
 
       // read from json content

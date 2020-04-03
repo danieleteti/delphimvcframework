@@ -17,9 +17,11 @@ type
     Splitter1: TSplitter;
     Label1: TLabel;
     btnLoginWithHeaderBasic: TButton;
+    Button1: TButton;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
     procedure btnLoginWithHeaderBasicClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     FJWT: string;
     procedure SetJWT(const Value: string);
@@ -35,13 +37,14 @@ implementation
 
 {$R *.dfm}
 
+
 uses
   MVCFramework.RESTClient,
   MVCFramework.Middleware.JWT,
   MVCFramework.Serializer.JSONDataObjects,
   MVCFramework.SystemJSONUtils,
   System.NetEncoding,
-  JsonDataObjects;
+  JSONDataObjects;
 
 procedure TMainForm.btnGetClick(Sender: TObject);
 var
@@ -127,6 +130,28 @@ begin
   finally
     lClient.Free;
   end;
+end;
+
+procedure TMainForm.Button1Click(Sender: TObject);
+var
+  lClient: TRESTClient;
+  lRest: IRESTResponse;
+  lJSON: TJSONObject;
+begin
+  lClient := TRESTClient.Create('localhost', 8080);
+  try
+    lClient.ReadTimeOut(0);
+    lRest := lClient.doPOST('/login', [], '{"jwtusername":"user1","jwtpassword":"user1"}');
+    lJSON := StrToJSONObject(lRest.BodyAsString);
+    try
+      JWT := lJSON.S['token'];
+    finally
+      lJSON.Free;
+    end;
+  finally
+    lClient.Free;
+  end;
+
 end;
 
 procedure TMainForm.SetJWT(const Value: string);
