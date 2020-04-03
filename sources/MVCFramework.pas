@@ -1324,7 +1324,8 @@ begin
     FContentFields := TDictionary<string, string>.Create;
     for I := 0 to Pred(FWebRequest.ContentFields.Count) do
     begin
-      FContentFields.Add(LowerCase(FWebRequest.ContentFields.Names[I]), FWebRequest.ContentFields.ValueFromIndex[I]);
+      FContentFields.AddOrSetValue(LowerCase(FWebRequest.ContentFields.Names[I]),
+        FWebRequest.ContentFields.ValueFromIndex[I]);
     end;
   end;
   Result := FContentFields;

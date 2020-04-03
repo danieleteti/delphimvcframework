@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'JWT with LiveValidityWindow feature'
   ClientHeight = 379
-  ClientWidth = 721
+  ClientWidth = 908
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,7 +16,7 @@ object MainForm: TMainForm
   object Splitter1: TSplitter
     Left = 0
     Top = 179
-    Width = 721
+    Width = 908
     Height = 3
     Cursor = crVSplit
     Align = alTop
@@ -26,7 +26,7 @@ object MainForm: TMainForm
   object Memo1: TMemo
     Left = 0
     Top = 81
-    Width = 721
+    Width = 908
     Height = 98
     Align = alTop
     Font.Charset = ANSI_CHARSET
@@ -37,11 +37,12 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     TabOrder = 0
+    ExplicitWidth = 721
   end
   object Memo2: TMemo
     Left = 0
     Top = 182
-    Width = 721
+    Width = 908
     Height = 197
     Align = alClient
     Font.Charset = ANSI_CHARSET
@@ -52,19 +53,21 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     TabOrder = 1
+    ExplicitWidth = 721
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 721
+    Width = 908
     Height = 81
     Align = alTop
     TabOrder = 2
+    ExplicitWidth = 721
     object Label1: TLabel
       AlignWithMargins = True
-      Left = 417
+      Left = 540
       Top = 4
-      Width = 300
+      Width = 364
       Height = 73
       Align = alClient
       Caption = 
@@ -74,13 +77,13 @@ object MainForm: TMainForm
         'alidityWindowInSeconds seconds. It is useful to mimic the classi' +
         'c session cookie with the semplicity of the JWT.'
       WordWrap = True
-      ExplicitLeft = 338
-      ExplicitWidth = 368
-      ExplicitHeight = 65
+      ExplicitLeft = 417
+      ExplicitWidth = 298
+      ExplicitHeight = 78
     end
     object btnGet: TButton
       AlignWithMargins = True
-      Left = 250
+      Left = 373
       Top = 4
       Width = 161
       Height = 73
@@ -89,7 +92,7 @@ object MainForm: TMainForm
       TabOrder = 0
       WordWrap = True
       OnClick = btnGetClick
-      ExplicitLeft = 171
+      ExplicitLeft = 250
     end
     object btnLOGIN: TButton
       AlignWithMargins = True
@@ -114,6 +117,20 @@ object MainForm: TMainForm
       TabOrder = 2
       WordWrap = True
       OnClick = btnLoginWithHeaderBasicClick
+    end
+    object Button1: TButton
+      AlignWithMargins = True
+      Left = 250
+      Top = 4
+      Width = 117
+      Height = 73
+      Align = alLeft
+      Caption = 'Login (with JSON Object)'
+      TabOrder = 3
+      WordWrap = True
+      OnClick = Button1Click
+      ExplicitLeft = 311
+      ExplicitTop = 2
     end
   end
 end
