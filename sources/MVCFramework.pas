@@ -2198,7 +2198,12 @@ begin
                     LContext.Response.StatusCode := HTTP_STATUS.NotFound;
                     LContext.Response.ReasonString := 'Not Found';
                     fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
-                    raise EMVCException.Create(LContext.Response.StatusCode, LContext.Response.ReasonString);
+                    raise EMVCException.Create(
+                      LContext.Response.ReasonString,
+                      LContext.Request.HTTPMethodAsString + ' ' + LContext.Request.PathInfo,
+                      0,
+                      HTTP_STATUS.NotFound
+                      );
                   end;
                 end
                 else
