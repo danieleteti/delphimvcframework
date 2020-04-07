@@ -2148,16 +2148,8 @@ begin
                   end
                   else
                   begin
-                    try
-                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.name,
-                        LActualParams);
-                    except
-                      on E: Exception do
-                      begin
-                        SendRawHTTPStatus(LContext, HTTP_STATUS.BadRequest, E.Message, E.Classname);
-                      end;
-                    end;
-                  end;
+                    FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.name,
+                      LActualParams);
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.name, LHandled);
 
