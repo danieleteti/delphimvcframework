@@ -133,11 +133,13 @@
     <PropertyGroup Condition="'$(Cfg_4_Win32)'!=''">
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_5_Win32)'!=''">
         <DCC_Define>CI;$(DCC_Define)</DCC_Define>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_3)'!=''">
         <DCC_UnitSearchPath>$(BDS)\source\DunitX;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
@@ -146,6 +148,7 @@
     <PropertyGroup Condition="'$(Cfg_3_Win32)'!=''">
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>

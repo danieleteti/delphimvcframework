@@ -464,9 +464,13 @@ begin
 end;
 
 procedure TTestServerController.TestGetImagePng;
+var
+  lFName: string;
 begin
   ContentType := TMVCMediaType.IMAGE_PNG;
-  Render(TFile.OpenRead('..\..\sample.png'));
+  lFName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..') + '\sample.png';
+  //Render(TFile.OpenRead('..\..\sample.png'));
+  Render(TFile.OpenRead(lFName));
 end;
 
 procedure TTestServerController.TestGetPersonByID;

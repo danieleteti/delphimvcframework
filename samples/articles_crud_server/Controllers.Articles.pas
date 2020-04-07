@@ -67,7 +67,7 @@ begin
   Article := Context.Request.BodyAs<TArticle>;
   try
     GetArticlesService.Add(Article);
-    ResponseCreated('/articles/' + Article.ID.ToString, 'Article Created');
+    Render201Created('/articles/' + Article.ID.ToString, 'Article Created');
   finally
     Article.Free;
   end;
