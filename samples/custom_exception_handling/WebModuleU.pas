@@ -65,6 +65,17 @@ begin
           '<p>your truly custom exception handler...</p>' +
           '</body></html>';
         ExceptionHandled := True;
+      end
+      else if E is EMVCException then
+      begin
+        WebContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
+        WebContext.Response.Content :=
+          '<html><body><h1>Error occurred</h1>' +
+          Format('<h2 style="color: red">', [lColor]) + TNetEncoding.HTML.Encode
+          (E.Message) + '</h2>' +
+          '<p>your truly custom exception handler...</p>' +
+          '</body></html>';
+        ExceptionHandled := True;
       end;
     end;
 
