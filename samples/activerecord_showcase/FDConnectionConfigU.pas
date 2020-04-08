@@ -108,7 +108,7 @@ begin
     LParams.Add('Protocol=TCPIP');
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=postgres');
-    LParams.Add('Password=daniele');
+    LParams.Add('Password=postgres');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');

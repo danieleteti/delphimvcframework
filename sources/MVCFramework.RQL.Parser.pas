@@ -97,6 +97,13 @@ type
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual; abstract;
+    // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
+    // or if the table name contains spaces.
+    function GetTableNameForSQL(const TableName: string): string; virtual;
+    // Overwritten by descendant if the SQL syntaxt requires more than the simple field name
+    // or if the field name contains spaces.
+    function GetFieldNameForSQL(const FieldName: string): string; virtual;
+    function GetParamNameForSQL(const FieldName: string): string; virtual;
   end;
 
   TRQLCompilerClass = class of TRQLCompiler;
@@ -1153,6 +1160,35 @@ begin
   { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
   raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
     [RQLPropertyName]);
+end;
+
+function TRQLCompiler.GetFieldNameForSQL(const FieldName: string): string;
+begin
+  if FieldName.Contains(' ') then
+  begin
+    Result := FieldName.QuotedString('"');
+  end
+  else
+  begin
+    Result := FieldName;
+  end;
+end;
+
+function TRQLCompiler.GetParamNameForSQL(const FieldName: string): string;
+begin
+  Result := FieldName.Replace(' ', '_', [rfReplaceAll]);
+end;
+
+function TRQLCompiler.GetTableNameForSQL(const TableName: string): string;
+begin
+  if TableName.Contains(' ') then
+  begin
+    Result := TableName.QuotedString('"');
+  end
+  else
+  begin
+    Result := TableName;
+  end;
 end;
 
 function TRQLCompiler.QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
