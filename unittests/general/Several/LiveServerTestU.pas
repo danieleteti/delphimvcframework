@@ -192,6 +192,8 @@ type
     procedure TestStringDictionary;
     [Test]
     procedure TestWrongJSONBody;
+    [Test]
+    procedure TestTypedIntegerWrongParam1;
 
     // test nullables
     [Test]
@@ -1324,7 +1326,7 @@ procedure TServerTest.TestDirectoryTraversal1;
 var
   lRes: IRESTResponse;
   I: Integer;
-  lUrl: String;
+  lUrl: string;
 begin
   lRes := RESTClient
     .Accept(TMVCMediaType.TEXT_HTML)
@@ -1517,6 +1519,16 @@ begin
   Assert.areEqual('1234 modified from server', res.BodyAsString);
 end;
 
+procedure TServerTest.TestTypedIntegerWrongParam1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/integer1/boom', []);
+  Assert.isTrue(res.ResponseCode = HTTP_STATUS.BadRequest, 'Cannot route');
+  Assert.Contains(res.BodyAsString, 'EConvertError');
+  Assert.Contains(res.BodyAsString, '''boom'' is not a valid');
+end;
+
 procedure TServerTest.TestTypedSingle1;
 var
   res: IRESTResponse;
@@ -1530,7 +1542,7 @@ end;
 procedure TServerTest.TestTypedString1;
 var
   res: IRESTResponse;
-  lValues: array [0..7] of string;
+  lValues: array [0 .. 7] of string;
   s: string;
 begin
   lValues[0] := 'daniele';
@@ -1544,33 +1556,33 @@ begin
   for s in lValues do
   begin
     res := RESTClient.doGET('/typed/string1', [s]);
-    Assert.AreEqual(HTTP_STATUS.OK, res.ResponseCode, 'Cannot route when param is ' + s);
+    Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, 'Cannot route when param is ' + s);
     Assert.areEqual('*' + s + '*', res.BodyAsString);
   end;
 
-//  res := RESTClient.doGET('/typed/string1/daniele', []);
-//  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-//  Assert.areEqual('daniele modified from server', res.BodyAsString);
-//
-//  res := RESTClient.doGET('/typed/string1/dan''iele', []);
-//  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-//  Assert.areEqual('dan''iele modified from server', res.BodyAsString);
-//
-//  res := RESTClient.doGET('/typed/string1/"the value"', []);
-//  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-//  Assert.areEqual('"the value" modified from server', res.BodyAsString);
-//
-//  res := RESTClient.doGET('/typed/string1/"the:value"', []);
-//  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-//  Assert.areEqual('"the value" modified from server', res.BodyAsString);
-//
-//  res := RESTClient.doGET('/typed/string1/"the:value!"', []);
-//  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-//  Assert.areEqual('"the value" modified from server', res.BodyAsString);
-//
-//  res := RESTClient.doGET('/typed/string1/"the:value!?"', []);
-//  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-//  Assert.areEqual('"the value" modified from server', res.BodyAsString);
+  // res := RESTClient.doGET('/typed/string1/daniele', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('daniele modified from server', res.BodyAsString);
+  //
+  // res := RESTClient.doGET('/typed/string1/dan''iele', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('dan''iele modified from server', res.BodyAsString);
+  //
+  // res := RESTClient.doGET('/typed/string1/"the value"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
+  //
+  // res := RESTClient.doGET('/typed/string1/"the:value"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
+  //
+  // res := RESTClient.doGET('/typed/string1/"the:value!"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
+  //
+  // res := RESTClient.doGET('/typed/string1/"the:value!?"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
 
 end;
 
