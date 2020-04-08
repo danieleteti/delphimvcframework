@@ -40,6 +40,7 @@ type
     btnNullTest: TButton;
     btnCRUDNoAutoInc: TButton;
     btnCRUDWithStringPKs: TButton;
+    btnWithSpaces: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -54,6 +55,7 @@ type
     procedure btnNullTestClick(Sender: TObject);
     procedure btnCRUDNoAutoIncClick(Sender: TObject);
     procedure btnCRUDWithStringPKsClick(Sender: TObject);
+    procedure btnWithSpacesClick(Sender: TObject);
   private
     procedure Log(const Value: string);
   public
@@ -821,6 +823,74 @@ begin
   end;
 end;
 
+procedure TMainForm.btnWithSpacesClick(Sender: TObject);
+var
+  lCustomer: TCustomerWithSpaces;
+  lID: Integer;
+  I: Integer;
+begin
+  Log('** Simple CRUD (table and fields with spaces) test');
+  Log('There are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString + ' row/s for entity ' +
+    TCustomerWithSpaces.ClassName);
+  TMVCActiveRecord.DeleteAll(TCustomerWithSpaces);
+  Log('Deleting all entities ' + TCustomerWithSpaces.ClassName);
+  for I := 1 to 100 do
+  begin
+    lCustomer := TCustomerWithSpaces.Create;
+    try
+      lCustomer.ID := I;
+      // just for test!!
+      case I mod 3 of
+        0:
+          lCustomer.CompanyName := 'Google Inc.';
+        1:
+          lCustomer.CompanyName := 'bit Time Professionals';
+        2:
+          lCustomer.CompanyName := 'Walt Disney Corp.';
+      end;
+      lCustomer.City := 'Montain View, CA';
+      lCustomer.Note := 'Hello there!';
+      lCustomer.Insert;
+      lID := lCustomer.ID;
+      Log('Just inserted Customer ' + lID.ToString);
+    finally
+      lCustomer.Free;
+    end;
+  end;
+
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString + ' row/s for entity ' +
+    TCustomerWithSpaces.ClassName);
+  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,90)');
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
+  try
+    Assert(not lCustomer.Code.HasValue);
+    lCustomer.Code.Value := '5678';
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678';
+    lCustomer.Update;
+    Log('Just updated Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomerWithSpaces.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    lCustomer.Code.Value := '9012';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
+  try
+    lCustomer.Delete;
+    Log('Just deleted Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+end;
+
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
@@ -873,6 +943,7 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
+  btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 
 procedure TMainForm.Log(const Value: string);

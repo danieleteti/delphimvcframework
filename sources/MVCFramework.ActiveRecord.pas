@@ -262,7 +262,7 @@ type
     procedure EnsureConnection;
     procedure InvalidateConnection(const ReacquireAfterInvalidate: Boolean = false);
     /// <summary>
-    /// Executes an Insert or an Update if primary key is defined or not
+    /// Executes an Insert (pk is null) or an Update (pk is not null)
     /// </summary>
     procedure Store;
     function CheckAction(const aEntityAction: TMVCEntityAction; const aRaiseException: Boolean = True): Boolean;
@@ -459,6 +459,14 @@ type
     function CreateSelectCount(const TableName: string): string; virtual; abstract;
     function GetSequenceValueSQL(
       const PKFieldName: string; const SequenceName: string; const Step: Integer = 1): string; virtual;
+
+    // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
+    // or if the table name contains spaces.
+    function GetTableNameForSQL(const TableName: string): string; virtual;
+    // Overwritten by descendant if the SQL syntaxt requires more than the simple field name
+    // or if the field name contains spaces.
+    function GetFieldNameForSQL(const FieldName: string): string; virtual;
+    function GetParamNameForSQL(const FieldName: string): string; virtual;
   end;
 
   TMVCSQLGeneratorClass = class of TMVCSQLGenerator;
@@ -800,11 +808,11 @@ begin
     begin
       for lPair in fMap do
       begin
-        lPar := lQry.FindParam(lPair.Value.FieldName);
+        lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(lPair.Value.FieldName));
         if lPar <> nil then
         begin
           lValue := lPair.Key.GetValue(Self);
-          lPar.DataTypeName := fMap.GetInfoByFieldName(lPar.Name).DataTypeName;
+          lPar.DataTypeName := fMap.GetInfoByFieldName(lPair.Value.FieldName).DataTypeName;
           // if fMapFieldDataTypes.TryGetValue(lPar.Name, lDataType) then
           // begin
           // lPar.DataTypeName := lDataType;
@@ -814,7 +822,7 @@ begin
       end;
 
       // check if it's the primary key
-      lPar := lQry.FindParam(fPrimaryKeyFieldName);
+      lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(fPrimaryKeyFieldName));
       if lPar <> nil then
       begin
         if lPar.DataType = ftUnknown then
@@ -1197,6 +1205,7 @@ var
   lPair: TPair<TRTTIField, TFieldInfo>;
   i: Integer;
 begin
+  { TODO -oDanieleT -cGeneral : Let share the mapping for instances of the same type }
   if Length(fMapping) = 0 then
   begin
     if not fPrimaryKeyFieldName.IsEmpty then
@@ -2505,11 +2514,17 @@ constructor TMVCSQLGenerator.Create(Mapping: TMVCFieldsMapping);
 begin
   inherited Create;
   fMapping := Mapping;
+  GetCompiler;
 end;
 
 function TMVCSQLGenerator.GetMapping: TMVCFieldsMapping;
 begin
   Result := fMapping;
+end;
+
+function TMVCSQLGenerator.GetParamNameForSQL(const FieldName: string): string;
+begin
+  Result := fCompiler.GetParamNameForSQL(FieldName);
 end;
 
 destructor TMVCSQLGenerator.Destroy;
@@ -2528,6 +2543,11 @@ begin
   Result := fCompiler;
 end;
 
+function TMVCSQLGenerator.GetFieldNameForSQL(const FieldName: string): string;
+begin
+  Result := fCompiler.GetFieldNameForSQL(FieldName);
+end;
+
 function TMVCSQLGenerator.GetRQLParser: TRQL2SQL;
 begin
   if fRQL2SQL = nil then
@@ -2541,6 +2561,11 @@ function TMVCSQLGenerator.GetSequenceValueSQL(
   const PKFieldName: string; const SequenceName: string; const Step: Integer = 1): string;
 begin
   Result := '';
+end;
+
+function TMVCSQLGenerator.GetTableNameForSQL(const TableName: string): string;
+begin
+  Result := fCompiler.GetTableNameForSQL(TableName);
 end;
 
 function TMVCSQLGenerator.HasReturning: Boolean;
@@ -2563,13 +2588,13 @@ begin
     // if not lPair.Value.FieldName.IsEmpty then
     if lPair.Value.Readable then
     begin
-      Result := Result + lPair.Value.FieldName + Delimiter;
+      Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + Delimiter;
     end;
   end;
   Result := Copy(Result, 1, Length(Result) - Length(Delimiter));
   if not PKFieldName.IsEmpty then
   begin
-    Result := PKFieldName + ',' + Result;
+    Result := GetFieldNameForSQL(PKFieldName) + ', ' + Result;
   end;
 end;
 

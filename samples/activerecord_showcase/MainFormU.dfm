@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 452
+  ClientHeight = 522
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     635
-    452)
+    522)
   PixelsPerInch = 96
   TextHeight = 13
   object btnCRUD: TButton
@@ -29,7 +29,7 @@ object MainForm: TMainForm
   end
   object btnSelect: TButton
     Left = 8
-    Top = 164
+    Top = 203
     Width = 121
     Height = 33
     Caption = 'Queries'
@@ -40,7 +40,7 @@ object MainForm: TMainForm
     Left = 135
     Top = 8
     Width = 492
-    Height = 436
+    Height = 506
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -57,10 +57,11 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
+    ExplicitHeight = 436
   end
   object btnRelations: TButton
     Left = 8
-    Top = 203
+    Top = 242
     Width = 121
     Height = 35
     Caption = 'Relations'
@@ -69,7 +70,7 @@ object MainForm: TMainForm
   end
   object btnInheritance: TButton
     Left = 8
-    Top = 244
+    Top = 283
     Width = 121
     Height = 34
     Caption = 'Inheritance'
@@ -78,7 +79,7 @@ object MainForm: TMainForm
   end
   object btnValidation: TButton
     Left = 8
-    Top = 284
+    Top = 323
     Width = 121
     Height = 34
     Caption = 'Validation'
@@ -87,7 +88,7 @@ object MainForm: TMainForm
   end
   object btnMultiThreading: TButton
     Left = 8
-    Top = 364
+    Top = 403
     Width = 121
     Height = 34
     Caption = 'Multi Threading'
@@ -96,7 +97,7 @@ object MainForm: TMainForm
   end
   object btnRQL: TButton
     Left = 8
-    Top = 324
+    Top = 363
     Width = 121
     Height = 34
     Caption = 'RQL Query'
@@ -105,7 +106,7 @@ object MainForm: TMainForm
   end
   object btnTransientFields: TButton
     Left = 8
-    Top = 125
+    Top = 164
     Width = 121
     Height = 33
     Caption = 'CRUD Transient'
@@ -114,7 +115,7 @@ object MainForm: TMainForm
   end
   object btnNullTest: TButton
     Left = 8
-    Top = 404
+    Top = 443
     Width = 121
     Height = 34
     Caption = 'Nullables'
@@ -138,6 +139,16 @@ object MainForm: TMainForm
     Caption = 'CRUD (string pks)'
     TabOrder = 11
     OnClick = btnCRUDWithStringPKsClick
+  end
+  object btnWithSpaces: TButton
+    Left = 8
+    Top = 125
+    Width = 121
+    Height = 33
+    Caption = 'CRUD (entity with spaces)'
+    TabOrder = 12
+    WordWrap = True
+    OnClick = btnWithSpacesClick
   end
   object FDConnection1: TFDConnection
     Left = 176
