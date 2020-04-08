@@ -16,6 +16,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure Index;
 
+    [MVCPath('/customers/($ID)')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetCustomer(const ID: Integer);
+
     [MVCPath('/error')]
     [MVCHTTPMethod([httpGET])]
     procedure Error;
@@ -45,6 +49,11 @@ implementation
 
 uses
   MVCFramework.Logger;
+
+procedure TMyController.GetCustomer(const ID: Integer);
+begin
+  Render204NoContent();
+end;
 
 procedure TMyController.Index;
 begin

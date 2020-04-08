@@ -2148,15 +2148,8 @@ begin
                   end
                   else
                   begin
-                    try
-                      FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.name,
-                        LActualParams);
-                    except
-                      on E: Exception do
-                      begin
-                        SendRawHTTPStatus(LContext, HTTP_STATUS.BadRequest, E.Message, E.Classname);
-                      end;
-                    end;
+                    FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.name,
+                      LActualParams);
                   end;
 
                   LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.name, LHandled);
@@ -2346,7 +2339,8 @@ var
   lQualifiedName: string;
 begin
   if AContext.Request.SegmentParamsCount <> Length(AActionFormalParams) then
-    raise EMVCException.CreateFmt('Parameters count mismatch (expected %d actual %d) for action "%s"',
+    raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+      'Parameters count mismatch (expected %d actual %d) for action "%s"',
       [Length(AActionFormalParams), AContext.Request.SegmentParamsCount, AActionName]);
 
   SetLength(AActualParams, Length(AActionFormalParams));
@@ -2356,7 +2350,7 @@ begin
 
     if not AContext.Request.SegmentParam(ParamName, StrValue) then
       raise EMVCException.CreateFmt
-        ('Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
+        (HTTP_STATUS.BadRequest, 'Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
         [ParamName, AActionName]);
 
     case AActionFormalParams[I].ParamType.TypeKind of
@@ -2364,13 +2358,23 @@ begin
         try
           AActualParams[I] := StrToInt(StrValue);
         except
-          raise EMVCException.CreateFmt('Invalid Integer value for param [%s]', [AActionFormalParams[I].name]);
+          on E: Exception do
+          begin
+            raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+              'Invalid Integer value for param [%s] - [CLASS: %s][MSG: %s]',
+              [AActionFormalParams[I].name, E.Classname, E.Message]);
+          end;
         end;
       tkInt64:
         try
           AActualParams[I] := StrToInt64(StrValue);
         except
-          raise EMVCException.CreateFmt('Invalid Int64 value for param [%s]', [AActionFormalParams[I].name]);
+          on E: Exception do
+          begin
+            raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+              'Invalid Int64 value for param [%s] - [CLASS: %s][MSG: %s]',
+              [AActionFormalParams[I].name, E.Classname, E.Message]);
+          end;
         end;
       tkUString:
         begin
@@ -2386,7 +2390,12 @@ begin
               WasDateTime := True;
               AActualParams[I] := ISODateToDate(StrValue);
             except
-              raise EMVCException.CreateFmt('Invalid TDate value for param [%s]', [AActionFormalParams[I].name]);
+              on E: Exception do
+              begin
+                raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+                  'Invalid TDate value for param [%s] - [CLASS: %s][MSG: %s]',
+                  [AActionFormalParams[I].name, E.Classname, E.Message]);
+              end;
             end;
           end
           else
@@ -2398,8 +2407,9 @@ begin
             except
               on E: Exception do
               begin
-                raise EMVCException.CreateFmt('Invalid TDateTime value for param [%s][%s]',
-                  [AActionFormalParams[I].name, E.Message]);
+                raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+                  'Invalid TDateTime value for param [%s] - [CLASS: %s][MSG: %s]',
+                  [AActionFormalParams[I].name, E.Classname, E.Message]);
               end;
             end;
           end
@@ -2410,7 +2420,12 @@ begin
               WasDateTime := True;
               AActualParams[I] := ISOTimeToTime(StrValue);
             except
-              raise EMVCException.CreateFmt('Invalid TTime value for param [%s]', [AActionFormalParams[I].name]);
+              on E: Exception do
+              begin
+                raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+                  'Invalid TTime value for param [%s] - [CLASS: %s][MSG: %s]',
+                  [AActionFormalParams[I].name, E.Classname, E.Message]);
+              end;
             end;
           end;
           if not WasDateTime then
@@ -2418,7 +2433,12 @@ begin
               FormatSettings.DecimalSeparator := '.';
               AActualParams[I] := StrToFloat(StrValue, FormatSettings);
             except
-              raise EMVCException.CreateFmt('Invalid Float value for param [%s]', [AActionFormalParams[I].name]);
+              on E: Exception do
+              begin
+                raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest,
+                  'Invalid Float value for param [%s] - [CLASS: %s][MSG: %s]',
+                  [AActionFormalParams[I].name, E.Classname, E.Message]);
+              end;
             end;
         end;
       tkEnumeration:
@@ -2431,17 +2451,22 @@ begin
               if SameText(StrValue, 'false') or SameText(StrValue, '0') then
               AActualParams[I] := False
             else
+            begin
               raise EMVCException.CreateFmt
-                ('Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
+                (HTTP_STATUS.BadRequest,
+                'Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
                 [ParamName]);
+            end;
           end
           else
-            raise EMVCException.CreateFmt('Invalid type for parameter %s. Allowed types are ' +
+          begin
+            raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid type for parameter %s. Allowed types are ' +
               ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
+          end;
         end;
     else
       begin
-        raise EMVCException.CreateFmt('Invalid type for parameter %s. Allowed types are ' +
+        raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid type for parameter %s. Allowed types are ' +
           ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
       end;
     end;

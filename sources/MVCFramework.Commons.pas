@@ -287,20 +287,20 @@ type
     RequestedRangeNotSatisfiable = 416;
     ExpectationFailed = 417;
     /// <summary>
-    ///   The 422 (Unprocessable Entity) status code means the server
-    ///   understands the content type of the request entity (hence a
-    ///   415(Unsupported Media Type) status code is inappropriate), and the
-    ///   syntax of the request entity is correct (thus a 400 (Bad Request)
-    ///   status code is inappropriate) but was unable to process the contained
-    ///   instructions.  For example, this error condition may occur if an XML
-    ///   request body contains well-formed (i.e., syntactically correct), but
-    ///   semantically erroneous, XML instructions.
+    /// The 422 (Unprocessable Entity) status code means the server
+    /// understands the content type of the request entity (hence a
+    /// 415(Unsupported Media Type) status code is inappropriate), and the
+    /// syntax of the request entity is correct (thus a 400 (Bad Request)
+    /// status code is inappropriate) but was unable to process the contained
+    /// instructions.  For example, this error condition may occur if an XML
+    /// request body contains well-formed (i.e., syntactically correct), but
+    /// semantically erroneous, XML instructions.
     /// </summary>
     UnprocessableEntity = 422;
     /// <summary>
-    ///  The 423 (Locked) status code means the source or destination resource
-    ///  of a method is locked.  This response SHOULD contain an appropriate
-    ///  precondition or postcondition code, such as 'lock-token-submitted' or 'no-conflicting-lock
+    /// The 423 (Locked) status code means the source or destination resource
+    /// of a method is locked.  This response SHOULD contain an appropriate
+    /// precondition or postcondition code, such as 'lock-token-submitted' or 'no-conflicting-lock
     /// </summary>
     Locked = 423;
     /// <summary>
@@ -359,8 +359,8 @@ type
     constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
     constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
       overload; virtual;
-    constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce;
-
+    constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce; overload;
+    constructor CreateFmt(const AHTTPErrorCode: UInt16; const AMsg: string; const AArgs: array of const); overload;
     property HttpErrorCode: UInt16 read FHttpErrorCode;
     property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
     property ApplicationErrorCode: UInt16 read FAppErrorCode write FAppErrorCode;
@@ -428,7 +428,7 @@ type
     FDict: TDictionary<string, string>;
   public
     constructor Create; overload; virtual;
-    constructor Create(const aKey, aValue: String); overload; virtual;
+    constructor Create(const aKey, aValue: string); overload; virtual;
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name, Value: string): TMVCStringDictionary;
@@ -437,7 +437,7 @@ type
     function Count: Integer;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
-    function Keys: TArray<String>;
+    function Keys: TArray<string>;
     property Items[const Key: string]: string read GetItems write SetItems; default;
   end;
 
@@ -448,7 +448,7 @@ type
 
   IMVCLinkItem = interface
     ['{8BC70061-0DD0-4D0A-B135-F83A5C86629B}']
-    function Add(const PropName: String; const PropValue: String): IMVCLinkItem;
+    function Add(const PropName: string; const PropValue: string): IMVCLinkItem;
   end;
 
   IMVCLinks = interface
@@ -475,7 +475,7 @@ type
     fData: TMVCStringDictionary;
   public
     constructor Create(const aData: TMVCStringDictionary);
-    function Add(const PropName: String; const PropValue: String): IMVCLinkItem;
+    function Add(const PropName: string; const PropValue: string): IMVCLinkItem;
   end;
 
   { This type is thread safe }
@@ -555,9 +555,8 @@ type
 
   TMVCCustomRouter = class abstract
   public
-    function GetQualifiedActionName(): String; virtual; abstract;
+    function GetQualifiedActionName(): string; virtual; abstract;
   end;
-
 
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
@@ -572,14 +571,15 @@ function B64Encode(const aValue: string): string; overload;
 function B64Encode(const aValue: TBytes): string; overload;
 function B64Decode(const aValue: string): string;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil)
+  : string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
-procedure Base64StringToFile(const aBase64String, AFileName: String; const aOverwrite: Boolean = False);
-function FileToBase64String(const FileName: String): String;
+procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
+function FileToBase64String(const FileName: string): string;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
   var aContentCharSet: string);
@@ -611,12 +611,11 @@ const
     ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
 
-
 type
   TMVCParseAuthentication = class
   public
-    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
-      VPassword: String; var VHandled: Boolean);
+    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string; var VUsername,
+      VPassword: string; var VHandled: Boolean);
   end;
 
 implementation
@@ -700,7 +699,7 @@ end;
 
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 var
-  lContentMediaType: String;
+  lContentMediaType: string;
 begin
   lContentMediaType := aContentMediaType.ToLower.Trim.Replace(' ', '', [rfReplaceAll]);
 
@@ -797,12 +796,18 @@ begin
   FAppErrorCode := AAppErrorCode;
 end;
 
-constructor EMVCException.CreateFmt(const AMsg: string; const AArgs: array of const);
+constructor EMVCException.CreateFmt(const AHTTPErrorCode: UInt16;
+  const AMsg: string; const AArgs: array of const);
 begin
   inherited CreateFmt(AMsg, AArgs);
-  FHttpErrorCode := HTTP_STATUS.InternalServerError;
+  FHttpErrorCode := AHTTPErrorCode;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
+end;
+
+constructor EMVCException.CreateFmt(const AMsg: string; const AArgs: array of const);
+begin
+  CreateFmt(HTTP_STATUS.InternalServerError, AMsg, AArgs);
 end;
 
 { TMVCViewDataObject }
@@ -937,7 +942,7 @@ begin
   Result := FDict.Count;
 end;
 
-constructor TMVCStringDictionary.Create(const aKey, aValue: String);
+constructor TMVCStringDictionary.Create(const aKey, aValue: string);
 begin
   Create;
   Add(aKey, aValue);
@@ -966,7 +971,7 @@ begin
   FDict.TryGetValue(Key, Result);
 end;
 
-function TMVCStringDictionary.Keys: TArray<String>;
+function TMVCStringDictionary.Keys: TArray<string>;
 begin
   Result := FDict.Keys.ToArray;
 end;
@@ -978,9 +983,9 @@ end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: Integer): Boolean;
 var
-  lTmp: String;
+  lTmp: string;
 begin
-  Result := TryGetValue(Name, lTmp) and TryStrToInt(lTmp, Value);
+  Result := TryGetValue(name, lTmp) and TryStrToInt(lTmp, Value);
 end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
@@ -1061,7 +1066,8 @@ begin
   FFillChar := '='; { Do not Localize }
 end;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil)
+  : string; overload;
 begin
   if IncludePadding then
     Result := TURLSafeEncode.EncodeString(Value, AByteEncoding)
@@ -1147,7 +1153,7 @@ var
   UFTStr: UTF8String;
 begin
   UFTStr := UTF8String(AString);
-  Self.WriteBuffer(UFTStr[Low(UFTStr)], Length(UFTStr));
+  Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
 end;
 
 function StrDict: TMVCStringDictionary; overload;
@@ -1166,7 +1172,7 @@ begin
       [Length(aKeys), Length(aValues)]);
   end;
   Result := StrDict();
-  for I := Low(aKeys) to High(aKeys) do
+  for I := low(aKeys) to high(aKeys) do
   begin
     Result.Add(aKeys[I], aValues[I]);
   end;
@@ -1213,7 +1219,7 @@ end;
 { TMVCDecoratorObject }
 
 function TMVCDecoratorObject.Add(const PropName,
-  PropValue: String): IMVCLinkItem;
+  PropValue: string): IMVCLinkItem;
 begin
   fData.Items[PropName] := PropValue;
   Result := Self;
@@ -1232,7 +1238,7 @@ begin
   inherited Create(True);
 end;
 
-procedure Base64StringToFile(const aBase64String, AFileName: String; const aOverwrite: Boolean = False);
+procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
 var
   lSS: TStringStream;
   lFile: TFileStream;
@@ -1260,7 +1266,7 @@ begin
   end;
 end;
 
-function FileToBase64String(const FileName: String): String;
+function FileToBase64String(const FileName: string): string;
 var
   lTemplateFileB64: TStringStream;
   lTemplateFile: TFileStream;
@@ -1279,12 +1285,12 @@ begin
   end;
 end;
 
-class procedure TMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
-      VPassword: String; var VHandled: Boolean);
+class procedure TMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string;
+  var VUsername,
+  VPassword: string; var VHandled: Boolean);
 begin
   VHandled := SameText(LowerCase(AAuthType), 'bearer');
 end;
-
 
 initialization
 
