@@ -914,7 +914,6 @@ begin
     if lAttribute is MVCEntityActionsAttribute then
     begin
       fEntityAllowedActions := MVCEntityActionsAttribute(lAttribute).EntityAllowedActions;
-      Break;
     end;
   end;
 
