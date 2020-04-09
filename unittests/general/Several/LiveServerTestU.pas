@@ -187,6 +187,8 @@ type
     [Test]
     procedure TestTypedBooleans;
     [Test]
+    procedure TestTypedTGuid1;
+    [Test]
     procedure TestStringDictionary;
     [Test]
     procedure TestWrongJSONBody;
@@ -1582,6 +1584,23 @@ begin
   // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
   // Assert.areEqual('"the value" modified from server', res.BodyAsString);
 
+end;
+
+procedure TServerTest.TestTypedTGuid1;
+var
+  res: IRESTResponse;
+begin
+  res := RESTClient.doGET('/typed/tguid1/{161BEA56-480B-40A8-AF0E-7FDF6B08E121}', []);
+  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  Assert.areEqual('{161BEA56-480B-40A8-AF0E-7FDF6B08E121} modified from server', res.BodyAsString);
+
+  res := RESTClient.doGET('/typed/tguid1/161BEA56-480B-40A8-AF0E-7FDF6B08E121', []);
+  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  Assert.areEqual('{161BEA56-480B-40A8-AF0E-7FDF6B08E121} modified from server', res.BodyAsString);
+
+  res := RESTClient.doGET('/typed/tguid1/161BEA56480B40A8AF0E7FDF6B08E121', []);
+  Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  Assert.areEqual('{161BEA56-480B-40A8-AF0E-7FDF6B08E121} modified from server', res.BodyAsString);
 end;
 
 procedure TServerTest.TestWrongJSONBody;

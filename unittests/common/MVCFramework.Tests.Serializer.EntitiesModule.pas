@@ -33,7 +33,8 @@ uses
   System.Classes,
   Data.DB,
   Datasnap.DBClient,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons,
+  MidasLib;
 
 type
 

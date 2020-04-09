@@ -275,26 +275,6 @@ end;
 
 procedure TMVCGUIDSerializer.DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
   const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
-
-  function GUIDFromString(const AString: string): TGUID;
-  var
-    LGuidStr: string;
-  begin
-    // delphi uuid format: {ae502abe-430b-b23a-2878-2d18d6a6e465}
-
-    // string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465
-    if AString.Length = 32 then
-      LGuidStr := Format('{%s-%s-%s-%s-%s}', [AString.Substring(0, 8), AString.Substring(8, 4),
-        AString.Substring(12, 4), AString.Substring(16, 4), AString.Substring(20, 12)])
-
-      // string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465
-    else if AString.Length = 36 then
-      LGuidStr := Format('{%s}', [AString])
-    else
-      LGuidStr := AString;
-    Result := StringToGUID(LGuidStr);
-  end;
-
 var
   lJSON: TJDOJsonObject;
   LGuid: TGUID;
@@ -303,7 +283,7 @@ begin
   if lJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
     LGuid := TGUID.Empty
   else
-    LGuid := GUIDFromString(lJSON.S[APropertyName]);
+    LGuid := TMVCGuidHelper.GuidFromString(lJSON.S[APropertyName]);
   AElementValue := TValue.From<TGUID>(LGuid);
 end;
 
