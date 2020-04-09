@@ -838,7 +838,7 @@ type
   TMVCEngine = class(TComponent)
   private const
     ALLOWED_TYPED_ACTION_PARAMETERS_TYPES =
-      'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime and String';
+      'Integer, Int64, Single, Double, Extended, Boolean, TDate, TTime, TDateTime, String and TGUID';
   private
     FViewEngineClass: TMVCViewEngineClass;
     FWebModule: TWebModule;
@@ -2464,6 +2464,20 @@ begin
               ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
           end;
         end;
+      tkRecord:
+        begin
+          if AActionFormalParams[I].ParamType.QualifiedName = 'System.TGUID' then
+          begin
+            try
+              AActualParams[I] := TValue.From<TGUID>(TMVCGuidHelper.GuidFromString(StrValue));
+            except
+              raise EMVCException.CreateFmt('Invalid Guid value for param [%s]', [AActionFormalParams[I].name]);
+            end;
+          end
+          else
+            raise EMVCException.CreateFmt('Invalid type for parameter %s. Allowed types are ' +
+              ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
+        end
     else
       begin
         raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid type for parameter %s. Allowed types are ' +
