@@ -204,6 +204,40 @@ begin
     if not AuthRequired then
     begin
       AHandled := False;
+      { this section handles the case when the authenticated user (with a token) need to call an action which doesn't require
+        authentication. To make Context.LoggerdUser.IsValid works we need to load the JWT if present. In such way
+        the "public" action can distriminate is has been called by a not-authnticated user or an authenticated user.
+        If there isn't a token, we don't have to raise exceptions, just make sure that the LoggedUser doesn't contain
+        information.
+      }
+      AuthHeader := AContext.Request.Headers[FAuthorizationHeaderName];
+      if not AuthHeader.IsEmpty then
+      begin
+        { load and verify token even for an action that doesn't require it }
+        JWTValue := TJWT.Create(FSecret, FLeewaySeconds);
+        try
+          JWTValue.RegClaimsToChecks := Self.FClaimsToChecks;
+
+          // retrieve the token from the "authentication Bearer" header
+          AuthToken := '';
+          if AuthHeader.Substring(0, AUTH_SCHEMA.Length).ToLower = 'bearer' then
+          begin
+            AuthToken := AuthHeader.Remove(0, AUTH_SCHEMA.Length).Trim;
+            AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
+          end;
+
+          if JWTValue.LoadToken(AuthToken, ErrorMsg) then
+          begin
+            { load token info only if the token is still valid }
+            AContext.LoggedUser.UserName := JWTValue.CustomClaims['username'];
+            AContext.LoggedUser.Roles.AddRange(JWTValue.CustomClaims['roles'].Split([',']));
+            AContext.LoggedUser.LoggedSince := JWTValue.Claims.IssuedAt;
+            AContext.LoggedUser.CustomData := JWTValue.CustomClaims.AsCustomData;
+          end;
+        finally
+          JWTValue.Free;
+        end;
+      end;
       Exit;
     end;
   end;
