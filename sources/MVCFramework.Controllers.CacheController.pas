@@ -188,7 +188,7 @@ begin
 
       FRedis := NewRedisClient(lPieces[0], StrToInt(lPieces[1]));
 
-      if not String.IsNullOrWhiteSpace(lConnection) then
+      if not String.IsNullOrWhiteSpace(lKeyAuth) then
         FRedis.AUTH(lKeyAuth);
     end;
   end;
