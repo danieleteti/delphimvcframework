@@ -5,7 +5,7 @@ unit SynLZ;
 {
     This file is part of Synopse SynLZ Compression.
 
-    Synopse SynLZ Compression. Copyright (C) 2019 Arnaud Bouchez
+    Synopse SynLZ Compression. Copyright (C) 2020 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -24,7 +24,7 @@ unit SynLZ;
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2019
+  Portions created by the Initial Developer are Copyright (C) 2020
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -46,17 +46,16 @@ unit SynLZ;
 
      SynLZ Compression / Decompression library
      =========================================
-      by Arnaud Bouchez http://bouchez.info
 
     * SynLZ is a very FAST lossless data compression library
-      written in optimized pascal code for Delphi 3 up to Delphi 2009
+      written in optimized pascal code for FPC and Delphi 3 and up
       with a tuned asm version available
     * symetrical compression and decompression speed (which is
       very rare above all other compression algorithms in the wild)
     * good compression rate (usualy better than LZO)
     * fastest averrage compression speed (ideal for xml/text communication, e.g.)
 
-    SynLZ implements a new compression algorithm with the following features:
+    SynLZ implements a new LZ compression algorithm with the following features:
     * hashing+dictionary compression in one pass, with no huffman table
     * optimized 32bits control word, embedded in the data stream
     * in-memory compression (the dictionary is the input stream itself)
@@ -65,89 +64,26 @@ unit SynLZ;
     * supports overlapping compression and in-place decompression
     * code size for compression/decompression functions is smaller than LZO's
 
-    The contents of this file are subject to the Mozilla Public License
-    Version 1.1 (the "License"); you may not use this file except in
-    compliance with the License. You may obtain a copy of the License at
-    http://www.mozilla.org/MPL
-    Software distributed under the License is distributed on an "AS IS"
-    basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the
-    License for the specific language governing rights and limitations
-    under the License.
-
-    The Initial Developer of the Original Code is Arnaud Bouchez.
-    This work is Copyright (C)2008 Arnaud Bouchez - http://bouchez.info
-
-    Conversion notes:
+    Implementation notes:
     - this format is NOT stream compatible with any lz* official format
+       => meant for proprietary server-side content real-time compression
        => use it internally in your application, not as exchange format
+       => consider our SynLizard.pas unit for Lizard (LZ5) compression standard
     - very small code size (less than 1KB for both compressor/decompressor)
     - the uncompressed data length is stored in the beginning of the stream
        and can be retrieved easily for proper out_p memory allocation
     - please give correct data to the decompressor (i.e. first CRC in_p data)
-       => we recommend our very fast Adler32 procedure, or a zip-like container
+       => we recommend crc32c() from SynCommons, or a zip-like container
     - a 2nd more tuned algorithm is included, but is somewhat slower in practice
        => use SynLZ[de]compres1*() functions in your applications
     - tested and benchmarked with a lot of data types/sizes
        => use the asm code, which is very tuned: SynLZ[de]compress1asm()
-    - tested under Delphi 7, Delphi 2007 and Delphi 2009
     - a hashing limitation makes SynLZ sometimes unable to pack continuous
-       blocks of same byte -> SynLZ is perfect for xml/text, but SynLZO
-       is prefered for database files
+       blocks of same byte -> SynLZ is perfect for xml/text (e.g. log files),
+       but SynZip or SynLizard may be prefered for database files
     - if you include it in your application, please give me some credits:
-       "use SynLZ compression by http://bouchez.info"
+       "use SynLZ compression by https://synopse.info"
     - use at your own risk!
-
-    Some benchmark on a Sempron computer:
-    - compression is 20 times faster than zip, decompression 3 times
-    - same compression ratio as lzo algo, but faster (up to 2x) on compression
-    - the R and W intermediate speed are at the compressed stream level, i.e.
-      the speed which used for disk usage -> you see that SynLZ behaves
-      very well for real-time data compression, for backup purpose e.g.
-      (a typical SATA disk drive has a speed of 50-70 MB/s)
-
- KLOG.xml 6034 bytes
- lz1 asm     1287 21.3% R  256 MB/s W   54 MB/s R   71 MB/s W 334 MB/s
- lz1 pas     1287 21.3% R  184 MB/s W   39 MB/s R   58 MB/s W 274 MB/s
- lz2 pas     1274 21.1% R  173 MB/s W   36 MB/s R   57 MB/s W 274 MB/s
-   lzo C     1347 22.3% R  185 MB/s W   41 MB/s R  111 MB/s W 501 MB/s
-     zip      806 13.4% R   14 MB/s W    1 MB/s R   14 MB/s W 110 MB/s
-
- MiniLZO.cs 25252 bytes
- lz1 asm     5775 22.9% R  246 MB/s W   56 MB/s R   70 MB/s W 306 MB/s
- lz1 pas     5775 22.9% R  178 MB/s W   40 MB/s R   58 MB/s W 253 MB/s
- lz2 pas     5762 22.8% R  166 MB/s W   37 MB/s R   57 MB/s W 250 MB/s
-   lzo C     5846 23.2% R  164 MB/s W   38 MB/s R  103 MB/s W 448 MB/s
-     zip     3707 14.7% R   15 MB/s W    2 MB/s R   22 MB/s W 154 MB/s
-
- TestLZO.exe 158720 bytes
- lz1 asm   110686 69.7% R  127 MB/s W   88 MB/s R   80 MB/s W 115 MB/s
- lz1 pas   110686 69.7% R   98 MB/s W   68 MB/s R   63 MB/s W  90 MB/s
- lz2 pas   109004 68.7% R   88 MB/s W   60 MB/s R   60 MB/s W  88 MB/s
-   lzo C   108202 68.2% R   40 MB/s W   27 MB/s R  164 MB/s W 241 MB/s
-     zip    88786 55.9% R    5 MB/s W    3 MB/s R   33 MB/s W  60 MB/s
-
- Browsing.sq3db 46047232 bytes (46MB)
- lz1 asm 19766884 42.9% R  171 MB/s W   73 MB/s R   73 MB/s W 171 MB/s
- lz1 pas 19766884 42.9% R  130 MB/s W   56 MB/s R   59 MB/s W 139 MB/s
- lz2 pas 19707346 42.8% R  123 MB/s W   52 MB/s R   59 MB/s W 139 MB/s
- lzo asm 20629084 44.8% R   89 MB/s W   40 MB/s R  135 MB/s W 302 MB/s
-   lzo C 20629083 44.8% R   66 MB/s W   29 MB/s R  145 MB/s W 325 MB/s
-     zip 15564126 33.8% R    6 MB/s W    2 MB/s R   30 MB/s W  91 MB/s
-
- TRKCHG.DBF 4572297 bytes (4MB)
- lz1 asm   265782 5.8% R  430 MB/s W   25 MB/s R   29 MB/s W 510 MB/s
- lz1 pas   265782 5.8% R  296 MB/s W   17 MB/s R   28 MB/s W 483 MB/s
- lz2 pas   274773 6.0% R  258 MB/s W   15 MB/s R   27 MB/s W 450 MB/s
-   lzo C   266897 5.8% R  318 MB/s W   18 MB/s R   41 MB/s W 702 MB/s
-     zip   158408 3.5% R   25 MB/s W    0 MB/s R   11 MB/s W 318 MB/s
-
- CATENA5.TXT 6358752 bytes
- lz1 asm  3275269 51.5% R  132 MB/s W   68 MB/s R   66 MB/s W 129 MB/s
- lz1 pas  3275269 51.5% R  103 MB/s W   53 MB/s R   57 MB/s W 112 MB/s
- lz2 pas  3277397 51.5% R   95 MB/s W   49 MB/s R   57 MB/s W 112 MB/s
-   lzo C  3289373 51.7% R   63 MB/s W   33 MB/s R   90 MB/s W 175 MB/s
-     zip  2029096 31.9% R    4 MB/s W    1 MB/s R   29 MB/s W  91 MB/s
-
 
   Benchmark update - introducing LZ4 at http://code.google.com/p/lz4
   190 MB file containing pascal sources, on a Core 2 duo PC, using x86 asm:
@@ -178,36 +114,6 @@ unit SynLZ;
        Snappy uncompress in 61.06ms, 1.5 GB/s
        SynLZ compress in 97.25ms, ratio=93%, 1015.1 MB/s
        SynLZ uncompress in 61.27ms, 1.5 GB/s
-
-
-  Revision history
-
-  Version 1.6
-  - first release, associated with the main Synopse SQLite3 framework
-
-  Version 1.13
-  - code modifications to compile with Delphi 5 compiler
-  - comment refactoring (mostly for inclusion in SynProject documentation)
-  - new CompressSynLZ function, for THttpSocket.RegisterCompress - this
-    function will return 'synlzo' as "ACCEPT-ENCODING:" HTTP header parameter
-
-  Version 1.15
-  - force ignore asm version of the code if PUREPASCAL conditional is defined
-
-  Version 1.16
-  - fixed potential GPF issue in Hash32() function
-
-  Version 1.17
-  - Use RawByteString type for CompressSynLZ() function prototype
-
-  Version 1.18
-  - unit fixed and tested with Delphi XE2 and up 64-bit compiler
-  - introducing SynLZCompress1/SynLZDecompress1 low-level functions
-  - added SynLZdecompress1partial() function for partial and secure (but slower)
-    decompression - implements feature request [82ca067959]
-  - removed several compilation hints when assertions are set to off
-  - some performance optimization, especially when using a 64bit CPU, thanks
-    to a new tuned x64 asm revision, and 8 bytes chunk copy for smallest blocks
 
 }
 
@@ -243,11 +149,11 @@ function SynLZcompress1(src: PAnsiChar; size: integer; dst: PAnsiChar): integer;
 function SynLZdecompress1(src: PAnsiChar; size: integer; dst: PAnsiChar): integer;
 {$else}
 var
-  /// fastest available SynLZ compression (using 1st algorithm)
+  /// fast redirection to pure pascal SynLZ compression (using 1st algorithm)
   SynLZCompress1: function(
     src: PAnsiChar; size: integer; dst: PAnsiChar): integer = SynLZcompress1pas;
 
-  /// fastest available SynLZ decompression (using 1st algorithm)
+  /// fast redirection to pure pascal SynLZ decompression (using 1st algorithm)
   SynLZDecompress1: function(
     src: PAnsiChar; size: integer; dst: PAnsiChar): integer = SynLZDecompress1pas;
 {$endif CPUINTEL}
@@ -263,12 +169,11 @@ function SynLZdecompress2(src: PAnsiChar; size: integer; dst: PAnsiChar): intege
 implementation
 
 function SynLZcompressdestlen(in_len: integer): integer;
-// get maximum possible (worse) compressed size for out_p
-begin
-  result := in_len+in_len shr 3+16; // worse case
+begin // get maximum possible (worse) compressed size for out_p
+  result := in_len+in_len shr 3+16;
 end;
 
-type
+type // some cross-platform and cross-compiler definitions
   {$ifndef FPC}
   PtrUInt = {$ifdef CPU64}NativeUInt{$else}cardinal{$endif};
   {$endif}
@@ -283,8 +188,7 @@ type
   TOffsets = array[0..4095] of PAnsiChar; // 16KB/32KB hashing code
 
 function SynLZdecompressdestlen(in_p: PAnsiChar): integer;
-// get uncompressed size from lz-compressed buffer (to reserve memory, e.g.)
-begin
+begin // get uncompressed size from lz-compressed buffer (to reserve memory, e.g.)
   result := PWord(in_p)^;
   if result and $8000<>0 then
     result := (result and $7fff) or (integer(PWord(in_p+2)^) shl 15);
@@ -466,14 +370,15 @@ function SynLZcompress1(src: PAnsiChar; size: integer; dst: PAnsiChar): integer;
 var off: TOffsets;
     cache: array[0..4095] of cardinal; // uses 32KB+16KB=48KB on stack
 asm // rcx=src, edx=size, r8=dest
-        {$ifndef win64} // Linux 64-bit ABI
+        {$ifdef win64} // additional registers to preserve
+        push    rdi
+        push    rsi
+        {$else} // Linux 64-bit ABI
         mov     r8, rdx
         mov     rdx, rsi
         mov     rcx, rdi
         {$endif win64}
         push    rbx
-        push    rdi
-        push    rsi
         push    r12
         push    r13
         push    r14
@@ -506,10 +411,10 @@ asm // rcx=src, edx=size, r8=dest
         add     r8, 4
         pxor    xmm0, xmm0
         mov     eax, 32768-64
-@06:    movdqa  dqword ptr [off+rax-48], xmm0 // stack is aligned to 16 bytes
-        movdqa  dqword ptr [off+rax-32], xmm0
-        movdqa  dqword ptr [off+rax-16], xmm0
-        movdqa  dqword ptr [off+rax], xmm0
+@06:    movaps  dqword ptr [off+rax-48], xmm0 // stack is aligned to 16 bytes
+        movaps  dqword ptr [off+rax-32], xmm0
+        movaps  dqword ptr [off+rax-16], xmm0
+        movaps  dqword ptr [off+rax], xmm0
         sub     eax, 64
         jae     @06
         cmp     rbx, r10
@@ -610,9 +515,11 @@ asm // rcx=src, edx=size, r8=dest
         pop     r14
         pop     r13
         pop     r12
+        pop     rbx
+        {$ifdef win64} // additional registers to preserve
         pop     rsi
         pop     rdi
-        pop     rbx
+        {$endif win64}
 {$endif CPUX86}
 end;
 {$endif CPUINTEL}
@@ -983,14 +890,15 @@ asm
 function SynLZdecompress1(src: PAnsiChar; size: integer; dst: PAnsiChar): integer;
 var off: TOffsets;
 asm // rcx=src, edx=size, r8=dest
-        {$ifndef win64} // Linux 64-bit ABI
+        {$ifdef win64} // additional registers to preserve
+        push    rsi
+        push    rdi
+        {$else} // Linux 64-bit ABI
         mov     r8, rdx
         mov     rdx, rsi
         mov     rcx, rdi
         {$endif win64}
         push    rbx
-        push    rsi
-        push    rdi
         push    r12
         push    r13
         push    r14
@@ -1103,9 +1011,11 @@ asm // rcx=src, edx=size, r8=dest
         pop     r14
         pop     r13
         pop     r12
+        pop     rbx
+        {$ifdef win64} // additional registers to preserve
         pop     rdi
         pop     rsi
-        pop     rbx
+        {$endif win64}
 {$endif CPUX86}
 end;
 {$endif CPUINTEL}
@@ -1554,41 +1464,5 @@ nextCW:
   assert(result=dst-dst_beg);
   {$endif}
 end;
-
-function Hash32(P: PIntegerArray; L: integer): cardinal;
-// faster than Adler32, even asm version, because read DWORD aligned data
-var s1,s2: cardinal;
-    i: integer;
-begin
-  if P<>nil then begin
-    s1 := 0;
-    s2 := 0;
-    for i := 1 to L shr 4 do begin // 16 bytes (4 DWORD) by loop - aligned read
-      inc(s1,P^[0]);
-      inc(s2,s1);
-      inc(s1,P^[1]);
-      inc(s2,s1);
-      inc(s1,P^[2]);
-      inc(s2,s1);
-      inc(s1,P^[3]);
-      inc(s2,s1);
-      inc(PByte(P),16);
-    end;
-    for i := 1 to (L shr 2)and 3 do begin // 4 bytes (DWORD) by loop
-      inc(s1,P^[0]);
-      inc(s2,s1);
-      inc(PInteger(P));
-    end;
-    case L and 3 of // remaining 0..3 bytes
-    1: inc(s1,PByte(P)^);
-    2: inc(s1,PWord(P)^);
-    3: inc(s1,PWord(P)^ or (ord(PAnsiChar(P)[2]) shl 16));
-    end;
-    inc(s2,s1);
-    result := s1 xor (s2 shl 16);
-  end else
-    result := 0;
-end;
-
 
 end.

@@ -1,10 +1,12 @@
 /// wrapper around FPC typinfo.pp unit for SynCommons.pas and mORMot.pas
+// - this unit is a part of the freeware Synopse mORMot framework,
+// licensed under a MPL/GPL/LGPL tri-license; version 1.18
 unit SynFPCTypInfo;
 
 {
     This file is part of Synopse mORMot framework.
 
-    Synopse mORMot framework. Copyright (C) 2019 Arnaud Bouchez
+    Synopse mORMot framework. Copyright (C) 2020 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -23,7 +25,7 @@ unit SynFPCTypInfo;
 
   The Initial Developer of the Original Code is Alfred Glaenzer.
 
-  Portions created by the Initial Developer are Copyright (C) 2019
+  Portions created by the Initial Developer are Copyright (C) 2020
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -44,50 +46,59 @@ unit SynFPCTypInfo;
 
   ***** END LICENSE BLOCK *****
 
-
-  Version 1.18
-  - initial revision
+  Unit created to avoid polluting the SynCommons.pas/mORMot.pas namespace
+  with overloaded typinfo.pp types.
 
 }
 
 interface
 
-{$I Synopse.inc} // define HASINLINE USETYPEINFO CPU32 CPU64 OWNNORMTOUPPER
+{$I Synopse.inc} // define HASINLINE CPU32 CPU64 OWNNORMTOUPPER
 
 uses
   SysUtils,
   TypInfo;
 
-const
-  ptField = 0;
-  ptStatic = 1;
-  ptVirtual = 2;
-  ptConst = 3;
+{$ifdef FPC_PROVIDE_ATTR_TABLE}
+type
+  // if you have a compilation error here, your FPC trunk is too old
+  // - TTypeData.AttributeTable was introduced in SVN 42356-42411 (2019/07)
+  // -> undefine FPC_PROVIDE_ATTR_TABLE in Synopse.inc and recompile
+  PFPCAttributeTable = TypInfo.PAttributeTable;
+{$endif FPC_PROVIDE_ATTR_TABLE}
+
+{$ifdef HASALIGNTYPEDATA}
+function AlignTypeData(p: pointer): pointer; inline;
+function AlignTypeDataClean(p: pointer): pointer; inline;
+{$else}
+type
+  AlignTypeData = pointer;
+  AlignTypeDataClean = pointer;
+{$endif HASALIGNTYPEDATA}
+
 
 {$ifdef FPC_REQUIRES_PROPER_ALIGNMENT}
-function AlignToPtr(p : pointer): pointer; inline;
-function GetFPCAlignPtr(P: pointer): pointer; inline;
+function AlignToPtr(p: pointer): pointer; inline;
+function AlignPTypeInfo(p: pointer): pointer; inline;
 {$else FPC_REQUIRES_PROPER_ALIGNMENT}
 type
   AlignToPtr = pointer;
+  AlignPTypeInfo = pointer;
 {$endif FPC_REQUIRES_PROPER_ALIGNMENT}
 
-function GetFPCEnumName(TypeInfo: PTypeInfo; Value: Integer): PShortString; inline;
-function GetFPCEnumValue(TypeInfo: PTypeInfo; const Name: string): Integer; inline;
-function AlignTypeData(p : Pointer) : Pointer; inline;
-function GetFPCTypeData(TypeInfo: PTypeInfo): PTypeData; inline;
-function GetFPCPropInfo(AClass: TClass; const PropName: string): PPropInfo; inline;
-
-{$ifdef FPC_NEWRTTI}
 type
-  /// some type definition to avoid inclusion of TypInfo in main SynCommons.pas
-  PRecInitData = TypInfo.PRecInitData;
+  /// some type definition to avoid inclusion of TypInfo in SynCommons/mORMot.pas
+  PFPCInterfaceData = TypInfo.PInterfaceData;
+  PFPCVmtMethodParam = TypInfo.PVmtMethodParam;
+  PFPCIntfMethodTable = TypInfo.PIntfMethodTable;
+  PFPCIntfMethodEntry = TypInfo.PIntfMethodEntry;
+{$ifdef FPC_NEWRTTI}
+  PFPCRecInitData = TypInfo.PRecInitData;
 
-function GetFPCRecInitData(TypeData: Pointer): Pointer;
 {$endif FPC_NEWRTTI}
 
-procedure FPCDynArrayClear(var a: Pointer; typeInfo: Pointer);
-procedure FPCFinalizeArray(p: Pointer; typeInfo: Pointer; elemCount: PtrUInt);
+procedure FPCDynArrayClear(var a: Pointer; TypeInfo: Pointer);
+procedure FPCFinalizeArray(p: Pointer; TypeInfo: Pointer; elemCount: PtrUInt);
 procedure FPCFinalize(Data: Pointer; TypeInfo: Pointer);
 procedure FPCRecordCopy(const Source; var Dest; TypeInfo: pointer);
 procedure FPCRecordAddRef(var Data; TypeInfo : pointer);
@@ -95,107 +106,91 @@ procedure FPCRecordAddRef(var Data; TypeInfo : pointer);
 
 implementation
 
-procedure FPCDynArrayClear(var a: Pointer; typeInfo: Pointer);
-  [external name 'FPC_DYNARRAY_CLEAR'];
-procedure FPCFinalizeArray(p: Pointer; typeInfo: Pointer; elemCount: PtrUInt);
-  [external name 'FPC_FINALIZE_ARRAY'];
+procedure FPCDynArrayClear(var a: Pointer; TypeInfo: Pointer);
+  external name 'FPC_DYNARRAY_CLEAR';
+procedure FPCFinalizeArray(p: Pointer; TypeInfo: Pointer; elemCount: PtrUInt);
+  external name 'FPC_FINALIZE_ARRAY';
 procedure FPCFinalize(Data: Pointer; TypeInfo: Pointer);
-  [external name 'FPC_FINALIZE'];
+  external name 'FPC_FINALIZE';
 procedure FPCRecordCopy(const Source; var Dest; TypeInfo: pointer);
-  [external name 'FPC_COPY'];
+  external name 'FPC_COPY';
 procedure FPCRecordAddRef(var Data; TypeInfo : pointer);
-  [external name 'FPC_ADDREF'];
+  external name 'FPC_ADDREF';
 
-
-{$ifdef FPC_REQUIRES_PROPER_ALIGNMENT}
-function AlignToPtr(p : pointer): pointer; inline;
+{$ifdef FPC_REQUIRES_PROPER_ALIGNMENT} // copied from latest typinfo.pp
+function AlignToPtr(p: pointer): pointer;
 begin
   result := align(p,sizeof(p));
 end;
-{$endif}
 
-function GetFPCTypeData(TypeInfo: PTypeInfo): PTypeData;
-begin
-  result := PTypeData(TypInfo.AlignTypeData(PTypeData(pointer(TypeInfo)+2+PByte(pointer(TypeInfo)+1)^)));
-end;
-
-function GetFPCEnumValue(TypeInfo: PTypeInfo; const Name: string): Integer;
-var PS: PShortString;
-    PT: PTypeData;
-    Count: longint;
-    sName: shortstring;
-begin
-  if Length(Name)=0 then
-    exit(-1);
-  sName := Name;
-  PT := GetFPCTypeData(TypeInfo);
-  Count := 0;
-  result := -1;
-  if TypeInfo^.Kind=tkBool then begin
-    if CompareText(BooleanIdents[false],Name)=0 then
-      result := 0 else
-    if CompareText(BooleanIdents[true],Name)=0 then
-      result := 1;
-  end else
-  begin
-    PS := @PT^.NameList;
-    while (result=-1) and (PByte(PS)^<>0) do begin
-        if ShortCompareText(PS^, sName) = 0 then
-          result := Count+PT^.MinValue;
-        PS := PShortString(pointer(PS)+PByte(PS)^+1);
-        Inc(Count);
-      end;
-  end;
-end;
-
-function GetFPCEnumName(TypeInfo: PTypeInfo; Value: Integer): PShortString;
-const NULL_SHORTSTRING: string[1] = '';
-Var PS: PShortString;
-    PT: PTypeData;
-begin
-  PT := GetFPCTypeData(TypeInfo);
-  if TypeInfo^.Kind=tkBool then begin
-    case Value of
-      0,1: result := @BooleanIdents[Boolean(Value)];
-      else result := @NULL_SHORTSTRING;
+function AlignTypeData(p: pointer): pointer;
+{$packrecords c}
+  type
+    TAlignCheck = record // match RTTI TTypeInfo definition
+      b : byte;    // = TTypeKind
+      q : qword;   // = this is where the PTypeData begins
     end;
-  end else begin
-    PS := @PT^.NameList;
-    dec(Value,PT^.MinValue);
-    while Value>0 do begin
-      PS := PShortString(pointer(PS)+PByte(PS)^+1);
-      Dec(Value);
-    end;
-    result := PS;
-  end;
-end;
-
-function AlignTypeData(p: Pointer): Pointer;
+{$packrecords default}
 begin
-  result := TypInfo.AlignTypeData(p);
+{$ifdef VER3_0}
+  result := Pointer(align(p,SizeOf(Pointer)));
+{$else VER3_0}
+    result := Pointer(align(p,PtrInt(@TAlignCheck(nil^).q)));
+{$endif VER3_0}
+  {$ifdef FPC_PROVIDE_ATTR_TABLE}
+    inc(PByte(result),SizeOf(PFPCAttributeTable)); // ignore attributes table
+    result := Pointer(align(result,PtrInt(@TAlignCheck(nil^).q)));
+  {$endif FPC_PROVIDE_ATTR_TABLE}
 end;
-
-{$ifdef FPC_REQUIRES_PROPER_ALIGNMENT}
-function GetFPCAlignPtr(P: pointer): pointer;
+{$else}
+{$ifdef FPC_PROVIDE_ATTR_TABLE}
+function AlignTypeData(p: pointer): pointer;
 begin
-  result := TypInfo.AlignTypeData(P+2+Length(PTypeInfo(P)^.Name));
-  Dec(PtrUInt(result),2*SizeOf(pointer));
+  result := p;
+  inc(PByte(result),SizeOf(PFPCAttributeTable)); // ignore attributes table
 end;
+{$endif FPC_PROVIDE_ATTR_TABLE}
 {$endif FPC_REQUIRES_PROPER_ALIGNMENT}
 
-function GetFPCPropInfo(AClass: TClass; const PropName: string): PPropInfo;
+{$ifdef FPC_REQUIRES_PROPER_ALIGNMENT} // copied from latest typinfo.pp
+
+function AlignTypeDataClean(p: pointer): pointer;
+{$packrecords c}
+  type
+    TAlignCheck = record // match RTTI TTypeInfo definition
+      b : byte;    // = TTypeKind
+      q : qword;   // = this is where the PTypeData begins
+    end;
+{$packrecords default}
 begin
-  result := typinfo.GetPropInfo(AClass,PropName);
+  {$ifdef VER3_0}
+    result := Pointer(align(p,SizeOf(Pointer)));
+  {$else VER3_0}
+    result := Pointer(align(p,PtrInt(@TAlignCheck(nil^).q)));
+  {$endif VER3_0}
 end;
 
-{$ifdef FPC_NEWRTTI}
-function GetFPCRecInitData(TypeData: Pointer): Pointer;
+function AlignPTypeInfo(p: pointer): pointer; inline;
+{$packrecords c}
+  type
+    TAlignCheck = record
+      b : byte;
+      p : pointer;
+    end;
+{$packrecords default}
 begin
-  if PTypeData(TypeData)^.RecInitInfo = nil then
-    result := TypeData
-  else
-    result := TypInfo.AlignTypeData(pointer(PTypeData(TypeData)^.RecInitData));
+  Result := Pointer(align(p,PtrInt(@TAlignCheck(nil^).p)))
+
 end;
-{$endif FPC_NEWRTTI}
+
+{$else}
+{$ifdef HASALIGNTYPEDATA}
+function AlignTypeDataClean(p: pointer): pointer;
+begin
+  result := p;
+end;
+{$endif HASALIGNTYPEDATA}
+
+{$endif FPC_REQUIRES_PROPER_ALIGNMENT}
 
 end.
