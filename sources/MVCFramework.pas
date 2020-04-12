@@ -2496,37 +2496,37 @@ end;
 class function TMVCEngine.GetCurrentSession(const ASessionTimeout: Integer; const ASessionId: string;
   const ARaiseExceptionIfExpired: Boolean): TWebSession;
 var
-  List: TObjectDictionary<string, TWebSession>;
-  IsExpired: Boolean;
+  lSessionList: TObjectDictionary<string, TWebSession>;
 begin
   Result := nil;
-
-  List := GlobalSessionList;
-  TMonitor.Enter(List);
+  lSessionList := GlobalSessionList;
+  TMonitor.Enter(lSessionList);
   try
     if not ASessionId.IsEmpty then
     begin
-      IsExpired := True;
-      if List.TryGetValue(ASessionId, Result) then
-        if (ASessionTimeout = 0) then
-          IsExpired := MinutesBetween(Now, Result.LastAccess) > DEFAULT_SESSION_INACTIVITY
-        else
-          IsExpired := MinutesBetween(Now, Result.LastAccess) > ASessionTimeout;
-
-      if Assigned(Result) then
-        if IsExpired then
+      if lSessionList.TryGetValue(ASessionId, Result) then
+      begin
+        { https://github.com/danieleteti/delphimvcframework/issues/355 }
+        if Result.IsExpired then
         begin
-          List.Remove(ASessionId);
+          lSessionList.Remove(ASessionId);
           if ARaiseExceptionIfExpired then
+          begin
             raise EMVCSessionExpiredException.Create('Session expired.')
+          end
           else
+          begin
             Result := nil;
+          end;
         end
         else
+        begin
           Result.MarkAsUsed;
+        end;
+      end;
     end;
   finally
-    TMonitor.Exit(List);
+    TMonitor.Exit(lSessionList);
   end;
 end;
 

@@ -15,6 +15,8 @@ Take in mind that, even if RCs are usually very stable, they are still not ready
 
 ## What users say about DMVCFramework
 
+> "DMVCFramework and the Entity utility are fantastic!" -- Roberto
+
 >"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
 
 >"Wow! To do that in J2EE it takes 2 days" -- a training participant after a 5 minutes demo.
@@ -315,6 +317,8 @@ end;
 - Fixed! [issue349](https://github.com/danieleteti/delphimvcframework/issues/349)
 
 - Fixed! [issue350](https://github.com/danieleteti/delphimvcframework/issues/350)
+
+- Fixed! [issue355](https://github.com/danieleteti/delphimvcframework/issues/355)
 
 - Fixed! [issue356](https://github.com/danieleteti/delphimvcframework/issues/356)
 
