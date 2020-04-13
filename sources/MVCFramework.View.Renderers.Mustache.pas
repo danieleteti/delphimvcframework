@@ -27,8 +27,8 @@ unit MVCFramework.View.Renderers.Mustache;
 interface
 
 uses
-  MVCFramework, System.Generics.Collections, System.SysUtils,
-  MVCFramework.Commons, System.IOUtils, System.Classes;
+  MVCFramework, System.SysUtils,
+  MVCFramework.Commons, System.IOUtils, System.Classes, Data.DB;
 
 type
   { This class implements the mustache view engine for server side views }
@@ -49,9 +49,10 @@ uses
   SynCommons,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
-  MVCFramework.DuckTyping;
+  MVCFramework.DuckTyping, System.Generics.Collections;
 
 {$WARNINGS OFF}
+
 
 procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
@@ -65,6 +66,7 @@ begin
   if not FileExists(lViewFileName) then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
+  { don't free this instance! There is a garbagecollector in SynCommons }
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   lSW := TStreamWriter.Create(OutputStream);
   try
@@ -76,11 +78,13 @@ end;
 
 {$WARNINGS ON}
 
+
 procedure TMVCMustacheViewEngine.PrepareModels;
 var
   lFirst: Boolean;
   lList: IMVCList;
   DataObj: TPair<string, TObject>;
+  lDSPair: TPair<string, TDataSet>;
   lSJSON: string;
   lJSON: string;
   lSer: IMVCSerializer;
@@ -88,11 +92,13 @@ begin
   if (FJSONModel <> '{}') and (not FJSONModel.IsEmpty) then
     Exit;
   FJSONModel := '{}';
+
+  lSer := GetDefaultSerializer;
+  lSJSON := '{';
+  lFirst := True;
+
   if Assigned(ViewModel) then
   begin
-    lSer := GetDefaultSerializer;
-    lSJSON := '{';
-    lFirst := True;
     for DataObj in ViewModel do
     begin
       lList := TDuckTypedList.Wrap(DataObj.Value);
@@ -105,9 +111,21 @@ begin
       lSJSON := lSJSON + '"' + DataObj.Key + '":' + lJSON;
       lFirst := False;
     end;
-    lSJSON := lSJSON + '}';
-    FJSONModel := lSJSON;
   end;
+
+  if Assigned(ViewDataSets) then
+  begin
+    for lDSPair in ViewDataSets do
+    begin
+      lJSON := lSer.SerializeDataSet(lDSPair.Value);
+      if not lFirst then
+        lSJSON := lSJSON + ',';
+      lSJSON := lSJSON + '"' + lDSPair.Key + '":' + lJSON;
+      lFirst := False;
+    end;
+  end;
+  lSJSON := lSJSON + '}';
+  FJSONModel := lSJSON;
 end;
 
 end.

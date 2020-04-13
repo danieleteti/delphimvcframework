@@ -33,12 +33,14 @@ uses
   MVCFramework
 {$IFDEF MSWINDOWS}
     ,
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
+  FireDAC.Stan.StorageJSON
 {$ENDIF}
     ;
 
 type
   TMainWebModule = class(TWebModule)
+    FDStanStorageJSONLink1: TFDStanStorageJSONLink;
     procedure WebModuleCreate(Sender: TObject);
   private
     MVCEngine: TMVCEngine;
@@ -62,6 +64,7 @@ uses
   TestServerControllerPrivateU,
   AuthHandlersU,
   TestServerControllerJSONRPCU,
+  MVCFramework.View.Renderers.Mustache,
   MVCFramework.Middleware.Compression;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
@@ -73,6 +76,8 @@ begin
       Config[TMVCConfigKey.SessionTimeout] := '0'; // setting cookie
       Config[TMVCConfigKey.PathPrefix] := '';
       Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
+      Config[TMVCConfigKey.ViewPath] := '..\..\templates';
+      Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
     end, nil);
   MVCEngine.AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
@@ -96,6 +101,7 @@ begin
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
+  MVCEngine.SetViewEngine(TMVCMustacheViewEngine);
 {$IFDEF MSWINDOWS}
   RegisterOptionalCustomTypesSerializers(MVCEngine.Serializers[TMVCMediaType.APPLICATION_JSON]);
 {$ENDIF}

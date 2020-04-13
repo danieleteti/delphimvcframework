@@ -302,6 +302,8 @@ end;
 
 - Fixed! [issue312](https://github.com/danieleteti/delphimvcframework/issues/312)
 
+- Fixed! [issue330](https://github.com/danieleteti/delphimvcframework/issues/330)
+
 - Fixed! [issue333](https://github.com/danieleteti/delphimvcframework/issues/333)
 
 - Fixed! [issue334](https://github.com/danieleteti/delphimvcframework/issues/334)

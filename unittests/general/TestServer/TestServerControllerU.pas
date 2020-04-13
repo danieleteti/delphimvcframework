@@ -232,6 +232,12 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/($projectid)/pictures/($imageuuid)')]
     procedure GetImage;
+
+    { templates }
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/website/list')]
+    procedure Tmpl_ListOfDataUsingDatasets;
+
   end;
 
   [MVCPath('/private')]
@@ -274,7 +280,7 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
   System.IOUtils,
-  System.Classes;
+  System.Classes, FireDAC.Comp.Client;
 
 { TTestServerController }
 
@@ -469,7 +475,7 @@ var
 begin
   ContentType := TMVCMediaType.IMAGE_PNG;
   lFName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..') + '\sample.png';
-  //Render(TFile.OpenRead('..\..\sample.png'));
+  // Render(TFile.OpenRead('..\..\sample.png'));
   Render(TFile.OpenRead(lFName));
 end;
 
@@ -738,6 +744,23 @@ procedure TTestServerController.TestTypedActionTTime1(value: TTime);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(TimeToISOTime(value) + ' modified from server');
+end;
+
+procedure TTestServerController.Tmpl_ListOfDataUsingDatasets;
+var
+  lDS: TFDMemTable;
+begin
+  lDS := TFDMemTable.Create(nil);
+  try
+    var lFName: string := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..') + '\customers.json';
+    lDS.LoadFromFile(lFName);
+    ViewDataset['customers'] := lDS;
+    ViewData['customers2'] := lDS;
+    LoadView(['dataset_list']);
+    RenderResponseStream;
+  finally
+    lDS.Free;
+  end;
 end;
 
 { TTestPrivateServerController }

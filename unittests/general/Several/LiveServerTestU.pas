@@ -214,6 +214,11 @@ type
     // test web server
     [Test]
     procedure TestDirectoryTraversal1;
+
+    // test server side views
+    [Test]
+    procedure TestViewDataViewDataSet;
+
   end;
 
   [TestFixture]
@@ -1601,6 +1606,28 @@ begin
   res := RESTClient.doGET('/typed/tguid1/161BEA56480B40A8AF0E7FDF6B08E121', []);
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
   Assert.areEqual('{161BEA56-480B-40A8-AF0E-7FDF6B08E121} modified from server', res.BodyAsString);
+end;
+
+procedure TServerTest.TestViewDataViewDataSet;
+var
+  lRes: IRESTResponse;
+begin
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).doGET('/website/list', []);
+  var lLines := lRes.BodyAsString.Split([sLineBreak]);
+  var lCount: Integer := 1001;
+  for var lLine in lLines do
+  begin
+    var lLinePieces := lLine.Split(['|']);
+    if Length(lLinePieces) = 1 then
+    begin
+      lCount := 1001;
+      Continue;
+    end;
+    Assert.AreEqual(9, Length(lLinePieces));
+    Assert.AreEqual(lCount, lLinePieces[0].ToInteger);
+    Inc(lCount);
+  end;
+  Assert.areEqual(HTTP_STATUS.OK, lRes.ResponseCode);
 end;
 
 procedure TServerTest.TestWrongJSONBody;
