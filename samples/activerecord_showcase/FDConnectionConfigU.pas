@@ -8,6 +8,7 @@ const
 procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
 procedure CreateInterbasePrivateConnDef(AIsPooled: boolean);
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
+procedure CreateMSSQLServerPrivateConnDef(AIsPooled: boolean);
 procedure CreatePostgresqlPrivateConnDef(AIsPooled: boolean);
 procedure CreateSqlitePrivateConnDef(AIsPooled: boolean);
 
@@ -40,6 +41,38 @@ begin
       LParams.Add('Pooled=False');
     end;
     FDManager.AddConnectionDef(CON_DEF_NAME, 'MySQL', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
+procedure CreateMSSQLServerPrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+begin
+  // [ACTIVERECORDB_SQLSERVER]
+  // Database=activerecorddb
+  // OSAuthent=Yes
+  // Server=DANIELETETI\SQLEXPRESS
+  // DriverID=MSSQL
+  //
+
+  LParams := TStringList.Create;
+  try
+    LParams.Add('Database=activerecorddb');
+    LParams.Add('OSAuthent=Yes');
+    LParams.Add('Server=DANIELETETI\SQLEXPRESS');
+    // LParams.Add('TinyIntFormat=Boolean'); { it's the default }
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(CON_DEF_NAME, 'MSSQL', LParams);
   finally
     LParams.Free;
   end;
@@ -96,7 +129,6 @@ begin
     LParams.Free;
   end;
 end;
-
 
 procedure CreatePostgresqlPrivateConnDef(AIsPooled: boolean);
 var

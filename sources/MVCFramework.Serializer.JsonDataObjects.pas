@@ -1871,6 +1871,46 @@ begin
     Exit(True);
   end;
 
+  { from here all nullable integers }
+  if (AValue.TypeInfo = System.TypeInfo(NullableUInt16)) then
+  begin
+    if AValue.AsType<NullableUInt16>().HasValue then
+    begin
+      AJsonObject.I[AName] := AValue.AsType<NullableUInt16>().Value;
+    end
+    else
+    begin
+      AJsonObject.Values[AName] := nil;
+    end;
+    Exit(True);
+  end;
+
+  if (AValue.TypeInfo = System.TypeInfo(NullableUInt32)) then
+  begin
+    if AValue.AsType<NullableUInt32>().HasValue then
+    begin
+      AJsonObject.I[AName] := AValue.AsType<NullableUInt32>().Value;
+    end
+    else
+    begin
+      AJsonObject.Values[AName] := nil;
+    end;
+    Exit(True);
+  end;
+
+  if (AValue.TypeInfo = System.TypeInfo(NullableUInt64)) then
+  begin
+    if AValue.AsType<NullableUInt64>().HasValue then
+    begin
+      AJsonObject.I[AName] := AValue.AsType<NullableUInt64>().Value;
+    end
+    else
+    begin
+      AJsonObject.Values[AName] := nil;
+    end;
+    Exit(True);
+  end;
+
 end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string;

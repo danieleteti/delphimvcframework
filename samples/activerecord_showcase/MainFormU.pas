@@ -669,6 +669,8 @@ begin
     lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase' then
     lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+  else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mssql' then
+    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else
     raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
@@ -925,8 +927,7 @@ begin
       end;
     TRDBMSEngine.MSSQLServer:
       begin
-        // FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);
-        raise Exception.Create('This DEMO doesn''t support MSSQLServer (while the framework does)');
+        FDConnectionConfigU.CreateMSSQLServerPrivateConnDef(True);
       end;
   else
     raise Exception.Create('Unknown RDBMS');

@@ -57,7 +57,6 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
-    ExplicitHeight = 436
   end
   object btnRelations: TButton
     Left = 8

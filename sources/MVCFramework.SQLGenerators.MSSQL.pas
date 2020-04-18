@@ -68,6 +68,10 @@ type
       const RQL: string;
       const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True): string; override;
+    function CreateSelectCount(
+      const TableName: string): string; override;
+    function CreateDeleteAllSQL(
+      const TableName: string): string; override;
   end;
 
 implementation
@@ -131,6 +135,12 @@ begin
     PKFieldName + '= :' + PKFieldName; // IntToStr(PrimaryKeyValue);
 end;
 
+function TMVCSQLGeneratorMSSQL.CreateSelectCount(
+  const TableName: string): string;
+begin
+  Result := 'SELECT count(*) FROM ' + TableName;
+end;
+
 function TMVCSQLGeneratorMSSQL.CreateSelectSQL(const TableName: string;
   const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
@@ -174,6 +184,12 @@ end;
 function TMVCSQLGeneratorMSSQL.GetCompilerClass: TRQLCompilerClass;
 begin
   Result := TRQLMSSQLCompiler;
+end;
+
+function TMVCSQLGeneratorMSSQL.CreateDeleteAllSQL(
+  const TableName: string): string;
+begin
+  Result := 'DELETE FROM ' + TableName;
 end;
 
 function TMVCSQLGeneratorMSSQL.CreateDeleteSQL(
