@@ -35,11 +35,11 @@ uses
   System.SysUtils,
   System.SyncObjs,
   System.IOUtils,
-  System.Generics.Collections,
   Data.DB,
   IdGlobal,
   IdCoderMIME,
   IdContext,
+  System.Generics.Collections,
   JsonDataObjects;
 
 {$I dmvcframeworkbuildconsts.inc}
@@ -425,7 +425,7 @@ type
     function GetItems(const Key: string): string;
     procedure SetItems(const Key, Value: string);
   protected
-    FDict: TDictionary<string, string>;
+    fDict: TDictionary<string, string>;
   public
     constructor Create; overload; virtual;
     constructor Create(const aKey, aValue: string); overload; virtual;
@@ -439,6 +439,31 @@ type
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
     property Items[const Key: string]: string read GetItems write SetItems; default;
+  end;
+
+  TMVCObjectDictionary = class
+  strict private
+    function GetItems(const Key: string): TObject;
+    procedure SetItems(const Key: string; const Value: TObject);
+  protected
+    fDict: TObjectDictionary<string, TObject>;
+{
+  TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
+  TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
+
+}
+  public
+    constructor Create(const OwnsValues: Boolean = True); overload; virtual;
+    constructor Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean = True); overload; virtual;
+    destructor Destroy; override;
+    procedure Clear;
+    function Add(const Name: string; const Value: TObject): TMVCObjectDictionary;
+    function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
+    function Count: Integer;
+    function GetEnumerator: TDictionary<string, TObject>.TPairEnumerator;
+    function ContainsKey(const Key: string): Boolean;
+    function Keys: TArray<string>;
+    property Items[const Key: string]: TObject read GetItems write SetItems; default;
   end;
 
   TMVCStringDictionaryList = class(TObjectList<TMVCStringDictionary>)
@@ -483,7 +508,7 @@ type
   private
     FMREWS: TMultiReadExclusiveWriteSynchronizer;
   protected
-    FDict: TObjectDictionary<string, T>;
+    fDict: TObjectDictionary<string, T>;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -562,7 +587,6 @@ type
   public
     class function GuidFromString(const AGuidStr: string): TGUID; static;
   end;
-
 
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
@@ -929,23 +953,23 @@ end;
 
 function TMVCStringDictionary.Add(const Name, Value: string): TMVCStringDictionary;
 begin
-  FDict.AddOrSetValue(name, Value);
+  fDict.AddOrSetValue(name, Value);
   Result := Self;
 end;
 
 procedure TMVCStringDictionary.Clear;
 begin
-  FDict.Clear;
+  fDict.Clear;
 end;
 
 function TMVCStringDictionary.ContainsKey(const Key: string): Boolean;
 begin
-  Result := FDict.ContainsKey(Key);
+  Result := fDict.ContainsKey(Key);
 end;
 
 function TMVCStringDictionary.Count: Integer;
 begin
-  Result := FDict.Count;
+  Result := fDict.Count;
 end;
 
 constructor TMVCStringDictionary.Create(const aKey, aValue: string);
@@ -957,34 +981,34 @@ end;
 constructor TMVCStringDictionary.Create;
 begin
   inherited;
-  FDict := TDictionary<string, string>.Create;
+  fDict := TDictionary<string, string>.Create;
 end;
 
 destructor TMVCStringDictionary.Destroy;
 begin
-  FDict.Free;
+  fDict.Free;
   inherited;
 end;
 
 function TMVCStringDictionary.GetEnumerator: TDictionary<string, string>.TPairEnumerator;
 begin
-  Result := FDict.GetEnumerator;
+  Result := fDict.GetEnumerator;
 end;
 
 function TMVCStringDictionary.GetItems(const Key: string): string;
 begin
   Result := '';
-  FDict.TryGetValue(Key, Result);
+  fDict.TryGetValue(Key, Result);
 end;
 
 function TMVCStringDictionary.Keys: TArray<string>;
 begin
-  Result := FDict.Keys.ToArray;
+  Result := fDict.Keys.ToArray;
 end;
 
 procedure TMVCStringDictionary.SetItems(const Key, Value: string);
 begin
-  FDict.AddOrSetValue(Key, Value);
+  fDict.AddOrSetValue(Key, Value);
 end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: Integer): Boolean;
@@ -996,7 +1020,7 @@ end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
 begin
-  Result := FDict.TryGetValue(name, Value);
+  Result := fDict.TryGetValue(name, Value);
 end;
 
 { TMVCStringObjectDictionary }
@@ -1005,8 +1029,8 @@ procedure TMVCStringObjectDictionary<T>.Add(const Name: string; Value: T);
 begin
   FMREWS.BeginWrite;
   try
-    if not FDict.ContainsKey(name) then
-      FDict.Add(name, Value);
+    if not fDict.ContainsKey(name) then
+      fDict.Add(name, Value);
   finally
     FMREWS.EndWrite;
   end;
@@ -1015,13 +1039,13 @@ end;
 constructor TMVCStringObjectDictionary<T>.Create;
 begin
   inherited;
-  FDict := TObjectDictionary<string, T>.Create([doOwnsValues]);
+  fDict := TObjectDictionary<string, T>.Create([doOwnsValues]);
   FMREWS := TMultiReadExclusiveWriteSynchronizer.Create;
 end;
 
 destructor TMVCStringObjectDictionary<T>.Destroy;
 begin
-  FDict.Free;
+  fDict.Free;
   FMREWS.Free;
   inherited;
 end;
@@ -1030,7 +1054,7 @@ function TMVCStringObjectDictionary<T>.TryGetValue(const Name: string; out Value
 begin
   FMREWS.BeginRead;
   try
-    Result := FDict.TryGetValue(name, Value);
+    Result := fDict.TryGetValue(name, Value);
   finally
     FMREWS.EndRead;
   end;
@@ -1302,7 +1326,7 @@ end;
 
 class function TMVCGuidHelper.GuidFromString(const AGuidStr: string): TGUID;
 var
-    LGuidStr: string;
+  LGuidStr: string;
 begin
   if AGuidStr.Length = 32 then { string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465 }
   begin
@@ -1319,6 +1343,77 @@ begin
   end;
 
   Result := StringToGUID(LGuidStr);
+end;
+
+{ TMVCObjectDictionary }
+
+function TMVCObjectDictionary.Add(const Name: string; const Value: TObject): TMVCObjectDictionary;
+begin
+  fDict.Add(name, Value);
+  Result := Self;
+end;
+
+procedure TMVCObjectDictionary.Clear;
+begin
+
+end;
+
+function TMVCObjectDictionary.ContainsKey(const Key: string): Boolean;
+begin
+  Result := fDict.ContainsKey(Key);
+end;
+
+function TMVCObjectDictionary.Count: Integer;
+begin
+  Result := fDict.Count;
+end;
+
+constructor TMVCObjectDictionary.Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean);
+begin
+  Create(OwnsValues);
+  Add(aKey, Value);
+end;
+
+constructor TMVCObjectDictionary.Create(const OwnsValues: Boolean);
+begin
+  inherited Create;
+  if OwnsValues then
+    fDict := TObjectDictionary<string, TObject>.Create([doOwnsValues])
+  else
+    fDict := TObjectDictionary<string, TObject>.Create();
+end;
+
+destructor TMVCObjectDictionary.Destroy;
+begin
+  fDict.Free;
+  inherited;
+end;
+
+function TMVCObjectDictionary.GetEnumerator: TDictionary<string, TObject>.TPairEnumerator;
+begin
+  Result := fDict.GetEnumerator;
+end;
+
+function TMVCObjectDictionary.GetItems(const Key: string): TObject;
+begin
+  Result := fDict.Items[Key];
+end;
+
+function TMVCObjectDictionary.Keys: TArray<string>;
+begin
+  Result := fDict.Keys.ToArray;
+end;
+
+procedure TMVCObjectDictionary.SetItems(const Key: string;
+  const Value: TObject);
+begin
+
+end;
+
+function TMVCObjectDictionary.TryGetValue(const Name: string;
+  out Value: TObject): Boolean;
+begin
+  Result := fDict.TryGetValue(name, Value);
 end;
 
 initialization

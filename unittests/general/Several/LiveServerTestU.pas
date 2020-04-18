@@ -202,6 +202,10 @@ type
     procedure TestDeserializeNullablesWithNulls;
     [Test]
     procedure TestSerializeAndDeserializeNullables;
+    [Test]
+    procedure TestSerializeAndDeserializeNullables_ISSUE_362;
+    [Test]
+    procedure TestSerializeAndDeserializeNullables_Passing_Integers_InsteadOf_Floats;
 
     // test responses objects
     [Test]
@@ -1395,6 +1399,65 @@ begin
   end;
 end;
 
+procedure TServerTest.TestSerializeAndDeserializeNullables_ISSUE_362;
+const
+  JSON1: string = '{"f_int2":2,"f_int4":4,"f_int8":8,"f_string":"0123456789","f_bool":true, ' +
+    '"f_date":"2011-11-17","f_time":"12:24:36","f_datetime":"2011-11-17T12:24:36.048Z",' +
+    '"f_float4":2.5,"f_float8":1.25,"f_currency":98765.4321,"f_blob":"0123456789"}';
+  JSON2: string = '{"f_int2":2,"f_int4":4,"f_int8":8,"f_string":"0123456789","f_bool":true, ' +
+    '"f_date":"2011-11-17","f_time":"12:24:36","f_datetime":"2011-11-17T12:24:36.048Z",' +
+    '"f_float4":2,"f_float8":3,"f_currency":4,"f_blob":"0123456789"}';
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lNullableTest: TNullablesTest;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lNullableTest := TNullablesTest.Create();
+    try
+      lSer.DeserializeObject(JSON1, lNullableTest);
+    finally
+      lNullableTest.Free;
+    end;
+    lNullableTest := TNullablesTest.Create();
+    try
+      { in this case nullable floats type actually contains integers... }
+      lSer.DeserializeObject(JSON2, lNullableTest);
+    finally
+      lNullableTest.Free;
+    end;
+    Assert.Pass();
+  finally
+    lSer.Free;
+  end;
+end;
+
+procedure TServerTest.TestSerializeAndDeserializeNullables_Passing_Integers_InsteadOf_Floats;
+const
+  JSON1: string = '{"f_int2":2,"f_int4":4,"f_int8":8,"f_string":"0123456789","f_bool":true, ' +
+    '"f_date":"2011-11-17","f_time":"12:24:36","f_datetime":"2011-11-17T12:24:36.048Z",' +
+    '"f_float4_not_null":1234,"f_float8_not_null":2345, ' +
+    '"f_float4":2.5,"f_float8":1.25,"f_currency":98765.4321,"f_blob":"0123456789"}';
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lNullableTest: TNullablesTest;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lNullableTest := TNullablesTest.Create();
+    try
+      { in this case not nullable floats type actually contains integers... }
+      lSer.DeserializeObject(JSON1, lNullableTest);
+      Assert.areEqual(1234, lNullableTest.f_float4_not_null, 0.0001);
+      Assert.areEqual(2345, lNullableTest.f_float8_not_null, 0.0001);
+    finally
+      lNullableTest.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+
 procedure TServerTest.TestSession;
 var
   c1: TRESTClient;
@@ -1613,18 +1676,20 @@ var
   lRes: IRESTResponse;
 begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).doGET('/website/list', []);
-  var lLines := lRes.BodyAsString.Split([sLineBreak]);
+  var
+  lLines := lRes.BodyAsString.Split([sLineBreak]);
   var lCount: Integer := 1001;
   for var lLine in lLines do
   begin
-    var lLinePieces := lLine.Split(['|']);
+    var
+    lLinePieces := lLine.Split(['|']);
     if Length(lLinePieces) = 1 then
     begin
       lCount := 1001;
       Continue;
     end;
-    Assert.AreEqual(9, Length(lLinePieces));
-    Assert.AreEqual(lCount, lLinePieces[0].ToInteger);
+    Assert.areEqual(9, Length(lLinePieces));
+    Assert.areEqual(lCount, lLinePieces[0].ToInteger);
     Inc(lCount);
   end;
   Assert.areEqual(HTTP_STATUS.OK, lRes.ResponseCode);

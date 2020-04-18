@@ -218,10 +218,20 @@ type
 
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
+  IMVCResponseData = interface
+    ['{DF69BE0E-3212-4535-8B78-38EEF0F5B656}']
+    function GetMetadata: TMVCStringDictionary;
+    property MetaData: TMVCStringDictionary read GetMetadata;
+    function GetData: TObject;
+    property Data: TObject read GetData;
+  end;
+
   // Well Known Response Objects
   [MVCNameCase(ncLowerCase)]
-  TMVCResponseBase = class abstract
-
+  TMVCResponseBase = class abstract(TInterfacedObject, IMVCResponseData)
+  protected
+    function GetMetadata: TMVCStringDictionary; virtual; abstract;
+    function GetData: TObject; virtual; abstract;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -247,12 +257,15 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
-  TObjectResponseBase = class(TMVCResponseBase)
+  TMVCResponseData = class(TMVCResponseBase, IMVCResponseData)
   private
-    FData: TObject;
-    FMetadata: TMVCStringDictionary;
-    FOwns: boolean;
-    FDataSetSerializationType: TMVCDatasetSerializationType;
+    fData: TObject;
+    fMetaData: TMVCStringDictionary;
+    fOwns: boolean;
+    fDataSetSerializationType: TMVCDatasetSerializationType;
+  protected
+    function GetMetadata: TMVCStringDictionary; override;
+    function GetData: TObject; override;
   public
     constructor Create(const AObject: TObject; const AOwns: boolean = false;
       const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
@@ -260,21 +273,21 @@ type
     destructor Destroy; override;
     function SerializationType: TMVCDatasetSerializationType;
     [MVCNameAs('data')]
-    property Items: TObject read FData;
+    property Items: TObject read GetData;
     [MVCNameAs('meta')]
-    property Metadata: TMVCStringDictionary read FMetadata;
+    property MetaData: TMVCStringDictionary read GetMetadata;
   end;
 
-  TDataObjectHolder = TObjectResponseBase deprecated 'Use one of the specialized versions';
+  TDataObjectHolder = TMVCResponseData deprecated 'Use one of the specialized versions';
 
   THTTPStatusCode = 100 .. 599;
 
-  TMVCObjectListResponse = class(TObjectResponseBase)
+  TMVCObjectListResponse = class(TMVCResponseData)
   public
     constructor Create(const AObject: TObject; Owns: boolean = True); reintroduce;
   end;
 
-  TMVCObjectResponse = class(TObjectResponseBase)
+  TMVCObjectResponse = class(TMVCResponseData)
   public
     constructor Create(const AObject: TObject; Owns: boolean = True); reintroduce;
   end;
@@ -308,6 +321,9 @@ function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCSt
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
   const AOwns: boolean = false): TMVCObjectListResponse;
 
+function MakeResponseData(const AObject: TObject; const AMeta: TMVCStringDictionary = nil;
+  const AOwns: boolean = True): IMVCResponseData;
+
 implementation
 
 uses
@@ -323,8 +339,18 @@ begin
   Result := TMVCObjectResponse.Create(AObject, AOwns);
   if Assigned(AMetaFiller) then
   begin
-    AMetaFiller(Result.FMetadata);
+    AMetaFiller(Result.fMetaData);
   end;
+end;
+
+function MakeResponseData(const AObject: TObject; const AMeta: TMVCStringDictionary = nil;
+  const AOwns: boolean = True): IMVCResponseData;
+begin
+  Result := TMVCResponseData.Create(AObject, AOwns);
+  // if Assigned(AMetaFiller) then
+  // begin
+  // AMetaFiller(Result.fMetaData);
+  // end;
 end;
 
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
@@ -333,7 +359,7 @@ begin
   Result := TMVCObjectListResponse.Create(AList, AOwns);
   if Assigned(AMetaFiller) then
   begin
-    AMetaFiller(Result.FMetadata);
+    AMetaFiller(Result.fMetaData);
   end;
 end;
 
@@ -787,29 +813,39 @@ end;
 
 { TObjectResponseBase }
 
-constructor TObjectResponseBase.Create(const AObject: TObject; const AOwns: boolean;
-  const ADataSetSerializationType: TMVCDatasetSerializationType);
+constructor TMVCResponseData.Create(const AObject: TObject; const AOwns: boolean;
+const ADataSetSerializationType: TMVCDatasetSerializationType);
 begin
   inherited Create;
-  FData := AObject;
-  FMetadata := TMVCStringDictionary.Create;
-  FOwns := AOwns;
-  FDataSetSerializationType := ADataSetSerializationType;
+  fData := AObject;
+  fMetaData := TMVCStringDictionary.Create;
+  fOwns := AOwns;
+  fDataSetSerializationType := ADataSetSerializationType;
 end;
 
-destructor TObjectResponseBase.Destroy;
+destructor TMVCResponseData.Destroy;
 begin
-  FMetadata.Free;
-  if FOwns then
+  fMetaData.Free;
+  if fOwns then
   begin
-    FData.Free;
+    fData.Free;
   end;
   inherited;
 end;
 
-function TObjectResponseBase.SerializationType: TMVCDatasetSerializationType;
+function TMVCResponseData.GetData: TObject;
 begin
-  Result := FDataSetSerializationType;
+  Result := fData;
+end;
+
+function TMVCResponseData.GetMetadata: TMVCStringDictionary;
+begin
+  Result := fMetaData;
+end;
+
+function TMVCResponseData.SerializationType: TMVCDatasetSerializationType;
+begin
+  Result := fDataSetSerializationType;
 end;
 
 { TMVCObjectListResponse }
@@ -954,7 +990,7 @@ begin
 end;
 
 function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField; const aRTTIField: TRttiField;
-  const AObject: TObject): boolean;
+const AObject: TObject): boolean;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := false;
@@ -1141,8 +1177,8 @@ begin
 end;
 
 function MapDataSetFieldToNullableRTTIProperty(const AValue: TValue; const AField: TField;
-  const aRTTIProp: TRttiProperty;
-  const AObject: TObject): boolean;
+const aRTTIProp: TRttiProperty;
+const AObject: TObject): boolean;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := false;

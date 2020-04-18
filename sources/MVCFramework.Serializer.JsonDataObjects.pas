@@ -69,6 +69,8 @@ type
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
     fStringDictionarySerializer: IMVCTypeSerializer;
+    function TryMapNullableFloat(var Value: TValue;
+      const JSONDataObject: TJsonObject; const AttribName: string): Boolean;
   public
     function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
@@ -189,6 +191,7 @@ procedure TMVCJsonDataObjectsSerializer.AfterConstruction;
 var
   lStreamSerializer: IMVCTypeSerializer;
   lDataSetHolderSerializer: TMVCDataSetHolderSerializer;
+  fObjectDictionarySerializer: TMVCObjectDictionarySerializer;
 begin
   inherited AfterConstruction;
   lDataSetHolderSerializer := TMVCDataSetHolderSerializer.Create;
@@ -199,8 +202,10 @@ begin
   GetTypeSerializers.Add(TypeInfo(TFileStream), lStreamSerializer);
   GetTypeSerializers.Add(TypeInfo(TMemoryStream), lStreamSerializer);
   fStringDictionarySerializer := TMVCStringDictionarySerializer.Create;
-  GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), TMVCStringDictionarySerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCStringDictionary), fStringDictionarySerializer);
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
+  fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create;
+  GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.AttributeToJsonDataValue(const AJsonObject: TJDOJsonObject; const AName: string;
@@ -927,7 +932,7 @@ begin
             AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJsonObject[AName].Value)))
           end
           else
-            raise EMVCSerializationException.CreateFmt('Cannot deserialize property %s from string', [AName]);
+            raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [AName]);
         end
         else if (AValue.Kind = tkEnumeration) then
         begin
@@ -947,7 +952,8 @@ begin
           begin
             LMappedValueIndex := LEnumMappedValues.IndexOf(AJsonObject[AName].Value);
             if LMappedValueIndex < 0 then
-              raise EMVCSerializationException.CreateFmt('Cannot deserialize property %s from mapped values', [AName]);
+              raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from mapped values',
+                [AName]);
 
             TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
               AValue.TypeInfo, AValue)
@@ -982,8 +988,8 @@ begin
             AValue := TValue.From<NullableInt64>(NullableInt64(AJsonObject[AName].LongValue))
           else if AValue.TypeInfo = TypeInfo(NullableUInt64) then
             AValue := TValue.From<NullableUInt64>(NullableUInt64(AJsonObject[AName].LongValue))
-          else
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for ', [AName]);
+          else if not TryMapNullableFloat(AValue, AJsonObject, AName) then
+            raise EMVCDeserializationException.CreateFmt('Cannot deserialize integer value for "%s"', [AName]);
         end;
       end;
 
@@ -1003,8 +1009,8 @@ begin
             AValue := TValue.From<NullableInt64>(NullableInt64(AJsonObject[AName].LongValue))
           else if AValue.TypeInfo = TypeInfo(NullableUInt64) then
             AValue := TValue.From<NullableUInt64>(NullableUInt64(AJsonObject[AName].LongValue))
-          else
-            raise EMVCDeserializationException.CreateFmt('Cannot deserialize long integer value for ', [AName]);
+          else if not TryMapNullableFloat(AValue, AJsonObject, AName) then
+            raise EMVCDeserializationException.CreateFmt('Cannot deserialize long integer value for "%s"', [AName]);
         end;
       end;
 
@@ -1015,16 +1021,8 @@ begin
       end
       else
       begin
-        if AValue.TypeInfo = TypeInfo(NullableSingle) then
-          AValue := TValue.From<NullableSingle>(NullableSingle(AJsonObject[AName].FloatValue))
-        else if AValue.TypeInfo = TypeInfo(NullableCurrency) then
-          AValue := TValue.From<NullableCurrency>(NullableCurrency(AJsonObject[AName].FloatValue))
-        else if AValue.TypeInfo = TypeInfo(NullableDouble) then
-          AValue := TValue.From<NullableDouble>(NullableDouble(AJsonObject[AName].FloatValue))
-        else if AValue.TypeInfo = TypeInfo(NullableExtended) then
-          AValue := TValue.From<NullableExtended>(NullableExtended(AJsonObject[AName].FloatValue))
-        else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for %s', [AName]);
+        if not TryMapNullableFloat(AValue, AJsonObject, AName) then
+          raise EMVCDeserializationException.CreateFmt('Cannot deserialize floating-point value for "%s"', [AName]);
       end;
 
     jdtDateTime:
@@ -1041,7 +1039,7 @@ begin
         else if AValue.TypeInfo = TypeInfo(NullableTTime) then
           AValue := TValue.From<NullableTTime>(NullableTTime(AJsonObject[AName].DateTimeValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize date or time value for ', [AName]);
+          raise EMVCDeserializationException.CreateFmt('Cannot deserialize date or time value for "%s"', [AName]);
       end;
 
     jdtBool:
@@ -1054,7 +1052,7 @@ begin
         if AValue.TypeInfo = TypeInfo(NullableBoolean) then
           AValue := TValue.From<NullableBoolean>(NullableBoolean(AJsonObject[AName].BoolValue))
         else
-          raise EMVCDeserializationException.CreateFmt('Cannot deserialize boolean value for ', [AName]);
+          raise EMVCDeserializationException.CreateFmt('Cannot deserialize boolean value for "%s"', [AName]);
       end;
 
     jdtObject:
@@ -1098,7 +1096,7 @@ begin
               JsonArrayToList(AJsonObject.A[AName], ChildList, LClazz, AType, AIgnored)
             else
               raise EMVCDeserializationException.CreateFmt
-                ('You can not deserialize a list %s without the MVCListOf attribute.', [AName]);
+                ('You can not deserialize a list "%s" without the MVCListOf attribute.', [AName]);
           end;
         end
         else if AValue.isArray then
@@ -1708,6 +1706,22 @@ begin
     Result.Free;
     raise;
   end;
+end;
+
+function TMVCJsonDataObjectsSerializer.TryMapNullableFloat(var Value: TValue;
+  const JSONDataObject: TJsonObject; const AttribName: string): Boolean;
+begin
+  Result := True;
+  if Value.TypeInfo = TypeInfo(NullableSingle) then
+    Value := TValue.From<NullableSingle>(NullableSingle(JSONDataObject[AttribName].FloatValue))
+  else if Value.TypeInfo = TypeInfo(NullableCurrency) then
+    Value := TValue.From<NullableCurrency>(NullableCurrency(JSONDataObject[AttribName].FloatValue))
+  else if Value.TypeInfo = TypeInfo(NullableDouble) then
+    Value := TValue.From<NullableDouble>(NullableDouble(JSONDataObject[AttribName].FloatValue))
+  else if Value.TypeInfo = TypeInfo(NullableExtended) then
+    Value := TValue.From<NullableExtended>(NullableExtended(JSONDataObject[AttribName].FloatValue))
+  else
+    Result := False;
 end;
 
 function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue;

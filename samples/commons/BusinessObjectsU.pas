@@ -50,14 +50,14 @@ type
     procedure SetFirstName(const Value: string);
     procedure SetLastName(const Value: string);
     procedure SetMarried(const Value: boolean);
-    function GetFullName: String;
+    function GetFullName: string;
   public
     function Equals(Obj: TObject): boolean; override;
 
     property ID: Int64 read fID write fID;
     property FirstName: string read FFirstName write SetFirstName;
     property LastName: string read FLastName write SetLastName;
-    property FullName: String read GetFullName;
+    property FullName: string read GetFullName;
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
     constructor Create; virtual;
@@ -94,6 +94,8 @@ type
     ff_currency: NullableCurrency;
     [MVCTableField('f_blob')]
     ff_blob: TStream;
+    ff_float8_not_null: Double;
+    ff_float4_not_null: Single;
   public
     destructor Destroy; override;
     function Equals(Obj: TObject): boolean; override;
@@ -123,18 +125,22 @@ type
     [MVCSerializeAsString]
     property f_blob: TStream read ff_blob write ff_blob;
 
+    property f_float4_not_null: Single read ff_float4_not_null write ff_float4_not_null;
+    // f_float8 float8 NULL,
+    property f_float8_not_null: Double read ff_float8_not_null write ff_float8_not_null;
+
     procedure LoadSomeData;
   end;
 
   IPerson = interface
     ['{1D00C67A-A6D9-4B31-8291-705B339CDE9B}']
-    function GetName: String;
-    procedure SetName(const Value: String);
+    function GetName: string;
+    procedure SetName(const Value: string);
     function GetAge: Integer;
     procedure SetAge(const Value: Integer);
     function GetDOB: TDate;
     procedure SetDOB(const Value: TDate);
-    property Name: String read GetName write SetName;
+    property name: string read GetName write SetName;
     property Age: Integer read GetAge write SetAge;
     property DOB: TDate read GetDOB write SetDOB;
   end;
@@ -142,12 +148,12 @@ type
   TObjectWithJSONObject = class
   private
     fJSONObject: TJSONObject;
-    FStringProp: String;
-    procedure SetStringProp(const Value: String);
+    FStringProp: string;
+    procedure SetStringProp(const Value: string);
   public
     constructor Create;
     destructor Destroy; override;
-    property StringProp: String read FStringProp write SetStringProp;
+    property StringProp: string read FStringProp write SetStringProp;
     property JSONObject: TJSONObject read fJSONObject;
   end;
 
@@ -158,14 +164,14 @@ type
     FDOB: TDate;
     fAge: Integer;
   protected
-    function GetName: String;
-    procedure SetName(const Value: String);
+    function GetName: string;
+    procedure SetName(const Value: string);
     function GetAge: Integer;
     procedure SetAge(const Value: Integer);
     function GetDOB: TDate;
     procedure SetDOB(const Value: TDate);
   public
-    property Name: String read GetName write SetName;
+    property name: string read GetName write SetName;
     property Age: Integer read GetAge write SetAge;
     property DOB: TDate read GetDOB write SetDOB;
   end;
@@ -223,7 +229,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    property Name: string read fName write SetName;
+    property name: string read fName write SetName;
     [MVCDoNotSerialize]
     property ContactFirst: string read FContactFirst write SetContactFirst;
     [MVCDoNotSerialize]
@@ -282,7 +288,7 @@ begin
   end;
 end;
 
-function TPerson.GetFullName: String;
+function TPerson.GetFullName: string;
 begin
   Result := Format('%s, %s', [FFirstName, FLastName]);
 end;
@@ -418,6 +424,7 @@ end;
 
 {$IFNDEF LINUX}
 
+
 procedure TCustomer.SetLogo(const Value: TBitmap);
 begin
   fLogo := Value;
@@ -489,7 +496,7 @@ begin
   Result := FDOB;
 end;
 
-function TInterfacedPerson.GetName: String;
+function TInterfacedPerson.GetName: string;
 begin
   Result := fName;
 end;
@@ -504,7 +511,7 @@ begin
   FDOB := Value;
 end;
 
-procedure TInterfacedPerson.SetName(const Value: String);
+procedure TInterfacedPerson.SetName(const Value: string);
 begin
   fName := Value;
 end;
@@ -523,7 +530,7 @@ begin
   inherited;
 end;
 
-procedure TObjectWithJSONObject.SetStringProp(const Value: String);
+procedure TObjectWithJSONObject.SetStringProp(const Value: string);
 begin
   FStringProp := Value;
 end;

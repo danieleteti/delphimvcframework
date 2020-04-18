@@ -31,6 +31,7 @@ uses
 
 procedure Logo;
 begin
+  Writeln;
   SetMode(TConsoleMode.Bright);
   TextBackground(TConsoleColor.Black);
   TextColor(TConsoleColor.Red);

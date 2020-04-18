@@ -1,2 +1,2 @@
 const
-  DMVCFRAMEWORK_VERSION = '3.2.0 (boron) RC6';
+  DMVCFRAMEWORK_VERSION = '3.2.0 (boron) RC7';

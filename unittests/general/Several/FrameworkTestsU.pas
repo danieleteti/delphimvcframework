@@ -100,7 +100,7 @@ type
     [Test]
     procedure TestComplexRoutings;
     [Test]
-    procedure TestIssue338;
+    procedure Test_ISSUE_338;
     [Test]
     procedure TestProduceRoutings;
     [Test]
@@ -439,7 +439,7 @@ begin
   end;
 end;
 
-procedure TTestRouting.TestIssue338;
+procedure TTestRouting.Test_ISSUE_338;
 var
   Params: TMVCRequestParamsTable;
   ResponseContentType: string;
