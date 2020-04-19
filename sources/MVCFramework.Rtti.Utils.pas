@@ -65,7 +65,7 @@ type
     class procedure ObjectToDataSet(AObject: TObject; AField: TField; var AValue: Variant);
     class procedure DatasetToObject(ADataset: TDataset; AObject: TObject);
 
-    class function Clone(AObject: TObject): TObject; overload; static;
+    class function Clone(AObject: TObject): TObject; static;
     class function Clone<T: TCustomAttribute>(AObject: TObject): TObject; overload; static;
     class procedure CopyObject(ASourceObject, ATargetObject: TObject); static;
 
@@ -104,10 +104,10 @@ uses
 class function TRttiUtils.MethodCall(AObject: TObject; AMethodName: string; AParameters: array of TValue;
   ARaiseExceptionIfNotFound: Boolean): TValue;
 var
-  m              : TRttiMethod;
-  T              : TRttiType;
-  Found          : Boolean;
-  ParLen         : Integer;
+  m: TRttiMethod;
+  T: TRttiType;
+  Found: Boolean;
+  ParLen: Integer;
   MethodParamsLen: Integer;
 begin
   Found := False;
@@ -161,8 +161,8 @@ end;
 
 class function TRttiUtils.GetField(AObject: TObject; const APropertyName: string): TValue;
 var
-  Field    : TRttiField;
-  Prop     : TRttiProperty;
+  Field: TRttiField;
+  Prop: TRttiProperty;
   ARttiType: TRttiType;
 begin
   ARttiType := GlContext.GetType(AObject.ClassType);
@@ -182,7 +182,7 @@ end;
 
 class function TRttiUtils.GetProperty(AObject: TObject; const APropertyName: string): TValue;
 var
-  Prop     : TRttiProperty;
+  Prop: TRttiProperty;
   ARttiType: TRttiType;
 begin
   ARttiType := GlContext.GetType(AObject.ClassType);
@@ -238,7 +238,7 @@ end;
 class function TRttiUtils.HasAttribute<T>(ARttiMember: TRttiMember; out AAttribute: T): Boolean;
 var
   attrs: TArray<TCustomAttribute>;
-  Attr : TCustomAttribute;
+  Attr: TCustomAttribute;
 begin
   AAttribute := nil;
   Result := False;
@@ -254,7 +254,7 @@ end;
 class function TRttiUtils.HasAttribute<T>(ARttiMember: TRttiType; out AAttribute: T): Boolean;
 var
   attrs: TArray<TCustomAttribute>;
-  Attr : TCustomAttribute;
+  Attr: TCustomAttribute;
 begin
   AAttribute := nil;
   Result := False;
@@ -287,8 +287,8 @@ end;
 
 class procedure TRttiUtils.SetField(AObject: TObject; const APropertyName: string; const AValue: TValue);
 var
-  Field    : TRttiField;
-  Prop     : TRttiProperty;
+  Field: TRttiField;
+  Prop: TRttiProperty;
   ARttiType: TRttiType;
 begin
   ARttiType := GlContext.GetType(AObject.ClassType);
@@ -312,7 +312,7 @@ end;
 
 class procedure TRttiUtils.SetProperty(AObject: TObject; const APropertyName: string; const AValue: TValue);
 var
-  Prop     : TRttiProperty;
+  Prop: TRttiProperty;
   ARttiType: TRttiType;
 begin
   ARttiType := GlContext.GetType(AObject.ClassType);
@@ -453,7 +453,7 @@ var
   Tp: TRttiType;
 begin
   Tp := GlContext.GetType(TypeInfo(T));
-  if not (Tp.TypeKind = tkInterface) then
+  if not(Tp.TypeKind = tkInterface) then
     raise Exception.Create('Type is no interface');
   Result := TRttiInterfaceType(Tp).GUID;
 end;
@@ -474,9 +474,9 @@ end;
 class procedure TRttiUtils.DatasetToObject(ADataset: TDataset; AObject: TObject);
 var
   ARttiType: TRttiType;
-  props    : TArray<TRttiProperty>;
-  Prop     : TRttiProperty;
-  f        : TField;
+  props: TArray<TRttiProperty>;
+  Prop: TRttiProperty;
+  f: TField;
 begin
   ARttiType := GlContext.GetType(AObject.ClassType);
   props := ARttiType.GetProperties;
@@ -514,8 +514,8 @@ end;
 
 class function TRttiUtils.FindByProperty<T>(AList: TObjectList<T>; APropertyName: string; APropertyValue: TValue): T;
 var
-  elem : T;
-  V    : TValue;
+  elem: T;
+  V: TValue;
   Found: Boolean;
 begin
   Found := False;
@@ -548,7 +548,7 @@ end;
 class procedure TRttiUtils.ForEachProperty(AClazz: TClass; AProc: TProc<TRttiProperty>);
 var
   _rtti: TRttiType;
-  P    : TRttiProperty;
+  P: TRttiProperty;
 begin
   _rtti := GlContext.GetType(AClazz);
   if Assigned(_rtti) then
@@ -560,19 +560,19 @@ end;
 
 class procedure TRttiUtils.CopyObject(ASourceObject, ATargetObject: TObject);
 var
-  _ARttiType      : TRttiType;
-  Field           : TRttiField;
-  master, cloned  : TObject;
-  Src             : TObject;
-  sourceStream    : TStream;
-  SavedPosition   : Int64;
-  targetStream    : TStream;
+  _ARttiType: TRttiType;
+  Field: TRttiField;
+  master, cloned: TObject;
+  Src: TObject;
+  sourceStream: TStream;
+  SavedPosition: Int64;
+  targetStream: TStream;
   targetCollection: IWrappedList;
   sourceCollection: IWrappedList;
-  I               : Integer;
-  sourceObject    : TObject;
-  targetObject    : TObject;
-  Tar             : TObject;
+  I: Integer;
+  sourceObject: TObject;
+  targetObject: TObject;
+  Tar: TObject;
 begin
   if not Assigned(ATargetObject) then
     Exit;
@@ -637,23 +637,22 @@ end;
 
 {$IF CompilerVersion >= 24.0}
 
-
 class procedure TRttiUtils.CopyObjectAS<T>(ASourceObject, ATargetObject: TObject);
 var
-  _ARttiType      : TRttiType;
+  _ARttiType: TRttiType;
   _ARttiTypeTarget: TRttiType;
   Field, FieldDest: TRttiField;
-  master, cloned  : TObject;
-  Src             : TObject;
-  sourceStream    : TStream;
-  SavedPosition   : Int64;
-  targetStream    : TStream;
+  master, cloned: TObject;
+  Src: TObject;
+  sourceStream: TStream;
+  SavedPosition: Int64;
+  targetStream: TStream;
   targetCollection: IWrappedList;
   sourceCollection: IWrappedList;
-  I               : Integer;
-  sourceObject    : TObject;
-  targetObject    : TObject;
-  Tar             : TObject;
+  I: Integer;
+  sourceObject: TObject;
+  targetObject: TObject;
+  Tar: TObject;
 begin
   if not Assigned(ATargetObject) then
     Exit;
@@ -730,7 +729,6 @@ end;
 
 {$ENDIF}
 
-
 class constructor TRttiUtils.Create;
 begin
   GlContext := TRttiContext.Create;
@@ -750,8 +748,8 @@ end;
 
 class function TRttiUtils.CreateObject(ARttiType: TRttiType; const AParams: TArray<TValue> = nil): TObject;
 var
-  Method      : TRttiMethod;
-  metaClass   : TClass;
+  Method: TRttiMethod;
+  metaClass: TClass;
   lParamsCount: Integer;
 begin
   if AParams = nil then
@@ -807,62 +805,6 @@ begin
   Result := V.AsObject;
 end;
 
-class function TRttiUtils.Clone(AObject: TObject): TObject;
-var
-  _ARttiType      : TRttiType;
-  Field           : TRttiField;
-  master, cloned  : TObject;
-  Src             : TObject;
-  sourceStream    : TStream;
-  SavedPosition   : Int64;
-  targetStream    : TStream;
-  targetCollection: TObjectList<TObject>;
-  sourceCollection: TObjectList<TObject>;
-  I               : Integer;
-  sourceObject    : TObject;
-  targetObject    : TObject;
-begin
-  Result := nil;
-  if not Assigned(AObject) then
-    Exit;
-
-  _ARttiType := GlContext.GetType(AObject.ClassType);
-  cloned := CreateObject(_ARttiType);
-  master := AObject;
-  for Field in _ARttiType.GetFields do
-  begin
-    CloneField(Field, master, cloned, AObject);
-  end;
-  Result := cloned;
-end;
-
-class function TRttiUtils.Clone<T>(AObject: TObject): TObject;
-var
-  _ARttiType    : TRttiType;
-  Field         : TRttiField;
-  master, cloned: TObject;
-begin
-  Result := nil;
-  if not Assigned(AObject) then
-    Exit;
-
-  _ARttiType := GlContext.GetType(AObject.ClassType);
-  cloned := CreateObject(_ARttiType);
-  master := AObject;
-  for Field in _ARttiType.GetFields do
-  begin
-    if HasAttribute<T>(Field) then
-    begin
-      continue;
-    end
-    else
-    begin
-      CloneField(Field, master, cloned, AObject);
-    end;
-  end;
-  Result := cloned;
-end;
-
 class procedure TRttiUtils.CloneField(const Field: TRttiField; const master, cloned, AObject: TObject);
 var
   Src             : TObject;
@@ -875,8 +817,7 @@ var
   sourceObject    : TObject;
   targetObject    : TObject;
 begin
-  begin
-    if (not Field.FieldType.IsInstance) then
+    if not Field.FieldType.IsInstance then
       Field.SetValue(cloned, Field.GetValue(master))
     else
     begin
@@ -930,7 +871,53 @@ begin
         Field.SetValue(cloned, targetObject);
       end;
     end;
+end;
+
+class function TRttiUtils.Clone(AObject: TObject): TObject;
+var
+  _ARttiType: TRttiType;
+  Field: TRttiField;
+  master, cloned: TObject;
+begin
+  Result := nil;
+  if not Assigned(AObject) then
+    Exit;
+
+  _ARttiType := GlContext.GetType(AObject.ClassType);
+  cloned := CreateObject(_ARttiType);
+  master := AObject;
+  for Field in _ARttiType.GetFields do
+  begin
+    CloneField(Field, master, cloned, AObject);
   end;
+  Result := cloned;
+end;
+
+class function TRttiUtils.Clone<T>(AObject: TObject): TObject;
+var
+  _ARttiType: TRttiType;
+  Field: TRttiField;
+  master, cloned: TObject;
+begin
+  Result := nil;
+  if not Assigned(AObject) then
+    Exit;
+
+  _ARttiType := GlContext.GetType(AObject.ClassType);
+  cloned := CreateObject(_ARttiType);
+  master := AObject;
+  for Field in _ARttiType.GetFields do
+  begin
+    if HasAttribute<T>(Field) then
+    begin
+      continue;
+    end
+    else
+    begin
+      CloneField(Field, master, cloned, AObject);
+    end;
+  end;
+  Result := cloned;
 end;
 
 class function TRttiUtils.HasAttribute<T>(AObject: TObject; out AAttribute: T): Boolean;
