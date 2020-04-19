@@ -324,11 +324,10 @@ function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVC
 function MakeResponseData(const AObject: TObject; const AMeta: TMVCStringDictionary = nil;
   const AOwns: boolean = True): IMVCResponseData;
 
+
 implementation
 
 uses
-  MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Intf,
   Data.FmtBcd,
   MVCFramework.Nullables,
   System.Generics.Defaults;

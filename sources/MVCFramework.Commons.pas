@@ -447,11 +447,11 @@ type
     procedure SetItems(const Key: string; const Value: TObject);
   protected
     fDict: TObjectDictionary<string, TObject>;
-{
-  TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
-  TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
+    {
+      TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
+      TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
 
-}
+    }
   public
     constructor Create(const OwnsValues: Boolean = True); overload; virtual;
     constructor Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean = True); overload; virtual;
@@ -647,6 +647,8 @@ type
     class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string; var VUsername,
       VPassword: string; var VHandled: Boolean);
   end;
+
+
 
 implementation
 
