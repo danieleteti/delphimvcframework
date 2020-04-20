@@ -314,7 +314,22 @@ type
       reintroduce;
   end;
 
-  TMVCObjectDictionary = class // (TInterfacedObject, IMVCObjectDictionary)
+  IMVCObjectDictionary = interface
+    ['{B54F02EE-4B3B-4E55-9E6B-FB6CFE746028}']
+    function Add(const Name: string; const Value: TObject; const SerializationAction: TMVCSerializationAction = nil)
+      : IMVCObjectDictionary; overload;
+    function Add(const Name: string; const Value: TDataset;
+      const SerializationAction: TMVCDataSetSerializationAction = nil;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
+    function Add(const Name: string; const Value: IInterface;
+      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
+    function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
+    function Count: Integer;
+    function ContainsKey(const Key: string): Boolean;
+    function Keys: TArray<string>;
+  end;
+
+  TMVCObjectDictionary = class(TInterfacedObject, IMVCObjectDictionary)
   public
   {
     TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
@@ -357,10 +372,12 @@ type
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name: string; const Value: TObject; const SerializationAction: TMVCSerializationAction = nil)
-      : TMVCObjectDictionary; overload;
+      : IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
-      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): TMVCObjectDictionary; overload;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
+    function Add(const Name: string; const Value: IInterface;
+      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -400,7 +417,7 @@ function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVC
 function StrDict: TMVCStringDictionary; overload;
 function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
-function ObjectDict(const OwnsValues: Boolean = True): TMVCObjectDictionary;
+function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
 function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32; const DefaultPageSize: UInt32;
   const URITemplate: string): TMVCStringDictionary;
 
@@ -440,7 +457,7 @@ begin
   Result := StrDict(lMetaKeys, lMetaValues);
 end;
 
-function ObjectDict(const OwnsValues: Boolean): TMVCObjectDictionary;
+function ObjectDict(const OwnsValues: Boolean): IMVCObjectDictionary;
 begin
   Result := TMVCObjectDictionary.Create(OwnsValues);
 end;
@@ -1527,16 +1544,23 @@ end;
 function TMVCObjectDictionary.Add(
   const Name: string;
 const Value: TObject;
-const SerializationAction: TMVCSerializationAction): TMVCObjectDictionary;
+const SerializationAction: TMVCSerializationAction): IMVCObjectDictionary;
 begin
   fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction));
   Result := Self;
 end;
 
 function TMVCObjectDictionary.Add(const Name: string; const Value: TDataset;
-const SerializationAction: TMVCDataSetSerializationAction; const NameCase: TMVCNameCase): TMVCObjectDictionary;
+const SerializationAction: TMVCDataSetSerializationAction; const NameCase: TMVCNameCase): IMVCObjectDictionary;
 begin
   fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction, NameCase));
+  Result := Self;
+end;
+
+function TMVCObjectDictionary.Add(const Name: string; const Value: IInterface;
+const SerializationAction: TMVCSerializationAction): IMVCObjectDictionary;
+begin
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(false, TObject(Value), SerializationAction));
   Result := Self;
 end;
 

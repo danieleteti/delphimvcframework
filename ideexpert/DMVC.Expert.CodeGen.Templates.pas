@@ -169,7 +169,7 @@ resourcestring
     'interface' + sLineBreak +
     sLineBreak +
     'uses' + sLineBreak +
-    '  MVCFramework, MVCFramework.Commons;' + sLineBreak +
+    '  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
     sLineBreak +
