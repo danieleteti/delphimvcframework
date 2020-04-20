@@ -33,7 +33,7 @@ uses
   BOs,
   MVCFramework, Data.DB, System.SysUtils, MVCFramework.JWT,
   MVCFramework.Serializer.Intf, MVCFramework.Serializer.Defaults,
-  MVCFramework.MultiMap, MVCFramework.Commons;
+  MVCFramework.MultiMap, MVCFramework.Commons, MVCFramework.Serializer.Commons;
 
 type
 
@@ -194,6 +194,18 @@ type
     procedure TestInterfaceMultiMapRemove;
   end;
 
+  [TestFixture]
+  TTestNameCase = class(TObject)
+  private
+    fOutDATA: array [1 .. 4] of array [ncAsIs .. ncPascalCase] of string;
+    fOrigDATA: array [1 .. 4] of string;
+  public
+    [SetupFixture]
+    procedure SetupFixture;
+    [Test]
+    procedure TestNameCase;
+  end;
+
 implementation
 
 {$WARN SYMBOL_DEPRECATED OFF}
@@ -203,7 +215,6 @@ uses System.DateUtils, System.Math,
   TestControllersU, DBClient,
   Web.HTTPApp, Soap.EncdDecd,
   IdHashMessageDigest, idHash,
-  MVCFramework.Serializer.Commons,
   MVCFramework.HMAC, System.Diagnostics,
 
 {$IF CompilerVersion < 27}
@@ -1795,12 +1806,66 @@ begin
   Assert.isFalse(lMultiMap.Contains('key1'));
 end;
 
+{ TTestNameCase }
+
+procedure TTestNameCase.SetupFixture;
+begin
+  fOrigDATA[1] := 'one_two';
+  fOrigDATA[2] := 'ONE_TWO_THREE';
+  fOrigDATA[3] := 'JustOne';
+  fOrigDATA[4] := '_with__underscores_';
+
+  fOutDATA[1][ncAsIs] := fOrigDATA[1];
+  fOutDATA[2][ncAsIs] := fOrigDATA[2];
+  fOutDATA[3][ncAsIs] := fOrigDATA[3];
+  fOutDATA[4][ncAsIs] := fOrigDATA[4];
+
+  fOutDATA[1][ncUpperCase] := 'ONE_TWO';
+  fOutDATA[2][ncUpperCase] := 'ONE_TWO_THREE';
+  fOutDATA[3][ncUpperCase] := 'JUSTONE';
+  fOutDATA[4][ncUpperCase] := '_WITH__UNDERSCORES_';
+
+  fOutDATA[1][ncLowerCase] := 'one_two';
+  fOutDATA[2][ncLowerCase] := 'one_two_three';
+  fOutDATA[3][ncLowerCase] := 'justone';
+  fOutDATA[4][ncLowerCase] := '_with__underscores_';
+
+  fOutDATA[1][ncCamelCase] := 'oneTwo';
+  fOutDATA[2][ncCamelCase] := 'oneTwoThree';
+  fOutDATA[3][ncCamelCase] := 'justOne';
+  fOutDATA[4][ncCamelCase] := 'WithUnderscores';
+
+  fOutDATA[1][ncPascalCase] := 'OneTwo';
+  fOutDATA[2][ncPascalCase] := 'OneTwoThree';
+  fOutDATA[3][ncPascalCase] := 'JustOne';
+  fOutDATA[4][ncPascalCase] := 'WithUnderscores';
+end;
+
+procedure TTestNameCase.TestNameCase;
+var
+  I: Integer;
+  lNameCaseIdx: TMVCNameCase;
+  lOrig: string;
+  lOutData: string;
+begin
+  for lNameCaseIdx := ncAsIs to ncPascalCase do
+  begin
+    for I := 1 to 4 do
+    begin
+      lOrig := fOrigDATA[I];
+      lOutData := fOutDATA[I][lNameCaseIdx];
+      Assert.areEqual(lOutData, TMVCSerializerHelper.ApplyNameCase(lNameCaseIdx, lOrig), lOrig);
+    end;
+  end;
+end;
+
 initialization
 
 TDUnitX.RegisterTestFixture(TTestRouting);
 // TDUnitX.RegisterTestFixture(TTestMappers);
 TDUnitX.RegisterTestFixture(TTestJWT);
 TDUnitX.RegisterTestFixture(TTestMultiMap);
+TDUnitX.RegisterTestFixture(TTestNameCase);
 
 finalization
 

@@ -36,7 +36,7 @@ uses
   System.Classes,
   System.Generics.Collections,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, MVCFramework.Commons;
 
 type
 
@@ -46,7 +46,7 @@ type
     FTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
   protected
     function GetRttiContext: TRttiContext;
-    function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
+
     function GetSerializationType(const AObject: TObject; const ADefaultValue: TMVCSerializationType = stDefault): TMVCSerializationType;
     function GetNameCase(const AObject: TObject; const ADefaultValue: TMVCNameCase = ncAsIs): TMVCNameCase; overload;
     function GetNameCase(const AComponent: TComponent; const ADefaultValue: TMVCNameCase = ncAsIs): TMVCNameCase; overload;
@@ -56,6 +56,7 @@ type
     function IsIgnoredComponent(const AOwner: TComponent; const AComponentName: string): Boolean;
     function GetObjectTypeOfGenericList(const ATypeInfo: PTypeInfo): TClass;
   public
+    function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
     procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
     constructor Create;
     destructor Destroy; override;

@@ -411,6 +411,8 @@ type
     { public declarations }
   end;
 
+  TMVCStringDictionaryList = class;
+
   TMVCRequestParamsTable = class(TDictionary<string, string>)
   private
     { private declarations }
@@ -418,57 +420,6 @@ type
     { protected declarations }
   public
     { public declarations }
-  end;
-
-  TMVCStringDictionary = class
-  strict private
-    function GetItems(const Key: string): string;
-    procedure SetItems(const Key, Value: string);
-  protected
-    fDict: TDictionary<string, string>;
-  public
-    constructor Create; overload; virtual;
-    constructor Create(const aKey, aValue: string); overload; virtual;
-    destructor Destroy; override;
-    procedure Clear;
-    function Add(const Name, Value: string): TMVCStringDictionary;
-    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
-    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-    function Count: Integer;
-    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
-    function ContainsKey(const Key: string): Boolean;
-    function Keys: TArray<string>;
-    property Items[const Key: string]: string read GetItems write SetItems; default;
-  end;
-
-  TMVCObjectDictionary = class
-  strict private
-    function GetItems(const Key: string): TObject;
-    procedure SetItems(const Key: string; const Value: TObject);
-  protected
-    fDict: TObjectDictionary<string, TObject>;
-    {
-      TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
-      TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
-
-    }
-  public
-    constructor Create(const OwnsValues: Boolean = True); overload; virtual;
-    constructor Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean = True); overload; virtual;
-    destructor Destroy; override;
-    procedure Clear;
-    function Add(const Name: string; const Value: TObject): TMVCObjectDictionary;
-    function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
-    function Count: Integer;
-    function GetEnumerator: TDictionary<string, TObject>.TPairEnumerator;
-    function ContainsKey(const Key: string): Boolean;
-    function Keys: TArray<string>;
-    property Items[const Key: string]: TObject read GetItems write SetItems; default;
-  end;
-
-  TMVCStringDictionaryList = class(TObjectList<TMVCStringDictionary>)
-  public
-    constructor Create;
   end;
 
   IMVCLinkItem = interface
@@ -495,12 +446,38 @@ type
     function LinksData: TMVCStringDictionaryList;
   end;
 
+  TMVCStringDictionary = class
+  strict private
+    function GetItems(const Key: string): string;
+    procedure SetItems(const Key, Value: string);
+  protected
+    fDict: TDictionary<string, string>;
+  public
+    constructor Create; overload; virtual;
+    constructor Create(const aKey, aValue: string); overload; virtual;
+    destructor Destroy; override;
+    procedure Clear;
+    function Add(const Name, Value: string): TMVCStringDictionary;
+    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
+    function Count: Integer;
+    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+    function ContainsKey(const Key: string): Boolean;
+    function Keys: TArray<string>;
+    property Items[const Key: string]: string read GetItems write SetItems; default;
+  end;
+
   TMVCDecoratorObject = class(TInterfacedObject, IMVCLinkItem)
   private
     fData: TMVCStringDictionary;
   public
     constructor Create(const aData: TMVCStringDictionary);
     function Add(const PropName: string; const PropValue: string): IMVCLinkItem;
+  end;
+
+  TMVCStringDictionaryList = class(TObjectList<TMVCStringDictionary>)
+  public
+    constructor Create;
   end;
 
   { This type is thread safe }
@@ -525,7 +502,7 @@ type
     constructor Create;
   end;
 
-  TMVCViewDataSet = class(TObjectDictionary<string, TDataSet>)
+  TMVCViewDataSet = class(TObjectDictionary<string, TDataset>)
   private
     { private declarations }
   protected
@@ -615,9 +592,8 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
-function StrDict: TMVCStringDictionary; overload;
-function StrDict(const aKeys: array of string; const aValues: array of string)
-  : TMVCStringDictionary; overload;
+{ changing case }
+function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
 
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
@@ -648,15 +624,12 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
-
-
 implementation
 
 uses
   IdCoder3to4,
   System.NetEncoding,
-  MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1188,28 +1161,6 @@ begin
   Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
 end;
 
-function StrDict: TMVCStringDictionary; overload;
-begin
-  Result := TMVCStringDictionary.Create;
-end;
-
-function StrDict(const aKeys: array of string; const aValues: array of string)
-  : TMVCStringDictionary; overload;
-var
-  I: Integer;
-begin
-  if Length(aKeys) <> Length(aValues) then
-  begin
-    raise EMVCException.CreateFmt('Dict error. Got %d keys but %d values',
-      [Length(aKeys), Length(aValues)]);
-  end;
-  Result := StrDict();
-  for I := low(aKeys) to high(aKeys) do
-  begin
-    Result.Add(aKeys[I], aValues[I]);
-  end;
-end;
-
 { TMVCDecorator }
 
 function TMVCLinks.AddRefLink: IMVCLinkItem;
@@ -1347,75 +1298,39 @@ begin
   Result := StringToGUID(LGuidStr);
 end;
 
-{ TMVCObjectDictionary }
-
-function TMVCObjectDictionary.Add(const Name: string; const Value: TObject): TMVCObjectDictionary;
+function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean): string;
+var
+  I: Integer;
+  lNextUpCase: Boolean;
+  lSB: TStringBuilder;
 begin
-  fDict.Add(name, Value);
-  Result := Self;
-end;
-
-procedure TMVCObjectDictionary.Clear;
-begin
-
-end;
-
-function TMVCObjectDictionary.ContainsKey(const Key: string): Boolean;
-begin
-  Result := fDict.ContainsKey(Key);
-end;
-
-function TMVCObjectDictionary.Count: Integer;
-begin
-  Result := fDict.Count;
-end;
-
-constructor TMVCObjectDictionary.Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean);
-begin
-  Create(OwnsValues);
-  Add(aKey, Value);
-end;
-
-constructor TMVCObjectDictionary.Create(const OwnsValues: Boolean);
-begin
-  inherited Create;
-  if OwnsValues then
-    fDict := TObjectDictionary<string, TObject>.Create([doOwnsValues])
-  else
-    fDict := TObjectDictionary<string, TObject>.Create();
-end;
-
-destructor TMVCObjectDictionary.Destroy;
-begin
-  fDict.Free;
-  inherited;
-end;
-
-function TMVCObjectDictionary.GetEnumerator: TDictionary<string, TObject>.TPairEnumerator;
-begin
-  Result := fDict.GetEnumerator;
-end;
-
-function TMVCObjectDictionary.GetItems(const Key: string): TObject;
-begin
-  Result := fDict.Items[Key];
-end;
-
-function TMVCObjectDictionary.Keys: TArray<string>;
-begin
-  Result := fDict.Keys.ToArray;
-end;
-
-procedure TMVCObjectDictionary.SetItems(const Key: string;
-  const Value: TObject);
-begin
-
-end;
-
-function TMVCObjectDictionary.TryGetValue(const Name: string;
-  out Value: TObject): Boolean;
-begin
-  Result := fDict.TryGetValue(name, Value);
+  lNextUpCase := MakeFirstUpperToo;
+  lSB := TStringBuilder.Create;
+  try
+    for I := 0 to Length(Value) - 1 do
+    begin
+      if not CharInSet(Value.Chars[I], ['A' .. 'Z', 'a' .. 'z']) then
+      begin
+        lNextUpCase := True;
+        Continue;
+      end
+      else
+      begin
+        if lNextUpCase then
+        begin
+          lNextUpCase := False;
+          lSB.Append(UpCase(Value.Chars[I]));
+        end
+        else
+        begin
+          lSB.Append(LowerCase(Value.Chars[I]));
+        end;
+      end;
+    end;
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
+  end;
 end;
 
 initialization

@@ -46,13 +46,19 @@ uses
 {$ENDIF}
   MVCFramework.Commons,
   Data.DB,
-  System.Generics.Collections;
+  System.Generics.Collections,
+  JsonDataObjects;
 
 type
+  EMVCSerializationException = class(EMVCException)
+  end;
+
+  EMVCDeserializationException = class(EMVCException)
+  end;
 
   TMVCSerializationType = (stUnknown, stDefault, stProperties, stFields);
 
-  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase);
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase);
 
   TMVCDataType = (dtObject, dtArray);
 
@@ -65,12 +71,8 @@ type
   TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const Links: IMVCLinks);
   TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
   TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
-
-  EMVCSerializationException = class(EMVCException)
-  end;
-
-  EMVCDeserializationException = class(EMVCException)
-  end;
+  TMVCDataSetFieldSerializationAction = reference to procedure(const AField: TField; const AJsonObject: TJsonObject;
+    var Handled: Boolean);
 
   MVCValueAsTypeAttribute = class(TCustomAttribute)
   private
@@ -161,13 +163,13 @@ type
   MVCColumnAttribute = class(TCustomAttribute)
   private
     FFieldName: string;
-    FIsPK: boolean;
+    FIsPK: Boolean;
     procedure SetFieldName(const Value: string);
-    procedure SetIsPK(const Value: boolean);
+    procedure SetIsPK(const Value: Boolean);
   public
-    constructor Create(AFieldName: string; AIsPK: boolean = false);
+    constructor Create(AFieldName: string; AIsPK: Boolean = false);
     property FieldName: string read FFieldName write SetFieldName;
-    property IsPK: boolean read FIsPK write SetIsPK;
+    property IsPK: Boolean read FIsPK write SetIsPK;
   end;
 
   MVCEnumSerializationAttribute = class(TCustomAttribute)
@@ -176,7 +178,8 @@ type
     FMappedValues: TList<string>;
   public
     constructor Create(const ASerializationType: TMVCEnumSerializationType; const AMappedValues: string = '');
-    destructor Destroy; override;
+    destructor Destroy;
+      override;
     property SerializationType: TMVCEnumSerializationType read FSerializationType;
     property MappedValues: TList<string> read FMappedValues;
   end;
@@ -185,38 +188,46 @@ type
   private
     { private declarations }
   public
+    class function ApplyNameCase(const NameCase: TMVCNameCase; const Value: string): string; static;
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
-
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): boolean;
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): Boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
       overload; static;
-
     class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T)
-      : boolean; overload; static;
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): boolean;
+      : Boolean; overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): Boolean;
       overload; static;
 
-    class procedure EncodeStream(AInput, AOutput: TStream); static;
-    class procedure DecodeStream(AInput, AOutput: TStream); static;
-
-    class function EncodeString(const AInput: string): string; static;
-    class function DecodeString(const AInput: string): string; static;
-
+    class procedure EncodeStream(AInput, AOutput: TStream);
+      static;
+    class procedure DecodeStream(AInput, AOutput: TStream);
+      static;
+    class function EncodeString(const AInput: string): string;
+      static;
+    class function DecodeString(const AInput: string): string;
+      static;
     class procedure DeSerializeStringStream(AStream: TStream; const ASerializedString: string;
-      const AEncoding: string); static;
-    class procedure DeSerializeBase64StringStream(AStream: TStream; const ABase64SerializedString: string); static;
-
-    class function GetTypeKindAsString(const ATypeKind: TTypeKind): string; static;
-    class function StringToTypeKind(const AValue: string): TTypeKind; static;
-
-    class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
-    class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
-
-    class function IsAPropertyToSkip(const aPropName: string): boolean; static;
+      const AEncoding: string);
+      static;
+    class procedure DeSerializeBase64StringStream(AStream: TStream; const ABase64SerializedString: string);
+      static;
+    class function GetTypeKindAsString(const ATypeKind: TTypeKind): string;
+      static;
+    class function StringToTypeKind(const AValue: string): TTypeKind;
+      static;
+    class function CreateObject(const AObjectType: TRttiType): TObject;
+      overload;
+      static;
+    class function CreateObject(const AQualifiedClassName: string): TObject;
+      overload;
+      static;
+    class function IsAPropertyToSkip(const aPropName: string): Boolean;
+      static;
   end;
 
-  TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
+  TMVCLinksCallback = reference to
+    procedure(const Links: TMVCStringDictionary);
 
   IMVCResponseData = interface
     ['{DF69BE0E-3212-4535-8B78-38EEF0F5B656}']
@@ -230,8 +241,12 @@ type
   [MVCNameCase(ncLowerCase)]
   TMVCResponseBase = class abstract(TInterfacedObject, IMVCResponseData)
   protected
-    function GetMetadata: TMVCStringDictionary; virtual; abstract;
-    function GetData: TObject; virtual; abstract;
+    function GetMetadata: TMVCStringDictionary;
+      virtual;
+      abstract;
+    function GetData: TObject;
+      virtual;
+      abstract;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -253,7 +268,8 @@ type
     property Task: TMVCTask read fTask;
     // constructor Create(const aTask: TMVCTask); overload;
     constructor Create(const HREF, ID: string);
-    destructor Destroy; override;
+    destructor Destroy;
+      override;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -261,16 +277,20 @@ type
   private
     fData: TObject;
     fMetaData: TMVCStringDictionary;
-    fOwns: boolean;
+    fOwns: Boolean;
     fDataSetSerializationType: TMVCDatasetSerializationType;
   protected
-    function GetMetadata: TMVCStringDictionary; override;
-    function GetData: TObject; override;
+    function GetMetadata: TMVCStringDictionary;
+      override;
+    function GetData: TObject;
+      override;
   public
-    constructor Create(const AObject: TObject; const AOwns: boolean = false;
+    constructor Create(const AObject: TObject; const AOwns: Boolean = false;
       const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
-      dstAllRecords); virtual;
-    destructor Destroy; override;
+      dstAllRecords);
+      virtual;
+    destructor Destroy;
+      override;
     function SerializationType: TMVCDatasetSerializationType;
     [MVCNameAs('data')]
     property Items: TObject read GetData;
@@ -284,12 +304,68 @@ type
 
   TMVCObjectListResponse = class(TMVCResponseData)
   public
-    constructor Create(const AObject: TObject; Owns: boolean = True); reintroduce;
+    constructor Create(const AObject: TObject; Owns: Boolean = True);
+      reintroduce;
   end;
 
   TMVCObjectResponse = class(TMVCResponseData)
   public
-    constructor Create(const AObject: TObject; Owns: boolean = True); reintroduce;
+    constructor Create(const AObject: TObject; Owns: Boolean = True);
+      reintroduce;
+  end;
+
+  TMVCObjectDictionary = class // (TInterfacedObject, IMVCObjectDictionary)
+  public
+  {
+    TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
+    TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
+  }
+    type
+
+    TMVCObjectDictionaryValueItem = class
+    private
+      fOwns: Boolean;
+      fData: TObject;
+      fSerializationAction: TMVCSerializationAction;
+      fDataSetSerializationAction: TMVCDataSetSerializationAction;
+      fDataSetFieldNameCase: TMVCNameCase;
+    public
+      constructor Create(
+        const Owns: Boolean;
+        const Data: TObject;
+        const SerializationAction: TMVCSerializationAction); overload;
+      constructor Create(
+        const Owns: Boolean;
+        const Data: TDataset;
+        const SerializationAction: TMVCDataSetSerializationAction;
+        const NameCase: TMVCNameCase); overload;
+      destructor Destroy; override;
+      property Data: TObject read fData;
+      property SerializationAction: TMVCSerializationAction read fSerializationAction;
+      property DataSetSerializationAction: TMVCDataSetSerializationAction read fDataSetSerializationAction;
+      property DataSetFieldNameCase: TMVCNameCase read fDataSetFieldNameCase;
+    end;
+  strict private
+    function GetItem(const Key: string): TMVCObjectDictionaryValueItem;
+  private
+    fOwnsValueItemData: Boolean;
+  protected
+    fDict: TObjectDictionary<string, TMVCObjectDictionaryValueItem>;
+  public
+    constructor Create(const OwnsValues: Boolean = True); overload; virtual;
+    constructor Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean = True); overload; virtual;
+    destructor Destroy; override;
+    procedure Clear;
+    function Add(const Name: string; const Value: TObject; const SerializationAction: TMVCSerializationAction = nil)
+      : TMVCObjectDictionary; overload;
+    function Add(const Name: string; const Value: TDataset;
+      const SerializationAction: TMVCDataSetSerializationAction = nil;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): TMVCObjectDictionary; overload;
+    function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
+    function Count: Integer;
+    function ContainsKey(const Key: string): Boolean;
+    function Keys: TArray<string>;
+    property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
   end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
@@ -298,10 +374,10 @@ function TimeToISOTime(const ATime: TTime): string;
 
 procedure MapDataSetFieldToRTTIField(const AField: TField; const aRTTIField: TRttiField; const AObject: TObject);
 function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField; const aRTTIField: TRttiField;
-  const AObject: TObject): boolean;
+  const AObject: TObject): Boolean;
 function MapDataSetFieldToNullableRTTIProperty(const AValue: TValue; const AField: TField;
   const aRTTIProp: TRttiProperty;
-  const AObject: TObject): boolean;
+  const AObject: TObject): Boolean;
 
 /// <summary>
 /// Supports ISO8601 in the following formats:
@@ -317,13 +393,16 @@ const
   JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
 function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TMVCObjectResponse;
+  const AOwns: Boolean = false): TMVCObjectResponse;
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TMVCObjectListResponse;
+  const AOwns: Boolean = false): TMVCObjectListResponse;
 
-function MakeResponseData(const AObject: TObject; const AMeta: TMVCStringDictionary = nil;
-  const AOwns: boolean = True): IMVCResponseData;
-
+function StrDict: TMVCStringDictionary; overload;
+function StrDict(const aKeys: array of string; const aValues: array of string)
+  : TMVCStringDictionary; overload;
+function ObjectDict(const OwnsValues: Boolean = True): TMVCObjectDictionary;
+function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32; const DefaultPageSize: UInt32;
+  const URITemplate: string): TMVCStringDictionary;
 
 implementation
 
@@ -332,8 +411,59 @@ uses
   MVCFramework.Nullables,
   System.Generics.Defaults;
 
+function StrDict: TMVCStringDictionary; overload;
+begin
+  Result := TMVCStringDictionary.Create;
+end;
+
+function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32; const DefaultPageSize: UInt32;
+  const URITemplate: string)
+  : TMVCStringDictionary;
+var
+  lMetaKeys: array of string;
+  lMetaValues: array of string;
+begin
+  Insert('curr_page', lMetaKeys, 0);
+  Insert(CurrPageNumber.ToString(), lMetaValues, 0);
+
+  if CurrPageNumber > 1 then
+  begin
+    Insert('prev_page_uri', lMetaKeys, 0);
+    Insert(Format(URITemplate, [(CurrPageNumber - 1)]), lMetaValues, 0);
+  end;
+
+  if CurrPageSize = DefaultPageSize then
+  begin
+    Insert('next_page_uri', lMetaKeys, 0);
+    Insert(Format(URITemplate, [(CurrPageNumber + 1)]), lMetaValues, 0);
+  end;
+  Result := StrDict(lMetaKeys, lMetaValues);
+end;
+
+function ObjectDict(const OwnsValues: Boolean): TMVCObjectDictionary;
+begin
+  Result := TMVCObjectDictionary.Create(OwnsValues);
+end;
+
+function StrDict(const aKeys: array of string; const aValues: array of string)
+  : TMVCStringDictionary; overload;
+var
+  I: Integer;
+begin
+  if Length(aKeys) <> Length(aValues) then
+  begin
+    raise EMVCException.CreateFmt('Dict error. Got %d keys but %d values',
+      [Length(aKeys), Length(aValues)]);
+  end;
+  Result := StrDict();
+  for I := low(aKeys) to high(aKeys) do
+  begin
+    Result.Add(aKeys[I], aValues[I]);
+  end;
+end;
+
 function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TMVCObjectResponse;
+  const AOwns: Boolean = false): TMVCObjectResponse;
 begin
   Result := TMVCObjectResponse.Create(AObject, AOwns);
   if Assigned(AMetaFiller) then
@@ -342,18 +472,8 @@ begin
   end;
 end;
 
-function MakeResponseData(const AObject: TObject; const AMeta: TMVCStringDictionary = nil;
-  const AOwns: boolean = True): IMVCResponseData;
-begin
-  Result := TMVCResponseData.Create(AObject, AOwns);
-  // if Assigned(AMetaFiller) then
-  // begin
-  // AMetaFiller(Result.fMetaData);
-  // end;
-end;
-
 function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TMVCObjectListResponse;
+  const AOwns: Boolean = false): TMVCObjectListResponse;
 begin
   Result := TMVCObjectListResponse.Create(AList, AOwns);
   if Assigned(AMetaFiller) then
@@ -459,25 +579,30 @@ begin
   for Attr in Attrs do
     if Attr is MVCNameCaseAttribute then
     begin
-      case MVCNameCaseAttribute(Attr).KeyCase of
-        ncUpperCase:
-          begin
-            Exit(UpperCase(AField.Name));
-          end;
-        ncLowerCase:
-          begin
-            Exit(LowerCase(AField.Name));
-          end;
-        ncCamelCase:
-          begin
-            Exit(LowerCase(AField.Name.Chars[0]) + AField.Name.Substring(1));
-          end;
-      end;
+      Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, AField.Name));
+      // case MVCNameCaseAttribute(Attr).KeyCase of
+      // ncUpperCase:
+      // begin
+      // Exit(UpperCase(AField.Name));
+      // end;
+      // ncLowerCase:
+      // begin
+      // Exit(LowerCase(AField.Name));
+      // end;
+      // ncCamelCase:
+      // begin
+      // Exit(CamelCase(AField.Name));
+      // end;
+      // ncPascalCase:
+      // begin
+      // Exit(CamelCase(AField.Name, True));
+      // end;
+      // end;
     end;
 end;
 
 class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>;
-  out AAttribute: T): boolean;
+  out AAttribute: T): Boolean;
 var
   Att: TCustomAttribute;
 begin
@@ -491,7 +616,36 @@ begin
   Result := (AAttribute <> nil);
 end;
 
-class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>): boolean;
+class function TMVCSerializerHelper.ApplyNameCase(const NameCase: TMVCNameCase;
+  const Value: string): string;
+begin
+  case NameCase of
+    ncUpperCase:
+      begin
+        Result := UpperCase(Value);
+      end;
+    ncLowerCase:
+      begin
+        Result := LowerCase(Value);
+      end;
+    ncCamelCase:
+      begin
+        Result := CamelCase(Value);
+      end;
+    ncPascalCase:
+      begin
+        Result := CamelCase(Value, True);
+      end;
+    ncAsIs:
+      begin
+        Result := Value;
+      end
+  else
+    raise Exception.Create('Invalid NameCase');
+  end;
+end;
+
+class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>): Boolean;
 var
   Att: TCustomAttribute;
 begin
@@ -608,20 +762,25 @@ begin
   for Attr in Attrs do
     if Attr is MVCNameCaseAttribute then
     begin
-      case MVCNameCaseAttribute(Attr).KeyCase of
-        ncUpperCase:
-          begin
-            Exit(UpperCase(AProperty.Name));
-          end;
-        ncLowerCase:
-          begin
-            Exit(LowerCase(AProperty.Name));
-          end;
-        ncCamelCase:
-          begin
-            Exit(LowerCase(AProperty.Name.Chars[0]) + AProperty.Name.Substring(1));
-          end;
-      end;
+      Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, AProperty.Name));
+      // case MVCNameCaseAttribute(Attr).KeyCase of
+      // ncUpperCase:
+      // begin
+      // Exit(UpperCase(AProperty.Name));
+      // end;
+      // ncLowerCase:
+      // begin
+      // Exit(LowerCase(AProperty.Name));
+      // end;
+      // ncCamelCase:
+      // begin
+      // Exit(CamelCase(AProperty.Name));
+      // end;
+      // ncPascalCase:
+      // begin
+      // Exit(CamelCase(AProperty.Name, True));
+      // end;
+      // end;
     end;
 end;
 
@@ -631,7 +790,7 @@ begin
   Result := Result.Remove(0, 2).ToLower;
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject): boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -645,7 +804,7 @@ begin
       Exit(True);
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -661,7 +820,7 @@ begin
     end;
 end;
 
-class function TMVCSerializerHelper.IsAPropertyToSkip(const aPropName: string): boolean;
+class function TMVCSerializerHelper.IsAPropertyToSkip(const aPropName: string): Boolean;
 begin
   Result := (aPropName = 'RefCount') or (aPropName = 'Disposed');
 end;
@@ -736,7 +895,7 @@ end;
 
 { MVCColumnAttribute }
 
-constructor MVCColumnAttribute.Create(AFieldName: string; AIsPK: boolean);
+constructor MVCColumnAttribute.Create(AFieldName: string; AIsPK: Boolean);
 begin
   inherited Create;
   FFieldName := AFieldName;
@@ -748,7 +907,7 @@ begin
   FFieldName := Value;
 end;
 
-procedure MVCColumnAttribute.SetIsPK(const Value: boolean);
+procedure MVCColumnAttribute.SetIsPK(const Value: Boolean);
 begin
   FIsPK := Value;
 end;
@@ -812,7 +971,7 @@ end;
 
 { TObjectResponseBase }
 
-constructor TMVCResponseData.Create(const AObject: TObject; const AOwns: boolean;
+constructor TMVCResponseData.Create(const AObject: TObject; const AOwns: Boolean;
 const ADataSetSerializationType: TMVCDatasetSerializationType);
 begin
   inherited Create;
@@ -849,14 +1008,14 @@ end;
 
 { TMVCObjectListResponse }
 
-constructor TMVCObjectListResponse.Create(const AObject: TObject; Owns: boolean);
+constructor TMVCObjectListResponse.Create(const AObject: TObject; Owns: Boolean);
 begin
   inherited Create(AObject, Owns, dstAllRecords);
 end;
 
 { TMVCObjectResponse }
 
-constructor TMVCObjectResponse.Create(const AObject: TObject; Owns: boolean = True);
+constructor TMVCObjectResponse.Create(const AObject: TObject; Owns: Boolean = True);
 begin
   inherited Create(AObject, Owns, dstSingleRecord);
 end;
@@ -989,7 +1148,7 @@ begin
 end;
 
 function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField; const aRTTIField: TRttiField;
-const AObject: TObject): boolean;
+const AObject: TObject): Boolean;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := false;
@@ -1177,7 +1336,7 @@ end;
 
 function MapDataSetFieldToNullableRTTIProperty(const AValue: TValue; const AField: TField;
 const aRTTIProp: TRttiProperty;
-const AObject: TObject): boolean;
+const AObject: TObject): Boolean;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := false;
@@ -1361,6 +1520,106 @@ begin
     end;
     Result := True;
   end
+end;
+
+{ TMVCObjectDictionary }
+
+function TMVCObjectDictionary.Add(
+  const Name: string;
+const Value: TObject;
+const SerializationAction: TMVCSerializationAction): TMVCObjectDictionary;
+begin
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction));
+  Result := Self;
+end;
+
+function TMVCObjectDictionary.Add(const Name: string; const Value: TDataset;
+const SerializationAction: TMVCDataSetSerializationAction; const NameCase: TMVCNameCase): TMVCObjectDictionary;
+begin
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction, NameCase));
+  Result := Self;
+end;
+
+procedure TMVCObjectDictionary.Clear;
+begin
+  fDict.Clear;
+end;
+
+function TMVCObjectDictionary.ContainsKey(const Key: string): Boolean;
+begin
+  Result := fDict.ContainsKey(Key);
+end;
+
+function TMVCObjectDictionary.Count: Integer;
+begin
+  Result := fDict.Count;
+end;
+
+constructor TMVCObjectDictionary.Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean);
+begin
+  Create(OwnsValues);
+  Add(aKey, Value);
+end;
+
+constructor TMVCObjectDictionary.Create(const OwnsValues: Boolean);
+begin
+  inherited Create;
+  fOwnsValueItemData := OwnsValues;
+  fDict := TObjectDictionary<string, TMVCObjectDictionaryValueItem>.Create([doOwnsValues]);
+end;
+
+destructor TMVCObjectDictionary.Destroy;
+begin
+  fDict.Free;
+  inherited;
+end;
+
+function TMVCObjectDictionary.GetItem(const Key: string): TMVCObjectDictionaryValueItem;
+begin
+  Result := fDict.Items[Key];
+end;
+
+function TMVCObjectDictionary.Keys: TArray<string>;
+begin
+  Result := fDict.Keys.ToArray;
+end;
+
+function TMVCObjectDictionary.TryGetValue(const Name: string;
+out Value: TObject): Boolean;
+var
+  lItem: TMVCObjectDictionaryValueItem;
+begin
+  Result := fDict.TryGetValue(name, lItem);
+  if Result then
+    Value := lItem.Data;
+end;
+
+{ TMVCObjectDictionary.TMVCObjectDictionaryValueItem }
+
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
+  const Owns: Boolean; const Data: TObject; const SerializationAction: TMVCSerializationAction);
+begin
+  inherited Create;
+  fOwns := Owns;
+  fData := Data;
+  fSerializationAction := SerializationAction;
+  fDataSetFieldNameCase := ncAsIs; { not used }
+end;
+
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
+  const Owns: Boolean; const Data: TDataset;
+const SerializationAction: TMVCDataSetSerializationAction; const NameCase: TMVCNameCase);
+begin
+  Create(Owns, Data, nil);
+  fDataSetFieldNameCase := NameCase;
+  fDataSetSerializationAction := SerializationAction;
+end;
+
+destructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Destroy;
+begin
+  if fOwns then
+    fData.Free;
+  inherited;
 end;
 
 end.

@@ -59,18 +59,22 @@ type
     procedure GetCustomersAsDataSetWithRefLinks;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($ID)/asdataset')]
-    procedure GetCustomer_AsDataSetRecord(const ID: Integer);
+    [MVCPath('/customers2')]
+    procedure GetCustomersWithObjectDictionary;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($ID)')]
-    [MVCProduces('application/json')]
-    procedure GetCustomerByID_AsTObject(const ID: Integer);
+    [MVCPath('/customers/($ID)/asdataset')]
+    procedure GetCustomer_AsDataSetRecord(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/metadata')]
     [MVCProduces('application/json')]
     procedure GetDataSetWithMetadata;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/($ID)')]
+    [MVCProduces('application/json')]
+    procedure GetCustomerByID_AsTObject(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/multi')]
@@ -427,8 +431,8 @@ begin
         procedure(const aField: TField; const aJsonObject: TJSONObject;
           var Handled: Boolean)
         var
-          lTmp: String;
-          lPieces: TArray<String>;
+          lTmp: string;
+          lPieces: TArray<string>;
         begin
           // ignore one attribute
           if SameText(aField.FieldName, 'contact_last') then
@@ -456,7 +460,7 @@ begin
             lPieces := lTmp.Split([' ']);
             aJsonObject.O['phone'].s['intl_prefix'] := lPieces[0];
             Delete(lPieces, 0, 1);
-            aJsonObject.O['phone'].s['number'] := String.Join('-', lPieces);
+            aJsonObject.O['phone'].s['number'] := string.Join('-', lPieces);
             Handled := True;
           end;
 
@@ -479,6 +483,38 @@ begin
       lSer.Free;
     end;
     Render(lJObj);
+  finally
+    lDM.Free;
+  end;
+end;
+
+procedure TRenderSampleController.GetCustomersWithObjectDictionary;
+var
+  lDM: TMyDataModule;
+  lDict: TMVCObjectDictionary;
+begin
+  lDM := TMyDataModule.Create(nil);
+  try
+    lDM.qryCustomers.Open;
+    lDict := ObjectDict(False).Add('customers', lDM.qryCustomers,
+      procedure(const DS: TDataset; const Links: IMVCLinks)
+      begin
+        Links
+          .AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+          .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+          .Add(HATEOAS.REL, 'orders')
+          .Add(HATEOAS._TYPE, 'application/json');
+      end);
+    try
+      Render(lDict, False);
+    finally
+      lDict.Free;
+    end;
   finally
     lDM.Free;
   end;
@@ -513,15 +549,25 @@ end;
 procedure TRenderSampleController.GetDataSetWithMetadata;
 var
   lDM: TMyDataModule;
-  lHolder: TDataSetHolder;
+  lDict: TMVCObjectDictionary;
 begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
-    lHolder := TDataSetHolder.Create(lDM.qryCustomers);
-    lHolder.Metadata.Add('page', '1');
-    lHolder.Metadata.Add('count', lDM.qryCustomers.RecordCount.ToString);
-    Render(lHolder);
+    lDict := ObjectDict(False)
+      .Add('ncUpperCase', lDM.qryCustomers, nil, ncUpperCase)
+      .Add('ncLowerCase', lDM.qryCustomers, nil, ncLowerCase)
+      .Add('ncCamelCase', lDM.qryCustomers, nil, ncCamelCase)
+      .Add('ncPascalCase', lDM.qryCustomers, nil, ncPascalCase)
+      .Add('meta', StrDict(['page', 'count'], ['1', lDM.qryCustomers.RecordCount.ToString]));
+     //lHolder := TDataSetHolder.Create(lDM.qryCustomers);
+    // lHolder.Metadata.Add('page', '1');
+    // lHolder.Metadata.Add('count', lDM.qryCustomers.RecordCount.ToString);
+    try
+      Render(lDict, False);
+    finally
+      lDict.Free;
+    end;
   finally
     lDM.Free;
   end;

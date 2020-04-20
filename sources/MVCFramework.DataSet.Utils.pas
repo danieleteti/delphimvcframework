@@ -104,7 +104,7 @@ type
     property Items: TDataSet read fDataSet;
     [MVCNameAs('meta')]
     property Metadata: TMVCStringDictionary read fMetadata;
-  end;
+  end deprecated 'Use function "ObjectDict(boolean)" instead';
 
   TMVCAPIBinder = class
   protected
@@ -138,36 +138,11 @@ type
     procedure BindDataSetToAPI(const ADataSet: TDataSet; const aURI: string; const aPrimaryKeyName: string);
   end;
 
-function NewDataSetHolder(const ADataSet: TDataSet; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataSetHolder;
-function NewDataSetRecordHolder(const ADataSet: TDataSet; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataSetHolder;
-
 implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
-
-function NewDataSetRecordHolder(const ADataSet: TDataSet; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataSetHolder;
-begin
-  Result := TDataSetHolder.Create(ADataSet, AOwns, dstSingleRecord);
-  if Assigned(AMetaFiller) then
-  begin
-    AMetaFiller(Result.fMetadata);
-  end;
-end;
-
-function NewDataSetHolder(const ADataSet: TDataSet; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: boolean = false): TDataSetHolder;
-begin
-  Result := TDataSetHolder.Create(ADataSet, AOwns, dstAllRecords);
-  if Assigned(AMetaFiller) then
-  begin
-    AMetaFiller(Result.fMetadata);
-  end;
-end;
 
 { TDataSetHelper }
 

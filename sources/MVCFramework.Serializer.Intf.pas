@@ -34,6 +34,7 @@ uses
   System.Rtti,
   System.TypInfo,
   Data.DB,
+  MVCFramework.Commons,
   MVCFramework.Serializer.Commons;
 
 type

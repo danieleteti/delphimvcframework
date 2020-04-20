@@ -27,6 +27,7 @@
 unit MVCFramework.Serializer.JsonDataObjects.CustomTypes;
 
 {$I dmvcframework.inc}
+{$WARN SYMBOL_DEPRECATED OFF}
 
 interface
 
@@ -37,7 +38,7 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
   JsonDataObjects,
-  MVCFramework.Commons;
+  MVCFramework.Commons, MVCFramework.Serializer.JsonDataObjects;
 
 type
 
@@ -73,7 +74,10 @@ type
   end;
 
   TMVCObjectDictionarySerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  protected
+    fCurrentSerializer: TMVCJsonDataObjectsSerializer;
   public
+    constructor Create(const CurrentSerializer: TMVCJsonDataObjectsSerializer); virtual;
     procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
       const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
     procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
@@ -116,7 +120,6 @@ type
 implementation
 
 uses
-  MVCFramework.Serializer.JsonDataObjects,
   Data.DB,
   MVCFramework.DuckTyping,
   System.Generics.Collections,
@@ -389,6 +392,13 @@ end;
 
 { TMVCObjectDictionarySerializer }
 
+constructor TMVCObjectDictionarySerializer.Create(
+  const CurrentSerializer: TMVCJsonDataObjectsSerializer);
+begin
+  inherited Create;
+  fCurrentSerializer := CurrentSerializer;
+end;
+
 procedure TMVCObjectDictionarySerializer.DeserializeAttribute(
   var AElementValue: TValue; const APropertyName: string;
   const ASerializerObject: TObject;
@@ -417,32 +427,47 @@ procedure TMVCObjectDictionarySerializer.SerializeRoot(const AObject: TObject;
   const ASerializationAction: TMVCSerializationAction);
 var
   lObjDict: TMVCObjectDictionary;
-  lOutObject: TJsonObject;
+  lOutObject, lOutCustom: TJsonObject;
   lName: string;
-  lObj: TObject;
-  lJSONSer: TMVCJsonDataObjectsSerializer;
+  lObj: TMVCObjectDictionary.TMVCObjectDictionaryValueItem;
   lList: IMVCList;
 begin
-  lJSONSer := TMVCJsonDataObjectsSerializer.Create;
+  lObjDict := AObject as TMVCObjectDictionary;
+  lOutObject := TJsonObject.Create;
   try
-    lObjDict := AObject as TMVCObjectDictionary;
-    lOutObject := TJsonObject.Create;
     for lName in lObjDict.Keys do
     begin
       lObj := lObjDict.Items[lName];
-      if TDuckTypedList.CanBeWrappedAsList(lObj, lList) then
-        lJSONSer.ListToJsonArray(lList, lOutObject.A[lName], TMVCSerializationType.stDefault, [])
-      else if lObj is TDataSet then
-        lJSONSer.DataSetToJsonArray(TDataSet(lObj), lOutObject.A[lName], TMVCNameCase.ncCamelCase, [])
-      else if lObj is TMVCStringDictionary then
-        TMVCStringDictionarySerializer.Serialize(TMVCStringDictionary(lObj), lOutObject.O[lName])
+      if fCurrentSerializer.GetTypeSerializers.ContainsKey(lObj.Data.ClassInfo) then
+      begin
+        fCurrentSerializer.GetTypeSerializers.Items[lObj.Data.ClassInfo].SerializeRoot(lObj.Data, TObject(lOutCustom),
+          [], lObj.SerializationAction);
+        lOutObject.O[lName] := lOutCustom;
+        Continue;
+      end;
+
+      if TDuckTypedList.CanBeWrappedAsList(lObj.Data, lList) then
+      begin
+        fCurrentSerializer.ListToJsonArray(lList, lOutObject.A[lName], TMVCSerializationType.stDefault, [],
+          lObj.SerializationAction)
+      end
+      else if lObj.Data is TDataSet then
+      begin
+        fCurrentSerializer.InternalSerializeDataSet(TDataSet(lObj.Data), lOutObject.A[lName], [],
+          lObj.DataSetFieldNameCase,
+          lObj.DataSetSerializationAction)
+      end
       else
-        lJSONSer.ObjectToJsonObject(lObj, lOutObject.O[lName], TMVCSerializationType.stDefault, []);
-    end;
-    ASerializerObject := lOutObject;
-  finally
-    lJSONSer.Free;
+      begin
+        fCurrentSerializer.InternalObjectToJsonObject(lObj.Data, lOutObject.O[lName],
+          TMVCSerializationType.stDefault, [], lObj.SerializationAction, nil, nil);
+      end;
+    end
+  except
+    lOutObject.Free;
+    raise;
   end;
+  ASerializerObject := lOutObject;
 end;
 
 end.
