@@ -38,6 +38,7 @@ implementation
 uses
   System.SysUtils,
   MVCFramework.Serializer.JSONDataObjects,
+  MVCFramework.Serializer.Commons,
   JSONDataObjects;
 
 { TApp1MainController }
@@ -73,9 +74,7 @@ begin
   lFS.DecimalSeparator := '.';
   Log.Info('Parameter1=%d', [par1], 'basicdemo');
   Log.Info('Parameter2=%d', [par2], 'basicdemo');
-  Render(
-    StrDict.Add('result', FloatToStr(par1 / par2, lFS))
-    );
+  Render(StrDict().Add('result', FloatToStr(par1 / par2, lFS)));
 end;
 
 end.
