@@ -123,6 +123,8 @@ type
     [Test]
     procedure TestRenderStreamAndFreeWithOwnerTrue;
     [Test]
+    procedure TestObjectDict;
+    [Test]
     procedure TestGetImagePng;
     [Test]
     procedure TestProducesConsumes01;
@@ -953,6 +955,54 @@ begin
   Assert.AreNotEqual('', r.HeaderValue('request_gen_time'));
 end;
 
+procedure TServerTest.TestObjectDict;
+var
+  lRes: IRESTResponse;
+  lJSON: TJSONObject;
+begin
+  lRes := RESTClient.doGET('/objectdict', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.ResponseCode, lRes.BodyAsString);
+  lJSON := StrToJSONObject(lRes.BodyAsString);
+  try
+    Assert.isTrue(lJSON.Contains('ncCamelCase_Single'), lJSON.ToJSON());
+    Assert.isTrue(lJSON.Contains('ncLowerCase_Single'), lJSON.ToJSON());
+    Assert.isTrue(lJSON.Contains('ncPascalCase_Single'), lJSON.ToJSON());
+    Assert.isTrue(lJSON.Contains('ncUpperCase_Single'), lJSON.ToJSON());
+
+    Assert.isTrue(lJSON.Contains('ncCamelCase_List'), lJSON.ToJSON());
+    Assert.isTrue(lJSON.Contains('ncLowerCase_List'), lJSON.ToJSON());
+    Assert.isTrue(lJSON.Contains('ncPascalCase_List'), lJSON.ToJSON());
+    Assert.isTrue(lJSON.Contains('ncUpperCase_List'), lJSON.ToJSON());
+
+    Assert.areEqual(jdtObject, lJSON.Types['ncCamelCase_Single']);
+    Assert.areEqual(jdtObject, lJSON.Types['ncLowerCase_Single']);
+    Assert.areEqual(jdtObject, lJSON.Types['ncPascalCase_Single']);
+    Assert.areEqual(jdtObject, lJSON.Types['ncUpperCase_Single']);
+
+    Assert.isTrue(lJSON.O['ncCamelCase_Single'].Contains('custNo'), lJSON.O['ncCamelCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncLowerCase_Single'].Contains('cust_no'), lJSON.O['ncLowerCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncPascalCase_Single'].Contains('CustNo'), lJSON.O['ncPascalCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncUpperCase_Single'].Contains('CUST_NO'), lJSON.O['ncUpperCase_Single'].ToJSON());
+
+    Assert.areEqual(jdtArray, lJSON.Types['ncCamelCase_List']);
+    Assert.areEqual(jdtArray, lJSON.Types['ncLowerCase_List']);
+    Assert.areEqual(jdtArray, lJSON.Types['ncPascalCase_List']);
+    Assert.areEqual(jdtArray, lJSON.Types['ncUpperCase_List']);
+
+    Assert.isTrue(lJSON.A['ncCamelCase_List'][0].ObjectValue.Contains('custNo'),
+      lJSON.A['ncCamelCase_List'][0].ObjectValue.ToJSON());
+    Assert.isTrue(lJSON.A['ncLowerCase_List'][0].ObjectValue.Contains('cust_no'),
+      lJSON.A['ncLowerCase_List'][0].ObjectValue.ToJSON());
+    Assert.isTrue(lJSON.A['ncPascalCase_List'][0].ObjectValue.Contains('CustNo'),
+      lJSON.A['ncPascalCase_List'][0].ObjectValue.ToJSON());
+    Assert.isTrue(lJSON.A['ncUpperCase_List'][0].ObjectValue.Contains('CUST_NO'),
+      lJSON.A['ncUpperCase_List'][0].ObjectValue.ToJSON());
+
+  finally
+    lJSON.Free;
+  end;
+end;
+
 // procedure TServerTest.TestPATCHWithParamsAndJSONBody;
 // var
 // r: IRESTResponse;
@@ -1676,6 +1726,7 @@ var
   lRes: IRESTResponse;
 begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).doGET('/website/list', []);
+  Assert.areEqual(HTTP_STATUS.OK, lRes.ResponseCode, lRes.BodyAsString);
   var
   lLines := lRes.BodyAsString.Split([sLineBreak]);
   var lCount: Integer := 1001;
@@ -1692,7 +1743,6 @@ begin
     Assert.areEqual(lCount, lLinePieces[0].ToInteger);
     Inc(lCount);
   end;
-  Assert.areEqual(HTTP_STATUS.OK, lRes.ResponseCode);
 end;
 
 procedure TServerTest.TestWrongJSONBody;

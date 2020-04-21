@@ -75,8 +75,8 @@ begin
       // no config here
       Config[TMVCConfigKey.SessionTimeout] := '0'; // setting cookie
       Config[TMVCConfigKey.PathPrefix] := '';
-      Config[TMVCConfigKey.DocumentRoot] := '..\..\www';
-      Config[TMVCConfigKey.ViewPath] := '..\..\templates';
+      Config[TMVCConfigKey.DocumentRoot] := '..\www';
+      Config[TMVCConfigKey.ViewPath] := '..\templates';
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
     end, nil);
   MVCEngine.AddController(TTestServerController)

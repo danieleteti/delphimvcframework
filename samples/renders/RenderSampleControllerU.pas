@@ -491,12 +491,13 @@ end;
 procedure TRenderSampleController.GetCustomersWithObjectDictionary;
 var
   lDM: TMyDataModule;
-  lDict: TMVCObjectDictionary;
+  lDict: IMVCObjectDictionary;
 begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
-    lDict := ObjectDict(False).Add('customers', lDM.qryCustomers,
+    lDict := ObjectDict(False)
+      .Add('customers', lDM.qryCustomers,
       procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
         Links
@@ -509,12 +510,9 @@ begin
           .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
           .Add(HATEOAS.REL, 'orders')
           .Add(HATEOAS._TYPE, 'application/json');
-      end);
-    try
-      Render(lDict, False);
-    finally
-      lDict.Free;
-    end;
+      end)
+      .Add('singleCustomer', lDM.qryCustomers, nil, dstSingleRecord, ncPascalCase);
+    Render(lDict);
   finally
     lDM.Free;
   end;
@@ -549,25 +547,22 @@ end;
 procedure TRenderSampleController.GetDataSetWithMetadata;
 var
   lDM: TMyDataModule;
-  lDict: TMVCObjectDictionary;
+  lDict: IMVCObjectDictionary;
 begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
     lDict := ObjectDict(False)
-      .Add('ncUpperCase', lDM.qryCustomers, nil, ncUpperCase)
-      .Add('ncLowerCase', lDM.qryCustomers, nil, ncLowerCase)
-      .Add('ncCamelCase', lDM.qryCustomers, nil, ncCamelCase)
-      .Add('ncPascalCase', lDM.qryCustomers, nil, ncPascalCase)
+      .Add('ncUpperCaseList', lDM.qryCustomers, nil, dstAllRecords, ncUpperCase)
+      .Add('ncLowerCaseList', lDM.qryCustomers, nil, dstAllRecords, ncLowerCase)
+      .Add('ncCamelCaseList', lDM.qryCustomers, nil, dstAllRecords, ncCamelCase)
+      .Add('ncPascalCaseList', lDM.qryCustomers, nil, dstAllRecords, ncPascalCase)
+      .Add('ncUpperCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncUpperCase)
+      .Add('ncLowerCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncLowerCase)
+      .Add('ncCamelCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncCamelCase)
+      .Add('ncPascalCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncPascalCase)
       .Add('meta', StrDict(['page', 'count'], ['1', lDM.qryCustomers.RecordCount.ToString]));
-     //lHolder := TDataSetHolder.Create(lDM.qryCustomers);
-    // lHolder.Metadata.Add('page', '1');
-    // lHolder.Metadata.Add('count', lDM.qryCustomers.RecordCount.ToString);
-    try
-      Render(lDict, False);
-    finally
-      lDict.Free;
-    end;
+    Render(lDict);
   finally
     lDM.Free;
   end;

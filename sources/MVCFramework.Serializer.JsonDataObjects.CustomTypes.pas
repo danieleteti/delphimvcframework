@@ -453,9 +453,26 @@ begin
       end
       else if lObj.Data is TDataSet then
       begin
-        fCurrentSerializer.InternalSerializeDataSet(TDataSet(lObj.Data), lOutObject.A[lName], [],
-          lObj.DataSetFieldNameCase,
-          lObj.DataSetSerializationAction)
+        case lObj.DataSetSerializationType of
+          dstSingleRecord:
+            begin
+              fCurrentSerializer.InternalSerializeDataSetRecord(
+                TDataSet(lObj.Data),
+                lOutObject.O[lName],
+                [],
+                lObj.DataSetFieldNameCase,
+                lObj.DataSetSerializationAction)
+            end;
+          dstAllRecords:
+            begin
+              fCurrentSerializer.InternalSerializeDataSet(
+                TDataSet(lObj.Data),
+                lOutObject.A[lName],
+                [],
+                lObj.DataSetFieldNameCase,
+                lObj.DataSetSerializationAction)
+            end;
+        end;
       end
       else
       begin

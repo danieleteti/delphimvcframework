@@ -30,7 +30,7 @@ interface
 uses
   MVCFramework,
   System.SysUtils,
-  MVCFramework.Commons;
+  MVCFramework.Commons, FireDAC.Comp.Client, Data.DB;
 
 type
 
@@ -38,8 +38,11 @@ type
   TTestServerController = class(TMVCController)
   private
     FFormatSettings: TFormatSettings;
+    fDataSet: TFDMemTable;
   protected
     procedure MVCControllerAfterCreate; override;
+    function GetDataSet: TDataSet;
+    procedure MVCControllerBeforeDestroy; override;
   public
     [MVCPath('/req/with/params/($par1)/($par2)/($par3)')]
     [MVCHTTPMethod([httpGET, httpDELETE])]
@@ -199,6 +202,9 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure TestGetImagePng;
 
+    [MVCPath('/objectdict')]
+    procedure TestObjectDict;
+
     // Nullables Tests
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/nullables/pingpong')]
@@ -280,7 +286,7 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
   System.IOUtils,
-  System.Classes, FireDAC.Comp.Client;
+  System.Classes;
 
 { TTestServerController }
 
@@ -357,6 +363,12 @@ begin
 
 end;
 
+function TTestServerController.GetDataSet: TDataSet;
+begin
+  Result := TFDMemTable.Create(nil);
+  TFDMemTable(Result).LoadFromFile(TPath.Combine(AppPath, 'customers.json'));
+end;
+
 procedure TTestServerController.GetImage;
 begin
   // do nothing
@@ -388,6 +400,12 @@ end;
 procedure TTestServerController.MVCControllerAfterCreate;
 begin
   FFormatSettings.DecimalSeparator := '.';
+end;
+
+procedure TTestServerController.MVCControllerBeforeDestroy;
+begin
+  inherited;
+
 end;
 
 procedure TTestServerController.ReqWithParams;
@@ -474,8 +492,7 @@ var
   lFName: string;
 begin
   ContentType := TMVCMediaType.IMAGE_PNG;
-  lFName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..') + '\sample.png';
-  // Render(TFile.OpenRead('..\..\sample.png'));
+  lFName := TPath.Combine(AppPath, 'sample.png');
   Render(TFile.OpenRead(lFName));
 end;
 
@@ -589,6 +606,23 @@ procedure TTestServerController.TestMultiplePaths;
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(Context.Request.Params['id']);
+end;
+
+procedure TTestServerController.TestObjectDict;
+var
+  lDict: IMVCObjectDictionary;
+begin
+  lDict := ObjectDict(false)
+    .Add('ncUpperCase_List', GetDataSet, nil, dstAllRecords, ncUpperCase)
+    .Add('ncLowerCase_List', GetDataSet, nil, dstAllRecords, ncLowerCase)
+    .Add('ncCamelCase_List', GetDataSet, nil, dstAllRecords, ncCamelCase)
+    .Add('ncPascalCase_List', GetDataSet, nil, dstAllRecords, ncPascalCase)
+    .Add('ncUpperCase_Single', GetDataSet, nil, dstSingleRecord, ncUpperCase)
+    .Add('ncLowerCase_Single', GetDataSet, nil, dstSingleRecord, ncLowerCase)
+    .Add('ncCamelCase_Single', GetDataSet, nil, dstSingleRecord, ncCamelCase)
+    .Add('ncPascalCase_Single', GetDataSet, nil, dstSingleRecord, ncPascalCase)
+    .Add('meta', StrDict(['page'], ['1']));
+  Render(lDict);
 end;
 
 procedure TTestServerController.TestPOSTObject;
@@ -752,7 +786,7 @@ var
 begin
   lDS := TFDMemTable.Create(nil);
   try
-    var lFName: string := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..') + '\customers.json';
+    var lFName: string := TPath.Combine(AppPath, 'customers.json');
     lDS.LoadFromFile(lFName);
     ViewDataset['customers'] := lDS;
     ViewData['customers2'] := lDS;

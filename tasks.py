@@ -272,7 +272,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     # os.spawnl(os.P_NOWAIT, r"unittests\general\TestServer\Win32\Debug\TestServer.exe")
     import subprocess
     print("\nExecuting tests...")
-    subprocess.Popen([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
+    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"])
     r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
     subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
     if r.returncode > 0:

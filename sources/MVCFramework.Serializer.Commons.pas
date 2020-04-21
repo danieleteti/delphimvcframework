@@ -320,9 +320,8 @@ type
       : IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
+      const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
       const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
-    function Add(const Name: string; const Value: IInterface;
-      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -344,6 +343,7 @@ type
       fSerializationAction: TMVCSerializationAction;
       fDataSetSerializationAction: TMVCDataSetSerializationAction;
       fDataSetFieldNameCase: TMVCNameCase;
+      fDataSetSerializationType: TMVCDatasetSerializationType;
     public
       constructor Create(
         const Owns: Boolean;
@@ -353,12 +353,14 @@ type
         const Owns: Boolean;
         const Data: TDataset;
         const SerializationAction: TMVCDataSetSerializationAction;
+        const DataSetSerializationType: TMVCDatasetSerializationType;
         const NameCase: TMVCNameCase); overload;
       destructor Destroy; override;
       property Data: TObject read fData;
       property SerializationAction: TMVCSerializationAction read fSerializationAction;
       property DataSetSerializationAction: TMVCDataSetSerializationAction read fDataSetSerializationAction;
       property DataSetFieldNameCase: TMVCNameCase read fDataSetFieldNameCase;
+      property DataSetSerializationType: TMVCDatasetSerializationType read fDataSetSerializationType;
     end;
   strict private
     function GetItem(const Key: string): TMVCObjectDictionaryValueItem;
@@ -375,9 +377,8 @@ type
       : IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
+      const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
       const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
-    function Add(const Name: string; const Value: IInterface;
-      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -1551,16 +1552,12 @@ begin
 end;
 
 function TMVCObjectDictionary.Add(const Name: string; const Value: TDataset;
-const SerializationAction: TMVCDataSetSerializationAction; const NameCase: TMVCNameCase): IMVCObjectDictionary;
+const SerializationAction: TMVCDataSetSerializationAction;
+const DataSetSerializationType: TMVCDatasetSerializationType;
+const NameCase: TMVCNameCase): IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction, NameCase));
-  Result := Self;
-end;
-
-function TMVCObjectDictionary.Add(const Name: string; const Value: IInterface;
-const SerializationAction: TMVCSerializationAction): IMVCObjectDictionary;
-begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(false, TObject(Value), SerializationAction));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction,
+    DataSetSerializationType, NameCase));
   Result := Self;
 end;
 
@@ -1632,10 +1629,13 @@ end;
 
 constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
   const Owns: Boolean; const Data: TDataset;
-const SerializationAction: TMVCDataSetSerializationAction; const NameCase: TMVCNameCase);
+const SerializationAction: TMVCDataSetSerializationAction;
+const DataSetSerializationType: TMVCDatasetSerializationType;
+const NameCase: TMVCNameCase);
 begin
   Create(Owns, Data, nil);
   fDataSetFieldNameCase := NameCase;
+  fDataSetSerializationType := DataSetSerializationType;
   fDataSetSerializationAction := SerializationAction;
 end;
 
