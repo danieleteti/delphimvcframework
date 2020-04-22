@@ -37,6 +37,8 @@ procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   FEngine := TMVCEngine.Create(Self);
 
+  FEngine.Config[TMVCConfigKey.DocumentRoot] := '.\www';
+
   FEngine.AddMiddleware(TMVCETagMiddleware.Create);
 
   FEngine.AddController(TApp1MainController);

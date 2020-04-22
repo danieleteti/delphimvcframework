@@ -20,6 +20,10 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     procedure Welcome(const Name: string);
+
+    [MVCPath('/image')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetImage;
   end;
 
 implementation
@@ -31,6 +35,12 @@ uses
   JSONDataObjects;
 
 { TApp1MainController }
+
+procedure TApp1MainController.GetImage;
+begin
+  Context.Response.ContentType := TMVCMediaType.IMAGE_PNG;
+  SendFile(IncludeTrailingPathDelimiter(AppPath) + 'www\logo.png');
+end;
 
 procedure TApp1MainController.Welcome(const Name: string);
 begin

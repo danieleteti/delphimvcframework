@@ -91,7 +91,7 @@ var
   lETag: string;
 begin
   lContentStream := AContext.Response.RawWebResponse.ContentStream;
-  if (lContentStream = nil) or (lContentStream is TFileStream) then
+  if not Assigned(lContentStream) then
     Exit;
 
   lRequestETag := AContext.Request.Headers['If-None-Match'];
@@ -102,7 +102,14 @@ begin
   if (lETag <> '') and (lRequestETag = lETag) then
   begin
     AContext.Response.Content := '';
-    lContentStream.Size := 0;
+    if lContentStream is TFileStream then
+    begin
+      AContext.Response.RawWebResponse.ContentStream := nil;
+    end
+    else
+    begin
+      lContentStream.Size := 0;
+    end;
     AContext.Response.StatusCode := HTTP_STATUS.NotModified;
     AContext.Response.ReasonString := 'Not Modified'
   end;
