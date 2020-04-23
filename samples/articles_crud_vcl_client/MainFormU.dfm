@@ -19,7 +19,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 876
-    Height = 39
+    Height = 112
     Align = alTop
     TabOrder = 0
     object DBNavigator1: TDBNavigator
@@ -27,50 +27,87 @@ object MainForm: TMainForm
       Left = 585
       Top = 4
       Width = 287
-      Height = 31
+      Height = 40
       DataSource = dsrcArticles
       Align = alRight
       TabOrder = 0
+      ExplicitHeight = 31
     end
     object btnOpen: TButton
       AlignWithMargins = True
       Left = 4
       Top = 4
       Width = 75
-      Height = 31
+      Height = 40
       Align = alLeft
       Caption = 'Open'
       TabOrder = 1
       OnClick = btnOpenClick
+      ExplicitHeight = 31
     end
     object btnRefreshRecord: TButton
       AlignWithMargins = True
       Left = 166
       Top = 4
       Width = 107
-      Height = 31
+      Height = 40
       Align = alLeft
       Caption = 'Refresh Record'
       TabOrder = 2
       OnClick = btnRefreshRecordClick
+      ExplicitHeight = 35
     end
     object Button1: TButton
       AlignWithMargins = True
       Left = 85
       Top = 4
       Width = 75
-      Height = 31
+      Height = 40
       Align = alLeft
       Caption = 'Close'
       TabOrder = 3
       OnClick = btnCloseClick
+      ExplicitHeight = 31
+    end
+    object Panel2: TPanel
+      Left = 1
+      Top = 47
+      Width = 874
+      Height = 64
+      Align = alBottom
+      BevelOuter = bvNone
+      TabOrder = 4
+      ExplicitTop = 48
+      object Label1: TLabel
+        Left = 3
+        Top = 11
+        Width = 24
+        Height = 13
+        Caption = 'Filter'
+      end
+      object EditFilter: TEdit
+        Left = 3
+        Top = 30
+        Width = 156
+        Height = 21
+        TabOrder = 0
+      end
+      object btnFilter: TButton
+        Left = 165
+        Top = 19
+        Width = 107
+        Height = 40
+        Caption = 'Filter'
+        TabOrder = 1
+        OnClick = btnFilterClick
+      end
     end
   end
   object DBGrid1: TDBGrid
     Left = 0
-    Top = 39
+    Top = 112
     Width = 876
-    Height = 352
+    Height = 279
     Align = alClient
     DataSource = dsrcArticles
     TabOrder = 1
