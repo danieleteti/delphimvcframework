@@ -24,6 +24,10 @@ type
     btnOpen: TButton;
     btnRefreshRecord: TButton;
     Button1: TButton;
+    Panel2: TPanel;
+    EditFilter: TEdit;
+    Label1: TLabel;
+    btnFilter: TButton;
     procedure FormCreate(Sender: TObject);
     procedure dsArticlesBeforePost(DataSet: TDataSet);
     procedure dsArticlesBeforeDelete(DataSet: TDataSet);
@@ -34,11 +38,16 @@ type
     procedure btnCloseClick(Sender: TObject);
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
     procedure btnRefreshRecordClick(Sender: TObject);
+    procedure btnFilterClick(Sender: TObject);
   private
+    fFilter: string;
     fLoading: Boolean;
     fRESTClient: TRESTClient;
     { Private declarations }
     procedure ShowError(const AResponse: IRESTResponse);
+    procedure SetFilter(const Value: string);
+  public
+    property Filter: string read fFilter write SetFilter;
   end;
 
 var
@@ -57,8 +66,17 @@ begin
   dsArticles.Close;
 end;
 
+procedure TMainForm.btnFilterClick(Sender: TObject);
+begin
+  dsArticles.Close;
+  Filter := EditFilter.Text;;
+  dsArticles.Open;
+end;
+
 procedure TMainForm.btnOpenClick(Sender: TObject);
 begin
+  dsArticles.Close;
+  Filter := '';
   dsArticles.Open;
 end;
 
@@ -71,8 +89,16 @@ procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
 var
   Res: IRESTResponse;
 begin
-  // this a simple sychronous request...
-  Res := fRESTClient.doGET('/articles', []);
+  if fFilter.IsEmpty then
+  begin
+    // this a simple sychronous request...
+    Res := fRESTClient.doGET('/articles', []);
+  end
+  else
+  begin
+    Res := fRESTClient.doGET('/articles/searches', [], ['q'], [fFilter]);
+  end;
+
   if Res.HasError then
   begin
     ShowError(Res);
@@ -82,7 +108,7 @@ begin
   DataSet.DisableControls;
   try
     fLoading := true;
-    dsArticles.LoadFromJSONArrayString(Res.BodyAsString);
+    dsArticles.LoadJSONArrayFromJSONObjectProperty('data', Res.BodyAsString);
     fLoading := false;
     dsArticles.First;
   finally
@@ -137,7 +163,7 @@ var
 begin
   Res := fRESTClient.doGET('/articles', [DataSet.FieldByName('id').AsString]);
   fLoading := true;
-  DataSet.LoadFromJSONObjectString(Res.BodyAsString);
+  DataSet.LoadJSONObjectFromJSONObjectProperty('data', Res.BodyAsString);
   fLoading := false;
 end;
 
@@ -149,6 +175,12 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   fRESTClient := MVCFramework.RESTClient.TRESTClient.Create('localhost', 8080);
+end;
+
+procedure TMainForm.SetFilter(const Value: string);
+begin
+  fFilter := Value;
+  EditFilter.Text := Value;
 end;
 
 procedure TMainForm.ShowError(const AResponse: IRESTResponse);
