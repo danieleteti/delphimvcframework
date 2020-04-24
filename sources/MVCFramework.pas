@@ -2044,7 +2044,6 @@ function TMVCEngine.ExecuteAction(const ASender: TObject; const ARequest: TWebRe
 var
   LParamsTable: TMVCRequestParamsTable;
   LContext: TWebContext;
-  LFileName: string;
   LRouter: TMVCRouter;
   LHandled: Boolean;
   LResponseContentMediaType: string;
@@ -2156,15 +2155,22 @@ begin
               end
               else // execute-routing
               begin
-                LContext.Response.StatusCode := HTTP_STATUS.NotFound;
-                LContext.Response.ReasonString := 'Not Found';
-                fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
-                raise EMVCException.Create(
-                  LContext.Response.ReasonString,
-                  LContext.Request.HTTPMethodAsString + ' ' + LContext.Request.PathInfo,
-                  0,
-                  HTTP_STATUS.NotFound
-                  );
+                if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
+                begin
+                  LContext.Response.StatusCode := HTTP_STATUS.NotFound;
+                  LContext.Response.ReasonString := 'Not Found';
+                  fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
+                  raise EMVCException.Create(
+                    LContext.Response.ReasonString,
+                    LContext.Request.HTTPMethodAsString + ' ' + LContext.Request.PathInfo,
+                    0,
+                    HTTP_STATUS.NotFound
+                    );
+                end
+                else
+                begin
+                  LContext.Response.FlushOnDestroy := False;
+                end;
               end; // end-execute-routing
             end; // if not handled by beforerouting
           except

@@ -31,18 +31,49 @@ interface
 
 uses
   MVCFramework,
+  MVCFramework.Commons,
   System.Generics.Collections;
 
 type
+  TMVCStaticFilesDefaults = class sealed
+  public const
+    /// <summary>
+    /// URL segment that represents the path to static files
+    /// </summary>
+    STATIC_FILES_PATH = '/';
+
+    /// <summary>
+    /// Physical path of the root folder that contains the static files
+    /// </summary>
+    DOCUMENT_ROOT = '.\www';
+
+    /// <summary>
+    /// Default static file
+    /// </summary>
+    INDEX_DOCUMENT = 'index.html';
+
+    /// <summary>
+    /// Charset of static files
+    /// </summary>
+    STATIC_FILES_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  end;
+
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
-    fEngine: TMVCEngine;
     fMediaTypes: TDictionary<string, string>;
+    fStaticFilesPath: string;
+    fDocumentRoot: string;
+    fIndexDocument: string;
+    fStaticFilesCharset: string;
     procedure AddMediaTypes;
-    function IsStaticFileRequest(const ARequest: TMVCWebRequest; out AFileName: string): Boolean;
+    function IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
   public
-    constructor Create(const AEngine: TMVCEngine);
+    constructor Create(
+      const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
+      const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
+      const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
+      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
     destructor Destroy; override;
 
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
@@ -56,8 +87,7 @@ implementation
 
 uses
   System.SysUtils,
-  System.IOUtils,
-  MVCFramework.Commons;
+  System.IOUtils;
 
 { TMVCStaticFilesMiddleware }
 
@@ -75,10 +105,15 @@ begin
   fMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
 end;
 
-constructor TMVCStaticFilesMiddleware.Create(const AEngine: TMVCEngine);
+constructor TMVCStaticFilesMiddleware.Create(const AStaticFilesPath, ADocumentRoot, AIndexDocument,
+  AStaticFilesCharset: string);
 begin
   inherited Create;
-  fEngine := AEngine;
+
+  fStaticFilesPath := AStaticFilesPath;
+  fDocumentRoot := ADocumentRoot;
+  fIndexDocument := AIndexDocument;
+  fStaticFilesCharset := AIndexDocument;
 
   fMediaTypes := TDictionary<string, string>.Create;
   AddMediaTypes;
@@ -91,10 +126,9 @@ begin
   inherited Destroy;
 end;
 
-function TMVCStaticFilesMiddleware.IsStaticFileRequest(const ARequest: TMVCWebRequest; out AFileName: string): Boolean;
+function TMVCStaticFilesMiddleware.IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
 begin
-  Result := (not fEngine.Config[TMVCConfigKey.DocumentRoot].IsEmpty) and
-    (TMVCStaticContents.IsStaticFile(fEngine.Config[TMVCConfigKey.DocumentRoot], ARequest.PathInfo, AFileName));
+  Result := (not fDocumentRoot.IsEmpty) and (TMVCStaticContents.IsStaticFile(fDocumentRoot, APathInfo, AFileName));
 end;
 
 procedure TMVCStaticFilesMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
@@ -111,18 +145,31 @@ end;
 
 procedure TMVCStaticFilesMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
 var
+  lPathInfo: string;
   lFileName: string;
 begin
-  if not fEngine.Config[TMVCConfigKey.FallbackResource].IsEmpty then
+  lPathInfo := AContext.Request.PathInfo;
+
+  if not lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
-    if (AContext.Request.PathInfo = '/') or (AContext.Request.PathInfo = '') then // useful for SPA
+    AHandled := False;
+    Exit;
+  end;
+
+  if not ((fStaticFilesPath = '/') or (fStaticFilesPath = '/')) then
+  begin
+    lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
+  end;
+
+  if not fIndexDocument.IsEmpty then
+  begin
+    if (lPathInfo = '/') or (lPathInfo = '') then
     begin
-      lFileName := TPath.GetFullPath(TPath.Combine(fEngine.Config[TMVCConfigKey.DocumentRoot],
-        fEngine.Config[TMVCConfigKey.FallbackResource]));
+      lFileName := TPath.GetFullPath(TPath.Combine(fDocumentRoot, fIndexDocument));
       AHandled := SendStaticFileIfPresent(AContext, lFileName);
     end;
   end;
-  if (not AHandled) and (IsStaticFileRequest(AContext.Request, lFileName)) then
+  if (not AHandled) and (IsStaticFileRequest(lPathInfo, lFileName)) then
   begin
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
   end;
@@ -138,7 +185,7 @@ begin
   begin
     if FMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
     begin
-      lContentType := BuildContentType(lContentType, fEngine.Config[TMVCConfigKey.DefaultContentCharset])
+      lContentType := BuildContentType(lContentType, fStaticFilesCharset);
     end
     else
     begin
