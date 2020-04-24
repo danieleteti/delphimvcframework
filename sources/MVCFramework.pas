@@ -655,6 +655,7 @@ type
     procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: IInterface; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AStatusCode: Integer; const AObject: IInterface; const ASerializationAction: TMVCSerializationAction = nil); overload;
     // PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
       const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
@@ -3283,6 +3284,14 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty dataset.');
+end;
+
+procedure TMVCRenderer.Render(const AStatusCode: Integer;
+  const AObject: IInterface;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  SetStatusCode(AStatusCode);
+  Render(AObject, ASerializationAction);
 end;
 
 procedure TMVCRenderer.Render(const AObject: IInterface; const ASerializationAction: TMVCSerializationAction);

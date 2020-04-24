@@ -586,37 +586,30 @@ var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
 begin
+  {
+    Dear future me...
+    Yes, this method is called a lot of times, but after some tests
+    seems that the performance loss is very low, so if you don't have any
+    new evidence don't try to improve it...
+  }
   Result := AField.Name;
-
   Attrs := AField.GetAttributes;
   for Attr in Attrs do
+  begin
     if Attr is MVCNameAsAttribute then
+    begin
       Exit(MVCNameAsAttribute(Attr).Name);
+    end;
+  end;
 
   Attrs := AType.GetAttributes;
   for Attr in Attrs do
+  begin
     if Attr is MVCNameCaseAttribute then
     begin
       Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, AField.Name));
-      // case MVCNameCaseAttribute(Attr).KeyCase of
-      // ncUpperCase:
-      // begin
-      // Exit(UpperCase(AField.Name));
-      // end;
-      // ncLowerCase:
-      // begin
-      // Exit(LowerCase(AField.Name));
-      // end;
-      // ncCamelCase:
-      // begin
-      // Exit(CamelCase(AField.Name));
-      // end;
-      // ncPascalCase:
-      // begin
-      // Exit(CamelCase(AField.Name, True));
-      // end;
-      // end;
     end;
+  end;
 end;
 
 class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>;
@@ -769,37 +762,26 @@ var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
 begin
+  { in un rendering di una lista, quante volte viene chiamata questa funzione? }
   Result := AProperty.Name;
 
   Attrs := AProperty.GetAttributes;
   for Attr in Attrs do
+  begin
     if Attr is MVCNameAsAttribute then
+    begin
       Exit(MVCNameAsAttribute(Attr).Name);
+    end;
+  end;
 
   Attrs := AType.GetAttributes;
   for Attr in Attrs do
+  begin
     if Attr is MVCNameCaseAttribute then
     begin
       Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, AProperty.Name));
-      // case MVCNameCaseAttribute(Attr).KeyCase of
-      // ncUpperCase:
-      // begin
-      // Exit(UpperCase(AProperty.Name));
-      // end;
-      // ncLowerCase:
-      // begin
-      // Exit(LowerCase(AProperty.Name));
-      // end;
-      // ncCamelCase:
-      // begin
-      // Exit(CamelCase(AProperty.Name));
-      // end;
-      // ncPascalCase:
-      // begin
-      // Exit(CamelCase(AProperty.Name, True));
-      // end;
-      // end;
     end;
+  end;
 end;
 
 class function TMVCSerializerHelper.GetTypeKindAsString(const ATypeKind: TTypeKind): string;
