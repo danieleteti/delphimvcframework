@@ -27,6 +27,7 @@
 unit MVCFramework.Serializer.Commons;
 
 {$I dmvcframework.inc}
+{$WARN SYMBOL_DEPRECATED OFF}
 
 interface
 
@@ -117,13 +118,14 @@ type
 
   MVCNameAsAttribute = class(TCustomAttribute)
   private
-    FName: string;
-    function GetName: string;
+    fName: string;
+    fFixed: Boolean;
   protected
     { protected declarations }
   public
-    constructor Create(const AName: string);
-    property name: string read GetName;
+    constructor Create(const AName: string; const Fixed: Boolean = False);
+    property name: string read fName;
+    property Fixed: Boolean read fFixed;
   end;
 
   MapperJSONSer = MVCNameAsAttribute deprecated 'Use MVCNameAsAttribute';
@@ -167,7 +169,7 @@ type
     procedure SetFieldName(const Value: string);
     procedure SetIsPK(const Value: Boolean);
   public
-    constructor Create(AFieldName: string; AIsPK: Boolean = false);
+    constructor Create(AFieldName: string; AIsPK: Boolean = False);
     property FieldName: string read FFieldName write SetFieldName;
     property IsPK: Boolean read FIsPK write SetIsPK;
   end;
@@ -285,20 +287,20 @@ type
     function GetData: TObject;
       override;
   public
-    constructor Create(const AObject: TObject; const AOwns: Boolean = false;
+    constructor Create(const AObject: TObject; const AOwns: Boolean = False;
       const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
       dstAllRecords);
       virtual;
     destructor Destroy;
       override;
     function SerializationType: TMVCDatasetSerializationType;
-    [MVCNameAs('data')]
+    [MVCNameAs('items')]
     property Items: TObject read GetData;
     [MVCNameAs('meta')]
     property MetaData: TMVCStringDictionary read GetMetadata;
-  end;
+  end deprecated 'Use "ObjectDict"';
 
-  TDataObjectHolder = TMVCResponseData deprecated 'Use one of the specialized versions';
+  TDataObjectHolder = TMVCResponseData deprecated 'Use "ObjectDict"';
 
   THTTPStatusCode = 100 .. 599;
 
@@ -410,11 +412,6 @@ const
   JSONNameLowerCase = ncLowerCase deprecated 'Use MVCNameCaseAttribute(ncLowerCase)';
   JSONNameUpperCase = ncUpperCase deprecated 'Use MVCNameCaseAttribute(ncUpperCase)';
 
-function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: Boolean = false): TMVCObjectResponse;
-function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: Boolean = false): TMVCObjectListResponse;
-
 function StrDict: TMVCStringDictionary; overload;
 function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
@@ -477,26 +474,6 @@ begin
   for I := low(aKeys) to high(aKeys) do
   begin
     Result.Add(aKeys[I], aValues[I]);
-  end;
-end;
-
-function NewObjectHolder(const AObject: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: Boolean = false): TMVCObjectResponse;
-begin
-  Result := TMVCObjectResponse.Create(AObject, AOwns);
-  if Assigned(AMetaFiller) then
-  begin
-    AMetaFiller(Result.fMetaData);
-  end;
-end;
-
-function NewCollectionHolder(const AList: TObject; const AMetaFiller: TProc<TMVCStringDictionary> = nil;
-  const AOwns: Boolean = false): TMVCObjectListResponse;
-begin
-  Result := TMVCObjectListResponse.Create(AList, AOwns);
-  if Assigned(AMetaFiller) then
-  begin
-    AMetaFiller(Result.fMetaData);
   end;
 end;
 
@@ -660,7 +637,7 @@ class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray
 var
   Att: TCustomAttribute;
 begin
-  Result := false;
+  Result := False;
   for Att in AAttributes do
     if Att is T then
       Exit(True);
@@ -768,9 +745,19 @@ begin
   Attrs := AProperty.GetAttributes;
   for Attr in Attrs do
   begin
+    { TODO -oDaniele -cGeneral : Time this! }
     if Attr is MVCNameAsAttribute then
     begin
-      Exit(MVCNameAsAttribute(Attr).Name);
+      // Exit(MVCNameAsAttribute(Attr).Name);
+      Result := MVCNameAsAttribute(Attr).Name;
+      if MVCNameAsAttribute(Attr).Fixed then { if FIXED the attribute NameAs remains untouched }
+      begin
+        Exit
+      end
+      else
+      begin
+        Break;
+      end;
     end;
   end;
 
@@ -779,7 +766,7 @@ begin
   begin
     if Attr is MVCNameCaseAttribute then
     begin
-      Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, AProperty.Name));
+      Exit(TMVCSerializerHelper.ApplyNameCase(MVCNameCaseAttribute(Attr).KeyCase, Result));
     end;
   end;
 end;
@@ -795,10 +782,10 @@ var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
 begin
-  Result := false;
+  Result := False;
   Attrs := AMember.GetAttributes;
   if Length(Attrs) = 0 then
-    Exit(false);
+    Exit(False);
   for Attr in Attrs do
     if Attr is T then
       Exit(True);
@@ -810,7 +797,7 @@ var
   Attr: TCustomAttribute;
 begin
   AAttribute := nil;
-  Result := false;
+  Result := False;
   Attrs := AMember.GetAttributes;
   for Attr in Attrs do
     if Attr is T then
@@ -858,15 +845,11 @@ end;
 
 { MVCNameAsAttribute }
 
-constructor MVCNameAsAttribute.Create(const AName: string);
+constructor MVCNameAsAttribute.Create(const AName: string; const Fixed: Boolean = False);
 begin
   inherited Create;
-  FName := AName;
-end;
-
-function MVCNameAsAttribute.GetName: string;
-begin
-  Result := FName;
+  fName := AName;
+  fFixed := Fixed;
 end;
 
 { MVCListOfAttribute }
@@ -1151,7 +1134,7 @@ function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: 
 const AObject: TObject): Boolean;
 begin
   Assert(AValue.Kind = tkRecord);
-  Result := false;
+  Result := False;
   if AValue.IsType(TypeInfo(NullableString)) then
   begin
     if AField.IsNull then
@@ -1339,7 +1322,7 @@ const aRTTIProp: TRttiProperty;
 const AObject: TObject): Boolean;
 begin
   Assert(AValue.Kind = tkRecord);
-  Result := false;
+  Result := False;
   if AValue.IsType(TypeInfo(NullableString)) then
   begin
     if AField.IsNull then
