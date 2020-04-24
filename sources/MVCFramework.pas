@@ -847,13 +847,10 @@ type
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
-    FMediaTypes: TDictionary<string, string>;
     FApplicationSession: TWebApplicationSession;
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
-    function IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;
-    function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
     procedure FillActualParamsForAction(const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
       const AActionName: string; var AActualParams: TArray<TValue>);
     procedure RegisterDefaultsSerializers;
@@ -1957,17 +1954,6 @@ begin
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
 
-  FMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
-  FMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
-  FMediaTypes.Add('.txt', TMVCMediaType.TEXT_PLAIN);
-  FMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS);
-  FMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT);
-  FMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
-  FMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
-  FMediaTypes.Add('.png', TMVCMediaType.IMAGE_PNG);
-  FMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
-  FMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
-
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
   fOnRouterLog :=
@@ -2003,7 +1989,6 @@ begin
   FSerializers := TDictionary<string, IMVCSerializer>.Create;
   FMiddlewares := TList<IMVCMiddleware>.Create;
   FControllers := TObjectList<TMVCControllerDelegate>.Create(True);
-  FMediaTypes := TDictionary<string, string>.Create;
   FApplicationSession := nil;
   FSavedOnBeforeDispatch := nil;
 
@@ -2050,7 +2035,6 @@ begin
   FSerializers.Free;
   FMiddlewares.Free;
   FControllers.Free;
-  FMediaTypes.Free;
   inherited Destroy;
 end;
 
@@ -2171,36 +2155,15 @@ begin
               end
               else // execute-routing
               begin
-                if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
-                begin
-                  if not Config[TMVCConfigKey.FallbackResource].IsEmpty then
-                  begin
-                    if (LContext.Request.PathInfo = '/') or (LContext.Request.PathInfo = '') then // useful for SPA
-                    begin
-                      LFileName := TPath.GetFullPath(TPath.Combine(Config[TMVCConfigKey.DocumentRoot],
-                        Config[TMVCConfigKey.FallbackResource]));
-                      Result := SendStaticFileIfPresent(LContext, LFileName);
-                    end;
-                  end;
-                  if (not Result) and (IsStaticFileRequest(ARequest, LFileName)) then
-                  begin
-                    Result := SendStaticFileIfPresent(LContext, LFileName);
-                  end;
-                  if not Result then
-                  begin
-                    LContext.Response.StatusCode := HTTP_STATUS.NotFound;
-                    LContext.Response.ReasonString := 'Not Found';
-                    fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
-                    raise EMVCException.Create(
-                      LContext.Response.ReasonString,
-                      LContext.Request.HTTPMethodAsString + ' ' + LContext.Request.PathInfo,
-                      0,
-                      HTTP_STATUS.NotFound
-                      );
-                  end;
-                end
-                else
-                  LContext.Response.FlushOnDestroy := False;
+                LContext.Response.StatusCode := HTTP_STATUS.NotFound;
+                LContext.Response.ReasonString := 'Not Found';
+                fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
+                raise EMVCException.Create(
+                  LContext.Response.ReasonString,
+                  LContext.Request.HTTPMethodAsString + ' ' + LContext.Request.PathInfo,
+                  0,
+                  HTTP_STATUS.NotFound
+                  );
               end; // end-execute-routing
             end; // if not handled by beforerouting
           except
@@ -2607,11 +2570,6 @@ begin
   AContext.Response.SetReasonString(AReasonString);
 end;
 
-function TMVCEngine.IsStaticFileRequest(const ARequest: TWebRequest; out AFileName: string): Boolean;
-begin
-  Result := (not FConfig[TMVCConfigKey.DocumentRoot].IsEmpty) and
-    (TMVCStaticContents.IsStaticFile(FConfig[TMVCConfigKey.DocumentRoot], ARequest.PathInfo, AFileName));
-end;
 
 procedure TMVCEngine.LoadSystemControllers;
 begin
@@ -2730,22 +2688,6 @@ begin
 
   Cookie.Path := '/';
   Result := ASessionId;
-end;
-
-function TMVCEngine.SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
-var
-  lContentType: string;
-begin
-  Result := False;
-  if TFile.Exists(AFileName) then
-  begin
-    if FMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
-      lContentType := BuildContentType(lContentType, FConfig[TMVCConfigKey.DefaultContentCharset])
-    else
-      lContentType := BuildContentType(TMVCMediaType.APPLICATION_OCTETSTREAM, '');
-    TMVCStaticContents.SendFile(AFileName, lContentType, AContext);
-    Result := True;
-  end;
 end;
 
 function TMVCEngine.SetExceptionHandler(

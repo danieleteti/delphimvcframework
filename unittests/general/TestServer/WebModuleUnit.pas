@@ -65,7 +65,8 @@ uses
   AuthHandlersU,
   TestServerControllerJSONRPCU,
   MVCFramework.View.Renderers.Mustache,
-  MVCFramework.Middleware.Compression;
+  MVCFramework.Middleware.Compression,
+  MVCFramework.Middleware.StaticFiles;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -98,6 +99,7 @@ begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create(MVCEngine))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);

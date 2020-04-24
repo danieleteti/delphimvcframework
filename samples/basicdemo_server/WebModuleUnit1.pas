@@ -27,13 +27,18 @@ implementation
 {$R *.dfm}
 
 
-uses App1MainControllerU, MVCFramework.Commons;
+uses
+  App1MainControllerU,
+  MVCFramework.Commons,
+  MVCFramework.Middleware.StaticFiles;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(Self);
   MVC.Config[TMVCConfigKey.ViewPath] := '.\www\public_html';
   MVC.Config[TMVCConfigKey.DocumentRoot] := '.\www\public_html';
+
+  MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(MVC));
   MVC.AddController(TApp1MainController);
 end;
 
