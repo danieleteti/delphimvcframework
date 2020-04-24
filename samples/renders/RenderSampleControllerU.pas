@@ -496,7 +496,7 @@ begin
   lDM := TMyDataModule.Create(nil);
   try
     lDM.qryCustomers.Open;
-    lDict := ObjectDict(False)
+    lDict := ObjectDict(False { data are not freed after ObjectDict if freed } )
       .Add('customers', lDM.qryCustomers,
       procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
@@ -576,7 +576,10 @@ end;
 
 procedure TRenderSampleController.GetLotOfPeople;
 begin
-  Render<TPerson>(GetPeopleList, False);
+  { classic approach }
+  // Render<TPerson>(GetPeopleList, False);
+  { new approach with ObjectDict }
+  Render(ObjectDict(False).Add('data', GetPeopleList));
 end;
 
 procedure TRenderSampleController.GetManyNullableObjects;
@@ -763,7 +766,10 @@ begin
   People.Add(p);
 
 {$ENDREGION}
-  Render<TPerson>(HTTP_STATUS.OK, People, True);
+  { classic approach }
+  // Render<TPerson>(HTTP_STATUS.OK, People, True);
+  { new approach with ObjectDict }
+  Render(HTTP_STATUS.OK, ObjectDict().Add('data', People));
 end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;
@@ -796,21 +802,40 @@ begin
   People.Add(p);
 
 {$ENDREGION}
-  Render<TPerson>(People, True,
+  { classic approach }
+  {
+    Render<TPerson>(People, True,
     procedure(const APerson: TPerson; const Links: IMVCLinks)
+    begin
+    Links
+    .AddRefLink
+    .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+    .Add(HATEOAS.REL, 'self')
+    .Add(HATEOAS._TYPE, 'application/json')
+    .Add('title', 'Details for ' + APerson.FullName);
+    Links
+    .AddRefLink
+    .Add(HATEOAS.HREF, '/people')
+    .Add(HATEOAS.REL, 'people')
+    .Add(HATEOAS._TYPE, 'application/json');
+    end);
+  }
+  { new approach with ObjectDict }
+  Render(ObjectDict().Add('data', People,
+    procedure(const APerson: TObject; const Links: IMVCLinks)
     begin
       Links
         .AddRefLink
-        .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+        .Add(HATEOAS.HREF, '/people/' + TPerson(APerson).ID.ToString)
         .Add(HATEOAS.REL, 'self')
         .Add(HATEOAS._TYPE, 'application/json')
-        .Add('title', 'Details for ' + APerson.FullName);
+        .Add('title', 'Details for ' + TPerson(APerson).FullName);
       Links
         .AddRefLink
         .Add(HATEOAS.HREF, '/people')
         .Add(HATEOAS.REL, 'people')
         .Add(HATEOAS._TYPE, 'application/json');
-    end);
+    end));
 end;
 
 procedure TRenderSampleController.GetPersonById(const ID: Integer);
