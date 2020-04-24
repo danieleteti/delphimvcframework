@@ -226,7 +226,7 @@ uses System.DateUtils, System.Math,
 {$ENDIF}
   TestServerControllerU, System.Classes,
   MVCFramework.DuckTyping, System.IOUtils, MVCFramework.SystemJSONUtils,
-  IdGlobal;
+  IdGlobal, System.TypInfo;
 
 var
   JWT_SECRET_KEY_TEST: string = 'myk3y';
@@ -1847,6 +1847,7 @@ var
   lNameCaseIdx: TMVCNameCase;
   lOrig: string;
   lOutData: string;
+  lActualOutData: string;
 begin
   for lNameCaseIdx := ncAsIs to ncPascalCase do
   begin
@@ -1854,7 +1855,9 @@ begin
     begin
       lOrig := fOrigDATA[I];
       lOutData := fOutDATA[I][lNameCaseIdx];
-      Assert.areEqual(lOutData, TMVCSerializerHelper.ApplyNameCase(lNameCaseIdx, lOrig), lOrig);
+      lActualOutData := TMVCSerializerHelper.ApplyNameCase(lNameCaseIdx, lOrig);
+      Assert.areEqual(lOutData, lActualOutData, False, lOrig + ' for ' + GetEnumName(TypeInfo(TMVCNameCase),
+        Ord(lNameCaseIdx)));
     end;
   end;
 end;

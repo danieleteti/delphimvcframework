@@ -446,22 +446,22 @@ type
     function LinksData: TMVCStringDictionaryList;
   end;
 
-//  IMVCStringDictionary = interface
-//    ['{164117AD-8DDD-47F7-877C-453979707D10}']
-//    function GetItems(const Key: string): string;
-//    procedure SetItems(const Key, Value: string);
-//    procedure Clear;
-//    function Add(const Name, Value: string): IMVCStringDictionary;
-//    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
-//    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-//    function Count: Integer;
-//    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
-//    function ContainsKey(const Key: string): Boolean;
-//    function Keys: TArray<string>;
-//    property Items[const Key: string]: string read GetItems write SetItems; default;
-//  end;
+  // IMVCStringDictionary = interface
+  // ['{164117AD-8DDD-47F7-877C-453979707D10}']
+  // function GetItems(const Key: string): string;
+  // procedure SetItems(const Key, Value: string);
+  // procedure Clear;
+  // function Add(const Name, Value: string): IMVCStringDictionary;
+  // function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+  // function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
+  // function Count: Integer;
+  // function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+  // function ContainsKey(const Key: string): Boolean;
+  // function Keys: TArray<string>;
+  // property Items[const Key: string]: string read GetItems write SetItems; default;
+  // end;
 
-  TMVCStringDictionary = class //(TInterfacedObject, IMVCStringDictionary)
+  TMVCStringDictionary = class // (TInterfacedObject, IMVCStringDictionary)
   strict private
     function GetItems(const Key: string): string;
     procedure SetItems(const Key, Value: string);
@@ -1318,15 +1318,25 @@ var
   I: Integer;
   lNextUpCase: Boolean;
   lSB: TStringBuilder;
+  C: Char;
+  lIsLowerCase: Boolean;
+  lIsUpperCase, lPreviousWasUpperCase: Boolean;
+  lIsAlpha: Boolean;
 begin
   lNextUpCase := MakeFirstUpperToo;
+  lPreviousWasUpperCase := True;
   lSB := TStringBuilder.Create;
   try
     for I := 0 to Length(Value) - 1 do
     begin
-      if not CharInSet(Value.Chars[I], ['A' .. 'Z', 'a' .. 'z']) then
+      C := Value.Chars[I];
+      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
+      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
+      lIsAlpha := lIsLowerCase or lIsUpperCase;
+      if not lIsAlpha then
       begin
         lNextUpCase := True;
+        lPreviousWasUpperCase := False;
         Continue;
       end
       else
@@ -1334,13 +1344,21 @@ begin
         if lNextUpCase then
         begin
           lNextUpCase := False;
-          lSB.Append(UpCase(Value.Chars[I]));
+          lSB.Append(UpCase(C));
         end
         else
         begin
-          lSB.Append(LowerCase(Value.Chars[I]));
+          if lPreviousWasUpperCase then
+          begin
+            lSB.Append(LowerCase(C));
+          end
+          else
+          begin
+            lSB.Append(C);
+          end;
         end;
       end;
+      lPreviousWasUpperCase := lIsUpperCase;
     end;
     Result := lSB.ToString;
   finally

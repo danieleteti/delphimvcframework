@@ -499,7 +499,7 @@ begin
     Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
 
     Dm.EntityAsIs.EmptyDataSet;
-    Dm.EntityAsIs.LoadJSONArrayFromJSONObjectProperty(JSON_ITEMS, 'items', ncAsIs);
+    Dm.EntityAsIs.LoadJSONArrayFromJSONObjectProperty('items', JSON_ITEMS, ncAsIs);
     Dm.EntityAsIs.First;
     Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
     Assert.isTrue(Dm.EntityAsIsName.AsString = 'Pedro Henrique de Oliveira');
