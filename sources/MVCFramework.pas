@@ -2782,7 +2782,8 @@ end;
 class function TMVCStaticContents.IsStaticFile(const AViewPath, AWebRequestPath: string;
 out ARealFileName: string): Boolean;
 var
-  LFileName, lWebRoot: string;
+  lFileName: string;
+  lWebRoot: string;
 begin
   if TDirectory.Exists(AViewPath) then
   begin
@@ -2792,12 +2793,19 @@ begin
   begin
     lWebRoot := TPath.GetFullPath(GetApplicationFileNamePath + AViewPath);
   end;
-  LFileName := TPath.GetFullPath(lWebRoot + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar));
-  if not LFileName.StartsWith(lWebRoot) then
+
+  lFileName := lWebRoot + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar);
+  if not TPath.HasValidPathChars(lFileName, True) then
   begin
     Exit(False);
   end;
-  ARealFileName := LFileName;
+
+  lFileName := TPath.GetFullPath(lFileName);
+  if not lFileName.StartsWith(lWebRoot) then
+  begin
+    Exit(False);
+  end;
+  ARealFileName := lFileName;
   Result := TFile.Exists(ARealFileName);
 end;
 
