@@ -1939,8 +1939,6 @@ begin
   Log.Info('ENTER: Config default values', LOGGERPRO_TAG);
 
   Config[TMVCConfigKey.SessionTimeout] := '30' { 30 minutes };
-  Config[TMVCConfigKey.DocumentRoot] := '.\www';
-  Config[TMVCConfigKey.FallbackResource] := '';
   Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
   Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
@@ -1950,7 +1948,6 @@ begin
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework';
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
   Config[TMVCConfigKey.SessionType] := 'memory';
-  Config[TMVCConfigKey.IndexDocument] := 'index.html';
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
@@ -3542,8 +3539,8 @@ end;
 { TMVCBaseView }
 
 constructor TMVCBaseViewEngine.Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
-const AViewModel: TMVCViewDataObject; const AViewDataSets: TObjectDictionary<string, TDataSet>;
-const AContentType: string);
+  const AViewModel: TMVCViewDataObject; const AViewDataSets: TObjectDictionary<string, TDataSet>;
+  const AContentType: string);
 begin
   inherited Create;
   Engine := AEngine;
@@ -3561,32 +3558,33 @@ end;
 
 function TMVCBaseViewEngine.GetRealFileName(const AViewName: string): string;
 var
-  FileName: string;
-  F: string;
-  DefaultViewFileExtension: string;
+  lFileName: string;
+  lDefaultViewFileExtension: string;
 begin
-  DefaultViewFileExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
-  FileName := StringReplace(AViewName, '/', '\', [rfReplaceAll]);
+  lDefaultViewFileExtension := Config[TMVCConfigKey.DefaultViewFileExtension];
+  lFileName := StringReplace(AViewName, '/', '\', [rfReplaceAll]);
 
-  if (FileName = '\') then
-    FileName := '\index.' + DefaultViewFileExtension
+  if (lFileName = '\') then
+  begin
+    lFileName := '\index.' + lDefaultViewFileExtension
+  end
   else
-    FileName := FileName + '.' + DefaultViewFileExtension;
+  begin
+    lFileName := lFileName + '.' + lDefaultViewFileExtension;
+  end;
 
   if DirectoryExists(Config[TMVCConfigKey.ViewPath]) then
-    F := ExpandFileName(IncludeTrailingPathDelimiter(Config.Value[TMVCConfigKey.ViewPath]) + FileName)
+  begin
+    lFileName := ExpandFileName(IncludeTrailingPathDelimiter(Config.Value[TMVCConfigKey.ViewPath]) + lFileName)
+  end
   else
-    F := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath + Config.Value[TMVCConfigKey.ViewPath])
-      + FileName);
+  begin
+    lFileName := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
+      Config.Value[TMVCConfigKey.ViewPath]) + lFileName);
+  end;
 
-  if not TFile.Exists(F) then
-    FileName := ExpandFileName(IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
-      Config.Value[TMVCConfigKey.DocumentRoot]) + FileName)
-  else
-    FileName := F;
-
-  if FileExists(FileName) then
-    Result := FileName
+  if FileExists(lFileName) then
+    Result := lFileName
   else
     Result := EmptyStr;
 end;

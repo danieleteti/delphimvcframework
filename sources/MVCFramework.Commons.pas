@@ -141,19 +141,15 @@ type
   TMVCConfigKey = record
   public const
     SessionTimeout = 'sessiontimeout';
-    DocumentRoot = 'document_root';
     ViewPath = 'view_path';
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
-    // ISAPIPath = 'isapi_path';
     PathPrefix = 'pathprefix';
     AllowUnhandledAction = 'allow_unhandled_action';
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';
-    IndexDocument = 'index_document';
     SessionType = 'session_type';
-    FallbackResource = 'fallback_resource';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
