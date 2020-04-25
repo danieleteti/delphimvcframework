@@ -1961,13 +1961,19 @@ begin
   FMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
   FMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
   FMediaTypes.Add('.txt', TMVCMediaType.TEXT_PLAIN);
+  FMediaTypes.Add('.text', TMVCMediaType.TEXT_PLAIN);
+  FMediaTypes.Add('.csv', TMVCMediaType.TEXT_CSV);
   FMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS);
   FMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT);
   FMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
   FMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
+  FMediaTypes.Add('.jpe', TMVCMediaType.IMAGE_JPEG);
   FMediaTypes.Add('.png', TMVCMediaType.IMAGE_PNG);
   FMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
   FMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
+  FMediaTypes.Add('.svg', TMVCMediaType.IMAGE_SVG_XML);
+  FMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML);
+  FMediaTypes.Add('.gif',TMVCMediaType.IMAGE_GIF);
 
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
