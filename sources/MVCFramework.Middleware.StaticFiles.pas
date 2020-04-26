@@ -96,13 +96,19 @@ begin
   fMediaTypes.Add('.html', TMVCMediaType.TEXT_HTML);
   fMediaTypes.Add('.htm', TMVCMediaType.TEXT_HTML);
   fMediaTypes.Add('.txt', TMVCMediaType.TEXT_PLAIN);
+  fMediaTypes.Add('.text', TMVCMediaType.TEXT_PLAIN);
+  fMediaTypes.Add('.csv', TMVCMediaType.TEXT_CSV);
   fMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS);
   fMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT);
   fMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
+  fMediaTypes.Add('.jpe', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.png', TMVCMediaType.IMAGE_PNG);
   fMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
   fMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
+  fMediaTypes.Add('.svg', TMVCMediaType.IMAGE_SVG_XML);
+  fMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML);
+  fMediaTypes.Add('.gif',TMVCMediaType.IMAGE_GIF);
 end;
 
 constructor TMVCStaticFilesMiddleware.Create(const AStaticFilesPath, ADocumentRoot, AIndexDocument,
@@ -113,7 +119,7 @@ begin
   fStaticFilesPath := AStaticFilesPath;
   fDocumentRoot := ADocumentRoot;
   fIndexDocument := AIndexDocument;
-  fStaticFilesCharset := AIndexDocument;
+  fStaticFilesCharset := AStaticFilesCharset;
 
   fMediaTypes := TDictionary<string, string>.Create;
   AddMediaTypes;

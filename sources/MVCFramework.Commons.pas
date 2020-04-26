@@ -76,6 +76,8 @@ type
     IMAGE_X_PNG = 'image/x-png';
     IMAGE_X_ICON = 'image/x-icon';
     IMAGE_PNG = 'image/png';
+    IMAGE_SVG_XML = 'image/svg+xml';
+    IMAGE_GIF = 'image/gif';
     APPLICATION_PDF = 'application/pdf';
     APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';
