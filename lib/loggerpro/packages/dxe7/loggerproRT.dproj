@@ -117,6 +117,7 @@
         <DCCReference Include="..\..\LoggerPro.UDPSyslogAppender.pas"/>
         <DCCReference Include="..\..\LoggerPro.Utils.pas"/>
         <DCCReference Include="..\..\ThreadSafeQueueU.pas"/>
+        <DCCReference Include="..\..\LoggerPro.OutputDebugStringAppender.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
