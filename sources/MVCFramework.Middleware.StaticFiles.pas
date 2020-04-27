@@ -79,8 +79,10 @@ type
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
+
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
 
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
 implementation
@@ -139,6 +141,11 @@ end;
 
 procedure TMVCStaticFilesMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
   const AHandled: Boolean);
+begin
+  // do nothing
+end;
+
+procedure TMVCStaticFilesMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
   // do nothing
 end;

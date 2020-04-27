@@ -826,6 +826,13 @@ type
     /// <param name="AActionName">Method name of the matching controller method.</param>
     /// <param name="AHandled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+
+    /// <summary>
+    /// Procedure is called after the MVCEngine routes the request to a specific controller/method.
+    /// </summary>
+    /// <param name="AContext">Webcontext which contains the complete request and response of the actual call.</param>
+    /// <param name="AHandled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
   TMVCExceptionHandlerProc = reference to procedure(E: Exception; SelectedController: TMVCController;
@@ -868,6 +875,7 @@ type
       const AControllerQualifiedClassName: string; const AActionName: string; var AHandled: Boolean);
     procedure ExecuteAfterControllerActionMiddleware(const AContext: TWebContext; const AActionName: string;
       const AHandled: Boolean);
+    procedure ExecuteAfterRoutingMiddleware(const AContext: TWebContext; const AHandled: Boolean);
     procedure DefineDefaultResponseHeaders(const AContext: TWebContext);
     procedure OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse;
       var AHandled: Boolean); virtual;
@@ -2170,6 +2178,7 @@ begin
                 end;
               end; // end-execute-routing
             end; // if not handled by beforerouting
+            ExecuteAfterRoutingMiddleware(LContext, LHandled);
           except
             on ESess: EMVCSessionExpiredException do
             begin
@@ -2259,6 +2268,14 @@ begin
   // for I := FMiddlewares.Count - 1 downto 0 do
   for I := 0 to FMiddlewares.Count - 1 do
     FMiddlewares[I].OnAfterControllerAction(AContext, AActionName, AHandled);
+end;
+
+procedure TMVCEngine.ExecuteAfterRoutingMiddleware(const AContext: TWebContext; const AHandled: Boolean);
+var
+  I: Integer;
+begin
+  for I := 0 to FMiddlewares.Count - 1 do
+    FMiddlewares[I].OnAfterRouting(AContext, AHandled);
 end;
 
 procedure TMVCEngine.ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
