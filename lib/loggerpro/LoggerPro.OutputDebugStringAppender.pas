@@ -24,7 +24,13 @@ type
 implementation
 
 uses
-  System.SysUtils, Winapi.Windows, Winapi.Messages, System.IOUtils;
+  System.SysUtils,
+  System.IOUtils
+{$IFDEF MSWINDOWS}
+    , Winapi.Windows
+    , Winapi.Messages
+{$ENDIF}
+  ;
 
 { TStringsLogAppender }
 const
@@ -37,7 +43,9 @@ end;
 
 procedure TLoggerProOutputDebugStringAppender.Setup;
 begin
+{$IFDEF MSWINDOWS}
   FModuleName := TPath.GetFileName(GetModuleName(HInstance));
+{$ENDIF}
 end;
 
 procedure TLoggerProOutputDebugStringAppender.TearDown;
@@ -47,13 +55,17 @@ end;
 
 procedure TLoggerProOutputDebugStringAppender.WriteLog(const aLogItem
   : TLogItem);
+{$IFDEF MSWINDOWS}
 var
   lLog: string;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   lLog := '(' + FModuleName + ') ' + Format(DEFAULT_LOG_FORMAT,
     [datetimetostr(aLogItem.TimeStamp), aLogItem.ThreadID,
     aLogItem.LogTypeAsString, aLogItem.LogMessage, aLogItem.LogTag]);
   OutputDebugString(PChar(lLog));
+{$ENDIF}
 end;
 
 end.

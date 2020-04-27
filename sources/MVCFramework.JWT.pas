@@ -177,6 +177,7 @@ type
   end;
 
   TJWTCustomClaims = class(TJWTDictionaryObject)
+  public
     property Items; default;
     function AsCustomData: TMVCCustomData;
   end;
