@@ -45,6 +45,7 @@ type
   TNullableDate = Spring.Nullable<TDate>;
   TNullableTime = Spring.Nullable<TTime>;
   TNullableGuid = Spring.TNullableGuid;
+  TNullableDouble = Spring.TNullableDouble;
 
 implementation
 
