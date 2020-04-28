@@ -85,6 +85,12 @@ type
       const AActionName: string;
       const AHandled: Boolean
       );
+
+    procedure OnAfterRouting(
+      AContext: TWebContext;
+      const AHandled: Boolean
+      );
+
   public
     constructor Create(
       const AAllowedOriginURL: string = TMVCCORSDefaults.ALLOWS_ORIGIN_URL;
@@ -119,6 +125,11 @@ end;
 
 procedure TMVCCORSMiddleware.OnAfterControllerAction(AContext: TWebContext;
   const AActionName: string; const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCCORSMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
   // Implement as needed
 end;

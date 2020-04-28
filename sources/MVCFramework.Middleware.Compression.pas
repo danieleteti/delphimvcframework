@@ -42,6 +42,7 @@ type
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   public
     constructor Create(aCompressionThreshold: Integer = 1024); virtual;
   end;
@@ -128,6 +129,11 @@ begin
   finally
     lMemStream.Free;
   end;	
+end;
+
+procedure TMVCCompressionMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+
 end;
 
 procedure TMVCCompressionMiddleware.OnBeforeControllerAction(Context: TWebContext;

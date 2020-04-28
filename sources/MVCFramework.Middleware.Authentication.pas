@@ -66,6 +66,7 @@ type
       const AAuthenticationHandler: IMVCAuthenticationHandler;
       const ARealm: string = 'DelphiMVCFramework REALM'
       ); virtual;
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
   TMVCCustomAuthenticationMiddleware = class(TInterfacedObject, IMVCMiddleware)
@@ -90,6 +91,11 @@ type
       const AActionName: string;
       const AHandled: Boolean
       );
+    procedure OnAfterRouting(
+      AContext: TWebContext;
+      const AHandled: Boolean
+      );
+
 
     procedure SendResponse(AContext: TWebContext; var AHandled: Boolean; AHttpStatus: Word = HTTP_STATUS.Unauthorized);
     procedure DoLogin(AContext: TWebContext; var AHandled: Boolean);
@@ -125,6 +131,11 @@ procedure TMVCBasicAuthenticationMiddleware.OnAfterControllerAction(
   const AHandled: Boolean);
 begin
   // Implement as needed
+end;
+
+procedure TMVCBasicAuthenticationMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+
 end;
 
 procedure TMVCBasicAuthenticationMiddleware.OnBeforeControllerAction(
@@ -349,6 +360,11 @@ procedure TMVCCustomAuthenticationMiddleware.OnAfterControllerAction(
   const AHandled: Boolean);
 begin
   // Implement as needed
+end;
+
+procedure TMVCCustomAuthenticationMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.OnBeforeControllerAction(
