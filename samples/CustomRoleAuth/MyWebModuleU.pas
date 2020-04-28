@@ -55,6 +55,7 @@ uses
   MVCFramework.Commons,
   PrivateControllerU,
   MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
+  MVCFramework.Middleware.StaticFiles,
   RoleAuthHandlerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -62,8 +63,6 @@ begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + '\www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -84,8 +83,11 @@ begin
     TMVCRoleBasedAuthMiddleware.Create(
     TCustomRoleAuth.Create,
     '/system/users/logged'
-    )
-    );
+    ));
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
+    ));
 
 end;
 

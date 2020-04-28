@@ -53,15 +53,15 @@ uses
   MVCFramework.Commons,
   PublicControllerU,
   PrivateControllerU,
-  MVCFramework.Middleware.Authentication, AuthHandlerU;
+  MVCFramework.Middleware.Authentication,
+  MVCFramework.Middleware.StaticFiles,
+  AuthHandlerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + '\www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -83,9 +83,11 @@ begin
     TMVCCustomAuthenticationMiddleware.Create(
     TCustomAuth.Create,
     '/system/users/logged'
-    )
-    );
-
+    ));
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
+    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

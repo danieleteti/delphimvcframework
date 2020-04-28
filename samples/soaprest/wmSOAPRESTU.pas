@@ -32,14 +32,19 @@ implementation
 {$R *.dfm}
 
 uses
+  MVCFramework.Middleware.StaticFiles,
   RESTControllerCustomerU;
 
 procedure TwmSOAPREST.WebModuleCreate(Sender: TObject);
 begin
   FMVCEngine := TMVCEngine.Create(self);
-  FMVCEngine.Config[TMVCConfigKey.DocumentRoot] := 'www';
   FMVCEngine.Config[TMVCConfigKey.AllowUnhandledAction] := 'true';
   FMVCEngine.AddController(TControllerCustomer);
+  FMVCEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    'www', { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
 end;
 
 procedure TwmSOAPREST.WebModuleDestroy(Sender: TObject);
