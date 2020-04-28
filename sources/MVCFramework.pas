@@ -2047,15 +2047,15 @@ end;
 function TMVCEngine.ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
   const AResponse: TWebResponse): Boolean;
 var
-  LParamsTable: TMVCRequestParamsTable;
-  LContext: TWebContext;
-  LRouter: TMVCRouter;
-  LHandled: Boolean;
-  LResponseContentMediaType: string;
-  LResponseContentCharset: string;
-  LSelectedController: TMVCController;
-  LActionFormalParams: TArray<TRttiParameter>;
-  LActualParams: TArray<TValue>;
+  lParamsTable: TMVCRequestParamsTable;
+  lContext: TWebContext;
+  lRouter: TMVCRouter;
+  lHandled: Boolean;
+  lResponseContentMediaType: string;
+  lResponseContentCharset: string;
+  lSelectedController: TMVCController;
+  lActionFormalParams: TArray<TRttiParameter>;
+  lActualParams: TArray<TValue>;
 begin
   Result := False;
 
@@ -2075,188 +2075,205 @@ begin
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 {$ENDIF}
-  LParamsTable := TMVCRequestParamsTable.Create;
+  lParamsTable := TMVCRequestParamsTable.Create;
   try
-    LContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
+    lContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
     try
-      DefineDefaultResponseHeaders(LContext);
-      LHandled := False;
-      LRouter := TMVCRouter.Create(FConfig, _MVCGlobalActionParamsCache);
+      DefineDefaultResponseHeaders(lContext);
+      lHandled := False;
+      lRouter := TMVCRouter.Create(FConfig, _MVCGlobalActionParamsCache);
       try // finally
-        LSelectedController := nil;
-        try // only for lselectedcontroller
+        lSelectedController := nil;
+        try // only for lSelectedController
           try // global exception handler
-            ExecuteBeforeRoutingMiddleware(LContext, LHandled);
-            if not LHandled then
+            ExecuteBeforeRoutingMiddleware(lContext, lHandled);
+            if not lHandled then
             begin
-              if LRouter.ExecuteRouting(ARequest.PathInfo,
-                LContext.Request.GetOverwrittenHTTPMethod { LContext.Request.HTTPMethod } ,
+              if lRouter.ExecuteRouting(ARequest.PathInfo,
+                lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
                 ARequest.ContentType, ARequest.Accept, FControllers, FConfig[TMVCConfigKey.DefaultContentType],
-                FConfig[TMVCConfigKey.DefaultContentCharset], LParamsTable, LResponseContentMediaType,
-                LResponseContentCharset) then
+                FConfig[TMVCConfigKey.DefaultContentCharset], lParamsTable, lResponseContentMediaType,
+                lResponseContentCharset) then
               begin
                 try
-                  if Assigned(LRouter.ControllerCreateAction) then
-                    LSelectedController := LRouter.ControllerCreateAction()
+                  if Assigned(lRouter.ControllerCreateAction) then
+                    lSelectedController := lRouter.ControllerCreateAction()
                   else
-                    LSelectedController := LRouter.ControllerClazz.Create;
+                    lSelectedController := lRouter.ControllerClazz.Create;
                 except
                   on Ex: Exception do
                   begin
                     Log.ErrorFmt('[%s] %s (Custom message: "%s")',
                       [Ex.Classname, Ex.Message, 'Cannot create controller'], LOGGERPRO_TAG);
                     raise EMVCException.Create(HTTP_STATUS.InternalServerError, 'Cannot create controller');
-                    // HTTP500(LContext, 'Cannot create controller');
-                    // Result := False;
-                    // Exit;
                   end;
                 end;
-                LSelectedController.Engine := Self;
-                LSelectedController.Context := LContext;
-                LSelectedController.ApplicationSession := FApplicationSession;
-                LContext.ParamsTable := LParamsTable;
-                ExecuteBeforeControllerActionMiddleware(LContext, LRouter.ControllerClazz.QualifiedClassName,
-                  LRouter.MethodToCall.name, LHandled);
-                if LHandled then
+                lSelectedController.Engine := Self;
+                lSelectedController.Context := lContext;
+                lSelectedController.ApplicationSession := FApplicationSession;
+                lContext.ParamsTable := lParamsTable;
+                ExecuteBeforeControllerActionMiddleware(lContext, lRouter.ControllerClazz.QualifiedClassName,
+                  lRouter.MethodToCall.name, lHandled);
+                if lHandled then
                   Exit(True);
 
-                LSelectedController.MVCControllerAfterCreate;
+                lSelectedController.MVCControllerAfterCreate;
                 try
-                  LHandled := False;
-                  LSelectedController.ContentType := BuildContentType(LResponseContentMediaType,
-                    LResponseContentCharset);
-                  // LSelectedController.ContentCharset := LResponseContentCharset;
-                  LActionFormalParams := LRouter.MethodToCall.GetParameters;
-                  if (Length(LActionFormalParams) = 0) then
-                    SetLength(LActualParams, 0)
-                  else if (Length(LActionFormalParams) = 1) and
-                    (SameText(LActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
+                  lHandled := False;
+                  lSelectedController.ContentType := BuildContentType(lResponseContentMediaType,
+                    lResponseContentCharset);
+                  lActionFormalParams := lRouter.MethodToCall.GetParameters;
+                  if (Length(lActionFormalParams) = 0) then
+                    SetLength(lActualParams, 0)
+                  else if (Length(lActionFormalParams) = 1) and
+                    (SameText(lActionFormalParams[0].ParamType.QualifiedName, 'MVCFramework.TWebContext')) then
                   begin
-                    SetLength(LActualParams, 1);
-                    LActualParams[0] := LContext;
+                    SetLength(lActualParams, 1);
+                    lActualParams[0] := lContext;
                   end
                   else
                   begin
-                    FillActualParamsForAction(LContext, LActionFormalParams, LRouter.MethodToCall.name,
-                      LActualParams);
+                    FillActualParamsForAction(lContext, lActionFormalParams, lRouter.MethodToCall.Name,
+                      lActualParams);
                   end;
 
-                  LSelectedController.OnBeforeAction(LContext, LRouter.MethodToCall.name, LHandled);
+                  lSelectedController.OnBeforeAction(lContext, lRouter.MethodToCall.Name, lHandled);
 
-                  if not LHandled then
+                  if not lHandled then
                   begin
                     try
-                      LRouter.MethodToCall.Invoke(LSelectedController, LActualParams);
+                      lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
                     finally
-                      LSelectedController.OnAfterAction(LContext, LRouter.MethodToCall.name);
+                      lSelectedController.OnAfterAction(lContext, lRouter.MethodToCall.Name);
                     end;
                   end;
                 finally
-                  LSelectedController.MVCControllerBeforeDestroy;
+                  lSelectedController.MVCControllerBeforeDestroy;
                 end;
-                ExecuteAfterControllerActionMiddleware(LContext, LRouter.MethodToCall.name, LHandled);
-                LContext.Response.ContentType := LSelectedController.ContentType;
-                fOnRouterLog(LRouter, rlsRouteFound, LContext);
+                ExecuteAfterControllerActionMiddleware(lContext, lRouter.MethodToCall.Name, lHandled);
+                lContext.Response.ContentType := lSelectedController.ContentType;
+                fOnRouterLog(lRouter, rlsRouteFound, lContext);
               end
               else // execute-routing
               begin
                 if Config[TMVCConfigKey.AllowUnhandledAction] = 'false' then
                 begin
-                  LContext.Response.StatusCode := HTTP_STATUS.NotFound;
-                  LContext.Response.ReasonString := 'Not Found';
-                  fOnRouterLog(LRouter, rlsRouteNotFound, LContext);
+                  lContext.Response.StatusCode := HTTP_STATUS.NotFound;
+                  lContext.Response.ReasonString := 'Not Found';
+                  fOnRouterLog(lRouter, rlsRouteNotFound, lContext);
                   raise EMVCException.Create(
-                    LContext.Response.ReasonString,
-                    LContext.Request.HTTPMethodAsString + ' ' + LContext.Request.PathInfo,
+                    lContext.Response.ReasonString,
+                    lContext.Request.HTTPMethodAsString + ' ' + lContext.Request.PathInfo,
                     0,
                     HTTP_STATUS.NotFound
                     );
                 end
                 else
                 begin
-                  LContext.Response.FlushOnDestroy := False;
+                  lContext.Response.FlushOnDestroy := False;
                 end;
               end; // end-execute-routing
             end; // if not handled by beforerouting
-            ExecuteAfterRoutingMiddleware(LContext, LHandled);
           except
             on ESess: EMVCSessionExpiredException do
             begin
-              if not CustomExceptionHandling(ESess, LSelectedController, LContext) then
+              if not CustomExceptionHandling(ESess, lSelectedController, lContext) then
               begin
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [ESess.Classname, ESess.Message, ESess.DetailedMessage],
                   LOGGERPRO_TAG);
-                LContext.SessionStop(False);
-                LSelectedController.ResponseStatus(ESess.HTTPErrorCode);
-                LSelectedController.Render(ESess);
+                lContext.SessionStop(False);
+                lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
+                lSelectedController.Render(ESess);
               end;
             end;
             on E: EMVCException do
             begin
-              if not CustomExceptionHandling(E, LSelectedController, LContext) then
+              if not CustomExceptionHandling(E, lSelectedController, lContext) then
               begin
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [E.Classname, E.Message, E.DetailedMessage],
                   LOGGERPRO_TAG);
-                if Assigned(LSelectedController) then
+                if Assigned(lSelectedController) then
                 begin
-                  LSelectedController.ResponseStatus(E.HTTPErrorCode);
-                  LSelectedController.Render(E);
+                  lSelectedController.ResponseStatus(E.HTTPErrorCode);
+                  lSelectedController.Render(E);
                 end
                 else
                 begin
-                  SendRawHTTPStatus(LContext, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]),
+                  SendRawHTTPStatus(lContext, E.HTTPErrorCode, Format('[%s] %s', [E.Classname, E.Message]),
                     E.Classname);
                 end;
               end;
             end;
             on EIO: EInvalidOp do
             begin
-              if not CustomExceptionHandling(EIO, LSelectedController, LContext) then
+              if not CustomExceptionHandling(EIO, lSelectedController, lContext) then
               begin
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [EIO.Classname, EIO.Message, 'Invalid Op'],
                   LOGGERPRO_TAG);
-                if Assigned(LSelectedController) then
+                if Assigned(lSelectedController) then
                 begin
-                  LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                  LSelectedController.Render(EIO);
+                  lSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
+                  lSelectedController.Render(EIO);
                 end
                 else
                 begin
-                  SendRawHTTPStatus(LContext, HTTP_STATUS.InternalServerError,
+                  SendRawHTTPStatus(lContext, HTTP_STATUS.InternalServerError,
                     Format('[%s] %s', [EIO.Classname, EIO.Message]), EIO.Classname);
                 end;
               end;
             end;
             on Ex: Exception do
             begin
-              if not CustomExceptionHandling(Ex, LSelectedController, LContext) then
+              if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")',
                   [Ex.Classname, Ex.Message, 'Global Action Exception Handler'], LOGGERPRO_TAG);
-                if Assigned(LSelectedController) then
+                if Assigned(lSelectedController) then
                 begin
-                  LSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
-                  LSelectedController.Render(Ex);
+                  lSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
+                  lSelectedController.Render(Ex);
                 end
                 else
                 begin
-                  SendRawHTTPStatus(LContext, HTTP_STATUS.InternalServerError,
+                  SendRawHTTPStatus(lContext, HTTP_STATUS.InternalServerError,
+                    Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
+                end;
+              end;
+            end;
+          end;
+          try
+            ExecuteAfterRoutingMiddleware(lContext, lHandled);
+          except
+            on Ex: Exception do
+            begin
+              if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
+              begin
+                Log.ErrorFmt('[%s] %s (Custom message: "%s")',
+                  [Ex.Classname, Ex.Message, 'After Routing Exception Handler'], LOGGERPRO_TAG);
+                if Assigned(lSelectedController) then
+                begin
+                  lSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
+                  lSelectedController.Render(Ex);
+                end
+                else
+                begin
+                  SendRawHTTPStatus(lContext, HTTP_STATUS.InternalServerError,
                     Format('[%s] %s', [Ex.Classname, Ex.Message]), Ex.Classname);
                 end;
               end;
             end;
           end;
         finally
-          FreeAndNil(LSelectedController);
+          FreeAndNil(lSelectedController);
         end;
       finally
-        LRouter.Free;
+        lRouter.Free;
       end;
     finally
-      LContext.Free;
+      lContext.Free;
     end;
   finally
-    LParamsTable.Free;
+    lParamsTable.Free;
   end;
 end;
 
@@ -2315,11 +2332,11 @@ end;
 procedure TMVCEngine.FillActualParamsForAction(const AContext: TWebContext;
   const AActionFormalParams: TArray<TRttiParameter>; const AActionName: string; var AActualParams: TArray<TValue>);
 var
-  ParamName: string;
+  lParamName: string;
   I: Integer;
-  StrValue: string;
-  FormatSettings: TFormatSettings;
-  WasDateTime: Boolean;
+  lStrValue: string;
+  lFormatSettings: TFormatSettings;
+  lWasDateTime: Boolean;
   lQualifiedName: string;
 begin
   if AContext.Request.SegmentParamsCount <> Length(AActionFormalParams) then
@@ -2330,17 +2347,17 @@ begin
   SetLength(AActualParams, Length(AActionFormalParams));
   for I := 0 to Length(AActionFormalParams) - 1 do
   begin
-    ParamName := AActionFormalParams[I].name;
+    lParamName := AActionFormalParams[I].name;
 
-    if not AContext.Request.SegmentParam(ParamName, StrValue) then
+    if not AContext.Request.SegmentParam(lParamName, lStrValue) then
       raise EMVCException.CreateFmt
         (HTTP_STATUS.BadRequest, 'Invalid parameter %s for action %s (Hint: Here parameters names are case-sensitive)',
-        [ParamName, AActionName]);
+        [lParamName, AActionName]);
 
     case AActionFormalParams[I].ParamType.TypeKind of
       tkInteger:
         try
-          AActualParams[I] := StrToInt(StrValue);
+          AActualParams[I] := StrToInt(lStrValue);
         except
           on E: Exception do
           begin
@@ -2351,7 +2368,7 @@ begin
         end;
       tkInt64:
         try
-          AActualParams[I] := StrToInt64(StrValue);
+          AActualParams[I] := StrToInt64(lStrValue);
         except
           on E: Exception do
           begin
@@ -2362,17 +2379,17 @@ begin
         end;
       tkUString:
         begin
-          AActualParams[I] := StrValue;
+          AActualParams[I] := lStrValue;
         end;
       tkFloat:
         begin
-          WasDateTime := False;
+          lWasDateTime := False;
           lQualifiedName := AActionFormalParams[I].ParamType.QualifiedName;
           if lQualifiedName = 'System.TDate' then
           begin
             try
-              WasDateTime := True;
-              AActualParams[I] := ISODateToDate(StrValue);
+              lWasDateTime := True;
+              AActualParams[I] := ISODateToDate(lStrValue);
             except
               on E: Exception do
               begin
@@ -2386,8 +2403,8 @@ begin
             if lQualifiedName = 'System.TDateTime' then
           begin
             try
-              WasDateTime := True;
-              AActualParams[I] := ISOTimeStampToDateTime(StrValue);
+              lWasDateTime := True;
+              AActualParams[I] := ISOTimeStampToDateTime(lStrValue);
             except
               on E: Exception do
               begin
@@ -2401,8 +2418,8 @@ begin
             if lQualifiedName = 'System.TTime' then
           begin
             try
-              WasDateTime := True;
-              AActualParams[I] := ISOTimeToTime(StrValue);
+              lWasDateTime := True;
+              AActualParams[I] := ISOTimeToTime(lStrValue);
             except
               on E: Exception do
               begin
@@ -2412,10 +2429,10 @@ begin
               end;
             end;
           end;
-          if not WasDateTime then
+          if not lWasDateTime then
             try
-              FormatSettings.DecimalSeparator := '.';
-              AActualParams[I] := StrToFloat(StrValue, FormatSettings);
+              lFormatSettings.DecimalSeparator := '.';
+              AActualParams[I] := StrToFloat(lStrValue, lFormatSettings);
             except
               on E: Exception do
               begin
@@ -2429,23 +2446,23 @@ begin
         begin
           if AActionFormalParams[I].ParamType.QualifiedName = 'System.Boolean' then
           begin
-            if SameText(StrValue, 'true') or SameText(StrValue, '1') then
+            if SameText(lStrValue, 'true') or SameText(lStrValue, '1') then
               AActualParams[I] := True
             else
-              if SameText(StrValue, 'false') or SameText(StrValue, '0') then
+              if SameText(lStrValue, 'false') or SameText(lStrValue, '0') then
               AActualParams[I] := False
             else
             begin
               raise EMVCException.CreateFmt
                 (HTTP_STATUS.BadRequest,
                 'Invalid boolean value for parameter %s. Boolean parameters accepts only "true"/"false" or "1"/"0".',
-                [ParamName]);
+                [lParamName]);
             end;
           end
           else
           begin
             raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid type for parameter %s. Allowed types are ' +
-              ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
+              ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [lParamName]);
           end;
         end;
       tkRecord:
@@ -2453,19 +2470,19 @@ begin
           if AActionFormalParams[I].ParamType.QualifiedName = 'System.TGUID' then
           begin
             try
-              AActualParams[I] := TValue.From<TGUID>(TMVCGuidHelper.GuidFromString(StrValue));
+              AActualParams[I] := TValue.From<TGUID>(TMVCGuidHelper.GuidFromString(lStrValue));
             except
               raise EMVCException.CreateFmt('Invalid Guid value for param [%s]', [AActionFormalParams[I].name]);
             end;
           end
           else
             raise EMVCException.CreateFmt('Invalid type for parameter %s. Allowed types are ' +
-              ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
+              ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [lParamName]);
         end
     else
       begin
         raise EMVCException.CreateFmt(HTTP_STATUS.BadRequest, 'Invalid type for parameter %s. Allowed types are ' +
-          ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [ParamName]);
+          ALLOWED_TYPED_ACTION_PARAMETERS_TYPES, [lParamName]);
       end;
     end;
   end;
