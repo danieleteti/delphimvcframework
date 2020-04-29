@@ -12,6 +12,12 @@
         <Projects Include="dmvcframeworkDT.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project4.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project5.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -47,14 +53,32 @@
     <Target Name="dmvcframeworkDT:Make">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Make"/>
     </Target>
+    <Target Name="Project4">
+        <MSBuild Projects="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project4.dproj"/>
+    </Target>
+    <Target Name="Project4:Clean">
+        <MSBuild Projects="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project4.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Project4:Make">
+        <MSBuild Projects="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project4.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Project5">
+        <MSBuild Projects="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project5.dproj"/>
+    </Target>
+    <Target Name="Project5:Clean">
+        <MSBuild Projects="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project5.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Project5:Make">
+        <MSBuild Projects="C:\Users\dteti\Documents\Embarcadero\Studio\Projects\Project5.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="loggerproRT;dmvcframeworkRT;dmvcframeworkDT"/>
+        <CallTarget Targets="loggerproRT;dmvcframeworkRT;dmvcframeworkDT;Project4;Project5"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="loggerproRT:Clean;dmvcframeworkRT:Clean;dmvcframeworkDT:Clean"/>
+        <CallTarget Targets="loggerproRT:Clean;dmvcframeworkRT:Clean;dmvcframeworkDT:Clean;Project4:Clean;Project5:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="loggerproRT:Make;dmvcframeworkRT:Make;dmvcframeworkDT:Make"/>
+        <CallTarget Targets="loggerproRT:Make;dmvcframeworkRT:Make;dmvcframeworkDT:Make;Project4:Make;Project5:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

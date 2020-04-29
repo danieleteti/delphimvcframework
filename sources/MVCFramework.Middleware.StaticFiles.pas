@@ -169,7 +169,7 @@ begin
     Exit;
   end;
 
-  if not ((fStaticFilesPath = '/') or (fStaticFilesPath = '/')) then
+  if not ((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then
   begin
     lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
   end;

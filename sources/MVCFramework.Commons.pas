@@ -155,6 +155,7 @@ type
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
+    LoadSystemControllers = 'load_system_controllers';
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html

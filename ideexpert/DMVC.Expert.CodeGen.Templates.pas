@@ -290,10 +290,11 @@ resourcestring
     '' + sLineBreak +
     'interface' + sLineBreak +
     sLineBreak +
-    'uses System.SysUtils,' + sLineBreak +
-    '     System.Classes,' + sLineBreak +
-    '     Web.HTTPApp,' + sLineBreak +
-    '     MVCFramework;' + sLineBreak +
+    'uses ' + sLineBreak + 
+	'  System.SysUtils,' + sLineBreak +
+    '  System.Classes,' + sLineBreak +
+    '  Web.HTTPApp,' + sLineBreak +
+    '  MVCFramework;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
     '  %1:s = class(TWebModule)' + sLineBreak +
@@ -312,16 +313,21 @@ resourcestring
     sLineBreak +
     '{$R *.dfm}' + sLineBreak +
     sLineBreak +
-    'uses %2:s, System.IOUtils, MVCFramework.Commons, MVCFramework.Middleware.Compression;' + sLineBreak +
+    'uses ' + sLineBreak +
+	'  %2:s, ' + sLineBreak +
+	'  System.IOUtils, ' + sLineBreak +
+    '  MVCFramework.Commons, ' + sLineBreak +
+	'  MVCFramework.Middleware.StaticFiles, ' + sLineBreak +
+	'  MVCFramework.Middleware.Compression;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
     'begin' + sLineBreak +
     '  FMVC := TMVCEngine.Create(Self,' + sLineBreak +
     '    procedure(Config: TMVCConfig)' + sLineBreak +
     '    begin' + sLineBreak +
-    '      //enable static files' + sLineBreak +
-		'      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'');'
-    + sLineBreak +
+//  '      //enable static files' + sLineBreak +
+// 	'      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'');'
+//    + sLineBreak +
     '      // session timeout (0 means session cookie)' + sLineBreak +
     '      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +
     '      //default content-type' + sLineBreak +
@@ -332,6 +338,8 @@ resourcestring
     sLineBreak +
     '      //unhandled actions are permitted?' + sLineBreak +
     '      Config[TMVCConfigKey.AllowUnhandledAction] := ''false'';' + sLineBreak +
+    '      //enables or not system controllers loading (available only fro localhost requests)' + sLineBreak +
+    '      Config[TMVCConfigKey.LoadSystemControllers] := ''true'';' + sLineBreak +
     '      //default view file extension' + sLineBreak +
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
     '      //view path' + sLineBreak +
@@ -340,12 +348,17 @@ resourcestring
     '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
 	'      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
-    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
+//    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
+//    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '      // Max request size in bytes' + sLineBreak +
     '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +
-    '  FMVC.AddController(%3:s);' + sLineBreak +
+    '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +
+    '  // Required to enable serving of static files ' + sLineBreak +
+    '  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( ' + sLineBreak +
+    '      ''/static'', ' + sLineBreak +
+    '      TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')) ' + sLineBreak +
+    '    );	' + sLineBreak + sLineBreak +
     '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
     '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
     'end;' + sLineBreak +

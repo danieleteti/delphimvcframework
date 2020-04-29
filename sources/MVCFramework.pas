@@ -655,7 +655,8 @@ type
     procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: IInterface; const ASerializationAction: TMVCSerializationAction = nil); overload;
-    procedure Render(const AStatusCode: Integer; const AObject: IInterface; const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render(const AStatusCode: Integer; const AObject: IInterface;
+      const ASerializationAction: TMVCSerializationAction = nil); overload;
     // PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
       const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
@@ -1959,6 +1960,7 @@ begin
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
+  Config[TMVCConfigKey.LoadSystemControllers] := 'true';
 
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
@@ -2133,24 +2135,24 @@ begin
                   end
                   else
                   begin
-                    FillActualParamsForAction(lContext, lActionFormalParams, lRouter.MethodToCall.Name,
+                    FillActualParamsForAction(lContext, lActionFormalParams, lRouter.MethodToCall.name,
                       lActualParams);
                   end;
 
-                  lSelectedController.OnBeforeAction(lContext, lRouter.MethodToCall.Name, lHandled);
+                  lSelectedController.OnBeforeAction(lContext, lRouter.MethodToCall.name, lHandled);
 
                   if not lHandled then
                   begin
                     try
                       lRouter.MethodToCall.Invoke(lSelectedController, lActualParams);
                     finally
-                      lSelectedController.OnAfterAction(lContext, lRouter.MethodToCall.Name);
+                      lSelectedController.OnAfterAction(lContext, lRouter.MethodToCall.name);
                     end;
                   end;
                 finally
                   lSelectedController.MVCControllerBeforeDestroy;
                 end;
-                ExecuteAfterControllerActionMiddleware(lContext, lRouter.MethodToCall.Name, lHandled);
+                ExecuteAfterControllerActionMiddleware(lContext, lRouter.MethodToCall.name, lHandled);
                 lContext.Response.ContentType := lSelectedController.ContentType;
                 fOnRouterLog(lRouter, rlsRouteFound, lContext);
               end
@@ -2252,6 +2254,7 @@ begin
                   [Ex.Classname, Ex.Message, 'After Routing Exception Handler'], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
+                  { middlewares *must* not raise unhandled exceptions }
                   lSelectedController.ResponseStatus(HTTP_STATUS.InternalServerError);
                   lSelectedController.Render(Ex);
                 end
@@ -2282,17 +2285,22 @@ procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWeb
 var
   I: Integer;
 begin
-  // for I := FMiddlewares.Count - 1 downto 0 do
+  Log.Debug('TMVCEngine.ExecuteAfterControllerActionMiddleware', 'daniele');
   for I := 0 to FMiddlewares.Count - 1 do
+  begin
     FMiddlewares[I].OnAfterControllerAction(AContext, AActionName, AHandled);
+  end;
 end;
 
 procedure TMVCEngine.ExecuteAfterRoutingMiddleware(const AContext: TWebContext; const AHandled: Boolean);
 var
   I: Integer;
 begin
+  Log.Debug('TMVCEngine.ExecuteAfterRoutingMiddleware', 'daniele');
   for I := 0 to FMiddlewares.Count - 1 do
+  begin
     FMiddlewares[I].OnAfterRouting(AContext, AHandled);
+  end;
 end;
 
 procedure TMVCEngine.ExecuteBeforeControllerActionMiddleware(const AContext: TWebContext;
@@ -2300,26 +2308,36 @@ procedure TMVCEngine.ExecuteBeforeControllerActionMiddleware(const AContext: TWe
 var
   Middleware: IMVCMiddleware;
 begin
+  Log.Debug('TMVCEngine.ExecuteBeforeControllerActionMiddleware', 'daniele');
   if not AHandled then
+  begin
     for Middleware in FMiddlewares do
     begin
       Middleware.OnBeforeControllerAction(AContext, AControllerQualifiedClassName, AActionName, AHandled);
       if AHandled then
+      begin
         Break;
+      end;
     end;
+  end;
 end;
 
 procedure TMVCEngine.ExecuteBeforeRoutingMiddleware(const AContext: TWebContext; var AHandled: Boolean);
 var
   Middleware: IMVCMiddleware;
 begin
+  Log.Debug('TMVCEngine.ExecuteBeforeRoutingMiddleware', 'daniele');
   if not AHandled then
+  begin
     for Middleware in FMiddlewares do
     begin
       Middleware.OnBeforeRouting(AContext, AHandled);
       if AHandled then
+      begin
         Break;
+      end;
     end;
+  end;
 end;
 
 class function TMVCEngine.ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string;
@@ -2608,12 +2626,14 @@ begin
   AContext.Response.SetReasonString(AReasonString);
 end;
 
-
 procedure TMVCEngine.LoadSystemControllers;
 begin
-  Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
-  AddController(TMVCSystemController);
-  Log(TLogLevel.levNormal, 'EXIT: LoadSystemControllers');
+  if FConfig[TMVCConfigKey.LoadSystemControllers] = 'true' then
+  begin
+    Log(TLogLevel.levNormal, 'ENTER: LoadSystemControllers');
+    AddController(TMVCSystemController);
+    Log(TLogLevel.levNormal, 'EXIT: LoadSystemControllers');
+  end;
 end;
 
 procedure TMVCEngine.OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse;
@@ -3274,8 +3294,8 @@ begin
 end;
 
 procedure TMVCRenderer.Render(const AStatusCode: Integer;
-  const AObject: IInterface;
-  const ASerializationAction: TMVCSerializationAction);
+const AObject: IInterface;
+const ASerializationAction: TMVCSerializationAction);
 begin
   SetStatusCode(AStatusCode);
   Render(AObject, ASerializationAction);
@@ -3581,8 +3601,8 @@ end;
 { TMVCBaseView }
 
 constructor TMVCBaseViewEngine.Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
-  const AViewModel: TMVCViewDataObject; const AViewDataSets: TObjectDictionary<string, TDataSet>;
-  const AContentType: string);
+const AViewModel: TMVCViewDataObject; const AViewDataSets: TObjectDictionary<string, TDataSet>;
+const AContentType: string);
 begin
   inherited Create;
   Engine := AEngine;
