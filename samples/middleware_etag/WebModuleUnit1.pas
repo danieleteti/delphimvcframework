@@ -28,6 +28,7 @@ implementation
 uses
   App1MainControllerU,
   MVCFramework.Commons,
+  MVCFramework.Middleware.StaticFiles,
   MVCFramework.Middleware.ETag;
 
 {$R *.dfm}
@@ -37,8 +38,10 @@ procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   FEngine := TMVCEngine.Create(Self);
 
-  FEngine.Config[TMVCConfigKey.DocumentRoot] := '.\www';
-
+  FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    '.\www'{ DocumentRoot }
+    ));
   FEngine.AddMiddleware(TMVCETagMiddleware.Create);
 
   FEngine.AddController(TApp1MainController);
