@@ -58,6 +58,7 @@
         <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
         <SanitizedProjectName>loggerproRT</SanitizedProjectName>
         <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
+        <DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
@@ -93,6 +94,10 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_Description>LoggerPro</DCC_Description>
         <DllSuffix>103</DllSuffix>
+        <DCC_DebugDCUs>false</DCC_DebugDCUs>
+        <DCC_UnitSearchPath>..\..\..\..\..\..\bin\SDK;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_DcpOutput>..\..\..\..\..\..\bin\SDK</DCC_DcpOutput>
+        <DCC_BplOutput>..\..\..\..\..\..\bin</DCC_BplOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>

@@ -71,6 +71,7 @@
         <VerInfo_Locale>1040</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <DCC_Description>DMVCFramework - CopyRight (2010-2020) Daniele Teti and the DMVCFramework Team</DCC_Description>
+        <DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
@@ -112,11 +113,14 @@
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_MapFile>3</DCC_MapFile>
         <DCC_Description>DMVCFramework 3.x</DCC_Description>
         <DllSuffix>103</DllSuffix>
         <Debugger_IncludeSystemVars>true</Debugger_IncludeSystemVars>
         <DCC_UNSUPPORTED_CONSTRUCT>false</DCC_UNSUPPORTED_CONSTRUCT>
+        <DCC_DcpOutput>..\..\..\..\bin\SDK</DCC_DcpOutput>
+        <DCC_UnitSearchPath>..\..\..\..\bin\SDK;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_BplOutput>..\..\..\..\bin</DCC_BplOutput>
+        <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <DCC_RunTimeTypeInfo>true</DCC_RunTimeTypeInfo>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
