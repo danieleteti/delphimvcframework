@@ -384,7 +384,7 @@ begin
 
     tkRecord:
       begin
-        if string(AValue.TypeInfo.Name).StartsWith('Nullable') then
+        if AValue.TypeInfo.NameFld.ToString.StartsWith('Nullable') then
         begin
           if TryNullableToJSON(AValue, AJsonObject, AName) then
           begin
