@@ -21,7 +21,10 @@ var
 implementation
 
 uses
-  MVCFramework.View.Renderers.Mustache, WebSiteControllerU, MVCFramework.Commons;
+  MVCFramework.View.Renderers.Mustache,
+  WebSiteControllerU,
+  MVCFramework.Commons,
+  MVCFramework.Middleware.StaticFiles;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
@@ -32,9 +35,6 @@ begin
   FMVCEngine := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] :=
-        ExtractFilePath(GetModuleName(HInstance)) + '\www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -53,8 +53,12 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end)
     .AddController(TWebSiteController)
-    .SetViewEngine(TMVCMustacheViewEngine);
-
+    .SetViewEngine(TMVCMustacheViewEngine)
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

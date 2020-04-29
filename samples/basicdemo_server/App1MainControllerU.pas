@@ -4,8 +4,8 @@ interface
 
 {$I dmvcframework.inc}
 
-
-uses MVCFramework,
+uses
+  MVCFramework,
   MVCFramework.Logger,
   MVCFramework.Commons,
   Web.HTTPApp;

@@ -60,6 +60,7 @@ type
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
 implementation
@@ -310,13 +311,18 @@ end;
 procedure TMVCSwaggerMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
   const AHandled: Boolean);
 begin
-  //
+  // do nothing
+end;
+
+procedure TMVCSwaggerMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+  // do nothing
 end;
 
 procedure TMVCSwaggerMiddleware.OnBeforeControllerAction(AContext: TWebContext;
   const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 begin
-  //
+  // do nothing
 end;
 
 procedure TMVCSwaggerMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);

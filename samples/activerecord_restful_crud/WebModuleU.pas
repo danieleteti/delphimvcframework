@@ -53,15 +53,15 @@ uses
   MVCFramework.Commons,
   MVCFramework.ActiveRecordController,
   MVCFramework.ActiveRecord,
-  FDConnectionConfigU, OtherControllerU;
+  MVCFramework.Middleware.StaticFiles,
+  FDConnectionConfigU,
+  OtherControllerU;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www');
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -76,10 +76,13 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-      // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
-      Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
 
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
+    'index.html' { IndexDocument }
+    ));
   FMVC.AddController(TOtherController, '/api/foo');
   FMVC.AddController(TMVCActiveRecordController,
     function: TMVCController

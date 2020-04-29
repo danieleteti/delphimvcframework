@@ -30,6 +30,7 @@ uses
   MVCFramework.Middleware.Swagger,
   MVCFramework.Swagger.Commons,
   MVCFramework.Middleware.JWT,
+  MVCFramework.Middleware.StaticFiles,
   AuthHandler,
   MVCFramework.JWT,
   System.DateUtils;
@@ -47,7 +48,6 @@ begin
 
   // Path prefix will be swagger basepath
   FEngine.Config[TMVCConfigKey.PathPrefix] := '/api';
-  FEngine.Config[TMVCConfigKey.DocumentRoot] := '.\www';
 
   LSwagInfo.Title := 'Sample Swagger API';
   LSwagInfo.Version := 'v1';
@@ -76,6 +76,11 @@ begin
       LClaimsSetup,
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
       ));
+   FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    '.\www', { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
 
   /// Add your registered controllers to engine.
   /// Only registered controls such as "MyServerName" will be added

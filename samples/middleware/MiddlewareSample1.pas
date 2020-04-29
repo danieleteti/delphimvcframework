@@ -13,6 +13,7 @@ type
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
   TMVCRedirectAndroidDeviceOnPlayStore = class(TInterfacedObject, IMVCMiddleware)
@@ -22,6 +23,7 @@ type
       const Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
 implementation
@@ -44,6 +46,11 @@ begin
   // do nothing
 end;
 
+procedure TMVCRedirectAndroidDeviceOnPlayStore.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+  // do nothing
+end;
+
 procedure TMVCRedirectAndroidDeviceOnPlayStore.OnBeforeControllerAction(
   Context: TWebContext; const AControllerQualifiedClassName,
   AActionNAme: string; var Handled: Boolean);
@@ -61,6 +68,11 @@ begin
     Context.Response.StatusCode := 307; // temporary redirect
     Handled := True;
   end;
+end;
+
+procedure TMVCSalutationMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+  // do nothing
 end;
 
 procedure TMVCSalutationMiddleware.OnBeforeControllerAction(Context: TWebContext;

@@ -65,7 +65,8 @@ uses
   AuthHandlersU,
   TestServerControllerJSONRPCU,
   MVCFramework.View.Renderers.Mustache,
-  MVCFramework.Middleware.Compression;
+  MVCFramework.Middleware.Compression,
+  MVCFramework.Middleware.StaticFiles;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -75,7 +76,6 @@ begin
       // no config here
       Config[TMVCConfigKey.SessionTimeout] := '0'; // setting cookie
       Config[TMVCConfigKey.PathPrefix] := '';
-      Config[TMVCConfigKey.DocumentRoot] := '..\www';
       Config[TMVCConfigKey.ViewPath] := '..\templates';
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
     end, nil);
@@ -98,6 +98,7 @@ begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', '..\www'))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);

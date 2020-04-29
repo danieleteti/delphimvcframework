@@ -40,6 +40,7 @@ type
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
 implementation
@@ -73,6 +74,12 @@ begin
   finally
     lContentStream.Free;
   end;
+end;
+
+procedure TMVCTraceMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+  Log.Debug('[AFTER ROUTING][REQUESTED URL: %s][HANDLED: %s]',
+    [AContext.Request.PathInfo, AHandled.ToString(TUseBoolStrs.True)], 'trace');
 end;
 
 procedure TMVCTraceMiddleware.OnBeforeControllerAction(Context: TWebContext;

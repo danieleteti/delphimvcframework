@@ -10,8 +10,9 @@ uses
   IdHTTPWebBrokerBridge,
   MVCFramework.REPLCommandsHandlerU,
   MVCFramework.Logger,
-  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
-  App1MainControllerU in 'App1MainControllerU.pas';
+  WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
+  App1MainControllerU in 'App1MainControllerU.pas',
+  MVCFramework.Middleware.StaticFiles in '..\..\sources\MVCFramework.Middleware.StaticFiles.pas';
 
 {$R *.res}
 

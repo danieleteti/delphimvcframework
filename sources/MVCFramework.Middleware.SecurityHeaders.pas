@@ -40,6 +40,7 @@ type
       var AHandled: Boolean);
     procedure OnAfterControllerAction(AContext: TWebContext;
       const AActionName: string; const AHandled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
 implementation
@@ -49,14 +50,19 @@ implementation
 procedure TMVCSecurityHeadersMiddleware.OnAfterControllerAction(
   AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
 begin
+  // do nothing
+end;
 
+procedure TMVCSecurityHeadersMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+  // do nothing
 end;
 
 procedure TMVCSecurityHeadersMiddleware.OnBeforeControllerAction(
   AContext: TWebContext; const AControllerQualifiedClassName,
   AActionName: string; var AHandled: Boolean);
 begin
-
+  // do nothing
 end;
 
 procedure TMVCSecurityHeadersMiddleware.OnBeforeRouting(AContext: TWebContext;

@@ -44,6 +44,8 @@ type
     procedure OnBeforeControllerAction(Context: TWebContext; const AControllerQualifiedClassName: string;
       const AActionNAme: string;
       var Handled: Boolean);
+     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+
   public
     constructor Create(const ALogWriter: ILogWriter); virtual;
     property LogWriter: ILogWriter read fLogWriter;
@@ -64,6 +66,11 @@ end;
 
 procedure TMVCAnalyticsMiddleware.OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
   const Handled: Boolean);
+begin
+  // do nothing
+end;
+
+procedure TMVCAnalyticsMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
   // do nothing
 end;

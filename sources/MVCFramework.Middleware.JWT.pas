@@ -76,6 +76,7 @@ type
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean);
     procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   public
     /// <remarks>
     /// WARNING! The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow
@@ -181,6 +182,11 @@ end;
 
 procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
   const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCJWTAuthenticationMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
   // Implement as needed
 end;
