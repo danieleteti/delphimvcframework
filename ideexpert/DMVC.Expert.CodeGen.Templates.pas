@@ -338,7 +338,7 @@ resourcestring
     sLineBreak +
     '      //unhandled actions are permitted?' + sLineBreak +
     '      Config[TMVCConfigKey.AllowUnhandledAction] := ''false'';' + sLineBreak +
-    '      //enables or not system controllers loading (available only fro localhost requests)' + sLineBreak +
+    '      //enables or not system controllers loading (available only from localhost requests)' + sLineBreak +
     '      Config[TMVCConfigKey.LoadSystemControllers] := ''true'';' + sLineBreak +
     '      //default view file extension' + sLineBreak +
     '      Config[TMVCConfigKey.DefaultViewFileExtension] := ''html'';' + sLineBreak +
@@ -355,6 +355,8 @@ resourcestring
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +
     '  // Required to enable serving of static files ' + sLineBreak +
+    '  // Remove the following middleware declaration if you don''t  ' + sLineBreak +
+    '  // serve static files from this dmvcframework service.' + sLineBreak +	
     '  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( ' + sLineBreak +
     '      ''/static'', ' + sLineBreak +
     '      TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')) ' + sLineBreak +

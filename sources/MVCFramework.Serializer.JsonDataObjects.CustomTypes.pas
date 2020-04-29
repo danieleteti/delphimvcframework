@@ -431,6 +431,8 @@ var
   lName: string;
   lObj: TMVCObjectDictionary.TMVCObjectDictionaryValueItem;
   lList: IMVCList;
+  lLinks: IMVCLinks;
+
 begin
   lObjDict := AObject as TMVCObjectDictionary;
   lOutObject := TJsonObject.Create;
@@ -476,8 +478,13 @@ begin
       end
       else
       begin
+        if Assigned(lObj.SerializationAction) then
+        begin
+          lLinks := TJDOLinks.Create;
+        end;
         fCurrentSerializer.InternalObjectToJsonObject(lObj.Data, lOutObject.O[lName],
-          TMVCSerializationType.stDefault, [], lObj.SerializationAction, nil, nil);
+          TMVCSerializationType.stDefault, [], lObj.SerializationAction, lLinks, nil);
+
       end;
     end
   except
