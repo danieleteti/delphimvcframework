@@ -2285,7 +2285,6 @@ procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWeb
 var
   I: Integer;
 begin
-  Log.Debug('TMVCEngine.ExecuteAfterControllerActionMiddleware', 'daniele');
   for I := 0 to FMiddlewares.Count - 1 do
   begin
     FMiddlewares[I].OnAfterControllerAction(AContext, AActionName, AHandled);
@@ -2296,7 +2295,6 @@ procedure TMVCEngine.ExecuteAfterRoutingMiddleware(const AContext: TWebContext; 
 var
   I: Integer;
 begin
-  Log.Debug('TMVCEngine.ExecuteAfterRoutingMiddleware', 'daniele');
   for I := 0 to FMiddlewares.Count - 1 do
   begin
     FMiddlewares[I].OnAfterRouting(AContext, AHandled);
@@ -2308,7 +2306,6 @@ procedure TMVCEngine.ExecuteBeforeControllerActionMiddleware(const AContext: TWe
 var
   Middleware: IMVCMiddleware;
 begin
-  Log.Debug('TMVCEngine.ExecuteBeforeControllerActionMiddleware', 'daniele');
   if not AHandled then
   begin
     for Middleware in FMiddlewares do
@@ -2326,7 +2323,6 @@ procedure TMVCEngine.ExecuteBeforeRoutingMiddleware(const AContext: TWebContext;
 var
   Middleware: IMVCMiddleware;
 begin
-  Log.Debug('TMVCEngine.ExecuteBeforeRoutingMiddleware', 'daniele');
   if not AHandled then
   begin
     for Middleware in FMiddlewares do
