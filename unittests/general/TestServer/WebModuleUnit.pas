@@ -98,7 +98,7 @@ begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', '..\www'))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', '..\www', 'index.html', False))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
