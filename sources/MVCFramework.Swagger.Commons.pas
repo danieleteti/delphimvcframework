@@ -218,6 +218,7 @@ type
   end;
 
 const
+  JWT_AUTHENTICATION_TAG = 'JWT Authentication';
   SECURITY_BEARER_NAME = 'bearer';
   SECURITY_BASIC_NAME = 'basic';
   JWT_JSON_SCHEMA = '{' + sLineBreak + '	 "type": "object",' + sLineBreak + '	 "properties": {' + sLineBreak +
@@ -606,7 +607,7 @@ var
   lSwagParam: TSwagRequestParameter;
 begin
   lSwagPathOp := TSwagPathOperation.Create;
-  lSwagPathOp.Tags.Add('JWT Authentication');
+  lSwagPathOp.Tags.Add(JWT_AUTHENTICATION_TAG);
   lSwagPathOp.Operation := ohvPost;
   lSwagPathOp.Security.Add(SECURITY_BASIC_NAME);
   lSwagPathOp.Description := 'Create JSON Web Token';
