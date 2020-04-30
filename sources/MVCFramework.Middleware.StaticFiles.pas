@@ -65,6 +65,7 @@ type
     fDocumentRoot: string;
     fIndexDocument: string;
     fStaticFilesCharset: string;
+    fSPAWebAppSupport: Boolean;
     procedure AddMediaTypes;
     function IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
@@ -73,6 +74,7 @@ type
       const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
       const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
       const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
+      const ASPAWebAppSupport: Boolean = True;
       const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
     destructor Destroy; override;
 
@@ -110,11 +112,15 @@ begin
   fMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
   fMediaTypes.Add('.svg', TMVCMediaType.IMAGE_SVG_XML);
   fMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML);
-  fMediaTypes.Add('.gif',TMVCMediaType.IMAGE_GIF);
+  fMediaTypes.Add('.gif', TMVCMediaType.IMAGE_GIF);
 end;
 
-constructor TMVCStaticFilesMiddleware.Create(const AStaticFilesPath, ADocumentRoot, AIndexDocument,
-  AStaticFilesCharset: string);
+constructor TMVCStaticFilesMiddleware.Create(
+  const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
+  const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
+  const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
+  const ASPAWebAppSupport: Boolean = True;
+  const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
 begin
   inherited Create;
 
@@ -122,7 +128,7 @@ begin
   fDocumentRoot := ADocumentRoot;
   fIndexDocument := AIndexDocument;
   fStaticFilesCharset := AStaticFilesCharset;
-
+  fSPAWebAppSupport := ASPAWebAppSupport;
   fMediaTypes := TDictionary<string, string>.Create;
   AddMediaTypes;
 end;
@@ -169,7 +175,7 @@ begin
     Exit;
   end;
 
-  if not ((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then
+  if not((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then
   begin
     lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
   end;
@@ -182,8 +188,15 @@ begin
       AHandled := SendStaticFileIfPresent(AContext, lFileName);
     end;
   end;
+
   if (not AHandled) and (IsStaticFileRequest(lPathInfo, lFileName)) then
   begin
+    AHandled := SendStaticFileIfPresent(AContext, lFileName);
+  end;
+
+  if (not AHandled) and fSPAWebAppSupport and AContext.Request.ClientPreferHTML and (not fIndexDocument.IsEmpty) then
+  begin
+    lFileName := TPath.GetFullPath(TPath.Combine(fDocumentRoot, fIndexDocument));
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
   end;
 end;
@@ -196,7 +209,7 @@ begin
   Result := False;
   if TFile.Exists(AFileName) then
   begin
-    if FMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
+    if fMediaTypes.TryGetValue(LowerCase(ExtractFileExt(AFileName)), lContentType) then
     begin
       lContentType := BuildContentType(lContentType, fStaticFilesCharset);
     end
