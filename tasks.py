@@ -253,34 +253,6 @@ def build_delphi_project_list(
 
 
 @task
-def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
-    """Builds and execute the unit tests"""
-    import os
-
-    apppath = os.path.dirname(os.path.realpath(__file__))
-    res = True
-    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
-    testserver = r"unittests\general\TestServer\TestServer.dproj"
-
-    print("\nBuilding Unit Test client")
-    build_delphi_project(ctx, testclient, config="CI", delphi_version=delphi_version)
-    print("\nBuilding Test Server")
-    build_delphi_project(ctx, testserver, config="CI", delphi_version=delphi_version)
-
-    # import subprocess
-    # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
-    # os.spawnl(os.P_NOWAIT, r"unittests\general\TestServer\Win32\Debug\TestServer.exe")
-    import subprocess
-    print("\nExecuting tests...")
-    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"])
-    r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
-    subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
-    if r.returncode > 0:
-        print(r)
-        return Exit("Unit tests failed")
-
-
-@task
 def clean(ctx, folder=None):
     global g_output_folder
     import os
@@ -322,6 +294,34 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\swagdoc\deploy", True)
     rmtree(folder + r"\lib\swagdoc\demos", True)
 
+@task()
+def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+    """Builds and execute the unit tests"""
+    import os
+
+    apppath = os.path.dirname(os.path.realpath(__file__))
+    res = True
+    testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
+    testserver = r"unittests\general\TestServer\TestServer.dproj"
+
+    print("\nBuilding Unit Test client")
+    build_delphi_project(ctx, testclient, config="CI", delphi_version=delphi_version)
+    print("\nBuilding Test Server")
+    build_delphi_project(ctx, testserver, config="CI", delphi_version=delphi_version)
+
+    # import subprocess
+    # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])
+    # os.spawnl(os.P_NOWAIT, r"unittests\general\TestServer\Win32\Debug\TestServer.exe")
+    import subprocess
+
+    print("\nExecuting tests...")
+    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"])
+    r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
+    subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
+    if r.returncode > 0:
+        print(r)
+        print("Unit Tests Failed")
+        return Exit("Unit tests failed")
 
 
 @task(pre=[tests])

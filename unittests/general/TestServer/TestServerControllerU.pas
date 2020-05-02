@@ -612,7 +612,7 @@ procedure TTestServerController.TestObjectDict;
 var
   lDict: IMVCObjectDictionary;
 begin
-  lDict := ObjectDict(false)
+  lDict := ObjectDict(True)
     .Add('ncUpperCase_List', GetDataSet, nil, dstAllRecords, ncUpperCase)
     .Add('ncLowerCase_List', GetDataSet, nil, dstAllRecords, ncLowerCase)
     .Add('ncCamelCase_List', GetDataSet, nil, dstAllRecords, ncCamelCase)

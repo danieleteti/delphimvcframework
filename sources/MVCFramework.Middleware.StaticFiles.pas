@@ -124,9 +124,8 @@ constructor TMVCStaticFilesMiddleware.Create(
   const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
 begin
   inherited Create;
-
-  fStaticFilesPath := AStaticFilesPath;
-  fDocumentRoot := ADocumentRoot;
+  fStaticFilesPath :=  AStaticFilesPath;
+  fDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
   fIndexDocument := AIndexDocument;
   fStaticFilesCharset := AStaticFilesCharset;
   fSPAWebAppSupport := ASPAWebAppSupport;
