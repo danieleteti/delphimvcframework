@@ -35,12 +35,13 @@ type
   TJsonField = class abstract(TPersistent)
   strict private
     fTypeName: string;
-    function GetTypeName: string;
   strict protected
     fName: string;
     fDescription: string;
     fRequired: Boolean;
     fNullable: Boolean;
+
+    function GetTypeName: string; virtual;
 
     property TypeName: string read GetTypeName;
   public

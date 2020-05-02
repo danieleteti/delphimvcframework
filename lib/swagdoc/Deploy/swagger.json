@@ -75,7 +75,8 @@
                         "description":"Employee request data",
                         "required":
                         [
-                          "name"
+                          "name",
+                          "gender"
                         ]
 ,
                         "properties":
@@ -111,6 +112,17 @@
                           {
                             "type":"number",
                             "description":"The employee gross salary."
+                          }
+,
+                          "gender":
+                          {
+                            "type":"string",
+                            "description":"The employee gender.",
+                            "enum":
+                            [
+                              "male",
+                              "female"
+                            ]
                           }
 ,
                           "address":
@@ -199,7 +211,8 @@
                   "description":"Employee request data",
                   "required":
                   [
-                    "name"
+                    "name",
+                    "gender"
                   ]
 ,
                   "properties":
@@ -235,6 +248,17 @@
                     {
                       "type":"number",
                       "description":"The employee gross salary."
+                    }
+,
+                    "gender":
+                    {
+                      "type":"string",
+                      "description":"The employee gender.",
+                      "enum":
+                      [
+                        "male",
+                        "female"
+                      ]
                     }
 ,
                     "address":
@@ -320,7 +344,8 @@
                   "description":"Employee request data",
                   "required":
                   [
-                    "name"
+                    "name",
+                    "gender"
                   ]
 ,
                   "properties":
@@ -356,6 +381,17 @@
                     {
                       "type":"number",
                       "description":"The employee gross salary."
+                    }
+,
+                    "gender":
+                    {
+                      "type":"string",
+                      "description":"The employee gender.",
+                      "enum":
+                      [
+                        "male",
+                        "female"
+                      ]
                     }
 ,
                     "address":
@@ -449,7 +485,8 @@
                   "description":"Employee request data",
                   "required":
                   [
-                    "name"
+                    "name",
+                    "gender"
                   ]
 ,
                   "properties":
@@ -485,6 +522,17 @@
                     {
                       "type":"number",
                       "description":"The employee gross salary."
+                    }
+,
+                    "gender":
+                    {
+                      "type":"string",
+                      "description":"The employee gender.",
+                      "enum":
+                      [
+                        "male",
+                        "female"
+                      ]
                     }
 ,
                     "address":
@@ -570,7 +618,8 @@
       "description":"Employee response data",
       "required":
       [
-        "name"
+        "name",
+        "gender"
       ]
 ,
       "properties":
@@ -599,6 +648,17 @@
         {
           "type":"number",
           "description":"The employee gross salary."
+        }
+,
+        "gender":
+        {
+          "type":"string",
+          "description":"The employee gender.",
+          "enum":
+          [
+            "male",
+            "female"
+          ]
         }
 ,
         "address":

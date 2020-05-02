@@ -44,10 +44,13 @@ var
   LSwagInfo: TMVCSwaggerInfo;
   LClaimsSetup: TJWTClaimsSetup;
 begin
-  FEngine := TMVCEngine.Create(Self);
-
-  // Path prefix will be swagger basepath
-  FEngine.Config[TMVCConfigKey.PathPrefix] := '/api';
+  FEngine := TMVCEngine.Create(Self,
+    procedure(AConfig: TMVCConfig)
+    begin
+      AConfig[TMVCConfigKey.PathPrefix] := '/api';
+      AConfig[TMVCConfigKey.LoadSystemControllers] := 'false';
+    end
+    );
 
   LSwagInfo.Title := 'Sample Swagger API';
   LSwagInfo.Version := 'v1';
@@ -59,7 +62,7 @@ begin
   LSwagInfo.LicenseName := 'Apache License - Version 2.0, January 2004';
   LSwagInfo.LicenseUrl := 'http://www.apache.org/licenses/LICENSE-2.0';
   FEngine.AddMiddleware(TMVCSwaggerMiddleware.Create(FEngine, LSwagInfo, '/api/swagger.json',
-   'Method for authentication using JSON Web Token (JWT)'));
+    'Method for authentication using JSON Web Token (JWT)'));
 
   LClaimsSetup := procedure(const JWT: TJWT)
     begin
@@ -70,16 +73,16 @@ begin
     end;
 
   FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
-      TAuthHandler.Create,
-      'D3lph1MVCFram3w0rk',
-      '/api/login',
-      LClaimsSetup,
-      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
-      ));
-   FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    '.\www', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
+    TAuthHandler.Create,
+    'D3lph1MVCFram3w0rk',
+    '/api/login',
+    LClaimsSetup,
+    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
+    ));
+  FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/',         { StaticFilesPath }
+    '.\www',     { DocumentRoot }
+    'index.html' { IndexDocument - Before it was named fallbackresource }
     ));
 
   /// Add your registered controllers to engine.

@@ -50,7 +50,8 @@ implementation
 {$R *.dfm}
 
 uses
-  WinApi.Windows, Winapi.ShellApi;
+  WinApi.Windows,
+  Winapi.ShellApi;
 
 procedure TMainForm.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 begin

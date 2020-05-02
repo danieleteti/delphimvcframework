@@ -80,6 +80,7 @@ implementation
 uses
   Json.Schema.Field.Strings,
   Json.Schema.Field.Arrays,
+  Json.Schema.Field.Enums,
   Swag.Common.Types;
 
 { TApiEmployee }
@@ -145,6 +146,7 @@ function TFakeApiEmployee.DocumentEmployeeModelSchema: TJsonSchema;
 var
   vName: TJsonFieldString;
   vAddressSchema: TJsonSchema;
+  vGender: TJsonFieldEnum;
 begin
   Result := TJsonSchema.Create;
   Result.Root.Description := 'Employee response data';
@@ -156,6 +158,11 @@ begin
   Result.AddField<string>('phone', 'The employee phone number.');
   Result.AddField<TDate>('hireDate', 'The employee hire date.');
   Result.AddField<Double>('salary', 'The employee gross salary.');
+
+  vGender := Result.AddFieldAsType<TJsonFieldEnum>('gender', 'The employee gender.');
+  vGender.Required := True;
+  vGender.EnumType := etString;
+  vGender.AddItems(['male', 'female']);
 
   vAddressSchema := TJsonSchema.Create;
   try

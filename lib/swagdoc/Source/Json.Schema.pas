@@ -54,6 +54,7 @@ type
     function Clone(pSourceField: TJsonSchema): TJsonSchema; overload;
     function AddField<T>(const pName: string; const pDescription: string = ''): TJsonField; overload;
     function AddField(pSchemaObject: TJsonSchema): TJsonField; overload;
+    function AddFieldAsType<T>(const pName: string; const pDescription: string = ''): T;
 
     property Root: TJsonFieldObject read fRoot;
     property Ref: string read GetRef write SetRef;
@@ -189,6 +190,14 @@ begin
   Result.Name := pName;
   Result.Description := pDescription;
   fRoot.AddField(Result);
+end;
+
+function TJsonSchema.AddFieldAsType<T>(const pName, pDescription: string): T;
+var
+  vValue: TValue;
+begin
+  vValue := AddField<T>(pName, pDescription);
+  Result := vValue.AsType<T>;
 end;
 
 function TJsonSchema.Clone(pSourceField: TJsonSchema): TJsonSchema;

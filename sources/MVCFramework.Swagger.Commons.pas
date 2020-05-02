@@ -427,6 +427,7 @@ var
   lSwagDef: TSwagDefinition;
   lClassName: string;
   lIndex: Integer;
+  lJsonSchema: TJsonFieldArray;
 begin
   for lAttr in AMethod.GetAttributes do
   begin
@@ -483,13 +484,28 @@ begin
             lSwagDefinition := TSwagDefinition.Create;
             lSwagDefinition.Name := lClassName;
             lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
-              lSwagResponsesAttr.IsArray);
+              False);
             ASwagDefinitions.Add(lSwagDefinition);
           end;
         finally
           lSwagDef.Free;
         end;
-        lSwagResponse.Schema.Name := lClassName;
+        if lSwagResponsesAttr.IsArray then
+        begin
+          lJsonSchema := TJsonFieldArray.Create;
+          try
+            lJsonSchema.Name := 'items';
+            lJsonSchema.ItemFieldType := TJsonFieldObject.Create;
+            TJsonFieldObject(lJsonSchema.ItemFieldType).Ref := lClassName;
+            lSwagResponse.Schema.JsonSchema := lJsonSchema.ToJsonSchema;
+          finally
+            lJsonSchema.Free;
+          end;
+        end
+        else
+        begin
+          lSwagResponse.Schema.Name := lClassName;
+        end;
       end;
       ASwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
     end;
@@ -934,6 +950,7 @@ begin
   fDescription := ADescription;
   fJsonSchema := AJsonSchema;
   fJsonSchemaClass := nil;
+  fIsArray := False;
 end;
 
 constructor MVCSwagResponsesAttribute.Create(const AStatusCode: Integer; const ADescription: string;

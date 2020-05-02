@@ -31,6 +31,8 @@ uses
   Json.Schema.Common.Types;
 
 type
+  TJsonFieldEnumType = (etNumber, etString);
+
   TJsonFieldEnumItem = class
   strict private
     fValue: Integer;
@@ -46,9 +48,12 @@ type
   TJsonFieldEnum = class(TJsonField)
   strict private
     fJsonEnumItems: TObjectList<TJsonFieldEnumItem>;
+    fEnumType: TJsonFieldEnumType;
 
     function GetCount: Integer;
     function GetItem(const pIndex: Byte): TJsonFieldEnumItem;
+  strict protected
+    function GetTypeName: string; override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -57,10 +62,12 @@ type
     procedure AddItems(const pItemsDescriptions: array of string);
 
     function ToJsonSchema: TJsonObject; override;
+
     function Clone: TJsonField; override;
 
     property Count: Integer read GetCount;
     property Items[const pIndex: Byte]: TJsonFieldEnumItem read GetItem;
+    property EnumType: TJsonFieldEnumType read fEnumType write fEnumType;
   end;
 
 implementation
@@ -84,6 +91,7 @@ constructor TJsonFieldEnum.Create;
 begin
   inherited Create;
   fJsonEnumItems := TObjectList<TJsonFieldEnumItem>.Create(True);
+  fEnumType := etNumber;
 end;
 
 destructor TJsonFieldEnum.Destroy;
@@ -102,7 +110,7 @@ var
   vItemIndex: Integer;
 begin
   for vItemIndex := 0 to Length(pItemsDescriptions) -1 do
-    Self.AddItem(vItemIndex + Self.GetCount, pItemsDescriptions[vItemIndex]);
+    Self.AddItem(vItemIndex, pItemsDescriptions[vItemIndex]);
 end;
 
 function TJsonFieldEnum.Clone: TJsonField;
@@ -110,6 +118,7 @@ var
   vIndex: Integer;
 begin
   Result := inherited Clone;
+  TJsonFieldEnum(Result).EnumType := Self.EnumType;
   for vIndex := 0 to Self.GetCount - 1 do
   begin
     TJsonFieldEnum(Result).AddItem(
@@ -131,6 +140,14 @@ begin
     Result := nil;
 end;
 
+function TJsonFieldEnum.GetTypeName: string;
+begin
+  case fEnumType of
+    etNumber: Result := inherited GetTypeName;
+    etString: Result := 'string';
+  end;
+end;
+
 function TJsonFieldEnum.ToJsonSchema: TJsonObject;
 var
   vJsonList: TJsonArray;
@@ -146,10 +163,15 @@ begin
     if Assigned(vJsonEnumItem) then
     begin
       vHelpEnum := vHelpEnum + vJsonEnumItem.Value.ToString + '=' + vJsonEnumItem.Description + ', ';
-      vJsonList.Add(vJsonEnumItem.Value);
+      case fEnumType of
+        etNumber: vJsonList.Add(vJsonEnumItem.Value);
+        etString: vJsonList.Add(vJsonEnumItem.Description);
+      end;
     end;
   end;
-  vHelpEnum := fDescription + ' ' + Copy(vHelpEnum, 1, Length(vHelpEnum) - 2) + ']';
+
+  if (fEnumType = etNumber) then
+    fDescription := fDescription + ' ' + Copy(vHelpEnum, 1, Length(vHelpEnum) - 2) + ']';
 
   Result := inherited ToJsonSchema;
   Result.AddPair('enum', vJsonList);

@@ -143,6 +143,9 @@ begin
 end;
 
 function TJsonFieldObject.ToJsonSchema: TJsonObject;
+const
+  c_SchemaRef = '$ref';
+  c_PrefixDefinitionName = '#/definitions/';
 var
   vJsonObjectList: TJsonObject;
   vJsonRequiredList: TJsonArray;
@@ -151,7 +154,7 @@ begin
   if (fRef.Length > 0) then
   begin
     Result := TJSONObject.Create;
-    Result.AddPair('$ref', FRef);
+    Result.AddPair('$ref', c_PrefixDefinitionName + FRef);
     Exit;
   end;
   
