@@ -359,7 +359,15 @@ begin
   lPathComparer := TDelegatedComparer<TSwagPath>.Create(
   function(const Left, Right: TSwagPath): Integer
   begin
-    Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
+    if SameText(Left.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) or
+      SameText(Right.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) then
+    begin
+      Result := -1;
+    end
+    else
+    begin
+      Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
+    end;
   end);
 
   ASwagDoc.Paths.Sort(lPathComparer);
