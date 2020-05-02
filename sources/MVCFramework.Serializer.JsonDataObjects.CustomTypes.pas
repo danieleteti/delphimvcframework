@@ -458,6 +458,11 @@ begin
         case lObj.DataSetSerializationType of
           dstSingleRecord:
             begin
+              if TDataSet(lObj.Data).Eof then
+              begin
+                raise EMVCSerializationException.Create(HTTP_STATUS.InternalServerError,
+                  'Cannot serialize a single record of an empty dataset');
+              end;
               fCurrentSerializer.InternalSerializeDataSetRecord(
                 TDataSet(lObj.Data),
                 lOutObject.O[lName],

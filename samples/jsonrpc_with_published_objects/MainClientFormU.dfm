@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'JSON-RPC 2.0 Client'
-  ClientHeight = 527
+  ClientHeight = 546
   ClientWidth = 842
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 842
-    Height = 527
+    Height = 546
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
@@ -28,7 +28,7 @@ object MainForm: TMainForm
         Left = 3
         Top = 22
         Width = 815
-        Height = 124
+        Height = 174
         Caption = 'Simple Types'
         TabOrder = 0
         object edtValue1: TEdit
@@ -206,10 +206,43 @@ object MainForm: TMainForm
           TabOrder = 16
           OnClick = btnWithJSONClick
         end
+        object Edit1: TEdit
+          Left = 17
+          Top = 136
+          Width = 32
+          Height = 21
+          TabOrder = 17
+          Text = '42'
+        end
+        object Edit2: TEdit
+          Left = 55
+          Top = 136
+          Width = 26
+          Height = 21
+          TabOrder = 18
+          Text = '10'
+        end
+        object btnSubtractWithNamedParams: TButton
+          Left = 87
+          Top = 134
+          Width = 160
+          Height = 25
+          Caption = 'Subtract (named params)'
+          TabOrder = 19
+          OnClick = btnSubtractWithNamedParamsClick
+        end
+        object Edit3: TEdit
+          Left = 253
+          Top = 136
+          Width = 27
+          Height = 21
+          ReadOnly = True
+          TabOrder = 20
+        end
       end
       object GroupBox2: TGroupBox
         Left = 3
-        Top = 162
+        Top = 202
         Width = 489
         Height = 159
         Caption = 'Returning Objects'
@@ -247,7 +280,7 @@ object MainForm: TMainForm
       end
       object GroupBox3: TGroupBox
         Left = 504
-        Top = 162
+        Top = 202
         Width = 314
         Height = 310
         Caption = 'Returning Datasets'
@@ -284,7 +317,7 @@ object MainForm: TMainForm
       end
       object GroupBox4: TGroupBox
         Left = 3
-        Top = 343
+        Top = 383
         Width = 489
         Height = 129
         Caption = 'Passing Objects as parameters'

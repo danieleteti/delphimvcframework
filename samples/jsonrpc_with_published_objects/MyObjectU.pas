@@ -58,18 +58,18 @@ type
   const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]
-    function Subtract(aValue1, aValue2: Integer): Integer;
+    function Subtract(Value1, Value2: Integer): Integer;
     [MVCDoc('Returns the revers of the string passed as input')]
     function ReverseString(const aString: string; const aUpperCase: Boolean): string;
     [MVCDoc('Returns the next monday starting from aDate')]
     function GetNextMonday(const aDate: TDate): TDate;
     function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
       const aDateAndTime: TDateTime): TDateTime;
-    function GetCustomers(aString: string): TDataset;
+    function GetCustomers(FilterString: string): TDataset;
     function GetMulti: TMultiDataset;
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
-    function SavePerson(const aPerson: TJsonObject): Integer;
+    function SavePerson(const Person: TJsonObject): Integer;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
@@ -123,15 +123,15 @@ begin
   Result := aDouble + aExtended;
 end;
 
-function TMyObject.GetCustomers(aString: string): TDataset;
+function TMyObject.GetCustomers(FilterString: string): TDataset;
 var
   lMT: TFDMemTable;
 begin
   lMT := GetCustomersDataset;
   try
-    if not aString.IsEmpty then
+    if not FilterString.IsEmpty then
     begin
-      lMT.Filter := aString;
+      lMT.Filter := FilterString;
       lMT.Filtered := True;
     end;
     lMT.First;
@@ -269,7 +269,7 @@ begin
   end;
 end;
 
-function TMyObject.SavePerson(const aPerson: TJsonObject): Integer;
+function TMyObject.SavePerson(const Person: TJsonObject): Integer;
 // var
 // lPerson: TPerson;
 begin
@@ -284,9 +284,9 @@ begin
   Result := Random(1000);
 end;
 
-function TMyObject.Subtract(aValue1, aValue2: Integer): Integer;
+function TMyObject.Subtract(Value1, Value2: Integer): Integer;
 begin
-  Result := aValue1 - aValue2;
+  Result := Value1 - Value2;
 end;
 
 { TData }

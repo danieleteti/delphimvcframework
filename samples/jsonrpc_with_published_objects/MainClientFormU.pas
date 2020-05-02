@@ -77,6 +77,10 @@ type
     btnDates: TButton;
     btnFloatsTests: TButton;
     btnWithJSON: TButton;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    btnSubtractWithNamedParams: TButton;
+    Edit3: TEdit;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -92,6 +96,7 @@ type
     procedure btnDatesClick(Sender: TObject);
     procedure btnFloatsTestsClick(Sender: TObject);
     procedure btnWithJSONClick(Sender: TObject);
+    procedure btnSubtractWithNamedParamsClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
@@ -156,7 +161,7 @@ begin
   lResp := FExecutor.ExecuteRequest(lReq);
   lRes := lResp.Result.AsType<Extended>;
   lRes := RoundTo(lRes, -4);
-  Assert(SameValue(lRes, 3580.2467), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18,9));
+  Assert(SameValue(lRes, 3580.2467), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18, 9));
 
   lReq := TJSONRPCRequest.Create(1234, 'floatstest');
   lReq.Params.Add(123);
@@ -164,7 +169,7 @@ begin
   lResp := FExecutor.ExecuteRequest(lReq);
   lRes := lResp.Result.AsType<Extended>;
   lRes := RoundTo(lRes, -4);
-  Assert(SameValue(lRes, 357), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18,9));
+  Assert(SameValue(lRes, 357), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18, 9));
 end;
 
 procedure TMainForm.btnGetUserClick(Sender: TObject);
@@ -241,8 +246,8 @@ begin
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'reversestring';
   lReq.RequestID := Random(1000);
-  lReq.Params.Add(edtReverseString.Text);
-  lReq.Params.Add(CheckBox1.Checked);
+  lReq.Params.AddByName('aString', edtReverseString.Text);
+  lReq.Params.AddByName('aUpperCase', CheckBox1.Checked);
   lResp := FExecutor.ExecuteRequest(lReq);
   edtReversedString.Text := lResp.Result.AsString;
 end;
@@ -257,7 +262,7 @@ begin
   lReq.Method := 'saveperson';
   lReq.RequestID := Random(1000);
   lPerson := TPerson.Create;
-  lReq.Params.Add(lPerson, pdtObject);
+  lReq.Params.AddByName('Person', lPerson, pdtObject);
   lPerson.FirstName := edtFirstName.Text;
   lPerson.LastName := edtLastName.Text;
   lPerson.Married := chkMarried.Checked;
@@ -289,7 +294,7 @@ begin
   for I := 0 to lJSON.Count - 1 do
   begin
     lJObj := lJSON[I].ObjectValue;
-    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f',[lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
+    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
   end;
   // lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
   // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
@@ -309,6 +314,20 @@ begin
   lReq.Params.Add(StrToInt(edtValue2.Text));
   lResp := FExecutor.ExecuteRequest(lReq);
   edtResult.Text := lResp.Result.AsInteger.ToString;
+end;
+
+procedure TMainForm.btnSubtractWithNamedParamsClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'subtract';
+  lReq.RequestID := Random(1000);
+  lReq.Params.AddByName('Value1', StrToInt(Edit1.Text));
+  lReq.Params.AddByName('Value2', StrToInt(Edit2.Text));
+  lResp := FExecutor.ExecuteRequest(lReq);
+  Edit3.Text := lResp.Result.AsInteger.ToString;
 end;
 
 procedure TMainForm.btnWithJSONClick(Sender: TObject);
@@ -337,7 +356,7 @@ var
 begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
-  lReq.Params.Add(edtFilter.Text);
+  lReq.Params.AddByName('FilterString', edtFilter.Text);
   lResp := FExecutor.ExecuteRequest(lReq);
   FDMemTable1.Active := True;
   FDMemTable1.LoadFromTValue(lResp.Result);
@@ -352,11 +371,11 @@ begin
 
   // these are the methods to handle http headers in JSONRPC
   // the following line and the check on the server is just for demo
-  assert(FExecutor.HTTPHeadersCount = 0);
+  Assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
-  assert(FExecutor.HTTPHeadersCount = 1);
+  Assert(FExecutor.HTTPHeadersCount = 1);
   FExecutor.ClearHTTPHeaders;
-  assert(FExecutor.HTTPHeadersCount = 0);
+  Assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
 end;
 

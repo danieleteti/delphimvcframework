@@ -40,7 +40,7 @@ type
     /// <summary>
     /// URL segment that represents the path to static files
     /// </summary>
-    STATIC_FILES_PATH = '/';
+    STATIC_FILES_PATH = '/static';
 
     /// <summary>
     /// Physical path of the root folder that contains the static files
@@ -91,7 +91,8 @@ implementation
 
 uses
   System.SysUtils,
-  System.IOUtils;
+  System.NetEncoding,
+  System.IOUtils, System.Classes;
 
 { TMVCStaticFilesMiddleware }
 
@@ -193,6 +194,13 @@ begin
   begin
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
   end;
+
+  // if (not AHandled) and lPathInfo.EndsWith('favicon.ico') then
+  // begin
+  // AContext.Response.SetContentStream(TBytesStream.Create(TNetEncoding.Base64.DecodeStringToBytes(DMVC_FAVICON)),
+  // TMVCMediaType.IMAGE_X_ICON);
+  // AHandled := True;
+  // end;
 
   if (not AHandled) and fSPAWebAppSupport and AContext.Request.ClientPreferHTML and (not fIndexDocument.IsEmpty) then
   begin

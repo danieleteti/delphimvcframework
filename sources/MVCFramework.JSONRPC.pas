@@ -136,8 +136,13 @@ type
     function GetItem(const Index: Integer): TValue;
     function GetItemDataType(const Index: Integer): TJSONRPCParamDataType;
   protected
-    FParamsValue: TList<TValue>;
-    FParamsType: TList<TJSONRPCParamDataType>;
+    fParamValues: TList<TValue>;
+    fParamNames: TList<string>;
+    fParamTypes: TList<TJSONRPCParamDataType>;
+  private
+    procedure CheckNotNames;
+    procedure CheckBalancedParams;
+    function GetItemName(const Index: Integer): string;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -145,6 +150,7 @@ type
     function Count: Integer;
     property Items[const index: Integer]: TValue read GetItem; default;
     property ItemsType[const index: Integer]: TJSONRPCParamDataType read GetItemDataType;
+    property ItemsName[const index: Integer]: string read GetItemName;
     function ToArray: TArray<TValue>;
     procedure Add(const Value: string); overload;
     procedure Add(const Value: Integer); overload;
@@ -156,6 +162,16 @@ type
     procedure Add(const Value: TDateTime); overload;
     procedure Add(const Value: Double); overload;
     procedure Add(const Value: TValue; const ParamType: TJSONRPCParamDataType); overload;
+    procedure AddByName(const Name: string; const Value: string); overload;
+    procedure AddByName(const Name: string; const Value: Integer); overload;
+    procedure AddByName(const Name: string; const Value: TJDOJsonObject); overload;
+    procedure AddByName(const Name: string; const Value: TJDOJsonArray); overload;
+    procedure AddByName(const Name: string; const Value: Boolean); overload;
+    procedure AddByName(const Name: string; const Value: TDate); overload;
+    procedure AddByName(const Name: string; const Value: TTime); overload;
+    procedure AddByName(const Name: string; const Value: TDateTime); overload;
+    procedure AddByName(const Name: string; const Value: Double); overload;
+    procedure AddByName(const Name: string; const Value: TValue; const ParamType: TJSONRPCParamDataType); overload;
   end;
 
   IJSONRPCNotification = interface(IJSONRPCObject)
@@ -488,6 +504,84 @@ begin
             LJObj := lSer.SerializeObjectToJSON(Value.AsObject,
               TMVCSerializationType.stProperties, [], nil);
             JSONArr.Add(LJObj);
+          finally
+            lSer.Free;
+          end;
+        end;
+      end;
+  else
+    raise EMVCException.Create('Invalid type');
+  end;
+end;
+
+procedure AppendTValueToJsonObject(const Value: TValue; const Name: string; const ParamType: TJSONRPCParamDataType;
+  const JSONObj: TJDOJsonObject);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lOrdinalValue: Int64;
+begin
+  case ParamType of
+    pdtInteger:
+      begin
+        JSONObj.I[name] := Value.AsInteger;
+      end;
+    pdtFloat:
+      begin
+        JSONObj.F[name] := Value.AsExtended;
+      end;
+    pdtDateTime:
+      begin
+        JSONObj.S[name] := DateTimeToISOTimeStamp(FloatToDateTime(Value.AsExtended));
+      end;
+    pdtDate:
+      begin
+        JSONObj.S[name] := DateToISODate(FloatToDateTime(Value.AsExtended));
+      end;
+    pdtTime:
+      begin
+        JSONObj.S[name] := TimeToISOTime(FloatToDateTime(Value.AsExtended));
+      end;
+    pdtString:
+      begin
+        JSONObj.S[name] := Value.AsString;
+      end;
+    pdtLongInteger:
+      begin
+        JSONObj.L[name] := Value.AsInt64;
+      end;
+    pdtBoolean:
+      begin
+        if not Value.TryAsOrdinal(lOrdinalValue) then
+        begin
+          raise EMVCException.Create('Invalid ordinal parameter');
+        end;
+        JSONObj.B[name] := lOrdinalValue = 1;
+      end;
+    pdTJDOJsonObject:
+      begin
+        JSONObj.O[name] := (Value.AsObject as TJDOJsonObject).Clone as TJDOJsonObject;
+      end;
+    pdtJSONArray:
+      begin
+        JSONObj.A[name] := (Value.AsObject as TJDOJsonArray).Clone as TJDOJsonArray;
+      end;
+    pdtObject:
+      begin
+        if Value.AsObject is TDataSet then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name], TMVCNameCase.ncLowerCase, []);
+          finally
+            lSer.Free;
+          end
+        end
+        else
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSONObj.O[name] := lSer.SerializeObjectToJSON(Value.AsObject,
+              TMVCSerializationType.stProperties, [], nil);
           finally
             lSer.Free;
           end;
@@ -1048,7 +1142,15 @@ begin
               ('Cannot call a function using a JSON-RPC notification. [HINT] Use requests for functions and notifications for procedures');
           end;
 
-          lJSONRPCReq.FillParameters(lJSON, lRTTIMethod);
+          try
+            lJSONRPCReq.FillParameters(lJSON, lRTTIMethod);
+          except
+            on Ex: EMVCJSONRPCErrorResponse do
+            begin
+              raise EMVCJSONRPCInvalidParams.Create('Cannot map all parameters to remote method. ' + Ex.Message);
+            end;
+          end;
+
           try
             TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, lJSON, 'JSONRequest');
             LogD('[JSON-RPC][CALL][' + CALL_TYPE[lRTTIMethod.MethodKind] + '] ' + lRTTIMethod.Name);
@@ -1057,6 +1159,10 @@ begin
             on E: EInvalidCast do
             begin
               raise EMVCJSONRPCInvalidParams.Create('Check your input parameters types');
+            end;
+            on Ex: EMVCJSONRPCInvalidRequest do
+            begin
+              raise EMVCJSONRPCInvalidParams.Create(Ex.Message);
             end;
           end;
 
@@ -1365,23 +1471,29 @@ begin
 end;
 
 procedure TJSONRPCNotification.FillParameters(
-  const
-  JSON:
-  TJDOJsonObject;
-const
-  RTTIMethod:
-  TRTTIMethod);
+  const JSON: TJDOJsonObject;
+const RTTIMethod: TRTTIMethod);
 var
   lRTTIMethodParams: TArray<TRttiParameter>;
   lRTTIMethodParam: TRttiParameter;
   lJSONParams: TJDOJsonArray;
+  lJSONNamedParams: TJDOJsonObject;
   I: Integer;
+  lUseNamedParams: Boolean;
 begin
+  lUseNamedParams := False;
   lJSONParams := nil;
+  lJSONNamedParams := nil;
   Params.Clear;
   if JSON.Types[JSONRPC_PARAMS] = jdtArray then
   begin
     lJSONParams := JSON.A[JSONRPC_PARAMS];
+    lUseNamedParams := False;
+  end
+  else if JSON.Types[JSONRPC_PARAMS] = jdtObject then
+  begin
+    lJSONNamedParams := JSON.O[JSONRPC_PARAMS];
+    lUseNamedParams := True;
   end
   else
     if JSON.Types[JSONRPC_PARAMS] <> jdtNone then
@@ -1390,12 +1502,27 @@ begin
   end;
 
   lRTTIMethodParams := RTTIMethod.GetParameters;
-  if (Length(lRTTIMethodParams) > 0) and (not Assigned(lJSONParams)) then
-    raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
-      [Length(lRTTIMethodParams), 0]);
-  if Assigned(lJSONParams) and (Length(lRTTIMethodParams) <> lJSONParams.Count) then
-    raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
-      [Length(lRTTIMethodParams), lJSONParams.Count]);
+  if lUseNamedParams then
+  begin
+    if (Length(lRTTIMethodParams) > 0) and (not Assigned(lJSONNamedParams)) then
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+        [Length(lRTTIMethodParams), 0]);
+
+    if Assigned(lJSONNamedParams) and (Length(lRTTIMethodParams) <> lJSONNamedParams.Count) then
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+        [Length(lRTTIMethodParams), lJSONNamedParams.Count]);
+  end
+  else
+  begin
+    if (Length(lRTTIMethodParams) > 0) and (not Assigned(lJSONParams)) then
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+        [Length(lRTTIMethodParams), 0]);
+
+    if Assigned(lJSONParams) and (Length(lRTTIMethodParams) <> lJSONParams.Count) then
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+        [Length(lRTTIMethodParams), lJSONParams.Count]);
+  end;
+
   for lRTTIMethodParam in lRTTIMethodParams do
   begin
     if lRTTIMethodParam.Flags * [pfVar, pfOut, pfArray, pfReference] <> [] then
@@ -1407,9 +1534,18 @@ begin
   // scroll json params and rttimethod params and find the best match
   if Assigned(lJSONParams) then
   begin
+    // positional params
     for I := 0 to lJSONParams.Count - 1 do
     begin
       JSONDataValueToTValueParam(lJSONParams[I], lRTTIMethodParams[I], Params);
+    end;
+  end
+  else if Assigned(lJSONNamedParams) then
+  begin
+    // named params
+    for I := 0 to lJSONNamedParams.Count - 1 do
+    begin
+      JSONDataValueToTValueParam(lJSONNamedParams.Values[lRTTIMethodParams[I].Name.ToLower], lRTTIMethodParams[I], Params);
     end;
   end;
 end;
@@ -1424,10 +1560,24 @@ begin
   Result.S[JSONRPC_METHOD] := FMethod;
   if FParams.Count > 0 then
   begin
-    for I := 0 to FParams.Count - 1 do
-    begin
-      AppendTValueToJsonArray(FParams.FParamsValue[I], FParams.FParamsType[I],
-        Result.A[JSONRPC_PARAMS]);
+    if FParams.fParamNames.Count = 0 then
+    begin // positional params
+      for I := 0 to FParams.Count - 1 do
+      begin
+        AppendTValueToJsonArray(FParams.fParamValues[I], FParams.fParamTypes[I],
+          Result.A[JSONRPC_PARAMS]);
+      end;
+    end
+    else
+    begin // named params
+      for I := 0 to FParams.Count - 1 do
+      begin
+        AppendTValueToJsonObject(
+          FParams.fParamValues[I],
+          FParams.fParamNames[I],
+          FParams.fParamTypes[I],
+          Result.O[JSONRPC_PARAMS]);
+      end;
     end;
   end;
 end;
@@ -1560,10 +1710,7 @@ begin
   FID := Value;
 end;
 
-procedure TJSONRPCResponse.SetJSON(
-  const
-  JSON:
-  TJDOJsonObject);
+procedure TJSONRPCResponse.SetJSON(const JSON: TJDOJsonObject);
 begin
   if JSON.Types[JSONRPC_ID] = jdtString then
     RequestID := JSON.S[JSONRPC_ID]
@@ -1762,117 +1909,106 @@ begin
   // do nothing
 end;
 
-procedure TJSONRPCProxyGenerator.StartGeneration(
-  const
-  aClassName:
-  string);
+procedure TJSONRPCProxyGenerator.StartGeneration(const aClassName: string);
 begin
   // do nothing
 end;
 
 { TJSONRPCRequestParams }
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  TJDOJsonArray);
+procedure TJSONRPCRequestParams.Add(const Value: TJDOJsonArray);
 begin
   Add(Value, pdtJSONArray);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  TJDOJsonObject);
+procedure TJSONRPCRequestParams.Add(const Value: TJDOJsonObject);
 begin
   Add(Value, pdTJDOJsonObject);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  Integer);
+procedure TJSONRPCRequestParams.Add(const Value: Integer);
 begin
   Add(Value, pdtInteger);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  string);
+procedure TJSONRPCRequestParams.Add(const Value: string);
 begin
   Add(Value, pdtString);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  Boolean);
+procedure TJSONRPCRequestParams.Add(const Value: Boolean);
 begin
   Add(Value, pdtBoolean);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  Double);
+procedure TJSONRPCRequestParams.Add(const Value: Double);
 begin
   Add(Value, pdtFloat);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  TDateTime);
+procedure TJSONRPCRequestParams.Add(const Value: TDateTime);
 begin
   Add(Value, pdtDateTime);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  TTime);
+procedure TJSONRPCRequestParams.Add(const Value: TTime);
 begin
   Add(Value, pdtTime);
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  TDate);
+procedure TJSONRPCRequestParams.Add(const Value: TDate);
 begin
   Add(Value, pdtDate);
 end;
 
+procedure TJSONRPCRequestParams.CheckBalancedParams;
+begin
+  if fParamNames.Count <> fParamValues.Count then
+  begin
+    raise EMVCJSONRPCException.Create('Cannot mix positional with named parameters');
+  end;
+end;
+
+procedure TJSONRPCRequestParams.CheckNotNames;
+begin
+  if fParamNames.Count > 0 then
+  begin
+    raise EMVCJSONRPCException.Create('Cannot mix positional with named parameters');
+  end;
+end;
+
 procedure TJSONRPCRequestParams.Clear;
 begin
-  FParamsValue.Clear;
-  FParamsType.Clear;
+  fParamValues.Clear;
+  fParamTypes.Clear;
+  fParamNames.Clear;
 end;
 
 function TJSONRPCRequestParams.Count: Integer;
 begin
-  Result := FParamsValue.Count;
+  Result := fParamValues.Count;
 end;
 
 constructor TJSONRPCRequestParams.Create;
 begin
   inherited Create;
-  FParamsValue := TList<TValue>.Create;
-  FParamsType := TList<TJSONRPCParamDataType>.Create;
+  fParamValues := TList<TValue>.Create;
+  fParamTypes := TList<TJSONRPCParamDataType>.Create;
+  fParamNames := TList<string>.Create;
 end;
 
 destructor TJSONRPCRequestParams.Destroy;
 var
   lValue: TValue;
 begin
-  for lValue in FParamsValue do
+  for lValue in fParamValues do
   begin
     if lValue.IsObject then
       lValue.AsObject.Free;
   end;
-  FParamsValue.Free;
-  FParamsType.Free;
+  fParamValues.Free;
+  fParamTypes.Free;
+  fParamNames.Free;
   inherited;
 end;
 
@@ -1881,7 +2017,7 @@ function TJSONRPCRequestParams.GetItem(
   Index:
   Integer): TValue;
 begin
-  Result := FParamsValue[index];
+  Result := fParamValues[index];
 end;
 
 function TJSONRPCRequestParams.GetItemDataType(
@@ -1889,24 +2025,86 @@ function TJSONRPCRequestParams.GetItemDataType(
   Index:
   Integer): TJSONRPCParamDataType;
 begin
-  Result := FParamsType[index];
+  Result := fParamTypes[index];
+end;
+
+function TJSONRPCRequestParams.GetItemName(const Index: Integer): string;
+begin
+  Result := fParamNames[index];
 end;
 
 function TJSONRPCRequestParams.ToArray: TArray<TValue>;
 begin
-  Result := FParamsValue.ToArray;
+  Result := fParamValues.ToArray;
 end;
 
-procedure TJSONRPCRequestParams.Add(
-  const
-  Value:
-  TValue;
-const
-  ParamType:
-  TJSONRPCParamDataType);
+procedure TJSONRPCRequestParams.Add(const Value: TValue; const ParamType: TJSONRPCParamDataType);
 begin
-  FParamsValue.Add(Value);
-  FParamsType.Add(ParamType);
+  CheckNotNames;
+  fParamValues.Add(Value);
+  fParamTypes.Add(ParamType);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: Boolean);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtBoolean);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: TJDOJsonArray);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtJSONArray);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: TJDOJsonObject);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdTJDOJsonObject);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: Integer);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtInteger);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name, Value: string);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtString);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: TValue; const ParamType: TJSONRPCParamDataType);
+begin
+  CheckBalancedParams;
+  fParamNames.Add(LowerCase(name));
+  fParamValues.Add(Value);
+  fParamTypes.Add(ParamType);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: Double);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtFloat);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: TDateTime);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtDateTime);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: TTime);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtTime);
+end;
+
+procedure TJSONRPCRequestParams.AddByName(const Name: string;
+const Value: TDate);
+begin
+  AddByName(name, Value, TJSONRPCParamDataType.pdtDate);
 end;
 
 { EMVCJSONRPCException }

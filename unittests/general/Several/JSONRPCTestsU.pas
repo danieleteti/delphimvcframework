@@ -37,6 +37,10 @@ type
     [Test]
     procedure TestRequestWithArrayParameters;
     [Test]
+    procedure TestRequestWithNamedParameters;
+    [Test]
+    procedure TestRequestWithMixedParamaters;
+    [Test]
     procedure TestRequestWithNoParameters;
     [Test]
     procedure TestRequestWithMalformedJSON;
@@ -86,6 +90,44 @@ begin
       lReq := TJSONRPCRequest.Create;
       lReq.AsJSONString := '{"jsonrpc": "2.0", this is wrong}';
     end, EMVCJSONRPCParseError);
+end;
+
+procedure TTestJSONRPC.TestRequestWithMixedParamaters;
+var
+  lReq: IJSONRPCRequest;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'subtract';
+  Assert.WillRaise(
+    procedure
+    begin
+      lReq.Params.AddByName('par1', 42);
+      lReq.Params.Add(42);
+    end, EMVCJSONRPCException);
+
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'subtract';
+  Assert.WillRaise(
+    procedure
+    begin
+      lReq.Params.Add(42);
+      lReq.Params.AddByName('par1', 42);
+    end, EMVCJSONRPCException);
+end;
+
+procedure TTestJSONRPC.TestRequestWithNamedParameters;
+var
+  lReq: IJSONRPCRequest;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'subtract';
+  lReq.Params.AddByName('par1', 42);
+  lReq.Params.AddByName('PAR2', 23);
+  lReq.RequestID := 1;
+  Assert.AreEqual(1, lReq.RequestID.AsInteger);
+  Assert.AreEqual('par1', lReq.Params.ItemsName[0]);
+  Assert.AreEqual('par2', lReq.Params.ItemsName[1]);
+  Assert.AreEqual('subtract', lReq.Method);
 end;
 
 procedure TTestJSONRPC.TestRequestWithNoParameters;
