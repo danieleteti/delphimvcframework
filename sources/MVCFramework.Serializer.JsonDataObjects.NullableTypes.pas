@@ -54,6 +54,21 @@ type
       const AAttributes: TArray<TCustomAttribute>);
   end;
 
+  TNullableDoubleSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+  end;
+
   TNullableInt64Serializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
     procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
@@ -184,6 +199,7 @@ begin
   ASerializer.RegisterTypeSerializer(TypeInfo(TNullableDate), TNullableDateSerializer.Create);
   ASerializer.RegisterTypeSerializer(TypeInfo(TNullableTime), TNullableTimeSerializer.Create);
   ASerializer.RegisterTypeSerializer(TypeInfo(TNullableGuid), TNullableGuidSerializer.Create);
+  ASerializer.RegisterTypeSerializer(TypeInfo(TNullableDouble), TNullableDoubleSerializer.Create);
 end;
 
 { TNullableIntegerSerializer }
@@ -557,6 +573,55 @@ end;
 
 procedure TNullableGuidSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
   const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+begin
+  raise EMVCSerializationException.Create('Not implemented');
+end;
+
+{ TNullableDoubleSerializer }
+
+procedure TNullableDoubleSerializer.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  LJSON: TJDOJsonObject;
+  LNullDouble: TNullableDouble;
+begin
+  LJSON := ASerializerObject as TJDOJsonObject;
+  if LJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
+  begin
+    LNullDouble := nil;
+  end
+  else
+  begin
+    LNullDouble := LJSON.F[APropertyName];
+  end;
+  AElementValue := TValue.From<TNullableDouble>(LNullDouble);
+end;
+
+procedure TNullableDoubleSerializer.DeserializeRoot(const ASerializerObject,
+  AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  raise EMVCSerializationException.Create('Not implemented');
+end;
+
+procedure TNullableDoubleSerializer.SerializeAttribute(
+  const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  LNullDouble: TNullableDouble;
+begin
+  LNullDouble := AElementValue.AsType<TNullableDouble>;
+  if LNullDouble.HasValue then
+    (ASerializerObject as TJDOJsonObject).F[APropertyName] := LNullDouble.Value
+  else
+    (ASerializerObject as TJDOJsonObject).Values[APropertyName] := nil;
+end;
+
+procedure TNullableDoubleSerializer.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
 begin
   raise EMVCSerializationException.Create('Not implemented');
 end;
