@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -184,18 +184,15 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
 
-  {$IFDEF SYSTEMJSON}
-
+{$IFDEF SYSTEMJSON}
   System.JSON,
 
-  {$ELSE}
-
+{$ELSE}
   Data.DBXJSON,
   Data.SqlExpr,
   DBXCommon,
 
-  {$ENDIF}
-
+{$ENDIF}
   MVCFramework.Rtti.Utils,
   MVCFramework.DuckTyping,
   Generics.Collections;
@@ -362,12 +359,10 @@ begin
         if _param.OwnsObject and Arg.IsObject then
         begin
 
-          {$HINTS OFF}
-
+{$HINTS OFF}
           Arg.AsObject.Free;
 
-          {$HINTS ON}
-
+{$HINTS ON}
         end;
       end;
   end;
@@ -419,7 +414,8 @@ begin
   end;
 end;
 
-procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; ARTTIType: TRttiType; out AResult: TValue);
+procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; ARTTIType: TRttiType;
+out AResult: TValue);
 var
   _attrlistof: MVCListOfAttribute;
 begin
@@ -430,8 +426,6 @@ begin
     begin
       AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
       GetDefaultSerializer.DeserializeCollection(AResp.BodyAsString, AResult.AsObject, _attrlistof.Value);
-      // Mapper.JSONArrayToObjectList(WrapAsList(AResult.AsObject),
-      // _attrlistof.Value, AResp.BodyAsJsonValue as TJSONArray, false);
     end
     // JSONValue
     else if ARTTIType.AsInstance.MetaclassType.InheritsFrom(TJSONValue) then
@@ -443,16 +437,19 @@ begin
     begin
       AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
       GetDefaultSerializer.DeserializeObject(AResp.BodyAsString, AResult.AsObject);
-      { AResult := Mapper.JSONObjectToObject(ARTTIType.QualifiedName, AResp.BodyAsJsonObject) }
     end;
   end
   else
     // IRESTResponse
     if ARTTIType.QualifiedName = TRttiUtils.GlContext.GetType(TypeInfo(IRESTResponse))
       .QualifiedName then
+    begin
       AResult := AResult.From(AResp)
+    end
     else // else a simple BodyAsString
+    begin
       AResult := AResp.BodyAsString
+    end;
 end;
 
 function TRESTAdapter<T>.ResourcesService: T;

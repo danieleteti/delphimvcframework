@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -61,8 +61,8 @@ procedure RegisterOptionalCustomTypesSerializersForJSON(const Serializers
 implementation
 
 uses
-  Graphics, {do not specialize VCL or FMX, let use the UnitScope defined in the project}
 {$IFDEF MSWINDOWS}
+  Vcl.Graphics, {do not specialize VCL or FMX, let use the UnitScope defined in the project}
   Vcl.Imaging.pngimage, {do not specialize VCL or FMX, le use the UnitScope defined in the project}
   Vcl.Imaging.jpeg, {do not specialize VCL or FMX, le use the UnitScope defined in the project}
 {$ENDIF}

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -34,7 +34,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  IdHTTPWebBrokerBridge,
+  IdHTTPWebBrokerBridge,IdSSLOpenSSL,IdSSL,
   MVCFramework.Server, MVCFramework, IdContext;
 
 type
@@ -45,6 +45,10 @@ type
     FPort: Integer;
     FMaxConnections: Integer;
     FWebModuleClass: TComponentClass;
+    FSSLCertFile: String;
+    FSSLRootCertFile: String;
+    FSSLKeyFile: String;
+    FSSLPassword: String;
   protected
     function GetName: string;
     function SetName(const AValue: string): IMVCListenerProperties;
@@ -57,6 +61,9 @@ type
 
     function GetWebModuleClass: TComponentClass;
     function SetWebModuleClass(AValue: TComponentClass): IMVCListenerProperties;
+
+    function GetSSLOptions(out SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): Boolean;
+    function SetSSLOptions(const SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): IMVCListenerProperties;
   public
     constructor Create;
     class function New: IMVCListenerProperties; static;
@@ -65,9 +72,12 @@ type
   TMVCListener = class(TInterfacedObject, IMVCListener)
   private
     FBridge: TIdHTTPWebBrokerBridge;
+    FBridgeSSLHandler: TIdServerIOHandlerSSLOpenSSL;
+    FBridgeSSLPassword: String;
     procedure OnParseAuthentication(AContext: TIdContext; const AAuthType,
       AAuthData: String; var VUsername, VPassword: String;
       var VHandled: Boolean);
+    procedure OnGetSSLPassword(var APassword: string);
   protected
     function GetActive: Boolean;
 
@@ -141,6 +151,10 @@ begin
   FPort := 8080;
   FMaxConnections := 1024;
   FWebModuleClass := nil;
+  FSSLCertFile := '';
+  FSSLRootCertFile := '';
+  FSSLKeyFile := '';
+  FSSLPassword := '';
 end;
 
 function TMVCListenerProperties.GetMaxConnections: Integer;
@@ -156,6 +170,16 @@ end;
 function TMVCListenerProperties.GetPort: Integer;
 begin
   Result := FPort;
+end;
+
+function TMVCListenerProperties.GetSSLOptions(out SSLCertFile, SSLRootCertFile,
+  SSLKeyFile, SSLPassword: String): Boolean;
+begin
+  SSLCertFile := FSSLCertFile;
+  SSLRootCertFile := FSSLRootCertFile;
+  SSLKeyFile := FSSLKeyFile;
+  SSLPassword := FSSLPassword;
+  Result := not (FSSLCertFile.IsEmpty and FSSLKeyFile.IsEmpty);
 end;
 
 function TMVCListenerProperties.GetWebModuleClass: TComponentClass;
@@ -186,6 +210,16 @@ begin
   Result := Self;
 end;
 
+function TMVCListenerProperties.SetSSLOptions(const SSLCertFile,
+  SSLRootCertFile, SSLKeyFile, SSLPassword: String): IMVCListenerProperties;
+begin
+  FSSLCertFile := SSLCertFile;
+  FSSLRootCertFile := SSLRootCertFile;
+  FSSLKeyFile := SSLKeyFile;
+  FSSLPassword := SSLPassword;
+  Result := Self;
+end;
+
 function TMVCListenerProperties.SetWebModuleClass(AValue: TComponentClass): IMVCListenerProperties;
 begin
   FWebModuleClass := AValue;
@@ -195,6 +229,10 @@ end;
 { TMVCListener }
 
 constructor TMVCListener.Create(AProperties: IMVCListenerProperties);
+var
+  lSSLCertFile: String;
+  lSSLRootCertFile: String;
+  lSSLKeyFile: String;
 begin
   inherited Create;
 
@@ -209,6 +247,21 @@ begin
   FBridge.MaxConnections := AProperties.GetMaxConnections;
   FBridge.OnParseAuthentication := OnParseAuthentication;
   FBridge.RegisterWebModuleClass(AProperties.GetWebModuleClass);
+
+  if AProperties.GetSSLOptions(lSSLCertFile,lSSLRootCertFile,lSSLKeyFile,FBridgeSSLPassword) then
+  begin
+    //notice for client implementations
+    //OpenSSL currently don't support perfect forward security by default
+    FBridgeSSLHandler := TIdServerIOHandlerSSLOpenSSL.Create(FBridge);
+    FBridgeSSLHandler.SSLOptions.Method := sslvTLSv1_2;
+    FBridgeSSLHandler.SSLOptions.SSLVersions := [sslvSSLv23, sslvSSLv3, sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
+    FBridgeSSLHandler.SSLOptions.Mode := sslmServer;
+    FBridgeSSLHandler.SSLOptions.CertFile := lSSLCertFile;
+    FBridgeSSLHandler.SSLOptions.RootCertFile := lSSLRootCertFile; //should be empty, currently broken in 10.3.3
+    FBridgeSSLHandler.SSLOptions.KeyFile := lSSLKeyFile;
+    FBridgeSSLHandler.OnGetPassword := OnGetSSLPassword;
+    FBridge.IOHandler := FBridgeSSLHandler;
+  end;
 end;
 
 destructor TMVCListener.Destroy;
@@ -216,6 +269,11 @@ begin
   if Assigned(FBridge) then
     FBridge.Free;
   inherited Destroy;
+end;
+
+procedure TMVCListener.OnGetSSLPassword(var APassword: string);
+begin
+  APassword := FBridgeSSLPassword;
 end;
 
 procedure TMVCListener.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername, VPassword: String; var VHandled: Boolean);

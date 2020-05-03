@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2017 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -69,7 +69,7 @@ type
 
     [Headers('Accept', 'application/json')]
     [Headers('ContentType', 'application/json')]
-    [RESTResource(HttpGet, '/testconsumejson')]
+    [RESTResource(HttpGet, '/adapter/testconsumejson')]
     function HeadersApplicationJSON: TJSONValue;
 
     [Headers('Accept', 'text/plain')]
@@ -79,7 +79,7 @@ type
 
     [Headers('Accept', 'text/plain')]
     [Headers('ContentType', 'text/plain')]
-    [RESTResource(HttpGet, '/testconsumejson')]
+    [RESTResource(HttpGet, '/adapter/testconsumejson')]
     function ApplicationJSONWithTextPlainHeader: IRESTResponse;
 
   end;

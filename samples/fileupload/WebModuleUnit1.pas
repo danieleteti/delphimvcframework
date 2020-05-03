@@ -24,20 +24,29 @@ var
 
 implementation
 
-uses FileUploadControllerU, MVCFramework.Commons,
-  MVCFramework.View.Renderers.TemplatePro;
+uses
+  FileUploadControllerU,
+  MVCFramework.Commons,
+  MVCFramework.View.Renderers.TemplatePro,
+  MVCFramework.Middleware.Trace,
+  MVCFramework.Middleware.StaticFiles;
 
 {$R *.dfm}
+
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
   MVC := TMVCEngine.Create(self);
   MVC.AddController(TFileUploadController);
+  MVC.AddMiddleware(TMVCTraceMiddleware.Create);
+  MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    ExtractFilePath(GetModuleName(HInstance)) + '..\..\document_root', { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
   MVC.SetViewEngine(TMVCTemplateProViewEngine);
   MVC.Config[TMVCConfigKey.ViewPath] := ExtractFilePath(GetModuleName(HInstance)
     ) + '..\..\templates';
-  MVC.Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)
-    ) + '..\..\document_root';
   MVC.Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML;
 
 end;

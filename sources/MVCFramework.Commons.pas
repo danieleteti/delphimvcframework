@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -35,10 +35,12 @@ uses
   System.SysUtils,
   System.SyncObjs,
   System.IOUtils,
-  System.Generics.Collections,
   Data.DB,
   IdGlobal,
-  IdCoderMIME, IdContext;
+  IdCoderMIME,
+  IdContext,
+  System.Generics.Collections,
+  JsonDataObjects;
 
 {$I dmvcframeworkbuildconsts.inc}
 
@@ -72,7 +74,10 @@ type
     TEXT_CSV = 'text/csv';
     IMAGE_JPEG = 'image/jpeg';
     IMAGE_X_PNG = 'image/x-png';
+    IMAGE_X_ICON = 'image/x-icon';
     IMAGE_PNG = 'image/png';
+    IMAGE_SVG_XML = 'image/svg+xml';
+    IMAGE_GIF = 'image/gif';
     APPLICATION_PDF = 'application/pdf';
     APPLICATION_X_PDF = 'application/x-pdf';
     WILDCARD = '*/*';
@@ -111,11 +116,11 @@ type
     LAST_AUTHORIZATION_HEADER_VALUE = '__DMVC_LAST_AUTHORIZATION_HEADER_VALUE_';
     SSE_RETRY_DEFAULT = 100;
     SSE_LAST_EVENT_ID = 'Last-Event-ID';
-    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
+    URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל''"@\[\]\{\}\(\)\=;&#\.:!\_,%\w\d\x2D\x3A';
     OneMiB = 1048576;
     OneKiB = 1024;
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
-    HATEOAS_PROP_NAME = '_links';
+    HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
   end;
 
@@ -138,22 +143,19 @@ type
   TMVCConfigKey = record
   public const
     SessionTimeout = 'sessiontimeout';
-    DocumentRoot = 'document_root';
     ViewPath = 'view_path';
     DefaultContentType = 'default_content_type';
     DefaultContentCharset = 'default_content_charset';
     DefaultViewFileExtension = 'default_view_file_extension';
-    // ISAPIPath = 'isapi_path';
     PathPrefix = 'pathprefix';
     AllowUnhandledAction = 'allow_unhandled_action';
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';
-    IndexDocument = 'index_document';
     SessionType = 'session_type';
-    FallbackResource = 'fallback_resource';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
+    LoadSystemControllers = 'load_system_controllers';
   end;
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -284,20 +286,20 @@ type
     RequestedRangeNotSatisfiable = 416;
     ExpectationFailed = 417;
     /// <summary>
-    ///   The 422 (Unprocessable Entity) status code means the server
-    ///   understands the content type of the request entity (hence a
-    ///   415(Unsupported Media Type) status code is inappropriate), and the
-    ///   syntax of the request entity is correct (thus a 400 (Bad Request)
-    ///   status code is inappropriate) but was unable to process the contained
-    ///   instructions.  For example, this error condition may occur if an XML
-    ///   request body contains well-formed (i.e., syntactically correct), but
-    ///   semantically erroneous, XML instructions.
+    /// The 422 (Unprocessable Entity) status code means the server
+    /// understands the content type of the request entity (hence a
+    /// 415(Unsupported Media Type) status code is inappropriate), and the
+    /// syntax of the request entity is correct (thus a 400 (Bad Request)
+    /// status code is inappropriate) but was unable to process the contained
+    /// instructions.  For example, this error condition may occur if an XML
+    /// request body contains well-formed (i.e., syntactically correct), but
+    /// semantically erroneous, XML instructions.
     /// </summary>
     UnprocessableEntity = 422;
     /// <summary>
-    ///  The 423 (Locked) status code means the source or destination resource
-    ///  of a method is locked.  This response SHOULD contain an appropriate
-    ///  precondition or postcondition code, such as 'lock-token-submitted' or 'no-conflicting-lock
+    /// The 423 (Locked) status code means the source or destination resource
+    /// of a method is locked.  This response SHOULD contain an appropriate
+    /// precondition or postcondition code, such as 'lock-token-submitted' or 'no-conflicting-lock
     /// </summary>
     Locked = 423;
     /// <summary>
@@ -343,11 +345,10 @@ type
   end;
 
   EMVCException = class(Exception)
-  private
+  protected
     FHttpErrorCode: UInt16;
     FAppErrorCode: UInt16;
     FDetailedMessage: string;
-  protected
     procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
   public
     constructor Create(const AMsg: string); overload; virtual;
@@ -357,8 +358,8 @@ type
     constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
     constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
       overload; virtual;
-    constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce;
-
+    constructor CreateFmt(const AMsg: string; const AArgs: array of const); reintroduce; overload;
+    constructor CreateFmt(const AHTTPErrorCode: UInt16; const AMsg: string; const AArgs: array of const); overload;
     property HttpErrorCode: UInt16 read FHttpErrorCode;
     property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
     property ApplicationErrorCode: UInt16 read FAppErrorCode write FAppErrorCode;
@@ -409,6 +410,8 @@ type
     { public declarations }
   end;
 
+  TMVCStringDictionaryList = class;
+
   TMVCRequestParamsTable = class(TDictionary<string, string>)
   private
     { private declarations }
@@ -418,35 +421,9 @@ type
     { public declarations }
   end;
 
-  TMVCStringDictionary = class
-  strict private
-    function GetItems(const Key: string): string;
-    procedure SetItems(const Key, Value: string);
-  protected
-    FDict: TDictionary<string, string>;
-  public
-    constructor Create; overload; virtual;
-    constructor Create(const aKey, aValue: String); overload; virtual;
-    destructor Destroy; override;
-    procedure Clear;
-    function Add(const Name, Value: string): TMVCStringDictionary;
-    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
-    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-    function Count: Integer;
-    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
-    function ContainsKey(const Key: string): Boolean;
-    function Keys: TArray<String>;
-    property Items[const Key: string]: string read GetItems write SetItems; default;
-  end;
-
-  TMVCStringDictionaryList = class(TObjectList<TMVCStringDictionary>)
-  public
-    constructor Create;
-  end;
-
   IMVCLinkItem = interface
     ['{8BC70061-0DD0-4D0A-B135-F83A5C86629B}']
-    function Add(const PropName: String; const PropValue: String): IMVCLinkItem;
+    function Add(const PropName: string; const PropValue: string): IMVCLinkItem;
   end;
 
   IMVCLinks = interface
@@ -468,12 +445,53 @@ type
     function LinksData: TMVCStringDictionaryList;
   end;
 
+  // IMVCStringDictionary = interface
+  // ['{164117AD-8DDD-47F7-877C-453979707D10}']
+  // function GetItems(const Key: string): string;
+  // procedure SetItems(const Key, Value: string);
+  // procedure Clear;
+  // function Add(const Name, Value: string): IMVCStringDictionary;
+  // function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+  // function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
+  // function Count: Integer;
+  // function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+  // function ContainsKey(const Key: string): Boolean;
+  // function Keys: TArray<string>;
+  // property Items[const Key: string]: string read GetItems write SetItems; default;
+  // end;
+
+  TMVCStringDictionary = class // (TInterfacedObject, IMVCStringDictionary)
+  strict private
+    function GetItems(const Key: string): string;
+    procedure SetItems(const Key, Value: string);
+  protected
+    fDict: TDictionary<string, string>;
+  public
+    constructor Create; overload; virtual;
+    constructor Create(const aKey, aValue: string); overload; virtual;
+    destructor Destroy; override;
+    procedure Clear;
+    function Add(const Name, Value: string): TMVCStringDictionary;
+    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
+    function Count: Integer;
+    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+    function ContainsKey(const Key: string): Boolean;
+    function Keys: TArray<string>;
+    property Items[const Key: string]: string read GetItems write SetItems; default;
+  end;
+
   TMVCDecoratorObject = class(TInterfacedObject, IMVCLinkItem)
   private
     fData: TMVCStringDictionary;
   public
     constructor Create(const aData: TMVCStringDictionary);
-    function Add(const PropName: String; const PropValue: String): IMVCLinkItem;
+    function Add(const PropName: string; const PropValue: string): IMVCLinkItem;
+  end;
+
+  TMVCStringDictionaryList = class(TObjectList<TMVCStringDictionary>)
+  public
+    constructor Create;
   end;
 
   { This type is thread safe }
@@ -481,7 +499,7 @@ type
   private
     FMREWS: TMultiReadExclusiveWriteSynchronizer;
   protected
-    FDict: TObjectDictionary<string, T>;
+    fDict: TObjectDictionary<string, T>;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -498,7 +516,7 @@ type
     constructor Create;
   end;
 
-  TMVCViewDataSet = class(TObjectDictionary<string, TDataSet>)
+  TMVCViewDataSet = class(TObjectDictionary<string, TDataset>)
   private
     { private declarations }
   protected
@@ -551,6 +569,16 @@ type
     DatabaseFieldName: string;
   end;
 
+  TMVCCustomRouter = class abstract
+  public
+    function GetQualifiedActionName(): string; virtual; abstract;
+  end;
+
+  TMVCGuidHelper = record
+  public
+    class function GuidFromString(const AGuidStr: string): TGUID; static;
+  end;
+
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
 {$SCOPEDENUMS ON}
@@ -564,30 +592,29 @@ function B64Encode(const aValue: string): string; overload;
 function B64Encode(const aValue: TBytes): string; overload;
 function B64Decode(const aValue: string): string;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil)
+  : string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
-procedure Base64StringToFile(const aBase64String, AFileName: String; const aOverwrite: Boolean = False);
-function FileToBase64String(const FileName: String): String;
+procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
+function FileToBase64String(const FileName: string): string;
 
 procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
-function StrDict: TMVCStringDictionary; overload;
-function StrDict(const aKeys: array of string; const aValues: array of string)
-  : TMVCStringDictionary; overload;
+{ changing case }
+function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
 
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
   MVC_HTTP_METHODS_WITH_CONTENT: TMVCHTTPMethods = [httpPOST, httpPUT, httpPATCH];
 
 const
-  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none',
-    'deflate', 'gzip');
+  MVC_COMPRESSION_TYPE_AS_STRING: array [TMVCCompressionType] of string = ('none', 'deflate', 'gzip');
   MVC_COMPRESSION_ZLIB_WINDOW_BITS: array [TMVCCompressionType] of Integer = (0, -15, 31);
   // WindowBits: http://zlib.net/manual.html#Advanced
 
@@ -603,22 +630,19 @@ const
     ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
 
-
 type
   TMVCParseAuthentication = class
   public
-    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
-      VPassword: String; var VHandled: Boolean);
+    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string; var VUsername,
+      VPassword: string; var VHandled: Boolean);
   end;
 
 implementation
 
 uses
   IdCoder3to4,
-  JsonDataObjects,
   System.NetEncoding,
-  MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -626,18 +650,6 @@ var
 function AppPath: string;
 begin
   Result := GlobalAppPath;
-end;
-
-function IsReservedOrPrivateIP(const AIP: string): Boolean;
-var
-  I: Integer;
-  IntIP: Cardinal;
-begin
-  Result := False;
-  IntIP := IP2Long(AIP);
-  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
-    if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
-      Exit(True);
 end;
 
 function IP2Long(const AIP: string): Cardinal;
@@ -650,6 +662,18 @@ begin
   Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) +
     (StrToInt(lPieces[2]) * 256) +
     StrToInt(lPieces[3]);
+end;
+
+function IsReservedOrPrivateIP(const AIP: string): Boolean;
+var
+  I: Integer;
+  IntIP: Cardinal;
+begin
+  Result := False;
+  IntIP := IP2Long(AIP);
+  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
+    if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
+      Exit(True);
 end;
 
 // function IP2Long(const AIP: string): UInt32;
@@ -693,7 +717,7 @@ end;
 
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 var
-  lContentMediaType: String;
+  lContentMediaType: string;
 begin
   lContentMediaType := aContentMediaType.ToLower.Trim.Replace(' ', '', [rfReplaceAll]);
 
@@ -790,12 +814,18 @@ begin
   FAppErrorCode := AAppErrorCode;
 end;
 
-constructor EMVCException.CreateFmt(const AMsg: string; const AArgs: array of const);
+constructor EMVCException.CreateFmt(const AHTTPErrorCode: UInt16;
+  const AMsg: string; const AArgs: array of const);
 begin
   inherited CreateFmt(AMsg, AArgs);
-  FHttpErrorCode := HTTP_STATUS.InternalServerError;
+  FHttpErrorCode := AHTTPErrorCode;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
+end;
+
+constructor EMVCException.CreateFmt(const AMsg: string; const AArgs: array of const);
+begin
+  CreateFmt(HTTP_STATUS.InternalServerError, AMsg, AArgs);
 end;
 
 { TMVCViewDataObject }
@@ -911,26 +941,26 @@ end;
 
 function TMVCStringDictionary.Add(const Name, Value: string): TMVCStringDictionary;
 begin
-  FDict.AddOrSetValue(name, Value);
+  fDict.AddOrSetValue(name, Value);
   Result := Self;
 end;
 
 procedure TMVCStringDictionary.Clear;
 begin
-  FDict.Clear;
+  fDict.Clear;
 end;
 
 function TMVCStringDictionary.ContainsKey(const Key: string): Boolean;
 begin
-  Result := FDict.ContainsKey(Key);
+  Result := fDict.ContainsKey(Key);
 end;
 
 function TMVCStringDictionary.Count: Integer;
 begin
-  Result := FDict.Count;
+  Result := fDict.Count;
 end;
 
-constructor TMVCStringDictionary.Create(const aKey, aValue: String);
+constructor TMVCStringDictionary.Create(const aKey, aValue: string);
 begin
   Create;
   Add(aKey, aValue);
@@ -939,46 +969,46 @@ end;
 constructor TMVCStringDictionary.Create;
 begin
   inherited;
-  FDict := TDictionary<string, string>.Create;
+  fDict := TDictionary<string, string>.Create;
 end;
 
 destructor TMVCStringDictionary.Destroy;
 begin
-  FDict.Free;
+  fDict.Free;
   inherited;
 end;
 
 function TMVCStringDictionary.GetEnumerator: TDictionary<string, string>.TPairEnumerator;
 begin
-  Result := FDict.GetEnumerator;
+  Result := fDict.GetEnumerator;
 end;
 
 function TMVCStringDictionary.GetItems(const Key: string): string;
 begin
   Result := '';
-  FDict.TryGetValue(Key, Result);
+  fDict.TryGetValue(Key, Result);
 end;
 
-function TMVCStringDictionary.Keys: TArray<String>;
+function TMVCStringDictionary.Keys: TArray<string>;
 begin
-  Result := FDict.Keys.ToArray;
+  Result := fDict.Keys.ToArray;
 end;
 
 procedure TMVCStringDictionary.SetItems(const Key, Value: string);
 begin
-  FDict.AddOrSetValue(Key, Value);
+  fDict.AddOrSetValue(Key, Value);
 end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: Integer): Boolean;
 var
-  lTmp: String;
+  lTmp: string;
 begin
-  Result := TryGetValue(Name, lTmp) and TryStrToInt(lTmp, Value);
+  Result := TryGetValue(name, lTmp) and TryStrToInt(lTmp, Value);
 end;
 
 function TMVCStringDictionary.TryGetValue(const Name: string; out Value: string): Boolean;
 begin
-  Result := FDict.TryGetValue(name, Value);
+  Result := fDict.TryGetValue(name, Value);
 end;
 
 { TMVCStringObjectDictionary }
@@ -987,8 +1017,8 @@ procedure TMVCStringObjectDictionary<T>.Add(const Name: string; Value: T);
 begin
   FMREWS.BeginWrite;
   try
-    if not FDict.ContainsKey(name) then
-      FDict.Add(name, Value);
+    if not fDict.ContainsKey(name) then
+      fDict.Add(name, Value);
   finally
     FMREWS.EndWrite;
   end;
@@ -997,13 +1027,13 @@ end;
 constructor TMVCStringObjectDictionary<T>.Create;
 begin
   inherited;
-  FDict := TObjectDictionary<string, T>.Create([doOwnsValues]);
+  fDict := TObjectDictionary<string, T>.Create([doOwnsValues]);
   FMREWS := TMultiReadExclusiveWriteSynchronizer.Create;
 end;
 
 destructor TMVCStringObjectDictionary<T>.Destroy;
 begin
-  FDict.Free;
+  fDict.Free;
   FMREWS.Free;
   inherited;
 end;
@@ -1012,7 +1042,7 @@ function TMVCStringObjectDictionary<T>.TryGetValue(const Name: string; out Value
 begin
   FMREWS.BeginRead;
   try
-    Result := FDict.TryGetValue(name, Value);
+    Result := fDict.TryGetValue(name, Value);
   finally
     FMREWS.EndRead;
   end;
@@ -1054,7 +1084,8 @@ begin
   FFillChar := '='; { Do not Localize }
 end;
 
-function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil): string; overload;
+function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEncoding: IIdTextEncoding = nil)
+  : string; overload;
 begin
   if IncludePadding then
     Result := TURLSafeEncode.EncodeString(Value, AByteEncoding)
@@ -1140,29 +1171,7 @@ var
   UFTStr: UTF8String;
 begin
   UFTStr := UTF8String(AString);
-  Self.WriteBuffer(UFTStr[Low(UFTStr)], Length(UFTStr));
-end;
-
-function StrDict: TMVCStringDictionary; overload;
-begin
-  Result := TMVCStringDictionary.Create;
-end;
-
-function StrDict(const aKeys: array of string; const aValues: array of string)
-  : TMVCStringDictionary; overload;
-var
-  I: Integer;
-begin
-  if Length(aKeys) <> Length(aValues) then
-  begin
-    raise EMVCException.CreateFmt('Dict error. Got %d keys but %d values',
-      [Length(aKeys), Length(aValues)]);
-  end;
-  Result := StrDict();
-  for I := Low(aKeys) to High(aKeys) do
-  begin
-    Result.Add(aKeys[I], aValues[I]);
-  end;
+  Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
 end;
 
 { TMVCDecorator }
@@ -1206,7 +1215,7 @@ end;
 { TMVCDecoratorObject }
 
 function TMVCDecoratorObject.Add(const PropName,
-  PropValue: String): IMVCLinkItem;
+  PropValue: string): IMVCLinkItem;
 begin
   fData.Items[PropName] := PropValue;
   Result := Self;
@@ -1225,7 +1234,7 @@ begin
   inherited Create(True);
 end;
 
-procedure Base64StringToFile(const aBase64String, AFileName: String; const aOverwrite: Boolean = False);
+procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
 var
   lSS: TStringStream;
   lFile: TFileStream;
@@ -1253,7 +1262,7 @@ begin
   end;
 end;
 
-function FileToBase64String(const FileName: String): String;
+function FileToBase64String(const FileName: string): string;
 var
   lTemplateFileB64: TStringStream;
   lTemplateFile: TFileStream;
@@ -1272,12 +1281,88 @@ begin
   end;
 end;
 
-class procedure TMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername,
-      VPassword: String; var VHandled: Boolean);
+class procedure TMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string;
+  var VUsername,
+  VPassword: string; var VHandled: Boolean);
 begin
   VHandled := SameText(LowerCase(AAuthType), 'bearer');
 end;
 
+{ TMVCGuidHelper }
+
+class function TMVCGuidHelper.GuidFromString(const AGuidStr: string): TGUID;
+var
+  LGuidStr: string;
+begin
+  if AGuidStr.Length = 32 then { string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465 }
+  begin
+    LGuidStr := Format('{%s-%s-%s-%s-%s}', [AGuidStr.Substring(0, 8), AGuidStr.Substring(8, 4),
+      AGuidStr.Substring(12, 4), AGuidStr.Substring(16, 4), AGuidStr.Substring(20, 12)])
+  end
+  else if AGuidStr.Length = 36 then { string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465 }
+  begin
+    LGuidStr := Format('{%s}', [AGuidStr])
+  end
+  else
+  begin
+    LGuidStr := AGuidStr;
+  end;
+
+  Result := StringToGUID(LGuidStr);
+end;
+
+function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean): string;
+var
+  I: Integer;
+  lNextUpCase: Boolean;
+  lSB: TStringBuilder;
+  C: Char;
+  lIsLowerCase: Boolean;
+  lIsUpperCase, lPreviousWasUpperCase: Boolean;
+  lIsAlpha: Boolean;
+begin
+  lNextUpCase := MakeFirstUpperToo;
+  lPreviousWasUpperCase := True;
+  lSB := TStringBuilder.Create;
+  try
+    for I := 0 to Length(Value) - 1 do
+    begin
+      C := Value.Chars[I];
+      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
+      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
+      lIsAlpha := lIsLowerCase or lIsUpperCase;
+      if not lIsAlpha then
+      begin
+        lNextUpCase := True;
+        lPreviousWasUpperCase := False;
+        Continue;
+      end
+      else
+      begin
+        if lNextUpCase then
+        begin
+          lNextUpCase := False;
+          lSB.Append(UpCase(C));
+        end
+        else
+        begin
+          if lPreviousWasUpperCase then
+          begin
+            lSB.Append(LowerCase(C));
+          end
+          else
+          begin
+            lSB.Append(C);
+          end;
+        end;
+      end;
+      lPreviousWasUpperCase := lIsUpperCase;
+    end;
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
+  end;
+end;
 
 initialization
 

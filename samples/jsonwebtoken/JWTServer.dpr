@@ -10,6 +10,7 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
+  MVCFramework.Commons,
   IdContext,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule} ,
   AppControllerU in 'AppControllerU.pas',
@@ -32,7 +33,7 @@ begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication := TWebBrokerBridgeAuthEvent.ServerParserAuthentication;
+    LServer.OnParseAuthentication :=  TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     Writeln('Press RETURN to stop the server');

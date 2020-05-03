@@ -139,10 +139,10 @@ end;
 
 procedure TWebSiteController.NewPerson;
 var
-  lDAL: IPeopleDAL;
+  LDAL: IPeopleDAL;
   lDevices: TDeviceList;
 begin
-  lDAL := TServicesFactory.GetPeopleDAL;
+  LDAL := TServicesFactory.GetPeopleDAL;
   lDevices := LDAL.GetDevicesList;
   try
     ViewData['deviceslist'] := lDevices;

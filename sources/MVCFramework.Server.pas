@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -53,6 +53,9 @@ type
 
     function GetWebModuleClass: TComponentClass;
     function SetWebModuleClass(AValue: TComponentClass): IMVCListenerProperties;
+
+    function GetSSLOptions(out SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): Boolean;
+    function SetSSLOptions(const SSLCertFile, SSLRootCertFile, SSLKeyFile, SSLPassword: String): IMVCListenerProperties;
   end;
 
   IMVCListener = interface

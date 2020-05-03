@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -36,43 +36,65 @@ uses
   System.Rtti,
   JsonDataObjects,
   MVCFramework.Commons,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework.RESTClient;
 
 type
   TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);
 
   TDataSetHelper = class helper for TDataSet
   public
-    procedure LoadFromTValue(const Value: TValue;
-      const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
-    function AsJSONArray: string;
-    function AsJDOJSONArray: TJDOJsonArray;
+    procedure LoadFromTValue(const Value: TValue; const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
+    function AsJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): string;
+    function AsJDOJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): TJDOJsonArray;
+    function AsJSONArrayOfValues: TJDOJsonArray;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
-    function AsJSONObject(AFieldNamePolicy: TFieldNamePolicy = fpLowerCase): string;
+    function AsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase; const IgnoredFields: TArray<string> = []): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject;
-      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
-    procedure LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
-      AFieldNamePolicy: TFieldNamePolicy = fpLowerCase); overload;
+    procedure LoadFromJSONObject(const JSONObject: TJSONObject; const FieldNameCase: TMVCNameCase); overload;
+    procedure LoadFromJSONObject(const JSONObject: TJSONObject; const AIgnoredFields: TArray<string> = [];
+      const FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+
     procedure LoadFromJSONArray(AJSONArray: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    procedure LoadFromJSONArrayString(AJSONArrayString: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
     procedure LoadFromJSONArray(AJSONArray: TJSONArray;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+
+    procedure LoadJSONArrayFromJSONObjectProperty(
+      PropertyName: string;
+      JSONObject: string;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+    procedure LoadJSONArrayFromJSONObjectProperty(
+      PropertyName: string;
+      JSONObject: TJSONObject;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+
+    procedure LoadJSONObjectFromJSONObjectProperty(
+      PropertyName: string;
+      JSONObject: string;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+    procedure LoadJSONObjectFromJSONObjectProperty(
+      PropertyName: string;
+      JSONObject: TJSONObject;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+
+    procedure LoadFromJSONArrayString(AJSONArrayString: string;
+      AIgnoredFields: TArray<string>;
+      FieldNameCase: TMVCNameCase = ncLowerCase); overload; deprecated;
+    procedure LoadFromJSONArrayString(AJSONArrayString: string;
+      FieldNameCase: TMVCNameCase = ncLowerCase); overload;
     procedure LoadFromJSONObjectString(AJSONObjectString: string); overload;
-    procedure LoadFromJSONObjectString(AJSONObjectString: string;
-      AIgnoredFields: TArray<string>); overload;
+    procedure LoadFromJSONObjectString(const JSONObjectString: string; const IgnoredFields: TArray<string>;
+      const FieldNameCase: TMVCNameCase = ncLowerCase); overload;
+    // procedure LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string; const aPropertyName: string;
+    // const FieldNameCase: TMVCNameCase = ncLowerCase);
     procedure AppendFromJSONArrayString(AJSONArrayString: string); overload;
     procedure AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase); overload;
-    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false;
-      OwnsObjects: boolean = true): TObjectList<T>;
+      FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
+    function AsObjectList<T: class, constructor>(CloseAfterScroll: boolean = false; OwnsObjects: boolean = true)
+      : TObjectList<T>;
     function AsObject<T: class, constructor>(CloseAfterScroll: boolean = false): T;
-    procedure LoadFromJSONArrayStringItems(AJSONArrayString: string;
-      AFieldNamePolicy: TFieldNamePolicy = TFieldNamePolicy.fpLowerCase);
+
   end;
 
   TDataSetUtils = class sealed
@@ -82,22 +104,59 @@ type
     class constructor Create;
     class destructor Destroy;
     class procedure DataSetToObject(ADataSet: TDataSet; AObject: TObject);
-    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet;
-      AObjectList: TObjectList<T>;
+    class procedure DataSetToObjectList<T: class, constructor>(ADataSet: TDataSet; AObjectList: TObjectList<T>;
       ACloseDataSetAfterScroll: boolean = true);
   end;
 
   [MVCNameCase(ncLowerCase)]
   TDataSetHolder = class
   private
-    FDataSet: TDataSet;
-    FMetadata: TMVCStringDictionary;
+    fDataSet: TDataSet;
+    fMetadata: TMVCStringDictionary;
+    fOwns: boolean;
+    fDataSetSerializationType: TMVCDatasetSerializationType;
   public
-    constructor Create(ADataSet: TDataSet); virtual;
+    constructor Create(const ADataSet: TDataSet; const AOwns: boolean = false;
+      const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
+      dstAllRecords); virtual;
     destructor Destroy; override;
-    property Items: TDataSet read FDataSet;
+    function SerializationType: TMVCDatasetSerializationType;
+    [MVCNameAs('data')]
+    property Items: TDataSet read fDataSet;
     [MVCNameAs('meta')]
-    property Metadata: TMVCStringDictionary read FMetadata;
+    property Metadata: TMVCStringDictionary read fMetadata;
+  end deprecated 'Use function "ObjectDict(boolean)" instead';
+
+  TMVCAPIBinder = class
+  protected
+    type
+    TMVCAPIBinderItem = class
+    private
+      fRESTClient: TRESTClient;
+      fDataSet: TDataSet;
+      fURI: string;
+      fPrimaryKeyNAme: string;
+      fLoading: boolean;
+      procedure ShowError(const AResponse: IRESTResponse);
+    public
+      constructor Create(const aRESTClient: TRESTClient; const ADataSet: TDataSet;
+        const aURI, aPrimaryKeyName: string);
+      destructor Destroy; override;
+      procedure HookBeforePost(DataSet: TDataSet);
+      procedure HookBeforeDelete(DataSet: TDataSet);
+      procedure HookBeforeRefresh(DataSet: TDataSet);
+      procedure HookAfterOpen(DataSet: TDataSet);
+      // procedure HookBeforeRowRequest(DataSet: TFDDataSet);
+    end;
+  private
+    fRESTClient: TRESTClient;
+
+  protected
+    fItems: TObjectList<TMVCAPIBinderItem>;
+  public
+    constructor Create(const aRESTClient: TRESTClient);
+    destructor Destroy; override;
+    procedure BindDataSetToAPI(const ADataSet: TDataSet; const aURI: string; const aPrimaryKeyName: string);
   end;
 
 implementation
@@ -125,7 +184,21 @@ begin
 
 end;
 
-function TDataSetHelper.AsJDOJSONArray: TJDOJsonArray;
+// procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(const AJSONObjectString: string;
+// const aPropertyName: string; const FieldNameCase: TMVCNameCase);
+// var
+// lJson: TJSONObject;
+// begin
+// lJson := TJSONObject.Create;
+// try
+// lJson.FromJSON(AJSONObjectString);
+// LoadFromJSONArray(lJson.A[aPropertyName], FieldNameCase);
+// finally
+// lJson.Free;
+// end;
+// end;
+
+function TDataSetHelper.AsJDOJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): TJDOJsonArray;
 var
   lSerializer: TMVCJsonDataObjectsSerializer;
 begin
@@ -135,7 +208,7 @@ begin
     begin
       lSerializer := TMVCJsonDataObjectsSerializer.Create;
       try
-        lSerializer.DataSetToJsonArray(Self, Result, ncLowerCase, []);
+        lSerializer.DataSetToJsonArray(Self, Result, FieldNameCase, []);
       finally
         lSerializer.Free;
       end;
@@ -146,7 +219,28 @@ begin
   end;
 end;
 
-function TDataSetHelper.AsJSONArray: string;
+function TDataSetHelper.AsJSONArrayOfValues: TJDOJsonArray;
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
+begin
+  Result := TJDOJsonArray.Create;
+  try
+    if not Eof then
+    begin
+      lSerializer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lSerializer.DataSetToJsonArrayOfValues(Self, Result, []);
+      finally
+        lSerializer.Free;
+      end;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+function TDataSetHelper.AsJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): string;
 var
   lSerializer: IMVCSerializer;
 begin
@@ -154,7 +248,7 @@ begin
   if not Eof then
   begin
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
-    Result := lSerializer.SerializeDataSet(Self, [], ncLowerCase);
+    Result := lSerializer.SerializeDataSet(Self, [], FieldNameCase);
   end;
 end;
 
@@ -163,18 +257,17 @@ begin
   Result := AsJSONArray;
 end;
 
-function TDataSetHelper.AsJSONObject(AFieldNamePolicy: TFieldNamePolicy): string;
+function TDataSetHelper.AsJSONObject(FieldNameCase: TMVCNameCase; const IgnoredFields: TArray<string>): string;
 var
   lSerializer: IMVCSerializer;
 begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
-  Result := lSerializer.SerializeDataSetRecord(Self, [], ncAsIs);
-  // Mapper.DataSetToJSONObject(Self, JObj, false);
+  Result := lSerializer.SerializeDataSetRecord(Self, TMVCIgnoredList(IgnoredFields), FieldNameCase);
 end;
 
 function TDataSetHelper.AsJSONObjectString: string;
 begin
-  Result := AsJSONObject(fpLowerCase);
+  Result := AsJSONObject(ncLowerCase);
 end;
 
 function TDataSetHelper.AsObject<T>(CloseAfterScroll: boolean): T;
@@ -196,8 +289,7 @@ begin
     Result := nil;
 end;
 
-function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean; OwnsObjects: boolean)
-  : TObjectList<T>;
+function TDataSetHelper.AsObjectList<T>(CloseAfterScroll: boolean; OwnsObjects: boolean): TObjectList<T>;
 var
   lObjs: TObjectList<T>;
 begin
@@ -211,28 +303,26 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: string; AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: string; FieldNameCase: TMVCNameCase);
 var
-  lSerializer: IMVCSerializer;
+  lSerializer: TMVCJsonDataObjectsSerializer;
 begin
   Self.DisableControls;
   try
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
-    lSerializer.DeserializeDataSet(AJSONArray, Self, nil, ncAsIs);
+    lSerializer.DeserializeDataSet(AJSONArray, Self, nil, FieldNameCase);
   finally
     Self.EnableControls;
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+  FieldNameCase: TMVCNameCase);
 begin
-  AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, AFieldNamePolicy);
+  AppendFromJSONArrayString(AJSONArrayString, AIgnoredFields, FieldNameCase);
 end;
 
-procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray; FieldNameCase: TMVCNameCase);
 var
   lSerializer: TMVCJsonDataObjectsSerializer;
   lBookmark: TArray<Byte>;
@@ -242,7 +332,7 @@ begin
   try
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
     try
-      lSerializer.JsonArrayToDataSet(AJSONArray, Self, nil, ncAsIs);
+      lSerializer.JsonArrayToDataSet(AJSONArray, Self, nil, FieldNameCase);
     finally
       lSerializer.Free;
     end;
@@ -253,31 +343,53 @@ begin
   end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(PropertyName: string;
+  JSONObject: TJSONObject; FieldNameCase: TMVCNameCase);
 begin
-  AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
+  LoadFromJSONArray(JSONObject.A[PropertyName], FieldNameCase);
 end;
 
-procedure TDataSetHelper.LoadFromJSONArrayStringItems(AJSONArrayString: string;
-  AFieldNamePolicy: TFieldNamePolicy);
-var aJson: TJSONObject;
+procedure TDataSetHelper.LoadJSONObjectFromJSONObjectProperty(
+  PropertyName: string; JSONObject: TJSONObject; FieldNameCase: TMVCNameCase);
 begin
-  aJson := TJSONObject.Create;
+  LoadFromJSONObject(JSONObject.O[PropertyName], FieldNameCase);
+end;
+
+procedure TDataSetHelper.LoadJSONObjectFromJSONObjectProperty(PropertyName,
+  JSONObject: string; FieldNameCase: TMVCNameCase);
+var
+  lJObj: TJSONObject;
+begin
+  lJObj := StrToJSONObject(JSONObject);
   try
-    aJson.FromJSON(AJSONArrayString);
-    AJSONArrayString := aJson.A['items'].ToString;
-    AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), AFieldNamePolicy);
+    LoadJSONObjectFromJSONObjectProperty(PropertyName, lJObj, FieldNameCase);
   finally
-    aJson.Free;
+    lJObj.Free;
   end;
 end;
 
-procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string;
-  AIgnoredFields: TArray<string>;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadJSONArrayFromJSONObjectProperty(PropertyName,
+  JSONObject: string; FieldNameCase: TMVCNameCase);
+var
+  lJson: TJSONObject;
 begin
-  LoadFromJSONArray(AJSONArrayString, AFieldNamePolicy);
+  lJson := StrToJSONObject(JSONObject);
+  try
+    LoadJSONArrayFromJSONObjectProperty(PropertyName, lJson, FieldNameCase);
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TDataSetHelper.LoadFromJSONArrayString(AJSONArrayString: string; FieldNameCase: TMVCNameCase);
+begin
+  AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create(), FieldNameCase);
+end;
+
+procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string; AIgnoredFields: TArray<string>;
+  FieldNameCase: TMVCNameCase);
+begin
+  LoadFromJSONArray(AJSONArrayString, FieldNameCase);
 end;
 
 procedure TDataSetHelper.AppendFromJSONArrayString(AJSONArrayString: string);
@@ -285,27 +397,31 @@ begin
   AppendFromJSONArrayString(AJSONArrayString, TArray<string>.Create());
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject; AIgnoredFields: TArray<string>;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(const JSONObject: TJSONObject; const AIgnoredFields: TArray<string>;
+  const FieldNameCase: TMVCNameCase);
+var
+  lSerializer: TMVCJsonDataObjectsSerializer;
 begin
-  raise Exception.Create('Not Implemented');
-  // Mapper.JSONObjectToDataSet(AJSONObject, Self, AIgnoredFields, false,
-  // AFieldNamePolicy);
+  lSerializer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    lSerializer.JsonObjectToDataSet(JSONObject, Self, TMVCIgnoredList(AIgnoredFields), FieldNameCase);
+  finally
+    lSerializer.Free;
+  end;
 end;
 
-procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string;
-  AIgnoredFields: TArray<string>);
+procedure TDataSetHelper.LoadFromJSONObjectString(const JSONObjectString: string; const IgnoredFields: TArray<string>;
+  const FieldNameCase: TMVCNameCase);
 var
   lSerializer: IMVCSerializer;
 begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
-  lSerializer.DeserializeDataSetRecord(AJSONObjectString, Self, nil, ncAsIs);
+  lSerializer.DeserializeDataSetRecord(JSONObjectString, Self, TMVCIgnoredList(IgnoredFields), FieldNameCase);
 end;
 
-procedure TDataSetHelper.LoadFromJSONObject(AJSONObject: TJSONObject;
-  AFieldNamePolicy: TFieldNamePolicy);
+procedure TDataSetHelper.LoadFromJSONObject(const JSONObject: TJSONObject; const FieldNameCase: TMVCNameCase);
 begin
-  LoadFromJSONObject(AJSONObject, TArray<string>.Create());
+  LoadFromJSONObject(JSONObject, TArray<string>.Create(), FieldNameCase);
 end;
 
 procedure TDataSetHelper.LoadFromJSONObjectString(AJSONObjectString: string);
@@ -324,14 +440,14 @@ class procedure TDataSetUtils.DataSetToObject(ADataSet: TDataSet; AObject: TObje
 var
   _type: TRttiType;
   _fields: TArray<TRttiProperty>;
-  _field: TRttiProperty;
+  lRttiProp: TRttiProperty;
   _attribute: TCustomAttribute;
   _dict: TDictionary<string, string>;
   _keys: TDictionary<string, boolean>;
   mf: MVCColumnAttribute;
   field_name: string;
   Value: TValue;
-  FoundAttribute: boolean;
+  lNeedToSet, FoundAttribute: boolean;
   FoundTransientAttribute: boolean;
   LField: TField;
 begin
@@ -339,43 +455,40 @@ begin
   _keys := TDictionary<string, boolean>.Create();
   _type := CTX.GetType(AObject.ClassInfo);
   _fields := _type.GetProperties;
-  for _field in _fields do
+  for lRttiProp in _fields do
   begin
     FoundAttribute := false;
     FoundTransientAttribute := false;
-    for _attribute in _field.GetAttributes do
+    for _attribute in lRttiProp.GetAttributes do
     begin
       if _attribute is MVCColumnAttribute then
       begin
         FoundAttribute := true;
         mf := MVCColumnAttribute(_attribute);
-        _dict.Add(_field.Name, mf.FieldName);
-        _keys.Add(_field.Name, mf.IsPK);
+        _dict.Add(lRttiProp.Name, mf.FieldName);
+        _keys.Add(lRttiProp.Name, mf.IsPK);
       end
       else if _attribute is MVCDoNotSerializeAttribute then
         FoundTransientAttribute := true;
     end;
     if ((not FoundAttribute) and (not FoundTransientAttribute)) then
     begin
-      _dict.Add(_field.Name, _field.Name);
-      _keys.Add(_field.Name, false);
+      _dict.Add(lRttiProp.Name, lRttiProp.Name);
+      _keys.Add(lRttiProp.Name, false);
     end;
   end;
-  for _field in _fields do
+  for lRttiProp in _fields do
   begin
-
-    if not _dict.TryGetValue(_field.Name, field_name) then
+    if not _dict.TryGetValue(lRttiProp.Name, field_name) then
       Continue;
-
     LField := ADataSet.FindField(field_name);
-
     if not Assigned(LField) then
       Continue;
-
-    case _field.PropertyType.TypeKind of
+    lNeedToSet := true;
+    case lRttiProp.PropertyType.TypeKind of
       tkEnumeration: // tristan
         begin
-          if _field.PropertyType.Handle = TypeInfo(boolean) then
+          if lRttiProp.PropertyType.Handle = TypeInfo(boolean) then
           begin
             case LField.DataType of
               ftInteger, ftSmallint, ftLargeint:
@@ -401,10 +514,18 @@ begin
         Value := LField.AsString;
       tkUString, tkWChar, tkLString, tkWString:
         Value := LField.AsWideString;
+      tkRecord:
+        begin
+          MapDataSetFieldToNullableRTTIProperty(lRttiProp.GetValue(AObject), LField, lRttiProp, AObject);
+          lNeedToSet := false;
+        end
     else
       Continue;
     end;
-    _field.SetValue(AObject, Value);
+    if lNeedToSet then
+    begin
+      lRttiProp.SetValue(AObject, Value);
+    end;
   end;
   _dict.Free;
   _keys.Free;
@@ -442,17 +563,167 @@ end;
 
 { TDataSetHolder }
 
-constructor TDataSetHolder.Create(ADataSet: TDataSet);
+constructor TDataSetHolder.Create(const ADataSet: TDataSet; const AOwns: boolean = false;
+  const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.dstAllRecords);
 begin
   inherited Create;
-  FDataSet := ADataSet;
-  FMetadata := TMVCStringDictionary.Create;
+  fDataSet := ADataSet;
+  fMetadata := TMVCStringDictionary.Create;
+  fOwns := AOwns;
+  fDataSetSerializationType := ADataSetSerializationType;
 end;
 
 destructor TDataSetHolder.Destroy;
 begin
+  fMetadata.Free;
+  if fOwns then
+  begin
+    fDataSet.Free;
+  end;
   inherited;
-  FMetadata.Free;
+end;
+
+function TDataSetHolder.SerializationType: TMVCDatasetSerializationType;
+begin
+  Result := fDataSetSerializationType;
+end;
+
+{ TMVCAPIBinder }
+
+procedure TMVCAPIBinder.BindDataSetToAPI(const ADataSet: TDataSet; const aURI,
+  aPrimaryKeyName: string);
+begin
+  fItems.Add(TMVCAPIBinderItem.Create(fRESTClient, ADataSet, aURI, aPrimaryKeyName));
+end;
+
+constructor TMVCAPIBinder.Create(const aRESTClient: TRESTClient);
+begin
+  inherited Create;
+  fItems := TObjectList<TMVCAPIBinderItem>.Create(true);
+  fRESTClient := aRESTClient;
+end;
+
+destructor TMVCAPIBinder.Destroy;
+begin
+  fItems.Free;
+  inherited;
+end;
+
+{ TMVCAPIBinder.TMVCAPIBinderItem }
+
+constructor TMVCAPIBinder.TMVCAPIBinderItem.Create(const aRESTClient: TRESTClient; const ADataSet: TDataSet;
+  const aURI, aPrimaryKeyName: string);
+begin
+  inherited Create;
+  fRESTClient := aRESTClient;
+  fDataSet := ADataSet;
+  fURI := aURI;
+  fPrimaryKeyNAme := aPrimaryKeyName;
+
+  // procedure HookBeforePost(DataSet: TDataSet);
+  // procedure HookBeforeDelete(DataSet: TDataSet);
+  // procedure HookBeforeRefresh(DataSet: TDataSet);
+  // procedure HookAfterOpen(DataSet: TDataSet);
+
+  fDataSet.BeforePost := HookBeforePost;
+  fDataSet.BeforeDelete := HookBeforeDelete;
+  fDataSet.BeforeRefresh := HookBeforeRefresh;
+  fDataSet.AfterOpen := HookAfterOpen;
+end;
+
+destructor TMVCAPIBinder.TMVCAPIBinderItem.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TMVCAPIBinder.TMVCAPIBinderItem.HookAfterOpen(DataSet: TDataSet);
+var
+  Res: IRESTResponse;
+  lData: TJSONObject;
+begin
+  // this a simple sychronous request...
+  Res := fRESTClient.doGET('/api/customers', []);
+  if Res.HasError then
+  begin
+    ShowError(Res);
+  end;
+
+  lData := StrToJSONObject(Res.BodyAsString);
+  try
+    DataSet.DisableControls;
+    try
+      fLoading := true;
+      DataSet.LoadFromJSONArray(lData.A['items']);
+      fLoading := false;
+      DataSet.First;
+    finally
+      DataSet.EnableControls;
+    end;
+  finally
+    lData.Free;
+  end;
+end;
+
+procedure TMVCAPIBinder.TMVCAPIBinderItem.HookBeforeDelete(DataSet: TDataSet);
+var
+  Res: IRESTResponse;
+begin
+  if DataSet.State = dsBrowse then
+    Res := fRESTClient.DataSetDelete(fURI, DataSet.FieldByName(fPrimaryKeyNAme).AsString);
+  if not(Res.ResponseCode in [200]) then
+  begin
+    ShowError(Res);
+  end;
+end;
+
+procedure TMVCAPIBinder.TMVCAPIBinderItem.HookBeforePost(DataSet: TDataSet);
+var
+  lRes: IRESTResponse;
+  lLastID: Integer;
+begin
+  if not fLoading then
+  begin
+    lLastID := -1;
+    if fDataSet.State = dsInsert then
+    begin
+      lRes := fRESTClient.DataSetInsert(fURI, DataSet)
+    end
+    else
+    begin
+      lLastID := fDataSet.FieldByName(fPrimaryKeyNAme).AsInteger;
+      lRes := fRESTClient.DataSetUpdate(fURI, DataSet, lLastID.ToString);
+    end;
+    if not(lRes.ResponseCode in [200, 201]) then
+    begin
+      ShowError(lRes);
+    end
+    else
+    begin
+      DataSet.Refresh;
+      if lLastID > -1 then
+      begin
+        DataSet.Locate('id', lLastID, []);
+      end;
+    end;
+  end;
+end;
+
+procedure TMVCAPIBinder.TMVCAPIBinderItem.HookBeforeRefresh(DataSet: TDataSet);
+begin
+  DataSet.Close;
+  DataSet.Open;
+end;
+
+procedure TMVCAPIBinder.TMVCAPIBinderItem.ShowError(const AResponse: IRESTResponse);
+begin
+  if AResponse.HasError then
+    raise EMVCException.Create(AResponse.Error.Status);
+  // else
+  // MessageDlg(
+  // AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
+  // AResponse.BodyAsString,
+  // mtError, [mbOK], 0);
 end;
 
 end.

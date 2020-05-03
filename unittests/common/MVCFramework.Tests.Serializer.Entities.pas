@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -53,7 +53,7 @@ type
     FName: string;
 
     // The MVCListOfAttribute attribute can be placed in Field or Property
-    [MVCListOf(TNote)]
+    //[MVCListOf(TNote)]
     FNotes: TObjectList<TNote>;
   public
     constructor Create;
@@ -63,7 +63,7 @@ type
     [MVCNameAs('Name')]
     property name: string read FName write FName;
 
-    [MVCListOf(TNote)]
+//    [MVCListOf(TNote)]
     property Notes: TObjectList<TNote> read FNotes write FNotes;
   end;
 
@@ -82,10 +82,10 @@ type
     FDepartment: TDepartment;
     FDepartmentNull: TDepartment;
 
-    [MVCListOf(TNote)]
+//    [MVCListOf(TNote)]
     FNotes: TObjectList<TNote>;
 
-    [MVCListOf(TNote)]
+  //  [MVCListOf(TNote)]
     FNotesEmpty: TObjectList<TNote>;
 
     // The MVCValueAsTypeAttribute attribute can be placed in Field or Property
@@ -117,10 +117,10 @@ type
     property Department: TDepartment read FDepartment write FDepartment;
     property DepartmentNull: TDepartment read FDepartmentNull write FDepartmentNull;
 
-    [MVCListOf(TNote)]
+    //[MVCListOf(TNote)]
     property Notes: TObjectList<TNote> read FNotes;
 
-    [MVCListOf(TNote)]
+    //[MVCListOf(TNote)]
     property NotesEmpty: TObjectList<TNote> read FNotesEmpty;
 
     [MVCValueAsType(System.TypeInfo(string))]
@@ -224,6 +224,7 @@ type
   end;
 
   TColorEnum = (RED, GREEN, BLUE);
+  TMonthEnum = (meJanuary, meFebruary, meMarch, meApril);
 
   TEntityWithEnums = class
   private
@@ -231,12 +232,21 @@ type
     FCode: Integer;
     FName: string;
     FColor: TColorEnum;
+    FMonthName: TMonthEnum;
+    FMonthOrder: TMonthEnum;
+    FMonthName2: TMonthEnum;
   public
     property Id: Int64 read FId write FId;
     property Code: Integer read FCode write FCode;
     [MVCNameAs('Name')]
     property name: string read FName write FName;
     property Color: TColorEnum read FColor write FColor;
+    [MVCEnumSerialization(estEnumMappedValues, 'January,February,March,April')]
+    property MonthName: TMonthEnum read FMonthName write FMonthName;
+    [MVCEnumSerialization(estEnumName)]
+    property MonthName2: TMonthEnum read FMonthName2 write FMonthName2;
+    [MVCEnumSerialization(estEnumOrd)]
+    property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
   end;
 
   [MVCSerialize(stFields)]
@@ -290,6 +300,91 @@ type
     property Names: TArray<String> read FNames write FNames;
     property Values: TArray<Integer> read FValues write FValues;
   end;
+
+  IChildEntity = interface
+  ['{4A4CF508-D64F-4205-9783-E91B888A8987}']
+    function GetCode: Integer;
+    procedure SetCode(const Value: Integer);
+    function GetDescription: string;
+    procedure SetDescription(const Value: string);
+
+    property Code: Integer read GetCode write SetCode;
+    property Description: string read GetDescription write SetDescription;
+  end;
+
+  IEntityWithInterface = interface
+  ['{81B1323F-B3FF-4FBD-84F3-9BDBA9997D8E}']
+    function GetId: Integer;
+    procedure SetId(const Value: Integer);
+    function GetName: string;
+    procedure SetName(const Value: string);
+    function GetChildEntity: IChildEntity;
+    procedure SetChildEntity(const Value: IChildEntity);
+
+    property Id: Integer read GetId write SetId;
+    property Name: string read GetName write SetName;
+    property ChildEntity: IChildEntity read GetChildEntity write SetChildEntity;
+  end;
+
+  TEntityWithInterface = class(TInterfacedObject, IEntityWithInterface)
+  private
+    FId: Integer;
+    FName: string;
+    FChildEntity: IChildEntity;
+    function GetId: Integer;
+    procedure SetId(const Value: Integer);
+    function GetName: string;
+    procedure SetName(const Value: string);
+    function GetChildEntity: IChildEntity;
+    procedure SetChildEntity(const Value: IChildEntity);
+  public
+    constructor Create;
+    property Id: Integer read GetId write SetId;
+    property Name: string read GetName write SetName;
+    property ChildEntity: IChildEntity read GetChildEntity write SetChildEntity;
+  end;
+
+  TChildEntity = class(TInterfacedObject, IChildEntity)
+  private
+    FCode: Integer;
+    FDescription: string;
+    function GetCode: Integer;
+    procedure SetCode(const Value: Integer);
+    function GetDescription: string;
+    procedure SetDescription(const Value: string);
+  public
+    property Code: Integer read GetCode write SetCode;
+    property Description: string read GetDescription write SetDescription;
+  end;
+
+  TGenericEntity<T: class> = class
+  private
+    FCode: Integer;
+    FItems: TObjectList<T>;
+    FDescription: string;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Code: Integer read FCode write FCode;
+    property Description: string read FDescription write FDescription;
+    property Items: TObjectList<T> read FItems write FItems;
+  end;
+
+  TMultipleGenericEntity<T1: class; T2: class> = class
+  private
+    FCode: Integer;
+    FItems: TObjectList<T1>;
+    FItems2: TObjectList<T2>;
+    FDescription: string;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Code: Integer read FCode write FCode;
+    property Description: string read FDescription write FDescription;
+    property Items: TObjectList<T1> read FItems write FItems;
+    property Items2: TObjectList<T2> read FItems2 write FItems2;
+  end;
+
 
 implementation
 
@@ -368,5 +463,94 @@ begin
   fValue := Value;
   fHasValue := True;
 end;
+
+{ TEntityWithInterface }
+
+constructor TEntityWithInterface.Create;
+begin
+  FChildEntity := TChildEntity.Create;
+end;
+
+function TEntityWithInterface.GetChildEntity: IChildEntity;
+begin
+  Result := FChildEntity;
+end;
+
+function TEntityWithInterface.GetId: Integer;
+begin
+  Result := FId;
+end;
+
+function TEntityWithInterface.GetName: string;
+begin
+  Result := FName;
+end;
+
+procedure TEntityWithInterface.SetChildEntity(const Value: IChildEntity);
+begin
+  FChildEntity := Value;
+end;
+
+procedure TEntityWithInterface.SetId(const Value: Integer);
+begin
+  FId := Value;
+end;
+
+procedure TEntityWithInterface.SetName(const Value: string);
+begin
+  FName := Value;
+end;
+
+
+{ TChildEntity }
+
+function TChildEntity.GetCode: Integer;
+begin
+  Result := FCode;
+end;
+
+function TChildEntity.GetDescription: string;
+begin
+  Result := FDescription;
+end;
+
+procedure TChildEntity.SetCode(const Value: Integer);
+begin
+  FCode := Value;
+end;
+
+procedure TChildEntity.SetDescription(const Value: string);
+begin
+  FDescription := Value;
+end;
+
+{ TGenericEntity<T> }
+
+constructor TGenericEntity<T>.Create;
+begin
+  inherited Create;
+  FItems := TObjectList<T>.Create;
+end;
+
+destructor TGenericEntity<T>.Destroy;
+begin
+  FItems.Free;
+  inherited Destroy;
+end;
+
+constructor TMultipleGenericEntity<T1,T2>.Create;
+begin
+  inherited Create;
+  FItems := TObjectList<T1>.Create;
+  FItems2 := TObjectList<T2>.Create;
+end;
+
+destructor TMultipleGenericEntity<T1,T2>.Destroy;
+begin
+  FItems.Free;
+  FItems2.Free;
+  inherited Destroy;
+end;
+
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -128,7 +128,7 @@ begin
       end;
     tkContains:
       begin
-        Result := Format('(%s containing ''%s'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
+        Result := Format('(%s containing %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:
       begin
@@ -141,8 +141,8 @@ begin
             end;
           vtStringArray:
             begin
-              Result := Format('(%s IN (''%s''))', [
-                lDBFieldName, string.Join(''',''', aRQLFIlter.OpRightArray)
+              Result := Format('(%s IN (%s))', [
+                lDBFieldName, string.Join(',', QuoteStringArray(aRQLFIlter.OpRightArray))
                 ]);
             end;
         else

@@ -27,9 +27,11 @@ type
     Memo3: TMemo;
     Splitter2: TSplitter;
     btnLoginWithException: TButton;
+    btnLoginJsonObject: TButton;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
     procedure btnLoginWithExceptionClick(Sender: TObject);
+    procedure btnLoginJsonObjectClick(Sender: TObject);
   private
     FJWT: string;
     procedure SetJWT(const Value: string);
@@ -118,6 +120,37 @@ begin
     lClient.ReadTimeOut(0);
     lClient.Authentication('user1', 'user1');
     lRest := lClient.doPOST('/login', []);
+    if lRest.HasError then
+    begin
+      ShowMessage(
+        'HTTP ERROR: ' + lRest.Error.HTTPError.ToString + sLineBreak +
+        'APPLICATION ERROR CODE: ' + lRest.Error.ErrorNumber.ToString + sLineBreak +
+        'EXCEPTION MESSAGE: ' + lRest.Error.ExceptionMessage);
+
+      Exit;
+    end;
+
+    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
+    try
+      JWT := lJSON.GetValue('token').Value;
+    finally
+      lJSON.Free;
+    end;
+  finally
+    lClient.Free;
+  end;
+end;
+
+procedure TForm5.btnLoginJsonObjectClick(Sender: TObject);
+var
+  lClient: TRESTClient;
+  lRest: IRESTResponse;
+  lJSON: TJSONObject;
+begin
+  lClient := TRESTClient.Create('localhost', 8080);
+  try
+    lClient.ReadTimeOut(0);
+    lRest := lClient.doPOST('/login', [], '{"jwtusername":"user1","jwtpassword":"user1"}');
     if lRest.HasError then
     begin
       ShowMessage(

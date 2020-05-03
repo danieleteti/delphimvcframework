@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -29,8 +29,10 @@ interface
 uses
   JsonDataObjects,
   Data.DB,
-  BusinessObjectsU, FireDAC.Comp.Client, MVCFramework.Serializer.Commons,
-  MVCFramework.Commons;
+  BusinessObjectsU,
+  FireDAC.Comp.Client,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
 
 type
 
@@ -50,20 +52,35 @@ type
     function GetCustomersDataset: TFDMemTable;
     function GetPeopleDataset: TFDMemTable;
   public
-    function Subtract(aValue1, aValue2: Integer): Integer;
+    procedure OnBeforeCall(const JSONRequest: TJDOJsonObject);
+    procedure OnBeforeRouting(const JSON: TJDOJsonObject);
+    procedure OnBeforeSendResponse(
+  const JSONResponse: TJDOJsonObject);
+  public
+    [MVCDoc('You know, returns aValue1 - aValue2')]
+    function Subtract(Value1, Value2: Integer): Integer;
+    [MVCDoc('Returns the revers of the string passed as input')]
     function ReverseString(const aString: string; const aUpperCase: Boolean): string;
+    [MVCDoc('Returns the next monday starting from aDate')]
     function GetNextMonday(const aDate: TDate): TDate;
-    function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime): TDateTime;
-    function GetCustomers(aString: string): TDataset;
+    function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
+      const aDateAndTime: TDateTime): TDateTime;
+    function GetCustomers(FilterString: string): TDataset;
     function GetMulti: TMultiDataset;
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
-    function SavePerson(const aPerson: TJsonObject): Integer;
+    function SavePerson(const Person: TJsonObject): Integer;
+    function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
+    function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
     // invalid parameters modifiers
     procedure InvalidMethod1(var MyVarParam: Integer);
     procedure InvalidMethod2(out MyOutParam: Integer);
 
+  end;
+
+  TUtils = class sealed
+    class function JSONObjectAs<T: constructor, class>(const JSON: TJsonObject): T;
   end;
 
 implementation
@@ -72,7 +89,27 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   System.StrUtils,
-  System.DateUtils;
+  System.DateUtils, MVCFramework.Serializer.JsonDataObjects;
+
+class function TUtils.JSONObjectAs<T>(const JSON: TJsonObject): T;
+var
+  lObj: TObject;
+  lSerializer: TMVCJsonDataObjectsSerializer;
+begin
+  lObj := T.Create;
+  try
+    lSerializer := TMVCJsonDataObjectsSerializer.Create;
+    try
+      lSerializer.JsonObjectToObject(JSON, lObj, TMVCSerializationType.stProperties, []);
+    finally
+      lSerializer.Free;
+    end;
+  except
+    lObj.Free;
+    raise;
+  end;
+  Result := T(lObj);
+end;
 
 { TMyDerivedController }
 
@@ -81,15 +118,20 @@ begin
 
 end;
 
-function TMyObject.GetCustomers(aString: string): TDataset;
+function TMyObject.FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
+begin
+  Result := aDouble + aExtended;
+end;
+
+function TMyObject.GetCustomers(FilterString: string): TDataset;
 var
   lMT: TFDMemTable;
 begin
   lMT := GetCustomersDataset;
   try
-    if not aString.IsEmpty then
+    if not FilterString.IsEmpty then
     begin
-      lMT.Filter := aString;
+      lMT.Filter := FilterString;
       lMT.Filtered := True;
     end;
     lMT.First;
@@ -201,7 +243,8 @@ begin
   // do nothing
 end;
 
-function TMyObject.PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime): TDateTime;
+function TMyObject.PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
+  const aDateAndTime: TDateTime): TDateTime;
 begin
   Result := aDateAndTime + aDate + aTime + TDateTime(aJustAFloat);
 end;
@@ -213,7 +256,20 @@ begin
     Result := Result.ToUpper;
 end;
 
-function TMyObject.SavePerson(const aPerson: TJsonObject): Integer;
+function TMyObject.SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
+var
+  lObj: TObjectWithJSONObject;
+begin
+  lObj := TUtils.JSONObjectAs<TObjectWithJSONObject>(WithJSON);
+  try
+    LogD(lObj);
+    Result := WithJSON.Clone as TJsonObject;
+  finally
+    lObj.Free;
+  end;
+end;
+
+function TMyObject.SavePerson(const Person: TJsonObject): Integer;
 // var
 // lPerson: TPerson;
 begin
@@ -228,9 +284,9 @@ begin
   Result := Random(1000);
 end;
 
-function TMyObject.Subtract(aValue1, aValue2: Integer): Integer;
+function TMyObject.Subtract(Value1, Value2: Integer): Integer;
 begin
-  Result := aValue1 - aValue2;
+  Result := Value1 - Value2;
 end;
 
 { TData }
@@ -240,6 +296,30 @@ begin
   fCustomers1.Free;
   fCustomers2.Free;
   inherited;
+end;
+
+{ TMyObjectWithHooks }
+
+procedure TMyObject.OnBeforeCall(const JSONRequest: TJDOJsonObject);
+begin
+  Log.Info('TMyObjectWithHooks.OnBeforeCall >> ', 'jsonrpc');
+  Log.Info(JSONRequest.ToJSON(false), 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeCall << ', 'jsonrpc');
+end;
+
+procedure TMyObject.OnBeforeRouting(const JSON: TJDOJsonObject);
+begin
+  Log.Info('TMyObjectWithHooks.OnBeforeRouting >> ', 'jsonrpc');
+  Log.Info(JSON.ToJSON(false), 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeRouting << ', 'jsonrpc');
+end;
+
+procedure TMyObject.OnBeforeSendResponse(
+  const JSONResponse: TJDOJsonObject);
+begin
+  Log.Info('TMyObjectWithHooks.OnBeforeSendResponse >> ', 'jsonrpc');
+  Log.Info(JSONResponse.ToJSON(false), 'jsonrpc');
+  Log.Info('TMyObjectWithHooks.OnBeforeSendResponse << ', 'jsonrpc');
 end;
 
 end.

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -177,6 +177,7 @@ type
   end;
 
   TJWTCustomClaims = class(TJWTDictionaryObject)
+  public
     property Items; default;
     function AsCustomData: TMVCCustomData;
   end;

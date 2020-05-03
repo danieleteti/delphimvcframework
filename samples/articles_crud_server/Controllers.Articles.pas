@@ -5,6 +5,7 @@ interface
 uses
   mvcframework,
   mvcframework.Commons,
+  mvcframework.Serializer.Commons,
   Controllers.Base;
 
 type
@@ -41,12 +42,12 @@ type
     [MVCDoc('Creates a new article and returns "201: Created"')]
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticle(Context: TWebContext);
+    procedure CreateArticle;
 
     [MVCDoc('Creates new articles from a list and returns "201: Created"')]
     [MVCPath('/bulk')]
     [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticles(Context: TWebContext);
+    procedure CreateArticles;
   end;
 
 implementation
@@ -58,22 +59,22 @@ uses
   BusinessObjects,
   Commons,
   mvcframework.Serializer.Intf,
-  System.Generics.Collections;
+  System.Generics.Collections, System.SysUtils;
 
-procedure TArticlesController.CreateArticle(Context: TWebContext);
+procedure TArticlesController.CreateArticle;
 var
   Article: TArticle;
 begin
   Article := Context.Request.BodyAs<TArticle>;
   try
     GetArticlesService.Add(Article);
-    Render(201, 'Article Created');
+    Render201Created('/articles/' + Article.id.ToString, 'Article Created');
   finally
     Article.Free;
   end;
 end;
 
-procedure TArticlesController.CreateArticles(Context: TWebContext);
+procedure TArticlesController.CreateArticles;
 var
   lArticles: TObjectList<TArticle>;
   lArticle: TArticle;
@@ -111,22 +112,27 @@ end;
 
 procedure TArticlesController.GetArticles;
 begin
-  Render<TArticle>(GetArticlesService.GetAll);
+  Render(
+    ObjectDict().Add('data', GetArticlesService.GetAll)
+    );
 end;
 
 procedure TArticlesController.GetArticlesByDescription;
 var
-  lSearch: String;
+  lSearch: string;
+  lDict: IMVCObjectDictionary;
 begin
   try
-    if random(10) < 2 then
-      raise EMVCException.Create('ERRORONE!!!');
-
     lSearch := Context.Request.Params['q'];
     if lSearch = '' then
-      Render<TArticle>(GetArticlesService.GetAll)
+    begin
+      lDict := ObjectDict().Add('data', GetArticlesService.GetAll);
+    end
     else
-      Render<TArticle>(GetArticlesService.GetArticles(lSearch));
+    begin
+      lDict := ObjectDict().Add('data', GetArticlesService.GetArticles(lSearch));
+    end;
+    Render(lDict);
   except
     on E: EServiceException do
     begin
@@ -152,12 +158,9 @@ begin
 end;
 
 procedure TArticlesController.GetArticleByID(id: Integer);
-var
-  Article: TArticle;
 begin
   try
-    Article := GetArticlesService.GetByID(id);
-    Render(Article);
+    Render(ObjectDict().Add('data', GetArticlesService.GetByID(id)));
   except
     on E: EServiceException do
     begin

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -77,7 +77,8 @@ uses
   MVCFramework.Serializer.Intf,
   System.Generics.Collections,
   MVCFramework.View.Renderers.Mustache,
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes;
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
+  MVCFramework.Logger;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -99,10 +100,10 @@ begin
   DMVC.SetViewEngine(TMVCMustacheViewEngine);
 
   // Register a custom serializer for TUserRoles (is compatible only with the default serializer)
-  DMVC
-    .Serializers
-    .Items[TMVCMediaType.APPLICATION_JSON]
-    .RegisterTypeSerializer(TypeInfo(TUserRoles), TUserRolesSerializer.Create);
+  // DMVC
+  // .Serializers
+  // .Items[TMVCMediaType.APPLICATION_JSON]
+  // .RegisterTypeSerializer(TypeInfo(TUserRoles), TUserRolesSerializer.Create);
 
   // You can check how this custom type serializer works
   // calling http://localhost:8080/customserializationtype

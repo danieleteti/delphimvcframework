@@ -74,9 +74,9 @@ object Form5: TForm5
     TabOrder = 0
     object btnGet: TButton
       AlignWithMargins = True
-      Left = 171
+      Left = 223
       Top = 4
-      Width = 161
+      Width = 154
       Height = 41
       Align = alLeft
       Caption = 'Get a protected resource'
@@ -87,24 +87,35 @@ object Form5: TForm5
       AlignWithMargins = True
       Left = 4
       Top = 4
-      Width = 161
+      Width = 101
       Height = 41
       Align = alLeft
-      Caption = 'Login'
+      Caption = 'Login (mode 1)'
       TabOrder = 0
       OnClick = btnLOGINClick
     end
     object btnLoginWithException: TButton
       AlignWithMargins = True
-      Left = 464
+      Left = 512
       Top = 4
-      Width = 179
+      Width = 131
       Height = 41
       Align = alRight
       Caption = 'Custom Exception in OnAuthenticate'
       TabOrder = 2
       WordWrap = True
       OnClick = btnLoginWithExceptionClick
+    end
+    object btnLoginJsonObject: TButton
+      AlignWithMargins = True
+      Left = 111
+      Top = 4
+      Width = 106
+      Height = 41
+      Align = alLeft
+      Caption = 'Login (mode 2)'
+      TabOrder = 3
+      OnClick = btnLoginJsonObjectClick
     end
   end
   object Memo3: TMemo

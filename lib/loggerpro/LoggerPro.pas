@@ -20,7 +20,7 @@ type
   TLogType = (Debug = 0, Info, Warning, Error);
   TLogErrorReason = (QueueFull);
   TLogErrorAction = (SkipNewest, DiscardOlder);
-  TLogExtendedInfo = (EIUserName, EIComputerName, EIProcessName, EIProcessID, EIDeviceID { mobile } );
+  TLogExtendedInfo = (EIUserName, EIComputerName, EIProcessName, EIProcessID, EIDeviceID { mobile });
   TLoggerProExtendedInfo = set of TLogExtendedInfo;
 
   { @abstract(Represent the single log item)
@@ -132,6 +132,8 @@ type
     function GetAppendersClassNames: TArray<string>;
     function GetAppenders(const Index: Integer): ILogAppender;
     property Appenders[const index: Integer]: ILogAppender read GetAppenders;
+    procedure AddAppender(const aAppenders: ILogAppender);
+    procedure DelAppender(const aAppenders: ILogAppender);
     function AppendersCount(): Integer;
   end;
 
@@ -146,8 +148,8 @@ type
   protected
     procedure Execute; override;
 
-  type
-    TAppenderStatus = (BeforeSetup, Running, WaitAfterFail, ToRestart, BeforeTearDown);
+    type
+      TAppenderStatus = (BeforeSetup, Running, WaitAfterFail, ToRestart, BeforeTearDown);
   public
     constructor Create(aLogAppender: ILogAppender; aAppenderQueue: TAppenderQueue);
     property Failing: Boolean read FFailing write SetFailing;
@@ -155,45 +157,53 @@ type
 
   TLoggerThread = class(TThread)
   private type
-    TAppenderAdapter = class
-    private
-      FAppenderQueue: TAppenderQueue;
-      FAppenderThread: TAppenderThread;
-      FLogAppender: ILogAppender;
-      FFailsCount: Cardinal;
-    public
-      constructor Create(aAppender: ILogAppender); virtual;
-      destructor Destroy; override;
-      function EnqueueLog(const aLogItem: TLogItem): Boolean;
-      property Queue: TAppenderQueue read FAppenderQueue;
-      property FailsCount: Cardinal read FFailsCount;
-      function GetLogLevel: TLogType;
-    end;
+      TAppenderAdapter = class
+      private
+        FAppenderQueue: TAppenderQueue;
+        FAppenderThread: TAppenderThread;
+        FLogAppender: ILogAppender;
+        FFailsCount: Cardinal;
+      public
+        constructor Create(aAppender: ILogAppender); virtual;
+        destructor Destroy; override;
+        function EnqueueLog(const aLogItem: TLogItem): Boolean;
+        property Queue: TAppenderQueue read FAppenderQueue;
+        property FailsCount: Cardinal read FFailsCount;
+        function GetLogLevel: TLogType;
+      end;
 
-    TAppenderAdaptersList = class(TObjectList<TAppenderAdapter>)
-    public
-      constructor Create;
-    end;
+      TAppenderAdaptersList = class(TObjectList<TAppenderAdapter>)
+      public
+        constructor Create;
+      end;
 
   private
     FQueue: TThreadSafeQueue<TLogItem>;
     FAppenders: TLogAppenderList;
     FEventsHandlers: TLoggerProEventsHandler;
+    FAppendersDecorators: TObjectList<TAppenderAdapter>;
     function BuildAppendersDecorator: TAppenderAdaptersList;
     procedure DoOnAppenderError(const FailAppenderClassName: string; const aFailedLogItem: TLogItem; const aReason: TLogErrorReason;
       var aAction: TLogErrorAction);
     procedure SetEventsHandlers(const Value: TLoggerProEventsHandler);
   protected
     procedure Execute; override;
+    procedure DoTerminate; override;
   public
     constructor Create(aAppenders: TLogAppenderList);
     destructor Destroy; override;
 
     property EventsHandlers: TLoggerProEventsHandler read FEventsHandlers write SetEventsHandlers;
-    property LogWriterQueue: TThreadSafeQueue<TLogItem> read FQueue;
+    property LogWriterQueue: TThreadSafeQueue < TLogItem > read FQueue;
   end;
 
-  TLogWriter = class(TInterfacedObject, ILogWriter)
+  TLoggerProInterfacedObject = class(TInterfacedObject)
+  protected
+    function _AddRef: Integer; stdcall;
+    function _Release: Integer; stdcall;
+  end;
+
+  TLogWriter = class(TLoggerProInterfacedObject, ILogWriter)
   private
     FLoggerThread: TLoggerThread;
     FLogAppenders: TLogAppenderList;
@@ -203,6 +213,8 @@ type
     function GetAppendersClassNames: TArray<string>;
   public
     function GetAppenders(const Index: Integer): ILogAppender;
+    procedure AddAppender(const aAppender: ILogAppender);
+    procedure DelAppender(const aAppender: ILogAppender);
     function AppendersCount(): Integer;
     constructor Create(aLogLevel: TLogType = TLogType.Debug); overload;
     constructor Create(aLogAppenders: TLogAppenderList; aLogLevel: TLogType = TLogType.Debug); overload;
@@ -405,6 +417,30 @@ begin
   Result := Self.FLogAppenders[index];
 end;
 
+procedure TLogWriter.AddAppender(const aAppender: ILogAppender);
+begin
+  Self.FLoggerThread.FAppenders.Add(aAppender);
+  Self.FLogAppenders.Add(aAppender);
+  Self.FLoggerThread.FAppendersDecorators.Add(TLoggerThread.TAppenderAdapter.Create(aAppender));
+end;
+
+procedure TLogWriter.DelAppender(const aAppender: ILogAppender);
+var
+  i: Integer;
+begin
+  i := Self.FLoggerThread.FAppenders.IndexOf(aAppender);
+  if i >= 0 then
+    Self.FLoggerThread.FAppenders.Delete(i);
+
+  i := Self.FLogAppenders.IndexOf(aAppender);
+  if i >= 0 then
+    Self.FLogAppenders.Delete(i);
+
+  for I := 0 to Self.FLoggerThread.FAppendersDecorators.Count - 1 do
+    if Self.FLoggerThread.FAppendersDecorators[i].FLogAppender = aAppender then
+      Self.FLoggerThread.FAppendersDecorators.Delete(i);
+end;
+
 function TLogWriter.GetAppendersClassNames: TArray<string>;
 var
   I: Cardinal;
@@ -525,16 +561,21 @@ begin
   end;
 end;
 
+procedure TLoggerThread.DoTerminate;
+begin
+
+  inherited;
+end;
+
 procedure TLoggerThread.Execute;
 var
   lQSize: UInt64;
   lLogItem: TLogItem;
   I: Integer;
-  lAppendersDecorators: TObjectList<TAppenderAdapter>;
   lAction: TLogErrorAction;
   lWaitResult: TWaitResult;
 begin
-  lAppendersDecorators := BuildAppendersDecorator;
+  FAppendersDecorators := BuildAppendersDecorator;
   try
     while true do
     begin
@@ -545,14 +586,14 @@ begin
             if lLogItem <> nil then
             begin
               try
-                for I := 0 to lAppendersDecorators.Count - 1 do
+                for I := 0 to FAppendersDecorators.Count - 1 do
                 begin
-                  if lLogItem.LogType >= lAppendersDecorators[I].GetLogLevel then
+                  if lLogItem.LogType >= FAppendersDecorators[I].GetLogLevel then
                   begin
-                    if not lAppendersDecorators[I].EnqueueLog(lLogItem) then
+                    if not FAppendersDecorators[I].EnqueueLog(lLogItem) then
                     begin
                       lAction := TLogErrorAction.SkipNewest; // default
-                      DoOnAppenderError(TObject(lAppendersDecorators[I].FLogAppender).ClassName, lLogItem,
+                      DoOnAppenderError(TObject(FAppendersDecorators[I].FLogAppender).ClassName, lLogItem,
                         TLogErrorReason.QueueFull, lAction);
                       case lAction of
                         TLogErrorAction.SkipNewest:
@@ -562,7 +603,7 @@ begin
                         TLogErrorAction.DiscardOlder:
                           begin
                             // just remove the oldest log message
-                            lAppendersDecorators[I].Queue.Dequeue.Free;
+                            FAppendersDecorators[I].Queue.Dequeue.Free;
                           end;
                       end;
                     end;
@@ -586,7 +627,7 @@ begin
 
     end;
   finally
-    lAppendersDecorators.Free;
+    FAppendersDecorators.Free;
   end;
 end;
 
@@ -732,6 +773,7 @@ begin
   lStatus := TAppenderStatus.BeforeSetup;
   try
     { the appender tries to log all the messages before terminate... }
+    //dt
     while (not Terminated) or (FAppenderQueue.QueueSize > 0) do
     begin
       { ...but if the thread should be terminated, and the appender is failing,
@@ -837,4 +879,17 @@ begin
   inherited Create(true);
 end;
 
+{ TLoggerProInterfacedObject }
+
+function TLoggerProInterfacedObject._AddRef: Integer;
+begin
+  Result := inherited;
+end;
+
+function TLoggerProInterfacedObject._Release: Integer;
+begin
+  Result := inherited;
+end;
+
 end.
+

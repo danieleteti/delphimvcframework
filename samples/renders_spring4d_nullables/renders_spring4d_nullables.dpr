@@ -14,7 +14,7 @@ uses
   MainControllerU in 'MainControllerU.pas',
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
   BusinessObjectsU in 'BusinessObjectsU.pas',
-  CustomTypesSerializersU in 'CustomTypesSerializersU.pas';
+  MVCFramework.Serializer.JsonDataObjects.NullableTypes in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.NullableTypes.pas';
 
 {$R *.res}
 

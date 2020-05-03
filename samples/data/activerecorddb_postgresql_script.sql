@@ -18,8 +18,31 @@ CREATE TABLE customers (
 	code varchar(20) NULL,
 	description varchar(200) NULL,
 	city varchar(200) NULL,
+	rating int8 NULL,	
+	note text NULL,	
 	CONSTRAINT customers_pk PRIMARY KEY (id)
 );
+
+CREATE TABLE customers_plain (
+	id int8 NOT NULL,
+	code varchar(20) NULL,
+	description varchar(200) NULL,
+	city varchar(200) NULL,
+	note text NULL,
+	rating int4 NULL,
+	CONSTRAINT customers_plain_pk PRIMARY KEY (id)
+);
+
+CREATE TABLE "customers with spaces" (
+    "id with spaces" int8 NOT NULL,
+    "code with spaces" varchar(20) NULL,
+    "description with spaces" varchar(200) NULL,
+    "city with spaces" varchar(200) NULL,
+    "note with spaces" text NULL,
+    "rating with spaces" int4 NULL,
+    CONSTRAINT customers_with_spaces_pk PRIMARY KEY ("id with spaces")
+);
+
 
 -- Drop table
 

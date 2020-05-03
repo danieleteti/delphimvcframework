@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -85,6 +85,12 @@ type
       const AActionName: string;
       const AHandled: Boolean
       );
+
+    procedure OnAfterRouting(
+      AContext: TWebContext;
+      const AHandled: Boolean
+      );
+
   public
     constructor Create(
       const AAllowedOriginURL: string = TMVCCORSDefaults.ALLOWS_ORIGIN_URL;
@@ -119,6 +125,11 @@ end;
 
 procedure TMVCCORSMiddleware.OnAfterControllerAction(AContext: TWebContext;
   const AActionName: string; const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCCORSMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
 begin
   // Implement as needed
 end;

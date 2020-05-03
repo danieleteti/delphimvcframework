@@ -30,9 +30,12 @@ uses
   MainControllerU,
   System.IOUtils,
   MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
   LoggerPro.FileAppender,
   LoggerPro,
-  MVCFramework.Middleware.Analytics;
+  System.DateUtils,
+  MVCFramework.Middleware.Analytics,
+  MVCFramework.Middleware.StaticFiles;
 
 var
   GLogWriter: ILogWriter = nil;
@@ -51,8 +54,11 @@ begin
         lLog := TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics', [], '%s.%2.2d.%s.csv');
         TLoggerProFileAppender(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
           begin
-            LogRow := Format('%s;%s;%s;%s', [datetimetostr(LogItem.TimeStamp),
-              LogItem.LogTypeAsString, LogItem.LogMessage, LogItem.LogTag]);
+            LogRow := Format('%s;%s;%s;%s', [
+              FormatDateTime('yyyy-mm-dd hh:nn:ss', LogItem.TimeStamp),
+              LogItem.LogTypeAsString,
+              LogItem.LogMessage,
+              LogItem.LogTag]);
           end;
         GLogWriter := BuildLogWriter([lLog]);
       end;
@@ -68,8 +74,6 @@ begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www');
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -84,10 +88,13 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'false';
-      // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
-      Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
   FMVC.AddController(TMainController).AddMiddleware(TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics));
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

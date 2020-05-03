@@ -27,7 +27,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  SetDefaultLogger(GetLogger); // setting the custom logger
+  SetDefaultLogger(GetLogger); // setting the custom logger destinations
 
   Writeln('** DMVCFramework Server **');
   Writeln('WARNING! Run this program in debug and check the Delphi "Event" debug window to see the custom logs');

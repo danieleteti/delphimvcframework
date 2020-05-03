@@ -26,11 +26,8 @@ uses
 
 procedure REPLEmit(const Value: string);
 begin
-  // TextColor(LightGreen);
   write('#> ');
-  // TextColor(White);
   WriteLn(Value);
-  // TextColor(White);
 end;
 
 function HandleCommand(const Value: string; const Server: TIdHTTPWebBrokerBridge;
@@ -51,6 +48,8 @@ begin
   if (Value = 'quit') or (Value = 'exit') then
   begin
     EnterInShutdownState;
+    REPLEmit('Stop listening...');
+    Server.StopListening;
     REPLEmit('Shutting down...');
     Result := THandleCommandResult.Break;
   end

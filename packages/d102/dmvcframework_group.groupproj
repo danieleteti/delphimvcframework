@@ -3,7 +3,7 @@
         <ProjectGuid>{EA879EE4-1245-4456-AED9-57FDF63577E5}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj">
+        <Projects Include="..\..\lib\loggerpro\packages\d102\loggerproRT.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="dmvcframeworkRT.dproj">
@@ -21,13 +21,13 @@
         </BorlandProject>
     </ProjectExtensions>
     <Target Name="loggerproRT">
-        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d102\loggerproRT.dproj"/>
     </Target>
     <Target Name="loggerproRT:Clean">
-        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d102\loggerproRT.dproj" Targets="Clean"/>
     </Target>
     <Target Name="loggerproRT:Make">
-        <MSBuild Projects="..\..\lib\loggerpro\packages\d103\loggerproRT.dproj" Targets="Make"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d102\loggerproRT.dproj" Targets="Make"/>
     </Target>
     <Target Name="dmvcframeworkRT">
         <MSBuild Projects="dmvcframeworkRT.dproj"/>

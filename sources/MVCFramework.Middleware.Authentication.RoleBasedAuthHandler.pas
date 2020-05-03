@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // Contributor of this file: Janidan - https://github.com/janidan
 //
@@ -36,8 +36,6 @@ uses
   System.Rtti;
 
 type
-  MVCRequiresAuthenticationAttribute = class(MVCBaseAttribute);
-
   MVCRoleEval = (reOR, reAND);
 
   MVCRequiresRoleAttribute = class(MVCRequiresAuthenticationAttribute)
@@ -49,75 +47,54 @@ type
     FListSep: Char;
   public
     constructor Create(const aRole: string); overload;
-    constructor Create(const aRole: string;
-      const aRoleEval: MVCRoleEval); overload;
-    constructor Create(const aRole: string; const aRoleEval: MVCRoleEval;
-      const aListSep: Char); overload;
+    constructor Create(const aRole: string; const aRoleEval: MVCRoleEval); overload;
+    constructor Create(const aRole: string; const aRoleEval: MVCRoleEval; const aListSep: Char); overload;
     function GetRoles: TArray<string>;
     property RoleEval: MVCRoleEval read FRoleEval;
   end;
 
   IMVCRoleBasedAuthenticationHandler = interface(IMVCAuthenticationHandler)
     ['{07ABEF93-DBCC-4C55-BD39-BD1F48490A73}']
-//    procedure OnAuthorization(const AContext: TWebContext;
-//      const AUserRoles: TList<string>;
-//      const AControllerQualifiedClassName: string; const AActionName: string;
-//      var AIsAuthorized: Boolean);
+    // procedure OnAuthorization(const AContext: TWebContext;
+    // const AUserRoles: TList<string>;
+    // const AControllerQualifiedClassName: string; const AActionName: string;
+    // var AIsAuthorized: Boolean);
   end;
 
-  TRoleBasedAuthHandler = class(TInterfacedObject, IMVCAuthenticationHandler,
-    IMVCRoleBasedAuthenticationHandler)
+  TRoleBasedAuthHandler = class(TInterfacedObject, IMVCAuthenticationHandler, IMVCRoleBasedAuthenticationHandler)
   private
     FRttiContext: TRttiContext;
 
-    function TryGetAttributes<TTypeOfAttribute: TCustomAttribute>
-      (const aAttributes: TArray<TCustomAttribute>;
+    function TryGetAttributes<TTypeOfAttribute: TCustomAttribute>(const aAttributes: TArray<TCustomAttribute>;
       out aListOfAttributes: TArray<TTypeOfAttribute>): Boolean;
-    function CheckUserRoles(const AContext: TWebContext;
-      const AUserRoles: TList<string>;
+    function CheckUserRoles(const AContext: TWebContext; const AUserRoles: TList<string>;
       const aRoleAttributes: TArray<MVCRequiresRoleAttribute>): Boolean;
 
-    function ResolveRole(const AContext: TWebContext;
-      const aRole: string): string;
+    function ResolveRole(const AContext: TWebContext; const aRole: string): string;
     function CreateParameterNameList(const aTemplate: string): TList<string>;
   public
     procedure OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
       const ActionName: string; var AuthenticationRequired: Boolean);
 
     procedure OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
-      UserRoles: TList<string>; var IsValid: Boolean;
-      const SessionData: TDictionary<string, string>); virtual; abstract;
+      UserRoles: TList<string>; var IsValid: Boolean; const SessionData: TDictionary<string, string>); virtual;
+      abstract;
 
-    procedure OnAuthorization(
-      const AContext: TWebContext;
-      UserRoles: TList<string>;
-      const ControllerQualifiedClassName: string;
-      const ActionName: string;
-      var IsAuthorized: Boolean); overload;
-
-//    procedure OnAuthorization(const AContext: TWebContext;
-//      const AUserRoles: TList<string>;
-//      const AControllerQualifiedClassName: string; const AActionName: string;
-//      var AIsAuthorized: Boolean); overload;
-
+    procedure OnAuthorization(const AContext: TWebContext; UserRoles: TList<string>;
+      const ControllerQualifiedClassName: string; const ActionName: string; var IsAuthorized: Boolean); overload;
     constructor Create;
     destructor Destroy; override;
   end;
 
-  TMVCRoleBasedAuthenticationMiddleware = class
-    (TMVCCustomAuthenticationMiddleware, IMVCMiddleware)
+  TMVCRoleBasedAuthMiddleware = class(TMVCCustomAuthenticationMiddleware, IMVCMiddleware)
   private
-    FAuthenticationHandler: IMVCRoleBasedAuthenticationHandler;
-
-    procedure DoRoleBasedBeforeControllerAction(
-      const AContext: TWebContext;
-      const aHandler: IMVCRoleBasedAuthenticationHandler;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var AHandled: Boolean);
+    fAuthenticationHandler: IMVCRoleBasedAuthenticationHandler;
+    procedure DoRoleBasedBeforeControllerAction(const AContext: TWebContext;
+      const aHandler: IMVCRoleBasedAuthenticationHandler; const AControllerQualifiedClassName: string;
+      const AActionName: string; var AHandled: Boolean);
   protected
-    procedure OnBeforeControllerAction(AContext: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var AHandled: Boolean);
+    procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionName: string; var AHandled: Boolean);
   public
     constructor Create(const AAuthenticationHandler: IMVCAuthenticationHandler;
       const ALoginUrl: string = '/system/users/logged'); override;
@@ -136,14 +113,12 @@ begin
   Self.Create(aRole, MVCRoleEval.reAND, DefaultListSeparator);
 end;
 
-constructor MVCRequiresRoleAttribute.Create(const aRole: string;
-  const aRoleEval: MVCRoleEval);
+constructor MVCRequiresRoleAttribute.Create(const aRole: string; const aRoleEval: MVCRoleEval);
 begin
   Self.Create(aRole, aRoleEval, DefaultListSeparator);
 end;
 
-constructor MVCRequiresRoleAttribute.Create(const aRole: string;
-  const aRoleEval: MVCRoleEval; const aListSep: Char);
+constructor MVCRequiresRoleAttribute.Create(const aRole: string; const aRoleEval: MVCRoleEval; const aListSep: Char);
 begin
   inherited Create;
   FRole := aRole;
@@ -158,8 +133,7 @@ end;
 
 { TRoleBasedAuthHandler }
 
-function TRoleBasedAuthHandler.CheckUserRoles(const AContext: TWebContext;
-  const AUserRoles: TList<System.string>;
+function TRoleBasedAuthHandler.CheckUserRoles(const AContext: TWebContext; const AUserRoles: TList<System.string>;
   const aRoleAttributes: TArray<MVCRequiresRoleAttribute>): Boolean;
 var
   vAttribute: MVCRequiresRoleAttribute;
@@ -201,8 +175,7 @@ begin
   FRttiContext := TRttiContext.Create;
 end;
 
-function TRoleBasedAuthHandler.CreateParameterNameList(const aTemplate: string)
-  : TList<string>;
+function TRoleBasedAuthHandler.CreateParameterNameList(const aTemplate: string): TList<string>;
 const
   MatchPattern = '\(\$([A-Za-z0-9\_]+)\)'; // Matches ($<name>) placeholders
 var
@@ -213,8 +186,7 @@ var
 begin
   Result := TList<string>.Create;
   try
-    Matches := TRegEx.Matches(aTemplate, MatchPattern,
-      [roIgnoreCase, roCompiled, roSingleLine]);
+    Matches := TRegEx.Matches(aTemplate, MatchPattern, [roIgnoreCase, roCompiled, roSingleLine]);
     for M in Matches do
       for I := 0 to M.Groups.Count - 1 do
       begin
@@ -237,12 +209,8 @@ begin
   inherited;
 end;
 
-procedure TRoleBasedAuthHandler.OnAuthorization(
-      const AContext: TWebContext;
-      UserRoles: TList<string>;
-      const ControllerQualifiedClassName: string;
-      const ActionName: string;
-      var IsAuthorized: Boolean);
+procedure TRoleBasedAuthHandler.OnAuthorization(const AContext: TWebContext; UserRoles: TList<string>;
+  const ControllerQualifiedClassName: string; const ActionName: string; var IsAuthorized: Boolean);
 var
   vRttiType: TRttiType;
   vAttributes: TArray<MVCRequiresRoleAttribute>;
@@ -253,8 +221,7 @@ begin
 
   // Check all Role requirements on the controller level
   vRttiType := FRttiContext.FindType(ControllerQualifiedClassName);
-  if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiType.GetAttributes,
-    vAttributes) then
+  if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiType.GetAttributes, vAttributes) then
     if not CheckUserRoles(AContext, UserRoles, vAttributes) then
     begin
       IsAuthorized := False;
@@ -265,8 +232,7 @@ begin
   // we have successfully cleared these.
   // Verify all roles on the Action.
   vRttiMethod := vRttiType.GetMethod(ActionName);
-  if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiMethod.GetAttributes,
-    vAttributes) then
+  if TryGetAttributes<MVCRequiresRoleAttribute>(vRttiMethod.GetAttributes, vAttributes) then
     if not CheckUserRoles(AContext, UserRoles, vAttributes) then
     begin
       IsAuthorized := False;
@@ -275,7 +241,7 @@ begin
 end;
 
 procedure TRoleBasedAuthHandler.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean);
+  const ActionName: string; var AuthenticationRequired: Boolean);
 var
   vRttiType: TRttiType;
   vAttributes: TArray<MVCRequiresAuthenticationAttribute>;
@@ -284,19 +250,16 @@ begin
   vRttiType := FRttiContext.FindType(ControllerQualifiedClassName);
 
   // Check class and Actions if they have role definitions.
-  AuthenticationRequired := TryGetAttributes<MVCRequiresAuthenticationAttribute>
-    (vRttiType.GetAttributes, vAttributes);
+  AuthenticationRequired := TryGetAttributes<MVCRequiresAuthenticationAttribute>(vRttiType.GetAttributes, vAttributes);
   if not AuthenticationRequired then
   begin
     vRttiMethod := vRttiType.GetMethod(ActionName);
-    AuthenticationRequired :=
-      TryGetAttributes<MVCRequiresAuthenticationAttribute>
-      (vRttiMethod.GetAttributes, vAttributes);
+    AuthenticationRequired := TryGetAttributes<MVCRequiresAuthenticationAttribute>(vRttiMethod.GetAttributes,
+      vAttributes);
   end;
 end;
 
-function TRoleBasedAuthHandler.ResolveRole(const AContext: TWebContext;
-  const aRole: string): string;
+function TRoleBasedAuthHandler.ResolveRole(const AContext: TWebContext; const aRole: string): string;
 var
   vPlaceholders: TList<string>;
   vPlaceholder: string;
@@ -312,15 +275,14 @@ begin
       Exit;
 
     for vPlaceholder in vPlaceholders do
-      Result := Result.Replace(Format('($%s)', [vPlaceholder]),
-        AContext.ParamsTable.Items[vPlaceholder], [rfReplaceAll]);
+      Result := Result.Replace(Format('($%s)', [vPlaceholder]), AContext.ParamsTable.Items[vPlaceholder],
+        [rfReplaceAll]);
   finally
     vPlaceholders.Free;
   end;
 end;
 
-function TRoleBasedAuthHandler.TryGetAttributes<TTypeOfAttribute>
-  (const aAttributes: TArray<TCustomAttribute>;
+function TRoleBasedAuthHandler.TryGetAttributes<TTypeOfAttribute>(const aAttributes: TArray<TCustomAttribute>;
   out aListOfAttributes: TArray<TTypeOfAttribute>): Boolean;
 var
   vAttribute: TCustomAttribute;
@@ -344,23 +306,18 @@ begin
   end;
 end;
 
-{ TMVCRoleBasedAuthenticationMiddleware }
+{ TMVCRoleBasedAuthMiddleware }
 
-constructor TMVCRoleBasedAuthenticationMiddleware.Create
-  (const AAuthenticationHandler: IMVCAuthenticationHandler;
+constructor TMVCRoleBasedAuthMiddleware.Create(const AAuthenticationHandler: IMVCAuthenticationHandler;
   const ALoginUrl: string);
 begin
   inherited Create(AAuthenticationHandler, ALoginUrl);
-  Supports(AAuthenticationHandler, IMVCRoleBasedAuthenticationHandler,
-    FAuthenticationHandler);
+  Supports(AAuthenticationHandler, IMVCRoleBasedAuthenticationHandler, fAuthenticationHandler);
 end;
 
-procedure TMVCRoleBasedAuthenticationMiddleware.
-  DoRoleBasedBeforeControllerAction(
-      const AContext: TWebContext;
-      const aHandler: IMVCRoleBasedAuthenticationHandler;
-      const AControllerQualifiedClassName: string; const AActionName: string;
-      var AHandled: Boolean);
+procedure TMVCRoleBasedAuthMiddleware.DoRoleBasedBeforeControllerAction(const AContext: TWebContext;
+  const aHandler: IMVCRoleBasedAuthenticationHandler; const AControllerQualifiedClassName: string;
+  const AActionName: string; var AHandled: Boolean);
 var
   IsValid: Boolean;
   IsAuthorized: Boolean;
@@ -368,7 +325,6 @@ var
 begin
   // This procedure is a basic copy of the inherited OnBeforeControllerAction procedure.
   // Extention is by enabling the Authorization based on the context the call is being performed.
-
   aHandler.OnRequest(nil, AControllerQualifiedClassName, AActionName, AuthRequired);
   if not AuthRequired then
   begin
@@ -390,31 +346,40 @@ begin
   // Modification here from:
   // FAuthenticationHandler.OnAuthorization(AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName, IsAuthorized);
   // to:
-  aHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles,
-    AControllerQualifiedClassName, AActionName, IsAuthorized);
+  aHandler.OnAuthorization(AContext, AContext.LoggedUser.Roles, AControllerQualifiedClassName, AActionName,
+    IsAuthorized);
   // Modification end
 
   if IsAuthorized then
-    AHandled := False
+  begin
+    AHandled := False;
+  end
   else
   begin
     if IsValid then
+    begin
       SendResponse(AContext, AHandled, HTTP_STATUS.Forbidden)
+    end
     else
+    begin
       SendResponse(AContext, AHandled, HTTP_STATUS.Unauthorized);
+    end;
   end;
 end;
 
-procedure TMVCRoleBasedAuthenticationMiddleware.OnBeforeControllerAction
-  (AContext: TWebContext; const AControllerQualifiedClassName,
-  AActionName: string; var AHandled: Boolean);
+procedure TMVCRoleBasedAuthMiddleware.OnBeforeControllerAction(AContext: TWebContext;
+  const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 begin
-  if Assigned(FAuthenticationHandler) then
-    DoRoleBasedBeforeControllerAction(AContext, FAuthenticationHandler,
-      AControllerQualifiedClassName, AActionName, AHandled)
+  if Assigned(fAuthenticationHandler) then
+  begin
+    DoRoleBasedBeforeControllerAction(AContext, fAuthenticationHandler, AControllerQualifiedClassName,
+      AActionName, AHandled)
+  end
   else
-    inherited OnBeforeControllerAction(AContext, AControllerQualifiedClassName,
-      AActionName, AHandled);
+  begin
+    inherited OnBeforeControllerAction(AContext, AControllerQualifiedClassName, AActionName, AHandled);
+  end;
 end;
+
 
 end.

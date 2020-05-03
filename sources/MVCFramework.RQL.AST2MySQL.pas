@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -80,7 +80,7 @@ function TRQLMySQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
 var
   lValue, lDBFieldName: string;
 begin
-  if aRQLFIlter.RightValueType = vtString then
+  if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
   else if aRQLFIlter.RightValueType = vtBoolean then
   begin
@@ -127,7 +127,8 @@ begin
       end;
     tkContains:
       begin
-        Result := Format('(LOWER(%s) LIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
+        lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:
       begin
@@ -140,8 +141,8 @@ begin
             end;
           vtStringArray:
             begin
-              Result := Format('(%s IN (''%s''))', [
-                lDBFieldName, string.Join(''',''', aRQLFIlter.OpRightArray)
+              Result := Format('(%s IN (%s))', [
+                lDBFieldName, string.Join(',', QuoteStringArray(aRQLFIlter.OpRightArray))
                 ]);
             end;
         else

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -81,7 +81,7 @@ function TRQLPostgreSQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): st
 var
   lValue, lDBFieldName: string;
 begin
-  if aRQLFIlter.RightValueType = vtString then
+  if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
   else
     lValue := aRQLFIlter.OpRight;
@@ -92,36 +92,37 @@ begin
     tkEq:
       begin
         if aRQLFIlter.RightValueType = vtNull then
-          Result := Format('(%s IS NULL)', [lDBFieldName])
+          Result := Format('(%s IS NULL)', [GetFieldNameForSQL(lDBFieldName)])
         else
-          Result := Format('(%s = %s)', [lDBFieldName, lValue]);
+          Result := Format('(%s = %s)', [GetFieldNameForSQL(lDBFieldName), lValue]);
       end;
     tkLt:
       begin
-        Result := Format('(%s < %s)', [lDBFieldName, lValue]);
+        Result := Format('(%s < %s)', [GetFieldNameForSQL(lDBFieldName), lValue]);
       end;
     tkLe:
       begin
-        Result := Format('(%s <= %s)', [lDBFieldName, lValue]);
+        Result := Format('(%s <= %s)', [GetFieldNameForSQL(lDBFieldName), lValue]);
       end;
     tkGt:
       begin
-        Result := Format('(%s > %s)', [lDBFieldName, lValue]);
+        Result := Format('(%s > %s)', [GetFieldNameForSQL(lDBFieldName), lValue]);
       end;
     tkGe:
       begin
-        Result := Format('(%s >= %s)', [lDBFieldName, lValue]);
+        Result := Format('(%s >= %s)', [GetFieldNameForSQL(lDBFieldName), lValue]);
       end;
     tkNe:
       begin
         if aRQLFIlter.RightValueType = vtNull then
-          Result := Format('(%s IS NOT NULL)', [lDBFieldName])
+          Result := Format('(%s IS NOT NULL)', [GetFieldNameForSQL(lDBFieldName)])
         else
-          Result := Format('(%s != %s)', [lDBFieldName, lValue]);
+          Result := Format('(%s != %s)', [GetFieldNameForSQL(lDBFieldName), lValue]);
       end;
     tkContains:
       begin
-        Result := Format('(%s ILIKE ''%%%s%%'')', [lDBFieldName, lValue.DeQuotedString.ToLower])
+        lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        Result := Format('(%s ILIKE %s)', [GetFieldNameForSQL(lDBFieldName), lValue.ToLower])
       end;
     tkIn:
       begin
@@ -129,13 +130,13 @@ begin
           vtIntegerArray: // if array is empty, RightValueType is always vtIntegerArray
             begin
               Result := Format('(%s IN (%s))', [
-                lDBFieldName, string.Join(',', aRQLFIlter.OpRightArray)
+                GetFieldNameForSQL(lDBFieldName), string.Join(',', aRQLFIlter.OpRightArray)
                 ]);
             end;
           vtStringArray:
             begin
-              Result := Format('(%s IN (''%s''))', [
-                lDBFieldName, string.Join(''',''', aRQLFIlter.OpRightArray)
+              Result := Format('(%s IN (%s))', [
+                GetFieldNameForSQL(lDBFieldName), string.Join(',', QuoteStringArray(aRQLFIlter.OpRightArray))
                 ]);
             end;
         else
@@ -192,7 +193,7 @@ begin
   begin
     if I > 0 then
       Result := Result + ',';
-    Result := Result + ' ' + GetDatabaseFieldName(aRQLSort.Fields[I]);
+    Result := Result + ' ' + GetFieldNameForSQL(GetDatabaseFieldName(aRQLSort.Fields[I]));
     if aRQLSort.Signs[I] = '+' then
       Result := Result + ' ASC'
     else

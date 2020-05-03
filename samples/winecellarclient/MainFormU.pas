@@ -71,7 +71,7 @@ procedure TForm5.Button1Click(Sender: TObject);
 var
   response: IRESTResponse;
 begin
-  response := RESTClient.doGET('/wines', []);
+  response := RESTClient.doGET('/api/wines', []);
   Memo1.Lines.Text := response.BodyAsString;
   FDMemTable1.Close;
   FDMemTable1.Open;
@@ -90,7 +90,7 @@ procedure TForm5.FDMemTable1BeforeDelete(DataSet: TDataSet);
 var
   Resp: IRESTResponse;
 begin
-  Resp := RESTClient.DataSetDelete('/wines', FDMemTable1id.AsString);
+  Resp := RESTClient.DataSetDelete('/api/wines', FDMemTable1id.AsString);
   if not Resp.ResponseCode in [200] then
     raise Exception.Create(Resp.ResponseText);
 end;
@@ -103,9 +103,9 @@ begin
     Exit;
   case FDMemTable1.State of
     dsEdit:
-      Resp := RESTClient.DataSetUpdate('/wines', FDMemTable1, FDMemTable1id.AsString);
+      Resp := RESTClient.DataSetUpdate('/api/wines', FDMemTable1, FDMemTable1id.AsString);
     dsInsert:
-      Resp := RESTClient.DataSetInsert('/wines', FDMemTable1);
+      Resp := RESTClient.DataSetInsert('/api/wines', FDMemTable1);
   end;
   if not Resp.ResponseCode in [200, 201] then
     raise Exception.Create(Resp.ResponseText);

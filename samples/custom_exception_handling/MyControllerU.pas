@@ -12,11 +12,13 @@ type
   [MVCPath('/')]
   TMyController = class(TMVCController)
   public
-//    procedure Render(E: EMyException); overload;
-  public
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
     procedure Index;
+
+    [MVCPath('/customers/($ID)')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetCustomer(const ID: Integer);
 
     [MVCPath('/error')]
     [MVCHTTPMethod([httpGET])]
@@ -48,17 +50,16 @@ implementation
 uses
   MVCFramework.Logger;
 
+procedure TMyController.GetCustomer(const ID: Integer);
+begin
+  Render204NoContent();
+end;
+
 procedure TMyController.Index;
 begin
   raise EMyException.Create('My Custom Error', Fatal, 25, 'some real problem',
     'Ensure Patient resource is valid', 'Patient/Identifier/value');
 end;
-
-//procedure TMyController.Render(E: EMyException);
-//begin
-//  GetContext.Response.ContentType := 'application/xml';
-//  Render(E.AsXMLString);
-//end;
 
 procedure TMyController.Error;
 begin

@@ -13,7 +13,7 @@ uses
   Web.WebBroker,
   MVCFramework.Commons,
   MVCFramework.Console,
-  WebModuleUnit in 'WebModuleUnit.pas' {bas: TWebModule},
+  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -31,6 +31,7 @@ uses
 
 procedure Logo;
 begin
+  Writeln;
   SetMode(TConsoleMode.Bright);
   TextBackground(TConsoleColor.Black);
   TextColor(TConsoleColor.Red);
@@ -80,6 +81,6 @@ begin
   except
     on E: Exception do
       WriteLn(E.ClassName, ': ', E.Message);
-  end
+  end;
 
 end.

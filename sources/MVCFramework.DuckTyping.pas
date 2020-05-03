@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -292,11 +292,16 @@ begin
     raise EMVCDuckTypingException.Create
       ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the Duck Object.');
   lValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
-  if not lValue.IsObject then
+
+  if lValue.Kind = tkInterface then
   begin
-    raise EMVCDuckTypingException.Create('Items in list can be only objects');
+    Exit(TObject(lValue.AsInterface));
   end;
-  Result := lValue.AsObject;
+  if lValue.Kind = tkClass then
+  begin
+    Exit(lValue.AsObject);
+  end;
+  raise EMVCDuckTypingException.Create('Items in list can be only objects or interfaces');
 end;
 
 function TDuckTypedList.GetOwnsObjects: Boolean;

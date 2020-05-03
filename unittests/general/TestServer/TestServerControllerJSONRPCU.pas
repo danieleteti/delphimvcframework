@@ -8,18 +8,18 @@ uses
 type
   TTestJSONRPCController = class(TMVCJSONRPCController)
   public
-    function Subtract(aValue1, aValue2: Int64): Integer;
+    function Subtract(Value1, Value2: Int64): Integer;
     procedure MyNotify;
-    function Add(aValue1, aValue2, aValue3: Int64): TJsonObject;
+    function Add(Value1, Value2, Value3: Int64): TJsonObject;
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
     function MultiplyString(aString: string; Multiplier: Int64): string;
   end;
 
   TTestJSONRPCClass = class(TObject)
   public
-    function Subtract(aValue1, aValue2: Int64): Integer;
+    function Subtract(Value1, Value2: Int64): Integer;
     procedure MyNotify;
-    function Add(aValue1, aValue2, aValue3: Int64): TJsonObject;
+    function Add(Value1, Value2, Value3: Int64): TJsonObject;
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
     function MultiplyString(aString: string; Multiplier: Int64): string;
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
@@ -32,10 +32,10 @@ uses
 
 { TTestJSONRPCController }
 
-function TTestJSONRPCController.Add(aValue1, aValue2, aValue3: Int64): TJsonObject;
+function TTestJSONRPCController.Add(Value1, Value2, Value3: Int64): TJsonObject;
 begin
   Result := TJsonObject.Create;
-  Result.I['res'] := aValue1 + aValue2 + aValue3;
+  Result.I['res'] := Value1 + Value2 + Value3;
 end;
 
 function TTestJSONRPCController.GetListFromTo(aFrom, aTo: Int64): TJsonArray;
@@ -65,17 +65,17 @@ begin
   Self.ClassName;
 end;
 
-function TTestJSONRPCController.Subtract(aValue1, aValue2: Int64): Integer;
+function TTestJSONRPCController.Subtract(Value1, Value2: Int64): Integer;
 begin
-  Result := aValue1 - aValue2;
+  Result := Value1 - Value2;
 end;
 
 { TTestJSONRPCClass }
 
-function TTestJSONRPCClass.Add(aValue1, aValue2, aValue3: Int64): TJsonObject;
+function TTestJSONRPCClass.Add(Value1, Value2, Value3: Int64): TJsonObject;
 begin
   Result := TJsonObject.Create;
-  Result.I['res'] := aValue1 + aValue2 + aValue3;
+  Result.I['res'] := Value1 + Value2 + Value3;
 end;
 
 function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime;
@@ -111,9 +111,9 @@ begin
   Self.ClassName;
 end;
 
-function TTestJSONRPCClass.Subtract(aValue1, aValue2: Int64): Integer;
+function TTestJSONRPCClass.Subtract(Value1, Value2: Int64): Integer;
 begin
-  Result := aValue1 - aValue2;
+  Result := Value1 - Value2;
 end;
 
 end.

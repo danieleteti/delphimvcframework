@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -51,6 +51,7 @@ type
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
+    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
   end;
 
   TMVCJSONRPCExecutor = class(TInterfacedObject, IMVCJSONRPCExecutor)
@@ -78,6 +79,7 @@ type
       : IMVCJSONRPCExecutor;
     function SetOnValidateServerCertificate(const aOnValidateServerCertificate: TValidateCertificateEvent)
       : IMVCJSONRPCExecutor;
+    function ConfigureHTTPClient(const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
   public
     constructor Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True); virtual;
     destructor Destroy; override;
@@ -100,7 +102,7 @@ begin
     lSS.Position := 0;
     lHTTP := THTTPClient.Create;
     try
-      lHttpResp := lHTTP.Post('http://localhost:8080/jsonrpc', lSS, nil,
+      lHttpResp := lHTTP.Post(aJSONRPCURL, lSS, nil,
         [TNetHeader.Create('content-type', 'application/json'), TNetHeader.Create('accept', 'application/json')]);
       if (lHttpResp.StatusCode <> 204) then
       begin
@@ -130,6 +132,12 @@ begin
   begin
     FHTTPRequestHeaders.Clear;
   end;
+end;
+
+function TMVCJSONRPCExecutor.ConfigureHTTPClient(
+  const aConfigProc: TProc<THTTPClient>): IMVCJSONRPCExecutor;
+begin
+  aConfigProc(FHTTP);
 end;
 
 constructor TMVCJSONRPCExecutor.Create(const aURL: string; const aRaiseExceptionOnError: Boolean = True);
@@ -217,7 +225,7 @@ begin
         fOnReceiveResponse(aJSONRPCObject, lJSONRPCResponse);
       end;
       if Assigned(lJSONRPCResponse.Error) and FRaiseExceptionOnError then
-        raise EMVCJSONRPCException.CreateFmt('Error [%d]: %s',
+        raise EMVCJSONRPCException.CreateFmt('[REMOTE EXCEPTION][%d]: %s',
           [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
       Result := lJSONRPCResponse;
     end;

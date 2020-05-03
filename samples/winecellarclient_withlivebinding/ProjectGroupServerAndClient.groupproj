@@ -3,9 +3,6 @@
         <ProjectGuid>{87E6405B-4E52-4C01-A512-8293F36E951B}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="..\winecellar\WineCellarServer.dproj">
-            <Dependencies/>
-        </Projects>
         <Projects Include="WineCellarClientLiveBinding.dproj">
             <Dependencies/>
         </Projects>
@@ -17,15 +14,6 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
-    <Target Name="WineCellarServer">
-        <MSBuild Projects="..\winecellar\WineCellarServer.dproj"/>
-    </Target>
-    <Target Name="WineCellarServer:Clean">
-        <MSBuild Projects="..\winecellar\WineCellarServer.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="WineCellarServer:Make">
-        <MSBuild Projects="..\winecellar\WineCellarServer.dproj" Targets="Make"/>
-    </Target>
     <Target Name="WineCellarClientLiveBinding">
         <MSBuild Projects="WineCellarClientLiveBinding.dproj"/>
     </Target>
@@ -36,13 +24,13 @@
         <MSBuild Projects="WineCellarClientLiveBinding.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="WineCellarServer;WineCellarClientLiveBinding"/>
+        <CallTarget Targets="WineCellarClientLiveBinding"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="WineCellarServer:Clean;WineCellarClientLiveBinding:Clean"/>
+        <CallTarget Targets="WineCellarClientLiveBinding:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="WineCellarServer:Make;WineCellarClientLiveBinding:Make"/>
+        <CallTarget Targets="WineCellarClientLiveBinding:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

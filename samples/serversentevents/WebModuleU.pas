@@ -24,16 +24,16 @@ implementation
 
 {$R *.dfm}
 
-uses SSEControllerU, MVCFramework.Commons;
+uses
+  SSEControllerU,
+  MVCFramework.Commons,
+  MVCFramework.Middleware.StaticFiles;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] :=
-        ExtractFilePath(GetModuleName(HInstance)) + '\www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -50,10 +50,13 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-      // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
-      Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
   FMVC.AddController(TSSEController);
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    '\www', { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

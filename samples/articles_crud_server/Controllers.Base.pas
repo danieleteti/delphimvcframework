@@ -18,6 +18,14 @@ type
 
   end;
 
+  [MVCPath('/private')]
+  TPrivateController = class(TBaseController)
+  public
+    [MVCPath('/articles')]
+    [MVCHTTPMethods([httpDELETE])]
+    procedure DeleteAllArticles;
+  end;
+
 implementation
 
 uses
@@ -44,6 +52,13 @@ begin
   if not Assigned(FDM) then
     FDM := TdmMain.Create(nil);
   Result := FDM;
+end;
+
+{ TPrivateController }
+
+procedure TPrivateController.DeleteAllArticles;
+begin
+  GetArticlesService.DeleteAllArticles();
 end;
 
 end.

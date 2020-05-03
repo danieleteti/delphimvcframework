@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -171,12 +171,13 @@ end;
 
 function TMVCCacheController.RedisClient: IRedisClient;
 var
-  lConnection: string;
+  lConnection, lKeyAuth: string;
   lPieces: TArray<string>;
 begin
   if (FRedis = nil) then
   begin
     lConnection := self.Config['redis_connection_string'];
+    lKeyAuth := self.Config['redis_connection_key'];
     if lConnection.Trim.IsEmpty then
       raise ERedisException.Create('"redis_connection_string" config key is not defined (format is <host>:<port>)')
     else
@@ -184,7 +185,11 @@ begin
       lPieces := lConnection.Split([':']);
       if Length(lPieces) <> 2 then
         raise ERedisException.Create('Invalid "redis_connection_string" (format is <host>:<port>)');
+
       FRedis := NewRedisClient(lPieces[0], StrToInt(lPieces[1]));
+
+      if not String.IsNullOrWhiteSpace(lKeyAuth) then
+        FRedis.AUTH(lKeyAuth);
     end;
   end;
   Result := FRedis;

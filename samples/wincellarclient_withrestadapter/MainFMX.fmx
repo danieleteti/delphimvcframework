@@ -72,7 +72,6 @@ object TabbedForm: TTabbedForm
         Size.Height = 46.000000000000000000
         Size.PlatformDefault = False
         TabOrder = 0
-        Visible = True
       end
       object WineListView: TListView
         ItemAppearanceClassName = 'TListItemRightDetailAppearance'
@@ -113,11 +112,13 @@ object TabbedForm: TTabbedForm
         Position.X = 16.000000000000000000
         Position.Y = 41.000000000000000000
         Text = 'Name'
+        TabOrder = 7
       end
       object LblCountry: TLabel
         Position.X = 16.000000000000000000
         Position.Y = 151.000000000000000000
         Text = 'Country'
+        TabOrder = 8
       end
       object EdtCountry: TEdit
         Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -141,6 +142,7 @@ object TabbedForm: TTabbedForm
         Position.X = 200.000000000000000000
         Position.Y = 153.000000000000000000
         Text = 'Region'
+        TabOrder = 10
       end
       object EdtYear: TEdit
         Touch.InteractiveGestures = [LongTap, DoubleTap]
@@ -164,11 +166,13 @@ object TabbedForm: TTabbedForm
         Position.X = 17.000000000000000000
         Position.Y = 257.000000000000000000
         Text = 'Year'
+        TabOrder = 13
       end
       object LblGrapes: TLabel
         Position.X = 200.000000000000000000
         Position.Y = 257.000000000000000000
         Text = 'Grapes'
+        TabOrder = 14
       end
       object ToolBar1: TToolBar
         Align = Bottom
@@ -186,7 +190,6 @@ object TabbedForm: TTabbedForm
           Size.Height = 40.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
-          Visible = True
         end
       end
       object EdtID: TEdit
@@ -212,7 +215,7 @@ object TabbedForm: TTabbedForm
     TabOrder = 4
     object ListBox1: TListBox
       Align = Client
-      Size.Width = 249.000000000000000000
+      Size.Width = 250.000000000000000000
       Size.Height = 519.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
@@ -220,7 +223,7 @@ object TabbedForm: TTabbedForm
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 245.000000000000000000
+      Viewport.Width = 246.000000000000000000
       Viewport.Height = 515.000000000000000000
       object ListBoxItem1: TListBoxItem
         TabOrder = 0

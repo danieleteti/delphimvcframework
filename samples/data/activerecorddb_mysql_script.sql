@@ -10,7 +10,27 @@ CREATE TABLE customers (
 	code varchar(20) NOT NULL,
 	description varchar(200),
 	city varchar(200),
+	rating INTEGER NULL,	
+    note text DEFAULT NULL,	
 	CONSTRAINT customers_pk PRIMARY KEY (id)
+);
+
+CREATE TABLE customers_plain (
+    id integer NOT NULL,
+    code varchar(20),
+    description varchar(200),
+    city varchar(200),
+    note blob sub_type text,
+    rating smallint,
+    CONSTRAINT customers_plain_pk PRIMARY KEY (id)
+);
+
+CREATE TABLE customers_with_code (
+    code varchar(20) NOT null primary key,
+    description varchar(200),
+    city varchar(200),
+    NOTE text,
+    rating smallint
 );
 
 CREATE TABLE order_details (

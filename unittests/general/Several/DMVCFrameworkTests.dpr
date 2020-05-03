@@ -18,7 +18,6 @@ uses
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
-  MessagingExtensionsTestU in 'MessagingExtensionsTestU.pas',
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
@@ -40,7 +39,8 @@ uses
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
   MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule},
   MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
+  ActiveRecordTestsU in 'ActiveRecordTestsU.pas';
 
 {$R *.RES}
 {$IFDEF CONSOLE_TESTRUNNER}

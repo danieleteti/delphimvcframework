@@ -1,0 +1,67 @@
+package SwagDoc;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'SwagDoc Library'}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl;
+
+contains
+  Json.Common.Helpers in 'Json.Common.Helpers.pas',
+  Json.Schema.Common.Types in 'Json.Schema.Common.Types.pas',
+  Json.Schema.Field in 'Json.Schema.Field.pas',
+  Json.Schema.Field.Booleans in 'Json.Schema.Field.Booleans.pas',
+  Json.Schema.Field.Numbers in 'Json.Schema.Field.Numbers.pas',
+  Json.Schema.Field.DateTimes in 'Json.Schema.Field.DateTimes.pas',
+  Json.Schema.Field.Arrays in 'Json.Schema.Field.Arrays.pas',
+  Json.Schema.Field.Objects in 'Json.Schema.Field.Objects.pas',
+  Json.Schema.Field.Enums in 'Json.Schema.Field.Enums.pas',
+  Json.Schema.Field.Strings in 'Json.Schema.Field.Strings.pas',
+  Json.Schema in 'Json.Schema.pas',
+  Swag.Common.Consts in 'Swag.Common.Consts.pas',
+  Swag.Common.Types.Helpers in 'Swag.Common.Types.Helpers.pas',
+  Swag.Common.Types in 'Swag.Common.Types.pas',
+  Swag.Doc.Definition in 'Swag.Doc.Definition.pas',
+  Swag.Doc.Info.Contact in 'Swag.Doc.Info.Contact.pas',
+  Swag.Doc.Info.License in 'Swag.Doc.Info.License.pas',
+  Swag.Doc.Info in 'Swag.Doc.Info.pas',
+  Swag.Doc.Path.Operation in 'Swag.Doc.Path.Operation.pas',
+  Swag.Doc.Path.Operation.RequestParameter in 'Swag.Doc.Path.Operation.RequestParameter.pas',
+  Swag.Doc.Path.Operation.Response in 'Swag.Doc.Path.Operation.Response.pas',
+  Swag.Doc.Path.Operation.ResponseHeaders in 'Swag.Doc.Path.Operation.ResponseHeaders.pas',
+  Swag.Doc.Path in 'Swag.Doc.Path.pas',
+  Swag.Doc.SecurityDefinition in 'Swag.Doc.SecurityDefinition.pas',
+  Swag.Doc.SecurityDefinitionApiKey in 'Swag.Doc.SecurityDefinitionApiKey.pas',
+  Swag.Doc.SecurityDefinitionBasic in 'Swag.Doc.SecurityDefinitionBasic.pas',
+  Swag.Doc.SecurityDefinitionOAuth2 in 'Swag.Doc.SecurityDefinitionOAuth2.pas',
+  Swag.Doc.Tags in 'Swag.Doc.Tags.pas',
+  Swag.Doc in 'Swag.Doc.pas',
+  Swag.Doc.FileLoader in 'Swag.Doc.FileLoader.pas';
+
+end.

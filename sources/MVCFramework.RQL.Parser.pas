@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -93,9 +93,17 @@ type
     fMapping: TMVCFieldsMapping;
   protected
     function GetDatabaseFieldName(const RQLPropertyName: string): string;
+    function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual; abstract;
+    // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
+    // or if the table name contains spaces.
+    function GetTableNameForSQL(const TableName: string): string; virtual;
+    // Overwritten by descendant if the SQL syntaxt requires more than the simple field name
+    // or if the field name contains spaces.
+    function GetFieldNameForSQL(const FieldName: string): string; virtual;
+    function GetParamNameForSQL(const FieldName: string): string; virtual;
   end;
 
   TRQLCompilerClass = class of TRQLCompiler;
@@ -126,7 +134,7 @@ type
   public
     OpLeft: string;
     OpRight: string;
-    OpRightArray: TArray<String>;
+    OpRightArray: TArray<string>;
     RightValueType: TRQLValueType;
   end;
 
@@ -545,10 +553,10 @@ var
   lBinOp: TRQLFilter;
   lValueType: TRQLValueType;
   lToken: TRQLToken;
-  lList: TList<String>;
-  lArrayValue: TArray<String>;
+  lList: TList<string>;
+  lArrayValue: TArray<string>;
 begin
-  lValueType := TRQLValueType.vtInteger; //default
+  lValueType := TRQLValueType.vtInteger; // default
   EatWhiteSpaces;
   if GetToken <> tkOpenPar then
     Error('Expected "("');
@@ -572,7 +580,7 @@ begin
   end
   else if (aToken = tkIn) and (lToken = tkOpenBracket) then
   begin
-    lList := TList<String>.Create;
+    lList := TList<string>.Create;
     try
       // if not MatchFieldArrayValue(lFieldValue) then
       // Error('Expected array value');
@@ -619,7 +627,7 @@ begin
 
     if MatchFieldBooleanValue(lFieldValue) then
       lValueType := vtBoolean
-    else if MatchFieldNullValue(LFieldValue) then
+    else if MatchFieldNullValue(lFieldValue) then
       lValueType := vtNull
     else if MatchFieldNumericValue(lFieldValue) then
       lValueType := vtInteger
@@ -876,13 +884,14 @@ begin
   if (lChar = 't') and (C(1).ToLower = 'r') and (C(2).ToLower = 'u') and (C(3).ToLower = 'e') then
   begin
     Skip(4);
-    Result := True;
+    Result := true;
     lFieldValue := 'true';
   end
-  else if (lChar = 'f') and (C(1).ToLower = 'a') and (C(2).ToLower = 'l') and (C(3).ToLower = 's') and (C(4).ToLower = 'e') then
+  else if (lChar = 'f') and (C(1).ToLower = 'a') and (C(2).ToLower = 'l') and (C(3).ToLower = 's') and
+    (C(4).ToLower = 'e') then
   begin
     Skip(5);
-    Result := True;
+    Result := true;
     lFieldValue := 'false';
   end
   else
@@ -924,7 +933,7 @@ begin
   if (lChar = 'n') and (C(1).ToLower = 'u') and (C(2).ToLower = 'l') and (C(3).ToLower = 'l') then
   begin
     Skip(4);
-    Result := True;
+    Result := true;
     lFieldValue := 'NULL';
   end
   else
@@ -1148,8 +1157,50 @@ begin
     if lField.InstanceFieldName = lRQLProperty then
       Exit(lField.DatabaseFieldName);
   end;
+  { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
   raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
     [RQLPropertyName]);
+end;
+
+function TRQLCompiler.GetFieldNameForSQL(const FieldName: string): string;
+begin
+  if FieldName.Contains(' ') then
+  begin
+    Result := FieldName.QuotedString('"');
+  end
+  else
+  begin
+    Result := FieldName;
+  end;
+end;
+
+function TRQLCompiler.GetParamNameForSQL(const FieldName: string): string;
+begin
+  Result := FieldName.Replace(' ', '_', [rfReplaceAll]);
+end;
+
+function TRQLCompiler.GetTableNameForSQL(const TableName: string): string;
+begin
+  if TableName.Contains(' ') then
+  begin
+    Result := TableName.QuotedString('"');
+  end
+  else
+  begin
+    Result := TableName;
+  end;
+end;
+
+function TRQLCompiler.QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
+var
+  lValue: string;
+begin
+  SetLength(Result, 0);
+  for lValue in aStringArray do
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[high(Result)] := lValue.QuotedString('''');
+  end;
 end;
 
 { TRQLAbstractSyntaxTree }

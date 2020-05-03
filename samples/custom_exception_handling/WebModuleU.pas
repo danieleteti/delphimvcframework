@@ -30,6 +30,7 @@ implementation
 uses
   MyControllerU,
   MVCFramework.Commons,
+  MVCFramework.Middleware.StaticFiles,
   System.Rtti;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -65,14 +66,23 @@ begin
           '<p>your truly custom exception handler...</p>' +
           '</body></html>';
         ExceptionHandled := True;
+      end
+      else if E is EMVCException then
+      begin
+        WebContext.Response.ContentType := TMVCMediaType.TEXT_HTML;
+        WebContext.Response.Content :=
+          '<html><body><h1>Error occurred</h1>' +
+          Format('<h2 style="color: red">', [lColor]) + TNetEncoding.HTML.Encode
+          (E.Message) + '</h2>' +
+          '<p>your truly custom exception handler...</p>' +
+          '</body></html>';
+        ExceptionHandled := True;
       end;
     end;
 
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + '\www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -87,11 +97,14 @@ begin
       Config[TMVCConfigKey.ViewPath] := 'templates';
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
-      // Define a default URL for requests that don't map to a route or a file (useful for client side web app)
-      Config[TMVCConfigKey.FallbackResource] := 'index.html';
     end);
   FMVC.AddController(TMyController);
   FMVC.SetExceptionHandler(lExceptionHandler);
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
+    'index.html' {IndexDocument - Before it was named fallbackresource}
+    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

@@ -25,15 +25,17 @@ implementation
 {$R *.dfm}
 
 
-uses MVCFramework.Commons, MyControllerU;
+uses
+  MVCFramework.Commons,
+  MyControllerU,
+  MVCFramework.Logger,
+  MVCFramework.Middleware.StaticFiles;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
     begin
-      // enable static files
-      Config[TMVCConfigKey.DocumentRoot] := ExtractFilePath(GetModuleName(HInstance)) + '\www';
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
@@ -50,6 +52,37 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TMyController);
+
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/', { StaticFilesPath }
+    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
+    ));
+
+  { This is a custom router log. It is not mandatory; you can use it to log
+    more (or less or different) information than the default ones logs }
+  FMVC.OnRouterLog :=
+      procedure(const Sender: TMVCCustomRouter; const RouterLogState: TMVCRouterLogState; const Context: TWebContext)
+    begin
+      Log('** CUSTOM ROUTER LOG **');
+      case RouterLogState of
+        rlsRouteFound:
+          begin
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' -> ' +
+              Context.Request.ClientIp + ' ' +
+              Sender.GetQualifiedActionName + ' - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+              Context.Response.ReasonString);
+          end;
+        rlsRouteNotFound:
+          begin
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' -> ' +
+              ' <NOT FOUND> - ' + IntToStr(Context.Response.StatusCode) + ' ' +
+              Context.Response.ReasonString);
+          end;
+      else
+        raise EMVCException.Create('Invalid RouterLogState');
+      end;
+    end;
+
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
