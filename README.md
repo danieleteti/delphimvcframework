@@ -599,6 +599,7 @@ end;
 - Fixed! [issue363](https://github.com/danieleteti/delphimvcframework/issues/363)
 - Fixed! [issue364](https://github.com/danieleteti/delphimvcframework/issues/364) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - Fixed! [issue366](https://github.com/danieleteti/delphimvcframework/issues/366)
+- Fixed! [issue376](https://github.com/danieleteti/delphimvcframework/issues/376) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
 ## DelphiMVCFramework 3.1.0-lithium (Current Release)
