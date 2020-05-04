@@ -458,6 +458,44 @@ end;
 
 - New! The **MVCAREntitiesGenerator** can optionally register all the generated entities also in the `ActiveRecordMappingRegistry` (Thanks to [Fabrizio Bitti](https://twitter.com/fabriziobitti) from [bit Time Software](http://www.bittime.it))
 
+- New! Children objects lifecycle management in `TMVCActiveRecord` (methods `AddChildren` and `RemoveChildren`). Really useful to manage child objects such relations or derived properties and are safe in case of multiple addition of the same object as children.
+
+    ```delphi
+    //Having the following declaration
+    
+    type
+      [MVCNameCase(ncCamelCase)]
+      [MVCTable('authors')]
+      TAuthor = class(TPersonEntityBase)
+      private
+        fBooks: TEnumerable<TBookRef>;
+        [MVCTableField('full_name')]
+        fFullName: string;
+        function GetBooks: TEnumerable<TBookRef>;
+      public
+        [MVCNameAs('full_name')]
+        property FullName: string read fFullName write fFullName;
+        property Books: TEnumerable<TBookRef> read GetBooks;
+      end;
+    
+    
+    //method GetBooks can be implemented as follows:
+    
+    implementation
+    
+    function TAuthor.GetBooks: TEnumerable<TBookRef>;
+    begin
+      if fBooks = nil then
+      begin
+        fBooks := TMVCActiveRecord.Where<TBookRef>('author_id = ?', [ID]);
+        AddChildren(fBooks); //fBooks will be freed when self will be freed
+      end;
+      Result := fBooks;
+    end;
+    ```
+
+    
+
 - **JSON-RPC Improvements**
 
     - New! Added `TMVCJSONRPCExecutor.ConfigHTTPClient` to fully customize the inner `THTTPClient` (e.g. `ConnectionTimeout`, `ResponseTimeout` and so on)
