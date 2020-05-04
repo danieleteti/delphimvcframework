@@ -445,22 +445,22 @@ type
     function LinksData: TMVCStringDictionaryList;
   end;
 
-  // IMVCStringDictionary = interface
-  // ['{164117AD-8DDD-47F7-877C-453979707D10}']
-  // function GetItems(const Key: string): string;
-  // procedure SetItems(const Key, Value: string);
-  // procedure Clear;
-  // function Add(const Name, Value: string): IMVCStringDictionary;
-  // function TryGetValue(const Name: string; out Value: string): Boolean; overload;
-  // function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-  // function Count: Integer;
-  // function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
-  // function ContainsKey(const Key: string): Boolean;
-  // function Keys: TArray<string>;
-  // property Items[const Key: string]: string read GetItems write SetItems; default;
-  // end;
+//  IMVCStringDictionary = interface
+//    ['{164117AD-8DDD-47F7-877C-453979707D10}']
+//    function GetItems(const Key: string): string;
+//    procedure SetItems(const Key, Value: string);
+//    procedure Clear;
+////    function Add(const Name, Value: string): IMVCStringDictionary;
+//    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+//    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
+//    function Count: Integer;
+//    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+//    function ContainsKey(const Key: string): Boolean;
+//    function Keys: TArray<string>;
+//    property Items[const Key: string]: string read GetItems; default;
+//  end;
 
-  TMVCStringDictionary = class // (TInterfacedObject, IMVCStringDictionary)
+  TMVCStringDictionary = class //(TInterfacedObject, IMVCStringDictionary)
   strict private
     function GetItems(const Key: string): string;
     procedure SetItems(const Key, Value: string);
