@@ -120,6 +120,8 @@ type
     procedure TestSerializeDeserializeGenericEntity;
     [Test]
     procedure TestSerializeDeserializeMultipleGenericEntity;
+    [Test]
+    procedure TestDoNotSerializeDoNotDeSerialize;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -780,6 +782,35 @@ begin
   finally
     O.Free;
   end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDoNotSerializeDoNotDeSerialize;
+var
+  lObj: TPartialSerializableType;
+  lStr: string;
+begin
+  lObj := TPartialSerializableType.Create;
+  try
+    lStr := fSerializer.SerializeObject(lObj);
+    Assert.DoesNotContain(lStr, 'prop1', False);
+    Assert.Contains(lStr, 'prop2', False);
+    Assert.DoesNotContain(lStr, 'prop3', False);
+    Assert.Contains(lStr, 'prop4', False);
+  finally
+    lObj.Free;
+  end;
+
+  lObj := TPartialSerializableType.Create;
+  try
+    fSerializer.DeserializeObject('{"prop1":"x1","prop2":"x2","prop3":"x3","prop4":"x4"}', lObj);
+    Assert.areEqual('x1', lObj.Prop1);
+    Assert.areEqual('prop2', lObj.Prop2);
+    Assert.areEqual('prop3', lObj.Prop3);
+    Assert.areEqual('x4', lObj.Prop4);
+  finally
+    lObj.Free;
+  end;
+
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeAllNullableTypes;

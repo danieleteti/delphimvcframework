@@ -287,10 +287,10 @@ type
 
   TMyComplexObject = class
   private
-    FProp1: string;
-    FChildObjectList: TMyChildObjectList;
-    FChildObject: TMyChildObject;
-    FPropStringList: TStringList;
+    fProp1: string;
+    fChildObjectList: TMyChildObjectList;
+    fChildObject: TMyChildObject;
+    fPropStringList: TStringList;
     procedure SetChildObject(const Value: TMyChildObject);
     procedure SetChildObjectList(const Value: TMyChildObjectList);
     procedure SetProp1(const Value: string);
@@ -300,10 +300,10 @@ type
     destructor Destroy; override;
     function Equals(Obj: TObject): Boolean; override;
 
-    property Prop1: string read FProp1 write SetProp1;
-    property PropStringList: TStringList read FPropStringList write SetPropStringList;
-    property ChildObject: TMyChildObject read FChildObject write SetChildObject;
-    property ChildObjectList: TMyChildObjectList read FChildObjectList
+    property Prop1: string read fProp1 write SetProp1;
+    property PropStringList: TStringList read fPropStringList write SetPropStringList;
+    property ChildObject: TMyChildObject read fChildObject write SetChildObject;
+    property ChildObjectList: TMyChildObjectList read fChildObjectList
       write SetChildObjectList;
   end;
 
@@ -391,7 +391,7 @@ type
 
   TObjectWithCustomType = class
   private
-    FPropStringList: TStringList;
+    fPropStringList: TStringList;
     FPropStringArray: TArray<string>;
     FPropStreamAsBASE64: TStringStream;
     FPropStreamAsString: TStringStream;
@@ -403,11 +403,30 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     function Equals(Obj: TObject): Boolean; override;
-    property PropStringList: TStringList read FPropStringList write SetPropStringList;
+    property PropStringList: TStringList read fPropStringList write SetPropStringList;
     property PropStringArray: TArray<string> read FPropStringArray write SetPropStringArray;
     [MVCSerializeAsString]
     property PropStreamAsString: TStringStream read FPropStreamAsString write SetPropStreamAsString;
     property PropStreamAsBASE64: TStringStream read FPropStreamAsBASE64 write SetPropStreamAsBASE64;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TPartialSerializableType = class
+  private
+    fProp1: string;
+    fProp2: string;
+    fProp3: string;
+    fProp4: string;
+  public
+    constructor Create;
+    [MVCDoNotSerialize]
+    property Prop1: string read fProp1 write fProp1;
+    [MVCDoNotDeSerialize]
+    property Prop2: string read fProp2 write fProp2;
+    [MVCDoNotSerialize]
+    [MVCDoNotDeSerialize]
+    property Prop3: string read fProp3 write fProp3;
+    property Prop4: string read fProp4 write fProp4;
   end;
 
 function GetMyObject: TMyObject;
@@ -629,15 +648,15 @@ end;
 constructor TMyComplexObject.Create;
 begin
   inherited;
-  FChildObjectList := TMyChildObjectList.Create(true);
-  FChildObject := TMyChildObject.Create;
+  fChildObjectList := TMyChildObjectList.Create(true);
+  fChildObject := TMyChildObject.Create;
 end;
 
 destructor TMyComplexObject.Destroy;
 begin
-  FChildObjectList.Free;
-  FChildObject.Free;
-  FPropStringList.Free;
+  fChildObjectList.Free;
+  fChildObject.Free;
+  fPropStringList.Free;
   inherited;
 end;
 
@@ -674,22 +693,22 @@ end;
 
 procedure TMyComplexObject.SetChildObject(const Value: TMyChildObject);
 begin
-  FChildObject := Value;
+  fChildObject := Value;
 end;
 
 procedure TMyComplexObject.SetChildObjectList(const Value: TMyChildObjectList);
 begin
-  FChildObjectList := Value;
+  fChildObjectList := Value;
 end;
 
 procedure TMyComplexObject.SetProp1(const Value: string);
 begin
-  FProp1 := Value;
+  fProp1 := Value;
 end;
 
 procedure TMyComplexObject.SetPropStringList(const Value: TStringList);
 begin
-  FPropStringList := Value;
+  fPropStringList := Value;
 end;
 
 { TMyChildObject }
@@ -927,14 +946,14 @@ end;
 constructor TObjectWithCustomType.Create;
 begin
   inherited;
-  FPropStringList := TStringList.Create;
+  fPropStringList := TStringList.Create;
   FPropStreamAsString := TStringStream.Create;
   FPropStreamAsBASE64 := TStringStream.Create;
 end;
 
 destructor TObjectWithCustomType.Destroy;
 begin
-  FPropStringList.Free;
+  fPropStringList.Free;
   FPropStreamAsString.Free;
   FPropStreamAsBASE64.Free;
   inherited;
@@ -973,7 +992,7 @@ end;
 
 procedure TObjectWithCustomType.SetPropStringList(const Value: TStringList);
 begin
-  FPropStringList := Value;
+  fPropStringList := Value;
 end;
 
 { TCustomerWithLF }
@@ -1092,6 +1111,17 @@ destructor TNullablesTest.Destroy;
 begin
   ff_blob.Free;
   inherited;
+end;
+
+{ TPartialSerializableType }
+
+constructor TPartialSerializableType.Create;
+begin
+  inherited;
+  fProp1 := 'prop1';
+  fProp2 := 'prop2';
+  fProp3 := 'prop3';
+  fProp4 := 'prop4';
 end;
 
 end.

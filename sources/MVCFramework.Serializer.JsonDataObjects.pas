@@ -1238,10 +1238,10 @@ end;
 procedure TMVCJsonDataObjectsSerializer.JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 var
-  ObjType: TRttiType;
-  Prop: TRttiProperty;
-  Fld: TRttiField;
-  AttributeValue: TValue;
+  lObjType: TRttiType;
+  lProp: TRttiProperty;
+  lFld: TRttiField;
+  lAttributeValue: TValue;
   lKeyName: string;
   lErrMsg: string;
 begin
@@ -1255,15 +1255,15 @@ begin
     Exit;
   end;
 
-  Prop := nil;
-  Fld := nil;
+  lProp := nil;
+  lFld := nil;
 
-  ObjType := GetRttiContext.GetType(AObject.ClassType);
+  lObjType := GetRttiContext.GetType(AObject.ClassType);
   case AType of
     stDefault, stProperties:
       begin
         try
-          for Prop in ObjType.GetProperties do
+          for lProp in lObjType.GetProperties do
           begin
 
 {$IFDEF AUTOREFCOUNT}
@@ -1271,26 +1271,26 @@ begin
               continue;
 
 {$ENDIF}
-            if ((not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Prop)) and
-              (not IsIgnoredAttribute(AIgnoredAttributes, Prop.Name)) and
-              (Prop.IsWritable or Prop.GetValue(AObject).IsObject)) then
+            if ((not TMVCSerializerHelper.HasAttribute<MVCDoNotDeserializeAttribute>(lProp)) and
+              (not IsIgnoredAttribute(AIgnoredAttributes, lProp.Name)) and
+              (lProp.IsWritable or lProp.GetValue(AObject).IsObject)) then
             begin
-              AttributeValue := Prop.GetValue(AObject);
-              lKeyName := TMVCSerializerHelper.GetKeyName(Prop, ObjType);
-              JsonDataValueToAttribute(AJsonObject, lKeyName, AttributeValue, AType, AIgnoredAttributes,
-                Prop.GetAttributes);
-              if (not AttributeValue.IsEmpty) and Prop.IsWritable then
-                Prop.SetValue(AObject, AttributeValue);
+              lAttributeValue := lProp.GetValue(AObject);
+              lKeyName := TMVCSerializerHelper.GetKeyName(lProp, lObjType);
+              JsonDataValueToAttribute(AJsonObject, lKeyName, lAttributeValue, AType, AIgnoredAttributes,
+                lProp.GetAttributes);
+              if (not lAttributeValue.IsEmpty) and lProp.IsWritable then
+                lProp.SetValue(AObject, lAttributeValue);
             end;
           end;
         except
           on E: EInvalidCast do
           begin
-            if Prop <> nil then
+            if lProp <> nil then
             begin
               lErrMsg := Format('Invalid class typecast for property "%s" [Expected: %s, Actual: %s]',
                 [
-                lKeyName, Prop.PropertyType.ToString(),
+                lKeyName, lProp.PropertyType.ToString(),
                 JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]
                 ]);
             end
@@ -1308,25 +1308,25 @@ begin
     stFields:
       begin
         try
-          for Fld in ObjType.GetFields do
-            if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
-              (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
+          for lFld in lObjType.GetFields do
+            if (not TMVCSerializerHelper.HasAttribute<MVCDoNotDeserializeAttribute>(lFld)) and
+              (not IsIgnoredAttribute(AIgnoredAttributes, lFld.Name)) then
             begin
-              AttributeValue := Fld.GetValue(AObject);
-              lKeyName := TMVCSerializerHelper.GetKeyName(Fld, ObjType);
-              JsonDataValueToAttribute(AJsonObject, lKeyName, AttributeValue, AType, AIgnoredAttributes,
-                Fld.GetAttributes);
-              if not AttributeValue.IsEmpty then
-                Fld.SetValue(AObject, AttributeValue);
+              lAttributeValue := lFld.GetValue(AObject);
+              lKeyName := TMVCSerializerHelper.GetKeyName(lFld, lObjType);
+              JsonDataValueToAttribute(AJsonObject, lKeyName, lAttributeValue, AType, AIgnoredAttributes,
+                lFld.GetAttributes);
+              if not lAttributeValue.IsEmpty then
+                lFld.SetValue(AObject, lAttributeValue);
             end;
         except
           on E: EInvalidCast do
           begin
-            if Fld <> nil then
+            if lFld <> nil then
             begin
               lErrMsg := Format('Invalid class typecast for field "%s" [Expected: %s, Actual: %s]',
                 [
-                lKeyName, Fld.FieldType.ToString(),
+                lKeyName, lFld.FieldType.ToString(),
                 JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]
                 ]);
             end

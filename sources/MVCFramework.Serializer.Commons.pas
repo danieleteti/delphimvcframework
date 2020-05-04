@@ -86,12 +86,9 @@ type
   end;
 
   MVCDoNotSerializeAttribute = class(TCustomAttribute)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
+  end;
+
+  MVCDoNotDeSerializeAttribute = class(TCustomAttribute)
   end;
 
   MVCSerializeAsStringAttribute = class(TCustomAttribute)
