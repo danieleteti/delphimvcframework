@@ -184,6 +184,10 @@ type
     [MVCPath('/nullables/many')]
     procedure GetManyNullableObjects;
 
+    // Arrays
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/arrays')]
+    procedure GetClassWithArrays;
   end;
 
 implementation
@@ -321,6 +325,18 @@ begin
   Context.Response.StatusCode := HTTP_STATUS.OK;
   Context.Response.CustomHeaders.Values['Content-Disposition'] := 'attachment; filename=' + filename + ';';
   Render(TFileStream.Create(lFullFilePath, fmOpenRead or fmShareDenyNone));
+end;
+
+procedure TRenderSampleController.GetClassWithArrays;
+var
+  lClass: TClassWithArrays;
+begin
+  lClass := TClassWithArrays.Create;
+  lClass.ArrayOfString := ['one', 'two', 'three'];
+  lClass.ArrayOfInt := [1, 2, 3];
+  lClass.ArrayOfInt64 := [high(Int64), high(Int64) - 1, high(Int64) - 2];
+  lClass.ArrayOfDouble := [1234.5678, 2345.6789, 3456.78901];
+  Render(lClass);
 end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);

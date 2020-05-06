@@ -832,19 +832,31 @@ var
   I: Integer;
   lStrArr: TArray<string>;
   lIntArr: TArray<Integer>;
+  lLongArr: TArray<Int64>;
+  lDoubleArr: TArray<Double>;
 begin
   for I := 0 to Pred(AJsonArray.Count) do
+  begin
     case AJsonArray.types[0] of
       jdtString:
         lStrArr := lStrArr + [AJsonArray.Items[I].Value];
       jdtInt:
-        lIntArr := lIntArr + [AJsonArray.Items[I].Value.ToInteger];
+        lIntArr := lIntArr + [AJsonArray.Items[I].IntValue];
+      jdtLong:
+        lLongArr := lLongArr + [AJsonArray.Items[I].LongValue];
+      jdtFloat:
+        lDoubleArr := lDoubleArr + [AJsonArray.Items[I].FloatValue];
     end;
+  end;
 
   if Length(lStrArr) > 0 then
     Result := TValue.From < TArray < string >> (lStrArr)
+  else if Length(lIntArr) > 0 then
+    Result := TValue.From < TArray < Integer >> (lIntArr)
+  else if Length(lLongArr) > 0 then
+    Result := TValue.From < TArray < Int64 >> (lLongArr)
   else
-    Result := TValue.From < TArray < Integer >> (lIntArr);
+    Result := TValue.From < TArray < Double >> (lDoubleArr);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.JsonArrayToDataSet(const AJsonArray: TJDOJsonArray; const ADataSet: TDataSet;

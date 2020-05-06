@@ -32,9 +32,11 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > We started the process of migrating our systems to micro services and are loving the DMVCFramework "DMVCFramework is definitely part of our lives right now". -- E. Costa
 
+> "Thank you for the great framework! We are very happy with this!" -- Andreas
+
 ## DMVCFramework Main Features
 
-  * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) and you will be up and running in 5 minutes or less! (the guide is a bit outdated - a new book is being written by Daniele Teti. Let us know if you are interested in [DMVCFramework Handbook](https://leanpub.com/delphimvcframework))
+  * Simple to use, check the ["Getting Started: 5 minutes guide"](https://danieleteti.gitbooks.io/delphimvcframework/content/chapter_getting_started.html) (it is quite old) and you will be up and running in 5 minutes or less! (the guide is a bit outdated - a new book is being written by Daniele Teti. Let us know if you are interested in [DMVCFramework Handbook](https://leanpub.com/delphimvcframework))
   * [Project Roadmap](roadmap.md) is always public
 	* More than 40 samples to learn all the features and be proficient and productive
 * Commercially supported by [bit Time Professionals](http://www.bittimeprofessionals.it) (training, consultancy, custom development etc.)
@@ -61,7 +63,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Integrated REST Client
   * Works with Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
   * Works on Linux (Delphi 10.2 Tokyo or better)
-  * Completely unit tested (more than 130 unit tests)
+  * Completely unit tested (more than 170 unit tests)
   * There is a sample for each functionality (check the [dmvcframework_(yourversion)_samples.zip](https://github.com/danieleteti/delphimvcframework/releases))
   * Server side generated pages using [Mustache for Delphi](https://github.com/synopse/dmustache) or [TemplatePro](https://github.com/danieleteti/templatepro)
   * Specific trainings are available (email to `professionals@bittime.it` for a date and a place)
@@ -458,6 +460,13 @@ end;
     ```
 
     Before it was not possible because you should add the `MVCListOf` attribute to the `TObjectList` type property.
+
+- New! Added serialization support for (thanks to [dockerandy](https://github.com/dockerandy) for his initial work)
+
+    -  `TArray<String>`
+    -  `TArray<Integer>`
+    -  `TArray<Int64>`
+    -  `TArray<Double>`
 
 - New! The **MVCAREntitiesGenerator** can optionally register all the generated entities also in the `ActiveRecordMappingRegistry` (Thanks to [Fabrizio Bitti](https://twitter.com/fabriziobitti) from [bit Time Software](http://www.bittime.it))
 
