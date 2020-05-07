@@ -340,7 +340,7 @@ begin
       SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
-      InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
+      InternalRender(LSwagDoc.SwaggerJson.ToJSON, AContext);
       AHandled := True;
 
     finally
