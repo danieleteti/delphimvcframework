@@ -2063,7 +2063,7 @@ begin
 
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
-    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB] (1)',
+    raise EMVCException.CreateFmt(HTTP_STATUS.RequestEntityTooLarge, 'Request size exceeded the max allowed size [%d KiB] (1)',
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 
@@ -2073,7 +2073,7 @@ begin
   // Double check for malicious content-length header
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
-    raise EMVCException.CreateFmt('Request size exceeded the max allowed size [%d KiB] (2)',
+    raise EMVCException.CreateFmt(HTTP_STATUS.RequestEntityTooLarge, 'Request size exceeded the max allowed size [%d KiB] (2)',
       [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 {$ENDIF}
@@ -2658,6 +2658,13 @@ begin
       on E: Exception do
       begin
         Log.ErrorFmt('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
+
+        AResponse.StatusCode:= HTTP_STATUS.InternalServerError; // default is Internal Server Error
+        if E is EMVCException then
+        begin
+            AResponse.StatusCode:= (E as EMVCException).HttpErrorCode;
+        end;
+
         AResponse.Content := E.Message;
         AResponse.SendResponse;
         AHandled := True;
