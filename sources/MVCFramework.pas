@@ -2012,6 +2012,7 @@ begin
     AConfigAction(FConfig);
     LogExitMethod('Custom configuration method');
   end;
+  FConfig.Freeze;
   SaveCacheConfigValues;
   RegisterDefaultsSerializers;
   LoadSystemControllers;

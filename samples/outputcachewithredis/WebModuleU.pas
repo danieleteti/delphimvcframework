@@ -27,7 +27,7 @@ implementation
 {$R *.dfm}
 
 
-uses PeopleControllerU;
+uses PeopleControllerU, MVCFramework.Commons;
 
 procedure TwmMain.WebModule1DefaultHandlerAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
@@ -37,10 +37,12 @@ end;
 
 procedure TwmMain.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(Self);
-
-  // required by the TMVCCacheController
-  MVC.Config['redis_connection_string'] := '127.0.0.1:6379';
+  MVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      // required by the TMVCCacheController
+      MVC.Config['redis_connection_string'] := '127.0.0.1:6379';
+    end);
 
   MVC.AddController(TPeopleController);
 end;

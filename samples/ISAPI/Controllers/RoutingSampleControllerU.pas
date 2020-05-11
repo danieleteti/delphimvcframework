@@ -17,7 +17,7 @@ type
     [MVCPath('/search/($searchtext)/($page)')]
     [MVCProduces('text/plain', 'UTF-8')]
     [MVCConsumes('text/html')]
-    procedure SearchCustomers(CTX: TWebContext);
+    procedure SearchCustomers;
 
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/people/($id)')]
@@ -54,17 +54,17 @@ begin
   Render('This is the root path');
 end;
 
-procedure TRoutingSampleController.SearchCustomers(CTX: TWebContext);
+procedure TRoutingSampleController.SearchCustomers;
 var
   search: string;
   P: Integer;
   orderby: string;
 begin
-  search := CTX.Request.Params['searchtext'];
-  P := CTX.Request.ParamsAsInteger['page'];
+  search := Context.Request.Params['searchtext'];
+  P := Context.Request.ParamsAsInteger['page'];
   orderby := '';
-  if CTX.Request.QueryStringParamExists('order') then
-    orderby := CTX.Request.QueryStringParam('order');
+  if Context.Request.QueryStringParamExists('order') then
+    orderby := Context.Request.QueryStringParam('order');
   Render(Format(
     'SEARCHTEXT: "%s"' + sLineBreak +
     'PAGE: %d' + sLineBreak +

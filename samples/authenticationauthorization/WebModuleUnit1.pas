@@ -37,16 +37,19 @@ uses
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(Self);
-  MVC.Config[TMVCConfigKey.SessionTimeout] := '30';
-  MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/html';
+  MVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.SessionTimeout] := '30';
+      Config[TMVCConfigKey.DefaultContentType] := 'text/html';
+    end);
   MVC
     .AddController(TApp1MainController)
     .AddController(TAdminController)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TAuthenticationSample.Create))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-      '/',         { StaticFilesPath }
-      '..\..\www'  { DocumentRoot }
+    '/', { StaticFilesPath }
+    '..\..\www' { DocumentRoot }
     ));
 end;
 

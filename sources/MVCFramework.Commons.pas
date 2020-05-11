@@ -445,22 +445,22 @@ type
     function LinksData: TMVCStringDictionaryList;
   end;
 
-//  IMVCStringDictionary = interface
-//    ['{164117AD-8DDD-47F7-877C-453979707D10}']
-//    function GetItems(const Key: string): string;
-//    procedure SetItems(const Key, Value: string);
-//    procedure Clear;
-////    function Add(const Name, Value: string): IMVCStringDictionary;
-//    function TryGetValue(const Name: string; out Value: string): Boolean; overload;
-//    function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
-//    function Count: Integer;
-//    function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
-//    function ContainsKey(const Key: string): Boolean;
-//    function Keys: TArray<string>;
-//    property Items[const Key: string]: string read GetItems; default;
-//  end;
+  // IMVCStringDictionary = interface
+  // ['{164117AD-8DDD-47F7-877C-453979707D10}']
+  // function GetItems(const Key: string): string;
+  // procedure SetItems(const Key, Value: string);
+  // procedure Clear;
+  /// /    function Add(const Name, Value: string): IMVCStringDictionary;
+  // function TryGetValue(const Name: string; out Value: string): Boolean; overload;
+  // function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
+  // function Count: Integer;
+  // function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
+  // function ContainsKey(const Key: string): Boolean;
+  // function Keys: TArray<string>;
+  // property Items[const Key: string]: string read GetItems; default;
+  // end;
 
-  TMVCStringDictionary = class //(TInterfacedObject, IMVCStringDictionary)
+  TMVCStringDictionary = class // (TInterfacedObject, IMVCStringDictionary)
   strict private
     function GetItems(const Key: string): string;
     procedure SetItems(const Key, Value: string);
@@ -540,16 +540,17 @@ type
   TMVCConfig = class sealed
   private
     FConfig: TMVCStringDictionary;
-
+    FFreezed: Boolean;
     function GetValue(const AIndex: string): string;
     function GetValueAsInt64(const AIndex: string): Int64;
     procedure SetValue(const AIndex: string; const aValue: string);
+    procedure CheckNotFreezed; inline;
   protected
     { protected declarations }
   public
     constructor Create;
     destructor Destroy; override;
-
+    procedure Freeze;
     function Keys: TArray<string>;
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
@@ -861,16 +862,30 @@ end;
 
 { TMVCConfig }
 
+procedure TMVCConfig.CheckNotFreezed;
+begin
+  if FFreezed then
+  begin
+    raise EMVCException.Create('Configuration in freezed - no more changes allowed') at ReturnAddress;
+  end;
+end;
+
 constructor TMVCConfig.Create;
 begin
   inherited Create;
   FConfig := TMVCStringDictionary.Create;
+  FFreezed := False;
 end;
 
 destructor TMVCConfig.Destroy;
 begin
   FConfig.Free;
   inherited Destroy;
+end;
+
+procedure TMVCConfig.Freeze;
+begin
+  FFreezed := True;
 end;
 
 function TMVCConfig.GetValue(const AIndex: string): string;
@@ -922,6 +937,7 @@ end;
 
 procedure TMVCConfig.SetValue(const AIndex, aValue: string);
 begin
+  CheckNotFreezed;
   FConfig.Add(AIndex, aValue);
 end;
 
