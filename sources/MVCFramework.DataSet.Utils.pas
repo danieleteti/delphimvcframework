@@ -49,10 +49,10 @@ type
     function AsJDOJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): TJDOJsonArray;
     function AsJSONArrayOfValues: TJDOJsonArray;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
-    function AsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase; const IgnoredFields: TArray<string> = []): string;
+    function AsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase; const IgnoredFields: TArray<string> = nil): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
     procedure LoadFromJSONObject(const JSONObject: TJSONObject; const FieldNameCase: TMVCNameCase); overload;
-    procedure LoadFromJSONObject(const JSONObject: TJSONObject; const AIgnoredFields: TArray<string> = [];
+    procedure LoadFromJSONObject(const JSONObject: TJSONObject; const AIgnoredFields: TArray<string> = nil;
       const FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
 
     procedure LoadFromJSONArray(AJSONArray: string;
