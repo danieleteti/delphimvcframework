@@ -1036,6 +1036,10 @@ begin
       begin
         aRTTIField.SetValue(AObject, AField.AsLongWord);
       end;
+    ftCurrency:
+      begin
+        aRTTIField.SetValue(AObject, AField.AsCurrency);
+      end;
     ftFMTBcd:
       begin
         aRTTIField.SetValue(AObject, BCDtoCurrency(AField.AsBCD));
@@ -1075,7 +1079,7 @@ begin
           lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
           if lInternalStream = nil then
           begin
-            raise EMVCException.CreateFmt('Property target for %s field is nil', [AField.Name]);
+            raise EMVCException.CreateFmt('Property target for %s field is nil', [AField.FieldName]);
           end;
           lInternalStream.Position := 0;
           TBlobField(AField).SaveToStream(lInternalStream);
@@ -1123,7 +1127,7 @@ begin
 {$ENDIF}
       end;
   else
-    raise EMVCException.CreateFmt('Unsupported FieldType (%d) for field %s', [Ord(AField.DataType), AField.Name]);
+    raise EMVCException.CreateFmt('Unsupported FieldType (%d) for field %s', [Ord(AField.DataType), AField.FieldName]);
   end;
 end;
 
