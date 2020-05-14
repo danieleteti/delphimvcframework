@@ -342,6 +342,7 @@ Render(lPerson, False,
 - New! `TMVCActiveRecord.Count` method (e.g. `TMVCActiveRecord.Count(TCustomer)` returns the number of records for the entity mapped by the class `TCustomer`)
 - Change! `TMVCACtiveRecord.GetByPK<T>` raises an exception by default if the record is not found - optionally can returns `nil` using new parameter `RaiseExceptionIfNotFound` 
 - New! `contains` clause has been added in the RQL compiler for Firebird and Interbase
+- New! Added support out operator in RQL parser. The RQL out operator is equivalent to the SQL NOT IN operator.
 - New! `TMVCAnalyticsMiddleware` to do automatic analytics on the API (generates a CSV file). Based on an idea by Nirav Kaku (https://www.facebook.com/nirav.kaku). Check the sample in `\samples\middleware_analytics\`
 - New! `TMVCActiveRecord.DeleteAll` deletes all the records from a table
 - New! `TMVCActiveRecord.DeleteRQL` deletes records using an `RQL` expression as `where` clause.

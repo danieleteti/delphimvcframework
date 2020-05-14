@@ -223,6 +223,8 @@ type
     [Test]
     procedure TestDirectoryTraversal2;
     [Test]
+    procedure TestDirectoryRedirect;
+    [Test]
     procedure TestSPASupport;
     // test server side views
     [Test]
@@ -1392,6 +1394,22 @@ begin
   end;
 end;
 
+procedure TServerTest.TestDirectoryRedirect;
+var
+  lRes: IRESTResponse;
+begin
+  lRes := RESTClient
+    .Accept(TMVCMediaType.TEXT_HTML)
+    .doGET('/static/', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/');
+
+  lRes := RESTClient
+    .Accept(TMVCMediaType.TEXT_HTML)
+    .doGET('/static', []);
+  Assert.areEqual(301, lRes.ResponseCode, '/static');
+  Assert.areEqual('/static/', lRes.HeaderValue('Location'), 'Wrong redirect');
+end;
+
 procedure TServerTest.TestDirectoryTraversal1;
 var
   lRes: IRESTResponse;
@@ -1434,16 +1452,6 @@ begin
     .Accept(TMVCMediaType.TEXT_HTML)
     .doGET('/static.html', []);
   Assert.areEqual(200, lRes.ResponseCode, '/static.html');
-
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/');
-
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static');
 
   lRes := RESTClient
     .Accept(TMVCMediaType.TEXT_HTML)
@@ -1610,26 +1618,21 @@ var
 begin
   lRes := RESTClient
     .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/index.html', []);
+    .doGET('/spa/index.html', []);
   Assert.areEqual(200, lRes.ResponseCode);
   Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
 
   lRes := RESTClient
     .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/', []);
+    .doGET('/spa/', []);
   Assert.areEqual(200, lRes.ResponseCode, '/static/');
   Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
 
   lRes := RESTClient
     .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/..\..\donotdeleteme.txt', []);
-  Assert.areEqual(404, lRes.ResponseCode, '/static/..\..\donotdeleteme.txt');
-
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/../../donotdeleteme.txt', []);
-  Assert.areEqual(404, lRes.ResponseCode, '/static/../../donotdeleteme.txt');
-  Assert.Contains(lRes.Error.ExceptionMessage, 'Not Found', true);
+    .doGET('/spa/pippo/pluto/paperino', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/spa/pippo/pluto/paperino');
+  Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
 
   lUrl := 'Windows\win.ini';
   for I := 1 to 30 do
@@ -1637,8 +1640,9 @@ begin
     lUrl := '..\' + lUrl;
     lRes := RESTClient
       .Accept(TMVCMediaType.TEXT_HTML)
-      .doGET('/' + lUrl, []);
-    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/' + lUrl);
+      .doGET('/spa/' + lUrl, []);
+    Assert.areEqual(200, lRes.ResponseCode);
+    Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
   end;
 end;
 
