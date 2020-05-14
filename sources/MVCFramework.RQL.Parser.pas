@@ -53,14 +53,13 @@ uses
   limit(count,start,maxCount) - Returns the given range of objects from the result set
   contains(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
   in(<property>,<array-of-values>) - Filters for objects where the specified property's value is in the provided array
-
+  out(<property>,<array-of-values>) - Filters for objects where the specified property's value is not in the provided array
 
   //////NOT AVAILABLES
   select(<property>,<property>,...) - Trims each object down to the set of properties defined in the arguments
   values(<property>) - Returns an array of the given property value for each object
   aggregate(<property|function>,...) - Aggregates the array, grouping by objects that are distinct for the provided properties, and then reduces the remaining other property values using the provided functions
   distinct() - Returns a result set with duplicates removed
-  out(<property>,<array-of-values>) - Filters for objects where the specified property's value is not in the provided array
   excludes(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array does not contain any of value that equals the provided value or satisfies the provided expression.
   rel(<relation name?>,<query>) - Applies the provided query against the linked data of the provided relation name.
   sum(<property?>) - Finds the sum of every value in the array or if the property argument is provided, returns the sum of the value of property for every object in the array
@@ -76,7 +75,7 @@ uses
 type
   TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF,
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
-    tkQuote, tkSpace, tkContains, tkIn, tkUnknown);
+    tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown);
 
   TRQLValueType = (vtInteger, vtString, vtBoolean, vtNull, vtIntegerArray, vtStringArray);
 
@@ -526,6 +525,12 @@ begin
     fCurrToken := tkIn;
     Exit(fCurrToken);
   end;
+  if (lChar = 'o') and (C(1) = 'u') and (C(2) = 't') then
+  begin
+    Skip(3);
+    fCurrToken := tkOut;
+    Exit(fCurrToken);
+  end;
   if (lChar = ' ') then
   begin
     fCurrToken := tkSpace;
@@ -578,7 +583,7 @@ begin
       Error('Unclosed string');
     lValueType := vtString;
   end
-  else if (aToken = tkIn) and (lToken = tkOpenBracket) then
+  else if (aToken in [tkIn, tkOut]) and (lToken = tkOpenBracket) then
   begin
     lList := TList<string>.Create;
     try
@@ -657,7 +662,7 @@ begin
   Result := true;
   lTk := GetToken;
   case lTk of
-    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn:
+    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn, tkOut:
       begin
         ParseBinOperator(lTk, fAST);
       end;
@@ -735,7 +740,7 @@ begin
     EatWhiteSpaces;
     lToken := GetToken;
     case lToken of
-      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn:
+      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn, tkOut:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
         end;
