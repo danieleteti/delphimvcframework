@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{094E1EEA-8729-4125-A068-57B1296432CB}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="JWTRoleAuthServer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="vclclient\JWTClient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="JWTRoleAuthServer">
+        <MSBuild Projects="JWTRoleAuthServer.dproj"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer:Clean">
+        <MSBuild Projects="JWTRoleAuthServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer:Make">
+        <MSBuild Projects="JWTRoleAuthServer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="JWTClient">
+        <MSBuild Projects="vclclient\JWTClient.dproj"/>
+    </Target>
+    <Target Name="JWTClient:Clean">
+        <MSBuild Projects="vclclient\JWTClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTClient:Make">
+        <MSBuild Projects="vclclient\JWTClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="JWTRoleAuthServer;JWTClient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="JWTRoleAuthServer:Clean;JWTClient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="JWTRoleAuthServer:Make;JWTClient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
