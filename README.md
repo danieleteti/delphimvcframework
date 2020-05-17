@@ -8,7 +8,14 @@ DelphiMVCFramework is the **most popular** Delphi project on GitHub!
 
 ![](docs/delphimvcframework_handbook_cover.png)
 
+
+
+**Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
+
+<img src="https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png" alt="like" />
+
 ## How to install DMVCFramework
+
 *It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
 If you want to participate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
 Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
