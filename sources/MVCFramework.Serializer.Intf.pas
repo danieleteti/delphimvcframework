@@ -75,28 +75,28 @@ type
     function SerializeObject(
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
     function SerializeObject(
       const AObject: IInterface;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
     function SerializeCollection(
       const AList: IInterface;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = [];
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
@@ -118,14 +118,14 @@ type
       const ASerializedObject: string;
       const AObject: TObject;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = nil
       ); overload;
 
     procedure DeserializeObject(
       const ASerializedObject: string;
       const AObject: IInterface;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = nil
       ); overload;
 
     procedure DeserializeCollection(
@@ -133,7 +133,7 @@ type
       const AList: TObject;
       const AClazz: TClass;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = nil
       ); overload;
 
     procedure DeserializeCollection(
@@ -141,7 +141,7 @@ type
       const AList: IInterface;
       const AClazz: TClass;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = []
+      const AIgnoredAttributes: TMVCIgnoredList = nil
       ); overload;
 
     procedure DeserializeDataSet(

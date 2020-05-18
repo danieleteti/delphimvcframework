@@ -70,7 +70,7 @@ type
     function TryMapNullableFloat(var Value: TValue;
       const JSONDataObject: TJsonObject; const AttribName: string): Boolean;
   public
-    function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList = [];
+    function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
@@ -127,11 +127,11 @@ type
       const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
       : string; overload;
 
-    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList = [];
+    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase = ncAsIs; const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
 
     function SerializeDataSetRecord(const DataSet: TDataSet;
-      const IgnoredFields: TMVCIgnoredList = []; const NameCase: TMVCNameCase = ncAsIs;
+      const IgnoredFields: TMVCIgnoredList; const NameCase: TMVCNameCase = ncAsIs;
       const SerializationAction: TMVCDatasetSerializationAction = nil): string;
 
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject;
@@ -147,7 +147,7 @@ type
       const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = []); overload;
 
     procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet;
-      const AIgnoredFields: TMVCIgnoredList = []; const ANameCase: TMVCNameCase = ncAsIs);
+      const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs);
 
     procedure InternalSerializeDataSet(
       const ADataSet: TDataSet; const AJsonArray: TJsonArray; const AIgnoredFields: TMVCIgnoredList;
@@ -160,7 +160,7 @@ type
       const SerializationAction: TMVCDatasetSerializationAction);
 
     procedure DeserializeDataSetRecord(const ASerializedDataSetRecord: string; const ADataSet: TDataSet;
-      const AIgnoredFields: TMVCIgnoredList = []; const ANameCase: TMVCNameCase = ncAsIs);
+      const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs);
     class function ParseObject(const AString: string): TJDOJsonObject;
     class function ParseArray(const AString: string): TJDOJsonArray;
     class function Parse<T: TJsonBaseObject>(const AString: string): T;
@@ -1592,7 +1592,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeDataSet(const ADataSet: TDataSet;
-  const AIgnoredFields: TMVCIgnoredList = []; const ANameCase: TMVCNameCase = ncAsIs;
+  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs;
   const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
 var
   JsonArray: TJDOJsonArray;
@@ -1614,7 +1614,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeDataSetRecord(const DataSet: TDataSet;
-  const IgnoredFields: TMVCIgnoredList = []; const NameCase: TMVCNameCase = ncAsIs;
+  const IgnoredFields: TMVCIgnoredList; const NameCase: TMVCNameCase = ncAsIs;
   const SerializationAction: TMVCDatasetSerializationAction = nil): string;
 var
   lJSONObject: TJDOJsonObject;
@@ -1649,7 +1649,7 @@ begin
     Exit(TJsonBaseObject(AObject).ToJSON(True));
 
   if AObject is TDataSet then
-    Exit(self.SerializeDataSet(TDataSet(AObject)));
+    Exit(self.SerializeDataSet(TDataSet(AObject), AIgnoredAttributes));
 
   if AObject is System.JSON.TJsonValue then
     Exit(System.JSON.TJsonValue(AObject).ToJSON);
@@ -2015,7 +2015,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.GetDataSetFields(const ADataSet: TDataSet;
-  const AIgnoredFields: TMVCIgnoredList = []; const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
+  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
 var
   I: Integer;
   lField: TMVCDataSetField;
