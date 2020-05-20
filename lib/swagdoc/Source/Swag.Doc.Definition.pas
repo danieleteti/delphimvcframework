@@ -70,7 +70,8 @@ uses
 
 destructor TSwagDefinition.Destroy;
 begin
-  FreeAndNil(fJsonSchema);
+  if Assigned(fJsonSchema) then
+    FreeAndNil(fJsonSchema);
   inherited Destroy;
 end;
 

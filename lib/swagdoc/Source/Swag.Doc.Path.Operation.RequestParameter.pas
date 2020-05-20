@@ -205,7 +205,7 @@ begin
     if (not fSchema.Name.IsEmpty) then
       vJsonObject.AddPair(c_SwagRequestParameterSchema, fSchema.GenerateJsonRefDefinition)
     else if Assigned(fSchema.JsonSchema) then
-      vJsonObject.AddPair(c_SwagRequestParameterSchema, fSchema.JsonSchema as TJSONObject);
+      vJsonObject.AddPair(c_SwagRequestParameterSchema, fSchema.JsonSchema.Clone as TJSONObject);
   end;
   if (fTypeParameter <> stpNotDefined) then
     vJsonObject.AddPair(c_SwagRequestParameterType, c_SwagTypeParameter[fTypeParameter]);
