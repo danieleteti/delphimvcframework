@@ -2,18 +2,17 @@
 
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
-  {$IFNDEF LINUX}
+{$IFNDEF LINUX}
   Winapi.Windows,
-  {$ENDIF }
+{$ENDIF }
   Web.WebBroker,
   MVCFramework.Commons,
   MVCFramework.Console,
-  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},
+  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule} ,
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -24,27 +23,27 @@ uses
   TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
   RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+    in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
 
 {$R *.res}
 
-
 procedure Logo;
 begin
+  ResetConsole();
   Writeln;
-  SetMode(TConsoleMode.Bright);
-  TextBackground(TConsoleColor.Black);
-  TextColor(TConsoleColor.Red);
-  WriteLn(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
-  WriteLn(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
-  WriteLn(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
-  WriteLn(' ██║  ██║██║╚██╔╝██║╚██╗ ██╔╝██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗');
-  WriteLn(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
-  WriteLn(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
-  WriteLn(' ');
-  TextColor(TConsoleColor.Yellow);
-  WriteLn('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
-  TextColor(TConsoleColor.White);
+  TextBackground(Black);
+  TextColor(Red);
+  Writeln(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
+  Writeln(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
+  Writeln(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
+  Writeln(' ██║  ██║██║╚██╔╝██║╚██╗ ██╔╝██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗');
+  Writeln(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
+  Writeln(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
+  Writeln(' ');
+  TextColor(Yellow);
+  Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
+  TextColor(White);
 end;
 
 procedure RunServer(APort: Integer);
@@ -52,10 +51,11 @@ var
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Logo;
-  WriteLn(Format('Starting HTTP Server or port %d', [APort]));
+  Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    LServer.OnParseAuthentication :=
+      TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     { more info about MaxConnections
@@ -64,9 +64,10 @@ begin
     { more info about ListenQueue
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
-    WriteLn('Press RETURN to stop the server');
+    Writeln('Press RETURN to stop the server');
     ReadLn;
-    WriteLn('Server stopped');
+    Writeln('Server stopped');
+    ResetConsole();
   finally
     LServer.Free;
   end;
@@ -80,7 +81,7 @@ begin
     RunServer(9999);
   except
     on E: Exception do
-      WriteLn(E.ClassName, ': ', E.Message);
+      Writeln(E.ClassName, ': ', E.Message);
   end;
 
 end.
