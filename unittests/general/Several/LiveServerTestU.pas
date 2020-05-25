@@ -36,7 +36,7 @@ uses
 const
 
 {$IFDEF LINUX_SERVER}
-  TEST_SERVER_ADDRESS = '192.168.1.8';
+  TEST_SERVER_ADDRESS = '192.168.56.1';
 
 {$ELSE}
   TEST_SERVER_ADDRESS = '127.0.0.1';
@@ -51,10 +51,10 @@ type
     RESTClient: TRESTClient;
     procedure DoLoginWith(UserName: string);
     procedure DoLogout;
-
+    function GetServer: String;
   public
     [SetUp]
-    procedure SetUp;
+    procedure SetUp; virtual;
     [TearDown]
     procedure TearDown;
 
@@ -62,9 +62,10 @@ type
 
   [TestFixture]
   TServerTest = class(TBaseServerTest)
-  private
-
   public
+    [Setup]
+    procedure Setup; override;
+
     [Test]
     [TestCase('request url /fault', '/exception/fault')]
     [TestCase('request url /fault2', '/exception/fault2')]
@@ -238,8 +239,8 @@ type
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
   public
-    [SetUp]
-    procedure SetUp;
+    [Setup]
+    procedure SetUp; override;
     [Test]
     procedure TestRequestWithoutParams;
     [Test]
@@ -302,6 +303,11 @@ begin
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Logout Failed');
 end;
 
+function TBaseServerTest.GetServer: String;
+begin
+  Result := 'http://' + TEST_SERVER_ADDRESS + ':9999';
+end;
+
 procedure TBaseServerTest.SetUp;
 begin
   inherited;
@@ -313,6 +319,12 @@ procedure TBaseServerTest.TearDown;
 begin
   inherited;
   RESTClient.Free;
+end;
+
+procedure TServerTest.Setup;
+begin
+  inherited;
+
 end;
 
 procedure TServerTest.TestActionFiltersOnBeforeAction;
@@ -1912,8 +1924,9 @@ end;
 
 procedure TJSONRPCServerTest.SetUp;
 begin
-  FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:9999/jsonrpc', false);
-  FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:9999/jsonrpcclass', false);
+  inherited;
+  FExecutor := TMVCJSONRPCExecutor.Create(GetServer + '/jsonrpc', false);
+  FExecutor2 := TMVCJSONRPCExecutor.Create(GetServer + '/jsonrpcclass', false);
 end;
 
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;

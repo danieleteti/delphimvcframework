@@ -27,15 +27,15 @@ unit MVCFramework.Console;
 interface
 
 uses
+  System.SysUtils
 {$IFDEF MSWINDOWS}
-  WinApi.Windows, System.SysUtils
+  ,WinApi.Windows
 {$ENDIF}
 {$IFDEF LINUX}
 {$ENDIF}
     ;
 
 type
-{$IFDEF MSWINDOWS}
   // https://stackoverflow.com/questions/17125440/c-win32-console-color
   // https://docs.microsoft.com/en-us/dotnet/api/system.consolecolor?view=netcore-3.1
   TConsoleColor = (Black = 0, // The color black.
@@ -55,9 +55,7 @@ type
     Yellow = 14, // The color yellow.
     White = 15 // The color white.
     );
-{$ENDIF}
 
-type
   EMVCConsole = class(Exception)
 
   end;
@@ -98,12 +96,12 @@ begin
   Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
 end;
 
+{$IFDEF LINUX}
 procedure WaitForReturn;
 begin
-  while GetCh <> #13 do;
+  ReadLn;
 end;
 
-{$IFDEF LINUX}
 procedure Init; inline;
 begin
 
@@ -112,6 +110,16 @@ end;
 procedure UpdateMode;
 begin
 
+end;
+
+function GetCh: Char;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+procedure GotoXY(const X, Y: Byte);
+begin
+  raise EMVCConsole.Create('Not Implemented');
 end;
 
 function GetConsoleSize: TMVCConsoleSize;
@@ -131,6 +139,17 @@ end;
 
 {$ENDIF}
 {$IFDEF MSWINDOWS}
+
+procedure WinCheck(const Value: LongBool);
+begin
+  if not Value then
+    raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
+end;
+
+procedure WaitForReturn;
+begin
+  while GetCh <> #13 do;
+end;
 
 procedure ClrScr;
 var
@@ -187,13 +206,13 @@ var
 begin
   EnsureStdInput;
   C := #0;
-  Win32Check(GetConsoleMode(GInputHandle, lMode));
-  Win32Check(SetConsoleMode(GInputHandle, lMode and (not(ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT))));
+  WinCheck(GetConsoleMode(GInputHandle, lMode));
+  WinCheck(SetConsoleMode(GInputHandle, lMode and (not(ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT))));
   try
     lCC := 0;
-    Win32Check(ReadConsole(GInputHandle, @C, SizeOf(Char), lCC, nil));
+    WinCheck(ReadConsole(GInputHandle, @C, SizeOf(Char), lCC, nil));
   finally
-    Win32Check(SetConsoleMode(GInputHandle, lMode));
+    WinCheck(SetConsoleMode(GInputHandle, lMode));
   end;
   Result := C;
 end;

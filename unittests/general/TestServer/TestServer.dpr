@@ -6,13 +6,13 @@ uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
   Web.WebReq,
-{$IFNDEF LINUX}
+  {$IFNDEF LINUX}
   Winapi.Windows,
-{$ENDIF }
+  {$ENDIF }
   Web.WebBroker,
   MVCFramework.Commons,
   MVCFramework.Console,
-  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule} ,
+  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -22,9 +22,7 @@ uses
   MVCFramework in '..\..\..\sources\MVCFramework.pas',
   TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
-  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
-    in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas';
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas';
 
 {$R *.res}
 

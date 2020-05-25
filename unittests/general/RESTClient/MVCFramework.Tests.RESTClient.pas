@@ -48,7 +48,7 @@ type
     FRESTAdapter: TRESTAdapter<IAppResource>;
     FAppResource: IAppResource;
   public
-    [SetUp]
+    [Setup]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
@@ -72,6 +72,7 @@ implementation
 
 uses
   MVCFramework.Tests.WebModule1,
+  LiveServerTestU,
   MVCFramework.SystemJSONUtils,
   System.JSON;
 
@@ -88,7 +89,7 @@ begin
     );
   FServerListener.Start;
 
-  FRESTClient := TRESTClient.Create('localhost', 3000);
+  FRESTClient := TRESTClient.Create(TEST_SERVER_ADDRESS, 3000);
 
   FRESTAdapter := TRESTAdapter<IAppResource>.Create;
   FRESTAdapter.Build(FRESTClient);

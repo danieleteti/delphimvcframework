@@ -242,6 +242,7 @@ implementation
 uses
   System.Classes,
   System.RegularExpressions,
+  System.TypInfo,
   MVCFramework,
   MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,

@@ -162,6 +162,7 @@ type
 implementation
 
 uses
+  System.TypInfo,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
 
