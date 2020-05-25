@@ -65,7 +65,8 @@ begin
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
     Writeln('Press RETURN to stop the server');
-    ReadLn;
+    WaitForReturn;
+    TextColor(Red);
     Writeln('Server stopped');
     ResetConsole();
   finally

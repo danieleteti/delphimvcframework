@@ -75,6 +75,7 @@ function GetConsoleSize: TMVCConsoleSize;
 function GetConsoleBufferSize: TMVCConsoleSize;
 procedure ClrScr;
 function GetCh: Char;
+procedure WaitForReturn;
 
 function ColorName(const color: TConsoleColor): String;
 
@@ -95,6 +96,11 @@ var
 function ColorName(const color: TConsoleColor): String;
 begin
   Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
+end;
+
+procedure WaitForReturn;
+begin
+  while GetCh <> #13 do;
 end;
 
 {$IFDEF LINUX}
