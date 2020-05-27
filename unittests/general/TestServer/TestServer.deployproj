@@ -7,6 +7,24 @@
     <ItemGroup Condition="'$(Platform)'=='Win32'"/>
     <ItemGroup Condition="'$(Platform)'=='Win64'"/>
     <ItemGroup Condition="'$(Platform)'=='Linux64'">
+        <DeployFile Include="bin\sample.png" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\</RemoteDir>
+            <RemoteName>sample.png</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="bin\www\static.html" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\www\</RemoteDir>
+            <RemoteName>static.html</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
         <DeployFile Include="TestServer" Condition="'$(Config)'=='CI'">
             <RemoteDir>TestServer\</RemoteDir>
             <RemoteName>TestServer</RemoteName>
@@ -16,6 +34,24 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
             <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="bin\www\index.html" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\www\</RemoteDir>
+            <RemoteName>index.html</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="bin\customers.json" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\</RemoteDir>
+            <RemoteName>customers.json</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
         </DeployFile>
     </ItemGroup>
 </Project>

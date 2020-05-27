@@ -40,7 +40,8 @@ uses
   MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule},
   MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
   MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
-  ActiveRecordTestsU in 'ActiveRecordTestsU.pas';
+  ActiveRecordTestsU in 'ActiveRecordTestsU.pas',
+  TestConstsU in 'TestConstsU.pas';
 
 {$R *.RES}
 {$IFDEF CONSOLE_TESTRUNNER}
@@ -50,7 +51,7 @@ var
   runner: ITestRunner;
   results: IRunResults;
   logger: ITestLogger;
-  nunitLogger: ITestLogger;
+//  nunitLogger: ITestLogger;
 begin
   try
     // Check command line options, will exit if invalid

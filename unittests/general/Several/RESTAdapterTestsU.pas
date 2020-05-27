@@ -116,7 +116,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Rtti, System.SyncObjs, LiveServerTestU;
+uses System.SysUtils, System.Rtti, System.SyncObjs, LiveServerTestU, TestConstsU;
 
 { TTestRESTAdapter }
 

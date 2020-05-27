@@ -3105,6 +3105,9 @@ begin
     FContext.Response.CustomHeaders.AddPair('location', Location);
   end;
   ResponseStatus(HTTP_STATUS.Created, Reason);
+  {$IF CompilerVersion >= 34}
+  Render(''); //in 10.4 INDY requires something on the content
+  {$ENDIF}
 end;
 
 procedure TMVCRenderer.Render204NoContent(const Location, Reason: string);

@@ -89,7 +89,7 @@ begin
     );
   FServerListener.Start;
 
-  FRESTClient := TRESTClient.Create(TEST_SERVER_ADDRESS, 3000);
+  FRESTClient := TRESTClient.Create('localhost', 3000);
 
   FRESTAdapter := TRESTAdapter<IAppResource>.Create;
   FRESTAdapter.Build(FRESTClient);

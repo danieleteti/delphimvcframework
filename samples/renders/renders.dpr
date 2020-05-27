@@ -60,12 +60,11 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    SetMode(TConsoleMode.Bright);
     TextColor(Red);
     Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
     ResetConsole;
     Writeln('Press RETURN to stop the server');
-    ReadLn;
+    WaitForReturn;
     Writeln('Stopping...');
   finally
     LServer.Free;
