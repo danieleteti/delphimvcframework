@@ -89,7 +89,7 @@ uses
 
 type
 
-  TSessionData = TDictionary<string, string>;
+  TSessionData = TDictionary<String, String>;
   TMVCCustomData = TSessionData;
   TMVCBaseViewEngine = class;
   TMVCViewEngineClass = class of TMVCBaseViewEngine;
@@ -1397,20 +1397,39 @@ begin
   Names := TList<string>.Create;
   try
     if Assigned(FParamsTable) and (Length(FParamsTable.Keys.ToArray) > 0) then
+    begin
       for N in FParamsTable.Keys.ToArray do
+      begin
         Names.Add(N);
+      end;
+    end;
 
     if (FWebRequest.QueryFields.Count > 0) then
+    begin
       for I := 0 to FWebRequest.QueryFields.Count - 1 do
+      begin
         Names.Add(FWebRequest.QueryFields.Names[I]);
+      end;
+    end;
 
     if (FWebRequest.ContentFields.Count > 0) then
+    begin
       for I := 0 to FWebRequest.ContentFields.Count - 1 do
-        Names.Add(FWebRequest.ContentFields.Names[I]);
+      begin
+        if Names.IndexOf(FWebRequest.ContentFields.Names[I]) = -1 then
+        begin
+          Names.Add(FWebRequest.ContentFields.Names[I]);
+        end;
+      end;
+    end;
 
     if (FWebRequest.CookieFields.Count > 0) then
+    begin
       for I := 0 to FWebRequest.CookieFields.Count - 1 do
+      begin
         Names.Add(FWebRequest.CookieFields.Names[I]);
+      end;
+    end;
 
     Result := Names.ToArray;
   finally

@@ -4,6 +4,8 @@
 
 DelphiMVCFramework is the **most popular** Delphi project on GitHub!
 
+DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
+
 **Daniele Teti is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!**
 
 ![](docs/delphimvcframework_handbook_cover.png)
@@ -68,7 +70,6 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   * Powerful and customizable mapper to serialize/deserialize data.
   * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
   * Integrated REST Client
-  * Works with Delphi 10 Seattle, Delphi 10.1 Berlin, Delphi 10.2 Tokyo, Delphi 10.3 Rio
   * Works on Linux (Delphi 10.2 Tokyo or better)
   * Completely unit tested (more than 170 unit tests)
   * There is a sample for each functionality (check the [dmvcframework_(yourversion)_samples.zip](https://github.com/danieleteti/delphimvcframework/releases))
@@ -86,6 +87,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 ### DelphiMVCFramework 3.2.0-boron (currently in `RC` phase)
 
 > WARNING! Considering the huge amount of features added in 3.1.1-beryllium during its RC phase, the dmvcframework-3.1.1-beryllium has been renamed to dmvcframework-3.2.0-boron
+
+- New! Support for Delphi 10.4 Sydney!
 
 - New! Added Nullable support in MVCActiveRecord (nullables defined in `MVCFramework.Nullables.pas`)! Check *activerecord_showcase* sample.
 
@@ -605,6 +608,7 @@ end;
 
 |Delphi Version|Project Group|
 |---|---|
+|Delphi 10.4 Sydney|`packages\d104\dmvcframework_group.groupproj`|
 |Delphi 10.3 Rio| `packages\d103\dmvcframework_group.groupproj`|
 |Delphi 10.2 Tokyo| `packages\d102\dmvcframework_group.groupproj`|
 |Delphi 10.1 Berlin| `packages\d101\dmvcframework_group.groupproj`|
@@ -674,6 +678,8 @@ end;
 - Fixed! [issue364](https://github.com/danieleteti/delphimvcframework/issues/364) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - Fixed! [issue366](https://github.com/danieleteti/delphimvcframework/issues/366)
 - Fixed! [issue376](https://github.com/danieleteti/delphimvcframework/issues/376) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fixed! [issue379](https://github.com/danieleteti/delphimvcframework/issues/379) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19) and [Maincosi](https://github.com/maiconsi) for their work)
+- Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
 ## DelphiMVCFramework 3.1.0-lithium (Current Release)

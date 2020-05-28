@@ -522,6 +522,5 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Add analytics support'
     TabOrder = 2
     Visible = False
-    OnClick = chkCreateControllerUnitClick
   end
 end
