@@ -1187,7 +1187,10 @@ var
   UFTStr: UTF8String;
 begin
   UFTStr := UTF8String(AString);
-  Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
+  if UFTStr <> '' then
+  begin
+    Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
+  end;
 end;
 
 { TMVCDecorator }

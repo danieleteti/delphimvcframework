@@ -651,6 +651,7 @@ end;
 ### Bug Fixes in 3.2.0-boron
 
 - Fixed! [issue38](https://github.com/danieleteti/delphimvcframework/issues/38)
+- Fixed! [issue140](https://github.com/danieleteti/delphimvcframework/issues/140)
 - Fixed! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184)
 - Fixed! [issue278](https://github.com/danieleteti/delphimvcframework/issues/278)
 - Fixed! [issue164](https://github.com/danieleteti/delphimvcframework/issues/164)
@@ -679,6 +680,7 @@ end;
 - Fixed! [issue366](https://github.com/danieleteti/delphimvcframework/issues/366)
 - Fixed! [issue376](https://github.com/danieleteti/delphimvcframework/issues/376) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - Fixed! [issue379](https://github.com/danieleteti/delphimvcframework/issues/379) (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19) and [Maincosi](https://github.com/maiconsi) for their work)
+- Fixed! [issue386](https://github.com/danieleteti/delphimvcframework/issues/386) (Thanks to [Rafael Dipold](https://github.com/dipold))
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
