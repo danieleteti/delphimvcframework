@@ -74,6 +74,8 @@ function GetConsoleBufferSize: TMVCConsoleSize;
 procedure ClrScr;
 function GetCh: Char;
 procedure WaitForReturn;
+procedure SaveColors;
+procedure RestoreSavedColors;
 
 function ColorName(const color: TConsoleColor): String;
 
@@ -86,8 +88,8 @@ const
   ESC = Chr(27);
 
 var
-  GForeGround: Integer;
-  GBackGround: Integer;
+  GForeGround, GSavedForeGround: Integer;
+  GBackGround, GSavedBackGround: Integer;
   GOutHandle: THandle = INVALID_HANDLE_VALUE;
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
 
@@ -95,6 +97,7 @@ function ColorName(const color: TConsoleColor): String;
 begin
   Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
 end;
+
 
 {$IFDEF LINUX}
 procedure WaitForReturn;
@@ -281,6 +284,20 @@ begin
   GBackGround := Ord(TConsoleColor.Black);
   UpdateMode;
 end;
+
+procedure SaveColors;
+begin
+  GSavedForeGround := GForeGround;
+  GSavedBackGround := GBackGround;
+end;
+
+procedure RestoreSavedColors;
+begin
+  GForeGround := GSavedForeGround;
+  GBackGround := GSavedBackGround;
+  UpdateMode;
+end;
+
 
 initialization
 

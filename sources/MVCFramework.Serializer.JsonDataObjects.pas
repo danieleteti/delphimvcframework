@@ -1279,7 +1279,7 @@ begin
           begin
 
 {$IFDEF AUTOREFCOUNT}
-            if TMVCSerializerHelper.IsAPropertyToSkip(Prop.Name) then
+            if TMVCSerializerHelper.IsAPropertyToSkip(lProp.Name) then
               continue;
 
 {$ENDIF}
@@ -1291,8 +1291,10 @@ begin
               lKeyName := TMVCSerializerHelper.GetKeyName(lProp, lObjType);
               JsonDataValueToAttribute(AJsonObject, lKeyName, lAttributeValue, AType, AIgnoredAttributes,
                 lProp.GetAttributes);
-              if (not lAttributeValue.IsEmpty) and lProp.IsWritable then
+              if (not lAttributeValue.IsEmpty) and (not lAttributeValue.IsObject) and lProp.IsWritable then
+              begin
                 lProp.SetValue(AObject, lAttributeValue);
+              end;
             end;
           end;
         except

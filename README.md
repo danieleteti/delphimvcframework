@@ -652,6 +652,7 @@ end;
 
 - Fixed! [issue38](https://github.com/danieleteti/delphimvcframework/issues/38)
 - Fixed! [issue140](https://github.com/danieleteti/delphimvcframework/issues/140)
+- Fixed! [issue161](https://github.com/danieleteti/delphimvcframework/issues/161)
 - Fixed! [issue184](https://github.com/danieleteti/delphimvcframework/issues/184)
 - Fixed! [issue278](https://github.com/danieleteti/delphimvcframework/issues/278)
 - Fixed! [issue164](https://github.com/danieleteti/delphimvcframework/issues/164)

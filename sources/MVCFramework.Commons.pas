@@ -643,6 +643,7 @@ implementation
 uses
   IdCoder3to4,
   System.NetEncoding,
+  System.Character,
   MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
 
 var
