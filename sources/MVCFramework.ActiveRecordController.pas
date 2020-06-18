@@ -230,7 +230,7 @@ begin
 
     if lAR.LoadByPK(id) then
     begin
-      Render(lAR, False);
+      Render(ObjectDict(false).Add('data', lAR));
     end
     else
     begin
