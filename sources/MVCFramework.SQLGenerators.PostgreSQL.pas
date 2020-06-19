@@ -69,7 +69,8 @@ type
     function CreateSQLWhereByRQL(
       const RQL: string;
       const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean = True): string; override;
+      const UseArtificialLimit: Boolean = True;
+      const UseFilterOnly: Boolean = False): string; override;
     function CreateSelectCount(
       const TableName: string): string; override;
     function GetSequenceValueSQL(const PKFieldName: string;
@@ -163,7 +164,8 @@ end;
 function TMVCSQLGeneratorPostgreSQL.CreateSQLWhereByRQL(
   const RQL: string;
   const Mapping: TMVCFieldsMapping;
-  const UseArtificialLimit: Boolean): string;
+  const UseArtificialLimit: Boolean;
+  const UseFilterOnly: Boolean): string;
 var
   lPostgreSQLCompiler: TRQLPostgreSQLCompiler;
 begin

@@ -84,7 +84,7 @@ type
   TRQLAbstractSyntaxTree = class(TObjectList<TRQLCustom>)
   public
     constructor Create;
-    function TreeContainsToken(const aToken: TRQLToken): Boolean;
+    function TreeContainsToken(const aToken: TRQLToken; out aFoundItem: TRQLCustom): Boolean;
   end;
 
   TRQLCompiler = class abstract
@@ -214,7 +214,8 @@ type
       const RQL: string;
       out SQL: string;
       const RQLCompiler: TRQLCompiler;
-      const UseLimit: Boolean = true);
+      const SetArtificialLimit: Boolean = true;
+      const UseFilterOnly: Boolean = False);
   end;
 
   TRQLCompilerRegistry = class sealed
@@ -319,9 +320,11 @@ procedure TRQL2SQL.Execute(
   const RQL: string;
   out SQL: string;
   const RQLCompiler: TRQLCompiler;
-  const UseLimit: Boolean);
+  const SetArtificialLimit: Boolean;
+  const UseFilterOnly: Boolean);
 var
   lLimit: TRQLLimit;
+  lRQLItem: TRQLCustom;
 begin
   fAST.Clear;
   fCurIdx := 0;
@@ -354,13 +357,27 @@ begin
     Error('Expected EOF');
 
   // add artificial limit
-  if UseLimit and (fMaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit)) then
+  if SetArtificialLimit and (fMaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit, lRQLItem)) then
   begin
     lLimit := TRQLLimit.Create;
     fAST.Add(lLimit);
     lLimit.Token := tkLimit;
     lLimit.Start := 0;
     lLimit.Count := fMaxRecordCount;
+  end;
+
+
+  if UseFilterOnly then
+  {If we need only the filter part, remove sort and limit tokens}
+  begin
+    if fAST.TreeContainsToken(tkSort, lRQLItem) then
+    begin
+      fAST.Remove(lRQLItem);
+    end;
+    if fAST.TreeContainsToken(tkLimit, lRQLItem) then
+    begin
+      fAST.Remove(lRQLItem);
+    end;
   end;
 
   // Emit code from AST using backend
@@ -1216,7 +1233,7 @@ begin
 end;
 
 function TRQLAbstractSyntaxTree.TreeContainsToken(
-  const aToken: TRQLToken): Boolean;
+  const aToken: TRQLToken; out aFoundItem: TRQLCustom): Boolean;
 var
   lItem: TRQLCustom;
 begin
@@ -1224,7 +1241,10 @@ begin
   for lItem in Self do
   begin
     if lItem.Token = aToken then
+    begin
+      aFoundItem := lItem;
       Exit(true);
+    end;
   end;
 end;
 

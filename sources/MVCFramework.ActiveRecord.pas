@@ -445,7 +445,9 @@ type
     function HasReturning: Boolean; virtual;
     // end-capabilities
     function CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean = True): string; virtual; abstract;
+      const UseArtificialLimit: Boolean = True;
+      const UseFilterOnly: Boolean = False
+      ): string; virtual; abstract;
     function CreateSelectSQL(const TableName: string; const Map: TFieldsMap;
       const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
     function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap;
