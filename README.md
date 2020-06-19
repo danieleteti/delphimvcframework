@@ -1009,6 +1009,50 @@ begin
 end;  
 ```
 
+### RQL as Implemented by DMVCFramework
+
+Here is a definition of the common operators (individual stores may have support for more less operators):
+
+```
+eq(<property>,<value>) - Filters for objects where the specified property's value is equal to the provided value
+lt(<property>,<value>) - Filters for objects where the specified property's value is less than the provided value
+le(<property>,<value>) - Filters for objects where the specified property's value is less than or equal to the provided value
+gt(<property>,<value>) - Filters for objects where the specified property's value is greater than the provided value
+ge(<property>,<value>) - Filters for objects where the specified property's value is greater than or equal to the provided value
+ne(<property>,<value>) - Filters for objects where the specified property's value is not equal to the provided value
+and(<query>,<query>,...) - Applies all the given queries
+or(<query>,<query>,...) - The union of the given queries
+sort(<+|-><property) - Sorts by the given property in order specified by the prefix (+ for ascending, - for descending)
+limit(count,start,maxCount) - Returns the given range of objects from the result set
+contains(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array contains any value that equals the provided value or satisfies the provided expression.
+in(<property>,<array-of-values>) - Filters for objects where the specified property's value is in the provided array
+out(<property>,<array-of-values>) - Filters for objects where the specified property's value is not in the provided array
+```
+
+
+
+##### Not Yet Availables
+
+```
+select(<property>,<property>,...) - Trims each object down to the set of properties defined in the arguments
+values(<property>) - Returns an array of the given property value for each object
+aggregate(<property|function>,...) - Aggregates the array, grouping by objects that are distinct for the provided properties, and then reduces the remaining other property values using the provided functions
+distinct() - Returns a result set with duplicates removed
+excludes(<property>,<value | expression>) - Filters for objects where the specified property's value is an array and the array does not contain any of value that equals the provided value or satisfies the provided expression.
+rel(<relation name?>,<query>) - Applies the provided query against the linked data of the provided relation name.
+sum(<property?>) - Finds the sum of every value in the array or if the property argument is provided, returns the sum of the value of property for every object in the array
+mean(<property?>) - Finds the mean of every value in the array or if the property argument is provided, returns the mean of the value of property for every object in the array
+max(<property?>) - Finds the maximum of every value in the array or if the property argument is provided, returns the maximum of the value of property for every object in the array
+min(<property?>) - Finds the minimum of every value in the array or if the property argument is provided, returns the minimum of the value of property for every object in the array
+recurse(<property?>) - Recursively searches, looking in children of the object as objects in arrays in the given property value
+first() - Returns the first record of the query's result set
+one() - Returns the first and only record of the query's result set, or produces an error if the query's result set has more or less than one record in it.
+count() - Returns the count of the number of records in the query's result set
+```
+
+
+
 ### Links
+
 Feel free to ask questions on the "Delphi MVC Framework" facebook group (https://www.facebook.com/groups/delphimvcframework).
 
