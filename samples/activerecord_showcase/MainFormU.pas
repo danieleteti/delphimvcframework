@@ -41,6 +41,7 @@ type
     btnCRUDNoAutoInc: TButton;
     btnCRUDWithStringPKs: TButton;
     btnWithSpaces: TButton;
+    btnCountWithRQL: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -56,6 +57,7 @@ type
     procedure btnCRUDNoAutoIncClick(Sender: TObject);
     procedure btnCRUDWithStringPKsClick(Sender: TObject);
     procedure btnWithSpacesClick(Sender: TObject);
+    procedure btnCountWithRQLClick(Sender: TObject);
   private
     procedure Log(const Value: string);
   public
@@ -79,6 +81,51 @@ uses
   MVCFramework.RQL.Parser,
   System.Math,
   FDConnectionConfigU, EngineChoiceFormU;
+
+const
+  Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
+  CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
+  Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
+
+procedure TMainForm.btnCountWithRQLClick(Sender: TObject);
+var
+  lRQL: string;
+  lCustomer: TCustomer;
+  I: Integer;
+begin
+  Log('** TMVCActiveRecord.Count<TCustomer>(RQL) [Just uses Filter]');
+
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  for I := 1 to 30 do
+  begin
+    lCustomer := TCustomer.Create;
+    try
+      lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
+      lCustomer.City := Cities[Random(high(Cities) + 1)];
+      lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
+        CompanySuffix[Random(high(CompanySuffix) + 1)]]);
+      lCustomer.Note := lCustomer.CompanyName + ' is from ' + lCustomer.City;
+      lCustomer.Insert;
+    finally
+      lCustomer.Free;
+    end;
+  end;
+
+  lRQL := 'contains(city,"e")';
+  Log(lRQL + ' => ' + TMVCActiveRecord.Count<TCustomer>(lRQL).ToString);
+
+  lRQL := 'contains(city,"e");sort(+city)';
+  Log(lRQL + ' => ' + TMVCActiveRecord.Count<TCustomer>(lRQL).ToString);
+
+  lRQL := 'contains(city,"e");limit(1,1)';
+  Log(lRQL + ' => ' + TMVCActiveRecord.Count<TCustomer>(lRQL).ToString);
+
+  lRQL := 'contains(city,"e");sort(+city);limit(1,1)';
+  Log(lRQL + ' => ' + TMVCActiveRecord.Count<TCustomer>(lRQL).ToString);
+
+  lRQL := 'contains(city,"e");sort(+city);limit(0,5)';
+  Log(lRQL + ' => ' + TMVCActiveRecord.Count<TCustomer>(lRQL).ToString);
+end;
 
 procedure TMainForm.btnCRUDClick(Sender: TObject);
 var
@@ -281,10 +328,6 @@ var
   lTasks: TArray<ITask>;
   lProc: TProc;
   lConnParams: string;
-const
-  Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
-  CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
-  Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
 begin
   Log('** Multithreading test');
   TMVCActiveRecord.DeleteRQL(TCustomer, 'in(City,["Rome","New York","London","Melbourne","Berlin"])');

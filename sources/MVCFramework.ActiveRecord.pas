@@ -1043,7 +1043,7 @@ begin
   lSQL := Self.SQLGenerator.CreateSelectCount(fTableName);
   if not RQL.IsEmpty then
   begin
-    lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, false);
+    lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, False, True);
   end;
   Result := GetScalar(lSQL, []);
 end;
