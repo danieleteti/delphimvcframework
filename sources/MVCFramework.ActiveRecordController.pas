@@ -153,10 +153,15 @@ begin
       lInstance.Free;
     end;
 
+
     lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL,
       GetMaxRecordCount), True);
     try
-      lResp.Metadata.Add('count', lResp.Items.Count.ToString);
+      lResp.Metadata.Add('page_size', lResp.Items.Count.ToString);
+      if Context.Request.QueryStringParam('count').ToLower = 'true' then
+      begin
+        lResp.Metadata.Add('count', TMVCActiveRecord.Count(lARClassRef, lRQL).ToString);
+      end;
       Render(lResp);
     except
       lResp.Free;
