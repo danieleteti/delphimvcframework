@@ -293,10 +293,30 @@ end;
 >ObjectDict is the suggested way to renders data. However, the other ones are still there and works as usual.
 
 - New! Added SQLGenerator and RQL compiler for PostgreSQL, SQLite and MSSQLServer (in addition to MySQL, MariaDB, Firebird and Interbase)
-- New! *MVCNameAs* attribute got the param `Fixed` (default: false). If `Fixed` is true, then the name is not processed by the `MVCNameCase` attribute assigned to the owner type.
-- New! Added support for interfaces serialization - now it is possible to serialize Spring4D collections (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-- New! Added support for Spring4D Nullable Types - check  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-- New! Added `OnRouterLog` event to log custom information for each request (thanks to [Andrea Ciotti](https://github.com/andreaciotti) for the first implementation and its PR)
+- New! Added `Context.Request.HeaderNames` methods - it returns all the request header names as `TArray<String>`. It is very useful to inspect incoming requests as shown in the next snippet (this method works only with the built-in Indy webserver).
+
+```delphi
+procedure TMyController.Index;
+var
+  lHeaders: TArray<String>;
+  lHeaderName: String;
+  lStrDict: TMVCStringDictionary;
+begin
+  lHeaders := Context.Request.HeaderNames;
+  lStrDict := StrDict();
+  for lHeaderName in lHeaders do
+  begin
+    lStrDict.Add(lHeaderName, Context.Request.Headers[lHeaderName]);
+  end;
+  Render(lStrDict);
+  //the output is a JSON object with all the header pairs  
+end;
+```
+
+- New! *MVCNameAs* attribute has got a new parameter named `Fixed` (default: false). If `Fixed` is true, then the name is not processed by the `MVCNameCase` attribute assigned to the owner type.
+- New! Added support for interfaces serialization - now it is possible to serialize Spring4D collections (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
+- New! Added support for Spring4D Nullable Types serialization - check  sample (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
+- New! Added `OnRouterLog` event to log custom information for each request (thanks to [Andrea Ciotti](https://github.com/andreaciotti) for the first implementation and its PR).
 - New! Optionally load system controllers (those who provide `/describeserver.info`, `/describeplatform.info` and `/serverconfig.info` system actions) setting `Config[TMVCConfigKey.LoadSystemControllers] := 'false';` in the configuration block.
 - Improved! Now the router consider `Accept:*/*` compatible for every `MVCProduces` values
 - Improved! Greatly improved support for [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) in renders. Check `TRenderSampleController.GetPeople_AsObjectList_HATEOS` and all the others actions end with `HATEOS` in `renders.dproj` sample)

@@ -472,12 +472,14 @@ type
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name, Value: string): TMVCStringDictionary;
+    function AddStrings(const Strings: TStrings): TMVCStringDictionary;
     function TryGetValue(const Name: string; out Value: string): Boolean; overload;
     function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
     function Count: Integer;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
+    function ToString: String; override;
     property Items[const Key: string]: string read GetItems write SetItems; default;
   end;
 
@@ -956,6 +958,19 @@ end;
 
 { TMVCStringDictionary }
 
+function TMVCStringDictionary.AddStrings(const Strings: TStrings): TMVCStringDictionary;
+var
+  I: Integer;
+  lName: string;
+begin
+  for I := 0 to Strings.Count-1 do
+  begin
+    lName := Strings.Names[I];
+    Add(lName, Strings.Values[lName]);
+  end;
+  Result := Self;
+end;
+
 function TMVCStringDictionary.Add(const Name, Value: string): TMVCStringDictionary;
 begin
   fDict.AddOrSetValue(name, Value);
@@ -1004,6 +1019,23 @@ function TMVCStringDictionary.GetItems(const Key: string): string;
 begin
   Result := '';
   fDict.TryGetValue(Key, Result);
+end;
+
+function TMVCStringDictionary.ToString: String;
+var
+  I: Integer;
+  S: String;
+  lValues: TArray<String>;
+  lKey: string;
+begin
+  Result := '';
+  SetLength(lValues, Length(Keys));
+  for I := 0 to Count - 1 do
+  begin
+    lKey := Keys[I];
+    lValues[I] := lKey + '=' + Items[lKey];
+  end;
+  Result := String.Join(';', lValues);
 end;
 
 function TMVCStringDictionary.Keys: TArray<string>;

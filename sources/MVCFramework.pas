@@ -82,6 +82,8 @@ uses
   IdGlobal,
   IdGlobalProtocols,
   IdURI,
+  IdHTTPWebBrokerBridge,
+  IdHeaderList,
   Swag.Doc,
   Swag.Common.Types,
   MVCFramework.Commons,
@@ -326,6 +328,7 @@ type
     function GetParamsMulti(const AParamName: string): TArray<string>;
   protected
     { protected declarations }
+    procedure EnsureINDY;
   public
     constructor Create(const AWebRequest: TWebRequest; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
@@ -352,7 +355,7 @@ type
     function BodyAsListOf<T: class, constructor>: TObjectList<T>;
     procedure BodyFor<T: class, constructor>(const AObject: T);
     procedure BodyForListOf<T: class, constructor>(const AObjectList: TObjectList<T>);
-
+    function HeaderNames: TArray<String>;
     property RawWebRequest: TWebRequest read FWebRequest;
     property ContentMediaType: string read FContentMediaType;
     property ContentType: string read FContentType;
@@ -1007,6 +1010,11 @@ var
   _IsShuttingDown: Int64 = 0;
   _MVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
 
+type
+  THackIdHTTPAppRequest = class(TIdHTTPAppRequest)
+
+  end;
+
 function IsShuttingDown: Boolean;
 begin
   Result := TInterlocked.Read(_IsShuttingDown) = 1
@@ -1206,6 +1214,20 @@ begin
     end;
 end;
 
+function TMVCWebRequest.HeaderNames: TArray<String>;
+var
+  lHeaderList: TIdHeaderList;
+  I: Integer;
+begin
+  EnsureINDY;
+  lHeaderList := THackIdHTTPAppRequest(TMVCIndyWebRequest(Self).RawWebRequest).FRequestInfo.RawHeaders;
+  SetLength(Result, lHeaderList.Count);
+  for I := 0 to Pred(lHeaderList.Count) do
+  begin
+    Result[I] := lHeaderList.Names[I];
+  end;
+end;
+
 procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>);
 var
   lSerializer: IMVCSerializer;
@@ -1314,6 +1336,14 @@ begin
     FQueryParams.Free;
   end;
   inherited Destroy;
+end;
+
+procedure TMVCWebRequest.EnsureINDY;
+begin
+  if not (Self is TMVCIndyWebRequest) then
+  begin
+    raise EMVCException.Create(http_status.InternalServerError, 'Method available only in INDY implementation');
+  end;
 end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
