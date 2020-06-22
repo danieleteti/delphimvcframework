@@ -1024,11 +1024,9 @@ end;
 function TMVCStringDictionary.ToString: String;
 var
   I: Integer;
-  S: String;
   lValues: TArray<String>;
   lKey: string;
 begin
-  Result := '';
   SetLength(lValues, Length(Keys));
   for I := 0 to Count - 1 do
   begin

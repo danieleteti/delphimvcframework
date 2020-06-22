@@ -331,6 +331,9 @@ type
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function SelectRQL<T: constructor, TMVCActiveRecord>(const RQL: string; const MaxRecordCount: Integer)
       : TObjectList<T>; overload;
+    class function SelectOneByRQL<T: constructor, TMVCActiveRecord>(
+      const RQL: string;
+      const RaiseExceptionIfNotFound: Boolean): T; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): int64; overload;
     class function Where<T: TMVCActiveRecord, constructor>(
@@ -1246,6 +1249,29 @@ begin
   begin
     if RaiseExceptionIfNotFound then
       raise EMVCActiveRecordNotFound.Create('Got 0 rows when exactly 1 was expected');
+  end;
+end;
+
+class function TMVCActiveRecordHelper.SelectOneByRQL<T>(
+  const RQL: string;
+  const RaiseExceptionIfNotFound: Boolean): T;
+var
+  lAR: TMVCActiveRecord;
+  lSQL: string;
+begin
+  lAR := T.Create;
+  try
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping).Trim;
+    if lSQL.StartsWith('where', True) then
+      lSQL := lSQL.Remove(0, 5).Trim;
+    Result := GetFirstByWhere<T>(lSQL, [], RaiseExceptionIfNotFound);
+    if Result = nil then
+    begin
+      if RaiseExceptionIfNotFound then
+        raise EMVCActiveRecordNotFound.Create('Got 0 rows when exactly 1 was expected');
+    end;
+  finally
+    lAR.Free;
   end;
 end;
 
