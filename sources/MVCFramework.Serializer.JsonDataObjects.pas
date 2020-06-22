@@ -898,6 +898,7 @@ var
   LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
   LMappedValueIndex: Integer;
+  lValue: TValue;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
@@ -1087,11 +1088,35 @@ begin
           // dt: if a key is null, jsondataobjects assign it the type jdtObject
           if AJsonObject[AName].ObjectValue <> nil then
           begin
-            if AValue.Kind = tkInterface then
-              ChildObject := TObject(AValue.AsInterface)
-            else
-              ChildObject := AValue.AsObject;
-            JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType), AIgnored);
+            case AValue.Kind of
+              tkInterface:
+                begin
+                  ChildObject := TObject(AValue.AsInterface);
+                  JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType),
+                    AIgnored);
+                end;
+              tkClass:
+                begin
+                  ChildObject := AValue.AsObject;
+                  JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType),
+                    AIgnored);
+                end;
+              tkString, tkUString:
+                begin
+                  AValue := AJsonObject.O[AName].ToJSON();
+                end;
+              tkRecord:
+                begin
+                  if AValue.TypeInfo = TypeInfo(NullableString) then
+                  begin
+                    AValue := TValue.From<NullableString>(NullableString(AJsonObject.O[AName].ToJSON()));
+                  end
+                  else
+                  begin
+                    raise EMVCDeserializationException.CreateFmt('Cannot deserialize object value for "%s"', [AName]);
+                  end;
+                end
+            end;
           end;
         end;
       end;
@@ -1130,7 +1155,8 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.JsonObjectToDataSet(const AJsonObject: TJDOJsonObject; const ADataSet: TDataSet;
+procedure TMVCJsonDataObjectsSerializer.JsonObjectToDataSet(const AJsonObject: TJDOJsonObject;
+  const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 var
   Field: TField;
