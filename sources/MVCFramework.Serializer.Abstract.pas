@@ -162,7 +162,20 @@ function TMVCAbstractSerializer.GetObjectTypeOfGenericList(const ATypeInfo: PTyp
   begin
     LTypeInfoName := UTF8ToString(ATypeInfo.Name);
     LOpen := Pos('<', LTypeInfoName);
-    LClose := Pos('>', LTypeInfoName);
+
+    if LTypeInfoName.CountChar('>') > 1 then
+    begin
+      for I := LTypeInfoName.Length - 1 downto 0 do
+      begin
+        if LTypeInfoName[I] = '>' then
+        begin
+          LClose := I;
+          Break;
+        end;
+      end;
+    end
+    else
+      LClose := Pos('>', LTypeInfoName);
 
     if LOpen <= 0 then
       Exit('');
