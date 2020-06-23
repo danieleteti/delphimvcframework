@@ -609,6 +609,10 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
+function StrToJSONObject(const aString: String): TJsonObject;
+function StrToJSONArray(const aString: String): TJsonArray;
+
+
 { changing case }
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
 
@@ -639,6 +643,8 @@ type
     class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string; var VUsername,
       VPassword: string; var VHandled: Boolean);
   end;
+
+
 
 implementation
 
@@ -1413,6 +1419,17 @@ begin
     lSB.Free;
   end;
 end;
+
+function StrToJSONObject(const aString: String): TJsonObject;
+begin
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString);
+end;
+
+function StrToJSONArray(const aString: String): TJsonArray;
+begin
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString);
+end;
+
 
 initialization
 

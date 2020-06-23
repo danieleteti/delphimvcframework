@@ -175,6 +175,7 @@ type
 
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
 function StrToJSONObject(const AValue: string): TJDOJsonObject;
+function StrToJSONArray(const AValue: string): TJDOJsonArray;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
@@ -2187,7 +2188,24 @@ begin
     on E: Exception do
     begin
       lJSON.Free;
-      raise EMVCDeserializationException.Create('Invalid JSON');
+      raise EMVCDeserializationException.Create('Invalid JSON Object');
+    end;
+  end;
+end;
+
+function StrToJSONArray(const AValue: string): TJDOJsonArray;
+var
+  lJSON: TJDOJsonArray;
+begin
+  lJSON := nil;
+  try
+    lJSON := TJDOJsonObject.Parse(AValue) as TJDOJsonArray;
+    Result := lJSON;
+  except
+    on E: Exception do
+    begin
+      lJSON.Free;
+      raise EMVCDeserializationException.Create('Invalid JSON Array');
     end;
   end;
 end;
