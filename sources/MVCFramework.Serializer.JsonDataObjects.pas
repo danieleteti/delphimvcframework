@@ -898,7 +898,6 @@ var
   LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
   LMappedValueIndex: Integer;
-  lValue: TValue;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
