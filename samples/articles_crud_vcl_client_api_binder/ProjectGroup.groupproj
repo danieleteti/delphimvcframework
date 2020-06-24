@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{AF04BD45-3137-4757-B1AC-147D4136E52C}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="articles_crud_vcl_client_api_binder.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\articles_crud_server\articles_crud.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="articles_crud_vcl_client_api_binder">
+        <MSBuild Projects="articles_crud_vcl_client_api_binder.dproj"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_api_binder:Clean">
+        <MSBuild Projects="articles_crud_vcl_client_api_binder.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client_api_binder:Make">
+        <MSBuild Projects="articles_crud_vcl_client_api_binder.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="articles_crud">
+        <MSBuild Projects="..\articles_crud_server\articles_crud.dproj"/>
+    </Target>
+    <Target Name="articles_crud:Clean">
+        <MSBuild Projects="..\articles_crud_server\articles_crud.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud:Make">
+        <MSBuild Projects="..\articles_crud_server\articles_crud.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="articles_crud_vcl_client_api_binder;articles_crud"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="articles_crud_vcl_client_api_binder:Clean;articles_crud:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="articles_crud_vcl_client_api_binder:Make;articles_crud:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

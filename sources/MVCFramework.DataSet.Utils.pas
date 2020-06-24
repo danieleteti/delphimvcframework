@@ -643,8 +643,9 @@ var
   Res: IRESTResponse;
   lData: TJSONObject;
 begin
+
   // this a simple sychronous request...
-  Res := fRESTClient.doGET('/api/customers', []);
+  Res := fRESTClient.doGET(fURI, []);
   if Res.HasError then
   begin
     ShowError(Res);
@@ -655,7 +656,7 @@ begin
     DataSet.DisableControls;
     try
       fLoading := true;
-      DataSet.LoadFromJSONArray(lData.A['items']);
+      DataSet.LoadFromJSONArray(lData.A['data']);
       fLoading := false;
       DataSet.First;
     finally
@@ -719,7 +720,11 @@ end;
 procedure TMVCAPIBinder.TMVCAPIBinderItem.ShowError(const AResponse: IRESTResponse);
 begin
   if AResponse.HasError then
-    raise EMVCException.Create(AResponse.Error.Status);
+    raise EMVCException.Create(
+      AResponse.Error.ExceptionMessage + sLineBreak +
+      AResponse.Error.ExceptionClassname)
+  else
+    raise EMVCException.Create(AResponse.BodyAsString);
   // else
   // MessageDlg(
   // AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
