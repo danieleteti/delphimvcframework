@@ -33,7 +33,7 @@ uses
 
 const
   SQLs: array [0 .. 2] of string = (
-    'CREATE TABLE customers (id INTEGER NOT NULL, code varchar (20), description varchar (200), city varchar (200), note TEXT, rating INTEGER, PRIMARY KEY (id))',
+    'CREATE TABLE customers (id INTEGER NOT NULL, code varchar (20), description varchar (200), city varchar (200), note TEXT, rating INTEGER, creation_time TIME, creation_date date, PRIMARY KEY (id))',
     'CREATE TABLE customers_with_code (code varchar (20) not null, description varchar (200), city varchar (200), note TEXT, rating INTEGER, PRIMARY KEY(code))',
     'CREATE TABLE nullables_test(f_int2 int2, f_int8 int8, f_int4 int4, f_string varchar, f_bool BOOLEAN, ' +
     'f_date TIMESTAMP, f_time TIMESTAMP, f_datetime TIMESTAMP, f_float4 float4, f_float8 float8, ' +
@@ -57,12 +57,18 @@ type
     fRating: NullableInt32;
     [MVCTableField('note')]
     fNote: string;
+    [MVCTableField('creation_time')]
+    fCreationTime: NullableTTime;
+    [MVCTableField('creation_date')]
+    fCreationDate: NullableTDate;
   public
     property ID: Integer read fID write fID;
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
+    property CreationTime: NullableTTime read fCreationTime write fCreationTime;
+    property CreationDate: NullableTDate read fCreationDate write fCreationDate;
     property Note: string read fNote write fNote;
   end;
 

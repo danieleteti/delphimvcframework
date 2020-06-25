@@ -106,6 +106,8 @@ begin
     lCustomer.CompanyName := 'bit Time Professionals';
     lCustomer.City := 'Rome, IT';
     lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
     lCustomer.ID := -1; { don't be fooled by the default! }
     lCustomer.Insert;
     lID := lCustomer.ID;
@@ -118,9 +120,13 @@ begin
   try
     Assert.IsFalse(lCustomer.Code.HasValue);
     Assert.IsFalse(lCustomer.Rating.HasValue);
+    Assert.IsTrue(lCustomer.CreationTime.HasValue);
+    Assert.IsTrue(lCustomer.CreationDate.HasValue);
     lCustomer.Code := '1234';
     lCustomer.Rating := 3;
     lCustomer.Note := lCustomer.Note + 'noteupdated';
+    lCustomer.CreationTime.Clear;
+    lCustomer.CreationDate.Clear;
     lCustomer.Update;
   finally
     lCustomer.Free;
@@ -134,6 +140,8 @@ begin
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
     Assert.AreEqual(1, lCustomer.ID);
+    Assert.IsFalse(lCustomer.CreationTime.HasValue);
+    Assert.IsFalse(lCustomer.CreationDate.HasValue);
   finally
     lCustomer.Free;
   end;
