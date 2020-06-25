@@ -1050,7 +1050,11 @@ begin
       end;
     ftDateTime:
       begin
-        aRTTIField.SetValue(AObject, Trunc(AField.AsDateTime));
+        aRTTIField.SetValue(AObject, AField.AsDateTime);
+      end;
+    ftTime:
+      begin
+        aRTTIField.SetValue(AObject, Frac(AField.AsDateTime));
       end;
     ftTimeStamp:
       begin
@@ -1062,28 +1066,48 @@ begin
       end;
     ftMemo, ftWideMemo:
       begin
-        if aRTTIField.FieldType.TypeKind in [tkString, tkUString { , tkWideString } ] then
-        begin
-          // In case you want to map a "TEXT" blob into a Delphi String
-          lSStream := TStringStream.Create('', TEncoding.Unicode);
-          try
-            TBlobField(AField).SaveToStream(lSStream);
-            aRTTIField.SetValue(AObject, lSStream.DataString);
-          finally
-            lSStream.Free;
-          end;
-        end
+        case aRTTIField.FieldType.TypeKind of
+          tkString, tkUString:
+            begin
+              lSStream := TStringStream.Create('', TEncoding.Unicode);
+              try
+                TBlobField(AField).SaveToStream(lSStream);
+                aRTTIField.SetValue(AObject, lSStream.DataString);
+              finally
+                lSStream.Free;
+              end;
+            end;
+          tkFloat: { sqlite - date types stored as text }
+            begin
+              if TypeInfo(TDate) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, ISODateToDate(AField.AsString));
+              end
+              else if TypeInfo(TDateTime) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, ISOTimeStampToDateTime(AField.AsString));
+              end
+              else if TypeInfo(TTime) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, ISOTimeToTime(AField.AsString));
+              end
+              else
+              begin
+                raise EMVCDeserializationException.Create('Cannot deserialize field ' + AField.FieldName);
+              end;
+            end
         else
-        begin
-          // In case you want to map a binary blob into a Delphi Stream
-          lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
-          if lInternalStream = nil then
           begin
-            raise EMVCException.CreateFmt('Property target for %s field is nil', [AField.FieldName]);
+            // In case you want to map a binary blob into a Delphi Stream
+            lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
+            if lInternalStream = nil then
+            begin
+              raise EMVCException.CreateFmt('Property target for %s field is nil', [AField.FieldName]);
+            end;
+            lInternalStream.Position := 0;
+            TBlobField(AField).SaveToStream(lInternalStream);
+            lInternalStream.Position := 0;
           end;
-          lInternalStream.Position := 0;
-          TBlobField(AField).SaveToStream(lInternalStream);
-          lInternalStream.Position := 0;
         end;
       end;
     ftBCD:

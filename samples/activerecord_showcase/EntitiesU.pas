@@ -176,6 +176,10 @@ type
     fRating: NullableInt32;
     [MVCTableField('note')]
     fNote: string;
+    [MVCTableField('creation_time')]
+    FCreationTime: TTime;
+    [MVCTableField('creation_date')]
+    FCreationDate: TDate;
   public
     property ID: NullableInt64 read fID write fID;
     property Code: NullableString read fCode write fCode;
@@ -183,6 +187,8 @@ type
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
     property Note: string read fNote write fNote;
+    property CreationTime: TTime read FCreationTime write FCreationTime;
+    property CreationDate: TDate read FCreationDate write FCreationDate;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -209,7 +215,6 @@ type
     property Rating: NullableInt32 read fRating write fRating;
     property Note: string read fNote write fNote;
   end;
-
 
   [MVCNameCase(ncLowerCase)]
   [MVCTable('customers_with_code')]

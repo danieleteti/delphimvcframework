@@ -19,6 +19,7 @@ type
     Button6: TButton;
     Button7: TButton;
     procedure Button1Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     fSelectedRDBMS: TRDBMSEngine;
     function SelectedRDBMS: TRDBMSEngine;
@@ -55,6 +56,22 @@ begin
   finally
     lFrm.Free;
   end;
+end;
+
+procedure TEngineChoiceForm.FormCreate(Sender: TObject);
+begin
+{$IFDEF USE_SEQUENCES}
+  Button1.Enabled := False;
+  Button2.Enabled := False;
+  Button4.Enabled := False;
+  Button5.Enabled := False;
+  Button6.Enabled := False;
+  Button7.Enabled := False;
+  Caption := 'Use SEQUENCES';
+{$ELSE}
+  Button3.Enabled := False;
+  Caption := 'Use RETURNING';
+{$ENDIF}
 end;
 
 function TEngineChoiceForm.SelectedRDBMS: TRDBMSEngine;

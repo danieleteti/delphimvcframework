@@ -60,6 +60,7 @@ type
     procedure btnCountWithRQLClick(Sender: TObject);
   private
     procedure Log(const Value: string);
+    procedure LoadCustomers;
   public
     { Public declarations }
   end;
@@ -202,6 +203,8 @@ begin
       end;
       lCustomer.City := 'Montain View, CA';
       lCustomer.Note := 'Hello there!';
+      lCustomer.CreationTime := Time;
+      lCustomer.CreationDate := Date;
       lCustomer.Insert;
       lID := lCustomer.ID;
       Log('Just inserted Customer ' + lID.ToString);
@@ -647,6 +650,7 @@ const
   cRQL1 = 'in(City,["Rome","London"]);sort(+code);limit(0,50)';
   cRQL2 = 'and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))';
 begin
+  LoadCustomers;
   Log('** RQL Queries Test');
   Log('>> RQL Query (1) - ' + cRQL1);
   lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20);
@@ -720,11 +724,14 @@ begin
   try
     for lCustomer in lCustomers do
     begin
-      Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+      Log(Format('%4d - %8.5s - %s', [lCustomer.ID.ValueOrDefault, lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault]));
     end;
   finally
     lCustomers.Free;
   end;
+
+  LoadCustomers;
 
   Log('** Query SQL returning DataSet');
   lDS := TMVCActiveRecord.SelectDataSet('SELECT * FROM customers', []);
@@ -988,6 +995,28 @@ begin
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
   btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+end;
+
+procedure TMainForm.LoadCustomers;
+var
+  lCustomer: TCustomer;
+  I: Integer;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  for I := 1 to 50 do
+  begin
+    lCustomer := TCustomer.Create;
+    try
+      lCustomer.CompanyName := Stuff[Random(4)] + ' ' + CompanySuffix[Random(5)];
+      lCustomer.Code := Random(100).ToString.PadLeft(5, '0');
+      lCustomer.City := Cities[Random(4)];
+      lCustomer.Rating := Random(5);
+      lCustomer.Note := Stuff[Random(4)];
+      lCustomer.Insert;
+    finally
+      lCustomer.Free;
+    end;
+  end;
 end;
 
 procedure TMainForm.Log(const Value: string);
