@@ -41,7 +41,10 @@ type
   TMVCActiveRecordMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     fConnectionDefName: string;
+    fConnectionDefFileName: string;
+    fConnectionLoaded: Boolean;
   protected
+    procedure EnsureConnection;
     procedure OnBeforeRouting(
       AContext: TWebContext;
       var AHandled: Boolean);
@@ -80,17 +83,33 @@ constructor TMVCActiveRecordMiddleware.Create(const ConnectionDefName: string;
   const ConnectionDefFileName: string);
 begin
   inherited Create;
-  if not FDManager.ConnectionDefFileLoaded then
+  fConnectionLoaded := False;
+  fConnectionDefName := ConnectionDefName;
+  fConnectionDefFileName := ConnectionDefFileName;
+end;
+
+procedure TMVCActiveRecordMiddleware.EnsureConnection;
+begin
+  if fConnectionLoaded then
   begin
-    FDManager.ConnectionDefFileName := ConnectionDefFileName;
-    FDManager.LoadConnectionDefFile;
+    Exit;
   end;
-  if not FDManager.IsConnectionDef(ConnectionDefName) then
+
+  // if not FDManager.ConnectionDefFileLoaded then
+  // begin
+  FDManager.ConnectionDefFileName := fConnectionDefFileName;
+  FDManager.ConnectionDefFileAutoLoad := False;
+  FDManager.LoadConnectionDefFile;
+  // end;
+  if not FDManager.IsConnectionDef(fConnectionDefName) then
   begin
     raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
-      [ConnectionDefName, ConnectionDefFileName]);
+      [fConnectionDefName, FDManager.ActualConnectionDefFileName]);
+  end
+  else
+  begin
+    fConnectionLoaded := True;
   end;
-  fConnectionDefName := ConnectionDefName;
 end;
 
 procedure TMVCActiveRecordMiddleware.OnAfterControllerAction(
@@ -118,6 +137,7 @@ procedure TMVCActiveRecordMiddleware.OnBeforeRouting(AContext: TWebContext; var 
 var
   lConn: TFDConnection;
 begin
+  EnsureConnection;
   lConn := TFDConnection.Create(nil);
   lConn.ConnectionDefName := fConnectionDefName;
   ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);

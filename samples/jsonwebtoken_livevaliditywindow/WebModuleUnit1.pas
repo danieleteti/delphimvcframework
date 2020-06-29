@@ -60,9 +60,12 @@ begin
       Config[TMVCConfigKey.SessionTimeout] := '30';
       Config[TMVCConfigKey.DefaultContentType] := 'text/html';
     end);
-  MVC.AddController(TApp1MainController).AddController(TAdminController)
-    .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37',
-    '/login', [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 0
+  MVC
+    .AddController(TApp1MainController)
+    .AddController(TAdminController)
+    .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
+      TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37', '/login',
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 0
     // just for test, Leeway seconds is zero.
     ))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create(
