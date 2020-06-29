@@ -899,6 +899,8 @@ var
   LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
   LMappedValueIndex: Integer;
+  lOutInteger: Integer;
+  lOutInteger64: Int64;
 begin
   if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
   begin
@@ -982,6 +984,14 @@ begin
             TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
               AValue.TypeInfo, AValue)
           end;
+        end
+        else if (AValue.Kind = tkInteger) and (TryStrToInt(AJsonObject[AName].Value, lOutInteger)) then
+        begin
+          AValue := lOutInteger;
+        end
+        else if (AValue.Kind = tkInt64) and (TryStrToInt64(AJsonObject[AName].Value, lOutInteger64)) then
+        begin
+          AValue := lOutInteger64;
         end
         else
           AValue := TValue.From<string>(AJsonObject[AName].Value);
