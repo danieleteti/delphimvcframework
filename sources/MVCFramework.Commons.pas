@@ -151,6 +151,7 @@ type
     AllowUnhandledAction = 'allow_unhandled_action';
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';
+    ExposeXPoweredBy = 'xpoweredby';
     SessionType = 'session_type';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes

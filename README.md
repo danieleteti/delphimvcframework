@@ -467,6 +467,8 @@ end;
 
 - New! The **MVCAREntitiesGenerator** can optionally register all the generated entities also in the `ActiveRecordMappingRegistry` (Thanks to [Fabrizio Bitti](https://twitter.com/fabriziobitti) from [bit Time Software](http://www.bittime.it))
 
+- Compression through `TMVCCompressionMiddleware` is not enabled is DMVCFramework service is compiled as Apache module or IIS ISAPI. The host webserver should handle the actual compression.
+
 - New! Children objects lifecycle management in `TMVCActiveRecord` (methods `AddChildren` and `RemoveChildren`). Really useful to manage child objects such relations or derived properties and are safe in case of multiple addition of the same object as children.
 
     ```delphi

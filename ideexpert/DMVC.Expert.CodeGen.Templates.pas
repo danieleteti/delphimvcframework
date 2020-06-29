@@ -348,6 +348,8 @@ resourcestring
     '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
 	'      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
+	'      //Enable X-Powered-By Header in response' + sLineBreak +
+    '      Config[TMVCConfigKey.ExposeXPoweredBy] := ''true'';' + sLineBreak +	
 //    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
 //    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
     '      // Max request size in bytes' + sLineBreak +

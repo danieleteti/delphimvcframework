@@ -853,6 +853,9 @@ type
     FWebModule: TWebModule;
     FConfig: TMVCConfig;
     FConfigCache_MaxRequestSize: Int64;
+    FConfigCache_ExposeServerSignature: Boolean;
+    FConfigCache_ServerSignature: String;
+    FConfigCache_ExposeXPoweredBy: Boolean;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -909,7 +912,6 @@ type
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
     function SetExceptionHandler(const AExceptionHandlerProc: TMVCExceptionHandlerProc): TMVCEngine;
 
-    function GetServerSignature(const AContext: TWebContext): string;
     procedure HTTP404(const AContext: TWebContext);
     procedure HTTP500(const AContext: TWebContext; const AReasonString: string = '');
     procedure SendRawHTTPStatus(const AContext: TWebContext; const HTTPStatusCode: Integer;
@@ -1998,6 +2000,7 @@ begin
   Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
   Config[TMVCConfigKey.ServerName] := 'DelphiMVCFramework';
   Config[TMVCConfigKey.ExposeServerSignature] := 'true';
+  Config[TMVCConfigKey.ExposeXPoweredBy] := 'true';
   Config[TMVCConfigKey.SessionType] := 'memory';
   Config[TMVCConfigKey.MaxEntitiesRecordCount] := '20';
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
@@ -2075,8 +2078,10 @@ end;
 
 procedure TMVCEngine.DefineDefaultResponseHeaders(const AContext: TWebContext);
 begin
-  if Config[TMVCConfigKey.ExposeServerSignature] = 'true' then
-    AContext.Response.CustomHeaders.Values['Server'] := GetServerSignature(AContext);
+  if FConfigCache_ExposeServerSignature and (not IsLibrary) then
+    AContext.Response.CustomHeaders.Values['Server'] := FConfigCache_ServerSignature;
+  if FConfigCache_ExposeXPoweredBy then
+    AContext.Response.CustomHeaders.Values['X-Powered-By'] := 'DMVCFramework ' + DMVCFRAMEWORK_VERSION;
   AContext.Response.RawWebResponse.Date := Now;
 end;
 
@@ -2588,18 +2593,6 @@ begin
   end;
 end;
 
-function TMVCEngine.GetServerSignature(const AContext: TWebContext): string;
-begin
-  if AContext.Config.Value[TMVCConfigKey.ExposeServerSignature] = 'true' then
-  begin
-    Result := 'DelphiMVCFramework ' + DMVCFRAMEWORK_VERSION;
-  end
-  else
-  begin
-    Result := '';
-  end;
-end;
-
 function TMVCEngine.GetSessionBySessionId(const ASessionId: string): TWebSession;
 begin
   Result := TMVCEngine.GetCurrentSession(StrToInt64(Config[TMVCConfigKey.SessionTimeout]), ASessionId, False);
@@ -2621,7 +2614,7 @@ begin
   AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
     AContext.Config[TMVCConfigKey.DefaultContentCharset]));
   AContext.Response.SetReasonString('Not Found');
-  AContext.Response.SetContent('Not Found' + sLineBreak + GetServerSignature(AContext));
+  AContext.Response.SetContent('Not Found' + sLineBreak + FConfigCache_ServerSignature);
 end;
 
 procedure TMVCEngine.HTTP500(const AContext: TWebContext; const AReasonString: string);
@@ -2630,7 +2623,7 @@ begin
   AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
     AContext.Config[TMVCConfigKey.DefaultContentCharset]));
   AContext.Response.SetReasonString('Internal server error');
-  AContext.Response.SetContent('Internal server error' + sLineBreak + GetServerSignature(AContext) + ': ' +
+  AContext.Response.SetContent('Internal server error' + sLineBreak + FConfigCache_ServerSignature + ': ' +
     AReasonString);
 end;
 
@@ -2658,7 +2651,7 @@ begin
   begin
     AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
       AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-    AContext.Response.SetContent(GetServerSignature(AContext) + sLineBreak + 'HTTP ' + HTTPStatusCode.ToString + ': ' +
+    AContext.Response.SetContent(FConfigCache_ServerSignature + sLineBreak + 'HTTP ' + HTTPStatusCode.ToString + ': ' +
       AReasonString);
   end;
   AContext.Response.SetStatusCode(HTTPStatusCode);
@@ -2771,6 +2764,9 @@ procedure TMVCEngine.SaveCacheConfigValues;
 begin
   FConfigCache_MaxRequestSize := StrToInt64Def(Config[TMVCConfigKey.MaxRequestSize],
     TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
+  FConfigCache_ExposeServerSignature := Config[TMVCConfigKey.ExposeServerSignature] = 'true';
+  FConfigCache_ServerSignature := Config[TMVCConfigKey.ServerName];
+  FConfigCache_ExposeXPoweredBy := Config[TMVCConfigKey.ExposeXPoweredBy] = 'true';
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;
