@@ -3,14 +3,29 @@
     <ProjectExtensions>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>
-    <PropertyGroup>
-        <DeviceId Condition="'$(Platform)'=='Android'"/>
-        <DeviceId Condition="'$(Platform)'=='Android64'"/>
-    </PropertyGroup>
-    <ItemGroup Condition="'$(Platform)'=='Win64'"/>
+    <PropertyGroup/>
     <ItemGroup Condition="'$(Platform)'=='Win32'"/>
+    <ItemGroup Condition="'$(Platform)'=='Win64'"/>
     <ItemGroup Condition="'$(Platform)'=='Linux64'">
-        <DeployFile Include="TestServer" Condition="'$(Config)'=='Debug'">
+        <DeployFile Include="bin\sample.png" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\</RemoteDir>
+            <RemoteName>sample.png</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="bin\www\static.html" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\www\</RemoteDir>
+            <RemoteName>static.html</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="TestServer" Condition="'$(Config)'=='CI'">
             <RemoteDir>TestServer\</RemoteDir>
             <RemoteName>TestServer</RemoteName>
             <DeployClass>ProjectOutput</DeployClass>
@@ -20,19 +35,23 @@
             <Overwrite>True</Overwrite>
             <Required>True</Required>
         </DeployFile>
-    </ItemGroup>
-    <ItemGroup Condition="'$(Platform)'=='OSX32'">
-        <DeployFile Include="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib">
+        <DeployFile Include="bin\www\index.html" Condition="'$(Config)'=='CI'">
+            <RemoteDir>TestServer\www\</RemoteDir>
+            <RemoteName>index.html</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+        <DeployFile Include="bin\customers.json" Condition="'$(Config)'=='CI'">
             <RemoteDir>TestServer\</RemoteDir>
-            <RemoteName>libcgunwind.1.0.dylib</RemoteName>
-            <DeployClass>DependencyModule</DeployClass>
-            <Operation>1</Operation>
+            <RemoteName>customers.json</RemoteName>
+            <DeployClass>File</DeployClass>
+            <Operation>0</Operation>
             <LocalCommand/>
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
     </ItemGroup>
-    <ItemGroup Condition="'$(Platform)'=='Android'"/>
-    <ItemGroup Condition="'$(Platform)'=='OSX64'"/>
-    <ItemGroup Condition="'$(Platform)'=='Android64'"/>
 </Project>

@@ -48,7 +48,7 @@ type
     FRESTAdapter: TRESTAdapter<IAppResource>;
     FAppResource: IAppResource;
   public
-    [SetUp]
+    [Setup]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
@@ -72,6 +72,7 @@ implementation
 
 uses
   MVCFramework.Tests.WebModule1,
+  LiveServerTestU,
   MVCFramework.SystemJSONUtils,
   System.JSON;
 

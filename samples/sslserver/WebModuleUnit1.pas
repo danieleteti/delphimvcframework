@@ -24,19 +24,23 @@ implementation
 {$R *.dfm}
 
 
-uses MyControllerU;
+uses MyControllerU, MVCFramework.Commons;
 
 procedure TWebModule1.WebModule1DefaultHandlerAction(Sender: TObject;
   Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
 begin
-  Response.Content := '<html><heading/><body>Web Server Application</body></html>';
+  Response.Content := '<html><heading/><body>DMVCFramework Server Application</body></html>';
 end;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(Self);
+  MVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config['ISAPI_PATH'] := '/isapi32/myisapi.dll';
+    end);
   MVC.AddController(TMyController);
-  MVC.Config['ISAPI_PATH'] := '/isapi32/myisapi.dll';
+
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

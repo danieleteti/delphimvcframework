@@ -22,6 +22,8 @@ CREATE TABLE customers_plain (
     city varchar(200),
     note blob sub_type text,
     rating smallint,
+    creation_time time,
+    creation_date date,    	
     CONSTRAINT customers_plain_pk PRIMARY KEY (id)
 );
 

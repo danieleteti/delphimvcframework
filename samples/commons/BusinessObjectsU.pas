@@ -65,6 +65,19 @@ type
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
 
+  TClassWithArrays = class
+  private
+    fArrayOfString: TArray<string>;
+    fArrayOfInt: TArray<Integer>;
+    fArrayOfInt64: TArray<Int64>;
+    fArrayOfDouble: TArray<Double>;
+  public
+    property ArrayOfString: TArray<string> read fArrayOfString write fArrayOfString;
+    property ArrayOfInt: TArray<Integer> read fArrayOfInt write fArrayOfInt;
+    property ArrayOfInt64: TArray<Int64> read fArrayOfInt64 write fArrayOfInt64;
+    property ArrayOfDouble: TArray<Double> read fArrayOfDouble write fArrayOfDouble;
+  end;
+
   [MVCNameCase(ncLowerCase)]
   [MVCNameCase(ncLowerCase)]
   [MVCTable('nullables_test')]

@@ -26,118 +26,283 @@ unit MVCFramework.Console;
 
 interface
 
+uses
+  System.SysUtils
+{$IFDEF MSWINDOWS}
+  ,WinApi.Windows
+{$ENDIF}
+{$IFDEF LINUX}
+{$ENDIF}
+    ;
+
 type
-  TConsoleMode = (Normal, Bright);
-  TConsoleColor = (Black = 30, Red = 31, Green = 32, Yellow = 33, Blue = 34, Magenta = 35, Cyan = 36, White = 37);
+  // https://stackoverflow.com/questions/17125440/c-win32-console-color
+  // https://docs.microsoft.com/en-us/dotnet/api/system.consolecolor?view=netcore-3.1
+  TConsoleColor = (Black = 0, // The color black.
+    DarkBlue = 1, // The color dark blue.
+    DarkGreen = 2, // The color dark green.
+    DarkCyan = 3, // The color dark cyan (dark blue-green).
+    DarkRed = 4, // The color dark red.
+    DarkMagenta = 5, // The color dark magenta (dark purplish-red).
+    DarkYellow = 6, // The color dark yellow (ochre).
+    Gray = 7, // The color gray.
+    DarkGray = 8, // The color dark gray.
+    Blue = 9, // The color blue.
+    Green = 10, // The color green.
+    Cyan = 11, // The color Cyan(Blue - green).
+    Red = 12, // The color red.
+    Magenta = 13, // The color magenta (purplish-red).
+    Yellow = 14, // The color yellow.
+    White = 15 // The color white.
+    );
+
+  EMVCConsole = class(Exception)
+
+  end;
+
+  TMVCConsoleSize = record
+    Columns: Word;
+    Rows: Word;
+  end;
 
 procedure ResetConsole;
-procedure TextColor(const Color: TConsoleColor);
-procedure TextBackground(const Color: TConsoleColor);
-procedure SetMode(const ConsoleMode: TConsoleMode);
+procedure TextColor(const color: TConsoleColor);
+procedure TextBackground(const color: TConsoleColor);
+procedure GotoXY(const X, Y: Byte);
+function GetConsoleSize: TMVCConsoleSize;
+function GetConsoleBufferSize: TMVCConsoleSize;
+procedure ClrScr;
+function GetCh: Char;
+procedure WaitForReturn;
+procedure SaveColors;
+procedure RestoreSavedColors;
+
+function ColorName(const color: TConsoleColor): String;
 
 implementation
 
 uses
-
-{$IFDEF MSWINDOWS}
-  WinApi.Windows,
-
-{$ENDIF}
-  System.SysUtils;
+  System.TypInfo;
 
 const
   ESC = Chr(27);
 
 var
-  GForeGround: TConsoleColor;
-  GBackGround: TConsoleColor;
-  GMode: TConsoleMode = TConsoleMode.Normal;
+  GForeGround, GSavedForeGround: Integer;
+  GBackGround, GSavedBackGround: Integer;
+  GOutHandle: THandle = INVALID_HANDLE_VALUE;
+  GInputHandle: THandle = INVALID_HANDLE_VALUE;
 
-function ToBackGround(const ForeGround: Byte): Byte;
+function ColorName(const color: TConsoleColor): String;
 begin
-  if (GMode = TConsoleMode.Bright) and (ForeGround <> Byte(TConsoleColor.Black)) then
+  Result := GetEnumName(TypeInfo(TConsoleColor), Ord(color));
+end;
+
+
+{$IFDEF LINUX}
+procedure WaitForReturn;
+begin
+  ReadLn;
+end;
+
+procedure Init; inline;
+begin
+
+end;
+
+procedure UpdateMode;
+begin
+
+end;
+
+function GetCh: Char;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+procedure GotoXY(const X, Y: Byte);
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+function GetConsoleSize: TMVCConsoleSize;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+function GetConsoleBufferSize: TMVCConsoleSize;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+procedure ClrScr;
+begin
+  raise EMVCConsole.Create('Not Implemented');
+end;
+
+{$ENDIF}
+{$IFDEF MSWINDOWS}
+
+procedure WinCheck(const Value: LongBool);
+begin
+  if not Value then
+    raise EMVCConsole.CreateFmt('GetLastError() = %d', [GetLastError]);
+end;
+
+procedure WaitForReturn;
+begin
+  while GetCh <> #13 do;
+end;
+
+procedure ClrScr;
+var
+  lSize: TMVCConsoleSize;
+  dwConSize: UInt32;
+  lStartCoord: _COORD;
+  lCharsWritten: UInt32;
+  lConsoleScreenBufferInfo: _CONSOLE_SCREEN_BUFFER_INFO;
+begin
+  // https://docs.microsoft.com/en-us/windows/console/clearing-the-screen
+  lSize := GetConsoleBufferSize;
+  dwConSize := lSize.Columns * lSize.Rows;
+  lStartCoord.X := 0;
+  lStartCoord.Y := 0;
+  if not FillConsoleOutputCharacter(GOutHandle, ' ', dwConSize, lStartCoord, lCharsWritten) then
+    raise EMVCConsole.CreateFmt('Cannot fill console with blank char - GetLastError() = %d', [GetLastError]);
+
+  if not GetConsoleScreenBufferInfo(GOutHandle, lConsoleScreenBufferInfo) then
+    raise EMVCConsole.CreateFmt('Cannot GetConsoleScreenBufferInfo - GetLastError() = %d', [GetLastError]);
+
+  if not FillConsoleOutputAttribute(GOutHandle, lConsoleScreenBufferInfo.wAttributes, dwConSize, lStartCoord,
+    lCharsWritten) then
+    raise EMVCConsole.CreateFmt('Cannot FillConsoleOutputAttribute - GetLastError() = %d', [GetLastError]);
+
+  GotoXY(0, 0);
+end;
+
+function GetConsoleSize: TMVCConsoleSize;
+var
+  lConsoleScreenBufferInfo: _CONSOLE_SCREEN_BUFFER_INFO;
+begin
+  if not GetConsoleScreenBufferInfo(GOutHandle, lConsoleScreenBufferInfo) then
+    raise EMVCConsole.CreateFmt('Cannot Get Console Size - GetLastError() = %d', [GetLastError]);
+  Result.Columns := lConsoleScreenBufferInfo.srWindow.Right - lConsoleScreenBufferInfo.srWindow.Left + 1;
+  Result.Rows := lConsoleScreenBufferInfo.srWindow.Bottom - lConsoleScreenBufferInfo.srWindow.Top + 1;
+end;
+
+procedure EnsureStdInput;
+begin
+  if GInputHandle = INVALID_HANDLE_VALUE then
   begin
-    Result := ForeGround + 10 + 60;
-  end
-  else
-  begin
-    Result := ForeGround + 10;
+    GInputHandle := GetStdHandle(STD_INPUT_HANDLE);
+    if GInputHandle = INVALID_HANDLE_VALUE then
+    begin
+      raise EMVCConsole.CreateFmt('Cannot Get STD_INPUT_HANDLE - GetLastError() = %d', [GetLastError]);
+    end;
   end;
 end;
 
-{$IFDEF LINUX}
-
-procedure EnableVirtualTerminalProcessing; inline;
+function GetCh: Char;
+var
+  lMode, lCC: DWORD;
+  C: Char;
 begin
-  // do nothing
+  EnsureStdInput;
+  C := #0;
+  WinCheck(GetConsoleMode(GInputHandle, lMode));
+  WinCheck(SetConsoleMode(GInputHandle, lMode and (not(ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT))));
+  try
+    lCC := 0;
+    WinCheck(ReadConsole(GInputHandle, @C, SizeOf(Char), lCC, nil));
+  finally
+    WinCheck(SetConsoleMode(GInputHandle, lMode));
+  end;
+  Result := C;
 end;
 
-{$ELSE}
-
-procedure EnableVirtualTerminalProcessing; inline;
-
-const
-  ENABLE_VIRTUAL_TERMINAL_PROCESSING = $0004;
-
+function GetConsoleBufferSize: TMVCConsoleSize;
 var
-  hOut: THandle;
-  dwMode: UInt32;
+  lConsoleScreenBufferInfo: _CONSOLE_SCREEN_BUFFER_INFO;
 begin
-  hOut := GetStdHandle(STD_OUTPUT_HANDLE);
-  if hOut = INVALID_HANDLE_VALUE then
-    raise Exception.CreateFmt('GetLastError() = %d', [GetLastError]);
+  if not GetConsoleScreenBufferInfo(GOutHandle, lConsoleScreenBufferInfo) then
+    raise EMVCConsole.CreateFmt('Cannot Get Console Buffer Size - GetLastError() = %d', [GetLastError]);
+  Result.Columns := lConsoleScreenBufferInfo.dwSize.X;
+  Result.Rows := lConsoleScreenBufferInfo.dwSize.Y;
+end;
 
-  dwMode := 0;
-  if (not GetConsoleMode(hOut, &dwMode)) then
-    raise Exception.CreateFmt('GetLastError() = %d', [GetLastError]);
+procedure Init; inline;
+begin
+  GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
+  if GOutHandle = INVALID_HANDLE_VALUE then
+    raise EMVCConsole.CreateFmt('Cannot Get STD_OUTPUT_HANDLE - GetLastError() = %d', [GetLastError]);
+end;
 
-  dwMode := dwMode or ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-  if (not SetConsoleMode(hOut, dwMode)) then
-    raise Exception.CreateFmt('GetLastError() = %d', [GetLastError]);
+procedure UpdateMode;
+begin
+  SetConsoleTextAttribute(GOutHandle, Ord(GForeGround) or Ord(GBackGround));
+end;
+
+procedure GotoXY(const X, Y: Byte);
+var
+  lCoord: _COORD;
+begin
+  lCoord.X := X;
+  lCoord.Y := Y;
+  if not SetConsoleCursorPosition(GOutHandle, lCoord) then
+  begin
+    raise EMVCConsole.Create('Invalid Coordinates');
+  end;
 end;
 
 {$ENDIF}
 
 procedure ResetConsole;
 begin
-  write(ESC + '[0m');
+  // write(ESC + '[0m');
+  GForeGround := Ord(TConsoleColor.DarkGray);
+  GBackGround := Ord(TConsoleColor.Black);
+  UpdateMode;
 end;
 
-function GetColorString: string;
+procedure TextColor(const color: TConsoleColor);
 begin
-  if GMode = TConsoleMode.Bright then
-    Result := Format('[%d;1;%dm', [Byte(GForeGround), ToBackGround(Byte(GBackGround))])
-  else
-    Result := Format('[%d;%dm', [Byte(GForeGround), ToBackGround(Byte(GBackGround))]);
+  GForeGround := Ord(color);
+  UpdateMode;
+  // write(ESC + GetColorString);
 end;
 
-procedure TextColor(const Color: TConsoleColor);
+procedure TextBackground(const color: TConsoleColor);
 begin
-  GForeGround := Color;
-  write(ESC + GetColorString);
+  GBackGround := Ord(color) shl 4;
+  UpdateMode;
+  // write(ESC + GetColorString);
 end;
 
-procedure TextBackground(const Color: TConsoleColor);
+procedure SetDefaults;
 begin
-  GBackGround := Color;
-  write(ESC + GetColorString);
+  GForeGround := Ord(TConsoleColor.White);
+  GBackGround := Ord(TConsoleColor.Black);
+  UpdateMode;
 end;
 
-procedure SetMode(const ConsoleMode: TConsoleMode);
+procedure SaveColors;
 begin
-  GMode := ConsoleMode;
+  GSavedForeGround := GForeGround;
+  GSavedBackGround := GBackGround;
 end;
 
-procedure InitDefault;
+procedure RestoreSavedColors;
 begin
-  GForeGround := TConsoleColor.White;
-  GBackGround := TConsoleColor.Black;
+  GForeGround := GSavedForeGround;
+  GBackGround := GSavedBackGround;
+  UpdateMode;
 end;
+
 
 initialization
 
-EnableVirtualTerminalProcessing;
-InitDefault;
+Init;
+SetDefaults;
 
 finalization
 

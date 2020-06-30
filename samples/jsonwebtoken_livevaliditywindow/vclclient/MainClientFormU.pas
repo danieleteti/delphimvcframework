@@ -41,7 +41,7 @@ implementation
 uses
   MVCFramework.RESTClient,
   MVCFramework.Middleware.JWT,
-  MVCFramework.Serializer.JSONDataObjects,
+  MVCFramework.Commons,
   MVCFramework.SystemJSONUtils,
   System.NetEncoding,
   JSONDataObjects;

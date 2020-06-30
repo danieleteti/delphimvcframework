@@ -81,6 +81,10 @@ var
   lRespCompressionType: TMVCCompressionType;
   lTmpItem: string;
 begin
+  if IsLibrary then
+  begin
+    Exit;
+  end;
   lContentStream := AContext.Response.RawWebResponse.ContentStream;
   if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold) then
     Exit;

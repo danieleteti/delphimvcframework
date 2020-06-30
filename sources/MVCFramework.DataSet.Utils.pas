@@ -49,10 +49,10 @@ type
     function AsJDOJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): TJDOJsonArray;
     function AsJSONArrayOfValues: TJDOJsonArray;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
-    function AsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase; const IgnoredFields: TArray<string> = []): string;
+    function AsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase; const IgnoredFields: TArray<string> = nil): string;
     function AsJSONObjectString: string; deprecated 'Use AsJSONObject';
     procedure LoadFromJSONObject(const JSONObject: TJSONObject; const FieldNameCase: TMVCNameCase); overload;
-    procedure LoadFromJSONObject(const JSONObject: TJSONObject; const AIgnoredFields: TArray<string> = [];
+    procedure LoadFromJSONObject(const JSONObject: TJSONObject; const AIgnoredFields: TArray<string> = nil;
       const FieldNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase); overload;
 
     procedure LoadFromJSONArray(AJSONArray: string;
@@ -162,6 +162,7 @@ type
 implementation
 
 uses
+  System.TypInfo,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Serializer.Intf;
 
@@ -642,8 +643,9 @@ var
   Res: IRESTResponse;
   lData: TJSONObject;
 begin
+
   // this a simple sychronous request...
-  Res := fRESTClient.doGET('/api/customers', []);
+  Res := fRESTClient.doGET(fURI, []);
   if Res.HasError then
   begin
     ShowError(Res);
@@ -654,7 +656,7 @@ begin
     DataSet.DisableControls;
     try
       fLoading := true;
-      DataSet.LoadFromJSONArray(lData.A['items']);
+      DataSet.LoadFromJSONArray(lData.A['data']);
       fLoading := false;
       DataSet.First;
     finally
@@ -718,7 +720,11 @@ end;
 procedure TMVCAPIBinder.TMVCAPIBinderItem.ShowError(const AResponse: IRESTResponse);
 begin
   if AResponse.HasError then
-    raise EMVCException.Create(AResponse.Error.Status);
+    raise EMVCException.Create(
+      AResponse.Error.ExceptionMessage + sLineBreak +
+      AResponse.Error.ExceptionClassname)
+  else
+    raise EMVCException.Create(AResponse.BodyAsString);
   // else
   // MessageDlg(
   // AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +

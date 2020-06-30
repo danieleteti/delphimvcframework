@@ -166,6 +166,11 @@ type
       const ASerializationAction: TMVCSerializationAction = nil);
   end;
 
+  /// <summary>
+  /// When using nested generic types it is necessary to declare explicitly for delphi's RTTI to recognize them.
+  /// </summary>
+  TNestedGenericEntity = TGenericEntity<TGenericEntity<TNote>>;
+
 implementation
 
 uses
@@ -1562,8 +1567,38 @@ const
     '{"Description":"Description 05"}' +
     ']' +
     '}';
+
+  NESTED_JSON =
+    '{' +
+    '"Code":1,' +
+    '"Description":"General Description",' +
+    '"Items":[' +
+    '{' +
+    '"Code":10,' +
+    '"Description":"Item_01",' +
+    '"Items":[' +
+    '{"Description":"Description 01"}' +
+    ']' +
+    '},' +
+    '{' +
+    '"Code":11,' +
+    '"Description":"Item_02",' +
+    '"Items":[' +
+    '{"Description":"Description 02"}' +
+    ']' +
+    '},' +
+    '{' +
+    '"Code":12,' +
+    '"Description":"Item_03",' +
+    '"Items":[' +
+    '{"Description":"Description 03"}' +
+    ']' +
+    '}' +
+    ']' +
+    '}';
 var
   LGenericEntity: TGenericEntity<TNote>;
+  LNestedGenericEntity: TNestedGenericEntity;
   LJson: string;
 begin
   LGenericEntity := TGenericEntity<TNote>.Create;
@@ -1600,6 +1635,65 @@ begin
   finally
     LGenericEntity.Free;
   end;
+
+  LNestedGenericEntity := TNestedGenericEntity.Create;
+  try
+    LNestedGenericEntity.Code := 1;
+    LNestedGenericEntity.Description := 'General Description';
+
+    LGenericEntity := TGenericEntity<TNote>.Create;
+    LGenericEntity.Code := 10;
+    LGenericEntity.Description := 'Item_01';
+    LGenericEntity.Items.Add(TNote.Create('Description 01'));
+    LNestedGenericEntity.Items.Add(LGenericEntity);
+
+    LGenericEntity := TGenericEntity<TNote>.Create;
+    LGenericEntity.Code := 11;
+    LGenericEntity.Description := 'Item_02';
+    LGenericEntity.Items.Add(TNote.Create('Description 02'));
+    LNestedGenericEntity.Items.Add(LGenericEntity);
+
+    LGenericEntity := TGenericEntity<TNote>.Create;
+    LGenericEntity.Code := 12;
+    LGenericEntity.Description := 'Item_03';
+    LGenericEntity.Items.Add(TNote.Create('Description 03'));
+    LNestedGenericEntity.Items.Add(LGenericEntity);
+
+    LJson := fSerializer.SerializeObject(LNestedGenericEntity);
+
+    Assert.areEqual(NESTED_JSON, LJson);
+  finally
+    LNestedGenericEntity.Free;
+  end;
+
+  LNestedGenericEntity := TNestedGenericEntity.Create;;
+  try
+    fSerializer.DeserializeObject(LJson, LNestedGenericEntity);
+
+    Assert.AreEqual(Integer(1), LNestedGenericEntity.Code);
+    Assert.AreEqual('General Description', LNestedGenericEntity.Description);
+    Assert.AreEqual(Integer(3), LNestedGenericEntity.Items.Count);
+
+    Assert.AreEqual(Integer(10), LNestedGenericEntity.Items[0].Code);
+    Assert.AreEqual('Item_01', LNestedGenericEntity.Items[0].Description);
+    Assert.AreEqual(Integer(1), LNestedGenericEntity.Items[0].Items.Count);
+    Assert.AreEqual('Description 01', LNestedGenericEntity.Items[0].Items[0].Description);
+
+    Assert.AreEqual(Integer(11), LNestedGenericEntity.Items[1].Code);
+    Assert.AreEqual('Item_02', LNestedGenericEntity.Items[1].Description);
+    Assert.AreEqual(Integer(1), LNestedGenericEntity.Items[1].Items.Count);
+    Assert.AreEqual('Description 02', LNestedGenericEntity.Items[1].Items[0].Description);
+
+    Assert.AreEqual(Integer(12), LNestedGenericEntity.Items[2].Code);
+    Assert.AreEqual('Item_03', LNestedGenericEntity.Items[2].Description);
+    Assert.AreEqual(Integer(1), LNestedGenericEntity.Items[2].Items.Count);
+    Assert.AreEqual('Description 03', LNestedGenericEntity.Items[2].Items[0].Description);
+
+
+  finally
+    LNestedGenericEntity.Free;
+  end;
+
 
 end;
 

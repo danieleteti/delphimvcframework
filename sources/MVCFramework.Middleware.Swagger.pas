@@ -79,6 +79,7 @@ uses
   Swag.Doc.SecurityDefinitionApiKey,
   Swag.Doc.SecurityDefinitionBasic,
   Swag.Doc.Definition,
+  System.Generics.Collections,
   System.Generics.Defaults;
 
 { TMVCSwaggerMiddleware }
@@ -340,7 +341,7 @@ begin
       SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
-      InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
+      InternalRender(LSwagDoc.SwaggerJson.ToJSON, AContext);
       AHandled := True;
 
     finally
@@ -354,23 +355,37 @@ var
   lPathComparer: IComparer<TSwagPath>;
   lOperationComparer: IComparer<TSwagPathOperation>;
   lSwagPath: TSwagPath;
+{$IF not defined(TOKYOORBETTER)}
+  lSwagPathList: TArray<TSwagPath>;
+  lSwagOperationList: TArray<TSwagPathOperation>;
+{$ENDIF}
 begin
   // Sort paths
   lPathComparer := TDelegatedComparer<TSwagPath>.Create(
-  function(const Left, Right: TSwagPath): Integer
-  begin
-    if SameText(Left.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) or
-      SameText(Right.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) then
+    function(const Left, Right: TSwagPath): Integer
     begin
-      Result := -1;
-    end
-    else
-    begin
-      Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
-    end;
-  end);
+      if SameText(Left.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) or
+        SameText(Right.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) then
+      begin
+        Result := -1;
+      end
+      else
+      begin
+        Result := CompareText(Left.Operations[0].Tags[0], Right.Operations[0].Tags[0]);
+      end;
+    end);
 
+{$IF defined(TOKYOORBETTER)}
   ASwagDoc.Paths.Sort(lPathComparer);
+{$ELSE}
+  ASwagDoc.Paths.TrimExcess;
+  lSwagPathList := ASwagDoc.Paths.ToArray;
+  ASwagDoc.Paths.OwnsObjects := False;
+  ASwagDoc.Paths.Clear;
+  TArrayHelper.QuickSort<TSwagPath>(lSwagPathList, lPathComparer, Low(lSwagPathList), High(lSwagPathList));
+  ASwagDoc.Paths.AddRange(lSwagPathList);
+  ASwagDoc.Paths.OwnsObjects := True;
+{$ENDIF}
 
   // Sort paths operations
   lOperationComparer := TDelegatedComparer<TSwagPathOperation>.Create(
@@ -386,7 +401,18 @@ begin
 
   for lSwagPath in ASwagDoc.Paths do
   begin
+{$IF defined(TOKYOORBETTER)}
     lSwagPath.Operations.Sort(lOperationComparer);
+{$ELSE}
+    lSwagPath.Operations.TrimExcess;
+    lSwagOperationList := lSwagPath.Operations.ToArray;
+    lSwagPath.Operations.OwnsObjects := False;
+    lSwagPath.Operations.Clear;
+    TArrayHelper.QuickSort<TSwagPathOperation>(lSwagOperationList, lOperationComparer,
+      Low(lSwagOperationList), High(lSwagOperationList));
+    lSwagPath.Operations.AddRange(lSwagOperationList);
+    lSwagPath.Operations.OwnsObjects := True;
+{$ENDIF}
   end;
 
 end;

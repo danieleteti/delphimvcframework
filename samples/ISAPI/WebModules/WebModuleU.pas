@@ -22,14 +22,17 @@ implementation
 {$R *.dfm}
 
 
-uses RoutingSampleControllerU;
+uses RoutingSampleControllerU, MVCFramework.Commons;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  DMVC := TMVCEngine.Create(self);
+  DMVC := TMVCEngine.Create(self,
+    procedure(Config: TMVCConfig)
+    begin
+      if IsConsole then
+        DMVC.Config['ISAPI_PATH'] := '/sampleisapi/isapiapp.dll';
+    end);
   DMVC.AddController(TRoutingSampleController);
-  if IsConsole then
-    DMVC.Config['ISAPI_PATH'] := '/sampleisapi/isapiapp.dll';
 end;
 
 end.

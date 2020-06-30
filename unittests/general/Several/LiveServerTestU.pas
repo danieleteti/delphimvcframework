@@ -33,16 +33,6 @@ uses
   System.DateUtils,
   System.Hash;
 
-const
-
-{$IFDEF LINUX_SERVER}
-  TEST_SERVER_ADDRESS = '192.168.1.8';
-
-{$ELSE}
-  TEST_SERVER_ADDRESS = '127.0.0.1';
-
-{$ENDIF}
-
 
 type
 
@@ -51,10 +41,9 @@ type
     RESTClient: TRESTClient;
     procedure DoLoginWith(UserName: string);
     procedure DoLogout;
-
   public
-    [SetUp]
-    procedure SetUp;
+    [Setup]
+    procedure Setup; virtual;
     [TearDown]
     procedure TearDown;
 
@@ -62,8 +51,6 @@ type
 
   [TestFixture]
   TServerTest = class(TBaseServerTest)
-  private
-
   public
     [Test]
     [TestCase('request url /fault', '/exception/fault')]
@@ -223,6 +210,8 @@ type
     [Test]
     procedure TestDirectoryTraversal2;
     [Test]
+    procedure TestDirectoryRedirect;
+    [Test]
     procedure TestSPASupport;
     // test server side views
     [Test]
@@ -231,13 +220,13 @@ type
   end;
 
   [TestFixture]
-  TJSONRPCServerTest = class(TBaseServerTest)
+  TJSONRPCServerTest = class(TObject)
   protected
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
   public
-    [SetUp]
-    procedure SetUp;
+    [Setup]
+    procedure Setup;
     [Test]
     procedure TestRequestWithoutParams;
     [Test]
@@ -284,11 +273,15 @@ uses
   MVCFramework.Serializer.Intf
 {$IFDEF MSWINDOWS}
     ,
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
-    ,
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
   Vcl.Graphics
 {$ENDIF}
-    ;
+    , TestConstsU;
+
+function GetServer: String;
+begin
+  Result := 'http://' + TEST_SERVER_ADDRESS + ':9999';
+end;
 
 { TServerTest }
 
@@ -300,7 +293,7 @@ begin
   Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Logout Failed');
 end;
 
-procedure TBaseServerTest.SetUp;
+procedure TBaseServerTest.Setup;
 begin
   inherited;
   RESTClient := TRESTClient.Create(TEST_SERVER_ADDRESS, 9999);
@@ -700,8 +693,7 @@ begin
     lCustomer.Logo.SaveToFile('pippo_client_before_send.bmp');
     lSer := GetDefaultSerializer;
     RegisterOptionalCustomTypesSerializers(lSer);
-    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doPOST('/customerecho', [],
-      lSer.SerializeObject(lCustomer));
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).doPOST('/customerecho', [], lSer.SerializeObject(lCustomer));
   finally
     lCustomer.Free;
   end;
@@ -1187,9 +1179,8 @@ var
 begin
   JSON := System.JSON.TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
-  r := RESTClient
-    .Header(TMVCConstants.X_HTTP_Method_Override, 'PUT')
-    .doPOST('/echo', ['1', '2', '3'], TSystemJSON.JSONValueToString(JSON));
+  r := RESTClient.Header(TMVCConstants.X_HTTP_Method_Override, 'PUT').doPOST('/echo', ['1', '2', '3'],
+    TSystemJSON.JSONValueToString(JSON));
 
   JSON := TSystemJSON.StringAsJSONObject(r.BodyAsString);
   try
@@ -1392,29 +1383,35 @@ begin
   end;
 end;
 
+procedure TServerTest.TestDirectoryRedirect;
+var
+  lRes: IRESTResponse;
+begin
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static', []);
+  Assert.areEqual(301, lRes.ResponseCode, '/static');
+  Assert.areEqual('/static/', lRes.HeaderValue('Location'), 'Wrong redirect');
+end;
+
 procedure TServerTest.TestDirectoryTraversal1;
 var
   lRes: IRESTResponse;
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/index.html', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/index.html', []);
   Assert.areEqual(200, lRes.ResponseCode);
 
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/..\donotdeleteme.txt', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/..\donotdeleteme.txt', []);
   Assert.areEqual(404, lRes.ResponseCode);
 
   lUrl := 'Windows\win.ini';
   for I := 1 to 20 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient
-      .Accept(TMVCMediaType.TEXT_HTML)
-      .doGET('/' + lUrl, []);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/' + lUrl, []);
     Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/' + lUrl);
   end;
 end;
@@ -1425,43 +1422,23 @@ var
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/index.html', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
   Assert.areEqual(200, lRes.ResponseCode, '/static/index.html');
 
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static.html', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static.html', []);
   Assert.areEqual(200, lRes.ResponseCode, '/static.html');
 
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/');
-
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static');
-
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/..\..\donotdeleteme.txt', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/..\..\donotdeleteme.txt', []);
   Assert.areEqual(404, lRes.ResponseCode);
 
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/../../donotdeleteme.txt', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/../../donotdeleteme.txt', []);
   Assert.areEqual(404, lRes.ResponseCode);
 
   lUrl := 'Windows\win.ini';
   for I := 1 to 30 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient
-      .Accept(TMVCMediaType.TEXT_HTML)
-      .doGET('/' + lUrl, []);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/' + lUrl, []);
     Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/' + lUrl);
   end;
 end;
@@ -1608,37 +1585,25 @@ var
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/index.html', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/index.html', []);
   Assert.areEqual(200, lRes.ResponseCode);
   Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
 
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/', []);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/', []);
   Assert.areEqual(200, lRes.ResponseCode, '/static/');
   Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
 
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/..\..\donotdeleteme.txt', []);
-  Assert.areEqual(404, lRes.ResponseCode, '/static/..\..\donotdeleteme.txt');
-
-  lRes := RESTClient
-    .Accept(TMVCMediaType.TEXT_HTML)
-    .doGET('/static/../../donotdeleteme.txt', []);
-  Assert.areEqual(404, lRes.ResponseCode, '/static/../../donotdeleteme.txt');
-  Assert.Contains(lRes.Error.ExceptionMessage, 'Not Found', true);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/pippo/pluto/paperino', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/spa/pippo/pluto/paperino');
+  Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
 
   lUrl := 'Windows\win.ini';
   for I := 1 to 30 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient
-      .Accept(TMVCMediaType.TEXT_HTML)
-      .doGET('/' + lUrl, []);
-    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/' + lUrl);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/' + lUrl, []);
+    Assert.areEqual(200, lRes.ResponseCode);
+    Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
   end;
 end;
 
@@ -1827,7 +1792,8 @@ begin
   Assert.areEqual(HTTP_STATUS.OK, lRes.ResponseCode, lRes.BodyAsString);
   var
   lLines := lRes.BodyAsString.Split([sLineBreak]);
-  var lCount: Integer := 1001;
+  var
+    lCount: Integer := 1001;
   for var lLine in lLines do
   begin
     var
@@ -1906,10 +1872,10 @@ end;
 
 { TJSONRPCServerTest }
 
-procedure TJSONRPCServerTest.SetUp;
+procedure TJSONRPCServerTest.Setup;
 begin
-  FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:9999/jsonrpc', false);
-  FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:9999/jsonrpcclass', false);
+  FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpc', false);
+  FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclass', false);
 end;
 
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;

@@ -137,6 +137,8 @@ uses
   SysUtils, Classes;
   {$ENDIF HAS_UNIT_SCOPE}
 
+{$HPPEMIT '#pragma link "Jsondataobjects"'}
+  
 type
   TJsonBaseObject = class;
   TJsonObject = class;
@@ -367,7 +369,11 @@ type
     function GetObjectUtcDateTime(const Name: string): TDateTime; inline;
     function GetObjectBool(const Name: string): Boolean; inline;
     function GetArray(const Name: string): TJsonArray; inline;
+    {$IFDEF BCB}
+    function GetObj(const Name: string): TJsonDataValueHelper; inline; // work around C++Builder Windows.h::GetObject macro
+    {$ELSE}
     function GetObject(const Name: string): TJsonDataValueHelper; inline;
+    {$ENDIF BCB}
     function GetObjectVariant(const Name: string): Variant; inline;
     procedure SetObjectString(const Name, Value: string); inline;
     procedure SetObjectInt(const Name: string; const Value: Integer); inline;
@@ -443,7 +449,7 @@ type
     // Used to auto create arrays
     property A[const Name: string]: TJsonArray read GetArray write SetArray;
     // Used to auto create objects and as default property where no Implicit operator matches
-    property O[const Name: string]: TJsonDataValueHelper read GetObject write SetObject; default;
+    property O[const Name: string]: TJsonDataValueHelper read {$IFDEF BCB}GetObj{$ELSE}GetObject{$ENDIF} write SetObject; default;
     property V[const Name: string]: Variant read GetObjectVariant write SetObjectVariant;
 
     property Path[const Name: string]: TJsonDataValueHelper read GetObjectPath write SetObjectPath;
@@ -543,7 +549,7 @@ type
     // ToString() returns a compact JSON string
     function ToString: string; override;
 
-    function Clone: TJsonBaseObject; virtual; abstract;
+    function Clone: TJsonBaseObject;
 
     class function JSONToDateTime(const Value: string; ConvertToLocalTime: Boolean = True): TDateTime; static;
     class function DateTimeToJSON(const Value: TDateTime; UseUtcTime: Boolean): string; static;
@@ -580,7 +586,11 @@ type
     function GetUtcDateTime(Index: Integer): TDateTime; inline;
     function GetBool(Index: Integer): Boolean; inline;
     function GetArray(Index: Integer): TJsonArray; inline;
+    {$IFDEF BCB}
+    function GetObj(Index: Integer): TJsonObject; inline;
+    {$ELSE}
     function GetObject(Index: Integer): TJsonObject; inline;
+    {$ENDIF BCB}
     function GetVariant(Index: Integer): Variant; inline;
 
     procedure SetString(Index: Integer; const Value: string); inline;
@@ -620,7 +630,7 @@ type
     function ExtractArray(Index: Integer): TJsonArray;
     function ExtractObject(Index: Integer): TJsonObject;
     procedure Assign(ASource: TJsonArray);
-    function Clone: TJsonBaseObject; override;
+    function Clone: TJsonArray;
 
     procedure Add(const AValue: string); overload;
     procedure Add(const AValue: Integer); overload;
@@ -668,7 +678,7 @@ type
     property DUtc[Index: Integer]: TDateTime read GetUtcDateTime write SetUtcDateTime;
     property B[Index: Integer]: Boolean read GetBool write SetBool;
     property A[Index: Integer]: TJsonArray read GetArray write SetArray;
-    property O[Index: Integer]: TJsonObject read GetObject write SetObject;
+    property O[Index: Integer]: TJsonObject read {$IFDEF BCB}GetObj{$ELSE}GetObject{$ENDIF} write SetObject;
     property V[Index: Integer]: Variant read GetVariant write SetVariant;
 
     property Items[Index: Integer]: PJsonDataValue read GetItem;
@@ -719,7 +729,11 @@ type
     function GetFloat(const Name: string): Double;
     function GetDateTime(const Name: string): TDateTime;
     function GetUtcDateTime(const Name: string): TDateTime;
+    {$IFDEF BCB}
+    function GetObj(const Name: string): TJsonObject;
+    {$ELSE}
     function GetObject(const Name: string): TJsonObject;
+    {$ENDIF BCB}
     function GetArray(const Name: string): TJsonArray;
     procedure SetString(const Name, Value: string);
     procedure SetBool(const Name: string; const Value: Boolean);
@@ -769,7 +783,7 @@ type
   public
     destructor Destroy; override;
     procedure Assign(ASource: TJsonObject);
-    function Clone: TJsonBaseObject; override;
+    function Clone: TJsonObject;
 
     // ToSimpleObject() maps the JSON object properties to the Delphi object by using the object's
     // TypeInfo.
@@ -805,7 +819,7 @@ type
     property DUtc[const Name: string]: TDateTime read GetUtcDateTime write SetUtcDateTime; // returns 0 if property doesn't exist, auto type-cast except for array/object
     property B[const Name: string]: Boolean read GetBool write SetBool;           // returns false if property doesn't exist, auto type-cast with "<>'true'" and "<>0" except for array/object
     property A[const Name: string]: TJsonArray read GetArray write SetArray;      // auto creates array on first access
-    property O[const Name: string]: TJsonObject read GetObject write SetObject;   // auto creates object on first access
+    property O[const Name: string]: TJsonObject read {$IFDEF BCB}GetObj{$ELSE}GetObject{$ENDIF} write SetObject;   // auto creates object on first access
 
     property Path[const NamePath: string]: TJsonDataValueHelper read GetPath write SetPath;
 
@@ -1139,7 +1153,7 @@ begin
     if VirtualQuery(PByte(MainInstance + $1000), MemInfo, SizeOf(MemInfo)) = SizeOf(MemInfo) then
     begin
       JsonMemInfoMainBlockStart := MemInfo.AllocationBase;
-      JsonMemInfoMainBlockEnd := JsonMemInfoBlockStart + MemInfo.RegionSize;
+      JsonMemInfoMainBlockEnd := JsonMemInfoMainBlockStart + MemInfo.RegionSize;
     end;
   end;
 end;
@@ -1439,6 +1453,14 @@ begin
     [Year, Month, Day, Hour, Minute, Second, Milliseconds]);
 end;
 
+function TJsonBaseObject.Clone: TJsonBaseObject;
+begin
+  if Self is TJsonArray then
+    Result := TJsonArray(Self).Clone
+  else
+    Result := TJsonObject(Self).Clone;
+end;
+
 class function TJsonBaseObject.DateTimeToJSON(const Value: TDateTime; UseUtcTime: Boolean): string;
 {$IFDEF MSWINDOWS}
 var
@@ -1574,7 +1596,7 @@ begin
           P := ParseDateTimePart(P + 1, MSec, 3);
       end;
       Result := Result + EncodeTime(Hour, Min, Sec, MSec);
-      if P^ <> 'Z' then
+      if (P^ <> 'Z') and (P^ <> #0) then
       begin
         if (P^ = '+') or (P^ = '-') then
         begin
@@ -3777,6 +3799,16 @@ begin
   Result := FItems[Index].BoolValue;
 end;
 
+{$IFDEF BCB}
+function TJsonArray.GetObj(Index: Integer): TJsonObject;
+begin
+  {$IFDEF CHECK_ARRAY_INDEX}
+  if Cardinal(Index) >= Cardinal(FCount) then
+    RaiseListError(Index);
+  {$ENDIF CHECK_ARRAY_INDEX}
+  Result := FItems[Index].ObjectValue;
+end;
+{$ELSE}
 function TJsonArray.GetObject(Index: Integer): TJsonObject;
 begin
   {$IFDEF CHECK_ARRAY_INDEX}
@@ -3785,6 +3817,7 @@ begin
   {$ENDIF CHECK_ARRAY_INDEX}
   Result := FItems[Index].ObjectValue;
 end;
+{$ENDIF BCB}
 
 function TJsonArray.GetVariant(Index: Integer): Variant;
 begin
@@ -4298,7 +4331,7 @@ begin
   end;
 end;
 
-function TJsonArray.Clone: TJsonBaseObject;
+function TJsonArray.Clone: TJsonArray;
 begin
   Result := TJsonArray.Create;
   try
@@ -4613,6 +4646,23 @@ begin
     Result := 0;
 end;
 
+{$IFDEF BCB}
+function TJsonObject.GetObj(const Name: string): TJsonObject;
+var
+  Item: PJsonDataValue;
+begin
+  if FindItem(Name, Item) then
+    Result := Item.ObjectValue
+  else
+  begin
+    Result := TJsonObject.Create;
+    AddItem(Name).ObjectValue := Result;
+    {$IFDEF USE_LAST_NAME_STRING_LITERAL_CACHE}
+    UpdateLastValueItem(Name, Item);
+    {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
+  end;
+end;
+{$ELSE}
 function TJsonObject.GetObject(const Name: string): TJsonObject;
 var
   Item: PJsonDataValue;
@@ -4628,6 +4678,7 @@ begin
     {$ENDIF USE_LAST_NAME_STRING_LITERAL_CACHE}
   end;
 end;
+{$ENDIF BCB}
 
 function TJsonObject.GetString(const Name: string): string;
 var
@@ -5193,7 +5244,7 @@ begin
   end;
 end;
 
-function TJsonObject.Clone: TJsonBaseObject;
+function TJsonObject.Clone: TJsonObject;
 begin
   Result := TJsonObject.Create;
   try
@@ -7774,10 +7825,17 @@ begin
   Result := ObjectValue.A[Name];
 end;
 
+{$IFDEF BCB}
+function TJsonDataValueHelper.GetObj(const Name: string): TJsonDataValueHelper;
+begin
+  Result := ObjectValue.Values[Name];
+end;
+{$ELSE}
 function TJsonDataValueHelper.GetObject(const Name: string): TJsonDataValueHelper;
 begin
   Result := ObjectValue.Values[Name];
 end;
+{$ENDIF BCB}
 
 function TJsonDataValueHelper.GetObjectVariant(const Name: string): Variant;
 begin
@@ -8260,4 +8318,3 @@ initialization
   JSONFormatSettings.DecimalSeparator := '.';
 
 end.
-

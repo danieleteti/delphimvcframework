@@ -99,3 +99,4 @@ unittests/general/Several/Win32/CONSOLE/sqlitetest.db
 unittests/general/Several/Win32/GUI/sqlitetest.db
 *.db-journal
 *.txaPackage
+unittests/general/Several/bin/sqlitetest.db

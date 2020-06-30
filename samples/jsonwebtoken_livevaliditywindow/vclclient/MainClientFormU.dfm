@@ -67,8 +67,8 @@ object MainForm: TMainForm
       AlignWithMargins = True
       Left = 540
       Top = 4
-      Width = 364
-      Height = 73
+      Width = 355
+      Height = 65
       Align = alClient
       Caption = 
         'At each authenticated request, the server increments the "exp" p' +
@@ -77,9 +77,6 @@ object MainForm: TMainForm
         'alidityWindowInSeconds seconds. It is useful to mimic the classi' +
         'c session cookie with the semplicity of the JWT.'
       WordWrap = True
-      ExplicitLeft = 417
-      ExplicitWidth = 298
-      ExplicitHeight = 78
     end
     object btnGet: TButton
       AlignWithMargins = True

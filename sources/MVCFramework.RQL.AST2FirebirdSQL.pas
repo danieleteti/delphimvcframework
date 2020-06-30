@@ -149,6 +149,25 @@ begin
           raise ERQLException.Create('Invalid RightValueType for tkIn');
         end;
       end;
+    tkOut:
+      begin
+        case aRQLFIlter.RightValueType of
+          vtIntegerArray:
+            begin
+              Result := Format('(%s NOT IN (%s))', [
+                lDBFieldName, string.Join(',', aRQLFIlter.OpRightArray)
+                ]);
+            end;
+          vtStringArray:
+            begin
+              Result := Format('(%s NOT IN (%s))', [
+                lDBFieldName, string.Join(',', QuoteStringArray(aRQLFIlter.OpRightArray))
+                ]);
+            end;
+        else
+          raise ERQLException.Create('Invalid RightValueType for tkOut');
+        end;
+      end;
   end;
 end;
 

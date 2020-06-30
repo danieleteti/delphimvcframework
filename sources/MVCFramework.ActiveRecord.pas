@@ -331,6 +331,9 @@ type
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function SelectRQL<T: constructor, TMVCActiveRecord>(const RQL: string; const MaxRecordCount: Integer)
       : TObjectList<T>; overload;
+    class function SelectOneByRQL<T: constructor, TMVCActiveRecord>(
+      const RQL: string;
+      const RaiseExceptionIfNotFound: Boolean): T; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): int64; overload;
     class function Where<T: TMVCActiveRecord, constructor>(
@@ -445,7 +448,9 @@ type
     function HasReturning: Boolean; virtual;
     // end-capabilities
     function CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean = True): string; virtual; abstract;
+      const UseArtificialLimit: Boolean = True;
+      const UseFilterOnly: Boolean = False
+      ): string; virtual; abstract;
     function CreateSelectSQL(const TableName: string; const Map: TFieldsMap;
       const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
     function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap;
@@ -1041,7 +1046,7 @@ begin
   lSQL := Self.SQLGenerator.CreateSelectCount(fTableName);
   if not RQL.IsEmpty then
   begin
-    lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, false);
+    lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, False, True);
   end;
   Result := GetScalar(lSQL, []);
 end;
@@ -1244,6 +1249,29 @@ begin
   begin
     if RaiseExceptionIfNotFound then
       raise EMVCActiveRecordNotFound.Create('Got 0 rows when exactly 1 was expected');
+  end;
+end;
+
+class function TMVCActiveRecordHelper.SelectOneByRQL<T>(
+  const RQL: string;
+  const RaiseExceptionIfNotFound: Boolean): T;
+var
+  lAR: TMVCActiveRecord;
+  lSQL: string;
+begin
+  lAR := T.Create;
+  try
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping).Trim;
+    if lSQL.StartsWith('where', True) then
+      lSQL := lSQL.Remove(0, 5).Trim;
+    Result := GetFirstByWhere<T>(lSQL, [], RaiseExceptionIfNotFound);
+    if Result = nil then
+    begin
+      if RaiseExceptionIfNotFound then
+        raise EMVCActiveRecordNotFound.Create('Got 0 rows when exactly 1 was expected');
+    end;
+  finally
+    lAR.Free;
   end;
 end;
 
