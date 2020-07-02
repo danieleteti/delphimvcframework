@@ -100,9 +100,9 @@ begin
     Log.Debug('[REQUEST][URL] ' + Context.Request.RawWebRequest.PathInfo, 'trace');
     Log.Debug('[REQUEST][QUERYSTRING] ' + Context.Request.RawWebRequest.QueryFields.DelimitedText, 'trace');
     lContentType := Context.Request.Headers['content-type'].ToLower;
-    if lContentType.Equals(TMVCMediaType.APPLICATION_JSON) or
-      lContentType.Equals(TMVCMediaType.APPLICATION_XML) or
-      lContentType.Equals(TMVCMediaType.APPLICATION_FORM_URLENCODED) or
+    if lContentType.StartsWith(TMVCMediaType.APPLICATION_JSON, true) or
+      lContentType.StartsWith(TMVCMediaType.APPLICATION_XML, true) or
+      lContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, true) or
       lContentType.StartsWith('text/') then
     begin
       lContentStream.WriteString(EncodingGetString(lContentType,
