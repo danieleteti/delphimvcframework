@@ -137,6 +137,7 @@ begin
   Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
   lCustomer := TCustomer.Create;
   try
+    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' +  lCustomer.TableName);
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
     lCustomer.Note := 'Hello there!';
