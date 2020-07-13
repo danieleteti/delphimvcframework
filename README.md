@@ -269,7 +269,7 @@ end;
 
 ```
 
-`ObjectDict` is able to render multiple data sources (datasets, objectlists, objects or StrDict) at the same time using different casing, HATEOAS callbacks and modes.
+`ObjectDict` is able to render multiple data sources (datasets, objectlists, objects, StrDict and nil) at the same time using different casing, HATEOAS callbacks and modes.
 
 ```delphi
 procedure TTestServerController.TestObjectDict;

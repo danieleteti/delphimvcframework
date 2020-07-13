@@ -1,0 +1,23 @@
+*** How to migrate existing users from firebird 2.X to firebird 3? ***
+
+Firebird 3 is using new method to validate users on the server.
+Direct upgrade of security database is therefore impossible.
+Described procedure will let you keep the list of firebird 2.X users
+and all related information (firstname, lastname, etc.) except
+password - new passwords will be generated randomly. Pay attention
+that SYSDBA user is not touched - i.e. it will remain as was after
+execution of upgrade procedure. In the commands below replace
+'masterkey' with actual SYSDBA password for appropriate (2.X/3.0)
+firebird server.
+
+In firebird 2.5 backup security database:
+  gbak -user sysdba -pas masterkey -b {host/path}security2.fdb security.fbk
+
+In firebird 3 restore copy of 2.5 security database:
+  gbak -user sysdba -pas masterkey -c security.fbk {host/path}security2.5
+And run users upgrade sql script:
+  isql -user sysdba -pas masterkey -i security_database.sql {host/path}security2.5
+"security2.5" is a sample database name - you may use any other if you wish.
+
+Script will create users with new random passwords and type them to you.
+It's your responsibility to notify users about new passwords.

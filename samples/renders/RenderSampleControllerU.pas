@@ -87,6 +87,12 @@ type
     procedure GetPeople_AsObjectList;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/objectdict/nil')]
+    [MVCProduces('application/json')]
+    procedure GetNil;
+
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/interfacedpeople')]
     [MVCProduces('application/json')]
     procedure GetInterfacedPeople;
@@ -610,6 +616,11 @@ begin
     lList.Last.LoadSomeData;
   end;
   Render<TNullablesTest>(lList);
+end;
+
+procedure TRenderSampleController.GetNil;
+begin
+  Render(ObjectDict().Add('data', nil));
 end;
 
 procedure TRenderSampleController.GetObjectWithJSONProperty;
