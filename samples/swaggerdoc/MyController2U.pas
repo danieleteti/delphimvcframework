@@ -69,7 +69,7 @@ type
 
 //  [MVCSwagIgnorePath] { Ignore all methods of controller }
   [MVCPath('/people')]
-  [MVCSwagAuthentication(atBasic)]
+  [MVCSwagAuthentication(atJsonWebToken)]
   TMyController2 = class(TMVCController)
   public
     [MVCPath('')]
