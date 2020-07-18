@@ -100,3 +100,4 @@ unittests/general/Several/Win32/GUI/sqlitetest.db
 *.db-journal
 *.txaPackage
 unittests/general/Several/bin/sqlitetest.db
+unittests/general/Several/bin/firebirdtest.fdb

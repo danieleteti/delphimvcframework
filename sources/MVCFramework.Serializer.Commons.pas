@@ -736,7 +736,8 @@ var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
 begin
-  { in un rendering di una lista, quante volte viene chiamata questa funzione? }
+  { TODO -oDanieleT -cGeneral : in un rendering di una lista, quante volte viene chiamata questa funzione?}
+  { Tante volte, ma eliminando tutta la logica si guadagnerebbe al massiom il 6% nel caso tipico, forse non vale la pena di aggiungere una cache apposita }
   Result := AProperty.Name;
 
   Attrs := AProperty.GetAttributes;

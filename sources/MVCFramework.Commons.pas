@@ -1378,6 +1378,7 @@ var
   lIsUpperCase, lPreviousWasUpperCase: Boolean;
   lIsAlpha: Boolean;
 begin
+  {TODO -oDanieleT -cGeneral : Make this function faster!}
   lNextUpCase := MakeFirstUpperToo;
   lPreviousWasUpperCase := True;
   lSB := TStringBuilder.Create;
