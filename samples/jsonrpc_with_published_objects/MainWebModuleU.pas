@@ -40,6 +40,7 @@ uses
   MVCFramework.Commons,
   MyObjectU,
   MVCFramework.JSONRPC,
+  MVCFramework.Middleware.CORS,
   MainDM;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
@@ -57,6 +58,8 @@ begin
     begin
       Result := TdmMain.Create(nil);
     end, '/rpcdatamodule');
+
+  FMVC.AddMiddleware(TCORSMiddleware.Create());
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

@@ -121,7 +121,6 @@ uses
 
 {$R *.dfm}
 
-
 procedure TMainForm.btnAddDayClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
@@ -146,7 +145,19 @@ begin
   lReq.Params.Add(Date(), pdtDate);
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest(lReq);
-  ShowMessage(DateTimeToStr(lResp.Result.AsType<TDateTime>));
+  ShowMessage('Using Positional Parameters: ' +
+    DateTimeToStr(ISOTimeStampToDateTime(lResp.Result.AsString)));
+
+  // (const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime)
+  lReq := TJSONRPCRequest.Create(1234, 'playwithdatesandtimes');
+  lReq.Params.AddByName('aJustAFloat', 1234.5678, pdtFloat);
+  lReq.Params.AddByName('ATIME', Time(), pdtTime);
+  lReq.Params.AddByName('adate', Date(), pdtDate);
+  lReq.Params.AddByName('adateAndTime', Now(), pdtDateTime);
+  lResp := FExecutor.ExecuteRequest(lReq);
+  ShowMessage('Using Named Parameters: ' +
+    DateTimeToStr(ISOTimeStampToDateTime(lResp.Result.AsString)));
+
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);
@@ -294,7 +305,8 @@ begin
   for I := 0 to lJSON.Count - 1 do
   begin
     lJObj := lJSON[I].ObjectValue;
-    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
+    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'],
+      lJObj.F['prezzo']]));
   end;
   // lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
   // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
