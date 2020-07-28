@@ -59,11 +59,8 @@ const
   JSONRPC_HOOKS_ON_BEFORE_ROUTING = 'OnBeforeRoutingHook';
   JSONRPC_HOOKS_ON_BEFORE_CALL = 'OnBeforeCallHook';
   JSONRPC_HOOKS_ON_BEFORE_SEND_RESPONSE = 'OnBeforeSendResponseHook';
-  JSONRPC_HOOKS_METHOD_NAMES: array [0 .. 2] of string = (
-    JSONRPC_HOOKS_ON_BEFORE_ROUTING,
-    JSONRPC_HOOKS_ON_BEFORE_CALL,
-    JSONRPC_HOOKS_ON_BEFORE_SEND_RESPONSE
-    );
+  JSONRPC_HOOKS_METHOD_NAMES: array [0 .. 2] of string = (JSONRPC_HOOKS_ON_BEFORE_ROUTING,
+    JSONRPC_HOOKS_ON_BEFORE_CALL, JSONRPC_HOOKS_ON_BEFORE_SEND_RESPONSE);
 
   {
     http://www.jsonrpc.org/historical/json-rpc-over-http.html#response-codes
@@ -128,8 +125,7 @@ type
   end;
 
   TJSONRPCParamDataType = (pdtString, pdtInteger, pdtLongInteger, pdTJDOJsonObject, pdtJSONArray,
-    pdtBoolean, pdtDate,
-    pdtTime, pdtDateTime, pdtFloat, pdtObject);
+    pdtBoolean, pdtDate, pdtTime, pdtDateTime, pdtFloat, pdtObject);
 
   TJSONRPCRequestParams = class
   private
@@ -171,7 +167,8 @@ type
     procedure AddByName(const Name: string; const Value: TTime); overload;
     procedure AddByName(const Name: string; const Value: TDateTime); overload;
     procedure AddByName(const Name: string; const Value: Double); overload;
-    procedure AddByName(const Name: string; const Value: TValue; const ParamType: TJSONRPCParamDataType); overload;
+    procedure AddByName(const Name: string; const Value: TValue;
+      const ParamType: TJSONRPCParamDataType); overload;
   end;
 
   IJSONRPCNotification = interface(IJSONRPCObject)
@@ -569,7 +566,8 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name], TMVCNameCase.ncLowerCase, []);
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name],
+              TMVCNameCase.ncLowerCase, []);
           finally
             lSer.Free;
           end
