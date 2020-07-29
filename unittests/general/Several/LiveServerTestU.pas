@@ -1889,7 +1889,7 @@ begin
   lResp := FExecutor.ExecuteRequest(lReq);
   Assert.IsNotNull(lResp.Error);
   Assert.areEqual(-32601, lResp.Error.Code);
-  Assert.isTrue(lResp.Error.ErrMessage.StartsWith('Method "nonexist" not found.'));
+  Assert.isTrue(lResp.Error.ErrMessage.StartsWith('Method [nonexist] not found.'));
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithParams_DT_T_ret_DT;
@@ -1912,7 +1912,7 @@ begin
   lReq.RequestID := 1234;
 
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lRes := lRPCResp.Result.AsType<TDateTime>();
+  lRes := ISOTimeStampToDateTime(lRPCResp.Result.AsString());
   DecodeDateTime(lRes, lYear, lMonth, lDay, lHour, lMinute, lSecond, lMillisecond);
   Assert.areEqual(2000, lYear);
 end;
@@ -1931,7 +1931,7 @@ begin
 
   lRPCResp := FExecutor.ExecuteRequest(lReq);
   Assert.isTrue(lRPCResp.IsError);
-  Assert.Contains(lRPCResp.Error.ErrMessage, 'cannot map all parameter', true);
+  Assert.Contains(lRPCResp.Error.ErrMessage, 'cannot find parameter', true);
 end;
 
 procedure TJSONRPCServerTest.TestRequestWithNamedParams_I_I_I_ret_O;

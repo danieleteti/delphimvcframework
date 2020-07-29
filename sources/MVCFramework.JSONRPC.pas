@@ -627,7 +627,7 @@ begin
         Result := JSONDataValue.ULongValue;
       end;
   else
-    raise EMVCJSONRPCException.Create('Invalid parameter type');
+    raise EMVCJSONRPCException.CreateFmt('Invalid parameter type [%d]', [Ord(JSONDataValue.Typ)]);
   end;
 end;
 
@@ -742,8 +742,10 @@ begin
 
       end;
   else
-    raise EMVCJSONRPCInvalidRequest.Create('Invalid parameter type for ' +
-      BuildDeclaration(RTTIParameter));
+    begin
+      raise EMVCJSONRPCInvalidRequest.CreateFmt('Invalid parameter type for [%s]',
+        [BuildDeclaration(RTTIParameter)]);
+    end;
   end;
 end;
 
@@ -1270,7 +1272,7 @@ begin
   if Assigned(lHookMethod) then
   begin
     if (Length(lHookMethod.GetParameters) <> 1) then
-      raise EMVCJSONRPCException.CreateFmt('Invalid signature for %s Hook method [HINT: procedure '
+      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure '
         + '%s.%s(const %s: TJDOJsonObject)', [MethodName, fRPCInstance.ClassName, MethodName,
         ParameterName]);
     lHookParam := lHookMethod.GetParameters[0];
@@ -1279,7 +1281,7 @@ begin
     if ((lHookParamParamType <> 'tjdojsonobject') and (lHookParamParamType <> 'tjsonobject')) or
       (lHookParam.Flags * [pfConst, pfAddress] <> [pfConst, pfAddress]) or
       (lHookParamName <> ParameterName.ToLower) then
-      raise EMVCJSONRPCException.CreateFmt('Invalid signature for %s Hook method [HINT: procedure '
+      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure '
         + '%s.%s(const %s: TJDOJsonObject)', [MethodName, fRPCInstance.ClassName, MethodName,
         ParameterName]);
     lHookMethod.Invoke(fRPCInstance, [Parameter])
@@ -1330,7 +1332,7 @@ end;
 
 constructor EMVCJSONRPCMethodNotFound.Create(const MethodName: string);
 begin
-  inherited CreateFmt('Method "%s" not found. The method does not exist or is not available.',
+  inherited CreateFmt('Method [%s] not found. The method does not exist or is not available.',
     [MethodName]);
 end;
 
@@ -1451,7 +1453,7 @@ var
         Exit(JSONNamedParams.Values[lName]);
       end;
     end;
-    raise EJsonException.CreateFmt('Cannot find parameter %s in params object', [JsonPropName]);
+    raise EJsonException.CreateFmt('Cannot find parameter [%s] in params object', [JsonPropName]);
   end;
 
 begin
@@ -1478,21 +1480,21 @@ begin
   if lUseNamedParams then
   begin
     if (Length(lRTTIMethodParams) > 0) and (not Assigned(lJSONNamedParams)) then
-      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [Length(lRTTIMethodParams), 0]);
 
     if Assigned(lJSONNamedParams) and (Length(lRTTIMethodParams) <> lJSONNamedParams.Count) then
-      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [Length(lRTTIMethodParams), lJSONNamedParams.Count]);
   end
   else
   begin
     if (Length(lRTTIMethodParams) > 0) and (not Assigned(lJSONParams)) then
-      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [Length(lRTTIMethodParams), 0]);
 
     if Assigned(lJSONParams) and (Length(lRTTIMethodParams) <> lJSONParams.Count) then
-      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected %d got %d.',
+      raise EMVCJSONRPCInvalidParams.CreateFmt('Wrong parameters count. Expected [%d] got [%d].',
         [Length(lRTTIMethodParams), lJSONParams.Count]);
   end;
 
