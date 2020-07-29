@@ -2968,8 +2968,8 @@ end;
 
 function TMVCRenderer.GetContentType: string;
 begin
-  Result := GetContext.Response.ContentType;
-  if Result.Trim.IsEmpty then
+  Result := GetContext.Response.ContentType.Trim;
+  if Result.IsEmpty then
   begin
     GetContext.Response.ContentType := FContext.FConfig[MVCFramework.Commons.TMVCConfigKey.DefaultContentType];
     Result := GetContentType;

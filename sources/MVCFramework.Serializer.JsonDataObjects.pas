@@ -2079,7 +2079,7 @@ var
   lMVCList: IMVCList;
   lOrdinalValue: Int64;
   lValueAsObj: TObject;
-  lValueAsObjQualifClassName: string;
+  lValueAsObjQualifClassName, lTypeName: string;
 begin
   if Value.IsEmpty then
   begin
@@ -2095,12 +2095,13 @@ begin
     tkFloat:
       begin
 {$IFDEF NEXTGEN}
-        if PChar(Pointer(Value.TypeInfo.Name)) = 'TDate' then
+        lTypeName := PChar(Pointer(Value.TypeInfo.Name))
 {$ELSE}
-        if Value.TypeInfo.Name = 'TDate' then
+        lTypeName := String(Value.TypeInfo.Name);
 {$ENDIF}
+        if (lTypeName = 'TDate') or (lTypeName = 'TDateTime')  or (lTypeName = 'TTime') then
         begin
-          JSON.DUtc[KeyName] := Value.AsExtended;
+          JSON.D[KeyName] := Value.AsExtended;
         end
         else
         begin
