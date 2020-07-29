@@ -126,6 +126,9 @@
         <DCC_DcpOutput>..\..\..\..\bin\SDK\</DCC_DcpOutput>
         <DCC_BplOutput>..\..\..\..\bin\</DCC_BplOutput>
         <DCC_UnitSearchPath>..\..\..\..\bin\SDK\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <Debugger_HostApplication>C:\DEV\dmscontainer v3.1.0\bin\DMSContainerService.exe</Debugger_HostApplication>
+        <Debugger_RunParams>/console</Debugger_RunParams>
+        <Debugger_EnvVars>DMS_HOME=C:\DEV\dmscontainer v3.1.0\bin\;$(Debugger_EnvVars)</Debugger_EnvVars>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
