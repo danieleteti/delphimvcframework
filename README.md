@@ -1,5 +1,7 @@
-![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
 
+![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
+![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
+![](https://img.shields.io/badge/next%20dmvcframework%20version-3.2.1--carbon-red)![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
 
 
 # DelphiMVCFramework 3.2.0-boron is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron)!
