@@ -33,7 +33,6 @@ uses
   System.DateUtils,
   System.Hash;
 
-
 type
 
   TBaseServerTest = class(TObject)
@@ -224,6 +223,7 @@ type
   protected
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
+    FExecutor3: IMVCJSONRPCExecutor;
   public
     [Setup]
     procedure Setup;
@@ -249,6 +249,18 @@ type
     procedure TestRequestWithParams_I_I_ret_A;
     [Test]
     procedure TestRequestWithParams_DT_T_ret_DT;
+    // hooks tests
+    [Test]
+    procedure TestHooks;
+    [Test]
+    procedure TestHooksWhenMethodRaisesError;
+    [Test]
+    procedure TestHooksWhenOnBeforeRoutingHookRaisesError;
+    [Test]
+    procedure TestHooksWhenOnBeforeCallHookRaisesError;
+    [Test]
+    procedure TestHooksWhenOnAfterCallHookRaisesError;
+
   end;
 
 implementation
@@ -278,7 +290,7 @@ uses
 {$ENDIF}
     , TestConstsU;
 
-function GetServer: String;
+function GetServer: string;
 begin
   Result := 'http://' + TEST_SERVER_ADDRESS + ':9999';
 end;
@@ -1876,6 +1888,53 @@ procedure TJSONRPCServerTest.Setup;
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpc', false);
   FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclass', false);
+  FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclass1', false);
+end;
+
+procedure TJSONRPCServerTest.TestHooks;
+begin
+  var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'request1');
+  var
+  lResp := FExecutor3.ExecuteRequest(lRequest1);
+  Assert.areEqual('OnBeforeRoutingHook|OnBeforeCallHook|OnAfterCallHook',
+    FExecutor3.HTTPResponse.HeaderValue['x-history']);
+end;
+
+procedure TJSONRPCServerTest.TestHooksWhenMethodRaisesError;
+begin
+  var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'RequestWithError');
+  var
+  lResp := FExecutor3.ExecuteRequest(lRequest1);
+  Assert.areEqual('OnBeforeRoutingHook|OnBeforeCallHook|OnAfterCallHook|error',
+    FExecutor3.HTTPResponse.HeaderValue['x-history']);
+  Assert.isTrue(lResp.IsError, 'Method raised error but response is not an error');
+end;
+
+procedure TJSONRPCServerTest.TestHooksWhenOnAfterCallHookRaisesError;
+begin
+  var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'error_OnAfterCallHook');
+  var
+  lResp := FExecutor3.ExecuteRequest(lRequest1);
+  Assert.isTrue(lResp.IsError, lResp.ToString(true));
+  Assert.areEqual(lResp.Error.ErrMessage, 'error_OnAfterCallHook');
+
+end;
+
+procedure TJSONRPCServerTest.TestHooksWhenOnBeforeCallHookRaisesError;
+begin
+  var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'error_OnBeforeCallHook');
+  var lResp := FExecutor3.ExecuteRequest(lRequest1);
+  Assert.isTrue(lResp.IsError, lResp.ToString(true));
+  Assert.areEqual(lResp.Error.ErrMessage, 'error_OnBeforeCallHook');
+
+end;
+
+procedure TJSONRPCServerTest.TestHooksWhenOnBeforeRoutingHookRaisesError;
+begin
+  var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'error_OnBeforeRoutingHook');
+  var lResp := FExecutor3.ExecuteRequest(lRequest1);
+  Assert.isTrue(lResp.IsError, lResp.ToString(true));
+  Assert.areEqual(lResp.Error.ErrMessage, 'error_OnBeforeRoutingHook');
 end;
 
 procedure TJSONRPCServerTest.TestRequestToNotFoundMethod;
