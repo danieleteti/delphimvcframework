@@ -1913,8 +1913,7 @@ end;
 procedure TJSONRPCServerTest.TestHooksWhenOnAfterCallHookRaisesError;
 begin
   var lRequest1: IJSONRPCRequest := TJSONRPCRequest.Create(1234, 'error_OnAfterCallHook');
-  var
-  lResp := FExecutor3.ExecuteRequest(lRequest1);
+  var lResp := FExecutor3.ExecuteRequest(lRequest1);
   Assert.isTrue(lResp.IsError, lResp.ToString(true));
   Assert.areEqual(lResp.Error.ErrMessage, 'error_OnAfterCallHook');
 
