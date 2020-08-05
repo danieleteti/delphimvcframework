@@ -158,27 +158,30 @@ end;
 
 procedure TTestJSONRPCHookClass.OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
 begin
-  if SameText(fJSONReq.S['method'], 'error_OnAfterCallHook') then
-    raise Exception.Create('error_OnAfterCallHook');
+  try
+    if SameText(fJSONReq.S['method'], 'error_OnAfterCallHook') then
+      raise Exception.Create('error_OnAfterCallHook');
 
-  fHistory := fHistory + '|OnAfterCallHook';
+    fHistory := fHistory + '|OnAfterCallHook';
 
-  if JSON.Contains('error') then
-    fHistory := fHistory + '|error';
+    if JSON.Contains('error') then
+      fHistory := fHistory + '|error';
 
-  // do nothing
-  if fJSONRPCKind = TJSONRPCRequestType.Request then
-  begin
-    Assert(Assigned(JSON));
-    LogD('TTestJSONRPCHookClass.OnAfterCallHook: ' + JSON.ToJSON());
-  end
-  else
-  begin
-    Assert(not Assigned(JSON));
-    LogD('TTestJSONRPCHookClass.OnAfterCallHook: Param is nil');
+    // do nothing
+    if fJSONRPCKind = TJSONRPCRequestType.Request then
+    begin
+      Assert(Assigned(JSON));
+      LogD('TTestJSONRPCHookClass.OnAfterCallHook: ' + JSON.ToJSON());
+    end
+    else
+    begin
+      Assert(not Assigned(JSON));
+      LogD('TTestJSONRPCHookClass.OnAfterCallHook: Param is nil');
+    end;
+    Context.Response.CustomHeaders.Values['x-history'] := fHistory;
+  finally
+    FreeAndNil(fJSONReq);
   end;
-  Context.Response.CustomHeaders.Values['x-history'] := fHistory;
-  FreeAndNil(fJSONReq);
 end;
 
 procedure TTestJSONRPCHookClass.OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
