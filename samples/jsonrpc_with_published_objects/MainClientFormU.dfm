@@ -377,6 +377,10 @@ object MainForm: TMainForm
     object TabSheet2: TTabSheet
       Caption = 'Invoking DataModule Methods'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object GroupBox5: TGroupBox
         Left = 11
         Top = 18
@@ -418,6 +422,37 @@ object MainForm: TMainForm
           ParentFont = False
           TabOrder = 2
         end
+      end
+    end
+    object TabSheet3: TTabSheet
+      Caption = 'Hooks Demo'
+      ImageIndex = 2
+      object btnDoNothing: TButton
+        Left = 24
+        Top = 24
+        Width = 145
+        Height = 33
+        Caption = 'Do Nothing'
+        TabOrder = 0
+        OnClick = btnDoNothingClick
+      end
+      object btnDoNothingError: TButton
+        Left = 24
+        Top = 63
+        Width = 145
+        Height = 33
+        Caption = 'Do Nothing With Errors'
+        TabOrder = 1
+        OnClick = btnDoNothingErrorClick
+      end
+      object btnNotExistent: TButton
+        Left = 24
+        Top = 102
+        Width = 145
+        Height = 33
+        Caption = 'Invalid Method'
+        TabOrder = 2
+        OnClick = btnNotExistentClick
       end
     end
   end

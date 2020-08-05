@@ -81,6 +81,10 @@ type
     Edit2: TEdit;
     btnSubtractWithNamedParams: TButton;
     Edit3: TEdit;
+    TabSheet3: TTabSheet;
+    btnDoNothing: TButton;
+    btnDoNothingError: TButton;
+    btnNotExistent: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -97,9 +101,13 @@ type
     procedure btnFloatsTestsClick(Sender: TObject);
     procedure btnWithJSONClick(Sender: TObject);
     procedure btnSubtractWithNamedParamsClick(Sender: TObject);
+    procedure btnDoNothingClick(Sender: TObject);
+    procedure btnNotExistentClick(Sender: TObject);
+    procedure btnDoNothingErrorClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
+    FExecutor3: IMVCJSONRPCExecutor;
   public
     { Public declarations }
   end;
@@ -120,6 +128,7 @@ uses
   System.Rtti;
 
 {$R *.dfm}
+
 
 procedure TMainForm.btnAddDayClick(Sender: TObject);
 var
@@ -158,6 +167,22 @@ begin
   ShowMessage('Using Named Parameters: ' +
     DateTimeToStr(ISOTimeStampToDateTime(lResp.Result.AsString)));
 
+end;
+
+procedure TMainForm.btnDoNothingClick(Sender: TObject);
+var
+  lReq: IJSONRPCNotification;
+begin
+  lReq := TJSONRPCNotification.Create('DoSomething');
+  FExecutor3.ExecuteNotification(lReq);
+end;
+
+procedure TMainForm.btnDoNothingErrorClick(Sender: TObject);
+var
+  lReq: IJSONRPCNotification;
+begin
+  lReq := TJSONRPCNotification.Create('DoSomethingWithError');
+  FExecutor3.ExecuteNotification(lReq);
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);
@@ -361,6 +386,14 @@ begin
   ShowMessage(lPerson.ToJSON(False));
 end;
 
+procedure TMainForm.btnNotExistentClick(Sender: TObject);
+var
+  lReq: IJSONRPCNotification;
+begin
+  lReq := TJSONRPCNotification.Create('blablabla');
+  FExecutor3.ExecuteNotification(lReq);
+end;
+
 procedure TMainForm.edtGetCustomersClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
@@ -379,6 +412,8 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpc');
   FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
+  FExecutor3 := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpchooks');
+
   dtNextMonday.Date := Date;
 
   // these are the methods to handle http headers in JSONRPC
