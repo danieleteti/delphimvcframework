@@ -101,7 +101,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;dmvcframeworkDT;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
@@ -126,9 +126,10 @@
         <DCC_DcpOutput>..\..\..\..\bin\SDK\</DCC_DcpOutput>
         <DCC_BplOutput>..\..\..\..\bin\</DCC_BplOutput>
         <DCC_UnitSearchPath>..\..\..\..\bin\SDK\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-        <Debugger_HostApplication>C:\DEV\dmscontainer v3.1.0\bin\DMSContainerService.exe</Debugger_HostApplication>
+        <Debugger_HostApplication>C:\DEV\dmscontainer_v3_1_0\bin\DMSContainerService.exe</Debugger_HostApplication>
         <Debugger_RunParams>/console</Debugger_RunParams>
-        <Debugger_EnvVars>DMS_HOME=C:\DEV\dmscontainer v3.1.0\bin\;$(Debugger_EnvVars)</Debugger_EnvVars>
+        <Debugger_EnvVars>DMS_HOME=C:\DEV\dmscontainer_v3_1_0\bin\;$(Debugger_EnvVars)</Debugger_EnvVars>
+        <Debugger_DebugSourcePath>C:\DEV\dmscontainer_v3_1_0\libs\delphimvcframework\sources\;C:\DEV\dmscontainer_v3_1_0\libs\delphimvcframework\packages\d103\;$(Debugger_DebugSourcePath)</Debugger_DebugSourcePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -265,6 +266,7 @@
                     <Source Name="MainSource">dmvcframeworkRT.dpk</Source>
                 </Source>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\dmvcframeworkDT103.bpl">DelphiMVCFramework IDE Expert</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\bcboffice2k260.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\bcbofficexp260.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k260.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
