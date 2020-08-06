@@ -1,8 +1,6 @@
-
 ![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
-![](https://img.shields.io/badge/next%20dmvcframework%20version-3.2.1--carbon-red)![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
-
+![](https://img.shields.io/badge/We%20are%20working%20on%20dmvcframework%20new%20version-3.2.1--carbon-red)![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
 
 # DelphiMVCFramework 3.2.0-boron is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron)!
 
@@ -385,7 +383,29 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
+## Changes in upcoming version (3.2.1-carbon)
+
+### Bug Fixes and Improvements
+
+- [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
+
+- New `Context: TWebContext` parameter in JSON-RPC Hooks
+
+  ```delphi
+  { Called before any actual routing }
+  procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
+  { Called after routing and before the actual remote method invocation }
+  procedure OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
+  { Called after actual remote method invocation, even if the method raised an exception }
+  procedure OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
+  ```
+
+- When a JSON-RPC Request returns a `System.Boolean` the `result` will be a JSON `true` or `false` and no `1` or `0` as it was in the `3.2.0-boron`.
+
+- `IMVCJSONRPCExecutor.ExecuteNotification` returns a `IJSONRPCResponse`. In case of error response contains information about the error, in case of successful execution the response is a [Null Object](https://en.wikipedia.org/wiki/Null_object_pattern).
+
 ## Roadmap
+
 DelphiMVCFramework roadmap is always updated as-soon-as the features planned are implemented. Check the roadmap [here](roadmap.md).
 
 ## Trainings, consultancy or custom development service

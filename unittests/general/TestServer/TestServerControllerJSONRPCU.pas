@@ -10,6 +10,7 @@ type
   public
     function Subtract(Value1, Value2: Int64): Integer;
     procedure MyNotify;
+    function MyRequest: Boolean;
     function Add(Value1, Value2, Value3: Int64): TJsonObject;
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
     function MultiplyString(aString: string; Multiplier: Int64): string;
@@ -39,6 +40,7 @@ type
     function error_OnAfterCallHook: Boolean;
 
     procedure Notif1;
+    procedure NotifWithError;
     function Request1: string;
     function RequestWithError: string;
   end;
@@ -81,6 +83,11 @@ procedure TTestJSONRPCController.MyNotify;
 begin
   // this is a notify with no parameters and no result code
   Self.ClassName;
+end;
+
+function TTestJSONRPCController.MyRequest: Boolean;
+begin
+  Result := True;
 end;
 
 function TTestJSONRPCController.Subtract(Value1, Value2: Int64): Integer;
@@ -139,21 +146,29 @@ end;
 function TTestJSONRPCHookClass.error_OnAfterCallHook: Boolean;
 begin
   // do nothing
+  Result := True;
 end;
 
 function TTestJSONRPCHookClass.error_OnBeforeCallHook: Boolean;
 begin
   // do nothing
+  Result := True;
 end;
 
 function TTestJSONRPCHookClass.error_OnBeforeRoutingHook: Boolean;
 begin
   // do nothing
+  Result := True;
 end;
 
 procedure TTestJSONRPCHookClass.Notif1;
 begin
   // do nothing
+end;
+
+procedure TTestJSONRPCHookClass.NotifWithError;
+begin
+  raise Exception.Create('BOOM NOTIF');
 end;
 
 procedure TTestJSONRPCHookClass.OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
@@ -164,9 +179,6 @@ begin
 
     fHistory := fHistory + '|OnAfterCallHook';
 
-    if JSON.Contains('error') then
-      fHistory := fHistory + '|error';
-
     // do nothing
     if fJSONRPCKind = TJSONRPCRequestType.Request then
     begin
@@ -175,9 +187,13 @@ begin
     end
     else
     begin
-      Assert(not Assigned(JSON));
+      if Assigned(JSON) then
+        Assert(JSON.Contains('error'), 'ERROR! Notification has a response but is not an error');
       LogD('TTestJSONRPCHookClass.OnAfterCallHook: Param is nil');
     end;
+    if Assigned(JSON) then
+      if JSON.Contains('error') then
+        fHistory := fHistory + '|error';
     Context.Response.CustomHeaders.Values['x-history'] := fHistory;
   finally
     FreeAndNil(fJSONReq);
@@ -218,7 +234,7 @@ end;
 
 function TTestJSONRPCHookClass.RequestWithError: string;
 begin
-  raise Exception.Create('BOOM');
+  raise Exception.Create('BOOM REQUEST');
 end;
 
 end.

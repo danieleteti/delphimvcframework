@@ -6,6 +6,7 @@ uses
   System.SysUtils,
   MVCFramework.Logger,
   MVCFramework.Commons,
+  MVCFramework.Console,
   MVCFramework.REPLCommandsHandlerU,
   Web.ReqMulti,
   Web.WebReq,
@@ -65,12 +66,17 @@ begin
     { more info about ListenQueue
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
-
+    SaveColors;
+    TextColor(Yellow);
     WriteLn('Write "quit" or "exit" to shutdown the server');
+    RestoreSavedColors;
     repeat
       if lCmd.IsEmpty then
       begin
+        SaveColors;
+        TextColor(Green);
         Write('-> ');
+        RestoreSavedColors;
         ReadLn(lCmd)
       end;
       try
@@ -85,7 +91,10 @@ begin
             end;
           THandleCommandResult.Unknown:
             begin
+              SaveColors;
+              TextColor(Red);
               REPLEmit('Unknown command: ' + lCmd);
+              RestoreSavedColors;
             end;
         end;
       finally
@@ -101,6 +110,7 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := True;
   IsMultiThread := True;
+  TextColor(TConsoleColor.White);
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;

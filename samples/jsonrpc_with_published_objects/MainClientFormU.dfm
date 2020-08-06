@@ -377,10 +377,6 @@ object MainForm: TMainForm
     object TabSheet2: TTabSheet
       Caption = 'Invoking DataModule Methods'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object GroupBox5: TGroupBox
         Left = 11
         Top = 18
