@@ -38,7 +38,7 @@ type
   IMVCJSONRPCExecutor = interface
     ['{55415094-9D28-4707-AEC5-5FCF925E82BC}']
     function ExecuteRequest(const aJSONRPCRequest: IJSONRPCRequest): IJSONRPCResponse;
-    procedure ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification);
+    function ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification): IJSONRPCResponse;
     function HTTPResponse: IHTTPResponse;
     // Http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
@@ -69,7 +69,7 @@ type
     function HTTPResponse: IHTTPResponse;
     function InternalExecute(const aJSONRPCObject: IJSONRPCObject): IJSONRPCResponse;
     function ExecuteRequest(const aJSONRPCRequest: IJSONRPCRequest): IJSONRPCResponse;
-    procedure ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification);
+    function ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification): IJSONRPCResponse;
     // Http headers handling
     procedure AddHTTPHeader(const aNetHeader: TNetHeader);
     procedure ClearHTTPHeaders;
@@ -164,10 +164,19 @@ begin
   inherited;
 end;
 
-procedure TMVCJSONRPCExecutor.ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification);
+function TMVCJSONRPCExecutor.ExecuteNotification(const aJSONRPCNotification: IJSONRPCNotification): IJSONRPCResponse;
+// var
+// lResp: IJSONRPCResponse;
 begin
-  if InternalExecute(aJSONRPCNotification as TJSONRPCObject) <> nil then
-    raise EMVCJSONRPCException.Create('A "notification" cannot returns a response. Use ExecuteRequest instead.');
+  Result := InternalExecute(aJSONRPCNotification as TJSONRPCObject);
+  // if Assigned(lResp) then
+  // begin
+  //
+  // end;
+  // if InternalExecute(aJSONRPCNotification as TJSONRPCObject) <> nil then
+  // begin
+  // raise EMVCJSONRPCException.Create('A "notification" cannot returns a response. Use ExecuteRequest instead.');
+  // end;
 end;
 
 function TMVCJSONRPCExecutor.ExecuteRequest(const aJSONRPCRequest: IJSONRPCRequest): IJSONRPCResponse;
@@ -217,22 +226,28 @@ begin
     begin
       fOnSendCommand(aJSONRPCObject);
     end;
+    fHTTPResponse := nil;
     lHttpResp := fHTTP.Post(fURL, lSS, nil, [TNetHeader.Create('content-type', 'application/json;charset=utf8'),
       TNetHeader.Create('accept', 'application/json;charset=utf8')] + lCustomHeaders);
-    if (lHttpResp.StatusCode <> HTTP_STATUS.NoContent) then
+    fHTTPResponse := lHttpResp;
+    if lHttpResp.StatusCode = HTTP_STATUS.NoContent then
+    begin
+      lJSONRPCResponse := TJSONRPCNullResponse.Create;
+    end
+    else
     begin
       lJSONRPCResponse := TJSONRPCResponse.Create;
       lJSONRPCResponse.AsJSONString := lHttpResp.ContentAsString;
-      if Assigned(fOnReceiveResponse) then
-      begin
-        fOnReceiveResponse(aJSONRPCObject, lJSONRPCResponse);
-      end;
-      if Assigned(lJSONRPCResponse.Error) and fRaiseExceptionOnError then
-        raise EMVCJSONRPCException.CreateFmt('[REMOTE EXCEPTION][%d]: %s',
-          [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
-      Result := lJSONRPCResponse;
+    end;
+    if Assigned(fOnReceiveResponse) then
+    begin
+      fOnReceiveResponse(aJSONRPCObject, lJSONRPCResponse);
     end;
     fHTTPResponse := lHttpResp;
+    if Assigned(lJSONRPCResponse.Error) and fRaiseExceptionOnError then
+      raise EMVCJSONRPCException.CreateFmt('[REMOTE EXCEPTION][%d]: %s',
+        [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
+    Result := lJSONRPCResponse;
   finally
     lSS.Free;
   end;

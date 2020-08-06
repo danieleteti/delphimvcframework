@@ -2097,9 +2097,9 @@ begin
 {$IFDEF NEXTGEN}
         lTypeName := PChar(Pointer(Value.TypeInfo.Name))
 {$ELSE}
-        lTypeName := String(Value.TypeInfo.Name);
+        lTypeName := string(Value.TypeInfo.Name);
 {$ENDIF}
-        if (lTypeName = 'TDate') or (lTypeName = 'TDateTime')  or (lTypeName = 'TTime') then
+        if (lTypeName = 'TDate') or (lTypeName = 'TDateTime') or (lTypeName = 'TTime') then
         begin
           JSON.D[KeyName] := Value.AsExtended;
         end
@@ -2118,8 +2118,15 @@ begin
       end;
     tkEnumeration:
       begin
-        Value.TryAsOrdinal(lOrdinalValue);
-        JSON.I[KeyName] := lOrdinalValue;
+        if (Value.TypeInfo = System.TypeInfo(Boolean)) then
+        begin
+          JSON.B[KeyName] := Value.AsBoolean;
+        end
+        else
+        begin
+          Value.TryAsOrdinal(lOrdinalValue);
+          JSON.I[KeyName] := lOrdinalValue;
+        end;
       end;
     tkClass, tkInterface:
       begin

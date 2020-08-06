@@ -234,25 +234,25 @@ end;
 
 procedure TMainForm.btnInvalid1Click(Sender: TObject);
 var
-  lReq: IJSONRPCRequest;
+  lReq: IJSONRPCNotification;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCRequest.Create;
+  lReq := TJSONRPCNotification.Create;
   lReq.Method := 'invalidmethod1';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteNotification(lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
 procedure TMainForm.btnInvalid2Click(Sender: TObject);
 var
-  lReq: IJSONRPCRequest;
+  lReq: IJSONRPCNotification;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCRequest.Create;
+  lReq := TJSONRPCNotification.Create;
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteNotification(lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
@@ -424,6 +424,7 @@ begin
   FExecutor.ClearHTTPHeaders;
   Assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
+  PageControl1.ActivePageIndex := 0;
 end;
 
 end.

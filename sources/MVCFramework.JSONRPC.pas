@@ -261,8 +261,8 @@ type
     FResult: TValue;
     FError: TJSONRPCResponseError;
     FID: TValue;
-    function GetResult: TValue;
   protected
+    function GetResult: TValue;
     function GetJSON: TJDOJsonObject; override;
     procedure SetJSON(const JSON: TJDOJsonObject); override;
     procedure SetID(const Value: TValue);
@@ -279,6 +279,29 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+  end;
+
+  TJSONRPCNullResponse = class(TJSONRPCObject, IJSONRPCResponse)
+  private
+    FError: TJSONRPCResponseError;
+    procedure RaiseErrorForNullObject;
+  protected
+    function GetJSONString: string; override;
+    procedure SetJsonString(const Value: string); override;
+    function GetJSON: TJDOJsonObject; override;
+    procedure SetJSON(const JSON: TJDOJsonObject); override;
+    procedure SetID(const Value: TValue);
+    procedure SetResult(const Value: TValue);
+    procedure SetError(const Value: TJSONRPCResponseError);
+    function GetError: TJSONRPCResponseError;
+    function GetID: TValue;
+    function GetResult: TValue;
+    function ResultAsJSONObject: TJDOJsonObject;
+    function ResultAsJSONArray: TJDOJsonArray;
+    function IsError: Boolean;
+    property Result: TValue read GetResult write SetResult;
+    property Error: TJSONRPCResponseError read GetError write SetError;
+    property RequestID: TValue read GetID write SetID;
   end;
 
   EMVCJSONRPCInvalidVersion = class(Exception)
@@ -1850,26 +1873,31 @@ end;
 function TJSONRPCRequest.GetJSON: TJDOJsonObject;
 begin
   Result := inherited GetJSON;
-  if not FID.IsEmpty then
-  begin
-    if FID.IsType<string> then
+  try
+    if not FID.IsEmpty then
     begin
-      Result.S[JSONRPC_ID] := FID.AsString;
-    end
-    else if FID.IsType<Int32> then
-    begin
-      Result.I[JSONRPC_ID] := FID.AsInteger;
-    end
-    else if FID.IsType<Int64> then
-    begin
-      Result.I[JSONRPC_ID] := FID.AsInt64;
+      if FID.IsType<string> then
+      begin
+        Result.S[JSONRPC_ID] := FID.AsString;
+      end
+      else if FID.IsType<Int32> then
+      begin
+        Result.I[JSONRPC_ID] := FID.AsInteger;
+      end
+      else if FID.IsType<Int64> then
+      begin
+        Result.I[JSONRPC_ID] := FID.AsInt64;
+      end
+      else
+        raise EMVCJSONRPCException.Create('ID can be only Int32, Int64 or String');
     end
     else
-      raise EMVCJSONRPCException.Create('ID can be only Int32, Int64 or String');
-  end
-  else
-  begin
-    raise EMVCJSONRPCException.Create('ID cannot be empty in a JSON-RPC request');
+    begin
+      raise EMVCJSONRPCException.Create('ID cannot be empty in a JSON-RPC request');
+    end;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 
@@ -2085,6 +2113,81 @@ constructor EMVCJSONRPCError.Create(const ErrCode: Integer; const Msg: string);
 begin
   inherited Create(Msg);
   fJSONRPCErrorCode := ErrCode;
+end;
+
+{ TJSONRPCNullResponse }
+
+function TJSONRPCNullResponse.GetError: TJSONRPCResponseError;
+begin
+  Result := FError;
+end;
+
+function TJSONRPCNullResponse.GetID: TValue;
+begin
+  RaiseErrorForNullObject;
+end;
+
+function TJSONRPCNullResponse.GetJSON: TJDOJsonObject;
+begin
+  Result := nil;
+  RaiseErrorForNullObject;
+end;
+
+function TJSONRPCNullResponse.GetJSONString: string;
+begin
+  RaiseErrorForNullObject;
+end;
+
+function TJSONRPCNullResponse.GetResult: TValue;
+begin
+  RaiseErrorForNullObject;
+end;
+
+function TJSONRPCNullResponse.IsError: Boolean;
+begin
+  Result := False;
+end;
+
+procedure TJSONRPCNullResponse.RaiseErrorForNullObject;
+begin
+  raise EMVCJSONRPCException.Create('Invalid Call for NULL object');
+end;
+
+function TJSONRPCNullResponse.ResultAsJSONArray: TJDOJsonArray;
+begin
+  Result := nil;
+  RaiseErrorForNullObject;
+end;
+
+function TJSONRPCNullResponse.ResultAsJSONObject: TJDOJsonObject;
+begin
+  Result := nil;
+  RaiseErrorForNullObject;
+end;
+
+procedure TJSONRPCNullResponse.SetError(const Value: TJSONRPCResponseError);
+begin
+  FError := Value;
+end;
+
+procedure TJSONRPCNullResponse.SetID(const Value: TValue);
+begin
+  RaiseErrorForNullObject;
+end;
+
+procedure TJSONRPCNullResponse.SetJSON(const JSON: TJDOJsonObject);
+begin
+  RaiseErrorForNullObject;
+end;
+
+procedure TJSONRPCNullResponse.SetJsonString(const Value: string);
+begin
+  RaiseErrorForNullObject;
+end;
+
+procedure TJSONRPCNullResponse.SetResult(const Value: TValue);
+begin
+  RaiseErrorForNullObject;
 end;
 
 initialization
