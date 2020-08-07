@@ -221,10 +221,15 @@ begin
       LMethods := LRttiType.GetMethods; {do not use GetDeclaredMethods because JSON-RPC rely on this!!}
       for LMethod in LMethods do
       begin
-        if (LMethod.MethodKind <> mkProcedure) or LMethod.IsClassMethod then
+        if LMethod.Visibility <> mvPublic then //2020-08-08
+          Continue;
+        if (LMethod.MethodKind <> mkProcedure) {or LMethod.IsClassMethod} then
           Continue;
 
         LAttributes := LMethod.GetAttributes;
+        if Length(LAttributes) = 0 then
+          Continue;
+
         for LAtt in LAttributes do
         begin
           if LAtt is MVCPathAttribute then
@@ -240,7 +245,7 @@ begin
                 FControllerClazz := LControllerDelegate.Clazz;
                 FControllerCreateAction := LControllerDelegate.CreateAction;
                 LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
-                if Assigned(LProduceAttribute) then
+                if LProduceAttribute <> nil then
                 begin
                   AResponseContentMediaType := LProduceAttribute.Value;
                   AResponseContentCharset := LProduceAttribute.Charset;
@@ -396,7 +401,7 @@ var
   FoundOneAttProduces: Boolean;
 begin
   Result := False;
-  if AAccept = '*/*' then
+  if AAccept.Contains('*/*') then //2020-08-08
   begin
     Exit(True);
   end;

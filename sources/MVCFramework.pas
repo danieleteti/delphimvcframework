@@ -606,7 +606,7 @@ type
     FContentCharset: string;
     FResponseStream: TStringBuilder;
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
-  public
+
     function GetContentType: string;
     function GetStatusCode: Integer;
     procedure SetContentType(const AValue: string);
@@ -756,16 +756,17 @@ type
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
     property ViewModelList: TMVCViewDataObject read GetViewModel;
     property ViewDataSetList: TMVCViewDataSet read GetViewDataSets;
-  public
-    constructor Create; virtual;
-    destructor Destroy; override;
 
-    // procedure PushToView(const AModelName: string; const AModel: string);
     procedure PushObjectToView(const aModelName: string; const AModel: TObject); deprecated 'Use "ViewData"';
     procedure PushDataSetToView(const aModelName: string; const ADataSet: TDataSet); deprecated 'Use "ViewDataSet"';
 
     property ViewData[const aModelName: string]: TObject read GetViewData write SetViewData;
     property ViewDataset[const aDataSetName: string]: TDataSet read GetViewDataset write SetViewDataset;
+
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
   end;
 
   TMVCControllerClazz = class of TMVCController;
