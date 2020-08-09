@@ -5,77 +5,123 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-  System.Generics.Collections,
-  IPPeerClient,
   REST.Client,
   REST.Types,
+  MVCFramework.RESTClient.Intf,
   MVCFramework.Serializer.Intf,
-  MVCFramework.RESTClient.Intf;
+  MVCFramework.Serializer.Commons,
+  Data.DB,
+  System.Rtti;
 
 type
   TRESTClient = class(TInterfacedObject, IRESTClient)
   private
+    fRttiContext: TRttiContext;
     fRESTClient: TCustomRESTClient;
     fRESTRequest: TCustomRESTRequest;
     fRESTResponse: TCustomRESTResponse;
     fSerializer: IMVCSerializer;
+    procedure ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
+    function ConvertMVCPathParamsToRESTParams(const aResource: string): string;
+    function ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IRESTResponse;
+    function ObjectIsList(aObject: TObject): Boolean;
+    function SerializeObject(aObject: TObject): string;
   public
     constructor Create;
     destructor Destroy; override;
 
     function BaseURL: string; overload;
-    function BaseURL(const ABaseURL: string): IRESTClient; overload;
-    function ReadTimeout: Integer; overload;
-    function ReadTimeout(const AReadTimeout: Integer): IRESTClient; overload;
+    function BaseURL(const aBaseURL: string): IRESTClient; overload;
+    function Timeout: Integer; overload;
+    function Timeout(const aTimeout: Integer): IRESTClient; overload;
+    function RaiseExceptionOn500: Boolean; overload;
+    function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IRESTClient; overload;
 
     function ProxyServer: string; overload;
-    function ProxyServer(const AProxyServer: string): IRESTClient; overload;
+    function ProxyServer(const aProxyServer: string): IRESTClient; overload;
     function ProxyPort: Integer; overload;
-    function ProxyPort(const AProxyPort: Integer): IRESTClient; overload;
+    function ProxyPort(const aProxyPort: Integer): IRESTClient; overload;
     function ProxyUsername: string; overload;
-    function ProxyUsername(const AProxyUsername: string): IRESTClient; overload;
+    function ProxyUsername(const aProxyUsername: string): IRESTClient; overload;
     function ProxyPassword: string; overload;
-    function ProxyPassword(const AProxyPassword: string): IRESTClient; overload;
+    function ProxyPassword(const aProxyPassword: string): IRESTClient; overload;
 
-    function SetBasicAuthorization(const AUsername, APassword: string): IRESTClient;
-    function SetBearerAuthorization(const AToken: string): IRESTClient;
+    function SetBasicAuthorization(const aUsername, aPassword: string): IRESTClient;
+    function SetBearerAuthorization(const aToken: string): IRESTClient;
 
-    function AddHeader(const AName, AValue: string): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: Integer): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: Int64): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: TGUID): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: TDateTime): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: TDate): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: TTime): IRESTClient; overload;
-    function AddHeader(const AName: string; AValue: Double): IRESTClient; overload;
+    function AddHeader(const aName, aValue: string): IRESTClient; overload;
     function ClearHeaders: IRESTClient;
 
-    function AddPathParam(const AName, AValue: string): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: Integer): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: Int64): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: TGUID): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: TDateTime): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: TDate): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: TTime): IRESTClient; overload;
-    function AddPathParam(const AName: string; AValue: Double): IRESTClient; overload;
+    function AddCookie(const aName, aValue: string): IRESTClient;
+    function ClearCookies: IRESTClient;
+
+    function AddPathParam(const aName, aValue: string): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Integer): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Int64): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TGUID): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDateTime): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDate): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TTime): IRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Double): IRESTClient; overload;
     function ClearPathParams: IRESTClient;
 
-    function AddQueryStringParam(const AName, AValue: string): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: Integer): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: Int64): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: TGUID): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: TDateTime): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: TDate): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: TTime): IRESTClient; overload;
-    function AddQueryStringParam(const AName: string; AValue: Double): IRESTClient; overload;
+    function AddQueryStringParam(const aName, aValue: string): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Integer): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Int64): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TGUID): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDateTime): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDate): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TTime): IRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Double): IRESTClient; overload;
     function ClearQueryParams: IRESTClient;
 
     function Accept: string; overload;
-    function Accept(const AAccept: string): IRESTClient; overload;
+    function Accept(const aAccept: string): IRESTClient; overload;
     function AcceptCharset: string; overload;
-    function AcceptCharset(const AAcceptCharset: string): IRESTClient; overload;
+    function AcceptCharset(const aAcceptCharset: string): IRESTClient; overload;
     function AcceptEncoding: string; overload;
-    function AcceptEncoding(const AAcceptEncoding: string): IRESTClient; overload;
+    function AcceptEncoding(const aAcceptEncoding: string): IRESTClient; overload;
+
+    function Resource: string; overload;
+    function Resource(const aResource: string): IRESTClient; overload;
+
+    function AddBody(const aBody: string;
+      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IRESTClient; overload;
+    function AddBody(aBody: TStream; const aContentType: TRESTContentType = ctNone;
+      aOwnsStream: Boolean = True): IRESTClient; overload;
+    function AddBody(aBody: TObject; const aOwnsObject: Boolean = True): IRESTClient; overload;
+    function ClearBody: IRESTClient;
+
+    function AddFile(const aName, aFileName: string;
+      const aContentType: TRESTContentType = ctNone): IRESTClient; overload;
+    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IRESTClient; overload;
+    function ClearFiles: IRESTClient;
+
+    function Get: IRESTResponse; overload;
+    function Get(const aResource: string): IRESTResponse; overload;
+
+    function Post: IRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
+    function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+
+    function Patch: IRESTResponse; overload;
+    function Patch(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
+    function Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+
+    function Put: IRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
+    function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+
+    function Delete: IRESTResponse; overload;
+    function Delete(const aResource: string): IRESTResponse; overload;
+
+    function DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
+      const aNameCase: TMVCNameCase = ncAsIs): IRESTResponse;
+    function DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
+      const aNameCase: TMVCNameCase = ncAsIs): IRESTResponse;
+    function DataSetDelete(const aResource: string): IRESTResponse;
+
+    function Serializer: IMVCSerializer;
   end;
 
   TRESTResponse = class(TInterfacedObject, IRESTResponse)
@@ -83,68 +129,52 @@ type
     fSuccess: Boolean;
     fStatusCode: Integer;
     fStatusText: string;
+    fErrorMessage: string;
     fHeaders: TStrings;
+    fServer: string;
+    fFullRequestURI: string;
     fContentType: string;
     fContentEncoding: string;
     fContentLength: Integer;
     fContent: string;
     fRawBytes: TBytes;
+    procedure FillRESTResponse(aRESTResponse: TCustomRESTResponse);
   public
-    constructor Create;
+    constructor Create(aRESTResponse: TCustomRESTResponse);
     destructor Destroy; override;
 
-    function Success: Boolean; overload;
-    function Success(const ASuccess: Boolean): IRESTResponse; overload;
-
-    function StatusCode: Integer; overload;
-    function StatusCode(const AStatusCode: Integer): IRESTResponse; overload;
-    function StatusText: string; overload;
-    function StatusText(const AStatusText: string): IRESTResponse; overload;
-
-    function Headers: TStrings; overload;
-    function Headers(const AHeaders: TStrings): IRESTResponse; overload;
-
-    function ContentType: string; overload;
-    function ContentType(const AContentType: string): IRESTResponse; overload;
-    function ContentEncoding: string; overload;
-    function ContentEncoding(const AContentEncoding: string): IRESTResponse; overload;
-    function ContentLength: Integer; overload;
-    function ContentLength(const AContentLength: Integer): IRESTResponse; overload;
-
-    function Content: string; overload;
-    function Content(const AContent: string): IRESTResponse; overload;
-    function RawBytes: TBytes; overload;
-    function RawBytes(const ARawBytes: TBytes): IRESTResponse; overload;
+    function Success: Boolean;
+    function StatusCode: Integer;
+    function StatusText: string;
+    function ErrorMessage: string;
+    function Headers: TStrings;
+    function HeaderByName(const aName: string): string;
+    function Server: string;
+    function FullRequestURI: string;
+    function ContentType: string;
+    function ContentEncoding: string;
+    function ContentLength: Integer;
+    function Content: string;
+    function RawBytes: TBytes;
+    procedure SaveContentToStream(aStream: TStream);
+    procedure SaveContentToFile(const aFileName: string);
   end;
+
+  ERESTClientException = class(Exception);
 
 implementation
 
 uses
-  MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.JsonDataObjects,
-  System.NetEncoding;
+  System.NetEncoding,
+  System.RegularExpressions;
 
 { TRESTClient }
 
-function TRESTClient.AddHeader(const AName: string; AValue: TDateTime): IRESTClient;
-begin
-  Result := AddHeader(AName, DateTimeToISOTimeStamp(AValue));
-end;
-
-function TRESTClient.AddHeader(const AName: string; AValue: TDate): IRESTClient;
-begin
-  Result := AddHeader(AName, DateToISODate(AValue));
-end;
-
-function TRESTClient.AddHeader(const AName: string; AValue: TTime): IRESTClient;
-begin
-  Result := AddHeader(AName, TimeToISOTime(AValue));
-end;
-
-function TRESTClient.Accept(const AAccept: string): IRESTClient;
+function TRESTClient.Accept(const aAccept: string): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.Accept := AAccept;
+  fRESTRequest.Accept := aAccept;
 end;
 
 function TRESTClient.Accept: string;
@@ -157,10 +187,10 @@ begin
   Result := fRESTRequest.AcceptCharset;
 end;
 
-function TRESTClient.AcceptCharset(const AAcceptCharset: string): IRESTClient;
+function TRESTClient.AcceptCharset(const aAcceptCharset: string): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AcceptCharset := AAcceptCharset;
+  fRESTRequest.AcceptCharset := aAcceptCharset;
 end;
 
 function TRESTClient.AcceptEncoding: string;
@@ -168,118 +198,152 @@ begin
   Result := fRESTRequest.AcceptEncoding;
 end;
 
-function TRESTClient.AcceptEncoding(const AAcceptEncoding: string): IRESTClient;
+function TRESTClient.AcceptEncoding(const aAcceptEncoding: string): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AcceptEncoding := AAcceptEncoding;
+  fRESTRequest.AcceptEncoding := aAcceptEncoding;
 end;
 
-function TRESTClient.AddHeader(const AName: string; AValue: Double): IRESTClient;
-begin
-  Result := AddHeader(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddHeader(const AName, AValue: string): IRESTClient;
+function TRESTClient.AddBody(const aBody: string; const aContentType: TRESTContentType): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AddParameter(AName, AValue, TRESTRequestParameterKind.pkHTTPHEADER);
+  fRESTRequest.AddBody(aBody, aContentType);
 end;
 
-function TRESTClient.AddHeader(const AName: string; AValue: Integer): IRESTClient;
+function TRESTClient.AddBody(aBody: TStream; const aContentType: TRESTContentType;
+  aOwnsStream: Boolean): IRESTClient;
+var
+  lOwnsStream: TRESTObjectOwnership;
 begin
-  Result := AddHeader(AName, AValue.ToString);
+  if aBody = nil then
+    raise ERESTClientException.Create('You need a valid body!');
+
+  Result := Self;
+
+  if aOwnsStream then
+    lOwnsStream := TRESTObjectOwnership.ooREST
+  else
+    lOwnsStream := TRESTObjectOwnership.ooApp;
+
+  fRESTRequest.AddBody(aBody, aContentType, lOwnsStream);
 end;
 
-function TRESTClient.AddHeader(const AName: string; AValue: Int64): IRESTClient;
+function TRESTClient.AddBody(aBody: TObject; const aOwnsObject: Boolean): IRESTClient;
 begin
-  Result := AddHeader(AName, AValue.ToString);
+  if aBody = nil then
+    raise ERESTClientException.Create('You need a valid body!');
+
+  Result := Self;
+
+  AddBody(SerializeObject(aBody), TRESTContentType.ctAPPLICATION_JSON);
+
+  if aOwnsObject then
+    aBody.Free;
 end;
 
-function TRESTClient.AddHeader(const AName: string; AValue: TGUID): IRESTClient;
-begin
-  Result := AddHeader(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddPathParam(const AName: string; AValue: TGUID): IRESTClient;
-begin
-  Result := AddPathParam(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddPathParam(const AName: string; AValue: Int64): IRESTClient;
-begin
-  Result := AddPathParam(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddPathParam(const AName: string; AValue: Integer): IRESTClient;
-begin
-  Result := AddPathParam(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddPathParam(const AName, AValue: string): IRESTClient;
+function TRESTClient.AddCookie(const aName, aValue: string): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AddParameter(AName, AValue);
+  fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkCOOKIE);
 end;
 
-function TRESTClient.AddPathParam(const AName: string; AValue: Double): IRESTClient;
-begin
-  Result := AddPathParam(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddPathParam(const AName: string; AValue: TTime): IRESTClient;
-begin
-  Result := AddPathParam(AName, TimeToISOTime(AValue));
-end;
-
-function TRESTClient.AddPathParam(const AName: string; AValue: TDateTime): IRESTClient;
-begin
-  Result := AddPathParam(AName, DateTimeToISOTimeStamp(AValue));
-end;
-
-function TRESTClient.AddPathParam(const AName: string; AValue: TDate): IRESTClient;
-begin
-  Result := AddPathParam(AName, DateToISODate(AValue));
-end;
-
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: TDate): IRESTClient;
-begin
-  Result := AddQueryStringParam(AName, DateToISODate(AValue));
-end;
-
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: TDateTime): IRESTClient;
-begin
-  Result := AddQueryStringParam(AName, DateTimeToISOTimeStamp(AValue));
-end;
-
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: TTime): IRESTClient;
-begin
-  Result := AddQueryStringParam(AName, TimeToISOTime(AValue));
-end;
-
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: Double): IRESTClient;
-begin
-  Result := AddQueryStringParam(AName, AValue.ToString);
-end;
-
-function TRESTClient.AddQueryStringParam(const AName, AValue: string): IRESTClient;
+function TRESTClient.AddFile(const aName, aFileName: string; const aContentType: TRESTContentType): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AddParameter(AName, AValue);
+  fRESTRequest.AddFile(aName, aFileName, aContentType);
 end;
 
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: Integer): IRESTClient;
+function TRESTClient.AddFile(const aFileName: string; const aContentType: TRESTContentType): IRESTClient;
 begin
-  Result := AddQueryStringParam(AName, AValue.ToString);
+  Result := AddFile('file', aFileName, aContentType);
 end;
 
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: TGUID): IRESTClient;
+function TRESTClient.AddHeader(const aName, aValue: string): IRESTClient;
 begin
-  Result := AddQueryStringParam(AName, AValue.ToString);
+  Result := Self;
+  fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkHTTPHEADER);
 end;
 
-function TRESTClient.AddQueryStringParam(const AName: string; AValue: Int64): IRESTClient;
+function TRESTClient.AddPathParam(const aName: string; aValue: TGUID): IRESTClient;
 begin
-  Result := AddQueryStringParam(AName, AValue.ToString);
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddPathParam(const aName: string; aValue: Int64): IRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddPathParam(const aName: string; aValue: Integer): IRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddPathParam(const aName, aValue: string): IRESTClient;
+begin
+  Result := Self;
+  fRESTRequest.AddParameter(aName, aValue);
+end;
+
+function TRESTClient.AddPathParam(const aName: string; aValue: Double): IRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddPathParam(const aName: string; aValue: TTime): IRESTClient;
+begin
+  Result := AddPathParam(aName, TimeToISOTime(aValue));
+end;
+
+function TRESTClient.AddPathParam(const aName: string; aValue: TDateTime): IRESTClient;
+begin
+  Result := AddPathParam(aName, DateTimeToISOTimeStamp(aValue));
+end;
+
+function TRESTClient.AddPathParam(const aName: string; aValue: TDate): IRESTClient;
+begin
+  Result := AddPathParam(aName, DateToISODate(aValue));
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: TDate): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, DateToISODate(aValue));
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: TDateTime): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, DateTimeToISOTimeStamp(aValue));
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: TTime): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, TimeToISOTime(aValue));
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: Double): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddQueryStringParam(const aName, aValue: string): IRESTClient;
+begin
+  Result := Self;
+  fRESTRequest.AddParameter(aName, aValue);
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: Integer): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: TGUID): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
+end;
+
+function TRESTClient.AddQueryStringParam(const aName: string; aValue: Int64): IRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
 function TRESTClient.BaseURL: string;
@@ -287,46 +351,62 @@ begin
   Result := fRESTClient.BaseURL;
 end;
 
-function TRESTClient.BaseURL(const ABaseURL: string): IRESTClient;
+function TRESTClient.BaseURL(const aBaseURL: string): IRESTClient;
 begin
   Result := Self;
-  fRESTClient.BaseURL := ABaseURL;
+  fRESTClient.BaseURL := aBaseURL;
+end;
+
+function TRESTClient.ClearBody: IRESTClient;
+begin
+  Result := Self;
+  fRESTRequest.ClearBody;
+end;
+
+function TRESTClient.ClearCookies: IRESTClient;
+begin
+  Result := Self;
+  ClearRESTParams(TRESTRequestParameterKind.pkCOOKIE);
+end;
+
+function TRESTClient.ClearFiles: IRESTClient;
+begin
+  Result := Self;
+  ClearRESTParams(TRESTRequestParameterKind.pkFILE);
 end;
 
 function TRESTClient.ClearHeaders: IRESTClient;
-var
-  I: Integer;
 begin
   Result := Self;
-  for I := Pred(fRESTRequest.Params.Count) downto 0 do
-  begin
-    if (fRESTRequest.Params[I].Kind = TRESTRequestParameterKind.pkHTTPHEADER) then
-      fRESTRequest.Params.Delete(I);
-  end;
+  ClearRESTParams(TRESTRequestParameterKind.pkHTTPHEADER);
 end;
 
 function TRESTClient.ClearPathParams: IRESTClient;
+begin
+  Result := Self;
+  ClearRESTParams(TRESTRequestParameterKind.pkURLSEGMENT);
+end;
+
+function TRESTClient.ClearQueryParams: IRESTClient;
+begin
+  Result := Self;
+  ClearRESTParams(TRESTRequestParameterKind.pkQUERY);
+end;
+
+procedure TRESTClient.ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
 var
   I: Integer;
 begin
-  Result := Self;
   for I := Pred(fRESTRequest.Params.Count) downto 0 do
   begin
-    if (fRESTRequest.Params[I].Kind = TRESTRequestParameterKind.pkURLSEGMENT) then
+    if (fRESTRequest.Params[I].Kind = aRESTParamKind) then
       fRESTRequest.Params.Delete(I);
   end;
 end;
 
-function TRESTClient.ClearQueryParams: IRESTClient;
-var
-  I: Integer;
+function TRESTClient.ConvertMVCPathParamsToRESTParams(const aResource: string): string;
 begin
-  Result := Self;
-  for I := Pred(fRESTRequest.Params.Count) downto 0 do
-  begin
-    if (fRESTRequest.Params[I].Kind = TRESTRequestParameterKind.pkQUERY) then
-      fRESTRequest.Params.Delete(I);
-  end;
+  Result := TRegEx.Replace(aResource, '(\([($])([\w_]+)([)])', '{\2}', [roIgnoreCase]);
 end;
 
 constructor TRESTClient.Create;
@@ -346,6 +426,35 @@ begin
   fRESTRequest.AutoCreateParams := False;
 
   fSerializer := TMVCJsonDataObjectsSerializer.Create;
+  fRttiContext := TRttiContext.Create;
+end;
+
+function TRESTClient.DataSetDelete(const aResource: string): IRESTResponse;
+begin
+  Result := Delete(aResource);
+end;
+
+function TRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
+  const aNameCase: TMVCNameCase): IRESTResponse;
+begin
+  Result := Post(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
+end;
+
+function TRESTClient.DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
+  const aNameCase: TMVCNameCase): IRESTResponse;
+begin
+  Result := Put(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
+end;
+
+function TRESTClient.Delete: IRESTResponse;
+begin
+  Result := ExecuteRESTRequest(TRESTRequestMethod.rmDELETE);
+end;
+
+function TRESTClient.Delete(const aResource: string): IRESTResponse;
+begin
+  Resource(aResource);
+  Result := Delete;
 end;
 
 destructor TRESTClient.Destroy;
@@ -354,14 +463,95 @@ begin
   fRESTRequest.Free;
   fRESTClient.Free;
   fSerializer := nil;
+  fRttiContext.Free;
 
   inherited Destroy;
 end;
 
-function TRESTClient.ProxyPassword(const AProxyPassword: string): IRESTClient;
+function TRESTClient.ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IRESTResponse;
+begin
+  fRESTRequest.Method := aMethod;
+
+  fRESTRequest.Execute;
+
+  Result := TRESTResponse.Create(fRESTResponse);
+end;
+
+function TRESTClient.Get(const aResource: string): IRESTResponse;
+begin
+  Resource(aResource);
+  Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
+end;
+
+function TRESTClient.ObjectIsList(aObject: TObject): Boolean;
+begin
+  Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
+end;
+
+function TRESTClient.Get: IRESTResponse;
+begin
+  Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
+end;
+
+function TRESTClient.Patch(const aResource, aBody: string): IRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.isEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, TRESTContentType.ctAPPLICATION_JSON);
+  end;
+
+  Result := Patch;
+end;
+
+function TRESTClient.Patch: IRESTResponse;
+begin
+  Result := ExecuteRESTRequest(TRESTRequestMethod.rmPATCH);
+end;
+
+function TRESTClient.Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IRESTResponse;
+begin
+  if aBody = nil then
+    raise ERESTClientException.Create('You need a valid body!');
+
+  Result := Patch(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TRESTClient.Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IRESTResponse;
+begin
+  if aBody = nil then
+    raise ERESTClientException.Create('You need a valid body!');
+
+  Result := Post(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TRESTClient.Post(const aResource, aBody: string): IRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, TRESTContentType.ctAPPLICATION_JSON);
+  end;
+  Result := Post;
+end;
+
+function TRESTClient.Post: IRESTResponse;
+begin
+  Result := ExecuteRESTRequest(TRESTRequestMethod.rmPOST);
+end;
+
+function TRESTClient.ProxyPassword(const aProxyPassword: string): IRESTClient;
 begin
   Result := Self;
-  fRESTClient.ProxyPassword := AProxyPassword;
+  fRESTClient.ProxyPassword := aProxyPassword;
 end;
 
 function TRESTClient.ProxyPassword: string;
@@ -374,16 +564,16 @@ begin
   Result := fRESTClient.ProxyPort;
 end;
 
-function TRESTClient.ProxyPort(const AProxyPort: Integer): IRESTClient;
+function TRESTClient.ProxyPort(const aProxyPort: Integer): IRESTClient;
 begin
   Result := Self;
-  fRESTClient.ProxyPort := AProxyPort;
+  fRESTClient.ProxyPort := aProxyPort;
 end;
 
-function TRESTClient.ProxyServer(const AProxyServer: string): IRESTClient;
+function TRESTClient.ProxyServer(const aProxyServer: string): IRESTClient;
 begin
   Result := Self;
-  fRESTClient.ProxyServer := AProxyServer;
+  fRESTClient.ProxyServer := aProxyServer;
 end;
 
 function TRESTClient.ProxyServer: string;
@@ -396,24 +586,86 @@ begin
   Result := fRESTClient.ProxyUsername;
 end;
 
-function TRESTClient.ProxyUsername(const AProxyUsername: string): IRESTClient;
+function TRESTClient.ProxyUsername(const aProxyUsername: string): IRESTClient;
 begin
   Result := Self;
-  fRESTClient.ProxyUsername := AProxyUsername;
+  fRESTClient.ProxyUsername := aProxyUsername;
 end;
 
-function TRESTClient.ReadTimeout: Integer;
+function TRESTClient.Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IRESTResponse;
+begin
+  if aBody = nil then
+    raise ERESTClientException.Create('You need a valid body!');
+
+  Result := Put(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TRESTClient.Put(const aResource, aBody: string): IRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, TRESTContentType.ctAPPLICATION_JSON);
+  end;
+  Result := Put;
+end;
+
+function TRESTClient.Put: IRESTResponse;
+begin
+  Result := ExecuteRESTRequest(TRESTRequestMethod.rmPUT);
+end;
+
+function TRESTClient.RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IRESTClient;
+begin
+  Result := Self;
+  fRESTClient.RaiseExceptionOn500 := aRaiseExceptionOn500;
+end;
+
+function TRESTClient.Resource: string;
+begin
+  Result := fRESTRequest.Resource;
+end;
+
+function TRESTClient.Resource(const aResource: string): IRESTClient;
+begin
+  Result := Self;
+  fRESTRequest.Resource := ConvertMVCPathParamsToRESTParams(aResource);
+end;
+
+function TRESTClient.RaiseExceptionOn500: Boolean;
+begin
+  Result := fRESTClient.RaiseExceptionOn500;
+end;
+
+function TRESTClient.Timeout: Integer;
 begin
   Result := fRESTRequest.Timeout;
 end;
 
-function TRESTClient.ReadTimeout(const AReadTimeout: Integer): IRESTClient;
+function TRESTClient.Timeout(const aTimeout: Integer): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.Timeout := AReadTimeout;
+  fRESTRequest.Timeout := aTimeout;
 end;
 
-function TRESTClient.SetBasicAuthorization(const AUsername, APassword: string): IRESTClient;
+function TRESTClient.SerializeObject(aObject: TObject): string;
+begin
+  if ObjectIsList(aObject) then
+    Result := fSerializer.SerializeCollection(aObject)
+  else
+    Result := fSerializer.SerializeObject(aObject);
+end;
+
+function TRESTClient.Serializer: IMVCSerializer;
+begin
+  Result := fSerializer;
+end;
+
+function TRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IRESTClient;
 var
   LBase64: TNetEncoding;
   LAuthValue: string;
@@ -422,7 +674,7 @@ begin
   // Do not use TNetEncoding.Base64 here, because it may break long line
   LBase64 := TBase64Encoding.Create(0, '');
   try
-    LAuthValue := 'Basic ' + LBase64.Encode(AUsername + ':' + APassword); // do not translate
+    LAuthValue := 'Basic ' + LBase64.Encode(aUsername + ':' + aPassword);
   finally
     LBase64.Free;
   end;
@@ -430,41 +682,23 @@ begin
     [TRESTRequestParameterOption.poDoNotEncode]);
 end;
 
-function TRESTClient.SetBearerAuthorization(const AToken: string): IRESTClient;
+function TRESTClient.SetBearerAuthorization(const aToken: string): IRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AddParameter('Authorization', 'Bearer ' + AToken, TRESTRequestParameterKind.pkHTTPHEADER,
+  fRESTRequest.AddParameter('Authorization', 'Bearer ' + aToken, TRESTRequestParameterKind.pkHTTPHEADER,
     [TRESTRequestParameterOption.poDoNotEncode]);
 end;
 
 { TRESTResponse }
-
-function TRESTResponse.Content(const AContent: string): IRESTResponse;
-begin
-  Result := Self;
-  fContent := AContent;
-end;
 
 function TRESTResponse.Content: string;
 begin
   Result := fContent;
 end;
 
-function TRESTResponse.ContentEncoding(const AContentEncoding: string): IRESTResponse;
-begin
-  Result := Self;
-  fContentEncoding := AContentEncoding;
-end;
-
 function TRESTResponse.ContentEncoding: string;
 begin
   Result := fContentEncoding;
-end;
-
-function TRESTResponse.ContentLength(const AContentLength: Integer): IRESTResponse;
-begin
-  Result := Self;
-  fContentLength := AContentLength;
 end;
 
 function TRESTResponse.ContentLength: Integer;
@@ -477,17 +711,13 @@ begin
   Result := fContentType;
 end;
 
-function TRESTResponse.ContentType(const AContentType: string): IRESTResponse;
-begin
-  Result := Self;
-  fContentType := AContentType;
-end;
-
-constructor TRESTResponse.Create;
+constructor TRESTResponse.Create(aRESTResponse: TCustomRESTResponse);
 begin
   inherited Create;
   fHeaders := TStringList.Create;
   SetLength(fRawBytes, 0);
+
+  FillRESTResponse(aRESTResponse);
 end;
 
 destructor TRESTResponse.Destroy;
@@ -497,10 +727,35 @@ begin
   inherited Destroy;
 end;
 
-function TRESTResponse.Headers(const AHeaders: TStrings): IRESTResponse;
+function TRESTResponse.ErrorMessage: string;
 begin
-  Result := Self;
-  fHeaders.Assign(AHeaders);
+  Result := fErrorMessage;
+end;
+
+procedure TRESTResponse.FillRESTResponse(aRESTResponse: TCustomRESTResponse);
+begin
+  fSuccess := aRESTResponse.Status.Success;
+  fStatusCode := aRESTResponse.StatusCode;
+  fStatusText := aRESTResponse.StatusText;
+  fErrorMessage := aRESTResponse.ErrorMessage;
+  fHeaders := aRESTResponse.Headers;
+  fServer := aRESTResponse.Server;
+  fFullRequestURI := aRESTResponse.FullRequestURI;
+  fContent := aRESTResponse.Content;
+  fRawBytes := aRESTResponse.RawBytes;
+  fContentType := aRESTResponse.ContentType;
+  fContentEncoding := aRESTResponse.ContentEncoding;
+  fContentLength := aRESTResponse.ContentLength;
+end;
+
+function TRESTResponse.FullRequestURI: string;
+begin
+  Result := fFullRequestURI;
+end;
+
+function TRESTResponse.HeaderByName(const aName: string): string;
+begin
+  Result := fHeaders.Values[aName];
 end;
 
 function TRESTResponse.Headers: TStrings;
@@ -513,16 +768,31 @@ begin
   Result := fRawBytes;
 end;
 
-function TRESTResponse.RawBytes(const ARawBytes: TBytes): IRESTResponse;
+procedure TRESTResponse.SaveContentToFile(const aFileName: string);
+var
+  lStream: TMemoryStream;
 begin
-  Result := Self;
-  fRawBytes := ARawBytes;
+  lStream := TMemoryStream.Create;
+  try
+    lStream.Write(fRawBytes, Length(fRawBytes));
+    lStream.Position := 0;
+    lStream.SaveToFile(aFileName);
+  finally
+    lStream.Free;
+  end;
 end;
 
-function TRESTResponse.StatusCode(const AStatusCode: Integer): IRESTResponse;
+procedure TRESTResponse.SaveContentToStream(aStream: TStream);
 begin
-  Result := Self;
-  fStatusCode := AStatusCode;
+  if aStream = nil then
+    raise ERESTClientException.Create('Stream not assigned!');
+
+  aStream.Write(fRawBytes, Length(fRawBytes));
+end;
+
+function TRESTResponse.Server: string;
+begin
+  Result := fServer;
 end;
 
 function TRESTResponse.StatusCode: Integer;
@@ -535,21 +805,9 @@ begin
   Result := fStatusText;
 end;
 
-function TRESTResponse.StatusText(const AStatusText: string): IRESTResponse;
-begin
-  Result := Self;
-  fStatusText := AStatusText;
-end;
-
 function TRESTResponse.Success: Boolean;
 begin
   Result := fSuccess;
-end;
-
-function TRESTResponse.Success(const ASuccess: Boolean): IRESTResponse;
-begin
-  Result := Self;
-  fSuccess := ASuccess;
 end;
 
 end.
