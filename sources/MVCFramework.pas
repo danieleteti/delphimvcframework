@@ -606,7 +606,7 @@ type
     FContentCharset: string;
     FResponseStream: TStringBuilder;
     function ToMVCList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
-
+  public {this must be public because of entity processors}
     function GetContentType: string;
     function GetStatusCode: Integer;
     procedure SetContentType(const AValue: string);
