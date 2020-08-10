@@ -158,6 +158,15 @@ object MainForm: TMainForm
     TabOrder = 13
     OnClick = btnCountWithRQLClick
   end
+  object btnReadAndWriteOnly: TButton
+    Left = 8
+    Top = 523
+    Width = 121
+    Height = 33
+    Caption = 'R/O, R/W'
+    TabOrder = 14
+    OnClick = btnReadAndWriteOnlyClick
+  end
   object FDConnection1: TFDConnection
     Left = 176
     Top = 56
