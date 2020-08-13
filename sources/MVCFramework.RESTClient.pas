@@ -30,6 +30,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    class function New: IRESTClient;
+
     function BaseURL: string; overload;
     function BaseURL(const aBaseURL: string): IRESTClient; overload;
     function Timeout: Integer; overload;
@@ -483,6 +485,11 @@ begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
 end;
 
+class function TRESTClient.New: IRESTClient;
+begin
+  Result := TRESTClient.Create;
+end;
+
 function TRESTClient.ObjectIsList(aObject: TObject): Boolean;
 begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
@@ -738,7 +745,7 @@ begin
   fStatusCode := aRESTResponse.StatusCode;
   fStatusText := aRESTResponse.StatusText;
   fErrorMessage := aRESTResponse.ErrorMessage;
-  fHeaders := aRESTResponse.Headers;
+  fHeaders.Assign(aRESTResponse.Headers);
   fServer := aRESTResponse.Server;
   fFullRequestURI := aRESTResponse.FullRequestURI;
   fContent := aRESTResponse.Content;
