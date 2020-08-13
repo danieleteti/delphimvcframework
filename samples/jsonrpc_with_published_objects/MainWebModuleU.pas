@@ -59,6 +59,12 @@ begin
       Result := TdmMain.Create(nil);
     end, '/rpcdatamodule');
 
+  FMVC.PublishObject(
+    function: TObject
+    begin
+      Result := TMyObjectWithHooks.Create;
+    end, '/jsonrpchooks');
+
   FMVC.AddMiddleware(TCORSMiddleware.Create());
 end;
 

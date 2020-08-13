@@ -92,6 +92,11 @@ begin
     begin
       Result := TTestJSONRPCClass.Create
     end, '/jsonrpcclass')
+    .PublishObject(
+    function: TObject
+    begin
+      Result := TTestJSONRPCHookClass.Create
+    end, '/jsonrpcclass1')
     .AddController(TTestFaultController) // this will raise an exception
     .AddController(TTestFault2Controller,
     function: TMVCController
