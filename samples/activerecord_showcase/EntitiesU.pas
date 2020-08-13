@@ -272,6 +272,12 @@ type
     property Note: string read fNote write fNote;
   end;
 
+  [MVCTable('customers_with_code')]
+  TCustomerPlainWithClientPK = class(TCustomerWithCode)
+  protected
+    procedure OnBeforeInsert; override;
+  end;
+
   [MVCNameCase(ncLowerCase)]
   [MVCTable('orders')]
   TOrder = class(TCustomEntity)
@@ -384,7 +390,7 @@ type
 implementation
 
 uses
-  System.SysUtils, Data.DB, MVCFramework.Logger;
+  System.SysUtils, Data.DB, MVCFramework.Logger, System.Rtti;
 
 constructor TArticle.Create;
 begin
@@ -508,6 +514,18 @@ procedure TCustomEntity.OnBeforeExecuteSQL(var SQL: string);
 begin
   inherited;
   Log.Info(ClassName + ' | ' + SQL, 'sql_trace');
+end;
+
+{ TCustomerPlainWithClientPK }
+
+procedure TCustomerPlainWithClientPK.OnBeforeInsert;
+begin
+  inherited;
+  SetPK(TValue.From<NullableString>(TGUID.NewGuid.ToString
+    .Replace('{', '')
+    .Replace('-', '')
+    .Replace('}', '')
+    .Substring(0, 20)));
 end;
 
 end.

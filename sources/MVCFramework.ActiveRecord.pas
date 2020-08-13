@@ -2195,23 +2195,14 @@ begin
   if fPrimaryKey.GetValue(Self).Kind = tkRecord then
   begin
     lPKValue := fPrimaryKey.GetValue(Self);
-    if lPKValue.IsType<NullableInt32> then
+    if lPKValue.IsType<NullableInt32> and aValue.IsType<NullableInt32>() then
     begin
       if aValue.IsType<UInt32> then
       begin
         lPKValue := TValue.From<NullableInt32>(IntToNullableInt(aValue.AsInteger));
       end;
-      //
-      // if aValue.AsType<NullableInt32>().HasValue then
-      // begin
-      // lPKValue := aValue;
-      // end
-      // else
-      // begin
-      // lPKValue.AsType<NullableInt32>().Clear;
-      // end;
     end
-    else if lPKValue.IsType<NullableInt64> then
+    else if lPKValue.IsType<NullableInt64> and aValue.IsType<NullableInt64>() then
     begin
       if aValue.AsType<NullableInt64>().HasValue then
       begin
@@ -2222,7 +2213,18 @@ begin
         lPKValue.AsType<NullableInt64>().Clear;
       end;
     end
-    else if lPKValue.IsType<NullableUInt32> then
+    else if lPKValue.IsType<NullableString> and aValue.IsType<NullableString>() then
+    begin
+      if aValue.AsType<NullableString>().HasValue then
+      begin
+        lPKValue := aValue;
+      end
+      else
+      begin
+        lPKValue.AsType<NullableString>().Clear;
+      end;
+    end
+    else if lPKValue.IsType<NullableUInt32> and aValue.IsType<NullableUInt32>() then
     begin
       if aValue.AsType<NullableUInt32>().HasValue then
       begin
@@ -2233,7 +2235,7 @@ begin
         lPKValue.AsType<NullableUInt32>().Clear;
       end;
     end
-    else if lPKValue.IsType<NullableUInt64> then
+    else if lPKValue.IsType<NullableUInt64> and aValue.IsType<NullableUInt64>() then
     begin
       if aValue.AsType<NullableUInt64>().HasValue then
       begin
@@ -2245,7 +2247,9 @@ begin
       end;
     end
     else
-      raise EMVCActiveRecord.Create('Invalid type for primary key');
+    begin
+      raise EMVCActiveRecord.Create('Invalid type for primary key [HINT] Double check if TypeInfo(PK) is equal to TypeInfo(Value)');
+    end;
     fPrimaryKey.SetValue(Self, lPKValue);
   end
   else

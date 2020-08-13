@@ -451,7 +451,46 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
     end;
   ```
 
+- Added the ability to deserialize an object starting from an arbitrary node in the JSON (or other format) present in the request body.
+
+  ```delphi
+  procedure TBooksController.CreateBook;
+  var
+    lBook: TBook;
+  begin
+    //this call deserialize a TBook instance
+    //starting from the 'book' node of
+    //the request body
+    lBook := Context.Request.BodyAs<TBook>('book');
+    try
+      lBook.Insert;
+      Render201Created('/api/books/' + lBook.ID.ToString);
+    finally
+      lBook.Free;
+    end;
+  end;
+  ```
+
+- Improved the primary key type handling for manual handling in MVCActiveRecord.
+
+  ```delphi
+  procedure TMyBaseEntity.OnBeforeInsert;
+  begin
+    inherited;
+    //regardless the name of the PK field
+    //the following code fills the PK with a GUID
+    //Inheriting the other entities from this, all
+    //will inherit this behavior.
+    SetPK(TValue.From<NullableString>(TGUID.NewGuid.ToString));
+    
+    //if the PK was a simple string, the code
+    //should be like the following
+    //SetPK(TGUID.NewGuid.ToString);  
+  end;
   
+  ```
+
+- Improved `activerecord_showcase` sample.
 
 ## Roadmap
 

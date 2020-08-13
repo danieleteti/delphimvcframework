@@ -43,6 +43,7 @@ type
     btnWithSpaces: TButton;
     btnCountWithRQL: TButton;
     btnReadAndWriteOnly: TButton;
+    btnClientGeneratedPK: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -60,6 +61,7 @@ type
     procedure btnWithSpacesClick(Sender: TObject);
     procedure btnCountWithRQLClick(Sender: TObject);
     procedure btnReadAndWriteOnlyClick(Sender: TObject);
+    procedure btnClientGeneratedPKClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -89,6 +91,19 @@ const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
+
+procedure TMainForm.btnClientGeneratedPKClick(Sender: TObject);
+var
+  lCustomer: TCustomerPlainWithClientPK;
+begin
+  Log('** OnBeforeInsert and SetPK');
+  lCustomer := TCustomerPlainWithClientPK.Create();
+  try
+    lCustomer.Store;
+  finally
+    lCustomer.Free;
+  end;
+end;
 
 procedure TMainForm.btnCountWithRQLClick(Sender: TObject);
 var
