@@ -404,6 +404,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - `IMVCJSONRPCExecutor.ExecuteNotification` returns a `IJSONRPCResponse`. In case of error response contains information about the error, in case of successful execution the response is a [Null Object](https://en.wikipedia.org/wiki/Null_object_pattern).
 
+- New React demo (Thanks to [Angelo Sobreira da Silva](https://github.com/angelosobreira))
+
 - Added `foReadOnly` and `foWriteOnly` as field options in `MVCTableField` attribute (used by `TMVCActiveRecord`). Currently available field options are:
 
   - *foPrimaryKey* { it's the primary key of the mapped table }
