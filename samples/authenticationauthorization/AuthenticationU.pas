@@ -24,9 +24,10 @@ implementation
 
 { TMVCAuthorization }
 
-procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName: string; const Password: string;
-      UserRoles: System.Generics.Collections.TList<System.string>;
-      var IsValid: Boolean; const SessionData: TSessionData);
+procedure TAuthenticationSample.OnAuthentication(const AContext: TWebContext; const UserName: string;
+  const Password: string;
+  UserRoles: System.Generics.Collections.TList<System.string>;
+  var IsValid: Boolean; const SessionData: TSessionData);
 begin
   IsValid := UserName.Equals(Password); // hey!, this is just a demo!!!
   if IsValid then
@@ -53,9 +54,9 @@ end;
 
 procedure TAuthenticationSample.OnAuthorization
   (const AContext: TWebContext; UserRoles
-      : System.Generics.Collections.TList<System.string>;
-      const ControllerQualifiedClassName: string; const ActionName: string;
-      var IsAuthorized: Boolean);
+  : System.Generics.Collections.TList<System.string>;
+  const ControllerQualifiedClassName: string; const ActionName: string;
+  var IsAuthorized: Boolean);
 begin
   IsAuthorized := False;
   if ActionName = 'Logout' then
@@ -69,7 +70,7 @@ begin
 end;
 
 procedure TAuthenticationSample.OnRequest(const AContext: TWebContext; const ControllerQualifiedClassName: string;
-      const ActionName: string; var AuthenticationRequired: Boolean);
+  const ActionName: string; var AuthenticationRequired: Boolean);
 begin
   AuthenticationRequired := ControllerQualifiedClassName =
     'AppControllerU.TAdminController';

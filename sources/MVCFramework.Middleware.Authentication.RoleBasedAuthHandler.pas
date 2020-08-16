@@ -94,7 +94,7 @@ type
       const AActionName: string; var AHandled: Boolean);
   protected
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
-      const AActionName: string; var AHandled: Boolean);
+      const AActionName: string; var AHandled: Boolean); override;
   public
     constructor Create(const AAuthenticationHandler: IMVCAuthenticationHandler;
       const ALoginUrl: string = '/system/users/logged'); override;

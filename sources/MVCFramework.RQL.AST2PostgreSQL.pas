@@ -167,7 +167,14 @@ end;
 
 function TRQLPostgreSQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  Result := Format(' /*limit*/ LIMIT %d OFFSET %d', [aRQLLimit.Count, aRQLLimit.Start]);
+  if aRQLLimit.Start = 0 then
+  begin
+    Result := Format(' /*limit*/ LIMIT %d', [aRQLLimit.Count]);
+  end
+  else
+  begin
+    Result := Format(' /*limit*/ LIMIT %d OFFSET %d', [aRQLLimit.Count, aRQLLimit.Start]);
+  end;
 end;
 
 function TRQLPostgreSQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;

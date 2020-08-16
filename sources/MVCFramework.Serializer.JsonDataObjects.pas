@@ -135,7 +135,8 @@ type
       const SerializationAction: TMVCDatasetSerializationAction = nil): string;
 
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject;
-      const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = []); overload;
+      const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ARootNode: string = ''); overload;
 
     procedure DeserializeObject(const ASerializedObject: string; const AObject: IInterface;
       const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = []); overload;
@@ -193,6 +194,18 @@ uses
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
   MVCFramework.Nullables;
+
+function SelectRootNodeOrWholeObject(const RootNode: string; const JSONObject: TJsonObject): TJsonObject; inline;
+begin
+  if RootNode.IsEmpty then
+  begin
+    Result := JSONObject
+  end
+  else
+  begin
+    Result := JSONObject.O[RootNode];
+  end;
+end;
 
 { TMVCJsonDataObjectsSerializer }
 
@@ -2013,7 +2026,7 @@ end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string;
   const AObject: TObject;
-  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: string);
 var
   JSONObject: TJDOJsonObject;
   JsonBase: TJsonBaseObject;
@@ -2041,11 +2054,12 @@ begin
   try
     if GetTypeSerializers.ContainsKey(AObject.ClassInfo) then
     begin
-      GetTypeSerializers.Items[AObject.ClassInfo].DeserializeRoot(JSONObject, AObject, []);
+      GetTypeSerializers.Items[AObject.ClassInfo].DeserializeRoot(SelectRootNodeOrWholeObject(ARootNode, JSONObject),
+        AObject, [])
     end
     else
     begin
-      JsonObjectToObject(JSONObject, AObject, GetSerializationType(AObject, AType), AIgnoredAttributes);
+      JsonObjectToObject(SelectRootNodeOrWholeObject(ARootNode, JSONObject), AObject, GetSerializationType(AObject, AType), AIgnoredAttributes);
     end;
   finally
     JSONObject.Free;

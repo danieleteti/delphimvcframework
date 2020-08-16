@@ -42,6 +42,8 @@ type
     btnCRUDWithStringPKs: TButton;
     btnWithSpaces: TButton;
     btnCountWithRQL: TButton;
+    btnReadAndWriteOnly: TButton;
+    btnClientGeneratedPK: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -58,6 +60,8 @@ type
     procedure btnCRUDWithStringPKsClick(Sender: TObject);
     procedure btnWithSpacesClick(Sender: TObject);
     procedure btnCountWithRQLClick(Sender: TObject);
+    procedure btnReadAndWriteOnlyClick(Sender: TObject);
+    procedure btnClientGeneratedPKClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -87,6 +91,19 @@ const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
+
+procedure TMainForm.btnClientGeneratedPKClick(Sender: TObject);
+var
+  lCustomer: TCustomerPlainWithClientPK;
+begin
+  Log('** OnBeforeInsert and SetPK');
+  lCustomer := TCustomerPlainWithClientPK.Create();
+  try
+    lCustomer.Store;
+  finally
+    lCustomer.Free;
+  end;
+end;
 
 procedure TMainForm.btnCountWithRQLClick(Sender: TObject);
 var
@@ -137,7 +154,7 @@ begin
   Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
   lCustomer := TCustomer.Create;
   try
-    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' +  lCustomer.TableName);
+    Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
     lCustomer.Note := 'Hello there!';
@@ -449,7 +466,12 @@ begin
     lTest.f_int2 := 2;
     lTest.f_int4 := 4;
     lTest.f_int8 := 8;
-    lTest.f_blob := TStringStream.Create('Hello World');
+    with TStreamWriter.Create(lTest.f_blob) do
+      try
+        write('Hello World');
+      finally
+        Free;
+      end;
     lTest.Insert;
     Log('Inserting nulls');
   finally
@@ -474,8 +496,7 @@ begin
     lTest.f_int2 := lTest.f_int2.Value + 2;
     lTest.f_int4 := lTest.f_int4.Value + 4;
     lTest.f_int8 := lTest.f_int8.Value + 8;
-    lTest.f_blob.Free;
-    lTest.f_blob := nil;
+    lTest.f_blob.Size := 0;
     lTest.Update;
   finally
     lTest.Free;
@@ -494,7 +515,7 @@ begin
     Assert(not lTest.f_float4.HasValue);
     Assert(not lTest.f_float8.HasValue);
     Assert(not lTest.f_bool.HasValue);
-    Assert(not Assigned(lTest.f_blob), 'Blob contains a value when should not');
+    Assert(lTest.f_blob.Size = 0, 'Blob contains a value when should not');
     TMVCActiveRecord.DeleteRQL(TNullablesTest, 'eq(f_int2,4)');
   finally
     lTest.Free;
@@ -570,6 +591,65 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TMainForm.btnReadAndWriteOnlyClick(Sender: TObject);
+var
+  lArtWO, lArtWO2: TArticleWithWriteOnlyFields;
+  lArtRO: TArticleWithReadOnlyFields;
+  lID: NullableInt32;
+  lArt: TArticle;
+begin
+  lArtWO := TArticleWithWriteOnlyFields.Create();
+  try
+    lArtWO.Description := 'Description1';
+    lArtWO.Price := 12;
+    lArtWO.Insert;
+    Log('Stored TArticleWithWriteOnlyFields');
+    lID := lArtWO.ID;
+
+    lArt := TMVCActiveRecord.GetByPK<TArticle>(lID);
+    try
+      Assert(lArtWO.Description = lArt.Description);
+      Assert(lArtWO.Price = lArt.Price);
+      Log('Check Stored version of TArticleWithWriteOnlyFields');
+
+      Log('Reading data using TArticleWithReadOnlyFields');
+      lArtRO := TMVCActiveRecord.GetByPK<TArticleWithReadOnlyFields>(lID);
+      try
+        Assert(lArtRO.Description = lArt.Description);
+        Assert(lArtRO.Price = lArt.Price);
+        Log('Check Read data of TArticleWithWriteOnlyFields using TArticleWithReadOnlyFields');
+      finally
+        lArtRO.Free;
+      end;
+
+      Log('Reading data using TArticleWithWriteOnlyFields (???)');
+      lArtWO2 := TMVCActiveRecord.GetByPK<TArticleWithWriteOnlyFields>(lID);
+      try
+        Assert(lArtWO2.ID.ValueOrDefault = lID.ValueOrDefault);
+        Assert(lArtWO2.Description = '');
+        Assert(lArtWO2.Price = 0);
+      finally
+        lArtWO2.Free;
+      end;
+    finally
+      lArt.Free;
+    end;
+
+    lArtRO := TArticleWithReadOnlyFields.Create();
+    try
+      lArtRO.Description := 'Description1';
+      lArtRO.Price := 12;
+      ShowMessage('Now an exception will be raised...');
+      lArtRO.Insert; // exception here :-)
+    finally
+      lArtRO.Free;
+    end;
+
+  finally
+    lArtWO.Free;
+  end;
 end;
 
 procedure TMainForm.btnRelationsClick(Sender: TObject);
@@ -818,7 +898,7 @@ begin
   lCustomer := TCustomerWithTransient.Create;
   try
     {
-      'Code' and City will not be persisted because defined as 'transient'
+      'Code' will not be persisted because defined as 'transient'
     }
     lCustomer.Code := '1234';
     lCustomer.CompanyName := 'Google Inc.';
