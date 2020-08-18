@@ -29,7 +29,7 @@ unit MVCFramework.RESTAdapter;
 interface
 
 uses
-  System.Rtti, System.TypInfo, MVCFramework.RESTClient.Indy, MVCFramework.Commons,
+  System.Rtti, System.TypInfo, MVCFramework.RESTClient, MVCFramework.Commons,
   IdIOHandler, System.Classes, System.SysUtils;
 
 const

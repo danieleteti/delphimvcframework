@@ -1,4 +1,33 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators on this file:
+// João Antônio Duarte (https://github.com/joaoduarte19)
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.RESTClient;
+
+{$I dmvcframework.inc}
 
 interface
 
@@ -10,123 +39,138 @@ uses
   MVCFramework.RESTClient.Intf,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
+  MVCFramework.RESTClient.Indy,
   Data.DB,
-  System.Rtti;
+  System.Rtti,
+  System.TypInfo;
 
 type
-  TRESTClient = class(TInterfacedObject, IRESTClient)
+  /// <summary>
+  /// Alias for the Indy-based TRESTClient. The implementation of TRESTClient has been discontinued, it remains for
+  /// compatibility only.
+  /// </summary>
+  TRESTClient = MVCFramework.RESTClient.Indy.TRESTClient deprecated
+    'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
+
+  IRESTResponse = MVCFramework.RESTClient.Indy.IRESTResponse deprecated
+    'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
+
+  /// <summary>
+  /// Encapsulates the methods of the delphi native RESTClient library.
+  /// </summary>
+  TMVCRESTClient = class(TInterfacedObject, IMVCRESTClient)
   private
     fRttiContext: TRttiContext;
     fRESTClient: TCustomRESTClient;
     fRESTRequest: TCustomRESTRequest;
     fRESTResponse: TCustomRESTResponse;
     fSerializer: IMVCSerializer;
+
     procedure ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
     function ConvertMVCPathParamsToRESTParams(const aResource: string): string;
-    function ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IRESTResponse;
+    function ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
   public
     constructor Create;
     destructor Destroy; override;
 
-    class function New: IRESTClient;
+    class function New: IMVCRESTClient;
+
+    { IMVCRESTClient }
 
     function BaseURL: string; overload;
-    function BaseURL(const aBaseURL: string): IRESTClient; overload;
+    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
     function Timeout: Integer; overload;
-    function Timeout(const aTimeout: Integer): IRESTClient; overload;
+    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
     function RaiseExceptionOn500: Boolean; overload;
-    function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IRESTClient; overload;
-
+    function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
     function ProxyServer: string; overload;
-    function ProxyServer(const aProxyServer: string): IRESTClient; overload;
+    function ProxyServer(const aProxyServer: string): IMVCRESTClient; overload;
     function ProxyPort: Integer; overload;
-    function ProxyPort(const aProxyPort: Integer): IRESTClient; overload;
+    function ProxyPort(const aProxyPort: Integer): IMVCRESTClient; overload;
     function ProxyUsername: string; overload;
-    function ProxyUsername(const aProxyUsername: string): IRESTClient; overload;
+    function ProxyUsername(const aProxyUsername: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
-    function ProxyPassword(const aProxyPassword: string): IRESTClient; overload;
+    function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
 
-    function SetBasicAuthorization(const aUsername, aPassword: string): IRESTClient;
-    function SetBearerAuthorization(const aToken: string): IRESTClient;
-
-    function AddHeader(const aName, aValue: string): IRESTClient; overload;
-    function ClearHeaders: IRESTClient;
-
-    function AddCookie(const aName, aValue: string): IRESTClient;
-    function ClearCookies: IRESTClient;
-
-    function AddPathParam(const aName, aValue: string): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: Integer): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: Int64): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TGUID): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TDateTime): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TDate): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TTime): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: Double): IRESTClient; overload;
-    function ClearPathParams: IRESTClient;
-
-    function AddQueryStringParam(const aName, aValue: string): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: Integer): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: Int64): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TGUID): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TDateTime): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TDate): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TTime): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: Double): IRESTClient; overload;
-    function ClearQueryParams: IRESTClient;
-
+    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+    function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
+    function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
+    function ClearHeaders: IMVCRESTClient;
+    function AddCookie(const aName, aValue: string): IMVCRESTClient;
+    function ClearCookies: IMVCRESTClient;
+    function AddPathParam(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TGUID): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDateTime): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDate): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
+    function ClearPathParams: IMVCRESTClient;
+    function AddQueryStringParam(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TGUID): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDateTime): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDate): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
+    function ClearQueryParams: IMVCRESTClient;
     function Accept: string; overload;
-    function Accept(const aAccept: string): IRESTClient; overload;
+    function Accept(const aAccept: string): IMVCRESTClient; overload;
     function AcceptCharset: string; overload;
-    function AcceptCharset(const aAcceptCharset: string): IRESTClient; overload;
+    function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
     function AcceptEncoding: string; overload;
-    function AcceptEncoding(const aAcceptEncoding: string): IRESTClient; overload;
-
+    function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
     function Resource: string; overload;
-    function Resource(const aResource: string): IRESTClient; overload;
+    function Resource(const aResource: string): IMVCRESTClient; overload;
 
     function AddBody(const aBody: string;
-      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IRESTClient; overload;
+      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IMVCRESTClient; overload;
     function AddBody(aBody: TStream; const aContentType: TRESTContentType = ctNone;
-      aOwnsStream: Boolean = True): IRESTClient; overload;
-    function AddBody(aBody: TObject; const aOwnsObject: Boolean = True): IRESTClient; overload;
-    function ClearBody: IRESTClient;
+      const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
+    function AddBody(aBody: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
+    function ClearBody: IMVCRESTClient;
 
     function AddFile(const aName, aFileName: string;
-      const aContentType: TRESTContentType = ctNone): IRESTClient; overload;
-    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IRESTClient; overload;
-    function ClearFiles: IRESTClient;
+      const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
+    function ClearFiles: IMVCRESTClient;
 
-    function Get: IRESTResponse; overload;
-    function Get(const aResource: string): IRESTResponse; overload;
+    function Get: IMVCRESTResponse; overload;
+    function Get(const aResource: string): IMVCRESTResponse; overload;
 
-    function Post: IRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
-    function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+    function Post: IMVCRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
 
-    function Patch: IRESTResponse; overload;
-    function Patch(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
-    function Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+    function Patch: IMVCRESTResponse; overload;
+    function Patch(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Patch(const aResource: string; aBody: TObject;
+      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
 
-    function Put: IRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
-    function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+    function Put: IMVCRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
 
-    function Delete: IRESTResponse; overload;
-    function Delete(const aResource: string): IRESTResponse; overload;
+    function Delete: IMVCRESTResponse; overload;
+    function Delete(const aResource: string): IMVCRESTResponse; overload;
 
     function DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
-      const aNameCase: TMVCNameCase = ncAsIs): IRESTResponse;
+      const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
     function DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
-      const aNameCase: TMVCNameCase = ncAsIs): IRESTResponse;
-    function DataSetDelete(const aResource: string): IRESTResponse;
+      const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    function DataSetDelete(const aResource: string): IMVCRESTResponse;
 
-    function Serializer: IMVCSerializer;
+    function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
   end;
 
-  TRESTResponse = class(TInterfacedObject, IRESTResponse)
+  /// <summary>
+  /// Provides access to the REST request response.
+  /// </summary>
+  TMVCRESTResponse = class(TInterfacedObject, IMVCRESTResponse)
   private
     fSuccess: Boolean;
     fStatusCode: Integer;
@@ -140,11 +184,13 @@ type
     fContentLength: Integer;
     fContent: string;
     fRawBytes: TBytes;
+
     procedure FillRESTResponse(aRESTResponse: TCustomRESTResponse);
   public
     constructor Create(aRESTResponse: TCustomRESTResponse);
     destructor Destroy; override;
 
+    { IMVCRESTResponse }
     function Success: Boolean;
     function StatusCode: Integer;
     function StatusText: string;
@@ -162,7 +208,7 @@ type
     procedure SaveContentToFile(const aFileName: string);
   end;
 
-  ERESTClientException = class(Exception);
+  EMVCRESTClientException = class(Exception);
 
 implementation
 
@@ -171,54 +217,54 @@ uses
   System.NetEncoding,
   System.RegularExpressions;
 
-{ TRESTClient }
+{ TMVCRESTClient }
 
-function TRESTClient.Accept(const aAccept: string): IRESTClient;
+function TMVCRESTClient.Accept(const aAccept: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.Accept := aAccept;
 end;
 
-function TRESTClient.Accept: string;
+function TMVCRESTClient.Accept: string;
 begin
   Result := fRESTRequest.Accept;
 end;
 
-function TRESTClient.AcceptCharset: string;
+function TMVCRESTClient.AcceptCharset: string;
 begin
   Result := fRESTRequest.AcceptCharset;
 end;
 
-function TRESTClient.AcceptCharset(const aAcceptCharset: string): IRESTClient;
+function TMVCRESTClient.AcceptCharset(const aAcceptCharset: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AcceptCharset := aAcceptCharset;
 end;
 
-function TRESTClient.AcceptEncoding: string;
+function TMVCRESTClient.AcceptEncoding: string;
 begin
   Result := fRESTRequest.AcceptEncoding;
 end;
 
-function TRESTClient.AcceptEncoding(const aAcceptEncoding: string): IRESTClient;
+function TMVCRESTClient.AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AcceptEncoding := aAcceptEncoding;
 end;
 
-function TRESTClient.AddBody(const aBody: string; const aContentType: TRESTContentType): IRESTClient;
+function TMVCRESTClient.AddBody(const aBody: string; const aContentType: TRESTContentType): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddBody(aBody, aContentType);
 end;
 
-function TRESTClient.AddBody(aBody: TStream; const aContentType: TRESTContentType;
-  aOwnsStream: Boolean): IRESTClient;
+function TMVCRESTClient.AddBody(aBody: TStream; const aContentType: TRESTContentType;
+  const aOwnsStream: Boolean): IMVCRESTClient;
 var
   lOwnsStream: TRESTObjectOwnership;
 begin
   if aBody = nil then
-    raise ERESTClientException.Create('You need a valid body!');
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Self;
 
@@ -230,10 +276,10 @@ begin
   fRESTRequest.AddBody(aBody, aContentType, lOwnsStream);
 end;
 
-function TRESTClient.AddBody(aBody: TObject; const aOwnsObject: Boolean): IRESTClient;
+function TMVCRESTClient.AddBody(aBody: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
 begin
   if aBody = nil then
-    raise ERESTClientException.Create('You need a valid body!');
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Self;
 
@@ -243,159 +289,159 @@ begin
     aBody.Free;
 end;
 
-function TRESTClient.AddCookie(const aName, aValue: string): IRESTClient;
+function TMVCRESTClient.AddCookie(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkCOOKIE);
 end;
 
-function TRESTClient.AddFile(const aName, aFileName: string; const aContentType: TRESTContentType): IRESTClient;
+function TMVCRESTClient.AddFile(const aName, aFileName: string; const aContentType: TRESTContentType): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddFile(aName, aFileName, aContentType);
 end;
 
-function TRESTClient.AddFile(const aFileName: string; const aContentType: TRESTContentType): IRESTClient;
+function TMVCRESTClient.AddFile(const aFileName: string; const aContentType: TRESTContentType): IMVCRESTClient;
 begin
   Result := AddFile('file', aFileName, aContentType);
 end;
 
-function TRESTClient.AddHeader(const aName, aValue: string): IRESTClient;
+function TMVCRESTClient.AddHeader(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkHTTPHEADER);
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: TGUID): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TGUID): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: Int64): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: Integer): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddPathParam(const aName, aValue: string): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddParameter(aName, aValue);
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: Double): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: Double): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: TTime): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TTime): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, TimeToISOTime(aValue));
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: TDateTime): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TDateTime): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, DateTimeToISOTimeStamp(aValue));
 end;
 
-function TRESTClient.AddPathParam(const aName: string; aValue: TDate): IRESTClient;
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TDate): IMVCRESTClient;
 begin
   Result := AddPathParam(aName, DateToISODate(aValue));
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: TDate): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TDate): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, DateToISODate(aValue));
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: TDateTime): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TDateTime): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, DateTimeToISOTimeStamp(aValue));
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: TTime): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, TimeToISOTime(aValue));
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: Double): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddQueryStringParam(const aName, aValue: string): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddParameter(aName, aValue);
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: Integer): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: TGUID): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TGUID): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.AddQueryStringParam(const aName: string; aValue: Int64): IRESTClient;
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
-function TRESTClient.BaseURL: string;
+function TMVCRESTClient.BaseURL: string;
 begin
   Result := fRESTClient.BaseURL;
 end;
 
-function TRESTClient.BaseURL(const aBaseURL: string): IRESTClient;
+function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.BaseURL := aBaseURL;
 end;
 
-function TRESTClient.ClearBody: IRESTClient;
+function TMVCRESTClient.ClearBody: IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.ClearBody;
 end;
 
-function TRESTClient.ClearCookies: IRESTClient;
+function TMVCRESTClient.ClearCookies: IMVCRESTClient;
 begin
   Result := Self;
   ClearRESTParams(TRESTRequestParameterKind.pkCOOKIE);
 end;
 
-function TRESTClient.ClearFiles: IRESTClient;
+function TMVCRESTClient.ClearFiles: IMVCRESTClient;
 begin
   Result := Self;
   ClearRESTParams(TRESTRequestParameterKind.pkFILE);
 end;
 
-function TRESTClient.ClearHeaders: IRESTClient;
+function TMVCRESTClient.ClearHeaders: IMVCRESTClient;
 begin
   Result := Self;
   ClearRESTParams(TRESTRequestParameterKind.pkHTTPHEADER);
 end;
 
-function TRESTClient.ClearPathParams: IRESTClient;
+function TMVCRESTClient.ClearPathParams: IMVCRESTClient;
 begin
   Result := Self;
   ClearRESTParams(TRESTRequestParameterKind.pkURLSEGMENT);
 end;
 
-function TRESTClient.ClearQueryParams: IRESTClient;
+function TMVCRESTClient.ClearQueryParams: IMVCRESTClient;
 begin
   Result := Self;
   ClearRESTParams(TRESTRequestParameterKind.pkQUERY);
 end;
 
-procedure TRESTClient.ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
+procedure TMVCRESTClient.ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
 var
   I: Integer;
 begin
@@ -406,12 +452,12 @@ begin
   end;
 end;
 
-function TRESTClient.ConvertMVCPathParamsToRESTParams(const aResource: string): string;
+function TMVCRESTClient.ConvertMVCPathParamsToRESTParams(const aResource: string): string;
 begin
   Result := TRegEx.Replace(aResource, '(\([($])([\w_]+)([)])', '{\2}', [roIgnoreCase]);
 end;
 
-constructor TRESTClient.Create;
+constructor TMVCRESTClient.Create;
 begin
   inherited Create;
 
@@ -431,35 +477,35 @@ begin
   fRttiContext := TRttiContext.Create;
 end;
 
-function TRESTClient.DataSetDelete(const aResource: string): IRESTResponse;
+function TMVCRESTClient.DataSetDelete(const aResource: string): IMVCRESTResponse;
 begin
   Result := Delete(aResource);
 end;
 
-function TRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
-  const aNameCase: TMVCNameCase): IRESTResponse;
+function TMVCRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
+  const aNameCase: TMVCNameCase): IMVCRESTResponse;
 begin
   Result := Post(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
-function TRESTClient.DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
-  const aNameCase: TMVCNameCase): IRESTResponse;
+function TMVCRESTClient.DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
+  const aNameCase: TMVCNameCase): IMVCRESTResponse;
 begin
   Result := Put(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
-function TRESTClient.Delete: IRESTResponse;
+function TMVCRESTClient.Delete: IMVCRESTResponse;
 begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmDELETE);
 end;
 
-function TRESTClient.Delete(const aResource: string): IRESTResponse;
+function TMVCRESTClient.Delete(const aResource: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   Result := Delete;
 end;
 
-destructor TRESTClient.Destroy;
+destructor TMVCRESTClient.Destroy;
 begin
   fRESTResponse.Free;
   fRESTRequest.Free;
@@ -470,37 +516,37 @@ begin
   inherited Destroy;
 end;
 
-function TRESTClient.ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IRESTResponse;
+function TMVCRESTClient.ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
 begin
   fRESTRequest.Method := aMethod;
 
   fRESTRequest.Execute;
 
-  Result := TRESTResponse.Create(fRESTResponse);
+  Result := TMVCRESTResponse.Create(fRESTResponse);
 end;
 
-function TRESTClient.Get(const aResource: string): IRESTResponse;
+function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
 end;
 
-class function TRESTClient.New: IRESTClient;
+class function TMVCRESTClient.New: IMVCRESTClient;
 begin
-  Result := TRESTClient.Create;
+  Result := TMVCRESTClient.Create;
 end;
 
-function TRESTClient.ObjectIsList(aObject: TObject): Boolean;
+function TMVCRESTClient.ObjectIsList(aObject: TObject): Boolean;
 begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
 end;
 
-function TRESTClient.Get: IRESTResponse;
+function TMVCRESTClient.Get: IMVCRESTResponse;
 begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
 end;
 
-function TRESTClient.Patch(const aResource, aBody: string): IRESTResponse;
+function TMVCRESTClient.Patch(const aResource, aBody: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.isEmpty then
@@ -512,15 +558,15 @@ begin
   Result := Patch;
 end;
 
-function TRESTClient.Patch: IRESTResponse;
+function TMVCRESTClient.Patch: IMVCRESTResponse;
 begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmPATCH);
 end;
 
-function TRESTClient.Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IRESTResponse;
+function TMVCRESTClient.Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
 begin
   if aBody = nil then
-    raise ERESTClientException.Create('You need a valid body!');
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Patch(aResource, SerializeObject(aBody));
 
@@ -528,10 +574,10 @@ begin
     aBody.Free;
 end;
 
-function TRESTClient.Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IRESTResponse;
+function TMVCRESTClient.Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
 begin
   if aBody = nil then
-    raise ERESTClientException.Create('You need a valid body!');
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Post(aResource, SerializeObject(aBody));
 
@@ -539,7 +585,7 @@ begin
     aBody.Free;
 end;
 
-function TRESTClient.Post(const aResource, aBody: string): IRESTResponse;
+function TMVCRESTClient.Post(const aResource, aBody: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.IsEmpty then
@@ -550,59 +596,59 @@ begin
   Result := Post;
 end;
 
-function TRESTClient.Post: IRESTResponse;
+function TMVCRESTClient.Post: IMVCRESTResponse;
 begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmPOST);
 end;
 
-function TRESTClient.ProxyPassword(const aProxyPassword: string): IRESTClient;
+function TMVCRESTClient.ProxyPassword(const aProxyPassword: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.ProxyPassword := aProxyPassword;
 end;
 
-function TRESTClient.ProxyPassword: string;
+function TMVCRESTClient.ProxyPassword: string;
 begin
   Result := fRESTClient.ProxyPassword;
 end;
 
-function TRESTClient.ProxyPort: Integer;
+function TMVCRESTClient.ProxyPort: Integer;
 begin
   Result := fRESTClient.ProxyPort;
 end;
 
-function TRESTClient.ProxyPort(const aProxyPort: Integer): IRESTClient;
+function TMVCRESTClient.ProxyPort(const aProxyPort: Integer): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.ProxyPort := aProxyPort;
 end;
 
-function TRESTClient.ProxyServer(const aProxyServer: string): IRESTClient;
+function TMVCRESTClient.ProxyServer(const aProxyServer: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.ProxyServer := aProxyServer;
 end;
 
-function TRESTClient.ProxyServer: string;
+function TMVCRESTClient.ProxyServer: string;
 begin
   Result := fRESTClient.ProxyServer;
 end;
 
-function TRESTClient.ProxyUsername: string;
+function TMVCRESTClient.ProxyUsername: string;
 begin
   Result := fRESTClient.ProxyUsername;
 end;
 
-function TRESTClient.ProxyUsername(const aProxyUsername: string): IRESTClient;
+function TMVCRESTClient.ProxyUsername(const aProxyUsername: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.ProxyUsername := aProxyUsername;
 end;
 
-function TRESTClient.Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IRESTResponse;
+function TMVCRESTClient.Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
 begin
   if aBody = nil then
-    raise ERESTClientException.Create('You need a valid body!');
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Put(aResource, SerializeObject(aBody));
 
@@ -610,7 +656,7 @@ begin
     aBody.Free;
 end;
 
-function TRESTClient.Put(const aResource, aBody: string): IRESTResponse;
+function TMVCRESTClient.Put(const aResource, aBody: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.IsEmpty then
@@ -621,45 +667,52 @@ begin
   Result := Put;
 end;
 
-function TRESTClient.Put: IRESTResponse;
+function TMVCRESTClient.Put: IMVCRESTResponse;
 begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmPUT);
 end;
 
-function TRESTClient.RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IRESTClient;
+function TMVCRESTClient.RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.RaiseExceptionOn500 := aRaiseExceptionOn500;
 end;
 
-function TRESTClient.Resource: string;
+function TMVCRESTClient.Resource: string;
 begin
   Result := fRESTRequest.Resource;
 end;
 
-function TRESTClient.Resource(const aResource: string): IRESTClient;
+function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
+  aInstance: IMVCTypeSerializer): IMVCRESTClient;
+begin
+  Result := Self;
+  fSerializer.RegisterTypeSerializer(aTypeInfo, aInstance);
+end;
+
+function TMVCRESTClient.Resource(const aResource: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.Resource := ConvertMVCPathParamsToRESTParams(aResource);
 end;
 
-function TRESTClient.RaiseExceptionOn500: Boolean;
+function TMVCRESTClient.RaiseExceptionOn500: Boolean;
 begin
   Result := fRESTClient.RaiseExceptionOn500;
 end;
 
-function TRESTClient.Timeout: Integer;
+function TMVCRESTClient.Timeout: Integer;
 begin
   Result := fRESTRequest.Timeout;
 end;
 
-function TRESTClient.Timeout(const aTimeout: Integer): IRESTClient;
+function TMVCRESTClient.Timeout(const aTimeout: Integer): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.Timeout := aTimeout;
 end;
 
-function TRESTClient.SerializeObject(aObject: TObject): string;
+function TMVCRESTClient.SerializeObject(aObject: TObject): string;
 begin
   if ObjectIsList(aObject) then
     Result := fSerializer.SerializeCollection(aObject)
@@ -667,12 +720,7 @@ begin
     Result := fSerializer.SerializeObject(aObject);
 end;
 
-function TRESTClient.Serializer: IMVCSerializer;
-begin
-  Result := fSerializer;
-end;
-
-function TRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IRESTClient;
+function TMVCRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
 var
   LBase64: TNetEncoding;
   LAuthValue: string;
@@ -689,36 +737,36 @@ begin
     [TRESTRequestParameterOption.poDoNotEncode]);
 end;
 
-function TRESTClient.SetBearerAuthorization(const aToken: string): IRESTClient;
+function TMVCRESTClient.SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.AddParameter('Authorization', 'Bearer ' + aToken, TRESTRequestParameterKind.pkHTTPHEADER,
     [TRESTRequestParameterOption.poDoNotEncode]);
 end;
 
-{ TRESTResponse }
+{ TMVCRESTResponse }
 
-function TRESTResponse.Content: string;
+function TMVCRESTResponse.Content: string;
 begin
   Result := fContent;
 end;
 
-function TRESTResponse.ContentEncoding: string;
+function TMVCRESTResponse.ContentEncoding: string;
 begin
   Result := fContentEncoding;
 end;
 
-function TRESTResponse.ContentLength: Integer;
+function TMVCRESTResponse.ContentLength: Integer;
 begin
   Result := fContentLength;
 end;
 
-function TRESTResponse.ContentType: string;
+function TMVCRESTResponse.ContentType: string;
 begin
   Result := fContentType;
 end;
 
-constructor TRESTResponse.Create(aRESTResponse: TCustomRESTResponse);
+constructor TMVCRESTResponse.Create(aRESTResponse: TCustomRESTResponse);
 begin
   inherited Create;
   fHeaders := TStringList.Create;
@@ -727,19 +775,19 @@ begin
   FillRESTResponse(aRESTResponse);
 end;
 
-destructor TRESTResponse.Destroy;
+destructor TMVCRESTResponse.Destroy;
 begin
   SetLength(fRawBytes, 0);
   fHeaders.Free;
   inherited Destroy;
 end;
 
-function TRESTResponse.ErrorMessage: string;
+function TMVCRESTResponse.ErrorMessage: string;
 begin
   Result := fErrorMessage;
 end;
 
-procedure TRESTResponse.FillRESTResponse(aRESTResponse: TCustomRESTResponse);
+procedure TMVCRESTResponse.FillRESTResponse(aRESTResponse: TCustomRESTResponse);
 begin
   fSuccess := aRESTResponse.Status.Success;
   fStatusCode := aRESTResponse.StatusCode;
@@ -755,27 +803,27 @@ begin
   fContentLength := aRESTResponse.ContentLength;
 end;
 
-function TRESTResponse.FullRequestURI: string;
+function TMVCRESTResponse.FullRequestURI: string;
 begin
   Result := fFullRequestURI;
 end;
 
-function TRESTResponse.HeaderByName(const aName: string): string;
+function TMVCRESTResponse.HeaderByName(const aName: string): string;
 begin
   Result := fHeaders.Values[aName];
 end;
 
-function TRESTResponse.Headers: TStrings;
+function TMVCRESTResponse.Headers: TStrings;
 begin
   Result := fHeaders;
 end;
 
-function TRESTResponse.RawBytes: TBytes;
+function TMVCRESTResponse.RawBytes: TBytes;
 begin
   Result := fRawBytes;
 end;
 
-procedure TRESTResponse.SaveContentToFile(const aFileName: string);
+procedure TMVCRESTResponse.SaveContentToFile(const aFileName: string);
 var
   lStream: TMemoryStream;
 begin
@@ -789,30 +837,30 @@ begin
   end;
 end;
 
-procedure TRESTResponse.SaveContentToStream(aStream: TStream);
+procedure TMVCRESTResponse.SaveContentToStream(aStream: TStream);
 begin
   if aStream = nil then
-    raise ERESTClientException.Create('Stream not assigned!');
+    raise EMVCRESTClientException.Create('Stream not assigned!');
 
   aStream.Write(fRawBytes, Length(fRawBytes));
 end;
 
-function TRESTResponse.Server: string;
+function TMVCRESTResponse.Server: string;
 begin
   Result := fServer;
 end;
 
-function TRESTResponse.StatusCode: Integer;
+function TMVCRESTResponse.StatusCode: Integer;
 begin
   Result := fStatusCode;
 end;
 
-function TRESTResponse.StatusText: string;
+function TMVCRESTResponse.StatusText: string;
 begin
   Result := fStatusText;
 end;
 
-function TRESTResponse.Success: Boolean;
+function TMVCRESTResponse.Success: Boolean;
 begin
   Result := fSuccess;
 end;

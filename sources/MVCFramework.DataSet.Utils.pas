@@ -37,7 +37,7 @@ uses
   JsonDataObjects,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.RESTClient.Indy;
+  MVCFramework.RESTClient;
 
 type
   TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);

@@ -1,4 +1,33 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// Collaborators on this file:
+// João Antônio Duarte (https://github.com/joaoduarte19)
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.RESTClient.Intf;
+
+{$I dmvcframework.inc}
 
 interface
 
@@ -6,113 +35,229 @@ uses
   System.Classes,
   System.SysUtils,
   MVCFramework.Serializer.Intf,
+  MVCFramework.Serializer.Commons,
   REST.Types,
   Data.DB,
-  MVCFramework.Serializer.Commons;
+  System.TypInfo;
 
 type
   TRESTContentType = REST.Types.TRESTContentType;
 
-  IRESTResponse = interface;
+  IMVCRESTResponse = interface;
 
-  IRESTClient = interface
+  IMVCRESTClient = interface
     ['{592BC90F-B825-4B3B-84A7-6CA3927BAD69}']
 
     function BaseURL: string; overload;
-    function BaseURL(const aBaseURL: string): IRESTClient; overload;
+    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
     function Timeout: Integer; overload;
-    function Timeout(const aTimeout: Integer): IRESTClient; overload;
+    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
     function RaiseExceptionOn500: Boolean; overload;
-    function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IRESTClient; overload;
+    function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
 
     function ProxyServer: string; overload;
-    function ProxyServer(const aProxyServer: string): IRESTClient; overload;
+    function ProxyServer(const aProxyServer: string): IMVCRESTClient; overload;
     function ProxyPort: Integer; overload;
-    function ProxyPort(const aProxyPort: Integer): IRESTClient; overload;
+    function ProxyPort(const aProxyPort: Integer): IMVCRESTClient; overload;
     function ProxyUsername: string; overload;
-    function ProxyUsername(const aProxyUsername: string): IRESTClient; overload;
+    function ProxyUsername(const aProxyUsername: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
-    function ProxyPassword(const aProxyPassword: string): IRESTClient; overload;
+    function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
 
-    function SetBasicAuthorization(const aUsername, aPassword: string): IRESTClient;
-    function SetBearerAuthorization(const aToken: string): IRESTClient;
+    /// <summary>
+    /// Add basic authorization header. Authorization = Basic <Username:Password>
+    /// </summary>
+    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
 
-    function AddHeader(const aName, aValue: string): IRESTClient; overload;
-    function ClearHeaders: IRESTClient;
+    /// <summary>
+    /// Add bearer authorization header. Authorization = Bearer <Token>
+    /// </summary>
+    function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 
-    function AddCookie(const aName, aValue: string): IRESTClient;
-    function ClearCookies: IRESTClient;
+    /// <summary>
+    /// Add a header
+    /// </summary>
+    /// <param name="aName">
+    /// Header name
+    /// </param>
+    /// <param name="aValue">
+    /// Header value
+    /// </param>
+    function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
 
-    function AddPathParam(const aName, aValue: string): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: Integer): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: Int64): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TGUID): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TDateTime): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TDate): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: TTime): IRESTClient; overload;
-    function AddPathParam(const aName: string; aValue: Double): IRESTClient; overload;
-    function ClearPathParams: IRESTClient;
+    /// <summary>
+    /// Clears all headers.
+    /// </summary>
+    function ClearHeaders: IMVCRESTClient;
 
-    function AddQueryStringParam(const aName, aValue: string): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: Integer): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: Int64): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TGUID): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TDateTime): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TDate): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: TTime): IRESTClient; overload;
-    function AddQueryStringParam(const aName: string; aValue: Double): IRESTClient; overload;
-    function ClearQueryParams: IRESTClient;
+    /// <summary>
+    /// Add a cookie header.
+    /// </summary>
+    function AddCookie(const aName, aValue: string): IMVCRESTClient;
+    /// <summary>
+    /// Clear all cookie headers.
+    /// </summary>
+    function ClearCookies: IMVCRESTClient;
+
+    /// <summary>
+    /// Add a URL segment parameter. The parameters of your url path may be enclosed in braces or in
+    /// parentheses starting with a money sign. <c>/api/{param1}/($param2)</c>
+    /// </summary>
+    /// <param name="aName">
+    /// Parameter name
+    /// </param>
+    /// <param name="aValue">
+    /// Parameter value
+    /// </param>
+    function AddPathParam(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TGUID): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDateTime): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDate): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
+    function ClearPathParams: IMVCRESTClient;
+
+    /// <summary>
+    /// Add a QueryString parameter. <c>/api/person?para1=value&amp;param2=value</c>
+    /// </summary>
+    function AddQueryStringParam(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TGUID): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDateTime): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDate): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
+    function ClearQueryParams: IMVCRESTClient;
 
     function Accept: string; overload;
-    function Accept(const aAccept: string): IRESTClient; overload;
+    function Accept(const aAccept: string): IMVCRESTClient; overload;
     function AcceptCharset: string; overload;
-    function AcceptCharset(const aAcceptCharset: string): IRESTClient; overload;
+    function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
     function AcceptEncoding: string; overload;
-    function AcceptEncoding(const aAcceptEncoding: string): IRESTClient; overload;
+    function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
 
+    /// <summary>
+    /// Get the current resource path.
+    /// </summary>
     function Resource: string; overload;
-    function Resource(const aResource: string): IRESTClient; overload;
-
+    /// <summary>
+    /// Set the current resource path.
+    /// </summary>
+    function Resource(const aResource: string): IMVCRESTClient; overload;
+    /// <summary>
+    /// Add a body to the requisition.
+    /// </summary>
+    /// <param name="aBody">
+    /// Body in string format.
+    /// </param>
+    /// <param name="aContentType">
+    /// Body content type.
+    /// </param>
     function AddBody(const aBody: string;
-      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IRESTClient; overload;
+      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IMVCRESTClient; overload;
+    /// <summary>
+    /// Add a body to the requisition
+    /// </summary>
+    /// <param name="aBodyStream">
+    /// Body in Stream format
+    /// </param>
+    /// <param name="aContentType">
+    /// Body content type
+    /// </param>
+    /// <param name="aOwnsStream">
+    /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
+    /// </param>
     function AddBody(aBodyStream: TStream; const aContentType: TRESTContentType = ctNone;
-      aOwnsStream: Boolean = True): IRESTClient; overload;
-    function AddBody(aBodyObject: TObject; const aOwnsObject: Boolean = True): IRESTClient; overload;
-    function ClearBody: IRESTClient;
+      const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
+    /// <summary>
+    /// Add a body to the requisition
+    /// </summary>
+    /// <param name="aBodyObject">
+    /// Body in Object format. The object will be serialized to a JSON string.
+    /// </param>
+    /// <param name="aOwnsObject">
+    /// If OwnsObject is true, BodyObject will be destroyed by IMVCRESTClient.
+    /// </param>
+    function AddBody(aBodyObject: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
+    function ClearBody: IMVCRESTClient;
 
+    /// <summary>
+    /// Adds a file as the request body. Several files can be added in the same request. In this case the request
+    /// will be of the multipart/form-data type
+    /// </summary>
+    /// <param name="aName">
+    /// Field name
+    /// </param>
+    /// <param name="aFileName">
+    /// File path
+    /// </param>
+    /// <param name="aContentType">
+    /// File content type
+    /// </param>
     function AddFile(const aName, aFileName: string;
-      const aContentType: TRESTContentType = ctNone): IRESTClient; overload;
-    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IRESTClient; overload;
-    function ClearFiles: IRESTClient;
+      const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
+    function ClearFiles: IMVCRESTClient;
 
-    function Get: IRESTResponse; overload;
-    function Get(const aResource: string): IRESTResponse; overload;
+    /// <summary>
+    /// Execute a Get request.
+    /// </summary>
+    function Get: IMVCRESTResponse; overload;
+    function Get(const aResource: string): IMVCRESTResponse; overload;
 
-    function Post: IRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
-    function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+    /// <summary>
+    /// Execute a Post request.
+    /// </summary>
+    function Post: IMVCRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
 
-    function Patch: IRESTResponse; overload;
-    function Patch(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
-    function Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+    /// <summary>
+    /// Execute a Patch request.
+    /// </summary>
+    function Patch: IMVCRESTResponse; overload;
+    function Patch(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse;
+      overload;
 
-    function Put: IRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''): IRESTResponse; overload;
-    function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IRESTResponse; overload;
+    /// <summary>
+    /// Execute a Put request.
+    /// </summary>
+    function Put: IMVCRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
 
-    function Delete: IRESTResponse; overload;
-    function Delete(const aResource: string): IRESTResponse; overload;
+    /// <summary>
+    /// Execute a Delete request.
+    /// </summary>
+    function Delete: IMVCRESTResponse; overload;
+    function Delete(const aResource: string): IMVCRESTResponse; overload;
 
+    /// <summary>
+    /// Serialize the current dataset record and execute a POST request.
+    /// </summary>
     function DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
-      const aNameCase: TMVCNameCase = ncAsIs): IRESTResponse;
+      const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    /// <summary>
+    /// Serialize the current dataset record and execute a PUT request.
+    /// </summary>
     function DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
-      const aNameCase: TMVCNameCase = ncAsIs): IRESTResponse;
-    function DataSetDelete(const aResource: string): IRESTResponse;
+      const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    /// <summary>
+    /// Delete the current dataset record by executing a delete request.
+    /// </summary>
+    function DataSetDelete(const aResource: string): IMVCRESTResponse;
 
-    function Serializer: IMVCSerializer;
+    /// <summary>
+    /// Register a custom serializer to the RESTClient serializer.
+    /// </summary>
+    function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
   end;
 
-  IRESTResponse = interface
+  IMVCRESTResponse = interface
     ['{BF611B46-CCD1-47C7-8D8B-82EA0518896B}']
 
     function Success: Boolean;
