@@ -253,6 +253,15 @@ uses
   System.NetEncoding,
   System.RegularExpressions;
 
+const
+  DEFAULT_ACCEPT_ENCODING = 'gzip, deflate';
+  DEFAULT_BODY_NAME = 'body';
+  DEFAULT_FILE_NAME = 'file';
+  AUTHORIZATION_HEADER = 'Authorization';
+  BASIC_AUTH_PREFIX = 'Basic ';
+  BEARER_AUTH_PREFIX = 'Bearer ';
+
+
 { TMVCRESTClient }
 
 function TMVCRESTClient.Accept(const aAccept: string): IMVCRESTClient;
@@ -301,7 +310,7 @@ begin
   lBodyName := lBodyName.Replace('{', '', [rfReplaceAll]);
   lBodyName := lBodyName.Replace('}', '', [rfReplaceAll]);
   lBodyName := lBodyName.Replace('-', '', [rfReplaceAll]);
-  lBodyName := 'body' + lBodyName;
+  lBodyName := DEFAULT_BODY_NAME + lBodyName;
 
   if aDoNotEncode then
     lOptions := [TRESTRequestParameterOption.poDoNotEncode]
@@ -356,7 +365,7 @@ end;
 
 function TMVCRESTClient.AddFile(const aFileName: string; const aContentType: TRESTContentType): IMVCRESTClient;
 begin
-  Result := AddFile('file', aFileName, aContentType);
+  Result := AddFile(DEFAULT_FILE_NAME, aFileName, aContentType);
 end;
 
 function TMVCRESTClient.AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean): IMVCRESTClient;
@@ -485,6 +494,7 @@ begin
 
   fRESTRequest.ResetToDefaults;
   fRESTRequest.AutoCreateParams := False;
+  fRESTRequest.AcceptEncoding := DEFAULT_ACCEPT_ENCODING;
 
   fNextRequestIsAsync := False;;
   fAsyncCompletionHandler := nil;
@@ -930,17 +940,17 @@ begin
   // Do not use TNetEncoding.Base64 here, because it may break long line
   LBase64 := TBase64Encoding.Create(0, '');
   try
-    LAuthValue := 'Basic ' + LBase64.Encode(aUsername + ':' + aPassword);
+    LAuthValue := BASIC_AUTH_PREFIX + LBase64.Encode(aUsername + ':' + aPassword);
   finally
     LBase64.Free;
   end;
-  AddHeader('Authorization', LAuthValue, True)
+  AddHeader(AUTHORIZATION_HEADER, LAuthValue, True)
 end;
 
 function TMVCRESTClient.SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 begin
   Result := Self;
-  AddHeader('Authorization', 'Bearer ' + aToken, True);
+  AddHeader(AUTHORIZATION_HEADER, BEARER_AUTH_PREFIX + aToken, True);
 end;
 
 { TMVCRESTResponse }
