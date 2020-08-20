@@ -155,7 +155,7 @@ type
 
     function Resource: string; overload;
     function Resource(const aResource: string): IMVCRESTClient; overload;
-    function URLAlreadyEncoded: string; overload;
+    function URLAlreadyEncoded: Boolean; overload;
     function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
 
     function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
@@ -847,7 +847,7 @@ begin
   Result := fRESTClient.UserAgent;
 end;
 
-function TMVCRESTClient.URLAlreadyEncoded: string;
+function TMVCRESTClient.URLAlreadyEncoded: Boolean;
 begin
   Result := fRESTRequest.URLAlreadyEncoded;
 end;

@@ -172,7 +172,7 @@ type
     /// Body content type.
     /// </param>
 
-    function URLAlreadyEncoded: string; overload;
+    function URLAlreadyEncoded: Boolean; overload;
     function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
 
     function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
