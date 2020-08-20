@@ -56,6 +56,17 @@ type
     'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
 
   /// <summary>
+  /// Provides access to MVCRESTClient interfaces without the need to use the MVCFramework.RESTClient.Intf unit
+  /// </summary>
+  IMVCRESTClient = MVCFramework.RESTClient.Intf.IMVCRESTClient;
+  IMVCRESTResponse = MVCFramework.RESTClient.Intf.IMVCRESTResponse;
+
+  /// <summary>
+  /// Provides access to delphi RESTClient library types without the need to use the REST.Types unit.
+  /// </summary>
+  TRESTContentType = REST.Types.TRESTContentType;
+
+  /// <summary>
   /// Encapsulates the methods of the delphi native RESTClient library.
   /// </summary>
   TMVCRESTClient = class(TInterfacedObject, IMVCRESTClient)
@@ -65,12 +76,17 @@ type
     fRESTRequest: TCustomRESTRequest;
     fRESTResponse: TCustomRESTResponse;
     fSerializer: IMVCSerializer;
+    fNextRequestIsAsync: Boolean;
+    fAsyncCompletionHandler: TProc<IMVCRESTResponse>;
+    fAsyncSynchronized: Boolean;
+    fAsyncCompletionHandlerWithError: TProc<Exception>;
 
     procedure ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
     function ConvertMVCPathParamsToRESTParams(const aResource: string): string;
-    function ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
+    procedure ExecuteAsyncRESTRequest;
+    function ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
   public
     constructor Create;
     destructor Destroy; override;
@@ -81,8 +97,6 @@ type
 
     function BaseURL: string; overload;
     function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
-    function Timeout: Integer; overload;
-    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
     function RaiseExceptionOn500: Boolean; overload;
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
     function ProxyServer: string; overload;
@@ -94,12 +108,22 @@ type
     function ProxyPassword: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
 
+    function UserAgent: string; overload;
+    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+
+    function ClearAllParams: IMVCRESTClient;
+
+    function Timeout: Integer; overload;
+    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
     function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
     function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
-    function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
+
+    function AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean = False): IMVCRESTClient; overload;
     function ClearHeaders: IMVCRESTClient;
+
     function AddCookie(const aName, aValue: string): IMVCRESTClient;
     function ClearCookies: IMVCRESTClient;
+
     function AddPathParam(const aName, aValue: string): IMVCRESTClient; overload;
     function AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
     function AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
@@ -109,6 +133,7 @@ type
     function AddPathParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
     function AddPathParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
     function ClearPathParams: IMVCRESTClient;
+
     function AddQueryStringParam(const aName, aValue: string): IMVCRESTClient; overload;
     function AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
     function AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
@@ -118,26 +143,36 @@ type
     function AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
     function AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
     function ClearQueryParams: IMVCRESTClient;
+
     function Accept: string; overload;
     function Accept(const aAccept: string): IMVCRESTClient; overload;
     function AcceptCharset: string; overload;
     function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
     function AcceptEncoding: string; overload;
     function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
+    function HandleRedirects: Boolean; overload;
+    function HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient; overload;
+
     function Resource: string; overload;
     function Resource(const aResource: string): IMVCRESTClient; overload;
+    function URLAlreadyEncoded: string; overload;
+    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
 
-    function AddBody(const aBody: string;
-      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IMVCRESTClient; overload;
-    function AddBody(aBody: TStream; const aContentType: TRESTContentType = ctNone;
+    function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
+      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+    function AddBody(aBody: TStream; const aContentType: TRESTContentType = TRESTContentType.ctNone;
       const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
     function AddBody(aBody: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
     function ClearBody: IMVCRESTClient;
 
     function AddFile(const aName, aFileName: string;
-      const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
-    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
+      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string;
+      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
+
+    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; const aSynchronized: Boolean = True;
+      aCompletionHandlerWithError: TProc<Exception> = nil): IMVCRESTClient;
 
     function Get: IMVCRESTResponse; overload;
     function Get(const aResource: string): IMVCRESTResponse; overload;
@@ -252,10 +287,27 @@ begin
   fRESTRequest.AcceptEncoding := aAcceptEncoding;
 end;
 
-function TMVCRESTClient.AddBody(const aBody: string; const aContentType: TRESTContentType): IMVCRESTClient;
+function TMVCRESTClient.AddBody(const aBody: string; const aDoNotEncode: Boolean;
+  const aContentType: TRESTContentType): IMVCRESTClient;
+var
+  lBodyName: string;
+  lOptions: TRESTRequestParameterOptions;
 begin
   Result := Self;
-  fRESTRequest.AddBody(aBody, aContentType);
+
+  // A body does not have a specific name, but as names need to be unique, we are using a GUID here
+  lBodyName := TGUID.NewGuid.ToString;
+  lBodyName := lBodyName.Replace('{', '', [rfReplaceAll]);
+  lBodyName := lBodyName.Replace('}', '', [rfReplaceAll]);
+  lBodyName := lBodyName.Replace('-', '', [rfReplaceAll]);
+  lBodyName := 'body' + lBodyName;
+
+  if aDoNotEncode then
+    lOptions := [TRESTRequestParameterOption.poDoNotEncode]
+  else
+    lOptions := [];
+
+  fRESTRequest.AddParameter(lBodyName, aBody, TRESTRequestParameterKind.pkREQUESTBODY, lOptions);
 end;
 
 function TMVCRESTClient.AddBody(aBody: TStream; const aContentType: TRESTContentType;
@@ -283,7 +335,7 @@ begin
 
   Result := Self;
 
-  AddBody(SerializeObject(aBody), TRESTContentType.ctAPPLICATION_JSON);
+  AddBody(SerializeObject(aBody), False, TRESTContentType.ctAPPLICATION_JSON);
 
   if aOwnsObject then
     aBody.Free;
@@ -306,10 +358,18 @@ begin
   Result := AddFile('file', aFileName, aContentType);
 end;
 
-function TMVCRESTClient.AddHeader(const aName, aValue: string): IMVCRESTClient;
+function TMVCRESTClient.AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean): IMVCRESTClient;
+var
+  lOptions: TRESTRequestParameterOptions;
 begin
   Result := Self;
-  fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkHTTPHEADER);
+
+  if aDoNotEncode then
+    lOptions := [TRESTRequestParameterOption.poDoNotEncode]
+  else
+    lOptions := [];
+
+  fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkHTTPHEADER, lOptions);
 end;
 
 function TMVCRESTClient.AddPathParam(const aName: string; aValue: TGUID): IMVCRESTClient;
@@ -373,6 +433,16 @@ begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
+function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>; const aSynchronized: Boolean;
+  aCompletionHandlerWithError: TProc<Exception>): IMVCRESTClient;
+begin
+  Result := Self;
+  fNextRequestIsAsync := True;
+  fAsyncCompletionHandler := aCompletionHandler;
+  fAsyncSynchronized := aSynchronized;
+  fAsyncCompletionHandlerWithError := aCompletionHandlerWithError;
+end;
+
 function TMVCRESTClient.AddQueryStringParam(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
@@ -403,6 +473,21 @@ function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTClient.BaseURL := aBaseURL;
+end;
+
+function TMVCRESTClient.ClearAllParams: IMVCRESTClient;
+begin
+  Result := Self;
+
+  fRESTClient.HandleRedirects := True;
+  fRESTClient.RaiseExceptionOn500 := False;
+
+  fRESTRequest.ResetToDefaults;
+  fRESTRequest.AutoCreateParams := False;
+  fNextRequestIsAsync := False;
+  fAsyncCompletionHandler := nil;
+  fAsyncSynchronized := False;
+  fAsyncCompletionHandlerWithError := nil;
 end;
 
 function TMVCRESTClient.ClearBody: IMVCRESTClient;
@@ -465,16 +550,13 @@ begin
   fRESTRequest := TCustomRESTRequest.Create(nil);
   fRESTResponse := TCustomRESTResponse.Create(nil);
 
-  fRESTClient.HandleRedirects := True;
-  fRESTClient.RaiseExceptionOn500 := False;
-
   fRESTRequest.Client := fRESTClient;
   fRESTRequest.Response := fRESTResponse;
-  fRESTRequest.SynchronizedEvents := False;
-  fRESTRequest.AutoCreateParams := False;
 
   fSerializer := TMVCJsonDataObjectsSerializer.Create;
   fRttiContext := TRttiContext.Create;
+
+  ClearAllParams;
 end;
 
 function TMVCRESTClient.DataSetDelete(const aResource: string): IMVCRESTResponse;
@@ -516,19 +598,54 @@ begin
   inherited Destroy;
 end;
 
+procedure TMVCRESTClient.ExecuteAsyncRESTRequest;
+begin
+  fRESTRequest.ExecuteAsync(
+// procedure
+// var
+// lMVCRESTResponse: IMVCRESTResponse;
+// begin
+// lMVCRESTResponse := TMVCRESTResponse.Create(fRESTResponse);
+// if Assigned(fAsyncCompletionHandler) then
+// fAsyncCompletionHandler(lMVCRESTResponse);
+// ClearAllParams;
+// end
+  );
+end;
+
 function TMVCRESTClient.ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
 begin
   fRESTRequest.Method := aMethod;
 
-  fRESTRequest.Execute;
+  if fNextRequestIsAsync then
+  begin
+    Result := nil;
+    ExecuteAsyncRESTRequest;
+  end
+  else
+  begin
+    fRESTRequest.Execute;
+    Result := TMVCRESTResponse.Create(fRESTResponse);
 
-  Result := TMVCRESTResponse.Create(fRESTResponse);
+    ClearAllParams;
+  end;
 end;
 
 function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
+end;
+
+function TMVCRESTClient.HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient;
+begin
+  Result := Self;
+  fRESTRequest.HandleRedirects := aHandleRedirects;
+end;
+
+function TMVCRESTClient.HandleRedirects: Boolean;
+begin
+  Result := fRESTRequest.HandleRedirects;
 end;
 
 class function TMVCRESTClient.New: IMVCRESTClient;
@@ -552,7 +669,7 @@ begin
   if not aBody.isEmpty then
   begin
     ClearBody;
-    AddBody(aBody, TRESTContentType.ctAPPLICATION_JSON);
+    AddBody(aBody, False, TRESTContentType.ctAPPLICATION_JSON);
   end;
 
   Result := Patch;
@@ -591,7 +708,7 @@ begin
   if not aBody.IsEmpty then
   begin
     ClearBody;
-    AddBody(aBody, TRESTContentType.ctAPPLICATION_JSON);
+    AddBody(aBody, False, TRESTContentType.ctAPPLICATION_JSON);
   end;
   Result := Post;
 end;
@@ -662,7 +779,7 @@ begin
   if not aBody.IsEmpty then
   begin
     ClearBody;
-    AddBody(aBody, TRESTContentType.ctAPPLICATION_JSON);
+    AddBody(aBody, False, TRESTContentType.ctAPPLICATION_JSON);
   end;
   Result := Put;
 end;
@@ -694,6 +811,7 @@ function TMVCRESTClient.Resource(const aResource: string): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.Resource := ConvertMVCPathParamsToRESTParams(aResource);
+
 end;
 
 function TMVCRESTClient.RaiseExceptionOn500: Boolean;
@@ -710,6 +828,28 @@ function TMVCRESTClient.Timeout(const aTimeout: Integer): IMVCRESTClient;
 begin
   Result := Self;
   fRESTRequest.Timeout := aTimeout;
+end;
+
+function TMVCRESTClient.URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient;
+begin
+  Result := Self;
+  fRESTRequest.URLAlreadyEncoded := aURLAlreadyEncoded;
+end;
+
+function TMVCRESTClient.UserAgent(const aUserAgent: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fRESTClient.UserAgent := aUserAgent;
+end;
+
+function TMVCRESTClient.UserAgent: string;
+begin
+  Result := fRESTClient.UserAgent;
+end;
+
+function TMVCRESTClient.URLAlreadyEncoded: string;
+begin
+  Result := fRESTRequest.URLAlreadyEncoded;
 end;
 
 function TMVCRESTClient.SerializeObject(aObject: TObject): string;
@@ -733,15 +873,13 @@ begin
   finally
     LBase64.Free;
   end;
-  fRESTRequest.AddParameter('Authorization', LAuthValue, TRESTRequestParameterKind.pkHTTPHEADER,
-    [TRESTRequestParameterOption.poDoNotEncode]);
+  AddHeader('Authorization', LAuthValue, True)
 end;
 
 function TMVCRESTClient.SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AddParameter('Authorization', 'Bearer ' + aToken, TRESTRequestParameterKind.pkHTTPHEADER,
-    [TRESTRequestParameterOption.poDoNotEncode]);
+  AddHeader('Authorization', 'Bearer ' + aToken, True);
 end;
 
 { TMVCRESTResponse }

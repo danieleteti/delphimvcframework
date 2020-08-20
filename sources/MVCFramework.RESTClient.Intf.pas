@@ -41,8 +41,6 @@ uses
   System.TypInfo;
 
 type
-  TRESTContentType = REST.Types.TRESTContentType;
-
   IMVCRESTResponse = interface;
 
   IMVCRESTClient = interface
@@ -50,8 +48,6 @@ type
 
     function BaseURL: string; overload;
     function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
-    function Timeout: Integer; overload;
-    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
     function RaiseExceptionOn500: Boolean; overload;
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
 
@@ -64,6 +60,20 @@ type
     function ProxyPassword: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
 
+    function UserAgent: string; overload;
+    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+
+    function ClearAllParams: IMVCRESTClient;
+
+    /// <summary>
+    /// Get request timeout.
+    /// </summary>
+    function Timeout: Integer; overload;
+    /// <summary>
+    /// Set request timeout.
+    /// </summary>
+    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
+
     /// <summary>
     /// Add basic authorization header. Authorization = Basic <Username:Password>
     /// </summary>
@@ -75,7 +85,7 @@ type
     function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 
     /// <summary>
-    /// Add a header
+    /// Add a header.
     /// </summary>
     /// <param name="aName">
     /// Header name
@@ -83,7 +93,10 @@ type
     /// <param name="aValue">
     /// Header value
     /// </param>
-    function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
+    /// <param name="aDoNotEncode">
+    /// Indicates whether the value of this header should be used as is (True), or encoded by the component (False)
+    /// </param>
+    function AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean = False): IMVCRESTClient; overload;
 
     /// <summary>
     /// Clears all headers.
@@ -138,6 +151,8 @@ type
     function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
     function AcceptEncoding: string; overload;
     function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
+    function HandleRedirects: Boolean; overload;
+    function HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient; overload;
 
     /// <summary>
     /// Get the current resource path.
@@ -156,8 +171,12 @@ type
     /// <param name="aContentType">
     /// Body content type.
     /// </param>
-    function AddBody(const aBody: string;
-      const aContentType: TRESTContentType = ctAPPLICATION_JSON): IMVCRESTClient; overload;
+
+    function URLAlreadyEncoded: string; overload;
+    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
+
+    function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
+      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
     /// </summary>
@@ -170,7 +189,7 @@ type
     /// <param name="aOwnsStream">
     /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
     /// </param>
-    function AddBody(aBodyStream: TStream; const aContentType: TRESTContentType = ctNone;
+    function AddBody(aBodyStream: TStream; const aContentType: TRESTContentType = TRESTContentType.ctNone;
       const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
@@ -198,9 +217,25 @@ type
     /// File content type
     /// </param>
     function AddFile(const aName, aFileName: string;
-      const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
-    function AddFile(const aFileName: string; const aContentType: TRESTContentType = ctNone): IMVCRESTClient; overload;
+      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string;
+      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
+
+    /// <summary>
+    /// Executes the next request asynchronously.
+    /// </summary>
+    /// <param name="aCompletionHandler">
+    /// An anonymous method that will be run after the execution completed.
+    /// </param>
+    /// <param name="aSynchronized">
+    /// Specifies if aCompletioHandler will be run in the main thread's (True) or execution thread's (False) context.
+    /// </param>
+    /// <param name="aCompletionHandlerWithError">
+    /// An anonymous method that will be run if an exception is raised during execution.
+    /// </param>
+    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; const aSynchronized: Boolean = True;
+      aCompletionHandlerWithError: TProc<Exception> = nil): IMVCRESTClient;
 
     /// <summary>
     /// Execute a Get request.
