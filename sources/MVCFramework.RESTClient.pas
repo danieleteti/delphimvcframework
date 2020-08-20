@@ -200,6 +200,7 @@ type
     function DataSetDelete(const aResource: string): IMVCRESTResponse;
 
     function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
+    function CloneRESTClient: IMVCRESTClient;
   end;
 
   /// <summary>
@@ -484,7 +485,8 @@ begin
 
   fRESTRequest.ResetToDefaults;
   fRESTRequest.AutoCreateParams := False;
-  fNextRequestIsAsync := False;
+
+  fNextRequestIsAsync := False;;
   fAsyncCompletionHandler := nil;
   fAsyncSynchronized := False;
   fAsyncCompletionHandlerWithError := nil;
@@ -535,6 +537,27 @@ begin
     if (fRESTRequest.Params[I].Kind = aRESTParamKind) then
       fRESTRequest.Params.Delete(I);
   end;
+end;
+
+function TMVCRESTClient.CloneRESTClient: IMVCRESTClient;
+begin
+  Result := TMVCRESTClient.New
+    .BaseURL(BaseURL)
+    .RaiseExceptionOn500(RaiseExceptionOn500)
+    .ProxyServer(ProxyServer)
+    .ProxyPort(ProxyPort)
+    .ProxyUsername(ProxyUsername)
+    .ProxyPassword(ProxyPassword)
+    .ProxyServer(ProxyServer)
+    .UserAgent(UserAgent)
+    .Timeout(Timeout)
+    .Accept(Accept)
+    .AcceptCharset(AcceptCharset)
+    .AcceptEncoding(AcceptEncoding)
+    .HandleRedirects(HandleRedirects)
+    .Resource(Resource)
+    .URLAlreadyEncoded(URLAlreadyEncoded);
+  TMVCRESTClient(Result).fRESTRequest.Params.Assign(fRESTRequest.Params);
 end;
 
 function TMVCRESTClient.ConvertMVCPathParamsToRESTParams(const aResource: string): string;
@@ -599,18 +622,57 @@ begin
 end;
 
 procedure TMVCRESTClient.ExecuteAsyncRESTRequest;
+var
+  lMVCRESTClient: IMVCRESTClient;
+  lAsyncCompletionHandler: TProc<IMVCRESTResponse>;
+  lAsyncSynchronized: Boolean;
+  lAsyncCompletionHandlerWithError: TProc<Exception>;
 begin
-  fRESTRequest.ExecuteAsync(
-// procedure
-// var
-// lMVCRESTResponse: IMVCRESTResponse;
-// begin
-// lMVCRESTResponse := TMVCRESTResponse.Create(fRESTResponse);
-// if Assigned(fAsyncCompletionHandler) then
-// fAsyncCompletionHandler(lMVCRESTResponse);
-// ClearAllParams;
-// end
-  );
+  // For asynchronous execution, a clone of RESTClient is created to be executed in an anonymous thread
+  lMVCRESTClient := CloneRESTClient;
+
+  lAsyncCompletionHandler := fAsyncCompletionHandler;
+  lAsyncSynchronized := fAsyncSynchronized;
+  lAsyncCompletionHandlerWithError := fAsyncCompletionHandlerWithError;
+
+  TThread.CreateAnonymousThread(
+    procedure
+    var
+      lMVCRESTResponse: IMVCRESTResponse;
+    begin
+      try
+        TMVCRESTClient(lMVCRESTClient).fRESTRequest.Execute;
+        lMVCRESTResponse := TMVCRESTResponse.Create(TMVCRESTClient(lMVCRESTClient).fRESTResponse);
+        if Assigned(lAsyncCompletionHandler) then
+        begin
+          if lAsyncSynchronized then
+            TThread.Synchronize(nil,
+              procedure
+              begin
+                lAsyncCompletionHandler(lMVCRESTResponse)
+              end
+              )
+          else
+            lAsyncCompletionHandler(lMVCRESTResponse);
+        end;
+      except
+        on E: Exception do
+        begin
+          if Assigned(lAsyncCompletionHandlerWithError) then
+          begin
+            if fAsyncSynchronized then
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  lAsyncCompletionHandlerWithError(E)
+                end
+                )
+            else
+              lAsyncCompletionHandlerWithError(E);
+          end;
+        end;
+      end;
+    end).Start;
 end;
 
 function TMVCRESTClient.ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
@@ -626,9 +688,8 @@ begin
   begin
     fRESTRequest.Execute;
     Result := TMVCRESTResponse.Create(fRESTResponse);
-
-    ClearAllParams;
   end;
+  ClearAllParams;
 end;
 
 function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
@@ -801,7 +862,7 @@ begin
 end;
 
 function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
-  aInstance: IMVCTypeSerializer): IMVCRESTClient;
+aInstance: IMVCTypeSerializer): IMVCRESTClient;
 begin
   Result := Self;
   fSerializer.RegisterTypeSerializer(aTypeInfo, aInstance);

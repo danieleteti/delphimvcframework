@@ -162,6 +162,10 @@ type
     /// Set the current resource path.
     /// </summary>
     function Resource(const aResource: string): IMVCRESTClient; overload;
+
+    function URLAlreadyEncoded: Boolean; overload;
+    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
+
     /// <summary>
     /// Add a body to the requisition.
     /// </summary>
@@ -171,10 +175,6 @@ type
     /// <param name="aContentType">
     /// Body content type.
     /// </param>
-
-    function URLAlreadyEncoded: Boolean; overload;
-    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
-
     function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
       const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     /// <summary>
@@ -290,6 +290,11 @@ type
     /// Register a custom serializer to the RESTClient serializer.
     /// </summary>
     function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
+
+    /// <summary>
+    /// Creates a new instance of RESTClient with all parameters of the current RESTClient.
+    /// </summary>
+    function CloneRESTClient: IMVCRESTClient;
   end;
 
   IMVCRESTResponse = interface
