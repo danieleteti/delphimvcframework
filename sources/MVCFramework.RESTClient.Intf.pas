@@ -38,7 +38,8 @@ uses
   MVCFramework.Serializer.Commons,
   REST.Types,
   Data.DB,
-  System.TypInfo;
+  System.TypInfo,
+  System.Net.HttpClient;
 
 type
   IMVCRESTResponse = interface;
@@ -48,6 +49,8 @@ type
 
     function BaseURL: string; overload;
     function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
+    function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
+
     function RaiseExceptionOn500: Boolean; overload;
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
 
@@ -63,6 +66,9 @@ type
     function UserAgent: string; overload;
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
 
+    /// <summary>
+    ///   Clears all parameters, except authorization headers. This method is executed after each request is completed.
+    /// </summary>
     function ClearAllParams: IMVCRESTClient;
 
     /// <summary>
@@ -234,8 +240,8 @@ type
     /// <param name="aCompletionHandlerWithError">
     /// An anonymous method that will be run if an exception is raised during execution.
     /// </param>
-    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; const aSynchronized: Boolean = True;
-      aCompletionHandlerWithError: TProc<Exception> = nil): IMVCRESTClient;
+    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception> = nil;
+      const aSynchronized: Boolean = True): IMVCRESTClient;
 
     /// <summary>
     /// Execute a Get request.
@@ -305,6 +311,9 @@ type
     function StatusText: string;
     function ErrorMessage: string;
     function Headers: TStrings;
+{$IF defined(SYDNEYORBETTER)}
+    function Cookies: TCookies;
+{$ENDIF}
     function HeaderByName(const aName: string): string;
     function Server: string;
     function FullRequestURI: string;

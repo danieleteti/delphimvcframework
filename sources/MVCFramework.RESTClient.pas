@@ -42,7 +42,8 @@ uses
   MVCFramework.RESTClient.Indy,
   Data.DB,
   System.Rtti,
-  System.TypInfo;
+  System.TypInfo,
+  System.Net.HttpClient;
 
 type
   /// <summary>
@@ -78,8 +79,8 @@ type
     fSerializer: IMVCSerializer;
     fNextRequestIsAsync: Boolean;
     fAsyncCompletionHandler: TProc<IMVCRESTResponse>;
-    fAsyncSynchronized: Boolean;
     fAsyncCompletionHandlerWithError: TProc<Exception>;
+    fAsyncSynchronized: Boolean;
 
     procedure ClearRESTParams(const aRESTParamKind: TRESTRequestParameterKind);
     function ConvertMVCPathParamsToRESTParams(const aResource: string): string;
@@ -97,6 +98,8 @@ type
 
     function BaseURL: string; overload;
     function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
+    function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
+
     function RaiseExceptionOn500: Boolean; overload;
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
     function ProxyServer: string; overload;
@@ -171,8 +174,8 @@ type
       const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
 
-    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; const aSynchronized: Boolean = True;
-      aCompletionHandlerWithError: TProc<Exception> = nil): IMVCRESTClient;
+    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception> = nil;
+      const aSynchronized: Boolean = True): IMVCRESTClient;
 
     function Get: IMVCRESTResponse; overload;
     function Get(const aResource: string): IMVCRESTResponse; overload;
@@ -213,6 +216,9 @@ type
     fStatusText: string;
     fErrorMessage: string;
     fHeaders: TStrings;
+{$IF defined(SYDNEYORBETTER)}
+    fCookies: TCookies;
+{$ENDIF}
     fServer: string;
     fFullRequestURI: string;
     fContentType: string;
@@ -232,6 +238,9 @@ type
     function StatusText: string;
     function ErrorMessage: string;
     function Headers: TStrings;
+{$IF defined(SYDNEYORBETTER)}
+    function Cookies: TCookies;
+{$ENDIF}
     function HeaderByName(const aName: string): string;
     function Server: string;
     function FullRequestURI: string;
@@ -260,7 +269,6 @@ const
   AUTHORIZATION_HEADER = 'Authorization';
   BASIC_AUTH_PREFIX = 'Basic ';
   BEARER_AUTH_PREFIX = 'Bearer ';
-
 
 { TMVCRESTClient }
 
@@ -443,14 +451,19 @@ begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
-function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>; const aSynchronized: Boolean;
-  aCompletionHandlerWithError: TProc<Exception>): IMVCRESTClient;
+function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception>;
+  const aSynchronized: Boolean): IMVCRESTClient;
 begin
   Result := Self;
   fNextRequestIsAsync := True;
   fAsyncCompletionHandler := aCompletionHandler;
-  fAsyncSynchronized := aSynchronized;
   fAsyncCompletionHandlerWithError := aCompletionHandlerWithError;
+  fAsyncSynchronized := aSynchronized;
+end;
+
+function TMVCRESTClient.BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient;
+begin
+  Result := BaseURL(aHost + ':' + aPort.ToString);
 end;
 
 function TMVCRESTClient.AddQueryStringParam(const aName, aValue: string): IMVCRESTClient;
@@ -480,26 +493,44 @@ begin
 end;
 
 function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
+var
+  lBaseURL: string;
 begin
   Result := Self;
-  fRESTClient.BaseURL := aBaseURL;
+
+  lBaseURL := aBaseURL;
+  if not lBaseURL.Contains('://') then
+    lBaseURL := 'http://' + lBaseURL;
+
+  fRESTClient.BaseURL := lBaseURL;
 end;
 
 function TMVCRESTClient.ClearAllParams: IMVCRESTClient;
+var
+  lAuthHeader: TRESTRequestParameter;
 begin
   Result := Self;
 
   fRESTClient.HandleRedirects := True;
   fRESTClient.RaiseExceptionOn500 := False;
+  fRESTClient.AllowCookies := True;
+
+  // If the authorization header exists, it will be extracted from the list of parameters to be added later.
+  lAuthHeader := fRESTRequest.Params.ParameterByName(AUTHORIZATION_HEADER);
+  if Assigned(lAuthHeader) then
+    lAuthHeader.Collection := nil;
 
   fRESTRequest.ResetToDefaults;
   fRESTRequest.AutoCreateParams := False;
   fRESTRequest.AcceptEncoding := DEFAULT_ACCEPT_ENCODING;
 
+  if Assigned(lAuthHeader) then
+    lAuthHeader.Collection := fRESTRequest.Params;
+
   fNextRequestIsAsync := False;;
   fAsyncCompletionHandler := nil;
-  fAsyncSynchronized := False;
   fAsyncCompletionHandlerWithError := nil;
+  fAsyncSynchronized := False;
 end;
 
 function TMVCRESTClient.ClearBody: IMVCRESTClient;
@@ -975,11 +1006,21 @@ begin
   Result := fContentType;
 end;
 
+{$IF defined(SYDNEYORBETTER)}
+function TMVCRESTResponse.Cookies: TCookies;
+begin
+  Result := fCookies;
+end;
+{$ENDIF}
+
 constructor TMVCRESTResponse.Create(aRESTResponse: TCustomRESTResponse);
 begin
   inherited Create;
   fHeaders := TStringList.Create;
   SetLength(fRawBytes, 0);
+{$IF defined(SYDNEYORBETTER)}
+  fCookies := TCookies.Create;
+{$ENDIF}
 
   FillRESTResponse(aRESTResponse);
 end;
@@ -988,6 +1029,9 @@ destructor TMVCRESTResponse.Destroy;
 begin
   SetLength(fRawBytes, 0);
   fHeaders.Free;
+{$IF defined(SYDNEYORBETTER)}
+  fCookies.Free;
+{$ENDIF}
   inherited Destroy;
 end;
 
@@ -1003,6 +1047,9 @@ begin
   fStatusText := aRESTResponse.StatusText;
   fErrorMessage := aRESTResponse.ErrorMessage;
   fHeaders.Assign(aRESTResponse.Headers);
+{$IF defined(SYDNEYORBETTER)}
+  fCookies.AddRange(aRESTResponse.Cookies.ToArray);
+{$ENDIF}
   fServer := aRESTResponse.Server;
   fFullRequestURI := aRESTResponse.FullRequestURI;
   fContent := aRESTResponse.Content;
