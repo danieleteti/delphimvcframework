@@ -86,6 +86,9 @@ type
     function ConvertMVCPathParamsToRESTParams(const aResource: string): string;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
+{$IF not defined(SYDNEYORBETTER)}
+    function GetResponseCookies: TArray<TCookie>;
+{$ENDIF}
     procedure ExecuteAsyncRESTRequest;
     function ExecuteRESTRequest(const aMethod: TRESTRequestMethod): IMVCRESTResponse;
   public
@@ -96,37 +99,93 @@ type
 
     { IMVCRESTClient }
 
-    function BaseURL: string; overload;
-    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
     function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
+    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
+    function BaseURL: string; overload;
 
-    function RaiseExceptionOn500: Boolean; overload;
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
-    function ProxyServer: string; overload;
+    function RaiseExceptionOn500: Boolean; overload;
+
     function ProxyServer(const aProxyServer: string): IMVCRESTClient; overload;
-    function ProxyPort: Integer; overload;
+    function ProxyServer: string; overload;
     function ProxyPort(const aProxyPort: Integer): IMVCRESTClient; overload;
-    function ProxyUsername: string; overload;
+    function ProxyPort: Integer; overload;
     function ProxyUsername(const aProxyUsername: string): IMVCRESTClient; overload;
-    function ProxyPassword: string; overload;
+    function ProxyUsername: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
+    function ProxyPassword: string; overload;
 
-    function UserAgent: string; overload;
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+    function UserAgent: string; overload;
 
+    /// <summary>
+    /// Clears all parameters, except authorization headers. This method is executed after each request is completed.
+    /// </summary>
     function ClearAllParams: IMVCRESTClient;
 
-    function Timeout: Integer; overload;
-    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
+    /// <summary>
+    /// Connection timeout in milliseconds to be used for the requests.
+    /// </summary>
+    function ConnectTimeout(const aConnectTimeout: Integer): IMVCRESTClient; overload;
+    function ConnectTimeout: Integer; overload;
+
+    /// <summary>
+    /// Response reading timeout in milliseconds to be used for the requests.
+    /// </summary>
+    function ReadTimeout(const aReadTimeout: Integer): IMVCRESTClient; overload;
+    function ReadTimeout: Integer; overload;
+
+    /// <summary>
+    /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
+    /// </summary>
     function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+
+    /// <summary>
+    /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
+    /// </summary>
     function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 
+    /// <summary>
+    /// Add a header.
+    /// </summary>
+    /// <param name="aName">
+    /// Header name
+    /// </param>
+    /// <param name="aValue">
+    /// Header value
+    /// </param>
+    /// <param name="aDoNotEncode">
+    /// Indicates whether the value of this header should be used as is (True), or encoded by the component (False)
+    /// </param>
     function AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean = False): IMVCRESTClient; overload;
+
+    /// <summary>
+    /// Clears all headers.
+    /// </summary>
     function ClearHeaders: IMVCRESTClient;
 
+    function AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient; overload;
+    function AllowCookies: Boolean; overload;
+
+    /// <summary>
+    /// Add a cookie header.
+    /// </summary>
     function AddCookie(const aName, aValue: string): IMVCRESTClient;
+    /// <summary>
+    /// Clear all cookie headers.
+    /// </summary>
     function ClearCookies: IMVCRESTClient;
 
+    /// <summary>
+    /// Add a URL segment parameter. The parameters of your url path may be enclosed in braces or in
+    /// parentheses starting with a money sign. <c>/api/{param1}/($param2)</c>
+    /// </summary>
+    /// <param name="aName">
+    /// Parameter name
+    /// </param>
+    /// <param name="aValue">
+    /// Parameter value
+    /// </param>
     function AddPathParam(const aName, aValue: string): IMVCRESTClient; overload;
     function AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
     function AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
@@ -137,6 +196,9 @@ type
     function AddPathParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
     function ClearPathParams: IMVCRESTClient;
 
+    /// <summary>
+    /// Add a QueryString parameter. <c>/api/person?para1=value&amp;param2=value</c>
+    /// </summary>
     function AddQueryStringParam(const aName, aValue: string): IMVCRESTClient; overload;
     function AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
     function AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
@@ -147,62 +209,152 @@ type
     function AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
     function ClearQueryParams: IMVCRESTClient;
 
-    function Accept: string; overload;
     function Accept(const aAccept: string): IMVCRESTClient; overload;
-    function AcceptCharset: string; overload;
+    function Accept: string; overload;
     function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
-    function AcceptEncoding: string; overload;
+    function AcceptCharset: string; overload;
     function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
-    function HandleRedirects: Boolean; overload;
+    function AcceptEncoding: string; overload;
     function HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient; overload;
+    function HandleRedirects: Boolean; overload;
 
-    function Resource: string; overload;
+    function FallbackCharsetEncoding(const aFallbackCharsetEncoding: string): IMVCRESTClient; overload;
+    function FallbackCharsetEncoding: string; overload;
+
     function Resource(const aResource: string): IMVCRESTClient; overload;
-    function URLAlreadyEncoded: Boolean; overload;
-    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
+    function Resource: string; overload;
 
+    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
+    function URLAlreadyEncoded: Boolean; overload;
+
+    /// <summary>
+    /// Add a body to the requisition.
+    /// </summary>
+    /// <param name="aBody">
+    /// Body in string format.
+    /// </param>
+    /// <param name="aContentType">
+    /// Body content type.
+    /// </param>
     function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
       const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
-    function AddBody(aBody: TStream; const aContentType: TRESTContentType = TRESTContentType.ctNone;
+    /// <summary>
+    /// Add a body to the requisition
+    /// </summary>
+    /// <param name="aBodyStream">
+    /// Body in Stream format
+    /// </param>
+    /// <param name="aContentType">
+    /// Body content type
+    /// </param>
+    /// <param name="aOwnsStream">
+    /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
+    /// </param>
+    function AddBody(aBodyStream: TStream; const aContentType: TRESTContentType = TRESTContentType.ctNone;
       const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
-    function AddBody(aBody: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
+    /// <summary>
+    /// Add a body to the requisition
+    /// </summary>
+    /// <param name="aBodyObject">
+    /// Body in Object format. The object will be serialized to a JSON string.
+    /// </param>
+    /// <param name="aOwnsObject">
+    /// If OwnsObject is true, BodyObject will be destroyed by IMVCRESTClient.
+    /// </param>
+    function AddBody(aBodyObject: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
     function ClearBody: IMVCRESTClient;
 
+    /// <summary>
+    /// Adds a file as the request body. Several files can be added in the same request. In this case the request
+    /// will be of the multipart/form-data type
+    /// </summary>
+    /// <param name="aName">
+    /// Field name
+    /// </param>
+    /// <param name="aFileName">
+    /// File path
+    /// </param>
+    /// <param name="aContentType">
+    /// File content type
+    /// </param>
     function AddFile(const aName, aFileName: string;
       const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     function AddFile(const aFileName: string;
       const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
 
+    /// <summary>
+    /// Executes the next request asynchronously.
+    /// </summary>
+    /// <param name="aCompletionHandler">
+    /// An anonymous method that will be run after the execution completed.
+    /// </param>
+    /// <param name="aSynchronized">
+    /// Specifies if aCompletioHandler will be run in the main thread's (True) or execution thread's (False) context.
+    /// </param>
+    /// <param name="aCompletionHandlerWithError">
+    /// An anonymous method that will be run if an exception is raised during execution.
+    /// </param>
     function Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception> = nil;
       const aSynchronized: Boolean = True): IMVCRESTClient;
 
-    function Get: IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Get request.
+    /// </summary>
     function Get(const aResource: string): IMVCRESTResponse; overload;
+    function Get: IMVCRESTResponse; overload;
 
-    function Post: IMVCRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Post request.
+    /// </summary>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Post: IMVCRESTResponse; overload;
 
-    function Patch: IMVCRESTResponse; overload;
-    function Patch(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Patch request.
+    /// </summary>
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Patch(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Patch: IMVCRESTResponse; overload;
 
-    function Put: IMVCRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Put request.
+    /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Put: IMVCRESTResponse; overload;
 
-    function Delete: IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Delete request.
+    /// </summary>
     function Delete(const aResource: string): IMVCRESTResponse; overload;
+    function Delete: IMVCRESTResponse; overload;
 
+    /// <summary>
+    /// Serialize the current dataset record and execute a POST request.
+    /// </summary>
     function DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
       const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    /// <summary>
+    /// Serialize the current dataset record and execute a PUT request.
+    /// </summary>
     function DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
       const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    /// <summary>
+    /// Delete the current dataset record by executing a delete request.
+    /// </summary>
     function DataSetDelete(const aResource: string): IMVCRESTResponse;
 
+    /// <summary>
+    /// Register a custom serializer to the RESTClient serializer.
+    /// </summary>
     function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
+
+    /// <summary>
+    /// Creates a new instance of RESTClient with all parameters of the current RESTClient.
+    /// </summary>
     function CloneRESTClient: IMVCRESTClient;
   end;
 
@@ -216,9 +368,7 @@ type
     fStatusText: string;
     fErrorMessage: string;
     fHeaders: TStrings;
-{$IF defined(SYDNEYORBETTER)}
     fCookies: TCookies;
-{$ENDIF}
     fServer: string;
     fFullRequestURI: string;
     fContentType: string;
@@ -231,6 +381,9 @@ type
   public
     constructor Create(aRESTResponse: TCustomRESTResponse);
     destructor Destroy; override;
+{$IF not defined(SYDNEYORBETTER)}
+    procedure SetCookies(aCookies: TArray<TCookie>);
+{$ENDIF}
 
     { IMVCRESTResponse }
     function Success: Boolean;
@@ -238,9 +391,7 @@ type
     function StatusText: string;
     function ErrorMessage: string;
     function Headers: TStrings;
-{$IF defined(SYDNEYORBETTER)}
     function Cookies: TCookies;
-{$ENDIF}
     function HeaderByName(const aName: string): string;
     function Server: string;
     function FullRequestURI: string;
@@ -260,7 +411,8 @@ implementation
 uses
   MVCFramework.Serializer.JsonDataObjects,
   System.NetEncoding,
-  System.RegularExpressions;
+  System.RegularExpressions,
+  REST.HttpClient;
 
 const
   DEFAULT_ACCEPT_ENCODING = 'gzip, deflate';
@@ -269,6 +421,7 @@ const
   AUTHORIZATION_HEADER = 'Authorization';
   BASIC_AUTH_PREFIX = 'Basic ';
   BEARER_AUTH_PREFIX = 'Bearer ';
+  HEADER_RESPONSE_COOKIES = 'Cookies';
 
 { TMVCRESTClient }
 
@@ -328,12 +481,12 @@ begin
   fRESTRequest.AddParameter(lBodyName, aBody, TRESTRequestParameterKind.pkREQUESTBODY, lOptions);
 end;
 
-function TMVCRESTClient.AddBody(aBody: TStream; const aContentType: TRESTContentType;
+function TMVCRESTClient.AddBody(aBodyStream: TStream; const aContentType: TRESTContentType;
   const aOwnsStream: Boolean): IMVCRESTClient;
 var
   lOwnsStream: TRESTObjectOwnership;
 begin
-  if aBody = nil then
+  if aBodyStream = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Self;
@@ -343,20 +496,20 @@ begin
   else
     lOwnsStream := TRESTObjectOwnership.ooApp;
 
-  fRESTRequest.AddBody(aBody, aContentType, lOwnsStream);
+  fRESTRequest.AddBody(aBodyStream, aContentType, lOwnsStream);
 end;
 
-function TMVCRESTClient.AddBody(aBody: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
+function TMVCRESTClient.AddBody(aBodyObject: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
 begin
-  if aBody = nil then
+  if aBodyObject = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
 
   Result := Self;
 
-  AddBody(SerializeObject(aBody), False, TRESTContentType.ctAPPLICATION_JSON);
+  AddBody(SerializeObject(aBodyObject), False, TRESTContentType.ctAPPLICATION_JSON);
 
   if aOwnsObject then
-    aBody.Free;
+    aBodyObject.Free;
 end;
 
 function TMVCRESTClient.AddCookie(const aName, aValue: string): IMVCRESTClient;
@@ -451,6 +604,17 @@ begin
   Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
+function TMVCRESTClient.AllowCookies: Boolean;
+begin
+  Result := fRESTClient.AllowCookies;
+end;
+
+function TMVCRESTClient.AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient;
+begin
+  Result := Self;
+  fRESTClient.AllowCookies := aAllowCookies;
+end;
+
 function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception>;
   const aSynchronized: Boolean): IMVCRESTClient;
 begin
@@ -464,6 +628,24 @@ end;
 function TMVCRESTClient.BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient;
 begin
   Result := BaseURL(aHost + ':' + aPort.ToString);
+end;
+
+function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
+var
+  lBaseURL: string;
+begin
+  Result := Self;
+
+  lBaseURL := aBaseURL;
+  if not lBaseURL.Contains('://') then
+    lBaseURL := 'http://' + lBaseURL;
+
+  fRESTClient.BaseURL := lBaseURL;
+end;
+
+function TMVCRESTClient.BaseURL: string;
+begin
+  Result := fRESTClient.BaseURL;
 end;
 
 function TMVCRESTClient.AddQueryStringParam(const aName, aValue: string): IMVCRESTClient;
@@ -485,24 +667,6 @@ end;
 function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient;
 begin
   Result := AddQueryStringParam(aName, aValue.ToString);
-end;
-
-function TMVCRESTClient.BaseURL: string;
-begin
-  Result := fRESTClient.BaseURL;
-end;
-
-function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
-var
-  lBaseURL: string;
-begin
-  Result := Self;
-
-  lBaseURL := aBaseURL;
-  if not lBaseURL.Contains('://') then
-    lBaseURL := 'http://' + lBaseURL;
-
-  fRESTClient.BaseURL := lBaseURL;
 end;
 
 function TMVCRESTClient.ClearAllParams: IMVCRESTClient;
@@ -591,14 +755,35 @@ begin
     .ProxyPassword(ProxyPassword)
     .ProxyServer(ProxyServer)
     .UserAgent(UserAgent)
-    .Timeout(Timeout)
+    .ConnectTimeout(ConnectTimeout)
+    .ReadTimeout(ReadTimeout)
     .Accept(Accept)
     .AcceptCharset(AcceptCharset)
     .AcceptEncoding(AcceptEncoding)
     .HandleRedirects(HandleRedirects)
+    .AllowCookies(AllowCookies)
     .Resource(Resource)
     .URLAlreadyEncoded(URLAlreadyEncoded);
   TMVCRESTClient(Result).fRESTRequest.Params.Assign(fRESTRequest.Params);
+end;
+
+function TMVCRESTClient.ConnectTimeout(const aConnectTimeout: Integer): IMVCRESTClient;
+begin
+  Result := Self;
+{$IF defined(SYDNEYORBETTER)}
+  fRESTRequest.ConnectTimeout := aConnectTimeout;
+{$ELSE}
+  fRESTRequest.Timeout := aConnectTimeout;
+{$ENDIF}
+end;
+
+function TMVCRESTClient.ConnectTimeout: Integer;
+begin
+{$IF defined(SYDNEYORBETTER)}
+  Result := fRESTRequest.ConnectTimeout;
+{$ELSE}
+  Result := fRESTRequest.Timeout;
+{$ENDIF}
 end;
 
 function TMVCRESTClient.ConvertMVCPathParamsToRESTParams(const aResource: string): string;
@@ -684,6 +869,10 @@ begin
       try
         TMVCRESTClient(lMVCRESTClient).fRESTRequest.Execute;
         lMVCRESTResponse := TMVCRESTResponse.Create(TMVCRESTClient(lMVCRESTClient).fRESTResponse);
+{$IF not defined(SYDNEYORBETTER)}
+        TMVCRESTResponse(lMVCRESTResponse).SetCookies(TMVCRESTClient(lMVCRESTClient).GetResponseCookies);
+{$ENDIF}
+
         if Assigned(lAsyncCompletionHandler) then
         begin
           if lAsyncSynchronized then
@@ -729,8 +918,22 @@ begin
   begin
     fRESTRequest.Execute;
     Result := TMVCRESTResponse.Create(fRESTResponse);
+{$IF not defined(SYDNEYORBETTER)}
+    TMVCRESTResponse(Result).SetCookies(GetResponseCookies);
+{$ENDIF}
   end;
   ClearAllParams;
+end;
+
+function TMVCRESTClient.FallbackCharsetEncoding: string;
+begin
+  Result := fRESTClient.FallbackCharsetEncoding;
+end;
+
+function TMVCRESTClient.FallbackCharsetEncoding(const aFallbackCharsetEncoding: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fRESTClient.FallbackCharsetEncoding := aFallbackCharsetEncoding;
 end;
 
 function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
@@ -902,6 +1105,33 @@ begin
   Result := fRESTRequest.Resource;
 end;
 
+{$IF not defined(SYDNEYORBETTER)}
+function TMVCRESTClient.GetResponseCookies: TArray<TCookie>;
+var
+  lRttiType: TRttiType;
+  lRttiField: TRttiField;
+  lRestHttp: TRESTHTTP;
+  lHttpResponse: IHTTPResponse;
+begin
+  SetLength(Result, 0);
+  lRttiType := fRttiContext.GetType(fRESTClient.ClassType);
+  lRttiField := lRttiType.GetField('FHttpClient');
+  if not Assigned(lRttiField) then
+    Exit;
+
+  lRestHttp :=  lRttiField.GetValue(fRESTClient).AsObject as TRESTHTTP;
+  lRttiType := fRttiContext.GetType(lRestHttp.ClassType);
+  lRttiField := lRttiType.GetField('FHTTPResponse');
+
+  if not Assigned(lRttiField) then
+    Exit;
+
+  lHttpResponse := lRttiField.GetValue(lRestHttp).AsInterface as IHTTPResponse;
+
+  Result := lHttpResponse.Cookies.ToArray;
+end;
+{$ENDIF}
+
 function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
 aInstance: IMVCTypeSerializer): IMVCRESTClient;
 begin
@@ -921,15 +1151,23 @@ begin
   Result := fRESTClient.RaiseExceptionOn500;
 end;
 
-function TMVCRESTClient.Timeout: Integer;
+function TMVCRESTClient.ReadTimeout: Integer;
 begin
+{$IF defined(SYDNEYORBETTER)}
+  Result := fRESTRequest.ReadTimeout;
+{$ELSE}
   Result := fRESTRequest.Timeout;
+{$ENDIF}
 end;
 
-function TMVCRESTClient.Timeout(const aTimeout: Integer): IMVCRESTClient;
+function TMVCRESTClient.ReadTimeout(const aReadTimeout: Integer): IMVCRESTClient;
 begin
   Result := Self;
-  fRESTRequest.Timeout := aTimeout;
+{$IF defined(SYDNEYORBETTER)}
+  fRESTRequest.ReadTimeout := aReadTimeout;
+{$ELSE}
+  fRESTRequest.Timeout := aReadTimeout;
+{$ENDIF}
 end;
 
 function TMVCRESTClient.URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient;
@@ -1006,21 +1244,17 @@ begin
   Result := fContentType;
 end;
 
-{$IF defined(SYDNEYORBETTER)}
 function TMVCRESTResponse.Cookies: TCookies;
 begin
   Result := fCookies;
 end;
-{$ENDIF}
 
 constructor TMVCRESTResponse.Create(aRESTResponse: TCustomRESTResponse);
 begin
   inherited Create;
   fHeaders := TStringList.Create;
   SetLength(fRawBytes, 0);
-{$IF defined(SYDNEYORBETTER)}
   fCookies := TCookies.Create;
-{$ENDIF}
 
   FillRESTResponse(aRESTResponse);
 end;
@@ -1029,9 +1263,7 @@ destructor TMVCRESTResponse.Destroy;
 begin
   SetLength(fRawBytes, 0);
   fHeaders.Free;
-{$IF defined(SYDNEYORBETTER)}
   fCookies.Free;
-{$ENDIF}
   inherited Destroy;
 end;
 
@@ -1105,6 +1337,24 @@ function TMVCRESTResponse.Server: string;
 begin
   Result := fServer;
 end;
+
+{$IF not defined(SYDNEYORBETTER)}
+procedure TMVCRESTResponse.SetCookies(aCookies: TArray<TCookie>);
+var
+  i: Integer;
+  lCookies: string;
+begin
+  fCookies.AddRange(aCookies);
+
+  if (fHeaders.IndexOfName(HEADER_RESPONSE_COOKIES) = -1) and (fCookies.Count > 0) then
+  begin
+    lCookies := '';
+    for i := 0 to fCookies.Count - 1 do
+      lCookies := lCookies + '; ' + fCookies[i].ToString;
+    fHeaders.Add(HEADER_RESPONSE_COOKIES + '=' + lCookies.Substring(2));
+  end;
+end;
+{$ENDIF}
 
 function TMVCRESTResponse.StatusCode: Integer;
 begin

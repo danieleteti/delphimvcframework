@@ -47,46 +47,49 @@ type
   IMVCRESTClient = interface
     ['{592BC90F-B825-4B3B-84A7-6CA3927BAD69}']
 
-    function BaseURL: string; overload;
-    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
     function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
+    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
+    function BaseURL: string; overload;
 
-    function RaiseExceptionOn500: Boolean; overload;
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
+    function RaiseExceptionOn500: Boolean; overload;
 
-    function ProxyServer: string; overload;
     function ProxyServer(const aProxyServer: string): IMVCRESTClient; overload;
-    function ProxyPort: Integer; overload;
+    function ProxyServer: string; overload;
     function ProxyPort(const aProxyPort: Integer): IMVCRESTClient; overload;
-    function ProxyUsername: string; overload;
+    function ProxyPort: Integer; overload;
     function ProxyUsername(const aProxyUsername: string): IMVCRESTClient; overload;
-    function ProxyPassword: string; overload;
+    function ProxyUsername: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
+    function ProxyPassword: string; overload;
 
-    function UserAgent: string; overload;
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+    function UserAgent: string; overload;
 
     /// <summary>
-    ///   Clears all parameters, except authorization headers. This method is executed after each request is completed.
+    /// Clears all parameters, except authorization headers. This method is executed after each request is completed.
     /// </summary>
     function ClearAllParams: IMVCRESTClient;
 
     /// <summary>
-    /// Get request timeout.
+    /// Connection timeout in milliseconds to be used for the requests.
     /// </summary>
-    function Timeout: Integer; overload;
-    /// <summary>
-    /// Set request timeout.
-    /// </summary>
-    function Timeout(const aTimeout: Integer): IMVCRESTClient; overload;
+    function ConnectTimeout(const aConnectTimeout: Integer): IMVCRESTClient; overload;
+    function ConnectTimeout: Integer; overload;
 
     /// <summary>
-    /// Add basic authorization header. Authorization = Basic <Username:Password>
+    /// Response reading timeout in milliseconds to be used for the requests.
+    /// </summary>
+    function ReadTimeout(const aReadTimeout: Integer): IMVCRESTClient; overload;
+    function ReadTimeout: Integer; overload;
+
+    /// <summary>
+    /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
     /// </summary>
     function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
 
     /// <summary>
-    /// Add bearer authorization header. Authorization = Bearer <Token>
+    /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
     function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
 
@@ -108,6 +111,9 @@ type
     /// Clears all headers.
     /// </summary>
     function ClearHeaders: IMVCRESTClient;
+
+    function AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient; overload;
+    function AllowCookies: Boolean; overload;
 
     /// <summary>
     /// Add a cookie header.
@@ -151,26 +157,23 @@ type
     function AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
     function ClearQueryParams: IMVCRESTClient;
 
-    function Accept: string; overload;
     function Accept(const aAccept: string): IMVCRESTClient; overload;
-    function AcceptCharset: string; overload;
+    function Accept: string; overload;
     function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
-    function AcceptEncoding: string; overload;
+    function AcceptCharset: string; overload;
     function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
-    function HandleRedirects: Boolean; overload;
+    function AcceptEncoding: string; overload;
     function HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient; overload;
+    function HandleRedirects: Boolean; overload;
 
-    /// <summary>
-    /// Get the current resource path.
-    /// </summary>
-    function Resource: string; overload;
-    /// <summary>
-    /// Set the current resource path.
-    /// </summary>
+    function FallbackCharsetEncoding(const aFallbackCharsetEncoding: string): IMVCRESTClient; overload;
+    function FallbackCharsetEncoding: string; overload;
+
     function Resource(const aResource: string): IMVCRESTClient; overload;
+    function Resource: string; overload;
 
-    function URLAlreadyEncoded: Boolean; overload;
     function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
+    function URLAlreadyEncoded: Boolean; overload;
 
     /// <summary>
     /// Add a body to the requisition.
@@ -246,36 +249,36 @@ type
     /// <summary>
     /// Execute a Get request.
     /// </summary>
-    function Get: IMVCRESTResponse; overload;
     function Get(const aResource: string): IMVCRESTResponse; overload;
+    function Get: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Execute a Post request.
     /// </summary>
-    function Post: IMVCRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Post: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Execute a Patch request.
     /// </summary>
-    function Patch: IMVCRESTResponse; overload;
+    function Patch(const aResource: string; aBody: TObject;
+      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Patch(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
-    function Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse;
-      overload;
+    function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Execute a Put request.
     /// </summary>
-    function Put: IMVCRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Put: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Execute a Delete request.
     /// </summary>
-    function Delete: IMVCRESTResponse; overload;
     function Delete(const aResource: string): IMVCRESTResponse; overload;
+    function Delete: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Serialize the current dataset record and execute a POST request.
@@ -311,9 +314,9 @@ type
     function StatusText: string;
     function ErrorMessage: string;
     function Headers: TStrings;
-{$IF defined(SYDNEYORBETTER)}
+//    {$IF defined(SYDNEYORBETTER)}
     function Cookies: TCookies;
-{$ENDIF}
+//    {$ENDIF}
     function HeaderByName(const aName: string): string;
     function Server: string;
     function FullRequestURI: string;
