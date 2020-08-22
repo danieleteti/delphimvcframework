@@ -1,23 +1,26 @@
 ![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
-![](https://img.shields.io/badge/We%20are%20working%20on%20dmvcframework%20new%20version-3.2.1--carbon-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
+![](https://img.shields.io/badge/next%20DMVCFramework%20version-3.2.1--carbon-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
 
 
 
-# DelphiMVCFramework 3.2.0-boron is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron)!
+## DelphiMVCFramework 3.2.0-boron is [here 📥](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron) !
 
 DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
 DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
-**Daniele Teti is working on the [DelphiMVCFramework - the official guide](https://leanpub.com/delphimvcframework)! Stay tuned!**
+## DelphiMVCFramework - the official guide
+
+The official guide for DMVCFramework is available. DMVCFramework has a lot functionalities and can really help your business. However many developers don't use it at its full potential. Why don't get more when is easily available? The DMVCFramework lead developer and project coordinator Daniele Teti, wrote the official guide for this great framework. [Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge!
 
 ![DelphiMVCFramework - the official guide](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/logoproject/dmvcframework_the_official_guide_very_small.png)
 
 
+
 **Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
 
-![](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png")
+![](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png)
 
 ## How to install DMVCFramework
 
