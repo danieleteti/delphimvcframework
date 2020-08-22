@@ -18,6 +18,8 @@ The official guide for DMVCFramework is available. DMVCFramework has a lot funct
 
 [Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge now!
 
+> While a huge work has been done by the author and the reviews to make the book and the examples well written, complete and effective, things can be always improved. For any suggestions, complains or requests there is the official Github book project (https://github.com/danieleteti/dmvcframeworktheofficialguide) where you can fill an issue and get in touch directly with the author. 
+
 ---
 
 **Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
@@ -27,6 +29,7 @@ The official guide for DMVCFramework is available. DMVCFramework has a lot funct
 ## How to install DMVCFramework
 
 *It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+
 If you want to participate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
 Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
 
