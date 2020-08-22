@@ -12,11 +12,13 @@ DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo,
 
 ## DelphiMVCFramework - the official guide
 
-The official guide for DMVCFramework is available. DMVCFramework has a lot functionalities and can really help your business. However many developers don't use it at its full potential. Why don't get more when is easily available? The DMVCFramework lead developer and project coordinator Daniele Teti, wrote the official guide for this great framework. [Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge!
+The official guide for DMVCFramework is available. DMVCFramework has a lot functionalities and can really help your business. However many developers don't use it at its full potential. Why don't get more when is easily available? The DMVCFramework lead developer and project coordinator Daniele Teti, wrote the official guide for this great framework.
 
 ![DelphiMVCFramework - the official guide](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/logoproject/dmvcframework_the_official_guide_very_small.png)
 
+[Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge now!
 
+---
 
 **Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
 
