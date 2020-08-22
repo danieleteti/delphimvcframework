@@ -68,9 +68,13 @@ type
     lblFrameworkVersion: TLabel;
     chkCreateCRUDMethods: TCheckBox;
     chkAnalyticsMiddleware: TCheckBox;
+    lblBook: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
+    procedure lblBookMouseEnter(Sender: TObject);
+    procedure lblBookMouseLeave(Sender: TObject);
+    procedure lblBookClick(Sender: TObject);
   private
     { Private declarations }
     function GetAddToProjectGroup: boolean;
@@ -179,8 +183,27 @@ end;
 procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://www.gitbook.com/book/danieleteti/delphimvcframework/details'),
+    PChar('https://github.com/danieleteti/delphimvcframework'),
     nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
+begin
+  ShellExecute(0, PChar('open'),
+    PChar('https://leanpub.com/delphimvcframework'),
+    nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblBookMouseEnter(Sender: TObject);
+begin
+  lblBook.Font.Color := clHighlight;
+  lblBook.Font.Style := lblBook.Font.Style + [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblBookMouseLeave(Sender: TObject);
+begin
+  lblBook.Font.Color := Font.Color;
+  lblBook.Font.Style := lblBook.Font.Style - [fsUnderline];
 end;
 
 function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;

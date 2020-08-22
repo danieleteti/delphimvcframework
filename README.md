@@ -1,6 +1,8 @@
 ![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
-![](https://img.shields.io/badge/We%20are%20working%20on%20dmvcframework%20new%20version-3.2.1--carbon-red)![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
+![](https://img.shields.io/badge/We%20are%20working%20on%20dmvcframework%20new%20version-3.2.1--carbon-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
+
+
 
 # DelphiMVCFramework 3.2.0-boron is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron)!
 
@@ -8,15 +10,14 @@ DMVCFramework is a very popular Delphi framework which provides an easy to use, 
 
 DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
-**Daniele Teti is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!**
+**Daniele Teti is working on the [DelphiMVCFramework - the official guide](https://leanpub.com/delphimvcframework)! Stay tuned!**
 
-![](docs/delphimvcframework_handbook_cover.png)
-
+![DelphiMVCFramework - the official guide](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/logoproject/dmvcframework_the_official_guide_very_small.png)
 
 
 **Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
 
-<img src="https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png" alt="like" />
+![](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png")
 
 ## How to install DMVCFramework
 
@@ -493,6 +494,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   ```
 
 - Improved `activerecord_showcase` sample.
+
+- Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
 
 ## Roadmap
 

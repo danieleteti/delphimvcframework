@@ -81,6 +81,7 @@ uses
   LoggerPro,
   IdGlobal,
   IdGlobalProtocols,
+//  IdHTTPWebBrokerBridge,
   Swag.Doc,
   Swag.Common.Types,
   MVCFramework.Commons,
@@ -298,6 +299,15 @@ type
     property Values: string read fValues write fValues;
   end;
 
+  // test
+//  TMVCHackHTTPAppRequest = class(TIdHTTPAppRequest)
+//  private
+//    function GetHeaders: TStringList;
+//  public
+//    property Headers: TStringList read GetHeaders;
+//  end;
+  // test-end
+
   TMVCWebRequest = class
   private
     FQueryParams: TDictionary<string, string>;
@@ -401,7 +411,7 @@ type
   protected
     { protected declarations }
   public
-    { public declarations }
+//    function RawHeaders: TStrings; override;
   end;
 
   TMVCWebResponse = class
@@ -479,6 +489,7 @@ type
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
     procedure SetParamsTable(const AValue: TMVCRequestParamsTable);
+    function GetHostingFrameworkType: TMVCHostingFrameworkType;
   protected
     procedure Flush; virtual;
     procedure BindToSession(const ASessionId: string);
@@ -498,6 +509,7 @@ type
     function IsSessionStarted: Boolean;
     function SessionMustBeClose: Boolean;
 
+    property HostingFrameworkType: TMVCHostingFrameworkType read GetHostingFrameworkType;
     property LoggedUser: TUser read GetLoggedUser;
     property Request: TMVCWebRequest read FRequest;
     property Response: TMVCWebResponse read FResponse;
@@ -1010,6 +1022,7 @@ uses
 var
   _IsShuttingDown: Int64 = 0;
   _MVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
+  _HostingFramework: TMVCHostingFrameworkType = hftUnknown;
 
 function IsShuttingDown: Boolean;
 begin
@@ -1832,6 +1845,36 @@ procedure TWebContext.Flush;
 begin
   FResponse.Flush;
 end;
+
+function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
+begin
+{$IFDEF WEBAPACHEHTTP}
+  if FRequest.ClassType = TApacheRequest then
+  begin
+    Exit(hftApache);
+  end
+  else
+  begin
+{$IFNDEF LINUX}
+    if FRequest.ClassType = TISAPIRequest then
+    begin
+      Exit(hftISAPI);
+    end
+    else
+{$ENDIF}
+{$ENDIF}
+    begin
+      Exit(hftIndy);
+    end;
+  end;
+end;
+
+{ TMVCIndyWebRequest }
+
+//function TMVCIndyWebRequest.RawHeaders: TStrings;
+//begin
+//  Result := TMVCHackHTTPAppRequest(FWebRequest).GetHeaders;
+//end;
 
 function TWebContext.GetLoggedUser: TUser;
 begin
@@ -3739,6 +3782,13 @@ begin
   FPattern := APattern;
   FFormat := AFormat;
 end;
+
+{ TMVCHackHTTPAppRequest }
+
+//function TMVCHackHTTPAppRequest.GetHeaders: TStringList;
+//begin
+//  Result := FRequestInfo.RawHeaders;
+//end;
 
 initialization
 
