@@ -1,3 +1,29 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// Some code in this file is from Thijs van Dien (https://stackoverflow.com/users/1163893/thijs-van-dien)
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// *************************************************************************** }
+
 unit MVCFramework.Crypt.Utils;
 
 interface
@@ -11,7 +37,6 @@ function PBKDF2(const Password: TBytes; const Salt: TBytes; const IterationsCoun
   const KeyLengthInBytes: Integer; PRFC: TIdHMACClass = nil): TBytes;
 function BytesToHexString(const _B: TIdBytes): string; overload;
 function BytesToHexString(const _B: TBytes): string; overload;
-procedure TestPBKDF2SHA1HMAC;
 procedure MVCCryptInit;
 
 implementation
@@ -63,7 +88,18 @@ begin
   if not Assigned(PRFC) then
     PRFC := TIdHMACSHA1;
 
-  PRF := PRFC.Create;
+  try
+    PRF := PRFC.Create;
+  except
+    on E: Exception do
+    begin
+      if E.Message.Contains('is not available') then
+        raise EMVCException.Create(HTTP_STATUS.InternalServerError,
+          E.Message +
+          ' [HINT: May be OpenSSL is not been loaded yet. Did you invoked MVCCryptInit?]');
+      raise EMVCException.Create(HTTP_STATUS.InternalServerError, E.Message);
+    end;
+  end;
   try
     {
       Conversion TBytes -> TidBytes as Remy Lebeau says
@@ -102,40 +138,6 @@ end;
 function BytesToHexString(const _B: TBytes): string; overload;
 begin
   Result := BytesToHexString(TIdBytes(_B));
-end;
-
-procedure TestPBKDF2SHA1HMAC;
-var
-  P: TBytes;
-  S: TBytes;
-  K: TBytes;
-begin
-  P := TBytes.Create($70, $61, $73, $73, $77, $6F, $72, $64);
-  S := TBytes.Create($78, $57, $8E, $5A, $5D, $63, $CB, $06);
-
-  K := PBKDF2(P, S, 2048, 24);
-  Assert('BFDE6BE94DF7E11DD409BCE20A0255EC327CB936FFE93643' = BytesToHexString(K));
-
-  P := TBytes.Create($70, $61, $73, $73, $77, $6F, $72, $64);
-  S := TBytes.Create($73, $61, $6C, $74);
-
-  K := PBKDF2(P, S, 1, 20);
-  Assert('0C60C80F961F0E71F3A9B524AF6012062FE037A6' = BytesToHexString(K));
-  K := PBKDF2(P, S, 2, 20);
-  Assert('EA6C014DC72D6F8CCD1ED92ACE1D41F0D8DE8957' = BytesToHexString(K));
-  K := PBKDF2(P, S, 4096, 20);
-  Assert('4B007901B765489ABEAD49D926F721D065A429C1' = BytesToHexString(K));
-  K := PBKDF2(P, S, 16777216, 20);
-  Assert('EEFE3D61CD4DA4E4E9945B3D6BA2158C2634E984' = BytesToHexString(K));
-
-  P := TBytes.Create($70, $61, $73, $73, $77, $6F, $72, $64, $50, $41, $53, $53, $57, $4F, $52, $44,
-    $70, $61, $73, $73, $77, $6F, $72, $64);
-  S := TBytes.Create($73, $61, $6C, $74, $53, $41, $4C, $54, $73, $61, $6C, $74, $53, $41, $4C, $54,
-    $73, $61, $6C, $74, $53, $41, $4C, $54, $73, $61, $6C, $74, $53, $41, $4C, $54, $73, $61,
-    $6C, $74);
-
-  K := PBKDF2(P, S, 4096, 25);
-  Assert('3D2EEC4FE41C849B80C8D83662C0E44A8B291A964CF2F07038' = BytesToHexString(K));
 end;
 
 procedure MVCCryptInit;

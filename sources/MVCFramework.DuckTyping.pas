@@ -69,7 +69,7 @@ type
     procedure Clear;
 
     function IsWrappedList: Boolean; overload;
-
+    function ItemIsObject(const AIndex: Integer; out AValue: TValue): Boolean;
     function WrappedObject: TObject;
     procedure Sort(const APropertyName: string; const AOrder: TSortingType = soAscending);
 
@@ -90,11 +90,11 @@ type
     FGetItemMethod: TRttiMethod;
     FGetCountMethod: TRttiMethod;
   protected
+    procedure GetItemAsTValue(const AIndex: Integer; out AValue: TValue);
     function GetItem(const AIndex: Integer): TObject;
     function GetEnumerator: TDuckListEnumerator;
     function GetOwnsObjects: Boolean;
     procedure SetOwnsObjects(const AValue: Boolean);
-
     procedure Add(const AObject: TObject);
     function Count: Integer;
     procedure Clear;
@@ -105,13 +105,13 @@ type
     procedure QuickSort(const AList: IMVCList; ALeft, ARigth: Integer;
       ACompare: TFunc<TObject, TObject, Integer>); overload;
     procedure QuickSort(const AList: IMVCList; ACompare: TFunc<TObject, TObject, Integer>); overload;
+    function ItemIsObject(const AIndex: Integer; out AValue: TValue): Boolean;
   public
     constructor Create(const AObjectAsDuck: TObject; const AOwnsObject: Boolean = False); overload;
     constructor Create(const AInterfaceAsDuck: IInterface; const AOwnsObject: Boolean = False); overload;
     destructor Destroy; override;
 
     function IsWrappedList: Boolean; overload;
-
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject): Boolean; overload; static;
     class function CanBeWrappedAsList(const AObjectAsDuck: TObject; out AMVCList: IMVCList): Boolean; overload; static;
     class function CanBeWrappedAsList(const AInterfaceAsDuck: IInterface): Boolean; overload; static;
@@ -291,7 +291,8 @@ begin
   if not Assigned(FGetItemMethod) then
     raise EMVCDuckTypingException.Create
       ('Cannot find method Indexed property "Items" or method "GetItem" or method "GetElement" in the Duck Object.');
-  lValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
+  GetItemAsTValue(AIndex, lValue);
+//  lValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
 
   if lValue.Kind = tkInterface then
   begin
@@ -302,6 +303,12 @@ begin
     Exit(lValue.AsObject);
   end;
   raise EMVCDuckTypingException.Create('Items in list can be only objects or interfaces');
+end;
+
+procedure TDuckTypedList.GetItemAsTValue(const AIndex: Integer;
+  out AValue: TValue);
+begin
+  AValue := FGetItemMethod.Invoke(FObjectAsDuck, [AIndex]);
 end;
 
 function TDuckTypedList.GetOwnsObjects: Boolean;
@@ -330,6 +337,13 @@ begin
     and (ObjectType.GetMethod('GetItem') <> nil) or (ObjectType.GetMethod('GetElement') <> nil) and
     (ObjectType.GetProperty('Count') <> nil);
 end;
+
+function TDuckTypedList.ItemIsObject(const AIndex: Integer; out AValue: TValue): Boolean;
+begin
+  GetItemAsTValue(AIndex, AValue);
+  Result := AValue.IsObject;
+end;
+
 
 procedure TDuckTypedList.QuickSort(const AList: IMVCList; ALeft, ARigth: Integer;
   ACompare: TFunc<TObject, TObject, Integer>);

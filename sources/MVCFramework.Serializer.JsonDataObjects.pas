@@ -175,6 +175,7 @@ type
   end;
 
 procedure TValueToJsonElement(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
+procedure AddTValueToJsonArray(const Value: TValue; const JSON: TJDOJsonArray);
 function StrToJSONObject(const AValue: string): TJDOJsonObject;
 function StrToJSONArray(const AValue: string): TJDOJsonArray;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
@@ -246,6 +247,7 @@ var
   LEnumSerType: TMVCEnumSerializationType;
   LEnumMappedValues: TList<string>;
   LEnumName: string;
+  lValue: TValue;
 begin
   if SameText(AName, 'RefCount') then
   begin
@@ -371,11 +373,20 @@ begin
             if Assigned(ChildList) then
             begin
               ChildJsonArray := AJsonObject.A[AName];
-              for Obj in ChildList do
+              for I := 0 to ChildList.Count - 1 do
+              //for Obj in ChildList do
               begin
-                if Assigned(Obj) then
+                if ChildList.ItemIsObject(I, lValue) then
                 begin
-                  ObjectToJsonObject(Obj, ChildJsonArray.AddObject, GetSerializationType(Obj, AType), AIgnored);
+                  Obj := lValue.AsObject;  //ChildList.GetItem(I);
+                  if Assigned(Obj) then
+                  begin
+                    ObjectToJsonObject(Obj, ChildJsonArray.AddObject, GetSerializationType(Obj, AType), AIgnored);
+                  end;
+                end
+                else
+                begin
+                  AddTValueToJSONArray(lValue, ChildJsonArray);
                 end;
               end;
             end
@@ -2084,6 +2095,128 @@ begin
     if (not IsIgnoredAttribute(AIgnoredFields, ADataSet.Fields[I].FieldName)) and
       (not IsIgnoredComponent(ADataSet.Owner, ADataSet.Fields[I].Name)) then
       Result.Add(lField);
+  end;
+end;
+
+procedure AddTValueToJsonArray(const Value: TValue; const JSON: TJDOJsonArray);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lMVCList: IMVCList;
+  lOrdinalValue: Int64;
+  lValueAsObj: TObject;
+  lValueAsObjQualifClassName, lTypeName: string;
+begin
+  if Value.IsEmpty then
+  begin
+    JSON.Add(TJsonObject(nil));
+    Exit;
+  end;
+
+  case Value.Kind of
+    tkInteger:
+      begin
+        JSON.Add(Value.AsInteger);
+      end;
+    tkFloat:
+      begin
+{$IFDEF NEXTGEN}
+        lTypeName := PChar(Pointer(Value.TypeInfo.Name))
+{$ELSE}
+        lTypeName := string(Value.TypeInfo.Name);
+{$ENDIF}
+        if (lTypeName = 'TDate') or (lTypeName = 'TDateTime') or (lTypeName = 'TTime') then
+        begin
+          JSON.Add(DateTimeToISOTimeStamp(Value.AsExtended));
+        end
+        else
+        begin
+          JSON.Add(Value.AsExtended);
+        end;
+      end;
+    tkString, tkUString, tkWChar, tkLString, tkWString:
+      begin
+        JSON.Add(Value.AsString);
+      end;
+    tkInt64:
+      begin
+        JSON.Add(Value.AsInt64);
+      end;
+    tkEnumeration:
+      begin
+        if (Value.TypeInfo = System.TypeInfo(Boolean)) then
+        begin
+          JSON.Add(Value.AsBoolean);
+        end
+        else
+        begin
+          Value.TryAsOrdinal(lOrdinalValue);
+          JSON.Add(lOrdinalValue);
+        end;
+      end;
+    tkClass, tkInterface:
+      begin
+        if Value.Kind = tkInterface then
+          lValueAsObj := TObject(Value.AsInterface)
+        else
+          lValueAsObj := Value.AsObject;
+        lValueAsObjQualifClassName := lValueAsObj.QualifiedClassName.ToLower;
+        if (lValueAsObj is TJDOJsonObject) or (lValueAsObj is TJsonObject)
+{$IFDEF RIOORBETTER} or
+        { this is for a bug in delphi103rio }
+          (lValueAsObjQualifClassName = 'jsondataobjects.tjsonobject') or
+        { this is for a bug in delphi103rio }
+          (lValueAsObj.QualifiedClassName = 'jsondataobjects.tjdojsonobject')
+{$ENDIF}
+        then
+        begin
+          JSON.Add(TJDOJsonObject(Value.AsObject).Clone as TJDOJsonObject);
+        end
+        else if (lValueAsObj is TJDOJsonArray) or (lValueAsObj is TJsonArray)
+{$IFDEF RIOORBETTER} or
+        { this is for a bug in delphi103rio }
+          (lValueAsObj.QualifiedClassName = 'jsondataobjects.tjsonarray') or
+        { this is for a bug in delphi103rio }
+          (lValueAsObj.QualifiedClassName = 'jsondataobjects.tjdojsonarray')
+{$ENDIF}
+        then
+        begin
+          //JSON.A[KeyName] := TJDOJsonArray.Create;
+          JSON.Add(TJDOJsonArray(Value.AsObject).Clone);
+          //JSON.A[KeyName].Assign(TJDOJsonArray(Value.AsObject));
+        end
+        else if lValueAsObj is TDataSet then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.Add(TJDOJsonArray.Create);
+            lSer.DataSetToJsonArray(TDataSet(lValueAsObj), TJDOJsonArray(JSON.Items[JSON.Count-1]),
+              TMVCNameCase.ncLowerCase, []);
+          finally
+            lSer.Free;
+          end;
+        end
+        else if TDuckTypedList.CanBeWrappedAsList(lValueAsObj, lMVCList) then
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.Add(TJDOJsonArray.Create);
+            lSer.ListToJsonArray(lMVCList, TJDOJsonArray(JSON.Items[JSON.Count-1]), TMVCSerializationType.stDefault, nil);
+          finally
+            lSer.Free;
+          end;
+        end
+        else
+        begin
+          lSer := TMVCJsonDataObjectsSerializer.Create;
+          try
+            JSON.Add(lSer.SerializeObjectToJSON(lValueAsObj, TMVCSerializationType.stProperties, [], nil));
+          finally
+            lSer.Free;
+          end;
+        end;
+      end;
+  else
+    raise EMVCException.Create('Invalid type');
   end;
 end;
 
