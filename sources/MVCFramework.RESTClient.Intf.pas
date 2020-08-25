@@ -47,8 +47,8 @@ type
   IMVCRESTClient = interface
     ['{592BC90F-B825-4B3B-84A7-6CA3927BAD69}']
 
-    function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
     function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
+    function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
     function BaseURL: string; overload;
 
     function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
@@ -244,7 +244,7 @@ type
     /// An anonymous method that will be run if an exception is raised during execution.
     /// </param>
     function Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception> = nil;
-      const aSynchronized: Boolean = True): IMVCRESTClient;
+      const aSynchronized: Boolean = False): IMVCRESTClient;
 
     /// <summary>
     /// Execute a Get request.
@@ -256,7 +256,8 @@ type
     /// Execute a Post request.
     /// </summary>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
     function Post: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -264,14 +265,16 @@ type
     /// </summary>
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Patch(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Patch(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Execute a Put request.
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''): IMVCRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
     function Put: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -299,11 +302,6 @@ type
     /// Register a custom serializer to the RESTClient serializer.
     /// </summary>
     function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
-
-    /// <summary>
-    /// Creates a new instance of RESTClient with all parameters of the current RESTClient.
-    /// </summary>
-    function CloneRESTClient: IMVCRESTClient;
   end;
 
   IMVCRESTResponse = interface
@@ -314,10 +312,9 @@ type
     function StatusText: string;
     function ErrorMessage: string;
     function Headers: TStrings;
-//    {$IF defined(SYDNEYORBETTER)}
+    function HeaderValue(const aName: string): string;
     function Cookies: TCookies;
-//    {$ENDIF}
-    function HeaderByName(const aName: string): string;
+    function CookieByName(const aName: string): TCookie;
     function Server: string;
     function FullRequestURI: string;
     function ContentType: string;
