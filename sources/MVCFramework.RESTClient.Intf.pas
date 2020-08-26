@@ -106,6 +106,7 @@ type
     /// Indicates whether the value of this header should be used as is (True), or encoded by the component (False)
     /// </param>
     function AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean = False): IMVCRESTClient; overload;
+    function HeaderValue(const aName: string): string;
 
     /// <summary>
     /// Clears all headers.
@@ -253,8 +254,17 @@ type
     function Get: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Post request.
+    ///   Execute a Post request.
     /// </summary>
+    /// <param name="aResource">
+    ///   Resource path
+    /// </param>
+    /// <param name="aBody">
+    ///   Object to be serialized. It can be a simple object or a list of objects (TObjectList &lt;T&gt;)
+    /// </param>
+    /// <param name="aOwnsBody">
+    ///   If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
+    /// </param>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Post(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
       const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
@@ -291,12 +301,12 @@ type
     /// <summary>
     /// Serialize the current dataset record and execute a PUT request.
     /// </summary>
-    function DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
-      const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    function DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet;
+      const aIgnoredFields: TMVCIgnoredList = []; const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
     /// <summary>
     /// Delete the current dataset record by executing a delete request.
     /// </summary>
-    function DataSetDelete(const aResource: string): IMVCRESTResponse;
+    function DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
 
     /// <summary>
     /// Register a custom serializer to the RESTClient serializer.

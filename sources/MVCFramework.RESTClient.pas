@@ -84,6 +84,7 @@ type
     function CloneRESTClient: IMVCRESTClient;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
+    function PreEncodeURL(const aURL: string): string;
 {$IF not defined(SYDNEYORBETTER)}
     function GetResponseCookies: TArray<TCookie>;
 {$ENDIF}
@@ -157,6 +158,7 @@ type
     /// Indicates whether the value of this header should be used as is (True), or encoded by the component (False)
     /// </param>
     function AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean = False): IMVCRESTClient; overload;
+    function HeaderValue(const aName: string): string;
 
     /// <summary>
     /// Clears all headers.
@@ -342,12 +344,12 @@ type
     /// <summary>
     /// Serialize the current dataset record and execute a PUT request.
     /// </summary>
-    function DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
+    function DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
       const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
     /// <summary>
     /// Delete the current dataset record by executing a delete request.
     /// </summary>
-    function DataSetDelete(const aResource: string): IMVCRESTResponse;
+    function DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
 
     /// <summary>
     /// Register a custom serializer to the RESTClient serializer.
@@ -381,7 +383,6 @@ type
 {$IF not defined(SYDNEYORBETTER)}
     procedure SetCookies(aCookies: TArray<TCookie>);
 {$ENDIF}
-
     { IMVCRESTResponse }
     function Success: Boolean;
     function StatusCode: Integer;
@@ -422,7 +423,6 @@ const
   HEADER_RESPONSE_COOKIES = 'Cookies';
   PATH_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord('<'), Ord('>'), Ord('^'), Ord('`'), Ord('{'),
     Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'), Ord('+'), Ord('.')];
-
 
 type
   THackCustomRESTRequest = class(TCustomRESTRequest)
@@ -648,7 +648,7 @@ begin
   if not lBaseURL.Contains('://') then
     lBaseURL := 'http://' + lBaseURL;
 
-  fRESTClient.BaseURL := lBaseURL;
+  fRESTClient.BaseURL := PreEncodeURL(lBaseURL);
 end;
 
 function TMVCRESTClient.BaseURL: string;
@@ -680,6 +680,7 @@ end;
 function TMVCRESTClient.ClearAllParams: IMVCRESTClient;
 var
   lAuthHeader: TRESTRequestParameter;
+  lLastResource: string;
 begin
   Result := Self;
 
@@ -692,12 +693,17 @@ begin
   if Assigned(lAuthHeader) then
     lAuthHeader.Collection := nil;
 
+  // Saves the last resource of the request
+  lLastResource := fRESTRequest.Resource;
+
   fRESTRequest.ResetToDefaults;
   fRESTRequest.AutoCreateParams := False;
   fRESTRequest.AcceptEncoding := DEFAULT_ACCEPT_ENCODING;
 
   if Assigned(lAuthHeader) then
     lAuthHeader.Collection := fRESTRequest.Params;
+
+  fRESTRequest.Resource := lLastResource;
 
   fNextRequestIsAsync := False;;
   fAsyncCompletionHandler := nil;
@@ -718,7 +724,7 @@ function TMVCRESTClient.ClearCookies: IMVCRESTClient;
 begin
   Result := Self;
   ClearRESTParams(TRESTRequestParameterKind.pkCOOKIE);
-  //It is necessary to recreate the RESTClient's internal HttpClient so that stored cookies are deleted.
+  // It is necessary to recreate the RESTClient's internal HttpClient so that stored cookies are deleted.
   THackRESTClient(fRESTClient).CreateHttpClient;
 end;
 
@@ -823,9 +829,12 @@ begin
   ClearAllParams;
 end;
 
-function TMVCRESTClient.DataSetDelete(const aResource: string): IMVCRESTResponse;
+function TMVCRESTClient.DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
+var
+  lResource: string;
 begin
-  Result := Delete(aResource);
+  lResource := aResource + '/' + aKeyValue;
+  Result := Delete(lResource);
 end;
 
 function TMVCRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
@@ -834,10 +843,14 @@ begin
   Result := Post(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
-function TMVCRESTClient.DataSetUpdate(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList;
-  const aNameCase: TMVCNameCase): IMVCRESTResponse;
+function TMVCRESTClient.DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet;
+  const aIgnoredFields: TMVCIgnoredList; const aNameCase: TMVCNameCase): IMVCRESTResponse;
+var
+  lResource: string;
 begin
-  Result := Put(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
+  lResource := aResource + '/' + aKeyValue;
+
+  Result := Put(lResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
 function TMVCRESTClient.Delete: IMVCRESTResponse;
@@ -972,6 +985,16 @@ begin
   Result := fRESTRequest.HandleRedirects;
 end;
 
+function TMVCRESTClient.HeaderValue(const aName: string): string;
+var
+  lParam: TRESTRequestParameter;
+begin
+  Result := '';
+  lParam := fRESTRequest.Params.ParameterByName(aName);
+  if Assigned(lParam) and (lParam.Kind = TRESTRequestParameterKind.pkHTTPHEADER) then
+    Result := lParam.Value;
+end;
+
 class function TMVCRESTClient.New: IMVCRESTClient;
 begin
   Result := TMVCRESTClient.Create;
@@ -988,7 +1011,7 @@ begin
 end;
 
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: TRESTContentType): IMVCRESTResponse;
+const aContentType: TRESTContentType): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.isEmpty then
@@ -1028,7 +1051,7 @@ begin
 end;
 
 function TMVCRESTClient.Post(const aResource, aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: TRESTContentType): IMVCRESTResponse;
+const aContentType: TRESTContentType): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.IsEmpty then
@@ -1048,6 +1071,16 @@ function TMVCRESTClient.ProxyPassword(const aProxyPassword: string): IMVCRESTCli
 begin
   Result := Self;
   fRESTClient.ProxyPassword := aProxyPassword;
+end;
+
+function TMVCRESTClient.PreEncodeURL(const aURL: string): string;
+begin
+  // It is necessary to encode the dots because the HTTPClient removes dotted URL segments.
+  // See https://tools.ietf.org/html/rfc3986#section-5.2.4
+  Result := aURL;
+  Result := Result.Replace('\', '/', [rfReplaceAll]);
+  Result := Result.Replace('../', '%2E%2E/', [rfReplaceAll]);
+  Result := Result.Replace('./', '%2E/', [rfReplaceAll]);
 end;
 
 function TMVCRESTClient.ProxyPassword: string;
@@ -1100,7 +1133,7 @@ begin
 end;
 
 function TMVCRESTClient.Put(const aResource, aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: TRESTContentType): IMVCRESTResponse;
+const aContentType: TRESTContentType): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.IsEmpty then
@@ -1128,6 +1161,7 @@ begin
 end;
 
 {$IF not defined(SYDNEYORBETTER)}
+
 function TMVCRESTClient.GetResponseCookies: TArray<TCookie>;
 var
   lRttiType: TRttiType;
@@ -1141,7 +1175,7 @@ begin
   if not Assigned(lRttiField) then
     Exit;
 
-  lRestHttp :=  lRttiField.GetValue(fRESTClient).AsObject as TRESTHTTP;
+  lRestHttp := lRttiField.GetValue(fRESTClient).AsObject as TRESTHTTP;
   lRttiType := fRttiContext.GetType(lRestHttp.ClassType);
   lRttiField := lRttiType.GetField('FHTTPResponse');
 
@@ -1154,6 +1188,7 @@ begin
 end;
 {$ENDIF}
 
+
 function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
 aInstance: IMVCTypeSerializer): IMVCRESTClient;
 begin
@@ -1162,18 +1197,10 @@ begin
 end;
 
 function TMVCRESTClient.Resource(const aResource: string): IMVCRESTClient;
-var
-  lResource: string;
 begin
   Result := Self;
-  // It is necessary to encode the dots because the HTTPClient removes dotted URL segments.
-  // See https://tools.ietf.org/html/rfc3986#section-5.2.4
-  lResource := aResource;
-  lResource := lResource.Replace('\', '/', [rfReplaceAll]);
-  lResource := lResource.Replace('../', '%2E%2E/', [rfReplaceAll]);
-  lResource := lResource.Replace('./', '%2E/', [rfReplaceAll]);
 
-  fRESTRequest.Resource := ConvertMVCPathParamsToRESTParams(lResource);
+  fRESTRequest.Resource := PreEncodeURL(ConvertMVCPathParamsToRESTParams(aResource));
 end;
 
 function TMVCRESTClient.RaiseExceptionOn500: Boolean;
@@ -1278,11 +1305,11 @@ function TMVCRESTResponse.CookieByName(const aName: string): TCookie;
 var
   lCookie: TCookie;
 begin
-  Result := Default(TCookie);
+  Result := Default (TCookie);
   for lCookie in fCookies do
   begin
     if SameText(lCookie.Name, aName) then
-     Exit(lCookie);
+      Exit(lCookie);
   end;
 end;
 
@@ -1381,6 +1408,7 @@ begin
 end;
 
 {$IF not defined(SYDNEYORBETTER)}
+
 procedure TMVCRESTResponse.SetCookies(aCookies: TArray<TCookie>);
 var
   i: Integer;
@@ -1388,7 +1416,7 @@ var
 begin
   fCookies.AddRange(aCookies);
 
-  if (fHeaders.IndexOfName(HEADER_RESPONSE_COOKIES) = -1) and (fCookies.Count > 0) then
+  if (fHeaders.IndexOfName(HEADER_RESPONSE_COOKIES) = - 1) and (fCookies.Count > 0) then
   begin
     lCookies := '';
     for i := 0 to fCookies.Count - 1 do
@@ -1397,6 +1425,7 @@ begin
   end;
 end;
 {$ENDIF}
+
 
 function TMVCRESTResponse.StatusCode: Integer;
 begin
@@ -1412,7 +1441,6 @@ function TMVCRESTResponse.Success: Boolean;
 begin
   Result := fSuccess;
 end;
-
 
 { THackCustomRESTRequest }
 

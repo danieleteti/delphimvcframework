@@ -507,8 +507,7 @@ var
   lRes: IMVCRESTResponse;
 begin
   RESTClient.SetBasicAuthorization('user1', 'user1');
-//  Assert.areEqual('user1', RESTClient.UserName);
-//  Assert.areEqual('user1', RESTClient.Password);
+  Assert.AreEqual('Basic dXNlcjE6dXNlcjE=', RESTClient.HeaderValue('Authorization'));
   lRes := RESTClient.Get('/private/role1');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
 end;
@@ -755,9 +754,6 @@ var
   lRes: IMVCRESTResponse;
   lJSON: System.JSON.TJSONObject;
   lLogoutUrl: string;
-  lValue: string;
-  I: Integer;
-  lPieces: TArray<string>;
   lPass: boolean;
 begin
   lJSON := System.JSON.TJSONObject.Create;
@@ -1609,7 +1605,6 @@ procedure TServerTest.TestSession;
 var
   c1: IMVCRESTClient;
   res: IMVCRESTResponse;
-  s: string;
   lCookie: TCookie;
 begin
   c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
