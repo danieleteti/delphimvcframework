@@ -19,7 +19,7 @@ object Form7: TForm7
     Width = 145
     Height = 66
     Caption = 'Get JWT Token'
-    TabOrder = 0
+    TabOrder = 1
     OnClick = Button1Click
   end
   object Button2: TButton
@@ -28,7 +28,7 @@ object Form7: TForm7
     Width = 338
     Height = 66
     Caption = 'Get Request to a protected resources'
-    TabOrder = 1
+    TabOrder = 2
     OnClick = Button2Click
   end
   object Memo1: TMemo
@@ -38,6 +38,6 @@ object Form7: TForm7
     Height = 81
     Align = alTop
     ReadOnly = True
-    TabOrder = 2
+    TabOrder = 0
   end
 end

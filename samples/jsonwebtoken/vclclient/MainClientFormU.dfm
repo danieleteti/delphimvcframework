@@ -80,7 +80,7 @@ object Form5: TForm5
       Height = 41
       Align = alLeft
       Caption = 'Get a protected resource'
-      TabOrder = 1
+      TabOrder = 2
       OnClick = btnGetClick
     end
     object btnLOGIN: TButton
@@ -102,7 +102,7 @@ object Form5: TForm5
       Height = 41
       Align = alRight
       Caption = 'Custom Exception in OnAuthenticate'
-      TabOrder = 2
+      TabOrder = 3
       WordWrap = True
       OnClick = btnLoginWithExceptionClick
     end
@@ -114,7 +114,7 @@ object Form5: TForm5
       Height = 41
       Align = alLeft
       Caption = 'Login (mode 2)'
-      TabOrder = 3
+      TabOrder = 1
       OnClick = btnLoginJsonObjectClick
     end
   end

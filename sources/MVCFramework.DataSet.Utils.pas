@@ -136,7 +136,7 @@ type
       fRESTClient: IMVCRESTClient;
       fDataSet: TDataSet;
       fURI: string;
-      fPrimaryKeyNAme: string;
+      fPrimaryKeyName: string;
       fLoading: boolean;
       procedure ShowError(const AResponse: IMVCRESTResponse);
     public
@@ -620,7 +620,7 @@ begin
   fRESTClient := aRESTClient;
   fDataSet := ADataSet;
   fURI := aURI;
-  fPrimaryKeyNAme := aPrimaryKeyName;
+  fPrimaryKeyName := aPrimaryKeyName;
 
   // procedure HookBeforePost(DataSet: TDataSet);
   // procedure HookBeforeDelete(DataSet: TDataSet);
@@ -673,7 +673,7 @@ var
   Res: IMVCRESTResponse;
 begin
   if DataSet.State = dsBrowse then
-    Res := fRESTClient.DataSetDelete(fURI, DataSet.FieldByName(fPrimaryKeyNAme).AsString);
+    Res := fRESTClient.DataSetDelete(fURI, DataSet.FieldByName(fPrimaryKeyName).AsString);
   if not(Res.StatusCode in [200]) then
   begin
     ShowError(Res);
@@ -694,7 +694,7 @@ begin
     end
     else
     begin
-      lLastID := fDataSet.FieldByName(fPrimaryKeyNAme).AsInteger;
+      lLastID := fDataSet.FieldByName(fPrimaryKeyName).AsInteger;
       lRes := fRESTClient.DataSetUpdate(fURI, lLastID.ToString, DataSet);
     end;
     if not(lRes.StatusCode in [200, 201]) then
@@ -721,8 +721,7 @@ end;
 procedure TMVCAPIBinder.TMVCAPIBinderItem.ShowError(const AResponse: IMVCRESTResponse);
 begin
   if not AResponse.Success then
-    raise EMVCException.Create(AResponse.StatusCode, AResponse.ErrorMessage + sLineBreak +
-      AResponse.Content)
+    raise EMVCException.Create(AResponse.StatusCode, AResponse.StatusText + sLineBreak + AResponse.Content)
   else
     raise EMVCException.Create(AResponse.Content);
 end;

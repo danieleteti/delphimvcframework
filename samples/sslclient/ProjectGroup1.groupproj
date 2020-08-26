@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{607DE600-0137-49D9-BA86-37D20CE1FF66}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="sslclient.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\sslserver\SSLSample.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="sslclient">
+        <MSBuild Projects="sslclient.dproj"/>
+    </Target>
+    <Target Name="sslclient:Clean">
+        <MSBuild Projects="sslclient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="sslclient:Make">
+        <MSBuild Projects="sslclient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SSLSample">
+        <MSBuild Projects="..\sslserver\SSLSample.dproj"/>
+    </Target>
+    <Target Name="SSLSample:Clean">
+        <MSBuild Projects="..\sslserver\SSLSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SSLSample:Make">
+        <MSBuild Projects="..\sslserver\SSLSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="sslclient;SSLSample"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="sslclient:Clean;SSLSample:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="sslclient:Make;SSLSample:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

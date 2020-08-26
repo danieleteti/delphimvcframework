@@ -11,7 +11,6 @@ object MainForm: TMainForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
@@ -30,8 +29,7 @@ object MainForm: TMainForm
       Height = 40
       DataSource = dsrcArticles
       Align = alRight
-      TabOrder = 0
-      ExplicitHeight = 31
+      TabOrder = 3
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -41,9 +39,8 @@ object MainForm: TMainForm
       Height = 40
       Align = alLeft
       Caption = 'Open'
-      TabOrder = 1
+      TabOrder = 0
       OnClick = btnOpenClick
-      ExplicitHeight = 31
     end
     object btnRefreshRecord: TButton
       AlignWithMargins = True
@@ -55,7 +52,6 @@ object MainForm: TMainForm
       Caption = 'Refresh Record'
       TabOrder = 2
       OnClick = btnRefreshRecordClick
-      ExplicitHeight = 35
     end
     object Button1: TButton
       AlignWithMargins = True
@@ -65,9 +61,8 @@ object MainForm: TMainForm
       Height = 40
       Align = alLeft
       Caption = 'Close'
-      TabOrder = 3
+      TabOrder = 1
       OnClick = btnCloseClick
-      ExplicitHeight = 31
     end
     object Panel2: TPanel
       Left = 1
@@ -77,7 +72,6 @@ object MainForm: TMainForm
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 4
-      ExplicitTop = 48
       object Label1: TLabel
         Left = 3
         Top = 11
@@ -90,7 +84,7 @@ object MainForm: TMainForm
         Top = 30
         Width = 156
         Height = 21
-        TabOrder = 0
+        TabOrder = 1
       end
       object btnFilter: TButton
         Left = 165
@@ -98,7 +92,7 @@ object MainForm: TMainForm
         Width = 107
         Height = 40
         Caption = 'Filter'
-        TabOrder = 1
+        TabOrder = 0
         OnClick = btnFilterClick
       end
     end

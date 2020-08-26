@@ -60,9 +60,10 @@ type
   /// Provides access to delphi RESTClient library types without the need to use the REST.Types unit.
   /// </summary>
   TRESTContentType = REST.Types.TRESTContentType;
-
   TCookie = System.Net.HttpClient.TCookie;
   TCookies = System.Net.HttpClient.TCookies;
+  THTTPSecureProtocol = System.Net.HttpClient.THTTPSecureProtocol;
+  THTTPSecureProtocols = System.Net.HttpClient.THTTPSecureProtocols;
 
   /// <summary>
   /// Encapsulates the methods of the delphi native RESTClient library.
@@ -113,6 +114,9 @@ type
     function ProxyUsername: string; overload;
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
+
+    function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
+    function SecureProtocols: THTTPSecureProtocols; overload;
 
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
     function UserAgent: string; overload;
@@ -1247,6 +1251,17 @@ end;
 function TMVCRESTClient.URLAlreadyEncoded: Boolean;
 begin
   Result := fRESTRequest.URLAlreadyEncoded;
+end;
+
+function TMVCRESTClient.SecureProtocols: THTTPSecureProtocols;
+begin
+  Result := fRESTClient.SecureProtocols;
+end;
+
+function TMVCRESTClient.SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient;
+begin
+  Result := Self;
+  fRESTClient.SecureProtocols := aSecureProtocols;
 end;
 
 function TMVCRESTClient.SerializeObject(aObject: TObject): string;

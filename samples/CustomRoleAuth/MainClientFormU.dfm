@@ -88,7 +88,7 @@ object Form7: TForm7
     Width = 161
     Height = 147
     Caption = 'Login/Logout'
-    TabOrder = 0
+    TabOrder = 3
     object Label1: TLabel
       Left = 16
       Top = 20
@@ -135,7 +135,7 @@ object Form7: TForm7
     Width = 556
     Height = 27
     Align = alBottom
-    TabOrder = 1
+    TabOrder = 10
   end
   object Button1: TButton
     Left = 311
@@ -144,7 +144,7 @@ object Form7: TForm7
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call Public Action (no login required)'
-    TabOrder = 2
+    TabOrder = 0
     OnClick = Button1Click
   end
   object Memo1: TMemo
@@ -155,7 +155,7 @@ object Form7: TForm7
     Anchors = [akLeft, akTop, akRight, akBottom]
     Lines.Strings = (
       'Memo1')
-    TabOrder = 3
+    TabOrder = 9
   end
   object Button2: TButton
     Left = 311
@@ -189,7 +189,7 @@ object Form7: TForm7
       'user1_2:user1_2pass'
       'user3:user3pass'
       'admin:adminpass')
-    TabOrder = 6
+    TabOrder = 2
     OnClick = ListBox1Click
   end
   object Button4: TButton
@@ -199,7 +199,7 @@ object Form7: TForm7
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call action allowed only for "role1 and role2"'
-    TabOrder = 7
+    TabOrder = 6
     OnClick = Button4Click
   end
   object Button5: TButton
@@ -219,7 +219,7 @@ object Form7: TForm7
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call Authenticated only'
-    TabOrder = 9
+    TabOrder = 1
     OnClick = Button6Click
   end
   object Button7: TButton
@@ -229,7 +229,7 @@ object Form7: TForm7
     Height = 27
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Call action allowed only for "role1 or role2"'
-    TabOrder = 10
+    TabOrder = 7
     OnClick = Button7Click
   end
   object ApplicationEvents1: TApplicationEvents

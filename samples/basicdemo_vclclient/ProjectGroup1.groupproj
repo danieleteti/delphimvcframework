@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{9F8C0E32-639F-46F4-A716-23C7E5A19B0B}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="..\basicdemo_server\BasicDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="BasicDemoVCLClient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="BasicDemo">
+        <MSBuild Projects="..\basicdemo_server\BasicDemo.dproj"/>
+    </Target>
+    <Target Name="BasicDemo:Clean">
+        <MSBuild Projects="..\basicdemo_server\BasicDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BasicDemo:Make">
+        <MSBuild Projects="..\basicdemo_server\BasicDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="BasicDemoVCLClient">
+        <MSBuild Projects="BasicDemoVCLClient.dproj"/>
+    </Target>
+    <Target Name="BasicDemoVCLClient:Clean">
+        <MSBuild Projects="BasicDemoVCLClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BasicDemoVCLClient:Make">
+        <MSBuild Projects="BasicDemoVCLClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="BasicDemo;BasicDemoVCLClient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="BasicDemo:Clean;BasicDemoVCLClient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="BasicDemo:Make;BasicDemoVCLClient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

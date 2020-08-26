@@ -15,6 +15,7 @@ uses
   IPPeerClient,
   Vcl.StdCtrls,
   MVCFramework.RESTClient,
+  MVCFramework.RESTClient.Intf,
   REST.Client,
   Data.Bind.Components,
   Data.Bind.ObjectScope,
@@ -27,7 +28,8 @@ uses
   IdComponent,
   IdTCPConnection,
   IdTCPClient,
-  IdHTTP;
+  IdHTTP,
+  REST.Types;
 
 type
   TForm9 = class(TForm)
@@ -40,9 +42,8 @@ type
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    Clt: MVCFramework.RESTClient.TRESTClient;
+    Clt: IMVCRESTClient;
     { Private declarations }
   public
     { Public declarations }
@@ -66,29 +67,24 @@ end;
 
 procedure TForm9.Button2Click(Sender: TObject);
 begin
-  Clt.Asynch(
-    procedure(Resp: IRESTResponse)
+  Clt.Async(
+    procedure(Resp: IMVCRESTResponse)
     begin
-      Memo1.Lines.Text := Resp.BodyAsString;
+      Memo1.Lines.Text := Resp.Content;
+      Memo1.Lines.Add('Request Terminated');
     end,
     procedure(E: Exception)
     begin
       ShowMessage(E.Message);
     end,
-    procedure
-    begin
-      Memo1.Lines.Add('Request Terminated');
-    end, true).doGET('/people', []);
-end;
-
-procedure TForm9.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  Clt.Free;
+    True
+    )
+    .Get('/people');
 end;
 
 procedure TForm9.FormCreate(Sender: TObject);
 begin
-  Clt := MVCFramework.RESTClient.TRESTClient.Create('https://localhost', 443, IdSSLIOHandlerSocketOpenSSL1);
+  Clt := TMVCRESTClient.New.BaseURL('https://localhost', 443);
 end;
 
 end.

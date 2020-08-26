@@ -63,6 +63,9 @@ type
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
 
+    function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
+    function SecureProtocols: THTTPSecureProtocols; overload;
+
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
     function UserAgent: string; overload;
 
@@ -320,7 +323,6 @@ type
     function Success: Boolean;
     function StatusCode: Integer;
     function StatusText: string;
-    function ErrorMessage: string;
     function Headers: TStrings;
     function HeaderValue(const aName: string): string;
     function Cookies: TCookies;
