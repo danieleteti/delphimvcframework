@@ -177,6 +177,10 @@ type
     procedure GetSimpleArrays;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/simplelists')]
+    procedure GetSimpleLists;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/objectwithjson')]
     procedure GetObjectWithJSONProperty;
 
@@ -709,6 +713,11 @@ end;
 procedure TRenderSampleController.GetSimpleArrays;
 begin
   Render(TArrayTest.Create);
+end;
+
+procedure TRenderSampleController.GetSimpleLists;
+begin
+  Render(TSimpleListTest.Create);
 end;
 
 procedure TRenderSampleController.GetPeopleAsCSV;

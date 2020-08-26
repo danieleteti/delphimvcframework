@@ -159,6 +159,8 @@ type
     LoadSystemControllers = 'load_system_controllers';
   end;
 
+  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
+
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
   HTTP_STATUS = record
   const

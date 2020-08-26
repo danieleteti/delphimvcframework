@@ -1,26 +1,35 @@
 ![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
-![](https://img.shields.io/badge/We%20are%20working%20on%20dmvcframework%20new%20version-3.2.1--carbon-red)![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
+![](https://img.shields.io/badge/next%20DMVCFramework%20version-3.2.1--carbon-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
 
-# DelphiMVCFramework 3.2.0-boron is [here](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron)!
+
+
+## DelphiMVCFramework 3.2.0-boron is [here 📥](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron) !
 
 DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
 DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
-**Daniele Teti is working on the [DelphiMVCFramework Handbook](https://leanpub.com/delphimvcframework)! Stay tuned!**
+## DelphiMVCFramework - the official guide
 
-![](docs/delphimvcframework_handbook_cover.png)
+The official guide for DMVCFramework is available. DMVCFramework has a lot functionalities and can really help your business. However many developers don't use it at its full potential. Why don't get more when is easily available? The DMVCFramework lead developer and project coordinator Daniele Teti, wrote the official guide for this great framework.
 
+![DelphiMVCFramework - the official guide](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/logoproject/dmvcframework_the_official_guide_very_small.png)
 
+[Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge now!
+
+> While a huge work has been done by the author and the reviews to make the book and the examples well written, complete and effective, things can be always improved. For any suggestions, complains or requests there is the official Github book project (https://github.com/danieleteti/dmvcframeworktheofficialguide) where you can fill an issue and get in touch directly with the author. 
+
+---
 
 **Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
 
-<img src="https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png" alt="like" />
+![](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/starproject.png)
 
 ## How to install DMVCFramework
 
 *It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+
 If you want to participate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
 Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
 
@@ -404,6 +413,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - `IMVCJSONRPCExecutor.ExecuteNotification` returns a `IJSONRPCResponse`. In case of error response contains information about the error, in case of successful execution the response is a [Null Object](https://en.wikipedia.org/wiki/Null_object_pattern).
 
+- New React demo (Thanks to [Angelo Sobreira da Silva](https://github.com/angelosobreira))
+
 - Added `foReadOnly` and `foWriteOnly` as field options in `MVCTableField` attribute (used by `TMVCActiveRecord`). Currently available field options are:
 
   - *foPrimaryKey* { it's the primary key of the mapped table }
@@ -491,6 +502,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
   ```
 
 - Improved `activerecord_showcase` sample.
+
+- Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
 
 ## Roadmap
 
