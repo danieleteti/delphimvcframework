@@ -425,9 +425,8 @@ var
   j: System.JSON.TJSONObject;
 begin
   j := nil;
-  evt := TEvent.Create(nil, False, True, 'test');
+  evt := TEvent.Create;
   try
-    evt.ResetEvent;
     RESTClient.Async(
       procedure(Response: IMVCRESTResponse)
       begin
