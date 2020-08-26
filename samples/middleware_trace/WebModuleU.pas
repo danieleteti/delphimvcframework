@@ -58,40 +58,7 @@ uses
   LoggerPro.FileAppender,
   LoggerPro,
   System.DateUtils,
-  MVCFramework.Middleware.Analytics,
-  MVCFramework.Middleware.StaticFiles;
-
-var
-  GLogWriter: ILogWriter = nil;
-  GLock: TObject = nil;
-
-function GetLoggerForAnalytics: ILogWriter;
-var
-  lLog: ILogAppender;
-begin
-  if GLogWriter = nil then
-  begin
-    TMonitor.Enter(GLock);
-    try
-      if GLogWriter = nil then // double check locking (https://en.wikipedia.org/wiki/Double-checked_locking)
-      begin
-        lLog := TLoggerProFileAppender.Create(5, 2000, AppPath + 'analytics', [], '%s.%2.2d.%s.csv');
-        TLoggerProFileAppender(lLog).OnLogRow := procedure(const LogItem: TLogItem; out LogRow: string)
-          begin
-            LogRow := Format('%s;%s;%s;%s', [
-              FormatDateTime('yyyy-mm-dd hh:nn:ss', LogItem.TimeStamp),
-              LogItem.LogTypeAsString,
-              LogItem.LogMessage,
-              LogItem.LogTag]);
-          end;
-        GLogWriter := BuildLogWriter([lLog]);
-      end;
-    finally
-      TMonitor.Exit(GLock);
-    end;
-  end;
-  Result := GLogWriter;
-end;
+  MVCFramework.Middleware.Trace;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -114,26 +81,12 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'false';
     end);
   FMVC.AddController(TMainController);
-  FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics));
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
-    'index.html', {IndexDocument - Before it was named fallbackresource}
-    False
-    ));
+  FMVC.AddMiddleware(TMVCTraceMiddleware.Create);
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
 begin
   FMVC.Free;
 end;
-
-initialization
-
-GLock := TObject.Create;
-
-finalization
-
-GLock.Free;
 
 end.

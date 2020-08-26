@@ -1,9 +1,10 @@
 object frmDMVCNewProject: TfrmDMVCNewProject
   Left = 0
   Top = 0
+  Cursor = crHandPoint
   BorderStyle = bsDialog
   Caption = 'New DMVCFramework Project Wizard'
-  ClientHeight = 572
+  ClientHeight = 582
   ClientWidth = 354
   Color = clBtnFace
   Constraints.MinHeight = 145
@@ -18,7 +19,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   OnCreate = FormCreate
   DesignSize = (
     354
-    572)
+    582)
   PixelsPerInch = 96
   TextHeight = 13
   object lblWbModule: TLabel
@@ -41,7 +42,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Width = 354
     Height = 101
     Cursor = crHandPoint
-    Hint = 'Go to the DelphiMVCFramework developer guide'
+    Hint = 'Go to the DelphiMVCFramework project'
     Align = alTop
     AutoSize = True
     Center = True
@@ -386,6 +387,28 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Font.Style = [fsBold]
     ParentFont = False
   end
+  object lblBook: TLabel
+    AlignWithMargins = True
+    Left = 99
+    Top = 522
+    Width = 247
+    Height = 19
+    Hint = 'Go to DMVCFramework - the official guide'
+    Margins.Right = 10
+    Alignment = taRightJustify
+    AutoSize = False
+    Caption = 'DelphiMVCFramework - the official guide'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+    Layout = tlCenter
+    OnClick = lblBookClick
+    OnMouseEnter = lblBookMouseEnter
+    OnMouseLeave = lblBookMouseLeave
+  end
   object gbControllerUnitOptions: TGroupBox
     Left = 8
     Top = 281
@@ -454,10 +477,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
   end
   object btnOK: TButton
-    Left = 190
-    Top = 539
-    Width = 75
-    Height = 25
+    Left = 186
+    Top = 547
+    Width = 77
+    Height = 27
     Anchors = [akRight, akBottom]
     Caption = 'OK'
     Default = True
@@ -465,10 +488,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 6
   end
   object btnCancel: TButton
-    Left = 271
-    Top = 539
-    Width = 75
-    Height = 25
+    Left = 269
+    Top = 547
+    Width = 77
+    Height = 27
     Anchors = [akRight, akBottom]
     Cancel = True
     Caption = 'Cancel'
