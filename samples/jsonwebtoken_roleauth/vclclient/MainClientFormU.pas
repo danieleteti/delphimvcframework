@@ -51,155 +51,126 @@ implementation
 uses
   MVCFramework.RESTClient,
   MVCFramework.SystemJSONUtils,
-  System.JSON;
+  System.JSON,
+  MVCFramework.RESTClient.Intf;
 
 procedure TForm5.btnGetClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lResp: IRESTResponse;
-  lQueryStringParams: TStringList;
+  lClient: IMVCRESTClient;
+  lResp: IMVCRESTResponse;
 begin
   { Getting JSON response }
-  lClient := TRESTClient.Create('localhost', 8080);
-  try
-    lClient.UseBasicAuthentication := False;
-    lClient.ReadTimeOut(0);
-    if not FJWT.IsEmpty then
-    begin
-      lClient.RequestHeaders.Values[TMVCJWTDefaults.AUTHORIZATION_HEADER] := 'Bearer ' + FJWT;
-    end;
-    lQueryStringParams := TStringList.Create;
-    try
-      lQueryStringParams.Values['firstname'] := 'Daniele';
-      lQueryStringParams.Values['lastname'] := 'Teti';
-      lResp := lClient.doGET('/admin/role1', [], lQueryStringParams);
-      if lResp.HasError then
-        ShowMessage(lResp.Error.ExceptionMessage);
-    finally
-      lQueryStringParams.Free;
-    end;
-    Memo2.Lines.Text := lResp.BodyAsString;
-  finally
-    lClient.Free;
+  lClient := TMVCRESTClient.New
+    .BaseURL('localhost', 8080)
+    .ReadTimeOut(0);
+  if not FJWT.IsEmpty then
+  begin
+    lClient.SetBearerAuthorization(FJWT);
   end;
+  lResp := lClient
+    .AddQueryStringParam('firstname', 'Daniele')
+    .AddQueryStringParam('lastname', 'Teti')
+    .Get('/admin/role1');
+  if not lResp.Success then
+    ShowMessage(lResp.Content);
 
-  { Getting HTML response }
-  lClient := TRESTClient.Create('localhost', 8080);
-  try
-    // when the JWT authorization header is named "Authorization", the basic authorization must be disabled
-    lClient.UseBasicAuthentication := False;
+  Memo2.Lines.Text := lResp.Content;
 
-    lClient.ReadTimeOut(0);
-    if not FJWT.IsEmpty then
-      lClient.RequestHeaders.Values[TMVCJWTDefaults.AUTHORIZATION_HEADER] := 'Bearer ' + FJWT;
-    lQueryStringParams := TStringList.Create;
-    try
-      lQueryStringParams.Values['firstname'] := 'Daniele';
-      lQueryStringParams.Values['lastname'] := 'Teti';
-      lResp := lClient.Accept('text/html').doGET('/admin/role1', [], lQueryStringParams);
-      if lResp.HasError then
-        ShowMessage(lResp.Error.ExceptionMessage);
-    finally
-      lQueryStringParams.Free;
-    end;
-    Memo3.Lines.Text := lResp.BodyAsString;
-  finally
-    lClient.Free;
-  end;
+  lResp := lClient
+    .AddQueryStringParam('firstname', 'Daniele')
+    .AddQueryStringParam('lastname', 'Teti')
+    .Accept('text/html')
+    .Get('/admin/role1');
+  if not lResp.Success then
+    ShowMessage(lResp.Content);
 
+  Memo3.Lines.Text := lResp.Content;
 end;
 
 procedure TForm5.btnLOGINClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
+  lClient := TMVCRESTClient.New
+    .BaseURL('localhost', 8080)
+    .ReadTimeOut(0)
+    .SetBasicAuthorization('user1', 'user1');
+
+  lRest := lClient.Post('/login');
+  if not lRest.Success then
+  begin
+    ShowMessage(
+      'HTTP ERROR: ' + lRest.StatusCode.ToString + sLineBreak +
+      'HTTP MESSAGE: ' + lRest.StatusText + sLineBreak +
+      'CONTENT MESSAGE: ' + lRest.Content);
+    Exit;
+  end;
+
+  lJSON := TSystemJSON.StringAsJSONObject(lRest.Content);
   try
-    lClient.ReadTimeOut(0);
-    lClient.Authentication('user1', 'user1');
-    lRest := lClient.doPOST('/login', []);
-    if lRest.HasError then
-    begin
-      ShowMessage(
-        'HTTP ERROR: ' + lRest.Error.HTTPError.ToString + sLineBreak +
-        'APPLICATION ERROR CODE: ' + lRest.Error.ErrorNumber.ToString + sLineBreak +
-        'EXCEPTION MESSAGE: ' + lRest.Error.ExceptionMessage);
-
-      Exit;
-    end;
-
-    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
-    try
-      JWT := lJSON.GetValue('token').Value;
-    finally
-      lJSON.Free;
-    end;
+    JWT := lJSON.GetValue('token').Value;
   finally
-    lClient.Free;
+    lJSON.Free;
   end;
 end;
 
 procedure TForm5.btnLoginJsonObjectClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
+  lClient := TMVCRESTClient.New
+    .BaseURL('localhost', 8080)
+    .ReadTimeOut(0);
+
+  lRest := lClient.Post('/login', '{"jwtusername":"user1","jwtpassword":"user1"}');
+  if not lRest.Success then
+  begin
+    ShowMessage(
+      'HTTP ERROR: ' + lRest.StatusCode.ToString + sLineBreak +
+      'HTTP MESSAGE: ' + lRest.StatusText + sLineBreak +
+      'CONTENT MESSAGE: ' + lRest.Content);
+
+    Exit;
+  end;
+
+  lJSON := TSystemJSON.StringAsJSONObject(lRest.Content);
   try
-    lClient.ReadTimeOut(0);
-    lRest := lClient.doPOST('/login', [], '{"jwtusername":"user1","jwtpassword":"user1"}');
-    if lRest.HasError then
-    begin
-      ShowMessage(
-        'HTTP ERROR: ' + lRest.Error.HTTPError.ToString + sLineBreak +
-        'APPLICATION ERROR CODE: ' + lRest.Error.ErrorNumber.ToString + sLineBreak +
-        'EXCEPTION MESSAGE: ' + lRest.Error.ExceptionMessage);
-
-      Exit;
-    end;
-
-    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
-    try
-      JWT := lJSON.GetValue('token').Value;
-    finally
-      lJSON.Free;
-    end;
+    JWT := lJSON.GetValue('token').Value;
   finally
-    lClient.Free;
+    lJSON.Free;
   end;
 end;
 
 procedure TForm5.btnLoginWithExceptionClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
-  try
-    lClient.ReadTimeOut(0);
-    lClient.Authentication('user_raise_exception', 'user_raise_exception');
-    lRest := lClient.doPOST('/login', []);
-    if lRest.HasError then
-    begin
-      ShowMessage(
-        'HTTP ERROR: ' + lRest.Error.HTTPError.ToString + sLineBreak +
-        'APPLICATION ERROR CODE: ' + lRest.Error.ErrorNumber.ToString + sLineBreak +
-        'EXCEPTION MESSAGE: ' + lRest.Error.ExceptionMessage);
-      Exit;
-    end;
+  lClient := TMVCRESTClient.New
+    .BaseURL('localhost', 8080)
+    .ReadTimeOut(0)
+    .SetBasicAuthorization('user_raise_exception', 'user_raise_exception');
+  lRest := lClient.Post('/login');
+  if not lRest.Success then
+  begin
+    ShowMessage(
+      'HTTP ERROR: ' + lRest.StatusCode.ToString + sLineBreak +
+      'HTTP MESSAGE: ' + lRest.StatusText + sLineBreak +
+      'CONTENT MESSAGE: ' + lRest.Content);
 
-    lJSON := TSystemJSON.StringAsJSONObject(lRest.BodyAsString);
-    try
-      JWT := lJSON.GetValue('token').Value;
-    finally
-      lJSON.Free;
-    end;
+    Exit;
+  end;
+
+  lJSON := TSystemJSON.StringAsJSONObject(lRest.Content);
+  try
+    JWT := lJSON.GetValue('token').Value;
   finally
-    lClient.Free;
+    lJSON.Free;
   end;
 end;
 

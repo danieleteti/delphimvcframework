@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{7F871858-7673-498D-8BBD-6F0E8F423C14}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="jwtplainserver.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="jwtplainclient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="jwtplainserver">
+        <MSBuild Projects="jwtplainserver.dproj"/>
+    </Target>
+    <Target Name="jwtplainserver:Clean">
+        <MSBuild Projects="jwtplainserver.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jwtplainserver:Make">
+        <MSBuild Projects="jwtplainserver.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="jwtplainclient">
+        <MSBuild Projects="jwtplainclient.dproj"/>
+    </Target>
+    <Target Name="jwtplainclient:Clean">
+        <MSBuild Projects="jwtplainclient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jwtplainclient:Make">
+        <MSBuild Projects="jwtplainclient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="jwtplainserver;jwtplainclient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="jwtplainserver:Clean;jwtplainclient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="jwtplainserver:Make;jwtplainclient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

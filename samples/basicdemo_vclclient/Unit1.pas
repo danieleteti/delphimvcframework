@@ -25,35 +25,26 @@ var
 implementation
 
 uses
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient,
+  MVCFramework.RESTClient.Intf;
 
 {$R *.dfm}
 
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
-  Clt: TRestClient;
+  Clt: IMVCRESTClient;
 begin
-  Clt := MVCFramework.RESTClient.TRestClient.Create('http://localhost', 8080, nil);
-  try
-    // Clt.ProxyServer := 'localhost';
-    // Clt.ProxyPort := 8888;
-    ShowMessage(Clt.doGET('/div/10/20', []).BodyAsString);
-  finally
-    Clt.Free;
-  end;
+  Clt := TMVCRESTClient.New.BaseURL('http://localhost', 8080);
+  ShowMessage(Clt.Get('/div/10/20').Content);
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 var
-  Clt: TRestClient;
+  Clt: IMVCRESTClient;
 begin
-  Clt := MVCFramework.RESTClient.TRestClient.Create('http://localhost', 8080, nil);
-  try
-    ShowMessage(Clt.doPOST('/hello', [], '{"name":"Bob дцья"}').BodyAsString);
-  finally
-    Clt.Free;
-  end;
+  Clt := TMVCRESTClient.New.BaseURL('http://localhost', 8080);
+  ShowMessage(Clt.Post('/hello', '{"name":"Bob дцья"}').Content);
 end;
 
 end.

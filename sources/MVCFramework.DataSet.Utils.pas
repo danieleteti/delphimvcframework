@@ -37,7 +37,8 @@ uses
   JsonDataObjects,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient,
+  MVCFramework.RESTClient.Intf;
 
 type
   TFieldNamePolicy = (fpLowerCase, fpUpperCase, fpAsIs);
@@ -132,14 +133,14 @@ type
     type
     TMVCAPIBinderItem = class
     private
-      fRESTClient: TRESTClient;
+      fRESTClient: IMVCRESTClient;
       fDataSet: TDataSet;
       fURI: string;
-      fPrimaryKeyNAme: string;
+      fPrimaryKeyName: string;
       fLoading: boolean;
-      procedure ShowError(const AResponse: IRESTResponse);
+      procedure ShowError(const AResponse: IMVCRESTResponse);
     public
-      constructor Create(const aRESTClient: TRESTClient; const ADataSet: TDataSet;
+      constructor Create(const aRESTClient: IMVCRESTClient; const ADataSet: TDataSet;
         const aURI, aPrimaryKeyName: string);
       destructor Destroy; override;
       procedure HookBeforePost(DataSet: TDataSet);
@@ -149,12 +150,12 @@ type
       // procedure HookBeforeRowRequest(DataSet: TFDDataSet);
     end;
   private
-    fRESTClient: TRESTClient;
+    fRESTClient: IMVCRESTClient;
 
   protected
     fItems: TObjectList<TMVCAPIBinderItem>;
   public
-    constructor Create(const aRESTClient: TRESTClient);
+    constructor Create(const aRESTClient: IMVCRESTClient);
     destructor Destroy; override;
     procedure BindDataSetToAPI(const ADataSet: TDataSet; const aURI: string; const aPrimaryKeyName: string);
   end;
@@ -597,7 +598,7 @@ begin
   fItems.Add(TMVCAPIBinderItem.Create(fRESTClient, ADataSet, aURI, aPrimaryKeyName));
 end;
 
-constructor TMVCAPIBinder.Create(const aRESTClient: TRESTClient);
+constructor TMVCAPIBinder.Create(const aRESTClient: IMVCRESTClient);
 begin
   inherited Create;
   fItems := TObjectList<TMVCAPIBinderItem>.Create(true);
@@ -612,14 +613,14 @@ end;
 
 { TMVCAPIBinder.TMVCAPIBinderItem }
 
-constructor TMVCAPIBinder.TMVCAPIBinderItem.Create(const aRESTClient: TRESTClient; const ADataSet: TDataSet;
+constructor TMVCAPIBinder.TMVCAPIBinderItem.Create(const aRESTClient: IMVCRESTClient; const ADataSet: TDataSet;
   const aURI, aPrimaryKeyName: string);
 begin
   inherited Create;
   fRESTClient := aRESTClient;
   fDataSet := ADataSet;
   fURI := aURI;
-  fPrimaryKeyNAme := aPrimaryKeyName;
+  fPrimaryKeyName := aPrimaryKeyName;
 
   // procedure HookBeforePost(DataSet: TDataSet);
   // procedure HookBeforeDelete(DataSet: TDataSet);
@@ -640,18 +641,18 @@ end;
 
 procedure TMVCAPIBinder.TMVCAPIBinderItem.HookAfterOpen(DataSet: TDataSet);
 var
-  Res: IRESTResponse;
+  Res: IMVCRESTResponse;
   lData: TJSONObject;
 begin
 
   // this a simple sychronous request...
-  Res := fRESTClient.doGET(fURI, []);
-  if Res.HasError then
+  Res := fRESTClient.Get(fURI);
+  if not Res.Success then
   begin
     ShowError(Res);
   end;
 
-  lData := StrToJSONObject(Res.BodyAsString);
+  lData := StrToJSONObject(Res.Content);
   try
     DataSet.DisableControls;
     try
@@ -669,11 +670,11 @@ end;
 
 procedure TMVCAPIBinder.TMVCAPIBinderItem.HookBeforeDelete(DataSet: TDataSet);
 var
-  Res: IRESTResponse;
+  Res: IMVCRESTResponse;
 begin
   if DataSet.State = dsBrowse then
-    Res := fRESTClient.DataSetDelete(fURI, DataSet.FieldByName(fPrimaryKeyNAme).AsString);
-  if not(Res.ResponseCode in [200]) then
+    Res := fRESTClient.DataSetDelete(fURI, DataSet.FieldByName(fPrimaryKeyName).AsString);
+  if not(Res.StatusCode in [200]) then
   begin
     ShowError(Res);
   end;
@@ -681,7 +682,7 @@ end;
 
 procedure TMVCAPIBinder.TMVCAPIBinderItem.HookBeforePost(DataSet: TDataSet);
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
   lLastID: Integer;
 begin
   if not fLoading then
@@ -693,10 +694,10 @@ begin
     end
     else
     begin
-      lLastID := fDataSet.FieldByName(fPrimaryKeyNAme).AsInteger;
-      lRes := fRESTClient.DataSetUpdate(fURI, DataSet, lLastID.ToString);
+      lLastID := fDataSet.FieldByName(fPrimaryKeyName).AsInteger;
+      lRes := fRESTClient.DataSetUpdate(fURI, lLastID.ToString, DataSet);
     end;
-    if not(lRes.ResponseCode in [200, 201]) then
+    if not(lRes.StatusCode in [200, 201]) then
     begin
       ShowError(lRes);
     end
@@ -717,19 +718,12 @@ begin
   DataSet.Open;
 end;
 
-procedure TMVCAPIBinder.TMVCAPIBinderItem.ShowError(const AResponse: IRESTResponse);
+procedure TMVCAPIBinder.TMVCAPIBinderItem.ShowError(const AResponse: IMVCRESTResponse);
 begin
-  if AResponse.HasError then
-    raise EMVCException.Create(
-      AResponse.Error.ExceptionMessage + sLineBreak +
-      AResponse.Error.ExceptionClassname)
+  if not AResponse.Success then
+    raise EMVCException.Create(AResponse.StatusCode, AResponse.StatusText + sLineBreak + AResponse.Content)
   else
-    raise EMVCException.Create(AResponse.BodyAsString);
-  // else
-  // MessageDlg(
-  // AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
-  // AResponse.BodyAsString,
-  // mtError, [mbOK], 0);
+    raise EMVCException.Create(AResponse.Content);
 end;
 
 end.
