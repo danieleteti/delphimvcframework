@@ -678,7 +678,7 @@ begin
   try
     // no request body
     lRes := RESTClient
-      .AddBody('', False, TRESTContentType.ctAPPLICATION_JSON) // To define a Content-Type add an empty body with the type.
+      .AddBody('', False, TMVCMediaType.APPLICATION_JSON) // To define a Content-Type add an empty body with the type.
       .Post('/system/users/logged');
     Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, lRes.StatusCode,
       'Empty request body doesn''t return HTTP 400 Bad Request');
@@ -1153,7 +1153,7 @@ procedure TServerTest.TestProducesConsumes02;
 var
   res: IMVCRESTResponse;
 begin
-  res := RESTClient.Accept('text/plain').Post('/testconsumes', 'Hello World', False, TRESTContentType.ctTEXT_PLAIN);
+  res := RESTClient.Accept('text/plain').Post('/testconsumes', 'Hello World', False, TMVCMediaType.TEXT_PLAIN);
   Assert.areEqual('Hello World', res.Content);
   Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType, True);
 
@@ -1173,7 +1173,7 @@ begin
 //  Assert.areEqual(BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591), res.ContentType, True);
 
   res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN)
-    .Post('/testconsumes/textiso8859_1', 'this is an iso8859-1 text', False, TRESTContentType.ctTEXT_PLAIN);
+    .Post('/testconsumes/textiso8859_1', 'this is an iso8859-1 text', False, TMVCMediaType.TEXT_PLAIN);
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
   Assert.areEqual('this is an iso8859-1 text', res.Content);
   Assert.areEqual(TMVCMediaType.TEXT_PLAIN, res.ContentType, True);

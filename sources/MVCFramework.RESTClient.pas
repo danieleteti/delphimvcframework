@@ -40,6 +40,7 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
   MVCFramework.RESTClient.Indy,
+  MVCFramework.Commons,
   Data.DB,
   System.Rtti,
   System.TypInfo,
@@ -59,7 +60,6 @@ type
   /// <summary>
   /// Provides access to delphi RESTClient library types without the need to use the REST.Types unit.
   /// </summary>
-  TRESTContentType = REST.Types.TRESTContentType;
   TCookie = System.Net.HttpClient.TCookie;
   TCookies = System.Net.HttpClient.TCookies;
   THTTPSecureProtocol = System.Net.HttpClient.THTTPSecureProtocol;
@@ -86,6 +86,7 @@ type
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
     function PreEncodeURL(const aURL: string): string;
+    function GetContentType(aContentType: string): TRESTContentType;
 {$IF not defined(SYDNEYORBETTER)}
     function GetResponseCookies: TArray<TCookie>;
 {$ENDIF}
@@ -242,7 +243,7 @@ type
     /// Body content type.
     /// </param>
     function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
     /// </summary>
@@ -255,7 +256,7 @@ type
     /// <param name="aOwnsStream">
     /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
     /// </param>
-    function AddBody(aBodyStream: TStream; const aContentType: TRESTContentType = TRESTContentType.ctNone;
+    function AddBody(aBodyStream: TStream; const aContentType: string = '';
       const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
@@ -283,9 +284,9 @@ type
     /// File content type
     /// </param>
     function AddFile(const aName, aFileName: string;
-      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     function AddFile(const aFileName: string;
-      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
 
     /// <summary>
@@ -314,7 +315,7 @@ type
     /// </summary>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Post(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Post: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -323,7 +324,7 @@ type
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Patch(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -331,7 +332,7 @@ type
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Put(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Put: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -471,7 +472,7 @@ begin
 end;
 
 function TMVCRESTClient.AddBody(const aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: TRESTContentType): IMVCRESTClient;
+  const aContentType: string): IMVCRESTClient;
 var
   lBodyName: string;
   lOptions: TRESTRequestParameterOptions;
@@ -490,10 +491,11 @@ begin
   else
     lOptions := [];
 
-  fRESTRequest.Params.AddItem(lBodyName, aBody, TRESTRequestParameterKind.pkREQUESTBODY, lOptions, aContentType);
+  fRESTRequest.Params.AddItem(lBodyName, aBody, TRESTRequestParameterKind.pkREQUESTBODY, lOptions,
+    GetContentType(aContentType));
 end;
 
-function TMVCRESTClient.AddBody(aBodyStream: TStream; const aContentType: TRESTContentType;
+function TMVCRESTClient.AddBody(aBodyStream: TStream; const aContentType: string;
   const aOwnsStream: Boolean): IMVCRESTClient;
 var
   lOwnsStream: TRESTObjectOwnership;
@@ -508,7 +510,7 @@ begin
   else
     lOwnsStream := TRESTObjectOwnership.ooApp;
 
-  fRESTRequest.AddBody(aBodyStream, aContentType, lOwnsStream);
+  fRESTRequest.AddBody(aBodyStream, GetContentType(aContentType), lOwnsStream);
 end;
 
 function TMVCRESTClient.AddBody(aBodyObject: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
@@ -518,7 +520,7 @@ begin
 
   Result := Self;
 
-  AddBody(SerializeObject(aBodyObject), False, TRESTContentType.ctAPPLICATION_JSON);
+  AddBody(SerializeObject(aBodyObject), False, TMVCMediaType.APPLICATION_JSON);
 
   if aOwnsObject then
     aBodyObject.Free;
@@ -530,13 +532,13 @@ begin
   fRESTRequest.AddParameter(aName, aValue, TRESTRequestParameterKind.pkCOOKIE);
 end;
 
-function TMVCRESTClient.AddFile(const aName, aFileName: string; const aContentType: TRESTContentType): IMVCRESTClient;
+function TMVCRESTClient.AddFile(const aName, aFileName: string; const aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
-  fRESTRequest.AddFile(aName, aFileName, aContentType);
+  fRESTRequest.AddFile(aName, aFileName, GetContentType(aContentType));
 end;
 
-function TMVCRESTClient.AddFile(const aFileName: string; const aContentType: TRESTContentType): IMVCRESTClient;
+function TMVCRESTClient.AddFile(const aFileName: string; const aContentType: string): IMVCRESTClient;
 begin
   Result := AddFile(DEFAULT_FILE_NAME, aFileName, aContentType);
 end;
@@ -1014,8 +1016,14 @@ begin
   Result := ExecuteRESTRequest(TRESTRequestMethod.rmGET);
 end;
 
+function TMVCRESTClient.GetContentType(aContentType: string): TRESTContentType;
+begin
+  // Converts the name of the ContentType to the enumerated type. If there is a charset in the string it is removed.
+  Result := ContentTypeFromString(aContentType.Split([';', ' '])[0]);
+end;
+
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aDoNotEncode: Boolean;
-const aContentType: TRESTContentType): IMVCRESTResponse;
+const aContentType: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.isEmpty then
@@ -1055,7 +1063,7 @@ begin
 end;
 
 function TMVCRESTClient.Post(const aResource, aBody: string; const aDoNotEncode: Boolean;
-const aContentType: TRESTContentType): IMVCRESTResponse;
+const aContentType: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.IsEmpty then
@@ -1137,7 +1145,7 @@ begin
 end;
 
 function TMVCRESTClient.Put(const aResource, aBody: string; const aDoNotEncode: Boolean;
-const aContentType: TRESTContentType): IMVCRESTResponse;
+const aContentType: string): IMVCRESTResponse;
 begin
   Resource(aResource);
   if not aBody.IsEmpty then

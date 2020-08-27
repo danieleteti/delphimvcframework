@@ -36,6 +36,7 @@ uses
   System.SysUtils,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
+  MVCFramework.Commons,
   REST.Types,
   Data.DB,
   System.TypInfo,
@@ -189,7 +190,7 @@ type
     /// Body content type.
     /// </param>
     function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
     /// </summary>
@@ -202,7 +203,7 @@ type
     /// <param name="aOwnsStream">
     /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
     /// </param>
-    function AddBody(aBodyStream: TStream; const aContentType: TRESTContentType = TRESTContentType.ctNone;
+    function AddBody(aBodyStream: TStream; const aContentType: string = '';
       const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
@@ -230,9 +231,9 @@ type
     /// File content type
     /// </param>
     function AddFile(const aName, aFileName: string;
-      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     function AddFile(const aFileName: string;
-      const aContentType: TRESTContentType = TRESTContentType.ctNone): IMVCRESTClient; overload;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
 
     /// <summary>
@@ -270,7 +271,7 @@ type
     /// </param>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Post(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Post: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -279,7 +280,7 @@ type
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Patch(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
@@ -287,7 +288,7 @@ type
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Put(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
-      const aContentType: TRESTContentType = TRESTContentType.ctAPPLICATION_JSON): IMVCRESTResponse; overload;
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Put: IMVCRESTResponse; overload;
 
     /// <summary>
