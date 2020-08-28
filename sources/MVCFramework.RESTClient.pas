@@ -62,8 +62,10 @@ type
   /// </summary>
   TCookie = System.Net.HttpClient.TCookie;
   TCookies = System.Net.HttpClient.TCookies;
+{$IF defined(TOKYOORBETTER)}
   THTTPSecureProtocol = System.Net.HttpClient.THTTPSecureProtocol;
   THTTPSecureProtocols = System.Net.HttpClient.THTTPSecureProtocols;
+{$ENDIF}
 
   /// <summary>
   /// Encapsulates the methods of the delphi native RESTClient library.
@@ -116,8 +118,10 @@ type
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
 
+{$IF defined(TOKYOORBETTER)}
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
+{$ENDIF}
 
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
     function UserAgent: string; overload;
@@ -283,10 +287,8 @@ type
     /// <param name="aContentType">
     /// File content type
     /// </param>
-    function AddFile(const aName, aFileName: string;
-      const aContentType: string = ''): IMVCRESTClient; overload;
-    function AddFile(const aFileName: string;
-      const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddFile(const aName, aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
     function ClearFiles: IMVCRESTClient;
 
     /// <summary>
@@ -780,6 +782,9 @@ begin
     .ProxyPassword(ProxyPassword)
     .ProxyServer(ProxyServer)
     .UserAgent(UserAgent)
+{$IF defined(TOKYOORBETTER)}
+    .SecureProtocols(SecureProtocols)
+{$ENDIF}
     .ConnectTimeout(ConnectTimeout)
     .ReadTimeout(ReadTimeout)
     .Accept(Accept)
@@ -1261,6 +1266,7 @@ begin
   Result := fRESTRequest.URLAlreadyEncoded;
 end;
 
+{$IF defined(TOKYOORBETTER)}
 function TMVCRESTClient.SecureProtocols: THTTPSecureProtocols;
 begin
   Result := fRESTClient.SecureProtocols;
@@ -1271,6 +1277,7 @@ begin
   Result := Self;
   fRESTClient.SecureProtocols := aSecureProtocols;
 end;
+{$ENDIF}
 
 function TMVCRESTClient.SerializeObject(aObject: TObject): string;
 begin
