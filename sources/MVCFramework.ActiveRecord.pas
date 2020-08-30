@@ -1307,7 +1307,8 @@ function TMVCActiveRecord.CheckAction(const aEntityAction: TMVCEntityAction; con
 begin
   Result := aEntityAction in fEntityAllowedActions;
   if (not Result) and aRaiseException then
-    raise EMVCActiveRecord.CreateFmt('Action not allowed on "%s"', [ClassName]);
+    raise EMVCActiveRecord.CreateFmt('Action [%s] not allowed on entity [%s]. [HINT] Add the entity action in MVCEntityActions attribute.',
+      [GetEnumName(TypeInfo(TMVCEntityAction), Ord(aEntityAction)), ClassName]);
 end;
 
 class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass; const RQL: string): int64;
@@ -1316,7 +1317,7 @@ var
 begin
   lAR := aClass.Create;
   try
-    // Up to 10.1 BErlin, here the compiler try to call the Count<T> introduced by the class helper
+    // Up to 10.1 Berlin, here the compiler try to call the Count<T> introduced by the class helper
     // Instead of the Count() which exists in "TMVCActiveRecord"
     Result := lAR.InternalCount(RQL);
   finally
