@@ -64,8 +64,10 @@ type
     function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
     function ProxyPassword: string; overload;
 
+{$IF defined(TOKYOORBETTER)}
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
+{$ENDIF}
 
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
     function UserAgent: string; overload;
