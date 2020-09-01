@@ -151,12 +151,15 @@ type
     AllowUnhandledAction = 'allow_unhandled_action';
     ServerName = 'server_name';
     ExposeServerSignature = 'server_signature';
+    ExposeXPoweredBy = 'xpoweredby';
     SessionType = 'session_type';
     MaxEntitiesRecordCount = 'max_entities_record_count';
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
     LoadSystemControllers = 'load_system_controllers';
   end;
+
+  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
   HTTP_STATUS = record
@@ -450,14 +453,14 @@ type
   // function GetItems(const Key: string): string;
   // procedure SetItems(const Key, Value: string);
   // procedure Clear;
-  // function Add(const Name, Value: string): IMVCStringDictionary;
+  /// /    function Add(const Name, Value: string): IMVCStringDictionary;
   // function TryGetValue(const Name: string; out Value: string): Boolean; overload;
   // function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
   // function Count: Integer;
   // function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
   // function ContainsKey(const Key: string): Boolean;
   // function Keys: TArray<string>;
-  // property Items[const Key: string]: string read GetItems write SetItems; default;
+  // property Items[const Key: string]: string read GetItems; default;
   // end;
 
   TMVCStringDictionary = class // (TInterfacedObject, IMVCStringDictionary)
@@ -472,12 +475,14 @@ type
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name, Value: string): TMVCStringDictionary;
+    function AddStrings(const Strings: TStrings): TMVCStringDictionary;
     function TryGetValue(const Name: string; out Value: string): Boolean; overload;
     function TryGetValue(const Name: string; out Value: Integer): Boolean; overload;
     function Count: Integer;
     function GetEnumerator: TDictionary<string, string>.TPairEnumerator;
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
+    function ToString: String; override;
     property Items[const Key: string]: string read GetItems write SetItems; default;
   end;
 
@@ -540,16 +545,17 @@ type
   TMVCConfig = class sealed
   private
     FConfig: TMVCStringDictionary;
-
+    FFreezed: Boolean;
     function GetValue(const AIndex: string): string;
     function GetValueAsInt64(const AIndex: string): Int64;
     procedure SetValue(const AIndex: string; const aValue: string);
+    procedure CheckNotFreezed; inline;
   protected
     { protected declarations }
   public
     constructor Create;
     destructor Destroy; override;
-
+    procedure Freeze;
     function Keys: TArray<string>;
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
@@ -606,6 +612,10 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
+function StrToJSONObject(const aString: String): TJsonObject;
+function StrToJSONArray(const aString: String): TJsonArray;
+
+
 { changing case }
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
 
@@ -637,11 +647,14 @@ type
       VPassword: string; var VHandled: Boolean);
   end;
 
+
+
 implementation
 
 uses
   IdCoder3to4,
   System.NetEncoding,
+  System.Character,
   MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
 
 var
@@ -861,16 +874,30 @@ end;
 
 { TMVCConfig }
 
+procedure TMVCConfig.CheckNotFreezed;
+begin
+  if FFreezed then
+  begin
+    raise EMVCException.Create('Configuration in freezed - no more changes allowed') at ReturnAddress;
+  end;
+end;
+
 constructor TMVCConfig.Create;
 begin
   inherited Create;
   FConfig := TMVCStringDictionary.Create;
+  FFreezed := False;
 end;
 
 destructor TMVCConfig.Destroy;
 begin
   FConfig.Free;
   inherited Destroy;
+end;
+
+procedure TMVCConfig.Freeze;
+begin
+  FFreezed := True;
 end;
 
 function TMVCConfig.GetValue(const AIndex: string): string;
@@ -922,6 +949,7 @@ end;
 
 procedure TMVCConfig.SetValue(const AIndex, aValue: string);
 begin
+  CheckNotFreezed;
   FConfig.Add(AIndex, aValue);
 end;
 
@@ -938,6 +966,19 @@ begin
 end;
 
 { TMVCStringDictionary }
+
+function TMVCStringDictionary.AddStrings(const Strings: TStrings): TMVCStringDictionary;
+var
+  I: Integer;
+  lName: string;
+begin
+  for I := 0 to Strings.Count-1 do
+  begin
+    lName := Strings.Names[I];
+    Add(lName, Strings.Values[lName]);
+  end;
+  Result := Self;
+end;
 
 function TMVCStringDictionary.Add(const Name, Value: string): TMVCStringDictionary;
 begin
@@ -987,6 +1028,21 @@ function TMVCStringDictionary.GetItems(const Key: string): string;
 begin
   Result := '';
   fDict.TryGetValue(Key, Result);
+end;
+
+function TMVCStringDictionary.ToString: String;
+var
+  I: Integer;
+  lValues: TArray<String>;
+  lKey: string;
+begin
+  SetLength(lValues, Length(Keys));
+  for I := 0 to Count - 1 do
+  begin
+    lKey := Keys[I];
+    lValues[I] := lKey + '=' + Items[lKey];
+  end;
+  Result := String.Join(';', lValues);
 end;
 
 function TMVCStringDictionary.Keys: TArray<string>;
@@ -1171,7 +1227,10 @@ var
   UFTStr: UTF8String;
 begin
   UFTStr := UTF8String(AString);
-  Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
+  if UFTStr <> '' then
+  begin
+    Self.WriteBuffer(UFTStr[low(UFTStr)], Length(UFTStr));
+  end;
 end;
 
 { TMVCDecorator }
@@ -1321,6 +1380,7 @@ var
   lIsUpperCase, lPreviousWasUpperCase: Boolean;
   lIsAlpha: Boolean;
 begin
+  {TODO -oDanieleT -cGeneral : Make this function faster!}
   lNextUpCase := MakeFirstUpperToo;
   lPreviousWasUpperCase := True;
   lSB := TStringBuilder.Create;
@@ -1363,6 +1423,17 @@ begin
     lSB.Free;
   end;
 end;
+
+function StrToJSONObject(const aString: String): TJsonObject;
+begin
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString);
+end;
+
+function StrToJSONArray(const aString: String): TJsonArray;
+begin
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString);
+end;
+
 
 initialization
 

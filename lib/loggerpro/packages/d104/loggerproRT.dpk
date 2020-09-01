@@ -1,0 +1,54 @@
+package loggerproRT;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'LoggerPro'}
+{$LIBSUFFIX '104'}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  IndySystem,
+  IndyProtocols,
+  IndyCore;
+
+contains
+  LoggerPro.ElasticSearchAppender in '..\..\LoggerPro.ElasticSearchAppender.pas',
+  LoggerPro.EMailAppender in '..\..\LoggerPro.EMailAppender.pas',
+  LoggerPro.FileAppender in '..\..\LoggerPro.FileAppender.pas',
+  LoggerPro.GlobalLogger in '..\..\LoggerPro.GlobalLogger.pas',
+  LoggerPro.MemoryAppender in '..\..\LoggerPro.MemoryAppender.pas',
+  LoggerPro.NSQAppender in '..\..\LoggerPro.NSQAppender.pas',
+  LoggerPro in '..\..\LoggerPro.pas',
+  LoggerPro.Proxy in '..\..\LoggerPro.Proxy.pas',
+  LoggerPro.RESTAppender in '..\..\LoggerPro.RESTAppender.pas',
+  LoggerPro.UDPSyslogAppender in '..\..\LoggerPro.UDPSyslogAppender.pas',
+  LoggerPro.Utils in '..\..\LoggerPro.Utils.pas',
+  ThreadSafeQueueU in '..\..\ThreadSafeQueueU.pas',
+  LoggerPro.OutputDebugStringAppender in '..\..\LoggerPro.OutputDebugStringAppender.pas';
+
+end.

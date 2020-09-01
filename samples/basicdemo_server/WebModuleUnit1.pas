@@ -34,8 +34,11 @@ uses
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(Self);
-  MVC.Config[TMVCConfigKey.ViewPath] := '.\www\public_html';
+  MVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.ViewPath] := '.\www\public_html';
+    end);
 
   // Web files
   MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/', '.\www\public_html'));

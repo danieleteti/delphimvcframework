@@ -24,6 +24,10 @@
 
 unit MVCFramework.View.Renderers.Mustache;
 
+{$IFDEF LINUX}
+This unit is not compatible with Linux
+{$ENDIF}
+
 interface
 
 uses

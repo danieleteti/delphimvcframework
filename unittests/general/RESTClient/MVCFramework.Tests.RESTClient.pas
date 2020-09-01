@@ -15,7 +15,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Tests.AppController;
+  MVCFramework.Tests.AppController,
+  MVCFramework.RESTClient.Intf;
 
 type
 
@@ -44,11 +45,11 @@ type
   TTestRESTClient = class(TObject)
   strict private
     FServerListener: IMVCListener;
-    FRESTClient: TRESTClient;
+    FRESTClient: IMVCRESTClient;
     FRESTAdapter: TRESTAdapter<IAppResource>;
     FAppResource: IAppResource;
   public
-    [SetUp]
+    [Setup]
     procedure SetUp;
     [TearDown]
     procedure TearDown;
@@ -72,6 +73,7 @@ implementation
 
 uses
   MVCFramework.Tests.WebModule1,
+  LiveServerTestU,
   MVCFramework.SystemJSONUtils,
   System.JSON;
 
@@ -88,7 +90,7 @@ begin
     );
   FServerListener.Start;
 
-  FRESTClient := TRESTClient.Create('localhost', 3000);
+  FRESTClient := TMVCRESTClient.New.BaseURL('localhost', 3000);
 
   FRESTAdapter := TRESTAdapter<IAppResource>.Create;
   FRESTAdapter.Build(FRESTClient);
@@ -100,40 +102,36 @@ procedure TTestRESTClient.TearDown;
 begin
   inherited;
   FServerListener.Stop;
-  FRESTClient.Free;
+  FRESTClient := nil;
 end;
 
 procedure TTestRESTClient.TestCreateAndDestroy;
 var
-  LClient: TRESTClient;
+  LClient: IMVCRESTClient;
 begin
-  LClient := TRESTClient.Create('', 80, nil);
+  LClient := TMVCRESTClient.New.BaseURL('localhost', 80);
   Assert.IsTrue(LClient <> nil);
-  FreeAndNil(LClient);
-  Assert.IsTrue(LClient = nil);
 end;
 
 procedure TTestRESTClient.TestGetUser;
 var
   LUser: TAppUser;
-  LResp: IRESTResponse;
+  LResp: IMVCRESTResponse;
 begin
-  FRESTClient.Resource('/user').Params([]);
-  FRESTClient.Authentication('dmvc', '123');
+  FRESTClient.Resource('/user');
+  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   // String
-  LResp := FRESTClient.doGET;
+  LResp := FRESTClient.Get;
   Assert.IsTrue(
-    ('{"Cod":1,"Name":"Ezequiel","Pass":"123"}' = LResp.BodyAsString) and
-    (LResp.ResponseCode = 200)
+    ('{"Cod":1,"Name":"Ezequiel","Pass":"123"}' = LResp.Content) and
+    (LResp.StatusCode = 200)
     );
 
-  // Object
-  // lJObj := TSystemJSON.BodyAsJSONObject(FRESTClient.doGET);
 
-  LUser := TAppUser.Create; // TSystemJSON.BodyAsJSONObject(FRESTClient.doGET).BodyAsJSONObject.AsObject<TAppUser>();
+  LUser := TAppUser.Create;
   try
-    GetDefaultSerializer.DeserializeObject(FRESTClient.doGET.BodyAsString, LUser);
+    GetDefaultSerializer.DeserializeObject(FRESTClient.Get.Content, LUser);
     Assert.IsTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
     FreeAndNil(LUser);
@@ -153,10 +151,10 @@ var
   LUsers: TObjectList<TAppUser>;
   lBody: string;
 begin
-  FRESTClient.Resource('/users').Params([]);
-  FRESTClient.Authentication('dmvc', '123');
+  FRESTClient.Resource('/users');
+  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
-  lBody := FRESTClient.doGET.BodyAsString;
+  lBody := FRESTClient.Get.Content;
   // String
   Assert.AreEqual('[{"Cod":0,"Name":"Ezequiel 0","Pass":"0"},{"Cod":1,"Name":"Ezequiel 1","Pass":"1"},' +
     '{"Cod":2,"Name":"Ezequiel 2","Pass":"2"},{"Cod":3,"Name":"Ezequiel 3","Pass":"3"},{"Cod":4,"Name":"Ezequiel 4","Pass":"4"},' +
@@ -186,11 +184,12 @@ end;
 
 procedure TTestRESTClient.TestHelloWorld;
 begin
-  FRESTClient.Resource('/hello').Params([]);
-  FRESTClient.Authentication('dmvc', '123');
+  FRESTClient
+    .Resource('/hello')
+    .SetBasicAuthorization('dmvc', '123');
 
   // String
-  Assert.AreEqual('Hello World called with GET', FRESTClient.doGET.BodyAsString);
+  Assert.AreEqual('Hello World called with GET', FRESTClient.Get.Content);
 
   // Adapter
   Assert.AreEqual('Hello World called with GET', FAppResource.HelloWorld);
@@ -198,55 +197,54 @@ end;
 
 procedure TTestRESTClient.TestInformation;
 var
-  LClient: TRESTClient;
+  LClient: IMVCRESTClient;
 begin
-  LClient := TRESTClient.Create('', 80, nil);
+  LClient := TMVCRESTClient.New;
   LClient
-    .ReadTimeOut(100)
-    .ConnectionTimeOut(100)
-    .Authentication('dmvc', 'dmvc', True)
+    .ReadTimeout(100)
+    .ConnectTimeout(100)
+    .SetBasicAuthorization('dmvc', 'dmvc')
     .Accept(TMVCMediaType.APPLICATION_JSON)
-    .AcceptCharSet(TMVCCharset.UTF_8)
-    .ContentType(TMVCMediaType.APPLICATION_JSON)
-    .ContentCharSet(TMVCCharset.UTF_8)
-    .ContentEncoding(TMVCCharset.UTF_8)
-    .SSL
-    .Compression;
+    .AcceptCharset(TMVCCharset.UTF_8);
+//    .ContentType(TMVCMediaType.APPLICATION_JSON)
+//    .ContentCharSet(TMVCCharset.UTF_8)
+//    .ContentEncoding(TMVCCharset.UTF_8)
 
-  Assert.IsTrue(LClient.ReadTimeOut = 100);
-  Assert.IsTrue(LClient.ConnectionTimeOut = 100);
-  Assert.IsTrue(LClient.Username = 'dmvc');
-  Assert.IsTrue(LClient.Password = 'dmvc');
-  Assert.IsTrue(LClient.UseBasicAuthentication);
-  Assert.IsTrue(LClient.Accept = 'application/json;charset=UTF-8');
-  Assert.IsTrue(LClient.ContentType = 'application/json;charset=UTF-8');
-  Assert.IsTrue(LClient.ContentEncoding = 'UTF-8');
-  Assert.IsTrue(LClient.HasSSL);
-  Assert.IsTrue(LClient.HasCompression);
+  Assert.IsTrue(LClient.ReadTimeout = 100);
+  Assert.IsTrue(LClient.ConnectTimeout = 100);
+//  Assert.IsTrue(LClient.Username = 'dmvc');
+//  Assert.IsTrue(LClient.Password = 'dmvc');
+//  Assert.IsTrue(LClient.UseBasicAuthentication);
+  Assert.IsTrue(LClient.Accept = 'application/json');
+//  Assert.IsTrue(LClient.ContentType = 'application/json;charset=UTF-8');
+//  Assert.IsTrue(LClient.ContentEncoding = 'UTF-8');
+//  Assert.IsTrue(LClient.HasSSL);
+//  Assert.IsTrue(LClient.HasCompression);
 
-  Assert.IsTrue(LClient.RawBody <> nil);
-  Assert.IsTrue(LClient.MultiPartFormData <> nil);
-  Assert.IsTrue(LClient.BodyParams <> nil);
-  Assert.IsTrue(LClient.RequestHeaders <> nil);
-  Assert.IsTrue(LClient.QueryStringParams <> nil);
+//  Assert.IsTrue(LClient.RawBody <> nil);
+//  Assert.IsTrue(LClient.MultiPartFormData <> nil);
+//  Assert.IsTrue(LClient.BodyParams <> nil);
+//  Assert.IsTrue(LClient.RequestHeaders <> nil);
+//  Assert.IsTrue(LClient.QueryStringParams <> nil);
 
-  FreeAndNil(LClient);
+//  FreeAndNil(LClient);
 end;
 
 procedure TTestRESTClient.TestPostUser;
 var
   LUser: TAppUser;
-  LResp: IRESTResponse;
+  LResp: IMVCRESTResponse;
 begin
-  FRESTClient.Resource('/user/save').Params([]);
-  FRESTClient.Authentication('dmvc', '123');
+  FRESTClient
+    .Resource('/user/save')
+    .SetBasicAuthorization('dmvc', '123');
 
   LUser := TAppUser.Create;
   LUser.Cod := 1;
   LUser.Name := 'Ezequiel';
   LUser.Pass := '123';
-  LResp := FRESTClient.doPOST<TAppUser>(LUser, True);
-  Assert.IsTrue(('Success!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  LResp := FRESTClient.AddBody(LUser, True).Post;
+  Assert.IsTrue(('Success!' = LResp.Content) and (LResp.StatusCode = 200));
 
   // Adapter
   LUser := TAppUser.Create;
@@ -259,14 +257,16 @@ end;
 procedure TTestRESTClient.TestPostUsers;
 var
   LUsers: TObjectList<TAppUser>;
-  LResp: IRESTResponse;
+  LResp: IMVCRESTResponse;
   I: Integer;
   LUser: TAppUser;
 begin
-  FRESTClient.Resource('/users/save').Params([]);
-  FRESTClient.Authentication('dmvc', '123');
-  FRESTClient.Accept('application/json;charset=utf-8');
-  FRESTClient.ContentType('application/json;charset=utf-8');
+  FRESTClient
+    .Resource('/users/save')
+    .SetBasicAuthorization('dmvc', '123')
+    .Accept('application/json')
+    .AcceptCharset('utf-8');
+
 
   LUsers := TObjectList<TAppUser>.Create(True);
   try
@@ -278,11 +278,11 @@ begin
       LUser.Pass := IntToStr(I);
       LUsers.Add(LUser);
     end;
-    LResp := FRESTClient.doPOST<TAppUser>(LUsers);
+    LResp := FRESTClient.AddBody(LUsers, False).Post;
   finally
     LUsers.Free;
   end;
-  Assert.IsTrue(('Success!' = LResp.BodyAsString) and (LResp.ResponseCode = 200));
+  Assert.IsTrue(('Success!' = LResp.Content) and (LResp.StatusCode = 200));
 
   // Adapter
   LUsers := TObjectList<TAppUser>.Create(True);

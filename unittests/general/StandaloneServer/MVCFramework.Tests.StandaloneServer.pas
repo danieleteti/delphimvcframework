@@ -45,7 +45,8 @@ implementation
 
 uses
   MVCFramework.Tests.WebModule2,
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient,
+  MVCFramework.RESTClient.Intf;
 
 { TTestMVCFrameworkServer }
 
@@ -83,32 +84,29 @@ end;
 
 procedure TTestMVCFrameworkServer.TestServerListenerAndClient;
 var
-  LListener: IMVCListener;
-  LClient: TRESTClient;
+  lListener: IMVCListener;
+  lRes: IMVCRESTResponse;
 begin
-  LListener := TMVCListener.Create(TMVCListenerProperties.New
+  lListener := TMVCListener.Create(TMVCListenerProperties.New
     .SetName('Listener1')
     .SetPort(6000)
     .SetMaxConnections(1024)
     .SetWebModuleClass(TestWebModuleClass)
     );
 
-  Assert.isTrue(Assigned(LListener));
+  Assert.isTrue(Assigned(lListener));
 
-  LListener.Start;
-  Assert.isTrue(LListener.Active);
+  lListener.Start;
+  Assert.isTrue(lListener.Active);
 
-  LClient := TRESTClient.Create('localhost', 6000);
-  try
-    LClient.UserName := 'dmvc';
-    LClient.Password := '123';
-    Assert.AreEqual('Hello World called with GET', LClient.doGET('/hello', []).BodyAsString);
-  finally
-    FreeAndNil(LClient);
-  end;
+  lRes := TMVCRESTClient.New
+    .BaseURL('localhost', 6000)
+    .SetBasicAuthorization('dmvc', '123')
+    .Get('/hello');
+  Assert.AreEqual('Hello World called with GET', lRes.Content);
 
-  LListener.Stop;
-  Assert.isFalse(LListener.Active);
+  lListener.Stop;
+  Assert.isFalse(lListener.Active);
 end;
 
 procedure TTestMVCFrameworkServer.TestListenerContext;

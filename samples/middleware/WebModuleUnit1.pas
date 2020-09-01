@@ -31,10 +31,12 @@ uses AppControllerU, MiddlewareSample1;
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(Self);
-  MVC.Config[TMVCConfigKey.SessionTimeout] := '30';
-  MVC.Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
-
+  MVC := TMVCEngine.Create(Self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.SessionTimeout] := '30';
+      Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
+    end);
   MVC
     .AddController(TApp1MainController)
     .AddMiddleware(TMVCSalutationMiddleware.Create)

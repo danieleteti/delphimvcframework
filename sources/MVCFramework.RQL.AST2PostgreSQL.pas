@@ -143,12 +143,38 @@ begin
           raise ERQLException.Create('Invalid RightValueType for tkIn');
         end;
       end;
+    tkOut:
+      begin
+        case aRQLFIlter.RightValueType of
+          vtIntegerArray:
+            begin
+              Result := Format('(%s NOT IN (%s))', [
+                GetFieldNameForSQL(lDBFieldName), string.Join(',', aRQLFIlter.OpRightArray)
+                ]);
+            end;
+          vtStringArray:
+            begin
+              Result := Format('(%s NOT IN (%s))', [
+                GetFieldNameForSQL(lDBFieldName), string.Join(',', QuoteStringArray(aRQLFIlter.OpRightArray))
+                ]);
+            end;
+        else
+          raise ERQLException.Create('Invalid RightValueType for tkOut');
+        end;
+      end;
   end;
 end;
 
 function TRQLPostgreSQLCompiler.RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
 begin
-  Result := Format(' /*limit*/ LIMIT %d OFFSET %d', [aRQLLimit.Count, aRQLLimit.Start]);
+  if aRQLLimit.Start = 0 then
+  begin
+    Result := Format(' /*limit*/ LIMIT %d', [aRQLLimit.Count]);
+  end
+  else
+  begin
+    Result := Format(' /*limit*/ LIMIT %d OFFSET %d', [aRQLLimit.Count, aRQLLimit.Start]);
+  end;
 end;
 
 function TRQLPostgreSQLCompiler.RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;

@@ -30,6 +30,8 @@ CREATE TABLE customers_plain (
 	city varchar(200) NULL,
 	note text NULL,
 	rating int4 NULL,
+	creation_time time null,
+	creation_date date null,
 	CONSTRAINT customers_plain_pk PRIMARY KEY (id)
 );
 

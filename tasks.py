@@ -12,7 +12,7 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "10.3"
+DEFAULT_DELPHI_VERSION = "10.4"
 
 g_releases_path = "releases"
 g_output = "bin"
@@ -50,6 +50,7 @@ def build_delphi_project(
         "10.1": {"path": "18.0", "desc": "Delphi 10.1 Berlin"},
         "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
         "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
+        "10.4": {"path": "21.0", "desc": "Delphi 10.4 Sydney"},		
     }
 
     assert delphi_version in delphi_versions, (
@@ -140,7 +141,7 @@ def copy_sources():
         "dmvcframeworkDT.dpk",
     ]
 
-    folders = ["d100", "d101", "d102", "d103"]
+    folders = ["d100", "d101", "d102", "d103", "d104"]
 
     for folder in folders:
         print(f"Copying DMVCFramework Delphi {folder} packages...")
@@ -174,30 +175,6 @@ def copy_libs(ctx):
     os.makedirs(curr_folder, exist_ok=True)
     if not ctx.run(rf"xcopy lib\dmustache\*.* {curr_folder}\*.* /E /Y /R /V /F"):
         raise Exception("Cannot copy dmustache")
-
-    # # loggerpro
-    # print("Copying libraries: LoggerPro...")
-    # curr_folder = g_output_folder + "\\lib\\loggerpro"
-    # os.makedirs(curr_folder, exist_ok=True)
-    # src = glob.glob("lib\\loggerpro\\*.pas")
-    # for file in src:
-    #     print("Copying " + file + " to " + curr_folder)
-    #     copy2(file, curr_folder)
-    # copy2("lib\\loggerpro\\License.txt", curr_folder)
-    # copy2("lib\\loggerpro\\VERSION.TXT", curr_folder)
-    #
-    #
-    #
-    # # dmustache
-    # print("Copying libraries: dmustache...")
-    # curr_folder = g_output_folder + "\\lib\\dmustache"
-    # os.makedirs(curr_folder, exist_ok=True)
-    # src = glob.glob("lib\\dmustache\\*.pas") + \
-    #       glob.glob("lib\\dmustache\\*.inc")
-    # for file in src:
-    #     print("Copying " + file + " to " + curr_folder)
-    #     copy2(file, curr_folder)
-    # copy2("lib\\dmustache\\README.md", curr_folder)
 
 
 def printkv(key, value):
@@ -289,6 +266,8 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\loggerpro\packages\d102\Win32\Debug", True)
     rmtree(folder + r"\lib\loggerpro\packages\d103\__history", True)
     rmtree(folder + r"\lib\loggerpro\packages\d103\Win32\Debug", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d104\__history", True)
+    rmtree(folder + r"\lib\loggerpro\packages\d104\Win32\Debug", True)
     rmtree(folder + r"\lib\dmustache\.git", True)
     rmtree(folder + r"\lib\swagdoc\lib", True)
     rmtree(folder + r"\lib\swagdoc\deploy", True)

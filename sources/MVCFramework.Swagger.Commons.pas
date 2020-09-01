@@ -42,7 +42,8 @@ uses
   Json.Schema.Field,
   Json.Schema.Field.Objects,
   Swag.Doc.Definition,
-  System.Generics.Collections;
+  System.Generics.Collections, 
+  System.Generics.Defaults;
 
 type
   TMVCSwagParamLocation = (plNotDefined, plQuery, plHeader, plPath, plFormData, plBody);
@@ -217,6 +218,11 @@ type
       AUserNameHeaderName, APasswordHeaderName: string): TSwagPath;
   end;
 
+  TArrayHelper = class
+  public
+    class procedure QuickSort<T>(var Values: array of T; const Comparer: IComparer<T>;  L, R: Integer); static;
+  end;
+
 const
   JWT_AUTHENTICATION_TAG = 'JWT Authentication';
   SECURITY_BEARER_NAME = 'bearer';
@@ -236,6 +242,7 @@ implementation
 uses
   System.Classes,
   System.RegularExpressions,
+  System.TypInfo,
   MVCFramework,
   MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,
@@ -245,8 +252,7 @@ uses
   Json.Schema.Field.Arrays,
   Json.Schema.Field.DateTimes,
   Json.Schema.Field.Enums,
-  Json.Schema.Field.Booleans,
-  System.Generics.Defaults;
+  Json.Schema.Field.Booleans;
 
 { TSwaggerUtils }
 
@@ -1025,6 +1031,62 @@ end;
 constructor MVCSwagAuthenticationAttribute.Create(const AAuthenticationType: TMVCSwagAuthenticationType);
 begin
   fAuthenticationType := AAuthenticationType;
+end;
+
+{ TArrayHelper }
+
+class procedure TArrayHelper.QuickSort<T>(var Values: array of T; const Comparer: IComparer<T>; L, R: Integer);
+var
+  I, J: Integer;
+  pivot, temp: T;
+begin
+  if L < R then
+  begin
+    repeat
+      if (R - L) = 1 then
+      begin
+        if Comparer.Compare(Values[L], Values[R]) > 0 then
+        begin
+          temp := Values[L];
+          Values[L] := Values[R];
+          Values[R] := temp;
+        end;
+        break;
+      end;
+      I := L;
+      J := R;
+      pivot := Values[L + (R - L) shr 1];
+      repeat
+        while Comparer.Compare(Values[I], pivot) < 0 do
+          Inc(I);
+        while Comparer.Compare(Values[J], pivot) > 0 do
+          Dec(J);
+        if I <= J then
+        begin
+          if I <> J then
+          begin
+            temp := Values[I];
+            Values[I] := Values[J];
+            Values[J] := temp;
+          end;
+          Inc(I);
+          Dec(J);
+        end;
+      until I > J;
+      if (J - L) > (R - I) then
+      begin
+        if I < R then
+          QuickSort<T>(Values, Comparer, I, R);
+        R := J;
+      end
+      else
+      begin
+        if L < J then
+          QuickSort<T>(Values, Comparer, L, J);
+        L := I;
+      end;
+    until L >= R;
+  end;
 end;
 
 end.

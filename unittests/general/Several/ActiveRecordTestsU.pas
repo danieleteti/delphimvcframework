@@ -32,17 +32,24 @@ uses
 type
 
   [TestFixture]
-  TTestActiveRecord = class(TObject)
+  TTestActiveRecordSQLite = class(TObject)
   private
+    procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
+    procedure CreateSqlitePrivateConnDef(AIsPooled: boolean);
+  protected
     fConnection: TFDConnection;
+    fConDefName: string;
     procedure LoadData;
+    procedure AfterDataLoad; virtual;
   public
     [Setup]
-    procedure Setup;
+    procedure Setup; virtual;
     [Teardown]
     procedure Teardown;
     [Test]
     procedure TestCRUD;
+    [Test]
+    procedure TestCRUDWithTableChange;
     [Test]
     procedure TestCRUDStringPK;
     [Test]
@@ -59,19 +66,75 @@ type
     procedure TestNullables;
   end;
 
+  [TestFixture]
+  TTestActiveRecordFirebird = class(TTestActiveRecordSQLite)
+  public
+    [Setup]
+    procedure Setup; override;
+  protected
+    procedure AfterDataLoad; override;
+  end;
+
 implementation
 
 uses
   System.Classes, System.IOUtils, BOs, MVCFramework.ActiveRecord,
-  System.SysUtils, System.Threading, System.Generics.Collections, Data.DB;
+  System.SysUtils, System.Threading, System.Generics.Collections, Data.DB,
+  FireDAC.Stan.Intf;
 
 const
-  CON_DEF_NAME = 'SQLITECONNECTION';
+  _CON_DEF_NAME = 'SQLITECONNECTION';
+  _CON_DEF_NAME_FIREBIRD = 'FIREBIRDCONNECTION';
 
 var
   GDBFileName: string = '';
+  GDBTemplateFileName: string = '';
 
-procedure CreateSqlitePrivateConnDef(AIsPooled: boolean);
+procedure TTestActiveRecordSQLite.AfterDataLoad;
+begin
+  {TODO -oDanieleT -cGeneral : Hot to reset a sqlite autoincrement field?}
+  //https://sqlite.org/fileformat2.html#seqtab
+  //https://stackoverflow.com/questions/5586269/how-can-i-reset-a-autoincrement-sequence-number-in-sqlite/14298431
+//  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers''');
+//  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers2''');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
+end;
+
+procedure TTestActiveRecordSQLite.CreateFirebirdPrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+  lDriver: IFDStanDefinition;
+begin
+  lDriver := FDManager.DriverDefs.Add;
+  lDriver.Name := 'FBEMBEDDED';
+  lDriver.AsString['BaseDriverID'] := 'FB';
+  lDriver.AsString['DriverID'] := 'FBEMBEDDED';
+  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
+  lDriver.Apply;
+
+  LParams := TStringList.Create;
+  try
+    GDBFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest.fdb');
+    GDBTemplateFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest_template.fdb');
+    LParams.Add('Database=' + GDBFileName);
+    // LParams.Add('user_name=sysdba');
+    // LParams.Add('password=masterkey');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(fConDefName, 'FBEMBEDDED', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
+procedure TTestActiveRecordSQLite.CreateSqlitePrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
 begin
@@ -89,13 +152,13 @@ begin
     begin
       LParams.Add('Pooled=False');
     end;
-    FDManager.AddConnectionDef(CON_DEF_NAME, 'SQLite', LParams);
+    FDManager.AddConnectionDef(fConDefName, 'SQLite', LParams);
   finally
     LParams.Free;
   end;
 end;
 
-procedure TTestActiveRecord.TestCRUD;
+procedure TTestActiveRecordSQLite.TestCRUD;
 var
   lCustomer: TCustomer;
   lID: Integer;
@@ -106,6 +169,8 @@ begin
     lCustomer.CompanyName := 'bit Time Professionals';
     lCustomer.City := 'Rome, IT';
     lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
     lCustomer.ID := -1; { don't be fooled by the default! }
     lCustomer.Insert;
     lID := lCustomer.ID;
@@ -118,9 +183,13 @@ begin
   try
     Assert.IsFalse(lCustomer.Code.HasValue);
     Assert.IsFalse(lCustomer.Rating.HasValue);
+    Assert.IsTrue(lCustomer.CreationTime.HasValue);
+    Assert.IsTrue(lCustomer.CreationDate.HasValue);
     lCustomer.Code := '1234';
     lCustomer.Rating := 3;
     lCustomer.Note := lCustomer.Note + 'noteupdated';
+    lCustomer.CreationTime.Clear;
+    lCustomer.CreationDate.Clear;
     lCustomer.Update;
   finally
     lCustomer.Free;
@@ -134,6 +203,8 @@ begin
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
     Assert.AreEqual(1, lCustomer.ID);
+    Assert.IsFalse(lCustomer.CreationTime.HasValue);
+    Assert.IsFalse(lCustomer.CreationDate.HasValue);
   finally
     lCustomer.Free;
   end;
@@ -153,7 +224,7 @@ begin
 
 end;
 
-procedure TTestActiveRecord.TestCRUDStringPK;
+procedure TTestActiveRecordSQLite.TestCRUDStringPK;
 var
   lCustomer: TCustomerWithCode;
 begin
@@ -204,7 +275,50 @@ begin
   Assert.IsNull(lCustomer);
 end;
 
-procedure TTestActiveRecord.TestLifeCycle;
+procedure TTestActiveRecordSQLite.TestCRUDWithTableChange;
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>());
+  AfterDataLoad;
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+  finally
+    lCustomer.Free;
+  end;
+
+  // the same changing tablename
+
+  lCustomer := TCustomer.Create;
+  try
+    Assert.AreEqual('customers', lCustomer.TableName);
+    lCustomer.TableName := 'customers2';
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+    Assert.IsTrue(lCustomer.LoadByPK(lID));
+  finally
+    lCustomer.Free;
+  end;
+end;
+
+procedure TTestActiveRecordSQLite.TestLifeCycle;
 var
   lCustomer: TCustomerWithLF;
   lID: Integer;
@@ -248,13 +362,13 @@ begin
   end;
 end;
 
-procedure TTestActiveRecord.TestMultiThreading;
+procedure TTestActiveRecordSQLite.TestMultiThreading;
 begin
   LoadData;
   Assert.AreEqual(Trunc(20 * 30), TMVCActiveRecord.Count(TCustomerWithLF));
 end;
 
-procedure TTestActiveRecord.TestNullables;
+procedure TTestActiveRecordSQLite.TestNullables;
 var
   lTest: TNullablesTest;
 begin
@@ -328,14 +442,14 @@ begin
     lTest.f_datetime := Now;
     lTest.f_float4 := 1234.5678;
     lTest.f_float8 := 12345678901234567890.0123456789;
-    lTest.f_currency := 1234567890.1234;
+//    lTest.f_currency := 1234567890.1234;
     lTest.Insert;
   finally
     lTest.Free;
   end;
 end;
 
-procedure TTestActiveRecord.TestRQL;
+procedure TTestActiveRecordSQLite.TestRQL;
 var
   lCustomers: TObjectList<TCustomer>;
 const
@@ -357,7 +471,7 @@ begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
 
-procedure TTestActiveRecord.TestSelectWithExceptions;
+procedure TTestActiveRecordSQLite.TestSelectWithExceptions;
 var
   lCustomer: TCustomer;
   lID: Integer;
@@ -411,7 +525,7 @@ begin
 
 end;
 
-procedure TTestActiveRecord.TestStore;
+procedure TTestActiveRecordSQLite.TestStore;
 var
   lCustomer: TCustomerWithNullablePK;
   lID: Integer;
@@ -444,7 +558,7 @@ begin
 
 end;
 
-procedure TTestActiveRecord.LoadData;
+procedure TTestActiveRecordSQLite.LoadData;
 var
   lTasks: TArray<ITask>;
   lProc: TProc;
@@ -461,7 +575,7 @@ begin
     begin
       ActiveRecordConnectionsRegistry.AddDefaultConnection(TFDConnection.Create(nil), True);
       try
-        ActiveRecordConnectionsRegistry.GetCurrent.ConnectionDefName := CON_DEF_NAME;
+        ActiveRecordConnectionsRegistry.GetCurrent.ConnectionDefName := fConDefName;
         for I := 1 to 30 do
         begin
           lCustomer := TCustomer.Create;
@@ -480,6 +594,7 @@ begin
         ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
       end;
     end;
+  AfterDataLoad;
 
   lTasks := [
     TTask.Run(lProc),
@@ -505,12 +620,13 @@ begin
   TTask.WaitForAll(lTasks);
 end;
 
-procedure TTestActiveRecord.Setup;
+procedure TTestActiveRecordSQLite.Setup;
 begin
+  fConDefName := _CON_DEF_NAME;
   fConnection := TFDConnection.Create(nil);
-  fConnection.ConnectionDefName := CON_DEF_NAME;
+  fConnection.ConnectionDefName := fConDefName;
 
-  if FDManager.ConnectionDefs.FindConnectionDef(CON_DEF_NAME) = nil then
+  if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
   begin
     CreateSqlitePrivateConnDef(True);
     if TFile.Exists(GDBFileName) then
@@ -519,7 +635,7 @@ begin
     end;
 
     fConnection.Open;
-    for var lSQL in SQLs do
+    for var lSQL in SQLs_SQLITE do
     begin
       fConnection.ExecSQL(lSQL);
     end;
@@ -531,18 +647,64 @@ begin
 
   ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnection);
   TMVCActiveRecord.DeleteAll(TCustomer);
+  ActiveRecordConnectionsRegistry.GetCurrent.ExecSQL('delete from customers2');
+  AfterDataLoad;
 end;
 
-procedure TTestActiveRecord.Teardown;
+procedure TTestActiveRecordSQLite.Teardown;
 begin
   ActiveRecordConnectionsRegistry.RemoveDefaultConnection();
   fConnection.Close;
   FreeAndNil(fConnection);
 end;
 
+{ TTestActiveRecordFirebird }
+
+procedure TTestActiveRecordFirebird.AfterDataLoad;
+begin
+  TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers alter column id restart');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers2 alter column id restart');
+end;
+
+procedure TTestActiveRecordFirebird.Setup;
+begin
+  fConDefName := _CON_DEF_NAME_FIREBIRD;
+  fConnection := TFDConnection.Create(nil);
+  fConnection.ConnectionDefName := fConDefName;
+
+  if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
+  begin
+    CreateFirebirdPrivateConnDef(True);
+    if TFile.Exists(GDBFileName) then
+    begin
+      TFile.Delete(GDBFileName);
+    end;
+
+    TFile.Copy(GDBTemplateFileName, GDBFileName);
+
+    fConnection.Open;
+    for var lSQL in SQLs_FIREBIRD do
+    begin
+      fConnection.ExecSQL(lSQL);
+    end;
+  end
+  else
+  begin
+    fConnection.Open;
+  end;
+  fConnection.Close;
+  fConnection.Open;
+
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnection);
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from customers2');
+  AfterDataLoad;
+end;
+
 initialization
 
-TDUnitX.RegisterTestFixture(TTestActiveRecord);
+TDUnitX.RegisterTestFixture(TTestActiveRecordSQLite);
+TDUnitX.RegisterTestFixture(TTestActiveRecordFirebird);
 
 finalization
 

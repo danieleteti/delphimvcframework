@@ -67,6 +67,10 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE RIOORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 34} // 10.4 Sydney
+{$DEFINE SYDNEYORBETTER}
+{$ENDIF}
+
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
 {$ENDIF}

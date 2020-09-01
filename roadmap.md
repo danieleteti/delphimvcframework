@@ -10,7 +10,7 @@ As we are in the detailed planning stages for these features, we will share addi
  - (DONE) Implement Strongly Typed Actions
  - (DONE) Implement Custom Authentication and Authorization Middleware
  - (DONE) Use a middleware to implement response compression for console type projects
- - (INITIAL)Implement Swagger support (we need a good self contained YAML parser/generator...)
+ - (DONE)Implement Swagger support 
  - (DONE) Linux support
  - (DONE) Update Mapper framework to make it extensible and configurable
    - The default mapper interface will be the same as the current version so that no breaking changes happened
@@ -25,7 +25,7 @@ As we are in the detailed planning stages for these features, we will share addi
 - New samples with specific web related use cases:
    - WebWorkers
    - (DONE) Angular2+
-   - React
+   - (DONE) React
 - (DONE) Create "Custom Authentication and Authorization" demo
 - (CANCELED) Complete the [DevGuide](https://danieleteti.gitbooks.io/delphimvcframework/content/) on gitbooks
 - Improve the session mechanism to allows more flexibility

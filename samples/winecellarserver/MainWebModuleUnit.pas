@@ -32,6 +32,7 @@ uses
 
 {$R *.dfm}
 
+
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
   MVCEngine := TMVCEngine.Create(self);
@@ -39,7 +40,7 @@ begin
   MVCEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/', { StaticFilesPath }
     TPath.Combine(AppPath, '..\..\www'), { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
+    'index.html' { IndexDocument - Before it was named fallbackresource }
     ));
 end;
 

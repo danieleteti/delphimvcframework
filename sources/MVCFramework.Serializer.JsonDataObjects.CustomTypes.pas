@@ -440,6 +440,12 @@ begin
     for lName in lObjDict.Keys do
     begin
       lObj := lObjDict.Items[lName];
+      if lObj.Data = nil then
+      begin
+        lOutObject.O[lName] := nil;
+        Continue;
+      end;
+
       if fCurrentSerializer.GetTypeSerializers.ContainsKey(lObj.Data.ClassInfo) then
       begin
         fCurrentSerializer.GetTypeSerializers.Items[lObj.Data.ClassInfo].SerializeRoot(lObj.Data, TObject(lOutCustom),

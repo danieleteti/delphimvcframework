@@ -1,3 +1,35 @@
+// ***************************************************************************
+//
+// Delphi MVC Framework
+//
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+//
+// https://github.com/danieleteti/delphimvcframework
+//
+// ***************************************************************************
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ***************************************************************************
+//
+// This IDE expert is based off of the one included with the DUnitX }
+// project.  Original source by Robert Love.  Adapted by Nick Hodges. }
+//
+// The DUnitX project is run by Vincent Parrett and can be found at: }
+//
+// https://github.com/VSoftTechnologies/DUnitX }
+// ***************************************************************************
+
 unit DMVC.Expert.Forms.NewProjectWizard;
 
 interface
@@ -36,9 +68,13 @@ type
     lblFrameworkVersion: TLabel;
     chkCreateCRUDMethods: TCheckBox;
     chkAnalyticsMiddleware: TCheckBox;
+    lblBook: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
+    procedure lblBookMouseEnter(Sender: TObject);
+    procedure lblBookMouseLeave(Sender: TObject);
+    procedure lblBookClick(Sender: TObject);
   private
     { Private declarations }
     function GetAddToProjectGroup: boolean;
@@ -83,6 +119,7 @@ begin
   gbControllerUnitOptions.Enabled := chkCreateIndexMethod.Checked;
   chkCreateIndexMethod.Enabled := chkCreateControllerUnit.Checked;
   chkCreateActionFiltersMethods.Enabled := chkCreateControllerUnit.Checked;
+  chkCreateCRUDMethods.Enabled := chkCreateControllerUnit.Checked;
   edtClassName.Enabled := chkCreateControllerUnit.Checked;
 end;
 
@@ -146,8 +183,27 @@ end;
 procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
 begin
   ShellExecute(0, PChar('open'),
-    PChar('https://www.gitbook.com/book/danieleteti/delphimvcframework/details'),
+    PChar('https://github.com/danieleteti/delphimvcframework'),
     nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
+begin
+  ShellExecute(0, PChar('open'),
+    PChar('https://leanpub.com/delphimvcframework'),
+    nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblBookMouseEnter(Sender: TObject);
+begin
+  lblBook.Font.Color := clHighlight;
+  lblBook.Font.Style := lblBook.Font.Style + [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblBookMouseLeave(Sender: TObject);
+begin
+  lblBook.Font.Color := Font.Color;
+  lblBook.Font.Style := lblBook.Font.Style - [fsUnderline];
 end;
 
 function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;

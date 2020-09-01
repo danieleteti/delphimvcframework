@@ -51,7 +51,8 @@ type
     function GetMaxRecordCount: Integer;
     function CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean; virtual;
   public
-    constructor Create(const aConnectionFactory: TFunc<TFDConnection>; const aAuthorization: TMVCActiveRecordAuthFunc = nil); reintroduce;
+    constructor Create(const aConnectionFactory: TFunc<TFDConnection>;
+      const aAuthorization: TMVCActiveRecordAuthFunc = nil); reintroduce;
     destructor Destroy; override;
 
     [MVCPath('/($entityname)')]
@@ -90,6 +91,7 @@ type
     constructor Create(AList: TMVCActiveRecordList; AOwns: Boolean = True); virtual;
     destructor Destroy; override;
     [MVCListOf(TMVCActiveRecord)]
+    [MVCNameAs('data')]
     property Items: TMVCActiveRecordList read FList;
     [MVCNameAs('meta')]
     property Metadata: TMVCStringDictionary read FMetadata;
@@ -151,9 +153,15 @@ begin
       lInstance.Free;
     end;
 
-    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, GetMaxRecordCount), True);
+
+    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL,
+      GetMaxRecordCount), True);
     try
-      lResp.Metadata.Add('count', lResp.Items.Count.ToString);
+      lResp.Metadata.Add('page_size', lResp.Items.Count.ToString);
+      if Context.Request.QueryStringParam('count').ToLower = 'true' then
+      begin
+        lResp.Metadata.Add('count', TMVCActiveRecord.Count(lARClassRef, lRQL).ToString);
+      end;
       Render(lResp);
     except
       lResp.Free;
@@ -179,7 +187,14 @@ begin
   begin
     lJSON := TJsonObject.Parse(Context.Request.Body) as TJsonObject;
     try
-      lRQL := lJSON.s['rql'];
+      if Assigned(lJSON) then
+      begin
+        lRQL := lJSON.s['rql'];
+      end
+      else
+      begin
+        lRQL := '';
+      end;
     finally
       lJSON.Free;
     end;
@@ -208,7 +223,7 @@ begin
 
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
-    raise EMVCException.Create('Cannot find class for entity');
+    raise EMVCException.CreateFmt(http_status.NotFound, 'Cannot find entity %s', [entityname]);
   end;
   lAR := lARClass.Create;
   try
@@ -220,7 +235,7 @@ begin
 
     if lAR.LoadByPK(id) then
     begin
-      Render(lAR, False);
+      Render(ObjectDict(false).Add('data', lAR));
     end
     else
     begin
@@ -236,7 +251,8 @@ begin
   Result := StrToIntDef(Config[TMVCConfigKey.MaxEntitiesRecordCount], 20);
 end;
 
-function TMVCActiveRecordController.CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean;
+function TMVCActiveRecordController.CheckAuthorization(aClass: TMVCActiveRecordClass;
+  aAction: TMVCActiveRecordAction): Boolean;
 begin
   if Assigned(fAuthorization) then
   begin
@@ -287,7 +303,7 @@ begin
 
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
-    raise EMVCException.Create('Cannot find class for entity');
+    raise EMVCException.CreateFmt(http_status.NotFound, 'Cannot find entity %s', [entityname]);
   end;
   lAR := lARClass.Create;
   try
@@ -299,10 +315,8 @@ begin
 
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.Insert;
-    StatusCode := http_status.Created;
-    //Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
-    Context.Response.CustomHeaders.Add('X-REF:' + Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString);
-
+    // StatusCode := http_status.Created;
+    Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo + '/' + lAR.GetPK.AsInt64.ToString;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
       Render(http_status.Created, entityname.ToLower + ' created', '', lAR);
@@ -327,16 +341,16 @@ begin
   if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
   begin
     lHandled := False;
-    lProcessor.UpdateEntity(Context, self, entityname,id ,lHandled);
+    lProcessor.UpdateEntity(Context, self, entityname, id, lHandled);
     if lHandled then
     begin
       Exit;
     end;
   end;
-  // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
+
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
-    raise EMVCException.Create('Cannot find class for entity');
+    raise EMVCException.CreateFmt(http_status.NotFound, 'Cannot find class for entity %s', [entityname]);
   end;
   lAR := lARClass.Create;
   try
@@ -347,13 +361,11 @@ begin
     end;
     lAR.CheckAction(TMVCEntityAction.eaUpdate);
     if not lAR.LoadByPK(id) then
-      raise EMVCException.Create('Cannot find entity');
+      raise EMVCException.CreateFmt(http_status.NotFound, 'Cannot find entity %s', [entityname]);
     Context.Request.BodyFor<TMVCActiveRecord>(lAR);
     lAR.SetPK(id);
     lAR.Update;
-    //Context.Response.CustomHeaders.AddPair('X-REF', Context.Request.PathInfo);
-    Context.Response.CustomHeaders.Add('X-REF:' + Context.Request.PathInfo);
-
+    Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo;
     if Context.Request.QueryStringParam('refresh').ToLower = 'true' then
     begin
       Render(http_status.OK, entityname.ToLower + ' updated', '', lAR);
@@ -372,22 +384,27 @@ var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
 begin
-  // lAR := ActiveRecordMappingRegistry.GetEntityByURLSegment(entityname).Create;
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
-    raise EMVCException.Create('Cannot find class for entity');
+    raise EMVCException.CreateFmt(http_status.NotFound, 'Cannot find class for entity %s', [entityname]);
   end;
   lAR := lARClass.Create;
   try
-    if not CheckAuthorization(TMVCActiveRecordClass(lAR), TMVCActiveRecordAction.Delete) then
+    if not CheckAuthorization(TMVCActiveRecordClass(lAR.ClassType) { TMVCActiveRecordClass(lAR) } ,
+      TMVCActiveRecordAction.Delete) then
     begin
       Render(TMVCErrorResponse.Create(http_status.Forbidden, 'Cannot delete ' + entityname, ''));
       Exit;
     end;
-    if not lAR.LoadByPK(id) then
-      raise EMVCException.Create('Cannot find entity');
-    lAR.SetPK(id);
-    lAR.Delete;
+    {
+      HTTP DELETE is an idempotent operation. Invoking it multiple times consecutively must result in
+      the same behavior as the first. Meaning: you shouldn't return HTTP 404.
+    }
+    if lAR.LoadByPK(id) then
+    begin
+      lAR.SetPK(id);
+      lAR.Delete;
+    end;
     Render(http_status.OK, entityname.ToLower + ' deleted');
   finally
     lAR.Free;

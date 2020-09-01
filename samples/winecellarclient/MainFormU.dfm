@@ -12,7 +12,6 @@ object Form5: TForm5
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnClose = FormClose
   OnCreate = FormCreate
   DesignSize = (
     758
@@ -35,7 +34,7 @@ object Form5: TForm5
     Height = 370
     ActivePage = TabSheet1
     Anchors = [akLeft, akTop, akRight, akBottom]
-    TabOrder = 1
+    TabOrder = 2
     object TabSheet1: TTabSheet
       Caption = 'Wines'
       object DBGrid1: TDBGrid
@@ -232,7 +231,7 @@ object Form5: TForm5
     Width = 320
     Height = 33
     DataSource = DataSource1
-    TabOrder = 2
+    TabOrder = 1
   end
   object FDMemTable1: TFDMemTable
     BeforePost = FDMemTable1BeforePost

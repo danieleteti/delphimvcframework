@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2019 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -60,12 +60,11 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    SetMode(TConsoleMode.Bright);
     TextColor(Red);
     Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
     ResetConsole;
     Writeln('Press RETURN to stop the server');
-    ReadLn;
+    WaitForReturn;
     Writeln('Stopping...');
   finally
     LServer.Free;

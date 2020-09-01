@@ -36,18 +36,21 @@ uses
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
-  MVC := TMVCEngine.Create(self);
+  MVC := TMVCEngine.Create(self,
+    procedure(Config: TMVCConfig)
+    begin
+      Config[TMVCConfigKey.ViewPath] :=
+        ExtractFilePath(GetModuleName(HInstance)) + '..\..\templates';
+      Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML;
+    end);
   MVC.AddController(TFileUploadController);
   MVC.AddMiddleware(TMVCTraceMiddleware.Create);
   MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/', { StaticFilesPath }
     ExtractFilePath(GetModuleName(HInstance)) + '..\..\document_root', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
+    'index.html' { IndexDocument - Before it was named fallbackresource }
     ));
   MVC.SetViewEngine(TMVCTemplateProViewEngine);
-  MVC.Config[TMVCConfigKey.ViewPath] := ExtractFilePath(GetModuleName(HInstance)
-    ) + '..\..\templates';
-  MVC.Config[TMVCConfigKey.DefaultContentType] := TMVCMediaType.TEXT_HTML;
 
 end;
 

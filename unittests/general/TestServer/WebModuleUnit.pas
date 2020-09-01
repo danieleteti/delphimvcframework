@@ -30,11 +30,10 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework
-{$IFDEF MSWINDOWS}
-    ,
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
+  MVCFramework,
   FireDAC.Stan.StorageJSON
+{$IFDEF MSWINDOWS}
+    ,MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
 {$ENDIF}
     ;
 
@@ -64,7 +63,9 @@ uses
   TestServerControllerPrivateU,
   AuthHandlersU,
   TestServerControllerJSONRPCU,
+  {$IFNDEF LINUX}
   MVCFramework.View.Renderers.Mustache,
+  {$ENDIF}
   MVCFramework.Middleware.Compression,
   MVCFramework.Middleware.StaticFiles;
 
@@ -91,6 +92,11 @@ begin
     begin
       Result := TTestJSONRPCClass.Create
     end, '/jsonrpcclass')
+    .PublishObject(
+    function: TObject
+    begin
+      Result := TTestJSONRPCHookClass.Create
+    end, '/jsonrpcclass1')
     .AddController(TTestFaultController) // this will raise an exception
     .AddController(TTestFault2Controller,
     function: TMVCController
@@ -98,14 +104,14 @@ begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', '..\www', 'index.html', False))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', '..\www', 'index.html', False))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', '..\www', 'index.html', True))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', './www', 'index.html', False))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', './www', 'index.html', False))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', './www', 'index.html', True))
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
-  MVCEngine.SetViewEngine(TMVCMustacheViewEngine);
 {$IFDEF MSWINDOWS}
+  MVCEngine.SetViewEngine(TMVCMustacheViewEngine);
   RegisterOptionalCustomTypesSerializers(MVCEngine.Serializers[TMVCMediaType.APPLICATION_JSON]);
 {$ENDIF}
 end;

@@ -124,7 +124,7 @@ constructor TMVCStaticFilesMiddleware.Create(
   const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
 begin
   inherited Create;
-  fStaticFilesPath :=  AStaticFilesPath;
+  fStaticFilesPath := AStaticFilesPath;
   fDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
   fIndexDocument := AIndexDocument;
   fStaticFilesCharset := AStaticFilesCharset;
@@ -173,6 +173,23 @@ begin
   begin
     AHandled := False;
     Exit;
+  end;
+
+  {
+    If user ask for
+    www.server.it/folder
+    the browser is redirected to
+    www.server.it/folder/
+  }
+  if SameText(lPathInfo, fStaticFilesPath) then
+  begin
+    if (not lPathInfo.EndsWith('/')) and (not fIndexDocument.IsEmpty) then
+    begin
+      AContext.Response.StatusCode := HTTP_STATUS.MovedPermanently;
+      AContext.Response.CustomHeaders.Values['Location'] := lPathInfo + '/';
+      AHandled := True;
+      Exit;
+    end;
   end;
 
   if not((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then

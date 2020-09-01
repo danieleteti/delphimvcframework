@@ -2,6 +2,7 @@ program SwaggerDocApi;
 {$APPTYPE GUI}
 
 uses
+//  FastMM4,
   Vcl.Forms,
   Web.WebReq,
   IdHTTPWebBrokerBridge,

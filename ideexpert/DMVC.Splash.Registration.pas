@@ -20,6 +20,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+// ***************************************************************************
+//
 // This IDE expert is based off of the one included with the DUnitX
 // project.  Original source by Robert Love.  Adapted by Nick Hodges.
 //
@@ -27,6 +29,7 @@
 //
 // https://github.com/VSoftTechnologies/DUnitX
 // ***************************************************************************
+
 
 unit DMVC.Splash.Registration;
 

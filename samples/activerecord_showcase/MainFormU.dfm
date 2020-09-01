@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 522
+  ClientHeight = 640
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     635
-    522)
+    640)
   PixelsPerInch = 96
   TextHeight = 13
   object btnCRUD: TButton
@@ -40,7 +40,7 @@ object MainForm: TMainForm
     Left = 135
     Top = 8
     Width = 492
-    Height = 506
+    Height = 624
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -148,6 +148,42 @@ object MainForm: TMainForm
     TabOrder = 12
     WordWrap = True
     OnClick = btnWithSpacesClick
+  end
+  object btnCountWithRQL: TButton
+    Left = 8
+    Top = 483
+    Width = 121
+    Height = 34
+    Caption = 'Count with RQL'
+    TabOrder = 13
+    OnClick = btnCountWithRQLClick
+  end
+  object btnReadAndWriteOnly: TButton
+    Left = 8
+    Top = 523
+    Width = 121
+    Height = 33
+    Caption = 'R/O, R/W'
+    TabOrder = 14
+    OnClick = btnReadAndWriteOnlyClick
+  end
+  object btnClientGeneratedPK: TButton
+    Left = 8
+    Top = 562
+    Width = 121
+    Height = 33
+    Caption = 'Client Generated PKs'
+    TabOrder = 15
+    OnClick = btnClientGeneratedPKClick
+  end
+  object btnAttributes: TButton
+    Left = 8
+    Top = 599
+    Width = 121
+    Height = 33
+    Caption = 'Attributes'
+    TabOrder = 16
+    OnClick = btnAttributesClick
   end
   object FDConnection1: TFDConnection
     Left = 176
