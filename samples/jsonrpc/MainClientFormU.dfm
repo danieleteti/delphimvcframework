@@ -2,7 +2,7 @@ object Form10: TForm10
   Left = 0
   Top = 0
   Caption = 'Form10'
-  ClientHeight = 484
+  ClientHeight = 448
   ClientWidth = 831
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -14,28 +14,9 @@ object Form10: TForm10
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Label2: TLabel
-    AlignWithMargins = True
-    Left = 3
-    Top = 3
-    Width = 825
-    Height = 39
-    Align = alTop
-    Alignment = taCenter
-    Caption = 
-      'Please use the demo available in samples\jsonrpc_with_published_' +
-      'objects\'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -21
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    ParentFont = False
-    Layout = tlCenter
-  end
   object GroupBox1: TGroupBox
     Left = 8
-    Top = 48
+    Top = 16
     Width = 815
     Height = 124
     Caption = 'Simple Types'
@@ -183,7 +164,7 @@ object Form10: TForm10
   end
   object GroupBox2: TGroupBox
     Left = 8
-    Top = 178
+    Top = 146
     Width = 489
     Height = 159
     Caption = 'Returning Objects'
@@ -221,7 +202,7 @@ object Form10: TForm10
   end
   object GroupBox3: TGroupBox
     Left = 509
-    Top = 178
+    Top = 146
     Width = 314
     Height = 294
     Caption = 'Returning Datasets'
@@ -258,7 +239,7 @@ object Form10: TForm10
   end
   object GroupBox4: TGroupBox
     Left = 8
-    Top = 343
+    Top = 311
     Width = 489
     Height = 129
     Caption = 'Passing Objects as parameters'
@@ -317,7 +298,7 @@ object Form10: TForm10
   object DataSource1: TDataSource
     DataSet = FDMemTable1
     Left = 767
-    Top = 216
+    Top = 184
   end
   object FDMemTable1: TFDMemTable
     FetchOptions.AssignedValues = [evMode]
@@ -328,7 +309,7 @@ object Form10: TForm10
     UpdateOptions.CheckRequired = False
     UpdateOptions.AutoCommitUpdates = True
     Left = 767
-    Top = 280
+    Top = 248
     object FDMemTable1Code: TIntegerField
       FieldName = 'Code'
     end

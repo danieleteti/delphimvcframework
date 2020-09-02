@@ -52,10 +52,10 @@ type
     function GetCustomersDataset: TFDMemTable;
     function GetPeopleDataset: TFDMemTable;
   public
-    procedure OnBeforeCall(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
-    procedure OnBeforeRouting(const Context: TWebContext; const JSON: TJDOJsonObject);
-    procedure OnAfterCallHook(
-  const Context: TWebContext; const JSONResponse: TJDOJsonObject);
+    procedure OnBeforeCall(const JSONRequest: TJDOJsonObject);
+    procedure OnBeforeRouting(const JSON: TJDOJsonObject);
+    procedure OnBeforeSendResponse(
+  const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]
     function Subtract(Value1, Value2: Integer): Integer;
@@ -77,17 +77,6 @@ type
     procedure InvalidMethod1(var MyVarParam: Integer);
     procedure InvalidMethod2(out MyOutParam: Integer);
 
-  end;
-
-  TMyObjectWithHooks = class
-  public
-    // hooks
-    procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
-    procedure OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
-    procedure OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
-    // dummy method
-    procedure DoSomething;
-    procedure DoSomethingWithError;
   end;
 
   TUtils = class sealed
@@ -311,53 +300,26 @@ end;
 
 { TMyObjectWithHooks }
 
-procedure TMyObject.OnBeforeCall(const Context: TWebContext; const JSONRequest: TJDOJsonObject);
+procedure TMyObject.OnBeforeCall(const JSONRequest: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeCall >> ', 'jsonrpc');
   Log.Info(JSONRequest.ToJSON(false), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeCall << ', 'jsonrpc');
 end;
 
-procedure TMyObject.OnBeforeRouting(const Context: TWebContext; const JSON: TJDOJsonObject);
+procedure TMyObject.OnBeforeRouting(const JSON: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeRouting >> ', 'jsonrpc');
   Log.Info(JSON.ToJSON(false), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeRouting << ', 'jsonrpc');
 end;
 
-procedure TMyObject.OnAfterCallHook(
-  const Context: TWebContext; const JSONResponse: TJDOJsonObject);
+procedure TMyObject.OnBeforeSendResponse(
+  const JSONResponse: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeSendResponse >> ', 'jsonrpc');
   Log.Info(JSONResponse.ToJSON(false), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeSendResponse << ', 'jsonrpc');
-end;
-
-{ TMyObjectWithHooks }
-
-procedure TMyObjectWithHooks.DoSomething;
-begin
-  // do nothing
-end;
-
-procedure TMyObjectWithHooks.DoSomethingWithError;
-begin
-  raise Exception.Create('Boom');
-end;
-
-procedure TMyObjectWithHooks.OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
-begin
-  // do nothing
-end;
-
-procedure TMyObjectWithHooks.OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
-begin
-  // do nothing
-end;
-
-procedure TMyObjectWithHooks.OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
-begin
-  // do nothing
 end;
 
 end.

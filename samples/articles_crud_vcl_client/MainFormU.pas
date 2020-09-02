@@ -8,7 +8,7 @@ uses
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
   Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient,
-  Vcl.DBCtrls, MVCFramework.RESTClient.Intf;
+  Vcl.DBCtrls;
 
 type
   TMainForm = class(TForm)
@@ -31,6 +31,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure dsArticlesBeforePost(DataSet: TDataSet);
     procedure dsArticlesBeforeDelete(DataSet: TDataSet);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure dsArticlesBeforeRefresh(DataSet: TDataSet);
     procedure dsArticlesAfterOpen(DataSet: TDataSet);
     procedure btnOpenClick(Sender: TObject);
@@ -41,9 +42,9 @@ type
   private
     fFilter: string;
     fLoading: Boolean;
-    fRESTClient: IMVCRESTClient;
+    fRESTClient: TRESTClient;
     { Private declarations }
-    procedure ShowError(const AResponse: IMVCRESTResponse);
+    procedure ShowError(const AResponse: IRESTResponse);
     procedure SetFilter(const Value: string);
   public
     property Filter: string read fFilter write SetFilter;
@@ -86,19 +87,19 @@ end;
 
 procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
 var
-  Res: IMVCRESTResponse;
+  Res: IRESTResponse;
 begin
   if fFilter.IsEmpty then
   begin
     // this a simple sychronous request...
-    Res := fRESTClient.Get('/articles');
+    Res := fRESTClient.doGET('/articles', []);
   end
   else
   begin
-    Res := fRESTClient.AddQueryStringParam('q', fFilter).Get('/articles/searches');
+    Res := fRESTClient.doGET('/articles/searches', [], ['q'], [fFilter]);
   end;
 
-  if not Res.Success then
+  if Res.HasError then
   begin
     ShowError(Res);
     Exit;
@@ -107,7 +108,7 @@ begin
   DataSet.DisableControls;
   try
     fLoading := true;
-    dsArticles.LoadJSONArrayFromJSONObjectProperty('data', Res.Content);
+    dsArticles.LoadJSONArrayFromJSONObjectProperty('data', Res.BodyAsString);
     fLoading := false;
     dsArticles.First;
   finally
@@ -117,11 +118,11 @@ end;
 
 procedure TMainForm.dsArticlesBeforeDelete(DataSet: TDataSet);
 var
-  Res: IMVCRESTResponse;
+  Res: IRESTResponse;
 begin
   if dsArticles.State = dsBrowse then
     Res := fRESTClient.DataSetDelete('/articles', dsArticlesid.AsString);
-  if not(Res.StatusCode in [200]) then
+  if not(Res.ResponseCode in [200]) then
   begin
     ShowError(Res);
     Abort;
@@ -130,15 +131,15 @@ end;
 
 procedure TMainForm.dsArticlesBeforePost(DataSet: TDataSet);
 var
-  Res: IMVCRESTResponse;
+  Res: IRESTResponse;
 begin
   if not fLoading then
   begin
     if dsArticles.State = dsInsert then
       Res := fRESTClient.DataSetInsert('/articles', dsArticles)
     else
-      Res := fRESTClient.DataSetUpdate('/articles', dsArticlesid.AsString, dsArticles);
-    if not(Res.StatusCode in [200, 201]) then
+      Res := fRESTClient.DataSetUpdate('/articles', dsArticles, dsArticlesid.AsString);
+    if not(Res.ResponseCode in [200, 201]) then
     begin
       ShowError(Res);
       Abort;
@@ -158,19 +159,22 @@ end;
 
 procedure TMainForm.dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
 var
-  Res: IMVCRESTResponse;
+  Res: IRESTResponse;
 begin
-  Res := fRESTClient
-    .AddPathParam('Id', DataSet.FieldByName('id').AsString)
-    .Get('/articles/($Id)');
+  Res := fRESTClient.doGET('/articles', [DataSet.FieldByName('id').AsString]);
   fLoading := true;
-  DataSet.LoadJSONObjectFromJSONObjectProperty('data', Res.Content);
+  DataSet.LoadJSONObjectFromJSONObjectProperty('data', Res.BodyAsString);
   fLoading := false;
+end;
+
+procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  fRESTClient.Free;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  fRESTClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  fRESTClient := MVCFramework.RESTClient.TRESTClient.Create('localhost', 8080);
 end;
 
 procedure TMainForm.SetFilter(const Value: string);
@@ -179,17 +183,17 @@ begin
   EditFilter.Text := Value;
 end;
 
-procedure TMainForm.ShowError(const AResponse: IMVCRESTResponse);
+procedure TMainForm.ShowError(const AResponse: IRESTResponse);
 begin
-  if not AResponse.Success then
+  if AResponse.HasError then
     MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      '[' + AResponse.Content + ']',
+      AResponse.Error.HTTPError.ToString + ': ' + AResponse.Error.ExceptionMessage + sLineBreak +
+      '[' + AResponse.Error.ExceptionClassname + ']',
       mtError, [mbOK], 0)
   else
     MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      AResponse.Content,
+      AResponse.ResponseCode.ToString + ': ' + AResponse.ResponseText + sLineBreak +
+      AResponse.BodyAsString,
       mtError, [mbOK], 0);
 end;
 
