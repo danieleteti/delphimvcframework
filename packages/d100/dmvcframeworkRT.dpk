@@ -33,18 +33,13 @@ package dmvcframeworkRT;
 requires
   rtl,
   inet,
-  dclcommon,
-  dcldb,
   FireDAC,
   IndyCore,
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
   loggerproRT,
-  FireDACPgDriver,
-  bindengine,
-  bindcomp,
-  RESTComponents;
+  FireDACPgDriver;
 
 contains
   Web.ApacheConst,
@@ -134,9 +129,7 @@ contains
   Json.Schema.Field.Arrays in '..\..\lib\swagdoc\Source\Json.Schema.Field.Arrays.pas',
   Json.Schema.Common.Types in '..\..\lib\swagdoc\Source\Json.Schema.Common.Types.pas',
   Json.Common.Helpers in '..\..\lib\swagdoc\Source\Json.Common.Helpers.pas',
-  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
-  MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
-  MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas';
+  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas';
 
 end.
 
