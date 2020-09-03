@@ -29,7 +29,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.AppEvnts, MVCFramework.RESTClient,
-  MVCFramework.RESTClient.Intf, Vcl.ExtCtrls;
+  Vcl.ExtCtrls;
 
 type
   TForm7 = class(TForm)
@@ -59,11 +59,10 @@ type
     procedure Button3Click(Sender: TObject);
     procedure ListBox1Click(Sender: TObject);
   private
-    FRESTClient: IMVCRESTClient;
+    FRESTClient: TRESTClient;
     FLogoutUrl: string;
     FLogoutMethod: string;
-    FSessionId: string;
-    procedure FillMemo(Response: IMVCRESTResponse);
+    procedure FillMemo(Response: IRESTResponse);
     { Private declarations }
   public
     { Public declarations }
@@ -76,14 +75,14 @@ implementation
 
 uses
   System.JSON,
-  MVCFramework.SystemJSONUtils, MVCFramework.Commons;
+  MVCFramework.SystemJSONUtils;
 
 {$R *.dfm}
 
 
 procedure TForm7.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 begin
-  if FSessionID.IsEmpty then
+  if FRESTClient.SessionID.IsEmpty then
   begin
     btnLogInLogOut.Caption := 'LOGIN';
     Panel1.Caption := 'Not Logged';
@@ -93,7 +92,7 @@ begin
   else
   begin
     btnLogInLogOut.Caption := 'LOGOUT';
-    Panel1.Caption := 'SessionID = ' + FSessionID;
+    Panel1.Caption := 'SessionID = ' + FRESTClient.SessionID;
     edtUsername.Enabled := False;
     edtPassword.Enabled := False;
   end;
@@ -103,7 +102,7 @@ end;
 procedure TForm7.btnLogInLogOutClick(Sender: TObject);
 var
   lJObj: TJSONObject;
-  lRes: IMVCRESTResponse;
+  lRes: IRESTResponse;
 begin
   if btnLogInLogOut.Caption = 'LOGIN' then
   begin
@@ -111,10 +110,10 @@ begin
     try
       lJObj.AddPair('username', edtUsername.Text);
       lJObj.AddPair('password', edtPassword.Text);
-      lRes := FRESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJObj, False));
-      if not lRes.Success then
+      lRes := FRESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJObj, False));
+      if lRes.HasError then
       begin
-        ShowMessage(lRes.Content);
+        ShowMessage(lRes.Error.ExceptionMessage);
       end;
       FLogoutUrl := lRes.HeaderValue('X-LOGOUT-URL');
       FLogoutMethod := lRes.HeaderValue('X-LOGOUT-METHOD');
@@ -125,53 +124,50 @@ begin
   else
   begin
     Assert(FLogoutMethod = 'DELETE');
-    lRes := FRESTClient.Delete(FLogoutUrl);
-    if not lRes.Success then
+    lRes := FRESTClient.doDELETE(FLogoutUrl, []);
+    if lRes.HasError then
     begin
-      ShowMessage(lRes.Content);
+      ShowMessage(lRes.Error.ExceptionMessage);
     end;
   end;
-  FSessionId := lRes.CookieByName(TMVCConstants.SESSION_TOKEN_NAME).Value;
-  if FSessionId.Contains('invalid') then
-    FSessionId := '';
 end;
 
 procedure TForm7.Button1Click(Sender: TObject);
 var
-  lRes: IMVCRESTResponse;
+  lRes: IRESTResponse;
 begin
-  lRes := FRESTClient.Get('/private/public/action');
+  lRes := FRESTClient.doGET('/private/public/action', []);
   FillMemo(lRes);
 end;
 
 procedure TForm7.Button2Click(Sender: TObject);
 var
-  lRes: IMVCRESTResponse;
+  lRes: IRESTResponse;
 begin
-  lRes := FRESTClient.Get('/private/role1');
+  lRes := FRESTClient.doGET('/private/role1', []);
   FillMemo(lRes);
 end;
 
 procedure TForm7.Button3Click(Sender: TObject);
 var
-  lRes: IMVCRESTResponse;
+  lRes: IRESTResponse;
 begin
-  lRes := FRESTClient.Get('/private/role2');
+  lRes := FRESTClient.doGET('/private/role2', []);
   FillMemo(lRes);
 end;
 
-procedure TForm7.FillMemo(Response: IMVCRESTResponse);
+procedure TForm7.FillMemo(Response: IRESTResponse);
 begin
   Memo1.Lines.Add(
     Format('[%s] [%s] %s',
     [TimeToStr(Time),
-    Response.StatusText,
-    Response.Content]));
+    Response.ResponseText,
+    Response.BodyAsString]));
 end;
 
 procedure TForm7.FormCreate(Sender: TObject);
 begin
-  FRESTClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  FRESTClient := TRESTClient.Create('localhost', 8080);
 end;
 
 procedure TForm7.ListBox1Click(Sender: TObject);
