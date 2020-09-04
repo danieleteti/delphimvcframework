@@ -289,14 +289,13 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
         FMonthOrder: TMonthEnum;    
       public
         // List items separated by comma or semicolon
-        [MVCEnumSerializationType(estEnumMappedValues,
-        	'January,February,March,April')]
+        [MVCEnumSerialization(estEnumMappedValues, 'January,February,March,April')]
         property MonthMappedNames: TMonthEnum 
-        	read FMonthMappedNames write FMonthMappedNames;
-        [MVCEnumSerializationType(estEnumName)]
+        read FMonthMappedNames write FMonthMappedNames;
+        [MVCEnumSerialization(estEnumName)]
         property MonthEnumName: TMonthEnum 
-        	read FMonthEnumName write FMonthEnumName;
-        [MVCEnumSerializationType(estEnumOrd)]
+        read FMonthEnumName write FMonthEnumName;
+        [MVCEnumSerialization(estEnumOrd)]
         property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
       end;
     ...
