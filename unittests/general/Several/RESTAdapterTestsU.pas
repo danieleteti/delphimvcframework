@@ -29,13 +29,10 @@ unit RESTAdapterTestsU;
 interface
 
 uses
-  MVCFramework.RESTAdapter,
-  DUnitX.TestFramework,
-  BusinessObjectsU,
+  MVCFramework.RESTAdapter, DUnitX.TestFramework, BusinessObjectsU,
   Generics.Collections,
   System.JSON,
   MVCFramework.RESTClient,
-  MVCFramework.RESTClient.Intf,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons;
 
@@ -83,7 +80,7 @@ type
     [Headers('Accept', 'text/plain')]
     [Headers('ContentType', 'text/plain')]
     [RESTResource(HttpGet, '/adapter/testconsumejson')]
-    function ApplicationJSONWithTextPlainHeader: IMVCRESTResponse;
+    function ApplicationJSONWithTextPlainHeader: IRESTResponse;
 
   end;
 
@@ -241,11 +238,11 @@ end;
 
 procedure TTestRESTAdapter.TestApplicationJSONWithHeaderTextPlain;
 var
-  Resp: IMVCRESTResponse;
+  Resp: IRESTResponse;
 begin
   // expected 404 because is not consumed text/plain
   Resp := TESTService.ApplicationJSONWithTextPlainHeader;
-  Assert.AreEqual<Integer>(404, Resp.StatusCode);
+  Assert.AreEqual<Integer>(404, Resp.ResponseCode);
 end;
 
 procedure TTestRESTAdapter.TestGetPeople;

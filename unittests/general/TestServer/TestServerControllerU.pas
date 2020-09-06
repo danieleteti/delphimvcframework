@@ -205,6 +205,10 @@ type
     [MVCPath('/objectdict')]
     procedure TestObjectDict;
 
+    //exception rendering
+    [MVCPath('/exceptions/emvcexception1')]
+    procedure TestEMVCException1;
+
     // Nullables Tests
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/nullables/pingpong')]
@@ -469,6 +473,11 @@ var
 begin
   lNullablesTest := Context.Request.BodyAs<TNullablesTest>;
   Render(lNullablesTest);
+end;
+
+procedure TTestServerController.TestEMVCException1;
+begin
+  raise EMVCException.Create('message');
 end;
 
 procedure TTestServerController.TestCharset;
