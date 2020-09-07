@@ -134,7 +134,8 @@ type
       const AList: TObject;
       const AClazz: TClass;
       const AType: TMVCSerializationType = stDefault;
-      const AIgnoredAttributes: TMVCIgnoredList = nil
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
+      const ARootNode: String = ''
       ); overload;
 
     procedure DeserializeCollection(

@@ -142,7 +142,8 @@ type
       const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = []); overload;
 
     procedure DeserializeCollection(const ASerializedList: string; const AList: TObject; const AClazz: TClass;
-      const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = []); overload;
+      const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = [];
+      const ARootNode: string = ''); overload;
 
     procedure DeserializeCollection(const ASerializedList: string; const AList: IInterface; const AClazz: TClass;
       const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = []); overload;
@@ -763,9 +764,12 @@ begin
 end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeCollection(const ASerializedList: string; const AList: TObject;
-  const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+  const AClazz: TClass; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+  const ARootNode: string);
 var
   JsonArray: TJDOJsonArray;
+  JsonBase: TJDOJsonBaseObject;
+  JSONObject : TJDOJsonObject;
   ObjList: IMVCList;
 begin
   if (ASerializedList = EmptyStr) then
@@ -777,7 +781,28 @@ begin
   ObjList := TDuckTypedList.Wrap(AList);
   if Assigned(ObjList) then
   begin
-    JsonArray := TJDOJsonArray.Parse(ASerializedList) as TJDOJsonArray;
+    if ARootNode.IsEmpty then
+    begin
+      JsonArray := TJDOJsonArray.Parse(ASerializedList) as TJDOJsonArray;
+    end
+    else
+    begin
+      try
+        JsonBase := TJDOJsonObject.Parse(ASerializedList);
+        if not(JsonBase is TJDOJsonObject) then
+        begin
+          raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+            [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+        end;
+        JSONObject := TJDOJsonObject(JsonBase);
+      except
+        on E: EJsonParserException do
+        begin
+          raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
+        end;
+      end;
+      JsonArray := JSONObject.A[ARootNode] as TJDOJsonArray;
+    end;
     try
       JsonArrayToList(JsonArray, ObjList, AClazz, AType, AIgnoredAttributes);
     finally
