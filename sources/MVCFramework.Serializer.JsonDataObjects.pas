@@ -2181,7 +2181,7 @@ begin
         then
         begin
           //JSON.A[KeyName] := TJDOJsonArray.Create;
-          JSON.Add(TJDOJsonArray(Value.AsObject).Clone);
+          JSON.Add(TJDOJsonArray(Value.AsObject).Clone as TJDOJsonArray);
           //JSON.A[KeyName].Assign(TJDOJsonArray(Value.AsObject));
         end
         else if lValueAsObj is TDataSet then

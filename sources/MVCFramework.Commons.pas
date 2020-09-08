@@ -352,12 +352,14 @@ type
     FHttpErrorCode: UInt16;
     FAppErrorCode: UInt16;
     FDetailedMessage: string;
+    FErrorItems: TArray<String>;
     procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
   public
     constructor Create(const AMsg: string); overload; virtual;
     constructor Create(const AMsg: string; const ADetailedMessage: string;
       const AAppErrorCode: UInt16 = 0;
-      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError); overload; virtual;
+      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError;
+      const AErrorItems: TArray<String> = nil); overload; virtual;
     constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
     constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
       overload; virtual;
@@ -366,6 +368,7 @@ type
     property HttpErrorCode: UInt16 read FHttpErrorCode;
     property DetailedMessage: string read FDetailedMessage write FDetailedMessage;
     property ApplicationErrorCode: UInt16 read FAppErrorCode write FAppErrorCode;
+    property ErrorItems: TArray<String> read FErrorItems;
   end;
 
   EMVCSessionExpiredException = class(EMVCException)
@@ -791,16 +794,21 @@ begin
   FHttpErrorCode := HTTP_STATUS.InternalServerError;
   FDetailedMessage := EmptyStr;
   FAppErrorCode := 0;
+  SetLength(FErrorItems, 0);
 end;
 
 constructor EMVCException.Create(const AMsg, ADetailedMessage: string;
-  const AAppErrorCode, AHTTPErrorCode: UInt16);
+  const AAppErrorCode, AHTTPErrorCode: UInt16; const AErrorItems: TArray<String>);
 begin
   Create(AMsg);
   CheckHTTPErrorCode(AHTTPErrorCode);
   FHttpErrorCode := AHTTPErrorCode;
   FAppErrorCode := AAppErrorCode;
   FDetailedMessage := ADetailedMessage;
+  if AErrorItems <> nil then
+  begin
+    FErrorItems := AErrorItems;
+  end;
 end;
 
 constructor EMVCException.Create(const AHTTPErrorCode: UInt16; const AMsg: string);

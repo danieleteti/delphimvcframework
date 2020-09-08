@@ -30,7 +30,7 @@ object MainForm: TMainForm
       Height = 40
       DataSource = dsrcArticles
       Align = alRight
-      TabOrder = 0
+      TabOrder = 3
     end
     object btnOpen: TButton
       AlignWithMargins = True
@@ -40,7 +40,7 @@ object MainForm: TMainForm
       Height = 40
       Align = alLeft
       Caption = 'Open'
-      TabOrder = 1
+      TabOrder = 0
       OnClick = btnOpenClick
     end
     object btnRefreshRecord: TButton
@@ -62,7 +62,7 @@ object MainForm: TMainForm
       Height = 40
       Align = alLeft
       Caption = 'Close'
-      TabOrder = 3
+      TabOrder = 1
       OnClick = btnCloseClick
     end
     object Panel2: TPanel
@@ -85,7 +85,7 @@ object MainForm: TMainForm
         Top = 30
         Width = 156
         Height = 21
-        TabOrder = 0
+        TabOrder = 1
       end
       object btnFilter: TButton
         Left = 165
@@ -93,7 +93,7 @@ object MainForm: TMainForm
         Width = 107
         Height = 40
         Caption = 'Filter'
-        TabOrder = 1
+        TabOrder = 0
         OnClick = btnFilterClick
       end
     end

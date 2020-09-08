@@ -420,37 +420,6 @@ object MainForm: TMainForm
         end
       end
     end
-    object TabSheet3: TTabSheet
-      Caption = 'Hooks Demo'
-      ImageIndex = 2
-      object btnDoNothing: TButton
-        Left = 24
-        Top = 24
-        Width = 145
-        Height = 33
-        Caption = 'Do Nothing'
-        TabOrder = 0
-        OnClick = btnDoNothingClick
-      end
-      object btnDoNothingError: TButton
-        Left = 24
-        Top = 63
-        Width = 145
-        Height = 33
-        Caption = 'Do Nothing With Errors'
-        TabOrder = 1
-        OnClick = btnDoNothingErrorClick
-      end
-      object btnNotExistent: TButton
-        Left = 24
-        Top = 102
-        Width = 145
-        Height = 33
-        Caption = 'Invalid Method'
-        TabOrder = 2
-        OnClick = btnNotExistentClick
-      end
-    end
   end
   object DataSource1: TDataSource
     DataSet = FDMemTable1

@@ -66,7 +66,6 @@ type
     btnInvalid2: TButton;
     btnNotification: TButton;
     btnInvalidMethod: TButton;
-    Label2: TLabel;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -139,25 +138,25 @@ end;
 
 procedure TForm10.btnInvalid1Click(Sender: TObject);
 var
-  lReq: IJSONRPCNotification;
+  lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCNotification.Create;
+  lReq := TJSONRPCRequest.Create;
   lReq.Method := 'invalidmethod1';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteNotification(lReq);
+  lResp := FExecutor.ExecuteRequest(lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
 procedure TForm10.btnInvalid2Click(Sender: TObject);
 var
-  lReq: IJSONRPCNotification;
+  lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCNotification.Create;
+  lReq := TJSONRPCRequest.Create;
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteNotification(lReq);
+  lResp := FExecutor.ExecuteRequest(lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 

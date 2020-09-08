@@ -289,14 +289,13 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
         FMonthOrder: TMonthEnum;    
       public
         // List items separated by comma or semicolon
-        [MVCEnumSerializationType(estEnumMappedValues,
-        	'January,February,March,April')]
+        [MVCEnumSerialization(estEnumMappedValues, 'January,February,March,April')]
         property MonthMappedNames: TMonthEnum 
-        	read FMonthMappedNames write FMonthMappedNames;
-        [MVCEnumSerializationType(estEnumName)]
+        read FMonthMappedNames write FMonthMappedNames;
+        [MVCEnumSerialization(estEnumName)]
         property MonthEnumName: TMonthEnum 
-        	read FMonthEnumName write FMonthEnumName;
-        [MVCEnumSerializationType(estEnumOrd)]
+        read FMonthEnumName write FMonthEnumName;
+        [MVCEnumSerialization(estEnumOrd)]
         property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
       end;
     ...
@@ -392,9 +391,9 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
-## Changes in upcoming version (3.2.1-carbon)
+## 3.2.1-carbon ("repo" version currently in beta)
 
-### Bug Fixes and Improvements
+### Improvements and Bug Fixes
 
 - [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
 
@@ -414,6 +413,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - `IMVCJSONRPCExecutor.ExecuteNotification` returns a `IJSONRPCResponse`. In case of error response contains information about the error, in case of successful execution the response is a [Null Object](https://en.wikipedia.org/wiki/Null_object_pattern).
 
 - New React demo (Thanks to [Angelo Sobreira da Silva](https://github.com/angelosobreira))
+
+- Serialization support for `TList<Integer>`, `TList<String>`, `TList<Boolean>` and for all `TList<T>` of simple types.
 
 - Added `foReadOnly` and `foWriteOnly` as field options in `MVCTableField` attribute (used by `TMVCActiveRecord`). Currently available field options are:
 
@@ -504,6 +505,45 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Improved `activerecord_showcase` sample.
 
 - Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
+
+- Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
+
+  ```delphi
+  procedure TMainForm.btnAttributesClick(Sender: TObject);
+  var
+    lCustomer: TCustomer;
+    lID: Integer;
+  begin
+    lCustomer := TCustomer.Create;
+    try
+      lCustomer.Attributes['CompanyName'] := 'Google Inc.';
+      lCustomer.Attributes['City'] := 'Montain View, CA';
+      lCustomer.Attributes['Note'] := 'Hello there!';
+      lCustomer.Attributes['Code'] := 'XX123';
+      lCustomer.Attributes['Rating'] := 3;
+      lCustomer.Insert;
+      lID := lCustomer.ID;
+    finally
+      lCustomer.Free;
+    end;
+  
+    lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+    try
+      Assert('Google Inc.' = 
+      	lCustomer.Attributes['CompanyName']
+      		.AsType<NullableString>().Value);
+      Assert('Montain View, CA' = 	
+      	lCustomer.Attributes['City'].AsString);
+      Assert('XX123' = 
+      	lCustomer.Attributes['Code']
+      		.AsType<NullableString>().Value);
+      Assert('Hello there!' = 
+      	lCustomer.Attributes['Note'].AsString);
+      lCustomer.Update;
+    finally
+      lCustomer.Free;
+    end;
+  ```
 
 ## Roadmap
 

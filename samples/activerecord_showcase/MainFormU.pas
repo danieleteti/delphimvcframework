@@ -44,6 +44,7 @@ type
     btnCountWithRQL: TButton;
     btnReadAndWriteOnly: TButton;
     btnClientGeneratedPK: TButton;
+    btnAttributes: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -62,6 +63,7 @@ type
     procedure btnCountWithRQLClick(Sender: TObject);
     procedure btnReadAndWriteOnlyClick(Sender: TObject);
     procedure btnClientGeneratedPKClick(Sender: TObject);
+    procedure btnAttributesClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -75,7 +77,6 @@ var
 implementation
 
 {$R *.dfm}
-
 
 uses
   MVCFramework.ActiveRecord,
@@ -91,6 +92,48 @@ const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
+
+procedure TMainForm.btnAttributesClick(Sender: TObject);
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Log('** Dynamic Properties Access');
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.Attributes['CompanyName'] := 'Google Inc.';
+    lCustomer.Attributes['City'] := 'Montain View, CA';
+    lCustomer.Attributes['Note'] := 'Hello there!';
+    lCustomer.Attributes['Code'] := 'XX123';
+    lCustomer.Attributes['Rating'] := 3;
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Log('Just inserted Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert('Google Inc.' = lCustomer.Attributes['CompanyName'].AsType<NullableString>().Value);
+    Assert('Montain View, CA' = lCustomer.Attributes['City'].AsString);
+    Assert('XX123' = lCustomer.Attributes['Code'].AsType<NullableString>().Value);
+    Assert('Hello there!' = lCustomer.Attributes['Note'].AsString);
+    lCustomer.Update;
+    Log('Just updated Customer ' + lID.ToString);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    lCustomer.Code.Value := '9012';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+end;
 
 procedure TMainForm.btnClientGeneratedPKClick(Sender: TObject);
 var
@@ -151,7 +194,8 @@ var
   lID: Integer;
 begin
   Log('** Simple CRUD test');
-  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
+  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' +
+    TCustomer.ClassName);
   lCustomer := TCustomer.Create;
   try
     Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
@@ -299,8 +343,8 @@ begin
     end;
   end;
 
-  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithCode>().ToString + ' row/s for entity ' +
-    TCustomerPlain.ClassName);
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithCode>().ToString + ' row/s for entity '
+    + TCustomerPlain.ClassName);
   TMVCActiveRecord.DeleteRQL(TCustomerWithCode, 'lt(code,"0090")');
 
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>(lCode);
@@ -351,7 +395,8 @@ var
   lConnParams: string;
 begin
   Log('** Multithreading test');
-  TMVCActiveRecord.DeleteRQL(TCustomer, 'in(City,["Rome","New York","London","Melbourne","Berlin"])');
+  TMVCActiveRecord.DeleteRQL(TCustomer,
+    'in(City,["Rome","New York","London","Melbourne","Berlin"])');
 
   lConnParams := FDConnection1.Params.Text;
   lProc := procedure
@@ -372,7 +417,8 @@ begin
           try
             lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
             lCustomer.City := Cities[Random(high(Cities) + 1)];
-            lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
+            lCustomer.CompanyName :=
+              Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
               CompanySuffix[Random(high(CompanySuffix) + 1)]]);
             lCustomer.Note := lCustomer.CompanyName + ' is from ' + lCustomer.City;
             lCustomer.Insert;
@@ -385,10 +431,10 @@ begin
       end;
     end;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc)];
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
@@ -401,7 +447,8 @@ var
   lID: Integer;
 begin
   Log('** Nullables Test');
-  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
+  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' +
+    TCustomer.ClassName);
   lCustomer := TCustomer.Create;
   try
     lCustomer.CompanyName := 'Google Inc.';
@@ -541,7 +588,8 @@ begin
     lTest.Free;
   end;
 
-  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' + TCustomer.ClassName);
+  Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' +
+    TCustomer.ClassName);
   lCustomer := TCustomer.Create;
   try
     lCustomer.CompanyName := 'Google Inc.';
@@ -709,7 +757,8 @@ begin
       try
         for lOrderRow in lOrderRows do
         begin
-          Log(Format('         %-20s - %4d - %m', [lOrderRow.Description, lOrderRow.Quantity, lOrder.Total]));
+          Log(Format('         %-20s - %4d - %m', [lOrderRow.Description, lOrderRow.Quantity,
+            lOrder.Total]));
         end;
         Log('');
       finally
@@ -740,8 +789,8 @@ begin
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
-      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault,
-        lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
     end;
   finally
     lList.Free;
@@ -753,8 +802,8 @@ begin
     Log(lCustList.Count.ToString + ' record/s found');
     for lCustomer in lCustList do
     begin
-      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault,
-        lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
     end;
   finally
     lCustList.Free;
@@ -767,8 +816,8 @@ begin
     for lItem in lList do
     begin
       lCustomer := TCustomer(lItem);
-      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault,
-        lCustomer.City]));
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
     end;
   finally
     lList.Free;
@@ -787,20 +836,26 @@ begin
   // Bypassing the RQL parser you can use DBMS-specific features or just joining your tables.
   // This is just a sample, you can do the "select" also using the RQL engine
   if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description CONTAINING ?',
-      ['google'])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description CONTAINING ?', ['google'])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mysql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description ILIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else if ActiveRecordConnectionsRegistry.GetCurrentBackend = 'mssql' then
-    lCustomers := TMVCActiveRecord.Select<TCustomer>('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
+    lCustomers := TMVCActiveRecord.Select<TCustomer>
+      ('SELECT * FROM customers WHERE description LIKE ''%google%''', [])
   else
-    raise Exception.Create('Unsupported backend: ' + ActiveRecordConnectionsRegistry.GetCurrentBackend);
+    raise Exception.Create('Unsupported backend: ' +
+      ActiveRecordConnectionsRegistry.GetCurrentBackend);
 
   try
     for lCustomer in lCustomers do
@@ -819,7 +874,8 @@ begin
   try
     while not lDS.Eof do
     begin
-      Log(Format('%8.5s - %s', [lDS.FieldByName('code').AsString, lDS.FieldByName('description').AsString]));
+      Log(Format('%8.5s - %s', [lDS.FieldByName('code').AsString, lDS.FieldByName('description')
+        .AsString]));
       lDS.Next;
     end;
   finally
@@ -827,13 +883,14 @@ begin
   end;
 
   lDS := TMVCActiveRecord.SelectDataSet
-    ('SELECT * FROM orders o join customers c on c.id = o.id_customer where o.order_date >= ?', [Date - 5000],
-    [ftDate]);
+    ('SELECT * FROM orders o join customers c on c.id = o.id_customer where o.order_date >= ?',
+    [Date - 5000], [ftDate]);
   try
     while not lDS.Eof do
     begin
-      Log(Format('OrderDate: %12s - Customer: %s', [datetostr(lDS.FieldByName('order_date').AsDateTime),
-        lDS.FieldByName('description').AsString]));
+      Log(Format('OrderDate: %12s - Customer: %s',
+        [datetostr(lDS.FieldByName('order_date').AsDateTime), lDS.FieldByName('description')
+        .AsString]));
       lDS.Next;
     end;
   finally
@@ -842,13 +899,13 @@ begin
 
   lDS := TMVCActiveRecord.SelectDataSet
     ('SELECT * FROM orders o left join customers c on c.id = o.id_customer where o.order_date >= ? and c.id > ?',
-    [Date - 5000, 1],
-    [ftDate]);
+    [Date - 5000, 1], [ftDate]);
   try
     while not lDS.Eof do
     begin
-      Log(Format('OrderDate: %12s - Customer: %s', [datetostr(lDS.FieldByName('order_date').AsDateTime),
-        lDS.FieldByName('description').AsString]));
+      Log(Format('OrderDate: %12s - Customer: %s',
+        [datetostr(lDS.FieldByName('order_date').AsDateTime), lDS.FieldByName('description')
+        .AsString]));
       lDS.Next;
     end;
   finally
@@ -858,7 +915,8 @@ begin
   Log('** GetFirstByWhere');
   lCustomer := TMVCActiveRecord.GetFirstByWhere<TCustomer>('id > ?', [1]);
   try
-    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault,
+      lCustomer.CompanyName.ValueOrDefault]));
     lID := lCustomer.ID;
   finally
     lCustomer.Free;
@@ -866,7 +924,8 @@ begin
 
   lCustomer := TMVCActiveRecord.GetFirstByWhere<TCustomer>('id > ?', [1], [ftInteger]);
   try
-    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault,
+      lCustomer.CompanyName.ValueOrDefault]));
     lID := lCustomer.ID;
   finally
     lCustomer.Free;
@@ -875,14 +934,16 @@ begin
   Log('** GetOneByWhere');
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID.Value]);
   try
-    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault,
+      lCustomer.CompanyName.ValueOrDefault]));
   finally
     lCustomer.Free;
   end;
 
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID.Value], [ftInteger]);
   try
-    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault, lCustomer.CompanyName.ValueOrDefault]));
+    Log(Format('%8.5s - %s', [lCustomer.Code.ValueOrDefault,
+      lCustomer.CompanyName.ValueOrDefault]));
   finally
     lCustomer.Free;
   end;
@@ -948,7 +1009,8 @@ begin
 
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithLogic>(lID);
   try
-    Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' + BoolToStr(lCustomer.IsLocatedInRome, True));
+    Log(lCustomer.CompanyName + ' => IsLocatedInRome: ' +
+      BoolToStr(lCustomer.IsLocatedInRome, True));
     lCustomer.Code := '';
     lCustomer.Update; // raise exception
   finally
@@ -991,8 +1053,8 @@ begin
     end;
   end;
 
-  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString + ' row/s for entity ' +
-    TCustomerWithSpaces.ClassName);
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
+    ' row/s for entity ' + TCustomerWithSpaces.ClassName);
   TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,90)');
 
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
