@@ -360,7 +360,7 @@ type
     function Cookie(const AName: string): string;
     function Body: string;
     function BodyAs<T: class, constructor>(const RootNode: string = ''): T;
-    function BodyAsListOf<T: class, constructor>: TObjectList<T>;
+    function BodyAsListOf<T: class, constructor>(const RootNode: string = ''): TObjectList<T>;
     procedure BodyFor<T: class, constructor>(const AObject: T);
     procedure BodyForListOf<T: class, constructor>(const AObjectList: TObjectList<T>);
     // function HeaderNames: TArray<String>;
@@ -1171,7 +1171,7 @@ begin
     raise EMVCDeserializationException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
 end;
 
-function TMVCWebRequest.BodyAsListOf<T>: TObjectList<T>;
+function TMVCWebRequest.BodyAsListOf<T>(const RootNode: string): TObjectList<T>;
 var
   List: TObjectList<T>;
   lSerializer: IMVCSerializer;
@@ -1181,7 +1181,7 @@ begin
   begin
     List := TObjectList<T>.Create(True);
     try
-      lSerializer.DeserializeCollection(Body, List, T);
+      lSerializer.DeserializeCollection(Body, List, T, TMVCSerializationType.stDefault, nil, RootNode);
       Result := List;
     except
       FreeAndNil(List);
