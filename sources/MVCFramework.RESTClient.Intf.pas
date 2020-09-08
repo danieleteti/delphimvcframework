@@ -32,15 +32,14 @@ unit MVCFramework.RESTClient.Intf;
 interface
 
 uses
-  System.Classes,
   System.SysUtils,
-  MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons,
-  MVCFramework.Commons,
-  REST.Types,
-  Data.DB,
+  System.Classes,
   System.TypInfo,
-  System.Net.HttpClient;
+  System.Net.HttpClient,
+  MVCFramework.Serializer.Intf,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Commons,
+  Data.DB;
 
 type
   IMVCRESTResponse = interface;
@@ -51,9 +50,6 @@ type
     function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
     function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
     function BaseURL: string; overload;
-
-    function RaiseExceptionOn500(const aRaiseExceptionOn500: Boolean): IMVCRESTClient; overload;
-    function RaiseExceptionOn500: Boolean; overload;
 
     function ProxyServer(const aProxyServer: string): IMVCRESTClient; overload;
     function ProxyServer: string; overload;
@@ -111,7 +107,7 @@ type
     /// <param name="aDoNotEncode">
     /// Indicates whether the value of this header should be used as is (True), or encoded by the component (False)
     /// </param>
-    function AddHeader(const aName, aValue: string; const aDoNotEncode: Boolean = False): IMVCRESTClient; overload;
+    function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
     function HeaderValue(const aName: string): string;
 
     /// <summary>
@@ -170,17 +166,14 @@ type
     function AcceptCharset: string; overload;
     function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
     function AcceptEncoding: string; overload;
+
     function HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient; overload;
     function HandleRedirects: Boolean; overload;
-
-    function FallbackCharsetEncoding(const aFallbackCharsetEncoding: string): IMVCRESTClient; overload;
-    function FallbackCharsetEncoding: string; overload;
+    function MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient; overload;
+    function MaxRedirects: Integer; overload;
 
     function Resource(const aResource: string): IMVCRESTClient; overload;
     function Resource: string; overload;
-
-    function URLAlreadyEncoded(const aURLAlreadyEncoded: Boolean): IMVCRESTClient; overload;
-    function URLAlreadyEncoded: Boolean; overload;
 
     /// <summary>
     /// Add a body to the requisition.
@@ -191,8 +184,7 @@ type
     /// <param name="aContentType">
     /// Body content type.
     /// </param>
-    function AddBody(const aBody: string; const aDoNotEncode: Boolean = False;
-      const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddBody(const aBody: string; const aContentType: string = ''): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
     /// </summary>
@@ -205,8 +197,8 @@ type
     /// <param name="aOwnsStream">
     /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
     /// </param>
-    function AddBody(aBodyStream: TStream; const aContentType: string = '';
-      const aOwnsStream: Boolean = True): IMVCRESTClient; overload;
+    function AddBody(aBodyStream: TStream; const aOwnsStream: Boolean = True;
+      const aContentType: string = ''): IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
     /// </summary>
@@ -217,8 +209,6 @@ type
     /// If OwnsObject is true, BodyObject will be destroyed by IMVCRESTClient.
     /// </param>
     function AddBody(aBodyObject: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
-    function ClearBody: IMVCRESTClient;
-
     /// <summary>
     /// Adds a file as the request body. Several files can be added in the same request. In this case the request
     /// will be of the multipart/form-data type
@@ -232,11 +222,18 @@ type
     /// <param name="aContentType">
     /// File content type
     /// </param>
-    function AddFile(const aName, aFileName: string;
+    function AddFile(const aName, aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
       const aContentType: string = ''): IMVCRESTClient; overload;
-    function AddFile(const aFileName: string;
-      const aContentType: string = ''): IMVCRESTClient; overload;
-    function ClearFiles: IMVCRESTClient;
+
+    /// <summary>
+    ///   Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
+    /// </summary>
+    function AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
+
+    function ClearBody: IMVCRESTClient;
 
     /// <summary>
     /// Executes the next request asynchronously.
