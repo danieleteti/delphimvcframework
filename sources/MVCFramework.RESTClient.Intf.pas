@@ -269,7 +269,7 @@ type
     ///   If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
     /// </param>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+    function Post(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Post: IMVCRESTResponse; overload;
 
@@ -278,7 +278,7 @@ type
     /// </summary>
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Patch(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+    function Patch(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Patch: IMVCRESTResponse; overload;
 
@@ -286,7 +286,7 @@ type
     /// Execute a Put request.
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+    function Put(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Put: IMVCRESTResponse; overload;
 
@@ -328,7 +328,6 @@ type
     function Cookies: TCookies;
     function CookieByName(const aName: string): TCookie;
     function Server: string;
-    function FullRequestURI: string;
     function ContentType: string;
     function ContentEncoding: string;
     function ContentLength: Integer;

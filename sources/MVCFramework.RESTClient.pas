@@ -90,6 +90,10 @@ type
     procedure SetContentType(const aContentType: string);
     procedure ClearParameters(const aParamType: TMVCRESTParamType);
     function GetFullURL: string;
+    /// <summary>
+    /// Convert path parameters of type ($xxx) to {xxx}
+    /// </summary>
+    procedure DoConvertMVCPathParamsToRESTParams(var aURL: string);
     procedure DoApplyPathParams(var aURL: string);
     procedure DoApplyQueryParams(var aURL: string);
     procedure DoApplyHeaders;
@@ -327,7 +331,7 @@ type
     /// If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
     /// </param>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Post(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+    function Post(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Post: IMVCRESTResponse; overload;
 
@@ -336,7 +340,7 @@ type
     /// </summary>
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Patch(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+    function Patch(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Patch: IMVCRESTResponse; overload;
 
@@ -344,7 +348,7 @@ type
     /// Execute a Put request.
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
-    function Put(const aResource: string; const aBody: string = ''; const aDoNotEncode: Boolean = False;
+    function Put(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Put: IMVCRESTResponse; overload;
 
@@ -375,12 +379,53 @@ type
     function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
   end;
 
+  /// <summary>
+  /// Provides access to the REST request response.
+  /// </summary>
+  TMVCRESTResponse = class(TInterfacedObject, IMVCRESTResponse)
+  private
+    fSuccess: Boolean;
+    fStatusCode: Integer;
+    fStatusText: string;
+    fHeaders: TStrings;
+    fCookies: TCookies;
+    fServer: string;
+    fContentType: string;
+    fContentEncoding: string;
+    fContentLength: Integer;
+    fContent: string;
+    fRawBytes: TBytes;
+
+    procedure FillResponse(aHTTPResponse: IHTTPResponse);
+  public
+    constructor Create(aHTTPResponse: IHTTPResponse);
+    destructor Destroy; override;
+
+    { IMVCRESTResponse }
+    function Success: Boolean;
+    function StatusCode: Integer;
+    function StatusText: string;
+    function Headers: TStrings;
+    function HeaderValue(const aName: string): string;
+    function Cookies: TCookies;
+    function CookieByName(const aName: string): TCookie;
+    function Server: string;
+    function ContentType: string;
+    function ContentEncoding: string;
+    function ContentLength: Integer;
+    function Content: string;
+    function RawBytes: TBytes;
+    procedure SaveContentToStream(aStream: TStream);
+    procedure SaveContentToFile(const aFileName: string);
+  end;
+
 implementation
 
 uses
   System.NetConsts,
   System.NetEncoding,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects,
+  System.RegularExpressions;
 
 { TMVCRESTClient }
 
@@ -430,10 +475,13 @@ begin
     lContentCharset := TMVCCharSet.UTF_8;
   end;
   lEncoding := TEncoding.GetEncoding(lContentCharset);
-
-  fRawBody.Clear;
-  lBytes := TEncoding.Convert(TEncoding.Default, lEncoding, TEncoding.Default.GetBytes(aBody));
-  fRawBody.WriteData(lBytes, Length(lBytes));
+  try
+    fRawBody.Clear;
+    lBytes := TEncoding.Convert(TEncoding.Default, lEncoding, TEncoding.Default.GetBytes(aBody));
+    fRawBody.WriteData(lBytes, Length(lBytes));
+  finally
+    FreeAndNil(lEncoding);
+  end;
 end;
 
 function TMVCRESTClient.AddBody(aBodyStream: TStream; const aOwnsStream: Boolean;
@@ -441,7 +489,11 @@ function TMVCRESTClient.AddBody(aBodyStream: TStream; const aOwnsStream: Boolean
 begin
   Result := Self;
 
-  Assert(ABodyStream is TStringStream);
+  if aBodyStream = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBodyStream is TStringStream then
+    raise EMVCRESTClientException.Create('aBodyStream must be of type TStringStream!');
 
   SetContentType(aContentType);
 
@@ -454,6 +506,9 @@ end;
 
 function TMVCRESTClient.AddBody(aBodyObject: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
 begin
+  if aBodyObject = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
   Result := AddBody(SerializeObject(aBodyObject), TMVCMediaType.APPLICATION_JSON);
 
   if aOwnsObject then
@@ -612,6 +667,8 @@ begin
   fBaseURL := aBaseURL;
   if not fBaseURL.Contains('://') then
     fBaseURL := 'http://' + fBaseURL;
+
+  fBaseURL := fBaseURL;
 end;
 
 function TMVCRESTClient.BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient;
@@ -703,30 +760,38 @@ begin
 end;
 
 function TMVCRESTClient.DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
+var
+  lResource: string;
 begin
-
+  lResource := aResource + '/' + aKeyValue;
+  Result := Delete(lResource);
 end;
 
 function TMVCRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet;
   const aIgnoredFields: TMVCIgnoredList; const aNameCase: TMVCNameCase): IMVCRESTResponse;
 begin
-
+  Result := Post(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
 function TMVCRESTClient.DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet;
   const aIgnoredFields: TMVCIgnoredList; const aNameCase: TMVCNameCase): IMVCRESTResponse;
+var
+  lResource: string;
 begin
+  lResource := aResource + '/' + aKeyValue;
 
+  Result := Put(lResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
 function TMVCRESTClient.Delete(const aResource: string): IMVCRESTResponse;
 begin
-
+  Resource(aResource);
+  Result := Delete;
 end;
 
 function TMVCRESTClient.Delete: IMVCRESTResponse;
 begin
-
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpDELETE);
 end;
 
 destructor TMVCRESTClient.Destroy;
@@ -753,8 +818,8 @@ begin
   begin
     if lParam.&Type = TMVCRESTParamType.Cookie then
     begin
-      lName := URIEncode(lParam.Name);
-      lValue := URIEncode(lParam.Value);
+      lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+      lValue := TMVCRESTClientHelper.URIEncode(lParam.Value);
       fHTTPClient.CookieManager.AddServerCookie(lName + '=' + lValue, aURL);
     end;
   end;
@@ -784,7 +849,7 @@ begin
     if lParam.&Type = TMVCRESTParamType.Path then
     begin
       lReplace := '{' + lParam.Name + '}';
-      lEncodedParam := URIEncode(lParam.Value);
+      lEncodedParam := TMVCRESTClientHelper.URIEncode(lParam.Value);
       aURL := aURL.Replace(lReplace, lEncodedParam, [rfReplaceAll, rfIgnoreCase]);
     end;
   end;
@@ -815,6 +880,11 @@ begin
   end;
 end;
 
+procedure TMVCRESTClient.DoConvertMVCPathParamsToRESTParams(var aURL: string);
+begin
+  aURL := TRegEx.Replace(aURL, '(\([($])([\w_]+)([)])', '{\2}', [TRegExOption.roIgnoreCase]);
+end;
+
 procedure TMVCRESTClient.DoEncodeURL(var aURL: string);
 begin
   // It is necessary to encode the dots because the HTTPClient removes dotted URL segments.
@@ -829,8 +899,10 @@ end;
 function TMVCRESTClient.ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
 var
   lURL: string;
+  lResponse: IHTTPResponse;
 begin
   lURL := GetFullURL;
+  DoConvertMVCPathParamsToRESTParams(lURL);
   DoApplyPathParams(lURL);
   DoApplyQueryParams(lURL);
   DoEncodeURL(lURL);
@@ -839,7 +911,7 @@ begin
 
   case aMethod of
     httpGET:
-      ;
+      lResponse := fHTTPClient.Get(lURL, nil, []);
     httpPOST:
       ;
     httpPUT:
@@ -855,11 +927,14 @@ begin
     httpTRACE:
       ;
   end;
+
+  Result := TMVCRESTResponse.Create(lResponse);
+  ClearAllParams;
 end;
 
 function TMVCRESTClient.Get: IMVCRESTResponse;
 begin
-
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpGET);
 end;
 
 function TMVCRESTClient.GetBodyFormData: TMultipartFormData;
@@ -899,7 +974,8 @@ end;
 
 function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
 begin
-
+  Resource(aResource);
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpGET);
 end;
 
 function TMVCRESTClient.HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient;
@@ -950,36 +1026,59 @@ begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
 end;
 
-function TMVCRESTClient.Patch(const aResource, aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: string): IMVCRESTResponse;
+function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
 begin
+  Resource(aResource);
+  if not aBody.isEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
 
+  Result := Patch;
 end;
 
 function TMVCRESTClient.Patch: IMVCRESTResponse;
 begin
-
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpPATCH);
 end;
 
 function TMVCRESTClient.Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
 begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
+  Result := Patch(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
 end;
 
-function TMVCRESTClient.Post(const aResource, aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: string): IMVCRESTResponse;
+function TMVCRESTClient.Post(const aResource, aBody, aContentType: string): IMVCRESTResponse;
 begin
-
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+  Result := Post;
 end;
 
 function TMVCRESTClient.Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
 begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
+  Result := Post(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
 end;
 
 function TMVCRESTClient.Post: IMVCRESTResponse;
 begin
-
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpPOST);
 end;
 
 function TMVCRESTClient.ProxyPassword: string;
@@ -1028,18 +1127,29 @@ end;
 
 function TMVCRESTClient.Put: IMVCRESTResponse;
 begin
-
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpPUT);
 end;
 
-function TMVCRESTClient.Put(const aResource, aBody: string; const aDoNotEncode: Boolean;
-  const aContentType: string): IMVCRESTResponse;
+function TMVCRESTClient.Put(const aResource, aBody, aContentType: string): IMVCRESTResponse;
 begin
-
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+  Result := Put;
 end;
 
 function TMVCRESTClient.Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
 begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
 
+  Result := Put(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
 end;
 
 function TMVCRESTClient.ReadTimeout: Integer;
@@ -1072,6 +1182,8 @@ begin
 end;
 
 {$IF defined(TOKYOORBETTER)}
+
+
 function TMVCRESTClient.SecureProtocols: THTTPSecureProtocols;
 begin
   Result := fHTTPClient.SecureProtocols;
@@ -1083,6 +1195,7 @@ begin
   fHTTPClient.SecureProtocols := aSecureProtocols;
 end;
 {$ENDIF}
+
 
 function TMVCRESTClient.SerializeObject(aObject: TObject): string;
 begin
@@ -1115,6 +1228,141 @@ end;
 function TMVCRESTClient.UserAgent: string;
 begin
   Result := HeaderValue(sUserAgent);
+end;
+
+{ TMVCRESTResponse }
+
+function TMVCRESTResponse.Content: string;
+begin
+  Result := fContent;
+end;
+
+function TMVCRESTResponse.ContentEncoding: string;
+begin
+  Result := fContentEncoding;
+end;
+
+function TMVCRESTResponse.ContentLength: Integer;
+begin
+  Result := fContentLength;
+end;
+
+function TMVCRESTResponse.ContentType: string;
+begin
+  Result := fContentType;
+end;
+
+function TMVCRESTResponse.CookieByName(const aName: string): TCookie;
+var
+  lCookie: TCookie;
+begin
+  Result := Default (TCookie);
+  for lCookie in fCookies do
+  begin
+    if SameText(lCookie.Name, aName) then
+      Exit(lCookie);
+  end;
+end;
+
+function TMVCRESTResponse.Cookies: TCookies;
+begin
+  Result := fCookies;
+end;
+
+constructor TMVCRESTResponse.Create(aHTTPResponse: IHTTPResponse);
+begin
+  fHeaders := TStringList.Create;
+  SetLength(fRawBytes, 0);
+  fCookies := TCookies.Create;
+
+  FillResponse(aHTTPResponse);
+end;
+
+destructor TMVCRESTResponse.Destroy;
+begin
+  SetLength(fRawBytes, 0);
+  FreeAndNil(fHeaders);
+  FreeAndNil(fCookies);
+  inherited Destroy;
+end;
+
+procedure TMVCRESTResponse.FillResponse(aHTTPResponse: IHTTPResponse);
+var
+  lHeader: TNetHeader;
+begin
+  fSuccess := (aHTTPResponse.StatusCode >= 200) and (aHTTPResponse.StatusCode < 300);
+  fStatusCode := aHTTPResponse.StatusCode;
+  fStatusText := aHTTPResponse.StatusText;
+
+  for lHeader in aHTTPResponse.Headers do
+  begin
+    fHeaders.Values[lHeader.Name] := lHeader.Value;
+  end;
+  fCookies.AddRange(aHTTPResponse.Cookies.ToArray);
+  fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
+  fRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
+    aHTTPResponse.ContentEncoding);
+  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fRawBytes, aHTTPResponse.ContentCharSet);
+  fContentType := aHTTPResponse.HeaderValue[sContentType];
+  fContentEncoding := aHTTPResponse.ContentEncoding;
+  fContentLength := aHTTPResponse.ContentLength;
+end;
+
+function TMVCRESTResponse.Headers: TStrings;
+begin
+  Result := fHeaders;
+end;
+
+function TMVCRESTResponse.HeaderValue(const aName: string): string;
+begin
+  Result := fHeaders.Values[aName];
+end;
+
+function TMVCRESTResponse.RawBytes: TBytes;
+begin
+  Result := fRawBytes;
+end;
+
+procedure TMVCRESTResponse.SaveContentToFile(const aFileName: string);
+var
+  lStream: TMemoryStream;
+begin
+  lStream := TMemoryStream.Create;
+  try
+    lStream.Write(fRawBytes, Length(fRawBytes));
+    lStream.Position := 0;
+    lStream.SaveToFile(aFileName);
+  finally
+    FreeAndNil(lStream);
+  end;
+end;
+
+procedure TMVCRESTResponse.SaveContentToStream(aStream: TStream);
+begin
+  if aStream = nil then
+    raise EMVCRESTClientException.Create('Stream not assigned!');
+
+  aStream.Write(fRawBytes, Length(fRawBytes));
+end;
+
+function TMVCRESTResponse.Server: string;
+begin
+  Result := fServer;
+end;
+
+function TMVCRESTResponse.StatusCode: Integer;
+begin
+  Result := fStatusCode;
+end;
+
+function TMVCRESTResponse.StatusText: string;
+begin
+  Result := fStatusText;
+end;
+
+function TMVCRESTResponse.Success: Boolean;
+begin
+  Result := fSuccess;
 end;
 
 end.
