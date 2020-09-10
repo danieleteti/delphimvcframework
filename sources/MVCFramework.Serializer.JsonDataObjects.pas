@@ -464,9 +464,22 @@ begin
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsInt64);
               tkFloat:
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsExtended);
+              tkClass:
+              begin
+                InternalObjectToJsonObject(
+                  AValue.GetArrayElement(I).AsObject,
+                  AJsonObject.A[AName].AddObject,
+                  TMVCSerializationType.stDefault,
+                  [],
+                  nil,
+                  nil,
+                  nil);
+              end;
             else
-              raise EMVCSerializationException.CreateFmt
-                ('Cannot serialize property or field "%s" of TypeKind tkArray or tkDynArray.', [AName]);
+              begin
+                raise EMVCSerializationException.CreateFmt
+                  ('Cannot serialize property or field "%s" of TypeKind tkArray or tkDynArray.', [AName]);
+              end;
             end;
           end;
         end;
