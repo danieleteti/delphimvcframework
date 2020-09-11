@@ -2940,7 +2940,7 @@ begin
   end;
 
   lFileName := TPath.GetFullPath(lFileName);
-  if not lFileName.StartsWith(lWebRoot) then
+  if not lFileName.StartsWith(lWebRoot) then //AVOID PATH TRAVERSAL
   begin
     Exit(False);
   end;
@@ -2954,13 +2954,13 @@ var
   ReqDate: TDateTime;
   S: TFileStream;
 begin
-  FileDate := IndyFileAge(AFileName);
-  if (FileDate = 0.0) and (not FileExists(AFileName)) then
+  if not FileExists(AFileName) then
   begin
     AContext.Response.StatusCode := 404;
   end
   else
   begin
+    FileDate := IndyFileAge(AFileName);
     ReqDate := GMTToLocalDateTime(AContext.Request.Headers['If-Modified-Since']);
     if (ReqDate <> 0) and (abs(ReqDate - FileDate) < 2 * (1 / (24 * 60 * 60))) then
     begin
