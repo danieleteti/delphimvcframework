@@ -8,16 +8,13 @@ program DMVCFrameworkTests;
 
 uses
   System.SysUtils,
-{$IFDEF GUI_TESTRUNNER}
+  {$IFDEF GUI_TESTRUNNER}
   Vcl.Forms,
   DUnitX.Loggers.GUI.Vcl,
-  // Fmx.Forms,
-  // DUNitX.Loggers.GUIX,
-{$ENDIF }
-{$IFDEF CONSOLE_TESTRUNNER}
+  {$ENDIF }
+  {$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
-{$ENDIF }
-  // DUnitX.Loggers.Xml.NUnit,
+  {$ENDIF }
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
@@ -45,8 +42,6 @@ uses
   MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
   ActiveRecordTestsU in 'ActiveRecordTestsU.pas',
   TestConstsU in 'TestConstsU.pas',
-  MVCFramework.RESTClient.Indy in '..\..\..\sources\MVCFramework.RESTClient.Indy.pas',
-  MVCFramework.RESTClient.Intf in '..\..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\..\sources\MVCFramework.RESTClient.pas';
 
 {$R *.RES}

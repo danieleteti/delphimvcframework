@@ -289,14 +289,13 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
         FMonthOrder: TMonthEnum;    
       public
         // List items separated by comma or semicolon
-        [MVCEnumSerializationType(estEnumMappedValues,
-        	'January,February,March,April')]
+        [MVCEnumSerialization(estEnumMappedValues, 'January,February,March,April')]
         property MonthMappedNames: TMonthEnum 
-        	read FMonthMappedNames write FMonthMappedNames;
-        [MVCEnumSerializationType(estEnumName)]
+        read FMonthMappedNames write FMonthMappedNames;
+        [MVCEnumSerialization(estEnumName)]
         property MonthEnumName: TMonthEnum 
-        	read FMonthEnumName write FMonthEnumName;
-        [MVCEnumSerializationType(estEnumOrd)]
+        read FMonthEnumName write FMonthEnumName;
+        [MVCEnumSerialization(estEnumOrd)]
         property MonthOrder: TMonthEnum read FMonthOrder write FMonthOrder;
       end;
     ...
@@ -464,7 +463,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
     end;
   ```
 
-- Added the ability to deserialize an object starting from an arbitrary node in the JSON (or other format) present in the request body.
+- Added the ability to deserialize an object, or alist of objects, starting from an arbitrary node in the JSON (or other format) present in the request body. Works for `BodyAs<T>` and for `BodyAsListOf<T>` (Thanks to [Raphaël Emourgeon](https://github.com/osaris) for the `BodyAsListOf<T>` [implementation](https://github.com/danieleteti/delphimvcframework/issues/415)).
 
   ```delphi
   procedure TBooksController.CreateBook;

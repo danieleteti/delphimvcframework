@@ -138,6 +138,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_ExeOutput>.\bin</DCC_ExeOutput>
+        <Debugger_RunParams>--include:this</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_5_Win32)'!=''">
         <DCC_Define>CI;$(DCC_Define)</DCC_Define>
@@ -200,8 +201,6 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas"/>
         <DCCReference Include="ActiveRecordTestsU.pas"/>
         <DCCReference Include="TestConstsU.pas"/>
-        <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
-        <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.Intf.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

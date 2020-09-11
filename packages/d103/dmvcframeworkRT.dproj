@@ -131,8 +131,6 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="inet.dcp"/>
-        <DCCReference Include="dclcommon.dcp"/>
-        <DCCReference Include="dcldb.dcp"/>
         <DCCReference Include="FireDAC.dcp"/>
         <DCCReference Include="IndyCore.dcp"/>
         <DCCReference Include="IndyProtocols.dcp"/>
@@ -140,9 +138,6 @@
         <DCCReference Include="FireDACMySQLDriver.dcp"/>
         <DCCReference Include="loggerproRT.dcp"/>
         <DCCReference Include="FireDACPgDriver.dcp"/>
-        <DCCReference Include="bindengine.dcp"/>
-        <DCCReference Include="bindcomp.dcp"/>
-        <DCCReference Include="RESTComponents.dcp"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.Win.IsapiHTTP.pas"/>
         <DCCReference Include="c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheHTTP.pas"/>
@@ -232,8 +227,6 @@
         <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Trace.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Intf.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -415,6 +415,7 @@ function StrDict(const aKeys: array of string; const aValues: array of string)
 function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
 function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32; const DefaultPageSize: UInt32;
   const URITemplate: string): TMVCStringDictionary;
+procedure RaiseSerializationError(const Msg: string);
 
 implementation
 
@@ -422,6 +423,11 @@ uses
   Data.FmtBcd,
   MVCFramework.Nullables,
   System.Generics.Defaults;
+
+procedure RaiseSerializationError(const Msg: string);
+begin
+  raise EMVCSerializationException.Create(Msg);
+end;
 
 function StrDict: TMVCStringDictionary; overload;
 begin
@@ -1036,7 +1042,9 @@ begin
               lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
               if lInternalStream = nil then
               begin
-                raise EMVCException.CreateFmt('Property target for %s field is nil. [HINT] Initialize the stream before load data', [AField.FieldName]);
+                raise EMVCException.CreateFmt
+                  ('Property target for %s field is nil. [HINT] Initialize the stream before load data',
+                  [AField.FieldName]);
               end;
               lInternalStream.Size := 0;
               lStrValue := AField.AsString;

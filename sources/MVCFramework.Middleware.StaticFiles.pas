@@ -166,10 +166,11 @@ procedure TMVCStaticFilesMiddleware.OnBeforeRouting(AContext: TWebContext; var A
 var
   lPathInfo: string;
   lFileName: string;
+  lRequestedFolder: string;
 begin
   lPathInfo := AContext.Request.PathInfo;
 
-  if not lPathInfo.StartsWith(fStaticFilesPath, True) then
+  if (not lPathInfo.StartsWith(fStaticFilesPath, True)) or (not AContext.Request.ClientPreferHTML) then
   begin
     AHandled := False;
     Exit;
@@ -197,30 +198,57 @@ begin
     lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
   end;
 
-  if not fIndexDocument.IsEmpty then
+  // check if it's a direct file request
+  if IsStaticFileRequest(lPathInfo, lFileName) then
+  begin
+    AHandled := SendStaticFileIfPresent(AContext, lFileName);
+    if AHandled then
+      Exit;
+  end;
+
+  // check if pathinfo is a subfolder of staticfilespath
+  if (lPathInfo.Length > fStaticFilesPath.Length) and lPathInfo.StartsWith(fStaticFilesPath, True) then
+  begin
+    if (not lPathInfo.EndsWith('/')) and (not fIndexDocument.IsEmpty) then
+    begin
+      AContext.Response.StatusCode := HTTP_STATUS.MovedPermanently;
+      AContext.Response.CustomHeaders.Values['Location'] := lPathInfo + '/';
+      AHandled := True;
+      Exit;
+    end;
+  end;
+
+  lRequestedFolder := fDocumentRoot;
+
+  if (not AHandled) and (not fIndexDocument.IsEmpty) then
   begin
     if (lPathInfo = '/') or (lPathInfo = '') then
     begin
-      lFileName := TPath.GetFullPath(TPath.Combine(fDocumentRoot, fIndexDocument));
+      lFileName := TPath.GetFullPath(TPath.Combine(lRequestedFolder, fIndexDocument));
+      AHandled := SendStaticFileIfPresent(AContext, lFileName);
+    end
+    else
+    begin
+      if lPathInfo.StartsWith('/') then
+      begin
+        lPathInfo := lPathInfo.Substring(1);
+      end;
+      lRequestedFolder := TPath.Combine(lRequestedFolder, lPathInfo.Replace('/', PathDelim, [rfReplaceAll]));
+      lFileName := TPath.Combine(lRequestedFolder, fIndexDocument);
       AHandled := SendStaticFileIfPresent(AContext, lFileName);
     end;
   end;
 
-  if (not AHandled) and (IsStaticFileRequest(lPathInfo, lFileName)) then
-  begin
-    AHandled := SendStaticFileIfPresent(AContext, lFileName);
-  end;
-
-  // if (not AHandled) and lPathInfo.EndsWith('favicon.ico') then
-  // begin
-  // AContext.Response.SetContentStream(TBytesStream.Create(TNetEncoding.Base64.DecodeStringToBytes(DMVC_FAVICON)),
-  // TMVCMediaType.IMAGE_X_ICON);
-  // AHandled := True;
-  // end;
-
   if (not AHandled) and fSPAWebAppSupport and AContext.Request.ClientPreferHTML and (not fIndexDocument.IsEmpty) then
   begin
-    lFileName := TPath.GetFullPath(TPath.Combine(fDocumentRoot, fIndexDocument));
+    while (not lRequestedFolder.IsEmpty) and (not TDirectory.Exists(lRequestedFolder)) do
+    begin
+      lRequestedFolder := TDirectory.GetParent(lRequestedFolder);
+    end;
+    if not lRequestedFolder.IsEmpty then
+      lFileName := TPath.GetFullPath(TPath.Combine(lRequestedFolder, fIndexDocument))
+    else
+      lFileName := TPath.GetFullPath(TPath.Combine(fDocumentRoot, fIndexDocument));
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
   end;
 end;

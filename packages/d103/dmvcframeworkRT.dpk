@@ -33,18 +33,13 @@ package dmvcframeworkRT;
 requires
   rtl,
   inet,
-  dclcommon,
-  dcldb,
   FireDAC,
   IndyCore,
   IndyProtocols,
   FireDACIBDriver,
   FireDACMySQLDriver,
   loggerproRT,
-  FireDACPgDriver,
-  bindengine,
-  bindcomp,
-  RESTComponents;
+  FireDACPgDriver;
 
 contains
   Web.ApacheConst in 'c:\program files (x86)\embarcadero\studio\20.0\source\Internet\Web.ApacheConst.pas',
@@ -136,11 +131,10 @@ contains
   Swag.Doc.SecurityDefinitionOAuth2 in '..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionOAuth2.pas',
   Swag.Doc.Tags in '..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas',
   MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
-  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
-  MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
-  MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas';
+  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas';
 
 end.
+
 
 
 
