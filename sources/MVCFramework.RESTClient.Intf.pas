@@ -69,7 +69,8 @@ type
     function UserAgent: string; overload;
 
     /// <summary>
-    /// Clears all parameters, except authorization headers. This method is executed after each request is completed.
+    /// Clears all parameters (headers, body, path params and query params). This method is executed after each
+    /// request is completed.
     /// </summary>
     function ClearAllParams: IMVCRESTClient;
 
@@ -93,7 +94,7 @@ type
     /// <summary>
     /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
-    function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
+    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
 
     /// <summary>
     /// Add a header.
@@ -229,7 +230,7 @@ type
       const aContentType: string = ''): IMVCRESTClient; overload;
 
     /// <summary>
-    ///   Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
+    /// Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
     /// </summary>
     function AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
 
@@ -257,16 +258,16 @@ type
     function Get: IMVCRESTResponse; overload;
 
     /// <summary>
-    ///   Execute a Post request.
+    /// Execute a Post request.
     /// </summary>
     /// <param name="aResource">
-    ///   Resource path
+    /// Resource path
     /// </param>
     /// <param name="aBody">
-    ///   Object to be serialized. It can be a simple object or a list of objects (TObjectList &lt;T&gt;)
+    /// Object to be serialized. It can be a simple object or a list of objects (TObjectList &lt;T&gt;)
     /// </param>
     /// <param name="aOwnsBody">
-    ///   If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
+    /// If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
     /// </param>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
     function Post(const aResource: string; const aBody: string = '';

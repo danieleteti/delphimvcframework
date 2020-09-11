@@ -77,6 +77,7 @@ type
     fHTTPClient: THTTPClient;
     fBaseURL: string;
     fResource: string;
+    fInternalContentType: string;
     fProxySettings: TProxySettings;
     fParameters: TList<TMVCRESTParam>;
     fRawBody: TStringStream;
@@ -84,7 +85,6 @@ type
     fSerializer: IMVCSerializer;
     fRttiContext: TRttiContext;
     function GetBodyFormData: TMultipartFormData;
-    function GetContentTypeCharset(const aContentType: string): string;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
     procedure SetContentType(const aContentType: string);
@@ -99,6 +99,7 @@ type
     procedure DoApplyHeaders;
     procedure DoApplyCookies(const aURL: string);
     procedure DoEncodeURL(var aURL: string);
+    procedure DoPrepareBodyRequest(var aBodyStream: TStream);
 
     function ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
   public
@@ -130,7 +131,8 @@ type
     function UserAgent: string; overload;
 
     /// <summary>
-    /// Clears all parameters, except authorization headers. This method is executed after each request is completed.
+    /// Clears all parameters (headers, body, path params and query params). This method is executed after each
+    /// request is completed.
     /// </summary>
     function ClearAllParams: IMVCRESTClient;
 
@@ -154,7 +156,7 @@ type
     /// <summary>
     /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
-    function SetBearerAuthorization(const aToken: string): IMVCRESTClient;
+    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
 
     /// <summary>
     /// Add a header.
@@ -464,12 +466,12 @@ var
   lContentCharset: string;
   lEncoding: TEncoding;
   lBytes: TArray<Byte>;
+  lContentType: string;
 begin
   Result := Self;
 
-  SetContentType(aContentType);
+  SplitContentMediaTypeAndCharset(aContentType, lContentType, lContentCharset);
 
-  lContentCharset := GetContentTypeCharset(aContentType);
   if lContentCharset.IsEmpty then
   begin
     lContentCharset := TMVCCharSet.UTF_8;
@@ -477,8 +479,11 @@ begin
   lEncoding := TEncoding.GetEncoding(lContentCharset);
   try
     fRawBody.Clear;
+
     lBytes := TEncoding.Convert(TEncoding.Default, lEncoding, TEncoding.Default.GetBytes(aBody));
+    lBytes := lEncoding.GetBytes(aBody);
     fRawBody.WriteData(lBytes, Length(lBytes));
+    SetContentType(BuildContentType(lContentType, lContentCharset));
   finally
     FreeAndNil(lEncoding);
   end;
@@ -657,7 +662,7 @@ end;
 function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>;
   aCompletionHandlerWithError: TProc<Exception>; const aSynchronized: Boolean): IMVCRESTClient;
 begin
-
+  // Needs implementation
 end;
 
 function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
@@ -685,6 +690,7 @@ function TMVCRESTClient.ClearAllParams: IMVCRESTClient;
 begin
   Result := Self;
   fParameters.Clear;
+  ClearBody;
 end;
 
 function TMVCRESTClient.ClearBody: IMVCRESTClient;
@@ -693,7 +699,9 @@ begin
   if Assigned(fBodyFormData) then
     FreeAndNil(fBodyFormData);
 
+  Result := Self;
   ClearParameters(TMVCRESTParamType.FormURLEncoded);
+  fInternalContentType := '';
 end;
 
 function TMVCRESTClient.ClearCookies: IMVCRESTClient;
@@ -829,6 +837,7 @@ procedure TMVCRESTClient.DoApplyHeaders;
 var
   lParam: TMVCRESTParam;
 begin
+  fHTTPClient.CustHeaders.Clear;
   for lParam in fParameters do
   begin
     if lParam.&Type = TMVCRESTParamType.Header then
@@ -849,7 +858,8 @@ begin
     if lParam.&Type = TMVCRESTParamType.Path then
     begin
       lReplace := '{' + lParam.Name + '}';
-      lEncodedParam := TMVCRESTClientHelper.URIEncode(lParam.Value);
+      lEncodedParam := TNetEncoding.URL.Encode(lParam.Value, TMVCRESTClientConsts.PATH_UNSAFE_CHARS,
+        [TURLEncoding.TEncodeOption.EncodePercent]);
       aURL := aURL.Replace(lReplace, lEncodedParam, [rfReplaceAll, rfIgnoreCase]);
     end;
   end;
@@ -866,8 +876,7 @@ begin
   begin
     if lParam.&Type = TMVCRESTParamType.Query then
     begin
-      lName := TNetEncoding.URL.Encode(lParam.Name, TMVCRESTClientConsts.QUERY_NAME_UNSAFE_CHARS,
-        [TURLEncoding.TEncodeOption.EncodePercent]);
+      lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
       lValue := TNetEncoding.URL.EncodeForm(lParam.Value);
 
       if aURL.Contains('?') then
@@ -896,11 +905,55 @@ begin
   aURL := TURI.Create(aURL).Encode;
 end;
 
+procedure TMVCRESTClient.DoPrepareBodyRequest(var aBodyStream: TStream);
+var
+  lContentType: string;
+  lContentCharset: string;
+  lParam: TMVCRESTParam;
+  lName: string;
+  lValue: string;
+  lBody: string;
+begin
+  SplitContentMediaTypeAndCharset(fInternalContentType, lContentType, lContentCharset);
+
+  if SameText(lContentType, TMVCMediaType.MULTIPART_FORM_DATA) then
+  begin
+    aBodyStream := GetBodyFormData.Stream;
+    SetContentType(GetBodyFormData.MimeTypeHeader);
+    fHTTPClient.CustHeaders[sContentType] := GetBodyFormData.MimeTypeHeader;
+  end
+  else if SameText(lContentType, TMVCMediaType.APPLICATION_FORM_URLENCODED) then
+  begin
+    lBody := '';
+    for lParam in fParameters do
+    begin
+      if lParam.&Type = TMVCRESTParamType.FormURLEncoded then
+      begin
+        lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+        lValue := TNetEncoding.URL.EncodeForm(lParam.Value);
+        if not lBody.IsEmpty then
+          lBody := lBody + '&';
+        lBody := lBody + lName + '=' + lValue;
+      end;
+    end;
+    AddBody(lBody, fInternalContentType);
+    aBodyStream := fRawBody;
+  end
+  else
+  begin
+    aBodyStream := fRawBody;
+  end;
+  aBodyStream.Position := 0;
+end;
+
 function TMVCRESTClient.ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
 var
   lURL: string;
   lResponse: IHTTPResponse;
+  lBodyStream: TStream;
 begin
+  fHTTPClient.ProxySettings := fProxySettings;
+
   lURL := GetFullURL;
   DoConvertMVCPathParamsToRESTParams(lURL);
   DoApplyPathParams(lURL);
@@ -909,23 +962,30 @@ begin
   DoApplyHeaders;
   DoApplyCookies(lURL);
 
+  lBodyStream := nil;
+  DoPrepareBodyRequest(lBodyStream);
+
   case aMethod of
     httpGET:
-      lResponse := fHTTPClient.Get(lURL, nil, []);
+      begin
+        lResponse := fHTTPClient.Get(lURL, nil, [])
+      end;
     httpPOST:
-      ;
+      begin
+        lResponse := fHTTPClient.Post(lURL, lBodyStream, nil, []);
+      end;
     httpPUT:
-      ;
-    httpDELETE:
-      ;
-    httpHEAD:
-      ;
-    httpOPTIONS:
-      ;
+      begin
+        lResponse := fHTTPClient.Put(lURL, lBodyStream, nil, []);
+      end;
     httpPATCH:
-      ;
-    httpTRACE:
-      ;
+      begin
+        lResponse := fHTTPClient.Patch(lURL, lBodyStream, nil, []);
+      end;
+    httpDELETE:
+      begin
+        lResponse := fHTTPClient.Delete(lURL, nil, []);
+      end;
   end;
 
   Result := TMVCRESTResponse.Create(lResponse);
@@ -944,13 +1004,6 @@ begin
     fBodyFormData := TMultipartFormData.Create;
   end;
   Result := fBodyFormData;
-end;
-
-function TMVCRESTClient.GetContentTypeCharset(const aContentType: string): string;
-var
-  lContentType: string;
-begin
-  SplitContentMediaTypeAndCharset(aContentType, lContentType, Result);
 end;
 
 function TMVCRESTClient.GetFullURL: string;
@@ -1206,17 +1259,29 @@ begin
 end;
 
 function TMVCRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+var
+  lBase64: TNetEncoding;
+  lAuthValue: string;
 begin
-
+  // Do not use TNetEncoding.Base64 here, because it may break long line
+  lBase64 := TBase64Encoding.Create(0, '');
+  try
+    lAuthValue := TMVCRESTClientConsts.BASIC_AUTH_PREFIX + lBase64.Encode(aUsername + ':' + aPassword);
+  finally
+    FreeAndNil(lBase64);
+  end;
+  Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, lAuthValue);
 end;
 
-function TMVCRESTClient.SetBearerAuthorization(const aToken: string): IMVCRESTClient;
+function TMVCRESTClient.SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
 begin
-
+  Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, TMVCRESTClientConsts.BEARER_AUTH_PREFIX +
+    aAccessToken);
 end;
 
 procedure TMVCRESTClient.SetContentType(const aContentType: string);
 begin
+  fInternalContentType := aContentType;
   AddHeader(sContentType, aContentType);
 end;
 
@@ -1302,7 +1367,7 @@ begin
   fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
   fRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
     aHTTPResponse.ContentEncoding);
-  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fRawBytes, aHTTPResponse.ContentCharSet);
+  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fRawBytes, aHTTPResponse.HeaderValue[sContentType]);
   fContentType := aHTTPResponse.HeaderValue[sContentType];
   fContentEncoding := aHTTPResponse.ContentEncoding;
   fContentLength := aHTTPResponse.ContentLength;

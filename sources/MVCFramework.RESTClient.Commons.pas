@@ -55,7 +55,13 @@ type
   TMVCRESTClientHelper = class sealed
   public
     class function URIEncode(const aURI: string): string;
+    /// <summary>
+    /// Convert response content to byte array. If the response is compressed, it is decompressed in the process.
+    /// </summary>
     class function GetResponseContentAsRawBytes(aContentStream: TStream; const aContentEncoding: string): TArray<Byte>;
+    /// <summary>
+    /// Get the response string, if it is of any type of text.
+    /// </summary>
     class function GetResponseContentAsString(aContentRawBytes: TArray<Byte>; const aContentType: string): string;
   end;
 
@@ -68,22 +74,21 @@ type
     AUTHORIZATION_HEADER = 'Authorization';
     BASIC_AUTH_PREFIX = 'Basic ';
     BEARER_AUTH_PREFIX = 'Bearer ';
-    HEADER_RESPONSE_COOKIES = 'Cookies';
     SERVER_HEADER = 'server';
-    REST_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord('<'), Ord('>'), Ord('^'), Ord('`'), Ord('{'),
-      Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'), Ord('+'), Ord('.')];
-    QUERY_NAME_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='),
+    REST_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='),
       Ord('>'), Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'),
       Ord('?'), Ord('#'), Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~'), Ord(' '), Ord('*'),
       Ord('+')];
+    PATH_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord('<'), Ord('>'), Ord('^'), Ord('`'), Ord('{'),
+      Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'), Ord('+'), Ord('.')];
   end;
-
 
 implementation
 
 uses
   IdCompressorZLib,
-  MVCFramework.Commons, System.Net.Mime;
+  MVCFramework.Commons,
+  System.Net.Mime;
 
 { TMVCRESTParam }
 
@@ -107,11 +112,11 @@ begin
   try
     lDecompressor := TIdCompressorZLib.Create(nil);
     try
-      if SameText(aContentEncoding, 'gzip') then
+      if SameText(aContentEncoding, MVC_COMPRESSION_TYPE_AS_STRING[TMVCCompressionType.ctGZIP]) then
       begin
         lDecompressor.DecompressGZipStream(aContentStream, lDecompressed);
       end
-      else if SameText(aContentEncoding, 'deflate') then
+      else if SameText(aContentEncoding, MVC_COMPRESSION_TYPE_AS_STRING[TMVCCompressionType.ctDeflate]) then
       begin
         lDecompressor.DecompressHTTPDeflate(aContentStream, lDecompressed);
       end
@@ -162,12 +167,13 @@ begin
   begin
     if lCharset.isEmpty then
     begin
-      lCharset := 'utf-8';
+      lCharset := TMVCCharSet.UTF_8;
     end;
     lEncoding := TEncoding.GetEncoding(lCharset);
 
     lReader := TStringStream.Create('', lEncoding);
     try
+      lReader.Write(aContentRawBytes, Length(aContentRawBytes));
       Result := lReader.DataString;
     finally
       FreeAndNil(lReader);
