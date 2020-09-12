@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{5010CC58-A86E-4D28-ADAB-87A72DC8BC4E}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="AuthenticateAuthorize.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="vclclient\AuthenticationAuthorizationClient.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="AuthenticateAuthorize">
+        <MSBuild Projects="AuthenticateAuthorize.dproj"/>
+    </Target>
+    <Target Name="AuthenticateAuthorize:Clean">
+        <MSBuild Projects="AuthenticateAuthorize.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="AuthenticateAuthorize:Make">
+        <MSBuild Projects="AuthenticateAuthorize.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="AuthenticationAuthorizationClient">
+        <MSBuild Projects="vclclient\AuthenticationAuthorizationClient.dproj"/>
+    </Target>
+    <Target Name="AuthenticationAuthorizationClient:Clean">
+        <MSBuild Projects="vclclient\AuthenticationAuthorizationClient.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="AuthenticationAuthorizationClient:Make">
+        <MSBuild Projects="vclclient\AuthenticationAuthorizationClient.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="AuthenticateAuthorize;AuthenticationAuthorizationClient"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="AuthenticateAuthorize:Clean;AuthenticationAuthorizationClient:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="AuthenticateAuthorize:Make;AuthenticationAuthorizationClient:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

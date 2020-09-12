@@ -57,7 +57,6 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
-    ExplicitHeight = 571
   end
   object btnRelations: TButton
     Left = 8
@@ -176,6 +175,15 @@ object MainForm: TMainForm
     Caption = 'Client Generated PKs'
     TabOrder = 15
     OnClick = btnClientGeneratedPKClick
+  end
+  object btnAttributes: TButton
+    Left = 8
+    Top = 599
+    Width = 121
+    Height = 33
+    Caption = 'Attributes'
+    TabOrder = 16
+    OnClick = btnAttributesClick
   end
   object FDConnection1: TFDConnection
     Left = 176

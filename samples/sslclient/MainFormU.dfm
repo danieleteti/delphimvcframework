@@ -11,7 +11,6 @@ object Form9: TForm9
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  OnClose = FormClose
   OnCreate = FormCreate
   DesignSize = (
     538
@@ -47,7 +46,7 @@ object Form9: TForm9
     Lines.Strings = (
       'Memo1')
     ParentFont = False
-    TabOrder = 1
+    TabOrder = 2
   end
   object Button2: TButton
     Left = 111
@@ -61,16 +60,15 @@ object Form9: TForm9
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
-    TabOrder = 2
+    TabOrder = 1
     OnClick = Button2Click
   end
   object RESTClient1: TRESTClient
     Accept = 'application/json, text/plain; q=0.9, text/html;q=0.8,'
     AcceptCharset = 'UTF-8, *;q=0.8'
     AcceptEncoding = 'identity'
-    BaseURL = 'https://localhost/'
+    BaseURL = 'https://localhost'
     Params = <>
-    HandleRedirects = True
     Left = 32
     Top = 56
   end

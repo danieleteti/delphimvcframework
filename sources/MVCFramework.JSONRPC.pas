@@ -1706,7 +1706,7 @@ begin
     end
     else
     begin
-      TValueToJsonElement(Self.FResult, Result, JSONRPC_RESULT);
+      TValueToJsonObjectProperty(Self.FResult, Result, JSONRPC_RESULT);
     end;
   except
     Result.Free;

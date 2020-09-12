@@ -108,8 +108,6 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="inet.dcp"/>
-        <DCCReference Include="dclcommon.dcp"/>
-        <DCCReference Include="dcldb.dcp"/>
         <DCCReference Include="FireDAC.dcp"/>
         <DCCReference Include="IndyCore.dcp"/>
         <DCCReference Include="IndyProtocols.dcp"/>

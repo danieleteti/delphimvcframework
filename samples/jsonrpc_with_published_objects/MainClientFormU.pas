@@ -81,10 +81,6 @@ type
     Edit2: TEdit;
     btnSubtractWithNamedParams: TButton;
     Edit3: TEdit;
-    TabSheet3: TTabSheet;
-    btnDoNothing: TButton;
-    btnDoNothingError: TButton;
-    btnNotExistent: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -101,13 +97,9 @@ type
     procedure btnFloatsTestsClick(Sender: TObject);
     procedure btnWithJSONClick(Sender: TObject);
     procedure btnSubtractWithNamedParamsClick(Sender: TObject);
-    procedure btnDoNothingClick(Sender: TObject);
-    procedure btnNotExistentClick(Sender: TObject);
-    procedure btnDoNothingErrorClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
-    FExecutor3: IMVCJSONRPCExecutor;
   public
     { Public declarations }
   end;
@@ -154,35 +146,7 @@ begin
   lReq.Params.Add(Date(), pdtDate);
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest(lReq);
-  ShowMessage('Using Positional Parameters: ' +
-    DateTimeToStr(ISOTimeStampToDateTime(lResp.Result.AsString)));
-
-  // (const aJustAFloat: Double; const aTime: TTime; const aDate: TDate; const aDateAndTime: TDateTime)
-  lReq := TJSONRPCRequest.Create(1234, 'playwithdatesandtimes');
-  lReq.Params.AddByName('aJustAFloat', 1234.5678, pdtFloat);
-  lReq.Params.AddByName('ATIME', Time(), pdtTime);
-  lReq.Params.AddByName('adate', Date(), pdtDate);
-  lReq.Params.AddByName('adateAndTime', Now(), pdtDateTime);
-  lResp := FExecutor.ExecuteRequest(lReq);
-  ShowMessage('Using Named Parameters: ' +
-    DateTimeToStr(ISOTimeStampToDateTime(lResp.Result.AsString)));
-
-end;
-
-procedure TMainForm.btnDoNothingClick(Sender: TObject);
-var
-  lReq: IJSONRPCNotification;
-begin
-  lReq := TJSONRPCNotification.Create('DoSomething');
-  FExecutor3.ExecuteNotification(lReq);
-end;
-
-procedure TMainForm.btnDoNothingErrorClick(Sender: TObject);
-var
-  lReq: IJSONRPCNotification;
-begin
-  lReq := TJSONRPCNotification.Create('DoSomethingWithError');
-  FExecutor3.ExecuteNotification(lReq);
+  ShowMessage(DateTimeToStr(lResp.Result.AsType<TDateTime>));
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);
@@ -234,25 +198,25 @@ end;
 
 procedure TMainForm.btnInvalid1Click(Sender: TObject);
 var
-  lReq: IJSONRPCNotification;
+  lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCNotification.Create;
+  lReq := TJSONRPCRequest.Create;
   lReq.Method := 'invalidmethod1';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteNotification(lReq);
+  lResp := FExecutor.ExecuteRequest(lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
 procedure TMainForm.btnInvalid2Click(Sender: TObject);
 var
-  lReq: IJSONRPCNotification;
+  lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCNotification.Create;
+  lReq := TJSONRPCRequest.Create;
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteNotification(lReq);
+  lResp := FExecutor.ExecuteRequest(lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
@@ -330,8 +294,7 @@ begin
   for I := 0 to lJSON.Count - 1 do
   begin
     lJObj := lJSON[I].ObjectValue;
-    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'],
-      lJObj.F['prezzo']]));
+    ListBox1.Items.Add(Format('%6s: %-34s € %5.2f', [lJObj.S['codice'], lJObj.S['descrizione'], lJObj.F['prezzo']]));
   end;
   // lbPerson.Items.Add('First Name:'.PadRight(15) + lJSON.S['firstname']);
   // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
@@ -386,14 +349,6 @@ begin
   ShowMessage(lPerson.ToJSON(False));
 end;
 
-procedure TMainForm.btnNotExistentClick(Sender: TObject);
-var
-  lReq: IJSONRPCNotification;
-begin
-  lReq := TJSONRPCNotification.Create('blablabla');
-  FExecutor3.ExecuteNotification(lReq);
-end;
-
 procedure TMainForm.edtGetCustomersClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
@@ -412,8 +367,6 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpc');
   FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
-  FExecutor3 := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpchooks');
-
   dtNextMonday.Date := Date;
 
   // these are the methods to handle http headers in JSONRPC
@@ -424,7 +377,6 @@ begin
   FExecutor.ClearHTTPHeaders;
   Assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
-  PageControl1.ActivePageIndex := 0;
 end;
 
 end.

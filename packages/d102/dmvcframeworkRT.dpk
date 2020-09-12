@@ -33,8 +33,6 @@ package dmvcframeworkRT;
 requires
   rtl,
   inet,
-  dclcommon,
-  dcldb,
   FireDAC,
   IndyCore,
   IndyProtocols,

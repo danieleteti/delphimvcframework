@@ -33,8 +33,6 @@ package dmvcframeworkRT;
 requires
   rtl,
   inet,
-  dclcommon,
-  dcldb,
   FireDAC,
   IndyCore,
   IndyProtocols,
@@ -76,7 +74,6 @@ contains
   MVCFramework in '..\..\sources\MVCFramework.pas',
   MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas',
   MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
-  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
   MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
   MVCFramework.RQL.AST2InterbaseSQL in '..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
@@ -134,7 +131,8 @@ contains
   Swag.Doc.SecurityDefinitionOAuth2 in '..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionOAuth2.pas',
   Swag.Doc.Tags in '..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas',
   MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
-  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas';
+  MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
 
 end.
 

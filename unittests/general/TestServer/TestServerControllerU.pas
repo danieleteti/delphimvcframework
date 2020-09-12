@@ -205,6 +205,19 @@ type
     [MVCPath('/objectdict')]
     procedure TestObjectDict;
 
+    // exception rendering
+    [MVCPath('/exception/emvcexception1')]
+    procedure TestEMVCException1;
+
+    [MVCPath('/exception/emvcexception2')]
+    procedure TestEMVCException2;
+
+    [MVCPath('/exception/emvcexception3')]
+    procedure TestEMVCException3;
+
+    [MVCPath('/exception/emvcexception4')]
+    procedure TestEMVCException4;
+
     // Nullables Tests
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/nullables/pingpong')]
@@ -244,6 +257,10 @@ type
     [MVCPath('/website/list')]
     procedure Tmpl_ListOfDataUsingDatasets;
 
+    { issues }
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issues/406')]
+    procedure TestIssue406;
   end;
 
   [MVCPath('/private')]
@@ -471,6 +488,26 @@ begin
   Render(lNullablesTest);
 end;
 
+procedure TTestServerController.TestEMVCException1;
+begin
+  raise EMVCException.Create('message');
+end;
+
+procedure TTestServerController.TestEMVCException2;
+begin
+  raise EMVCException.Create(HTTP_STATUS.BadRequest, 'message');
+end;
+
+procedure TTestServerController.TestEMVCException3;
+begin
+  raise EMVCException.Create(HTTP_STATUS.Created, 999, 'message');
+end;
+
+procedure TTestServerController.TestEMVCException4;
+begin
+  raise EMVCException.Create('message', 'detailedmessage', 999, HTTP_STATUS.Created, ['erritem1', 'erritem2']);
+end;
+
 procedure TTestServerController.TestCharset;
 var
   Obj: TJDOJSONObject;
@@ -548,14 +585,10 @@ begin
   Render<TPerson>(TPerson.GetList, True,
     procedure(const Person: TPerson; const Links: IMVCLinks)
     begin
-      Links.AddRefLink
-        .Add(HATEOAS.HREF, '/api/people/' + Person.ID.ToString)
-        .Add(HATEOAS.REL, 'test0')
+      Links.AddRefLink.Add(HATEOAS.HREF, '/api/people/' + Person.ID.ToString).Add(HATEOAS.REL, 'test0')
         .Add(HATEOAS._TYPE, 'application/json');
-      Links.AddRefLink
-        .Add(HATEOAS.HREF, '/api/test/' + Person.ID.ToString)
-        .Add(HATEOAS.REL, 'test1')
-        .Add(HATEOAS._TYPE, 'application/json')
+      Links.AddRefLink.Add(HATEOAS.HREF, '/api/test/' + Person.ID.ToString).Add(HATEOAS.REL, 'test1').Add(HATEOAS._TYPE,
+        'application/json')
     end);
 end;
 
@@ -586,6 +619,11 @@ begin
   Render('hello world');
 end;
 
+procedure TTestServerController.TestIssue406;
+begin
+  Render(HTTP_STATUS.UnprocessableEntity, TMVCErrorResponseItem.Create('The Message'));
+end;
+
 procedure TTestServerController.TestJSONArrayAsObjectList;
 var
   lUsers: TObjectList<TCustomer>;
@@ -612,16 +650,12 @@ procedure TTestServerController.TestObjectDict;
 var
   lDict: IMVCObjectDictionary;
 begin
-  lDict := ObjectDict(True)
-    .Add('ncUpperCase_List', GetDataSet, nil, dstAllRecords, ncUpperCase)
-    .Add('ncLowerCase_List', GetDataSet, nil, dstAllRecords, ncLowerCase)
-    .Add('ncCamelCase_List', GetDataSet, nil, dstAllRecords, ncCamelCase)
-    .Add('ncPascalCase_List', GetDataSet, nil, dstAllRecords, ncPascalCase)
-    .Add('ncUpperCase_Single', GetDataSet, nil, dstSingleRecord, ncUpperCase)
-    .Add('ncLowerCase_Single', GetDataSet, nil, dstSingleRecord, ncLowerCase)
-    .Add('ncCamelCase_Single', GetDataSet, nil, dstSingleRecord, ncCamelCase)
-    .Add('ncPascalCase_Single', GetDataSet, nil, dstSingleRecord, ncPascalCase)
-    .Add('meta', StrDict(['page'], ['1']));
+  lDict := ObjectDict(True).Add('ncUpperCase_List', GetDataSet, nil, dstAllRecords, ncUpperCase)
+    .Add('ncLowerCase_List', GetDataSet, nil, dstAllRecords, ncLowerCase).Add('ncCamelCase_List', GetDataSet, nil,
+    dstAllRecords, ncCamelCase).Add('ncPascalCase_List', GetDataSet, nil, dstAllRecords, ncPascalCase)
+    .Add('ncUpperCase_Single', GetDataSet, nil, dstSingleRecord, ncUpperCase).Add('ncLowerCase_Single', GetDataSet, nil,
+    dstSingleRecord, ncLowerCase).Add('ncCamelCase_Single', GetDataSet, nil, dstSingleRecord, ncCamelCase)
+    .Add('ncPascalCase_Single', GetDataSet, nil, dstSingleRecord, ncPascalCase).Add('meta', StrDict(['page'], ['1']));
   Render(lDict);
 end;
 
