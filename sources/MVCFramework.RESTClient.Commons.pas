@@ -53,6 +53,9 @@ type
   end;
 
   TMVCRESTClientHelper = class sealed
+  private
+    class function DecompressWithZlib(aContentStream, aOutStream: TStream; const aContentEncoding: string): Boolean;
+    class function DecompressWithIndyZlib(aContentStream, aOutStream: TStream; const aContentEncoding: string): Boolean;
   public
     class function URIEncode(const aURI: string): string;
     /// <summary>
@@ -87,6 +90,7 @@ implementation
 
 uses
   IdCompressorZLib,
+  System.ZLib,
   MVCFramework.Commons,
   System.Net.Mime;
 
@@ -101,32 +105,95 @@ end;
 
 { TMVCRESTClientHelper }
 
+class function TMVCRESTClientHelper.DecompressWithIndyZlib(aContentStream, aOutStream: TStream;
+  const aContentEncoding: string): Boolean;
+var
+  lDecompressor: TIdCompressorZLib;
+begin
+  try
+    aContentStream.Position := 0;
+    lDecompressor := TIdCompressorZLib.Create(nil);
+    try
+      if SameText(aContentEncoding, 'gzip') then
+      begin
+        lDecompressor.DecompressGZipStream(aContentStream, aOutStream);
+      end
+      else if SameText(aContentEncoding, 'deflate') then
+      begin
+        lDecompressor.DecompressHTTPDeflate(aContentStream, aOutStream);
+      end;
+      Result := True;
+    finally
+      FreeAndNil(lDecompressor);
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+class function TMVCRESTClientHelper.DecompressWithZlib(aContentStream, aOutStream: TStream;
+  const aContentEncoding: string): Boolean;
+var
+  lCompressionType: TMVCCompressionType;
+  lDecompressor: TZDecompressionStream;
+begin
+  if aContentEncoding = 'deflate' then
+  begin
+    lCompressionType := TMVCCompressionType.ctDeflate;
+  end
+  else
+  begin
+    lCompressionType := TMVCCompressionType.ctGZIP;
+  end;
+
+  aContentStream.Position := 0;
+  try
+{$IF Defined(SeattleOrBetter)}
+    lDecompressor := TZDecompressionStream.Create(aContentStream,
+      MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
+{$ELSE}
+    lDecompressor := TZDecompressionStream.Create(aContentStream, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType]);
+{$ENDIF}
+    try
+      aOutStream.CopyFrom(lDecompressor, 0);
+      Result := True;
+    finally
+      FreeAndNil(lDecompressor);
+    end;
+  except
+    Result := False;
+  end;
+end;
+
 class function TMVCRESTClientHelper.GetResponseContentAsRawBytes(aContentStream: TStream;
   const aContentEncoding: string): TArray<Byte>;
 var
   lDecompressed: TMemoryStream;
-  lDecompressor: TIdCompressorZLib;
 begin
-  aContentStream.Position := 0;
   lDecompressed := TMemoryStream.Create;
   try
-    lDecompressor := TIdCompressorZLib.Create(nil);
-    try
-      if SameText(aContentEncoding, MVC_COMPRESSION_TYPE_AS_STRING[TMVCCompressionType.ctGZIP]) then
-      begin
-        lDecompressor.DecompressGZipStream(aContentStream, lDecompressed);
-      end
-      else if SameText(aContentEncoding, MVC_COMPRESSION_TYPE_AS_STRING[TMVCCompressionType.ctDeflate]) then
-      begin
-        lDecompressor.DecompressHTTPDeflate(aContentStream, lDecompressed);
-      end
-      else
-      begin
-        // If it is not encoded, copy as is
-        lDecompressed.CopyFrom(aContentStream, 0);
-      end;
-    finally
-      FreeAndNil(lDecompressor);
+    if SameText(aContentEncoding, 'gzip') or SameText(aContentEncoding, 'deflate') then
+    begin
+      /// Certain types of deflate compression cannot be decompressed by the standard Zlib,
+      /// but are decompressed by Indy's Zlib.
+      /// Examples:
+      /// The deflate compression of the DMVC server is not decompressed by the Indy Zlib decompressor,
+      /// only by the standard Zlib.
+      /// The deflate compression of the server of the Embarcadero website (https://www.embarcadero.com/)
+      /// is only decompressed with the Indy Zlib decompressor.
+      /// Note: I think we can improve this later
+
+      if not (DecompressWithZlib(aContentStream, lDecompressed, aContentEncoding) or
+        DecompressWithIndyZlib(aContentStream, lDecompressed, aContentEncoding)) then
+        raise EMVCRESTClientException.Create('Could not decompress response content');
+    end
+    else if aContentEncoding.IsEmpty then // No encoding
+    begin
+      lDecompressed.CopyFrom(aContentStream, 0);
+    end
+    else
+    begin
+      raise EMVCRESTClientException.CreateFmt('Content-Encoding not supported [%s]', [aContentEncoding]);
     end;
 
     SetLength(Result, lDecompressed.Size);
