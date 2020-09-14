@@ -67,7 +67,8 @@ type
     fStaticFilesCharset: string;
     fSPAWebAppSupport: Boolean;
     procedure AddMediaTypes;
-    function IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
+    function IsStaticFileRequest(const APathInfo: string; out AFileName: string;
+      out AIsDirectoryTraversalAttach: Boolean): Boolean;
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
   public
     constructor Create(
@@ -140,9 +141,11 @@ begin
   inherited Destroy;
 end;
 
-function TMVCStaticFilesMiddleware.IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
+function TMVCStaticFilesMiddleware.IsStaticFileRequest(const APathInfo: string; out AFileName: string;
+  out AIsDirectoryTraversalAttach: Boolean): Boolean;
 begin
-  Result := (not fDocumentRoot.IsEmpty) and (TMVCStaticContents.IsStaticFile(fDocumentRoot, APathInfo, AFileName));
+  Result := (not fDocumentRoot.IsEmpty) and (TMVCStaticContents.IsStaticFile(fDocumentRoot, APathInfo, AFileName,
+    AIsDirectoryTraversalAttach));
 end;
 
 procedure TMVCStaticFilesMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
@@ -167,10 +170,12 @@ var
   lPathInfo: string;
   lFileName: string;
   lRequestedFolder: string;
+  lIsDirTraversalAttack: Boolean;
+  lPotentialDirName: string;
 begin
   lPathInfo := AContext.Request.PathInfo;
 
-  if (not lPathInfo.StartsWith(fStaticFilesPath, True)) or (not AContext.Request.ClientPreferHTML) then
+  if not lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
     AHandled := False;
     Exit;
@@ -193,28 +198,44 @@ begin
     end;
   end;
 
-  if not((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then
+  // removes the staticfilespath from the requestedpath
+  // if not((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then
+  // begin
+  if lPathInfo.StartsWith(fStaticFilesPath + '/', True) then
   begin
     lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
   end;
+  // end;
 
   // check if it's a direct file request
-  if IsStaticFileRequest(lPathInfo, lFileName) then
+  if IsStaticFileRequest(lPathInfo, lFileName, lIsDirTraversalAttack) then
   begin
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
     if AHandled then
       Exit;
   end;
 
+  if lIsDirTraversalAttack then
+  begin
+    AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+    AHandled := True;
+    Exit;
+  end;
+
   // check if pathinfo is a subfolder of staticfilespath
   if (lPathInfo.Length > fStaticFilesPath.Length) and lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
-    if (not lPathInfo.EndsWith('/')) and (not fIndexDocument.IsEmpty) then
+    // check if the requested path is an actual folder
+    lPotentialDirName := TPath.Combine(fDocumentRoot, lPathInfo.Substring(1).Replace('/', PathDelim, [rfReplaceAll]));
+    if TDirectory.Exists(lPotentialDirName) then
     begin
-      AContext.Response.StatusCode := HTTP_STATUS.MovedPermanently;
-      AContext.Response.CustomHeaders.Values['Location'] := lPathInfo + '/';
-      AHandled := True;
-      Exit;
+      if (not lPathInfo.EndsWith('/')) and (not fIndexDocument.IsEmpty) then
+      begin
+        AContext.Response.StatusCode := HTTP_STATUS.MovedPermanently;
+        AContext.Response.CustomHeaders.Values['Location'] := lPathInfo + '/';
+        AHandled := True;
+        Exit;
+      end;
     end;
   end;
 

@@ -788,7 +788,7 @@ type
     { protected declarations }
   public
     class procedure SendFile(const AFileName, AMediaType: string; AContext: TWebContext);
-    class function IsStaticFile(const AViewPath, AWebRequestPath: string; out ARealFileName: string): Boolean;
+    class function IsStaticFile(const AViewPath, AWebRequestPath: string; out ARealFileName: string; out AIsDirectoryTraversalAttack: Boolean): Boolean;
     class function IsScriptableFile(const AStaticFileName: string; const AConfig: TMVCConfig): Boolean;
   end;
 
@@ -2919,11 +2919,12 @@ begin
 end;
 
 class function TMVCStaticContents.IsStaticFile(const AViewPath, AWebRequestPath: string;
-out ARealFileName: string): Boolean;
+out ARealFileName: string; out AIsDirectoryTraversalAttack: Boolean): Boolean;
 var
   lFileName: string;
   lWebRoot: string;
 begin
+  AIsDirectoryTraversalAttack := False;
   if TDirectory.Exists(AViewPath) then
   begin
     lWebRoot := TPath.GetFullPath(AViewPath);
@@ -2942,6 +2943,7 @@ begin
   lFileName := TPath.GetFullPath(lFileName);
   if not lFileName.StartsWith(lWebRoot) then //AVOID PATH TRAVERSAL
   begin
+    AIsDirectoryTraversalAttack := True;
     Exit(False);
   end;
   ARealFileName := lFileName;

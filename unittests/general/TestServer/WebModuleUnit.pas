@@ -104,11 +104,11 @@ begin
       Result := TTestFault2Controller.Create; // this will raise an exception
     end)
     .AddMiddleware(TMVCSpeedMiddleware.Create)
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', './www', 'index.html', False))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', './www', 'index.html', False))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', './www', 'index.html', True))
-    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCustomAuthenticationMiddleware.Create(TCustomAuthHandler.Create, '/system/users/logged'))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/static', 'www', 'index.html', False))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/spa', 'www', 'index.html', True))
+    .AddMiddleware(TMVCStaticFilesMiddleware.Create('/', 'www', 'index.html', False))
+    .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TBasicAuthHandler.Create))
     .AddMiddleware(TMVCCompressionMiddleware.Create);
 {$IFDEF MSWINDOWS}
   MVCEngine.SetViewEngine(TMVCMustacheViewEngine);

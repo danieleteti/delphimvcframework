@@ -222,10 +222,14 @@ type
     [Test]
     procedure TestDirectoryTraversal1;
     [Test]
+    [Category('staticfiles')]
     procedure TestDirectoryTraversal2;
     [Test]
     procedure TestDirectoryRedirect;
     [Test]
+    procedure TestFileWithFolderName;
+    [Test]
+    [Category('staticfiles,this')]
     procedure TestSPASupport;
     // test server side views
     [Test]
@@ -233,7 +237,7 @@ type
 
     // test issues
     [Test]
-    [Category('renders,this')]
+    [Category('renders')]
     procedure TestIssue406;
 
   end;
@@ -1023,6 +1027,30 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.ResponseCode);
 end;
 
+procedure TServerTest.TestFileWithFolderName;
+var
+  lRes: IRESTResponse;
+begin
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('', []);
+  Assert.areEqual(200, lRes.ResponseCode, '<empty>');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/index.html');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static.html', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static.html');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/folder1', []);
+  Assert.areEqual(301, lRes.ResponseCode, '/folder1');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/folder1/', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/folder1/');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/folder1.html', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/folder1.html');
+  Assert.areEqual('This is a TEXT file', lRes.BodyAsString, '/folder1.html');
+end;
+
 procedure TServerTest.TestGetImagePng;
 var
   c1: TRESTClient;
@@ -1561,12 +1589,6 @@ var
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/index.html');
-
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static.html', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static.html');
-
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/..\..\donotdeleteme.txt', []);
   Assert.areEqual(404, lRes.ResponseCode);
 
@@ -1739,10 +1761,12 @@ begin
   lUrl := 'Windows\win.ini';
   for I := 1 to 30 do
   begin
+    {directory traversal attacks receive always 404}
     lUrl := '..\' + lUrl;
     lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/' + lUrl, []);
-    Assert.areEqual(200, lRes.ResponseCode);
-    Assert.Contains(lRes.BodyAsString, 'This is a TEXT file');
+    Assert.AreEqual(404, lRes.ResponseCode);
+    //Assert.Contains<Integer>(TArray<Integer>.Create(200,301), lRes.ResponseCode);
+    Assert.Contains('<HTML><BODY><B>404 Not Found</B></BODY></HTML>', lRes.BodyAsString);
   end;
 end;
 
