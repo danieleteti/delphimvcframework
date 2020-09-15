@@ -2238,7 +2238,7 @@ begin
     tkFloat:
       begin
 {$IFDEF NEXTGEN}
-        lTypeName := PChar(Pointer(Value.TypeInfo.Name))
+        lTypeName := PChar(Pointer(Value.TypeInfo.Name));
 {$ELSE}
         lTypeName := string(Value.TypeInfo.Name);
 {$ENDIF}
@@ -2322,7 +2322,7 @@ begin
     tkFloat:
       begin
 {$IFDEF NEXTGEN}
-        lTypeName := PChar(Pointer(Value.TypeInfo.Name))
+        lTypeName := PChar(Pointer(Value.TypeInfo.Name));
 {$ELSE}
         lTypeName := string(Value.TypeInfo.Name);
 {$ENDIF}
