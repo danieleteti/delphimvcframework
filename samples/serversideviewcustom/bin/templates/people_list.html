@@ -10,17 +10,17 @@
                 </tr>
             </thead>
             <tbody>
-                {loop(people)}
+                {{loop(people)}
                 <tr>                    
-                    <td>{:people.customer}</td>								
-                    <td>{:people.contact_first}</td>
-                    <td>{:people.contact_last}</td>
+                    <td>{{:people.customer}</td>								
+                    <td>{{:people.contact_first}</td>
+                    <td>{{:people.contact_last}</td>
 										<td class="text-right">
                         <a class="btn btn-default" href="javascript:alert('Not implemented, check the main demo');">
 												<span class="glyphicon glyphicon-pencil"></span> View</a>
                     </td>										
                 </tr>
-                {endloop}
+                {{endloop}}
             </tbody>
         </table>
     </div>

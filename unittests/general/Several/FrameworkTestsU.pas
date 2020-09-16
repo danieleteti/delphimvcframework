@@ -101,6 +101,7 @@ type
     [Test]
     procedure TestComplexRoutings;
     [Test]
+    [Category('issues,this')]
     procedure Test_ISSUE_338;
     [Test]
     procedure TestProduceRoutings;
@@ -462,7 +463,7 @@ begin
   Params := TMVCRequestParamsTable.Create;
   try
     Params.Clear;
-    Assert.isTrue(FRouter.ExecuteRouting('/projectid/pictures/imageuuid', httpGET, 'text/plain',
+    Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid/pictures/imageuuid', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params,
       ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetImage', FRouter.MethodToCall.Name);
@@ -471,7 +472,7 @@ begin
     Assert.areEqual('imageuuid', Params['imageuuid']);
 
     Params.Clear;
-    Assert.isTrue(FRouter.ExecuteRouting('/projectid', httpGET, 'text/plain', 'text/plain',
+    Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid', httpGET, 'text/plain', 'text/plain',
       FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
       ResponseContentEncoding));
     Assert.areEqual('GetProject', FRouter.MethodToCall.Name);

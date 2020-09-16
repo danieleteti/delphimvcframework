@@ -356,6 +356,7 @@ type
     function QueryStringParams: TStrings;
 
     function Accept: string;
+    function BestAccept: string;
     function ContentParam(const AName: string): string;
     function Cookie(const AName: string): string;
     function Body: string;
@@ -788,7 +789,8 @@ type
     { protected declarations }
   public
     class procedure SendFile(const AFileName, AMediaType: string; AContext: TWebContext);
-    class function IsStaticFile(const AViewPath, AWebRequestPath: string; out ARealFileName: string; out AIsDirectoryTraversalAttack: Boolean): Boolean;
+    class function IsStaticFile(const AViewPath, AWebRequestPath: string; out ARealFileName: string;
+      out AIsDirectoryTraversalAttack: Boolean): Boolean;
     class function IsScriptableFile(const AStaticFileName: string; const AConfig: TMVCConfig): Boolean;
   end;
 
@@ -1006,7 +1008,7 @@ uses
   IdURI,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.JSONRPC, MVCFramework.Router;
+  MVCFramework.JSONRPC, MVCFramework.Router, MVCFramework.Serializer.HTML;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -1111,6 +1113,18 @@ end;
 function TMVCWebRequest.Accept: string;
 begin
   Result := FWebRequest.Accept;
+end;
+
+function TMVCWebRequest.BestAccept: string;
+begin
+  if Accept.Contains(',') then
+  begin
+    Result := Accept.Split([','])[0];
+  end
+  else
+  begin
+    Result := Accept;
+  end;
 end;
 
 function TMVCWebRequest.Body: string;
@@ -2675,29 +2689,40 @@ var
   lSer: IMVCSerializer;
   lError: TMVCErrorResponse;
 begin
-  if Serializers.TryGetValue(AContext.Config[TMVCConfigKey.DefaultContentType], lSer) then
-  begin
-    lError := TMVCErrorResponse.Create;
-    try
-      lError.Classname := AClassName;
-      lError.StatusCode := HTTPStatusCode;
-      lError.Message := AReasonString;
+  lError := TMVCErrorResponse.Create;
+  try
+    lError.Classname := AClassName;
+    lError.StatusCode := HTTPStatusCode;
+    lError.Message := AReasonString;
+
+    if AContext.Request.ClientPreferHTML then
+    begin
+      if not Serializers.TryGetValue(TMVCMediaType.TEXT_HTML, lSer) then
+      begin
+        raise EMVCConfigException.Create('Cannot find HTML serializer');
+      end;
       AContext.Response.SetContent(lSer.SerializeObject(lError));
-    finally
-      lError.Free;
+      AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_HTML,
+        AContext.Config[TMVCConfigKey.DefaultContentCharset]));
+    end
+    else if AContext.Request.ClientPrefer(AContext.Config[TMVCConfigKey.DefaultContentType]) and Serializers.TryGetValue(AContext.Config[TMVCConfigKey.DefaultContentType], lSer) then
+    begin
+      AContext.Response.SetContent(lSer.SerializeObject(lError));
+      AContext.Response.SetContentType(BuildContentType(AContext.Config[TMVCConfigKey.DefaultContentType],
+        AContext.Config[TMVCConfigKey.DefaultContentCharset]));
+    end
+    else
+    begin
+      AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
+        AContext.Config[TMVCConfigKey.DefaultContentCharset]));
+      AContext.Response.SetContent(FConfigCache_ServerSignature + sLineBreak + 'HTTP ' + HTTPStatusCode.ToString + ': ' +
+        AReasonString);
     end;
-    AContext.Response.SetContentType(BuildContentType(AContext.Config[TMVCConfigKey.DefaultContentType],
-      AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-  end
-  else
-  begin
-    AContext.Response.SetContentType(BuildContentType(TMVCMediaType.TEXT_PLAIN,
-      AContext.Config[TMVCConfigKey.DefaultContentCharset]));
-    AContext.Response.SetContent(FConfigCache_ServerSignature + sLineBreak + 'HTTP ' + HTTPStatusCode.ToString + ': ' +
-      AReasonString);
+    AContext.Response.SetStatusCode(HTTPStatusCode);
+    AContext.Response.SetReasonString(AReasonString);
+  finally
+    lError.Free;
   end;
-  AContext.Response.SetStatusCode(HTTPStatusCode);
-  AContext.Response.SetReasonString(AReasonString);
 end;
 
 procedure TMVCEngine.LoadSystemControllers;
@@ -2775,7 +2800,14 @@ begin
   lDefaultSerializerContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON, '');
   if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
   begin
-    FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create);
+    FSerializers.Add(lDefaultSerializerContentType, TMVCJSONDataObjectsSerializer.Create(Config));
+  end;
+
+  // this is used only for exceptions (dt 2020-09-16)
+  lDefaultSerializerContentType := BuildContentType(TMVCMediaType.TEXT_HTML, '');
+  if not FSerializers.ContainsKey(lDefaultSerializerContentType) then
+  begin
+    FSerializers.Add(lDefaultSerializerContentType, TMVCHTMLSerializer.Create(Config));
   end;
 end;
 
@@ -2934,14 +2966,14 @@ begin
     lWebRoot := TPath.GetFullPath(GetApplicationFileNamePath + AViewPath);
   end;
 
-  lFileName := lWebRoot + AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar);
+  lFileName := TPath.Combine(lWebRoot, AWebRequestPath.Replace('/', TPath.DirectorySeparatorChar));
   if not TPath.HasValidPathChars(lFileName, True) then
   begin
     Exit(False);
   end;
 
   lFileName := TPath.GetFullPath(lFileName);
-  if not lFileName.StartsWith(lWebRoot) then //AVOID PATH TRAVERSAL
+  if not lFileName.StartsWith(lWebRoot) then // AVOID PATH TRAVERSAL
   begin
     AIsDirectoryTraversalAttack := True;
     Exit(False);
@@ -3078,8 +3110,7 @@ begin
     on E: Exception do
     begin
       Log.ErrorFmt('[%s] %s', [E.Classname, E.Message], LOGGERPRO_TAG);
-      ContentType := TMVCMediaType.TEXT_PLAIN;
-      Render(E);
+      raise;
     end;
   end;
 end;
@@ -3556,33 +3587,35 @@ begin
     if (GetContext.Response.StatusCode = http_status.OK) then
       ResponseStatus(http_status.InternalServerError, AException.Message + ' [' + AException.Classname + ']');
 
-    if (not GetContext.Request.IsAjax) and (GetContext.Request.ClientPrefer(TMVCMediaType.TEXT_HTML)) then
-    begin
-      SetContentType(TMVCMediaType.TEXT_HTML);
-      ResponseStream.Clear;
-      ResponseStream.Append
-        ('<html><head><style>pre { padding: 15px; color: #000000; background-color: #e0e0e0; }</style></head><body>')
-        .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
-        .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
-        [GetContext.Response.StatusCode]).AppendFormat('HTTP Reason Text: "%s"</pre>',
-        [GetContext.Response.ReasonString])
-        .Append('<h3><pre>').AppendFormat('Exception Class Name : %s' + sLineBreak, [AException.Classname])
-        .AppendFormat('Exception Message    : %s' + sLineBreak, [AException.Message]).Append('</pre></h3>');
-      if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
-      begin
-        ResponseStream.Append('<h2><pre>');
-        for S in AExceptionItems do
-          ResponseStream.AppendLine('- ' + S);
-        ResponseStream.Append('</pre><h2>');
-      end
-      else
-      begin
-        ResponseStream.AppendLine('<pre>No other information available</pre>');
-      end;
-      ResponseStream.Append('</body></html>');
-      RenderResponseStream;
-    end
-    else
+//    if (not GetContext.Request.IsAjax) and (GetContext.Request.ClientPrefer(TMVCMediaType.TEXT_HTML)) then
+//    begin
+//      SetContentType(TMVCMediaType.TEXT_HTML);
+//      Render(AException, False);
+//      exit;
+//      ResponseStream.Clear;
+//      ResponseStream.Append
+//        ('<html><head><style>pre { padding: 15px; color: #000000; background-color: #e0e0e0; }</style></head><body>')
+//        .Append('<h1>' + Config[TMVCConfigKey.ServerName] + ': Error Raised</h1>')
+//        .AppendFormat('<pre>HTTP Return Code: %d' + sLineBreak,
+//        [GetContext.Response.StatusCode]).AppendFormat('HTTP Reason Text: "%s"</pre>',
+//        [GetContext.Response.ReasonString])
+//        .Append('<h3><pre>').AppendFormat('Exception Class Name : %s' + sLineBreak, [AException.Classname])
+//        .AppendFormat('Exception Message    : %s' + sLineBreak, [AException.Message]).Append('</pre></h3>');
+//      if Assigned(AExceptionItems) and (AExceptionItems.Count > 0) then
+//      begin
+//        ResponseStream.Append('<h2><pre>');
+//        for S in AExceptionItems do
+//          ResponseStream.AppendLine('- ' + S);
+//        ResponseStream.Append('</pre><h2>');
+//      end
+//      else
+//      begin
+//        ResponseStream.AppendLine('<pre>No other information available</pre>');
+//      end;
+//      ResponseStream.Append('</body></html>');
+//      RenderResponseStream;
+//    end
+//    else
     begin
       R := TMVCErrorResponse.Create;
       try
@@ -3608,9 +3641,13 @@ begin
             R.Items.Add(I);
           end;
         end;
+
         if Serializer(GetContentType, False) = nil then
         begin
-          GetContext.Response.ContentType := GetConfig[TMVCConfigKey.DefaultContentType];
+          if Serializer(FContext.Request.BestAccept, False) <> nil then
+            GetContext.Response.ContentType := FContext.Request.BestAccept
+          else
+            GetContext.Response.ContentType := GetConfig[TMVCConfigKey.DefaultContentType];
         end;
         Render(R, False);
       finally

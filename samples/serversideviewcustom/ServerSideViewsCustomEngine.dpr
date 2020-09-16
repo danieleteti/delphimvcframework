@@ -17,7 +17,8 @@ uses
   MVCFramework.View.Renderers.TemplatePro in 'MVCFramework.View.Renderers.TemplatePro.pas',
   TemplateProU in 'lib\TemplateProU.pas',
   MyDataModuleU in '..\renders\MyDataModuleU.pas' {MyDataModule: TDataModule},
-  MVCFramework.Cache in '..\..\sources\MVCFramework.Cache.pas';
+  MVCFramework.Cache in '..\..\sources\MVCFramework.Cache.pas',
+  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas';
 
 {$R *.res}
 
