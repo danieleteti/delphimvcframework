@@ -221,12 +221,19 @@ type
 
     // test web server
     [Test]
+    [Category('staticfiles')]
     procedure TestDirectoryTraversal1;
     [Test]
+    [Category('staticfiles')]
     procedure TestDirectoryTraversal2;
     [Test]
+    [Category('staticfiles')]
     procedure TestDirectoryRedirect;
     [Test]
+    [Category('staticfiles,this')]
+    procedure TestFileWithFolderName;
+    [Test]
+    [Category('staticfiles')]
     procedure TestSPASupport;
     // test server side views
     [Test]
@@ -234,7 +241,7 @@ type
 
     // test issues
     [Test]
-    [Category('renders,this')]
+    [Category('renders')]
     procedure TestIssue406;
 
   end;
@@ -1029,6 +1036,36 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.InternalServerError, res.StatusCode);
 end;
 
+procedure TServerTest.TestFileWithFolderName;
+var
+  lRes: IRESTResponse;
+begin
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('', []);
+  Assert.areEqual(404, lRes.ResponseCode, '<empty>');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/index.html');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static.html', []);
+  Assert.areEqual(404, lRes.ResponseCode, '/static.html');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static', []);
+  Assert.areEqual(301, lRes.ResponseCode, '/static');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/folder1', []);
+  Assert.areEqual(301, lRes.ResponseCode, '/static/folder1');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/folder1/', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/folder1/');
+
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/folder1.html', []);
+  Assert.areEqual(200, lRes.ResponseCode, '/static/folder1.html');
+  Assert.areEqual('This is a TEXT file', lRes.BodyAsString, '/static/folder1.html');
+end;
+
 procedure TServerTest.TestGetImagePng;
 var
   c1: IMVCRESTClient;
@@ -1596,18 +1633,18 @@ var
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/index.html');
-  Assert.areEqual(200, lRes.StatusCode);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
+  Assert.areEqual(200, lRes.ResponseCode);
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/..\donotdeleteme.txt');
-  Assert.areEqual(404, lRes.StatusCode);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/..\donotdeleteme.txt', []);
+  Assert.areEqual(404, lRes.ResponseCode);
 
   lUrl := 'Windows\win.ini';
   for I := 1 to 20 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/' + lUrl);
-    Assert.areEqual(404, lRes.StatusCode, 'Fail with: ' + '/' + lUrl);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/' + lUrl, []);
+    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/static/' + lUrl);
   end;
 end;
 
@@ -1617,12 +1654,6 @@ var
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/index.html');
-  Assert.areEqual(200, lRes.StatusCode, '/static/index.html');
-
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static.html');
-  Assert.areEqual(200, lRes.StatusCode, '/static.html');
-
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/..\..\donotdeleteme.txt');
   Assert.areEqual(404, lRes.StatusCode);
 
@@ -1633,8 +1664,8 @@ begin
   for I := 1 to 30 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/' + lUrl);
-    Assert.areEqual(404, lRes.StatusCode, 'Fail with: ' + '/' + lUrl);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/' + lUrl, []);
+    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/static/' + lUrl);
   end;
 end;
 
@@ -1791,10 +1822,11 @@ begin
   lUrl := 'Windows\win.ini';
   for I := 1 to 30 do
   begin
+    { directory traversal attacks receive always 404 }
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
-    Assert.areEqual(200, lRes.StatusCode);
-    Assert.Contains(lRes.Content, 'This is a TEXT file');
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/' + lUrl, []);
+    Assert.areEqual(404, lRes.ResponseCode);
+    Assert.Contains(lRes.BodyAsString, '404: [EMVCException] Not Found', true);
   end;
 end;
 
@@ -1927,11 +1959,9 @@ begin
 
   for S in lValues do
   begin
-    res := RESTClient
-      .AddPathParam('value', S)
-      .Get('/typed/string1/{value}');
-    Assert.areEqual(HTTP_STATUS.OK, res.StatusCode, 'Cannot route when param is ' + S);
-    Assert.areEqual('*' + S + '*', res.Content);
+    res := RESTClient.doGET('/typed/string1', [S]);
+    Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, 'Cannot route when param is [' + S + ']');
+    Assert.areEqual('*' + S + '*', res.BodyAsString);
   end;
 
   // res := RESTClient.Get('/typed/string1/daniele');
