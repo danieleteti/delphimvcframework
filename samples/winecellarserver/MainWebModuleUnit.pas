@@ -38,7 +38,7 @@ begin
   MVCEngine := TMVCEngine.Create(self);
   MVCEngine.AddController(TWineCellarApp);
   MVCEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/app', { StaticFilesPath }
     TPath.Combine(AppPath, '..\..\www'), { DocumentRoot }
     'index.html' { IndexDocument - Before it was named fallbackresource }
     ));
