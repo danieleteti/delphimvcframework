@@ -1038,32 +1038,32 @@ end;
 
 procedure TServerTest.TestFileWithFolderName;
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('', []);
-  Assert.areEqual(404, lRes.ResponseCode, '<empty>');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('');
+  Assert.areEqual(404, lRes.StatusCode, '<empty>');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/index.html');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/index.html');
+  Assert.areEqual(200, lRes.StatusCode, '/static/index.html');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static.html', []);
-  Assert.areEqual(404, lRes.ResponseCode, '/static.html');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static.html');
+  Assert.areEqual(404, lRes.StatusCode, '/static.html');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static', []);
-  Assert.areEqual(301, lRes.ResponseCode, '/static');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static');
+  Assert.areEqual(301, lRes.StatusCode, '/static');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/');
+  Assert.areEqual(200, lRes.StatusCode, '/static/');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/folder1', []);
-  Assert.areEqual(301, lRes.ResponseCode, '/static/folder1');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1');
+  Assert.areEqual(301, lRes.StatusCode, '/static/folder1');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/folder1/', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/folder1/');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1/');
+  Assert.areEqual(200, lRes.StatusCode, '/static/folder1/');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/folder1.html', []);
-  Assert.areEqual(200, lRes.ResponseCode, '/static/folder1.html');
-  Assert.areEqual('This is a TEXT file', lRes.BodyAsString, '/static/folder1.html');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1.html');
+  Assert.areEqual(200, lRes.StatusCode, '/static/folder1.html');
+  Assert.areEqual('This is a TEXT file', lRes.Content, '/static/folder1.html');
 end;
 
 procedure TServerTest.TestGetImagePng;
@@ -1633,18 +1633,18 @@ var
   I: Integer;
   lUrl: string;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/index.html', []);
-  Assert.areEqual(200, lRes.ResponseCode);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/index.html');
+  Assert.areEqual(200, lRes.StatusCode);
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/..\donotdeleteme.txt', []);
-  Assert.areEqual(404, lRes.ResponseCode);
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/..\donotdeleteme.txt');
+  Assert.areEqual(404, lRes.StatusCode);
 
   lUrl := 'Windows\win.ini';
   for I := 1 to 20 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/' + lUrl, []);
-    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/static/' + lUrl);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/' + lUrl);
+    Assert.areEqual(404, lRes.StatusCode, 'Fail with: ' + '/static/' + lUrl);
   end;
 end;
 
@@ -1664,8 +1664,8 @@ begin
   for I := 1 to 30 do
   begin
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/static/' + lUrl, []);
-    Assert.areEqual(404, lRes.ResponseCode, 'Fail with: ' + '/static/' + lUrl);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/' + lUrl);
+    Assert.areEqual(404, lRes.StatusCode, 'Fail with: ' + '/static/' + lUrl);
   end;
 end;
 
@@ -1824,9 +1824,9 @@ begin
   begin
     { directory traversal attacks receive always 404 }
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/' + lUrl, []);
-    Assert.areEqual(404, lRes.ResponseCode);
-    Assert.Contains(lRes.BodyAsString, '404: [EMVCException] Not Found', true);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
+    Assert.areEqual(404, lRes.StatusCode);
+    Assert.Contains(lRes.Content, '404: [EMVCException] Not Found', true);
   end;
 end;
 
@@ -1959,34 +1959,34 @@ begin
 
   for S in lValues do
   begin
-    res := RESTClient.doGET('/typed/string1', [S]);
-    Assert.areEqual(HTTP_STATUS.OK, res.ResponseCode, 'Cannot route when param is [' + S + ']');
-    Assert.areEqual('*' + S + '*', res.BodyAsString);
+    res := RESTClient.AddPathParam('TypedString', S).Get('/typed/string1/{TypedString}');
+    Assert.areEqual(HTTP_STATUS.OK, res.StatusCode, 'Cannot route when param is [' + S + ']');
+    Assert.areEqual('*' + S + '*', res.Content);
   end;
 
-  // res := RESTClient.Get('/typed/string1/daniele');
-  // Assert.isTrue(res.StatusCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('daniele modified from server', res.Content);
+  // res := RESTClient.doGET('/typed/string1/daniele', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('daniele modified from server', res.BodyAsString);
   //
-  // res := RESTClient.Get('/typed/string1/dan''iele');
-  // Assert.isTrue(res.StatusCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('dan''iele modified from server', res.Content);
+  // res := RESTClient.doGET('/typed/string1/dan''iele', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('dan''iele modified from server', res.BodyAsString);
   //
-  // res := RESTClient.Get('/typed/string1/"the value"');
-  // Assert.isTrue(res.StatusCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.Content);
+  // res := RESTClient.doGET('/typed/string1/"the value"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
   //
-  // res := RESTClient.Get('/typed/string1/"the:value"');
-  // Assert.isTrue(res.StatusCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.Content);
+  // res := RESTClient.doGET('/typed/string1/"the:value"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
   //
-  // res := RESTClient.Get('/typed/string1/"the:value!"');
-  // Assert.isTrue(res.StatusCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.Content);
+  // res := RESTClient.doGET('/typed/string1/"the:value!"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
   //
-  // res := RESTClient.Get('/typed/string1/"the:value!?"');
-  // Assert.isTrue(res.StatusCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.Content);
+  // res := RESTClient.doGET('/typed/string1/"the:value!?"', []);
+  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
+  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
 
 end;
 
