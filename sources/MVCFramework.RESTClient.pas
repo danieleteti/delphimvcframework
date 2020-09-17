@@ -77,7 +77,12 @@ type
     fHTTPClient: THTTPClient;
     fBaseURL: string;
     fResource: string;
-    fInternalContentType: string;
+
+    fAccept: string;
+    fAcceptCharset: string;
+    fAcceptEncoding: string;
+    fUserAgent: string;
+    fContentType: string;
     fProxySettings: TProxySettings;
     fParameters: TList<TMVCRESTParam>;
     fRawBody: TStringStream;
@@ -96,8 +101,8 @@ type
     procedure DoConvertMVCPathParamsToRESTParams(var aURL: string);
     procedure DoApplyPathParams(var aURL: string);
     procedure DoApplyQueryParams(var aURL: string);
-    procedure DoApplyHeaders;
     procedure DoApplyCookies(const aURL: string);
+    procedure DoApplyHeaders;
     procedure DoEncodeURL(var aURL: string);
     procedure DoPrepareBodyRequest(var aBodyStream: TStream);
 
@@ -127,8 +132,6 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
-    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
-    function UserAgent: string; overload;
 
     /// <summary>
     /// Clears all parameters (headers, body, path params and query params). This method is executed after each
@@ -233,6 +236,8 @@ type
     function HandleRedirects: Boolean; overload;
     function MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient; overload;
     function MaxRedirects: Integer; overload;
+    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+    function UserAgent: string; overload;
 
     function Resource(const aResource: string): IMVCRESTClient; overload;
     function Resource: string; overload;
@@ -433,32 +438,35 @@ uses
 
 function TMVCRESTClient.Accept: string;
 begin
-  Result := HeaderValue(sAccept);
+  Result := fAccept;
 end;
 
 function TMVCRESTClient.Accept(const aAccept: string): IMVCRESTClient;
 begin
-  Result := AddHeader(sAccept, aAccept);
+  Result := Self;
+  fAccept := aAccept;
 end;
 
 function TMVCRESTClient.AcceptCharset: string;
 begin
-  Result := HeaderValue(sAcceptCharSet);
+  Result := fAcceptCharset;
 end;
 
 function TMVCRESTClient.AcceptCharset(const aAcceptCharset: string): IMVCRESTClient;
 begin
-  Result := AddHeader(sAcceptCharset, aAcceptCharset);
+  Result := Self;
+  fAcceptCharset := aAcceptCharset;
 end;
 
 function TMVCRESTClient.AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient;
 begin
-  Result := AddHeader(sAcceptEncoding, aAcceptEncoding);
+  Result := Self;
+  fAcceptEncoding := aAcceptEncoding;
 end;
 
 function TMVCRESTClient.AcceptEncoding: string;
 begin
-  Result := HeaderValue(sAcceptEncoding);
+  Result := fAcceptEncoding;
 end;
 
 function TMVCRESTClient.AddBody(const aBody: string; const aContentType: string): IMVCRESTClient;
@@ -701,7 +709,7 @@ begin
 
   Result := Self;
   ClearParameters(TMVCRESTParamType.FormURLEncoded);
-  fInternalContentType := '';
+  fContentType := '';
 end;
 
 function TMVCRESTClient.ClearCookies: IMVCRESTClient;
@@ -756,6 +764,10 @@ begin
   inherited Create;
 
   fHTTPClient := THTTPClient.Create;
+  fHTTPClient.HandleRedirects := True;
+  fHTTPClient.MaxRedirects := CHTTPDefMaxRedirects;
+  fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
+
   fParameters := TList<TMVCRESTParam>.Create;
   fRawBody := TStringStream.Create;
   fBodyFormData := nil;
@@ -765,6 +777,11 @@ begin
   fBaseURL := '';
   fResource := '';
 
+  fAccept := TMVCRESTClientConsts.DEFAULT_ACCEPT;
+  fAcceptCharset := '';
+  fAcceptEncoding := TMVCRESTClientConsts.DEFAULT_ACCEPT_ENCODING;
+  fUserAgent := TMVCRESTClientConsts.DEFAULT_USER_AGENT;
+  fContentType := '';
 end;
 
 function TMVCRESTClient.DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
@@ -845,6 +862,10 @@ begin
       fHTTPClient.CustomHeaders[lParam.Name] := lParam.Value;
     end;
   end;
+  fHTTPClient.Accept := fAccept;
+  fHTTPClient.AcceptCharSet := fAcceptCharset;
+  fHTTPClient.AcceptEncoding := fAcceptEncoding;
+  fHTTPClient.ContentType := fContentType;
 end;
 
 procedure TMVCRESTClient.DoApplyPathParams(var aURL: string);
@@ -914,13 +935,12 @@ var
   lValue: string;
   lBody: string;
 begin
-  SplitContentMediaTypeAndCharset(fInternalContentType, lContentType, lContentCharset);
+  SplitContentMediaTypeAndCharset(fContentType, lContentType, lContentCharset);
 
   if SameText(lContentType, TMVCMediaType.MULTIPART_FORM_DATA) then
   begin
     aBodyStream := GetBodyFormData.Stream;
     SetContentType(GetBodyFormData.MimeTypeHeader);
-    fHTTPClient.CustHeaders[sContentType] := GetBodyFormData.MimeTypeHeader;
   end
   else if SameText(lContentType, TMVCMediaType.APPLICATION_FORM_URLENCODED) then
   begin
@@ -936,7 +956,7 @@ begin
         lBody := lBody + lName + '=' + lValue;
       end;
     end;
-    AddBody(lBody, fInternalContentType);
+    AddBody(lBody, fContentType);
     aBodyStream := fRawBody;
   end
   else
@@ -959,11 +979,11 @@ begin
   DoApplyPathParams(lURL);
   DoApplyQueryParams(lURL);
   DoEncodeURL(lURL);
-  DoApplyHeaders;
   DoApplyCookies(lURL);
 
   lBodyStream := nil;
   DoPrepareBodyRequest(lBodyStream);
+  DoApplyHeaders;
 
   case aMethod of
     httpGET:
@@ -1281,18 +1301,18 @@ end;
 
 procedure TMVCRESTClient.SetContentType(const aContentType: string);
 begin
-  fInternalContentType := aContentType;
-  AddHeader(sContentType, aContentType);
+  fContentType := aContentType;
 end;
 
 function TMVCRESTClient.UserAgent(const aUserAgent: string): IMVCRESTClient;
 begin
-  Result := AddHeader(sUserAgent, aUserAgent);
+  Result := Self;
+  fUserAgent := aUserAgent;
 end;
 
 function TMVCRESTClient.UserAgent: string;
 begin
-  Result := HeaderValue(sUserAgent);
+  Result := fUserAgent;
 end;
 
 { TMVCRESTResponse }

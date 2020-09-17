@@ -677,7 +677,6 @@ begin
     lRes := RESTClient.Accept('text/html').Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
     SplitContentMediaTypeAndCharset(lRes.ContentType, lContentType, lContentCharset);
     Assert.AreEqual(lContentType, TMVCMediaType.APPLICATION_JSON);
-    Assert.AreEqual(lContentCharset, TMVCCharSet.UTF_8);
     Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
     Assert.areEqual('/system/users/logged', lRes.HeaderValue('X-LOGOUT-URL'));
     Assert.areEqual('DELETE', lRes.HeaderValue('X-LOGOUT-METHOD'));
@@ -705,7 +704,7 @@ begin
   lJSON := System.JSON.TJSONObject.Create;
   try
     // no request body
-    lRes := RESTClient.Post('/system/users/logged');
+    lRes := RESTClient.AddBody('',TMVCMediaType.APPLICATION_JSON).Post('/system/users/logged');
     Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, lRes.StatusCode,
       'Empty request body doesn''t return HTTP 400 Bad Request');
 
@@ -779,9 +778,6 @@ var
   lRes: IMVCRESTResponse;
   lJSON: System.JSON.TJSONObject;
   lLogoutUrl: string;
-  lValue: string;
-  I: Integer;
-  lPieces: TArray<string>;
   lPass: Boolean;
   lCookie: TCookie;
 begin
@@ -1049,13 +1045,13 @@ begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static.html');
   Assert.areEqual(404, lRes.StatusCode, '/static.html');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static');
+  lRes := RESTClient.HandleRedirects(False).Accept(TMVCMediaType.TEXT_HTML).Get('/static');
   Assert.areEqual(301, lRes.StatusCode, '/static');
 
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/');
   Assert.areEqual(200, lRes.StatusCode, '/static/');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1');
+  lRes := RESTClient.HandleRedirects(False).Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1');
   Assert.areEqual(301, lRes.StatusCode, '/static/folder1');
 
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/folder1/');
@@ -1622,7 +1618,7 @@ begin
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/');
   Assert.areEqual(200, lRes.StatusCode, '/static/');
 
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static');
+  lRes := RESTClient.HandleRedirects(False).Accept(TMVCMediaType.TEXT_HTML).Get('/static');
   Assert.areEqual(301, lRes.StatusCode, '/static');
   Assert.areEqual('/static/', lRes.HeaderValue('Location'), 'Wrong redirect');
 end;
@@ -1826,7 +1822,7 @@ begin
     lUrl := '..\' + lUrl;
     lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
     Assert.areEqual(404, lRes.StatusCode);
-    Assert.Contains(lRes.Content, '404: [EMVCException] Not Found', true);
+    Assert.Contains(lRes.StatusText, '[EMVCException] Not Found', True);
   end;
 end;
 
