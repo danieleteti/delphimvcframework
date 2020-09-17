@@ -147,7 +147,7 @@ type
 implementation
 
 uses
-  TemplateProU,
+  System.NetEncoding,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
   MVCFramework.Nullables, MVCFramework;
@@ -190,6 +190,11 @@ const
     '</head><body><div class="container">';
   HTML_FOOTER = '</div></body></html>';
 
+
+function HTMLEntitiesEncode(const Text: string): String;
+begin
+  Result := TNetEncoding.HTML.Encode(Text);
+end;
   { TMVCHTMLSerializer }
 
 procedure TMVCHTMLSerializer.AfterConstruction;
