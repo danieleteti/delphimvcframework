@@ -49,7 +49,6 @@ type
   TMVCHTMLSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   protected
     procedure RaiseNotImplemented;
-    function HTMLEntitiesEncode(s: string): string;
   public
     procedure AfterConstruction; override;
     { IMVCSerializer }
@@ -148,10 +147,10 @@ type
 implementation
 
 uses
+  System.NetEncoding,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
-  MVCFramework.Nullables,
-  MVCFramework;
+  MVCFramework.Nullables, MVCFramework;
 
 const
   HTML_HEADER = '<!DOCTYPE html><html><head><title>DMVCFramework Exception</title>' +
@@ -191,6 +190,11 @@ const
     '</head><body><div class="container">';
   HTML_FOOTER = '</div></body></html>';
 
+
+function HTMLEntitiesEncode(const Text: string): String;
+begin
+  Result := TNetEncoding.HTML.Encode(Text);
+end;
   { TMVCHTMLSerializer }
 
 procedure TMVCHTMLSerializer.AfterConstruction;
@@ -240,224 +244,6 @@ procedure TMVCHTMLSerializer.DeserializeObject(const ASerializedObject: string;
   const AIgnoredAttributes: TMVCIgnoredList);
 begin
   RaiseNotImplemented;
-end;
-
-function TMVCHTMLSerializer.HTMLEntitiesEncode(s: string): string;
-  procedure repl(var s: string; r: string; posi: Integer);
-  begin
-    delete(s, posi, 1);
-    insert(r, s, posi);
-  end;
-
-var
-  I: Integer;
-  r: string;
-begin
-  I := 0;
-  while I < Length(s) do
-  begin
-    r := '';
-    case ord(s[I]) of
-      160:
-        r := 'nbsp';
-      161:
-        r := 'excl';
-      162:
-        r := 'cent';
-      163:
-        r := 'ound';
-      164:
-        r := 'curren';
-      165:
-        r := 'yen';
-      166:
-        r := 'brvbar';
-      167:
-        r := 'sect';
-      168:
-        r := 'uml';
-      169:
-        r := 'copy';
-      170:
-        r := 'ordf';
-      171:
-        r := 'laquo';
-      172:
-        r := 'not';
-      173:
-        r := 'shy';
-      174:
-        r := 'reg';
-      175:
-        r := 'macr';
-      176:
-        r := 'deg';
-      177:
-        r := 'plusmn';
-      178:
-        r := 'sup2';
-      179:
-        r := 'sup3';
-      180:
-        r := 'acute';
-      181:
-        r := 'micro';
-      182:
-        r := 'para';
-      183:
-        r := 'middot';
-      184:
-        r := 'cedil';
-      185:
-        r := 'sup1';
-      186:
-        r := 'ordm';
-      187:
-        r := 'raquo';
-      188:
-        r := 'frac14';
-      189:
-        r := 'frac12';
-      190:
-        r := 'frac34';
-      191:
-        r := 'iquest';
-      192:
-        r := 'Agrave';
-      193:
-        r := 'Aacute';
-      194:
-        r := 'Acirc';
-      195:
-        r := 'Atilde';
-      196:
-        r := 'Auml';
-      197:
-        r := 'Aring';
-      198:
-        r := 'AElig';
-      199:
-        r := 'Ccedil';
-      200:
-        r := 'Egrave';
-      201:
-        r := 'Eacute';
-      202:
-        r := 'Ecirc';
-      203:
-        r := 'Euml';
-      204:
-        r := 'Igrave';
-      205:
-        r := 'Iacute';
-      206:
-        r := 'Icirc';
-      207:
-        r := 'Iuml';
-      208:
-        r := 'ETH';
-      209:
-        r := 'Ntilde';
-      210:
-        r := 'Ograve';
-      211:
-        r := 'Oacute';
-      212:
-        r := 'Ocirc';
-      213:
-        r := 'Otilde';
-      214:
-        r := 'Ouml';
-      215:
-        r := 'times';
-      216:
-        r := 'Oslash';
-      217:
-        r := 'Ugrave';
-      218:
-        r := 'Uacute';
-      219:
-        r := 'Ucirc';
-      220:
-        r := 'Uuml';
-      221:
-        r := 'Yacute';
-      222:
-        r := 'THORN';
-      223:
-        r := 'szlig';
-      224:
-        r := 'agrave';
-      225:
-        r := 'aacute';
-      226:
-        r := 'acirc';
-      227:
-        r := 'atilde';
-      228:
-        r := 'auml';
-      229:
-        r := 'aring';
-      230:
-        r := 'aelig';
-      231:
-        r := 'ccedil';
-      232:
-        r := 'egrave';
-      233:
-        r := 'eacute';
-      234:
-        r := 'ecirc';
-      235:
-        r := 'euml';
-      236:
-        r := 'igrave';
-      237:
-        r := 'iacute';
-      238:
-        r := 'icirc';
-      239:
-        r := 'iuml';
-      240:
-        r := 'eth';
-      241:
-        r := 'ntilde';
-      242:
-        r := 'ograve';
-      243:
-        r := 'oacute';
-      244:
-        r := 'ocirc';
-      245:
-        r := 'otilde';
-      246:
-        r := 'ouml';
-      247:
-        r := 'divide';
-      248:
-        r := 'oslash';
-      249:
-        r := 'ugrave';
-      250:
-        r := 'uacute';
-      251:
-        r := 'ucirc';
-      252:
-        r := 'uuml';
-      253:
-        r := 'yacute';
-      254:
-        r := 'thorn';
-      255:
-        r := 'yuml';
-    end;
-    if r <> '' then
-    begin
-      repl(s, '&' + r + ';', I);
-    end;
-    Inc(I)
-  end;
-  Result := s;
 end;
 
 procedure TMVCHTMLSerializer.RaiseNotImplemented;
