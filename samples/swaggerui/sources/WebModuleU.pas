@@ -57,12 +57,13 @@ begin
     end);
 //  FMVC.AddController(TMyController);
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/swagger', { StaticFilesPath }
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), '..\www'), { DocumentRoot }
     'index.html' {IndexDocument - Before it was named fallbackresource}
     ));
   // To enable compression (deflate, gzip) just add this middleware as the last one
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
+  FMVC.AddController(TRedirectController);
 end;
 
 procedure TMainWebModule.WebModuleDestroy(Sender: TObject);

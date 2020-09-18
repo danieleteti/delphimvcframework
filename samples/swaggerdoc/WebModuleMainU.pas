@@ -80,7 +80,7 @@ begin
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
     ));
   FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/',         { StaticFilesPath }
+    '/swagger',         { StaticFilesPath }
     '.\www',     { DocumentRoot }
     'index.html' { IndexDocument - Before it was named fallbackresource }
     ));
