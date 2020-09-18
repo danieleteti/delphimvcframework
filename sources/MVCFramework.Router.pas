@@ -79,15 +79,16 @@ type
     function IsCompatiblePath(
       const AMVCPath: string;
       const APath: string;
-      var AParams: TMVCRequestParamsTable): Boolean;
+      var aParams: TMVCRequestParamsTable): Boolean;
     function GetParametersNames(const V: string): TList<string>;
   protected
     function GetControllerMappedPath(
       const aControllerName: string;
       const aControllerAttributes: TArray<TCustomAttribute>): string;
   public
-    class function StringMethodToHTTPMetod(const AValue: string): TMVCHTTPMethodType; static;
-    constructor Create(const aConfig: TMVCConfig; const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
+    class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
+    constructor Create(const aConfig: TMVCConfig;
+      const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
     destructor Destroy; override;
     function ExecuteRouting(
       const ARequestPathInfo: string;
@@ -114,11 +115,12 @@ uses
 
 { TMVCRouter }
 
-constructor TMVCRouter.Create(const aConfig: TMVCConfig; const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
+constructor TMVCRouter.Create(const aConfig: TMVCConfig;
+  const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
 begin
   inherited Create;
   FRttiContext := TRttiContext.Create;
-  FConfig := AConfig;
+  FConfig := aConfig;
   FMethodToCall := nil;
   FControllerClazz := nil;
   FControllerCreateAction := nil;
@@ -149,12 +151,16 @@ var
   LAttributes: TArray<TCustomAttribute>;
   LAtt: TCustomAttribute;
   LRttiType: TRttiType;
-  LMethods: TArray<TRTTIMethod>;
-  LMethod: TRTTIMethod;
+  LMethods: TArray<TRttiMethod>;
+  LMethod: TRttiMethod;
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
   lPathPrefix: string;
   lURLSegment: string;
+  // JUST FOR DEBUG
+  // lMethodCompatible: Boolean;
+  // lContentTypeCompatible: Boolean;
+  // lAcceptCompatible: Boolean;
 begin
   Result := False;
 
@@ -218,12 +224,12 @@ begin
         Continue;
       end;
 
-      LMethods := LRttiType.GetMethods; {do not use GetDeclaredMethods because JSON-RPC rely on this!!}
+      LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
       for LMethod in LMethods do
       begin
-        if LMethod.Visibility <> mvPublic then //2020-08-08
+        if LMethod.Visibility <> mvPublic then // 2020-08-08
           Continue;
-        if (LMethod.MethodKind <> mkProcedure) {or LMethod.IsClassMethod} then
+        if (LMethod.MethodKind <> mkProcedure) { or LMethod.IsClassMethod } then
           Continue;
 
         LAttributes := LMethod.GetAttributes;
@@ -234,6 +240,15 @@ begin
         begin
           if LAtt is MVCPathAttribute then
           begin
+            // THIS BLOCK IS HERE JUST FOR DEBUG
+            // if LMethod.Name.Contains('GetProject') then
+            // begin
+            // lMethodCompatible := True; //debug here
+            // end;
+            // lMethodCompatible := IsHTTPMethodCompatible(ARequestMethodType, LAttributes);
+            // lContentTypeCompatible := IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes);
+            // lAcceptCompatible :=  IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes);
+
             if IsHTTPMethodCompatible(ARequestMethodType, LAttributes) and
               IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes) and
               IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes) then
@@ -258,10 +273,10 @@ begin
                 Exit(True);
               end;
             end;
-          end; //if MVCPathAttribute
-        end; //for in Attributes
-      end; //for in Methods
-    end; //for in Controllers
+          end; // if MVCPathAttribute
+        end; // for in Attributes
+      end; // for in Methods
+    end; // for in Controllers
   finally
     TMonitor.Exit(gLock);
   end;
@@ -311,7 +326,7 @@ end;
 function TMVCRouter.IsCompatiblePath(
   const AMVCPath: string;
   const APath: string;
-  var AParams: TMVCRequestParamsTable): Boolean;
+  var aParams: TMVCRequestParamsTable): Boolean;
 
   function ToPattern(const V: string; const Names: TList<string>): string;
   var
@@ -319,7 +334,8 @@ function TMVCRouter.IsCompatiblePath(
   begin
     Result := V;
     for S in Names do
-      Result := StringReplace(Result, '($' + S + ')', '([' + TMVCConstants.URL_MAPPED_PARAMS_ALLOWED_CHARS + ']*)', [rfReplaceAll]);
+      Result := StringReplace(Result, '($' + S + ')', '([' + TMVCConstants.URL_MAPPED_PARAMS_ALLOWED_CHARS + ']*)',
+        [rfReplaceAll]);
   end;
 
 var
@@ -349,7 +365,7 @@ begin
     begin
       for I := 1 to pred(lMatch.Groups.Count) do
       begin
-        AParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
+        aParams.Add(lCacheItem.Params[I - 1], TIdURI.URLDecode(lMatch.Groups[I].Value));
       end;
     end;
   end;
@@ -401,7 +417,7 @@ var
   FoundOneAttProduces: Boolean;
 begin
   Result := False;
-  if AAccept.Contains('*/*') then //2020-08-08
+  if AAccept.Contains('*/*') then // 2020-08-08
   begin
     Exit(True);
   end;
@@ -472,25 +488,25 @@ begin
   Result := (not MustBeCompatible) or (MustBeCompatible and Result);
 end;
 
-class function TMVCRouter.StringMethodToHTTPMetod(const AValue: string): TMVCHTTPMethodType;
+class function TMVCRouter.StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType;
 begin
-  if AValue = 'GET' then
+  if aValue = 'GET' then
     Exit(httpGET);
-  if AValue = 'POST' then
+  if aValue = 'POST' then
     Exit(httpPOST);
-  if AValue = 'DELETE' then
+  if aValue = 'DELETE' then
     Exit(httpDELETE);
-  if AValue = 'PUT' then
+  if aValue = 'PUT' then
     Exit(httpPUT);
-  if AValue = 'HEAD' then
+  if aValue = 'HEAD' then
     Exit(httpHEAD);
-  if AValue = 'OPTIONS' then
+  if aValue = 'OPTIONS' then
     Exit(httpOPTIONS);
-  if AValue = 'PATCH' then
+  if aValue = 'PATCH' then
     Exit(httpPATCH);
-  if AValue = 'TRACE' then
+  if aValue = 'TRACE' then
     Exit(httpTRACE);
-  raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [AValue]);
+  raise EMVCException.CreateFmt('Unknown HTTP method [%s]', [aValue]);
 end;
 
 { TMVCActionParamCacheItem }
@@ -520,4 +536,3 @@ begin
 end;
 
 end.
-

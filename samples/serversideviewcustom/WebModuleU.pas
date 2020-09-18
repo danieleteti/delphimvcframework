@@ -53,12 +53,7 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end)
     .AddController(TWebSiteController)
-    .SetViewEngine(TMVCTemplateProViewEngine)
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    '\www', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
-    ));
+    .SetViewEngine(TMVCTemplateProViewEngine);
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

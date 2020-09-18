@@ -23,12 +23,14 @@ implementation
 uses
   MVCFramework.View.Renderers.Mustache,
   WebSiteControllerU,
+  System.IOUtils,
   MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles;
 
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
 {$R *.dfm}
+
 
 procedure TWebModule1.WebModuleCreate(Sender: TObject);
 begin
@@ -54,12 +56,6 @@ begin
     end)
     .AddController(TWebSiteController)
     .SetViewEngine(TMVCMustacheViewEngine)
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
-    ));
-
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

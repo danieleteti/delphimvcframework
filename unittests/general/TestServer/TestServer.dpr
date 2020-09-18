@@ -22,7 +22,8 @@ uses
   MVCFramework in '..\..\..\sources\MVCFramework.pas',
   TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
-  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas';
+  RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
+  MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas';
 
 {$R *.res}
 

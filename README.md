@@ -463,7 +463,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
     end;
   ```
 
-- Added the ability to deserialize an object starting from an arbitrary node in the JSON (or other format) present in the request body.
+- Added the ability to deserialize an object, or alist of objects, starting from an arbitrary node in the JSON (or other format) present in the request body. Works for `BodyAs<T>` and for `BodyAsListOf<T>` (Thanks to [Raphaël Emourgeon](https://github.com/osaris) for the `BodyAsListOf<T>` [implementation](https://github.com/danieleteti/delphimvcframework/issues/415)).
 
   ```delphi
   procedure TBooksController.CreateBook;
@@ -504,7 +504,15 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Improved `activerecord_showcase` sample.
 
+- Improved `TMVCStaticFilesMiddleware`. Now is able to correctly serve SPA applications from any subfolder.
+
 - Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
+
+- **Breaking Change**! `TMVCStaticFileMiddleware` cannot be registered to "/" anymore 
+
+  - The suggested solution is to create a simple redirection controller which redirect "/" to the proper path (check [this example](https://github.com/danieleteti/delphimvcframework/blob/master/samples/middleware_staticfiles/SPARedirectController.pas)).
+
+- **Breaking Change!**  `DocumentRoot` of `TMVCStaticFileMiddleware`  must be a valid folder. If `DocumentRoot` doesn't exist an exception is raised.
 
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 

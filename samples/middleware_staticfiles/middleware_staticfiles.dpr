@@ -73,7 +73,7 @@ begin
 
     { Comment the next line to avoid the default browser startup }
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
+    //ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
 {$ENDIF}
     { required if you use JWT middleware }
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;

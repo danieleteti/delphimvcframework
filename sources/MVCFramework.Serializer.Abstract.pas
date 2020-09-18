@@ -45,8 +45,8 @@ type
     FRttiContext: TRttiContext;
     FTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
   protected
+    FConfig: TMVCConfig;
     function GetRttiContext: TRttiContext;
-
     function GetSerializationType(const AObject: TObject; const ADefaultValue: TMVCSerializationType = stDefault): TMVCSerializationType;
     function GetNameCase(const AObject: TObject; const ADefaultValue: TMVCNameCase = ncAsIs): TMVCNameCase; overload;
     function GetNameCase(const AComponent: TComponent; const ADefaultValue: TMVCNameCase = ncAsIs): TMVCNameCase; overload;
@@ -58,7 +58,8 @@ type
   public
     function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
     procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
-    constructor Create;
+    constructor Create(const Config: TMVCConfig); overload;
+    constructor Create; overload;
     destructor Destroy; override;
   end;
 
@@ -71,11 +72,17 @@ uses
   MVCFramework.Logger,
   System.SysUtils;
 
-constructor TMVCAbstractSerializer.Create;
+constructor TMVCAbstractSerializer.Create(const Config: TMVCConfig);
 begin
   inherited Create;
+  FConfig := Config;
   FRttiContext := TRttiContext.Create;
   FTypeSerializers := TDictionary<PTypeInfo, IMVCTypeSerializer>.Create;
+end;
+
+constructor TMVCAbstractSerializer.Create;
+begin
+  Create(nil);
 end;
 
 destructor TMVCAbstractSerializer.Destroy;
