@@ -322,6 +322,7 @@ type
   EMVCJSONRPCError = class(EMVCJSONRPCErrorResponse)
   public
     constructor Create(const ErrCode: Integer; const Msg: string);
+    constructor CreateFmt(const ErrCode: Integer; const Msg: string; const Args: array of const);
   end;
 
   EMVCJSONRPCParseError = class(EMVCJSONRPCErrorResponse)
@@ -2188,6 +2189,13 @@ end;
 procedure TJSONRPCNullResponse.SetResult(const Value: TValue);
 begin
   RaiseErrorForNullObject;
+end;
+
+constructor EMVCJSONRPCError.CreateFmt(const ErrCode: Integer;
+  const Msg: string; const Args: array of const);
+begin
+  inherited CreateFmt(Msg, Args);
+  fJSONRPCErrorCode := ErrCode;
 end;
 
 initialization
