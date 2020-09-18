@@ -1774,7 +1774,8 @@ begin
     lUrl := '..\' + lUrl;
     lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/' + lUrl, []);
     Assert.areEqual(404, lRes.ResponseCode);
-    Assert.Contains(lRes.BodyAsString, '404: [EMVCException] Not Found', true);
+    Assert.Contains(lRes.BodyAsString, '[EMVCException] Not Found', true);
+    Assert.Contains(lRes.BodyAsString, '<p>HTTP 404</p>', true);
   end;
 end;
 
