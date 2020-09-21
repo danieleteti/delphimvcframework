@@ -45,7 +45,8 @@ implementation
 
 uses
   MVCFramework.Tests.WebModule2,
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient,
+  MVCFramework.RESTClient.Intf;
 
 { TTestMVCFrameworkServer }
 
@@ -84,7 +85,7 @@ end;
 procedure TTestMVCFrameworkServer.TestServerListenerAndClient;
 var
   LListener: IMVCListener;
-  LClient: TRESTClient;
+  LClient: IMVCRESTClient;
 begin
   LListener := TMVCListener.Create(TMVCListenerProperties.New
     .SetName('Listener1')
@@ -98,14 +99,9 @@ begin
   LListener.Start;
   Assert.isTrue(LListener.Active);
 
-  LClient := TRESTClient.Create('localhost', 6000);
-  try
-    LClient.UserName := 'dmvc';
-    LClient.Password := '123';
-    Assert.AreEqual('Hello World called with GET', LClient.doGET('/hello', []).BodyAsString);
-  finally
-    FreeAndNil(LClient);
-  end;
+  LClient := TMVCRESTClient.New.BaseURL('localhost', 6000);
+  LClient.SetBasicAuthorization('dmvc', '123');
+  Assert.AreEqual('Hello World called with GET', LClient.Get('/hello').Content);
 
   LListener.Stop;
   Assert.isFalse(LListener.Active);
