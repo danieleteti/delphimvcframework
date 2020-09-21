@@ -77,7 +77,6 @@ type
     fHTTPClient: THTTPClient;
     fBaseURL: string;
     fResource: string;
-
     fAccept: string;
     fAcceptCharset: string;
     fAcceptEncoding: string;
@@ -89,10 +88,15 @@ type
     fBodyFormData: TMultipartFormData;
     fSerializer: IMVCSerializer;
     fRttiContext: TRttiContext;
+    fNextRequestIsAsync: Boolean;
+    fAsyncCompletionHandler: TProc<IMVCRESTResponse>;
+    fAsyncCompletionHandlerWithError: TProc<Exception>;
+    fAsyncSynchronized: Boolean;
     function GetBodyFormData: TMultipartFormData;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
     procedure SetContentType(const aContentType: string);
+    procedure SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);
     procedure ClearParameters(const aParamType: TMVCRESTParamType);
     function GetFullURL: string;
     /// <summary>
@@ -106,6 +110,8 @@ type
     procedure DoEncodeURL(var aURL: string);
     procedure DoPrepareBodyRequest(var aBodyStream: TStream);
 
+    procedure ExecuteAsyncRequest(const aMethod: TMVCHTTPMethodType);
+    function InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
     function ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
   public
     constructor Create;
@@ -132,8 +138,7 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
-
-    /// <summary>
+/// <summary>
     /// Clears all parameters (headers, body, path params and query params). This method is executed after each
     /// request is completed.
     /// </summary>
@@ -154,12 +159,12 @@ type
     /// <summary>
     /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
     /// </summary>
-    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+    function SetBasicAuthorizationHeader(const aUsername, aPassword: string): IMVCRESTClient;
 
     /// <summary>
     /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
-    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+    function SetBearerAuthorizationHeader(const aAccessToken: string): IMVCRESTClient;
 
     /// <summary>
     /// Add a header.
@@ -553,7 +558,7 @@ end;
 function TMVCRESTClient.AddCookie(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
-  fParameters.Add(TMVCRESTParam.Create(TMVCRESTParamType.Cookie, aName, aValue));
+  SetParameter(TMVCRESTParamType.Cookie, aName, aValue);
 end;
 
 function TMVCRESTClient.AddFile(const aFileName, aContentType: string): IMVCRESTClient;
@@ -571,7 +576,8 @@ end;
 function TMVCRESTClient.AddHeader(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
-  fParameters.Add(TMVCRESTParam.Create(TMVCRESTParamType.Header, aName, aValue));
+
+  SetParameter(TMVCRESTParamType.Header, aName, aValue);
 end;
 
 function TMVCRESTClient.AddPathParam(const aName: string; aValue: Double): IMVCRESTClient;
@@ -582,7 +588,7 @@ end;
 function TMVCRESTClient.AddPathParam(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
-  fParameters.Add(TMVCRESTParam.Create(TMVCRESTParamType.Path, aName, aValue));
+  SetParameter(TMVCRESTParamType.Path, aName, aValue);
 end;
 
 function TMVCRESTClient.AddPathParam(const aName: string; aValue: TDate): IMVCRESTClient;
@@ -648,7 +654,7 @@ end;
 function TMVCRESTClient.AddQueryStringParam(const aName, aValue: string): IMVCRESTClient;
 begin
   Result := Self;
-  fParameters.Add(TMVCRESTParam.Create(TMVCRESTParamType.Query, aName, aValue));
+  SetParameter(TMVCRESTParamType.Query, aName, aValue);
 end;
 
 function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient;
@@ -670,7 +676,11 @@ end;
 function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>;
   aCompletionHandlerWithError: TProc<Exception>; const aSynchronized: Boolean): IMVCRESTClient;
 begin
-  // Needs implementation
+  Result := Self;
+  fNextRequestIsAsync := True;
+  fAsyncCompletionHandler := aCompletionHandler;
+  fAsyncCompletionHandlerWithError := aCompletionHandlerWithError;
+  fAsyncSynchronized := aSynchronized;
 end;
 
 function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
@@ -966,50 +976,80 @@ begin
   aBodyStream.Position := 0;
 end;
 
-function TMVCRESTClient.ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+procedure TMVCRESTClient.ExecuteAsyncRequest(const aMethod: TMVCHTTPMethodType);
 var
-  lURL: string;
-  lResponse: IHTTPResponse;
-  lBodyStream: TStream;
+  lThread: TThread;
+  lRESTClient: IMVCRESTClient;
 begin
-  fHTTPClient.ProxySettings := fProxySettings;
+  // This is necessary for the thread to be able to access the RESTClient fields
+  lRESTClient := Self;
+  lThread := TThread.CreateAnonymousThread(
+    procedure
+    var
+      lResponse: IMVCRESTResponse;
+    begin
+      try
+        lResponse := TMVCRESTClient(lRESTClient).InternalExecuteRequest(aMethod);
+        TMonitor.Enter(TObject(lResponse));
+        try
+          if Assigned(fAsyncCompletionHandler) then
+          begin
+            if fAsyncSynchronized then
+            begin
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  fAsyncCompletionHandler(lResponse);
+                end
+                );
+            end
+            else
+            begin
+              fAsyncCompletionHandler(lResponse);
+            end;
+          end;
+        finally
+          TMonitor.Exit(TObject(lResponse));
+        end;
+      except
+        on E: Exception do
+        begin
+          if Assigned(fAsyncCompletionHandlerWithError) then
+          begin
+            if fAsyncSynchronized then
+            begin
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  fAsyncCompletionHandlerWithError(E);
+                end
+                );
+            end
+            else
+            begin
+              fAsyncCompletionHandlerWithError(E);
+            end;
+          end;
+        end;
+      end;
+      ClearAllParams;
+    end
+    );
+  lThread.Start;
+end;
 
-  lURL := GetFullURL;
-  DoConvertMVCPathParamsToRESTParams(lURL);
-  DoApplyPathParams(lURL);
-  DoApplyQueryParams(lURL);
-  DoEncodeURL(lURL);
-  DoApplyCookies(lURL);
-
-  lBodyStream := nil;
-  DoPrepareBodyRequest(lBodyStream);
-  DoApplyHeaders;
-
-  case aMethod of
-    httpGET:
-      begin
-        lResponse := fHTTPClient.Get(lURL, nil, [])
-      end;
-    httpPOST:
-      begin
-        lResponse := fHTTPClient.Post(lURL, lBodyStream, nil, []);
-      end;
-    httpPUT:
-      begin
-        lResponse := fHTTPClient.Put(lURL, lBodyStream, nil, []);
-      end;
-    httpPATCH:
-      begin
-        lResponse := fHTTPClient.Patch(lURL, lBodyStream, nil, []);
-      end;
-    httpDELETE:
-      begin
-        lResponse := fHTTPClient.Delete(lURL, nil, []);
-      end;
+function TMVCRESTClient.ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+begin
+  if fNextRequestIsAsync then
+  begin
+    Result := nil;
+    ExecuteAsyncRequest(aMethod);
+  end
+  else
+  begin
+    Result := InternalExecuteRequest(aMethod);
+    ClearAllParams;
   end;
-
-  Result := TMVCRESTResponse.Create(lResponse);
-  ClearAllParams;
 end;
 
 function TMVCRESTClient.Get: IMVCRESTResponse;
@@ -1076,6 +1116,51 @@ begin
         Exit(lParam.Value);
     end;
   end;
+end;
+
+function TMVCRESTClient.InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+var
+  lURL: string;
+  lResponse: IHTTPResponse;
+  lBodyStream: TStream;
+begin
+  fHTTPClient.ProxySettings := fProxySettings;
+
+  lURL := GetFullURL;
+  DoConvertMVCPathParamsToRESTParams(lURL);
+  DoApplyPathParams(lURL);
+  DoApplyQueryParams(lURL);
+  DoEncodeURL(lURL);
+  DoApplyCookies(lURL);
+
+  lBodyStream := nil;
+  DoPrepareBodyRequest(lBodyStream);
+  DoApplyHeaders;
+
+  case aMethod of
+    httpGET:
+      begin
+        lResponse := fHTTPClient.Get(lURL, nil, [])
+      end;
+    httpPOST:
+      begin
+        lResponse := fHTTPClient.Post(lURL, lBodyStream, nil, []);
+      end;
+    httpPUT:
+      begin
+        lResponse := fHTTPClient.Put(lURL, lBodyStream, nil, []);
+      end;
+    httpPATCH:
+      begin
+        lResponse := fHTTPClient.Patch(lURL, lBodyStream, nil, []);
+      end;
+    httpDELETE:
+      begin
+        lResponse := fHTTPClient.Delete(lURL, nil, []);
+      end;
+  end;
+
+  Result := TMVCRESTResponse.Create(lResponse);
 end;
 
 function TMVCRESTClient.MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient;
@@ -1237,7 +1322,7 @@ begin
 end;
 
 function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
-  aInstance: IMVCTypeSerializer): IMVCRESTClient;
+aInstance: IMVCTypeSerializer): IMVCRESTClient;
 begin
   Result := Self;
   fSerializer.RegisterTypeSerializer(aTypeInfo, aInstance);
@@ -1278,7 +1363,7 @@ begin
     Result := fSerializer.SerializeObject(aObject);
 end;
 
-function TMVCRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+function TMVCRESTClient.SetBasicAuthorizationHeader(const aUsername, aPassword: string): IMVCRESTClient;
 var
   lBase64: TNetEncoding;
   lAuthValue: string;
@@ -1293,7 +1378,7 @@ begin
   Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, lAuthValue);
 end;
 
-function TMVCRESTClient.SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+function TMVCRESTClient.SetBearerAuthorizationHeader(const aAccessToken: string): IMVCRESTClient;
 begin
   Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, TMVCRESTClientConsts.BEARER_AUTH_PREFIX +
     aAccessToken);
@@ -1302,6 +1387,22 @@ end;
 procedure TMVCRESTClient.SetContentType(const aContentType: string);
 begin
   fContentType := aContentType;
+end;
+
+procedure TMVCRESTClient.SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);
+var
+  I: Integer;
+begin
+  for I := Pred(fParameters.Count) downto 0 do
+  begin
+    if (fParameters[I].&Type = aParamType) and SameText(fParameters[I].Name, aName) then
+    begin
+      fParameters.Delete(I);
+      Break;
+    end;
+  end;
+
+  fParameters.Add(TMVCRESTParam.Create(aParamType, aName, aValue));
 end;
 
 function TMVCRESTClient.UserAgent(const aUserAgent: string): IMVCRESTClient;

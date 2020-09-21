@@ -119,7 +119,7 @@ var
   LResp: IMVCRESTResponse;
 begin
   FRESTClient.Resource('/user');
-  FRESTClient.SetBasicAuthorization('dmvc', '123');
+  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
 
   // String
   LResp := FRESTClient.Get;
@@ -154,7 +154,7 @@ var
   lBody: string;
 begin
   FRESTClient.Resource('/users');
-  FRESTClient.SetBasicAuthorization('dmvc', '123');
+  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
 
   lBody := FRESTClient.Get.Content;
   // String
@@ -187,7 +187,7 @@ end;
 procedure TTestRESTClient.TestHelloWorld;
 begin
   FRESTClient.Resource('/hello');
-  FRESTClient.SetBasicAuthorization('dmvc', '123');
+  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
 
   // String
   Assert.AreEqual('Hello World called with GET', FRESTClient.Get.Content);
@@ -210,12 +210,12 @@ begin
   LClient
     .ReadTimeOut(100)
     .ConnectTimeout(100)
-    .SetBasicAuthorization('dmvc', 'dmvc')
+    .SetBasicAuthorizationHeader('dmvc', 'dmvc')
     .Accept(TMVCMediaType.APPLICATION_JSON)
     .AcceptCharSet(TMVCCharset.UTF_8)
     .AcceptEncoding('gzip,deflate')
     .UserAgent('DMVCFramework RESTClient')
-    .SetBasicAuthorization('user', 'password');
+    .SetBasicAuthorizationHeader('username', 'password');
 
   Assert.AreEqual('http://localhost:8080', LClient.BaseURL);
   Assert.AreEqual(100, LClient.ReadTimeOut);
@@ -224,9 +224,9 @@ begin
   Assert.AreEqual('UTF-8', LClient.AcceptCharset );
   Assert.AreEqual('gzip,deflate', LClient.AcceptEncoding);
   Assert.AreEqual('DMVCFramework RESTClient', LClient.UserAgent);
-  Assert.AreEqual('Basic dXNlcjpwYXNzb3dvcmQ=', LClient.HeaderValue('Authorization'));
+  Assert.AreEqual('Basic dXNlcm5hbWU6cGFzc3dvcmQ=', LClient.HeaderValue('Authorization'));
 
-  LClient.SetBearerAuthorization(JWT_TOKEN);
+  LClient.SetBearerAuthorizationHeader(JWT_TOKEN);
 
   Assert.AreEqual('Bearer ' + JWT_TOKEN, LClient.HeaderValue('Authorization'));
 end;
@@ -237,7 +237,7 @@ var
   LResp: IMVCRESTResponse;
 begin
   FRESTClient.Resource('/user/save');
-  FRESTClient.SetBasicAuthorization('dmvc', '123');
+  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
 
   LUser := TAppUser.Create;
   LUser.Cod := 1;
@@ -262,7 +262,7 @@ var
   LUser: TAppUser;
 begin
   FRESTClient.Resource('/users/save');
-  FRESTClient.SetBasicAuthorization('dmvc', '123');
+  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
   FRESTClient.Accept('application/json;charset=utf-8');
 
   LUsers := TObjectList<TAppUser>.Create(True);

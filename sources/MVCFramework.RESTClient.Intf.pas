@@ -89,12 +89,12 @@ type
     /// <summary>
     /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
     /// </summary>
-    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+    function SetBasicAuthorizationHeader(const aUsername, aPassword: string): IMVCRESTClient;
 
     /// <summary>
     /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
-    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+    function SetBearerAuthorizationHeader(const aAccessToken: string): IMVCRESTClient;
 
     /// <summary>
     /// Add a header.

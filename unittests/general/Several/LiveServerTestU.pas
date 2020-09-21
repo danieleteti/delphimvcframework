@@ -532,7 +532,7 @@ procedure TServerTest.TestBasicAuth01;
 var
   lRes: IMVCRESTResponse;
 begin
-  RESTClient.SetBasicAuthorization('user1', 'user1');
+  RESTClient.SetBasicAuthorizationHeader('user1', 'user1');
   Assert.AreEqual('Basic dXNlcjE6dXNlcjE=', RESTClient.HeaderValue('Authorization'), True);
   lRes := RESTClient.Get('/private/role1');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
@@ -550,7 +550,7 @@ procedure TServerTest.TestBasicAuth03;
 var
   lRes: IMVCRESTResponse;
 begin
-  RESTClient.SetBasicAuthorization('user1', 'user1');
+  RESTClient.SetBasicAuthorizationHeader('user1', 'user1');
   lRes := RESTClient.Get('/private/role2');
   Assert.areEqual<Integer>(HTTP_STATUS.Forbidden, lRes.StatusCode);
 end;
@@ -559,7 +559,7 @@ procedure TServerTest.TestBasicAuth04;
 var
   lRes: IMVCRESTResponse;
 begin
-  RESTClient.SetBasicAuthorization('user1', 'user1');
+  RESTClient.SetBasicAuthorizationHeader('user1', 'user1');
   lRes := RESTClient.Get('/private/role1');
   Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
   lRes := RESTClient.Get('/people');
@@ -570,7 +570,7 @@ procedure TServerTest.TestBasicAuth05;
 var
   lRes: IMVCRESTResponse;
 begin
-  RESTClient.SetBasicAuthorization('user1', 'user1');
+  RESTClient.SetBasicAuthorizationHeader('user1', 'user1');
 
   // first
   lRes := RESTClient.Get('/private/role1session?value=danieleteti');
