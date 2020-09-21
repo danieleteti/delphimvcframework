@@ -102,6 +102,54 @@ type
     // class procedure Serialize(const ADict: TMVCStringDictionary; const AJSONObject: TJsonObject); inline;
   end;
 
+  TMVCListOfStringSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+  end;
+
+  TMVCListOfIntegerSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+  end;
+
+  TMVCListOfBooleanSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+  end;
+
+  TMVCListOfDoubleSerializer = class(TInterfacedObject, IMVCTypeSerializer)
+  public
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>; const ASerializationAction: TMVCSerializationAction = nil);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
+      const AAttributes: TArray<TCustomAttribute>);
+  end;
+
   TMVCGUIDSerializer = class(TInterfacedObject, IMVCTypeSerializer)
   public
     procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
@@ -503,6 +551,208 @@ begin
     raise;
   end;
   ASerializerObject := lOutObject;
+end;
+
+{ TMVCListOfStringSerializer }
+
+procedure TMVCListOfStringSerializer.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<string>;
+  lJsonArray: TJsonArray;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<string>;
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray[i].Value);
+  end;
+end;
+
+procedure TMVCListOfStringSerializer.DeserializeRoot(const ASerializerObject,
+  AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+end;
+
+procedure TMVCListOfStringSerializer.SerializeAttribute(
+  const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<string>;
+  lProp: TJsonObject;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<string>;
+  lProp := ASerializerObject as TJsonObject;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lProp.A[APropertyName].Add(lList[i]);
+  end;
+end;
+
+procedure TMVCListOfStringSerializer.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+end;
+
+{ TMVCListOfIntegerSerializer }
+
+procedure TMVCListOfIntegerSerializer.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Integer>;
+  lJsonArray: TJsonArray;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<Integer>;
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray[i].IntValue);
+  end;
+end;
+
+procedure TMVCListOfIntegerSerializer.DeserializeRoot(const ASerializerObject,
+  AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+end;
+
+procedure TMVCListOfIntegerSerializer.SerializeAttribute(
+  const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Integer>;
+  lProp: TJsonObject;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<Integer>;
+  lProp := ASerializerObject as TJsonObject;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lProp.A[APropertyName].Add(lList[i]);
+  end;
+end;
+
+procedure TMVCListOfIntegerSerializer.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+
+end;
+
+{ TMVCListOfBooleanSerializer }
+
+procedure TMVCListOfBooleanSerializer.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Boolean>;
+  lJsonArray: TJsonArray;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<Boolean>;
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray[i].BoolValue);
+  end;
+end;
+
+procedure TMVCListOfBooleanSerializer.DeserializeRoot(const ASerializerObject,
+  AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+end;
+
+procedure TMVCListOfBooleanSerializer.SerializeAttribute(
+  const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Boolean>;
+  lProp: TJsonObject;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<Boolean>;
+  lProp := ASerializerObject as TJsonObject;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lProp.A[APropertyName].Add(lList[i]);
+  end;
+end;
+
+procedure TMVCListOfBooleanSerializer.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+end;
+
+{ TMVCListOfExtendedSerializer }
+
+procedure TMVCListOfDoubleSerializer.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Double>;
+  lJsonArray: TJsonArray;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<Double>;
+  lList.Clear;
+  lJsonArray := ASerializerObject as TJsonArray;
+  for i := 0 to lJsonArray.Count - 1 do
+  begin
+    lList.Add(lJsonArray[i].FloatValue);
+  end;
+end;
+
+procedure TMVCListOfDoubleSerializer.DeserializeRoot(const ASerializerObject,
+  AObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
+end;
+
+procedure TMVCListOfDoubleSerializer.SerializeAttribute(
+  const AElementValue: TValue; const APropertyName: string;
+  const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
+var
+  lList: TList<Double>;
+  lProp: TJsonObject;
+  i: Integer;
+begin
+  lList := AElementValue.AsObject as TList<Double>;
+  lProp := ASerializerObject as TJsonObject;
+  for i := 0 to lList.Count - 1 do
+  begin
+    lProp.A[APropertyName].Add(lList[i]);
+  end;
+
+end;
+
+procedure TMVCListOfDoubleSerializer.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>;
+  const ASerializationAction: TMVCSerializationAction);
+begin
+  raise EMVCDeserializationException.Create('Not implemented');
 end;
 
 end.

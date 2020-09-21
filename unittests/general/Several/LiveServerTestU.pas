@@ -229,7 +229,7 @@ type
     [Category('staticfiles')]
     procedure TestDirectoryRedirect;
     [Test]
-    [Category('staticfiles,this')]
+    [Category('staticfiles')]
     procedure TestFileWithFolderName;
     [Test]
     [Category('staticfiles')]

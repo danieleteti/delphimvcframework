@@ -101,7 +101,7 @@ type
     [Test]
     procedure TestComplexRoutings;
     [Test]
-    [Category('issues,this')]
+    [Category('issues')]
     procedure Test_ISSUE_338;
     [Test]
     procedure TestProduceRoutings;

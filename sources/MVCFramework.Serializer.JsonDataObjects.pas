@@ -233,6 +233,10 @@ begin
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
   fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create(self);
   GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
+  GetTypeSerializers.Add(TypeInfo(TList<String>), TMVCListOfStringSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TList<Integer>), TMVCListOfIntegerSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TList<Boolean>), TMVCListOfBooleanSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TList<Double>), TMVCListOfDoubleSerializer.Create);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.TValueToJSONObjectProperty(const AJsonObject: TJDOJsonObject;
@@ -1019,6 +1023,7 @@ begin
   for I := 0 to Pred(AJsonArray.Count) do
   begin
     Obj := TMVCSerializerHelper.CreateObject(AClazz.QualifiedClassName);
+    Assert(AJsonArray.Items[I].Typ = jdtObject, 'Cannot deserialize non object type in ' + AClazz.QualifiedClassName + '. [HINT] Move data structure to objects or use manual deserialization.');
     JsonObjectToObject(AJsonArray.Items[I].ObjectValue, Obj, GetSerializationType(Obj, AType), AIgnoredAttributes);
     AList.Add(Obj);
   end;
@@ -1278,6 +1283,11 @@ begin
         begin
           if ChildObject is TDataSet then
             JsonArrayToDataSet(AJsonObject.A[AName], ChildObject as TDataSet, AIgnored, ncLowerCase)
+          else if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
+          begin
+            GetTypeSerializers.Items[ChildObject.ClassInfo].DeserializeAttribute(AValue, AName, AJsonObject,
+              ACustomAttributes);
+          end
           else
           begin
             ChildList := TDuckTypedList.Wrap(ChildObject);
