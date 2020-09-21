@@ -230,7 +230,7 @@ type
     [Category('staticfiles')]
     procedure TestDirectoryRedirect;
     [Test]
-    [Category('staticfiles,this')]
+    [Category('staticfiles')]
     procedure TestFileWithFolderName;
     [Test]
     [Category('staticfiles')]
@@ -1820,9 +1820,10 @@ begin
   begin
     { directory traversal attacks receive always 404 }
     lUrl := '..\' + lUrl;
-    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/spa/' + lUrl);
-    Assert.areEqual(404, lRes.StatusCode);
-    Assert.Contains(lRes.StatusText, '[EMVCException] Not Found', True);
+    lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).doGET('/spa/' + lUrl, []);
+    Assert.areEqual(404, lRes.ResponseCode);
+    Assert.Contains(lRes.BodyAsString, '[EMVCException] Not Found', true);
+    Assert.Contains(lRes.BodyAsString, '<p>HTTP 404</p>', true);
   end;
 end;
 

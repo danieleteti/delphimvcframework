@@ -42,6 +42,19 @@ type
     procedure Index;
   end;
 
+  [MVCSwagIgnorePath]
+  [MVCPath]
+  TRedirectController = class(TMVCController)
+  public
+    [MVCPath('/')]
+    [MVCHTTPMethod([httpGET])]
+    procedure DoRedirect;
+
+    [MVCPath('/index.html')]
+    [MVCHTTPMethod([httpGET])]
+    procedure DoRedirectIndex;
+  end;
+
 implementation
 
 uses
@@ -64,8 +77,21 @@ begin
   Render(LObj);
 end;
 
+{ TRedirectController }
+
+procedure TRedirectController.DoRedirect;
+begin
+  Redirect('/swagger');
+end;
+
+procedure TRedirectController.DoRedirectIndex;
+begin
+  DoRedirect;
+end;
+
 initialization
 
 TControllersRegister.Instance.RegisterController(TMyController1, 'MyServerName');
+TControllersRegister.Instance.RegisterController(TRedirectController, 'MyServerName');
 
 end.

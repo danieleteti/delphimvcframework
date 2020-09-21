@@ -122,6 +122,9 @@ type
     procedure TestSerializeDeserializeMultipleGenericEntity;
     [Test]
     procedure TestDoNotSerializeDoNotDeSerialize;
+    [Test]
+    [Category('serializers,this')]
+    procedure TestSerializeListOfSomething;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -1521,6 +1524,49 @@ begin
   end;
 end;
 
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeListOfSomething;
+var
+  lList, lList2: TListOfSomething;
+  lData: string;
+begin
+  lList := TListOfSomething.Create;
+  try
+    lData := fSerializer.SerializeObject(lList);
+
+    lList2 := TListOfSomething.Create;
+    try
+      lList2.ListOfString.Clear;
+      lList2.ListOfInteger.Clear;
+      lList2.ListOfBoolean.Clear;
+      lList2.ListOfDouble.Clear;
+
+      fSerializer.DeserializeObject(lData, lList2);
+
+      Assert.AreEqual(2, lList2.ListOfString.Count);
+      Assert.AreEqual(2, lList2.ListOfInteger.Count);
+      Assert.AreEqual(2, lList2.ListOfBoolean.Count);
+      Assert.AreEqual(2, lList2.ListOfDouble.Count);
+
+      Assert.AreEqual(lList.ListOfString[0], lList2.ListOfString[0]);
+      Assert.AreEqual(lList.ListOfString[1], lList2.ListOfString[1]);
+
+      Assert.AreEqual(lList.ListOfInteger[0], lList2.ListOfInteger[0]);
+      Assert.AreEqual(lList.ListOfInteger[1], lList2.ListOfInteger[1]);
+
+      Assert.AreEqual(lList.ListOfBoolean[0], lList2.ListOfBoolean[0]);
+      Assert.AreEqual(lList.ListOfBoolean[1], lList2.ListOfBoolean[1]);
+
+      Assert.AreEqual(lList.ListOfDouble[0], lList2.ListOfDouble[0], 0.0001);
+      Assert.AreEqual(lList.ListOfDouble[1], lList2.ListOfDouble[1], 0.0001);
+    finally
+      lList2.Free;
+    end;
+  finally
+    lList.Free;
+  end;
+
+end;
+
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeEntityWithInterface;
 const
   JSON =
@@ -1670,30 +1716,28 @@ begin
   try
     fSerializer.DeserializeObject(LJson, LNestedGenericEntity);
 
-    Assert.AreEqual(Integer(1), LNestedGenericEntity.Code);
-    Assert.AreEqual('General Description', LNestedGenericEntity.Description);
-    Assert.AreEqual(Integer(3), LNestedGenericEntity.Items.Count);
+    Assert.areEqual(Integer(1), LNestedGenericEntity.Code);
+    Assert.areEqual('General Description', LNestedGenericEntity.Description);
+    Assert.areEqual(Integer(3), LNestedGenericEntity.Items.Count);
 
-    Assert.AreEqual(Integer(10), LNestedGenericEntity.Items[0].Code);
-    Assert.AreEqual('Item_01', LNestedGenericEntity.Items[0].Description);
-    Assert.AreEqual(Integer(1), LNestedGenericEntity.Items[0].Items.Count);
-    Assert.AreEqual('Description 01', LNestedGenericEntity.Items[0].Items[0].Description);
+    Assert.areEqual(Integer(10), LNestedGenericEntity.Items[0].Code);
+    Assert.areEqual('Item_01', LNestedGenericEntity.Items[0].Description);
+    Assert.areEqual(Integer(1), LNestedGenericEntity.Items[0].Items.Count);
+    Assert.areEqual('Description 01', LNestedGenericEntity.Items[0].Items[0].Description);
 
-    Assert.AreEqual(Integer(11), LNestedGenericEntity.Items[1].Code);
-    Assert.AreEqual('Item_02', LNestedGenericEntity.Items[1].Description);
-    Assert.AreEqual(Integer(1), LNestedGenericEntity.Items[1].Items.Count);
-    Assert.AreEqual('Description 02', LNestedGenericEntity.Items[1].Items[0].Description);
+    Assert.areEqual(Integer(11), LNestedGenericEntity.Items[1].Code);
+    Assert.areEqual('Item_02', LNestedGenericEntity.Items[1].Description);
+    Assert.areEqual(Integer(1), LNestedGenericEntity.Items[1].Items.Count);
+    Assert.areEqual('Description 02', LNestedGenericEntity.Items[1].Items[0].Description);
 
-    Assert.AreEqual(Integer(12), LNestedGenericEntity.Items[2].Code);
-    Assert.AreEqual('Item_03', LNestedGenericEntity.Items[2].Description);
-    Assert.AreEqual(Integer(1), LNestedGenericEntity.Items[2].Items.Count);
-    Assert.AreEqual('Description 03', LNestedGenericEntity.Items[2].Items[0].Description);
-
+    Assert.areEqual(Integer(12), LNestedGenericEntity.Items[2].Code);
+    Assert.areEqual('Item_03', LNestedGenericEntity.Items[2].Description);
+    Assert.areEqual(Integer(1), LNestedGenericEntity.Items[2].Items.Count);
+    Assert.areEqual('Description 03', LNestedGenericEntity.Items[2].Items[0].Description);
 
   finally
     LNestedGenericEntity.Free;
   end;
-
 
 end;
 

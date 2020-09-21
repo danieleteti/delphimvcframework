@@ -30,6 +30,7 @@ unit MVCFramework.Serializer.HTML;
 interface
 
 uses
+	System.SysUtils,
   System.Classes,
   System.Rtti,
   System.TypInfo,
@@ -42,8 +43,7 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Abstract,
   MVCFramework.DuckTyping,
-  MVCFramework.Serializer.Commons,
-  System.SysUtils;
+  MVCFramework.Serializer.Commons;
 
 type
   TMVCHTMLSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
@@ -148,9 +148,10 @@ implementation
 
 uses
   System.NetEncoding,
+  MVCFramework,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
-  MVCFramework.Nullables, MVCFramework;
+  MVCFramework.Nullables;
 
 const
   HTML_HEADER = '<!DOCTYPE html><html><head><title>DMVCFramework Exception</title>' +
