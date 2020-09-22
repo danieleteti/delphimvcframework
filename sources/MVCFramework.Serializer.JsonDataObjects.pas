@@ -183,6 +183,9 @@ procedure TValueToJSONObjectProperty(const Value: TValue; const JSON: TJDOJsonOb
 function StrToJSONObject(const AValue: string): TJDOJsonObject;
 function StrToJSONArray(const AValue: string): TJDOJsonArray;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
+  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList); overload;
+procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject); overload;
+procedure JsonArrayToList(const AJsonArray: TJDOJsonArray; const AList: IMVCList; const AClazz: TClass;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
 const
@@ -233,7 +236,7 @@ begin
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
   fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create(self);
   GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
-  GetTypeSerializers.Add(TypeInfo(TList<String>), TMVCListOfStringSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TList<string>), TMVCListOfStringSerializer.Create);
   GetTypeSerializers.Add(TypeInfo(TList<Integer>), TMVCListOfIntegerSerializer.Create);
   GetTypeSerializers.Add(TypeInfo(TList<Boolean>), TMVCListOfBooleanSerializer.Create);
   GetTypeSerializers.Add(TypeInfo(TList<Double>), TMVCListOfDoubleSerializer.Create);
@@ -1023,7 +1026,8 @@ begin
   for I := 0 to Pred(AJsonArray.Count) do
   begin
     Obj := TMVCSerializerHelper.CreateObject(AClazz.QualifiedClassName);
-    Assert(AJsonArray.Items[I].Typ = jdtObject, 'Cannot deserialize non object type in ' + AClazz.QualifiedClassName + '. [HINT] Move data structure to objects or use manual deserialization.');
+    Assert(AJsonArray.Items[I].Typ = jdtObject, 'Cannot deserialize non object type in ' + AClazz.QualifiedClassName +
+      '. [HINT] Move data structure to objects or use manual deserialization.');
     JsonObjectToObject(AJsonArray.Items[I].ObjectValue, Obj, GetSerializationType(Obj, AType), AIgnoredAttributes);
     AList.Add(Obj);
   end;
@@ -1549,6 +1553,8 @@ var
   I: Integer;
   lDict: IMVCLinks;
   lSer: IMVCTypeSerializer;
+  lJsonDataType: TJsonDataType;
+  lJSONValue: TJsonBaseObject;
 begin
   if not Assigned(AList) then
     raise EMVCSerializationException.Create('List not assigned');
@@ -1566,8 +1572,25 @@ begin
   begin
     for I := 0 to Pred(AList.Count) do
     begin
-      InternalObjectToJsonObject(AList.GetItem(I), AJsonArray.AddObject, AType, AIgnoredAttributes, nil, nil,
-        nil);
+      lJSONValue := ConvertObjectToJsonValue(AList.GetItem(I), AType, AIgnoredAttributes, lJsonDataType);
+      case lJsonDataType of
+        jdtArray:
+          begin
+            AJsonArray.Add(lJSONValue as TJsonArray);
+          end;
+        jdtObject:
+          begin
+            AJsonArray.Add(lJSONValue as TJsonObject);
+          end;
+      else
+        begin
+          lJSONValue.Free;
+          RaiseSerializationError('Invalid JSON Data Type');
+        end
+      end;
+
+      // InternalObjectToJsonObject(AList.GetItem(I), AJsonArray.AddObject, AType, AIgnoredAttributes, nil, nil,
+      // nil);
     end;
   end;
 end;
@@ -2462,6 +2485,36 @@ begin
       lJSON.Free;
       raise EMVCDeserializationException.Create('Invalid JSON Array');
     end;
+  end;
+end;
+
+procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject);
+begin
+  JsonObjectToObject(AJsonObject, AObject, TMVCSerializationType.stDefault, nil)
+end;
+
+procedure JsonArrayToList(const AJsonArray: TJDOJsonArray; const AList: IMVCList; const AClazz: TClass;
+  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  I: Integer;
+  lObj: TObject;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create;
+  try
+    for I := 0 to AJsonArray.Count - 1 do
+    begin
+      lObj := AClazz.Create;
+      try
+        lSer.JsonObjectToObject(AJsonArray[I].ObjectValue, lObj, TMVCSerializationType.stDefault, nil);
+      except
+        lObj.Free;
+        raise;
+      end;
+    end;
+    // lSer.JsonArrayToList(AJsonArray, AList, AClazz, AType, AIgnoredAttributes);
+  finally
+    lSer.Free;
   end;
 end;
 

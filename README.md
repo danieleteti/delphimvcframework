@@ -514,6 +514,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - **Breaking Change!**  `DocumentRoot` of `TMVCStaticFileMiddleware`  must be a valid folder. If `DocumentRoot` doesn't exist an exception is raised.
 
+- Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
+
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 
   ```delphi
