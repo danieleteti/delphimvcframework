@@ -50,10 +50,6 @@ type
     edtUserName: TEdit;
     btnGetUser: TButton;
     lbPerson: TListBox;
-    GroupBox3: TGroupBox;
-    edtFilter: TEdit;
-    edtGetCustomers: TButton;
-    DBGrid1: TDBGrid;
     GroupBox4: TGroupBox;
     edtFirstName: TLabeledEdit;
     edtLastName: TLabeledEdit;
@@ -81,6 +77,14 @@ type
     Edit2: TEdit;
     btnSubtractWithNamedParams: TButton;
     Edit3: TEdit;
+    PageControl2: TPageControl;
+    TabSheet3: TTabSheet;
+    TabSheet4: TTabSheet;
+    edtFilter: TEdit;
+    edtGetCustomers: TButton;
+    DBGrid1: TDBGrid;
+    btnGetMulti: TButton;
+    lbMulti: TListBox;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -97,6 +101,8 @@ type
     procedure btnFloatsTestsClick(Sender: TObject);
     procedure btnWithJSONClick(Sender: TObject);
     procedure btnSubtractWithNamedParamsClick(Sender: TObject);
+    procedure btnGetMultiClick(Sender: TObject);
+    procedure btnGetListOfDatasetClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
@@ -110,10 +116,13 @@ var
 implementation
 
 uses
+  System.Generics.Collections,
   MVCFramework.JSONRPC,
   MVCFramework.Serializer.JsonDataObjects,
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Defaults,
   MVCFramework.DataSet.Utils,
   BusinessObjectsU,
   System.Math,
@@ -347,6 +356,63 @@ begin
 
   lPerson := lResp.Result.AsObject as TJsonObject;
   ShowMessage(lPerson.ToJSON(False));
+end;
+
+procedure TMainForm.btnGetListOfDatasetClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lMultiDS: TObjectList<TDataSet>;
+begin
+  FDMemTable1.Active := False;
+  lReq := TJSONRPCRequest.Create(Random(1000), 'GetDataSetList');
+  lResp := FExecutor.ExecuteRequest(lReq);
+
+  lMultiDS := TObjectList<TDataSet>.Create(True);
+  try
+    JsonArrayToList(lResp.ResultAsJSONArray, WrapAsList(lMultiDS), TDataSet, TMVCSerializationType.stDefault, nil);
+  finally
+    lMultiDS.Free;
+  end;
+end;
+
+procedure TMainForm.btnGetMultiClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lMultiDS: TMultiDataset;
+begin
+  FDMemTable1.Active := False;
+  lReq := TJSONRPCRequest.Create(Random(1000), 'getmulti');
+  lResp := FExecutor.ExecuteRequest(lReq);
+
+  lMultiDS := TMultiDataset.Create;
+  try
+    JsonObjectToObject(lResp.ResultAsJSONObject, lMultiDS);
+    lbMulti.Clear;
+
+    lMultiDS.Customers.First;
+    lbMulti.Items.Add('** CUSTOMERS **');
+    while not lMultiDS.Customers.Eof do
+    begin
+      lbMulti.Items.Add(Format('%-20s (Code %3s)', [lMultiDS.Customers.FieldByName('Name').AsString,
+        lMultiDS.Customers.FieldByName('Code').AsString]));
+      lMultiDS.Customers.Next;
+    end;
+
+    lMultiDS.People.First;
+    lbMulti.Items.Add('** PEOPLE **');
+    while not lMultiDS.People.Eof do
+    begin
+      lbMulti.Items.Add(Format('%s %s', [lMultiDS.People.FieldByName('FirstName').AsString,
+        lMultiDS.People.FieldByName('LastName').AsString]));
+      lMultiDS.People.Next;
+    end;
+
+
+  finally
+    lMultiDS.Free;
+  end;
 end;
 
 procedure TMainForm.edtGetCustomersClick(Sender: TObject);

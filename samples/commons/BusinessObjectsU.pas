@@ -34,7 +34,7 @@ uses
 {$IFNDEF LINUX}
   Vcl.Graphics,
 {$ENDIF}
-  JsonDataObjects, System.Classes;
+  JsonDataObjects, System.Classes, Data.DB;
 
 type
 
@@ -274,12 +274,26 @@ type
     property Mentors: string read FMentors write SetMentors;
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  TMultiDataset = class
+  private
+    fPeople: TDataset;
+    fCustomers: TDataset;
+    procedure SetCustomers(const Value: TDataset);
+    procedure SetPeople(const Value: TDataset);
+  public
+    constructor Create;
+    property Customers: TDataset read fCustomers write SetCustomers;
+    property People: TDataset read fPeople write SetPeople;
+    destructor Destroy; override;
+  end;
+
 implementation
 
 uses
   System.SysUtils,
   System.Math,
-  RandomUtilsU;
+  RandomUtilsU, FireDAC.Comp.Client;
 
 { TPerson }
 
@@ -591,6 +605,49 @@ destructor TNullablesTest.Destroy;
 begin
   ff_blob.Free;
   inherited;
+end;
+
+{ TMultiDataset }
+
+constructor TMultiDataset.Create;
+begin
+  inherited Create;
+  fCustomers := TFDMemTable.Create(nil);
+  fCustomers.FieldDefs.Clear;
+  fCustomers.FieldDefs.Add('Code', ftInteger);
+  fCustomers.FieldDefs.Add('Name', ftString, 20);
+  fCustomers.Active := true;
+
+  fPeople := TFDMemTable.Create(nil);
+  fPeople.FieldDefs.Clear;
+  fPeople.FieldDefs.Add('FirstName', ftString, 20);
+  fPeople.FieldDefs.Add('LastName', ftString, 20);
+  fPeople.Active := true;
+end;
+
+destructor TMultiDataset.Destroy;
+begin
+  fCustomers.Free;
+  fPeople.Free;
+  inherited;
+end;
+
+procedure TMultiDataset.SetCustomers(const Value: TDataset);
+begin
+  if fCustomers <> nil then
+  begin
+    raise Exception.Create('DataSet Already Initialized');
+  end;
+  fCustomers := Value;
+end;
+
+procedure TMultiDataset.SetPeople(const Value: TDataset);
+begin
+  if fPeople <> nil then
+  begin
+    raise Exception.Create('DataSet Already Initialized');
+  end;
+  fPeople := Value;
 end;
 
 initialization

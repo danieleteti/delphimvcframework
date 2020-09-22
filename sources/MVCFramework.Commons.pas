@@ -40,6 +40,7 @@ uses
   IdCoderMIME,
   IdContext,
   System.Generics.Collections,
+  MVCFramework.DuckTyping,
   JsonDataObjects;
 
 {$I dmvcframeworkbuildconsts.inc}
@@ -618,6 +619,8 @@ function BuildContentType(const aContentMediaType: string; const aContentCharSet
 function StrToJSONObject(const aString: String): TJsonObject;
 function StrToJSONArray(const aString: String): TJsonArray;
 
+
+function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
 { changing case }
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
@@ -1442,6 +1445,11 @@ begin
   Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString);
 end;
 
+
+function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
+begin
+  Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+end;
 
 initialization
 
