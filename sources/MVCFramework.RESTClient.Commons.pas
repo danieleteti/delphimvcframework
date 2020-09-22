@@ -81,6 +81,7 @@ type
     BASIC_AUTH_PREFIX = 'Basic ';
     BEARER_AUTH_PREFIX = 'Bearer ';
     SERVER_HEADER = 'server';
+    DEFAULT_MAX_REDIRECTS = 5;
     REST_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='),
       Ord('>'), Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'),
       Ord('?'), Ord('#'), Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~'), Ord(' '), Ord('*'),
@@ -213,8 +214,10 @@ var
   lEncoding: TEncoding;
   lContentType: string;
   lCharset: string;
+{$IF defined(RIOORBETTER)}
   lExt: string;
   lMimeKind: TMimeTypes.TKind;
+{$ENDIF}
   lReader: TStringStream;
 begin
   Result := '';
@@ -227,9 +230,18 @@ begin
   end
   else
   begin
+{$IF defined(RIOORBETTER)}
     TMimeTypes.Default.GetTypeInfo(lContentType.ToLower, lExt, lMimeKind);
     if lMimeKind = TMimeTypes.TKind.Text then
       lContentIsString := True;
+{$ELSE}
+    if not (lContentType.StartsWith('image', True) or
+      lContentType.StartsWith('video', True) or
+      lContentType.StartsWith('audio', True) or
+      lContentType.ToLower.Equals('application/octet-stream') or
+      lContentType.ToLower.Equals('application/pdf')) then
+      lContentIsString := True;
+{$ENDIF}
   end;
 
   if lContentIsString then

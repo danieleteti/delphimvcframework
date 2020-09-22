@@ -299,9 +299,10 @@ type
     function AddFile(const aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
 
     function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
+{$IF defined(RIOORBETTER)}
     function AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
       const aContentType: string = ''): IMVCRESTClient; overload;
-
+{$ENDIF}
     /// <summary>
     /// Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
     /// </summary>
@@ -439,6 +440,15 @@ uses
   MVCFramework.Serializer.JsonDataObjects,
   System.RegularExpressions;
 
+{$IF not defined(RIOORBETTER)}
+type
+  TCookieManagerHelper = class helper for TCookieManager
+  public
+    function CookieList: TCookies;
+  end;
+{$ENDIF}
+
+
 { TMVCRESTClient }
 
 function TMVCRESTClient.Accept: string;
@@ -540,6 +550,7 @@ begin
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 
+{$IF defined(RIOORBETTER)}
 function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
   const aContentType: string): IMVCRESTClient;
 begin
@@ -547,6 +558,7 @@ begin
   GetBodyFormData.AddStream(aName, aStreamValue, aContentType);
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
+{$ENDIF}
 
 function TMVCRESTClient.AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
 begin
@@ -569,7 +581,7 @@ end;
 function TMVCRESTClient.AddFile(const aName, aFileName, aContentType: string): IMVCRESTClient;
 begin
   Result := Self;
-  GetBodyFormData.AddFile(aName, aFileName, aContentType);
+  GetBodyFormData.AddFile(aName, aFileName {$IF defined(RIOORBETTER)}, aContentType{$ENDIF});
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 
@@ -722,11 +734,17 @@ begin
   fContentType := '';
 end;
 
+
 function TMVCRESTClient.ClearCookies: IMVCRESTClient;
 begin
   Result := Self;
   ClearParameters(TMVCRESTParamType.Cookie);
+{$IF defined(RIOORBETTER)}
   fHTTPClient.CookieManager.Clear;
+{$ELSE}
+  if fHTTPClient.CookieManager.CookieList <> nil then
+    fHTTPClient.CookieManager.CookieList.Clear;
+{$ENDIF}
 end;
 
 function TMVCRESTClient.ClearHeaders: IMVCRESTClient;
@@ -775,8 +793,10 @@ begin
 
   fHTTPClient := THTTPClient.Create;
   fHTTPClient.HandleRedirects := True;
-  fHTTPClient.MaxRedirects := CHTTPDefMaxRedirects;
+  fHTTPClient.MaxRedirects := TMVCRESTClientConsts.DEFAULT_MAX_REDIRECTS;
+{$IF defined(TOKYOORBETTER)}
   fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
+{$ENDIF}
 
   fParameters := TList<TMVCRESTParam>.Create;
   fRawBody := TStringStream.Create;
@@ -860,11 +880,21 @@ begin
   end;
 end;
 
+{$IF not defined(SYDNEYORBETTER)}
+type
+  THackURLClient = class(TURLClient);
+{$ENDIF}
+
 procedure TMVCRESTClient.DoApplyHeaders;
 var
   lParam: TMVCRESTParam;
 begin
+{$IF defined(SYDNEYORBETTER)}
   fHTTPClient.CustHeaders.Clear;
+{$ELSE}
+  SetLength(THackURLClient(fHTTPClient).FCustomHeaders, 0);
+{$ENDIF}
+
   for lParam in fParameters do
   begin
     if lParam.&Type = TMVCRESTParamType.Header then
@@ -933,7 +963,12 @@ begin
   aURL := aURL.Replace('../', '%2E%2E/', [rfReplaceAll]);
   aURL := aURL.Replace('./', '%2E/', [rfReplaceAll]);
 
+
+{$IF defined(RIOORBETTER)}
   aURL := TURI.Create(aURL).Encode;
+{$ELSE}
+  aURL := TURI.Create(aURL).ToString;
+{$ENDIF}
 end;
 
 procedure TMVCRESTClient.DoPrepareBodyRequest(var aBodyStream: TStream);
@@ -1550,5 +1585,26 @@ function TMVCRESTResponse.Success: Boolean;
 begin
   Result := fSuccess;
 end;
+
+{ TCookieManagerHelper }
+
+{$IF not defined(RIOORBETTER)}
+function TCookieManagerHelper.CookieList: TCookies;
+var
+  lRttiContext: TRttiContext;
+  lField: TRttiField;
+begin
+  lRttiContext := TRttiContext.Create;
+  try
+    lField := lRttiContext.GetType(Self).GetField('FCookies');
+    Result := nil;
+    if Assigned(lField) then
+      Result := lField.GetValue(Self).AsObject as TCookies;
+  finally
+    lRttiContext.Free;
+  end;
+end;
+
+{$ENDIF}
 
 end.

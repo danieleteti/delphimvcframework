@@ -226,8 +226,10 @@ type
     function AddFile(const aName, aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
     function AddFile(const aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
     function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
+{$IF defined(RIOORBETTER)}
     function AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
       const aContentType: string = ''): IMVCRESTClient; overload;
+{$ENDIF}
 
     /// <summary>
     /// Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
