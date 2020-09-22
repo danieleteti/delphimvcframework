@@ -230,20 +230,31 @@ begin
     lHttpResp := fHTTP.Post(fURL, lSS, nil, [TNetHeader.Create('content-type', 'application/json;charset=utf8'),
       TNetHeader.Create('accept', 'application/json;charset=utf8')] + lCustomHeaders);
     fHTTPResponse := lHttpResp;
+    lJSONRPCResponse := nil;
     if lHttpResp.StatusCode = HTTP_STATUS.NoContent then
     begin
       lJSONRPCResponse := TJSONRPCNullResponse.Create;
     end
     else
     begin
-      lJSONRPCResponse := TJSONRPCResponse.Create;
-      lJSONRPCResponse.AsJSONString := lHttpResp.ContentAsString;
+      if fHTTPResponse.HeaderValue['content-type'].Contains(TMVCMediaType.APPLICATION_JSON) then
+      begin
+        lJSONRPCResponse := TJSONRPCResponse.Create;
+        lJSONRPCResponse.AsJSONString := lHttpResp.ContentAsString;
+      end;
     end;
+    fHTTPResponse := lHttpResp;
     if Assigned(fOnReceiveResponse) then
     begin
       fOnReceiveResponse(aJSONRPCObject, lJSONRPCResponse);
     end;
-    fHTTPResponse := lHttpResp;
+
+    if lJSONRPCResponse = nil then
+    begin
+      raise EMVCException.CreateFmt('[REMOTE EXCEPTION][%d: %s]: %s',
+        [fHTTPResponse.StatusCode, fHTTPResponse.StatusText, fHTTPResponse.ContentAsString()]);
+    end;
+
     if Assigned(lJSONRPCResponse.Error) and fRaiseExceptionOnError then
       raise EMVCJSONRPCException.CreateFmt('[REMOTE EXCEPTION][%d]: %s',
         [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
