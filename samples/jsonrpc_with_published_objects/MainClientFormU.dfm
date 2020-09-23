@@ -22,10 +22,8 @@ object MainForm: TMainForm
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
-    ExplicitHeight = 546
     object TabSheet1: TTabSheet
       Caption = 'Invoking Plain PODO'
-      ExplicitHeight = 518
       object GroupBox1: TGroupBox
         Left = 3
         Top = 22
@@ -343,11 +341,10 @@ object MainForm: TMainForm
         Top = 202
         Width = 304
         Height = 367
-        ActivePage = TabSheet4
+        ActivePage = TabSheet3
         TabOrder = 3
         object TabSheet3: TTabSheet
           Caption = 'Get DataSet'
-          ExplicitHeight = 262
           object edtFilter: TEdit
             Left = 3
             Top = 5
@@ -381,7 +378,6 @@ object MainForm: TMainForm
         object TabSheet4: TTabSheet
           Caption = 'Get Multi Dataset'
           ImageIndex = 1
-          ExplicitHeight = 262
           object btnGetMulti: TButton
             Left = 13
             Top = 16
@@ -411,7 +407,6 @@ object MainForm: TMainForm
     object TabSheet2: TTabSheet
       Caption = 'Invoking DataModule Methods'
       ImageIndex = 1
-      ExplicitHeight = 518
       object GroupBox5: TGroupBox
         Left = 11
         Top = 18

@@ -480,6 +480,8 @@ var
   lObj: TMVCObjectDictionary.TMVCObjectDictionaryValueItem;
   lList: IMVCList;
   lLinks: IMVCLinks;
+  lJSONType: TJsonDataType;
+  lJSONValue: TJsonBaseObject;
 
 begin
   lObjDict := AObject as TMVCObjectDictionary;
@@ -541,9 +543,31 @@ begin
         begin
           lLinks := TJDOLinks.Create;
         end;
-        fCurrentSerializer.InternalObjectToJsonObject(lObj.Data, lOutObject.O[lName],
-          TMVCSerializationType.stDefault, [], lObj.SerializationAction, lLinks, nil);
 
+        lJSONValue := fCurrentSerializer.ConvertObjectToJsonValue(lObj.Data, TMVCSerializationType.stDefault,
+          [], nil, lObj.SerializationAction, lJSONType);
+        case lJSONType of
+          jdtArray:
+            begin
+              lOutObject.A[lName] := lJSONValue as TJsonArray;
+            end;
+          jdtObject:
+            begin
+              lOutObject.O[lName] := lJSONValue as TJsonObject;
+              if Assigned(ASerializationAction) then
+              begin
+                ASerializationAction(lObj.Data, lLinks);
+                TJDOLinks(lLinks).FillJSONArray(lOutObject.O[lName].A[TMVCConstants.HATEOAS_PROP_NAME]);
+              end;
+
+            end;
+        else
+          begin
+            RaiseSerializationError('Invalid JSON');
+          end;
+        end;
+        // fCurrentSerializer.InternalObjectToJsonObject(lObj.Data, lOutObject.O[lName],
+        // TMVCSerializationType.stDefault, [], lObj.SerializationAction, lLinks, nil);
       end;
     end
   except
