@@ -7,7 +7,7 @@ uses
   BusinessObjects,
   MainDM,
   System.SysUtils,
-  Commons;
+  Commons, JsonDataObjects;
 
 type
 
@@ -24,12 +24,13 @@ type
   TArticlesService = class(TServiceBase)
   public
     function GetAll: TObjectList<TArticle>;
-    function GetArticles(const aTextSearch: String): TObjectList<TArticle>;
+    function GetArticles(const aTextSearch: string): TObjectList<TArticle>;
     function GetByID(const AID: Integer): TArticle;
     procedure Delete(AArticolo: TArticle);
     procedure DeleteAllArticles;
     procedure Add(AArticolo: TArticle);
     procedure Update(AArticolo: TArticle);
+    function GetMeta: TJSONObject;
   end;
 
 implementation
@@ -78,7 +79,7 @@ begin
 end;
 
 function TArticlesService.GetArticles(
-  const aTextSearch: String): TObjectList<TArticle>;
+  const aTextSearch: string): TObjectList<TArticle>;
 begin
   FDM.dsArticles.Open('SELECT * FROM ARTICOLI WHERE DESCRIZIONE CONTAINING ? ORDER BY ID', [aTextSearch]);
   try
@@ -99,6 +100,12 @@ begin
   finally
     FDM.dsArticles.Close;
   end;
+end;
+
+function TArticlesService.GetMeta: TJSONObject;
+begin
+  FDM.dsArticles.Open('SELECT ID, CODICE as CODE, DESCRIZIONE as DESCRIPTION, PREZZO as PRICE FROM ARTICOLI WHERE TRUE = FALSE');
+  Result := FDM.dsArticles.MetadataAsJSONObject();
 end;
 
 procedure TArticlesService.Update(AArticolo: TArticle);

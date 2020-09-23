@@ -25,6 +25,11 @@ type
     procedure GetArticlesByDescription;
 
     [MVCDoc('Returns the article with the specified id')]
+    [MVCPath('/meta')]
+    [MVCHTTPMethod([httpGET])]
+    procedure GetArticleMeta;
+
+    [MVCDoc('Returns the article with the specified id')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpGET])]
     procedure GetArticleByID(id: Integer);
@@ -161,6 +166,20 @@ procedure TArticlesController.GetArticleByID(id: Integer);
 begin
   try
     Render(ObjectDict().Add('data', GetArticlesService.GetByID(id)));
+  except
+    on E: EServiceException do
+    begin
+      raise EMVCException.Create(E.Message, '', 0, 404);
+    end
+    else
+      raise;
+  end;
+end;
+
+procedure TArticlesController.GetArticleMeta;
+begin
+  try
+    Render(ObjectDict().Add('data', GetArticlesService.GetMeta));
   except
     on E: EServiceException do
     begin

@@ -80,6 +80,8 @@ type
       const Serializer: IMVCTypeSerializer);
     function ConvertObjectToJsonValue(const AObject: TObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+      const ADataSetSerializationCallback: TMVCDataSetFieldSerializationAction;
+      const ASerializationAction: TMVCSerializationAction;
       out AJsonDataType: TJsonDataType): TJsonBaseObject;
     procedure AddTValueToJsonArray(const Value: TValue; const JSON: TJDOJsonArray);
     procedure ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
@@ -370,7 +372,7 @@ begin
         if Assigned(ChildObject) then
         begin
           lJSONValue := ConvertObjectToJsonValue(ChildObject, GetSerializationType(ChildObject, AType),
-            AIgnored, lJsonDataType);
+            AIgnored, nil, nil, lJsonDataType);
           case lJsonDataType of
             jdtArray:
               begin
@@ -456,7 +458,7 @@ begin
               tkClass:
                 begin
                   Obj := AValue.GetArrayElement(I).AsObject;
-                  lJSONValue := ConvertObjectToJsonValue(Obj, GetSerializationType(Obj), [], lJsonDataType);
+                  lJSONValue := ConvertObjectToJsonValue(Obj, GetSerializationType(Obj), [], nil, nil, lJsonDataType);
                   case lJsonDataType of
                     jdtArray:
                       begin
@@ -490,7 +492,10 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.ConvertObjectToJsonValue(const AObject: TObject;
-  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; out AJsonDataType: TJsonDataType)
+  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+  const ADataSetSerializationCallback: TMVCDataSetFieldSerializationAction;
+  const ASerializationAction: TMVCSerializationAction;
+  out AJsonDataType: TJsonDataType)
   : TJsonBaseObject;
 var
   lList: IMVCList;
@@ -506,7 +511,7 @@ begin
     begin
       Result := TJsonArray.Create;
       AJsonDataType := jdtArray;
-      DataSetToJsonArray(TDataSet(AObject), TJsonArray(Result), TMVCNameCase.ncLowerCase, []);
+      DataSetToJsonArray(TDataSet(AObject), TJsonArray(Result), TMVCNameCase.ncLowerCase, [], ADataSetSerializationCallback);
     end
     else if AObject is TJsonObject then
     begin
@@ -533,7 +538,7 @@ begin
             if Assigned(lObj) then
             begin
               lJSONValue := ConvertObjectToJsonValue(lObj, GetSerializationType(lObj, AType), AIgnoredAttributes,
-                lJsonDataType);
+                nil, ASerializationAction, lJsonDataType);
               case lJsonDataType of
                 jdtObject:
                   begin
@@ -1572,7 +1577,7 @@ begin
   begin
     for I := 0 to Pred(AList.Count) do
     begin
-      lJSONValue := ConvertObjectToJsonValue(AList.GetItem(I), AType, AIgnoredAttributes, lJsonDataType);
+      lJSONValue := ConvertObjectToJsonValue(AList.GetItem(I), AType, AIgnoredAttributes, nil, ASerializationAction, lJsonDataType);
       case lJsonDataType of
         jdtArray:
           begin
@@ -2311,7 +2316,7 @@ begin
         else
           lValueAsObj := Value.AsObject;
 
-        lJSONValue := ConvertObjectToJsonValue(lValueAsObj, GetSerializationType(lValueAsObj), [], lJsonDataType);
+        lJSONValue := ConvertObjectToJsonValue(lValueAsObj, GetSerializationType(lValueAsObj), [], nil, nil, lJsonDataType);
         case lJsonDataType of
           jdtArray:
             begin
