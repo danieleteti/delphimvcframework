@@ -67,6 +67,10 @@ type
     procedure TestPostUsers();
     [Test]
     procedure TestGetUsers();
+    [Test]
+    procedure TestUploadFile();
+    [Test]
+    procedure TestBodyURLEncoded();
   end;
 
 implementation
@@ -75,7 +79,9 @@ uses
   MVCFramework.Tests.WebModule1,
   LiveServerTestU,
   MVCFramework.SystemJSONUtils,
-  System.JSON;
+  System.JSON,
+  System.IOUtils,
+  JsonDataObjects;
 
 { TTestRESTClient }
 
@@ -103,6 +109,30 @@ begin
   inherited;
   FServerListener.Stop;
   FRESTClient := nil;
+end;
+
+procedure TTestRESTClient.TestBodyURLEncoded;
+var
+  lResp: IMVCRESTResponse;
+  lJsonResp: TJDOJsonObject;
+begin
+  lResp := FRESTClient
+    .SetBasicAuthorizationHeader('dmvc', '123')
+    .AddBodyFieldURLEncoded('field1', 'value1')
+    .AddBodyFieldURLEncoded('field2', 'João Antônio')
+    .AddBodyFieldURLEncoded('field3', 'Special characters: öüáàçãõºs')
+    .Post('/body-url-encoded');
+
+  Assert.AreEqual(lResp.StatusCode, 200);
+
+  lJsonResp := TJDOJsonBaseObject.Parse(lResp.Content) as TJDOJsonObject;
+  try
+    Assert.AreEqual('value1', lJsonResp.S['field1']);
+    Assert.AreEqual('João Antônio', lJsonResp.S['field2']);
+    Assert.AreEqual('Special characters: öüáàçãõºs', lJsonResp.S['field3']);
+  finally
+    lJsonResp.Free;
+  end;
 end;
 
 procedure TTestRESTClient.TestCreateAndDestroy;
@@ -292,6 +322,35 @@ begin
     LUsers.Add(LUser);
   end;
   FAppResource.PostUsers(LUsers);
+end;
+
+procedure TTestRESTClient.TestUploadFile;
+const
+  TEXT_SAMPLE = 'This is a simple text for testing RESTClient file uploads.';
+  TEXT_SAMPLE_MD5 = '2ba880c91bb822859595a0efa25666a5';
+var
+  lStringFile: TStringStream;
+  lFilename: string;
+  lResp: IMVCRESTResponse;
+begin
+  lFilename := ExtractFilePath(ParamStr(0)) + 'file_upload_sample.txt';
+  if TFile.Exists(lFilename) then
+    TFile.Delete(lFilename);
+
+  lStringFile := TStringStream.Create(TEXT_SAMPLE);
+  try
+    lStringFile.SaveToFile(lFileName);
+  finally
+    LStringFile.Free;
+  end;
+
+  lResp := FRESTClient
+    .SetBasicAuthorizationHeader('dmvc', '123')
+    .AddFile(lFileName)
+    .Post('/file/upload');
+
+  Assert.AreEqual(lResp.StatusCode, 200);
+  Assert.AreEqual(lResp.Content, TEXT_SAMPLE_MD5);
 end;
 
 initialization
