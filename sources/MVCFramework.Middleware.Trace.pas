@@ -114,6 +114,7 @@ begin
   lContentStream := TStringStream.Create;
   try
     Context.Request.RawWebRequest.ReadTotalContent;
+    Log.Debug('[BEFORE ROUTING][REQUEST][IP] ' + Context.Request.ClientIp, 'trace');
     Log.Debug('[BEFORE ROUTING][REQUEST][URL] ' + Context.Request.RawWebRequest.PathInfo, 'trace');
     Log.Debug('[BEFORE ROUTING][REQUEST][QUERYSTRING] ' + Context.Request.RawWebRequest.QueryFields.
       DelimitedText, 'trace');
