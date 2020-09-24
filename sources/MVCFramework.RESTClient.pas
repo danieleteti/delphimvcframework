@@ -48,9 +48,6 @@ uses
   MVCFramework.Serializer.Commons,
   Data.DB;
 
-  { REST.Client }
-  { MVCFramework.JSONRPC.Client }
-
 type
   /// <summary>
   /// Alias for the Indy-based TRESTClient. The implementation of TRESTClient has been discontinued, it remains for
@@ -82,6 +79,7 @@ type
     fAcceptEncoding: string;
     fUserAgent: string;
     fContentType: string;
+    fAuthorization: string;
     fProxySettings: TProxySettings;
     fParameters: TList<TMVCRESTParam>;
     fRawBody: TStringStream;
@@ -138,10 +136,13 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
-/// <summary>
-    /// Clears all parameters (headers, body, path params and query params). This method is executed after each
-    /// request is completed.
+    /// <summary>
+    ///   Clears all parameters (headers, body, path params and query params). This method is executed after each
+    ///   request is completed.
     /// </summary>
+    /// <remarks>
+    ///   Cookies and authorization set in SetBasicAuthorization or SetBearerAuthorization is not removed
+    /// </remarks>
     function ClearAllParams: IMVCRESTClient;
 
     /// <summary>
@@ -159,12 +160,24 @@ type
     /// <summary>
     /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
     /// </summary>
-    function SetBasicAuthorizationHeader(const aUsername, aPassword: string): IMVCRESTClient;
+    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
 
     /// <summary>
     /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
-    function SetBearerAuthorizationHeader(const aAccessToken: string): IMVCRESTClient;
+    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+
+    /// <summary>
+    /// Returns the stored authorization. Includes Basic or Bearer prefix
+    /// </summary>
+    function Authorization: string;
+
+    /// <summary>
+    /// Removes the authorization header defined in <see cref="MVCFramework.RESTClient.Intf|IMVCRESTClient.SetBasicAuthorization(string,string)">
+    /// SetBasicAuthorization</see> or <see cref="MVCFramework.RESTClient.Intf|IMVCRESTClient.SetBearerAuthorization(string)">
+    /// SetBearerAuthorization</see>
+    /// </summary>
+    function ClearAuthorization: IMVCRESTClient;
 
     /// <summary>
     /// Add a header.
@@ -188,6 +201,12 @@ type
 
     function AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient; overload;
     function AllowCookies: Boolean; overload;
+
+    /// <summary>
+    /// Add DMVC session cookie
+    /// </summary>
+    function SessionId(const aSessionId: string): IMVCRESTClient; overload;
+    function SessionId: string; overload;
 
     /// <summary>
     /// Add a cookie header.
@@ -407,7 +426,7 @@ type
     fContentEncoding: string;
     fContentLength: Integer;
     fContent: string;
-    fRawBytes: TBytes;
+    fContentRawBytes: TBytes;
 
     procedure FillResponse(aHTTPResponse: IHTTPResponse);
   public
@@ -427,7 +446,7 @@ type
     function ContentEncoding: string;
     function ContentLength: Integer;
     function Content: string;
-    function RawBytes: TBytes;
+    function ContentRawBytes: TBytes;
     procedure SaveContentToStream(aStream: TStream);
     procedure SaveContentToFile(const aFileName: string);
   end;
@@ -443,7 +462,7 @@ uses
 {$IF not defined(RIOORBETTER)}
 type
   TCookieManagerHelper = class helper for TCookieManager
-  public
+  private
     function CookieList: TCookies;
   end;
 {$ENDIF}
@@ -695,6 +714,11 @@ begin
   fAsyncSynchronized := aSynchronized;
 end;
 
+function TMVCRESTClient.Authorization: string;
+begin
+  Result := fAuthorization;
+end;
+
 function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
 begin
   Result := Self;
@@ -721,6 +745,17 @@ begin
   Result := Self;
   fParameters.Clear;
   ClearBody;
+
+  fNextRequestIsAsync := False;
+  fAsyncCompletionHandler := nil;
+  fAsyncCompletionHandlerWithError := nil;
+  fAsyncSynchronized := False;
+end;
+
+function TMVCRESTClient.ClearAuthorization: IMVCRESTClient;
+begin
+  Result := Self;
+  fAuthorization := '';
 end;
 
 function TMVCRESTClient.ClearBody: IMVCRESTClient;
@@ -812,6 +847,9 @@ begin
   fAcceptEncoding := TMVCRESTClientConsts.DEFAULT_ACCEPT_ENCODING;
   fUserAgent := TMVCRESTClientConsts.DEFAULT_USER_AGENT;
   fContentType := '';
+  fAuthorization := '';
+
+  ClearAllParams;
 end;
 
 function TMVCRESTClient.DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
@@ -901,6 +939,10 @@ begin
     begin
       fHTTPClient.CustomHeaders[lParam.Name] := lParam.Value;
     end;
+  end;
+  if not fAuthorization.IsEmpty then
+  begin
+    fHTTPClient.CustomHeaders[TMVCRESTClientConsts.AUTHORIZATION_HEADER] := fAuthorization;
   end;
   fHTTPClient.Accept := fAccept;
   fHTTPClient.AcceptCharSet := fAcceptCharset;
@@ -1398,25 +1440,67 @@ begin
     Result := fSerializer.SerializeObject(aObject);
 end;
 
-function TMVCRESTClient.SetBasicAuthorizationHeader(const aUsername, aPassword: string): IMVCRESTClient;
+function TMVCRESTClient.SessionId: string;
+var
+  lCookie: TCookie;
+  lParam: TMVCRESTParam;
+begin
+  Result := '';
+
+  for lParam in fParameters do
+  begin
+    if lParam.&Type = TMVCRESTParamType.Cookie then
+    begin
+      if SameText(lParam.Name, TMVCConstants.SESSION_TOKEN_NAME) then
+      begin
+        Result := lParam.Value;
+        Break;
+      end;
+    end;
+  end;
+
+  if Result.IsEmpty then
+  begin
+    for lCookie in fHTTPClient.CookieManager.Cookies do
+    begin
+      if SameText(lCookie.Name, TMVCConstants.SESSION_TOKEN_NAME) then
+      begin
+        Result := lCookie.Value;
+        Break;
+      end;
+    end;
+    Result := lCookie.Value;
+  end;
+
+  if Result.Contains('invalid') then
+    Result := '';
+end;
+
+function TMVCRESTClient.SessionId(const aSessionId: string): IMVCRESTClient;
+begin
+  Result := Self;
+
+  AddCookie(TMVCConstants.SESSION_TOKEN_NAME, aSessionId);
+end;
+
+function TMVCRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
 var
   lBase64: TNetEncoding;
-  lAuthValue: string;
 begin
+  Result := Self;
   // Do not use TNetEncoding.Base64 here, because it may break long line
   lBase64 := TBase64Encoding.Create(0, '');
   try
-    lAuthValue := TMVCRESTClientConsts.BASIC_AUTH_PREFIX + lBase64.Encode(aUsername + ':' + aPassword);
+    fAuthorization := TMVCRESTClientConsts.BASIC_AUTH_PREFIX + lBase64.Encode(aUsername + ':' + aPassword);
   finally
     FreeAndNil(lBase64);
   end;
-  Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, lAuthValue);
 end;
 
-function TMVCRESTClient.SetBearerAuthorizationHeader(const aAccessToken: string): IMVCRESTClient;
+function TMVCRESTClient.SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
 begin
-  Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, TMVCRESTClientConsts.BEARER_AUTH_PREFIX +
-    aAccessToken);
+  Result := Self;
+  fAuthorization := TMVCRESTClientConsts.BEARER_AUTH_PREFIX + aAccessToken;
 end;
 
 procedure TMVCRESTClient.SetContentType(const aContentType: string);
@@ -1493,7 +1577,7 @@ end;
 constructor TMVCRESTResponse.Create(aHTTPResponse: IHTTPResponse);
 begin
   fHeaders := TStringList.Create;
-  SetLength(fRawBytes, 0);
+  SetLength(fContentRawBytes, 0);
   fCookies := TCookies.Create;
 
   FillResponse(aHTTPResponse);
@@ -1501,7 +1585,7 @@ end;
 
 destructor TMVCRESTResponse.Destroy;
 begin
-  SetLength(fRawBytes, 0);
+  SetLength(fContentRawBytes, 0);
   FreeAndNil(fHeaders);
   FreeAndNil(fCookies);
   inherited Destroy;
@@ -1521,9 +1605,9 @@ begin
   end;
   fCookies.AddRange(aHTTPResponse.Cookies.ToArray);
   fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
-  fRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
+  fContentRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
     aHTTPResponse.ContentEncoding);
-  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fRawBytes, aHTTPResponse.HeaderValue[sContentType]);
+  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes, aHTTPResponse.HeaderValue[sContentType]);
   fContentType := aHTTPResponse.HeaderValue[sContentType];
   fContentEncoding := aHTTPResponse.ContentEncoding;
   fContentLength := aHTTPResponse.ContentLength;
@@ -1539,9 +1623,9 @@ begin
   Result := fHeaders.Values[aName];
 end;
 
-function TMVCRESTResponse.RawBytes: TBytes;
+function TMVCRESTResponse.ContentRawBytes: TBytes;
 begin
-  Result := fRawBytes;
+  Result := fContentRawBytes;
 end;
 
 procedure TMVCRESTResponse.SaveContentToFile(const aFileName: string);
@@ -1550,7 +1634,7 @@ var
 begin
   lStream := TMemoryStream.Create;
   try
-    lStream.Write(fRawBytes, Length(fRawBytes));
+    lStream.Write(fContentRawBytes, Length(fContentRawBytes));
     lStream.Position := 0;
     lStream.SaveToFile(aFileName);
   finally
@@ -1563,7 +1647,7 @@ begin
   if aStream = nil then
     raise EMVCRESTClientException.Create('Stream not assigned!');
 
-  aStream.Write(fRawBytes, Length(fRawBytes));
+  aStream.Write(fContentRawBytes, Length(fContentRawBytes));
 end;
 
 function TMVCRESTResponse.Server: string;
@@ -1586,9 +1670,10 @@ begin
   Result := fSuccess;
 end;
 
+{$IF not defined(RIOORBETTER)}
+
 { TCookieManagerHelper }
 
-{$IF not defined(RIOORBETTER)}
 function TCookieManagerHelper.CookieList: TCookies;
 var
   lRttiContext: TRttiContext;
@@ -1596,7 +1681,7 @@ var
 begin
   lRttiContext := TRttiContext.Create;
   try
-    lField := lRttiContext.GetType(Self).GetField('FCookies');
+    lField := lRttiContext.GetType(Self.ClassType).GetField('FCookies');
     Result := nil;
     if Assigned(lField) then
       Result := lField.GetValue(Self).AsObject as TCookies;

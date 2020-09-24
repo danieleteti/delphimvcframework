@@ -64,7 +64,6 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
-
     function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
     function UserAgent: string; overload;
 
@@ -89,12 +88,24 @@ type
     /// <summary>
     /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
     /// </summary>
-    function SetBasicAuthorizationHeader(const aUsername, aPassword: string): IMVCRESTClient;
+    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
 
     /// <summary>
     /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
     /// </summary>
-    function SetBearerAuthorizationHeader(const aAccessToken: string): IMVCRESTClient;
+    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+
+    /// <summary>
+    /// Returns the stored authorization. Includes Basic or Bearer prefix
+    /// </summary>
+    function Authorization: string;
+
+    /// <summary>
+    /// Removes the authorization header defined in <see cref="MVCFramework.RESTClient.Intf|IMVCRESTClient.SetBasicAuthorization(string,string)">
+    /// SetBasicAuthorization</see> or <see cref="MVCFramework.RESTClient.Intf|IMVCRESTClient.SetBearerAuthorization(string)">
+    /// SetBearerAuthorization</see>
+    /// </summary>
+    function ClearAuthorization: IMVCRESTClient;
 
     /// <summary>
     /// Add a header.
@@ -118,6 +129,12 @@ type
 
     function AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient; overload;
     function AllowCookies: Boolean; overload;
+
+    /// <summary>
+    /// Add DMVC session cookie
+    /// </summary>
+    function SessionId(const aSessionId: string): IMVCRESTClient; overload;
+    function SessionId: string; overload;
 
     /// <summary>
     /// Add a cookie header.
@@ -230,8 +247,7 @@ type
     function AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
       const aContentType: string = ''): IMVCRESTClient; overload;
 {$ENDIF}
-
-    /// <summary>
+/// <summary>
     /// Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
     /// </summary>
     function AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
@@ -323,6 +339,9 @@ type
   IMVCRESTResponse = interface
     ['{BF611B46-CCD1-47C7-8D8B-82EA0518896B}']
 
+    /// <summary>
+    ///   Success if StatusCode is &gt;= 200 and &lt; 300
+    /// </summary>
     function Success: Boolean;
     function StatusCode: Integer;
     function StatusText: string;
@@ -335,7 +354,7 @@ type
     function ContentEncoding: string;
     function ContentLength: Integer;
     function Content: string;
-    function RawBytes: TBytes;
+    function ContentRawBytes: TBytes;
     procedure SaveContentToStream(aStream: TStream);
     procedure SaveContentToFile(const aFileName: string);
   end;

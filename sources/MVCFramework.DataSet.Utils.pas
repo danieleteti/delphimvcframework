@@ -675,7 +675,7 @@ begin
 
   // this a simple sychronous request...
   Res := fRESTClient.Get(fURI);
-  if Res.Success then
+  if not Res.Success then
   begin
     ShowError(Res);
   end;

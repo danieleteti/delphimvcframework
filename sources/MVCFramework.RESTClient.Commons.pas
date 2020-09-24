@@ -35,7 +35,8 @@ uses
   System.NetEncoding,
   System.SysUtils,
   System.Classes,
-  MVCFramework.Commons;
+  MVCFramework.Commons,
+  System.Net.HttpClient;
 
 type
 
@@ -95,7 +96,8 @@ implementation
 uses
   IdCompressorZLib,
   System.ZLib,
-  System.Net.Mime;
+  System.Net.Mime,
+  System.Rtti;
 
 { TMVCRESTParam }
 

@@ -163,8 +163,6 @@ begin
 end;
 
 procedure TAppController.ReceiveFile;
-var
-  I: Integer;
 begin
   if Context.Request.Files.Count = 0 then
   begin

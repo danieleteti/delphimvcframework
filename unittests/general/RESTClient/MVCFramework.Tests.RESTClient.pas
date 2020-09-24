@@ -81,7 +81,7 @@ uses
   MVCFramework.SystemJSONUtils,
   System.JSON,
   System.IOUtils,
-  JsonDataObjects;
+  JsonDataObjects, System.Hash, Vcl.Graphics;
 
 { TTestRESTClient }
 
@@ -96,7 +96,9 @@ begin
     );
   FServerListener.Start;
 
-  FRESTClient := TMVCRESTClient.New.BaseURL('localhost', 3000);
+  FRESTClient := TMVCRESTClient.New
+    .BaseURL('localhost', 3000)
+    .SetBasicAuthorization('dmvc', '123'); // Set the authorization only once and it will be stored for all requests
 
   FRESTAdapter := TRESTAdapter<IAppResource>.Create;
   FRESTAdapter.Build(FRESTClient);
@@ -117,7 +119,7 @@ var
   lJsonResp: TJDOJsonObject;
 begin
   lResp := FRESTClient
-    .SetBasicAuthorizationHeader('dmvc', '123')
+// .SetBasicAuthorization('dmvc', '123')
     .AddBodyFieldURLEncoded('field1', 'value1')
     .AddBodyFieldURLEncoded('field2', 'João Antônio')
     .AddBodyFieldURLEncoded('field3', 'Special characters: öüáàçãõºs')
@@ -149,7 +151,7 @@ var
   LResp: IMVCRESTResponse;
 begin
   FRESTClient.Resource('/user');
-  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
+// FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   // String
   LResp := FRESTClient.Get;
@@ -158,10 +160,7 @@ begin
     (LResp.StatusCode = 200)
     );
 
-  // Object
-  // lJObj := TSystemJSON.BodyAsJSONObject(FRESTClient.doGET);
-
-  LUser := TAppUser.Create; // TSystemJSON.BodyAsJSONObject(FRESTClient.doGET).BodyAsJSONObject.AsObject<TAppUser>();
+  LUser := TAppUser.Create;
   try
     GetDefaultSerializer.DeserializeObject(FRESTClient.Get.Content, LUser);
     Assert.IsTrue((LUser <> nil) and (LUser.Cod > 0));
@@ -184,7 +183,7 @@ var
   lBody: string;
 begin
   FRESTClient.Resource('/users');
-  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
+//  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   lBody := FRESTClient.Get.Content;
   // String
@@ -217,7 +216,7 @@ end;
 procedure TTestRESTClient.TestHelloWorld;
 begin
   FRESTClient.Resource('/hello');
-  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
+//  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   // String
   Assert.AreEqual('Hello World called with GET', FRESTClient.Get.Content);
@@ -228,10 +227,10 @@ end;
 
 procedure TTestRESTClient.TestInformation;
 const
- JWT_TOKEN =
-   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'+
-   'eyJzdWIiOiIxMjMiLCJuYW1lIjoiVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.'+
-   'EdtbBz7jOucEVf5AV-wD_NwqlJzoCdZKYmMa6p54PVY';
+  JWT_TOKEN =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+    'eyJzdWIiOiIxMjMiLCJuYW1lIjoiVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.' +
+    'EdtbBz7jOucEVf5AV-wD_NwqlJzoCdZKYmMa6p54PVY';
 
 var
   LClient: IMVCRESTClient;
@@ -240,25 +239,25 @@ begin
   LClient
     .ReadTimeOut(100)
     .ConnectTimeout(100)
-    .SetBasicAuthorizationHeader('dmvc', 'dmvc')
+    .SetBasicAuthorization('dmvc', 'dmvc')
     .Accept(TMVCMediaType.APPLICATION_JSON)
     .AcceptCharSet(TMVCCharset.UTF_8)
     .AcceptEncoding('gzip,deflate')
     .UserAgent('DMVCFramework RESTClient')
-    .SetBasicAuthorizationHeader('username', 'password');
+    .SetBasicAuthorization('username', 'password');
 
   Assert.AreEqual('http://localhost:8080', LClient.BaseURL);
   Assert.AreEqual(100, LClient.ReadTimeOut);
   Assert.AreEqual(100, LClient.ConnectTimeout);
   Assert.AreEqual('application/json', LClient.Accept);
-  Assert.AreEqual('UTF-8', LClient.AcceptCharset );
+  Assert.AreEqual('UTF-8', LClient.AcceptCharset);
   Assert.AreEqual('gzip,deflate', LClient.AcceptEncoding);
   Assert.AreEqual('DMVCFramework RESTClient', LClient.UserAgent);
-  Assert.AreEqual('Basic dXNlcm5hbWU6cGFzc3dvcmQ=', LClient.HeaderValue('Authorization'));
+  Assert.AreEqual('Basic dXNlcm5hbWU6cGFzc3dvcmQ=', LClient.Authorization);
 
-  LClient.SetBearerAuthorizationHeader(JWT_TOKEN);
+  LClient.SetBearerAuthorization(JWT_TOKEN);
 
-  Assert.AreEqual('Bearer ' + JWT_TOKEN, LClient.HeaderValue('Authorization'));
+  Assert.AreEqual('Bearer ' + JWT_TOKEN, LClient.Authorization);
 end;
 
 procedure TTestRESTClient.TestPostUser;
@@ -267,7 +266,7 @@ var
   LResp: IMVCRESTResponse;
 begin
   FRESTClient.Resource('/user/save');
-  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
+//  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   LUser := TAppUser.Create;
   LUser.Cod := 1;
@@ -292,7 +291,7 @@ var
   LUser: TAppUser;
 begin
   FRESTClient.Resource('/users/save');
-  FRESTClient.SetBasicAuthorizationHeader('dmvc', '123');
+//  FRESTClient.SetBasicAuthorization('dmvc', '123');
   FRESTClient.Accept('application/json;charset=utf-8');
 
   LUsers := TObjectList<TAppUser>.Create(True);
@@ -327,30 +326,55 @@ end;
 procedure TTestRESTClient.TestUploadFile;
 const
   TEXT_SAMPLE = 'This is a simple text for testing RESTClient file uploads.';
-  TEXT_SAMPLE_MD5 = '2ba880c91bb822859595a0efa25666a5';
 var
   lStringFile: TStringStream;
   lFilename: string;
   lResp: IMVCRESTResponse;
+  lBitmap: TBitmap;
 begin
-  lFilename := ExtractFilePath(ParamStr(0)) + 'file_upload_sample.txt';
+  // Text File
+  lFilename := ExtractFilePath(ParamStr(0)) + 'text_file_upload_sample.txt';
   if TFile.Exists(lFilename) then
     TFile.Delete(lFilename);
 
   lStringFile := TStringStream.Create(TEXT_SAMPLE);
   try
-    lStringFile.SaveToFile(lFileName);
+    lStringFile.SaveToFile(lFilename);
   finally
-    LStringFile.Free;
+    lStringFile.Free;
   end;
 
   lResp := FRESTClient
-    .SetBasicAuthorizationHeader('dmvc', '123')
-    .AddFile(lFileName)
+    .AddFile(lFilename)
     .Post('/file/upload');
 
   Assert.AreEqual(lResp.StatusCode, 200);
-  Assert.AreEqual(lResp.Content, TEXT_SAMPLE_MD5);
+  Assert.AreEqual(THashMD5.GetHashStringFromFile(lFilename), lResp.Content);
+
+  // Image File
+  lFilename := ExtractFilePath(ParamStr(0)) + 'bitmap_file_upload_sample.bmp';
+  if TFile.Exists(lFilename) then
+    TFile.Delete(lFilename);
+
+  lBitmap := TBitmap.Create;
+  try
+    lBitmap.SetSize(200, 200);
+    lBitmap.Canvas.Brush.Color := clBlue;
+    lBitmap.Canvas.FillRect(Rect(0, 0, 200, 200));
+    lBitmap.Canvas.Font.Color := clRed;
+    lBitmap.Canvas.Font.Style := [fsBold];
+    lBitmap.Canvas.TextOut(10, 100, 'DelphiMVCFramework');
+    lBitmap.SaveToFile('bitmap_file_upload_sample.bmp');
+  finally
+    lBitmap.Free;
+  end;
+
+  lResp := FRESTClient
+    .AddFile(lFilename)
+    .Post('/file/upload');
+
+  Assert.AreEqual(lResp.StatusCode, 200);
+  Assert.AreEqual(THashMD5.GetHashStringFromFile(lFilename), lResp.Content);
 end;
 
 initialization

@@ -100,7 +100,7 @@ begin
   Assert.isTrue(LListener.Active);
 
   LClient := TMVCRESTClient.New.BaseURL('localhost', 6000);
-  LClient.SetBasicAuthorizationHeader('dmvc', '123');
+  LClient.SetBasicAuthorization('dmvc', '123');
   Assert.AreEqual('Hello World called with GET', LClient.Get('/hello').Content);
 
   LListener.Stop;
