@@ -63,7 +63,7 @@ begin
     lClaimsSetup,
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/app', { StaticFilesPath }
     '..\..\www' { DocumentRoot }
     ));
 end;

@@ -67,11 +67,11 @@ begin
       TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37', '/login',
       [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 0
     // just for test, Leeway seconds is zero.
-    ))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    '..\..\www' { DocumentRoot }
     ));
+//    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
+//    '/', { StaticFilesPath }
+//    '..\..\www' { DocumentRoot }
+//    ));
 end;
 
 end.

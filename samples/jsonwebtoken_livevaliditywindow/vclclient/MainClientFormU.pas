@@ -39,6 +39,7 @@ implementation
 
 
 uses
+  MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient,
   MVCFramework.Middleware.JWT,
   MVCFramework.Commons,
@@ -48,117 +49,94 @@ uses
 
 procedure TMainForm.btnGetClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lResp: IRESTResponse;
-  lQueryStringParams: TStringList;
+  lClient: IMVCRESTClient;
+  lResp: IMVCRESTResponse;
   tokenOld, tokenNew: string; // NEW CODE
 begin
   tokenOld := FJWT; // NEW CODE
-  lClient := TRESTClient.Create('localhost', 8080);
-  try
-    lClient.ReadTimeOut(0);
-    if not FJWT.IsEmpty then
-    begin
-      lClient.RequestHeaders.Values[TMVCJWTDefaults.AUTHORIZATION_HEADER] := 'Bearer ' + FJWT;
-    end;
-    lQueryStringParams := TStringList.Create;
-    try
-      lQueryStringParams.Values['firstname'] := 'Daniele';
-      lQueryStringParams.Values['lastname'] := 'Teti';
-      lResp := lClient.doGET('/admin/role1', [], lQueryStringParams);
-
-      if lResp.HasError then
-        ShowMessage(lResp.Error.Status + sLineBreak + lResp.Error.ExceptionMessage);
-
-    finally
-      lQueryStringParams.Free;
-    end;
-    Memo2.Lines.Text := lResp.BodyAsString;
-
-    // NEW CODE
-    tokenNew := lResp.HeaderValue(TMVCJWTDefaults.AUTHORIZATION_HEADER);
-    if tokenNew.StartsWith('Bearer', True) then
-    begin
-      tokenNew := tokenNew.Remove(0, 'Bearer'.Length).Trim;
-      tokenNew := TNetEncoding.URL.URLDecode(tokenNew).Trim;
-      JWT := tokenNew;
-    end; // END NEW CODE
-  finally
-    lClient.Free;
+  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lClient.ReadTimeOut(0);
+  if not FJWT.IsEmpty then
+  begin
+    lClient.SetBearerAuthorization(FJWT);
   end;
+  lClient
+    .AddQueryStringParam('firstname', 'Daniele')
+    .AddQueryStringParam('lastname', 'Teti');
+  lResp := lClient.Get('/admin/role1');
+
+  if not lResp.Success then
+    ShowMessage(lResp.StatusCode.ToString + sLineBreak + lResp.Content);
+
+  Memo2.Lines.Text := lResp.Content;
+
+  // NEW CODE
+  tokenNew := lResp.HeaderValue(TMVCJWTDefaults.AUTHORIZATION_HEADER);
+  if tokenNew.StartsWith('Bearer', True) then
+  begin
+    tokenNew := tokenNew.Remove(0, 'Bearer'.Length).Trim;
+    tokenNew := TNetEncoding.URL.URLDecode(tokenNew).Trim;
+    JWT := tokenNew;
+  end; // END NEW CODE
 end;
 
 procedure TMainForm.btnLOGINClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
+  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lClient.ReadTimeOut(0);
+  lClient.AddHeader(TMVCJWTDefaults.USERNAME_HEADER, 'user1').AddHeader(TMVCJWTDefaults.PASSWORD_HEADER, 'user1');
+  lRest := lClient.Get('/login'); { any HTTP verbs is OK }
+  lJSON := StrToJSONObject(lRest.Content);
   try
-    lClient.ReadTimeOut(0);
-    lClient.Header(TMVCJWTDefaults.USERNAME_HEADER, 'user1').Header(TMVCJWTDefaults.PASSWORD_HEADER, 'user1');
-    lRest := lClient.doGET('/login', []); { any HTTP verbs is OK }
-    lJSON := StrToJSONObject(lRest.BodyAsString);
-    try
-      JWT := lJSON.S['token'];
-    finally
-      lJSON.Free;
-    end;
+    JWT := lJSON.S['token'];
   finally
-    lClient.Free;
+    lJSON.Free;
   end;
 end;
 
 procedure TMainForm.btnLoginWithHeaderBasicClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
+  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lClient.ReadTimeOut(0);
+  lClient.SetBasicAuthorization('user1', 'user1');
+  lRest := lClient.Post('/login');
+  lJSON := StrToJSONObject(lRest.Content);
   try
-    lClient.ReadTimeOut(0);
-    lClient.Authentication('user1', 'user1');
-    lRest := lClient.doPOST('/login', []);
-    lJSON := StrToJSONObject(lRest.BodyAsString);
-    try
-      JWT := lJSON.S['token'];
-    finally
-      lJSON.Free;
-    end;
+    JWT := lJSON.S['token'];
   finally
-    lClient.Free;
+    lJSON.Free;
   end;
 end;
 
 procedure TMainForm.Button1Click(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
+  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lClient.ReadTimeOut(0);
+  lRest := lClient.Post('/login', '{"jwtusername":"user1","jwtpassword":"user1"}');
+  lJSON := StrToJSONObject(lRest.Content);
   try
-    lClient.ReadTimeOut(0);
-    lRest := lClient.doPOST('/login', [], '{"jwtusername":"user1","jwtpassword":"user1"}');
-    lJSON := StrToJSONObject(lRest.BodyAsString);
-    try
-      JWT := lJSON.S['token'];
-    finally
-      lJSON.Free;
-    end;
+    JWT := lJSON.S['token'];
   finally
-    lClient.Free;
+    lJSON.Free;
   end;
-
 end;
 
 procedure TMainForm.SetJWT(const Value: string);
 begin
   FJWT := Value;
   Memo1.Lines.Text := Value;
-
 end;
 
 end.
