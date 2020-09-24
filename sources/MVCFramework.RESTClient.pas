@@ -59,11 +59,11 @@ type
   IRESTResponse = MVCFramework.RESTClient.Indy.IRESTResponse deprecated
     'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
 
-  /// <summary>
-  /// Provides access to delphi RESTClient library types without the need to use the REST.Types unit.
-  /// </summary>
   TCookie = System.Net.HttpClient.TCookie;
   TCookies = System.Net.HttpClient.TCookies;
+  TURLRequest = System.Net.URLClient.TURLRequest;
+  TCertificate = System.Net.URLClient.TCertificate;
+
 {$IF defined(TOKYOORBETTER)}
   THTTPSecureProtocol = System.Net.HttpClient.THTTPSecureProtocol;
   THTTPSecureProtocols = System.Net.HttpClient.THTTPSecureProtocols;
@@ -90,6 +90,9 @@ type
     fAsyncCompletionHandler: TProc<IMVCRESTResponse>;
     fAsyncCompletionHandlerWithError: TProc<Exception>;
     fAsyncSynchronized: Boolean;
+    fValidateServerCertificate: TValidateServerCertificateProc;
+    procedure DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
+      const aCertificate: TCertificate; var aAccepted: Boolean);
     function GetBodyFormData: TMultipartFormData;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
@@ -136,6 +139,12 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
+
+    /// <summary>
+    /// Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// </summary>
+    function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
+
     /// <summary>
     ///   Clears all parameters (headers, body, path params and query params). This method is executed after each
     ///   request is completed.
@@ -827,12 +836,14 @@ begin
   inherited Create;
 
   fHTTPClient := THTTPClient.Create;
+  fHTTPClient.OnValidateServerCertificate := DoValidateServerCertificate;
   fHTTPClient.HandleRedirects := True;
   fHTTPClient.MaxRedirects := TMVCRESTClientConsts.DEFAULT_MAX_REDIRECTS;
 {$IF defined(TOKYOORBETTER)}
   fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
 {$ENDIF}
 
+  fValidateServerCertificate := nil;
   fParameters := TList<TMVCRESTParam>.Create;
   fRawBody := TStringStream.Create;
   fBodyFormData := nil;
@@ -1261,6 +1272,15 @@ begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
 end;
 
+procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
+  const aCertificate: TCertificate; var aAccepted: Boolean);
+begin
+  if Assigned(fValidateServerCertificate) then
+    fValidateServerCertificate(aSender, aRequest, aCertificate, aAccepted)
+  else
+    aAccepted := True;
+end;
+
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
 begin
   Resource(aResource);
@@ -1522,6 +1542,13 @@ begin
   end;
 
   fParameters.Add(TMVCRESTParam.Create(aParamType, aName, aValue));
+end;
+
+function TMVCRESTClient.SetValidateServerCertificateProc(
+  aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fValidateServerCertificate := aValidateCertificateProc;
 end;
 
 function TMVCRESTClient.UserAgent(const aUserAgent: string): IMVCRESTClient;

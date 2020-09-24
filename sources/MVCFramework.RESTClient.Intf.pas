@@ -36,12 +36,16 @@ uses
   System.Classes,
   System.TypInfo,
   System.Net.HttpClient,
+  System.Net.URLClient,
   MVCFramework.Serializer.Intf,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
   Data.DB;
 
 type
+  TValidateServerCertificateProc = reference to procedure(const aSender: TObject; const aRequest: TURLRequest;
+    const aCertificate: TCertificate; var accepted: Boolean);
+
   IMVCRESTResponse = interface;
 
   IMVCRESTClient = interface
@@ -64,8 +68,11 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
-    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
-    function UserAgent: string; overload;
+
+    /// <summary>
+    ///   Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// </summary>
+    function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
 
     /// <summary>
     /// Clears all parameters (headers, body, path params and query params). This method is executed after each
@@ -189,6 +196,9 @@ type
     function HandleRedirects: Boolean; overload;
     function MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient; overload;
     function MaxRedirects: Integer; overload;
+
+    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+    function UserAgent: string; overload;
 
     function Resource(const aResource: string): IMVCRESTClient; overload;
     function Resource: string; overload;
