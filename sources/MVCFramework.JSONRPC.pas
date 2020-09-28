@@ -322,6 +322,7 @@ type
   EMVCJSONRPCError = class(EMVCJSONRPCErrorResponse)
   public
     constructor Create(const ErrCode: Integer; const Msg: string);
+    constructor CreateFmt(const ErrCode: Integer; const Msg: string; const Args: array of const);
   end;
 
   EMVCJSONRPCParseError = class(EMVCJSONRPCErrorResponse)
@@ -1674,6 +1675,8 @@ begin
 end;
 
 function TJSONRPCResponse.GetJSON: TJDOJsonObject;
+var
+  lSer: TMVCJsonDataObjectsSerializer;
 begin
   Result := inherited;
   // Must generate something like the following:
@@ -1706,7 +1709,12 @@ begin
     end
     else
     begin
-      TValueToJsonObjectProperty(Self.FResult, Result, JSONRPC_RESULT);
+      lSer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lSer.TValueToJsonObjectProperty(Result, JSONRPC_RESULT, FResult, TMVCSerializationType.stDefault, [], nil);
+      finally
+        lSer.Free;
+      end;
     end;
   except
     Result.Free;
@@ -2188,6 +2196,13 @@ end;
 procedure TJSONRPCNullResponse.SetResult(const Value: TValue);
 begin
   RaiseErrorForNullObject;
+end;
+
+constructor EMVCJSONRPCError.CreateFmt(const ErrCode: Integer;
+const Msg: string; const Args: array of const);
+begin
+  inherited CreateFmt(Msg, Args);
+  fJSONRPCErrorCode := ErrCode;
 end;
 
 initialization

@@ -65,6 +65,11 @@ begin
 
   // Required to enable serving of static files
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/',
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'))
+    );
+
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static',
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'))
     );

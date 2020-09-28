@@ -28,6 +28,7 @@ interface
 
 uses
   JsonDataObjects,
+  System.Generics.Collections,
   Data.DB,
   BusinessObjectsU,
   FireDAC.Comp.Client,
@@ -36,26 +37,17 @@ uses
 
 type
 
-  [MVCNameCase(ncLowerCase)]
-  TMultiDataset = class
-  private
-    fCustomers2: TDataset;
-    fCustomers1: TDataset;
-  public
-    property Customers: TDataset read fCustomers1 write fCustomers1;
-    property People: TDataset read fCustomers2 write fCustomers2;
-    destructor Destroy; override;
-  end;
-
   TMyObject = class
   private
     function GetCustomersDataset: TFDMemTable;
-    function GetPeopleDataset: TFDMemTable;
+    procedure FillCustomersDataset(const DataSet: TDataSet);
+    //function GetPeopleDataset: TFDMemTable;
+    procedure FillPeopleDataset(const DataSet: TDataSet);
   public
     procedure OnBeforeCall(const JSONRequest: TJDOJsonObject);
     procedure OnBeforeRouting(const JSON: TJDOJsonObject);
     procedure OnBeforeSendResponse(
-  const JSONResponse: TJDOJsonObject);
+      const JSONResponse: TJDOJsonObject);
   public
     [MVCDoc('You know, returns aValue1 - aValue2')]
     function Subtract(Value1, Value2: Integer): Integer;
@@ -118,6 +110,34 @@ begin
 
 end;
 
+procedure TMyObject.FillCustomersDataset(const DataSet: TDataSet);
+begin
+  DataSet.AppendRecord([1, 'Ford']);
+  DataSet.AppendRecord([2, 'Ferrari']);
+  DataSet.AppendRecord([3, 'Lotus']);
+  DataSet.AppendRecord([4, 'FCA']);
+  DataSet.AppendRecord([5, 'Hyundai']);
+  DataSet.AppendRecord([6, 'De Tomaso']);
+  DataSet.AppendRecord([7, 'Dodge']);
+  DataSet.AppendRecord([8, 'Tesla']);
+  DataSet.AppendRecord([9, 'Kia']);
+  DataSet.AppendRecord([10, 'Tata']);
+  DataSet.AppendRecord([11, 'Volkswagen']);
+  DataSet.AppendRecord([12, 'Audi']);
+  DataSet.AppendRecord([13, 'Skoda']);
+  DataSet.First;
+end;
+
+procedure TMyObject.FillPeopleDataset(const DataSet: TDataSet);
+begin
+  DataSet.AppendRecord(['Daniele', 'Teti']);
+  DataSet.AppendRecord(['Peter', 'Parker']);
+  DataSet.AppendRecord(['Bruce', 'Banner']);
+  DataSet.AppendRecord(['Scott', 'Summers']);
+  DataSet.AppendRecord(['Sue', 'Storm']);
+  DataSet.First;
+end;
+
 function TMyObject.FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
 begin
   Result := aDouble + aExtended;
@@ -176,8 +196,8 @@ end;
 function TMyObject.GetMulti: TMultiDataset;
 begin
   Result := TMultiDataset.Create;
-  Result.Customers := GetCustomersDataset;
-  Result.People := GetPeopleDataset;
+  FillCustomersDataset(Result.Customers);
+  FillPeopleDataset(Result.People);
 end;
 
 function TMyObject.GetNextMonday(const aDate: TDate): TDate;
@@ -192,28 +212,28 @@ begin
   Result := lDate;
 end;
 
-function TMyObject.GetPeopleDataset: TFDMemTable;
-var
-  lMT: TFDMemTable;
-begin
-  lMT := TFDMemTable.Create(nil);
-  try
-    lMT.FieldDefs.Clear;
-    lMT.FieldDefs.Add('FirstName', ftString, 20);
-    lMT.FieldDefs.Add('LastName', ftString, 20);
-    lMT.Active := True;
-    lMT.AppendRecord(['Daniele', 'Teti']);
-    lMT.AppendRecord(['Peter', 'Parker']);
-    lMT.AppendRecord(['Bruce', 'Banner']);
-    lMT.AppendRecord(['Scott', 'Summers']);
-    lMT.AppendRecord(['Sue', 'Storm']);
-    lMT.First;
-    Result := lMT;
-  except
-    lMT.Free;
-    raise;
-  end;
-end;
+//function TMyObject.GetPeopleDataset: TFDMemTable;
+//var
+//  lMT: TFDMemTable;
+//begin
+//  lMT := TFDMemTable.Create(nil);
+//  try
+//    lMT.FieldDefs.Clear;
+//    lMT.FieldDefs.Add('FirstName', ftString, 20);
+//    lMT.FieldDefs.Add('LastName', ftString, 20);
+//    lMT.Active := True;
+//    lMT.AppendRecord(['Daniele', 'Teti']);
+//    lMT.AppendRecord(['Peter', 'Parker']);
+//    lMT.AppendRecord(['Bruce', 'Banner']);
+//    lMT.AppendRecord(['Scott', 'Summers']);
+//    lMT.AppendRecord(['Sue', 'Storm']);
+//    lMT.First;
+//    Result := lMT;
+//  except
+//    lMT.Free;
+//    raise;
+//  end;
+//end;
 
 function TMyObject.GetStringDictionary: TMVCStringDictionary;
 begin
@@ -289,28 +309,19 @@ begin
   Result := Value1 - Value2;
 end;
 
-{ TData }
-
-destructor TMultiDataset.Destroy;
-begin
-  fCustomers1.Free;
-  fCustomers2.Free;
-  inherited;
-end;
-
 { TMyObjectWithHooks }
 
 procedure TMyObject.OnBeforeCall(const JSONRequest: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeCall >> ', 'jsonrpc');
-  Log.Info(JSONRequest.ToJSON(false), 'jsonrpc');
+  Log.Info(JSONRequest.ToJSON(False), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeCall << ', 'jsonrpc');
 end;
 
 procedure TMyObject.OnBeforeRouting(const JSON: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeRouting >> ', 'jsonrpc');
-  Log.Info(JSON.ToJSON(false), 'jsonrpc');
+  Log.Info(JSON.ToJSON(False), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeRouting << ', 'jsonrpc');
 end;
 
@@ -318,7 +329,7 @@ procedure TMyObject.OnBeforeSendResponse(
   const JSONResponse: TJDOJsonObject);
 begin
   Log.Info('TMyObjectWithHooks.OnBeforeSendResponse >> ', 'jsonrpc');
-  Log.Info(JSONResponse.ToJSON(false), 'jsonrpc');
+  Log.Info(JSONResponse.ToJSON(False), 'jsonrpc');
   Log.Info('TMyObjectWithHooks.OnBeforeSendResponse << ', 'jsonrpc');
 end;
 

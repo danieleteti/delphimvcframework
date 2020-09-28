@@ -989,6 +989,8 @@ begin
     end;
   end;
   fMap.EndUpdates;
+  Assert(fMap.WritableFieldsCount + fMap.ReadableFieldsCount > 0,
+    'No fields defined [HINT] Use MVCTableField in private fields');
 end;
 
 procedure TMVCActiveRecord.Insert;

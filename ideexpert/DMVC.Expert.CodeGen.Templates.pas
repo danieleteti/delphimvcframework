@@ -355,14 +355,14 @@ resourcestring
     '      // Max request size in bytes' + sLineBreak +
     '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +
-    '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +
-    '  // Required to enable serving of static files ' + sLineBreak +
-    '  // Remove the following middleware declaration if you don''t  ' + sLineBreak +
+    '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +    
+    '  // Enable the following middleware declaration if you want to' + sLineBreak +
     '  // serve static files from this dmvcframework service.' + sLineBreak +	
-    '  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( ' + sLineBreak +
-    '      ''/static'', ' + sLineBreak +
-    '      TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')) ' + sLineBreak +
-    '    );	' + sLineBreak + sLineBreak +
+		'  // The folder mapped as documentroot must exists!' + sLineBreak +    
+    '  // FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( ' + sLineBreak +
+    '  //    ''/static'', ' + sLineBreak +
+    '  //    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')) ' + sLineBreak +
+    '  //  );	' + sLineBreak + sLineBreak +
     '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
     '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
     'end;' + sLineBreak +

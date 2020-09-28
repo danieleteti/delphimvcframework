@@ -245,11 +245,11 @@ type
     procedure TestResponseNoContent;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/($projectid)')]
+    [MVCPath('/issue338/($projectid)')]
     procedure GetProject;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/($projectid)/pictures/($imageuuid)')]
+    [MVCPath('/issue338/($projectid)/pictures/($imageuuid)')]
     procedure GetImage;
 
     { templates }
@@ -390,6 +390,7 @@ procedure TTestServerController.GetImage;
 begin
   // do nothing
 end;
+
 
 procedure TTestServerController.GetProject;
 begin

@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'JSON-RPC 2.0 Client'
-  ClientHeight = 546
+  ClientHeight = 604
   ClientWidth = 842
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 842
-    Height = 546
+    Height = 604
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
@@ -278,50 +278,13 @@ object MainForm: TMainForm
           TabOrder = 2
         end
       end
-      object GroupBox3: TGroupBox
-        Left = 504
-        Top = 202
-        Width = 314
-        Height = 310
-        Caption = 'Returning Datasets'
-        TabOrder = 2
-        object edtFilter: TEdit
-          Left = 18
-          Top = 32
-          Width = 184
-          Height = 21
-          TabOrder = 0
-        end
-        object edtGetCustomers: TButton
-          Left = 208
-          Top = 30
-          Width = 91
-          Height = 25
-          Caption = 'Get Customers'
-          TabOrder = 1
-          OnClick = edtGetCustomersClick
-        end
-        object DBGrid1: TDBGrid
-          Left = 18
-          Top = 61
-          Width = 279
-          Height = 236
-          DataSource = DataSource1
-          TabOrder = 2
-          TitleFont.Charset = DEFAULT_CHARSET
-          TitleFont.Color = clWindowText
-          TitleFont.Height = -11
-          TitleFont.Name = 'Tahoma'
-          TitleFont.Style = []
-        end
-      end
       object GroupBox4: TGroupBox
         Left = 3
         Top = 383
         Width = 489
         Height = 129
         Caption = 'Passing Objects as parameters'
-        TabOrder = 3
+        TabOrder = 2
         object edtFirstName: TLabeledEdit
           Left = 16
           Top = 40
@@ -371,6 +334,82 @@ object MainForm: TMainForm
           Caption = 'Save'
           TabOrder = 4
           OnClick = btnSaveClick
+        end
+      end
+      object PageControl2: TPageControl
+        Left = 514
+        Top = 202
+        Width = 304
+        Height = 367
+        ActivePage = TabSheet4
+        TabOrder = 3
+        object TabSheet3: TTabSheet
+          Caption = 'Get DataSet'
+          object edtFilter: TEdit
+            Left = 3
+            Top = 5
+            Width = 184
+            Height = 21
+            TabOrder = 0
+          end
+          object edtGetCustomers: TButton
+            Left = 193
+            Top = 3
+            Width = 91
+            Height = 25
+            Caption = 'Get Customers'
+            TabOrder = 1
+            OnClick = edtGetCustomersClick
+          end
+          object DBGrid1: TDBGrid
+            Left = 3
+            Top = 34
+            Width = 279
+            Height = 302
+            DataSource = DataSource1
+            TabOrder = 2
+            TitleFont.Charset = DEFAULT_CHARSET
+            TitleFont.Color = clWindowText
+            TitleFont.Height = -11
+            TitleFont.Name = 'Tahoma'
+            TitleFont.Style = []
+          end
+        end
+        object TabSheet4: TTabSheet
+          Caption = 'Get Multi Dataset'
+          ImageIndex = 1
+          object btnGetMulti: TButton
+            Left = 13
+            Top = 16
+            Width = 268
+            Height = 41
+            Caption = 'Get Multiple Datasets'
+            TabOrder = 0
+            OnClick = btnGetMultiClick
+          end
+          object lbMulti: TListBox
+            Left = 16
+            Top = 110
+            Width = 265
+            Height = 219
+            Font.Charset = ANSI_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -11
+            Font.Name = 'Courier New'
+            Font.Style = []
+            ItemHeight = 14
+            ParentFont = False
+            TabOrder = 1
+          end
+          object btnObjDict: TButton
+            Left = 13
+            Top = 63
+            Width = 268
+            Height = 41
+            Caption = 'Get ObjectDict'
+            TabOrder = 2
+            OnClick = btnObjDictClick
+          end
         end
       end
     end
@@ -435,7 +474,7 @@ object MainForm: TMainForm
     UpdateOptions.CheckRequired = False
     UpdateOptions.AutoCommitUpdates = True
     Left = 767
-    Top = 248
+    Top = 328
     object FDMemTable1Code: TIntegerField
       FieldName = 'Code'
     end

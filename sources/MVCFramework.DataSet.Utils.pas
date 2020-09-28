@@ -30,6 +30,7 @@ interface
 
 uses
   System.SysUtils,
+  System.Classes,
   Data.DB,
   System.Generics.Collections,
   System.JSON,
@@ -47,6 +48,7 @@ type
     procedure LoadFromTValue(const Value: TValue; const aNameCase: TMVCNameCase = TMVCNameCase.ncLowerCase);
     function AsJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): string;
     function AsJDOJSONArray(FieldNameCase: TMVCNameCase = ncLowerCase): TJDOJsonArray;
+    function MetadataAsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase): TJSONObject;
     function AsJSONArrayOfValues: TJDOJsonArray;
     function AsJSONArrayString: string; deprecated 'Use AsJSONArray';
     function AsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase; const IgnoredFields: TArray<string> = nil): string;
@@ -300,6 +302,32 @@ begin
     Result := lObjs;
   except
     FreeAndNil(lObjs);
+    raise;
+  end;
+end;
+
+function TDataSetHelper.MetadataAsJSONObject(
+  FieldNameCase: TMVCNameCase): TJSONObject;
+var
+  I: Integer;
+  lObj: TJSONObject;
+  lJArr: TJSONArray;
+begin
+
+  Result := TJSONObject.Create;
+  try
+    lJArr := Result.A['fielddefs'];
+    for I := 0 to FieldDefs.Count - 1 do
+    begin
+      lObj := lJArr.AddObject;
+      lObj.S['fieldname'] := TMVCSerializerHelper.ApplyNameCase(FieldNameCase, FieldDefList[I].Name);
+      lObj.S['displayname'] := FieldDefList[I].DisplayName;
+      lObj.I['datatype'] := Ord(FieldDefList[I].DataType);
+      lObj.I['size'] := FieldDefList[I].Size;
+      lObj.I['precision'] := FieldDefList[I].Precision;
+    end;
+  except
+    Result.Free;
     raise;
   end;
 end;

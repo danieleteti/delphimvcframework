@@ -108,9 +108,9 @@ begin
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, PChar('open'), PChar('http://localhost/index.html'), nil, nil, sw_show);
+    ShellExecute(0, PChar('open'), PChar('http://localhost:8080/index.html'), nil, nil, sw_show);
 {$ENDIF}
-    RunServer(80);
+    RunServer(8080);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

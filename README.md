@@ -416,6 +416,46 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Serialization support for `TList<Integer>`, `TList<String>`, `TList<Boolean>` and for all `TList<T>` of simple types.
 
+- Added  method `MetadataAsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase): TJSONObject;` in `TDataSetHelper`. This method returns the dataset field definitions. While this is valid only for Delphi datasets, can be useful to describe a dataset to a Delphi client.
+
+  ```json
+  {
+  	"fielddefs": [
+      	{
+          	"datatype": 3,
+              "displayname": "ID",
+              "fieldname": "id",
+              "precision": 0,
+              "size": 0
+           },
+           {
+           	"datatype": 24,
+              "displayname": "CODE",
+              "fieldname": "code",
+              "precision": 0,
+              "size": 5
+           },
+           {
+           	"datatype": 24,
+              "displayname": "DESCRIPTION",
+              "fieldname": "description",
+              "precision": 0,
+              "size": 200
+           },
+           {
+           	"datatype": 37,
+              "displayname": "PRICE",
+              "fieldname": "price",
+              "precision": 18,
+              "size": 2
+            }
+        ]
+  }
+  ```
+
+  The static method `class procedure TFireDACUtils.CreateDatasetFromMetadata(
+    AFDMemTable: TFDMemTable; AMeta: TJSONObject);` gets the previous structure and initialize the fields of `AFDMemTable` with it. When a TFDMemTable is initialized using this approach, the data can be directly loaded from a jsonarray of jsonobject with the same field names. *WARNING: This mechanism works only for Delphi clients*. Check sample `articles_crud_vcl_client_meta.dproj` to understand the involved mechanisms. 
+
 - Added `foReadOnly` and `foWriteOnly` as field options in `MVCTableField` attribute (used by `TMVCActiveRecord`). Currently available field options are:
 
   - *foPrimaryKey* { it's the primary key of the mapped table }
@@ -504,7 +544,17 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Improved `activerecord_showcase` sample.
 
+- Improved `TMVCStaticFilesMiddleware`. Now is able to correctly serve SPA applications from any subfolder.
+
 - Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
+
+- **Breaking Change**! `TMVCStaticFileMiddleware` cannot be registered to "/" anymore 
+
+  - The suggested solution is to create a simple redirection controller which redirect "/" to the proper path (check [this example](https://github.com/danieleteti/delphimvcframework/blob/master/samples/middleware_staticfiles/SPARedirectController.pas)).
+
+- **Breaking Change!**  `DocumentRoot` of `TMVCStaticFileMiddleware`  must be a valid folder. If `DocumentRoot` doesn't exist an exception is raised.
+
+- Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
 
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 

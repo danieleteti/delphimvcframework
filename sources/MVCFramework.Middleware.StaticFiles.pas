@@ -60,6 +60,7 @@ type
 
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
+    fSanityCheckOK: Boolean;
     fMediaTypes: TDictionary<string, string>;
     fStaticFilesPath: string;
     fDocumentRoot: string;
@@ -67,8 +68,10 @@ type
     fStaticFilesCharset: string;
     fSPAWebAppSupport: Boolean;
     procedure AddMediaTypes;
-    function IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
+    // function IsStaticFileRequest(const APathInfo: string; out AFileName: string;
+    // out AIsDirectoryTraversalAttach: Boolean): Boolean;
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
+    procedure DoSanityCheck;
   public
     constructor Create(
       const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
@@ -124,8 +127,16 @@ constructor TMVCStaticFilesMiddleware.Create(
   const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
 begin
   inherited Create;
+  fSanityCheckOK := False;
   fStaticFilesPath := AStaticFilesPath;
-  fDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
+  if TDirectory.Exists(ADocumentRoot) then
+  begin
+    fDocumentRoot := TPath.GetFullPath(ADocumentRoot);
+  end
+  else
+  begin
+    fDocumentRoot := TPath.Combine(AppPath, ADocumentRoot);
+  end;
   fIndexDocument := AIndexDocument;
   fStaticFilesCharset := AStaticFilesCharset;
   fSPAWebAppSupport := ASPAWebAppSupport;
@@ -140,10 +151,29 @@ begin
   inherited Destroy;
 end;
 
-function TMVCStaticFilesMiddleware.IsStaticFileRequest(const APathInfo: string; out AFileName: string): Boolean;
+procedure TMVCStaticFilesMiddleware.DoSanityCheck;
 begin
-  Result := (not fDocumentRoot.IsEmpty) and (TMVCStaticContents.IsStaticFile(fDocumentRoot, APathInfo, AFileName));
+  if not fStaticFilesPath.StartsWith('/') then
+  begin
+    raise EMVCException.Create('StaticFilePath must begin with "/" and cannot be empty');
+  end;
+  if fStaticFilesPath = '/' then
+  begin
+    raise EMVCException.Create('StaticFilePath cannot be "/"');
+  end;
+  if not TDirectory.Exists(fDocumentRoot) then
+  begin
+    raise EMVCException.CreateFmt('DocumentRoot [%s] is not a valid directory', [fDocumentRoot]);
+  end;
+  fSanityCheckOK := True;
 end;
+
+// function TMVCStaticFilesMiddleware.IsStaticFileRequest(const APathInfo: string; out AFileName: string;
+// out AIsDirectoryTraversalAttach: Boolean): Boolean;
+// begin
+// Result := TMVCStaticContents.IsStaticFile(fDocumentRoot, APathInfo, AFileName,
+// AIsDirectoryTraversalAttach);
+// end;
 
 procedure TMVCStaticFilesMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
   const AHandled: Boolean);
@@ -166,89 +196,82 @@ procedure TMVCStaticFilesMiddleware.OnBeforeRouting(AContext: TWebContext; var A
 var
   lPathInfo: string;
   lFileName: string;
-  lRequestedFolder: string;
+  lIsDirectoryTraversalAttach: Boolean;
+  lFullPathInfo: string;
+  lRealFileName: string;
 begin
+  if not fSanityCheckOK then
+  begin
+    DoSanityCheck;
+  end;
+
   lPathInfo := AContext.Request.PathInfo;
 
-  if (not lPathInfo.StartsWith(fStaticFilesPath, True)) or (not AContext.Request.ClientPreferHTML) then
+  if not lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
     AHandled := False;
     Exit;
   end;
 
-  {
-    If user ask for
-    www.server.it/folder
-    the browser is redirected to
-    www.server.it/folder/
-  }
-  if SameText(lPathInfo, fStaticFilesPath) then
-  begin
-    if (not lPathInfo.EndsWith('/')) and (not fIndexDocument.IsEmpty) then
-    begin
-      AContext.Response.StatusCode := HTTP_STATUS.MovedPermanently;
-      AContext.Response.CustomHeaders.Values['Location'] := lPathInfo + '/';
-      AHandled := True;
-      Exit;
-    end;
-  end;
-
-  if not((fStaticFilesPath = '/') or (fStaticFilesPath = '')) then
+  // calculate the actual requested path
+  if lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
     lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
   end;
-
-  // check if it's a direct file request
-  if IsStaticFileRequest(lPathInfo, lFileName) then
+  lPathInfo := lPathInfo.Replace('/', PathDelim, [rfReplaceAll]);
+  if lPathInfo.StartsWith(PathDelim) then
   begin
-    AHandled := SendStaticFileIfPresent(AContext, lFileName);
+    lPathInfo := lPathInfo.Remove(0, 1);
+  end;
+  lFullPathInfo := TPath.Combine(fDocumentRoot, lPathInfo);
+
+  { Now the actual requested path is in lFullPathInfo }
+
+  if TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName,
+    lIsDirectoryTraversalAttach) then
+  begin
+    // check if it's a direct file request
+    // lIsFileRequest := TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName,
+    // lIsDirectoryTraversalAttach);
+    if lIsDirectoryTraversalAttach then
+    begin
+      AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+      AHandled := True;
+      Exit;
+    end;
+
+    AHandled := SendStaticFileIfPresent(AContext, lRealFileName);
     if AHandled then
       Exit;
   end;
 
-  // check if pathinfo is a subfolder of staticfilespath
-  if (lPathInfo.Length > fStaticFilesPath.Length) and lPathInfo.StartsWith(fStaticFilesPath, True) then
+  // check if a directory request
+  if TDirectory.Exists(lFullPathInfo) then
   begin
-    if (not lPathInfo.EndsWith('/')) and (not fIndexDocument.IsEmpty) then
+    if not AContext.Request.PathInfo.EndsWith('/') then
     begin
       AContext.Response.StatusCode := HTTP_STATUS.MovedPermanently;
-      AContext.Response.CustomHeaders.Values['Location'] := lPathInfo + '/';
+      AContext.Response.CustomHeaders.Values['Location'] := AContext.Request.PathInfo + '/';
       AHandled := True;
+      Exit;
+    end;
+
+    if not fIndexDocument.IsEmpty then
+    begin
+      AHandled := SendStaticFileIfPresent(AContext, TPath.Combine(lFullPathInfo, fIndexDocument));
       Exit;
     end;
   end;
 
-  lRequestedFolder := fDocumentRoot;
-
-  if (not AHandled) and (not fIndexDocument.IsEmpty) then
+  // if SPA support is enabled, return the first index.html found in the path.
+  // This allows to host multiple SPA application in subfolders
+  if (not AHandled) and fSPAWebAppSupport and (not fIndexDocument.IsEmpty) then
   begin
-    if (lPathInfo = '/') or (lPathInfo = '') then
+    while (not lFullPathInfo.IsEmpty) and (not TDirectory.Exists(lFullPathInfo)) do
     begin
-      lFileName := TPath.GetFullPath(TPath.Combine(lRequestedFolder, fIndexDocument));
-      AHandled := SendStaticFileIfPresent(AContext, lFileName);
-    end
-    else
-    begin
-      if lPathInfo.StartsWith('/') then
-      begin
-        lPathInfo := lPathInfo.Substring(1);
-      end;
-      lRequestedFolder := TPath.Combine(lRequestedFolder, lPathInfo.Replace('/', PathDelim, [rfReplaceAll]));
-      lFileName := TPath.Combine(lRequestedFolder, fIndexDocument);
-      AHandled := SendStaticFileIfPresent(AContext, lFileName);
+      lFullPathInfo := TDirectory.GetParent(lFullPathInfo);
     end;
-  end;
-
-  if (not AHandled) and fSPAWebAppSupport and AContext.Request.ClientPreferHTML and (not fIndexDocument.IsEmpty) then
-  begin
-    while (not lRequestedFolder.IsEmpty) and (not TDirectory.Exists(lRequestedFolder)) do
-    begin
-      lRequestedFolder := TDirectory.GetParent(lRequestedFolder);
-    end;
-    if not lRequestedFolder.IsEmpty then
-      lFileName := TPath.GetFullPath(TPath.Combine(lRequestedFolder, fIndexDocument))
-    else
-      lFileName := TPath.GetFullPath(TPath.Combine(fDocumentRoot, fIndexDocument));
+    lFileName := TPath.GetFullPath(TPath.Combine(lFullPathInfo, fIndexDocument));
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
   end;
 end;

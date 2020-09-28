@@ -50,10 +50,6 @@ type
     edtUserName: TEdit;
     btnGetUser: TButton;
     lbPerson: TListBox;
-    GroupBox3: TGroupBox;
-    edtFilter: TEdit;
-    edtGetCustomers: TButton;
-    DBGrid1: TDBGrid;
     GroupBox4: TGroupBox;
     edtFirstName: TLabeledEdit;
     edtLastName: TLabeledEdit;
@@ -81,6 +77,15 @@ type
     Edit2: TEdit;
     btnSubtractWithNamedParams: TButton;
     Edit3: TEdit;
+    PageControl2: TPageControl;
+    TabSheet3: TTabSheet;
+    TabSheet4: TTabSheet;
+    edtFilter: TEdit;
+    edtGetCustomers: TButton;
+    DBGrid1: TDBGrid;
+    btnGetMulti: TButton;
+    lbMulti: TListBox;
+    btnObjDict: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -97,9 +102,12 @@ type
     procedure btnFloatsTestsClick(Sender: TObject);
     procedure btnWithJSONClick(Sender: TObject);
     procedure btnSubtractWithNamedParamsClick(Sender: TObject);
+    procedure btnGetMultiClick(Sender: TObject);
+    procedure btnGetListOfDatasetClick(Sender: TObject);
+    procedure btnObjDictClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
-    FExecutor2: IMVCJSONRPCExecutor;
+    // FExecutor2: IMVCJSONRPCExecutor;
   public
     { Public declarations }
   end;
@@ -110,10 +118,13 @@ var
 implementation
 
 uses
+  System.Generics.Collections,
   MVCFramework.JSONRPC,
   MVCFramework.Serializer.JsonDataObjects,
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
+  MVCFramework.Commons,
+  MVCFramework.Serializer.Defaults,
   MVCFramework.DataSet.Utils,
   BusinessObjectsU,
   System.Math,
@@ -131,7 +142,7 @@ begin
   lReq.Method := 'getnextmonday';
   lReq.RequestID := Random(1000);
   lReq.Params.Add(dtNextMonday.Date);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   dtNextMonday.Date := ISOTimeStampToDateTime(lResp.Result.AsString);
 end;
 
@@ -145,7 +156,7 @@ begin
   lReq.Params.Add(Time(), pdtTime);
   lReq.Params.Add(Date(), pdtDate);
   lReq.Params.Add(Now(), pdtDateTime);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage(DateTimeToStr(lResp.Result.AsType<TDateTime>));
 end;
 
@@ -158,7 +169,7 @@ begin
   lReq := TJSONRPCRequest.Create(1234, 'floatstest');
   lReq.Params.Add(1234.5678, pdtFloat);
   lReq.Params.Add(2345.6789, pdtFloat);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   lRes := lResp.Result.AsType<Extended>;
   lRes := RoundTo(lRes, -4);
   Assert(SameValue(lRes, 3580.2467), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18, 9));
@@ -166,7 +177,7 @@ begin
   lReq := TJSONRPCRequest.Create(1234, 'floatstest');
   lReq.Params.Add(123);
   lReq.Params.Add(234);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   lRes := lResp.Result.AsType<Extended>;
   lRes := RoundTo(lRes, -4);
   Assert(SameValue(lRes, 357), 'Wrong result: ' + FloatToStrF(lRes, ffGeneral, 18, 9));
@@ -183,7 +194,7 @@ begin
   lReq.Method := 'getuser';
   lReq.RequestID := Random(1000);
   lReq.Params.Add(edtUserName.Text);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   if Assigned(lResp.Error) then
     raise Exception.Create(lResp.Error.ErrMessage);
 
@@ -201,10 +212,10 @@ var
   lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCRequest.Create;
+  lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod1';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
@@ -213,10 +224,10 @@ var
   lReq: IJSONRPCRequest;
   lResp: IJSONRPCResponse;
 begin
-  lReq := TJSONRPCRequest.Create;
+  lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
@@ -226,7 +237,7 @@ var
 begin
   lNotification := TJSONRPCNotification.Create;
   lNotification.Method := 'notexists';
-  FExecutor.ExecuteNotification(lNotification);
+  FExecutor.ExecuteNotification('/jsonrpc', lNotification);
 end;
 
 procedure TMainForm.btnNotificationClick(Sender: TObject);
@@ -235,7 +246,45 @@ var
 begin
   lNotification := TJSONRPCNotification.Create;
   lNotification.Method := 'dosomething';
-  FExecutor.ExecuteNotification(lNotification);
+  FExecutor.ExecuteNotification('/jsonrpc', lNotification);
+end;
+
+procedure TMainForm.btnObjDictClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lMultiDS: TMultiDataset;
+begin
+  FDMemTable1.Active := False;
+  lReq := TJSONRPCRequest.Create(Random(1000), 'getobjdict');
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+
+  lMultiDS := TMultiDataset.Create;
+  try
+    JsonObjectToObject(lResp.ResultAsJSONObject, lMultiDS);
+    lbMulti.Clear;
+
+    lMultiDS.Customers.First;
+    lbMulti.Items.Add('** CUSTOMERS **');
+    while not lMultiDS.Customers.Eof do
+    begin
+      lbMulti.Items.Add(Format('%-20s (Code %3s)', [lMultiDS.Customers.FieldByName('Name').AsString,
+        lMultiDS.Customers.FieldByName('Code').AsString]));
+      lMultiDS.Customers.Next;
+    end;
+
+    lMultiDS.People.First;
+    lbMulti.Items.Add('** PEOPLE **');
+    while not lMultiDS.People.Eof do
+    begin
+      lbMulti.Items.Add(Format('%s %s', [lMultiDS.People.FieldByName('FirstName').AsString,
+        lMultiDS.People.FieldByName('LastName').AsString]));
+      lMultiDS.People.Next;
+    end;
+
+  finally
+    lMultiDS.Free;
+  end;
 end;
 
 procedure TMainForm.btnReverseStringClick(Sender: TObject);
@@ -248,7 +297,7 @@ begin
   lReq.RequestID := Random(1000);
   lReq.Params.AddByName('aString', edtReverseString.Text);
   lReq.Params.AddByName('aUpperCase', CheckBox1.Checked);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   edtReversedString.Text := lResp.Result.AsString;
 end;
 
@@ -267,7 +316,7 @@ begin
   lPerson.LastName := edtLastName.Text;
   lPerson.Married := chkMarried.Checked;
   lPerson.DOB := dtDOB.Date;
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage('Person saved with ID = ' + lResp.Result.AsInteger.ToString);
 end;
 
@@ -284,7 +333,7 @@ begin
   lReq.Method := 'searchproducts';
   lReq.RequestID := 1234;
   lReq.Params.Add(edtSearchText.Text);
-  lResp := FExecutor2.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/rpcdatamodule', lReq);
   if Assigned(lResp.Error) then
     raise Exception.Create(lResp.Error.ErrMessage);
 
@@ -312,7 +361,7 @@ begin
   lReq.RequestID := Random(1000);
   lReq.Params.Add(StrToInt(edtValue1.Text));
   lReq.Params.Add(StrToInt(edtValue2.Text));
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   edtResult.Text := lResp.Result.AsInteger.ToString;
 end;
 
@@ -326,7 +375,7 @@ begin
   lReq.RequestID := Random(1000);
   lReq.Params.AddByName('Value1', StrToInt(Edit1.Text));
   lReq.Params.AddByName('Value2', StrToInt(Edit2.Text));
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   Edit3.Text := lResp.Result.AsInteger.ToString;
 end;
 
@@ -343,10 +392,66 @@ begin
   lReq.Params.Add(lPerson, pdTJDOJsonObject);
   lPerson.S['StringProp'] := 'Hello World';
   lPerson.O['JSONObject'] := TJsonObject.Parse('{"name":"Daniele"}') as TJsonObject;
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
 
   lPerson := lResp.Result.AsObject as TJsonObject;
   ShowMessage(lPerson.ToJSON(False));
+end;
+
+procedure TMainForm.btnGetListOfDatasetClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lMultiDS: TObjectList<TDataSet>;
+begin
+  FDMemTable1.Active := False;
+  lReq := TJSONRPCRequest.Create(Random(1000), 'GetDataSetList');
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+
+  lMultiDS := TObjectList<TDataSet>.Create(True);
+  try
+    JsonArrayToList(lResp.ResultAsJSONArray, WrapAsList(lMultiDS), TDataSet, TMVCSerializationType.stDefault, nil);
+  finally
+    lMultiDS.Free;
+  end;
+end;
+
+procedure TMainForm.btnGetMultiClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lMultiDS: TMultiDataset;
+begin
+  FDMemTable1.Active := False;
+  lReq := TJSONRPCRequest.Create(Random(1000), 'getmulti');
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+
+  lMultiDS := TMultiDataset.Create;
+  try
+    JsonObjectToObject(lResp.ResultAsJSONObject, lMultiDS);
+    lbMulti.Clear;
+
+    lMultiDS.Customers.First;
+    lbMulti.Items.Add('** CUSTOMERS **');
+    while not lMultiDS.Customers.Eof do
+    begin
+      lbMulti.Items.Add(Format('%-20s (Code %3s)', [lMultiDS.Customers.FieldByName('Name').AsString,
+        lMultiDS.Customers.FieldByName('Code').AsString]));
+      lMultiDS.Customers.Next;
+    end;
+
+    lMultiDS.People.First;
+    lbMulti.Items.Add('** PEOPLE **');
+    while not lMultiDS.People.Eof do
+    begin
+      lbMulti.Items.Add(Format('%s %s', [lMultiDS.People.FieldByName('FirstName').AsString,
+        lMultiDS.People.FieldByName('LastName').AsString]));
+      lMultiDS.People.Next;
+    end;
+
+  finally
+    lMultiDS.Free;
+  end;
 end;
 
 procedure TMainForm.edtGetCustomersClick(Sender: TObject);
@@ -357,7 +462,7 @@ begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
-  lResp := FExecutor.ExecuteRequest(lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   FDMemTable1.Active := True;
   FDMemTable1.LoadFromTValue(lResp.Result);
   FDMemTable1.First;
@@ -365,8 +470,9 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080/jsonrpc');
-  FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
+  FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
+  /// jsonrpc');
+  // FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
   dtNextMonday.Date := Date;
 
   // these are the methods to handle http headers in JSONRPC

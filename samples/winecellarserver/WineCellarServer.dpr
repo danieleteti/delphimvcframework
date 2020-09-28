@@ -38,7 +38,7 @@ begin
     {$IFDEF MSWINDOWS}
 
     // Just to start the WEB client
-    ShellExecute(0, 'open', 'http://localhost:3000', nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', 'http://localhost:3000/app', nil, nil, SW_SHOW);
 
     {$ENDIF}
 
