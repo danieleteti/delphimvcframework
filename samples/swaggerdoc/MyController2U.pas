@@ -38,6 +38,8 @@ type
   TPhones = class(TObjectList<TPhone>)
   end;
 
+  TGender = (Male, Female);
+
   [MVCNameCase(ncLowerCase)]
   TPerson = class
   private
@@ -47,6 +49,7 @@ type
     FCode: Integer;
     FAddress: TAddress;
     FPhones: TPhones;
+    FGender: TGender;
   public
     constructor Create;
     destructor Destroy; override;
@@ -55,6 +58,9 @@ type
     property Code: Integer read FCode write FCode;
     [MVCSwagJsonSchemaField('name', 'person name', True, False)]
     property Name: string read FName write FName;
+    [MVCSwagJsonSchemaField('gender', 'person gender', True, False)]
+    [MVCEnumSerialization(estEnumName)]
+    property Gender: TGender read FGender write FGender;
     [MVCSwagJsonSchemaField('age', 'person age', True, False)]
     property Age: Integer read FAge write FAge;
     [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False)]

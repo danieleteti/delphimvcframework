@@ -313,12 +313,16 @@ var
   lProp: TRttiProperty;
   lSkipProp: Boolean;
   lAttr: TCustomAttribute;
+  lEnumAttr: MVCEnumSerializationAttribute;
   lJSFieldAttr: MVCSwagJSONSchemaFieldAttribute;
   lJsonFieldClass: TJsonFieldClass;
   lJsonField: TJsonField;
   lJsonFieldObject: TJsonFieldObject;
   lAbstractSer: THackMVCAbstractSerializer;
   lClass: TClass;
+  lEnumSerType: TMVCEnumSerializationType;
+  lEnumMappedValues: TList<string>;
+  I: Integer;
 begin
   lObjType := fRttiContext.GetType(AClass);
   for lProp in lObjType.GetProperties do
@@ -377,6 +381,37 @@ begin
         (lJsonField as TJsonFieldArray).ItemFieldType := lJsonFieldObject;
       finally
         lAbstractSer.Free;
+      end;
+    end;
+
+    /// Extract enumerator information
+    if lJsonField is TJsonFieldEnum then
+    begin
+      lEnumSerType := estEnumName;
+      lEnumMappedValues := nil;
+      if TMVCSerializerHelper.HasAttribute<MVCEnumSerializationAttribute>(lProp, lEnumAttr) then
+      begin
+        lEnumSerType := lEnumAttr.SerializationType;
+        lEnumMappedValues := lEnumAttr.MappedValues;
+      end;
+      case lEnumSerType of
+        estEnumName, estEnumOrd :
+          begin
+            if lEnumSerType = estEnumName then
+              TJsonFieldEnum(lJsonField).EnumType := etString
+            else
+              TJsonFieldEnum(lJsonField).EnumType := etNumber;
+
+            for I := lProp.PropertyType.AsOrdinal.MinValue to lProp.PropertyType.AsOrdinal.MaxValue do
+            begin
+              TJsonFieldEnum(lJsonField).AddItem(I, GetEnumName(lProp.PropertyType.Handle, I));
+            end;
+          end;
+        estEnumMappedValues:
+          begin
+            TJsonFieldEnum(lJsonField).EnumType := etString;
+            TJsonFieldEnum(lJsonField).AddItems(lEnumMappedValues.ToArray);
+          end;
       end;
     end;
 
