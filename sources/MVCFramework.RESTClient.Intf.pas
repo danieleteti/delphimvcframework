@@ -326,6 +326,12 @@ type
     function Delete: IMVCRESTResponse; overload;
 
     /// <summary>
+    /// Executes any type of HTTP request
+    /// </summary>
+    function Execute(const aMethod: TMVCHTTPMethodType; const aResource: string): IMVCRESTResponse; overload;
+    function Execute(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse; overload;
+
+    /// <summary>
     /// Serialize the current dataset record and execute a POST request.
     /// </summary>
     function DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];

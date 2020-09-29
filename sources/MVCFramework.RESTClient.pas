@@ -100,6 +100,7 @@ type
     procedure SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);
     procedure ClearParameters(const aParamType: TMVCRESTParamType);
     function GetFullURL: string;
+    function HTTPMethodName(const aHTTPMethod: TMVCHTTPMethodType): string;
     /// <summary>
     /// Convert path parameters of type ($xxx) to {xxx}
     /// </summary>
@@ -398,6 +399,12 @@ type
     /// </summary>
     function Delete(const aResource: string): IMVCRESTResponse; overload;
     function Delete: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Executes any type of HTTP request
+    /// </summary>
+    function Execute(const aMethod: TMVCHTTPMethodType; const aResource: string): IMVCRESTResponse; overload;
+    function Execute(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse; overload;
 
     /// <summary>
     /// Serialize the current dataset record and execute a POST request.
@@ -1064,6 +1071,17 @@ begin
   aBodyStream.Position := 0;
 end;
 
+function TMVCRESTClient.Execute(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(aMethod);
+end;
+
+function TMVCRESTClient.Execute(const aMethod: TMVCHTTPMethodType; const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := Execute(aMethod);
+end;
+
 procedure TMVCRESTClient.ExecuteAsyncRequest(const aMethod: TMVCHTTPMethodType);
 var
   lThread: TThread;
@@ -1206,11 +1224,35 @@ begin
   end;
 end;
 
+function TMVCRESTClient.HTTPMethodName(const aHTTPMethod: TMVCHTTPMethodType): string;
+begin
+  case aHTTPMethod of
+    httpGET:
+      Result := 'GET';
+    httpPOST:
+      Result := 'POST';
+    httpPUT:
+      Result := 'PUT';
+    httpDELETE:
+      Result := 'DELETE';
+    httpHEAD:
+      Result := 'HEAD';
+    httpOPTIONS:
+      Result := 'OPTIONS';
+    httpPATCH:
+      Result := 'PATCH';
+    httpTRACE:
+      Result := 'TRACE';
+  end;
+end;
+
 function TMVCRESTClient.InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
 var
   lURL: string;
   lResponse: IHTTPResponse;
   lBodyStream: TStream;
+  lURI: TURI;
+  lRequest: IHTTPRequest;
 begin
   fHTTPClient.ProxySettings := fProxySettings;
 
@@ -1220,33 +1262,15 @@ begin
   DoApplyQueryParams(lURL);
   DoEncodeURL(lURL);
   DoApplyCookies(lURL);
+  lURI := TURI.Create(lURL);
 
   lBodyStream := nil;
   DoPrepareBodyRequest(lBodyStream);
   DoApplyHeaders;
 
-  case aMethod of
-    httpGET:
-      begin
-        lResponse := fHTTPClient.Get(lURL, nil, [])
-      end;
-    httpPOST:
-      begin
-        lResponse := fHTTPClient.Post(lURL, lBodyStream, nil, []);
-      end;
-    httpPUT:
-      begin
-        lResponse := fHTTPClient.Put(lURL, lBodyStream, nil, []);
-      end;
-    httpPATCH:
-      begin
-        lResponse := fHTTPClient.Patch(lURL, lBodyStream, nil, []);
-      end;
-    httpDELETE:
-      begin
-        lResponse := fHTTPClient.Delete(lURL, nil, []);
-      end;
-  end;
+  lRequest := fHTTPClient.GetRequest(HTTPMethodName(aMethod), lURI);
+  lRequest.SourceStream := lBodyStream;
+  lResponse := fHTTPClient.Execute(lRequest, nil, []);
 
   Result := TMVCRESTResponse.Create(lResponse);
 end;
