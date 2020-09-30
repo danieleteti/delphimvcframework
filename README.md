@@ -556,6 +556,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
 
+- Fix for [issue 424](https://github.com/danieleteti/delphimvcframework/issues/424)
+
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 
   ```delphi
