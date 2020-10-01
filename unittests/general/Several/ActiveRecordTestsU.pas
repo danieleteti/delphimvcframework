@@ -61,6 +61,8 @@ type
     [Test]
     procedure TestRQL;
     [Test]
+    procedure TestIssue424;
+    [Test]
     procedure TestMultiThreading;
     [Test]
     procedure TestNullables;
@@ -92,11 +94,11 @@ var
 
 procedure TTestActiveRecordSQLite.AfterDataLoad;
 begin
-  {TODO -oDanieleT -cGeneral : Hot to reset a sqlite autoincrement field?}
-  //https://sqlite.org/fileformat2.html#seqtab
-  //https://stackoverflow.com/questions/5586269/how-can-i-reset-a-autoincrement-sequence-number-in-sqlite/14298431
-//  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers''');
-//  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers2''');
+  { TODO -oDanieleT -cGeneral : Hot to reset a sqlite autoincrement field? }
+  // https://sqlite.org/fileformat2.html#seqtab
+  // https://stackoverflow.com/questions/5586269/how-can-i-reset-a-autoincrement-sequence-number-in-sqlite/14298431
+  // TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers''');
+  // TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers2''');
   TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
 end;
 
@@ -318,6 +320,44 @@ begin
   end;
 end;
 
+{ https://github.com/danieleteti/delphimvcframework/issues/424 }
+procedure TTestActiveRecordSQLite.TestIssue424;
+var
+  lCustomers: TObjectList<TCustomer>;
+const
+  RQL1 = 'or(eq(City, "Rome"),eq(City, "London"))';
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 20);
+  try
+    Assert.AreEqual(20, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 1);
+  try
+    Assert.AreEqual(1, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, -1);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+end;
+
 procedure TTestActiveRecordSQLite.TestLifeCycle;
 var
   lCustomer: TCustomerWithLF;
@@ -442,7 +482,7 @@ begin
     lTest.f_datetime := Now;
     lTest.f_float4 := 1234.5678;
     lTest.f_float8 := 12345678901234567890.0123456789;
-//    lTest.f_currency := 1234567890.1234;
+    // lTest.f_currency := 1234567890.1234;
     lTest.Insert;
   finally
     lTest.Free;
