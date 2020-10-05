@@ -874,7 +874,11 @@ function TMVCRESTClient.DataSetDelete(const aResource, aKeyValue: string): IMVCR
 var
   lResource: string;
 begin
-  lResource := aResource + '/' + aKeyValue;
+  lResource := aResource;
+  if not aKeyValue.IsEmpty then
+  begin
+    lResource := aResource + '/' + aKeyValue;
+  end;
   Result := Delete(lResource);
 end;
 
@@ -889,7 +893,11 @@ function TMVCRESTClient.DataSetUpdate(const aResource, aKeyValue: string; aDataS
 var
   lResource: string;
 begin
-  lResource := aResource + '/' + aKeyValue;
+  lResource := aResource;
+  if not aKeyValue.IsEmpty then
+  begin
+    lResource := aResource + '/' + aKeyValue;
+  end;
 
   Result := Put(lResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
