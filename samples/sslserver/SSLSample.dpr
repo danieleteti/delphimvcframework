@@ -4,6 +4,7 @@
 program SSLSample;
 {$APPTYPE CONSOLE}
 
+
 uses
   System.SysUtils,
   IdHTTPWebBrokerBridge,
@@ -17,6 +18,7 @@ uses
   MyObjectsU in 'MyObjectsU.pas';
 
 {$R *.res}
+
 
 type
   TGetSSLPassword = class
@@ -40,6 +42,14 @@ begin
   try
     LGetSSLPassword := TGetSSLPassword.Create;
     LIOHandleSSL := TIdServerIOHandlerSSLOpenSSL.Create(LServer);
+    LIOHandleSSL.SSLOptions.SSLVersions := [
+      TIdSSLVersion.sslvSSLv23,
+      TIdSSLVersion.sslvSSLv3,
+      TIdSSLVersion.sslvTLSv1,
+      TIdSSLVersion.sslvTLSv1_1,
+      TIdSSLVersion.sslvTLSv1_2
+      ];
+    LIOHandleSSL.SSLOptions.Mode := sslmServer;
     LIOHandleSSL.SSLOptions.CertFile := 'cacert.pem';
     LIOHandleSSL.SSLOptions.RootCertFile := '';
     LIOHandleSSL.SSLOptions.KeyFile := 'privkey.pem';
@@ -61,12 +71,12 @@ const
 
 procedure CheckOPENSSLLibs;
 var
-  lOpenSSLLib: String;
+  lOpenSSLLib: string;
 begin
   // Just a check for
   for lOpenSSLLib in OPENSSL_LIBS do
   begin
-    Write('Checking ', lOpenSSLLib, '...');
+    write('Checking ', lOpenSSLLib, '...');
     if not TFile.Exists(lOpenSSLLib) then
       raise Exception.CreateFmt('Required OPENSSL library not found in the exe folder: %s' + sLineBreak +
         'Download INDY compatible OpenSSL Libraries from http://indy.fulgan.com/SSL/', [lOpenSSLLib]);

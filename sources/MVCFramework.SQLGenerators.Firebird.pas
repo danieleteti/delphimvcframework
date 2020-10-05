@@ -72,7 +72,8 @@ type
     function CreateSQLWhereByRQL(
       const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True;
-      const UseFilterOnly: Boolean = False): string; override;
+      const UseFilterOnly: Boolean = False;
+      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
     function CreateSelectCount(
       const TableName: string): string; override;
   end;
@@ -158,14 +159,15 @@ end;
 
 function TMVCSQLGeneratorFirebird.CreateSQLWhereByRQL(
       const RQL: string; const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean;
-      const UseFilterOnly: Boolean): string;
+      const UseArtificialLimit: Boolean = True;
+      const UseFilterOnly: Boolean = False;
+      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string;
 var
   lFirebirdCompiler: TRQLFirebirdCompiler;
 begin
   lFirebirdCompiler := TRQLFirebirdCompiler.Create(Mapping);
   try
-    GetRQLParser.Execute(RQL, Result, lFirebirdCompiler, UseArtificialLimit, UseFilterOnly);
+    GetRQLParser(MaxRecordCount).Execute(RQL, Result, lFirebirdCompiler, UseArtificialLimit, UseFilterOnly);
   finally
     lFirebirdCompiler.Free;
   end;

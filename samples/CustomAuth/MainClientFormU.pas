@@ -28,7 +28,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.AppEvnts, MVCFramework.RESTClient,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.AppEvnts, MVCFramework.RESTClient.Intf, MVCFramework.RESTClient,
   Vcl.ExtCtrls;
 
 type
@@ -59,10 +59,10 @@ type
     procedure Button3Click(Sender: TObject);
     procedure ListBox1Click(Sender: TObject);
   private
-    FRESTClient: TRESTClient;
+    FRESTClient: IMVCRESTClient;
     FLogoutUrl: string;
     FLogoutMethod: string;
-    procedure FillMemo(Response: IRESTResponse);
+    procedure FillMemo(Response: IMVCRESTResponse);
     { Private declarations }
   public
     { Public declarations }
@@ -102,7 +102,7 @@ end;
 procedure TForm7.btnLogInLogOutClick(Sender: TObject);
 var
   lJObj: TJSONObject;
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
 begin
   if btnLogInLogOut.Caption = 'LOGIN' then
   begin
@@ -110,10 +110,10 @@ begin
     try
       lJObj.AddPair('username', edtUsername.Text);
       lJObj.AddPair('password', edtPassword.Text);
-      lRes := FRESTClient.doPOST('/system/users/logged', [], TSystemJSON.JSONValueToString(lJObj, False));
-      if lRes.HasError then
+      lRes := FRESTClient.Post('/system/users/logged', TSystemJSON.JSONValueToString(lJObj, False));
+      if not lRes.Success then
       begin
-        ShowMessage(lRes.Error.ExceptionMessage);
+        ShowMessage(lRes.Content);
       end;
       FLogoutUrl := lRes.HeaderValue('X-LOGOUT-URL');
       FLogoutMethod := lRes.HeaderValue('X-LOGOUT-METHOD');
@@ -124,50 +124,50 @@ begin
   else
   begin
     Assert(FLogoutMethod = 'DELETE');
-    lRes := FRESTClient.doDELETE(FLogoutUrl, []);
-    if lRes.HasError then
+    lRes := FRESTClient.Delete(FLogoutUrl);
+    if not lRes.Success then
     begin
-      ShowMessage(lRes.Error.ExceptionMessage);
+      ShowMessage(lRes.Content);
     end;
   end;
 end;
 
 procedure TForm7.Button1Click(Sender: TObject);
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
 begin
-  lRes := FRESTClient.doGET('/private/public/action', []);
+  lRes := FRESTClient.Get('/private/public/action');
   FillMemo(lRes);
 end;
 
 procedure TForm7.Button2Click(Sender: TObject);
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
 begin
-  lRes := FRESTClient.doGET('/private/role1', []);
+  lRes := FRESTClient.Get('/private/role1');
   FillMemo(lRes);
 end;
 
 procedure TForm7.Button3Click(Sender: TObject);
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
 begin
-  lRes := FRESTClient.doGET('/private/role2', []);
+  lRes := FRESTClient.Get('/private/role2');
   FillMemo(lRes);
 end;
 
-procedure TForm7.FillMemo(Response: IRESTResponse);
+procedure TForm7.FillMemo(Response: IMVCRESTResponse);
 begin
   Memo1.Lines.Add(
     Format('[%s] [%s] %s',
     [TimeToStr(Time),
-    Response.ResponseText,
-    Response.BodyAsString]));
+    Response.StatusText,
+    Response.Content]));
 end;
 
 procedure TForm7.FormCreate(Sender: TObject);
 begin
-  FRESTClient := TRESTClient.Create('localhost', 8080);
+  FRESTClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
 end;
 
 procedure TForm7.ListBox1Click(Sender: TObject);

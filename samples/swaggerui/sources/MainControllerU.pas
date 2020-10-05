@@ -22,6 +22,19 @@ type
     procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
   end;
 
+  [MVCPath]
+  TRedirectController = class(TMVCController)
+  public
+    [MVCPath('/')]
+    [MVCHTTPMethod([httpGET])]
+    procedure DoRedirect;
+
+    [MVCPath('/index.html')]
+    [MVCHTTPMethod([httpGET])]
+    procedure DoRedirectIndex;
+  end;
+
+
 implementation
 
 uses
@@ -53,5 +66,17 @@ begin
 end;
 
 
+
+{ TRedirectController }
+
+procedure TRedirectController.DoRedirect;
+begin
+  Redirect('/swagger')
+end;
+
+procedure TRedirectController.DoRedirectIndex;
+begin
+  DoRedirect;
+end;
 
 end.

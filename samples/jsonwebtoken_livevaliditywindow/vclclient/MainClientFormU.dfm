@@ -36,8 +36,7 @@ object MainForm: TMainForm
     Font.Style = []
     ParentFont = False
     ReadOnly = True
-    TabOrder = 0
-    ExplicitWidth = 721
+    TabOrder = 1
   end
   object Memo2: TMemo
     Left = 0
@@ -52,8 +51,7 @@ object MainForm: TMainForm
     Font.Style = []
     ParentFont = False
     ReadOnly = True
-    TabOrder = 1
-    ExplicitWidth = 721
+    TabOrder = 2
   end
   object Panel1: TPanel
     Left = 0
@@ -61,14 +59,13 @@ object MainForm: TMainForm
     Width = 908
     Height = 81
     Align = alTop
-    TabOrder = 2
-    ExplicitWidth = 721
+    TabOrder = 0
     object Label1: TLabel
       AlignWithMargins = True
       Left = 540
       Top = 4
-      Width = 355
-      Height = 65
+      Width = 364
+      Height = 73
       Align = alClient
       Caption = 
         'At each authenticated request, the server increments the "exp" p' +
@@ -77,6 +74,8 @@ object MainForm: TMainForm
         'alidityWindowInSeconds seconds. It is useful to mimic the classi' +
         'c session cookie with the semplicity of the JWT.'
       WordWrap = True
+      ExplicitWidth = 355
+      ExplicitHeight = 65
     end
     object btnGet: TButton
       AlignWithMargins = True
@@ -86,10 +85,9 @@ object MainForm: TMainForm
       Height = 73
       Align = alLeft
       Caption = 'Get a protected resource (with an updated JWT)'
-      TabOrder = 0
+      TabOrder = 3
       WordWrap = True
       OnClick = btnGetClick
-      ExplicitLeft = 250
     end
     object btnLOGIN: TButton
       AlignWithMargins = True
@@ -99,7 +97,7 @@ object MainForm: TMainForm
       Height = 73
       Align = alLeft
       Caption = 'Login (Custom headers)'
-      TabOrder = 1
+      TabOrder = 0
       WordWrap = True
       OnClick = btnLOGINClick
     end
@@ -111,7 +109,7 @@ object MainForm: TMainForm
       Height = 73
       Align = alLeft
       Caption = 'Login (with Basic Schema)'
-      TabOrder = 2
+      TabOrder = 1
       WordWrap = True
       OnClick = btnLoginWithHeaderBasicClick
     end
@@ -123,11 +121,9 @@ object MainForm: TMainForm
       Height = 73
       Align = alLeft
       Caption = 'Login (with JSON Object)'
-      TabOrder = 3
+      TabOrder = 2
       WordWrap = True
       OnClick = Button1Click
-      ExplicitLeft = 311
-      ExplicitTop = 2
     end
   end
 end

@@ -11,7 +11,7 @@ object dmMain: TdmMain
       'Password=masterkey'
       'Protocol=TCPIP'
       'Server=localhost'
-      'DriverID=FB')
+      'ConnectionDef=articles_crud_db')
     ConnectedStoredUsage = []
     LoginPrompt = False
     BeforeConnect = ConnectionBeforeConnect

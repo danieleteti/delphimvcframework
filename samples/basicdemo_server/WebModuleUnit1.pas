@@ -41,7 +41,7 @@ begin
     end);
 
   // Web files
-  MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/', '.\www\public_html'));
+  MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/app', '.\www\public_html'));
 
   // Image files
   MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create('/images', '.\www\public_images', 'database.png'));

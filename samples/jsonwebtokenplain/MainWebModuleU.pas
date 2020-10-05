@@ -50,10 +50,10 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TMyController);
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + '\www' { DocumentRoot }
-    ));
+//  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+//    '/', { StaticFilesPath }
+//    ExtractFilePath(GetModuleName(HInstance)) + '\www' { DocumentRoot }
+//    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

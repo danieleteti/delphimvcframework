@@ -35,42 +35,33 @@ var
 implementation
 
 uses
-  mvcframework.restclient;
+  MVCFramework.RESTClient.Intf,
+  MVCFramework.RESTClient;
 
 {$R *.dfm}
 
 procedure TForm7.Button1Click(Sender: TObject);
 
 var
-  lClt: TRESTClient;
-  lResp: IRESTResponse;
+  lClt: IMVCRESTClient;
+  lResp: IMVCRESTResponse;
 begin
-  lClt := TRESTClient.Create('localhost', 8080);
-  try
-    lResp := lClt.doPOST('/login', [], '');
-    Token := lResp.BodyAsString;
-  finally
-    lClt.Free;
-  end;
-  ShowMessage
-    ('In the next 15 seconds you can request protected resources. After your token will expires!');
+  lClt := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lResp := lClt.Post('/login');
+  Token := lResp.Content;
+  ShowMessage('In the next 15 seconds you can request protected resources. After your token will expires!');
 end;
 
 procedure TForm7.Button2Click(Sender: TObject);
 var
-  lClt: TRESTClient;
-  lResp: IRESTResponse;
+  lClt: IMVCRESTClient;
+  lResp: IMVCRESTResponse;
 begin
-  lClt := TRESTClient.Create('localhost', 8080);
-  try
-    lClt.Header('Authentication', 'bearer ' + FToken);
-    lResp := lClt.doGET('/', []);
-    ShowMessage(lResp.ResponseText + sLineBreak +
-      lResp.BodyAsString);
-  finally
-    lClt.Free;
-  end;
-
+  lClt := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lClt.AddHeader('Authentication', 'bearer ' + FToken);
+  lResp := lClt.Get('/');
+  ShowMessage(lResp.StatusText + sLineBreak +
+    lResp.Content);
 end;
 
 procedure TForm7.SetToken(const Value: String);

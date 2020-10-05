@@ -25,21 +25,18 @@ implementation
 {$R *.dfm}
 
 uses
+  MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient;
 
 procedure TForm5.btnGetClick(Sender: TObject);
 var
-  lClient: TRESTClient;
-  lRest: IRESTResponse;
+  lClient: IMVCRESTClient;
+  lRest: IMVCRESTResponse;
 begin
-  lClient := TRESTClient.Create('localhost', 8080);
-  try
-    lClient.Authentication('user1', 'user1');
-    lRest := lClient.doGET('/admin/role1?par1=daniele', []);
-    ShowMessage(lRest.BodyAsString);
-  finally
-    lClient.Free;
-  end;
+  lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
+  lClient.SetBasicAuthorization('user1', 'user1');
+  lRest := lClient.Get('/admin/role1?par1=daniele');
+  ShowMessage(lRest.Content);
 end;
 
 end.

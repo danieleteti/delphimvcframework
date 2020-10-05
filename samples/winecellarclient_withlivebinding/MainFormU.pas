@@ -3,18 +3,48 @@ unit MainFormU;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, Vcl.DBGrids, Vcl.ComCtrls,
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+  Vcl.ComCtrls,
   FireDAC.Stan.Intf,
-  FireDAC.Stan.Option, FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
   FireDAC.DApt.Intf,
-  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, Vcl.Mask, Vcl.DBCtrls, Vcl.ExtCtrls,
-  MVCFramework.RESTClient, Data.Bind.GenData, Vcl.Bind.GenData, Data.Bind.Components,
+  Data.DB,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
+  Vcl.Mask,
+  Vcl.DBCtrls,
+  Vcl.ExtCtrls,
+  MVCFramework.RESTClient.Intf,
+  MVCFramework.RESTClient,
+  Data.Bind.GenData,
+  Vcl.Bind.GenData,
+  Data.Bind.Components,
   Data.Bind.ObjectScope,
-  System.Rtti, System.Bindings.Outputs, Vcl.Bind.Editors, Data.Bind.EngExt, Vcl.Bind.DBEngExt,
+  System.Rtti,
+  System.Bindings.Outputs,
+  Vcl.Bind.Editors,
+  Data.Bind.EngExt,
+  Vcl.Bind.DBEngExt,
   Vcl.Buttons,
-  Vcl.Bind.Navigator, WinesBO, Generics.Collections, Data.Bind.Controls;
+  Vcl.Bind.Navigator,
+  WinesBO,
+  Generics.Collections,
+  Data.Bind.Controls;
 
 type
   TForm5 = class(TForm)
@@ -56,7 +86,7 @@ type
     procedure BindNavigator1BeforeAction(Sender: TObject; Button: TNavigateButton);
 
   private
-    RESTClient: TRESTClient;
+    RESTClient: IMVCRESTClient;
     WinesAdapter: TListBindSourceAdapter<TWine>;
     FWines: TObjectList<TWine>;
   public
@@ -76,15 +106,18 @@ uses
 
 {$R *.dfm}
 
+
 procedure TForm5.BindNavigator1BeforeAction(Sender: TObject; Button: TNavigateButton);
 var
-  Resp: IRESTResponse;
+  Resp: IMVCRESTResponse;
 begin
   Resp := nil;
   case Button of
     nbDelete:
       begin
-        Resp := RESTClient.doDELETE('/wines', [(WinesAdapter.Current as TWine).id.ToString]);
+        Resp := RESTClient
+          .AddPathParam('id',(WinesAdapter.Current as TWine).id.ToString)
+          .Delete('/wines/{id}');
       end;
     nbPost:
       begin
@@ -92,46 +125,47 @@ begin
           seEdit:
             begin
               WinesAdapter.Post;
-              Resp := RESTClient.doPUT('/wines', [(WinesAdapter.Current as TWine).id.ToString],
+              Resp := RESTClient
+                .AddPathParam('id', (WinesAdapter.Current as TWine).id.ToString)
+                .Put('/wines/{id}',
                 GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
               Abort;
             end;
           seInsert:
             begin
               WinesAdapter.Post;
-              Resp := RESTClient.doPOST('/wines', [],
-                GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
+              Resp := RESTClient.Post('/wines', GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
               Abort;
             end;
         end;
       end;
   end;
 
-  if Assigned(Resp) and (not Resp.ResponseCode in [200, 201]) then
-    raise Exception.Create(Resp.ResponseText);
+  if Assigned(Resp) and (not Resp.StatusCode in [200, 201]) then
+    raise Exception.Create(Resp.StatusText);
 end;
 
 procedure TForm5.Button1Click(Sender: TObject);
 var
-  response: IRESTResponse;
+  response: IMVCRESTResponse;
 begin
-  response := RESTClient.doGET('/wines', []);
-  Memo1.Lines.Text := response.BodyAsString;
+  response := RESTClient.Get('/wines');
+  Memo1.Lines.Text := response.Content;
   FWines.Clear;
-  GetDefaultSerializer.DeserializeCollection(response.BodyAsString, FWines, TWine);
+  GetDefaultSerializer.DeserializeCollection(response.Content, FWines, TWine);
   WinesAdapter.SetList(FWines, false);
   WinesAdapter.Active := True;
 end;
 
 procedure TForm5.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  RESTClient.free;
+  RESTClient := nil;
   FWines.free;
 end;
 
 procedure TForm5.FormCreate(Sender: TObject);
 begin
-  RESTClient := TRESTClient.Create('localhost', 3000);
+  RESTClient := TMVCRESTClient.New.BaseURL('localhost', 3000);
   FWines := TObjectList<TWine>.Create(True);
   PrototypeBindSource1.Active := True;
 end;

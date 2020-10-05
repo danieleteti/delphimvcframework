@@ -258,7 +258,8 @@ var
 begin
   Result := TJsonObject.Create;
   for vIndex := 0 to fDefinitions.Count -1 do
-    Result.AddPair(fDefinitions.Items[vIndex].Name, fDefinitions.Items[vIndex].JsonSchema.Clone as TJSONObject);
+    if Assigned(fDefinitions.Items[vIndex].JsonSchema) then
+      Result.AddPair(fDefinitions.Items[vIndex].Name, fDefinitions.Items[vIndex].JsonSchema.Clone as TJSONObject);
 end;
 
 function TSwagDoc.GenerateParametersJsonObject: TJSONObject;

@@ -67,7 +67,8 @@ type
     function CreateSQLWhereByRQL(
       const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True;
-      const UseFilterOnly: Boolean = False): string; override;
+      const UseFilterOnly: Boolean = False;
+      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
     function CreateSelectCount(
       const TableName: string): string; override;
     function CreateDeleteAllSQL(
@@ -153,14 +154,15 @@ end;
 
 function TMVCSQLGeneratorMSSQL.CreateSQLWhereByRQL(
       const RQL: string; const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean;
-      const UseFilterOnly: Boolean): string;
+      const UseArtificialLimit: Boolean = True;
+      const UseFilterOnly: Boolean = False;
+      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string;
 var
   lMSSQLCompiler: TRQLMSSQLCompiler;
 begin
   lMSSQLCompiler := TRQLMSSQLCompiler.Create(Mapping);
   try
-    GetRQLParser.Execute(RQL, Result, lMSSQLCompiler, UseArtificialLimit, UseFilterOnly);
+    GetRQLParser(MaxRecordCount).Execute(RQL, Result, lMSSQLCompiler, UseArtificialLimit, UseFilterOnly);
   finally
     lMSSQLCompiler.Free;
   end;
