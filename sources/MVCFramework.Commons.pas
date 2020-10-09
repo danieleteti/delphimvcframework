@@ -123,6 +123,7 @@ type
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
+    MAX_RECORD_COUNT = 20;
   end;
 
   HATEOAS = record
@@ -624,6 +625,7 @@ function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCL
 
 { changing case }
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean = False): string;
+function SnakeCase(const Value: string): string;
 
 const
   MVC_HTTP_METHODS_WITHOUT_CONTENT: TMVCHTTPMethods = [httpGET, httpDELETE, httpHEAD, httpOPTIONS];
@@ -1428,6 +1430,42 @@ begin
         end;
       end;
       lPreviousWasUpperCase := lIsUpperCase;
+    end;
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
+  end;
+end;
+
+function SnakeCase(const Value: string): string;
+var
+  I: Integer;
+  lSB: TStringBuilder;
+  C: Char;
+  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
+  lCanInsertAnUnderscore: Boolean;
+begin
+  lCanInsertAnUnderscore := False;
+  lLastWasLowercase := False;
+  lSB := TStringBuilder.Create;
+  try
+    for I := 0 to Length(Value) - 1 do
+    begin
+      C := Value.Chars[I];
+      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
+      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
+      lCanInsertAnUnderscore := lCanInsertAnUnderscore and lLastWasLowercase;
+      if lIsUpperCase and (I > 0) and lCanInsertAnUnderscore then
+      begin
+        lSB.Append('_');
+        lCanInsertAnUnderscore := False;
+      end
+      else
+      begin
+        lCanInsertAnUnderscore := True;
+      end;
+      lSB.Append(LowerCase(C));
+      lLastWasLowercase := lIsLowerCase;
     end;
     Result := lSB.ToString;
   finally

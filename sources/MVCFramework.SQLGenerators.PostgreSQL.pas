@@ -69,8 +69,9 @@ type
     function CreateSQLWhereByRQL(
       const RQL: string;
       const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean = True;
-      const UseFilterOnly: Boolean = False): string; override;
+      const UseArtificialLimit: Boolean;
+      const UseFilterOnly: Boolean;
+      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
     function CreateSelectCount(
       const TableName: string): string; override;
     function GetSequenceValueSQL(const PKFieldName: string;
@@ -173,13 +174,14 @@ function TMVCSQLGeneratorPostgreSQL.CreateSQLWhereByRQL(
   const RQL: string;
   const Mapping: TMVCFieldsMapping;
   const UseArtificialLimit: Boolean;
-  const UseFilterOnly: Boolean): string;
+  const UseFilterOnly: Boolean;
+  const MaxRecordCount: UInt32): string;
 var
   lPostgreSQLCompiler: TRQLPostgreSQLCompiler;
 begin
   lPostgreSQLCompiler := TRQLPostgreSQLCompiler.Create(Mapping);
   try
-    GetRQLParser.Execute(RQL, Result, lPostgreSQLCompiler, UseArtificialLimit, UseFilterOnly);
+    GetRQLParser(MaxRecordCount).Execute(RQL, Result, lPostgreSQLCompiler, UseArtificialLimit, UseFilterOnly);
   finally
     lPostgreSQLCompiler.Free;
   end;

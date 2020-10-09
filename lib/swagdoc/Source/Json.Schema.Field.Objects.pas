@@ -154,7 +154,7 @@ begin
   if (fRef.Length > 0) then
   begin
     Result := TJSONObject.Create;
-    Result.AddPair('$ref', c_PrefixDefinitionName + FRef);
+    Result.AddPair(c_SchemaRef, c_PrefixDefinitionName + fRef);
     Exit;
   end;
   

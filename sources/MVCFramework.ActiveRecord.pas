@@ -101,7 +101,7 @@ type
     constructor Create;
     procedure EndUpdates;
     property WritableFieldsCount: Integer read fWritableFieldsCount;
-    property ReadableFieldsCount: Integer read fWritableFieldsCount;
+    property ReadableFieldsCount: Integer read fReadableFieldsCount;
     function GetInfoByFieldName(const FieldName: string): TFieldInfo;
   end;
 
@@ -425,7 +425,7 @@ type
     fCompiler: TRQLCompiler;
     fRQL2SQL: TRQL2SQL;
   protected
-    function GetRQLParser: TRQL2SQL;
+    function GetRQLParser(const MaxRecordCount: UInt32): TRQL2SQL;
     function GetCompiler: TRQLCompiler;
     function GetCompilerClass: TRQLCompilerClass; virtual; abstract;
     function GetMapping: TMVCFieldsMapping;
@@ -438,7 +438,8 @@ type
     function HasReturning: Boolean; virtual;
     // end-capabilities
     function CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean = True; const UseFilterOnly: Boolean = false): string; virtual; abstract;
+      const UseArtificialLimit: Boolean = True; const UseFilterOnly: Boolean = false;
+      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string; virtual; abstract;
     function CreateSelectSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
     function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
@@ -1309,7 +1310,8 @@ function TMVCActiveRecord.CheckAction(const aEntityAction: TMVCEntityAction; con
 begin
   Result := aEntityAction in fEntityAllowedActions;
   if (not Result) and aRaiseException then
-    raise EMVCActiveRecord.CreateFmt('Action [%s] not allowed on entity [%s]. [HINT] Add the entity action in MVCEntityActions attribute.',
+    raise EMVCActiveRecord.CreateFmt
+      ('Action [%s] not allowed on entity [%s]. [HINT] Add the entity action in MVCEntityActions attribute.',
       [GetEnumName(TypeInfo(TMVCEntityAction), Ord(aEntityAction)), ClassName]);
 end;
 
@@ -2110,7 +2112,12 @@ var
 begin
   lAR := T.Create;
   try
-    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping).Trim;
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(
+      RQL,
+      lAR.GetMapping,
+      MaxRecordCount > -1,
+      False,
+      MaxRecordCount).Trim;
     // LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
     if lSQL.StartsWith('where', True) then
       lSQL := lSQL.Remove(0, 5).Trim;
@@ -2746,11 +2753,11 @@ begin
   Result := fCompiler.GetFieldNameForSQL(FieldName);
 end;
 
-function TMVCSQLGenerator.GetRQLParser: TRQL2SQL;
+function TMVCSQLGenerator.GetRQLParser(const MaxRecordCount: UInt32): TRQL2SQL;
 begin
   if fRQL2SQL = nil then
   begin
-    fRQL2SQL := TRQL2SQL.Create; // (20);
+    fRQL2SQL := TRQL2SQL.Create(MaxRecordCount);
   end;
   Result := fRQL2SQL;
 end;
