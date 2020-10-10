@@ -56,7 +56,7 @@ type
 implementation
 
 uses
-{$IF defined(SEATTLEORBETTER)}
+{$IF defined(TOKYOORBETTER)}
   System.Hash,
 {$ELSE}
   IdHashMessageDigest,
@@ -67,12 +67,12 @@ uses
 { TMVCETagMiddleware }
 
 function TMVCETagMiddleware.GetHashMD5FromStream(AStream: TStream): string;
-{$IF not defined(SEATTLEORBETTER)}
+{$IF not defined(TOKYOORBETTER)}
 var
   lMD5Hash: TIdHashMessageDigest5;
 {$ENDIF}
 begin
-{$IF defined(SEATTLEORBETTER)}
+{$IF defined(TOKYOORBETTER)}
   Result := THashMD5.GetHashString(AStream);
 {$ELSE}
   lMD5Hash := TIdHashMessageDigest5.Create;
