@@ -199,8 +199,8 @@ type
   [TestFixture]
   TTestNameCase = class(TObject)
   private
-    fOutDATA: array [1 .. 4] of array [ncAsIs .. ncPascalCase] of string;
-    fOrigDATA: array [1 .. 4] of string;
+    fOutDATA: array [1 .. 5] of array [ncAsIs .. ncSnakeCase] of string;
+    fOrigDATA: array [1 .. 5] of string;
   public
     [SetupFixture]
     procedure SetupFixture;
@@ -1794,31 +1794,44 @@ begin
   fOrigDATA[2] := 'ONE_TWO_THREE';
   fOrigDATA[3] := 'JustOne';
   fOrigDATA[4] := '_with__underscores_';
+  fOrigDATA[5] := 'oneTwo___three';
 
   fOutDATA[1][ncAsIs] := fOrigDATA[1];
   fOutDATA[2][ncAsIs] := fOrigDATA[2];
   fOutDATA[3][ncAsIs] := fOrigDATA[3];
   fOutDATA[4][ncAsIs] := fOrigDATA[4];
+  fOutDATA[5][ncAsIs] := fOrigDATA[5];
 
   fOutDATA[1][ncUpperCase] := 'ONE_TWO';
   fOutDATA[2][ncUpperCase] := 'ONE_TWO_THREE';
   fOutDATA[3][ncUpperCase] := 'JUSTONE';
   fOutDATA[4][ncUpperCase] := '_WITH__UNDERSCORES_';
+  fOutDATA[5][ncUpperCase] := 'ONETWO___THREE';
 
   fOutDATA[1][ncLowerCase] := 'one_two';
   fOutDATA[2][ncLowerCase] := 'one_two_three';
   fOutDATA[3][ncLowerCase] := 'justone';
   fOutDATA[4][ncLowerCase] := '_with__underscores_';
+  fOutDATA[5][ncLowerCase] := 'onetwo___three';
 
   fOutDATA[1][ncCamelCase] := 'oneTwo';
   fOutDATA[2][ncCamelCase] := 'oneTwoThree';
   fOutDATA[3][ncCamelCase] := 'justOne';
   fOutDATA[4][ncCamelCase] := 'WithUnderscores';
+  fOutDATA[5][ncCamelCase] := 'oneTwoThree';
 
   fOutDATA[1][ncPascalCase] := 'OneTwo';
   fOutDATA[2][ncPascalCase] := 'OneTwoThree';
   fOutDATA[3][ncPascalCase] := 'JustOne';
   fOutDATA[4][ncPascalCase] := 'WithUnderscores';
+  fOutDATA[5][ncPascalCase] := 'OneTwoThree';
+
+  fOutDATA[1][ncSnakeCase] := 'one_two';
+  fOutDATA[2][ncSnakeCase] := 'one_two_three';
+  fOutDATA[3][ncSnakeCase] := 'just_one';
+  fOutDATA[4][ncSnakeCase] := '_with_underscores_';
+  fOutDATA[5][ncSnakeCase] := 'one_two_three';
+
 end;
 
 procedure TTestNameCase.TestNameCase;
@@ -1829,9 +1842,9 @@ var
   lOutData: string;
   lActualOutData: string;
 begin
-  for lNameCaseIdx := ncAsIs to ncPascalCase do
+  for lNameCaseIdx := ncAsIs to ncSnakeCase do
   begin
-    for I := 1 to 4 do
+    for I := 1 to 5 do
     begin
       lOrig := fOrigDATA[I];
       lOutData := fOutDATA[I][lNameCaseIdx];

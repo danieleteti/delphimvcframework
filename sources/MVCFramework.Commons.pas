@@ -663,7 +663,8 @@ uses
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons,
+  System.RegularExpressions;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1438,40 +1439,49 @@ begin
 end;
 
 function SnakeCase(const Value: string): string;
-var
-  I: Integer;
-  lSB: TStringBuilder;
-  C: Char;
-  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
-  lCanInsertAnUnderscore: Boolean;
 begin
-  lCanInsertAnUnderscore := False;
-  lLastWasLowercase := False;
-  lSB := TStringBuilder.Create;
-  try
-    for I := 0 to Length(Value) - 1 do
-    begin
-      C := Value.Chars[I];
-      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
-      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
-      lCanInsertAnUnderscore := lCanInsertAnUnderscore and lLastWasLowercase;
-      if lIsUpperCase and (I > 0) and lCanInsertAnUnderscore then
-      begin
-        lSB.Append('_');
-        lCanInsertAnUnderscore := False;
-      end
-      else
-      begin
-        lCanInsertAnUnderscore := True;
-      end;
-      lSB.Append(LowerCase(C));
-      lLastWasLowercase := lIsLowerCase;
-    end;
-    Result := lSB.ToString;
-  finally
-    lSB.Free;
-  end;
+  // Convert multiple underlines to just one
+  Result := TRegex.Replace(Value, '([_][_{1}]+)', '_');
+  // Adds underscores between a lowercase character and an uppercase character
+  Result := TRegex.Replace(Result, '([a-z0-9])([A-Z])', '\1_\2');
+  Result := Result.ToLower;
 end;
+
+//function SnakeCase(const Value: string): string;
+//var
+//  I: Integer;
+//  lSB: TStringBuilder;
+//  C: Char;
+//  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
+//  lCanInsertAnUnderscore: Boolean;
+//begin
+//  lCanInsertAnUnderscore := False;
+//  lLastWasLowercase := False;
+//  lSB := TStringBuilder.Create;
+//  try
+//    for I := 0 to Length(Value) - 1 do
+//    begin
+//      C := Value.Chars[I];
+//      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
+//      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
+//      lCanInsertAnUnderscore := lCanInsertAnUnderscore and lLastWasLowercase;
+//      if lIsUpperCase and (I > 0) and lCanInsertAnUnderscore then
+//      begin
+//        lSB.Append('_');
+//        lCanInsertAnUnderscore := False;
+//      end
+//      else
+//      begin
+//        lCanInsertAnUnderscore := True;
+//      end;
+//      lSB.Append(LowerCase(C));
+//      lLastWasLowercase := lIsLowerCase;
+//    end;
+//    Result := lSB.ToString;
+//  finally
+//    lSB.Free;
+//  end;
+//end;
 
 function StrToJSONObject(const aString: String): TJsonObject;
 begin
