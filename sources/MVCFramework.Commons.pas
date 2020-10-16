@@ -1441,7 +1441,7 @@ end;
 function SnakeCase(const Value: string): string;
 begin
   // Convert multiple underlines to just one
-  Result := TRegex.Replace(Value, '([_][_{1}]+)', '_');
+  Result := TRegex.Replace(Value, '([_][_]+)', '_');
   // Adds underscores between a lowercase character and an uppercase character
   Result := TRegex.Replace(Result, '([a-z0-9])([A-Z])', '\1_\2');
   Result := Result.ToLower;
