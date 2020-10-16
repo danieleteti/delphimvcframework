@@ -1439,49 +1439,51 @@ begin
 end;
 
 function SnakeCase(const Value: string): string;
+var
+  I: Integer;
+  lSB: TStringBuilder;
+  C: Char;
+  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
+  lCanInsertAnUnderscore: Boolean;
+  lIsNumber: Boolean;
+  lLastWasUnderscore: Boolean;
+  lIsUnderscore: Boolean;
 begin
-  // Convert multiple underlines to just one
-  Result := TRegex.Replace(Value, '([_][_]+)', '_');
-  // Adds underscores between a lowercase character and an uppercase character
-  Result := TRegex.Replace(Result, '([a-z0-9])([A-Z])', '\1_\2');
-  Result := Result.ToLower;
-end;
+  lCanInsertAnUnderscore := False;
+  lLastWasLowercase := False;
+  lLastWasUnderscore := False;
+  lSB := TStringBuilder.Create;
+  try
+    for I := 0 to Length(Value) - 1 do
+    begin
+      C := Value.Chars[I];
+      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
+      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
+      lIsNumber := CharInSet(C, ['0' .. '9']);
+      lIsUnderscore := C = '_';
 
-//function SnakeCase(const Value: string): string;
-//var
-//  I: Integer;
-//  lSB: TStringBuilder;
-//  C: Char;
-//  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
-//  lCanInsertAnUnderscore: Boolean;
-//begin
-//  lCanInsertAnUnderscore := False;
-//  lLastWasLowercase := False;
-//  lSB := TStringBuilder.Create;
-//  try
-//    for I := 0 to Length(Value) - 1 do
-//    begin
-//      C := Value.Chars[I];
-//      lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
-//      lIsLowerCase := CharInSet(C, ['a' .. 'z']);
-//      lCanInsertAnUnderscore := lCanInsertAnUnderscore and lLastWasLowercase;
-//      if lIsUpperCase and (I > 0) and lCanInsertAnUnderscore then
-//      begin
-//        lSB.Append('_');
-//        lCanInsertAnUnderscore := False;
-//      end
-//      else
-//      begin
-//        lCanInsertAnUnderscore := True;
-//      end;
-//      lSB.Append(LowerCase(C));
-//      lLastWasLowercase := lIsLowerCase;
-//    end;
-//    Result := lSB.ToString;
-//  finally
-//    lSB.Free;
-//  end;
-//end;
+      lCanInsertAnUnderscore := lCanInsertAnUnderscore and lLastWasLowercase and (not lLastWasUnderscore);
+      if (lIsUpperCase or lIsNumber) and (I > 0) and lCanInsertAnUnderscore then
+      begin
+        lSB.Append('_');
+        lCanInsertAnUnderscore := False;
+      end
+      else
+      begin
+        lCanInsertAnUnderscore := True;
+      end;
+      if not (lLastWasUnderscore and lIsUnderscore) then
+      begin
+        lSB.Append(LowerCase(C));
+      end;
+      lLastWasUnderscore := lIsUnderscore;
+      lLastWasLowercase := lIsLowerCase;
+    end;
+    Result := lSB.ToString;
+  finally
+    lSB.Free;
+  end;
+end;
 
 function StrToJSONObject(const aString: String): TJsonObject;
 begin
