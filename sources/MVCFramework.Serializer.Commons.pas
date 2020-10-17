@@ -59,7 +59,7 @@ type
 
   TMVCSerializationType = (stUnknown, stDefault, stProperties, stFields);
 
-  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase);
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
 
   TMVCDataType = (dtObject, dtArray);
 
@@ -626,6 +626,10 @@ begin
     ncPascalCase:
       begin
         Result := CamelCase(Value, True);
+      end;
+    ncSnakeCase:
+      begin
+        Result := SnakeCase(Value);
       end;
     ncAsIs:
       begin
