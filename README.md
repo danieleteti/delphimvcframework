@@ -554,6 +554,22 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
 
+- `TMVCNameCase` got the new `ncSnakeCase` among the possibles casing (thanks to [João Antônio Duarte](https://github.com/joaoduarte19) for its work in this area). 
+
+  Now the `TMVCNameCase` declaration is the following:
+
+  ```delphi
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
+  ```
+
+  Here's how the new `ncSnakeCase` works
+
+  | Original | SnakeCase  |
+  | -------- | ---------- |
+  | OneTwo   | one_two    |
+  | One__Two | one_two    |
+  | OneTwo03 | one_two_03 |
+
 - **Breaking Change**! `TMVCStaticFileMiddleware` cannot be registered to "/" anymore 
 
   - The suggested solution is to create a simple redirection controller which redirect "/" to the proper path (check [this example](https://github.com/danieleteti/delphimvcframework/blob/master/samples/middleware_staticfiles/SPARedirectController.pas)).
@@ -563,6 +579,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
 
 - Fix for [issue 424](https://github.com/danieleteti/delphimvcframework/issues/424)
+
+- Fix for [issue436](https://github.com/danieleteti/delphimvcframework/issues/436).
 
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 
