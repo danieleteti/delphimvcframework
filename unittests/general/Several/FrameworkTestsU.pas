@@ -206,6 +206,28 @@ type
     procedure SetupFixture;
     [Test]
     procedure TestNameCase;
+
+    [Test]
+    [TestCase('LowerCase', 'onetwo,onetwo')]
+    [TestCase('LowerCaseWithUnderline', 'one_two,one_two')]
+    [TestCase('UpperCase', 'ONETWO,onetwo')]
+    [TestCase('UpperCaseWithUnderline', 'ONE_TWO,one_two')]
+    [TestCase('PascalCase', 'OneTwo,one_two')]
+    [TestCase('CamelCase', 'oneTwo,one_two')]
+    [TestCase('WithUnderlines', 'One_two_three,one_two_three')]
+    [TestCase('MultipleUnderlines', 'One___two______three,one_two_three')]
+    [TestCase('WithNumber1', 'OneTwo1,one_two_1')]
+    [TestCase('WithNumber02', 'OneTwo02,one_two_02')]
+    [TestCase('WithNumberInTheMiddle1', 'OneTwo1Two,one_two_1_two')]
+    [TestCase('WithNumberInTheMiddle2', 'OneTwo_2two,one_two_2_two')]
+    [TestCase('WithNumberInTheMiddle3', 'OneTwo3_Two3,one_two_3_two_3')]
+    [TestCase('WithNumberInTheMiddle4', 'OneTwo_4_Two,one_two_4_two')]
+    [TestCase('WithNumberInTheMiddle5', 'OneTwo05Three,one_two_05_three')]
+    [TestCase('WithNumberInTheMiddle6', 'OneTwo_06Three,one_two_06_three')]
+    [TestCase('WithNumberInTheMiddle7', 'OneTwo07_Three,one_two_07_three')]
+    [TestCase('WithNumberInTheMiddle8', 'OneTwo_08_Three,one_two_08_three')]
+    procedure TestSnakeCase(const AValue1: string; const AValue2: string);
+
   end;
 
   [TestFixture]
@@ -1853,6 +1875,11 @@ begin
         lOrig + ' for ' + GetEnumName(TypeInfo(TMVCNameCase), Ord(lNameCaseIdx)));
     end;
   end;
+end;
+
+procedure TTestNameCase.TestSnakeCase(const AValue1, AValue2: string);
+begin
+  Assert.AreEqual(AValue2, SnakeCase(AValue1));
 end;
 
 { TTestCryptUtils }
