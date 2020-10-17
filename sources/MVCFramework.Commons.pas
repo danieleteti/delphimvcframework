@@ -1449,15 +1449,14 @@ var
   I: Integer;
   lSB: TStringBuilder;
   C: Char;
-  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
-  lCanInsertAnUnderscore: Boolean;
+  lIsUpperCase: Boolean;
+  lIsLowerCase: Boolean;
+  lLastWasLowercase: Boolean;
   lIsNumber: Boolean;
   lLastWasUnderscore: Boolean;
   lIsUnderscore: Boolean;
   lLastWasNumber: Boolean;
-  lIsAlpha: Boolean;
 begin
-  lCanInsertAnUnderscore := False;
   lLastWasLowercase := False;
   lLastWasUnderscore := False;
   lLastWasNumber := False;
@@ -1470,19 +1469,15 @@ begin
       lIsLowerCase := CharInSet(C, ['a' .. 'z']);
       lIsNumber := CharInSet(C, ['0' .. '9']);
       lIsUnderscore := C = '_';
-      lIsAlpha := lIsUpperCase or lIsLowerCase;
 
-      lCanInsertAnUnderscore := lCanInsertAnUnderscore and (lLastWasLowercase or lLastWasNumber) and
-        (not lLastWasUnderscore);
-      if (lIsUpperCase or lIsNumber or (lIsAlpha and lLastWasNumber)) and (I > 0) and lCanInsertAnUnderscore then
+      if (I > 0) and (not lLastWasUnderscore) and
+        ((lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
+        (lIsLowerCase and lLastWasNumber) or
+        (lIsNumber and (not lLastWasNumber)))  then
       begin
         lSB.Append('_');
-        lCanInsertAnUnderscore := False;
-      end
-      else
-      begin
-        lCanInsertAnUnderscore := True;
       end;
+
       if not (lLastWasUnderscore and lIsUnderscore) then
       begin
         lSB.Append(LowerCase(C));
