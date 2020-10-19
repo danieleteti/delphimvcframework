@@ -129,7 +129,8 @@ contains
   Json.Schema.Common.Types in '..\..\lib\swagdoc\Source\Json.Schema.Common.Types.pas',
   Json.Common.Helpers in '..\..\lib\swagdoc\Source\Json.Common.Helpers.pas',
   MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
-  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas';
+  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
+  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas';
 
 end.
 

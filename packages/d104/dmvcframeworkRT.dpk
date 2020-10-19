@@ -133,7 +133,8 @@ contains
   MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
   MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
-  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas';
+  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
+  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas';
 
 end.
 
