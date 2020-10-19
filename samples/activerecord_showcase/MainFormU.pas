@@ -823,6 +823,52 @@ begin
     lList.Free;
   end;
 
+  Log('**RQL Query (4) - <empty> with limit 20');
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, '', 20);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 20);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (5) - <empty> sort by code with limit 20');
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, 'sort(+code)', 20);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 20);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (6) - <empty> with limit 10');
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, '', 10);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 10);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (7) - <empty> with limit 1');
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, '', 1);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 1);
+  finally
+    lList.Free;
+  end;
+
+  Log('**RQL Query (8) - <empty> with limit 0');
+  lList := TMVCActiveRecord.SelectRQL(TCustomer, '', 0);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    Assert(lList.Count = 0);
+  finally
+    lList.Free;
+  end;
+
+
 end;
 
 procedure TMainForm.btnSelectClick(Sender: TObject);
