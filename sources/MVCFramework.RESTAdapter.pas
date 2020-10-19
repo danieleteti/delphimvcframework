@@ -124,13 +124,14 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    function Build(ARESTClient: TRESTClient; const ARESTClientOwner: boolean = false): T; overload;
+    function Build(ARESTClient: TRESTClient;
+      const ARESTClientOwner: boolean = false): T; overload;
     function Build(const AServerName: string; const AServerPort: Word = 80;
       AIOHandler: TIdIOHandler = nil): T; overload;
-
     function ResourcesService: T;
     property RESTClient: TRESTClient read FRESTClient write SetRESTClient;
-    property RESTClientOwner: boolean read FRESTClientOwner write SetRESTClientOwner;
+    property RESTClientOwner: boolean read FRESTClientOwner
+      write SetRESTClientOwner;
   end;
 
   IAsynchRequest = interface
@@ -342,14 +343,13 @@ begin
         if Arg.IsObject then
         begin
 
-          if TRttiUtils.HasAttribute<MVCListOfAttribute>(AMethod, _attrlistof) then
-            Exit(
-              GetDefaultSerializer.SerializeCollection(Arg.AsObject)
+          if TRttiUtils.HasAttribute<MVCListOfAttribute>(AMethod, _attrlistof)
+          then
+            Exit(GetDefaultSerializer.SerializeCollection(Arg.AsObject)
             { Mapper.ObjectListToJSONArrayString(WrapAsList(Arg.AsObject), true) }
               )
           else
-            Exit(
-              GetDefaultSerializer.SerializeObject(Arg.AsObject)
+            Exit(GetDefaultSerializer.SerializeObject(Arg.AsObject)
             { Mapper.ObjectToJSONObjectString(Arg.AsObject) }
               );
         end
@@ -414,8 +414,8 @@ begin
   end;
 end;
 
-procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod; ARTTIType: TRttiType;
-out AResult: TValue);
+procedure TRESTAdapter<T>.MapResult(AResp: IRESTResponse; AMethod: TRttiMethod;
+ARTTIType: TRttiType; out AResult: TValue);
 var
   _attrlistof: MVCListOfAttribute;
 begin
@@ -425,7 +425,8 @@ begin
     if TRttiUtils.HasAttribute<MVCListOfAttribute>(AMethod, _attrlistof) then
     begin
       AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
-      GetDefaultSerializer.DeserializeCollection(AResp.BodyAsString, AResult.AsObject, _attrlistof.Value);
+      GetDefaultSerializer.DeserializeCollection(AResp.BodyAsString,
+        AResult.AsObject, _attrlistof.Value);
     end
     // JSONValue
     else if ARTTIType.AsInstance.MetaclassType.InheritsFrom(TJSONValue) then
@@ -436,13 +437,14 @@ begin
     else
     begin
       AResult := TRttiUtils.CreateObject(ARTTIType.QualifiedName);
-      GetDefaultSerializer.DeserializeObject(AResp.BodyAsString, AResult.AsObject);
+      GetDefaultSerializer.DeserializeObject(AResp.BodyAsString,
+        AResult.AsObject);
     end;
   end
   else
     // IRESTResponse
-    if ARTTIType.QualifiedName = TRttiUtils.GlContext.GetType(TypeInfo(IRESTResponse))
-      .QualifiedName then
+    if ARTTIType.QualifiedName = TRttiUtils.GlContext.GetType
+      (TypeInfo(IRESTResponse)).QualifiedName then
     begin
       AResult := AResult.From(AResp)
     end
