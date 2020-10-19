@@ -211,7 +211,7 @@ type
       const ASwagDefinitions: TObjectList<TSwagDefinition>): TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const ARttiType: TRttiType): TSwagTypeParameter;
     class procedure FillOperationSummary(const ASwagPathOperation: TSwagPathOperation; const AMethod: TRttiMethod;
-      const ASwagDefinitions: TObjectList<TSwagDefinition>);
+      const ASwagDefinitions: TObjectList<TSwagDefinition>; const AHTTPMethod: TMVCHTTPMethodType);
     class function MethodRequiresAuthentication(const AMethod: TRttiMethod; const AType: TRttiType;
       out AAuthenticationTypeName: string): Boolean;
     class function GetJWTAuthenticationPath(const AJWTUrlSegment: string;
@@ -458,7 +458,8 @@ begin
 end;
 
 class procedure TMVCSwagger.FillOperationSummary(const ASwagPathOperation: TSwagPathOperation;
-  const AMethod: TRttiMethod; const ASwagDefinitions: TObjectList<TSwagDefinition>);
+  const AMethod: TRttiMethod; const ASwagDefinitions: TObjectList<TSwagDefinition>;
+  const AHTTPMethod: TMVCHTTPMethodType);
 var
   lAttr: TCustomAttribute;
   lSwagResponse: TSwagResponse;
@@ -476,11 +477,13 @@ begin
     begin
       ASwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(lAttr).GetTags);
       ASwagPathOperation.Description := MVCSwagSummaryAttribute(lAttr).Description;
-      ASwagPathOperation.OperationID := MVCSwagSummaryAttribute(lAttr).OperationID;
-      // dt [2019-10-31] Ensure OperationID is always defined
-      if ASwagPathOperation.OperationID.IsEmpty then
+      ASwagPathOperation.OperationID := GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(AHTTPMethod)).Substring(4) + '.' +
+        MVCSwagSummaryAttribute(lAttr).OperationID;
+
+      if MVCSwagSummaryAttribute(lAttr).OperationID.IsEmpty then
       begin
-        ASwagPathOperation.OperationID := AMethod.Name;
+        ASwagPathOperation.OperationID := GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(AHTTPMethod)).Substring(4) +
+         '.' + AMethod.Parent.QualifiedName + '.' + AMethod.Name;
       end;
       // dt [2019-10-31]
       ASwagPathOperation.Deprecated := MVCSwagSummaryAttribute(lAttr).Deprecated;
