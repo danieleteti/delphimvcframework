@@ -975,30 +975,43 @@ var
   lRTTIType: TRttiType;
   lRTTIMethodList: TArray<TRTTIMethod>;
   lRTTIMethod: TRTTIMethod;
+  lGeneratedMethods: TList<String>;
+  function MethodSign(const RTTIMethod: TRttiMethod): String;
+  begin
+    Result := RTTIMethod.ToString.ToLower;
+  end;
 begin
-  lRTTI := TRTTIContext.Create;
-  try
-    lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
-    lRTTIMethodList := lRTTIType.GetDeclaredMethods;
-    for lRTTIMethod in lRTTIMethodList do
-    begin
-      if CanBeRemotelyInvoked(lRTTIMethod) then
-      begin
-        aProc(lRTTIMethod);
-      end;
-    end;
 
-    lRTTIMethodList := lRTTIType.BaseType.GetMethods;
-    for lRTTIMethod in lRTTIMethodList do
-    begin
-      if TMVCSerializerHelper.HasAttribute<MVCInheritableAttribute>(lRTTIMethod) and
-        CanBeRemotelyInvoked(lRTTIMethod) then
+  lGeneratedMethods := TList<String>.Create;
+  try
+    lRTTI := TRTTIContext.Create;
+    try
+      lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
+      lRTTIMethodList := lRTTIType.GetDeclaredMethods;
+      for lRTTIMethod in lRTTIMethodList do
       begin
-        aProc(lRTTIMethod);
+        if CanBeRemotelyInvoked(lRTTIMethod) then
+        begin
+          aProc(lRTTIMethod);
+          lGeneratedMethods.Add(MethodSign(lRTTIMethod));
+        end;
       end;
+
+      lRTTIMethodList := lRTTIType.BaseType.GetMethods;
+      for lRTTIMethod in lRTTIMethodList do
+      begin
+        if TMVCSerializerHelper.HasAttribute<MVCInheritableAttribute>(lRTTIMethod) and
+          CanBeRemotelyInvoked(lRTTIMethod) and
+          (not lGeneratedMethods.Contains(MethodSign(lRTTIMethod))) then
+        begin
+          aProc(lRTTIMethod);
+        end;
+      end;
+    finally
+      lRTTI.Free;
     end;
   finally
-    lRTTI.Free;
+    lGeneratedMethods.Free;
   end;
 end;
 
@@ -1068,6 +1081,8 @@ begin
     procedure(aRTTIMethod: TRTTIMethod)
     var
       lAtt: MVCDocAttribute;
+      lLines: TArray<String>;
+      lLine: String;
     begin
       if IsReservedMethodName(aRTTIMethod.Name) then
       begin
@@ -1076,7 +1091,11 @@ begin
       lAtt := TRTTIUtils.GetAttribute<MVCDocAttribute>(aRTTIMethod);
       if Assigned(lAtt) then
       begin
-        ResponseStream.AppendLine('// ' + lAtt.Value);
+        lLines := lAtt.Value.Split([sLineBreak]);
+        for lLine in lLines do
+        begin
+          ResponseStream.AppendLine('// ' + lLine);
+        end;
       end;
       ResponseStream.AppendLine(aRTTIMethod.ToString + ';');
     end);
