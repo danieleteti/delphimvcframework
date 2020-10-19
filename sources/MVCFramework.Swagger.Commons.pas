@@ -279,6 +279,11 @@ begin
         Result := stpBoolean
       else
         Result := stpArray;
+    tkRecord:
+      if ARttiType.Handle = TypeInfo(TGUID) then
+        Result := stpString
+      else
+        Result := stpNotDefined;
   else
     Result := stpNotDefined;
   end;
