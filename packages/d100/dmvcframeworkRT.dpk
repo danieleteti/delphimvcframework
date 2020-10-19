@@ -134,6 +134,8 @@ contains
   MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
+  MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
+  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas';
 
 end.
 

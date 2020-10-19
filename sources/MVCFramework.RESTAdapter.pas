@@ -114,7 +114,6 @@ type
     destructor Destroy; override;
     function Build(aRESTClient: IMVCRESTClient): T; overload;
     function Build(const aServerName: string; const aServerPort: Word = 80): T; overload;
-
     function ResourcesService: T;
     property RESTClient: IMVCRESTClient read fRESTClient write fRESTClient;
   end;

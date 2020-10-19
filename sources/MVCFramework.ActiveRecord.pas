@@ -1054,7 +1054,7 @@ function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCo
 var
   lSQL: string;
 begin
-  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping);
+  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, False, MaxRecordCount);
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;
