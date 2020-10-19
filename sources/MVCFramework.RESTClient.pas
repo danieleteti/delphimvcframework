@@ -1440,7 +1440,7 @@ begin
   Result.UpdateResponseText(FHTTP.Response.ResponseText);
   Result.UpdateHeaders(FHTTP.Response.RawHeaders);
 
-  if Result.ContentEncoding.IsEmpty then
+  if Result.ContentEncoding.IsEmpty or (Result.ContentEncoding = 'identity') then
     Exit;
 
   if Result.ContentEncoding = 'deflate' then
