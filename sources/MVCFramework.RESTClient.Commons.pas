@@ -192,7 +192,7 @@ begin
         DecompressWithIndyZlib(aContentStream, lDecompressed, aContentEncoding)) then
         raise EMVCRESTClientException.Create('Could not decompress response content');
     end
-    else if aContentEncoding.IsEmpty then // No encoding
+    else if aContentEncoding.IsEmpty or SameText(aContentEncoding, 'identity') then // No encoding
     begin
       lDecompressed.CopyFrom(aContentStream, 0);
     end
