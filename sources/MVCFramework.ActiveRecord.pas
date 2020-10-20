@@ -386,7 +386,7 @@ type
     procedure RemoveConnection(const aName: string);
     procedure RemoveDefaultConnection;
     procedure SetCurrent(const aName: string);
-    function GetCurrent: TFDConnection;
+    function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
     function GetCurrentBackend: string;
     procedure SetDefault;
   end;
@@ -413,7 +413,7 @@ type
     procedure RemoveConnection(const aName: string);
     procedure RemoveDefaultConnection;
     procedure SetCurrent(const aName: string);
-    function GetCurrent: TFDConnection;
+    function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
     function GetByName(const aName: string): TFDConnection;
     function GetCurrentBackend: string;
     procedure SetDefault;
@@ -651,7 +651,7 @@ begin
   end;
 end;
 
-function TMVCConnectionsRepository.GetCurrent: TFDConnection;
+function TMVCConnectionsRepository.GetCurrent(const RaiseExceptionIfNotAvailable: Boolean): TFDConnection;
 var
   lName: string;
 begin
@@ -666,7 +666,10 @@ begin
     end
     else
     begin
-      raise EMVCActiveRecord.Create('No current connection for thread');
+      if RaiseExceptionIfNotAvailable then
+        raise EMVCActiveRecord.Create('No current connection for thread')
+      else
+        Result := nil;
     end;
   finally
     fMREW.EndRead;
@@ -1051,7 +1054,7 @@ function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCo
 var
   lSQL: string;
 begin
-  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping);
+  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, False, MaxRecordCount);
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;

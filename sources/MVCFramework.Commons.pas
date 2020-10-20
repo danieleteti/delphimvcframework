@@ -663,7 +663,8 @@ uses
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons,
+  System.RegularExpressions;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
@@ -1392,6 +1393,7 @@ var
   lIsLowerCase: Boolean;
   lIsUpperCase, lPreviousWasUpperCase: Boolean;
   lIsAlpha: Boolean;
+  lIsNumber: Boolean;
 begin
   {TODO -oDanieleT -cGeneral : Make this function faster!}
   lNextUpCase := MakeFirstUpperToo;
@@ -1403,8 +1405,9 @@ begin
       C := Value.Chars[I];
       lIsLowerCase := CharInSet(C, ['a' .. 'z']);
       lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
+      lIsNumber := CharInSet(C, ['0' .. '9']);
       lIsAlpha := lIsLowerCase or lIsUpperCase;
-      if not lIsAlpha then
+      if not (lIsAlpha or lIsNumber) then
       begin
         lNextUpCase := True;
         lPreviousWasUpperCase := False;
@@ -1430,6 +1433,10 @@ begin
         end;
       end;
       lPreviousWasUpperCase := lIsUpperCase;
+      if lIsNumber then
+      begin
+        lNextUpCase := True;
+      end;
     end;
     Result := lSB.ToString;
   finally
@@ -1442,11 +1449,17 @@ var
   I: Integer;
   lSB: TStringBuilder;
   C: Char;
-  lIsUpperCase, lIsLowerCase, lLastWasLowercase: Boolean;
-  lCanInsertAnUnderscore: Boolean;
+  lIsUpperCase: Boolean;
+  lIsLowerCase: Boolean;
+  lLastWasLowercase: Boolean;
+  lIsNumber: Boolean;
+  lLastWasUnderscore: Boolean;
+  lIsUnderscore: Boolean;
+  lLastWasNumber: Boolean;
 begin
-  lCanInsertAnUnderscore := False;
   lLastWasLowercase := False;
+  lLastWasUnderscore := False;
+  lLastWasNumber := False;
   lSB := TStringBuilder.Create;
   try
     for I := 0 to Length(Value) - 1 do
@@ -1454,18 +1467,24 @@ begin
       C := Value.Chars[I];
       lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
       lIsLowerCase := CharInSet(C, ['a' .. 'z']);
-      lCanInsertAnUnderscore := lCanInsertAnUnderscore and lLastWasLowercase;
-      if lIsUpperCase and (I > 0) and lCanInsertAnUnderscore then
+      lIsNumber := CharInSet(C, ['0' .. '9']);
+      lIsUnderscore := C = '_';
+
+      if (I > 0) and (not lLastWasUnderscore) and
+        ((lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
+        (lIsLowerCase and lLastWasNumber) or
+        (lIsNumber and (not lLastWasNumber)))  then
       begin
         lSB.Append('_');
-        lCanInsertAnUnderscore := False;
-      end
-      else
-      begin
-        lCanInsertAnUnderscore := True;
       end;
-      lSB.Append(LowerCase(C));
+
+      if not (lLastWasUnderscore and lIsUnderscore) then
+      begin
+        lSB.Append(LowerCase(C));
+      end;
+      lLastWasUnderscore := lIsUnderscore;
       lLastWasLowercase := lIsLowerCase;
+      lLastWasNumber := lIsNumber;
     end;
     Result := lSB.ToString;
   finally

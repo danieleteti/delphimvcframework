@@ -20,6 +20,12 @@ The official guide for DMVCFramework is available. DMVCFramework has a lot funct
 
 > While a huge work has been done by the author and the reviews to make the book and the examples well written, complete and effective, things can be always improved. For any suggestions, complains or requests there is the official Github book project (https://github.com/danieleteti/dmvcframeworktheofficialguide) where you can fill an issue and get in touch directly with the author. 
 
+### Translations
+
+Given the success of DMVCFramework in the Delphi community, the official DMVCFramework guide has been translated also in the following languages.
+
+- [Brazilian Portuguese](https://leanpub.com/delphimvcframework-br) (Translated by Diego Farisato)
+
 ---
 
 **Please, if you use DMVCFramework "star" this project in GitHub! It cost nothing to you but helps other developers to reference the code.**
@@ -548,6 +554,22 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
 
+- `TMVCNameCase` got the new `ncSnakeCase` among the possibles casing (thanks to [João Antônio Duarte](https://github.com/joaoduarte19) for its work in this area). 
+
+  Now the `TMVCNameCase` declaration is the following:
+
+  ```delphi
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
+  ```
+
+  Here's how the new `ncSnakeCase` works
+
+  | Original | SnakeCase  |
+  | -------- | ---------- |
+  | OneTwo   | one_two    |
+  | One__Two | one_two    |
+  | OneTwo03 | one_two_03 |
+
 - **Breaking Change**! `TMVCStaticFileMiddleware` cannot be registered to "/" anymore 
 
   - The suggested solution is to create a simple redirection controller which redirect "/" to the proper path (check [this example](https://github.com/danieleteti/delphimvcframework/blob/master/samples/middleware_staticfiles/SPARedirectController.pas)).
@@ -557,6 +579,12 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
 
 - Fix for [issue 424](https://github.com/danieleteti/delphimvcframework/issues/424)
+
+- Fix for [issue436](https://github.com/danieleteti/delphimvcframework/issues/436).
+
+- Fix for [issue438](https://github.com/danieleteti/delphimvcframework/issues/438) (Thanks to [jadeade](https://github.com/jadeade))
+
+- Fix for [issue435](https://github.com/danieleteti/delphimvcframework/issues/435) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
 
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 

@@ -61,6 +61,8 @@ type
     [Test]
     procedure TestRQL;
     [Test]
+    procedure TestRQLLimit;
+    [Test]
     procedure TestIssue424;
     [Test]
     procedure TestMultiThreading;
@@ -507,6 +509,43 @@ begin
   finally
     lCustomers.Free;
   end;
+  TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
+end;
+
+procedure TTestActiveRecordSQLite.TestRQLLimit;
+var
+  lCustomers: TObjectList<TCustomer>;
+const
+  RQL1 = 'or(eq(City, "Rome"),eq(City, "London"))';
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+    for var lCustomer in lCustomers do
+    begin
+      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 10);
+  try
+    Assert.AreEqual(10, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, 0);
+  try
+    Assert.AreEqual(0, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
   TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
