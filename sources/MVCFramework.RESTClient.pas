@@ -1484,6 +1484,7 @@ var
   lBytes: TArray<Byte>;
   lContentCharset: string;
   lEncoding: TEncoding;
+  lTmpStrStream: TStringStream;
 begin
   Result := TRESTResponse.Create;
 
@@ -1516,9 +1517,12 @@ begin
 
           lEncoding := TEncoding.GetEncoding(lContentCharset);
           try
-            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding,
-              TEncoding.Default.GetBytes(ABody));
-            RawBody.WriteData(lBytes, Length(lBytes));
+            lTmpStrStream := TStringStream.Create(ABody, lEncoding, False);
+            try
+              RawBody.LoadFromStream(lTmpStrStream);
+            finally
+              lTmpStrStream.Free;
+            end;
           finally
             lEncoding.Free;
           end;
