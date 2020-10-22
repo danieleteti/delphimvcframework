@@ -15,8 +15,8 @@ type
 
     procedure OnBeforeAction(Context: TWebContext; const AActionNAme: string;
       var Handled: Boolean); override;
-    procedure OnAfterAction(Context: TWebContext;
-      const AActionNAme: string); override;
+    procedure OnAfterAction(Context: TWebContext; const AActionNAme: string);
+      override;
 
   public
     [MVCHTTPMethod([httpGet])]
@@ -60,7 +60,6 @@ end;
 
 procedure TActionFiltersController.MVCControllerBeforeDestroy;
 begin
-  Log.Info('MVCControllerBeforeDestroy', 'ACTIONFILTERS');
   inherited;
 end;
 
@@ -68,17 +67,15 @@ procedure TActionFiltersController.OnAfterAction(Context: TWebContext;
   const AActionNAme: string);
 begin
   inherited;
-  Log.Info('OnAfterAction', 'ACTIONFILTERS');
-  Log.Info('ACTION CALLED: ' + AActionNAme + ' mapped to ' +
-    Context.Request.PathInfo + ' from ' + Context.Request.ClientIP,
-    'ACTIONFILTERS');
+  Log.Info('ACTION CALLED: ' + AActionNAme +
+    ' mapped to ' + Context.Request.PathInfo +
+    ' from ' + Context.Request.ClientIP, 'ACTIONFILTERS');
 end;
 
 procedure TActionFiltersController.OnBeforeAction(Context: TWebContext;
   const AActionNAme: string; var Handled: Boolean);
 begin
   inherited;
-  Log.Info('OnBeforeAction', 'ACTIONFILTERS');
   if DayOfWeek(date) in [1, 7] then
     raise Exception.Create('You cannot use this service in the WeekEnd');
   // if handled = true (or exception raised) then actual action will not be called
