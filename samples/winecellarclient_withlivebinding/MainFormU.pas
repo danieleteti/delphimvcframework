@@ -84,7 +84,7 @@ begin
   case Button of
     nbDelete:
       begin
-        Resp := RESTClient.doDELETE('/wines', [(WinesAdapter.Current as TWine).id.ToString]);
+        Resp := RESTClient.doDELETE('/api/wines', [(WinesAdapter.Current as TWine).id.ToString]);
       end;
     nbPost:
       begin
@@ -92,14 +92,14 @@ begin
           seEdit:
             begin
               WinesAdapter.Post;
-              Resp := RESTClient.doPUT('/wines', [(WinesAdapter.Current as TWine).id.ToString],
+              Resp := RESTClient.doPUT('/api/wines', [(WinesAdapter.Current as TWine).id.ToString],
                 GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
               Abort;
             end;
           seInsert:
             begin
               WinesAdapter.Post;
-              Resp := RESTClient.doPOST('/wines', [],
+              Resp := RESTClient.doPOST('/api/wines', [],
                 GetDefaultSerializer.SerializeObject(WinesAdapter.Current));
               Abort;
             end;
@@ -115,7 +115,7 @@ procedure TForm5.Button1Click(Sender: TObject);
 var
   response: IRESTResponse;
 begin
-  response := RESTClient.doGET('/wines', []);
+  response := RESTClient.doGET('/api/wines', []);
   Memo1.Lines.Text := response.BodyAsString;
   FWines.Clear;
   GetDefaultSerializer.DeserializeCollection(response.BodyAsString, FWines, TWine);

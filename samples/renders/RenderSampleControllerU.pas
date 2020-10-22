@@ -46,13 +46,14 @@ type
     procedure GetCustomersWithCallback;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/simple')]
+    procedure GetCustomers_AsDataSet;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/($ID)')]
     [MVCProduces('text/plain')]
     procedure GetPerson_AsText(const ID: Integer);
 
-    [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/simple')]
-    procedure GetCustomers_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
@@ -67,7 +68,7 @@ type
     procedure GetCustomer_AsDataSetRecord(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/metadata')]
+    [MVCPath('/customers2/metadata')]
     [MVCProduces('application/json')]
     procedure GetDataSetWithMetadata;
 
@@ -77,7 +78,7 @@ type
     procedure GetCustomerByID_AsTObject(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/multi')]
+    [MVCPath('/multi/sample')]
     [MVCProduces('application/json')]
     procedure GetCustomersAndCountry_AsDataSet;
 
@@ -384,6 +385,9 @@ begin
       // We need a non standard representation, let's create a specific serializer.
       lSer := TMVCJsonDataObjectsSerializer.Create;
       try
+        lJObj.A['this_is_an_array'].Add(1);
+        lJObj.A['this_is_an_array'].Add(2);
+        lJObj.B['this_is_a_boolean'] := true;
         lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.a['customers'], TMVCNameCase.ncLowerCase, []);
         lSer.DataSetToJsonArray(lDM.qryCountry, lJObj.a['countries'], TMVCNameCase.ncLowerCase, []);
       finally
@@ -595,10 +599,12 @@ begin
       .Add('ncLowerCaseList', lDM.qryCustomers, nil, dstAllRecords, ncLowerCase)
       .Add('ncCamelCaseList', lDM.qryCustomers, nil, dstAllRecords, ncCamelCase)
       .Add('ncPascalCaseList', lDM.qryCustomers, nil, dstAllRecords, ncPascalCase)
+      .Add('ncSnakeCaseList', lDM.qryCustomers, nil, dstAllRecords, ncSnakeCase)
       .Add('ncUpperCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncUpperCase)
       .Add('ncLowerCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncLowerCase)
       .Add('ncCamelCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncCamelCase)
       .Add('ncPascalCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncPascalCase)
+      .Add('ncSnakeCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncSnakeCase)
       .Add('meta', StrDict(['page', 'count'], ['1', lDM.qryCustomers.RecordCount.ToString]));
     Render(lDict);
   finally
@@ -688,8 +694,11 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsText(const ID: Integer);
 begin
-  ResponseStream.AppendLine('ID        :  ' + ID.ToString).AppendLine('FirstName : Daniele')
-    .AppendLine('LastName  : Teti').AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+  ResponseStream
+    .AppendLine('ID        :  ' + ID.ToString)
+    .AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti')
+    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
     .AppendLine('Married   : yes');
   RenderResponseStream;
 end;

@@ -47,7 +47,6 @@ implementation
 
 {$R *.dfm}
 
-
 uses
   System.IOUtils,
   MVCFramework.Commons,
@@ -65,9 +64,11 @@ begin
       // session timeout (0 means session cookie)
       Config[TMVCConfigKey.SessionTimeout] := '0';
       // default content-type
-      Config[TMVCConfigKey.DefaultContentType] := TMVCConstants.DEFAULT_CONTENT_TYPE;
+      Config[TMVCConfigKey.DefaultContentType] :=
+        TMVCConstants.DEFAULT_CONTENT_TYPE;
       // default content charset
-      Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+      Config[TMVCConfigKey.DefaultContentCharset] :=
+        TMVCConstants.DEFAULT_CONTENT_CHARSET;
       // unhandled actions are permitted?
       Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
       // default view file extension
@@ -78,11 +79,6 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
 
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
-    'index.html' { IndexDocument }
-    ));
   FMVC.AddController(TOtherController, '/api/foo');
   FMVC.AddController(TMVCActiveRecordController,
     function: TMVCController
@@ -93,7 +89,8 @@ begin
           Result := TFDConnection.Create(nil);
           Result.ConnectionDefName := ConnectionDefinitionName;
         end,
-        function(aContext: TWebContext; aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean
+        function(aContext: TWebContext; aClass: TMVCActiveRecordClass;
+          aAction: TMVCActiveRecordAction): Boolean
         begin
           if aContext.LoggedUser.IsValid then
           begin

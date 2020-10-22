@@ -17,7 +17,7 @@ type
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/searches/($searchtext)')]
     [MVCProduces('text/plain', 'UTF-8')]
-    procedure SearchCustomers(CTX: TWebContext);
+    procedure SearchCustomers;
 
     { This action requires that the ACCEPT header is application/json to be invocated }
     [MVCHTTPMethod([httpGet])]
@@ -55,9 +55,13 @@ var
   lPerson: TPerson;
 begin
   lPerson := Context.Request.BodyAs<TPerson>;
-  lPerson.Validate;
-  // SavePerson(lPerson);
-  Render(HTTP_STATUS.Created, 'Person created');
+  try
+    lPerson.Validate;
+    // SavePerson(lPerson);
+    Render(HTTP_STATUS.Created, 'Person created');
+  finally
+    lPerson.Free;
+  end;
 end;
 
 procedure TRoutingSampleController.DeletePerson(const id: Integer);
@@ -88,20 +92,20 @@ begin
   Render('This is the root path');
 end;
 
-procedure TRoutingSampleController.SearchCustomers(CTX: TWebContext);
+procedure TRoutingSampleController.SearchCustomers;
 var
   search: string;
   Page: Integer;
   orderby: string;
   S: string;
 begin
-  search := CTX.Request.Params['searchtext'];
+  search := Context.Request.Params['searchtext'];
   Page := 1;
-  if CTX.Request.QueryStringParamExists('page') then
-    Page := StrToInt(CTX.Request.QueryStringParam('page'));
+  if Context.Request.QueryStringParamExists('page') then
+    Page := StrToInt(Context.Request.QueryStringParam('page'));
   orderby := '';
-  if CTX.Request.QueryStringParamExists('order') then
-    orderby := CTX.Request.QueryStringParam('order');
+  if Context.Request.QueryStringParamExists('order') then
+    orderby := Context.Request.QueryStringParam('order');
   S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
     [search, Page, orderby]);
   ResponseStream.AppendLine(S).AppendLine(StringOfChar('*', 30))
