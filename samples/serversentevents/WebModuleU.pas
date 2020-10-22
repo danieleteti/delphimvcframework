@@ -53,7 +53,7 @@ begin
     end);
   FMVC.AddController(TSSEController);
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/static', { StaticFilesPath }
     'www', { DocumentRoot }
     'index.html' {IndexDocument - Before it was named fallbackresource}
     ));
