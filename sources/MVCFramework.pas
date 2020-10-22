@@ -1483,7 +1483,9 @@ function TMVCWebRequest.GetParams(const AParamName: string): string;
 begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(AParamName, Result)) then
   begin
-    Result := FWebRequest.ContentFields.Values[AParamName];
+    Result := '';
+    if FWebRequest.ContentType = TMVCMediaType.APPLICATION_FORM_URLENCODED then
+      Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
       Result := FWebRequest.QueryFields.Values[AParamName];
     if Result.IsEmpty then
