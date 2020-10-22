@@ -30,7 +30,7 @@ begin
     LServer.Active := True;
     Writeln('Press RETURN to stop the server');
 		{$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort)), nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', PChar('http://localhost:' + IntToStr(APort) + '/static'), nil, nil, SW_SHOW);
 		{$ENDIF}
 		ReadLn;
   finally
