@@ -428,8 +428,8 @@ object HeaderFooterForm: THeaderFooterForm
     UpdateOptions.CheckRequired = False
     UpdateOptions.KeyFields = 'id'
     StoreDefs = True
-    Left = 176
-    Top = 424
+    Left = 192
+    Top = 280
     Content = {
       414442530F00000025030000FF00010001FF02FF03040016000000460044004D
       0065006D005400610062006C006500310005000A0000005400610062006C0065
@@ -520,8 +520,8 @@ object HeaderFooterForm: THeaderFooterForm
   object BindingsList1: TBindingsList
     Methods = <>
     OutputConverters = <>
-    Left = 116
-    Top = 85
+    Left = 60
+    Top = 109
     object LinkListControlToField1: TLinkListControlToField
       Category = 'Quick Bindings'
       DataSource = BindSourceDB12
@@ -582,12 +582,12 @@ object HeaderFooterForm: THeaderFooterForm
     Asynchronous = True
     UserAgent = 'Embarcadero URI Client/1.0'
     OnRequestCompleted = NetHTTPClientRequestCompleted
-    Left = 176
+    Left = 192
     Top = 112
   end
   object ActionList1: TActionList
-    Left = 288
-    Top = 128
+    Left = 304
+    Top = 112
     object NextTabAction1: TNextTabAction
       Category = 'Tab'
       TabControl = TabControl1

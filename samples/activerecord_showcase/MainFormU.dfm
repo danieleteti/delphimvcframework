@@ -186,7 +186,7 @@ object MainForm: TMainForm
     OnClick = btnAttributesClick
   end
   object FDConnection1: TFDConnection
-    Left = 176
+    Left = 192
     Top = 56
   end
 end

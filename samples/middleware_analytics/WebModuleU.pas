@@ -89,9 +89,11 @@ begin
       // Enable Server Signature in response
       Config[TMVCConfigKey.ExposeServerSignature] := 'false';
     end);
-  FMVC.AddController(TMainController).AddMiddleware(TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics));
+  FMVC
+    .AddController(TMainController)
+    .AddMiddleware(TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics));
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/static', { StaticFilesPath }
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
     'index.html' {IndexDocument - Before it was named fallbackresource}
     ));

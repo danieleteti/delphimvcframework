@@ -59,9 +59,17 @@ begin
   MVC
     .AddController(TApp1MainController)
     .AddController(TAdminController)
-    .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(TAuthenticationSample.Create, 'mys3cr37', '/login',
-    lClaimsSetup,
-    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300))
+    .AddMiddleware(
+      TMVCJWTAuthenticationMiddleware.Create(
+        TAuthenticationSample.Create,
+        'mys3cr37',
+        '/login',
+        lClaimsSetup,
+        [
+          TJWTCheckableClaim.ExpirationTime,
+          TJWTCheckableClaim.NotBefore,
+          TJWTCheckableClaim.IssuedAt
+        ], 300))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static', { StaticFilesPath }
     '..\..\www' { DocumentRoot }
