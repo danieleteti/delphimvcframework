@@ -11,6 +11,10 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
+{$IFDEF MSWINDOWS}
+  WinAPI.Windows,
+  WinAPI.ShellAPI,
+{$ENDIF}
   WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule} ,
   SysConstantsU in 'SysConstantsU.pas',
   MainDMU in 'MainDMU.pas' {dmMain: TDataModule} ,
@@ -39,6 +43,10 @@ begin
     { more info about ListenQueue
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
     LServer.ListenQueue := 200;
+{$IFDEF MSWINDOWS}
+    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort) +
+      '/static'), nil, nil, SW_SHOWMAXIMIZED);
+{$ENDIF}
     Writeln('Press RETURN to stop the server');
     ReadLn;
     EnterInShutdownState; { WARNING! }

@@ -751,9 +751,9 @@ begin
         begin
           JSONRPCRequestParams.Add(JSONDataValue.IntValue, pdtInteger);
         end
-        else if JSONDataValue.Typ = jdtULong then
+        else if JSONDataValue.Typ = jdtLong then
         begin
-          JSONRPCRequestParams.Add(JSONDataValue.ULongValue, pdtLongInteger);
+          JSONRPCRequestParams.Add(JSONDataValue.LongValue, pdtLongInteger);
         end
         else if JSONDataValue.Typ = jdtULong then
         begin

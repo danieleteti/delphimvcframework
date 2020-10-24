@@ -53,7 +53,7 @@ begin
     end);
   FMVC.AddController(TStatusController);
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/static', { StaticFilesPath }
     ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
     'index.html' {IndexDocument - Before it was named fallbackresource}
     ));

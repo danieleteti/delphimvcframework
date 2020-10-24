@@ -94,10 +94,6 @@ object Form5: TForm5
     object TabSheet3: TTabSheet
       Caption = 'Wine Edit'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object Label1: TLabel
         Left = 16
         Top = 16
@@ -204,10 +200,6 @@ object Form5: TForm5
     object TabSheet2: TTabSheet
       Caption = 'Raw'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object Memo1: TMemo
         Left = 0
         Top = 0
