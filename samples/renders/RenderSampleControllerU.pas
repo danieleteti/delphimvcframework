@@ -55,6 +55,10 @@ type
     procedure GetCustomers_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/dateandtimes/showcase')]
+    procedure GetDateAndTimeShowcase;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers')]
     procedure GetCustomersAsDataSetWithRefLinks;
 
@@ -605,6 +609,11 @@ begin
     lDM.Free;
   end;
 
+end;
+
+procedure TRenderSampleController.GetDateAndTimeShowcase;
+begin
+  Render(GetDataSet);
 end;
 
 procedure TRenderSampleController.GetInterfacedPeople;

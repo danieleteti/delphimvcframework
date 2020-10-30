@@ -102,4 +102,5 @@ unittests/general/Several/Win32/GUI/sqlitetest.db
 unittests/general/Several/bin/sqlitetest.db
 unittests/general/Several/bin/firebirdtest.fdb
 samples/winecellarclient_mobile/Android64/
+samples/middleware_analytics/Win32/
 *.txt
