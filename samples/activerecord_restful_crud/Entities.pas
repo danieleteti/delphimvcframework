@@ -6,7 +6,7 @@ uses
   MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord,
   System.Classes,
-  MVCFramework;
+  MVCFramework, System.Generics.Collections;
 
 type
 
@@ -62,13 +62,6 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
-  [MVCTable('PEOPLE')]
-  [MVCEntityActions([eaCreate, eaRetrieve, eaUpdate, eaDelete])]
-  TContact = class(TPerson)
-
-  end;
-
-  [MVCNameCase(ncLowerCase)]
   [MVCTable('phones')]
   [MVCEntityActions([eaCreate, eaRetrieve, eaUpdate, eaDelete])]
   TPhone = class(TMVCActiveRecord)
@@ -88,6 +81,16 @@ type
     property IDPerson: Integer read fIDPerson write fIDPerson;
     property PhoneNumber: string read fPhoneNumber write fPhoneNumber;
     property NumberType: string read fNumberType write fNumberType;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('PEOPLE')]
+  [MVCEntityActions([eaCreate, eaRetrieve, eaUpdate, eaDelete])]
+  TContact = class(TPerson)
+  private
+    function GetPhones: TObjectList<TPhone>;
+  public
+    property Phones: TObjectList<TPhone> read GetPhones;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -159,7 +162,8 @@ procedure TPerson.OnValidation(const Action: TMVCEntityAction);
 begin
   inherited;
   if fLastName.Trim.IsEmpty or fFirstName.Trim.IsEmpty then
-    raise EMVCActiveRecord.Create('Validation error. FirstName and LastName are required');
+    raise EMVCActiveRecord.Create
+      ('Validation error. FirstName and LastName are required');
 end;
 
 procedure TPerson.SetLastName(const Value: string);
@@ -216,6 +220,14 @@ begin
   inherited;
   if fPhoneNumber.Trim.IsEmpty then
     raise EMVCActiveRecord.Create('Phone Number cannot be empty');
+end;
+
+{ TContact }
+
+function TContact.GetPhones: TObjectList<TPhone>;
+begin
+  Result := TMVCActiveRecord.SelectRQL<TPhone>('eq(IDPerson, ' +
+    self.ID.ToString + ')', 100);
 end;
 
 initialization

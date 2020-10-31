@@ -78,11 +78,6 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
 
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
-    'index.html' { IndexDocument }
-    ));
   FMVC.AddController(TOtherController, '/api/foo');
   FMVC.AddController(TMVCActiveRecordController,
     function: TMVCController

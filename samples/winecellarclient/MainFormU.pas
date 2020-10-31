@@ -69,14 +69,14 @@ uses
 
 procedure TForm5.Button1Click(Sender: TObject);
 var
-  response: IRESTResponse;
+  lResponse: IRESTResponse;
 begin
-  response := RESTClient.doGET('/api/wines', []);
-  Memo1.Lines.Text := response.BodyAsString;
+  lResponse := RESTClient.doGET('/api/wines', []);
+  Memo1.Lines.Text := lResponse.BodyAsString;
   FDMemTable1.Close;
   FDMemTable1.Open;
   Loading := True;
-  FDMemTable1.AppendFromJSONArrayString(response.BodyAsString);
+  FDMemTable1.AppendFromJSONArrayString(lResponse.BodyAsString);
   FDMemTable1.First;
   Loading := False;
 end;

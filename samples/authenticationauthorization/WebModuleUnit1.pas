@@ -48,7 +48,7 @@ begin
     .AddController(TAdminController)
     .AddMiddleware(TMVCBasicAuthenticationMiddleware.Create(TAuthenticationSample.Create))
     .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/static', { StaticFilesPath }
     '..\..\www', { DocumentRoot }
     'index.html',
     False { not serving a SPA }
