@@ -30,6 +30,8 @@ uses
   System.SysUtils, System.Generics.Collections;
 
 type
+  TMVCLRUCacheAction = reference to function(const Key: string): Boolean;
+
   TMVCLRUCache<T: class> = class
   private
     type
@@ -40,8 +42,7 @@ type
       constructor Create(const Key: string; const Item: T);
       destructor Destroy; override;
     end;
-
-  var
+  private
     fCache: TObjectList<TMVCLRUCacheItem>;
     fCapacity: Integer;
   public
@@ -52,10 +53,17 @@ type
     function Contains(const Key: string; out ItemIndex: UInt64): Boolean;
     procedure Put(const Key: string; const Item: T);
     function TryGet(const Key: string; out Item: T): Boolean;
+    procedure RemoveIf(const Action: TMVCLRUCacheAction);
     procedure Clear;
+    function Size: UInt32;
+    procedure Lock;
+    procedure UnLock;
   end;
 
 implementation
+
+uses
+  MVCFramework.Logger;
 
 { TMVCLRUCache }
 
@@ -79,6 +87,11 @@ begin
   end;
 end;
 
+function TMVCLRUCache<T>.Size: UInt32;
+begin
+  Result := fCache.Count;
+end;
+
 constructor TMVCLRUCache<T>.Create(const Capacity: Integer);
 begin
   inherited Create;
@@ -92,6 +105,11 @@ begin
   inherited;
 end;
 
+procedure TMVCLRUCache<T>.Lock;
+begin
+  TMonitor.Enter(Self);
+end;
+
 procedure TMVCLRUCache<T>.Put(const Key: string; const Item: T);
 begin
   if fCache.Count = fCapacity then
@@ -99,6 +117,28 @@ begin
     fCache.Delete(fCache.Count - 1);
   end;
   fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
+end;
+
+procedure TMVCLRUCache<T>.RemoveIf(const Action: TMVCLRUCacheAction);
+var
+  I: Integer;
+  lIndex: Integer;
+  lCacheSize: Integer;
+begin
+  lIndex := 0;
+  lCacheSize := fCache.Count;
+  while lIndex < lCacheSize do
+  begin
+    if Action(fCache[lIndex].Key) then
+    begin
+      fCache.Delete(lIndex);
+    end
+    else
+    begin
+      Inc(lIndex);
+    end;
+    lCacheSize := fCache.Count;
+  end;
 end;
 
 function TMVCLRUCache<T>.TryGet(const Key: string; out Item: T): Boolean;
@@ -120,6 +160,11 @@ begin
     end;
     Item := lCacheItem.Value;
   end;
+end;
+
+procedure TMVCLRUCache<T>.UnLock;
+begin
+  TMonitor.Exit(Self);
 end;
 
 { TMVCLRUCache<T>.TMVCLRUCacheItem<T> }
