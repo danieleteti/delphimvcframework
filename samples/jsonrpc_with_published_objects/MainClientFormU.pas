@@ -85,7 +85,6 @@ type
     DBGrid1: TDBGrid;
     btnGetMulti: TButton;
     lbMulti: TListBox;
-    btnObjDict: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);

@@ -1,4 +1,4 @@
-program WinesClient;
+program WineCellarMobileClient;
 
 uses
   System.StartUpCopy,

@@ -4,16 +4,17 @@ interface
 
 uses
   System.Generics.Collections,
-  BusinessObjectsU;
+  BusinessObjectsU, Data.DB;
 
 function GetPeopleList: TObjectList<TPerson>;
+function GetDataSet: TDataSet;
 function GetPeopleSmallList: TObjectList<TPerson>;
 function GetInterfacedPeopleList: TList<IPerson>;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, FireDAC.Comp.Client, Data.SqlTimSt;
 
 var
   GPeople, GPeopleSmall: TObjectList<TPerson>;
@@ -102,6 +103,51 @@ end;
 function GetPeopleSmallList: TObjectList<TPerson>;
 begin
   Result := GPeopleSmall;
+end;
+
+function CreateDataSet: TFDMemTable;
+var
+  lDS: TFDMemTable;
+begin
+  lDS := TFDMemTable.Create(nil);
+  try
+    lDS.FieldDefs.Add('field_string', ftString, 20);
+    lDS.FieldDefs.Add('field_time', ftTime);
+    lDS.FieldDefs.Add('field_date', ftDate);
+    lDS.FieldDefs.Add('field_datetime', ftDateTime);
+    lDS.FieldDefs.Add('field_timestamp', ftTimeStamp);
+//    lDS.FieldDefs.Add('field_timestamp_with_offset', ftTimeStampOffset);
+    lDS.CreateDataSet;
+    Result := lDS;
+  except
+    lDS.Free;
+    raise;
+  end;
+end;
+
+function GetDataSet: TDataSet;
+var
+  lDS: TFDMemTable;
+  I: Integer;
+begin
+  lDS := CreateDataSet;
+  try
+    for I := 0 to 0 do
+    begin
+      lDS.Insert;
+      lDS.FieldByName('field_string').AsString := 'Field' + I.ToString;
+      lDS.FieldByName('field_time').AsDateTime := Time();
+      lDS.FieldByName('field_date').AsDateTime := Date();
+      lDS.FieldByName('field_datetime').AsDateTime := Now();
+      lDS.FieldByName('field_timestamp').AsSQLTimeStamp := DateTimeToSQLTimeStamp(Now());
+//      lDS.FieldByName('field_timestamp_with_offset').AsSQLTimeStampOffset := DateTimeToSQLTimeStampOffset(Now());
+      lDS.Post;
+    end;
+  except
+    lDS.Free;
+    raise;
+  end;
+  Result := lDS;
 end;
 
 initialization

@@ -341,7 +341,7 @@ object MainForm: TMainForm
         Top = 202
         Width = 304
         Height = 367
-        ActivePage = TabSheet4
+        ActivePage = TabSheet3
         TabOrder = 3
         object TabSheet3: TTabSheet
           Caption = 'Get DataSet'
@@ -389,9 +389,9 @@ object MainForm: TMainForm
           end
           object lbMulti: TListBox
             Left = 16
-            Top = 110
+            Top = 63
             Width = 265
-            Height = 219
+            Height = 266
             Font.Charset = ANSI_CHARSET
             Font.Color = clWindowText
             Font.Height = -11
@@ -400,15 +400,6 @@ object MainForm: TMainForm
             ItemHeight = 14
             ParentFont = False
             TabOrder = 1
-          end
-          object btnObjDict: TButton
-            Left = 13
-            Top = 63
-            Width = 268
-            Height = 41
-            Caption = 'Get ObjectDict'
-            TabOrder = 2
-            OnClick = btnObjDictClick
           end
         end
       end

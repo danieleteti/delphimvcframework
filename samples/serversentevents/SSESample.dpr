@@ -40,7 +40,7 @@ begin
     LServer.ListenQueue := 200;
     { Comment the next line to avoid the default browser startup }
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
+    ShellExecute(0, 'open', PChar('http://localhost:' + inttostr(APort) + '/static'), nil, nil, SW_SHOWMAXIMIZED);
 {$ENDIF}
     Writeln('Press RETURN to stop the server');
     ReadLn;

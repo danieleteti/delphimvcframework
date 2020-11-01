@@ -189,7 +189,7 @@ begin
           for I in lMVCHttpMethods do
           begin
             lSwagPathOp := TSwagPathOperation.Create;
-            TMVCSwagger.FillOperationSummary(lSwagPathOp, lMethod, ASwagDoc.Definitions);
+            TMVCSwagger.FillOperationSummary(lSwagPathOp, lMethod, ASwagDoc.Definitions, I);
             if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
             begin
               lSwagPathOp.Security.Add(lAuthTypeName);

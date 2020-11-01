@@ -61,7 +61,6 @@ type
     FDPhysFBDriverLink1: TFDPhysFBDriverLink;
     qryCountry: TFDQuery;
     FDGUIxWaitCursor1: TFDGUIxWaitCursor;
-    // [MVCNameAs('pippo')]
     qryCustomersCUST_NO: TIntegerField;
     qryCustomersCUSTOMER: TStringField;
     qryCustomersCONTACT_FIRST: TStringField;

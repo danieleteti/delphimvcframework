@@ -51,7 +51,7 @@ begin
       // Here we dont use a fixed ExpirationTime but a LiveValidityWindowInSeconds
       // to make the ExpirationTime dynamic, incrementing the
       // ExpirationTime by LiveValidityWindowInSeconds seconds at each request
-      JWT.LiveValidityWindowInSeconds := 10; // 60 * 60; // 1 hour
+      JWT.LiveValidityWindowInSeconds := 60; // 60 * 60; // 1 hour
     end;
 
   MVC := TMVCEngine.Create(Self,
@@ -69,7 +69,7 @@ begin
     // just for test, Leeway seconds is zero.
     ));
 //    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-//    '/', { StaticFilesPath }
+//    '/static', { StaticFilesPath }
 //    '..\..\www' { DocumentRoot }
 //    ));
 end;
