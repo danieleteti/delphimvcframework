@@ -483,7 +483,7 @@ end;
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
   // fs.TimeSeparator := ':';
-  Result := DateToISO8601(ADateTime, True)
+  Result := DateToISO8601(ADateTime, False)
   // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
 end;
 
@@ -503,6 +503,7 @@ end;
 function ISOTimeStampToDateTime(const ADateTime: string): TDateTime;
 var
   lDateTime: string;
+  lIsUTC: Boolean;
 begin
   lDateTime := ADateTime;
   if lDateTime.Length < 19 then
@@ -514,7 +515,20 @@ begin
   begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
+
+//  lIsUTC := (lDateTime.Length > 19) and  (lDateTime.EndsWith('Z') or
+//    (
+//      ((lDateTime.Length >= 20) and CharInSet(lDateTime.Chars[19], ['+','-']))
+//      or
+//      ((lDateTime.Length >= 24) and CharInSet(lDateTime.Chars[23], ['+','-']))
+//    )
+//    );
+  lIsUTC := lDateTime.Length > 19;
   Result := ISO8601ToDate(lDateTime, True);
+  if lIsUTC then
+  begin
+    Result := TTimeZone.Local.ToLocalTime(Result);
+  end;
 end;
 
 function ISODateToDate(const ADate: string): TDate;
