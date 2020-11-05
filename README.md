@@ -588,6 +588,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Fix for [issue434](https://github.com/danieleteti/delphimvcframework/issues/434)
 
+- Support for [Mustache](https://mustache.github.io/) partials (Thanks to [David Moorhouse](https://github.com/fastbike)). Sample *\samples\serversideviews_mustache* has been updated to show how to use partials.
+
 - Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
 
   ```delphi

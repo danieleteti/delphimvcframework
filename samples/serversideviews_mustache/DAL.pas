@@ -36,6 +36,14 @@ type
   TPeople = class(TObjectList<TPerson>)
   end;
 
+  TRawObj = class
+  private
+    FRawHTML: String;
+    procedure SetRawHTML(const Value: String);
+  published
+  property RawHTML: String read FRawHTML write SetRawHTML;
+  end;
+
   TDevice = class
   private
     fDeviceName: string;
@@ -247,6 +255,13 @@ begin
     if SameText(Self[i].DeviceName, aDeviceName) then
       Exit(i);
   end;
+end;
+
+{ TRawObj }
+
+procedure TRawObj.SetRawHTML(const Value: String);
+begin
+  FRawHTML := Value;
 end;
 
 initialization
