@@ -247,6 +247,8 @@ type
     [Test]
     //[Category('this')]
     procedure TestStringToDateTime_Local;
+    procedure TestStringToDateTime_NewYork;
+    procedure TestStringToDateTime_Mumbai;
   end;
 
 implementation
@@ -2021,13 +2023,24 @@ begin
     12 + TTimeZone.Local.UtcOffset.Hours,
     12 + TTimeZone.Local.UtcOffset.Minutes, 12, 0), lDate);
 
-  // UTC "−05:00" for New York on standard time (UTC-05:00)
-  lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12-05:00');
-  Assert.areEqual(DateTimeToStr(EncodeDateTime(2020, 11, 4, 17, 12, 12, 0)), DateTimeToStr(lDate));
+end;
 
+procedure TTestUTC.TestStringToDateTime_Mumbai;
+var
+  lDate: TDateTime;
+begin
   // UTC "+05:30" for Mumbai (UTC+05:30)
   lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12+05:30');
-  Assert.areEqual(DateTimeToStr(EncodeDateTime(2020, 11, 4, 6, 42, 12, 0)), DateTimeToStr(lDate));
+  Assert.areEqual(DateTimeToStr(EncodeDateTime(2020, 11, 4, 7, 42, 12, 0)), DateTimeToStr(lDate));
+end;
+
+procedure TTestUTC.TestStringToDateTime_NewYork;
+var
+  lDate: TDateTime;
+begin
+  // UTC "−05:00" for New York on standard time (UTC-05:00)
+  lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12-05:00');
+  Assert.areEqual(DateTimeToStr(EncodeDateTime(2020, 11, 4, 18, 12, 12, 0)), DateTimeToStr(lDate));
 end;
 
 initialization

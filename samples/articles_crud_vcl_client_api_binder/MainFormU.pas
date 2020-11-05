@@ -28,6 +28,8 @@ type
     EditFilter: TEdit;
     Label1: TLabel;
     btnFilter: TButton;
+    dsArticlescreated_at: TDateTimeField;
+    dsArticlesupdated_at: TDateTimeField;
     procedure FormCreate(Sender: TObject);
     procedure dsArticlesBeforePost(DataSet: TDataSet);
     procedure dsArticlesBeforeDelete(DataSet: TDataSet);
