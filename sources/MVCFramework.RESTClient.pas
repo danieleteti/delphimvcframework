@@ -1481,7 +1481,6 @@ function TRESTClient.SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
   const AAccept, AContentMediaType, AContentCharset, AResource, ABody: string)
   : IRESTResponse;
 var
-  lBytes: TArray<Byte>;
   lContentCharset: string;
   lEncoding: TEncoding;
   lTmpStrStream: TStringStream;
