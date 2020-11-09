@@ -172,7 +172,11 @@ type
     [Test]
     procedure TestTypedAll;
     [Test]
+    [Category('datetime')]
     procedure TestTypedDateTimeTypes;
+    [Test]
+    [Category('datetime')]
+    procedure TestTypedDateTimeTypes_UTC;
     [Test]
     procedure TestTypedBooleans;
     [Test]
@@ -1594,7 +1598,7 @@ begin
       Assert.areEqual<Int32>(8, lNullableTest.f_int8.Value);
       Assert.areEqual('2011-11-17', DateToISODate(lNullableTest.f_date.Value));
       Assert.areEqual('12:24:36', TimeToISOTime(lNullableTest.f_time.Value));
-      Assert.areEqual('2011-11-17T12:24:36.048Z', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
+      Assert.areEqual('2011-11-17T12:24:36.048+01:00', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
       Assert.areEqual<boolean>(true, lNullableTest.f_bool.Value);
       Assert.areEqual(10 / 4, lNullableTest.f_float4.Value, 0.0000009);
       Assert.areEqual(10 / 8, lNullableTest.f_float8.Value, 0.0000000000009);
@@ -1689,7 +1693,7 @@ begin
       Assert.areEqual<Int32>(8, lNullableTest.f_int8.Value);
       Assert.areEqual('2011-11-17', DateToISODate(lNullableTest.f_date.Value));
       Assert.areEqual('12:24:36', TimeToISOTime(lNullableTest.f_time.Value));
-      Assert.areEqual('2011-11-17T12:24:36.048Z', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
+      Assert.areEqual('2011-11-17T12:24:36.048+01:00', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
       Assert.areEqual<boolean>(true, lNullableTest.f_bool.Value);
       Assert.areEqual(10 / 4, lNullableTest.f_float4.Value, 0.0000009);
       Assert.areEqual(10 / 8, lNullableTest.f_float8.Value, 0.0000000000009);
@@ -2057,19 +2061,24 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.BadRequest, res.StatusCode, 'wrong TDateTime (2)');
 
   // Correct without 'T'
-  res := RESTClient.Get('/typed/tdatetime1/2016-10-12 12:12:12');
-  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode, 'wrong TDateTime (3)');
-  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.Content);
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode, 'wrong TDateTime (3)');
+  Assert.areEqual('2016-10-12T12:12:12.000+02:00 modified from server', res.BodyAsString);
 
-  // Correct in extended form
-  res := RESTClient.Get('/typed/tdatetime1/2016-10-12T12:12:12');
-  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
-  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.Content);
+  // Correct in extended form with zero UTC offset
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12Z', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual('2016-10-12T14:12:12.000+02:00 modified from server', res.BodyAsString);
+
+  // Correct in extended form without timezone
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual('2016-10-12T12:12:12.000+02:00 modified from server', res.BodyAsString);
 
   // Correct in extended form with timezone
-  res := RESTClient.Get('/typed/tdatetime1/2016-10-12T12:12:12.000Z');
-  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
-  Assert.areEqual('2016-10-12T12:12:12.000Z modified from server', res.Content);
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12.000Z', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual('2016-10-12T14:12:12.000+02:00 modified from server', res.BodyAsString);
 
   // TTime, wrong and correct
   res := RESTClient.Get('/typed/ttime1/121212');
@@ -2079,6 +2088,26 @@ begin
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
   Assert.areEqual('12:12:12 modified from server', res.Content);
 
+end;
+
+procedure TServerTest.TestTypedDateTimeTypes_UTC;
+var
+  res: IRESTResponse;
+begin
+  // If no UTC zone is defined, server must assume its local time zone
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12 12:12:12', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode, 'wrong TDateTime (3)');
+  Assert.areEqual('2016-10-12T12:12:12.000+02:00 modified from server', res.BodyAsString);
+
+  // With UTC zero offset, server must return time expressed as its local UTC
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12Z', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual('2016-10-12T14:12:12.000+02:00 modified from server', res.BodyAsString);
+
+  // Correct in extended form with timezone
+  res := RESTClient.doGET('/typed/tdatetime1/2016-10-12T12:12:12.000Z', []);
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, res.ResponseCode);
+  Assert.areEqual('2016-10-12T14:12:12.000+02:00 modified from server', res.BodyAsString);
 end;
 
 procedure TBaseServerTest.DoLoginWith(UserName: string);

@@ -101,13 +101,14 @@ resourcestring
     '  try' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
+    '    LServer.KeepAlive := True;' + sLineBreak +    
     sLineBreak +
     '    { more info about MaxConnections' + sLineBreak +
-    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }' + sLineBreak +
+    '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
     '    LServer.MaxConnections := 0;' + sLineBreak +
     sLineBreak +
     '    { more info about ListenQueue' + sLineBreak +
-    '      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }' + sLineBreak +
+    '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
 	'    {required if you use JWT middleware }' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
