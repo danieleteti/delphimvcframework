@@ -504,6 +504,18 @@ begin
         Continue;
       end;
 
+      if lObj.Data is TJsonObject then
+      begin
+        lOutObject.O[lName] := TJsonObject(TJsonObject(lObj.Data).Clone);
+        Continue;
+      end;
+
+      if lObj.Data is TJsonArray then
+      begin
+        lOutObject.A[lName] := TJsonArray(TJsonArray(lObj.Data).Clone);
+        Continue;
+      end;
+
       if TDuckTypedList.CanBeWrappedAsList(lObj.Data, lList) then
       begin
         fCurrentSerializer.ListToJsonArray(lList, lOutObject.A[lName], TMVCSerializationType.stDefault, [],
