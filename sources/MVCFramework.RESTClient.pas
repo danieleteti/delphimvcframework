@@ -538,7 +538,6 @@ begin
   try
     fRawBody.Clear;
 
-    lBytes := TEncoding.Convert(TEncoding.Default, lEncoding, TEncoding.Default.GetBytes(aBody));
     lBytes := lEncoding.GetBytes(aBody);
     fRawBody.WriteData(lBytes, Length(lBytes));
     SetContentType(BuildContentType(lContentType, lContentCharset));
