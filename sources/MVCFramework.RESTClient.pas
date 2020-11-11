@@ -1458,7 +1458,7 @@ begin
   lTmp := TMemoryStream.Create;
   try
     Result.Body.Position := 0;
-{$IF Defined(SeattleOrBetter)}
+{$IF Defined(BerlinOrBetter)}
     lDecomp := TZDecompressionStream.Create(Result.Body,
       MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
 {$ELSE}
