@@ -397,7 +397,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
-## 3.2.1-carbon ("repo" version currently in beta)
+## 3.2.1-carbon ("repo" version currently in RC phase)
 
 ### Improvements and Bug Fixes
 
@@ -589,6 +589,8 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fix for [issue434](https://github.com/danieleteti/delphimvcframework/issues/434)
 
 - Fix for [issue221](https://github.com/danieleteti/delphimvcframework/issues/221)
+
+- Fix for [issue430](https://github.com/danieleteti/delphimvcframework/issues/430) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
 
 - Support for [Mustache](https://mustache.github.io/) partials (Thanks to [David Moorhouse](https://github.com/fastbike) and his work about [issue 221](https://github.com/danieleteti/delphimvcframework/issues/221)). Sample *\samples\serversideviews_mustache* has been updated to show how to use partials.
 
