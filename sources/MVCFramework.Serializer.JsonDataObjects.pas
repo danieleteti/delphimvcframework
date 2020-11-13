@@ -504,6 +504,7 @@ var
   lObj: TObject;
   lJSONValue: TJsonBaseObject;
   lJsonDataType: TJsonDataType;
+  lLinks: IMVCLinks;
 begin
   Result := nil;
   try
@@ -569,7 +570,9 @@ begin
       begin
         Result := TJsonObject.Create;
         AJsonDataType := jdtObject;
-        ObjectToJsonObject(AObject, TJsonObject(Result), GetSerializationType(AObject, AType), AIgnoredAttributes);
+        lLinks := TMVCLinks.Create;
+        InternalObjectToJsonObject(AObject, TJsonObject(Result), GetSerializationType(AObject, AType), AIgnoredAttributes,
+          ASerializationAction, lLinks, nil);
       end;
     end;
   except
@@ -1384,10 +1387,10 @@ begin
         TFieldType.ftDate:
           Field.AsDateTime := ISODateToDate(AJsonObject.S[lName]);
 
-        TFieldType.ftDateTime:
+        TFieldType.ftDateTime, TFieldType.ftTimeStamp:
           Field.AsDateTime := ISOTimeStampToDateTime(AJsonObject.S[lName]);
 
-        TFieldType.ftTimeStamp, TFieldType.ftTime:
+        TFieldType.ftTime:
           Field.AsDateTime := ISOTimeToTime(AJsonObject.S[lName]);
 
 {$IFDEF TOKYOORBETTER}

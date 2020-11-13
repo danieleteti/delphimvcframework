@@ -55,6 +55,10 @@ type
     [MVCProduces(TMVCMediaType.TEXT_HTML)]
     procedure Index;
 
+    [MVCPath('/showcase')]
+    [MVCHTTPMethods([httpGET])]
+    [MVCProduces(TMVCMediaType.TEXT_HTML)]
+    procedure MustacheTemplateShowCase;
   end;
 
 implementation
@@ -135,6 +139,38 @@ end;
 procedure TWebSiteController.Index;
 begin
   Redirect('/people');
+end;
+
+procedure TWebSiteController.MustacheTemplateShowCase;
+var
+  LDAL: IPeopleDAL;
+  lPeople, lPeople2: TPeople;
+  lMyObj: TMyObj;
+begin
+  LDAL := TServicesFactory.GetPeopleDAL;
+  lPeople := LDAL.GetPeople;
+  try
+    lPeople2 := TPeople.Create;
+    try
+      lMyObj := TMyObj.Create;
+      try
+        lMyObj.RawHTML := '<h1>This is</h1>Raw<br><span>HTML</span>';
+        ViewData['people'] := lPeople;
+        ViewData['people2'] := lPeople2;
+        ViewData['myobj'] := lMyObj;
+        LoadView(['showcase']);
+        RenderResponseStream;
+      finally
+        lMyObj.Free;
+      end;
+    finally
+      lPeople2.Free;
+    end;
+  finally
+    lPeople.Free;
+  end;
+  // ViewData['myobj'] := TPerson.Create;
+  // TPerson(ViewData['myobj']).FirstName := 'Daniele <br> Teti';
 end;
 
 procedure TWebSiteController.NewPerson;

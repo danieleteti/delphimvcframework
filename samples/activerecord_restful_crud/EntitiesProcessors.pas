@@ -10,30 +10,40 @@ uses
 type
   TArticleProcessor = class(TInterfacedObject, IMVCEntityProcessor)
   public
-    procedure CreateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
+    procedure CreateEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
-    procedure GetEntities(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
+    procedure GetEntities(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
-    procedure GetEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-      const id: Integer; var Handled: Boolean);
-    procedure UpdateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-      const id: Integer; var Handled: Boolean);
-    procedure DeleteEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-      const id: Integer; var Handled: Boolean);
+    procedure GetEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      var Handled: Boolean);
+    procedure UpdateEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      var Handled: Boolean);
+    procedure DeleteEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      var Handled: Boolean);
   end;
 
   TContactProcessor = class(TInterfacedObject, IMVCEntityProcessor)
   public
-    procedure CreateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
+    procedure CreateEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
-    procedure GetEntities(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
+    procedure GetEntities(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
-    procedure GetEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-      const id: Integer; var Handled: Boolean);
-    procedure UpdateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-      const id: Integer; var Handled: Boolean);
-    procedure DeleteEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-      const id: Integer; var Handled: Boolean);
+    procedure GetEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      var Handled: Boolean);
+    procedure UpdateEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      var Handled: Boolean);
+    procedure DeleteEntity(const Context: TWebContext;
+      const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+      var Handled: Boolean);
   end;
 
 implementation
@@ -47,10 +57,10 @@ uses
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
   System.Generics.Collections,
-  MVCFramework.DuckTyping;
+  MVCFramework.DuckTyping, MVCFramework.Commons, System.NetEncoding;
 
-procedure TArticleProcessor.CreateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-  var Handled: Boolean);
+procedure TArticleProcessor.CreateEntity(const Context: TWebContext;
+  const Renderer: TMVCRenderer; const entityname: string; var Handled: Boolean);
 var
   lArticle: TArticle;
 begin
@@ -64,26 +74,37 @@ begin
   Handled := True;
 end;
 
-procedure TArticleProcessor.DeleteEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-  const id: Integer; var Handled: Boolean);
-begin
-  Handled := False;
-end;
-
-procedure TArticleProcessor.GetEntities(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
+procedure TArticleProcessor.DeleteEntity(const Context: TWebContext;
+  const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
   var Handled: Boolean);
 begin
   Handled := False;
 end;
 
-procedure TArticleProcessor.GetEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-  const id: Integer; var Handled: Boolean);
+procedure TArticleProcessor.GetEntities(const Context: TWebContext;
+  const Renderer: TMVCRenderer; const entityname: string; var Handled: Boolean);
+begin
+  Handled := True;
+  Renderer.Render(ObjectDict().Add('data', TMVCActiveRecord.All<TArticle>,
+    procedure(const AObject: TObject; const Links: IMVCLinks)
+    begin
+      Links.AddRefLink
+        .Add(HATEOAS.HREF, 'https://www.google.com/search?q=' + TNetEncoding.URL.EncodeQuery(TArticle(AObject).Description))
+        .Add(HATEOAS._TYPE, 'text/html')
+        .Add(HATEOAS.REL, 'googlesearch');
+    end));
+end;
+
+procedure TArticleProcessor.GetEntity(const Context: TWebContext;
+const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+var Handled: Boolean);
 begin
   Handled := False;
 end;
 
-procedure TArticleProcessor.UpdateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
-  const id: Integer; var Handled: Boolean);
+procedure TArticleProcessor.UpdateEntity(const Context: TWebContext;
+const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+var Handled: Boolean);
 begin
   Handled := False;
 end;
@@ -91,7 +112,7 @@ end;
 { TPeopleProcessor }
 
 procedure TContactProcessor.CreateEntity(const Context: TWebContext;
-  const Renderer: TMVCRenderer; const entityname: string; var Handled: Boolean);
+const Renderer: TMVCRenderer; const entityname: string; var Handled: Boolean);
 var
   lSer: TMVCJsonDataObjectsSerializer;
   lJSON: TJsonObject;
@@ -111,12 +132,14 @@ begin
       lPerson := TPerson.Create;
       try
         // deserialize person
-        lSer.JsonObjectToObject(lJSON, lPerson, TMVCSerializationType.stDefault, nil);
+        lSer.JsonObjectToObject(lJSON, lPerson,
+          TMVCSerializationType.stDefault, nil);
 
         lPhones := TObjectList<TPhone>.Create(True);
         try
           // deserialize phones
-          lSer.JsonArrayToList(lJSON.A['phones'], WrapAsList(lPhones), TPhone, TMVCSerializationType.stDefault, nil);
+          lSer.JsonArrayToList(lJSON.A['phones'], WrapAsList(lPhones), TPhone,
+            TMVCSerializationType.stDefault, nil);
 
           // persist to database using transaction
           TMVCActiveRecord.CurrentConnection.StartTransaction;
@@ -146,26 +169,27 @@ begin
   finally
     lSer.Free;
   end;
-  Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo + '/' + lID.ToString;
+  Context.Response.CustomHeaders.Values['X-REF'] := Context.Request.PathInfo +
+    '/' + lID.ToString;
   Renderer.Render(TMVCResponse.Create(201, 'Contact created with phones', ''));
 end;
 
 procedure TContactProcessor.DeleteEntity(const Context: TWebContext;
-  const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
-  var Handled: Boolean);
+const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+var Handled: Boolean);
 begin
   Handled := False; // inherit the default behaviour
 end;
 
 procedure TContactProcessor.GetEntities(const Context: TWebContext;
-  const Renderer: TMVCRenderer; const entityname: string; var Handled: Boolean);
+const Renderer: TMVCRenderer; const entityname: string; var Handled: Boolean);
 begin
   Handled := False; // inherit the default behaviour
 end;
 
 procedure TContactProcessor.GetEntity(const Context: TWebContext;
-  const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
-  var Handled: Boolean);
+const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+var Handled: Boolean);
 var
   lContact: TContact;
   lSer: TMVCJsonDataObjectsSerializer;
@@ -182,8 +206,10 @@ begin
       try
         lJSON := TJsonObject.Create;
         try
-          lSer.ObjectToJsonObject(lContact, lJSON, TMVCSerializationType.stDefault, nil);
-          lSer.ListToJsonArray(WrapAsList(lPhones), lJSON.A['phones'], TMVCSerializationType.stDefault, nil);
+          lSer.ObjectToJsonObject(lContact, lJSON,
+            TMVCSerializationType.stDefault, nil);
+          lSer.ListToJsonArray(WrapAsList(lPhones), lJSON.A['phones'],
+            TMVCSerializationType.stDefault, nil);
           Renderer.Render(lJSON, False);
         finally
           lJSON.Free;
@@ -201,16 +227,18 @@ begin
 end;
 
 procedure TContactProcessor.UpdateEntity(const Context: TWebContext;
-  const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
-  var Handled: Boolean);
+const Renderer: TMVCRenderer; const entityname: string; const id: Integer;
+var Handled: Boolean);
 begin
   Handled := False; // inherit the default behaviour
 end;
 
 initialization
 
-ActiveRecordMappingRegistry.AddEntityProcessor('articles', TArticleProcessor.Create);
-ActiveRecordMappingRegistry.AddEntityProcessor('contacts', TContactProcessor.Create);
+ActiveRecordMappingRegistry.AddEntityProcessor('articles',
+  TArticleProcessor.Create);
+ActiveRecordMappingRegistry.AddEntityProcessor('contacts',
+  TContactProcessor.Create);
 
 finalization
 

@@ -23,9 +23,13 @@ type
     FPrice: Currency;
     FCode: string;
     FDescription: String;
+    FUpdatedAt: TDateTime;
+    FCreatedAt: TDateTime;
     procedure SetCode(const Value: string);
     procedure SetDescription(const Value: String);
     procedure SetPrice(const Value: Currency);
+    procedure SetCreatedAt(const Value: TDateTime);
+    procedure SetUpdatedAt(const Value: TDateTime);
   public
     procedure CheckInsert; override;
     procedure CheckUpdate; override;
@@ -36,6 +40,10 @@ type
     property Description: String read FDescription write SetDescription;
     [MVCColumn('PREZZO')]
     property Price: Currency read FPrice write SetPrice;
+    [MVCColumn('CREATED_AT')]
+    property CreatedAt: TDateTime read FCreatedAt write SetCreatedAt;
+    [MVCColumn('UPDATED_AT')]
+    property UpdatedAt: TDateTime read FUpdatedAt write SetUpdatedAt;
   end;
 
 implementation
@@ -94,6 +102,11 @@ begin
   FCode := Value;
 end;
 
+procedure TArticle.SetCreatedAt(const Value: TDateTime);
+begin
+  FCreatedAt := Value;
+end;
+
 procedure TArticle.SetDescription(const Value: String);
 begin
   FDescription := Value;
@@ -102,6 +115,11 @@ end;
 procedure TArticle.SetPrice(const Value: Currency);
 begin
   FPrice := Value;
+end;
+
+procedure TArticle.SetUpdatedAt(const Value: TDateTime);
+begin
+  FUpdatedAt := Value;
 end;
 
 end.

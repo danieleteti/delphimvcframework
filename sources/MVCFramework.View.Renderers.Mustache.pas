@@ -49,36 +49,59 @@ type
 implementation
 
 uses
+  System.Generics.Collections,
   SynMustache,
   SynCommons,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
-  MVCFramework.DuckTyping, System.Generics.Collections;
+  MVCFramework.DuckTyping;
 
 {$WARNINGS OFF}
 
+type
+  TSynMustacheAccess = class(TSynMustache)
+  end;
 
 procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStream: TStream);
 var
+  I: Integer;
+  lPartialName: string;
+  lData: TObject;
   lViewFileName: string;
   lViewTemplate: RawUTF8;
   lViewEngine: TSynMustache;
   lSW: TStreamWriter;
+  lPartials: TSynMustachePartials;
 begin
   PrepareModels;
   lViewFileName := GetRealFileName(ViewName);
   if not FileExists(lViewFileName) then
     raise EMVCFrameworkViewException.CreateFmt('View [%s] not found', [ViewName]);
   lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
-  { don't free this instance! There is a garbagecollector in SynCommons }
+
   lViewEngine := TSynMustache.Parse(lViewTemplate);
   lSW := TStreamWriter.Create(OutputStream);
+  lPartials := TSynMustachePartials.Create;
   try
-    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel)));
+    for I := 0 to Length(TSynMustacheAccess(lViewEngine).fTags) - 1 do
+    begin
+      if TSynMustacheAccess(lViewEngine).fTags[I].Kind = mtPartial then
+      begin
+        lPartialName := TSynMustacheAccess(lViewEngine).fTags[I].Value;
+        lViewFileName := GetRealFileName(lPartialName);
+        if not FileExists(lViewFileName) then
+          raise EMVCFrameworkViewException.CreateFmt('Partial View [%s] not found', [lPartialName]);
+        lViewTemplate := StringToUTF8(TFile.ReadAllText(lViewFileName, TEncoding.UTF8));
+        lPartials.Add(lPartialName, lViewTemplate);
+      end;
+    end;
+    lSW.Write(UTF8Tostring(lViewEngine.RenderJSON(FJSONModel, lPartials, nil, nil)));
   finally
     lSW.Free;
+    lPartials.Free;
   end;
 end;
+
 
 {$WARNINGS ON}
 
