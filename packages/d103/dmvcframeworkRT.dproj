@@ -1,4 +1,4 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{96D17257-AF74-48CB-9893-7BCCB56A069D}</ProjectGuid>
         <MainSource>dmvcframeworkRT.dpk</MainSource>
@@ -126,10 +126,10 @@
         <DCC_DcpOutput>..\..\..\..\bin\SDK\</DCC_DcpOutput>
         <DCC_BplOutput>..\..\..\..\bin\</DCC_BplOutput>
         <DCC_UnitSearchPath>..\..\..\..\bin\SDK\;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-        <Debugger_HostApplication>C:\DEV\dmscontainer_v3_1_0\bin\DMSContainerService.exe</Debugger_HostApplication>
+        <Debugger_HostApplication>C:\DEV\dmscontainer_v4_0_0\bin\DMSContainerService.exe</Debugger_HostApplication>
         <Debugger_RunParams>/console</Debugger_RunParams>
-        <Debugger_EnvVars>DMS_HOME=C:\DEV\dmscontainer_v3_1_0\bin\;$(Debugger_EnvVars)</Debugger_EnvVars>
-        <Debugger_DebugSourcePath>C:\DEV\dmscontainer_v3_1_0\libs\delphimvcframework\sources\;C:\DEV\dmscontainer_v3_1_0\libs\delphimvcframework\packages\d103\;$(Debugger_DebugSourcePath)</Debugger_DebugSourcePath>
+        <Debugger_EnvVars>DMS_HOME=C:\DEV\dmscontainer_v4_0_0\bin\;$(Debugger_EnvVars)</Debugger_EnvVars>
+        <Debugger_DebugSourcePath>C:\DEV\dmscontainer_v4_0_0\libs\delphimvcframework\sources\;C:\DEV\dmscontainer_v4_0_0\libs\delphimvcframework\packages\d103\;$(Debugger_DebugSourcePath)</Debugger_DebugSourcePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
