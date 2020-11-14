@@ -142,7 +142,7 @@ begin
   lReq.RequestID := Random(1000);
   lReq.Params.Add(dtNextMonday.Date);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  dtNextMonday.Date := ISOTimeStampToDateTime(lResp.Result.AsString);
+  dtNextMonday.Date := ISODateToDate(lResp.Result.AsString);
 end;
 
 procedure TMainForm.btnDatesClick(Sender: TObject);
@@ -156,7 +156,7 @@ begin
   lReq.Params.Add(Date(), pdtDate);
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  ShowMessage(DateTimeToStr(lResp.Result.AsType<TDateTime>));
+  ShowMessage(lResp.Result.AsString);
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);

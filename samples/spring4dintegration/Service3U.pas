@@ -31,7 +31,7 @@ end;
 
 destructor TCommonService.Destroy;
 begin
-  LogI('destroing ' + ClassName);
+  LogI('destroying ' + ClassName);
   inherited;
 end;
 

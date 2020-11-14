@@ -109,7 +109,7 @@ begin
   lReq.RequestID := Random(1000);
   lReq.Params.Add(dtNextMonday.Date);
   lResp := FExecutor.ExecuteRequest(lReq);
-  dtNextMonday.Date := ISOTimeStampToDateTime(lResp.Result.AsString);
+  dtNextMonday.Date := ISODateToDate(lResp.Result.AsString);
 end;
 
 procedure TForm10.btnGetUserClick(Sender: TObject);
