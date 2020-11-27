@@ -100,6 +100,7 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.pas"/>
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.HTML.pas"/>
+        <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
         <BuildConfiguration Include="CI">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -147,16 +148,16 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="TestServer" Configuration="CI" Class="ProjectOutput">
-                    <Platform Name="Linux64">
-                        <RemoteName>TestServer</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="bin\www\index.html" Configuration="CI" Class="File">
                     <Platform Name="Linux64">
                         <RemoteDir>.\www</RemoteDir>
                         <RemoteName>index.html</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="TestServer" Configuration="CI" Class="ProjectOutput">
+                    <Platform Name="Linux64">
+                        <RemoteName>TestServer</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

@@ -295,10 +295,12 @@ type
     FId: Int64;
     FNames: TArray<String>;
     FValues: TArray<Integer>;
+    FBooleans: TArray<Boolean>;
   public
     property Id: Int64 read FId write FId;
     property Names: TArray<String> read FNames write FNames;
     property Values: TArray<Integer> read FValues write FValues;
+    property Booleans: TArray<Boolean> read FBooleans write FBooleans;
   end;
 
   IChildEntity = interface

@@ -66,7 +66,6 @@ procedure TMVCMustacheViewEngine.Execute(const ViewName: string; const OutputStr
 var
   I: Integer;
   lPartialName: string;
-  lData: TObject;
   lViewFileName: string;
   lViewTemplate: RawUTF8;
   lViewEngine: TSynMustache;

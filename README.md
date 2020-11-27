@@ -584,9 +584,11 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Fix for [issue438](https://github.com/danieleteti/delphimvcframework/issues/438) (Thanks to [jadeade](https://github.com/jadeade))
 
+- Fix for [issue432](https://github.com/danieleteti/delphimvcframework/issues/432)
+
 - Fix for [issue435](https://github.com/danieleteti/delphimvcframework/issues/435) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
 
-- Fix for [issue434](https://github.com/danieleteti/delphimvcframework/issues/434)
+- Fix for [issue434](https://github.com/danieleteti/delphimvcframework/issues/434) (Thanks to [David Moorhouse](https://github.com/fastbike) for his detailed analysis)
 
 - Fix for [issue221](https://github.com/danieleteti/delphimvcframework/issues/221)
 
