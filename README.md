@@ -1,6 +1,6 @@
-![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
+![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.1--carbon-blue?style=for-the-badge)
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
-![](https://img.shields.io/badge/next%20DMVCFramework%20version-3.2.1--carbon-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
+![](https://img.shields.io/badge/Next%20DMVCFramework%20Version-3.2.2--nitrogen-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Releases%20download)
 
 
 
