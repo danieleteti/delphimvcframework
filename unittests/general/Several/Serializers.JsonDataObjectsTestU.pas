@@ -73,6 +73,7 @@ type
     [Test]
     procedure TestSerializeEntityUpperCaseNames;
     [Test]
+//    [Category('this')]
     procedure TestSerializeEntityWithArray;
     [Test]
     procedure TestSerializeEntityLowerCaseNames;
@@ -89,7 +90,7 @@ type
     [Test]
     procedure TestSerializeDataSet;
     [Test]
-    [Category('this')]
+    [Category('datasets')]
     procedure TestDataSetHelpers;
     { deserialize declarations }
     [Test]
@@ -109,6 +110,7 @@ type
     [Test]
     procedure TestSerializeEmptyDataSet;
     [Test]
+//    [Category('this')]
     procedure TestDeserializeEntityWithArray;
     { full cycle }
     [Test]
@@ -606,11 +608,14 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityWithArray;
     Assert.isTrue(AEntity.Names[1] = 'Oliveira');
     Assert.isTrue(AEntity.Values[0] = 1);
     Assert.isTrue(AEntity.Values[1] = 2);
+    Assert.isTrue(AEntity.Booleans[0] = true);
+    Assert.isTrue(AEntity.Booleans[1] = false);
+    Assert.isTrue(AEntity.Booleans[2] = true);
   end;
 
 const
   JSON_WITH_ARRAY = '{' + '"Id":1,' + '"Names":["Pedro","Oliveira"],' +
-    '"Values":[1,2]' + '}';
+    '"Values":[1,2],"Booleans":[true,false,true]}';
 var
   O: TEntityWithArray;
 begin
@@ -1176,7 +1181,7 @@ end;
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityWithArray;
 const
   JSON_WITH_ARRAY = '{' + '"Id":1,' + '"Names":["Pedro","Oliveira"],' +
-    '"Values":[1,2]' + '}';
+    '"Values":[1,2],"Booleans":[true,false,true]' + '}';
 var
   O: TEntityWithArray;
   S: string;
@@ -1186,7 +1191,7 @@ begin
     O.Id := 1;
     O.Names := ['Pedro', 'Oliveira'];
     O.Values := [1, 2];
-
+    O.Booleans := [true, false, true];
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON_WITH_ARRAY, S);
   finally

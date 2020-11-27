@@ -23,7 +23,8 @@ uses
   TestServerControllerJSONRPCU in 'TestServerControllerJSONRPCU.pas',
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
   RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
-  MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas';
+  MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas',
+  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas';
 
 {$R *.res}
 
@@ -31,8 +32,8 @@ procedure Logo;
 begin
   ResetConsole();
   Writeln;
-  TextBackground(Black);
-  TextColor(Red);
+  TextBackground(TConsoleColor.Black);
+  TextColor(TConsoleColor.Red);
   Writeln(' ██████╗ ███╗   ███╗██╗   ██╗ ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗');
   Writeln(' ██╔══██╗████╗ ████║██║   ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗');
   Writeln(' ██║  ██║██╔████╔██║██║   ██║██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝');
@@ -40,9 +41,9 @@ begin
   Writeln(' ██████╔╝██║ ╚═╝ ██║ ╚████╔╝ ╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║');
   Writeln(' ╚═════╝ ╚═╝     ╚═╝  ╚═══╝   ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝');
   Writeln(' ');
-  TextColor(Yellow);
+  TextColor(TConsoleColor.Yellow);
   Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
-  TextColor(White);
+  TextColor(TConsoleColor.White);
 end;
 
 procedure RunServer(APort: Integer);
@@ -65,7 +66,7 @@ begin
     LServer.ListenQueue := 200;
     Writeln('Press RETURN to stop the server');
     WaitForReturn;
-    TextColor(Red);
+    TextColor(TConsoleColor.Red);
     Writeln('Server stopped');
     ResetConsole();
   finally

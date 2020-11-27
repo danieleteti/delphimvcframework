@@ -2,45 +2,33 @@ program jwtplainserver;
 
 {$APPTYPE CONSOLE}
 
-
 uses
   System.SysUtils,
-  Winapi.Windows,
   Winapi.ShellAPI,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MyControllerU in 'MyControllerU.pas',
-  MainWebModuleU in 'MainWebModuleU.pas', MVCFramework.Commons {MyWebModule: TWebModule};
+  MainWebModuleU in 'MainWebModuleU.pas',
+  MVCFramework.Commons {MyWebModule: TWebModule};
 
 {$R *.res}
 
-
 procedure RunServer(APort: Integer);
 var
-  LInputRecord: TInputRecord;
-  LEvent: DWord;
-  LHandle: THandle;
   LServer: TIdHTTPWebBrokerBridge;
 begin
   Writeln('** DMVCFramework Server **');
   Writeln(Format('Starting HTTP Server on port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    LServer.OnParseAuthentication :=
+      TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     // ShellExecute(0, 'open', pChar('http://localhost:' + inttostr(APort)), nil, nil, SW_SHOWMAXIMIZED);
-    Writeln('Press ESC to stop the server');
-    LHandle := GetStdHandle(STD_INPUT_HANDLE);
-    while True do
-    begin
-      Win32Check(ReadConsoleInput(LHandle, LInputRecord, 1, LEvent));
-      if (LInputRecord.EventType = KEY_EVENT) and
-        LInputRecord.Event.KeyEvent.bKeyDown and
-        (LInputRecord.Event.KeyEvent.wVirtualKeyCode = VK_ESCAPE) then
-        break;
-    end;
+    Writeln('Press RETURN to stop the server');
+    Readln;
   finally
     LServer.Free;
   end;
