@@ -933,7 +933,7 @@ end;
 
 procedure TServerTest.TestEntityWithArrays;
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
   lObj1, lObj2: TEntityWithArray;
   lBody: String;
 begin
@@ -944,10 +944,10 @@ begin
     lObj1.Booleans := [true, false];
     lBody := GetDefaultSerializer.SerializeObject(lObj1);
 
-    lRes := RESTClient.doPOST('/entitywitharrays', [], lBody);
+    lRes := RESTClient.Post('/entitywitharrays', lBody);
     lObj2 := TEntityWithArray.Create;
     try
-      GetDefaultSerializer.DeserializeObject(lRes.BodyAsString, lObj2);
+      GetDefaultSerializer.DeserializeObject(lRes.Content, lObj2);
 
       Assert.AreEqual(4, Length(lObj2.Names));
       Assert.AreEqual(lObj1.Names[0], lObj2.Names[0]);
@@ -975,7 +975,7 @@ end;
 
 procedure TServerTest.TestEntityWithEmptyArrays;
 var
-  lRes: IRESTResponse;
+  lRes: IMVCRESTResponse;
   lObj1, lObj2: TEntityWithArray;
   lBody: String;
 begin
@@ -983,10 +983,10 @@ begin
   try
     lBody := GetDefaultSerializer.SerializeObject(lObj1);
 
-    lRes := RESTClient.doPOST('/entitywitharrays', [], lBody);
+    lRes := RESTClient.Post('/entitywitharrays',  lBody);
     lObj2 := TEntityWithArray.Create;
     try
-      GetDefaultSerializer.DeserializeObject(lRes.BodyAsString, lObj2);
+      GetDefaultSerializer.DeserializeObject(lRes.Content, lObj2);
 
       Assert.AreEqual(1, Length(lObj2.Names));
       Assert.AreEqual('added', lObj2.Names[0]);
