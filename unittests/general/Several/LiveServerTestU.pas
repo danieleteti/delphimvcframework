@@ -136,6 +136,12 @@ type
     [Test]
     procedure TestBasicAuth01;
     [Test]
+    [Category('this')]
+    procedure TestEntityWithArrays;
+    [Test]
+    [Category('this')]
+    procedure TestEntityWithEmptyArrays;
+    [Test]
     procedure TestBasicAuth02;
     [Test]
     procedure TestBasicAuth03;
@@ -331,7 +337,7 @@ uses
   MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes,
   Vcl.Graphics
 {$ENDIF}
-    , TestConstsU;
+    , TestConstsU, MVCFramework.Tests.Serializer.Entities;
 
 function GetServer: string;
 begin
@@ -923,6 +929,79 @@ begin
     If this test fail, check
     http://qc.embarcadero.com/wc/qcmain.aspx?d=119779
   }
+end;
+
+procedure TServerTest.TestEntityWithArrays;
+var
+  lRes: IRESTResponse;
+  lObj1, lObj2: TEntityWithArray;
+  lBody: String;
+begin
+  lObj1 := TEntityWithArray.Create;
+  try
+    lObj1.Names := ['one','two','three'];
+    lObj1.Values := [1,2,3];
+    lObj1.Booleans := [true, false];
+    lBody := GetDefaultSerializer.SerializeObject(lObj1);
+
+    lRes := RESTClient.doPOST('/entitywitharrays', [], lBody);
+    lObj2 := TEntityWithArray.Create;
+    try
+      GetDefaultSerializer.DeserializeObject(lRes.BodyAsString, lObj2);
+
+      Assert.AreEqual(4, Length(lObj2.Names));
+      Assert.AreEqual(lObj1.Names[0], lObj2.Names[0]);
+      Assert.AreEqual(lObj1.Names[1], lObj2.Names[1]);
+      Assert.AreEqual(lObj1.Names[2], lObj2.Names[2]);
+      Assert.AreEqual('added', lObj2.Names[3]);
+
+      Assert.AreEqual(4, Length(lObj2.Values));
+      Assert.AreEqual(lObj1.Values[0], lObj2.Values[0]);
+      Assert.AreEqual(lObj1.Values[1], lObj2.Values[1]);
+      Assert.AreEqual(lObj1.Values[2], lObj2.Values[2]);
+      Assert.AreEqual(99, lObj2.Values[3]);
+
+      Assert.AreEqual(3, Length(lObj2.Booleans));
+      Assert.AreEqual(lObj1.Booleans[0], lObj2.Booleans[0]);
+      Assert.AreEqual(lObj1.Booleans[1], lObj2.Booleans[1]);
+      Assert.AreEqual(True, lObj2.Booleans[2]);
+    finally
+      lObj2.Free;
+    end;
+  finally
+    lObj1.Free;
+  end;
+end;
+
+procedure TServerTest.TestEntityWithEmptyArrays;
+var
+  lRes: IRESTResponse;
+  lObj1, lObj2: TEntityWithArray;
+  lBody: String;
+begin
+  lObj1 := TEntityWithArray.Create;
+  try
+    lBody := GetDefaultSerializer.SerializeObject(lObj1);
+
+    lRes := RESTClient.doPOST('/entitywitharrays', [], lBody);
+    lObj2 := TEntityWithArray.Create;
+    try
+      GetDefaultSerializer.DeserializeObject(lRes.BodyAsString, lObj2);
+
+      Assert.AreEqual(1, Length(lObj2.Names));
+      Assert.AreEqual('added', lObj2.Names[0]);
+
+      Assert.AreEqual(1, Length(lObj2.Values));
+      Assert.AreEqual(99, lObj2.Values[0]);
+
+      Assert.AreEqual(1, Length(lObj2.Booleans));
+      Assert.AreEqual(True, lObj2.Booleans[0]);
+    finally
+      lObj2.Free;
+    end;
+  finally
+    lObj1.Free;
+  end;
 end;
 
 procedure TServerTest.TestRenderActionInCollections;

@@ -1,10 +1,10 @@
-![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.0--boron-blue?style=for-the-badge)
+![](https://img.shields.io/badge/current%20dmvcframework%20version-3.2.1--carbon-blue?style=for-the-badge)
 ![DelphiMVCFramework Logo](docs/dmvcframework_logofacebook.png)
-![](https://img.shields.io/badge/next%20DMVCFramework%20version-3.2.1--carbon-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=releases%20download)
+![](https://img.shields.io/badge/Next%20DMVCFramework%20Version-3.2.2--nitrogen-red)  ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Releases%20download)
 
 
 
-## DelphiMVCFramework 3.2.0-boron is [here 📥](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron) !
+## DelphiMVCFramework 3.2.1-carbon is [here 📥](https://github.com/danieleteti/delphimvcframework/releases/tag/v3_2_0_boron) !
 
 DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
@@ -25,6 +25,7 @@ The official guide for DMVCFramework is available. DMVCFramework has a lot funct
 Given the success of DMVCFramework in the Delphi community, the official DMVCFramework guide has been translated also in the following languages.
 
 - [Brazilian Portuguese](https://leanpub.com/delphimvcframework-br) (Translated by Diego Farisato)
+- [Spanish](https://leanpub.com/delphimvcframework-es) (Translated by Josè Davalos)
 
 ---
 
@@ -135,7 +136,261 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 * Continuously tested for Delphi versions incompatibilities by the proud [compatibility maintainers](COMPATIBILITY_MANTAINERS.MD) 
 
-## Overview of DelphiMVCFramework 3.2.0-boron
+## Overview of DelphiMVCFramework 3.2.1-carbon
+
+> This version is the version referenced by the [DelphiMVCFramework - The Official Guide](http://www.danieleteti.it/books/) book (available in english, portuguese and spanish). 
+
+This version introduced new features in many different areas (swagger, server side view, MVCActiveRecord, renders etc.) however there is no a single-big-feature. This version contains also a good number of bugfixes. It's not a critical updated, but this is the *best version ever* (at least, so far...) and is the suggested version for starting new projects. Enjoy!
+
+### Improvements
+
+- [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
+
+- New `Context: TWebContext` parameter in JSON-RPC Hooks
+
+  ```delphi
+  { Called before any actual routing }
+  procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
+  { Called after routing and before the actual remote method invocation }
+  procedure OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
+  { Called after actual remote method invocation, even if the method raised an exception }
+  procedure OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
+  ```
+
+- When a JSON-RPC Request returns a `System.Boolean` the `result` will be a JSON `true` or `false` and no `1` or `0` as it was in the `3.2.0-boron`.
+
+- `IMVCJSONRPCExecutor.ExecuteNotification` returns a `IJSONRPCResponse`. In case of error response contains information about the error, in case of successful execution the response is a [Null Object](https://en.wikipedia.org/wiki/Null_object_pattern).
+
+- New React demo (Thanks to [Angelo Sobreira da Silva](https://github.com/angelosobreira))
+
+- Serialization support for `TList<Integer>`, `TList<String>`, `TList<Boolean>` and for all `TList<T>` of simple types.
+
+- Added  method `MetadataAsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase): TJSONObject;` in `TDataSetHelper`. This method returns the dataset field definitions. While this is valid only for Delphi datasets, can be useful to describe a dataset to a Delphi client.
+
+  ```json
+  {
+  	"fielddefs": [
+      	{
+          	"datatype": 3,
+              "displayname": "ID",
+              "fieldname": "id",
+              "precision": 0,
+              "size": 0
+           },
+           {
+           	"datatype": 24,
+              "displayname": "CODE",
+              "fieldname": "code",
+              "precision": 0,
+              "size": 5
+           },
+           {
+           	"datatype": 24,
+              "displayname": "DESCRIPTION",
+              "fieldname": "description",
+              "precision": 0,
+              "size": 200
+           },
+           {
+           	"datatype": 37,
+              "displayname": "PRICE",
+              "fieldname": "price",
+              "precision": 18,
+              "size": 2
+            }
+        ]
+  }
+  ```
+
+  The static method `class procedure TFireDACUtils.CreateDatasetFromMetadata(
+    AFDMemTable: TFDMemTable; AMeta: TJSONObject);` gets the previous structure and initialize the fields of `AFDMemTable` with it. When a TFDMemTable is initialized using this approach, the data can be directly loaded from a jsonarray of jsonobject with the same field names. *WARNING: This mechanism works only for Delphi clients*. Check sample `articles_crud_vcl_client_meta.dproj` to understand the involved mechanisms. 
+
+- Added `foReadOnly` and `foWriteOnly` as field options in `MVCTableField` attribute (used by `TMVCActiveRecord`). Currently available field options are:
+
+  - *foPrimaryKey* { it's the primary key of the mapped table }
+  - *foAutoGenerated* { not written, read - similar to foReadOnly but is reloaded after insert and update }
+  - *foTransient* { never stored nor read - managed only at run-time }
+  - *foReadOnly* { not written, read }
+  - *foWriteOnly* { written, not read }
+
+  Now it is possible to declare entities like the followings (or with any other combinations):
+
+  ```delphi
+    [MVCNameCase(ncLowerCase)]
+    [MVCTable('articles')]
+    TArticleWithWriteOnlyFields = class(TCustomEntity)
+    private
+      [MVCTableField('ID', [foPrimaryKey, foAutoGenerated])]
+      fID: NullableInt32;
+      [MVCTableField('description', [foWriteOnly])]
+      fDescription: string;
+      [MVCTableField('price', [foWriteOnly])]
+      fPrice: Integer;
+    public
+      property ID: NullableInt32 read fID write fID;
+      property Description: string read fDescription write fDescription;
+      property Price: Integer read fPrice write fPrice;
+    end;
+  
+    [MVCNameCase(ncLowerCase)]
+    [MVCTable('articles')]
+    TArticleWithReadOnlyFields = class(TCustomEntity)
+    private
+      [MVCTableField('ID', [foPrimaryKey, foReadOnly])]
+      fID: NullableInt32;
+      [MVCTableField('code', [foTransient])]
+      fCode: NullableString;
+      [MVCTableField('description', [foReadOnly])]
+      fDescrizione: string;
+      [MVCTableField('price', [foReadOnly])]
+      fPrice: Currency;
+    public
+      property ID: NullableInt32 read fID write fID;
+      property Code: NullableString read fCode write fCode;
+      property Description: string read fDescription write fDescription;
+      property Price: Currency read fPrice write fPrice;
+    end;
+  ```
+
+- Added the ability to deserialize an object, or alist of objects, starting from an arbitrary node in the JSON (or other format) present in the request body. Works for `BodyAs<T>` and for `BodyAsListOf<T>` (Thanks to [Raphaël Emourgeon](https://github.com/osaris) for the `BodyAsListOf<T>` [implementation](https://github.com/danieleteti/delphimvcframework/issues/415)).
+
+  ```delphi
+  procedure TBooksController.CreateBook;
+  var
+    lBook: TBook;
+  begin
+    //this call deserialize a TBook instance
+    //starting from the 'book' node of
+    //the request body
+    lBook := Context.Request.BodyAs<TBook>('book');
+    try
+      lBook.Insert;
+      Render201Created('/api/books/' + lBook.ID.ToString);
+    finally
+      lBook.Free;
+    end;
+  end;
+  ```
+
+- Improved the primary key type handling for manual handling in MVCActiveRecord.
+
+  ```delphi
+  procedure TMyBaseEntity.OnBeforeInsert;
+  begin
+    inherited;
+    //regardless the name of the PK field
+    //the following code fills the PK with a GUID
+    //Inheriting the other entities from this, all
+    //will inherit this behavior.
+    SetPK(TValue.From<NullableString>(TGUID.NewGuid.ToString));
+    
+    //if the PK was a simple string, the code
+    //should be like the following
+    //SetPK(TGUID.NewGuid.ToString);  
+  end;
+  
+  ```
+
+- Improved `activerecord_showcase` sample.
+
+- Improved `TMVCStaticFilesMiddleware`. Now is able to correctly serve SPA applications from any subfolder.
+
+- Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
+
+- `TMVCNameCase` got the new `ncSnakeCase` among the possibles casing (thanks to [João Antônio Duarte](https://github.com/joaoduarte19) for its work in this area). 
+
+  Now the `TMVCNameCase` declaration is the following:
+
+  ```delphi
+  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
+  ```
+
+  Here's how the new `ncSnakeCase` works
+
+  | Original | SnakeCase  |
+  | -------- | ---------- |
+  | OneTwo   | one_two    |
+  | One__Two | one_two    |
+  | OneTwo03 | one_two_03 |
+
+- Support for [Mustache](https://mustache.github.io/) partials (Thanks to [David Moorhouse](https://github.com/fastbike) and his work about [issue 221](https://github.com/danieleteti/delphimvcframework/issues/221)). Sample *\samples\serversideviews_mustache* has been updated to show how to use partials.
+
+- Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
+
+  ```delphi
+  procedure TMainForm.btnAttributesClick(Sender: TObject);
+  var
+    lCustomer: TCustomer;
+    lID: Integer;
+  begin
+    lCustomer := TCustomer.Create;
+    try
+      lCustomer.Attributes['CompanyName'] := 'Google Inc.';
+      lCustomer.Attributes['City'] := 'Montain View, CA';
+      lCustomer.Attributes['Note'] := 'Hello there!';
+      lCustomer.Attributes['Code'] := 'XX123';
+      lCustomer.Attributes['Rating'] := 3;
+      lCustomer.Insert;
+      lID := lCustomer.ID;
+    finally
+      lCustomer.Free;
+    end;
+  
+    lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+    try
+      Assert('Google Inc.' = 
+      	lCustomer.Attributes['CompanyName']
+      		.AsType<NullableString>().Value);
+      Assert('Montain View, CA' = 	
+      	lCustomer.Attributes['City'].AsString);
+      Assert('XX123' = 
+      	lCustomer.Attributes['Code']
+      		.AsType<NullableString>().Value);
+      Assert('Hello there!' = 
+      	lCustomer.Attributes['Note'].AsString);
+      lCustomer.Update;
+    finally
+      lCustomer.Free;
+    end;
+  ```
+
+- **Breaking Change**! `TMVCStaticFileMiddleware` cannot be registered to "/" anymore 
+
+  - The suggested solution is to create a simple redirection controller which redirect "/" to the proper path (check [this example](https://github.com/danieleteti/delphimvcframework/blob/master/samples/middleware_staticfiles/SPARedirectController.pas)).
+
+- **Breaking Change!**  `DocumentRoot` of `TMVCStaticFileMiddleware`  must be a valid folder. If `DocumentRoot` doesn't exist an exception is raised.
+
+###  Bug Fixes
+
+- Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
+
+- Fix for [issue 424](https://github.com/danieleteti/delphimvcframework/issues/424)
+
+- Fix for [issue436](https://github.com/danieleteti/delphimvcframework/issues/436).
+
+- Fix for [issue438](https://github.com/danieleteti/delphimvcframework/issues/438) (Thanks to [jadeade](https://github.com/jadeade))
+
+- Fix for [issue432](https://github.com/danieleteti/delphimvcframework/issues/432)
+
+- Fix for [issue435](https://github.com/danieleteti/delphimvcframework/issues/435) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
+
+- Fix for [issue434](https://github.com/danieleteti/delphimvcframework/issues/434) (Thanks to [David Moorhouse](https://github.com/fastbike) for his detailed analysis)
+
+- Fix for [issue221](https://github.com/danieleteti/delphimvcframework/issues/221)
+
+- Fix for [issue430](https://github.com/danieleteti/delphimvcframework/issues/430) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
+
+- Fix for [issue444](https://github.com/danieleteti/delphimvcframework/issues/444)
+
+- Fix for [issue408](https://github.com/danieleteti/delphimvcframework/issues/408) a.k.a. *docExpansion parameter for Swagger*
+
+  
+
+  Check [all the issues closed in this release](https://github.com/danieleteti/delphimvcframework/issues?q=+is%3Aissue+milestone%3A3.2.1-carbon).
+
+## Older Releases
+
+### Overview of DelphiMVCFramework 3.2.0-boron
 
 > More detailed info about DMVCFramework 3.2.0-boron in the *Release Notes* Section
 
@@ -326,7 +581,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 |Delphi 10.1 Berlin| `packages\d101\dmvcframework_group.groupproj`|
 |Delphi 10.0 Seattle| `packages\d100\dmvcframework_group.groupproj`|
 
-### Breaking Changes in 3.2.0-boron
+#### Breaking Changes in 3.2.0-boron
 
 - In `MVCActiveRecord` attribute `MVCPrimaryKey` has been removed and merged with `MVCTableField`, so now `TMVCActiveRecordFieldOption` is a set of `foPrimaryKey`, `foAutoGenerated`, `foTransient` (check `activerecord_showcase.dproj` sample).
 
@@ -360,7 +615,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
   
 
-### Bug Fixes in 3.2.0-boron
+#### Bug Fixes in 3.2.0-boron
 
 - Fixed! [issue38](https://github.com/danieleteti/delphimvcframework/issues/38)
 - Fixed! [issue140](https://github.com/danieleteti/delphimvcframework/issues/140)
@@ -397,241 +652,9 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
-## 3.2.1-carbon ("repo" version currently in RC phase)
+## 3.2.2-nitrogen ("repo" version)
 
-### Improvements and Bug Fixes
-
-- [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
-
-- New `Context: TWebContext` parameter in JSON-RPC Hooks
-
-  ```delphi
-  { Called before any actual routing }
-  procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
-  { Called after routing and before the actual remote method invocation }
-  procedure OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
-  { Called after actual remote method invocation, even if the method raised an exception }
-  procedure OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
-  ```
-
-- When a JSON-RPC Request returns a `System.Boolean` the `result` will be a JSON `true` or `false` and no `1` or `0` as it was in the `3.2.0-boron`.
-
-- `IMVCJSONRPCExecutor.ExecuteNotification` returns a `IJSONRPCResponse`. In case of error response contains information about the error, in case of successful execution the response is a [Null Object](https://en.wikipedia.org/wiki/Null_object_pattern).
-
-- New React demo (Thanks to [Angelo Sobreira da Silva](https://github.com/angelosobreira))
-
-- Serialization support for `TList<Integer>`, `TList<String>`, `TList<Boolean>` and for all `TList<T>` of simple types.
-
-- Added  method `MetadataAsJSONObject(FieldNameCase: TMVCNameCase = ncLowerCase): TJSONObject;` in `TDataSetHelper`. This method returns the dataset field definitions. While this is valid only for Delphi datasets, can be useful to describe a dataset to a Delphi client.
-
-  ```json
-  {
-  	"fielddefs": [
-      	{
-          	"datatype": 3,
-              "displayname": "ID",
-              "fieldname": "id",
-              "precision": 0,
-              "size": 0
-           },
-           {
-           	"datatype": 24,
-              "displayname": "CODE",
-              "fieldname": "code",
-              "precision": 0,
-              "size": 5
-           },
-           {
-           	"datatype": 24,
-              "displayname": "DESCRIPTION",
-              "fieldname": "description",
-              "precision": 0,
-              "size": 200
-           },
-           {
-           	"datatype": 37,
-              "displayname": "PRICE",
-              "fieldname": "price",
-              "precision": 18,
-              "size": 2
-            }
-        ]
-  }
-  ```
-
-  The static method `class procedure TFireDACUtils.CreateDatasetFromMetadata(
-    AFDMemTable: TFDMemTable; AMeta: TJSONObject);` gets the previous structure and initialize the fields of `AFDMemTable` with it. When a TFDMemTable is initialized using this approach, the data can be directly loaded from a jsonarray of jsonobject with the same field names. *WARNING: This mechanism works only for Delphi clients*. Check sample `articles_crud_vcl_client_meta.dproj` to understand the involved mechanisms. 
-
-- Added `foReadOnly` and `foWriteOnly` as field options in `MVCTableField` attribute (used by `TMVCActiveRecord`). Currently available field options are:
-
-  - *foPrimaryKey* { it's the primary key of the mapped table }
-  - *foAutoGenerated* { not written, read - similar to foReadOnly but is reloaded after insert and update }
-  - *foTransient* { never stored nor read - managed only at run-time }
-  - *foReadOnly* { not written, read }
-  - *foWriteOnly* { written, not read }
-
-  Now it is possible to declare entities like the followings (or with any other combinations):
-
-  ```delphi
-    [MVCNameCase(ncLowerCase)]
-    [MVCTable('articles')]
-    TArticleWithWriteOnlyFields = class(TCustomEntity)
-    private
-      [MVCTableField('ID', [foPrimaryKey, foAutoGenerated])]
-      fID: NullableInt32;
-      [MVCTableField('description', [foWriteOnly])]
-      fDescription: string;
-      [MVCTableField('price', [foWriteOnly])]
-      fPrice: Integer;
-    public
-      property ID: NullableInt32 read fID write fID;
-      property Description: string read fDescription write fDescription;
-      property Price: Integer read fPrice write fPrice;
-    end;
-  
-    [MVCNameCase(ncLowerCase)]
-    [MVCTable('articles')]
-    TArticleWithReadOnlyFields = class(TCustomEntity)
-    private
-      [MVCTableField('ID', [foPrimaryKey, foReadOnly])]
-      fID: NullableInt32;
-      [MVCTableField('code', [foTransient])]
-      fCode: NullableString;
-      [MVCTableField('description', [foReadOnly])]
-      fDescrizione: string;
-      [MVCTableField('price', [foReadOnly])]
-      fPrice: Currency;
-    public
-      property ID: NullableInt32 read fID write fID;
-      property Code: NullableString read fCode write fCode;
-      property Description: string read fDescription write fDescription;
-      property Price: Currency read fPrice write fPrice;
-    end;
-  ```
-
-- Added the ability to deserialize an object, or alist of objects, starting from an arbitrary node in the JSON (or other format) present in the request body. Works for `BodyAs<T>` and for `BodyAsListOf<T>` (Thanks to [Raphaël Emourgeon](https://github.com/osaris) for the `BodyAsListOf<T>` [implementation](https://github.com/danieleteti/delphimvcframework/issues/415)).
-
-  ```delphi
-  procedure TBooksController.CreateBook;
-  var
-    lBook: TBook;
-  begin
-    //this call deserialize a TBook instance
-    //starting from the 'book' node of
-    //the request body
-    lBook := Context.Request.BodyAs<TBook>('book');
-    try
-      lBook.Insert;
-      Render201Created('/api/books/' + lBook.ID.ToString);
-    finally
-      lBook.Free;
-    end;
-  end;
-  ```
-
-- Improved the primary key type handling for manual handling in MVCActiveRecord.
-
-  ```delphi
-  procedure TMyBaseEntity.OnBeforeInsert;
-  begin
-    inherited;
-    //regardless the name of the PK field
-    //the following code fills the PK with a GUID
-    //Inheriting the other entities from this, all
-    //will inherit this behavior.
-    SetPK(TValue.From<NullableString>(TGUID.NewGuid.ToString));
-    
-    //if the PK was a simple string, the code
-    //should be like the following
-    //SetPK(TGUID.NewGuid.ToString);  
-  end;
-  
-  ```
-
-- Improved `activerecord_showcase` sample.
-
-- Improved `TMVCStaticFilesMiddleware`. Now is able to correctly serve SPA applications from any subfolder.
-
-- Added property `Context.HostingFrameworkType`. This property is of type `TMVCHostingFrameworkType` and can assume one of the following values: `hftIndy` (if the service is using the built-in Indy HTTP server) , `hftApache` (if the project is compiled as Apache module) or `hftISAPI` (if the project is compiled as ISAPI module).
-
-- `TMVCNameCase` got the new `ncSnakeCase` among the possibles casing (thanks to [João Antônio Duarte](https://github.com/joaoduarte19) for its work in this area). 
-
-  Now the `TMVCNameCase` declaration is the following:
-
-  ```delphi
-  TMVCNameCase = (ncAsIs, ncUpperCase, ncLowerCase, ncCamelCase, ncPascalCase, ncSnakeCase);
-  ```
-
-  Here's how the new `ncSnakeCase` works
-
-  | Original | SnakeCase  |
-  | -------- | ---------- |
-  | OneTwo   | one_two    |
-  | One__Two | one_two    |
-  | OneTwo03 | one_two_03 |
-
-- **Breaking Change**! `TMVCStaticFileMiddleware` cannot be registered to "/" anymore 
-
-  - The suggested solution is to create a simple redirection controller which redirect "/" to the proper path (check [this example](https://github.com/danieleteti/delphimvcframework/blob/master/samples/middleware_staticfiles/SPARedirectController.pas)).
-
-- **Breaking Change!**  `DocumentRoot` of `TMVCStaticFileMiddleware`  must be a valid folder. If `DocumentRoot` doesn't exist an exception is raised.
-
-- Fix for [issue 421](https://github.com/danieleteti/delphimvcframework/issues/421)
-
-- Fix for [issue 424](https://github.com/danieleteti/delphimvcframework/issues/424)
-
-- Fix for [issue436](https://github.com/danieleteti/delphimvcframework/issues/436).
-
-- Fix for [issue438](https://github.com/danieleteti/delphimvcframework/issues/438) (Thanks to [jadeade](https://github.com/jadeade))
-
-- Fix for [issue435](https://github.com/danieleteti/delphimvcframework/issues/435) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
-
-- Fix for [issue434](https://github.com/danieleteti/delphimvcframework/issues/434)
-
-- Fix for [issue221](https://github.com/danieleteti/delphimvcframework/issues/221)
-
-- Fix for [issue430](https://github.com/danieleteti/delphimvcframework/issues/430) (Thanks to [sonjli](https://github.com/sonjli) for its initial work)
-
-- Support for [Mustache](https://mustache.github.io/) partials (Thanks to [David Moorhouse](https://github.com/fastbike) and his work about [issue 221](https://github.com/danieleteti/delphimvcframework/issues/221)). Sample *\samples\serversideviews_mustache* has been updated to show how to use partials.
-
-- Added dynamic properties access to `TMVCActiveRecord` descendants. Indexed property `Attributes` is index using the property name and set/get a `TValue` representing the property value.
-
-  ```delphi
-  procedure TMainForm.btnAttributesClick(Sender: TObject);
-  var
-    lCustomer: TCustomer;
-    lID: Integer;
-  begin
-    lCustomer := TCustomer.Create;
-    try
-      lCustomer.Attributes['CompanyName'] := 'Google Inc.';
-      lCustomer.Attributes['City'] := 'Montain View, CA';
-      lCustomer.Attributes['Note'] := 'Hello there!';
-      lCustomer.Attributes['Code'] := 'XX123';
-      lCustomer.Attributes['Rating'] := 3;
-      lCustomer.Insert;
-      lID := lCustomer.ID;
-    finally
-      lCustomer.Free;
-    end;
-  
-    lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
-    try
-      Assert('Google Inc.' = 
-      	lCustomer.Attributes['CompanyName']
-      		.AsType<NullableString>().Value);
-      Assert('Montain View, CA' = 	
-      	lCustomer.Attributes['City'].AsString);
-      Assert('XX123' = 
-      	lCustomer.Attributes['Code']
-      		.AsType<NullableString>().Value);
-      Assert('Hello there!' = 
-      	lCustomer.Attributes['Note'].AsString);
-      lCustomer.Update;
-    finally
-      lCustomer.Free;
-    end;
-  ```
+In dmvcframework-3.2.2-nitrogen is planned a brand new TRESTClient implementation other new features. Stay tuned!
 
 ## Roadmap
 
