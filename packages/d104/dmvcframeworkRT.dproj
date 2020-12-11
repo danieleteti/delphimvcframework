@@ -194,9 +194,12 @@
         <DCCReference Include="..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.Trace.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Serializer.HTML.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.LRUCache.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Intf.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

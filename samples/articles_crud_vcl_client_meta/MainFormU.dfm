@@ -41,7 +41,6 @@ object MainForm: TMainForm
       Caption = 'Open'
       TabOrder = 0
       OnClick = btnOpenClick
-      ExplicitTop = 1
     end
     object btnRefreshRecord: TButton
       AlignWithMargins = True

@@ -4,7 +4,7 @@
         <ProjectVersion>19.1</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">CI</Config>
+        <Config Condition="'$(Config)'==''">GUI</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -201,6 +201,9 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas"/>
         <DCCReference Include="ActiveRecordTestsU.pas"/>
         <DCCReference Include="TestConstsU.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.Intf.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.Commons.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.RESTClient.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

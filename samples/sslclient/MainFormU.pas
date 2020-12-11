@@ -14,20 +14,12 @@ uses
   Vcl.Dialogs,
   IPPeerClient,
   Vcl.StdCtrls,
+  MVCFramework.RESTClient.Intf,
   MVCFramework.RESTClient,
   REST.Client,
   Data.Bind.Components,
   Data.Bind.ObjectScope,
-  IdIOHandler,
-  IdIOHandlerSocket,
-  IdIOHandlerStack,
-  IdSSL,
-  IdSSLOpenSSL,
-  IdBaseComponent,
-  IdComponent,
-  IdTCPConnection,
-  IdTCPClient,
-  IdHTTP;
+  REST.Types;
 
 type
   TForm9 = class(TForm)
@@ -36,13 +28,11 @@ type
     Button1: TButton;
     Memo1: TMemo;
     Button2: TButton;
-    IdSSLIOHandlerSocketOpenSSL1: TIdSSLIOHandlerSocketOpenSSL;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    Clt: MVCFramework.RESTClient.TRESTClient;
+    Clt: IMVCRESTClient;
     { Private declarations }
   public
     { Public declarations }
@@ -66,29 +56,31 @@ end;
 
 procedure TForm9.Button2Click(Sender: TObject);
 begin
-  Clt.Asynch(
-    procedure(Resp: IRESTResponse)
+  Clt
+    .SetValidateServerCertificateProc(
+    procedure(const Sender: TObject; const ARequest: TURLRequest;
+    const Certificate: TCertificate; var Accepted: Boolean)
     begin
-      Memo1.Lines.Text := Resp.BodyAsString;
+      //
+      Accepted := True;
+    end
+    )
+    .Async(
+    procedure(Resp: IMVCRESTResponse)
+    begin
+      Memo1.Lines.Text := Resp.Content;
+      Memo1.Lines.Add('Request Terminated successfully')
     end,
     procedure(E: Exception)
     begin
       ShowMessage(E.Message);
-    end,
-    procedure
-    begin
-      Memo1.Lines.Add('Request Terminated');
-    end, true).doGET('/people', []);
-end;
-
-procedure TForm9.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  Clt.Free;
+      Memo1.Lines.Add('Request Terminated with errors')
+    end, True).Get('/people');
 end;
 
 procedure TForm9.FormCreate(Sender: TObject);
 begin
-  Clt := MVCFramework.RESTClient.TRESTClient.Create('https://localhost', 443, IdSSLIOHandlerSocketOpenSSL1);
+  Clt := TMVCRESTClient.New.BaseURL('https://localhost');
 end;
 
 end.

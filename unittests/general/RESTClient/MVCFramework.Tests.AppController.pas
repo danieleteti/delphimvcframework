@@ -45,9 +45,22 @@ type
     [MVCPath('/users/save')]
     [MVCHTTPMethod([httpPOST])]
     procedure PostUsers(ctx: TWebContext);
+
+    [MVCPath('/file/upload')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCConsumes(TMVCMediaType.MULTIPART_FORM_DATA)]
+    procedure ReceiveFile;
+
+    [MVCPath('/body-url-encoded')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCConsumes(TMVCMediaType.APPLICATION_FORM_URLENCODED)]
+    procedure PostBodyURLEncoded;
   end;
 
 implementation
+
+uses
+  System.Hash, JsonDataObjects;
 
 { TAppController }
 
@@ -91,6 +104,31 @@ begin
   Render('Hello World called with GET');
 end;
 
+procedure TAppController.PostBodyURLEncoded;
+var
+  lResponse: TJDOJsonObject;
+  lParamValue: string;
+begin
+  lResponse := TJDOJsonObject.Create;
+
+  if Context.Request.ContentFields.TryGetValue('field1', lParamValue) then
+    lResponse.S['field1'] := lParamValue
+  else
+    lResponse.S['field1'] := '';
+
+  if Context.Request.ContentFields.TryGetValue('field2', lParamValue) then
+    lResponse.S['field2'] := lParamValue
+  else
+    lResponse.S['field2'] := '';
+
+  if Context.Request.ContentFields.TryGetValue('field3', lParamValue) then
+    lResponse.S['field3'] := lParamValue
+  else
+    lResponse.S['field3'] := '';
+
+  Render(lResponse);
+end;
+
 procedure TAppController.PostUser(ctx: TWebContext);
 var
   LUser: TAppUser;
@@ -121,6 +159,18 @@ begin
 
   finally
     LUsers.Free;
+  end;
+end;
+
+procedure TAppController.ReceiveFile;
+begin
+  if Context.Request.Files.Count = 0 then
+  begin
+    Render(HTTP_STATUS.BadRequest, 'No file found!')
+  end
+  else
+  begin
+    Render(THashMD5.GetHashString(Context.Request.Files[0].Stream))
   end;
 end;
 

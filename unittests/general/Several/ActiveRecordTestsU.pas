@@ -121,8 +121,8 @@ begin
     GDBFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest.fdb');
     GDBTemplateFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest_template.fdb');
     LParams.Add('Database=' + GDBFileName);
-    // LParams.Add('user_name=sysdba');
-    // LParams.Add('password=masterkey');
+    LParams.Add('user_name=sysdba');
+    LParams.Add('password=masterkey');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');

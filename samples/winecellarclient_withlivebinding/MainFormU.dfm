@@ -35,7 +35,7 @@ object Form5: TForm5
     Height = 370
     ActivePage = TabSheet1
     Anchors = [akLeft, akTop, akRight, akBottom]
-    TabOrder = 1
+    TabOrder = 2
     object TabSheet1: TTabSheet
       Caption = 'Wines'
       object ListView1: TListView
@@ -194,7 +194,7 @@ object Form5: TForm5
     Height = 33
     DataSource = PrototypeBindSource1
     Orientation = orHorizontal
-    TabOrder = 2
+    TabOrder = 1
     BeforeAction = BindNavigator1BeforeAction
   end
   object PrototypeBindSource1: TPrototypeBindSource
