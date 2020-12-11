@@ -2516,7 +2516,10 @@ begin
       ('Cannot update an entity if all fields are transient. Class [%s] mapped on table [%s]', [ClassName, fTableName]);
   end;
   SQL := SQLGenerator.CreateUpdateSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
-  ExecNonQuery(SQL, false);
+  if ExecNonQuery(SQL, false) = 0 then
+  begin
+    raise EMVCActiveRecordNotFound.CreateFmt('No record updated for key [Entity: %s][PK: %s]', [ClassName, fPrimaryKeyFieldName]);
+  end;
   OnAfterUpdate;
   OnAfterInsertOrUpdate;
 end;

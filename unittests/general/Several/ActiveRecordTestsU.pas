@@ -30,20 +30,14 @@ uses
   DUnitX.TestFramework, FireDAC.Comp.Client, FireDAC.ConsoleUI.Wait, FireDAC.VCLUI.Wait;
 
 type
-
-  [TestFixture]
-  TTestActiveRecordSQLite = class(TObject)
-  private
-    procedure CreateFirebirdPrivateConnDef(AIsPooled: boolean);
-    procedure CreateSqlitePrivateConnDef(AIsPooled: boolean);
+  TTestActiveRecordBase = class(TObject)
   protected
     fConnection: TFDConnection;
     fConDefName: string;
-    procedure LoadData;
-    procedure AfterDataLoad; virtual;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); virtual; abstract;
+    procedure LoadData; virtual;
+    procedure AfterDataLoad; virtual; abstract;
   public
-    [Setup]
-    procedure Setup; virtual;
     [Teardown]
     procedure Teardown;
     [Test]
@@ -71,12 +65,23 @@ type
   end;
 
   [TestFixture]
-  TTestActiveRecordFirebird = class(TTestActiveRecordSQLite)
-  public
-    [Setup]
-    procedure Setup; override;
+  TTestActiveRecordSQLite = class(TTestActiveRecordBase)
   protected
     procedure AfterDataLoad; override;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); override;
+  public
+    [Setup]
+    procedure Setup; virtual;
+  end;
+
+  [TestFixture]
+  TTestActiveRecordFirebird = class(TTestActiveRecordBase)
+  protected
+    procedure AfterDataLoad; override;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); override;
+  public
+    [Setup]
+    procedure Setup;
   end;
 
 implementation
@@ -104,41 +109,7 @@ begin
   TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
 end;
 
-procedure TTestActiveRecordSQLite.CreateFirebirdPrivateConnDef(AIsPooled: boolean);
-var
-  LParams: TStringList;
-  lDriver: IFDStanDefinition;
-begin
-  lDriver := FDManager.DriverDefs.Add;
-  lDriver.Name := 'FBEMBEDDED';
-  lDriver.AsString['BaseDriverID'] := 'FB';
-  lDriver.AsString['DriverID'] := 'FBEMBEDDED';
-  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
-  lDriver.Apply;
-
-  LParams := TStringList.Create;
-  try
-    GDBFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest.fdb');
-    GDBTemplateFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest_template.fdb');
-    LParams.Add('Database=' + GDBFileName);
-    LParams.Add('user_name=sysdba');
-    LParams.Add('password=masterkey');
-    if AIsPooled then
-    begin
-      LParams.Add('Pooled=True');
-      LParams.Add('POOL_MaximumItems=100');
-    end
-    else
-    begin
-      LParams.Add('Pooled=False');
-    end;
-    FDManager.AddConnectionDef(fConDefName, 'FBEMBEDDED', LParams);
-  finally
-    LParams.Free;
-  end;
-end;
-
-procedure TTestActiveRecordSQLite.CreateSqlitePrivateConnDef(AIsPooled: boolean);
+procedure TTestActiveRecordSQLite.CreatePrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
 begin
@@ -162,7 +133,7 @@ begin
   end;
 end;
 
-procedure TTestActiveRecordSQLite.TestCRUD;
+procedure TTestActiveRecordBase.TestCRUD;
 var
   lCustomer: TCustomer;
   lID: Integer;
@@ -228,7 +199,7 @@ begin
 
 end;
 
-procedure TTestActiveRecordSQLite.TestCRUDStringPK;
+procedure TTestActiveRecordBase.TestCRUDStringPK;
 var
   lCustomer: TCustomerWithCode;
 begin
@@ -275,11 +246,12 @@ begin
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000', False);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'], [ftString], False);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'],
+    [ftString], False);
   Assert.IsNull(lCustomer);
 end;
 
-procedure TTestActiveRecordSQLite.TestCRUDWithTableChange;
+procedure TTestActiveRecordBase.TestCRUDWithTableChange;
 var
   lCustomer: TCustomer;
   lID: Integer;
@@ -323,7 +295,7 @@ begin
 end;
 
 { https://github.com/danieleteti/delphimvcframework/issues/424 }
-procedure TTestActiveRecordSQLite.TestIssue424;
+procedure TTestActiveRecordBase.TestIssue424;
 var
   lCustomers: TObjectList<TCustomer>;
 const
@@ -360,7 +332,7 @@ begin
   end;
 end;
 
-procedure TTestActiveRecordSQLite.TestLifeCycle;
+procedure TTestActiveRecordBase.TestLifeCycle;
 var
   lCustomer: TCustomerWithLF;
   lID: Integer;
@@ -397,20 +369,21 @@ begin
     Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad', lCustomer.GetHistory);
     lCustomer.ClearHistory;
     lCustomer.Delete;
-    Assert.AreEqual('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete',
+    Assert.AreEqual
+      ('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete',
       lCustomer.GetHistory);
   finally
     lCustomer.Free;
   end;
 end;
 
-procedure TTestActiveRecordSQLite.TestMultiThreading;
+procedure TTestActiveRecordBase.TestMultiThreading;
 begin
   LoadData;
   Assert.AreEqual(Trunc(20 * 30), TMVCActiveRecord.Count(TCustomerWithLF));
 end;
 
-procedure TTestActiveRecordSQLite.TestNullables;
+procedure TTestActiveRecordBase.TestNullables;
 var
   lTest: TNullablesTest;
 begin
@@ -491,7 +464,7 @@ begin
   end;
 end;
 
-procedure TTestActiveRecordSQLite.TestRQL;
+procedure TTestActiveRecordBase.TestRQL;
 var
   lCustomers: TObjectList<TCustomer>;
 const
@@ -513,7 +486,7 @@ begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
 
-procedure TTestActiveRecordSQLite.TestRQLLimit;
+procedure TTestActiveRecordBase.TestRQLLimit;
 var
   lCustomers: TObjectList<TCustomer>;
 const
@@ -550,7 +523,7 @@ begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
 
-procedure TTestActiveRecordSQLite.TestSelectWithExceptions;
+procedure TTestActiveRecordBase.TestSelectWithExceptions;
 var
   lCustomer: TCustomer;
   lID: Integer;
@@ -604,7 +577,7 @@ begin
 
 end;
 
-procedure TTestActiveRecordSQLite.TestStore;
+procedure TTestActiveRecordBase.TestStore;
 var
   lCustomer: TCustomerWithNullablePK;
   lID: Integer;
@@ -637,7 +610,7 @@ begin
 
 end;
 
-procedure TTestActiveRecordSQLite.LoadData;
+procedure TTestActiveRecordBase.LoadData;
 var
   lTasks: TArray<ITask>;
   lProc: TProc;
@@ -646,7 +619,8 @@ const
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
 begin
-  TMVCActiveRecord.DeleteRQL(TCustomer, 'in(City,["Rome","New York","London","Melbourne","Berlin"])');
+  TMVCActiveRecord.DeleteRQL(TCustomer,
+    'in(City,["Rome","New York","London","Melbourne","Berlin"])');
   lProc := procedure
     var
       lCustomer: TCustomer;
@@ -661,7 +635,8 @@ begin
           try
             lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
             lCustomer.City := Cities[I mod Length(Cities)];
-            lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
+            lCustomer.CompanyName :=
+              Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
               CompanySuffix[Random(high(CompanySuffix) + 1)]]);
             lCustomer.Note := Stuff[I mod Length(Stuff)];
             lCustomer.Insert;
@@ -675,26 +650,10 @@ begin
     end;
   AfterDataLoad;
 
-  lTasks := [
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
-    TTask.Run(lProc),
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 end;
@@ -707,7 +666,7 @@ begin
 
   if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
   begin
-    CreateSqlitePrivateConnDef(True);
+    CreatePrivateConnDef(True);
     if TFile.Exists(GDBFileName) then
     begin
       TFile.Delete(GDBFileName);
@@ -730,7 +689,7 @@ begin
   AfterDataLoad;
 end;
 
-procedure TTestActiveRecordSQLite.Teardown;
+procedure TTestActiveRecordBase.Teardown;
 begin
   ActiveRecordConnectionsRegistry.RemoveDefaultConnection();
   fConnection.Close;
@@ -745,6 +704,42 @@ begin
   TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers2 alter column id restart');
 end;
 
+procedure TTestActiveRecordFirebird.CreatePrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+  lDriver: IFDStanDefinition;
+begin
+  lDriver := FDManager.DriverDefs.Add;
+  lDriver.Name := 'FBEMBEDDED';
+  lDriver.AsString['BaseDriverID'] := 'FB';
+  lDriver.AsString['DriverID'] := 'FBEMBEDDED';
+  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)),
+    'firebird\fbclient.dll');
+  lDriver.Apply;
+
+  LParams := TStringList.Create;
+  try
+    GDBFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest.fdb');
+    GDBTemplateFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)),
+      'firebirdtest_template.fdb');
+    LParams.Add('Database=' + GDBFileName);
+    LParams.Add('user_name=sysdba');
+    LParams.Add('password=masterkey');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(fConDefName, 'FBEMBEDDED', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
 procedure TTestActiveRecordFirebird.Setup;
 begin
   fConDefName := _CON_DEF_NAME_FIREBIRD;
@@ -753,7 +748,7 @@ begin
 
   if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
   begin
-    CreateFirebirdPrivateConnDef(True);
+    CreatePrivateConnDef(True);
     if TFile.Exists(GDBFileName) then
     begin
       TFile.Delete(GDBFileName);
@@ -782,8 +777,8 @@ end;
 
 initialization
 
-TDUnitX.RegisterTestFixture(TTestActiveRecordSQLite);
-TDUnitX.RegisterTestFixture(TTestActiveRecordFirebird);
+TDUnitX.RegisterTestFixture(TTestActiveRecordSQLite, TTestActiveRecordSQLite.ClassName);
+TDUnitX.RegisterTestFixture(TTestActiveRecordFirebird, TTestActiveRecordFirebird.ClassName);
 
 finalization
 
