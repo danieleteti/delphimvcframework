@@ -364,7 +364,7 @@ begin
     lBitmap.Canvas.Font.Color := clRed;
     lBitmap.Canvas.Font.Style := [fsBold];
     lBitmap.Canvas.TextOut(10, 100, 'DelphiMVCFramework');
-    lBitmap.SaveToFile('bitmap_file_upload_sample.bmp');
+    lBitmap.SaveToFile(lFilename);
   finally
     lBitmap.Free;
   end;

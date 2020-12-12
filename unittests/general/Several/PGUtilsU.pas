@@ -10,10 +10,12 @@ type
     fInitDBExecutable: string;
     fPGCtlExecutable: String;
     fPGPort: UInt16;
+    fCreateDBExecutable: string;
   public
     constructor Create(const PGHome, PGDataDir: String; const PGPort: UInt16);
     procedure InitDB;
     procedure StartPG;
+    procedure CreateDatabase(const DatabaseName: String);
     procedure StopPG;
     procedure RemoveDataDir;
     function IsPGRunning: Boolean;
@@ -125,6 +127,19 @@ begin
   fPGPort := PGPort;
   fInitDBExecutable := TPath.Combine(fPGHome, 'bin\initdb.exe');
   fPGCtlExecutable := TPath.Combine(fPGHome, 'bin\pg_ctl.exe');
+  fCreateDBExecutable := TPath.Combine(fPGHome, 'bin\createdb.exe');
+end;
+
+procedure TPGUtil.CreateDatabase(const DatabaseName: String);
+var
+  lParams: string;
+  lOutput: string;
+begin
+  lParams := ' -p ' + fPGPort.ToString + ' ' + DatabaseName;
+  if SysExecute(fCreateDBExecutable + lParams, lOutput) <> 0 then
+  begin
+    raise Exception.Create(lOutput);
+  end;
 end;
 
 procedure TPGUtil.InitDB;
@@ -171,7 +186,7 @@ procedure TPGUtil.StopPG;
 var
   lOutput: string;
 begin
-  SysExecute(fPGCtlExecutable + ' -D ' + fPGDataDir + ' stop', lOutput);
+  SysExecute(fPGCtlExecutable + ' -D ' + fPGDataDir + ' stop -m smart', lOutput);
 end;
 
 end.

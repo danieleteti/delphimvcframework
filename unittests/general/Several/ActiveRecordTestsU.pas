@@ -617,7 +617,7 @@ begin
     lCustomer.Note := 'note1';
     lCustomer.Store; { pk is not set, so it should do an insert }
     lID := lCustomer.ID;
-    Assert.AreEqual(1, lID);
+    Assert.AreEqual(1, lID, 'ID should be 1 but it is ' + lID.ToString);
   finally
     lCustomer.Free;
   end;
@@ -816,7 +816,8 @@ end;
 
 procedure TTestActiveRecordPostgreSQL.AfterDataLoad;
 begin
-
+  TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers alter column id restart');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('alter table customers2 alter column id restart');
 end;
 
 constructor TTestActiveRecordPostgreSQL.Create;
@@ -843,7 +844,7 @@ begin
 
   LParams := TStringList.Create;
   try
-    LParams.Add('Database=postgres');
+    LParams.Add('Database=activerecordtest');
     LParams.Add('Port=' + PG_PORT.ToString);
     // LParams.Add('user_name=sysdba');
     // LParams.Add('password=masterkey');
@@ -880,33 +881,42 @@ begin
   fPGUtil.RemoveDataDir;
   fPGUtil.InitDB;
   fPGUtil.StartPG;
+  fPGUtil.CreateDatabase('activerecordtest');
 end;
 
 procedure TTestActiveRecordPostgreSQL.Setup;
+var
+  lInitDBStructure: boolean;
 begin
+  lInitDBStructure := false;
+
   if not GPGIsInitialized then
   begin
+    FDManager.CloseConnectionDef(_CON_DEF_NAME_POSTGRESQL);
+    fPGUtil.StopPG;
+    fPGUtil.RemoveDataDir;
+    lInitDBStructure := True;
     InternalSetupFixture;
     GPGIsInitialized := True;
   end;
 
   fConDefName := _CON_DEF_NAME_POSTGRESQL;
-  fConnection := TFDConnection.Create(nil);
-  fConnection.ConnectionDefName := fConDefName;
-
   if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
   begin
     CreatePrivateConnDef(True);
-    fConnection.Open;
+  end;
+
+  fConnection := TFDConnection.Create(nil);
+  fConnection.ConnectionDefName := fConDefName;
+  fConnection.Open;
+  if lInitDBStructure then
+  begin
     for var lSQL in SQLs_POSTGRESQL do
     begin
       fConnection.ExecSQL(lSQL);
     end;
-  end
-  else
-  begin
-    fConnection.Open;
   end;
+
   fConnection.Close;
   fConnection.Open;
 
@@ -918,7 +928,9 @@ end;
 
 procedure TTestActiveRecordPostgreSQL.TearDownFixture;
 begin
+  FDManager.CloseConnectionDef(_CON_DEF_NAME_POSTGRESQL);
   fPGUtil.StopPG;
+  GPGIsInitialized := false;
 end;
 
 initialization
