@@ -45,7 +45,8 @@ uses
   MVCFramework.RESTClient.Indy in '..\..\..\sources\MVCFramework.RESTClient.Indy.pas',
   MVCFramework.RESTClient.Intf in '..\..\..\sources\MVCFramework.RESTClient.Intf.pas',
   MVCFramework.RESTClient.Commons in '..\..\..\sources\MVCFramework.RESTClient.Commons.pas',
-  MVCFramework.RESTClient in '..\..\..\sources\MVCFramework.RESTClient.pas';
+  MVCFramework.RESTClient in '..\..\..\sources\MVCFramework.RESTClient.pas',
+  PGUtilsU in 'PGUtilsU.pas';
 
 {$R *.RES}
 {$IFDEF CONSOLE_TESTRUNNER}

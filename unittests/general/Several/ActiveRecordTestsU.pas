@@ -27,7 +27,11 @@ unit ActiveRecordTestsU;
 interface
 
 uses
-  DUnitX.TestFramework, FireDAC.Comp.Client, FireDAC.ConsoleUI.Wait, FireDAC.VCLUI.Wait;
+  DUnitX.TestFramework, FireDAC.Comp.Client, FireDAC.ConsoleUI.Wait, FireDAC.VCLUI.Wait,
+  PGUtilsU;
+
+const
+  PG_PORT = 5555;
 
 type
   TTestActiveRecordBase = class(TObject)
@@ -37,7 +41,10 @@ type
     procedure CreatePrivateConnDef(AIsPooled: boolean); virtual; abstract;
     procedure LoadData; virtual;
     procedure AfterDataLoad; virtual; abstract;
+    procedure InternalSetupFixture; virtual;
   public
+    [SetupFixture]
+    procedure DoSetupFixture;
     [Teardown]
     procedure Teardown;
     [Test]
@@ -84,20 +91,40 @@ type
     procedure Setup;
   end;
 
+  [TestFixture]
+  [Category('this')]
+  TTestActiveRecordPostgreSQL = class(TTestActiveRecordBase)
+  private
+    fPGUtil: TPGUtil;
+  protected
+    procedure AfterDataLoad; override;
+    procedure CreatePrivateConnDef(AIsPooled: boolean); override;
+    procedure InternalSetupFixture; override;
+  public
+    [TearDownFixture]
+    procedure TearDownFixture;
+    [Setup]
+    procedure Setup;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
 implementation
 
 uses
   System.Classes, System.IOUtils, BOs, MVCFramework.ActiveRecord,
   System.SysUtils, System.Threading, System.Generics.Collections, Data.DB,
-  FireDAC.Stan.Intf;
+  FireDAC.Stan.Intf, ShellAPI, Winapi.Windows;
 
 const
-  _CON_DEF_NAME = 'SQLITECONNECTION';
+  _CON_DEF_NAME_SQLITE = 'SQLITECONNECTION';
   _CON_DEF_NAME_FIREBIRD = 'FIREBIRDCONNECTION';
+  _CON_DEF_NAME_POSTGRESQL = 'POSTGRESQLCONNECTION';
 
 var
   GDBFileName: string = '';
   GDBTemplateFileName: string = '';
+  GPGIsInitialized: boolean = false;
 
 procedure TTestActiveRecordSQLite.AfterDataLoad;
 begin
@@ -191,10 +218,10 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, False);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, false);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], False);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], false);
   Assert.IsNull(lCustomer);
 
 end;
@@ -243,11 +270,11 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000', False);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000', false);
   Assert.IsNull(lCustomer);
 
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'],
-    [ftString], False);
+    [ftString], false);
   Assert.IsNull(lCustomer);
 end;
 
@@ -443,7 +470,7 @@ begin
     lTest.Free;
   end;
 
-  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False));
+  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], false));
 
   lTest := TNullablesTest.Create;
   try
@@ -529,7 +556,7 @@ var
   lID: Integer;
 begin
   lID := 1000;
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, False);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, false);
   try
     if Assigned(lCustomer) then
     begin
@@ -539,10 +566,10 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, False);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, false);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], False);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], false);
   Assert.IsNull(lCustomer);
 
   Assert.WillRaise(
@@ -610,6 +637,16 @@ begin
 
 end;
 
+procedure TTestActiveRecordBase.DoSetupFixture;
+begin
+  InternalSetupFixture;
+end;
+
+procedure TTestActiveRecordBase.InternalSetupFixture;
+begin
+  // do nothing
+end;
+
 procedure TTestActiveRecordBase.LoadData;
 var
   lTasks: TArray<ITask>;
@@ -660,7 +697,7 @@ end;
 
 procedure TTestActiveRecordSQLite.Setup;
 begin
-  fConDefName := _CON_DEF_NAME;
+  fConDefName := _CON_DEF_NAME_SQLITE;
   fConnection := TFDConnection.Create(nil);
   fConnection.ConnectionDefName := fConDefName;
 
@@ -775,10 +812,120 @@ begin
   AfterDataLoad;
 end;
 
+{ TTestActiveRecordPostgreSQL }
+
+procedure TTestActiveRecordPostgreSQL.AfterDataLoad;
+begin
+
+end;
+
+constructor TTestActiveRecordPostgreSQL.Create;
+var
+  lInitDB, LParams, lOutput, lPGHome, lDataDir: String;
+begin
+  inherited;
+  lPGHome := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql');
+  lDataDir := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql\testdatadir');
+  fPGUtil := TPGUtil.Create(lPGHome, lDataDir, PG_PORT);
+end;
+
+procedure TTestActiveRecordPostgreSQL.CreatePrivateConnDef(AIsPooled: boolean);
+var
+  LParams: TStringList;
+  lDriver: IFDStanDefinition;
+begin
+  lDriver := FDManager.DriverDefs.Add;
+  lDriver.Name := 'PG';
+  // lDriver.AsString['BaseDriverID'] := 'PG';
+  lDriver.AsString['DriverID'] := 'PG';
+  lDriver.AsString['VendorLib'] := TPath.Combine(fPGUtil.PGHome, 'libpq.dll');
+  lDriver.Apply;
+
+  LParams := TStringList.Create;
+  try
+    LParams.Add('Database=postgres');
+    LParams.Add('Port=' + PG_PORT.ToString);
+    // LParams.Add('user_name=sysdba');
+    // LParams.Add('password=masterkey');
+    if AIsPooled then
+    begin
+      LParams.Add('Pooled=True');
+      LParams.Add('POOL_MaximumItems=100');
+    end
+    else
+    begin
+      LParams.Add('Pooled=False');
+    end;
+    FDManager.AddConnectionDef(fConDefName, 'PG', LParams);
+  finally
+    LParams.Free;
+  end;
+end;
+
+destructor TTestActiveRecordPostgreSQL.Destroy;
+begin
+  try
+    fPGUtil.StopPG;
+  except
+    // do nothing
+  end;
+  fPGUtil.Free;
+  inherited;
+end;
+
+procedure TTestActiveRecordPostgreSQL.InternalSetupFixture;
+var
+  lInitDB, LParams, lOutput: String;
+begin
+  fPGUtil.RemoveDataDir;
+  fPGUtil.InitDB;
+  fPGUtil.StartPG;
+end;
+
+procedure TTestActiveRecordPostgreSQL.Setup;
+begin
+  if not GPGIsInitialized then
+  begin
+    InternalSetupFixture;
+    GPGIsInitialized := True;
+  end;
+
+  fConDefName := _CON_DEF_NAME_POSTGRESQL;
+  fConnection := TFDConnection.Create(nil);
+  fConnection.ConnectionDefName := fConDefName;
+
+  if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
+  begin
+    CreatePrivateConnDef(True);
+    fConnection.Open;
+    for var lSQL in SQLs_POSTGRESQL do
+    begin
+      fConnection.ExecSQL(lSQL);
+    end;
+  end
+  else
+  begin
+    fConnection.Open;
+  end;
+  fConnection.Close;
+  fConnection.Open;
+
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(fConnection);
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from customers2');
+  AfterDataLoad;
+end;
+
+procedure TTestActiveRecordPostgreSQL.TearDownFixture;
+begin
+  fPGUtil.StopPG;
+end;
+
 initialization
 
-TDUnitX.RegisterTestFixture(TTestActiveRecordSQLite, TTestActiveRecordSQLite.ClassName);
-TDUnitX.RegisterTestFixture(TTestActiveRecordFirebird, TTestActiveRecordFirebird.ClassName);
+TDUnitX.RegisterTestFixture(TTestActiveRecordSQLite);
+TDUnitX.RegisterTestFixture(TTestActiveRecordFirebird);
+TDUnitX.RegisterTestFixture(TTestActiveRecordPostgreSQL);
 
 finalization
 

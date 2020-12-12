@@ -137,10 +137,10 @@ type
     [Test]
     procedure TestBasicAuth01;
     [Test]
-    [Category('this')]
+    //[Category('this')]
     procedure TestEntityWithArrays;
     [Test]
-    [Category('this')]
+    //[Category('this')]
     procedure TestEntityWithEmptyArrays;
     [Test]
     procedure TestBasicAuth02;
