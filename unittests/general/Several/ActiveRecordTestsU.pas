@@ -62,6 +62,8 @@ type
     [Test]
     procedure TestRQL;
     [Test]
+    procedure TestRQLWithDateTime;
+    [Test]
     procedure TestRQLLimit;
     [Test]
     procedure TestIssue424;
@@ -123,6 +125,7 @@ const
 
 var
   GDBFileName: string = '';
+  SQLiteFileName: string = 'sqlitetest.db';
   GDBTemplateFileName: string = '';
   GPGIsInitialized: boolean = false;
 
@@ -142,8 +145,8 @@ var
 begin
   LParams := TStringList.Create;
   try
-    GDBFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'sqlitetest.db');
-    LParams.Add('Database=' + GDBFileName);
+    SQLiteFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), SQLiteFileName);
+    LParams.Add('Database=' + SQLiteFileName);
     LParams.Add('OpenMode=CreateUTF8');
     if AIsPooled then
     begin
@@ -550,6 +553,26 @@ begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
 
+procedure TTestActiveRecordBase.TestRQLWithDateTime;
+var
+  lCustomers: TObjectList<TCustomer>;
+const
+  RQL1 = 'and(and(gt(CreationDate, "2010-10-01"),le(CreationDate, "2022-12-31")),' +
+    'and(gt(CreationTime, "00:00:00"),le(CreationTime, "08:00:00")))';
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+  try
+    Assert.AreEqual(140, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+  TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
+end;
+
 procedure TTestActiveRecordBase.TestSelectWithExceptions;
 var
   lCustomer: TCustomer;
@@ -676,6 +699,8 @@ begin
               Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
               CompanySuffix[Random(high(CompanySuffix) + 1)]]);
             lCustomer.Note := Stuff[I mod Length(Stuff)];
+            lCustomer.CreationTime := EncodeTime(I mod 23, I, 60 - 1, 0);
+            lCustomer.CreationDate := EncodeDate(2020 - I, (I mod 12) + 1, (I mod 27) + 1);
             lCustomer.Insert;
           finally
             lCustomer.Free;
@@ -704,9 +729,9 @@ begin
   if FDManager.ConnectionDefs.FindConnectionDef(fConDefName) = nil then
   begin
     CreatePrivateConnDef(True);
-    if TFile.Exists(GDBFileName) then
+    if TFile.Exists(SQLiteFileName) then
     begin
-      TFile.Delete(GDBFileName);
+      TFile.Delete(SQLiteFileName);
     end;
 
     fConnection.Open;
