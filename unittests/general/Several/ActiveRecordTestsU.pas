@@ -822,7 +822,7 @@ end;
 
 constructor TTestActiveRecordPostgreSQL.Create;
 var
-  lInitDB, LParams, lOutput, lPGHome, lDataDir: String;
+  lPGHome, lDataDir: String;
 begin
   inherited;
   lPGHome := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'pgsql');
@@ -875,8 +875,6 @@ begin
 end;
 
 procedure TTestActiveRecordPostgreSQL.InternalSetupFixture;
-var
-  lInitDB, LParams, lOutput: String;
 begin
   fPGUtil.RemoveDataDir;
   fPGUtil.InitDB;

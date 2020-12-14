@@ -73,7 +73,7 @@ begin
           if BytesRead > 0 then
           begin
             Buffer[BytesRead] := #0;
-            StdOutput := StdOutput + Buffer;
+            StdOutput := StdOutput + String(Buffer);
           end;
         until not WasOK or (BytesRead = 0);
         WaitForSingleObject(PI.hProcess, INFINITE);
@@ -89,13 +89,8 @@ end;
 
 function SysStartExecute(const CommandLine: string; const Work: string = 'C:\'): Boolean;
 var
-  SA: TSecurityAttributes;
   SI: TStartupInfo;
   PI: TProcessInformation;
-  StdOutPipeRead, StdOutPipeWrite: THandle;
-  WasOK: Boolean;
-  Buffer: array [0 .. 255] of AnsiChar;
-  BytesRead: Cardinal;
   WorkDir: string;
   Handle: Boolean;
 begin
