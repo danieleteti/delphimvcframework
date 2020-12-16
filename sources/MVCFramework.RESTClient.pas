@@ -63,6 +63,8 @@ type
   TCookies = System.Net.HttpClient.TCookies;
   TURLRequest = System.Net.URLClient.TURLRequest;
   TCertificate = System.Net.URLClient.TCertificate;
+  IHTTPRequest = System.Net.HttpClient.IHTTPRequest;
+  IHTTPResponse = System.Net.HttpClient.IHTTPResponse;
 
 {$IF defined(TOKYOORBETTER)}
   THTTPSecureProtocol = System.Net.HttpClient.THTTPSecureProtocol;
@@ -91,8 +93,14 @@ type
     fAsyncCompletionHandlerWithError: TProc<Exception>;
     fAsyncSynchronized: Boolean;
     fValidateServerCertificate: TValidateServerCertificateProc;
+    fBeforeRequestProc: TBeforeRequestProc;
+    fRequestCompletedProc: TRequestCompletedProc;
+    fResponseCompletedProc: TResponseCompletedProc;
     procedure DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
       const aCertificate: TCertificate; var aAccepted: Boolean);
+    procedure DoBeforeRequest(aRequest: IHTTPRequest);
+    procedure DoRequestCompleted(aResponse: IHTTPResponse; var aHandled: Boolean);
+    procedure DoResponseCompleted(aMVCRESTResponse: IMVCRESTResponse);
     function GetBodyFormData: TMultipartFormData;
     function ObjectIsList(aObject: TObject): Boolean;
     function SerializeObject(aObject: TObject): string;
@@ -140,18 +148,32 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
-
     /// <summary>
     /// Add a custom SSL certificate validation. By default all certificates are accepted.
     /// </summary>
     function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
 
     /// <summary>
-    ///   Clears all parameters (headers, body, path params and query params). This method is executed after each
-    ///   request is completed.
+    /// Executes before send the request
+    /// </summary>
+    function SetBeforeRequestProc(aBeforeRequestProc: TBeforeRequestProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes after send the request
+    /// </summary>
+    function SetRequestCompletedProc(aRequestCompletedProc: TRequestCompletedProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes after the response is processed.
+    /// </summary>
+    function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Clears all parameters (headers, body, path params and query params). This method is executed after each
+    /// request is completed.
     /// </summary>
     /// <remarks>
-    ///   Cookies and authorization set in SetBasicAuthorization or SetBearerAuthorization is not removed
+    /// Cookies and authorization set in SetBasicAuthorization or SetBearerAuthorization is not removed
     /// </remarks>
     function ClearAllParams: IMVCRESTClient;
 
@@ -488,13 +510,13 @@ uses
   System.RegularExpressions;
 
 {$IF not defined(RIOORBETTER)}
+
 type
   TCookieManagerHelper = class helper for TCookieManager
   private
     function CookieList: TCookies;
   end;
 {$ENDIF}
-
 
 { TMVCRESTClient }
 
@@ -597,6 +619,7 @@ begin
 end;
 
 {$IF defined(RIOORBETTER)}
+
 function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
   const aContentType: string): IMVCRESTClient;
 begin
@@ -605,6 +628,7 @@ begin
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}
+
 
 function TMVCRESTClient.AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
 begin
@@ -796,7 +820,6 @@ begin
   fContentType := '';
 end;
 
-
 function TMVCRESTClient.ClearCookies: IMVCRESTClient;
 begin
   Result := Self;
@@ -860,8 +883,10 @@ begin
 {$IF defined(TOKYOORBETTER)}
   fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
 {$ENDIF}
-
   fValidateServerCertificate := nil;
+  fBeforeRequestProc := nil;
+  fRequestCompletedProc := nil;
+  fResponseCompletedProc := nil;
   fParameters := TList<TMVCRESTParam>.Create;
   fRawBody := TStringStream.Create;
   fBodyFormData := nil;
@@ -956,9 +981,11 @@ begin
 end;
 
 {$IF not defined(SYDNEYORBETTER)}
+
 type
   THackURLClient = class(TURLClient);
 {$ENDIF}
+
 
 procedure TMVCRESTClient.DoApplyHeaders;
 var
@@ -969,7 +996,6 @@ begin
 {$ELSE}
   SetLength(THackURLClient(fHTTPClient).FCustomHeaders, 0);
 {$ENDIF}
-
   for lParam in fParameters do
   begin
     if lParam.&Type = TMVCRESTParamType.Header then
@@ -1029,6 +1055,12 @@ begin
   end;
 end;
 
+procedure TMVCRESTClient.DoBeforeRequest(aRequest: IHTTPRequest);
+begin
+  if Assigned(fBeforeRequestProc) then
+    fBeforeRequestProc(aRequest);
+end;
+
 procedure TMVCRESTClient.DoConvertMVCPathParamsToRESTParams(var aURL: string);
 begin
   aURL := TRegEx.Replace(aURL, '(\([($])([\w_]+)([)])', '{\2}', [TRegExOption.roIgnoreCase]);
@@ -1041,7 +1073,6 @@ begin
   aURL := aURL.Replace('\', '/', [rfReplaceAll]);
   aURL := aURL.Replace('../', '%2E%2E/', [rfReplaceAll]);
   aURL := aURL.Replace('./', '%2E/', [rfReplaceAll]);
-
 
 {$IF defined(RIOORBETTER)}
   aURL := TURI.Create(aURL).Encode;
@@ -1088,6 +1119,18 @@ begin
     aBodyStream := fRawBody;
   end;
   aBodyStream.Position := 0;
+end;
+
+procedure TMVCRESTClient.DoRequestCompleted(aResponse: IHTTPResponse; var aHandled: Boolean);
+begin
+  if Assigned(fRequestCompletedProc) then
+    fRequestCompletedProc(aResponse, aHandled);
+end;
+
+procedure TMVCRESTClient.DoResponseCompleted(aMVCRESTResponse: IMVCRESTResponse);
+begin
+  if Assigned(fResponseCompletedProc) then
+    fResponseCompletedProc(aMVCRESTResponse);
 end;
 
 function TMVCRESTClient.Execute(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
@@ -1283,6 +1326,7 @@ var
   lBodyStream: TStream;
   lURI: TURI;
   lRequest: IHTTPRequest;
+  lHandled: Boolean;
 begin
   fHTTPClient.ProxySettings := fProxySettings;
 
@@ -1300,9 +1344,23 @@ begin
 
   lRequest := fHTTPClient.GetRequest(HTTPMethodName(aMethod), lURI);
   lRequest.SourceStream := lBodyStream;
+
+  DoBeforeRequest(lRequest);
+
   lResponse := fHTTPClient.Execute(lRequest, nil, []);
 
-  Result := TMVCRESTResponse.Create(lResponse);
+  lHandled := False;
+  DoRequestCompleted(lResponse, lHandled);
+
+  if not lHandled then
+  begin
+    Result := TMVCRESTResponse.Create(lResponse);
+    DoResponseCompleted(Result);
+  end
+  else
+  begin
+    Result := nil;
+  end;
 end;
 
 function TMVCRESTClient.MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient;
@@ -1338,7 +1396,7 @@ begin
 end;
 
 procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
-  const aCertificate: TCertificate; var aAccepted: Boolean);
+const aCertificate: TCertificate; var aAccepted: Boolean);
 begin
   if Assigned(fValidateServerCertificate) then
     fValidateServerCertificate(aSender, aRequest, aCertificate, aAccepted)
@@ -1588,6 +1646,12 @@ begin
   fAuthorization := TMVCRESTClientConsts.BEARER_AUTH_PREFIX + aAccessToken;
 end;
 
+function TMVCRESTClient.SetBeforeRequestProc(aBeforeRequestProc: TBeforeRequestProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fBeforeRequestProc := aBeforeRequestProc;
+end;
+
 procedure TMVCRESTClient.SetContentType(const aContentType: string);
 begin
   fContentType := aContentType;
@@ -1607,6 +1671,18 @@ begin
   end;
 
   fParameters.Add(TMVCRESTParam.Create(aParamType, aName, aValue));
+end;
+
+function TMVCRESTClient.SetRequestCompletedProc(aRequestCompletedProc: TRequestCompletedProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fRequestCompletedProc := aRequestCompletedProc;
+end;
+
+function TMVCRESTClient.SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fResponseCompletedProc := aResponseCompletedProc;
 end;
 
 function TMVCRESTClient.SetValidateServerCertificateProc(
@@ -1699,7 +1775,8 @@ begin
   fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
   fContentRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
     aHTTPResponse.ContentEncoding);
-  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes, aHTTPResponse.HeaderValue[sContentType]);
+  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes,
+    aHTTPResponse.HeaderValue[sContentType]);
   fContentType := aHTTPResponse.HeaderValue[sContentType];
   fContentEncoding := aHTTPResponse.ContentEncoding;
   fContentLength := aHTTPResponse.ContentLength;
