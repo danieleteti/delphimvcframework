@@ -286,6 +286,18 @@ type
     function Get: IMVCRESTResponse; overload;
 
     /// <summary>
+    /// Execute a Head request.
+    /// </summary>
+    function Head(const aResource: string): IMVCRESTResponse; overload;
+    function Head: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Options request.
+    /// </summary>
+    function Options(const aResource: string): IMVCRESTResponse; overload;
+    function Options: IMVCRESTResponse; overload;
+
+    /// <summary>
     /// Execute a Post request.
     /// </summary>
     /// <param name="aResource">

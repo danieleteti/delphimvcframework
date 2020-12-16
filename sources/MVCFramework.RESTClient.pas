@@ -361,6 +361,18 @@ type
     function Get: IMVCRESTResponse; overload;
 
     /// <summary>
+    /// Execute a Head request.
+    /// </summary>
+    function Head(const aResource: string): IMVCRESTResponse; overload;
+    function Head: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Options request.
+    /// </summary>
+    function Options(const aResource: string): IMVCRESTResponse; overload;
+    function Options: IMVCRESTResponse; overload;
+
+    /// <summary>
     /// Execute a Post request.
     /// </summary>
     /// <param name="aResource">
@@ -1215,6 +1227,17 @@ begin
   Result := fHTTPClient.HandleRedirects;
 end;
 
+function TMVCRESTClient.Head: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpHEAD);
+end;
+
+function TMVCRESTClient.Head(const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := Head;
+end;
+
 function TMVCRESTClient.HeaderValue(const aName: string): string;
 var
   lParam: TMVCRESTParam;
@@ -1301,6 +1324,17 @@ end;
 function TMVCRESTClient.ObjectIsList(aObject: TObject): Boolean;
 begin
   Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
+end;
+
+function TMVCRESTClient.Options: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpOPTIONS);
+end;
+
+function TMVCRESTClient.Options(const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := Options;
 end;
 
 procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
