@@ -12,12 +12,13 @@ If you use a Delphi version that is not the latest, and you find an issue, check
 
 |Delphi Version | Compatibility Mantainer |
 |---|---|
+|Delphi 10.4 Sydney | Daniele Teti |
 |Delphi 10.3.1 Rio		|Daniele Teti, João Fernandes, Emilio Perez		|
 |Delphi 10.2.3 Tokyo  |Daniele Barbato, Mohammed Nasman, MJ Wille 				|
 |Delphi 10.2 Community Edition|Akrom Obidov|
 |Delphi 10.1.2 Berlin 	| Emilio Perez, Akrom Obidov, Akbar Khayitov 	|
 |Delphi 10.0 Seattle	| Davut Eryılmaz 								|
-|Delphi XE7				| Daniele Barbato, Emilio Perez  				|
+|                               |                                            |
 
 ### What is expected by a compatibility mantainer?
 

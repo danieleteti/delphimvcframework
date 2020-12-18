@@ -1378,7 +1378,7 @@ begin
   Result.UpdateResponseText(FHTTP.Response.ResponseText);
   Result.UpdateHeaders(FHTTP.Response.RawHeaders);
 
-  if Result.ContentEncoding.IsEmpty then
+  if Result.ContentEncoding.IsEmpty or (Result.ContentEncoding = 'identity') then
     Exit;
 
   if Result.ContentEncoding = 'deflate' then
@@ -1395,7 +1395,7 @@ begin
   lTmp := TMemoryStream.Create;
   try
     Result.Body.Position := 0;
-{$IF Defined(SeattleOrBetter)}
+{$IF Defined(BerlinOrBetter)}
     lDecomp := TZDecompressionStream.Create(Result.Body, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
 {$ELSE}
     lDecomp := TZDecompressionStream.Create(Result.Body, MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType]);
@@ -1415,9 +1415,9 @@ end;
 function TRESTClient.SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
   const AAccept, AContentMediaType, AContentCharset, AResource, ABody: string): IRESTResponse;
 var
-  lBytes: TArray<Byte>;
   lContentCharset: string;
   lEncoding: TEncoding;
+  lTmpStrStream: TStringStream;
 begin
   Result := TRESTResponse.Create;
 
@@ -1449,8 +1449,12 @@ begin
 
           lEncoding := TEncoding.GetEncoding(lContentCharset);
           try
-            lBytes := TEncoding.Convert(TEncoding.Default, lEncoding, TEncoding.Default.GetBytes(ABody));
-            RawBody.WriteData(lBytes, Length(lBytes));
+            lTmpStrStream := TStringStream.Create(ABody, lEncoding, False);
+            try
+              RawBody.LoadFromStream(lTmpStrStream);
+            finally
+              lTmpStrStream.Free;
+            end
           finally
             lEncoding.Free;
           end;

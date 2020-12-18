@@ -43,10 +43,13 @@ uses
   Data.DB;
 
 type
+  IMVCRESTResponse = interface;
+
   TValidateServerCertificateProc = reference to procedure(const aSender: TObject; const aRequest: TURLRequest;
     const aCertificate: TCertificate; var accepted: Boolean);
-
-  IMVCRESTResponse = interface;
+  TBeforeRequestProc = reference to procedure (aRequest: IHTTPRequest);
+  TRequestCompletedProc = reference to procedure (aResponse: IHTTPResponse; var aHandled: Boolean);
+  TResponseCompletedProc = reference to procedure(aResponse: IMVCRESTResponse);
 
   IMVCRESTClient = interface
     ['{592BC90F-B825-4B3B-84A7-6CA3927BAD69}']
@@ -70,9 +73,24 @@ type
 {$ENDIF}
 
     /// <summary>
-    ///   Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// Add a custom SSL certificate validation. By default all certificates are accepted.
     /// </summary>
     function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes before send the request
+    /// </summary>
+    function SetBeforeRequestProc(aBeforeRequestProc: TBeforeRequestProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes after send the request
+    /// </summary>
+    function SetRequestCompletedProc(aRequestCompletedProc: TRequestCompletedProc): IMVCRESTClient;
+
+    /// <summary>
+    /// Executes after the response is processed.
+    /// </summary>
+    function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
 
     /// <summary>
     /// Clears all parameters (headers, body, path params and query params). This method is executed after each
@@ -284,6 +302,18 @@ type
     /// </summary>
     function Get(const aResource: string): IMVCRESTResponse; overload;
     function Get: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Head request.
+    /// </summary>
+    function Head(const aResource: string): IMVCRESTResponse; overload;
+    function Head: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Options request.
+    /// </summary>
+    function Options(const aResource: string): IMVCRESTResponse; overload;
+    function Options: IMVCRESTResponse; overload;
 
     /// <summary>
     /// Execute a Post request.

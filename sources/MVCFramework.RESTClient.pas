@@ -6,6 +6,9 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
+// Collaborators on this file:
+// João Antônio Duarte (https://github.com/joaoduarte19)
+//
 // ***************************************************************************
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,1278 +33,1273 @@ interface
 
 uses
   System.Classes,
-  IdHTTP,
-  IdURI,
-  MVCFramework.Commons,
-  MVCFramework.Serializer.Commons,
-  IdMultipartFormData,
   System.SysUtils,
-  Data.DB,
-  IdIOHandler,
-  IdCompressorZLib,
-  IdSSLOpenSSL,
+  System.Net.HttpClient,
+  System.Net.Mime,
+  System.Net.URLClient,
   System.Generics.Collections,
-  System.StrUtils,
-  Web.HTTPApp,
-  IdCookie,
-  MVCFramework.Serializer.Intf;
+  System.Rtti,
+  System.TypInfo,
+  MVCFramework.Commons,
+  MVCFramework.RESTClient.Indy,
+  MVCFramework.RESTClient.Intf,
+  MVCFramework.RESTClient.Commons,
+  MVCFramework.Serializer.Intf,
+  MVCFramework.Serializer.Commons,
+  Data.DB;
 
 type
-  ERESTClientException = class(Exception);
+  /// <summary>
+  /// Alias for the Indy-based TRESTClient. The implementation of TRESTClient has been discontinued, it remains for
+  /// compatibility only.
+  /// </summary>
+  TRESTClient = MVCFramework.RESTClient.Indy.TRESTClient deprecated
+    'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
 
-  TArrayOfString = array of string;
-  // THTTPCommand = (httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE);
+  IRESTResponse = MVCFramework.RESTClient.Indy.IRESTResponse deprecated
+    'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
 
-  [MVCNameCaseAttribute(ncLowerCase)]
-  TMVCExceptionObj = class(TObject)
+  TCookie = System.Net.HttpClient.TCookie;
+  TCookies = System.Net.HttpClient.TCookies;
+  TURLRequest = System.Net.URLClient.TURLRequest;
+  TCertificate = System.Net.URLClient.TCertificate;
+  IHTTPRequest = System.Net.HttpClient.IHTTPRequest;
+  IHTTPResponse = System.Net.HttpClient.IHTTPResponse;
+
+{$IF defined(TOKYOORBETTER)}
+  THTTPSecureProtocol = System.Net.HttpClient.THTTPSecureProtocol;
+  THTTPSecureProtocols = System.Net.HttpClient.THTTPSecureProtocols;
+{$ENDIF}
+
+  TMVCRESTClient = class(TInterfacedObject, IMVCRESTClient)
   private
-    FStatus: string;
-    Fclassname: string;
-    FMessage: string;
-    FHttp_error: Integer;
-    FErrorNumber: Integer;
+    fHTTPClient: THTTPClient;
+    fBaseURL: string;
+    fResource: string;
+    fAccept: string;
+    fAcceptCharset: string;
+    fAcceptEncoding: string;
+    fUserAgent: string;
+    fContentType: string;
+    fAuthorization: string;
+    fProxySettings: TProxySettings;
+    fParameters: TList<TMVCRESTParam>;
+    fRawBody: TStringStream;
+    fBodyFormData: TMultipartFormData;
+    fSerializer: IMVCSerializer;
+    fRttiContext: TRttiContext;
+    fNextRequestIsAsync: Boolean;
+    fAsyncCompletionHandler: TProc<IMVCRESTResponse>;
+    fAsyncCompletionHandlerWithError: TProc<Exception>;
+    fAsyncSynchronized: Boolean;
+    fValidateServerCertificate: TValidateServerCertificateProc;
+    fBeforeRequestProc: TBeforeRequestProc;
+    fRequestCompletedProc: TRequestCompletedProc;
+    fResponseCompletedProc: TResponseCompletedProc;
+    procedure DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
+      const aCertificate: TCertificate; var aAccepted: Boolean);
+    procedure DoBeforeRequest(aRequest: IHTTPRequest);
+    procedure DoRequestCompleted(aResponse: IHTTPResponse; var aHandled: Boolean);
+    procedure DoResponseCompleted(aMVCRESTResponse: IMVCRESTResponse);
+    function GetBodyFormData: TMultipartFormData;
+    function ObjectIsList(aObject: TObject): Boolean;
+    function SerializeObject(aObject: TObject): string;
+    procedure SetContentType(const aContentType: string);
+    procedure SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);
+    procedure ClearParameters(const aParamType: TMVCRESTParamType);
+    function GetFullURL: string;
+    function HTTPMethodName(const aHTTPMethod: TMVCHTTPMethodType): string;
+    /// <summary>
+    /// Convert path parameters of type ($xxx) to {xxx}
+    /// </summary>
+    procedure DoConvertMVCPathParamsToRESTParams(var aURL: string);
+    procedure DoApplyPathParams(var aURL: string);
+    procedure DoApplyQueryParams(var aURL: string);
+    procedure DoApplyCookies(const aURL: string);
+    procedure DoApplyHeaders;
+    procedure DoEncodeURL(var aURL: string);
+    procedure DoPrepareBodyRequest(var aBodyStream: TStream);
+
+    procedure ExecuteAsyncRequest(const aMethod: TMVCHTTPMethodType);
+    function InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+    function ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
   public
-    [MVCNameAs('reasonstring')]
-    property Status: string read FStatus write FStatus;
-    [MVCNameAs('classname')]
-    property ExceptionClassname: string read Fclassname write Fclassname;
-    [MVCNameAs('message')]
-    property ExceptionMessage: string read FMessage write FMessage;
-    [MVCNameAs('statuscode')]
-    property HTTPError: Integer read FHttp_error write FHttp_error;
-    [MVCNameAs('errornumber')]
-    property ErrorNumber: Integer read FErrorNumber write FErrorNumber;
-  end;
-
-  IRESTResponse = interface
-    ['{E96178DE-79D4-4EF6-88F6-1A677207265A}']
-    function Body: TStream;
-    function BodyAsString: string;
-    // function BodyAsJSONValue: TJSONValue;
-    // function BodyAsJSONObject: TJSONObject;
-    // function BodyAsJSONArray: TJSONArray;
-
-    procedure UpdateResponseCode(const AResponseCode: Word);
-    procedure UpdateResponseText(const AResponseText: string);
-    procedure UpdateHeaders(AHeaders: TStrings);
-
-    function ResponseCode: Word;
-    function ResponseText: string;
-
-    function Headers: TStringlist;
-    function HeaderValue(const AName: string): string;
-
-    function ContentType: string;
-    function ContentTypeCharset: string;
-    function ContentEncoding: string;
-
-    function GetCookies: TIdCookies;
-    procedure SetCookies(aCookie: TIdCookies);
-
-    function GetHasError: Boolean;
-    procedure SetHasError(const aHasError: Boolean);
-
-    function Error: TMVCExceptionObj;
-
-    property Cookies: TIdCookies read GetCookies write SetCookies;
-    property HasError: Boolean read GetHasError write SetHasError;
-  end;
-
-  TRESTClient = class(TInterfacedObject)
-  strict private
-    FHost: string;
-    FPort: Word;
-    FBodyParams: TStringlist;
-    FQueryStringParams: TStringlist;
-    FAccept: string;
-    FRawBody: TStringStream;
-    FHTTP: TIdHTTP;
-    FContentType: string;
-    FPrimaryThread: TThread;
-    FProtocol: string;
-    FRequestHeaders: TStringlist;
-    FResource: string;
-    FParams: array of string;
-    FLastSessionID: string;
-    FNextRequestIsAsynch: Boolean;
-    FAsynchProc: TProc<IRESTResponse>;
-    FAsynchProcErr: TProc<Exception>;
-    FAsynchProcAlways: TProc;
-    FMultiPartFormData: TIdMultiPartFormDataStream;
-    FSynchronized: Boolean;
-    FContentEncoding: string;
-    function GetRawBody(): TStringStream;
-    function GetMultiPartFormData(): TIdMultiPartFormDataStream;
-    function GetSessionID(): string;
-    function GetBasicAuth(): Boolean;
-    function GetPassword(): string;
-    function GetUserName(): string;
-    function GetBodyParams(): TStringlist;
-    function GetQueryStringParams(): TStringlist;
-    procedure SetBasicAuth(const AValue: Boolean);
-    procedure SetPassword(const AValue: string);
-    procedure SetUserName(const AValue: string);
-    procedure SetSessionID(const AValue: string);
-    procedure SetProxyServer(const AValue: string);
-    procedure SetProxyPort(const AValue: Integer);
-    procedure SetProxyPassword(const AValue: string);
-    procedure SetProxyUsername(const AValue: string);
-  private
-    FSerializer: IMVCSerializer;
-    FURL: string;
-
-    function GetURL: string;
-  strict protected
-    procedure HandleRequestCookies();
-    procedure HandleCookies(aCookies: TIdCookies; aRESTResponse: IRESTResponse);
-
-    function EncodeQueryStringParams(const AParams: TStrings;
-      AIncludeQuestionMark: Boolean = True): string;
-    function EncodeResourceParams(const AResourceParams
-      : array of string): string;
-
-    procedure StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
-      const AResource, ABody: string); overload;
-    procedure StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
-      const AResource: string); overload;
-
-    function HTTPCommandToString(const ACommand: TMVCHTTPMethodType): string;
-
-    function SendHTTPCommand(const ACommand: TMVCHTTPMethodType;
-      const AAccept, AContentMediaType, AResource: string;
-      ABodyParams: TStrings): IRESTResponse;
-
-    function SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
-      const AAccept, AContentMediaType, AContentCharset, AResource,
-      ABody: string): IRESTResponse;
-
-    procedure OnHTTPRedirect(Sender: TObject; var dest: string;
-      var NumRedirect: Integer; var Handled: Boolean;
-      var VMethod: TIdHTTPMethod);
-  public
-    constructor Create(const AHost: string; const APort: Word = 80;
-      AIOHandler: TIdIOHandler = nil); virtual;
+    constructor Create;
     destructor Destroy; override;
 
-    function ReadTimeOut(const AValue: Integer): TRESTClient; overload;
-    function ConnectionTimeOut(const AValue: Integer): TRESTClient; overload;
-    function Authentication(const AUsername, APassword: string;
-      const ABasicAuth: Boolean = True): TRESTClient;
-    function ClearHeaders(): TRESTClient;
-    function Header(const AField, AValue: string): TRESTClient;
-    function Accept(const AValue: string): TRESTClient; overload;
-    function AcceptCharSet(const AValue: string): TRESTClient;
-    function ContentType(const AValue: string): TRESTClient; overload;
-    function ContentCharSet(const AValue: string): TRESTClient;
-    function ContentEncoding(const AValue: string): TRESTClient; overload;
-    function Resource(const AValue: string): TRESTClient;
-    function Params(const AValues: array of string): TRESTClient;
-    function ClearAllParams(): TRESTClient;
-    function SSL(const AEnabled: Boolean = True): TRESTClient;
-    function Compression(const AEnabled: Boolean = True): TRESTClient;
-    function ResetSession(): TRESTClient;
+    class function New: IMVCRESTClient;
 
-    function AddFile(const AFieldName, AFileName: string;
-      const AContentType: string = ''): TRESTClient;
+    { IMVCRESTClient }
 
-    function Asynch(AProc: TProc<IRESTResponse>;
-      AProcErr: TProc<Exception> = nil; AProcAlways: TProc = nil;
-      ASynchronized: Boolean = False): TRESTClient;
+    function BaseURL(const aBaseURL: string): IMVCRESTClient; overload;
+    function BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient; overload;
+    function BaseURL: string; overload;
 
-    function doGET(): IRESTResponse; overload;
-    function doGET(const AResource: string; const AParams: array of string;
-      const aQueryStringParams: TStrings = nil): IRESTResponse; overload;
-    function doGET(const AResource: string; const AParams: array of string;
-      const aQueryStringParamNames: array of string;
-      const aQueryStringParamValues: array of string): IRESTResponse; overload;
-    function doPOST(const ABody: string): IRESTResponse; overload;
-    function doPOST<TBodyType: class>(ABody: TBodyType;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST<TBodyType: class>(ABody: TObjectList<TBodyType>;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string)
-      : IRESTResponse; overload;
-    function doPOST(const AResource: string; const AParams: array of string;
-      const ABody: string): IRESTResponse; overload;
+    function ProxyServer(const aProxyServer: string): IMVCRESTClient; overload;
+    function ProxyServer: string; overload;
+    function ProxyPort(const aProxyPort: Integer): IMVCRESTClient; overload;
+    function ProxyPort: Integer; overload;
+    function ProxyUsername(const aProxyUsername: string): IMVCRESTClient; overload;
+    function ProxyUsername: string; overload;
+    function ProxyPassword(const aProxyPassword: string): IMVCRESTClient; overload;
+    function ProxyPassword: string; overload;
 
-    function doPATCH(const ABody: string): IRESTResponse; overload;
-    function doPATCH<TBodyType: class>(ABody: TBodyType;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH<TBodyType: class>(ABody: TObjectList<TBodyType>;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPATCH(const AResource: string; const AParams: array of string;
-      const ABody: string): IRESTResponse; overload;
+{$IF defined(TOKYOORBETTER)}
+    function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
+    function SecureProtocols: THTTPSecureProtocols; overload;
+{$ENDIF}
+    /// <summary>
+    /// Add a custom SSL certificate validation. By default all certificates are accepted.
+    /// </summary>
+    function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
 
-    function doPUT(const ABody: string): IRESTResponse; overload;
-    function doPUT<TBodyType: class>(ABody: TBodyType;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPUT<TBodyType: class>(ABody: TObjectList<TBodyType>;
-      const AOwnsBody: Boolean = True): IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string)
-      : IRESTResponse; overload;
-    function doPUT(const AResource: string; const AParams: array of string;
-      const ABody: string): IRESTResponse; overload;
+    /// <summary>
+    /// Executes before send the request
+    /// </summary>
+    function SetBeforeRequestProc(aBeforeRequestProc: TBeforeRequestProc): IMVCRESTClient;
 
-    function doDELETE(): IRESTResponse; overload;
-    function doDELETE(const AResource: string; const AParams: array of string)
-      : IRESTResponse; overload;
+    /// <summary>
+    /// Executes after send the request
+    /// </summary>
+    function SetRequestCompletedProc(aRequestCompletedProc: TRequestCompletedProc): IMVCRESTClient;
 
-    function DataSetUpdate(const AResource: string; ADataSet: TDataSet;
-      const AKeyValue: string): IRESTResponse;
-    function DataSetInsert(const AResource: string; ADataSet: TDataSet)
-      : IRESTResponse;
-    function DataSetDelete(const AResource: string; const AKeyValue: string)
-      : IRESTResponse;
+    /// <summary>
+    /// Executes after the response is processed.
+    /// </summary>
+    function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
 
-    function DSUpdate(const AResource: string; ADataSet: TDataSet;
-      const AKeyValue: string): IRESTResponse;
-      deprecated 'use method DataSetUpdate';
-    function DSInsert(const AResource: string; ADataSet: TDataSet)
-      : IRESTResponse; deprecated 'use method DataSetInsert';
-    function DSDelete(const AResource: string; const AKeyValue: string)
-      : IRESTResponse; deprecated 'use method DataSetDelete';
+    /// <summary>
+    /// Clears all parameters (headers, body, path params and query params). This method is executed after each
+    /// request is completed.
+    /// </summary>
+    /// <remarks>
+    /// Cookies and authorization set in SetBasicAuthorization or SetBearerAuthorization is not removed
+    /// </remarks>
+    function ClearAllParams: IMVCRESTClient;
 
-    function Accept(): string; overload;
-    function ContentType(): string; overload;
-    function ContentEncoding(): string; overload;
-    function ConnectionTimeOut(): Integer; overload;
-    function ReadTimeOut(): Integer; overload;
-    function HasSSL(): Boolean;
-    function HasCompression(): Boolean;
+    /// <summary>
+    /// Connection timeout in milliseconds to be used for the requests.
+    /// </summary>
+    function ConnectTimeout(const aConnectTimeout: Integer): IMVCRESTClient; overload;
+    function ConnectTimeout: Integer; overload;
 
-    property RawBody: TStringStream read GetRawBody;
-    property MultiPartFormData: TIdMultiPartFormDataStream
-      read GetMultiPartFormData;
-    property BodyParams: TStringlist read GetBodyParams;
-    property SessionID: string read GetSessionID write SetSessionID;
-    property Username: string read GetUserName write SetUserName;
-    property Password: string read GetPassword write SetPassword;
-    property UseBasicAuthentication: Boolean read GetBasicAuth
-      write SetBasicAuth;
-    property RequestHeaders: TStringlist read FRequestHeaders;
-    property QueryStringParams: TStringlist read GetQueryStringParams;
-    property ProxyServer: string write SetProxyServer;
-    property ProxyPort: Integer write SetProxyPort;
-    property ProxyUsername: string write SetProxyUsername;
-    property ProxyPassword: string write SetProxyPassword;
-    property URL: string read GetURL write FURL;
+    /// <summary>
+    /// Response reading timeout in milliseconds to be used for the requests.
+    /// </summary>
+    function ReadTimeout(const aReadTimeout: Integer): IMVCRESTClient; overload;
+    function ReadTimeout: Integer; overload;
+
+    /// <summary>
+    /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
+    /// </summary>
+    function SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+
+    /// <summary>
+    /// Add bearer authorization header. Authorization = Bearer &lt;Token&gt;
+    /// </summary>
+    function SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+
+    /// <summary>
+    /// Returns the stored authorization. Includes Basic or Bearer prefix
+    /// </summary>
+    function Authorization: string;
+
+    /// <summary>
+    /// Removes the authorization header defined in <see cref="MVCFramework.RESTClient.Intf|IMVCRESTClient.SetBasicAuthorization(string,string)">
+    /// SetBasicAuthorization</see> or <see cref="MVCFramework.RESTClient.Intf|IMVCRESTClient.SetBearerAuthorization(string)">
+    /// SetBearerAuthorization</see>
+    /// </summary>
+    function ClearAuthorization: IMVCRESTClient;
+
+    /// <summary>
+    /// Add a header.
+    /// </summary>
+    /// <param name="aName">
+    /// Header name
+    /// </param>
+    /// <param name="aValue">
+    /// Header value
+    /// </param>
+    /// <param name="aDoNotEncode">
+    /// Indicates whether the value of this header should be used as is (True), or encoded by the component (False)
+    /// </param>
+    function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
+    function HeaderValue(const aName: string): string;
+
+    /// <summary>
+    /// Clears all headers.
+    /// </summary>
+    function ClearHeaders: IMVCRESTClient;
+
+    function AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient; overload;
+    function AllowCookies: Boolean; overload;
+
+    /// <summary>
+    /// Add DMVC session cookie
+    /// </summary>
+    function SessionId(const aSessionId: string): IMVCRESTClient; overload;
+    function SessionId: string; overload;
+
+    /// <summary>
+    /// Add a cookie header.
+    /// </summary>
+    function AddCookie(const aName, aValue: string): IMVCRESTClient;
+    /// <summary>
+    /// Clear all cookie headers.
+    /// </summary>
+    function ClearCookies: IMVCRESTClient;
+
+    /// <summary>
+    /// Add a URL segment parameter. The parameters of your url path may be enclosed in braces or in
+    /// parentheses starting with a money sign. <c>/api/{param1}/($param2)</c>
+    /// </summary>
+    /// <param name="aName">
+    /// Parameter name
+    /// </param>
+    /// <param name="aValue">
+    /// Parameter value
+    /// </param>
+    function AddPathParam(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TGUID): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDateTime): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TDate): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
+    function AddPathParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
+    function ClearPathParams: IMVCRESTClient;
+
+    /// <summary>
+    /// Add a QueryString parameter. <c>/api/person?para1=value&amp;param2=value</c>
+    /// </summary>
+    function AddQueryStringParam(const aName, aValue: string): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TGUID): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDateTime): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TDate): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient; overload;
+    function AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient; overload;
+    function ClearQueryParams: IMVCRESTClient;
+
+    function Accept(const aAccept: string): IMVCRESTClient; overload;
+    function Accept: string; overload;
+    function AcceptCharset(const aAcceptCharset: string): IMVCRESTClient; overload;
+    function AcceptCharset: string; overload;
+    function AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient; overload;
+    function AcceptEncoding: string; overload;
+    function HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient; overload;
+    function HandleRedirects: Boolean; overload;
+    function MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient; overload;
+    function MaxRedirects: Integer; overload;
+    function UserAgent(const aUserAgent: string): IMVCRESTClient; overload;
+    function UserAgent: string; overload;
+
+    function Resource(const aResource: string): IMVCRESTClient; overload;
+    function Resource: string; overload;
+
+    /// <summary>
+    /// Add a body to the requisition.
+    /// </summary>
+    /// <param name="aBody">
+    /// Body in string format.
+    /// </param>
+    /// <param name="aContentType">
+    /// Body content type.
+    /// </param>
+    function AddBody(const aBody: string; const aContentType: string = ''): IMVCRESTClient; overload;
+    /// <summary>
+    /// Add a body to the requisition
+    /// </summary>
+    /// <param name="aBodyStream">
+    /// Body in Stream format
+    /// </param>
+    /// <param name="aContentType">
+    /// Body content type
+    /// </param>
+    /// <param name="aOwnsStream">
+    /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
+    /// </param>
+    function AddBody(aBodyStream: TStream; const aOwnsStream: Boolean = True;
+      const aContentType: string = ''): IMVCRESTClient; overload;
+    /// <summary>
+    /// Add a body to the requisition
+    /// </summary>
+    /// <param name="aBodyObject">
+    /// Body in Object format. The object will be serialized to a JSON string.
+    /// </param>
+    /// <param name="aOwnsObject">
+    /// If OwnsObject is true, BodyObject will be destroyed by IMVCRESTClient.
+    /// </param>
+    function AddBody(aBodyObject: TObject; const aOwnsObject: Boolean = True): IMVCRESTClient; overload;
+
+    /// <summary>
+    /// Adds a file as the request body. Several files can be added in the same request. In this case the request
+    /// will be of the multipart/form-data type
+    /// </summary>
+    /// <param name="aName">
+    /// Field name
+    /// </param>
+    /// <param name="aFileName">
+    /// File path
+    /// </param>
+    /// <param name="aContentType">
+    /// File content type
+    /// </param>
+    function AddFile(const aName, aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddFile(const aFileName: string; const aContentType: string = ''): IMVCRESTClient; overload;
+
+    function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
+{$IF defined(RIOORBETTER)}
+    function AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
+      const aContentType: string = ''): IMVCRESTClient; overload;
+{$ENDIF}
+    /// <summary>
+    /// Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
+    /// </summary>
+    function AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
+
+    function ClearBody: IMVCRESTClient;
+
+    /// <summary>
+    /// Executes the next request asynchronously.
+    /// </summary>
+    /// <param name="aCompletionHandler">
+    /// An anonymous method that will be run after the execution completed.
+    /// </param>
+    /// <param name="aSynchronized">
+    /// Specifies if aCompletioHandler will be run in the main thread's (True) or execution thread's (False) context.
+    /// </param>
+    /// <param name="aCompletionHandlerWithError">
+    /// An anonymous method that will be run if an exception is raised during execution.
+    /// </param>
+    function Async(aCompletionHandler: TProc<IMVCRESTResponse>; aCompletionHandlerWithError: TProc<Exception> = nil;
+      const aSynchronized: Boolean = False): IMVCRESTClient;
+
+    /// <summary>
+    /// Execute a Get request.
+    /// </summary>
+    function Get(const aResource: string): IMVCRESTResponse; overload;
+    function Get: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Head request.
+    /// </summary>
+    function Head(const aResource: string): IMVCRESTResponse; overload;
+    function Head: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Options request.
+    /// </summary>
+    function Options(const aResource: string): IMVCRESTResponse; overload;
+    function Options: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Post request.
+    /// </summary>
+    /// <param name="aResource">
+    /// Resource path
+    /// </param>
+    /// <param name="aBody">
+    /// Object to be serialized. It can be a simple object or a list of objects (TObjectList &lt;T&gt;)
+    /// </param>
+    /// <param name="aOwnsBody">
+    /// If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
+    /// </param>
+    function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Post(const aResource: string; const aBody: string = '';
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    function Post: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Patch request.
+    /// </summary>
+    function Patch(const aResource: string; aBody: TObject;
+      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Patch(const aResource: string; const aBody: string = '';
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    function Patch: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Put request.
+    /// </summary>
+    function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Put(const aResource: string; const aBody: string = '';
+      const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    function Put: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Execute a Delete request.
+    /// </summary>
+    function Delete(const aResource: string): IMVCRESTResponse; overload;
+    function Delete: IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Executes any type of HTTP request
+    /// </summary>
+    function Execute(const aMethod: TMVCHTTPMethodType; const aResource: string): IMVCRESTResponse; overload;
+    function Execute(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse; overload;
+
+    /// <summary>
+    /// Serialize the current dataset record and execute a POST request.
+    /// </summary>
+    function DataSetInsert(const aResource: string; aDataSet: TDataSet; const aIgnoredFields: TMVCIgnoredList = [];
+      const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    /// <summary>
+    /// Serialize the current dataset record and execute a PUT request.
+    /// </summary>
+    function DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet;
+      const aIgnoredFields: TMVCIgnoredList = []; const aNameCase: TMVCNameCase = ncAsIs): IMVCRESTResponse;
+    /// <summary>
+    /// Delete the current dataset record by executing a delete request.
+    /// </summary>
+    function DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
+
+    /// <summary>
+    /// Register a custom serializer to the RESTClient serializer.
+    /// </summary>
+    function RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer): IMVCRESTClient;
+  end;
+
+  /// <summary>
+  /// Provides access to the REST request response.
+  /// </summary>
+  TMVCRESTResponse = class(TInterfacedObject, IMVCRESTResponse)
+  private
+    fSuccess: Boolean;
+    fStatusCode: Integer;
+    fStatusText: string;
+    fHeaders: TStrings;
+    fCookies: TCookies;
+    fServer: string;
+    fContentType: string;
+    fContentEncoding: string;
+    fContentLength: Integer;
+    fContent: string;
+    fContentRawBytes: TBytes;
+
+    procedure FillResponse(aHTTPResponse: IHTTPResponse);
+  public
+    constructor Create(aHTTPResponse: IHTTPResponse);
+    destructor Destroy; override;
+
+    { IMVCRESTResponse }
+    function Success: Boolean;
+    function StatusCode: Integer;
+    function StatusText: string;
+    function Headers: TStrings;
+    function HeaderValue(const aName: string): string;
+    function Cookies: TCookies;
+    function CookieByName(const aName: string): TCookie;
+    function Server: string;
+    function ContentType: string;
+    function ContentEncoding: string;
+    function ContentLength: Integer;
+    function Content: string;
+    function ContentRawBytes: TBytes;
+    procedure SaveContentToStream(aStream: TStream);
+    procedure SaveContentToFile(const aFileName: string);
   end;
 
 implementation
 
 uses
-  MVCFramework.Serializer.Defaults,
-  MVCFramework.DataSet.Utils,
-  System.ZLib
+  System.NetConsts,
+  System.NetEncoding,
+  MVCFramework.Serializer.JsonDataObjects,
+  System.RegularExpressions;
 
-{$IFNDEF ANDROID OR IOS}
-{$IFDEF BERLINORBETTER}
-{$IFNDEF LINUX}
-    ,
-  System.AnsiStrings
-
-{$ENDIF}
-{$ENDIF}
-{$ENDIF}
-    ;
+{$IF not defined(RIOORBETTER)}
 
 type
-  TRESTResponse = class(TInterfacedObject, IRESTResponse)
-  strict private
-    FBody: TMemoryStream;
-    FResponseCode: Word;
-    FResponseText: string;
-    FHeaders: TStringlist;
-    // FBodyAsJSONValue: TJSONValue;
-    FContentType: string;
-    FContentTypeCharset: string;
-    function GetHeader(const AValue: string): string;
+  TCookieManagerHelper = class helper for TCookieManager
   private
-    FCookies: TIdCookies;
-    FHasError: Boolean;
-    FErrorObject: TMVCExceptionObj;
-    FContentEncoding: string;
-  protected
-    function GetHasError: Boolean;
-    procedure SetHasError(const aHasError: Boolean);
-  public
-    constructor Create; virtual;
-    destructor Destroy; override;
-
-    procedure SetResponseCode(const AResponseCode: Word);
-    procedure SetResponseText(const AResponseText: string);
-    procedure SetHeaders(AHeaders: TStrings);
-
-    function Body(): TStream;
-    function BodyAsString(): string;
-
-    procedure UpdateResponseCode(const AResponseCode: Word);
-    procedure UpdateResponseText(const AResponseText: string);
-    procedure UpdateHeaders(AHeaders: TStrings);
-
-    function ResponseCode(): Word;
-    function ResponseText(): string;
-
-    function Headers: TStringlist;
-    function HeaderValue(const AName: string): string;
-
-    function ContentType(): string;
-    function ContentTypeCharset(): string;
-    function ContentEncoding(): string;
-
-    function Error: TMVCExceptionObj;
-
-    function GetCookies: TIdCookies;
-    procedure SetCookies(aCookie: TIdCookies);
-    property Cookies: TIdCookies read GetCookies write SetCookies;
+    function CookieList: TCookies;
   end;
+{$ENDIF}
 
-  { TRESTResponse }
+{ TMVCRESTClient }
 
-function TRESTResponse.Body: TStream;
+function TMVCRESTClient.Accept: string;
 begin
-  Result := FBody;
+  Result := fAccept;
 end;
 
-function TRESTResponse.BodyAsString: string;
-var
-  ss: TStringStream;
+function TMVCRESTClient.Accept(const aAccept: string): IMVCRESTClient;
 begin
-  if (FContentTypeCharset = '') then
-    FContentTypeCharset := 'utf-8';
-  ss := TStringStream.Create('',
-    TEncoding.GetEncoding(FContentTypeCharset.ToLower));
+  Result := Self;
+  fAccept := aAccept;
+end;
+
+function TMVCRESTClient.AcceptCharset: string;
+begin
+  Result := fAcceptCharset;
+end;
+
+function TMVCRESTClient.AcceptCharset(const aAcceptCharset: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fAcceptCharset := aAcceptCharset;
+end;
+
+function TMVCRESTClient.AcceptEncoding(const aAcceptEncoding: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fAcceptEncoding := aAcceptEncoding;
+end;
+
+function TMVCRESTClient.AcceptEncoding: string;
+begin
+  Result := fAcceptEncoding;
+end;
+
+function TMVCRESTClient.AddBody(const aBody: string; const aContentType: string): IMVCRESTClient;
+var
+  lContentCharset: string;
+  lEncoding: TEncoding;
+  lBytes: TArray<Byte>;
+  lContentType: string;
+begin
+  Result := Self;
+
+  SplitContentMediaTypeAndCharset(aContentType, lContentType, lContentCharset);
+
+  if lContentCharset.IsEmpty then
+  begin
+    lContentCharset := TMVCCharSet.UTF_8;
+  end;
+  lEncoding := TEncoding.GetEncoding(lContentCharset);
   try
-    FBody.Position := 0;
-    FBody.SaveToStream(ss);
-    Result := ss.DataString;
+    fRawBody.Clear;
+
+    lBytes := lEncoding.GetBytes(aBody);
+    fRawBody.WriteData(lBytes, Length(lBytes));
+    SetContentType(BuildContentType(lContentType, lContentCharset));
   finally
-    FreeAndNil(ss);
+    FreeAndNil(lEncoding);
   end;
 end;
 
-function TRESTResponse.ContentTypeCharset: string;
+function TMVCRESTClient.AddBody(aBodyStream: TStream; const aOwnsStream: Boolean;
+  const aContentType: string): IMVCRESTClient;
 begin
-  Result := FContentTypeCharset;
+  Result := Self;
+
+  if aBodyStream = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  if aBodyStream is TStringStream then
+    raise EMVCRESTClientException.Create('aBodyStream must be of type TStringStream!');
+
+  SetContentType(aContentType);
+
+  fRawBody.Clear;
+  fRawBody.CopyFrom(aBodyStream, 0);
+
+  if aOwnsStream then
+    aBodyStream.Free;
 end;
 
-function TRESTResponse.ContentEncoding: string;
+function TMVCRESTClient.AddBody(aBodyObject: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
 begin
-  Result := FContentEncoding;
+  if aBodyObject = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  Result := AddBody(SerializeObject(aBodyObject), TMVCMediaType.APPLICATION_JSON);
+
+  if aOwnsObject then
+    aBodyObject.Free;
 end;
 
-function TRESTResponse.ContentType: string;
+function TMVCRESTClient.AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient;
 begin
-  Result := FContentType;
+  Result := Self;
+  GetBodyFormData.AddField(aName, aValue);
+  SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 
-constructor TRESTResponse.Create;
+{$IF defined(RIOORBETTER)}
+
+function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
+  const aContentType: string): IMVCRESTClient;
 begin
-  FHeaders := TStringlist.Create;
-  FCookies := TIdCookies.Create(nil);
-  FBody := TStringStream.Create('', TEncoding.UTF8);
-  // FBodyAsJSONValue := nil;
-  FHasError := False;
+  Result := Self;
+  GetBodyFormData.AddStream(aName, aStreamValue, aContentType);
+  SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
+end;
+{$ENDIF}
+
+
+function TMVCRESTClient.AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fParameters.Add(TMVCRESTParam.Create(TMVCRESTParamType.FormURLEncoded, aName, aValue));
+  SetContentType(TMVCMediaType.APPLICATION_FORM_URLENCODED);
 end;
 
-destructor TRESTResponse.Destroy;
+function TMVCRESTClient.AddCookie(const aName, aValue: string): IMVCRESTClient;
 begin
-  // if Assigned(FBodyAsJSONValue) then
-  // FreeAndNil(FBodyAsJSONValue);
-  FreeAndNil(FHeaders);
-  FreeAndNil(FBody);
-  FreeAndNil(FCookies);
-  FreeAndNil(FErrorObject);
-  inherited;
+  Result := Self;
+  SetParameter(TMVCRESTParamType.Cookie, aName, aValue);
 end;
 
-function TRESTResponse.Error: TMVCExceptionObj;
+function TMVCRESTClient.AddFile(const aFileName, aContentType: string): IMVCRESTClient;
+begin
+  Result := AddFile(TMVCRESTClientConsts.DEFAULT_FILE_NAME, aFileName, aContentType);
+end;
+
+function TMVCRESTClient.AddFile(const aName, aFileName, aContentType: string): IMVCRESTClient;
+begin
+  Result := Self;
+  GetBodyFormData.AddFile(aName, aFileName {$IF defined(RIOORBETTER)}, aContentType{$ENDIF});
+  SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
+end;
+
+function TMVCRESTClient.AddHeader(const aName, aValue: string): IMVCRESTClient;
+begin
+  Result := Self;
+
+  SetParameter(TMVCRESTParamType.Header, aName, aValue);
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: Double): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddPathParam(const aName, aValue: string): IMVCRESTClient;
+begin
+  Result := Self;
+  SetParameter(TMVCRESTParamType.Path, aName, aValue);
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TDate): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, DateToISODate(aValue));
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TTime): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, TimeToISOTime(aValue));
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TDateTime): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, DateTimeToISOTimeStamp(aValue));
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: Int64): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: TGUID): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddPathParam(const aName: string; aValue: Integer): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient;
+begin
+  Result := AddPathParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient;
+begin
+  Result := AddQueryStringParam(aName, TimeToISOTime(aValue));
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TDate): IMVCRESTClient;
+begin
+  Result := AddQueryStringParam(aName, DateToISODate(aValue));
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TDateTime): IMVCRESTClient;
+begin
+  Result := AddQueryStringParam(aName, DateTimeToISOTimeStamp(aValue));
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TGUID): IMVCRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Int64): IMVCRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName, aValue: string): IMVCRESTClient;
+begin
+  Result := Self;
+  SetParameter(TMVCRESTParamType.Query, aName, aValue);
+end;
+
+function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Integer): IMVCRESTClient;
+begin
+  Result := AddQueryStringParam(aName, aValue.ToString);
+end;
+
+function TMVCRESTClient.AllowCookies: Boolean;
+begin
+  Result := fHTTPClient.AllowCookies;
+end;
+
+function TMVCRESTClient.AllowCookies(const aAllowCookies: Boolean): IMVCRESTClient;
+begin
+  Result := Self;
+  fHTTPClient.AllowCookies := aAllowCookies;
+end;
+
+function TMVCRESTClient.Async(aCompletionHandler: TProc<IMVCRESTResponse>;
+  aCompletionHandlerWithError: TProc<Exception>; const aSynchronized: Boolean): IMVCRESTClient;
+begin
+  Result := Self;
+  fNextRequestIsAsync := True;
+  fAsyncCompletionHandler := aCompletionHandler;
+  fAsyncCompletionHandlerWithError := aCompletionHandlerWithError;
+  fAsyncSynchronized := aSynchronized;
+end;
+
+function TMVCRESTClient.Authorization: string;
+begin
+  Result := fAuthorization;
+end;
+
+function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
+begin
+  Result := Self;
+
+  fBaseURL := aBaseURL;
+  if not fBaseURL.Contains('://') then
+    fBaseURL := 'http://' + fBaseURL;
+
+  fBaseURL := fBaseURL;
+end;
+
+function TMVCRESTClient.BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient;
+begin
+  Result := BaseURL(aHost + ':' + aPort.ToString);
+end;
+
+function TMVCRESTClient.BaseURL: string;
+begin
+  Result := fBaseURL;
+end;
+
+function TMVCRESTClient.ClearAllParams: IMVCRESTClient;
+begin
+  Result := Self;
+  fParameters.Clear;
+  ClearBody;
+
+  fNextRequestIsAsync := False;
+  fAsyncCompletionHandler := nil;
+  fAsyncCompletionHandlerWithError := nil;
+  fAsyncSynchronized := False;
+end;
+
+function TMVCRESTClient.ClearAuthorization: IMVCRESTClient;
+begin
+  Result := Self;
+  fAuthorization := '';
+end;
+
+function TMVCRESTClient.ClearBody: IMVCRESTClient;
+begin
+  fRawBody.Clear;
+  if Assigned(fBodyFormData) then
+    FreeAndNil(fBodyFormData);
+
+  Result := Self;
+  ClearParameters(TMVCRESTParamType.FormURLEncoded);
+  fContentType := '';
+end;
+
+function TMVCRESTClient.ClearCookies: IMVCRESTClient;
+begin
+  Result := Self;
+  ClearParameters(TMVCRESTParamType.Cookie);
+{$IF defined(RIOORBETTER)}
+  fHTTPClient.CookieManager.Clear;
+{$ELSE}
+  if fHTTPClient.CookieManager.CookieList <> nil then
+    fHTTPClient.CookieManager.CookieList.Clear;
+{$ENDIF}
+end;
+
+function TMVCRESTClient.ClearHeaders: IMVCRESTClient;
+begin
+  Result := Self;
+  ClearParameters(TMVCRESTParamType.Header);
+end;
+
+procedure TMVCRESTClient.ClearParameters(const aParamType: TMVCRESTParamType);
 var
-  lSerializer: IMVCSerializer;
+  I: Integer;
 begin
-  if not FHasError then
-    Exit(nil);
-  if not Assigned(FErrorObject) then
+  for I := Pred(fParameters.Count) downto 0 do
   begin
-    FErrorObject := TMVCExceptionObj.Create;
-    { if content-type is json then we can use a more evoluted deserialization, otherwise
-      we just copy some http information into FErrorObject }
-    if Self.ContentType.StartsWith('application/json', True) then
-    begin
-      lSerializer := GetDefaultSerializer;
-      lSerializer.DeserializeObject(Self.BodyAsString, FErrorObject);
-    end
-    else
-    begin
-      FErrorObject.Status := Self.ResponseText;
-      FErrorObject.ExceptionMessage := Self.BodyAsString;
-      FErrorObject.HTTPError := Self.ResponseCode;
-    end;
-  end;
-  Result := FErrorObject;
-end;
-
-function TRESTResponse.GetCookies: TIdCookies;
-begin
-  Result := FCookies;
-end;
-
-function TRESTResponse.GetHasError: Boolean;
-begin
-  Result := FHasError;
-end;
-
-function TRESTResponse.GetHeader(const AValue: string): string;
-var
-  s: string;
-begin
-  Result := '';
-  if Assigned(FHeaders) and (FHeaders.Count > 0) then
-  begin
-    for s in FHeaders do
-      if s.StartsWith(AValue + ':', True) then
-        Exit(s);
+    if fParameters[I].&Type = aParamType then
+      fParameters.Delete(I);
   end;
 end;
 
-function TRESTResponse.Headers: TStringlist;
+function TMVCRESTClient.ClearPathParams: IMVCRESTClient;
 begin
-  Result := FHeaders;
-end;
-
-function TRESTResponse.HeaderValue(const AName: string): string;
-var
-  s: string;
-  arr: TArray<string>;
-begin
-  Result := '';
-  for s in Self.Headers do
-  begin
-    arr := s.Split([':'], 2);
-    if SameText(arr[0].Trim, AName) then
-    begin
-      Result := arr[1].Trim;
-      Break;
-    end;
-  end;
-end;
-
-function TRESTResponse.ResponseCode: Word;
-begin
-  Result := FResponseCode;
-end;
-
-function TRESTResponse.ResponseText: string;
-begin
-  Result := FResponseText;
-end;
-
-procedure TRESTResponse.SetCookies(aCookie: TIdCookies);
-begin
-  FCookies := aCookie;
-end;
-
-procedure TRESTResponse.SetHasError(const aHasError: Boolean);
-begin
-  FHasError := aHasError;
-end;
-
-procedure TRESTResponse.SetHeaders(AHeaders: TStrings);
-begin
-  UpdateHeaders(AHeaders);
-end;
-
-procedure TRESTResponse.SetResponseCode(const AResponseCode: Word);
-begin
-  UpdateResponseCode(AResponseCode);
-end;
-
-procedure TRESTResponse.SetResponseText(const AResponseText: string);
-begin
-  UpdateResponseText(AResponseText);
-end;
-
-procedure TRESTResponse.UpdateHeaders(AHeaders: TStrings);
-var
-  CT: TArray<string>;
-  C: string;
-begin
-  FHeaders.Assign(AHeaders);
-  FHeaders.NameValueSeparator := ':';
-
-  C := GetHeader('content-type');
-  if not C.IsEmpty then
-  begin
-    CT := C.Split([':'])[1].Split([';']);
-    FContentType := Trim(CT[0]);
-  end
-  else
-  begin
-    SetLength(CT, 0);
-    FContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
-  end;
-
-  FContentTypeCharset := 'UTF-8';
-  if Length(CT) > 1 then
-    if CT[1].Trim.StartsWith('charset', True) then
-      FContentTypeCharset := CT[1].Trim.Split(['='])[1].Trim;
-
-  FContentEncoding := '';
-  C := GetHeader('content-encoding');
-  if not C.IsEmpty then
-  begin
-    CT := C.Split([':']);
-    if Length(CT) <> 2 then
-      raise EMVCException.Create('Invalid Content-Encoding response header');
-    FContentEncoding := Trim(CT[1]);
-  end;
-end;
-
-procedure TRESTResponse.UpdateResponseCode(const AResponseCode: Word);
-begin
-  FResponseCode := AResponseCode;
-end;
-
-procedure TRESTResponse.UpdateResponseText(const AResponseText: string);
-begin
-  FResponseText := AResponseText;
-end;
-
-{ TJSONObjectResponseHelper }
-
-// function TJSONObjectResponseHelper.AsObject<T>: T;
-// var
-// lSerializer: IMVCSerializer;
-// begin
-// lSerializer := GetDefaultSerializer;
-// Result := T.Create;
-// try
-// lSerializer.DeserializeObject(Self.ToJSON, Result);
-// except
-// FreeAndNil(Result);
-// raise;
-// end;
-// // Result := Mapper.JSONObjectToObject<T>(self);
-// end;
-
-{ TJSONArrayResponseHelper }
-
-// function TJSONArrayResponseHelper.AsObjectList<T>: TObjectList<T>;
-// begin
-// raise Exception.Create('Not Implemented');
-// // Result := Mapper.JSONArrayToObjectList<T>(self, False, True);
-// end;
-
-{ TRESTClient }
-
-function TRESTClient.Accept(const AValue: string): TRESTClient;
-begin
-  FAccept := AValue;
   Result := Self;
+  ClearParameters(TMVCRESTParamType.Path);
 end;
 
-function TRESTClient.Accept: string;
+function TMVCRESTClient.ClearQueryParams: IMVCRESTClient;
 begin
-  Result := FAccept;
-end;
-
-function TRESTClient.AcceptCharSet(const AValue: string): TRESTClient;
-begin
-  if (FAccept = '') then
-    raise ERESTClientException.Create('First set the Accept property!');
-
-  if not AnsiContainsText(FAccept, 'charset') then
-    Self.Accept(FAccept + ';charset=' + AValue);
-
   Result := Self;
+  ClearParameters(TMVCRESTParamType.Query);
 end;
 
-function TRESTClient.AddFile(const AFieldName, AFileName, AContentType: string)
-  : TRESTClient;
+function TMVCRESTClient.ConnectTimeout: Integer;
 begin
-  MultiPartFormData.AddFile(AFieldName, AFileName, AContentType);
+  Result := fHTTPClient.ConnectionTimeout;
+end;
+
+function TMVCRESTClient.ConnectTimeout(const aConnectTimeout: Integer): IMVCRESTClient;
+begin
   Result := Self;
+  fHTTPClient.ConnectionTimeout := aConnectTimeout;
 end;
 
-function TRESTClient.Asynch(AProc: TProc<IRESTResponse>;
-  AProcErr: TProc<Exception>; AProcAlways: TProc; ASynchronized: Boolean)
-  : TRESTClient;
-begin
-  FNextRequestIsAsynch := True;
-  FAsynchProc := AProc;
-  FAsynchProcErr := AProcErr;
-  FAsynchProcAlways := AProcAlways;
-  FSynchronized := ASynchronized;
-  Result := Self;
-end;
-
-function TRESTClient.Authentication(const AUsername, APassword: string;
-  const ABasicAuth: Boolean): TRESTClient;
-begin
-  FHTTP.Request.Username := AUsername;
-  FHTTP.Request.Password := APassword;
-  FHTTP.Request.BasicAuthentication := ABasicAuth;
-  Result := Self;
-end;
-
-function TRESTClient.ClearHeaders: TRESTClient;
-begin
-  FRequestHeaders.Clear;
-  Result := Self;
-end;
-
-function TRESTClient.ClearAllParams: TRESTClient;
-begin
-  RawBody.Size := 0;
-  RawBody.Position := 0;
-  BodyParams.Clear;
-  QueryStringParams.Clear;
-
-  FNextRequestIsAsynch := False;
-  FAsynchProc := nil;
-  FAsynchProcErr := nil;
-  FAsynchProcAlways := nil;
-  FSynchronized := False;
-
-  FHTTP.Request.Username := '';
-  FHTTP.Request.Password := '';
-  FHTTP.Request.BasicAuthentication := True;
-
-  SetLength(FParams, 0);
-
-  Result := Self;
-end;
-
-function TRESTClient.Compression(const AEnabled: Boolean): TRESTClient;
-begin
-  if AEnabled then
-  begin
-    if not Assigned(FHTTP.Compressor) then
-      FHTTP.Compressor := TIdCompressorZLib.Create(FHTTP);
-  end
-  else
-  begin
-    if (FHTTP.Compressor <> nil) then
-    begin
-
-{$HINTS OFF}
-      FHTTP.Compressor.Free;
-      FHTTP.Compressor := nil;
-
-{$HINTS ON}
-    end;
-  end;
-  Result := Self;
-end;
-
-function TRESTClient.ConnectionTimeOut(const AValue: Integer): TRESTClient;
-begin
-  FHTTP.ConnectTimeout := AValue;
-  Result := Self;
-end;
-
-function TRESTClient.ConnectionTimeOut: Integer;
-begin
-  Result := FHTTP.ConnectTimeout;
-end;
-
-function TRESTClient.ContentCharSet(const AValue: string): TRESTClient;
-begin
-  if (FContentType = '') then
-    raise ERESTClientException.Create('First set the ContentType property!');
-
-  if not AnsiContainsText(FContentType, 'charset') then
-    Self.ContentType(FContentType + ';charset=' + AValue);
-
-  Result := Self;
-end;
-
-function TRESTClient.ContentEncoding: string;
-begin
-  Result := FContentEncoding;
-end;
-
-function TRESTClient.ContentEncoding(const AValue: string): TRESTClient;
-begin
-  FContentEncoding := AValue;
-  Result := Self;
-end;
-
-function TRESTClient.ContentType: string;
-begin
-  Result := FContentType;
-end;
-
-function TRESTClient.ContentType(const AValue: string): TRESTClient;
-begin
-  FContentType := AValue;
-  Result := Self;
-end;
-
-constructor TRESTClient.Create(const AHost: string; const APort: Word;
-  AIOHandler: TIdIOHandler);
-var
-  Pieces: TArray<string>;
+constructor TMVCRESTClient.Create;
 begin
   inherited Create;
-  FHost := AHost;
-  FPort := APort;
-  FPrimaryThread := TThread.CurrentThread;
-  FBodyParams := nil;
-  FQueryStringParams := nil;
-  FRawBody := nil;
-  FAccept := 'application/json';
-  FContentType := BuildContentType(TMVCMediaType.APPLICATION_JSON,
-    TMVCCharset.UTF_8);
-  FResource := '';
-  FContentEncoding := '';
-  FRequestHeaders := TStringlist.Create;
-  FLastSessionID := '';
-  FNextRequestIsAsynch := False;
-  FAsynchProc := nil;
-  FAsynchProcErr := nil;
-  FAsynchProcAlways := nil;
-  FMultiPartFormData := nil;
-  FSynchronized := False;
-  SetLength(FParams, 0);
 
-  if FHost.Contains('://') then
+  fHTTPClient := THTTPClient.Create;
+  fHTTPClient.OnValidateServerCertificate := DoValidateServerCertificate;
+  fHTTPClient.HandleRedirects := True;
+  fHTTPClient.MaxRedirects := TMVCRESTClientConsts.DEFAULT_MAX_REDIRECTS;
+{$IF defined(TOKYOORBETTER)}
+  fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
+{$ENDIF}
+  fValidateServerCertificate := nil;
+  fBeforeRequestProc := nil;
+  fRequestCompletedProc := nil;
+  fResponseCompletedProc := nil;
+  fParameters := TList<TMVCRESTParam>.Create;
+  fRawBody := TStringStream.Create;
+  fBodyFormData := nil;
+  fSerializer := TMVCJsonDataObjectsSerializer.Create;
+  fRttiContext := TRttiContext.Create;
+  fProxySettings := TProxySettings.Create('', 0);
+  fBaseURL := '';
+  fResource := '';
+
+  fAccept := TMVCRESTClientConsts.DEFAULT_ACCEPT;
+  fAcceptCharset := '';
+  fAcceptEncoding := TMVCRESTClientConsts.DEFAULT_ACCEPT_ENCODING;
+  fUserAgent := TMVCRESTClientConsts.DEFAULT_USER_AGENT;
+  fContentType := '';
+  fAuthorization := '';
+
+  ClearAllParams;
+end;
+
+function TMVCRESTClient.DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
+var
+  lResource: string;
+begin
+  lResource := aResource;
+  if not aKeyValue.IsEmpty then
   begin
-    Pieces := FHost.Split(['://'], 2, TStringSplitOptions.ExcludeEmpty);
-    FProtocol := Pieces[0];
-    FHost := Pieces[1];
-  end
-  else
-    FProtocol := 'http';
-
-  FHTTP := TIdHTTP.Create(nil);
-  FHTTP.HandleRedirects := False; // DT 2016/09/16
-  FHTTP.OnRedirect := OnHTTPRedirect; // DT 2016/09/16
-  FHTTP.ReadTimeOut := 20000;
-  FHTTP.Request.UserAgent := 'Mozilla/3.0 (compatible; IndyLibrary)';
-  // Resolve 403 Forbidden error in REST API SSL
-
-  if (AIOHandler <> nil) then
-    FHTTP.IOHandler := AIOHandler
-  else
-    SSL(False);
-
-  Compression(False);
-
-  FHTTP.HandleRedirects := True;
-  FHTTP.Request.CustomHeaders.FoldLines := False;
-  FHTTP.Request.BasicAuthentication := False; // DT 2018/07/24
-
-  FSerializer := GetDefaultSerializer;
+    lResource := aResource + '/' + aKeyValue;
+  end;
+  Result := Delete(lResource);
 end;
 
-function TRESTClient.DataSetDelete(const AResource, AKeyValue: string)
-  : IRESTResponse;
+function TMVCRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet;
+  const aIgnoredFields: TMVCIgnoredList; const aNameCase: TMVCNameCase): IMVCRESTResponse;
 begin
-  Result := doDELETE(AResource, [AKeyValue]);
+  Result := Post(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
-function TRESTClient.DataSetInsert(const AResource: string; ADataSet: TDataSet)
-  : IRESTResponse;
+function TMVCRESTClient.DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet;
+  const aIgnoredFields: TMVCIgnoredList; const aNameCase: TMVCNameCase): IMVCRESTResponse;
+var
+  lResource: string;
 begin
-  Result := doPOST(AResource, [], ADataSet.AsJSONObject);
+  lResource := aResource;
+  if not aKeyValue.IsEmpty then
+  begin
+    lResource := aResource + '/' + aKeyValue;
+  end;
+
+  Result := Put(lResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
-function TRESTClient.DataSetUpdate(const AResource: string; ADataSet: TDataSet;
-  const AKeyValue: string): IRESTResponse;
+function TMVCRESTClient.Delete(const aResource: string): IMVCRESTResponse;
 begin
-  Result := doPUT(AResource, [AKeyValue], ADataSet.AsJSONObject);
+  Resource(aResource);
+  Result := Delete;
 end;
 
-destructor TRESTClient.Destroy;
+function TMVCRESTClient.Delete: IMVCRESTResponse;
 begin
-  if Assigned(FBodyParams) then
-    FreeAndNil(FBodyParams);
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpDELETE);
+end;
 
-  if Assigned(FQueryStringParams) then
-    FreeAndNil(FQueryStringParams);
+destructor TMVCRESTClient.Destroy;
+begin
+  FreeAndNil(fHTTPClient);
+  FreeAndNil(fParameters);
 
-  if Assigned(FRawBody) then
-    FreeAndNil(FRawBody);
+  if Assigned(fBodyFormData) then
+    FreeAndNil(fBodyFormData);
+  FreeAndNil(fRawBody);
 
-  if Assigned(FMultiPartFormData) then
-    FreeAndNil(FMultiPartFormData);
-
-  FreeAndNil(FRequestHeaders);
-  FreeAndNil(FHTTP);
+  fSerializer := nil;
+  fRttiContext.Free;
   inherited;
 end;
 
-function TRESTClient.doDELETE(const AResource: string;
-  const AParams: array of string): IRESTResponse;
+procedure TMVCRESTClient.DoApplyCookies(const aURL: string);
 var
-  URL: string;
-begin
-  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
-    EncodeQueryStringParams(QueryStringParams);
-
-  if FNextRequestIsAsynch then
-  begin
-    Result := nil;
-    StartAsynchRequest(httpDELETE, URL);
-  end
-  else
-  begin
-    Result := SendHTTPCommand(httpDELETE, FAccept, FContentType, URL, nil);
-    ClearAllParams;
-  end;
-end;
-
-function TRESTClient.doGET(const AResource: string;
-  const AParams, aQueryStringParamNames, aQueryStringParamValues
-  : array of string): IRESTResponse;
-var
-  lParams: TStringlist;
+  lParam: TMVCRESTParam;
   lName: string;
-  I: Integer;
+  lValue: string;
 begin
-  Assert(Length(aQueryStringParamNames) = Length(aQueryStringParamValues));
-  lParams := TStringlist.Create;
-  try
-    I := 0;
-    for lName in aQueryStringParamNames do
+  for lParam in fParameters do
+  begin
+    if lParam.&Type = TMVCRESTParamType.Cookie then
     begin
-      lParams.Values[lName] := aQueryStringParamValues[I];
-      inc(I);
+      lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+      lValue := TMVCRESTClientHelper.URIEncode(lParam.Value);
+      fHTTPClient.CookieManager.AddServerCookie(lName + '=' + lValue, aURL);
     end;
-    Result := doGET(AResource, AParams, lParams);
-  finally
-    lParams.Free;
   end;
 end;
 
-function TRESTClient.doDELETE: IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
+{$IF not defined(SYDNEYORBETTER)}
 
-  Result := doDELETE(FResource, FParams);
-end;
+type
+  THackURLClient = class(TURLClient);
+{$ENDIF}
 
-function TRESTClient.doGET: IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
 
-  Result := doGET(FResource, FParams);
-end;
-
-function TRESTClient.doGET(const AResource: string;
-  const AParams: array of string; const aQueryStringParams: TStrings)
-  : IRESTResponse;
+procedure TMVCRESTClient.DoApplyHeaders;
 var
-  URL: string;
+  lParam: TMVCRESTParam;
 begin
-  URL := Self.URL + AResource + EncodeResourceParams(AParams);
-  if aQueryStringParams = nil then
-    URL := URL + EncodeQueryStringParams(FQueryStringParams)
-  else
-    URL := URL + EncodeQueryStringParams(aQueryStringParams);
-
-  if FNextRequestIsAsynch then
+{$IF defined(SYDNEYORBETTER)}
+  fHTTPClient.CustHeaders.Clear;
+{$ELSE}
+  SetLength(THackURLClient(fHTTPClient).FCustomHeaders, 0);
+{$ENDIF}
+  for lParam in fParameters do
   begin
-    Result := nil;
-    StartAsynchRequest(httpGET, URL);
-  end
-  else
-  begin
-    Result := SendHTTPCommand(httpGET, FAccept, FContentType, URL, nil);
-    ClearAllParams;
-  end;
-end;
-
-function TRESTClient.doPOST(const AResource: string;
-  const AParams: array of string): IRESTResponse;
-var
-  s: string;
-begin
-  try
-    Result := SendHTTPCommand(httpPOST, FAccept, FContentType,
-      Self.URL + AResource + EncodeResourceParams(AParams) +
-      EncodeQueryStringParams(FQueryStringParams), FBodyParams);
-  except
-    on E: EIdHTTPProtocolException do
-      s := E.Message;
-  end;
-  ClearAllParams;
-end;
-
-function TRESTClient.doPATCH(const AResource: string;
-  const AParams: array of string; const ABody: string): IRESTResponse;
-var
-  URL: string;
-begin
-  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
-    EncodeQueryStringParams(QueryStringParams);
-
-  if FNextRequestIsAsynch then
-  begin
-    Result := nil;
-    StartAsynchRequest(httpPOST, URL, ABody);
-  end
-  else
-  begin
-    Result := SendHTTPCommandWithBody(httpPATCH, FAccept, FContentType,
-      FContentEncoding, URL, ABody);
-    ClearAllParams;
-  end;
-end;
-
-function TRESTClient.doPATCH(const ABody: string): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if (ABody = '') then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPATCH(FResource, FParams, ABody);
-end;
-
-function TRESTClient.doPATCH<TBodyType>(ABody: TBodyType;
-  const AOwnsBody: Boolean): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPATCH(FResource, FParams, FSerializer.SerializeObject(ABody));
-
-  if AOwnsBody then
-    TObject(ABody).Free;
-end;
-
-function TRESTClient.doPATCH<TBodyType>(ABody: TObjectList<TBodyType>;
-  const AOwnsBody: Boolean): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  ABody.OwnsObjects := AOwnsBody;
-  Result := doPATCH(FResource, FParams, FSerializer.SerializeCollection(ABody));
-end;
-
-function TRESTClient.doPOST(const AResource: string;
-  const AParams: array of string; const ABody: string): IRESTResponse;
-var
-  URL { , lContentTypeWithCharset } : string;
-begin
-  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
-    EncodeQueryStringParams(QueryStringParams);
-
-  if FNextRequestIsAsynch then
-  begin
-    Result := nil;
-    StartAsynchRequest(httpPOST, URL, ABody);
-  end
-  else
-  begin
-    // lContentTypeWithCharset := FContentType;
-    // if FContentEncoding = '' then
-    // FContentEncoding := 'UTF-8';
-    // lContentTypeWithCharset := FContentType + ';charset=' + FContentEncoding;
-
-    Result := SendHTTPCommandWithBody(httpPOST, FAccept, FContentType,
-      FContentEncoding, URL, ABody);
-    ClearAllParams;
-  end;
-end;
-
-function TRESTClient.doPOST(const ABody: string): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if (ABody = '') then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPOST(FResource, FParams, ABody);
-end;
-
-function TRESTClient.doPOST<TBodyType>(ABody: TBodyType;
-  const AOwnsBody: Boolean): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPOST(FResource, FParams, FSerializer.SerializeObject(ABody));
-
-  if AOwnsBody then
-    TObject(ABody).Free;
-end;
-
-function TRESTClient.doPOST<TBodyType>(ABody: TObjectList<TBodyType>;
-  const AOwnsBody: Boolean): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  ABody.OwnsObjects := AOwnsBody;
-
-  Result := doPOST(FResource, FParams, FSerializer.SerializeCollection(ABody));
-end;
-
-function TRESTClient.doPUT(const AResource: string;
-  const AParams: array of string): IRESTResponse;
-begin
-  Result := SendHTTPCommand(httpPUT, FAccept, FContentType,
-    Self.URL + AResource + EncodeResourceParams(AParams) +
-    EncodeQueryStringParams(QueryStringParams), FBodyParams);
-  ClearAllParams;
-end;
-
-function TRESTClient.doPUT(const AResource: string;
-  const AParams: array of string; const ABody: string): IRESTResponse;
-var
-  URL: string;
-begin
-  URL := Self.URL + AResource + EncodeResourceParams(AParams) +
-    EncodeQueryStringParams(QueryStringParams);
-
-  if FNextRequestIsAsynch then
-  begin
-    Result := nil;
-    StartAsynchRequest(httpPUT, URL, ABody);
-  end
-  else
-  begin
-    Result := SendHTTPCommandWithBody(httpPUT, FAccept, FContentType,
-      FContentEncoding, URL, ABody);
-    ClearAllParams;
-  end;
-end;
-
-function TRESTClient.doPUT(const ABody: string): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if (ABody = '') then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPUT(FResource, FParams, ABody);
-end;
-
-function TRESTClient.doPUT<TBodyType>(ABody: TBodyType;
-  const AOwnsBody: Boolean): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  Result := doPUT(FResource, FParams, FSerializer.SerializeObject(ABody));
-
-  if AOwnsBody then
-    TObject(ABody).Free;
-end;
-
-function TRESTClient.doPUT<TBodyType>(ABody: TObjectList<TBodyType>;
-  const AOwnsBody: Boolean): IRESTResponse;
-begin
-  if (FResource = '') then
-    raise ERESTClientException.Create('You must enter the Resource!');
-
-  if not Assigned(ABody) then
-    raise ERESTClientException.Create('You must enter the Body!');
-
-  ABody.OwnsObjects := AOwnsBody;
-
-  Result := doPUT(FResource, FParams, FSerializer.SerializeCollection(ABody));
-end;
-
-function TRESTClient.DSDelete(const AResource, AKeyValue: string)
-  : IRESTResponse;
-begin
-  Result := DataSetDelete(AResource, AKeyValue);
-end;
-
-function TRESTClient.DSInsert(const AResource: string; ADataSet: TDataSet)
-  : IRESTResponse;
-begin
-  Result := DataSetInsert(AResource, ADataSet);
-end;
-
-function TRESTClient.DSUpdate(const AResource: string; ADataSet: TDataSet;
-  const AKeyValue: string): IRESTResponse;
-begin
-  Result := DataSetUpdate(AResource, ADataSet, AKeyValue);
-end;
-
-function TRESTClient.EncodeQueryStringParams(const AParams: TStrings;
-  AIncludeQuestionMark: Boolean): string;
-var
-  I: Integer;
-begin
-  Result := '';
-
-  if not Assigned(AParams) or (AParams.Count = 0) then
-    Exit;
-
-  if AIncludeQuestionMark then
-    Result := '?';
-
-  for I := 0 to AParams.Count - 1 do
-  begin
-    if I > 0 then
-      Result := Result + '&';
-    Result := Result + AParams.Names[I] + '=' + TIdURI.ParamsEncode
-      (AParams.ValueFromIndex[I]);
-  end;
-end;
-
-function TRESTClient.EncodeResourceParams(const AResourceParams
-  : array of string): string;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := low(AResourceParams) to high(AResourceParams) do
-    Result := Result + '/' + TIdURI.ParamsEncode(AResourceParams[I]);
-end;
-
-function TRESTClient.GetBasicAuth: Boolean;
-begin
-  Result := FHTTP.Request.BasicAuthentication;
-end;
-
-function TRESTClient.GetBodyParams: TStringlist;
-begin
-  if not Assigned(FBodyParams) then
-    FBodyParams := TStringlist.Create;
-  Result := FBodyParams;
-end;
-
-function TRESTClient.GetMultiPartFormData: TIdMultiPartFormDataStream;
-begin
-  if not Assigned(FMultiPartFormData) then
-    FMultiPartFormData := TIdMultiPartFormDataStream.Create;
-  Result := FMultiPartFormData;
-end;
-
-function TRESTClient.GetPassword: string;
-begin
-  Result := FHTTP.Request.Password;
-end;
-
-function TRESTClient.GetQueryStringParams: TStringlist;
-begin
-  if not Assigned(FQueryStringParams) then
-    FQueryStringParams := TStringlist.Create;
-  Result := FQueryStringParams;
-end;
-
-function TRESTClient.GetRawBody: TStringStream;
-begin
-  if not Assigned(FRawBody) then
-    FRawBody := TStringStream.Create('');
-  Result := FRawBody;
-end;
-
-function TRESTClient.GetSessionID: string;
-begin
-  Result := FLastSessionID;
-end;
-
-function TRESTClient.GetURL: string;
-begin
-  if FURL = EmptyStr then
-    Result := FProtocol + '://' + FHost + ':' + IntToStr(FPort)
-  else
-    Result := FURL;
-end;
-
-function TRESTClient.GetUserName: string;
-begin
-  Result := FHTTP.Request.Username;
-end;
-
-procedure TRESTClient.HandleCookies(aCookies: TIdCookies;
-  aRESTResponse: IRESTResponse);
-var
-  s: string;
-  arr: TArray<string>;
-begin
-  aCookies.LockCookieList(caReadWrite);
-  try
-    aRESTResponse.Cookies.Clear;
-    aRESTResponse.Cookies.AddCookies(aCookies);
-  finally
-    aCookies.UnlockCookieList(caReadWrite);
-  end;
-
-  for s in FHTTP.Response.RawHeaders do
-  begin
-    if s.StartsWith('Set-Cookie', True) then
+    if lParam.&Type = TMVCRESTParamType.Header then
     begin
-      arr := s.Split([':'], 2);
-      if arr[1].Trim.StartsWith('dtsessionid') then
+      fHTTPClient.CustomHeaders[lParam.Name] := lParam.Value;
+    end;
+  end;
+  if not fAuthorization.IsEmpty then
+  begin
+    fHTTPClient.CustomHeaders[TMVCRESTClientConsts.AUTHORIZATION_HEADER] := fAuthorization;
+  end;
+  fHTTPClient.Accept := fAccept;
+  fHTTPClient.AcceptCharSet := fAcceptCharset;
+  fHTTPClient.AcceptEncoding := fAcceptEncoding;
+  fHTTPClient.ContentType := fContentType;
+end;
+
+procedure TMVCRESTClient.DoApplyPathParams(var aURL: string);
+var
+  lParam: TMVCRESTParam;
+  lReplace: string;
+  lEncodedParam: string;
+begin
+  for lParam in fParameters do
+  begin
+    if lParam.&Type = TMVCRESTParamType.Path then
+    begin
+      lReplace := '{' + lParam.Name + '}';
+      lEncodedParam := TNetEncoding.URL.Encode(lParam.Value, TMVCRESTClientConsts.PATH_UNSAFE_CHARS,
+        [TURLEncoding.TEncodeOption.EncodePercent]);
+      aURL := aURL.Replace(lReplace, lEncodedParam, [rfReplaceAll, rfIgnoreCase]);
+    end;
+  end;
+end;
+
+procedure TMVCRESTClient.DoApplyQueryParams(var aURL: string);
+var
+  lParam: TMVCRESTParam;
+  lName: string;
+  lValue: string;
+  lConcat: string;
+begin
+  for lParam in fParameters do
+  begin
+    if lParam.&Type = TMVCRESTParamType.Query then
+    begin
+      lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+      lValue := TNetEncoding.URL.EncodeForm(lParam.Value);
+
+      if aURL.Contains('?') then
+        lConcat := '&'
+      else
+        lConcat := '?';
+
+      aURL := aURL + lConcat + lName + '=' + lValue;
+    end;
+  end;
+end;
+
+procedure TMVCRESTClient.DoBeforeRequest(aRequest: IHTTPRequest);
+begin
+  if Assigned(fBeforeRequestProc) then
+    fBeforeRequestProc(aRequest);
+end;
+
+procedure TMVCRESTClient.DoConvertMVCPathParamsToRESTParams(var aURL: string);
+begin
+  aURL := TRegEx.Replace(aURL, '(\([($])([\w_]+)([)])', '{\2}', [TRegExOption.roIgnoreCase]);
+end;
+
+procedure TMVCRESTClient.DoEncodeURL(var aURL: string);
+begin
+  // It is necessary to encode the dots because the HTTPClient removes dotted URL segments.
+  // See https://tools.ietf.org/html/rfc3986#section-5.2.4
+  aURL := aURL.Replace('\', '/', [rfReplaceAll]);
+  aURL := aURL.Replace('../', '%2E%2E/', [rfReplaceAll]);
+  aURL := aURL.Replace('./', '%2E/', [rfReplaceAll]);
+
+{$IF defined(RIOORBETTER)}
+  aURL := TURI.Create(aURL).Encode;
+{$ELSE}
+  aURL := TURI.Create(aURL).ToString;
+{$ENDIF}
+end;
+
+procedure TMVCRESTClient.DoPrepareBodyRequest(var aBodyStream: TStream);
+var
+  lContentType: string;
+  lContentCharset: string;
+  lParam: TMVCRESTParam;
+  lName: string;
+  lValue: string;
+  lBody: string;
+begin
+  SplitContentMediaTypeAndCharset(fContentType, lContentType, lContentCharset);
+
+  if SameText(lContentType, TMVCMediaType.MULTIPART_FORM_DATA) then
+  begin
+    aBodyStream := GetBodyFormData.Stream;
+    SetContentType(GetBodyFormData.MimeTypeHeader);
+  end
+  else if SameText(lContentType, TMVCMediaType.APPLICATION_FORM_URLENCODED) then
+  begin
+    lBody := '';
+    for lParam in fParameters do
+    begin
+      if lParam.&Type = TMVCRESTParamType.FormURLEncoded then
       begin
-        arr := arr[1].Split(['='], 2);
-        FLastSessionID := TIdURI.URLDecode(arr[1].Split([';'])[0]);
-        if FLastSessionID.Contains('invalid') then
-          FLastSessionID := '';
+        lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+        lValue := TNetEncoding.URL.EncodeForm(lParam.Value);
+        if not lBody.IsEmpty then
+          lBody := lBody + '&';
+        lBody := lBody + lName + '=' + lValue;
       end;
-      Break;
+    end;
+    AddBody(lBody, fContentType);
+    aBodyStream := fRawBody;
+  end
+  else
+  begin
+    aBodyStream := fRawBody;
+  end;
+  aBodyStream.Position := 0;
+end;
+
+procedure TMVCRESTClient.DoRequestCompleted(aResponse: IHTTPResponse; var aHandled: Boolean);
+begin
+  if Assigned(fRequestCompletedProc) then
+    fRequestCompletedProc(aResponse, aHandled);
+end;
+
+procedure TMVCRESTClient.DoResponseCompleted(aMVCRESTResponse: IMVCRESTResponse);
+begin
+  if Assigned(fResponseCompletedProc) then
+    fResponseCompletedProc(aMVCRESTResponse);
+end;
+
+function TMVCRESTClient.Execute(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(aMethod);
+end;
+
+function TMVCRESTClient.Execute(const aMethod: TMVCHTTPMethodType; const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := Execute(aMethod);
+end;
+
+procedure TMVCRESTClient.ExecuteAsyncRequest(const aMethod: TMVCHTTPMethodType);
+var
+  lThread: TThread;
+  lRESTClient: IMVCRESTClient;
+begin
+  // This is necessary for the thread to be able to access the RESTClient fields
+  lRESTClient := Self;
+  lThread := TThread.CreateAnonymousThread(
+    procedure
+    var
+      lResponse: IMVCRESTResponse;
+    begin
+      try
+        lResponse := TMVCRESTClient(lRESTClient).InternalExecuteRequest(aMethod);
+        TMonitor.Enter(TObject(lResponse));
+        try
+          if Assigned(fAsyncCompletionHandler) then
+          begin
+            if fAsyncSynchronized then
+            begin
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  fAsyncCompletionHandler(lResponse);
+                end
+                );
+            end
+            else
+            begin
+              fAsyncCompletionHandler(lResponse);
+            end;
+          end;
+        finally
+          TMonitor.Exit(TObject(lResponse));
+        end;
+      except
+        on E: Exception do
+        begin
+          if Assigned(fAsyncCompletionHandlerWithError) then
+          begin
+            if fAsyncSynchronized then
+            begin
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  fAsyncCompletionHandlerWithError(E);
+                end
+                );
+            end
+            else
+            begin
+              fAsyncCompletionHandlerWithError(E);
+            end;
+          end;
+        end;
+      end;
+      ClearAllParams;
+    end
+    );
+  lThread.Start;
+end;
+
+function TMVCRESTClient.ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+begin
+  if fNextRequestIsAsync then
+  begin
+    Result := nil;
+    ExecuteAsyncRequest(aMethod);
+  end
+  else
+  begin
+    Result := InternalExecuteRequest(aMethod);
+    ClearAllParams;
+  end;
+end;
+
+function TMVCRESTClient.Get: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpGET);
+end;
+
+function TMVCRESTClient.GetBodyFormData: TMultipartFormData;
+begin
+  if not Assigned(fBodyFormData) then
+  begin
+    fBodyFormData := TMultipartFormData.Create;
+  end;
+  Result := fBodyFormData;
+end;
+
+function TMVCRESTClient.GetFullURL: string;
+var
+  lResource: string;
+begin
+  Result := fBaseURL;
+
+  lResource := fResource;
+  if not lResource.IsEmpty then
+  begin
+    if not Result.EndsWith('/') and
+      not (lResource.StartsWith('/') or lResource.StartsWith('?') or lResource.StartsWith('#')) then
+    begin
+      Result := Result + '/';
+    end;
+
+    Result := Result + lResource;
+  end;
+end;
+
+function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpGET);
+end;
+
+function TMVCRESTClient.HandleRedirects(const aHandleRedirects: Boolean): IMVCRESTClient;
+begin
+  Result := Self;
+  fHTTPClient.HandleRedirects := aHandleRedirects;
+end;
+
+function TMVCRESTClient.HandleRedirects: Boolean;
+begin
+  Result := fHTTPClient.HandleRedirects;
+end;
+
+function TMVCRESTClient.Head: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpHEAD);
+end;
+
+function TMVCRESTClient.Head(const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := Head;
+end;
+
+function TMVCRESTClient.HeaderValue(const aName: string): string;
+var
+  lParam: TMVCRESTParam;
+begin
+  Result := '';
+
+  for lParam in fParameters do
+  begin
+    if lParam.&Type = TMVCRESTParamType.Header then
+    begin
+      if SameText(lParam.Name, aName) then
+        Exit(lParam.Value);
     end;
   end;
 end;
 
-procedure TRESTClient.HandleRequestCookies;
-var
-  I: Integer;
+function TMVCRESTClient.HTTPMethodName(const aHTTPMethod: TMVCHTTPMethodType): string;
 begin
-  if Assigned(FHTTP.CookieManager) then
-    FHTTP.CookieManager.CookieCollection.Clear;
-
-  if not FLastSessionID.Trim.IsEmpty then
-    FHTTP.Request.CustomHeaders.AddValue('Cookie',
-      'dtsessionid=' + FLastSessionID);
-
-  for I := 0 to FRequestHeaders.Count - 1 do
-  begin
-    FHTTP.Request.CustomHeaders.AddValue(FRequestHeaders.Names[I],
-      FRequestHeaders.ValueFromIndex[I]);
-  end;
-end;
-
-function TRESTClient.HasCompression: Boolean;
-begin
-  Result := (FHTTP.Compressor <> nil);
-end;
-
-function TRESTClient.HasSSL: Boolean;
-begin
-  Result := (FHTTP.IOHandler <> nil);
-end;
-
-function TRESTClient.Header(const AField, AValue: string): TRESTClient;
-begin
-  FRequestHeaders.Add(AField + '=' + AValue);
-  Result := Self;
-end;
-
-function TRESTClient.HTTPCommandToString(const ACommand
-  : TMVCHTTPMethodType): string;
-begin
-  case ACommand of
+  case aHTTPMethod of
     httpGET:
       Result := 'GET';
     httpPOST:
@@ -1310,386 +1308,557 @@ begin
       Result := 'PUT';
     httpDELETE:
       Result := 'DELETE';
-  else
-    raise ERESTClientException.Create
-      ('Unknown HTTPCommand in TRESTClient.HTTPCommandToString');
+    httpHEAD:
+      Result := 'HEAD';
+    httpOPTIONS:
+      Result := 'OPTIONS';
+    httpPATCH:
+      Result := 'PATCH';
+    httpTRACE:
+      Result := 'TRACE';
   end;
 end;
 
-procedure TRESTClient.OnHTTPRedirect(Sender: TObject; var dest: string;
-  var NumRedirect: Integer; var Handled: Boolean; var VMethod: TIdHTTPMethod);
+function TMVCRESTClient.InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+var
+  lURL: string;
+  lResponse: IHTTPResponse;
+  lBodyStream: TStream;
+  lURI: TURI;
+  lRequest: IHTTPRequest;
+  lHandled: Boolean;
 begin
-  Handled := False;
+  fHTTPClient.ProxySettings := fProxySettings;
+
+  lURL := GetFullURL;
+  DoConvertMVCPathParamsToRESTParams(lURL);
+  DoApplyPathParams(lURL);
+  DoApplyQueryParams(lURL);
+  DoEncodeURL(lURL);
+  DoApplyCookies(lURL);
+  lURI := TURI.Create(lURL);
+
+  lBodyStream := nil;
+  DoPrepareBodyRequest(lBodyStream);
+  DoApplyHeaders;
+
+  lRequest := fHTTPClient.GetRequest(HTTPMethodName(aMethod), lURI);
+  lRequest.SourceStream := lBodyStream;
+
+  DoBeforeRequest(lRequest);
+
+  lResponse := fHTTPClient.Execute(lRequest, nil, []);
+
+  lHandled := False;
+  DoRequestCompleted(lResponse, lHandled);
+
+  if not lHandled then
+  begin
+    Result := TMVCRESTResponse.Create(lResponse);
+    DoResponseCompleted(Result);
+  end
+  else
+  begin
+    Result := nil;
+  end;
 end;
 
-function TRESTClient.Params(const AValues: array of string): TRESTClient;
+function TMVCRESTClient.MaxRedirects(const aMaxRedirects: Integer): IMVCRESTClient;
+begin
+  Result := Self;
+  fHTTPClient.MaxRedirects := aMaxRedirects;
+end;
+
+function TMVCRESTClient.MaxRedirects: Integer;
+begin
+  Result := fHTTPClient.MaxRedirects;
+end;
+
+class function TMVCRESTClient.New: IMVCRESTClient;
+begin
+  Result := TMVCRESTClient.Create;
+end;
+
+function TMVCRESTClient.ObjectIsList(aObject: TObject): Boolean;
+begin
+  Result := fRttiContext.GetType(aObject.ClassType).GetMethod('GetEnumerator') <> nil;
+end;
+
+function TMVCRESTClient.Options: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpOPTIONS);
+end;
+
+function TMVCRESTClient.Options(const aResource: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  Result := Options;
+end;
+
+procedure TMVCRESTClient.DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
+const aCertificate: TCertificate; var aAccepted: Boolean);
+begin
+  if Assigned(fValidateServerCertificate) then
+    fValidateServerCertificate(aSender, aRequest, aCertificate, aAccepted)
+  else
+    aAccepted := True;
+end;
+
+function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.isEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+
+  Result := Patch;
+end;
+
+function TMVCRESTClient.Patch: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpPATCH);
+end;
+
+function TMVCRESTClient.Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
+begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  Result := Patch(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TMVCRESTClient.Post(const aResource, aBody, aContentType: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+  Result := Post;
+end;
+
+function TMVCRESTClient.Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
+begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  Result := Post(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TMVCRESTClient.Post: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpPOST);
+end;
+
+function TMVCRESTClient.ProxyPassword: string;
+begin
+  Result := fProxySettings.Password;
+end;
+
+function TMVCRESTClient.ProxyPassword(const aProxyPassword: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fProxySettings.Password := aProxyPassword;
+end;
+
+function TMVCRESTClient.ProxyPort: Integer;
+begin
+  Result := fProxySettings.Port;
+end;
+
+function TMVCRESTClient.ProxyPort(const aProxyPort: Integer): IMVCRESTClient;
+begin
+  Result := Self;
+  fProxySettings.Port := aProxyPort;
+end;
+
+function TMVCRESTClient.ProxyServer(const aProxyServer: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fProxySettings.Host := aProxyServer;
+end;
+
+function TMVCRESTClient.ProxyServer: string;
+begin
+  Result := fProxySettings.Host;
+end;
+
+function TMVCRESTClient.ProxyUsername(const aProxyUsername: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fProxySettings.UserName := aProxyUsername;
+end;
+
+function TMVCRESTClient.ProxyUsername: string;
+begin
+  Result := fProxySettings.UserName;
+end;
+
+function TMVCRESTClient.Put: IMVCRESTResponse;
+begin
+  Result := ExecuteRequest(TMVCHTTPMethodType.httpPUT);
+end;
+
+function TMVCRESTClient.Put(const aResource, aBody, aContentType: string): IMVCRESTResponse;
+begin
+  Resource(aResource);
+  if not aBody.IsEmpty then
+  begin
+    ClearBody;
+    AddBody(aBody, aContentType);
+  end;
+  Result := Put;
+end;
+
+function TMVCRESTClient.Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean): IMVCRESTResponse;
+begin
+  if aBody = nil then
+    raise EMVCRESTClientException.Create('You need a valid body!');
+
+  Result := Put(aResource, SerializeObject(aBody));
+
+  if aOwnsBody then
+    aBody.Free;
+end;
+
+function TMVCRESTClient.ReadTimeout: Integer;
+begin
+  Result := fHTTPClient.ResponseTimeout;
+end;
+
+function TMVCRESTClient.ReadTimeout(const aReadTimeout: Integer): IMVCRESTClient;
+begin
+  Result := Self;
+  fHTTPClient.ResponseTimeout := aReadTimeout;
+end;
+
+function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
+aInstance: IMVCTypeSerializer): IMVCRESTClient;
+begin
+  Result := Self;
+  fSerializer.RegisterTypeSerializer(aTypeInfo, aInstance);
+end;
+
+function TMVCRESTClient.Resource(const aResource: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fResource := aResource;
+end;
+
+function TMVCRESTClient.Resource: string;
+begin
+  Result := fResource;
+end;
+
+{$IF defined(TOKYOORBETTER)}
+
+
+function TMVCRESTClient.SecureProtocols: THTTPSecureProtocols;
+begin
+  Result := fHTTPClient.SecureProtocols;
+end;
+
+function TMVCRESTClient.SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient;
+begin
+  Result := Self;
+  fHTTPClient.SecureProtocols := aSecureProtocols;
+end;
+{$ENDIF}
+
+
+function TMVCRESTClient.SerializeObject(aObject: TObject): string;
+begin
+  if ObjectIsList(aObject) then
+    Result := fSerializer.SerializeCollection(aObject)
+  else
+    Result := fSerializer.SerializeObject(aObject);
+end;
+
+function TMVCRESTClient.SessionId: string;
+var
+  lCookie: TCookie;
+  lParam: TMVCRESTParam;
+begin
+  Result := '';
+
+  for lParam in fParameters do
+  begin
+    if lParam.&Type = TMVCRESTParamType.Cookie then
+    begin
+      if SameText(lParam.Name, TMVCConstants.SESSION_TOKEN_NAME) then
+      begin
+        Result := lParam.Value;
+        Break;
+      end;
+    end;
+  end;
+
+  if Result.IsEmpty then
+  begin
+    for lCookie in fHTTPClient.CookieManager.Cookies do
+    begin
+      if SameText(lCookie.Name, TMVCConstants.SESSION_TOKEN_NAME) then
+      begin
+        Result := lCookie.Value;
+        Break;
+      end;
+    end;
+    Result := lCookie.Value;
+  end;
+
+  if Result.Contains('invalid') then
+    Result := '';
+end;
+
+function TMVCRESTClient.SessionId(const aSessionId: string): IMVCRESTClient;
+begin
+  Result := Self;
+
+  AddCookie(TMVCConstants.SESSION_TOKEN_NAME, aSessionId);
+end;
+
+function TMVCRESTClient.SetBasicAuthorization(const aUsername, aPassword: string): IMVCRESTClient;
+var
+  lBase64: TNetEncoding;
+begin
+  Result := Self;
+  // Do not use TNetEncoding.Base64 here, because it may break long line
+  lBase64 := TBase64Encoding.Create(0, '');
+  try
+    fAuthorization := TMVCRESTClientConsts.BASIC_AUTH_PREFIX + lBase64.Encode(aUsername + ':' + aPassword);
+  finally
+    FreeAndNil(lBase64);
+  end;
+end;
+
+function TMVCRESTClient.SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fAuthorization := TMVCRESTClientConsts.BEARER_AUTH_PREFIX + aAccessToken;
+end;
+
+function TMVCRESTClient.SetBeforeRequestProc(aBeforeRequestProc: TBeforeRequestProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fBeforeRequestProc := aBeforeRequestProc;
+end;
+
+procedure TMVCRESTClient.SetContentType(const aContentType: string);
+begin
+  fContentType := aContentType;
+end;
+
+procedure TMVCRESTClient.SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);
 var
   I: Integer;
 begin
-  SetLength(FParams, Length(AValues));
-  for I := low(AValues) to high(AValues) do
-    FParams[I] := AValues[I];
-  Result := Self;
-end;
-
-function TRESTClient.ReadTimeOut(const AValue: Integer): TRESTClient;
-begin
-  FHTTP.ReadTimeOut := AValue;
-  Result := Self;
-end;
-
-function TRESTClient.ReadTimeOut: Integer;
-begin
-  Result := FHTTP.ReadTimeOut;
-end;
-
-function TRESTClient.ResetSession: TRESTClient;
-begin
-  SessionID := '';
-  if Assigned(FHTTP.CookieManager) then
-    FHTTP.CookieManager.CookieCollection.Clear;
-  FHTTP.Request.RawHeaders.Clear;
-  Result := Self;
-end;
-
-function TRESTClient.Resource(const AValue: string): TRESTClient;
-begin
-  FResource := AValue;
-  Result := Self;
-end;
-
-function TRESTClient.SendHTTPCommand(const ACommand: TMVCHTTPMethodType;
-  const AAccept, AContentMediaType, AResource: string; ABodyParams: TStrings)
-  : IRESTResponse;
-var
-  lTmp: TMemoryStream;
-  lDecomp: TZDecompressionStream;
-  lCompressionType: TMVCCompressionType;
-begin
-  FHTTP.Request.BasicAuthentication := not Username.IsEmpty; // DT 2019/08/23
-
-  FContentEncoding := '';
-  Result := TRESTResponse.Create;
-
-  FHTTP.Request.RawHeaders.Clear;
-  FHTTP.Request.CustomHeaders.Clear;
-  FHTTP.Request.Accept := AAccept;
-  if ACommand in MVC_HTTP_METHODS_WITH_CONTENT then
-    FHTTP.Request.ContentType := AContentMediaType;
-
-  HandleRequestCookies;
-  try
-    case ACommand of
-      httpGET:
-        begin
-          Result.Body.Position := 0;
-          FHTTP.Get(AResource, Result.Body);
-        end;
-
-      httpPOST:
-        begin
-          if (MultiPartFormData.Size = 0) then
-          begin
-            Result.Body.Position := 0;
-            FHTTP.Post(AResource, RawBody, Result.Body);
-          end
-          else
-          begin
-            FHTTP.Post(AResource, MultiPartFormData, Result.Body);
-            MultiPartFormData.Clear;
-          end;
-        end;
-
-      httpPUT:
-        begin
-          if (MultiPartFormData.Size <> 0)
-          then { TODO -oDaniele -cGeneral : Rework please!!! }
-            raise ERESTClientException.Create('Only POST can Send Files');
-
-          Result.Body.Position := 0;
-
-          if Assigned(ABodyParams) and (ABodyParams.Count > 0) then
-          begin
-            RawBody.Size := 0;
-            RawBody.WriteString(EncodeQueryStringParams(ABodyParams, False));
-          end;
-
-          FHTTP.Put(AResource, RawBody, Result.Body);
-        end;
-
-      httpDELETE:
-        begin
-          Result.Body.Position := 0;
-          FHTTP.Delete(AResource);
-          RawBody.Size := 0;
-        end;
-    end;
-  except
-    on E: EIdHTTPProtocolException do
+  for I := Pred(fParameters.Count) downto 0 do
+  begin
+    if (fParameters[I].&Type = aParamType) and SameText(fParameters[I].Name, aName) then
     begin
-      Result.HasError := True;
-      Result.Body.WriteUTF8(E.ErrorMessage);
-    end
-    else
-      raise;
+      fParameters.Delete(I);
+      Break;
+    end;
   end;
 
-  HandleCookies(FHTTP.CookieManager.CookieCollection, Result);
+  fParameters.Add(TMVCRESTParam.Create(aParamType, aName, aValue));
+end;
 
-  Result.UpdateResponseCode(FHTTP.Response.ResponseCode);
-  Result.UpdateResponseText(FHTTP.Response.ResponseText);
-  Result.UpdateHeaders(FHTTP.Response.RawHeaders);
+function TMVCRESTClient.SetRequestCompletedProc(aRequestCompletedProc: TRequestCompletedProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fRequestCompletedProc := aRequestCompletedProc;
+end;
 
-  if Result.ContentEncoding.IsEmpty or (Result.ContentEncoding = 'identity') then
-    Exit;
+function TMVCRESTClient.SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fResponseCompletedProc := aResponseCompletedProc;
+end;
 
-  if Result.ContentEncoding = 'deflate' then
+function TMVCRESTClient.SetValidateServerCertificateProc(
+  aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fValidateServerCertificate := aValidateCertificateProc;
+end;
+
+function TMVCRESTClient.UserAgent(const aUserAgent: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fUserAgent := aUserAgent;
+end;
+
+function TMVCRESTClient.UserAgent: string;
+begin
+  Result := fUserAgent;
+end;
+
+{ TMVCRESTResponse }
+
+function TMVCRESTResponse.Content: string;
+begin
+  Result := fContent;
+end;
+
+function TMVCRESTResponse.ContentEncoding: string;
+begin
+  Result := fContentEncoding;
+end;
+
+function TMVCRESTResponse.ContentLength: Integer;
+begin
+  Result := fContentLength;
+end;
+
+function TMVCRESTResponse.ContentType: string;
+begin
+  Result := fContentType;
+end;
+
+function TMVCRESTResponse.CookieByName(const aName: string): TCookie;
+var
+  lCookie: TCookie;
+begin
+  Result := Default (TCookie);
+  for lCookie in fCookies do
   begin
-    lCompressionType := TMVCCompressionType.ctDeflate;
-  end
-  else if Result.ContentEncoding = 'gzip' then
-  begin
-    lCompressionType := TMVCCompressionType.ctGZIP;
-  end
-  else
-    raise EMVCException.CreateFmt('Content-Encoding not supported [%s]',
-      [Result.ContentEncoding]);
+    if SameText(lCookie.Name, aName) then
+      Exit(lCookie);
+  end;
+end;
 
-  lTmp := TMemoryStream.Create;
+function TMVCRESTResponse.Cookies: TCookies;
+begin
+  Result := fCookies;
+end;
+
+constructor TMVCRESTResponse.Create(aHTTPResponse: IHTTPResponse);
+begin
+  fHeaders := TStringList.Create;
+  SetLength(fContentRawBytes, 0);
+  fCookies := TCookies.Create;
+
+  FillResponse(aHTTPResponse);
+end;
+
+destructor TMVCRESTResponse.Destroy;
+begin
+  SetLength(fContentRawBytes, 0);
+  FreeAndNil(fHeaders);
+  FreeAndNil(fCookies);
+  inherited Destroy;
+end;
+
+procedure TMVCRESTResponse.FillResponse(aHTTPResponse: IHTTPResponse);
+var
+  lHeader: TNetHeader;
+begin
+  fSuccess := (aHTTPResponse.StatusCode >= 200) and (aHTTPResponse.StatusCode < 300);
+  fStatusCode := aHTTPResponse.StatusCode;
+  fStatusText := aHTTPResponse.StatusText;
+
+  for lHeader in aHTTPResponse.Headers do
+  begin
+    fHeaders.Values[lHeader.Name] := lHeader.Value;
+  end;
+  fCookies.AddRange(aHTTPResponse.Cookies.ToArray);
+  fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
+  fContentRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
+    aHTTPResponse.ContentEncoding);
+  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes,
+    aHTTPResponse.HeaderValue[sContentType]);
+  fContentType := aHTTPResponse.HeaderValue[sContentType];
+  fContentEncoding := aHTTPResponse.ContentEncoding;
+  fContentLength := aHTTPResponse.ContentLength;
+end;
+
+function TMVCRESTResponse.Headers: TStrings;
+begin
+  Result := fHeaders;
+end;
+
+function TMVCRESTResponse.HeaderValue(const aName: string): string;
+begin
+  Result := fHeaders.Values[aName];
+end;
+
+function TMVCRESTResponse.ContentRawBytes: TBytes;
+begin
+  Result := fContentRawBytes;
+end;
+
+procedure TMVCRESTResponse.SaveContentToFile(const aFileName: string);
+var
+  lStream: TMemoryStream;
+begin
+  lStream := TMemoryStream.Create;
   try
-    Result.Body.Position := 0;
-{$IF Defined(BerlinOrBetter)}
-    lDecomp := TZDecompressionStream.Create(Result.Body,
-      MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
-{$ELSE}
-    lDecomp := TZDecompressionStream.Create(Result.Body,
-      MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType]);
-{$ENDIF}
-    try
-      lTmp.CopyFrom(lDecomp, 0);
-      Result.Body.Size := 0;
-      Result.Body.CopyFrom(lTmp, 0);
-    finally
-      lDecomp.Free;
-    end;
+    lStream.Write(fContentRawBytes, Length(fContentRawBytes));
+    lStream.Position := 0;
+    lStream.SaveToFile(aFileName);
   finally
-    lTmp.Free;
+    FreeAndNil(lStream);
   end;
 end;
 
-function TRESTClient.SendHTTPCommandWithBody(const ACommand: TMVCHTTPMethodType;
-  const AAccept, AContentMediaType, AContentCharset, AResource, ABody: string)
-  : IRESTResponse;
-var
-  lContentCharset: string;
-  lEncoding: TEncoding;
-  lTmpStrStream: TStringStream;
+procedure TMVCRESTResponse.SaveContentToStream(aStream: TStream);
 begin
-  Result := TRESTResponse.Create;
+  if aStream = nil then
+    raise EMVCRESTClientException.Create('Stream not assigned!');
 
-  FHTTP.Request.RawHeaders.Clear;
-  FHTTP.Request.CustomHeaders.Clear;
-  FHTTP.Request.Accept := AAccept;
+  aStream.Write(fContentRawBytes, Length(fContentRawBytes));
+end;
 
-  lContentCharset := 'UTF-8';
-  if AContentCharset <> '' then
-    lContentCharset := AContentCharset;
+function TMVCRESTResponse.Server: string;
+begin
+  Result := fServer;
+end;
 
-  FHTTP.Request.ContentType := BuildContentType(AContentMediaType,
-    lContentCharset);
+function TMVCRESTResponse.StatusCode: Integer;
+begin
+  Result := fStatusCode;
+end;
 
-  HandleRequestCookies;
+function TMVCRESTResponse.StatusText: string;
+begin
+  Result := fStatusText;
+end;
+
+function TMVCRESTResponse.Success: Boolean;
+begin
+  Result := fSuccess;
+end;
+
+{$IF not defined(RIOORBETTER)}
+
+{ TCookieManagerHelper }
+
+function TCookieManagerHelper.CookieList: TCookies;
+var
+  lRttiContext: TRttiContext;
+  lField: TRttiField;
+begin
+  lRttiContext := TRttiContext.Create;
   try
-    case ACommand of
-      httpGET:
-        begin
-          FHTTP.Get(AResource, Result.Body);
-        end;
-
-      httpPOST, httpPUT:
-        begin
-          if (MultiPartFormData.Size <> 0) then
-            raise ERESTClientException.Create('This method cannot send files');
-
-          RawBody.Position := 0;
-          RawBody.Size := 0;
-
-          lEncoding := TEncoding.GetEncoding(lContentCharset);
-          try
-            lTmpStrStream := TStringStream.Create(ABody, lEncoding, False);
-            try
-              RawBody.LoadFromStream(lTmpStrStream);
-            finally
-              lTmpStrStream.Free;
-            end;
-          finally
-            lEncoding.Free;
-          end;
-
-          if ACommand = httpPOST then
-            FHTTP.Post(AResource, RawBody, Result.Body)
-          else
-            FHTTP.Put(AResource, RawBody, Result.Body);
-        end;
-
-      httpPATCH:
-        begin
-          raise ERESTClientException.Create
-            ('Sorry, PATCH is not supported by the RESTClient because is not supportd by the TidHTTP');
-        end;
-
-      httpDELETE:
-        begin
-          FHTTP.Delete(AResource);
-          RawBody.Size := 0;
-        end;
-    end;
-  except
-    on E: EIdHTTPProtocolException do
-    begin
-      Result.HasError := True;
-      Result.Body.WriteUTF8(E.ErrorMessage);
-    end
-    else
-      raise;
+    lField := lRttiContext.GetType(Self.ClassType).GetField('FCookies');
+    Result := nil;
+    if Assigned(lField) then
+      Result := lField.GetValue(Self).AsObject as TCookies;
+  finally
+    lRttiContext.Free;
   end;
-
-  HandleCookies(FHTTP.CookieManager.CookieCollection, Result);
-
-  Result.UpdateResponseCode(FHTTP.Response.ResponseCode);
-  Result.UpdateResponseText(FHTTP.Response.ResponseText);
-  Result.UpdateHeaders(FHTTP.Response.RawHeaders);
 end;
 
-procedure TRESTClient.SetBasicAuth(const AValue: Boolean);
-begin
-  FHTTP.Request.BasicAuthentication := AValue;
-end;
-
-procedure TRESTClient.SetPassword(const AValue: string);
-begin
-  FHTTP.Request.Password := AValue;
-end;
-
-procedure TRESTClient.SetProxyPort(const AValue: Integer);
-begin
-  FHTTP.ProxyParams.ProxyPort := AValue;
-end;
-
-procedure TRESTClient.SetProxyServer(const AValue: string);
-begin
-  FHTTP.ProxyParams.ProxyServer := AValue;
-end;
-
-procedure TRESTClient.SetProxyUsername(const AValue: string);
-begin
-  FHTTP.ProxyParams.ProxyUsername := AValue;
-end;
-
-procedure TRESTClient.SetProxyPassword(const AValue: string);
-begin
-  FHTTP.ProxyParams.ProxyPassword := AValue;
-end;
-
-procedure TRESTClient.SetSessionID(const AValue: string);
-begin
-  FLastSessionID := AValue;
-  if Assigned(FHTTP.CookieManager) then
-    FHTTP.CookieManager.CookieCollection.Clear;
-end;
-
-procedure TRESTClient.SetUserName(const AValue: string);
-begin
-  FHTTP.Request.Username := AValue;
-end;
-
-function TRESTClient.SSL(const AEnabled: Boolean): TRESTClient;
-begin
-  if AEnabled then
-  begin
-    if not Assigned(FHTTP.IOHandler) then
-      FHTTP.IOHandler := TIdSSLIOHandlerSocketOpenSSL.Create(FHTTP);
-  end
-  else
-  begin
-    if (FHTTP.IOHandler <> nil) then
-    begin
-
-{$HINTS OFF}
-      FHTTP.IOHandler.Free;
-      FHTTP.IOHandler := nil;
-
-{$HINTS ON}
-    end;
-  end;
-  Result := Self;
-end;
-
-procedure TRESTClient.StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
-  const AResource: string);
-begin
-  StartAsynchRequest(ACommand, AResource, '');
-end;
-
-procedure TRESTClient.StartAsynchRequest(const ACommand: TMVCHTTPMethodType;
-  const AResource, ABody: string);
-var
-  th: TThread;
-begin
-  th := TThread.CreateAnonymousThread(
-    procedure
-    var
-      R: IRESTResponse;
-    begin
-      try
-        R := SendHTTPCommandWithBody(ACommand, FAccept, FContentType,
-          FContentEncoding, AResource, ABody);
-        TMonitor.Enter(TObject(R));
-        try
-          if FSynchronized then
-            TThread.Synchronize(nil,
-              procedure
-              begin
-                FAsynchProc(R);
-              end)
-          else
-            FAsynchProc(R);
-        finally
-          TMonitor.Exit(TObject(R));
-        end;
-      except
-        on E: Exception do
-        begin
-          if not Assigned(FAsynchProcErr) then
-            raise;
-          if FSynchronized then
-          begin
-            TThread.Synchronize(nil,
-              procedure
-              begin
-                FAsynchProcErr(E);
-              end)
-          end
-          else
-          begin
-            FAsynchProcErr(E);
-          end;
-        end;
-      end; { except }
-      if Assigned(FAsynchProcAlways) then
-      begin
-        if FSynchronized then
-          TThread.Synchronize(nil,
-            procedure
-            begin
-              FAsynchProcAlways();
-            end)
-        else
-          FAsynchProcAlways();
-      end;
-      ClearAllParams;
-    end);
-  th.Start;
-end;
+{$ENDIF}
 
 end.

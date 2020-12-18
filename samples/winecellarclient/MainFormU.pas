@@ -8,7 +8,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, Vcl.DBGrids, Vcl.ComCtrls, FireDAC.Stan.Intf,
   FireDAC.Stan.Option, FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf,
   Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, Vcl.Mask, Vcl.DBCtrls, Vcl.ExtCtrls,
-  MVCFramework.RESTClient;
+  MVCFramework.RESTClient.Intf, MVCFramework.RESTClient;
 
 type
   TForm5 = class(TForm)
@@ -49,7 +49,7 @@ type
     procedure FDMemTable1BeforeDelete(DataSet: TDataSet);
 
   private
-    RESTClient: TRESTClient;
+    RESTClient: IMVCRESTClient;
     Loading: Boolean;
     { Private declarations }
   public
@@ -69,14 +69,14 @@ uses
 
 procedure TForm5.Button1Click(Sender: TObject);
 var
-  lResponse: IRESTResponse;
+  response: IMVCRESTResponse;
 begin
-  lResponse := RESTClient.doGET('/api/wines', []);
-  Memo1.Lines.Text := lResponse.BodyAsString;
+  response := RESTClient.Get('/api/wines');
+  Memo1.Lines.Text := response.Content;
   FDMemTable1.Close;
   FDMemTable1.Open;
   Loading := True;
-  FDMemTable1.AppendFromJSONArrayString(lResponse.BodyAsString);
+  FDMemTable1.AppendFromJSONArrayString(response.Content);
   FDMemTable1.First;
   Loading := False;
 end;
@@ -88,37 +88,37 @@ end;
 
 procedure TForm5.FDMemTable1BeforeDelete(DataSet: TDataSet);
 var
-  Resp: IRESTResponse;
+  Resp: IMVCRESTResponse;
 begin
   Resp := RESTClient.DataSetDelete('/api/wines', FDMemTable1id.AsString);
-  if not Resp.ResponseCode in [200] then
-    raise Exception.Create(Resp.ResponseText);
+  if not Resp.StatusCode in [200] then
+    raise Exception.Create(Resp.Content);
 end;
 
 procedure TForm5.FDMemTable1BeforePost(DataSet: TDataSet);
 var
-  Resp: IRESTResponse;
+  Resp: IMVCRESTResponse;
 begin
   if Loading then
     Exit;
   case FDMemTable1.State of
     dsEdit:
-      Resp := RESTClient.DataSetUpdate('/api/wines', FDMemTable1, FDMemTable1id.AsString);
+      Resp := RESTClient.DataSetUpdate('/api/wines', FDMemTable1id.AsString, FDMemTable1);
     dsInsert:
       Resp := RESTClient.DataSetInsert('/api/wines', FDMemTable1);
   end;
-  if not Resp.ResponseCode in [200, 201] then
-    raise Exception.Create(Resp.ResponseText);
+  if not Resp.StatusCode in [200, 201] then
+    raise Exception.Create(Resp.Content);
 end;
 
 procedure TForm5.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  RESTClient.free;
+  RESTClient := nil;
 end;
 
 procedure TForm5.FormCreate(Sender: TObject);
 begin
-  RESTClient := TRESTClient.Create('localhost', 3000);
+  RESTClient := TMVCRESTClient.New.BaseURL('localhost', 3000);
 end;
 
 end.

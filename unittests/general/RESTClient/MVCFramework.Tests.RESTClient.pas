@@ -71,6 +71,8 @@ type
     procedure TestUploadFile();
     [Test]
     procedure TestBodyURLEncoded();
+    [Test]
+    procedure TestRequestHooksProc();
   end;
 
 implementation
@@ -111,6 +113,47 @@ begin
   inherited;
   FServerListener.Stop;
   FRESTClient := nil;
+end;
+
+procedure TTestRESTClient.TestRequestHooksProc;
+var
+  lResponse: IMVCRESTResponse;
+begin
+  lResponse := FRESTClient
+    .Resource('/hello')
+    .SetBeforeRequestProc(
+      procedure(aRequest: IHTTPRequest)
+      begin
+        Assert.AreEqual('/hello', aRequest.URL.Path);
+      end
+    )
+    .SetRequestCompletedProc(
+      procedure (aResponse: IHTTPResponse; var aHandled: Boolean)
+      begin
+        Assert.IsTrue(aResponse.ContentLength > 0);
+        // Set Handled to True to not process TMVCRESTResponse
+        aHandled := True;
+      end
+    )
+    .Get;
+  Assert.IsNull(lResponse);
+
+
+  lResponse := FRESTClient
+    .Resource('/hello')
+    .SetRequestCompletedProc(
+      procedure (aResponse: IHTTPResponse; var aHandled: Boolean)
+      begin
+        Assert.IsTrue(aResponse.ContentLength > 0);
+      end
+    )
+    .SetResponseCompletedProc(
+      procedure(aResponse: IMVCRESTResponse)
+      begin
+        Assert.AreEqual('Hello World called with GET', aResponse.Content);
+      end
+    )
+    .Get;
 end;
 
 procedure TTestRESTClient.TestBodyURLEncoded;
@@ -364,7 +407,7 @@ begin
     lBitmap.Canvas.Font.Color := clRed;
     lBitmap.Canvas.Font.Style := [fsBold];
     lBitmap.Canvas.TextOut(10, 100, 'DelphiMVCFramework');
-    lBitmap.SaveToFile('bitmap_file_upload_sample.bmp');
+    lBitmap.SaveToFile(lFilename);
   finally
     lBitmap.Free;
   end;
