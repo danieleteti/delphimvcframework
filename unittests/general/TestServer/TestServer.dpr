@@ -1,18 +1,24 @@
 ﻿program TestServer;
 
 {$APPTYPE CONSOLE}
+{$DEFINE HTTPSYS}
 
 uses
   System.SysUtils,
-  IdHTTPWebBrokerBridge,
-  Web.WebReq,
-  {$IFNDEF LINUX}
+{$IF Defined(HTTPSYS)}
+  MVCFramework.HTTPSys.WebBrokerBridge,
+{$ENDIF}
+{$IF Defined(MSWindows)}
   Winapi.Windows,
-  {$ENDIF }
+{$ENDIF}
+{$IF not Defined(HTTPSYS)}
+  IdHTTPWebBrokerBridge,
+{$ENDIF}
+  Web.WebReq,
   Web.WebBroker,
   MVCFramework.Commons,
   MVCFramework.Console,
-  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},
+  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule} ,
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -46,6 +52,37 @@ begin
   TextColor(TConsoleColor.White);
 end;
 
+{$IF Defined(HTTPSYS)}
+
+procedure RunServer(APort: Integer);
+var
+  LServer: TMVCHTTPSysWebBrokerBridge;
+begin
+  Logo;
+  Writeln(Format('Starting HTTP Server or port %d (Engine http.sys)', [APort]));
+  LServer := TMVCHTTPSysWebBrokerBridge.Create(false);
+  try
+    // LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
+    LServer.DefaultPort := APort;
+    LServer.Active := True;
+    { more info about MaxConnections
+      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }
+    // LServer.MaxConnections := 0;
+    { more info about ListenQueue
+      http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_ListenQueue.html }
+    // LServer.ListenQueue := 200;
+    Writeln('Press RETURN to stop the server');
+    WaitForReturn;
+    TextColor(TConsoleColor.Red);
+    Writeln('Server stopped');
+    ResetConsole();
+  finally
+    LServer.Free;
+  end;
+end;
+
+{$ELSE}
+
 procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
@@ -54,8 +91,7 @@ begin
   Writeln(Format('Starting HTTP Server or port %d', [APort]));
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LServer.OnParseAuthentication :=
-      TMVCParseAuthentication.OnParseAuthentication;
+    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
     LServer.DefaultPort := APort;
     LServer.Active := True;
     { more info about MaxConnections
@@ -74,11 +110,17 @@ begin
   end;
 end;
 
+{$ENDIF}
+
 begin
   ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
+      { .$IF Defined(httpsys) }
+
+      { .$ELSE }
       WebRequestHandler.WebModuleClass := WebModuleClass;
+    { .$ENDIF }
     RunServer(9999);
   except
     on E: Exception do

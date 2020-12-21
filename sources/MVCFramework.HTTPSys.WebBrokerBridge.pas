@@ -61,7 +61,7 @@ type
 
   end;
 
-  TMVCHttpApiServer = class(THttpApiServer)
+  TMVCHTTPSysServer = class(THttpApiServer)
   protected
     procedure SetServerName(const aName: SockString); override;
   end;
@@ -125,11 +125,11 @@ type
   TMVCHTTPSysWebBrokerBridge = class(TObject)
   private
     fActive: Boolean;
-    fHttpServer: TMVCHttpApiServer;
+    fHttpServer: TMVCHTTPSysServer;
     fDefaultPort: UInt16;
     procedure SetActive(const Value: Boolean);
     procedure SetDefaultPort(const Value: UInt16);
-    function HandleRequest(ReqResp: THttpServerRequest): Cardinal;
+    function DoHandleRequest(ReqResp: THttpServerRequest): Cardinal;
   public
     constructor Create(const UseSSL: Boolean = False); virtual;
     destructor Destroy; override;
@@ -859,7 +859,7 @@ begin
   inherited;
 end;
 
-function TMVCHTTPSysWebBrokerBridge.HandleRequest(ReqResp: THttpServerRequest): Cardinal;
+function TMVCHTTPSysWebBrokerBridge.DoHandleRequest(ReqResp: THttpServerRequest): Cardinal;
 begin
   Result := TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler.Run(ReqResp);
 end;
@@ -872,10 +872,10 @@ begin
   end;
   if Value then
   begin
-    fHttpServer := TMVCHttpApiServer.Create(False);
-    fHttpServer.AddUrl('', '8080', False, '+', True);
+    fHttpServer := TMVCHTTPSysServer.Create(False);
+    fHttpServer.AddUrl('', IntToStr(fDefaultPort), False, '+', True);
     // fHttpServer.RegisterCompress(CompressDeflate); // our server will deflate html :)
-    fHttpServer.OnRequest := HandleRequest;
+    fHttpServer.OnRequest := DoHandleRequest;
     fHttpServer.Clone(31); // will use a thread pool of 32 threads in total
     fActive := True;
     // // {$IFDEF __CROSS_SSL__}
@@ -916,9 +916,9 @@ begin
   inherited Create;
 end;
 
-{ TMVCHttpApiServer }
+{ TMVCHTTPSysServer }
 
-procedure TMVCHttpApiServer.SetServerName(const aName: SockString);
+procedure TMVCHTTPSysServer.SetServerName(const aName: SockString);
 begin
   inherited;
   fServerName := 'DMVCFramework';
