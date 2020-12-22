@@ -147,7 +147,7 @@ begin
     end;
     lMemStream.Position := 0;
 
-    AContext.Response.Content := '';
+//  AContext.Response.Content := '';
     lContentStreamHelper.Size := 0;
     lContentStreamHelper.CopyFrom(lMemStream, 0);
 {$IF Defined(SeattleOrBetter)}

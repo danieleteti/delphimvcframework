@@ -1567,7 +1567,7 @@ var
 begin
   r := RESTClient.Post('/responses/accepted');
   Assert.areEqual<Integer>(HTTP_STATUS.Accepted, r.StatusCode);
-  Assert.isTrue(r.StatusText.Contains('thisisthereason'));
+  Assert.isTrue(r.StatusText.Contains('Accepted'));
   lJSON := StrToJSONObject(r.Content);
   try
     Assert.areEqual(2, lJSON.O['task'].Count);
@@ -1584,7 +1584,7 @@ var
 begin
   r := RESTClient.Post('/responses/created');
   Assert.areEqual<Integer>(HTTP_STATUS.Created, r.StatusCode);
-  Assert.isTrue(r.StatusText.Contains('thisisthereason'));
+  Assert.isTrue(r.StatusText.Contains('Created'));
   Assert.IsEmpty(r.Content);
 end;
 

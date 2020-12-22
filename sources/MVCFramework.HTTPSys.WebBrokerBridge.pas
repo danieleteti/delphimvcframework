@@ -44,7 +44,8 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Logger, SynCrtSock;
+  MVCFramework.Logger,
+  SynCrtSock;
 
 type
   EMVCHTTPSysWebBrokerBridgeException = class(EMVCException);
@@ -66,10 +67,20 @@ type
     procedure SetServerName(const aName: SockString); override;
   end;
 
+  TMVCHeaders = class(TStringList)
+  private
+    function GetValue(const Name: string): string;
+    procedure SetValue(const Name, Value: string);
+  public
+    constructor Create;
+    function IndexOfName(const Name: string): Integer; override;
+    property Values[const Name: string]: string read GetValue write SetValue;
+  end;
+
   TMVCHTTPSysAppRequest = class(TWebRequest)
   private
     fRequest: THttpServerRequest;
-    fHeaders: TStringList;
+    fHeaders: TMVCHeaders;
   protected
     fBody: TBytes;
     function GetDateVariable(Index: Integer): TDateTime; override;
@@ -94,7 +105,7 @@ type
   private
     fResponse: THttpServerRequest;
     fStatusCode: Integer;
-    fHeaders: TStringList;
+    fHeaders: TMVCHeaders;
     fReasonString: string;
   protected
     fContent: string;
@@ -140,7 +151,7 @@ type
 implementation
 
 uses
-  Math, System.NetEncoding, IdGlobal, System.DateUtils, System.IOUtils;
+  Math, System.NetEncoding, IdGlobal, System.DateUtils, System.IOUtils, SynZip;
 
 const
   RespIDX_Version = 0;
@@ -194,7 +205,7 @@ constructor TMVCHTTPSysAppRequest.Create(const ARequest: THttpServerRequest);
 begin
   fRequest := ARequest;
   inherited Create;
-  fHeaders := TStringList.Create;
+  fHeaders := TMVCHeaders.Create;
   ExtractFields([#13], [], fRequest.InHeaders, fHeaders);
 
   // if fRequest.PostDataSize > 0 then
@@ -298,7 +309,7 @@ end;
 
 function TMVCHTTPSysAppRequest.GetRawContent: TBytes;
 begin
-  Result := fBody;
+  Result := TBytes(fRequest.InContent);
 end;
 
 function TMVCHTTPSysAppRequest.GetStringVariable(Index: Integer): string;
@@ -432,7 +443,7 @@ begin
   inherited Create(nil);
   // fRequest := ARequest;
   fResponse := AResponse;
-  fHeaders := TStringList.Create;
+  fHeaders := TMVCHeaders.Create;
   StatusCode := http_status.OK;
 end;
 
@@ -616,12 +627,15 @@ begin
   if fSent then
     Exit;
   fSent := True;
-  lSize := ContentStream.Size;
-  ContentLength := ContentStream.Size;
-  SetLength(lOutContent, lSize);
-  ContentStream.Position := 0;
-  ContentStream.Read(lOutContent[1], lSize);
-  fResponse.OutContent := lOutContent;
+  if ContentStream <> nil then
+  begin
+    lSize := ContentStream.Size;
+    ContentLength := ContentStream.Size;
+    SetLength(lOutContent, lSize);
+    ContentStream.Position := 0;
+    ContentStream.Read(lOutContent[1], lSize);
+    fResponse.OutContent := lOutContent;
+  end;
   fResponse.OutContentType := ContentType;
   fResponse.OutCustomHeaders := GetHeaders;
   // fResponse.OutContent
@@ -860,8 +874,19 @@ begin
 end;
 
 function TMVCHTTPSysWebBrokerBridge.DoHandleRequest(ReqResp: THttpServerRequest): Cardinal;
+var
+  lFile: TFileStream;
 begin
+  lFile := TFile.Create('req.2.dat');
+  try
+    lFile.Write(ReqResp.InHeaders[1], Length(ReqResp.InHeaders));
+    lFile.Write(#13#10#13#10#13#10,6);
+    lFile.Write(ReqResp.InContent[1], Length(ReqResp.InContent));
+  finally
+    lFile.Free;
+  end;
   Result := TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler.Run(ReqResp);
+
 end;
 
 procedure TMVCHTTPSysWebBrokerBridge.SetActive(const Value: Boolean);
@@ -874,7 +899,7 @@ begin
   begin
     fHttpServer := TMVCHTTPSysServer.Create(False);
     fHttpServer.AddUrl('', IntToStr(fDefaultPort), False, '+', True);
-    // fHttpServer.RegisterCompress(CompressDeflate); // our server will deflate html :)
+    fHttpServer.RegisterCompress(CompressDeflate); // our server will deflate html :)
     fHttpServer.OnRequest := DoHandleRequest;
     fHttpServer.Clone(31); // will use a thread pool of 32 threads in total
     fActive := True;
@@ -922,6 +947,65 @@ procedure TMVCHTTPSysServer.SetServerName(const aName: SockString);
 begin
   inherited;
   fServerName := 'DMVCFramework';
+end;
+
+{ TMVCHeaders }
+
+constructor TMVCHeaders.Create;
+begin
+  inherited;
+  NameValueSeparator := ':';
+end;
+
+function TMVCHeaders.GetValue(const Name: string): string;
+var
+  i: Integer;
+begin
+  i := IndexOfName(Name);
+  if i >= 0 then
+    Result := Trim(Copy(Get(i), Length(Name) + 2, MaxInt))
+  else
+    Result := '';
+end;
+
+procedure TMVCHeaders.SetValue(const Name, Value: string);
+var
+  i: Integer;
+begin
+  i := IndexOfName(Name);
+  if Value <> '' then
+  begin
+    if i < 0 then
+      i := Add('');
+    Put(i, Name + NameValueSeparator + Value);
+  end
+  else
+  begin
+    if i >= 0 then
+      Delete(i);
+  end;
+end;
+
+function TMVCHeaders.IndexOfName(const Name: string): Integer;
+var
+  P: Integer;
+  S: string;
+  lSub: String;
+begin
+  for Result := 0 to GetCount - 1 do
+  begin
+    S := Get(Result);
+    P := AnsiPos(NameValueSeparator, S);
+    if (P <> 0) then
+    begin
+      lSub := Copy(S, 1, P - 1);
+      if SameText(lSub, Name) then
+      begin
+        Exit;
+      end;
+    end;
+  end;
+  Result := -1;
 end;
 
 initialization
