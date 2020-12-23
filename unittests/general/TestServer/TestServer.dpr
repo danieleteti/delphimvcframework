@@ -5,20 +5,20 @@
 
 uses
   System.SysUtils,
-{$IF Defined(HTTPSYS)}
+  {$IF Defined(HTTPSYS)}
   MVCFramework.HTTPSys.WebBrokerBridge,
-{$ENDIF }
-{$IF Defined(MSWindows)}
+  {$ENDIF }
+  {$IF Defined(MSWindows)}
   Winapi.Windows,
-{$ENDIF }
-{$IF not Defined(HTTPSYS)}
+  {$ENDIF }
+  {$IF not Defined(HTTPSYS)}
   IdHTTPWebBrokerBridge,
-{$ENDIF }
+  {$ENDIF }
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Commons,
   MVCFramework.Console,
-  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule} ,
+  WebModuleUnit in 'WebModuleUnit.pas' {MainWebModule: TWebModule},
   TestServerControllerU in 'TestServerControllerU.pas',
   TestServerControllerExceptionU in 'TestServerControllerExceptionU.pas',
   SpeedMiddlewareU in 'SpeedMiddlewareU.pas',
@@ -30,8 +30,7 @@ uses
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
   RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
   MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas',
-  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
-  SynCrtSock in 'C:\DLib\mORMot\SynCrtSock.pas';
+  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas';
 
 {$R *.res}
 

@@ -102,7 +102,6 @@
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.HTML.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
-        <DCCReference Include="C:\DLib\mORMot\SynCrtSock.pas"/>
         <BuildConfiguration Include="CI">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
