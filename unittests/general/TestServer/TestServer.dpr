@@ -7,13 +7,13 @@ uses
   System.SysUtils,
 {$IF Defined(HTTPSYS)}
   MVCFramework.HTTPSys.WebBrokerBridge,
-{$ENDIF}
+{$ENDIF }
 {$IF Defined(MSWindows)}
   Winapi.Windows,
-{$ENDIF}
+{$ENDIF }
 {$IF not Defined(HTTPSYS)}
   IdHTTPWebBrokerBridge,
-{$ENDIF}
+{$ENDIF }
   Web.WebReq,
   Web.WebBroker,
   MVCFramework.Commons,
@@ -30,12 +30,20 @@ uses
   MVCFramework.JSONRPC in '..\..\..\sources\MVCFramework.JSONRPC.pas',
   RandomUtilsU in '..\..\..\samples\commons\RandomUtilsU.pas',
   MVCFramework.Serializer.HTML in '..\..\..\sources\MVCFramework.Serializer.HTML.pas',
-  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas';
+  MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
+  SynCrtSock in 'C:\DLib\mORMot\SynCrtSock.pas';
 
 {$R *.res}
 
-procedure Logo;
+procedure Logo(APort: Integer);
+var
+  lEngine: String;
 begin
+{$IF Defined(HTTPSYS)}
+  lEngine := 'HTTP.sys';
+{$ELSE}
+  lEngine := 'INDY';
+{$ENDIF};
   ResetConsole();
   Writeln;
   TextBackground(TConsoleColor.Black);
@@ -50,6 +58,13 @@ begin
   TextColor(TConsoleColor.Yellow);
   Writeln('DMVCFRAMEWORK VERSION: ', DMVCFRAMEWORK_VERSION);
   TextColor(TConsoleColor.White);
+  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  TextColor(TConsoleColor.Red);
+  TextBackground(TConsoleColor.Gray);
+  Writeln(''.PadRight(30,'*'));
+  WriteLn('* ' + ('Engine: ' + lEngine).PadRight(27) + '*');
+  Writeln(''.PadRight(30,'*'));
+  ResetConsole();
 end;
 
 {$IF Defined(HTTPSYS)}
@@ -58,8 +73,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TMVCHTTPSysWebBrokerBridge;
 begin
-  Logo;
-  Writeln(Format('Starting HTTP Server or port %d (Engine http.sys)', [APort]));
+  Logo(APort);
   LServer := TMVCHTTPSysWebBrokerBridge.Create(false);
   try
     // LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
@@ -87,8 +101,7 @@ procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
 begin
-  Logo;
-  Writeln(Format('Starting HTTP Server or port %d', [APort]));
+  Logo(APort);
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
     LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
@@ -116,11 +129,7 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   try
     if WebRequestHandler <> nil then
-      { .$IF Defined(httpsys) }
-
-      { .$ELSE }
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    { .$ENDIF }
     RunServer(9999);
   except
     on E: Exception do

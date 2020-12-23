@@ -31,6 +31,8 @@
 
 unit MVCFramework.HTTPSys.WebBrokerBridge;
 
+{$DEFINE TRACE}
+
 interface
 
 uses
@@ -67,20 +69,12 @@ type
     procedure SetServerName(const aName: SockString); override;
   end;
 
-  TMVCHeaders = class(TStringList)
-  private
-    function GetValue(const Name: string): string;
-    procedure SetValue(const Name, Value: string);
-  public
-    constructor Create;
-    function IndexOfName(const Name: string): Integer; override;
-    property Values[const Name: string]: string read GetValue write SetValue;
-  end;
-
   TMVCHTTPSysAppRequest = class(TWebRequest)
   private
     fRequest: THttpServerRequest;
     fHeaders: TMVCHeaders;
+    fURL: String;
+    fFullURL: String;
   protected
     fBody: TBytes;
     function GetDateVariable(Index: Integer): TDateTime; override;
@@ -206,7 +200,7 @@ begin
   fRequest := ARequest;
   inherited Create;
   fHeaders := TMVCHeaders.Create;
-  ExtractFields([#13], [], fRequest.InHeaders, fHeaders);
+  ExtractFields([#13], [], String(fRequest.InHeaders), fHeaders);
 
   // if fRequest.PostDataSize > 0 then
   // begin
@@ -296,15 +290,12 @@ end;
 
 function TMVCHTTPSysAppRequest.GetRawPathInfo: string;
 begin
-  // Result := fRequest.URI;
-  raise Exception.Create('DMVCFramework Not Implemented');
+  Result := GetStringVariable(ReqIDX_PathInfo);
 end;
 
 function TMVCHTTPSysAppRequest.GetRemoteIP: string;
 begin
-  Result := fRequest.RemoteIP;
-  // Result := fRequest.RemoteIP;
-  // raise Exception.Create('DMVCFramework Not Implemented');
+  Result := String(fRequest.RemoteIP);
 end;
 
 function TMVCHTTPSysAppRequest.GetRawContent: TBytes;
@@ -313,20 +304,45 @@ begin
 end;
 
 function TMVCHTTPSysAppRequest.GetStringVariable(Index: Integer): string;
+var
+  lIdx: Integer;
 begin
   case Index of
     ReqIDX_Method:
-      Result := fRequest.Method;
+      Result := String(fRequest.Method);
     // ReqIDX_ProtocolVersion:
     // Result := fRequest.Version;
     ReqIDX_URL:
-      Result := fRequest.URL;
+      begin
+        if fURL = '' then
+        begin
+          fURL := URLDecode(String(fRequest.URL));
+        end;
+        Result := fURL;
+      end;
     ReqIDX_Query:
-      Result := fRequest.FullURL;
+      begin
+        if fFullURL = '' then
+        begin
+          fFullURL := URLDecode(fRequest.FullURL);
+        end;
+        Result := fFullURL.Substring(fFullURL.IndexOf('?') + 1);
+      end;
     ReqIDX_PathInfo:
-      Result := fRequest.URL;
+      begin
+        if fURL = '' then
+        begin
+          fURL := URLDecode(String(fRequest.URL));
+        end;
+        Result := fURL;
+        lIdx := Result.IndexOf('?');
+        if lIdx > -1 then
+        begin
+          Result := Result.Substring(0, lIdx);
+        end;
+      end;
     ReqIDX_PathTranslated:
-      Result := fRequest.URL;
+      Result := String(fRequest.URL);
     ReqIDX_CacheControl:
       Result := fHeaders.Values['Cache-Control']; { do not localize }
     ReqIDX_Date:
@@ -441,9 +457,9 @@ end;
 constructor TMVCHTTPSysAppResponse.Create(AResponse: THttpServerRequest);
 begin
   inherited Create(nil);
-  // fRequest := ARequest;
   fResponse := AResponse;
   fHeaders := TMVCHeaders.Create;
+  ContentType := BuildContentType(TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET);
   StatusCode := http_status.OK;
 end;
 
@@ -455,7 +471,7 @@ end;
 
 function TMVCHTTPSysAppResponse.GetContent: string;
 begin
-  Result := fResponse.OutContent;
+  Result := String(fResponse.OutContent);
 end;
 
 function TMVCHTTPSysAppResponse.GetLogMessage: string;
@@ -615,15 +631,9 @@ end;
 
 procedure TMVCHTTPSysAppResponse.SendResponse;
 var
-  lBytes: TBytesStream;
-  lBuff: PSockString;
-  lByte: PByte;
-  lBS: TBytesStream;
-  lByteArray: TBytes;
   lOutContent: SockString;
   lSize: Int64;
 begin
-  // raise Exception.Create('not implemented');
   if fSent then
     Exit;
   fSent := True;
@@ -636,72 +646,8 @@ begin
     ContentStream.Read(lOutContent[1], lSize);
     fResponse.OutContent := lOutContent;
   end;
-  fResponse.OutContentType := ContentType;
+  fResponse.OutContentType := SockString(ContentType);
   fResponse.OutCustomHeaders := GetHeaders;
-  // fResponse.OutContent
-  // fResponse.OutContentType := 'text/plain';
-  // fResponse.OutCustomHeaders := 'x-pippo: pluto';
-  // fResponse.OutContent := 'PIPPO';
-
-  // MergeHeaders;
-
-  // if (ContentStream = nil) then
-  // HTTPRequest.WriteString(Content)
-  // else
-  // begin
-  // SendStream(ContentStream);
-  // ContentStream := nil; // Drop the stream
-  // end;
-
-  // // if (fResponse.ContentType = '') and
-  // // ((fResponse.ContentText <> '') or (Assigned(FResponseInfo.ContentStream))) and
-  // // (HTTPApp.DefaultCharSet <> '') then
-  // // begin
-  // // // Indicate how to convert UTF16 when write.
-  // // ContentType := Format('text/html; charset=%s', [HTTPApp.DefaultCharSet]); { Do not Localize }
-  // // end;
-  // // fResponse.ContentType := fContentType;
-  //
-  // if (ContentStream <> nil) and (ContentStream.Size > 0) then
-  // begin
-  // fResponse.StatusCode := StatusCode;
-  // ContentStream.Position := 0;
-  // // if TFile.Exists('output.dat') then
-  // // TFile.Delete('output.dat');
-  // // var
-  // // fs := TFileStream.Create('output.dat', fmCreate);
-  // // try
-  // // fs.CopyFrom(ContentStream, 0);
-  // // finally
-  // // fs.Free;
-  // // end;
-  // // ContentStream.Position := 0;
-  // if ContentStream is TFileStream then
-  // begin
-  // var
-  // l := TMemoryStream.Create;
-  // l.CopyFrom(ContentStream, 0);
-  // l.Position := 0;
-  // SetContentStream(l);
-  // end;
-  //
-  // fResponse.Send(ContentStream, 0, ContentStream.Size,
-  // procedure(const AConnection: ICrossConnection; const ASuccess: Boolean)
-  // begin
-  // // AConnection.SendStream(ContentStream)
-  // end);
-  //
-  // // fResponse.Send(lBytes.Bytes, 0, lBytes.Size,
-  // // procedure(const AConnection: ICrossConnection; const ASuccess: Boolean)
-  // // begin
-  // // lBytes.Free;
-  // // end);
-  // // fResponse.SendFile('C:\DEV\dmvcframework\unittests\general\TestServer\bin\www\index.html')
-  // end
-  // else
-  // begin
-  // fResponse.SendStatus(StatusCode, '');
-  // end;
 end;
 
 procedure TMVCHTTPSysAppResponse.SendStream(AStream: TStream);
@@ -733,34 +679,13 @@ end;
 procedure TMVCHTTPSysAppResponse.SetContentStream(AValue: TStream);
 begin
   inherited SetContentStream(AValue);
-  // fResponse.Header.Add('content-length', AValue.Size.ToString, False);
-  // FResponseInfo.ContentStream := AValue;
 end;
 
-function DoHTTPEncode(const AStr: string): String;
-begin
-  Result := TNetEncoding.URL.Encode(string(AStr));
-end;
-
-function TMVCHTTPSysAppResponse.GetHeaders;
+function TMVCHTTPSysAppResponse.GetHeaders: SockString;
 var
   i: Integer;
-  lSrcCookie: TCookie;
   lBuilder: TStringBuilder;
 begin
-  // for i := 0 to Cookies.Count - 1 do
-  // begin
-  // lSrcCookie := Cookies[i];
-  // fResponse.Cookies.AddOrSet(lSrcCookie.Name, lSrcCookie.Value, SecondsBetween(Now, lSrcCookie.Expires),
-  // lSrcCookie.Path, lSrcCookie.Domain, lSrcCookie.HttpOnly, lSrcCookie.Secure);
-  // // LDestCookie := FResponseInfo.Cookies.Add;
-  // // LDestCookie.CookieName := DoHTTPEncode(LSrcCookie.Name);
-  // // LDestCookie.Value := DoHTTPEncode(LSrcCookie.Value);
-  // // LDestCookie.Domain := String(LSrcCookie.Domain);
-  // // LDestCookie.Path := String(LSrcCookie.Path);
-  // // LDestCookie.Expires := LSrcCookie.Expires;
-  // // LDestCookie.Secure := LSrcCookie.Secure;
-  // end;
   lBuilder := TStringBuilder.Create(1024);
   try
     for i := 0 to fHeaders.Count - 1 do
@@ -771,8 +696,11 @@ begin
     begin
       lBuilder.AppendLine(CustomHeaders.Names[i] + ':' + CustomHeaders.ValueFromIndex[i]);
     end;
-    lBuilder.AppendLine('Server: Pippo');
-    Result := lBuilder.ToString;
+    for i := 0 to Cookies.Count - 1 do
+    begin
+      lBuilder.AppendLine('Set-Cookie: ' + Cookies[i].HeaderValue);
+    end;
+    Result := SockString(lBuilder.ToString);
   finally
     lBuilder.Free;
   end;
@@ -794,6 +722,7 @@ var
   lRequest: TMVCHTTPSysAppRequest;
   lResponse: TMVCHTTPSysAppResponse;
 begin
+  Result := http_status.OK;
   try
     lRequest := TMVCHTTPSysAppRequest.Create(ReqResp);
     try
@@ -874,19 +803,43 @@ begin
 end;
 
 function TMVCHTTPSysWebBrokerBridge.DoHandleRequest(ReqResp: THttpServerRequest): Cardinal;
+{$IF defined(TRACE)}
 var
   lFile: TFileStream;
+  lDirName, lReqFileName, lRespFileName: string;
+const
+  LINE_BREAK = sLineBreak + sLineBreak + sLineBreak;
+{$ENDIF}
 begin
-  lFile := TFile.Create('req.2.dat');
+{$IF defined(TRACE)}
+  lDirName := TPath.Combine(AppPath, 'trace_' + ReqResp.ConnectionID.ToString.PadLeft(10));
+  lReqFileName := TPath.Combine(lDirName, 'request.txt');
+  lRespFileName := TPath.Combine(lDirName, 'response.txt');
+  TDirectory.CreateDirectory(lDirName);
+  if TFile.Exists(lReqFileName) then
+    TFile.Delete(lReqFileName);
+  lFile := TFile.Create(lReqFileName, fmCreate or fmOpenWrite);
   try
     lFile.Write(ReqResp.InHeaders[1], Length(ReqResp.InHeaders));
-    lFile.Write(#13#10#13#10#13#10,6);
+    lFile.Write(LINE_BREAK[1], Length(LINE_BREAK));
     lFile.Write(ReqResp.InContent[1], Length(ReqResp.InContent));
   finally
     lFile.Free;
   end;
+{$ENDIF}
   Result := TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler.Run(ReqResp);
-
+{$IF defined(TRACE)}
+  if TFile.Exists(lRespFileName) then
+    TFile.Delete(lRespFileName);
+  lFile := TFile.Create(lRespFileName, fmCreate or fmOpenWrite);
+  try
+    lFile.Write(ReqResp.OutCustomHeaders[1], Length(ReqResp.OutCustomHeaders));
+    lFile.Write(LINE_BREAK[1], Length(LINE_BREAK));
+    lFile.Write(ReqResp.OutContent[1], Length(ReqResp.OutContent));
+  finally
+    lFile.Free;
+  end;
+{$ENDIF}
 end;
 
 procedure TMVCHTTPSysWebBrokerBridge.SetActive(const Value: Boolean);
@@ -898,9 +851,10 @@ begin
   if Value then
   begin
     fHttpServer := TMVCHTTPSysServer.Create(False);
-    fHttpServer.AddUrl('', IntToStr(fDefaultPort), False, '+', True);
-    fHttpServer.RegisterCompress(CompressDeflate); // our server will deflate html :)
+    fHttpServer.AddUrl(SockString(''), SockString(IntToStr(fDefaultPort)), False, '+', True);
+    fHttpServer.RegisterCompress(CompressDeflate);
     fHttpServer.OnRequest := DoHandleRequest;
+    { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
     fHttpServer.Clone(31); // will use a thread pool of 32 threads in total
     fActive := True;
     // // {$IFDEF __CROSS_SSL__}
@@ -947,65 +901,6 @@ procedure TMVCHTTPSysServer.SetServerName(const aName: SockString);
 begin
   inherited;
   fServerName := 'DMVCFramework';
-end;
-
-{ TMVCHeaders }
-
-constructor TMVCHeaders.Create;
-begin
-  inherited;
-  NameValueSeparator := ':';
-end;
-
-function TMVCHeaders.GetValue(const Name: string): string;
-var
-  i: Integer;
-begin
-  i := IndexOfName(Name);
-  if i >= 0 then
-    Result := Trim(Copy(Get(i), Length(Name) + 2, MaxInt))
-  else
-    Result := '';
-end;
-
-procedure TMVCHeaders.SetValue(const Name, Value: string);
-var
-  i: Integer;
-begin
-  i := IndexOfName(Name);
-  if Value <> '' then
-  begin
-    if i < 0 then
-      i := Add('');
-    Put(i, Name + NameValueSeparator + Value);
-  end
-  else
-  begin
-    if i >= 0 then
-      Delete(i);
-  end;
-end;
-
-function TMVCHeaders.IndexOfName(const Name: string): Integer;
-var
-  P: Integer;
-  S: string;
-  lSub: String;
-begin
-  for Result := 0 to GetCount - 1 do
-  begin
-    S := Get(Result);
-    P := AnsiPos(NameValueSeparator, S);
-    if (P <> 0) then
-    begin
-      lSub := Copy(S, 1, P - 1);
-      if SameText(lSub, Name) then
-      begin
-        Exit;
-      end;
-    end;
-  end;
-  Result := -1;
 end;
 
 initialization

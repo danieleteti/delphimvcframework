@@ -1,0 +1,1 @@
+.\bin\initdb -D .\data  -E UTF8 --lc-collate=en_US.UTF8 --lc-ctype=en_US.UTF8 --locale=en_US

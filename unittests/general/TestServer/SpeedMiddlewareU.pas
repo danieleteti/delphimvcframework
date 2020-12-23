@@ -71,7 +71,7 @@ begin
   if Context.Request.PathInfo = '/handledbymiddleware' then
   begin
     Handled := True;
-    Context.Response.RawWebResponse.Content := 'This is a middleware response';
+    Context.Response.Content := 'This is a middleware response';
     Context.Response.StatusCode := 200;
   end
   else

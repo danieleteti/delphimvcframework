@@ -96,6 +96,7 @@ type
     fBeforeRequestProc: TBeforeRequestProc;
     fRequestCompletedProc: TRequestCompletedProc;
     fResponseCompletedProc: TResponseCompletedProc;
+    fSessionID: string;
     procedure DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
       const aCertificate: TCertificate; var aAccepted: Boolean);
     procedure DoBeforeRequest(aRequest: IHTTPRequest);
@@ -123,6 +124,8 @@ type
     procedure ExecuteAsyncRequest(const aMethod: TMVCHTTPMethodType);
     function InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
     function ExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
+    procedure HandleCookies(aCookies: TCookies);
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -320,8 +323,8 @@ type
     /// <param name="aOwnsStream">
     /// If OwnsStream is true, Stream will be destroyed by IMVCRESTClient.
     /// </param>
-    function AddBody(aBodyStream: TStream; const aOwnsStream: Boolean = True;
-      const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddBody(aBodyStream: TStream; const aOwnsStream: Boolean = True; const aContentType: string = '')
+      : IMVCRESTClient; overload;
     /// <summary>
     /// Add a body to the requisition
     /// </summary>
@@ -351,8 +354,8 @@ type
 
     function AddBodyFieldFormData(const aName, aValue: string): IMVCRESTClient; overload;
 {$IF defined(RIOORBETTER)}
-    function AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
-      const aContentType: string = ''): IMVCRESTClient; overload;
+    function AddBodyFieldFormData(const aName: string; aStreamValue: TStream; const aContentType: string = '')
+      : IMVCRESTClient; overload;
 {$ENDIF}
     /// <summary>
     /// Add a field to the x-www-form-urlencoded body. You must set ContentType to application/x-www-form-urlencoded
@@ -414,8 +417,8 @@ type
     /// <summary>
     /// Execute a Patch request.
     /// </summary>
-    function Patch(const aResource: string; aBody: TObject;
-      const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    function Patch(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse;
+      overload;
     function Patch(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
     function Patch: IMVCRESTResponse; overload;
@@ -466,10 +469,11 @@ type
   /// </summary>
   TMVCRESTResponse = class(TInterfacedObject, IMVCRESTResponse)
   private
+    fHTTPResponse: IHTTPResponse;
     fSuccess: Boolean;
     fStatusCode: Integer;
     fStatusText: string;
-    fHeaders: TStrings;
+    fHeaders: TMVCHeaders;
     fCookies: TCookies;
     fServer: string;
     fContentType: string;
@@ -507,7 +511,7 @@ uses
   System.NetConsts,
   System.NetEncoding,
   MVCFramework.Serializer.JsonDataObjects,
-  System.RegularExpressions;
+  System.RegularExpressions, IdURI;
 
 {$IF not defined(RIOORBETTER)}
 
@@ -517,8 +521,7 @@ type
     function CookieList: TCookies;
   end;
 {$ENDIF}
-
-{ TMVCRESTClient }
+  { TMVCRESTClient }
 
 function TMVCRESTClient.Accept: string;
 begin
@@ -580,8 +583,8 @@ begin
   end;
 end;
 
-function TMVCRESTClient.AddBody(aBodyStream: TStream; const aOwnsStream: Boolean;
-  const aContentType: string): IMVCRESTClient;
+function TMVCRESTClient.AddBody(aBodyStream: TStream; const aOwnsStream: Boolean; const aContentType: string)
+  : IMVCRESTClient;
 begin
   Result := Self;
 
@@ -620,15 +623,14 @@ end;
 
 {$IF defined(RIOORBETTER)}
 
-function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: TStream;
-  const aContentType: string): IMVCRESTClient;
+function TMVCRESTClient.AddBodyFieldFormData(const aName: string; aStreamValue: TStream; const aContentType: string)
+  : IMVCRESTClient;
 begin
   Result := Self;
   GetBodyFormData.AddStream(aName, aStreamValue, aContentType);
   SetContentType(TMVCMediaType.MULTIPART_FORM_DATA);
 end;
 {$ENDIF}
-
 
 function TMVCRESTClient.AddBodyFieldURLEncoded(const aName, aValue: string): IMVCRESTClient;
 begin
@@ -986,7 +988,6 @@ type
   THackURLClient = class(TURLClient);
 {$ENDIF}
 
-
 procedure TMVCRESTClient.DoApplyHeaders;
 var
   lParam: TMVCRESTParam;
@@ -1008,7 +1009,7 @@ begin
     fHTTPClient.CustomHeaders[TMVCRESTClientConsts.AUTHORIZATION_HEADER] := fAuthorization;
   end;
   fHTTPClient.Accept := fAccept;
-  fHTTPClient.AcceptCharSet := fAcceptCharset;
+  fHTTPClient.AcceptCharset := fAcceptCharset;
   fHTTPClient.AcceptEncoding := fAcceptEncoding;
   fHTTPClient.ContentType := fContentType;
 end;
@@ -1168,8 +1169,7 @@ begin
                 procedure
                 begin
                   fAsyncCompletionHandler(lResponse);
-                end
-                );
+                end);
             end
             else
             begin
@@ -1190,8 +1190,7 @@ begin
                 procedure
                 begin
                   fAsyncCompletionHandlerWithError(E);
-                end
-                );
+                end);
             end
             else
             begin
@@ -1201,8 +1200,7 @@ begin
         end;
       end;
       ClearAllParams;
-    end
-    );
+    end);
   lThread.Start;
 end;
 
@@ -1243,8 +1241,8 @@ begin
   lResource := fResource;
   if not lResource.IsEmpty then
   begin
-    if not Result.EndsWith('/') and
-      not (lResource.StartsWith('/') or lResource.StartsWith('?') or lResource.StartsWith('#')) then
+    if not Result.EndsWith('/') and not(lResource.StartsWith('/') or lResource.StartsWith('?') or
+      lResource.StartsWith('#')) then
     begin
       Result := Result + '/';
     end;
@@ -1263,6 +1261,24 @@ function TMVCRESTClient.HandleRedirects(const aHandleRedirects: Boolean): IMVCRE
 begin
   Result := Self;
   fHTTPClient.HandleRedirects := aHandleRedirects;
+end;
+
+procedure TMVCRESTClient.HandleCookies(aCookies: TCookies);
+var
+  lCookie: TCookie;
+  lValue: String;
+begin
+  for lCookie in aCookies do
+  begin
+    if SameText(lCookie.Name, 'dtsessionid') then
+    begin
+      lValue := TIdURI.URLDecode(lCookie.Value.Trim);
+      if lValue.Contains('invalid') then
+        SessionId('')
+      else
+        SessionId(lValue);
+    end;
+  end;
 end;
 
 function TMVCRESTClient.HandleRedirects: Boolean;
@@ -1331,6 +1347,11 @@ begin
   fHTTPClient.ProxySettings := fProxySettings;
 
   lURL := GetFullURL;
+  if not fSessionID.IsEmpty then
+  begin
+    Self.AddCookie(TMVCConstants.SESSION_TOKEN_NAME, SessionId);
+  end;
+
   DoConvertMVCPathParamsToRESTParams(lURL);
   DoApplyPathParams(lURL);
   DoApplyQueryParams(lURL);
@@ -1348,7 +1369,7 @@ begin
   DoBeforeRequest(lRequest);
 
   lResponse := fHTTPClient.Execute(lRequest, nil, []);
-
+  HandleCookies(lResponse.Cookies);
   lHandled := False;
   DoRequestCompleted(lResponse, lHandled);
 
@@ -1407,7 +1428,7 @@ end;
 function TMVCRESTClient.Patch(const aResource, aBody: string; const aContentType: string): IMVCRESTResponse;
 begin
   Resource(aResource);
-  if not aBody.isEmpty then
+  if not aBody.IsEmpty then
   begin
     ClearBody;
     AddBody(aBody, aContentType);
@@ -1541,8 +1562,8 @@ begin
   fHTTPClient.ResponseTimeout := aReadTimeout;
 end;
 
-function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
-aInstance: IMVCTypeSerializer): IMVCRESTClient;
+function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo; aInstance: IMVCTypeSerializer)
+  : IMVCRESTClient;
 begin
   Result := Self;
   fSerializer.RegisterTypeSerializer(aTypeInfo, aInstance);
@@ -1561,7 +1582,6 @@ end;
 
 {$IF defined(TOKYOORBETTER)}
 
-
 function TMVCRESTClient.SecureProtocols: THTTPSecureProtocols;
 begin
   Result := fHTTPClient.SecureProtocols;
@@ -1574,7 +1594,6 @@ begin
 end;
 {$ENDIF}
 
-
 function TMVCRESTClient.SerializeObject(aObject: TObject): string;
 begin
   if ObjectIsList(aObject) then
@@ -1584,45 +1603,46 @@ begin
 end;
 
 function TMVCRESTClient.SessionId: string;
-var
-  lCookie: TCookie;
-  lParam: TMVCRESTParam;
+// var
+// lCookie: TCookie;
+// lParam: TMVCRESTParam;
 begin
-  Result := '';
-
-  for lParam in fParameters do
-  begin
-    if lParam.&Type = TMVCRESTParamType.Cookie then
-    begin
-      if SameText(lParam.Name, TMVCConstants.SESSION_TOKEN_NAME) then
-      begin
-        Result := lParam.Value;
-        Break;
-      end;
-    end;
-  end;
-
-  if Result.IsEmpty then
-  begin
-    for lCookie in fHTTPClient.CookieManager.Cookies do
-    begin
-      if SameText(lCookie.Name, TMVCConstants.SESSION_TOKEN_NAME) then
-      begin
-        Result := lCookie.Value;
-        Break;
-      end;
-    end;
-    Result := lCookie.Value;
-  end;
-
-  if Result.Contains('invalid') then
-    Result := '';
+  Result := fSessionID;
+  // Result := '';
+  //
+  // for lParam in fParameters do
+  // begin
+  // if lParam.&Type = TMVCRESTParamType.Cookie then
+  // begin
+  // if SameText(lParam.Name, TMVCConstants.SESSION_TOKEN_NAME) then
+  // begin
+  // Result := lParam.Value;
+  // Break;
+  // end;
+  // end;
+  // end;
+  //
+  // if Result.IsEmpty then
+  // begin
+  // for lCookie in fHTTPClient.CookieManager.Cookies do
+  // begin
+  // if SameText(lCookie.Name, TMVCConstants.SESSION_TOKEN_NAME) then
+  // begin
+  // Result := lCookie.Value;
+  // Break;
+  // end;
+  // end;
+  // Result := lCookie.Value;
+  // end;
+  //
+  // if Result.Contains('invalid') then
+  // Result := '';
 end;
 
 function TMVCRESTClient.SessionId(const aSessionId: string): IMVCRESTClient;
 begin
   Result := Self;
-
+  fSessionID := aSessionId;
   AddCookie(TMVCConstants.SESSION_TOKEN_NAME, aSessionId);
 end;
 
@@ -1685,8 +1705,8 @@ begin
   fResponseCompletedProc := aResponseCompletedProc;
 end;
 
-function TMVCRESTClient.SetValidateServerCertificateProc(
-  aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
+function TMVCRESTClient.SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc)
+  : IMVCRESTClient;
 begin
   Result := Self;
   fValidateServerCertificate := aValidateCertificateProc;
@@ -1707,6 +1727,10 @@ end;
 
 function TMVCRESTResponse.Content: string;
 begin
+  if fContent.IsEmpty then
+  begin
+    fContent := TMVCRESTClientHelper.GetResponseContentAsString(ContentRawBytes, ContentType);
+  end;
   Result := fContent;
 end;
 
@@ -1744,8 +1768,10 @@ end;
 
 constructor TMVCRESTResponse.Create(aHTTPResponse: IHTTPResponse);
 begin
-  fHeaders := TStringList.Create;
-  SetLength(fContentRawBytes, 0);
+  inherited Create;
+  fHTTPResponse := aHTTPResponse;
+  fHeaders := TMVCHeaders.Create;
+  // SetLength(fContentRawBytes, 0);
   fCookies := TCookies.Create;
 
   FillResponse(aHTTPResponse);
@@ -1753,7 +1779,7 @@ end;
 
 destructor TMVCRESTResponse.Destroy;
 begin
-  SetLength(fContentRawBytes, 0);
+  // SetLength(fContentRawBytes, 0);
   FreeAndNil(fHeaders);
   FreeAndNil(fCookies);
   inherited Destroy;
@@ -1773,10 +1799,11 @@ begin
   end;
   fCookies.AddRange(aHTTPResponse.Cookies.ToArray);
   fServer := aHTTPResponse.HeaderValue[TMVCRESTClientConsts.SERVER_HEADER];
-  fContentRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
-    aHTTPResponse.ContentEncoding);
-  fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes,
-    aHTTPResponse.HeaderValue[sContentType]);
+  fContentRawBytes := [];
+  // TMVCRESTClientHelper.GetResponseContentAsRawBytes(aHTTPResponse.ContentStream,
+  // aHTTPResponse.ContentEncoding);
+  // fContent := TMVCRESTClientHelper.GetResponseContentAsString(fContentRawBytes,
+  // aHTTPResponse.HeaderValue[sContentType]);
   fContentType := aHTTPResponse.HeaderValue[sContentType];
   fContentEncoding := aHTTPResponse.ContentEncoding;
   fContentLength := aHTTPResponse.ContentLength;
@@ -1794,6 +1821,11 @@ end;
 
 function TMVCRESTResponse.ContentRawBytes: TBytes;
 begin
+  if Length(fContentRawBytes) = 0 then
+  begin
+    fContentRawBytes := TMVCRESTClientHelper.GetResponseContentAsRawBytes(fHTTPResponse.ContentStream,
+      fHTTPResponse.ContentEncoding);
+  end;
   Result := fContentRawBytes;
 end;
 
@@ -1803,7 +1835,7 @@ var
 begin
   lStream := TMemoryStream.Create;
   try
-    lStream.Write(fContentRawBytes, Length(fContentRawBytes));
+    lStream.Write(ContentRawBytes, Length(ContentRawBytes));
     lStream.Position := 0;
     lStream.SaveToFile(aFileName);
   finally
@@ -1816,7 +1848,7 @@ begin
   if aStream = nil then
     raise EMVCRESTClientException.Create('Stream not assigned!');
 
-  aStream.Write(fContentRawBytes, Length(fContentRawBytes));
+  aStream.Write(ContentRawBytes, Length(ContentRawBytes));
 end;
 
 function TMVCRESTResponse.Server: string;
@@ -1840,7 +1872,6 @@ begin
 end;
 
 {$IF not defined(RIOORBETTER)}
-
 { TCookieManagerHelper }
 
 function TCookieManagerHelper.CookieList: TCookies;

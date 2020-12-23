@@ -419,7 +419,7 @@ type
       Partials: TSynMustachePartials=nil; Helpers: TSynMustacheHelpers=nil;
       OnTranslate: TOnStringTranslate=nil;
       EscapeInvert: boolean=false): RawUTF8; overload;
-    /// search some text withing the {{mustache}} template text
+    /// search some text within the {{mustache}} template text
     function FoundInTemplate(const text: RawUTF8): boolean;
 
     /// read-only access to the raw {{mustache}} template content

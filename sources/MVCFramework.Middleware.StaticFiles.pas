@@ -73,11 +73,9 @@ type
     function SendStaticFileIfPresent(const AContext: TWebContext; const AFileName: string): Boolean;
     procedure DoSanityCheck;
   public
-    constructor Create(
-      const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
+    constructor Create(const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
       const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
-      const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
-      const ASPAWebAppSupport: Boolean = True;
+      const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT; const ASPAWebAppSupport: Boolean = True;
       const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
     destructor Destroy; override;
 
@@ -95,7 +93,9 @@ implementation
 uses
   System.SysUtils,
   System.NetEncoding,
-  System.IOUtils, System.Classes;
+  System.IOUtils,
+  System.Classes,
+  MVCFramework.Logger;
 
 { TMVCStaticFilesMiddleware }
 
@@ -119,11 +119,9 @@ begin
   fMediaTypes.Add('.gif', TMVCMediaType.IMAGE_GIF);
 end;
 
-constructor TMVCStaticFilesMiddleware.Create(
-  const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
+constructor TMVCStaticFilesMiddleware.Create(const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
   const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
-  const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
-  const ASPAWebAppSupport: Boolean = True;
+  const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT; const ASPAWebAppSupport: Boolean = True;
   const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
 begin
   inherited Create;
@@ -186,8 +184,8 @@ begin
   // do nothing
 end;
 
-procedure TMVCStaticFilesMiddleware.OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName,
-  AActionName: string; var AHandled: Boolean);
+procedure TMVCStaticFilesMiddleware.OnBeforeControllerAction(AContext: TWebContext;
+  const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 begin
   // do nothing
 end;
@@ -213,11 +211,10 @@ begin
     Exit;
   end;
 
+  LogI('File: ' + lPathInfo);
+
   // calculate the actual requested path
-  if lPathInfo.StartsWith(fStaticFilesPath, True) then
-  begin
-    lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
-  end;
+  lPathInfo := lPathInfo.Remove(0, fStaticFilesPath.Length);
   lPathInfo := lPathInfo.Replace('/', PathDelim, [rfReplaceAll]);
   if lPathInfo.StartsWith(PathDelim) then
   begin
@@ -227,8 +224,7 @@ begin
 
   { Now the actual requested path is in lFullPathInfo }
 
-  if TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName,
-    lIsDirectoryTraversalAttach) then
+  if TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName, lIsDirectoryTraversalAttach) then
   begin
     // check if it's a direct file request
     // lIsFileRequest := TMVCStaticContents.IsStaticFile(fDocumentRoot, lPathInfo, lRealFileName,
@@ -274,6 +270,14 @@ begin
     lFileName := TPath.GetFullPath(TPath.Combine(lFullPathInfo, fIndexDocument));
     AHandled := SendStaticFileIfPresent(AContext, lFileName);
   end;
+
+  if not AHandled then
+  begin
+    AContext.Response.StatusCode := HTTP_STATUS.NotFound;
+    AContext.Response.Content := '404 Not Found';
+    AHandled := True;
+  end;
+
 end;
 
 function TMVCStaticFilesMiddleware.SendStaticFileIfPresent(const AContext: TWebContext;

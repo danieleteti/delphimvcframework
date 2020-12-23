@@ -6,7 +6,7 @@
         <Config Condition="'$(Config)'==''">CI</Config>
         <TargetedPlatforms>129</TargetedPlatforms>
         <AppType>Console</AppType>
-        <FrameworkType>None</FrameworkType>
+        <FrameworkType>FMX</FrameworkType>
         <ProjectVersion>19.1</ProjectVersion>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
     </PropertyGroup>
@@ -59,7 +59,7 @@
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <Icon_MainIcon>TestServer_Icon.ico</Icon_MainIcon>
+        <Icon_MainIcon>TestServer_Icon1.ico</Icon_MainIcon>
         <Manifest_File>(None)</Manifest_File>
         <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
@@ -80,6 +80,7 @@
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <Icon_MainIcon>TestServer_Icon.ico</Icon_MainIcon>
         <DCC_DcuOutput>.\dcus\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -101,6 +102,7 @@
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.HTML.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
+        <DCCReference Include="C:\DLib\mORMot\SynCrtSock.pas"/>
         <BuildConfiguration Include="CI">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -118,10 +120,11 @@
                     <Source Name="MainSource">TestServer.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k260.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp260.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k260.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp260.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\21.0\Bpl\dclPython270.bpl">Python4Delphi - Design-time Engine Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k270.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp270.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k270.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp270.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Platforms>
@@ -148,16 +151,16 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="TestServer" Configuration="CI" Class="ProjectOutput">
-                    <Platform Name="Linux64">
-                        <RemoteName>TestServer</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile LocalName="bin\www\index.html" Configuration="CI" Class="File">
                     <Platform Name="Linux64">
                         <RemoteDir>.\www</RemoteDir>
                         <RemoteName>index.html</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="TestServer" Configuration="CI" Class="ProjectOutput">
+                    <Platform Name="Linux64">
+                        <RemoteName>TestServer</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

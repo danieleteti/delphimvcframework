@@ -45,11 +45,9 @@ uses
 
 {$I dmvcframeworkbuildconsts.inc}
 
-
 type
 
-  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH,
-    httpTRACE);
+  TMVCHTTPMethodType = (httpGET, httpPOST, httpPUT, httpDELETE, httpHEAD, httpOPTIONS, httpPATCH, httpTRACE);
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
@@ -358,10 +356,9 @@ type
     procedure CheckHTTPErrorCode(const AHTTPErrorCode: UInt16);
   public
     constructor Create(const AMsg: string); overload; virtual;
-    constructor Create(const AMsg: string; const ADetailedMessage: string;
-      const AAppErrorCode: UInt16 = 0;
-      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError;
-      const AErrorItems: TArray<String> = nil); overload; virtual;
+    constructor Create(const AMsg: string; const ADetailedMessage: string; const AAppErrorCode: UInt16 = 0;
+      const AHTTPErrorCode: UInt16 = HTTP_STATUS.InternalServerError; const AErrorItems: TArray<String> = nil);
+      overload; virtual;
     constructor Create(const AHTTPErrorCode: UInt16; const AMsg: string); overload; virtual;
     constructor Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
       overload; virtual;
@@ -590,6 +587,16 @@ type
     class function GuidFromString(const AGuidStr: string): TGUID; static;
   end;
 
+  TMVCHeaders = class(TStringList)
+  private
+    function GetValue(const Name: string): string;
+    procedure SetValue(const Name, Value: string);
+  public
+    constructor Create;
+    function IndexOfName(const Name: string): Integer; override;
+    property Values[const Name: string]: string read GetValue write SetValue;
+  end;
+
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
 {$SCOPEDENUMS ON}
@@ -608,6 +615,9 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 
+function URLEncode(const aValue: string): String;
+function URLDecode(const aValue: string): String;
+
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
@@ -617,9 +627,8 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
-function StrToJSONObject(const aString: String): TJsonObject;
-function StrToJSONArray(const aString: String): TJsonArray;
-
+function StrToJSONObject(const AString: String): TJsonObject;
+function StrToJSONArray(const AString: String): TJsonArray;
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
@@ -641,21 +650,17 @@ var
 
 const
   RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'),
-    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'),
-    ('169.254.0.0', '169.254.255.255'),
+    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'), ('169.254.0.0', '169.254.255.255'),
     ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'), ('192.88.99.0', '192.88.99.255'),
-    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
-    ('224.0.0.0', '239.255.255.255'),
+    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'), ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
 
 type
   TMVCParseAuthentication = class
   public
-    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string; var VUsername,
-      VPassword: string; var VHandled: Boolean);
+    class procedure OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string;
+      var VUsername, VPassword: string; var VHandled: Boolean);
   end;
-
-
 
 implementation
 
@@ -681,8 +686,7 @@ begin
   if AIP.IsEmpty then
     Exit(0);
   lPieces := AIP.Split(['.']);
-  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) +
-    (StrToInt(lPieces[2]) * 256) +
+  Result := (StrToInt(lPieces[0]) * 16777216) + (StrToInt(lPieces[1]) * 65536) + (StrToInt(lPieces[2]) * 256) +
     StrToInt(lPieces[3]);
 end;
 
@@ -707,6 +711,16 @@ function B64Encode(const aValue: string): string; overload;
 begin
   // Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeString(aValue);
+end;
+
+function URLEncode(const aValue: string): String;
+begin
+  Result := TNetEncoding.URL.Encode(aValue);
+end;
+
+function URLDecode(const aValue: string): String;
+begin
+  Result := TNetEncoding.URL.Decode(aValue);
 end;
 
 function B64Encode(const aValue: TBytes): string; overload;
@@ -753,9 +767,7 @@ begin
     begin
       Result := lContentMediaType;
     end
-    else
-      if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/')
-    then
+    else if lContentMediaType.StartsWith('text/') or lContentMediaType.StartsWith('application/') then
     begin
       Result := lContentMediaType + ';charset=' + aContentCharSet.ToLower;
     end
@@ -775,8 +787,7 @@ begin
   begin
     lContentTypeValues := aContentType.Split([';']);
     aContentMediaType := Trim(lContentTypeValues[0]);
-    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True))
-    then
+    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True)) then
     begin
       aContentCharSet := lContentTypeValues[1].Trim.Split(['='])[1].Trim;
     end
@@ -803,8 +814,8 @@ begin
   SetLength(FErrorItems, 0);
 end;
 
-constructor EMVCException.Create(const AMsg, ADetailedMessage: string;
-  const AAppErrorCode, AHTTPErrorCode: UInt16; const AErrorItems: TArray<String>);
+constructor EMVCException.Create(const AMsg, ADetailedMessage: string; const AAppErrorCode, AHTTPErrorCode: UInt16;
+  const AErrorItems: TArray<String>);
 begin
   Create(AMsg);
   CheckHTTPErrorCode(AHTTPErrorCode);
@@ -832,8 +843,7 @@ begin
   end;
 end;
 
-constructor EMVCException.Create(const AHTTPErrorCode: UInt16;
-  const AAppErrorCode: Integer; const AMsg: string);
+constructor EMVCException.Create(const AHTTPErrorCode: UInt16; const AAppErrorCode: Integer; const AMsg: string);
 begin
   CheckHTTPErrorCode(AHTTPErrorCode);
   Create(AMsg);
@@ -841,8 +851,7 @@ begin
   FAppErrorCode := AAppErrorCode;
 end;
 
-constructor EMVCException.CreateFmt(const AHTTPErrorCode: UInt16;
-  const AMsg: string; const AArgs: array of const);
+constructor EMVCException.CreateFmt(const AHTTPErrorCode: UInt16; const AMsg: string; const AArgs: array of const);
 begin
   inherited CreateFmt(AMsg, AArgs);
   FHttpErrorCode := AHTTPErrorCode;
@@ -874,8 +883,7 @@ begin
   end;
 end;
 
-function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32)
-  : TWaitResult;
+function TMVCCriticalSectionHelper.DoWithLockTimeout(const AAction: TProc; const ATimeOut: UInt32): TWaitResult;
 begin
   Result := Self.WaitFor(ATimeOut);
   if (Result = TWaitResult.wrSignaled) then
@@ -892,7 +900,7 @@ procedure TMVCConfig.CheckNotFreezed;
 begin
   if FFreezed then
   begin
-    raise EMVCException.Create('Configuration in freezed - no more changes allowed') at ReturnAddress;
+    raise EMVCException.Create('Configuration in freezed - no more changes allowed')at ReturnAddress;
   end;
 end;
 
@@ -938,8 +946,7 @@ var
   lStreamReader: TStreamReader;
   lSer: TMVCJsonDataObjectsSerializer;
 begin
-  lStreamReader := TStreamReader.Create(TFileStream.Create(AFileName,
-    fmOpenRead or fmShareDenyWrite), TEncoding.ASCII);
+  lStreamReader := TStreamReader.Create(TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite), TEncoding.ASCII);
   try
     lStreamReader.OwnStream;
     lConfigString := lStreamReader.ReadToEnd;
@@ -986,7 +993,7 @@ var
   I: Integer;
   lName: string;
 begin
-  for I := 0 to Strings.Count-1 do
+  for I := 0 to Strings.Count - 1 do
   begin
     lName := Strings.Names[I];
     Add(lName, Strings.Values[lName]);
@@ -1135,8 +1142,7 @@ type
   end;
 
 const
-  GURLSafeBase64CodeTable
-    : string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  GURLSafeBase64CodeTable: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   { Do not Localize }
 
 procedure TURLSafeEncode.InitComponent;
@@ -1287,8 +1293,7 @@ end;
 
 { TMVCDecoratorObject }
 
-function TMVCDecoratorObject.Add(const PropName,
-  PropValue: string): IMVCLinkItem;
+function TMVCDecoratorObject.Add(const PropName, PropValue: string): IMVCLinkItem;
 begin
   fData.Items[PropName] := PropValue;
   Result := Self;
@@ -1355,8 +1360,7 @@ begin
 end;
 
 class procedure TMVCParseAuthentication.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: string;
-  var VUsername,
-  VPassword: string; var VHandled: Boolean);
+  var VUsername, VPassword: string; var VHandled: Boolean);
 begin
   VHandled := SameText(LowerCase(AAuthType), 'bearer');
 end;
@@ -1395,7 +1399,7 @@ var
   lIsAlpha: Boolean;
   lIsNumber: Boolean;
 begin
-  {TODO -oDanieleT -cGeneral : Make this function faster!}
+  { TODO -oDanieleT -cGeneral : Make this function faster! }
   lNextUpCase := MakeFirstUpperToo;
   lPreviousWasUpperCase := True;
   lSB := TStringBuilder.Create;
@@ -1407,7 +1411,7 @@ begin
       lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
       lIsNumber := CharInSet(C, ['0' .. '9']);
       lIsAlpha := lIsLowerCase or lIsUpperCase;
-      if not (lIsAlpha or lIsNumber) then
+      if not(lIsAlpha or lIsNumber) then
       begin
         lNextUpCase := True;
         lPreviousWasUpperCase := False;
@@ -1470,15 +1474,13 @@ begin
       lIsNumber := CharInSet(C, ['0' .. '9']);
       lIsUnderscore := C = '_';
 
-      if (I > 0) and (not lLastWasUnderscore) and
-        ((lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
-        (lIsLowerCase and lLastWasNumber) or
-        (lIsNumber and (not lLastWasNumber)))  then
+      if (I > 0) and (not lLastWasUnderscore) and ((lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
+        (lIsLowerCase and lLastWasNumber) or (lIsNumber and (not lLastWasNumber))) then
       begin
         lSB.Append('_');
       end;
 
-      if not (lLastWasUnderscore and lIsUnderscore) then
+      if not(lLastWasUnderscore and lIsUnderscore) then
       begin
         lSB.Append(LowerCase(C));
       end;
@@ -1492,20 +1494,78 @@ begin
   end;
 end;
 
-function StrToJSONObject(const aString: String): TJsonObject;
+function StrToJSONObject(const AString: String): TJsonObject;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString);
+  Result := MVCFramework.Serializer.JsonDataObjects.StrToJSONObject(AString);
 end;
 
-function StrToJSONArray(const aString: String): TJsonArray;
+function StrToJSONArray(const AString: String): TJsonArray;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString);
+  Result := MVCFramework.Serializer.JsonDataObjects.StrToJSONArray(AString);
 end;
-
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 begin
   Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+end;
+
+{ TMVCHeaders }
+
+constructor TMVCHeaders.Create;
+begin
+  inherited;
+  NameValueSeparator := ':';
+end;
+
+function TMVCHeaders.GetValue(const Name: string): string;
+var
+  i: Integer;
+begin
+  i := IndexOfName(Name);
+  if i >= 0 then
+    Result := Trim(Copy(Get(i), Length(Name) + 2, MaxInt))
+  else
+    Result := '';
+end;
+
+procedure TMVCHeaders.SetValue(const Name, Value: string);
+var
+  i: Integer;
+begin
+  i := IndexOfName(Name);
+  if Value <> '' then
+  begin
+    if i < 0 then
+      i := Add('');
+    Put(i, Name + NameValueSeparator + Value);
+  end
+  else
+  begin
+    if i >= 0 then
+      Delete(i);
+  end;
+end;
+
+function TMVCHeaders.IndexOfName(const Name: string): Integer;
+var
+  P: Integer;
+  S: string;
+  lSub: String;
+begin
+  for Result := 0 to GetCount - 1 do
+  begin
+    S := Get(Result);
+    P := AnsiPos(NameValueSeparator, S);
+    if (P <> 0) then
+    begin
+      lSub := Copy(S, 1, P - 1);
+      if SameText(lSub, Name) then
+      begin
+        Exit;
+      end;
+    end;
+  end;
+  Result := -1;
 end;
 
 initialization
@@ -1513,8 +1573,7 @@ initialization
 gLock := TObject.Create;
 
 // SGR 2017-07-03 : Initialize decoding table for URLSafe Gb64 encoding
-TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable,
-  TURLSafeDecode.GSafeBaseBase64DecodeTable);
+TURLSafeDecode.ConstructDecodeTable(GURLSafeBase64CodeTable, TURLSafeDecode.GSafeBaseBase64DecodeTable);
 
 GlobalAppExe := ExtractFileName(GetModuleName(HInstance));
 GlobalAppName := ChangeFileExt(GlobalAppExe, EmptyStr);
