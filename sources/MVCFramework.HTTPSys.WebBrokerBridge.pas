@@ -546,11 +546,12 @@ end;
 
 procedure TMVCHTTPSysAppResponse.SendRedirect(const URI: string);
 begin
-  if fSent then
-    Exit;
-  fSent := True;
-  raise Exception.Create('not implemented');
-  // fResponse.Redirect(URI);
+//  if fSent then
+//    Exit;
+//  fSent := True;
+  fHeaders.Values['Location'] := URI;
+  StatusCode := http_status.Found;
+//  SendResponse;
 end;
 
 procedure TMVCHTTPSysAppResponse.SendResponse;
@@ -564,7 +565,7 @@ begin
   if ContentStream <> nil then
   begin
     lSize := ContentStream.Size;
-    ContentLength := ContentStream.Size;
+    //ContentLength := ContentStream.Size;
     SetLength(lOutContent, lSize);
     ContentStream.Position := 0;
     ContentStream.Read(lOutContent[1], lSize);
@@ -775,10 +776,11 @@ begin
   if Value then
   begin
     fHttpServer := TMVCHTTPSysServer.Create(fUseSSL);
-//    fHttpServer.AddUrl(SockString(''), SockString(IntToStr(fPort)), fUseSSL, '+', True);
-//    fHttpServer.AddUrlAuthorize(SockString(''), SockString(IntToStr(fPort)), fUseSSL, '+', True);
     fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
-    fHttpServer.RegisterCompress(CompressDeflate);
+    if fUseCompression then
+    begin
+      fHttpServer.RegisterCompress(CompressZLib); // 2020-12-25 do not use other compressions, it hangs
+    end;
     fHttpServer.OnRequest := DoHandleRequest;
     { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
     fHttpServer.Clone(31); // will use a thread pool of 32 threads in total

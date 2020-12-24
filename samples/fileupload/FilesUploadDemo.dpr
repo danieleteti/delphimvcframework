@@ -32,7 +32,7 @@ begin
     Writeln('Press RETURN to stop the server');
 
 {$IFDEF MSWINDOWS}
-    ShellExecute(0, 'open', 'http://localhost:3000', nil, nil, SW_SHOW);
+    ShellExecute(0, 'open', 'http://localhost:8080', nil, nil, SW_SHOW);
 
 {$ENDIF}
     ReadLn;
@@ -45,7 +45,7 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    RunServer(3000);
+    RunServer(8080);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

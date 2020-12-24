@@ -335,7 +335,7 @@ type
     function GetParamsMulti(const AParamName: string): TArray<string>;
   protected
     { protected declarations }
-//    procedure EnsureINDY;
+    // procedure EnsureINDY;
   public
     constructor Create(const AWebRequest: TWebRequest; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
@@ -384,36 +384,36 @@ type
     property Files: TAbstractWebRequestFiles read GetFiles;
   end;
 
-//{$IFDEF WEBAPACHEHTTP}
-//
-//  TMVCApacheWebRequest = class(TMVCWebRequest)
-//  private
-//    { private declarations }
-//  protected
-//    { protected declarations }
-//  public
-//    { public declarations }
-//  end;
-//
-//{$ENDIF}
-//
-//  TMVCISAPIWebRequest = class(TMVCWebRequest)
-//  private
-//    { private declarations }
-//  protected
-//    { protected declarations }
-//  public
-//    { public declarations }
-//  end;
-//
-//  TMVCIndyWebRequest = class(TMVCWebRequest)
-//  private
-//    { private declarations }
-//  protected
-//    { protected declarations }
-//  public
-//    // function RawHeaders: TStrings; override;
-//  end;
+  // {$IFDEF WEBAPACHEHTTP}
+  //
+  // TMVCApacheWebRequest = class(TMVCWebRequest)
+  // private
+  // { private declarations }
+  // protected
+  // { protected declarations }
+  // public
+  // { public declarations }
+  // end;
+  //
+  // {$ENDIF}
+  //
+  // TMVCISAPIWebRequest = class(TMVCWebRequest)
+  // private
+  // { private declarations }
+  // protected
+  // { protected declarations }
+  // public
+  // { public declarations }
+  // end;
+  //
+  // TMVCIndyWebRequest = class(TMVCWebRequest)
+  // private
+  // { private declarations }
+  // protected
+  // { protected declarations }
+  // public
+  // // function RawHeaders: TStrings; override;
+  // end;
 
   TMVCWebResponse = class
   private
@@ -844,6 +844,9 @@ type
     FConfigCache_ExposeServerSignature: Boolean;
     FConfigCache_ServerSignature: string;
     FConfigCache_ExposeXPoweredBy: Boolean;
+    FConfigCache_PathPrefix: string;
+    FConfigCache_DefaultContentType: string;
+    FConfigCache_DefaultContentCharset: string;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -1334,13 +1337,13 @@ begin
   inherited Destroy;
 end;
 
-//procedure TMVCWebRequest.EnsureINDY;
-//begin
-//  if not(Self is TMVCIndyWebRequest) then
-//  begin
-//    raise EMVCException.Create(http_status.InternalServerError, 'Method available only in INDY implementation');
-//  end;
-//end;
+// procedure TMVCWebRequest.EnsureINDY;
+// begin
+// if not(Self is TMVCIndyWebRequest) then
+// begin
+// raise EMVCException.Create(http_status.InternalServerError, 'Method available only in INDY implementation');
+// end;
+// end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
 begin
@@ -2192,10 +2195,10 @@ begin
             if not lHandled then
             begin
               if lRouter.ExecuteRouting(ARequest.PathInfo,
-                lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } , ARequest.ContentType,
-                ARequest.Accept, FControllers, FConfig[TMVCConfigKey.DefaultContentType],
-                FConfig[TMVCConfigKey.DefaultContentCharset], lParamsTable, lResponseContentMediaType,
-                lResponseContentCharset) then
+                lContext.Request.GetOverwrittenHTTPMethod, ARequest.ContentType,
+                ARequest.Accept, FControllers, FConfigCache_DefaultContentType,
+                FConfigCache_DefaultContentCharset, FConfigCache_PathPrefix, lParamsTable,
+                lResponseContentMediaType, lResponseContentCharset) then
               begin
                 try
                   if Assigned(lRouter.ControllerCreateAction) then
@@ -2829,6 +2832,9 @@ begin
   FConfigCache_ExposeServerSignature := Config[TMVCConfigKey.ExposeServerSignature] = 'true';
   FConfigCache_ServerSignature := Config[TMVCConfigKey.ServerName];
   FConfigCache_ExposeXPoweredBy := Config[TMVCConfigKey.ExposeXPoweredBy] = 'true';
+  FConfigCache_PathPrefix := Config[TMVCConfigKey.PathPrefix];
+  FConfigCache_DefaultContentType := FConfig[TMVCConfigKey.DefaultContentType];
+  FConfigCache_DefaultContentCharset := FConfig[TMVCConfigKey.DefaultContentCharset];
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;

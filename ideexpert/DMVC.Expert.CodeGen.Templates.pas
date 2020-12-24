@@ -426,12 +426,13 @@ resourcestring
     '      Config[TMVCConfigKey.ViewPath] := ''templates'';' + sLineBreak +
     '      //Max Record Count for automatic Entities CRUD' + sLineBreak +
     '      Config[TMVCConfigKey.MaxEntitiesRecordCount] := ''20'';' + sLineBreak +   
-	'      //Enable Server Signature in response' + sLineBreak +
+	  '      //Enable Server Signature in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeServerSignature] := ''true'';' + sLineBreak +
-	'      //Enable X-Powered-By Header in response' + sLineBreak +
+	  '      //Enable X-Powered-By Header in response' + sLineBreak +
     '      Config[TMVCConfigKey.ExposeXPoweredBy] := ''true'';' + sLineBreak +	
-//    '      // Define a default URL for requests that don''t map to a route or a file (useful for client side web app)' + sLineBreak +
-//    '      Config[TMVCConfigKey.FallbackResource] := ''index.html'';' + sLineBreak +
+    '      // Is the server mapped under a specific path? (eg. HTTP.sys specific path?)' + sLineBreak +
+		'      // With HTTP.sys this settings allows more servers to listen on the same port.' + sLineBreak +    
+    '      Config[TMVCConfigKey.PathPrefix] := '''';' + sLineBreak +
     '      // Max request size in bytes' + sLineBreak +
     '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +

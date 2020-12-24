@@ -62,44 +62,30 @@ type
     function GetAttribute<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): T;
     function GetFirstMediaType(const AContentType: string): string;
 
-    function IsHTTPContentTypeCompatible(
-      const ARequestMethodType: TMVCHTTPMethodType;
-      var AContentType: string;
+    function IsHTTPContentTypeCompatible(const ARequestMethodType: TMVCHTTPMethodType; var AContentType: string;
       const AAttributes: TArray<TCustomAttribute>): Boolean;
 
-    function IsHTTPAcceptCompatible(
-      const ARequestMethodType: TMVCHTTPMethodType;
-      var AAccept: string;
+    function IsHTTPAcceptCompatible(const ARequestMethodType: TMVCHTTPMethodType; var AAccept: string;
       const AAttributes: TArray<TCustomAttribute>): Boolean;
 
-    function IsHTTPMethodCompatible(
-      const AMethodType: TMVCHTTPMethodType;
+    function IsHTTPMethodCompatible(const AMethodType: TMVCHTTPMethodType;
       const AAttributes: TArray<TCustomAttribute>): Boolean;
 
-    function IsCompatiblePath(
-      const AMVCPath: string;
-      const APath: string;
-      var aParams: TMVCRequestParamsTable): Boolean;
+    function IsCompatiblePath(const AMVCPath: string; const APath: string; var aParams: TMVCRequestParamsTable)
+      : Boolean;
     function GetParametersNames(const V: string): TList<string>;
   protected
-    function GetControllerMappedPath(
-      const aControllerName: string;
+    function GetControllerMappedPath(const aControllerName: string;
       const aControllerAttributes: TArray<TCustomAttribute>): string;
   public
     class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
     constructor Create(const aConfig: TMVCConfig;
       const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
     destructor Destroy; override;
-    function ExecuteRouting(
-      const ARequestPathInfo: string;
-      const ARequestMethodType: TMVCHTTPMethodType;
-      const ARequestContentType: string;
-      const ARequestAccept: string;
-      const AControllers: TObjectList<TMVCControllerDelegate>;
-      const ADefaultContentType: string;
-      const ADefaultContentCharset: string;
-      var ARequestParams: TMVCRequestParamsTable;
-      out AResponseContentMediaType: string;
+    function ExecuteRouting(const ARequestPathInfo: string; const ARequestMethodType: TMVCHTTPMethodType;
+      const ARequestContentType, ARequestAccept: string; const AControllers: TObjectList<TMVCControllerDelegate>;
+      const ADefaultContentType: string; const ADefaultContentCharset: string; const APathPrefix: String;
+      var ARequestParams: TMVCRequestParamsTable; out AResponseContentMediaType: string;
       out AResponseContentCharset: string): Boolean;
     function GetQualifiedActionName: string; override;
 
@@ -133,14 +119,10 @@ begin
   inherited Destroy;
 end;
 
-function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
-  const ARequestMethodType: TMVCHTTPMethodType;
-  const ARequestContentType, ARequestAccept: string;
-  const AControllers: TObjectList<TMVCControllerDelegate>;
-  const ADefaultContentType: string;
-  const ADefaultContentCharset: string;
-  var ARequestParams: TMVCRequestParamsTable;
-  out AResponseContentMediaType: string;
+function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string; const ARequestMethodType: TMVCHTTPMethodType;
+  const ARequestContentType, ARequestAccept: string; const AControllers: TObjectList<TMVCControllerDelegate>;
+  const ADefaultContentType: string; const ADefaultContentCharset: string; const APathPrefix: String;
+  var ARequestParams: TMVCRequestParamsTable; out AResponseContentMediaType: string;
   out AResponseContentCharset: string): Boolean;
 var
   LRequestPathInfo: string;
@@ -292,8 +274,7 @@ begin
       Exit(T(Att));
 end;
 
-function TMVCRouter.GetControllerMappedPath(
-  const aControllerName: string;
+function TMVCRouter.GetControllerMappedPath(const aControllerName: string;
   const aControllerAttributes: TArray<TCustomAttribute>): string;
 var
   LFound: Boolean;
@@ -323,9 +304,7 @@ begin
     Result := Copy(Result, 1, Pos(';', Result) - 1);
 end;
 
-function TMVCRouter.IsCompatiblePath(
-  const AMVCPath: string;
-  const APath: string;
+function TMVCRouter.IsCompatiblePath(const AMVCPath: string; const APath: string;
   var aParams: TMVCRequestParamsTable): Boolean;
 
   function ToPattern(const V: string; const Names: TList<string>): string;
@@ -407,9 +386,7 @@ begin
   Result := Self.FControllerClazz.QualifiedClassName + '.' + Self.MethodToCall.Name;
 end;
 
-function TMVCRouter.IsHTTPAcceptCompatible(
-  const ARequestMethodType: TMVCHTTPMethodType;
-  var AAccept: string;
+function TMVCRouter.IsHTTPAcceptCompatible(const ARequestMethodType: TMVCHTTPMethodType; var AAccept: string;
   const AAttributes: TArray<TCustomAttribute>): Boolean;
 var
   I: Integer;
@@ -437,9 +414,7 @@ begin
   Result := (not FoundOneAttProduces) or (FoundOneAttProduces and Result);
 end;
 
-function TMVCRouter.IsHTTPContentTypeCompatible(
-  const ARequestMethodType: TMVCHTTPMethodType;
-  var AContentType: string;
+function TMVCRouter.IsHTTPContentTypeCompatible(const ARequestMethodType: TMVCHTTPMethodType; var AContentType: string;
   const AAttributes: TArray<TCustomAttribute>): Boolean;
 var
   I: Integer;
@@ -466,8 +441,7 @@ begin
   Result := (not FoundOneAttConsumes) or (FoundOneAttConsumes and Result);
 end;
 
-function TMVCRouter.IsHTTPMethodCompatible(
-  const AMethodType: TMVCHTTPMethodType;
+function TMVCRouter.IsHTTPMethodCompatible(const AMethodType: TMVCHTTPMethodType;
   const AAttributes: TArray<TCustomAttribute>): Boolean;
 var
   I: Integer;
@@ -511,8 +485,7 @@ end;
 
 { TMVCActionParamCacheItem }
 
-constructor TMVCActionParamCacheItem.Create(aValue: string;
-  aParams: TList<string>);
+constructor TMVCActionParamCacheItem.Create(aValue: string; aParams: TList<string>);
 begin
   inherited Create;
   FValue := aValue;
