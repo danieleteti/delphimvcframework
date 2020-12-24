@@ -129,6 +129,8 @@ type
     fPort: UInt16;
     fUseSSL: Boolean;
     fUseCompression: Boolean;
+    fRootPath: String;
+    procedure SetRootPath(const Value: String);
   protected
     procedure SetActive(const Value: Boolean);
     procedure SetDefaultPort(const Value: UInt16);
@@ -140,6 +142,7 @@ type
     destructor Destroy; override;
     property Active: Boolean read fActive write SetActive;
     property Port: UInt16 read fPort write SetDefaultPort;
+    property RootPath: String read FRootPath write SetRootPath;
     property UseSSL: Boolean read fUseSSL write SetUseSSL;
     property UseCompression: Boolean read fUseCompression write SetUseCompression;
   end;
@@ -203,65 +206,6 @@ begin
   inherited Create;
   fHeaders := TMVCHeaders.Create;
   ExtractFields([#13], [], String(fRequest.InHeaders), fHeaders);
-
-  // if fRequest.PostDataSize > 0 then
-  // begin
-  // case fRequest.BodyType of
-  // btBinary:
-  // begin
-  // SetLength(fBody, ARequest.ContentLength);
-  // TBytesStream(fRequest.Body).Read(fBody, Length(fBody));
-  // end;
-  // else
-  // SetLength(fBody, 0);
-  // end;
-  // end;
-
-
-
-
-  // else
-  // begin
-  // if FRequestInfo.FormParams <> '' then
-  // begin { do not localize }
-  // // an input form that was submitted as "application/www-url-encoded"...
-  // fContentStream := TStringStream.Create(FRequestInfo.FormParams);
-  // end
-  // else
-  // begin
-  // // anything else for now...
-  // fContentStream := TStringStream.Create(FRequestInfo.UnparsedParams);
-  // end;
-  // FFreeContentStream := True;
-  // end;
-
-  // FThread := AThread;
-  // FRequestInfo := ARequestInfo;
-  // FResponseInfo := AResponseInfo;
-  // inherited Create;
-  // for i := 0 to ARequestInfo.Cookies.Count - 1 do
-  // begin
-  // CookieFields.Add(ARequestInfo.Cookies[i].ClientCookie);
-  // end;
-  // if Assigned(FRequestInfo.PostStream) then
-  // begin
-  // FContentStream := FRequestInfo.PostStream;
-  // FFreeContentStream := False;
-  // end
-  // else
-  // begin
-  // if FRequestInfo.FormParams <> '' then
-  // begin { do not localize }
-  // // an input form that was submitted as "application/www-url-encoded"...
-  // FContentStream := TStringStream.Create(FRequestInfo.FormParams);
-  // end
-  // else
-  // begin
-  // // anything else for now...
-  // FContentStream := TStringStream.Create(FRequestInfo.UnparsedParams);
-  // end;
-  // FFreeContentStream := True;
-  // end;
 end;
 
 destructor TMVCHTTPSysAppRequest.Destroy;
@@ -435,16 +379,6 @@ end;
 function TMVCHTTPSysAppRequest.WriteClient(var ABuffer; ACount: Integer): Integer;
 begin
   raise Exception.Create('not implemented - WriteClient');
-  // SetLength(LBuffer, ACount);
-  // {$IFNDEF CLR}
-  // Move(ABuffer, LBuffer[0], ACount);
-  // {$ELSE}
-  // // RLebeau: this can't be right?  It is interpretting the source as a
-  // // null-terminated character string, which is likely not the case...
-  // CopyTIdBytes(ToBytes(string(ABuffer)), 0, LBuffer, 0, ACount);
-  // {$ENDIF}
-  // FThread.Connection.IOHandler.Write(LBuffer);
-  // Result := ACount;
 end;
 
 constructor TMVCHTTPSysAppResponse.Create(AResponse: THttpServerRequest);
@@ -486,17 +420,16 @@ function TMVCHTTPSysAppResponse.GetDateVariable(Index: Integer): TDateTime;
   end;
 
 begin
-  raise Exception.Create('not implemented');
-  // case Index of
-  // RespIDX_Date:
-  // Result := ToGMT(ISOTimeStampToDateTime(fResponse.Header.Params['Date']));
-  // RespIDX_Expires:
-  // Result := ToGMT(ISOTimeStampToDateTime(fResponse.Header.Params['Expires']));
-  // RespIDX_LastModified:
-  // Result := ToGMT(ISOTimeStampToDateTime(fResponse.Header.Params['LastModified']));
-  // else
-  // raise ECrossSocketInvalidIdxGetVariable.Create(Format('Invalid Index for GetDateVariable: %d', [Index]));
-  // end;
+  case Index of
+    RespIDX_Date:
+      Result := ToGMT(ISOTimeStampToDateTime(fHeaders.Values['Date']));
+    RespIDX_Expires:
+      Result := ToGMT(ISOTimeStampToDateTime(fHeaders.Values['Expires']));
+    RespIDX_LastModified:
+      Result := ToGMT(ISOTimeStampToDateTime(fHeaders.Values['LastModified']));
+  else
+    raise EMVCHTTPSysInvalidIdxGetVariable.Create(Format('Invalid Index for GetDateVariable: %d', [Index]));
+  end;
 end;
 
 procedure TMVCHTTPSysAppResponse.SetDateVariable(Index: Integer; const Value: TDateTime);
@@ -513,8 +446,6 @@ begin
   case Index of
     RespIDX_Date:
       fHeaders.Values['Date'] := DateTimeToISOTimeStamp(ToLocal(Value));
-    // fResponse.Header.Params['Date'] := DateTimeToISOTimeStamp(ToLocal(Value));
-
     RespIDX_Expires:
       fHeaders.Values['Expires'] := DateTimeToISOTimeStamp(ToLocal(Value));
     RespIDX_LastModified:
@@ -844,7 +775,9 @@ begin
   if Value then
   begin
     fHttpServer := TMVCHTTPSysServer.Create(fUseSSL);
-    fHttpServer.AddUrl(SockString(''), SockString(IntToStr(fPort)), fUseSSL, '+', True);
+//    fHttpServer.AddUrl(SockString(''), SockString(IntToStr(fPort)), fUseSSL, '+', True);
+//    fHttpServer.AddUrlAuthorize(SockString(''), SockString(IntToStr(fPort)), fUseSSL, '+', True);
+    fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
     fHttpServer.RegisterCompress(CompressDeflate);
     fHttpServer.OnRequest := DoHandleRequest;
     { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
@@ -864,6 +797,11 @@ begin
   fPort := Value;
 end;
 
+procedure TMVCHTTPSysWebBrokerBridge.SetRootPath(const Value: String);
+begin
+  FRootPath := Value;
+end;
+
 procedure TMVCHTTPSysWebBrokerBridge.SetUseCompression(const Value: Boolean);
 begin
   fUseCompression := Value;
@@ -879,6 +817,7 @@ begin
   inherited Create;
   fUseSSL := False;
   fUseCompression := True;
+  fRootPath := '';
 end;
 
 { TMVCHTTPSysServer }

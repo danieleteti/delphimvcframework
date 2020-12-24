@@ -185,6 +185,25 @@ resourcestring
     '{$R *.res}' + sLineBreak +
     sLineBreak +
     sLineBreak +
+		' // ******* README * README * README *********************************************' + sLineBreak +
+		' // HTTP.sys is a high-performance Windows kernel module available in Windows 7 or later ' + sLineBreak +
+		' // and Windows Server 2008 R2 or later. Any URLs used by HTTP.sys needs to be "reserved"' + sLineBreak +     
+		' // using netsh tool or running the application with Administrator priviledges.' + sLineBreak + sLineBreak +
+    ' // 1. Use the netsh.exe tool to register URLs for the app.' + sLineBreak +
+    ' // In the following example, the local IP address of the server is 10.0.0.4:' + sLineBreak +
+		' // netsh http add urlacl url=https://10.0.0.4:443/ user=Users ' + sLineBreak +
+		' // WARNING! While it''s possibile to reserve URLs using Top-level wildcard ' + sLineBreak + 
+		' // binding like (http://*:80/ and http://+:80) these Top-level wildcard ' + sLineBreak +
+		' // bindings should not be used. Top-level wildcard bindings create app ' + sLineBreak + 
+		' // security vulnerabilities. This applies to both strong and weak wildcards. ' + sLineBreak +
+		' // Use explicit host names or IP addresses rather than wildcards.' + sLineBreak +
+		' // Examples (needs Administrator privileges): ' + sLineBreak +
+		' //   netsh http add urlacl url=https://10.0.0.4:443/ user=Users ' + sLineBreak +
+		' //   netsh http add urlacl url=http://+:8888/ user=Everyone ' + sLineBreak + sLineBreak +
+		' // 2. If you RAD-Studio (or the produced executable) as Administrator, the URL' + sLineBreak +
+		' // will be automatically reserved without using netsh.' + sLineBreak +
+		' // ******************************************************************************' + sLineBreak + sLineBreak + sLineBreak +
+		
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
     '  LServer: TMVCHTTPSysWebBrokerBridge;' + sLineBreak +
@@ -196,7 +215,7 @@ resourcestring
     '    LServer.UseSSL := False;' + sLineBreak +
     '    LServer.UseCompression := True;' + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
-    '    Write(''Server running on port '' + IntToStr(APort) + ''. Hit return to shutdown...'');' + sLineBreak +
+    '    Write(''Server running on port '' + IntToStr(APort) + ''. Press [Enter] to quit.'');' + sLineBreak +
     '    ReadLn;' + sLineBreak +
     '    Write(''Bye bye...'');' + sLineBreak +
     '  finally' + sLineBreak +
