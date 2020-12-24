@@ -73,10 +73,12 @@ var
   LServer: TMVCHTTPSysWebBrokerBridge;
 begin
   Logo(APort);
-  LServer := TMVCHTTPSysWebBrokerBridge.Create(false);
+  LServer := TMVCHTTPSysWebBrokerBridge.Create;
   try
     // LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;
-    LServer.DefaultPort := APort;
+    LServer.Port := APort;
+    LServer.UseSSL := False;
+    LServer.UseCompression := True;
     LServer.Active := True;
     { more info about MaxConnections
       http://www.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=TIdCustomTCPServer_MaxConnections.html }

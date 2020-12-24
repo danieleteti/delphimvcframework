@@ -209,6 +209,7 @@
         <DCCReference Include="PGUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecordController.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

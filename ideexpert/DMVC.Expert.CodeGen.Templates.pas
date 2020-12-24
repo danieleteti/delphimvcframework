@@ -39,7 +39,7 @@ resourcestring
   { Delphi template code }
   // 0 - project name
   // 1 - http/s port
-  sDMVCDPR =
+  sDMVCDPRIndy =
     'program %0:s;' + sLineBreak +
     sLineBreak +
     '{$APPTYPE CONSOLE}' + sLineBreak +
@@ -101,7 +101,7 @@ resourcestring
     '  try' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.KeepAlive := True;' + sLineBreak +    
+    '    LServer.KeepAlive := True;' + sLineBreak +
     sLineBreak +
     '    { more info about MaxConnections' + sLineBreak +
     '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
@@ -158,6 +158,66 @@ resourcestring
     '      Writeln(E.ClassName, '': '', E.Message);' + sLineBreak +
     '  end;' + sLineBreak +
     'end.' + sLineBreak;
+
+
+  { Delphi template code }
+  // 0 - project name
+  // 1 - http/s port
+  sDMVCDPRHTTPSys =
+    'program %0:s;' + sLineBreak +
+    sLineBreak +
+    '{$APPTYPE CONSOLE}' + sLineBreak +
+    sLineBreak +
+    'uses' + sLineBreak +
+    '  System.SysUtils,' + sLineBreak +
+    '  MVCFramework.Logger,' + sLineBreak +
+    '  MVCFramework.Commons,' + sLineBreak +
+    {$IF Defined(SeattleOrBetter)}
+    '  Web.ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
+    '  Web.WebReq,' + sLineBreak +
+    '  Web.WebBroker,' +
+    {$ELSE}
+    '  ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
+    '  WebReq,' + sLineBreak +
+    '  WebBroker,' +
+    {$ENDIF}
+    '  MVCFramework.HTTPSys.WebBrokerBridge;' + sLineBreak + sLineBreak +
+    '{$R *.res}' + sLineBreak +
+    sLineBreak +
+    sLineBreak +
+    'procedure RunServer(APort: Integer);' + sLineBreak +
+    'var' + sLineBreak +
+    '  LServer: TMVCHTTPSysWebBrokerBridge;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  Writeln(''** '' + DMVCFRAMEWORK + '' Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
+    '  LServer := TMVCHTTPSysWebBrokerBridge.Create;' + sLineBreak +
+    '  try' + sLineBreak +
+    '    LServer.Port := APort;' + sLineBreak +
+    '    LServer.UseSSL := False;' + sLineBreak +
+    '    LServer.UseCompression := True;' + sLineBreak +
+    '    LServer.Active := True;' + sLineBreak +
+    '    Write(''Server running on port '' + IntToStr(APort) + ''. Hit return to shutdown...'');' + sLineBreak +
+    '    ReadLn;' + sLineBreak +
+    '    Write(''Bye bye...'');' + sLineBreak +
+    '  finally' + sLineBreak +
+    '    LServer.Free;' + sLineBreak +
+    '  end;' + sLineBreak +
+    'end;' + sLineBreak +
+    sLineBreak +
+    'begin' + sLineBreak +
+    '  ReportMemoryLeaksOnShutdown := True;' + sLineBreak +
+    '  IsMultiThread := True;' + sLineBreak +
+    '  try' + sLineBreak +
+    '    if WebRequestHandler <> nil then' + sLineBreak +
+    '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
+    '    WebRequestHandlerProc.MaxConnections := 0;' + sLineBreak +
+    '    RunServer(%1:d);' + sLineBreak +
+    '  except' + sLineBreak +
+    '    on E: Exception do' + sLineBreak +
+    '      Writeln(E.ClassName, '': '', E.Message);' + sLineBreak +
+    '  end;' + sLineBreak +
+    'end.' + sLineBreak;
+
 
   // 0 - Unit Name
   // 1 - Class Name
@@ -364,8 +424,9 @@ resourcestring
     '  //    ''/static'', ' + sLineBreak +
     '  //    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')) ' + sLineBreak +
     '  //  );	' + sLineBreak + sLineBreak +
-    '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
-    '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
+    '  // To enable output compression add this middleware as the last one (Only for INDY based web servers)' + sLineBreak +
+    '  // NOTE: HTTP.sys web servers use internal engine for compression' + sLineBreak +
+    '  // FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +

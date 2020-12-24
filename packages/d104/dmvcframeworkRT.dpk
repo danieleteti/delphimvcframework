@@ -137,7 +137,11 @@ contains
   MVCFramework.RESTClient.Commons in '..\..\sources\MVCFramework.RESTClient.Commons.pas',
   MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
   MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
-  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
+  MVCFramework.HTTPSys.WebBrokerBridge in '..\..\sources\MVCFramework.HTTPSys.WebBrokerBridge.pas',
+  SynCrtSock in '..\..\lib\dmustache\SynCrtSock.pas',
+  SynWinSock in '..\..\lib\dmustache\SynWinSock.pas',
+  SynZip in '..\..\lib\dmustache\SynZip.pas';
 
 end.
 

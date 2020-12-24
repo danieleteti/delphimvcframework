@@ -37,11 +37,10 @@ type
   private
     fCompressionThreshold: Integer;
   protected
-    procedure OnAfterControllerAction(AContext: TWebContext; const AActionNAme: string;
-      const AHandled: Boolean);
+    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
-    procedure OnBeforeControllerAction(AContext: TWebContext;
-      const AControllerQualifiedClassName: string; const AActionNAme: string; var AHandled: Boolean);
+    procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
+      const AActionName: string; var AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   public
     constructor Create(aCompressionThreshold: Integer = 1024); virtual;
@@ -55,16 +54,14 @@ uses
   System.Classes,
   MVCFramework.Commons;
 
-{ TMVCSalutationMiddleware }
-
 constructor TMVCCompressionMiddleware.Create(aCompressionThreshold: Integer);
 begin
   inherited Create;
   fCompressionThreshold := aCompressionThreshold;
 end;
 
-procedure TMVCCompressionMiddleware.OnAfterControllerAction(AContext: TWebContext;
-  const AActionNAme: string; const AHandled: Boolean);
+procedure TMVCCompressionMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
+  const AHandled: Boolean);
 begin
   // do nothing
 end;
@@ -81,9 +78,11 @@ var
   lRespCompressionType: TMVCCompressionType;
   lTmpItem: string;
 begin
-  if IsLibrary then
+  if AContext.HostingFrameworkType <> hftIndy then
   begin
-    Exit;
+    raise EMVCException.Create
+      (ClassName +
+      ' is usable only for Indy hosting framework [HINT: Remove it from the middlewares list for non-INDY based servers]');
   end;
   lContentStream := AContext.Response.RawWebResponse.ContentStream;
   if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold) then
@@ -137,7 +136,7 @@ begin
   lContentStreamHelper.Position := 0;
   lMemStream := TMemoryStream.Create;
   try
-    {TODO -oDanieleT -cGeneral : Use directly lContentStreamHelper?}
+    { TODO -oDanieleT -cGeneral : Use directly lContentStreamHelper? }
     lZStream := TZCompressionStream.Create(lMemStream, TZCompressionLevel.zcMax,
       MVC_COMPRESSION_ZLIB_WINDOW_BITS[lRespCompressionType]);
     try
@@ -147,13 +146,14 @@ begin
     end;
     lMemStream.Position := 0;
 
-//  AContext.Response.Content := '';
+    // AContext.Response.Content := '';
     lContentStreamHelper.Size := 0;
     lContentStreamHelper.CopyFrom(lMemStream, 0);
 {$IF Defined(SeattleOrBetter)}
     AContext.Response.RawWebResponse.ContentEncoding := MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType];
 {$ELSE}
-    AContext.Response.RawWebResponse.ContentEncoding := AnsiString(MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType]);
+    AContext.Response.RawWebResponse.ContentEncoding :=
+      AnsiString(MVC_COMPRESSION_TYPE_AS_STRING[lRespCompressionType]);
 {$ENDIF}
   finally
     lMemStream.Free;
@@ -161,7 +161,7 @@ begin
 end;
 
 procedure TMVCCompressionMiddleware.OnBeforeControllerAction(AContext: TWebContext;
-  const AControllerQualifiedClassName, AActionNAme: string; var AHandled: Boolean);
+  const AControllerQualifiedClassName, AActionName: string; var AHandled: Boolean);
 begin
   // do nothing
 end;

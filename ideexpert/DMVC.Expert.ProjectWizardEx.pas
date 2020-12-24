@@ -61,7 +61,7 @@ uses
   DMVC.Expert.CodeGen.NewDMVCProject,
   DMVC.Expert.CodeGen.NewControllerUnit,
   DMVC.Expert.CodeGen.NewWebModuleUnit,
-  ExpertsRepository;
+  ExpertsRepository, DMVC.Expert.CodeGen.Templates;
 
 resourcestring
   sNewDMVCProjectCaption = 'DelphiMVCFramework Project';
@@ -104,6 +104,15 @@ begin
           // Create Project Source
           lProjectSourceCreator := TDMVCProjectFile.Create(APersonality);
           TDMVCProjectFile(lProjectSourceCreator).DefaultPort := WizardForm.ServerPort;
+          case WizardForm.BuiltInWebServerType of
+            wstIndy: begin
+              TDMVCProjectFile(lProjectSourceCreator).DPRSourceCodeTemplate := sDMVCDPRIndy;
+            end;
+            wstHTTPSys: begin
+              TDMVCProjectFile(lProjectSourceCreator).DPRSourceCodeTemplate := sDMVCDPRHTTPSys;
+            end;
+          end;
+
           ModuleServices.CreateModule(lProjectSourceCreator);
           Project := GetActiveProject;
 

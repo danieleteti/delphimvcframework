@@ -7,23 +7,22 @@ program DMVCFrameworkTests;
 
 uses
   System.SysUtils,
-{$IFDEF GUI_TESTRUNNER}
+  {$IFDEF GUI_TESTRUNNER}
   Vcl.Forms,
   DUnitX.Loggers.GUI.Vcl,
-{$ENDIF }
-{$IFDEF CONSOLE_TESTRUNNER}
+  {$ENDIF }
+  {$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
-{$ENDIF }
+  {$ENDIF }
   DUnitX.TestFramework,
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.Tests.WebModule2
-    in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule} ,
+  MVCFramework.Tests.WebModule2 in '..\StandaloneServer\MVCFramework.Tests.WebModule2.pas' {TestWebModule2: TWebModule},
   MVCFramework.Tests.StandaloneServer in '..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas',
-  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule} ,
+  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
@@ -37,11 +36,9 @@ uses
   JsonDataObjects in '..\..\..\sources\JsonDataObjects.pas',
   Serializers.JsonDataObjectsTestU in 'Serializers.JsonDataObjectsTestU.pas',
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
-  MVCFramework.Tests.Serializer.EntitiesModule
-    in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule} ,
+  MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule},
   MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
-    in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
   ActiveRecordTestsU in 'ActiveRecordTestsU.pas',
   TestConstsU in 'TestConstsU.pas',
   MVCFramework.RESTClient.Indy in '..\..\..\sources\MVCFramework.RESTClient.Indy.pas',
@@ -50,7 +47,8 @@ uses
   MVCFramework.RESTClient in '..\..\..\sources\MVCFramework.RESTClient.pas',
   PGUtilsU in 'PGUtilsU.pas',
   MVCFramework.ActiveRecord in '..\..\..\sources\MVCFramework.ActiveRecord.pas',
-  MVCFramework.ActiveRecordController in '..\..\..\sources\MVCFramework.ActiveRecordController.pas';
+  MVCFramework.ActiveRecordController in '..\..\..\sources\MVCFramework.ActiveRecordController.pas',
+  MVCFramework.JSONRPC.Client in '..\..\..\sources\MVCFramework.JSONRPC.Client.pas';
 
 {$R *.RES}
 {$IFDEF CONSOLE_TESTRUNNER}

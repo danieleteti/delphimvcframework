@@ -335,7 +335,7 @@ type
     function GetParamsMulti(const AParamName: string): TArray<string>;
   protected
     { protected declarations }
-    procedure EnsureINDY;
+//    procedure EnsureINDY;
   public
     constructor Create(const AWebRequest: TWebRequest; const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
@@ -384,36 +384,36 @@ type
     property Files: TAbstractWebRequestFiles read GetFiles;
   end;
 
-{$IFDEF WEBAPACHEHTTP}
-
-  TMVCApacheWebRequest = class(TMVCWebRequest)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
-  end;
-
-{$ENDIF}
-
-  TMVCISAPIWebRequest = class(TMVCWebRequest)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    { public declarations }
-  end;
-
-  TMVCIndyWebRequest = class(TMVCWebRequest)
-  private
-    { private declarations }
-  protected
-    { protected declarations }
-  public
-    // function RawHeaders: TStrings; override;
-  end;
+//{$IFDEF WEBAPACHEHTTP}
+//
+//  TMVCApacheWebRequest = class(TMVCWebRequest)
+//  private
+//    { private declarations }
+//  protected
+//    { protected declarations }
+//  public
+//    { public declarations }
+//  end;
+//
+//{$ENDIF}
+//
+//  TMVCISAPIWebRequest = class(TMVCWebRequest)
+//  private
+//    { private declarations }
+//  protected
+//    { protected declarations }
+//  public
+//    { public declarations }
+//  end;
+//
+//  TMVCIndyWebRequest = class(TMVCWebRequest)
+//  private
+//    { private declarations }
+//  protected
+//    { protected declarations }
+//  public
+//    // function RawHeaders: TStrings; override;
+//  end;
 
   TMVCWebResponse = class
   private
@@ -491,6 +491,7 @@ type
     function GetParamsTable: TMVCRequestParamsTable;
     procedure SetParamsTable(const AValue: TMVCRequestParamsTable);
     function GetHostingFrameworkType: TMVCHostingFrameworkType;
+    function GetData: TDictionary<string, string>;
   protected
     procedure Flush; virtual;
     procedure BindToSession(const ASessionId: string);
@@ -516,7 +517,7 @@ type
     property Response: TMVCWebResponse read FResponse;
     property Session: TWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
-    property Data: TDictionary<string, string> read FData;
+    property Data: TDictionary<string, string> read GetData;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
   end;
 
@@ -994,10 +995,15 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: string; co
 implementation
 
 uses
+{$IFDEF MSWINDOWS}
+  MVCFramework.HTTPSys.WebBrokerBridge,
+{$ENDIF}
   IdURI,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
-  MVCFramework.JSONRPC, MVCFramework.Router, MVCFramework.Serializer.HTML;
+  MVCFramework.JSONRPC,
+  MVCFramework.Router,
+  MVCFramework.Serializer.HTML;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -1215,20 +1221,6 @@ begin
     end;
 end;
 
-// function TMVCWebRequest.HeaderNames: TArray<String>;
-// var
-// lHeaderList: TIdHeaderList;
-// I: Integer;
-// begin
-// EnsureINDY;
-// lHeaderList := THackIdHTTPAppRequest(TMVCIndyWebRequest(Self).RawWebRequest).FRequestInfo.RawHeaders;
-// SetLength(Result, lHeaderList.Count);
-// for I := 0 to Pred(lHeaderList.Count) do
-// begin
-// Result[I] := lHeaderList.Names[I];
-// end;
-// end;
-
 procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>);
 var
   lSerializer: IMVCSerializer;
@@ -1342,13 +1334,13 @@ begin
   inherited Destroy;
 end;
 
-procedure TMVCWebRequest.EnsureINDY;
-begin
-  if not(Self is TMVCIndyWebRequest) then
-  begin
-    raise EMVCException.Create(http_status.InternalServerError, 'Method available only in INDY implementation');
-  end;
-end;
+//procedure TMVCWebRequest.EnsureINDY;
+//begin
+//  if not(Self is TMVCIndyWebRequest) then
+//  begin
+//    raise EMVCException.Create(http_status.InternalServerError, 'Method available only in INDY implementation');
+//  end;
+//end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
 begin
@@ -1782,37 +1774,36 @@ begin
   FIsSessionStarted := False;
   FSessionMustBeClose := False;
   FWebSession := nil;
-  FRequest := nil;
+  FRequest := TMVCWebRequest.Create(ARequest, ASerializers);
 
-  if not IsLibrary then
-  begin
-    FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
-  end
-  else
-  begin
-{$IFDEF WEBAPACHEHTTP}
-    if ARequest.ClassType = TApacheRequest then
-    begin
-      FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
-    end
-    else
-{$IFNDEF LINUX}
-      if ARequest.ClassType = TISAPIRequest then
-      begin
-        FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
-      end
-      else
-{$ENDIF}
-{$ENDIF}
-      begin
-        FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
-      end;
-  end;
+  // if not IsLibrary then
+  // begin
+  // FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+  // end
+  // else
+  // begin
+  // {$IFDEF WEBAPACHEHTTP}
+  // if ARequest.ClassType = TApacheRequest then
+  // begin
+  // FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
+  // end
+  // else
+  // {$IFNDEF LINUX}
+  // if ARequest.ClassType = TISAPIRequest then
+  // begin
+  // FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+  // end
+  // else
+  // {$ENDIF}
+  // {$ENDIF}
+  // begin
+  // FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+  // end;
+  // end;
 
   FResponse := TMVCWebResponse.Create(AResponse);
   FConfig := AConfig;
   FSerializers := ASerializers;
-  FData := TDictionary<string, string>.Create;
   FLoggedUser := nil;
 end;
 
@@ -1843,17 +1834,32 @@ begin
   FResponse.Flush;
 end;
 
+function TWebContext.GetData: TDictionary<string, string>;
+begin
+  if FData = nil then
+  begin
+    FData := TDictionary<string, string>.Create;
+  end;
+  Result := FData;
+end;
+
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
+{$IFDEF MSWINDOWS}
+  if FRequest.FWebRequest.ClassType = TMVCHTTPSysAppRequest then
+  begin
+    Exit(hftHTTPSys);
+  end;
+{$ENDIF}
 {$IFDEF WEBAPACHEHTTP}
-  if FRequest.ClassType = TApacheRequest then
+  if FRequest.FWebRequest.ClassType = TApacheRequest then
   begin
     Exit(hftApache);
   end
   else
   begin
 {$IFNDEF LINUX}
-    if FRequest.ClassType = TISAPIRequest then
+    if FRequest.FWebRequest.ClassType = TISAPIRequest then
     begin
       Exit(hftISAPI);
     end

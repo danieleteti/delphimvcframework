@@ -5,7 +5,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   BorderStyle = bsDialog
   Caption = 'New DMVCFramework Project Wizard'
   ClientHeight = 582
-  ClientWidth = 354
+  ClientWidth = 597
   Color = clBtnFace
   Constraints.MinHeight = 145
   Constraints.MinWidth = 250
@@ -18,7 +18,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Position = poMainFormCenter
   OnCreate = FormCreate
   DesignSize = (
-    354
+    597
     582)
   PixelsPerInch = 96
   TextHeight = 13
@@ -39,7 +39,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object Image1: TImage
     Left = 0
     Top = 0
-    Width = 354
+    Width = 597
     Height = 101
     Cursor = crHandPoint
     Hint = 'Go to the DelphiMVCFramework project'
@@ -371,6 +371,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       4F1140101111F11401041111114F1140101111F11401041111114FFD0F3B403E
       DAAF5C25370000000049454E44AE426082}
     OnClick = Image1Click
+    ExplicitWidth = 354
   end
   object lblFrameworkVersion: TLabel
     Left = 123
@@ -412,13 +413,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object gbControllerUnitOptions: TGroupBox
     Left = 8
     Top = 281
-    Width = 338
+    Width = 581
     Height = 169
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Controller Unit Options'
     TabOrder = 4
     DesignSize = (
-      338
+      581
       169)
     object lblClassName: TLabel
       Left = 16
@@ -437,7 +438,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object chkCreateIndexMethod: TCheckBox
       Left = 16
       Top = 31
-      Width = 306
+      Width = 549
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Create Index And Sample Actions'
@@ -448,7 +449,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object edtClassName: TEdit
       Left = 16
       Top = 137
-      Width = 306
+      Width = 549
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 3
@@ -456,7 +457,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object chkCreateActionFiltersMethods: TCheckBox
       Left = 16
       Top = 54
-      Width = 306
+      Width = 549
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Create Action Filters Methods'
@@ -467,7 +468,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object chkCreateCRUDMethods: TCheckBox
       Left = 16
       Top = 77
-      Width = 306
+      Width = 549
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Create Sample CRUD Actions'
@@ -477,7 +478,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     end
   end
   object btnOK: TButton
-    Left = 186
+    Left = 429
     Top = 547
     Width = 77
     Height = 27
@@ -488,7 +489,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 6
   end
   object btnCancel: TButton
-    Left = 269
+    Left = 512
     Top = 547
     Width = 77
     Height = 27
@@ -501,7 +502,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object chkCreateControllerUnit: TCheckBox
     Left = 24
     Top = 226
-    Width = 287
+    Width = 530
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Create Controller Unit'
@@ -513,7 +514,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object chkAddToProjectGroup: TCheckBox
     Left = 24
     Top = 120
-    Width = 338
+    Width = 581
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Add to Existing Project Group'
@@ -539,11 +540,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object chkAnalyticsMiddleware: TCheckBox
     Left = 24
     Top = 203
-    Width = 287
+    Width = 530
     Height = 17
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Add analytics support'
     TabOrder = 2
     Visible = False
+  end
+  object rgType: TRadioGroup
+    Left = 335
+    Top = 143
+    Width = 254
+    Height = 105
+    Caption = 'Built-In Web Server Type'
+    ItemIndex = 0
+    Items.Strings = (
+      'HTTP.sys (High Performance - Windows Only)'
+      'INDY (Windows + Linux)')
+    TabOrder = 8
   end
 end

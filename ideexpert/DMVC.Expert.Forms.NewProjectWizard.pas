@@ -49,6 +49,9 @@ uses
   VCL.Imaging.pngimage, VCL.ExtCtrls;
 
 type
+  TWebServerType = (wstIndy, wstHTTPSys, wstApache, wstWindowsService, wstISAPI);
+  TBuiltInWebServerType = wstIndy .. wstHTTPSys;
+
   TfrmDMVCNewProject = class(TForm)
     gbControllerUnitOptions: TGroupBox;
     btnOK: TButton;
@@ -69,6 +72,7 @@ type
     chkCreateCRUDMethods: TCheckBox;
     chkAnalyticsMiddleware: TCheckBox;
     lblBook: TLabel;
+    rgType: TRadioGroup;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -87,9 +91,11 @@ type
     function GetCreateCRUDMethods: boolean;
     function GetAnalyticsSupport: boolean;
     function GetMiddlewares: TArray<String>;
+    function GetBuiltInWebServerType: TBuiltInWebServerType;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
+    property BuiltInWebServerType: TBuiltInWebServerType read GetBuiltInWebServerType;
     property ControllerClassName: string read GetControllerClassName;
     property CreateControllerUnit: boolean read GetCreateControllerUnit;
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
@@ -97,8 +103,7 @@ type
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
     property AnalyticsSupport: boolean read GetAnalyticsSupport;
     property Middlewares: TArray<String> read GetMiddlewares;
-    property CreateActionFiltersMethods: boolean
-      read GetCreateActionFiltersMethods;
+    property CreateActionFiltersMethods: boolean read GetCreateActionFiltersMethods;
     property WebModuleClassName: string read GetWebModuleClassName;
     property ServerPort: Integer read GetServerPort;
   end;
@@ -141,6 +146,18 @@ begin
   Result := chkAnalyticsMiddleware.Checked;
 end;
 
+function TfrmDMVCNewProject.GetBuiltInWebServerType: TBuiltInWebServerType;
+begin
+  case rgType.ItemIndex of
+    0:
+      Exit(wstHTTPSys);
+    1:
+      Exit(wstIndy);
+  else
+    raise Exception.Create('Invalid Built-In Web Server Type');
+  end;
+end;
+
 function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
@@ -160,8 +177,7 @@ var
   lServerPort: Integer;
 begin
   Result := StrToInt(sDefaultServerPort);
-  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text,
-    lServerPort) then
+  if (Trim(edtServerPort.Text) <> '') and TryStrToInt(edtServerPort.Text, lServerPort) then
   begin
     if (lServerPort > 0) and (lServerPort < 65535) then
       Result := lServerPort;
@@ -182,16 +198,12 @@ end;
 
 procedure TfrmDMVCNewProject.Image1Click(Sender: TObject);
 begin
-  ShellExecute(0, PChar('open'),
-    PChar('https://github.com/danieleteti/delphimvcframework'),
-    nil, nil, SW_SHOW);
+  ShellExecute(0, PChar('open'), PChar('https://github.com/danieleteti/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookClick(Sender: TObject);
 begin
-  ShellExecute(0, PChar('open'),
-    PChar('https://leanpub.com/delphimvcframework'),
-    nil, nil, SW_SHOW);
+  ShellExecute(0, PChar('open'), PChar('https://leanpub.com/delphimvcframework'), nil, nil, SW_SHOW);
 end;
 
 procedure TfrmDMVCNewProject.lblBookMouseEnter(Sender: TObject);

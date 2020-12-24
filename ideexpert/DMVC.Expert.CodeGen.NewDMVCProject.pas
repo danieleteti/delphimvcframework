@@ -42,7 +42,9 @@ type
   TDMVCProjectFile = class(TNewProjectEx)
   private
     FDefaultPort: Integer;
+    FDPRSourceCodeTemplate: String;
     procedure SetDefaultPort(const Value: Integer);
+    procedure SetDPRSourceCodeTemplate(const Value: String);
   protected
     function NewProjectSource(const ProjectName: string): IOTAFile; override;
     function GetFrameworkType: string; override;
@@ -50,6 +52,7 @@ type
     constructor Create; overload;
     constructor Create(const APersonality: string); overload;
     property DefaultPort: Integer read FDefaultPort write SetDefaultPort;
+    property DPRSourceCodeTemplate: String read FDPRSourceCodeTemplate write SetDPRSourceCodeTemplate;
   end;
 
 implementation
@@ -80,12 +83,17 @@ end;
 
 function TDMVCProjectFile.NewProjectSource(const ProjectName: string): IOTAFile;
 begin
-  Result := TSourceFile.Create(sDMVCDPR, [ProjectName, FDefaultPort]);
+  Result := TSourceFile.Create(FDPRSourceCodeTemplate, [ProjectName, FDefaultPort]);
 end;
 
 procedure TDMVCProjectFile.SetDefaultPort(const Value: Integer);
 begin
   FDefaultPort := Value;
+end;
+
+procedure TDMVCProjectFile.SetDPRSourceCodeTemplate(const Value: String);
+begin
+  FDPRSourceCodeTemplate := Value;
 end;
 
 end.

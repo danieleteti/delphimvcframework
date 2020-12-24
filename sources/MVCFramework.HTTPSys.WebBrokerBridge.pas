@@ -31,17 +31,14 @@
 
 unit MVCFramework.HTTPSys.WebBrokerBridge;
 
-{$DEFINE TRACE}
+{.$DEFINE TRACE}
 
 interface
 
 uses
   System.Classes,
-  System.StrUtils,
-
   Web.HTTPApp,
   System.SysUtils,
-  Web.WebBroker,
   WebReq,
   MVCFramework,
   MVCFramework.Commons,
@@ -76,7 +73,6 @@ type
     fURL: String;
     fFullURL: String;
   protected
-    fBody: TBytes;
     function GetDateVariable(Index: Integer): TDateTime; override;
     function GetIntegerVariable(Index: Integer): Integer; override;
     function GetStringVariable(Index: Integer): string; override;
@@ -101,9 +97,8 @@ type
     fStatusCode: Integer;
     fHeaders: TMVCHeaders;
     fReasonString: string;
-  protected
-    fContent: string;
     fSent: Boolean;
+  protected
     function GetHeaders: SockString;
     function GetContent: string; override;
     function GetDateVariable(Index: Integer): TDateTime; override;
@@ -131,15 +126,22 @@ type
   private
     fActive: Boolean;
     fHttpServer: TMVCHTTPSysServer;
-    fDefaultPort: UInt16;
+    fPort: UInt16;
+    fUseSSL: Boolean;
+    fUseCompression: Boolean;
+  protected
     procedure SetActive(const Value: Boolean);
     procedure SetDefaultPort(const Value: UInt16);
     function DoHandleRequest(ReqResp: THttpServerRequest): Cardinal;
+    procedure SetUseSSL(const Value: Boolean);
+    procedure SetUseCompression(const Value: Boolean);
   public
-    constructor Create(const UseSSL: Boolean = False); virtual;
+    constructor Create; virtual;
     destructor Destroy; override;
     property Active: Boolean read fActive write SetActive;
-    property DefaultPort: UInt16 read fDefaultPort write SetDefaultPort;
+    property Port: UInt16 read fPort write SetDefaultPort;
+    property UseSSL: Boolean read fUseSSL write SetUseSSL;
+    property UseCompression: Boolean read fUseCompression write SetUseCompression;
   end;
 
 implementation
@@ -355,10 +357,10 @@ begin
       Result := fHeaders.Values['Host'];
     ReqIDX_IfModifiedSince:
       Result := fHeaders.Values['If-Modified-Since']; { do not localize }
-    // ReqIDX_Referer:
-    // Result := fRequest.Referer;
-    // ReqIDX_UserAgent:
-    // Result := fRequest.UserAgent;
+    ReqIDX_Referer:
+      Result := fHeaders.Values['Referrer'];
+    ReqIDX_UserAgent:
+      Result := fHeaders.Values['User-Agent'];
     ReqIDX_ContentEncoding:
       Result := fHeaders.Values['Content-Encoding'];
     ReqIDX_ContentType:
@@ -373,8 +375,8 @@ begin
       Result := fHeaders.Values['Expires']; { do not localize }
     ReqIDX_Title:
       Result := fHeaders.Values['Title']; { do not localize }
-    // ReqIDX_RemoteAddr:
-    // Result := fRequest.Connection.PeerAddr;
+    ReqIDX_RemoteAddr:
+      Result := String(fRequest.RemoteIP);
     // ReqIDX_RemoteHost:
     // Result := fRequest.Connection.PeerAddr;
     // ReqIDX_ScriptName:
@@ -397,21 +399,12 @@ end;
 
 function TMVCHTTPSysAppRequest.GetFieldByName(const Name: string): string;
 begin
-  { TODO -oDanieleT -cGeneral : Attenzione, gli header sono case-insensitive }
   Result := fHeaders.Values[Name];
-  // raise Exception.Create('not implemented');
-  // fRequest.Header.GetParamValue(Name, Result);
 end;
 
 function TMVCHTTPSysAppRequest.ReadClient(var Buffer; Count: Integer): Integer;
 begin
   raise Exception.Create('not implemented - ReadClient');
-  // Result := fContentStream.Read(Buffer, Count);
-  // // well, it shouldn't be less than 0. but let's not take chances
-  // if Result < 0 then
-  // begin
-  // Result := 0;
-  // end;
 end;
 
 function TMVCHTTPSysAppRequest.ReadString(Count: Integer): string;
@@ -850,32 +843,13 @@ begin
   end;
   if Value then
   begin
-    fHttpServer := TMVCHTTPSysServer.Create(False);
-    fHttpServer.AddUrl(SockString(''), SockString(IntToStr(fDefaultPort)), False, '+', True);
+    fHttpServer := TMVCHTTPSysServer.Create(fUseSSL);
+    fHttpServer.AddUrl(SockString(''), SockString(IntToStr(fPort)), fUseSSL, '+', True);
     fHttpServer.RegisterCompress(CompressDeflate);
     fHttpServer.OnRequest := DoHandleRequest;
     { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
     fHttpServer.Clone(31); // will use a thread pool of 32 threads in total
     fActive := True;
-    // // {$IFDEF __CROSS_SSL__}
-    // // if FHttpServer.SSL then
-    // // begin
-    // // FHttpServer.SetCertificate(SSL_SERVER_CERT);
-    // // FHttpServer.SetPrivateKey(SSL_SERVER_PKEY);
-    // // end;
-    // // {$ENDIF}
-    // // FHttpServer.Addr := IPv4_ALL; // IPv4
-    // // FHttpServer.Addr := IPv4_LOCAL; // IPv4
-    // // FHttpServer.Addr := IPv6_ALL; // IPv6
-    // fHttpServer.Addr := IPv4v6_ALL; // IPv4v6
-    // fHttpServer.Port := fDefaultPort;
-    // fHttpServer.Compressible := False;
-    // fHttpServer.All('*',
-    // procedure(const ARequest: ICrossHttpRequest; const AResponse: ICrossHttpResponse; var AHandled: Boolean)
-    // begin
-    // TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler.Run(ARequest, AResponse);
-    // AHandled := True;
-    // end).Start()
   end
   else
   begin
@@ -887,12 +861,24 @@ end;
 
 procedure TMVCHTTPSysWebBrokerBridge.SetDefaultPort(const Value: UInt16);
 begin
-  fDefaultPort := Value;
+  fPort := Value;
 end;
 
-constructor TMVCHTTPSysWebBrokerBridge.Create(const UseSSL: Boolean);
+procedure TMVCHTTPSysWebBrokerBridge.SetUseCompression(const Value: Boolean);
+begin
+  fUseCompression := Value;
+end;
+
+procedure TMVCHTTPSysWebBrokerBridge.SetUseSSL(const Value: Boolean);
+begin
+  fUseSSL := Value;
+end;
+
+constructor TMVCHTTPSysWebBrokerBridge.Create;
 begin
   inherited Create;
+  fUseSSL := False;
+  fUseCompression := True;
 end;
 
 { TMVCHTTPSysServer }
@@ -900,7 +886,7 @@ end;
 procedure TMVCHTTPSysServer.SetServerName(const aName: SockString);
 begin
   inherited;
-  fServerName := 'DMVCFramework';
+  fServerName := DMVCFRAMEWORK;
 end;
 
 initialization

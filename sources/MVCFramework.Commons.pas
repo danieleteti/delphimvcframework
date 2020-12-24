@@ -159,7 +159,7 @@ type
     LoadSystemControllers = 'load_system_controllers';
   end;
 
-  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
+  TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI, hftHTTPSys);
 
   // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
   HTTP_STATUS = record
@@ -587,6 +587,7 @@ type
     class function GuidFromString(const AGuidStr: string): TGUID; static;
   end;
 
+  { A simple TStringList descendant which implements case-insensitive keys search }
   TMVCHeaders = class(TStringList)
   private
     function GetValue(const Name: string): string;
@@ -1519,30 +1520,34 @@ end;
 
 function TMVCHeaders.GetValue(const Name: string): string;
 var
-  i: Integer;
+  I: Integer;
 begin
-  i := IndexOfName(Name);
-  if i >= 0 then
-    Result := Trim(Copy(Get(i), Length(Name) + 2, MaxInt))
+  I := IndexOfName(Name);
+  if I >= 0 then
+    Result := Trim(copy(Get(I), Length(Name) + 2, MaxInt))
   else
     Result := '';
 end;
 
 procedure TMVCHeaders.SetValue(const Name, Value: string);
 var
-  i: Integer;
+  I: Integer;
 begin
-  i := IndexOfName(Name);
+  I := IndexOfName(Name);
   if Value <> '' then
   begin
-    if i < 0 then
-      i := Add('');
-    Put(i, Name + NameValueSeparator + Value);
+    if I < 0 then
+    begin
+      I := Add('');
+    end;
+    Put(I, Name + NameValueSeparator + Value);
   end
   else
   begin
-    if i >= 0 then
-      Delete(i);
+    if I >= 0 then
+    begin
+      Delete(I);
+    end;
   end;
 end;
 
@@ -1558,7 +1563,7 @@ begin
     P := AnsiPos(NameValueSeparator, S);
     if (P <> 0) then
     begin
-      lSub := Copy(S, 1, P - 1);
+      lSub := copy(S, 1, P - 1);
       if SameText(lSub, Name) then
       begin
         Exit;
