@@ -229,7 +229,7 @@ resourcestring
     '  try' + sLineBreak +
     '    if WebRequestHandler <> nil then' + sLineBreak +
     '      WebRequestHandler.WebModuleClass := WebModuleClass;' + sLineBreak +
-    '    WebRequestHandlerProc.MaxConnections := 0;' + sLineBreak +
+    '    WebRequestHandlerProc.MaxConnections := 0; //no limit' + sLineBreak +
     '    RunServer(%1:d);' + sLineBreak +
     '  except' + sLineBreak +
     '    on E: Exception do' + sLineBreak +

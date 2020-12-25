@@ -998,9 +998,6 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: string; co
 implementation
 
 uses
-{$IFDEF MSWINDOWS}
-  MVCFramework.HTTPSys.WebBrokerBridge,
-{$ENDIF}
   IdURI,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
@@ -1849,7 +1846,7 @@ end;
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
 {$IFDEF MSWINDOWS}
-  if FRequest.FWebRequest.ClassType = TMVCHTTPSysAppRequest then
+  if FRequest.FWebRequest.ClassName = 'TMVCHTTPSysAppRequest' then
   begin
     Exit(hftHTTPSys);
   end;

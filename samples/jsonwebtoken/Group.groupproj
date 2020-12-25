@@ -3,7 +3,10 @@
         <ProjectGuid>{094E1EEA-8729-4125-A068-57B1296432CB}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="JWTServer.dproj">
+        <Projects Include="JWTServerIndyBased.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="JWTServerHTTPSysBased.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="vclclient\JWTClient.dproj">
@@ -17,14 +20,23 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
-    <Target Name="JWTServer">
-        <MSBuild Projects="JWTServer.dproj"/>
+    <Target Name="JWTServerIndyBased">
+        <MSBuild Projects="JWTServerIndyBased.dproj"/>
     </Target>
-    <Target Name="JWTServer:Clean">
-        <MSBuild Projects="JWTServer.dproj" Targets="Clean"/>
+    <Target Name="JWTServerIndyBased:Clean">
+        <MSBuild Projects="JWTServerIndyBased.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="JWTServer:Make">
-        <MSBuild Projects="JWTServer.dproj" Targets="Make"/>
+    <Target Name="JWTServerIndyBased:Make">
+        <MSBuild Projects="JWTServerIndyBased.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="JWTServerHTTPSysBased">
+        <MSBuild Projects="JWTServerHTTPSysBased.dproj"/>
+    </Target>
+    <Target Name="JWTServerHTTPSysBased:Clean">
+        <MSBuild Projects="JWTServerHTTPSysBased.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTServerHTTPSysBased:Make">
+        <MSBuild Projects="JWTServerHTTPSysBased.dproj" Targets="Make"/>
     </Target>
     <Target Name="JWTClient">
         <MSBuild Projects="vclclient\JWTClient.dproj"/>
@@ -36,13 +48,13 @@
         <MSBuild Projects="vclclient\JWTClient.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="JWTServer;JWTClient"/>
+        <CallTarget Targets="JWTServerIndyBased;JWTServerHTTPSysBased;JWTClient"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="JWTServer:Clean;JWTClient:Clean"/>
+        <CallTarget Targets="JWTServerIndyBased:Clean;JWTServerHTTPSysBased:Clean;JWTClient:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="JWTServer:Make;JWTClient:Make"/>
+        <CallTarget Targets="JWTServerIndyBased:Make;JWTServerHTTPSysBased:Make;JWTClient:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

@@ -80,9 +80,7 @@ var
 begin
   if AContext.HostingFrameworkType <> hftIndy then
   begin
-    raise EMVCException.Create
-      (ClassName +
-      ' is usable only for Indy hosting framework [HINT: Remove it from the middlewares list for non-INDY based servers]');
+    Exit;
   end;
   lContentStream := AContext.Response.RawWebResponse.ContentStream;
   if (lContentStream = nil) or (lContentStream.Size <= fCompressionThreshold) then

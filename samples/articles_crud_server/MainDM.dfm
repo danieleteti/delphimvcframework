@@ -4,17 +4,11 @@ object dmMain: TdmMain
   Width = 438
   object Connection: TFDConnection
     Params.Strings = (
-      
-        'Database=C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FD' +
-        'B'
-      'User_Name=sysdba'
-      'Password=masterkey'
       'Protocol=TCPIP'
       'Server=localhost'
       'ConnectionDef=articles_crud_db')
     ConnectedStoredUsage = []
     LoginPrompt = False
-    BeforeConnect = ConnectionBeforeConnect
     Left = 64
     Top = 48
   end

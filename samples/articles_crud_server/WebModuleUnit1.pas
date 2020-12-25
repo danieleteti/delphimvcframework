@@ -34,7 +34,6 @@ begin
   {$ENDIF}
   FEngine.AddMiddleware(TCORSMiddleware.Create);
   FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
-
 end;
 
 end.

@@ -44,10 +44,11 @@ uses
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
   MVCFramework.Logger,
-  SynCrtSock;
+  SynCrtSock,
+  MVCFramework.HTTPSys.Core;
 
 type
-  EMVCHTTPSysWebBrokerBridgeException = class(EMVCException);
+  EMVCHTTPSysWebBrokerBridgeException = class(EMVCHTTPSysException);
 
   EMVCHTTPSysInvalidIdxGetVariable = class(EMVCHTTPSysWebBrokerBridgeException)
 
@@ -59,11 +60,6 @@ type
 
   EMVCHTTPSysInvalidStringVar = class(EMVCHTTPSysWebBrokerBridgeException)
 
-  end;
-
-  TMVCHTTPSysServer = class(THttpApiServer)
-  protected
-    procedure SetServerName(const aName: SockString); override;
   end;
 
   TMVCHTTPSysAppRequest = class(TWebRequest)
@@ -457,23 +453,23 @@ end;
 
 function TMVCHTTPSysAppResponse.GetIntegerVariable(Index: Integer): Integer;
 begin
-  case Index of
-    RespIDX_ContentLength:
-      Result := fHeaders.Values['Content-Length'].ToInt64;
-  else
+//  case Index of
+//    RespIDX_ContentLength:
+//      Result := fHeaders.Values['Content-Length'].ToInt64;
+//  else
     raise EMVCHTTPSysInvalidIdxGetVariable.Create(Format('Invalid Index for GetIntegerVariable: %d', [Index]));
-  end;
+//  end;
 end;
 
 procedure TMVCHTTPSysAppResponse.SetIntegerVariable(Index, Value: Integer);
 begin
-  // raise Exception.Create('not implemented');
-  case Index of
-    RespIDX_ContentLength:
-      fHeaders.Values['Content-Length'] := Value.ToString;
-  else
-    raise EMVCHTTPSysInvalidIdxSetVariable.Create(Format('Invalid Index for SetIntegerVariable: %d', [Index]));
-  end;
+//just do nothing
+//  case Index of
+//    RespIDX_ContentLength:
+//      fHeaders.Values['Content-Length'] := Value.ToString;
+//  else
+//    raise EMVCHTTPSysInvalidIdxSetVariable.Create(Format('Invalid Index for SetIntegerVariable: %d', [Index]));
+//  end;
 end;
 
 function TMVCHTTPSysAppResponse.GetStringVariable(Index: Integer): string;
@@ -697,30 +693,6 @@ begin
   Result := TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler;
 end;
 
-// procedure TCrossSocketWebBrokerBridge.InternalHandleRequest(const ARequest: ICrossHttpRequest;
-// const AResponse: ICrossHttpResponse);
-// begin
-// if fWebModuleClass <> nil then
-// begin
-// RunWebModuleClass(ARequest, AResponse)
-// end
-// else
-// begin
-// TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler.Run(ARequest, AResponse);
-// end;
-// LogI(AResponse.Sent.ToString(TUseBoolStrs.True));
-// end;
-
-// procedure TCrossSocketWebBrokerBridge.CreateInternalRouter;
-// begin
-// fHttpServer.All('*',
-// procedure(const ARequest: ICrossHttpRequest; const AResponse: ICrossHttpResponse; var AHandled: Boolean)
-// begin
-// // TMVCHTTPSysWebBrokerBridgeRequestHandler.FWebRequestHandler.Run(ARequest, AResponse);
-// AResponse.Send('0123456789');
-// end);
-// end;
-
 destructor TMVCHTTPSysWebBrokerBridge.Destroy;
 begin
   Active := False;
@@ -779,7 +751,9 @@ begin
     fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
     if fUseCompression then
     begin
-      fHttpServer.RegisterCompress(CompressZLib); // 2020-12-25 do not use other compressions, it hangs
+//      fHttpServer.RegisterCompress(CompressZLib);
+      fHttpServer.RegisterCompress(CompressGZip);
+      fHttpServer.RegisterCompress(CompressDeflate);
     end;
     fHttpServer.OnRequest := DoHandleRequest;
     { TODO -odanielet -cGeneral : Try to find some adaptive and smart number here }
@@ -820,14 +794,6 @@ begin
   fUseSSL := False;
   fUseCompression := True;
   fRootPath := '';
-end;
-
-{ TMVCHTTPSysServer }
-
-procedure TMVCHTTPSysServer.SetServerName(const aName: SockString);
-begin
-  inherited;
-  fServerName := DMVCFRAMEWORK;
 end;
 
 initialization

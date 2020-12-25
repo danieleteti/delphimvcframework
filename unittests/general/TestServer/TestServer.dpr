@@ -1,7 +1,6 @@
 ﻿program TestServer;
 
 {$APPTYPE CONSOLE}
-{$DEFINE HTTPSYS}
 
 uses
   System.SysUtils,

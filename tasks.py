@@ -76,7 +76,8 @@ def build_delphi_project(
         + project_filename
         + '"'
     )
-    return ctx.run(cmdline, hide=True, warn=True)
+    if not ctx.run(cmdline, hide=True, warn=True):
+        raise Exception("Build Failed for " + project_filename)
 
 
 def zip_samples(version):
@@ -274,10 +275,18 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\swagdoc\demos", True)
 
 @task()
-def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
+def tests(ctx, engine = 'indy', delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds and execute the unit tests"""
     import os
+    
+    engines = {
+        'indy': 'CI_INDY',
+        'httpsys': 'CI_HTTPSYS'
+    }
 
+    if  engine not in engines:
+        raise Exception("Invalid engine type: " + engine + '. Allows types are "indy" or "httpsys"')
+    print(f"Using server engine: {engine}")
     apppath = os.path.dirname(os.path.realpath(__file__))
     res = True
     testclient = r"unittests\general\Several\DMVCFrameworkTests.dproj"
@@ -286,7 +295,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     print("\nBuilding Unit Test client")
     build_delphi_project(ctx, testclient, config="CI", delphi_version=delphi_version)
     print("\nBuilding Test Server")
-    build_delphi_project(ctx, testserver, config="CI", delphi_version=delphi_version)
+    build_delphi_project(ctx, testserver, config=engines[engine], delphi_version=delphi_version)
 
     # import subprocess
     # subprocess.run([r"unittests\general\TestServer\Win32\Debug\TestServer.exe"])

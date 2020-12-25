@@ -461,26 +461,26 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/path1/1', httpPOST, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/path2/1/2/3', httpPOST, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/path3/1/2/tre/3', httpPOST,
       'text/plain', 'text/plain', FControllers, 'text/plain',
-      TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
+      TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType,
       ResponseContentEncoding));
     Assert.areEqual('TestMultiplePaths', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/path4/par1/2/par2/3/4', httpPOST,
       'text/plain', 'text/plain', FControllers, 'text/plain',
-      TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
+      TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType,
       ResponseContentEncoding));
     Assert.areEqual('TestMultiplePaths', FRouter.MethodToCall.Name);
 
@@ -488,7 +488,7 @@ begin
     Assert.isFalse(FRouter.ExecuteRouting
       ('/path4/par1/par2/3/4/notvalidparameter', httpPOST, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.isNull(FRouter.MethodToCall);
     Assert.isFalse(Assigned(FRouter.ControllerClazz));
 
@@ -510,7 +510,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting
       ('/issue338/projectid/pictures/imageuuid', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('GetImage', FRouter.MethodToCall.Name);
     Assert.areEqual(2, Params.Count);
     Assert.areEqual('projectid', Params['projectid']);
@@ -519,7 +519,7 @@ begin
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/issue338/projectid', httpGET,
       'text/plain', 'text/plain', FControllers, 'text/plain',
-      TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
+      TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType,
       ResponseContentEncoding));
     Assert.areEqual('GetProject', FRouter.MethodToCall.Name);
     Assert.areEqual(1, Params.Count);
@@ -1084,7 +1084,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain',
-      TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
+      TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType,
       ResponseContentCharset));
     Assert.areEqual(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
@@ -1120,13 +1120,13 @@ begin
     try
       Assert.isFalse(lRouter.ExecuteRouting('/api/orders', httpGET,
         'text/plain', 'text/plain', FControllers, 'text/plain',
-        TMVCConstants.DEFAULT_CONTENT_CHARSET, lParams, ResponseContentType,
+        TMVCConstants.DEFAULT_CONTENT_CHARSET, '', lParams, ResponseContentType,
         ResponseContentEncoding));
 
       lConfig.Value[TMVCConfigKey.PathPrefix] := '/api';
       Assert.isTrue(lRouter.ExecuteRouting('/api/orders', httpGET, 'text/plain',
         'text/plain', FControllers, 'text/plain',
-        TMVCConstants.DEFAULT_CONTENT_CHARSET, lParams, ResponseContentType,
+        TMVCConstants.DEFAULT_CONTENT_CHARSET, '', lParams, ResponseContentType,
         ResponseContentEncoding));
       Assert.areEqual(0, lParams.Count);
       Assert.areEqual('TSimpleController', lRouter.ControllerClazz.ClassName);
@@ -1155,7 +1155,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual(1, Params.Count);
     Assert.areEqual('789', Params['ordernumber']);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
@@ -1168,7 +1168,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/àèéìòù .-_\', httpGET,
       'text/plain', 'text/plain', FControllers, 'text/plain',
-      TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
+      TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType,
       ResponseContentEncoding));
     Assert.areEqual(1, Params.Count);
     Assert.areEqual('àèéìòù .-_\', Params['ordernumber']);
@@ -1191,7 +1191,7 @@ begin
     // a GET request with a ACCEPT: application/json
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, '',
       'application/json', FControllers, TMVCConstants.DEFAULT_CONTENT_TYPE,
-      TMVCConstants.DEFAULT_CONTENT_CHARSET, Params, ResponseContentType,
+      TMVCConstants.DEFAULT_CONTENT_CHARSET, '', Params, ResponseContentType,
       ResponseContentCharset));
     Assert.areEqual(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
@@ -1215,7 +1215,7 @@ begin
     Assert.isTrue(FRouter.ExecuteRouting('/orders', httpGET, '',
       'application/json; charset=UTF-8', FControllers,
       TMVCConstants.DEFAULT_CONTENT_TYPE, TMVCConstants.DEFAULT_CONTENT_CHARSET,
-      Params, ResponseContentType, ResponseContentCharset));
+      '', Params, ResponseContentType, ResponseContentCharset));
     Assert.areEqual(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('OrdersProduceJSON', FRouter.MethodToCall.Name);
@@ -1435,25 +1435,25 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpPOST, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('UpdateOrderNumber', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpPUT, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('UpdateOrderNumber', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpPATCH, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('PatchOrder', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isFalse(FRouter.ExecuteRouting('/orders/789', httpDELETE,
       'text/plain', 'text/plain', FControllers, 'text/plain',
-      TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
+      TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType,
       ResponseContentEncoding));
     Assert.isNull(FRouter.MethodToCall);
     Assert.isFalse(Assigned(FRouter.ControllerClazz));
@@ -1461,7 +1461,7 @@ begin
     Params.Clear;
     Assert.isFalse(FRouter.ExecuteRouting('/orders/789', httpHEAD, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding),
+      '', Params, ResponseContentType, ResponseContentEncoding),
       'Resolved as HEAD');
     Assert.isNull(FRouter.MethodToCall, 'Resolved as HEAD');
     Assert.isFalse(Assigned(FRouter.ControllerClazz));
@@ -1469,7 +1469,7 @@ begin
     Params.Clear;
     Assert.isFalse(FRouter.ExecuteRouting('/orders/789', httpOPTIONS,
       'text/plain', 'text/plain', FControllers, 'text/plain',
-      TMVCMediaType.TEXT_PLAIN, Params, ResponseContentType,
+      TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType,
       ResponseContentEncoding), 'Resolved as OPTIONS');
     Assert.isNull(FRouter.MethodToCall, 'Resolved as OPTIONS');
     Assert.isFalse(Assigned(FRouter.ControllerClazz));
@@ -1477,13 +1477,13 @@ begin
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('OrderNumber', FRouter.MethodToCall.Name);
 
     Params.Clear;
     Assert.isTrue(FRouter.ExecuteRouting('/orders/789', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual('OrderNumber', FRouter.MethodToCall.Name);
   finally
     Params.Free;
@@ -1500,7 +1500,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('/', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Index', FRouter.MethodToCall.Name);
@@ -1519,7 +1519,7 @@ begin
   try
     Assert.isTrue(FRouter.ExecuteRouting('', httpGET, 'text/plain',
       'text/plain', FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN,
-      Params, ResponseContentType, ResponseContentEncoding));
+      '', Params, ResponseContentType, ResponseContentEncoding));
     Assert.areEqual(0, Params.Count);
     Assert.areEqual('TSimpleController', FRouter.ControllerClazz.ClassName);
     Assert.areEqual('Index', FRouter.MethodToCall.Name);
