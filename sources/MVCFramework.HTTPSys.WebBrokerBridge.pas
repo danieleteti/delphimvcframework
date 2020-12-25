@@ -453,29 +453,30 @@ end;
 
 function TMVCHTTPSysAppResponse.GetIntegerVariable(Index: Integer): Integer;
 begin
-  // ********************************************************
-  // IGNORE CONTENT-LENGTH! WILL BE SETTED BY HTTP.sys MODULE
-  // ********************************************************
-  // case Index of
-  // RespIDX_ContentLength:
-  // Result := fHeaders.Values['Content-Length'].ToInt64;
-  // else
-  // raise EMVCHTTPSysInvalidIdxGetVariable.Create(Format('Invalid Index for GetIntegerVariable: %d', [Index]));
-  // end;
+  case Index of
+    RespIDX_ContentLength:
+      begin
+        // ********************************************************
+        // IGNORE CONTENT-LENGTH! WILL BE SETTED BY HTTP.sys MODULE
+        // ********************************************************
+      end;
+  else
+    raise EMVCHTTPSysInvalidIdxGetVariable.Create(Format('Invalid Index for GetIntegerVariable: %d', [Index]));
+  end;
 end;
 
 procedure TMVCHTTPSysAppResponse.SetIntegerVariable(Index, Value: Integer);
 begin
-  // ********************************************************
-  // IGNORE CONTENT-LENGTH! WILL BE SETTED BY HTTP.sys MODULE
-  // ********************************************************
-  // just do nothing
-  // case Index of
-  // RespIDX_ContentLength:
-  // fHeaders.Values['Content-Length'] := Value.ToString;
-  // else
-  // raise EMVCHTTPSysInvalidIdxSetVariable.Create(Format('Invalid Index for SetIntegerVariable: %d', [Index]));
-  // end;
+  case Index of
+    RespIDX_ContentLength:
+      begin
+        // ********************************************************
+        // IGNORE CONTENT-LENGTH! WILL BE SETTED BY HTTP.sys MODULE
+        // ********************************************************
+      end
+  else
+    raise EMVCHTTPSysInvalidIdxSetVariable.Create(Format('Invalid Index for SetIntegerVariable: %d', [Index]));
+  end;
 end;
 
 function TMVCHTTPSysAppResponse.GetStringVariable(Index: Integer): string;
