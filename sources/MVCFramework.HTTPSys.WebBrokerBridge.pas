@@ -31,7 +31,7 @@
 
 unit MVCFramework.HTTPSys.WebBrokerBridge;
 
-{.$DEFINE TRACE}
+{ .$DEFINE TRACE }
 
 interface
 
@@ -138,7 +138,7 @@ type
     destructor Destroy; override;
     property Active: Boolean read fActive write SetActive;
     property Port: UInt16 read fPort write SetDefaultPort;
-    property RootPath: String read FRootPath write SetRootPath;
+    property RootPath: String read fRootPath write SetRootPath;
     property UseSSL: Boolean read fUseSSL write SetUseSSL;
     property UseCompression: Boolean read fUseCompression write SetUseCompression;
   end;
@@ -453,23 +453,29 @@ end;
 
 function TMVCHTTPSysAppResponse.GetIntegerVariable(Index: Integer): Integer;
 begin
-//  case Index of
-//    RespIDX_ContentLength:
-//      Result := fHeaders.Values['Content-Length'].ToInt64;
-//  else
-    raise EMVCHTTPSysInvalidIdxGetVariable.Create(Format('Invalid Index for GetIntegerVariable: %d', [Index]));
-//  end;
+  // ********************************************************
+  // IGNORE CONTENT-LENGTH! WILL BE SETTED BY HTTP.sys MODULE
+  // ********************************************************
+  // case Index of
+  // RespIDX_ContentLength:
+  // Result := fHeaders.Values['Content-Length'].ToInt64;
+  // else
+  // raise EMVCHTTPSysInvalidIdxGetVariable.Create(Format('Invalid Index for GetIntegerVariable: %d', [Index]));
+  // end;
 end;
 
 procedure TMVCHTTPSysAppResponse.SetIntegerVariable(Index, Value: Integer);
 begin
-//just do nothing
-//  case Index of
-//    RespIDX_ContentLength:
-//      fHeaders.Values['Content-Length'] := Value.ToString;
-//  else
-//    raise EMVCHTTPSysInvalidIdxSetVariable.Create(Format('Invalid Index for SetIntegerVariable: %d', [Index]));
-//  end;
+  // ********************************************************
+  // IGNORE CONTENT-LENGTH! WILL BE SETTED BY HTTP.sys MODULE
+  // ********************************************************
+  // just do nothing
+  // case Index of
+  // RespIDX_ContentLength:
+  // fHeaders.Values['Content-Length'] := Value.ToString;
+  // else
+  // raise EMVCHTTPSysInvalidIdxSetVariable.Create(Format('Invalid Index for SetIntegerVariable: %d', [Index]));
+  // end;
 end;
 
 function TMVCHTTPSysAppResponse.GetStringVariable(Index: Integer): string;
@@ -542,12 +548,12 @@ end;
 
 procedure TMVCHTTPSysAppResponse.SendRedirect(const URI: string);
 begin
-//  if fSent then
-//    Exit;
-//  fSent := True;
+  // if fSent then
+  // Exit;
+  // fSent := True;
   fHeaders.Values['Location'] := URI;
   StatusCode := http_status.Found;
-//  SendResponse;
+  // SendResponse;
 end;
 
 procedure TMVCHTTPSysAppResponse.SendResponse;
@@ -561,7 +567,7 @@ begin
   if ContentStream <> nil then
   begin
     lSize := ContentStream.Size;
-    //ContentLength := ContentStream.Size;
+    // ContentLength := ContentStream.Size;
     SetLength(lOutContent, lSize);
     ContentStream.Position := 0;
     ContentStream.Read(lOutContent[1], lSize);
@@ -751,7 +757,7 @@ begin
     fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
     if fUseCompression then
     begin
-//      fHttpServer.RegisterCompress(CompressZLib);
+      // fHttpServer.RegisterCompress(CompressZLib);
       fHttpServer.RegisterCompress(CompressGZip);
       fHttpServer.RegisterCompress(CompressDeflate);
     end;
@@ -775,7 +781,7 @@ end;
 
 procedure TMVCHTTPSysWebBrokerBridge.SetRootPath(const Value: String);
 begin
-  FRootPath := Value;
+  fRootPath := Value;
 end;
 
 procedure TMVCHTTPSysWebBrokerBridge.SetUseCompression(const Value: Boolean);
