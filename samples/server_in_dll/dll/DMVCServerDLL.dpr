@@ -21,16 +21,17 @@ uses
 
 
 var
-  fRestSerwer: TDMVCRestServer;
+  gRESTServer: TDMVCRestServer;
 
 procedure RunServer(const Port: Integer); stdcall;
 begin
-  fRestSerwer := TDMVCRestServer.Create(Port);
+  gRESTServer := TDMVCRestServer.Create(Port);
+  gRESTServer.Activate;
 end;
 
 procedure StopServer; stdcall;
 begin
-  FreeAndNil(fRestSerwer);
+  FreeAndNil(gRESTServer);
 end;
 
 exports
