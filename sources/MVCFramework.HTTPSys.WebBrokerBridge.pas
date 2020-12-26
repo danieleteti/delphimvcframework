@@ -626,7 +626,7 @@ begin
     end;
     for i := 0 to Cookies.Count - 1 do
     begin
-      lBuilder.AppendLine('Set-Cookie: ' + Cookies[i].HeaderValue);
+      lBuilder.AppendLine('Set-Cookie:' + Cookies[i].HeaderValue);
     end;
     Result := SockString(lBuilder.ToString);
   finally
