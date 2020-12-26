@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+  <head>
+    <title></title>
+  </head>
+
+  <body>
+    <h1>DMVCFramework Built-In Web Server Comparison</h1>
+    <p>This project allows to compare the classic DMVCFramework built-in server based on INDY and the new engine, introduced in dmvcframework-4.0.0-oxygen, based on kernel module HTTP.sys.</p>
+    <p>There are 2 build configurations:</p>
+    <ul>
+      <li>INDY: Which uses the INDY version</li>
+      <li>HTTPSYS: Which uses the new HTTP.sys version
+      </li>
+    </ul>
+    <p>Build project using the INDY configuration and then run apachebenchmark
+    (<a href="https://www.cedric-dumont.com/2017/02/01/install-apache-benchmarking-tool-ab-on-windows/">instructions https://www.cedric-dumont.com/2017/02/01/install-apache-benchmarking-tool-ab-on-windows/</a>) using the following commandline:
+    </p>
+    <pre>c:\Tools\ab -n 5000 -c 100 <a href="http://localhost:8080/api">http://localhost:8080/api</a>
+    </pre>
+    <p>Note the value in "Requests per second"</p>
+    <p>The, stoip the server and rebuilt the project using the HTTPSYS configuration. Then restart the server and run the same command line.</p>
+    <pre>c:\Tools\ab -n 5000 -c 100 <a href="http://localhost:8080/api">http://localhost:8080/api</a>
+    </pre>
+    <p>Note the value in "Requests per second".</p>
+    <p>&nbsp;</p>
+    <p>Be Amazed :-)</p>
+
+  </body>
+</html>
