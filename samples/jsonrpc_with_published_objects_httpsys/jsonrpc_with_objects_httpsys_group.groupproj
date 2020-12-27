@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{AFDF54C5-5184-4A5F-A230-FB7F37B3B2F0}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="jsonrpcserverwithobjects_httpsys.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="jsonrpcclientwithobjects.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="jsonrpcserverwithobjects_httpsys">
+        <MSBuild Projects="jsonrpcserverwithobjects_httpsys.dproj"/>
+    </Target>
+    <Target Name="jsonrpcserverwithobjects_httpsys:Clean">
+        <MSBuild Projects="jsonrpcserverwithobjects_httpsys.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jsonrpcserverwithobjects_httpsys:Make">
+        <MSBuild Projects="jsonrpcserverwithobjects_httpsys.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects">
+        <MSBuild Projects="jsonrpcclientwithobjects.dproj"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects:Clean">
+        <MSBuild Projects="jsonrpcclientwithobjects.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="jsonrpcclientwithobjects:Make">
+        <MSBuild Projects="jsonrpcclientwithobjects.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="jsonrpcserverwithobjects_httpsys;jsonrpcclientwithobjects"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="jsonrpcserverwithobjects_httpsys:Clean;jsonrpcclientwithobjects:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="jsonrpcserverwithobjects_httpsys:Make;jsonrpcclientwithobjects:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
