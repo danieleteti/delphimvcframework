@@ -32,7 +32,7 @@ unit DMVC.Expert.CodeGen.Templates;
 
 interface
 
-{$I dmvcframework.inc}
+{$I ..\sources\dmvcframework.inc}
 
 resourcestring
 

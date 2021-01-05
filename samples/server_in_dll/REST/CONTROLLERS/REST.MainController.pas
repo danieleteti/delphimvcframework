@@ -10,13 +10,6 @@ uses
 
 type
 
-  { TBaseController = class abstract(TMVCController)
-    strict private
-    strict protected
-    public
-
-    end; }
-
   [MVCDoc('')]
   [MVCPath('/api')]
   TMainController = class(TMVCController)
@@ -24,41 +17,18 @@ type
     [MVCPath]
     [MVCHTTPMethod([httpGET])]
     procedure Index;
-
-  protected
-    procedure OnBeforeAction(Context: TWebContext; const AActionName: string;
-      var Handled: Boolean); override;
-    procedure OnAfterAction(Context: TWebContext; const AActionName: string); override;
-  public
-
   end;
 
 implementation
 
 uses
   System.SysUtils,
-  System.StrUtils;
+  System.StrUtils, System.IOUtils;
 
 procedure TMainController.Index;
 begin
   LogD('[TMainController] Index');
-  Render('Hello DelphiMVCFramework World');
-end;
-
-// ------------------------------------------------------------------------------
-procedure TMainController.OnAfterAction(Context: TWebContext; const AActionName: string);
-begin
-  { Executed after each action }
-  inherited;
-end;
-
-procedure TMainController.OnBeforeAction(Context: TWebContext; const AActionName: string;
-  var Handled: Boolean);
-begin
-  { Executed before each action
-    if handled is true (or an exception is raised) the actual
-    action will not be called }
-  inherited;
+  Render('Hello DelphiMVCFramework World (Server is hosted by ' + TPath.GetFileName(GetModuleName(HInstance)) + ')');
 end;
 
 end.

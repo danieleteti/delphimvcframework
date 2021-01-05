@@ -244,6 +244,7 @@ uses
   System.RegularExpressions,
   System.TypInfo,
   MVCFramework,
+  MVCFramework.Nullables,
   MVCFramework.Serializer.Abstract,
   MVCFramework.Serializer.Commons,
   Swag.Doc.Path.Operation.Response,
@@ -638,6 +639,36 @@ begin
       begin
         if APropType.Handle = TypeInfo(TGUID) then
           Result := stGuid
+        else if APropType.Handle = TypeInfo(NullableString) then
+          Result := stString
+        else if APropType.Handle = TypeInfo(NullableCurrency) then
+          Result := stNumber
+        else if APropType.Handle = TypeInfo(NullableBoolean) then
+          Result := stBoolean
+        else if APropType.Handle = TypeInfo(NullableTDate) then
+          Result := stDate
+        else if APropType.Handle = TypeInfo(NullableTTime) then
+          Result := stTime
+        else if APropType.Handle = TypeInfo(NullableTDateTime) then
+          Result := stDateTime
+        else if APropType.Handle = TypeInfo(NullableSingle) then
+          Result := stNumber
+        else if APropType.Handle = TypeInfo(NullableDouble) then
+          Result := stNumber
+        else if APropType.Handle = TypeInfo(NullableExtended) then
+          Result := stNumber
+        else if APropType.Handle = TypeInfo(NullableInt16) then
+          Result := stInteger
+        else if APropType.Handle = TypeInfo(NullableUInt16) then
+          Result := stInteger
+        else if APropType.Handle = TypeInfo(NullableInt32) then
+          Result := stInteger
+        else if APropType.Handle = TypeInfo(NullableUInt32) then
+          Result := stInteger
+        else if APropType.Handle = TypeInfo(NullableInt64) then
+          Result := stInt64
+        else if APropType.Handle = TypeInfo(NullableUInt64) then
+          Result := stInt64;
       end;
     tkInteger:
       Result := stInteger;

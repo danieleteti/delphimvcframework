@@ -8,7 +8,8 @@ uses
   MVCFramework.Commons,
   MVCFramework.Swagger.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
+  MVCFramework.Nullables;
 
 type
 
@@ -18,10 +19,12 @@ type
     FStreet: string;
     FNumber: Integer;
     FCity: string;
+    FPostalCode: NullableString;
   public
     property Street: string read FStreet write FStreet;
     property Number: Integer read FNumber write FNumber;
     property City: string read FCity write FCity;
+    property PostalCode: NullableString read FPostalCode write FPostalCode;
   end;
 
   [MVCNameCase(ncLowerCase)]
