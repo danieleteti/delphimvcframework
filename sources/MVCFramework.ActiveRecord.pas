@@ -2292,7 +2292,11 @@ begin
       end
       else
       begin
+      {$IF Defined(TOKYOORBETTER)}
         lNullableTDateTime := TDateTime(aValue.AsExtended);
+      {$ELSE}
+        lNullableTDateTime := aValue.AsExtended;
+      {$ENDIF}
         lCurrValue.From<NullableTDateTime>(lNullableTDateTime);
       end;
     end
@@ -2304,7 +2308,11 @@ begin
       end
       else
       begin
+      {$IF Defined(TOKYOORBETTER)}
         lNullableTDate := TDate(aValue.AsExtended);
+      {$ELSE}
+        lNullableTDate := aValue.AsExtended;
+      {$ENDIF}
         lCurrValue.From<NullableTDate>(lNullableTDate);
       end;
     end
@@ -2316,7 +2324,11 @@ begin
       end
       else
       begin
+      {$IF Defined(TOKYOORBETTER)}
         lNullableTTime := TTime(aValue.AsExtended);
+      {$ELSE}
+        lNullableTTime := aValue.AsExtended;
+      {$ENDIF}
         lCurrValue.From<NullableTTime>(lNullableTTime);
       end;
     end
