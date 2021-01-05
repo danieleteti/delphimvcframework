@@ -1,3 +1,3 @@
 const
   DMVCFRAMEWORK = 'DMVCFramework';
-  DMVCFRAMEWORK_VERSION = '4.0.0-oxygen (alpha)';
+  DMVCFRAMEWORK_VERSION = '4.0.0-oxygen (beta)';

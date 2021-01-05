@@ -758,7 +758,6 @@ begin
     fHttpServer.AddUrl(SockString(RootPath), SockString(IntToStr(fPort)), fUseSSL, '+', True);
     if fUseCompression then
     begin
-      // fHttpServer.RegisterCompress(CompressZLib);
       fHttpServer.RegisterCompress(CompressGZip);
       fHttpServer.RegisterCompress(CompressDeflate);
     end;
