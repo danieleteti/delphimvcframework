@@ -141,9 +141,11 @@ contains
   MVCFramework.HTTPSys.WebBrokerBridge in '..\..\sources\MVCFramework.HTTPSys.WebBrokerBridge.pas',
   SynCrtSock in '..\..\lib\dmustache\SynCrtSock.pas',
   SynWinSock in '..\..\lib\dmustache\SynWinSock.pas',
-  SynZip in '..\..\lib\dmustache\SynZip.pas';
+  SynZip in '..\..\lib\dmustache\SynZip.pas',
+  MVCFramework.HTTPSys.Core in '..\..\sources\MVCFramework.HTTPSys.Core.pas';
 
 end.
+
 
 
 
