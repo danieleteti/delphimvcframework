@@ -159,6 +159,7 @@ type
     MaxRequestSize = 'max_request_size'; // bytes
     HATEOSPropertyName = 'hateos';
     LoadSystemControllers = 'load_system_controllers';
+    EnumSerializationType = 'estEnumName';
   end;
 
   TMVCHostingFrameworkType = (hftUnknown, hftIndy, hftApache, hftISAPI);
@@ -565,6 +566,7 @@ type
     function ToString: string; override;
     procedure SaveToFile(const AFileName: string);
     procedure LoadFromFile(const AFileName: string);
+    function ContainsKey(const Key: string): Boolean;
 
     property Value[const AIndex: string]: string read GetValue write SetValue; default;
     property AsInt64[const AIndex: string]: Int64 read GetValueAsInt64;
@@ -894,6 +896,11 @@ begin
   begin
     raise EMVCException.Create('Configuration in freezed - no more changes allowed') at ReturnAddress;
   end;
+end;
+
+function TMVCConfig.ContainsKey(const Key: string): Boolean;
+begin
+  Result := FConfig.ContainsKey(Key);
 end;
 
 constructor TMVCConfig.Create;

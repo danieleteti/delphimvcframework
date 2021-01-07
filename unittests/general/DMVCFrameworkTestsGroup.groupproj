@@ -9,6 +9,9 @@
         <Projects Include="Several\DMVCFrameworkTests.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="EnumSerializer\EnumSerializerTests.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="DMVCFrameworkTests:Make">
         <MSBuild Projects="Several\DMVCFrameworkTests.dproj" Targets="Make"/>
     </Target>
+    <Target Name="EnumSerializerTests">
+        <MSBuild Projects="EnumSerializer\EnumSerializerTests.dproj"/>
+    </Target>
+    <Target Name="EnumSerializerTests:Clean">
+        <MSBuild Projects="EnumSerializer\EnumSerializerTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="EnumSerializerTests:Make">
+        <MSBuild Projects="EnumSerializer\EnumSerializerTests.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="TestServer;DMVCFrameworkTests"/>
+        <CallTarget Targets="TestServer;DMVCFrameworkTests;EnumSerializerTests"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="TestServer:Clean;DMVCFrameworkTests:Clean"/>
+        <CallTarget Targets="TestServer:Clean;DMVCFrameworkTests:Clean;EnumSerializerTests:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="TestServer:Make;DMVCFrameworkTests:Make"/>
+        <CallTarget Targets="TestServer:Make;DMVCFrameworkTests:Make;EnumSerializerTests:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

@@ -69,6 +69,7 @@ type
     fStringDictionarySerializer: IMVCTypeSerializer;
     function TryMapNullableFloat(var Value: TValue;
       const JSONDataObject: TJsonObject; const AttribName: string): Boolean;
+    function GetDefaultEnumSerType: TMVCEnumSerializationType;
   public
     function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
@@ -330,7 +331,7 @@ begin
         end
         else
         begin
-          LEnumSerType := estEnumName;
+          LEnumSerType := GetDefaultEnumSerType;
           LEnumMappedValues := nil;
           if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr)
           then
@@ -2262,6 +2263,14 @@ begin
       (not IsIgnoredComponent(ADataSet.Owner, ADataSet.Fields[I].Name)) then
       Result.Add(lField);
   end;
+end;
+
+function TMVCJsonDataObjectsSerializer.GetDefaultEnumSerType: TMVCEnumSerializationType;
+begin
+  if (FConfig <> nil) and (FConfig.ContainsKey(TMVCConfigKey.EnumSerializationType)) then
+    Result := TMVCEnumSerializationType(GetEnumValue(TypeInfo(TMVCEnumSerializationType), FConfig.Value[TMVCConfigKey.EnumSerializationType]))
+  else
+    Result := estEnumName;
 end;
 
 procedure TMVCJsonDataObjectsSerializer.AddTValueToJsonArray(const Value: TValue; const JSON: TJDOJsonArray);

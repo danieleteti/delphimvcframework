@@ -2065,6 +2065,7 @@ begin
   Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);
   Config[TMVCConfigKey.HATEOSPropertyName] := '_links';
   Config[TMVCConfigKey.LoadSystemControllers] := 'true';
+  Config[TMVCConfigKey.EnumSerializationType] := 'estEnumName';
 
   Log.Info('EXIT: Config default values', LOGGERPRO_TAG);
 
