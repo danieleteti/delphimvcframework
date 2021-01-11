@@ -386,6 +386,20 @@ type
   end;
 
 var
+  /// <summary>
+  /// Use this variable when you want to convert your local time as UTC or when you receive an UTC ISOTimeStamp and
+  /// do not want to apply the time zone when converting.
+  /// The default value of gLocalTimeStampAsUTC = False.
+  /// </summary>
+  /// <example>
+  /// * For gLocalTimeStampAsUTC = False and timezone: - 03:00
+  ///   ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 11:22:17.763
+  ///   DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763-03:00
+  ///
+  /// * For gLocalTimeStampAsUTC = True and timezone: - 03:00
+  ///   ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 14:22:17
+  ///   DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763Z
+  /// </example>
   gLocalTimeStampAsUTC: Boolean;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
