@@ -385,6 +385,9 @@ type
     property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
   end;
 
+var
+  gLocalTimeStampAsUTC: Boolean;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -482,9 +485,7 @@ end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
-  // fs.TimeSeparator := ':';
-  Result := DateToISO8601(ADateTime, False)
-  // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
+  Result := DateToISO8601(ADateTime, gLocalTimeStampAsUTC);
 end;
 
 function DateToISODate(const ADate: TDateTime): string;
@@ -516,16 +517,9 @@ begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
 
-//  lIsUTC := (lDateTime.Length > 19) and  (lDateTime.EndsWith('Z') or
-//    (
-//      ((lDateTime.Length >= 20) and CharInSet(lDateTime.Chars[19], ['+','-']))
-//      or
-//      ((lDateTime.Length >= 24) and CharInSet(lDateTime.Chars[23], ['+','-']))
-//    )
-//    );
   lIsUTC := lDateTime.Length > 19;
   Result := ISO8601ToDate(lDateTime, True);
-  if lIsUTC then
+  if lIsUTC and (not gLocalTimeStampAsUTC) then
   begin
     Result := TTimeZone.Local.ToLocalTime(Result);
   end;
@@ -1691,5 +1685,8 @@ begin
     fData.Free;
   inherited;
 end;
+
+initialization
+  gLocalTimeStampAsUTC := False;
 
 end.
