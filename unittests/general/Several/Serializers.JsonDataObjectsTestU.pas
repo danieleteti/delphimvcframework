@@ -1496,6 +1496,8 @@ var
   lDict: TMVCStringDictionary;
   lSerString: string;
   lDict2: TMVCStringDictionary;
+  lEntityDict: TEntityWithStringDictionary;
+  lEntityDict2: TEntityWithStringDictionary;
 begin
   lDict := TMVCStringDictionary.Create;
   try
@@ -1517,6 +1519,29 @@ begin
     end;
   finally
     lDict.Free;
+  end;
+
+  lEntityDict := TEntityWithStringDictionary.Create;
+  try
+    lEntityDict.Dict['prop1'] := 'value1';
+    lEntityDict.Dict['prop2'] := 'value2';
+    lEntityDict.Dict['prop3'] := 'value3';
+    lSerString := fSerializer.SerializeObject(lEntityDict);
+
+    lEntityDict2 := TEntityWithStringDictionary.Create;
+    try
+      fSerializer.DeserializeObject(lSerString, lEntityDict2);
+      Assert.isTrue(lEntityDict2.Dict.ContainsKey('prop1'));
+      Assert.isTrue(lEntityDict2.Dict.ContainsKey('prop2'));
+      Assert.isTrue(lEntityDict2.Dict.ContainsKey('prop3'));
+      Assert.areEqual(lEntityDict.Dict['prop1'], lEntityDict2.Dict['prop1']);
+      Assert.areEqual(lEntityDict.Dict['prop2'], lEntityDict2.Dict['prop2']);
+      Assert.areEqual(lEntityDict.Dict['prop3'], lEntityDict2.Dict['prop3']);
+    finally
+      lEntityDict2.Free;
+    end;
+  finally
+    lEntityDict.Free;
   end;
 end;
 
