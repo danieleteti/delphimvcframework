@@ -268,7 +268,7 @@ var
 begin
   lStringDict := AElementValue.AsObject as TMVCStringDictionary;
   lJSON := ASerializerObject as TJDOJsonObject;
-  for i := 0 to lJSON.O[APropertyName].Count - 1 do
+  for i := 0 to lJSON.Count - 1 do
   begin
     lStringDict.Add(lJSON.Names[i], lJSON.S[lJSON.Names[i]])
   end;
