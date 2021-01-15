@@ -146,6 +146,7 @@ type
     /// </param>
     function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
     function HeaderValue(const aName: string): string;
+    function Headers: TNameValueArray;
 
     /// <summary>
     /// Clears all headers.
