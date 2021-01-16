@@ -137,7 +137,6 @@ var
   LMethod: TRttiMethod;
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
-  lPathPrefix: string;
   lURLSegment: string;
   // JUST FOR DEBUG
   // lMethodCompatible: Boolean;
@@ -165,11 +164,11 @@ begin
   LRequestPathInfo := TIdURI.PathEncode(LRequestPathInfo);
 
   { CHANGE THE REQUEST PATH INFO START }
-  lPathPrefix := FConfig.Value[TMVCConfigKey.PathPrefix];
-  if not lPathPrefix.IsEmpty then
+
+  if not APathPrefix.IsEmpty then
   begin
-    if string(LRequestPathInfo).StartsWith(lPathPrefix) then
-      LRequestPathInfo := LRequestPathInfo.Remove(0, lPathPrefix.Length);
+    if string(LRequestPathInfo).StartsWith(APathPrefix) then
+      LRequestPathInfo := LRequestPathInfo.Remove(0, APathPrefix.Length);
     if Length(LRequestPathInfo) = 0 then
       LRequestPathInfo := '/';
   end;

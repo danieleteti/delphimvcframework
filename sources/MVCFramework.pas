@@ -2070,8 +2070,8 @@ begin
       case RouterLogState of
         rlsRouteFound:
           begin
-            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo + ' [' +
-              Context.Request.ClientIp + '] -> ' + Sender.GetQualifiedActionName + ' - ' +
+            Log(TLogLevel.levNormal, Context.Request.HTTPMethodAsString + ':' + Context.Request.PathInfo {' [' +
+              Context.Request.ClientIp + '] -> '} + Sender.GetQualifiedActionName + ' - ' +
               IntToStr(Context.Response.StatusCode) + ' ' + Context.Response.ReasonString);
           end;
         rlsRouteNotFound:
