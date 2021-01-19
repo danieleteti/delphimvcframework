@@ -6,14 +6,20 @@ program concurrency_speed_test;
 uses
   System.SysUtils,
   MVCFramework.Logger,
-  MVCFramework.Commons,
   MVCFramework.REPLCommandsHandlerU,
   Web.ReqMulti,
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
   MainControllerU in 'MainControllerU.pas',
-  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule};
+  WebModuleU in 'WebModuleU.pas' {MyWebModule: TWebModule},
+  MVCFramework.Commons in '..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework in '..\..\sources\MVCFramework.pas',
+  MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
+  MVCFramework.Serializer.Abstract in '..\..\sources\MVCFramework.Serializer.Abstract.pas',
+  MVCFramework.Serializer.Commons in '..\..\sources\MVCFramework.Serializer.Commons.pas',
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
+  MVCFramework.Serializer.JsonDataObjects in '..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas';
 
 {$R *.res}
 
@@ -105,7 +111,7 @@ begin
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     WebRequestHandlerProc.MaxConnections := 1024;
-    RunServer(8080);
+    RunServer(8888);
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);
