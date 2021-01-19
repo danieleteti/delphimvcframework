@@ -385,6 +385,23 @@ type
     property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
   end;
 
+var
+  /// <summary>
+  /// Use this variable when you want to convert your local time as UTC or when you receive an UTC ISOTimeStamp and
+  /// do not want to apply the time zone when converting.
+  /// The default value of gLocalTimeStampAsUTC = False.
+  /// </summary>
+  /// <example>
+  /// * For gLocalTimeStampAsUTC = False and timezone: - 03:00
+  ///   ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 11:22:17.763
+  ///   DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763-03:00
+  ///
+  /// * For gLocalTimeStampAsUTC = True and timezone: - 03:00
+  ///   ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 14:22:17
+  ///   DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763Z
+  /// </example>
+  gLocalTimeStampAsUTC: Boolean;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -482,9 +499,7 @@ end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
-  // fs.TimeSeparator := ':';
-  Result := DateToISO8601(ADateTime, False)
-  // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
+  Result := DateToISO8601(ADateTime, gLocalTimeStampAsUTC);
 end;
 
 function DateToISODate(const ADate: TDateTime): string;
@@ -516,16 +531,9 @@ begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
 
-//  lIsUTC := (lDateTime.Length > 19) and  (lDateTime.EndsWith('Z') or
-//    (
-//      ((lDateTime.Length >= 20) and CharInSet(lDateTime.Chars[19], ['+','-']))
-//      or
-//      ((lDateTime.Length >= 24) and CharInSet(lDateTime.Chars[23], ['+','-']))
-//    )
-//    );
   lIsUTC := lDateTime.Length > 19;
   Result := ISO8601ToDate(lDateTime, True);
-  if lIsUTC then
+  if lIsUTC and (not gLocalTimeStampAsUTC) then
   begin
     Result := TTimeZone.Local.ToLocalTime(Result);
   end;
@@ -1691,5 +1699,8 @@ begin
     fData.Free;
   inherited;
 end;
+
+initialization
+  gLocalTimeStampAsUTC := False;
 
 end.
