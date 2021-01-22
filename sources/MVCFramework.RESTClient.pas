@@ -761,7 +761,7 @@ end;
 
 function TMVCRESTClient.Authorization: string;
 begin
-  Result := HeaderValue(sAuthorization);
+  Result := HeaderValue(TMVCRESTClientConsts.AUTHORIZATION_HEADER);
 end;
 
 function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
@@ -791,14 +791,14 @@ var
 begin
   Result := Self;
 
-  lAuthorization := HeaderValue(sAuthorization);
+  lAuthorization := HeaderValue(TMVCRESTClientConsts.AUTHORIZATION_HEADER);
   fParameters.Clear;
   ClearBody;
 
   AddHeader(sAccept, TMVCRESTClientConsts.DEFAULT_ACCEPT);
   AddHeader(sAcceptEncoding, TMVCRESTClientConsts.DEFAULT_ACCEPT_ENCODING);
   AddHeader(sUserAgent, TMVCRESTClientConsts.DEFAULT_USER_AGENT);
-  AddHeader(sAuthorization, lAuthorization);
+  AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, lAuthorization);
 
   fNextRequestIsAsync := False;
   fAsyncCompletionHandler := nil;
@@ -809,7 +809,7 @@ end;
 function TMVCRESTClient.ClearAuthorization: IMVCRESTClient;
 begin
   Result := Self;
-  AddHeader(sAuthorization, '');
+  AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER, '');
 end;
 
 function TMVCRESTClient.ClearBody: IMVCRESTClient;
@@ -1644,7 +1644,8 @@ begin
   // Do not use TNetEncoding.Base64 here, because it may break long line
   lBase64 := TBase64Encoding.Create(0, '');
   try
-    AddHeader(sAuthorization, TMVCRESTClientConsts.BASIC_AUTH_PREFIX + lBase64.Encode(aUsername + ':' + aPassword));
+    AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER,
+      TMVCRESTClientConsts.BASIC_AUTH_PREFIX + lBase64.Encode(aUsername + ':' + aPassword));
   finally
     FreeAndNil(lBase64);
   end;
@@ -1652,7 +1653,8 @@ end;
 
 function TMVCRESTClient.SetBearerAuthorization(const aAccessToken: string): IMVCRESTClient;
 begin
-  Result := AddHeader(sAuthorization, TMVCRESTClientConsts.BEARER_AUTH_PREFIX + aAccessToken);
+  Result := AddHeader(TMVCRESTClientConsts.AUTHORIZATION_HEADER,
+    TMVCRESTClientConsts.BEARER_AUTH_PREFIX + aAccessToken);
 end;
 
 function TMVCRESTClient.SetBeforeRequestProc(aBeforeRequestProc: TBeforeRequestProc): IMVCRESTClient;
