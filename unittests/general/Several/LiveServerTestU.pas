@@ -777,7 +777,7 @@ begin
     Assert.areEqual('', lCustomer.ContactFirst);
     Assert.areEqual('', lCustomer.ContactLast);
     lCustomer.Logo.SaveToFile('customer_logo.bmp');
-    Assert.areEqual('de2a29ec62fc1f0b3abbb6b74223d214', THashMD5.GetHashStringFromFile('customer_logo.bmp'));
+    Assert.areEqual('187069e0bcc487916d9ff756704e05aa', THashMD5.GetHashStringFromFile('customer_logo.bmp'));
   finally
     lCustomer.Free;
   end;

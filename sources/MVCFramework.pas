@@ -2759,6 +2759,10 @@ begin
   begin
     try
       AHandled := ExecuteAction(ASender, ARequest, AResponse);
+//      if not AHandled then
+//      begin
+//        AResponse.ContentStream := nil;
+//      end;
     except
       on E: Exception do
       begin
