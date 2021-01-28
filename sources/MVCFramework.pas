@@ -1484,7 +1484,8 @@ begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(AParamName, Result)) then
   begin
     Result := '';
-    if FWebRequest.ContentType = TMVCMediaType.APPLICATION_FORM_URLENCODED then
+    if FWebRequest.ContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
+      FWebRequest.ContentType.StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
       Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
       Result := FWebRequest.QueryFields.Values[AParamName];
