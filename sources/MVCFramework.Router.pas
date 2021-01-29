@@ -182,16 +182,7 @@ begin
   end;
   LRequestPathInfo := TIdURI.PathEncode(LRequestPathInfo);
 
-  { CHANGE THE REQUEST PATH INFO START }
   lPathPrefix := FConfig.Value[TMVCConfigKey.PathPrefix];
-  if not lPathPrefix.IsEmpty then
-  begin
-    if string(LRequestPathInfo).StartsWith(lPathPrefix) then
-      LRequestPathInfo := LRequestPathInfo.Remove(0, lPathPrefix.Length);
-    if Length(LRequestPathInfo) = 0 then
-      LRequestPathInfo := '/';
-  end;
-  { CHANGE THE REQUEST PATH INFO END }
 
   TMonitor.Enter(gLock);
   try
@@ -219,7 +210,7 @@ begin
         LControllerMappedPath := '';
       end;
 
-      if not LRequestPathInfo.StartsWith(LControllerMappedPath, True) then
+      if not LRequestPathInfo.StartsWith(lPathPrefix + LControllerMappedPath, True) then
       begin
         Continue;
       end;
@@ -254,7 +245,8 @@ begin
               IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes) then
             begin
               LMethodPath := MVCPathAttribute(LAtt).Path;
-              if IsCompatiblePath(LControllerMappedPath + LMethodPath, LRequestPathInfo, ARequestParams) then
+              if IsCompatiblePath(lPathPrefix + LControllerMappedPath + LMethodPath,
+                LRequestPathInfo, ARequestParams) then
               begin
                 FMethodToCall := LMethod;
                 FControllerClazz := LControllerDelegate.Clazz;
