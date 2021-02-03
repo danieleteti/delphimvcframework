@@ -6,7 +6,7 @@
 //
 // https://github.com/danieleteti/delphimvcframework
 //
-// Collaborators with this file: Ezequiel Juliano Müller (ezequieljuliano@gmail.com)
+// Collaborators with this file: Ezequiel Juliano MÃ¼ller (ezequieljuliano@gmail.com)
 //
 // ***************************************************************************
 //
@@ -34,7 +34,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  IdHTTPWebBrokerBridge,IdSSLOpenSSL,IdSSL,WebReq,
+  IdHTTPWebBrokerBridge,IdSSLOpenSSL,IdSSL,
   MVCFramework.Server, MVCFramework, IdContext;
 
 type
