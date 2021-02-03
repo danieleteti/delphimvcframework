@@ -852,6 +852,9 @@ type
     FConfigCache_ExposeServerSignature: Boolean;
     FConfigCache_ServerSignature: string;
     FConfigCache_ExposeXPoweredBy: Boolean;
+    FConfigCache_DefaultContentType: String;
+    FConfigCache_DefaultContentCharset: String;
+    FConfigCache_PathPrefix: String;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -2201,8 +2204,11 @@ begin
             begin
               if lRouter.ExecuteRouting(ARequest.PathInfo,
                 lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
-                ARequest.ContentType, ARequest.Accept, FControllers, FConfig[TMVCConfigKey.DefaultContentType],
-                FConfig[TMVCConfigKey.DefaultContentCharset], lParamsTable, lResponseContentMediaType,
+                ARequest.ContentType, ARequest.Accept, FControllers,
+                FConfigCache_DefaultContentType,
+                FConfigCache_DefaultContentCharset,
+                FConfigCache_PathPrefix,
+                lParamsTable, lResponseContentMediaType,
                 lResponseContentCharset) then
               begin
                 try
@@ -2849,6 +2855,9 @@ begin
   FConfigCache_ExposeServerSignature := Config[TMVCConfigKey.ExposeServerSignature] = 'true';
   FConfigCache_ServerSignature := Config[TMVCConfigKey.ServerName];
   FConfigCache_ExposeXPoweredBy := Config[TMVCConfigKey.ExposeXPoweredBy] = 'true';
+  FConfigCache_DefaultContentType := Config[TMVCConfigKey.DefaultContentType];
+  FConfigCache_DefaultContentCharset := Config[TMVCConfigKey.DefaultContentCharset];
+  FConfigCache_PathPrefix := Config[TMVCConfigKey.PathPrefix];
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;

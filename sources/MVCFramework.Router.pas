@@ -90,17 +90,16 @@ type
     constructor Create(const aConfig: TMVCConfig;
       const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
     destructor Destroy; override;
-    function ExecuteRouting(
-      const ARequestPathInfo: string;
-      const ARequestMethodType: TMVCHTTPMethodType;
-      const ARequestContentType: string;
-      const ARequestAccept: string;
-      const AControllers: TObjectList<TMVCControllerDelegate>;
-      const ADefaultContentType: string;
-      const ADefaultContentCharset: string;
-      var ARequestParams: TMVCRequestParamsTable;
-      out AResponseContentMediaType: string;
-      out AResponseContentCharset: string): Boolean;
+    function ExecuteRouting(const ARequestPathInfo: string;
+  const ARequestMethodType: TMVCHTTPMethodType;
+  const ARequestContentType, ARequestAccept: string;
+  const AControllers: TObjectList<TMVCControllerDelegate>;
+  const ADefaultContentType: string;
+  const ADefaultContentCharset: string;
+  const APathPrefix: string;
+  var ARequestParams: TMVCRequestParamsTable;
+  out AResponseContentMediaType: string;
+  out AResponseContentCharset: string): Boolean;
     function GetQualifiedActionName: string; override;
 
     property MethodToCall: TRttiMethod read FMethodToCall;
@@ -139,6 +138,7 @@ function TMVCRouter.ExecuteRouting(const ARequestPathInfo: string;
   const AControllers: TObjectList<TMVCControllerDelegate>;
   const ADefaultContentType: string;
   const ADefaultContentCharset: string;
+  const APathPrefix: string;
   var ARequestParams: TMVCRequestParamsTable;
   out AResponseContentMediaType: string;
   out AResponseContentCharset: string): Boolean;
@@ -155,7 +155,6 @@ var
   LMethod: TRttiMethod;
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
-  lPathPrefix: string;
   lURLSegment: string;
   // JUST FOR DEBUG
   // lMethodCompatible: Boolean;
@@ -181,8 +180,6 @@ begin
     end;
   end;
   LRequestPathInfo := TIdURI.PathEncode(LRequestPathInfo);
-
-  lPathPrefix := FConfig.Value[TMVCConfigKey.PathPrefix];
 
   TMonitor.Enter(gLock);
   try
@@ -210,7 +207,7 @@ begin
         LControllerMappedPath := '';
       end;
 
-      if not LRequestPathInfo.StartsWith(lPathPrefix + LControllerMappedPath, True) then
+      if not LRequestPathInfo.StartsWith(APathPrefix + LControllerMappedPath, True) then
       begin
         Continue;
       end;
@@ -245,7 +242,7 @@ begin
               IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes) then
             begin
               LMethodPath := MVCPathAttribute(LAtt).Path;
-              if IsCompatiblePath(lPathPrefix + LControllerMappedPath + LMethodPath,
+              if IsCompatiblePath(APathPrefix + LControllerMappedPath + LMethodPath,
                 LRequestPathInfo, ARequestParams) then
               begin
                 FMethodToCall := LMethod;
