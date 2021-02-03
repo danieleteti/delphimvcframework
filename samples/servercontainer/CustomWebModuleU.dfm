@@ -1,4 +1,4 @@
-object WebModule1: TWebModule1
+object CustomWebModule: TCustomWebModule
   OldCreateOrder = False
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
