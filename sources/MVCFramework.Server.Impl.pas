@@ -34,7 +34,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
-  IdHTTPWebBrokerBridge,IdSSLOpenSSL,IdSSL,
+  IdHTTPWebBrokerBridge,IdSSLOpenSSL,IdSSL,WebReq,
   MVCFramework.Server, MVCFramework, IdContext;
 
 type
@@ -78,6 +78,7 @@ type
       AAuthData: String; var VUsername, VPassword: String;
       var VHandled: Boolean);
     procedure OnGetSSLPassword(var APassword: string);
+    procedure QuerySSLPort(APort: Word; var VUseSSL: boolean);
   protected
     function GetActive: Boolean;
 
@@ -261,6 +262,9 @@ begin
     FBridgeSSLHandler.SSLOptions.KeyFile := lSSLKeyFile;
     FBridgeSSLHandler.OnGetPassword := OnGetSSLPassword;
     FBridge.IOHandler := FBridgeSSLHandler;
+    {$IF CompilerVersion >= 33}
+    FBridge.OnQuerySSLPort := QuerySSLPort;
+    {$ENDIF}
   end;
 end;
 
@@ -279,6 +283,11 @@ end;
 procedure TMVCListener.OnParseAuthentication(AContext: TIdContext; const AAuthType, AAuthData: String; var VUsername, VPassword: String; var VHandled: Boolean);
 begin
   vhandled := True;
+end;
+
+procedure TMVCListener.QuerySSLPort(APort: Word; var VUseSSL: boolean);
+begin
+  VUseSSL := true;
 end;
 
 function TMVCListener.GetActive: Boolean;
