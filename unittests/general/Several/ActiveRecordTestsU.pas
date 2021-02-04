@@ -44,7 +44,7 @@ type
     procedure InternalSetupFixture; virtual;
   public
     [SetupFixture]
-    procedure DoSetupFixture;
+    procedure SetupFixturePG;
     [Teardown]
     procedure Teardown;
     [Test]
@@ -94,7 +94,6 @@ type
   end;
 
   [TestFixture]
-  [Category('this')]
   TTestActiveRecordPostgreSQL = class(TTestActiveRecordBase)
   private
     fPGUtil: TPGUtil;
@@ -660,11 +659,6 @@ begin
 
 end;
 
-procedure TTestActiveRecordBase.DoSetupFixture;
-begin
-  InternalSetupFixture;
-end;
-
 procedure TTestActiveRecordBase.InternalSetupFixture;
 begin
   // do nothing
@@ -718,6 +712,11 @@ begin
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
+end;
+
+procedure TTestActiveRecordBase.SetupFixturePG;
+begin
+  InternalSetupFixture;
 end;
 
 procedure TTestActiveRecordSQLite.Setup;

@@ -760,7 +760,7 @@ begin
     lCustomer.Logo.Canvas.FillRect(Rect(0, 0, 100, 100));
     lCustomer.Logo.Canvas.Font.Color := clRed;
     lCustomer.Logo.Canvas.TextOut(10, 50, 'From Client');
-    lCustomer.Logo.SaveToFile('pippo_client_before_send.bmp');
+    lCustomer.Logo.SaveToFile('customer_logo_before_to_send.bmp');
     lSer := GetDefaultSerializer;
     RegisterOptionalCustomTypesSerializers(lSer);
     r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/customerecho', lSer.SerializeObject(lCustomer));
@@ -776,8 +776,8 @@ begin
     Assert.areEqual('bit Time Professionals changed', lCustomer.Name);
     Assert.areEqual('', lCustomer.ContactFirst);
     Assert.areEqual('', lCustomer.ContactLast);
-    lCustomer.Logo.SaveToFile('customer_logo.bmp');
-    Assert.areEqual('187069e0bcc487916d9ff756704e05aa', THashMD5.GetHashStringFromFile('customer_logo.bmp'));
+    lCustomer.Logo.SaveToFile('customer_logo_after_received.bmp');
+    Assert.areEqual('de2a29ec62fc1f0b3abbb6b74223d214', THashMD5.GetHashStringFromFile('customer_logo_after_received.bmp'));
   finally
     lCustomer.Free;
   end;

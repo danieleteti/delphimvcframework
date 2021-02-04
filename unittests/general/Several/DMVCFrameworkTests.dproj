@@ -4,7 +4,7 @@
         <ProjectVersion>19.1</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">GUI</Config>
+        <Config Condition="'$(Config)'==''">TESTINSIGHT</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Console</AppType>
@@ -77,16 +77,16 @@
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Config)'=='GUI' or '$(Cfg_3)'!=''">
-        <Cfg_3>true</Cfg_3>
+    <PropertyGroup Condition="'$(Config)'=='TESTINSIGHT' or '$(Cfg_2)'!=''">
+        <Cfg_2>true</Cfg_2>
         <CfgParent>Cfg_1</CfgParent>
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_3)'=='true') or '$(Cfg_3_Win32)'!=''">
-        <Cfg_3_Win32>true</Cfg_3_Win32>
-        <CfgParent>Cfg_3</CfgParent>
-        <Cfg_3>true</Cfg_3>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
+        <Cfg_2_Win32>true</Cfg_2_Win32>
+        <CfgParent>Cfg_2</CfgParent>
+        <Cfg_2>true</Cfg_2>
         <Cfg_1>true</Cfg_1>
         <Base>true</Base>
     </PropertyGroup>
@@ -107,6 +107,7 @@
         <DCC_S>false</DCC_S>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
+        <DCC_Define>TESTINSIGHT;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_ShowGeneralMessages>true</DCC_ShowGeneralMessages>
@@ -131,6 +132,7 @@
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_MapFile>3</DCC_MapFile>
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_4)'!=''">
         <DCC_Define>CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
@@ -154,14 +156,12 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_3)'!=''">
-        <DCC_UnitSearchPath>$(BDS)\source\DunitX;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-        <DCC_Define>_CONSOLE_TESTRUNNER;GUI_TESTRUNNER;$(DCC_Define)</DCC_Define>
+    <PropertyGroup Condition="'$(Cfg_2)'!=''">
+        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
-    <PropertyGroup Condition="'$(Cfg_3_Win32)'!=''">
+    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <VerInfo_Locale>1033</VerInfo_Locale>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
-        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -172,11 +172,6 @@
         <DCCReference Include="BOs.pas"/>
         <DCCReference Include="..\TestServer\TestServerControllerU.pas"/>
         <DCCReference Include="RESTAdapterTestsU.pas"/>
-        <DCCReference Include="..\StandaloneServer\MVCFramework.Tests.WebModule2.pas">
-            <Form>TestWebModule2</Form>
-            <DesignClass>TWebModule</DesignClass>
-        </DCCReference>
-        <DCCReference Include="..\StandaloneServer\MVCFramework.Tests.StandaloneServer.pas"/>
         <DCCReference Include="..\RESTClient\MVCFramework.Tests.WebModule1.pas">
             <Form>TestWebModule1</Form>
             <DesignClass>TWebModule</DesignClass>
@@ -209,6 +204,18 @@
         <DCCReference Include="PGUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecordController.pas"/>
+        <DCCReference Include="ActiveRecordControllerTestU.pas"/>
+        <DCCReference Include="webmodules\WebModuleU.pas">
+            <Form>MyWebModule</Form>
+            <DesignClass>TWebModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="webmodules\FDConnectionConfigU.pas"/>
+        <DCCReference Include="..\StandaloneServer\StandaloneServerTestU.pas"/>
+        <DCCReference Include="..\StandaloneServer\StandAloneServerWebModuleTest.pas">
+            <Form>TestWebModule2</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TWebModule</DesignClass>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -228,8 +235,8 @@
             <Key>Cfg_1</Key>
             <CfgParent>Base</CfgParent>
         </BuildConfiguration>
-        <BuildConfiguration Include="GUI">
-            <Key>Cfg_3</Key>
+        <BuildConfiguration Include="TESTINSIGHT">
+            <Key>Cfg_2</Key>
             <CfgParent>Cfg_1</CfgParent>
         </BuildConfiguration>
     </ItemGroup>
