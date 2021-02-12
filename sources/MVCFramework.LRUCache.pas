@@ -111,15 +111,11 @@ procedure TMVCLRUCache<T>.Put(const Key: string; const Item: T);
 begin
   Lock;
   try
-    try
-      if fCache.Count = fCapacity then
-      begin
-        fCache.Delete(fCache.Count - 1);
-      end;
-      fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
-    except
-      fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
+    if fCache.Count = fCapacity then
+    begin
+	  fCache.Delete(fCache.Count - 1);
     end;
+    fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
   finally
     UnLock;
   end;
