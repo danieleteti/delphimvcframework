@@ -1462,6 +1462,11 @@ var
   lKeyName: string;
   lErrMsg: string;
 begin
+  if AObject = nil then
+  begin
+    Exit;
+  end;
+
   if AObject is TJsonObject then
   begin
     if not Assigned(AObject) then
