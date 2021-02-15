@@ -600,7 +600,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<string>;
+  lList := TMVCListOfString(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
@@ -650,7 +650,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<Integer>;
+  lList := TMVCListOfInteger(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
@@ -701,7 +701,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<Boolean>;
+  lList := TMVCListOfBoolean(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
@@ -751,7 +751,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<Double>;
+  lList := TMVCListOfDouble(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
