@@ -58,7 +58,7 @@ type
 
     { serialize declarations }
     [Test]
-//    [Category('this')]
+    // [Category('this')]
     procedure TestSerializeAllTypes;
     [Test]
     procedure TestSerializeDateTimeProperty;
@@ -73,7 +73,7 @@ type
     [Test]
     procedure TestSerializeEntityUpperCaseNames;
     [Test]
-//    [Category('this')]
+    // [Category('this')]
     procedure TestSerializeEntityWithArray;
     [Test]
     procedure TestSerializeEntityLowerCaseNames;
@@ -110,7 +110,7 @@ type
     [Test]
     procedure TestSerializeEmptyDataSet;
     [Test]
-//    [Category('this')]
+    // [Category('this')]
     procedure TestDeserializeEntityWithArray;
     { full cycle }
     [Test]
@@ -131,49 +131,46 @@ type
     [Test]
     [Category('serializers')]
     procedure TestSerializeListOfSomething;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestSerializeListWithNulls;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestSerializeListWithNulls2;
   end;
 
-  TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject,
-    IMVCTypeSerializer)
+  TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
   private
     { private declarations }
   protected
-    procedure Serialize(const AElementValue: TValue;
-      var ASerializerObject: TObject;
+    procedure Serialize(const AElementValue: TValue; var ASerializerObject: TObject;
       const AAttributes: TArray<TCustomAttribute>);
-    procedure Deserialize(const ASerializedObject: TObject;
-      var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
+    procedure Deserialize(const ASerializedObject: TObject; var AElementValue: TValue;
+      const AAttributes: TArray<TCustomAttribute>);
   public
-    procedure SerializeRoot(const AObject: TObject;
-      out ASerializerObject: TObject;
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>;
       const ASerializationAction: TMVCSerializationAction = nil);
-    procedure SerializeAttribute(const AElementValue: TValue;
-      const APropertyName: string; const ASerializerObject: TObject;
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>);
-    procedure DeserializeRoot(const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
-    procedure DeserializeAttribute(var AElementValue: TValue;
-      const APropertyName: string; const ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
 
   end;
 
-  TMVCNullableIntegerSerializerJsonDataObjects = class(TInterfacedObject,
-    IMVCTypeSerializer)
+  TMVCNullableIntegerSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
   public
-    procedure DeserializeAttribute(var AElementValue: TValue;
-      const APropertyName: string; const ASerializerObject: TObject;
+    procedure DeserializeAttribute(var AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>);
-    procedure DeserializeRoot(const ASerializerObject: TObject;
-      const AObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
-    procedure SerializeAttribute(const AElementValue: TValue;
-      const APropertyName: string; const ASerializerObject: TObject;
-      const AAttributes: System.TArray<System.TCustomAttribute>);
-    procedure SerializeRoot(const AObject: TObject;
-      out ASerializerObject: TObject;
+    procedure SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
+      const ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>);
+    procedure SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;
       const AAttributes: System.TArray<System.TCustomAttribute>;
       const ASerializationAction: TMVCSerializationAction = nil);
   end;
@@ -199,14 +196,10 @@ procedure TMVCTestSerializerJsonDataObjects.Setup;
 begin
   inherited;
   fSerializer := TMVCJsonDataObjectsSerializer.Create;
-  fSerializer.RegisterTypeSerializer(System.TypeInfo(TStream),
-    TMVCStreamSerializerJsonDataObject.Create);
-  fSerializer.RegisterTypeSerializer(System.TypeInfo(TStringStream),
-    TMVCStreamSerializerJsonDataObject.Create);
-  fSerializer.RegisterTypeSerializer(System.TypeInfo(TMemoryStream),
-    TMVCStreamSerializerJsonDataObject.Create);
-  fSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom),
-    TMVCEntityCustomSerializerJsonDataObjects.Create);
+  fSerializer.RegisterTypeSerializer(System.TypeInfo(TStream), TMVCStreamSerializerJsonDataObject.Create);
+  fSerializer.RegisterTypeSerializer(System.TypeInfo(TStringStream), TMVCStreamSerializerJsonDataObject.Create);
+  fSerializer.RegisterTypeSerializer(System.TypeInfo(TMemoryStream), TMVCStreamSerializerJsonDataObject.Create);
+  fSerializer.RegisterTypeSerializer(System.TypeInfo(TEntityCustom), TMVCEntityCustomSerializerJsonDataObjects.Create);
   fSerializer.RegisterTypeSerializer(System.TypeInfo(TMVCNullable<Integer>),
     TMVCNullableIntegerSerializerJsonDataObjects.Create);
 end;
@@ -219,15 +212,11 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDataSetHelpers;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' +
-    '"Salary":100,' + '"Birthday":"1987-10-15",' +
-    '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",'
-    + '"Active":true,' + '"Amount":100,' +
-    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
-    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '},' +
-    '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' + '"Departament":{' +
-    '"Name":"Depto1"' + '},' +
-    '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
+    '"Active":true,' + '"Amount":100,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
+    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' +
+    '}' + '],' + '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
@@ -235,9 +224,8 @@ const
 
   JSON_ASIS = '{' + '"Id":1,' + '"Name":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"'
-    + '},' + '{' + '"Id_Id":2,' + '"Name_Name":"Ezequiel Juliano Müller"' +
-    '}' + ']';
+  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' + '}' + ']';
 
 var
   Dm: TEntitiesModule;
@@ -256,8 +244,7 @@ begin
     Dm.EntitySalary.AsCurrency := 100;
     Dm.EntityAmount.AsFloat := 100;
     Dm.EntityBlobFld.AsString := '<html><body><h1>BLOB</h1></body></html>';
-    Dm.EntityGUID.AsGuid :=
-      StringToGUID('{9386C957-5379-4370-8492-8FA464A9CF0C}');
+    Dm.EntityGUID.AsGuid := StringToGUID('{9386C957-5379-4370-8492-8FA464A9CF0C}');
 
     Dm.Item.Insert;
     Dm.ItemId.AsLargeInt := 1;
@@ -305,15 +292,11 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeCollection;
   end;
 
 const
-  JSON_PROPERTIES = '[' + '{' + '"Description":"Description 1"' + '},' + '{' +
-    '"Description":"Description 2"' + '},' + '{' +
-    '"Description":"Description 3"' + '},' + '{' +
-    '"Description":"Description 4"' + '}' + ']';
+  JSON_PROPERTIES = '[' + '{' + '"Description":"Description 1"' + '},' + '{' + '"Description":"Description 2"' + '},' +
+    '{' + '"Description":"Description 3"' + '},' + '{' + '"Description":"Description 4"' + '}' + ']';
 
-  JSON_FIELDS = '[' + '{' + '"FDescription":"Description 1"' + '},' + '{' +
-    '"FDescription":"Description 2"' + '},' + '{' +
-    '"FDescription":"Description 3"' + '},' + '{' +
-    '"FDescription":"Description 4"' + '}' + ']';
+  JSON_FIELDS = '[' + '{' + '"FDescription":"Description 1"' + '},' + '{' + '"FDescription":"Description 2"' + '},' +
+    '{' + '"FDescription":"Description 3"' + '},' + '{' + '"FDescription":"Description 4"' + '}' + ']';
 var
   O: TObjectList<TNote>;
 begin
@@ -336,29 +319,23 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestDeserializeDataSet;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' +
-    '"Salary":100,' + '"Birthday":"1987-10-15",' +
-    '"AccessDateTime":"2017-02-17 16:37:50",' + '"AccessTime":"16:40:50",'
-    + '"Active":true,' + '"Amount":100,' +
-    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
-    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,'
-    + '"Name":"Juliano"' + '}' + '],' + '"Departament":{' + '"Name":"Depto1"' +
-    '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17 16:37:50",' + '"AccessTime":"16:40:50",' +
+    '"Active":true,' + '"Amount":100,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
+    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
+    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
   JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_ASIS = '{' + '"Id_Id":1,' +
-    '"Name_Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_ASIS = '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"'
-    + '},' + '{' + '"Id_Id":2,' + '"Name_Name":"Ezequiel Juliano Müller"' +
-    '}' + ']';
+  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' + '}' + ']';
 
-  JSON_ITEMS = '{' + '"items":[' + '{' + '"Id_Id":1,' +
-    '"Name_Name":"Pedro Henrique de Oliveira"' + '},' + '{' + '"Id_Id":2,' +
-    '"Name_Name":"Rogers Abe"' + '}' + '],' + '"meta":{"count":"2"}}';
+  JSON_ITEMS = '{' + '"items":[' + '{' + '"Id_Id":1,' + '"Name_Name":"Pedro Henrique de Oliveira"' + '},' + '{' +
+    '"Id_Id":2,' + '"Name_Name":"Rogers Abe"' + '}' + '],' + '"meta":{"count":"2"}}';
 var
   Dm: TEntitiesModule;
 begin
@@ -369,16 +346,13 @@ begin
     Assert.isTrue(Dm.EntityCode.AsInteger = 2);
     Assert.isTrue(Dm.EntityName.AsString = 'Ezequiel Juliano Müller');
     Assert.isTrue(Dm.EntityBirthday.AsDateTime = StrToDate('15/10/1987'));
-    Assert.isTrue(Dm.EntityAccessDateTime.AsDateTime = StrToDateTime
-      ('17/02/2017 16:37:50'));
+    Assert.isTrue(Dm.EntityAccessDateTime.AsDateTime = StrToDateTime('17/02/2017 16:37:50'));
     Assert.isTrue(Dm.EntityAccessTime.AsDateTime = StrToTime('16:40:50'));
     Assert.isTrue(Dm.EntityActive.AsBoolean = True);
     Assert.isTrue(Dm.EntitySalary.AsCurrency = 100);
     Assert.isTrue(Dm.EntityAmount.AsFloat = 100);
-    Assert.isTrue(Dm.EntityBlobFld.AsString =
-      '<html><body><h1>BLOB</h1></body></html>');
-    Assert.isTrue(GUIDToString(Dm.EntityGUID.AsGuid)
-      = '{9386C957-5379-4370-8492-8FA464A9CF0C}');
+    Assert.isTrue(Dm.EntityBlobFld.AsString = '<html><body><h1>BLOB</h1></body></html>');
+    Assert.isTrue(GUIDToString(Dm.EntityGUID.AsGuid) = '{9386C957-5379-4370-8492-8FA464A9CF0C}');
 
     Dm.Item.First;
     Assert.isTrue(Dm.ItemId.AsLargeInt = 1);
@@ -399,8 +373,7 @@ begin
     Assert.isTrue(Dm.EntityUpperCaseId.AsLargeInt = 1);
     Assert.isTrue(Dm.EntityUpperCaseName.AsString = 'Ezequiel Juliano Müller');
 
-    fSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase2,
-      [], ncUpperCase);
+    fSerializer.DeserializeDataSetRecord(JSON_UPPERCASE, Dm.EntityUpperCase2, [], ncUpperCase);
     Assert.isTrue(Dm.EntityUpperCase2Id.AsLargeInt = 1);
     Assert.isTrue(Dm.EntityUpperCase2Name.AsString = 'Ezequiel Juliano Müller');
 
@@ -419,8 +392,7 @@ begin
     Assert.isTrue(Dm.EntityAsIsName.AsString = 'Ezequiel Juliano Müller');
 
     Dm.EntityAsIs.EmptyDataSet;
-    Dm.EntityAsIs.LoadJSONArrayFromJSONObjectProperty('items',
-      JSON_ITEMS, ncAsIs);
+    Dm.EntityAsIs.LoadJSONArrayFromJSONObjectProperty('items', JSON_ITEMS, ncAsIs);
     Dm.EntityAsIs.First;
     Assert.isTrue(Dm.EntityAsIsId.AsLargeInt = 1);
     Assert.isTrue(Dm.EntityAsIsName.AsString = 'Pedro Henrique de Oliveira');
@@ -442,13 +414,11 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
     Assert.isTrue(AEntity.Name = 'Ezequiel Juliano Müller');
     Assert.isTrue(AEntity.Salary = 100);
     Assert.isTrue(DateToStr(AEntity.Birthday) = '15/10/1987');
-    Assert.isTrue(DateTimeToStr(AEntity.AccessDateTime)
-      = '17/02/2017 16:37:50');
+    Assert.isTrue(DateTimeToStr(AEntity.AccessDateTime) = '17/02/2017 16:37:50');
     Assert.isTrue(TimeToStr(AEntity.AccessTime) = '16:40:50');
     Assert.isTrue(AEntity.Active = True);
     Assert.isTrue(AEntity.Role = TRole.roGuest);
-    Assert.isTrue(DateTimeToStr(TimeStampToDateTime(AEntity.Teporization))
-      = '17/02/2017 16:37:50');
+    Assert.isTrue(DateTimeToStr(TimeStampToDateTime(AEntity.Teporization)) = '17/02/2017 16:37:50');
     Assert.isTrue(AEntity.Department <> nil);
     Assert.isTrue(AEntity.Department.Id = 1);
     Assert.isTrue(AEntity.Department.Name = 'Development');
@@ -462,30 +432,21 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntity;
   end;
 
 const
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
-    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50",'
-    + '"AccessTime":"16:40:50",' + '"Active":true,' + '"Role":"roGuest",' +
-    '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' +
-    '"Name":"Development",' + '"Notes":[' + '{' + '"Description":"DepNote1"' +
-    '},' + '{' + '"Description":"DepNote2"' + '}' + ']' + '},' +
-    '"DepartmentNull":null,' + '"Notes":[' + '{' + '"Description":"EntNote1"' +
-    '},' + '{' + '"Description":"EntNote2"' + '}' + '],' + '"NotesEmpty":[],' +
-    '"AppreciationAs":"Yes",' + '"Appreciation":{' + '"type":"ustring",' +
-    '"value":"Yes"' + '}' + '}';
-
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' +
-    '"FName":"Ezequiel Juliano Müller",' + '"FSalary":100,' +
-    '"FBirthday":"1987-10-15",' +
-    '"FAccessDateTime":"2017-02-17T16:37:50",' +
-    '"FAccessTime":"16:40:50",' + '"FActive":true,' + '"FRole":"roGuest",' +
-    '"FTeporization":63623032670000,' + '"FDepartment":{' + '"FId":1,' +
-    '"FName":"Development",' + '"FNotes":[' + '{' + '"FDescription":"DepNote1"'
-    + '},' + '{' + '"FDescription":"DepNote2"' + '}' + ']' + '},' +
-    '"FDepartmentNull":null,' + '"FNotes":[' + '{' + '"FDescription":"EntNote1"'
-    + '},' + '{' + '"FDescription":"EntNote2"' + '}' + '],' +
-    '"FNotesEmpty":[],' + '"FAppreciationAs":"Yes",' + '"FAppreciation":{' +
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50",' + '"AccessTime":"16:40:50",' +
+    '"Active":true,' + '"Role":"roGuest",' + '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' +
+    '"Name":"Development",' + '"Notes":[' + '{' + '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' +
+    '}' + ']' + '},' + '"DepartmentNull":null,' + '"Notes":[' + '{' + '"Description":"EntNote1"' + '},' + '{' +
+    '"Description":"EntNote2"' + '}' + '],' + '"NotesEmpty":[],' + '"AppreciationAs":"Yes",' + '"Appreciation":{' +
     '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
+
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller",' + '"FSalary":100,' +
+    '"FBirthday":"1987-10-15",' + '"FAccessDateTime":"2017-02-17T16:37:50",' + '"FAccessTime":"16:40:50",' +
+    '"FActive":true,' + '"FRole":"roGuest",' + '"FTeporization":63623032670000,' + '"FDepartment":{' + '"FId":1,' +
+    '"FName":"Development",' + '"FNotes":[' + '{' + '"FDescription":"DepNote1"' + '},' + '{' +
+    '"FDescription":"DepNote2"' + '}' + ']' + '},' + '"FDepartmentNull":null,' + '"FNotes":[' + '{' +
+    '"FDescription":"EntNote1"' + '},' + '{' + '"FDescription":"EntNote2"' + '}' + '],' + '"FNotesEmpty":[],' +
+    '"FAppreciationAs":"Yes",' + '"FAppreciation":{' + '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 var
   O: TEntity;
 begin
@@ -506,13 +467,10 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestDeserializeEntityCustomMemberSerializer;
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomMemberSerializer;
 const
-  JSON = '{' + '"Entity":{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller"' + '},' +
-    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' +
-    '"NotesAsString":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Entity":{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '},' +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + '"NotesAsString":"Ezequiel Juliano Müller"' + '}';
 var
   O: TSale;
 begin
@@ -529,11 +487,9 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestDeserializeEntityCustomSerializer;
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomSerializer;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '}';
 var
   O: TEntityCustom;
 begin
@@ -548,11 +504,9 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestDeserializeEntityCustomValueTypeSerializer;
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityCustomValueTypeSerializer;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' +
-    '"NullableInteger":3' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"NullableInteger":3' + '}';
 var
   O: TEntityCustomWithNullables;
 begin
@@ -567,14 +521,11 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestDeserializeEntitySerializationType;
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntitySerializationType;
 const
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' +
-    '"FName":"Ezequiel Juliano Müller"' + '}';
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '}';
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -608,14 +559,13 @@ procedure TMVCTestSerializerJsonDataObjects.TestDeserializeEntityWithArray;
     Assert.isTrue(AEntity.Names[1] = 'Oliveira');
     Assert.isTrue(AEntity.Values[0] = 1);
     Assert.isTrue(AEntity.Values[1] = 2);
-    Assert.isTrue(AEntity.Booleans[0] = true);
-    Assert.isTrue(AEntity.Booleans[1] = false);
-    Assert.isTrue(AEntity.Booleans[2] = true);
+    Assert.isTrue(AEntity.Booleans[0] = True);
+    Assert.isTrue(AEntity.Booleans[1] = False);
+    Assert.isTrue(AEntity.Booleans[2] = True);
   end;
 
 const
-  JSON_WITH_ARRAY = '{' + '"Id":1,' + '"Names":["Pedro","Oliveira"],' +
-    '"Values":[1,2],"Booleans":[true,false,true]}';
+  JSON_WITH_ARRAY = '{' + '"Id":1,' + '"Names":["Pedro","Oliveira"],' + '"Values":[1,2],"Booleans":[true,false,true]}';
 var
   O: TEntityWithArray;
 begin
@@ -646,8 +596,7 @@ begin
 
   lObj := TPartialSerializableType.Create;
   try
-    fSerializer.DeserializeObject
-      ('{"prop1":"x1","prop2":"x2","prop3":"x3","prop4":"x4"}', lObj);
+    fSerializer.DeserializeObject('{"prop1":"x1","prop2":"x2","prop3":"x3","prop4":"x4"}', lObj);
     Assert.areEqual('x1', lObj.Prop1);
     Assert.areEqual('prop2', lObj.Prop2);
     Assert.areEqual('prop3', lObj.Prop3);
@@ -734,15 +683,11 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeCollection;
 const
-  JSON = '[' + '{' + '"Description":"Description 1"' + '},' + '{' +
-    '"Description":"Description 2"' + '},' + '{' +
-    '"Description":"Description 3"' + '},' + '{' +
-    '"Description":"Description 4"' + '}' + ']';
+  JSON = '[' + '{' + '"Description":"Description 1"' + '},' + '{' + '"Description":"Description 2"' + '},' + '{' +
+    '"Description":"Description 3"' + '},' + '{' + '"Description":"Description 4"' + '}' + ']';
 
-  JSON_FIELDS = '[' + '{' + '"FDescription":"Description 1"' + '},' + '{' +
-    '"FDescription":"Description 2"' + '},' + '{' +
-    '"FDescription":"Description 3"' + '},' + '{' +
-    '"FDescription":"Description 4"' + '}' + ']';
+  JSON_FIELDS = '[' + '{' + '"FDescription":"Description 1"' + '},' + '{' + '"FDescription":"Description 2"' + '},' +
+    '{' + '"FDescription":"Description 3"' + '},' + '{' + '"FDescription":"Description 4"' + '}' + ']';
 var
   O: TObjectList<TNote>;
   S: string;
@@ -766,25 +711,20 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDataSet;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' +
-    '"Salary":100,' + '"Birthday":"1987-10-15",' +
-    '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",'
-    + '"Active":true,' + '"Amount":100,' +
-    '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
-    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,'
-    + '"Name":"Juliano"' + '}' + '],' + '"Departament":{' + '"Name":"Depto1"' +
-    '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
+    '"Active":true,' + '"Amount":100,' + '"BlobFld":"PGh0bWw+PGJvZHk+PGgxPkJMT0I8L2gxPjwvYm9keT48L2h0bWw+",' +
+    '"Items":[' + '{' + '"Id":1,' + '"Name":"Ezequiel"' + '},' + '{' + '"Id":2,' + '"Name":"Juliano"' + '}' + '],' +
+    '"Departament":{' + '"Name":"Depto1"' + '},' + '"GUID":"{9386C957-5379-4370-8492-8FA464A9CF0C}"' + '}';
 
   JSON_LOWERCASE = '{' + '"id":1,' + '"name":"Ezequiel Juliano Müller"' + '}';
 
   JSON_UPPERCASE = '{' + '"ID":1,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_ASIS = '{' + '"Id_Id":1,' +
-    '"Name_Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_ASIS = '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"'
-    + '},' + '{' + '"Id_Id":2,' + '"Name_Name":"Ezequiel Juliano Müller"' +
-    '}' + ']';
+  JSON_LIST = '[' + '{' + '"Id_Id":1,' + '"Name_Name":"Ezequiel Juliano Müller"' + '},' + '{' + '"Id_Id":2,' +
+    '"Name_Name":"Ezequiel Juliano Müller"' + '}' + ']';
 
 var
   Dm: TEntitiesModule;
@@ -803,8 +743,7 @@ begin
     Dm.EntitySalary.AsCurrency := 100;
     Dm.EntityAmount.AsFloat := 100;
     Dm.EntityBlobFld.AsString := '<html><body><h1>BLOB</h1></body></html>';
-    Dm.EntityGUID.AsGuid :=
-      StringToGUID('{9386C957-5379-4370-8492-8FA464A9CF0C}');
+    Dm.EntityGUID.AsGuid := StringToGUID('{9386C957-5379-4370-8492-8FA464A9CF0C}');
 
     Dm.Item.Insert;
     Dm.ItemId.AsLargeInt := 1;
@@ -842,8 +781,7 @@ begin
     Dm.EntityUpperCase2Id.AsLargeInt := 1;
     Dm.EntityUpperCase2Name.AsString := 'Ezequiel Juliano Müller';
     Dm.EntityUpperCase2.Post;
-    S := fSerializer.SerializeDataSetRecord(Dm.EntityUpperCase2, [],
-      ncUpperCase);
+    S := fSerializer.SerializeDataSetRecord(Dm.EntityUpperCase2, [], ncUpperCase);
     Assert.areEqual(JSON_UPPERCASE, S, False, 'json uppercase (2)');
 
     Dm.EntityAsIs.Insert;
@@ -892,12 +830,10 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestSerializeDeSerializeEntityWithEnums;
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeSerializeEntityWithEnums;
 const
-  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Daniele Teti",' +
-    '"Color":"RED",' + '"MonthName":"January",' + '"MonthName2":"meFebruary",' +
-    '"MonthOrder":0' + '}';
+  JSON = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Daniele Teti",' + '"Color":"RED",' + '"MonthName":"January",' +
+    '"MonthName2":"meFebruary",' + '"MonthOrder":0' + '}';
 var
   O: TEntityWithEnums;
   S: string;
@@ -949,41 +885,29 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntity;
 const
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
-    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",'
-    + '"AccessTime":"16:40:50",' + '"Active":true,' + '"Role":"roGuest",' +
-    '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' +
-    '"Name":"Development",' + '"Notes":[' + '{' + '"Description":"DepNote1"' +
-    '},' + '{' + '"Description":"DepNote2"' + '}' + ']' + '},' +
-    '"DepartmentNull":null,' + '"Notes":[' + '{' + '"Description":"EntNote1"' +
-    '},' + '{' + '"Description":"EntNote2"' + '}' + '],' + '"NotesEmpty":[],' +
-    '"AppreciationAs":"Yes",' + '"Appreciation":{' + '"type":"ustring",' +
-    '"value":"Yes"' + '}' + '}';
-
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' +
-    '"FName":"Ezequiel Juliano Müller",' + '"FSalary":100,' +
-    '"FBirthday":"1987-10-15",' +
-    '"FAccessDateTime":"2017-02-17T16:37:50.000+01:00",' +
-    '"FAccessTime":"16:40:50",' + '"FActive":true,' + '"FRole":"roGuest",' +
-    '"FTeporization":63623032670000,' + '"FDepartment":{' + '"FId":1,' +
-    '"FName":"Development",' + '"FNotes":[' + '{' + '"FDescription":"DepNote1"'
-    + '},' + '{' + '"FDescription":"DepNote2"' + '}' + ']' + '},' +
-    '"FDepartmentNull":null,' + '"FNotes":[' + '{' + '"FDescription":"EntNote1"'
-    + '},' + '{' + '"FDescription":"EntNote2"' + '}' + '],' +
-    '"FNotesEmpty":[],' + '"FAppreciationAs":"Yes",' + '"FAppreciation":{' +
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+    '"Birthday":"1987-10-15",' + '"AccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"AccessTime":"16:40:50",' +
+    '"Active":true,' + '"Role":"roGuest",' + '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' +
+    '"Name":"Development",' + '"Notes":[' + '{' + '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' +
+    '}' + ']' + '},' + '"DepartmentNull":null,' + '"Notes":[' + '{' + '"Description":"EntNote1"' + '},' + '{' +
+    '"Description":"EntNote2"' + '}' + '],' + '"NotesEmpty":[],' + '"AppreciationAs":"Yes",' + '"Appreciation":{' +
     '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
 
-  JSON_NULLS = '{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' + '"Birthday":null,' +
-    '"AccessDateTime":null,' + '"AccessTime":null,' + '"Active":true,' +
-    '"Role":"roGuest",' + '"Teporization":63623032670000,' + '"Department":{' +
-    '"Id":1,' + '"Name":"Development",' + '"Notes":[' + '{' +
-    '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' + '}' +
-    ']' + '},' + '"DepartmentNull":null,' + '"Notes":[' + '{' +
-    '"Description":"EntNote1"' + '},' + '{' + '"Description":"EntNote2"' + '}' +
-    '],' + '"NotesEmpty":[],' + '"AppreciationAs":"Yes",' + '"Appreciation":{' +
-    '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller",' + '"FSalary":100,' +
+    '"FBirthday":"1987-10-15",' + '"FAccessDateTime":"2017-02-17T16:37:50.000+01:00",' + '"FAccessTime":"16:40:50",' +
+    '"FActive":true,' + '"FRole":"roGuest",' + '"FTeporization":63623032670000,' + '"FDepartment":{' + '"FId":1,' +
+    '"FName":"Development",' + '"FNotes":[' + '{' + '"FDescription":"DepNote1"' + '},' + '{' +
+    '"FDescription":"DepNote2"' + '}' + ']' + '},' + '"FDepartmentNull":null,' + '"FNotes":[' + '{' +
+    '"FDescription":"EntNote1"' + '},' + '{' + '"FDescription":"EntNote2"' + '}' + '],' + '"FNotesEmpty":[],' +
+    '"FAppreciationAs":"Yes",' + '"FAppreciation":{' + '"type":"ustring",' + '"value":"Yes"' + '}' + '}';
+
+  JSON_NULLS = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller",' + '"Salary":100,' +
+    '"Birthday":null,' + '"AccessDateTime":null,' + '"AccessTime":null,' + '"Active":true,' + '"Role":"roGuest",' +
+    '"Teporization":63623032670000,' + '"Department":{' + '"Id":1,' + '"Name":"Development",' + '"Notes":[' + '{' +
+    '"Description":"DepNote1"' + '},' + '{' + '"Description":"DepNote2"' + '}' + ']' + '},' + '"DepartmentNull":null,' +
+    '"Notes":[' + '{' + '"Description":"EntNote1"' + '},' + '{' + '"Description":"EntNote2"' + '}' + '],' +
+    '"NotesEmpty":[],' + '"AppreciationAs":"Yes",' + '"Appreciation":{' + '"type":"ustring",' + '"value":"Yes"' +
+    '}' + '}';
 var
   O: TEntity;
   S: string;
@@ -1027,13 +951,10 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestSerializeEntityCustomMemberSerializer;
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomMemberSerializer;
 const
-  JSON = '{' + '"Entity":{' + '"AId":1,' + '"ACode":2,' +
-    '"AName":"Ezequiel Juliano Müller"' + '},' +
-    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' +
-    '"NotesAsString":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Entity":{' + '"AId":1,' + '"ACode":2,' + '"AName":"Ezequiel Juliano Müller"' + '},' +
+    '"Notes":"RXplcXVpZWwgSnVsaWFubyBN/GxsZXI=",' + '"NotesAsString":"Ezequiel Juliano Müller"' + '}';
 var
   O: TSale;
   S: string;
@@ -1055,8 +976,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityCustomSerializer;
 const
-  JSON = '{' + '"AId":1,' + '"ACode":2,' +
-    '"AName":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"AId":1,' + '"ACode":2,' + '"AName":"Ezequiel Juliano Müller"' + '}';
 var
   O: TEntityCustom;
   S: string;
@@ -1076,8 +996,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityLowerCaseNames;
 const
-  JSON = '{' + '"id":1,' + '"code":2,' +
-    '"name":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"id":1,' + '"code":2,' + '"name":"Ezequiel Juliano Müller"' + '}';
 var
   O: TEntityLowerCase;
   S: string;
@@ -1097,8 +1016,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityNameAs;
 const
-  JSON = '{' + '"Id_Id":1,' + '"Code_Code":2,' +
-    '"Name_Name":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"Id_Id":1,' + '"Code_Code":2,' + '"Name_Name":"Ezequiel Juliano Müller"' + '}';
 var
   O: TEntityNameAs;
   S: string;
@@ -1119,14 +1037,11 @@ begin
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestSerializeEntitySerializationType;
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntitySerializationType;
 const
-  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' +
-    '"FName":"Ezequiel Juliano Müller"' + '}';
+  JSON_FIELDS = '{' + '"FId":1,' + '"FCode":2,' + '"FName":"Ezequiel Juliano Müller"' + '}';
 
-  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' +
-    '"Name":"Ezequiel Juliano Müller"' + '}';
+  JSON_PROPERTIES = '{' + '"Id":1,' + '"Code":2,' + '"Name":"Ezequiel Juliano Müller"' + '}';
 var
   OFields: TEntitySerializeFields;
   OProperties: TEntitySerializeProperties;
@@ -1159,8 +1074,7 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeEntityUpperCaseNames;
 const
-  JSON = '{' + '"ID":1,' + '"CODE":2,' +
-    '"NAME":"Ezequiel Juliano Müller"' + '}';
+  JSON = '{' + '"ID":1,' + '"CODE":2,' + '"NAME":"Ezequiel Juliano Müller"' + '}';
 var
   O: TEntityUpperCase;
   S: string;
@@ -1191,7 +1105,7 @@ begin
     O.Id := 1;
     O.Names := ['Pedro', 'Oliveira'];
     O.Values := [1, 2];
-    O.Booleans := [true, false, true];
+    O.Booleans := [True, False, True];
     S := fSerializer.SerializeObject(O);
     Assert.areEqual(JSON_WITH_ARRAY, S);
   finally
@@ -1242,11 +1156,69 @@ begin
 
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestSerializeDeserializeEntityWithInterface;
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeListWithNulls;
+var
+  lPeople: TPeople;
+  lPerson: TPerson;
+  lStr: string;
+  lJObj: TJsonObject;
+begin
+  lPeople := TPeople.Create;
+  try
+    lPerson := TPerson.Create;
+    lPerson.Id := 1;
+    lPerson.FirstName := 'Daniele';
+    lPerson.LastName := 'Teti';
+    lPeople.Add(lPerson);
+    lPeople.Add(nil);
+    lStr := fSerializer.SerializeObject(lPeople);
+    lJObj := TJsonObject.Parse(lStr) as TJsonObject;
+    try
+      // this test should test that the serialization happens even for "nil" objects
+      Assert.IsFalse(lJObj.A['List'].Items[0].IsNull);
+      Assert.isTrue(lJObj.A['List'].Items[1].IsNull);
+    finally
+      lJObj.Free;
+    end;
+  finally
+    lPeople.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeListWithNulls2;
+var
+  lPeople: TPeople;
+  lPerson: TPerson;
+  lStr: string;
+  lJArr: TJsonArray;
+begin
+  lPeople := TPeople.Create;
+  try
+    lPerson := TPerson.Create;
+    lPerson.Id := 1;
+    lPerson.FirstName := 'Daniele';
+    lPerson.LastName := 'Teti';
+    lPeople.Add(lPerson);
+    lPeople.Add(nil);
+    lStr := fSerializer.SerializeCollection(lPeople);
+    lJArr := TJsonObject.Parse(lStr) as TJsonArray;
+    try
+      // this test should test that the serialization happens even for "nil" objects
+      Assert.IsFalse(lJArr.Items[0].IsNull);
+      Assert.IsTrue(lJArr.Items[1].IsNull);
+    finally
+      lJArr.Free;
+    end;
+  finally
+    lPeople.Free;
+  end;
+end;
+
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeEntityWithInterface;
 const
-  JSON = '{' + '"Id":1,' + '"Name":"João Antônio Duarte",' + '"ChildEntity":{' +
-    '"Code":10,' + '"Description":"Child Entity"' + '}' + '}';
+  JSON = '{' + '"Id":1,' + '"Name":"João Antônio Duarte",' + '"ChildEntity":{' + '"Code":10,' +
+    '"Description":"Child Entity"' + '}' + '}';
 var
   LEntity: IEntityWithInterface;
   LJson: string;
@@ -1268,22 +1240,16 @@ begin
   Assert.areEqual('Child Entity', LEntity.ChildEntity.Description);
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestSerializeDeserializeGenericEntity;
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGenericEntity;
 const
-  JSON = '{' + '"Code":1,' + '"Description":"General Description",' +
-    '"Items":[' + '{"Description":"Description 01"},' +
-    '{"Description":"Description 02"},' + '{"Description":"Description 03"},' +
-    '{"Description":"Description 04"},' + '{"Description":"Description 05"}' +
-    ']' + '}';
+  JSON = '{' + '"Code":1,' + '"Description":"General Description",' + '"Items":[' + '{"Description":"Description 01"},'
+    + '{"Description":"Description 02"},' + '{"Description":"Description 03"},' + '{"Description":"Description 04"},' +
+    '{"Description":"Description 05"}' + ']' + '}';
 
-  NESTED_JSON = '{' + '"Code":1,' + '"Description":"General Description",' +
-    '"Items":[' + '{' + '"Code":10,' + '"Description":"Item_01",' + '"Items":['
-    + '{"Description":"Description 01"}' + ']' + '},' + '{' + '"Code":11,' +
-    '"Description":"Item_02",' + '"Items":[' +
-    '{"Description":"Description 02"}' + ']' + '},' + '{' + '"Code":12,' +
-    '"Description":"Item_03",' + '"Items":[' +
-    '{"Description":"Description 03"}' + ']' + '}' + ']' + '}';
+  NESTED_JSON = '{' + '"Code":1,' + '"Description":"General Description",' + '"Items":[' + '{' + '"Code":10,' +
+    '"Description":"Item_01",' + '"Items":[' + '{"Description":"Description 01"}' + ']' + '},' + '{' + '"Code":11,' +
+    '"Description":"Item_02",' + '"Items":[' + '{"Description":"Description 02"}' + ']' + '},' + '{' + '"Code":12,' +
+    '"Description":"Item_03",' + '"Items":[' + '{"Description":"Description 03"}' + ']' + '}' + ']' + '}';
 var
   LGenericEntity: TGenericEntity<TNote>;
   LNestedGenericEntity: TNestedGenericEntity;
@@ -1365,20 +1331,17 @@ begin
     Assert.areEqual(Integer(10), LNestedGenericEntity.Items[0].Code);
     Assert.areEqual('Item_01', LNestedGenericEntity.Items[0].Description);
     Assert.areEqual(Integer(1), LNestedGenericEntity.Items[0].Items.Count);
-    Assert.areEqual('Description 01', LNestedGenericEntity.Items[0].Items[0]
-      .Description);
+    Assert.areEqual('Description 01', LNestedGenericEntity.Items[0].Items[0].Description);
 
     Assert.areEqual(Integer(11), LNestedGenericEntity.Items[1].Code);
     Assert.areEqual('Item_02', LNestedGenericEntity.Items[1].Description);
     Assert.areEqual(Integer(1), LNestedGenericEntity.Items[1].Items.Count);
-    Assert.areEqual('Description 02', LNestedGenericEntity.Items[1].Items[0]
-      .Description);
+    Assert.areEqual('Description 02', LNestedGenericEntity.Items[1].Items[0].Description);
 
     Assert.areEqual(Integer(12), LNestedGenericEntity.Items[2].Code);
     Assert.areEqual('Item_03', LNestedGenericEntity.Items[2].Description);
     Assert.areEqual(Integer(1), LNestedGenericEntity.Items[2].Items.Count);
-    Assert.areEqual('Description 03', LNestedGenericEntity.Items[2].Items[0]
-      .Description);
+    Assert.areEqual('Description 03', LNestedGenericEntity.Items[2].Items[0].Description);
 
   finally
     LNestedGenericEntity.Free;
@@ -1388,8 +1351,8 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
 const
-  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' +
-    '"Id":1,' + '"Code":2,' + '"Name":"João Antônio"' + '}';
+  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' + '"Id":1,' + '"Code":2,' +
+    '"Name":"João Antônio"' + '}';
 var
   LEntity: TEntityCustomWithGuid;
   LJson: string;
@@ -1413,24 +1376,19 @@ begin
     Assert.areEqual(int64(1), LEntity.Id);
     Assert.areEqual(Integer(2), LEntity.Code);
     Assert.areEqual('João Antônio', LEntity.Name);
-    Assert.areEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'),
-      LEntity.GuidValue);
+    Assert.areEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
   finally
     LEntity.Free;
   end;
 end;
 
-procedure TMVCTestSerializerJsonDataObjects.
-  TestSerializeDeserializeMultipleGenericEntity;
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeMultipleGenericEntity;
 const
-  JSON = '{' + '"Code":1,' + '"Description":"General Description",' +
-    '"Items":[' + '{"Description":"Description 01"},' +
-    '{"Description":"Description 02"},' + '{"Description":"Description 03"},' +
-    '{"Description":"Description 04"},' + '{"Description":"Description 05"}' +
-    '],' + '"Items2":[' + '{"Description":"Description2 01"},' +
-    '{"Description":"Description2 02"},' + '{"Description":"Description2 03"},'
-    + '{"Description":"Description2 04"},' + '{"Description":"Description2 05"}'
-    + ']' + '}';
+  JSON = '{' + '"Code":1,' + '"Description":"General Description",' + '"Items":[' + '{"Description":"Description 01"},'
+    + '{"Description":"Description 02"},' + '{"Description":"Description 03"},' + '{"Description":"Description 04"},' +
+    '{"Description":"Description 05"}' + '],' + '"Items2":[' + '{"Description":"Description2 01"},' +
+    '{"Description":"Description2 02"},' + '{"Description":"Description2 03"},' + '{"Description":"Description2 04"},' +
+    '{"Description":"Description2 05"}' + ']' + '}';
 var
   LGenericEntity: TMultipleGenericEntity<TNote, TNote>;
   LJson: string;
@@ -1496,6 +1454,8 @@ var
   lDict: TMVCStringDictionary;
   lSerString: string;
   lDict2: TMVCStringDictionary;
+  lEntityDict: TEntityWithStringDictionary;
+  lEntityDict2: TEntityWithStringDictionary;
 begin
   lDict := TMVCStringDictionary.Create;
   try
@@ -1518,13 +1478,35 @@ begin
   finally
     lDict.Free;
   end;
+
+  lEntityDict := TEntityWithStringDictionary.Create;
+  try
+    lEntityDict.Dict['prop1'] := 'value1';
+    lEntityDict.Dict['prop2'] := 'value2';
+    lEntityDict.Dict['prop3'] := 'value3';
+    lSerString := fSerializer.SerializeObject(lEntityDict);
+
+    lEntityDict2 := TEntityWithStringDictionary.Create;
+    try
+      fSerializer.DeserializeObject(lSerString, lEntityDict2);
+      Assert.isTrue(lEntityDict2.Dict.ContainsKey('prop1'));
+      Assert.isTrue(lEntityDict2.Dict.ContainsKey('prop2'));
+      Assert.isTrue(lEntityDict2.Dict.ContainsKey('prop3'));
+      Assert.areEqual(lEntityDict.Dict['prop1'], lEntityDict2.Dict['prop1']);
+      Assert.areEqual(lEntityDict.Dict['prop2'], lEntityDict2.Dict['prop2']);
+      Assert.areEqual(lEntityDict.Dict['prop3'], lEntityDict2.Dict['prop3']);
+    finally
+      lEntityDict2.Free;
+    end;
+  finally
+    lEntityDict.Free;
+  end;
 end;
 
 { TMVCEntityCustomSerializerJsonDataObjects }
 
-procedure TMVCEntityCustomSerializerJsonDataObjects.Deserialize
-  (const ASerializedObject: TObject; var AElementValue: TValue;
-  const AAttributes: TArray<TCustomAttribute>);
+procedure TMVCEntityCustomSerializerJsonDataObjects.Deserialize(const ASerializedObject: TObject;
+  var AElementValue: TValue; const AAttributes: TArray<TCustomAttribute>);
 var
   JsonObject: TJsonObject;
   EntityCustom: TEntityCustom;
@@ -1542,16 +1524,14 @@ begin
   end;
 end;
 
-procedure TMVCEntityCustomSerializerJsonDataObjects.DeserializeAttribute
-  (var AElementValue: TValue; const APropertyName: string;
-  const ASerializerObject: TObject;
+procedure TMVCEntityCustomSerializerJsonDataObjects.DeserializeAttribute(var AElementValue: TValue;
+  const APropertyName: string; const ASerializerObject: TObject;
   const AAttributes: System.TArray<System.TCustomAttribute>);
 begin
   DeserializeRoot(ASerializerObject, AElementValue.AsObject, AAttributes);
 end;
 
-procedure TMVCEntityCustomSerializerJsonDataObjects.DeserializeRoot
-  (const ASerializerObject, AObject: TObject;
+procedure TMVCEntityCustomSerializerJsonDataObjects.DeserializeRoot(const ASerializerObject, AObject: TObject;
   const AAttributes: System.TArray<System.TCustomAttribute>);
 var
   LEntity: TEntityCustom;
@@ -1586,9 +1566,8 @@ begin
   end;
 end;
 
-procedure TMVCEntityCustomSerializerJsonDataObjects.Serialize
-  (const AElementValue: TValue; var ASerializerObject: TObject;
-  const AAttributes: TArray<TCustomAttribute>);
+procedure TMVCEntityCustomSerializerJsonDataObjects.Serialize(const AElementValue: TValue;
+  var ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
   EntityCustom: TEntityCustom;
 begin
@@ -1602,9 +1581,8 @@ begin
   end;
 end;
 
-procedure TMVCEntityCustomSerializerJsonDataObjects.SerializeAttribute
-  (const AElementValue: TValue; const APropertyName: string;
-  const ASerializerObject: TObject;
+procedure TMVCEntityCustomSerializerJsonDataObjects.SerializeAttribute(const AElementValue: TValue;
+  const APropertyName: string; const ASerializerObject: TObject;
   const AAttributes: System.TArray<System.TCustomAttribute>);
 var
   lEntityCustom: TEntityCustom;
@@ -1612,12 +1590,9 @@ begin
   lEntityCustom := AElementValue.AsObject as TEntityCustom;
   if Assigned(lEntityCustom) then
   begin
-    TJsonObject(ASerializerObject).O[APropertyName].L['AId'] :=
-      lEntityCustom.Id;
-    TJsonObject(ASerializerObject).O[APropertyName].I['ACode'] :=
-      lEntityCustom.Code;
-    TJsonObject(ASerializerObject).O[APropertyName].S['AName'] :=
-      lEntityCustom.Name;
+    TJsonObject(ASerializerObject).O[APropertyName].L['AId'] := lEntityCustom.Id;
+    TJsonObject(ASerializerObject).O[APropertyName].I['ACode'] := lEntityCustom.Code;
+    TJsonObject(ASerializerObject).O[APropertyName].S['AName'] := lEntityCustom.Name;
   end
   else
   begin
@@ -1625,9 +1600,8 @@ begin
   end;
 end;
 
-procedure TMVCEntityCustomSerializerJsonDataObjects.SerializeRoot
-  (const AObject: TObject; out ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>;
+procedure TMVCEntityCustomSerializerJsonDataObjects.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>;
   const ASerializationAction: TMVCSerializationAction);
 var
   lEntityCustom: TEntityCustom;
@@ -1645,32 +1619,28 @@ end;
 
 { TMVCNullableIntegerSerializerJsonDataObjects }
 
-procedure TMVCNullableIntegerSerializerJsonDataObjects.DeserializeAttribute
-  (var AElementValue: TValue; const APropertyName: string;
-  const ASerializerObject: TObject;
+procedure TMVCNullableIntegerSerializerJsonDataObjects.DeserializeAttribute(var AElementValue: TValue;
+  const APropertyName: string; const ASerializerObject: TObject;
   const AAttributes: System.TArray<System.TCustomAttribute>);
 begin
 
 end;
 
-procedure TMVCNullableIntegerSerializerJsonDataObjects.DeserializeRoot
-  (const ASerializerObject, AObject: TObject;
+procedure TMVCNullableIntegerSerializerJsonDataObjects.DeserializeRoot(const ASerializerObject, AObject: TObject;
   const AAttributes: System.TArray<System.TCustomAttribute>);
 begin
 
 end;
 
-procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeAttribute
-  (const AElementValue: TValue; const APropertyName: string;
-  const ASerializerObject: TObject;
+procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeAttribute(const AElementValue: TValue;
+  const APropertyName: string; const ASerializerObject: TObject;
   const AAttributes: System.TArray<System.TCustomAttribute>);
 begin
 
 end;
 
-procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeRoot
-  (const AObject: TObject; out ASerializerObject: TObject;
-  const AAttributes: System.TArray<System.TCustomAttribute>;
+procedure TMVCNullableIntegerSerializerJsonDataObjects.SerializeRoot(const AObject: TObject;
+  out ASerializerObject: TObject; const AAttributes: System.TArray<System.TCustomAttribute>;
   const ASerializationAction: TMVCSerializationAction);
 begin
 

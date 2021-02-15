@@ -35,10 +35,12 @@ Given the success of DMVCFramework in the Delphi community, the official DMVCFra
 
 ## How to install DMVCFramework
 
-*It is not needed to download the git repository*. Just download the [latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok.
+*It is not needed to download the git repository*. Just [download latest version as a zip file](https://github.com/danieleteti/delphimvcframework/releases/latest) and you are ok. The samples are availables as separate zip file downloadable from the same page where you download the release.
 
-If you want to participate to the testing phase (which usually contains brand new features) you can get the [latest Release Candidate version](https://github.com/danieleteti/delphimvcframework/releases).
-Take in mind that, even if RCs are usually very stable, they are still not ready for production utilization.
+### Do you want to partecipate to DMVCFramework development or tests?
+
+Only if you want to participate to the testing phase (which usually contains brand new features) you can get the development version clonig this repo or downloading the [master repository zip file](https://github.com/danieleteti/delphimvcframework/archive/master.zip).
+Take in mind that even if development version is usually very stable, it isn't not ready for production utilization.
 
 ## What users say about DMVCFramework
 
@@ -83,7 +85,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 * Very fast! (2.x was pretty fast and now, 3.x is 60% faster than the 2.x!)
 
-* Support group at https://www.facebook.com/groups/delphimvcframework with more than 2700 active members
+* Support group at https://www.facebook.com/groups/delphimvcframework with more than 4900 active members
 
 * Can be used in load balanced environment
 

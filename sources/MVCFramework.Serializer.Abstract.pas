@@ -219,6 +219,10 @@ var
   lValue: TValue;
   lFound: Boolean;
 begin
+  if AObject = nil then
+  begin
+    Exit(ADefaultValue);
+  end;
   lSerializationTypeCacheKey := AObject.QualifiedClassName + '::sertype';
   if TMVCCacheSingleton.Instance.Contains(lSerializationTypeCacheKey, lValue) then
   begin

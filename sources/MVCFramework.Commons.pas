@@ -595,6 +595,14 @@ type
 {$SCOPEDENUMS ON}
   TMVCCompressionType = (ctNone, ctDeflate, ctGZIP);
 
+
+{ GENERIC TYPE ALIASES }
+TMVCListOfString = TList<string>;
+TMVCListOfInteger =  TList<Integer>;
+TMVCListOfBoolean = TList<Boolean>;
+TMVCListOfDouble =  TList<Double>;
+{ GENERIC TYPE ALIASES // END}
+
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;

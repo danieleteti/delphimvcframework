@@ -65,6 +65,8 @@ type
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
 
+  TPeople = TObjectList<TPerson>;
+
   TClassWithArrays = class
   private
     fArrayOfString: TArray<string>;
@@ -189,7 +191,7 @@ type
     property DOB: TDate read GetDOB write SetDOB;
   end;
 
-  TPeople = class(TObjectList<TPerson>);
+  //TPeople = class(TObjectList<TPerson>);
 
   [MVCNameCase(ncLowerCase)]
   TMetadata = class
