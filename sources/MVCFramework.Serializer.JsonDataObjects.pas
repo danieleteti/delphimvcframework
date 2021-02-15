@@ -231,10 +231,10 @@ begin
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
   fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create(self);
   GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
-  GetTypeSerializers.Add(TypeInfo(TList<string>), TMVCListOfStringSerializer.Create);
-  GetTypeSerializers.Add(TypeInfo(TList<Integer>), TMVCListOfIntegerSerializer.Create);
-  GetTypeSerializers.Add(TypeInfo(TList<Boolean>), TMVCListOfBooleanSerializer.Create);
-  GetTypeSerializers.Add(TypeInfo(TList<Double>), TMVCListOfDoubleSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfString {TList<string>}), TMVCListOfStringSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfInteger {TList<Integer>}), TMVCListOfIntegerSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfBoolean {TList<Boolean>}), TMVCListOfBooleanSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfDouble {TList<Double>}), TMVCListOfDoubleSerializer.Create);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.TValueToJSONObjectProperty(const AJsonObject: TJDOJsonObject;

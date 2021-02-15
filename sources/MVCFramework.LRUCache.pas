@@ -113,7 +113,7 @@ begin
   try
     if fCache.Count = fCapacity then
     begin
-	  fCache.Delete(fCache.Count - 1);
+	    fCache.Delete(fCache.Count - 1);
     end;
     fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
   finally

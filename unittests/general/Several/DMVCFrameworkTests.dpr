@@ -49,7 +49,8 @@ uses
   WebModuleU in 'webmodules\WebModuleU.pas' {MyWebModule: TWebModule},
   FDConnectionConfigU in 'webmodules\FDConnectionConfigU.pas',
   StandaloneServerTestU in '..\StandaloneServer\StandaloneServerTestU.pas',
-  StandAloneServerWebModuleTest in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule};
+  StandAloneServerWebModuleTest in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
+  MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas';
 
 {$R *.RES}
 
