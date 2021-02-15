@@ -50,7 +50,8 @@ uses
   FDConnectionConfigU in 'webmodules\FDConnectionConfigU.pas',
   StandaloneServerTestU in '..\StandaloneServer\StandaloneServerTestU.pas',
   StandAloneServerWebModuleTest in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
-  MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas';
+  MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas',
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas';
 
 {$R *.RES}
 
