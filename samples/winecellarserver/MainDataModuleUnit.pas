@@ -77,6 +77,8 @@ begin
 end;
 
 procedure TWineCellarDataModule.ConnectionBeforeConnect(Sender: TObject);
+var
+  lDBPath: string;
 begin
   // if you are using firebird 2.5, uses the file WINES_FB25.FDB
   if not IsLibrary then
@@ -86,8 +88,11 @@ begin
   end
   else
   begin
-    // Is compiled as Apache Module
-    Connection.Params.Values['Database'] := ExtractFilePath(ParamStr(0)) + '..\..\..\winecellarserver\WINES_FB30.FDB';
+    // compiled as apache module or isapi
+    lDBPath := ExtractFilePath(GetModuleName(HInstance)) + '..\..\winecellarserver\WINES_FB30.FDB';
+    if lDBPath.StartsWith('\\?\') then
+      lDBPath := lDBPath.Remove(0, 4);
+    Connection.Params.Values['Database'] := lDBPath;
   end;
 end;
 
