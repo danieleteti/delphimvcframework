@@ -699,7 +699,7 @@ end;
 
 function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: Double): IMVCRESTClient;
 begin
-  Result := AddPathParam(aName, aValue.ToString);
+  Result := AddQueryStringParam(aName, aValue.ToString);
 end;
 
 function TMVCRESTClient.AddQueryStringParam(const aName: string; aValue: TTime): IMVCRESTClient;
