@@ -750,6 +750,183 @@ end;
 
 - **Deprecated!** `TDataSetHolder` is deprecated! Use the shining new `ObjectDict(boolean)` instead.
 
+- New! **ObjectDict** function is the suggested way to render all the most common data types. It returns a `IMVCObjectDictionary` which is automatically rendered by the renders. Check the `renders.dproj` sample. Here's some example of the shining new `ObjectDict()`.
+
+  **Example 1: Rendering a list of objects not freeing them after rendering**
+
+  *Classic*
+
+  ```delphi
+  procedure TRenderSampleController.GetLotOfPeople;
+  begin
+    Render<TPerson>(GetPeopleList, False);
+  end;
+  ```
+
+  *New approach with ObjectDict*
+
+  ```delphi
+  procedure TRenderSampleController.GetLotOfPeople;
+  begin
+    Render(ObjectDict(False).Add('data', GetPeopleList));
+  end;
+  ```
+
+  
+
+  **Example 2: Rendering  a list of objects and automatically free them  after rendering**
+
+  *Classic*
+
+  ```delphi
+  procedure TRenderSampleController.GetLotOfPeople;
+  begin
+    Render<TPerson>(GetPeopleList);
+  end;
+  
+  ```
+
+  *New approach with ObjectDict*
+
+  ```delphi
+  procedure TRenderSampleController.GetLotOfPeople;
+  begin
+    Render(ObjectDict().Add('data', GetPeopleList));
+  end;
+  
+  ```
+
+  **Example 3: Rendering  a list of objects adding links for HATEOAS support**
+
+  *Classic*
+
+  ```delphi
+  procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;
+  var
+    p: TPerson;
+    People: TObjectList<TPerson>;
+  begin
+    People := TObjectList<TPerson>.Create(True);
+  
+  {$REGION 'Fake data'}
+    p := TPerson.Create;
+    p.FirstName := 'Daniele';
+    p.LastName := 'Teti';
+    p.DOB := EncodeDate(1979, 8, 4);
+    p.Married := True;
+    People.Add(p);
+  
+    p := TPerson.Create;
+    p.FirstName := 'John';
+    p.LastName := 'Doe';
+    p.DOB := EncodeDate(1879, 10, 2);
+    p.Married := False;
+    People.Add(p);
+  
+    p := TPerson.Create;
+    p.FirstName := 'Jane';
+    p.LastName := 'Doe';
+    p.DOB := EncodeDate(1883, 1, 5);
+    p.Married := True;
+    People.Add(p);
+  {$ENDREGION}
+  
+    Render<TPerson>(People, True,
+      procedure(const APerson: TPerson; const Links: IMVCLinks)
+      begin
+        Links
+         .AddRefLink
+         .Add(HATEOAS.HREF, '/people/' + APerson.ID.ToString)
+         .Add(HATEOAS.REL, 'self')
+         .Add(HATEOAS._TYPE, 'application/json')
+         .Add('title', 'Details for ' + APerson.FullName);
+        Links
+         .AddRefLink
+         .Add(HATEOAS.HREF, '/people')
+         .Add(HATEOAS.REL, 'people')
+         .Add(HATEOAS._TYPE, 'application/json');
+      end);
+  end;
+  
+  ```
+
+  *New approach with ObjectDict*
+
+  ```delphi
+  procedure TRenderSampleController.GetPeople_AsObjectList_HATEOAS;
+  var
+    p: TPerson;
+    People: TObjectList<TPerson>;
+  begin
+    People := TObjectList<TPerson>.Create(True);
+  
+  {$REGION 'Fake data'}
+    p := TPerson.Create;
+    p.FirstName := 'Daniele';
+    p.LastName := 'Teti';
+    p.DOB := EncodeDate(1979, 8, 4);
+    p.Married := True;
+    People.Add(p);
+  
+    p := TPerson.Create;
+    p.FirstName := 'John';
+    p.LastName := 'Doe';
+    p.DOB := EncodeDate(1879, 10, 2);
+    p.Married := False;
+    People.Add(p);
+  
+    p := TPerson.Create;
+    p.FirstName := 'Jane';
+    p.LastName := 'Doe';
+    p.DOB := EncodeDate(1883, 1, 5);
+    p.Married := True;
+    People.Add(p);
+  
+  {$ENDREGION}
+   
+    Render(ObjectDict().Add('data', People,
+      procedure(const APerson: TObject; const Links: IMVCLinks)
+      begin
+        Links
+          .AddRefLink
+          .Add(HATEOAS.HREF, '/people/' + TPerson(APerson).ID.ToString)
+          .Add(HATEOAS.REL, 'self')
+          .Add(HATEOAS._TYPE, 'application/json')
+          .Add('title', 'Details for ' + TPerson(APerson).FullName);
+        Links
+          .AddRefLink
+          .Add(HATEOAS.HREF, '/people')
+          .Add(HATEOAS.REL, 'people')
+          .Add(HATEOAS._TYPE, 'application/json');
+      end));
+  end;
+  
+  ```
+
+  `ObjectDict` is able to render multiple data sources (datasets, objectlists, objects or StrDict) at the same time using different casing, HATEOAS callbacks and modes.
+
+  ```delphi
+  procedure TTestServerController.TestObjectDict;
+  var
+    lDict: IMVCObjectDictionary;
+  begin
+    lDict := ObjectDict(false)
+      .Add('ncUpperCase_List', GetDataSet, nil, dstAllRecords, ncUpperCase)
+      .Add('ncLowerCase_List', GetDataSet, nil, dstAllRecords, ncLowerCase)
+      .Add('ncCamelCase_List', GetDataSet, nil, dstAllRecords, ncCamelCase)
+      .Add('ncPascalCase_List', GetDataSet, nil, dstAllRecords, ncPascalCase)
+      .Add('ncUpperCase_Single', GetDataSet, nil, dstSingleRecord, ncUpperCase)
+      .Add('ncLowerCase_Single', GetDataSet, nil, dstSingleRecord, ncLowerCase)
+      .Add('ncCamelCase_Single', GetDataSet, nil, dstSingleRecord, ncCamelCase)
+      .Add('ncPascalCase_Single', GetDataSet, nil, dstSingleRecord, ncPascalCase)
+      .Add('meta', StrDict(['page'], ['1']));
+    Render(lDict);
+  end;
+  
+  ```
+
+  >ObjectDict is the suggested way to renders data. However, the other ones are still there and works as usual.
+
 - Added ability to serialize/deserialize types enumerated by an array of mapped values (Thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
 
   ```delphi
