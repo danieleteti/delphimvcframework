@@ -36,7 +36,6 @@ uses
   MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
 
 type
-
   TMyObject = class
   private
     function GetCustomersDataset: TFDMemTable;
@@ -57,8 +56,11 @@ type
     function GetNextMonday(const aDate: TDate): TDate;
     function PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime: TTime; const aDate: TDate;
       const aDateAndTime: TDateTime): TDateTime;
+    [MVCJSONRPCAllowGET]
     function GetCustomers(FilterString: string): TDataset;
+    [MVCJSONRPCAllowGET]
     function GetMulti: TMultiDataset;
+    [MVCJSONRPCAllowGET]
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const Person: TJsonObject): Integer;

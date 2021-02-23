@@ -9,9 +9,6 @@
         <Projects Include="..\winecellarserver\WineCellarServer.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\winecellarclient_mobile\WinesClient.dproj">
-            <Dependencies/>
-        </Projects>
         <Projects Include="..\winecellarclient\WineCellarClient.dproj">
             <Dependencies/>
         </Projects>
@@ -41,15 +38,6 @@
     <Target Name="WineCellarServer:Make">
         <MSBuild Projects="..\winecellarserver\WineCellarServer.dproj" Targets="Make"/>
     </Target>
-    <Target Name="WinesClient">
-        <MSBuild Projects="..\winecellarclient_mobile\WinesClient.dproj"/>
-    </Target>
-    <Target Name="WinesClient:Clean">
-        <MSBuild Projects="..\winecellarclient_mobile\WinesClient.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="WinesClient:Make">
-        <MSBuild Projects="..\winecellarclient_mobile\WinesClient.dproj" Targets="Make"/>
-    </Target>
     <Target Name="WineCellarClient">
         <MSBuild Projects="..\winecellarclient\WineCellarClient.dproj"/>
     </Target>
@@ -60,13 +48,13 @@
         <MSBuild Projects="..\winecellarclient\WineCellarClient.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="WineCellarClientRESTAdapter;WineCellarServer;WinesClient;WineCellarClient"/>
+        <CallTarget Targets="WineCellarClientRESTAdapter;WineCellarServer;WineCellarClient"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="WineCellarClientRESTAdapter:Clean;WineCellarServer:Clean;WinesClient:Clean;WineCellarClient:Clean"/>
+        <CallTarget Targets="WineCellarClientRESTAdapter:Clean;WineCellarServer:Clean;WineCellarClient:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="WineCellarClientRESTAdapter:Make;WineCellarServer:Make;WinesClient:Make;WineCellarClient:Make"/>
+        <CallTarget Targets="WineCellarClientRESTAdapter:Make;WineCellarServer:Make;WineCellarClient:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

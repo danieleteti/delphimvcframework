@@ -190,8 +190,8 @@ type
     class function ApplyNameCase(const NameCase: TMVCNameCase; const Value: string): string; static;
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): Boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+    class function HasAttribute<T: class>(const AMember: TRttiObject): Boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean;
       overload; static;
     class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T)
       : Boolean; overload; static;
@@ -807,7 +807,7 @@ begin
   Result := Result.Remove(0, 2).ToLower;
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiObject): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -821,7 +821,7 @@ begin
       Exit(True);
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiObject; out AAttribute: T): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;

@@ -8,22 +8,44 @@ uses
 type
   TTestJSONRPCController = class(TMVCJSONRPCController)
   public
+    [MVCInheritable]
     function Subtract(Value1, Value2: Int64): Integer;
+    [MVCInheritable]
     procedure MyNotify;
+    [MVCInheritable]
     function MyRequest: Boolean;
+    [MVCInheritable]
     function Add(Value1, Value2, Value3: Int64): TJsonObject;
+    [MVCInheritable]
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
+    [MVCInheritable]
     function MultiplyString(aString: string; Multiplier: Int64): string;
+  end;
+
+  [MVCJSONRPCAllowGET]
+  TTestJSONRPCControllerWithGet = class(TTestJSONRPCController)
+
   end;
 
   TTestJSONRPCClass = class(TObject)
   public
+    [MVCInheritable]
     function Subtract(Value1, Value2: Int64): Integer;
+    [MVCInheritable]
     procedure MyNotify;
+    [MVCInheritable]
     function Add(Value1, Value2, Value3: Int64): TJsonObject;
+    [MVCInheritable]
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
+    [MVCInheritable]
     function MultiplyString(aString: string; Multiplier: Int64): string;
+    [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
+  end;
+
+  [MVCJSONRPCAllowGET]
+  TTestJSONRPCClassWithGET = class(TTestJSONRPCClass)
+
   end;
 
   TTestJSONRPCHookClass = class(TObject)
@@ -35,14 +57,25 @@ type
     procedure OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
     procedure OnBeforeCallHook(const Context: TWebContext; const JSON: TJsonObject);
     procedure OnAfterCallHook(const Context: TWebContext; const JSON: TJsonObject);
+    [MVCInheritable]
     function error_OnBeforeRoutingHook: Boolean;
+    [MVCInheritable]
     function error_OnBeforeCallHook: Boolean;
+    [MVCInheritable]
     function error_OnAfterCallHook: Boolean;
-
+    [MVCInheritable]
     procedure Notif1;
+    [MVCInheritable]
     procedure NotifWithError;
+    [MVCInheritable]
     function Request1: string;
+    [MVCInheritable]
     function RequestWithError: string;
+  end;
+
+  [MVCJSONRPCAllowGET]
+  TTestJSONRPCHookClassWithGet = class(TTestJSONRPCHookClass)
+
   end;
 
 implementation
@@ -67,8 +100,7 @@ begin
     Result.Add(I);
 end;
 
-function TTestJSONRPCController.MultiplyString(aString: string;
-  Multiplier: Int64): string;
+function TTestJSONRPCController.MultiplyString(aString: string; Multiplier: Int64): string;
 var
   I: Integer;
 begin
@@ -103,8 +135,7 @@ begin
   Result.I['res'] := Value1 + Value2 + Value3;
 end;
 
-function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime;
-  aTime: TTime): TDateTime;
+function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 begin
   Result := aDateTime + aTime;
 end;
@@ -118,8 +149,7 @@ begin
     Result.Add(I);
 end;
 
-function TTestJSONRPCClass.MultiplyString(aString: string;
-  Multiplier: Int64): string;
+function TTestJSONRPCClass.MultiplyString(aString: string; Multiplier: Int64): string;
 var
   I: Integer;
 begin

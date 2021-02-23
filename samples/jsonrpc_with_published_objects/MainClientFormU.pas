@@ -123,6 +123,7 @@ uses
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Commons,
+  MVCFramework.Logger,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DataSet.Utils,
   BusinessObjectsU,
@@ -130,7 +131,6 @@ uses
   System.Rtti;
 
 {$R *.dfm}
-
 
 procedure TMainForm.btnAddDayClick(Sender: TObject);
 var
@@ -226,7 +226,7 @@ begin
   lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := FExecutor.ExecuteNotification('/jsonrpc', lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
@@ -423,7 +423,7 @@ var
 begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getmulti');
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcGET);
 
   lMultiDS := TMultiDataset.Create;
   try
@@ -461,7 +461,7 @@ begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcGET);
   FDMemTable1.Active := True;
   FDMemTable1.LoadFromTValue(lResp.Result);
   FDMemTable1.First;
@@ -470,10 +470,29 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
-  /// jsonrpc');
-  // FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
-  dtNextMonday.Date := Date;
 
+  FExecutor.SetOnSendCommand(
+    procedure(JSONRPCObject: IJSONRPCObject)
+    begin
+      Log.Debug('REQUEST : ' + JSONRPCObject.ToString(True), 'jsonrpc');
+    end);
+
+  FExecutor.SetOnReceiveResponse(
+    procedure(Req, Resp: IJSONRPCObject)
+    begin
+      Log.Debug('>> OnReceiveResponse // start', 'jsonrpc');
+      Log.Debug('     REQUEST : ' + Req.ToString(True), 'jsonrpc');
+      Log.Debug('     RESPONSE: ' + Resp.ToString(True), 'jsonrpc');
+      Log.Debug('<< OnReceiveResponse // end', 'jsonrpc');
+    end);
+
+  FExecutor.SetOnReceiveHTTPResponse(
+    procedure(HTTPResp: IHTTPResponse)
+    begin
+      Log.Debug('RESPONSE: ' + HTTPResp.ContentAsString(), 'jsonrpc');
+    end);
+
+  dtNextMonday.Date := Date;
   // these are the methods to handle http headers in JSONRPC
   // the following line and the check on the server is just for demo
   Assert(FExecutor.HTTPHeadersCount = 0);
