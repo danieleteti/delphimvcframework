@@ -429,7 +429,23 @@ This version introduced new features in many different areas (swagger, server si
 
 ## Next Release: 3.2.2-nitrogen ("repo" version)
 
-In dmvcframework-3.2.2-nitrogen is planned a brand new TRESTClient implementation other new features. Stay tuned!
+- ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
+- ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
+- ⚡Improved! Under some circumnstances the logger queue can get full. The new implementation of `TThreadSafeQueue` class now uses a cubic function instead of a linear one to wait in case of too high concurrency. This allows a better resiliency in case of high load.
+- ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
+- ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+- ⚡Improved! Add parameter to set local timeStamp as UTC.
+- ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
+
+### Bug Fixes in 3.2.2-nitrogen
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/484 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fix https://github.com/danieleteti/delphimvcframework/issues/472 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fix https://github.com/danieleteti/delphimvcframework/issues/470  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fix https://github.com/danieleteti/delphimvcframework/issues/453  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fix https://github.com/danieleteti/delphimvcframework/issues/455  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+- Fix https://github.com/danieleteti/delphimvcframework/issues/461
+- Fix for nil objects in lists during serialization
 
 ## Older Releases
 
