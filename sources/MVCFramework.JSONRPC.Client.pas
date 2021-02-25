@@ -209,22 +209,22 @@ var
 begin
   lJObj := aJSONRPCObject.AsJSON;
   try
-    Result := 'jsonrpc=' + TURI.URLEncode(lJObj.S['jsonrpc']);
-    Result := Result + '&method=' + TURI.URLEncode(lJObj.S['method']);
+    Result := 'jsonrpc=' + URLEncode(lJObj.S['jsonrpc']);
+    Result := Result + '&method=' + URLEncode(lJObj.S['method']);
     if lJObj.Contains('id') then
     begin
-      Result := Result + '&id=' + TURI.URLEncode(lJObj.S['id']);
+      Result := Result + '&id=' + URLEncode(lJObj.S['id']);
     end;
 
     if lJObj.Contains('params') then
     begin
       if lJObj.Types['params'] = jdtArray then
       begin
-        Result := Result + '&params=' + TURI.URLEncode(lJObj.A['params'].ToJSON());
+        Result := Result + '&params=' + URLEncode(lJObj.A['params'].ToJSON());
       end
       else
       begin
-        Result := Result + '&params=' + TURI.URLEncode(lJObj.O['params'].ToJSON());
+        Result := Result + '&params=' + URLEncode(lJObj.O['params'].ToJSON());
       end;
     end;
   finally
@@ -251,7 +251,6 @@ var
   lHttpResp: IHTTPResponse;
   lJSONRPCResponse: IJSONRPCResponse;
   lCustomHeaders: TNetHeaders;
-  lQueryStringParams: string;
 begin
   lCustomHeaders := [];
   if Assigned(fHTTPRequestHeaders) then

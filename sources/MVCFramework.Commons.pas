@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -616,6 +616,10 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 
+function URLEncode(const Value: string): string; overload;
+function URLDecode(const Value: string): string;
+
+
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
 procedure Base64StringToFile(const aBase64String, AFileName: string; const aOverwrite: Boolean = False);
@@ -676,6 +680,16 @@ uses
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
+function URLEncode(const Value: string): string; overload;
+begin
+  Result := TNetEncoding.URL.Encode(Value);
+end;
+
+function URLDecode(const Value: string): string;
+begin
+  Result := TNetEncoding.URL.Decode(Value);
+end;
 
 function AppPath: string;
 begin
