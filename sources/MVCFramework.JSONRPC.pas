@@ -59,8 +59,8 @@ const
   JSONRPC_HOOKS_ON_BEFORE_ROUTING = 'OnBeforeRoutingHook';
   JSONRPC_HOOKS_ON_BEFORE_CALL = 'OnBeforeCallHook';
   JSONRPC_HOOKS_ON_AFTER_CALL = 'OnAfterCallHook';
-  JSONRPC_HOOKS_METHOD_NAMES: array [0 .. 2] of string = (JSONRPC_HOOKS_ON_BEFORE_ROUTING,
-    JSONRPC_HOOKS_ON_BEFORE_CALL, JSONRPC_HOOKS_ON_AFTER_CALL);
+  JSONRPC_HOOKS_METHOD_NAMES: array [0 .. 2] of string = (JSONRPC_HOOKS_ON_BEFORE_ROUTING, JSONRPC_HOOKS_ON_BEFORE_CALL,
+    JSONRPC_HOOKS_ON_AFTER_CALL);
 
   {
     http://www.jsonrpc.org/historical/json-rpc-over-http.html#response-codes
@@ -81,6 +81,11 @@ const
   JSONRPC_ERR_SERVER_ERROR_UPPERBOUND = -32000;
 
 type
+  TJSONRPCHTTPVerb = (jrpcDefault, jrpcGET, jrpcPOST);
+
+  MVCJSONRPCAllowGET = class(TCustomAttribute)
+  end;
+
   IMVCJSONRPCMessage = interface
     ['{73B8D463-75E1-404B-8437-EF4B3C950D2F}']
     function AsJSONRPCMessage: string;
@@ -115,7 +120,7 @@ type
   protected
     procedure SetJsonString(const Value: string); virtual;
     function GetJSONString: string; virtual;
-    function ToString(const Compact: Boolean): string; reintroduce;
+    function ToString(const Compact: Boolean): string; reintroduce; virtual;
     function GetJSON: TJDOJsonObject; virtual;
     procedure SetJSON(const Value: TJDOJsonObject); virtual;
     property AsJSON: TJDOJsonObject read GetJSON write SetJSON;
@@ -124,8 +129,8 @@ type
     constructor Create; virtual;
   end;
 
-  TJSONRPCParamDataType = (pdtString, pdtInteger, pdtLongInteger, pdTJDOJsonObject, pdtJSONArray,
-    pdtBoolean, pdtDate, pdtTime, pdtDateTime, pdtFloat, pdtObject);
+  TJSONRPCParamDataType = (pdtString, pdtInteger, pdtLongInteger, pdTJDOJsonObject, pdtJSONArray, pdtBoolean, pdtDate,
+    pdtTime, pdtDateTime, pdtFloat, pdtObject);
 
   TJSONRPCRequestParams = class
   private
@@ -167,8 +172,7 @@ type
     procedure AddByName(const Name: string; const Value: TTime); overload;
     procedure AddByName(const Name: string; const Value: TDateTime); overload;
     procedure AddByName(const Name: string; const Value: Double); overload;
-    procedure AddByName(const Name: string; const Value: TValue;
-      const ParamType: TJSONRPCParamDataType); overload;
+    procedure AddByName(const Name: string; const Value: TValue; const ParamType: TJSONRPCParamDataType); overload;
   end;
 
   IJSONRPCNotification = interface(IJSONRPCObject)
@@ -286,6 +290,7 @@ type
     FError: TJSONRPCResponseError;
     procedure RaiseErrorForNullObject;
   protected
+    function ToString(const Compact: Boolean): string; override;
     function GetJSONString: string; override;
     procedure SetJsonString(const Value: string); override;
     function GetJSON: TJDOJsonObject; override;
@@ -373,18 +378,17 @@ type
     function GetDeclaredMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
     function GetInheritedMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
   protected
-    function CreateError(const RequestID: TValue; const ErrorCode: Integer; const Message: string)
-      : TJDOJsonObject;
+    function CreateError(const RequestID: TValue; const ErrorCode: Integer; const Message: string): TJDOJsonObject;
     function CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
     function CreateRequest(const JSON: TJDOJsonObject): IJSONRPCRequest;
     function JSONObjectAs<T: class, constructor>(const JSON: TJDOJsonObject): T;
     function CanBeRemotelyInvoked(const RTTIMethod: TRTTIMethod): Boolean;
     procedure ForEachInvokableMethod(const aProc: TProc<TRTTIMethod>);
-    procedure TryToCallMethod(const aRTTIType: TRttiType; const MethodName: string;
-      const Parameter: TJDOJsonObject);
+    procedure TryToCallMethod(const aRTTIType: TRttiType; const MethodName: string; const Parameter: TJDOJsonObject);
+    function GetJSONRPCPayload(const Request: TMVCWebRequest): TJsonObject;
   public
     [MVCPath]
-    [MVCHTTPMethods([httpPOST])]
+    [MVCHTTPMethods([httpPOST, httpGET])]
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
     procedure Index; virtual;
@@ -402,8 +406,7 @@ type
 
   TMVCJSONRPCPublisher = class(TMVCJSONRPCController)
   public
-    constructor Create(const RPCInstance: TObject; const Owns: Boolean = True);
-      reintroduce; overload;
+    constructor Create(const RPCInstance: TObject; const Owns: Boolean = True); reintroduce; overload;
   end;
 
   TJSONRPCProxyGenerator = class abstract
@@ -417,8 +420,7 @@ type
 
   TJSONRPCProxyGeneratorClass = class of TJSONRPCProxyGenerator;
 
-procedure RegisterJSONRPCProxyGenerator(const aLanguage: string;
-  const aClass: TJSONRPCProxyGeneratorClass);
+procedure RegisterJSONRPCProxyGenerator(const aLanguage: string; const aClass: TJSONRPCProxyGeneratorClass);
 
 implementation
 
@@ -520,8 +522,7 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            LJObj := lSer.SerializeObjectToJSON(Value.AsObject,
-              TMVCSerializationType.stProperties, [], nil);
+            LJObj := lSer.SerializeObjectToJSON(Value.AsObject, TMVCSerializationType.stProperties, [], nil);
             JSONArr.Add(LJObj);
           finally
             lSer.Free;
@@ -533,8 +534,8 @@ begin
   end;
 end;
 
-procedure AppendTValueToJsonObject(const Value: TValue; const Name: string;
-  const ParamType: TJSONRPCParamDataType; const JSONObj: TJDOJsonObject);
+procedure AppendTValueToJsonObject(const Value: TValue; const Name: string; const ParamType: TJSONRPCParamDataType;
+  const JSONObj: TJDOJsonObject);
 var
   lSer: TMVCJsonDataObjectsSerializer;
   lOrdinalValue: Int64;
@@ -590,8 +591,7 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name],
-              TMVCNameCase.ncLowerCase, []);
+            lSer.DataSetToJsonArray(TDataSet(Value.AsObject), JSONObj.A[name], TMVCNameCase.ncLowerCase, []);
           finally
             lSer.Free;
           end
@@ -600,8 +600,7 @@ begin
         begin
           lSer := TMVCJsonDataObjectsSerializer.Create;
           try
-            JSONObj.O[name] := lSer.SerializeObjectToJSON(Value.AsObject,
-              TMVCSerializationType.stProperties, [], nil);
+            JSONObj.O[name] := lSer.SerializeObjectToJSON(Value.AsObject, TMVCSerializationType.stProperties, [], nil);
           finally
             lSer.Free;
           end;
@@ -660,16 +659,15 @@ begin
   Result := RTTIParameter.Name + ': ' + RTTIParameter.ParamType.Name;
 end;
 
-procedure JSONDataValueToTValueParam(const JSONDataValue: TJsonDataValueHelper;
-  const RTTIParameter: TRttiParameter; const JSONRPCRequestParams: TJSONRPCRequestParams);
+procedure JSONDataValueToTValueParam(const JSONDataValue: TJsonDataValueHelper; const RTTIParameter: TRttiParameter;
+  const JSONRPCRequestParams: TJSONRPCRequestParams);
 begin
   case RTTIParameter.ParamType.TypeKind of
     tkString, tkUString {$IF CompilerVersion > 28}, tkAnsiString {$ENDIF}:
       begin
         if JSONDataValue.Typ <> jdtString then
         begin
-          raise EMVCJSONRPCInvalidParams.Create('Invalid param type for [' +
-            BuildDeclaration(RTTIParameter) + ']');
+          raise EMVCJSONRPCInvalidParams.Create('Invalid param type for [' + BuildDeclaration(RTTIParameter) + ']');
         end;
         JSONRPCRequestParams.Add(JSONDataValue.Value);
       end;
@@ -728,8 +726,7 @@ begin
         end
         else if SameText(RTTIParameter.ParamType.Name, TJDOJsonObject.ClassName) then
         begin
-          JSONRPCRequestParams.Add(JSONDataValue.ObjectValue.Clone as TJDOJsonObject,
-            pdTJDOJsonObject);
+          JSONRPCRequestParams.Add(JSONDataValue.ObjectValue.Clone as TJDOJsonObject, pdTJDOJsonObject);
         end
         else
         begin
@@ -767,8 +764,7 @@ begin
       end;
   else
     begin
-      raise EMVCJSONRPCInvalidRequest.CreateFmt('Invalid parameter type for [%s]',
-        [BuildDeclaration(RTTIParameter)]);
+      raise EMVCJSONRPCInvalidRequest.CreateFmt('Invalid parameter type for [%s]', [BuildDeclaration(RTTIParameter)]);
     end;
   end;
 end;
@@ -786,8 +782,7 @@ begin
   Result := fJSON.ToJSON();
 end;
 
-class procedure TMVCJSONRPCMessage.CheckID(const aJSON: TMVCJSONObject;
-  out aIsNotification: Boolean);
+class procedure TMVCJSONRPCMessage.CheckID(const aJSON: TMVCJSONObject; out aIsNotification: Boolean);
 begin
   {
     id
@@ -799,8 +794,7 @@ begin
   if not aIsNotification then
   begin
     if not(aJSON.Types[JSONRPC_ID] in [jdtString, jdtInt, jdtLong, jdtULong, jdtNone]) then
-      raise EMVCJSONRPCException.Create
-        ('Message is not a notification but its ''id'' property is not valid');
+      raise EMVCJSONRPCException.Create('Message is not a notification but its ''id'' property is not valid');
   end;
 end;
 
@@ -853,8 +847,7 @@ end;
 
 function TMVCJSONRPCController.CanBeRemotelyInvoked(const RTTIMethod: TRTTIMethod): Boolean;
 begin
-  Result := (RTTIMethod.Visibility = mvPublic) and
-    (RTTIMethod.MethodKind in [mkProcedure, mkFunction]);
+  Result := (RTTIMethod.Visibility = mvPublic) and (RTTIMethod.MethodKind in [mkProcedure, mkFunction]);
   Result := Result and not IsReservedMethodName(RTTIMethod.Name);
 end;
 
@@ -865,8 +858,8 @@ begin
   fOwsRPCInstance := False;
 end;
 
-function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer;
-  const Message: string): TJDOJsonObject;
+function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const Message: string)
+  : TJDOJsonObject;
 var
   lErrResp: TJSONRPCResponse;
 begin
@@ -917,8 +910,7 @@ begin
   }
 end;
 
-function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue)
-  : TJSONRPCResponse;
+function TMVCJSONRPCController.CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
 begin
   Result := TJSONRPCResponse.Create;
   Result.RequestID := RequestID;
@@ -935,8 +927,7 @@ begin
   inherited;
 end;
 
-function TMVCJSONRPCController.GetDeclaredMethod(lMethod: string; lRTTIType: TRttiType)
-  : TRTTIMethod;
+function TMVCJSONRPCController.GetDeclaredMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
 var
   lRTTIDeclaredMethods: TArray<TRTTIMethod>;
   I: Integer;
@@ -953,8 +944,7 @@ begin
   end;
 end;
 
-function TMVCJSONRPCController.GetInheritedMethod(lMethod: string; lRTTIType: TRttiType)
-  : TRTTIMethod;
+function TMVCJSONRPCController.GetInheritedMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
 var
   lRTTIMethod: TRTTIMethod;
 begin
@@ -969,6 +959,34 @@ begin
   end;
 end;
 
+function TMVCJSONRPCController.GetJSONRPCPayload(const Request: TMVCWebRequest): TJsonObject;
+var
+  lParams: string;
+  lJ: TJsonBaseObject;
+begin
+  // https://www.simple-is-better.org/json-rpc/transport_http.html#get-request
+  // http get :8080/jsonrpc jsonrpc==2 method==subtract params=={\"Value1\":10,\"Value2\":3} id==1234
+  // http get :8080/jsonrpc jsonrpc==2 id==1234 method==subtract params==[10,3]
+  Result := TJsonObject.Create;
+  try
+    Result.S['jsonrpc'] := Request.QueryStringParam('jsonrpc');
+    Result.S['method'] := Request.QueryStringParam('method');
+    if Request.QueryStringParamExists('id') then
+    begin
+      Result.S['id'] := Request.QueryStringParam('id');
+    end;
+    lParams := Request.QueryStringParam('params');
+    lJ := TJsonObject.Parse(lParams);
+    if lJ is TJsonArray then
+      Result.A['params'] := TJsonArray(lJ)
+    else
+      Result.O['params'] := TJsonObject(lJ);
+  except
+    Result.Free;
+    raise
+  end;
+end;
+
 procedure TMVCJSONRPCController.ForEachInvokableMethod(const aProc: TProc<TRTTIMethod>);
 var
   lRTTI: TRTTIContext;
@@ -976,10 +994,11 @@ var
   lRTTIMethodList: TArray<TRTTIMethod>;
   lRTTIMethod: TRTTIMethod;
   lGeneratedMethods: TList<String>;
-  function MethodSign(const RTTIMethod: TRttiMethod): String;
+  function MethodSign(const RTTIMethod: TRTTIMethod): String;
   begin
     Result := RTTIMethod.ToString.ToLower;
   end;
+
 begin
 
   lGeneratedMethods := TList<String>.Create;
@@ -1000,9 +1019,8 @@ begin
       lRTTIMethodList := lRTTIType.BaseType.GetMethods;
       for lRTTIMethod in lRTTIMethodList do
       begin
-        if TMVCSerializerHelper.HasAttribute<MVCInheritableAttribute>(lRTTIMethod) and
-          CanBeRemotelyInvoked(lRTTIMethod) and
-          (not lGeneratedMethods.Contains(MethodSign(lRTTIMethod))) then
+        if TMVCSerializerHelper.HasAttribute<MVCInheritableAttribute>(lRTTIMethod) and CanBeRemotelyInvoked(lRTTIMethod)
+          and (not lGeneratedMethods.Contains(MethodSign(lRTTIMethod))) then
         begin
           aProc(lRTTIMethod);
         end;
@@ -1124,22 +1142,47 @@ var
   lJSONResp: TJDOJsonObject;
   lBeforeCallHookHasBeenInvoked: Boolean;
   lAfterCallHookHasBeenInvoked: Boolean;
+  lTypeAttrs: TArray<TCustomAttribute>;
+  lHTTPVerb: TMVCHTTPMethodType;
+  lAllMethodsCallableWithGET: Boolean;
 begin
   lBeforeCallHookHasBeenInvoked := False;
   lAfterCallHookHasBeenInvoked := False;
+  lAllMethodsCallableWithGET := False;
   lRTTIType := nil;
   lReqID := TValue.Empty;
   SetLength(lParamsToInject, 0);
   lRTTI := TRTTIContext.Create;
   try
     try
-      lJSON := StrToJSONObject(Context.Request.Body);
+      lHTTPVerb := Context.Request.HTTPMethod;
+      case lHTTPVerb of
+        httpGET:
+          begin
+            lJSON := GetJSONRPCPayload(Context.Request);
+          end;
+        httpPOST:
+          begin
+            lJSON := StrToJSONObject(Context.Request.Body);
+          end;
+      else
+        raise EMVCJSONRPCInvalidRequest.Create('Only POST and GET Allowed');
+      end;
+
       try
         if not Assigned(lJSON) then
         begin
           raise EMVCJSONRPCParseError.Create;
         end;
         lRTTIType := lRTTI.GetType(fRPCInstance.ClassType);
+
+        if lHTTPVerb = httpGET then
+        begin
+          lTypeAttrs := lRTTIType.GetAttributes;
+          lAllMethodsCallableWithGET := (Length(lTypeAttrs) > 0) and
+            TMVCSerializerHelper.AttributeExists<MVCJSONRPCAllowGET>(lTypeAttrs);
+        end;
+
         lJSONRPCReq := CreateRequest(lJSON);
         lMethod := lJSONRPCReq.Method;
 
@@ -1166,15 +1209,14 @@ begin
 
         if Assigned(lRTTIMethod) then
         begin
-          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Request) and
-            (lRTTIMethod.MethodKind <> mkFunction) then
+          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Request) and (lRTTIMethod.MethodKind <> mkFunction) then
           begin
             raise EMVCJSONRPCInvalidParams.Create
               ('Cannot call a procedure using a JSON-RPC request. [HINT] Use requests for functions and notifications for procedures');
           end;
 
-          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification) and
-            (lRTTIMethod.MethodKind <> mkProcedure) then
+          if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification) and (lRTTIMethod.MethodKind <> mkProcedure)
+          then
           begin
             raise EMVCJSONRPCInvalidParams.Create
               ('Cannot call a function using a JSON-RPC notification. [HINT] Use requests for functions and notifications for procedures');
@@ -1182,10 +1224,19 @@ begin
 
           if not CanBeRemotelyInvoked(lRTTIMethod) then
           begin
-            LogW(Format
-              ('Method [%s] cannot remotely invoked. Only public functions or procedures can be called.',
+            LogW(Format('Method [%s] cannot remotely invoked. Only public functions or procedures can be called.',
               [lMethod]));
             raise EMVCJSONRPCMethodNotFound.Create(lMethod);
+          end;
+
+          if (lHTTPVerb = httpGET) and (not lAllMethodsCallableWithGET) then
+          begin
+            lTypeAttrs := lRTTIMethod.GetAttributes;
+            if (Length(lTypeAttrs) = 0) or (not TMVCSerializerHelper.AttributeExists<MVCJSONRPCAllowGET>(lTypeAttrs))
+            then
+            begin
+              raise EMVCJSONRPCError.Create(JSONRPC_ERR_INVALID_REQUEST, 'Method callable with POST only');
+            end;
           end;
 
           try
@@ -1193,8 +1244,7 @@ begin
           except
             on Ex: EMVCJSONRPCErrorResponse do
             begin
-              raise EMVCJSONRPCInvalidParams.Create('Cannot map all parameters to remote method. ' +
-                Ex.Message);
+              raise EMVCJSONRPCInvalidParams.Create('Cannot map all parameters to remote method. ' + Ex.Message);
             end;
           end;
 
@@ -1289,8 +1339,7 @@ begin
             ResponseStatus(500);
         end;
         lJSONResp := CreateError(lReqID, E.JSONRPCErrorCode, E.Message);
-        LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode,
-          E.Message]));
+        LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode, E.Message]));
       end;
       on Ex: Exception do // use another name for exception variable, otherwise E is nil!!
       begin
@@ -1331,8 +1380,8 @@ begin
   end;
 end;
 
-procedure TMVCJSONRPCController.TryToCallMethod(const aRTTIType: TRttiType;
-const MethodName: string; const Parameter: TJDOJsonObject);
+procedure TMVCJSONRPCController.TryToCallMethod(const aRTTIType: TRttiType; const MethodName: string;
+const Parameter: TJDOJsonObject);
 var
   lHookMethod: TRTTIMethod;
   lHookSecondParam: TRttiParameter;
@@ -1349,8 +1398,8 @@ begin
   begin
     if (Length(lHookMethod.GetParameters) <> 2) then
     begin
-      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure '
-        + '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)',
+      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure ' +
+        '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)',
         [MethodName, fRPCInstance.ClassName, MethodName]);
     end;
 
@@ -1361,20 +1410,21 @@ begin
     lHookSecondParamType := lHookSecondParam.ParamType.ToString.ToLower;
 
     if (lHookMethod.MethodKind <> mkProcedure) then
-      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: Hook methods MUST have the following signature "procedure '
-        + '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)"',
+      raise EMVCJSONRPCException.CreateFmt
+        ('Invalid signature for [%s] Hook method [HINT: Hook methods MUST have the following signature "procedure ' +
+        '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)"',
         [MethodName, fRPCInstance.ClassName, MethodName]);
 
     if ((lHookSecondParamType <> 'tjdojsonobject') and (lHookSecondParamType <> 'tjsonobject')) or
       (lHookSecondParam.Flags * [pfConst, pfAddress] <> [pfConst, pfAddress]) then
-      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure '
-        + '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)',
+      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure ' +
+        '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)',
         [MethodName, fRPCInstance.ClassName, MethodName]);
 
-    if (lHookFirstParamType <> 'twebcontext') or
-      (lHookFirstParam.Flags * [pfConst, pfAddress] <> [pfConst, pfAddress]) then
-      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure '
-        + '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)',
+    if (lHookFirstParamType <> 'twebcontext') or (lHookFirstParam.Flags * [pfConst, pfAddress] <> [pfConst, pfAddress])
+    then
+      raise EMVCJSONRPCException.CreateFmt('Invalid signature for [%s] Hook method [HINT: procedure ' +
+        '%s.%s(const Context: TWebContext; const Value: TJDOJsonObject)',
         [MethodName, fRPCInstance.ClassName, MethodName]);
 
     LogD('[JSON-RPC][HOOK][' + fRPCInstance.ClassName + '.' + MethodName + ']');
@@ -1426,8 +1476,7 @@ end;
 
 constructor EMVCJSONRPCMethodNotFound.Create(const MethodName: string);
 begin
-  inherited CreateFmt('Method [%s] not found. The method does not exist or is not available.',
-    [MethodName]);
+  inherited CreateFmt('Method [%s] not found. The method does not exist or is not available.', [MethodName]);
 end;
 
 { EMVCJSONRPCInvalidParams }
@@ -1525,8 +1574,7 @@ begin
   inherited;
 end;
 
-procedure TJSONRPCNotification.FillParameters(const JSON: TJDOJsonObject;
-const RTTIMethod: TRTTIMethod);
+procedure TJSONRPCNotification.FillParameters(const JSON: TJDOJsonObject; const RTTIMethod: TRTTIMethod);
 var
   lRTTIMethodParams: TArray<TRttiParameter>;
   lRTTIMethodParam: TRttiParameter;
@@ -1534,8 +1582,7 @@ var
   lJSONNamedParams: TJDOJsonObject;
   I: Integer;
   lUseNamedParams: Boolean;
-  function GetJsonDataValueHelper(const JSONNamedParams: TJsonObject; const JsonPropName: string)
-    : TJsonDataValueHelper;
+  function GetJsonDataValueHelper(const JSONNamedParams: TJsonObject; const JsonPropName: string): TJsonDataValueHelper;
   var
     I: Integer;
     lName: string;
@@ -1615,8 +1662,7 @@ begin
     // named params
     for I := 0 to lJSONNamedParams.Count - 1 do
     begin
-      JSONDataValueToTValueParam(GetJsonDataValueHelper(lJSONNamedParams,
-        lRTTIMethodParams[I].Name.ToLower),
+      JSONDataValueToTValueParam(GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
       { lJSONNamedParams.Values[lRTTIMethodParams[I].Name.ToLower], }
       lRTTIMethodParams[I], Params);
     end;
@@ -1637,16 +1683,15 @@ begin
     begin // positional params
       for I := 0 to FParams.Count - 1 do
       begin
-        AppendTValueToJsonArray(FParams.fParamValues[I], FParams.fParamTypes[I],
-          Result.A[JSONRPC_PARAMS]);
+        AppendTValueToJsonArray(FParams.fParamValues[I], FParams.fParamTypes[I], Result.A[JSONRPC_PARAMS]);
       end;
     end
     else
     begin // named params
       for I := 0 to FParams.Count - 1 do
       begin
-        AppendTValueToJsonObject(FParams.fParamValues[I], FParams.fParamNames[I],
-          FParams.fParamTypes[I], Result.O[JSONRPC_PARAMS]);
+        AppendTValueToJsonObject(FParams.fParamValues[I], FParams.fParamNames[I], FParams.fParamTypes[I],
+          Result.O[JSONRPC_PARAMS]);
       end;
     end;
   end;
@@ -1804,8 +1849,8 @@ begin
     end
     else
     begin
-      raise EMVCJSONRPCException.Create('Response message must have ''result'' or ''error''.' +
-        sLineBreak + 'Raw message is: ' + sLineBreak + JSON.ToJSON());
+      raise EMVCJSONRPCException.Create('Response message must have ''result'' or ''error''.' + sLineBreak +
+        'Raw message is: ' + sLineBreak + JSON.ToJSON());
     end;
   end;
 end;
@@ -1935,8 +1980,7 @@ begin
   inherited;
 end;
 
-procedure RegisterJSONRPCProxyGenerator(const aLanguage: string;
-const aClass: TJSONRPCProxyGeneratorClass);
+procedure RegisterJSONRPCProxyGenerator(const aLanguage: string; const aClass: TJSONRPCProxyGeneratorClass);
 begin
   if not Assigned(GProxyGeneratorsRegister) then
   begin
@@ -2217,8 +2261,12 @@ begin
   RaiseErrorForNullObject;
 end;
 
-constructor EMVCJSONRPCError.CreateFmt(const ErrCode: Integer;
-const Msg: string; const Args: array of const);
+function TJSONRPCNullResponse.ToString(const Compact: Boolean): string;
+begin
+  Result := '';
+end;
+
+constructor EMVCJSONRPCError.CreateFmt(const ErrCode: Integer; const Msg: string; const Args: array of const);
 begin
   inherited CreateFmt(Msg, Args);
   fJSONRPCErrorCode := ErrCode;

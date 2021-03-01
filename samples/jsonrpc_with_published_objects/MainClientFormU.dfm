@@ -341,10 +341,14 @@ object MainForm: TMainForm
         Top = 202
         Width = 304
         Height = 367
-        ActivePage = TabSheet3
+        ActivePage = TabSheet4
         TabOrder = 3
         object TabSheet3: TTabSheet
           Caption = 'Get DataSet'
+          ExplicitLeft = 0
+          ExplicitTop = 0
+          ExplicitWidth = 0
+          ExplicitHeight = 0
           object edtFilter: TEdit
             Left = 3
             Top = 5
