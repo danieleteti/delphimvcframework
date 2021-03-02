@@ -178,6 +178,10 @@ type
     procedure RaiseException;
 
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/exception/ashtml')]
+    procedure RaiseExceptionHTML;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customserializationtype')]
     procedure GetCustomSerializationType;
 
@@ -273,6 +277,15 @@ procedure TRenderSampleController.RaiseException;
 var
   a: Integer;
 begin
+  a := 0;
+  Render(IntToStr(10 div a));
+end;
+
+procedure TRenderSampleController.RaiseExceptionHTML;
+var
+  a: Integer;
+begin
+  ContentType := TMVCMediaType.TEXT_HTML;
   a := 0;
   Render(IntToStr(10 div a));
 end;

@@ -85,25 +85,18 @@ DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo,
   * HTTP Basic Authentication
   * JWT Authentication
   * Custom Authentication
-
   * CORS support
 
 * Controllers inheritance! You can define your own base controller and inherit from it.
 
 * Fancy URL with parameter mappings
-
 * Specialized renders to generate text, HTML, JSON.
-
 * Powerful and customizable mapper to serialize/deserialize data.
-
 * Can be packaged as stand alone server, apache module (XE6 or better) and ISAPI dll
 
 * Integrated REST Client
-
 * Works on Linux (Delphi 10.2 Tokyo or better)
-
 * Completely unit tested (more than 250 unit tests)
-
 * There is a sample for each functionality (check the [dmvcframework_(yourversion)_samples.zip](https://github.com/danieleteti/delphimvcframework/releases))
 
 * Server side generated pages using [Mustache for Delphi](https://github.com/synopse/dmustache) or [TemplatePro](https://github.com/danieleteti/templatepro)
@@ -432,10 +425,11 @@ This version introduced new features in many different areas (swagger, server si
 
 - ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
 - ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
-- ⚡Improved! Under some circumnstances the logger queue can get full. The new implementation of `TThreadSafeQueue` class now uses a cubic function instead of a linear one to wait in case of too high concurrency. This allows a better resiliency in case of high load.
+- ⚡Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
 - ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
 - ⚡Improved! Add parameter to set local timeStamp as UTC.
+- ⚡Improved OpenAPI (Swagger) support.
 - ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
 
 ### Bug Fixes in 3.2.2-nitrogen

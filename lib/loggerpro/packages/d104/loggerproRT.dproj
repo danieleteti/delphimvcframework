@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{1611FBE6-5266-48FE-BDF5-E46EEAA922BE}</ProjectGuid>
         <MainSource>loggerproRT.dpk</MainSource>
-        <ProjectVersion>19.1</ProjectVersion>
+        <ProjectVersion>19.2</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
@@ -62,6 +62,7 @@
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
         <EnabledSysJars>android-support-v4.dex.jar;cloud-messaging.dex.jar;fmx.dex.jar;google-analytics-v2.dex.jar;google-play-billing.dex.jar;google-play-licensing.dex.jar;google-play-services-ads-7.0.0.dex.jar;google-play-services-analytics-7.0.0.dex.jar;google-play-services-base-7.0.0.dex.jar;google-play-services-gcm-7.0.0.dex.jar;google-play-services-identity-7.0.0.dex.jar;google-play-services-maps-7.0.0.dex.jar;google-play-services-panorama-7.0.0.dex.jar;google-play-services-plus-7.0.0.dex.jar;google-play-services-wallet-7.0.0.dex.jar</EnabledSysJars>
+        <Android_LauncherIcon192>$(BDS)\bin\Artwork\Android\FM_LauncherIcon_192x192.png</Android_LauncherIcon192>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android64)'!=''">
         <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
@@ -71,6 +72,7 @@
         <Base>true</Base>
         <DCC_CBuilderOutput>None</DCC_CBuilderOutput>
         <EnabledSysJars>android-support-v4.dex.jar;cloud-messaging.dex.jar;fmx.dex.jar;google-analytics-v2.dex.jar;google-play-billing.dex.jar;google-play-licensing.dex.jar;google-play-services-ads-7.0.0.dex.jar;google-play-services-analytics-7.0.0.dex.jar;google-play-services-base-7.0.0.dex.jar;google-play-services-gcm-7.0.0.dex.jar;google-play-services-identity-7.0.0.dex.jar;google-play-services-maps-7.0.0.dex.jar;google-play-services-panorama-7.0.0.dex.jar;google-play-services-plus-7.0.0.dex.jar;google-play-services-wallet-7.0.0.dex.jar</EnabledSysJars>
+        <Android_LauncherIcon192>$(BDS)\bin\Artwork\Android\FM_LauncherIcon_192x192.png</Android_LauncherIcon192>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
@@ -93,6 +95,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_Description>LoggerPro</DCC_Description>
         <DllSuffix>104</DllSuffix>
+        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=Daniele Teti;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -311,6 +314,16 @@
                     </Platform>
                     <Platform Name="Android64">
                         <RemoteDir>res\drawable-xxhdpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_LauncherIcon192">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-xxxhdpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="Android64">
+                        <RemoteDir>res\drawable-xxxhdpi</RemoteDir>
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
