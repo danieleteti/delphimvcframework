@@ -132,7 +132,7 @@ type
       const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
       : string; overload;
 
-    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs; const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
 
     function SerializeDataSetRecord(const DataSet: TDataSet; const IgnoredFields: TMVCIgnoredList;
@@ -1812,7 +1812,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
-  const ANameCase: TMVCNameCase = ncAsIs; const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
+  const ANameCase: TMVCNameCase; const ASerializationAction: TMVCDatasetSerializationAction): string;
 var
   JsonArray: TJDOJsonArray;
 begin

@@ -775,10 +775,8 @@ begin
   Attrs := AProperty.GetAttributes;
   for Attr in Attrs do
   begin
-    { TODO -oDaniele -cGeneral : Time this! }
     if Attr is MVCNameAsAttribute then
     begin
-      // Exit(MVCNameAsAttribute(Attr).Name);
       Result := MVCNameAsAttribute(Attr).Name;
       if MVCNameAsAttribute(Attr).Fixed then { if FIXED the attribute NameAs remains untouched }
       begin

@@ -128,7 +128,10 @@ constructor TMVCStaticFilesMiddleware.Create(
 begin
   inherited Create;
   fSanityCheckOK := False;
-  fStaticFilesPath := AStaticFilesPath;
+  fStaticFilesPath := AStaticFilesPath.Trim;
+  if not fStaticFilesPath.EndsWith('/') then
+    fStaticFilesPath := fStaticFilesPath + '/';
+
   if TDirectory.Exists(ADocumentRoot) then
   begin
     fDocumentRoot := TPath.GetFullPath(ADocumentRoot);
@@ -209,8 +212,21 @@ begin
 
   if not lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
-    AHandled := False;
-    Exit;
+    { In case of folder request without the trailing "/" }
+    if not lPathInfo.EndsWith('/') then
+    begin
+      lPathInfo := lPathInfo + '/';
+      if not lPathInfo.StartsWith(fStaticFilesPath, True) then
+      begin
+        AHandled := False;
+        Exit;
+      end;
+    end
+    else
+    begin
+      AHandled := False;
+      Exit;
+    end;
   end;
 
   // calculate the actual requested path
