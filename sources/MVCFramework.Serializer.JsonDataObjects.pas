@@ -178,8 +178,8 @@ type
   end;
 
 procedure TValueToJSONObjectProperty(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
-function StrToJSONObject(const AValue: string): TJDOJsonObject;
-function StrToJSONArray(const AValue: string): TJDOJsonArray;
+function StrToJSONObject(const AValue: string): TJDOJsonObject; inline;
+function StrToJSONArray(const AValue: string): TJDOJsonArray; inline;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList); overload;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject); overload;
