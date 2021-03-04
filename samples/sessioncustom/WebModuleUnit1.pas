@@ -35,7 +35,7 @@ begin
       Config[TMVCConfigKey.SessionTimeout] := '10'; // 10minutes
       Config[TMVCConfigKey.DefaultContentType] := 'text/plain';
       // comment the line to use default session type (memory)
-      MVC.Config[TMVCConfigKey.SessionType] := 'memoryController';
+      Config[TMVCConfigKey.SessionType] := 'memoryController';
     end);
   MVC.AddController(TApp1MainController);
 end;

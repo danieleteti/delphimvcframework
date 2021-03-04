@@ -132,7 +132,7 @@ type
       const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
       : string; overload;
 
-    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs; const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
 
     function SerializeDataSetRecord(const DataSet: TDataSet; const IgnoredFields: TMVCIgnoredList;
@@ -178,8 +178,8 @@ type
   end;
 
 procedure TValueToJSONObjectProperty(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
-function StrToJSONObject(const AValue: string): TJDOJsonObject;
-function StrToJSONArray(const AValue: string): TJDOJsonArray;
+function StrToJSONObject(const AValue: string): TJDOJsonObject; inline;
+function StrToJSONArray(const AValue: string): TJDOJsonArray; inline;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList); overload;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject); overload;
@@ -1885,7 +1885,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
-  const ANameCase: TMVCNameCase = ncAsIs; const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
+  const ANameCase: TMVCNameCase; const ASerializationAction: TMVCDatasetSerializationAction): string;
 var
   JsonArray: TJDOJsonArray;
 begin

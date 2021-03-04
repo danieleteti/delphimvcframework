@@ -397,9 +397,10 @@ type
     [MVCHTTPMethods([httpGET])]
     procedure GetPublishedMethodList; virtual;
 
-    [MVCPath]
+    [MVCPath('/proxy')]
     [MVCHTTPMethods([httpGET])]
     procedure GetProxyCode; virtual;
+	
     constructor Create; overload; override;
     destructor Destroy; override;
   end;
