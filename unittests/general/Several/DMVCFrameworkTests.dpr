@@ -5,21 +5,22 @@ program DMVCFrameworkTests;
 {$ENDIF}
 {$STRONGLINKTYPES ON}
 
+
 uses
   System.SysUtils,
   DUnitX.TestFramework,
-  {$IFDEF CONSOLE_TESTRUNNER}
+{$IFDEF CONSOLE_TESTRUNNER}
   DUnitX.Loggers.Console,
-  {$ENDIF }
-  {$IFDEF TESTINSIGHT}
+{$ENDIF }
+{$IFDEF TESTINSIGHT}
   TestInsight.DUnitX,
-  {$ENDIF }
+{$ENDIF }
   FrameworkTestsU in 'FrameworkTestsU.pas',
   LiveServerTestU in 'LiveServerTestU.pas',
   BOs in 'BOs.pas',
   TestServerControllerU in '..\TestServer\TestServerControllerU.pas',
   RESTAdapterTestsU in 'RESTAdapterTestsU.pas',
-  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule},
+  MVCFramework.Tests.WebModule1 in '..\RESTClient\MVCFramework.Tests.WebModule1.pas' {TestWebModule1: TWebModule} ,
   MVCFramework.Tests.RESTClient in '..\RESTClient\MVCFramework.Tests.RESTClient.pas',
   MVCFramework.Tests.AppController in '..\RESTClient\MVCFramework.Tests.AppController.pas',
   BusinessObjectsU in '..\..\..\samples\commons\BusinessObjectsU.pas',
@@ -33,9 +34,11 @@ uses
   JsonDataObjects in '..\..\..\sources\JsonDataObjects.pas',
   Serializers.JsonDataObjectsTestU in 'Serializers.JsonDataObjectsTestU.pas',
   MVCFramework.Tests.Serializer.Entities in '..\..\common\MVCFramework.Tests.Serializer.Entities.pas',
-  MVCFramework.Tests.Serializer.EntitiesModule in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule},
+  MVCFramework.Tests.Serializer.EntitiesModule
+    in '..\..\common\MVCFramework.Tests.Serializer.EntitiesModule.pas' {EntitiesModule: TDataModule} ,
   MVCFramework.Tests.Serializer.Intf in '..\..\common\MVCFramework.Tests.Serializer.Intf.pas',
-  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
+  MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes
+    in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.OptionalCustomTypes.pas',
   ActiveRecordTestsU in 'ActiveRecordTestsU.pas',
   TestConstsU in 'TestConstsU.pas',
   MVCFramework.RESTClient.Indy in '..\..\..\sources\MVCFramework.RESTClient.Indy.pas',
@@ -46,23 +49,25 @@ uses
   MVCFramework.ActiveRecord in '..\..\..\sources\MVCFramework.ActiveRecord.pas',
   MVCFramework.ActiveRecordController in '..\..\..\sources\MVCFramework.ActiveRecordController.pas',
   ActiveRecordControllerTestU in 'ActiveRecordControllerTestU.pas',
-  WebModuleU in 'webmodules\WebModuleU.pas' {MyWebModule: TWebModule},
+  WebModuleU in 'webmodules\WebModuleU.pas' {MyWebModule: TWebModule} ,
   FDConnectionConfigU in 'webmodules\FDConnectionConfigU.pas',
   StandaloneServerTestU in '..\StandaloneServer\StandaloneServerTestU.pas',
-  StandAloneServerWebModuleTest in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
+  StandAloneServerWebModuleTest
+    in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule} ,
   MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas',
-  MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas';
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes
+    in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas';
 
 {$R *.RES}
 
 {$IFDEF CONSOLE_TESTRUNNER}
+
 
 procedure MainConsole();
 var
   runner: ITestRunner;
   results: IRunResults;
   logger: ITestLogger;
-  // nunitLogger: ITestLogger;
 begin
   try
     // Check command line options, will exit if invalid
@@ -100,12 +105,17 @@ begin
 end;
 {$ENDIF}
 
+
 begin
   ReportMemoryLeaksOnShutdown := True;
 {$IF Defined(CONSOLE_TESTRUNNER)}
   MainConsole();
-{$else}
+{$ELSE}
+{$IF Defined(TESTINSIGHT)}
   TestInsight.DUnitX.RunRegisteredTests();
+{$ELSE}
+  raise Exception.Create('No Runner defined');
+{$ENDIF}
 {$ENDIF}
 
 end.
