@@ -14,7 +14,7 @@ uses
 type
 
   [MVCNameCase(ncLowerCase)]
-  TAddress = class
+  TAddress = class(TInterfacedObject)
   private
     FStreet: string;
     FNumber: Integer;
