@@ -136,6 +136,22 @@ object MainForm: TMainForm
         FieldName = 'price'
         Title.Caption = 'Price'
         Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'createdat'
+        ReadOnly = True
+        Title.Caption = 'Created At'
+        Title.Color = clBtnShadow
+        Visible = True
+      end
+      item
+        Expanded = False
+        FieldName = 'updatedat'
+        ReadOnly = True
+        Title.Caption = 'Updated At'
+        Title.Color = clBtnShadow
+        Visible = True
       end>
   end
   object dsArticles: TFDMemTable
@@ -162,6 +178,14 @@ object MainForm: TMainForm
     end
     object dsArticlesprice: TCurrencyField
       FieldName = 'price'
+    end
+    object dsArticlescreated_at: TDateTimeField
+      AutoGenerateValue = arDefault
+      FieldName = 'createdat'
+    end
+    object dsArticlesupdated_at: TDateTimeField
+      AutoGenerateValue = arDefault
+      FieldName = 'updatedat'
     end
   end
   object dsrcArticles: TDataSource

@@ -132,9 +132,12 @@ contains
   Swag.Doc.Tags in '..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas',
   MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
   MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
-  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
-  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas';
+  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas',
+  MVCFramework.RESTClient.Commons in '..\..\sources\MVCFramework.RESTClient.Commons.pas',
+  MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
+  MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
 
 end.
 

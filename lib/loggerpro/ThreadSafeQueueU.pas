@@ -151,7 +151,7 @@ end;
 
 function TThreadSafeQueue<T>.Enqueue(const Item: T): Boolean;
 const
-  cRetryCount: Byte = 5;
+  cRetryCount: Byte = 20;
 var
   lCount: Integer;
 begin
@@ -162,13 +162,12 @@ begin
   lCount := 0;
   while lCount < cRetryCount do
   begin
-    Sleep(lCount * 10);
+    Sleep(lCount * lCount * lCount * 10);  //let's slow down the enqueue call using a cubic function
     fCriticalSection.Enter;
     try
       if fQueue.Count >= fMaxSize then
       begin
         Inc(lCount);
-        // Sleep(lCount * 10);
         Continue;
       end;
       fQueue.Enqueue(Item);

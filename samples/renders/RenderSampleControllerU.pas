@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -42,6 +42,19 @@ type
     procedure OnBeforeAction(AContext: TWebContext; const AActionName: string; var AHandled: Boolean); override;
   public
     [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers/simple')]
+    procedure GetCustomers_AsDataSet;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/people')]
+    [MVCProduces('application/json')]
+    procedure GetPeople_AsObjectList;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/customers')]
+    procedure GetCustomersAsDataSetWithRefLinks;
+
+    [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers/withcallback')]
     procedure GetCustomersWithCallback;
 
@@ -51,16 +64,8 @@ type
     procedure GetPerson_AsText(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/simple')]
-    procedure GetCustomers_AsDataSet;
-
-    [MVCHTTPMethod([httpGET])]
     [MVCPath('/dateandtimes/showcase')]
     procedure GetDateAndTimeShowcase;
-
-    [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers')]
-    procedure GetCustomersAsDataSetWithRefLinks;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customers2')]
@@ -71,12 +76,12 @@ type
     procedure GetCustomer_AsDataSetRecord(const ID: Integer);
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/metadata')]
+    [MVCPath('/customers/metadata/all')]
     [MVCProduces('application/json')]
     procedure GetDataSetWithMetadata;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/customers/($ID)')]
+    [MVCPath('/customers2/($ID)')]
     [MVCProduces('application/json')]
     procedure GetCustomerByID_AsTObject(const ID: Integer);
 
@@ -86,9 +91,9 @@ type
     procedure GetCustomersAndCountry_AsDataSet;
 
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/people')]
+    [MVCPath('/people/alias')]
     [MVCProduces('application/json')]
-    procedure GetPeople_AsObjectList;
+    procedure GetPeople_AsObjectList_With_Alias;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/objectdict/nil')]
@@ -170,6 +175,10 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/exception')]
     procedure RaiseException;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/exception/ashtml')]
+    procedure RaiseExceptionHTML;
 
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/customserializationtype')]
@@ -267,6 +276,15 @@ procedure TRenderSampleController.RaiseException;
 var
   a: Integer;
 begin
+  a := 0;
+  Render(IntToStr(10 div a));
+end;
+
+procedure TRenderSampleController.RaiseExceptionHTML;
+var
+  a: Integer;
+begin
+  ContentType := TMVCMediaType.TEXT_HTML;
   a := 0;
   Render(IntToStr(10 div a));
 end;
@@ -390,6 +408,7 @@ begin
       try
         lSer.DataSetToJsonArray(lDM.qryCustomers, lJObj.a['customers'], TMVCNameCase.ncLowerCase, []);
         lSer.DataSetToJsonArray(lDM.qryCountry, lJObj.a['countries'], TMVCNameCase.ncLowerCase, []);
+        lJObj.O['info'].S['timestamp'] := DateTimeToISOTimeStamp(Now);
       finally
         lSer.Free;
       end;
@@ -697,8 +716,11 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsText(const ID: Integer);
 begin
-  ResponseStream.AppendLine('ID        :  ' + ID.ToString).AppendLine('FirstName : Daniele')
-    .AppendLine('LastName  : Teti').AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+  ResponseStream
+    .AppendLine('ID        :  ' + ID.ToString)
+    .AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti')
+    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
     .AppendLine('Married   : yes');
   RenderResponseStream;
 end;
@@ -893,6 +915,45 @@ begin
         .Add(HATEOAS.REL, 'people')
         .Add(HATEOAS._TYPE, 'application/json');
     end));
+end;
+
+procedure TRenderSampleController.GetPeople_AsObjectList_With_Alias;
+var
+  p: TPerson;
+  People: TPeople;
+begin
+  People := TPeople.Create(True);
+{$REGION 'Fake data'}
+  p := TPerson.Create;
+  p.FirstName := 'Daniele';
+  p.LastName := 'Teti';
+  p.DOB := EncodeDate(1979, 11, 4);
+  p.Married := True;
+  People.Add(p);
+
+  p := TPerson.Create;
+  p.FirstName := 'John';
+  p.LastName := 'Doe';
+  p.DOB := EncodeDate(1879, 10, 2);
+  p.Married := False;
+  People.Add(p);
+
+  p := TPerson.Create;
+  p.FirstName := 'Jane';
+  p.LastName := 'Doe';
+  p.DOB := EncodeDate(1883, 1, 5);
+  p.Married := True;
+  People.Add(p);
+
+  People.Add(nil);
+
+{$ENDREGION}
+  { classic approach }
+  //Render<TPerson>(People, True);
+  //Render(People, True);
+  //Render<TPerson>(HTTP_STATUS.OK, People, True);
+  { new approach with ObjectDict }
+  Render(HTTP_STATUS.OK, ObjectDict().Add('data', People));
 end;
 
 procedure TRenderSampleController.GetPersonById(const ID: Integer);

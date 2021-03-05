@@ -2,8 +2,7 @@ program articles_crud_vcl_client_api_binder;
 
 uses
   Vcl.Forms,
-  MainFormU in 'MainFormU.pas' {MainForm},
-  MVCFramework.Serializer.Defaults in '..\..\sources\MVCFramework.Serializer.Defaults.pas';
+  MainFormU in 'MainFormU.pas' {MainForm};
 
 {$R *.res}
 

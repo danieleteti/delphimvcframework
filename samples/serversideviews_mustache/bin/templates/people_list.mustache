@@ -22,7 +22,7 @@
                     <td>{{last_name}}</td>
                     <td>{{age}}</td>
                     <td class="text-right">
-                        <a class="btn btn-default" href="/edit/{{guid}}"><span class="glyphicon glyphicon-pencil"></span> View</a>
+                        {{>view_person_link}}
                     </td>
                 </tr>
                 {{/people}}

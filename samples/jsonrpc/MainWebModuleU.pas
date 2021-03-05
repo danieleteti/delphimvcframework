@@ -53,11 +53,6 @@ begin
       Config[TMVCConfigKey.ExposeServerSignature] := 'true';
     end);
   FMVC.AddController(TMyJSONRPCController, '/jsonrpc');
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
-    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

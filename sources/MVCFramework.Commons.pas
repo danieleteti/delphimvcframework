@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -595,6 +595,14 @@ type
 {$SCOPEDENUMS ON}
   TMVCCompressionType = (ctNone, ctDeflate, ctGZIP);
 
+
+{ GENERIC TYPE ALIASES }
+TMVCListOfString = TList<string>;
+TMVCListOfInteger =  TList<Integer>;
+TMVCListOfBoolean = TList<Boolean>;
+TMVCListOfDouble =  TList<Double>;
+{ GENERIC TYPE ALIASES // END}
+
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
@@ -607,6 +615,10 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
   : string; overload;
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
+
+function URLEncode(const Value: string): string; overload;
+function URLDecode(const Value: string): string;
+
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
@@ -668,6 +680,16 @@ uses
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
+function URLEncode(const Value: string): string; overload;
+begin
+  Result := TNetEncoding.URL.Encode(Value);
+end;
+
+function URLDecode(const Value: string): string;
+begin
+  Result := TNetEncoding.URL.Decode(Value);
+end;
 
 function AppPath: string;
 begin

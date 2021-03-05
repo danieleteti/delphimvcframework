@@ -1,6 +1,3 @@
-// JCL_DEBUG_EXPERT_GENERATEJDBG OFF
-// JCL_DEBUG_EXPERT_INSERTJDBG OFF
-// JCL_DEBUG_EXPERT_DELETEMAPFILE OFF
 program SSLSample;
 {$APPTYPE CONSOLE}
 
@@ -21,26 +18,32 @@ uses
 
 
 type
-  TGetSSLPassword = class
+  TSSLEventHandlers = class
     procedure OnGetSSLPassword(var APassword: {$IF CompilerVersion < 27}AnsiString{$ELSE}string{$ENDIF});
+    procedure OnQuerySSLPort(APort: Word; var VUseSSL: boolean);
   end;
 
-procedure TGetSSLPassword.OnGetSSLPassword(var APassword: {$IF CompilerVersion < 27}AnsiString{$ELSE}string{$ENDIF});
+procedure TSSLEventHandlers.OnGetSSLPassword(var APassword: {$IF CompilerVersion < 27}AnsiString{$ELSE}string{$ENDIF});
 begin
   APassword := '';
+end;
+
+procedure TSSLEventHandlers.OnQuerySSLPort(APort: Word; var VUseSSL: boolean);
+begin
+  VUseSSL := true;
 end;
 
 procedure RunServer(APort: Integer);
 var
   LServer: TIdHTTPWebBrokerBridge;
-  LGetSSLPassword: TGetSSLPassword;
+  LGetSSLPassword: TSSLEventHandlers;
   LIOHandleSSL: TIdServerIOHandlerSSLOpenSSL;
 begin
   Writeln(Format('Starting DMVCFramework HTTPS Server or port %d', [APort]));
   LGetSSLPassword := nil;
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try
-    LGetSSLPassword := TGetSSLPassword.Create;
+    LGetSSLPassword := TSSLEventHandlers.Create;
     LIOHandleSSL := TIdServerIOHandlerSSLOpenSSL.Create(LServer);
     LIOHandleSSL.SSLOptions.SSLVersions := [
       TIdSSLVersion.sslvSSLv23,
@@ -56,8 +59,10 @@ begin
     LIOHandleSSL.OnGetPassword := LGetSSLPassword.OnGetSSLPassword;
     LServer.IOHandler := LIOHandleSSL;
     LServer.DefaultPort := APort;
-
-    LServer.Active := True;
+{$IF CompilerVersion >= 33}
+    LServer.OnQuerySSLPort := LGetSSLPassword.OnQuerySSLPort;
+{$ENDIF}
+    LServer.Active := true;
     Writeln('Press RETURN to stop the server');
     ReadLn;
   finally
@@ -89,7 +94,7 @@ begin
   try
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
-    RunServer(443 { standard https port } );
+    RunServer(4433 { standard https port } );
   except
     on E: Exception do
       Writeln(E.ClassName, ': ', E.Message);

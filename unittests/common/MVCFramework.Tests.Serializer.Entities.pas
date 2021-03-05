@@ -33,7 +33,8 @@ uses
   System.Classes,
   System.Rtti,
   System.Generics.Collections,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, 
+  MVCFramework.Commons;
 
 type
 
@@ -295,10 +296,12 @@ type
     FId: Int64;
     FNames: TArray<String>;
     FValues: TArray<Integer>;
+    FBooleans: TArray<Boolean>;
   public
     property Id: Int64 read FId write FId;
     property Names: TArray<String> read FNames write FNames;
     property Values: TArray<Integer> read FValues write FValues;
+    property Booleans: TArray<Boolean> read FBooleans write FBooleans;
   end;
 
   IChildEntity = interface
@@ -383,6 +386,15 @@ type
     property Description: string read FDescription write FDescription;
     property Items: TObjectList<T1> read FItems write FItems;
     property Items2: TObjectList<T2> read FItems2 write FItems2;
+  end;
+
+  TEntityWithStringDictionary = class
+  private
+    FDict: TMVCStringDictionary;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Dict: TMVCStringDictionary read FDict write FDict;
   end;
 
 
@@ -552,5 +564,18 @@ begin
   inherited Destroy;
 end;
 
+
+{ TEntityWithStringDictionary }
+
+constructor TEntityWithStringDictionary.Create;
+begin
+  FDict := TMVCStringDictionary.Create;
+end;
+
+destructor TEntityWithStringDictionary.Destroy;
+begin
+  FDict.Free;
+  inherited;
+end;
 
 end.

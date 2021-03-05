@@ -87,6 +87,7 @@ begin
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
     .AddController(TTestJSONRPCController, '/jsonrpc')
+    .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
     .PublishObject(
     function: TObject
     begin
@@ -95,8 +96,19 @@ begin
     .PublishObject(
     function: TObject
     begin
+      Result := TTestJSONRPCClassWithGET.Create
+    end, '/jsonrpcclasswithget')
+    .PublishObject(
+    function: TObject
+    begin
       Result := TTestJSONRPCHookClass.Create
     end, '/jsonrpcclass1')
+    .PublishObject(
+    function: TObject
+    begin
+      Result := TTestJSONRPCHookClassWithGet.Create
+    end, '/jsonrpcclass1withget')
+
     .AddController(TTestFaultController) // this will raise an exception
     .AddController(TTestFault2Controller,
     function: TMVCController

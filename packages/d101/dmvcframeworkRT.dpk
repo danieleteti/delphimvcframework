@@ -73,7 +73,6 @@ contains
   MVCFramework in '..\..\sources\MVCFramework.pas',
   MVCFramework.Patches in '..\..\sources\MVCFramework.Patches.pas',
   MVCFramework.RESTAdapter in '..\..\sources\MVCFramework.RESTAdapter.pas',
-  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas',
   MVCFramework.Router in '..\..\sources\MVCFramework.Router.pas',
   MVCFramework.RQL.AST2FirebirdSQL in '..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
   MVCFramework.RQL.AST2InterbaseSQL in '..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
@@ -131,7 +130,11 @@ contains
   Json.Common.Helpers in '..\..\lib\swagdoc\Source\Json.Common.Helpers.pas',
   MVCFramework.Nullables in '..\..\sources\MVCFramework.Nullables.pas',
   MVCFramework.Serializer.HTML in '..\..\sources\MVCFramework.Serializer.HTML.pas',
-  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas';
+  MVCFramework.LRUCache in '..\..\sources\MVCFramework.LRUCache.pas',  
+  MVCFramework.RESTClient.Commons in '..\..\sources\MVCFramework.RESTClient.Commons.pas',
+  MVCFramework.RESTClient.Indy in '..\..\sources\MVCFramework.RESTClient.Indy.pas',
+  MVCFramework.RESTClient.Intf in '..\..\sources\MVCFramework.RESTClient.Intf.pas',
+  MVCFramework.RESTClient in '..\..\sources\MVCFramework.RESTClient.pas';
 
 end.
 

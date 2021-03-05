@@ -3,10 +3,10 @@
         <ProjectGuid>{AF04BD45-3137-4757-B1AC-147D4136E52C}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="articles_crud_vcl_client.dproj">
+        <Projects Include="..\articles_crud_server\articles_crud.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\articles_crud_server\articles_crud.dproj">
+        <Projects Include="articles_crud_vcl_client.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -17,15 +17,6 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
-    <Target Name="articles_crud_vcl_client">
-        <MSBuild Projects="articles_crud_vcl_client.dproj"/>
-    </Target>
-    <Target Name="articles_crud_vcl_client:Clean">
-        <MSBuild Projects="articles_crud_vcl_client.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="articles_crud_vcl_client:Make">
-        <MSBuild Projects="articles_crud_vcl_client.dproj" Targets="Make"/>
-    </Target>
     <Target Name="articles_crud">
         <MSBuild Projects="..\articles_crud_server\articles_crud.dproj"/>
     </Target>
@@ -35,14 +26,23 @@
     <Target Name="articles_crud:Make">
         <MSBuild Projects="..\articles_crud_server\articles_crud.dproj" Targets="Make"/>
     </Target>
+    <Target Name="articles_crud_vcl_client">
+        <MSBuild Projects="articles_crud_vcl_client.dproj"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client:Clean">
+        <MSBuild Projects="articles_crud_vcl_client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_vcl_client:Make">
+        <MSBuild Projects="articles_crud_vcl_client.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="articles_crud_vcl_client;articles_crud"/>
+        <CallTarget Targets="articles_crud;articles_crud_vcl_client"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="articles_crud_vcl_client:Clean;articles_crud:Clean"/>
+        <CallTarget Targets="articles_crud:Clean;articles_crud_vcl_client:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="articles_crud_vcl_client:Make;articles_crud:Make"/>
+        <CallTarget Targets="articles_crud:Make;articles_crud_vcl_client:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

@@ -27,6 +27,8 @@
 
 unit MVCFramework.Middleware.Swagger;
 
+{$I dmvcframework.inc}
+
 interface
 
 uses
@@ -364,7 +366,12 @@ begin
   lPathComparer := TDelegatedComparer<TSwagPath>.Create(
     function(const Left, Right: TSwagPath): Integer
     begin
-      if SameText(Left.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) or
+      if (Left.Operations.Count = 0) or (Left.Operations[0].Tags.Count = 0) or
+        (Right.Operations.Count = 0) or (Right.Operations[0].Tags.Count = 0) then
+      begin
+        Result := 1;
+      end
+      else if SameText(Left.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) or
         SameText(Right.Operations[0].Tags[0], JWT_AUTHENTICATION_TAG) then
       begin
         Result := -1;

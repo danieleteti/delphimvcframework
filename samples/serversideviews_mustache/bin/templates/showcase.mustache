@@ -1,0 +1,85 @@
+﻿<!DOCTYPE html>
+<html>
+<header>
+    <style>
+    body {
+		  font-family: Consolas, 'Courier New';
+		}
+		
+		blockquote {
+		   font-style: italic;
+		   color: #a0a0a0;
+		   padding: 0.2em;
+		}
+		
+		.section {
+		  background-color: #3a3a3a;
+		  color: white;
+			border-left: 0.5em red solid;
+			padding: 0.5em;		  
+		}
+		
+		.box {
+			border: thin black solid;
+			margin: auto;
+			width: 80%;
+			padding: 2em;
+		}
+    </style>
+</header>
+
+<body>
+<h1>Mustache Template Showcase</h1>
+<p>
+This page is a showcase for all the mustache features usable from DMVCFramework Server Side Views using the default Mustache engine.	    
+</p>
+
+<div>	
+	<h2 class="section">List of objects</h2>
+	<div>
+    {{^people}}
+      <div>No People Found</div>
+    {{/people}} 
+		{{#people}}
+      <div>{{-index}}. {{first_name}} {{last_name}}</div>
+    {{/people}}
+	</div>
+</div>
+
+<div>	
+	<h2 class="section">Handle empty list of objects</h2>
+	<div>
+    {{^people2}}
+      <div>No People Found</div>
+    {{/people2}} 
+		{{#people2}}
+      <div>{{-index}}. {{first_name}} {{last_name}}</div>
+    {{/people2}}
+	</div>
+</div>
+
+<div>	
+	<h2 class="section">Avoid HTML automatic escaping using {{=<% %>=}} {{{ content }}</h2>
+	<%={{ }}=%>	
+	<div class="box">
+		{{#myobj}}
+      {{{rawhtml}}
+    {{/myobj}}
+    <br>
+		<blockquote >Check source code to know how to escape curly braces</blockquote >    
+	</div>	
+</div>
+
+<div>	
+	<h2 class="section">Handling partials</h2>
+	<div>
+		<ul>
+		{{#people}}
+      <li>{{>partial_person}}</li>
+    {{/people}}
+    </ul>
+	</div>	
+</div>
+
+</body>
+</html>        

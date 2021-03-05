@@ -408,7 +408,7 @@ begin
       lConn := TFDConnection.Create(nil);
       try
         lConn.ConnectionDefName := CON_DEF_NAME;
-        ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
+        ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);
         lConn.Params.Text := lConnParams;
         lConn.Open;
         for I := 1 to 30 do
@@ -427,7 +427,7 @@ begin
           end;
         end;
       finally
-        ActiveRecordConnectionsRegistry.RemoveConnection('default');
+        ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
       end;
     end;
 

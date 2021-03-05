@@ -84,10 +84,10 @@ begin
     TCustomAuth.Create,
     '/system/users/logged'
     ));
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
-    ));
+//  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+//    '/app', { StaticFilesPath }
+//    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
+//    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

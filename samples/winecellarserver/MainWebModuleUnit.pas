@@ -32,16 +32,21 @@ uses
 
 {$R *.dfm}
 
-
 procedure Twm.WebModuleCreate(Sender: TObject);
 begin
-  MVCEngine := TMVCEngine.Create(self);
+  MVCEngine := TMVCEngine.Create(self,
+    procedure(Conf: TMVCConfig)
+    begin
+//      Conf.Value[tmvcconfigkey.PathPrefix] := '/dmvc';
+    end);
   MVCEngine.AddController(TWineCellarApp);
-  MVCEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/app', { StaticFilesPath }
-    TPath.Combine(AppPath, '..\..\www'), { DocumentRoot }
-    'index.html' { IndexDocument - Before it was named fallbackresource }
-    ));
+  if not IsLibrary then
+  begin
+    MVCEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create('/app', { StaticFilesPath }
+      TPath.Combine(AppPath, '..\..\www'), { DocumentRoot }
+      'index.html' { IndexDocument - Before it was named fallbackresource }
+      ));
+  end;
 end;
 
 end.

@@ -1054,7 +1054,7 @@ function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCo
 var
   lSQL: string;
 begin
-  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, False, MaxRecordCount);
+  lSQL := SQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, True, false, MaxRecordCount);
   LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
   Result := Where(TMVCActiveRecordClass(Self.ClassType), lSQL, []);
 end;
@@ -1636,12 +1636,16 @@ begin
   end;
 
   case aValue.TypeInfo.Kind of
-    tkString, tkUString:
+    tkUString:
       begin
         case aParam.DataType of
-          ftUnknown, ftString, ftWideString:
+          ftUnknown, ftString:
             begin
-              aParam.AsString := aValue.AsString;
+              aParam.AsWideString := aValue.AsString
+            end;
+          ftWideString:
+            begin
+              aParam.AsWideString := aValue.AsString;
             end;
           ftWideMemo:
             begin
@@ -1653,7 +1657,32 @@ begin
             end;
         else
           begin
-            raise EMVCActiveRecord.CreateFmt('Invalid parameter type for (tkString, tkUString) [%s]', [lName]);
+            raise EMVCActiveRecord.CreateFmt('Invalid parameter type for (tkUString) [%s]', [lName]);
+          end;
+        end;
+      end;
+    tkString:
+      begin
+        case aParam.DataType of
+          ftUnknown, ftString:
+            begin
+              aParam.AsString := aValue.AsString;
+            end;
+          ftWideString:
+            begin
+              aParam.AsWideString := aValue.AsString;
+            end;
+          ftWideMemo:
+            begin
+              aParam.AsWideMemo := aValue.AsString;
+            end;
+          ftMemo:
+            begin
+              aParam.AsMemo := AnsiString(aValue.AsString);
+            end;
+        else
+          begin
+            raise EMVCActiveRecord.CreateFmt('Invalid parameter type for (tkString) [%s]', [lName]);
           end;
         end;
       end;
@@ -1710,11 +1739,11 @@ begin
         if (aValue.AsObject <> nil) and (not aValue.IsInstanceOf(TStream)) then
           raise EMVCActiveRecord.CreateFmt('Unsupported reference type for param %s: %s',
             [aParam.Name, aValue.AsObject.ClassName]);
-{$IF Defined(SeattleOrBetter)}
+        { .$IF Defined(SeattleOrBetter) }
+        // lStream := aValue.AsType<TStream>();
+        { .$ELSE }
         lStream := aValue.AsType<TStream>();
-{$ELSE}
-        lStream := aValue.AsType<TStream>();
-{$ENDIF}
+        { .$ENDIF }
         if Assigned(lStream) then
         begin
           lStream.Position := 0;
@@ -2115,12 +2144,7 @@ var
 begin
   lAR := T.Create;
   try
-    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(
-      RQL,
-      lAR.GetMapping,
-      MaxRecordCount > -1,
-      False,
-      MaxRecordCount).Trim;
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
     // LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
     if lSQL.StartsWith('where', True) then
       lSQL := lSQL.Remove(0, 5).Trim;
@@ -2268,7 +2292,11 @@ begin
       end
       else
       begin
+      {$IF Defined(TOKYOORBETTER)}
         lNullableTDateTime := TDateTime(aValue.AsExtended);
+      {$ELSE}
+        lNullableTDateTime := aValue.AsExtended;
+      {$ENDIF}
         lCurrValue.From<NullableTDateTime>(lNullableTDateTime);
       end;
     end
@@ -2280,7 +2308,11 @@ begin
       end
       else
       begin
+      {$IF Defined(TOKYOORBETTER)}
         lNullableTDate := TDate(aValue.AsExtended);
+      {$ELSE}
+        lNullableTDate := aValue.AsExtended;
+      {$ENDIF}
         lCurrValue.From<NullableTDate>(lNullableTDate);
       end;
     end
@@ -2292,7 +2324,11 @@ begin
       end
       else
       begin
+      {$IF Defined(TOKYOORBETTER)}
         lNullableTTime := TTime(aValue.AsExtended);
+      {$ELSE}
+        lNullableTTime := aValue.AsExtended;
+      {$ENDIF}
         lCurrValue.From<NullableTTime>(lNullableTTime);
       end;
     end
@@ -2516,7 +2552,11 @@ begin
       ('Cannot update an entity if all fields are transient. Class [%s] mapped on table [%s]', [ClassName, fTableName]);
   end;
   SQL := SQLGenerator.CreateUpdateSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
-  ExecNonQuery(SQL, false);
+  if ExecNonQuery(SQL, false) = 0 then
+  begin
+    raise EMVCActiveRecordNotFound.CreateFmt('No record updated for key [Entity: %s][PK: %s]',
+      [ClassName, fPrimaryKeyFieldName]);
+  end;
   OnAfterUpdate;
   OnAfterInsertOrUpdate;
 end;

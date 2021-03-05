@@ -198,6 +198,9 @@ type
     [MVCPath('/stringdictionary')]
     procedure TestStringDictionary;
 
+    [MVCPath('/entitywitharrays')]
+    procedure TestEntityWithArrays;
+
     [MVCPath('/image/png')]
     [MVCHTTPMethod([httpGET])]
     procedure TestGetImagePng;
@@ -303,7 +306,7 @@ uses
   MVCFramework.Serializer.Defaults,
   MVCFramework.DuckTyping,
   System.IOUtils,
-  System.Classes;
+  System.Classes, MVCFramework.Tests.Serializer.Entities;
 
 { TTestServerController }
 
@@ -507,6 +510,21 @@ end;
 procedure TTestServerController.TestEMVCException4;
 begin
   raise EMVCException.Create('message', 'detailedmessage', 999, HTTP_STATUS.Created, ['erritem1', 'erritem2']);
+end;
+
+procedure TTestServerController.TestEntityWithArrays;
+var
+  lObj: TEntityWithArray;
+begin
+  lObj := Context.Request.BodyAs<TEntityWithArray>;
+  try
+    lObj.Names := lObj.Names + ['added'];
+    lObj.Values := lObj.Values + [99];
+    lObj.Booleans := lObj.Booleans + [true];
+    Render(lObj, False);
+  finally
+    lObj.Free;
+  end;
 end;
 
 procedure TTestServerController.TestCharset;

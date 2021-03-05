@@ -26,7 +26,7 @@ uses
 
 procedure REPLEmit(const Value: string);
 begin
-  write('#> ');
+  Write('#> ');
   WriteLn(Value);
 end;
 

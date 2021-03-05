@@ -36,6 +36,14 @@ type
   TPeople = class(TObjectList<TPerson>)
   end;
 
+  TMyObj = class
+  private
+    FRawHTML: String;
+    procedure SetRawHTML(const Value: String);
+  published
+    property RawHTML: String read FRawHTML write SetRawHTML;
+  end;
+
   TDevice = class
   private
     fDeviceName: string;
@@ -55,7 +63,8 @@ type
   IPeopleDAL = interface
     ['{3E534A3E-EAEB-44ED-B74E-EFBBAAAE11B4}']
     function GetPeople: TPeople;
-    procedure AddPerson(FirstName, LastName: string; Age: Integer; Items: TArray<string>);
+    procedure AddPerson(FirstName, LastName: string; Age: Integer;
+      Items: TArray<string>);
     procedure DeleteByGUID(GUID: string);
     function GetPersonByGUID(GUID: string): TPerson;
     function GetDevicesList: TDeviceList;
@@ -66,7 +75,8 @@ type
     DATAFILE: string = 'people.data';
   public
     function GetPeople: TPeople;
-    procedure AddPerson(FirstName, LastName: string; Age: Integer; Items: TArray<string>);
+    procedure AddPerson(FirstName, LastName: string; Age: Integer;
+      Items: TArray<string>);
     procedure DeleteByGUID(GUID: string);
     function GetPersonByGUID(GUID: string): TPerson;
     function GetDevicesList: TDeviceList;
@@ -90,7 +100,8 @@ var
 
   { TSimpleDAL }
 
-procedure TPeopleDAL.AddPerson(FirstName, LastName: string; Age: Integer; Items: TArray<string>);
+procedure TPeopleDAL.AddPerson(FirstName, LastName: string; Age: Integer;
+  Items: TArray<string>);
 var
   lPeople: TPeople;
   lPerson: TPerson;
@@ -105,8 +116,10 @@ begin
       lPerson.LastName := LastName;
       lPerson.Age := Age;
       lPerson.Items := string.Join(',', Items);
-      lPerson.GUID := TGuid.NewGuid.ToString.Replace('{', '').Replace('}', '').Replace('-', '');
-      TFile.WriteAllText(DATAFILE, GetDefaultSerializer.SerializeCollection(lPeople));
+      lPerson.GUID := TGuid.NewGuid.ToString.Replace('{', '').Replace('}', '')
+        .Replace('-', '');
+      TFile.WriteAllText(DATAFILE, GetDefaultSerializer.SerializeCollection
+        (lPeople));
     finally
       lPeople.Free;
     end;
@@ -133,11 +146,12 @@ begin
       begin
         if LJPeople[I].GUID = GUID then
         begin
-          LJPeople.Delete(i);
+          LJPeople.Delete(I);
           break;
         end;
       end;
-      TFile.WriteAllText(DATAFILE, GetDefaultSerializer.SerializeCollection(LJPeople));
+      TFile.WriteAllText(DATAFILE, GetDefaultSerializer.SerializeCollection
+        (LJPeople));
     finally
       LJPeople.Free;
     end;
@@ -186,7 +200,7 @@ begin
       if lPerson.GUID = GUID then
       begin
         Result := lPeople.Extract(lPerson);
-        Break;
+        break;
       end;
     end;
   finally
@@ -244,9 +258,16 @@ begin
   Result := -1;
   for I := 0 to Self.Count - 1 do
   begin
-    if SameText(Self[i].DeviceName, aDeviceName) then
-      Exit(i);
+    if SameText(Self[I].DeviceName, aDeviceName) then
+      Exit(I);
   end;
+end;
+
+{ TRawObj }
+
+procedure TMyObj.SetRawHTML(const Value: String);
+begin
+  FRawHTML := Value;
 end;
 
 initialization

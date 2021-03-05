@@ -58,11 +58,11 @@ begin
     .AddController(TAdminController)
     .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(TAuthenticationSample.Create, 'mys3cr37', '/login',
     lClaimsSetup,
-    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300))
-    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    '..\..\www' { DocumentRoot }
-    ));
+    [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 300));
+//    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
+//    '/', { StaticFilesPath }
+//    '..\..\www' { DocumentRoot }
+//    ));
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

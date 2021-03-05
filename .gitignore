@@ -103,3 +103,6 @@ unittests/general/Several/bin/sqlitetest.db
 unittests/general/Several/bin/firebirdtest.fdb
 samples/winecellarclient_mobile/Android64/
 samples/middleware_analytics/Win32/
+*.txt
+unittests/general/Several/bin/pgsql/testdatadir/
+unittests/general/Several/Win32/Debug/sqlitetest.db

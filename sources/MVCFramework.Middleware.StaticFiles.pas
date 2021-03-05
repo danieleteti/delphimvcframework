@@ -108,6 +108,7 @@ begin
   fMediaTypes.Add('.csv', TMVCMediaType.TEXT_CSV);
   fMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS);
   fMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT);
+  fMediaTypes.Add('.json', TMVCMediaType.APPLICATION_JSON);
   fMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpe', TMVCMediaType.IMAGE_JPEG);
@@ -115,6 +116,8 @@ begin
   fMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
   fMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
   fMediaTypes.Add('.svg', TMVCMediaType.IMAGE_SVG_XML);
+  fMediaTypes.Add('.xml', TMVCMediaType.TEXT_XML);
+  fMediaTypes.Add('.pdf', TMVCMediaType.APPLICATION_PDF);
   fMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML);
   fMediaTypes.Add('.gif', TMVCMediaType.IMAGE_GIF);
 end;
@@ -128,7 +131,10 @@ constructor TMVCStaticFilesMiddleware.Create(
 begin
   inherited Create;
   fSanityCheckOK := False;
-  fStaticFilesPath := AStaticFilesPath;
+  fStaticFilesPath := AStaticFilesPath.Trim;
+  if not fStaticFilesPath.EndsWith('/') then
+    fStaticFilesPath := fStaticFilesPath + '/';
+
   if TDirectory.Exists(ADocumentRoot) then
   begin
     fDocumentRoot := TPath.GetFullPath(ADocumentRoot);
@@ -209,8 +215,21 @@ begin
 
   if not lPathInfo.StartsWith(fStaticFilesPath, True) then
   begin
-    AHandled := False;
-    Exit;
+    { In case of folder request without the trailing "/" }
+    if not lPathInfo.EndsWith('/') then
+    begin
+      lPathInfo := lPathInfo + '/';
+      if not lPathInfo.StartsWith(fStaticFilesPath, True) then
+      begin
+        AHandled := False;
+        Exit;
+      end;
+    end
+    else
+    begin
+      AHandled := False;
+      Exit;
+    end;
   end;
 
   // calculate the actual requested path

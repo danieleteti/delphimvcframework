@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -852,6 +852,9 @@ type
     FConfigCache_ExposeServerSignature: Boolean;
     FConfigCache_ServerSignature: string;
     FConfigCache_ExposeXPoweredBy: Boolean;
+    FConfigCache_DefaultContentType: String;
+    FConfigCache_DefaultContentCharset: String;
+    FConfigCache_PathPrefix: String;
     FSerializers: TDictionary<string, IMVCSerializer>;
     FMiddlewares: TList<IMVCMiddleware>;
     FControllers: TObjectList<TMVCControllerDelegate>;
@@ -1484,7 +1487,8 @@ begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(AParamName, Result)) then
   begin
     Result := '';
-    if FWebRequest.ContentType = TMVCMediaType.APPLICATION_FORM_URLENCODED then
+    if FWebRequest.ContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
+      FWebRequest.ContentType.StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
       Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
       Result := FWebRequest.QueryFields.Values[AParamName];
@@ -2200,8 +2204,11 @@ begin
             begin
               if lRouter.ExecuteRouting(ARequest.PathInfo,
                 lContext.Request.GetOverwrittenHTTPMethod { lContext.Request.HTTPMethod } ,
-                ARequest.ContentType, ARequest.Accept, FControllers, FConfig[TMVCConfigKey.DefaultContentType],
-                FConfig[TMVCConfigKey.DefaultContentCharset], lParamsTable, lResponseContentMediaType,
+                ARequest.ContentType, ARequest.Accept, FControllers,
+                FConfigCache_DefaultContentType,
+                FConfigCache_DefaultContentCharset,
+                FConfigCache_PathPrefix,
+                lParamsTable, lResponseContentMediaType,
                 lResponseContentCharset) then
               begin
                 try
@@ -2759,6 +2766,10 @@ begin
   begin
     try
       AHandled := ExecuteAction(ASender, ARequest, AResponse);
+      if not AHandled then
+      begin
+        AResponse.ContentStream := nil;
+      end;
     except
       on E: Exception do
       begin
@@ -2844,6 +2855,9 @@ begin
   FConfigCache_ExposeServerSignature := Config[TMVCConfigKey.ExposeServerSignature] = 'true';
   FConfigCache_ServerSignature := Config[TMVCConfigKey.ServerName];
   FConfigCache_ExposeXPoweredBy := Config[TMVCConfigKey.ExposeXPoweredBy] = 'true';
+  FConfigCache_DefaultContentType := Config[TMVCConfigKey.DefaultContentType];
+  FConfigCache_DefaultContentCharset := Config[TMVCConfigKey.DefaultContentCharset];
+  FConfigCache_PathPrefix := Config[TMVCConfigKey.PathPrefix];
 end;
 
 class function TMVCEngine.SendSessionCookie(const AContext: TWebContext; const ASessionId: string): string;

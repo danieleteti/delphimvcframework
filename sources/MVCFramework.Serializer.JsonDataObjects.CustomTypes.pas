@@ -268,7 +268,7 @@ var
 begin
   lStringDict := AElementValue.AsObject as TMVCStringDictionary;
   lJSON := ASerializerObject as TJDOJsonObject;
-  for i := 0 to lJSON.O[APropertyName].Count - 1 do
+  for i := 0 to lJSON.Count - 1 do
   begin
     lStringDict.Add(lJSON.Names[i], lJSON.S[lJSON.Names[i]])
   end;
@@ -504,6 +504,18 @@ begin
         Continue;
       end;
 
+      if lObj.Data is TJsonObject then
+      begin
+        lOutObject.O[lName] := TJsonObject(TJsonObject(lObj.Data).Clone);
+        Continue;
+      end;
+
+      if lObj.Data is TJsonArray then
+      begin
+        lOutObject.A[lName] := TJsonArray(TJsonArray(lObj.Data).Clone);
+        Continue;
+      end;
+
       if TDuckTypedList.CanBeWrappedAsList(lObj.Data, lList) then
       begin
         fCurrentSerializer.ListToJsonArray(lList, lOutObject.A[lName], TMVCSerializationType.stDefault, [],
@@ -588,7 +600,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<string>;
+  lList := TMVCListOfString(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
@@ -638,7 +650,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<Integer>;
+  lList := TMVCListOfInteger(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
@@ -689,7 +701,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<Boolean>;
+  lList := TMVCListOfBoolean(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do
@@ -739,7 +751,7 @@ var
   lJsonArray: TJsonArray;
   i: Integer;
 begin
-  lList := AElementValue.AsObject as TList<Double>;
+  lList := TMVCListOfDouble(AElementValue.AsObject);
   lList.Clear;
   lJsonArray := ASerializerObject as TJsonArray;
   for i := 0 to lJsonArray.Count - 1 do

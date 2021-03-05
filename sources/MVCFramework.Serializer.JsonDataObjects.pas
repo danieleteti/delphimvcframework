@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -67,8 +67,8 @@ type
   TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
   private
     fStringDictionarySerializer: IMVCTypeSerializer;
-    function TryMapNullableFloat(var Value: TValue;
-      const JSONDataObject: TJsonObject; const AttribName: string): Boolean;
+    function TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
+      const AttribName: string): Boolean;
   public
     function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
@@ -78,11 +78,10 @@ type
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
       const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks;
       const Serializer: IMVCTypeSerializer);
-    function ConvertObjectToJsonValue(const AObject: TObject;
-      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+    function ConvertObjectToJsonValue(const AObject: TObject; const AType: TMVCSerializationType;
+      const AIgnoredAttributes: TMVCIgnoredList;
       const ADataSetSerializationCallback: TMVCDataSetFieldSerializationAction;
-      const ASerializationAction: TMVCSerializationAction;
-      out AJsonDataType: TJsonDataType): TJsonBaseObject;
+      const ASerializationAction: TMVCSerializationAction; out AJsonDataType: TJsonDataType): TJsonBaseObject;
     procedure AddTValueToJsonArray(const Value: TValue; const JSON: TJDOJsonArray);
     procedure ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
@@ -133,12 +132,11 @@ type
       const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
       : string; overload;
 
-    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+    function SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList = [];
       const ANameCase: TMVCNameCase = ncAsIs; const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
 
-    function SerializeDataSetRecord(const DataSet: TDataSet;
-      const IgnoredFields: TMVCIgnoredList; const NameCase: TMVCNameCase = ncAsIs;
-      const SerializationAction: TMVCDatasetSerializationAction = nil): string;
+    function SerializeDataSetRecord(const DataSet: TDataSet; const IgnoredFields: TMVCIgnoredList;
+      const NameCase: TMVCNameCase = ncAsIs; const SerializationAction: TMVCDatasetSerializationAction = nil): string;
 
     procedure DeserializeObject(const ASerializedObject: string; const AObject: TObject;
       const AType: TMVCSerializationType = stDefault; const AIgnoredAttributes: TMVCIgnoredList = [];
@@ -157,13 +155,11 @@ type
     procedure DeserializeDataSet(const ASerializedDataSet: string; const ADataSet: TDataSet;
       const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs);
 
-    procedure InternalSerializeDataSet(
-      const ADataSet: TDataSet; const AJsonArray: TJsonArray; const AIgnoredFields: TMVCIgnoredList;
-      const ANameCase: TMVCNameCase;
+    procedure InternalSerializeDataSet(const ADataSet: TDataSet; const AJsonArray: TJsonArray;
+      const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
       const ASerializationAction: TMVCDatasetSerializationAction);
 
-    procedure InternalSerializeDataSetRecord(
-      const DataSet: TDataSet; const JSONObject: TJsonObject;
+    procedure InternalSerializeDataSetRecord(const DataSet: TDataSet; const JSONObject: TJsonObject;
       const IgnoredFields: TMVCIgnoredList; const NameCase: TMVCNameCase;
       const SerializationAction: TMVCDatasetSerializationAction);
 
@@ -182,8 +178,8 @@ type
   end;
 
 procedure TValueToJSONObjectProperty(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
-function StrToJSONObject(const AValue: string): TJDOJsonObject;
-function StrToJSONArray(const AValue: string): TJDOJsonArray;
+function StrToJSONObject(const AValue: string): TJDOJsonObject; inline;
+function StrToJSONArray(const AValue: string): TJDOJsonArray; inline;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList); overload;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject); overload;
@@ -191,11 +187,8 @@ procedure JsonArrayToList(const AJsonArray: TJDOJsonArray; const AList: IMVCList
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 
 const
-  JDO_TYPE_DESC: array [
-    TJsonDataType.jdtNone .. TJsonDataType.jdtObject
-    ] of string = (
-    'None', 'String', 'Int', 'Long', 'ULong', 'Float', 'DateTime', 'UtcDateTime', 'Bool', 'Array', 'Object'
-    );
+  JDO_TYPE_DESC: array [TJsonDataType.jdtNone .. TJsonDataType.jdtObject] of string = ('None', 'String', 'Int', 'Long',
+    'ULong', 'Float', 'DateTime', 'UtcDateTime', 'Bool', 'Array', 'Object');
 
 implementation
 
@@ -238,15 +231,14 @@ begin
   GetTypeSerializers.Add(TypeInfo(TGUID), TMVCGUIDSerializer.Create);
   fObjectDictionarySerializer := TMVCObjectDictionarySerializer.Create(self);
   GetTypeSerializers.Add(TypeInfo(TMVCObjectDictionary), fObjectDictionarySerializer);
-  GetTypeSerializers.Add(TypeInfo(TList<string>), TMVCListOfStringSerializer.Create);
-  GetTypeSerializers.Add(TypeInfo(TList<Integer>), TMVCListOfIntegerSerializer.Create);
-  GetTypeSerializers.Add(TypeInfo(TList<Boolean>), TMVCListOfBooleanSerializer.Create);
-  GetTypeSerializers.Add(TypeInfo(TList<Double>), TMVCListOfDoubleSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfString {TList<string>}), TMVCListOfStringSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfInteger {TList<Integer>}), TMVCListOfIntegerSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfBoolean {TList<Boolean>}), TMVCListOfBooleanSerializer.Create);
+  GetTypeSerializers.Add(TypeInfo(TMVCListOfDouble {TList<Double>}), TMVCListOfDoubleSerializer.Create);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.TValueToJSONObjectProperty(const AJsonObject: TJDOJsonObject;
-  const AName: string;
-  const AValue: TValue; const AType: TMVCSerializationType; const AIgnored: TMVCIgnoredList;
+  const AName: string; const AValue: TValue; const AType: TMVCSerializationType; const AIgnored: TMVCIgnoredList;
   const ACustomAttributes: TArray<TCustomAttribute>);
 var
   ChildJsonObject: TJDOJsonObject;
@@ -332,8 +324,7 @@ begin
         begin
           LEnumSerType := estEnumName;
           LEnumMappedValues := nil;
-          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr)
-          then
+          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr) then
           begin
             LEnumSerType := LEnumAsAttr.SerializationType;
             LEnumMappedValues := LEnumAsAttr.MappedValues;
@@ -371,8 +362,8 @@ begin
 
         if Assigned(ChildObject) then
         begin
-          lJSONValue := ConvertObjectToJsonValue(ChildObject, GetSerializationType(ChildObject, AType),
-            AIgnored, nil, nil, lJsonDataType);
+          lJSONValue := ConvertObjectToJsonValue(ChildObject, GetSerializationType(ChildObject, AType), AIgnored, nil,
+            nil, lJsonDataType);
           case lJsonDataType of
             jdtArray:
               begin
@@ -455,23 +446,32 @@ begin
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsInt64);
               tkFloat:
                 AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsExtended);
+              tkEnumeration:
+                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsBoolean);
               tkClass:
                 begin
                   Obj := AValue.GetArrayElement(I).AsObject;
-                  lJSONValue := ConvertObjectToJsonValue(Obj, GetSerializationType(Obj), [], nil, nil, lJsonDataType);
-                  case lJsonDataType of
-                    jdtArray:
-                      begin
-                        AJsonObject.A[AName] := TJsonArray(lJSONValue);
-                      end;
-                    jdtObject:
-                      begin
-                        AJsonObject.O[AName] := TJsonObject(lJSONValue);
-                      end;
+                  if Obj = nil then
+                  begin
+                    AJsonObject.A[AName].Add(TJsonObject(nil));
+                  end
                   else
-                    begin
-                      lJSONValue.Free;
-                      RaiseSerializationError('Invalid JSON Type for ' + AName);
+                  begin
+                    lJSONValue := ConvertObjectToJsonValue(Obj, GetSerializationType(Obj), [], nil, nil, lJsonDataType);
+                    case lJsonDataType of
+                      jdtArray:
+                        begin
+                          AJsonObject.A[AName].Add(TJsonArray(lJSONValue));
+                        end;
+                      jdtObject:
+                        begin
+                          AJsonObject.A[AName].Add(TJsonObject(lJSONValue));
+                        end;
+                    else
+                      begin
+                        lJSONValue.Free;
+                        RaiseSerializationError('Invalid JSON Type for ' + AName);
+                      end;
                     end;
                   end;
                 end;
@@ -494,9 +494,7 @@ end;
 function TMVCJsonDataObjectsSerializer.ConvertObjectToJsonValue(const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ADataSetSerializationCallback: TMVCDataSetFieldSerializationAction;
-  const ASerializationAction: TMVCSerializationAction;
-  out AJsonDataType: TJsonDataType)
-  : TJsonBaseObject;
+  const ASerializationAction: TMVCSerializationAction; out AJsonDataType: TJsonDataType): TJsonBaseObject;
 var
   lList: IMVCList;
   I: Integer;
@@ -504,6 +502,7 @@ var
   lObj: TObject;
   lJSONValue: TJsonBaseObject;
   lJsonDataType: TJsonDataType;
+  lLinks: IMVCLinks;
 begin
   Result := nil;
   try
@@ -511,7 +510,8 @@ begin
     begin
       Result := TJsonArray.Create;
       AJsonDataType := jdtArray;
-      DataSetToJsonArray(TDataSet(AObject), TJsonArray(Result), TMVCNameCase.ncLowerCase, [], ADataSetSerializationCallback);
+      DataSetToJsonArray(TDataSet(AObject), TJsonArray(Result), TMVCNameCase.ncLowerCase, [],
+        ADataSetSerializationCallback);
     end
     else if AObject is TJsonObject then
     begin
@@ -522,6 +522,11 @@ begin
     begin
       AJsonDataType := jdtArray;
       Result := TJsonArray(TJsonArray(AObject).Clone);
+    end
+    else if AObject = nil then
+    begin
+      AJsonDataType := jdtObject;
+      Result := nil;
     end
     else
     begin
@@ -537,8 +542,8 @@ begin
             lObj := lValue.AsObject; // ChildList.GetItem(I);
             if Assigned(lObj) then
             begin
-              lJSONValue := ConvertObjectToJsonValue(lObj, GetSerializationType(lObj, AType), AIgnoredAttributes,
-                nil, ASerializationAction, lJsonDataType);
+              lJSONValue := ConvertObjectToJsonValue(lObj, GetSerializationType(lObj, AType), AIgnoredAttributes, nil,
+                ASerializationAction, lJsonDataType);
               case lJsonDataType of
                 jdtObject:
                   begin
@@ -569,7 +574,9 @@ begin
       begin
         Result := TJsonObject.Create;
         AJsonDataType := jdtObject;
-        ObjectToJsonObject(AObject, TJsonObject(Result), GetSerializationType(AObject, AType), AIgnoredAttributes);
+        lLinks := TMVCLinks.Create;
+        InternalObjectToJsonObject(AObject, TJsonObject(Result), GetSerializationType(AObject, AType),
+          AIgnoredAttributes, ASerializationAction, lLinks, nil);
       end;
     end;
   except
@@ -591,6 +598,7 @@ begin
   Assert(Assigned(ADataSetFields));
   for lField in ADataSetFields do
   begin
+
     begin
       if ADataSet.Fields[lField.I].IsNull then
       begin
@@ -749,6 +757,7 @@ begin
   Assert(Assigned(ADataSetFields));
   for lField in ADataSetFields do
   begin
+
     begin
       if Assigned(ASerializationCallback) then
       begin
@@ -798,8 +807,8 @@ begin
             AJsonObject.S[lFName] := SQLTimeStampToStr('hh:nn:ss', ADataSet.Fields[lField.I].AsSQLTimeStamp);
 
           ftTimeStamp:
-            AJsonObject.S[lFName] :=
-              DateTimeToISOTimeStamp(SQLTimeStampToDateTime(ADataSet.Fields[lField.I].AsSQLTimeStamp));
+            AJsonObject.S[lFName] := DateTimeToISOTimeStamp
+              (SQLTimeStampToDateTime(ADataSet.Fields[lField.I].AsSQLTimeStamp));
 
           ftCurrency:
             AJsonObject.F[lFName] := ADataSet.Fields[lField.I].AsCurrency;
@@ -984,6 +993,7 @@ var
   lIntArr: TArray<Integer>;
   lLongArr: TArray<Int64>;
   lDoubleArr: TArray<Double>;
+  lBoolArr: TArray<Boolean>;
 begin
   for I := 0 to Pred(AJsonArray.Count) do
   begin
@@ -996,6 +1006,8 @@ begin
         lLongArr := lLongArr + [AJsonArray.Items[I].LongValue];
       jdtFloat:
         lDoubleArr := lDoubleArr + [AJsonArray.Items[I].FloatValue];
+      jdtBool:
+        lBoolArr := lBoolArr + [AJsonArray.Items[I].BoolValue];
     end;
   end;
 
@@ -1005,6 +1017,8 @@ begin
     Result := TValue.From < TArray < Integer >> (lIntArr)
   else if Length(lLongArr) > 0 then
     Result := TValue.From < TArray < Int64 >> (lLongArr)
+  else if Length(lBoolArr) > 0 then
+    Result := TValue.From < TArray < Boolean >> (lBoolArr)
   else
     Result := TValue.From < TArray < Double >> (lDoubleArr);
 end;
@@ -1321,8 +1335,7 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.JsonObjectToDataSet(const AJsonObject: TJDOJsonObject;
-  const ADataSet: TDataSet;
+procedure TMVCJsonDataObjectsSerializer.JsonObjectToDataSet(const AJsonObject: TJDOJsonObject; const ADataSet: TDataSet;
   const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase);
 var
   Field: TField;
@@ -1384,10 +1397,10 @@ begin
         TFieldType.ftDate:
           Field.AsDateTime := ISODateToDate(AJsonObject.S[lName]);
 
-        TFieldType.ftDateTime:
+        TFieldType.ftDateTime, TFieldType.ftTimeStamp:
           Field.AsDateTime := ISOTimeStampToDateTime(AJsonObject.S[lName]);
 
-        TFieldType.ftTimeStamp, TFieldType.ftTime:
+        TFieldType.ftTime:
           Field.AsDateTime := ISOTimeToTime(AJsonObject.S[lName]);
 
 {$IFDEF TOKYOORBETTER}
@@ -1449,6 +1462,11 @@ var
   lKeyName: string;
   lErrMsg: string;
 begin
+  if AObject = nil then
+  begin
+    Exit;
+  end;
+
   if AObject is TJsonObject then
   begin
     if not Assigned(AObject) then
@@ -1495,17 +1513,12 @@ begin
             if lProp <> nil then
             begin
               lErrMsg := Format('Invalid class typecast for property "%s" [Expected: %s, Actual: %s]',
-                [
-                lKeyName, lProp.PropertyType.ToString(),
-                JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]
-                ]);
+                [lKeyName, lProp.PropertyType.ToString(), JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]]);
             end
             else
             begin
               lErrMsg := Format('Invalid class typecast for property "%s" [Actual: %s]',
-                [
-                lKeyName, JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]
-                ]);
+                [lKeyName, JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]]);
             end;
             raise EMVCException.Create(HTTP_STATUS.BadRequest, lErrMsg);
           end;
@@ -1531,17 +1544,12 @@ begin
             if lFld <> nil then
             begin
               lErrMsg := Format('Invalid class typecast for field "%s" [Expected: %s, Actual: %s]',
-                [
-                lKeyName, lFld.FieldType.ToString(),
-                JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]
-                ]);
+                [lKeyName, lFld.FieldType.ToString(), JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]]);
             end
             else
             begin
               lErrMsg := Format('Invalid class typecast for field "%s" [Actual: %s]',
-                [
-                lKeyName, JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]
-                ]);
+                [lKeyName, JDO_TYPE_DESC[AJsonObject[lKeyName].Typ]]);
             end;
             raise EMVCException.Create(HTTP_STATUS.BadRequest, lErrMsg);
           end;
@@ -1550,8 +1558,7 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.ListToJsonArray(const AList: IMVCList;
-  const AJsonArray: TJDOJsonArray;
+procedure TMVCJsonDataObjectsSerializer.ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction);
 var
@@ -1577,7 +1584,8 @@ begin
   begin
     for I := 0 to Pred(AList.Count) do
     begin
-      lJSONValue := ConvertObjectToJsonValue(AList.GetItem(I), AType, AIgnoredAttributes, nil, ASerializationAction, lJsonDataType);
+      lJSONValue := ConvertObjectToJsonValue(AList.GetItem(I), AType, AIgnoredAttributes, nil, ASerializationAction,
+        lJsonDataType);
       case lJsonDataType of
         jdtArray:
           begin
@@ -1600,18 +1608,15 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.ObjectToJsonObject(const AObject: TObject;
-  const AJsonObject: TJDOJsonObject;
+procedure TMVCJsonDataObjectsSerializer.ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
 begin
   InternalObjectToJsonObject(AObject, AJsonObject, AType, AIgnoredAttributes, nil, nil, nil);
 end;
 
 procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(const AObject: TObject;
-  const AJsonObject: TJDOJsonObject; const AType: TMVCSerializationType;
-  const AIgnoredAttributes: TMVCIgnoredList;
-  const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks;
-  const Serializer: IMVCTypeSerializer);
+  const AJsonObject: TJDOJsonObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks; const Serializer: IMVCTypeSerializer);
 var
   ObjType: TRttiType;
   Prop: TRttiProperty;
@@ -1647,8 +1652,7 @@ begin
           if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
             (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
             TValueToJSONObjectProperty(AJsonObject, TMVCSerializerHelper.GetKeyName(Fld, ObjType),
-              Fld.GetValue(AObject),
-              AType, AIgnoredAttributes, Fld.GetAttributes);
+              Fld.GetValue(AObject), AType, AIgnoredAttributes, Fld.GetAttributes);
         end;
       end;
   end;
@@ -1660,9 +1664,8 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.InternalSerializeDataSet(
-  const ADataSet: TDataSet; const AJsonArray: TJsonArray; const AIgnoredFields: TMVCIgnoredList;
-  const ANameCase: TMVCNameCase;
+procedure TMVCJsonDataObjectsSerializer.InternalSerializeDataSet(const ADataSet: TDataSet; const AJsonArray: TJsonArray;
+  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase;
   const ASerializationAction: TMVCDatasetSerializationAction);
 var
   BookMark: TBookmark;
@@ -1702,9 +1705,8 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.InternalSerializeDataSetRecord(
-  const DataSet: TDataSet; const JSONObject: TJsonObject;
-  const IgnoredFields: TMVCIgnoredList; const NameCase: TMVCNameCase;
+procedure TMVCJsonDataObjectsSerializer.InternalSerializeDataSetRecord(const DataSet: TDataSet;
+  const JSONObject: TJsonObject; const IgnoredFields: TMVCIgnoredList; const NameCase: TMVCNameCase;
   const SerializationAction: TMVCDatasetSerializationAction);
 var
   lNameCase: TMVCNameCase;
@@ -1719,37 +1721,32 @@ begin
     if Assigned(SerializationAction) then
     begin
       SerializationAction(DataSet, lLinks);
-      TJDOLinks(lLinks).FillJSONArray(JSONObject.A[
-        TMVCSerializerHelper.ApplyNameCase(lNameCase, TMVCConstants.HATEOAS_PROP_NAME)
-        ]);
+      TJDOLinks(lLinks).FillJSONArray(JSONObject.A[TMVCSerializerHelper.ApplyNameCase(lNameCase,
+        TMVCConstants.HATEOAS_PROP_NAME)]);
     end;
   finally
     lDataSetFields.Free;
   end;
 end;
 
-class
-  function TMVCJsonDataObjectsSerializer.Parse<T>(const AString: string): T;
+class function TMVCJsonDataObjectsSerializer.Parse<T>(const AString: string): T;
 begin
   Result := TJDOJsonObject.Parse(AString) as T;
   if not Assigned(Result) then
     raise EMVCDeserializationException.Create('Cannot parse string as ' + T.ClassName);
 end;
 
-class
-  function TMVCJsonDataObjectsSerializer.ParseArray(const AString: string): TJDOJsonArray;
+class function TMVCJsonDataObjectsSerializer.ParseArray(const AString: string): TJDOJsonArray;
 begin
   Result := Parse<TJDOJsonArray>(AString);
 end;
 
-class
-  function TMVCJsonDataObjectsSerializer.ParseObject(const AString: string): TJDOJsonObject;
+class function TMVCJsonDataObjectsSerializer.ParseObject(const AString: string): TJDOJsonObject;
 begin
   Result := Parse<TJDOJsonObject>(AString);
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeCollection(const AList: TObject;
-  const AType: TMVCSerializationType;
+function TMVCJsonDataObjectsSerializer.SerializeCollection(const AList: TObject; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 var
   JsonArray: TJDOJsonArray;
@@ -1791,7 +1788,14 @@ begin
       begin
         for Obj in ObjList do
         begin
-          ObjectToJsonObject(Obj, JsonArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes);
+          if Obj <> nil then
+          begin
+            ObjectToJsonObject(Obj, JsonArray.AddObject, GetSerializationType(Obj, AType), AIgnoredAttributes)
+          end
+          else
+          begin
+            JsonArray.Add(TJsonObject(nil));
+          end;
         end;
       end;
       Result := JsonArray.ToJSON(True);
@@ -1801,16 +1805,14 @@ begin
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeCollection(const AList: IInterface;
-  const AType: TMVCSerializationType;
+function TMVCJsonDataObjectsSerializer.SerializeCollection(const AList: IInterface; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 begin
   Result := SerializeCollection(TObject(AList), AType, AIgnoredAttributes, ASerializationAction);
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeDataSet(const ADataSet: TDataSet;
-  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs;
-  const ASerializationAction: TMVCDatasetSerializationAction = nil): string;
+function TMVCJsonDataObjectsSerializer.SerializeDataSet(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase; const ASerializationAction: TMVCDatasetSerializationAction): string;
 var
   JsonArray: TJDOJsonArray;
 begin
@@ -1849,8 +1851,7 @@ begin
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeObject(const AObject: TObject;
-  const AType: TMVCSerializationType;
+function TMVCJsonDataObjectsSerializer.SerializeObject(const AObject: TObject; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 var
   LJObj: TJDOJsonObject;
@@ -1903,8 +1904,7 @@ begin
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeObject(const AObject: IInterface;
-  const AType: TMVCSerializationType;
+function TMVCJsonDataObjectsSerializer.SerializeObject(const AObject: IInterface; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): string;
 var
   LIgnoredAttrs: TList<string>;
@@ -1917,17 +1917,14 @@ begin
     LIgnoredAttrs.AddRange(AIgnoredAttributes);
     // if Assigned(GetRttiContext.GetType(TObject(AObject).ClassType).GetProperty('RefCount')) then
     // LIgnoredAttrs.Add('RefCount');
-    Result := SerializeObject(TObject(AObject), AType, TMVCIgnoredList(LIgnoredAttrs.ToArray),
-      ASerializationAction);
+    Result := SerializeObject(TObject(AObject), AType, TMVCIgnoredList(LIgnoredAttrs.ToArray), ASerializationAction);
   finally
     LIgnoredAttrs.Free;
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.SerializeObjectToJSON(const AObject: TObject;
-  const AType: TMVCSerializationType;
-  const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction)
-  : TJDOJsonObject;
+function TMVCJsonDataObjectsSerializer.SerializeObjectToJSON(const AObject: TObject; const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): TJDOJsonObject;
 var
   JSONObject: TJDOJsonObject;
   ObjType: TRttiType;
@@ -1971,8 +1968,8 @@ begin
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.TryMapNullableFloat(var Value: TValue;
-  const JSONDataObject: TJsonObject; const AttribName: string): Boolean;
+function TMVCJsonDataObjectsSerializer.TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
+  const AttribName: string): Boolean;
 begin
   Result := True;
   if Value.TypeInfo = TypeInfo(NullableSingle) then
@@ -1987,8 +1984,7 @@ begin
     Result := False;
 end;
 
-function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue;
-  const AJsonObject: TJDOJsonObject;
+function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject;
   const AName: string): Boolean;
 begin
   Result := False;
@@ -2190,8 +2186,7 @@ begin
 
 end;
 
-procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string;
-  const AObject: TObject;
+procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList; const ARootNode: string);
 var
   JSONObject: TJDOJsonObject;
@@ -2233,8 +2228,8 @@ begin
   end;
 end;
 
-function TMVCJsonDataObjectsSerializer.GetDataSetFields(const ADataSet: TDataSet;
-  const AIgnoredFields: TMVCIgnoredList; const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
+function TMVCJsonDataObjectsSerializer.GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
+  const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
 var
   I: Integer;
   lField: TMVCDataSetField;
@@ -2316,7 +2311,8 @@ begin
         else
           lValueAsObj := Value.AsObject;
 
-        lJSONValue := ConvertObjectToJsonValue(lValueAsObj, GetSerializationType(lValueAsObj), [], nil, nil, lJsonDataType);
+        lJSONValue := ConvertObjectToJsonValue(lValueAsObj, GetSerializationType(lValueAsObj), [], nil, nil,
+          lJsonDataType);
         case lJsonDataType of
           jdtArray:
             begin
@@ -2558,8 +2554,7 @@ end;
 
 { TJSONObjectHelper }
 
-procedure TJSONObjectHelper.LoadFromString(const Value: string; Encoding: TEncoding;
-  Utf8WithoutBOM: Boolean);
+procedure TJSONObjectHelper.LoadFromString(const Value: string; Encoding: TEncoding; Utf8WithoutBOM: Boolean);
 var
   lSS: TStringStream;
 begin

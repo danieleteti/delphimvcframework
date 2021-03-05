@@ -190,8 +190,8 @@ type
     class function ApplyNameCase(const NameCase: TMVCNameCase; const Value: string): string; static;
     class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
     class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): Boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+    class function HasAttribute<T: class>(const AMember: TRttiObject): Boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean;
       overload; static;
     class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T)
       : Boolean; overload; static;
@@ -385,6 +385,23 @@ type
     property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
   end;
 
+var
+  /// <summary>
+  /// Use this variable when you want to convert your local time as UTC or when you receive an UTC ISOTimeStamp and
+  /// do not want to apply the time zone when converting.
+  /// The default value of gLocalTimeStampAsUTC = False.
+  /// </summary>
+  /// <example>
+  /// * For gLocalTimeStampAsUTC = False and timezone: - 03:00
+  ///   ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 11:22:17.763
+  ///   DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763-03:00
+  ///
+  /// * For gLocalTimeStampAsUTC = True and timezone: - 03:00
+  ///   ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 14:22:17
+  ///   DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763Z
+  /// </example>
+  gLocalTimeStampAsUTC: Boolean;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
@@ -482,9 +499,7 @@ end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
-  // fs.TimeSeparator := ':';
-  Result := DateToISO8601(ADateTime, True)
-  // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
+  Result := DateToISO8601(ADateTime, gLocalTimeStampAsUTC);
 end;
 
 function DateToISODate(const ADate: TDateTime): string;
@@ -503,6 +518,7 @@ end;
 function ISOTimeStampToDateTime(const ADateTime: string): TDateTime;
 var
   lDateTime: string;
+  lIsUTC: Boolean;
 begin
   lDateTime := ADateTime;
   if lDateTime.Length < 19 then
@@ -514,7 +530,13 @@ begin
   begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
+
+  lIsUTC := lDateTime.Length > 19;
   Result := ISO8601ToDate(lDateTime, True);
+  if lIsUTC and (not gLocalTimeStampAsUTC) then
+  begin
+    Result := TTimeZone.Local.ToLocalTime(Result);
+  end;
 end;
 
 function ISODateToDate(const ADate: string): TDate;
@@ -753,10 +775,8 @@ begin
   Attrs := AProperty.GetAttributes;
   for Attr in Attrs do
   begin
-    { TODO -oDaniele -cGeneral : Time this! }
     if Attr is MVCNameAsAttribute then
     begin
-      // Exit(MVCNameAsAttribute(Attr).Name);
       Result := MVCNameAsAttribute(Attr).Name;
       if MVCNameAsAttribute(Attr).Fixed then { if FIXED the attribute NameAs remains untouched }
       begin
@@ -785,7 +805,7 @@ begin
   Result := Result.Remove(0, 2).ToLower;
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiObject): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -799,7 +819,7 @@ begin
       Exit(True);
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiObject; out AAttribute: T): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -1677,5 +1697,8 @@ begin
     fData.Free;
   inherited;
 end;
+
+initialization
+  gLocalTimeStampAsUTC := False;
 
 end.

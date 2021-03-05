@@ -51,7 +51,7 @@ implementation
 
 
 uses
-  Winapi.ShellApi;
+  Winapi.ShellApi, System.UITypes;
 
 procedure TMainForm.btnStartInProcessClick(Sender: TObject);
 begin
