@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls;
 
 type
   TRDBMSEngine = (PostgreSQL, Firebird, Interbase, MSSQLServer, MySQL, MariaDB, SQLite);
@@ -18,6 +18,7 @@ type
     Button5: TButton;
     Button6: TButton;
     Button7: TButton;
+    Shape1: TShape;
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
@@ -60,6 +61,7 @@ end;
 
 procedure TEngineChoiceForm.FormCreate(Sender: TObject);
 begin
+  Shape1.Brush.Color := RGB($d6,$1e,$1e);
 {$IFDEF USE_SEQUENCES}
   Button1.Enabled := False;
   Button2.Enabled := False;

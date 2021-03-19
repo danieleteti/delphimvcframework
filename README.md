@@ -428,6 +428,7 @@ This version introduced new features in many different areas (swagger, server si
 - ⚡Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
 - ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+- ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
 - ⚡Improved! Add parameter to set local timeStamp as UTC.
 - ⚡Improved OpenAPI (Swagger) support.
 - ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.

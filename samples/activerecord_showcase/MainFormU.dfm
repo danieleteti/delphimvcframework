@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 640
+  ClientHeight = 700
   ClientWidth = 635
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -15,7 +15,7 @@ object MainForm: TMainForm
   OnShow = FormShow
   DesignSize = (
     635
-    640)
+    700)
   PixelsPerInch = 96
   TextHeight = 13
   object btnCRUD: TButton
@@ -40,7 +40,7 @@ object MainForm: TMainForm
     Left = 135
     Top = 8
     Width = 492
-    Height = 624
+    Height = 684
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -184,6 +184,15 @@ object MainForm: TMainForm
     Caption = 'Attributes'
     TabOrder = 16
     OnClick = btnAttributesClick
+  end
+  object btnJSON_XML_Types: TButton
+    Left = 8
+    Top = 638
+    Width = 121
+    Height = 33
+    Caption = 'JSON && XML'
+    TabOrder = 17
+    OnClick = btnJSON_XML_TypesClick
   end
   object FDConnection1: TFDConnection
     Left = 192
