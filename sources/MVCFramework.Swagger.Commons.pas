@@ -329,12 +329,18 @@ var
   lEnumSerType: TMVCEnumSerializationType;
   lEnumMappedValues: TList<string>;
   I: Integer;
+  lInheritsFromTInterfacedOb: Boolean;
 begin
   lObjType := fRttiContext.GetType(AClass);
+
+  lInheritsFromTInterfacedOb := AClass.InheritsFrom(TInterfacedObject);
   for lProp in lObjType.GetProperties do
   begin
     lSkipProp := False;
     lFieldSchemaDef := TFieldSchemaDefinition.Create;
+
+    if lInheritsFromTInterfacedOb and SameText(lProp.Name, 'RefCount') then
+      Continue;
 
     for lAttr in lProp.GetAttributes do
     begin

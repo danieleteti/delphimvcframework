@@ -108,6 +108,7 @@ begin
   fMediaTypes.Add('.csv', TMVCMediaType.TEXT_CSV);
   fMediaTypes.Add('.css', TMVCMediaType.TEXT_CSS);
   fMediaTypes.Add('.js', TMVCMediaType.TEXT_JAVASCRIPT);
+  fMediaTypes.Add('.json', TMVCMediaType.APPLICATION_JSON);
   fMediaTypes.Add('.jpg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpeg', TMVCMediaType.IMAGE_JPEG);
   fMediaTypes.Add('.jpe', TMVCMediaType.IMAGE_JPEG);
@@ -115,6 +116,8 @@ begin
   fMediaTypes.Add('.ico', TMVCMediaType.IMAGE_X_ICON);
   fMediaTypes.Add('.appcache', TMVCMediaType.TEXT_CACHEMANIFEST);
   fMediaTypes.Add('.svg', TMVCMediaType.IMAGE_SVG_XML);
+  fMediaTypes.Add('.xml', TMVCMediaType.TEXT_XML);
+  fMediaTypes.Add('.pdf', TMVCMediaType.APPLICATION_PDF);
   fMediaTypes.Add('.svgz', TMVCMediaType.IMAGE_SVG_XML);
   fMediaTypes.Add('.gif', TMVCMediaType.IMAGE_GIF);
 end;

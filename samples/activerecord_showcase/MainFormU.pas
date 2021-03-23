@@ -45,6 +45,7 @@ type
     btnReadAndWriteOnly: TButton;
     btnClientGeneratedPK: TButton;
     btnAttributes: TButton;
+    btnJSON_XML_Types: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -64,6 +65,7 @@ type
     procedure btnReadAndWriteOnlyClick(Sender: TObject);
     procedure btnClientGeneratedPKClick(Sender: TObject);
     procedure btnAttributesClick(Sender: TObject);
+    procedure btnJSON_XML_TypesClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -385,6 +387,35 @@ begin
     lCustomerEx.LoadByPK(1);
   finally
     lCustomerEx.Free;
+  end;
+end;
+
+procedure TMainForm.btnJSON_XML_TypesClick(Sender: TObject);
+var
+  lCTypes: TComplexTypes;
+  lID: Int64;
+begin
+  TMVCActiveRecord.DeleteAll(TComplexTypes);
+
+  lCTypes := TComplexTypes.Create;
+  try
+    lCTypes.JSON := '{"field_type":"json"}';
+    lCTypes.JSONB := '{"field_type":"jsonb"}';
+    lCTypes.XML := '<field_type>xml</field_type>';
+    lCTypes.Insert;
+    lID := lCTypes.ID;
+  finally
+    lCTypes.Free;
+  end;
+
+  lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
+  try
+    lCTypes.JSON := '{"field_type":"json", "updated": true}';
+    lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
+    lCTypes.XML := '<field_type updated="true">xml</field_type>';
+    lCTypes.Update;
+  finally
+    lCTypes.Free;
   end;
 end;
 
@@ -1184,6 +1215,7 @@ begin
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
   btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+  btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 
 procedure TMainForm.LoadCustomers;

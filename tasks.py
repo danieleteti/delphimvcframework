@@ -50,7 +50,7 @@ def build_delphi_project(
         "10.1": {"path": "18.0", "desc": "Delphi 10.1 Berlin"},
         "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
         "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
-        "10.4": {"path": "21.0", "desc": "Delphi 10.4 Sydney"},		
+        "10.4": {"path": "21.0", "desc": "Delphi 10.4 Sydney"},
     }
 
     assert delphi_version in delphi_versions, (
@@ -76,7 +76,12 @@ def build_delphi_project(
         + project_filename
         + '"'
     )
-    return ctx.run(cmdline, hide=True, warn=True)
+    print("\n" + "".join(cmdline))
+    r = ctx.run(cmdline, hide=True, warn=True)
+    if r.failed:
+        print(r.stdout)
+        print(r.stderr)
+        raise Exit("Build failed")
 
 
 def zip_samples(version):
@@ -217,14 +222,21 @@ def build_delphi_project_list(
             continue
         msg = f"Building: {os.path.basename(delphi_project)}  ({config})"
         print(Fore.RESET + msg.ljust(90, "."), end="")
-        res = build_delphi_project(ctx, delphi_project, "DEBUG", delphi_version)
-        if res.ok:
+        try:
+            build_delphi_project(ctx, delphi_project, "DEBUG", delphi_version)
             print(Fore.GREEN + "OK" + Fore.RESET)
-        else:
-            ret = False
+        except Exception as e:
             print(Fore.RED + "\n\nBUILD ERROR")
-            print(Fore.RESET + res.stdout)
-            print("\n")
+            print(Fore.RESET)
+            print(e)
+
+        # if res.ok:
+        #     print(Fore.GREEN + "OK" + Fore.RESET)
+        # else:
+        #     ret = False
+        #     print(Fore.RED + "\n\nBUILD ERROR")
+        #     print(Fore.RESET + res.stdout)
+        #     print("\n")
 
     return ret
 
@@ -273,6 +285,7 @@ def clean(ctx, folder=None):
     rmtree(folder + r"\lib\swagdoc\deploy", True)
     rmtree(folder + r"\lib\swagdoc\demos", True)
 
+
 @task()
 def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     """Builds and execute the unit tests"""
@@ -296,6 +309,8 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     print("\nExecuting tests...")
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"])
     r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
+    if r.returncode != 0:
+        return Exit("Compilation failed: \n" + r.stdout)
     subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
     if r.returncode > 0:
         print(r)
@@ -434,3 +449,12 @@ def generate_nullables(ctx):
 
     with open(src_folder.joinpath("implementation.out.txt"), "w") as f:
         f.writelines(impl_tmpl)
+
+
+@task()
+def pippo(ctx):
+    r = ctx.run("cmd.exe /c dsir", hide=True, warn=True)
+    if r.failed:
+        print(r.stderr)
+    else:
+        print(r.stdout)

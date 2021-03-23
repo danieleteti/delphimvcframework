@@ -4,12 +4,12 @@ object EngineChoiceForm: TEngineChoiceForm
   BorderStyle = bsDialog
   Caption = 'EngineChoiceForm'
   ClientHeight = 281
-  ClientWidth = 376
-  Color = clBtnFace
+  ClientWidth = 490
+  Color = clWhite
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'Tahoma'
+  Font.Name = 'Segoe UI'
   Font.Style = []
   OldCreateOrder = False
   Position = poOwnerFormCenter
@@ -20,8 +20,8 @@ object EngineChoiceForm: TEngineChoiceForm
     AlignWithMargins = True
     Left = 3
     Top = 3
-    Width = 370
-    Height = 66
+    Width = 484
+    Height = 54
     Align = alTop
     Alignment = taCenter
     Caption = 'Choose one of the supported RDBMS'
@@ -33,12 +33,19 @@ object EngineChoiceForm: TEngineChoiceForm
     ParentFont = False
     Layout = tlCenter
     WordWrap = True
-    ExplicitWidth = 353
+  end
+  object Shape1: TShape
+    Left = 24
+    Top = 54
+    Width = 441
+    Height = 3
+    Brush.Color = clRed
+    Pen.Style = psClear
   end
   object Button1: TButton
-    Left = 8
-    Top = 90
-    Width = 177
+    Left = 24
+    Top = 82
+    Width = 211
     Height = 41
     Caption = 'PostgreSQL'
     TabOrder = 0
@@ -46,9 +53,9 @@ object EngineChoiceForm: TEngineChoiceForm
   end
   object Button2: TButton
     Tag = 1
-    Left = 8
-    Top = 137
-    Width = 177
+    Left = 24
+    Top = 129
+    Width = 211
     Height = 41
     Caption = 'Firebird'
     TabOrder = 1
@@ -56,9 +63,9 @@ object EngineChoiceForm: TEngineChoiceForm
   end
   object Button3: TButton
     Tag = 2
-    Left = 8
-    Top = 184
-    Width = 177
+    Left = 24
+    Top = 176
+    Width = 211
     Height = 41
     Caption = 'Interbase'
     TabOrder = 2
@@ -66,9 +73,9 @@ object EngineChoiceForm: TEngineChoiceForm
   end
   object Button4: TButton
     Tag = 3
-    Left = 191
-    Top = 90
-    Width = 177
+    Left = 254
+    Top = 82
+    Width = 211
     Height = 41
     Caption = 'MSSQLServer'
     TabOrder = 3
@@ -76,9 +83,9 @@ object EngineChoiceForm: TEngineChoiceForm
   end
   object Button5: TButton
     Tag = 4
-    Left = 191
-    Top = 137
-    Width = 177
+    Left = 254
+    Top = 129
+    Width = 211
     Height = 41
     Caption = 'MySQL'
     TabOrder = 4
@@ -86,9 +93,9 @@ object EngineChoiceForm: TEngineChoiceForm
   end
   object Button6: TButton
     Tag = 5
-    Left = 191
-    Top = 184
-    Width = 177
+    Left = 254
+    Top = 176
+    Width = 211
     Height = 41
     Caption = 'MariaDB'
     TabOrder = 5
@@ -96,9 +103,9 @@ object EngineChoiceForm: TEngineChoiceForm
   end
   object Button7: TButton
     Tag = 6
-    Left = 8
-    Top = 231
-    Width = 177
+    Left = 24
+    Top = 223
+    Width = 211
     Height = 41
     Caption = 'SQLite'
     TabOrder = 6
