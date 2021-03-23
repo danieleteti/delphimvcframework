@@ -1357,7 +1357,14 @@ begin
 
   DoBeforeRequest(lRequest);
 
-  lResponse := fHTTPClient.Execute(lRequest, nil, []);
+  try
+    lResponse := fHTTPClient.Execute(lRequest, nil, []);
+  except
+    on E: Exception do
+    begin
+      raise EMVCRESTClientException.Create(E.Message);
+    end;
+  end;
 
   lHandled := False;
   DoRequestCompleted(lResponse, lHandled);
