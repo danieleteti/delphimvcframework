@@ -839,6 +839,8 @@ type
   TMVCRouterLogHandlerProc = reference to procedure(const Router: TMVCCustomRouter;
     const RouterLogState: TMVCRouterLogState;
     const WebContext: TWebContext);
+  TMVCCustomExceptionHandling = reference to function (const Ex: Exception;
+    const ASelectedController: TMVCController; const AContext: TWebContext): Boolean;
 
   TMVCEngine = class(TComponent)
   private const
@@ -862,13 +864,12 @@ type
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
+    fCustomExceptionHandling: TMVCCustomExceptionHandling;
     procedure FillActualParamsForAction(const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
       const AActionName: string; var AActualParams: TArray<TValue>);
     procedure RegisterDefaultsSerializers;
     function GetViewEngineClass: TMVCViewEngineClass;
   protected
-    function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
-      const AContext: TWebContext): Boolean;
     procedure ConfigDefaultValues; virtual;
     procedure SaveCacheConfigValues;
     procedure LoadSystemControllers; virtual;
@@ -926,6 +927,7 @@ type
     property Controllers: TObjectList<TMVCControllerDelegate> read FControllers;
     property ApplicationSession: TWebApplicationSession read FApplicationSession write FApplicationSession;
     property OnRouterLog: TMVCRouterLogHandlerProc read fOnRouterLog write fOnRouterLog;
+    property CustomExceptionHandling: TMVCCustomExceptionHandling read fCustomExceptionHandling write fCustomExceptionHandling;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -2093,6 +2095,18 @@ begin
         raise EMVCException.Create('Invalid RouterLogState');
       end;
     end;
+
+  fCustomExceptionHandling :=
+      function (const Ex: Exception; const ASelectedController: TMVCController;
+      const AContext: TWebContext): Boolean
+    begin
+      Result := False;
+      if Assigned(FOnException) then
+      begin
+        Log.ErrorFmt('[%s] p %s', [Ex.Classname, Ex.Message], LOGGERPRO_TAG);
+        FOnException(Ex, ASelectedController, AContext, Result);
+      end;
+    end;
 end;
 
 constructor TMVCEngine.Create(const AWebModule: TWebModule; const AConfigAction: TProc<TMVCConfig>;
@@ -2124,17 +2138,6 @@ begin
   SaveCacheConfigValues;
   RegisterDefaultsSerializers;
   LoadSystemControllers;
-end;
-
-function TMVCEngine.CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
-  const AContext: TWebContext): Boolean;
-begin
-  Result := False;
-  if Assigned(FOnException) then
-  begin
-    Log.ErrorFmt('[%s] %s', [Ex.Classname, Ex.Message], LOGGERPRO_TAG);
-    FOnException(Ex, ASelectedController, AContext, Result);
-  end;
 end;
 
 procedure TMVCEngine.DefineDefaultResponseHeaders(const AContext: TWebContext);
