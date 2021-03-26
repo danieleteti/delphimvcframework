@@ -315,6 +315,11 @@ type
     /// the commands will also fail with 424 (Failed Dependency).
     /// </summary>
     FailedDependency = 424;
+    /// <summary>
+    /// The 429 (Too Many Requests) status code indicates the user has sent too many requests
+    /// in a given amount of time ("rate limiting").
+    /// </summary>
+    TooManyRequests = 429;
     // Server Error 5xx
     /// <summary>
     /// 500 Internal Server Error
