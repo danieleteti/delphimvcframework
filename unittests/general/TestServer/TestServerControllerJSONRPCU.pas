@@ -242,7 +242,7 @@ end;
 
 procedure TTestJSONRPCHookClass.OnBeforeRoutingHook(const Context: TWebContext; const JSON: TJsonObject);
 begin
-  fJSONReq := JSON.Clone;
+  fJSONReq := JSON.Clone as TJsonObject;
 
   if SameText(JSON.S['method'], 'error_OnBeforeRoutingHook') then
     raise Exception.Create('error_OnBeforeRoutingHook');
