@@ -1118,12 +1118,20 @@ begin
         case aRTTIField.FieldType.TypeKind of
           tkString, tkUString:
             begin
-              lSStream := TStringStream.Create('', TEncoding.Unicode);
-              try
-                TBlobField(AField).SaveToStream(lSStream);
-                aRTTIField.SetValue(AObject, lSStream.DataString);
-              finally
-                lSStream.Free;
+              {TODO -oDanieleT -cGeneral : Optimize this code... too complex}
+              if AField.DataType = ftMemo then
+                aRTTIField.SetValue(AObject, TMemoField(AField).AsWideString)
+              else if AField.DataType = ftWideMemo then
+                aRTTIField.SetValue(AObject, TWideMemoField(AField).AsWideString)
+              else
+              begin
+                lSStream := TStringStream.Create('', TEncoding.Unicode);
+                try
+                  TBlobField(AField).SaveToStream(lSStream);
+                  aRTTIField.SetValue(AObject, lSStream.DataString);
+                finally
+                  lSStream.Free;
+                end;
               end;
             end;
           tkFloat: { sqlite - date types stored as text }
@@ -1219,6 +1227,8 @@ end;
 
 function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField;
 const aRTTIField: TRttiField; const AObject: TObject): Boolean;
+var
+  lStr: string;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := False;
@@ -1314,7 +1324,16 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(AField.AsDateTime));
+      if not (AField.DataType in [ftWideMemo]) then
+      begin
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(AField.AsDateTime));
+      end
+      else
+      begin
+        {SQLite case...}
+        lStr := AField.AsWideString;
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(ISODateToDate(lStr)));
+      end;
     end;
     Result := True;
   end
@@ -1326,7 +1345,16 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(AField.AsDateTime));
+      if not (AField.DataType in [ftWideMemo]) then
+      begin
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(AField.AsDateTime));
+      end
+      else
+      begin
+        {SQLite case...}
+        lStr := AField.AsWideString;
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(ISOTimeStampToDateTime(lStr)));
+      end;
     end;
     Result := True;
   end
@@ -1338,7 +1366,16 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(AField.AsDateTime));
+      if not (AField.DataType in [ftWideMemo]) then
+      begin
+        aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(AField.AsDateTime));
+      end
+      else
+      begin
+        {SQLite case...}
+        lStr := AField.AsWideString;
+        aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(ISOTimeToTime(lStr)));
+      end;
     end;
     Result := True;
   end

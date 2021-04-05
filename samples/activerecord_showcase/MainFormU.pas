@@ -1225,7 +1225,12 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
-  btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+  btnWithSpaces.Enabled :=
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
+
   btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 

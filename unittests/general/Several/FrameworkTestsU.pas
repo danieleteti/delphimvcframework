@@ -2032,9 +2032,7 @@ end;
 procedure TTestLRUCache.TestPutGet_Check_No_AV;
 var
   lCache: TMVCLRUCache<TMyObject>;
-  I: Integer;
   lMyObj: TMyObject;
-  lItemIndex: UInt64;
   lProducer1, lProducer2, lProducer3, lProducer4: ITask;
   lProcProducer, lProcConsumer: TProc;
   lConsumer1, lConsumer2, lConsumer3, lConsumer4: ITask;
