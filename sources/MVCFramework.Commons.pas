@@ -634,8 +634,8 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
-function StrToJSONObject(const aString: String): TJsonObject;
-function StrToJSONArray(const aString: String): TJsonArray;
+function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
+function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
@@ -1519,16 +1519,15 @@ begin
   end;
 end;
 
-function StrToJSONObject(const aString: String): TJsonObject;
+function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString);
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString, ARaiseExceptionOnError);
 end;
 
-function StrToJSONArray(const aString: String): TJsonArray;
+function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString);
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString, ARaiseExceptionOnError);
 end;
-
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 begin
