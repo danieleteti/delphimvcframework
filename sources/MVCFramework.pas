@@ -2132,7 +2132,6 @@ begin
   Result := False;
   if Assigned(FOnException) then
   begin
-    Log.ErrorFmt('[%s] %s', [Ex.Classname, Ex.Message], LOGGERPRO_TAG);
     FOnException(Ex, ASelectedController, AContext, Result);
   end;
 end;

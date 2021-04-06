@@ -1,4 +1,4 @@
-unit MainFormU;
+﻿unit MainFormU;
 
 interface
 
@@ -194,6 +194,7 @@ procedure TMainForm.btnCRUDClick(Sender: TObject);
 var
   lCustomer: TCustomer;
   lID: Integer;
+  lTestNote: string;
 begin
   Log('** Simple CRUD test');
   Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' +
@@ -203,7 +204,7 @@ begin
     Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
-    lCustomer.Note := 'Hello there!';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην';
     lCustomer.Insert;
     lID := lCustomer.ID;
     Log('Just inserted Customer ' + lID.ToString);
@@ -215,7 +216,8 @@ begin
   try
     Assert(not lCustomer.Code.HasValue);
     lCustomer.Code.Value := '5678';
-    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678';
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678 🙂';
+    lTestNote := lCustomer.Note;
     lCustomer.Update;
     Log('Just updated Customer ' + lID.ToString);
   finally
@@ -225,7 +227,17 @@ begin
   lCustomer := TCustomer.Create;
   try
     lCustomer.LoadByPK(lID);
-    lCustomer.Code.Value := '9012';
+    lCustomer.Code.Value := '😉9012🙂';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    Assert(lCustomer.Code.Value = '😉9012🙂');
+    Assert(lCustomer.Note = lTestNote);
     lCustomer.Update;
   finally
     lCustomer.Free;
@@ -899,7 +911,6 @@ begin
     lList.Free;
   end;
 
-
 end;
 
 procedure TMainForm.btnSelectClick(Sender: TObject);
@@ -1214,7 +1225,12 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
-  btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+  btnWithSpaces.Enabled :=
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
+
   btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 
