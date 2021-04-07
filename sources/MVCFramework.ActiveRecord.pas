@@ -361,6 +361,7 @@ type
       out aMVCActiveRecordClass: TMVCActiveRecordClass): Boolean;
     function FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
+    function GetEntities: TArray<String>;
   end;
 
   TMVCEntitiesRegistry = class(TInterfacedObject, IMVCEntitiesRegistry)
@@ -377,6 +378,7 @@ type
       out aMVCActiveRecordClass: TMVCActiveRecordClass): Boolean;
     function FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
+    function GetEntities: TArray<String>;
   end;
 
   IMVCActiveRecordConnections = interface
@@ -2573,6 +2575,11 @@ function TMVCEntitiesRegistry.FindProcessorByURLSegment(const aURLSegment: strin
   out aMVCEntityProcessor: IMVCEntityProcessor): Boolean;
 begin
   Result := fProcessorsDict.TryGetValue(aURLSegment.ToLower, aMVCEntityProcessor);
+end;
+
+function TMVCEntitiesRegistry.GetEntities: TArray<String>;
+begin
+  Result := fEntitiesDict.Keys.ToArray;
 end;
 
 { EMVCActiveRecord }
