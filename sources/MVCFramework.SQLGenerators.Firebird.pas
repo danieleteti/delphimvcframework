@@ -112,7 +112,7 @@ begin
     lSB.Append(') values (');
     if lPKInInsert then
     begin
-      lSB.Append(':' + PKFieldName + ',');
+      lSB.Append(':' + GetParamNameForSQL(PKFieldName) + ',');
     end;
     for lKeyValue in Map do
     begin

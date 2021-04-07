@@ -7,7 +7,8 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, FireDAC.Stan.Intf, FireDAC.Stan.Option,
   FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
   FireDAC.DApt.Intf, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
-  Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient.Intf, MVCFramework.RESTClient,
+  Vcl.Grids, Vcl.DBGrids, Vcl.ExtCtrls, Vcl.StdCtrls, MVCFramework.RESTClient.Intf,
+  MVCFramework.RESTClient,
   Vcl.DBCtrls;
 
 type
@@ -56,7 +57,6 @@ uses
   JsonDataObjects, MVCFramework.Logger;
 
 {$R *.dfm}
-
 
 procedure TMainForm.btnCloseClick(Sender: TObject);
 begin
@@ -112,9 +112,7 @@ begin
   end
   else
   begin
-    Res := fRESTClient
-      .AddQueryStringParam('q', fFilter)
-      .Get('/articles/searches');
+    Res := fRESTClient.AddQueryStringParam('q', fFilter).Get('/articles/searches');
   end;
 
   if not Res.Success then
@@ -158,7 +156,8 @@ begin
     if dsArticles.State = dsInsert then
       Res := fRESTClient.DataSetInsert('/articles', dsArticles)
     else
-      Res := fRESTClient.DataSetUpdate('/articles', dsArticles.FieldByName('id').AsString, dsArticles);
+      Res := fRESTClient.DataSetUpdate('/articles', dsArticles.FieldByName('id').AsString,
+        dsArticles);
     if not(Res.StatusCode in [200, 201]) then
     begin
       ShowError(Res);
@@ -182,8 +181,8 @@ var
   Res: IMVCRESTResponse;
 begin
   Res := fRESTClient
-  .AddPathParam('param1', DataSet.FieldByName('id').AsString)
-  .Get('/articles/{param1}');
+    .AddPathParam('param1', DataSet.FieldByName('id').AsString)
+    .Get('/articles/{param1}');
   fLoading := true;
   DataSet.LoadJSONObjectFromJSONObjectProperty('data', Res.Content);
   fLoading := false;
@@ -208,15 +207,11 @@ end;
 procedure TMainForm.ShowError(const AResponse: IMVCRESTResponse);
 begin
   if AResponse.Success then
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      '[' + AResponse.Content + ']',
-      mtError, [mbOK], 0)
+    MessageDlg(AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak + '[' +
+      AResponse.Content + ']', mtError, [mbOK], 0)
   else
-    MessageDlg(
-      AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
-      AResponse.Content,
-      mtError, [mbOK], 0);
+    MessageDlg(AResponse.StatusCode.ToString + ': ' + AResponse.StatusText + sLineBreak +
+      AResponse.Content, mtError, [mbOK], 0);
 end;
 
 end.

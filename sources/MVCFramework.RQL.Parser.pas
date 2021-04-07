@@ -1186,7 +1186,7 @@ end;
 
 function TRQLCompiler.GetFieldNameForSQL(const FieldName: string): string;
 begin
-  if FieldName.Contains(' ') then
+  if FieldName.Contains(' ') and (FieldName.Chars[0] <> '"') then
   begin
     Result := FieldName.QuotedString('"');
   end

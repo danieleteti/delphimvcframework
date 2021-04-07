@@ -34,8 +34,6 @@ type
     procedure dsArticlesBeforePost(DataSet: TDataSet);
     procedure dsArticlesBeforeDelete(DataSet: TDataSet);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure dsArticlesBeforeRefresh(DataSet: TDataSet);
-    procedure dsArticlesAfterOpen(DataSet: TDataSet);
     procedure btnOpenClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure dsArticlesBeforeRowRequest(DataSet: TFDDataSet);
@@ -88,38 +86,38 @@ begin
   dsArticles.RefreshRecord;
 end;
 
-procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
-var
-  Res: IMVCRESTResponse;
-begin
-  if fFilter.IsEmpty then
-  begin
-    // this a simple sychronous request...
-    Res := fRESTClient.Get('/articles');
-  end
-  else
-  begin
-    Res := fRESTClient
-      .AddQueryStringParam('q', fFilter)
-      .Get('/articles/searches');
-  end;
-
-  if not Res.Success then
-  begin
-    ShowError(Res);
-    Exit;
-  end;
-
-  DataSet.DisableControls;
-  try
-    fLoading := true;
-    dsArticles.LoadJSONArrayFromJSONObjectProperty('data', Res.Content);
-    fLoading := false;
-    dsArticles.First;
-  finally
-    DataSet.EnableControls;
-  end;
-end;
+//procedure TMainForm.dsArticlesAfterOpen(DataSet: TDataSet);
+//var
+//  Res: IMVCRESTResponse;
+//begin
+//  if fFilter.IsEmpty then
+//  begin
+//    // this a simple sychronous request...
+//    Res := fRESTClient.Get('/articles');
+//  end
+//  else
+//  begin
+//    Res := fRESTClient
+//      .AddQueryStringParam('q', fFilter)
+//      .Get('/articles/searches');
+//  end;
+//
+//  if not Res.Success then
+//  begin
+//    ShowError(Res);
+//    Exit;
+//  end;
+//
+//  DataSet.DisableControls;
+//  try
+//    fLoading := true;
+//    dsArticles.LoadJSONArrayFromJSONObjectProperty('data', Res.Content);
+//    fLoading := false;
+//    dsArticles.First;
+//  finally
+//    DataSet.EnableControls;
+//  end;
+//end;
 
 procedure TMainForm.dsArticlesBeforeDelete(DataSet: TDataSet);
 var
@@ -154,12 +152,6 @@ begin
       DataSet.Refresh;
     end;
   end;
-end;
-
-procedure TMainForm.dsArticlesBeforeRefresh(DataSet: TDataSet);
-begin
-  DataSet.Close;
-  DataSet.Open;
 end;
 
 procedure TMainForm.dsArticlesBeforeRowRequest(DataSet: TFDDataSet);

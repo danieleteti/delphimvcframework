@@ -80,7 +80,7 @@ var
 begin
   lJPerson := StrToJSONObject(Context.Request.Body);
   try
-    //SavePerson(lJPerson);
+    // SavePerson(lJPerson);
   finally
     lJPerson.Free;
   end;
@@ -92,9 +92,9 @@ begin
   { Here you should do something with id }
   // RemovePerson(ID)
 
-  Render(204 { 'No content' } , 'Person deleted');
+  Render(HTTP_STATUS.NoContent { 'No content' } , 'Person deleted');
 
-  //Render204NoContent(); { Using the response shortcut methods }
+  // Render204NoContent(); { Using the response shortcut methods }
 end;
 
 procedure TRoutingSampleController.GetPerson(const id: Integer);
@@ -132,15 +132,9 @@ begin
   orderby := '';
   if Context.Request.QueryStringParamExists('order') then
     orderby := Context.Request.QueryStringParam('order');
-  S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
-    [search, Page, orderby]);
-  ResponseStream
-    .AppendLine(S)
-    .AppendLine(StringOfChar('*', 30))
-    .AppendLine('1. Daniele Teti')
-    .AppendLine('2. John Doe')
-    .AppendLine('3. Mark Rossi')
-    .AppendLine('4. Jack Verdi')
+  S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"', [search, Page, orderby]);
+  ResponseStream.AppendLine(S).AppendLine(StringOfChar('*', 30)).AppendLine('1. Daniele Teti')
+    .AppendLine('2. John Doe').AppendLine('3. Mark Rossi').AppendLine('4. Jack Verdi')
     .AppendLine(StringOfChar('*', 30));
   RenderResponseStream;
 end;

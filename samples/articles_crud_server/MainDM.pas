@@ -42,39 +42,39 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
 
-
 uses
   System.IOUtils,
   MVCFramework.DataSet.Utils;
 
 procedure TdmMain.ConnectionBeforeConnect(Sender: TObject);
-// var
-// lPath: string;
-// I: Integer;
+var
+  I: Integer;
+  lPath: string;
 begin
-  // {$IFNDEF WINDOWSSERVICE}
-  // // if you want to use firebird 2.5, you can use the file ORDERSMANAGER_FB25.FDB
-  // Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB30.FDB';
-  // // Connection.Params.Values['Database'] := '..\..\data\ORDERSMANAGER_FB25.FDB';
-  // {$ELSE}
-  // lPath := 'data\ORDERSMANAGER_FB30.FDB';
-  // for I := 1 to 6 do
-  // begin
-  // if TFile.Exists(lPath) then
-  // begin
-  // Connection.Params.Values['Database'] := TPath.GetFullPath(lPath); // 'C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FDB';
-  // Break;
-  // end
-  // else
-  // begin
-  // lPath := '..\' + lPath;
-  // end;
-  // end;
-  // if not TFile.Exists(lPath) then
-  // begin
-  // raise Exception.Create('Cannot find database');
-  // end;
-  // {$ENDIF}
+  {
+    This code is just a demo. It looks for a db file doing up to 6 attempts.
+    I need this becouse this unit is used by many samples and these samples are
+    compiled at different level in the samples folders tree.
+    In a real word system you should (!!) know where your database is :-)
+  }
+  lPath := 'data\ORDERSMANAGER_FB30.FDB';
+  for I := 1 to 6 do
+  begin
+    if TFile.Exists(lPath) then
+    begin
+      Connection.Params.Values['Database'] := TPath.GetFullPath(lPath);
+      // 'C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FDB';
+      Break;
+    end
+    else
+    begin
+      lPath := '..\' + lPath;
+    end;
+  end;
+  if not TFile.Exists(lPath) then
+  begin
+    raise Exception.Create('I tried hard, but I cannot find the database');
+  end;
 end;
 
 function TdmMain.SearchProducts(const SearchText: string): TDataSet;

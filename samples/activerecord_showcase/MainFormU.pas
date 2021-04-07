@@ -1111,6 +1111,9 @@ var
   lCustomer: TCustomerWithSpaces;
   lID: Integer;
   I: Integer;
+  cRQL1: string;
+  lList: TMVCActiveRecordList;
+  lItem: TMVCActiveRecord;
 begin
   Log('** Simple CRUD (table and fields with spaces) test');
   Log('There are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString + ' row/s for entity ' +
@@ -1121,7 +1124,8 @@ begin
   begin
     lCustomer := TCustomerWithSpaces.Create;
     try
-      lCustomer.ID := I;
+      lID := I;
+      lCustomer.ID := lID;
       // just for test!!
       case I mod 3 of
         0:
@@ -1134,7 +1138,6 @@ begin
       lCustomer.City := 'Montain View, CA';
       lCustomer.Note := 'Hello there!';
       lCustomer.Insert;
-      lID := lCustomer.ID;
       Log('Just inserted Customer ' + lID.ToString);
     finally
       lCustomer.Free;
@@ -1143,8 +1146,12 @@ begin
 
   Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
     ' row/s for entity ' + TCustomerWithSpaces.ClassName);
-  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,90)');
+  Log('Deleting using RQL...');
+  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,80)');
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
+    ' row/s for entity ' + TCustomerWithSpaces.ClassName);
 
+  //gets the last inserted customer
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
   try
     Assert(not lCustomer.Code.HasValue);
@@ -1171,6 +1178,21 @@ begin
     Log('Just deleted Customer ' + lID.ToString);
   finally
     lCustomer.Free;
+  end;
+
+  cRQL1 := 'eq(CompanyName,"Google Inc.")';
+  Log('>> RQL Query (customers with spaces) - ' + cRQL1);
+  lList := TMVCActiveRecord.SelectRQL(TCustomerWithSpaces, cRQL1, 20);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomerWithSpaces(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
   end;
 end;
 

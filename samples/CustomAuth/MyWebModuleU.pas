@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -84,10 +84,6 @@ begin
     TCustomAuth.Create,
     '/system/users/logged'
     ));
-//  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-//    '/app', { StaticFilesPath }
-//    ExtractFilePath(GetModuleName(HInstance)) + 'www' { DocumentRoot }
-//    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
