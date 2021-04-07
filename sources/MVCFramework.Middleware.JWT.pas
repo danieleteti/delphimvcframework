@@ -383,7 +383,7 @@ begin
           // let's user config claims and custom claims
           if not Assigned(FSetupJWTClaims) then
             raise EMVCJWTException.Create('SetupJWTClaims not set');
-
+          LJWTValue.Data := AContext.Request;
           FSetupJWTClaims(LJWTValue);
 
           // these claims are mandatory and managed by the middleware
