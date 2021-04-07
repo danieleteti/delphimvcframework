@@ -1222,6 +1222,7 @@ var
   i: Integer;
 begin
   { TODO -oDanieleT -cGeneral : Let share the mapping for instances of the same type }
+  { TODO -oDanieleT -cGeneral : Add NameAs in the TFieldInfo because the user needs to use the property name he see }
   if Length(fMapping) = 0 then
   begin
     if not fPrimaryKeyFieldName.IsEmpty then

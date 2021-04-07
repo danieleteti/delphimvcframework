@@ -49,7 +49,7 @@ uses
   FireDAC.Phys.IB,
   FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteDef,
-  FireDAC.Phys.SQLite, Vcl.DBGrids;
+  FireDAC.Phys.SQLite, Vcl.DBGrids, FireDAC.Phys.SQLiteWrapper.Stat;
 
 type
   TMainForm = class(TForm)
@@ -129,7 +129,7 @@ var
 implementation
 
 uses
-  {Spring.SystemUtils,} System.IOUtils, System.TypInfo;
+  System.IOUtils, System.TypInfo, System.DateUtils;
 
 {$R *.dfm}
 
@@ -337,7 +337,7 @@ begin
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// Delphi MVC Framework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team' + sLineBreak);
+  fIntfBuff.WriteString('// Copyright (c) 2010-' + YearOf(Date).ToString + ' Daniele Teti and the DMVCFramework Team' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// https://github.com/danieleteti/delphimvcframework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
@@ -487,6 +487,8 @@ begin
       Result := 'String';
     ftGuid:
       Result := 'TGuid';
+    ftDBaseOle:
+      Result := 'String {ftDBaseOle}';
   else
     Result := '<UNSUPPORTED TYPE: ' + GetEnumName(TypeInfo(TFieldType), Ord(FT)) + '>';
   end;
