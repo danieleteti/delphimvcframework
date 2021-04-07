@@ -1483,13 +1483,17 @@ var
   lLastWasUnderscore: Boolean;
   lIsUnderscore: Boolean;
   lLastWasNumber: Boolean;
+  lNextUnderscore: Boolean;
+  lLengthValue: Integer;
 begin
   lLastWasLowercase := False;
   lLastWasUnderscore := False;
   lLastWasNumber := False;
+  lNextUnderscore := False;
+  lLengthValue := Length(Value);
   lSB := TStringBuilder.Create;
   try
-    for I := 0 to Length(Value) - 1 do
+    for I := 0 to lLengthValue - 1 do
     begin
       C := Value.Chars[I];
       lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
@@ -1497,21 +1501,33 @@ begin
       lIsNumber := CharInSet(C, ['0' .. '9']);
       lIsUnderscore := C = '_';
 
-      if (I > 0) and (not lLastWasUnderscore) and
-        ((lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
-        (lIsLowerCase and lLastWasNumber) or
-        (lIsNumber and (not lLastWasNumber)))  then
+      if not (lIsUpperCase or lIsLowerCase or lIsNumber or lIsUnderscore) then
       begin
-        lSB.Append('_');
-      end;
+        lNextUnderscore := True;
+        Continue;
+      end
+      else
+      begin
+        if (I > 0) and (not lLastWasUnderscore) and
+          (lNextUnderscore or
+          (lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
+          (lIsLowerCase and lLastWasNumber) or
+          (lIsNumber and (not lLastWasNumber)) or
+          (lIsUpperCase and (not lLastWasLowercase) and ((I + 1) <= (lLengthValue - 1)) and
+          CharInSet(Value.Chars[I + 1], ['a' .. 'z']))) then
+        begin
+          lSB.Append('_');
+        end;
 
-      if not (lLastWasUnderscore and lIsUnderscore) then
-      begin
-        lSB.Append(LowerCase(C));
+        if not (lLastWasUnderscore and lIsUnderscore) then
+        begin
+          lSB.Append(LowerCase(C));
+        end;
+        lLastWasUnderscore := lIsUnderscore or lNextUnderscore;
+        lLastWasLowercase := lIsLowerCase;
+        lLastWasNumber := lIsNumber;
+        lNextUnderscore := False;
       end;
-      lLastWasUnderscore := lIsUnderscore;
-      lLastWasLowercase := lIsLowerCase;
-      lLastWasNumber := lIsNumber;
     end;
     Result := lSB.ToString;
   finally
