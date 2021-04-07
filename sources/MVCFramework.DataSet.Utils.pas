@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -677,11 +677,6 @@ begin
   fDataSet := ADataSet;
   fURI := aURI;
   fPrimaryKeyNAme := aPrimaryKeyName;
-
-  // procedure HookBeforePost(DataSet: TDataSet);
-  // procedure HookBeforeDelete(DataSet: TDataSet);
-  // procedure HookBeforeRefresh(DataSet: TDataSet);
-  // procedure HookAfterOpen(DataSet: TDataSet);
 
   fDataSet.BeforePost := HookBeforePost;
   fDataSet.BeforeDelete := HookBeforeDelete;
