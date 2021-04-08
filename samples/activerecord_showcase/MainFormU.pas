@@ -474,10 +474,12 @@ begin
       end;
     end;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+  lTasks := [
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)
+    ];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
