@@ -1,4 +1,4 @@
-unit MainFormU;
+﻿unit MainFormU;
 
 interface
 
@@ -45,6 +45,7 @@ type
     btnReadAndWriteOnly: TButton;
     btnClientGeneratedPK: TButton;
     btnAttributes: TButton;
+    btnJSON_XML_Types: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -64,6 +65,7 @@ type
     procedure btnReadAndWriteOnlyClick(Sender: TObject);
     procedure btnClientGeneratedPKClick(Sender: TObject);
     procedure btnAttributesClick(Sender: TObject);
+    procedure btnJSON_XML_TypesClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -192,6 +194,7 @@ procedure TMainForm.btnCRUDClick(Sender: TObject);
 var
   lCustomer: TCustomer;
   lID: Integer;
+  lTestNote: string;
 begin
   Log('** Simple CRUD test');
   Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' +
@@ -201,7 +204,7 @@ begin
     Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
-    lCustomer.Note := 'Hello there!';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην';
     lCustomer.Insert;
     lID := lCustomer.ID;
     Log('Just inserted Customer ' + lID.ToString);
@@ -213,7 +216,8 @@ begin
   try
     Assert(not lCustomer.Code.HasValue);
     lCustomer.Code.Value := '5678';
-    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678';
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678 🙂';
+    lTestNote := lCustomer.Note;
     lCustomer.Update;
     Log('Just updated Customer ' + lID.ToString);
   finally
@@ -223,7 +227,17 @@ begin
   lCustomer := TCustomer.Create;
   try
     lCustomer.LoadByPK(lID);
-    lCustomer.Code.Value := '9012';
+    lCustomer.Code.Value := '😉9012🙂';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    Assert(lCustomer.Code.Value = '😉9012🙂');
+    Assert(lCustomer.Note = lTestNote);
     lCustomer.Update;
   finally
     lCustomer.Free;
@@ -388,6 +402,35 @@ begin
   end;
 end;
 
+procedure TMainForm.btnJSON_XML_TypesClick(Sender: TObject);
+var
+  lCTypes: TComplexTypes;
+  lID: Int64;
+begin
+  TMVCActiveRecord.DeleteAll(TComplexTypes);
+
+  lCTypes := TComplexTypes.Create;
+  try
+    lCTypes.JSON := '{"field_type":"json"}';
+    lCTypes.JSONB := '{"field_type":"jsonb"}';
+    lCTypes.XML := '<field_type>xml</field_type>';
+    lCTypes.Insert;
+    lID := lCTypes.ID;
+  finally
+    lCTypes.Free;
+  end;
+
+  lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
+  try
+    lCTypes.JSON := '{"field_type":"json", "updated": true}';
+    lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
+    lCTypes.XML := '<field_type updated="true">xml</field_type>';
+    lCTypes.Update;
+  finally
+    lCTypes.Free;
+  end;
+end;
+
 procedure TMainForm.btnMultiThreadingClick(Sender: TObject);
 var
   lTasks: TArray<ITask>;
@@ -431,10 +474,12 @@ begin
       end;
     end;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+  lTasks := [
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)
+    ];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
@@ -868,7 +913,6 @@ begin
     lList.Free;
   end;
 
-
 end;
 
 procedure TMainForm.btnSelectClick(Sender: TObject);
@@ -1069,6 +1113,9 @@ var
   lCustomer: TCustomerWithSpaces;
   lID: Integer;
   I: Integer;
+  cRQL1: string;
+  lList: TMVCActiveRecordList;
+  lItem: TMVCActiveRecord;
 begin
   Log('** Simple CRUD (table and fields with spaces) test');
   Log('There are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString + ' row/s for entity ' +
@@ -1079,7 +1126,8 @@ begin
   begin
     lCustomer := TCustomerWithSpaces.Create;
     try
-      lCustomer.ID := I;
+      lID := I;
+      lCustomer.ID := lID;
       // just for test!!
       case I mod 3 of
         0:
@@ -1092,7 +1140,6 @@ begin
       lCustomer.City := 'Montain View, CA';
       lCustomer.Note := 'Hello there!';
       lCustomer.Insert;
-      lID := lCustomer.ID;
       Log('Just inserted Customer ' + lID.ToString);
     finally
       lCustomer.Free;
@@ -1101,8 +1148,12 @@ begin
 
   Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
     ' row/s for entity ' + TCustomerWithSpaces.ClassName);
-  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,90)');
+  Log('Deleting using RQL...');
+  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,80)');
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
+    ' row/s for entity ' + TCustomerWithSpaces.ClassName);
 
+  //gets the last inserted customer
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
   try
     Assert(not lCustomer.Code.HasValue);
@@ -1129,6 +1180,21 @@ begin
     Log('Just deleted Customer ' + lID.ToString);
   finally
     lCustomer.Free;
+  end;
+
+  cRQL1 := 'eq(CompanyName,"Google Inc.")';
+  Log('>> RQL Query (customers with spaces) - ' + cRQL1);
+  lList := TMVCActiveRecord.SelectRQL(TCustomerWithSpaces, cRQL1, 20);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomerWithSpaces(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
   end;
 end;
 
@@ -1183,7 +1249,13 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
-  btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+  btnWithSpaces.Enabled :=
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
+
+  btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 
 procedure TMainForm.LoadCustomers;

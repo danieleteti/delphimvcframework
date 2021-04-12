@@ -428,9 +428,12 @@ This version introduced new features in many different areas (swagger, server si
 - ⚡Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
 - ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+- ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
 - ⚡Improved! Add parameter to set local timeStamp as UTC.
 - ⚡Improved OpenAPI (Swagger) support.
 - ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
+- ⚡Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+- ⚡Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
 
 ### Bug Fixes in 3.2.2-nitrogen
 
@@ -440,6 +443,8 @@ This version introduced new features in many different areas (swagger, server si
 - Fix https://github.com/danieleteti/delphimvcframework/issues/453  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - Fix https://github.com/danieleteti/delphimvcframework/issues/455  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 - Fix https://github.com/danieleteti/delphimvcframework/issues/461
+- Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
+- Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
 - Fix for nil objects in lists during serialization
 
 ## Older Releases

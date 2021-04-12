@@ -25,7 +25,8 @@ uses
   MVCFramework.ActiveRecord in '..\..\sources\MVCFramework.ActiveRecord.pas',
   EntitiesProcessors in 'EntitiesProcessors.pas',
   FDConnectionConfigU in '..\activerecord_showcase\FDConnectionConfigU.pas',
-  OtherControllerU in 'OtherControllerU.pas';
+  OtherControllerU in 'OtherControllerU.pas',
+  MVCFramework.SysControllers in '..\..\sources\MVCFramework.SysControllers.pas';
 
 {$R *.res}
 

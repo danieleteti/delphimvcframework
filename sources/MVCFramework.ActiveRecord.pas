@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -361,6 +361,7 @@ type
       out aMVCActiveRecordClass: TMVCActiveRecordClass): Boolean;
     function FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
+    function GetEntities: TArray<String>;
   end;
 
   TMVCEntitiesRegistry = class(TInterfacedObject, IMVCEntitiesRegistry)
@@ -377,6 +378,7 @@ type
       out aMVCActiveRecordClass: TMVCActiveRecordClass): Boolean;
     function FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
+    function GetEntities: TArray<String>;
   end;
 
   IMVCActiveRecordConnections = interface
@@ -819,10 +821,6 @@ begin
         begin
           lValue := lPair.Key.GetValue(Self);
           lPar.DataTypeName := fMap.GetInfoByFieldName(lPair.Value.FieldName).DataTypeName;
-          // if fMapFieldDataTypes.TryGetValue(lPar.Name, lDataType) then
-          // begin
-          // lPar.DataTypeName := lDataType;
-          // end;
           MapTValueToParam(lValue, lPar);
         end
       end;
@@ -1224,6 +1222,7 @@ var
   i: Integer;
 begin
   { TODO -oDanieleT -cGeneral : Let share the mapping for instances of the same type }
+  { TODO -oDanieleT -cGeneral : Add NameAs in the TFieldInfo because the user needs to use the property name he see }
   if Length(fMapping) = 0 then
   begin
     if not fPrimaryKeyFieldName.IsEmpty then
@@ -1639,13 +1638,13 @@ begin
     tkUString:
       begin
         case aParam.DataType of
-          ftUnknown, ftString:
-            begin
-              aParam.AsWideString := aValue.AsString
-            end;
-          ftWideString:
+          ftUnknown, ftWideString:
             begin
               aParam.AsWideString := aValue.AsString;
+            end;
+          ftString:
+            begin
+              aParam.AsString := aValue.AsString;
             end;
           ftWideMemo:
             begin
@@ -1664,13 +1663,13 @@ begin
     tkString:
       begin
         case aParam.DataType of
-          ftUnknown, ftString:
-            begin
-              aParam.AsString := aValue.AsString;
-            end;
-          ftWideString:
+          ftUnknown, ftWideString:
             begin
               aParam.AsWideString := aValue.AsString;
+            end;
+          ftString:
+            begin
+              aParam.AsString := aValue.AsString;
             end;
           ftWideMemo:
             begin
@@ -1770,100 +1769,6 @@ begin
   else
     raise Exception.CreateFmt('Unsupported TypeKind (%d) for param %s', [Ord(aValue.TypeInfo.Kind), aParam.Name]);
   end;
-
-  // case aParam.DataType of
-  // ftUnknown:
-  // begin
-  // { aParam.DataType could be pkUndefined for some RDBMS (es. MySQL), so we rely on Variant }
-  // if (aValue.TypeInfo.Kind = tkClass) then
-  // begin
-  // if not aValue.IsInstanceOf(TStream) then
-  // raise EMVCActiveRecord.CreateFmt('Unsupported type for param %s', [aParam.Name]);
-  // lStream := aValue.AsType<TStream>(false);
-  // if Assigned(lStream) then
-  // begin
-  // lStream.Position := 0;
-  // aParam.LoadFromStream(lStream, ftBlob);
-  // end
-  // else
-  // begin
-  // aParam.Clear;
-  // end;
-  //
-  // end
-  // else
-  // begin
-  // aParam.value := aValue.AsVariant;
-  // end;
-  // end;
-  // ftString:
-  // begin
-  // aParam.AsString := aValue.AsString;
-  // end;
-  // ftWideString:
-  // begin
-  // aParam.AsWideString := aValue.AsString;
-  // end;
-  // ftLargeint:
-  // begin
-  // aParam.AsLargeInt := aValue.AsInt64;
-  // end;
-  // ftSmallint:
-  // begin
-  // aParam.AsSmallInt := aValue.AsInteger;
-  // end;
-  // ftInteger:
-  // begin
-  // aParam.AsInteger := aValue.AsInteger;
-  // end;
-  // ftLongWord:
-  // begin
-  // aParam.AsLongWord := aValue.AsInteger;
-  // end;
-  // ftWord:
-  // begin
-  // aParam.AsWord := aValue.AsInteger;
-  // end;
-  // ftDate:
-  // begin
-  // aParam.AsDate := Trunc(aValue.AsExtended);
-  // end;
-  // ftDateTime:
-  // begin
-  // aParam.AsDateTime := aValue.AsExtended;
-  // end;
-  // ftBoolean:
-  // begin
-  // aParam.AsBoolean := aValue.AsBoolean;
-  // end;
-  // ftMemo:
-  // begin
-  // aParam.AsMemo := AnsiString(aValue.AsString);
-  // end;
-  // ftWideMemo:
-  // begin
-  // aParam.AsWideMemo := aValue.AsString;
-  // end;
-  // ftBCD:
-  // begin
-  // aParam.AsBCD := aValue.AsCurrency;
-  // end;
-  // ftBlob:
-  // begin
-  // lStream := aValue.AsType<TStream>(false);
-  // if Assigned(lStream) then
-  // begin
-  // lStream.Position := 0;
-  // aParam.LoadFromStream(lStream, ftBlob);
-  // end
-  // else
-  // begin
-  // aParam.Clear;
-  // end;
-  // end;
-  // else
-  // raise Exception.CreateFmt('Unsupported FieldType (%d) for param %s', [Ord(aParam.DataType), aParam.Name]);
-  // end;
 end;
 
 procedure TMVCActiveRecord.LoadByDataset(const aDataSet: TDataSet; const aOptions: TMVCActiveRecordLoadOptions);
@@ -2671,6 +2576,11 @@ function TMVCEntitiesRegistry.FindProcessorByURLSegment(const aURLSegment: strin
   out aMVCEntityProcessor: IMVCEntityProcessor): Boolean;
 begin
   Result := fProcessorsDict.TryGetValue(aURLSegment.ToLower, aMVCEntityProcessor);
+end;
+
+function TMVCEntitiesRegistry.GetEntities: TArray<String>;
+begin
+  Result := fEntitiesDict.Keys.ToArray;
 end;
 
 { EMVCActiveRecord }

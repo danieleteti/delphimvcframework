@@ -614,15 +614,19 @@ begin
   try
     lDM.qryCustomers.Open;
     lDict := ObjectDict(False)
+
       .Add('ncUpperCaseList', lDM.qryCustomers, nil, dstAllRecords, ncUpperCase)
       .Add('ncLowerCaseList', lDM.qryCustomers, nil, dstAllRecords, ncLowerCase)
       .Add('ncCamelCaseList', lDM.qryCustomers, nil, dstAllRecords, ncCamelCase)
       .Add('ncPascalCaseList', lDM.qryCustomers, nil, dstAllRecords, ncPascalCase)
+
       .Add('ncUpperCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncUpperCase)
       .Add('ncLowerCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncLowerCase)
       .Add('ncCamelCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncCamelCase)
       .Add('ncPascalCaseSingle', lDM.qryCustomers, nil, dstSingleRecord, ncPascalCase)
+
       .Add('meta', StrDict(['page', 'count'], ['1', lDM.qryCustomers.RecordCount.ToString]));
+
     Render(lDict);
   finally
     lDM.Free;

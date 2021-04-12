@@ -178,8 +178,8 @@ type
   end;
 
 procedure TValueToJSONObjectProperty(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
-function StrToJSONObject(const AValue: string): TJDOJsonObject; inline;
-function StrToJSONArray(const AValue: string): TJDOJsonArray; inline;
+function StrToJSONObject(const AValue: string; ARaiseExceptionOnError: Boolean = False): TJDOJsonObject; inline;
+function StrToJSONArray(const AValue: string; ARaiseExceptionOnError: Boolean = False): TJDOJsonArray; inline;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList); overload;
 procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject); overload;
@@ -2455,36 +2455,44 @@ begin
   end;
 end;
 
-function StrToJSONObject(const AValue: string): TJDOJsonObject;
+function StrToJSONObject(const AValue: string; ARaiseExceptionOnError: Boolean): TJDOJsonObject;
 var
   lJSON: TJDOJsonObject;
 begin
   lJSON := nil;
   try
     lJSON := TJDOJsonObject.Parse(AValue) as TJDOJsonObject;
+    if ARaiseExceptionOnError and (lJSON = nil) then
+    begin
+      raise EMVCException.Create('Invalid JSON');
+    end;
     Result := lJSON;
   except
     on E: Exception do
     begin
       lJSON.Free;
-      raise EMVCDeserializationException.Create('Invalid JSON Object');
+      raise EMVCDeserializationException.Create('Invalid JSON Object - ' + E.Message);
     end;
   end;
 end;
 
-function StrToJSONArray(const AValue: string): TJDOJsonArray;
+function StrToJSONArray(const AValue: string; ARaiseExceptionOnError: Boolean): TJDOJsonArray;
 var
   lJSON: TJDOJsonArray;
 begin
   lJSON := nil;
   try
     lJSON := TJDOJsonObject.Parse(AValue) as TJDOJsonArray;
+    if ARaiseExceptionOnError and (lJSON = nil) then
+    begin
+      raise EMVCException.Create('Invalid JSON');
+    end;
     Result := lJSON;
   except
     on E: Exception do
     begin
       lJSON.Free;
-      raise EMVCDeserializationException.Create('Invalid JSON Array');
+      raise EMVCDeserializationException.Create('Invalid JSON Array - ' + E.Message);
     end;
   end;
 end;
