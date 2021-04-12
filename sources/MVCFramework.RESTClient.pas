@@ -75,6 +75,7 @@ type
 
   TMVCRESTClient = class(TInterfacedObject, IMVCRESTClient)
   private
+    fLock: TObject;
     fHTTPClient: THTTPClient;
     fBaseURL: string;
     fResource: string;
@@ -451,6 +452,15 @@ type
     /// Delete the current dataset record by executing a delete request.
     /// </summary>
     function DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
+
+    /// <summary>
+    /// Access the RESTClient serializer
+    /// </summary>
+    function Serializer: IMVCSerializer; overload;
+    /// <summary>
+    /// Add a serializer to the RESTClient
+    /// </summary>
+    function Serializer(const aSerializer: IMVCSerializer): IMVCRESTClient; overload;
 
     /// <summary>
     /// Register a custom serializer to the RESTClient serializer.
@@ -893,9 +903,10 @@ begin
   fParameters := TList<TMVCRESTParam>.Create;
   fRawBody := TStringStream.Create;
   fBodyFormData := nil;
-  fSerializer := TMVCJsonDataObjectsSerializer.Create;
+  fSerializer := nil;
   fRttiContext := TRttiContext.Create;
   fProxySettings := TProxySettings.Create('', 0);
+  fLock := TObject.Create;
   fBaseURL := '';
   fResource := '';
 
@@ -917,7 +928,7 @@ end;
 function TMVCRESTClient.DataSetInsert(const aResource: string; aDataSet: TDataSet;
   const aIgnoredFields: TMVCIgnoredList; const aNameCase: TMVCNameCase): IMVCRESTResponse;
 begin
-  Result := Post(aResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
+  Result := Post(aResource, Serializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
 function TMVCRESTClient.DataSetUpdate(const aResource, aKeyValue: string; aDataSet: TDataSet;
@@ -931,7 +942,7 @@ begin
     lResource := aResource + '/' + aKeyValue;
   end;
 
-  Result := Put(lResource, fSerializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
+  Result := Put(lResource, Serializer.SerializeDataSetRecord(aDataSet, aIgnoredFields, aNameCase));
 end;
 
 function TMVCRESTClient.Delete(const aResource: string): IMVCRESTResponse;
@@ -953,7 +964,7 @@ begin
   if Assigned(fBodyFormData) then
     FreeAndNil(fBodyFormData);
   FreeAndNil(fRawBody);
-
+  FreeAndNil(fLock);
   fSerializer := nil;
   fRttiContext.Free;
   inherited;
@@ -1562,7 +1573,7 @@ function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
 aInstance: IMVCTypeSerializer): IMVCRESTClient;
 begin
   Result := Self;
-  fSerializer.RegisterTypeSerializer(aTypeInfo, aInstance);
+  Serializer.RegisterTypeSerializer(aTypeInfo, aInstance);
 end;
 
 function TMVCRESTClient.Resource(const aResource: string): IMVCRESTClient;
@@ -1595,9 +1606,38 @@ end;
 function TMVCRESTClient.SerializeObject(aObject: TObject): string;
 begin
   if ObjectIsList(aObject) then
-    Result := fSerializer.SerializeCollection(aObject)
+    Result := Serializer.SerializeCollection(aObject)
   else
-    Result := fSerializer.SerializeObject(aObject);
+    Result := Serializer.SerializeObject(aObject);
+end;
+
+function TMVCRESTClient.Serializer(const aSerializer: IMVCSerializer): IMVCRESTClient;
+begin
+  Result := Self;
+  TMonitor.Enter(fLock);
+  try
+    fSerializer := nil;
+    fSerializer := aSerializer;
+  finally
+    TMonitor.Exit(fLock);
+  end;
+end;
+
+function TMVCRESTClient.Serializer: IMVCSerializer;
+begin
+  if not Assigned(fSerializer) then
+  begin
+    TMonitor.Enter(fLock);
+    try
+      if not Assigned(fSerializer) then
+      begin
+        fSerializer := TMVCJsonDataObjectsSerializer.Create;
+      end;
+    finally
+      TMonitor.Exit(fLock);
+    end;
+  end;
+  Result := fSerializer;
 end;
 
 function TMVCRESTClient.SessionId: string;
