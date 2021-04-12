@@ -28,6 +28,8 @@ type
     Splitter2: TSplitter;
     btnLoginWithException: TButton;
     btnLoginJsonObject: TButton;
+    Panel2: TPanel;
+    chkRememberMe: TCheckBox;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
     procedure btnLoginWithExceptionClick(Sender: TObject);
@@ -92,11 +94,18 @@ var
   lClient: IMVCRESTClient;
   lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
+  lSegment: string;
 begin
+  lSegment := '';
+  if chkRememberMe.Checked then
+  begin
+    lSegment := '?rememberme=1';
+  end;
+
   lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
   lClient.ReadTimeOut(0);
   lClient.SetBasicAuthorization('user1', 'user1');
-  lRest := lClient.Post('/login');
+  lRest := lClient.Post('/login' + lSegment);
   if not lRest.Success then
   begin
     ShowMessage(
@@ -119,10 +128,16 @@ var
   lClient: IMVCRESTClient;
   lRest: IMVCRESTResponse;
   lJSON: TJSONObject;
+  lSegment: string;
 begin
+  lSegment := '';
+  if chkRememberMe.Checked then
+  begin
+    lSegment := '?rememberme=1';
+  end;
   lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
   lClient.ReadTimeOut(0);
-  lRest := lClient.Post('/login', '{"jwtusername":"user1","jwtpassword":"user1"}');
+  lRest := lClient.Post('/login' + lSegment, '{"jwtusername":"user1","jwtpassword":"user1"}');
 
   if not lRest.Success then
   begin
