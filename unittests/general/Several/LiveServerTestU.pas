@@ -246,7 +246,6 @@ type
     [Category('staticfiles')]
     procedure TestSPASupport;
 
-
     [Test]
     [Category('Injected')]
     procedure TestGetInject10;
@@ -254,6 +253,18 @@ type
     [Test]
     [Category('Injected')]
     procedure TestGetInject20;
+
+    [Test]
+    [Category('Injected')]
+    procedure TestPostInject30;
+
+    [Test]
+    [Category('Injected')]
+    procedure TestPostInject40;
+
+    [Test]
+    [Category('Injected')]
+    procedure TestPostInject50;
 
     // test server side views
     [Test]
@@ -491,8 +502,10 @@ begin
       end,
       procedure(E: Exception)
       begin
-      end).AddPathParam('par1', 1).AddPathParam('par2', 2).AddPathParam('par3', 3).Post('/echo/($par1)/($par2)/($par3)',
-      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(TJSONPair.Create('from client', 'hello world'))));
+      end).AddPathParam('par1', 1).AddPathParam('par2', 2).AddPathParam('par3', 3)
+      .Post('/echo/($par1)/($par2)/($par3)',
+      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(TJSONPair.Create('from client',
+      'hello world'))));
 
     // wait for thred finish
     repeat
@@ -528,9 +541,10 @@ begin
       end,
       procedure(E: Exception)
       begin
-      end).AddPathParam('par1', 1).AddPathParam('par2', 2).AddPathParam('par3', 3).Put('/echo/($par1)/($par2)/($par3)',
-      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(System.JSON.TJSONPair.Create('from client',
-      'hello world'))));
+      end).AddPathParam('par1', 1).AddPathParam('par2', 2).AddPathParam('par3', 3)
+      .Put('/echo/($par1)/($par2)/($par3)',
+      TSystemJSON.JSONValueToString(System.JSON.TJSONObject.Create(System.JSON.TJSONPair.Create
+      ('from client', 'hello world'))));
 
     // wait for thred finish
     repeat
@@ -611,8 +625,10 @@ begin
   res := RESTClient.Get(URLSegment);
   Assert.areEqual(HTTP_STATUS.InternalServerError, res.StatusCode);
   // Assert.Contains(res.ContentType, 'text/plain', true, 'Is not a text/plain in case of error');
-  Assert.Contains(res.ContentType, 'application/json', true, 'Is not a application/json in case of error');
-  Assert.Contains(res.Content, 'Cannot create controller', true, 'Exception message in body is not correct');
+  Assert.Contains(res.ContentType, 'application/json', true,
+    'Is not a application/json in case of error');
+  Assert.Contains(res.Content, 'Cannot create controller', true,
+    'Exception message in body is not correct');
   // Assert.Contains(res.BodyAsString, 'Cannot create controller', true, 'Exception message in body is not correct');
 end;
 
@@ -673,7 +689,8 @@ begin
       'Authorization not respected for not allowed action');
 
     lRes := RESTClient.Get('/privatecustom/role1');
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode, 'Authorization not respected for allowed action');
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode,
+      'Authorization not respected for allowed action');
   finally
     lJSON.Free;
   end;
@@ -691,7 +708,8 @@ begin
   try
     lJSON.AddPair('username', 'user1');
     lJSON.AddPair('password', 'user1');
-    lRes := RESTClient.Accept('text/html').Post('/system/users/logged', TSystemJSON.JSONValueToString(lJSON, false));
+    lRes := RESTClient.Accept('text/html').Post('/system/users/logged',
+      TSystemJSON.JSONValueToString(lJSON, false));
     SplitContentMediaTypeAndCharset(lRes.ContentType, lContentType, lContentCharset);
     Assert.areEqual(lContentType, TMVCMediaType.APPLICATION_JSON);
     Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode);
@@ -707,7 +725,8 @@ begin
       'Authorization not respected for not allowed action');
 
     lRes := RESTClient.Get('/privatecustom/role1');
-    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode, 'Authorization not respected for allowed action');
+    Assert.areEqual<Integer>(HTTP_STATUS.OK, lRes.StatusCode,
+      'Authorization not respected for allowed action');
   finally
     lJSON.Free;
   end;
@@ -770,7 +789,8 @@ begin
     lCustomer.Logo.SaveToFile('customer_logo_before_to_send.bmp');
     lSer := GetDefaultSerializer;
     RegisterOptionalCustomTypesSerializers(lSer);
-    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/customerecho', lSer.SerializeObject(lCustomer));
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/customerecho', lSer.SerializeObject(lCustomer));
   finally
     lCustomer.Free;
   end;
@@ -930,7 +950,8 @@ begin
 
   lJSONObj := TSystemJSON.StringAsJSONObject(res.Content);
   S := lJSONObj.Get('name2').JsonValue.Value;
-  Assert.areEqual('Što je Unicode?', S, 'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
+  Assert.areEqual('Što je Unicode?', S,
+    'If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
   lJSONObj.Free;
   { WARNING!!! }
   {
@@ -1023,7 +1044,8 @@ begin
   try
     for I := 0 to lJArr.Count - 1 do
     begin
-      Assert.isTrue(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].Count = 2, '_links doesn''t exists');
+      Assert.isTrue(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].Count = 2,
+        '_links doesn''t exists');
       Assert.areEqual(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].O[0].S[HATEOAS.REL], 'test0');
       Assert.areEqual(lJArr[I].A[TMVCConstants.HATEOAS_PROP_NAME].O[1].S[HATEOAS.REL], 'test1');
     end;
@@ -1078,10 +1100,10 @@ var
   lCompType: string;
   j: Integer;
 const
-  CompressionTypes: array [1 .. 9] of string = ('deflate', 'gzip', 'deflate,gzip', 'gzip,deflate', 'gzip,invalid',
-    'deflate,notvalid', 'notvalid,gzip', 'invalid', '');
-  CompressionTypeResult: array [1 .. 9] of string = ('deflate', 'gzip', 'deflate', 'gzip', 'gzip', 'deflate',
-    'gzip', '', '');
+  CompressionTypes: array [1 .. 9] of string = ('deflate', 'gzip', 'deflate,gzip', 'gzip,deflate',
+    'gzip,invalid', 'deflate,notvalid', 'notvalid,gzip', 'invalid', '');
+  CompressionTypeResult: array [1 .. 9] of string = ('deflate', 'gzip', 'deflate', 'gzip', 'gzip',
+    'deflate', 'gzip', '', '');
 begin
   j := 1;
   for lCompType in CompressionTypes do
@@ -1167,10 +1189,10 @@ end;
 procedure TServerTest.TestGetInject10;
 var
   lResp: IMVCRESTResponse;
-  lJSON: TJsonObject;
+  lJSON: TJSONObject;
   lDateTime: TDateTime;
 begin
-  lDateTime := EncodeDateTime(2011,11,17,12,11,10,9);
+  lDateTime := EncodeDateTime(2011, 11, 17, 12, 11, 10, 9);
   RESTClient.AddQueryStringParam('parstring', 'this is a string');
   RESTClient.AddQueryStringParam('parinteger', 1234);
   RESTClient.AddQueryStringParam('parint64', Int64(1234567890));
@@ -1181,13 +1203,14 @@ begin
   lResp := RESTClient.Get('/injectable10');
   lJSON := StrToJSONObject(lResp.Content);
   try
-    Assert.AreEqual('this is a string', lJSON.S['ParString'], 'wrong string');
-    Assert.AreEqual(1234, lJSON.I['ParInteger'], 'wrong ParInteger');
-    Assert.AreEqual<Int64>(1234567890, lJSON.L['ParInt64'], 'wrong ParInt64');
-    Assert.AreEqual('2011-11-17', lJSON.S['ParTDate'], 'wrong ParTDate');
-    Assert.AreEqual('12:11:10', lJSON.S['ParTTime'], 'wrong ParTTime');
-    Assert.AreEqual(lDateTime, ISOTimeStampToDateTime(lJSON.S['ParTDateTime']), 'wrong ParTDateTime');
-    Assert.AreEqual(true, lJSON.B['ParBool'], 'wrong ParBool');
+    Assert.areEqual('this is a string', lJSON.S['ParString'], 'wrong string');
+    Assert.areEqual(1234, lJSON.I['ParInteger'], 'wrong ParInteger');
+    Assert.areEqual<Int64>(1234567890, lJSON.L['ParInt64'], 'wrong ParInt64');
+    Assert.areEqual('2011-11-17', lJSON.S['ParTDate'], 'wrong ParTDate');
+    Assert.areEqual('12:11:10', lJSON.S['ParTTime'], 'wrong ParTTime');
+    Assert.areEqual(lDateTime, ISOTimeStampToDateTime(lJSON.S['ParTDateTime']),
+      'wrong ParTDateTime');
+    Assert.areEqual(true, lJSON.B['ParBool'], 'wrong ParBool');
   finally
     lJSON.Free;
   end;
@@ -1196,10 +1219,10 @@ end;
 procedure TServerTest.TestGetInject20;
 var
   lResp: IMVCRESTResponse;
-  lJSON: TJsonObject;
+  lJSON: TJSONObject;
   lDateTime: TDateTime;
 begin
-  lDateTime := EncodeDateTime(2011,11,17,12,11,10,9);
+  lDateTime := EncodeDateTime(2011, 11, 17, 12, 11, 10, 9);
   RESTClient.AddHeader('parstring', 'this is a string');
   RESTClient.AddHeader('parinteger', '1234');
   RESTClient.AddHeader('parint64', '1234567890');
@@ -1210,18 +1233,18 @@ begin
   lResp := RESTClient.Get('/injectable20');
   lJSON := StrToJSONObject(lResp.Content);
   try
-    Assert.AreEqual('this is a string', lJSON.S['ParString'], 'wrong string');
-    Assert.AreEqual(1234, lJSON.I['ParInteger'], 'wrong ParInteger');
-    Assert.AreEqual<Int64>(1234567890, lJSON.L['ParInt64'], 'wrong ParInt64');
-    Assert.AreEqual('2011-11-17', lJSON.S['ParTDate'], 'wrong ParTDate');
-    Assert.AreEqual('12:11:10', lJSON.S['ParTTime'], 'wrong ParTTime');
-    Assert.AreEqual(lDateTime, ISOTimeStampToDateTime(lJSON.S['ParTDateTime']), 'wrong ParTDateTime');
-    Assert.AreEqual(true, lJSON.B['ParBool'], 'wrong ParBool');
+    Assert.areEqual('this is a string', lJSON.S['ParString'], 'wrong string');
+    Assert.areEqual(1234, lJSON.I['ParInteger'], 'wrong ParInteger');
+    Assert.areEqual<Int64>(1234567890, lJSON.L['ParInt64'], 'wrong ParInt64');
+    Assert.areEqual('2011-11-17', lJSON.S['ParTDate'], 'wrong ParTDate');
+    Assert.areEqual('12:11:10', lJSON.S['ParTTime'], 'wrong ParTTime');
+    Assert.areEqual(lDateTime, ISOTimeStampToDateTime(lJSON.S['ParTDateTime']),
+      'wrong ParTDateTime');
+    Assert.areEqual(true, lJSON.B['ParBool'], 'wrong ParBool');
   finally
     lJSON.Free;
   end;
 end;
-
 
 procedure TServerTest.TestInvalidateSession;
 var
@@ -1230,7 +1253,8 @@ var
 begin
   c1 := TMVCRESTClient.New.BaseURL(TEST_SERVER_ADDRESS, 9999);
   c1.Accept(TMVCMediaType.APPLICATION_JSON);
-  c1.AddPathParam('param1', 'daniele teti').Post('/session/($param1)'); // imposto un valore in sessione
+  c1.AddPathParam('param1', 'daniele teti').Post('/session/($param1)');
+  // imposto un valore in sessione
   res := c1.Get('/session'); // rileggo il valore dalla sessione
   Assert.areEqual('daniele teti', res.Content);
   c1.SessionId('');
@@ -1267,7 +1291,8 @@ begin
     P.LastName := StringOfChar('*', 1000);
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
-    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/objects', GetDefaultSerializer.SerializeObject(P));
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/objects', GetDefaultSerializer.SerializeObject(P));
   finally
     P.Free;
   end;
@@ -1299,10 +1324,14 @@ begin
     Assert.areEqual(jdtObject, lJSON.Types['ncPascalCase_Single']);
     Assert.areEqual(jdtObject, lJSON.Types['ncUpperCase_Single']);
 
-    Assert.isTrue(lJSON.O['ncCamelCase_Single'].Contains('custNo'), lJSON.O['ncCamelCase_Single'].ToJSON());
-    Assert.isTrue(lJSON.O['ncLowerCase_Single'].Contains('cust_no'), lJSON.O['ncLowerCase_Single'].ToJSON());
-    Assert.isTrue(lJSON.O['ncPascalCase_Single'].Contains('CustNo'), lJSON.O['ncPascalCase_Single'].ToJSON());
-    Assert.isTrue(lJSON.O['ncUpperCase_Single'].Contains('CUST_NO'), lJSON.O['ncUpperCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncCamelCase_Single'].Contains('custNo'),
+      lJSON.O['ncCamelCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncLowerCase_Single'].Contains('cust_no'),
+      lJSON.O['ncLowerCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncPascalCase_Single'].Contains('CustNo'),
+      lJSON.O['ncPascalCase_Single'].ToJSON());
+    Assert.isTrue(lJSON.O['ncUpperCase_Single'].Contains('CUST_NO'),
+      lJSON.O['ncUpperCase_Single'].ToJSON());
 
     Assert.areEqual(jdtArray, lJSON.Types['ncCamelCase_List']);
     Assert.areEqual(jdtArray, lJSON.Types['ncLowerCase_List']);
@@ -1352,6 +1381,119 @@ begin
   end;
 end;
 
+procedure TServerTest.TestPostInject30;
+var
+  lPerson: TPerson;
+  lResp: IMVCRESTResponse;
+  lJObj: TJSONObject;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lDeserPerson: TPerson;
+begin
+  lPerson := TPerson.GetNew('Daniele', 'Teti', EncodeDate(1979, 11, 4), true);
+  try
+    lResp := RESTClient.AddBody(lPerson, false).Post('/injectable30');
+    lJObj := StrToJSONObject(lResp.Content);
+    try
+      lSer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lDeserPerson := TPerson.Create;
+        try
+          lSer.JsonObjectToObject(lJObj, lDeserPerson, TMVCSerializationType.stDefault, []);
+          Assert.isTrue(lPerson.Equals(lDeserPerson));
+        finally
+          lDeserPerson.Free;
+        end;
+      finally
+        lSer.Free;
+      end;
+    finally
+      lJObj.Free;
+    end;
+  finally
+    lPerson.Free;
+  end;
+end;
+
+procedure TServerTest.TestPostInject40;
+var
+  lPerson: TPerson;
+  lResp: IMVCRESTResponse;
+  lJObj: TJSONObject;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lDeserPerson: TPerson;
+begin
+  lPerson := TPerson.GetNew('Daniele', 'Teti', EncodeDate(1979, 11, 4), true);
+  try
+    lResp := RESTClient
+      .AddBody(lPerson, false)
+      .AddPathParam('married', 'false')
+      .AddPathParam('id', lPerson.ID)
+      .AddQueryStringParam('FirstName','Peter')
+      .AddHeader('LastName','Parker')
+      .AddCookie('DOB',DateToISODate(EncodeDate(1960,11,4)))
+      .Post('/injectable40/married/($married)/id/($id)');
+    lJObj := StrToJSONObject(lResp.Content);
+    try
+      lSer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lDeserPerson := TPerson.Create;
+        try
+          lSer.JsonObjectToObject(lJObj, lDeserPerson, TMVCSerializationType.stDefault, []);
+          Assert.AreEqual(lPerson.ID, lDeserPerson.ID);
+          Assert.AreEqual('Peter', lDeserPerson.FirstName);
+          Assert.AreEqual('Parker', lDeserPerson.LastName);
+          Assert.AreEqual('1960-11-04', DateToISODate(lDeserPerson.DOB));
+          Assert.IsFalse(lDeserPerson.Married);
+        finally
+          lDeserPerson.Free;
+        end;
+      finally
+        lSer.Free;
+      end;
+    finally
+      lJObj.Free;
+    end;
+  finally
+    lPerson.Free;
+  end;
+end;
+
+procedure TServerTest.TestPostInject50;
+var
+  lResp: IMVCRESTResponse;
+  lJArr: TJsonArray;
+  lSer: TMVCJsonDataObjectsSerializer;
+  lPeople, lDeserPeople: TObjectList<TPerson>;
+begin
+  lPeople := TPerson.GetList();
+  try
+    lResp := RESTClient.AddBody(lPeople, false).Post('/injectable50');
+    lJArr := StrToJSONArray(lResp.Content);
+    try
+      lSer := TMVCJsonDataObjectsSerializer.Create;
+      try
+        lDeserPeople := TPerson.GetList(0); //empty list
+        try
+          lSer.JsonArrayToList(lJArr, WrapAsList(lDeserPeople), TPerson, TMVCSerializationType.stDefault, []);
+          Assert.AreEqual(lPeople.Count, lDeserPeople.Count);
+          for var I := 0 to lPeople.Count-1 do
+          begin
+            Assert.IsTrue(lPeople[I].Equals(lDeserPeople[I]));
+          end;
+        finally
+          lDeserPeople.Free;
+        end;
+      finally
+        lSer.Free;
+      end;
+    finally
+      lJArr.Free;
+    end;
+  finally
+    lPeople.Free;
+  end;
+end;
+
 procedure TServerTest.TestPOSTWithObjectJSONBody;
 var
   r: IMVCRESTResponse;
@@ -1364,7 +1506,8 @@ begin
     P.DOB := EncodeDate(1979, 1, 1);
     P.Married := true;
     try
-      r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Post('/objects', GetDefaultSerializer.SerializeObject(P)
+      r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+        .Post('/objects', GetDefaultSerializer.SerializeObject(P)
       { Mapper.ObjectToJSONObject(P) }
         );
     except
@@ -1418,7 +1561,8 @@ var
 begin
   res := RESTClient.Accept('text/plain')
   // action is waiting for a accept: application/json
-    .Post('/testconsumes', TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')), 'application/json');
+    .Post('/testconsumes', TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')),
+    'application/json');
   Assert.areEqual<Integer>(HTTP_STATUS.NotFound, res.StatusCode);
 end;
 
@@ -1429,7 +1573,8 @@ var
   lContentCharset: string;
 begin
   res := RESTClient.Accept('application/json').Post('/testconsumes',
-    TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')), BuildContentType('application/json', 'utf-8'));
+    TSystemJSON.JSONValueToString(TJSONString.Create('Hello World')),
+    BuildContentType('application/json', 'utf-8'));
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
   Assert.areEqual('Hello World', res.Content);
 
@@ -1468,8 +1613,8 @@ begin
   Assert.areEqual(lContentType, TMVCMediaType.TEXT_PLAIN);
   Assert.areEqual(lContentCharset, TMVCCharSet.ISO88591);
 
-  res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Post('/testconsumes/textiso8859_1', 'this is an iso8859-1 text',
-    BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591));
+  res := RESTClient.Accept(TMVCMediaType.TEXT_PLAIN).Post('/testconsumes/textiso8859_1',
+    'this is an iso8859-1 text', BuildContentType(TMVCMediaType.TEXT_PLAIN, TMVCCharSet.ISO88591));
   Assert.areEqual<Integer>(HTTP_STATUS.OK, res.StatusCode);
   SplitContentMediaTypeAndCharset(res.ContentType, lContentType, lContentCharset);
 
@@ -1504,8 +1649,9 @@ var
 begin
   JSON := System.JSON.TJSONObject.Create;
   JSON.AddPair('client', 'clientdata');
-  r := RESTClient.AddHeader(TMVCConstants.X_HTTP_Method_Override, 'PUT').AddPathParam('par1', 1).AddPathParam('par2', 2)
-    .AddPathParam('par3', 3).Post('/echo/($par1)/($par2)/($par3)', TSystemJSON.JSONValueToString(JSON));
+  r := RESTClient.AddHeader(TMVCConstants.X_HTTP_Method_Override, 'PUT').AddPathParam('par1', 1)
+    .AddPathParam('par2', 2).AddPathParam('par3', 3).Post('/echo/($par1)/($par2)/($par3)',
+    TSystemJSON.JSONValueToString(JSON));
 
   JSON := TSystemJSON.StringAsJSONObject(r.Content);
   try
@@ -1584,8 +1730,8 @@ var
 begin
   r := RESTClient.AddPathParam('par1', par1).AddPathParam('par2', par2).AddPathParam('par3', par3)
     .Get('/req/with/params/($par1)/($par2)/($par3)');
-  Assert.areEqual<Integer>(HTTP_STATUS.OK, r.StatusCode, Format('URL mapped fails for these characters: "%s","%s","%s"',
-    [par1, par2, par3]));
+  Assert.areEqual<Integer>(HTTP_STATUS.OK, r.StatusCode,
+    Format('URL mapped fails for these characters: "%s","%s","%s"', [par1, par2, par3]));
 end;
 
 procedure TServerTest.TestResponseAccepted;
@@ -1705,7 +1851,8 @@ begin
       Assert.areEqual<Int32>(8, lNullableTest.f_int8.Value);
       Assert.areEqual('2011-11-17', DateToISODate(lNullableTest.f_date.Value));
       Assert.areEqual('12:24:36', TimeToISOTime(lNullableTest.f_time.Value));
-      Assert.areEqual('2011-11-17T12:24:36.048+01:00', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
+      Assert.areEqual('2011-11-17T12:24:36.048+01:00',
+        DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
       Assert.areEqual<boolean>(true, lNullableTest.f_bool.Value);
       Assert.areEqual(10 / 4, lNullableTest.f_float4.Value, 0.0000009);
       Assert.areEqual(10 / 8, lNullableTest.f_float8.Value, 0.0000000000009);
@@ -1800,7 +1947,8 @@ begin
       Assert.areEqual<Int32>(8, lNullableTest.f_int8.Value);
       Assert.areEqual('2011-11-17', DateToISODate(lNullableTest.f_date.Value));
       Assert.areEqual('12:24:36', TimeToISOTime(lNullableTest.f_time.Value));
-      Assert.areEqual('2011-11-17T12:24:36.048+01:00', DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
+      Assert.areEqual('2011-11-17T12:24:36.048+01:00',
+        DateTimeToISOTimeStamp(lNullableTest.f_datetime.Value));
       Assert.areEqual<boolean>(true, lNullableTest.f_bool.Value);
       Assert.areEqual(10 / 4, lNullableTest.f_float4.Value, 0.0000009);
       Assert.areEqual(10 / 8, lNullableTest.f_float8.Value, 0.0000000000009);
@@ -1974,10 +2122,13 @@ begin
   try
     Assert.areEqual('mystring', lJObj.GetValue('ParString').Value, 'ParString');
     Assert.areEqual(1234, TJSONNumber(lJObj.GetValue('ParInteger')).AsInt, 'ParInteger');
-    Assert.areEqual(int64(12345678), TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64, 'ParInt64');
-    Assert.areEqual(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble, -1), 'ParSingle');
-    Assert.areEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble')).AsDouble, -4), 'ParDouble');
-    Assert.areEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended')).AsDouble, -4), 'ParExtended');
+    Assert.areEqual(Int64(12345678), TJSONNumber(lJObj.GetValue('ParInt64')).AsInt64, 'ParInt64');
+    Assert.areEqual(12.3, RoundTo(TJSONNumber(lJObj.GetValue('ParSingle')).AsDouble, -1),
+      'ParSingle');
+    Assert.areEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParDouble')).AsDouble, -4),
+      'ParDouble');
+    Assert.areEqual(1234.5678, RoundTo(TJSONNumber(lJObj.GetValue('ParExtended')).AsDouble, -4),
+      'ParExtended');
   finally
     lJObj.Free;
   end;
@@ -2230,8 +2381,10 @@ end;
 procedure TJSONRPCServerTest.InitExecutors;
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpc', false);
-  FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclass', false);
-  FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclass1', false);
+  FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
+    ':9999/jsonrpcclass', false);
+  FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
+    ':9999/jsonrpcclass1', false);
 end;
 
 procedure TJSONRPCServerTest.Setup;
@@ -2423,7 +2576,8 @@ var
 begin
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'addtimetodatetime';
-  lReq.Params.Add(EncodeDate(2000, 10, 1) + EncodeTime(12, 0, 0, 0), TJSONRPCParamDataType.pdtDateTime);
+  lReq.Params.Add(EncodeDate(2000, 10, 1) + EncodeTime(12, 0, 0, 0),
+    TJSONRPCParamDataType.pdtDateTime);
   lReq.Params.Add(EncodeTime(1, 0, 0, 0), TJSONRPCParamDataType.pdtTime);
   lReq.RequestID := 1234;
 
@@ -2622,10 +2776,10 @@ procedure TJSONRPCServerWithGETTest.InitExecutors;
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcwithget',
     false, jrpcGet);
-  FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclasswithget',
-    false, jrpcGet);
-  FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS + ':9999/jsonrpcclass1withget',
-    false, jrpcGet);
+  FExecutor2 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
+    ':9999/jsonrpcclasswithget', false, jrpcGet);
+  FExecutor3 := TMVCJSONRPCExecutor.Create('http://' + TEST_SERVER_ADDRESS +
+    ':9999/jsonrpcclass1withget', false, jrpcGet);
 end;
 
 initialization
