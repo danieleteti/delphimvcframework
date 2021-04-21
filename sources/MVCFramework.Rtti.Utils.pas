@@ -785,7 +785,9 @@ begin
     end;
   end
   else
-    raise Exception.Create('Cannot find a propert constructor for ' + ARttiType.ToString);
+  begin
+    raise Exception.Create('Cannot find a parameterless constructor for ' + ARttiType.ToString);
+  end;
 
   { Second solution, dirty and fast }
   // Result := TObject(ARttiType.GetMethod('Create')

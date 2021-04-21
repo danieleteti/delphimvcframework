@@ -304,20 +304,35 @@ type
   MVCFromBodyAttribute = class(MVCBaseAttribute)
   private
     fRootNode: string;
+    fDataType: TMVCDataType;
   public
-    constructor Create(const RootNode: string = '');
+    constructor Create(const RootNode: string = ''; const DataType: TMVCDataType = TMVCDataType.dtObject);
+    function DataType: TMVCDataType;
     function RootNode: String;
   end;
 
-  MVCFromQueryStringAttribute = class(MVCStringAttribute)
+  MVCInjectableParamAttribute = class(MVCBaseAttribute)
+  private
+    FParamName: string;
+    FDefaultValueAsString: string;
+    FCanBeUsedADefaultValue: Boolean;
+  public
+    constructor Create(const AParamName: string); overload;
+    constructor Create(const AParamName: string; const DefaultAsString: string); overload;
+    property ParamName: string read FParamName;
+    property DefaultValueAsString: string read FDefaultValueAsString;
+    property CanBeUsedADefaultValue: Boolean read FCanBeUsedADefaultValue;
+  end;
+
+  MVCFromQueryStringAttribute = class(MVCInjectableParamAttribute)
 
   end;
 
-  MVCFromHeaderAttribute = class(MVCStringAttribute)
+  MVCFromHeaderAttribute = class(MVCInjectableParamAttribute)
 
   end;
 
-  MVCFromCookieAttribute = class(MVCStringAttribute)
+  MVCFromCookieAttribute = class(MVCInjectableParamAttribute)
 
   end;
 
@@ -905,6 +920,8 @@ type
       const AActionName: string; var AActualParams: TArray<TValue>; out ABodyParameter: TObject);
     procedure RegisterDefaultsSerializers;
     function GetViewEngineClass: TMVCViewEngineClass;
+    procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
+      const InjectableParamAttribute: MVCInjectableParamAttribute);
   protected
     function GetActualParam(const AFormalParam: TRttiParameter; const AStringValue: String): TValue;
     function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
@@ -1061,7 +1078,7 @@ uses
   MVCFramework.JSONRPC,
   MVCFramework.Router,
   MVCFramework.Rtti.Utils,
-  MVCFramework.Serializer.HTML;
+  MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract;
 
 var
   _IsShuttingDown: Int64 = 0;
@@ -1114,6 +1131,23 @@ constructor MVCStringAttribute.Create(const AValue: string);
 begin
   inherited Create;
   FValue := AValue;
+end;
+
+{ MVCInjectableParamAttribute }
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsString: string);
+begin
+  Create(AParamName);
+  FCanBeUsedADefaultValue := True;
+  FDefaultValueAsString := DefaultAsString;
+end;
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string);
+begin
+  inherited Create;
+  FParamName := AParamName;
+  FCanBeUsedADefaultValue := False;
 end;
 
 { MVCProducesAttribute }
@@ -1940,10 +1974,16 @@ end;
 
 { MVCFromBodyAttribute }
 
-constructor MVCFromBodyAttribute.Create(const RootNode: string);
+constructor MVCFromBodyAttribute.Create(const RootNode: string; const DataType: TMVCDataType);
 begin
   inherited Create;
   fRootNode := '';
+  fDataType := DataType;
+end;
+
+function MVCFromBodyAttribute.DataType: TMVCDataType;
+begin
+  Result := fDataType;
 end;
 
 function MVCFromBodyAttribute.RootNode: String;
@@ -2554,6 +2594,8 @@ var
   lFromCookieAttribute: MVCFromCookieAttribute;
   lAttributeInjectedParamCount: Integer;
   lInjectedParamValue: string;
+  lList: IMVCList;
+  lItemClass: TClass;
 begin
   ABodyParameter := nil;
   lAttributeInjectedParamCount := 0;
@@ -2569,44 +2611,42 @@ begin
       begin
         Inc(lAttributeInjectedParamCount, 1);
         ABodyParameter := TRttiUtils.CreateObject(AActionFormalParams[I].ParamType.QualifiedName);
-        ASelectedController.Serializer.DeserializeObject(ASelectedController.Context.Request.Body,
-          ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
+        if TDuckTypedList.CanBeWrappedAsList(ABodyParameter, lList) then
+        begin
+          lItemClass := TMVCAbstractSerializer(ASelectedController.Serializer).GetObjectTypeOfGenericList(ABodyParameter.ClassInfo);
+          ASelectedController.Serializer.DeserializeCollection(ASelectedController.Context.Request.Body,
+            ABodyParameter, lItemClass, stDefault, [], lFromBodyAttribute.RootNode);
+        end
+        else
+        begin
+          ASelectedController.Serializer.DeserializeObject(ASelectedController.Context.Request.Body,
+            ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
+        end;
         AActualParams[I] := ABodyParameter;
       end
       else if TRttiUtils.HasAttribute<MVCFromQueryStringAttribute>(AActionFormalParams[I],
         lFromQueryStringAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        if not AContext.Request.QueryStringParamExists(lFromQueryStringAttribute.Value) then
-        begin
-          raise EMVCException.CreateFmt('Required QueryString parameter "%s" not provided',
-            [lFromQueryStringAttribute.Value]);
-        end;
-        AActualParams[I] := GetActualParam(AActionFormalParams[I],
-          AContext.Request.QueryStringParam(lFromQueryStringAttribute.Value));
+        lInjectedParamValue := AContext.Request.QueryStringParam
+          (lFromQueryStringAttribute.ParamName);
+        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromQueryStringAttribute);
+        AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end
       else if TRttiUtils.HasAttribute<MVCFromHeaderAttribute>(AActionFormalParams[I],
         lFromHeaderAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.GetHeader(lFromHeaderAttribute.Value);
-        if lInjectedParamValue.IsEmpty then
-        begin
-          raise EMVCException.CreateFmt('Required Header parameter "%s" not provided',
-            [lFromHeaderAttribute.Value]);
-        end;
+        lInjectedParamValue := AContext.Request.GetHeader(lFromHeaderAttribute.ParamName);
+        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromHeaderAttribute);
         AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end
       else if TRttiUtils.HasAttribute<MVCFromCookieAttribute>(AActionFormalParams[I],
         lFromCookieAttribute) then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        lInjectedParamValue := AContext.Request.Cookie(lFromCookieAttribute.Value);
-        if lInjectedParamValue.IsEmpty then
-        begin
-          raise EMVCException.CreateFmt('Required Cookie parameter "%s" not provided',
-            [lFromCookieAttribute.Value]);
-        end;
+        lInjectedParamValue := AContext.Request.Cookie(lFromCookieAttribute.ParamName);
+        HandleDefaultValueForInjectedParameter(lInjectedParamValue, lFromCookieAttribute);
         AActualParams[I] := GetActualParam(AActionFormalParams[I], lInjectedParamValue);
       end
       else
@@ -2825,6 +2865,24 @@ begin
     raise EMVCConfigException.Create
       ('No View Engine configured. [HINT: Use TMVCEngine.SetViewEngine() to set a valid view engine]');
   Result := FViewEngineClass;
+end;
+
+procedure TMVCEngine.HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
+  const InjectableParamAttribute: MVCInjectableParamAttribute);
+begin
+  if InjectedParamValue.IsEmpty then
+  begin
+    if InjectableParamAttribute.CanBeUsedADefaultValue then
+    begin
+      InjectedParamValue := InjectableParamAttribute.DefaultValueAsString;
+    end
+    else
+    begin
+      raise EMVCException.CreateFmt
+        ('Required parameter "%s" injected using "%s" has not provided and cannot be used a default value for it',
+        [InjectableParamAttribute.ParamName, InjectableParamAttribute.Classname]);
+    end;
+  end;
 end;
 
 procedure TMVCEngine.HTTP404(const AContext: TWebContext);
