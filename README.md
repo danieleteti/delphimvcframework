@@ -450,6 +450,26 @@ This version introduced new features in many different areas (swagger, server si
       //If the request body doesn't exist (or cannot be deserialized) an exception is raised.      
     end;
     ```
+    MVCFromBody can be used also with "Collection Like" data structures.
+    //interface
+    ```delphi
+    [MVCDoc('Creates new articles from a list and returns "201: Created"')]
+    [MVCPath('/bulk')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
+
+    //implementation
+    procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
+    var
+      lArticle: TArticle;
+    begin
+      for lArticle in ArticleList do
+      begin
+        GetArticlesService.Add(lArticle);
+      end;
+      Render(201, 'Articles Created');
+    end;    
+    ```
 
 - ⚡New! `MVCFromQueryString` attribute, useful to automatically inject a query string paramater an action paramater. For instance in the following action the query string params `fromDate` is automatically deserialized as a `TDate` value and injected in the action.
     ```delphi
