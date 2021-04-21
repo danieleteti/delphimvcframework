@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -255,6 +255,32 @@ type
     [MVCPath('/issue338/($projectid)/pictures/($imageuuid)')]
     procedure GetImage;
 
+    { injectable parameters }
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/injectable10')]
+    procedure GetInject10(
+      const [MVCFromQueryString('parstring')]     ParString: String;
+      const [MVCFromQueryString('parinteger')]    ParInteger: Integer;
+      const [MVCFromQueryString('parint64')]      ParInt64: Int64;
+      const [MVCFromQueryString('partdate')]      ParTDate: TDate;
+      const [MVCFromQueryString('parttime')]      ParTTime: TTime;
+      const [MVCFromQueryString('partdatetime')]  ParTDateTime: TDateTime;
+      const [MVCFromQueryString('parbool')]       ParBool: Boolean
+      );
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/injectable20')]
+    procedure GetInject20(
+      const [MVCFromHeader('parstring')]     ParString: String;
+      const [MVCFromHeader('parinteger')]    ParInteger: Integer;
+      const [MVCFromHeader('parint64')]      ParInt64: Int64;
+      const [MVCFromHeader('partdate')]      ParTDate: TDate;
+      const [MVCFromHeader('parttime')]      ParTTime: TTime;
+      const [MVCFromHeader('partdatetime')]  ParTDateTime: TDateTime;
+      const [MVCFromHeader('parbool')]       ParBool: Boolean
+      );
+
+
     { templates }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/website/list')]
@@ -394,6 +420,40 @@ begin
   // do nothing
 end;
 
+
+procedure TTestServerController.GetInject10(const ParString: String;
+  const ParInteger: Integer; const ParInt64: Int64; const ParTDate: TDate;
+  const ParTTime: TTime; const ParTDateTime: TDateTime; const ParBool: Boolean);
+var
+  lJObj: TJDOJsonObject;
+begin
+  lJObj := TJDOJsonObject.Create;
+  lJObj.S['ParString'] := ParString;
+  lJObj.I['ParInteger'] := ParInteger;
+  lJObj.L['ParInt64'] := ParInt64;
+  lJObj.S['ParTDate'] :=  DateToISODate(ParTDate);
+  lJObj.S['ParTTime'] := TimeToISOTime(ParTTime);
+  lJObj.S['ParTDateTime'] := DateTimeToISOTimeStamp(ParTDateTime);
+  lJObj.B['ParBool'] := ParBool;
+  Render(lJObj);
+end;
+
+procedure TTestServerController.GetInject20(const ParString: String;
+  const ParInteger: Integer; const ParInt64: Int64; const ParTDate: TDate;
+  const ParTTime: TTime; const ParTDateTime: TDateTime; const ParBool: Boolean);
+var
+  lJObj: TJDOJsonObject;
+begin
+  lJObj := TJDOJsonObject.Create;
+  lJObj.S['ParString'] := ParString;
+  lJObj.I['ParInteger'] := ParInteger;
+  lJObj.L['ParInt64'] := ParInt64;
+  lJObj.S['ParTDate'] :=  DateToISODate(ParTDate);
+  lJObj.S['ParTTime'] := TimeToISOTime(ParTTime);
+  lJObj.S['ParTDateTime'] := DateTimeToISOTimeStamp(ParTDateTime);
+  lJObj.B['ParBool'] := ParBool;
+  Render(lJObj);
+end;
 
 procedure TTestServerController.GetProject;
 begin

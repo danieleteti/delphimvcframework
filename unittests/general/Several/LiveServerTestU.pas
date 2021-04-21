@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -245,6 +245,16 @@ type
     [Test]
     [Category('staticfiles')]
     procedure TestSPASupport;
+
+
+    [Test]
+    [Category('Injected')]
+    procedure TestGetInject10;
+
+    [Test]
+    [Category('Injected')]
+    procedure TestGetInject20;
+
     // test server side views
     [Test]
     procedure TestViewDataViewDataSet;
@@ -1153,6 +1163,65 @@ begin
   Assert.areEqual('image/png', lRes.ContentType);
   Assert.areEqual(249, Integer(lRes.ContentLength));
 end;
+
+procedure TServerTest.TestGetInject10;
+var
+  lResp: IMVCRESTResponse;
+  lJSON: TJsonObject;
+  lDateTime: TDateTime;
+begin
+  lDateTime := EncodeDateTime(2011,11,17,12,11,10,9);
+  RESTClient.AddQueryStringParam('parstring', 'this is a string');
+  RESTClient.AddQueryStringParam('parinteger', 1234);
+  RESTClient.AddQueryStringParam('parint64', Int64(1234567890));
+  RESTClient.AddQueryStringParam('partdate', TDate(Trunc(lDateTime)));
+  RESTClient.AddQueryStringParam('parttime', TTime(Frac(lDateTime)));
+  RESTClient.AddQueryStringParam('partdatetime', lDateTime);
+  RESTClient.AddQueryStringParam('parbool', 'true');
+  lResp := RESTClient.Get('/injectable10');
+  lJSON := StrToJSONObject(lResp.Content);
+  try
+    Assert.AreEqual('this is a string', lJSON.S['ParString'], 'wrong string');
+    Assert.AreEqual(1234, lJSON.I['ParInteger'], 'wrong ParInteger');
+    Assert.AreEqual<Int64>(1234567890, lJSON.L['ParInt64'], 'wrong ParInt64');
+    Assert.AreEqual('2011-11-17', lJSON.S['ParTDate'], 'wrong ParTDate');
+    Assert.AreEqual('12:11:10', lJSON.S['ParTTime'], 'wrong ParTTime');
+    Assert.AreEqual(lDateTime, ISOTimeStampToDateTime(lJSON.S['ParTDateTime']), 'wrong ParTDateTime');
+    Assert.AreEqual(true, lJSON.B['ParBool'], 'wrong ParBool');
+  finally
+    lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestGetInject20;
+var
+  lResp: IMVCRESTResponse;
+  lJSON: TJsonObject;
+  lDateTime: TDateTime;
+begin
+  lDateTime := EncodeDateTime(2011,11,17,12,11,10,9);
+  RESTClient.AddHeader('parstring', 'this is a string');
+  RESTClient.AddHeader('parinteger', '1234');
+  RESTClient.AddHeader('parint64', '1234567890');
+  RESTClient.AddHeader('partdate', DateToISODate(lDateTime));
+  RESTClient.AddHeader('parttime', TimeToISOTime(lDateTime));
+  RESTClient.AddHeader('partdatetime', DateTimeToISOTimeStamp(lDateTime));
+  RESTClient.AddHeader('parbool', 'true');
+  lResp := RESTClient.Get('/injectable20');
+  lJSON := StrToJSONObject(lResp.Content);
+  try
+    Assert.AreEqual('this is a string', lJSON.S['ParString'], 'wrong string');
+    Assert.AreEqual(1234, lJSON.I['ParInteger'], 'wrong ParInteger');
+    Assert.AreEqual<Int64>(1234567890, lJSON.L['ParInt64'], 'wrong ParInt64');
+    Assert.AreEqual('2011-11-17', lJSON.S['ParTDate'], 'wrong ParTDate');
+    Assert.AreEqual('12:11:10', lJSON.S['ParTTime'], 'wrong ParTTime');
+    Assert.AreEqual(lDateTime, ISOTimeStampToDateTime(lJSON.S['ParTDateTime']), 'wrong ParTDateTime');
+    Assert.AreEqual(true, lJSON.B['ParBool'], 'wrong ParBool');
+  finally
+    lJSON.Free;
+  end;
+end;
+
 
 procedure TServerTest.TestInvalidateSession;
 var
