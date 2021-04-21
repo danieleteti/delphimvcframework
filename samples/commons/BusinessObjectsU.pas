@@ -61,6 +61,7 @@ type
     property DOB: TDate read FDOB write SetDOB;
     property Married: boolean read FMarried write SetMarried;
     constructor Create; virtual;
+    destructor Destroy; override;
     class function GetNew(AFirstName, ALastName: string; ADOB: TDate; AMarried: boolean): TPerson;
     class function GetList(const aCount: Integer = 3): TObjectList<TPerson>;
   end;
@@ -303,6 +304,12 @@ constructor TPerson.Create;
 begin
   inherited Create;
   fID := 1000 + Random(1000);
+end;
+
+destructor TPerson.Destroy;
+begin
+
+  inherited;
 end;
 
 function TPerson.Equals(Obj: TObject): boolean;

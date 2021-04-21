@@ -434,6 +434,71 @@ This version introduced new features in many different areas (swagger, server si
 - ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
 - ⚡Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
 - ⚡Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
+- ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
+- ⚡New! `MVCFromBody` attribute, useful to automatically inject the request body as actual object in the action paramaters. For instance in the following action the body request is automatically deserialized as an object of class TPerson.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/people')]
+    procedure CreatePerson(const [MVCFromBody] Person: TPerson);
+
+    //implementation
+    procedure TRenderSampleController.CreatePerson(const Person: TPerson);
+    begin
+      //here you can directly use Person without call Context.Request.BodyAs<TPerson>
+      //the Person object lifecycle is automatically handled by dmvcframework, so don't destroy      
+      //If the request body doesn't exist (or cannot be deserialized) an exception is raised.      
+    end;
+    ```
+
+- ⚡New! `MVCFromQueryString` attribute, useful to automatically inject a query string paramater an action paramater. For instance in the following action the query string params `fromDate` is automatically deserialized as a `TDate` value and injected in the action.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/invoices')]
+    procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate);
+
+    //implementation
+    procedure TRenderSampleController.GetInvoices(const FromDate: TDate);
+    begin
+      //here FromDate is a valid TDate value deserialized from the querystring paramater
+      //named fromDate. 
+      //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
+    end;
+    ```
+- ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/invoices')]
+    procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate; const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String);
+
+    //implementation
+    procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String);
+    begin
+      //here XMyCoolHeader is a string read from the "X-MY-COOL-HEADER' request header.
+      //If the header doesn't exist (or cannot be deserialized) an exception is raised.
+    end;
+    ```
+- ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/invoices')]
+    procedure GetInvoices(
+      const [MVCFromQueryString('fromDate')] FromDate: TDate; 
+      const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String;
+      const [MVCFromCookie('MyCoolCookie')] MyCoolCookie: TDate;
+      );
+
+    //implementation
+    procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String; const MyCoolCookie: TDate);
+    begin
+      //here MyCoolCookie is a TDate read from "MyCoolCookie' cookie available in the request.
+      //If the cookie doesn't exist (or cannot be deserialized) an exception is raised.
+    end;
+    ```
+
 
 ### Bug Fixes in 3.2.2-nitrogen
 
