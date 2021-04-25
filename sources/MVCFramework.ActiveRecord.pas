@@ -282,6 +282,8 @@ type
     procedure SetPropertyValue(const aProp: TRttiProperty; const aValue: TValue);
     function GetPK: TValue;
     function TryGetPKValue(var Value: TValue; out IsNullableType: Boolean): Boolean;
+    function PKIsNullable(out PKValue: TValue): Boolean;
+    function PKIsNull: Boolean;
     procedure AddChildren(const ChildObject: TObject);
     procedure RemoveChildren(const ChildObject: TObject);
     // dynamic access
@@ -1291,6 +1293,25 @@ begin
       raise EMVCActiveRecord.Create('Primary key not available');
     end;
   end;
+end;
+
+function TMVCActiveRecord.PKIsNull: Boolean;
+var
+  lValue: TValue;
+  lIsNullableType: Boolean;
+begin
+  if not PKIsNullable(lValue) then
+  begin
+    raise EMVCActiveRecord.Create('PK is not nullable');
+  end;
+  Result := not TryGetPKValue(lValue, lIsNullableType);
+end;
+
+function TMVCActiveRecord.PKIsNullable(out PKValue: TValue): Boolean;
+var
+  lValue: TValue;
+begin
+  PKValue := TryGetPKValue(lValue, Result);
 end;
 
 function TMVCActiveRecord.GetPrimaryKeyFieldType: TFieldType;

@@ -23,7 +23,8 @@ uses
   FireDAC.Stan.Async,
   FireDAC.Phys,
   FireDAC.VCLUI.Wait,
-  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables;
+  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables,
+  MVCFramework.ActiveRecord, System.Generics.Collections;
 
 type
   TMainForm = class(TForm)
@@ -46,6 +47,7 @@ type
     btnClientGeneratedPK: TButton;
     btnAttributes: TButton;
     btnJSON_XML_Types: TButton;
+    btnMerge: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -66,9 +68,13 @@ type
     procedure btnClientGeneratedPKClick(Sender: TObject);
     procedure btnAttributesClick(Sender: TObject);
     procedure btnJSON_XML_TypesClick(Sender: TObject);
+    procedure btnMergeClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
+    procedure Merge<T: TMVCActiveRecord>(CurrentList: TObjectList<T>; NewList: TObjectList<T>);
+    function KeyExists<T: TMVCActiveRecord>(const NewList: TObjectList<T>; const KeyValue: Integer;
+      out Index: Integer): Boolean;
   public
     { Public declarations }
   end;
@@ -81,14 +87,12 @@ implementation
 {$R *.dfm}
 
 uses
-  MVCFramework.ActiveRecord,
   EntitiesU,
   System.Threading,
-  System.Generics.Collections,
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
-  FDConnectionConfigU, EngineChoiceFormU;
+  FDConnectionConfigU, EngineChoiceFormU, System.Rtti;
 
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
@@ -431,6 +435,43 @@ begin
   end;
 end;
 
+procedure TMainForm.btnMergeClick(Sender: TObject);
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadCustomers;
+  lCustomers := TMVCActiveRecord.All<TCustomer>;
+  try
+    lCustomersChanges := TMVCActiveRecord.SelectRQL<TCustomer>('eq(city,"Rome")', 1000);
+    try
+      lCustomersChanges.Delete(0);
+      lCustomersChanges[1].CompanyName := 'Changed';
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C8765';
+      lCustomer.CompanyName := 'New Company';
+      lCustomer.City := 'New City';
+      lCustomer.Rating := 3;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C9898';
+      lCustomer.CompanyName := 'New Company2';
+      lCustomer.City := 'New City2';
+      lCustomer.Rating := 5;
+
+      Merge<TCustomer>(lCustomers, lCustomersChanges);
+    finally
+      lCustomers.Free;
+    end;
+  finally
+    lCustomersChanges.Free;
+  end;
+end;
+
 procedure TMainForm.btnMultiThreadingClick(Sender: TObject);
 var
   lTasks: TArray<ITask>;
@@ -474,12 +515,11 @@ begin
       end;
     end;
 
-  lTasks := [
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),TTask.Run(lProc),
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)
-    ];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
@@ -1153,7 +1193,7 @@ begin
   Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
     ' row/s for entity ' + TCustomerWithSpaces.ClassName);
 
-  //gets the last inserted customer
+  // gets the last inserted customer
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
   try
     Assert(not lCustomer.Code.HasValue);
@@ -1249,8 +1289,7 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
-  btnWithSpaces.Enabled :=
-    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
+  btnWithSpaces.Enabled := (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
@@ -1284,6 +1323,89 @@ procedure TMainForm.Log(const Value: string);
 begin
   Memo1.Lines.Add(Value);
   Memo1.Update;
+end;
+
+function TMainForm.KeyExists<T>(const NewList: TObjectList<T>; const KeyValue: Integer;
+  out Index: Integer): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to NewList.Count - 1 do
+  begin
+    if NewList[I].GetPK.AsInt64 = KeyValue then
+    begin
+      Index := I;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TMainForm.Merge<T>(CurrentList, NewList: TObjectList<T>);
+var
+  lToDelete, lToUpdate, lToInsert: TObjectList<T>;
+  I: Integer;
+  lFoundAtIndex: Integer;
+  lCurrPKValue: Integer;
+  lPKValue: TValue;
+begin
+  lToDelete := TObjectList<T>.Create(False);
+  try
+    lToUpdate := TObjectList<T>.Create(False);
+    try
+      lToInsert := TObjectList<T>.Create(False);
+      try
+        lToDelete.AddRange(CurrentList);
+        for I := 0 to NewList.Count - 1 do
+        begin
+          if NewList[I].PKIsNull then
+          begin
+            lToInsert.Add(NewList[I]);
+            Continue;
+          end;
+          lCurrPKValue := NewList[I].GetPK.AsInteger;
+          if KeyExists<T>(CurrentList, lCurrPKValue, lFoundAtIndex) then
+          begin
+            // update
+            lToUpdate.Add(NewList[I]);
+            if KeyExists<T>(lToDelete, lCurrPKValue, lFoundAtIndex) then
+            begin
+              lToDelete.Delete(lFoundAtIndex);
+            end
+            else
+            begin
+              raise EMVCActiveRecordNotFound.CreateFmt
+                ('Cannot update a non existent record [PK: %s]', [lCurrPKValue.ToString]);
+            end;
+          end
+          else
+          begin
+            // insert
+            lToInsert.Add(NewList[I]);
+          end;
+        end;
+
+        for I := 0 to lToInsert.Count - 1 do
+        begin
+          Log('INSERT: ' + lToInsert[I].ToString);
+        end;
+        for I := 0 to lToUpdate.Count - 1 do
+        begin
+          Log('UPDATE: ' + lToUpdate[I].ToString);
+        end;
+        for I := 0 to lToDelete.Count - 1 do
+        begin
+          Log('DELETE: ' + lToDelete[I].ToString);
+        end;
+      finally
+        lToInsert.Free;
+      end;
+    finally
+      lToUpdate.Free;
+    end;
+  finally
+    lToDelete.Free;
+  end;
 end;
 
 end.
