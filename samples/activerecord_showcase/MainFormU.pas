@@ -86,6 +86,7 @@ implementation
 
 {$R *.dfm}
 
+
 uses
   EntitiesU,
   System.Threading,
@@ -1348,63 +1349,51 @@ var
   lFoundAtIndex: Integer;
   lCurrPKValue: Integer;
   lPKValue: TValue;
+  lUnitOfWork: IMVCUnitOfWork;
 begin
-  lToDelete := TObjectList<T>.Create(False);
-  try
-    lToUpdate := TObjectList<T>.Create(False);
-    try
-      lToInsert := TObjectList<T>.Create(False);
-      try
-        lToDelete.AddRange(CurrentList);
-        for I := 0 to NewList.Count - 1 do
-        begin
-          if NewList[I].PKIsNull then
-          begin
-            lToInsert.Add(NewList[I]);
-            Continue;
-          end;
-          lCurrPKValue := NewList[I].GetPK.AsInteger;
-          if KeyExists<T>(CurrentList, lCurrPKValue, lFoundAtIndex) then
-          begin
-            // update
-            lToUpdate.Add(NewList[I]);
-            if KeyExists<T>(lToDelete, lCurrPKValue, lFoundAtIndex) then
-            begin
-              lToDelete.Delete(lFoundAtIndex);
-            end
-            else
-            begin
-              raise EMVCActiveRecordNotFound.CreateFmt
-                ('Cannot update a non existent record [PK: %s]', [lCurrPKValue.ToString]);
-            end;
-          end
-          else
-          begin
-            // insert
-            lToInsert.Add(NewList[I]);
-          end;
-        end;
-
-        for I := 0 to lToInsert.Count - 1 do
-        begin
-          Log('INSERT: ' + lToInsert[I].ToString);
-        end;
-        for I := 0 to lToUpdate.Count - 1 do
-        begin
-          Log('UPDATE: ' + lToUpdate[I].ToString);
-        end;
-        for I := 0 to lToDelete.Count - 1 do
-        begin
-          Log('DELETE: ' + lToDelete[I].ToString);
-        end;
-      finally
-        lToInsert.Free;
-      end;
-    finally
-      lToUpdate.Free;
+  lUnitOfWork := TMVCUnitOfWork<TCustomer>.Create;
+  TMVCUnitOfWork<TCustomer>(lUnitOfWork).
+  lToDelete.AddRange(CurrentList);
+  for I := 0 to NewList.Count - 1 do
+  begin
+    if NewList[I].PKIsNull then
+    begin
+      lToInsert.Add(NewList[I]);
+      Continue;
     end;
-  finally
-    lToDelete.Free;
+    lCurrPKValue := NewList[I].GetPK.AsInteger;
+    if KeyExists<T>(CurrentList, lCurrPKValue, lFoundAtIndex) then
+    begin
+      // update
+      lToUpdate.Add(NewList[I]);
+      if KeyExists<T>(lToDelete, lCurrPKValue, lFoundAtIndex) then
+      begin
+        lToDelete.Delete(lFoundAtIndex);
+      end
+      else
+      begin
+        raise EMVCActiveRecordNotFound.CreateFmt
+          ('Cannot update a non existent record [PK: %s]', [lCurrPKValue.ToString]);
+      end;
+    end
+    else
+    begin
+      // insert
+      lToInsert.Add(NewList[I]);
+    end;
+  end;
+
+  for I := 0 to lToInsert.Count - 1 do
+  begin
+    Log('INSERT: ' + lToInsert[I].ToString);
+  end;
+  for I := 0 to lToUpdate.Count - 1 do
+  begin
+    Log('UPDATE: ' + lToUpdate[I].ToString);
+  end;
+  for I := 0 to lToDelete.Count - 1 do
+  begin
+    Log('DELETE: ' + lToDelete[I].ToString);
   end;
 end;
 

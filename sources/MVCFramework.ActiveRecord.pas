@@ -489,6 +489,26 @@ type
     function GetSQLGenerator(const aBackend: string): TMVCSQLGeneratorClass;
   end;
 
+  IMVCUnitOfWork = interface
+    ['{C815246B-19CA-4F6C-AA67-8E491F809340}']
+    procedure Apply;
+  end;
+
+  TMVCUnitOfWork<T: TMVCActiveRecord> = class(TInterfacedObject, IMVCUnitOfWork)
+  private
+    fListToDelete: TList<T>;
+    fListToUpdate: TList<T>;
+    fListToInsert: TList<T>;
+  protected
+    procedure Apply;
+    function GetListToDelete: TList<T>;
+    function GetListToUpdate: TList<T>;
+    function GetListToInsert: TList<T>;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+  end;
+
 function ActiveRecordConnectionsRegistry: IMVCActiveRecordConnections;
 
 function ActiveRecordMappingRegistry: IMVCEntitiesRegistry;
@@ -2915,6 +2935,57 @@ begin
     // Readable := (not (foWriteOnly in FieldOptions)) and (not(foTransient in FieldOptions));
     Readable := (FieldOptions * [foWriteOnly, foTransient]) = [];
   end;
+end;
+
+{ TMVCUnitOfWork<T> }
+
+procedure TMVCUnitOfWork<T>.Apply;
+var
+  I: UInt32;
+begin
+  for I := 0 to fListToInsert.Count - 1 do
+  begin
+    fListToInsert[I].Insert;
+  end;
+  for I := 0 to fListToUpdate.Count - 1 do
+  begin
+    fListToUpdate[I].Update;
+  end;
+  for I := 0 to fListToDelete.Count - 1 do
+  begin
+    fListToDelete[I].Delete;
+  end;
+end;
+
+constructor TMVCUnitOfWork<T>.Create;
+begin
+  inherited;
+  fListToDelete := TList<T>.Create;
+  fListToUpdate := TList<T>.Create;
+  fListToInsert := TList<T>.Create;
+end;
+
+destructor TMVCUnitOfWork<T>.Destroy;
+begin
+  fListToDelete.Free;
+  fListToUpdate.Free;
+  fListToInsert.Free;
+  inherited;
+end;
+
+function TMVCUnitOfWork<T>.GetListToDelete: TList<T>;
+begin
+  Result := fListToDelete;
+end;
+
+function TMVCUnitOfWork<T>.GetListToInsert: TList<T>;
+begin
+  Result := fListToInsert;
+end;
+
+function TMVCUnitOfWork<T>.GetListToUpdate: TList<T>;
+begin
+  Result := fListToUpdate;
 end;
 
 initialization
