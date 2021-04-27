@@ -85,6 +85,7 @@ type
     DBGrid1: TDBGrid;
     btnGetMulti: TButton;
     lbMulti: TListBox;
+    btnException: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -104,6 +105,7 @@ type
     procedure btnGetMultiClick(Sender: TObject);
     procedure btnGetListOfDatasetClick(Sender: TObject);
     procedure btnObjDictClick(Sender: TObject);
+    procedure btnExceptionClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     // FExecutor2: IMVCJSONRPCExecutor;
@@ -157,6 +159,16 @@ begin
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage(lResp.Result.AsString);
+end;
+
+procedure TMainForm.btnExceptionClick(Sender: TObject);
+var
+  lReq: IJSONRPCNotification;
+  lResp: IJSONRPCResponse;
+begin
+  ShowMessage('Now will be raised a custom exception on the server. This exception will be catched by the client');
+  lReq := TJSONRPCNotification.Create('RaiseCustomException');
+  FExecutor.ExecuteNotification('/jsonrpc', lReq);
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);

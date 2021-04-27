@@ -345,10 +345,6 @@ object MainForm: TMainForm
         TabOrder = 3
         object TabSheet3: TTabSheet
           Caption = 'Get DataSet'
-          ExplicitLeft = 0
-          ExplicitTop = 0
-          ExplicitWidth = 0
-          ExplicitHeight = 0
           object edtFilter: TEdit
             Left = 3
             Top = 5
@@ -455,10 +451,19 @@ object MainForm: TMainForm
       end
     end
   end
+  object btnException: TButton
+    Left = 633
+    Top = 173
+    Width = 170
+    Height = 32
+    Caption = 'Raise Custom Exception'
+    TabOrder = 1
+    OnClick = btnExceptionClick
+  end
   object DataSource1: TDataSource
     DataSet = FDMemTable1
-    Left = 767
-    Top = 184
+    Left = 455
+    Top = 216
   end
   object FDMemTable1: TFDMemTable
     FetchOptions.AssignedValues = [evMode]

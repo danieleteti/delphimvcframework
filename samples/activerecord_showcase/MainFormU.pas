@@ -72,9 +72,7 @@ type
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
-    procedure Merge<T: TMVCActiveRecord>(CurrentList: TObjectList<T>; NewList: TObjectList<T>);
-    function KeyExists<T: TMVCActiveRecord>(const NewList: TObjectList<T>; const KeyValue: Integer;
-      out Index: Integer): Boolean;
+    function Merge<T: TMVCActiveRecord>(CurrentList, NewList: TObjectList<T>): IMVCMultiExecutor<T>;
   public
     { Public declarations }
   end;
@@ -441,6 +439,7 @@ var
   lCustomer: TCustomer;
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
+  lMultiExecutor: IMVCMultiExecutor<TCustomer>;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
   LoadCustomers;
@@ -464,7 +463,8 @@ begin
       lCustomer.City := 'New City2';
       lCustomer.Rating := 5;
 
-      Merge<TCustomer>(lCustomers, lCustomersChanges);
+      lMultiExecutor := Merge<TCustomer>(lCustomers, lCustomersChanges);
+      lMultiExecutor.Apply;
     finally
       lCustomers.Free;
     end;
@@ -1326,75 +1326,57 @@ begin
   Memo1.Update;
 end;
 
-function TMainForm.KeyExists<T>(const NewList: TObjectList<T>; const KeyValue: Integer;
-  out Index: Integer): Boolean;
+function TMainForm.Merge<T>(CurrentList, NewList: TObjectList<T>): IMVCMultiExecutor<T>;
 var
-  I: Integer;
-begin
-  Result := False;
-  for I := 0 to NewList.Count - 1 do
-  begin
-    if NewList[I].GetPK.AsInt64 = KeyValue then
-    begin
-      Index := I;
-      Exit(True);
-    end;
-  end;
-end;
-
-procedure TMainForm.Merge<T>(CurrentList, NewList: TObjectList<T>);
-var
-  lToDelete, lToUpdate, lToInsert: TObjectList<T>;
   I: Integer;
   lFoundAtIndex: Integer;
   lCurrPKValue: Integer;
   lPKValue: TValue;
-  lUnitOfWork: IMVCUnitOfWork;
+  lUnitOfWork: IMVCUnitOfWork<T>;
 begin
-  lUnitOfWork := TMVCUnitOfWork<TCustomer>.Create;
-  TMVCUnitOfWork<TCustomer>(lUnitOfWork).
-  lToDelete.AddRange(CurrentList);
+  lUnitOfWork := TMVCUnitOfWork<T>.Create;
+  lUnitOfWork.RegisterDelete(CurrentList);
   for I := 0 to NewList.Count - 1 do
   begin
     if NewList[I].PKIsNull then
     begin
-      lToInsert.Add(NewList[I]);
+      lUnitOfWork.RegisterInsert(NewList[I]);
       Continue;
     end;
     lCurrPKValue := NewList[I].GetPK.AsInteger;
-    if KeyExists<T>(CurrentList, lCurrPKValue, lFoundAtIndex) then
+    if TMVCUnitOfWork<T>.KeyExists(CurrentList, lCurrPKValue, lFoundAtIndex) then
     begin
       // update
-      lToUpdate.Add(NewList[I]);
-      if KeyExists<T>(lToDelete, lCurrPKValue, lFoundAtIndex) then
-      begin
-        lToDelete.Delete(lFoundAtIndex);
-      end
-      else
-      begin
-        raise EMVCActiveRecordNotFound.CreateFmt
-          ('Cannot update a non existent record [PK: %s]', [lCurrPKValue.ToString]);
-      end;
+      lUnitOfWork.RegisterUpdate(NewList[I]);
+      //      if KeyExists<T>(lToDelete, lCurrPKValue, lFoundAtIndex) then
+      //      begin
+      //        lUnitOfWork.UnregisterDelete(NewList[I]);
+      //      end
+      //      else
+      //      begin
+      //        raise EMVCActiveRecordNotFound.CreateFmt
+      //          ('Cannot update a non existent record [PK: %s]', [lCurrPKValue.ToString]);
+      //      end;
     end
     else
     begin
       // insert
-      lToInsert.Add(NewList[I]);
+      lUnitOfWork.RegisterInsert(NewList[I]);
     end;
   end;
-
-  for I := 0 to lToInsert.Count - 1 do
-  begin
-    Log('INSERT: ' + lToInsert[I].ToString);
-  end;
-  for I := 0 to lToUpdate.Count - 1 do
-  begin
-    Log('UPDATE: ' + lToUpdate[I].ToString);
-  end;
-  for I := 0 to lToDelete.Count - 1 do
-  begin
-    Log('DELETE: ' + lToDelete[I].ToString);
-  end;
+  Result := lUnitOfWork as IMVCMultiExecutor<T>;
+//  for I := 0 to lToInsert.Count - 1 do
+//  begin
+//    Log('INSERT: ' + lToInsert[I].ToString);
+//  end;
+//  for I := 0 to lToUpdate.Count - 1 do
+//  begin
+//    Log('UPDATE: ' + lToUpdate[I].ToString);
+//  end;
+//  for I := 0 to lToDelete.Count - 1 do
+//  begin
+//    Log('DELETE: ' + lToDelete[I].ToString);
+//  end;
 end;
 
 end.

@@ -489,21 +489,47 @@ type
     function GetSQLGenerator(const aBackend: string): TMVCSQLGeneratorClass;
   end;
 
-  IMVCUnitOfWork = interface
+  IMVCUnitOfWork<T: TMVCActiveRecord> = interface
+    ['{68B55DD3-57F6-4CC0-A4DE-BFDE7C3AA287}']
+    procedure RegisterDelete(const Value: T); overload;
+    procedure RegisterDelete(const Enumerable: TEnumerable<T>); overload;
+    procedure RegisterUpdate(const Value: T);
+    procedure RegisterInsert(const Value: T);
+    procedure UnregisterDelete(const Value: T);
+    procedure UnregisterUpdate(const Value: T);
+    procedure UnregisterInsert(const Value: T);
+  end;
+
+  IMVCMultiExecutor<T: TMVCActiveRecord> = interface
     ['{C815246B-19CA-4F6C-AA67-8E491F809340}']
     procedure Apply;
   end;
 
-  TMVCUnitOfWork<T: TMVCActiveRecord> = class(TInterfacedObject, IMVCUnitOfWork)
+  TMVCUnitOfWork<T: TMVCActiveRecord> = class(TInterfacedObject, IMVCUnitOfWork<T>, IMVCMultiExecutor<T>)
   private
-    fListToDelete: TList<T>;
-    fListToUpdate: TList<T>;
-    fListToInsert: TList<T>;
+    fListToDelete: TObjectList<T>;
+    fListToUpdate: TObjectList<T>;
+    fListToInsert: TObjectList<T>;
   protected
+
+
+    //multiexecutor
     procedure Apply;
+    //unitofwork
+    procedure RegisterDelete(const Value: T); overload;
+    procedure RegisterDelete(const Enumerable: TEnumerable<T>); overload;
+    procedure RegisterUpdate(const Value: T);
+    procedure RegisterInsert(const Value: T);
+    procedure UnregisterDelete(const Value: T);
+    procedure UnregisterUpdate(const Value: T);
+    procedure UnregisterInsert(const Value: T);
+
+    //other methods
     function GetListToDelete: TList<T>;
     function GetListToUpdate: TList<T>;
     function GetListToInsert: TList<T>;
+    class function KeyExists(const NewList: TObjectList<T>; const KeyValue: Integer;
+      out Index: Integer): Boolean;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -2960,9 +2986,9 @@ end;
 constructor TMVCUnitOfWork<T>.Create;
 begin
   inherited;
-  fListToDelete := TList<T>.Create;
-  fListToUpdate := TList<T>.Create;
-  fListToInsert := TList<T>.Create;
+  fListToDelete := TObjectList<T>.Create(False);
+  fListToUpdate := TObjectList<T>.Create(False);
+  fListToInsert := TObjectList<T>.Create(False);
 end;
 
 destructor TMVCUnitOfWork<T>.Destroy;
@@ -2986,6 +3012,65 @@ end;
 function TMVCUnitOfWork<T>.GetListToUpdate: TList<T>;
 begin
   Result := fListToUpdate;
+end;
+
+class function TMVCUnitOfWork<T>.KeyExists(const NewList: TObjectList<T>;
+  const KeyValue: Integer; out Index: Integer): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to NewList.Count - 1 do
+  begin
+    if NewList[I].GetPK.AsInt64 = KeyValue then
+    begin
+      Index := I;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TMVCUnitOfWork<T>.RegisterDelete(const Value: T);
+begin
+  GetListToDelete.Add(Value);
+end;
+
+procedure TMVCUnitOfWork<T>.RegisterDelete(const Enumerable: TEnumerable<T>);
+begin
+  GetListToDelete.AddRange(Enumerable);
+end;
+
+procedure TMVCUnitOfWork<T>.RegisterInsert(const Value: T);
+begin
+  GetListToInsert.Add(Value);
+end;
+
+procedure TMVCUnitOfWork<T>.RegisterUpdate(const Value: T);
+var
+  lCurrPKValue: Integer;
+  lFoundAtIndex: Integer;
+begin
+  GetListToUpdate.Add(Value);
+  lCurrPKValue := Value.GetPK.AsInteger;
+  if KeyExists(fListToDelete, lCurrPKValue, lFoundAtIndex) then
+  begin
+    fListToDelete.Delete(lFoundAtIndex);
+  end;
+end;
+
+procedure TMVCUnitOfWork<T>.UnregisterDelete(const Value: T);
+begin
+  GetListToDelete.Remove(Value);
+end;
+
+procedure TMVCUnitOfWork<T>.UnregisterInsert(const Value: T);
+begin
+  GetListToInsert.Remove(Value);
+end;
+
+procedure TMVCUnitOfWork<T>.UnregisterUpdate(const Value: T);
+begin
+  GetListToUpdate.Remove(Value);
 end;
 
 initialization
