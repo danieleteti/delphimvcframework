@@ -310,7 +310,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"])
     r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
     if r.returncode != 0:
-        return Exit("Compilation failed: \n" + r.stdout)
+        return Exit("Compilation failed: \n" + str(r.stdout))
     subprocess.run(["taskkill", "/f", "/im", "TestServer.exe"])
     if r.returncode > 0:
         print(r)

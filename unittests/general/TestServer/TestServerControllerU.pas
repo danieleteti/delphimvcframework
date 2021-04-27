@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -30,7 +30,11 @@ interface
 uses
   MVCFramework,
   System.SysUtils,
-  MVCFramework.Commons, FireDAC.Comp.Client, Data.DB;
+  MVCFramework.Commons,
+  FireDAC.Comp.Client,
+  System.Generics.Collections,
+  Data.DB,
+  BusinessObjectsU;
 
 type
 
@@ -255,6 +259,51 @@ type
     [MVCPath('/issue338/($projectid)/pictures/($imageuuid)')]
     procedure GetImage;
 
+    { injectable parameters }
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/injectable10')]
+    procedure GetInject10(
+      const [MVCFromQueryString('parstring')]     ParString: String;
+      const [MVCFromQueryString('parinteger')]    ParInteger: Integer;
+      const [MVCFromQueryString('parint64')]      ParInt64: Int64;
+      const [MVCFromQueryString('partdate')]      ParTDate: TDate;
+      const [MVCFromQueryString('parttime')]      ParTTime: TTime;
+      const [MVCFromQueryString('partdatetime')]  ParTDateTime: TDateTime;
+      const [MVCFromQueryString('parbool')]       ParBool: Boolean
+      );
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/injectable20')]
+    procedure GetInject20(
+      const [MVCFromHeader('parstring')]     ParString: String;
+      const [MVCFromHeader('parinteger')]    ParInteger: Integer;
+      const [MVCFromHeader('parint64')]      ParInt64: Int64;
+      const [MVCFromHeader('partdate')]      ParTDate: TDate;
+      const [MVCFromHeader('parttime')]      ParTTime: TTime;
+      const [MVCFromHeader('partdatetime')]  ParTDateTime: TDateTime;
+      const [MVCFromHeader('parbool')]       ParBool: Boolean
+      );
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/injectable30')]
+    procedure PostInject30(const [MVCFromBody] Person: TPerson);
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/injectable40/married/($Married)/id/($ID)')]
+    procedure PostInject40(
+      const Married: Boolean;
+      const ID: Int64;
+      const [MVCFromBody] Person: TPerson;
+      const [MVCFromQueryString('FirstName')] FirstName: String;
+      const [MVCFromHeader('LastName')] LastName: String;
+      const [MVCFromCookie('DOB')] DOB: TDate
+      );
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/injectable50')]
+    procedure PostInject50(const [MVCFromBody] People: TObjectList<TPerson>);
+
+
     { templates }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/website/list')]
@@ -300,7 +349,6 @@ uses
   JsonDataObjects,
   System.JSON,
   Web.HTTPApp,
-  BusinessObjectsU,
   Generics.Collections,
   MVCFramework.Serializer.Commons,
   MVCFramework.Serializer.Defaults,
@@ -395,6 +443,40 @@ begin
 end;
 
 
+procedure TTestServerController.GetInject10(const ParString: String;
+  const ParInteger: Integer; const ParInt64: Int64; const ParTDate: TDate;
+  const ParTTime: TTime; const ParTDateTime: TDateTime; const ParBool: Boolean);
+var
+  lJObj: TJDOJsonObject;
+begin
+  lJObj := TJDOJsonObject.Create;
+  lJObj.S['ParString'] := ParString;
+  lJObj.I['ParInteger'] := ParInteger;
+  lJObj.L['ParInt64'] := ParInt64;
+  lJObj.S['ParTDate'] :=  DateToISODate(ParTDate);
+  lJObj.S['ParTTime'] := TimeToISOTime(ParTTime);
+  lJObj.S['ParTDateTime'] := DateTimeToISOTimeStamp(ParTDateTime);
+  lJObj.B['ParBool'] := ParBool;
+  Render(lJObj);
+end;
+
+procedure TTestServerController.GetInject20(const ParString: String;
+  const ParInteger: Integer; const ParInt64: Int64; const ParTDate: TDate;
+  const ParTTime: TTime; const ParTDateTime: TDateTime; const ParBool: Boolean);
+var
+  lJObj: TJDOJsonObject;
+begin
+  lJObj := TJDOJsonObject.Create;
+  lJObj.S['ParString'] := ParString;
+  lJObj.I['ParInteger'] := ParInteger;
+  lJObj.L['ParInt64'] := ParInt64;
+  lJObj.S['ParTDate'] :=  DateToISODate(ParTDate);
+  lJObj.S['ParTTime'] := TimeToISOTime(ParTTime);
+  lJObj.S['ParTDateTime'] := DateTimeToISOTimeStamp(ParTDateTime);
+  lJObj.B['ParBool'] := ParBool;
+  Render(lJObj);
+end;
+
 procedure TTestServerController.GetProject;
 begin
   // do nothing
@@ -427,6 +509,34 @@ procedure TTestServerController.MVCControllerBeforeDestroy;
 begin
   inherited;
 
+end;
+
+procedure TTestServerController.PostInject30(const Person: TPerson);
+begin
+  Render(Person, False);
+end;
+
+procedure TTestServerController.PostInject40(
+      const Married: Boolean;
+      const ID: Int64;
+      const [MVCFromBody] Person: TPerson;
+      const [MVCFromQueryString('FirstName')] FirstName: String;
+      const [MVCFromHeader('LastName')] LastName: String;
+      const [MVCFromCookie('DOB')] DOB: TDate
+      );
+begin
+  Person.FirstName := FirstName;
+  Person.LastName := LastName;
+  Person.DOB := DOB;
+  Person.Married := Married;
+  Person.ID := ID;
+  Render(Person, False);
+end;
+
+procedure TTestServerController.PostInject50(
+  const People: TObjectList<TPerson>);
+begin
+  Render<TPerson>(People, False);
 end;
 
 procedure TTestServerController.ReqWithParams;

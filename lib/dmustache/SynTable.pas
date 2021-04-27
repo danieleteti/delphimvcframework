@@ -6,7 +6,7 @@ unit SynTable;
 (*
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2021 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -25,7 +25,7 @@ unit SynTable;
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2020
+  Portions created by the Initial Developer are Copyright (C) 2021
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -96,7 +96,8 @@ type
   // are handled with dedicated code, optionally with case-insensitive search
   // - consider using TMatchs (or SetMatchs/TMatchDynArray) if you expect to
   // search for several patterns, or even TExprParserMatch for expression search
-  {$ifdef UNICODE}TMatch = record{$else}TMatch = object{$endif}
+  {$ifdef USERECORDWITHMETHODS}TMatch = record
+    {$else}TMatch = object{$endif}
   private
     Pattern, Text: PUTF8Char;
     P, T, PMax, TMax: PtrInt;
@@ -697,6 +698,20 @@ type
     property UTF8Length: boolean read fUTF8Length write fUTF8Length;
   end;
 
+resourcestring
+  sInvalidIPAddress = '"%s" is an invalid IP v4 address';
+  sInvalidEmailAddress = '"%s" is an invalid email address';
+  sInvalidPattern = '"%s" does not match the expected pattern';
+  sCharacter01n = 'character,character,characters';
+  sInvalidTextLengthMin = 'Expect at least %d %s';
+  sInvalidTextLengthMax = 'Expect up to %d %s';
+  sInvalidTextChar = 'Expect at least %d %s %s,Expect up to %d %s %s,'+
+    'alphabetical,digital,punctuation,lowercase,uppercase,space,'+
+    'Too much spaces on the left,Too much spaces on the right';
+  sValidationFailed = '"%s" rule failed';
+  sValidationFieldVoid = 'An unique key field must not be void';
+  sValidationFieldDuplicate = 'Value already used for this unique key field';
+
 
 { ************ Database types and classes ************************** }
 
@@ -724,6 +739,7 @@ type
   /// array of field/parameter/column types for abstract database access
   // - this array as a fixed size, ready to handle up to MAX_SQLFIELDS items
   TSQLDBFieldTypeArray = array[0..MAX_SQLFIELDS-1] of TSQLDBFieldType;
+  PSQLDBFieldTypeArray = ^TSQLDBFieldTypeArray;
 
   /// how TSQLVar may be processed
   // - by default, ftDate will use seconds resolution unless svoDateWithMS is set
@@ -822,7 +838,8 @@ type
     // - if no Stream is supplied, a temporary memory stream will be created
     // (it's faster to supply one, e.g. any TSQLRest.TempMemoryStream)
     constructor Create(aStream: TStream; Expand, withID: boolean;
-      const Fields: TSQLFieldIndexDynArray=nil; aBufSize: integer=8192); overload;
+      const Fields: TSQLFieldIndexDynArray=nil; aBufSize: integer=8192;
+      aStackBuffer: PTextWriterStackBuffer=nil); overload;
     /// rewind the Stream position and write void JSON object
     procedure CancelAllVoid;
     /// write or init field names for appropriate JSON Expand later use
@@ -915,7 +932,7 @@ procedure VariantToSQLVar(const Input: variant; var temp: RawByteString;
   var Output: TSQLVar);
 
 /// guess the correct TSQLDBFieldType from a variant type
-function VariantVTypeToSQLDBFieldType(VType: word): TSQLDBFieldType;
+function VariantVTypeToSQLDBFieldType(VType: cardinal): TSQLDBFieldType;
 
 /// guess the correct TSQLDBFieldType from a variant value
 function VariantTypeToSQLDBFieldType(const V: Variant): TSQLDBFieldType;
@@ -1277,7 +1294,8 @@ type
   // - is also safer, since will check for reaching end of buffer
   // - raise a EFastReader exception on decoding error (e.g. if a buffer
   // overflow may occur) or call OnErrorOverflow/OnErrorData event handlers
-  {$ifdef FPC_OR_UNICODE}TFastReader = record{$else}TFastReader = object{$endif}
+  {$ifdef USERECORDWITHMETHODS}TFastReader = record
+    {$else}TFastReader = object{$endif}
   public
     /// the current position in the memory
     P: PAnsiChar;
@@ -1966,9 +1984,6 @@ type
   // - this class is thread-safe if you use properly the associated Safe lock
   TSynCache = class(TSynPersistentLock)
   protected
-    /// last index in fNameValue.List[] if was added by Find()
-    // - contains -1 if no previous immediate call to Find()
-    fFindLastAddedIndex: integer;
     fFindLastKey: RawUTF8;
     fNameValue: TSynNameValue;
     fRamUsed: cardinal;
@@ -2166,7 +2181,7 @@ type
     fReaderTemp: PRawByteString;
     fLoadFromLastUncompressed, fSaveToLastUncompressed: integer;
     fLoadFromLastAlgo: TAlgoCompress;
-    /// low-level virtual methods implementing the persistence reading
+    /// low-level virtual methods implementing the persistence
     procedure LoadFromReader; virtual;
     procedure SaveToWriter(aWriter: TFileBufferWriter); virtual;
   public
@@ -2249,7 +2264,8 @@ type
   TRawByteStringGroupValueDynArray = array of TRawByteStringGroupValue;
 
   /// store several RawByteString content with optional concatenation
-  {$ifdef UNICODE}TRawByteStringGroup = record{$else}TRawByteStringGroup = object{$endif}
+  {$ifdef USERECORDWITHMETHODS}TRawByteStringGroup = record
+    {$else}TRawByteStringGroup = object{$endif}
   public
     /// actual list storing the data
     Values: TRawByteStringGroupValueDynArray;
@@ -2333,8 +2349,8 @@ type
 
   /// simple stack-allocated type for handling a non-void type names list
   // - Delphi "object" is buggy on stack -> also defined as record with methods
-  {$ifdef FPC_OR_UNICODE}TPropNameList = record
-  {$else}TPropNameList = object{$endif}
+  {$ifdef USERECORDWITHMETHODS}TPropNameList = record
+    {$else}TPropNameList = object{$endif}
   public
     /// the actual names storage
     Values: TRawUTF8DynArray;
@@ -2375,7 +2391,8 @@ type
   // - bits 0..14 map a 15-bit increasing counter (collision-free)
   // - bits 15..30 map a 16-bit process identifier
   // - bits 31..63 map a 33-bit UTC time, encoded as seconds since Unix epoch
-  {$ifdef FPC_OR_UNICODE}TSynUniqueIdentifierBits = record{$else}TSynUniqueIdentifierBits = object{$endif}
+  {$ifdef USERECORDWITHMETHODS}TSynUniqueIdentifierBits = record
+    {$else}TSynUniqueIdentifierBits = object{$endif}
   public
     /// the actual 64-bit storage value
     // - in practice, only first 63 bits are used
@@ -2655,6 +2672,8 @@ type
     function ComputeCredential(previous: boolean; const UserName,PassWord: RawUTF8): cardinal; virtual;
     function GetPassword(const UserName: RawUTF8; out Password: RawUTF8): boolean; virtual; abstract;
     function GetUsersCount: integer; virtual; abstract;
+    // check the given Hash challenge, against stored credentials
+    function CheckCredentials(const UserName: RaWUTF8; Hash: cardinal): boolean; virtual;
   public
     /// initialize the authentication scheme
     constructor Create;
@@ -2916,9 +2935,6 @@ type
     function NextPendingTask: RawByteString; virtual;
     /// flush all pending tasks
     procedure Clear; virtual;
-    /// access to the locking methods of this instance
-    // - use Safe.Lock/TryLock with a try ... finally Safe.Unlock block
-    property Safe: PSynlocker read fSafe;
     /// access to the internal TPendingTaskListItem.Timestamp stored value
     // - corresponding to the current time
     // - default implementation is to return GetTickCount64, with a 16 ms
@@ -3439,7 +3455,7 @@ type
   TBlockingProcessPool = class(TSynPersistent)
   protected
     fClass: TBlockingProcessPoolItemClass;
-    fPool: TObjectListLocked;
+    fPool: TSynObjectListLocked;
     fCallCounter: TBlockingProcessPoolCall; // set TBlockingProcessPoolItem.Call
   public
     /// initialize the pool, for a given implementation class
@@ -3497,8 +3513,9 @@ type
   TSystemUseDataDynArray = array of TSystemUseData;
 
   /// low-level structure used to compute process memory and CPU usage
-  {$ifdef FPC_OR_UNICODE}TProcessInfo = record private
-  {$else}TProcessInfo = object protected{$endif}
+  {$ifdef USERECORDWITHMETHODS}TProcessInfo = record
+    {$else}TProcessInfo = object {$endif}
+  private
     {$ifdef MSWINDOWS}
     fSysPrevIdle, fSysPrevKernel, fSysPrevUser,
     fDiffIdle, fDiffKernel, fDiffUser, fDiffTotal: Int64;
@@ -3794,8 +3811,8 @@ type
 
   /// used to store Time Zone information for a single area in TSynTimeZone
   // - Delphi "object" is buggy on stack -> also defined as record with methods
-  {$ifdef FPC_OR_UNICODE}TTimeZoneData = record
-  {$else}TTimeZoneData = object{$endif}
+  {$ifdef USERECORDWITHMETHODS}TTimeZoneData = record
+    {$else}TTimeZoneData = object{$endif}
   public
     id: TTimeZoneID;
     display: RawUTF8;
@@ -3938,7 +3955,7 @@ function GetDiskInfo(var aDriveFolderOrFile: TFileName;
   {$ifdef MSWINDOWS}; aVolumeName: PFileName = nil{$endif}): boolean;
 
 
-{ ************ Markup (e.g. Emoji) process  ************************** }
+{ ************ Markup (e.g. HTML or Emoji) process ******************** }
 
 type
   /// tune AddHtmlEscapeWiki/AddHtmlEscapeMarkdown wrapper functions process
@@ -4565,9 +4582,9 @@ type
     // - you should call OrderedIndexRefresh method to ensure it is sorted
     OrderedIndexNotSorted: boolean;
     /// all TSynValidate instances registered per each field
-    Filters: TObjectList;
+    Filters: TSynObjectList;
     /// all TSynValidate instances registered per each field
-    Validates: TObjectList;
+    Validates: TSynObjectList;
     /// low-level binary comparison used by IDSort and TSynTable.IterateJSONValues
     // - P1 and P2 must point to the values encoded in our SBF compact binary format
     {$ifdef SORTCOMPAREMETHOD}
@@ -4723,18 +4740,18 @@ type
   // - is defined either as an object either as a record, due to a bug
   // in Delphi 2009/2010 compiler (at least): this structure is not initialized
   // if defined as an object on the stack, but will be as a record :(
-  {$ifdef UNICODE}TSynTableData = record{$else}TSynTableData = object{$endif UNICODE}
-  {$ifdef UNICODE}private{$else}protected{$endif UNICODE}
-    VType: TVarType;
-    Filler: array[1..SizeOf(TVarData)-SizeOf(TVarType)-SizeOf(pointer)*2-4] of byte;
+  {$ifdef USERECORDWITHMETHODS}TSynTableData = record
+    {$else}TSynTableData = object {$endif UNICODE}
+  private
+    VType: cardinal; // defined as cardinal not as word for proper aligment
     VID: integer;
     VTable: TSynTable;
     VValue: TSBFString;
     {$ifndef NOVARIANTS}
-    function GetFieldValue(const FieldName: RawUTF8): Variant; overload;
     function GetFieldVarData(FieldName: PUTF8Char; FieldNameLen: PtrInt; var Value: TVarData): boolean;
     procedure GetFieldVariant(const FieldName: RawUTF8; var result: Variant);
-    procedure SetFieldValue(const FieldName: RawUTF8; const Value: Variant); overload;
+    function GetField(const FieldName: RawUTF8): Variant;
+    procedure SetField(const FieldName: RawUTF8; const Value: Variant);
     {$endif}
     /// raise an exception if VTable=nil
     procedure CheckVTableInitialized;
@@ -4755,13 +4772,13 @@ type
     property SBF: TSBFString read VValue;
     {$ifndef NOVARIANTS}
     /// set or retrieve a field value from a variant data
-    property Field[const FieldName: RawUTF8]: Variant read GetFieldValue write SetFieldValue;
+    property Field[const FieldName: RawUTF8]: Variant read GetField write SetField;
     /// get a field value for a specified field
     // - this method is faster than Field[], because it won't look for the field name
-    function GetFieldValue(aField: TSynTableFieldProperties): Variant; overload;
+    function GetFieldValue(aField: TSynTableFieldProperties): Variant;
     /// set a field value for a specified field
     // - this method is faster than Field[], because it won't look for the field name
-    procedure SetFieldValue(aField: TSynTableFieldProperties; const Value: Variant); overload;
+    procedure SetFieldValue(aField: TSynTableFieldProperties; const Value: Variant);
       {$ifdef HASINLINE}inline;{$endif}
     {$endif}
     /// set a field value for a specified field, from SBF-encoded data
@@ -5056,6 +5073,10 @@ type
     procedure Copy(var Dest: TVarData; const Source: TVarData;
       const Indirect: Boolean); override;
   end;
+
+/// initialize TSynTableVariantType if needed, and return the correspongind VType
+function SynTableVariantVarType: cardinal;
+
 {$endif NOVARIANTS}
 
 const
@@ -5109,6 +5130,11 @@ procedure ToSBFStr(const Value: RawByteString; out Result: TSBFString);
 
 implementation
 
+{$ifdef WITH_FASTMM4STATS}
+uses
+  FastMM4; // override OS information by actual FastMM4 status
+{$endif WITH_FASTMM4STATS}
+
 {$ifdef FPCLINUX}
 uses
   termio,
@@ -5130,6 +5156,13 @@ uses
 
 var
   SynTableVariantType: TCustomVariantType = nil;
+
+function SynTableVariantVarType: cardinal;
+begin
+  if SynTableVariantType=nil then
+    SynTableVariantType := SynRegisterCustomVariantType(TSynTableVariantType);
+  result := SynTableVariantType.VarType;
+end;
 
 procedure TSynTableVariantType.Clear(var V: TVarData);
 begin
@@ -5161,7 +5194,7 @@ function TSynTableVariantType.IntSet(const Instance, Value: TVarData;
 var aName: RawUTF8;
 begin
   FastSetString(aName,Name,NameLen);
-  TSynTableData(Instance).SetFieldValue(aName,Variant(Value));
+  TSynTableData(Instance).SetField(aName,Variant(Value));
   result := true;
 end;
 
@@ -5195,7 +5228,7 @@ end;
 { TSynTable }
 
 {$ifdef CPUX86}
-function SortQWord(const A,B: QWord): integer;
+function SortQWord(const A,B: QWord): integer; {$ifdef FPC} nostackframe; assembler; {$endif}
 asm // Delphi x86 compiler is not efficient, and oldest even incorrect
         mov     ecx, [eax]
         mov     eax, [eax + 4]
@@ -5211,7 +5244,7 @@ asm // Delphi x86 compiler is not efficient, and oldest even incorrect
 @p:     mov     eax, 1
 end;
 
-function SortInt64(const A,B: Int64): integer;
+function SortInt64(const A,B: Int64): integer; {$ifdef FPC} nostackframe; assembler; {$endif}
 asm // Delphi x86 compiler is not efficient at compiling below code
         mov     ecx, [eax]
         mov     eax, [eax + 4]
@@ -5964,11 +5997,8 @@ end;
 function TSynTable.Data(aID: integer; RecordBuffer: pointer; RecordBufferLen: Integer): Variant;
 var data: TSynTableData absolute result;
 begin
-  if SynTableVariantType=nil then
-    SynTableVariantType := SynRegisterCustomVariantType(TSynTableVariantType);
-  {$ifndef FPC}if data.VType and VTYPE_STATIC<>0 then{$endif}
-    VarClear(result);
-  data.VType := SynTableVariantType.VarType;
+  VarClear(result);
+  data.VType := SynTableVariantVarType;
   data.VID := aID;
   data.VTable := self;
   pointer(data.VValue) := nil; // avoid GPF
@@ -6198,8 +6228,8 @@ var len: integer;
     PA: PAnsiChar absolute FieldBuffer;
     PU: PUTF8Char absolute FieldBuffer;
     tmp: RawByteString;
-    {$ifndef UNICODE}
-    WS: WideString;
+    {$ifndef HASVARUSTRING}
+    WS: SynUnicode;
     {$endif}
 begin
   case FieldType of
@@ -6234,7 +6264,7 @@ begin
   tftWinAnsi: begin
     len := FromVarUInt32(PB);
     if len>0 then
-      {$ifdef UNICODE}
+      {$ifdef HASVARUSTRING}
       result := WinAnsiToUnicodeString(PA,len)
       {$else}
       result := CurrentAnsiConvert.AnsiToAnsi(WinAnsiConvert,PA,len)
@@ -6244,7 +6274,7 @@ begin
   tftUTF8: begin
     len := FromVarUInt32(PB);
     if len>0 then
-      {$ifdef UNICODE}
+      {$ifdef HASVARUSTRING}
       result := UTF8DecodeToUnicodeString(PU,len)
       {$else} begin
         UTF8ToSynUnicode(PU,len,WS);
@@ -6292,7 +6322,7 @@ begin
   tftCurrency:
     Curr64ToStr(PInt64(FieldBuffer)^,result);
   tftDouble:
-    ExtendedToStr(unaligned(PDouble(FieldBuffer)^),DOUBLE_PRECISION,result);
+    DoubleToStr(unaligned(PDouble(FieldBuffer)^),result);
   // some variable-size field value
   tftVarUInt32:
     UInt32ToUtf8(FromVarUInt32(PB),result);
@@ -6850,12 +6880,12 @@ begin
 end;
 
 function TSynTableFieldProperties.AddFilterOrValidate(aFilter: TSynFilterOrValidate): TSynFilterOrValidate;
-procedure Add(var List: TObjectList);
-begin
-  if List=nil then
-    List := TObjectList.Create;
-  List.Add(result);
-end;
+  procedure Add(var List: TSynObjectList);
+  begin
+    if List=nil then
+      List := TSynObjectList.Create;
+    List.Add(result);
+  end;
 begin
   result := aFilter;
   if (self=nil) or (result=nil) then
@@ -7170,7 +7200,7 @@ begin
       soContains: begin
         dec(L,ValueLen);
         while L>=0 do begin
-          while (L>=0) and not(byte(SBF^) in IsWord) do begin
+          while (L>=0) and not(tcWord in TEXT_CHARS[SBF^]) do begin
             dec(L);
             inc(SBF);
           end; // begin of next word reached
@@ -7182,7 +7212,7 @@ begin
           end else
             if StrCompIL(SBF,Value,ValueLen,0)=0 then
               exit;
-          while (L>=0) and (byte(SBF^) in IsWord) do begin
+          while (L>=0) and (tcWord in TEXT_CHARS[SBF^]) do begin
             dec(L);
             inc(SBF);
           end; // end of word reached
@@ -7310,7 +7340,7 @@ begin
       B := P;
       repeat
         inc(P);
-      until not(ord(P^) in IsJsonIdentifier);
+      until not (jcJsonIdentifier in JSON_CHARS[P^]);
       FastSetString(select.SubField,B,P-B);
       fHasSelectSubFields := true;
     end;
@@ -7440,7 +7470,7 @@ begin
     B := P;
     repeat
       inc(P);
-    until not(ord(P^) in IsJsonIdentifier);
+    until not (jcJsonIdentifier in JSON_CHARS[P^]);
     FastSetString(Where.SubField,B,P-B);
     fWhereHasSubFields := true;
     P := GotoNextNotSpace(P);
@@ -7678,7 +7708,7 @@ lim2: if IdemPropNameU(Prop,'LIMIT') then
         end else
         exit; // incorrect SQL statement
       end else
-      if Prop<>'' then
+      if (Prop<>'') or not(GotoNextNotSpace(P)^ in [#0, ';']) then
         exit else // incorrect SQL statement
         break; // reached the end of the statement
     end;
@@ -7719,7 +7749,7 @@ end;
 
 {$ifndef NOVARIANTS}
 
-function TSynTableData.GetFieldValue(const FieldName: RawUTF8): Variant;
+function TSynTableData.GetField(const FieldName: RawUTF8): Variant;
 begin
   GetFieldVariant(FieldName,result);
 end;
@@ -7779,15 +7809,16 @@ end;
 
 procedure TSynTableData.Init(aTable: TSynTable; aID: Integer);
 begin
-  VTable := aTable;
+  VType := SynTableVariantVarType;
   VID := aID;
+  VTable := aTable;
   VValue := VTable.DefaultRecordData;
-  {$ifdef UNICODE}FillcharFast(Filler,SizeOf(Filler),0);{$endif}
 end;
 
 procedure TSynTableData.Init(aTable: TSynTable; aID: Integer;
   RecordBuffer: pointer; RecordBufferLen: integer);
 begin
+  VType := SynTableVariantVarType;
   VTable := aTable;
   if (RecordBufferLen=0) or (RecordBuffer=nil) then begin
     VID := 0;
@@ -7799,7 +7830,7 @@ begin
 end;
 
 {$ifndef NOVARIANTS}
-procedure TSynTableData.SetFieldValue(const FieldName: RawUTF8;
+procedure TSynTableData.SetField(const FieldName: RawUTF8;
   const Value: Variant);
 var F: TSynTableFieldProperties;
 begin
@@ -8862,7 +8893,7 @@ begin
     {$else}
     v := NormToUpperAnsi7Byte[ord(p^)]; // 7 bit char uppercase
     {$endif}
-    if not (v in IsWord) then break;
+    if not (tcWord in TEXT_BYTES[v]) then break;
     inc(p);
     dec(v,ord('B'));
     if v>high(TSoundExValues) then continue;
@@ -8905,7 +8936,7 @@ begin
   if Values<>nil then
   repeat
     v := GetNextUTF8Upper(U);
-    if not (v in IsWord) then break;
+    if not (tcWord in TEXT_BYTES[v]) then break;
     dec(v,ord('B'));
     if v>high(TSoundExValues) then continue;
     v := Values[v]; // get soundex value
@@ -8983,15 +9014,15 @@ begin
     repeat
       if A^=#0 then exit else
 {$ifdef USENORMTOUPPER}
-        if not(NormToUpperByte[ord(A^)] in IsWord) then break else inc(A);
-{$else} if not(ord(A^) in IsWord) then break else inc(A); {$endif}
+        if not(tcWord in TEXT_CHARS[NormToUpper[A^]]) then break else inc(A);
+{$else} if not(tcWord in TEXT_CHARS[A^]) then break else inc(A); {$endif}
     until false;
     // find beginning of next word
     repeat
       if A^=#0 then exit else
 {$ifdef USENORMTOUPPER}
-        if NormToUpperByte[ord(A^)] in IsWord then break else inc(A);
-{$else} if ord(A^) in IsWord then break else inc(A); {$endif}
+        if tcWord in TEXT_CHARS[NormToUpper[A^]] then break else inc(A);
+{$else} if tcWord in TEXT_CHARS[A^] then break else inc(A); {$endif}
     until false;
   until false;
 end;
@@ -9019,7 +9050,7 @@ begin
       c := GetNextUTF8Upper(U);
       if c=0 then
         exit;
-    until not(c in IsWord);
+    until not(tcWord in TEXT_BYTES[c]);
     // find beginning of next word
     repeat
       if U=nil then exit;
@@ -9027,7 +9058,7 @@ begin
       c := GetNextUTF8Upper(U);
       if c=0 then
         exit;
-    until c in IsWord;
+    until tcWord in TEXT_BYTES[c];
     U := V;
   until U=nil;
 end;
@@ -9058,9 +9089,9 @@ begin
   end;
   if next<>nil then begin
     {$ifdef USENORMTOUPPER}
-    while NormToUpperByte[ord(A^)] in IsWord do inc(A); // go to end of word
+    while tcWord in TEXT_CHARS[NormToUpper[A^]] do inc(A); // go to end of word
     {$else}
-    while ord(A^) in IsWord do inc(A); // go to end of word
+    while tcWord in TEXT_CHARS[A^] do inc(A); // go to end of word
     {$endif}
     next^ := A;
   end;
@@ -9364,7 +9395,7 @@ const TopLevelTLD: array[0..19] of PUTF8Char = (
 begin
   if IsValidEmail(pointer(value)) then
   repeat
-    DOM := lowercase(copy(value,PosEx('@',value)+1,100));
+    DOM := lowercase(copy(value,PosExChar('@',value)+1,100));
     if length(DOM)>63 then
       break; // exceeded 63-character limit of a DNS name
     if (ForbiddenDomains<>'') and (FindCSVIndex(pointer(ForbiddenDomains),DOM)>=0) then
@@ -10125,7 +10156,7 @@ end;
 
 {$ifdef CPUINTEL} // crc32c SSE4.2 hardware accellerated dword hash
 function crc32csse42(buf: pointer): cardinal;
-{$ifdef CPUX86}
+{$ifdef CPUX86} {$ifdef FPC} nostackframe; assembler; {$endif}
 asm
         mov     edx, eax
         xor     eax, eax
@@ -11156,7 +11187,7 @@ var s: TStream;
 begin
   if Append and FileExists(aFileName) then begin
     s := TFileStream.Create(aFileName,fmOpenWrite);
-    s.Seek(0,soFromEnd);
+    s.Seek(0,soEnd);
   end else
     s := TFileStream.Create(aFileName,fmCreate);
   Create(s,BufLen);
@@ -11913,7 +11944,7 @@ begin
     end else
       // file bigger than 2 GB: slower but accurate reading from file
       if Data=nil then begin
-        FileSeek(fMap.FileHandle,soFromCurrent,DataLen);
+        FileSeek64(fMap.FileHandle,DataLen,soFromCurrent);
         result := DataLen;
       end else
         result := FileRead(fMap.FileHandle,Data^,DataLen) else
@@ -12329,7 +12360,7 @@ begin
   if result=0 then
     exit;
   count := result;
-  if count>length(Values) then // only set length is not big enough
+  if count>length(Values) then // change Values[] length only if not big enough
     SetLength(Values,count);
   PI := pointer(Values);
   fixedsize := ReadVarUInt32;
@@ -12394,9 +12425,7 @@ constructor TSynCache.Create(aMaxCacheRamUsed: cardinal; aCaseSensitive: boolean
 begin
   inherited Create;
   fNameValue.Init(aCaseSensitive);
-  fNameValue.DynArray.Capacity := 200; // some space for future cached entries
   fMaxRamUsed := aMaxCacheRamUsed;
-  fFindLastAddedIndex := -1;
   fTimeoutSeconds := aTimeoutSeconds;
 end;
 
@@ -12415,41 +12444,30 @@ end;
 
 procedure TSynCache.Add(const aValue: RawUTF8; aTag: PtrInt);
 begin
-  if (self=nil) or (fFindLastAddedIndex<0) or (fFindLastKey='') then
-    // fFindLastAddedIndex should have been set by a previous call to Find()
+  if (self=nil) or (fFindLastKey='') then
     exit;
   ResetIfNeeded;
   inc(fRamUsed,length(aValue));
-  if fFindLastAddedIndex<0 then // Reset occurred in ResetIfNeeded
-    fNameValue.Add(fFindLastKey,aValue,aTag) else
-    with fNameValue.List[fFindLastAddedIndex] do begin // at Find() position
-      Name := fFindLastKey;
-      Value := aValue;
-      Tag := aTag;
-      fFindLastAddedIndex := -1;
-      fFindLastKey := '';
-    end;
+  fNameValue.Add(fFindLastKey,aValue,aTag);
+  fFindLastKey := '';
 end;
 
 function TSynCache.Find(const aKey: RawUTF8; aResultTag: PPtrInt): RawUTF8;
-var added: boolean;
+var ndx: integer;
 begin
   result := '';
   if self=nil then
     exit;
+  fFindLastKey := aKey;
   if aKey='' then
-    fFindLastAddedIndex := -1 else begin
-    fFindLastAddedIndex := fNameValue.DynArray.FindHashedForAdding(aKey,added);
-    if added then
-      // expect a further call to Add()
-      fFindLastKey := aKey else
-      // match key found
-      with fNameValue.List[fFindLastAddedIndex] do begin
-        result := Value;
-        if aResultTag<>nil then
-          aResultTag^ := Tag;
-        fFindLastAddedIndex := -1;
-      end;
+    exit;
+  ndx := fNameValue.Find(aKey);
+  if ndx<0 then
+    exit;
+  with fNameValue.List[ndx] do begin
+    result := Value;
+    if aResultTag<>nil then
+      aResultTag^ := Tag;
   end;
 end;
 
@@ -12483,16 +12501,10 @@ begin
   fSafe.Lock;
   try
     if Count<>0 then begin
-      if fRamUsed<131072 then // no capacity change for small cache content
-        fNameValue.Count := 0 else
-        with fNameValue.DynArray{$ifdef UNDIRECTDYNARRAY}.InternalDynArray{$endif} do begin
-          Capacity := 0;   // force free all fNameValue.List[] key/value pairs
-          Capacity := 200; // then reserve some space for future cached entries
-        end;
+      fNameValue.DynArray.Clear;
       fNameValue.DynArray.ReHash;
       result := true; // mark something was flushed
     end;
-    fFindLastAddedIndex := -1; // fFindLastKey should remain untouched for Add()
     fRamUsed := 0;
     fTimeoutTix := 0;
   finally
@@ -13700,27 +13712,31 @@ end;
 
 procedure TSynAuthenticationAbstract.AuthenticateUser(const aName, aPassword: RawUTF8);
 begin
-  raise ESynException.CreateFmt('%.AuthenticateUser() is not implemented',[self]);
+  raise ESynException.CreateUTF8('%.AuthenticateUser() is not implemented',[self]);
 end;
 
 procedure TSynAuthenticationAbstract.DisauthenticateUser(const aName: RawUTF8);
 begin
-  raise ESynException.CreateFmt('%.DisauthenticateUser() is not implemented',[self]);
+  raise ESynException.CreateUTF8('%.DisauthenticateUser() is not implemented',[self]);
 end;
 
-function TSynAuthenticationAbstract.CreateSession(const User: RawUTF8; Hash: cardinal): integer;
+function TSynAuthenticationAbstract.CheckCredentials(const UserName: RaWUTF8;
+  Hash: cardinal): boolean;
 var password: RawUTF8;
+begin
+  result := GetPassword(UserName,password) and
+     ((ComputeCredential(false,UserName,password)=Hash) or
+      (ComputeCredential(true,UserName,password)=Hash));
+end;
+
+function TSynAuthenticationAbstract.CreateSession(const User: RawUTF8;
+  Hash: cardinal): integer;
 begin
   result := 0;
   fSafe.Lock;
   try
-    // check the given Hash challenge, against stored credentials
-    if not GetPassword(User,password) then
+    if not CheckCredentials(User,Hash) then
       exit;
-    if (ComputeCredential(false,User,password)<>Hash) and
-       (ComputeCredential(true,User,password)<>Hash) then
-      exit;
-    // create the new session
     repeat
       result := fSessionGenerator;
       inc(fSessionGenerator);
@@ -14278,7 +14294,7 @@ begin
   end;
 end;
 
-function VariantVTypeToSQLDBFieldType(VType: word): TSQLDBFieldType;
+function VariantVTypeToSQLDBFieldType(VType: cardinal): TSQLDBFieldType;
 begin
   case VType of
   varNull:
@@ -14503,11 +14519,16 @@ begin
 end;
 
 constructor TJSONWriter.Create(aStream: TStream; Expand, withID: boolean;
-  const Fields: TSQLFieldIndexDynArray; aBufSize: integer);
+  const Fields: TSQLFieldIndexDynArray; aBufSize: integer;
+  aStackBuffer: PTextWriterStackBuffer);
 begin
   if aStream=nil then
-    CreateOwnedStream else
-    inherited Create(aStream,aBufSize);
+    if aStackBuffer<>nil then
+      CreateOwnedStream(aStackBuffer^) else
+      CreateOwnedStream(aBufSize) else
+    if aStackBuffer<>nil then
+      inherited Create(aStream,aStackBuffer,SizeOf(aStackBuffer^)) else
+      inherited Create(aStream,aBufSize);
   fExpand := Expand;
   fWithID := withID;
   fFields := Fields;
@@ -15871,7 +15892,7 @@ begin
   if aClass=nil then
     fClass := TBlockingProcessPoolItem else
     fClass := aClass;
-  fPool := TObjectListLocked.Create(true);
+  fPool := TSynObjectListLocked.Create;
 end;
 
 const
@@ -16619,7 +16640,7 @@ var i: integer;
      if not withfreespace or not GetDiskInfo(p.mounted,av,fr,tot) then
        {$ifdef MSWINDOWS}
        FormatShort('%: % (%)',[p.mounted[1],p.name,KB(p.size,nospace)],result) else
-       FormatShort(F[nospace],[p.mounted[1],p.name,KB(p.size,nospace)],result);
+       FormatShort(F[nospace],[p.mounted[1],p.name,KB(fr,nospace),KB(tot,nospace)],result);
        {$else}
        FormatShort('% % (%)',[p.mounted,p.name,KB(p.size,nospace)],result) else
        FormatShort(F[nospace],[p.mounted,p.name,KB(fr,nospace),KB(tot,nospace)],result);
@@ -17088,7 +17109,7 @@ end;
 procedure TSynTimeZone.LoadFromBuffer(const Buffer: RawByteString);
 begin
   fZones.LoadFromBinary(AlgoSynLZ.Decompress(Buffer),{nohash=}true);
-  fZones.ReHash(false);
+  fZones.ReHash;
   FreeAndNil(fIds);
   FreeAndNil(fDisplays);
 end;
@@ -17685,7 +17706,7 @@ var W: TTextWriter;
     tmp: TTextWriterStackBuffer;
 begin
   if PosExChar(#$f0,text)=0 then begin
-    result := text; // no smiley UTF-8 for sure
+    result := text; // no UTF-8 smiley for sure
     exit;
   end;
   W := TTextWriter.CreateOwnedStream(tmp);

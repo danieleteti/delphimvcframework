@@ -6,6 +6,9 @@
         <Projects Include="articles_crud.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\articles_crud_server_with_injectable_parameters\articles_crud_with_injectable_parameters.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="..\articles_crud_vcl_client\articles_crud_vcl_client.dproj">
             <Dependencies/>
         </Projects>
@@ -31,6 +34,15 @@
     </Target>
     <Target Name="articles_crud:Make">
         <MSBuild Projects="articles_crud.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="articles_crud_with_injectable_parameters">
+        <MSBuild Projects="..\articles_crud_server_with_injectable_parameters\articles_crud_with_injectable_parameters.dproj"/>
+    </Target>
+    <Target Name="articles_crud_with_injectable_parameters:Clean">
+        <MSBuild Projects="..\articles_crud_server_with_injectable_parameters\articles_crud_with_injectable_parameters.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="articles_crud_with_injectable_parameters:Make">
+        <MSBuild Projects="..\articles_crud_server_with_injectable_parameters\articles_crud_with_injectable_parameters.dproj" Targets="Make"/>
     </Target>
     <Target Name="articles_crud_vcl_client">
         <MSBuild Projects="..\articles_crud_vcl_client\articles_crud_vcl_client.dproj"/>
@@ -60,13 +72,13 @@
         <MSBuild Projects="..\articles_crud_vcl_client_api_binder\articles_crud_vcl_client_api_binder.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="articles_crud;articles_crud_vcl_client;articles_crud_vcl_client_meta;articles_crud_vcl_client_api_binder"/>
+        <CallTarget Targets="articles_crud;articles_crud_with_injectable_parameters;articles_crud_vcl_client;articles_crud_vcl_client_meta;articles_crud_vcl_client_api_binder"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="articles_crud:Clean;articles_crud_vcl_client:Clean;articles_crud_vcl_client_meta:Clean;articles_crud_vcl_client_api_binder:Clean"/>
+        <CallTarget Targets="articles_crud:Clean;articles_crud_with_injectable_parameters:Clean;articles_crud_vcl_client:Clean;articles_crud_vcl_client_meta:Clean;articles_crud_vcl_client_api_binder:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="articles_crud:Make;articles_crud_vcl_client:Make;articles_crud_vcl_client_meta:Make;articles_crud_vcl_client_api_binder:Make"/>
+        <CallTarget Targets="articles_crud:Make;articles_crud_with_injectable_parameters:Make;articles_crud_vcl_client:Make;articles_crud_vcl_client_meta:Make;articles_crud_vcl_client_api_binder:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

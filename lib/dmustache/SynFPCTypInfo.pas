@@ -6,7 +6,7 @@ unit SynFPCTypInfo;
 {
     This file is part of Synopse mORMot framework.
 
-    Synopse mORMot framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse mORMot framework. Copyright (C) 2021 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -25,7 +25,7 @@ unit SynFPCTypInfo;
 
   The Initial Developer of the Original Code is Alfred Glaenzer.
 
-  Portions created by the Initial Developer are Copyright (C) 2020
+  Portions created by the Initial Developer are Copyright (C) 2021
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -52,6 +52,10 @@ unit SynFPCTypInfo;
 }
 
 interface
+
+{$ifndef FPC}
+  'this unit is for FPC only - do not include it in any Delphi project!'
+{$endif FPC}
 
 {$I Synopse.inc} // define HASINLINE CPU32 CPU64 OWNNORMTOUPPER
 
