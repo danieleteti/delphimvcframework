@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = '[DMVCFramework] MVCActiveRecord Entity Generator'
   ClientHeight = 630
-  ClientWidth = 863
+  ClientWidth = 909
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,7 +18,7 @@ object MainForm: TMainForm
   object Splitter1: TSplitter
     Left = 0
     Top = 207
-    Width = 863
+    Width = 909
     Height = 3
     Cursor = crVSplit
     Align = alTop
@@ -28,13 +28,14 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 863
+    Width = 909
     Height = 39
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 863
     object Label1: TLabel
       AlignWithMargins = True
-      Left = 497
+      Left = 543
       Top = 11
       Width = 190
       Height = 17
@@ -45,11 +46,12 @@ object MainForm: TMainForm
       Align = alRight
       Caption = 'Select a FireDAC Connection Definitions'
       Layout = tlCenter
+      ExplicitLeft = 497
       ExplicitHeight = 13
     end
     object cboConnectionDefs: TComboBox
       AlignWithMargins = True
-      Left = 707
+      Left = 753
       Top = 11
       Width = 145
       Height = 21
@@ -60,12 +62,13 @@ object MainForm: TMainForm
       Align = alRight
       TabOrder = 0
       OnChange = cboConnectionDefsChange
+      ExplicitLeft = 707
     end
   end
   object Panel2: TPanel
     Left = 0
     Top = 39
-    Width = 863
+    Width = 909
     Height = 168
     Align = alTop
     Caption = 'Panel1'
@@ -76,11 +79,12 @@ object MainForm: TMainForm
     Font.Style = []
     ParentFont = False
     TabOrder = 1
+    ExplicitWidth = 863
     object Label2: TLabel
       AlignWithMargins = True
       Left = 4
       Top = 4
-      Width = 855
+      Width = 901
       Height = 13
       Align = alTop
       Caption = 'FireDAC connection parameters'
@@ -90,7 +94,7 @@ object MainForm: TMainForm
       AlignWithMargins = True
       Left = 4
       Top = 23
-      Width = 489
+      Width = 535
       Height = 141
       Align = alClient
       Font.Charset = ANSI_CHARSET
@@ -103,9 +107,10 @@ object MainForm: TMainForm
       TabOrder = 0
       WordWrap = False
       OnChange = mmConnectionParamsChange
+      ExplicitWidth = 489
     end
     object Panel6: TPanel
-      Left = 496
+      Left = 542
       Top = 20
       Width = 366
       Height = 147
@@ -114,6 +119,7 @@ object MainForm: TMainForm
       Caption = 'Panel6'
       ShowCaption = False
       TabOrder = 1
+      ExplicitLeft = 496
       object GroupBox1: TGroupBox
         AlignWithMargins = True
         Left = 3
@@ -166,28 +172,69 @@ object MainForm: TMainForm
   object Panel3: TPanel
     Left = 0
     Top = 210
-    Width = 863
+    Width = 909
     Height = 420
     Align = alClient
     Caption = 'Panel3'
     TabOrder = 2
+    ExplicitWidth = 863
     object Panel4: TPanel
       Left = 1
       Top = 1
-      Width = 861
-      Height = 41
+      Width = 907
+      Height = 120
       Align = alTop
       BevelOuter = bvNone
       Caption = 'Panel4'
       ShowCaption = False
       TabOrder = 0
+      ExplicitWidth = 861
+      DesignSize = (
+        907
+        120)
+      object SpeedButton1: TSpeedButton
+        AlignWithMargins = True
+        Left = 140
+        Top = 4
+        Width = 100
+        Height = 29
+        Margins.Top = 2
+        Margins.Right = 2
+        Margins.Bottom = 2
+        Caption = 'Select All'
+        OnClick = SpeedButton1Click
+      end
+      object SpeedButton2: TSpeedButton
+        AlignWithMargins = True
+        Left = 245
+        Top = 4
+        Width = 100
+        Height = 29
+        Margins.Top = 2
+        Margins.Right = 2
+        Margins.Bottom = 2
+        Caption = 'Select None'
+        OnClick = SpeedButton2Click
+      end
+      object SpeedButton3: TSpeedButton
+        AlignWithMargins = True
+        Left = 350
+        Top = 4
+        Width = 100
+        Height = 29
+        Margins.Top = 2
+        Margins.Right = 2
+        Margins.Bottom = 2
+        Caption = 'Invert Selection'
+        OnClick = SpeedButton3Click
+      end
       object btnGenEntities: TButton
         AlignWithMargins = True
-        Left = 129
-        Top = 3
+        Left = 774
+        Top = 82
         Width = 120
         Height = 35
-        Align = alLeft
+        Anchors = [akRight, akBottom]
         Caption = 'Generate Entities'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -204,7 +251,6 @@ object MainForm: TMainForm
         Top = 3
         Width = 120
         Height = 35
-        Align = alLeft
         Caption = 'Get Tables'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -216,42 +262,87 @@ object MainForm: TMainForm
         OnClick = btnGetTablesClick
       end
       object chGenerateMapping: TCheckBox
-        Left = 255
-        Top = 12
-        Width = 514
-        Height = 17
+        AlignWithMargins = True
+        Left = 470
+        Top = -2
+        Width = 262
+        Height = 48
         Caption = 
           'Register entities in ActiveRecordMappingRegistry (needed by TMVC' +
           'ActiveRecordController)'
         Checked = True
         State = cbChecked
         TabOrder = 2
+        WordWrap = True
+      end
+      object RadioGroup1: TRadioGroup
+        Left = 7
+        Top = 47
+        Width = 443
+        Height = 70
+        Caption = 'MVCNameCase'
+        Columns = 3
+        ItemIndex = 0
+        Items.Strings = (
+          'LowerCase'
+          'UpperCase'
+          'CamelCase'
+          'PascalCase'
+          'SnakeCase'
+          'AsIs')
+        TabOrder = 3
       end
     end
     object PageControl1: TPageControl
       AlignWithMargins = True
       Left = 4
-      Top = 45
-      Width = 855
-      Height = 371
+      Top = 124
+      Width = 901
+      Height = 292
       ActivePage = TabSheet1
       Align = alClient
       TabOrder = 1
+      ExplicitTop = 45
+      ExplicitWidth = 855
+      ExplicitHeight = 371
       object TabSheet1: TTabSheet
         Caption = 'Tables'
         object DBGrid1: TDBGrid
           Left = 0
           Top = 0
-          Width = 847
-          Height = 343
+          Width = 893
+          Height = 264
           Align = alClient
           DataSource = dsrcTablesMapping
+          DefaultDrawing = False
           TabOrder = 0
           TitleFont.Charset = DEFAULT_CHARSET
           TitleFont.Color = clWindowText
           TitleFont.Height = -11
           TitleFont.Name = 'Tahoma'
           TitleFont.Style = []
+          OnCellClick = DBGrid1CellClick
+          OnDrawColumnCell = DBGrid1DrawColumnCell
+          Columns = <
+            item
+              Expanded = False
+              FieldName = 'GENERATE'
+              PickList.Strings = (
+                'yes'
+                'no')
+              Width = 58
+              Visible = True
+            end
+            item
+              Expanded = False
+              FieldName = 'TABLE_NAME'
+              Visible = True
+            end
+            item
+              Expanded = False
+              FieldName = 'CLASS_NAME'
+              Visible = True
+            end>
         end
       end
       object TabSheet2: TTabSheet
@@ -261,8 +352,8 @@ object MainForm: TMainForm
           AlignWithMargins = True
           Left = 3
           Top = 44
-          Width = 841
-          Height = 296
+          Width = 887
+          Height = 217
           Align = alClient
           BevelInner = bvNone
           BevelOuter = bvNone
@@ -277,16 +368,19 @@ object MainForm: TMainForm
           ScrollBars = ssBoth
           TabOrder = 0
           WordWrap = False
+          ExplicitWidth = 841
+          ExplicitHeight = 296
         end
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 847
+          Width = 893
           Height = 41
           Align = alTop
           Caption = 'Panel5'
           ShowCaption = False
           TabOrder = 1
+          ExplicitWidth = 847
           object btnSaveCode: TButton
             AlignWithMargins = True
             Left = 4
@@ -325,7 +419,7 @@ object MainForm: TMainForm
     Top = 152
   end
   object FDPhysFBDriverLink1: TFDPhysFBDriverLink
-    Left = 616
+    Left = 504
     Top = 496
   end
   object FDGUIxWaitCursor1: TFDGUIxWaitCursor
@@ -334,8 +428,8 @@ object MainForm: TMainForm
     Top = 104
   end
   object FDPhysMSSQLDriverLink1: TFDPhysMSSQLDriverLink
-    Left = 752
-    Top = 360
+    Left = 784
+    Top = 568
   end
   object FileSaveDialog1: TFileSaveDialog
     FavoriteLinks = <>
@@ -345,35 +439,51 @@ object MainForm: TMainForm
         FileMask = '*.pas'
       end>
     Options = []
-    Left = 424
-    Top = 320
+    Left = 328
+    Top = 416
   end
   object FDPhysMySQLDriverLink1: TFDPhysMySQLDriverLink
-    Left = 752
-    Top = 496
+    Left = 616
+    Top = 568
   end
   object FDPhysPgDriverLink1: TFDPhysPgDriverLink
-    Left = 752
-    Top = 424
+    Left = 784
+    Top = 496
   end
   object FDPhysFBDriverLink2: TFDPhysFBDriverLink
     Left = 616
-    Top = 424
+    Top = 408
   end
   object FDPhysIBDriverLink1: TFDPhysIBDriverLink
-    Left = 752
-    Top = 280
+    Left = 616
+    Top = 496
   end
   object FDPhysMySQLDriverLink2: TFDPhysMySQLDriverLink
-    Left = 616
-    Top = 360
+    Left = 504
+    Top = 568
   end
   object FDPhysSQLiteDriverLink1: TFDPhysSQLiteDriverLink
-    Left = 608
-    Top = 280
+    Left = 504
+    Top = 408
   end
   object dsTablesMapping: TFDMemTable
     Active = True
+    FieldDefs = <
+      item
+        Name = 'TABLE_NAME'
+        DataType = ftString
+        Size = 100
+      end
+      item
+        Name = 'CLASS_NAME'
+        DataType = ftString
+        Size = 100
+      end
+      item
+        Name = 'GENERATE'
+        DataType = ftBoolean
+      end>
+    IndexDefs = <>
     FetchOptions.AssignedValues = [evMode]
     FetchOptions.Mode = fmAll
     ResourceOptions.AssignedValues = [rvSilentMode]
@@ -381,8 +491,13 @@ object MainForm: TMainForm
     UpdateOptions.AssignedValues = [uvCheckRequired, uvAutoCommitUpdates]
     UpdateOptions.CheckRequired = False
     UpdateOptions.AutoCommitUpdates = True
-    Left = 48
-    Top = 304
+    StoreDefs = True
+    Left = 96
+    Top = 504
+    object dsTablesMappingGENERATE: TBooleanField
+      DisplayLabel = 'Generate?'
+      FieldName = 'GENERATE'
+    end
     object dsTablesMappingTABLE_NAME: TStringField
       DisplayLabel = 'Table Name'
       DisplayWidth = 60
@@ -398,7 +513,7 @@ object MainForm: TMainForm
   end
   object dsrcTablesMapping: TDataSource
     DataSet = dsTablesMapping
-    Left = 48
-    Top = 368
+    Left = 96
+    Top = 448
   end
 end

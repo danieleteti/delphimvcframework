@@ -442,7 +442,7 @@ begin
   Result := '';
   if PKIsNull then
     Result := '<null>';
-  Result := Format('[ID: %6s][CODE: %6s][CompanyName: %15s][City: %10s][Rating: %3d][Note: %s]',[
+  Result := Format('[ID: %6s][CODE: %6s][CompanyName: %18s][City: %16s][Rating: %3d][Note: %s]',[
     Result, fCode.ValueOrDefault, fCompanyName.ValueOrDefault, fCity, fRating.ValueOrDefault, fNote]);
 end;
 

@@ -72,7 +72,6 @@ type
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
-    function Merge<T: TMVCActiveRecord>(CurrentList, NewList: TObjectList<T>): IMVCMultiExecutor<T>;
   public
     { Public declarations }
   end;
@@ -441,35 +440,73 @@ var
   lCustomersChanges: TObjectList<TCustomer>;
   lMultiExecutor: IMVCMultiExecutor<TCustomer>;
 begin
+  Log('** IMVCMultiExecutor demo');
   TMVCActiveRecord.DeleteAll(TCustomer);
   LoadCustomers;
-  lCustomers := TMVCActiveRecord.All<TCustomer>;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
-    lCustomersChanges := TMVCActiveRecord.SelectRQL<TCustomer>('eq(city,"Rome")', 1000);
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
     try
-      lCustomersChanges.Delete(0);
-      lCustomersChanges[1].CompanyName := 'Changed';
+      //these 2 customers will be updated
       lCustomer := TCustomer.Create;
       lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[0].ID;
       lCustomer.Code := 'C8765';
-      lCustomer.CompanyName := 'New Company';
-      lCustomer.City := 'New City';
-      lCustomer.Rating := 3;
+      lCustomer.CompanyName := '(changed) Company1';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 1;
 
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[1].ID;
+      lCustomer.Code := lCustomers[1].Code;
+      lCustomer.CompanyName := '(changed) Company2';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 1;
+
+
+      //these 2 customer will be created
       lCustomer := TCustomer.Create;
       lCustomersChanges.Add(lCustomer);
       lCustomer.Code := 'C9898';
-      lCustomer.CompanyName := 'New Company2';
-      lCustomer.City := 'New City2';
-      lCustomer.Rating := 5;
+      lCustomer.CompanyName := '(new) Company3';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 1;
 
-      lMultiExecutor := Merge<TCustomer>(lCustomers, lCustomersChanges);
-      lMultiExecutor.Apply;
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C2343';
+      lCustomer.CompanyName := '(new) Company4';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 1;
+
+      //all the other customers will be deleted
+
+
+      //calculate the unitofwork to merge the lists
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False; //set it to true to execute action manually
+          case EntityAction of
+            eaCreate: Log('Inserting Customer : ' + Customer.ToString);
+            eaUpdate: Log('Updating Customer  : ' + Customer.ToString);
+            eaDelete: Log('Deleting Customer  : ' + Customer.ToString);
+          end;
+        end);
     finally
       lCustomers.Free;
     end;
   finally
     lCustomersChanges.Free;
+  end;
+
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    Assert(lCustomers.Count = 4, 'Expected 4 customers, got ' + lCustomers.Count.ToString);
+  finally
+    lCustomers.Free;
   end;
 end;
 
@@ -1326,57 +1363,5 @@ begin
   Memo1.Update;
 end;
 
-function TMainForm.Merge<T>(CurrentList, NewList: TObjectList<T>): IMVCMultiExecutor<T>;
-var
-  I: Integer;
-  lFoundAtIndex: Integer;
-  lCurrPKValue: Integer;
-  lPKValue: TValue;
-  lUnitOfWork: IMVCUnitOfWork<T>;
-begin
-  lUnitOfWork := TMVCUnitOfWork<T>.Create;
-  lUnitOfWork.RegisterDelete(CurrentList);
-  for I := 0 to NewList.Count - 1 do
-  begin
-    if NewList[I].PKIsNull then
-    begin
-      lUnitOfWork.RegisterInsert(NewList[I]);
-      Continue;
-    end;
-    lCurrPKValue := NewList[I].GetPK.AsInteger;
-    if TMVCUnitOfWork<T>.KeyExists(CurrentList, lCurrPKValue, lFoundAtIndex) then
-    begin
-      // update
-      lUnitOfWork.RegisterUpdate(NewList[I]);
-      //      if KeyExists<T>(lToDelete, lCurrPKValue, lFoundAtIndex) then
-      //      begin
-      //        lUnitOfWork.UnregisterDelete(NewList[I]);
-      //      end
-      //      else
-      //      begin
-      //        raise EMVCActiveRecordNotFound.CreateFmt
-      //          ('Cannot update a non existent record [PK: %s]', [lCurrPKValue.ToString]);
-      //      end;
-    end
-    else
-    begin
-      // insert
-      lUnitOfWork.RegisterInsert(NewList[I]);
-    end;
-  end;
-  Result := lUnitOfWork as IMVCMultiExecutor<T>;
-//  for I := 0 to lToInsert.Count - 1 do
-//  begin
-//    Log('INSERT: ' + lToInsert[I].ToString);
-//  end;
-//  for I := 0 to lToUpdate.Count - 1 do
-//  begin
-//    Log('UPDATE: ' + lToUpdate[I].ToString);
-//  end;
-//  for I := 0 to lToDelete.Count - 1 do
-//  begin
-//    Log('DELETE: ' + lToDelete[I].ToString);
-//  end;
-end;
 
 end.
