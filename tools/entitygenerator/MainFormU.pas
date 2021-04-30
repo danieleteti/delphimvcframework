@@ -189,7 +189,8 @@ begin
       EmitClass(lTableName, lClassName, RadioGroup1.Items[RadioGroup1.ItemIndex]);
       lKeyFields.Clear;
       qry.Close;
-      qry.Open('select * from ' + lTableName + ' where 1=0');
+      qry.SQL.Text := 'select * from ' + lTableName + ' where 1=0';
+      qry.Open;
       try
         FDConnection1.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
       except
@@ -329,6 +330,7 @@ begin
       dsTablesMapping.Edit;
     end;
     dsTablesMappingGENERATE.Value := not dsTablesMappingGENERATE.Value;
+    dsTablesMapping.Post;
   end;
 end;
 
@@ -365,9 +367,12 @@ begin
     begin
       dsTablesMapping.Edit;
       case SelectionType of
-        stAll: dsTablesMappingGENERATE.Value := True;
-        stNone: dsTablesMappingGENERATE.Value := False;
-        stInverse: dsTablesMappingGENERATE.Value := not dsTablesMappingGENERATE.Value;
+        stAll:
+          dsTablesMappingGENERATE.Value := True;
+        stNone:
+          dsTablesMappingGENERATE.Value := False;
+        stInverse:
+          dsTablesMappingGENERATE.Value := not dsTablesMappingGENERATE.Value;
       end;
       dsTablesMapping.Post;
       dsTablesMapping.Next;
@@ -387,7 +392,7 @@ begin
   fIntfBuff.WriteString(INDENT + aClassName + ' = class(TMVCActiveRecord)' + sLineBreak);
   if chGenerateMapping.Checked then
     fInitializationBuff.WriteString
-      (INDENT + Format('ActiveRecordMappingRegistry.AddEntity(''%s'',%s);',
+      (Format('ActiveRecordMappingRegistry.AddEntity(''%s'', %s);',
       [aTableName.ToLower, aClassName]) + sLineBreak);
 end;
 
@@ -466,10 +471,10 @@ procedure TMainForm.EmitProperty(F: TField);
 var
   lProp: string;
 begin
-  if GetFieldName(F.FieldName).Substring(1).ToLower <> F.FieldName then
-  begin
-    lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
-  end;
+  // if GetFieldName(F.FieldName).Substring(1).ToLower <> F.FieldName then
+  // begin
+  // lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
+  // end;
   lProp := lProp + 'property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' +
     GetDelphiType(F.DataType) + ' read ' + GetFieldName(F.FieldName) + ' write ' +
     GetFieldName(F.FieldName) + ';' +
