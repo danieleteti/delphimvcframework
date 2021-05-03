@@ -482,8 +482,7 @@ begin
 
       //all the other customers will be deleted
 
-
-      //calculate the unitofwork to merge the lists
+      //calculate the unit-of-work to merge the lists
       TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
         procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
         begin
@@ -495,12 +494,11 @@ begin
           end;
         end);
     finally
-      lCustomers.Free;
+      lCustomersChanges.Free;
     end;
   finally
-    lCustomersChanges.Free;
+    lCustomers.Free;
   end;
-
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
