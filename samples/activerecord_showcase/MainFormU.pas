@@ -23,7 +23,8 @@ uses
   FireDAC.Stan.Async,
   FireDAC.Phys,
   FireDAC.VCLUI.Wait,
-  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables;
+  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables,
+  MVCFramework.ActiveRecord, System.Generics.Collections;
 
 type
   TMainForm = class(TForm)
@@ -46,6 +47,7 @@ type
     btnClientGeneratedPK: TButton;
     btnAttributes: TButton;
     btnJSON_XML_Types: TButton;
+    btnMerge: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -66,6 +68,7 @@ type
     procedure btnClientGeneratedPKClick(Sender: TObject);
     procedure btnAttributesClick(Sender: TObject);
     procedure btnJSON_XML_TypesClick(Sender: TObject);
+    procedure btnMergeClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -80,15 +83,14 @@ implementation
 
 {$R *.dfm}
 
+
 uses
-  MVCFramework.ActiveRecord,
   EntitiesU,
   System.Threading,
-  System.Generics.Collections,
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
-  FDConnectionConfigU, EngineChoiceFormU;
+  FDConnectionConfigU, EngineChoiceFormU, System.Rtti;
 
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
@@ -431,6 +433,81 @@ begin
   end;
 end;
 
+procedure TMainForm.btnMergeClick(Sender: TObject);
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+  lMultiExecutor: IMVCMultiExecutor<TCustomer>;
+begin
+  Log('** IMVCMultiExecutor demo');
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadCustomers;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
+    try
+      //these 2 customers will be updated
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[0].ID;
+      lCustomer.Code := 'C8765';
+      lCustomer.CompanyName := '(changed) Company1';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 1;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[1].ID;
+      lCustomer.Code := lCustomers[1].Code;
+      lCustomer.CompanyName := '(changed) Company2';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 1;
+
+
+      //these 2 customer will be created
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C9898';
+      lCustomer.CompanyName := '(new) Company3';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 1;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C2343';
+      lCustomer.CompanyName := '(new) Company4';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 1;
+
+      //all the other customers will be deleted
+
+      //calculate the unit-of-work to merge the lists
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False; //set it to true to execute action manually
+          case EntityAction of
+            eaCreate: Log('Inserting Customer : ' + Customer.ToString);
+            eaUpdate: Log('Updating Customer  : ' + Customer.ToString);
+            eaDelete: Log('Deleting Customer  : ' + Customer.ToString);
+          end;
+        end);
+    finally
+      lCustomersChanges.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    Assert(lCustomers.Count = 4, 'Expected 4 customers, got ' + lCustomers.Count.ToString);
+  finally
+    lCustomers.Free;
+  end;
+end;
+
 procedure TMainForm.btnMultiThreadingClick(Sender: TObject);
 var
   lTasks: TArray<ITask>;
@@ -474,12 +551,11 @@ begin
       end;
     end;
 
-  lTasks := [
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),TTask.Run(lProc),
+  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)
-    ];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
@@ -1153,7 +1229,7 @@ begin
   Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
     ' row/s for entity ' + TCustomerWithSpaces.ClassName);
 
-  //gets the last inserted customer
+  // gets the last inserted customer
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
   try
     Assert(not lCustomer.Code.HasValue);
@@ -1249,8 +1325,7 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
-  btnWithSpaces.Enabled :=
-    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
+  btnWithSpaces.Enabled := (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
     (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
@@ -1285,5 +1360,6 @@ begin
   Memo1.Lines.Add(Value);
   Memo1.Update;
 end;
+
 
 end.

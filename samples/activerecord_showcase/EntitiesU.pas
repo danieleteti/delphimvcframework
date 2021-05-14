@@ -124,6 +124,7 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+    function ToString: String; override;
     property ID: NullableInt64 read fID write fID;
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
@@ -434,6 +435,15 @@ destructor TCustomer.Destroy;
 begin
 
   inherited;
+end;
+
+function TCustomer.ToString: String;
+begin
+  Result := '';
+  if PKIsNull then
+    Result := '<null>';
+  Result := Format('[ID: %6s][CODE: %6s][CompanyName: %18s][City: %16s][Rating: %3d][Note: %s]',[
+    Result, fCode.ValueOrDefault, fCompanyName.ValueOrDefault, fCity, fRating.ValueOrDefault, fNote]);
 end;
 
 constructor TOrderDetail.Create;

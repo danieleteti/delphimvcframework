@@ -66,6 +66,7 @@ type
     function SavePerson(const Person: TJsonObject): Integer;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
+    procedure RaiseCustomException;
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
     // invalid parameters modifiers
     procedure InvalidMethod1(var MyVarParam: Integer);
@@ -269,6 +270,11 @@ function TMyObject.PlayWithDatesAndTimes(const aJustAFloat: Double; const aTime:
   const aDateAndTime: TDateTime): TDateTime;
 begin
   Result := aDateAndTime + aDate + aTime + TDateTime(aJustAFloat);
+end;
+
+procedure TMyObject.RaiseCustomException;
+begin
+  raise EMVCJSONRPCError.Create(JSONRPC_USER_ERROR + 1, 'This is an exception message');
 end;
 
 function TMyObject.ReverseString(const aString: string; const aUpperCase: Boolean): string;
