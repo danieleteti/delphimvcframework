@@ -104,6 +104,9 @@ type
     [Category('issues')]
     procedure Test_ISSUE_338;
     [Test]
+    [Category('issues')]
+    procedure Test_ISSUE_492;
+    [Test]
     procedure TestProduceRoutings;
     [Test]
     procedure TestProduceRoutingsWithExplicitCharset;
@@ -529,6 +532,26 @@ begin
     Assert.areEqual('GetProject', FRouter.MethodToCall.Name);
     Assert.areEqual(1, Params.Count);
     Assert.areEqual('projectid', Params['projectid']);
+  finally
+    Params.Free;
+  end;
+end;
+
+procedure TTestRouting.Test_ISSUE_492;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
+begin
+  // https://github.com/danieleteti/delphimvcframework/issues/492
+  Params := TMVCRequestParamsTable.Create;
+  try
+    Params.Clear;
+    Assert.isTrue(FRouter.ExecuteRouting('/issue492/delphi$mvc$framework', httpGET, 'text/plain', 'text/plain',
+      FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
+    Assert.areEqual('GetIssue492', FRouter.MethodToCall.Name);
+    Assert.areEqual(1, Params.Count);
+    Assert.areEqual('delphi$mvc$framework', Params['stringvalue']);
   finally
     Params.Free;
   end;

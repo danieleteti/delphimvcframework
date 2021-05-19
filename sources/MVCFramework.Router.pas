@@ -91,15 +91,15 @@ type
       const aActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>);
     destructor Destroy; override;
     function ExecuteRouting(const ARequestPathInfo: string;
-  const ARequestMethodType: TMVCHTTPMethodType;
-  const ARequestContentType, ARequestAccept: string;
-  const AControllers: TObjectList<TMVCControllerDelegate>;
-  const ADefaultContentType: string;
-  const ADefaultContentCharset: string;
-  const APathPrefix: string;
-  var ARequestParams: TMVCRequestParamsTable;
-  out AResponseContentMediaType: string;
-  out AResponseContentCharset: string): Boolean;
+      const ARequestMethodType: TMVCHTTPMethodType;
+      const ARequestContentType, ARequestAccept: string;
+      const AControllers: TObjectList<TMVCControllerDelegate>;
+      const ADefaultContentType: string;
+      const ADefaultContentCharset: string;
+      const APathPrefix: string;
+      var ARequestParams: TMVCRequestParamsTable;
+      out AResponseContentMediaType: string;
+      out AResponseContentCharset: string): Boolean;
     function GetQualifiedActionName: string; override;
 
     property MethodToCall: TRttiMethod read FMethodToCall;
@@ -110,7 +110,8 @@ type
 implementation
 
 uses
-  System.TypInfo;
+  System.TypInfo,
+  System.NetEncoding;
 
 { TMVCRouter }
 
@@ -179,7 +180,7 @@ begin
       LRequestPathInfo := '/' + LRequestPathInfo;
     end;
   end;
-  LRequestPathInfo := TIdURI.PathEncode(LRequestPathInfo);
+  LRequestPathInfo := TNetEncoding.URL.EncodePath(LRequestPathInfo, [Ord('$')]);
 
   TMonitor.Enter(gLock);
   try
