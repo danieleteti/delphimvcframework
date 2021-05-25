@@ -6212,7 +6212,7 @@ begin
     Inc(P);
     while P < EndP do
     begin
-      Result := Result * 10 + (P^ - Byte(Ord('0')));
+      Result := Result * 10 + Byte(P^ - Byte(Ord('0')));
       Inc(P);
     end;
   end;
@@ -6739,7 +6739,7 @@ begin
     Inc(P);
     while P < EndP do
     begin
-      Result := Result * 10 + (Ord(P^) - Ord('0'));
+      Result := Result * 10 + Byte((Ord(P^) - Ord('0')));
       Inc(P);
     end;
   end;

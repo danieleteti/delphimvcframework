@@ -54,10 +54,10 @@ type
     function GetNameAs(const AOwner: TComponent; const AComponentName: string; const ADefaultValue: string): string;
     function IsIgnoredAttribute(const AAttributes: TMVCIgnoredList; const AName: string): Boolean;
     function IsIgnoredComponent(const AOwner: TComponent; const AComponentName: string): Boolean;
-    function GetObjectTypeOfGenericList(const ATypeInfo: PTypeInfo): TClass;
   public
     function GetTypeSerializers: TDictionary<PTypeInfo, IMVCTypeSerializer>;
     procedure RegisterTypeSerializer(const ATypeInfo: PTypeInfo; AInstance: IMVCTypeSerializer);
+    function GetObjectTypeOfGenericList(const ATypeInfo: PTypeInfo): TClass;
     constructor Create(const Config: TMVCConfig); overload;
     constructor Create; overload;
     destructor Destroy; override;
@@ -219,6 +219,10 @@ var
   lValue: TValue;
   lFound: Boolean;
 begin
+  if AObject = nil then
+  begin
+    Exit(ADefaultValue);
+  end;
   lSerializationTypeCacheKey := AObject.QualifiedClassName + '::sertype';
   if TMVCCacheSingleton.Instance.Contains(lSerializationTypeCacheKey, lValue) then
   begin

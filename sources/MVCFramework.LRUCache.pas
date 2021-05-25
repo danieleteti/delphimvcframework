@@ -33,8 +33,7 @@ type
   TMVCLRUCacheAction = reference to function(const Key: string): Boolean;
 
   TMVCLRUCache<T: class> = class
-  private
-    type
+  private type
     TMVCLRUCacheItem = class
     public
       Key: string;
@@ -46,10 +45,8 @@ type
     fCache: TObjectList<TMVCLRUCacheItem>;
     fCapacity: Integer;
   public
-    constructor Create(const Capacity: Integer);
-      virtual;
-    destructor Destroy;
-      override;
+    constructor Create(const Capacity: Integer); virtual;
+    destructor Destroy; override;
     function Contains(const Key: string; out ItemIndex: UInt64): Boolean;
     procedure Put(const Key: string; const Item: T);
     function TryGet(const Key: string; out Item: T): Boolean;
@@ -112,11 +109,16 @@ end;
 
 procedure TMVCLRUCache<T>.Put(const Key: string; const Item: T);
 begin
-  if fCache.Count = fCapacity then
-  begin
-    fCache.Delete(fCache.Count - 1);
+  Lock;
+  try
+    if fCache.Count = fCapacity then
+    begin
+	    fCache.Delete(fCache.Count - 1);
+    end;
+    fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
+  finally
+    UnLock;
   end;
-  fCache.Insert(0, TMVCLRUCacheItem.Create(Key, Item));
 end;
 
 procedure TMVCLRUCache<T>.RemoveIf(const Action: TMVCLRUCacheAction);
@@ -146,18 +148,25 @@ var
   lItemIndex: UInt64;
   lCacheItem: TMVCLRUCacheItem;
 begin
-  Result := contains(Key, lItemIndex);
+  Result := Contains(Key, lItemIndex);
   if Result { and (lItemIndex <> 0) } then
   begin
-    if lItemIndex = 0 then
+    if lItemIndex > 0 then
     begin
-      lCacheItem := fCache[0];
-    end
-    else
-    begin
-      lCacheItem := fCache.Extract(fCache[lItemIndex]);
-      fCache.Insert(0, lCacheItem);
+      fCache.Exchange(lItemIndex, 0);
     end;
+    //
+    //
+    // if lItemIndex = 0 then
+    // begin
+    // lCacheItem := fCache[0];
+    // end
+    // else
+    // begin
+    // lCacheItem := fCache.Extract(fCache[lItemIndex]);
+    // fCache.Insert(0, lCacheItem);
+    // end;
+    lCacheItem := fCache[0];
     Item := lCacheItem.Value;
   end;
 end;
@@ -169,8 +178,7 @@ end;
 
 { TMVCLRUCache<T>.TMVCLRUCacheItem<T> }
 
-constructor TMVCLRUCache<T>.TMVCLRUCacheItem.Create(const Key: string;
-  const Item: T);
+constructor TMVCLRUCache<T>.TMVCLRUCacheItem.Create(const Key: string; const Item: T);
 begin
   inherited Create;
   Self.Key := Key;

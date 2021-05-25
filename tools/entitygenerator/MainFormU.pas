@@ -49,9 +49,11 @@ uses
   FireDAC.Phys.IB,
   FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteDef,
-  FireDAC.Phys.SQLite, Vcl.DBGrids;
+  FireDAC.Phys.SQLite, Vcl.DBGrids, FireDAC.Phys.SQLiteWrapper.Stat, Vcl.Buttons;
 
 type
+  TSelectionType = (stAll, stNone, stInverse);
+
   TMainForm = class(TForm)
     FDConnection1: TFDConnection;
     Panel1: TPanel;
@@ -93,6 +95,11 @@ type
     btnRefreshCatalog: TButton;
     Label1: TLabel;
     chGenerateMapping: TCheckBox;
+    dsTablesMappingGENERATE: TBooleanField;
+    SpeedButton1: TSpeedButton;
+    SpeedButton2: TSpeedButton;
+    SpeedButton3: TSpeedButton;
+    RadioGroup1: TRadioGroup;
     procedure btnGenEntitiesClick(Sender: TObject);
     procedure btnGetTablesClick(Sender: TObject);
     procedure btnSaveCodeClick(Sender: TObject);
@@ -103,22 +110,30 @@ type
     procedure btnRefreshCatalogClick(Sender: TObject);
     procedure mmConnectionParamsChange(Sender: TObject);
     procedure lstSchemaDblClick(Sender: TObject);
+    procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure DBGrid1CellClick(Column: TColumn);
+    procedure SpeedButton2Click(Sender: TObject);
+    procedure SpeedButton3Click(Sender: TObject);
+    procedure SpeedButton1Click(Sender: TObject);
   private
     fCatalog: string;
     fSchema: string;
     fIntfBuff, fImplBuff, fInitializationBuff: TStringStream;
     FHistoryFileName: string;
     lTypesName: TArray<string>;
+    fBookmark: TArray<Byte>;
     procedure EmitHeaderComments;
     function GetClassName(const aTableName: string): string;
     procedure EmitUnit;
     procedure EmitUnitEnd;
     procedure EmitProperty(F: TField);
     procedure EmitField(F: TField; const IsPK: Boolean);
-    procedure EmitClass(const aTableName, aClassName: string);
+    procedure EmitClass(const aTableName, aClassName, aNameCase: string);
     procedure EmitClassEnd;
     function GetDelphiType(FT: TFieldType): string;
     function GetFieldName(const Value: string): string;
+    procedure DoSelection(const SelectionType: TSelectionType);
   public
     { Public declarations }
   end;
@@ -126,10 +141,13 @@ type
 var
   MainForm: TMainForm;
 
+const
+  LOG_TAG = 'generator';
+
 implementation
 
 uses
-  {Spring.SystemUtils,} System.IOUtils, System.TypInfo;
+  System.IOUtils, System.TypInfo, System.DateUtils, LoggerPro.GlobalLogger;
 
 {$R *.dfm}
 
@@ -146,6 +164,7 @@ var
   lFieldsName: TArray<string>;
   lKeyFields: TStringList;
 begin
+  Log.Info('Starting entities generation', LOG_TAG);
   fIntfBuff.Clear;
   fImplBuff.Clear;
   fInitializationBuff.Clear;
@@ -157,11 +176,25 @@ begin
     I := 0;
     while not dsTablesMapping.Eof do
     begin
+      if not dsTablesMappingGENERATE.Value then
+      begin
+        Log.Info('Skipping table %s', [dsTablesMappingTABLE_NAME.AsString], LOG_TAG);
+        dsTablesMapping.Next;
+        Continue;
+      end;
       lTableName := dsTablesMappingTABLE_NAME.AsString;
+      Log.Info('Generating entity %s for table %s', [dsTablesMappingCLASS_NAME.AsString,
+        dsTablesMappingTABLE_NAME.AsString], LOG_TAG);
       lClassName := dsTablesMappingCLASS_NAME.AsString;
-      EmitClass(lTableName, lClassName);
-      qry.Open('select * from ' + lTableName + ' where 1=0');
-      FDConnection1.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
+      EmitClass(lTableName, lClassName, RadioGroup1.Items[RadioGroup1.ItemIndex]);
+      lKeyFields.Clear;
+      qry.Close;
+      qry.SQL.Text := 'select * from ' + lTableName + ' where 1=0';
+      qry.Open;
+      try
+        FDConnection1.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
+      except
+      end;
       lFieldsName := [];
       lTypesName := [];
       fIntfBuff.WriteString(INDENT + 'private' + sLineBreak);
@@ -185,7 +218,8 @@ begin
       fImplBuff.WriteString('  inherited Create;' + sLineBreak);
       for F := low(lFieldsName) to high(lFieldsName) do
       begin
-        fImplBuff.WriteString('  ' + lFieldsName[F] + ' := ' + lTypesName[F] + '.Create;' + sLineBreak);
+        fImplBuff.WriteString('  ' + lFieldsName[F] + ' := ' + lTypesName[F] + '.Create;' +
+          sLineBreak);
       end;
       fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
 
@@ -208,7 +242,8 @@ begin
       dsTablesMapping.Next;
     end;
     EmitUnitEnd;
-    mmOutput.Lines.Text := fIntfBuff.DataString + fImplBuff.DataString + fInitializationBuff.DataString;
+    mmOutput.Lines.Text := fIntfBuff.DataString + fImplBuff.DataString +
+      fInitializationBuff.DataString;
 
   finally
     lKeyFields.Free;
@@ -248,7 +283,7 @@ begin
     for lTable in lTables do
     begin
       lClassName := GetClassName(lTable);
-      dsTablesMapping.AppendRecord([lTable, lClassName]);
+      dsTablesMapping.AppendRecord([True, lTable, lClassName]);
     end;
     dsTablesMapping.First;
   finally
@@ -286,15 +321,78 @@ begin
   FDConnection1.Params.Text := mmConnectionParams.Text;
 end;
 
-procedure TMainForm.EmitClass(const aTableName, aClassName: string);
+procedure TMainForm.DBGrid1CellClick(Column: TColumn);
 begin
-  fIntfBuff.WriteString(INDENT + '[MVCNameCase(ncLowerCase)]' + sLineBreak);
+  if Column.FieldName = 'GENERATE' then
+  begin
+    if not(dsTablesMapping.State = dsEdit) then
+    begin
+      dsTablesMapping.Edit;
+    end;
+    dsTablesMappingGENERATE.Value := not dsTablesMappingGENERATE.Value;
+    dsTablesMapping.Post;
+  end;
+end;
+
+procedure TMainForm.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+const
+  IsChecked: array [Boolean] of Integer = (DFCS_BUTTONCHECK, DFCS_BUTTONCHECK or DFCS_CHECKED);
+var
+  DrawState: Integer;
+  DrawRect: TRect;
+begin
+  if (Column.Field.FieldName = 'GENERATE') then
+  begin
+    DrawRect := Rect;
+    InflateRect(DrawRect, -1, -1);
+    DrawState := IsChecked[Column.Field.AsBoolean];
+    DBGrid1.Canvas.FillRect(Rect);
+    DrawFrameControl(DBGrid1.Canvas.Handle, DrawRect,
+      DFC_BUTTON, DrawState);
+  end
+  else
+  begin
+    DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, State);
+  end;
+end;
+
+procedure TMainForm.DoSelection(const SelectionType: TSelectionType);
+begin
+  dsTablesMapping.DisableControls;
+  try
+    fBookmark := dsTablesMapping.GetBookmark;
+    dsTablesMapping.First;
+    while not dsTablesMapping.Eof do
+    begin
+      dsTablesMapping.Edit;
+      case SelectionType of
+        stAll:
+          dsTablesMappingGENERATE.Value := True;
+        stNone:
+          dsTablesMappingGENERATE.Value := False;
+        stInverse:
+          dsTablesMappingGENERATE.Value := not dsTablesMappingGENERATE.Value;
+      end;
+      dsTablesMapping.Post;
+      dsTablesMapping.Next;
+    end;
+    dsTablesMapping.Bookmark := fBookmark;
+  finally
+    dsTablesMapping.EnableControls;
+  end;
+end;
+
+procedure TMainForm.EmitClass(const aTableName, aClassName, aNameCase: string);
+begin
+  fIntfBuff.WriteString(INDENT + '[MVCNameCase(nc' + aNameCase + ')]' + sLineBreak);
   fIntfBuff.WriteString(INDENT + Format('[MVCTable(''%s'')]', [aTableName]) + sLineBreak);
   if trim(aClassName) = '' then
     raise Exception.Create('Invalid class name');
   fIntfBuff.WriteString(INDENT + aClassName + ' = class(TMVCActiveRecord)' + sLineBreak);
   if chGenerateMapping.Checked then
-    fInitializationBuff.WriteString(INDENT + Format('ActiveRecordMappingRegistry.AddEntity(''%s'',%s);',
+    fInitializationBuff.WriteString
+      (Format('ActiveRecordMappingRegistry.AddEntity(''%s'', %s);',
       [aTableName.ToLower, aClassName]) + sLineBreak);
 end;
 
@@ -332,30 +430,40 @@ end;
 
 procedure TMainForm.EmitHeaderComments;
 begin
-  fIntfBuff.WriteString('// *************************************************************************** }' +
+  fIntfBuff.WriteString
+    ('// *************************************************************************** }' +
     sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// Delphi MVC Framework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team' + sLineBreak);
+  fIntfBuff.WriteString('// Copyright (c) 2010-' + YearOf(Date).ToString +
+    ' Daniele Teti and the DMVCFramework Team' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// https://github.com/danieleteti/delphimvcframework' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// ***************************************************************************' + sLineBreak);
+  fIntfBuff.WriteString
+    ('// ***************************************************************************' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Licensed under the Apache License, Version 2.0 (the "License");' + sLineBreak);
-  fIntfBuff.WriteString('// you may not use this file except in compliance with the License.' + sLineBreak);
+  fIntfBuff.WriteString('// Licensed under the Apache License, Version 2.0 (the "License");' +
+    sLineBreak);
+  fIntfBuff.WriteString('// you may not use this file except in compliance with the License.' +
+    sLineBreak);
   fIntfBuff.WriteString('// You may obtain a copy of the License at' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
   fIntfBuff.WriteString('// http://www.apache.org/licenses/LICENSE-2.0' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// Unless required by applicable law or agreed to in writing, software' + sLineBreak);
-  fIntfBuff.WriteString('// distributed under the License is distributed on an "AS IS" BASIS,' + sLineBreak);
-  fIntfBuff.WriteString('// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.' + sLineBreak);
-  fIntfBuff.WriteString('// See the License for the specific language governing permissions and' + sLineBreak);
+  fIntfBuff.WriteString('// Unless required by applicable law or agreed to in writing, software' +
+    sLineBreak);
+  fIntfBuff.WriteString('// distributed under the License is distributed on an "AS IS" BASIS,' +
+    sLineBreak);
+  fIntfBuff.WriteString
+    ('// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.' + sLineBreak);
+  fIntfBuff.WriteString('// See the License for the specific language governing permissions and' +
+    sLineBreak);
   fIntfBuff.WriteString('// limitations under the License.' + sLineBreak);
   fIntfBuff.WriteString('//' + sLineBreak);
-  fIntfBuff.WriteString('// ***************************************************************************' + sLineBreak);
+  fIntfBuff.WriteString
+    ('// ***************************************************************************' + sLineBreak);
   fIntfBuff.WriteString(sLineBreak);
 end;
 
@@ -363,12 +471,13 @@ procedure TMainForm.EmitProperty(F: TField);
 var
   lProp: string;
 begin
-  if GetFieldName(F.FieldName).Substring(1).ToLower <> F.FieldName then
-  begin
-    lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
-  end;
+  // if GetFieldName(F.FieldName).Substring(1).ToLower <> F.FieldName then
+  // begin
+  // lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
+  // end;
   lProp := lProp + 'property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' +
-    GetDelphiType(F.DataType) + ' read ' + GetFieldName(F.FieldName) + ' write ' + GetFieldName(F.FieldName) + ';' +
+    GetDelphiType(F.DataType) + ' read ' + GetFieldName(F.FieldName) + ' write ' +
+    GetFieldName(F.FieldName) + ';' +
     sLineBreak;
 
   if GetDelphiType(F.DataType).ToUpper.Contains('UNSUPPORTED TYPE') then
@@ -418,7 +527,8 @@ begin
   fIntfBuff := TStringStream.Create;
   fImplBuff := TStringStream.Create;
   fInitializationBuff := TStringStream.Create;
-  FHistoryFileName := TPath.Combine(TPath.GetDocumentsPath, TPath.GetFileNameWithoutExtension(ParamStr(0)) +
+  FHistoryFileName := TPath.Combine(TPath.GetDocumentsPath,
+    TPath.GetFileNameWithoutExtension(ParamStr(0)) +
     '.history');
   try
     if TFile.Exists(FHistoryFileName) then
@@ -487,6 +597,8 @@ begin
       Result := 'String';
     ftGuid:
       Result := 'TGuid';
+    ftDBaseOle:
+      Result := 'String {ftDBaseOle}';
   else
     Result := '<UNSUPPORTED TYPE: ' + GetEnumName(TypeInfo(TFieldType), Ord(FT)) + '>';
   end;
@@ -528,6 +640,21 @@ begin
   FDConnection1.Close;
   lstSchema.Clear;
   lstCatalog.Clear;
+end;
+
+procedure TMainForm.SpeedButton1Click(Sender: TObject);
+begin
+  DoSelection(stAll);
+end;
+
+procedure TMainForm.SpeedButton2Click(Sender: TObject);
+begin
+  DoSelection(stNone);
+end;
+
+procedure TMainForm.SpeedButton3Click(Sender: TObject);
+begin
+  DoSelection(stInverse);
 end;
 
 end.

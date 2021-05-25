@@ -36,7 +36,9 @@ begin
   lClient := TMVCRESTClient.New.BaseURL('localhost', 8080);
   lClient.SetBasicAuthorization('user1', 'user1');
   lRest := lClient.Get('/admin/role1?par1=daniele');
-  ShowMessage(lRest.Content);
+  ShowMessage(
+    Format('%d %s', [lRest.StatusCode, lRest.StatusText]) + sLineBreak +
+    lRest.Content);
 end;
 
 end.

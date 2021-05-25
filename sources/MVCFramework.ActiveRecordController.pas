@@ -383,7 +383,20 @@ procedure TMVCActiveRecordController.DeleteEntity(const entityname: string; cons
 var
   lAR: TMVCActiveRecord;
   lARClass: TMVCActiveRecordClass;
+  lProcessor: IMVCEntityProcessor;
+  lHandled: Boolean;
 begin
+  lProcessor := nil;
+  if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
+  begin
+    lHandled := False;
+    lProcessor.DeleteEntity(Context, self, entityname, id, lHandled);
+    if lHandled then
+    begin
+      Exit;
+    end;
+  end;
+
   if not ActiveRecordMappingRegistry.FindEntityClassByURLSegment(entityname, lARClass) then
   begin
     raise EMVCException.CreateFmt(http_status.NotFound, 'Cannot find class for entity %s', [entityname]);

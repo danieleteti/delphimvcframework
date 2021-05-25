@@ -29,7 +29,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, MVCFramework.Commons;
 
 { TMVCSalutationMiddleware }
 

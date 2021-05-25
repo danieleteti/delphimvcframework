@@ -6,7 +6,7 @@ unit SynTable;
 (*
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2021 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -25,7 +25,7 @@ unit SynTable;
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2020
+  Portions created by the Initial Developer are Copyright (C) 2021
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -7708,7 +7708,7 @@ lim2: if IdemPropNameU(Prop,'LIMIT') then
         end else
         exit; // incorrect SQL statement
       end else
-      if Prop<>'' then
+      if (Prop<>'') or not(GotoNextNotSpace(P)^ in [#0, ';']) then
         exit else // incorrect SQL statement
         break; // reached the end of the statement
     end;
@@ -11187,7 +11187,7 @@ var s: TStream;
 begin
   if Append and FileExists(aFileName) then begin
     s := TFileStream.Create(aFileName,fmOpenWrite);
-    s.Seek(0,soFromEnd);
+    s.Seek(0,soEnd);
   end else
     s := TFileStream.Create(aFileName,fmCreate);
   Create(s,BufLen);
@@ -11944,7 +11944,7 @@ begin
     end else
       // file bigger than 2 GB: slower but accurate reading from file
       if Data=nil then begin
-        FileSeek(fMap.FileHandle,soFromCurrent,DataLen);
+        FileSeek64(fMap.FileHandle,DataLen,soFromCurrent);
         result := DataLen;
       end else
         result := FileRead(fMap.FileHandle,Data^,DataLen) else

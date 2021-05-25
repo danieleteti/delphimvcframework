@@ -30,6 +30,7 @@ type
     Connection: TFDConnection;
     dsArticles: TFDQuery;
     updArticles: TFDUpdateSQL;
+    procedure ConnectionBeforeConnect(Sender: TObject);
   private
     { Private declarations }
   public
@@ -41,11 +42,41 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
 
-
 uses
   System.IOUtils,
-  MVCFramework.DataSet.Utils,
-  MVCFramework.Commons;
+  MVCFramework.DataSet.Utils;
+
+procedure TdmMain.ConnectionBeforeConnect(Sender: TObject);
+var
+  I: Integer;
+  lPath: string;
+begin
+  {
+    This code is just a demo. It looks for a db file doing up to 6 attempts.
+    I need this becouse this unit is used by many samples and these samples are
+    compiled at different level in the samples folders tree.
+    In a real word system you should (!!) know where your database is :-)
+  }
+  lPath := 'data\ORDERSMANAGER_FB30.FDB';
+  for I := 1 to 6 do
+  begin
+    if TFile.Exists(lPath) then
+    begin
+      Connection.Params.Values['Database'] := TPath.GetFullPath(lPath);
+      // 'C:\DEV\dmvcframework\samples\data\ORDERSMANAGER_FB30.FDB';
+      Break;
+    end
+    else
+    begin
+      lPath := '..\' + lPath;
+    end;
+  end;
+  if not TFile.Exists(lPath) then
+  begin
+    raise Exception.Create('I tried hard, but I cannot find the database');
+  end;
+
+end;
 
 function TdmMain.SearchProducts(const SearchText: string): TDataSet;
 begin

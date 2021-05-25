@@ -8,20 +8,23 @@ uses
   MVCFramework.Commons,
   MVCFramework.Swagger.Commons,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler;
+  MVCFramework.Middleware.Authentication.RoleBasedAuthHandler,
+  MVCFramework.Nullables;
 
 type
 
   [MVCNameCase(ncLowerCase)]
-  TAddress = class
+  TAddress = class(TInterfacedObject)
   private
     FStreet: string;
     FNumber: Integer;
     FCity: string;
+    FPostalCode: NullableString;
   public
     property Street: string read FStreet write FStreet;
     property Number: Integer read FNumber write FNumber;
     property City: string read FCity write FCity;
+    property PostalCode: NullableString read FPostalCode write FPostalCode;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -56,14 +59,14 @@ type
 
     [MVCSwagJsonSchemaField(stInteger, 'code', 'person id', True, False)]
     property Code: Integer read FCode write FCode;
-    [MVCSwagJsonSchemaField('name', 'person name', True, False)]
+    [MVCSwagJsonSchemaField('name', 'person name', True, False, 5, 100)]
     property Name: string read FName write FName;
     [MVCSwagJsonSchemaField('gender', 'person gender', True, False)]
     [MVCEnumSerialization(estEnumName)]
     property Gender: TGender read FGender write FGender;
     [MVCSwagJsonSchemaField('age', 'person age', True, False)]
     property Age: Integer read FAge write FAge;
-    [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False)]
+    [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False, 0, 100)]
     property Country: string read FCountry write FCountry;
     property Address: TAddress read FAddress write FAddress;
     property Phones: TPhones read FPhones write FPhones;

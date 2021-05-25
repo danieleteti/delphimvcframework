@@ -31,6 +31,7 @@ begin
     LParams.Add('User_Name=root');
     LParams.Add('Password=root');
     LParams.Add('TinyIntFormat=Boolean'); { it's the default }
+    LParams.Add('CharacterSet=utf8');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -89,6 +90,7 @@ begin
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=sysdba');
     LParams.Add('Password=masterkey');
+    LParams.Add('CharacterSet=UTF8');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -115,6 +117,7 @@ begin
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=sysdba');
     LParams.Add('Password=masterkey');
+    LParams.Add('CharacterSet=UTF8');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -165,6 +168,7 @@ begin
   try
     lFName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\data\activerecorddb.db');
     LParams.Add('Database=' + lFName);
+    LParams.Add('StringFormat=Unicode');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');

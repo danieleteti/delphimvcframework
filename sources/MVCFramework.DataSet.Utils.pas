@@ -352,7 +352,7 @@ end;
 procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: string;
   FieldNameCase: TMVCNameCase);
 var
-  lSerializer: TMVCJsonDataObjectsSerializer;
+  lSerializer: IMVCSerializer;
 begin
   Self.DisableControls;
   try
@@ -372,18 +372,14 @@ end;
 procedure TDataSetHelper.LoadFromJSONArray(AJSONArray: TJSONArray;
   FieldNameCase: TMVCNameCase);
 var
-  lSerializer: TMVCJsonDataObjectsSerializer;
+  lSerializer: IMVCSerializer;
   lBookmark: TArray<Byte>;
 begin
   lBookmark := Self.Bookmark;
   Self.DisableControls;
   try
     lSerializer := TMVCJsonDataObjectsSerializer.Create;
-    try
-      lSerializer.JsonArrayToDataSet(AJSONArray, Self, nil, FieldNameCase);
-    finally
-      lSerializer.Free;
-    end;
+    TMVCJsonDataObjectsSerializer(lSerializer).JsonArrayToDataSet(AJSONArray, Self, nil, FieldNameCase);
     if Self.BookmarkValid(lBookmark) then
       Self.GotoBookmark(lBookmark);
   finally
@@ -450,15 +446,11 @@ end;
 procedure TDataSetHelper.LoadFromJSONObject(const JSONObject: TJSONObject;
   const AIgnoredFields: TArray<string>; const FieldNameCase: TMVCNameCase);
 var
-  lSerializer: TMVCJsonDataObjectsSerializer;
+  lSerializer: IMVCSerializer;
 begin
   lSerializer := TMVCJsonDataObjectsSerializer.Create;
-  try
-    lSerializer.JsonObjectToDataSet(JSONObject, Self,
+  TMVCJsonDataObjectsSerializer(lSerializer).JsonObjectToDataSet(JSONObject, Self,
       TMVCIgnoredList(AIgnoredFields), FieldNameCase);
-  finally
-    lSerializer.Free;
-  end;
 end;
 
 procedure TDataSetHelper.LoadFromJSONObjectString(const JSONObjectString
@@ -677,11 +669,6 @@ begin
   fDataSet := ADataSet;
   fURI := aURI;
   fPrimaryKeyNAme := aPrimaryKeyName;
-
-  // procedure HookBeforePost(DataSet: TDataSet);
-  // procedure HookBeforeDelete(DataSet: TDataSet);
-  // procedure HookBeforeRefresh(DataSet: TDataSet);
-  // procedure HookAfterOpen(DataSet: TDataSet);
 
   fDataSet.BeforePost := HookBeforePost;
   fDataSet.BeforeDelete := HookBeforeDelete;

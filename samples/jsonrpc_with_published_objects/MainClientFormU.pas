@@ -85,6 +85,7 @@ type
     DBGrid1: TDBGrid;
     btnGetMulti: TButton;
     lbMulti: TListBox;
+    btnException: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -104,6 +105,7 @@ type
     procedure btnGetMultiClick(Sender: TObject);
     procedure btnGetListOfDatasetClick(Sender: TObject);
     procedure btnObjDictClick(Sender: TObject);
+    procedure btnExceptionClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     // FExecutor2: IMVCJSONRPCExecutor;
@@ -123,6 +125,7 @@ uses
   JsonDataObjects,
   MVCFramework.Serializer.Commons,
   MVCFramework.Commons,
+  MVCFramework.Logger,
   MVCFramework.Serializer.Defaults,
   MVCFramework.DataSet.Utils,
   BusinessObjectsU,
@@ -130,7 +133,6 @@ uses
   System.Rtti;
 
 {$R *.dfm}
-
 
 procedure TMainForm.btnAddDayClick(Sender: TObject);
 var
@@ -157,6 +159,16 @@ begin
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage(lResp.Result.AsString);
+end;
+
+procedure TMainForm.btnExceptionClick(Sender: TObject);
+var
+  lReq: IJSONRPCNotification;
+  lResp: IJSONRPCResponse;
+begin
+  ShowMessage('Now will be raised a custom exception on the server. This exception will be catched by the client');
+  lReq := TJSONRPCNotification.Create('RaiseCustomException');
+  FExecutor.ExecuteNotification('/jsonrpc', lReq);
 end;
 
 procedure TMainForm.btnFloatsTestsClick(Sender: TObject);
@@ -226,7 +238,7 @@ begin
   lReq := TJSONRPCRequest.Create(1234);
   lReq.Method := 'invalidmethod2';
   lReq.Params.Add(1);
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := FExecutor.ExecuteNotification('/jsonrpc', lReq);
   ShowMessage(lResp.Error.ErrMessage);
 end;
 
@@ -423,7 +435,7 @@ var
 begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getmulti');
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcGET);
 
   lMultiDS := TMultiDataset.Create;
   try
@@ -461,7 +473,7 @@ begin
   FDMemTable1.Active := False;
   lReq := TJSONRPCRequest.Create(Random(1000), 'getcustomers');
   lReq.Params.AddByName('FilterString', edtFilter.Text);
-  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq, jrpcGET);
   FDMemTable1.Active := True;
   FDMemTable1.LoadFromTValue(lResp.Result);
   FDMemTable1.First;
@@ -470,10 +482,29 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FExecutor := TMVCJSONRPCExecutor.Create('http://localhost:8080');
-  /// jsonrpc');
-  // FExecutor2 := TMVCJSONRPCExecutor.Create('http://localhost:8080/rpcdatamodule');
-  dtNextMonday.Date := Date;
 
+  FExecutor.SetOnSendCommand(
+    procedure(JSONRPCObject: IJSONRPCObject)
+    begin
+      Log.Debug('REQUEST : ' + JSONRPCObject.ToString(True), 'jsonrpc');
+    end);
+
+  FExecutor.SetOnReceiveResponse(
+    procedure(Req, Resp: IJSONRPCObject)
+    begin
+      Log.Debug('>> OnReceiveResponse // start', 'jsonrpc');
+      Log.Debug('     REQUEST : ' + Req.ToString(True), 'jsonrpc');
+      Log.Debug('     RESPONSE: ' + Resp.ToString(True), 'jsonrpc');
+      Log.Debug('<< OnReceiveResponse // end', 'jsonrpc');
+    end);
+
+  FExecutor.SetOnReceiveHTTPResponse(
+    procedure(HTTPResp: IHTTPResponse)
+    begin
+      Log.Debug('RESPONSE: ' + HTTPResp.ContentAsString(), 'jsonrpc');
+    end);
+
+  dtNextMonday.Date := Date;
   // these are the methods to handle http headers in JSONRPC
   // the following line and the check on the server is just for demo
   Assert(FExecutor.HTTPHeadersCount = 0);

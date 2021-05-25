@@ -70,7 +70,7 @@ type
 implementation
 
 uses
-  JsonDataObjects;
+  JsonDataObjects, MVCFramework.ActiveRecord;
 
 function MSecToTime(mSec: Int64): string;
 const
@@ -141,6 +141,12 @@ begin
       for LController in Engine.Controllers do
       begin
         lControllerClassName := LController.Clazz.QualifiedClassName;
+        if lControllerClassName.EndsWith('TMVCActiveRecordController') then
+        begin
+          LJoResp.O[lControllerClassName].S['description'] := 'Automatic CRUD API for entities: ' +
+            String.Join(',', ActiveRecordMappingRegistry.GetEntities);
+        end;
+
         LRttiType := LRttiCtx.GetType(LController.Clazz) as TRttiInstanceType;
         for LAttribute in LRttiType.GetAttributes do
         begin
@@ -148,6 +154,11 @@ begin
             LJoResp.O[lControllerClassName].S['resource_path'] := MVCPathAttribute(LAttribute).Path;
           if LAttribute is MVCDocAttribute then
             LJoResp.O[lControllerClassName].S['description'] := MVCDocAttribute(LAttribute).Value;
+        end;
+
+        if not LController.URLSegment.IsEmpty then
+        begin
+          LJoResp.O[lControllerClassName].S['resource_path'] := LController.URLSegment;
         end;
 
         LJaMethods := LJoResp.O[lControllerClassName].A['actions']; // TJSONArray.Create;

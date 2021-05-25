@@ -32,7 +32,7 @@ unit DMVC.Expert.CodeGen.Templates;
 
 interface
 
-{$I dmvcframework.inc}
+{$I ..\sources\dmvcframework.inc}
 
 resourcestring
 
@@ -110,8 +110,6 @@ resourcestring
     '    { more info about ListenQueue' + sLineBreak +
     '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
-	'    {required if you use JWT middleware }' + sLineBreak +
-    '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     sLineBreak +
     '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
     '    repeat' + sLineBreak +

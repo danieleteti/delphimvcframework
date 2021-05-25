@@ -33,7 +33,8 @@ uses
   System.Classes,
   System.Rtti,
   System.Generics.Collections,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, 
+  MVCFramework.Commons;
 
 type
 
@@ -387,6 +388,15 @@ type
     property Items2: TObjectList<T2> read FItems2 write FItems2;
   end;
 
+  TEntityWithStringDictionary = class
+  private
+    FDict: TMVCStringDictionary;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Dict: TMVCStringDictionary read FDict write FDict;
+  end;
+
 
 implementation
 
@@ -554,5 +564,18 @@ begin
   inherited Destroy;
 end;
 
+
+{ TEntityWithStringDictionary }
+
+constructor TEntityWithStringDictionary.Create;
+begin
+  FDict := TMVCStringDictionary.Create;
+end;
+
+destructor TEntityWithStringDictionary.Destroy;
+begin
+  FDict.Free;
+  inherited;
+end;
 
 end.

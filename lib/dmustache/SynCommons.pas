@@ -6,7 +6,7 @@ unit SynCommons;
 (*
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2020 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2021 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -25,7 +25,7 @@ unit SynCommons;
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2020
+  Portions created by the Initial Developer are Copyright (C) 2021
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -3112,9 +3112,9 @@ function TrimLeft(const S: RawUTF8): RawUTF8;
 // newline, space, and tab characters
 function TrimRight(const S: RawUTF8): RawUTF8;
 
-// single-allocation (therefore faster) alternative to Trim(copy())
+/// single-allocation (therefore faster) alternative to Trim(copy())
 procedure TrimCopy(const S: RawUTF8; start,count: PtrInt;
-  out result: RawUTF8);
+  var result: RawUTF8);
 
 /// fast WinAnsi comparison using the NormToUpper[] array for all 8 bits values
 function AnsiIComp(Str1, Str2: pointer): PtrInt;
@@ -3929,8 +3929,9 @@ procedure RaiseLastOSError;
 procedure VarCastError;
 {$endif}
 
-/// extract file name, without its extension
-// - may optionally return the associated extension, as '.ext'
+/// compute the file name, including its path if supplied, but without its extension
+// - e.g. GetFileNameWithoutExt('/var/toto.ext') = '/var/toto'
+// - may optionally return the extracted extension, as '.ext'
 function GetFileNameWithoutExt(const FileName: TFileName;
   Extension: PFileName=nil): TFileName;
 
@@ -9823,7 +9824,7 @@ type
 
   /// abstract low-level parent class for generic compression/decompression algorithms
   // - will encapsulate the compression algorithm with crc32c hashing
-  // - all Algo* abtract methods should be overriden by inherited classes
+  // - all Algo* abstract methods should be overriden by inherited classes
   TAlgoCompress = class(TSynPersistent)
   public
     /// should return a genuine byte identifier
@@ -10633,9 +10634,10 @@ function JSONRetrieveStringField(P: PUTF8Char; out Field: PUTF8Char;
 /// efficient JSON field in-place decoding, within a UTF-8 encoded buffer
 // - this function decodes in the P^ buffer memory itself (no memory allocation
 // or copy), for faster process - so take care that P^ is not shared
-// - PDest points to the next field to be decoded, or nil when end is reached
+// - PDest points to the next field to be decoded, or nil on JSON parsing error
 // - EndOfObject (if not nil) is set to the JSON value char (',' ':' or '}' e.g.)
 // - optional wasString is set to true if the JSON value was a JSON "string"
+// - returns a PUTF8Char to the decoded value, with its optional length in Len^
 // - '"strings"' are decoded as 'strings', with wasString=true, properly JSON
 // unescaped (e.g. any \u0123 pattern would be converted into UTF-8 content)
 // - null is decoded as nil, with wasString=false
@@ -12058,9 +12060,7 @@ procedure FillZero(var secret: RawUTF8); overload;
   {$ifdef FPC}inline;{$endif}
 
 /// fill all bytes of a memory buffer with zero
-// - is expected to be used with a constant count from SizeOf() so that
-// inlining make it more efficient than FillCharFast(..,...,0):
-// ! FillZero(variable,SizeOf(variable));
+// - just redirect to FillCharFast(..,...,0)
 procedure FillZero(var dest; count: PtrInt); overload;
   {$ifdef HASINLINE}inline;{$endif}
 
@@ -12444,8 +12444,8 @@ type
   // - FPC's TSystemTime in datih.inc does NOT match Windows TSystemTime fields!
   // - also used to store a Date/Time in TSynTimeZone internal structures, or
   // for fast conversion from TDateTime to its ready-to-display members
-  // - DayOfWeek field is not handled by most methods by default, but could be
-  // filled on demand via ComputeDayOfWeek
+  // - DayOfWeek field is not handled by most methods by default (left as 0),
+  // but could be filled on demand via ComputeDayOfWeek into its 1..7 value
   // - some Delphi revisions have trouble with "object" as own method parameters
   // (e.g. IsEqual) so we force to use "record" type if possible
   {$ifdef USERECORDWITHMETHODS}TSynSystemTime = record{$else}
@@ -13800,6 +13800,7 @@ function IsRowIDShort(const FieldName: shortstring): boolean;
 
 /// retrieve the next SQL-like identifier within the UTF-8 buffer
 // - will also trim any space (or line feeds) and trailing ';'
+// - any comment like '/*nocache*/' will be ignored
 // - returns true if something was set to Prop
 function GetNextFieldProp(var P: PUTF8Char; var Prop: RawUTF8): boolean;
 
@@ -16333,6 +16334,9 @@ type
   end;
 
   /// simple reference-counted storage for local objects
+  // - WARNING: both FPC and Delphi 10.4+ don't keep the IAutoFree instance
+  // up to the end-of-method -> you should not use TAutoFree for new projects
+  // :( - see https://quality.embarcadero.com/browse/RSP-30050
   // - be aware that it won't implement a full ARC memory model, but may be
   // just used to avoid writing some try ... finally blocks on local variables
   // - use with caution, only on well defined local scope
@@ -16366,6 +16370,8 @@ type
     // !end; // here myVar will be released
     // - warning: under FPC, you should assign the result of this method to a local
     // IAutoFree variable - see bug http://bugs.freepascal.org/view.php?id=26602
+    // - Delphi 10.4 also did change it and release the IAutoFree before the
+    // end of the current method, so you should better use a local variable
     class function One(var localVariable; obj: TObject): IAutoFree;
     /// protect several local TObject variable instances life time
     // - specified as localVariable/objectInstance pairs
@@ -16379,6 +16385,8 @@ type
     // !end; // here var1 and var2 will be released
     // - warning: under FPC, you should assign the result of this method to a local
     // IAutoFree variable - see bug http://bugs.freepascal.org/view.php?id=26602
+    // - Delphi 10.4 also did change it and release the IAutoFree before the
+    // end of the current method, so you should better use a local variable
      class function Several(const varObjPairs: array of pointer): IAutoFree;
     /// protect another TObject variable to an existing IAutoFree instance life time
     // - you may write:
@@ -16603,6 +16611,8 @@ type
     procedure Clear;
     /// save the stored values as UTF-8 encoded JSON Object
     function ToJSON(HumanReadable: boolean=false): RawUTF8;
+    /// low-level access to the associated thread-safe mutex
+    function Lock: TAutoLocker;
     /// the document fields would be safely accessed via this property
     // - this is the main entry point of this storage
     // - will raise an EDocVariant exception if Name does not exist at reading
@@ -16667,6 +16677,8 @@ type
     /// save the stored value as UTF-8 encoded JSON Object
     // - implemented as just a wrapper around VariantSaveJSON()
     function ToJSON(HumanReadable: boolean=false): RawUTF8;
+    /// low-level access to the associated thread-safe mutex
+    function Lock: TAutoLocker;
     /// the document fields would be safely accessed via this property
     // - will raise an EDocVariant exception if Name does not exist
     // - result variant is returned as a copy, not as varByRef, since a copy
@@ -20004,8 +20016,6 @@ begin
   UniqueText(aResult);
 end;
 
-{$ifndef NOVARIANTS}
-
 procedure ClearVariantForString(var Value: variant); {$ifdef HASINLINE} inline; {$endif}
 var v: TVarData absolute Value;
 begin
@@ -20018,6 +20028,8 @@ begin
       v.VString := nil; // to avoid GPF when assign a RawByteString
     end;
 end;
+
+{$ifndef NOVARIANTS}
 
 procedure TRawUTF8Interning.UniqueVariant(var aResult: variant; const aText: RawUTF8);
 begin
@@ -23535,7 +23547,7 @@ var from: PUTF8Char;
 begin
   if P<>nil then begin
     P := SQLBegin(P);
-    case IdemPCharArray(P, ['SELECT','EXPLAIN ','VACUUM','PRAGMA','WITH']) of
+    case IdemPCharArray(P, ['SELECT','EXPLAIN ','VACUUM','PRAGMA','WITH','EXECUTE']) of
     0: if P[6]<=' ' then begin
          if SelectClause<>nil then begin
            inc(P,7);
@@ -23551,6 +23563,10 @@ begin
     2,3: result := P[6] in [#0..' ',';'];
     4:   result := (P[4]<=' ') and not (StrPosI('INSERT',P+5)<>nil) or
            (StrPosI('UPDATE',P+5)<>nil) or (StrPosI('DELETE',P+5)<>nil);
+    5: begin // FireBird specific
+        P := GotoNextNotSpace(P+7);
+        result := IdemPChar(P,'BLOCK') and IdemPChar(GotoNextNotSpace(P+5),'RETURNS');
+      end
     else result := false;
     end;
   end else
@@ -29325,27 +29341,30 @@ begin
   FastSetString(result,pointer(S),i);
 end;
 
-procedure TrimCopy(const S: RawUTF8; start,count: PtrInt;
-  out result: RawUTF8);
+procedure TrimCopy(const S: RawUTF8; start, count: PtrInt;
+  var result: RawUTF8);
 var L: PtrInt;
 begin
-  if count<=0 then
-    exit;
-  if start<=0 then
-    start := 1;
-  L := Length(S);
-  while (start<=L) and (S[start]<=' ') do begin
-    inc(start); dec(count); end;
-  dec(start);
-  dec(L,start);
-  if count<L then
-    L := count;
-  while L>0 do
-    if S[start+L]<=' ' then
-      dec(L) else
-      break;
-  if L>0 then
-    FastSetString(result,@PByteArray(S)[start],L);
+  if count>0 then begin
+    if start<=0 then
+      start := 1;
+    L := Length(S);
+    while (start<=L) and (S[start]<=' ') do begin
+      inc(start); dec(count); end;
+    dec(start);
+    dec(L,start);
+    if count<L then
+      L := count;
+    while L>0 do
+      if S[start+L]<=' ' then
+        dec(L) else
+        break;
+    if L>0 then begin
+      FastSetString(result,@PByteArray(S)[start],L);
+      exit;
+    end;
+  end;
+  result := '';
 end;
 
 type
@@ -49909,7 +49928,7 @@ end;
 procedure TDynArray.LoadFromStream(Stream: TCustomMemoryStream);
 var P: PAnsiChar;
 begin
-  P := PAnsiChar(Stream.Memory)+Stream.Seek(0,soFromCurrent);
+  P := PAnsiChar(Stream.Memory)+Stream.Seek(0,soCurrent);
   Stream.Seek(LoadFrom(P,nil,false,PAnsiChar(Stream.Memory)+Stream.Size)-P,soCurrent);
 end;
 
@@ -50255,7 +50274,7 @@ begin // code below must match TTextWriter.AddDynArrayJSON()
     end;
     exit;
   end;
-  inc(P);
+  repeat inc(P) until not(P^ in [#1..' ']);
   n := JSONArrayCount(P);
   if n<0 then
     exit; // invalid array content
@@ -53986,8 +54005,12 @@ begin
 end;
 
 procedure TTextWriter.Add(Value: boolean);
+var PS: PShortString;
 begin
-  AddShort(BOOL_STR[Value]);
+  if Value then // normalize: boolean may not be in the expected [0,1] range
+    PS := @BOOL_STR[true] else
+    PS := @BOOL_STR[false];
+  AddShort(PS^);
 end;
 
 procedure TTextWriter.AddFloatStr(P: PUTF8Char);
@@ -56237,7 +56260,7 @@ begin
     end;
   if aStream<>nil then begin
     fStream := aStream;
-    fInitialStreamPosition := fStream.Seek(0,soFromCurrent);
+    fInitialStreamPosition := fStream.Seek(0,soCurrent);
     fTotalFileSize := fInitialStreamPosition;
   end;
 end;
@@ -56785,7 +56808,9 @@ label slash,num,lit;
 begin // see http://www.ietf.org/rfc/rfc4627.txt
   if wasString<>nil then
     wasString^ := false; // not a string by default
-  PDest := nil; // PDest=nil indicates error or unexpected end (#0)
+  if Len<>nil then
+    Len^ := 0; // avoid buffer overflow on parsing error
+  PDest := nil; // PDest=nil indicates parsing error (e.g. unexpected #0 end)
   result := nil;
   if P=nil then exit;
   if P^<=' ' then repeat inc(P); if P^=#0 then exit; until P^>' ';
@@ -57842,6 +57867,34 @@ begin
   end;
 end;
 
+function TryRemoveComment(P: PUTF8Char): PUTF8Char; {$ifdef HASINLINE}inline;{$endif}
+begin
+  result := P + 1;
+  case result^ of
+   '/': begin // this is // comment - replace by ' '
+     dec(result);
+     repeat
+       result^ := ' ';
+       inc(result)
+     until result^ in [#0, #10, #13];
+     if result^<>#0 then inc(result);
+   end;
+   '*': begin // this is /* comment - replace by ' ' but keep CRLF
+     result[-1] := ' ';
+     repeat
+       if not(result^ in [#10, #13]) then
+         result^ := ' '; // keep CRLF for correct line numbering (e.g. for error)
+       inc(result);
+       if PWord(result)^=ord('*')+ord('/')shl 8 then begin
+         PWord(result)^ := $2020;
+         inc(result,2);
+         break;
+       end;
+     until result^=#0;
+   end;
+  end;
+end;
+
 procedure RemoveCommentsFromJSON(P: PUTF8Char);
 var PComma: PUTF8Char;
 begin // replace comments by ' ' characters which will be ignored by parser
@@ -57851,40 +57904,18 @@ begin // replace comments by ' ' characters which will be ignored by parser
       '"': begin
         P := GotoEndOfJSONString(P);
         if P^<>'"' then
-          exit;
-        inc(P);
+          exit else
+          Inc(P);
       end;
-      '/': begin
-         inc(P);
-         case P^ of
-           '/': begin // this is // comment - replace by ' '
-             dec(P);
-             repeat
-               P^ := ' ';
-               inc(P)
-             until P^ in [#0,#10,#13];
-             if P^<>#0 then Inc(P);
-           end;
-           '*': begin // this is /* comment - replace by ' ' but keep CRLF
-             P[-1] := ' ';
-             repeat
-               if not(P^ in [#10, #13]) then
-                 P^ := ' '; // keep CRLF for correct line numbering (e.g. for error)
-               inc(P);
-               if PWord(P)^=ord('*')+ord('/')shl 8 then begin
-                 PWord(P)^ := $2020;
-                 inc(P,2);
-                 break;
-               end;
-             until P^=#0;
-           end;
-         end;
-      end;
+      '/': P := TryRemoveComment(P);
       ',': begin // replace trailing comma by space for strict JSON parsers
         PComma := P;
         repeat inc(P) until (P^>' ') or (P^=#0);
-        if P^ in ['}',']'] then
-          PComma^ := ' ';
+        if P^='/' then
+          P := TryRemoveComment(P);
+        while (P^<=' ') and (P^<>#0) do inc(P);
+        if P^ in ['}', ']'] then
+          PComma^ := ' '; // see https://github.com/synopse/mORMot/pull/349
       end;
     else
       inc(P);
@@ -59030,6 +59061,11 @@ destructor TLockedDocVariant.Destroy;
 begin
   inherited;
   fLock.Free;
+end;
+
+function TLockedDocVariant.Lock: TAutoLocker;
+begin
+  result := fLock;
 end;
 
 function TLockedDocVariant.Exists(const Name: RawUTF8; out Value: Variant): boolean;
@@ -61045,16 +61081,33 @@ begin
        ord('I')+ord('D')shl 8));
 end;
 
+function GotoNextSqlIdentifier(P: PUtf8Char; tab: PTextCharSet): PUtf8Char;
+  {$ifdef HASINLINE} inline; {$endif}
+begin
+  while tcCtrlNot0Comma in tab[P^] do inc(P); // in [#1..' ', ';']
+  if PWord(P)^=ord('/')+ord('*') shl 8 then begin // ignore e.g. '/*nocache*/'
+    repeat
+      inc(P);
+      if PWord(P)^ = ord('*')+ord('/') shl 8 then begin
+        inc(P, 2);
+        break;
+      end;
+    until P^ = #0;
+    while tcCtrlNot0Comma in tab[P^] do inc(P);
+  end;
+  result := P;
+end;
+
 function GetNextFieldProp(var P: PUTF8Char; var Prop: RawUTF8): boolean;
 var B: PUTF8Char;
     tab: PTextCharSet;
 begin
   tab := @TEXT_CHARS;
-  while tcCtrlNot0Comma in tab[P^] do inc(P);
+  P := GotoNextSqlIdentifier(P, tab);
   B := P;
   while tcIdentifier in tab[P^] do inc(P); // go to end of field name
   FastSetString(Prop,B,P-B);
-  while tcCtrlNot0Comma in tab[P^] do inc(P);
+  P := GotoNextSqlIdentifier(P, tab);
   result := Prop<>'';
 end;
 
@@ -61371,7 +61424,7 @@ begin
       exit;
     if Source.InheritsFrom(TCustomMemoryStream) then begin
       S := PAnsiChar(TCustomMemoryStream(Source).Memory)+PtrUInt(sourcePosition);
-      Source.Seek(Head.CompressedSize,soFromCurrent);
+      Source.Seek(Head.CompressedSize,soCurrent);
     end else begin
       if Head.CompressedSize>length(Buf) then
         SetString(Buf,nil,Head.CompressedSize);

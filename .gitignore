@@ -105,4 +105,12 @@ samples/winecellarclient_mobile/Android64/
 samples/middleware_analytics/Win32/
 *.txt
 unittests/general/Several/bin/pgsql/testdatadir/
-*.txvpck
+unittests/general/Several/Win32/Debug/sqlitetest.db
+samples/concurrency_speed_test/bin/01.csv
+samples/concurrency_speed_test/bin/concurrency_speed_test.gpd
+samples/concurrency_speed_test/bin/concurrency_speed_test.gpi
+samples/concurrency_speed_test/bin/concurrency_speed_test.prf
+samples/data/activerecorddb.sql
+samples/data/dump.sql
+samples/activerecord_showcase/activerecord_showcase.delphilsp.json
+unittests/general/TestServer/TestServer.delphilsp.json

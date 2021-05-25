@@ -1,4 +1,4 @@
-unit MainFormU;
+﻿unit MainFormU;
 
 interface
 
@@ -23,7 +23,8 @@ uses
   FireDAC.Stan.Async,
   FireDAC.Phys,
   FireDAC.VCLUI.Wait,
-  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables;
+  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables,
+  MVCFramework.ActiveRecord, System.Generics.Collections;
 
 type
   TMainForm = class(TForm)
@@ -45,6 +46,8 @@ type
     btnReadAndWriteOnly: TButton;
     btnClientGeneratedPK: TButton;
     btnAttributes: TButton;
+    btnJSON_XML_Types: TButton;
+    btnMerge: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -64,6 +67,8 @@ type
     procedure btnReadAndWriteOnlyClick(Sender: TObject);
     procedure btnClientGeneratedPKClick(Sender: TObject);
     procedure btnAttributesClick(Sender: TObject);
+    procedure btnJSON_XML_TypesClick(Sender: TObject);
+    procedure btnMergeClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -78,15 +83,14 @@ implementation
 
 {$R *.dfm}
 
+
 uses
-  MVCFramework.ActiveRecord,
   EntitiesU,
   System.Threading,
-  System.Generics.Collections,
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
-  FDConnectionConfigU, EngineChoiceFormU;
+  FDConnectionConfigU, EngineChoiceFormU, System.Rtti;
 
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
@@ -192,6 +196,7 @@ procedure TMainForm.btnCRUDClick(Sender: TObject);
 var
   lCustomer: TCustomer;
   lID: Integer;
+  lTestNote: string;
 begin
   Log('** Simple CRUD test');
   Log('There are ' + TMVCActiveRecord.Count<TCustomer>().ToString + ' row/s for entity ' +
@@ -201,7 +206,7 @@ begin
     Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
-    lCustomer.Note := 'Hello there!';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην';
     lCustomer.Insert;
     lID := lCustomer.ID;
     Log('Just inserted Customer ' + lID.ToString);
@@ -213,7 +218,8 @@ begin
   try
     Assert(not lCustomer.Code.HasValue);
     lCustomer.Code.Value := '5678';
-    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678';
+    lCustomer.Note := lCustomer.Note + sLineBreak + 'Code changed to 5678 🙂';
+    lTestNote := lCustomer.Note;
     lCustomer.Update;
     Log('Just updated Customer ' + lID.ToString);
   finally
@@ -223,7 +229,17 @@ begin
   lCustomer := TCustomer.Create;
   try
     lCustomer.LoadByPK(lID);
-    lCustomer.Code.Value := '9012';
+    lCustomer.Code.Value := '😉9012🙂';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.LoadByPK(lID);
+    Assert(lCustomer.Code.Value = '😉9012🙂');
+    Assert(lCustomer.Note = lTestNote);
     lCustomer.Update;
   finally
     lCustomer.Free;
@@ -388,6 +404,110 @@ begin
   end;
 end;
 
+procedure TMainForm.btnJSON_XML_TypesClick(Sender: TObject);
+var
+  lCTypes: TComplexTypes;
+  lID: Int64;
+begin
+  TMVCActiveRecord.DeleteAll(TComplexTypes);
+
+  lCTypes := TComplexTypes.Create;
+  try
+    lCTypes.JSON := '{"field_type":"json"}';
+    lCTypes.JSONB := '{"field_type":"jsonb"}';
+    lCTypes.XML := '<field_type>xml</field_type>';
+    lCTypes.Insert;
+    lID := lCTypes.ID;
+  finally
+    lCTypes.Free;
+  end;
+
+  lCTypes := TMVCActiveRecord.GetByPK<TComplexTypes>(lID);
+  try
+    lCTypes.JSON := '{"field_type":"json", "updated": true}';
+    lCTypes.JSONB := '{"field_type":"jsonb", "updated": true}';
+    lCTypes.XML := '<field_type updated="true">xml</field_type>';
+    lCTypes.Update;
+  finally
+    lCTypes.Free;
+  end;
+end;
+
+procedure TMainForm.btnMergeClick(Sender: TObject);
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+  lMultiExecutor: IMVCMultiExecutor<TCustomer>;
+begin
+  Log('** IMVCMultiExecutor demo');
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadCustomers;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
+    try
+      //these 2 customers will be updated
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[0].ID;
+      lCustomer.Code := 'C8765';
+      lCustomer.CompanyName := '(changed) Company1';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 1;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[1].ID;
+      lCustomer.Code := lCustomers[1].Code;
+      lCustomer.CompanyName := '(changed) Company2';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 1;
+
+
+      //these 2 customer will be created
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C9898';
+      lCustomer.CompanyName := '(new) Company3';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 1;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C2343';
+      lCustomer.CompanyName := '(new) Company4';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 1;
+
+      //all the other customers will be deleted
+
+      //calculate the unit-of-work to merge the lists
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False; //set it to true to execute action manually
+          case EntityAction of
+            eaCreate: Log('Inserting Customer : ' + Customer.ToString);
+            eaUpdate: Log('Updating Customer  : ' + Customer.ToString);
+            eaDelete: Log('Deleting Customer  : ' + Customer.ToString);
+          end;
+        end);
+    finally
+      lCustomersChanges.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    Assert(lCustomers.Count = 4, 'Expected 4 customers, got ' + lCustomers.Count.ToString);
+  finally
+    lCustomers.Free;
+  end;
+end;
+
 procedure TMainForm.btnMultiThreadingClick(Sender: TObject);
 var
   lTasks: TArray<ITask>;
@@ -408,7 +528,7 @@ begin
       lConn := TFDConnection.Create(nil);
       try
         lConn.ConnectionDefName := CON_DEF_NAME;
-        ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
+        ActiveRecordConnectionsRegistry.AddDefaultConnection(lConn, True);
         lConn.Params.Text := lConnParams;
         lConn.Open;
         for I := 1 to 30 do
@@ -427,14 +547,15 @@ begin
           end;
         end;
       finally
-        ActiveRecordConnectionsRegistry.RemoveConnection('default');
+        ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
       end;
     end;
 
   lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
+    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+    TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
 
   ShowMessage('Just inserted ' + TMVCActiveRecord.Count(TCustomer,
@@ -868,7 +989,6 @@ begin
     lList.Free;
   end;
 
-
 end;
 
 procedure TMainForm.btnSelectClick(Sender: TObject);
@@ -1069,6 +1189,9 @@ var
   lCustomer: TCustomerWithSpaces;
   lID: Integer;
   I: Integer;
+  cRQL1: string;
+  lList: TMVCActiveRecordList;
+  lItem: TMVCActiveRecord;
 begin
   Log('** Simple CRUD (table and fields with spaces) test');
   Log('There are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString + ' row/s for entity ' +
@@ -1079,7 +1202,8 @@ begin
   begin
     lCustomer := TCustomerWithSpaces.Create;
     try
-      lCustomer.ID := I;
+      lID := I;
+      lCustomer.ID := lID;
       // just for test!!
       case I mod 3 of
         0:
@@ -1092,7 +1216,6 @@ begin
       lCustomer.City := 'Montain View, CA';
       lCustomer.Note := 'Hello there!';
       lCustomer.Insert;
-      lID := lCustomer.ID;
       Log('Just inserted Customer ' + lID.ToString);
     finally
       lCustomer.Free;
@@ -1101,8 +1224,12 @@ begin
 
   Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
     ' row/s for entity ' + TCustomerWithSpaces.ClassName);
-  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,90)');
+  Log('Deleting using RQL...');
+  TMVCActiveRecord.DeleteRQL(TCustomerWithSpaces, 'lt(id,80)');
+  Log('Now there are ' + TMVCActiveRecord.Count<TCustomerWithSpaces>().ToString +
+    ' row/s for entity ' + TCustomerWithSpaces.ClassName);
 
+  // gets the last inserted customer
   lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
   try
     Assert(not lCustomer.Code.HasValue);
@@ -1129,6 +1256,21 @@ begin
     Log('Just deleted Customer ' + lID.ToString);
   finally
     lCustomer.Free;
+  end;
+
+  cRQL1 := 'eq(CompanyName,"Google Inc.")';
+  Log('>> RQL Query (customers with spaces) - ' + cRQL1);
+  lList := TMVCActiveRecord.SelectRQL(TCustomerWithSpaces, cRQL1, 20);
+  try
+    Log(lList.Count.ToString + ' record/s found');
+    for lItem in lList do
+    begin
+      lCustomer := TCustomerWithSpaces(lItem);
+      Log(Format('%5s - %s (%s)', [lCustomer.Code.ValueOrDefault,
+        lCustomer.CompanyName.ValueOrDefault, lCustomer.City]));
+    end;
+  finally
+    lList.Free;
   end;
 end;
 
@@ -1183,7 +1325,12 @@ begin
 {$ELSE}
   Caption := Caption + ' WITHOUT SEQUENCES';
 {$ENDIF}
-  btnWithSpaces.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
+  btnWithSpaces.Enabled := (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'firebird') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'interbase') or
+    (ActiveRecordConnectionsRegistry.GetCurrentBackend = 'sqlite');
+
+  btnJSON_XML_Types.Enabled := ActiveRecordConnectionsRegistry.GetCurrentBackend = 'postgresql';
 end;
 
 procedure TMainForm.LoadCustomers;
@@ -1213,5 +1360,6 @@ begin
   Memo1.Lines.Add(Value);
   Memo1.Update;
 end;
+
 
 end.

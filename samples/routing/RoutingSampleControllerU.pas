@@ -10,14 +10,14 @@ type
   [MVCPath('/')]
   TRoutingSampleController = class(TMVCController)
   public
-    [MVCPath('/')]
+    [MVCPath]
     procedure Index;
 
     { This action requires that the ACCEPT header is text/plain to be invocated }
     [MVCHTTPMethod([httpGet])]
     [MVCPath('/searches/($searchtext)')]
     [MVCProduces('text/plain', 'UTF-8')]
-    procedure SearchCustomers(CTX: TWebContext);
+    procedure SearchCustomers;
 
     { This action requires that the ACCEPT header is application/json to be invocated }
     [MVCHTTPMethod([httpGet])]
@@ -41,12 +41,22 @@ type
     [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
     procedure CreatePerson;
 
+    { To be invocated this action requires that:
+      - the CONTENT-TYPE header is application/json and
+      - that the ACCEPT header is application/json
+    }
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/people2')]
+    [MVCProduces(TMVCMediaType.APPLICATION_JSON)]
+    [MVCConsumes(TMVCMediaType.APPLICATION_JSON)]
+    procedure CreatePerson2;
+
   end;
 
 implementation
 
 uses
-  System.SysUtils, BusinessObjectsU, Data.DBXJSON, System.JSON;
+  System.SysUtils, BusinessObjectsU, JsonDataObjects;
 
 { TRoutingSampleController }
 
@@ -55,16 +65,36 @@ var
   lPerson: TPerson;
 begin
   lPerson := Context.Request.BodyAs<TPerson>;
-  lPerson.Validate;
-  // SavePerson(lPerson);
+  try
+    lPerson.Validate;
+    // SavePerson(lPerson);
+  finally
+    lPerson.Free;
+  end;
   Render(HTTP_STATUS.Created, 'Person created');
+end;
+
+procedure TRoutingSampleController.CreatePerson2;
+var
+  lJPerson: TJSONObject;
+begin
+  lJPerson := StrToJSONObject(Context.Request.Body);
+  try
+    // SavePerson(lJPerson);
+  finally
+    lJPerson.Free;
+  end;
+  Render(HTTP_STATUS.Created, 'Person created JSON');
 end;
 
 procedure TRoutingSampleController.DeletePerson(const id: Integer);
 begin
   { Here you should do something with id }
   // RemovePerson(ID)
-  Render(204 { 'No content' } , 'Person deleted');
+
+  Render(HTTP_STATUS.NoContent { 'No content' } , 'Person deleted');
+
+  // Render204NoContent(); { Using the response shortcut methods }
 end;
 
 procedure TRoutingSampleController.GetPerson(const id: Integer);
@@ -88,25 +118,23 @@ begin
   Render('This is the root path');
 end;
 
-procedure TRoutingSampleController.SearchCustomers(CTX: TWebContext);
+procedure TRoutingSampleController.SearchCustomers;
 var
   search: string;
   Page: Integer;
   orderby: string;
   S: string;
 begin
-  search := CTX.Request.Params['searchtext'];
+  search := Context.Request.Params['searchtext'];
   Page := 1;
-  if CTX.Request.QueryStringParamExists('page') then
-    Page := StrToInt(CTX.Request.QueryStringParam('page'));
+  if Context.Request.QueryStringParamExists('page') then
+    Page := StrToInt(Context.Request.QueryStringParam('page'));
   orderby := '';
-  if CTX.Request.QueryStringParamExists('order') then
-    orderby := CTX.Request.QueryStringParam('order');
-  S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"',
-    [search, Page, orderby]);
-  ResponseStream.AppendLine(S).AppendLine(StringOfChar('*', 30))
-    .AppendLine('1. Daniele Teti').AppendLine('2. John Doe')
-    .AppendLine('3. Mark Rossi').AppendLine('4. Jack Verdi')
+  if Context.Request.QueryStringParamExists('order') then
+    orderby := Context.Request.QueryStringParam('order');
+  S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"', [search, Page, orderby]);
+  ResponseStream.AppendLine(S).AppendLine(StringOfChar('*', 30)).AppendLine('1. Daniele Teti')
+    .AppendLine('2. John Doe').AppendLine('3. Mark Rossi').AppendLine('4. Jack Verdi')
     .AppendLine(StringOfChar('*', 30));
   RenderResponseStream;
 end;

@@ -44,11 +44,13 @@ type
     procedure InternalSetupFixture; virtual;
   public
     [SetupFixture]
-    procedure DoSetupFixture;
+    procedure SetupFixturePG;
     [Teardown]
     procedure Teardown;
     [Test]
     procedure TestCRUD;
+    [Test]
+    procedure TestCRUDWithSpaces;
     [Test]
     procedure TestCRUDWithTableChange;
     [Test]
@@ -94,7 +96,6 @@ type
   end;
 
   [TestFixture]
-  [Category('this')]
   TTestActiveRecordPostgreSQL = class(TTestActiveRecordBase)
   private
     fPGUtil: TPGUtil;
@@ -134,9 +135,10 @@ begin
   { TODO -oDanieleT -cGeneral : Hot to reset a sqlite autoincrement field? }
   // https://sqlite.org/fileformat2.html#seqtab
   // https://stackoverflow.com/questions/5586269/how-can-i-reset-a-autoincrement-sequence-number-in-sqlite/14298431
-  // TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers''');
-  // TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers2''');
-  TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers''');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers2''');
+  TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers with spaces''');
+  //TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
 end;
 
 procedure TTestActiveRecordSQLite.CreatePrivateConnDef(AIsPooled: boolean);
@@ -278,6 +280,71 @@ begin
 
   lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'],
     [ftString], false);
+  Assert.IsNull(lCustomer);
+end;
+
+procedure TTestActiveRecordBase.TestCRUDWithSpaces;
+var
+  lCustomer: TCustomerWithSpaces;
+  lID: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithSpaces>());
+  lCustomer := TCustomerWithSpaces.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
+  try
+    Assert.IsFalse(lCustomer.Code.HasValue);
+    Assert.IsFalse(lCustomer.Rating.HasValue);
+    Assert.IsTrue(lCustomer.CreationTime.HasValue);
+    Assert.IsTrue(lCustomer.CreationDate.HasValue);
+    lCustomer.Code := '1234';
+    lCustomer.Rating := 3;
+    lCustomer.Note := lCustomer.Note + 'noteupdated';
+    lCustomer.CreationTime.Clear;
+    lCustomer.CreationDate.Clear;
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
+  try
+    Assert.AreEqual('1234', lCustomer.Code.Value);
+    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual('note1noteupdated', lCustomer.Note);
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+    Assert.AreEqual(1, lCustomer.ID);
+    Assert.IsFalse(lCustomer.CreationTime.HasValue);
+    Assert.IsFalse(lCustomer.CreationDate.HasValue);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID);
+  try
+    lCustomer.Delete;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID, false);
+  Assert.IsNull(lCustomer);
+
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithSpaces>('"id with spaces" = ?', [lID], [ftInteger], false);
   Assert.IsNull(lCustomer);
 end;
 
@@ -660,11 +727,6 @@ begin
 
 end;
 
-procedure TTestActiveRecordBase.DoSetupFixture;
-begin
-  InternalSetupFixture;
-end;
-
 procedure TTestActiveRecordBase.InternalSetupFixture;
 begin
   // do nothing
@@ -718,6 +780,11 @@ begin
     TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
     TTask.Run(lProc)];
   TTask.WaitForAll(lTasks);
+end;
+
+procedure TTestActiveRecordBase.SetupFixturePG;
+begin
+  InternalSetupFixture;
 end;
 
 procedure TTestActiveRecordSQLite.Setup;

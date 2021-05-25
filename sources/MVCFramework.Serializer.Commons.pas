@@ -69,11 +69,13 @@ type
 
   TMVCIgnoredList = array of string;
 
-  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T; const Links: IMVCLinks);
+  TMVCSerializationAction<T: class> = reference to procedure(const AObject: T;
+    const Links: IMVCLinks);
   TMVCSerializationAction = reference to procedure(const AObject: TObject; const Links: IMVCLinks);
-  TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset; const Links: IMVCLinks);
-  TMVCDataSetFieldSerializationAction = reference to procedure(const AField: TField; const AJsonObject: TJsonObject;
-    var Handled: Boolean);
+  TMVCDataSetSerializationAction = reference to procedure(const ADataSet: TDataset;
+    const Links: IMVCLinks);
+  TMVCDataSetFieldSerializationAction = reference to procedure(const AField: TField;
+    const AJsonObject: TJsonObject; var Handled: Boolean);
 
   MVCValueAsTypeAttribute = class(TCustomAttribute)
   private
@@ -176,9 +178,9 @@ type
     FSerializationType: TMVCEnumSerializationType;
     FMappedValues: TList<string>;
   public
-    constructor Create(const ASerializationType: TMVCEnumSerializationType; const AMappedValues: string = '');
-    destructor Destroy;
-      override;
+    constructor Create(const ASerializationType: TMVCEnumSerializationType;
+      const AMappedValues: string = '');
+    destructor Destroy; override;
     property SerializationType: TMVCEnumSerializationType read FSerializationType;
     property MappedValues: TList<string> read FMappedValues;
   end;
@@ -188,45 +190,34 @@ type
     { private declarations }
   public
     class function ApplyNameCase(const NameCase: TMVCNameCase; const Value: string): string; static;
-    class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string; overload; static;
-    class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject): Boolean; overload; static;
-    class function HasAttribute<T: class>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+    class function GetKeyName(const AField: TRttiField; const AType: TRttiType): string;
       overload; static;
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>; out AAttribute: T)
+    class function GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
+      overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiObject): Boolean; overload; static;
+    class function HasAttribute<T: class>(const AMember: TRttiObject; out AAttribute: T): Boolean;
+      overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>;
+      out AAttribute: T): Boolean; overload; static;
+    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>)
       : Boolean; overload; static;
-    class function AttributeExists<T: TCustomAttribute>(const AAttributes: TArray<TCustomAttribute>): Boolean;
-      overload; static;
 
-    class procedure EncodeStream(AInput, AOutput: TStream);
-      static;
-    class procedure DecodeStream(AInput, AOutput: TStream);
-      static;
-    class function EncodeString(const AInput: string): string;
-      static;
-    class function DecodeString(const AInput: string): string;
-      static;
+    class procedure EncodeStream(AInput, AOutput: TStream); static;
+    class procedure DecodeStream(AInput, AOutput: TStream); static;
+    class function EncodeString(const AInput: string): string; static;
+    class function DecodeString(const AInput: string): string; static;
     class procedure DeSerializeStringStream(AStream: TStream; const ASerializedString: string;
-      const AEncoding: string);
-      static;
-    class procedure DeSerializeBase64StringStream(AStream: TStream; const ABase64SerializedString: string);
-      static;
-    class function GetTypeKindAsString(const ATypeKind: TTypeKind): string;
-      static;
-    class function StringToTypeKind(const AValue: string): TTypeKind;
-      static;
-    class function CreateObject(const AObjectType: TRttiType): TObject;
-      overload;
-      static;
-    class function CreateObject(const AQualifiedClassName: string): TObject;
-      overload;
-      static;
-    class function IsAPropertyToSkip(const aPropName: string): Boolean;
-      static;
+      const AEncoding: string); static;
+    class procedure DeSerializeBase64StringStream(AStream: TStream;
+      const ABase64SerializedString: string); static;
+    class function GetTypeKindAsString(const ATypeKind: TTypeKind): string; static;
+    class function StringToTypeKind(const AValue: string): TTypeKind; static;
+    class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
+    class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
+    class function IsAPropertyToSkip(const aPropName: string): Boolean; static;
   end;
 
-  TMVCLinksCallback = reference to
-    procedure(const Links: TMVCStringDictionary);
+  TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
   IMVCResponseData = interface
     ['{DF69BE0E-3212-4535-8B78-38EEF0F5B656}']
@@ -240,12 +231,8 @@ type
   [MVCNameCase(ncLowerCase)]
   TMVCResponseBase = class abstract(TInterfacedObject, IMVCResponseData)
   protected
-    function GetMetadata: TMVCStringDictionary;
-      virtual;
-      abstract;
-    function GetData: TObject;
-      virtual;
-      abstract;
+    function GetMetadata: TMVCStringDictionary; virtual; abstract;
+    function GetData: TObject; virtual; abstract;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -267,8 +254,7 @@ type
     property Task: TMVCTask read fTask;
     // constructor Create(const aTask: TMVCTask); overload;
     constructor Create(const HREF, ID: string);
-    destructor Destroy;
-      override;
+    destructor Destroy; override;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -279,17 +265,13 @@ type
     fOwns: Boolean;
     fDataSetSerializationType: TMVCDatasetSerializationType;
   protected
-    function GetMetadata: TMVCStringDictionary;
-      override;
-    function GetData: TObject;
-      override;
+    function GetMetadata: TMVCStringDictionary; override;
+    function GetData: TObject; override;
   public
     constructor Create(const AObject: TObject; const AOwns: Boolean = False;
       const ADataSetSerializationType: TMVCDatasetSerializationType = TMVCDatasetSerializationType.
-      dstAllRecords);
-      virtual;
-    destructor Destroy;
-      override;
+      dstAllRecords); virtual;
+    destructor Destroy; override;
     function SerializationType: TMVCDatasetSerializationType;
     [MVCNameAs('items')]
     property Items: TObject read GetData;
@@ -303,20 +285,18 @@ type
 
   TMVCObjectListResponse = class(TMVCResponseData)
   public
-    constructor Create(const AObject: TObject; Owns: Boolean = True);
-      reintroduce;
+    constructor Create(const AObject: TObject; Owns: Boolean = True); reintroduce;
   end;
 
   TMVCObjectResponse = class(TMVCResponseData)
   public
-    constructor Create(const AObject: TObject; Owns: Boolean = True);
-      reintroduce;
+    constructor Create(const AObject: TObject; Owns: Boolean = True); reintroduce;
   end;
 
   IMVCObjectDictionary = interface
     ['{B54F02EE-4B3B-4E55-9E6B-FB6CFE746028}']
-    function Add(const Name: string; const Value: TObject; const SerializationAction: TMVCSerializationAction = nil)
-      : IMVCObjectDictionary; overload;
+    function Add(const Name: string; const Value: TObject;
+      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
       const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
@@ -344,22 +324,20 @@ type
       fDataSetFieldNameCase: TMVCNameCase;
       fDataSetSerializationType: TMVCDatasetSerializationType;
     public
-      constructor Create(
-        const Owns: Boolean;
-        const Data: TObject;
+      constructor Create(const Owns: Boolean; const Data: TObject;
         const SerializationAction: TMVCSerializationAction); overload;
-      constructor Create(
-        const Owns: Boolean;
-        const Data: TDataset;
+      constructor Create(const Owns: Boolean; const Data: TDataset;
         const SerializationAction: TMVCDataSetSerializationAction;
         const DataSetSerializationType: TMVCDatasetSerializationType;
         const NameCase: TMVCNameCase); overload;
       destructor Destroy; override;
       property Data: TObject read fData;
       property SerializationAction: TMVCSerializationAction read fSerializationAction;
-      property DataSetSerializationAction: TMVCDataSetSerializationAction read fDataSetSerializationAction;
+      property DataSetSerializationAction: TMVCDataSetSerializationAction
+        read fDataSetSerializationAction;
       property DataSetFieldNameCase: TMVCNameCase read fDataSetFieldNameCase;
-      property DataSetSerializationType: TMVCDatasetSerializationType read fDataSetSerializationType;
+      property DataSetSerializationType: TMVCDatasetSerializationType
+        read fDataSetSerializationType;
     end;
   strict private
     function GetItem(const Key: string): TMVCObjectDictionaryValueItem;
@@ -369,11 +347,12 @@ type
     fDict: TObjectDictionary<string, TMVCObjectDictionaryValueItem>;
   public
     constructor Create(const OwnsValues: Boolean = True); overload; virtual;
-    constructor Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean = True); overload; virtual;
+    constructor Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean = True);
+      overload; virtual;
     destructor Destroy; override;
     procedure Clear;
-    function Add(const Name: string; const Value: TObject; const SerializationAction: TMVCSerializationAction = nil)
-      : IMVCObjectDictionary; overload;
+    function Add(const Name: string; const Value: TObject;
+      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
       const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
@@ -385,16 +364,33 @@ type
     property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
   end;
 
+var
+  /// <summary>
+  /// Use this variable when you want to convert your local time as UTC or when you receive an UTC ISOTimeStamp and
+  /// do not want to apply the time zone when converting.
+  /// The default value of gLocalTimeStampAsUTC = False.
+  /// </summary>
+  /// <example>
+  /// * For gLocalTimeStampAsUTC = False and timezone: - 03:00
+  /// ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 11:22:17.763
+  /// DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763-03:00
+  ///
+  /// * For gLocalTimeStampAsUTC = True and timezone: - 03:00
+  /// ISOTimeStamp: 2021-01-11T14:22:17.763Z = DateTime: 2021-01-11 14:22:17
+  /// DateTime: 2021-01-11 14:22:17.763 = ISOTimeStamp: 2021-01-11T14:22:17.763Z
+  /// </example>
+  gLocalTimeStampAsUTC: Boolean;
+
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 function DateToISODate(const ADate: TDateTime): string;
 function TimeToISOTime(const ATime: TTime): string;
 
-procedure MapDataSetFieldToRTTIField(const AField: TField; const aRTTIField: TRttiField; const AObject: TObject);
-function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField; const aRTTIField: TRttiField;
-  const AObject: TObject): Boolean;
+procedure MapDataSetFieldToRTTIField(const AField: TField; const aRTTIField: TRttiField;
+  const AObject: TObject);
+function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField;
+  const aRTTIField: TRttiField; const AObject: TObject): Boolean;
 function MapDataSetFieldToNullableRTTIProperty(const AValue: TValue; const AField: TField;
-  const aRTTIProp: TRttiProperty;
-  const AObject: TObject): Boolean;
+  const aRTTIProp: TRttiProperty; const AObject: TObject): Boolean;
 
 /// <summary>
 /// Supports ISO8601 in the following formats:
@@ -413,8 +409,8 @@ function StrDict: TMVCStringDictionary; overload;
 function StrDict(const aKeys: array of string; const aValues: array of string)
   : TMVCStringDictionary; overload;
 function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
-function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32; const DefaultPageSize: UInt32;
-  const URITemplate: string): TMVCStringDictionary;
+function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
+  const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
 procedure RaiseSerializationError(const Msg: string);
 
 implementation
@@ -434,9 +430,8 @@ begin
   Result := TMVCStringDictionary.Create;
 end;
 
-function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32; const DefaultPageSize: UInt32;
-  const URITemplate: string)
-  : TMVCStringDictionary;
+function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
+  const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
 var
   lMetaKeys: array of string;
   lMetaValues: array of string;
@@ -482,9 +477,7 @@ end;
 
 function DateTimeToISOTimeStamp(const ADateTime: TDateTime): string;
 begin
-  // fs.TimeSeparator := ':';
-  Result := DateToISO8601(ADateTime, False)
-  // Result := FormatDateTime('yyyy-mm-dd hh:nn:ss', ADateTime, fs);
+  Result := DateToISO8601(ADateTime, gLocalTimeStampAsUTC);
 end;
 
 function DateToISODate(const ADate: TDateTime): string;
@@ -516,16 +509,9 @@ begin
     lDateTime := lDateTime.Substring(0, 10) + 'T' + lDateTime.Substring(11);
   end;
 
-//  lIsUTC := (lDateTime.Length > 19) and  (lDateTime.EndsWith('Z') or
-//    (
-//      ((lDateTime.Length >= 20) and CharInSet(lDateTime.Chars[19], ['+','-']))
-//      or
-//      ((lDateTime.Length >= 24) and CharInSet(lDateTime.Chars[23], ['+','-']))
-//    )
-//    );
   lIsUTC := lDateTime.Length > 19;
   Result := ISO8601ToDate(lDateTime, True);
-  if lIsUTC then
+  if lIsUTC and (not gLocalTimeStampAsUTC) then
   begin
     Result := TTimeZone.Local.ToLocalTime(Result);
   end;
@@ -533,12 +519,14 @@ end;
 
 function ISODateToDate(const ADate: string): TDate;
 begin
-  Result := EncodeDate(StrToInt(Copy(ADate, 1, 4)), StrToInt(Copy(ADate, 6, 2)), StrToInt(Copy(ADate, 9, 2)));
+  Result := EncodeDate(StrToInt(Copy(ADate, 1, 4)), StrToInt(Copy(ADate, 6, 2)),
+    StrToInt(Copy(ADate, 9, 2)));
 end;
 
 function ISOTimeToTime(const ATime: string): TTime;
 begin
-  Result := EncodeTime(StrToInt(Copy(ATime, 1, 2)), StrToInt(Copy(ATime, 4, 2)), StrToInt(Copy(ATime, 7, 2)), 0);
+  Result := EncodeTime(StrToInt(Copy(ATime, 1, 2)), StrToInt(Copy(ATime, 4, 2)),
+    StrToInt(Copy(ATime, 7, 2)), 0);
 end;
 
 { TMVCSerializerHelper }
@@ -558,8 +546,8 @@ begin
   end;
 end;
 
-class procedure TMVCSerializerHelper.DeSerializeStringStream(AStream: TStream; const ASerializedString: string;
-  const AEncoding: string);
+class procedure TMVCSerializerHelper.DeSerializeStringStream(AStream: TStream;
+  const ASerializedString: string; const AEncoding: string);
 var
   Encoding: TEncoding;
   SS: TStringStream;
@@ -575,7 +563,8 @@ begin
   end;
 end;
 
-class function TMVCSerializerHelper.GetKeyName(const AField: TRttiField; const AType: TRttiType): string;
+class function TMVCSerializerHelper.GetKeyName(const AField: TRttiField;
+  const AType: TRttiType): string;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -654,7 +643,8 @@ begin
   end;
 end;
 
-class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes: TArray<TCustomAttribute>): Boolean;
+class function TMVCSerializerHelper.AttributeExists<T>(const AAttributes
+  : TArray<TCustomAttribute>): Boolean;
 var
   Att: TCustomAttribute;
 begin
@@ -683,7 +673,8 @@ begin
   if Assigned(MetaClass) then
     Result := Method.Invoke(MetaClass, []).AsObject
   else
-    raise EMVCException.CreateFmt('Cannot find a propert constructor for %s', [AObjectType.ToString]);
+    raise EMVCException.CreateFmt('Cannot find a propert constructor for %s',
+      [AObjectType.ToString]);
 end;
 
 class function TMVCSerializerHelper.CreateObject(const AQualifiedClassName: string): TObject;
@@ -700,7 +691,8 @@ begin
     if Assigned(ObjectType) then
       Result := CreateObject(ObjectType)
     else
-      raise Exception.CreateFmt('Cannot find RTTI for %s. Hint: Is the specified classtype linked in the module?',
+      raise Exception.CreateFmt
+        ('Cannot find RTTI for %s. Hint: Is the specified classtype linked in the module?',
         [AQualifiedClassName]);
   finally
     Context.Free;
@@ -755,7 +747,8 @@ begin
 {$ENDIF}
 end;
 
-class function TMVCSerializerHelper.GetKeyName(const AProperty: TRttiProperty; const AType: TRttiType): string;
+class function TMVCSerializerHelper.GetKeyName(const AProperty: TRttiProperty;
+  const AType: TRttiType): string;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -767,10 +760,8 @@ begin
   Attrs := AProperty.GetAttributes;
   for Attr in Attrs do
   begin
-    { TODO -oDaniele -cGeneral : Time this! }
     if Attr is MVCNameAsAttribute then
     begin
-      // Exit(MVCNameAsAttribute(Attr).Name);
       Result := MVCNameAsAttribute(Attr).Name;
       if MVCNameAsAttribute(Attr).Fixed then { if FIXED the attribute NameAs remains untouched }
       begin
@@ -799,7 +790,7 @@ begin
   Result := Result.Remove(0, 2).ToLower;
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiObject): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -813,7 +804,8 @@ begin
       Exit(True);
 end;
 
-class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiNamedObject; out AAttribute: T): Boolean;
+class function TMVCSerializerHelper.HasAttribute<T>(const AMember: TRttiObject;
+  out AAttribute: T): Boolean;
 var
   Attrs: TArray<TCustomAttribute>;
   Attr: TCustomAttribute;
@@ -919,8 +911,8 @@ end;
 
 { MVCEnumSerializationTypeAttribute }
 
-constructor MVCEnumSerializationAttribute.Create(const ASerializationType: TMVCEnumSerializationType;
-  const AMappedValues: string);
+constructor MVCEnumSerializationAttribute.Create(const ASerializationType
+  : TMVCEnumSerializationType; const AMappedValues: string);
 begin
   FMappedValues := TList<string>.Create(TDelegatedComparer<string>.Create(
     function(const Left, Right: string): Integer
@@ -1025,7 +1017,8 @@ begin
   inherited Create(AObject, Owns, dstSingleRecord);
 end;
 
-procedure MapDataSetFieldToRTTIField(const AField: TField; const aRTTIField: TRttiField; const AObject: TObject);
+procedure MapDataSetFieldToRTTIField(const AField: TField; const aRTTIField: TRttiField;
+const AObject: TObject);
 var
   lInternalStream: TStream;
   lSStream: TStringStream;
@@ -1084,7 +1077,7 @@ begin
       begin
         aRTTIField.SetValue(AObject, AField.AsLargeInt);
       end;
-    ftInteger, ftSmallint, ftShortint:
+    ftInteger, ftSmallint, ftShortint, ftByte:
       begin
         aRTTIField.SetValue(AObject, AField.AsInteger);
       end;
@@ -1125,12 +1118,20 @@ begin
         case aRTTIField.FieldType.TypeKind of
           tkString, tkUString:
             begin
-              lSStream := TStringStream.Create('', TEncoding.Unicode);
-              try
-                TBlobField(AField).SaveToStream(lSStream);
-                aRTTIField.SetValue(AObject, lSStream.DataString);
-              finally
-                lSStream.Free;
+              {TODO -oDanieleT -cGeneral : Optimize this code... too complex}
+              if AField.DataType = ftMemo then
+                aRTTIField.SetValue(AObject, TMemoField(AField).AsWideString)
+              else if AField.DataType = ftWideMemo then
+                aRTTIField.SetValue(AObject, TWideMemoField(AField).AsWideString)
+              else
+              begin
+                lSStream := TStringStream.Create('', TEncoding.Unicode);
+                try
+                  TBlobField(AField).SaveToStream(lSStream);
+                  aRTTIField.SetValue(AObject, lSStream.DataString);
+                finally
+                  lSStream.Free;
+                end;
               end;
             end;
           tkFloat: { sqlite - date types stored as text }
@@ -1149,7 +1150,8 @@ begin
               end
               else
               begin
-                raise EMVCDeserializationException.Create('Cannot deserialize field ' + AField.FieldName);
+                raise EMVCDeserializationException.Create('Cannot deserialize field ' +
+                  AField.FieldName);
               end;
             end
         else
@@ -1158,7 +1160,8 @@ begin
             lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
             if lInternalStream = nil then
             begin
-              raise EMVCException.CreateFmt('Property target for %s field is nil', [AField.FieldName]);
+              raise EMVCException.CreateFmt('Property target for %s field is nil',
+                [AField.FieldName]);
             end;
             lInternalStream.Position := 0;
             TBlobField(AField).SaveToStream(lInternalStream);
@@ -1206,13 +1209,26 @@ begin
         aRTTIField.SetValue(AObject, TValue.From<TGUID>(StringToGUID(lFieldValue)));
 {$ENDIF}
       end;
+    ftDBaseOle: // xml
+      begin
+        lSStream := TStringStream.Create('', TEncoding.Unicode);
+        try
+          TBlobField(AField).SaveToStream(lSStream);
+          aRTTIField.SetValue(AObject, lSStream.DataString);
+        finally
+          lSStream.Free;
+        end;
+      end
   else
-    raise EMVCException.CreateFmt('Unsupported FieldType (%d) for field %s', [Ord(AField.DataType), AField.FieldName]);
+    raise EMVCException.CreateFmt('Unsupported FieldType (%d) for field %s',
+      [Ord(AField.DataType), AField.FieldName]);
   end;
 end;
 
-function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField; const aRTTIField: TRttiField;
-const AObject: TObject): Boolean;
+function MapDataSetFieldToNullableRTTIField(const AValue: TValue; const AField: TField;
+const aRTTIField: TRttiField; const AObject: TObject): Boolean;
+var
+  lStr: string;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := False;
@@ -1308,7 +1324,16 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(AField.AsDateTime));
+      if not (AField.DataType in [ftWideMemo]) then
+      begin
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(AField.AsDateTime));
+      end
+      else
+      begin
+        {SQLite case...}
+        lStr := AField.AsWideString;
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDate>(ISODateToDate(lStr)));
+      end;
     end;
     Result := True;
   end
@@ -1320,7 +1345,16 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(AField.AsDateTime));
+      if not (AField.DataType in [ftWideMemo]) then
+      begin
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(AField.AsDateTime));
+      end
+      else
+      begin
+        {SQLite case...}
+        lStr := AField.AsWideString;
+        aRTTIField.SetValue(AObject, TValue.From<NullableTDateTime>(ISOTimeStampToDateTime(lStr)));
+      end;
     end;
     Result := True;
   end
@@ -1332,7 +1366,16 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(AField.AsDateTime));
+      if not (AField.DataType in [ftWideMemo]) then
+      begin
+        aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(AField.AsDateTime));
+      end
+      else
+      begin
+        {SQLite case...}
+        lStr := AField.AsWideString;
+        aRTTIField.SetValue(AObject, TValue.From<NullableTTime>(ISOTimeToTime(lStr)));
+      end;
     end;
     Result := True;
   end
@@ -1399,8 +1442,7 @@ begin
 end;
 
 function MapDataSetFieldToNullableRTTIProperty(const AValue: TValue; const AField: TField;
-const aRTTIProp: TRttiProperty;
-const AObject: TObject): Boolean;
+const aRTTIProp: TRttiProperty; const AObject: TObject): Boolean;
 begin
   Assert(AValue.Kind = tkRecord);
   Result := False;
@@ -1588,22 +1630,21 @@ end;
 
 { TMVCObjectDictionary }
 
-function TMVCObjectDictionary.Add(
-  const Name: string;
-const Value: TObject;
+function TMVCObjectDictionary.Add(const Name: string; const Value: TObject;
 const SerializationAction: TMVCSerializationAction): IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value,
+    SerializationAction));
   Result := Self;
 end;
 
 function TMVCObjectDictionary.Add(const Name: string; const Value: TDataset;
 const SerializationAction: TMVCDataSetSerializationAction;
-const DataSetSerializationType: TMVCDatasetSerializationType;
-const NameCase: TMVCNameCase): IMVCObjectDictionary;
+const DataSetSerializationType: TMVCDatasetSerializationType; const NameCase: TMVCNameCase)
+  : IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value, SerializationAction,
-    DataSetSerializationType, NameCase));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value,
+    SerializationAction, DataSetSerializationType, NameCase));
   Result := Self;
 end;
 
@@ -1622,7 +1663,8 @@ begin
   Result := fDict.Count;
 end;
 
-constructor TMVCObjectDictionary.Create(const aKey: string; const Value: TObject; const OwnsValues: Boolean);
+constructor TMVCObjectDictionary.Create(const aKey: string; const Value: TObject;
+const OwnsValues: Boolean);
 begin
   Create(OwnsValues);
   Add(aKey, Value);
@@ -1651,8 +1693,7 @@ begin
   Result := fDict.Keys.ToArray;
 end;
 
-function TMVCObjectDictionary.TryGetValue(const Name: string;
-out Value: TObject): Boolean;
+function TMVCObjectDictionary.TryGetValue(const Name: string; out Value: TObject): Boolean;
 var
   lItem: TMVCObjectDictionaryValueItem;
 begin
@@ -1663,8 +1704,8 @@ end;
 
 { TMVCObjectDictionary.TMVCObjectDictionaryValueItem }
 
-constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
-  const Owns: Boolean; const Data: TObject; const SerializationAction: TMVCSerializationAction);
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(const Owns: Boolean;
+const Data: TObject; const SerializationAction: TMVCSerializationAction);
 begin
   inherited Create;
   fOwns := Owns;
@@ -1673,11 +1714,9 @@ begin
   fDataSetFieldNameCase := ncAsIs; { not used }
 end;
 
-constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
-  const Owns: Boolean; const Data: TDataset;
-const SerializationAction: TMVCDataSetSerializationAction;
-const DataSetSerializationType: TMVCDatasetSerializationType;
-const NameCase: TMVCNameCase);
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(const Owns: Boolean;
+const Data: TDataset; const SerializationAction: TMVCDataSetSerializationAction;
+const DataSetSerializationType: TMVCDatasetSerializationType; const NameCase: TMVCNameCase);
 begin
   Create(Owns, Data, nil);
   fDataSetFieldNameCase := NameCase;
@@ -1691,5 +1730,9 @@ begin
     fData.Free;
   inherited;
 end;
+
+initialization
+
+gLocalTimeStampAsUTC := False;
 
 end.

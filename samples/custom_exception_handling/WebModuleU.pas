@@ -31,7 +31,7 @@ uses
   MyControllerU,
   MVCFramework.Commons,
   MVCFramework.Middleware.StaticFiles,
-  System.Rtti;
+  System.Rtti, System.IOUtils;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 var
@@ -100,11 +100,6 @@ begin
     end);
   FMVC.AddController(TMyController);
   FMVC.SetExceptionHandler(lExceptionHandler);
-  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    ExtractFilePath(GetModuleName(HInstance)) + '\www', { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
-    ));
 end;
 
 procedure TMyWebModule.WebModuleDestroy(Sender: TObject);

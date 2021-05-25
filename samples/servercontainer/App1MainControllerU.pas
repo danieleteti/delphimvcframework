@@ -17,7 +17,7 @@ type
   public
     [MVCPath('/')]
     [MVCHTTPMethod([httpGET])]
-    procedure Index(ctx: TWebContext);
+    procedure Index;
 
     [MVCPath('/hello')]
     [MVCHTTPMethod([httpGET])]
@@ -35,17 +35,6 @@ type
 implementation
 
 uses
-  //
-  // {$IFDEF SYSTEMJSON}
-  //
-  // System.JSON,
-  //
-  // {$ELSE}
-  //
-  // Data.DBXJSON,
-  //
-  // {$ENDIF}
-  //
   JsonDataObjects,
   MVCFramework.Serializer.JsonDataObjects,
   System.SysUtils;
@@ -69,7 +58,7 @@ begin
     JSON := lSer.ParseObject(Context.Request.Body);
     try
       JSON.S['modified'] := 'from server';
-      Render(JSON);
+      Render(JSON, False);
       Log('Hello world called with POST');
     finally
       JSON.Free;
@@ -79,7 +68,7 @@ begin
   end;
 end;
 
-procedure TApp1MainController.Index(ctx: TWebContext);
+procedure TApp1MainController.Index;
 begin
   Redirect('index.html');
 end;
@@ -91,8 +80,7 @@ var
 begin
   Log('Parameter1=' + Context.Request.Params['par1'].QuotedString);
   Log('Parameter2=' + Context.Request.Params['par2'].QuotedString);
-  R := StrToInt(Context.Request.Params['par1']) /
-    StrToInt(Context.Request.Params['par2']);
+  R := StrToInt(Context.Request.Params['par1']) / StrToInt(Context.Request.Params['par2']);
   lJSON := TJSONObject.Create;
   lJSON.F['result'] := R;
   Render(lJSON);

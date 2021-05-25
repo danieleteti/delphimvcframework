@@ -1177,7 +1177,7 @@ begin
   for lField in fMapping do
   begin
     if lField.InstanceFieldName = lRQLProperty then
-      Exit(lField.DatabaseFieldName);
+      Exit(GetFieldNameForSQL(lField.DatabaseFieldName));
   end;
   { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
   raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
@@ -1186,7 +1186,7 @@ end;
 
 function TRQLCompiler.GetFieldNameForSQL(const FieldName: string): string;
 begin
-  if FieldName.Contains(' ') then
+  if FieldName.Contains(' ') and (FieldName.Chars[0] <> '"') then
   begin
     Result := FieldName.QuotedString('"');
   end

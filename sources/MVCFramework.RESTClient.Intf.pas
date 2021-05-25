@@ -146,6 +146,7 @@ type
     /// </param>
     function AddHeader(const aName, aValue: string): IMVCRESTClient; overload;
     function HeaderValue(const aName: string): string;
+    function Headers: TNameValueArray;
 
     /// <summary>
     /// Clears all headers.
@@ -375,6 +376,15 @@ type
     /// Delete the current dataset record by executing a delete request.
     /// </summary>
     function DataSetDelete(const aResource, aKeyValue: string): IMVCRESTResponse;
+
+    /// <summary>
+    /// Access the RESTClient serializer
+    /// </summary>
+    function Serializer: IMVCSerializer; overload;
+    /// <summary>
+    /// Add a serializer to the RESTClient
+    /// </summary>
+    function Serializer(const aSerializer: IMVCSerializer): IMVCRESTClient; overload;
 
     /// <summary>
     /// Register a custom serializer to the RESTClient serializer.

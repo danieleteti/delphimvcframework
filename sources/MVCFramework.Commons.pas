@@ -313,6 +313,11 @@ type
     /// the commands will also fail with 424 (Failed Dependency).
     /// </summary>
     FailedDependency = 424;
+    /// <summary>
+    /// The 429 (Too Many Requests) status code indicates the user has sent too many requests
+    /// in a given amount of time ("rate limiting").
+    /// </summary>
+    TooManyRequests = 429;
     // Server Error 5xx
     /// <summary>
     /// 500 Internal Server Error
@@ -603,6 +608,14 @@ type
 {$SCOPEDENUMS ON}
   TMVCCompressionType = (ctNone, ctDeflate, ctGZIP);
 
+
+{ GENERIC TYPE ALIASES }
+TMVCListOfString = TList<string>;
+TMVCListOfInteger =  TList<Integer>;
+TMVCListOfBoolean = TList<Boolean>;
+TMVCListOfDouble =  TList<Double>;
+{ GENERIC TYPE ALIASES // END}
+
 function AppPath: string;
 function IsReservedOrPrivateIP(const AIP: string): Boolean; inline;
 function IP2Long(const AIP: string): UInt32; inline;
@@ -616,8 +629,8 @@ function URLSafeB64encode(const Value: string; IncludePadding: Boolean; AByteEnc
 function URLSafeB64encode(const Value: TBytes; IncludePadding: Boolean): string; overload;
 function URLSafeB64Decode(const Value: string; AByteEncoding: IIdTextEncoding = nil): string;
 
-function URLEncode(const aValue: string): String;
-function URLDecode(const aValue: string): String;
+function URLEncode(const Value: string): string; overload;
+function URLDecode(const Value: string): string;
 
 function ByteToHex(AInByte: Byte): string;
 function BytesToHex(ABytes: TBytes): string;
@@ -628,9 +641,8 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aConte
   var aContentCharSet: string);
 function BuildContentType(const aContentMediaType: string; const aContentCharSet: string): string;
 
-function StrToJSONObject(const AString: String): TJsonObject;
-function StrToJSONArray(const AString: String): TJsonArray;
-
+function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
+function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
 { changing case }
@@ -675,6 +687,16 @@ uses
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
 
+function URLEncode(const Value: string): string; overload;
+begin
+  Result := TNetEncoding.URL.Encode(Value);
+end;
+
+function URLDecode(const Value: string): string;
+begin
+  Result := TNetEncoding.URL.Decode(Value);
+end;
+
 function AppPath: string;
 begin
   Result := GlobalAppPath;
@@ -712,16 +734,6 @@ function B64Encode(const aValue: string): string; overload;
 begin
   // Do not use TNetEncoding
   Result := TIdEncoderMIME.EncodeString(aValue);
-end;
-
-function URLEncode(const aValue: string): String;
-begin
-  Result := TNetEncoding.URL.Encode(aValue);
-end;
-
-function URLDecode(const aValue: string): String;
-begin
-  Result := TNetEncoding.URL.Decode(aValue);
 end;
 
 function B64Encode(const aValue: TBytes): string; overload;
@@ -1461,13 +1473,17 @@ var
   lLastWasUnderscore: Boolean;
   lIsUnderscore: Boolean;
   lLastWasNumber: Boolean;
+  lNextUnderscore: Boolean;
+  lLengthValue: Integer;
 begin
   lLastWasLowercase := False;
   lLastWasUnderscore := False;
   lLastWasNumber := False;
+  lNextUnderscore := False;
+  lLengthValue := Length(Value);
   lSB := TStringBuilder.Create;
   try
-    for I := 0 to Length(Value) - 1 do
+    for I := 0 to lLengthValue - 1 do
     begin
       C := Value.Chars[I];
       lIsUpperCase := CharInSet(C, ['A' .. 'Z']);
@@ -1475,19 +1491,33 @@ begin
       lIsNumber := CharInSet(C, ['0' .. '9']);
       lIsUnderscore := C = '_';
 
-      if (I > 0) and (not lLastWasUnderscore) and ((lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
-        (lIsLowerCase and lLastWasNumber) or (lIsNumber and (not lLastWasNumber))) then
+      if not (lIsUpperCase or lIsLowerCase or lIsNumber or lIsUnderscore) then
       begin
-        lSB.Append('_');
-      end;
+        lNextUnderscore := True;
+        Continue;
+      end
+      else
+      begin
+        if (I > 0) and (not lLastWasUnderscore) and
+          (lNextUnderscore or
+          (lIsUpperCase and (lLastWasLowercase or lLastWasNumber)) or
+          (lIsLowerCase and lLastWasNumber) or
+          (lIsNumber and (not lLastWasNumber)) or
+          (lIsUpperCase and (not lLastWasLowercase) and ((I + 1) <= (lLengthValue - 1)) and
+          CharInSet(Value.Chars[I + 1], ['a' .. 'z']))) then
+        begin
+          lSB.Append('_');
+        end;
 
-      if not(lLastWasUnderscore and lIsUnderscore) then
-      begin
-        lSB.Append(LowerCase(C));
+        if not (lLastWasUnderscore and lIsUnderscore) then
+        begin
+          lSB.Append(LowerCase(C));
+        end;
+        lLastWasUnderscore := lIsUnderscore or lNextUnderscore;
+        lLastWasLowercase := lIsLowerCase;
+        lLastWasNumber := lIsNumber;
+        lNextUnderscore := False;
       end;
-      lLastWasUnderscore := lIsUnderscore;
-      lLastWasLowercase := lIsLowerCase;
-      lLastWasNumber := lIsNumber;
     end;
     Result := lSB.ToString;
   finally
@@ -1495,14 +1525,14 @@ begin
   end;
 end;
 
-function StrToJSONObject(const AString: String): TJsonObject;
+function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 begin
-  Result := MVCFramework.Serializer.JsonDataObjects.StrToJSONObject(AString);
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString, ARaiseExceptionOnError);
 end;
 
-function StrToJSONArray(const AString: String): TJsonArray;
+function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 begin
-  Result := MVCFramework.Serializer.JsonDataObjects.StrToJSONArray(AString);
+  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString, ARaiseExceptionOnError);
 end;
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
