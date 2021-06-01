@@ -253,6 +253,7 @@ var
   LEnumName: string;
   lJSONValue: TJsonBaseObject;
   lJsonDataType: TJsonDataType;
+  lTypeInfo: PTypeInfo;
 begin
   if SameText(AName, 'RefCount') then
   begin
@@ -265,9 +266,22 @@ begin
     Exit;
   end;
 
-  if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
+  lTypeInfo := AValue.TypeInfo;
+  // AValue.TypeInfo does not show the correct TypeInfo of the class instantiated for the object or interface
+  ChildObject := nil;
+  if AValue.Kind in [tkClass, tkInterface] then
   begin
-    GetTypeSerializers.Items[AValue.TypeInfo].SerializeAttribute(AValue, AName, AJsonObject, ACustomAttributes);
+    if not AValue.IsEmpty and (AValue.Kind = tkInterface) then
+      ChildObject := TObject(AValue.AsInterface)
+    else if AValue.Kind = tkClass then
+      ChildObject := AValue.AsObject;
+    if Assigned(ChildObject) then
+      lTypeInfo := ChildObject.ClassInfo;
+  end;
+
+  if GetTypeSerializers.ContainsKey(lTypeInfo) then
+  begin
+    GetTypeSerializers.Items[lTypeInfo].SerializeAttribute(AValue, AName, AJsonObject, ACustomAttributes);
     Exit;
   end;
 
@@ -354,11 +368,11 @@ begin
 
     tkClass, tkInterface:
       begin
-        ChildObject := nil;
-        if not AValue.IsEmpty and (AValue.Kind = tkInterface) then
-          ChildObject := TObject(AValue.AsInterface)
-        else if AValue.Kind = tkClass then
-          ChildObject := AValue.AsObject;
+//        ChildObject := nil;
+//        if not AValue.IsEmpty and (AValue.Kind = tkInterface) then
+//          ChildObject := TObject(AValue.AsInterface)
+//        else if AValue.Kind = tkClass then
+//          ChildObject := AValue.AsObject;
 
         if Assigned(ChildObject) then
         begin
@@ -887,6 +901,38 @@ begin
   if not Assigned(AList) then
     Exit;
 
+  if GetTypeSerializers.ContainsKey(AList.ClassInfo) then
+  begin
+    if ARootNode.IsEmpty then
+    begin
+      JsonArray := TJDOJsonArray.Parse(ASerializedList) as TJDOJsonArray;
+    end
+    else
+    begin
+      try
+        JsonBase := TJDOJsonObject.Parse(ASerializedList);
+        if not(JsonBase is TJDOJsonObject) then
+        begin
+          raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+            [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+        end;
+        JSONObject := TJDOJsonObject(JsonBase);
+      except
+        on E: EJsonParserException do
+        begin
+          raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
+        end;
+      end;
+      JsonArray := JSONObject.A[ARootNode] as TJDOJsonArray;
+    end;
+    try
+      GetTypeSerializers.Items[AList.ClassInfo].DeserializeRoot(JsonArray, AList, []);
+      Exit;
+    finally
+      JsonArray.Free;
+    end;
+  end;
+
   ObjList := TDuckTypedList.Wrap(AList);
   if Assigned(ObjList) then
   begin
@@ -1066,8 +1112,21 @@ var
   LMappedValueIndex: Integer;
   lOutInteger: Integer;
   lOutInteger64: Int64;
+  lTypeInfo: PTypeInfo;
 begin
-  if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
+  lTypeInfo := AValue.TypeInfo;
+  if AValue.Kind in [tkClass, tkInterface] then
+  begin
+    ChildObject := nil;
+    if not AValue.IsEmpty and (AValue.Kind = tkInterface) then
+      ChildObject := TObject(AValue.AsInterface)
+    else if AValue.Kind = tkClass then
+      ChildObject := AValue.AsObject;
+    if Assigned(ChildObject) then
+      lTypeInfo := ChildObject.ClassInfo;
+  end;
+
+  if GetTypeSerializers.ContainsKey(lTypeInfo) then
   begin
     case AJsonObject[AName].Typ of
       jdtNone:
@@ -1076,14 +1135,14 @@ begin
         begin
           /// <summary>JsonDataObjects assumes values null as jdtObject</summary>
           if AJsonObject[AName].ObjectValue <> nil then
-            GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName,
+            GetTypeSerializers.Items[lTypeInfo].DeserializeAttribute(AValue, AName,
               AJsonObject[AName].ObjectValue, ACustomAttributes);
         end;
       jdtArray:
-        GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ArrayValue,
+        GetTypeSerializers.Items[lTypeInfo].DeserializeAttribute(AValue, AName, AJsonObject[AName].ArrayValue,
           ACustomAttributes);
     else
-      GetTypeSerializers.Items[AValue.TypeInfo].DeserializeAttribute(AValue, AName, AJsonObject, ACustomAttributes);
+      GetTypeSerializers.Items[lTypeInfo].DeserializeAttribute(AValue, AName, AJsonObject, ACustomAttributes);
     end;
     Exit;
   end;
@@ -1306,7 +1365,7 @@ begin
         begin
           if ChildObject is TDataSet then
             JsonArrayToDataSet(AJsonObject.A[AName], ChildObject as TDataSet, AIgnored, ncLowerCase)
-          else if GetTypeSerializers.ContainsKey(AValue.TypeInfo) then
+          else if GetTypeSerializers.ContainsKey(ChildObject.ClassInfo) then
           begin
             GetTypeSerializers.Items[ChildObject.ClassInfo].DeserializeAttribute(AValue, AName, AJsonObject,
               ACustomAttributes);
@@ -1754,6 +1813,7 @@ var
   Obj: TObject;
   lLinks: IMVCLinks;
   lSer: IMVCTypeSerializer;
+  lObjType: TRttiType;
 begin
   Result := EmptyStr;
 
@@ -1762,6 +1822,19 @@ begin
 
   if AList is TJsonBaseObject then
     Exit(TJsonBaseObject(AList).ToJSON(True));
+
+  lObjType := GetRttiContext.GetType(AList.ClassType);
+
+  if GetTypeSerializers.ContainsKey(lObjType.Handle) then
+  begin
+    GetTypeSerializers.Items[lObjType.Handle].SerializeRoot(AList, TObject(JsonArray), []);
+    try
+      Result := JsonArray.ToJSON(True);
+    finally
+      JsonArray.Free;
+    end;
+    Exit;
+  end;
 
   ObjList := TDuckTypedList.Wrap(AList);
   if Assigned(ObjList) then
