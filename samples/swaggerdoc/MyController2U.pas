@@ -53,6 +53,8 @@ type
     FAddress: TAddress;
     FPhones: TPhones;
     FGender: TGender;
+    FArrayField: TArray<string>;
+    FListField: TList<string>;
   public
     constructor Create;
     destructor Destroy; override;
@@ -70,6 +72,10 @@ type
     property Country: string read FCountry write FCountry;
     property Address: TAddress read FAddress write FAddress;
     property Phones: TPhones read FPhones write FPhones;
+    [MVCSwagJsonSchemaField(stArray, 'arrayfield', 'Array Field', True, False)]
+    property ArrayField: TArray<string> read FArrayField write FArrayField;
+    [MVCSwagJsonSchemaField(stArray, 'listfield', 'List Field', True, False)]
+    property ListField: TList<string> read FListField write FListField;
   end;
 
   [MVCNameCase(ncLowerCase)]
