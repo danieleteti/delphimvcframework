@@ -23,7 +23,6 @@
 // ***************************************************************************
 
 unit EntitiesU;
-{$RTTI EXPLICIT METHODS([vcPublic, vcPublished]) FIELDS([vcPrivate, vcProtected, vcPublic, vcPublished]) PROPERTIES([vcPublic, vcPublished])}
 
 interface
 
