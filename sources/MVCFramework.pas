@@ -2610,19 +2610,27 @@ begin
       then
       begin
         Inc(lAttributeInjectedParamCount, 1);
-        ABodyParameter := TRttiUtils.CreateObject(AActionFormalParams[I].ParamType.QualifiedName);
-        if TDuckTypedList.CanBeWrappedAsList(ABodyParameter, lList) then
+        if AActionFormalParams[I].ParamType.QualifiedName <> 'System.string' then
         begin
-          lItemClass := TMVCAbstractSerializer(ASelectedController.Serializer).GetObjectTypeOfGenericList(ABodyParameter.ClassInfo);
-          ASelectedController.Serializer.DeserializeCollection(ASelectedController.Context.Request.Body,
-            ABodyParameter, lItemClass, stDefault, [], lFromBodyAttribute.RootNode);
+          ABodyParameter := TRttiUtils.CreateObject(AActionFormalParams[I].ParamType.QualifiedName);
+          if TDuckTypedList.CanBeWrappedAsList(ABodyParameter, lList) then
+          begin
+            lItemClass := TMVCAbstractSerializer(ASelectedController.Serializer).GetObjectTypeOfGenericList(ABodyParameter.ClassInfo);
+            ASelectedController.Serializer.DeserializeCollection(ASelectedController.Context.Request.Body,
+              ABodyParameter, lItemClass, stDefault, [], lFromBodyAttribute.RootNode);
+          end
+          else
+          begin
+            ASelectedController.Serializer.DeserializeObject(ASelectedController.Context.Request.Body,
+              ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
+          end;
+          AActualParams[I] := ABodyParameter;
         end
         else
         begin
-          ASelectedController.Serializer.DeserializeObject(ASelectedController.Context.Request.Body,
-            ABodyParameter, stDefault, [], lFromBodyAttribute.RootNode);
+          AActualParams[I] := ASelectedController.Context.Request.Body;
+          Continue;
         end;
-        AActualParams[I] := ABodyParameter;
       end
       else if TRttiUtils.HasAttribute<MVCFromQueryStringAttribute>(AActionFormalParams[I],
         lFromQueryStringAttribute) then
