@@ -328,6 +328,7 @@ var
   lJSFieldAttr: MVCSwagJSONSchemaFieldAttribute;
   lJsonFieldClass: TJsonFieldClass;
   lJsonField: TJsonField;
+  lJsonFieldType: TRttiType;
   lJsonFieldObject: TJsonFieldObject;
   lAbstractSer: TMVCAbstractSerializer;
   lClass: TClass;
@@ -391,16 +392,34 @@ begin
 
     if (lJsonField is TJsonFieldArray) and TypeIsEnumerable(lProp.PropertyType) then
     begin
-      lJsonFieldObject := TJsonFieldObject.Create;
-
       lAbstractSer := TMVCAbstractSerializer.Create;
       try
-        lClass := lAbstractSer.GetObjectTypeOfGenericList(lProp.PropertyType.Handle);
-        ExtractJsonSchemaFromClass(lJsonFieldObject, lClass);
-        (lJsonField as TJsonFieldArray).ItemFieldType := lJsonFieldObject;
+        if lAbstractSer.GetObjectTypeOfGenericList(lProp.PropertyType.Handle, lJsonFieldType) then
+        begin
+          if lJsonFieldType.IsInstance then
+          begin
+            lClass := lJsonFieldType.AsInstance.MetaclassType;
+            lJsonFieldObject := TJsonFieldObject.Create;
+            ExtractJsonSchemaFromClass(lJsonFieldObject, lClass);
+            TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldObject;
+          end
+          else
+          begin
+            lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(lJsonFieldType));
+            if Assigned(lJsonFieldClass) then
+              TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
+          end;
+        end;
       finally
         lAbstractSer.Free;
       end;
+    end
+    else if (lJsonField is TJsonFieldArray) and (lProp.PropertyType is TRttiDynamicArrayType) then
+    begin
+      lJsonFieldClass := GetJsonFieldClass(TypeKindToMVCSwagSchemaType(
+        TRttiDynamicArrayType(lProp.PropertyType).ElementType));
+      if Assigned(lJsonFieldClass) then
+        TJsonFieldArray(lJsonField).ItemFieldType := lJsonFieldClass.Create;
     end
     else if lJsonField is TJsonFieldEnum then /// Extract enumerator information
     begin
