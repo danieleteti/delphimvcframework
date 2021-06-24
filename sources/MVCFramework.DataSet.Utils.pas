@@ -137,7 +137,13 @@ type
     property Metadata: TMVCStringDictionary read fMetadata;
   end deprecated 'Use function "ObjectDict(boolean)" instead';
 
-  TMVCAPIBinder = class
+  IMVCAPIBinder = interface
+    ['{25F33D9E-84B7-40BF-A4B1-865E175BDE1D}']
+    procedure BindDataSetToAPI(const ADataSet: TDataSet; const aURI: string;
+      const aPrimaryKeyName: string);
+  end;
+
+  TMVCAPIBinder = class(TInterfacedObject, IMVCAPIBinder)
   protected type
     TMVCAPIBinderItem = class
     private
