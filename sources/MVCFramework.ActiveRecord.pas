@@ -300,8 +300,8 @@ type
     function GetMapping: TMVCFieldsMapping;
     function LoadByPK(const id: int64): Boolean; overload; virtual;
     function LoadByPK(const id: string): Boolean; overload; virtual;
-    procedure Update;
-    procedure Delete;
+    procedure Update(const RaiseExceptionIfNotFound: Boolean = True);
+    procedure Delete(const RaiseExceptionIfNotFound: Boolean = True);
     function TableInfo: string;
     procedure LoadByDataset(const aDataSet: TDataSet;
       const aOptions: TMVCActiveRecordLoadOptions = []);
@@ -1495,9 +1495,10 @@ begin
   Create(True);
 end;
 
-procedure TMVCActiveRecord.Delete;
+procedure TMVCActiveRecord.Delete(const RaiseExceptionIfNotFound: Boolean);
 var
   SQL: string;
+  lAffectedRows: Int64;
 begin
   CheckAction(TMVCEntityAction.eaDelete);
   OnValidation(TMVCEntityAction.eaDelete);
@@ -1505,7 +1506,12 @@ begin
   if not Assigned(fPrimaryKey) then
     raise Exception.CreateFmt('Cannot delete %s without a primary key', [ClassName]);
   SQL := SQLGenerator.CreateDeleteSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
-  ExecNonQuery(SQL, false);
+  lAffectedRows := ExecNonQuery(SQL, false);
+  if (lAffectedRows = 0) and RaiseExceptionIfNotFound then
+  begin
+    raise EMVCActiveRecordNotFound.CreateFmt('No record deleted for key [Entity: %s][PK: %s]',
+      [ClassName, fPrimaryKeyFieldName]);
+  end;
   OnAfterDelete;
 end;
 
@@ -2595,9 +2601,10 @@ begin
   end;
 end;
 
-procedure TMVCActiveRecord.Update;
+procedure TMVCActiveRecord.Update(const RaiseExceptionIfNotFound: Boolean = True);
 var
   SQL: string;
+  lAffectedRows: Int64;
 begin
   CheckAction(TMVCEntityAction.eaUpdate);
   OnValidation(TMVCEntityAction.eaUpdate);
@@ -2610,7 +2617,8 @@ begin
       [ClassName, fTableName]);
   end;
   SQL := SQLGenerator.CreateUpdateSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
-  if ExecNonQuery(SQL, false) = 0 then
+  lAffectedRows := ExecNonQuery(SQL, false);
+  if (lAffectedRows = 0) and RaiseExceptionIfNotFound then
   begin
     raise EMVCActiveRecordNotFound.CreateFmt('No record updated for key [Entity: %s][PK: %s]',
       [ClassName, fPrimaryKeyFieldName]);

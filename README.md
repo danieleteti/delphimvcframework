@@ -531,6 +531,7 @@ This version introduced new features in many different areas (swagger, server si
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
 - Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
 - Fix for nil objects in lists during serialization
+- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
 
 ## Older Releases
 

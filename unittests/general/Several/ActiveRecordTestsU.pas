@@ -50,6 +50,10 @@ type
     [Test]
     procedure TestCRUD;
     [Test]
+    procedure TestDeleteIfNotFound;
+    [Test]
+    procedure TestUpdateIfNotFound;
+    [Test]
     procedure TestCRUDWithSpaces;
     [Test]
     procedure TestCRUDWithTableChange;
@@ -391,6 +395,50 @@ begin
   end;
 end;
 
+procedure TTestActiveRecordBase.TestDeleteIfNotFound;
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert.WillNotRaise(
+      procedure
+      begin
+        lCustomer.Delete(True);
+      end, EMVCActiveRecordNotFound);
+
+    Assert.WillNotRaise(
+      procedure
+      begin
+        lCustomer.Delete(False);
+      end, EMVCActiveRecordNotFound);
+
+    Assert.WillRaise(
+      procedure
+      begin
+        lCustomer.Delete(True);
+      end, EMVCActiveRecordNotFound);
+
+  finally
+    lCustomer.Free;
+  end;
+end;
+
 { https://github.com/danieleteti/delphimvcframework/issues/424 }
 procedure TTestActiveRecordBase.TestIssue424;
 var
@@ -725,6 +773,47 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TTestActiveRecordBase.TestUpdateIfNotFound;
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    lCustomer.Update;
+    lCustomer.Delete;
+
+    Assert.WillNotRaise(
+      procedure
+      begin
+        lCustomer.Update(False);
+      end, EMVCActiveRecordNotFound);
+
+    Assert.WillRaise(
+      procedure
+      begin
+        lCustomer.Update(True);
+      end, EMVCActiveRecordNotFound);
+
+  finally
+    lCustomer.Free;
+  end;
 end;
 
 procedure TTestActiveRecordBase.InternalSetupFixture;
