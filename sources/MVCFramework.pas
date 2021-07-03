@@ -390,6 +390,7 @@ type
     function ThereIsRequestBody: Boolean;
 
     procedure EnsureQueryParamExists(const AName: string);
+    function QueryString: string;
     function QueryStringParam(const AName: string): string;
     function QueryStringParamExists(const AName: string): Boolean;
     function QueryStringParams: TStrings;
@@ -1630,6 +1631,11 @@ begin
     end;
   end;
   Result := FQueryParams;
+end;
+
+function TMVCWebRequest.QueryString: string;
+begin
+  Result := FWebRequest.Query;
 end;
 
 function TMVCWebRequest.QueryStringParam(const AName: string): string;
