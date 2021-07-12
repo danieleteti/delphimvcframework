@@ -29,8 +29,41 @@ interface
 uses
   MVCFramework.RQL.Parser;
 
+const
+  RQLFirebirdReservedWords: TArray<string> = [
+    'ADD', 'ADMIN', 'ALL', 'ALTER', 'AND', 'ANY', 'AS', 'AT', 'AVG',
+    'BEGIN', 'BETWEEN', 'BIGINT', 'BIT_LENGTH', 'BLOB', 'BOTH', 'BY',
+    'CASE', 'CAST', 'CHAR', 'CHAR_LENGTH', 'CHARACTER', 'CHARACTER_LENGTH',
+    'CHECK', 'CLOSE', 'COLLATE', 'COLUMN', 'COMMIT', 'CONNECT', 'CONSTRAINT',
+    'COUNT', 'CREATE', 'CROSS', 'CURRENT', 'CURRENT_CONNECTION',
+    'CURRENT_DATE', 'CURRENT_ROLE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
+    'CURRENT_TRANSACTION', 'CURRENT_USER', 'CURSOR',
+    'DATE', 'DAY', 'DEC', 'DECIMAL', 'DECLARE', 'DEFAULT', 'DELETE',
+    'DISCONNECT', 'DISTINCT', 'DOUBLE', 'DROP',
+    'ELSE', 'END', 'ESCAPE', 'EXECUTE', 'EXISTS', 'EXTERNAL', 'EXTRACT',
+    'FETCH', 'FILTER', 'FLOAT', 'FOR', 'FOREIGN', 'FROM', 'FULL', 'FUNCTION',
+    'GDSCODE', 'GLOBAL', 'GRANT', 'GROUP',
+    'HAVING', 'HOUR',
+    'IN', 'INDEX', 'INNER', 'INSENSITIVE', 'INSERT', 'INT', 'INTEGER', 'INTO', 'IS',
+    'JOIN',
+    'LEADING', 'LEFT', 'LIKE', 'LONG', 'LOWER',
+    'MAX', 'MAXIMUM_SEGMENT', 'MERGE', 'MIN', 'MINUTE', 'MONTH',
+    'NATIONAL', 'NATURAL', 'NCHAR', 'NO', 'NOT', 'NULL', 'NUMERIC',
+    'OCTET_LENGTH', 'OF', 'ON', 'ONLY', 'OPEN', 'OR', 'ORDER', 'OUTER',
+    'PARAMETER', 'PLAN', 'POSITION', 'POST_EVENT', 'PRECISION', 'PRIMARY', 'PROCEDURE',
+    'RDB$DB_KEY', 'REAL', 'RECORD_VERSION', 'RECREATE', 'RECURSIVE', 'REFERENCES', 'RELEASE',
+    'RETURNING_VALUES', 'RETURNS', 'REVOKE', 'RIGHT', 'ROLLBACK', 'ROW_COUNT', 'ROWS',
+    'SAVEPOINT', 'SECOND', 'SELECT', 'SENSITIVE', 'SET', 'SIMILAR', 'SMALLINT', 'SOME',
+    'SQLCODE', 'SQLSTATE', 'START', 'SUM',
+    'TABLE', 'THEN', 'TIME', 'TIMESTAMP', 'TO', 'TRAILING', 'TRIGGER', 'TRIM',
+    'UNION', 'UNIQUE', 'UPDATE', 'UPPER', 'USER', 'USING',
+    'VALUE', 'VALUES', 'VARCHAR', 'VARIABLE', 'VARYING', 'VIEW',
+    'WHEN', 'WHERE', 'WHILE', 'WITH',
+    'YEAR'];
+
 type
   TRQLFirebirdCompiler = class(TRQLCompiler)
+
   protected
     function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string; virtual;
     function RQLSortToSQL(const aRQLSort: TRQLSort): string; virtual;
@@ -40,15 +73,25 @@ type
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual;
   public
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
+    function GetFieldNameForSQL(const FieldName: string): string; override;
   end;
 
 implementation
 
 uses
   System.SysUtils,
+  System.StrUtils,
   MVCFramework.ActiveRecord;
 
 { TRQLFirebirdCompiler }
+
+function TRQLFirebirdCompiler.GetFieldNameForSQL(const FieldName: string): string;
+begin
+  if MatchStr(FieldName.ToUpper, RQLFirebirdReservedWords) then
+    Result := FieldName.QuotedString('"')
+  else
+    Result := inherited;
+end;
 
 function TRQLFirebirdCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;
