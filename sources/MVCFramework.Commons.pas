@@ -595,6 +595,12 @@ type
     class function GuidFromString(const AGuidStr: string): TGUID; static;
   end;
 
+  TMVCStringHelper = record
+  public
+    class function StartsText(const ASubText, AText: string): Boolean; static;
+    class function StartsWith(const ASubText, AText: string; AIgnoreCase: Boolean): Boolean; static;
+  end;
+
   TMVCFieldsMapping = TArray<TMVCFieldMap>;
 
 {$SCOPEDENUMS ON}
@@ -1548,6 +1554,37 @@ end;
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 begin
   Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+end;
+
+{ TMVCStringHelper }
+
+class function TMVCStringHelper.StartsText(const ASubText, AText: string): Boolean;
+begin
+  if ASubText = EmptyStr then
+    Result := True
+  else
+  begin
+    if (AText.Length >= ASubText.Length) then
+      Result := AnsiStrLIComp(PChar(ASubText), PChar(AText), ASubText.Length) = 0
+    else
+      Result := False;
+  end;
+end;
+
+class function TMVCStringHelper.StartsWith(const ASubText, AText: string; AIgnoreCase: Boolean): Boolean;
+begin
+  if AIgnoreCase then
+    Result := StartsText(ASubText, AText)
+  else
+  if ASubText = EmptyStr then
+    Result := True
+  else
+  begin
+    if (AText.Length >= ASubText.Length) then
+      Result := CompareStr(AText.Substring(0, ASubText.Length), ASubText) = 0
+    else
+      Result := False;
+  end;
 end;
 
 initialization

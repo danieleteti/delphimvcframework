@@ -89,25 +89,6 @@ type
       const id: Integer; var Handled: Boolean);
   end;
 
-  IMVCUnitOfWork<T: TMVCActiveRecord> = interface
-    ['{68B55DD3-57F6-4CC0-A4DE-BFDE7C3AA287}']
-    procedure RegisterDelete(const Value: T); overload;
-    procedure RegisterDelete(const Enumerable: TEnumerable<T>); overload;
-    procedure RegisterUpdate(const Value: T);
-    procedure RegisterInsert(const Value: T);
-    procedure UnregisterDelete(const Value: T);
-    procedure UnregisterUpdate(const Value: T);
-    procedure UnregisterInsert(const Value: T);
-  end;
-
-  TMVCItemApplyAction<T: TMVCActiveRecord> = reference to procedure(const Obj: T;
-    const EntityAction: TMVCEntityAction; var Handled: Boolean);
-
-  IMVCMultiExecutor<T: TMVCActiveRecord> = interface
-    ['{C815246B-19CA-4F6C-AA67-8E491F809340}']
-    procedure Apply(const ItemApplyAction: TMVCItemApplyAction<T> = nil);
-  end;
-
   TFieldInfo = class
   public
     // TableName: string;
@@ -355,6 +336,25 @@ type
     class function SelectDataSet(const SQL: string; const Params: array of Variant;
       const ParamTypes: array of TFieldType): TDataSet; overload;
     class function CurrentConnection: TFDConnection;
+  end;
+
+  IMVCUnitOfWork<T: TMVCActiveRecord> = interface
+    ['{68B55DD3-57F6-4CC0-A4DE-BFDE7C3AA287}']
+    procedure RegisterDelete(const Value: T); overload;
+    procedure RegisterDelete(const Enumerable: TEnumerable<T>); overload;
+    procedure RegisterUpdate(const Value: T);
+    procedure RegisterInsert(const Value: T);
+    procedure UnregisterDelete(const Value: T);
+    procedure UnregisterUpdate(const Value: T);
+    procedure UnregisterInsert(const Value: T);
+  end;
+
+  TMVCItemApplyAction<T: TMVCActiveRecord> = reference to procedure(const Obj: T;
+    const EntityAction: TMVCEntityAction; var Handled: Boolean);
+
+  IMVCMultiExecutor<T: TMVCActiveRecord> = interface
+    ['{C815246B-19CA-4F6C-AA67-8E491F809340}']
+    procedure Apply(const ItemApplyAction: TMVCItemApplyAction<T> = nil);
   end;
 
   TMVCActiveRecordHelper = class helper for TMVCActiveRecord

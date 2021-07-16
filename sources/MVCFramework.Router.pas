@@ -208,7 +208,11 @@ begin
         LControllerMappedPath := '';
       end;
 
+{$IF defined(TOKYOORBETTER)}
       if not LRequestPathInfo.StartsWith(APathPrefix + LControllerMappedPath, True) then
+{$ELSE}
+      if not TMVCStringHelper.StartsWith(APathPrefix + LControllerMappedPath, LRequestPathInfo, True) then
+{$ENDIF}
       begin
         Continue;
       end;
