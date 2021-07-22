@@ -89,18 +89,11 @@ begin
 end;
 
 function TJsonFieldObject.GetFieldByName(const pName: string): TJsonField;
-var
-  I: Integer;
 begin
   Result := nil;
-  for I := 0 to Pred(fFields.Count) do
-  begin
-    if (UpperCase(fFields[I].Name) = UpperCase(pName)) then
-    begin
-      Result := fFields[I];
+  for Result in fFields do
+    if (UpperCase(Result.Name) = UpperCase(pName)) then
       Break;
-    end;
-  end;
 end;
 
 function TJsonFieldObject.GetFieldsCount: Integer;

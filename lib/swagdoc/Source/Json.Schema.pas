@@ -100,7 +100,7 @@ begin
   case vSchemaKind of
     skObject:
     begin
-      vClass := FindClass(string(PTypeInfo(System.TypeInfo(T))^.NameFld.ToString));
+      vClass := FindClass(string(PTypeInfo(System.TypeInfo(T))^.Name));
       if not vClass.InheritsFrom(TJsonField) then
         raise ETypeNotSupportedByAField.Create(c_ErrorTypeNotSupportedByAField);
       Result := TJsonFieldClass(vClass);
@@ -142,25 +142,25 @@ begin
     tkString, tkUString, tkChar: Result := skString;
     tkRecord:
     begin
-      if vTypeInfo = System.TypeInfo(TGuid) then
+      if (LowerCase(string(vTypeInfo^.Name)) = 'tguid') then
         Result := skGuid
     end;
     tkInteger: Result := skInteger;
     tkInt64: Result := skInt64;
     tkEnumeration:
     begin
-      if vTypeInfo = System.TypeInfo(Boolean) then
+      if (LowerCase(string(vTypeInfo^.Name)) = 'boolean') then
         Result := skBoolean
       else
         Result := skEnumeration;
     end;
     tkFloat:
     begin
-      if vTypeInfo = System.TypeInfo(TDateTime) then
+      if (LowerCase(string(vTypeInfo^.Name)) = 'tdatetime') then
         Result := skDateTime
-      else if vTypeInfo = System.TypeInfo(TDate) then
+      else if (LowerCase(string(vTypeInfo^.Name)) = 'tdate') then
         Result := skDate
-      else if vTypeInfo = System.TypeInfo(TTime) then
+      else if (LowerCase(string(vTypeInfo^.Name)) = 'ttime') then
         Result := skTime
       else
         Result := skNumber;
