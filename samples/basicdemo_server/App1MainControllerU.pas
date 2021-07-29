@@ -64,7 +64,7 @@ end;
 
 procedure TApp1MainController.Index;
 begin
-  Redirect('index.html');
+  Redirect('/app/index.html');
 end;
 
 procedure TApp1MainController.RaiseException(const par1, par2: integer);

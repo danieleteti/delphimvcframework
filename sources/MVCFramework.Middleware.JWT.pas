@@ -71,12 +71,12 @@ type
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
     procedure InternalRender(AJSONOb: TJDOJsonObject; AContentType: string; AContentEncoding: string;
-      AContext: TWebContext; AInstanceOwner: Boolean = True);
-    procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+      AContext: TWebContext; AInstanceOwner: Boolean = True); virtual;
+    procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean); virtual;
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
-      const AActionName: string; var AHandled: Boolean);
-    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
-    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+      const AActionName: string; var AHandled: Boolean); virtual;
+    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean); virtual;
+    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean); virtual;
   public
     /// <remarks>
     /// WARNING! The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow

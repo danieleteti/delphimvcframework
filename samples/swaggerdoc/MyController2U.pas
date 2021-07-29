@@ -53,23 +53,29 @@ type
     FAddress: TAddress;
     FPhones: TPhones;
     FGender: TGender;
+    FArrayField: TArray<string>;
+    FListField: TList<string>;
   public
     constructor Create;
     destructor Destroy; override;
 
     [MVCSwagJsonSchemaField(stInteger, 'code', 'person id', True, False)]
     property Code: Integer read FCode write FCode;
-    [MVCSwagJsonSchemaField('name', 'person name', True, False)]
+    [MVCSwagJsonSchemaField('name', 'person name', True, False, 5, 100)]
     property Name: string read FName write FName;
     [MVCSwagJsonSchemaField('gender', 'person gender', True, False)]
     [MVCEnumSerialization(estEnumName)]
     property Gender: TGender read FGender write FGender;
     [MVCSwagJsonSchemaField('age', 'person age', True, False)]
     property Age: Integer read FAge write FAge;
-    [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False)]
+    [MVCSwagJsonSchemaField('country', 'Nationality of the person', True, False, 0, 100)]
     property Country: string read FCountry write FCountry;
     property Address: TAddress read FAddress write FAddress;
     property Phones: TPhones read FPhones write FPhones;
+    [MVCSwagJsonSchemaField(stArray, 'arrayfield', 'Array Field', True, False)]
+    property ArrayField: TArray<string> read FArrayField write FArrayField;
+    [MVCSwagJsonSchemaField(stArray, 'listfield', 'List Field', True, False)]
+    property ListField: TList<string> read FListField write FListField;
   end;
 
   [MVCNameCase(ncLowerCase)]

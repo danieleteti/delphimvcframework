@@ -259,6 +259,10 @@ type
     [MVCPath('/issue338/($projectid)/pictures/($imageuuid)')]
     procedure GetImage;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issue492/($stringvalue)')]
+    procedure GetIssue492;
+
     { injectable parameters }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/injectable10')]
@@ -475,6 +479,11 @@ begin
   lJObj.S['ParTDateTime'] := DateTimeToISOTimeStamp(ParTDateTime);
   lJObj.B['ParBool'] := ParBool;
   Render(lJObj);
+end;
+
+procedure TTestServerController.GetIssue492;
+begin
+  // do nothing
 end;
 
 procedure TTestServerController.GetProject;

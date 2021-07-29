@@ -1077,7 +1077,7 @@ begin
       begin
         aRTTIField.SetValue(AObject, AField.AsLargeInt);
       end;
-    ftInteger, ftSmallint, ftShortint:
+    ftInteger, ftSmallint, ftShortint, ftByte:
       begin
         aRTTIField.SetValue(AObject, AField.AsInteger);
       end;
