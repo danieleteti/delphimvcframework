@@ -1760,6 +1760,8 @@ begin
 end;
 
 procedure TMVCActiveRecord.MapTValueToParam(aValue: TValue; const aParam: TFDParam);
+const
+  MAX_STRING_PARAM_LENGTH = 1000; { Arbitrary value }
 var
   lStream: TStream;
   lName: string;
@@ -1783,11 +1785,25 @@ begin
         case aParam.DataType of
           ftUnknown, ftWideString:
             begin
-              aParam.AsWideString := aValue.AsString;
+              if aValue.AsString.Length > MAX_STRING_PARAM_LENGTH then
+              begin
+                aParam.AsWideMemo := aValue.AsString;
+              end
+              else
+              begin
+                aParam.AsWideString := aValue.AsString;
+              end;
             end;
           ftString:
             begin
-              aParam.AsString := aValue.AsString;
+              if aValue.AsString.Length > MAX_STRING_PARAM_LENGTH then
+              begin
+                aParam.AsMemo := AnsiString(aValue.AsString);
+              end
+              else
+              begin
+                aParam.AsString := aValue.AsString;
+              end;
             end;
           ftWideMemo:
             begin
@@ -1809,11 +1825,25 @@ begin
         case aParam.DataType of
           ftUnknown, ftWideString:
             begin
-              aParam.AsWideString := aValue.AsString;
+              if aValue.AsString.Length > MAX_STRING_PARAM_LENGTH then
+              begin
+                aParam.AsWideMemo := aValue.AsString;
+              end
+              else
+              begin
+                aParam.AsWideString := aValue.AsString;
+              end;
             end;
           ftString:
             begin
-              aParam.AsString := aValue.AsString;
+              if aValue.AsString.Length > MAX_STRING_PARAM_LENGTH then
+              begin
+                aParam.AsMemo := AnsiString(aValue.AsString);
+              end
+              else
+              begin
+                aParam.AsString := aValue.AsString;
+              end;
             end;
           ftWideMemo:
             begin
@@ -1832,7 +1862,14 @@ begin
 {$IF Defined(SeattleOrBetter)}
     tkWideString:
       begin
-        aParam.AsWideString := aValue.AsString;
+        if aValue.AsString.Length > MAX_STRING_PARAM_LENGTH then
+        begin
+          aParam.AsWideMemo := aValue.AsString;
+        end
+        else
+        begin
+          aParam.AsWideString := aValue.AsString;
+        end
       end;
 {$ENDIF}
     tkInt64:
