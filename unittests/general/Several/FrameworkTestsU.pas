@@ -82,7 +82,6 @@ type
     FControllers: TObjectList<TMVCControllerDelegate>;
     FMVCActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem>;
     FConfig: TMVCConfig;
-
   public
     [SetUp]
     procedure SetUp;
@@ -103,6 +102,15 @@ type
     [Test]
     [Category('issues')]
     procedure Test_ISSUE_338;
+    [Test]
+    [Category('issues')]
+    procedure Test_ISSUE_513_A;
+    [Test]
+    [Category('issues')]
+    procedure Test_ISSUE_513_B;
+    [Test]
+    [Category('issues')]
+    procedure Test_ISSUE_513_C;
     [Test]
     [Category('issues')]
     procedure Test_ISSUE_492;
@@ -556,6 +564,69 @@ begin
     Params.Free;
   end;
 end;
+
+procedure TTestRouting.Test_ISSUE_513_A;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
+begin
+  // https://github.com/danieleteti/delphimvcframework/issues/513
+  Params := TMVCRequestParamsTable.Create;
+  try
+    Params.Clear;
+    Assert.isTrue(FRouter.ExecuteRouting('/patient/$match', httpGET, 'text/plain', 'text/plain',
+      FControllers, 'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
+    Assert.areEqual('GetOrderIssue513', FRouter.MethodToCall.Name);
+    Assert.areEqual(0, Params.Count);
+  finally
+    Params.Free;
+  end;
+
+end;
+
+procedure TTestRouting.Test_ISSUE_513_B;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
+begin
+  // https://github.com/danieleteti/delphimvcframework/issues/513
+  Params := TMVCRequestParamsTable.Create;
+  try
+    Assert.isTrue(FRouter.ExecuteRouting('/patient/$match/daniele/teti', httpGET, 'text/plain', 'text/plain', FControllers,
+      'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
+    Assert.areEqual('GetOrderIssue513WithPars', FRouter.MethodToCall.Name);
+    Assert.areEqual(2, Params.Count);
+    Assert.areEqual('daniele', Params['par1']);
+    Assert.areEqual('teti', Params['par2']);
+  finally
+    Params.Free;
+  end;
+
+end;
+
+procedure TTestRouting.Test_ISSUE_513_C;
+var
+  Params: TMVCRequestParamsTable;
+  ResponseContentType: string;
+  ResponseContentEncoding: string;
+begin
+  // https://github.com/danieleteti/delphimvcframework/issues/513
+  Params := TMVCRequestParamsTable.Create;
+  try
+    Assert.isTrue(FRouter.ExecuteRouting('/patient/$match/da$niele/te$ti', httpGET, 'text/plain', 'text/plain', FControllers,
+      'text/plain', TMVCMediaType.TEXT_PLAIN, '', Params, ResponseContentType, ResponseContentEncoding));
+    Assert.areEqual('GetOrderIssue513WithPars', FRouter.MethodToCall.Name);
+    Assert.areEqual(2, Params.Count);
+    Assert.areEqual('da$niele', Params['par1']);
+    Assert.areEqual('te$ti', Params['par2']);
+  finally
+    Params.Free;
+  end;
+
+end;
+
 
 // procedure TTestMappers.TestDataSetToJSONArray;
 // var
