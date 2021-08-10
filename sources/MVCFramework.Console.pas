@@ -76,6 +76,8 @@ function GetCh: Char;
 procedure WaitForReturn;
 procedure SaveColors;
 procedure RestoreSavedColors;
+procedure Init;
+procedure SetDefaults;
 
 function ColorName(const color: TConsoleColor): String;
 
@@ -230,7 +232,7 @@ begin
   Result.Rows := lConsoleScreenBufferInfo.dwSize.Y;
 end;
 
-procedure Init; inline;
+procedure Init;
 begin
   GOutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
   if GOutHandle = INVALID_HANDLE_VALUE then
@@ -301,8 +303,11 @@ end;
 
 initialization
 
-Init;
-SetDefaults;
+if IsConsole then
+begin
+  Init;
+  SetDefaults;
+end;
 
 finalization
 
