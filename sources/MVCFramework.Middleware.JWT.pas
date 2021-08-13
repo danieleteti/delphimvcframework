@@ -52,6 +52,10 @@ type
     /// Default password header name
     /// </summary>
     PASSWORD_HEADER = 'jwtpassword';
+    /// <summary>
+    /// Default AUTH schema
+    /// </summary>
+    AUTH_SCHEMA = 'Bearer';
   end;
 
   TJWTClaimsSetup = reference to procedure(const JWT: TJWT);
@@ -200,8 +204,6 @@ var
   AuthHeader: string;
   AuthToken: string;
   ErrorMsg: string;
-const
-  AUTH_SCHEMA = 'Bearer';
 begin
   // check if the resource is protected
   if Assigned(FAuthenticationHandler) then
@@ -226,9 +228,9 @@ begin
 
           // retrieve the token from the "authentication Bearer" header
           AuthToken := '';
-          if AuthHeader.Substring(0, AUTH_SCHEMA.Length).ToLower = 'bearer' then
+          if AuthHeader.Substring(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).ToLower = 'bearer' then
           begin
-            AuthToken := AuthHeader.Remove(0, AUTH_SCHEMA.Length).Trim;
+            AuthToken := AuthHeader.Remove(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).Trim;
             AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
           end;
 
@@ -259,9 +261,9 @@ begin
 
     // retrieve the token from the "authentication Bearer" header
     AuthToken := '';
-    if AuthHeader.Substring(0, AUTH_SCHEMA.Length).ToLower = 'bearer' then
+    if AuthHeader.Substring(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).ToLower = 'bearer' then
     begin
-      AuthToken := AuthHeader.Remove(0, AUTH_SCHEMA.Length).Trim;
+      AuthToken := AuthHeader.Remove(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).Trim;
       AuthToken := Trim(TNetEncoding.URL.Decode(AuthToken));
     end;
 
