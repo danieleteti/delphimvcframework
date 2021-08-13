@@ -440,8 +440,8 @@ type
     procedure AddConnection(const aName: string; const aConnection: TFDConnection;
       const Owns: Boolean = false);
     procedure AddDefaultConnection(const aConnection: TFDConnection; const Owns: Boolean = false);
-    procedure RemoveConnection(const aName: string);
-    procedure RemoveDefaultConnection;
+    procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
+    procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
     function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
     function GetCurrentBackend: string;
@@ -468,8 +468,8 @@ type
     procedure AddConnection(const aName: string; const aConnection: TFDConnection;
       const aOwns: Boolean = false);
     procedure AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean = false);
-    procedure RemoveConnection(const aName: string);
-    procedure RemoveDefaultConnection;
+    procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
+    procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
     function GetCurrent(const RaiseExceptionIfNotAvailable: Boolean = True): TFDConnection;
     function GetByName(const aName: string): TFDConnection;
@@ -787,7 +787,7 @@ begin
   Result := Format('%10.10d::%s', [TThread.CurrentThread.ThreadID, aName]);
 end;
 
-procedure TMVCConnectionsRepository.RemoveConnection(const aName: string);
+procedure TMVCConnectionsRepository.RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
 var
   lName: string;
   lKeyName: string;
@@ -799,7 +799,16 @@ begin
   fMREW.BeginWrite;
   try
     if not fConnectionsDict.TryGetValue(lKeyName, lConnHolder) then
-      raise Exception.CreateFmt('Unknown connection %s', [aName]);
+    begin
+      if RaiseExceptionIfNotAvailable then
+      begin
+        raise Exception.CreateFmt('Unknown connection %s', [aName])
+      end
+      else
+      begin
+        Exit;
+      end;
+    end;
     fConnectionsDict.Remove(lKeyName);
     try
       FreeAndNil(lConnHolder);
@@ -815,9 +824,9 @@ begin
   end;
 end;
 
-procedure TMVCConnectionsRepository.RemoveDefaultConnection;
+procedure TMVCConnectionsRepository.RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
 begin
-  RemoveConnection('default');
+  RemoveConnection('default', RaiseExceptionIfNotAvailable);
 end;
 
 procedure TMVCConnectionsRepository.SetCurrent(const aName: string);
