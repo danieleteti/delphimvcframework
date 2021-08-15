@@ -105,7 +105,6 @@
         <DCCReference Include="AppControllerU.pas"/>
         <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
         <DCCReference Include="AuthenticationU.pas"/>
-        <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWTBlacklist.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

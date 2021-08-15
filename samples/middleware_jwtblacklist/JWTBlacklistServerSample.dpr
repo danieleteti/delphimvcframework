@@ -15,8 +15,7 @@ uses
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   AppControllerU in 'AppControllerU.pas',
   MVCFramework.Middleware.JWT in '..\..\sources\MVCFramework.Middleware.JWT.pas',
-  AuthenticationU in 'AuthenticationU.pas',
-  MVCFramework.Middleware.JWTBlacklist in '..\..\sources\MVCFramework.Middleware.JWTBlacklist.pas';
+  AuthenticationU in 'AuthenticationU.pas';
 
 {$R *.res}
 

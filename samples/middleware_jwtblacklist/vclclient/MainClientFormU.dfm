@@ -109,8 +109,6 @@ object MainForm: TMainForm
       ParentFont = False
       ReadOnly = True
       TabOrder = 0
-      ExplicitTop = -95
-      ExplicitHeight = 136
     end
   end
   object Panel3: TPanel
@@ -121,10 +119,6 @@ object MainForm: TMainForm
     Align = alClient
     Caption = 'Panel3'
     TabOrder = 2
-    ExplicitLeft = 240
-    ExplicitTop = 232
-    ExplicitWidth = 185
-    ExplicitHeight = 41
     object Label2: TLabel
       AlignWithMargins = True
       Left = 4
@@ -149,10 +143,6 @@ object MainForm: TMainForm
       ParentFont = False
       ReadOnly = True
       TabOrder = 0
-      ExplicitLeft = 0
-      ExplicitTop = 220
-      ExplicitWidth = 647
-      ExplicitHeight = 240
     end
   end
 end

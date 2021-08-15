@@ -127,7 +127,7 @@ begin
 
   if lResp.Success then
   begin
-    ShowMessage('Now you current JWT has been blacklisted by the server. Any subsequent request with this token is forbidden');
+    ShowMessage('Now your current JWT has been blacklisted by the server. Any subsequent request with this token is forbidden');
   end;
 end;
 

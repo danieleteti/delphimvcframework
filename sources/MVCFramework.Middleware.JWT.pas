@@ -102,6 +102,46 @@ type
     property PasswordHeaderName: string read FPasswordHeaderName;
   end;
 
+  TMVCOnAcceptTokenProc = reference to procedure(AContext: TWebContext; AJWTToken: String;
+    var AAccepted: Boolean);
+  TMVCOnNewJWTToBlackList = reference to procedure(AContext: TWebContext; AJWTToken: String);
+
+  TMVCJWTBlackListMiddleware = class(TInterfacedObject, IMVCMiddleware)
+  private
+    fOnAcceptToken: TMVCOnAcceptTokenProc;
+    fOnNewJWTToBlackList: TMVCOnNewJWTToBlackList;
+    fBlackListRequestURLSegment: string;
+  protected
+    procedure OnBeforeRouting(
+      AContext: TWebContext;
+      var AHandled: Boolean
+      );
+
+    procedure OnBeforeControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string;
+      const AActionName: string;
+      var AHandled: Boolean
+      );
+
+    procedure OnAfterControllerAction(
+      AContext: TWebContext;
+      const AActionName: string;
+      const AHandled: Boolean
+      );
+
+    procedure OnAfterRouting(
+      AContext: TWebContext;
+      const AHandled: Boolean
+      );
+  public
+    constructor Create(
+      OnAcceptToken: TMVCOnAcceptTokenProc;
+      OnNewJWTToBlackList: TMVCOnNewJWTToBlackList;
+      BlackListRequestURLSegment: string = '/logout');
+  end;
+
+
 implementation
 
 uses
@@ -441,5 +481,89 @@ begin
     end;
   end;
 end;
+
+
+constructor TMVCJWTBlackListMiddleware.Create(
+  OnAcceptToken: TMVCOnAcceptTokenProc;
+  OnNewJWTToBlackList: TMVCOnNewJWTToBlackList;
+  BlackListRequestURLSegment: string = '/logout');
+begin
+  inherited Create;
+  fOnAcceptToken := OnAcceptToken;
+  fOnNewJWTToBlackList := OnNewJWTToBlackList;
+  fBlackListRequestURLSegment := BlackListRequestURLSegment;
+  Assert(Assigned(fOnAcceptToken));
+  Assert(not fBlackListRequestURLSegment.IsEmpty);
+end;
+
+procedure TMVCJWTBlackListMiddleware.OnAfterControllerAction(AContext: TWebContext;
+  const AActionName: string; const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCJWTBlackListMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCJWTBlackListMiddleware.OnBeforeControllerAction(
+  AContext: TWebContext; const AControllerQualifiedClassName,
+  AActionName: string; var AHandled: Boolean);
+begin
+  // Implement as needed
+end;
+
+procedure TMVCJWTBlackListMiddleware.OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
+var
+  lAuthHeader: string;
+  lAuthToken: string;
+  lAccepted: Boolean;
+begin
+  lAuthToken := '';
+  lAuthHeader := AContext.Request.Headers[TMVCJWTDefaults.AUTHORIZATION_HEADER];
+  if not lAuthHeader.IsEmpty then
+  begin
+    // retrieve the token from the "authentication Bearer" header
+    if lAuthHeader.Substring(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).ToLower = 'bearer' then
+    begin
+      lAuthToken := lAuthHeader.Remove(0, TMVCJWTDefaults.AUTH_SCHEMA.Length).Trim;
+      lAuthToken := Trim(TNetEncoding.URL.Decode(lAuthToken));
+    end;
+  end;
+
+  if SameText(AContext.Request.PathInfo, fBlackListRequestURLSegment) then
+  begin
+    // add the token in the blacklist
+    if lAuthToken.IsEmpty then
+    begin
+      raise EMVCException.Create(HTTP_STATUS.BadRequest,
+        'JWTToken required - cannot blacklist an unknown token');
+    end;
+    fOnNewJWTToBlackList(AContext, lAuthToken);
+    AContext.Response.StatusCode := HTTP_STATUS.NoContent;
+    AHandled := True;
+  end
+  else
+  begin
+    // just check if token is blacklisted.
+    // if the token is not available, just ignore the check
+    // remember, here jwtmiddleware already did its job.
+    if lAuthToken.IsEmpty then
+    begin
+      AHandled := False;
+    end
+    else
+    begin
+      lAccepted := True;
+      fOnAcceptToken(AContext, lAuthToken, lAccepted);
+      if not lAccepted then
+      begin
+        raise EMVCJWTException.Create(HTTP_STATUS.Forbidden, 'JWT not accepted');
+      end;
+    end;
+  end;
+end;
+
 
 end.

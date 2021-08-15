@@ -8,7 +8,6 @@ uses
   Web.HTTPApp,
   MVCFramework,
   MVCFramework.Commons,
-  MVCFramework.Middleware.JWTBlacklist,
   MVCFramework.Cache;
 
 type
