@@ -268,9 +268,14 @@ type
   TTestUTC = class(TObject)
   public
     [Test]
-    // [Category('this')]
     procedure TestStringToDateTime_Local;
+    [Test]
+    procedure TestStringToDateTime_in_DST_period;
+    [Test]
+    procedure TestStringToDateTime_in_no_DST_period;
+    [Test]
     procedure TestStringToDateTime_NewYork;
+    [Test]
     procedure TestStringToDateTime_Mumbai;
   end;
 
@@ -2050,18 +2055,55 @@ end;
 
 procedure TTestUTC.TestStringToDateTime_Local;
 var
-  lDate: TDateTime;
+  lDate, lDateToCompare: TDateTime;
+  s1,s2: string;
 begin
   // Local time
   lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12');
   Assert.areEqual<TDateTime>(EncodeDateTime(2020, 11, 4, 12, 12, 12, 0), lDate);
 
-  // UTC with no time zone
-  lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12Z');
-  Assert.areEqual<TDateTime>(EncodeDateTime(2020, 11, 4, 12 + TTimeZone.Local.UtcOffset.Hours,
-    12 + TTimeZone.Local.UtcOffset.Minutes, 12, 0), lDate);
+  // UTC with no time zone (in a DST period)
+  lDate := ISOTimeStampToDateTime('2020-08-15T12:12:12Z');
+  lDateToCompare := TTimeZone.Local.ToLocalTime(EncodeDateTime(2020, 8, 15, 12, 12, 12, 0));
+  s1 := DateTimeToStr(lDate);
+  s2 := DateTimeToStr(lDateToCompare);
+  Assert.areEqual(s1,s2, 'UTC with no time zone (in DST period)');
 
+
+  // UTC with no time zone (in no DST period)
+  lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12Z');
+  lDateToCompare := TTimeZone.Local.ToLocalTime(EncodeDateTime(2020, 11, 04, 12, 12, 12, 0));
+  s1 := DateTimeToStr(lDate);
+  s2 := DateTimeToStr(lDateToCompare);
+  Assert.areEqual(s1,s2, 'UTC with no time zone (in no DST period)');
 end;
+
+procedure TTestUTC.TestStringToDateTime_in_DST_period;
+var
+  lDate, lDateToCompare: TDateTime;
+  s1,s2: string;
+begin
+  // UTC with no time zone (in a DST period)
+  lDate := ISOTimeStampToDateTime('2020-08-15T12:12:12Z');
+  lDateToCompare := TTimeZone.Local.ToLocalTime(EncodeDateTime(2020, 8, 15, 12, 12, 12, 0));
+  s1 := DateTimeToStr(lDate);
+  s2 := DateTimeToStr(lDateToCompare);
+  Assert.areEqual(s1,s2, 'UTC with no time zone (in DST period)');
+end;
+
+procedure TTestUTC.TestStringToDateTime_in_no_DST_period;
+var
+  lDate, lDateToCompare: TDateTime;
+  s1,s2: string;
+begin
+  // UTC with no time zone (in no DST period)
+  lDate := ISOTimeStampToDateTime('2020-11-04T12:12:12Z');
+  lDateToCompare := TTimeZone.Local.ToLocalTime(EncodeDateTime(2020, 11, 04, 12, 12, 12, 0));
+  s1 := DateTimeToStr(lDate);
+  s2 := DateTimeToStr(lDateToCompare);
+  Assert.areEqual(s1,s2, 'UTC with no time zone (in no DST period)');
+end;
+
 
 procedure TTestUTC.TestStringToDateTime_Mumbai;
 var
