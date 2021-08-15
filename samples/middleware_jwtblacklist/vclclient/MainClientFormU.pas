@@ -18,14 +18,18 @@ uses
 
 type
   TMainForm = class(TForm)
-    Memo1: TMemo;
-    Memo2: TMemo;
+    MemoJWT: TMemo;
+    MemoRawResponse: TMemo;
     Panel1: TPanel;
     btnGet: TButton;
     btnLOGIN: TButton;
     Splitter2: TSplitter;
     btnLogout: TButton;
     btnPublicResource: TButton;
+    Panel2: TPanel;
+    Label1: TLabel;
+    Panel3: TPanel;
+    Label2: TLabel;
     procedure btnGetClick(Sender: TObject);
     procedure btnLOGINClick(Sender: TObject);
     procedure btnLogoutClick(Sender: TObject);
@@ -73,7 +77,7 @@ begin
   if not lResp.Success then
     ShowMessage(lResp.Content);
 
-  Memo2.Lines.Text := lResp.Content;
+  MemoRawResponse.Lines.Text := lResp.Content;
 end;
 
 procedure TMainForm.btnLOGINClick(Sender: TObject);
@@ -86,6 +90,8 @@ begin
   lClient.ReadTimeOut(0);
   lClient.SetBasicAuthorization('user1', 'user1');
   lRest := lClient.Post('/login');
+  MemoRawResponse.Lines.Text := lRest.Content;
+
   if not lRest.Success then
   begin
     ShowMessage(
@@ -117,10 +123,12 @@ begin
 
   lClient.SetBearerAuthorization(FJWT);
   lResp := lClient.Get('/logout');
-  if not lResp.Success then
-    ShowMessage(lResp.Content)
-  else
+  MemoRawResponse.Lines.Text := lResp.Content;
+
+  if lResp.Success then
+  begin
     ShowMessage('Now you current JWT has been blacklisted by the server. Any subsequent request with this token is forbidden');
+  end;
 end;
 
 procedure TMainForm.btnPublicResourceClick(Sender: TObject);
@@ -133,15 +141,13 @@ begin
   lResp := lClient
     .Accept(TMVCMediaType.APPLICATION_JSON)
     .Get('/public');
-  if not lResp.Success then
-    ShowMessage(lResp.Content);
-  Memo2.Lines.Text := lResp.Content;
+  MemoRawResponse.Lines.Text := lResp.Content;
 end;
 
 procedure TMainForm.SetJWT(const Value: string);
 begin
   FJWT := Value;
-  Memo1.Lines.Text := Value;
+  MemoJWT.Lines.Text := Value;
 end;
 
 end.

@@ -15,7 +15,7 @@ object MainForm: TMainForm
   TextHeight = 13
   object Splitter2: TSplitter
     Left = 0
-    Top = 185
+    Top = 217
     Width = 647
     Height = 3
     Cursor = crVSplit
@@ -23,39 +23,6 @@ object MainForm: TMainForm
     ExplicitLeft = -8
     ExplicitTop = 302
     ExplicitWidth = 513
-  end
-  object Memo1: TMemo
-    Left = 0
-    Top = 49
-    Width = 647
-    Height = 136
-    Align = alTop
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -13
-    Font.Name = 'Courier New'
-    Font.Style = []
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 1
-    ExplicitTop = 65
-  end
-  object Memo2: TMemo
-    Left = 0
-    Top = 188
-    Width = 647
-    Height = 272
-    Align = alClient
-    Font.Charset = ANSI_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -13
-    Font.Name = 'Courier New'
-    Font.Style = []
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 2
-    ExplicitTop = 166
-    ExplicitHeight = 143
   end
   object Panel1: TPanel
     Left = 0
@@ -74,8 +41,6 @@ object MainForm: TMainForm
       Caption = 'Get a protected resource'
       TabOrder = 1
       OnClick = btnGetClick
-      ExplicitLeft = 111
-      ExplicitHeight = 57
     end
     object btnLOGIN: TButton
       AlignWithMargins = True
@@ -87,8 +52,6 @@ object MainForm: TMainForm
       Caption = 'Login'
       TabOrder = 0
       OnClick = btnLOGINClick
-      ExplicitLeft = 4
-      ExplicitHeight = 57
     end
     object btnLogout: TButton
       AlignWithMargins = True
@@ -101,8 +64,6 @@ object MainForm: TMainForm
       TabOrder = 2
       WordWrap = True
       OnClick = btnLogoutClick
-      ExplicitLeft = 271
-      ExplicitTop = 2
     end
     object btnPublicResource: TButton
       AlignWithMargins = True
@@ -114,6 +75,84 @@ object MainForm: TMainForm
       Caption = 'Get a public resource'
       TabOrder = 3
       OnClick = btnPublicResourceClick
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 49
+    Width = 647
+    Height = 168
+    Align = alTop
+    Caption = 'Panel2'
+    TabOrder = 1
+    object Label1: TLabel
+      AlignWithMargins = True
+      Left = 4
+      Top = 4
+      Width = 639
+      Height = 13
+      Align = alTop
+      Caption = 'Current Token'
+      ExplicitWidth = 69
+    end
+    object MemoJWT: TMemo
+      Left = 1
+      Top = 20
+      Width = 645
+      Height = 147
+      Align = alClient
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Style = []
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 0
+      ExplicitTop = -95
+      ExplicitHeight = 136
+    end
+  end
+  object Panel3: TPanel
+    Left = 0
+    Top = 220
+    Width = 647
+    Height = 240
+    Align = alClient
+    Caption = 'Panel3'
+    TabOrder = 2
+    ExplicitLeft = 240
+    ExplicitTop = 232
+    ExplicitWidth = 185
+    ExplicitHeight = 41
+    object Label2: TLabel
+      AlignWithMargins = True
+      Left = 4
+      Top = 4
+      Width = 639
+      Height = 13
+      Align = alTop
+      Caption = 'Raw Response'
+      ExplicitWidth = 71
+    end
+    object MemoRawResponse: TMemo
+      Left = 1
+      Top = 20
+      Width = 645
+      Height = 219
+      Align = alClient
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'Courier New'
+      Font.Style = []
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 0
+      ExplicitLeft = 0
+      ExplicitTop = 220
+      ExplicitWidth = 647
+      ExplicitHeight = 240
     end
   end
 end

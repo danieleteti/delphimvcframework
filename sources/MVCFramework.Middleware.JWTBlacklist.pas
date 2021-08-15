@@ -136,7 +136,7 @@ begin
         'JWTToken required - cannot blacklist an unknown token');
     end;
     fOnNewJWTToBlackList(AContext, lAuthToken);
-    AContext.Response.StatusCode := HTTP_STATUS.OK;
+    AContext.Response.StatusCode := HTTP_STATUS.NoContent;
     AHandled := True;
   end
   else
