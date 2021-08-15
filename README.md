@@ -424,26 +424,45 @@ This version introduced new features in many different areas (swagger, server si
 ## Next Release: 3.2.2-nitrogen ("repo" version)
 
 - ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
+
 - ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
+
 - ⚡Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
+
 - ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
+
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+
 - ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
+
 - ⚡Improved! Add parameter to set local timeStamp as UTC.
+
 - ⚡Improved OpenAPI (Swagger) support.
+
 - ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
+
 - ⚡Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+
 - ⚡Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
+
 - ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
+
 - ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
+
 - ⚡New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
+
+- ⚡New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
+
+    > This middleware provides 2 events named: `OnAcceptToken` (invoked when a request contains a token - need to returns true/false if the token is still accepted by the server or not) and  `OnNewJWTToBlackList` (invoked when a client ask to blacklist its current token). There is a new sample available which shows the funtionalities: `samples\middleware_jwtblacklist`.
+
 - ⚡New! `MVCFromBody` attribute, useful to automatically inject the request body as actual object in the action paramaters. For instance in the following action the body request is automatically deserialized as an object of class TPerson.
+
     ```delphi
     //interface
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/people')]
     procedure CreatePerson(const [MVCFromBody] Person: TPerson);
-
+    
     //implementation
     procedure TRenderSampleController.CreatePerson(const Person: TPerson);
     begin
@@ -459,7 +478,7 @@ This version introduced new features in many different areas (swagger, server si
     [MVCPath('/bulk')]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
-
+    
     //implementation
     procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
     var
@@ -479,7 +498,7 @@ This version introduced new features in many different areas (swagger, server si
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/invoices')]
     procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate);
-
+    
     //implementation
     procedure TRenderSampleController.GetInvoices(const FromDate: TDate);
     begin
@@ -488,13 +507,14 @@ This version introduced new features in many different areas (swagger, server si
       //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
+    
 - ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
     ```delphi
     //interface
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/invoices')]
     procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate; const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String);
-
+    
     //implementation
     procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String);
     begin
@@ -502,6 +522,7 @@ This version introduced new features in many different areas (swagger, server si
       //If the header doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
+    
 - ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
     ```delphi
     //interface
@@ -512,7 +533,7 @@ This version introduced new features in many different areas (swagger, server si
       const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String;
       const [MVCFromCookie('MyCoolCookie')] MyCoolCookie: TDate;
       );
-
+    
     //implementation
     procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String; const MyCoolCookie: TDate);
     begin
