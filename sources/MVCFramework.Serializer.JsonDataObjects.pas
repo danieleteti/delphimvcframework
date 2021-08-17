@@ -92,7 +92,8 @@ type
     function TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject; const AName: string): Boolean;
     procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
-    procedure JsonDataValueToAttribute(const AJsonObject: TJDOJsonObject; const AName: string; var AValue: TValue;
+    procedure JsonDataValueToAttribute(const AObject: TObject; const ARttiMember: TRttiMember;
+      const AJsonObject: TJDOJsonObject; const AName: string; var AValue: TValue;
       const AType: TMVCSerializationType; const AIgnored: TMVCIgnoredList;
       const ACustomAttributes: TArray<TCustomAttribute>);
     procedure JsonArrayToList(const AJsonArray: TJDOJsonArray; const AList: IMVCList; const AClazz: TClass;
@@ -1098,14 +1099,18 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.JsonDataValueToAttribute(const AJsonObject: TJDOJsonObject; const AName: string;
-  var AValue: TValue; const AType: TMVCSerializationType; const AIgnored: TMVCIgnoredList;
-  const ACustomAttributes: TArray<TCustomAttribute>);
+procedure TMVCJsonDataObjectsSerializer.JsonDataValueToAttribute(
+  const AObject: TObject;
+  const ARttiMember: TRttiMember;
+  const AJsonObject: TJDOJsonObject;
+  const AName: string; var AValue: TValue; const AType: TMVCSerializationType;
+  const AIgnored: TMVCIgnoredList; const ACustomAttributes: TArray<TCustomAttribute>);
 var
   ChildObject: TObject;
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
   LEnumAsAttr: MVCEnumSerializationAttribute;
+  lOwnedAttribute: MVCOwnedAttribute;
   LEnumMappedValues: TList<string>;
   LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
@@ -1113,17 +1118,85 @@ var
   lOutInteger: Integer;
   lOutInteger64: Int64;
   lTypeInfo: PTypeInfo;
+  lJSONExists: Boolean;
+  lJSONIsNull: Boolean;
+  lChildObjectAssigned: Boolean;
 begin
+  ChildObject := nil;
   lTypeInfo := AValue.TypeInfo;
   if AValue.Kind in [tkClass, tkInterface] then
   begin
-    ChildObject := nil;
-    if not AValue.IsEmpty and (AValue.Kind = tkInterface) then
-      ChildObject := TObject(AValue.AsInterface)
-    else if AValue.Kind = tkClass then
-      ChildObject := AValue.AsObject;
+    if not AValue.IsEmpty then
+    begin
+      if AValue.Kind = tkInterface then
+        ChildObject := TObject(AValue.AsInterface)
+      else
+        ChildObject := AValue.AsObject;
+    end;
+
     if Assigned(ChildObject) then
-      lTypeInfo := ChildObject.ClassInfo;
+    begin
+      lTypeInfo := ChildObject.ClassInfo
+    end;
+
+    if TMVCSerializerHelper.AttributeExists<MVCOwnedAttribute>(ACustomAttributes, lOwnedAttribute) then
+    begin
+      { Now, can happens the following situations:
+
+         ChildObject   JSON        Outcome
+         -----------   ---------   ----------------------------------------------------
+      1) Created       Exists      The JSON is loaded in the object (default)
+      2) Created       NotExists   Leave unchanged
+      3) Created       is Null     If ChildObject is Owned must be destroyed
+      4) nil           Exists      If ChildObject is Owned, create it and load the json
+      5) nil           NotExists   Leave unchanged
+      6) nil           is Null     Leave unchanged
+
+
+      --> So, we'll manage only case 3 and 4 <--
+
+      }
+
+      lJSONExists := AJsonObject.Contains(AName);
+      lJSONIsNull := lJSONExists and AJsonObject.IsNull(AName);
+      lChildObjectAssigned := ChildObject <> nil;
+
+      //case 3
+      if lChildObjectAssigned and lJSONIsNull then
+      begin
+        ChildObject.Free;
+        case AType of
+          stUnknown, stDefault, stProperties:
+            TRttiProperty(ARttiMember).SetValue(AObject, nil);
+          stFields:
+            TRttiField(ARttiMember).SetValue(AObject, nil);
+        end;
+      end
+      //case 4
+      else if (not lChildObjectAssigned) and lJSONExists and (not lJSONIsNull) then
+      begin
+        if lOwnedAttribute.ClassRef <> nil then
+        begin
+          ChildObject := TMVCSerializerHelper.CreateObject(lOwnedAttribute.ClassRef.QualifiedClassName);
+        end
+        else
+        begin
+          case AType of
+            stUnknown, stDefault, stProperties:
+              ChildObject :=  TMVCSerializerHelper.CreateObject(TRttiProperty(ARttiMember).PropertyType);
+            stFields:
+              ChildObject :=  TMVCSerializerHelper.CreateObject(TRttiField(ARttiMember).FieldType);
+          end;
+        end;
+        lTypeInfo := ChildObject.ClassInfo;
+        case AType of
+          stUnknown, stDefault, stProperties:
+            TRttiProperty(ARttiMember).SetValue(AObject, ChildObject);
+          stFields:
+            TRttiField(ARttiMember).SetValue(AObject, ChildObject);
+        end;
+      end; //end cases
+    end;
   end;
 
   if GetTypeSerializers.ContainsKey(lTypeInfo) then
@@ -1325,13 +1398,13 @@ begin
             case AValue.Kind of
               tkInterface:
                 begin
-                  ChildObject := TObject(AValue.AsInterface);
+                  //ChildObject := TObject(AValue.AsInterface);
                   JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType),
                     AIgnored);
                 end;
               tkClass:
                 begin
-                  ChildObject := AValue.AsObject;
+                  //ChildObject := AValue.AsObject;
                   JsonObjectToObject(AJsonObject.O[AName], ChildObject, GetSerializationType(ChildObject, AType),
                     AIgnored);
                 end;
@@ -1511,8 +1584,9 @@ begin
   end;
 end;
 
-procedure TMVCJsonDataObjectsSerializer.JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
-  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+procedure TMVCJsonDataObjectsSerializer.JsonObjectToObject(const AJsonObject: TJDOJsonObject;
+  const AObject: TObject; const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList);
 var
   lObjType: TRttiType;
   lProp: TRttiProperty;
@@ -1558,7 +1632,9 @@ begin
             begin
               lAttributeValue := lProp.GetValue(AObject);
               lKeyName := TMVCSerializerHelper.GetKeyName(lProp, lObjType);
-              JsonDataValueToAttribute(AJsonObject, lKeyName, lAttributeValue, AType, AIgnoredAttributes,
+              JsonDataValueToAttribute(
+                AObject, lProp,
+                AJsonObject, lKeyName, lAttributeValue, AType, AIgnoredAttributes,
                 lProp.GetAttributes);
               if (not lAttributeValue.IsEmpty) and (not lAttributeValue.IsObject) and lProp.IsWritable then
               begin
@@ -1592,9 +1668,12 @@ begin
             begin
               lAttributeValue := lFld.GetValue(AObject);
               lKeyName := TMVCSerializerHelper.GetKeyName(lFld, lObjType);
-              JsonDataValueToAttribute(AJsonObject, lKeyName, lAttributeValue, AType, AIgnoredAttributes,
-                lFld.GetAttributes);
-              if not lAttributeValue.IsEmpty then
+              JsonDataValueToAttribute(
+                AObject, lFld,
+                AJsonObject, lKeyName,
+                lAttributeValue, AType,
+                AIgnoredAttributes, lFld.GetAttributes);
+              if (not lAttributeValue.IsEmpty) and (not lAttributeValue.IsObject) then
                 lFld.SetValue(AObject, lAttributeValue);
             end;
         except

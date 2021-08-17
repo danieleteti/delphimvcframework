@@ -308,6 +308,14 @@ type
     procedure PostInject50(const [MVCFromBody] People: TObjectList<TPerson>);
 
 
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/programmerex')]
+    procedure CreateProgrammerEx(const [MVCFromBody] ProgrammerEx: TProgrammerEx);
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/programmerex2')]
+    procedure CreateProgrammerEx2(const [MVCFromBody] ProgrammerEx2: TProgrammerEx2);
+
     { templates }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/website/list')]
@@ -361,6 +369,18 @@ uses
   System.Classes, MVCFramework.Tests.Serializer.Entities;
 
 { TTestServerController }
+
+procedure TTestServerController.CreateProgrammerEx(
+  const ProgrammerEx: TProgrammerEx);
+begin
+  Render(ProgrammerEx, False);
+end;
+
+procedure TTestServerController.CreateProgrammerEx2(
+  const ProgrammerEx2: TProgrammerEx2);
+begin
+  Render(ProgrammerEx2, False);
+end;
 
 procedure TTestServerController.DataSetHandling;
 begin

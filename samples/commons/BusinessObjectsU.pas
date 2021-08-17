@@ -269,6 +269,28 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
+  TProgrammerEx = class(TProgrammer)
+  private
+    [MVCOwned] //required only for field serialization
+    FMentor: TProgrammerEx;
+  public
+    destructor Destroy; override;
+    [MVCOwned] //required only for property serialization
+    property Mentor: TProgrammerEx read FMentor write fMentor;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  TProgrammerEx2 = class(TProgrammer)
+  private
+    FMentor: TProgrammer;
+  public
+    destructor Destroy; override;
+    [MVCOwned(TProgrammerEx2)]
+    property Mentor: TProgrammer read FMentor write fMentor;
+  end;
+
+
+  [MVCNameCase(ncLowerCase)]
   TPhilosopher = class(TPerson)
   private
     FMentors: string;
@@ -657,6 +679,22 @@ begin
     raise Exception.Create('DataSet Already Initialized');
   end;
   fPeople := Value;
+end;
+
+{ TProgrammerEx }
+
+destructor TProgrammerEx.Destroy;
+begin
+  FMentor.Free;
+  inherited;
+end;
+
+{ TProgrammerEx2 }
+
+destructor TProgrammerEx2.Destroy;
+begin
+  FMentor.Free;
+  inherited;
 end;
 
 initialization

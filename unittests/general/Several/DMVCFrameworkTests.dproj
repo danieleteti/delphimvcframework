@@ -219,6 +219,7 @@
         </DCCReference>
         <DCCReference Include="..\..\..\sources\MVCFramework.Commons.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
