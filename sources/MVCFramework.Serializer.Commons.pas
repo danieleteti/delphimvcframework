@@ -48,7 +48,7 @@ uses
   MVCFramework.Commons,
   Data.DB,
   System.Generics.Collections,
-  JsonDataObjects;
+  JsonDataObjects, MVCFramework.DuckTyping;
 
 type
   EMVCSerializationException = class(EMVCException)
@@ -371,6 +371,17 @@ type
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
     property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
+  end;
+
+  IMVCJSONSerializer = interface
+    ['{1FB9E04A-D1D6-4C92-B945-257D81B39A25}']
+    procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+    procedure ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+      const ASerializationAction: TMVCSerializationAction = nil);
+    procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
   end;
 
 var

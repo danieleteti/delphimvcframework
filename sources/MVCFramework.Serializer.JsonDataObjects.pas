@@ -64,7 +64,7 @@ type
     procedure LoadFromString(const Value: string; Encoding: TEncoding = nil; Utf8WithoutBOM: Boolean = True);
   end;
 
-  TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer)
+  TMVCJsonDataObjectsSerializer = class(TMVCAbstractSerializer, IMVCSerializer, IMVCJSONSerializer)
   private
     fStringDictionarySerializer: IMVCTypeSerializer;
     function TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
