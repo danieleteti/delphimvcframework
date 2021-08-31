@@ -564,6 +564,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - Fix for nil objects in lists during serialization
 - Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489
+- Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
 
 ## Older Releases
 

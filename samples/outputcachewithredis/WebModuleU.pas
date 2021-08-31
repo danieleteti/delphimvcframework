@@ -41,7 +41,8 @@ begin
     procedure(Config: TMVCConfig)
     begin
       // required by the TMVCCacheController
-      MVC.Config['redis_connection_string'] := '127.0.0.1:6379';
+      Config['redis_connection_string'] := '127.0.0.1:6379';
+      Config['redis_connection_key'] := '';
     end);
 
   MVC.AddController(TPeopleController);

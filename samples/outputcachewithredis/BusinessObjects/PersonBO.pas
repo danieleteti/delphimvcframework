@@ -2,7 +2,11 @@ unit PersonBO;
 
 interface
 
+uses
+  MVCFramework.Serializer.Commons;
+
 type
+  [MVCNameCase(ncCamelCase)]
   TPerson = class
   private
     FWORK_PHONE_NUMBER: String;
