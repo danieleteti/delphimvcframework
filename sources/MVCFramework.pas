@@ -1307,30 +1307,9 @@ begin
       lSerializer.DeserializeObject(Body, AObject)
     else
     begin
-      if ContentType.Trim.IsEmpty then
-      begin
-        raise EMVCException.Create('Request ContentType header is empty, cannot deserialize body');
-      end
-      else
-      begin
-        raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
-      end;
+      raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
     end;
 end;
-
-// function TMVCWebRequest.HeaderNames: TArray<String>;
-// var
-// lHeaderList: TIdHeaderList;
-// I: Integer;
-// begin
-// EnsureINDY;
-// lHeaderList := THackIdHTTPAppRequest(TMVCIndyWebRequest(Self).RawWebRequest).FRequestInfo.RawHeaders;
-// SetLength(Result, lHeaderList.Count);
-// for I := 0 to Pred(lHeaderList.Count) do
-// begin
-// Result[I] := lHeaderList.Names[I];
-// end;
-// end;
 
 procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>);
 var
@@ -1340,7 +1319,9 @@ begin
     if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
       lSerializer.DeserializeCollection(Body, AObjectList, T)
     else
+    begin
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
+    end;
 end;
 
 function TMVCWebRequest.ClientIp: string;
@@ -1415,7 +1396,6 @@ constructor TMVCWebRequest.Create(const AWebRequest: TWebRequest;
 begin
   inherited Create;
   FBody := EmptyStr;
-  // FContentType := TMVCConstants.DEFAULT_CONTENT_TYPE;
   FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
   FWebRequest := AWebRequest;
   FSerializers := ASerializers;
@@ -1425,9 +1405,23 @@ end;
 
 procedure TMVCWebRequest.DefineContentType;
 begin
-  SplitContentMediaTypeAndCharset(FWebRequest.GetFieldByName('Content-Type'), FContentMediaType,
-    FCharset);
-  FContentType := BuildContentType(FContentMediaType, FCharset);
+  if FWebRequest.MethodType in [mtPut, mtPost, mtPatch] then
+  begin
+    SplitContentMediaTypeAndCharset(FWebRequest.GetFieldByName('Content-Type'), FContentMediaType,
+      FCharset);
+    { if request doesn't contain content-type }
+    if FContentMediaType.IsEmpty then
+      FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+    if FCharset.IsEmpty then
+      FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+    FContentType := BuildContentType(FContentMediaType, FCharset);
+  end
+  else
+  begin
+    FContentMediaType := '';
+    FCharset := '';
+    FContentType := '';
+  end;
 end;
 
 destructor TMVCWebRequest.Destroy;

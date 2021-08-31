@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -49,6 +49,8 @@ type
     procedure Teardown;
     [Test]
     procedure TestCRUD;
+    [Test]
+    procedure Test_ISSUE485;
     [Test]
     procedure TestDeleteIfNotFound;
     [Test]
@@ -811,6 +813,53 @@ begin
         lCustomer.Update(True);
       end, EMVCActiveRecordNotFound);
 
+  finally
+    lCustomer.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.Test_ISSUE485;
+var
+  lCustomer: TCustomer;
+  lID: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>());
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.CreationTime := Time;
+    lCustomer.CreationDate := Date;
+    lCustomer.ID := -1; { don't be fooled by the default! }
+    lCustomer.Insert;
+    lID := lCustomer.ID;
+    Assert.AreEqual(1, lID);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert.IsTrue(lCustomer.CompanyName.HasValue);
+    lCustomer.CompanyName.Clear;
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert.IsFalse(lCustomer.CompanyName.HasValue);
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID);
+  try
+    Assert.IsTrue(lCustomer.CompanyName.HasValue);
   finally
     lCustomer.Free;
   end;

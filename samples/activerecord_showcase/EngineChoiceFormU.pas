@@ -25,7 +25,7 @@ type
     fSelectedRDBMS: TRDBMSEngine;
     function SelectedRDBMS: TRDBMSEngine;
   public
-    class function Execute: TRDBMSEngine;
+    class function Execute(out Engine: TRDBMSEngine): Boolean;
   end;
 
 implementation
@@ -39,20 +39,16 @@ begin
   ModalResult := mrOk;
 end;
 
-class function TEngineChoiceForm.Execute: TRDBMSEngine;
+class function TEngineChoiceForm.Execute(out Engine: TRDBMSEngine): Boolean;
 var
   lFrm: TEngineChoiceForm;
 begin
-  Result := TRDBMSEngine.PostgreSQL;
   lFrm := TEngineChoiceForm.Create(nil);
   try
-    if lFrm.ShowModal = mrOk then
+    Result := lFrm.ShowModal = mrOk;
+    if Result then
     begin
-      Result := lFrm.SelectedRDBMS;
-    end
-    else
-    begin
-      Application.Terminate;
+      Engine := lFrm.SelectedRDBMS;
     end;
   finally
     lFrm.Free;

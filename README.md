@@ -13,6 +13,7 @@
     - [Improvements](#improvements)
     - [Bug Fixes](#bug-fixes)
   - [Next Release: 3.2.2-nitrogen ("repo" version)](#next-release-322-nitrogen-repo-version)
+    - [Whet's new in 3.2.2-nitrogen (currently in beta)](#whets-new-in-322-nitrogen-currently-in-beta)
     - [Bug Fixes in 3.2.2-nitrogen](#bug-fixes-in-322-nitrogen)
   - [Older Releases](#older-releases)
     - [What's New in 3.2.0-boron](#whats-new-in-320-boron)
@@ -423,25 +424,52 @@ This version introduced new features in many different areas (swagger, server si
 
 ## Next Release: 3.2.2-nitrogen ("repo" version)
 
+The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
+
+### Whet's new in 3.2.2-nitrogen (currently in beta)
+
 - ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
+
 - ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
+
 - ⚡Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
+
 - ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
+
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+
 - ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
+
 - ⚡Improved! Add parameter to set local timeStamp as UTC.
+
 - ⚡Improved OpenAPI (Swagger) support.
+
 - ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
+
 - ⚡Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+
 - ⚡Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
+
 - ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
+
+- ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
+
+- ⚡New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
+
+- ⚡New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.
+
+- ⚡New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
+
+    > This middleware provides 2 events named: `OnAcceptToken` (invoked when a request contains a token - need to returns true/false if the token is still accepted by the server or not) and  `OnNewJWTToBlackList` (invoked when a client ask to blacklist its current token). There is a new sample available which shows the funtionalities: `samples\middleware_jwtblacklist`.
+
 - ⚡New! `MVCFromBody` attribute, useful to automatically inject the request body as actual object in the action paramaters. For instance in the following action the body request is automatically deserialized as an object of class TPerson.
+
     ```delphi
     //interface
     [MVCHTTPMethod([httpPOST])]
     [MVCPath('/people')]
     procedure CreatePerson(const [MVCFromBody] Person: TPerson);
-
+    
     //implementation
     procedure TRenderSampleController.CreatePerson(const Person: TPerson);
     begin
@@ -457,7 +485,7 @@ This version introduced new features in many different areas (swagger, server si
     [MVCPath('/bulk')]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
-
+    
     //implementation
     procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
     var
@@ -477,7 +505,7 @@ This version introduced new features in many different areas (swagger, server si
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/invoices')]
     procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate);
-
+    
     //implementation
     procedure TRenderSampleController.GetInvoices(const FromDate: TDate);
     begin
@@ -486,13 +514,14 @@ This version introduced new features in many different areas (swagger, server si
       //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
+    
 - ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
     ```delphi
     //interface
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/invoices')]
     procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate; const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String);
-
+    
     //implementation
     procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String);
     begin
@@ -500,6 +529,7 @@ This version introduced new features in many different areas (swagger, server si
       //If the header doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
+    
 - ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
     ```delphi
     //interface
@@ -510,7 +540,7 @@ This version introduced new features in many different areas (swagger, server si
       const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String;
       const [MVCFromCookie('MyCoolCookie')] MyCoolCookie: TDate;
       );
-
+    
     //implementation
     procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String; const MyCoolCookie: TDate);
     begin
@@ -530,8 +560,11 @@ This version introduced new features in many different areas (swagger, server si
 - Fix https://github.com/danieleteti/delphimvcframework/issues/461
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
 - Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
+- Fix https://github.com/danieleteti/delphimvcframework/issues/451
 - Fix for nil objects in lists during serialization
 - Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
+- Fix https://github.com/danieleteti/delphimvcframework/issues/489
+- Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
 
 ## Older Releases
 

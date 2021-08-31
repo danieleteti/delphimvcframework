@@ -438,7 +438,6 @@ var
   lCustomer: TCustomer;
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
-  lMultiExecutor: IMVCMultiExecutor<TCustomer>;
 begin
   Log('** IMVCMultiExecutor demo');
   TMVCActiveRecord.DeleteAll(TCustomer);
@@ -1276,12 +1275,19 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
+  ActiveRecordConnectionsRegistry.RemoveDefaultConnection(False);
 end;
 
 procedure TMainForm.FormShow(Sender: TObject);
+var
+  lEngine: TRDBMSEngine;
 begin
-  case TEngineChoiceForm.Execute of
+  if not TEngineChoiceForm.Execute(lEngine) then
+  begin
+    Close;
+    Exit;
+  end;
+  case lEngine of
     TRDBMSEngine.PostgreSQL:
       begin
         FDConnectionConfigU.CreatePostgresqlPrivateConnDef(True);

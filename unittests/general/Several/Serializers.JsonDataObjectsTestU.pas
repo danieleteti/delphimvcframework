@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -58,7 +58,6 @@ type
 
     { serialize declarations }
     [Test]
-    // [Category('this')]
     procedure TestSerializeAllTypes;
     [Test]
     procedure TestSerializeDateTimeProperty;
@@ -73,7 +72,6 @@ type
     [Test]
     procedure TestSerializeEntityUpperCaseNames;
     [Test]
-    // [Category('this')]
     procedure TestSerializeEntityWithArray;
     [Test]
     procedure TestSerializeEntityLowerCaseNames;
@@ -139,6 +137,38 @@ type
     [Test]
     [Category('serializers')]
     procedure TestSerializeListWithNulls2;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithPropertyAssigned_JSONExists;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithPropertyAssigned_JSONNull;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithPropertyAssigned_JSONNotExists;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithPropertyUnAssigned_JSONNull;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithFieldsUnassigned_JSONExists;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedField_WithFieldsAssigned_JSONNull;
+
+    [Test]
+    [Category('serializers')]
+    procedure TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists_Polimorphic;
   end;
 
   TMVCEntityCustomSerializerJsonDataObjects = class(TInterfacedObject, IMVCTypeSerializer)
@@ -575,6 +605,244 @@ begin
     CheckObject(O);
   finally
     O.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists;
+const
+  lJSON = '{' +
+  ' "skills": "",' +
+  '  "id": 2,' +
+  '  "firstname": "child firstname",' +
+  '  "lastname": "child lastname",' +
+  '  "dob": null,' +
+  '  "married": false,' +
+	'  "mentor": { ' +
+  '			"mentor": null, ' +
+  '			"skills": "superb programmer", ' +
+  '			"firstname": "mentor firstname", ' +
+  '			"lastname": "mentor lasttname", ' +
+  '			"dob": null, ' +
+  '			"married": false, ' +
+  '			"id": 2 ' +
+  '			}' +
+  '  }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNotNull(lProgrammerEx.Mentor);
+    Assert.IsNull(lProgrammerEx.Mentor.Mentor);
+    Assert.AreEqual('mentor firstname', lProgrammerEx.Mentor.FirstName);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyUnassigned_JSONExists_Polimorphic;
+const
+  lJSON = '{' +
+  ' "skills": "",' +
+  '  "id": 2,' +
+  '  "firstname": "child firstname",' +
+  '  "lastname": "child lastname",' +
+  '  "dob": null,' +
+  '  "married": false,' +
+	'  "mentor": { ' +
+  '			"mentor": null, ' +
+  '			"skills": "superb programmer", ' +
+  '			"firstname": "mentor firstname", ' +
+  '			"lastname": "mentor lasttname", ' +
+  '			"dob": null, ' +
+  '			"married": false, ' +
+  '			"id": 2 ' +
+  '			}' +
+  '  }';
+var
+  lProgrammerEx: TProgrammerEx2;
+begin
+  lProgrammerEx := TProgrammerEx2.Create;
+  try
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNotNull(lProgrammerEx.Mentor);
+    Assert.IsTrue(lProgrammerEx.Mentor is TProgrammerEx2, lProgrammerEx.Mentor.ClassName);
+    Assert.AreEqual('mentor firstname', lProgrammerEx.Mentor.FirstName);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyUnAssigned_JSONNull;
+const
+  lJSON = '{' +
+  ' "skills": "",' +
+  '  "id": 2,' +
+  '  "firstname": "child firstname",' +
+  '  "lastname": "child lastname",' +
+  '  "dob": null,' +
+  '  "married": false,' +
+	'  "mentor": null ' +
+  '  }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNull(lProgrammerEx.Mentor);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedField_WithFieldsAssigned_JSONNull;
+const
+  lJSON = '{' +
+  ' "fskills": "",' +
+  ' "fid": 2,' +
+  ' "ffirstname": "child firstname",' +
+  ' "flastname": "child lastname",' +
+  ' "fdob": null,' +
+  ' "fmarried": false,' +
+	' "fmentor": null ' +
+  ' }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    lProgrammerEx.Mentor := TProgrammerEx.Create;
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx, stFields);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNull(lProgrammerEx.Mentor);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithFieldsUnassigned_JSONExists;
+const
+  lJSON = '{' +
+  ' "fskills": "",' +
+  ' "fid": 2,' +
+  ' "ffirstname": "child firstname",' +
+  ' "flastname": "child lastname",' +
+  ' "fdob": null,' +
+  ' "fmarried": false,' +
+	' "fmentor": { ' +
+  '			"fmentor": null, ' +
+  '			"fskills": "superb programmer", ' +
+  '			"ffirstname": "mentor firstname", ' +
+  '			"flastname": "mentor lasttname", ' +
+  '			"fdob": null, ' +
+  '			"fmarried": false, ' +
+  '			"fid": 2 ' +
+  '			}' +
+  ' }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx, stFields);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNotNull(lProgrammerEx.Mentor);
+    Assert.IsNull(lProgrammerEx.Mentor.Mentor);
+    Assert.AreEqual('mentor firstname', lProgrammerEx.Mentor.FirstName);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyAssigned_JSONExists;
+const
+  lJSON = '{' +
+  ' "skills": "",' +
+  '  "id": 2,' +
+  '  "firstname": "child firstname",' +
+  '  "lastname": "child lastname",' +
+  '  "dob": null,' +
+  '  "married": false,' +
+	'  "mentor": { ' +
+  '			"mentor": null, ' +
+  '			"skills": "superb programmer", ' +
+  '			"firstname": "mentor firstname", ' +
+  '			"lastname": "mentor lasttname", ' +
+  '			"dob": null, ' +
+  '			"married": false, ' +
+  '			"id": 2 ' +
+  '			}' +
+  '  }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    lProgrammerEx.Mentor := TProgrammerEx.Create;
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNotNull(lProgrammerEx.Mentor);
+    Assert.IsNull(lProgrammerEx.Mentor.Mentor);
+    Assert.AreEqual('mentor firstname', lProgrammerEx.Mentor.FirstName);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyAssigned_JSONNotExists;
+const
+  lJSON = '{' +
+  ' "skills": "",' +
+  '  "id": 2,' +
+  '  "firstname": "child firstname",' +
+  '  "lastname": "child lastname",' +
+  '  "dob": null,' +
+  '  "married": false' +
+  '  }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    lProgrammerEx.Mentor := TProgrammerEx.Create;
+    lProgrammerEx.Mentor.FirstName := 'existent_value';
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNotNull(lProgrammerEx.Mentor);
+    Assert.AreEqual('existent_value', lProgrammerEx.Mentor.FirstName);
+  finally
+    lProgrammerEx.Free;
+  end;
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestDeserializeOwnedProperty_WithPropertyAssigned_JSONNull;
+const
+  lJSON = '{' +
+  ' "skills": "",' +
+  '  "id": 2,' +
+  '  "firstname": "child firstname",' +
+  '  "lastname": "child lastname",' +
+  '  "dob": null,' +
+  '  "married": false,' +
+	'  "mentor": null ' +
+  '  }';
+var
+  lProgrammerEx: TProgrammerEx;
+begin
+  lProgrammerEx := TProgrammerEx.Create;
+  try
+    lProgrammerEx.Mentor := TProgrammerEx.Create;
+    fSerializer.DeserializeObject(lJSON, lProgrammerEx);
+    Assert.AreEqual('child firstname', lProgrammerEx.FirstName);
+    Assert.IsNull(lProgrammerEx.Mentor);
+  finally
+    lProgrammerEx.Free;
   end;
 end;
 

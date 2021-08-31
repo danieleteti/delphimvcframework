@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -185,6 +185,15 @@ type
     property MappedValues: TList<string> read FMappedValues;
   end;
 
+
+  MVCOwnedAttribute = class(TCustomAttribute)
+  private
+    fClassRef: TClass;
+  public
+    constructor Create(const ClassRef: TClass = nil);
+    property ClassRef: TClass read fClassRef;
+  end;
+
   TMVCSerializerHelper = record
   private
     { private declarations }
@@ -214,7 +223,7 @@ type
     class function StringToTypeKind(const AValue: string): TTypeKind; static;
     class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
     class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
-    class function IsAPropertyToSkip(const aPropName: string): Boolean; static;
+    class function IsAPropertyToSkip(const aPropName: string): Boolean; static; inline;
   end;
 
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
@@ -1729,6 +1738,14 @@ begin
   if fOwns then
     fData.Free;
   inherited;
+end;
+
+{ MVCOwnedAttribute }
+
+constructor MVCOwnedAttribute.Create(const ClassRef: TClass);
+begin
+  inherited Create;
+  fClassRef := ClassRef;
 end;
 
 initialization

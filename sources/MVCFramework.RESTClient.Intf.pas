@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -299,25 +299,44 @@ type
       const aSynchronized: Boolean = False): IMVCRESTClient;
 
     /// <summary>
-    /// Execute a Get request.
+    /// Execute a Get request. The GET method requests a representation of the specified resource.
+    /// Requests using GET should only retrieve data.
+    /// Sending body/payload in a GET request may cause some existing implementations to
+    /// reject the request — while not prohibited by the specification, the semantics
+    /// are undefined. It is better to just avoid sending payloads in GET requests.
     /// </summary>
     function Get(const aResource: string): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Get request. The GET method requests a representation of the specified resource.
+    /// Requests using GET should only retrieve data.
+    /// Sending body/payload in a GET request may cause some existing implementations to
+    /// reject the request — while not prohibited by the specification, the semantics
+    /// are undefined. It is better to just avoid sending payloads in GET requests.
+    /// </summary>
     function Get: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Head request.
+    /// Execute a Head request. The HEAD method asks for a response identical
+    /// to that of a GET request, but without the response body.
     /// </summary>
     function Head(const aResource: string): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Head request. The HEAD method asks for a response identical
+    /// to that of a GET request, but without the response body.
+    /// </summary>
     function Head: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Options request.
+    /// Execute a Options request. The OPTIONS method is used to describe the communication options for the target resource.
     /// </summary>
     function Options(const aResource: string): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Options request. The OPTIONS method is used to describe the communication options for the target resource.
+    /// </summary>
     function Options: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Post request.
+    /// Execute a Post request. The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
     /// </summary>
     /// <param name="aResource">
     /// Resource path
@@ -329,29 +348,56 @@ type
     /// If OwnsBody is true, Body will be destroyed by IMVCRESTClient. <br />
     /// </param>
     function Post(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Post request. The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
+    /// </summary>
+    /// <param name="aResource">
+    /// Resource path
+    /// </param>
+    /// <param name="aBody">
+    /// Serialized data sent as body request. It can be a simple object or a list of objects (TObjectList &lt;T&gt;)
+    /// </param>
+    /// <param name="aContentType">
+    /// Format of the body data. Must be one of the allowed media-types <br />
+    /// </param>
     function Post(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Post request. The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
+    /// </summary>
     function Post: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Patch request.
+    /// Execute a Patch request. The PATCH method is used to apply partial modifications to a resource.
     /// </summary>
     function Patch(const aResource: string; aBody: TObject;
       const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Patch request. The PATCH method is used to apply partial modifications to a resource.
+    /// </summary>
     function Patch(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Patch request. The PATCH method is used to apply partial modifications to a resource.
+    /// </summary>
     function Patch: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Put request.
+    /// Execute a Put request. The PUT method replaces all current representations of the target resource with the request payload.
     /// </summary>
     function Put(const aResource: string; aBody: TObject; const aOwnsBody: Boolean = True): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Put request. The PUT method replaces all current representations of the target resource with the request payload.
+    /// </summary>
     function Put(const aResource: string; const aBody: string = '';
       const aContentType: string = TMVCMediaType.APPLICATION_JSON): IMVCRESTResponse; overload;
+    /// <summary>
+    /// Execute a Put request. The PUT method replaces all current representations of the target resource with the request payload.
+    /// </summary>
     function Put: IMVCRESTResponse; overload;
 
     /// <summary>
-    /// Execute a Delete request.
+    /// Execute a Delete request. The DELETE method deletes the specified resource.
     /// </summary>
     function Delete(const aResource: string): IMVCRESTResponse; overload;
     function Delete: IMVCRESTResponse; overload;
