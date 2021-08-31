@@ -937,32 +937,37 @@ begin
   ObjList := TDuckTypedList.Wrap(AList);
   if Assigned(ObjList) then
   begin
-    if ARootNode.IsEmpty then
-    begin
-      JsonArray := TJDOJsonArray.Parse(ASerializedList) as TJDOJsonArray;
-    end
-    else
-    begin
+    JsonBase := TJDOJsonObject.Parse(ASerializedList);
+    try
       try
-        JsonBase := TJDOJsonObject.Parse(ASerializedList);
-        if not(JsonBase is TJDOJsonObject) then
+        if ARootNode.IsEmpty then
         begin
-          raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
-            [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+          if not(JsonBase is TJDOJsonArray) then
+          begin
+            raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+              [TJDOJsonArray.ClassName, JsonBase.ClassName]);
+          end;
+          JsonArray := TJDOJsonArray(JsonBase);
+        end
+        else
+        begin
+          if not(JsonBase is TJDOJsonObject) then
+          begin
+            raise EMVCSerializationException.CreateFmt('Invalid JSON. Expected %s got %s',
+              [TJDOJsonObject.ClassName, JsonBase.ClassName]);
+          end;
+          JSONObject := TJDOJsonObject(JsonBase);
+          JsonArray := JSONObject.A[ARootNode] as TJDOJsonArray;
         end;
-        JSONObject := TJDOJsonObject(JsonBase);
       except
         on E: EJsonParserException do
         begin
           raise EMVCException.Create(HTTP_STATUS.BadRequest, E.Message);
         end;
       end;
-      JsonArray := JSONObject.A[ARootNode] as TJDOJsonArray;
-    end;
-    try
       JsonArrayToList(JsonArray, ObjList, AClazz, AType, AIgnoredAttributes);
     finally
-      JsonArray.Free;
+      JsonBase.Free;
     end;
   end;
 end;
