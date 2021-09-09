@@ -13708,7 +13708,7 @@ type
   {$ifdef MSWINDOWS}
   THeapMemoryStream = class(TMemoryStream)
   protected
-    function Realloc(var NewCapacity: longint): Pointer; override;
+    function Realloc(var NewCapacity: NativeInt): Pointer; override;
   end;
   {$else}
   THeapMemoryStream = TMemoryStream;
@@ -41106,7 +41106,7 @@ end;
 const
   MemoryDelta = $8000; // 32 KB granularity (must be a power of 2)
 
-function THeapMemoryStream.Realloc(var NewCapacity: longint): Pointer;
+function THeapMemoryStream.Realloc(var NewCapacity: NativeInt): Pointer;
 // allocates memory from Delphi heap (FastMM4/SynScaleMM) and not windows.Global*()
 // and uses bigger growing size -> a lot faster
 var i: PtrInt;
