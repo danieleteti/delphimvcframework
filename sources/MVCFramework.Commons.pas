@@ -643,7 +643,6 @@ function BuildContentType(const aContentMediaType: string; const aContentCharSet
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 
-
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
 { changing case }
@@ -679,18 +678,21 @@ type
   end;
 
 
-
 implementation
 
 uses
+
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Utils,
   System.RegularExpressions;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
 
 function URLEncode(const Value: string): string; overload;
 begin
@@ -1543,17 +1545,17 @@ end;
 
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString, ARaiseExceptionOnError);
+  Result := MVCFramework.Utils.StrToJSONObject(aString, ARaiseExceptionOnError);
 end;
 
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString, ARaiseExceptionOnError);
+  Result := MVCFramework.Utils.StrToJSONArray(aString, ARaiseExceptionOnError);
 end;
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 begin
-  Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+  Result := MVCFramework.Utils.WrapAsList(AObject, AOwnsObject);
 end;
 
 { TMVCStringHelper }

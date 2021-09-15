@@ -53,7 +53,8 @@ uses
   StandAloneServerWebModuleTest in '..\StandaloneServer\StandAloneServerWebModuleTest.pas' {TestWebModule2: TWebModule},
   MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas',
   MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
-  MVCFramework.SQLGenerators.Firebird in '..\..\..\sources\MVCFramework.SQLGenerators.Firebird.pas';
+  MVCFramework.SQLGenerators.Firebird in '..\..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
+  MVCFramework.Utils in '..\..\..\sources\MVCFramework.Utils.pas';
 
 {$R *.RES}
 

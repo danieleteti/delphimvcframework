@@ -126,7 +126,8 @@ contains
   Swag.Doc.SecurityDefinitionBasic in '..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionBasic.pas',
   Swag.Doc.SecurityDefinitionOAuth2 in '..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionOAuth2.pas',
   Swag.Doc.Tags in '..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas',
-  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas';
+  MVCFramework.Swagger.Commons in '..\..\sources\MVCFramework.Swagger.Commons.pas',
+  MVCFramework.Utils in '..\..\sources\MVCFramework.Utils.pas';
 
 end.
 
