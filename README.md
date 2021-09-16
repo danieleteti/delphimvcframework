@@ -54,7 +54,7 @@ DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo,
 
   * DMVCFramwork is simple to use, has a [lot of examples](https://github.com/danieleteti/delphimvcframework/tree/master/samples), is documented and there are a [lot of tutorials](https://www.youtube.com/results?search_query=delphimvcframework) available.
 
-  * DMVCFramework is very well documented and the book [DMVCFramework - the official guide](https://leanpub.com/delphimvcframework) is available to fastly get a solid knowledge.
+  * DMVCFramework is very well documented and the book [DMVCFramework - the official guide](http://www.danieleteti.it/books/) is available to fastly get a solid knowledge (available as e-book and hardcopy).
 
   * [Project Roadmap](roadmap.md) is always public
 * There are more than 40 samples to learn all the features and be proficient and productive
