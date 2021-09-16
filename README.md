@@ -128,6 +128,7 @@ The official guide for DMVCFramework is available. DMVCFramework has a lot funct
 ![DelphiMVCFramework - the official guide](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/logoproject/dmvcframework_the_official_guide_very_small.png)
 
 [Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge now!
+"DMVCFramework - the official guide" is available as [e-book](https://leanpub.com/delphimvcframework) and [hardcopy](https://www.lulu.com/en/en/shop/daniele-teti-and-jim-mckeeth/delphimvcframework-the-official-guide/hardcover/product-r26e8e.html), pick what you prefer.
 
 > While a huge work has been done by the author and the reviews to make the book and the examples well written, complete and effective, things can be always improved. For any suggestions, complains or requests there is the official Github book project (https://github.com/danieleteti/dmvcframeworktheofficialguide) where you can fill an issue and get in touch directly with the author. 
 
