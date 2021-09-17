@@ -71,6 +71,11 @@ DelphiMVCFramework is compatible with Delphi version XE7 or better
 {$DEFINE SYDNEYORBETTER}
 {$ENDIF}
 
+{$IF CompilerVersion >= 35} // 11 Alexandria
+{$DEFINE ALEXANDRIAORBETTER}
+{$ENDIF}
+
+
 {$IFDEF MOBILE}
 {$LEGACYIFEND OFF}
 {$ENDIF}

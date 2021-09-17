@@ -56,9 +56,7 @@ begin
   FMVC.AddController(TMyController);
 
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www'), { DocumentRoot }
-    'index.html' {IndexDocument - Before it was named fallbackresource}
+      '/static', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www')
     ));
   // To enable compression, just add this middleware as the last one
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);
