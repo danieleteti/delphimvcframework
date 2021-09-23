@@ -95,6 +95,12 @@ begin
     Exit;
   end;
 
+  if fConnectionDefFileName.IsEmpty then
+  begin
+    fConnectionLoaded := True;
+    Exit;
+  end;
+
   // if not FDManager.ConnectionDefFileLoaded then
   // begin
   FDManager.ConnectionDefFileName := fConnectionDefFileName;

@@ -114,3 +114,4 @@ samples/data/activerecorddb.sql
 samples/data/dump.sql
 samples/activerecord_showcase/activerecord_showcase.delphilsp.json
 unittests/general/TestServer/TestServer.delphilsp.json
+samples/master_details/masterdetailssample.otares

@@ -39,7 +39,7 @@ type
     fConnection: TFDConnection;
     fConDefName: string;
     procedure CreatePrivateConnDef(AIsPooled: boolean); virtual; abstract;
-    procedure LoadData; virtual;
+    procedure LoadData(const JustAFew: Boolean = False); virtual;
     procedure AfterDataLoad; virtual; abstract;
     procedure InternalSetupFixture; virtual;
   public
@@ -79,6 +79,14 @@ type
     procedure TestMultiThreading;
     [Test]
     procedure TestNullables;
+    [Test]
+    procedure TestMergeWhenNewRecords;
+    [Test]
+    procedure TestMergeWhenNewDeletedRecords;
+    [Test]
+    procedure TestMergeWhenChangedRecords;
+    [Test]
+    procedure TestMergeWhenMixedRecords;
   end;
 
   [TestFixture]
@@ -123,7 +131,7 @@ implementation
 uses
   System.Classes, System.IOUtils, BOs, MVCFramework.ActiveRecord,
   System.SysUtils, System.Threading, System.Generics.Collections, Data.DB,
-  FireDAC.Stan.Intf, ShellAPI, Winapi.Windows;
+  FireDAC.Stan.Intf, ShellAPI, Winapi.Windows, MVCFramework.Logger;
 
 const
   _CON_DEF_NAME_SQLITE = 'SQLITECONNECTION';
@@ -215,7 +223,7 @@ begin
     Assert.AreEqual('note1noteupdated', lCustomer.Note);
     Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
     Assert.AreEqual('Rome, IT', lCustomer.City);
-    Assert.AreEqual(1, lCustomer.ID);
+    Assert.AreEqual(1, lCustomer.ID.Value);
     Assert.IsFalse(lCustomer.CreationTime.HasValue);
     Assert.IsFalse(lCustomer.CreationDate.HasValue);
   finally
@@ -523,6 +531,346 @@ begin
     lCustomer.Free;
   end;
 end;
+
+procedure TTestActiveRecordBase.TestMergeWhenChangedRecords;
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadData(true);
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
+    try
+      for var lCust in lCustomers do
+      begin
+        lCustomer := lCust.Clone;
+        lCustomer.Rating := 10;
+        lCustomersChanges.Add(lCustomer);
+      end;
+
+      //calculate the unit-of-work to merge the lists
+      lInserted := 0;
+      lUpdated := 0;
+      lDeleted := 0;
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False;
+          case EntityAction of
+            eaCreate: begin
+              LogI('Inserting Customer : ' + Customer.ToString);
+              Inc(lInserted);
+            end;
+            eaUpdate: begin
+              LogI('Updating Customer  : ' + Customer.ToString);
+              Inc(lUpdated);
+            end;
+            eaDelete: begin
+              LogI('Deleting Customer  : ' + Customer.ToString);
+              Inc(lDeleted);
+            end;
+          end;
+        end);
+    finally
+      lCustomersChanges.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Assert.AreEqual(0, lInserted);
+  Assert.AreEqual(30, lUpdated);
+  Assert.AreEqual(0, lDeleted);
+
+  lCustomers := TMVCActiveRecord.All<TCustomer>;
+  try
+    Assert.AreEqual(30, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,10)', 1000);
+  try
+    Assert.AreEqual(30, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestMergeWhenMixedRecords;
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadData(true);
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
+    try
+      //these 2 customers will be updated
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[0].ID;
+      lCustomer.Code := 'C8765';
+      lCustomer.CompanyName := '(changed) Company1';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 2;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.ID := lCustomers[1].ID;
+      lCustomer.Code := lCustomers[1].Code;
+      lCustomer.CompanyName := '(changed) Company2';
+      lCustomer.City := '(changed) City';
+      lCustomer.Rating := 2;
+
+
+      //these 2 customer will be created
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C9898';
+      lCustomer.CompanyName := '(new) Company3';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 3;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C2343';
+      lCustomer.CompanyName := '(new) Company4';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 3;
+
+      //these 2 customer will remain the same but will be updated
+      lCustomer := TCustomer.Create;
+      lCustomer.Assign(lCustomers[2]);
+      lCustomersChanges.Add(lCustomer);
+
+      lCustomer := TCustomer.Create;
+      lCustomer.Assign(lCustomers[3]);
+      lCustomersChanges.Add(lCustomer);
+
+      //all the other customers will be deleted
+
+      //calculate the unit-of-work to merge the lists
+      lInserted := 0;
+      lUpdated := 0;
+      lDeleted := 0;
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False;
+          case EntityAction of
+            eaCreate: begin
+              LogI('Inserting Customer : ' + Customer.ToString);
+              Inc(lInserted);
+            end;
+            eaUpdate: begin
+              LogI('Updating Customer  : ' + Customer.ToString);
+              Inc(lUpdated);
+            end;
+            eaDelete: begin
+              LogI('Deleting Customer  : ' + Customer.ToString);
+              Inc(lDeleted);
+            end;
+          end;
+        end);
+    finally
+      lCustomersChanges.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Assert.AreEqual(2, lInserted);
+  Assert.AreEqual(4, lUpdated);
+  Assert.AreEqual(26, lDeleted);
+
+  lCustomers := TMVCActiveRecord.All<TCustomer>;
+  try
+    Assert.AreEqual(6, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,3)', 1000);
+  try
+    Assert.AreEqual(2, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,2)', 1000);
+  try
+    Assert.AreEqual(2, lCustomers.Count, 'Customers not updated correctly');
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    Assert.AreEqual(2, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestMergeWhenNewDeletedRecords;
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadData(true);
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
+    try
+      lTotCustomers := lCustomersChanges.Count;
+      lInserted := 0;
+      lUpdated := 0;
+      lDeleted := 0;
+      //calculate the unit-of-work to merge the lists
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False;
+          case EntityAction of
+            eaCreate: begin
+              LogI('Inserting Customer : ' + Customer.ToString);
+              Inc(lInserted);
+            end;
+            eaUpdate: begin
+              LogI('Updating Customer  : ' + Customer.ToString);
+              Inc(lUpdated);
+            end;
+            eaDelete: begin
+              LogI('Deleting Customer  : ' + Customer.ToString);
+              Inc(lDeleted);
+            end;
+          end;
+        end);
+    finally
+      lCustomersChanges.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Assert.AreEqual(0, lInserted);
+  Assert.AreEqual(0, lUpdated);
+  Assert.AreEqual(30, lDeleted);
+
+  lCustomers := TMVCActiveRecord.All<TCustomer>;
+  try
+    Assert.AreEqual(lTotCustomers, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestMergeWhenNewRecords;
+var
+  lCustomer: TCustomer;
+  lCustomers: TObjectList<TCustomer>;
+  lCustomersChanges: TObjectList<TCustomer>;
+  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  LoadData(true);
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    lCustomersChanges := TObjectList<TCustomer>.Create(True);
+    try
+      for var lCust in lCustomers do
+      begin
+        lCustomersChanges.Add(lCust.Clone);
+      end;
+
+      //these 2 customer will be created
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C9898';
+      lCustomer.CompanyName := '(new) Company3';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 3;
+
+      lCustomer := TCustomer.Create;
+      lCustomersChanges.Add(lCustomer);
+      lCustomer.Code := 'C2343';
+      lCustomer.CompanyName := '(new) Company4';
+      lCustomer.City := '(new) New City2';
+      lCustomer.Rating := 3;
+
+      lTotCustomers := lCustomersChanges.Count;
+
+      lInserted := 0;
+      lUpdated := 0;
+      lDeleted := 0;
+      //calculate the unit-of-work to merge the lists
+      TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
+        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        begin
+          Handled := False;
+          case EntityAction of
+            eaCreate: begin
+              LogI('Inserting Customer : ' + Customer.ToString);
+              Inc(lInserted);
+            end;
+            eaUpdate: begin
+              LogI('Updating Customer  : ' + Customer.ToString);
+              Inc(lUpdated);
+            end;
+            eaDelete: begin
+              LogI('Deleting Customer  : ' + Customer.ToString);
+              Inc(lDeleted);
+            end;
+          end;
+        end);
+    finally
+      lCustomersChanges.Free;
+    end;
+  finally
+    lCustomers.Free;
+  end;
+
+  Assert.AreEqual(2, lInserted);
+  Assert.AreEqual(30, lUpdated);
+  Assert.AreEqual(0, lDeleted);
+
+  lCustomers := TMVCActiveRecord.All<TCustomer>;
+  try
+    Assert.AreEqual(lTotCustomers, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
+  try
+    Assert.AreEqual(lTotCustomers - 2, lCustomers.Count, 'Some customer changed when should not change');
+  finally
+    lCustomers.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,3)', 1000);
+  try
+    Assert.AreEqual(2, lCustomers.Count, 'Some customer changed when should not change');
+  finally
+    lCustomers.Free;
+  end;
+end;
+
 
 procedure TTestActiveRecordBase.TestMultiThreading;
 begin
@@ -870,7 +1218,7 @@ begin
   // do nothing
 end;
 
-procedure TTestActiveRecordBase.LoadData;
+procedure TTestActiveRecordBase.LoadData(const JustAFew: Boolean);
 var
   lTasks: TArray<ITask>;
   lProc: TProc;
@@ -886,8 +1234,10 @@ begin
       lCustomer: TCustomer;
       I: Integer;
     begin
-      ActiveRecordConnectionsRegistry.AddDefaultConnection(TFDConnection.Create(nil), True);
+      //ActiveRecordConnectionsRegistry.AddDefaultConnection(TFDConnection.Create(nil), True);
+      ActiveRecordConnectionsRegistry.AddConnection('load', TFDConnection.Create(nil), True);
       try
+        ActiveRecordConnectionsRegistry.SetCurrent('load');
         ActiveRecordConnectionsRegistry.GetCurrent.ConnectionDefName := fConDefName;
         for I := 1 to 30 do
         begin
@@ -899,6 +1249,7 @@ begin
               Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
               CompanySuffix[Random(high(CompanySuffix) + 1)]]);
             lCustomer.Note := Stuff[I mod Length(Stuff)];
+            lCustomer.Rating := 1;
             lCustomer.CreationTime := EncodeTime(I mod 23, I, 60 - 1, 0);
             lCustomer.CreationDate := EncodeDate(2020 - I, (I mod 12) + 1, (I mod 27) + 1);
             lCustomer.Insert;
@@ -907,26 +1258,36 @@ begin
           end;
         end;
       finally
-        ActiveRecordConnectionsRegistry.RemoveDefaultConnection;
+        ActiveRecordConnectionsRegistry.RemoveConnection('load');
       end;
     end;
   AfterDataLoad;
 
-  lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-    TTask.Run(lProc)];
-  TTask.WaitForAll(lTasks);
+  if JustAFew then
+  begin
+    lProc();
+    ActiveRecordConnectionsRegistry.SetCurrent('default');
+  end
+  else
+  begin
+    lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc)];
+    TTask.WaitForAll(lTasks);
+  end;
 end;
 
 procedure TTestActiveRecordBase.SetupFixturePG;
 begin
+  LogI('** Setup Fixture: ' + ClassName);
   InternalSetupFixture;
 end;
 
 procedure TTestActiveRecordSQLite.Setup;
 begin
+  LogI('** Setup Test: ' + ClassName);
   fConDefName := _CON_DEF_NAME_SQLITE;
   fConnection := TFDConnection.Create(nil);
   fConnection.ConnectionDefName := fConDefName;
@@ -1009,6 +1370,7 @@ end;
 
 procedure TTestActiveRecordFirebird.Setup;
 begin
+  LogI('** Setup Test: ' + ClassName);
   fConDefName := _CON_DEF_NAME_FIREBIRD;
   fConnection := TFDConnection.Create(nil);
   fConnection.ConnectionDefName := fConDefName;
@@ -1116,6 +1478,7 @@ procedure TTestActiveRecordPostgreSQL.Setup;
 var
   lInitDBStructure: boolean;
 begin
+  LogI('** Setup Test: ' + ClassName);
   lInitDBStructure := false;
 
   if not GPGIsInitialized then
