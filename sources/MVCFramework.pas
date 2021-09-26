@@ -525,8 +525,8 @@ type
     FIsSessionStarted: Boolean;
     FSessionMustBeClose: Boolean;
     FLoggedUser: TUser;
-    FData: TDictionary<string, string>;
     FWebSession: TWebSession;
+    FData: TMVCStringDictionary;
     function GetWebSession: TWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -538,6 +538,7 @@ type
     function SendSessionCookie(const AContext: TWebContext): string;
     function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
       const ASessionTimeout: Integer): TWebSession;
+    function GetData: TMVCStringDictionary;
   public
     constructor Create(const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -557,7 +558,7 @@ type
     property Response: TMVCWebResponse read FResponse;
     property Session: TWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
-    property Data: TDictionary<string, string> read FData;
+    property Data: TMVCStringDictionary read GetData;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
   end;
 
@@ -1918,7 +1919,7 @@ begin
   FResponse := TMVCWebResponse.Create(AResponse);
   FConfig := AConfig;
   FSerializers := ASerializers;
-  FData := TDictionary<string, string>.Create;
+  FData := nil;
   FLoggedUser := nil;
 end;
 
@@ -1947,6 +1948,15 @@ end;
 procedure TWebContext.Flush;
 begin
   FResponse.Flush;
+end;
+
+function TWebContext.GetData: TMVCStringDictionary;
+begin
+  if fData = nil then
+  begin
+    fData := TMVCStringDictionary.Create;
+  end;
+  Result := fData;
 end;
 
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
