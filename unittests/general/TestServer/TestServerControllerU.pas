@@ -617,7 +617,7 @@ begin
   // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
   lCustomer.Name := lCustomer.Name + ' changed';
 {$IFNDEF LINUX}
-  lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  //lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
 {$ENDIF}
   // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
   Render(lCustomer, True);

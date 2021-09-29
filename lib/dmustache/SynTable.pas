@@ -308,6 +308,26 @@ const
   // compute up to 7 soundex chars in a cardinal (that's our choice)
   SOUNDEX_BITS = 4;
 
+var
+  DoIsValidUTF8: function(source: PUTF8Char): Boolean;
+  DoIsValidUTF8Len: function(source: PUTF8Char; sourcelen: PtrInt): Boolean;
+
+/// returns TRUE if the supplied buffer has valid UTF-8 encoding
+// - will stop when the buffer contains #0
+// - on Haswell AVX2 Intel/AMD CPUs, will use very efficient ASM
+function IsValidUTF8(source: PUTF8Char): Boolean; overload; {$ifdef HASINLINE}inline;{$endif}
+
+/// returns TRUE if the supplied buffer has valid UTF-8 encoding
+// - will also refuse #0 characters within the buffer
+// - on Haswell AVX2 Intel/AMD CPUs, will use very efficient ASM
+function IsValidUTF8(source: PUTF8Char; sourcelen: PtrInt): Boolean; overload; {$ifdef HASINLINE}inline;{$endif}
+
+/// returns TRUE if the supplied buffer has valid UTF-8 encoding
+// - will also refuse #0 characters within the buffer
+// - on Haswell AVX2 Intel/AMD CPUs, will use very efficient ASM
+function IsValidUTF8(const source: RawUTF8): Boolean; overload;
+
+
 
 { ************ filtering and validation classes and functions ************** }
 
@@ -9113,6 +9133,312 @@ begin
   end;
   if next<>nil then
     next^ := FindNextUTF8WordBegin(U);
+end;
+
+{$ifdef ASMX64AVX} // AVX2 ASM not available on Delphi yet
+// adapted from https://github.com/simdjson/simdjson - Apache License 2.0
+function IsValidUtf8LenAvx2(source: PUtf8Char; sourcelen: PtrInt): boolean;
+  {$ifdef FPC}nostackframe; assembler; asm {$else} asm .noframe {$endif FPC}
+        test    source, source
+        jz      @ok
+        test    sourcelen, sourcelen
+        jle     @ok
+        {$ifdef win64} // this ABI doesn't consider rsi/rdi as volatile
+        push    rsi
+        push    rdi
+        {$endif}
+        push    rbp
+        mov     r8, source
+        mov     rdx, sourcelen
+        mov     rsi, r8
+        mov     ecx, 64
+        mov     rax, rsi
+        mov     rdi, rdx
+        mov     rbp, rsp
+        and     rsp, 0FFFFFFFFFFFFFFE0H // align stack at 32 bytes
+        sub     rsp, 160
+        cmp     rdx, 64
+        cmovnc  rcx, rdx
+        sub     rcx, 64
+        je      @small
+        vpxor   xmm3, xmm3, xmm3
+        vmovdqa ymm7,  ymmword ptr [rip + @0f]
+        vmovdqa ymm15, ymmword ptr [rip + @_6]
+        xor     esi, esi
+        vmovdqa ymm14, ymmword ptr [rip + @_7]
+        vmovdqa ymm13, ymmword ptr [rip + @_8]
+        vmovdqa ymm5, ymm3
+        vmovdqa ymm2, ymm3
+        // main processing loop, 64 bytes per iteration
+        align 16
+@loop:  vmovdqu xmm6, xmmword ptr [rax + rsi]
+        vinserti128 ymm0, ymm6, xmmword ptr [rax + rsi + 10H], 01H
+        vmovdqu xmm6, xmmword ptr [rax + rsi + 20H]
+        vinserti128 ymm1, ymm6, xmmword ptr [rax + rsi + 30H], 01H
+        add     rsi, 64
+        vpor    ymm4, ymm1, ymm0
+        vpmovmskb rdx, ymm4 // check set MSB of each 64 bytes
+        test    edx, edx
+        jne     @check
+        vpor    ymm2, ymm5, ymm2
+        vmovdqa ymm4, ymm2
+        cmp     rcx, rsi
+        ja      @loop
+        // process trailing 0..63 bytes
+@trail: sub     rdi, rsi
+        jz      @ended
+        add     rsi, rax
+        vmovdqa xmm0, xmmword ptr [rip + @20]
+        lea     rdx, qword ptr [rsp + 60H] // copy on stack with space padding
+        sub     rsi, rdx
+        vmovdqa xmmword ptr [rdx], xmm0
+        vmovdqa xmmword ptr [rdx + 10H], xmm0
+        vmovdqa xmmword ptr [rdx + 20H], xmm0
+        vmovdqa xmmword ptr [rdx + 30H], xmm0
+@by8:   sub     rdi, 8
+        jb      @by1
+        mov     rax, qword ptr [rsi + rdx]
+        mov     qword ptr [rdx], rax
+        add     rdx, 8 // in-order copy to preserve UTF-8 encoding
+        jmp     @by8
+@by1:   add     rdi, 8
+        jz      @0
+@sml:   mov     al, byte ptr [rsi + rdx]
+        mov     byte ptr [rdx], al
+        add     rdx, 1
+        sub     rdi, 1
+        jnz     @sml
+@0:     vmovdqa ymm1, ymmword ptr [rsp + 60H]
+        vmovdqa ymm2, ymmword ptr [rsp + 80H]
+        vpor    ymm0, ymm1, ymm2
+        vpmovmskb rax, ymm0 // check any set MSB
+        test    eax, eax
+        jne     @last
+@ended: vpor    ymm5, ymm5, ymm4
+@final: vptest  ymm5, ymm5
+        sete    al
+        vzeroupper
+        leave      // mov rsp,rbp + pop rbp
+        {$ifdef win64}
+        pop     rdi
+        pop     rsi
+        {$endif}
+        ret
+@ok:    mov     al, 1
+        ret
+@small: vpxor   xmm4, xmm4, xmm4
+        xor     esi, esi
+        vmovdqa ymm3, ymm4
+        vmovdqa ymm5, ymm4
+        jmp     @trail
+        // validate UTF-8 extra bytes from main loop
+        align 8
+@check: vpsrlw  ymm9, ymm0, 4
+        vpsrlw  ymm12, ymm1, 4
+        vperm2i128 ymm3, ymm3, ymm0, 21H
+        vpalignr ymm5, ymm0, ymm3, 0FH
+        vpalignr ymm11, ymm0, ymm3, 0EH
+        vpsubusb ymm11, ymm11, ymmword ptr [rip + @_9]
+        vpalignr ymm3, ymm0, ymm3, 0DH
+        vperm2i128 ymm0, ymm0, ymm1, 21H
+        vpsubusb ymm3, ymm3, ymmword ptr [rip + @_10]
+        vpalignr ymm8, ymm1, ymm0, 0FH
+        vpsrlw  ymm10, ymm5, 4
+        vpand   ymm5, ymm7, ymm5
+        vpsrlw  ymm6, ymm8, 4
+        vpalignr ymm4, ymm1, ymm0, 0EH
+        vpsubusb ymm4, ymm4, ymmword ptr [rip + @_9]
+        vpalignr ymm0, ymm1, ymm0, 0DH
+        vpsubusb ymm0, ymm0, ymmword ptr [rip + @_10]
+        vpand   ymm10, ymm10, ymm7
+        vpand   ymm6, ymm6, ymm7
+        vpand   ymm8, ymm7, ymm8
+        vpor    ymm3, ymm3, ymm11
+        vpor    ymm0, ymm4, ymm0
+        vpxor   xmm11, xmm11, xmm11
+        vpshufb ymm10, ymm15, ymm10
+        vpshufb ymm5, ymm14, ymm5
+        vpand   ymm9, ymm9, ymm7
+        vpshufb ymm6, ymm15, ymm6
+        vpshufb ymm8, ymm14, ymm8
+        vpand   ymm12, ymm12, ymm7
+        vpand   ymm5, ymm5, ymm10
+        vpcmpgtb ymm3, ymm3, ymm11
+        vpcmpgtb ymm0, ymm0, ymm11
+        vpshufb ymm9, ymm13, ymm9
+        vpand   ymm3, ymm3, ymmword ptr [rip + @_11]
+        vpand   ymm0, ymm0, ymmword ptr [rip + @_11]
+        vpshufb ymm12, ymm13, ymm12
+        vpand   ymm6, ymm6, ymm8
+        vpand   ymm9, ymm5, ymm9
+        vpsubusb ymm5, ymm1, ymmword ptr [rip + @_12]
+        vpand   ymm12, ymm6, ymm12
+        vpxor   ymm9, ymm3, ymm9
+        vmovdqa ymm3, ymm1
+        vpxor   ymm12, ymm0, ymm12
+        vpor    ymm9, ymm9, ymm12
+        vpor    ymm2, ymm9, ymm2
+        vmovdqa ymm4, ymm2
+        cmp     rcx, rsi
+        ja      @loop
+        jmp     @trail
+        // validate UTF-8 extra bytes from input ending
+        align 8
+@last:  vmovdqa ymm5, ymmword ptr [rip + @0f]
+        vperm2i128 ymm3, ymm3, ymm1, 21H
+        vmovdqa ymm9, ymmword ptr [rip + @_7]
+        vpsrlw  ymm11, ymm1, 4
+        vpalignr ymm0, ymm1, ymm3, 0FH
+        vmovdqa ymm13, ymmword ptr [rip + @_10]
+        vmovdqa ymm14, ymmword ptr [rip + @_9]
+        vpsrlw  ymm6, ymm0, 4
+        vpand   ymm0, ymm5, ymm0
+        vpand   ymm11, ymm11, ymm5
+        vmovdqa ymm7, ymmword ptr [rip + @_6]
+        vpshufb ymm10, ymm9, ymm0
+        vpalignr ymm0, ymm1, ymm3, 0EH
+        vpand   ymm6, ymm6, ymm5
+        vmovdqa ymm8, ymmword ptr [rip + @_8]
+        vpalignr ymm3, ymm1, ymm3, 0DH
+        vperm2i128 ymm1, ymm1, ymm2, 21H
+        vpsubusb ymm0, ymm0, ymm14
+        vpsubusb ymm12, ymm3, ymm13
+        vpalignr ymm3, ymm2, ymm1, 0FH
+        vpshufb ymm6, ymm7, ymm6
+        vpsrlw  ymm15, ymm3, 4
+        vpand   ymm3, ymm5, ymm3
+        vpor    ymm0, ymm0, ymm12
+        vpshufb ymm9, ymm9, ymm3
+        vpsrlw  ymm3, ymm2, 4
+        vpand   ymm15, ymm15, ymm5
+        vpand   ymm5, ymm3, ymm5
+        vpalignr ymm3, ymm2, ymm1, 0EH
+        vpxor   xmm12, xmm12, xmm12
+        vpalignr ymm1, ymm2, ymm1, 0DH
+        vpsubusb ymm3, ymm3, ymm14
+        vpshufb ymm11, ymm8, ymm11
+        vpsubusb ymm1, ymm1, ymm13
+        vpcmpgtb ymm0, ymm0, ymm12
+        vpshufb ymm7, ymm7, ymm15
+        vpor    ymm1, ymm3, ymm1
+        vpshufb ymm8, ymm8, ymm5
+        vpsubusb ymm5, ymm2, ymmword ptr [rip + @_12]
+        vmovdqa ymm2, ymmword ptr [rip + @_11]
+        vpcmpgtb ymm1, ymm1, ymm12
+        vpand   ymm6, ymm6, ymm10
+        vpand   ymm7, ymm7, ymm9
+        vpand   ymm0, ymm0, ymm2
+        vpand   ymm11, ymm6, ymm11
+        vpand   ymm8, ymm7, ymm8
+        vpxor   ymm0, ymm0, ymm11
+        vpor    ymm5, ymm4, ymm5
+        vpand   ymm1, ymm1, ymm2
+        vpxor   ymm1, ymm1, ymm8
+        vpor    ymm0, ymm0, ymm1
+        vpor    ymm5, ymm0, ymm5
+        jmp     @final
+        align 16
+@20:    dq 2020202020202020H
+        dq 2020202020202020H
+        align 32
+@0f:    dq 0F0F0F0F0F0F0F0FH
+        dq 0F0F0F0F0F0F0F0FH
+        dq 0F0F0F0F0F0F0F0FH
+        dq 0F0F0F0F0F0F0F0FH
+@_6:    dq 0202020202020202H
+        dq 4915012180808080H
+        dq 0202020202020202H
+        dq 4915012180808080H
+@_7:    dq 0CBCBCB8B8383A3E7H
+        dq 0CBCBDBCBCBCBCBCBH
+        dq 0CBCBCB8B8383A3E7H
+        dq 0CBCBDBCBCBCBCBCBH
+@_8:    dq 0101010101010101H
+        dq 01010101BABAAEE6H
+        dq 0101010101010101H
+        dq 01010101BABAAEE6H
+@_9:    dq 0DFDFDFDFDFDFDFDFH
+        dq 0DFDFDFDFDFDFDFDFH
+        dq 0DFDFDFDFDFDFDFDFH
+        dq 0DFDFDFDFDFDFDFDFH
+@_10:   dq 0EFEFEFEFEFEFEFEFH
+        dq 0EFEFEFEFEFEFEFEFH
+        dq 0EFEFEFEFEFEFEFEFH
+        dq 0EFEFEFEFEFEFEFEFH
+@_11:   dq 8080808080808080H
+        dq 8080808080808080H
+        dq 8080808080808080H
+        dq 8080808080808080H
+@_12:   db 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH
+        db 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH
+        db 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0FFH
+        db 0FFH, 0FFH, 0FFH, 0FFH, 0FFH, 0EFH, 0DFH, 0BFH
+end;
+
+function IsValidUTF8Avx2(source: PUTF8Char): Boolean;
+begin
+  result := IsValidUTF8LenAvx2(source,StrLen(source));
+end;
+{$endif ASMX64AVX}
+
+function IsValidUTF8Pas(source: PUTF8Char): Boolean;
+var extra, i: integer;
+    c: cardinal;
+begin
+  result := false;
+  if source<>nil then
+  repeat
+    c := byte(source^);
+    inc(source);
+    if c=0 then break else
+    if c and $80<>0 then begin
+      extra := UTF8_EXTRABYTES[c];
+      if extra=0 then exit else // invalid leading byte
+      for i := 1 to extra do
+        if byte(source^) and $c0<>$80 then
+          exit else
+          inc(source); // check valid UTF-8 content
+    end;
+  until false;
+  result := true;
+end;
+
+function IsValidUTF8LenPas(source: PUTF8Char; sourcelen: PtrInt): Boolean;
+var extra, i: integer;
+    c: cardinal;
+begin
+  result := false;
+  inc(sourcelen,PtrInt(source));
+  if source<>nil then
+    while PtrInt(PtrUInt(source))<sourcelen do begin
+      c := byte(source^);
+      inc(source);
+      if c=0 then exit else
+      if c and $80<>0 then begin
+        extra := UTF8_EXTRABYTES[c];
+        if extra=0 then exit else // invalid leading byte
+        for i := 1 to extra do
+          if (PtrInt(PtrUInt(source))>=sourcelen) or (byte(source^) and $c0<>$80) then
+            exit else
+            inc(source); // check valid UTF-8 content
+      end;
+    end;
+  result := true;
+end;
+
+function IsValidUTF8(source: PUTF8Char): Boolean;
+begin
+  result := DoIsValidUTF8(source);
+end;
+
+function IsValidUTF8(source: PUTF8Char; sourcelen: PtrInt): Boolean;
+begin
+  result := DoIsValidUTF8Len(source,sourcelen);
+end;
+
+function IsValidUTF8(const source: RawUTF8): Boolean;
+begin
+  result := DoIsValidUTF8Len(pointer(Source),length(Source));
 end;
 
 
@@ -18168,6 +18494,16 @@ begin
   EMOJI_AFTERDOTS['P'] := eYum;
   EMOJI_AFTERDOTS['s'] := eScream;
   EMOJI_AFTERDOTS['S'] := eScream;
+  DoIsValidUTF8 := IsValidUTF8Pas;
+  DoIsValidUTF8Len := IsValidUTF8LenPas;
+  {$ifdef ASMX64AVX}
+  if CpuFeatures * [cfAVX2, cfSSE42, cfBMI1, cfBMI2, cfCLMUL] =
+                   [cfAVX2, cfSSE42, cfBMI1, cfBMI2, cfCLMUL] then begin
+    // Haswell CPUs can use simdjson AVX2 asm for IsValidUtf8()
+    DoIsValidUTF8 := IsValidUTF8Avx2;
+    DoIsValidUTF8Len := IsValidUTF8LenAvx2;
+  end;
+  {$endif ASMX64AVX}
 end;
 
 

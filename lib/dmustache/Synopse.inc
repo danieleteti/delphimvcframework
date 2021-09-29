@@ -213,11 +213,15 @@
     {$define ISFPC27}
     {$define ISFPC30}
     {$define ISFPC32}
+    {$ifdef VER3_2_2}
+      {$define HASTTHREADTERMINATESET} // introduced TThread.TerminateSet
+    {$endif VER3_2_2}
   {$endif}
   {$ifdef VER3_3} // trunk before 3.4
     {$define ISFPC27}
     {$define ISFPC30}
     {$define ISFPC32}
+    {$define HASTTHREADTERMINATESET} // introduced TThread.TerminateSet
   {$endif}
   {$ifdef VER3_4}
     {$define ISFPC27}
@@ -225,6 +229,7 @@
     {$define ISFPC32}
     {$define ISFPC34}
     {$define FPC_PROVIDE_ATTR_TABLE} // introducing TTypeData.AttributeTable
+    {$define HASTTHREADTERMINATESET} // introduced TThread.TerminateSet
   {$endif}
   {$if not defined(VER3_0) and not defined(VER3_2) and not defined(VER2)}
     {.$define FPC_PROVIDE_ATTR_TABLE} // to be defined since SVN 42356-42411
@@ -324,6 +329,7 @@
       {$define FPC_CPUINTEL}
       {$ifndef BSD}
         {$define CPUX64ASM} // Delphi XE4 or Darwin asm are buggy :(
+        {$define ASMX64AVX} // only FPC supports AVX/AVX2/AVX512
         {$define HASAESNI}  // SynCrypto rejected by Darwin asm
       {$endif BSD}
       {$define FPC_X64}   // supports AVX/AVX2/AVX512 - which Delphi doesn't
@@ -592,6 +598,9 @@
       {$ifend}
       {$if CompilerVersion >= 34.0}
         {$define ISDELPHI104}
+      {$ifend}
+      {$if CompilerVersion >= 35.0}
+        {$define ISDELPHI11}
       {$ifend}
     {$ifend CompilerVersion >= 17}
     {$ifopt O-} // if we don't expect fast code, don't optimize the framework
