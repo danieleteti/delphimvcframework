@@ -80,9 +80,9 @@ var
   lItem: string;
   lRespCompressionType: TMVCCompressionType;
   lTmpItem: string;
-{$IF not Defined(ALEXANDRIAORBETTER)}
+{.$IF not Defined(ALEXANDRIAORBETTER)}
   lZStream: TZCompressionStream;
-{$ENDIF}
+{.$ENDIF}
 begin
   if IsLibrary then
   begin
@@ -107,16 +107,16 @@ begin
     lTmpItem := lItem.Trim;
     if lTmpItem = 'gzip' then
     begin
-{$IF Defined(ALEXANDRIAORBETTER)}
+{.$IF Defined(ALEXANDRIAORBETTER)}
       {
         There is a bug in 11 Alexandria with TZCompressionStream, so the gzip compression
         is not available until the fix.
         The issue has been created on https://quality.embarcadero.com/browse/RSP-35516
       }
-{$ELSE}
+{.$ELSE}
       lRespCompressionType := TMVCCompressionType.ctGZIP;
       break;
-{$ENDIF}
+{.$ENDIF}
     end
     else if lTmpItem = 'deflate' then
     begin
@@ -133,21 +133,31 @@ begin
   // begin
   lMemStream := TMemoryStream.Create;
   try
-{$IF Defined(ALEXANDRIAORBETTER)}
-    ZCompressStream(lContentStream, lMemStream);
+{.$IF Defined(ALEXANDRIAORBETTER)}
+    //ZCompressStream(lContentStream, lMemStream);
     // use it only for deflate, ZCompressStream (Delphi 11.0) cannot
     // create gzip compliant streams
-{$ELSE}
+{.$ELSE}
     lZStream := TZCompressionStream.Create(lMemStream,
       TZCompressionLevel.zcDefault, MVC_COMPRESSION_ZLIB_WINDOW_BITS
       [lRespCompressionType]);
     try
       lContentStream.Position := 0;
-      lZStream.CopyFrom(lContentStream, 0)
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+//    There is a bug in 11 Alexandria with TZCompressionStream, this bug
+//    raises an exception here and the debugger catches it, but it its "normal" behavior.
+//    The gzip stream is correctly created. Please, vote for its resolution.
+//    https://quality.embarcadero.com/browse/RSP-35516
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+      lZStream.CopyFrom(lContentStream, 0);
     finally
       lZStream.Free;
     end;
-{$ENDIF}
+{.$ENDIF}
   except
     lMemStream.Free;
     raise;

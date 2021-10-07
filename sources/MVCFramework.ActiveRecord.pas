@@ -2748,39 +2748,42 @@ var
 begin
   lUnitOfWork := TMVCUnitOfWork<T>.Create;
   lUnitOfWork.RegisterDelete(CurrentList);
-  lPKType := NewList[i].GetPrimaryKeyFieldType;
-  for i := 0 to NewList.Count - 1 do
+  if NewList.Count > 0 then
   begin
-    if NewList[i].PKIsNull then
+    lPKType := NewList[0].GetPrimaryKeyFieldType;
+    for i := 0 to NewList.Count - 1 do
     begin
-      lUnitOfWork.RegisterInsert(NewList[i]);
-      continue;
-    end;
+      if NewList[i].PKIsNull then
+      begin
+        lUnitOfWork.RegisterInsert(NewList[i]);
+        continue;
+      end;
 
-    case lPKType of
-      ftString:
-        begin
-          lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsString(CurrentList,
-            NewList[i].GetPK.AsString, lFoundAtIndex);
-        end;
-      ftInteger:
-        begin
-          lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt(CurrentList,
-            NewList[i].GetPK.AsInteger, lFoundAtIndex);
-        end;
-      ftLargeInt:
-        begin
-          lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt64(CurrentList,
-            NewList[i].GetPK.AsInt64, lFoundAtIndex);
-        end;
-    else
-      raise EMVCActiveRecord.Create('Invalid primary key type');
-    end;
+      case lPKType of
+        ftString:
+          begin
+            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsString(CurrentList,
+              NewList[i].GetPK.AsString, lFoundAtIndex);
+          end;
+        ftInteger:
+          begin
+            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt(CurrentList,
+              NewList[i].GetPK.AsInteger, lFoundAtIndex);
+          end;
+        ftLargeInt:
+          begin
+            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt64(CurrentList,
+              NewList[i].GetPK.AsInt64, lFoundAtIndex);
+          end;
+      else
+        raise EMVCActiveRecord.Create('Invalid primary key type');
+      end;
 
-    if lNeedsToBeUpdated then
-      lUnitOfWork.RegisterUpdate(NewList[i])
-    else
-      lUnitOfWork.RegisterInsert(NewList[i]);
+      if lNeedsToBeUpdated then
+        lUnitOfWork.RegisterUpdate(NewList[i])
+      else
+        lUnitOfWork.RegisterInsert(NewList[i]);
+    end;
   end;
   Result := lUnitOfWork as IMVCMultiExecutor<T>;
 end;
@@ -3148,7 +3151,7 @@ end;
 
 procedure TMVCUnitOfWork<T>.Apply(const ItemApplyAction: TMVCItemApplyAction<T>);
 var
-  i: UInt32;
+  i: Integer;
   lHandled: Boolean;
 begin
   for i := 0 to fListToInsert.Count - 1 do
@@ -3166,7 +3169,7 @@ begin
     DoItemApplyAction(fListToUpdate[i], eaUpdate, ItemApplyAction, lHandled);
     if not lHandled then
     begin
-      fListToUpdate[i].Update;
+      fListToUpdate[i].Update(True);
     end;
   end;
   for i := 0 to fListToDelete.Count - 1 do
@@ -3175,7 +3178,7 @@ begin
     DoItemApplyAction(fListToDelete[i], eaDelete, ItemApplyAction, lHandled);
     if not lHandled then
     begin
-      fListToDelete[i].Delete;
+      fListToDelete[i].Delete(True);
     end;
   end;
 end;
@@ -3246,7 +3249,7 @@ begin
   Result := false;
   for i := 0 to NewList.Count - 1 do
   begin
-    if NewList[i].GetPK.AsInt64 = KeyValue then
+    if (not NewList[i].PKIsNull) and (NewList[i].GetPK.AsInt64 = KeyValue) then
     begin
       Index := i;
       Exit(True);
