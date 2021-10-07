@@ -319,6 +319,8 @@ type
   public
     constructor Create(const AParamName: string); overload;
     constructor Create(const AParamName: string; const DefaultAsString: string); overload;
+    constructor Create(const AParamName: string; const DefaultAsInteger: Int64); overload;
+    constructor Create(const AParamName: string; const DefaultAsBoolean: Boolean); overload;
     property ParamName: string read FParamName;
     property DefaultValueAsString: string read FDefaultValueAsString;
     property CanBeUsedADefaultValue: Boolean read FCanBeUsedADefaultValue;
@@ -1150,6 +1152,18 @@ begin
   inherited Create;
   FParamName := AParamName;
   FCanBeUsedADefaultValue := False;
+end;
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsInteger: Int64);
+begin
+  Create(AParamName, DefaultAsInteger.ToString);
+end;
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsBoolean: Boolean);
+begin
+  Create(AParamName, iif(DefaultAsBoolean,'true','false'));
 end;
 
 { MVCProducesAttribute }

@@ -12,7 +12,7 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "10.4"
+DEFAULT_DELPHI_VERSION = "11"
 
 g_releases_path = "releases"
 g_output = "bin"
