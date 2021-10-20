@@ -439,7 +439,8 @@ type
     ['{7B87473C-1784-489F-A838-925E7DDD0DE2}']
     procedure AddConnection(const aName: string; const aConnection: TFDConnection;
       const Owns: Boolean = false);
-    procedure AddDefaultConnection(const aConnection: TFDConnection; const Owns: Boolean = false);
+    procedure AddDefaultConnection(const aConnection: TFDConnection; const Owns: Boolean = false); overload;
+    procedure AddDefaultConnection(const aConnectionDefName: String); overload;
     procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
@@ -467,7 +468,8 @@ type
     destructor Destroy; override;
     procedure AddConnection(const aName: string; const aConnection: TFDConnection;
       const aOwns: Boolean = false);
-    procedure AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean = false);
+    procedure AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean = false); overload;
+    procedure AddDefaultConnection(const aConnectionDefName: String); overload;
     procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure RemoveDefaultConnection(const RaiseExceptionIfNotAvailable: Boolean = True);
     procedure SetCurrent(const aName: string);
@@ -714,6 +716,24 @@ procedure TMVCConnectionsRepository.AddDefaultConnection(const aConnection: TFDC
   const aOwns: Boolean);
 begin
   AddConnection('default', aConnection, aOwns);
+end;
+
+procedure TMVCConnectionsRepository.AddDefaultConnection(
+  const aConnectionDefName: String);
+var
+  lConn: TFDConnection;
+begin
+  lConn := TFDConnection.Create(nil);
+  try
+    lConn.ConnectionDefName := aConnectionDefName;
+    AddDefaultConnection(lConn, True);
+  except
+    on E: Exception do
+    begin
+      lConn.Free;
+      raise;
+    end;
+  end;
 end;
 
 constructor TMVCConnectionsRepository.Create;

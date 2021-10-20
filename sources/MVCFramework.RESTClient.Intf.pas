@@ -40,7 +40,7 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  Data.DB;
+  Data.DB, JsonDataObjects;
 
 type
   IMVCRESTResponse = interface;
@@ -459,6 +459,8 @@ type
     function ContentRawBytes: TBytes;
     procedure SaveContentToStream(aStream: TStream);
     procedure SaveContentToFile(const aFileName: string);
+    function ToJSONObject: TJDOJsonObject;
+    function ToJSONArray: TJDOJsonArray;
   end;
 
 implementation
