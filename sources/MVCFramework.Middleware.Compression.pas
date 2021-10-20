@@ -139,7 +139,7 @@ begin
     // create gzip compliant streams
 {.$ELSE}
     lZStream := TZCompressionStream.Create(lMemStream,
-      TZCompressionLevel.zcDefault, MVC_COMPRESSION_ZLIB_WINDOW_BITS
+      TZCompressionLevel.zcMax, MVC_COMPRESSION_ZLIB_WINDOW_BITS
       [lRespCompressionType]);
     try
       lContentStream.Position := 0;

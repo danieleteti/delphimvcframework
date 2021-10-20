@@ -1085,18 +1085,18 @@ uses
   MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract;
 
 var
-  _IsShuttingDown: Int64 = 0;
-  _MVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
-  _HostingFramework: TMVCHostingFrameworkType = hftUnknown;
+  gIsShuttingDown: Int64 = 0;
+  gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
+  gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
 
 function IsShuttingDown: Boolean;
 begin
-  Result := TInterlocked.Read(_IsShuttingDown) = 1
+  Result := TInterlocked.Read(gIsShuttingDown) = 1
 end;
 
 procedure EnterInShutdownState;
 begin
-  TInterlocked.Add(_IsShuttingDown, 1);
+  TInterlocked.Add(gIsShuttingDown, 1);
 end;
 
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
@@ -2333,7 +2333,7 @@ begin
     try
       DefineDefaultResponseHeaders(lContext);
       lHandled := False;
-      lRouter := TMVCRouter.Create(FConfig, _MVCGlobalActionParamsCache);
+      lRouter := TMVCRouter.Create(FConfig, gMVCGlobalActionParamsCache);
       try // finally
         lSelectedController := nil;
         try // only for lSelectedController
@@ -4087,21 +4087,14 @@ begin
   FFormat := AFormat;
 end;
 
-{ TMVCHackHTTPAppRequest }
-
-// function TMVCHackHTTPAppRequest.GetHeaders: TStringList;
-// begin
-// Result := FRequestInfo.RawHeaders;
-// end;
-
 initialization
 
-_IsShuttingDown := 0;
+gIsShuttingDown := 0;
 
-_MVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
 
 finalization
 
-FreeAndNil(_MVCGlobalActionParamsCache);
+FreeAndNil(gMVCGlobalActionParamsCache);
 
 end.
