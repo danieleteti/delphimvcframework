@@ -537,7 +537,7 @@ var
   lCustomer: TCustomer;
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
-  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+  lInserted, lUpdated, lDeleted: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
   LoadData(true);
@@ -607,7 +607,7 @@ var
   lCustomer: TCustomer;
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
-  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+  lInserted, lUpdated, lDeleted: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
   LoadData(true);
@@ -725,7 +725,6 @@ end;
 
 procedure TTestActiveRecordBase.TestMergeWhenNewDeletedRecords;
 var
-  lCustomer: TCustomer;
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
   lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
