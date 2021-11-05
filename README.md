@@ -152,6 +152,8 @@ Take in mind that even if development version is usually very stable, it isn't n
 
 ## What users say about DMVCFramework
 
+> "I'm still amazed by the DelphiMVCFramework code and documentation. Thank you very much and I am amazed by your quick feedback." -- [Benjamin Yang](https://www.linkedin.com/in/benjamin-yang-4b0609159/) (Director of [SQLGate](https://www.sqlgate.com/))
+
 > "DMVCFramework and the Entity utility are fantastic!" -- Roberto
 
 >"DMVCFramework is a great framework. It's very intuitive, fast, easy to use, actually there is nothing more to ask for." -- Samir
@@ -584,6 +586,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489
 - Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
 - Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
+- Fix *fileupload* sample
 
 ## Older Releases
 
