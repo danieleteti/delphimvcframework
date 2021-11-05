@@ -805,18 +805,21 @@ procedure SplitContentMediaTypeAndCharset(const aContentType: string;
   var aContentMediaType: string; var aContentCharSet: string);
 var
   lContentTypeValues: TArray<string>;
+  I,J: Integer;
 begin
   if not aContentType.IsEmpty then
   begin
     lContentTypeValues := aContentType.Split([';']);
     aContentCharSet := '';
-    for var I := low(lContentTypeValues) to high(lContentTypeValues) do
+    for I := low(lContentTypeValues) to high(lContentTypeValues) do
     begin
       if lContentTypeValues[I].Trim.StartsWith('charset', True) then
       begin
         aContentCharSet := lContentTypeValues[I].Trim.Split(['='])[1].Trim;
-        for var J := I + 1 to high(lContentTypeValues) do
+        for J := I + 1 to high(lContentTypeValues) do
+        begin
           lContentTypeValues[J - 1] := lContentTypeValues[J];
+        end;
         SetLength(lContentTypeValues, Length(lContentTypeValues) - 1);
         Break;
       end;
