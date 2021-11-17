@@ -401,6 +401,12 @@ type
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function Merge<T: TMVCActiveRecord>(CurrentList,
       NewList: TObjectList<T>): IMVCMultiExecutor<T>;
+    class function UpdateExistent<T: TMVCActiveRecord, constructor>(const Id: Int64;
+      NewJObject:String;RaiseExceptionIfNotFound: Boolean = False): T; overload;
+    class function UpdateExistent<T: TMVCActiveRecord, constructor>(const Id: Int64;
+      NewJObject:TJsonObject ;RaiseExceptionIfNotFound: Boolean = False): T; overload;
+  end;
+
   end;
 
   IMVCEntitiesRegistry = interface
@@ -2807,6 +2813,112 @@ begin
   end;
   Result := lUnitOfWork as IMVCMultiExecutor<T>;
 end;
+
+
+class function TMVCActiveRecordHelper.UpdateExistent<T>(const Id: Int64;
+  NewJObject: String;RaiseExceptionIfNotFound: Boolean = False): T;
+var
+  lActiveRecord: TMVCActiveRecord;
+  lSer: TMVCJsonDataObjectsSerializer;
+  JObject, JObj: TJsonObject;
+  lLoaded: Boolean;
+  map:TMVCFieldsMapping;
+  i:Integer;
+begin
+lSer:= TMVCJsonDataObjectsSerializer.Create;
+JObject:= TJSONObject.Create;
+JObj:= TJSONObject.Create;
+try
+  Result := T.Create;
+  lActiveRecord := TMVCActiveRecord(Result);
+  try
+    lLoaded := lActiveRecord.LoadByPK(Id);
+  except
+    FreeAndNil(Result);
+    raise;
+  end;
+  if not lLoaded then
+  begin
+    FreeAndNil(Result);
+    if RaiseExceptionIfNotFound then
+    begin
+      raise EMVCActiveRecordNotFound.Create('Data not found');
+    end;
+  end else begin
+   map:= Result.GetMapping;
+   JObj.LoadFromString(NewJObject);
+   lSer.ObjectToJsonObject(Result, JObject, TMVCSerializationType.stDefault, nil);
+     for i := 0 to Length(map) -1 do
+      begin
+       if JObj.Contains(map[i].DatabaseFieldName) then
+        begin
+         JObject.Values[map[i].DatabaseFieldName]:= JObj.Values[map[i].DatabaseFieldName];
+        end;
+      end;
+   lSer.JsonObjectToObject(JObject, Result, TMVCSerializationType.stDefault, nil);
+  end;
+
+finally
+ lSer.Free;
+ jObject.Free;
+ JObj.Free;
+end;
+
+end;
+
+class function TMVCActiveRecordHelper.UpdateExistent<T>(const Id: Int64;
+  NewJObject: TJsonObject; RaiseExceptionIfNotFound: Boolean): T;
+var
+  lActiveRecord: TMVCActiveRecord;
+  lSer: TMVCJsonDataObjectsSerializer;
+  JObject: TJsonObject;
+  lLoaded: Boolean;
+  map:TMVCFieldsMapping;
+  i:Integer;
+begin
+lSer:= TMVCJsonDataObjectsSerializer.Create;
+JObject:= TJSONObject.Create;
+try
+  Result := T.Create;
+  lActiveRecord := TMVCActiveRecord(Result);
+  try
+    lLoaded := lActiveRecord.LoadByPK(Id);
+  except
+    FreeAndNil(Result);
+    raise;
+  end;
+
+  if not lLoaded then
+  begin
+    FreeAndNil(Result);
+    if RaiseExceptionIfNotFound then
+    begin
+      raise EMVCActiveRecordNotFound.Create('Data not found');
+    end;
+  end else begin
+   map:= Result.GetMapping;
+   lSer.ObjectToJsonObject(Result, JObject, TMVCSerializationType.stDefault, nil);
+
+     for i := 0 to Length(map) -1 do
+      begin
+       if NewJObject.Contains(map[i].DatabaseFieldName) then
+        begin
+         JObject.Values[map[i].DatabaseFieldName]:= NewJObject.Values[map[i].DatabaseFieldName];
+        end;
+      end;
+
+   lSer.JsonObjectToObject(JObject, Result, TMVCSerializationType.stDefault, nil);
+  end;
+
+finally
+ lSer.Free;
+ jObject.Free;
+end;
+
+end;
+
+
+
 
 { TMVCEntitiesRegistry }
 
