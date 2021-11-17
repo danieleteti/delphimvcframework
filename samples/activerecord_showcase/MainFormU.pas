@@ -48,6 +48,7 @@ type
     btnAttributes: TButton;
     btnJSON_XML_Types: TButton;
     btnMerge: TButton;
+    btnTableFilter: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -69,6 +70,7 @@ type
     procedure btnAttributesClick(Sender: TObject);
     procedure btnJSON_XML_TypesClick(Sender: TObject);
     procedure btnMergeClick(Sender: TObject);
+    procedure btnTableFilterClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -1113,6 +1115,112 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TMainForm.btnTableFilterClick(Sender: TObject);
+begin
+  Log('**Table Filtering');
+  Log('Deleting only best customers...');
+  var lIDOfABadCustomer := -1;
+  var lIDOfAGoodCustomer := -1;
+  TMVCActiveRecord.DeleteAll(TGoodCustomer);
+  Log('Inserting some customers');
+  for var I := 1 to 5 do
+  begin
+    var Customer := TCustomer.Create();
+    try
+      Customer.Code := I.ToString;
+      Customer.Rating := I;
+      Customer.Store;
+      if i = 1 then
+      begin
+        lIDOfABadCustomer := Customer.ID.Value;
+      end;
+      if i = 5 then
+      begin
+        lIDOfAGoodCustomer := Customer.ID.Value;
+      end;
+    finally
+      Customer.Free;
+    end;
+  end;
+
+  Log('Retrieving only best customers...');
+  var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('',10);
+  try
+    Assert(lGoodCustomers.Count = 2); { only rating >= 4}
+    for var lCust in lGoodCustomers do
+    begin
+      Log(lCust.ToString);
+    end;
+  finally
+    lGoodCustomers.Free;
+  end;
+
+  Log('How many "best customers" we have?');
+  var lHowMany := TMVCActiveRecord.Count<TGoodCustomer>;
+  Log(Format('We have %d best customers', [lHowMany]));
+
+  Log('How many "best customers" with rating = 5 we have?');
+  lHowMany := TMVCActiveRecord.Count<TGoodCustomer>('eq(rating,5)');
+  Log(Format('We have %d best customers with rating = 5', [lHowMany]));
+
+  Log('Retrieving only best customers...');
+  var lGoodCustomers2 := TMVCActiveRecord.SelectRQL(TGoodCustomer, '', -1);
+  try
+    Assert(lGoodCustomers2.Count = 2); { only rating >= 4}
+    for var lCust in lGoodCustomers2 do
+    begin
+      Log(lCust.ToString);
+    end;
+  finally
+    lGoodCustomers2.Free;
+  end;
+
+  Log('Retrieving only best customers...');
+
+  var lNotAGoodCustomer := TMVCActiveRecord.SelectOneByRQL<TCustomer>('eq(rating,1)', True);
+  try
+    var lThisShouldBeNil := TMVCActiveRecord.GetByPK<TGoodCustomer>(lNotAGoodCustomer.ID, False);
+    Assert(lThisShouldBeNil = nil);
+  finally
+    lNotAGoodCustomer.Free;
+  end;
+
+  var lAGoodCustomer := TMVCActiveRecord.SelectOneByRQL<TCustomer>('eq(rating,5)', True);
+  try
+    var lThisShouldNotBeNil := TMVCActiveRecord.GetByPK<TGoodCustomer>(lAGoodCustomer.ID, False);
+    try
+      Assert(lThisShouldNotBeNil <> nil);
+      Log(lThisShouldNotBeNil.ToString);
+    finally
+      lThisShouldNotBeNil.Free;
+    end;
+  finally
+    lAGoodCustomer.Free;
+  end;
+
+  Log('Promoting a customer...');
+  var lCustomer := TBadCustomer.Create;
+  try
+    lCustomer.LoadByPK(lIDOfABadCustomer);
+    lCustomer.Rating := 5;
+    lCustomer.Store;
+    Assert(not lCustomer.LoadByPK(lIDOfABadCustomer)); {this customer is not "bad" anymore}
+  finally
+    lCustomer.Free;
+  end;
+
+  Log('Demote a customer...');
+  var lCustomer1 := TGoodCustomer.Create;
+  try
+    lCustomer1.LoadByPK(lIDOfAGoodCustomer);
+    lCustomer1.Rating := 1;
+    lCustomer1.Store;
+    Assert(not lCustomer1.LoadByPK(lIDOfAGoodCustomer)); {this customer is not "good" anymore}
+  finally
+    lCustomer1.Free;
+  end;
 end;
 
 procedure TMainForm.btnTransientFieldsClick(Sender: TObject);

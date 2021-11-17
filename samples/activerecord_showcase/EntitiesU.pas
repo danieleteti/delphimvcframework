@@ -134,6 +134,18 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers', 'ge(Rating,4)')]
+  TGoodCustomer = class(TCustomer)
+  end;
+
+
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers', 'le(Rating,3)')]
+  TBadCustomer = class(TGoodCustomer)
+  end;
+
+
+  [MVCNameCase(ncLowerCase)]
   [MVCTable('customers')]
   TCustomerWithTransient = class(TCustomEntity)
   private
@@ -557,6 +569,5 @@ begin
   SetPK(TValue.From<NullableString>(TGUID.NewGuid.ToString.Replace('{', '').Replace('-',
     '').Replace('}', '').Substring(0, 20)));
 end;
-
 
 end.

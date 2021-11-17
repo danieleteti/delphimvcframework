@@ -154,13 +154,15 @@ begin
   end;
 
   Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
-    GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName); // IntToStr(PrimaryKeyValue);
+    GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName) +
+    GetDefaultSQLFilter(False, True); // IntToStr(PrimaryKeyValue);
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSelectCount(
   const TableName: string): string;
 begin
-  Result := 'SELECT count(*) FROM ' + GetTableNameForSQL(TableName);
+  {do not add SQLFilter here!}
+  Result := 'SELECT count(*) FROM ' + GetTableNameForSQL(TableName); // + GetDefaultSQLFilter(True);
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateSelectSQL(const TableName: string;
@@ -181,7 +183,7 @@ var
 begin
   lPostgreSQLCompiler := TRQLPostgreSQLCompiler.Create(Mapping);
   try
-    GetRQLParser(MaxRecordCount).Execute(RQL, Result, lPostgreSQLCompiler, UseArtificialLimit, UseFilterOnly);
+    GetRQLParser(MaxRecordCount).Execute(MergeDefaultRQLFilter(RQL), Result, lPostgreSQLCompiler, UseArtificialLimit, UseFilterOnly);
   finally
     lPostgreSQLCompiler.Free;
   end;
@@ -222,7 +224,7 @@ end;
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteAllSQL(
   const TableName: string): string;
 begin
-  Result := 'DELETE FROM ' + GetTableNameForSQL(TableName);
+  Result := 'DELETE FROM ' + GetTableNameForSQL(TableName) + GetDefaultSQLFilter(True);
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;

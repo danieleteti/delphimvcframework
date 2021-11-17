@@ -2,21 +2,20 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 731
-  ClientWidth = 635
+  ClientHeight = 758
+  ClientWidth = 1054
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnDestroy = FormDestroy
   OnShow = FormShow
-  DesignSize = (
-    635
-    731)
   PixelsPerInch = 96
+  DesignSize = (
+    1054
+    758)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -39,8 +38,8 @@ object MainForm: TMainForm
   object Memo1: TMemo
     Left = 135
     Top = 8
-    Width = 492
-    Height = 715
+    Width = 911
+    Height = 742
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -57,6 +56,7 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
+    ExplicitWidth = 492
   end
   object btnRelations: TButton
     Left = 8
@@ -202,6 +202,15 @@ object MainForm: TMainForm
     Caption = 'Merge'
     TabOrder = 18
     OnClick = btnMergeClick
+  end
+  object btnTableFilter: TButton
+    Left = 8
+    Top = 716
+    Width = 121
+    Height = 33
+    Caption = 'Table Filter'
+    TabOrder = 19
+    OnClick = btnTableFilterClick
   end
   object FDConnection1: TFDConnection
     Left = 192

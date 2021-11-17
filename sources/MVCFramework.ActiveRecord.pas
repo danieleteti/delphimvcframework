@@ -118,7 +118,9 @@ type
   MVCTableAttribute = class(MVCActiveRecordCustomAttribute)
   public
     Name: string;
-    constructor Create(aName: string);
+    RQLFilter: string;
+    constructor Create(aName: string); overload;
+    constructor Create(aName: string; aRQLFilter: String); overload;
   end;
 
   MVCTableFieldAttribute = class(MVCActiveRecordCustomAttribute)
@@ -172,6 +174,7 @@ type
     fObjAttributes: TArray<TCustomAttribute>;
     fPropsAttributes: TArray<TCustomAttribute>;
     fTableName: string;
+    fDefaultRQLFilter: string;
     fMap: TFieldsMap;
     fPrimaryKey: TRTTIField;
     fBackendDriver: string;
@@ -482,17 +485,21 @@ type
   TMVCSQLGenerator = class abstract
   private
     fMapping: TMVCFieldsMapping;
+    fDefaultSQLFilter: String;
+    fDefaultRQLFilter: String;
     fCompiler: TRQLCompiler;
     fRQL2SQL: TRQL2SQL;
   protected
-    function GetRQLParser(const MaxRecordCount: UInt32): TRQL2SQL;
+    function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = False): String; //inline;
+    function MergeDefaultRQLFilter(const RQL: String): String; //inline;
+    function GetRQLParser(const MaxRecordCount: Int32): TRQL2SQL;
     function GetCompiler: TRQLCompiler;
     function GetCompilerClass: TRQLCompilerClass; virtual; abstract;
     function GetMapping: TMVCFieldsMapping;
     function TableFieldsDelimited(const Map: TFieldsMap; const PKFieldName: string;
       const Delimiter: string): string;
   public
-    constructor Create(Mapping: TMVCFieldsMapping); virtual;
+    constructor Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string); virtual;
     destructor Destroy; override;
     // capabilities
     function HasSequences: Boolean; virtual;
@@ -529,6 +536,8 @@ type
     // or if the field name contains spaces.
     function GetFieldNameForSQL(const FieldName: string): string; virtual;
     function GetParamNameForSQL(const FieldName: string): string; virtual;
+    //helper methods
+    class function RemoveInitialWhereKeyword(const SQLFilter: String): String;
   end;
 
   TMVCSQLGeneratorClass = class of TMVCSQLGenerator;
@@ -900,8 +909,7 @@ end;
 
 constructor MVCTableAttribute.Create(aName: string);
 begin
-  inherited Create;
-  name := aName;
+  Create(aName, '');
 end;
 
 { TActiveRecord }
@@ -1044,7 +1052,8 @@ begin
     if lAttribute is MVCTableAttribute then
     begin
       fTableName := MVCTableAttribute(lAttribute).Name;
-      continue;
+      fDefaultRQLFilter := MVCTableAttribute(lAttribute).RQLFilter;
+      Continue;
     end;
     if lAttribute is MVCEntityActionsAttribute then
     begin
@@ -1175,10 +1184,7 @@ var
   lSQL: string;
 begin
   lSQL := Self.SQLGenerator.CreateSelectCount(fTableName);
-  if not RQL.IsEmpty then
-  begin
-    lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, false, True);
-  end;
+  lSQL := lSQL + fSQLGenerator.CreateSQLWhereByRQL(RQL, GetMapping, false, True);
   Result := GetScalar(lSQL, []);
 end;
 
@@ -1409,8 +1415,7 @@ begin
   lAR := T.Create;
   try
     lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping).Trim;
-    if lSQL.StartsWith('where', True) then
-      lSQL := lSQL.Remove(0, 5).Trim;
+    lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
     Result := GetFirstByWhere<T>(lSQL, [], RaiseExceptionIfNotFound);
     if Result = nil then
     begin
@@ -2271,8 +2276,7 @@ begin
     lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, MaxRecordCount > -1, false,
       MaxRecordCount).Trim;
     // LogD(Format('RQL [%s] => SQL [%s]', [RQL, lSQL]));
-    if lSQL.StartsWith('where', True) then
-      lSQL := lSQL.Remove(0, 5).Trim;
+    lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
     Result := Where<T>(lSQL, []);
   finally
     lAR.Free;
@@ -2570,7 +2574,7 @@ begin
   begin
     GetConnection.Connected := True;
     fSQLGenerator := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd)
-      .Create(GetMapping);
+      .Create(GetMapping, fDefaultRQLFilter);
   end;
   Result := fSQLGenerator;
 end;
@@ -2938,11 +2942,17 @@ end;
 
 { TMVCSQLGenerator }
 
-constructor TMVCSQLGenerator.Create(Mapping: TMVCFieldsMapping);
+constructor TMVCSQLGenerator.Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string);
 begin
   inherited Create;
   fMapping := Mapping;
+  fDefaultRQLFilter := DefaultRQLFilter;
   GetCompiler;
+  if not fDefaultRQLFilter.IsEmpty then
+  begin
+    GetRQLParser(-1).Execute(fDefaultRQLFilter,fDefaultSQLFilter, GetCompiler, False, True);
+    fDefaultSQLFilter := TMVCSQLGenerator.RemoveInitialWhereKeyword(fDefaultSQLFilter);
+  end;
 end;
 
 function TMVCSQLGenerator.GetMapping: TMVCFieldsMapping;
@@ -2971,12 +2981,31 @@ begin
   Result := fCompiler;
 end;
 
+function TMVCSQLGenerator.GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean): String;
+begin
+  Result := '';
+  if not fDefaultSQLFilter.IsEmpty then
+  begin
+    if IncludeWhereClause then
+    begin
+      Result := ' WHERE ' + fDefaultSQLFilter
+    end
+    else
+    begin
+      if IncludeAndClauseBeforeFilter then
+        Result := ' and ' + fDefaultSQLFilter
+      else
+        Result := fDefaultSQLFilter;
+    end;
+  end;
+end;
+
 function TMVCSQLGenerator.GetFieldNameForSQL(const FieldName: string): string;
 begin
   Result := fCompiler.GetFieldNameForSQL(FieldName);
 end;
 
-function TMVCSQLGenerator.GetRQLParser(const MaxRecordCount: UInt32): TRQL2SQL;
+function TMVCSQLGenerator.GetRQLParser(const MaxRecordCount: Int32): TRQL2SQL;
 begin
   if fRQL2SQL = nil then
   begin
@@ -3004,6 +3033,46 @@ end;
 function TMVCSQLGenerator.HasSequences: Boolean;
 begin
   Result := True;
+end;
+
+function TMVCSQLGenerator.MergeDefaultRQLFilter(const RQL: String): String;
+begin
+  if not fDefaultRQLFilter.IsEmpty then
+  begin
+    if RQL.Contains(';') then
+    begin
+      var Pieces := RQL.Split([';']);
+      if Pieces[0].Trim.Length > 0 then
+      begin
+        Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+      end
+      else
+      begin
+        Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+      end;
+    end
+    else
+    begin
+      if RQL.IsEmpty then
+        Result := fDefaultRQLFilter
+      else
+        Result := 'and('+fDefaultRQLFilter + ',' + RQL + ')';
+    end;
+  end
+  else
+  begin
+    Result := RQL;
+  end;
+end;
+
+class function TMVCSQLGenerator.RemoveInitialWhereKeyword(
+  const SQLFilter: String): String;
+begin
+  Result := SQLFilter.TrimLeft;
+  if Result.StartsWith('where', true) then
+  begin
+    Result := Result.Remove(0, 5);
+  end;
 end;
 
 function TMVCSQLGenerator.TableFieldsDelimited(const Map: TFieldsMap; const PKFieldName: string;
@@ -3334,6 +3403,13 @@ end;
 procedure TMVCUnitOfWork<T>.UnregisterUpdate(const Value: T);
 begin
   fListToUpdate.Remove(Value);
+end;
+
+constructor MVCTableAttribute.Create(aName, aRQLFilter: String);
+begin
+  inherited Create;
+  Name := aName;
+  RQLFilter := aRQLFilter;
 end;
 
 initialization

@@ -382,15 +382,6 @@ begin
 
   // Emit code from AST using backend
   RQLCompiler.AST2SQL(fAST, SQL);
-
-  // Emit code from AST using backend
-  // lCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(RQLBackend);
-  // lCompiler := lCompilerClass.Create(Mapping);
-  // try
-  // lCompiler.AST2SQL(fAST, SQL);
-  // finally
-  // lCompiler.Free;
-  // end;
 end;
 
 function TRQL2SQL.GetToken: TRQLToken;
