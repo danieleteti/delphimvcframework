@@ -44,7 +44,7 @@ uses
   MVCFramework.Commons,
   MVCFramework.RQL.Parser,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, JsonDataObjects;
 
 type
   EMVCActiveRecord = class(EMVCException)
@@ -405,7 +405,7 @@ type
       NewJObject:String;RaiseExceptionIfNotFound: Boolean = False): T; overload;
     class function UpdateExistent<T: TMVCActiveRecord, constructor>(const Id: Int64;
       NewJObject:TJsonObject ;RaiseExceptionIfNotFound: Boolean = False): T; overload;
-  end;
+
 
   end;
 
@@ -607,7 +607,7 @@ uses
   MVCFramework.Nullables,
   MVCFramework.RTTI.Utils,
   FireDAC.Stan.Option,
-  Data.FmtBcd, System.Variants;
+  Data.FmtBcd, System.Variants, MVCFramework.Serializer.JsonDataObjects;
 
 var
   gCtx: TRttiContext;
