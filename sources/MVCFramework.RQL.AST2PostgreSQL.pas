@@ -86,7 +86,7 @@ begin
   else
     lValue := aRQLFIlter.OpRight;
 
-  lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft);
+  lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft, True);
 
   case aRQLFIlter.Token of
     tkEq:

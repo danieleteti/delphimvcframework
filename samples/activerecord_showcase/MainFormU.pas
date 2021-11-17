@@ -23,8 +23,11 @@ uses
   FireDAC.Stan.Async,
   FireDAC.Phys,
   FireDAC.VCLUI.Wait,
-  Data.DB, FireDAC.Comp.Client, MVCFramework.Nullables,
-  MVCFramework.ActiveRecord, System.Generics.Collections;
+  Data.DB,
+  FireDAC.Comp.Client,
+  MVCFramework.Nullables,
+  MVCFramework.ActiveRecord,
+  System.Generics.Collections;
 
 type
   TMainForm = class(TForm)
@@ -49,6 +52,7 @@ type
     btnJSON_XML_Types: TButton;
     btnMerge: TButton;
     btnTableFilter: TButton;
+    btnPartitioning: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -71,6 +75,7 @@ type
     procedure btnJSON_XML_TypesClick(Sender: TObject);
     procedure btnMergeClick(Sender: TObject);
     procedure btnTableFilterClick(Sender: TObject);
+    procedure btnPartitioningClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -92,7 +97,9 @@ uses
   MVCFramework.DataSet.Utils,
   MVCFramework.RQL.Parser,
   System.Math,
-  FDConnectionConfigU, EngineChoiceFormU, System.Rtti;
+  FDConnectionConfigU,
+  EngineChoiceFormU,
+  System.Rtti;
 
 const
   Cities: array [0 .. 4] of string = ('Rome', 'New York', 'London', 'Melbourne', 'Berlin');
@@ -761,6 +768,44 @@ begin
     lCustomer.Free;
   end;
 
+end;
+
+procedure TMainForm.btnPartitioningClick(Sender: TObject);
+begin
+  TMVCActiveRecord.DeleteAll(TCustomerWithRate1);
+  Assert(TMVCActiveRecord.Count(TCustomerWithRate1) = 0);
+  TMVCActiveRecord.DeleteAll(TCustomerWithRate2);
+  Assert(TMVCActiveRecord.Count(TCustomerWithRate2) = 0);
+  var lCust1 := TCustomerWithRate1.Create;
+  try
+    lCust1.City := 'Rome';
+    lCust1.Code := '123';
+    lCust1.Store;
+  finally
+    lCust1.Free;
+  end;
+  var lCust2 := TCustomerWithRate2.Create;
+  try
+    lCust2.City := 'Rome';
+    lCust2.Code := '456';
+    lCust2.Store;
+    Assert(TMVCActiveRecord.GetByPK<TCustomerWithRate1>(lCust2.ID, False) = nil);
+  finally
+    lCust2.Free;
+  end;
+
+  var lList := TMVCActiveRecord.SelectRQL<TCustomerWithRate1>('eq(city,"Rome")',-1);
+  try
+    Assert(lList.Count = 1);
+    Assert(lList[0].Code = '123');
+  finally
+    lList.Free;
+  end;
+
+  Assert(TMVCActiveRecord.Count(TCustomerWithRate1) = 1);
+  Assert(TMVCActiveRecord.Count(TCustomerWithRate1, 'eq(code,"xxx")') = 0);
+  Assert(TMVCActiveRecord.Count(TCustomerWithRate2) = 1);
+  Assert(TMVCActiveRecord.Count(TCustomerWithRate2, 'eq(code,"xxx")') = 0);
 end;
 
 procedure TMainForm.btnReadAndWriteOnlyClick(Sender: TObject);

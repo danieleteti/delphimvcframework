@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'TMVCActiveRecord - ShowCase'
-  ClientHeight = 758
-  ClientWidth = 1054
+  ClientHeight = 569
+  ClientWidth = 1104
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,8 +14,8 @@ object MainForm: TMainForm
   OnShow = FormShow
   PixelsPerInch = 96
   DesignSize = (
-    1054
-    758)
+    1104
+    569)
   TextHeight = 13
   object btnCRUD: TButton
     Left = 8
@@ -36,10 +36,10 @@ object MainForm: TMainForm
     OnClick = btnSelectClick
   end
   object Memo1: TMemo
-    Left = 135
+    Left = 280
     Top = 8
-    Width = 911
-    Height = 742
+    Width = 816
+    Height = 553
     Anchors = [akLeft, akTop, akRight, akBottom]
     Ctl3D = True
     DoubleBuffered = True
@@ -56,7 +56,8 @@ object MainForm: TMainForm
     TabOrder = 2
     WantReturns = False
     WordWrap = False
-    ExplicitWidth = 492
+    ExplicitWidth = 766
+    ExplicitHeight = 754
   end
   object btnRelations: TButton
     Left = 8
@@ -86,10 +87,10 @@ object MainForm: TMainForm
     OnClick = btnValidationClick
   end
   object btnMultiThreading: TButton
-    Left = 8
-    Top = 403
+    Left = 144
+    Top = 8
     Width = 121
-    Height = 34
+    Height = 33
     Caption = 'Multi Threading'
     TabOrder = 6
     OnClick = btnMultiThreadingClick
@@ -113,10 +114,10 @@ object MainForm: TMainForm
     OnClick = btnTransientFieldsClick
   end
   object btnNullTest: TButton
-    Left = 8
-    Top = 443
+    Left = 144
+    Top = 47
     Width = 121
-    Height = 34
+    Height = 33
     Caption = 'Nullables'
     TabOrder = 9
     OnClick = btnNullTestClick
@@ -150,17 +151,17 @@ object MainForm: TMainForm
     OnClick = btnWithSpacesClick
   end
   object btnCountWithRQL: TButton
-    Left = 8
-    Top = 483
+    Left = 144
+    Top = 86
     Width = 121
-    Height = 34
+    Height = 33
     Caption = 'Count with RQL'
     TabOrder = 13
     OnClick = btnCountWithRQLClick
   end
   object btnReadAndWriteOnly: TButton
-    Left = 8
-    Top = 523
+    Left = 144
+    Top = 125
     Width = 121
     Height = 33
     Caption = 'R/O, R/W'
@@ -168,8 +169,8 @@ object MainForm: TMainForm
     OnClick = btnReadAndWriteOnlyClick
   end
   object btnClientGeneratedPK: TButton
-    Left = 8
-    Top = 562
+    Left = 144
+    Top = 164
     Width = 121
     Height = 33
     Caption = 'Client Generated PKs'
@@ -177,8 +178,8 @@ object MainForm: TMainForm
     OnClick = btnClientGeneratedPKClick
   end
   object btnAttributes: TButton
-    Left = 8
-    Top = 599
+    Left = 144
+    Top = 203
     Width = 121
     Height = 33
     Caption = 'Attributes'
@@ -186,34 +187,43 @@ object MainForm: TMainForm
     OnClick = btnAttributesClick
   end
   object btnJSON_XML_Types: TButton
-    Left = 8
-    Top = 638
+    Left = 144
+    Top = 242
     Width = 121
-    Height = 33
+    Height = 35
     Caption = 'JSON && XML'
     TabOrder = 17
     OnClick = btnJSON_XML_TypesClick
   end
   object btnMerge: TButton
-    Left = 8
-    Top = 677
+    Left = 144
+    Top = 283
     Width = 121
-    Height = 33
+    Height = 34
     Caption = 'Merge'
     TabOrder = 18
     OnClick = btnMergeClick
   end
   object btnTableFilter: TButton
-    Left = 8
-    Top = 716
+    Left = 144
+    Top = 323
     Width = 121
-    Height = 33
+    Height = 34
     Caption = 'Table Filter'
     TabOrder = 19
     OnClick = btnTableFilterClick
   end
+  object btnPartitioning: TButton
+    Left = 144
+    Top = 363
+    Width = 121
+    Height = 33
+    Caption = 'Table Partitioning'
+    TabOrder = 20
+    OnClick = btnPartitioningClick
+  end
   object FDConnection1: TFDConnection
-    Left = 192
-    Top = 56
+    Left = 56
+    Top = 408
   end
 end

@@ -70,7 +70,7 @@ type
       const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True;
       const UseFilterOnly: Boolean = False;
-      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
+      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
     function CreateSelectCount(
       const TableName: string): string; override;
   end;
@@ -157,13 +157,13 @@ function TMVCSQLGeneratorMySQL.CreateSQLWhereByRQL(
       const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True;
       const UseFilterOnly: Boolean = False;
-      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string;
+      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string;
 var
   lMySQLCompiler: TRQLMySQLCompiler;
 begin
   lMySQLCompiler := TRQLMySQLCompiler.Create(Mapping);
   try
-    GetRQLParser(MaxRecordCount).Execute(RQL, Result, lMySQLCompiler, UseArtificialLimit, UseFilterOnly);
+    GetRQLParser.Execute(RQL, Result, lMySQLCompiler, UseArtificialLimit, UseFilterOnly, MaxRecordCount);
   finally
     lMySQLCompiler.Free;
   end;

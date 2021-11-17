@@ -51,7 +51,7 @@ type
       const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True; const UseFilterOnly: Boolean = False;
-      const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
+      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
     function CreateSelectCount(const TableName: string): string; override;
     function HasSequences: Boolean; override;
   end;
@@ -135,14 +135,14 @@ end;
 function TMVCSQLGeneratorSQLite.CreateSQLWhereByRQL(const RQL: string;
   const Mapping: TMVCFieldsMapping; const UseArtificialLimit: Boolean = True;
   const UseFilterOnly: Boolean = False;
-  const MaxRecordCount: UInt32 = TMVCConstants.MAX_RECORD_COUNT): string;
+  const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string;
 var
   lSQLiteCompiler: TRQLSQLiteCompiler;
 begin
   lSQLiteCompiler := TRQLSQLiteCompiler.Create(Mapping);
   try
-    GetRQLParser(MaxRecordCount).Execute(RQL, Result, lSQLiteCompiler, UseArtificialLimit,
-      UseFilterOnly);
+    GetRQLParser.Execute(RQL, Result, lSQLiteCompiler,
+      UseArtificialLimit, UseFilterOnly, MaxRecordCount);
   finally
     lSQLiteCompiler.Free;
   end;

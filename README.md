@@ -569,23 +569,40 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
     end;
     ```
 
-
 ### Bug Fixes in 3.2.2-nitrogen
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/484 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/472 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/470  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/453  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/455  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/461
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/451
+
 - Fix for nil objects in lists during serialization
-- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
+
+- Fix a very subtle bug in `MaxRecordCount` parameter for RQL based methods in `TMVCActiveRecord`
+
+- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. 
+
+  > WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
+
 - Fix *fileupload* sample
 
 ## Older Releases
