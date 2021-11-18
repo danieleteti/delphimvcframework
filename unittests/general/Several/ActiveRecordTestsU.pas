@@ -42,7 +42,8 @@ type
     procedure LoadData(const JustAFew: Boolean = False); virtual;
     procedure AfterDataLoad; virtual; abstract;
     procedure InternalSetupFixture; virtual;
-    function CreateACustomer(Name: String; Rating: Integer): Integer;
+    function CreateACustomer(CompanyName: String; Rating: Integer): Integer; overload;
+    function CreateACustomer(CompanyName: String; City: String; Rating: Integer): Integer; overload;
   public
     [SetupFixture]
     procedure SetupFixturePG;
@@ -88,6 +89,7 @@ type
     procedure TestMergeWhenChangedRecords;
     [Test]
     procedure TestMergeWhenMixedRecords;
+    {default filtering}
     [Test]
     procedure TestDefaultFilteringSelectByRQL;
     [Test]
@@ -102,6 +104,25 @@ type
     procedure TestDefaultFilteringDelete;
     [Test]
     procedure TestDefaultFilteringGetByPK;
+    {partitioning}
+    [Test]
+    procedure TestPartitioningCRUD;
+    [Test]
+    procedure TestPartitioningSelectByWhere;
+    [Test]
+    procedure TestPartitioningSelectByRQL;
+    [Test]
+    procedure TestPartitioningSelectOneByRQL;
+    [Test]
+    procedure TestPartitioningCount;
+    [Test]
+    procedure TestPartitioningCountByRQL;
+    [Test]
+    procedure TestPartitioningDeleteByRQL;
+    [Test]
+    procedure TestPartitioningDelete;
+    [Test]
+    procedure TestPartitioningGetByPK;
   end;
 
   [TestFixture]
@@ -1152,6 +1173,269 @@ begin
   end;
 end;
 
+procedure TTestActiveRecordBase.TestPartitioningCount;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  CreateACustomer('Daniele', 'Rome', 1);
+  CreateACustomer('Jack', 'Rome', 2);
+  CreateACustomer('John', 'New York', 3);
+  CreateACustomer('Scott', 'Milan', 4);
+  CreateACustomer('Bruce', 'Tokyo', 5);
+  Assert.AreEqual(Int64(2), TMVCActiveRecord.Count<TRomeBasedCustomer>);
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count<TNewYorkBasedCustomer>);
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningCountByRQL;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  CreateACustomer('Daniele', 'Rome', 1);
+  CreateACustomer('Jack', 'Rome', 2);
+  CreateACustomer('John', 'New York', 3);
+  CreateACustomer('Scott', 'Milan', 4);
+  CreateACustomer('Bruce', 'Tokyo', 5);
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count<TRomeBasedCustomer>('ge(rating,2)'));
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TNewYorkBasedCustomer>('gt(rating,4)'));
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TNewYorkBasedCustomer>('contains(CompanyName,"a")'));
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count<TNewYorkBasedCustomer>('contains(CompanyName,"h")'));
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningCRUD;
+var
+  lRMCustomer: TRomeBasedCustomer;
+  lNYCustomer: TNewYorkBasedCustomer;
+  lIDRome, lIDNewYork: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TRomeBasedCustomer>());
+  lRMCustomer := TRomeBasedCustomer.Create;
+  try
+    lRMCustomer.CompanyName := 'bit Time Professionals';
+    lRMCustomer.Note := 'note1';
+    lRMCustomer.Insert;
+    lIDRome := lRMCustomer.ID;
+  finally
+    lRMCustomer.Free;
+  end;
+
+  lNYCustomer := TNewYorkBasedCustomer.Create;
+  try
+    lNYCustomer.CompanyName := 'bit Time Professionals NY';
+    lRMCustomer.Note := 'note2';
+    lNYCustomer.Insert;
+    lIDNewYork := lNYCustomer.ID;
+  finally
+    lNYCustomer.Free;
+  end;
+
+  lRMCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lIDRome);
+  try
+    Assert.IsFalse(lRMCustomer.Code.HasValue);
+    lRMCustomer.Code := '1234';
+    lRMCustomer.Note := lRMCustomer.Note + 'noteupdated';
+    lRMCustomer.Update;
+  finally
+    lRMCustomer.Free;
+  end;
+
+  lRMCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lIDRome);
+  try
+    Assert.AreEqual('1234', lRMCustomer.Code.Value);
+    Assert.AreEqual('note1noteupdated', lRMCustomer.Note);
+    Assert.AreEqual('bit Time Professionals', lRMCustomer.CompanyName.Value);
+    Assert.AreEqual(1, lRMCustomer.ID.Value);
+  finally
+    lRMCustomer.Free;
+  end;
+
+  lRMCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lIDRome);
+  try
+    lRMCustomer.Delete;
+  finally
+    lRMCustomer.Free;
+  end;
+
+  lRMCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lIDRome, false);
+  Assert.IsNull(lRMCustomer);
+
+  lRMCustomer := TMVCActiveRecord.GetOneByWhere<TRomeBasedCustomer>('id = ?', [lIDRome], [ftInteger], false);
+  Assert.IsNull(lRMCustomer);
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningDelete;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  var lID1 := CreateACustomer('Daniele', 'Rome', 1);
+  var lID2 := CreateACustomer('Jack', 'Rome', 2);
+  var lID3 := CreateACustomer('Bruce', 'Tokyo', 3);
+  var lID4 := CreateACustomer('John', 'New York', 4);
+  var lID5 := CreateACustomer('Scott', 'New York', 5);
+
+  var lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
+  try
+    lGoodNewYorkCustomer.Delete;
+    Assert.Pass;
+  finally
+    lGoodNewYorkCustomer.Free;
+  end;
+
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count(TNewYorkBasedCustomer));
+  TMVCActiveRecord.DeleteAll(TNewYorkBasedGoodCustomer);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TNewYorkBasedGoodCustomer));
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count(TNewYorkBasedCustomer));
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningDeleteByRQL;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  var lID1 := CreateACustomer('Daniele', 'Rome', 1);
+  var lID2 := CreateACustomer('Jack', 'Rome', 2);
+  var lID3 := CreateACustomer('Bruce', 'Tokyo', 3);
+  var lID4 := CreateACustomer('John', 'New York', 4);
+  var lID5 := CreateACustomer('Scott', 'New York', 5);
+
+  Assert.AreEqual(Int64(2), TMVCActiveRecord.Count(TNewYorkBasedCustomer));
+  TMVCActiveRecord.DeleteRQL(TNewYorkBasedCustomer, 'eq(CompanyName,"John")');
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count(TNewYorkBasedCustomer));
+  TMVCActiveRecord.DeleteRQL(TNewYorkBasedCustomer, 'eq(CompanyName,"John")');
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count(TNewYorkBasedCustomer));
+  Assert.AreEqual(Int64(1), TMVCActiveRecord.Count(TNewYorkBasedGoodCustomer));
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningGetByPK;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  var lID1 := CreateACustomer('Daniele', 'Rome', 1);
+  var lID2 := CreateACustomer('Jack', 'Rome', 2);
+  var lID3 := CreateACustomer('Bruce', 'Tokyo', 3);
+  var lID4 := CreateACustomer('John', 'New York', 4);
+  var lID5 := CreateACustomer('Scott', 'New York', 5);
+
+  var lRomeCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lID1);
+  try
+    Assert.IsNotNull(lRomeCustomer);
+  finally
+    lRomeCustomer.Free;
+  end;
+
+  var lNYCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedCustomer>(lID1, False);
+  try
+    Assert.IsNull(lNYCustomer);
+  finally
+    lNYCustomer.Free;
+  end;
+
+  var lNYGoodCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5, False);
+  try
+    Assert.IsNotNull(lNYGoodCustomer);
+  finally
+    lNYGoodCustomer.Free;
+  end;
+
+  lNYGoodCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID1, False);
+  try
+    Assert.IsNull(lNYGoodCustomer);
+  finally
+    lNYGoodCustomer.Free;
+  end;
+
+
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningSelectByRQL;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  CreateACustomer('Rome Company 1', 'Rome', 5);
+  CreateACustomer('Rome Company 2', 'Rome', 2);
+  CreateACustomer('New York 1', 'New York', 1);
+  CreateACustomer('Toyko 1', 'Tokyo', 4);
+
+  var lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('',10);
+  try
+    Assert.AreEqual(2, lRomeCustomers.Count);
+  finally
+    lRomeCustomers.Free;
+  end;
+
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('sort(+CompanyName)',10);
+  try
+    Assert.AreEqual('Rome Company 1', lRomeCustomers[0].CompanyName.Value);
+    Assert.AreEqual('Rome Company 2', lRomeCustomers[1].CompanyName.Value);
+  finally
+    lRomeCustomers.Free;
+  end;
+
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('eq(Rating,5);sort(+CompanyName)',10);
+  try
+    Assert.AreEqual(1, lRomeCustomers.Count);
+    Assert.AreEqual('Rome Company 1', lRomeCustomers[0].CompanyName.Value);
+  finally
+    lRomeCustomers.Free;
+  end;
+
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('lt(Rating,2);sort(+CompanyName)',10);
+  try
+    Assert.AreEqual(0, lRomeCustomers.Count);
+  finally
+    lRomeCustomers.Free;
+  end;
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningSelectByWhere;
+var
+  lRMCustomer: TRomeBasedCustomer;
+  lNYCustomer: TNewYorkBasedCustomer;
+  lIDRome, lIDNewYork: Integer;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TRomeBasedCustomer>());
+  CreateACustomer('Daniele','Rome',1);
+  CreateACustomer('Jack','New York',1);
+  var lRomeBasedCustomers := TMVCActiveRecord.Where<TRomeBasedCustomer>('city = ?', ['New York'], [ftString]);
+  try
+    Assert.AreEqual(0, lRomeBasedCustomers.Count);
+  finally
+    lRomeBasedCustomers.Free;
+  end;
+
+  lRomeBasedCustomers := TMVCActiveRecord.Where<TRomeBasedCustomer>('description = ?', ['Daniele'], [ftString]);
+  try
+    Assert.AreEqual(1, lRomeBasedCustomers.Count);
+  finally
+    lRomeBasedCustomers.Free;
+  end;
+
+end;
+
+procedure TTestActiveRecordBase.TestPartitioningSelectOneByRQL;
+begin
+  TMVCActiveRecord.DeleteAll(TCustomer);
+  CreateACustomer('Rome Company 1', 'Rome', 5);
+  CreateACustomer('Rome Company 2', 'Rome', 2);
+  CreateACustomer('New York 1', 'New York', 5);
+  CreateACustomer('Toyko 1', 'Tokyo', 4);
+
+  var lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
+  try
+    Assert.IsNotNull(lRomeCustomer);
+  finally
+    lRomeCustomer.Free;
+  end;
+
+  lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('eq(Rating,5);sort(+CompanyName)');
+  try
+    Assert.AreEqual('Rome Company 1', lRomeCustomer.CompanyName.Value);
+  finally
+    lRomeCustomer.Free;
+  end;
+
+  TMVCActiveRecord.DeleteAll(TRomeBasedCustomer);
+
+  lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('eq(Rating,5);sort(+CompanyName)', False);
+  try
+    Assert.IsNull(lRomeCustomer);
+  finally
+    lRomeCustomer.Free;
+  end;
+end;
+
 procedure TTestActiveRecordBase.TestRQL;
 var
   lCustomers: TObjectList<TCustomer>;
@@ -1406,15 +1690,21 @@ begin
   end;
 end;
 
-function TTestActiveRecordBase.CreateACustomer(Name: String;
+function TTestActiveRecordBase.CreateACustomer(CompanyName: String;
+  Rating: Integer): Integer;
+begin
+  Result := CreateACustomer(CompanyName, CompanyName + 'City', Rating);
+end;
+
+function TTestActiveRecordBase.CreateACustomer(CompanyName, City: String;
   Rating: Integer): Integer;
 var
   lCustomer: TCustomer;
 begin
   lCustomer := TCustomer.Create;
   try
-    lCustomer.CompanyName := Name;
-    lCustomer.City := Name + ' city';
+    lCustomer.CompanyName := CompanyName;
+    lCustomer.City := City;
     lCustomer.Rating := Rating;
     lCustomer.Insert;
     Result := lCustomer.ID;

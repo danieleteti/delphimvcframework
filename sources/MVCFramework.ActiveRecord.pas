@@ -426,12 +426,16 @@ type
       const MaxRecordCount: Integer)
       : TObjectList<T>; overload;
     class function SelectOneByRQL<T: constructor, TMVCActiveRecord>(const RQL: string;
-      const RaiseExceptionIfNotFound: Boolean): T; overload;
+      const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function All<T: TMVCActiveRecord, constructor>: TObjectList<T>; overload;
     class function Count<T: TMVCActiveRecord>(const RQL: string = ''): int64; overload;
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
       const Params: array of Variant)
       : TObjectList<T>; overload;
+    /// <summary>
+    ///   Executes a SQL select using the SQLWhere parameter as where clause. This method is partitioning safe.
+    ///   Returns TObjectList<EntityType>.
+    /// </summary>
     class function Where<T: TMVCActiveRecord, constructor>(const SQLWhere: string;
       const Params: array of Variant;
       const ParamTypes: array of TFieldType): TObjectList<T>; overload;
@@ -2372,17 +2376,25 @@ class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string;
   const ParamTypes: array of TFieldType): TObjectList<T>;
 var
   lAR: TMVCActiveRecord;
+  lFilter: string;
 begin
   lAR := T.Create;
   try
+    lFilter := lAR.SQLGenerator.GetDefaultSQLFilter(True);
     if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or
       SQLWhere.Trim.StartsWith('/*sort*/') then
     begin
-      Result := Select<T>(lAR.GenerateSelectSQL + SQLWhere, Params, ParamTypes);
+      Result := Select<T>(lAR.GenerateSelectSQL +
+        lFilter + SQLWhere, Params, ParamTypes)
     end
     else
     begin
-      Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params, ParamTypes);
+      if lFilter.IsEmpty then
+        Result := Select<T>(lAR.GenerateSelectSQL + ' WHERE ' + SQLWhere, Params, ParamTypes)
+      else
+      begin
+        Result := Select<T>(lAR.GenerateSelectSQL + lFilter + ' AND ' + SQLWhere, Params, ParamTypes);
+      end;
     end;
   finally
     lAR.Free;
@@ -3621,7 +3633,18 @@ begin
   begin
     for I := 0 to lFieldCount - 1 do
     begin
-      fRQLFilter := fRQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i] + '),';
+      case FieldTypes[I] of
+        ftString:
+        begin
+          fRQLFilter := fRQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i].QuotedString('"') + '),';
+        end;
+        ftInteger:
+        begin
+          fRQLFilter := fRQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i] + '),';
+        end;
+        else
+          raise ERQLException.CreateFmt('DataType for field [%s] not supported in partition clause', [fFieldNames[I]]);
+      end;
     end;
     fRQLFilter := fRQLFilter.Remove(fRQLFilter.Length - 1,1);
     if lFieldCount > 1 then
