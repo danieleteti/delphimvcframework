@@ -222,7 +222,7 @@ begin
     end;
   end;
   {partition}
-  for I := 0 to Length(fPartitionInfo.FieldNames) - 1 do
+  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
   begin
     Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
       GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
@@ -249,7 +249,7 @@ end;
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteAllSQL(
   const TableName: string): string;
 begin
-  Result := 'DELETE FROM ' + GetTableNameForSQL(TableName) + GetDefaultSQLFilter(True);
+  Result := 'DELETE FROM ' + GetTableNameForSQL(TableName); // + GetDefaultSQLFilter(True);
 end;
 
 function TMVCSQLGeneratorPostgreSQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;

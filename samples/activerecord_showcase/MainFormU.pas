@@ -1191,7 +1191,7 @@ begin
   end;
 
   Log('Retrieving only best customers...');
-  var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('',10);
+  var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('sort(+rating)',10);
   try
     Assert(lGoodCustomers.Count = 2); { only rating >= 4}
     for var lCust in lGoodCustomers do
@@ -1221,6 +1221,19 @@ begin
   finally
     lGoodCustomers2.Free;
   end;
+
+  Log('Retrieving only best customers ordered by company name...');
+  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('sort(+CompanyName)',10);
+  try
+    Assert(lGoodCustomers.Count = 2); { only rating >= 4}
+    for var lCust in lGoodCustomers do
+    begin
+      Log(lCust.ToString);
+    end;
+  finally
+    lGoodCustomers.Free;
+  end;
+
 
   Log('Retrieving only best customers...');
 

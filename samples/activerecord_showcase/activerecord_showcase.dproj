@@ -163,13 +163,19 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="SQLITE" Class="ProjectOutput">
+                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="BULD" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>activerecord_showcase.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>activerecord_showcase.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="SQLITE" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>activerecord_showcase.exe</RemoteName>
                         <Overwrite>true</Overwrite>
@@ -182,12 +188,6 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="POSTGRESQL" Class="ProjectOutput">
-                    <Platform Name="Win32">
-                        <RemoteName>activerecord_showcase.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="bin\activerecord_showcase.exe" Configuration="BULD" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>activerecord_showcase.exe</RemoteName>
                         <Overwrite>true</Overwrite>

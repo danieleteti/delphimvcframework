@@ -127,6 +127,16 @@ type
     property Note: string read fNote write fNote;
   end;
 
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers', 'ge(Rating,4)')]
+  TGoodCustomer = class(TCustomer)
+  end;
+
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers', 'le(Rating,3)')]
+  TBadCustomer = class(TCustomer)
+  end;
+
   [MVCTable('customers_with_code')]
   TCustomerWithCode = class(TMVCActiveRecord)
   private

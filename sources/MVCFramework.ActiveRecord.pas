@@ -43,8 +43,9 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.RQL.Parser,
+  MVCFramework.Cache,
   MVCFramework.Serializer.Intf,
-  MVCFramework.Serializer.Commons;
+  MVCFramework.Serializer.Commons, System.SyncObjs;
 
 type
   EMVCActiveRecord = class(EMVCException)
@@ -70,9 +71,12 @@ type
   TMVCActiveRecordLoadOption = (loIgnoreNotExistentFields);
   TMVCActiveRecordLoadOptions = set of TMVCActiveRecordLoadOption;
 
-  TPartionFieldNames = TArray<String>;
-  TPartionFieldValues = TArray<String>;
-  TPartionFieldTypes = TArray<TFieldType>;
+  TPartitionFieldNames = class(TList<String>)
+  end;
+  TPartitionFieldValues = class(TList<String>)
+  end;
+  TPartitionFieldTypes = class(TList<TFieldType>)
+  end;
 
 
   IMVCEntityProcessor = interface
@@ -158,13 +162,27 @@ type
   TMVCSQLGenerator = class;
 
   TPartitionInfo = class
-    FieldNames: TPartionFieldNames;
-    FieldValues: TPartionFieldValues;
-    FieldTypes: TPartionFieldTypes;
-    RQLFilter: String;
-    SQLFilter: String;
+  private
+    class
+      var PartitionInfoCache: TMVCThreadedObjectCache<TPartitionInfo>;
+  private
+    fRQLFilter: String;
+    fSQLFilter: String;
+    fFieldValues: TPartitionFieldValues;
+    fFieldTypes: TPartitionFieldTypes;
+    fFieldNames: TPartitionFieldNames;
+  public
+    property FieldNames: TPartitionFieldNames read fFieldNames;
+    property FieldValues: TPartitionFieldValues read fFieldValues;
+    property FieldTypes: TPartitionFieldTypes read fFieldTypes;
+    property RQLFilter: String read fRQLFilter;
+    property SQLFilter: String read fSQLFilter;
     constructor Create;
-    procedure InitializeFilterStrings(const SQLGenerator: TMVCSQLGenerator);
+    destructor Destroy; override;
+    class constructor Create;
+    class destructor Destroy;
+    procedure InitializeFilterStrings(const RQLCompiler: TRQLCompiler);
+    class function BuildPartitionClause(const PartitionClause: String; const RQLCompilerClass: TRQLCompilerClass): TPartitionInfo;
   end;
 
   TMVCActiveRecordList = class(TObjectList<TMVCActiveRecord>)
@@ -201,7 +219,9 @@ type
     fPrimaryKey: TRTTIField;
     fBackendDriver: string;
     fMapping: TMVCFieldsMapping;
-    fPartitionInfo: TPartitionInfo;
+    fPartitionInfoInternal: TPartitionInfo;
+    fPartitionClause: String;
+    function GetPartitionInfo: TPartitionInfo;
     function GetBackEnd: string;
     function GetConnection: TFDConnection;
     procedure InitTableInfo;
@@ -516,7 +536,6 @@ type
     fPartitionInfo: TPartitionInfo;
     function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = False): String; //inline;
     function MergeDefaultRQLFilter(const RQL: String): String; //inline;
-    function MergeRQL(const RQL1, RQL2: String): String;
     function MergeSQLFilter(const SQL1, SQL2: String): String;
     function GetRQLParser: TRQL2SQL;
     function GetCompiler: TRQLCompiler;
@@ -643,44 +662,6 @@ var
   gEntitiesRegistry: IMVCEntitiesRegistry;
   gConnections: IMVCActiveRecordConnections;
   gLock: TObject;
-
-function ParsePartitionClause(const PartitionClause: String): TPartitionInfo;
-var
-  lPieces, lItems: TArray<String>;
-  lPiece: String;
-begin
-  {
-  Needs to parse [MVCPartition('rating=(integer)4;classname=(string)persona')]
-  }
-  Result := TPartitionInfo.Create;
-  try
-    lPieces := PartitionClause.Split([';']);
-    for lPiece in lPieces do
-    begin
-      lItems := lPiece.Split(['=','(',')'], TStringSplitOptions.ExcludeEmpty);
-      if Length(lItems)<>3 then
-      begin
-        raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece + '. [HINT] Paritioning must be in the form: "[fieldname1=(integer|string)value1]"');
-      end;
-
-      Insert(lItems[0], Result.FieldNames,0);
-      if lItems[1]='integer' then
-        Insert(ftInteger, Result.FieldTypes,0)
-      else if lItems[1]='string' then
-      begin
-        Insert(ftString, Result.FieldTypes,0)
-      end
-      else
-      begin
-        raise EMVCActiveRecord.Create('Unknown data type in partitioning: ' + lItems[1] + '. [HINT] data type can be "integer" or "string"');
-      end;
-      Insert(lItems[2], Result.FieldValues,0);
-    end;
-  except
-    Result.Free;
-    raise;
-  end;
-end;
 
 function GetBackEndByConnection(aConnection: TFDConnection): string;
 begin
@@ -984,7 +965,6 @@ begin
   fMap.Free;
   fSQLGenerator.Free;
   fRQL2SQL.Free;
-  fPartitionInfo.Free;
   fConn := nil; // do not free it!!
   inherited;
 end;
@@ -1018,15 +998,15 @@ begin
     if not lHandled then
     begin
       {partitioning}
-      for I := 0 to Length(fPartitionInfo.FieldNames)-1 do
+      for I := 0 to GetPartitionInfo.FieldNames.Count - 1 do
       begin
-        lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(fPartitionInfo.FieldNames[I]));
+        lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(GetPartitionInfo.FieldNames[I]));
         if lPar <> nil then
         begin
-          if fPartitionInfo.FieldTypes[I] = ftInteger then
-            lValue := StrToInt(fPartitionInfo.FieldValues[I])
+          if GetPartitionInfo.FieldTypes[I] = ftInteger then
+            lValue := StrToInt(GetPartitionInfo.FieldValues[I])
           else
-            lValue := fPartitionInfo.FieldValues[I];
+            lValue := GetPartitionInfo.FieldValues[I];
           //lPar.DataTypeName := fPartitionInfo.FieldValues[I];
           MapTValueToParam(lValue, lPar);
         end
@@ -1123,11 +1103,12 @@ var
   lFieldInfo: TFieldInfo;
   lPrimaryFieldTypeAsStr: string;
 begin
-  fPartitionInfo := nil;
+  fPartitionInfoInternal := nil;
   fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve,
     TMVCEntityAction.eaUpdate,
     TMVCEntityAction.eaDelete];
   fTableName := '';
+  fPartitionClause := '';
   fRTTIType := gCtx.GetType(Self.ClassInfo) as TRttiInstanceType;
   fObjAttributes := fRTTIType.GetAttributes;
   for lAttribute in fObjAttributes do
@@ -1144,16 +1125,10 @@ begin
     end;
     if lAttribute is MVCPartitionAttribute then
     begin
-      fPartitionInfo := ParsePartitionClause(MVCPartitionAttribute(lAttribute).PartitionClause);
+      fPartitionClause := MVCPartitionAttribute(lAttribute).PartitionClause;
       Continue;
     end;
   end;
-
-  if fPartitionInfo = nil then
-  begin
-    fPartitionInfo := TPartitionInfo.Create;
-  end;
-
 
   if fTableName = '' then
   begin
@@ -1227,9 +1202,9 @@ begin
     end;
   end;
   fMap.EndUpdates;
-  fPartitionInfo.InitializeFilterStrings(SQLGenerator);
   Assert(fMap.WritableFieldsCount + fMap.ReadableFieldsCount > 0,
     'No fields defined [HINT] Use MVCTableField in private fields');
+  fPartitionInfoInternal := nil;
 end;
 
 procedure TMVCActiveRecord.Insert;
@@ -1522,6 +1497,18 @@ begin
   end;
 end;
 
+function TMVCActiveRecord.GetPartitionInfo: TPartitionInfo;
+var
+  lRQLCompilerClass: TRQLCompilerClass;
+begin
+  if fPartitionInfoInternal = nil then
+  begin
+    lRQLCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(GetBackEnd);
+    fPartitionInfoInternal := TPartitionInfo.BuildPartitionClause(fPartitionClause, lRQLCompilerClass);
+  end;
+  Result := fPartitionInfoInternal;
+end;
+
 function TMVCActiveRecord.GetPK: TValue;
 var
   lIsNullableType: Boolean;
@@ -1650,7 +1637,10 @@ var
 begin
   lAR := aClass.Create;
   try
-    Result := lAR.ExecNonQuery(lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableName));
+    Result := lAR.ExecNonQuery(
+      lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableName) +
+      lAR.SQLGenerator.GetDefaultSQLFilter(True)
+    );
   finally
     lAR.Free;
   end;
@@ -2668,7 +2658,7 @@ begin
   begin
     GetConnection.Connected := True;
     fSQLGenerator := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd)
-      .Create(GetMapping, fDefaultRQLFilter, fPartitionInfo);
+      .Create(GetMapping, fDefaultRQLFilter, GetPartitionInfo);
   end;
   Result := fSQLGenerator;
 end;
@@ -3129,51 +3119,100 @@ begin
 end;
 
 function TMVCSQLGenerator.MergeDefaultRQLFilter(const RQL: String): String;
+var
+  lRQLFilterPart, lRQLSortingAndLimitPart: String;
+  lSemicolonPos: Integer;
 begin
-  if not fDefaultRQLFilter.IsEmpty then
+  lRQLFilterPart := RQL;
+  lRQLSortingAndLimitPart := '';
+  lSemicolonPos := RQL.IndexOf(';');
+  if lSemicolonPos > -1 then
   begin
-    if RQL.Contains(';') then
+    lRQLFilterPart :=  RQL.Substring(0, lSemicolonPos);
+    lRQLSortingAndLimitPart := RQL.Substring(lSemicolonPos + 1, 1000);
+  end;
+
+  {this is not the best solution, but it works...}
+  if lRQLFilterPart.Contains('sort') or lRQLFilterPart.Contains('limit') then
+  begin
+    lRQLSortingAndLimitPart := lRQLFilterPart;
+    lRQLFilterPart := '';
+  end;
+
+  if (not fDefaultRQLFilter.IsEmpty) or (not fPartitionInfo.RQLFilter.IsEmpty) then
+  begin
+    Result := 'and(';
+    if not fDefaultRQLFilter.IsEmpty then
     begin
-      var Pieces := RQL.Split([';']);
-      if Pieces[0].Trim.Length > 0 then
-      begin
-        Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-      end
-      else
-      begin
-        Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-      end;
-    end
-    else
-    begin
-      if RQL.IsEmpty then
-        Result := fDefaultRQLFilter
-      else
-        Result := 'and('+fDefaultRQLFilter + ',' + RQL + ')';
+      Result := Result + fDefaultRQLFilter;
     end;
+    if not fPartitionInfo.RQLFilter.IsEmpty then
+    begin
+      Result := Result + ',' + fPartitionInfo.RQLFilter;
+    end;
+    if not lRQLFilterPart.IsEmpty then
+    begin
+      Result := Result + ',' + lRQLFilterPart;
+    end;
+    Result := Result + ')';
   end
   else
   begin
-    Result := RQL;
+    Exit(RQL);
   end;
-  Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
-end;
 
-function TMVCSQLGenerator.MergeRQL(const RQL1, RQL2: String): String;
-begin
-  if RQL1+RQL2 = '' then
+  if not lRQLSortingAndLimitPart.IsEmpty then
   begin
-    Exit('');
+    Result := Result + ';' + lRQLSortingAndLimitPart;
   end;
-  if RQL1.IsEmpty and (not RQL2.IsEmpty) then
-  begin
-    Exit(RQL2);
-  end;
-  if RQL2.IsEmpty and (not RQL1.IsEmpty) then
-  begin
-    Exit(RQL1);
-  end;
-  Result := 'and(' + RQL1 + ',' + RQL2 + ')';
+
+
+//
+//    var Pieces := RQL.Split([';']);
+//    if Pieces[0].Trim.Length > 0 then
+//    begin
+//      Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+//    end
+//    else
+//    begin
+//      Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+//    end;
+//  end
+//
+//
+//
+//  if not fDefaultRQLFilter.IsEmpty then
+//  begin
+//    if RQL.Contains(';') then
+//    begin
+//      var Pieces := RQL.Split([';']);
+//      if Pieces[0].Trim.Length > 0 then
+//      begin
+//        Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+//      end
+//      else
+//      begin
+//        Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+//      end;
+//    end
+//    else
+//    begin
+//      if RQL.IsEmpty then
+//      begin
+//        Result := fDefaultRQLFilter
+//      end
+//      else
+//      begin
+//        Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
+//      end;
+//        //Result := 'and('+fDefaultRQLFilter + ',' + RQL + ')';
+//    end;
+//  end
+//  else
+//  begin
+//    Result := RQL;
+//  end;
+//  Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
 end;
 
 function TMVCSQLGenerator.MergeSQLFilter(const SQL1, SQL2: String): String;
@@ -3553,32 +3592,105 @@ end;
 constructor TPartitionInfo.Create;
 begin
   inherited;
-  SetLength(FieldNames, 0);
-  SetLength(FieldValues, 0);
-  SetLength(FieldTypes, 0);
+  fFieldNames := TPartitionFieldNames.Create;
+  fFieldValues := TPartitionFieldValues.Create;
+  fFieldTypes := TPartitionFieldTypes.Create;
+end;
+
+destructor TPartitionInfo.Destroy;
+begin
+  fFieldNames.Free;
+  fFieldValues.Free;
+  fFieldTypes.Free;
+  inherited;
+end;
+
+class destructor TPartitionInfo.Destroy;
+begin
+  PartitionInfoCache.Free;
 end;
 
 procedure TPartitionInfo.InitializeFilterStrings(
-  const SQLGenerator: TMVCSQLGenerator);
+  const RQLCompiler: TRQLCompiler);
 var
   lFieldCount, I: Integer;
 begin
-  RQLFilter := '';
-  lFieldCount := Length(FieldNames);
+  fRQLFilter := '';
+  lFieldCount := FieldNames.Count;
   if lFieldCount > 0 then
   begin
     for I := 0 to lFieldCount - 1 do
     begin
-      RQLFilter := RQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i] + '),';
+      fRQLFilter := fRQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i] + '),';
     end;
-    RQLFilter := RQLFilter.Remove(RQLFilter.Length - 1,1);
+    fRQLFilter := fRQLFilter.Remove(fRQLFilter.Length - 1,1);
     if lFieldCount > 1 then
     begin
-      RQLFilter := 'and(' + RQLFilter + ')';
+      fRQLFilter := 'and(' + fRQLFilter + ')';
     end;
   end;
-  SQLGenerator.GetRQLParser.Execute(RQLFilter, SQLFilter,SQLGenerator.GetCompiler,False, True);
-  SQLFilter := TMVCSQLGenerator.RemoveInitialWhereKeyword(SQLFilter);
+  var rql := TRQL2SQL.Create;
+  try
+    rql.Execute(fRQLFilter, fSQLFilter, RQLCompiler, False, True)
+  finally
+    rql.Free;
+  end;
+  fSQLFilter := TMVCSQLGenerator.RemoveInitialWhereKeyword(fSQLFilter);
+end;
+
+class function TPartitionInfo.BuildPartitionClause(
+  const PartitionClause: String; const RQLCompilerClass: TRQLCompilerClass): TPartitionInfo;
+var
+  lPieces, lItems: TArray<String>;
+  lPiece: String;
+  lRQLCompiler: TRQLCompiler;
+begin
+  {
+  Needs to parse [MVCPartition('rating=(integer)4;classname=(string)persona')]
+  }
+  if not PartitionInfoCache.TryGetValue(PartitionClause + '|' + RQLCompilerClass.ClassName, Result) then
+  begin
+    lRQLCompiler := RQLCompilerClass.Create(nil);
+    try
+      Result := TPartitionInfo.Create;
+      try
+        lPieces := PartitionClause.Split([';']);
+        for lPiece in lPieces do
+        begin
+          lItems := lPiece.Split(['=','(',')'], TStringSplitOptions.ExcludeEmpty);
+          if Length(lItems)<>3 then
+          begin
+            raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece + '. [HINT] Paritioning must be in the form: "[fieldname1=(integer|string)value1]"');
+          end;
+
+          Result.FieldNames.Add(lItems[0]);
+          if lItems[1]='integer' then
+            Result.FieldTypes.Add(ftInteger)
+          else if lItems[1]='string' then
+          begin
+            Result.FieldTypes.Add(ftString)
+          end
+          else
+          begin
+            raise EMVCActiveRecord.Create('Unknown data type in partitioning: ' + lItems[1] + '. [HINT] data type can be "integer" or "string"');
+          end;
+          Result.FieldValues.Add(lItems[2]);
+        end;
+      except
+        Result.Free;
+        raise;
+      end;
+      Result.InitializeFilterStrings(lRQLCompiler);
+      PartitionInfoCache.Add(PartitionClause + '|' + RQLCompilerClass.ClassName, Result);
+    finally
+      lRQLCompiler.Free;
+    end;
+  end;
+end;
+
+class constructor TPartitionInfo.Create;
+begin
+  PartitionInfoCache := TMVCThreadedObjectCache<TPartitionInfo>.Create;
 end;
 
 initialization
