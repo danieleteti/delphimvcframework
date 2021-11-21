@@ -554,29 +554,32 @@ type
     function HasSequences: Boolean; virtual;
     function HasReturning: Boolean; virtual;
     // end-capabilities
+
+    // abstract SQL generator methods
     function CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True; const UseFilterOnly: Boolean = false;
-      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string; virtual; abstract;
+      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string;
     function CreateSelectSQL(const TableName: string; const Map: TFieldsMap;
       const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
-    function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap;
-      const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
     function CreateInsertSQL(const TableName: string; const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
-    function CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
+
+    // virtual methods with default implementation
+    function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap;
       const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
     function CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
       const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
-    function CreateDeleteAllSQL(const TableName: string): string; virtual; abstract;
-    function CreateSelectCount(const TableName: string): string; virtual; abstract;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
+    function CreateDeleteAllSQL(const TableName: string): string; virtual;
+    function CreateSelectCount(const TableName: string): string; virtual;
+    function CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
+      const PKFieldName: string;
+      const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
     function GetSequenceValueSQL(const PKFieldName: string; const SequenceName: string;
-      const Step: Integer = 1)
-      : string; virtual;
+      const Step: Integer = 1): string; virtual;
 
     // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
     // or if the table name contains spaces.
@@ -3060,6 +3063,83 @@ end;
 function TMVCSQLGenerator.GetParamNameForSQL(const FieldName: string): string;
 begin
   Result := fCompiler.GetParamNameForSQL(FieldName);
+end;
+
+function TMVCSQLGenerator.CreateDeleteAllSQL(const TableName: string): string;
+begin
+  Result := 'DELETE FROM ' + GetTableNameForSQL(TableName);
+end;
+
+function TMVCSQLGenerator.CreateDeleteSQL(const TableName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
+begin
+  Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + GetFieldNameForSQL(PKFieldName) + '=:' +
+    GetParamNameForSQL(PKFieldName);
+end;
+
+function TMVCSQLGenerator.CreateSelectByPKSQL(const TableName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
+begin
+  if PKFieldName.IsEmpty then
+  begin
+    raise EMVCActiveRecord.Create('No primary key provided. [HINT] Define a primary key field adding foPrimaryKey in field options.');
+  end;
+
+  Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
+    GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName) +
+    GetDefaultSQLFilter(False, True);
+end;
+
+function TMVCSQLGenerator.CreateSelectCount(const TableName: string): string;
+begin
+  {do not add SQLFilter here!}
+  Result := 'SELECT count(*) FROM ' + GetTableNameForSQL(TableName);
+end;
+
+function TMVCSQLGenerator.CreateSelectSQL(const TableName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
+begin
+  Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + GetTableNameForSQL(TableName);
+end;
+
+function TMVCSQLGenerator.CreateSQLWhereByRQL(const RQL: string;
+  const Mapping: TMVCFieldsMapping; const UseArtificialLimit,
+  UseFilterOnly: Boolean; const MaxRecordCount: Int32): string;
+begin
+  GetRQLParser.Execute(MergeDefaultRQLFilter(RQL), Result, GetCompiler, UseArtificialLimit, UseFilterOnly, MaxRecordCount);
+end;
+
+function TMVCSQLGenerator.CreateUpdateSQL(const TableName: string;
+  const Map: TFieldsMap; const PKFieldName: string;
+  const PKOptions: TMVCActiveRecordFieldOptions): string;
+var
+  lPair: TPair<TRttiField, TFieldInfo>;
+  I: Integer;
+begin
+  Result := 'UPDATE ' + GetTableNameForSQL(TableName) + ' SET ';
+  for lPair in Map do
+  begin
+    if lPair.Value.Writeable then
+    begin
+      Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = :' +
+        GetParamNameForSQL(lPair.Value.FieldName) + ',';
+    end;
+  end;
+  {partition}
+  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
+  begin
+    Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
+      GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
+  end;
+  {end-partitioning}
+  Result[Length(Result)] := ' ';
+  if not PKFieldName.IsEmpty then
+  begin
+    Result := Result + ' where ' + GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName);
+  end;
 end;
 
 destructor TMVCSQLGenerator.Destroy;

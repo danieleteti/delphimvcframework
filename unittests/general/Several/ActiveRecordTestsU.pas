@@ -1203,7 +1203,7 @@ procedure TTestActiveRecordBase.TestPartitioningCRUD;
 var
   lRMCustomer: TRomeBasedCustomer;
   lNYCustomer: TNewYorkBasedCustomer;
-  lIDRome, lIDNewYork: Integer;
+  lIDRome: Integer;
 begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TRomeBasedCustomer>());
   lRMCustomer := TRomeBasedCustomer.Create;
@@ -1221,7 +1221,6 @@ begin
     lNYCustomer.CompanyName := 'bit Time Professionals NY';
     lRMCustomer.Note := 'note2';
     lNYCustomer.Insert;
-    lIDNewYork := lNYCustomer.ID;
   finally
     lNYCustomer.Free;
   end;
@@ -1263,10 +1262,10 @@ end;
 procedure TTestActiveRecordBase.TestPartitioningDelete;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  var lID1 := CreateACustomer('Daniele', 'Rome', 1);
-  var lID2 := CreateACustomer('Jack', 'Rome', 2);
-  var lID3 := CreateACustomer('Bruce', 'Tokyo', 3);
-  var lID4 := CreateACustomer('John', 'New York', 4);
+  CreateACustomer('Daniele', 'Rome', 1);
+  CreateACustomer('Jack', 'Rome', 2);
+  CreateACustomer('Bruce', 'Tokyo', 3);
+  CreateACustomer('John', 'New York', 4);
   var lID5 := CreateACustomer('Scott', 'New York', 5);
 
   var lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
@@ -1286,11 +1285,11 @@ end;
 procedure TTestActiveRecordBase.TestPartitioningDeleteByRQL;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  var lID1 := CreateACustomer('Daniele', 'Rome', 1);
-  var lID2 := CreateACustomer('Jack', 'Rome', 2);
-  var lID3 := CreateACustomer('Bruce', 'Tokyo', 3);
-  var lID4 := CreateACustomer('John', 'New York', 4);
-  var lID5 := CreateACustomer('Scott', 'New York', 5);
+  CreateACustomer('Daniele', 'Rome', 1);
+  CreateACustomer('Jack', 'Rome', 2);
+  CreateACustomer('Bruce', 'Tokyo', 3);
+  CreateACustomer('John', 'New York', 4);
+  CreateACustomer('Scott', 'New York', 5);
 
   Assert.AreEqual(Int64(2), TMVCActiveRecord.Count(TNewYorkBasedCustomer));
   TMVCActiveRecord.DeleteRQL(TNewYorkBasedCustomer, 'eq(CompanyName,"John")');
@@ -1304,9 +1303,9 @@ procedure TTestActiveRecordBase.TestPartitioningGetByPK;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
   var lID1 := CreateACustomer('Daniele', 'Rome', 1);
-  var lID2 := CreateACustomer('Jack', 'Rome', 2);
-  var lID3 := CreateACustomer('Bruce', 'Tokyo', 3);
-  var lID4 := CreateACustomer('John', 'New York', 4);
+  CreateACustomer('Jack', 'Rome', 2);
+  CreateACustomer('Bruce', 'Tokyo', 3);
+  CreateACustomer('John', 'New York', 4);
   var lID5 := CreateACustomer('Scott', 'New York', 5);
 
   var lRomeCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lID1);
@@ -1380,10 +1379,6 @@ begin
 end;
 
 procedure TTestActiveRecordBase.TestPartitioningSelectByWhere;
-var
-  lRMCustomer: TRomeBasedCustomer;
-  lNYCustomer: TNewYorkBasedCustomer;
-  lIDRome, lIDNewYork: Integer;
 begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TRomeBasedCustomer>());
   CreateACustomer('Daniele','Rome',1);

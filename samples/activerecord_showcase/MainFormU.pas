@@ -215,7 +215,7 @@ begin
     Log('Entity ' + TCustomer.ClassName + ' is mapped to table ' + lCustomer.TableName);
     lCustomer.CompanyName := 'Google Inc.';
     lCustomer.City := 'Montain View, CA';
-    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην';
+    lCustomer.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
     lCustomer.Insert;
     lID := lCustomer.ID;
     Log('Just inserted Customer ' + lID.ToString);

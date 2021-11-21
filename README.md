@@ -459,6 +459,31 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
 
+- ⚡New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ⚡New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ⚡Improved! After a big refactoring (*"I love to delete code" -- cit. Daniele Teti*), support a new SQLGenerator is just 2 (two) methods away! Just as example, this is the current version of `TMVCSQLGeneratorPostgreSQL`
+
+    ```delphi
+    type
+      TMVCSQLGeneratorPostgreSQL = class(TMVCSQLGenerator)
+      protected
+        function GetCompilerClass: TRQLCompilerClass; override;
+      public
+        function CreateInsertSQL(
+          const TableName: string;
+          const Map: TFieldsMap;
+          const PKFieldName: string;
+          const PKOptions: TMVCActiveRecordFieldOptions): string; override;
+        function GetSequenceValueSQL(const PKFieldName: string;
+          const SequenceName: string;
+          const Step: Integer = 1): string; override;
+      end;
+    ```
+
+    
+
 - ⚡New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
 
 - ⚡New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.

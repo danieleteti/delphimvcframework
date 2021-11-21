@@ -219,7 +219,7 @@ begin
   begin
     if I > 0 then
       Result := Result + ',';
-    Result := Result + ' ' + GetFieldNameForSQL(GetDatabaseFieldName(aRQLSort.Fields[I]));
+    Result := Result + ' ' + GetFieldNameForSQL(GetDatabaseFieldName(aRQLSort.Fields[I], True));
     if aRQLSort.Signs[I] = '+' then
       Result := Result + ' ASC'
     else

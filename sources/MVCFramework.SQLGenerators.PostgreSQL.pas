@@ -29,8 +29,6 @@ interface
 uses
   System.Rtti,
   System.Generics.Collections,
-  FireDAC.Phys.FB,
-  FireDAC.Phys.FBDef,
   MVCFramework.ActiveRecord,
   MVCFramework.Commons,
   MVCFramework.RQL.Parser;
@@ -40,40 +38,11 @@ type
   protected
     function GetCompilerClass: TRQLCompilerClass; override;
   public
-    function CreateSelectSQL(
-      const TableName: string;
-      const Map: TFieldsMap;
-      const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
     function CreateInsertSQL(
       const TableName: string;
       const Map: TFieldsMap;
       const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; override;
-    function CreateUpdateSQL(
-      const TableName: string;
-      const Map: TFieldsMap;
-      const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
-    function CreateDeleteSQL(
-      const TableName: string;
-      const Map: TFieldsMap;
-      const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
-    function CreateDeleteAllSQL(
-      const TableName: string): string; override;
-    function CreateSelectByPKSQL(
-      const TableName: string;
-      const Map: TFieldsMap; const PKFieldName: string;
-      const PKOptions: TMVCActiveRecordFieldOptions): string; override;
-    function CreateSQLWhereByRQL(
-      const RQL: string;
-      const Mapping: TMVCFieldsMapping;
-      const UseArtificialLimit: Boolean;
-      const UseFilterOnly: Boolean;
-      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string; override;
-    function CreateSelectCount(
-      const TableName: string): string; override;
     function GetSequenceValueSQL(const PKFieldName: string;
       const SequenceName: string;
       const Step: Integer = 1): string; override;
@@ -159,82 +128,6 @@ begin
   end;
 end;
 
-function TMVCSQLGeneratorPostgreSQL.CreateSelectByPKSQL(
-  const TableName: string;
-  const Map: TFieldsMap; const PKFieldName: string;
-  const PKOptions: TMVCActiveRecordFieldOptions): string;
-begin
-  if PKFieldName.IsEmpty then
-  begin
-    raise EMVCActiveRecord.Create('No primary key provided. [HINT] Define a primary key field adding foPrimaryKey in field options.');
-  end;
-
-  Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
-    GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName) +
-    GetDefaultSQLFilter(False, True); // IntToStr(PrimaryKeyValue);
-end;
-
-function TMVCSQLGeneratorPostgreSQL.CreateSelectCount(
-  const TableName: string): string;
-begin
-  {do not add SQLFilter here!}
-  Result := 'SELECT count(*) FROM ' + GetTableNameForSQL(TableName); // + GetDefaultSQLFilter(True);
-end;
-
-function TMVCSQLGeneratorPostgreSQL.CreateSelectSQL(const TableName: string;
-  const Map: TFieldsMap; const PKFieldName: string;
-  const PKOptions: TMVCActiveRecordFieldOptions): string;
-begin
-  Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + GetTableNameForSQL(TableName);
-end;
-
-function TMVCSQLGeneratorPostgreSQL.CreateSQLWhereByRQL(
-  const RQL: string;
-  const Mapping: TMVCFieldsMapping;
-  const UseArtificialLimit: Boolean;
-  const UseFilterOnly: Boolean;
-  const MaxRecordCount: Int32): string;
-var
-  lPostgreSQLCompiler: TRQLPostgreSQLCompiler;
-begin
-  lPostgreSQLCompiler := TRQLPostgreSQLCompiler.Create(Mapping);
-  try
-    GetRQLParser.Execute(MergeDefaultRQLFilter(RQL), Result, lPostgreSQLCompiler,
-      UseArtificialLimit, UseFilterOnly, MaxRecordCount);
-  finally
-    lPostgreSQLCompiler.Free;
-  end;
-end;
-
-function TMVCSQLGeneratorPostgreSQL.CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
-  const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
-var
-  lPair: TPair<TRttiField, TFieldInfo>;
-  I: Integer;
-begin
-  Result := 'UPDATE ' + GetTableNameForSQL(TableName) + ' SET ';
-  for lPair in Map do
-  begin
-    if lPair.Value.Writeable then
-    begin
-      Result := Result + GetFieldNameForSQL(lPair.Value.FieldName) + ' = :' +
-        GetParamNameForSQL(lPair.Value.FieldName) + ',';
-    end;
-  end;
-  {partition}
-  for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
-  begin
-    Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
-      GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
-  end;
-  {end-partitioning}
-  Result[Length(Result)] := ' ';
-  if not PKFieldName.IsEmpty then
-  begin
-    Result := Result + ' where ' + GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName);
-  end;
-end;
-
 function TMVCSQLGeneratorPostgreSQL.GetCompilerClass: TRQLCompilerClass;
 begin
   Result := TRQLPostgreSQLCompiler;
@@ -244,19 +137,6 @@ function TMVCSQLGeneratorPostgreSQL.GetSequenceValueSQL(const PKFieldName,
   SequenceName: string; const Step: Integer): string;
 begin
   Result := Format('SELECT nextval(''%s'') %s', [SequenceName, GetFieldNameForSQL(PKFieldName)]);
-end;
-
-function TMVCSQLGeneratorPostgreSQL.CreateDeleteAllSQL(
-  const TableName: string): string;
-begin
-  Result := 'DELETE FROM ' + GetTableNameForSQL(TableName); // + GetDefaultSQLFilter(True);
-end;
-
-function TMVCSQLGeneratorPostgreSQL.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
-  const PKFieldName: string; const PKOptions: TMVCActiveRecordFieldOptions): string;
-begin
-  Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + GetFieldNameForSQL(PKFieldName) + '=:' +
-    GetParamNameForSQL(PKFieldName);
 end;
 
 initialization
