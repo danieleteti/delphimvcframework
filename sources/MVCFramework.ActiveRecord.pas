@@ -3706,6 +3706,7 @@ procedure TPartitionInfo.InitializeFilterStrings(
   const RQLCompiler: TRQLCompiler);
 var
   lFieldCount, I: Integer;
+  lRQL2SQL: TRQL2SQL;
 begin
   fRQLFilter := '';
   lFieldCount := FieldNames.Count;
@@ -3732,11 +3733,11 @@ begin
       fRQLFilter := 'and(' + fRQLFilter + ')';
     end;
   end;
-  var rql := TRQL2SQL.Create;
+  lRQL2SQL := TRQL2SQL.Create;
   try
-    rql.Execute(fRQLFilter, fSQLFilter, RQLCompiler, False, True)
+    lRQL2SQL.Execute(fRQLFilter, fSQLFilter, RQLCompiler, False, True)
   finally
-    rql.Free;
+    lRQL2SQL.Free;
   end;
   fSQLFilter := TMVCSQLGenerator.RemoveInitialWhereKeyword(fSQLFilter);
 end;
