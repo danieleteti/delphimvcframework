@@ -53,6 +53,10 @@ type
 
   TMVCHTTPMethods = set of TMVCHTTPMethodType;
 
+  TMVCHeaders = class(TStringList)
+
+  end;
+
   TMVCMediaType = record
   public const
     APPLICATION_ATOM_XML = 'application/atom+xml';

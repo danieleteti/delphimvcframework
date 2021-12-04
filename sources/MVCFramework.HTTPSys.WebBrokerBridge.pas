@@ -32,6 +32,7 @@
 unit MVCFramework.HTTPSys.WebBrokerBridge;
 
 { .$DEFINE TRACE }
+{$I dmvcframework.inc}
 
 interface
 
@@ -70,7 +71,7 @@ type
     fFullURL: String;
   protected
     function GetDateVariable(Index: Integer): TDateTime; override;
-    function GetIntegerVariable(Index: Integer): Integer; override;
+    function GetIntegerVariable(Index: Integer): {$IFDEF ALEXANDRIAORBETTER}Int64{$ELSE}Integer{$ENDIF}; override;
     function GetStringVariable(Index: Integer): string; override;
     function GetRemoteIP: string; override;
     function GetRawPathInfo: string; override;
@@ -99,7 +100,7 @@ type
     function GetContent: string; override;
     function GetDateVariable(Index: Integer): TDateTime; override;
     function GetStatusCode: Integer; override;
-    function GetIntegerVariable(Index: Integer): Integer; override;
+    function GetIntegerVariable(Index: Integer): {$IFDEF ALEXANDRIAORBETTER}Int64{$ELSE}Integer{$ENDIF}; override;
     function GetLogMessage: string; override;
     function GetStringVariable(Index: Integer): string; override;
     procedure SetContent(const AValue: string); override;
@@ -107,7 +108,7 @@ type
     procedure SetStatusCode(AValue: Integer); override;
     procedure SetStringVariable(Index: Integer; const Value: string); override;
     procedure SetDateVariable(Index: Integer; const Value: TDateTime); override;
-    procedure SetIntegerVariable(Index: Integer; Value: Integer); override;
+    procedure SetIntegerVariable(Index: Integer; Value: {$IFDEF ALEXANDRIAORBETTER}Int64{$ELSE}Integer{$ENDIF}); override;
     procedure SetLogMessage(const Value: string); override;
   public
     procedure SendRedirect(const URI: string); override;
@@ -225,7 +226,7 @@ begin
   end;
 end;
 
-function TMVCHTTPSysAppRequest.GetIntegerVariable(Index: Integer): Integer;
+function TMVCHTTPSysAppRequest.GetIntegerVariable(Index: Integer): {$IFDEF ALEXANDRIAORBETTER}Int64{$ELSE}Integer{$ENDIF};
 begin
   Result := StrToIntDef(string(GetStringVariable(Index)), -1)
 end;
@@ -451,8 +452,9 @@ begin
   end;
 end;
 
-function TMVCHTTPSysAppResponse.GetIntegerVariable(Index: Integer): Integer;
+function TMVCHTTPSysAppResponse.GetIntegerVariable(Index: Integer): {$IFDEF ALEXANDRIAORBETTER}Int64{$ELSE}Integer{$ENDIF};
 begin
+  Result := 0;
   case Index of
     RespIDX_ContentLength:
       begin
@@ -465,7 +467,7 @@ begin
   end;
 end;
 
-procedure TMVCHTTPSysAppResponse.SetIntegerVariable(Index, Value: Integer);
+procedure TMVCHTTPSysAppResponse.SetIntegerVariable(Index: Integer; Value: {$IFDEF ALEXANDRIAORBETTER}Int64{$ELSE}Integer{$ENDIF});
 begin
   case Index of
     RespIDX_ContentLength:
