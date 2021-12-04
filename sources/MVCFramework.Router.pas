@@ -172,7 +172,8 @@ begin
       LRequestPathInfo := '/' + LRequestPathInfo;
     end;
   end;
-  LRequestPathInfo := TNetEncoding.URL.EncodePath(LRequestPathInfo, [Ord('$')]);
+  //LRequestPathInfo := TNetEncoding.URL.EncodePath(LRequestPathInfo, [Ord('$')]);
+  LRequestPathInfo := TIdURI.PathEncode(LRequestPathInfo); //regression introduced in fix for issue 492
 
   TMonitor.Enter(gLock);
   try
@@ -200,7 +201,11 @@ begin
         LControllerMappedPath := '';
       end;
 
+{$IF defined(TOKYOORBETTER)}
       if not LRequestPathInfo.StartsWith(APathPrefix + LControllerMappedPath, True) then
+{$ELSE}
+      if not TMVCStringHelper.StartsWith(APathPrefix + LControllerMappedPath, LRequestPathInfo, True) then
+{$ENDIF}
       begin
         Continue;
       end;
@@ -338,7 +343,7 @@ begin
   else
   begin
     lRegEx := TRegEx.Create('^' + lCacheItem.Value + '$', [roIgnoreCase, roCompiled, roSingleLine]);
-    lMatch := lRegEx.match(APath);
+    lMatch := lRegEx.Match(APath);
     Result := lMatch.Success;
     if Result then
     begin

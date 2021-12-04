@@ -91,7 +91,7 @@ type
   private
     fMapping: TMVCFieldsMapping;
   protected
-    function GetDatabaseFieldName(const RQLPropertyName: string): string;
+    function GetDatabaseFieldName(const RQLPropertyName: string; const UsePropertyNameIfAttributeDoesntExists: Boolean = False): string;
     function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
@@ -179,16 +179,15 @@ type
     fInputLength: Integer;
     fCurr: Char;
     fCurrToken: TRQLToken;
-    fMaxRecordCount: Int64;
   protected
     /// /// RQL Sections
     function ParseFilters: Boolean;
     function ParseSort: Boolean;
-    function ParseLimit: Boolean;
+    function ParseLimit(const MaxRecordCount: Integer): Boolean;
     /// ///RQL functions
     procedure ParseBinOperator(const aToken: TRQLToken; const aAST: TObjectList<TRQLCustom>);
     procedure ParseLogicOperator(const aToken: TRQLToken; const aAST: TObjectList<TRQLCustom>);
-    procedure ParseSortLimit(const Required: Boolean);
+    procedure ParseSortLimit(const Required: Boolean; const MaxRecordCount: Integer);
     /// //Parser utils
     function MatchFieldName(out lFieldName: string): Boolean;
     function MatchFieldStringValue(out lFieldValue: string): Boolean;
@@ -208,14 +207,15 @@ type
     procedure EatWhiteSpaces;
     procedure CheckEOF(const Token: TRQLToken);
   public
-    constructor Create(const MaxRecordCount: Integer = -1);
+    constructor Create; virtual;
     destructor Destroy; override;
     procedure Execute(
       const RQL: string;
       out SQL: string;
       const RQLCompiler: TRQLCompiler;
       const SetArtificialLimit: Boolean = true;
-      const UseFilterOnly: Boolean = False);
+      const UseFilterOnly: Boolean = False;
+      const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT);
   end;
 
   TRQLCompilerRegistry = class sealed
@@ -268,11 +268,10 @@ begin
     Error('Unexpected end of expression');
 end;
 
-constructor TRQL2SQL.Create(const MaxRecordCount: Integer);
+constructor TRQL2SQL.Create;
 begin
   inherited Create;
   fAST := TRQLAbstractSyntaxTree.Create;
-  fMaxRecordCount := MaxRecordCount;
 end;
 
 destructor TRQL2SQL.Destroy;
@@ -321,7 +320,8 @@ procedure TRQL2SQL.Execute(
   out SQL: string;
   const RQLCompiler: TRQLCompiler;
   const SetArtificialLimit: Boolean;
-  const UseFilterOnly: Boolean);
+  const UseFilterOnly: Boolean;
+  const MaxRecordCount: Int32);
 var
   lLimit: TRQLLimit;
   lRQLItem: TRQLCustom;
@@ -345,25 +345,25 @@ begin
     fAST.Insert(0, TRQLWhere.Create);
     if GetToken = tkSemicolon then
     begin
-      ParseSortLimit(true);
+      ParseSortLimit(true, MaxRecordCount);
     end;
   end
   else
   begin
-    ParseSortLimit(False);
+    ParseSortLimit(False, MaxRecordCount);
   end;
   EatWhiteSpaces;
   if GetToken <> tkEOF then
     Error('Expected EOF');
 
   // add artificial limit
-  if SetArtificialLimit and (fMaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit, lRQLItem)) then
+  if SetArtificialLimit and (MaxRecordCount > -1) and (not fAST.TreeContainsToken(tkLimit, lRQLItem)) then
   begin
     lLimit := TRQLLimit.Create;
     fAST.Add(lLimit);
     lLimit.Token := tkLimit;
     lLimit.Start := 0;
-    lLimit.Count := fMaxRecordCount;
+    lLimit.Count := MaxRecordCount;
   end;
 
 
@@ -382,15 +382,6 @@ begin
 
   // Emit code from AST using backend
   RQLCompiler.AST2SQL(fAST, SQL);
-
-  // Emit code from AST using backend
-  // lCompilerClass := TRQLCompilerRegistry.Instance.GetCompiler(RQLBackend);
-  // lCompiler := lCompilerClass.Create(Mapping);
-  // try
-  // lCompiler.AST2SQL(fAST, SQL);
-  // finally
-  // lCompiler.Free;
-  // end;
 end;
 
 function TRQL2SQL.GetToken: TRQLToken;
@@ -695,7 +686,7 @@ begin
   end;
 end;
 
-function TRQL2SQL.ParseLimit: Boolean;
+function TRQL2SQL.ParseLimit(const MaxRecordCount: Integer): Boolean;
 var
   lStart: string;
   lCount: string;
@@ -726,9 +717,9 @@ begin
   fAST.Add(lRQLLimit);
   lRQLLimit.Token := tkLimit;
   lRQLLimit.Start := StrToInt64(lStart); // XE7 compat
-  if fMaxRecordCount > -1 then
+  if MaxRecordCount > -1 then
   begin
-    lRQLLimit.Count := Min(StrToInt64(lCount), fMaxRecordCount);
+    lRQLLimit.Count := Min(StrToInt64(lCount), MaxRecordCount);
   end
   else
   begin
@@ -819,7 +810,7 @@ begin
     Error('Expected ")"');
 end;
 
-procedure TRQL2SQL.ParseSortLimit(const Required: Boolean);
+procedure TRQL2SQL.ParseSortLimit(const Required: Boolean; const MaxRecordCount: Integer);
 var
   lFoundSort: Boolean;
   lFoundLimit: Boolean;
@@ -832,7 +823,7 @@ begin
   begin
     BackToLastPos;
   end;
-  lFoundLimit := ParseLimit;
+  lFoundLimit := ParseLimit(MaxRecordCount);
   if Required and (not(lFoundSort or lFoundLimit)) then
     Error('Expected "sort" and/or "limit"');
 end;
@@ -1160,7 +1151,7 @@ begin
 end;
 
 function TRQLCompiler.GetDatabaseFieldName(
-  const RQLPropertyName: string): string;
+  const RQLPropertyName: string; const UsePropertyNameIfAttributeDoesntExists: Boolean): string;
 var
   lField: TMVCFieldMap;
   lRQLProperty: string;
@@ -1180,8 +1171,11 @@ begin
       Exit(GetFieldNameForSQL(lField.DatabaseFieldName));
   end;
   { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
-  raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
-    [RQLPropertyName]);
+  if UsePropertyNameIfAttributeDoesntExists then
+    Exit(GetFieldNameForSQL(RQLPropertyName))
+  else
+    raise ERQLException.CreateFmt('Property %s does not exist or is transient and cannot be used in RQL',
+      [RQLPropertyName]);
 end;
 
 function TRQLCompiler.GetFieldNameForSQL(const FieldName: string): string;

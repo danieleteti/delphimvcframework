@@ -21,7 +21,8 @@ implementation
 { %CLASSGROUP 'Vcl.Controls.TControl' }
 
 uses Controllers.Orders, mvcframework.Middleware.CORS, mvcframework.Middleware.Compression,
-  Controllers.Base, MVCFramework.Commons;
+  Controllers.Base, MVCFramework.Commons, MVCFramework.Middleware.ActiveRecord,
+  FDConnectionConfigU;
 
 {$R *.dfm}
 
@@ -38,6 +39,7 @@ begin
 {$IFDEF TESTINSTANCE}
   FEngine.AddController(TPrivateController);
 {$ENDIF}
+  FEngine.AddMiddleware(TMVCActiveRecordMiddleware.Create(CON_DEF_NAME, ''));
   FEngine.AddMiddleware(TCORSMiddleware.Create);
   FEngine.AddMiddleware(TMVCCompressionMiddleware.Create(256));
 

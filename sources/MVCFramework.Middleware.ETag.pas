@@ -102,6 +102,7 @@ begin
 
   lRequestETag := AContext.Request.Headers['If-None-Match'];
   lETag := GetHashMD5FromStream(lContentStream);
+  lContentStream.Position := 0;
 
   AContext.Response.SetCustomHeader('ETag', lETag);
 

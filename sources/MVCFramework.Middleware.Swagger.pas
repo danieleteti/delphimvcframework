@@ -47,6 +47,8 @@ type
     fSwagDocURL: string;
     fJWTDescription: string;
     fEnableBasicAuthentication: Boolean;
+    fHost: string;
+    fBasePath: string;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
@@ -56,7 +58,7 @@ type
   public
     constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
       const ASwaggerDocumentationURL: string = '/swagger.json'; const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
-      const AEnableBasicAuthentication: Boolean = False);
+      const AEnableBasicAuthentication: Boolean = False; const AHost: string = ''; const ABasePath: string = '');
     destructor Destroy; override;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
@@ -87,7 +89,8 @@ uses
 { TMVCSwaggerMiddleware }
 
 constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
-  const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean);
+  const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
+  const AHost, ABasePath: string);
 begin
   inherited Create;
   fSwagDocURL := ASwaggerDocumentationURL;
@@ -95,6 +98,8 @@ begin
   fSwaggerInfo := ASwaggerInfo;
   fJWTDescription := AJWTDescription;
   fEnableBasicAuthentication := AEnableBasicAuthentication;
+  fHost := AHost;
+  fBasePath := ABasePath;
 end;
 
 destructor TMVCSwaggerMiddleware.Destroy;
@@ -285,11 +290,21 @@ end;
 
 procedure TMVCSwaggerMiddleware.DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
 begin
-  ASwagDoc.Host := Format('%s:%d', [AContext.Request.RawWebRequest.Host, AContext.Request.RawWebRequest.ServerPort]);
-  ASwagDoc.BasePath := fEngine.Config[TMVCConfigKey.PathPrefix];
+  ASwagDoc.Host := fHost;
+  if ASwagDoc.Host.IsEmpty then
+  begin
+    ASwagDoc.Host := Format('%s:%d', [AContext.Request.RawWebRequest.Host, AContext.Request.RawWebRequest.ServerPort]);
+  end;
 
+  ASwagDoc.BasePath := fBasePath;
   if ASwagDoc.BasePath.IsEmpty then
+  begin
+    ASwagDoc.BasePath := fEngine.Config[TMVCConfigKey.PathPrefix];
+  end;
+  if ASwagDoc.BasePath.IsEmpty then
+  begin
     ASwagDoc.BasePath := '/';
+  end;
 
   ASwagDoc.Schemes := [tpsHttp, tpsHttps];
 end;

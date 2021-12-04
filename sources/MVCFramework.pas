@@ -319,6 +319,8 @@ type
   public
     constructor Create(const AParamName: string); overload;
     constructor Create(const AParamName: string; const DefaultAsString: string); overload;
+    constructor Create(const AParamName: string; const DefaultAsInteger: Int64); overload;
+    constructor Create(const AParamName: string; const DefaultAsBoolean: Boolean); overload;
     property ParamName: string read FParamName;
     property DefaultValueAsString: string read FDefaultValueAsString;
     property CanBeUsedADefaultValue: Boolean read FCanBeUsedADefaultValue;
@@ -374,7 +376,7 @@ type
     function GetParamsMulti(const AParamName: string): TArray<string>;
   protected
     { protected declarations }
-    // procedure EnsureINDY;
+    procedure EnsureINDY;
   public
     constructor Create(const AWebRequest: TWebRequest;
       const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -390,6 +392,7 @@ type
     function ThereIsRequestBody: Boolean;
 
     procedure EnsureQueryParamExists(const AName: string);
+    function QueryString: string;
     function QueryStringParam(const AName: string): string;
     function QueryStringParamExists(const AName: string): Boolean;
     function QueryStringParams: TStrings;
@@ -424,36 +427,36 @@ type
     property Files: TAbstractWebRequestFiles read GetFiles;
   end;
 
-  // {$IFDEF WEBAPACHEHTTP}
-  //
-  // TMVCApacheWebRequest = class(TMVCWebRequest)
-  // private
-  // { private declarations }
-  // protected
-  // { protected declarations }
-  // public
-  // { public declarations }
-  // end;
-  //
-  // {$ENDIF}
-  //
-  // TMVCISAPIWebRequest = class(TMVCWebRequest)
-  // private
-  // { private declarations }
-  // protected
-  // { protected declarations }
-  // public
-  // { public declarations }
-  // end;
-  //
-  // TMVCIndyWebRequest = class(TMVCWebRequest)
-  // private
-  // { private declarations }
-  // protected
-  // { protected declarations }
-  // public
-  // // function RawHeaders: TStrings; override;
-  // end;
+{$IFDEF WEBAPACHEHTTP}
+
+  TMVCApacheWebRequest = class(TMVCWebRequest)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+{$ENDIF}
+
+  TMVCISAPIWebRequest = class(TMVCWebRequest)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    { public declarations }
+  end;
+
+  TMVCIndyWebRequest = class(TMVCWebRequest)
+  private
+    { private declarations }
+  protected
+    { protected declarations }
+  public
+    // function RawHeaders: TStrings; override;
+  end;
 
   TMVCWebResponse = class
   private
@@ -524,20 +527,20 @@ type
     FIsSessionStarted: Boolean;
     FSessionMustBeClose: Boolean;
     FLoggedUser: TUser;
-    FData: TDictionary<string, string>;
     FWebSession: TWebSession;
+    FData: TMVCStringDictionary;
     function GetWebSession: TWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
     procedure SetParamsTable(const AValue: TMVCRequestParamsTable);
     function GetHostingFrameworkType: TMVCHostingFrameworkType;
-    function GetData: TDictionary<string, string>;
   protected
     procedure Flush; virtual;
     procedure BindToSession(const ASessionId: string);
     function SendSessionCookie(const AContext: TWebContext): string;
     function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
       const ASessionTimeout: Integer): TWebSession;
+    function GetData: TMVCStringDictionary;
   public
     constructor Create(const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -557,7 +560,7 @@ type
     property Response: TMVCWebResponse read FResponse;
     property Session: TWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
-    property Data: TDictionary<string, string> read GetData;
+    property Data: TMVCStringDictionary read GetData;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
   end;
 
@@ -719,7 +722,8 @@ type
     procedure Render<T: class>(const AStatusCode: Integer; const ACollection: TObjectList<T>;
       const AOwns: Boolean; const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render<T: class>(const ACollection: TObjectList<T>; const AOwns: Boolean;
-      const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
+      const AType: TMVCSerializationType;
+      const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
     procedure Render(const ACollection: IMVCList); overload;
     procedure Render(const ACollection: IMVCList; const AType: TMVCSerializationType); overload;
     procedure Render(const ATextWriter: TTextWriter; const AOwns: Boolean = True); overload;
@@ -1150,6 +1154,18 @@ begin
   FCanBeUsedADefaultValue := False;
 end;
 
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsInteger: Int64);
+begin
+  Create(AParamName, DefaultAsInteger.ToString);
+end;
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsBoolean: Boolean);
+begin
+  Create(AParamName, iif(DefaultAsBoolean,'true','false'));
+end;
+
 { MVCProducesAttribute }
 
 constructor MVCProducesAttribute.Create(const AValue, ACharset: string);
@@ -1306,14 +1322,7 @@ begin
       lSerializer.DeserializeObject(Body, AObject)
     else
     begin
-      if ContentType.Trim.IsEmpty then
-      begin
-        raise EMVCException.Create('Request ContentType header is empty, cannot deserialize body');
-      end
-      else
-      begin
-        raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
-      end;
+      raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
     end;
 end;
 
@@ -1325,7 +1334,9 @@ begin
     if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
       lSerializer.DeserializeCollection(Body, AObjectList, T)
     else
+    begin
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
+    end;
 end;
 
 function TMVCWebRequest.ClientIp: string;
@@ -1409,9 +1420,23 @@ end;
 
 procedure TMVCWebRequest.DefineContentType;
 begin
-  SplitContentMediaTypeAndCharset(FWebRequest.GetFieldByName('Content-Type'), FContentMediaType,
-    FCharset);
-  FContentType := BuildContentType(FContentMediaType, FCharset);
+  if FWebRequest.MethodType in [mtPut, mtPost, mtPatch] then
+  begin
+    SplitContentMediaTypeAndCharset(FWebRequest.GetFieldByName('Content-Type'), FContentMediaType,
+      FCharset);
+    { if request doesn't contain content-type }
+    if FContentMediaType.IsEmpty then
+      FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+    if FCharset.IsEmpty then
+      FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+    FContentType := BuildContentType(FContentMediaType, FCharset);
+  end
+  else
+  begin
+    FContentMediaType := '';
+    FCharset := '';
+    FContentType := '';
+  end;
 end;
 
 destructor TMVCWebRequest.Destroy;
@@ -1427,14 +1452,14 @@ begin
   inherited Destroy;
 end;
 
-//procedure TMVCWebRequest.EnsureINDY;
-//begin
-//  if not(Self is TMVCIndyWebRequest) then
-//  begin
-//    raise EMVCException.Create(http_status.InternalServerError,
-//      'Method available only in INDY implementation');
-//  end;
-//end;
+procedure TMVCWebRequest.EnsureINDY;
+begin
+  if not(Self is TMVCIndyWebRequest) then
+  begin
+    raise EMVCException.Create(http_status.InternalServerError,
+      'Method available only in INDY implementation');
+  end;
+end;
 
 procedure TMVCWebRequest.EnsureQueryParamExists(const AName: string);
 begin
@@ -1615,6 +1640,11 @@ begin
     end;
   end;
   Result := FQueryParams;
+end;
+
+function TMVCWebRequest.QueryString: string;
+begin
+  Result := FWebRequest.Query;
 end;
 
 function TMVCWebRequest.QueryStringParam(const AName: string): string;
@@ -1873,36 +1903,37 @@ begin
   FIsSessionStarted := False;
   FSessionMustBeClose := False;
   FWebSession := nil;
-  FRequest := TMVCWebRequest.Create(ARequest, ASerializers);
+  FRequest := nil;
 
-  // if not IsLibrary then
-  // begin
-  // FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
-  // end
-  // else
-  // begin
-  // {$IFDEF WEBAPACHEHTTP}
-  // if ARequest.ClassType = TApacheRequest then
-  // begin
-  // FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
-  // end
-  // else
-  // {$IFNDEF LINUX}
-  // if ARequest.ClassType = TISAPIRequest then
-  // begin
-  // FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
-  // end
-  // else
-  // {$ENDIF}
-  // {$ENDIF}
-  // begin
-  // FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
-  // end;
-  // end;
+  if not IsLibrary then
+  begin
+    FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+  end
+  else
+  begin
+{$IFDEF WEBAPACHEHTTP}
+    if ARequest.ClassType = TApacheRequest then
+    begin
+      FRequest := TMVCApacheWebRequest.Create(ARequest, ASerializers)
+    end
+    else
+{$IFNDEF LINUX}
+      if ARequest.ClassType = TISAPIRequest then
+      begin
+        FRequest := TMVCISAPIWebRequest.Create(ARequest, ASerializers)
+      end
+      else
+{$ENDIF}
+{$ENDIF}
+      begin
+        FRequest := TMVCIndyWebRequest.Create(ARequest, ASerializers);
+      end;
+  end;
 
   FResponse := TMVCWebResponse.Create(AResponse);
   FConfig := AConfig;
   FSerializers := ASerializers;
+  FData := nil;
   FLoggedUser := nil;
 end;
 
@@ -1933,32 +1964,26 @@ begin
   FResponse.Flush;
 end;
 
-function TWebContext.GetData: TDictionary<string, string>;
+function TWebContext.GetData: TMVCStringDictionary;
 begin
-  if FData = nil then
+  if fData = nil then
   begin
-    FData := TDictionary<string, string>.Create;
+    fData := TMVCStringDictionary.Create;
   end;
-  Result := FData;
+  Result := fData;
 end;
 
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
-{$IFDEF MSWINDOWS}
-  if FRequest.FWebRequest.ClassName = 'TMVCHTTPSysAppRequest' then
-  begin
-    Exit(hftHTTPSys);
-  end;
-{$ENDIF}
 {$IFDEF WEBAPACHEHTTP}
-  if FRequest.FWebRequest.ClassType = TApacheRequest then
+  if FRequest.ClassType = TApacheRequest then
   begin
     Exit(hftApache);
   end
   else
   begin
 {$IFNDEF LINUX}
-    if FRequest.FWebRequest.ClassType = TISAPIRequest then
+    if FRequest.ClassType = TISAPIRequest then
     begin
       Exit(hftISAPI);
     end
@@ -2287,7 +2312,8 @@ begin
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
     raise EMVCException.CreateFmt(http_status.RequestEntityTooLarge,
-      'Request size exceeded the max allowed size [%d KiB] (1)', [(FConfigCache_MaxRequestSize div 1024)]);
+      'Request size exceeded the max allowed size [%d KiB] (1)',
+      [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 
 {$IFDEF BERLINORBETTER}
@@ -2297,7 +2323,8 @@ begin
   if ARequest.ContentLength > FConfigCache_MaxRequestSize then
   begin
     raise EMVCException.CreateFmt(http_status.RequestEntityTooLarge,
-      'Request size exceeded the max allowed size [%d KiB] (2)', [(FConfigCache_MaxRequestSize div 1024)]);
+      'Request size exceeded the max allowed size [%d KiB] (2)',
+      [(FConfigCache_MaxRequestSize div 1024)]);
   end;
 {$ENDIF}
   lParamsTable := TMVCRequestParamsTable.Create;
@@ -3934,7 +3961,8 @@ begin
 end;
 
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
-const ASerializationType: TMVCDatasetSerializationType; const ASerializationAction: TMVCDatasetSerializationAction);
+const ASerializationType: TMVCDatasetSerializationType;
+const ASerializationAction: TMVCDatasetSerializationAction);
 begin
   Render(ADataSet, AOwns, [], ASerializationType, ASerializationAction);
 end;

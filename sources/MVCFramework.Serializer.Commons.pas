@@ -48,7 +48,7 @@ uses
   MVCFramework.Commons,
   Data.DB,
   System.Generics.Collections,
-  JsonDataObjects;
+  JsonDataObjects, MVCFramework.DuckTyping;
 
 type
   EMVCSerializationException = class(EMVCException)
@@ -185,6 +185,15 @@ type
     property MappedValues: TList<string> read FMappedValues;
   end;
 
+
+  MVCOwnedAttribute = class(TCustomAttribute)
+  private
+    fClassRef: TClass;
+  public
+    constructor Create(const ClassRef: TClass = nil);
+    property ClassRef: TClass read fClassRef;
+  end;
+
   TMVCSerializerHelper = record
   private
     { private declarations }
@@ -214,7 +223,7 @@ type
     class function StringToTypeKind(const AValue: string): TTypeKind; static;
     class function CreateObject(const AObjectType: TRttiType): TObject; overload; static;
     class function CreateObject(const AQualifiedClassName: string): TObject; overload; static;
-    class function IsAPropertyToSkip(const aPropName: string): Boolean; static;
+    class function IsAPropertyToSkip(const aPropName: string): Boolean; static; inline;
   end;
 
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
@@ -362,6 +371,17 @@ type
     function ContainsKey(const Key: string): Boolean;
     function Keys: TArray<string>;
     property Items[const Key: string]: TMVCObjectDictionaryValueItem read GetItem; default;
+  end;
+
+  IMVCJSONSerializer = interface
+    ['{1FB9E04A-D1D6-4C92-B945-257D81B39A25}']
+    procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
+    procedure ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+      const ASerializationAction: TMVCSerializationAction = nil);
+    procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
   end;
 
 var
@@ -1729,6 +1749,14 @@ begin
   if fOwns then
     fData.Free;
   inherited;
+end;
+
+{ MVCOwnedAttribute }
+
+constructor MVCOwnedAttribute.Create(const ClassRef: TClass);
+begin
+  inherited Create;
+  fClassRef := ClassRef;
 end;
 
 initialization

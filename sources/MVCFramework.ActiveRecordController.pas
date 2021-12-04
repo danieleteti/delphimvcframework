@@ -47,12 +47,14 @@ type
   TMVCActiveRecordController = class(TMVCController)
   private
     fAuthorization: TMVCActiveRecordAuthFunc;
+    fURLSegment: string;
   protected
     function GetMaxRecordCount: Integer;
     function CheckAuthorization(aClass: TMVCActiveRecordClass; aAction: TMVCActiveRecordAction): Boolean; virtual;
   public
     constructor Create(const aConnectionFactory: TFunc<TFDConnection>;
-      const aAuthorization: TMVCActiveRecordAuthFunc = nil); reintroduce;
+      const aAuthorization: TMVCActiveRecordAuthFunc = nil;
+      const aURLSegment: String = ''); reintroduce;
     destructor Destroy; override;
 
     [MVCPath('/($entityname)')]
@@ -102,7 +104,7 @@ implementation
 uses
 
   MVCFramework.Logger,
-  JsonDataObjects;
+  JsonDataObjects, Data.DB;
 
 procedure TMVCActiveRecordController.GetEntities(const entityname: string);
 var
@@ -114,7 +116,8 @@ var
   lRQLBackend: string;
   lProcessor: IMVCEntityProcessor;
   lHandled: Boolean;
-  lResp: TMVCActiveRecordListResponse;
+  lARResp: TMVCActiveRecordList;
+  lStrDict : TMVCStringDictionary;
 begin
   lProcessor := nil;
   if ActiveRecordMappingRegistry.FindProcessorByURLSegment(entityname, lProcessor) then
@@ -154,19 +157,45 @@ begin
     end;
 
 
-    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL,
-      GetMaxRecordCount), True);
+    lARResp := TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, GetMaxRecordCount);
     try
-      lResp.Metadata.Add('page_size', lResp.Items.Count.ToString);
-      if Context.Request.QueryStringParam('count').ToLower = 'true' then
-      begin
-        lResp.Metadata.Add('count', TMVCActiveRecord.Count(lARClassRef, lRQL).ToString);
+      lStrDict := StrDict(['page_size'],[lARResp.Count.ToString]);
+      try
+        if Context.Request.QueryStringParam('count').ToLower = 'true' then
+        begin
+          lStrDict.Add('count', TMVCActiveRecord.Count(lARClassRef, lRQL).ToString);
+        end;
+        Render(ObjectDict(False)
+          .Add('data', lARResp,
+            procedure(const AObject: TObject; const Links: IMVCLinks)
+            begin
+              //Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + )
+              case TMVCActiveRecord(AObject).GetPrimaryKeyFieldType of
+                ftInteger:
+                  Links.AddRefLink.Add(HATEOAS.HREF, fURLSegment + '/' + TMVCActiveRecord(AObject).GetPK.AsInt64.ToString)
+              end;
+            end)
+          .Add('meta', lStrDict));
+      finally
+        lStrDict.Free;
       end;
-      Render(lResp);
-    except
-      lResp.Free;
-      raise;
+    finally
+      lARResp.Free;
     end;
+
+//    lResp := TMVCActiveRecordListResponse.Create(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL,
+//      GetMaxRecordCount), True);
+//    try
+//      lResp.Metadata.Add('page_size', lResp.Items.Count.ToString);
+//      if Context.Request.QueryStringParam('count').ToLower = 'true' then
+//      begin
+//        lResp.Metadata.Add('count', TMVCActiveRecord.Count(lARClassRef, lRQL).ToString);
+//      end;
+//      Render(lResp);
+//    except
+//      lResp.Free;
+//      raise;
+//    end;
 
     // Render<TMVCActiveRecord>(TMVCActiveRecord.SelectRQL(lARClassRef, lRQL, lMapping, lRQLBackend), True);
   except
@@ -265,11 +294,13 @@ begin
 end;
 
 constructor TMVCActiveRecordController.Create(const aConnectionFactory: TFunc<TFDConnection>;
-  const aAuthorization: TMVCActiveRecordAuthFunc = nil);
+  const aAuthorization: TMVCActiveRecordAuthFunc;
+  const aURLSegment: String);
 var
   lConn: TFDConnection;
 begin
   inherited Create;
+  fURLSegment := aURLSegment;
   try
     lConn := aConnectionFactory();
   except

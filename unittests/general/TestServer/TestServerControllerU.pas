@@ -308,6 +308,14 @@ type
     procedure PostInject50(const [MVCFromBody] People: TObjectList<TPerson>);
 
 
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/programmerex')]
+    procedure CreateProgrammerEx(const [MVCFromBody] ProgrammerEx: TProgrammerEx);
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/programmerex2')]
+    procedure CreateProgrammerEx2(const [MVCFromBody] ProgrammerEx2: TProgrammerEx2);
+
     { templates }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/website/list')]
@@ -317,6 +325,10 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/issues/406')]
     procedure TestIssue406;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issues/526')]
+    procedure TestIssue526;
   end;
 
   [MVCPath('/private')]
@@ -361,6 +373,18 @@ uses
   System.Classes, MVCFramework.Tests.Serializer.Entities;
 
 { TTestServerController }
+
+procedure TTestServerController.CreateProgrammerEx(
+  const ProgrammerEx: TProgrammerEx);
+begin
+  Render(ProgrammerEx, False);
+end;
+
+procedure TTestServerController.CreateProgrammerEx2(
+  const ProgrammerEx2: TProgrammerEx2);
+begin
+  Render(ProgrammerEx2, False);
+end;
 
 procedure TTestServerController.DataSetHandling;
 begin
@@ -597,7 +621,7 @@ begin
   // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
   lCustomer.Name := lCustomer.Name + ' changed';
 {$IFNDEF LINUX}
-  lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  //lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
 {$ENDIF}
   // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
   Render(lCustomer, True);
@@ -760,6 +784,13 @@ end;
 procedure TTestServerController.TestIssue406;
 begin
   Render(HTTP_STATUS.UnprocessableEntity, TMVCErrorResponseItem.Create('The Message'));
+end;
+
+procedure TTestServerController.TestIssue526;
+begin
+  ContentType := 'application/fhir+xml; fhirVersion=4.0';
+  ResponseStream.Append('OK');
+  RenderResponseStream;
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;

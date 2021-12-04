@@ -67,8 +67,8 @@ uses
 
 procedure TOrdersController.CreateOrder(const [MVCFromBody] Order: TOrder);
 begin
-  // GetOrdersService.Add(Order);
-  // Render201Created('/Orders/' + Order.id.ToString, 'Order Created');
+  Order.Insert;
+  Render201Created('/orders/' + Order.id.ToString, 'Order Created');
 end;
 
 procedure TOrdersController.CreateOrders(const OrderList: TObjectList<TOrder>);
@@ -108,13 +108,26 @@ end;
 
 procedure TOrdersController.GetOrders;
 begin
-  // Render(ObjectDict().Add('data', GetOrdersService.GetAll));
+  try
+    Render(ObjectDict().Add('data', TMVCActiveRecord.All<TOrder>));
+    // Render(ObjectDict().Add('data', GetOrdersService.GetByID(id)));
+  except
+    on E: EServiceException do
+    begin
+      raise EMVCException.Create(E.Message, '', 0, 404);
+    end
+  end;
+
 end;
 
 procedure TOrdersController.GetOrdersByDescription(const Search: String);
 var
   lDict: IMVCObjectDictionary;
 begin
+//  Render(
+//    ObjectDict()
+//      .Add('data', TMVCActiveRecord.SelectRQL<TOrder>(Format('contains(description,"%s")',[Search]),100))
+//      );
   // try
   // if Search = '' then
   // begin
@@ -137,14 +150,20 @@ end;
 
 procedure TOrdersController.UpdateOrderByID(const Order: TOrder; const id: Integer);
 begin
-  // Order.id := id;
-  // GetOrdersService.Update(Order);
-  // Render(200, 'Order Updated');
+  Order.id := id;
+  var lCurrentOrder := TMVCActiveRecord.GetByPK<TOrder>(id);
+  try
+    Order.Update();
+  finally
+    lCurrentOrder.Free;
+  end;
+  Render(200, 'Order Updated');
 end;
 
 procedure TOrdersController.GetOrderByID(id: Integer);
 begin
   try
+    Render(TMVCActiveRecord.GetByPK<TOrder>(id));
     // Render(ObjectDict().Add('data', GetOrdersService.GetByID(id)));
   except
     on E: EServiceException do

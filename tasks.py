@@ -12,7 +12,7 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "10.4"
+DEFAULT_DELPHI_VERSION = "11"
 
 g_releases_path = "releases"
 g_output = "bin"
@@ -44,13 +44,12 @@ def build_delphi_project(
     delphi_version=DEFAULT_DELPHI_VERSION,
 ):
     delphi_versions = {
-        "XE7": {"path": "15.0", "desc": "Delphi XE7"},
-        "XE8": {"path": "16.0", "desc": "Delphi XE8"},
-        "10": {"path": "17.0", "desc": "Delphi 10 Seattle"},
+        "10":   {"path": "17.0", "desc": "Delphi 10 Seattle"},
         "10.1": {"path": "18.0", "desc": "Delphi 10.1 Berlin"},
         "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
         "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
         "10.4": {"path": "21.0", "desc": "Delphi 10.4 Sydney"},
+        "11":   {"path": "22.0", "desc": "Delphi 11 Alexandria"}
     }
 
     assert delphi_version in delphi_versions, (
@@ -81,7 +80,7 @@ def build_delphi_project(
     if r.failed:
         print(r.stdout)
         print(r.stderr)
-        raise Exit("Build failed")
+        raise Exit("Build failed for " + delphi_versions[delphi_version]["desc"])
 
 
 def zip_samples(version):

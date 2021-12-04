@@ -39,7 +39,7 @@ begin
   FEngine := TMVCEngine.Create(Self);
 
   FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/static', { StaticFilesPath }
     '.\www'{ DocumentRoot }
     ));
   FEngine.AddMiddleware(TMVCETagMiddleware.Create);

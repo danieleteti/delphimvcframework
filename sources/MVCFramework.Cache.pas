@@ -74,6 +74,17 @@ type
     class destructor Destroy;
   end;
 
+  TMVCThreadedObjectCache<T: class> = class
+  private
+    fCS: TCriticalSection;
+    fItems: TObjectDictionary<String, T>;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function TryGetValue(const Key: String; out Value: T): Boolean;
+    procedure Add(const Key: String; const Value: T);
+  end;
+
 implementation
 
 uses
@@ -242,5 +253,44 @@ begin
   end;
   Result := SInstance;
 end;
+
+{ TMVCThreadedObjectCache<T> }
+
+procedure TMVCThreadedObjectCache<T>.Add(const Key: String; const Value: T);
+begin
+  fCS.Enter;
+  try
+    fItems.Add(Key, Value);
+  finally
+    fCS.Leave;
+  end;
+end;
+
+constructor TMVCThreadedObjectCache<T>.Create;
+begin
+  inherited;
+  fCS := TCriticalSection.Create;
+  fItems := TObjectDictionary<String, T>.Create([doOwnsValues]);
+end;
+
+destructor TMVCThreadedObjectCache<T>.Destroy;
+begin
+  fItems.Free;
+  fCS.Free;
+  inherited;
+end;
+
+function TMVCThreadedObjectCache<T>.TryGetValue(const Key: String;
+  out Value: T): Boolean;
+begin
+  fCS.Enter;
+  try
+    Result := fItems.TryGetValue(Key, Value);
+  finally
+    fCS.Leave;
+  end;
+end;
+
+
 
 end.

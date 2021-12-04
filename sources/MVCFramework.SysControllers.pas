@@ -163,7 +163,7 @@ begin
 
         LJaMethods := LJoResp.O[lControllerClassName].A['actions']; // TJSONArray.Create;
         // LJoControllerInfo.AddPair('actions', LJaMethods);
-        LMethods := LRttiType.GetDeclaredMethods;
+        LMethods := LRttiType.GetMethods;
         for LMethod in LMethods do
         begin
           LFoundAttrib := False;

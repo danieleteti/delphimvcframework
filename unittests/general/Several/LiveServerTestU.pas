@@ -78,6 +78,8 @@ type
     [Test]
     procedure TestCustomerEcho;
     [Test]
+    procedure TestPOSTWithoutContentType;
+    [Test]
     procedure TestXHTTPMethodOverride_POST_as_PUT;
     [Test]
     procedure TestPUTWithParamsAndJSONBody;
@@ -804,7 +806,7 @@ begin
     Assert.areEqual('', lCustomer.ContactFirst);
     Assert.areEqual('', lCustomer.ContactLast);
     lCustomer.Logo.SaveToFile('customer_logo_after_received.bmp');
-    Assert.areEqual('de2a29ec62fc1f0b3abbb6b74223d214',
+    Assert.areEqual('9a4e150a92ecb68ad83e8ead27026dcc',
       THashMD5.GetHashStringFromFile('customer_logo_after_received.bmp'));
   finally
     lCustomer.Free;
@@ -1519,6 +1521,47 @@ begin
       }
       raise;
 
+    end;
+  finally
+    P.Free;
+  end;
+
+  P := TPerson.Create;
+  try
+    GetDefaultSerializer.DeserializeObject(r.Content, P);
+    // P := Mapper.JSONObjectToObject<TPerson>(r.BodyAsJsonObject);
+    Assert.areEqual('Daniele', P.FirstName);
+    Assert.areEqual('אעשטיל', P.LastName);
+    Assert.areEqual(true, P.Married);
+    Assert.areEqual(EncodeDate(1979, 1, 1), P.DOB);
+  finally
+    P.Free;
+  end;
+end;
+
+procedure TServerTest.TestPOSTWithoutContentType;
+var
+  r: IMVCRESTResponse;
+  P: TPerson;
+begin
+  P := TPerson.Create;
+  try
+    P.FirstName := 'Daniele';
+    P.LastName := 'אעשטיל';
+    P.DOB := EncodeDate(1979, 1, 1);
+    P.Married := true;
+    try
+      r := RESTClient
+        .Accept(TMVCMediaType.APPLICATION_JSON)
+        .Post('/objects', GetDefaultSerializer.SerializeObject(P), '');
+    except
+      Assert.Fail('If this test fail, check http://qc.embarcadero.com/wc/qcmain.aspx?d=119779');
+      { WARNING!!! }
+      {
+        If this test fail, check
+        http://qc.embarcadero.com/wc/qcmain.aspx?d=119779
+      }
+      raise;
     end;
   finally
     P.Free;

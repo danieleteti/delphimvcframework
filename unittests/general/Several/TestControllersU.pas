@@ -42,6 +42,14 @@ type
     [MVCPath('/orders/($ordernumber)')]
     procedure PatchOrder(Context: TWebContext);
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/patient/\$match')]
+    procedure GetOrderIssue513;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/patient/\$match/($par1)/($par2)')]
+    procedure GetOrderIssue513WithPars(par1: string; par2: string);
+
     property CalledActions: TStringList read FCalledActions; // only for tests
   end;
 
@@ -57,6 +65,16 @@ implementation
 procedure TSimpleController.AddCall(ActionName: string);
 begin
   FCalledActions.Add(ActionName);
+end;
+
+procedure TSimpleController.GetOrderIssue513;
+begin
+  AddCall('GetOrderIssue513');
+end;
+
+procedure TSimpleController.GetOrderIssue513WithPars(par1, par2: string);
+begin
+  AddCall('GetOrderIssue513WithPars');
 end;
 
 procedure TSimpleController.Index(Context: TWebContext);

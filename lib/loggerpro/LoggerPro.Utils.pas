@@ -5,18 +5,22 @@ interface
 uses
   System.SysUtils;
 
-function FileVersion(const FileName: TFileName): string;
 function AppPath: string;
+{$IFDEF MSWINDOWS}
 function WUserName: string;
+function FileVersion(const FileName: TFileName): string;
+{$ENDIF}
 
 implementation
 
 uses
-  Winapi.Windows, System.IOUtils;
+  {$IFDEF MSWINDOWS} Winapi.Windows, {$ENDIF}
+  System.IOUtils;
 
 var
   GAppPath: string = '';
 
+{$IFDEF MSWINDOWS}
 function WUserName: string;
 var
   nSize: DWord;
@@ -28,7 +32,9 @@ begin
   else
     RaiseLastOSError;
 end;
+{$ENDIF}
 
+{$IFDEF MSWINDOWS}
 function FileVersion(const FileName: TFileName): string;
 var
   VerInfoSize: Cardinal;
@@ -53,6 +59,7 @@ begin
     FreeMem(PVerInfo, VerInfoSize);
   end;
 end;
+{$ENDIF}
 
 function AppPath: string;
 begin

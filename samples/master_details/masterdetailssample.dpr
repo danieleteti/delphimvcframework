@@ -40,6 +40,7 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := True;
   try
+    CreatePostgresqlPrivateConnDef(True);
     if WebRequestHandler <> nil then
       WebRequestHandler.WebModuleClass := WebModuleClass;
     RunServer(8080);

@@ -101,7 +101,7 @@ begin
   else
     lValue := aRQLFIlter.OpRight;
 
-  lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft);
+  lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft, True);
 
   case aRQLFIlter.Token of
     tkEq:
@@ -227,7 +227,7 @@ begin
   begin
     if I > 0 then
       Result := Result + ',';
-    Result := Result + ' ' + GetDatabaseFieldName(aRQLSort.Fields[I]);
+    Result := Result + ' ' + GetDatabaseFieldName(aRQLSort.Fields[I], True);
     if aRQLSort.Signs[I] = '+' then
       Result := Result + ' ASC'
     else
@@ -245,8 +245,8 @@ procedure TRQLMSSQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
 var
   lBuff: TStringBuilder;
   lItem: TRQLCustom;
-  LFoundSort: Boolean;
-  LitemSort: TRQLSort;
+  lFoundSort: Boolean;
+  lItemSort: TRQLSort;
 begin
   inherited;
 
@@ -264,16 +264,19 @@ begin
 
       if (lItem is TRQLLimit) and (not LFoundSort) then
       begin
-        LitemSort := TRQLSort.Create;
-        LitemSort.Add('+', FMapping[0].InstanceFieldName);
-        lBuff.Append(RQLCustom2SQL(LitemSort));
+        lItemSort := TRQLSort.Create;
+        try
+          lItemSort.Add('+', FMapping[0].InstanceFieldName);
+          lBuff.Append(RQLCustom2SQL(LitemSort));
+        finally
+          lItemSort.Free;
+        end;
       end;
 
       lBuff.Append(RQLCustom2SQL(lItem));
 
       if (lItem is TRQLSort) then
         LFoundSort := True;
-
     end;
     aSQL := lBuff.ToString;
   finally

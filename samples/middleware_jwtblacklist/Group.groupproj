@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{094E1EEA-8729-4125-A068-57B1296432CB}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="JWTBlacklistServerSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="vclclient\JWTBlacklistClientSample.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="JWTBlacklistServerSample">
+        <MSBuild Projects="JWTBlacklistServerSample.dproj"/>
+    </Target>
+    <Target Name="JWTBlacklistServerSample:Clean">
+        <MSBuild Projects="JWTBlacklistServerSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTBlacklistServerSample:Make">
+        <MSBuild Projects="JWTBlacklistServerSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="JWTBlacklistClientSample">
+        <MSBuild Projects="vclclient\JWTBlacklistClientSample.dproj"/>
+    </Target>
+    <Target Name="JWTBlacklistClientSample:Clean">
+        <MSBuild Projects="vclclient\JWTBlacklistClientSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTBlacklistClientSample:Make">
+        <MSBuild Projects="vclclient\JWTBlacklistClientSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="JWTBlacklistServerSample;JWTBlacklistClientSample"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="JWTBlacklistServerSample:Clean;JWTBlacklistClientSample:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="JWTBlacklistServerSample:Make;JWTBlacklistClientSample:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

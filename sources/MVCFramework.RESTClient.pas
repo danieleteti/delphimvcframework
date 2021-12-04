@@ -46,7 +46,7 @@ uses
   MVCFramework.RESTClient.Commons,
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
-  Data.DB;
+  Data.DB, JsonDataObjects;
 
 type
   /// <summary>
@@ -510,6 +510,8 @@ type
     function ContentRawBytes: TBytes;
     procedure SaveContentToStream(aStream: TStream);
     procedure SaveContentToFile(const aFileName: string);
+    function ToJSONObject: TJDOJsonObject;
+    function ToJSONArray: TJDOJsonArray;
   end;
 
 implementation
@@ -1787,6 +1789,16 @@ begin
 end;
 
 { TMVCRESTResponse }
+
+function TMVCRESTResponse.ToJSONArray: TJDOJsonArray;
+begin
+  Result := StrTOJSONArray(fContent, True);
+end;
+
+function TMVCRESTResponse.ToJSONObject: TJDOJsonObject;
+begin
+  Result := StrTOJSONObject(fContent, True);
+end;
 
 function TMVCRESTResponse.Content: string;
 begin
