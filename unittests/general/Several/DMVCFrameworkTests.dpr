@@ -54,7 +54,19 @@ uses
   MVCFramework.Commons in '..\..\..\sources\MVCFramework.Commons.pas',
   MVCFramework.Serializer.JsonDataObjects.CustomTypes in '..\..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas',
   MVCFramework.SQLGenerators.Firebird in '..\..\..\sources\MVCFramework.SQLGenerators.Firebird.pas',
-  MVCFramework.Utils in '..\..\..\sources\MVCFramework.Utils.pas';
+  MVCFramework.Utils in '..\..\..\sources\MVCFramework.Utils.pas',
+  MVCFramework.SQLGenerators.Interbase in '..\..\..\sources\MVCFramework.SQLGenerators.Interbase.pas',
+  MVCFramework.SQLGenerators.MSSQL in '..\..\..\sources\MVCFramework.SQLGenerators.MSSQL.pas',
+  MVCFramework.SQLGenerators.MySQL in '..\..\..\sources\MVCFramework.SQLGenerators.MySQL.pas',
+  MVCFramework.SQLGenerators.PostgreSQL in '..\..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas',
+  MVCFramework.SQLGenerators.Sqlite in '..\..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas',
+  MVCFramework.RQL.AST2FirebirdSQL in '..\..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas',
+  MVCFramework.RQL.AST2InterbaseSQL in '..\..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas',
+  MVCFramework.RQL.AST2MSSQL in '..\..\..\sources\MVCFramework.RQL.AST2MSSQL.pas',
+  MVCFramework.RQL.AST2MySQL in '..\..\..\sources\MVCFramework.RQL.AST2MySQL.pas',
+  MVCFramework.RQL.AST2PostgreSQL in '..\..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas',
+  MVCFramework.RQL.AST2SQLite in '..\..\..\sources\MVCFramework.RQL.AST2SQLite.pas',
+  MVCFramework.RQL.Parser in '..\..\..\sources\MVCFramework.RQL.Parser.pas';
 
 {$R *.RES}
 
