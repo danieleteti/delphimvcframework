@@ -1973,27 +1973,22 @@ begin
   Result := fData;
 end;
 
+
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
 {$IFDEF WEBAPACHEHTTP}
   if FRequest.ClassType = TApacheRequest then
   begin
     Exit(hftApache);
-  end
-  else
-  begin
-{$IFNDEF LINUX}
-    if FRequest.ClassType = TISAPIRequest then
-    begin
-      Exit(hftISAPI);
-    end
-    else
-{$ENDIF}
-{$ENDIF}
-    begin
-      Exit(hftIndy);
-    end;
   end;
+{$ENDIF}
+{$IFDEF MSWINDOWS}
+  if FRequest.ClassType = TISAPIRequest then
+  begin
+    Exit(hftISAPI);
+  end;
+{$ENDIF}
+  Exit(hftIndy);
 end;
 
 { MVCFromBodyAttribute }
