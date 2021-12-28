@@ -319,6 +319,8 @@ type
   public
     constructor Create(const AParamName: string); overload;
     constructor Create(const AParamName: string; const DefaultAsString: string); overload;
+    constructor Create(const AParamName: string; const DefaultAsInteger: Int64); overload;
+    constructor Create(const AParamName: string; const DefaultAsBoolean: Boolean); overload;
     property ParamName: string read FParamName;
     property DefaultValueAsString: string read FDefaultValueAsString;
     property CanBeUsedADefaultValue: Boolean read FCanBeUsedADefaultValue;
@@ -525,8 +527,8 @@ type
     FIsSessionStarted: Boolean;
     FSessionMustBeClose: Boolean;
     FLoggedUser: TUser;
-    FData: TDictionary<string, string>;
     FWebSession: TWebSession;
+    FData: TMVCStringDictionary;
     function GetWebSession: TWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
@@ -538,6 +540,7 @@ type
     function SendSessionCookie(const AContext: TWebContext): string;
     function AddSessionToTheSessionList(const ASessionType, ASessionId: string;
       const ASessionTimeout: Integer): TWebSession;
+    function GetData: TMVCStringDictionary;
   public
     constructor Create(const ARequest: TWebRequest; const AResponse: TWebResponse;
       const AConfig: TMVCConfig; const ASerializers: TDictionary<string, IMVCSerializer>);
@@ -557,7 +560,7 @@ type
     property Response: TMVCWebResponse read FResponse;
     property Session: TWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
-    property Data: TDictionary<string, string> read FData;
+    property Data: TMVCStringDictionary read GetData;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
   end;
 
@@ -1082,18 +1085,18 @@ uses
   MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract;
 
 var
-  _IsShuttingDown: Int64 = 0;
-  _MVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
-  _HostingFramework: TMVCHostingFrameworkType = hftUnknown;
+  gIsShuttingDown: Int64 = 0;
+  gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
+  gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
 
 function IsShuttingDown: Boolean;
 begin
-  Result := TInterlocked.Read(_IsShuttingDown) = 1
+  Result := TInterlocked.Read(gIsShuttingDown) = 1
 end;
 
 procedure EnterInShutdownState;
 begin
-  TInterlocked.Add(_IsShuttingDown, 1);
+  TInterlocked.Add(gIsShuttingDown, 1);
 end;
 
 function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
@@ -1149,6 +1152,18 @@ begin
   inherited Create;
   FParamName := AParamName;
   FCanBeUsedADefaultValue := False;
+end;
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsInteger: Int64);
+begin
+  Create(AParamName, DefaultAsInteger.ToString);
+end;
+
+constructor MVCInjectableParamAttribute.Create(const AParamName: string;
+  const DefaultAsBoolean: Boolean);
+begin
+  Create(AParamName, iif(DefaultAsBoolean,'true','false'));
 end;
 
 { MVCProducesAttribute }
@@ -1918,7 +1933,7 @@ begin
   FResponse := TMVCWebResponse.Create(AResponse);
   FConfig := AConfig;
   FSerializers := ASerializers;
-  FData := TDictionary<string, string>.Create;
+  FData := nil;
   FLoggedUser := nil;
 end;
 
@@ -1949,28 +1964,31 @@ begin
   FResponse.Flush;
 end;
 
+function TWebContext.GetData: TMVCStringDictionary;
+begin
+  if fData = nil then
+  begin
+    fData := TMVCStringDictionary.Create;
+  end;
+  Result := fData;
+end;
+
 function TWebContext.GetHostingFrameworkType: TMVCHostingFrameworkType;
 begin
 {$IFDEF WEBAPACHEHTTP}
   if FRequest.ClassType = TApacheRequest then
   begin
     Exit(hftApache);
-  end
-  else
-  begin
-{$IFNDEF LINUX}
+  end;
+{$ENDIF}
+{$IFDEF MSWINDOWS}
     if FRequest.ClassType = TISAPIRequest then
     begin
       Exit(hftISAPI);
-    end
-    else
+  end;
 {$ENDIF}
-{$ENDIF}
-    begin
       Exit(hftIndy);
     end;
-  end;
-end;
 
 { MVCFromBodyAttribute }
 
@@ -2309,7 +2327,7 @@ begin
     try
       DefineDefaultResponseHeaders(lContext);
       lHandled := False;
-      lRouter := TMVCRouter.Create(FConfig, _MVCGlobalActionParamsCache);
+      lRouter := TMVCRouter.Create(FConfig, gMVCGlobalActionParamsCache);
       try // finally
         lSelectedController := nil;
         try // only for lSelectedController
@@ -4063,21 +4081,14 @@ begin
   FFormat := AFormat;
 end;
 
-{ TMVCHackHTTPAppRequest }
-
-// function TMVCHackHTTPAppRequest.GetHeaders: TStringList;
-// begin
-// Result := FRequestInfo.RawHeaders;
-// end;
-
 initialization
 
-_IsShuttingDown := 0;
+gIsShuttingDown := 0;
 
-_MVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
+gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
 
 finalization
 
-FreeAndNil(_MVCGlobalActionParamsCache);
+FreeAndNil(gMVCGlobalActionParamsCache);
 
 end.

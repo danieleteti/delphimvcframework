@@ -48,13 +48,13 @@
 
 DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
-DMVCFramework works with Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
+DMVCFramework works with Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
 ### DelphiMVCFramework Main Features
 
   * DMVCFramwork is simple to use, has a [lot of examples](https://github.com/danieleteti/delphimvcframework/tree/master/samples), is documented and there are a [lot of tutorials](https://www.youtube.com/results?search_query=delphimvcframework) available.
 
-  * DMVCFramework is very well documented and the book [DMVCFramework - the official guide](https://leanpub.com/delphimvcframework) is available to fastly get a solid knowledge.
+  * DMVCFramework is very well documented and the book [DMVCFramework - the official guide](http://www.danieleteti.it/books/) is available to fastly get a solid knowledge (available as e-book and hardcopy).
 
   * [Project Roadmap](roadmap.md) is always public
 * There are more than 40 samples to learn all the features and be proficient and productive
@@ -128,6 +128,7 @@ The official guide for DMVCFramework is available. DMVCFramework has a lot funct
 ![DelphiMVCFramework - the official guide](https://raw.githubusercontent.com/danieleteti/delphimvcframework/master/docs/logoproject/dmvcframework_the_official_guide_very_small.png)
 
 [Buy your copy](https://leanpub.com/delphimvcframework) and improve your DMVCFramework knowledge now!
+"DMVCFramework - the official guide" is available as [e-book](https://leanpub.com/delphimvcframework) and [hardcopy](https://www.lulu.com/en/en/shop/daniele-teti-and-jim-mckeeth/delphimvcframework-the-official-guide/hardcover/product-r26e8e.html), pick what you prefer.
 
 > While a huge work has been done by the author and the reviews to make the book and the examples well written, complete and effective, things can be always improved. For any suggestions, complains or requests there is the official Github book project (https://github.com/danieleteti/dmvcframeworktheofficialguide) where you can fill an issue and get in touch directly with the author. 
 
@@ -150,6 +151,8 @@ Only if you want to participate to the testing phase (which usually contains bra
 Take in mind that even if development version is usually very stable, it isn't not ready for production utilization.
 
 ## What users say about DMVCFramework
+
+> "I'm still amazed by the DelphiMVCFramework code and documentation. Thank you very much and I am amazed by your quick feedback." -- [Benjamin Yang](https://www.linkedin.com/in/benjamin-yang-4b0609159/) (Director of [SQLGate](https://www.sqlgate.com/))
 
 > "DMVCFramework and the Entity utility are fantastic!" -- Roberto
 
@@ -428,35 +431,79 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 ### Whet's new in 3.2.2-nitrogen (currently in beta)
 
+- ⚡New! Support for Delphi 11 Alexandria
+
 - ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
 
 - ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
 
-- ⚡Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
+- ✅ Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
 
-- ⚡Improved internal architecture of custom type serializers in case of dynamic linked packages.
+- ✅ Improved internal architecture of custom type serializers in case of dynamic linked packages.
 
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
 
 - ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
 
-- ⚡Improved! Add parameter to set local timeStamp as UTC.
+- ✅ Improved! Added parameter to set local timeStamp as UTC.
 
-- ⚡Improved OpenAPI (Swagger) support.
+- ✅ Improved OpenAPI (Swagger) support.
 
-- ⚡Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
+- ✅ Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
 
-- ⚡Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+- ✅ Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
 
-- ⚡Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
+- ✅ Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
 
 - ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
 
 - ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
 
+- ⚡New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ⚡New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ✅ Improved! After a big refactoring (*"I love to delete code" -- cit. Daniele Teti*), support a new SQLGenerator is just 2 (two) methods away! Just as example, this is the current version of `TMVCSQLGeneratorPostgreSQL`
+
+    ```delphi
+    type
+      TMVCSQLGeneratorPostgreSQL = class(TMVCSQLGenerator)
+      protected
+        function GetCompilerClass: TRQLCompilerClass; override;
+      public
+        function CreateInsertSQL(
+          const TableName: string;
+          const Map: TFieldsMap;
+          const PKFieldName: string;
+          const PKOptions: TMVCActiveRecordFieldOptions): string; override;
+        function GetSequenceValueSQL(const PKFieldName: string;
+          const SequenceName: string;
+          const Step: Integer = 1): string; override;
+      end;
+    ```
+
+    
+
 - ⚡New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
 
 - ⚡New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.
+
+- ✅ Improved! `Context.Data` property is now created on-demand using a lazy loading approach (expect an overall speed improvement).
+
+- ✅ Added `LogException` function in `MVCFramework.Logger.pas` to easily log exception in standard way.
+
+- ⚡ New! Added `ActiveRecordConnectionRegistry.AddDefaultConnection(const aConnetionDefName: String)`. The connection definition **must** be known by FireDAC. This method simplifies the most common scenario shown below.
+
+    ```delphi
+    ActiveRecordConnectionRegistry.AddDefaultConnection('MyConDefName');
+    try
+      //Use active record classes
+    finally
+      ActiveRecordConnectionRegistry.RemoveDefaultConnection;
+    end;
+    ```
+
+- ⚡New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
 
 - ⚡New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
 
@@ -549,22 +596,43 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
     end;
     ```
 
-
 ### Bug Fixes in 3.2.2-nitrogen
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/484 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/472 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/470  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/453  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/455  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/461
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/451
+
 - Fix for nil objects in lists during serialization
-- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
+
+- Fix a very subtle bug in `MaxRecordCount` parameter for RQL based methods in `TMVCActiveRecord`
+
+- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. 
+
+  > WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/489
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
+
+- Fixed *fileupload* sample
+
+- Fixed an `IFDEF` compatibility problem on mobile platforms (Thanks to Marco Cotroneo)
 
 ## Older Releases
 

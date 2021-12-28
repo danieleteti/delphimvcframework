@@ -285,7 +285,7 @@ type
     // - see https://www.freedesktop.org/software/systemd/man/sd_notify.html
     // status notification sample: sd.notify(0, 'READY=1');
     // watchdog notification: sd.notify(0, 'WATCHDOG=1');
-    sd_notify: function(unset_environment: longint; state: PUTF8Char): longint; cdecl;
+    sd_notify: function(unset_environment: longint; state: PAnsiChar): longint; cdecl;
     /// systemd: check whether the service manager expects watchdog keep-alive
     // notifications from a service
     // - if result > 0 then usec contains the notification interval (app should

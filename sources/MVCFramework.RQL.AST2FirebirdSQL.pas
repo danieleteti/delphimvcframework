@@ -136,7 +136,7 @@ begin
   else
     lValue := aRQLFIlter.OpRight;
 
-  lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft);
+  lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft, True);
 
   case aRQLFIlter.Token of
     tkEq:
@@ -262,7 +262,7 @@ begin
   begin
     if I > 0 then
       Result := Result + ',';
-    Result := Result + ' ' + GetDatabaseFieldName(aRQLSort.Fields[I]);
+    Result := Result + ' ' + GetDatabaseFieldName(aRQLSort.Fields[I], True);
     if aRQLSort.Signs[I] = '+' then
       Result := Result + ' ASC'
     else

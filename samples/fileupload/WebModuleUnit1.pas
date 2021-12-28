@@ -46,7 +46,7 @@ begin
   MVC.AddController(TFileUploadController);
   MVC.AddMiddleware(TMVCTraceMiddleware.Create);
   MVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/', { StaticFilesPath }
+    '/static', { StaticFilesPath }
     ExtractFilePath(GetModuleName(HInstance)) + '..\..\document_root', { DocumentRoot }
     'index.html' { IndexDocument - Before it was named fallbackresource }
     ));

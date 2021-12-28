@@ -325,6 +325,10 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/issues/406')]
     procedure TestIssue406;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issues/526')]
+    procedure TestIssue526;
   end;
 
   [MVCPath('/private')]
@@ -617,7 +621,7 @@ begin
   // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
   lCustomer.Name := lCustomer.Name + ' changed';
 {$IFNDEF LINUX}
-  lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  //lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
 {$ENDIF}
   // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
   Render(lCustomer, True);
@@ -780,6 +784,13 @@ end;
 procedure TTestServerController.TestIssue406;
 begin
   Render(HTTP_STATUS.UnprocessableEntity, TMVCErrorResponseItem.Create('The Message'));
+end;
+
+procedure TTestServerController.TestIssue526;
+begin
+  ContentType := 'application/fhir+xml; fhirVersion=4.0';
+  ResponseStream.Append('OK');
+  RenderResponseStream;
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;

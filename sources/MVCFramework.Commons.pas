@@ -123,7 +123,7 @@ type
     DEFAULT_MAX_REQUEST_SIZE = OneMiB * 5; // 5 MiB
     HATEOAS_PROP_NAME = 'links';
     X_HTTP_Method_Override = 'X-HTTP-Method-Override';
-    MAX_RECORD_COUNT = 20;
+    MAX_RECORD_COUNT = 100;
   end;
 
   HATEOAS = record
@@ -643,7 +643,6 @@ function BuildContentType(const aContentMediaType: string; const aContentCharSet
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 
-
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 
 { changing case }
@@ -679,18 +678,21 @@ type
   end;
 
 
-
 implementation
 
 uses
+
   IdCoder3to4,
   System.NetEncoding,
   System.Character,
-  MVCFramework.Serializer.JsonDataObjects, MVCFramework.Serializer.Commons,
+  MVCFramework.Serializer.JsonDataObjects,
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Utils,
   System.RegularExpressions;
 
 var
   GlobalAppName, GlobalAppPath, GlobalAppExe: string;
+
 
 function URLEncode(const Value: string): string; overload;
 begin
@@ -799,24 +801,30 @@ begin
   end;
 end;
 
-procedure SplitContentMediaTypeAndCharset(const aContentType: string; var aContentMediaType: string;
-  var aContentCharSet: string);
+procedure SplitContentMediaTypeAndCharset(const aContentType: string;
+  var aContentMediaType: string; var aContentCharSet: string);
 var
   lContentTypeValues: TArray<string>;
+  I,J: Integer;
 begin
   if not aContentType.IsEmpty then
   begin
     lContentTypeValues := aContentType.Split([';']);
-    aContentMediaType := Trim(lContentTypeValues[0]);
-    if (Length(lContentTypeValues) > 1) and (lContentTypeValues[1].Trim.StartsWith('charset', True))
-    then
+    aContentCharSet := '';
+    for I := low(lContentTypeValues) to high(lContentTypeValues) do
     begin
-      aContentCharSet := lContentTypeValues[1].Trim.Split(['='])[1].Trim;
-    end
-    else
-    begin
-      aContentCharSet := '';
+      if lContentTypeValues[I].Trim.StartsWith('charset', True) then
+      begin
+        aContentCharSet := lContentTypeValues[I].Trim.Split(['='])[1].Trim;
+        for J := I + 1 to high(lContentTypeValues) do
+        begin
+          lContentTypeValues[J - 1] := lContentTypeValues[J];
+        end;
+        SetLength(lContentTypeValues, Length(lContentTypeValues) - 1);
+        Break;
+      end;
     end;
+    aContentMediaType := string.Join(';', lContentTypeValues);
   end
   else
   begin
@@ -1543,17 +1551,17 @@ end;
 
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONObject(aString, ARaiseExceptionOnError);
+  Result := MVCFramework.Utils.StrToJSONObject(aString, ARaiseExceptionOnError);
 end;
 
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 begin
-  Result := MVCFramework.Serializer.JSONDataObjects.StrToJSONArray(aString, ARaiseExceptionOnError);
+  Result := MVCFramework.Utils.StrToJSONArray(aString, ARaiseExceptionOnError);
 end;
 
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
 begin
-  Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+  Result := MVCFramework.Utils.WrapAsList(AObject, AOwnsObject);
 end;
 
 { TMVCStringHelper }

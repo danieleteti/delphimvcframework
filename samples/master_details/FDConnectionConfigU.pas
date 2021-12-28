@@ -17,7 +17,9 @@ implementation
 uses
   System.Classes,
   System.IOUtils,
-  FireDAC.Comp.Client;
+  FireDAC.Comp.Client,
+  FireDAC.Phys.PG,
+  MVCFramework.SQLGenerators.PostgreSQL;
 
 procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
 var

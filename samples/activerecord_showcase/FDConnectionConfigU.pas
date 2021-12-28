@@ -23,6 +23,10 @@ procedure CreateMySQLPrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
 begin
+{
+  docker run --detach --env MARIADB_USER=example-user --env MARIADB_PASSWORD=my_cool_secret --env MARIADB_ROOT_PASSWORD=root  -p 3306:3306 mariadb:latest
+}
+
   LParams := TStringList.Create;
   try
     LParams.Add('Database=activerecorddb');
@@ -31,7 +35,7 @@ begin
     LParams.Add('User_Name=root');
     LParams.Add('Password=root');
     LParams.Add('TinyIntFormat=Boolean'); { it's the default }
-    LParams.Add('CharacterSet=utf8');
+    LParams.Add('CharacterSet=utf8mb4');  //not utf8!!
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');
@@ -51,6 +55,10 @@ procedure CreateMSSQLServerPrivateConnDef(AIsPooled: boolean);
 var
   LParams: TStringList;
 begin
+{
+  docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=!SA_password!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
+}
+
   // [ACTIVERECORDB_SQLSERVER]
   // Database=activerecorddb
   // OSAuthent=Yes
@@ -61,8 +69,10 @@ begin
   LParams := TStringList.Create;
   try
     LParams.Add('Database=activerecorddb');
-    LParams.Add('OSAuthent=Yes');
-    LParams.Add('Server=DANIELETETI\SQLEXPRESS');
+//    LParams.Add('OSAuthent=Yes');
+    LParams.Add('User_Name=sa');
+    LParams.Add('Password=!SA_password!');
+    LParams.Add('Server=DANIELETETI');
     // LParams.Add('TinyIntFormat=Boolean'); { it's the default }
     if AIsPooled then
     begin

@@ -13,7 +13,9 @@ type
   }
   TLoggerProOutputDebugStringAppender = class(TLoggerProAppenderBase)
   private
+    {$IFDEF MSWINDOWS}
     FModuleName: string;
+    {$ENDIF}
   public
     constructor Create; override;
     procedure Setup; override;
