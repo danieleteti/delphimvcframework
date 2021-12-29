@@ -51,6 +51,7 @@ uses
   System.Generics.Collections,
   SynMustache,
   SynCommons,
+  JsonDataObjects,
   MVCFramework.Serializer.Defaults,
   MVCFramework.Serializer.Intf,
   MVCFramework.DuckTyping,
@@ -112,6 +113,7 @@ var
   lList: IMVCList;
   DataObj: TPair<string, TObject>;
   lDSPair: TPair<string, TDataSet>;
+  lJSONPair: TPair<string, TJSONObject>;
   lSJSON: string;
   lJSON: string;
   lSer: IMVCSerializer;
@@ -153,6 +155,19 @@ begin
       lFirst := False;
     end;
   end;
+
+  if Assigned(ViewJSON) then
+  begin
+    for lJSONPair in ViewJSON do
+    begin
+      lJSON := lJSONPair.Value.ToJSON(True);
+      if not lFirst then
+        lSJSON := lSJSON + ',';
+      lSJSON := lSJSON + '"' + lDSPair.Key + '":' + lJSON;
+      lFirst := False;
+    end;
+  end;
+
   lSJSON := lSJSON + '}';
   FJSONModel := lSJSON;
 end;

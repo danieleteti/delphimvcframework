@@ -1,0 +1,37 @@
+﻿<div class="row_fluid">
+    <div class="col-sm-12">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>First name</th>
+                    <th>Last name</th>
+                    <th>Age</th>
+                    <th>&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?lua for _, person in ipairs(people) do ?>
+                <tr>
+                    <td><?lua=_?></td>
+                    <td><?lua=person.first_name?></td>
+                    <td><?lua=person.last_name?></td>
+                    <td><?lua=person.age?></td>
+                    <td class="text-right">
+                        <a class="btn btn-default" href="/edit/<?lua=person.guid?>"><span class="glyphicon glyphicon-pencil"></span> View</a>
+                    </td>
+                </tr>
+                <?lua end ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+<br>
+<div class="row_fluid">
+    <div class="col-sm-2">
+        <a class="btn btn-default btn-block" href="/people/formats/csv">Export as CSV</a>
+    </div>
+    <div class="col-sm-2 col-sm-offset-8">
+        <a class="btn btn-primary btn-block" href="/new">Add New Person</a>
+    </div>
+</div>

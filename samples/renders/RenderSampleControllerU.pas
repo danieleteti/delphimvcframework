@@ -487,10 +487,16 @@ begin
     Render(lDM.qryCustomers, False,
       procedure(const DS: TDataset; const Links: IMVCLinks)
       begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-          .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
-          '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self')
+            .Add(HATEOAS._TYPE, 'application/json');
+        Links
+          .AddRefLink
+            .Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString + '/orders')
+            .Add(HATEOAS.REL, 'orders')
+            .Add(HATEOAS._TYPE, 'application/json');
       end);
   finally
     lDM.Free;
