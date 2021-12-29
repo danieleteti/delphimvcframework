@@ -116,3 +116,4 @@ samples/activerecord_showcase/activerecord_showcase.delphilsp.json
 unittests/general/TestServer/TestServer.delphilsp.json
 samples/master_details/masterdetailssample.otares
 samples/master_details/masterdetailssample_Icon.ico
+samples/serversideviews_lua/bin/templates/__compiled/

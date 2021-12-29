@@ -437,6 +437,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
 
+- ⚡New! eLua server side view support added! The View engine requires Lua's dlls so it is not included in the main package but in a sampl project. Check `serversideviews_lua` sample. 
+
 - ✅ Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
 
 - ✅ Improved internal architecture of custom type serializers in case of dynamic linked packages.
@@ -445,7 +447,33 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
 
-- ✅ Improved! Added parameter to set local timeStamp as UTC.
+- ⚡New `OnContextCreate` and `OnContextDetroyed` events for `TMVCEngine`. 
+
+- ⚡New `property CustomIntfObject: IInterface` in `TWebContext`. This property can be used to inject custom services factory. 
+
+    ```delphi
+    procedure TMyWebModule.WebModuleCreate(Sender: TObject);
+    begin
+      FMVC := TMVCEngine.Create(Self,
+        procedure(Config: TMVCConfig)
+        begin
+          //configuration code
+        end);
+      FMVC.AddController(TMyController);
+      FMVC.OnWebContextCreate(
+        procedure(const Ctx: TWebContext)
+        begin
+          Ctx.CustomIntfObject := TServicesFactory.Create; //implements an interface
+        end);
+      FMVC.OnWebContextDestroy(
+        procedure(const Ctx: TWebContext)
+        begin
+          //do nothing here
+        end);
+    end;
+    ```
+
+- ✅ Added parameter to set local timeStamp as UTC.
 
 - ✅ Improved OpenAPI (Swagger) support.
 
@@ -561,7 +589,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
       //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
-    
+
 - ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
     ```delphi
     //interface
@@ -576,7 +604,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
       //If the header doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
-    
+
 - ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
     ```delphi
     //interface

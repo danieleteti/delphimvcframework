@@ -1056,7 +1056,6 @@ type
     FWebContext: TWebContext;
     FViewModel: TMVCViewDataObject;
     FViewDataSets: TObjectDictionary<string, TDataSet>;
-    FViewJSON: TMVCViewJSONDataObject;
     FContentType: string;
     FOutput: string;
   protected
@@ -1075,7 +1074,6 @@ type
     property ViewName: string read FViewName;
     property WebContext: TWebContext read FWebContext;
     property ViewModel: TMVCViewDataObject read FViewModel;
-    property ViewJSON: TMVCViewJSONDataObject read FViewJSON;
     property ViewDataSets: TObjectDictionary<string, TDataSet> read FViewDataSets;
     property ContentType: string read FContentType;
     property Output: string read FOutput;
