@@ -661,6 +661,8 @@ begin
         if (aPropType.Handle = TypeInfo(TStream)) or (aPropType.Handle = TypeInfo(TMemoryStream)) or
           (aPropType.Handle = TypeInfo(TStringStream)) then
           Result := stString
+        else if aPropType.Handle = TypeInfo(TMVCStringDictionary) then
+          Result := stObject
         else if TypeIsEnumerable(aPropType) then
           Result := stArray
         else
