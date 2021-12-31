@@ -55,6 +55,7 @@ type
     FGender: TGender;
     FArrayField: TArray<string>;
     FListField: TList<string>;
+    FStringDictionary: TMVCStringDictionary;
   public
     constructor Create;
     destructor Destroy; override;
@@ -76,6 +77,8 @@ type
     property ArrayField: TArray<string> read FArrayField write FArrayField;
     [MVCSwagJsonSchemaField(stArray, 'listfield', 'List Field', True, False)]
     property ListField: TList<string> read FListField write FListField;
+//    [MVCSwagJsonSchemaField(stObject, 'stringdictionary', 'String Dictionary description')]
+    property StringDictionary: TMVCStringDictionary read FStringDictionary write FStringDictionary;
   end;
 
   [MVCNameCase(ncLowerCase)]
@@ -167,12 +170,14 @@ begin
   inherited;
   FAddress := TAddress.Create;
   FPhones := TPhones.Create;
+  FStringDictionary := TMVCStringDictionary.Create;
 end;
 
 destructor TPerson.Destroy;
 begin
   FAddress.Free;
   FPhones.Free;
+  FStringDictionary.Free;
   inherited;
 end;
 
