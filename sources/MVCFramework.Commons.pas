@@ -662,11 +662,16 @@ var
   gLock: TObject;
 
 const
-  RESERVED_IPS: array [1 .. 11] of array [1 .. 2] of string = (('0.0.0.0', '0.255.255.255'),
-    ('10.0.0.0', '10.255.255.255'), ('127.0.0.0', '127.255.255.255'),
+  RESERVED_IPv4: array [1 .. 11] of array [1 .. 2] of string = (
+    ('0.0.0.0', '0.255.255.255'),
+    ('10.0.0.0', '10.255.255.255'),
+    ('127.0.0.0', '127.255.255.255'),
     ('169.254.0.0', '169.254.255.255'),
-    ('172.16.0.0', '172.31.255.255'), ('192.0.2.0', '192.0.2.255'), ('192.88.99.0', '192.88.99.255'),
-    ('192.168.0.0', '192.168.255.255'), ('198.18.0.0', '198.19.255.255'),
+    ('172.16.0.0', '172.31.255.255'),
+    ('192.0.2.0', '192.0.2.255'),
+    ('192.88.99.0', '192.88.99.255'),
+    ('192.168.0.0', '192.168.255.255'),
+    ('198.18.0.0', '198.19.255.255'),
     ('224.0.0.0', '239.255.255.255'),
     ('240.0.0.0', '255.255.255.255'));
 
@@ -727,9 +732,15 @@ var
   IntIP: Cardinal;
 begin
   Result := False;
+  if Pos(':', AIP) > 0 then
+  begin
+    {TODO -oDanieleT -cGeneral : Support for IPv6 Reserved IP}
+    //https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+    Exit;
+  end;
   IntIP := IP2Long(AIP);
-  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
-    if (IntIP >= IP2Long(RESERVED_IPS[I][1])) and (IntIP <= IP2Long(RESERVED_IPS[I][2])) then
+  for I := low(RESERVED_IPv4) to high(RESERVED_IPv4) do
+    if (IntIP >= IP2Long(RESERVED_IPv4[I][1])) and (IntIP <= IP2Long(RESERVED_IPv4[I][2])) then
       Exit(True);
 end;
 

@@ -187,6 +187,36 @@ type
   end;
 
   /// <summary>
+  /// Use this attribute in controller to define a default model for all
+  /// the actions which refer to "SWAGUseDefulatControllerModel" as Model class.
+  /// It is useful when, using a base controller, you need to override the model
+  /// used by child controller actions
+  /// </summary>
+  MVCSWAGDefaultModel = class(TCustomAttribute)
+  private
+    fJsonSchemaClass: TClass;
+  public
+    constructor Create(const aJsonSchemaClass: TClass);
+    property JsonSchemaClass: TClass read fJsonSchemaClass;
+  end;
+
+  /// <summary>
+  /// Use this attribute in controller to define a default Summary Tag for all
+  /// the actions which refer to "USE_DEFAULT_SUMMARY_TAG" as tag.
+  /// It is useful when, using a base controller, you need to override the tag
+  /// used by child controller actions
+  /// </summary>
+  MVCSWAGDefaultSummaryTags = class(TCustomAttribute)
+  private
+    fDefaultTags: String;
+  public
+    constructor Create(const aDefaultTags: String);
+    function GetTags: TArray<string>;
+    property DefaultTags: String read fDefaultTags;
+  end;
+
+
+  /// <summary>
   /// Use this attribute in the class or method to ignore the path in creating swagger documentation.
   /// </summary>
   MVCSwagIgnorePathAttribute = class(TCustomAttribute);
@@ -215,12 +245,24 @@ type
     class function GetParamsFromMethod(const aResourcePath: string; const aMethod: TRttiMethod;
       const aSwagDefinitions: TObjectList<TSwagDefinition>): TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const aRttiType: TRttiType): TSwagTypeParameter;
-    class procedure FillOperationSummary(const aSwagPathOperation: TSwagPathOperation; const aMethod: TRttiMethod;
-      const aSwagDefinitions: TObjectList<TSwagDefinition>; const aHTTPMethod: TMVCHTTPMethodType);
+    class procedure FillOperationSummary(
+      const aSwagPathOperation: TSwagPathOperation;
+      const aMethod: TRttiMethod; const aSwagDefinitions: TObjectList<TSwagDefinition>;
+      const aHTTPMethod: TMVCHTTPMethodType;
+      const aControllerDefaultModel: TClass;
+      const aControllerDefaultSummaryTags: TArray<String>);
     class function MethodRequiresAuthentication(const aMethod: TRttiMethod; const aType: TRttiType;
       out aAuthenticationTypeName: string): Boolean;
     class function GetJWTAuthenticationPath(const aJWTUrlSegment: string;
       aUserNameHeaderName, aPasswordHeaderName: string): TSwagPath;
+  end;
+
+  SWAGUseDefaultControllerModel = class sealed
+
+  end;
+
+
+  EMVCSWAGError = class(EMVCException)
   end;
 
   TArrayHelper = class
@@ -241,7 +283,7 @@ const
     'in the JWT middleware giving a valid username and password.' + sLineBreak + sLineBreak +
     'The following syntax must be used in the ''Authorization'' header :' + sLineBreak + sLineBreak +
     '    Bearer xxxxxx.yyyyyyy.zzzzzz' + sLineBreak;
-
+  USE_DEFAULT_SUMMARY_TAG = '{default}';
 implementation
 
 uses
@@ -498,9 +540,12 @@ begin
   end;
 end;
 
-class procedure TMVCSwagger.FillOperationSummary(const aSwagPathOperation: TSwagPathOperation;
+class procedure TMVCSwagger.FillOperationSummary(
+  const aSwagPathOperation: TSwagPathOperation;
   const aMethod: TRttiMethod; const aSwagDefinitions: TObjectList<TSwagDefinition>;
-  const aHTTPMethod: TMVCHTTPMethodType);
+  const aHTTPMethod: TMVCHTTPMethodType;
+  const aControllerDefaultModel: TClass;
+  const aControllerDefaultSummaryTags: TArray<String>);
 var
   lAttr: TCustomAttribute;
   lSwagResponse: TSwagResponse;
@@ -511,12 +556,27 @@ var
   lClassName: string;
   lIndex: Integer;
   lJsonSchema: TJsonFieldArray;
+  lModelClass: TClass;
 begin
   for lAttr in aMethod.GetAttributes do
   begin
     if lAttr is MVCSwagSummaryAttribute then
     begin
-      aSwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(lAttr).GetTags);
+      if MVCSwagSummaryAttribute(lAttr).fTags = USE_DEFAULT_SUMMARY_TAG then
+      begin
+        if Length(aControllerDefaultSummaryTags) = 0 then
+        begin
+          raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+            Format('SWAGGER Definition Error: Action "%s" uses "USE_DEFAULT_SUMMARY_TAG" but its controller "%s" doesn''t define a "MVCSWAGDefaultSummaryTags" attribute',
+              [aMethod.ToString, aMethod.Parent.ToString]));
+        end;
+
+        aSwagPathOperation.Tags.AddRange(aControllerDefaultSummaryTags);
+      end
+      else
+      begin
+        aSwagPathOperation.Tags.AddRange(MVCSwagSummaryAttribute(lAttr).GetTags);
+      end;
       aSwagPathOperation.Description := MVCSwagSummaryAttribute(lAttr).Description;
       aSwagPathOperation.OperationID := GetEnumName(TypeInfo(TMVCHTTPMethodType), Ord(aHTTPMethod)).Substring(4) + '.' +
         MVCSwagSummaryAttribute(lAttr).OperationID;
@@ -556,7 +616,23 @@ begin
             Result := CompareText(Left.Name, Right.Name);
           end);
 
-        lClassName := lSwagResponsesAttr.JsonSchemaClass.ClassName;
+        if lSwagResponsesAttr.JsonSchemaClass = SWAGUseDefaultControllerModel then
+        begin
+          if not Assigned(aControllerDefaultModel) then
+          begin
+            raise EMVCSWAGError.Create(HTTP_STATUS.InternalServerError,
+              Format('SWAGGER Definition Error: Action "%s" uses "SWAGUseDefaultControllerModel" but its controller "%s" doesn''t define a "MVCSWAGDefaultModel" attribute',
+                [aMethod.ToString, aMethod.Parent.ToString]));
+          end;
+          lModelClass := aControllerDefaultModel;
+        end
+        else
+        begin
+          lModelClass := lSwagResponsesAttr.JsonSchemaClass;
+        end;
+
+        lClassName := lModelClass.ClassName;
+
         if lClassName.ToUpper.StartsWith('T') then
           lClassName := lClassName.Remove(0, 1);
 
@@ -568,8 +644,9 @@ begin
           begin
             lSwagDefinition := TSwagDefinition.Create;
             lSwagDefinition.Name := lClassName;
-            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
-              False);
+            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lModelClass, False);
+//            lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(lSwagResponsesAttr.JsonSchemaClass,
+//              False);
             aSwagDefinitions.Add(lSwagDefinition);
           end;
         finally
@@ -1201,5 +1278,27 @@ begin
     until L >= R;
   end;
 end;
+
+{ MVCSWAGDefaultModel }
+
+constructor MVCSWAGDefaultModel.Create(const aJsonSchemaClass: TClass);
+begin
+  inherited Create;
+  fJsonSchemaClass := aJsonSchemaClass;
+end;
+
+{ MVCSWAGDefaultSummaryTags }
+
+constructor MVCSWAGDefaultSummaryTags.Create(const aDefaultTags: String);
+begin
+  inherited Create;
+  fDefaultTags := aDefaultTags;
+end;
+
+function MVCSWAGDefaultSummaryTags.GetTags: TArray<string>;
+begin
+  Result := fDefaultTags.Split([',']);
+end;
+
 
 end.
