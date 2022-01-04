@@ -34,7 +34,7 @@ uses
   AuthHandler,
   MVCFramework.JWT,
   System.DateUtils,
-  PeopleControllerU;
+  ControllersU, BaseControllerU, MVCFramework.Middleware.Redirect;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 {$R *.dfm}
@@ -84,13 +84,15 @@ begin
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
     ));
   FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-    '/swagger',         { StaticFilesPath }
+    '/swagger',  { StaticFilesPath }
     '.\www',     { DocumentRoot }
-    'index.html' { IndexDocument - Before it was named fallbackresource }
+    'index.html' { IndexDocument }
     ));
+  FEngine.AddMiddleware(TMVCRedirectMiddleware.Create(['/'], '/swagger'));
 
   FEngine.AddController(TPeopleController);
-//  FEngine.AddController(TTallPeopleController);
+  FEngine.AddController(TTallPeopleController);
+  //FEngine.AddController(TMainController);
   /// Add your registered controllers to engine.
   /// Only registered controls such as "MyServerName" will be added
   //TControllersRegister.Instance.AddControllersInEngine(FEngine, 'MyServerName');

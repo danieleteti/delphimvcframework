@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -131,6 +131,8 @@ var
   lPathAttributeFound: Boolean;
   lVisitedMethodSignatures: TList<String>;
   lMethodSignature: string;
+  lControllerDefaultModelSingularName: string;
+  lControllerDefaultModelPluralName: string;
 begin
   lVisitedMethodSignatures := TList<String>.Create;
   try
@@ -157,7 +159,9 @@ begin
           end;
           if lAttr is MVCSWAGDefaultModel then
           begin
-            lControllerDefaultModelClass := MVCSWAGDefaultModel(lAttr).JsonSchemaClass
+            lControllerDefaultModelClass := MVCSWAGDefaultModel(lAttr).JsonSchemaClass;
+            lControllerDefaultModelSingularName := MVCSWAGDefaultModel(lAttr).SingularModelName;
+            lControllerDefaultModelPluralName := MVCSWAGDefaultModel(lAttr).PluralModelName;
           end;
           if lAttr is MVCSWAGDefaultSummaryTags then
           begin
@@ -247,13 +251,19 @@ begin
                 ASwagDoc.Definitions,
                 I,
                 lControllerDefaultModelClass,
+                lControllerDefaultModelSingularName,
+                lControllerDefaultModelPluralName,
                 lControllerDefaultSummaryTags);
               if TMVCSwagger.MethodRequiresAuthentication(lMethod, lObjType, lAuthTypeName) then
               begin
                 lSwagPathOp.Security.Add(lAuthTypeName);
               end;
-              lSwagPathOp.Parameters.AddRange(TMVCSwagger.GetParamsFromMethod(lSwagPath.Uri, lMethod,
-                ASwagDoc.Definitions));
+              lSwagPathOp.Parameters.AddRange(
+                TMVCSwagger.GetParamsFromMethod(
+                  lSwagPath.Uri,
+                  lMethod,
+                  ASwagDoc.Definitions,
+                  lControllerDefaultModelClass));
               lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
               lSwagPath.Operations.Add(lSwagPathOp);
             end;

@@ -91,7 +91,7 @@ end;
 
 initialization
 
-TControllersRegister.Instance.RegisterController(TMyController1, 'MyServerName');
-TControllersRegister.Instance.RegisterController(TRedirectController, 'MyServerName');
+//TControllersRegister.Instance.RegisterController(TMyController1, 'MyServerName');
+//TControllersRegister.Instance.RegisterController(TRedirectController, 'MyServerName');
 
 end.

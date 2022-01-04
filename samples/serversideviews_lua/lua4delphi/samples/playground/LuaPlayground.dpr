@@ -2,7 +2,7 @@ program LuaPlayground;
 
 uses
   Vcl.Forms,
-  Unit11 in 'Unit11.pas' {MainForm},
+  MainFormU in 'MainFormU.pas' {MainForm},
   LuaBind.Intf in '..\..\LuaBind.Intf.pas',
   LuaBind in '..\..\LuaBind.pas',
   LuaBind.CustomType.DataSet in '..\..\LuaBind.CustomType.DataSet.pas',

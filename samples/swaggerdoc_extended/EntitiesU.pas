@@ -36,7 +36,7 @@ type
     property NickName: String read fNickName write fNickName;
   end;
 
-  TTallPeople = class(TPersonModel)
+  TTallPersonModel = class(TPersonModel)
   private
     fHeight: String;
   public

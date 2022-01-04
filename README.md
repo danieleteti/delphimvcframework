@@ -150,6 +150,14 @@ Given the success of DMVCFramework in the Delphi community, the official DMVCFra
 Only if you want to participate to the testing phase (which usually contains brand new features but can sometimes be instable) you can get the development version clonig this repo or downloading the [master repository zip file](https://github.com/danieleteti/delphimvcframework/archive/master.zip).
 Take in mind that even if development version is usually very stable, it isn't not ready for production utilization.
 
+## Sponsors
+
+While DMVCFramework is born from the head of Daniele Teti from bit Time Professionals, it wouldn't what is now without the support and work of many people all around the world. The following companies sponsored some specific part of DMVCFramework so they wort a special mention.
+
+- bit Time Professionals
+- bit Time Software
+- Centro Software
+
 ## What users say about DMVCFramework
 
 > "I'm still amazed by the DelphiMVCFramework code and documentation. Thank you very much and I am amazed by your quick feedback." -- [Benjamin Yang](https://www.linkedin.com/in/benjamin-yang-4b0609159/) (Director of [SQLGate](https://www.sqlgate.com/))
@@ -443,7 +451,11 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ✅ Improved internal architecture of custom type serializers in case of dynamic linked packages.
 
+- ✅ Improved Swagger/OpenAPI support for System Controllers and improved support for param models.
+
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+
+- ⚡New `TMVCRedirectMiddleware` to handle HTTP redirections in a very simple and flexible way.
 
 - ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
 
@@ -461,12 +473,12 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
         end);
       FMVC.AddController(TMyController);
       FMVC.OnWebContextCreate(
-        procedure(const Ctx: TWebContext)
+        procedure(const CTX: TWebContext)
         begin
-          Ctx.CustomIntfObject := TServicesFactory.Create; //implements an interface
+          CTX.CustomIntfObject := TServicesFactory.Create; //implements an interface
         end);
       FMVC.OnWebContextDestroy(
-        procedure(const Ctx: TWebContext)
+        procedure(const CTX: TWebContext)
         begin
           //do nothing here
         end);
