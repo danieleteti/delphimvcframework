@@ -8,6 +8,7 @@
   - [Book: "DelphiMVCFramework - the official guide"](#book-delphimvcframework---the-official-guide)
     - [Book translations](#book-translations)
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
+  - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
   - [What's New in DelphiMVCFramework 3.2.1-carbon](#whats-new-in-delphimvcframework-321-carbon)
     - [Improvements](#improvements)
