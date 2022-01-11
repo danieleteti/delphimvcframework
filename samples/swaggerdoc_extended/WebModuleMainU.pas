@@ -92,10 +92,8 @@ begin
 
   FEngine.AddController(TPeopleController);
   FEngine.AddController(TTallPeopleController);
-  //FEngine.AddController(TMainController);
+  FEngine.AddController(TMyPeopleController);
   /// Add your registered controllers to engine.
-  /// Only registered controls such as "MyServerName" will be added
-  //TControllersRegister.Instance.AddControllersInEngine(FEngine, 'MyServerName');
 end;
 
 procedure TWebModule1.WebModuleDestroy(Sender: TObject);

@@ -1,5 +1,6 @@
 dump = require "Lua.lib.inspect"
 json = require "Lua.lib.dkjson"
+require "userlib.commons"
 
 function elua_out(value)
   internal_elua_out(__stringbuilder, tostring(value))

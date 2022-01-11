@@ -254,7 +254,11 @@ type
     class function MVCHttpMethodToSwagPathOperation(const aMVCHTTPMethod: TMVCHTTPMethodType): TSwagPathTypeOperation;
     class function MVCPathToSwagPath(const aResourcePath: string): string;
     class function GetParamsFromMethod(const aResourcePath: string; const aMethod: TRttiMethod;
-      const aSwagDefinitions: TObjectList<TSwagDefinition>; const aControllerDefaultModelClass: TClass): TArray<TSwagRequestParameter>;
+      const aSwagDefinitions: TObjectList<TSwagDefinition>;
+      const aControllerDefaultModelClass: TClass;
+      const aControllerDefaultModelSingularName: String;
+      const aControllerDefaultModelPluralName: String
+      ): TArray<TSwagRequestParameter>;
     class function RttiTypeToSwagType(const aRttiType: TRttiType): TSwagTypeParameter;
     class procedure FillOperationSummary(
       const aSwagPathOperation: TSwagPathOperation;
@@ -752,10 +756,10 @@ begin
     aSwagPathOperation.Produces.Add(TMVCMediaType.APPLICATION_JSON);
 
   if aSwagPathOperation.Responses.Count <= 0 then
-  begin
+  begin {add default responses}
     lSwagResponse := TSwagResponse.Create;
     lSwagResponse.StatusCode := IntToStr(HTTP_STATUS.OK);
-    lSwagResponse.Description := 'Ok';
+    lSwagResponse.Description := 'OK';
     aSwagPathOperation.Responses.Add(lSwagResponse.StatusCode, lSwagResponse);
 
     lSwagResponse := TSwagResponse.Create;
@@ -950,7 +954,9 @@ end;
 
 class function TMVCSwagger.GetParamsFromMethod(const aResourcePath: string; const aMethod: TRttiMethod;
   const aSwagDefinitions: TObjectList<TSwagDefinition>;
-  const aControllerDefaultModelClass: TClass): TArray<TSwagRequestParameter>;
+  const aControllerDefaultModelClass: TClass;
+  const aControllerDefaultModelSingularName: String;
+  const aControllerDefaultModelPluralName: String): TArray<TSwagRequestParameter>;
 
   function TryGetMVCPathParamByName(const AParams: TArray<MVCSwagParamAttribute>; const aParamName: string;
     out AMVCParam: MVCSwagParamAttribute; out AIndex: Integer): Boolean;
@@ -1011,13 +1017,13 @@ begin
 
         if TryGetMVCPathParamByName(lMVCSwagParams, lParamName, lMVCParam, lIndex) then
         begin
-          lSwagReqParam.Name := lParamName;
+          lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
           lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCParam.ParamLocation);
           lSwagReqParam.Required := lMVCParam.Required;
           lSwagReqParam.Default := lMVCParam.DefaultValue;
           lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCParam.EnumValues);
           lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCParam.ParamType);
-          lSwagReqParam.Description := lMVCParam.ParamDescription;
+          lSwagReqParam.Description := ApplyModelName(lMVCParam.ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
           if not lMVCParam.JsonSchema.IsEmpty then
           begin
             lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCParam.JsonSchema) as TJSONObject
@@ -1030,7 +1036,7 @@ begin
         end
         else
         begin
-          lSwagReqParam.Name := lParamName;
+          lSwagReqParam.Name := {lParamName} ApplyModelName(lParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
           lSwagReqParam.InLocation := rpiPath;
           lSwagReqParam.Required := True;
           lSwagReqParam.TypeParameter := RttiTypeToSwagType(lMethodParam.ParamType);
@@ -1044,13 +1050,13 @@ begin
   for I := Low(lMVCSwagParams) to High(lMVCSwagParams) do
   begin
     lSwagReqParam := TSwagRequestParameter.Create;
-    lSwagReqParam.Name := lMVCSwagParams[I].ParamName;
+    lSwagReqParam.Name := {lMVCSwagParams[I].ParamName} ApplyModelName(lMVCSwagParams[I].ParamName, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
     lSwagReqParam.InLocation := MVCParamLocationToSwagRequestParamInLocation(lMVCSwagParams[I].ParamLocation);
     lSwagReqParam.Required := lMVCSwagParams[I].Required;
     lSwagReqParam.Default := lMVCSwagParams[I].DefaultValue;
     lSwagReqParam.Enum.Text := string.Join(sLineBreak, lMVCSwagParams[I].EnumValues);
     lSwagReqParam.TypeParameter := MVCParamTypeToSwagTypeParameter(lMVCSwagParams[I].ParamType);
-    lSwagReqParam.Description := lMVCSwagParams[I].ParamDescription;
+    lSwagReqParam.Description := ApplyModelName(lMVCSwagParams[I].ParamDescription, aControllerDefaultModelSingularName, aControllerDefaultModelPluralName);
     if not lMVCSwagParams[I].JsonSchema.IsEmpty then
     begin
       lSwagReqParam.Schema.JsonSchema := TJSONObject.ParseJSONValue(lMVCSwagParams[I].JsonSchema) as TJSONObject
@@ -1075,38 +1081,10 @@ begin
 //        lSwagParam.Schema.JsonSchema := ExtractJsonSchemaFromClass(lMVCSwagParams[I].JsonSchemaClass,
 //          lMVCSwagParams[I].ParamType = ptArray);
       end;
-
-      { definitions }
       AddRequestModelDefinition(lSwagReqParam, lParamSchemaClass, aSwagDefinitions, lComparer, lMVCSwagParams[I].ParamType);
-      {
-      lClassName := lParamSchemaClass.ClassName;
-      if lClassName.ToUpper.StartsWith('T') then
-        lClassName := lClassName.Remove(0, 1);
-
-      aSwagDefinitions.Sort(lComparer);
-      lSwagDef := TSwagDefinition.Create;
-      try
-        lSwagDef.Name := lClassName;
-        if not aSwagDefinitions.BinarySearch(lSwagDef, lIndex, lComparer) then
-        begin
-          lSwagDefinition := TSwagDefinition.Create;
-          lSwagDefinition.Name := lClassName;
-          lSwagDefinition.JsonSchema := ExtractJsonSchemaFromClass(
-            lParamSchemaClass,
-            lMVCSwagParams[I].ParamType = ptArray);
-          aSwagDefinitions.Add(lSwagDefinition);
-        end;
-      finally
-        lSwagDef.Free;
-      end;
-      lSwagParam.Schema.Name := lClassName;
-      }
-      { end-definitions }
     end;
-
     Insert([lSwagReqParam], Result, High(Result));
   end;
-
 end;
 
 class function TMVCSwagger.MethodRequiresAuthentication(const aMethod: TRttiMethod; const aType: TRttiType;

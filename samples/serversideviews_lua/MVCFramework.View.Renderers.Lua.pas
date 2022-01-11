@@ -284,32 +284,17 @@ uses
 
 function __lua_stream_out(L: Plua_State): Integer; cdecl;
 var
-  lPointerToWebContext, lPointerToStreamWriter: Pointer;
-  WebContext: TWebContext;
-  v: PAnsiChar;
-  lParCount: Integer;
-  lArr: TArray<Byte>;
+  lPointerToStreamWriter: Pointer;
+  lData: PAnsiChar;
 begin
-  lParCount := lua_gettop(L);
   if lua_gettop(L) <> 2 then
   begin
     luaL_error(L, PAnsiChar('Wrong parameters number'));
     Exit;
   end;
-  v := lua_tostring(L, -1);
-
+  lData := lua_tostring(L, -1);
   lPointerToStreamWriter := lua_topointer(L, -2);
-//  lua_getfield(L, -2, '__stringbuilder');
-//  lPointerToStringBuilder := lua_topointer(L, -1);
-
-//  lua_getfield(L, -2, '__self');
-//  lPointerToWebContext := lua_topointer(L, -1);
-  //TWebContext(TObject(lPointerToWebContext)).Response.Content := v;
-
-//  SetLength(lArr, Length(v));
-//  CopyArray(lArr, v, TypeInfo(byte), Length(lArr));
-
-  TStreamWriter(lPointerToStreamWriter).Write(UTF8Encode(v));
+  TStreamWriter(lPointerToStreamWriter).Write(UTF8Encode(lData));
   Result := 0;
 end;
 
@@ -365,14 +350,10 @@ var
   v: string;
   sr: TStreamReader;
   DecodeJSONStrings: string;
-  LuaRequestFunctions: TDictionary<string, lua_CFunction>;
-  LuaResponseFunctions: TDictionary<string, lua_CFunction>;
-  pn: string;
   lSer: TMVCJsonDataObjectsSerializer;
   lJSONStr: string;
   lJSONObj: TJDOJsonObject;
   lJSONArr: TJDOJsonArray;
-  LuaResponseData: TDictionary<string, TValue>;
   ScriptOutputStringBuilder: TStreamWriter;
 begin
   ScriptOutputStringBuilder := TStreamWriter.Create(OutputStream, TEncoding.UTF8);
@@ -452,7 +433,7 @@ begin
               lJSONStr := TJDOJsonBaseObject(ViewModel[k]).ToJSON(True);
             end;
             Lua.DeclareGlobalString(k, lJSONStr);
-            DecodeJSONStrings := DecodeJSONStrings + sLineBreak + 'local ' +
+            DecodeJSONStrings := DecodeJSONStrings + sLineBreak + ' ' +
               AnsiString(k) + ' = json.decode(' + AnsiString(k) + ')';
           end;
         end;

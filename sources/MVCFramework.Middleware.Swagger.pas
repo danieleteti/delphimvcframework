@@ -263,7 +263,10 @@ begin
                   lSwagPath.Uri,
                   lMethod,
                   ASwagDoc.Definitions,
-                  lControllerDefaultModelClass));
+                  lControllerDefaultModelClass,
+                  lControllerDefaultModelSingularName,
+                  lControllerDefaultModelPluralName)
+                );
               lSwagPathOp.Operation := TMVCSwagger.MVCHttpMethodToSwagPathOperation(I);
               lSwagPath.Operations.Add(lSwagPathOp);
             end;

@@ -10,6 +10,13 @@ uses
   EntitiesU;
 
 type
+  [MVCPath('/mypeople')]
+  [MVCSWAGDefaultModel(TPersonModel, 'MyPerson', 'MyPeople')] {commenting this line you get an exception}
+  [MVCSWAGDefaultSummaryTags('MyPeople')] {commenting this line you get an exception}
+  TMyPeopleController = class(TBaseController<TPerson, TPersonRec>)
+  end;
+
+
   [MVCPath('/people')]
   [MVCSWAGDefaultModel(TPersonModel, 'Person', 'People')] {commenting this line you get an exception}
   [MVCSWAGDefaultSummaryTags('People')] {commenting this line you get an exception}
@@ -19,7 +26,8 @@ type
     [MVCPath('/all2')]
     [MVCHTTPMethod([httpGET])]
     [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS,
-      'List all ' + TSwaggerConst.PLURAL_MODEL_NAME + ' (using route /all2, with model specified in controller)',
+      'List all ' + TSwaggerConst.PLURAL_MODEL_NAME +
+      ' (using route /all2, with model specified in controller)',
       'getAll2' + TSwaggerConst.PLURAL_MODEL_NAME)]
     [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, True)]
     [MVCSwagResponses(500, 'Internal Server Error')]
@@ -45,7 +53,9 @@ type
     {this action is defined only in the child controller but uses the "DefaultModel"}
     [MVCPath('/all2')]
     [MVCHTTPMethod([httpGET])]
-    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS, 'List all ' + TSwaggerConst.PLURAL_MODEL_NAME + ' (child controller, default controller model)', 'getAll2' + TSwaggerConst.PLURAL_MODEL_NAME)]
+    [MVCSwagSummary(TSwaggerConst.USE_DEFAULT_SUMMARY_TAGS,
+      'List all ' + TSwaggerConst.PLURAL_MODEL_NAME +
+      ' (child controller, default controller model)', 'getAll2' + TSwaggerConst.PLURAL_MODEL_NAME)]
     [MVCSwagResponses(200, 'Success', SWAGUseDefaultControllerModel, True)]
     [MVCSwagResponses(500, 'Internal Server Error')]
     procedure GetAll2; override;

@@ -701,7 +701,7 @@ function lua_processsor_dostream(L: Plua_State; stream: TStream; chunkname: PAns
 implementation
 
 uses
-  sysutils;
+  sysutils, ansistrings;
 
 procedure lua_pop(L: Plua_State; n: Integer); {$IFDEF HAVEINLINE}inline; {$ENDIF}
 
@@ -812,10 +812,8 @@ begin
 end;
 
 procedure lua_pushliteral(L: Plua_State; const s: PAnsiChar); {$IFDEF HAVEINLINE}inline; {$ENDIF}
-
-
 begin
-  lua_pushlstring(L, s, StrLen(s))
+  lua_pushlstring(L, s, AnsiStrings.StrLen(s))
 end;
 
 procedure lua_getregistry(L: Plua_State); {$IFDEF HAVEINLINE}inline; {$ENDIF}

@@ -377,11 +377,10 @@ begin
   Result := Self;
 end;
 
-function TLuaEngine.DeclareGlobalUserData(AName: AnsiString; AValue: Pointer)
-  : TLuaEngine;
+function TLuaEngine.DeclareGlobalUserData(AName: AnsiString; AValue: Pointer): TLuaEngine;
 begin
-  raise ELuaException.Create('Not implemented');
-  Result := Self;
+  //raise ELuaException.Create('Not implemented');
+  //Result := Self;
 end;
 
 function TLuaEngine.DeclareTable(const ATableName: AnsiString;
