@@ -157,13 +157,13 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 **GOLD SPONSORS**
 
-![](bittimeprofessionals-16419838632804.png)
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimeprofessionals.png)
 
 [bit Time Professionals ](https://www.bittimeprofessionals.com)
 
 
 
-![](bittimesoftware.png)
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimesoftware.png)
 
 [bit Time Software](https://www.bittime.it)
 
@@ -171,13 +171,13 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 **SILVER SPONSOR**
 
-![](centrosoftware.png)
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/centrosoftware.png)
 
 [Centro Software](https://www.centrosoftware.com)
 
 
 
-![](delphistudio.png)
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/delphistudio.png)
 
 [Delphi Studio ES](http://www.delphistudio.es)
 
