@@ -155,9 +155,35 @@ Take in mind that even if development version is usually very stable, it isn't n
 
 While DMVCFramework is born from the head of Daniele Teti from bit Time Professionals, it wouldn't what is now without the support and work of many people all around the world. The following companies sponsored some specific part of DMVCFramework so they wort a special mention.
 
-- bit Time Professionals
-- bit Time Software
-- Centro Software
+**GOLD SPONSORS**
+
+![](bittimeprofessionals-16419838632804.png)
+
+[bit Time Professionals ](https://www.bittimeprofessionals.com)
+
+
+
+![](bittimesoftware.png)
+
+[bit Time Software](https://www.bittime.it)
+
+
+
+**SILVER SPONSOR**
+
+![](centrosoftware.png)
+
+[Centro Software](https://www.centrosoftware.com)
+
+
+
+![](delphistudio.png)
+
+[Delphi Studio ES](http://www.delphistudio.es)
+
+
+
+
 
 ## What users say about DMVCFramework
 
