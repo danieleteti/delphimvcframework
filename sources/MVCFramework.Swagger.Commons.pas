@@ -629,7 +629,6 @@ var
   lIndex: Integer;
   lJsonSchema: TJsonFieldArray;
   lModelClass: TClass;
-  lPathOperationDescription: string;
 begin
   for lAttr in aMethod.GetAttributes do
   begin
@@ -986,9 +985,6 @@ var
   lIndex: Integer;
   I: Integer;
   lComparer: IComparer<TSwagDefinition>;
-  lClassName: string;
-  lSwagDef: TSwagDefinition;
-  lSwagDefinition: TSwagDefinition;
   lParamSchemaClass: TClass;
 begin
   lComparer := TDelegatedComparer<TSwagDefinition>.Create(
