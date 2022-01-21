@@ -156,18 +156,6 @@ begin
     end;
   end;
 
-  if Assigned(ViewJSON) then
-  begin
-    for lJSONPair in ViewJSON do
-    begin
-      lJSON := lJSONPair.Value.ToJSON(True);
-      if not lFirst then
-        lSJSON := lSJSON + ',';
-      lSJSON := lSJSON + '"' + lDSPair.Key + '":' + lJSON;
-      lFirst := False;
-    end;
-  end;
-
   lSJSON := lSJSON + '}';
   FJSONModel := lSJSON;
 end;
