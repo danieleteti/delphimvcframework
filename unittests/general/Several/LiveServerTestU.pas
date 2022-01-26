@@ -58,6 +58,18 @@ type
     procedure TestControllerWithExceptionInCreate(const URLSegment: string);
 
     [Test]
+    [TestCase('url "/"', '/')]
+    [TestCase('url "/action1"', '/action1')]
+    [TestCase('url "/action2"', '/action2')]
+    [TestCase('url "/api/v1"', '/api/v1')]
+    [TestCase('url "/api/v1/action1"', '/api/v1/action1')]
+    [TestCase('url "/api/v1/action2"', '/api/v1/action2')]
+    [TestCase('url "/api/v2"', '/api/v2')]
+    [TestCase('url "/api/v2/action1"', '/api/v2/action1')]
+    [TestCase('url "/api/v2/action2"', '/api/v2/action2')]
+    procedure TestMultiMVCPathOnControllerAndAction(const URLSegment: string);
+
+    [Test]
     procedure TestReqWithParams;
 
     // URL_MAPPED_PARAMS_ALLOWED_CHARS = ' אטישעל@\[\]\{\}\(\)\=;&#\.\_\,%\w\d\x2D\x3A';
@@ -1149,7 +1161,7 @@ procedure TServerTest.TestFileWithFolderName;
 var
   lRes: IMVCRESTResponse;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('doesn''t exist');
   Assert.areEqual(404, lRes.StatusCode, '<empty>');
 
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/index.html');
@@ -1300,6 +1312,15 @@ begin
   end;
 
   Assert.AreNotEqual('', r.HeaderValue('request_gen_time'));
+end;
+
+procedure TServerTest.TestMultiMVCPathOnControllerAndAction(
+  const URLSegment: string);
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Get(URLSegment);
+  Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode);
 end;
 
 procedure TServerTest.TestObjectDict;

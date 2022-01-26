@@ -38,7 +38,8 @@ uses
 
 type
 
-  [MVCPath('/')]
+  [MVCPath]
+  [MVCPath('/donotusethis')]
   TTestServerController = class(TMVCController)
   private
     FFormatSettings: TFormatSettings;
@@ -357,6 +358,17 @@ type
     [MVCPath]
     procedure NeverExecuted;
     constructor Create; override;
+  end;
+
+  [MVCPath]
+  [MVCPath('/api/v1')]
+  [MVCPath('/api/v2')]
+  TTestMultiPathController = class(TMVCController)
+  public
+    [MVCPath]
+    [MVCPath('/action1')]
+    [MVCPath('/action2')]
+    procedure Action1or2;
   end;
 
 implementation
@@ -1047,6 +1059,13 @@ end;
 procedure TTestFault2Controller.NeverExecuted;
 begin
   // do nothing
+end;
+
+{ TTestMultiPathController }
+
+procedure TTestMultiPathController.Action1or2;
+begin
+  Render(HTTP_STATUS.OK);
 end;
 
 end.

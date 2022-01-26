@@ -109,7 +109,7 @@ begin
     begin
       if lKeyValue.Value.Writeable then
       begin
-        lSB.Append(':' +  GetParamNameForSQL(lKeyValue.Value.FieldName) + ',');
+        lSB.Append(':' + GetParamNameForSQL(lKeyValue.Value.FieldName) + ',');
       end;
     end;
 
@@ -140,11 +140,9 @@ end;
 initialization
 
 TMVCSQLGeneratorRegistry.Instance.RegisterSQLGenerator('firebird', TMVCSQLGeneratorFirebird);
-TMVCSQLGeneratorRegistry.Instance.RegisterSQLGenerator('interbase', TMVCSQLGeneratorFirebird);
 
 finalization
 
 TMVCSQLGeneratorRegistry.Instance.UnRegisterSQLGenerator('firebird');
-TMVCSQLGeneratorRegistry.Instance.UnRegisterSQLGenerator('interbase');
 
 end.

@@ -1245,6 +1245,10 @@ begin
             GetBackEnd +
             ' requires it');
         end;
+        if foReadOnly in fPrimaryKeyOptions then
+        begin
+          raise EMVCActiveRecord.Create('Cannot define a read-only primary key when a sequence is used for the class ' + ClassName);
+        end;
         FillPrimaryKey(fPrimaryKeySequenceName);
       end;
     end;

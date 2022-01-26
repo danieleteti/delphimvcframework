@@ -586,20 +586,21 @@ begin
     lDM.qryCustomers.Open;
     lDict := ObjectDict(False { data are not freed after ObjectDict if freed } )
       .Add('customers', lDM.qryCustomers,
-      procedure(const DS: TDataset; const Links: IMVCLinks)
-      begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-          .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
-          '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
-      end).Add('singleCustomer', lDM.qryCustomers,
-      procedure(const DS: TDataset; const Links: IMVCLinks)
-      begin
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
-          .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
-        Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
-          '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
-      end, dstSingleRecord, ncPascalCase);
+        procedure(const DS: TDataset; const Links: IMVCLinks)
+        begin
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
+            '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        end)
+      .Add('singleCustomer', lDM.qryCustomers,
+        procedure(const DS: TDataset; const Links: IMVCLinks)
+        begin
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString)
+            .Add(HATEOAS.REL, 'self').Add(HATEOAS._TYPE, 'application/json');
+          Links.AddRefLink.Add(HATEOAS.HREF, '/customers/' + DS.FieldByName('cust_no').AsString +
+            '/orders').Add(HATEOAS.REL, 'orders').Add(HATEOAS._TYPE, 'application/json');
+        end, dstSingleRecord, ncPascalCase);
     Render(lDict);
   finally
     lDM.Free;
@@ -748,8 +749,11 @@ end;
 
 procedure TRenderSampleController.GetPerson_AsText(const ID: Integer);
 begin
-  ResponseStream.AppendLine('ID        :  ' + ID.ToString).AppendLine('FirstName : Daniele')
-    .AppendLine('LastName  : Teti').AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
+  ResponseStream
+    .AppendLine('ID        :  ' + ID.ToString)
+    .AppendLine('FirstName : Daniele')
+    .AppendLine('LastName  : Teti')
+    .AppendLine('DOB       : ' + DateToStr(EncodeDate(1979, 5, 2)))
     .AppendLine('Married   : yes');
   RenderResponseStream;
 end;
@@ -875,7 +879,7 @@ begin
 
 {$ENDREGION}
   { classic approach }
-  // Render<TPerson>(HTTP_STATUS.OK, People, True);
+  //Render<TPerson>(HTTP_STATUS.OK, People, True);
   { new approach with ObjectDict }
   Render(HTTP_STATUS.OK, ObjectDict().Add('data', People));
 end;

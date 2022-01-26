@@ -80,12 +80,14 @@ begin
       Config[TMVCConfigKey.ViewPath] := '..\templates';
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
     end, nil);
-  MVCEngine.AddController(TTestServerController)
+  MVCEngine
+    .AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
+    .AddController(TTestMultiPathController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
     .PublishObject(

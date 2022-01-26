@@ -45,7 +45,12 @@ type
     class procedure ExecuteQuery(AQuery: TFDQuery; AObject: TObject);
     class procedure ObjectToParameters(AFDParams: TFDParams; AObject: TObject; AParamPrefix: string = '';
       ASetParamTypes: boolean = True);
-    class procedure CreateDatasetFromMetadata(AFDMemTable: TFDMemTable; AMeta: TJSONObject);
+    class procedure CreateDatasetFromMetadata(AFDMemTable: TFDCustomMemTable; AMeta: TJSONObject);
+  end;
+  
+  TFDCustomMemTableHelper = class helper for TFDCustomMemTable
+  public
+    procedure InitFromMetadata(const AJSONMetadata: TJSONObject);
   end;
 
 implementation
@@ -65,7 +70,7 @@ begin
 end;
 
 class procedure TFireDACUtils.CreateDatasetFromMetadata(
-  AFDMemTable: TFDMemTable; AMeta: TJSONObject);
+  AFDMemTable: TFDCustomMemTable; AMeta: TJSONObject);
 var
   lJArr: TJSONArray;
   I: Integer;
@@ -215,6 +220,11 @@ begin
     AQuery.ExecSQL;
     Result := AQuery.RowsAffected;
   end;
+end;
+
+procedure TFDCustomMemTableHelper.InitFromMetadata(const AJSONMetadata: TJSONObject);
+begin
+  TFireDACUtils.CreateDatasetFromMetadata(Self, AJSONMetadata);
 end;
 
 end.

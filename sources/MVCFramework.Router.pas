@@ -37,7 +37,7 @@ uses
   System.RegularExpressions,
   MVCFramework,
   MVCFramework.Commons,
-  IdURI;
+  IdURI, System.Classes;
 
 type
   TMVCActionParamCacheItem = class
@@ -82,9 +82,10 @@ type
       var aParams: TMVCRequestParamsTable): Boolean;
     function GetParametersNames(const V: string): TList<string>;
   protected
-    function GetControllerMappedPath(
+    procedure FillControllerMappedPaths(
       const aControllerName: string;
-      const aControllerAttributes: TArray<TCustomAttribute>): string;
+      const aControllerAttributes: TArray<TCustomAttribute>;
+      const aControllerMappedPaths: TStringList);
   public
     class function StringMethodToHTTPMetod(const aValue: string): TMVCHTTPMethodType; static;
     constructor Create(const aConfig: TMVCConfig;
@@ -148,6 +149,7 @@ var
   LRequestAccept: string;
   LRequestContentType: string;
   LControllerMappedPath: string;
+  LControllerMappedPaths: TStringList;
   LControllerDelegate: TMVCControllerDelegate;
   LAttributes: TArray<TCustomAttribute>;
   LAtt: TCustomAttribute;
@@ -157,6 +159,7 @@ var
   LMethodPath: string;
   LProduceAttribute: MVCProducesAttribute;
   lURLSegment: string;
+  LItem: String;
   // JUST FOR DEBUG
   // lMethodCompatible: Boolean;
   // lContentTypeCompatible: Boolean;
@@ -185,93 +188,108 @@ begin
 
   TMonitor.Enter(gLock);
   try
-    LControllerMappedPath := EmptyStr;
-    for LControllerDelegate in AControllers do
-    begin
-      SetLength(LAttributes, 0);
-      LRttiType := FRttiContext.GetType(LControllerDelegate.Clazz.ClassInfo);
-
-      lURLSegment := LControllerDelegate.URLSegment;
-      if lURLSegment.IsEmpty then
+    //LControllerMappedPaths := TArray<string>.Create();
+    LControllerMappedPaths := TStringList.Create;
+    try
+      for LControllerDelegate in AControllers do
       begin
-        LAttributes := LRttiType.GetAttributes;
-        if (LAttributes = nil) then
-          Continue;
-        LControllerMappedPath := GetControllerMappedPath(LRttiType.Name, LAttributes);
-      end
-      else
-      begin
-        LControllerMappedPath := lURLSegment;
-      end;
+        LControllerMappedPaths.Clear;
+        SetLength(LAttributes, 0);
+        LRttiType := FRttiContext.GetType(LControllerDelegate.Clazz.ClassInfo);
 
-      if (LControllerMappedPath = '/') then
-      begin
-        LControllerMappedPath := '';
-      end;
-
-{$IF defined(TOKYOORBETTER)}
-      if not LRequestPathInfo.StartsWith(APathPrefix + LControllerMappedPath, True) then
-{$ELSE}
-      if not TMVCStringHelper.StartsWith(APathPrefix + LControllerMappedPath, LRequestPathInfo, True) then
-{$ENDIF}
-      begin
-        Continue;
-      end;
-
-      LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
-      for LMethod in LMethods do
-      begin
-        if LMethod.Visibility <> mvPublic then // 2020-08-08
-          Continue;
-        if (LMethod.MethodKind <> mkProcedure) { or LMethod.IsClassMethod } then
-          Continue;
-
-        LAttributes := LMethod.GetAttributes;
-        if Length(LAttributes) = 0 then
-          Continue;
-
-        for LAtt in LAttributes do
+        lURLSegment := LControllerDelegate.URLSegment;
+        if lURLSegment.IsEmpty then
         begin
-          if LAtt is MVCPathAttribute then
-          begin
-            // THIS BLOCK IS HERE JUST FOR DEBUG
-            // if LMethod.Name.Contains('GetProject') then
-            // begin
-            // lMethodCompatible := True; //debug here
-            // end;
-            // lMethodCompatible := IsHTTPMethodCompatible(ARequestMethodType, LAttributes);
-            // lContentTypeCompatible := IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes);
-            // lAcceptCompatible :=  IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes);
+          LAttributes := LRttiType.GetAttributes;
+          if (LAttributes = nil) then
+            Continue;
+          //LControllerMappedPaths := GetControllerMappedPath(LRttiType.Name, LAttributes);
+          FillControllerMappedPaths(LRttiType.Name, LAttributes, LControllerMappedPaths);
+        end
+        else
+        begin
+          LControllerMappedPaths.Add(lURLSegment);
+        end;
 
-            if IsHTTPMethodCompatible(ARequestMethodType, LAttributes) and
-              IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes) and
-              IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes) then
+        for LItem in LControllerMappedPaths do
+        begin
+          LControllerMappedPath := LItem;
+          if (LControllerMappedPath = '/') then
+          begin
+            LControllerMappedPath := '';
+          end;
+
+    {$IF defined(TOKYOORBETTER)}
+          if not LRequestPathInfo.StartsWith(APathPrefix + LControllerMappedPath, True) then
+    {$ELSE}
+          if not TMVCStringHelper.StartsWith(APathPrefix + LControllerMappedPath, LRequestPathInfo, True) then
+    {$ENDIF}
+          begin
+            Continue;
+          end;
+//        end;
+
+//          if (not LControllerMappedPathFound) then
+//            continue;
+
+          LMethods := LRttiType.GetMethods; { do not use GetDeclaredMethods because JSON-RPC rely on this!! }
+          for LMethod in LMethods do
+          begin
+            if LMethod.Visibility <> mvPublic then // 2020-08-08
+              Continue;
+            if (LMethod.MethodKind <> mkProcedure) { or LMethod.IsClassMethod } then
+              Continue;
+
+            LAttributes := LMethod.GetAttributes;
+            if Length(LAttributes) = 0 then
+              Continue;
+
+            for LAtt in LAttributes do
             begin
-              LMethodPath := MVCPathAttribute(LAtt).Path;
-              if IsCompatiblePath(APathPrefix + LControllerMappedPath + LMethodPath,
-                LRequestPathInfo, ARequestParams) then
+              if LAtt is MVCPathAttribute then
               begin
-                FMethodToCall := LMethod;
-                FControllerClazz := LControllerDelegate.Clazz;
-                FControllerCreateAction := LControllerDelegate.CreateAction;
-                LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
-                if LProduceAttribute <> nil then
+                // THIS BLOCK IS HERE JUST FOR DEBUG
+                // if LMethod.Name.Contains('GetProject') then
+                // begin
+                // lMethodCompatible := True; //debug here
+                // end;
+                // lMethodCompatible := IsHTTPMethodCompatible(ARequestMethodType, LAttributes);
+                // lContentTypeCompatible := IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes);
+                // lAcceptCompatible :=  IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes);
+
+                if IsHTTPMethodCompatible(ARequestMethodType, LAttributes) and
+                  IsHTTPContentTypeCompatible(ARequestMethodType, LRequestContentType, LAttributes) and
+                  IsHTTPAcceptCompatible(ARequestMethodType, LRequestAccept, LAttributes) then
                 begin
-                  AResponseContentMediaType := LProduceAttribute.Value;
-                  AResponseContentCharset := LProduceAttribute.Charset;
-                end
-                else
-                begin
-                  AResponseContentMediaType := ADefaultContentType;
-                  AResponseContentCharset := ADefaultContentCharset;
+                  LMethodPath := MVCPathAttribute(LAtt).Path;
+                  if IsCompatiblePath(APathPrefix + LControllerMappedPath + LMethodPath,
+                    LRequestPathInfo, ARequestParams) then
+                  begin
+                    FMethodToCall := LMethod;
+                    FControllerClazz := LControllerDelegate.Clazz;
+                    FControllerCreateAction := LControllerDelegate.CreateAction;
+                    LProduceAttribute := GetAttribute<MVCProducesAttribute>(LAttributes);
+                    if LProduceAttribute <> nil then
+                    begin
+                      AResponseContentMediaType := LProduceAttribute.Value;
+                      AResponseContentCharset := LProduceAttribute.Charset;
+                    end
+                    else
+                    begin
+                      AResponseContentMediaType := ADefaultContentType;
+                      AResponseContentCharset := ADefaultContentCharset;
+                    end;
+                    Exit(True);
+                  end;
                 end;
-                Exit(True);
-              end;
-            end;
-          end; // if MVCPathAttribute
-        end; // for in Attributes
-      end; // for in Methods
-    end; // for in Controllers
+              end; // if MVCPathAttribute
+            end; // for in Attributes
+          end; // for in Methods
+        end;
+      end; // for in Controllers
+    finally
+      LControllerMappedPaths.Free;
+    end;
   finally
     TMonitor.Exit(gLock);
   end;
@@ -287,9 +305,10 @@ begin
       Exit(T(Att));
 end;
 
-function TMVCRouter.GetControllerMappedPath(
-  const aControllerName: string;
-  const aControllerAttributes: TArray<TCustomAttribute>): string;
+procedure TMVCRouter.FillControllerMappedPaths(
+      const aControllerName: string;
+      const aControllerAttributes: TArray<TCustomAttribute>;
+      const aControllerMappedPaths: TStringList);
 var
   LFound: Boolean;
   LAtt: TCustomAttribute;
@@ -300,13 +319,13 @@ begin
     if LAtt is MVCPathAttribute then
     begin
       LFound := True;
-      Result := MVCPathAttribute(LAtt).Path;
-      Break;
+      aControllerMappedPaths.Add(MVCPathAttribute(LAtt).Path);
     end;
   end;
-
   if not LFound then
+  begin
     raise EMVCException.CreateFmt('Controller %s does not have MVCPath attribute', [aControllerName]);
+  end;
 end;
 
 function TMVCRouter.GetFirstMediaType(const AContentType: string): string;
@@ -349,7 +368,7 @@ begin
     FActionParamsCache.Add(AMVCPath, lCacheItem);
   end;
 
-  if (APath = AMVCPath) then
+  if (APath = AMVCPath) or ((APath = '/') and (AMVCPath = '')) then
     Exit(True)
   else
   begin
