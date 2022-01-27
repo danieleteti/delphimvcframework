@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = '[DMVCFramework] MVCActiveRecord Entity Generator'
-  ClientHeight = 684
+  ClientHeight = 754
   ClientWidth = 1012
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -10,7 +10,6 @@ object MainForm: TMainForm
   Font.Height = -16
   Font.Name = 'Segoe UI'
   Font.Style = []
-  OldCreateOrder = False
   OnClose = FormClose
   OnCreate = FormCreate
   PixelsPerInch = 96
@@ -163,15 +162,16 @@ object MainForm: TMainForm
     Left = 0
     Top = 210
     Width = 1012
-    Height = 474
+    Height = 544
     Align = alClient
     Caption = 'Panel3'
     TabOrder = 2
+    ExplicitHeight = 474
     object Panel4: TPanel
       Left = 1
       Top = 1
       Width = 1010
-      Height = 156
+      Height = 208
       Align = alTop
       BevelOuter = bvNone
       Caption = 'Panel4'
@@ -179,7 +179,7 @@ object MainForm: TMainForm
       TabOrder = 0
       DesignSize = (
         1010
-        156)
+        208)
       object SpeedButton1: TSpeedButton
         AlignWithMargins = True
         Left = 129
@@ -219,13 +219,14 @@ object MainForm: TMainForm
       object btnGenEntities: TButton
         AlignWithMargins = True
         Left = 842
-        Top = 5
+        Top = 57
         Width = 161
         Height = 35
         Anchors = [akRight, akBottom]
         Caption = 'Generate Entities'
         TabOrder = 0
         OnClick = btnGenEntitiesClick
+        ExplicitTop = 5
       end
       object btnGetTables: TButton
         AlignWithMargins = True
@@ -240,7 +241,7 @@ object MainForm: TMainForm
       object chGenerateMapping: TCheckBox
         AlignWithMargins = True
         Left = 10
-        Top = 121
+        Top = 173
         Width = 997
         Height = 32
         Margins.Left = 10
@@ -252,13 +253,14 @@ object MainForm: TMainForm
         State = cbChecked
         TabOrder = 2
         WordWrap = True
+        ExplicitTop = 121
       end
       object RadioGroup1: TRadioGroup
         Left = 7
         Top = 49
-        Width = 531
-        Height = 68
-        Caption = 'MVCNameCase'
+        Width = 393
+        Height = 104
+        Caption = 'Class MVCNameCase'
         Columns = 3
         ItemIndex = 0
         Items.Strings = (
@@ -270,24 +272,39 @@ object MainForm: TMainForm
           'AsIs')
         TabOrder = 3
       end
+      object rgFieldNameFormatting: TRadioGroup
+        Left = 406
+        Top = 49
+        Width = 389
+        Height = 104
+        Caption = 'Field Names Formatting'
+        ItemIndex = 1
+        Items.Strings = (
+          'Leave field names as in database table'
+          'Format field names as Pascal Case (eg FirstName)')
+        TabOrder = 4
+      end
     end
     object PageControl1: TPageControl
       AlignWithMargins = True
       Left = 4
-      Top = 160
+      Top = 212
       Width = 1004
-      Height = 310
+      Height = 328
       ActivePage = TabSheet1
       Align = alClient
       TabOrder = 1
+      ExplicitTop = 160
+      ExplicitHeight = 310
       object TabSheet1: TTabSheet
         Caption = 'Tables'
         object DBGrid1: TDBGrid
           Left = 0
-          Top = 0
+          Top = 41
           Width = 996
-          Height = 274
+          Height = 251
           Align = alClient
+          BorderStyle = bsNone
           DataSource = dsrcTablesMapping
           DefaultDrawing = False
           TabOrder = 0
@@ -322,6 +339,94 @@ object MainForm: TMainForm
               Visible = True
             end>
         end
+        object Panel7: TPanel
+          Left = 0
+          Top = 0
+          Width = 996
+          Height = 41
+          Align = alTop
+          BevelOuter = bvNone
+          TabOrder = 1
+          ExplicitLeft = 408
+          ExplicitTop = 128
+          ExplicitWidth = 185
+          object btnUZ: TButton
+            AlignWithMargins = True
+            Left = 598
+            Top = 3
+            Width = 113
+            Height = 35
+            Align = alLeft
+            Caption = 'U..Z'
+            TabOrder = 0
+            OnClick = btnUZClick
+            ExplicitLeft = 3
+          end
+          object Button1: TButton
+            AlignWithMargins = True
+            Left = 360
+            Top = 3
+            Width = 113
+            Height = 35
+            Align = alLeft
+            Caption = 'L..Q'
+            TabOrder = 1
+            OnClick = Button1Click
+            ExplicitLeft = 11
+            ExplicitTop = 6
+          end
+          object Button2: TButton
+            AlignWithMargins = True
+            Left = 241
+            Top = 3
+            Width = 113
+            Height = 35
+            Align = alLeft
+            Caption = 'E..K'
+            TabOrder = 2
+            OnClick = Button2Click
+            ExplicitLeft = 11
+            ExplicitTop = 6
+          end
+          object Button3: TButton
+            AlignWithMargins = True
+            Left = 122
+            Top = 3
+            Width = 113
+            Height = 35
+            Align = alLeft
+            Caption = 'C..D'
+            TabOrder = 3
+            OnClick = Button3Click
+            ExplicitLeft = 11
+            ExplicitTop = 6
+          end
+          object Button4: TButton
+            AlignWithMargins = True
+            Left = 479
+            Top = 3
+            Width = 113
+            Height = 35
+            Align = alLeft
+            Caption = 'R..T'
+            TabOrder = 4
+            OnClick = btnSlice1Click
+            ExplicitLeft = 3
+          end
+          object Button5: TButton
+            AlignWithMargins = True
+            Left = 3
+            Top = 3
+            Width = 113
+            Height = 35
+            Align = alLeft
+            Caption = 'A..D'
+            TabOrder = 5
+            OnClick = Button5Click
+            ExplicitLeft = 11
+            ExplicitTop = 6
+          end
+        end
       end
       object TabSheet2: TTabSheet
         Caption = 'Generated Code'
@@ -331,7 +436,7 @@ object MainForm: TMainForm
           Left = 3
           Top = 44
           Width = 990
-          Height = 227
+          Height = 245
           Align = alClient
           BevelInner = bvNone
           BevelOuter = bvNone
@@ -346,6 +451,7 @@ object MainForm: TMainForm
           ScrollBars = ssBoth
           TabOrder = 0
           WordWrap = False
+          ExplicitHeight = 227
         end
         object Panel5: TPanel
           Left = 0
@@ -473,8 +579,8 @@ object MainForm: TMainForm
     UpdateOptions.CheckRequired = False
     UpdateOptions.AutoCommitUpdates = True
     StoreDefs = True
-    Left = 96
-    Top = 504
+    Left = 72
+    Top = 592
     object dsTablesMappingGENERATE: TBooleanField
       DisplayLabel = 'Generate?'
       FieldName = 'GENERATE'
@@ -494,7 +600,7 @@ object MainForm: TMainForm
   end
   object dsrcTablesMapping: TDataSource
     DataSet = dsTablesMapping
-    Left = 96
-    Top = 448
+    Left = 136
+    Top = 592
   end
 end
