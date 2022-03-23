@@ -8,6 +8,7 @@ uses
 type
 
   [MVCPath('/')]
+  [MVCPath('/api')]
   TRoutingSampleController = class(TMVCController)
   public
     [MVCPath]
@@ -133,8 +134,13 @@ begin
   if Context.Request.QueryStringParamExists('order') then
     orderby := Context.Request.QueryStringParam('order');
   S := Format('SEARCHTEXT: "%s" - PAGE: %d - ORDER BY FIELD: "%s"', [search, Page, orderby]);
-  ResponseStream.AppendLine(S).AppendLine(StringOfChar('*', 30)).AppendLine('1. Daniele Teti')
-    .AppendLine('2. John Doe').AppendLine('3. Mark Rossi').AppendLine('4. Jack Verdi')
+  ResponseStream
+    .AppendLine(S)
+    .AppendLine(StringOfChar('*', 30))
+    .AppendLine('1. Daniele Teti')
+    .AppendLine('2. John Doe')
+    .AppendLine('3. Mark Rossi')
+    .AppendLine('4. Jack Verdi')
     .AppendLine(StringOfChar('*', 30));
   RenderResponseStream;
 end;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -49,6 +49,7 @@ uses
   System.DateUtils,
   System.Generics.Collections,
   System.Rtti,
+  JSONDataObjects,
   Data.DB,
   MVCFramework.Session,
   MVCFramework.DuckTyping,
@@ -338,8 +339,6 @@ type
 
   end;
 
-
-
   // test
   // TMVCHackHTTPAppRequest = class(TIdHTTPAppRequest)
   // private
@@ -529,11 +528,14 @@ type
     FLoggedUser: TUser;
     FWebSession: TWebSession;
     FData: TMVCStringDictionary;
+    fIntfObject: IInterface;
     function GetWebSession: TWebSession;
     function GetLoggedUser: TUser;
     function GetParamsTable: TMVCRequestParamsTable;
     procedure SetParamsTable(const AValue: TMVCRequestParamsTable);
     function GetHostingFrameworkType: TMVCHostingFrameworkType;
+    function GetIntfObject: IInterface;
+    procedure SetIntfObject(const Value: IInterface);
   protected
     procedure Flush; virtual;
     procedure BindToSession(const ASessionId: string);
@@ -561,6 +563,7 @@ type
     property Session: TWebSession read GetWebSession;
     property Config: TMVCConfig read FConfig;
     property Data: TMVCStringDictionary read GetData;
+    property CustomIntfObject: IInterface read GetIntfObject write SetIntfObject;
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
   end;
 
@@ -801,9 +804,6 @@ type
     property Session: TWebSession read GetSession;
     property ContentType: string read GetContentType write SetContentType;
     property StatusCode: Integer read GetStatusCode write SetStatusCode;
-    property ViewModelList: TMVCViewDataObject read GetViewModel;
-    property ViewDataSetList: TMVCViewDataSet read GetViewDataSets;
-
     procedure PushObjectToView(const aModelName: string; const AModel: TObject);
       deprecated 'Use "ViewData"';
     procedure PushDataSetToView(const aModelName: string; const ADataSet: TDataSet);
@@ -896,6 +896,8 @@ type
   TMVCRouterLogState = (rlsRouteFound, rlsRouteNotFound);
   TMVCRouterLogHandlerProc = reference to procedure(const Router: TMVCCustomRouter;
     const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
+  TWebContextCreateEvent = reference to procedure(const AContext: TWebContext);
+  TWebContextDestroyEvent = reference to procedure(const AContext: TWebContext);
 
   TMVCEngine = class(TComponent)
   private const
@@ -919,6 +921,8 @@ type
     FSavedOnBeforeDispatch: THTTPMethodEvent;
     FOnException: TMVCExceptionHandlerProc;
     fOnRouterLog: TMVCRouterLogHandlerProc;
+    fWebContextCreateEvent: TWebContextCreateEvent;
+    fWebContextDestroyEvent: TWebContextDestroyEvent;
     procedure FillActualParamsForAction(const ASelectedController: TMVCController;
       const AContext: TWebContext; const AActionFormalParams: TArray<TRttiParameter>;
       const AActionName: string; var AActualParams: TArray<TValue>; out ABodyParameter: TObject);
@@ -927,6 +931,8 @@ type
     procedure HandleDefaultValueForInjectedParameter(var InjectedParamValue: String;
       const InjectableParamAttribute: MVCInjectableParamAttribute);
   protected
+    procedure DoWebContextCreateEvent(const AContext: TWebContext); inline;
+    procedure DoWebContextDestroyEvent(const AContext: TWebContext); inline;
     function GetActualParam(const AFormalParam: TRttiParameter; const AStringValue: String): TValue;
     function CustomExceptionHandling(const Ex: Exception; const ASelectedController: TMVCController;
       const AContext: TWebContext): Boolean;
@@ -962,6 +968,11 @@ type
     destructor Destroy; override;
 
     function GetSessionBySessionId(const ASessionId: string): TWebSession;
+
+    { webcontext events}
+    procedure OnWebContextCreate(const WebContextCreateEvent: TWebContextCreateEvent);
+    procedure OnWebContextDestroy(const WebContextDestroyEvent: TWebContextDestroyEvent);
+    { end - webcontext events}
 
     function AddSerializer(const AContentType: string; const ASerializer: IMVCSerializer)
       : TMVCEngine;
@@ -1067,6 +1078,7 @@ type
     property ContentType: string read FContentType;
     property Output: string read FOutput;
   end;
+
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
@@ -1935,6 +1947,7 @@ begin
   FSerializers := ASerializers;
   FData := nil;
   FLoggedUser := nil;
+  fIntfObject := nil;
 end;
 
 destructor TWebContext.Destroy;
@@ -1951,9 +1964,11 @@ begin
     FData.Free;
   except
   end;
+
+  fIntfObject := nil;
+
   try
-    if Assigned(FLoggedUser) then
-      FLoggedUser.Free;
+    FLoggedUser.Free;
   except
   end;
   inherited Destroy;
@@ -1989,6 +2004,11 @@ begin
 {$ENDIF}
       Exit(hftIndy);
     end;
+
+function TWebContext.GetIntfObject: IInterface;
+begin
+  Result := fIntfObject;
+end;
 
 { MVCFromBodyAttribute }
 
@@ -2126,6 +2146,11 @@ begin
 
   FIsSessionStarted := False;
   FSessionMustBeClose := True;
+end;
+
+procedure TWebContext.SetIntfObject(const Value: IInterface);
+begin
+  fIntfObject := Value;
 end;
 
 procedure TWebContext.SetParamsTable(const AValue: TMVCRequestParamsTable);
@@ -2287,6 +2312,22 @@ begin
   inherited Destroy;
 end;
 
+procedure TMVCEngine.DoWebContextCreateEvent(const AContext: TWebContext);
+begin
+  if Assigned(fWebContextCreateEvent) then
+  begin
+    fWebContextCreateEvent(AContext);
+  end;
+end;
+
+procedure TMVCEngine.DoWebContextDestroyEvent(const AContext: TWebContext);
+begin
+  if Assigned(fWebContextDestroyEvent) then
+  begin
+    fWebContextDestroyEvent(AContext);
+  end;
+end;
+
 function TMVCEngine.ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
   const AResponse: TWebResponse): Boolean;
 var
@@ -2326,6 +2367,7 @@ begin
     lContext := TWebContext.Create(ARequest, AResponse, FConfig, FSerializers);
     try
       DefineDefaultResponseHeaders(lContext);
+      DoWebContextCreateEvent(lContext);
       lHandled := False;
       lRouter := TMVCRouter.Create(FConfig, gMVCGlobalActionParamsCache);
       try // finally
@@ -2526,6 +2568,7 @@ begin
         lRouter.Free;
       end;
     finally
+      DoWebContextDestroyEvent(lContext);
       lContext.Free;
     end;
   finally
@@ -3025,6 +3068,18 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TMVCEngine.OnWebContextCreate(
+  const WebContextCreateEvent: TWebContextCreateEvent);
+begin
+  fWebContextCreateEvent := WebContextCreateEvent;
+end;
+
+procedure TMVCEngine.OnWebContextDestroy(
+  const WebContextDestroyEvent: TWebContextDestroyEvent);
+begin
+  fWebContextDestroyEvent := WebContextDestroyEvent;
 end;
 
 function TMVCEngine.PublishObject(const AObjectCreatorDelegate: TMVCObjectCreatorDelegate;
@@ -3736,7 +3791,9 @@ var lView: TMVCBaseViewEngine; lViewName: string; lStrStream: TStringStream;
 begin
   lStrStream := TStringStream.Create('', TEncoding.UTF8);
   try
-    lView := FEngine.ViewEngineClass.Create(Engine, Context, ViewModelList, ViewDataSetList,
+    lView := FEngine.ViewEngineClass.Create(
+      Engine, Context,
+      FViewModel, FViewDataSets,
       ContentType);
     try
       for lViewName in AViewNames do
@@ -3994,8 +4051,9 @@ end;
 { TMVCBaseView }
 
 constructor TMVCBaseViewEngine.Create(const AEngine: TMVCEngine; const AWebContext: TWebContext;
-const AViewModel: TMVCViewDataObject; const AViewDataSets: TObjectDictionary<string, TDataSet>;
-const AContentType: string);
+      const AViewModel: TMVCViewDataObject;
+      const AViewDataSets: TObjectDictionary<string, TDataSet>;
+      const AContentType: string);
 begin
   inherited Create;
   Engine := AEngine;

@@ -1,3 +1,5 @@
+# DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
@@ -8,6 +10,7 @@
   - [Book: "DelphiMVCFramework - the official guide"](#book-delphimvcframework---the-official-guide)
     - [Book translations](#book-translations)
     - [How to partecipate to DMVCFramework development and/or tests](#how-to-partecipate-to-dmvcframework-development-andor-tests)
+  - [Sponsors](#sponsors)
   - [What users say about DMVCFramework](#what-users-say-about-dmvcframework)
   - [What's New in DelphiMVCFramework 3.2.1-carbon](#whats-new-in-delphimvcframework-321-carbon)
     - [Improvements](#improvements)
@@ -149,6 +152,40 @@ Given the success of DMVCFramework in the Delphi community, the official DMVCFra
 
 Only if you want to participate to the testing phase (which usually contains brand new features but can sometimes be instable) you can get the development version clonig this repo or downloading the [master repository zip file](https://github.com/danieleteti/delphimvcframework/archive/master.zip).
 Take in mind that even if development version is usually very stable, it isn't not ready for production utilization.
+
+## Sponsors
+
+While DMVCFramework is born from the head of Daniele Teti from bit Time Professionals, it wouldn't what is now without the support and work of many people all around the world. The following companies sponsored some specific part of DMVCFramework so they wort a special mention.
+
+**GOLD SPONSORS**
+
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimeprofessionals.png)
+
+[bit Time Professionals ](https://www.bittimeprofessionals.com)
+
+
+
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimesoftware.png)
+
+[bit Time Software](https://www.bittime.it)
+
+
+
+**SILVER SPONSOR**
+
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/centrosoftware.png)
+
+[Centro Software](https://www.centrosoftware.com)
+
+
+
+![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/delphistudio.png)
+
+[Delphi Studio ES](http://www.delphistudio.es)
+
+
+
+
 
 ## What users say about DMVCFramework
 
@@ -437,15 +474,47 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON.RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
 
+- ⚡New! eLua server side view support added! The View engine requires Lua's dlls so it is not included in the main package but in a sampl project. Check `serversideviews_lua` sample. 
+
 - ✅ Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
 
 - ✅ Improved internal architecture of custom type serializers in case of dynamic linked packages.
 
+- ✅ Improved Swagger/OpenAPI support for System Controllers and improved support for param models.
+
 - ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+
+- ⚡New `TMVCRedirectMiddleware` to handle HTTP redirections in a very simple and flexible way.
 
 - ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
 
-- ✅ Improved! Added parameter to set local timeStamp as UTC.
+- ⚡New `OnContextCreate` and `OnContextDetroyed` events for `TMVCEngine`. 
+
+- ⚡New `property CustomIntfObject: IInterface` in `TWebContext`. This property can be used to inject custom services factory. 
+
+    ```delphi
+    procedure TMyWebModule.WebModuleCreate(Sender: TObject);
+    begin
+      FMVC := TMVCEngine.Create(Self,
+        procedure(Config: TMVCConfig)
+        begin
+          //configuration code
+        end);
+      FMVC.AddController(TMyController);
+      FMVC.OnWebContextCreate(
+        procedure(const CTX: TWebContext)
+        begin
+          CTX.CustomIntfObject := TServicesFactory.Create; //implements an interface
+        end);
+      FMVC.OnWebContextDestroy(
+        procedure(const CTX: TWebContext)
+        begin
+          //do nothing here
+        end);
+    end;
+    ```
+
+- ✅ Added parameter to set local timeStamp as UTC.
 
 - ✅ Improved OpenAPI (Swagger) support.
 
@@ -561,7 +630,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
       //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
-    
+
 - ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
     ```delphi
     //interface
@@ -576,7 +645,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
       //If the header doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
-    
+
 - ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
     ```delphi
     //interface

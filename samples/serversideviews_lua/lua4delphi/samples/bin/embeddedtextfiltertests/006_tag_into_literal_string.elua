@@ -1,0 +1,9 @@
+Hello There
+<?lua 
+local x = "This is an open tag <?lua"
+?>
+<?lua=x?>
+<?lua 
+local y = "This is a closing tag ?>"
+?>
+<?lua=y?>

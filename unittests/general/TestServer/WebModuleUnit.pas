@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -80,12 +80,14 @@ begin
       Config[TMVCConfigKey.ViewPath] := '..\templates';
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
     end, nil);
-  MVCEngine.AddController(TTestServerController)
+  MVCEngine
+    .AddController(TTestServerController)
     .AddController(TTestPrivateServerController)
     .AddController(TTestServerControllerExceptionAfterCreate)
     .AddController(TTestServerControllerExceptionBeforeDestroy)
     .AddController(TTestServerControllerActionFilters)
     .AddController(TTestPrivateServerControllerCustomAuth)
+    .AddController(TTestMultiPathController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
     .PublishObject(

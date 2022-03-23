@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -56,6 +56,18 @@ type
     [TestCase('request url /fault', '/exception/fault')]
     [TestCase('request url /fault2', '/exception/fault2')]
     procedure TestControllerWithExceptionInCreate(const URLSegment: string);
+
+    [Test]
+    [TestCase('url "/"', '/')]
+    [TestCase('url "/action1"', '/action1')]
+    [TestCase('url "/action2"', '/action2')]
+    [TestCase('url "/api/v1"', '/api/v1')]
+    [TestCase('url "/api/v1/action1"', '/api/v1/action1')]
+    [TestCase('url "/api/v1/action2"', '/api/v1/action2')]
+    [TestCase('url "/api/v2"', '/api/v2')]
+    [TestCase('url "/api/v2/action1"', '/api/v2/action1')]
+    [TestCase('url "/api/v2/action2"', '/api/v2/action2')]
+    procedure TestMultiMVCPathOnControllerAndAction(const URLSegment: string);
 
     [Test]
     procedure TestReqWithParams;
@@ -1149,7 +1161,7 @@ procedure TServerTest.TestFileWithFolderName;
 var
   lRes: IMVCRESTResponse;
 begin
-  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('');
+  lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('doesn''t exist');
   Assert.areEqual(404, lRes.StatusCode, '<empty>');
 
   lRes := RESTClient.Accept(TMVCMediaType.TEXT_HTML).Get('/static/index.html');
@@ -1300,6 +1312,15 @@ begin
   end;
 
   Assert.AreNotEqual('', r.HeaderValue('request_gen_time'));
+end;
+
+procedure TServerTest.TestMultiMVCPathOnControllerAndAction(
+  const URLSegment: string);
+var
+  lRes: IMVCRESTResponse;
+begin
+  lRes := RESTClient.Get(URLSegment);
+  Assert.areEqual(HTTP_STATUS.OK, lRes.StatusCode);
 end;
 
 procedure TServerTest.TestObjectDict;

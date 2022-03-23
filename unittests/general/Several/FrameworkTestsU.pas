@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1320,10 +1320,10 @@ var
   I: Integer;
 begin
   // this test just tests the IP2Long implementation
-  for I := low(RESERVED_IPS) to high(RESERVED_IPS) do
+  for I := low(RESERVED_IPv4) to high(RESERVED_IPv4) do
   begin
-    Assert.areEqual(IPv4ToUInt32(RESERVED_IPS[I][1]), IP2Long(RESERVED_IPS[I][1]));
-    Assert.areEqual(IPv4ToUInt32(RESERVED_IPS[I][2]), IP2Long(RESERVED_IPS[I][2]));
+    Assert.areEqual(IPv4ToUInt32(RESERVED_IPv4[I][1]), IP2Long(RESERVED_IPv4[I][1]));
+    Assert.areEqual(IPv4ToUInt32(RESERVED_IPv4[I][2]), IP2Long(RESERVED_IPv4[I][2]));
   end;
 end;
 

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -78,6 +78,13 @@ procedure SaveColors;
 procedure RestoreSavedColors;
 procedure Init;
 procedure SetDefaults;
+function ConsoleAttr: Integer;
+procedure SetConsoleAttr(const TextAttr: Integer);
+function TextAttr: Word;
+procedure SetTextAttr(const TextAttr: Word);
+function BackgroundAttr: Word;
+procedure SetBackgroundAttr(const BackgroundAttr: Word);
+
 
 function ColorName(const color: TConsoleColor): String;
 
@@ -90,8 +97,8 @@ const
   ESC = Chr(27);
 
 var
-  GForeGround, GSavedForeGround: Integer;
-  GBackGround, GSavedBackGround: Integer;
+  GForeGround, GSavedForeGround: Int16;
+  GBackGround, GSavedBackGround: Int16;
   GOutHandle: THandle = INVALID_HANDLE_VALUE;
   GInputHandle: THandle = INVALID_HANDLE_VALUE;
 
@@ -299,6 +306,46 @@ begin
   GBackGround := GSavedBackGround;
   UpdateMode;
 end;
+
+function ConsoleAttr: Integer;
+begin
+  Result := GForeGround;
+  Result := (Result shl 16) or GBackGround;
+end;
+
+procedure SetConsoleAttr(const TextAttr: Integer);
+var
+  lAttr: Integer;
+begin
+  lAttr := TextAttr;
+  GBackGround := lAttr and $0000FFFF;
+  GForeGround := lAttr shr 16;
+  UpdateMode;
+end;
+
+
+function TextAttr: Word;
+begin
+  Result := GForeGround;
+end;
+
+procedure SetTextAttr(const TextAttr: Word);
+begin
+  GForeGround := TextAttr;
+  UpdateMode;
+end;
+
+function BackgroundAttr: Word;
+begin
+  Result := GBackGround;
+end;
+
+procedure SetBackgroundAttr(const BackgroundAttr: Word);
+begin
+  GBackGround := BackgroundAttr;
+  UpdateMode;
+end;
+
 
 
 initialization

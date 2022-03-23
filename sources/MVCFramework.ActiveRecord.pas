@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -1244,6 +1244,10 @@ begin
           raise EMVCActiveRecord.Create('SequenceName is empty for entity ' + ClassName + ' but ' +
             GetBackEnd +
             ' requires it');
+        end;
+        if foReadOnly in fPrimaryKeyOptions then
+        begin
+          raise EMVCActiveRecord.Create('Cannot define a read-only primary key when a sequence is used for the class ' + ClassName);
         end;
         FillPrimaryKey(fPrimaryKeySequenceName);
       end;

@@ -2,7 +2,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2021 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -81,7 +81,7 @@ type
     fResource: string;
     fProxySettings: TProxySettings;
     fParameters: TList<TMVCRESTParam>;
-    fRawBody: TStringStream;
+    fRawBody: TMemoryStream;
     fBodyFormData: TMultipartFormData;
     fSerializer: IMVCSerializer;
     fRttiContext: TRttiContext;
@@ -594,16 +594,13 @@ begin
   if aBodyStream = nil then
     raise EMVCRESTClientException.Create('You need a valid body!');
 
-  if aBodyStream is TStringStream then
-    raise EMVCRESTClientException.Create('aBodyStream must be of type TStringStream!');
-
   SetContentType(aContentType);
 
   fRawBody.Clear;
   fRawBody.CopyFrom(aBodyStream, 0);
 
   if aOwnsStream then
-    aBodyStream.Free;
+    FreeAndNil(aBodyStream);
 end;
 
 function TMVCRESTClient.AddBody(aBodyObject: TObject; const aOwnsObject: Boolean): IMVCRESTClient;
@@ -903,7 +900,7 @@ begin
   fRequestCompletedProc := nil;
   fResponseCompletedProc := nil;
   fParameters := TList<TMVCRESTParam>.Create;
-  fRawBody := TStringStream.Create;
+  fRawBody := TMemoryStream.Create;
   fBodyFormData := nil;
   fSerializer := nil;
   fRttiContext := TRttiContext.Create;

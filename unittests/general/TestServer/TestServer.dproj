@@ -120,6 +120,7 @@
         <DCCReference Include="..\..\..\samples\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.HTML.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Router.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -169,6 +170,11 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
+                    <Platform Name="OSX32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
@@ -177,11 +183,6 @@
                 <DeployFile LocalName="bin\sample.png" Configuration="CI" Class="File">
                     <Platform Name="Linux64">
                         <RemoteName>sample.png</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
-                    <Platform Name="OSX32">
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
