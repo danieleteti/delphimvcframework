@@ -687,6 +687,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/451
 
+- Merged [PR#543](https://github.com/danieleteti/delphimvcframework/pull/543) (Now the `PathInfo` is trimmed so the router convert this "http://myserver.com/one " to this "http://myserver.com/one")
+
 - Fix for nil objects in lists during serialization
 
 - Fix a very subtle bug in `MaxRecordCount` parameter for RQL based methods in `TMVCActiveRecord`
@@ -700,6 +702,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/542 (Thanks to [Lamberto Lodi](https://github.com/llodi-csw) for the hints)
 
 - Fixed *fileupload* sample
 

@@ -264,6 +264,10 @@ type
     [MVCPath('/issue492/($stringvalue)')]
     procedure GetIssue492;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issue542/($stringvalue)')]
+    procedure GetIssue542;
+
     { injectable parameters }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/injectable10')]
@@ -330,6 +334,10 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/issues/526')]
     procedure TestIssue526;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issues/542')]
+    procedure TestIssue542;
   end;
 
   [MVCPath('/private')]
@@ -518,6 +526,11 @@ begin
 end;
 
 procedure TTestServerController.GetIssue492;
+begin
+  // do nothing
+end;
+
+procedure TTestServerController.GetIssue542;
 begin
   // do nothing
 end;
@@ -803,6 +816,24 @@ begin
   ContentType := 'application/fhir+xml; fhirVersion=4.0';
   ResponseStream.Append('OK');
   RenderResponseStream;
+end;
+
+procedure TTestServerController.TestIssue542;
+var
+  lJSON: TJDOJSONObject;
+begin
+  lJSON := TJDOJSONObject.Create;
+  try
+    lJSON.S['QueryStringParams_DelimitedText'] := Context.Request.QueryStringParams.DelimitedText;
+    lJSON.S['QueryStringParam_par1'] := Context.Request.QueryStringParam('par1');
+    lJSON.S['QueryStringParam_par2'] := Context.Request.QueryStringParam('par2');
+    lJSON.I['QueryParams_Count'] := Context.Request.QueryParams.Count;
+    lJSON.S['QueryParams_par1'] := Context.Request.QueryParams['par1'];
+    lJSON.S['QueryParams_par2'] := Context.Request.QueryParams['par2'];
+    Render(lJSON, False);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;

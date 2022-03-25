@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{1611FBE6-5266-48FE-BDF5-E46EEAA922BE}</ProjectGuid>
-        <MainSource>loggerproRT.dpk</MainSource>
+        <ProjectGuid>{96D17257-AF74-48CB-9893-7BCCB56A069D}</ProjectGuid>
+        <MainSource>dmvcframeworkRT.dpk</MainSource>
         <ProjectVersion>19.4</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
@@ -25,6 +25,11 @@
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
         <Base_Win32>true</Base_Win32>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
+        <Base_Win64>true</Base_Win64>
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
@@ -56,8 +61,11 @@
         <GenPackage>true</GenPackage>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
-        <SanitizedProjectName>loggerproRT</SanitizedProjectName>
+        <SanitizedProjectName>dmvcframeworkRT</SanitizedProjectName>
         <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
+        <VerInfo_Locale>1040</VerInfo_Locale>
+        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <DCC_Description>DMVCFramework - CopyRight (2010-2020) Daniele Teti and the DMVCFramework Team</DCC_Description>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
@@ -73,10 +81,13 @@
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_Description>LoggerPro</DCC_Description>
+        <DCC_Description>DMVCFramework - CopyRight (2010-2021) Daniele Teti and the DMVCFramework Team</DCC_Description>
+        <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;dmvcframeworkDT;$(DCC_UsePackage)</DCC_UsePackage>
         <DllSuffix>110</DllSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win64)'!=''">
+        <DCC_UsePackage>rtl;dbrtl;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -85,15 +96,18 @@
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
         <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
-        <VerInfo_Locale>1040</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_Description>LoggerPro</DCC_Description>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=Daniele Teti;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <DCC_MapFile>3</DCC_MapFile>
+        <Debugger_IncludeSystemVars>true</Debugger_IncludeSystemVars>
+        <DCC_UNSUPPORTED_CONSTRUCT>false</DCC_UNSUPPORTED_CONSTRUCT>
+        <DCC_RunTimeTypeInfo>true</DCC_RunTimeTypeInfo>
+        <VerInfo_Keys>CompanyName=Daniele Teti and the DMVCFramework Team;FileDescription=DelphiMVCFramework 3.2.2-nitrogen;FileVersion=3.2.2.0;InternalName=DelphiMVCFramework 3.2.2-nitrogen;LegalCopyright=Daniele Teti and the DMVCFramework Team - Apache License 2;LegalTrademarks=DelphiMVCFramework;OriginalFilename=$(MSBuildProjectName);ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DelphiMVCFramework;ProductVersion=3.2.2;Comments=</VerInfo_Keys>
+        <VerInfo_MajorVer>3</VerInfo_MajorVer>
+        <VerInfo_MinorVer>2</VerInfo_MinorVer>
+        <VerInfo_Release>2</VerInfo_Release>
         <DllSuffix>111</DllSuffix>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -107,22 +121,75 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
-        <DCCReference Include="IndySystem.dcp"/>
-        <DCCReference Include="IndyProtocols.dcp"/>
+        <DCCReference Include="inet.dcp"/>
+        <DCCReference Include="FireDAC.dcp"/>
         <DCCReference Include="IndyCore.dcp"/>
-        <DCCReference Include="..\..\LoggerPro.ElasticSearchAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.EMailAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.FileAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.GlobalLogger.pas"/>
-        <DCCReference Include="..\..\LoggerPro.MemoryAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.NSQAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.pas"/>
-        <DCCReference Include="..\..\LoggerPro.Proxy.pas"/>
-        <DCCReference Include="..\..\LoggerPro.RESTAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.UDPSyslogAppender.pas"/>
-        <DCCReference Include="..\..\LoggerPro.Utils.pas"/>
-        <DCCReference Include="..\..\ThreadSafeQueueU.pas"/>
-        <DCCReference Include="..\..\LoggerPro.OutputDebugStringAppender.pas"/>
+        <DCCReference Include="IndyProtocols.dcp"/>
+        <DCCReference Include="FireDACIBDriver.dcp"/>
+        <DCCReference Include="FireDACMySQLDriver.dcp"/>
+        <DCCReference Include="loggerproRT.dcp"/>
+        <DCCReference Include="FireDACPgDriver.dcp"/>
+        <DCCReference Include="FireDACSqliteDriver.dcp"/>
+        <DCCReference Include="..\..\sources\MVCFramework.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecord.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ActiveRecordController.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.ApplicationSession.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Cache.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Console.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.DataSet.Utils.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.DuckTyping.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.FireDAC.Utils.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.HMAC.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.JWT.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Logger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Analytics.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Authentication.RoleBasedAuthHandler.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Compression.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.CORS.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.JWT.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.SecurityHeaders.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.MultiMap.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Patches.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTAdapter.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Router.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2FirebirdSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2InterbaseSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2MySQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.AST2SQLite.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RQL.Parser.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Rtti.Utils.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Abstract.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Defaults.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.Intf.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.CustomTypes.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.JsonDataObjects.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Session.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SysControllers.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SystemJSONUtils.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.View.Cache.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Controllers.Register.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Firebird.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Interbase.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.MySQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.PostgreSQL.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.SQLGenerators.Sqlite.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Swagger.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Swagger.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Middleware.Trace.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Nullables.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Serializer.HTML.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.LRUCache.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Commons.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Indy.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.Intf.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.RESTClient.pas"/>
+        <DCCReference Include="..\..\sources\MVCFramework.Utils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -141,7 +208,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">loggerproRT.dpk</Source>
+                    <Source Name="MainSource">dmvcframeworkRT.dpk</Source>
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k280.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
@@ -174,9 +241,9 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl\loggerproRT.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl\dmvcframeworkRT111.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>loggerproRT.bpl</RemoteName>
+                        <RemoteName>dmvcframeworkRT.bpl</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
@@ -618,7 +685,51 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
+                <DeployClass Name="iPad_Launch1024x768">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
                 <DeployClass Name="iPad_Launch1536">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch1536x2048">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch1668">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch1668x2388">
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
                     </Platform>
@@ -640,6 +751,61 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
+                <DeployClass Name="iPad_Launch2048x1536">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch2048x2732">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch2224">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch2388x1668">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch2732x2048">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
                 <DeployClass Name="iPad_Launch2x">
                     <Platform Name="iOSDevice64">
                         <RemoteDir>..\$(PROJECTNAME).launchscreen\Assets\LaunchScreenImage.imageset</RemoteDir>
@@ -651,6 +817,17 @@
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="iPad_Launch768">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch768x1024">
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
                     </Platform>
@@ -721,6 +898,105 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
+                <DeployClass Name="iPhone_Launch1125">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch1136x640">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch1242">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch1242x2688">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch1334">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch1792">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch2208">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch2436">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch2688x1242">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
                 <DeployClass Name="iPhone_Launch2x">
                     <Platform Name="iOSDevice64">
                         <RemoteDir>..\$(PROJECTNAME).launchscreen\Assets\LaunchScreenImage.imageset</RemoteDir>
@@ -764,6 +1040,28 @@
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="iPhone_Launch640x1136">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch750">
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch828">
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
                     </Platform>

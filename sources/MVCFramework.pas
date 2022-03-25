@@ -1641,14 +1641,24 @@ end;
 function TMVCWebRequest.GetQueryParams: TDictionary<string, string>;
 var
   I: Integer;
+  lRow: String;
 begin
   if not Assigned(FQueryParams) then
   begin
     FQueryParams := TDictionary<string, string>.Create;
     for I := 0 to Pred(FWebRequest.QueryFields.Count) do
     begin
-      FQueryParams.Add(LowerCase(FWebRequest.QueryFields.Names[I]),
-        FWebRequest.QueryFields.ValueFromIndex[I]);
+      lRow := FWebRequest.QueryFields[i];
+      if lRow.Contains('=') then
+      begin
+        FQueryParams.Add(
+          LowerCase(Trim(FWebRequest.QueryFields.Names[I])),
+          FWebRequest.QueryFields.ValueFromIndex[I]);
+      end
+      else
+      begin
+        FQueryParams.AddOrSetValue(LowerCase(lRow), '');
+      end;
     end;
   end;
   Result := FQueryParams;

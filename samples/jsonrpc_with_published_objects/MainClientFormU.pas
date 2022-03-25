@@ -30,7 +30,7 @@ uses
   FireDAC.Comp.Client,
   Vcl.ComCtrls,
   Vcl.ExtCtrls,
-  MVCFramework.JSONRPC.Client;
+  MVCFramework.JSONRPC.Client, Vcl.Mask;
 
 type
   TMainForm = class(TForm)
