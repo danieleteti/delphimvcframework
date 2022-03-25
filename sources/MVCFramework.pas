@@ -1089,6 +1089,7 @@ implementation
 
 uses
   IdURI,
+  System.StrUtils,
   MVCFramework.SysControllers,
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.JSONRPC,
@@ -1115,6 +1116,12 @@ function CreateResponse(const StatusCode: UInt16; const ReasonString: string;
   const Message: string = ''): TMVCResponse;
 begin
   Result := TMVCResponse.Create(StatusCode, ReasonString, message);
+end;
+
+function GetRequestShortDescription(const AWebRequest: TWebRequest): String;
+begin
+  Result := Format('%s %s%s', [AWebRequest.Method, AWebRequest.PathInfo,
+    ifthen(AWebRequest.Query = '', '', '?' + AWebRequest.Query)]);
 end;
 
 { MVCHTTPMethodsAttribute }
@@ -2410,8 +2417,8 @@ begin
                 except
                   on Ex: Exception do
                   begin
-                    Log.ErrorFmt('[%s] %s (Custom message: "%s")',
-                      [Ex.Classname, Ex.Message, 'Cannot create controller'], LOGGERPRO_TAG);
+                    Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                      [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Cannot create controller'], LOGGERPRO_TAG);
                     raise EMVCException.Create(http_status.InternalServerError,
                       'Cannot create controller');
                   end;
@@ -2494,7 +2501,8 @@ begin
             begin
               if not CustomExceptionHandling(ESess, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s (Custom message: "%s")', [ESess.Classname, ESess.Message,
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                  [ESess.Classname, ESess.Message, GetRequestShortDescription(ARequest),
                   ESess.DetailedMessage], LOGGERPRO_TAG);
                 lContext.SessionStop;
                 lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
@@ -2505,8 +2513,8 @@ begin
             begin
               if not CustomExceptionHandling(E, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s (Custom message: "%s")',
-                  [E.Classname, E.Message, E.DetailedMessage], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                  [E.Classname, E.Message, GetRequestShortDescription(ARequest), E.DetailedMessage], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(E.HTTPErrorCode);
@@ -2523,8 +2531,8 @@ begin
             begin
               if not CustomExceptionHandling(EIO, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s (Custom message: "%s")',
-                  [EIO.Classname, EIO.Message, 'Invalid Op'], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                  [EIO.Classname, EIO.Message, GetRequestShortDescription(ARequest), 'Invalid Op'], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(http_status.InternalServerError);
@@ -2541,8 +2549,8 @@ begin
             begin
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, 'Global Action Exception Handler'], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'Global Action Exception Handler'], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   lSelectedController.ResponseStatus(http_status.InternalServerError);
@@ -2563,8 +2571,8 @@ begin
             begin
               if not CustomExceptionHandling(Ex, lSelectedController, lContext) then
               begin
-                Log.ErrorFmt('[%s] %s (Custom message: "%s")',
-                  [Ex.Classname, Ex.Message, 'After Routing Exception Handler'], LOGGERPRO_TAG);
+                Log.ErrorFmt('[%s] %s [PathInfo "%s"] (Custom message: "%s")',
+                  [Ex.Classname, Ex.Message, GetRequestShortDescription(ARequest), 'After Routing Exception Handler'], LOGGERPRO_TAG);
                 if Assigned(lSelectedController) then
                 begin
                   { middlewares *must* not raise unhandled exceptions }
