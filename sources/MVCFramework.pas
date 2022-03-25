@@ -955,7 +955,7 @@ type
     function ExecuteAction(const ASender: TObject; const ARequest: TWebRequest;
       const AResponse: TWebResponse): Boolean; virtual;
   public
-    class function GetCurrentSession(const ASessionTimeout: Integer; const ASessionId: string;
+    class function GetCurrentSession(const ASessionId: string;
       const ARaiseExceptionIfExpired: Boolean = True): TWebSession; static;
     class function ExtractSessionIdFromWebRequest(const AWebRequest: TWebRequest): string; static;
     class function SendSessionCookie(const AContext: TWebContext): string; overload; static;
@@ -1907,8 +1907,7 @@ procedure TWebContext.BindToSession(const ASessionId: string);
 begin
   if not Assigned(FWebSession) then
   begin
-    FWebSession := TMVCEngine.GetCurrentSession(StrToInt64(FConfig[TMVCConfigKey.SessionTimeout]),
-      ASessionId, False);
+    FWebSession := TMVCEngine.GetCurrentSession(ASessionId, False);
     if not Assigned(FWebSession) then
       raise EMVCException.Create('Invalid SessionID');
     FWebSession.MarkAsUsed;
@@ -2070,7 +2069,7 @@ function TWebContext.GetWebSession: TWebSession;
 begin
   if not Assigned(FWebSession) then
   begin
-    FWebSession := TMVCEngine.GetCurrentSession(StrToInt64(FConfig[TMVCConfigKey.SessionTimeout]),
+    FWebSession := TMVCEngine.GetCurrentSession(
       TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest), False);
     if not Assigned(FWebSession) then
       SessionStart
@@ -2148,8 +2147,17 @@ begin
 
   TMonitor.Enter(GlobalSessionList);
   try
-    SId := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
+    SID := SessionId;
+    if (SId = '') and (ARaiseExceptionIfExpired) then
+    begin
+      raise EMVCSessionExpiredException.Create('Session not started');
+    end;
+    //SId := TMVCEngine.ExtractSessionIdFromWebRequest(FRequest.RawWebRequest);
     GlobalSessionList.Remove(SId);
+    if SId <> '' then
+    begin
+      FWebSession := nil;
+    end;
   finally
     TMonitor.Exit(GlobalSessionList);
   end;
@@ -2488,7 +2496,7 @@ begin
               begin
                 Log.ErrorFmt('[%s] %s (Custom message: "%s")', [ESess.Classname, ESess.Message,
                   ESess.DetailedMessage], LOGGERPRO_TAG);
-                lContext.SessionStop(False);
+                lContext.SessionStop;
                 lSelectedController.ResponseStatus(ESess.HTTPErrorCode);
                 lSelectedController.Render(ESess);
               end;
@@ -2894,8 +2902,7 @@ begin
   end;
 end;
 
-class function TMVCEngine.GetCurrentSession(const ASessionTimeout: Integer;
-  const ASessionId: string; const ARaiseExceptionIfExpired: Boolean): TWebSession;
+class function TMVCEngine.GetCurrentSession(const ASessionId: string; const ARaiseExceptionIfExpired: Boolean): TWebSession;
 var lSessionList: TObjectDictionary<string, TWebSession>;
 begin
   Result := nil;
@@ -2932,8 +2939,7 @@ end;
 
 function TMVCEngine.GetSessionBySessionId(const ASessionId: string): TWebSession;
 begin
-  Result := TMVCEngine.GetCurrentSession(StrToInt64(Config[TMVCConfigKey.SessionTimeout]),
-    ASessionId, False);
+  Result := TMVCEngine.GetCurrentSession(ASessionId, False);
   if Assigned(Result) then
     Result.MarkAsUsed;
 end;

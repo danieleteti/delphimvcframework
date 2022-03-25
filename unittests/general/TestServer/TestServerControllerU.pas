@@ -553,7 +553,7 @@ procedure TTestServerController.Logout;
 begin
   if not Context.SessionStarted then
     raise EMVCException.Create('Session not available');
-  Context.SessionStop(false);
+  Context.SessionStop;
   if Context.SessionStarted then
     raise EMVCException.Create('Session still available');
 end;

@@ -703,6 +703,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
 
+- Fix https://github.com/danieleteti/delphimvcframework/issues/544 (Thanks to [David Moorhouse](https://github.com/fastbike))
+
 - Fix https://github.com/danieleteti/delphimvcframework/issues/542 (Thanks to [Lamberto Lodi](https://github.com/llodi-csw) for the hints)
 
 - Fixed *fileupload* sample
