@@ -90,6 +90,8 @@ type
     [Test]
     procedure TestCustomerEcho;
     [Test]
+    procedure TestCustomerEchoBodyFor;
+    [Test]
     procedure TestPOSTWithoutContentType;
     [Test]
     procedure TestXHTTPMethodOverride_POST_as_PUT;
@@ -808,6 +810,48 @@ begin
     RegisterOptionalCustomTypesSerializers(lSer);
     r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
       .Post('/customerecho', lSer.SerializeObject(lCustomer));
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer);
+    lSer.DeserializeObject(r.Content, lCustomer);
+    Assert.areEqual('bit Time Professionals changed', lCustomer.Name);
+    Assert.areEqual('', lCustomer.ContactFirst);
+    Assert.areEqual('', lCustomer.ContactLast);
+    lCustomer.Logo.SaveToFile('customer_logo_after_received.bmp');
+    Assert.areEqual('9a4e150a92ecb68ad83e8ead27026dcc',
+      THashMD5.GetHashStringFromFile('customer_logo_after_received.bmp'));
+  finally
+    lCustomer.Free;
+  end;
+end;
+
+procedure TServerTest.TestCustomerEchoBodyFor;
+var
+  r: IMVCRESTResponse;
+  lCustomer: TCustomer;
+  lSer: IMVCSerializer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.Name := 'bit Time Professionals';
+    lCustomer.ContactFirst := 'Daniele'; // transient
+    lCustomer.ContactLast := 'Teti'; // transient
+    lCustomer.AddressLine1 := 'Via Roma 10';
+    lCustomer.AddressLine2 := '00100, ROMA';
+    lCustomer.Logo.SetSize(100, 100);
+    lCustomer.Logo.Canvas.FillRect(Rect(0, 0, 100, 100));
+    lCustomer.Logo.Canvas.Font.Color := clRed;
+    lCustomer.Logo.Canvas.TextOut(10, 50, 'From Client');
+    lCustomer.Logo.SaveToFile('customer_logo_before_to_send.bmp');
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer);
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/customerechobodyfor', lSer.SerializeObject(lCustomer));
   finally
     lCustomer.Free;
   end;

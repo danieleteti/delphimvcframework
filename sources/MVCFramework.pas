@@ -403,8 +403,8 @@ type
     function Body: string;
     function BodyAs<T: class, constructor>(const RootNode: string = ''): T;
     function BodyAsListOf<T: class, constructor>(const RootNode: string = ''): TObjectList<T>;
-    procedure BodyFor<T: class, constructor>(const AObject: T);
-    procedure BodyForListOf<T: class, constructor>(const AObjectList: TObjectList<T>);
+    procedure BodyFor<T: class, constructor>(const AObject: T; const RootNode: string = '');
+    procedure BodyForListOf<T: class, constructor>(const AObjectList: TObjectList<T>; const RootNode: string = '');
     // function HeaderNames: TArray<String>;
     property RawWebRequest: TWebRequest read FWebRequest;
     property ContentMediaType: string read FContentMediaType;
@@ -1332,30 +1332,40 @@ begin
     raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
 end;
 
-procedure TMVCWebRequest.BodyFor<T>(const AObject: T);
+procedure TMVCWebRequest.BodyFor<T>(const AObject: T; const RootNode: string);
 var
   lSerializer: IMVCSerializer;
 begin
   if Assigned(AObject) then
+  begin
     if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
-      lSerializer.DeserializeObject(Body, AObject)
+    begin
+      lSerializer.DeserializeObject(Body, AObject,
+        TMVCSerializationType.stDefault, [], RootNode)
+    end
     else
     begin
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
-    end;
+    end
+  end;
 end;
 
-procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>);
+procedure TMVCWebRequest.BodyForListOf<T>(const AObjectList: TObjectList<T>; const RootNode: string);
 var
   lSerializer: IMVCSerializer;
 begin
   if Assigned(AObjectList) then
+  begin
     if FSerializers.TryGetValue(ContentMediaType, lSerializer) then
-      lSerializer.DeserializeCollection(Body, AObjectList, T)
+    begin
+      lSerializer.DeserializeCollection(Body, AObjectList, T,
+        TMVCSerializationType.stDefault, [], RootNode)
+    end
     else
     begin
       raise EMVCException.CreateFmt('Body ContentType "%s" not supported', [ContentType]);
     end;
+  end;
 end;
 
 function TMVCWebRequest.ClientIp: string;

@@ -145,6 +145,12 @@ type
     [MVCProduces('application/json')]
     procedure TestCustomerEcho;
 
+    [MVCPath('/customerechobodyfor')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces('application/json')]
+    procedure TestCustomerEchoBodyFor;
+
+
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
     procedure TestHelloWorld;
@@ -650,6 +656,24 @@ begin
 {$ENDIF}
   // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
   Render(lCustomer, True);
+end;
+
+procedure TTestServerController.TestCustomerEchoBodyFor;
+var
+  lCustomer: TCustomer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    Context.Request.BodyFor<TCustomer>(lCustomer);
+    // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
+    lCustomer.Name := lCustomer.Name + ' changed';
+  {$IFNDEF LINUX}
+    //lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  {$ENDIF}
+    Render(lCustomer, False);
+  finally
+    lCustomer.Free;
+  end;
 end;
 
 procedure TTestServerController.TestDeserializeAndSerializeNullables;
