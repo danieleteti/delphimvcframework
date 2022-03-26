@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html>
+<head>
+<title>LoggerPro: LoggerPro: Interface ILogAppender</title>
+<meta name="generator" content="PasDoc 0.14.0">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link rel="StyleSheet" type="text/css" href="pasdoc.css">
+</head>
+<body>
+<table class="container"><tr><td class="navigation">
+<h2>LoggerPro</h2><p><a href="AllUnits.html" class="navigation">Units</a></p><p><a href="ClassHierarchy.html" class="navigation">Class Hierarchy</a></p><p><a href="AllClasses.html" class="navigation">Classes, Interfaces, Objects and Records</a></p><p><a href="AllTypes.html" class="navigation">Types</a></p><p><a href="AllVariables.html" class="navigation">Variables</a></p><p><a href="AllConstants.html" class="navigation">Constants</a></p><p><a href="AllFunctions.html" class="navigation">Functions and Procedures</a></p><p><a href="AllIdentifiers.html" class="navigation">Identifiers</a></p></td><td class="content">
+<h2>LoggerPro (1.0)</h2><p>A simple, pluggable and modern logging framework for Delphi</p>
+<a name="ILogAppender"></a><h1 class="cio">Interface ILogAppender</h1>
+<table class="sections wide_list">
+<tr>
+<td><a class="section" href="#PasDoc-Description">Description</a></td><td><a class="section" href="#PasDoc-Hierarchy">Hierarchy</a></td><td>Fields</td><td><a class="section" href="#PasDoc-Methods">Methods</a></td><td>Properties</td></tr></table>
+<a name="PasDoc-Description"></a><h2 class="unit">Unit</h2>
+<p class="unitlink">
+<a  href="LoggerPro.html">LoggerPro</a></p>
+<h2 class="declaration">Declaration</h2>
+<p class="declaration">
+<code>type ILogAppender = interface(IInterface)</code></p>
+<h2 class="description">Description</h2>
+<p>
+Interface implemented by all the classes used as appenders</p>
+<h6 class="description_section">Attributes</h6>
+<dl class="attributes">
+  <dt>GUID['{58AFB557-C594-4A4B-8DC9-0F13B37F60CB}']</dt>
+  <dd></dd>
+</dl>
+<a name="PasDoc-Hierarchy"></a><h2 class="hierarchy">Hierarchy</h2>
+<ul class="hierarchy"><li class="ancestor">IInterface</li>
+<li class="thisitem">ILogAppender</li></ul><h2 class="overview">Overview</h2>
+<a name="PasDoc-Methods"></a><h3 class="summary">Methods</h3>
+<table class="summary wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.ILogAppender.html#Setup">Setup</a></b>;</code></td>
+</tr>
+<tr class="list2">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.ILogAppender.html#WriteLog">WriteLog</a></b>(const aLogItem: <a  href="LoggerPro.TLogItem.html">TLogItem</a>);</code></td>
+</tr>
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.ILogAppender.html#TearDown">TearDown</a></b>;</code></td>
+</tr>
+<tr class="list2">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.ILogAppender.html#SetEnabled">SetEnabled</a></b>(const Value: Boolean);</code></td>
+</tr>
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>function <b><a  href="LoggerPro.ILogAppender.html#IsEnabled">IsEnabled</a></b>: Boolean;</code></td>
+</tr>
+<tr class="list2">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>procedure <b><a  href="LoggerPro.ILogAppender.html#SetLogLevel">SetLogLevel</a></b>(const Value: <a  href="LoggerPro.html#TLogType">TLogType</a>);</code></td>
+</tr>
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><code>function <b><a  href="LoggerPro.ILogAppender.html#GetLogLevel">GetLogLevel</a></b>: <a  href="LoggerPro.html#TLogType">TLogType</a>;</code></td>
+</tr>
+</table>
+<h2 class="description">Description</h2>
+<h3 class="detail">Methods</h3>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="Setup"></a><code>procedure <b>Setup</b>;</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+This method is internally called by LoggerPro to initialize the appender</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="WriteLog"></a><code>procedure <b>WriteLog</b>(const aLogItem: <a  href="LoggerPro.TLogItem.html">TLogItem</a>);</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+This method is called at each log item represented by <a class="normal" href="LoggerPro.TLogItem.html">TLogItem</a></p>
+<p>
+ The appender should be as-fast-as-it-can to handle the message, however each appender runs in a separated thread.</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="TearDown"></a><code>procedure <b>TearDown</b>;</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+This method is internally called by LoggerPro to deinitialize the appender</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="SetEnabled"></a><code>procedure <b>SetEnabled</b>(const Value: Boolean);</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+(Enable or disable the log appender. Is used internally by LoggerPro but must be implemented by each logappender. A simple <code>if enabled then dolog</code> is enough</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="IsEnabled"></a><code>function <b>IsEnabled</b>: Boolean;</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+(Returns if the logappender is currently enabled or not.</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="SetLogLevel"></a><code>procedure <b>SetLogLevel</b>(const Value: <a  href="LoggerPro.html#TLogType">TLogType</a>);</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+(Set a custom log level for this appender. This value must be lower than the global LogWriter log level.</p>
+</td></tr>
+</table>
+<table class="detail wide_list">
+<tr class="list">
+<td class="visibility"><a  href="legend.html"><img  src="public.gif" alt="Public" title="Public"></a></td>
+<td class="itemcode"><a name="GetLogLevel"></a><code>function <b>GetLogLevel</b>: <a  href="LoggerPro.html#TLogType">TLogType</a>;</code></td>
+</tr>
+<tr><td colspan="2">
+<p>
+(Get the loglevel for the appender.</p>
+</td></tr>
+</table>
+Copyright 2016 Daniele Teti
+<hr noshade size="1"><span class="appinfo"><em>Generated by <a  href="http://pasdoc.sourceforge.net/">PasDoc 0.14.0</a>. </em>
+</span>
+</td></tr></table></body></html>
