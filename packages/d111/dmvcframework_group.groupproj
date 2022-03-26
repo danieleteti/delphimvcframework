@@ -3,14 +3,14 @@
         <ProjectGuid>{EA879EE4-1245-4456-AED9-57FDF63577E6}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="..\..\lib\loggerpro\packages\d110\loggerproRT.dproj">
+        <Projects Include="..\..\lib\loggerpro\packages\d111\loggerproRT.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="dmvcframeworkRT.dproj">
-            <Dependencies/>
+            <Dependencies>..\..\lib\loggerpro\packages\d111\loggerproRT.dproj</Dependencies>
         </Projects>
         <Projects Include="dmvcframeworkDT.dproj">
-            <Dependencies/>
+            <Dependencies>dmvcframeworkRT.dproj</Dependencies>
         </Projects>
     </ItemGroup>
     <ProjectExtensions>
@@ -21,30 +21,30 @@
         </BorlandProject>
     </ProjectExtensions>
     <Target Name="loggerproRT">
-        <MSBuild Projects="..\..\lib\loggerpro\packages\d110\loggerproRT.dproj"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d111\loggerproRT.dproj"/>
     </Target>
     <Target Name="loggerproRT:Clean">
-        <MSBuild Projects="..\..\lib\loggerpro\packages\d110\loggerproRT.dproj" Targets="Clean"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d111\loggerproRT.dproj" Targets="Clean"/>
     </Target>
     <Target Name="loggerproRT:Make">
-        <MSBuild Projects="..\..\lib\loggerpro\packages\d110\loggerproRT.dproj" Targets="Make"/>
+        <MSBuild Projects="..\..\lib\loggerpro\packages\d111\loggerproRT.dproj" Targets="Make"/>
     </Target>
-    <Target Name="dmvcframeworkRT">
+    <Target Name="dmvcframeworkRT" DependsOnTargets="loggerproRT">
         <MSBuild Projects="dmvcframeworkRT.dproj"/>
     </Target>
-    <Target Name="dmvcframeworkRT:Clean">
+    <Target Name="dmvcframeworkRT:Clean" DependsOnTargets="loggerproRT:Clean">
         <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="dmvcframeworkRT:Make">
+    <Target Name="dmvcframeworkRT:Make" DependsOnTargets="loggerproRT:Make">
         <MSBuild Projects="dmvcframeworkRT.dproj" Targets="Make"/>
     </Target>
-    <Target Name="dmvcframeworkDT">
+    <Target Name="dmvcframeworkDT" DependsOnTargets="dmvcframeworkRT">
         <MSBuild Projects="dmvcframeworkDT.dproj"/>
     </Target>
-    <Target Name="dmvcframeworkDT:Clean">
+    <Target Name="dmvcframeworkDT:Clean" DependsOnTargets="dmvcframeworkRT:Clean">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="dmvcframeworkDT:Make">
+    <Target Name="dmvcframeworkDT:Make" DependsOnTargets="dmvcframeworkRT:Make">
         <MSBuild Projects="dmvcframeworkDT.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
