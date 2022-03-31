@@ -85,7 +85,9 @@ uses
   Swag.Doc.SecurityDefinitionBasic,
   Swag.Doc.Definition,
   System.Generics.Collections,
-  System.Generics.Defaults, System.TypInfo;
+  System.Generics.Defaults, 
+  System.TypInfo,
+  Json.Common.Helpers;
 
 { TMVCSwaggerMiddleware }
 
@@ -425,7 +427,7 @@ begin
       SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
-      InternalRender(LSwagDoc.SwaggerJson.ToJSON, AContext);
+      InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
       AHandled := True;
 
     finally
