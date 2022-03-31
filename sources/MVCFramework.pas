@@ -567,6 +567,12 @@ type
     property ParamsTable: TMVCRequestParamsTable read GetParamsTable write SetParamsTable;
   end;
 
+  TMVCJSONRPCExceptionErrorInfo = record
+    Code: Integer;
+    Msg: string;
+    Data: TValue;
+  end;
+
   TMVCEngine = class;
 
   TMVCBase = class
@@ -896,6 +902,11 @@ type
   TMVCRouterLogState = (rlsRouteFound, rlsRouteNotFound);
   TMVCRouterLogHandlerProc = reference to procedure(const Router: TMVCCustomRouter;
     const RouterLogState: TMVCRouterLogState; const WebContext: TWebContext);
+  TMVCJSONRPCExceptionHandlerProc = reference to procedure(E: Exception;
+    { SelectedController: TMVCController; //YAGNI }
+    WebContext: TWebContext;
+    var ErrorInfo: TMVCJSONRPCExceptionErrorInfo;
+    var ExceptionHandled: Boolean);
   TWebContextCreateEvent = reference to procedure(const AContext: TWebContext);
   TWebContextDestroyEvent = reference to procedure(const AContext: TWebContext);
 
@@ -983,7 +994,7 @@ type
       const ACreateAction: TMVCControllerCreateAction; const AURLSegment: string = '')
       : TMVCEngine; overload;
     function PublishObject(const AObjectCreatorDelegate: TMVCObjectCreatorDelegate;
-      const AURLSegment: string): TMVCEngine;
+      const AURLSegment: string; ExceptionHandler: TMVCJSONRPCExceptionHandlerProc = nil): TMVCEngine;
     function SetViewEngine(const AViewEngineClass: TMVCViewEngineClass): TMVCEngine;
     function SetExceptionHandler(const AExceptionHandlerProc: TMVCExceptionHandlerProc): TMVCEngine;
 
@@ -1078,7 +1089,6 @@ type
     property ContentType: string read FContentType;
     property Output: string read FOutput;
   end;
-
 
 function IsShuttingDown: Boolean;
 procedure EnterInShutdownState;
@@ -3117,12 +3127,13 @@ begin
 end;
 
 function TMVCEngine.PublishObject(const AObjectCreatorDelegate: TMVCObjectCreatorDelegate;
-  const AURLSegment: string): TMVCEngine;
+      const AURLSegment: string; ExceptionHandler: TMVCJSONRPCExceptionHandlerProc = nil): TMVCEngine;
 begin
   Result := AddController(TMVCJSONRPCPublisher,
     function: TMVCController
     begin
-      Result := TMVCJSONRPCPublisher.Create(AObjectCreatorDelegate(), True);
+      Result := TMVCJSONRPCPublisher.Create(AObjectCreatorDelegate(),
+        True, ExceptionHandler);
     end, AURLSegment);
 end;
 
