@@ -121,7 +121,6 @@ begin
 end;
 
 procedure TOrdersController.GetOrdersByDescription(const Search: String);
-var
   lDict: IMVCObjectDictionary;
 begin
 //  Render(
@@ -149,9 +148,11 @@ begin
 end;
 
 procedure TOrdersController.UpdateOrderByID(const Order: TOrder; const id: Integer);
+var
+  lCurrentOrder: TOrder;
 begin
   Order.id := id;
-  var lCurrentOrder := TMVCActiveRecord.GetByPK<TOrder>(id);
+  lCurrentOrder := TMVCActiveRecord.GetByPK<TOrder>(id);
   try
     Order.Update();
   finally

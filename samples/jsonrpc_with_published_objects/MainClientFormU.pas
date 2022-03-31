@@ -164,7 +164,7 @@ end;
 procedure TMainForm.btnExceptionClick(Sender: TObject);
 var
   lReq: IJSONRPCNotification;
-  lResp: IJSONRPCResponse;
+//  lResp: IJSONRPCResponse;
 begin
   ShowMessage('Now will be raised a custom exception on the server. This exception will be catched by the client');
   lReq := TJSONRPCNotification.Create('RaiseCustomException');

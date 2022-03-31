@@ -715,6 +715,9 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - Fixed an `IFDEF` compatibility problem on mobile platforms (Thanks to Marco Cotroneo)
 
+- Samples are syntax compatible with Delphi 10.1 Berlin or better (Thanks to Mark Lobanov)
+
+
 ## Older Releases
 
 ### What's New in 3.2.0-boron

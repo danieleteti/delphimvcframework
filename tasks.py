@@ -449,12 +449,3 @@ def generate_nullables(ctx):
 
     with open(src_folder.joinpath("implementation.out.txt"), "w") as f:
         f.writelines(impl_tmpl)
-
-
-@task()
-def pippo(ctx):
-    r = ctx.run("cmd.exe /c dsir", hide=True, warn=True)
-    if r.failed:
-        print(r.stderr)
-    else:
-        print(r.stdout)
