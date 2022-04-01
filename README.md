@@ -466,7 +466,7 @@ This version introduced new features in many different areas (swagger, server si
 
 The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
 
-### Whet's new in 3.2.2-nitrogen (currently in beta)
+### What's new in 3.2.2-nitrogen (currently in beta)
 
 - ⚡New! Support for Delphi 11 Alexandria
 
@@ -519,6 +519,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - ✅ Added parameter to set local timeStamp as UTC.
 
 - ✅ Improved OpenAPI (Swagger) support.
+
+- ✅ Improved Support for OpenAPI (Swagger) API Versioning (check `swagger_api_versioning_primer` sample)
 
 - ✅ Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
 
