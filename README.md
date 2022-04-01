@@ -555,15 +555,17 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
     
 
-- ⚡New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
+- ⚡ New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
 
-- ⚡New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.
+- ⚡ New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.
 
 - ✅ Improved! `Context.Data` property is now created on-demand using a lazy loading approach (expect an overall speed improvement).
 
 - ✅ Added `LogException` function in `MVCFramework.Logger.pas` to easily log exception in standard way.
 
 - ✅ Improved `MVCAREntitiesGenerator` project - now it can better handle border cases, field names which collide with Delphi keywords and a big number of tables.
+
+- ✅ Improved error handling for JSON-RPC APIs (Thanks to [David Moorhouse](https://github.com/fastbike)). More info [here](https://github.com/danieleteti/delphimvcframework/issues/538).
 
 - ⚡ New! Added `ActiveRecordConnectionRegistry.AddDefaultConnection(const aConnetionDefName: String)`. The connection definition **must** be known by FireDAC. This method simplifies the most common scenario shown below.
 
@@ -576,9 +578,9 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
     end;
     ```
 
-- ⚡New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
+- ⚡ New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
 
-- ⚡New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
+- ⚡ New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
 
     > This middleware provides 2 events named: `OnAcceptToken` (invoked when a request contains a token - need to returns true/false if the token is still accepted by the server or not) and  `OnNewJWTToBlackList` (invoked when a client ask to blacklist its current token). There is a new sample available which shows the funtionalities: `samples\middleware_jwtblacklist`.
 
