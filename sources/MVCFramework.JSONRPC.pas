@@ -1407,7 +1407,7 @@ begin
                 lJSONRespErrorInfo.Msg, lJSONRespErrorInfo.Data);
             end;
           finally
-            if not lJSONRespErrorInfo.Data.IsEmpty then
+            if not lExceptionHandled and not lJSONRespErrorInfo.Data.IsEmpty then
             begin
               if lJSONRespErrorInfo.Data.IsObjectInstance then
               begin
@@ -2036,6 +2036,13 @@ end;
 
 procedure TJSONRPCResponseError.SetData(const Value: TValue);
 begin
+  if not FData.IsEmpty then
+  begin
+    if FData.IsObjectInstance then
+    begin
+      FData.AsObject.Free;
+    end;
+  end;
   fData := Value;
 end;
 
@@ -2397,7 +2404,7 @@ end;
 constructor EMVCJSONRPCRemoteException.Create(const ErrCode: Integer; const ErrMessage: String;
   const ErrData: TValue);
 begin
-  inherited Create(Format('[REMOTE EXCEPTION - CODE: %d] %s', [ErrCode, ErrMessage]));
+  inherited Create(Format('[REMOTE EXCEPTION][CODE: %d] %s', [ErrCode, ErrMessage]));
   fErrData := ErrData;
   fErrCode := ErrCode;
   fErrMessage := ErrMessage;

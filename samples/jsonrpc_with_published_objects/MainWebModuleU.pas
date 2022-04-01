@@ -40,7 +40,7 @@ uses
   MVCFramework.Commons,
   MyObjectU,
   MVCFramework.JSONRPC,
-  MainDM, MVCFramework.Serializer.Commons;
+  MainDM, MVCFramework.Serializer.Commons, JsonDataObjects;
 
 procedure TMyWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -67,13 +67,19 @@ begin
       WebContext: TWebContext;
       var ErrorInfo: TMVCJSONRPCExceptionErrorInfo;
       var ExceptionHandled: Boolean)
+    var
+      lExtra: TJSONObject;
     begin
       if Exc is EInvalidPointer then
       begin
         ExceptionHandled := True;
         ErrorInfo.Code := 9999;
         ErrorInfo.Msg := 'Custom Message: ' + Exc.Message;
-        ErrorInfo.Data := StrDict(['key1','key2'],['value1','value2']);
+        // add a json object to the "data" field of the response
+        lExtra := TJsonObject.Create;
+        lExtra.S['extra'] := 'some extra data';
+        ErrorInfo.Data := lExtra;
+        ExceptionHandled := true;
       end
       else if Exc is EDivByZero then
       begin

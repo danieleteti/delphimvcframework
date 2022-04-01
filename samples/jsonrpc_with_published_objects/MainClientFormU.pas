@@ -594,6 +594,8 @@ begin
   FExecutor.ClearHTTPHeaders;
   Assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
+
+  PageControl1.ActivePageIndex := 0;
 end;
 
 end.
