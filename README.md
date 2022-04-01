@@ -16,7 +16,7 @@
     - [Improvements](#improvements)
     - [Bug Fixes](#bug-fixes)
   - [Next Release: 3.2.2-nitrogen ("repo" version)](#next-release-322-nitrogen-repo-version)
-    - [Whet's new in 3.2.2-nitrogen (currently in beta)](#whets-new-in-322-nitrogen-currently-in-beta)
+    - [What's new in 3.2.2-nitrogen (currently in beta)](#whats-new-in-322-nitrogen-currently-in-beta)
     - [Bug Fixes in 3.2.2-nitrogen](#bug-fixes-in-322-nitrogen)
   - [Older Releases](#older-releases)
     - [What's New in 3.2.0-boron](#whats-new-in-320-boron)
