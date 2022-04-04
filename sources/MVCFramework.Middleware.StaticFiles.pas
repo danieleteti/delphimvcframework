@@ -58,7 +58,7 @@ type
     STATIC_FILES_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
   end;
 
-  TMVCStaticFileRulesProc = reference to procedure(const PathInfo: String; var Allow: Boolean);
+  TMVCStaticFileRulesProc = reference to procedure(var PathInfo: String; var Allow: Boolean);
 
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private

@@ -73,7 +73,7 @@ begin
     '/static2',
     TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'),
     'index.html',True,'UTF-8',
-      procedure(const PathInfo: String; var Allow: Boolean)
+      procedure(var PathInfo: String; var Allow: Boolean)
       begin
         // This rule disallow any .txt file
         Allow := not PathInfo.EndsWith('.txt', True);
