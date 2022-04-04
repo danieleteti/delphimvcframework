@@ -71,19 +71,25 @@ begin
 
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static2',
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'),
-    'index.html',True,'UTF-8',
-      procedure(var PathInfo: String; var Allow: Boolean)
-      begin
-        // This rule disallow any .txt file
-        Allow := not PathInfo.EndsWith('.txt', True);
-      end)
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'))
     );
 
-  // FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
-  // '/',
-  // TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'))
-  // );
+  FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
+    '/static3',
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www3'),
+      'index.html',True,'UTF-8',
+      procedure(const Context: TWebContext; var PathInfo: String; var Allow: Boolean)
+      begin
+        // This rule disallow any .txt file and translates file1.html into file2.html
+        Allow := not PathInfo.EndsWith('.txt', True);
+        if Allow and PathInfo.Contains('file1.html') then
+          PathInfo := PathInfo.Replace('file1.html','file2.html');
+        if not Allow then
+        begin
+          Context.Response.StatusCode := HTTP_STATUS.NotFound;
+        end;
+      end)
+    );
 
   // To enable compression (deflate, gzip) just add this middleware as the last one
   FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);

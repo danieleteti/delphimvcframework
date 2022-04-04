@@ -58,7 +58,7 @@ type
     STATIC_FILES_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
   end;
 
-  TMVCStaticFileRulesProc = reference to procedure(var PathInfo: String; var Allow: Boolean);
+  TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
 
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
@@ -242,10 +242,9 @@ begin
   if Assigned(fRules) then
   begin
     lAllow := True;
-    fRules(lPathInfo, lAllow);
+    fRules(AContext, lPathInfo, lAllow);
     if not lAllow then
     begin
-      AContext.Response.StatusCode := HTTP_STATUS.NotFound;
       AHandled := True;
       Exit;
     end;
