@@ -6,7 +6,8 @@ uses
   System.SysUtils,
   System.Classes,
   Web.HTTPApp,
-  MVCFramework;
+  MVCFramework,
+  MVCFramework.Logger;
 
 type
   TMyWebModule = class(TWebModule)
@@ -46,7 +47,6 @@ begin
       Config[TMVCConfigKey.DefaultContentCharset] := TMVCConstants.DEFAULT_CONTENT_CHARSET;
       // unhandled actions are permitted?
       Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
-      Config[TMVCConfigKey.AllowUnhandledAction] := 'false';
       // default view file extension
       Config[TMVCConfigKey.DefaultViewFileExtension] := 'html';
       // view path
@@ -71,7 +71,13 @@ begin
 
   FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
     '/static2',
-    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'))
+    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), 'www2'),
+    'index.html',True,'UTF-8',
+      procedure(const PathInfo: String; var Allow: Boolean)
+      begin
+        // This rule disallow any .txt file
+        Allow := not PathInfo.EndsWith('.txt', True);
+      end)
     );
 
   // FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(
