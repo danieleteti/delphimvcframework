@@ -733,6 +733,9 @@ begin
 end;
 
 function TMyObject.Equals(Obj: TMyObject): Boolean;
+var
+  lMyStr: string;
+  lOtherStr: string;
 begin
   Result := true;
   Result := Result and (Self.PropString = Obj.PropString);
@@ -750,6 +753,8 @@ begin
   Result := Result and (SecondsBetween(Self.PropDateTime, Obj.PropDateTime) = 0);
   Result := Result and (Self.PropTimeStamp.Date = Obj.PropTimeStamp.Date) and
     (Self.PropTimeStamp.Time = Obj.PropTimeStamp.Time);
+  lMyStr := Self.fPropJSONObject.ToJSON();
+  lOtherStr := Obj.PropJSONObject.ToJSON();
   Result := Result and (Self.fPropJSONObject.ToJSON() = Obj.PropJSONObject.ToJSON());
 end;
 

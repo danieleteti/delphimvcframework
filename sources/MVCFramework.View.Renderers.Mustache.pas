@@ -113,7 +113,6 @@ var
   lList: IMVCList;
   DataObj: TPair<string, TObject>;
   lDSPair: TPair<string, TDataSet>;
-  lJSONPair: TPair<string, TJSONObject>;
   lSJSON: string;
   lJSON: string;
   lSer: IMVCSerializer;

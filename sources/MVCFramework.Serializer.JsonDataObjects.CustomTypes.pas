@@ -173,8 +173,9 @@ uses
   System.Generics.Collections,
   MVCFramework.DataSet.Utils;
 
-procedure TMVCStreamSerializerJsonDataObject.DeserializeAttribute(var AElementValue: TValue;
-  const APropertyName: string; const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
+procedure TMVCStreamSerializerJsonDataObject.DeserializeAttribute(
+  var AElementValue: TValue; const APropertyName: string; const ASerializerObject: TObject;
+  const AAttributes: TArray<TCustomAttribute>);
 var
   lStream: TStream;
   SS: TStringStream;

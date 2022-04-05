@@ -232,6 +232,15 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/arrays')]
     procedure GetClassWithArrays;
+
+    // Enums
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/enums')]
+    procedure GetClassWithEnums;
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/enums')]
+    procedure EchoClassWithEnums;
   end;
 
 implementation
@@ -381,6 +390,16 @@ begin
   Render(Person, False);
 end;
 
+procedure TRenderSampleController.EchoClassWithEnums;
+var
+  lObj: TClassWithEnums;
+begin
+  lObj := Context.Request.BodyAs<TClassWithEnums>;
+  lObj.RGBSet := [ctBlue, ctGreen, ctRed];
+  lObj.EnumWithName := ctBlue;
+  Render(lObj, True);
+end;
+
 procedure TRenderSampleController.GetBinaryData(const filename: string);
 var
   lFilesFolder: string;
@@ -409,6 +428,19 @@ begin
   lClass.ArrayOfInt64 := [high(Int64), high(Int64) - 1, high(Int64) - 2];
   lClass.ArrayOfDouble := [1234.5678, 2345.6789, 3456.78901];
   Render(lClass);
+end;
+
+procedure TRenderSampleController.GetClassWithEnums;
+var
+  lObj: TClassWithEnums;
+begin
+  lObj := TClassWithEnums.Create;
+  lObj.RGBSet := [ctGreen, ctBlue];
+  lObj.EnumSimple := ctGreen;
+  lObj.EnumWithName := ctGreen;
+  lObj.EnumWithOrdValue := ctGreen;
+  lObj.EnumWithMappedValues := ctGreen;
+  Render(lObj);
 end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
@@ -850,34 +882,13 @@ end;
 
 procedure TRenderSampleController.GetPeople_AsObjectList;
 var
-  p: TPerson;
   People: TObjectList<TPerson>;
 begin
   People := TObjectList<TPerson>.Create(True);
+  People.Add(TPerson.GetNew('Daniele','Teti', EncodeDate(1979, 11, 4), True));
+  People.Add(TPerson.GetNew('John','Doe', EncodeDate(1879, 10, 2), False));
+  People.Add(TPerson.GetNew('Jane','Doe', EncodeDate(1883, 1, 5), True));
 
-{$REGION 'Fake data'}
-  p := TPerson.Create;
-  p.FirstName := 'Daniele';
-  p.LastName := 'Teti';
-  p.DOB := EncodeDate(1979, 11, 4);
-  p.Married := True;
-  People.Add(p);
-
-  p := TPerson.Create;
-  p.FirstName := 'John';
-  p.LastName := 'Doe';
-  p.DOB := EncodeDate(1879, 10, 2);
-  p.Married := False;
-  People.Add(p);
-
-  p := TPerson.Create;
-  p.FirstName := 'Jane';
-  p.LastName := 'Doe';
-  p.DOB := EncodeDate(1883, 1, 5);
-  p.Married := True;
-  People.Add(p);
-
-{$ENDREGION}
   { classic approach }
   //Render<TPerson>(HTTP_STATUS.OK, People, True);
   { new approach with ObjectDict }
