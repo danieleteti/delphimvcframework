@@ -56,9 +56,7 @@ DMVCFramework works with Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 R
 
 ## Support DMVCFramework
 
-Are you using DMVCFramework? Do you want to say "Thanks"? Become a Patreon!
-
-<a href="https://www.patreon.com/bePatron?u=72182967" data-patreon-widget-type="become-patron-button">Become a Patron!</a><script async src="https://c6.patreon.com/becomePatronButton.bundle.js"></script>
+Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.patreon.com/bePatron?u=72182967" data-patreon-widget-type="become-patron-button">Become a Patron!</a>
 
 ### DelphiMVCFramework Main Features
 
