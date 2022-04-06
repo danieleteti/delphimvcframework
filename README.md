@@ -53,6 +53,12 @@ DMVCFramework is a very popular Delphi framework which provides an easy to use, 
 
 DMVCFramework works with Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
+## Support DMVCFramework
+
+Are you using DMVCFramework? Do you want to say "Thanks"? Become a Patreon!
+
+<a href="https://www.patreon.com/bePatron?u=72182967" data-patreon-widget-type="become-patron-button">Become a Patron!</a><script async src="https://c6.patreon.com/becomePatronButton.bundle.js"></script>
+
 ### DelphiMVCFramework Main Features
 
   * DMVCFramwork is simple to use, has a [lot of examples](https://github.com/danieleteti/delphimvcframework/tree/master/samples), is documented and there are a [lot of tutorials](https://www.youtube.com/results?search_query=delphimvcframework) available.
@@ -534,9 +540,11 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
 
-- ⚡New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
+- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
 
-- ⚡New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
+- ⚡ New! Serialization and Deserialization for Pascal `set` (Thanks to [rshuck](https://github.com/rshuck) for his suggestions)
+
+- ⚡ New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
 
 - ✅ Improved! After a big refactoring (*"I love to delete code" -- cit. Daniele Teti*), support a new SQLGenerator is just 2 (two) methods away! Just as example, this is the current version of `TMVCSQLGeneratorPostgreSQL`
 
