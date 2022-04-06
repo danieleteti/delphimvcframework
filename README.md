@@ -5,6 +5,7 @@
 **Table of Contents**
 
   - [What's DelphiMVCFramework](#whats-delphimvcframework)
+  - [Support DMVCFramework](#support-dmvcframework)
     - [DelphiMVCFramework Main Features](#delphimvcframework-main-features)
   - [Install the latest stable version](#install-the-latest-stable-version)
   - [Book: "DelphiMVCFramework - the official guide"](#book-delphimvcframework---the-official-guide)
