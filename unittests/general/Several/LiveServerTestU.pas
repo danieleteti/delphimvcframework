@@ -90,6 +90,8 @@ type
     [Test]
     procedure TestCustomerEcho;
     [Test]
+    procedure TestCustomerEchoBodyFor;
+    [Test]
     procedure TestPOSTWithoutContentType;
     [Test]
     procedure TestXHTTPMethodOverride_POST_as_PUT;
@@ -288,6 +290,9 @@ type
     [Test]
     [Category('renders')]
     procedure TestIssue406;
+
+    [Test]
+    procedure TestIssue542;
 
   end;
 
@@ -825,6 +830,48 @@ begin
   end;
 end;
 
+procedure TServerTest.TestCustomerEchoBodyFor;
+var
+  r: IMVCRESTResponse;
+  lCustomer: TCustomer;
+  lSer: IMVCSerializer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    lCustomer.Name := 'bit Time Professionals';
+    lCustomer.ContactFirst := 'Daniele'; // transient
+    lCustomer.ContactLast := 'Teti'; // transient
+    lCustomer.AddressLine1 := 'Via Roma 10';
+    lCustomer.AddressLine2 := '00100, ROMA';
+    lCustomer.Logo.SetSize(100, 100);
+    lCustomer.Logo.Canvas.FillRect(Rect(0, 0, 100, 100));
+    lCustomer.Logo.Canvas.Font.Color := clRed;
+    lCustomer.Logo.Canvas.TextOut(10, 50, 'From Client');
+    lCustomer.Logo.SaveToFile('customer_logo_before_to_send.bmp');
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer);
+    r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON)
+      .Post('/customerechobodyfor', lSer.SerializeObject(lCustomer));
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TCustomer.Create;
+  try
+    lSer := GetDefaultSerializer;
+    RegisterOptionalCustomTypesSerializers(lSer);
+    lSer.DeserializeObject(r.Content, lCustomer);
+    Assert.areEqual('bit Time Professionals changed', lCustomer.Name);
+    Assert.areEqual('', lCustomer.ContactFirst);
+    Assert.areEqual('', lCustomer.ContactLast);
+    lCustomer.Logo.SaveToFile('customer_logo_after_received.bmp');
+    Assert.areEqual('9a4e150a92ecb68ad83e8ead27026dcc',
+      THashMD5.GetHashStringFromFile('customer_logo_after_received.bmp'));
+  finally
+    lCustomer.Free;
+  end;
+end;
+
 procedure TServerTest.TestCustomAuthLoginLogout;
 var
   lRes: IMVCRESTResponse;
@@ -1283,6 +1330,79 @@ begin
   r := RESTClient.Accept(TMVCMediaType.APPLICATION_JSON).Get('/issues/406');
   Assert.areEqual(422, r.StatusCode);
   Assert.areEqual('{"message":"The Message"}', r.Content, r.Content);
+end;
+
+procedure TServerTest.TestIssue542;
+var
+  lRes: IMVCRESTResponse;
+  lJSON: TJsonObject;
+begin
+  lRes := RESTClient.Get('/issues/542?par1&par2');
+  lJSON := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('par1=,par2=', lJSON.S['QueryStringParams_DelimitedText']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par1'] = jdtString);
+    Assert.AreEqual('', lJSON.S['QueryStringParam_par1']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par2'] = jdtString);
+    Assert.AreEqual('', lJSON.S['QueryStringParam_par2']);
+
+    Assert.AreEqual(2, lJSON.I['QueryParams_Count']);
+    Assert.AreEqual('', lJSON.S['QueryParams_par1']);
+    Assert.AreEqual('', lJSON.S['QueryParams_par2']);
+  finally
+    lJSON.Free;
+  end;
+
+  lRes := RESTClient.Get('/issues/542?par1=123&par2');
+  lJSON := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('par1=123,par2=', lJSON.S['QueryStringParams_DelimitedText']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par1'] = jdtString);
+    Assert.AreEqual('123', lJSON.S['QueryStringParam_par1']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par2'] = jdtString);
+    Assert.AreEqual('', lJSON.S['QueryStringParam_par2']);
+
+    Assert.AreEqual(2, lJSON.I['QueryParams_Count']);
+    Assert.AreEqual('123', lJSON.S['QueryParams_par1']);
+    Assert.AreEqual('', lJSON.S['QueryParams_par2']);
+
+  finally
+    lJSON.Free;
+  end;
+
+  lRes := RESTClient.Get('/issues/542?par1=123&par2=234');
+  lJSON := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('par1=123,par2=234', lJSON.S['QueryStringParams_DelimitedText']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par1'] = jdtString);
+    Assert.AreEqual('123', lJSON.S['QueryStringParam_par1']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par2'] = jdtString);
+    Assert.AreEqual('234', lJSON.S['QueryStringParam_par2']);
+
+    Assert.AreEqual(2, lJSON.I['QueryParams_Count']);
+    Assert.AreEqual('123', lJSON.S['QueryParams_par1']);
+    Assert.AreEqual('234', lJSON.S['QueryParams_par2']);
+
+  finally
+    lJSON.Free;
+  end;
+
+  lRes := RESTClient.Get('/issues/542?par1&par2=234');
+  lJSON := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('par1=,par2=234', lJSON.S['QueryStringParams_DelimitedText']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par1'] = jdtString);
+    Assert.AreEqual('', lJSON.S['QueryStringParam_par1']);
+    Assert.IsTrue(lJSON.Types['QueryStringParam_par2'] = jdtString);
+    Assert.AreEqual('234', lJSON.S['QueryStringParam_par2']);
+
+    Assert.AreEqual(2, lJSON.I['QueryParams_Count']);
+    Assert.AreEqual('', lJSON.S['QueryParams_par1']);
+    Assert.AreEqual('234', lJSON.S['QueryParams_par2']);
+
+  finally
+    lJSON.Free;
+  end;
 end;
 
 procedure TServerTest.TestMiddlewareHandler;
@@ -2277,7 +2397,7 @@ begin
   lValues[3] := '"daniele teti"';
   lValues[4] := '"daniele" "teti"';
   lValues[5] := '"daniele" "teti"!';
-  lValues[6] := ' _\"daniele" "teti"!_ ';
+  lValues[6] := ' _\"daniele" "teti"!_';
 
   for S in lValues do
   begin
@@ -2285,31 +2405,6 @@ begin
     Assert.areEqual(HTTP_STATUS.OK, res.StatusCode, 'Cannot route when param is [' + S + ']');
     Assert.areEqual('*' + S + '*', res.Content);
   end;
-
-  // res := RESTClient.doGET('/typed/string1/daniele', []);
-  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('daniele modified from server', res.BodyAsString);
-  //
-  // res := RESTClient.doGET('/typed/string1/dan''iele', []);
-  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('dan''iele modified from server', res.BodyAsString);
-  //
-  // res := RESTClient.doGET('/typed/string1/"the value"', []);
-  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
-  //
-  // res := RESTClient.doGET('/typed/string1/"the:value"', []);
-  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
-  //
-  // res := RESTClient.doGET('/typed/string1/"the:value!"', []);
-  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
-  //
-  // res := RESTClient.doGET('/typed/string1/"the:value!?"', []);
-  // Assert.isTrue(res.ResponseCode = HTTP_STATUS.OK, 'Cannot route');
-  // Assert.areEqual('"the value" modified from server', res.BodyAsString);
-
 end;
 
 procedure TServerTest.TestTypedTGuid1;

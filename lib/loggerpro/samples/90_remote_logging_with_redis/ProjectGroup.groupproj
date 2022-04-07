@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{1ADC8EA7-9CB7-4B06-9321-E5463936369D}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="RemoteRedisAppenderSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="redis_logs_viewer\RedisLogsViewer.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="RemoteRedisAppenderSample">
+        <MSBuild Projects="RemoteRedisAppenderSample.dproj"/>
+    </Target>
+    <Target Name="RemoteRedisAppenderSample:Clean">
+        <MSBuild Projects="RemoteRedisAppenderSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RemoteRedisAppenderSample:Make">
+        <MSBuild Projects="RemoteRedisAppenderSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="RedisLogsViewer">
+        <MSBuild Projects="redis_logs_viewer\RedisLogsViewer.dproj"/>
+    </Target>
+    <Target Name="RedisLogsViewer:Clean">
+        <MSBuild Projects="redis_logs_viewer\RedisLogsViewer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="RedisLogsViewer:Make">
+        <MSBuild Projects="redis_logs_viewer\RedisLogsViewer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="RemoteRedisAppenderSample;RedisLogsViewer"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="RemoteRedisAppenderSample:Clean;RedisLogsViewer:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="RemoteRedisAppenderSample:Make;RedisLogsViewer:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

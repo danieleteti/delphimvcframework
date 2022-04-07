@@ -114,6 +114,8 @@ type
     [Test]
     procedure TestSerializeDeSerializeEntityWithEnums;
     [Test]
+    procedure TestSerializeDeSerializeEntityWithSet;
+    [Test]
     procedure TestStringDictionary;
     [Test]
     procedure TestSerializeDeserializeGuid;
@@ -1506,6 +1508,65 @@ begin
   Assert.areEqual('João Antônio Duarte', LEntity.Name);
   Assert.areEqual(Integer(10), LEntity.ChildEntity.Code);
   Assert.areEqual('Child Entity', LEntity.ChildEntity.Description);
+end;
+
+procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeSerializeEntityWithSet;
+const
+  O1 = '{"MonthsSet":"meJanuary,meMarch","ColorsSet":""}';
+  O2 = '{"MonthsSet":"","ColorsSet":"RED"}';
+  O3 = '{"MonthsSet":"meJanuary,meFebruary,meMarch","ColorsSet":"RED,GREEN,BLUE"}';
+var
+  O: TEntityWithSets;
+  S: string;
+  OClone: TEntityWithSets;
+begin
+  O := TEntityWithSets.Create;
+  try
+    O.MonthsSet := [meJanuary, meMarch];
+    O.ColorsSet := [];
+    S := fSerializer.SerializeObject(O);
+    Assert.AreEqual(O1, S);
+    OClone := TEntityWithSets.Create;
+    try
+      fSerializer.DeserializeObject(S, OClone);
+      Assert.IsTrue(OClone.MonthsSet = [meJanuary,meMarch]);
+      Assert.IsTrue(OClone.ColorsSet = []);
+    finally
+      OClone.Free;
+    end;
+
+    ////////
+    O.MonthsSet := [];
+    O.ColorsSet := [TColorEnum.RED];
+    S := fSerializer.SerializeObject(O);
+    Assert.AreEqual(O2, S);
+    OClone := TEntityWithSets.Create;
+    try
+      fSerializer.DeserializeObject(S, OClone);
+      Assert.IsTrue(OClone.MonthsSet = []);
+      Assert.IsTrue(OClone.ColorsSet = [RED]);
+    finally
+      OClone.Free;
+    end;
+
+
+    ///////
+    O.MonthsSet := [meJanuary, meMarch, meFebruary];
+    O.ColorsSet := [TColorEnum.RED, TColorEnum.GREEN, TColorEnum.BLUE];
+    S := fSerializer.SerializeObject(O);
+    Assert.AreEqual(O3, S);
+
+    OClone := TEntityWithSets.Create;
+    try
+      fSerializer.DeserializeObject(S, OClone);
+      Assert.IsTrue(OClone.MonthsSet = [meJanuary, meFebruary, meMarch]);
+      Assert.IsTrue(OClone.ColorsSet = [RED, GREEN, BLUE]);
+    finally
+      OClone.Free;
+    end;
+  finally
+    O.Free;
+  end;
 end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGenericEntity;

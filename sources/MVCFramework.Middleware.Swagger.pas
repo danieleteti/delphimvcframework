@@ -50,6 +50,7 @@ type
     fEnableBasicAuthentication: Boolean;
     fHost: string;
     fBasePath: string;
+    fPathFilter: string;
     procedure DocumentApiInfo(const ASwagDoc: TSwagDoc);
     procedure DocumentApiSettings(AContext: TWebContext; ASwagDoc: TSwagDoc);
     procedure DocumentApiAuthentication(const ASwagDoc: TSwagDoc);
@@ -59,7 +60,9 @@ type
   public
     constructor Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
       const ASwaggerDocumentationURL: string = '/swagger.json'; const AJWTDescription: string = JWT_DEFAULT_DESCRIPTION;
-      const AEnableBasicAuthentication: Boolean = False; const AHost: string = ''; const ABasePath: string = '');
+      const AEnableBasicAuthentication: Boolean = False;
+      const AHost: string = ''; const ABasePath: string = '';
+      const APathFilter: String = '');
     destructor Destroy; override;
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
@@ -85,13 +88,16 @@ uses
   Swag.Doc.SecurityDefinitionBasic,
   Swag.Doc.Definition,
   System.Generics.Collections,
-  System.Generics.Defaults, System.TypInfo;
+  System.Generics.Defaults, 
+  System.TypInfo,
+  Json.Common.Helpers;
 
 { TMVCSwaggerMiddleware }
 
 constructor TMVCSwaggerMiddleware.Create(const AEngine: TMVCEngine; const ASwaggerInfo: TMVCSwaggerInfo;
   const ASwaggerDocumentationURL, AJWTDescription: string; const AEnableBasicAuthentication: Boolean;
-  const AHost, ABasePath: string);
+  const AHost, ABasePath: string;
+  const APathFilter: String);
 begin
   inherited Create;
   fSwagDocURL := ASwaggerDocumentationURL;
@@ -101,6 +107,7 @@ begin
   fEnableBasicAuthentication := AEnableBasicAuthentication;
   fHost := AHost;
   fBasePath := ABasePath;
+  fPathFilter := APathFilter;
 end;
 
 destructor TMVCSwaggerMiddleware.Destroy;
@@ -154,8 +161,8 @@ begin
           end;
           if lAttr is MVCPathAttribute then
           begin
-            lPathAttributeFound := True;
             lControllerPath := MVCPathAttribute(lAttr).Path;
+            lPathAttributeFound := fPathFilter.IsEmpty or lControllerPath.StartsWith(fPathFilter);
           end;
           if lAttr is MVCSWAGDefaultModel then
           begin
@@ -425,7 +432,7 @@ begin
       SortApiPaths(LSwagDoc);
 
       LSwagDoc.GenerateSwaggerJson;
-      InternalRender(LSwagDoc.SwaggerJson.ToJSON, AContext);
+      InternalRender(LSwagDoc.SwaggerJson.Format, AContext);
       AHandled := True;
 
     finally

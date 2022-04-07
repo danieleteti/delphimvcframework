@@ -238,11 +238,16 @@ type
   private
     FCode: Integer;
     FMessage: string;
+    FData: TValue;
     procedure SetCode(const Value: Integer);
     procedure SetMessage(const Value: string);
+    procedure SetData(const Value: TValue);
   public
+    constructor Create; virtual;
+    destructor Destroy; override;
     property Code: Integer read FCode write SetCode;
     property ErrMessage: string read FMessage write SetMessage;
+    property Data: TValue read fData write SetData;
   end;
 
   IJSONRPCResponse = interface(IJSONRPCObject)
@@ -318,17 +323,34 @@ type
 
   end;
 
+  EMVCJSONRPCRemoteException = class(EMVCJSONRPCException)
+  private
+    fErrData: TValue;
+    fErrCode: Integer;
+    fErrMessage: String;
+  public
+    constructor Create(const ErrCode: Integer; const ErrMessage: String; const ErrData: TValue); overload;
+    constructor Create(const ErrCode: Integer; const ErrMessage: String); overload;
+    property Data: TValue read fErrData;
+    property ErrCode: Integer read fErrCode;
+    property ErrMessage: String read fErrMessage;
+  end;
+
+
   EMVCJSONRPCErrorResponse = class abstract(Exception)
   protected
     fJSONRPCErrorCode: Integer;
+    fJSONRPCErrorData: TValue;
   public
     property JSONRPCErrorCode: Integer read fJSONRPCErrorCode;
+    property JSONRPCErrorData: TValue read fJSONRPCErrorData;
   end;
 
   EMVCJSONRPCError = class(EMVCJSONRPCErrorResponse)
   public
-    constructor Create(const ErrCode: Integer; const Msg: string);
-    constructor CreateFmt(const ErrCode: Integer; const Msg: string; const Args: array of const);
+    constructor Create(const ErrCode: Integer; const ErrMsg: string); overload;
+    constructor Create(const ErrCode: Integer; const ErrMsg: string; const Data: TValue); overload;
+    constructor CreateFmt(const ErrCode: Integer; const ErrMsg: string; const Args: array of const);
   end;
 
   EMVCJSONRPCParseError = class(EMVCJSONRPCErrorResponse)
@@ -372,6 +394,7 @@ type
 
   TMVCJSONRPCController = class(TMVCController)
   private
+    fExceptionHandler: TMVCJSONRPCExceptionHandlerProc;
     fSerializer: TMVCJsonDataObjectsSerializer;
     fRPCInstance: TObject;
     fOwsRPCInstance: Boolean;
@@ -379,7 +402,10 @@ type
     function GetDeclaredMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
     function GetInheritedMethod(lMethod: string; lRTTIType: TRttiType): TRTTIMethod;
   protected
-    function CreateError(const RequestID: TValue; const ErrorCode: Integer; const Message: string): TJDOJsonObject;
+    function CreateError(const RequestID: TValue; const ErrorCode: Integer;
+      const Message: string): TJDOJsonObject; overload;
+    function CreateError(const RequestID: TValue; const ErrorCode: Integer;
+      const Message: string; const Data: TValue): TJDOJsonObject; overload;
     function CreateResponse(const RequestID: TValue; const Value: TValue): TJSONRPCResponse;
     function CreateRequest(const JSON: TJDOJsonObject): IJSONRPCRequest;
     function JSONObjectAs<T: class, constructor>(const JSON: TJDOJsonObject): T;
@@ -408,7 +434,8 @@ type
 
   TMVCJSONRPCPublisher = class(TMVCJSONRPCController)
   public
-    constructor Create(const RPCInstance: TObject; const Owns: Boolean = True); reintroduce; overload;
+    constructor Create(const RPCInstance: TObject; const Owns: Boolean = True; ExceptionHandler: TMVCJSONRPCExceptionHandlerProc = nil);
+        reintroduce; overload;
   end;
 
   TJSONRPCProxyGenerator = class abstract
@@ -821,11 +848,13 @@ end;
 
 { TMVCJSONRPCController }
 
-constructor TMVCJSONRPCPublisher.Create(const RPCInstance: TObject; const Owns: Boolean);
+constructor TMVCJSONRPCPublisher.Create(const RPCInstance: TObject; const Owns: Boolean = True; ExceptionHandler:
+    TMVCJSONRPCExceptionHandlerProc = nil);
 begin
   inherited Create;
   fRPCInstance := RPCInstance;
   fOwsRPCInstance := Owns;
+  fExceptionHandler := ExceptionHandler;
 end;
 
 // procedure TMVCJSONRPCController.CheckInputParametersTypes(aRTTIMethod: TRTTIMethod);
@@ -862,6 +891,12 @@ end;
 
 function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const Message: string)
   : TJDOJsonObject;
+begin
+  Result := CreateError(RequestID, ErrorCode, Message, TValue.Empty);
+end;
+
+function TMVCJSONRPCController.CreateError(const RequestID: TValue; const ErrorCode: Integer; const Message: string; const Data: TValue)
+  : TJDOJsonObject;
 var
   lErrResp: TJSONRPCResponse;
 begin
@@ -871,11 +906,16 @@ begin
     lErrResp.Error := TJSONRPCResponseError.Create;
     lErrResp.Error.Code := ErrorCode;
     lErrResp.Error.ErrMessage := message;
+    if not Data.IsEmpty then
+    begin
+      lErrResp.Error.Data := Data;
+    end;
     Result := lErrResp.AsJSON;
   finally
     lErrResp.Free;
   end;
 end;
+
 
 function TMVCJSONRPCController.CreateRequest(const JSON: TJDOJsonObject): IJSONRPCRequest;
 var
@@ -1147,6 +1187,8 @@ var
   lTypeAttrs: TArray<TCustomAttribute>;
   lHTTPVerb: TMVCHTTPMethodType;
   lAllMethodsCallableWithGET: Boolean;
+  lExceptionHandled: Boolean;
+  lJSONRespErrorInfo: TMVCJSONRPCExceptionErrorInfo;
 begin
   lBeforeCallHookHasBeenInvoked := False;
   lAfterCallHookHasBeenInvoked := False;
@@ -1340,16 +1382,46 @@ begin
           JSONRPC_ERR_SERVER_ERROR_LOWERBOUND .. JSONRPC_ERR_SERVER_ERROR_UPPERBOUND:
             ResponseStatus(500);
         end;
-        lJSONResp := CreateError(lReqID, E.JSONRPCErrorCode, E.Message);
+        lJSONResp := CreateError(lReqID, E.JSONRPCErrorCode, E.Message, E.JSONRPCErrorData);
         LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode, E.Message]));
       end;
       on Ex: Exception do // use another name for exception variable, otherwise E is nil!!
       begin
-        lJSONResp := CreateError(lReqID, 0, Ex.Message);
+        //lJSONResp := CreateError(lReqID, 0, Ex.Message);
         LogE(Format('[JSON-RPC][CLS %s][MSG "%s"]', [Ex.ClassName, Ex.Message]));
+        if Assigned(fExceptionHandler) then
+        begin
+          lExceptionHandled := False;
+          lJSONRespErrorInfo.Code := 0;
+          lJSONRespErrorInfo.Msg := Ex.Message;
+          lJSONRespErrorInfo.Data := nil;
+          fExceptionHandler(Ex, Context, lJSONRespErrorInfo,  lExceptionHandled);
+          try
+            if not lExceptionHandled then
+            begin
+              lJSONResp := CreateError(lReqID, 0, Ex.Message);
+            end
+            else
+            begin
+              lJSONResp := CreateError(lReqID, lJSONRespErrorInfo.Code,
+                lJSONRespErrorInfo.Msg, lJSONRespErrorInfo.Data);
+            end;
+          finally
+            if not lExceptionHandled and not lJSONRespErrorInfo.Data.IsEmpty then
+            begin
+              if lJSONRespErrorInfo.Data.IsObjectInstance then
+              begin
+                 lJSONRespErrorInfo.Data.AsObject.Free;
+              end;
+            end;
+          end;
+        end
+        else
+        begin
+          lJSONResp := CreateError(lReqID, 0, Ex.Message);
+        end;
       end;
     end; // except
-
     if lBeforeCallHookHasBeenInvoked and (not lAfterCallHookHasBeenInvoked) then
     begin
       try
@@ -1772,6 +1844,10 @@ begin
     begin
       Result.O[JSONRPC_ERROR].I[JSONRPC_CODE] := FError.Code;
       Result.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE] := FError.ErrMessage;
+      if not FError.Data.IsEmpty then
+      begin
+        TValueToJSONObjectProperty(FError.Data, Result.O[JSONRPC_ERROR], JSONRPC_DATA);
+      end;
     end
     else
     begin
@@ -1848,6 +1924,14 @@ begin
       FError := TJSONRPCResponseError.Create;
       FError.Code := JSON.O[JSONRPC_ERROR].I[JSONRPC_CODE];
       FError.ErrMessage := JSON.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE];
+      if JSON.O[JSONRPC_ERROR].Contains(JSONRPC_DATA) then
+      begin
+        try
+          FError.Data := JSONDataValueToTValue(JSON.O[JSONRPC_ERROR].Path[JSONRPC_DATA]);
+        except
+          FError.Data := JSON.O[JSONRPC_ERROR].Path[JSONRPC_DATA].Value;
+        end;
+      end;
     end
     else
     begin
@@ -1927,9 +2011,39 @@ end;
 
 { TJSONRPCResponseError }
 
+constructor TJSONRPCResponseError.Create;
+begin
+  inherited;
+  FData := TValue.Empty;
+end;
+
+destructor TJSONRPCResponseError.Destroy;
+begin
+  if not FData.IsEmpty then
+  begin
+    if FData.IsObjectInstance then
+    begin
+      FData.AsObject.Free;
+    end;
+  end;
+  inherited;
+end;
+
 procedure TJSONRPCResponseError.SetCode(const Value: Integer);
 begin
   FCode := Value;
+end;
+
+procedure TJSONRPCResponseError.SetData(const Value: TValue);
+begin
+  if not FData.IsEmpty then
+  begin
+    if FData.IsObjectInstance then
+    begin
+      FData.AsObject.Free;
+    end;
+  end;
+  fData := Value;
 end;
 
 procedure TJSONRPCResponseError.SetMessage(const Value: string);
@@ -2182,9 +2296,9 @@ end;
 
 { EMVCJSONRPCException }
 
-constructor EMVCJSONRPCError.Create(const ErrCode: Integer; const Msg: string);
+constructor EMVCJSONRPCError.Create(const ErrCode: Integer; const ErrMsg: string);
 begin
-  inherited Create(Msg);
+  inherited Create(ErrMsg);
   fJSONRPCErrorCode := ErrCode;
 end;
 
@@ -2268,10 +2382,32 @@ begin
   Result := '';
 end;
 
-constructor EMVCJSONRPCError.CreateFmt(const ErrCode: Integer; const Msg: string; const Args: array of const);
+constructor EMVCJSONRPCError.Create(const ErrCode: Integer; const ErrMsg: string; const Data: TValue);
 begin
-  inherited CreateFmt(Msg, Args);
+  Create(ErrCode, ErrMsg);
+  fJSONRPCErrorData := Data;
+end;
+
+constructor EMVCJSONRPCError.CreateFmt(const ErrCode: Integer; const ErrMsg: string; const Args: array of const);
+begin
+  inherited CreateFmt(ErrMsg, Args);
   fJSONRPCErrorCode := ErrCode;
+end;
+
+{ EMVCJSONRPCRemoteException }
+
+constructor EMVCJSONRPCRemoteException.Create(const ErrCode: Integer; const ErrMessage: String);
+begin
+  Create(ErrCode, ErrMessage);
+end;
+
+constructor EMVCJSONRPCRemoteException.Create(const ErrCode: Integer; const ErrMessage: String;
+  const ErrData: TValue);
+begin
+  inherited Create(Format('[REMOTE EXCEPTION][CODE: %d] %s', [ErrCode, ErrMessage]));
+  fErrData := ErrData;
+  fErrCode := ErrCode;
+  fErrMessage := ErrMessage;
 end;
 
 initialization

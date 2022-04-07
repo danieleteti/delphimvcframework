@@ -145,6 +145,12 @@ type
     [MVCProduces('application/json')]
     procedure TestCustomerEcho;
 
+    [MVCPath('/customerechobodyfor')]
+    [MVCHTTPMethod([httpPOST])]
+    [MVCProduces('application/json')]
+    procedure TestCustomerEchoBodyFor;
+
+
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
     procedure TestHelloWorld;
@@ -264,6 +270,10 @@ type
     [MVCPath('/issue492/($stringvalue)')]
     procedure GetIssue492;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issue542/($stringvalue)')]
+    procedure GetIssue542;
+
     { injectable parameters }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/injectable10')]
@@ -330,6 +340,10 @@ type
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/issues/526')]
     procedure TestIssue526;
+
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issues/542')]
+    procedure TestIssue542;
   end;
 
   [MVCPath('/private')]
@@ -522,6 +536,11 @@ begin
   // do nothing
 end;
 
+procedure TTestServerController.GetIssue542;
+begin
+  // do nothing
+end;
+
 procedure TTestServerController.GetProject;
 begin
   // do nothing
@@ -540,7 +559,7 @@ procedure TTestServerController.Logout;
 begin
   if not Context.SessionStarted then
     raise EMVCException.Create('Session not available');
-  Context.SessionStop(false);
+  Context.SessionStop;
   if Context.SessionStarted then
     raise EMVCException.Create('Session still available');
 end;
@@ -637,6 +656,24 @@ begin
 {$ENDIF}
   // lCustomer.Logo.SaveToFile('pippo_server_after.bmp');
   Render(lCustomer, True);
+end;
+
+procedure TTestServerController.TestCustomerEchoBodyFor;
+var
+  lCustomer: TCustomer;
+begin
+  lCustomer := TCustomer.Create;
+  try
+    Context.Request.BodyFor<TCustomer>(lCustomer);
+    // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
+    lCustomer.Name := lCustomer.Name + ' changed';
+  {$IFNDEF LINUX}
+    //lCustomer.Logo.Canvas.TextOut(10, 10, 'Changed');
+  {$ENDIF}
+    Render(lCustomer, False);
+  finally
+    lCustomer.Free;
+  end;
 end;
 
 procedure TTestServerController.TestDeserializeAndSerializeNullables;
@@ -803,6 +840,24 @@ begin
   ContentType := 'application/fhir+xml; fhirVersion=4.0';
   ResponseStream.Append('OK');
   RenderResponseStream;
+end;
+
+procedure TTestServerController.TestIssue542;
+var
+  lJSON: TJDOJSONObject;
+begin
+  lJSON := TJDOJSONObject.Create;
+  try
+    lJSON.S['QueryStringParams_DelimitedText'] := Context.Request.QueryStringParams.DelimitedText;
+    lJSON.S['QueryStringParam_par1'] := Context.Request.QueryStringParam('par1');
+    lJSON.S['QueryStringParam_par2'] := Context.Request.QueryStringParam('par2');
+    lJSON.I['QueryParams_Count'] := Context.Request.QueryParams.Count;
+    lJSON.S['QueryParams_par1'] := Context.Request.QueryParams['par1'];
+    lJSON.S['QueryParams_par2'] := Context.Request.QueryParams['par2'];
+    Render(lJSON, False);
+  finally
+    lJSON.Free;
+  end;
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;

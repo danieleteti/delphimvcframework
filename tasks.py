@@ -12,7 +12,7 @@ from pathlib import Path
 
 init()
 
-DEFAULT_DELPHI_VERSION = "11"
+DEFAULT_DELPHI_VERSION = "11.1"
 
 g_releases_path = "releases"
 g_output = "bin"
@@ -44,12 +44,13 @@ def build_delphi_project(
     delphi_version=DEFAULT_DELPHI_VERSION,
 ):
     delphi_versions = {
-        "10":   {"path": "17.0", "desc": "Delphi 10 Seattle"},
+        "10": {"path": "17.0", "desc": "Delphi 10 Seattle"},
         "10.1": {"path": "18.0", "desc": "Delphi 10.1 Berlin"},
         "10.2": {"path": "19.0", "desc": "Delphi 10.2 Tokyo"},
         "10.3": {"path": "20.0", "desc": "Delphi 10.3 Rio"},
         "10.4": {"path": "21.0", "desc": "Delphi 10.4 Sydney"},
-        "11":   {"path": "22.0", "desc": "Delphi 11 Alexandria"}
+        "11": {"path": "22.0", "desc": "Delphi 11 Alexandria"},
+        "11.1": {"path": "22.0", "desc": "Delphi 11.1 Alexandria"},
     }
 
     assert delphi_version in delphi_versions, (
@@ -306,7 +307,7 @@ def tests(ctx, delphi_version=DEFAULT_DELPHI_VERSION):
     import subprocess
 
     print("\nExecuting tests...")
-    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"])
+    subprocess.Popen([r"unittests\general\TestServer\bin\TestServer.exe"], shell=True)
     r = subprocess.run([r"unittests\general\Several\bin\DMVCFrameworkTests.exe"])
     if r.returncode != 0:
         return Exit("Compilation failed: \n" + str(r.stdout))
@@ -448,12 +449,3 @@ def generate_nullables(ctx):
 
     with open(src_folder.joinpath("implementation.out.txt"), "w") as f:
         f.writelines(impl_tmpl)
-
-
-@task()
-def pippo(ctx):
-    r = ctx.run("cmd.exe /c dsir", hide=True, warn=True)
-    if r.failed:
-        print(r.stderr)
-    else:
-        print(r.stdout)

@@ -226,6 +226,17 @@ type
 
   TColorEnum = (RED, GREEN, BLUE);
   TMonthEnum = (meJanuary, meFebruary, meMarch, meApril);
+  TMonths = set of TMonthEnum;
+  TColors = set of TColorEnum;
+
+  TEntityWithSets = class
+  private
+    fMonthsSet: TMonths;
+    fColorsSet: TColors;
+  public
+    property MonthsSet: TMonths read fMonthsSet write fMonthsSet;
+    property ColorsSet: TColors read fColorsSet write fColorsSet;
+  end;
 
   TEntityWithEnums = class
   private

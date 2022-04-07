@@ -10,16 +10,14 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object PageControl1: TPageControl
     Left = 0
     Top = 0
     Width = 842
     Height = 604
-    ActivePage = TabSheet1
+    ActivePage = TabSheet5
     Align = alClient
     TabOrder = 0
     object TabSheet1: TTabSheet
@@ -239,6 +237,24 @@ object MainForm: TMainForm
           ReadOnly = True
           TabOrder = 20
         end
+        object btnGenericException: TButton
+          Left = 464
+          Top = 127
+          Width = 156
+          Height = 32
+          Caption = 'Raise Generic Exception'
+          TabOrder = 21
+          OnClick = btnGenericExceptionClick
+        end
+        object btnException: TButton
+          Left = 626
+          Top = 127
+          Width = 170
+          Height = 32
+          Caption = 'Raise Custom Exception'
+          TabOrder = 22
+          OnClick = btnExceptionClick
+        end
       end
       object GroupBox2: TGroupBox
         Left = 3
@@ -450,15 +466,63 @@ object MainForm: TMainForm
         end
       end
     end
-  end
-  object btnException: TButton
-    Left = 633
-    Top = 173
-    Width = 170
-    Height = 32
-    Caption = 'Raise Custom Exception'
-    TabOrder = 1
-    OnClick = btnExceptionClick
+    object TabSheet5: TTabSheet
+      Caption = 'Custom Exceptions Handling'
+      ImageIndex = 2
+      object Label1: TLabel
+        AlignWithMargins = True
+        Left = 3
+        Top = 3
+        Width = 828
+        Height = 69
+        Align = alTop
+        Caption = 
+          'If an exception raised by the serve doesn'#39't inherith from EMVCJS' +
+          'ONRPCErrorResponse can be handled by a custom global exception b' +
+          'lock. This custom handling can modify error code, error message ' +
+          'and can add a custom data property to the exception.'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -19
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        WordWrap = True
+        ExplicitWidth = 808
+      end
+      object btnGenericExcWithCustomHandling: TButton
+        Left = 0
+        Top = 103
+        Width = 217
+        Height = 82
+        Caption = 'Raise Generic Exception with custom handling (DATA is a String)'
+        TabOrder = 0
+        WordWrap = True
+        OnClick = btnGenericExcWithCustomHandlingClick
+      end
+      object btnGenericExcWithCustomHAndling2: TButton
+        Left = 223
+        Top = 103
+        Width = 217
+        Height = 82
+        Caption = 
+          'Raise Generic Exception with custom handling (DATA is a JSONObje' +
+          'ct)'
+        TabOrder = 1
+        WordWrap = True
+        OnClick = btnGenericExcWithCustomHAndling2Click
+      end
+      object btnGenericExcWithoutCustomHandling: TButton
+        Left = 446
+        Top = 103
+        Width = 217
+        Height = 82
+        Caption = 'Raise Generic Exception without custom handling'
+        TabOrder = 2
+        WordWrap = True
+        OnClick = btnGenericExcWithoutCustomHandlingClick
+      end
+    end
   end
   object DataSource1: TDataSource
     DataSet = FDMemTable1

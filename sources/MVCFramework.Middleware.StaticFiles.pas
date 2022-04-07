@@ -58,6 +58,8 @@ type
     STATIC_FILES_CONTENT_CHARSET = TMVCConstants.DEFAULT_CONTENT_CHARSET;
   end;
 
+  TMVCStaticFileRulesProc = reference to procedure(const Context: TWebContext; var PathInfo: String; var Handled: Boolean);
+
   TMVCStaticFilesMiddleware = class(TInterfacedObject, IMVCMiddleware)
   private
     fSanityCheckOK: Boolean;
@@ -67,6 +69,7 @@ type
     fIndexDocument: string;
     fStaticFilesCharset: string;
     fSPAWebAppSupport: Boolean;
+    fRules: TMVCStaticFileRulesProc;
     procedure AddMediaTypes;
     // function IsStaticFileRequest(const APathInfo: string; out AFileName: string;
     // out AIsDirectoryTraversalAttach: Boolean): Boolean;
@@ -78,7 +81,8 @@ type
       const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
       const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
       const ASPAWebAppSupport: Boolean = True;
-      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
+      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
+      const ARules: TMVCStaticFileRulesProc = nil);
     destructor Destroy; override;
 
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean);
@@ -123,11 +127,12 @@ begin
 end;
 
 constructor TMVCStaticFilesMiddleware.Create(
-  const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
-  const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
-  const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
-  const ASPAWebAppSupport: Boolean = True;
-  const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET);
+      const AStaticFilesPath: string = TMVCStaticFilesDefaults.STATIC_FILES_PATH;
+      const ADocumentRoot: string = TMVCStaticFilesDefaults.DOCUMENT_ROOT;
+      const AIndexDocument: string = TMVCStaticFilesDefaults.INDEX_DOCUMENT;
+      const ASPAWebAppSupport: Boolean = True;
+      const AStaticFilesCharset: string = TMVCStaticFilesDefaults.STATIC_FILES_CONTENT_CHARSET;
+      const ARules: TMVCStaticFileRulesProc = nil);
 begin
   inherited Create;
   fSanityCheckOK := False;
@@ -147,6 +152,7 @@ begin
   fStaticFilesCharset := AStaticFilesCharset;
   fSPAWebAppSupport := ASPAWebAppSupport;
   fMediaTypes := TDictionary<string, string>.Create;
+  fRules := ARules;
   AddMediaTypes;
 end;
 
@@ -205,6 +211,7 @@ var
   lIsDirectoryTraversalAttach: Boolean;
   lFullPathInfo: string;
   lRealFileName: string;
+  lAllow: Boolean;
 begin
   if not fSanityCheckOK then
   begin
@@ -228,6 +235,17 @@ begin
     else
     begin
       AHandled := False;
+      Exit;
+    end;
+  end;
+
+  if Assigned(fRules) then
+  begin
+    lAllow := True;
+    fRules(AContext, lPathInfo, lAllow);
+    if not lAllow then
+    begin
+      AHandled := True;
       Exit;
     end;
   end;

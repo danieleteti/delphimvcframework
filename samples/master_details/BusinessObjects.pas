@@ -152,9 +152,11 @@ begin
 end;
 
 procedure TOrder.OnAfterInsert;
+var
+  lOrderDetail: TOrderDetail;
 begin
   inherited;
-  for var lOrderDetail in fDetails do
+  for lOrderDetail in fDetails do
   begin
     lOrderDetail.IDOrder := ID;
     lOrderDetail.Insert;
@@ -162,9 +164,11 @@ begin
 end;
 
 procedure TOrder.OnAfterUpdate;
+var
+  lOrderItems: TObjectList<TOrderDetail>;
 begin
   inherited;
-  var lOrderItems := TMVCActiveRecord.SelectRQL<TOrderDetail>(Format('eq(idorder,%d)', [ID]), 100);
+  lOrderItems := TMVCActiveRecord.SelectRQL<TOrderDetail>(Format('eq(idorder,%d)', [ID]), 100);
   try
     TMVCActiveRecord.Merge<TOrderDetail>(lOrderItems, fDetails)
       .Apply(

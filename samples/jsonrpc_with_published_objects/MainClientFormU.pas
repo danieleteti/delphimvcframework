@@ -30,7 +30,7 @@ uses
   FireDAC.Comp.Client,
   Vcl.ComCtrls,
   Vcl.ExtCtrls,
-  MVCFramework.JSONRPC.Client;
+  MVCFramework.JSONRPC.Client, Vcl.Mask;
 
 type
   TMainForm = class(TForm)
@@ -85,7 +85,13 @@ type
     DBGrid1: TDBGrid;
     btnGetMulti: TButton;
     lbMulti: TListBox;
+    btnGenericException: TButton;
+    TabSheet5: TTabSheet;
+    Label1: TLabel;
     btnException: TButton;
+    btnGenericExcWithCustomHandling: TButton;
+    btnGenericExcWithCustomHAndling2: TButton;
+    btnGenericExcWithoutCustomHandling: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -106,6 +112,10 @@ type
     procedure btnGetListOfDatasetClick(Sender: TObject);
     procedure btnObjDictClick(Sender: TObject);
     procedure btnExceptionClick(Sender: TObject);
+    procedure btnGenericExceptionClick(Sender: TObject);
+    procedure btnGenericExcWithCustomHandlingClick(Sender: TObject);
+    procedure btnGenericExcWithCustomHAndling2Click(Sender: TObject);
+    procedure btnGenericExcWithoutCustomHandlingClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     // FExecutor2: IMVCJSONRPCExecutor;
@@ -164,7 +174,6 @@ end;
 procedure TMainForm.btnExceptionClick(Sender: TObject);
 var
   lReq: IJSONRPCNotification;
-  lResp: IJSONRPCResponse;
 begin
   ShowMessage('Now will be raised a custom exception on the server. This exception will be catched by the client');
   lReq := TJSONRPCNotification.Create('RaiseCustomException');
@@ -409,6 +418,78 @@ begin
   ShowMessage(lPerson.ToJSON(False));
 end;
 
+procedure TMainForm.btnGenericExceptionClick(Sender: TObject);
+var
+  lReq: IJSONRPCNotification;
+begin
+  ShowMessage('Now will be raised a EDivByZero exception on the server. This exception will be catched by the client');
+  lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
+  FExecutor.ExecuteNotification('/jsonrpc', lReq);
+end;
+
+procedure TMainForm.btnGenericExcWithCustomHAndling2Click(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+begin
+  ShowMessage('Now will be raised a EInvalidPointerOperation exception on the server. However this exception will be handled by a custom exception handler wich will add a data property with extra data');
+  lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
+  lReq.Params.Add(2);
+  try
+    FExecutor.ExecuteRequest('/jsonrpcex', lReq);
+  except
+    on E: EMVCJSONRPCRemoteException do
+    begin
+      ShowMessage(Format('[CLASSNAME: %s][CODE: %d][MESSAGE: %s][DATA: %s]', [
+        E.ClassName,
+        E.ErrCode,
+        E.ErrMessage,
+        (E.Data.AsObject as TJDOJsonObject).ToJSON(True)]));
+    end;
+  end;
+end;
+
+procedure TMainForm.btnGenericExcWithCustomHandlingClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+begin
+  ShowMessage('Now will be raised a EDivByZero exception on the server. However this exception will be handled by a custom exception handler wich will add a data property with extra data');
+  lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
+  lReq.Params.Add(1);
+  try
+    FExecutor.ExecuteRequest('/jsonrpcex', lReq);
+  except
+    on E: EMVCJSONRPCRemoteException do
+    begin
+      ShowMessage(Format('[CLASSNAME: %s][CODE: %d][MESSAGE: %s][DATA: %s]', [
+        E.ClassName,
+        E.ErrCode,
+        E.ErrMessage,
+        E.Data.AsString]));
+    end;
+  end;
+end;
+
+procedure TMainForm.btnGenericExcWithoutCustomHandlingClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+begin
+  ShowMessage('Now will be raised a Exception exception on the server.');
+  lReq := TJSONRPCRequest.Create(1234, 'RaiseGenericException');
+  lReq.Params.Add(99);
+  try
+    FExecutor.ExecuteRequest('/jsonrpcex', lReq);
+  except
+    on E: EMVCJSONRPCRemoteException do
+    begin
+      ShowMessage(Format('[CLASSNAME: %s][CODE: %d][MESSAGE: %s][DATA: %s]', [
+        E.ClassName,
+        E.ErrCode,
+        E.ErrMessage,
+        E.Data.AsString])); {Data.AsString is ''}
+    end;
+  end;
+end;
+
 procedure TMainForm.btnGetListOfDatasetClick(Sender: TObject);
 var
   lReq: IJSONRPCRequest;
@@ -513,6 +594,8 @@ begin
   FExecutor.ClearHTTPHeaders;
   Assert(FExecutor.HTTPHeadersCount = 0);
   FExecutor.AddHTTPHeader(TNetHeader.Create('x-token', TGUID.NewGuid.ToString));
+
+  PageControl1.ActivePageIndex := 0;
 end;
 
 end.

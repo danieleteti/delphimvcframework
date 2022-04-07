@@ -100,6 +100,14 @@ type
     SpeedButton2: TSpeedButton;
     SpeedButton3: TSpeedButton;
     RadioGroup1: TRadioGroup;
+    rgFieldNameFormatting: TRadioGroup;
+    Panel7: TPanel;
+    btnUZ: TButton;
+    Button1: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    Button4: TButton;
+    Button5: TButton;
     procedure btnGenEntitiesClick(Sender: TObject);
     procedure btnGetTablesClick(Sender: TObject);
     procedure btnSaveCodeClick(Sender: TObject);
@@ -116,6 +124,12 @@ type
     procedure SpeedButton2Click(Sender: TObject);
     procedure SpeedButton3Click(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure btnSlice1Click(Sender: TObject);
+    procedure btnUZClick(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
   private
     fCatalog: string;
     fSchema: string;
@@ -123,12 +137,14 @@ type
     FHistoryFileName: string;
     lTypesName: TArray<string>;
     fBookmark: TArray<Byte>;
+    function SelectTables(const FromLetter: AnsiChar; const ToLetter: AnsiChar): Integer;
     procedure EmitHeaderComments;
     function GetClassName(const aTableName: string): string;
+    function GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
     procedure EmitUnit;
     procedure EmitUnitEnd;
-    procedure EmitProperty(F: TField);
-    procedure EmitField(F: TField; const IsPK: Boolean);
+    procedure EmitProperty(const FieldName: String; const FieldDataType: TFieldType);
+    procedure EmitField(const DatabaseFieldName: String; const UniqueFieldName: String; const FieldDataType: TFieldType; const IsPK: Boolean);
     procedure EmitClass(const aTableName, aClassName, aNameCase: string);
     procedure EmitClassEnd;
     function GetDelphiType(FT: TFieldType): string;
@@ -147,10 +163,14 @@ const
 implementation
 
 uses
-  System.IOUtils, System.TypInfo, System.DateUtils, LoggerPro.GlobalLogger;
+  System.IOUtils,
+  System.TypInfo,
+  System.DateUtils,
+  LoggerPro.GlobalLogger,
+  System.Generics.Collections,
+  MVCFramework.Commons, UtilsU;
 
 {$R *.dfm}
-
 
 const
   INDENT = '  ';
@@ -161,8 +181,9 @@ var
   lTableName: string;
   lClassName: string;
   F: Integer;
-  lFieldsName: TArray<string>;
+  lFieldNamesToInitialize: TArray<string>;
   lKeyFields: TStringList;
+  lUniqueFieldNames: TArray<String>;
 begin
   Log.Info('Starting entities generation', LOG_TAG);
   fIntfBuff.Clear;
@@ -173,7 +194,6 @@ begin
     EmitHeaderComments;
     EmitUnit;
     dsTablesMapping.First;
-    I := 0;
     while not dsTablesMapping.Eof do
     begin
       if not dsTablesMappingGENERATE.Value then
@@ -195,16 +215,17 @@ begin
         FDConnection1.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
       except
       end;
-      lFieldsName := [];
+      lFieldNamesToInitialize := [];
       lTypesName := [];
       fIntfBuff.WriteString(INDENT + 'private' + sLineBreak);
+      lUniqueFieldNames := GetUniqueFieldNames(qry.Fields, rgFieldNameFormatting.ItemIndex = 1);
       for F := 0 to qry.Fields.Count - 1 do
       begin
-        EmitField(qry.Fields[F], lKeyFields.IndexOf(qry.Fields[F].FieldName) > -1);
+        EmitField(qry.Fields[F].FieldName, lUniqueFieldNames[F], qry.Fields[F].DataType, lKeyFields.IndexOf(qry.Fields[F].FieldName) > -1);
 
         if GetDelphiType(qry.Fields[F].DataType) = 'TStream' then
         begin
-          lFieldsName := lFieldsName + [GetFieldName(qry.Fields[F].FieldName)];
+          lFieldNamesToInitialize := lFieldNamesToInitialize + [GetFieldName(lUniqueFieldNames[F])];
           lTypesName := lTypesName + ['TMemoryStream'];
         end;
 
@@ -216,9 +237,9 @@ begin
       fImplBuff.WriteString('constructor ' + lClassName + '.Create;' + sLineBreak);
       fImplBuff.WriteString('begin' + sLineBreak);
       fImplBuff.WriteString('  inherited Create;' + sLineBreak);
-      for F := low(lFieldsName) to high(lFieldsName) do
+      for F := low(lFieldNamesToInitialize) to high(lFieldNamesToInitialize) do
       begin
-        fImplBuff.WriteString('  ' + lFieldsName[F] + ' := ' + lTypesName[F] + '.Create;' +
+        fImplBuff.WriteString('  ' + lFieldNamesToInitialize[F] + ' := ' + lTypesName[F] + '.Create;' +
           sLineBreak);
       end;
       fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
@@ -226,16 +247,16 @@ begin
       fIntfBuff.WriteString(INDENT + '  destructor Destroy; override;' + sLineBreak);
       fImplBuff.WriteString('destructor ' + lClassName + '.Destroy;' + sLineBreak);
       fImplBuff.WriteString('begin' + sLineBreak);
-      for F := low(lFieldsName) to high(lFieldsName) do
+      for F := low(lFieldNamesToInitialize) to high(lFieldNamesToInitialize) do
       begin
-        fImplBuff.WriteString('  ' + lFieldsName[F] + '.Free;' + sLineBreak);
+        fImplBuff.WriteString('  ' + lFieldNamesToInitialize[F] + '.Free;' + sLineBreak);
       end;
       fImplBuff.WriteString('  inherited;' + sLineBreak);
       fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
 
       for F := 0 to qry.Fields.Count - 1 do
       begin
-        EmitProperty(qry.Fields[F]);
+        EmitProperty(lUniqueFieldNames[F], qry.Fields[F].DataType);
       end;
 
       EmitClassEnd;
@@ -250,6 +271,7 @@ begin
   end;
   // mmOutput.Lines.SaveToFile(
   // mmConnectionParams.Lines.SaveToFile(FHistoryFileName);
+  ShowMessage('Generation Completed');
 end;
 
 procedure TMainForm.btnGetTablesClick(Sender: TObject);
@@ -289,7 +311,7 @@ begin
   finally
     lTables.Free;
   end;
-
+  TabSheet1.Caption:= 'Tables (' + dsTablesMapping.RecordCount.ToString + ')';
 end;
 
 procedure TMainForm.btnRefreshCatalogClick(Sender: TObject);
@@ -309,6 +331,36 @@ begin
   begin
     mmOutput.Lines.SaveToFile(FileSaveDialog1.FileName);
   end;
+end;
+
+procedure TMainForm.btnSlice1Click(Sender: TObject);
+begin
+  ShowMessage('Select ' + SelectTables('R','T').ToString + ' new tables');
+end;
+
+procedure TMainForm.btnUZClick(Sender: TObject);
+begin
+  ShowMessage('Select ' + SelectTables('U','Z').ToString + ' new tables');
+end;
+
+procedure TMainForm.Button1Click(Sender: TObject);
+begin
+  ShowMessage('Select ' + SelectTables('L','Q').ToString + ' new tables');
+end;
+
+procedure TMainForm.Button2Click(Sender: TObject);
+begin
+  ShowMessage('Select ' + SelectTables('E','K').ToString + ' new tables');
+end;
+
+procedure TMainForm.Button3Click(Sender: TObject);
+begin
+  ShowMessage('Select ' + SelectTables('C','D').ToString + ' new tables');
+end;
+
+procedure TMainForm.Button5Click(Sender: TObject);
+begin
+  ShowMessage('Select ' + SelectTables('A','B').ToString + ' new tables');
 end;
 
 procedure TMainForm.cboConnectionDefsChange(Sender: TObject);
@@ -401,21 +453,21 @@ begin
   fIntfBuff.WriteString(INDENT + 'end;' + sLineBreak + sLineBreak);
 end;
 
-procedure TMainForm.EmitField(F: TField; const IsPK: Boolean);
+procedure TMainForm.EmitField(const DatabaseFieldName: String; const UniqueFieldName: String; const FieldDataType: TFieldType; const IsPK: Boolean);
 var
   lAttrib, lField: string;
 begin
   if IsPK then
   begin
-    lAttrib := Format('[MVCTableField(''%s'', [foPrimaryKey, foAutoGenerated])]', [F.FieldName]);
+    lAttrib := Format('[MVCTableField(''%s'', [foPrimaryKey, foAutoGenerated])]', [DatabaseFieldName]);
   end
   else
   begin
-    lAttrib := Format('[MVCTableField(''%s'')]', [F.FieldName]);
+    lAttrib := Format('[MVCTableField(''%s'')]', [DatabaseFieldName]);
   end;
-  lField := GetFieldName(F.FieldName) + ': ' + GetDelphiType(F.DataType) + ';' + sLineBreak;
+  lField := GetFieldName(UniqueFieldName) + ': ' + GetDelphiType(FieldDataType) + ';' + sLineBreak;
 
-  if GetDelphiType(F.DataType).ToUpper.Contains('UNSUPPORTED TYPE') then
+  if GetDelphiType(FieldDataType).ToUpper.Contains('UNSUPPORTED TYPE') then
   begin
     lAttrib := '//' + lAttrib;
     lField := '//' + lField;
@@ -467,7 +519,7 @@ begin
   fIntfBuff.WriteString(sLineBreak);
 end;
 
-procedure TMainForm.EmitProperty(F: TField);
+procedure TMainForm.EmitProperty(const FieldName: String; const FieldDataType: TFieldType);
 var
   lProp: string;
 begin
@@ -475,12 +527,12 @@ begin
   // begin
   // lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
   // end;
-  lProp := lProp + 'property ' + GetFieldName(F.FieldName).Substring(1) { remove f } + ': ' +
-    GetDelphiType(F.DataType) + ' read ' + GetFieldName(F.FieldName) + ' write ' +
-    GetFieldName(F.FieldName) + ';' +
+  lProp := lProp + 'property ' + GetFieldName(FieldName).Substring(1) { remove f } + ': ' +
+    GetDelphiType(FieldDataType) + ' read ' + GetFieldName(FieldName) + ' write ' +
+    GetFieldName(FieldName) + ';' +
     sLineBreak;
 
-  if GetDelphiType(F.DataType).ToUpper.Contains('UNSUPPORTED TYPE') then
+  if GetDelphiType(FieldDataType).ToUpper.Contains('UNSUPPORTED TYPE') then
   begin
     lProp := '  //' + lProp
   end
@@ -607,21 +659,71 @@ end;
 function TMainForm.GetFieldName(const Value: string): string;
 var
   Pieces: TArray<string>;
-  s: string;
+  Piece: string;
 begin
   if Value.Length <= 2 then
-    exit('f' + Value.ToUpper);
-
-  Result := '';
-  Pieces := Value.ToLower.Split(['_'], TStringSplitOptions.ExcludeEmpty);
-  for s in Pieces do
   begin
-    if s = 'id' then
-      Result := Result + 'ID'
-    else
-      Result := Result + UpperCase(s.Chars[0]) + s.Substring(1);
+    Exit('f' + Value.ToUpper);
   end;
-  Result := 'f' + Result;
+
+//  Result := '';
+//  Pieces := Value.ToLower.Split(['_'], TStringSplitOptions.ExcludeEmpty);
+//  for Piece in Pieces do
+//  begin
+//    if Piece = 'id' then
+//      Result := Result + 'ID'
+//    else
+//      Result := Result + UpperCase(Piece.Chars[0]) + Piece.Substring(1);
+//  end;
+  Result := 'f' + Value; //CamelCase(Value, True);
+end;
+
+function TMainForm.GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
+var
+  I: Integer;
+  lList: TStringList;
+  lF: string;
+  lFTemp: string;
+  lCount: Integer;
+begin
+  SetLength(Result, Fields.Count);
+  lList := TStringList.Create;
+  try
+    lList.Sorted := True;
+    for I := 0 to Fields.Count - 1 do
+    begin
+      lCount := 0;
+      if FormatAsPascalCase then
+      begin
+        lF := CamelCase(Fields[I].FieldName, True);
+      end
+      else
+      begin
+        lF := Fields[I].FieldName;
+      end;
+      if lList.IndexOf(lF) > -1 then
+      begin
+        lF := Fields[I].FieldName;
+      end;
+      lFTemp := lF;
+
+      if IsReservedKeyword(lFTemp) then
+      begin
+        lFTemp := '_' + lFTemp;
+      end;
+
+      while (lList.IndexOf(lFTemp) > -1) do
+      begin
+        Inc(lCount);
+        lFTemp := lF + '__' + IntToStr(lCount);
+      end;
+      lF := lFTemp;
+      lList.Add(lF);
+      Result[I] := lF;
+    end;
+  finally
+    lList.Free;
+  end;
 end;
 
 procedure TMainForm.lstCatalogDblClick(Sender: TObject);
@@ -640,6 +742,37 @@ begin
   FDConnection1.Close;
   lstSchema.Clear;
   lstCatalog.Clear;
+end;
+
+function TMainForm.SelectTables(const FromLetter, ToLetter: AnsiChar): Integer;
+var
+  lFirstChar: AnsiChar;
+  lLetters: set of AnsiChar;
+  I: Integer;
+  lSelectedTables: Integer;
+begin
+  lLetters := [];
+  for I := Ord(FromLetter) to Ord(ToLetter) do
+  begin
+    lLetters := lLetters + [Chr(I)];
+  end;
+
+  lSelectedTables := 0;
+  dsTablesMapping.First;
+  while not dsTablesMapping.Eof do
+  begin
+    lFirstChar := AnsiChar(dsTablesMappingTABLE_NAME.AsString.ToUpper.Chars[0]);
+    if lFirstChar in lLetters then
+    begin
+      dsTablesMapping.Edit;
+      dsTablesMappingGENERATE.Value := True;
+      dsTablesMapping.Post;
+      Inc(lSelectedTables);
+    end;
+    dsTablesMapping.Next;
+  end;
+  dsTablesMapping.First;
+  Result := lSelectedTables;
 end;
 
 procedure TMainForm.SpeedButton1Click(Sender: TObject);

@@ -308,13 +308,18 @@ begin
 
     if lJSONRPCResponse = nil then
     begin
-      raise EMVCException.CreateFmt('[REMOTE EXCEPTION][%d: %s]: %s',
-        [fHTTPResponse.StatusCode, fHTTPResponse.StatusText, fHTTPResponse.ContentAsString()]);
+      raise EMVCJSONRPCException.CreateFmt('[PROTOCOL EXCEPTION][%d: %s]: %s',
+        [fHTTPResponse.StatusCode,
+        fHTTPResponse.StatusText,
+        fHTTPResponse.ContentAsString()]);
     end;
 
     if Assigned(lJSONRPCResponse.Error) and fRaiseExceptionOnError then
-      raise EMVCJSONRPCException.CreateFmt('[REMOTE EXCEPTION][%d]: %s',
-        [lJSONRPCResponse.Error.Code, lJSONRPCResponse.Error.ErrMessage]);
+      raise EMVCJSONRPCRemoteException.Create(
+        lJSONRPCResponse.Error.Code,
+        lJSONRPCResponse.Error.ErrMessage,
+        lJSONRPCResponse.Error.Data
+        );
     Result := lJSONRPCResponse;
   finally
     lSS.Free;
