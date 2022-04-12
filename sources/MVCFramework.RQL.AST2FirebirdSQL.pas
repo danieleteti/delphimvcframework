@@ -63,8 +63,8 @@ const
 
 type
   TRQLFirebirdCompiler = class(TRQLCompiler)
-
   protected
+    function GetLiteralBoolean(const Value: Boolean): String; virtual;
     function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string; virtual;
     function RQLSortToSQL(const aRQLSort: TRQLSort): string; virtual;
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string; virtual;
@@ -91,6 +91,15 @@ begin
     Result := FieldName.QuotedString('"')
   else
     Result := inherited;
+end;
+
+function TRQLFirebirdCompiler.GetLiteralBoolean(const Value: Boolean): String;
+begin
+  if Value then
+  begin
+    Exit('true');
+  end;
+  Exit('false');
 end;
 
 function TRQLFirebirdCompiler.RQLCustom2SQL(
@@ -129,9 +138,9 @@ begin
   else if aRQLFIlter.RightValueType = vtBoolean then
   begin
     if SameText(aRQLFIlter.OpRight, 'true') then
-      lValue := '1'
+      lValue := GetLiteralBoolean(true)
     else
-      lValue := '0';
+      lValue := GetLiteralBoolean(false);
   end
   else
     lValue := aRQLFIlter.OpRight;

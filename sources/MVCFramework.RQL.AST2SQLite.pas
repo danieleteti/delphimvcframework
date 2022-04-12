@@ -84,8 +84,17 @@ var
 begin
   if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
+  else if aRQLFIlter.RightValueType = vtBoolean then
+  begin
+    if SameText(aRQLFIlter.OpRight, 'true') then
+      lValue := '1'
+    else
+      lValue := '0';
+  end
   else
+  begin
     lValue := aRQLFIlter.OpRight;
+  end;
 
   lDBFieldName := GetDatabaseFieldName(aRQLFIlter.OpLeft, True);
 

@@ -1099,7 +1099,16 @@ begin
       end;
     ftInteger, ftSmallint, ftShortint, ftByte:
       begin
-        aRTTIField.SetValue(AObject, AField.AsInteger);
+        // sqlite doesn't support boolean, so are identified as integers
+        // so we need to do some more checks...
+        if (aRTTIField.FieldType.TypeKind = tkEnumeration) and (aRTTIField.Name.ToLower.Contains('bool')) then
+        begin
+          aRTTIField.SetValue(AObject, AField.AsInteger = 1);
+        end
+        else
+        begin
+          aRTTIField.SetValue(AObject, AField.AsInteger);
+        end;
       end;
     ftLongWord, ftWord:
       begin
