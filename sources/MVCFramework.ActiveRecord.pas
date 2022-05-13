@@ -1172,6 +1172,10 @@ begin
           begin
             fPrimaryKeyFieldType := ftString;
           end
+		  else if lPrimaryFieldTypeAsStr.EndsWith('guid') then
+          begin
+            fPrimaryKeyFieldType := ftGuid;
+          end
           else
           begin
             raise EMVCActiveRecord.Create
