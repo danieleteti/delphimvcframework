@@ -13,7 +13,9 @@ type
     class var CTX: TRttiContext;
   public
     class function StringToJSONValue(const Value: string): TJSONValue;
+    class function StringToJSONValueNoException(const Value: string): TJSONValue;
     class function StringAsJSONObject(const Value: string): TJSONObject;
+    class function StringAsJSONObjectNoException(const Value: string): TJSONObject;
     class function StringAsJSONArray(const Value: string): TJSONArray;
     class function JSONValueToString(JSONValue: TJSONValue; const Owns: Boolean = true): string;
     class function GetPair(JSONObject: TJSONObject; PropertyName: string)
@@ -54,6 +56,12 @@ begin
   Result := TSystemJSON.StringToJSONValue(Value) as TJSONObject;
 end;
 
+class function TSystemJSON.StringAsJSONObjectNoException(
+  const Value: string): TJSONObject;
+begin
+  Result := TSystemJSON.StringToJSONValueNoException(Value) as TJSONObject;
+end;
+
 class function TSystemJSON.StringToJSONValue(const Value: string): TJSONValue;
 var
   lBodyAsJSONValue: TJSONValue;
@@ -62,6 +70,12 @@ begin
   if lBodyAsJSONValue = nil then
     raise EMVCException.Create('Invalid JSON');
   Result := lBodyAsJSONValue;
+end;
+
+class function TSystemJSON.StringToJSONValueNoException(
+  const Value: string): TJSONValue;
+begin
+  Result := TJSONObject.ParseJSONValue(Value);
 end;
 
 class function TSystemJSON.JSONValueToString(JSONValue: TJSONValue;

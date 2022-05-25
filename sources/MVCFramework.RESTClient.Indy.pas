@@ -762,6 +762,8 @@ begin
   FHTTP.Request.CustomHeaders.FoldLines := False;
   FHTTP.Request.BasicAuthentication := False; // DT 2018/07/24
 
+  // https://www.indyproject.org/2016/01/10/new-tidhttp-flags-and-onchunkreceived-event/
+  FHTTP.HTTPOptions := FHTTP.HTTPOptions + [hoWantProtocolErrorContent, hoNoProtocolErrorException]; //DT 2022/05/24
   FSerializer := GetDefaultSerializer;
 end;
 

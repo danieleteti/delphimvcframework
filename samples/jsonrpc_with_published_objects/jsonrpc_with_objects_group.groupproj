@@ -9,6 +9,9 @@
         <Projects Include="jsonrpcclientwithobjects.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="C:\WORK\ORION\tests\PlainSerialier.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="jsonrpcclientwithobjects:Make">
         <MSBuild Projects="jsonrpcclientwithobjects.dproj" Targets="Make"/>
     </Target>
+    <Target Name="PlainSerialier">
+        <MSBuild Projects="C:\WORK\ORION\tests\PlainSerialier.dproj"/>
+    </Target>
+    <Target Name="PlainSerialier:Clean">
+        <MSBuild Projects="C:\WORK\ORION\tests\PlainSerialier.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PlainSerialier:Make">
+        <MSBuild Projects="C:\WORK\ORION\tests\PlainSerialier.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="jsonrpcserverwithobjects;jsonrpcclientwithobjects"/>
+        <CallTarget Targets="jsonrpcserverwithobjects;jsonrpcclientwithobjects;PlainSerialier"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="jsonrpcserverwithobjects:Clean;jsonrpcclientwithobjects:Clean"/>
+        <CallTarget Targets="jsonrpcserverwithobjects:Clean;jsonrpcclientwithobjects:Clean;PlainSerialier:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="jsonrpcserverwithobjects:Make;jsonrpcclientwithobjects:Make"/>
+        <CallTarget Targets="jsonrpcserverwithobjects:Make;jsonrpcclientwithobjects:Make;PlainSerialier:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

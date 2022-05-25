@@ -36,6 +36,21 @@ uses
   MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
 
 type
+  [MVCNameCase(ncCamelCase)]
+  TChildRec = record
+    ChildName: String;
+    ChildSurname: String;
+  end;
+
+  [MVCNameCase(ncCamelCase)]
+  TPersonRec = record
+    Name: String;
+    Surname: String;
+    [MVCNameAs('pippi')]
+    Age: Integer;
+    Child: TChildRec;
+  end;
+
   TMyObject = class
   private
     function GetCustomersDataset: TFDMemTable;
@@ -63,6 +78,8 @@ type
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const Person: TJsonObject): Integer;
+    function SavePersonRec(const PersonRec: TPersonRec): TPersonRec;
+    function GetPersonRec: TPersonRec;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
     procedure RaiseCustomException;
@@ -215,6 +232,15 @@ begin
   Result := lDate;
 end;
 
+function TMyObject.GetPersonRec: TPersonRec;
+begin
+  Result.Name := 'Daniele';
+  Result.Surname := 'Teti';
+  Result.Age := 42;
+  Result.Child.ChildName := 'Mattia';
+  Result.Child.ChildSurname := 'Teti';
+end;
+
 // function TMyObject.GetPeopleDataset: TFDMemTable;
 // var
 // lMT: TFDMemTable;
@@ -331,6 +357,11 @@ begin
 
   // this maybe the id of the newly created person
   Result := Random(1000);
+end;
+
+function TMyObject.SavePersonRec(const PersonRec: TPersonRec): TPersonRec;
+begin
+  Result := PersonRec;
 end;
 
 function TMyObject.Subtract(Value1, Value2: Integer): Integer;

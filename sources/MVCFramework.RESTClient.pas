@@ -908,7 +908,6 @@ begin
   fLock := TObject.Create;
   fBaseURL := '';
   fResource := '';
-
   ClearAllParams;
 end;
 
