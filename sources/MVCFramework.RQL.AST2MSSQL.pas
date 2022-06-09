@@ -89,7 +89,7 @@ function TRQLMSSQLCompiler.RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
 var
   lValue, lDBFieldName: string;
 begin
-  if (aRQLFIlter.RightValueType = vtString) and (aRQLFIlter.Token <> tkContains) then
+  if (aRQLFIlter.RightValueType = vtString) and not(aRQLFIlter.Token in [tkContains, tkStarts]) then
     lValue := aRQLFIlter.OpRight.QuotedString('''')
   else if aRQLFIlter.RightValueType = vtBoolean then
   begin
@@ -137,6 +137,11 @@ begin
     tkContains:
       begin
         lValue := Format('%%%s%%', [lValue]).QuotedString('''');
+        Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
+      end;
+    tkStarts:
+      begin
+        lValue := Format('%s%%', [lValue]).QuotedString('''');
         Result := Format('(LOWER(%s) LIKE %s)', [lDBFieldName, lValue.ToLower])
       end;
     tkIn:

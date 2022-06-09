@@ -75,7 +75,7 @@ uses
 type
   TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF,
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
-    tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown);
+    tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown, tkStarts);
 
   TRQLValueType = (vtInteger, vtString, vtBoolean, vtNull, vtIntegerArray, vtStringArray);
 
@@ -527,6 +527,12 @@ begin
     fCurrToken := tkContains;
     Exit(fCurrToken);
   end;
+  if (lChar = 's') and (C(1) = 't') and (C(2) = 'a') and (C(3) = 'r') and (C(4) = 't') and (C(5) = 's') then
+  begin
+    Skip(6);
+    fCurrToken := tkStarts;
+    Exit(fCurrToken);
+  end;
   if (lChar = 'i') and (C(1) = 'n') then
   begin
     Skip(2);
@@ -670,7 +676,7 @@ begin
   Result := true;
   lTk := GetToken;
   case lTk of
-    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn, tkOut:
+    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkStarts, tkIn, tkOut:
       begin
         ParseBinOperator(lTk, fAST);
       end;
@@ -748,7 +754,7 @@ begin
     EatWhiteSpaces;
     lToken := GetToken;
     case lToken of
-      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn, tkOut:
+      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkStarts, tkIn, tkOut:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
         end;

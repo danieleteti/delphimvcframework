@@ -182,6 +182,10 @@ begin
       begin
         Result := Format('(%s containing %s)', [lDBFieldName, lValue.ToLower])
       end;
+    tkStarts:
+      begin
+        Result := Format('(%s starting with %s)', [lDBFieldName, lValue.ToLower])
+      end;
     tkIn:
       begin
         case aRQLFIlter.RightValueType of
