@@ -89,7 +89,7 @@ begin
   else
   begin
     // compiled as apache module or isapi
-    lDBPath := ExtractFilePath(GetModuleName(HInstance)) + '..\..\winecellarserver\WINES_FB30.FDB';
+    lDBPath := ExtractFilePath(GetModuleName(HInstance)) + '..\..\..\winecellarserver\WINES_FB30.FDB';
     if lDBPath.StartsWith('\\?\') then
       lDBPath := lDBPath.Remove(0, 4);
     Connection.Params.Values['Database'] := lDBPath;
