@@ -70,9 +70,8 @@ type
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string; virtual;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string; virtual;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string; virtual;
-    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   public
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
     function GetFieldNameForSQL(const FieldName: string): string; override;
   end;
 
@@ -182,6 +181,10 @@ begin
       begin
         Result := Format('(%s containing %s)', [lDBFieldName, lValue.ToLower])
       end;
+    tkStarts:
+      begin
+        Result := Format('(%s starting with %s)', [lDBFieldName, lValue.ToLower])
+      end;
     tkIn:
       begin
         case aRQLFIlter.RightValueType of
@@ -282,32 +285,6 @@ end;
 function TRQLFirebirdCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
 begin
   Result := ' where ';
-end;
-
-procedure TRQLFirebirdCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
-  out aSQL: string);
-var
-  lBuff: TStringBuilder;
-  lItem: TRQLCustom;
-begin
-  inherited;
-
-  {
-    Here you can rearrange tokens in the list, for example:
-    For firebird and mysql syntax you have: filters, sort, limit (default)
-    For MSSQL syntax you need to rearrange in: limit, filters, sort
-  }
-
-  lBuff := TStringBuilder.Create;
-  try
-    for lItem in aRQLAST do
-    begin
-      lBuff.Append(RQLCustom2SQL(lItem));
-    end;
-    aSQL := lBuff.ToString;
-  finally
-    lBuff.Free;
-  end;
 end;
 
 initialization
