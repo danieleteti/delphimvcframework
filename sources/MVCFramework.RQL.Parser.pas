@@ -93,9 +93,10 @@ type
   protected
     function GetDatabaseFieldName(const RQLPropertyName: string; const UsePropertyNameIfAttributeDoesntExists: Boolean = False): string;
     function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual; abstract;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual; abstract;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual;
     // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
     // or if the table name contains spaces.
     function GetTableNameForSQL(const TableName: string): string; virtual;
@@ -1149,6 +1150,32 @@ begin
 end;
 
 { TRQLCompiler }
+
+procedure TRQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
+  out aSQL: string);
+var
+  lBuff: TStringBuilder;
+  lItem: TRQLCustom;
+begin
+  inherited;
+
+  {
+    Here you can rearrange tokens in the list, for example:
+    For firebird and mysql syntax you have: filters, sort, limit (default)
+    For MSSQL syntax you need to rearrange in: limit, filters, sort
+  }
+
+  lBuff := TStringBuilder.Create;
+  try
+    for lItem in aRQLAST do
+    begin
+      lBuff.Append(RQLCustom2SQL(lItem));
+    end;
+    aSQL := lBuff.ToString;
+  finally
+    lBuff.Free;
+  end;
+end;
 
 constructor TRQLCompiler.Create(const Mapping: TMVCFieldsMapping);
 begin

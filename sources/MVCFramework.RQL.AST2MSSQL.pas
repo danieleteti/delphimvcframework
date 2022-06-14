@@ -39,10 +39,9 @@ type
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
-    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); override;
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); override;
   end;
 
 implementation
@@ -243,50 +242,6 @@ end;
 function TRQLMSSQLCompiler.RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
 begin
   Result := ' WHERE ';
-end;
-
-procedure TRQLMSSQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
-  out aSQL: string);
-var
-  lBuff: TStringBuilder;
-  lItem: TRQLCustom;
-  lFoundSort: Boolean;
-  lItemSort: TRQLSort;
-begin
-  inherited;
-
-  {
-    Here you can rearrange tokens in the list, for example:
-    For firebird and mysql syntax you have: filters, sort, limit (default)
-    For MSSQL syntax you need to rearrange in: limit, filters, sort
-  }
-
-  LFoundSort := False;
-  lBuff := TStringBuilder.Create;
-  try
-    for lItem in aRQLAST do
-    begin
-
-      if (lItem is TRQLLimit) and (not LFoundSort) then
-      begin
-        lItemSort := TRQLSort.Create;
-        try
-          lItemSort.Add('+', FMapping[0].InstanceFieldName);
-          lBuff.Append(RQLCustom2SQL(LitemSort));
-        finally
-          lItemSort.Free;
-        end;
-      end;
-
-      lBuff.Append(RQLCustom2SQL(lItem));
-
-      if (lItem is TRQLSort) then
-        LFoundSort := True;
-    end;
-    aSQL := lBuff.ToString;
-  finally
-    lBuff.Free;
-  end;
 end;
 
 initialization
