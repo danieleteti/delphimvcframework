@@ -175,14 +175,11 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 [bit Time Software](https://www.bittime.it)
 
 
-
 **SILVER SPONSOR**
 
 ![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/centrosoftware.png)
 
 [Centro Software](https://www.centrosoftware.com)
-
-
 
 ![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/delphistudio.png)
 
@@ -190,7 +187,7 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 ![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/orionlaw.png)
 
-
+[Orion Law](https://orionlaw.com/)
 
 ## What users say about DMVCFramework
 
