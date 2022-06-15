@@ -166,8 +166,8 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 |COMPANY NAME | LOGO|
 |-----------------------------------------------------------------------|------------------------------------------------------------------------|
-|[bit Time Professionals ](https://www.bittimeprofessionals.com)		|![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimeprofessionals.png)  |
-|[bit Time Software](https://www.bittime.it)                            |![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimesoftware.png)       |
+|[bit Time Professionals ](https://www.bittimeprofessionals.com)		|![](docs/sponsorlogos/bittimeprofessionals.png)  |
+|[bit Time Software](https://www.bittime.it)                            |![](docs/sponsorlogos/bittimesoftware.png)       |
 
 
 
@@ -175,9 +175,9 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 |COMPANY NAME | LOGO|
 |-----------------------------------------------------------------------|------------------------------------------------------------------------|
-|[Centro Software](https://www.centrosoftware.com)                      | ![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/centrosoftware.png) |
-|[Delphi Studio ES](http://www.delphistudio.es)                         | ![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/delphistudio.png)   |
-|[Orion Law](https://orionlaw.com/)                                     | ![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/orionlaw.png)       |
+|[Centro Software](https://www.centrosoftware.com)                      | ![](docs/sponsorlogos/centrosoftware.png) |
+|[Delphi Studio ES](http://www.delphistudio.es)                         | ![](docs/sponsorlogos/delphistudio.png)   |
+|[Orion Law](https://orionlaw.com/)                                     | ![](docs/sponsorlogos/orionlaw.png)       |
 
 
 
