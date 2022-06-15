@@ -193,6 +193,13 @@ type
     constructor Create(const ClassRef: TClass = nil);
     property ClassRef: TClass read fClassRef;
   end;
+  
+  /// <summary>
+  ///  Use this attribute in the model class to define a field of type TGuid if at the time of attribute serialization the value
+  ///  of the guid field will be obtained without braces.
+  ///  Sample: 61013848-8736-4D8B-AD25-91DF4C255561
+  /// </summary>
+  MVCSerializeGuidWithoutBracesAttribute = class(TCustomAttribute);
 
   TMVCSerializerHelper = record
   private

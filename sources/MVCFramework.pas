@@ -1039,7 +1039,7 @@ type
     constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write FReasonString;
-    property message: string read FMessage write FMessage;
+    property Message: string read FMessage write FMessage;
     property Data: TObject read fDataObject write fDataObject;
   end;
 
