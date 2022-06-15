@@ -72,6 +72,8 @@ type
     [Test]
     procedure TestRQL;
     [Test]
+    procedure TestRQLWithBoolean;
+    [Test]
     procedure TestRQLWithDateTime;
     [Test]
     procedure TestRQLLimit;
@@ -1452,6 +1454,54 @@ begin
   TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
+
+procedure TTestActiveRecordBase.TestRQLWithBoolean;
+const
+  RQL1 = 'or(eq(City, "Rome"),eq(City, "London"))';
+var
+  lBoolTable, lBoolValue2: TBoolTest;
+begin
+  TMVCActiveRecord.DeleteAll(TBoolTest);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TBoolTest));
+  lBoolTable := TBoolTest.Create;
+  try
+    lBoolTable.BoolValue := True;
+    lBoolTable.Store;
+    lBoolValue2 := TMVCActiveRecord.SelectOneByRQL<TBoolTest>('eq(boolvalue, true)');
+    try
+      Assert.AreEqual(True, lBoolValue2.BoolValue);
+    finally
+      lBoolValue2.Free;
+    end;
+    lBoolTable.BoolValue := False;
+    lBoolTable.Store;
+
+    lBoolValue2 := TMVCActiveRecord.SelectOneByRQL<TBoolTest>('eq(boolvalue, false)');
+    try
+      Assert.AreEqual(False, lBoolValue2.BoolValue);
+    finally
+      lBoolValue2.Free;
+    end;
+
+    Assert.IsNull(TMVCActiveRecord.SelectOneByRQL<TBoolTest>('eq(boolvalue, true)', False));
+  finally
+    lBoolTable.Free;
+  end;
+//  LoadData;
+//  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+//  try
+//    Assert.AreEqual(240, lCustomers.Count);
+//    for var lCustomer in lCustomers do
+//    begin
+//      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+//    end;
+//  finally
+//    lCustomers.Free;
+//  end;
+//  TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
+//  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
+end;
+
 
 procedure TTestActiveRecordBase.TestRQLLimit;
 var

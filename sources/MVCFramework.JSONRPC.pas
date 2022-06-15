@@ -708,10 +708,10 @@ begin
         end
         else if SameText(RTTIParameter.ParamType.Name, 'TDateTime') then
         begin
-          if JSONDataValue.Value.Contains('T') then
-            JSONRPCRequestParams.Add(JSONDataValue.UtcDateTimeValue, pdtDateTime)
+          if JSONDataValue.Value.IndexOf('T') = 10 then
+            JSONRPCRequestParams.Add(ISOTimeStampToDateTime(JSONDataValue.Value), pdtDateTime)
           else
-            JSONRPCRequestParams.Add(ISOTimeStampToDateTime(JSONDataValue.Value), pdtDateTime);
+            JSONRPCRequestParams.Add(JSONDataValue.UtcDateTimeValue, pdtDateTime);
         end
         else if SameText(RTTIParameter.ParamType.Name, 'TTime') then
         begin

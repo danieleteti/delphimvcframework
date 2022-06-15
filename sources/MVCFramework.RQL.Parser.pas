@@ -75,7 +75,7 @@ uses
 type
   TRQLToken = (tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkAnd, tkOr, tkSort, tkLimit, { RQL } tkAmpersand, tkEOF,
     tkOpenPar, tkClosedPar, tkOpenBracket, tkCloseBracket, tkComma, tkSemicolon, tkPlus, tkMinus, tkDblQuote,
-    tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown);
+    tkQuote, tkSpace, tkContains, tkIn, tkOut, tkUnknown, tkStarts);
 
   TRQLValueType = (vtInteger, vtString, vtBoolean, vtNull, vtIntegerArray, vtStringArray);
 
@@ -93,9 +93,10 @@ type
   protected
     function GetDatabaseFieldName(const RQLPropertyName: string; const UsePropertyNameIfAttributeDoesntExists: Boolean = False): string;
     function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
+    function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual; abstract;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
-    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual; abstract;
+    procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual;
     // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
     // or if the table name contains spaces.
     function GetTableNameForSQL(const TableName: string): string; virtual;
@@ -527,6 +528,12 @@ begin
     fCurrToken := tkContains;
     Exit(fCurrToken);
   end;
+  if (lChar = 's') and (C(1) = 't') and (C(2) = 'a') and (C(3) = 'r') and (C(4) = 't') and (C(5) = 's') then
+  begin
+    Skip(6);
+    fCurrToken := tkStarts;
+    Exit(fCurrToken);
+  end;
   if (lChar = 'i') and (C(1) = 'n') then
   begin
     Skip(2);
@@ -670,7 +677,7 @@ begin
   Result := true;
   lTk := GetToken;
   case lTk of
-    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn, tkOut:
+    tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkStarts, tkIn, tkOut:
       begin
         ParseBinOperator(lTk, fAST);
       end;
@@ -748,7 +755,7 @@ begin
     EatWhiteSpaces;
     lToken := GetToken;
     case lToken of
-      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkIn, tkOut:
+      tkEq, tkLt, tkLe, tkGt, tkGe, tkNe, tkContains, tkStarts, tkIn, tkOut:
         begin
           ParseBinOperator(lToken, lLogicOp.FilterAST);
         end;
@@ -1143,6 +1150,32 @@ begin
 end;
 
 { TRQLCompiler }
+
+procedure TRQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
+  out aSQL: string);
+var
+  lBuff: TStringBuilder;
+  lItem: TRQLCustom;
+begin
+  inherited;
+
+  {
+    Here you can rearrange tokens in the list, for example:
+    For firebird and mysql syntax you have: filters, sort, limit (default)
+    For MSSQL syntax you need to rearrange in: limit, filters, sort
+  }
+
+  lBuff := TStringBuilder.Create;
+  try
+    for lItem in aRQLAST do
+    begin
+      lBuff.Append(RQLCustom2SQL(lItem));
+    end;
+    aSQL := lBuff.ToString;
+  finally
+    lBuff.Free;
+  end;
+end;
 
 constructor TRQLCompiler.Create(const Mapping: TMVCFieldsMapping);
 begin
