@@ -486,6 +486,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡New! Added parameter `RootNode` in `BodyFor`<T> and `BodyForListOf<T>` methods, just like the `BodyAs*` methods.
 
+- ⚡New! Added `NullableTGUID` in `MVCFramework.Nullables.pas`.
+
 - ⚡New `property CustomIntfObject: IInterface` in `TWebContext`. This property can be used to inject custom services factory. 
 
     ```delphi

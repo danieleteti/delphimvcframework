@@ -1075,6 +1075,10 @@ begin
             begin
               aRTTIField.SetValue(AObject, AField.AsString);
             end;
+          tkWideString:
+            begin
+              aRTTIField.SetValue(AObject, AField.AsWideString);
+            end;
           tkClass: { mysql - maps a tiny field, identified as string, into a TStream }
             begin
               lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
@@ -1235,7 +1239,18 @@ begin
     ftGuid:
       begin
 {$IF Defined(TokyoOrBetter)}
-        aRTTIField.SetValue(AObject, TValue.From<TGUID>(AField.AsGuid));
+        if AField.IsNull then
+        begin
+          aRTTIField.SetValue(AObject, TValue.Empty)
+        end
+        else if TypeInfo(NullableTGUID) = aRTTIField.FieldType.Handle then
+        begin
+          aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid));
+        end
+        else
+        begin
+          aRTTIField.SetValue(AObject, TValue.From<TGUID>(AField.AsGuid));
+        end;
 {$ELSE}
         lFieldValue := AField.AsString;
         if lFieldValue.IsEmpty then
@@ -1472,6 +1487,18 @@ begin
     else
     begin
       aRTTIField.SetValue(AObject, TValue.From<NullableCurrency>(AField.AsCurrency));
+    end;
+    Result := True;
+  end
+  else if AValue.IsType(TypeInfo(NullableTGUID)) then
+  begin
+    if AField.IsNull then
+    begin
+      aRTTIField.GetValue(AObject).AsType<NullableTGUID>().Clear;
+    end
+    else
+    begin
+      aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid));
     end;
     Result := True;
   end

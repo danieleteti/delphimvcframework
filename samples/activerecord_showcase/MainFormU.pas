@@ -53,6 +53,7 @@ type
     btnMerge: TButton;
     btnTableFilter: TButton;
     btnPartitioning: TButton;
+    btnCRUDWithGUID: TButton;
     procedure btnCRUDClick(Sender: TObject);
     procedure btnInheritanceClick(Sender: TObject);
     procedure btnMultiThreadingClick(Sender: TObject);
@@ -76,6 +77,7 @@ type
     procedure btnMergeClick(Sender: TObject);
     procedure btnTableFilterClick(Sender: TObject);
     procedure btnPartitioningClick(Sender: TObject);
+    procedure btnCRUDWithGUIDClick(Sender: TObject);
   private
     procedure Log(const Value: string);
     procedure LoadCustomers;
@@ -330,6 +332,58 @@ begin
     Log('Just deleted Customer ' + lID.ToString);
   finally
     lCustomer.Free;
+  end;
+end;
+
+procedure TMainForm.btnCRUDWithGUIDClick(Sender: TObject);
+var
+  lTestNote: string;
+  lCustWithGUID: TCustomerWithGUID;
+  lIDGUID: TGUID;
+begin
+  Log('** Using GUID as primary key');
+
+  lCustWithGUID := TCustomerWithGUID.Create;
+  try
+    Log('Entity ' + TCustomerWithGUID.ClassName + ' is mapped to table ' + lCustWithGUID.TableName);
+    lCustWithGUID.GUID := TGUID.NewGuid;
+    lCustWithGUID.CompanyName := 'Google Inc.';
+    lCustWithGUID.City := 'Montain View, CA';
+    lCustWithGUID.Note := 'Μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος οὐλομένην 😁';
+    lCustWithGUID.Insert;
+    lIDGUID := lCustWithGUID.GUID;
+    Log('Just inserted Customer With GUID ' + lIDGUID.ToString);
+  finally
+    lCustWithGUID.Free;
+  end;
+
+  lCustWithGUID := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lIDGUID);
+  try
+    Assert(not lCustWithGUID.Code.HasValue);
+    lCustWithGUID.Code.Value := '5678';
+    lCustWithGUID.Note := lCustWithGUID.Note + sLineBreak + 'Code changed to 5678 🙂';
+    lTestNote := lCustWithGUID.Note;
+    lCustWithGUID.Update;
+    Log('Just updated Customer ' + lIDGUID.ToString);
+  finally
+    lCustWithGUID.Free;
+  end;
+
+  lCustWithGUID := TCustomerWithGUID.Create;
+  try
+    lCustWithGUID.LoadByPK(lIDGUID);
+    lCustWithGUID.Code.Value := '😉9012🙂';
+    lCustWithGUID.Update;
+  finally
+    lCustWithGUID.Free;
+  end;
+
+  lCustWithGUID := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lIDGUID);
+  try
+    lCustWithGUID.Delete;
+    Log('Just deleted Customer ' + lIDGUID.ToString);
+  finally
+    lCustWithGUID.Free;
   end;
 end;
 

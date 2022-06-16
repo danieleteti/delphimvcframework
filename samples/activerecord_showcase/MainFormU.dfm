@@ -12,7 +12,6 @@ object MainForm: TMainForm
   Font.Style = []
   OnDestroy = FormDestroy
   OnShow = FormShow
-  PixelsPerInch = 96
   DesignSize = (
     1104
     569)
@@ -28,7 +27,7 @@ object MainForm: TMainForm
   end
   object btnSelect: TButton
     Left = 8
-    Top = 203
+    Top = 242
     Width = 121
     Height = 33
     Caption = 'Queries'
@@ -59,7 +58,7 @@ object MainForm: TMainForm
   end
   object btnRelations: TButton
     Left = 8
-    Top = 242
+    Top = 281
     Width = 121
     Height = 35
     Caption = 'Relations'
@@ -68,7 +67,7 @@ object MainForm: TMainForm
   end
   object btnInheritance: TButton
     Left = 8
-    Top = 283
+    Top = 322
     Width = 121
     Height = 34
     Caption = 'Inheritance'
@@ -77,7 +76,7 @@ object MainForm: TMainForm
   end
   object btnValidation: TButton
     Left = 8
-    Top = 323
+    Top = 362
     Width = 121
     Height = 34
     Caption = 'Validation'
@@ -95,7 +94,7 @@ object MainForm: TMainForm
   end
   object btnRQL: TButton
     Left = 8
-    Top = 363
+    Top = 402
     Width = 121
     Height = 34
     Caption = 'RQL Query'
@@ -104,7 +103,7 @@ object MainForm: TMainForm
   end
   object btnTransientFields: TButton
     Left = 8
-    Top = 164
+    Top = 203
     Width = 121
     Height = 33
     Caption = 'CRUD Transient'
@@ -122,7 +121,7 @@ object MainForm: TMainForm
   end
   object btnCRUDNoAutoInc: TButton
     Left = 8
-    Top = 47
+    Top = 86
     Width = 121
     Height = 33
     Caption = 'CRUD (no autoinc)'
@@ -131,7 +130,7 @@ object MainForm: TMainForm
   end
   object btnCRUDWithStringPKs: TButton
     Left = 8
-    Top = 86
+    Top = 125
     Width = 121
     Height = 33
     Caption = 'CRUD (string pks)'
@@ -140,7 +139,7 @@ object MainForm: TMainForm
   end
   object btnWithSpaces: TButton
     Left = 8
-    Top = 125
+    Top = 164
     Width = 121
     Height = 33
     Caption = 'CRUD (entity with spaces)'
@@ -220,8 +219,17 @@ object MainForm: TMainForm
     TabOrder = 20
     OnClick = btnPartitioningClick
   end
+  object btnCRUDWithGUID: TButton
+    Left = 8
+    Top = 47
+    Width = 121
+    Height = 33
+    Caption = 'CRUD (with GUID PK)'
+    TabOrder = 21
+    OnClick = btnCRUDWithGUIDClick
+  end
   object FDConnection1: TFDConnection
-    Left = 56
-    Top = 408
+    Left = 168
+    Top = 464
   end
 end

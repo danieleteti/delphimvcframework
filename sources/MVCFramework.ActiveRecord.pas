@@ -1190,7 +1190,7 @@ begin
           else
           begin
             raise EMVCActiveRecord.Create
-              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int64, (Nullable)String - found: '
+              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int64, (Nullable)String, GUID - found: '
               +
               lPrimaryFieldTypeAsStr);
           end;
@@ -1344,7 +1344,7 @@ begin
     if not Result.LoadByPK(aValue, aFieldType) then
     begin
       if RaiseExceptionIfNotFound then
-        raise EMVCActiveRecordNotFound.Create('Data not found')
+        raise EMVCActiveRecordNotFound.Create('No data found')
       else
         FreeAndNil(Result);
     end;
@@ -2062,6 +2062,13 @@ begin
         if aValue.IsType(TypeInfo(TGUID)) then
         begin
           aParam.AsGuid := aValue.AsType<TGUID>;
+        end
+        else if aValue.IsType(TypeInfo(NullableTGUID)) then
+        begin
+          if aValue.AsType<NullableTGUID>.HasValue then
+            aParam.AsGuid := aValue.AsType<NullableTGUID>.Value
+          else
+            aParam.Clear();
         end
         else
         begin

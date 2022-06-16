@@ -207,6 +207,24 @@ CREATE TABLE public.customers_with_code (
 
 ALTER TABLE public.customers_with_code OWNER TO postgres;
 
+
+-- public.customers_with_guid definition
+
+-- Drop table
+
+-- DROP TABLE public.customers_with_guid;
+
+CREATE TABLE public.customers_with_guid (
+	idguid uuid NOT NULL,
+	code varchar(20) NULL,
+	description varchar(200) NULL,
+	city varchar(200) NULL,
+	note text NULL,
+	rating int4 NULL,
+	CONSTRAINT customers_with_guid_pk PRIMARY KEY (idguid)
+);
+
+
 --
 -- TOC entry 209 (class 1259 OID 58884)
 -- Name: nullables_test; Type: TABLE; Schema: public; Owner: postgres
