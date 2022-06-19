@@ -341,6 +341,8 @@ var
   lCustWithGUID: TCustomerWithGUID;
   lIDGUID: TGUID;
 begin
+  TMVCActiveRecord.DeleteAll(TCustomerWithGUID);
+
   Log('** Using GUID as primary key');
 
   lCustWithGUID := TCustomerWithGUID.Create;

@@ -345,6 +345,7 @@ type
   [MVCTable('customers_with_guid')]
   TCustomerWithGUID = class(TCustomEntity)
   private
+    [MVCSerializeGuidWithoutBraces]
     [MVCTableField('idguid', [foPrimaryKey])]
     fGUID: NullableTGUID;
     [MVCTableField('code')]
