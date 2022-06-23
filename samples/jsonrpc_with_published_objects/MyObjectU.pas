@@ -46,7 +46,7 @@ type
   TPersonRec = record
     Name: String;
     Surname: String;
-    [MVCNameAs('pippi')]
+//    [MVCNameAs('pippi')]
     Age: Integer;
     Child: TChildRec;
   end;
@@ -78,7 +78,7 @@ type
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const Person: TJsonObject): Integer;
-    function SavePersonRec(const PersonRec: TPersonRec): TPersonRec;
+    function SavePersonRec(PersonRec: TPersonRec): TPersonRec;
     function GetPersonRec: TPersonRec;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
@@ -359,7 +359,7 @@ begin
   Result := Random(1000);
 end;
 
-function TMyObject.SavePersonRec(const PersonRec: TPersonRec): TPersonRec;
+function TMyObject.SavePersonRec(PersonRec: TPersonRec): TPersonRec;
 begin
   Result := PersonRec;
 end;

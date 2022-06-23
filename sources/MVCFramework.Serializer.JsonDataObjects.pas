@@ -100,7 +100,7 @@ type
     function TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject; const AName: string): Boolean;
     procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
-    procedure JSONObjectToRecord(const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte);
+    procedure JSONObjectToRecord(const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: Pointer);
     procedure JSONObjectPropertyToTValue(
       AJSONObject: TJSONObject;
       const APropertyName: String;
@@ -1555,6 +1555,7 @@ var
   lOutInteger: Integer;
   lInt: Integer;
   lOutInteger64: Int64;
+  ChildObject: TObject;
 begin
   case AJsonObject[APropertyName].Typ of
     jdtNone:
@@ -1738,7 +1739,7 @@ begin
         else
         begin
           {TODO -oDanieleT -cGeneral : Nested record types are not correctly deserialized here}
-          {
+
           // dt: if a key is null, jsondataobjects assign it the type jdtObject
           if AJsonObject[APropertyName].ObjectValue <> nil then
           begin
@@ -1765,12 +1766,12 @@ begin
                   end
                   else
                   begin
-                    raise EMVCDeserializationException.CreateFmt('Cannot deserialize object value for "%s"', [APropertyName]);
+//                    JSONObjectToRecord(AJsonObject.O[APropertyName], )
+                    raise EMVCDeserializationException.CreateFmt('Cannot deserialize object value for property "%s"', [APropertyName]);
                   end;
                 end
             end;
           end;
-          }
         end;
       end;
 
@@ -2046,14 +2047,12 @@ begin
 end;
 
 procedure TMVCJsonDataObjectsSerializer.JSONObjectToRecord(
-  const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte);
+  const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: Pointer);
 var
   CTX: TRttiContext;
   lField: TRTTIField;
   lTypeSize: Integer;
   lTypeInfo: PTypeInfo;
-//  lBuffer: PByte;
-//  lRec: TRttiRecordType;
   AType: TMVCSerializationType;
   lProp: TRTTIProperty;
   AIgnoredAttributes: TMVCIgnoredList;
@@ -2066,16 +2065,7 @@ begin
   lTypeInfo := RTTIType.Handle;
   Buffer := GetMemory(lTypeSize);
   InvokeRecordInitializer(Buffer, lTypeInfo);
-//  lRec := RTTIType.AsRecord;
 
-//var
-//  lObjType: TRttiType;
-//  lProp: TRttiProperty;
-//  lFld: TRttiField;
-//  lAttributeValue: TValue;
-//  lKeyName: string;
-//  lErrMsg: string;
-//begin
   AIgnoredAttributes := [];
   AType := stDefault;
   case AType of
@@ -2128,14 +2118,21 @@ begin
             begin
               lAttributeValue := lFld.GetValue(Buffer);
               lKeyName := TMVCSerializerHelper.GetKeyName(lFld, RTTIType);
-              JSONObjectPropertyToTValueForRecord(
-                JSONObject,
-                lKeyName,
-                TMVCSerializationType.stProperties,
-                AIgnoredAttributes,
-                lAttributeValue,
-                lFld.GetAttributes
-                );
+              if lFld.FieldType.IsRecord then
+              begin
+                JSONObjectToRecord(JSONObject.O[lKeyName], lFld.FieldType.AsRecord, Buffer);
+              end
+              else
+              begin
+                JSONObjectPropertyToTValueForRecord(
+                  JSONObject,
+                  lKeyName,
+                  TMVCSerializationType.stProperties,
+                  AIgnoredAttributes,
+                  lAttributeValue,
+                  lFld.GetAttributes
+                  );
+              end;
               lFld.SetValue(Buffer, lAttributeValue);
             end;
         except
