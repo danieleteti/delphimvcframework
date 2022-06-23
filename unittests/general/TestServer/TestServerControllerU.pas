@@ -278,6 +278,10 @@ type
     [MVCPath('/issue552')]
     procedure TestIssue552GUIDSupport;
 
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/guidserializationecho')]
+    procedure TestGUIDSerializationEcho;
+
     { injectable parameters }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/injectable10')]
@@ -825,6 +829,18 @@ begin
     Render(LWrappedList);
   finally
     lObj.Free;
+  end;
+end;
+
+procedure TTestServerController.TestGUIDSerializationEcho;
+var
+  lEnt: TEntityWithGUIDs;
+begin
+  lEnt := Context.Request.BodyAs<TEntityWithGUIDs>;
+  try
+    Render(lEnt, False);
+  finally
+    lEnt.Free;
   end;
 end;
 

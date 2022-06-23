@@ -161,6 +161,8 @@ type
     [Test]
     procedure TestEntityWithGUIDs;
     [Test]
+    procedure TestEntityWithGUIDsEcho;
+    [Test]
     procedure TestBasicAuth02;
     [Test]
     procedure TestBasicAuth03;
@@ -1107,6 +1109,43 @@ begin
     Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
     Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
     Assert.IsTrue(lJOBJ.IsNull('nullableguid2'));
+  finally
+    lJOBJ.Free;
+  end;
+end;
+
+procedure TServerTest.TestEntityWithGUIDsEcho;
+var
+  lRes: IMVCRESTResponse;
+  lJOBJ: TJsonObject;
+  lObj: TEntityWithGUIDs;
+begin
+  lObj := TEntityWithGUIDs.Create(False);
+  lObj.GUID := StringToGUID('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}');
+  lObj.NullableGUID := StringToGUID('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}');
+  lObj.NullableGUID2.Clear;
+  lRes := RESTClient.Post('/guidserializationecho', lObj, True);
+  Assert.IsTrue(lRes.Success);
+  lJOBJ := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
+    Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
+    Assert.IsTrue(lJOBJ.IsNull('nullableguid2'));
+  finally
+    lJOBJ.Free;
+  end;
+
+  lObj := TEntityWithGUIDs.Create(False);
+  lObj.GUID := StringToGUID('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}');
+  lObj.NullableGUID := StringToGUID('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}');
+  lObj.NullableGUID2 := StringToGUID('{D6DC2A99-CFFE-43C8-A4DC-0492786AB303}');
+  lRes := RESTClient.Post('/guidserializationecho', lObj, True);
+  Assert.IsTrue(lRes.Success);
+  lJOBJ := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
+    Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
+    Assert.AreEqual('{D6DC2A99-CFFE-43C8-A4DC-0492786AB303}', lJOBJ.S['nullableguid2']);
   finally
     lJOBJ.Free;
   end;
