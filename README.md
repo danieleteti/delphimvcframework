@@ -462,7 +462,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 ### What's new in 3.2.2-nitrogen (currently in beta)
 
-- ⚡New! Support for Delphi 11 Alexandria
+- ⚡New! Support for Delphi 11.1 Alexandria
 
 - ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
 
@@ -581,6 +581,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
     ```
 
 - ⚡ New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
+
+- ⚡ New! Added support for primary GUID (UUID) primary keys, attributes and serialization (More info at [issue 552](https://github.com/danieleteti/delphimvcframework/issues/552)). Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto) for its important collaboration.
 
 - ⚡ New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
 
