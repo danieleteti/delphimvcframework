@@ -164,31 +164,20 @@ While DMVCFramework is born from the head of Daniele Teti from bit Time Professi
 
 **GOLD SPONSORS**
 
-![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimeprofessionals.png)
-
-[bit Time Professionals ](https://www.bittimeprofessionals.com)
-
-
-
-![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/bittimesoftware.png)
-
-[bit Time Software](https://www.bittime.it)
+|COMPANY NAME | LOGO|
+|-----------------------------------------------------------------------|------------------------------------------------------------------------|
+|[bit Time Professionals ](https://www.bittimeprofessionals.com)		|![](docs/sponsorlogos/bittimeprofessionals.png)  |
+|[bit Time Software](https://www.bittime.it)                            |![](docs/sponsorlogos/bittimesoftware.png)       |
 
 
 
 **SILVER SPONSOR**
 
-![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/centrosoftware.png)
-
-[Centro Software](https://www.centrosoftware.com)
-
-
-
-![](https://github.com/danieleteti/delphimvcframework/raw/master/docs/sponsorlogos/delphistudio.png)
-
-[Delphi Studio ES](http://www.delphistudio.es)
-
-
+|COMPANY NAME | LOGO|
+|-----------------------------------------------------------------------|------------------------------------------------------------------------|
+|[Centro Software](https://www.centrosoftware.com)                      | ![](docs/sponsorlogos/centrosoftware.png) |
+|[Delphi Studio ES](http://www.delphistudio.es)                         | ![](docs/sponsorlogos/delphistudio.png)   |
+|[Orion Law](https://orionlaw.com/)                                     | ![](docs/sponsorlogos/orionlaw.png)       |
 
 
 
@@ -473,7 +462,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 ### What's new in 3.2.2-nitrogen (currently in beta)
 
-- ⚡New! Support for Delphi 11 Alexandria
+- ⚡New! Support for Delphi 11.1 Alexandria
 
 - ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
 
@@ -496,6 +485,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - ⚡New `OnContextCreate` and `OnContextDetroyed` events for `TMVCEngine`. 
 
 - ⚡New! Added parameter `RootNode` in `BodyFor`<T> and `BodyForListOf<T>` methods, just like the `BodyAs*` methods.
+
+- ⚡New! Added `NullableTGUID` in `MVCFramework.Nullables.pas`.
 
 - ⚡New `property CustomIntfObject: IInterface` in `TWebContext`. This property can be used to inject custom services factory. 
 
@@ -590,6 +581,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
     ```
 
 - ⚡ New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
+
+- ⚡ New! Added support for primary GUID (UUID) primary keys, attributes and serialization (More info at [issue 552](https://github.com/danieleteti/delphimvcframework/issues/552)). Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto) for its important collaboration.
 
 - ⚡ New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
 
@@ -703,6 +696,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - Fix https://github.com/danieleteti/delphimvcframework/issues/451
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/539
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/560 (thanks to [David Moorhouse](https://github.com/fastbike))
 
 - Merged [PR#543](https://github.com/danieleteti/delphimvcframework/pull/543) (Now the `PathInfo` is trimmed so the router convert this "http://myserver.com/one " to this "http://myserver.com/one")
 

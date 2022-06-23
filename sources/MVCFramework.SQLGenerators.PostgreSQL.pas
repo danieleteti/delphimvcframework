@@ -38,6 +38,7 @@ type
   protected
     function GetCompilerClass: TRQLCompilerClass; override;
   public
+    function HasNativeUUID: Boolean; override;
     function CreateInsertSQL(
       const TableName: string;
       const Map: TFieldsMap;
@@ -137,6 +138,11 @@ function TMVCSQLGeneratorPostgreSQL.GetSequenceValueSQL(const PKFieldName,
   SequenceName: string; const Step: Integer): string;
 begin
   Result := Format('SELECT nextval(''%s'') %s', [SequenceName, GetFieldNameForSQL(PKFieldName)]);
+end;
+
+function TMVCSQLGeneratorPostgreSQL.HasNativeUUID: Boolean;
+begin
+  Result := True;
 end;
 
 initialization

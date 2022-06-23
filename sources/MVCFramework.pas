@@ -1039,7 +1039,7 @@ type
     constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write FReasonString;
-    property message: string read FMessage write FMessage;
+    property Message: string read FMessage write FMessage;
     property Data: TObject read fDataObject write fDataObject;
   end;
 
@@ -2912,7 +2912,7 @@ begin
         if AFormalParam.ParamType.QualifiedName = 'System.TGUID' then
         begin
           try
-            Result := TValue.From<TGUID>(TMVCGuidHelper.GuidFromString(AStringValue));
+            Result := TValue.From<TGUID>(TMVCGuidHelper.StringToGUIDEx(AStringValue));
           except
             raise EMVCException.CreateFmt('Invalid Guid value for param [%s]', [AFormalParam.name]);
           end;
@@ -3408,7 +3408,7 @@ end;
 function TMVCRenderer.GetContext: TWebContext;
 begin
   if not Assigned(FContext) then
-    raise EMVCException.CreateFmt('Context already set on %s.', [Classname]);
+    raise EMVCException.CreateFmt('Context is not set %s.', [Classname]);
   Result := FContext;
 end;
 

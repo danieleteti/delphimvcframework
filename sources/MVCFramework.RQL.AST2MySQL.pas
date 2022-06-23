@@ -37,6 +37,7 @@ type
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
+  protected
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   end;
 

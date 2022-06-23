@@ -419,6 +419,7 @@ def generate_nullables(ctx):
         "UInt32",
         "Int64",
         "UInt64",
+        "TGUID",
     ]
 
     str_main_tmpl = "".join(main_tmpl)

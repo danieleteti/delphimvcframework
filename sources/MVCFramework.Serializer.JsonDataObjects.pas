@@ -1312,6 +1312,10 @@ begin
           begin
             AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJsonObject[APropertyName].Value)))
           end
+          else if AValue.TypeInfo = TypeInfo(NullableTGUID) then
+          begin
+            AValue := TValue.From<NullableTGUID>(StringToGUID(AJsonObject[APropertyName].Value));
+          end
           else
             raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [APropertyName]);
         end
@@ -2842,6 +2846,19 @@ begin
     if AValue.AsType<NullableUInt64>().HasValue then
     begin
       AJsonObject.I[AName] := AValue.AsType<NullableUInt64>().Value;
+    end
+    else
+    begin
+      AJsonObject.Values[AName] := nil;
+    end;
+    Exit(True);
+  end;
+
+  if (AValue.TypeInfo = System.TypeInfo(NullableTGUID)) then
+  begin
+    if AValue.AsType<NullableTGUID>().HasValue then
+    begin
+      AJsonObject.S[AName] := GUIDToString(AValue.AsType<NullableTGUID>().Value);
     end
     else
     begin

@@ -81,7 +81,7 @@ type
       abstract;
 
     procedure OnAuthorization(const AContext: TWebContext; UserRoles: TList<string>;
-      const ControllerQualifiedClassName: string; const ActionName: string; var IsAuthorized: Boolean); overload;
+      const ControllerQualifiedClassName: string; const ActionName: string; var IsAuthorized: Boolean); overload; virtual;
     constructor Create;
     destructor Destroy; override;
   end;
