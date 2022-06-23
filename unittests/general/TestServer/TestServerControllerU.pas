@@ -274,6 +274,10 @@ type
     [MVCPath('/issue542/($stringvalue)')]
     procedure GetIssue542;
 
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/issue552')]
+    procedure TestIssue552GUIDSupport;
+
     { injectable parameters }
     [MVCHTTPMethod([httpGET])]
     [MVCPath('/injectable10')]
@@ -858,6 +862,17 @@ begin
   finally
     lJSON.Free;
   end;
+end;
+
+procedure TTestServerController.TestIssue552GUIDSupport;
+var
+  lObj: TEntityWithGUIDs;
+begin
+  lObj := TEntityWithGUIDs.Create(False);
+  lObj.GUID := StringToGUID('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}');
+  lObj.NullableGUID := StringToGUID('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}');
+  lObj.NullableGUID2.Clear;
+  Render(lObj);
 end;
 
 procedure TTestServerController.TestJSONArrayAsObjectList;

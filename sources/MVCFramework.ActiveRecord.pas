@@ -573,6 +573,7 @@ type
     // capabilities
     function HasSequences: Boolean; virtual;
     function HasReturning: Boolean; virtual;
+    function HasNativeUUID: Boolean; virtual;
     // end-capabilities
 
     // abstract SQL generator methods
@@ -1348,10 +1349,20 @@ end;
 
 class function TMVCActiveRecord.GetByPK(aActiveRecord: TMVCActiveRecord; const aValue: string; const aFieldType: TFieldType;
   const RaiseExceptionIfNotFound: Boolean): TMVCActiveRecord;
+var
+  lFound: Boolean;
 begin
   Result := aActiveRecord;
   try
-    if not Result.LoadByPK(aValue, aFieldType) then
+    if Result.SQLGenerator.HasNativeUUID then
+    begin
+      lFound := Result.LoadByPK(aValue, aFieldType)
+    end
+    else
+    begin
+      lFound := Result.LoadByPK(aValue);
+    end;
+    if not lFound then
     begin
       if RaiseExceptionIfNotFound then
         raise EMVCActiveRecordNotFound.Create('No data found')
@@ -2086,7 +2097,14 @@ begin
       begin
         if aValue.IsType(TypeInfo(TGUID)) then
         begin
-          aParam.AsGuid := aValue.AsType<TGUID>;
+          if SQLGenerator.HasNativeUUID then
+          begin
+            aParam.AsGuid := aValue.AsType<TGUID>
+          end
+          else
+          begin
+            aParam.AsString := GUIDToString(aValue.AsType<TGUID>);
+          end;
         end
         else if aValue.IsType(TypeInfo(NullableTGUID)) then
         begin
@@ -2784,6 +2802,12 @@ begin
       if Result then
         Value := Value.AsType<NullableString>().Value;
     end
+    else if Value.IsType<NullableTGUID>() then
+    begin
+      Result := Value.AsType<NullableTGUID>().HasValue;
+      if Result then
+        Value := TValue.From<TGUID>(Value.AsType<NullableTGUID>().Value);
+    end
     else
       raise EMVCActiveRecord.Create
         ('Invalid primary key type [HINT: Use Int64, String, NullableInt64 or NullableString, so that Store method is available too.]');
@@ -3223,6 +3247,11 @@ end;
 function TMVCSQLGenerator.GetTableNameForSQL(const TableName: string): string;
 begin
   Result := fCompiler.GetTableNameForSQL(TableName);
+end;
+
+function TMVCSQLGenerator.HasNativeUUID: Boolean;
+begin
+  Result := False;
 end;
 
 function TMVCSQLGenerator.HasReturning: Boolean;

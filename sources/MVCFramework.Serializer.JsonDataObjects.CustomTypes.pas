@@ -345,7 +345,7 @@ begin
   if lJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
     LGuid := TGUID.Empty
   else
-    LGuid := TMVCGuidHelper.GuidFromString(lJSON.S[APropertyName]);
+    LGuid := StringToGUID(lJSON.S[APropertyName]);
   AElementValue := TValue.From<TGUID>(LGuid);
 end;
 

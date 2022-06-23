@@ -2912,7 +2912,7 @@ begin
         if AFormalParam.ParamType.QualifiedName = 'System.TGUID' then
         begin
           try
-            Result := TValue.From<TGUID>(TMVCGuidHelper.GuidFromString(AStringValue));
+            Result := TValue.From<TGUID>(TMVCGuidHelper.StringToGUIDEx(AStringValue));
           except
             raise EMVCException.CreateFmt('Invalid Guid value for param [%s]', [AFormalParam.name]);
           end;

@@ -1079,6 +1079,17 @@ begin
             begin
               aRTTIField.SetValue(AObject, AField.AsWideString);
             end;
+          tkRecord:
+            begin
+              if TypeInfo(TGUID) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, TValue.From<TGUID>(StringToGUID(AField.AsString)));
+              end
+              else
+              begin
+                raise EMVCException.CreateFmt('Unsupported record type: %s.%s', [aRTTIField.Parent.Name, aRTTIField.Name]);
+              end;
+            end;
           tkClass: { mysql - maps a tiny field, identified as string, into a TStream }
             begin
               lInternalStream := aRTTIField.GetValue(AObject).AsObject as TStream;
@@ -1192,6 +1203,17 @@ begin
               begin
                 raise EMVCDeserializationException.Create('Cannot deserialize field ' +
                   AField.FieldName);
+              end;
+            end;
+          tkRecord:
+            begin
+              if TypeInfo(TGUID) = aRTTIField.FieldType.Handle then
+              begin
+                aRTTIField.SetValue(AObject, TValue.From<TGUID>(StringToGUID(AField.AsString)));
+              end
+              else
+              begin
+                raise EMVCException.CreateFmt('Unsupported record type: %s.%s', [aRTTIField.Parent.Name, aRTTIField.Name]);
               end;
             end
         else
@@ -1498,7 +1520,10 @@ begin
     end
     else
     begin
-      aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid));
+      if AField.DataType = ftGuid then
+        aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid))
+      else
+        aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(StringToGUID(AField.AsString)))
     end;
     Result := True;
   end

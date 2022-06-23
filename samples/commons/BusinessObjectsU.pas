@@ -260,6 +260,19 @@ type
   end;
 
   [MVCNameCase(ncLowerCase)]
+  TEntityWithGUIDs = class
+  private
+    fNullableGUID: NullableTGUID;
+    fGUID: TGUID;
+    fNullableGUID2: NullableTGUID;
+  public
+    constructor Create(const RandomInitialization: boolean = True);
+    property GUID: TGUID read fGUID write fGUID;
+    property NullableGUID: NullableTGUID read fNullableGUID write fNullableGUID;
+    property NullableGUID2: NullableTGUID read fNullableGUID2 write fNullableGUID2;
+  end;
+
+  [MVCNameCase(ncLowerCase)]
   TProgrammer = class(TPerson)
   private
     FSkills: string;
@@ -695,6 +708,18 @@ destructor TProgrammerEx2.Destroy;
 begin
   FMentor.Free;
   inherited;
+end;
+
+{ TEntityWithGUIDs }
+
+constructor TEntityWithGUIDs.Create(const RandomInitialization: boolean);
+begin
+  inherited Create;
+  if RandomInitialization then
+  begin
+    fGUID := TGUID.NewGuid;
+    fNullableGUID := TGUID.NewGuid;
+  end;
 end;
 
 initialization

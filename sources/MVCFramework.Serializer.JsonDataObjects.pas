@@ -2381,6 +2381,19 @@ begin
     Exit(True);
   end;
 
+  if (AValue.TypeInfo = System.TypeInfo(NullableTGUID)) then
+  begin
+    if AValue.AsType<NullableTGUID>().HasValue then
+    begin
+      AJsonObject.S[AName] := GUIDToString(AValue.AsType<NullableTGUID>().Value);
+    end
+    else
+    begin
+      AJsonObject.Values[AName] := nil;
+    end;
+    Exit(True);
+  end;
+
 end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string; const AObject: TObject;

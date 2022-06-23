@@ -592,7 +592,7 @@ type
 
   TMVCGuidHelper = record
   public
-    class function GuidFromString(const AGuidStr: string): TGUID; static;
+    class function StringToGUIDEx(const AGuidStr: string): TGUID; static; inline;
   end;
 
   TMVCStringHelper = record
@@ -1415,7 +1415,7 @@ end;
 
 { TMVCGuidHelper }
 
-class function TMVCGuidHelper.GuidFromString(const AGuidStr: string): TGUID;
+class function TMVCGuidHelper.StringToGUIDEx(const AGuidStr: string): TGUID;
 var
   LGuidStr: string;
 begin

@@ -53,6 +53,18 @@ CREATE TABLE customers_with_code (
     rating smallint
 );
 
+
+CREATE TABLE customers_with_guid (
+	idguid binary(16) NOT NULL,
+	code varchar(20) NULL,
+	description varchar(200) NULL,
+	city varchar(200) NULL,
+	note text NULL,
+	rating int4 NULL,
+	CONSTRAINT customers_with_guid_pk PRIMARY KEY (idguid)
+);
+
+
 CREATE TABLE order_details (
 	id integer NOT NULL AUTO_INCREMENT,
 	id_order integer NOT NULL,

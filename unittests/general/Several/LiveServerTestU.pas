@@ -159,6 +159,8 @@ type
     // [Category('this')]
     procedure TestEntityWithEmptyArrays;
     [Test]
+    procedure TestEntityWithGUIDs;
+    [Test]
     procedure TestBasicAuth02;
     [Test]
     procedure TestBasicAuth03;
@@ -1091,6 +1093,22 @@ begin
     end;
   finally
     lObj1.Free;
+  end;
+end;
+
+procedure TServerTest.TestEntityWithGUIDs;
+var
+  lRes: IMVCRESTResponse;
+  lJOBJ: TJsonObject;
+begin
+  lRes := RESTClient.Get('/issue552');
+  lJOBJ := StrToJSONObject(lRes.Content);
+  try
+    Assert.AreEqual('{75ADE43E-F8C1-4F66-B714-D04726FD2C21}', lJOBJ.S['guid']);
+    Assert.AreEqual('{7B17F2DD-6ED5-40A4-A334-8ED877A6803E}', lJOBJ.S['nullableguid']);
+    Assert.IsTrue(lJOBJ.IsNull('nullableguid2'));
+  finally
+    lJOBJ.Free;
   end;
 end;
 

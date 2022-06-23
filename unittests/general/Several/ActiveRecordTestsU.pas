@@ -39,7 +39,7 @@ type
     fConnection: TFDConnection;
     fConDefName: string;
     procedure CreatePrivateConnDef(AIsPooled: boolean); virtual; abstract;
-    procedure LoadData(const JustAFew: Boolean = False); virtual;
+    procedure LoadData(const JustAFew: boolean = False); virtual;
     procedure AfterDataLoad; virtual; abstract;
     procedure InternalSetupFixture; virtual;
     function CreateACustomer(CompanyName: String; Rating: Integer): Integer; overload;
@@ -60,6 +60,8 @@ type
     [Test]
     procedure TestCRUDWithSpaces;
     [Test]
+    procedure TestCRUDWithGUID;
+    [Test]
     procedure TestCRUDWithTableChange;
     [Test]
     procedure TestCRUDStringPK;
@@ -76,6 +78,8 @@ type
     [Test]
     procedure TestRQLWithDateTime;
     [Test]
+    procedure TestRQLWithGUID;
+    [Test]
     procedure TestRQLLimit;
     [Test]
     procedure TestIssue424;
@@ -91,7 +95,7 @@ type
     procedure TestMergeWhenChangedRecords;
     [Test]
     procedure TestMergeWhenMixedRecords;
-    {default filtering}
+    { default filtering }
     [Test]
     procedure TestDefaultFilteringSelectByRQL;
     [Test]
@@ -106,7 +110,7 @@ type
     procedure TestDefaultFilteringDelete;
     [Test]
     procedure TestDefaultFilteringGetByPK;
-    {partitioning}
+    { partitioning }
     [Test]
     procedure TestPartitioningCRUD;
     [Test]
@@ -181,7 +185,7 @@ var
   GDBFileName: string = '';
   SQLiteFileName: string = 'sqlitetest.db';
   GDBTemplateFileName: string = '';
-  GPGIsInitialized: boolean = false;
+  GPGIsInitialized: boolean = False;
 
 procedure TTestActiveRecordSQLite.AfterDataLoad;
 begin
@@ -191,7 +195,7 @@ begin
   TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers''');
   TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers2''');
   TMVCActiveRecord.CurrentConnection.ExecSQL('delete from sqlite_sequence where name=''customers with spaces''');
-  //TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
+  // TMVCActiveRecord.CurrentConnection.ExecSQL('drop table if exists sqlite_sequence');
 end;
 
 procedure TTestActiveRecordSQLite.CreatePrivateConnDef(AIsPooled: boolean);
@@ -276,10 +280,10 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, false);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, False);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], false);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], False);
   Assert.IsNull(lCustomer);
 
 end;
@@ -328,11 +332,69 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000', false);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithCode>('1000', False);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'],
-    [ftString], false);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithCode>('code = ?', ['1000'], [ftString], False);
+  Assert.IsNull(lCustomer);
+end;
+
+procedure TTestActiveRecordBase.TestCRUDWithGUID;
+var
+  lCustomer: TCustomerWithGUID;
+  lGUID: TGUID;
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithGUID>());
+  lCustomer := TCustomerWithGUID.Create;
+  try
+    lCustomer.CompanyName := 'bit Time Professionals';
+    lCustomer.City := 'Rome, IT';
+    lCustomer.Note := 'note1';
+    lCustomer.GUID := TGUID.NewGuid;
+    lCustomer.OtherGUID := TGUID.NewGuid;
+    lCustomer.Insert;
+    lGUID := lCustomer.GUID;
+    Assert.IsFalse(lGUID.IsEmpty);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lGUID);
+  try
+    Assert.IsFalse(lCustomer.Code.HasValue);
+    Assert.IsFalse(lCustomer.Rating.HasValue);
+    lCustomer.Code := '1234';
+    lCustomer.Rating := 3;
+    lCustomer.OtherGUID := TGUID.NewGuid;
+    lCustomer.Note := lCustomer.Note + 'noteupdated';
+    lCustomer.Update;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lGUID);
+  try
+    Assert.AreEqual('1234', lCustomer.Code.Value);
+    Assert.AreEqual(3, lCustomer.Rating.Value);
+    Assert.AreEqual('note1noteupdated', lCustomer.Note);
+    Assert.AreEqual('bit Time Professionals', lCustomer.CompanyName.Value);
+    Assert.AreEqual('Rome, IT', lCustomer.City);
+    Assert.IsFalse(lCustomer.GUID.Value.IsEmpty);
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lGUID);
+  try
+    lCustomer.Delete;
+  finally
+    lCustomer.Free;
+  end;
+
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithGUID>(lGUID, False);
+  Assert.IsNull(lCustomer);
+
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithGUID>('idguid = ?', [lGUID.ToString], [ftGuid], False);
   Assert.IsNull(lCustomer);
 end;
 
@@ -394,10 +456,10 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID, false);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomerWithSpaces>(lID, False);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithSpaces>('"id with spaces" = ?', [lID], [ftInteger], false);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomerWithSpaces>('"id with spaces" = ?', [lID], [ftInteger], False);
   Assert.IsNull(lCustomer);
 end;
 
@@ -519,7 +581,8 @@ begin
   lIDBad := CreateACustomer('Daniele', 1);
   lIDGood := CreateACustomer('Jack', 5);
 
-  var lAGoodCustomer := TMVCActiveRecord.GetByPK<TGoodCustomer>(lIDGood, False);
+  var
+  lAGoodCustomer := TMVCActiveRecord.GetByPK<TGoodCustomer>(lIDGood, False);
   try
     Assert.IsNotNull(lAGoodCustomer);
   finally
@@ -533,22 +596,24 @@ begin
     lAGoodCustomer.Free;
   end;
 
-  var lCustomer := TBadCustomer.Create;
+  var
+  lCustomer := TBadCustomer.Create;
   try
     lCustomer.LoadByPK(lIDBad);
     lCustomer.Rating := 5;
     lCustomer.Store;
-    Assert.IsFalse(lCustomer.LoadByPK(lIDBad)); {this customer is not "bad" anymore}
+    Assert.IsFalse(lCustomer.LoadByPK(lIDBad)); { this customer is not "bad" anymore }
   finally
     lCustomer.Free;
   end;
 
-  var lCustomer1 := TGoodCustomer.Create;
+  var
+  lCustomer1 := TGoodCustomer.Create;
   try
     lCustomer1.LoadByPK(lIDGood);
     lCustomer1.Rating := 1;
     lCustomer1.Store;
-    Assert.IsFalse(lCustomer1.LoadByPK(lIDGood)); {this customer is not "good" anymore}
+    Assert.IsFalse(lCustomer1.LoadByPK(lIDGood)); { this customer is not "good" anymore }
   finally
     lCustomer1.Free;
   end;
@@ -562,14 +627,15 @@ begin
     CreateACustomer('Company' + I.ToString, I);
   end;
 
-  var lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('',10);
+  var
+  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('', 10);
   try
     Assert.AreEqual(2, lGoodCustomers.Count);
   finally
     lGoodCustomers.Free;
   end;
 
-  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('sort(+CompanyName)',10);
+  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('sort(+CompanyName)', 10);
   try
     Assert.AreEqual('Company4', lGoodCustomers[0].CompanyName.Value);
     Assert.AreEqual('Company5', lGoodCustomers[1].CompanyName.Value);
@@ -577,14 +643,14 @@ begin
     lGoodCustomers.Free;
   end;
 
-  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('eq(Rating,5);sort(+CompanyName)',10);
+  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('eq(Rating,5);sort(+CompanyName)', 10);
   try
     Assert.AreEqual('Company5', lGoodCustomers[0].CompanyName.Value);
   finally
     lGoodCustomers.Free;
   end;
 
-  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('lt(Rating,4);sort(+CompanyName)',10);
+  lGoodCustomers := TMVCActiveRecord.SelectRQL<TGoodCustomer>('lt(Rating,4);sort(+CompanyName)', 10);
   try
     Assert.AreEqual(0, lGoodCustomers.Count);
   finally
@@ -600,7 +666,8 @@ begin
     CreateACustomer('Company' + I.ToString, I);
   end;
 
-  var lGoodCustomer := TMVCActiveRecord.SelectOneByRQL<TGoodCustomer>('eq(rating,5)', False);
+  var
+  lGoodCustomer := TMVCActiveRecord.SelectOneByRQL<TGoodCustomer>('eq(rating,5)', False);
   try
     Assert.IsNotNull(lGoodCustomer);
   finally
@@ -614,7 +681,8 @@ begin
     lGoodCustomer.Free;
   end;
 
-  var lImpossibileCustomer := TMVCActiveRecord.SelectOneByRQL<TGoodCustomer>('eq(rating,1)', False);
+  var
+  lImpossibileCustomer := TMVCActiveRecord.SelectOneByRQL<TGoodCustomer>('eq(rating,1)', False);
   try
     Assert.IsNull(lImpossibileCustomer);
   finally
@@ -741,8 +809,7 @@ begin
     Assert.AreEqual('OnBeforeLoad|MapDatasetToObject|OnAfterLoad', lCustomer.GetHistory);
     lCustomer.ClearHistory;
     lCustomer.Delete;
-    Assert.AreEqual
-      ('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete',
+    Assert.AreEqual('OnValidation|OnBeforeDelete|OnBeforeExecuteSQL|MapObjectToParams|OnAfterDelete',
       lCustomer.GetHistory);
   finally
     lCustomer.Free;
@@ -757,7 +824,7 @@ var
   lInserted, lUpdated, lDeleted: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  LoadData(true);
+  LoadData(True);
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
     lCustomersChanges := TObjectList<TCustomer>.Create(True);
@@ -769,27 +836,30 @@ begin
         lCustomersChanges.Add(lCustomer);
       end;
 
-      //calculate the unit-of-work to merge the lists
+      // calculate the unit-of-work to merge the lists
       lInserted := 0;
       lUpdated := 0;
       lDeleted := 0;
       TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
-        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        procedure(const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: boolean)
         begin
           Handled := False;
           case EntityAction of
-            eaCreate: begin
-              LogI('Inserting Customer : ' + Customer.ToString);
-              Inc(lInserted);
-            end;
-            eaUpdate: begin
-              LogI('Updating Customer  : ' + Customer.ToString);
-              Inc(lUpdated);
-            end;
-            eaDelete: begin
-              LogI('Deleting Customer  : ' + Customer.ToString);
-              Inc(lDeleted);
-            end;
+            eaCreate:
+              begin
+                LogI('Inserting Customer : ' + Customer.ToString);
+                Inc(lInserted);
+              end;
+            eaUpdate:
+              begin
+                LogI('Updating Customer  : ' + Customer.ToString);
+                Inc(lUpdated);
+              end;
+            eaDelete:
+              begin
+                LogI('Deleting Customer  : ' + Customer.ToString);
+                Inc(lDeleted);
+              end;
           end;
         end);
     finally
@@ -810,7 +880,6 @@ begin
     lCustomers.Free;
   end;
 
-
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,10)', 1000);
   try
     Assert.AreEqual(30, lCustomers.Count);
@@ -827,12 +896,12 @@ var
   lInserted, lUpdated, lDeleted: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  LoadData(true);
+  LoadData(True);
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
     lCustomersChanges := TObjectList<TCustomer>.Create(True);
     try
-      //these 2 customers will be updated
+      // these 2 customers will be updated
       lCustomer := TCustomer.Create;
       lCustomersChanges.Add(lCustomer);
       lCustomer.ID := lCustomers[0].ID;
@@ -849,8 +918,7 @@ begin
       lCustomer.City := '(changed) City';
       lCustomer.Rating := 2;
 
-
-      //these 2 customer will be created
+      // these 2 customer will be created
       lCustomer := TCustomer.Create;
       lCustomersChanges.Add(lCustomer);
       lCustomer.Code := 'C9898';
@@ -865,7 +933,7 @@ begin
       lCustomer.City := '(new) New City2';
       lCustomer.Rating := 3;
 
-      //these 2 customer will remain the same but will be updated
+      // these 2 customer will remain the same but will be updated
       lCustomer := TCustomer.Create;
       lCustomer.Assign(lCustomers[2]);
       lCustomersChanges.Add(lCustomer);
@@ -874,29 +942,32 @@ begin
       lCustomer.Assign(lCustomers[3]);
       lCustomersChanges.Add(lCustomer);
 
-      //all the other customers will be deleted
+      // all the other customers will be deleted
 
-      //calculate the unit-of-work to merge the lists
+      // calculate the unit-of-work to merge the lists
       lInserted := 0;
       lUpdated := 0;
       lDeleted := 0;
       TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
-        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        procedure(const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: boolean)
         begin
           Handled := False;
           case EntityAction of
-            eaCreate: begin
-              LogI('Inserting Customer : ' + Customer.ToString);
-              Inc(lInserted);
-            end;
-            eaUpdate: begin
-              LogI('Updating Customer  : ' + Customer.ToString);
-              Inc(lUpdated);
-            end;
-            eaDelete: begin
-              LogI('Deleting Customer  : ' + Customer.ToString);
-              Inc(lDeleted);
-            end;
+            eaCreate:
+              begin
+                LogI('Inserting Customer : ' + Customer.ToString);
+                Inc(lInserted);
+              end;
+            eaUpdate:
+              begin
+                LogI('Updating Customer  : ' + Customer.ToString);
+                Inc(lUpdated);
+              end;
+            eaDelete:
+              begin
+                LogI('Deleting Customer  : ' + Customer.ToString);
+                Inc(lDeleted);
+              end;
           end;
         end);
     finally
@@ -916,7 +987,6 @@ begin
   finally
     lCustomers.Free;
   end;
-
 
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,3)', 1000);
   try
@@ -944,10 +1014,10 @@ procedure TTestActiveRecordBase.TestMergeWhenNewDeletedRecords;
 var
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
-  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+  lInserted, lUpdated, lDeleted, lTotCustomers: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  LoadData(true);
+  LoadData(True);
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
     lCustomersChanges := TObjectList<TCustomer>.Create(True);
@@ -956,24 +1026,27 @@ begin
       lInserted := 0;
       lUpdated := 0;
       lDeleted := 0;
-      //calculate the unit-of-work to merge the lists
+      // calculate the unit-of-work to merge the lists
       TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
-        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        procedure(const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: boolean)
         begin
           Handled := False;
           case EntityAction of
-            eaCreate: begin
-              LogI('Inserting Customer : ' + Customer.ToString);
-              Inc(lInserted);
-            end;
-            eaUpdate: begin
-              LogI('Updating Customer  : ' + Customer.ToString);
-              Inc(lUpdated);
-            end;
-            eaDelete: begin
-              LogI('Deleting Customer  : ' + Customer.ToString);
-              Inc(lDeleted);
-            end;
+            eaCreate:
+              begin
+                LogI('Inserting Customer : ' + Customer.ToString);
+                Inc(lInserted);
+              end;
+            eaUpdate:
+              begin
+                LogI('Updating Customer  : ' + Customer.ToString);
+                Inc(lUpdated);
+              end;
+            eaDelete:
+              begin
+                LogI('Deleting Customer  : ' + Customer.ToString);
+                Inc(lDeleted);
+              end;
           end;
         end);
     finally
@@ -1000,10 +1073,10 @@ var
   lCustomer: TCustomer;
   lCustomers: TObjectList<TCustomer>;
   lCustomersChanges: TObjectList<TCustomer>;
-  lInserted, lUpdated, lDeleted, lTotCustomers : Integer;
+  lInserted, lUpdated, lDeleted, lTotCustomers: Integer;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  LoadData(true);
+  LoadData(True);
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
     lCustomersChanges := TObjectList<TCustomer>.Create(True);
@@ -1013,7 +1086,7 @@ begin
         lCustomersChanges.Add(lCust.Clone);
       end;
 
-      //these 2 customer will be created
+      // these 2 customer will be created
       lCustomer := TCustomer.Create;
       lCustomersChanges.Add(lCustomer);
       lCustomer.Code := 'C9898';
@@ -1033,24 +1106,27 @@ begin
       lInserted := 0;
       lUpdated := 0;
       lDeleted := 0;
-      //calculate the unit-of-work to merge the lists
+      // calculate the unit-of-work to merge the lists
       TMVCActiveRecord.Merge<TCustomer>(lCustomers, lCustomersChanges).Apply(
-        procedure (const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: Boolean)
+        procedure(const Customer: TCustomer; const EntityAction: TMVCEntityAction; var Handled: boolean)
         begin
           Handled := False;
           case EntityAction of
-            eaCreate: begin
-              LogI('Inserting Customer : ' + Customer.ToString);
-              Inc(lInserted);
-            end;
-            eaUpdate: begin
-              LogI('Updating Customer  : ' + Customer.ToString);
-              Inc(lUpdated);
-            end;
-            eaDelete: begin
-              LogI('Deleting Customer  : ' + Customer.ToString);
-              Inc(lDeleted);
-            end;
+            eaCreate:
+              begin
+                LogI('Inserting Customer : ' + Customer.ToString);
+                Inc(lInserted);
+              end;
+            eaUpdate:
+              begin
+                LogI('Updating Customer  : ' + Customer.ToString);
+                Inc(lUpdated);
+              end;
+            eaDelete:
+              begin
+                LogI('Deleting Customer  : ' + Customer.ToString);
+                Inc(lDeleted);
+              end;
           end;
         end);
     finally
@@ -1071,7 +1147,6 @@ begin
     lCustomers.Free;
   end;
 
-
   lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>('eq(rating,1)', 1000);
   try
     Assert.AreEqual(lTotCustomers - 2, lCustomers.Count, 'Some customer changed when should not change');
@@ -1086,7 +1161,6 @@ begin
     lCustomers.Free;
   end;
 end;
-
 
 procedure TTestActiveRecordBase.TestMultiThreading;
 begin
@@ -1154,7 +1228,7 @@ begin
     lTest.Free;
   end;
 
-  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], false));
+  Assert.IsNull(TMVCActiveRecord.GetFirstByWhere<TNullablesTest>('f_int2 = 4', [], False));
 
   lTest := TNullablesTest.Create;
   try
@@ -1254,10 +1328,10 @@ begin
     lRMCustomer.Free;
   end;
 
-  lRMCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lIDRome, false);
+  lRMCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lIDRome, False);
   Assert.IsNull(lRMCustomer);
 
-  lRMCustomer := TMVCActiveRecord.GetOneByWhere<TRomeBasedCustomer>('id = ?', [lIDRome], [ftInteger], false);
+  lRMCustomer := TMVCActiveRecord.GetOneByWhere<TRomeBasedCustomer>('id = ?', [lIDRome], [ftInteger], False);
   Assert.IsNull(lRMCustomer);
 end;
 
@@ -1268,9 +1342,11 @@ begin
   CreateACustomer('Jack', 'Rome', 2);
   CreateACustomer('Bruce', 'Tokyo', 3);
   CreateACustomer('John', 'New York', 4);
-  var lID5 := CreateACustomer('Scott', 'New York', 5);
+  var
+  lID5 := CreateACustomer('Scott', 'New York', 5);
 
-  var lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
+  var
+  lGoodNewYorkCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5);
   try
     lGoodNewYorkCustomer.Delete;
     Assert.Pass;
@@ -1304,27 +1380,32 @@ end;
 procedure TTestActiveRecordBase.TestPartitioningGetByPK;
 begin
   TMVCActiveRecord.DeleteAll(TCustomer);
-  var lID1 := CreateACustomer('Daniele', 'Rome', 1);
+  var
+  lID1 := CreateACustomer('Daniele', 'Rome', 1);
   CreateACustomer('Jack', 'Rome', 2);
   CreateACustomer('Bruce', 'Tokyo', 3);
   CreateACustomer('John', 'New York', 4);
-  var lID5 := CreateACustomer('Scott', 'New York', 5);
+  var
+  lID5 := CreateACustomer('Scott', 'New York', 5);
 
-  var lRomeCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lID1);
+  var
+  lRomeCustomer := TMVCActiveRecord.GetByPK<TRomeBasedCustomer>(lID1);
   try
     Assert.IsNotNull(lRomeCustomer);
   finally
     lRomeCustomer.Free;
   end;
 
-  var lNYCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedCustomer>(lID1, False);
+  var
+  lNYCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedCustomer>(lID1, False);
   try
     Assert.IsNull(lNYCustomer);
   finally
     lNYCustomer.Free;
   end;
 
-  var lNYGoodCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5, False);
+  var
+  lNYGoodCustomer := TMVCActiveRecord.GetByPK<TNewYorkBasedGoodCustomer>(lID5, False);
   try
     Assert.IsNotNull(lNYGoodCustomer);
   finally
@@ -1338,7 +1419,6 @@ begin
     lNYGoodCustomer.Free;
   end;
 
-
 end;
 
 procedure TTestActiveRecordBase.TestPartitioningSelectByRQL;
@@ -1349,14 +1429,15 @@ begin
   CreateACustomer('New York 1', 'New York', 1);
   CreateACustomer('Toyko 1', 'Tokyo', 4);
 
-  var lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('',10);
+  var
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('', 10);
   try
     Assert.AreEqual(2, lRomeCustomers.Count);
   finally
     lRomeCustomers.Free;
   end;
 
-  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('sort(+CompanyName)',10);
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('sort(+CompanyName)', 10);
   try
     Assert.AreEqual('Rome Company 1', lRomeCustomers[0].CompanyName.Value);
     Assert.AreEqual('Rome Company 2', lRomeCustomers[1].CompanyName.Value);
@@ -1364,7 +1445,7 @@ begin
     lRomeCustomers.Free;
   end;
 
-  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('eq(Rating,5);sort(+CompanyName)',10);
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('eq(Rating,5);sort(+CompanyName)', 10);
   try
     Assert.AreEqual(1, lRomeCustomers.Count);
     Assert.AreEqual('Rome Company 1', lRomeCustomers[0].CompanyName.Value);
@@ -1372,7 +1453,7 @@ begin
     lRomeCustomers.Free;
   end;
 
-  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('lt(Rating,2);sort(+CompanyName)',10);
+  lRomeCustomers := TMVCActiveRecord.SelectRQL<TRomeBasedCustomer>('lt(Rating,2);sort(+CompanyName)', 10);
   try
     Assert.AreEqual(0, lRomeCustomers.Count);
   finally
@@ -1383,9 +1464,10 @@ end;
 procedure TTestActiveRecordBase.TestPartitioningSelectByWhere;
 begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TRomeBasedCustomer>());
-  CreateACustomer('Daniele','Rome',1);
-  CreateACustomer('Jack','New York',1);
-  var lRomeBasedCustomers := TMVCActiveRecord.Where<TRomeBasedCustomer>('city = ?', ['New York'], [ftString]);
+  CreateACustomer('Daniele', 'Rome', 1);
+  CreateACustomer('Jack', 'New York', 1);
+  var
+  lRomeBasedCustomers := TMVCActiveRecord.Where<TRomeBasedCustomer>('city = ?', ['New York'], [ftString]);
   try
     Assert.AreEqual(0, lRomeBasedCustomers.Count);
   finally
@@ -1409,7 +1491,8 @@ begin
   CreateACustomer('New York 1', 'New York', 5);
   CreateACustomer('Toyko 1', 'Tokyo', 4);
 
-  var lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
+  var
+  lRomeCustomer := TMVCActiveRecord.SelectOneByRQL<TRomeBasedCustomer>('contains(CompanyName,"1")');
   try
     Assert.IsNotNull(lRomeCustomer);
   finally
@@ -1487,21 +1570,20 @@ begin
   finally
     lBoolTable.Free;
   end;
-//  LoadData;
-//  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
-//  try
-//    Assert.AreEqual(240, lCustomers.Count);
-//    for var lCustomer in lCustomers do
-//    begin
-//      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
-//    end;
-//  finally
-//    lCustomers.Free;
-//  end;
-//  TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
-//  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
+  // LoadData;
+  // lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+  // try
+  // Assert.AreEqual(240, lCustomers.Count);
+  // for var lCustomer in lCustomers do
+  // begin
+  // Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+  // end;
+  // finally
+  // lCustomers.Free;
+  // end;
+  // TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
+  // Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
-
 
 procedure TTestActiveRecordBase.TestRQLLimit;
 var
@@ -1560,13 +1642,43 @@ begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
 
+procedure TTestActiveRecordBase.TestRQLWithGUID;
+var
+  lCustomers: TObjectList<TCustomerWithGUID>;
+  lCust: TCustomerWithGUID;
+const
+  RQL1 = 'and(eq(idguid, "{81778CF0-BFF8-474B-991B-ABFB225AE377}"), eq(otherguid, "{31531A9E-3D24-4DEA-A9CD-B803DF186DE6}"))';
+begin
+  TMVCActiveRecord.DeleteAll(TCustomerWithGUID);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomerWithGUID));
+  LoadData;
+
+  lCust := TCustomerWithGUID.Create;
+  try
+    lCust.GUID := StringToGUID('{81778CF0-BFF8-474B-991B-ABFB225AE377}');
+    lCust.OtherGUID := StringToGUID('{31531A9E-3D24-4DEA-A9CD-B803DF186DE6}');
+    lCust.Insert;
+  finally
+    lCust.Free;
+  end;
+
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomerWithGUID>(RQL1, MAXINT);
+  try
+    Assert.AreEqual(1, lCustomers.Count);
+  finally
+    lCustomers.Free;
+  end;
+  TMVCActiveRecord.DeleteRQL(TCustomerWithGUID, RQL1);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithGUID>(RQL1));
+end;
+
 procedure TTestActiveRecordBase.TestSelectWithExceptions;
 var
   lCustomer: TCustomer;
   lID: Integer;
 begin
   lID := 1000;
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, false);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, False);
   try
     if Assigned(lCustomer) then
     begin
@@ -1576,10 +1688,10 @@ begin
     lCustomer.Free;
   end;
 
-  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, false);
+  lCustomer := TMVCActiveRecord.GetByPK<TCustomer>(lID, False);
   Assert.IsNull(lCustomer);
 
-  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], false);
+  lCustomer := TMVCActiveRecord.GetOneByWhere<TCustomer>('id = ?', [lID], [ftInteger], False);
   Assert.IsNull(lCustomer);
 
   Assert.WillRaise(
@@ -1735,14 +1847,12 @@ begin
   end;
 end;
 
-function TTestActiveRecordBase.CreateACustomer(CompanyName: String;
-  Rating: Integer): Integer;
+function TTestActiveRecordBase.CreateACustomer(CompanyName: String; Rating: Integer): Integer;
 begin
   Result := CreateACustomer(CompanyName, CompanyName + 'City', Rating);
 end;
 
-function TTestActiveRecordBase.CreateACustomer(CompanyName, City: String;
-  Rating: Integer): Integer;
+function TTestActiveRecordBase.CreateACustomer(CompanyName, City: String; Rating: Integer): Integer;
 var
   lCustomer: TCustomer;
 begin
@@ -1763,7 +1873,7 @@ begin
   // do nothing
 end;
 
-procedure TTestActiveRecordBase.LoadData(const JustAFew: Boolean);
+procedure TTestActiveRecordBase.LoadData(const JustAFew: boolean);
 var
   lTasks: TArray<ITask>;
   lProc: TProc;
@@ -1772,14 +1882,13 @@ const
   CompanySuffix: array [0 .. 5] of string = ('Corp.', 'Inc.', 'Ltd.', 'Srl', 'SPA', 'doo');
   Stuff: array [0 .. 4] of string = ('Burger', 'GAS', 'Motors', 'House', 'Boats');
 begin
-  TMVCActiveRecord.DeleteRQL(TCustomer,
-    'in(City,["Rome","New York","London","Melbourne","Berlin"])');
+  TMVCActiveRecord.DeleteRQL(TCustomer, 'in(City,["Rome","New York","London","Melbourne","Berlin"])');
   lProc := procedure
     var
       lCustomer: TCustomer;
       I: Integer;
     begin
-      //ActiveRecordConnectionsRegistry.AddDefaultConnection(TFDConnection.Create(nil), True);
+      // ActiveRecordConnectionsRegistry.AddDefaultConnection(TFDConnection.Create(nil), True);
       ActiveRecordConnectionsRegistry.AddConnection('load', TFDConnection.Create(nil), True);
       try
         ActiveRecordConnectionsRegistry.SetCurrent('load');
@@ -1790,8 +1899,7 @@ begin
           try
             lCustomer.Code := Format('%5.5d', [TThread.CurrentThread.ThreadID, I]);
             lCustomer.City := Cities[I mod Length(Cities)];
-            lCustomer.CompanyName :=
-              Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
+            lCustomer.CompanyName := Format('%s %s %s', [lCustomer.City, Stuff[Random(high(Stuff) + 1)],
               CompanySuffix[Random(high(CompanySuffix) + 1)]]);
             lCustomer.Note := Stuff[I mod Length(Stuff)];
             lCustomer.Rating := 1;
@@ -1815,11 +1923,10 @@ begin
   end
   else
   begin
-    lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
-      TTask.Run(lProc)];
+    lTasks := [TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc),
+      TTask.Run(lProc), TTask.Run(lProc), TTask.Run(lProc)];
     TTask.WaitForAll(lTasks);
   end;
 end;
@@ -1886,15 +1993,13 @@ begin
   lDriver.Name := 'FBEMBEDDED';
   lDriver.AsString['BaseDriverID'] := 'FB';
   lDriver.AsString['DriverID'] := 'FBEMBEDDED';
-  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)),
-    'firebird\fbclient.dll');
+  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
   lDriver.Apply;
 
   LParams := TStringList.Create;
   try
     GDBFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest.fdb');
-    GDBTemplateFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)),
-      'firebirdtest_template.fdb');
+    GDBTemplateFileName := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebirdtest_template.fdb');
     LParams.Add('Database=' + GDBFileName);
     LParams.Add('user_name=sysdba');
     LParams.Add('password=masterkey');
@@ -1983,6 +2088,9 @@ begin
   try
     LParams.Add('Database=activerecordtest');
     LParams.Add('Port=' + PG_PORT.ToString);
+
+    // https://quality.embarcadero.com/browse/RSP-19755?jql=text%20~%20%22firedac%20guid%22
+    LParams.Add('GUIDEndian=Big');
     // LParams.Add('user_name=sysdba');
     // LParams.Add('password=masterkey');
     if AIsPooled then
@@ -2024,7 +2132,7 @@ var
   lInitDBStructure: boolean;
 begin
   LogI('** Setup Test: ' + ClassName);
-  lInitDBStructure := false;
+  lInitDBStructure := False;
 
   if not GPGIsInitialized then
   begin
@@ -2066,7 +2174,7 @@ procedure TTestActiveRecordPostgreSQL.TearDownFixture;
 begin
   FDManager.CloseConnectionDef(_CON_DEF_NAME_POSTGRESQL);
   fPGUtil.StopPG;
-  GPGIsInitialized := false;
+  GPGIsInitialized := False;
 end;
 
 initialization
