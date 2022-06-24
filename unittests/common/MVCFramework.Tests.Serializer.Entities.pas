@@ -33,8 +33,9 @@ uses
   System.Classes,
   System.Rtti,
   System.Generics.Collections,
-  MVCFramework.Serializer.Commons, 
-  MVCFramework.Commons;
+  MVCFramework.Serializer.Commons,
+  MVCFramework.Commons,
+  MVCFramework.Nullables;
 
 type
 
@@ -220,8 +221,16 @@ type
   TEntityCustomWithGuid = class(TEntityCustom)
   private
     FGuidValue: TGUID;
+    FGuidValue2: TGUID;
+    FNullableGuid: NullableTGUID;
+    FNullableGuid2: NullableTGUID;
   public
     property GuidValue: TGUID read FGuidValue write FGuidValue;
+    [MVCSerializeGuidWithoutBraces]
+    property GuidValue2: TGUID read FGuidValue2 write FGuidValue2;
+    property NullableGuid: NullableTGUID read FNullableGuid write FNullableGuid;
+    [MVCSerializeGuidWithoutBraces]
+    property NullableGuid2: NullableTGUID read FNullableGuid2 write FNullableGuid2;
   end;
 
   TColorEnum = (RED, GREEN, BLUE);
