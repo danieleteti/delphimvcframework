@@ -345,7 +345,7 @@ begin
   if lJSON.Values[APropertyName].Typ in [jdtNone, jdtObject] then { json nulls are recognized as jdtObject }
     LGuid := TGUID.Empty
   else
-    LGuid := StringToGUID(lJSON.S[APropertyName]);
+    LGuid := TMVCGuidHelper.StringToGUIDEx(lJSON.S[APropertyName]);
   AElementValue := TValue.From<TGUID>(LGuid);
 end;
 
@@ -358,15 +358,13 @@ end;
 procedure TMVCGUIDSerializer.SerializeAttribute(const AElementValue: TValue; const APropertyName: string;
   const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
 var
-  lValue: String;
+  lGuid: TGUID;
 begin
-  lValue := AElementValue.AsType<TGUID>.ToString;
-  if (lValue.Chars[0] = '{') and TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(AAttributes) then
-  begin
-    (ASerializerObject as TJDOJsonObject).S[APropertyName] := lValue.Substring(1, lValue.Length - 1) // Copy(AElementValue.AsType<TGUID>.ToString, 2, 36)
-  end
+  lGuid := AElementValue.AsType<TGUID>;
+  if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(AAttributes) then
+    (ASerializerObject as TJDOJsonObject).S[APropertyName] := TMVCGuidHelper.GUIDToStringEx(lGuid)
   else
-    (ASerializerObject as TJDOJsonObject).S[APropertyName] := AElementValue.AsType<TGUID>.ToString;
+    (ASerializerObject as TJDOJsonObject).S[APropertyName] := lGuid.ToString;
 end;
 
 procedure TMVCGUIDSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;

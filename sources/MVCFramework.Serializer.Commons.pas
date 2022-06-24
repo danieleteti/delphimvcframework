@@ -197,7 +197,7 @@ type
   /// <summary>
   ///  Use this attribute in the model class to define a field of type TGuid if at the time of attribute serialization the value
   ///  of the guid field will be obtained without braces.
-  ///  Sample: 61013848-8736-4D8B-AD25-91DF4C255561
+  ///  Sample: 61013848-8736-4d8b-ad25-91df4c255561
   /// </summary>
   MVCSerializeGuidWithoutBracesAttribute = class(TCustomAttribute);
 
