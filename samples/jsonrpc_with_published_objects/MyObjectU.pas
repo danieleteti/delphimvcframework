@@ -36,9 +36,12 @@ uses
   MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
 
 type
+  TPersonType = (Family, Friend, Colleague, Acquaintance);
+  TPersonTypes = set of TPersonType;
   [MVCNameCase(ncCamelCase)]
   TChildRec = record
     ChildName: String;
+    PersonType: TPersonType;
     ChildSurname: String;
   end;
 
@@ -46,9 +49,11 @@ type
   TPersonRec = record
     Name: String;
     Surname: String;
-//    [MVCNameAs('pippi')]
+//    [MVCNameAs('personAge')]
     Age: Integer;
     Child: TChildRec;
+    PersonType: TPersonType;
+    InitialTypes: TPersonTypes;
   end;
 
   TMyObject = class
