@@ -24,8 +24,6 @@ uses
 procedure RunServer(APort: Integer);
 var
   lServer: TIdHTTPWebBrokerBridge;
-  lCustomHandler: TMVCCustomREPLCommandsHandler;
-  lCmd: string;
 begin
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   Writeln('JSON-RPC Server with Published Objects');

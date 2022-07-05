@@ -36,7 +36,7 @@ uses
   MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
 
 type
-  TPersonType = (Family, Friend, Colleague, Acquaintance);
+  TPersonType = (ptFamily, ptFriend, ptColleague, ptAcquaintance);
   TPersonTypes = set of TPersonType;
   [MVCNameCase(ncCamelCase)]
   TChildRec = record
@@ -54,6 +54,32 @@ type
     Child: TChildRec;
     PersonType: TPersonType;
     InitialTypes: TPersonTypes;
+  end;
+
+  TPeopleList = TArray<TPersonRec>;
+
+  TPeopleArray = array [0..1] of TPersonRec;
+
+  TVendorProxy = record
+    Code: String;
+    FileAs: String;
+    IsDefault: Boolean;
+    InActive: Boolean;
+    Name: String;
+    OID: Integer;
+    UsageNotes: String;
+  end;
+  TVendorProxyList = TArray<TVendorProxy>;
+
+  TVendorPersonLink = record
+    PersonOID: Integer;
+    DefaultVendorOID: Integer;
+    LinkedVendorList: TArray<Integer>;
+  end;
+
+  TVendorProxiesAndLinks = record
+    VendorList: TArray<TVendorProxy>;
+    PersonLinkList: TArray<TVendorPersonLink>;
   end;
 
   TMyObject = class
@@ -84,7 +110,10 @@ type
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const Person: TJsonObject): Integer;
     function SavePersonRec(PersonRec: TPersonRec): TPersonRec;
+    function GetPeopleRecDynArray: TPeopleList;
+    function GetPeopleRecStaticArray: TPeopleArray;
     function GetPersonRec: TPersonRec;
+    function GetComplex1: TVendorProxiesAndLinks;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
     procedure RaiseCustomException;
@@ -168,6 +197,20 @@ begin
   Result := aDouble + aExtended;
 end;
 
+function TMyObject.GetComplex1: TVendorProxiesAndLinks;
+begin
+  SetLength(Result.VendorList, 2);
+  SetLength(Result.PersonLinkList, 2);
+
+  Result.VendorList[0].Code := '1234';
+  Result.VendorList[0].IsDefault := True;
+
+  Result.VendorList[1].Code := '2345';
+  Result.VendorList[1].IsDefault := False;
+
+  SetLength(Result.PersonLinkList[0].LinkedVendorList,2);
+end;
+
 function TMyObject.GetCustomers(FilterString: string): TDataSet;
 var
   lMT: TFDMemTable;
@@ -235,6 +278,41 @@ begin
     lDate := lDate + 1;
   end;
   Result := lDate;
+end;
+
+function TMyObject.GetPeopleRecDynArray: TPeopleList;
+begin
+  SetLength(Result, 2);
+  Result[0].Name := 'Name1';
+  Result[0].Surname := 'Surname1';
+  Result[0].Age := 1;
+  Result[0].Child.ChildName := 'ChildName1';
+  Result[0].Child.ChildSurname := 'ChildSurname1';
+  Result[0].Child.PersonType := ptFamily;
+
+  Result[1].Name := 'Name2';
+  Result[1].Surname := 'Surname2';
+  Result[1].Age := 2;
+  Result[1].Child.ChildName := 'ChildName2';
+  Result[1].Child.ChildSurname := 'ChildSurname2';
+  Result[1].Child.PersonType := ptFriend;
+end;
+
+function TMyObject.GetPeopleRecStaticArray: TPeopleArray;
+begin
+  Result[0].Name := 'Name1';
+  Result[0].Surname := 'Surname1';
+  Result[0].Age := 1;
+  Result[0].Child.ChildName := 'ChildName1';
+  Result[0].Child.ChildSurname := 'ChildSurname1';
+  Result[0].Child.PersonType := ptFamily;
+
+  Result[1].Name := 'Name2';
+  Result[1].Surname := 'Surname2';
+  Result[1].Age := 2;
+  Result[1].Child.ChildName := 'ChildName2';
+  Result[1].Child.ChildSurname := 'ChildSurname2';
+  Result[1].Child.PersonType := ptFriend;
 end;
 
 function TMyObject.GetPersonRec: TPersonRec;
