@@ -223,7 +223,10 @@ type
 
 
   TMVCRecordUtils = record
-    class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject): T; static;
+  private
+    class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject; const Serialier: TMVCJsonDataObjectsSerializer): T; overload; static; inline;
+  public
+    class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject): T; overload; static;
     class function JSONArrayToArrayOfRecord<T: record>(const JSONArray: TJSONArray): TArray<T>; static;
   end;
 
@@ -3474,16 +3477,41 @@ end;
 
 { TMVCRecordUtils }
 
+class function TMVCRecordUtils.JSONArrayToArrayOfRecord<T>(
+  const JSONArray: TJSONArray): TArray<T>;
+var
+  I: Integer;
+  lSer: TMVCJsonDataObjectsSerializer;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create(nil);
+  try
+    SetLength(Result, JSONArray.Count);
+    for I := Low(Result) to High(Result) do
+    begin
+      Result[I] := JSONObjectToRecord<T>(JSONArray.Items[I].ObjectValue, lSer);
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+
 class function TMVCRecordUtils.JSONObjectToRecord<T>(const JSONObject: TJSONObject): T;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
   lSer := TMVCJsonDataObjectsSerializer.Create(nil);
   try
-    Result := lSer.JSONObjectToRecord<T>(JSONObject);
+    Result := JSONObjectToRecord<T>(JSONObject, lSer);
   finally
     lSer.Free;
   end;
+end;
+
+class function TMVCRecordUtils.JSONObjectToRecord<T>(
+  const JSONObject: TJSONObject;
+  const Serialier: TMVCJsonDataObjectsSerializer): T;
+begin
+  Serialier.JSONObjectToRecord<T>(JSONObject);
 end;
 
 end.

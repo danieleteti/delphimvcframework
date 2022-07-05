@@ -3006,22 +3006,17 @@ procedure TJSONRPCServerTest.TestRequest_NoParams_DynamicArrayOfRecordAsResult;
 var
   lReq: IJSONRPCRequest;
   lRPCResp: IJSONRPCResponse;
-  lSimpleRec: TArray<TSimpleRecord>;
+  lSimpleRecArray: TArray<TSimpleRecord>;
 begin
   lReq := TJSONRPCRequest.Create;
   lReq.Method := 'GetArrayOfRecords';
   lReq.RequestID := 1234;
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lSimpleRec := TMVCRecordUtils.JSONArrayToArrayOfRecord<TSimple Record>(lRPCResp.ResultAsJSONArray);
-//  Assert.AreEqual('the string property', lSimpleRec.StringProperty);
-//  Assert.AreEqual(1234, lSimpleRec.IntegerProperty);
-//  Assert.AreEqual(EncodeDate(2022,7,5), lSimpleRec.DateProperty);
-//  Assert.AreEqual(EncodeTime(12,13,14,0), lSimpleRec.TimeProperty);
-//  Assert.AreEqual(EncodeDate(2022,7,5) + EncodeTime(12,13,14,0), lSimpleRec.DateTimeProperty, 0.000001);
-//  Assert.AreEqual(True, lSimpleRec.BooleanProperty);
-//  Assert.AreEqual(EnumItem2, lSimpleRec.EnumProperty);
-//  Assert.IsTrue([EnumItem1, EnumItem3] * lSimpleRec.SetProperty = [EnumItem1, EnumItem3]);
-//  Assert.IsTrue(lSimpleRec.SetProperty - [EnumItem1, EnumItem3] = []);
+  lSimpleRecArray := TMVCRecordUtils.JSONArrayToArrayOfRecord<TSimpleRecord>(lRPCResp.ResultAsJSONArray);
+  Assert.AreEqual(3, Length(lSimpleRecArray));
+  Assert.AreEqual(0, lSimpleRecArray[0].IntegerProperty);
+  Assert.AreEqual(1, lSimpleRecArray[1].IntegerProperty);
+  Assert.AreEqual(2, lSimpleRecArray[2].IntegerProperty);
 end;
 
 procedure TJSONRPCServerTest.TestRequest_NoParams_SingleRecordAsResult;
