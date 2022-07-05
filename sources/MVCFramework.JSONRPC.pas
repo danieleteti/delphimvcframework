@@ -495,6 +495,7 @@ var
   lJArr: TJDOJsonArray;
   LJObj: TJDOJsonObject;
   lOrdinalValue: Int64;
+  lJSONDataType: TJsonDataType;
 begin
   case ParamType of
     pdtInteger:
@@ -565,6 +566,22 @@ begin
           end;
         end;
       end;
+    pdtRecord:
+      begin
+        lSer := TMVCJsonDataObjectsSerializer.Create;
+        try
+          JSONArr.Add(lSer.ConvertRecordToJsonValue(
+            Value.GetReferenceToRawData,
+            Value.TypeInfo,
+            stFields,
+            nil,
+            nil,
+            nil,
+            lJSONDataType) as TJsonObject);
+        finally
+          lSer.Free;
+        end;
+      end
   else
     raise EMVCException.Create('Invalid type');
   end;

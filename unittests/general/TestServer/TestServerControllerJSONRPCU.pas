@@ -3,7 +3,8 @@ unit TestServerControllerJSONRPCU;
 interface
 
 uses
-  MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects;
+  MVCFramework, MVCFramework.Commons, MVCFramework.JSONRPC, JsonDataObjects,
+  BusinessObjectsU;
 
 type
   TTestJSONRPCController = class(TMVCJSONRPCController)
@@ -20,6 +21,7 @@ type
     function GetListFromTo(aFrom, aTo: Int64): TJsonArray;
     [MVCInheritable]
     function MultiplyString(aString: string; Multiplier: Int64): string;
+
   end;
 
   [MVCJSONRPCAllowGET]
@@ -41,6 +43,14 @@ type
     function MultiplyString(aString: string; Multiplier: Int64): string;
     [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
+
+    //records support
+    [MVCInheritable]
+    function GetSingleRecord: TSimpleRecord;
+    [MVCInheritable]
+    function GetArrayOfRecords: TArray<TSimpleRecord>;
+    [MVCInheritable]
+    function EchoSingleRecord(const SimpleRecord: TSimpleRecord): TSimpleRecord;
   end;
 
   [MVCJSONRPCAllowGET]
@@ -100,6 +110,11 @@ begin
     Result.Add(I);
 end;
 
+function TTestJSONRPCClass.GetSingleRecord: TSimpleRecord;
+begin
+  Result := TSimpleRecord.Create;
+end;
+
 function TTestJSONRPCController.MultiplyString(aString: string; Multiplier: Int64): string;
 var
   I: Integer;
@@ -138,6 +153,24 @@ end;
 function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 begin
   Result := aDateTime + aTime;
+end;
+
+function TTestJSONRPCClass.EchoSingleRecord(
+  const SimpleRecord: TSimpleRecord): TSimpleRecord;
+begin
+  Result := SimpleRecord;
+end;
+
+function TTestJSONRPCClass.GetArrayOfRecords: TArray<TSimpleRecord>;
+begin
+  SetLength(Result, 3);
+  Result[0] := TSimpleRecord.Create;
+  Result[1] := TSimpleRecord.Create;
+  Result[2] := TSimpleRecord.Create;
+
+  Result[0].IntegerProperty := 0;
+  Result[1].IntegerProperty := 1;
+  Result[2].IntegerProperty := 2;
 end;
 
 function TTestJSONRPCClass.GetListFromTo(aFrom, aTo: Int64): TJsonArray;

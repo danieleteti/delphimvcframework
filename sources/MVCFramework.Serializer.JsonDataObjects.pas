@@ -69,9 +69,11 @@ type
     fStringDictionarySerializer: IMVCTypeSerializer;
     function TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
       const AttribName: string): Boolean;
+  public
+    function JSONObjectToRecord<T: record>(const JSONObject: TJsonObject): T; overload;
+    function StrToRecord<T: record>(const AJSONString: String): T;
     procedure JSONObjectToNestedRecordField(
       const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; var Buffer: PByte);
-  public
     procedure JSONObjectPropertyToTValueForRecord(AJSONObject: TJSONObject;
       const APropertyName: String; const AType: TMVCSerializationType;
       const AIgnored: TMVCIgnoredList;
@@ -112,7 +114,7 @@ type
     function TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject; const AName: string): Boolean;
     procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
-    procedure JSONObjectToRecord(const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte);
+    procedure JSONObjectToRecord(const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte); overload;
     procedure JSONObjectPropertyToTValue(
       AJSONObject: TJSONObject;
       const APropertyName: String;
@@ -217,6 +219,12 @@ type
   TJDOLinks = class(TMVCLinks)
   public
     procedure FillJSONArray(const AJsonArray: TJsonArray);
+  end;
+
+
+  TMVCRecordUtils = record
+    class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject): T; static;
+    class function JSONArrayToArrayOfRecord<T: record>(const JSONArray: TJSONArray): TArray<T>; static;
   end;
 
 procedure TValueToJSONObjectPropertyEx(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
@@ -2235,6 +2243,8 @@ begin
   end;
 end;
 
+
+
 procedure TMVCJsonDataObjectsSerializer.ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction);
@@ -3407,6 +3417,72 @@ begin
     LoadFromStream(lSS, Encoding, Utf8WithoutBOM);
   finally
     lSS.Free;
+  end;
+end;
+
+
+{ TMVCRecordHelper }
+
+function TMVCJsonDataObjectsSerializer.JSONObjectToRecord<T>(
+  const JSONObject: TJsonObject): T;
+var
+  lKeyName: String;
+  lValue: TValue;
+  lCtx: TRttiContext;
+  lType: TRttiType;
+begin
+  lCtx := TRttiContext.Create;
+  try
+    lType := lCtx.GetType(TypeInfo(T));
+    if not lType.IsRecord then
+    begin
+      raise EMVCDeserializationException.Create('Extected record got ' + lType.QualifiedName);
+    end;
+
+    for var lField in lType.GetFields do
+    begin
+      lKeyName := TMVCSerializerHelper.GetKeyName(lField, lType);
+      lValue := lField.GetValue(@Result);
+      JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil);
+      lField.SetValue(@Result, lValue);
+    end;
+  finally
+    lctx.free;
+  end;
+end;
+
+function TMVCJsonDataObjectsSerializer.StrToRecord<T>(const AJSONString: String): T;
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+  lJObj: TJsonObject;
+  lBuff: PByte;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create(nil);
+  try
+    lJObj := StrToJSONObject(AJSONString);
+    try
+      lBuff := @Result;
+      lSer.JSONObjectToNestedRecordField(lJObj, nil, 0, lBuff);
+    finally
+      lJObj.Free;
+    end;
+  finally
+    lSer.Free;
+  end;
+end;
+
+
+{ TMVCRecordUtils }
+
+class function TMVCRecordUtils.JSONObjectToRecord<T>(const JSONObject: TJSONObject): T;
+var
+  lSer: TMVCJsonDataObjectsSerializer;
+begin
+  lSer := TMVCJsonDataObjectsSerializer.Create(nil);
+  try
+    Result := lSer.JSONObjectToRecord<T>(JSONObject);
+  finally
+    lSer.Free;
   end;
 end;
 

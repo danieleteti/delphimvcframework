@@ -326,6 +326,26 @@ type
     destructor Destroy; override;
   end;
 
+  // Records
+  TMyEnum = (EnumItem1, EnumItem2, EnumItem3);
+  TMySet = set of TMyEnum;
+
+  TSimpleRecord = record
+    StringProperty: String;
+    IntegerProperty: Integer;
+    FloatProperty: Double;
+    CurrencyProperty: Currency;
+    DateProperty: TDate;
+    TimeProperty: TTime;
+    DateTimeProperty: TDateTime;
+    BooleanProperty: Boolean;
+    EnumProperty: TMyEnum;
+    SetProperty: TMySet;
+    class function Create: TSimpleRecord; static;
+  end;
+
+
+
 implementation
 
 uses
@@ -720,6 +740,22 @@ begin
     fGUID := TGUID.NewGuid;
     fNullableGUID := TGUID.NewGuid;
   end;
+end;
+
+{ TSimpleRecord }
+
+class function TSimpleRecord.Create: TSimpleRecord;
+begin
+  Result.StringProperty := 'the string property';
+  Result.IntegerProperty:= 1234;
+  Result.FloatProperty := 1234.56789;
+  Result.CurrencyProperty := 1234.5678;
+  Result.DateProperty:= EncodeDate(2022,7,5);
+  Result.TimeProperty := EncodeTime(12,13,14,0);
+  Result.DateTimeProperty := Result.DateProperty + Result.TimeProperty;
+  Result.BooleanProperty := True;
+  Result.EnumProperty := EnumItem2;
+  Result.SetProperty := [EnumItem1, EnumItem3];
 end;
 
 initialization

@@ -32,7 +32,7 @@ uses
   MVCFramework.RESTClient,
   MVCFramework.JSONRPC.Client,
   System.DateUtils,
-  System.Hash;
+  System.Hash, System.Rtti;
 
 type
 
@@ -357,7 +357,13 @@ type
     procedure TestHooksWhenOnBeforeCallHookRaisesError;
     [Test]
     procedure TestHooksWhenOnBeforeRoutingHookRaisesError;
-
+    //record tests
+    [Test]
+    procedure TestRequest_NoParams_SingleRecordAsResult;
+    [Test]
+    procedure TestRequest_Echo_SingleRecordAsResult;
+    [Test]
+    procedure TestRequest_NoParams_DynamicArrayOfRecordAsResult;
   end;
 
   [TestFixture]
@@ -2951,6 +2957,33 @@ begin
   Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
 end;
 
+procedure TJSONRPCServerTest.TestRequest_Echo_SingleRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lSimpleRecIn, lSimpleRec: TSimpleRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoSingleRecord';
+  lReq.RequestID := 1234;
+
+  lSimpleRecIn := TSimpleRecord.Create;
+  lReq.Params.Add(TValue.From<TSimpleRecord>(lSimpleRecIn), pdtRecord);
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lSimpleRec := TMVCRecordUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp.ResultAsJSONObject);
+  Assert.AreEqual(lSimpleRecIn.StringProperty, lSimpleRec.StringProperty);
+  Assert.AreEqual(lSimpleRecIn.IntegerProperty, lSimpleRec.IntegerProperty);
+  Assert.AreEqual(lSimpleRecIn.FloatProperty, lSimpleRec.FloatProperty);
+  Assert.AreEqual(lSimpleRecIn.CurrencyProperty, lSimpleRec.CurrencyProperty);
+  Assert.AreEqual(lSimpleRecIn.DateProperty, lSimpleRec.DateProperty);
+  Assert.AreEqual(lSimpleRecIn.TimeProperty, lSimpleRec.TimeProperty);
+  Assert.AreEqual(lSimpleRecIn.DateTimeProperty, lSimpleRec.DateTimeProperty, 0.000001);
+  Assert.AreEqual(lSimpleRecIn.BooleanProperty, lSimpleRec.BooleanProperty);
+  Assert.AreEqual(lSimpleRecIn.EnumProperty, lSimpleRec.EnumProperty);
+  Assert.IsTrue(lSimpleRecIn.SetProperty * lSimpleRec.SetProperty = [EnumItem1, EnumItem3]);
+  Assert.IsTrue(lSimpleRec.SetProperty - lSimpleRecIn.SetProperty = []);
+end;
+
 procedure TJSONRPCServerTest.TestRequest_NamedParams_S_I_ret_S;
 var
   lReq: IJSONRPCRequest;
@@ -2967,6 +3000,50 @@ begin
 
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   Assert.areEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_NoParams_DynamicArrayOfRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lSimpleRec: TArray<TSimpleRecord>;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetArrayOfRecords';
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lSimpleRec := TMVCRecordUtils.JSONArrayToArrayOfRecord<TSimple Record>(lRPCResp.ResultAsJSONArray);
+//  Assert.AreEqual('the string property', lSimpleRec.StringProperty);
+//  Assert.AreEqual(1234, lSimpleRec.IntegerProperty);
+//  Assert.AreEqual(EncodeDate(2022,7,5), lSimpleRec.DateProperty);
+//  Assert.AreEqual(EncodeTime(12,13,14,0), lSimpleRec.TimeProperty);
+//  Assert.AreEqual(EncodeDate(2022,7,5) + EncodeTime(12,13,14,0), lSimpleRec.DateTimeProperty, 0.000001);
+//  Assert.AreEqual(True, lSimpleRec.BooleanProperty);
+//  Assert.AreEqual(EnumItem2, lSimpleRec.EnumProperty);
+//  Assert.IsTrue([EnumItem1, EnumItem3] * lSimpleRec.SetProperty = [EnumItem1, EnumItem3]);
+//  Assert.IsTrue(lSimpleRec.SetProperty - [EnumItem1, EnumItem3] = []);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_NoParams_SingleRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lSimpleRec: TSimpleRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetSingleRecord';
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lSimpleRec := TMVCRecordUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp.ResultAsJSONObject);
+  Assert.AreEqual('the string property', lSimpleRec.StringProperty);
+  Assert.AreEqual(1234, lSimpleRec.IntegerProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5), lSimpleRec.DateProperty);
+  Assert.AreEqual(EncodeTime(12,13,14,0), lSimpleRec.TimeProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5) + EncodeTime(12,13,14,0), lSimpleRec.DateTimeProperty, 0.000001);
+  Assert.AreEqual(True, lSimpleRec.BooleanProperty);
+  Assert.AreEqual(EnumItem2, lSimpleRec.EnumProperty);
+  Assert.IsTrue([EnumItem1, EnumItem3] * lSimpleRec.SetProperty = [EnumItem1, EnumItem3]);
+  Assert.IsTrue(lSimpleRec.SetProperty - [EnumItem1, EnumItem3] = []);
 end;
 
 procedure TJSONRPCServerTest.TestRequest_S_I_ret_S;

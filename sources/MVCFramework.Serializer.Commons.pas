@@ -233,6 +233,7 @@ type
     class function IsAPropertyToSkip(const aPropName: string): Boolean; static; inline;
   end;
 
+
   TMVCLinksCallback = reference to procedure(const Links: TMVCStringDictionary);
 
   IMVCResponseData = interface
@@ -1829,6 +1830,9 @@ begin
   inherited Create;
   fClassRef := ClassRef;
 end;
+
+
+
 
 initialization
 
