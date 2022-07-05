@@ -805,7 +805,7 @@ begin
       begin
         lSer := TMVCJsonDataObjectsSerializer.Create(nil);
         try
-          var lBuf: Pointer;
+          var lBuf: PByte;
           var lValue: TValue;
           lSer.JSONObjectToRecord(JSONDataValue.ObjectValue, RTTIParameter.ParamType.AsRecord, lBuf);
           TValue.Make(lBuf, RTTIParameter.ParamType.Handle, lValue);
@@ -826,7 +826,7 @@ procedure JSONDataValueToTValueParamEx(
   const RTTIParameter: TRttiParameter;
   var ParamValue: TValue;
   out ParamIsRecord: Boolean;
-  out ParamRecordPointer: Pointer);
+  out ParamRecordPointer: PByte);
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
@@ -1440,37 +1440,7 @@ begin
               raise EMVCJSONRPCError.Create(JSONRPC_ERR_INVALID_REQUEST, 'Method callable with POST only');
             end;
           end;
-
           lRes := InvokeMethod(fRPCInstance, lRTTIType, lRTTIMethod, lJSON, lBeforeCallHookHasBeenInvoked);
-          {
-          try
-            lJSONRPCReq.FillParameters(lJSON, lRTTIMethod);
-          except
-            on Ex: EMVCJSONRPCErrorResponse do
-            begin
-              raise EMVCJSONRPCInvalidParams.Create('Cannot map all parameters to remote method. ' + Ex.Message);
-            end;
-          end;
-
-          lJSONResp := nil;
-          // try
-          TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, lJSON);
-          lBeforeCallHookHasBeenInvoked := True;
-          try
-            LogD('[JSON-RPC][CALL][' + CALL_TYPE[lRTTIMethod.MethodKind] + '][' + fRPCInstance.ClassName + '.' +
-              lRTTIMethod.Name + ']');
-            lRes := lRTTIMethod.Invoke(fRPCInstance, lJSONRPCReq.Params.ToArray);
-          except
-            on E: EInvalidCast do
-            begin
-              raise EMVCJSONRPCInvalidParams.Create('Check your input parameters types');
-            end;
-            on Ex: EMVCJSONRPCInvalidRequest do
-            begin
-              raise EMVCJSONRPCInvalidParams.Create(Ex.Message);
-            end;
-          end;
-          }
           case lJSONRPCReq.RequestType of
             TJSONRPCRequestType.Notification:
               begin
@@ -1485,26 +1455,6 @@ begin
           else
             raise EMVCJSONRPCException.Create('Invalid RequestType');
           end;
-
-          // finally
-          // if lBeforeCallHookHasBeenInvoked then
-          // begin
-          // TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_AFTER_CALL, lJSONResp);
-          // lAfterCallHookHasBeenInvoked := True;
-          // end;
-          // if lJSONResp <> nil then
-          // begin
-          // try
-          // Render(lJSONResp);
-          // except
-          // try
-          // lJSONResp.Free;
-          // except
-          // // do nothing
-          // end;
-          // end;
-          // end;
-          // end;
         end
         else
         begin
@@ -1616,7 +1566,7 @@ var
   lUseNamedParams: Boolean;
   lParamsArray: TArray<TValue>;
   lParamsIsRecord: TArray<Boolean>;
-  lRecordsPointer: TArray<Pointer>;
+  lRecordsPointer: TArray<PByte>;
   function GetJsonDataValueHelper(const JSONNamedParams: TJsonObject; const JsonPropName: string): TJsonDataValueHelper;
   var
     I: Integer;
@@ -1696,7 +1646,7 @@ begin
     // positional params
     for I := 0 to lJSONParams.Count - 1 do
     begin
-      //JSONDataValueToTValueParam(lJSONParams[I], lRTTIMethodParams[I], Params);
+//      JSONDataValueToTValueParam(lJSONParams[I], lRTTIMethodParams[I], Params);
       JSONDataValueToTValueParamEx(
         lJSONParams[I],
         lRTTIMethodParams[I],
@@ -2183,7 +2133,7 @@ begin
       Result.O[JSONRPC_ERROR].S[JSONRPC_MESSAGE] := FError.ErrMessage;
       if not FError.Data.IsEmpty then
       begin
-        TValueToJSONObjectProperty(FError.Data, Result.O[JSONRPC_ERROR], JSONRPC_DATA);
+        TValueToJSONObjectPropertyEx(FError.Data, Result.O[JSONRPC_ERROR], JSONRPC_DATA);
       end;
     end
     else

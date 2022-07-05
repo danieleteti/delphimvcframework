@@ -69,6 +69,8 @@ type
     fStringDictionarySerializer: IMVCTypeSerializer;
     function TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
       const AttribName: string): Boolean;
+    procedure JSONObjectToNestedRecordField(
+      const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; var Buffer: PByte);
   public
     procedure JSONObjectPropertyToTValueForRecord(AJSONObject: TJSONObject;
       const APropertyName: String; const AType: TMVCSerializationType;
@@ -79,6 +81,11 @@ type
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
     procedure InternalObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
+      const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+      const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks;
+      const Serializer: IMVCTypeSerializer);
+    procedure InternalRecordToJsonObject(const ARecord: Pointer; const RecordTypeInfo: PTypeInfo;
+      const AJsonObject: TJDOJsonObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
       const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks;
       const Serializer: IMVCTypeSerializer);
@@ -100,7 +107,7 @@ type
     function TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject; const AName: string): Boolean;
     procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
-    procedure JSONObjectToRecord(const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: Pointer);
+    procedure JSONObjectToRecord(const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte);
     procedure JSONObjectPropertyToTValue(
       AJSONObject: TJSONObject;
       const APropertyName: String;
@@ -138,6 +145,11 @@ type
     function SerializeObject(const AObject: IInterface; const AType: TMVCSerializationType = stDefault;
       const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
       : string; overload;
+
+    function SerializeRecord(const ARecord; const ARecordTypeInfo: PTypeInfo; const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = []; const ASerializationAction: TMVCSerializationAction = nil)
+      : string; overload;
+
 
     function SerializeObjectToJSON(const AObject: TObject; const AType: TMVCSerializationType;
       const AIgnoredAttributes: TMVCIgnoredList; const ASerializationAction: TMVCSerializationAction): TJDOJsonObject;
@@ -2047,10 +2059,9 @@ begin
 end;
 
 procedure TMVCJsonDataObjectsSerializer.JSONObjectToRecord(
-  const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: Pointer);
+  const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte);
 var
   CTX: TRttiContext;
-  lField: TRTTIField;
   lTypeSize: Integer;
   lTypeInfo: PTypeInfo;
   AType: TMVCSerializationType;
@@ -2059,99 +2070,89 @@ var
   lKeyName: string;
   lAttributeValue: TValue;
   lErrMsg: string;
-  lFld: TRTTIField;
+  lField: TRTTIField;
 begin
   lTypeSize := RTTIType.TypeSize;
   lTypeInfo := RTTIType.Handle;
-  Buffer := GetMemory(lTypeSize);
+  GetMem(Buffer, lTypeSize);
+  FillChar(Buffer^, lTypeSize, 0);
   InvokeRecordInitializer(Buffer, lTypeInfo);
 
   AIgnoredAttributes := [];
-  AType := stDefault;
-  case AType of
-    stProperties:
+  try
+    for lField in RTTIType.GetFields do
+      if (not TMVCSerializerHelper.HasAttribute<MVCDoNotDeserializeAttribute>(lField)) and
+        (not IsIgnoredAttribute(AIgnoredAttributes, lField.Name)) then
       begin
-        try
-          for lProp in RTTIType.GetProperties do
-          begin
-            if TMVCSerializerHelper.IsAPropertyToSkip(lProp.Name) then
-              continue;
-            if ((not TMVCSerializerHelper.HasAttribute<MVCDoNotDeserializeAttribute>(lProp)) and
-              (not IsIgnoredAttribute(AIgnoredAttributes, lProp.Name)) and
-              (lProp.IsWritable or lProp.GetValue(Buffer).IsObject)) then
-            begin
-              lAttributeValue := lProp.GetValue(Buffer);
-              lKeyName := TMVCSerializerHelper.GetKeyName(lProp, RTTIType);
-              JSONObjectPropertyToTValueForRecord(
-                JSONObject,
-                lKeyName,
-                TMVCSerializationType.stProperties,
-                AIgnoredAttributes,
-                lAttributeValue,
-                lProp.GetAttributes
-                );
-            end;
-          end;
-        except
-          on E: EInvalidCast do
-          begin
-            if lProp <> nil then
-            begin
-              lErrMsg := Format('Invalid class typecast for property "%s" [Expected: %s, Actual: %s]',
-                [lKeyName, lProp.PropertyType.ToString(), JDO_TYPE_DESC[JSONObject[lKeyName].Typ]]);
-            end
-            else
-            begin
-              lErrMsg := Format('Invalid class typecast for property "%s" [Actual: %s]',
-                [lKeyName, JDO_TYPE_DESC[JSONObject[lKeyName].Typ]]);
-            end;
-            raise EMVCException.Create(HTTP_STATUS.BadRequest, lErrMsg);
-          end;
+        lKeyName := TMVCSerializerHelper.GetKeyName(lField, RTTIType);
+        if lField.FieldType.IsRecord then
+        begin
+          JSONObjectToNestedRecordField(JSONObject.O[lKeyName], lField, 0, Buffer);
+        end
+        else
+        begin
+          lAttributeValue := lField.GetValue(Buffer);
+          JSONObjectPropertyToTValueForRecord(
+            JSONObject,
+            lKeyName,
+            TMVCSerializationType.stProperties,
+            AIgnoredAttributes,
+            lAttributeValue,
+            lField.GetAttributes
+            );
+          lField.SetValue(Buffer, lAttributeValue);
         end;
       end;
-    stDefault, stUnknown, stFields:
+  except
+    on E: EInvalidCast do
+    begin
+      if lField <> nil then
       begin
-        try
-          for lFld in RTTIType.GetFields do
-            if (not TMVCSerializerHelper.HasAttribute<MVCDoNotDeserializeAttribute>(lFld)) and
-              (not IsIgnoredAttribute(AIgnoredAttributes, lFld.Name)) then
-            begin
-              lAttributeValue := lFld.GetValue(Buffer);
-              lKeyName := TMVCSerializerHelper.GetKeyName(lFld, RTTIType);
-              if lFld.FieldType.IsRecord then
-              begin
-                JSONObjectToRecord(JSONObject.O[lKeyName], lFld.FieldType.AsRecord, Buffer);
-              end
-              else
-              begin
-                JSONObjectPropertyToTValueForRecord(
-                  JSONObject,
-                  lKeyName,
-                  TMVCSerializationType.stProperties,
-                  AIgnoredAttributes,
-                  lAttributeValue,
-                  lFld.GetAttributes
-                  );
-              end;
-              lFld.SetValue(Buffer, lAttributeValue);
-            end;
-        except
-          on E: EInvalidCast do
-          begin
-            if lFld <> nil then
-            begin
-              lErrMsg := Format('Invalid class typecast for field "%s" [Expected: %s, Actual: %s]',
-                [lKeyName, lFld.FieldType.ToString(), JDO_TYPE_DESC[JSONObject[lKeyName].Typ]]);
-            end
-            else
-            begin
-              lErrMsg := Format('Invalid class typecast for field "%s" [Actual: %s]',
-                [lKeyName, JDO_TYPE_DESC[JSONObject[lKeyName].Typ]]);
-            end;
-            raise EMVCException.Create(HTTP_STATUS.BadRequest, lErrMsg);
-          end;
-        end;
+        lErrMsg := Format('Invalid class typecast for field "%s" [Expected: %s, Actual: %s]',
+          [lKeyName, lField.FieldType.ToString(), JDO_TYPE_DESC[JSONObject[lKeyName].Typ]]);
+      end
+      else
+      begin
+        lErrMsg := Format('Invalid class typecast for field "%s" [Actual: %s]',
+          [lKeyName, JDO_TYPE_DESC[JSONObject[lKeyName].Typ]]);
       end;
+      raise EMVCException.Create(HTTP_STATUS.BadRequest, lErrMsg);
+    end;
+  end;
+end;
+
+procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordfield(
+  const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; var Buffer: PByte);
+var
+  lChildType: TRttiType;
+  lChildFieldOffset: Integer;
+  lKeyName: String;
+begin
+  if RecordFieldRTTIType.FieldType.TypeKind <> tkRecord then
+  begin
+    raise EMVCDeserializationException.Create('Only record type allowed');
+  end;
+
+  //Recupero il tipo e l'offset
+  lChildType  := RecordFieldRTTIType.FieldType;
+  lChildFieldOffset := RecordFieldRTTIType.Offset + TypeOffset;
+
+  //recupero i campi
+  for var lField in lChildType.GetFields do
+  begin
+    case lField.FieldType.TypeKind of
+      tkInteger:
+        lField.SetValue(Buffer + lChildFieldOffset, 10);
+      tkUString, tkString:
+        lField.SetValue(Buffer + lChildFieldOffset, 'the string|' + lField.Name);
+      tkRecord:
+      begin
+        lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
+        JSONObjectToNestedRecordfield(JSONObject.O[lKeyName], lField, lChildFieldOffset, Buffer);
+      end
+      else
+        raise Exception.Create('Not supported');
+    end;
   end;
 end;
 
@@ -3014,7 +3015,7 @@ begin
   end;
 end;
 
-procedure TValueToJSONObjectProperty(
+procedure TValueToJSONObjectPropertyEx(
   const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
 var
   lSer: TMVCJsonDataObjectsSerializer;
