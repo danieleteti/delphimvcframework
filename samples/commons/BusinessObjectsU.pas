@@ -341,9 +341,29 @@ type
     BooleanProperty: Boolean;
     EnumProperty: TMyEnum;
     SetProperty: TMySet;
-    class function Create: TSimpleRecord; static;
+    class function Create: TSimpleRecord; overload; static;
+    class function Create(Value: Integer): TSimpleRecord; overload; static;
   end;
 
+  TSimpleRecordDynArray = TArray<TSimpleRecord>;
+  TSimpleRecordStaticArray = array [0..2] of TSimpleRecord;
+
+  TComplexRecord = record
+    StringProperty: String;
+    IntegerProperty: Integer;
+    FloatProperty: Double;
+    CurrencyProperty: Currency;
+    DateProperty: TDate;
+    TimeProperty: TTime;
+    DateTimeProperty: TDateTime;
+    BooleanProperty: Boolean;
+    EnumProperty: TMyEnum;
+    SetProperty: TMySet;
+    SimpleRecord: TSimpleRecord;
+    SimpleRecordDynArray: TSimpleRecordDynArray;
+    SimpleRecordStaticArray: TSimpleRecordStaticArray;
+    class function Create: TComplexRecord; static;
+  end;
 
 
 implementation
@@ -756,6 +776,37 @@ begin
   Result.BooleanProperty := True;
   Result.EnumProperty := EnumItem2;
   Result.SetProperty := [EnumItem1, EnumItem3];
+end;
+
+class function TSimpleRecord.Create(Value: Integer): TSimpleRecord;
+begin
+  Result := TSimpleRecord.Create;
+  Result.StringProperty := Value.ToString;
+  Result.IntegerProperty := Value;
+  Result.CurrencyProperty := Value + Value div 1000;
+end;
+
+{ TComplexRecord }
+
+class function TComplexRecord.Create: TComplexRecord;
+begin
+  Result.StringProperty := 'the string property';
+  Result.IntegerProperty:= 1234;
+  Result.FloatProperty := 1234.56789;
+  Result.CurrencyProperty := 1234.5678;
+  Result.DateProperty:= EncodeDate(2022,7,5);
+  Result.TimeProperty := EncodeTime(12,13,14,0);
+  Result.DateTimeProperty := Result.DateProperty + Result.TimeProperty;
+  Result.BooleanProperty := True;
+  Result.EnumProperty := EnumItem2;
+  Result.SetProperty := [EnumItem1, EnumItem3];
+  Result.SimpleRecord := TSimpleRecord.Create;
+  SetLength(Result.SimpleRecordDynArray,2);
+  Result.SimpleRecordDynArray[0] := TSimpleRecord.Create(1);
+  Result.SimpleRecordDynArray[1] := TSimpleRecord.Create(2);
+  Result.SimpleRecordStaticArray[0] := TSimpleRecord.Create(3);
+  Result.SimpleRecordStaticArray[1] := TSimpleRecord.Create(4);
+  Result.SimpleRecordStaticArray[2] := TSimpleRecord.Create(5);
 end;
 
 initialization

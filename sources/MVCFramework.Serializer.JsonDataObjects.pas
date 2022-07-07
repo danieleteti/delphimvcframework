@@ -74,10 +74,13 @@ type
     function StrToRecord<T: record>(const AJSONString: String): T;
     procedure JSONObjectToNestedRecordField(
       const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; var Buffer: PByte);
+    procedure JSONObjectToNestedRecordFieldStatic(
+      const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; var Buffer: PByte);
     procedure JSONObjectPropertyToTValueForRecord(AJSONObject: TJSONObject;
       const APropertyName: String; const AType: TMVCSerializationType;
       const AIgnored: TMVCIgnoredList;
-      var AValue: TValue; const ACustomAttributes: TArray<TCustomAttribute>);
+      var AValue: TValue; const ACustomAttributes: TArray<TCustomAttribute>;
+      const ARTTIField: TRTTIField);
     function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
@@ -1647,7 +1650,8 @@ procedure TMVCJsonDataObjectsSerializer.JSONObjectPropertyToTValueForRecord(
       const AType: TMVCSerializationType;
       const AIgnored: TMVCIgnoredList;
       var AValue: TValue;
-      const ACustomAttributes: TArray<TCustomAttribute>);
+      const ACustomAttributes: TArray<TCustomAttribute>;
+      const ARTTIField: TRTTIField);
 var
   LEnumAsAttr: MVCEnumSerializationAttribute;
   LEnumMappedValues: TList<string>;
@@ -1657,6 +1661,7 @@ var
   lInt: Integer;
   lOutInteger64: Int64;
   ChildObject: TObject;
+  lRef: PByte;
 begin
   case AJsonObject[APropertyName].Typ of
     jdtNone:
@@ -1839,8 +1844,6 @@ begin
           AValue := TValue.FromVariant(AJsonObject[APropertyName].O['value'].VariantValue)
         else
         begin
-          {TODO -oDanieleT -cGeneral : Nested record types are not correctly deserialized here}
-          ChildObject := nil;
           // dt: if a key is null, jsondataobjects assign it the type jdtObject
           if AJsonObject[APropertyName].ObjectValue <> nil then
           begin
@@ -1867,10 +1870,23 @@ begin
                   end
                   else
                   begin
-//                    JSONObjectToRecord(AJsonObject.O[APropertyName], )
-                    raise EMVCDeserializationException.CreateFmt('Cannot deserialize object value for property "%s"', [APropertyName]);
+                    lRef := PByte(AValue.GetReferenceToRawData);
+                    JSONObjectToNestedRecordFieldStatic(
+                      AJSONObject,
+                      ARTTIField,
+                      0,
+                      lRef
+                      );
                   end;
-                end
+                end;
+              tkDynArray:
+                begin
+                  raise Exception.Create('Not implemented tkDynArray');
+                end;
+              tkArray:
+                begin
+                  raise Exception.Create('Not implemented tkArray');
+                end;
             end;
           end;
         end;
@@ -1878,6 +1894,7 @@ begin
 
     jdtArray:
       begin
+        raise Exception.Create('Not implemented');
         {
         if AValue.Kind = tkInterface then
           ChildObject := TObject(AValue.AsInterface)
@@ -2184,7 +2201,8 @@ begin
             TMVCSerializationType.stProperties,
             AIgnoredAttributes,
             lAttributeValue,
-            lField.GetAttributes
+            lField.GetAttributes,
+            lField
             );
           lField.SetValue(Buffer, lAttributeValue);
         end;
@@ -2229,7 +2247,7 @@ begin
   begin
     lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
     lValue := lField.GetValue(Buffer + lChildFieldOffset);
-    JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil);
+    JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil, lField);
     lField.SetValue(Buffer + lChildFieldOffset, lValue);
 //    case lField.FieldType.TypeKind of
 //      tkInteger:
@@ -2247,6 +2265,60 @@ begin
 end;
 
 
+procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordFieldStatic(
+  const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField;
+  const TypeOffset: Integer; var Buffer: PByte);
+var
+  lChildType: TRttiType;
+//  lChildFieldOffset: Integer;
+  lKeyName: String;
+  lValue: TValue;
+begin
+  if RecordFieldRTTIType.FieldType.TypeKind <> tkRecord then
+  begin
+    raise EMVCDeserializationException.Create('Only record type allowed');
+  end;
+
+  //Recupero il tipo e l'offset
+  lChildType  := RecordFieldRTTIType.FieldType;
+//  lChildFieldOffset := RecordFieldRTTIType.Offset + TypeOffset;
+
+  //recupero i campi
+  for var lField in lChildType.GetFields do
+  begin
+    lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
+    lValue := lField.GetValue(Buffer); // + lChildFieldOffset);
+    JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil, lField);
+    lField.SetValue(Buffer {+ lChildFieldOffset}, lValue);
+  end;
+end;
+
+//procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordFieldStatic(
+//  const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; );
+//var
+//  lChildType: TRttiType;
+//  lChildFieldOffset: Integer;
+//  lKeyName: String;
+//  lValue: TValue;
+//begin
+//  if RecordFieldRTTIType.FieldType.TypeKind <> tkRecord then
+//  begin
+//    raise EMVCDeserializationException.Create('Only record type allowed');
+//  end;
+//
+//  //Recupero il tipo e l'offset
+//  lChildType  := RecordFieldRTTIType.FieldType;
+//  lChildFieldOffset := RecordFieldRTTIType.Offset + TypeOffset;
+//
+//  //recupero i campi
+//  for var lField in lChildType.GetFields do
+//  begin
+//    lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
+//    lValue := lField.GetValue(Buffer + lChildFieldOffset);
+//    JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil, lField);
+//    lField.SetValue(Buffer + lChildFieldOffset, lValue);
+//  end;
+//end;
 
 procedure TMVCJsonDataObjectsSerializer.ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
@@ -3446,7 +3518,10 @@ begin
     begin
       lKeyName := TMVCSerializerHelper.GetKeyName(lField, lType);
       lValue := lField.GetValue(@Result);
-      JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil);
+      JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil, lField);
+//      var lB: PByte;
+//      lB := PByte(@Result);
+//      JSONObjectToNestedRecordField(JSONObject, lField, lField.Offset, lB);
       lField.SetValue(@Result, lValue);
     end;
   finally
@@ -3511,7 +3586,7 @@ class function TMVCRecordUtils.JSONObjectToRecord<T>(
   const JSONObject: TJSONObject;
   const Serialier: TMVCJsonDataObjectsSerializer): T;
 begin
-  Serialier.JSONObjectToRecord<T>(JSONObject);
+  Result := Serialier.JSONObjectToRecord<T>(JSONObject);
 end;
 
 end.

@@ -51,6 +51,8 @@ type
     function GetArrayOfRecords: TArray<TSimpleRecord>;
     [MVCInheritable]
     function EchoSingleRecord(const SimpleRecord: TSimpleRecord): TSimpleRecord;
+    [MVCInheritable]
+    function GetSingleComplexRecord: TComplexRecord;
   end;
 
   [MVCJSONRPCAllowGET]
@@ -108,6 +110,11 @@ begin
   Result := TJsonArray.Create;
   for I := aFrom to aTo do
     Result.Add(I);
+end;
+
+function TTestJSONRPCClass.GetSingleComplexRecord: TComplexRecord;
+begin
+  Result := TComplexRecord.Create;
 end;
 
 function TTestJSONRPCClass.GetSingleRecord: TSimpleRecord;
