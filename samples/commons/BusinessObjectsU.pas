@@ -330,6 +330,7 @@ type
   TMyEnum = (EnumItem1, EnumItem2, EnumItem3);
   TMySet = set of TMyEnum;
 
+  [MVCNameCase(ncCamelCase)]
   TSimpleRecord = record
     StringProperty: String;
     IntegerProperty: Integer;
@@ -343,6 +344,7 @@ type
     SetProperty: TMySet;
     class function Create: TSimpleRecord; overload; static;
     class function Create(Value: Integer): TSimpleRecord; overload; static;
+    function ToString: String;
   end;
 
   TSimpleRecordDynArray = TArray<TSimpleRecord>;
@@ -371,7 +373,7 @@ implementation
 uses
   System.SysUtils,
   System.Math,
-  RandomUtilsU, FireDAC.Comp.Client;
+  RandomUtilsU, FireDAC.Comp.Client, System.TypInfo;
 
 { TPerson }
 
@@ -784,6 +786,31 @@ begin
   Result.StringProperty := Value.ToString;
   Result.IntegerProperty := Value;
   Result.CurrencyProperty := Value + Value div 1000;
+end;
+
+function TSimpleRecord.ToString: String;
+  function SetToString: String;
+  var
+    lEl: TMyEnum;
+  begin
+    for lEl in SetProperty do
+    begin
+      Result := Result + GetEnumName(typeinfo(TMyEnum), Ord(Self.EnumProperty)) + ',';
+    end;
+    Result := Result.Trim([',']);
+  end;
+begin
+  Result :=
+    'StringProperty   = ' + Self.StringProperty + sLineBreak +
+    'IntegerProperty  = ' + Self.IntegerProperty.ToString + sLineBreak +
+    'FloatProperty    = ' + Self.FloatProperty.ToString + sLineBreak +
+    'CurrencyProperty = ' + Self.CurrencyProperty.ToString + sLineBreak +
+    'DateProperty     = ' + DateToStr(Self.DateProperty) + sLineBreak +
+    'TimeProperty     = ' + TimeToStr(Self.TimeProperty) + sLineBreak +
+    'DateTimeProperty = ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Self.DateTimeProperty) + sLineBreak +
+    'BooleanProperty  = ' + BoolToStr(Self.BooleanProperty, True) + sLineBreak +
+    'EnumProperty     = ' + GetEnumName(typeinfo(TMyEnum), Ord(Self.EnumProperty)) + sLineBreak +
+    'SetProperty      = ' + SetToString + sLineBreak;
 end;
 
 { TComplexRecord }

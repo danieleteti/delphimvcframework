@@ -33,54 +33,9 @@ uses
   BusinessObjectsU,
   FireDAC.Comp.Client,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
+  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC, CommonTypesU;
 
 type
-  TPersonType = (ptFamily, ptFriend, ptColleague, ptAcquaintance);
-  TPersonTypes = set of TPersonType;
-  [MVCNameCase(ncCamelCase)]
-  TChildRec = record
-    ChildName: String;
-    PersonType: TPersonType;
-    ChildSurname: String;
-  end;
-
-  [MVCNameCase(ncCamelCase)]
-  TPersonRec = record
-    Name: String;
-    Surname: String;
-//    [MVCNameAs('personAge')]
-    Age: Integer;
-    Child: TChildRec;
-    PersonType: TPersonType;
-    InitialTypes: TPersonTypes;
-  end;
-
-  TPeopleList = TArray<TPersonRec>;
-
-  TPeopleArray = array [0..1] of TPersonRec;
-
-  TVendorProxy = record
-    Code: String;
-    FileAs: String;
-    IsDefault: Boolean;
-    InActive: Boolean;
-    Name: String;
-    OID: Integer;
-    UsageNotes: String;
-  end;
-  TVendorProxyList = TArray<TVendorProxy>;
-
-  TVendorPersonLink = record
-    PersonOID: Integer;
-    DefaultVendorOID: Integer;
-    LinkedVendorList: TArray<Integer>;
-  end;
-
-  TVendorProxiesAndLinks = record
-    VendorList: TArray<TVendorProxy>;
-    PersonLinkList: TArray<TVendorPersonLink>;
-  end;
 
   TMyObject = class
   private
@@ -322,6 +277,8 @@ begin
   Result.Age := 42;
   Result.Child.ChildName := 'Mattia';
   Result.Child.ChildSurname := 'Teti';
+  Result.PersonType := ptFriend;
+  Result.InitialTypes := [ptFriend, ptColleague];
 end;
 
 // function TMyObject.GetPeopleDataset: TFDMemTable;

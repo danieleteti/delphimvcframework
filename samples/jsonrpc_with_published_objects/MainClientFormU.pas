@@ -92,6 +92,9 @@ type
     btnGenericExcWithCustomHandling: TButton;
     btnGenericExcWithCustomHAndling2: TButton;
     btnGenericExcWithoutCustomHandling: TButton;
+    TabSheet6: TTabSheet;
+    btnSingleRec: TButton;
+    lbLogRec: TListBox;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -116,6 +119,7 @@ type
     procedure btnGenericExcWithCustomHandlingClick(Sender: TObject);
     procedure btnGenericExcWithCustomHAndling2Click(Sender: TObject);
     procedure btnGenericExcWithoutCustomHandlingClick(Sender: TObject);
+    procedure btnSingleRecClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     // FExecutor2: IMVCJSONRPCExecutor;
@@ -140,7 +144,7 @@ uses
   MVCFramework.DataSet.Utils,
   BusinessObjectsU,
   System.Math,
-  System.Rtti;
+  System.Rtti, CommonTypesU;
 
 {$R *.dfm}
 
@@ -369,6 +373,22 @@ begin
   // lbPerson.Items.Add('Last Name:'.PadRight(15) + lJSON.S['lastname']);
   // lbPerson.Items.Add('Married:'.PadRight(15) + lJSON.B['married'].ToString(TUseBoolStrs.True));
   // lbPerson.Items.Add('DOB:'.PadRight(15) + DateToStr(lJSON.D['dob']));
+end;
+
+procedure TMainForm.btnSingleRecClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lPersonRec: TPersonRec;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetPersonRec';
+  lReq.RequestID := Random(1000);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lPersonRec := TMVCRecordUtils.JSONObjectToRecord<TPersonRec>(lResp.ResultAsJSONObject);
+  lbLogRec.Items.Add('** TPersonRec **');
+  lbLogRec.Items.Add(lResp.ResultAsJSONObject.ToJSON());
+  lbLogRec.Items.Add(lPersonRec.ToString);
 end;
 
 procedure TMainForm.btnSubstractClick(Sender: TObject);

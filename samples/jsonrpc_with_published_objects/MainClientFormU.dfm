@@ -17,7 +17,7 @@ object MainForm: TMainForm
     Top = 0
     Width = 842
     Height = 604
-    ActivePage = TabSheet1
+    ActivePage = TabSheet6
     Align = alClient
     TabOrder = 0
     object TabSheet1: TTabSheet
@@ -521,6 +521,31 @@ object MainForm: TMainForm
         TabOrder = 2
         WordWrap = True
         OnClick = btnGenericExcWithoutCustomHandlingClick
+      end
+    end
+    object TabSheet6: TTabSheet
+      Caption = 'Using record as parameters'
+      ImageIndex = 3
+      DesignSize = (
+        834
+        576)
+      object btnSingleRec: TButton
+        Left = 16
+        Top = 16
+        Width = 185
+        Height = 41
+        Caption = 'Returning Single Record'
+        TabOrder = 0
+        OnClick = btnSingleRecClick
+      end
+      object lbLogRec: TListBox
+        Left = 216
+        Top = 16
+        Width = 601
+        Height = 545
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        ItemHeight = 13
+        TabOrder = 1
       end
     end
   end

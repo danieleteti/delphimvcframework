@@ -1701,10 +1701,8 @@ var
   lOutInteger: Integer;
   lInt: Integer;
   lOutInteger64: Int64;
-  ChildObject: TObject;
+  lChildObject: TObject;
   lRef: PByte;
-  I: Integer;
-  lInnerName: String;
   lInnerType: TRttiType;
   lCtx: TRttiContext;
   lArr: TArray<TValue>;
@@ -1733,6 +1731,7 @@ var
     end;
   end;
 begin
+  lChildObject := nil;
   case AJsonObject[APropertyName].Typ of
     jdtNone:
       Exit;
@@ -1920,13 +1919,13 @@ begin
             case AValue.Kind of
               tkInterface:
                 begin
-                  JsonObjectToObject(AJsonObject.O[APropertyName], ChildObject,
-                    GetSerializationType(ChildObject, AType), AIgnored);
+                  JsonObjectToObject(AJsonObject.O[APropertyName], lChildObject,
+                    GetSerializationType(lChildObject, AType), AIgnored);
                 end;
               tkClass:
                 begin
-                  JsonObjectToObject(AJsonObject.O[APropertyName], ChildObject, GetSerializationType(ChildObject, AType),
-                    AIgnored);
+                  JsonObjectToObject(AJsonObject.O[APropertyName], lChildObject,
+                    GetSerializationType(lChildObject, AType), AIgnored);
                 end;
               tkString, tkUString:
                 begin
@@ -1971,23 +1970,8 @@ begin
                 Format('Wrong array size, expected %d, got %d',
                   [AValue.GetArrayLength, AJSONObject.A[APropertyName].Count]));
             end;
-            var lt := ARTTIField.FieldType.Handle;
             SetLength(lArr, AJSONObject.A[APropertyName].Count);
             BuildATValueArrayFromJSONArrayOfJSONObject;
-//            lInnerType := lCtx.GetType(AValue.GetArrayElement(0).TypeInfo);
-//            lInnerTypeAsRecord := lInnerType.AsRecord;
-//            for I := 0 to Length(lArr) - 1 do
-//            begin
-//              lBuff := AValue.GetReferenceToRawArrayElement(I);
-//              lJItem := AJSONObject.A[APropertyName].Items[I].ObjectValue;
-//              JSONObjectToRecord(
-//                lJItem,
-//                lInnerTypeAsRecord,
-//                lBuff
-//                );
-//              TValue.MakeWithoutCopy(lBuff, lInnerType.Handle, lArr[I]);
-//              FreeMem(lBuff, lInnerType.TypeSize);
-//            end;
             AValue := TValue.FromArray(ARTTIField.FieldType.Handle, lArr);
           end
           else if AValue.Kind = tkDynArray then
@@ -1995,24 +1979,12 @@ begin
             SetLength(lArr, AJSONObject.A[APropertyName].Count);
             if Length(lArr) > 0 then
             begin
-              //DT: This code is required to know the typeinfo of an element of the dynamic array
-              //still not created. This is required because the dynamic array is still
-              //not dimensioned, for a static array this is not necessary.
+              //DT: This line is required to know the typeinfo of an element of the dynamic array
+              //still not created (see BuildATValueArrayFromJSONArrayOfJSONObject).
+              //This is required because the dynamic array is still
+              //not dimensioned here, for a static array this is not necessary.
               AValue := TValue.FromArray(ARTTIField.FieldType.Handle, [TValue.Empty]);
               BuildATValueArrayFromJSONArrayOfJSONObject;
-//              lInnerType := lCtx.GetType(AValue.GetArrayElement(0).TypeInfo);
-//              lInnerTypeAsRecord := lInnerType.AsRecord;
-//              for I := 0 to Length(lArr) - 1 do
-//              begin
-//                lJItem := AJSONObject.A[APropertyName].Items[I].ObjectValue;
-//                JSONObjectToRecord(
-//                  lJItem,
-//                  lInnerTypeAsRecord,
-//                  lBuff
-//                  );
-//                TValue.MakeWithoutCopy(lBuff, lInnerType.Handle, lArr[I]);
-//                FreeMem(lBuff, lInnerType.TypeSize);
-//              end;
             end;
             AValue := TValue.FromArray(ARTTIField.FieldType.Handle, lArr);
           end
@@ -2047,12 +2019,6 @@ begin
         continue;
 
       lName := TMVCSerializerHelper.ApplyNameCase(GetNameCase(ADataSet, ANameCase), lName { Field.FieldName } );
-      // case GetNameCase(ADataSet, ANameCase) of
-      // ncLowerCase:
-      // name := LowerCase(Field.FieldName);
-      // ncUpperCase:
-      // name := UpperCase(Field.FieldName);
-      // end;
 
       if not AJsonObject.Contains(lName) then
         continue;
@@ -2384,25 +2350,24 @@ begin
 end;
 
 
-procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordfield(
+procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordField(
   const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; var Buffer: PByte);
 var
   lChildType: TRttiType;
   lChildFieldOffset: Integer;
   lKeyName: String;
   lValue: TValue;
+  lField: TRttiField;
 begin
   if RecordFieldRTTIType.FieldType.TypeKind <> tkRecord then
   begin
     raise EMVCDeserializationException.Create('Only record type allowed');
   end;
 
-  //Recupero il tipo e l'offset
   lChildType  := RecordFieldRTTIType.FieldType;
   lChildFieldOffset := RecordFieldRTTIType.Offset + TypeOffset;
 
-  //recupero i campi
-  for var lField in lChildType.GetFields do
+  for lField in lChildType.GetFields do
   begin
     lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
     lValue := lField.GetValue(Buffer + lChildFieldOffset);
@@ -2417,9 +2382,9 @@ procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordFieldStatic(
   const TypeOffset: Integer; var Buffer: PByte);
 var
   lChildType: TRttiType;
-//  lChildFieldOffset: Integer;
   lKeyName: String;
   lValue: TValue;
+  lField: TRttiField;
 begin
   if RecordFieldRTTIType.FieldType.TypeKind <> tkRecord then
   begin
@@ -2431,7 +2396,7 @@ begin
 //  lChildFieldOffset := RecordFieldRTTIType.Offset + TypeOffset;
 
   //recupero i campi
-  for var lField in lChildType.GetFields do
+  for lField in lChildType.GetFields do
   begin
     lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
     lValue := lField.GetValue(Buffer); // + lChildFieldOffset);
