@@ -3059,6 +3059,12 @@ begin
   Assert.AreEqual(2, Length(lRec.SimpleRecordDynArray), 'Wrong size for dynamic array');
   Assert.AreEqual('1', lRec.SimpleRecordDynArray[0].StringProperty);
   Assert.AreEqual('2', lRec.SimpleRecordDynArray[1].StringProperty);
+
+  //Static Array Records
+  Assert.AreEqual(3, Length(lRec.SimpleRecordStaticArray), 'Wrong size for static array');
+  Assert.AreEqual('3', lRec.SimpleRecordStaticArray[0].StringProperty);
+  Assert.AreEqual('4', lRec.SimpleRecordStaticArray[1].StringProperty);
+  Assert.AreEqual('5', lRec.SimpleRecordStaticArray[2].StringProperty);
 end;
 
 procedure TJSONRPCServerTest.TestRequest_NoParams_SingleRecordAsResult;
