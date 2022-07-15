@@ -40,13 +40,16 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Commons,
   MVCFramework.Serializer.Commons,
-  Data.DB, JsonDataObjects;
+  Data.DB,
+  JsonDataObjects;
 
 type
   IMVCRESTResponse = interface;
 
+  TNeedClientCertificateProc = reference to procedure(const aSender: TObject; const aRequest: TURLRequest;
+    const aCertificateList: TCertificateList; var aIndex: Integer);
   TValidateServerCertificateProc = reference to procedure(const aSender: TObject; const aRequest: TURLRequest;
-    const aCertificate: TCertificate; var accepted: Boolean);
+    const aCertificate: TCertificate; var aAccepted: Boolean);
   TBeforeRequestProc = reference to procedure (aRequest: IHTTPRequest);
   TRequestCompletedProc = reference to procedure (aResponse: IHTTPResponse; var aHandled: Boolean);
   TResponseCompletedProc = reference to procedure(aResponse: IMVCRESTResponse);
@@ -73,6 +76,11 @@ type
 {$ENDIF}
 
     /// <summary>
+    /// Method called when a ClientCertificate is needed.
+    /// </summary>
+    function SetNeedClientCertificateProc(aNeedClientCertificateProc: TNeedClientCertificateProc): IMVCRESTClient;
+
+    /// <summary>
     /// Add a custom SSL certificate validation. By default all certificates are accepted.
     /// </summary>
     function SetValidateServerCertificateProc(aValidateCertificateProc: TValidateServerCertificateProc): IMVCRESTClient;
@@ -91,6 +99,18 @@ type
     /// Executes after the response is processed.
     /// </summary>
     function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
+
+    ///<summary>
+    /// Set the client certificate for the request</summary>
+    /// </summary>
+    function SetClientCertificate(const aCertStream: TStream; const aPassword: string): IMVCRESTClient; overload;
+
+    /// <summary>
+    /// Set the path containing a client certificate for the request (iOS, Linux, Windows, Android).
+    /// Note, on Android the Path is certificate fingerprint or imported name, not a file path.
+    /// Password is not used.
+    /// </summary>
+    function SetClientCertificate(const aCertPath, aPassword: string): IMVCRESTClient; overload;
 
     /// <summary>
     /// Clears all parameters (headers, body, path params and query params). This method is executed after each
