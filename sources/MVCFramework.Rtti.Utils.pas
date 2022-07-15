@@ -91,6 +91,13 @@ type
     class function GetGUID<T>: TGUID;
   end;
 
+{$IF not defined(BERLINORBETTER)}
+  TValueHelper = record helper for TValue
+  public
+    function IsObjectInstance: Boolean;
+  end;
+{$ENDIF}
+
 function FieldFor(const APropertyName: string): string; inline;
 
 implementation
@@ -892,5 +899,16 @@ class function TRttiUtils.HasAttribute<T>(AObject: TObject; out AAttribute: T): 
 begin
   Result := HasAttribute<T>(GlContext.GetType(AObject.ClassType), AAttribute)
 end;
+
+{$IF not defined(BERLINORBETTER)}
+
+{ TValueHelper }
+
+function TValueHelper.IsObjectInstance: Boolean;
+begin
+  Result := (Self.TypeInfo <> nil) and (Self.TypeInfo^.Kind = tkClass);
+end;
+
+{$ENDIF}
 
 end.

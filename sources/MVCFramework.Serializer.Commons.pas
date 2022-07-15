@@ -1520,9 +1520,11 @@ begin
     end
     else
     begin
+{$IF defined(TOKYOORBETTER)}
       if AField.DataType = ftGuid then
         aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(AField.AsGuid))
       else
+{$ENDIF}
         aRTTIField.SetValue(AObject, TValue.From<NullableTGUID>(StringToGUID(AField.AsString)))
     end;
     Result := True;

@@ -455,6 +455,7 @@ begin
 
     tkSet:
     begin
+{$IF defined(BERLINORBETTER)}
       lBuffer := AllocMem(AValue.DataSize);
       try
         AValue.ExtractRawDataNoCopy(lBuffer);
@@ -462,6 +463,10 @@ begin
       finally
         FreeMem(lBuffer)
       end;
+{$ELSE}
+      raise EMVCSerializationException.CreateFmt
+         ('Cannot serialize property or field "%s" of TypeKind tkSet in this Delphi version.', [AName]);
+{$ENDIF}
     end;
 
     tkArray, tkDynArray:

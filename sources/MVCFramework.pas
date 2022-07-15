@@ -1626,8 +1626,8 @@ begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(AParamName, Result)) then
   begin
     Result := '';
-    if FWebRequest.ContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
-      FWebRequest.ContentType.StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
+    if string(FWebRequest.ContentType).StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
+      string(FWebRequest.ContentType).StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
       Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
       Result := FWebRequest.QueryFields.Values[AParamName];
@@ -3569,7 +3569,11 @@ procedure TMVCRenderer.Render201Created(const Location, Reason: string);
 begin
   if not Location.IsEmpty then
   begin
+{$IF defined(BERLINORBETTER)}
     FContext.Response.CustomHeaders.AddPair('location', Location);
+{$ELSE}
+    FContext.Response.CustomHeaders.Add('location' + FContext.Response.CustomHeaders.NameValueSeparator + Location);
+{$ENDIF}
   end;
   ResponseStatus(http_status.Created, Reason);
 {$IF CompilerVersion >= 34}
@@ -3581,7 +3585,11 @@ procedure TMVCRenderer.Render204NoContent(const Location, Reason: string);
 begin
   if not Location.IsEmpty then
   begin
+{$IF defined(BERLINORBETTER)}
     FContext.Response.CustomHeaders.AddPair('location', Location);
+{$ELSE}
+    FContext.Response.CustomHeaders.Add('location' + FContext.Response.CustomHeaders.NameValueSeparator + Location);
+{$ENDIF}
   end;
   ResponseStatus(http_status.NoContent, Reason);
 end;

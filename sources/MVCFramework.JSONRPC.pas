@@ -41,7 +41,7 @@ uses
   System.Rtti,
   System.Generics.Collections,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Serializer.jsondataobjects;
+  MVCFramework.Serializer.JsonDataObjects;
 
 const
   JSONRPC_VERSION = '2.0';
@@ -459,7 +459,7 @@ uses
   System.TypInfo,
   MVCFramework.Rtti.Utils,
   MVCFramework.DuckTyping,
-  MVCFramework.Serializer.jsondataobjects.CustomTypes;
+  MVCFramework.Serializer.JsonDataObjects.CustomTypes;
 
 const
   CALL_TYPE: array [mkProcedure .. mkFunction] of string = ('PROCEDURE', 'FUNCTION');

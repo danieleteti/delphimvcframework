@@ -83,12 +83,14 @@ type
     BEARER_AUTH_PREFIX = 'Bearer ';
     SERVER_HEADER = 'server';
     DEFAULT_MAX_REDIRECTS = 5;
+{$IF defined(BERLINORBETTER)}
     REST_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord(''''), Ord(':'), Ord(';'), Ord('<'), Ord('='),
       Ord('>'), Ord('@'), Ord('['), Ord(']'), Ord('^'), Ord('`'), Ord('{'), Ord('}'), Ord('|'), Ord('/'), Ord('\'),
       Ord('?'), Ord('#'), Ord('&'), Ord('!'), Ord('$'), Ord('('), Ord(')'), Ord(','), Ord('~'), Ord(' '), Ord('*'),
       Ord('+')];
     PATH_UNSAFE_CHARS: TURLEncoding.TUnsafeChars = [Ord('"'), Ord('<'), Ord('>'), Ord('^'), Ord('`'), Ord('{'),
       Ord('}'), Ord('|'), Ord('/'), Ord('\'), Ord('?'), Ord('#'), Ord('+'), Ord('.')];
+{$ENDIF}
   end;
 
 implementation
@@ -153,7 +155,7 @@ begin
 
   aContentStream.Position := 0;
   try
-{$IF Defined(SeattleOrBetter)}
+{$IF defined(BERLINORBETTER)}
     lDecompressor := TZDecompressionStream.Create(aContentStream,
       MVC_COMPRESSION_ZLIB_WINDOW_BITS[lCompressionType], False);
 {$ELSE}
@@ -266,8 +268,11 @@ end;
 
 class function TMVCRESTClientHelper.URIEncode(const aURI: string): string;
 begin
-  Result := TNetEncoding.URL.Encode(aURI, TMVCRESTClientConsts.REST_UNSAFE_CHARS,
-    [TURLEncoding.TEncodeOption.EncodePercent]);
+  Result := TNetEncoding.URL.Encode(aURI
+{$IF defined(BERLINORBETTER)}
+    ,TMVCRESTClientConsts.REST_UNSAFE_CHARS, [TURLEncoding.TEncodeOption.EncodePercent]
+{$ENDIF}
+    );
 end;
 
 end.

@@ -248,8 +248,6 @@ type
       overload;
     class function GetByPK(aActiveRecord: TMVCActiveRecord; const aValue: string; const aFieldType: TFieldType;
       const RaiseExceptionIfNotFound: Boolean): TMVCActiveRecord; overload;
-    class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: string; const aFieldType: TFieldType;
-      const RaiseExceptionIfNotFound: Boolean): T; overload;
 
     // load events
     /// <summary>
@@ -422,6 +420,8 @@ type
   end;
 
   TMVCActiveRecordHelper = class helper for TMVCActiveRecord
+    class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: string; const aFieldType: TFieldType;
+      const RaiseExceptionIfNotFound: Boolean): T; overload;
     class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: int64;
       const RaiseExceptionIfNotFound: Boolean = True): T; overload;
     class function GetByPK<T: TMVCActiveRecord, constructor>(const aValue: string;
@@ -1375,12 +1375,6 @@ begin
   end;
 end;
 
-class function TMVCActiveRecord.GetByPK<T>(const aValue: string; const aFieldType: TFieldType;
-  const RaiseExceptionIfNotFound: Boolean): T;
-begin
-  Result := T(GetByPK(T.Create, aValue, aFieldType, RaiseExceptionIfNotFound));
-end;
-
 class function TMVCActiveRecord.GetByPK(const aClass: TMVCActiveRecordClass; const aValue: string;
   const RaiseExceptionIfNotFound: Boolean): TMVCActiveRecord;
 begin
@@ -1415,6 +1409,11 @@ class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: TGuid;
   const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetByPK<T>(aValue.ToString, ftGuid, RaiseExceptionIfNotFound);
+end;
+
+class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: string; const aFieldType: TFieldType; const RaiseExceptionIfNotFound: Boolean): T;
+begin
+  Result := T(GetByPK(T.Create, aValue, aFieldType, RaiseExceptionIfNotFound));
 end;
 
 class function TMVCActiveRecordHelper.GetFirstByWhere<T>(const SQLWhere: string;
