@@ -233,14 +233,20 @@ type
     [MVCPath('/arrays')]
     procedure GetClassWithArrays;
 
-    // Enums
+    //Records
     [MVCHTTPMethod([httpGET])]
-    [MVCPath('/enums')]
-    procedure GetClassWithEnums;
+    [MVCPath('/record')]
+    procedure GetSingleRecord;
 
-    [MVCHTTPMethod([httpPOST])]
-    [MVCPath('/enums')]
-    procedure EchoClassWithEnums;
+
+    // Enums
+//    [MVCHTTPMethod([httpGET])]
+//    [MVCPath('/enums')]
+//    procedure GetClassWithEnums;
+//
+//    [MVCHTTPMethod([httpPOST])]
+//    [MVCPath('/enums')]
+//    procedure EchoClassWithEnums;
   end;
 
 implementation
@@ -390,15 +396,15 @@ begin
   Render(Person, False);
 end;
 
-procedure TRenderSampleController.EchoClassWithEnums;
-var
-  lObj: TClassWithEnums;
-begin
-  lObj := Context.Request.BodyAs<TClassWithEnums>;
-  lObj.RGBSet := [ctBlue, ctGreen, ctRed];
-  lObj.EnumWithName := ctBlue;
-  Render(lObj, True);
-end;
+//procedure TRenderSampleController.EchoClassWithEnums;
+//var
+//  lObj: TClassWithEnums;
+//begin
+//  lObj := Context.Request.BodyAs<TClassWithEnums>;
+//  lObj.RGBSet := [ctBlue, ctGreen, ctRed];
+//  lObj.EnumWithName := ctBlue;
+//  Render(lObj, True);
+//end;
 
 procedure TRenderSampleController.GetBinaryData(const filename: string);
 var
@@ -430,18 +436,18 @@ begin
   Render(lClass);
 end;
 
-procedure TRenderSampleController.GetClassWithEnums;
-var
-  lObj: TClassWithEnums;
-begin
-  lObj := TClassWithEnums.Create;
-  lObj.RGBSet := [ctGreen, ctBlue];
-  lObj.EnumSimple := ctGreen;
-  lObj.EnumWithName := ctGreen;
-  lObj.EnumWithOrdValue := ctGreen;
-  lObj.EnumWithMappedValues := ctGreen;
-  Render(lObj);
-end;
+//procedure TRenderSampleController.GetClassWithEnums;
+//var
+//  lObj: TClassWithEnums;
+//begin
+//  lObj := TClassWithEnums.Create;
+//  lObj.RGBSet := [ctGreen, ctBlue];
+//  lObj.EnumSimple := ctGreen;
+//  lObj.EnumWithName := ctGreen;
+//  lObj.EnumWithOrdValue := ctGreen;
+//  lObj.EnumWithMappedValues := ctGreen;
+//  Render(lObj);
+//end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
 var
@@ -826,6 +832,14 @@ end;
 procedure TRenderSampleController.GetSimpleLists;
 begin
   Render(TSimpleListTest.Create);
+end;
+
+procedure TRenderSampleController.GetSingleRecord;
+var
+  lSR: TSimpleRecord;
+begin
+  lSR := TSimpleRecord.Create;
+  Render<TSimpleRecord>(200, lSR);
 end;
 
 procedure TRenderSampleController.GetPeopleAsCSV;

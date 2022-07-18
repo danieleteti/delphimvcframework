@@ -232,7 +232,6 @@ type
     procedure FillJSONArray(const AJsonArray: TJsonArray);
   end;
 
-
   TMVCRecordUtils = record
   private
     class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject; const Serialier: TMVCJsonDataObjectsSerializer): T; overload; static; inline;
@@ -2732,7 +2731,13 @@ procedure TMVCJsonDataObjectsSerializer.RecordToJsonObject(
   const AJsonObject: TJDOJsonObject; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList);
 begin
-  raise Exception.Create('Not implemented');
+  InternalRecordToJsonObject(
+    ARecord,
+    ARecordTypeInfo,
+    AJsonObject,
+    AType,
+    AIgnoredAttributes,
+    nil, nil,nil);
 end;
 
 function TMVCJsonDataObjectsSerializer.SerializeCollection(const AList: TObject; const AType: TMVCSerializationType;
@@ -2975,8 +2980,22 @@ function TMVCJsonDataObjectsSerializer.SerializeRecord(const ARecord: Pointer;
   const ARecordTypeInfo: PTypeInfo; const AType: TMVCSerializationType;
   const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction): string;
+var
+  lJSON: TJDOJsonObject;
 begin
-  raise Exception.Create('not implemented');
+  lJSON := TJDOJsonObject.Create;
+  try
+    RecordToJsonObject(
+      ARecord,
+      ARecordTypeInfo,
+      lJSON,
+      TMVCSerializationType.stFields,
+      nil);
+    Result := lJSON.ToJSON(True);
+  finally
+    lJSON.Free;
+  end;
+
 end;
 
 function TMVCJsonDataObjectsSerializer.TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
