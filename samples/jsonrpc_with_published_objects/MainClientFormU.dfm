@@ -544,8 +544,42 @@ object MainForm: TMainForm
         Width = 601
         Height = 545
         Anchors = [akLeft, akTop, akRight, akBottom]
-        ItemHeight = 13
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Consolas'
+        Font.Style = []
+        ItemHeight = 15
+        ParentFont = False
+        ScrollWidth = 5000
         TabOrder = 1
+      end
+      object btnGetArrayOfRecords: TButton
+        Left = 16
+        Top = 63
+        Width = 185
+        Height = 40
+        Caption = 'Returning Array of Records'
+        TabOrder = 2
+        OnClick = btnGetArrayOfRecordsClick
+      end
+      object btnGetDynArray: TButton
+        Left = 16
+        Top = 109
+        Width = 185
+        Height = 40
+        Caption = 'Returning DynArray of Records'
+        TabOrder = 3
+        OnClick = btnGetDynArrayClick
+      end
+      object btnPassAndGetRecord: TButton
+        Left = 16
+        Top = 155
+        Width = 185
+        Height = 40
+        Caption = 'Using record parameters'
+        TabOrder = 4
+        OnClick = btnPassAndGetRecordClick
       end
     end
   end

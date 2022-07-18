@@ -234,7 +234,7 @@ type
 
   TMVCRecordUtils = record
   private
-    class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject; const Serialier: TMVCJsonDataObjectsSerializer): T; overload; static; inline;
+    class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject; const Serializer: TMVCJsonDataObjectsSerializer): T; overload; static; inline;
   public
     class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject): T; overload; static;
     class function JSONArrayToArrayOfRecord<T: record>(const JSONArray: TJSONArray): TArray<T>; static;
@@ -3774,9 +3774,9 @@ end;
 
 class function TMVCRecordUtils.JSONObjectToRecord<T>(
   const JSONObject: TJSONObject;
-  const Serialier: TMVCJsonDataObjectsSerializer): T;
+  const Serializer: TMVCJsonDataObjectsSerializer): T;
 begin
-  Result := Serialier.JSONObjectToRecord<T>(JSONObject);
+  Result := Serializer.JSONObjectToRecord<T>(JSONObject);
 end;
 
 end.

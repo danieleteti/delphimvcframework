@@ -277,32 +277,10 @@ begin
   Result.Age := 42;
   Result.Child.ChildName := 'Mattia';
   Result.Child.ChildSurname := 'Teti';
-  Result.PersonType := ptFriend;
-  Result.InitialTypes := [ptFriend, ptColleague];
+  Result.Child.PersonType := ptFamily;
+  Result.PersonType := ptMySelf;
+  Result.InitialTypes := [ptMySelf];
 end;
-
-// function TMyObject.GetPeopleDataset: TFDMemTable;
-// var
-// lMT: TFDMemTable;
-// begin
-// lMT := TFDMemTable.Create(nil);
-// try
-// lMT.FieldDefs.Clear;
-// lMT.FieldDefs.Add('FirstName', ftString, 20);
-// lMT.FieldDefs.Add('LastName', ftString, 20);
-// lMT.Active := True;
-// lMT.AppendRecord(['Daniele', 'Teti']);
-// lMT.AppendRecord(['Peter', 'Parker']);
-// lMT.AppendRecord(['Bruce', 'Banner']);
-// lMT.AppendRecord(['Scott', 'Summers']);
-// lMT.AppendRecord(['Sue', 'Storm']);
-// lMT.First;
-// Result := lMT;
-// except
-// lMT.Free;
-// raise;
-// end;
-// end;
 
 function TMyObject.GetStringDictionary: TMVCStringDictionary;
 begin
