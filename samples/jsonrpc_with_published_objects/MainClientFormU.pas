@@ -98,6 +98,7 @@ type
     btnGetArrayOfRecords: TButton;
     btnGetDynArray: TButton;
     btnPassAndGetRecord: TButton;
+    btnEchoComplexArray: TButton;
     procedure btnSubstractClick(Sender: TObject);
     procedure btnReverseStringClick(Sender: TObject);
     procedure edtGetCustomersClick(Sender: TObject);
@@ -126,6 +127,7 @@ type
     procedure btnGetArrayOfRecordsClick(Sender: TObject);
     procedure btnGetDynArrayClick(Sender: TObject);
     procedure btnPassAndGetRecordClick(Sender: TObject);
+    procedure btnEchoComplexArrayClick(Sender: TObject);
   private
     FExecutor: IMVCJSONRPCExecutor;
     // FExecutor2: IMVCJSONRPCExecutor;
@@ -179,6 +181,46 @@ begin
   lReq.Params.Add(Now(), pdtDateTime);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
   ShowMessage(lResp.Result.AsString);
+end;
+
+procedure TMainForm.btnEchoComplexArrayClick(Sender: TObject);
+var
+  lReq: IJSONRPCRequest;
+  lResp: IJSONRPCResponse;
+  lPeople: TPeopleList;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoComplexArrayOfRecords';
+  lReq.RequestID := Random(1000);
+  SetLength(lPeople, 2);
+  lPeople[0].Name := 'Daniele';
+  lPeople[0].Surname := 'Teti';
+  lPeople[0].Age := 42;
+  lPeople[0].Child.ChildName := 'DanieleChild';
+  lPeople[0].Child.PersonType := ptFamily;
+  lPeople[0].Child.ChildSurname := 'TetiChild';
+  lPeople[0].PersonType := ptMySelf;
+  lPeople[0].InitialTypes := [ptMySelf, ptColleague];
+  lPeople[1].Name := 'Peter';
+  lPeople[1].Surname := 'Parker';
+  lPeople[1].Age := 35;
+  lPeople[1].PersonType := ptFriend;
+  lPeople[1].InitialTypes := [ptFriend, ptColleague];
+  lPeople[1].Child := lPeople[0].Child;
+  lPeople[1].Child.ChildName := 'PeterChild';
+
+  lReq.Params.Add(
+    TValue.From<TPeopleList>(lPeople),
+    pdtArrayOfRecords);
+  lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
+  lPeople := TMVCRecordUtils.JSONArrayToArrayOfRecord<TPersonRec>(lResp.ResultAsJSONArray);
+  lbLogRec.Items.Add('** TPersonRec **');
+  lbLogRec.Items.Add('JSON: ' + lResp.ResultAsJSONArray.ToJSON());
+  lbLogRec.Items.Add('-- elements --');
+  for var lPRec in lPeople do
+  begin
+    lbLogRec.Items.Add('  ' + lPRec.ToString);
+  end;
 end;
 
 procedure TMainForm.btnExceptionClick(Sender: TObject);

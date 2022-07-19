@@ -518,15 +518,6 @@ begin
               RaiseSerializationError('Invalid JSON Data Type');
             end;
           end;
-//          InternalTValueToJsonObject(
-//            AValue,
-//            AJsonObject.O[AName],
-//            TMVCSerializationType.stFields,
-//            [],
-//            nil,
-//            nil,
-//            nil
-//            );
         end;
       end;
 

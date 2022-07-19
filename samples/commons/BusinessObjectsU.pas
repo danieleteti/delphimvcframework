@@ -367,6 +367,8 @@ type
     class function Create: TComplexRecord; static;
   end;
 
+  TComplexRecordArray = TArray<TComplexRecord>;
+
 
 implementation
 

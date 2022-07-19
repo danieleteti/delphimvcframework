@@ -131,7 +131,7 @@ type
   end;
 
   TJSONRPCParamDataType = (pdtString, pdtInteger, pdtLongInteger, pdTJDOJsonObject, pdtJSONArray, pdtBoolean, pdtDate,
-    pdtTime, pdtDateTime, pdtFloat, pdtObject, pdtRecord);
+    pdtTime, pdtDateTime, pdtFloat, pdtObject, pdtRecord, pdtArrayOfRecords);
 
   TJSONRPCRequestParams = class
   private
@@ -496,6 +496,7 @@ var
   LJObj: TJDOJsonObject;
   lOrdinalValue: Int64;
   lJSONDataType: TJsonDataType;
+  I: Integer;
 begin
   case ParamType of
     pdtInteger:
@@ -578,6 +579,26 @@ begin
             nil,
             nil,
             lJSONDataType) as TJsonObject);
+        finally
+          lSer.Free;
+        end;
+      end;
+    pdtArrayOfRecords:
+      begin
+        lSer := TMVCJsonDataObjectsSerializer.Create;
+        try
+          lJArr := TJsonArray.Create;
+          JSONArr.Add(lJArr);
+          for i := 0 to Value.GetArrayLength - 1 do
+          begin
+            lSer.RecordToJsonObject(
+              Value.GetReferenceToRawArrayElement(i),
+              Value.GetArrayElement(i).TypeInfo,
+              lJArr.AddObject,
+              TMVCSerializationType.stFields,
+              nil
+              );
+          end;
         finally
           lSer.Free;
         end;
@@ -831,6 +852,27 @@ begin
           lSer.Free;
         end;
       end;
+    tkDynArray:
+      begin
+        lSer := TMVCJsonDataObjectsSerializer.Create(nil);
+        try
+          var lValue: TValue;
+          var lArr: TArray<TValue>;
+          SetLength(lArr, JSONDataValue.ArrayValue.Count);
+          lValue := TValue.FromArray(RTTIParameter.ParamType.Handle, lArr);
+          for var I := Low(lArr) to High(lArr) do
+          begin
+            var lBuf: PByte;
+            lSer.JSONObjectToRecord(
+              JSONDataValue.ArrayValue.Items[I].ObjectValue,
+              RTTIParameter.ParamType.AsRecord, lBuf);
+            TValue.Make(lBuf, RTTIParameter.ParamType.Handle, lValue);
+          end;
+          JSONRPCRequestParams.Add(lValue, pdtRecord);
+        finally
+          lSer.Free;
+        end;
+      end
   else
     begin
       raise EMVCJSONRPCInvalidRequest.CreateFmt('Invalid parameter type for [%s]', [BuildDeclaration(RTTIParameter)]);
@@ -843,9 +885,12 @@ procedure JSONDataValueToTValueParamEx(
   const RTTIParameter: TRttiParameter;
   var ParamValue: TValue;
   out ParamIsRecord: Boolean;
-  out ParamRecordPointer: PByte);
+  out ParamRecordPointer: PByte;
+  out ParamArrayLength: Integer);
 var
   lSer: TMVCJsonDataObjectsSerializer;
+  lTValueArr: TArray<TValue>;
+  lItemRTTIType: TRttiType;
 begin
   ParamIsRecord := False;
   ParamRecordPointer := nil;
@@ -963,6 +1008,45 @@ begin
             ParamValue);
         finally
           lSer.Free;
+        end;
+      end;
+    tkDynArray:
+      begin
+        if (JSONDataValue.Typ = jdtObject) and (JSONDataValue.IsNull) then
+        begin
+          ParamValue := TValue.FromArray(RTTIParameter.ParamType.Handle, []);
+        end
+        else
+        begin
+          lItemRTTIType := TRttiUtils.GetArrayContainedRTTIType(RTTIParameter.ParamType);
+          SetLength(lTValueArr, JSONDataValue.ArrayValue.Count);
+          ParamArrayLength := JSONDataValue.ArrayValue.Count;
+          ParamIsRecord := False;
+          lSer := TMVCJsonDataObjectsSerializer.Create(nil);
+          try
+            for var I := 0 to Length(lTValueArr) - 1 do
+            begin
+              lSer.JSONObjectToRecord(
+                JSONDataValue.ArrayValue.Items[i].ObjectValue,
+                lItemRTTIType.AsRecord,
+                ParamRecordPointer);
+              TValue.MakeWithoutCopy(
+                ParamRecordPointer,
+                lItemRTTIType.AsRecord.Handle, // RTTIParameter.ParamType.Handle,
+                lTValueArr[I]);
+  //            lSer.JSONObjectToRecord(
+  //              JSONDataValue.ObjectValue,
+  //              RTTIParameter.ParamType.AsRecord,
+  //              ParamRecordPointer);
+  //            TValue.MakeWithoutCopy(
+  //              ParamRecordPointer,
+  //              RTTIParameter.ParamType.Handle,
+  //              ParamValue);
+            end;
+          finally
+            lSer.Free;
+          end;
+          ParamValue := TValue.FromArray(RTTIParameter.ParamType.Handle, lTValueArr);
         end;
       end;
   else
@@ -1574,6 +1658,8 @@ function TMVCJSONRPCController.InvokeMethod(const fRPCInstance: TObject;
   const RTTIType: TRTTIType; const RTTIMethod: TRTTIMethod;
   const JSON: TJSONObject;
   out BeforeCallHookHasBeenInvoked: Boolean): TValue;
+type
+  TParamType = (ptNotARecord, ptRecord, ptArrayOfRecord);
 var
   lRTTIMethodParams: TArray<TRttiParameter>;
   lRTTIMethodParam: TRttiParameter;
@@ -1584,6 +1670,7 @@ var
   lParamsArray: TArray<TValue>;
   lParamsIsRecord: TArray<Boolean>;
   lRecordsPointer: TArray<PByte>;
+  lParamArrayLength: TArray<Integer>;
   function GetJsonDataValueHelper(const JSONNamedParams: TJsonObject; const JsonPropName: string): TJsonDataValueHelper;
   var
     I: Integer;
@@ -1657,19 +1744,20 @@ begin
   SetLength(lParamsArray, lParamsCount);
   SetLength(lParamsIsRecord, lParamsCount);
   SetLength(lRecordsPointer, lParamsCount);
+  SetLength(lParamArrayLength, lParamsCount);
   // scroll json params and rttimethod params and find the best match
   if Assigned(lJSONParams) then
   begin
     // positional params
     for I := 0 to lJSONParams.Count - 1 do
     begin
-//      JSONDataValueToTValueParam(lJSONParams[I], lRTTIMethodParams[I], Params);
       JSONDataValueToTValueParamEx(
         lJSONParams[I],
         lRTTIMethodParams[I],
         lParamsArray[I],
         lParamsIsRecord[I],
-        lRecordsPointer[I]
+        lRecordsPointer[I],
+        lParamArrayLength[i]
         );
     end;
   end
@@ -1683,7 +1771,8 @@ begin
         lRTTIMethodParams[I],
         lParamsArray[I],
         lParamsIsRecord[I],
-        lRecordsPointer[I]);
+        lRecordsPointer[I],
+        lParamArrayLength[i]);
     end;
   end;
 
@@ -1705,7 +1794,7 @@ begin
   end;
 
 
-  for I := 0 to lParamsCount-1 do
+  for I := 0 to lParamsCount - 1 do
   begin
     if lParamsIsRecord[I] then
     begin
@@ -1713,38 +1802,6 @@ begin
       FreeMem(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.TypeSize);
     end;
   end;
-
-  {
-  try
-    lJSONRPCReq.FillParameters(lJSON, lRTTIMethod);
-  except
-    on Ex: EMVCJSONRPCErrorResponse do
-    begin
-      raise EMVCJSONRPCInvalidParams.Create('Cannot map all parameters to remote method. ' + Ex.Message);
-    end;
-  end;
-
-
-
-  lJSONResp := nil;
-  // try
-  TryToCallMethod(lRTTIType, JSONRPC_HOOKS_ON_BEFORE_CALL, lJSON);
-  lBeforeCallHookHasBeenInvoked := True;
-  try
-    LogD('[JSON-RPC][CALL][' + CALL_TYPE[lRTTIMethod.MethodKind] + '][' + fRPCInstance.ClassName + '.' +
-      lRTTIMethod.Name + ']');
-    lRes := lRTTIMethod.Invoke(fRPCInstance, lJSONRPCReq.Params.ToArray);
-  except
-    on E: EInvalidCast do
-    begin
-      raise EMVCJSONRPCInvalidParams.Create('Check your input parameters types');
-    end;
-    on Ex: EMVCJSONRPCInvalidRequest do
-    begin
-      raise EMVCJSONRPCInvalidParams.Create(Ex.Message);
-    end;
-  end;
-  }
 end;
 
 function TMVCJSONRPCController.JSONObjectAs<T>(const JSON: TJDOJsonObject): T;

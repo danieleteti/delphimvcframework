@@ -106,6 +106,7 @@
         <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.Client.pas"/>
         <DCCReference Include="..\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\commons\BusinessObjectsU.pas"/>
+        <DCCReference Include="CommonTypesU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -581,6 +581,15 @@ object MainForm: TMainForm
         TabOrder = 4
         OnClick = btnPassAndGetRecordClick
       end
+      object btnEchoComplexArray: TButton
+        Left = 16
+        Top = 201
+        Width = 185
+        Height = 40
+        Caption = 'Using Array as Parameter'
+        TabOrder = 5
+        OnClick = btnEchoComplexArrayClick
+      end
     end
   end
   object DataSource1: TDataSource

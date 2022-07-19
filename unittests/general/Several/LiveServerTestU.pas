@@ -303,6 +303,8 @@ type
   [TestFixture]
   [Category('jsonrpc')]
   TJSONRPCServerTest = class(TObject)
+  private
+    procedure TestRequest_NoParams_DynamicArrayOfRecordAsResult;
   protected
     FExecutor: IMVCJSONRPCExecutor;
     FExecutor2: IMVCJSONRPCExecutor;
@@ -365,7 +367,7 @@ type
     [Test]
     procedure TestRequest_Echo_SingleRecordAsResult;
     [Test]
-    procedure TestRequest_NoParams_DynamicArrayOfRecordAsResult;
+    procedure TestRequest_Echo_ComplexRecords;
   end;
 
   [TestFixture]
@@ -401,7 +403,7 @@ uses
   Vcl.Graphics
 {$ENDIF}
     , TestConstsU, MVCFramework.Tests.Serializer.Entities,
-  MVCFramework.Logger;
+  MVCFramework.Logger, System.IOUtils;
 
 function GetServer: string;
 begin
@@ -2957,6 +2959,40 @@ begin
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   lS := (lRPCResp.Result.AsObject as TJDOJsonObject).ToJSON();
   Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_Echo_ComplexRecords;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lComplexRecIn, lComplexRec: TComplexRecordArray;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoArrayOfRecords';
+  lReq.RequestID := 1234;
+  SetLength(lComplexRecIn, 2);
+  lComplexRecIn[0] := TComplexRecord.Create;
+  lComplexRecIn[1] := TComplexRecord.Create;
+  lComplexRecIn[0].StringProperty := 'firstone';
+  lComplexRecIn[1].StringProperty := 'secondone';
+
+  lReq.Params.Add(TValue.From<TComplexRecordArray>(lComplexRecIn), pdtArrayOfRecords);
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsFalse(lRPCResp.IsError, lRPCResp.Error.ErrMessage);
+
+  TFile.WriteAllText('outputcomplexrecordarray.json', lRPCResp.ResultAsJSONArray.ToJSON(False));
+//  lSimpleRec := TMVCRecordUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp.ResultAsJSONObject);
+//  Assert.AreEqual(lSimpleRecIn.StringProperty, lSimpleRec.StringProperty);
+//  Assert.AreEqual(lSimpleRecIn.IntegerProperty, lSimpleRec.IntegerProperty);
+//  Assert.AreEqual(lSimpleRecIn.FloatProperty, lSimpleRec.FloatProperty);
+//  Assert.AreEqual(lSimpleRecIn.CurrencyProperty, lSimpleRec.CurrencyProperty);
+//  Assert.AreEqual(lSimpleRecIn.DateProperty, lSimpleRec.DateProperty);
+//  Assert.AreEqual(lSimpleRecIn.TimeProperty, lSimpleRec.TimeProperty);
+//  Assert.AreEqual(lSimpleRecIn.DateTimeProperty, lSimpleRec.DateTimeProperty, 0.000001);
+//  Assert.AreEqual(lSimpleRecIn.BooleanProperty, lSimpleRec.BooleanProperty);
+//  Assert.AreEqual(lSimpleRecIn.EnumProperty, lSimpleRec.EnumProperty);
+//  Assert.IsTrue(lSimpleRecIn.SetProperty * lSimpleRec.SetProperty = [EnumItem1, EnumItem3]);
+//  Assert.IsTrue(lSimpleRec.SetProperty - lSimpleRecIn.SetProperty = []);
 end;
 
 procedure TJSONRPCServerTest.TestRequest_Echo_SingleRecordAsResult;

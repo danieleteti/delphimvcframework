@@ -53,6 +53,8 @@ type
     function EchoSingleRecord(const SimpleRecord: TSimpleRecord): TSimpleRecord;
     [MVCInheritable]
     function GetSingleComplexRecord: TComplexRecord;
+    [MVCInheritable]
+    function EchoArrayOfRecords(const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
   end;
 
   [MVCJSONRPCAllowGET]
@@ -160,6 +162,12 @@ end;
 function TTestJSONRPCClass.AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 begin
   Result := aDateTime + aTime;
+end;
+
+function TTestJSONRPCClass.EchoArrayOfRecords(
+  const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
+begin
+  Result := ComplexRecordArray;
 end;
 
 function TTestJSONRPCClass.EchoSingleRecord(

@@ -64,16 +64,18 @@ type
     function GetStringDictionary: TMVCStringDictionary;
     function GetUser(aUserName: string): TPerson;
     function SavePerson(const Person: TJsonObject): Integer;
-    function SavePersonRec(PersonRec: TPersonRec): TPersonRec;
-    function GetPeopleRecDynArray: TPeopleList;
-    function GetPeopleRecStaticArray: TPeopleArray;
-    function GetPersonRec: TPersonRec;
-    function GetComplex1: TVendorProxiesAndLinks;
     function FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
     procedure DoSomething;
     procedure RaiseCustomException;
     function RaiseGenericException(const ExceptionType: Integer): Integer;
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
+    //records support
+    function SavePersonRec(PersonRec: TPersonRec): TPersonRec;
+    function GetPeopleRecDynArray: TPeopleList;
+    function GetPeopleRecStaticArray: TPeopleArray;
+    function GetPersonRec: TPersonRec;
+    function GetComplex1: TVendorProxiesAndLinks;
+    function EchoComplexArrayOfRecords(PeopleList: TPeopleList): TPeopleList;
     // invalid parameters modifiers
     procedure InvalidMethod1(var MyVarParam: Integer);
     procedure InvalidMethod2(out MyOutParam: Integer);
@@ -117,6 +119,12 @@ end;
 procedure TMyObject.DoSomething;
 begin
 
+end;
+
+function TMyObject.EchoComplexArrayOfRecords(
+  PeopleList: TPeopleList): TPeopleList;
+begin
+  Result := PeopleList;
 end;
 
 procedure TMyObject.FillCustomersDataset(const DataSet: TDataSet);
