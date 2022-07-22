@@ -81,12 +81,6 @@ type
       const AIgnored: TMVCIgnoredList;
       var AValue: TValue; const ACustomAttributes: TArray<TCustomAttribute>;
       const ARTTIField: TRTTIField);
-    procedure JSONObjectToTValueForRecord(AJSONObject: TJSONObject;
-      const AType: TMVCSerializationType;
-      const AIgnored: TMVCIgnoredList;
-      var ABuffer: PByte;
-      var AValue: TValue;
-      const ACustomAttributes: TArray<TCustomAttribute>);
     function GetDataSetFields(const ADataSet: TDataSet; const AIgnoredFields: TMVCIgnoredList;
       const ANameCase: TMVCNameCase = ncAsIs): TMVCDataSetFields;
     procedure ObjectToJsonObject(const AObject: TObject; const AJsonObject: TJDOJsonObject;
@@ -485,11 +479,16 @@ begin
           begin
             CastValue := AValue.AsType<TValue>;
             if CastValue.TryCast(ValueTypeAtt.ValueTypeInfo, CastedValue) then
+            begin
               TValueToJSONObjectProperty(AJsonObject, AName, CastedValue, stDefault, [], [])
+            end
             else
-              raise EMVCSerializationException.CreateFmt
-                ('Cannot serialize property or field "%s" of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute).',
-                [AName]);
+            begin
+              RaiseSerializationError(
+                Format(
+                  'Cannot serialize property or field "%s" of TypeKind tkRecord (TValue with MVCValueAsTypeAttribute)',
+                  [AName]));
+            end;
           end
           else
           begin
@@ -1743,13 +1742,6 @@ var
     TSetOfType = set of TSetOfTypeElement;
   var
     I: Integer;
-    lStrArr: TArray<string>;
-    lIntArr: TArray<Integer>;
-    lLongArr: TArray<Int64>;
-    lDoubleArr: TArray<Double>;
-    lBoolArr: TArray<Boolean>;
-    lSetOfType: TSetOfType;
-    lEl: TSetOfTypeElement;
     lJArr: TJsonArray;
     lArrayItemType: TJsonDataType;
   begin
@@ -2046,6 +2038,7 @@ begin
                   [AValue.GetArrayLength, AJSONObject.A[APropertyName].Count]));
             end;
             SetLength(lArr, AJSONObject.A[APropertyName].Count);
+            lInnerType := lCtx.GetType(AValue.GetArrayElement(0).TypeInfo);
             BuildATValueArrayFromJSONArrayOfJSONObject;
             AValue := TValue.FromArray(ARTTIField.FieldType.Handle, lArr);
           end
@@ -2489,33 +2482,6 @@ begin
   end;
 end;
 
-//procedure TMVCJsonDataObjectsSerializer.JSONObjectToNestedRecordFieldStatic(
-//  const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField; const TypeOffset: Integer; );
-//var
-//  lChildType: TRttiType;
-//  lChildFieldOffset: Integer;
-//  lKeyName: String;
-//  lValue: TValue;
-//begin
-//  if RecordFieldRTTIType.FieldType.TypeKind <> tkRecord then
-//  begin
-//    raise EMVCDeserializationException.Create('Only record type allowed');
-//  end;
-//
-//  //Recupero il tipo e l'offset
-//  lChildType  := RecordFieldRTTIType.FieldType;
-//  lChildFieldOffset := RecordFieldRTTIType.Offset + TypeOffset;
-//
-//  //recupero i campi
-//  for var lField in lChildType.GetFields do
-//  begin
-//    lKeyName := TMVCSerializerHelper.GetKeyName(lField, lChildType);
-//    lValue := lField.GetValue(Buffer + lChildFieldOffset);
-//    JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil, lField);
-//    lField.SetValue(Buffer + lChildFieldOffset, lValue);
-//  end;
-//end;
-
 procedure TMVCJsonDataObjectsSerializer.ListToJsonArray(const AList: IMVCList; const AJsonArray: TJDOJsonArray;
   const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
   const ASerializationAction: TMVCSerializationAction);
@@ -2527,7 +2493,9 @@ var
   lJSONValue: TJsonBaseObject;
 begin
   if not Assigned(AList) then
+  begin
     raise EMVCSerializationException.Create('List not assigned');
+  end;
   if Assigned(ASerializationAction) then
   begin
     lDict := TJDOLinks.Create;
@@ -2556,12 +2524,10 @@ begin
       else
         begin
           lJSONValue.Free;
-          RaiseSerializationError('Invalid JSON Data Type');
+          RaiseSerializationError('Invalid JSON Data Type: ' +
+            GetEnumName(TypeInfo(TJsonDataType), Ord(lJsonDataType)));
         end
       end;
-
-      // InternalObjectToJsonObject(AList.GetItem(I), AJsonArray.AddObject, AType, AIgnoredAttributes, nil, nil,
-      // nil);
     end;
   end;
 end;
@@ -3780,28 +3746,6 @@ begin
       raise EMVCException.Create(HTTP_STATUS.BadRequest, lErrMsg);
     end;
   end;
-
-
-    //
-//    for var lField in lType.GetFields do
-//    begin
-//      lKeyName := TMVCSerializerHelper.GetKeyName(lField, lType);
-//      lValue := lField.GetValue(@Result);
-//      JSONObjectToRecord()()
-////      JSONObjectPropertyToTValueForRecord(JSONObject, lKeyName, stFields, nil, lValue, nil, lField);
-////      var lB: PByte;
-////      lB := PByte(@Result);
-////      JSONObjectToNestedRecordField(JSONObject, lField, lField.Offset, lB);
-//      lField.SetValue(@Result, lValue);
-//    end;
-end;
-
-procedure TMVCJsonDataObjectsSerializer.JSONObjectToTValueForRecord(
-  AJSONObject: TJSONObject; const AType: TMVCSerializationType;
-  const AIgnored: TMVCIgnoredList; var ABuffer: PByte; var AValue: TValue;
-  const ACustomAttributes: TArray<TCustomAttribute>);
-begin
-
 end;
 
 function TMVCJsonDataObjectsSerializer.StrToRecord<T>(const AJSONString: String): T;

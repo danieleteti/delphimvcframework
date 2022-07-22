@@ -345,6 +345,7 @@ type
     class function Create: TSimpleRecord; overload; static;
     class function Create(Value: Integer): TSimpleRecord; overload; static;
     function ToString: String;
+    function Equals(SimpleRecord: TSimpleRecord): Boolean;
   end;
 
   TSimpleRecordDynArray = TArray<TSimpleRecord>;
@@ -365,6 +366,7 @@ type
     SimpleRecordDynArray: TSimpleRecordDynArray;
     SimpleRecordStaticArray: TSimpleRecordStaticArray;
     class function Create: TComplexRecord; static;
+    function Equals(ComplexRecord: TComplexRecord): Boolean;
   end;
 
   TComplexRecordArray = TArray<TComplexRecord>;
@@ -790,6 +792,21 @@ begin
   Result.CurrencyProperty := Value + Value div 1000;
 end;
 
+function TSimpleRecord.Equals(SimpleRecord: TSimpleRecord): Boolean;
+begin
+  Result := StringProperty = SimpleRecord.StringProperty;
+  Result := IntegerProperty = SimpleRecord.IntegerProperty;
+  Result := FloatProperty = SimpleRecord.FloatProperty;
+  Result := CurrencyProperty = SimpleRecord.CurrencyProperty;
+  Result := DateProperty = SimpleRecord.DateProperty;
+  Result := TimeProperty = SimpleRecord.TimeProperty;
+  Result := CompareValue(DateTimeProperty, SimpleRecord.DateTimeProperty, 0.0001)  = 0;
+  Result := BooleanProperty = SimpleRecord.BooleanProperty;
+  Result := EnumProperty = SimpleRecord.EnumProperty;
+  Result := SetProperty * SimpleRecord.SetProperty = [EnumItem1, EnumItem3];
+  Result := SetProperty - SimpleRecord.SetProperty = [];
+end;
+
 function TSimpleRecord.ToString: String;
   function SetToString: String;
   var
@@ -836,6 +853,22 @@ begin
   Result.SimpleRecordStaticArray[0] := TSimpleRecord.Create(3);
   Result.SimpleRecordStaticArray[1] := TSimpleRecord.Create(4);
   Result.SimpleRecordStaticArray[2] := TSimpleRecord.Create(5);
+end;
+
+function TComplexRecord.Equals(ComplexRecord: TComplexRecord): Boolean;
+begin
+  Result := StringProperty = ComplexRecord.StringProperty;
+  Result := IntegerProperty = ComplexRecord.IntegerProperty;
+  Result := FloatProperty = ComplexRecord.FloatProperty;
+  Result := CurrencyProperty = ComplexRecord.CurrencyProperty;
+  Result := DateProperty = ComplexRecord.DateProperty;
+  Result := TimeProperty = ComplexRecord.TimeProperty;
+  Result := CompareValue(DateTimeProperty, ComplexRecord.DateTimeProperty, 0.0001)  = 0;
+  Result := BooleanProperty = ComplexRecord.BooleanProperty;
+  Result := EnumProperty = ComplexRecord.EnumProperty;
+  Result := SetProperty * ComplexRecord.SetProperty = [EnumItem1, EnumItem3];
+  Result := SetProperty - ComplexRecord.SetProperty = [];
+
 end;
 
 initialization

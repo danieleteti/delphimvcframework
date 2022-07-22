@@ -453,7 +453,12 @@ uses
 
 procedure RaiseSerializationError(const Msg: string);
 begin
-  raise EMVCSerializationException.Create(Msg);
+  raise EMVCSerializationException.Create(Msg) at ReturnAddress;
+end;
+
+procedure RaiseDeSerializationError(const Msg: string);
+begin
+  raise EMVCDeSerializationException.Create(Msg) at ReturnAddress;
 end;
 
 function StrDict: TMVCStringDictionary; overload;
@@ -1205,7 +1210,7 @@ begin
               end
               else
               begin
-                raise EMVCDeserializationException.Create('Cannot deserialize field ' +
+                RaiseDeSerializationError('Cannot deserialize field ' +
                   AField.FieldName);
               end;
             end;
