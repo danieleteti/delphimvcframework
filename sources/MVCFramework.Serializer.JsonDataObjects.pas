@@ -89,7 +89,8 @@ type
     procedure TValueToJSONObjectProperty(const AJsonObject: TJDOJsonObject; const AName: string; const AValue: TValue;
       const AType: TMVCSerializationType; const AIgnored: TMVCIgnoredList;
       const ACustomAttributes: TArray<TCustomAttribute>);
-    function TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject; const AName: string): Boolean;
+    function TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject; const AName: string;
+      const ACustomAttributes: TArray<TCustomAttribute>): Boolean;
     procedure JsonObjectToObject(const AJsonObject: TJDOJsonObject; const AObject: TObject;
       const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList);
     procedure JSONObjectPropertyToTValue(
@@ -417,7 +418,7 @@ begin
       begin
         if AValue.TypeInfo.NameFld.ToString.StartsWith('Nullable') then
         begin
-          if TryNullableToJSON(AValue, AJsonObject, AName) then
+          if TryNullableToJSON(AValue, AJsonObject, AName, ACustomAttributes) then
           begin
             Exit;
           end;
@@ -454,6 +455,7 @@ begin
 
     tkSet:
     begin
+{$IF defined(BERLINORBETTER)}
       lBuffer := AllocMem(AValue.DataSize);
       try
         AValue.ExtractRawDataNoCopy(lBuffer);
@@ -461,6 +463,10 @@ begin
       finally
         FreeMem(lBuffer)
       end;
+{$ELSE}
+      raise EMVCSerializationException.CreateFmt
+         ('Cannot serialize property or field "%s" of TypeKind tkSet in this Delphi version.', [AName]);
+{$ENDIF}
     end;
 
     tkArray, tkDynArray:
@@ -1290,6 +1296,10 @@ begin
           else if AValue.TypeInfo = TypeInfo(NullableTTime) then
           begin
             AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJsonObject[APropertyName].Value)))
+          end
+          else if AValue.TypeInfo = TypeInfo(NullableTGUID) then
+          begin
+            AValue := TValue.From<NullableTGUID>(TMVCGuidHelper.StringToGUIDEx(AJsonObject[APropertyName].Value));
           end
           else
             raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [APropertyName]);
@@ -2182,7 +2192,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.TryNullableToJSON(const AValue: TValue; const AJsonObject: TJDOJsonObject;
-  const AName: string): Boolean;
+  const AName: string; const ACustomAttributes: TArray<TCustomAttribute>): Boolean;
 begin
   Result := False;
   if (AValue.TypeInfo = System.TypeInfo(NullableString)) then
@@ -2381,6 +2391,21 @@ begin
     Exit(True);
   end;
 
+  if (AValue.TypeInfo = System.TypeInfo(NullableTGUID)) then
+  begin
+    if AValue.AsType<NullableTGUID>().HasValue then
+    begin
+      if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(ACustomAttributes) then
+        AJsonObject.S[AName] := TMVCGuidHelper.GUIDToStringEx(AValue.AsType<NullableTGUID>().Value)
+      else
+        AJsonObject.S[AName] := GUIDToString(AValue.AsType<NullableTGUID>().Value);
+    end
+    else
+    begin
+      AJsonObject.Values[AName] := nil;
+    end;
+    Exit(True);
+  end;
 end;
 
 procedure TMVCJsonDataObjectsSerializer.DeserializeObject(const ASerializedObject: string; const AObject: TObject;

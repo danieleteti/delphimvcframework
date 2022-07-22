@@ -592,7 +592,8 @@ type
 
   TMVCGuidHelper = record
   public
-    class function GuidFromString(const AGuidStr: string): TGUID; static;
+    class function StringToGUIDEx(const aGuidStr: string): TGUID; static; inline;
+    class function GUIDToStringEx(const aGuid: TGUID): string; static; inline;
   end;
 
   TMVCStringHelper = record
@@ -1415,25 +1416,32 @@ end;
 
 { TMVCGuidHelper }
 
-class function TMVCGuidHelper.GuidFromString(const AGuidStr: string): TGUID;
-var
-  LGuidStr: string;
+class function TMVCGuidHelper.GUIDToStringEx(const aGuid: TGUID): string;
 begin
-  if AGuidStr.Length = 32 then { string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465 }
-  begin
-    LGuidStr := Format('{%s-%s-%s-%s-%s}', [AGuidStr.Substring(0, 8), AGuidStr.Substring(8, 4),
-      AGuidStr.Substring(12, 4), AGuidStr.Substring(16, 4), AGuidStr.Substring(20, 12)])
-  end
-  else if AGuidStr.Length = 36 then { string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465 }
-  begin
-    LGuidStr := Format('{%s}', [AGuidStr])
-  end
+  Result := aGuid.ToString.Substring(1, 36).ToLower; { UUID specification RFC 4122 - https://www.ietf.org/rfc/rfc4122.txt }
+end;
+
+class function TMVCGuidHelper.StringToGUIDEx(const aGuidStr: string): TGUID;
+var
+  lGuidStr: string;
+begin
+  case aGuidStr.Length of
+    32: { string uuid without braces and dashes: ae502abe430bb23a28782d18d6a6e465 }
+      begin
+        lGuidStr := Format('{%s-%s-%s-%s-%s}', [aGuidStr.Substring(0, 8), aGuidStr.Substring(8, 4),
+          aGuidStr.Substring(12, 4), aGuidStr.Substring(16, 4), aGuidStr.Substring(20, 12)]);
+      end;
+    36: { string uuid without braces: ae502abe-430b-b23a-2878-2d18d6a6e465 }
+      begin
+        lGuidStr := Format('{%s}', [aGuidStr])
+      end
   else
-  begin
-    LGuidStr := AGuidStr;
+    begin
+      lGuidStr := aGuidStr;
+    end;
   end;
 
-  Result := StringToGUID(LGuidStr);
+  Result := StringToGUID(lGuidStr);
 end;
 
 function CamelCase(const Value: string; const MakeFirstUpperToo: Boolean): string;

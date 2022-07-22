@@ -63,6 +63,7 @@ type
   TCookies = System.Net.HttpClient.TCookies;
   TURLRequest = System.Net.URLClient.TURLRequest;
   TCertificate = System.Net.URLClient.TCertificate;
+  TCertificateList = System.Net.URLClient.TCertificateList;
   TNameValuePair = System.Net.URLClient.TNameValuePair;
   TNameValueArray = System.Net.URLClient.TNameValueArray;
   IHTTPRequest = System.Net.HttpClient.IHTTPRequest;
@@ -89,10 +90,16 @@ type
     fAsyncCompletionHandler: TProc<IMVCRESTResponse>;
     fAsyncCompletionHandlerWithError: TProc<Exception>;
     fAsyncSynchronized: Boolean;
+    fNeedClientCertificate: TNeedClientCertificateProc;
     fValidateServerCertificate: TValidateServerCertificateProc;
     fBeforeRequestProc: TBeforeRequestProc;
     fRequestCompletedProc: TRequestCompletedProc;
     fResponseCompletedProc: TResponseCompletedProc;
+    [Weak] fClientCertificate: TStream;
+    fClientCertPassword: string;
+    fClientCertPath: string;
+    procedure DoNeedClientCertificate(const aSender: TObject; const aRequest: TURLRequest;
+      const aCertificateList: TCertificateList; var aIndex: Integer);
     procedure DoValidateServerCertificate(const aSender: TObject; const aRequest: TURLRequest;
       const aCertificate: TCertificate; var aAccepted: Boolean);
     procedure DoBeforeRequest(aRequest: IHTTPRequest);
@@ -145,6 +152,12 @@ type
     function SecureProtocols(const aSecureProtocols: THTTPSecureProtocols): IMVCRESTClient; overload;
     function SecureProtocols: THTTPSecureProtocols; overload;
 {$ENDIF}
+
+    /// <summary>
+    /// Method called when a ClientCertificate is needed.
+    /// </summary>
+    function SetNeedClientCertificateProc(aNeedClientCertificateProc: TNeedClientCertificateProc): IMVCRESTClient;
+
     /// <summary>
     /// Add a custom SSL certificate validation. By default all certificates are accepted.
     /// </summary>
@@ -165,6 +178,20 @@ type
     /// </summary>
     function SetResponseCompletedProc(aResponseCompletedProc: TResponseCompletedProc): IMVCRESTClient;
 
+    ///<summary>
+    /// Set the client certificate for the request</summary>
+    /// </summary>
+    function SetClientCertificate(const aCertStream: TStream; const aPassword: string): IMVCRESTClient; overload;
+
+{$IF defined(TOKYOORBETTER)}
+    /// <summary>
+    /// Set the path containing a client certificate for the request (iOS, Linux, Windows, Android).
+    /// Note, on Android the Path is certificate fingerprint or imported name, not a file path.
+    /// Password is not used.
+    /// </summary>
+    function SetClientCertificate(const aCertPath, aPassword: string): IMVCRESTClient; overload;
+{$ENDIF}
+
     /// <summary>
     /// Clears all parameters (headers, body, path params and query params). This method is executed after each
     /// request is completed.
@@ -174,6 +201,7 @@ type
     /// </remarks>
     function ClearAllParams: IMVCRESTClient;
 
+{$IF defined(BERLINORBETTER)}
     /// <summary>
     /// Connection timeout in milliseconds to be used for the requests.
     /// </summary>
@@ -185,6 +213,7 @@ type
     /// </summary>
     function ReadTimeout(const aReadTimeout: Integer): IMVCRESTClient; overload;
     function ReadTimeout: Integer; overload;
+{$ENDIF}
 
     /// <summary>
     /// Add basic authorization header. Authorization = Basic &lt;Username:Password&gt; (encoded in Base64)
@@ -873,6 +902,7 @@ begin
   ClearParameters(TMVCRESTParamType.Query);
 end;
 
+{$IF defined(BERLINORBETTER)}
 function TMVCRESTClient.ConnectTimeout: Integer;
 begin
   Result := fHTTPClient.ConnectionTimeout;
@@ -883,18 +913,21 @@ begin
   Result := Self;
   fHTTPClient.ConnectionTimeout := aConnectTimeout;
 end;
+{$ENDIF}
 
 constructor TMVCRESTClient.Create;
 begin
   inherited Create;
 
   fHTTPClient := THTTPClient.Create;
+  fHTTPClient.OnNeedClientCertificate := DoNeedClientCertificate;
   fHTTPClient.OnValidateServerCertificate := DoValidateServerCertificate;
   fHTTPClient.HandleRedirects := True;
   fHTTPClient.MaxRedirects := TMVCRESTClientConsts.DEFAULT_MAX_REDIRECTS;
 {$IF defined(TOKYOORBETTER)}
   fHTTPClient.SecureProtocols := CHTTPDefSecureProtocols;
 {$ENDIF}
+  fNeedClientCertificate := nil;
   fValidateServerCertificate := nil;
   fBeforeRequestProc := nil;
   fRequestCompletedProc := nil;
@@ -908,6 +941,9 @@ begin
   fLock := TObject.Create;
   fBaseURL := '';
   fResource := '';
+  fClientCertificate := nil;
+  fClientCertPassword := '';
+  fClientCertPath := '';
 
   ClearAllParams;
 end;
@@ -1022,8 +1058,11 @@ begin
     if lParam.&Type = TMVCRESTParamType.Path then
     begin
       lReplace := '{' + lParam.Name + '}';
-      lEncodedParam := TNetEncoding.URL.Encode(lParam.Value, TMVCRESTClientConsts.PATH_UNSAFE_CHARS,
-        [TURLEncoding.TEncodeOption.EncodePercent]);
+      lEncodedParam := TNetEncoding.URL.Encode(lParam.Value
+{$IF defined(BERLINORBETTER)}
+        ,TMVCRESTClientConsts.PATH_UNSAFE_CHARS, [TURLEncoding.TEncodeOption.EncodePercent]
+{$ENDIF}
+        );
       aURL := aURL.Replace(lReplace, lEncodedParam, [rfReplaceAll, rfIgnoreCase]);
     end;
   end;
@@ -1041,7 +1080,11 @@ begin
     if lParam.&Type = TMVCRESTParamType.Query then
     begin
       lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+{$IF defined(BERLINORBETTER)}
       lValue := TNetEncoding.URL.EncodeForm(lParam.Value);
+{$ELSE}
+      lValue := TNetEncoding.URL.Encode(lParam.Value);
+{$ENDIF}
 
       if aURL.Contains('?') then
         lConcat := '&'
@@ -1079,6 +1122,12 @@ begin
 {$ENDIF}
 end;
 
+procedure TMVCRESTClient.DoNeedClientCertificate(const aSender: TObject; const aRequest: TURLRequest; const aCertificateList: TCertificateList; var aIndex: Integer);
+begin
+  if Assigned(fNeedClientCertificate) then
+    fNeedClientCertificate(aSender, aRequest, aCertificateList, aIndex);
+end;
+
 procedure TMVCRESTClient.DoPrepareBodyRequest(var aBodyStream: TStream);
 var
   lCurrentContentType: string;
@@ -1105,7 +1154,11 @@ begin
       if lParam.&Type = TMVCRESTParamType.FormURLEncoded then
       begin
         lName := TMVCRESTClientHelper.URIEncode(lParam.Name);
+{$IF defined(BERLINORBETTER)}
         lValue := TNetEncoding.URL.EncodeForm(lParam.Value);
+{$ELSE}
+        lValue := TNetEncoding.URL.Encode(lParam.Value);
+{$ENDIF}
         if not lBody.IsEmpty then
           lBody := lBody + '&';
         lBody := lBody + lName + '=' + lValue;
@@ -1365,6 +1418,18 @@ begin
   lRequest := fHTTPClient.GetRequest(HTTPMethodName(aMethod), lURI);
   lRequest.SourceStream := lBodyStream;
 
+  if Assigned(fClientCertificate) then
+  begin
+    lRequest.SetClientCertificate(fClientCertificate, fClientCertPassword);
+  end
+{$IF defined(TOKYOORBETTER)}
+  else if not fClientCertPath.IsEmpty then
+  begin
+    lRequest.SetClientCertificate(fClientCertPath, fClientCertPassword);
+  end
+{$ENDIF}
+  ;
+
   DoBeforeRequest(lRequest);
 
   try
@@ -1557,6 +1622,7 @@ begin
     aBody.Free;
 end;
 
+{$IF defined(BERLINORBETTER)}
 function TMVCRESTClient.ReadTimeout: Integer;
 begin
   Result := fHTTPClient.ResponseTimeout;
@@ -1567,6 +1633,7 @@ begin
   Result := Self;
   fHTTPClient.ResponseTimeout := aReadTimeout;
 end;
+{$ENDIF}
 
 function TMVCRESTClient.RegisterTypeSerializer(const aTypeInfo: PTypeInfo;
 aInstance: IMVCTypeSerializer): IMVCRESTClient;
@@ -1709,9 +1776,33 @@ begin
   fBeforeRequestProc := aBeforeRequestProc;
 end;
 
+{$IF defined(TOKYOORBETTER)}
+function TMVCRESTClient.SetClientCertificate(const aCertPath, aPassword: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fClientCertPath := aCertPath;
+  fClientCertPassword := aPassword;
+  fClientCertificate := nil;
+end;
+{$ENDIF}
+
+function TMVCRESTClient.SetClientCertificate(const aCertStream: TStream; const aPassword: string): IMVCRESTClient;
+begin
+  Result := Self;
+  fClientCertPath := '';
+  fClientCertificate := aCertStream;
+  fClientCertPassword := aPassword;
+end;
+
 procedure TMVCRESTClient.SetContentType(const aContentType: string);
 begin
   AddHeader(sContentType, aContentType);
+end;
+
+function TMVCRESTClient.SetNeedClientCertificateProc(aNeedClientCertificateProc: TNeedClientCertificateProc): IMVCRESTClient;
+begin
+  Result := Self;
+  fNeedClientCertificate := aNeedClientCertificateProc;
 end;
 
 procedure TMVCRESTClient.SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);

@@ -340,6 +340,34 @@ type
     procedure OnBeforeInsert; override;
   end;
 
+
+  [MVCNameCase(ncLowerCase)]
+  [MVCTable('customers_with_guid')]
+  TCustomerWithGUID = class(TCustomEntity)
+  private
+    [MVCSerializeGuidWithoutBraces]
+    [MVCTableField('idguid', [foPrimaryKey])]
+    fGUID: NullableTGUID;
+    [MVCTableField('code')]
+    fCode: NullableString;
+    [MVCTableField('description')]
+    fCompanyName: NullableString;
+    [MVCTableField('city')]
+    fCity: string;
+    [MVCTableField('rating')]
+    fRating: NullableInt32;
+    [MVCTableField('note')]
+    fNote: string;
+  public
+    property GUID: NullableTGUID read fGUID write fGUID;
+    property Code: NullableString read fCode write fCode;
+    property CompanyName: NullableString read fCompanyName write fCompanyName;
+    property City: string read fCity write fCity;
+    property Rating: NullableInt32 read fRating write fRating;
+    property Note: string read fNote write fNote;
+  end;
+
+
   [MVCNameCase(ncLowerCase)]
   [MVCTable('orders')]
   TOrder = class(TCustomEntity)

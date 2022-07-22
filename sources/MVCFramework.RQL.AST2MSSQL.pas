@@ -33,15 +33,13 @@ uses
 type
   TRQLMSSQLCompiler = class(TRQLCompiler)
   private
-    FMapping: TMVCFieldsMapping;
     function RQLFilterToSQL(const aRQLFIlter: TRQLFilter): string;
     function RQLSortToSQL(const aRQLSort: TRQLSort): string;
     function RQLLimitToSQL(const aRQLLimit: TRQLLimit): string;
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
+  protected
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
-  public
-    constructor Create(const Mapping: TMVCFieldsMapping); override;
   end;
 
 implementation
@@ -50,12 +48,6 @@ uses
   System.SysUtils;
 
 { TRQLMSSQLCompiler }
-
-constructor TRQLMSSQLCompiler.Create(const Mapping: TMVCFieldsMapping);
-begin
-  inherited Create(Mapping);
-  FMapping := Mapping;
-end;
 
 function TRQLMSSQLCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;

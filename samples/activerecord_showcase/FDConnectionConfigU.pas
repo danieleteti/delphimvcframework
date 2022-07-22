@@ -154,6 +154,9 @@ begin
     LParams.Add('Server=localhost');
     LParams.Add('User_Name=postgres');
     LParams.Add('Password=postgres');
+
+    // https://quality.embarcadero.com/browse/RSP-19755?jql=text%20~%20%22firedac%20guid%22
+    LParams.Add('GUIDEndian=Big');
     if AIsPooled then
     begin
       LParams.Add('Pooled=True');

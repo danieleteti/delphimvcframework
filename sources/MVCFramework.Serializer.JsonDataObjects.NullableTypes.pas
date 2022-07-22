@@ -185,6 +185,7 @@ implementation
 uses
   System.SysUtils,
   JsonDataObjects,
+  MVCFramework.Commons,
   MVCFramework.NullableTypes;
 
 procedure RegisterNullableTypeSerializersInSerializer(ASerializer: IMVCSerializer);
@@ -566,9 +567,16 @@ var
 begin
   LNullGuid := AElementValue.AsType<TNullableGuid>;
   if LNullGuid.HasValue then
-    (ASerializerObject as TJDOJsonObject).S[APropertyName] := LNullGuid.Value.ToString
+  begin
+    if TMVCSerializerHelper.AttributeExists<MVCSerializeGuidWithoutBracesAttribute>(AAttributes) then
+      (ASerializerObject as TJDOJsonObject).S[APropertyName] := TMVCGuidHelper.GUIDToStringEx(LNullGuid.Value)
+    else
+      (ASerializerObject as TJDOJsonObject).S[APropertyName] := LNullGuid.Value.ToString
+  end
   else
+  begin
     (ASerializerObject as TJDOJsonObject).Values[APropertyName] := nil;
+  end;
 end;
 
 procedure TNullableGuidSerializer.SerializeRoot(const AObject: TObject; out ASerializerObject: TObject;

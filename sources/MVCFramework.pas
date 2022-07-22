@@ -1039,7 +1039,7 @@ type
     constructor Create(AStatusCode: Integer; AReasonString: string; AMessage: string); overload;
     property StatusCode: Integer read FStatusCode write FStatusCode;
     property ReasonString: string read FReasonString write FReasonString;
-    property message: string read FMessage write FMessage;
+    property Message: string read FMessage write FMessage;
     property Data: TObject read fDataObject write fDataObject;
   end;
 
@@ -1626,8 +1626,8 @@ begin
   if (not Assigned(FParamsTable)) or (not FParamsTable.TryGetValue(AParamName, Result)) then
   begin
     Result := '';
-    if FWebRequest.ContentType.StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
-      FWebRequest.ContentType.StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
+    if string(FWebRequest.ContentType).StartsWith(TMVCMediaType.APPLICATION_FORM_URLENCODED, True) or
+      string(FWebRequest.ContentType).StartsWith(TMVCMediaType.MULTIPART_FORM_DATA, True) then
       Result := FWebRequest.ContentFields.Values[AParamName];
     if Result.IsEmpty then
       Result := FWebRequest.QueryFields.Values[AParamName];
@@ -2912,7 +2912,7 @@ begin
         if AFormalParam.ParamType.QualifiedName = 'System.TGUID' then
         begin
           try
-            Result := TValue.From<TGUID>(TMVCGuidHelper.GuidFromString(AStringValue));
+            Result := TValue.From<TGUID>(TMVCGuidHelper.StringToGUIDEx(AStringValue));
           except
             raise EMVCException.CreateFmt('Invalid Guid value for param [%s]', [AFormalParam.name]);
           end;
@@ -3408,7 +3408,7 @@ end;
 function TMVCRenderer.GetContext: TWebContext;
 begin
   if not Assigned(FContext) then
-    raise EMVCException.CreateFmt('Context already set on %s.', [Classname]);
+    raise EMVCException.CreateFmt('Context is not set %s.', [Classname]);
   Result := FContext;
 end;
 
@@ -3569,7 +3569,11 @@ procedure TMVCRenderer.Render201Created(const Location, Reason: string);
 begin
   if not Location.IsEmpty then
   begin
+{$IF defined(BERLINORBETTER)}
     FContext.Response.CustomHeaders.AddPair('location', Location);
+{$ELSE}
+    FContext.Response.CustomHeaders.Add('location' + FContext.Response.CustomHeaders.NameValueSeparator + Location);
+{$ENDIF}
   end;
   ResponseStatus(http_status.Created, Reason);
 {$IF CompilerVersion >= 34}
@@ -3581,7 +3585,11 @@ procedure TMVCRenderer.Render204NoContent(const Location, Reason: string);
 begin
   if not Location.IsEmpty then
   begin
+{$IF defined(BERLINORBETTER)}
     FContext.Response.CustomHeaders.AddPair('location', Location);
+{$ELSE}
+    FContext.Response.CustomHeaders.Add('location' + FContext.Response.CustomHeaders.NameValueSeparator + Location);
+{$ENDIF}
   end;
   ResponseStatus(http_status.NoContent, Reason);
 end;

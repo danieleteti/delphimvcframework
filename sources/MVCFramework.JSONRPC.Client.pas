@@ -170,7 +170,9 @@ begin
   fURL := aURL;
   fDefaultHTTPVerb := aDefaultHTTPVerb;
   fHTTP := THTTPClient.Create;
+{$IF defined(BERLINORBETTER)}
   fHTTP.ResponseTimeout := MaxInt;
+{$ENDIF}
   fHTTPRequestHeaders := nil;
   SetOnReceiveResponse(nil).SetOnReceiveData(nil).SetOnNeedClientCertificate(nil).SetOnValidateServerCertificate(nil);
 end;

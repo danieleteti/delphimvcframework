@@ -8,7 +8,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -607,6 +607,44 @@ type
 	///Returns the value stored or raises exception if no value is stored
 	///</summary>	
     property Value: UInt64 read GetValue write SetValue;
+  end;
+
+//**************************
+// ** NullableTGUID
+//**************************
+
+  NullableTGUID = record
+  private
+    fValue: TGUID;
+    fHasValue: String;
+    function GetHasValue: Boolean;
+  public
+    procedure CheckHasValue;
+    function GetValue: TGUID;
+    procedure SetValue(const Value: TGUID);
+    class operator Implicit(const Value: TGUID): NullableTGUID;
+    class operator Implicit(const Value: NullableTGUID): TGUID;
+    property HasValue: Boolean read GetHasValue;
+	///<summary>
+	///Alias of `SetNull`
+	///</summary>
+    procedure Clear;
+	///<summary>
+	///Set the value to `null`
+	///</summary>
+    procedure SetNull;
+	///<summary>
+	///Returns the value stored or the default value for the type is the value is not set
+	///</summary>	
+    function ValueOrDefault: TGUID;
+	/// <summary>
+	/// Returns true is both item have the same value and that value is not null. 
+	/// </summary>
+	function Equals(const Value: NullableTGUID): Boolean;
+	///<summary>
+	///Returns the value stored or raises exception if no value is stored
+	///</summary>	
+    property Value: TGUID read GetValue write SetValue;
   end;
 
 
@@ -1613,6 +1651,73 @@ begin
   else
   begin
     Result := Default (UInt64);
+  end;
+end;
+
+
+
+{ NullableTGUID }
+
+procedure NullableTGUID.CheckHasValue;
+begin
+  if not GetHasValue then
+  begin
+    raise EMVCNullable.Create('Value is null');
+  end;
+end;
+
+procedure NullableTGUID.Clear;
+begin
+  SetNull;
+end;
+
+function NullableTGUID.Equals(const Value: NullableTGUID): Boolean;
+begin
+  Result := (Self.HasValue and Value.HasValue) and (Self.Value = Value.Value);
+end;
+
+function NullableTGUID.GetHasValue: Boolean;
+begin
+  Result := fHasValue = '_';
+end;
+
+function NullableTGUID.GetValue: TGUID;
+begin
+  CheckHasValue;
+  Result := fValue;
+end;
+
+class operator NullableTGUID.Implicit(const Value: NullableTGUID): TGUID;
+begin
+  Result := Value.Value;
+end;
+
+class operator NullableTGUID.Implicit(const Value: TGUID): NullableTGUID;
+begin
+  Result.Value := Value;
+end;
+
+procedure NullableTGUID.SetNull;
+begin
+  fValue := Default (TGUID);
+  fHasValue := '';
+end;
+
+procedure NullableTGUID.SetValue(const Value: TGUID);
+begin
+  fValue := Value;
+  fHasValue := '_';
+end;
+
+function NullableTGUID.ValueOrDefault: TGUID;
+begin
+  if HasValue then
+  begin
+    Result := GetValue
+  end
+  else
+  begin
+    Result := Default (TGUID);
   end;
 end;
 

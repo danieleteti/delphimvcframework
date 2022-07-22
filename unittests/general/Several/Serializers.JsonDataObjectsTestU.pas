@@ -1680,7 +1680,11 @@ end;
 
 procedure TMVCTestSerializerJsonDataObjects.TestSerializeDeserializeGuid;
 const
-  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' + '"Id":1,' + '"Code":2,' +
+  JSON = '{' + '"GuidValue":"{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}",' +
+    '"GuidValue2":"ca09dc98-85ba-46e8-aba2-117c2fa8ef25",' +
+    '"NullableGuid":"{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}",' +
+    '"NullableGuid2":"fa51caa7-7d48-46ba-bfde-34c1f740e066",' +
+    '"Id":1,' + '"Code":2,' +
     '"Name":"João Antônio"' + '}';
 var
   LEntity: TEntityCustomWithGuid;
@@ -1692,9 +1696,12 @@ begin
     LEntity.Code := 2;
     LEntity.Name := 'João Antônio';
     LEntity.GuidValue := StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}');
+    LEntity.GuidValue2 := StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}');
+    LEntity.NullableGuid := StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}');
+    LEntity.NullableGuid2 := StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}');
 
     LJson := fSerializer.SerializeObject(LEntity);
-    Assert.areEqual(JSON, LJson);
+    Assert.AreEqual(JSON, LJson);
   finally
     LEntity.Free;
   end;
@@ -1702,10 +1709,13 @@ begin
   LEntity := TEntityCustomWithGuid.Create;
   try
     fSerializer.DeserializeObject(LJson, LEntity);
-    Assert.areEqual(int64(1), LEntity.Id);
-    Assert.areEqual(Integer(2), LEntity.Code);
-    Assert.areEqual('João Antônio', LEntity.Name);
-    Assert.areEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
+    Assert.AreEqual(int64(1), LEntity.Id);
+    Assert.AreEqual(Integer(2), LEntity.Code);
+    Assert.AreEqual('João Antônio', LEntity.Name);
+    Assert.AreEqual(StringToGUID('{AEED1A0F-9061-40F0-9FDA-D69AE7F20222}'), LEntity.GuidValue);
+    Assert.AreEqual(StringToGUID('{CA09DC98-85BA-46E8-ABA2-117C2FA8EF25}'), LEntity.GuidValue2);
+    Assert.AreEqual(StringToGUID('{EABA9B61-6812-4F0A-9469-D247EB2DA8F4}'), LEntity.NullableGuid.Value);
+    Assert.AreEqual(StringToGUID('{FA51CAA7-7D48-46BA-BFDE-34C1F740E066}'), LEntity.NullableGuid2.Value);
   finally
     LEntity.Free;
   end;
