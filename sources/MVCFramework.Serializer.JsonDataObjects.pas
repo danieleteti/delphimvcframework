@@ -319,7 +319,8 @@ var
   lJsonDataType: TJsonDataType;
   lTypeInfo: PTypeInfo;
   lBuffer: Pointer;
-  lValue: TValue;
+  //lValue: TValue;
+  lCurrentArrayItem: TValue;
 begin
   if SameText(AName, 'RefCount') then
   begin
@@ -414,7 +415,6 @@ begin
             estEnumName:
               begin
                 LEnumName := GetEnumName(AValue.TypeInfo, AValue.AsOrdinal);
-
                 AJsonObject.S[AName] := LEnumName;
               end;
             estEnumOrd:
@@ -538,20 +538,38 @@ begin
         begin
           for I := 0 to AValue.GetArrayLength - 1 do
           begin
-            case AValue.GetArrayElement(I).Kind of
+            lCurrentArrayItem := AValue.GetArrayElement(I);
+            case lCurrentArrayItem.Kind of
               tkChar, tkString, tkWChar, tkLString, tkWString, tkUString:
-                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsString);
+                AJsonObject.A[AName].Add(lCurrentArrayItem.AsString);
               tkInteger:
-                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsInteger);
+                AJsonObject.A[AName].Add(lCurrentArrayItem.AsInteger);
               tkInt64:
-                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsInt64);
+                AJsonObject.A[AName].Add(lCurrentArrayItem.AsInt64);
               tkFloat:
-                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsExtended);
+              begin
+                if lCurrentArrayItem.TypeInfo = TypeInfo(TDate) then
+                begin
+                  AJsonObject.A[AName].Add(DateToISODate(lCurrentArrayItem.AsExtended));
+                end
+                else if lCurrentArrayItem.TypeInfo = TypeInfo(TTime) then
+                begin
+                  AJsonObject.A[AName].Add(TimeToISOTime(lCurrentArrayItem.AsExtended));
+                end
+                else if lCurrentArrayItem.TypeInfo = TypeInfo(TDateTime) then
+                begin
+                  AJsonObject.A[AName].Add(DateTimeToISOTimeStamp(lCurrentArrayItem.AsExtended));
+                end
+                else
+                begin
+                  AJsonObject.A[AName].Add(lCurrentArrayItem.AsExtended);
+                end;
+              end;
               tkEnumeration:
-                AJsonObject.A[AName].Add(AValue.GetArrayElement(I).AsBoolean);
+                AJsonObject.A[AName].Add(lCurrentArrayItem.AsBoolean);
               tkClass:
                 begin
-                  Obj := AValue.GetArrayElement(I).AsObject;
+                  Obj := lCurrentArrayItem.AsObject;
                   if Obj = nil then
                   begin
                     AJsonObject.A[AName].Add(TJsonObject(nil));
@@ -578,14 +596,13 @@ begin
                 end;
               tkRecord:
                 begin
-                  lValue := AValue.GetArrayElement(I);
-                  if lValue.IsEmpty then
+                  if lCurrentArrayItem.IsEmpty then
                   begin
                     AJsonObject.A[AName].Add(TJsonObject(nil));
                   end
                   else
                   begin
-                    lJSONValue := ConvertRecordToJsonValue(AValue.GetReferenceToRawArrayElement(I), lValue.TypeInfo,
+                    lJSONValue := ConvertRecordToJsonValue(AValue.GetReferenceToRawArrayElement(I), lCurrentArrayItem.TypeInfo,
                       stFields, [], nil, nil, lJsonDataType);
                     case lJsonDataType of
                       jdtArray:
@@ -1705,7 +1722,6 @@ var
   var
     I: Integer;
   begin
-    lInnerType := lCtx.GetType(AValue.GetArrayElement(0).TypeInfo);
     lInnerTypeAsRecord := lInnerType.AsRecord;
     for I := 0 to Length(lArr) - 1 do
     begin
@@ -1720,6 +1736,75 @@ var
       FreeMem(lBuff, lInnerType.TypeSize);
     end;
   end;
+
+  procedure BuildATValueArrayFromJSONArrayOfSimpleType;
+  type
+    TSetOfTypeElement = (xString, xInt, xLong, xFloat, xBool);
+    TSetOfType = set of TSetOfTypeElement;
+  var
+    I: Integer;
+    lStrArr: TArray<string>;
+    lIntArr: TArray<Integer>;
+    lLongArr: TArray<Int64>;
+    lDoubleArr: TArray<Double>;
+    lBoolArr: TArray<Boolean>;
+    lSetOfType: TSetOfType;
+    lEl: TSetOfTypeElement;
+    lJArr: TJsonArray;
+    lArrayItemType: TJsonDataType;
+  begin
+    lJArr := AJSONObject.A[APropertyName];
+    if lJArr.Count = 0 then
+    begin
+      SetLength(lArr, 0);
+      Exit;
+    end;
+    lArrayItemType := lJArr.Types[0];
+
+    for I := 0 to Pred(lJArr.Count) do
+    begin
+      case lArrayItemType of
+        jdtString:
+        begin
+          if lInnerType.Handle = TypeInfo(TDate) then
+          begin
+            lArr[I] := ISODateToDate(lJArr.Items[I].Value);
+          end
+          else if lInnerType.Handle = TypeInfo(TTime) then
+          begin
+            lArr[I] := ISOTimeToTime(lJArr.Items[I].Value);
+          end
+          else if lInnerType.Handle = TypeInfo(TDateTime) then
+          begin
+            lArr[I] := ISOTimeStampToDateTime(lJArr.Items[I].Value);
+          end
+          else
+          begin
+            lArr[I] := lJArr.Items[I].Value;
+          end;
+        end;
+        jdtInt:
+        begin
+          lArr[I] := lJArr.Items[I].IntValue;
+        end;
+        jdtLong:
+        begin
+          lArr[I] := lJArr.Items[I].LongValue;
+        end;
+        jdtFloat:
+        begin
+          lArr[I] := lJArr.Items[I].FloatValue;
+        end;
+        jdtBool:
+        begin
+          lArr[I] := lJArr.Items[I].BoolValue;
+        end;
+        else
+          raise EMVCDeserializationException.Create('Invalid element in array at property ' + APropertyName);
+      end;
+    end;
+  end;
+
 begin
   lChildObject := nil;
   case AJsonObject[APropertyName].Typ of
@@ -1974,7 +2059,16 @@ begin
               //This is required because the dynamic array is still
               //not dimensioned here, for a static array this is not necessary.
               AValue := TValue.FromArray(ARTTIField.FieldType.Handle, [TValue.Empty]);
-              BuildATValueArrayFromJSONArrayOfJSONObject;
+              lInnerType := lCtx.GetType(AValue.GetArrayElement(0).TypeInfo);
+              if lInnerType.IsRecord then
+              begin
+                BuildATValueArrayFromJSONArrayOfJSONObject;
+              end
+              else
+              begin
+                BuildATValueArrayFromJSONArrayOfSimpleType;
+//                raise Exception.Create('Unsupported type: ' + ARTTIField.FieldType.Name);
+              end;
             end;
             AValue := TValue.FromArray(ARTTIField.FieldType.Handle, lArr);
           end

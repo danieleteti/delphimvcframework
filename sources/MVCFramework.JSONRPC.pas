@@ -1798,7 +1798,7 @@ begin
   begin
     if lParamsIsRecord[I] then
     begin
-      FinalizeRecord(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.Handle);
+      //FinalizeRecord(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.Handle);
       FreeMem(lRecordsPointer[I], lRTTIMethodParams[I].ParamType.TypeSize);
     end;
   end;

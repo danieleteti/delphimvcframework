@@ -538,7 +538,7 @@ object MainForm: TMainForm
         TabOrder = 0
         OnClick = btnSingleRecClick
       end
-      object lbLogRec: TListBox
+      object lbLogRec: TMemo
         Left = 216
         Top = 16
         Width = 601
@@ -549,10 +549,11 @@ object MainForm: TMainForm
         Font.Height = -13
         Font.Name = 'Consolas'
         Font.Style = []
-        ItemHeight = 15
         ParentFont = False
-        ScrollWidth = 5000
+        ReadOnly = True
+        ScrollBars = ssBoth
         TabOrder = 1
+        WordWrap = False
       end
       object btnGetArrayOfRecords: TButton
         Left = 16
@@ -589,6 +590,15 @@ object MainForm: TMainForm
         Caption = 'Using Array as Parameter'
         TabOrder = 5
         OnClick = btnEchoComplexArrayClick
+      end
+      object btnComplex: TButton
+        Left = 16
+        Top = 247
+        Width = 185
+        Height = 40
+        Caption = 'Using parameter with multiple arrays'
+        TabOrder = 6
+        OnClick = btnComplexClick
       end
     end
   end
