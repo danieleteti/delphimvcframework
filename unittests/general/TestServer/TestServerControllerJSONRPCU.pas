@@ -54,6 +54,8 @@ type
     [MVCInheritable]
     function GetSingleComplexRecord: TComplexRecord;
     [MVCInheritable]
+    function EchoSingleComplexRecord(const ComplexRecord: TComplexRecord): TComplexRecord;
+    [MVCInheritable]
     function EchoArrayOfRecords(const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
   end;
 
@@ -168,6 +170,12 @@ function TTestJSONRPCClass.EchoArrayOfRecords(
   const ComplexRecordArray: TComplexRecordArray): TComplexRecordArray;
 begin
   Result := ComplexRecordArray;
+end;
+
+function TTestJSONRPCClass.EchoSingleComplexRecord(
+  const ComplexRecord: TComplexRecord): TComplexRecord;
+begin
+  Result := ComplexRecord;
 end;
 
 function TTestJSONRPCClass.EchoSingleRecord(

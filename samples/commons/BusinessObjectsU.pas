@@ -336,10 +336,10 @@ type
     IntegerProperty: Integer;
     FloatProperty: Double;
     CurrencyProperty: Currency;
+    BooleanProperty: Boolean;
     DateProperty: TDate;
     TimeProperty: TTime;
     DateTimeProperty: TDateTime;
-    BooleanProperty: Boolean;
     EnumProperty: TMyEnum;
     SetProperty: TMySet;
     class function Create: TSimpleRecord; overload; static;

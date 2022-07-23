@@ -365,6 +365,8 @@ type
     [Test]
     procedure TestRequest_Echo_SingleRecordAsResult;
     [Test]
+    procedure TestRequest_Echo_ComplexRecord;
+    [Test]
     procedure TestRequest_Echo_ComplexRecords;
     [Test]
     procedure TestRequest_NoParams_DynamicArrayOfRecordAsResult;
@@ -2961,6 +2963,25 @@ begin
   Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
 end;
 
+procedure TJSONRPCServerTest.TestRequest_Echo_ComplexRecord;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lComplexRecIn, lComplexRecOut: TComplexRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoSingleComplexRecord';
+  lReq.RequestID := 1234;
+  lComplexRecIn := TComplexRecord.Create;
+
+  lReq.Params.Add(TValue.From<TComplexRecord>(lComplexRecIn), pdtRecord);
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsFalse(lRPCResp.IsError, lRPCResp.AsJSONString);
+  lRPCResp.ResultAsJSONObject.SaveToFile('EchoSingleComplexRecord_RESPONSE.json', False);
+  lComplexRecOut := TMVCRecordUtils.JSONObjectToRecord<TComplexRecord>(lRPCResp.ResultAsJSONObject);
+  lComplexRecIn.Equals(lComplexRecOut);
+end;
+
 procedure TJSONRPCServerTest.TestRequest_Echo_ComplexRecords;
 var
   lReq: IJSONRPCRequest;
@@ -2979,8 +3000,7 @@ begin
   lReq.Params.Add(TValue.From<TComplexRecordArray>(lComplexRecIn), pdtArrayOfRecords);
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   Assert.IsFalse(lRPCResp.IsError, lRPCResp.AsJSONString);
-
-  TFile.WriteAllText('outputcomplexrecordarray.json', lRPCResp.ResultAsJSONArray.ToJSON(False));
+  lRPCResp.ResultAsJSONArray.SaveToFile('TestRequest_Echo_ComplexRecords_RESPONSE.json', False);
   lComplexRecOut := TMVCRecordUtils.JSONArrayToArrayOfRecord<TComplexRecord>(lRPCResp.ResultAsJSONArray);
   lComplexRecIn[0].Equals(lComplexRecOut[0]);
   lComplexRecIn[1].Equals(lComplexRecOut[1]);

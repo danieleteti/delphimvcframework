@@ -2118,15 +2118,16 @@ begin
     begin // positional params
       for I := 0 to FParams.Count - 1 do
       begin
-        AppendTValueToJsonArray(FParams.fParamValues[I], FParams.fParamTypes[I], Result.A[JSONRPC_PARAMS]);
+        AppendTValueToJsonArray(FParams.fParamValues[I], FParams.fParamTypes[I],
+          Result.A[JSONRPC_PARAMS]);
       end;
     end
     else
     begin // named params
       for I := 0 to FParams.Count - 1 do
       begin
-        AppendTValueToJsonObject(FParams.fParamValues[I], FParams.fParamNames[I], FParams.fParamTypes[I],
-          Result.O[JSONRPC_PARAMS]);
+        AppendTValueToJsonObject(FParams.fParamValues[I], FParams.fParamNames[I],
+          FParams.fParamTypes[I], Result.O[JSONRPC_PARAMS]);
       end;
     end;
   end;
