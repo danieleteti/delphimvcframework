@@ -2974,11 +2974,11 @@ begin
   lReq.RequestID := 1234;
   lComplexRecIn := TComplexRecord.Create;
 
-  lReq.Params.Add(TValue.From<TComplexRecord>(lComplexRecIn), pdtRecord);
+  lReq.Params.Add(TValue.From<TComplexRecord>(lComplexRecIn), pdtRecordOrArrayOfRecord);
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   Assert.IsFalse(lRPCResp.IsError, lRPCResp.AsJSONString);
   lRPCResp.ResultAsJSONObject.SaveToFile('EchoSingleComplexRecord_RESPONSE.json', False);
-  lComplexRecOut := TMVCRecordUtils.JSONObjectToRecord<TComplexRecord>(lRPCResp.ResultAsJSONObject);
+  lComplexRecOut := TJSONUtils.JSONObjectToRecord<TComplexRecord>(lRPCResp);
   lComplexRecIn.Equals(lComplexRecOut);
 end;
 
@@ -2997,11 +2997,11 @@ begin
   lComplexRecIn[0].StringProperty := 'firstone';
   lComplexRecIn[1].StringProperty := 'secondone';
 
-  lReq.Params.Add(TValue.From<TComplexRecordArray>(lComplexRecIn), pdtArrayOfRecords);
+  lReq.Params.Add(TValue.From<TComplexRecordArray>(lComplexRecIn), pdtRecordOrArrayOfRecord);
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   Assert.IsFalse(lRPCResp.IsError, lRPCResp.AsJSONString);
   lRPCResp.ResultAsJSONArray.SaveToFile('TestRequest_Echo_ComplexRecords_RESPONSE.json', False);
-  lComplexRecOut := TMVCRecordUtils.JSONArrayToArrayOfRecord<TComplexRecord>(lRPCResp.ResultAsJSONArray);
+  lComplexRecOut := TJSONUtils.JSONArrayToArrayOfRecord<TComplexRecord>(lRPCResp);
   lComplexRecIn[0].Equals(lComplexRecOut[0]);
   lComplexRecIn[1].Equals(lComplexRecOut[1]);
 end;
@@ -3017,9 +3017,9 @@ begin
   lReq.RequestID := 1234;
 
   lSimpleRecIn := TSimpleRecord.Create;
-  lReq.Params.Add(TValue.From<TSimpleRecord>(lSimpleRecIn), pdtRecord);
+  lReq.Params.Add(TValue.From<TSimpleRecord>(lSimpleRecIn), pdtRecordOrArrayOfRecord);
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lSimpleRec := TMVCRecordUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp.ResultAsJSONObject);
+  lSimpleRec := TJSONUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp);
   Assert.IsTrue(lSimpleRecIn.Equals(lSimpleRec));
 end;
 
@@ -3051,7 +3051,7 @@ begin
   lReq.Method := 'GetArrayOfRecords';
   lReq.RequestID := 1234;
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lSimpleRecArray := TMVCRecordUtils.JSONArrayToArrayOfRecord<TSimpleRecord>(lRPCResp.ResultAsJSONArray);
+  lSimpleRecArray := TJSONUtils.JSONArrayToArrayOfRecord<TSimpleRecord>(lRPCResp);
   Assert.AreEqual(3, Length(lSimpleRecArray));
   Assert.AreEqual(0, lSimpleRecArray[0].IntegerProperty);
   Assert.AreEqual(1, lSimpleRecArray[1].IntegerProperty);
@@ -3068,7 +3068,7 @@ begin
   lReq.Method := 'GetSingleComplexRecord';
   lReq.RequestID := 1234;
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lRec := TMVCRecordUtils.JsonObjectToRecord<TComplexRecord>(lRPCResp.ResultAsJSONObject);
+  lRec := TJSONUtils.JsonObjectToRecord<TComplexRecord>(lRPCResp);
 
   //1st level fields
   Assert.AreEqual('the string property', lRec.StringProperty);
@@ -3114,7 +3114,7 @@ begin
   lReq.Method := 'GetSingleRecord';
   lReq.RequestID := 1234;
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
-  lSimpleRec := TMVCRecordUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp.ResultAsJSONObject);
+  lSimpleRec := TJSONUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp);
   Assert.AreEqual('the string property', lSimpleRec.StringProperty);
   Assert.AreEqual(1234, lSimpleRec.IntegerProperty);
   Assert.AreEqual(EncodeDate(2022,7,5), lSimpleRec.DateProperty);

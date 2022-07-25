@@ -48,7 +48,8 @@ resourcestring
     '  System.SysUtils,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
-    '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
+    '  MVCFramework.Signal,' + sLineBreak +
+//    '  MVCFramework.REPLCommandsHandlerU,' + sLineBreak +
     {$IF Defined(SeattleOrBetter)}
     '  Web.ReqMulti, //If you have problem with this unit, see https://quality.embarcadero.com/browse/RSP-17216' + sLineBreak +
     '  Web.WebReq,' + sLineBreak +
@@ -67,41 +68,40 @@ resourcestring
     'procedure RunServer(APort: Integer);' + sLineBreak +
     'var' + sLineBreak +
     '  LServer: TIdHTTPWebBrokerBridge;' + sLineBreak +
-    '  LCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
-    '  LCmd: string;' + sLineBreak +
+//    '  LCustomHandler: TMVCCustomREPLCommandsHandler;' + sLineBreak +
+//    '  LCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
-    '  LCmd := ''start'';' + sLineBreak +
-    '  if ParamCount >= 1 then' + sLineBreak +
-    '    LCmd := ParamStr(1);' + sLineBreak +
-    sLineBreak +
-    '  LCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
-    '    begin' + sLineBreak +
-    '      Handled := False;' + sLineBreak +
-    '      Result := THandleCommandResult.Unknown;' + sLineBreak +
-    sLineBreak +
-    '      // Write here your custom command for the REPL using the following form...' + sLineBreak +
-    '      // ***' + sLineBreak +
-    '      // Handled := False;' + sLineBreak +
-    '      // if (Value = ''apiversion'') then' + sLineBreak +
-    '      // begin' + sLineBreak +
-    '      // REPLEmit(''Print my API version number'');' + sLineBreak +
-    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
-    '      // Handled := True;' + sLineBreak +
-    '      // end' + sLineBreak +
-    '      // else if (Value = ''datetime'') then' + sLineBreak +
-    '      // begin' + sLineBreak +
-    '      // REPLEmit(DateTimeToStr(Now));' + sLineBreak +
-    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
-    '      // Handled := True;' + sLineBreak +
-    '      // end;' + sLineBreak +
-    '    end;' + sLineBreak +
-    sLineBreak +
+//    '  LCmd := ''start'';' + sLineBreak +
+//    '  if ParamCount >= 1 then' + sLineBreak +
+//    '    LCmd := ParamStr(1);' + sLineBreak + sLineBreak +
+//    '  LCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
+//    '    begin' + sLineBreak +
+//    '      Handled := False;' + sLineBreak +
+//    '      Result := THandleCommandResult.Unknown;' + sLineBreak +
+//    sLineBreak +
+//    '      // Write here your custom command for the REPL using the following form...' + sLineBreak +
+//    '      // ***' + sLineBreak +
+//    '      // Handled := False;' + sLineBreak +
+//    '      // if (Value = ''apiversion'') then' + sLineBreak +
+//    '      // begin' + sLineBreak +
+//    '      // REPLEmit(''Print my API version number'');' + sLineBreak +
+//    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
+//    '      // Handled := True;' + sLineBreak +
+//    '      // end' + sLineBreak +
+//    '      // else if (Value = ''datetime'') then' + sLineBreak +
+//    '      // begin' + sLineBreak +
+//    '      // REPLEmit(DateTimeToStr(Now));' + sLineBreak +
+//    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
+//    '      // Handled := True;' + sLineBreak +
+//    '      // end;' + sLineBreak +
+//    '    end;' + sLineBreak +
+//    sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.KeepAlive := True;' + sLineBreak +    
+    '    LServer.KeepAlive := True;' + sLineBreak +
     sLineBreak +
     '    { more info about MaxConnections' + sLineBreak +
     '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
@@ -111,33 +111,36 @@ resourcestring
     '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
     '    LServer.ListenQueue := 200;' + sLineBreak +
     sLineBreak +
-    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
-    '    repeat' + sLineBreak +
-    '      if LCmd.IsEmpty then' + sLineBreak +
-    '      begin' + sLineBreak +
-    '        Write(''-> '');' + sLineBreak +
-    '        ReadLn(LCmd)' + sLineBreak +
-    '      end;' + sLineBreak +
-    '      try' + sLineBreak +
-    '        case HandleCommand(LCmd.ToLower, LServer, LCustomHandler) of' + sLineBreak +
-    '          THandleCommandResult.Continue:' + sLineBreak +
-    '            begin' + sLineBreak +
-    '              Continue;' + sLineBreak +
-    '            end;' + sLineBreak +
-    '          THandleCommandResult.Break:' + sLineBreak +
-    '            begin' + sLineBreak +
-    '              Break;' + sLineBreak +
-    '            end;' + sLineBreak +
-    '          THandleCommandResult.Unknown:' + sLineBreak +
-    '            begin' + sLineBreak +
-    '              REPLEmit(''Unknown command: '' + LCmd);' + sLineBreak +
-    '            end;' + sLineBreak +
-    '        end;' + sLineBreak +
-    '      finally' + sLineBreak +
-    '        LCmd := '''';' + sLineBreak +
-    '      end;' + sLineBreak +
-    '    until False;' + sLineBreak +
-    '' + sLineBreak +
+//    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
+    '    LServer.Active := True;' + sLineBreak +
+    '    WriteLn(''CTRL+C to shutdown the server'');' + sLineBreak +
+    '    WaitForTerminationSignal; ' + sLineBreak +
+//    '    repeat' + sLineBreak +
+//    '      if LCmd.IsEmpty then' + sLineBreak +
+//    '      begin' + sLineBreak +
+//    '        Write(''-> '');' + sLineBreak +
+//    '        ReadLn(LCmd)' + sLineBreak +
+//    '      end;' + sLineBreak +
+//    '      try' + sLineBreak +
+//    '        case HandleCommand(LCmd.ToLower, LServer, LCustomHandler) of' + sLineBreak +
+//    '          THandleCommandResult.Continue:' + sLineBreak +
+//    '            begin' + sLineBreak +
+//    '              Continue;' + sLineBreak +
+//    '            end;' + sLineBreak +
+//    '          THandleCommandResult.Break:' + sLineBreak +
+//    '            begin' + sLineBreak +
+//    '              Break;' + sLineBreak +
+//    '            end;' + sLineBreak +
+//    '          THandleCommandResult.Unknown:' + sLineBreak +
+//    '            begin' + sLineBreak +
+//    '              REPLEmit(''Unknown command: '' + LCmd);' + sLineBreak +
+//    '            end;' + sLineBreak +
+//    '        end;' + sLineBreak +
+//    '      finally' + sLineBreak +
+//    '        LCmd := '''';' + sLineBreak +
+//    '      end;' + sLineBreak +
+//    '    until False;' + sLineBreak +
+//    '' + sLineBreak +
     '  finally' + sLineBreak +
     '    LServer.Free;' + sLineBreak +
     '  end;' + sLineBreak +

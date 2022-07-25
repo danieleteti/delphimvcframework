@@ -191,7 +191,7 @@ begin
     TValue.From<TNestedArraysRec>(lComplex),
     pdtRecordOrArrayOfRecord);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  lComplex := TMVCRecordUtils.JSONObjectToRecord<TNestedArraysRec>(lResp.ResultAsJSONObject);
+  lComplex := TJSONUtils.JSONObjectToRecord<TNestedArraysRec>(lResp);
   lbLogRec.Lines.Clear;
   lbLogRec.Lines.Add(lComplex.ToString);
 end;
@@ -227,7 +227,7 @@ begin
     TValue.From<TTestRecDynArray>(lPeople),
     pdtRecordOrArrayOfRecord);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  lPeople := TMVCRecordUtils.JSONArrayToArrayOfRecord<TTestRec>(lResp.ResultAsJSONArray);
+  lPeople := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(lResp);
   lbLogRec.Lines.Clear;
   lbLogRec.Lines.Add('--- array of record elements ---');
   I := 1;
@@ -449,7 +449,7 @@ begin
   lReq.Method := 'GetPersonRec';
   lReq.RequestID := Random(1000);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  lPersonRec := TMVCRecordUtils.JSONObjectToRecord<TTestRec>(lResp.ResultAsJSONObject);
+  lPersonRec := TJSONUtils.JSONObjectToRecord<TTestRec>(lResp);
   lbLogRec.Lines.Text := lResp.ResultAsJSONObject.ToJSON(False);
   lbLogRec.Lines.Add('-- record --');
   lbLogRec.Lines.Add(lPersonRec.ToString);
@@ -514,7 +514,7 @@ begin
   lPersonRec := TTestRec.Create(2);
   lReq.Params.Add(TValue.From<TTestRec>(lPersonRec), pdtRecordOrArrayOfRecord);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  lPersonRec := TMVCRecordUtils.JSONObjectToRecord<TTestRec>(lResp.ResultAsJSONObject);
+  lPersonRec := TJSONUtils.JSONObjectToRecord<TTestRec>(lResp);
   lbLogRec.Lines.Text := lResp.ResultAsJSONObject.ToJSON(False);
 end;
 
@@ -601,7 +601,7 @@ begin
   lReq.Method := 'GetPeopleRecStaticArray';
   lReq.RequestID := Random(1000);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  lPeopleRec := TMVCRecordUtils.JSONArrayToArrayOfRecord<TTestRec>(lResp.ResultAsJSONArray);
+  lPeopleRec := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(lResp);
   lbLogRec.Lines.Text := lResp.ResultAsJSONArray.ToJSON(False);
   lbLogRec.Lines.Add('-- array of record elements --');
   I:= 1;
@@ -623,7 +623,7 @@ begin
   lReq.Method := 'GetPeopleRecDynArray';
   lReq.RequestID := Random(1000);
   lResp := FExecutor.ExecuteRequest('/jsonrpc', lReq);
-  lPeopleRec := TMVCRecordUtils.JSONArrayToArrayOfRecord<TTestRec>(lResp.ResultAsJSONArray);
+  lPeopleRec := TJSONUtils.JSONArrayToArrayOfRecord<TTestRec>(lResp);
   lbLogRec.Lines.Text := lResp.ResultAsJSONArray.ToJSON(False);
 //  lbLogRec.Items.Add('-- elements --');
 //  for var lPRec in lPeopleRec do

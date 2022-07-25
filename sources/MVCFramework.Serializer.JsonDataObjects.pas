@@ -226,12 +226,14 @@ type
     procedure FillJSONArray(const AJsonArray: TJsonArray);
   end;
 
-  TMVCRecordUtils = record
+  TJSONUtils = record
   private
     class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject; const Serializer: TMVCJsonDataObjectsSerializer): T; overload; static; inline;
   public
     class function JSONObjectToRecord<T: record>(const JSONObject: TJSONObject): T; overload; static;
-    class function JSONArrayToArrayOfRecord<T: record>(const JSONArray: TJSONArray): TArray<T>; static;
+    class function JSONObjectToRecord<T: record>(const JSONRPCResponse: IInterface): T; overload; static;
+    class function JSONArrayToArrayOfRecord<T: record>(const JSONArray: TJSONArray): TArray<T>; overload; static;
+    class function JSONArrayToArrayOfRecord<T: record>(const JSONRPCResponse: IInterface): TArray<T>; overload;static;
   end;
 
 procedure TValueToJSONObjectPropertyEx(const Value: TValue; const JSON: TJDOJsonObject; const KeyName: string);
@@ -251,6 +253,7 @@ implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects.CustomTypes,
+  MVCFramework.JSONRPC,
   MVCFramework.Logger,
   MVCFramework.DataSet.Utils,
   MVCFramework.Nullables;
@@ -2625,15 +2628,22 @@ begin
       end;
     stFields:
       begin
-        for Fld in ObjType.GetFields do
-        begin
-          if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
-            (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
-            begin
-              lKeyName := TMVCSerializerHelper.GetKeyName(Fld, ObjType);
-              TValueToJSONObjectProperty(AJsonObject, lKeyName,
-                Fld.GetValue(ARecord), AType, AIgnoredAttributes, Fld.GetAttributes);
-            end;
+        try
+          for Fld in ObjType.GetFields do
+          begin
+            if (not TMVCSerializerHelper.HasAttribute<MVCDoNotSerializeAttribute>(Fld)) and
+              (not IsIgnoredAttribute(AIgnoredAttributes, Fld.Name)) then
+              begin
+                lKeyName := TMVCSerializerHelper.GetKeyName(Fld, ObjType);
+                TValueToJSONObjectProperty(AJsonObject, lKeyName,
+                  Fld.GetValue(ARecord), AType, AIgnoredAttributes, Fld.GetAttributes);
+              end;
+          end;
+        except
+          on E: Exception do
+          begin
+            raise EMVCSerializationException.CreateFmt('Cannot serialize field [%s] - [CLS: %s][MSG: %s]',[lKeyName, E.ClassName, E.Message]);
+          end;
         end;
       end;
   end;
@@ -3769,9 +3779,9 @@ begin
 end;
 
 
-{ TMVCRecordUtils }
+{ TJSONUtils }
 
-class function TMVCRecordUtils.JSONArrayToArrayOfRecord<T>(
+class function TJSONUtils.JSONArrayToArrayOfRecord<T>(
   const JSONArray: TJSONArray): TArray<T>;
 var
   I: Integer;
@@ -3789,7 +3799,37 @@ begin
   end;
 end;
 
-class function TMVCRecordUtils.JSONObjectToRecord<T>(const JSONObject: TJSONObject): T;
+class function TJSONUtils.JSONArrayToArrayOfRecord<T>(
+  const JSONRPCResponse: IInterface): TArray<T>;
+var
+  lIntf: IJSONRPCResponse;
+begin
+  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
+  begin
+    Result := TJSONUtils.JSONArrayToArrayOfRecord<T>(lIntf.ResultAsJSONArray);
+  end
+  else
+  begin
+    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
+  end;
+end;
+
+class function TJSONUtils.JSONObjectToRecord<T>(
+  const JSONRPCResponse: IInterface): T;
+var
+  lIntf: IJSONRPCResponse;
+begin
+  if Supports(JSONRPCResponse, IJSONRPCResponse, lIntf) then
+  begin
+    Result := TJSONUtils.JSONObjectToRecord<T>(lIntf.ResultAsJSONObject);
+  end
+  else
+  begin
+    RaiseSerializationError('Parameter doesn''t support IJSONRPCResponse');
+  end;
+end;
+
+class function TJSONUtils.JSONObjectToRecord<T>(const JSONObject: TJSONObject): T;
 var
   lSer: TMVCJsonDataObjectsSerializer;
 begin
@@ -3801,7 +3841,7 @@ begin
   end;
 end;
 
-class function TMVCRecordUtils.JSONObjectToRecord<T>(
+class function TJSONUtils.JSONObjectToRecord<T>(
   const JSONObject: TJSONObject;
   const Serializer: TMVCJsonDataObjectsSerializer): T;
 begin

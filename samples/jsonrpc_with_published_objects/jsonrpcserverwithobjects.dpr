@@ -12,6 +12,7 @@ uses
   Web.WebReq,
   Web.WebBroker,
   IdHTTPWebBrokerBridge,
+  MVCFramework.Signal,
   MyObjectU in 'MyObjectU.pas',
   MainWebModuleU in 'MainWebModuleU.pas' {MyWebModule: TWebModule},
   MVCFramework.JSONRPC in '..\..\sources\MVCFramework.JSONRPC.pas',
@@ -42,8 +43,8 @@ begin
     LServer.ListenQueue := 200;
 
     lServer.Active := True;
-    Write('Press return to quit...');
-    WaitForReturn;
+    Write('CTRL+C to quit...');
+    WaitForTerminationSignal;
   finally
     LServer.Free;
   end;
