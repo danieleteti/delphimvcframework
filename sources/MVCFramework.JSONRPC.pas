@@ -131,7 +131,7 @@ type
   end;
 
   TJSONRPCParamDataType = (pdtString, pdtInteger, pdtLongInteger, pdTJDOJsonObject, pdtJSONArray, pdtBoolean, pdtDate,
-    pdtTime, pdtDateTime, pdtFloat, pdtObject, pdtRecord, pdtArrayOfRecords);
+    pdtTime, pdtDateTime, pdtFloat, pdtObject, pdtRecordOrArrayOfRecord);
 
   TJSONRPCRequestParams = class
   private
@@ -495,7 +495,6 @@ var
   lJArr: TJDOJsonArray;
   LJObj: TJDOJsonObject;
   lOrdinalValue: Int64;
-  lJSONDataType: TJsonDataType;
   I: Integer;
 begin
   case ParamType of
@@ -567,34 +566,31 @@ begin
           end;
         end;
       end;
-    pdtRecord:
+    pdtRecordOrArrayOfRecord:
       begin
         lSer := TMVCJsonDataObjectsSerializer.Create;
         try
-          JSONArr.Add(lSer.ConvertRecordToJsonValue(
-            Value.GetReferenceToRawData,
-            Value.TypeInfo,
-            stFields,
-            nil,
-            nil,
-            nil,
-            lJSONDataType) as TJsonObject);
-        finally
-          lSer.Free;
-        end;
-      end;
-    pdtArrayOfRecords:
-      begin
-        lSer := TMVCJsonDataObjectsSerializer.Create;
-        try
-          lJArr := TJsonArray.Create;
-          JSONArr.Add(lJArr);
-          for i := 0 to Value.GetArrayLength - 1 do
+          if Value.IsArray then
+          begin
+            lJArr := TJsonArray.Create;
+            JSONArr.Add(lJArr);
+            for i := 0 to Value.GetArrayLength - 1 do
+            begin
+              lSer.RecordToJsonObject(
+                Value.GetReferenceToRawArrayElement(i),
+                Value.GetArrayElement(i).TypeInfo,
+                lJArr.AddObject,
+                TMVCSerializationType.stFields,
+                nil
+                );
+            end;
+          end
+          else
           begin
             lSer.RecordToJsonObject(
-              Value.GetReferenceToRawArrayElement(i),
-              Value.GetArrayElement(i).TypeInfo,
-              lJArr.AddObject,
+              Value.GetReferenceToRawData,
+              Value.TypeInfo,
+              JSONArr.AddObject,
               TMVCSerializationType.stFields,
               nil
               );
@@ -602,9 +598,10 @@ begin
         finally
           lSer.Free;
         end;
-      end
+      end;
   else
-    raise EMVCException.Create('Invalid type');
+    RaiseSerializationError(Format('Invalid TJSONRPCParamDataType: %s',
+      [GetEnumName(TypeInfo(TJSONRPCParamDataType), Ord(ParamType))]));
   end;
 end;
 
@@ -681,7 +678,8 @@ begin
         end;
       end;
   else
-    raise EMVCException.Create('Invalid type');
+    RaiseSerializationError(Format('Invalid TJSONRPCParamDataType: %s',
+      [GetEnumName(TypeInfo(TJSONRPCParamDataType), Ord(ParamType))]));
   end;
 end;
 
@@ -847,7 +845,7 @@ begin
           var lValue: TValue;
           lSer.JSONObjectToRecord(JSONDataValue.ObjectValue, RTTIParameter.ParamType.AsRecord, lBuf);
           TValue.Make(lBuf, RTTIParameter.ParamType.Handle, lValue);
-          JSONRPCRequestParams.Add(lValue, pdtRecord);
+          JSONRPCRequestParams.Add(lValue, pdtRecordOrArrayOfRecord);
         finally
           lSer.Free;
         end;
@@ -868,7 +866,7 @@ begin
               RTTIParameter.ParamType.AsRecord, lBuf);
             TValue.Make(lBuf, RTTIParameter.ParamType.Handle, lValue);
           end;
-          JSONRPCRequestParams.Add(lValue, pdtRecord);
+          JSONRPCRequestParams.Add(lValue, pdtRecordOrArrayOfRecord);
         finally
           lSer.Free;
         end;
@@ -1515,19 +1513,19 @@ begin
           if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Request) and (lRTTIMethod.MethodKind <> mkFunction) then
           begin
             raise EMVCJSONRPCInvalidParams.Create
-              ('Cannot call a procedure using a JSON-RPC request. [HINT] Use requests for functions and notifications for procedures');
+              ('Cannot call a procedure using a JSON-RPC request - use requests for functions and notifications for procedures');
           end;
 
           if (lJSONRPCReq.RequestType = TJSONRPCRequestType.Notification) and (lRTTIMethod.MethodKind <> mkProcedure)
           then
           begin
             raise EMVCJSONRPCInvalidParams.Create
-              ('Cannot call a function using a JSON-RPC notification. [HINT] Use requests for functions and notifications for procedures');
+              ('Cannot call a function using a JSON-RPC notification - use requests for functions and notifications for procedures');
           end;
 
           if not CanBeRemotelyInvoked(lRTTIMethod) then
           begin
-            LogW(Format('Method [%s] cannot remotely invoked. Only public functions or procedures can be called.',
+            LogW(Format('Method [%s] cannot remotely invoked - only public functions or procedures can be called.',
               [lMethod]));
             raise EMVCJSONRPCMethodNotFound.Create(lMethod);
           end;

@@ -794,17 +794,18 @@ end;
 
 function TSimpleRecord.Equals(SimpleRecord: TSimpleRecord): Boolean;
 begin
-  Result := StringProperty = SimpleRecord.StringProperty;
-  Result := IntegerProperty = SimpleRecord.IntegerProperty;
-  Result := FloatProperty = SimpleRecord.FloatProperty;
-  Result := CurrencyProperty = SimpleRecord.CurrencyProperty;
-  Result := DateProperty = SimpleRecord.DateProperty;
-  Result := TimeProperty = SimpleRecord.TimeProperty;
-  Result := CompareValue(DateTimeProperty, SimpleRecord.DateTimeProperty, 0.0001)  = 0;
-  Result := BooleanProperty = SimpleRecord.BooleanProperty;
-  Result := EnumProperty = SimpleRecord.EnumProperty;
-  Result := SetProperty * SimpleRecord.SetProperty = [EnumItem1, EnumItem3];
-  Result := SetProperty - SimpleRecord.SetProperty = [];
+  Result := True;
+  Result := Result and (StringProperty = SimpleRecord.StringProperty);
+  Result := Result and (IntegerProperty = SimpleRecord.IntegerProperty);
+  Result := Result and (FloatProperty = SimpleRecord.FloatProperty);
+  Result := Result and (CurrencyProperty = SimpleRecord.CurrencyProperty);
+  Result := Result and (DateProperty = SimpleRecord.DateProperty);
+  Result := Result and (TimeProperty = SimpleRecord.TimeProperty);
+  Result := Result and (CompareValue(DateTimeProperty, SimpleRecord.DateTimeProperty, 0.0001) = 0);
+  Result := Result and (BooleanProperty = SimpleRecord.BooleanProperty);
+  Result := Result and (EnumProperty = SimpleRecord.EnumProperty);
+  Result := Result and (SetProperty * SimpleRecord.SetProperty = [EnumItem1, EnumItem3]);
+  Result := Result and (SetProperty - SimpleRecord.SetProperty = []);
 end;
 
 function TSimpleRecord.ToString: String;
@@ -857,17 +858,18 @@ end;
 
 function TComplexRecord.Equals(ComplexRecord: TComplexRecord): Boolean;
 begin
-  Result := StringProperty = ComplexRecord.StringProperty;
-  Result := IntegerProperty = ComplexRecord.IntegerProperty;
-  Result := FloatProperty = ComplexRecord.FloatProperty;
-  Result := CurrencyProperty = ComplexRecord.CurrencyProperty;
-  Result := DateProperty = ComplexRecord.DateProperty;
-  Result := TimeProperty = ComplexRecord.TimeProperty;
-  Result := CompareValue(DateTimeProperty, ComplexRecord.DateTimeProperty, 0.0001)  = 0;
-  Result := BooleanProperty = ComplexRecord.BooleanProperty;
-  Result := EnumProperty = ComplexRecord.EnumProperty;
-  Result := SetProperty * ComplexRecord.SetProperty = [EnumItem1, EnumItem3];
-  Result := SetProperty - ComplexRecord.SetProperty = [];
+  Result := True;
+  Result := Result and (StringProperty = ComplexRecord.StringProperty);
+  Result := Result and (IntegerProperty = ComplexRecord.IntegerProperty);
+  Result := Result and (FloatProperty = ComplexRecord.FloatProperty);
+  Result := Result and (CurrencyProperty = ComplexRecord.CurrencyProperty);
+  Result := Result and (DateProperty = ComplexRecord.DateProperty);
+  Result := Result and (TimeProperty = ComplexRecord.TimeProperty);
+  Result := Result and (CompareValue(DateTimeProperty, ComplexRecord.DateTimeProperty, 0.0001)  = 0);
+  Result := Result and (BooleanProperty = ComplexRecord.BooleanProperty);
+  Result := Result and (EnumProperty = ComplexRecord.EnumProperty);
+  Result := Result and (SetProperty * ComplexRecord.SetProperty = [EnumItem1, EnumItem3]);
+  Result := Result and (SetProperty - ComplexRecord.SetProperty = []);
 
 end;
 

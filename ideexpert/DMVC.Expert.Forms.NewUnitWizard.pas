@@ -62,6 +62,7 @@ type
     function GetControllerClassName: string;
     function GetCreateActionFiltersMethods: boolean;
     function GetCreateCRUDMethods: boolean;
+    function GetAddAnalyticsMiddleware: boolean;
     { Private declarations }
   public
     { Public declarations }
@@ -69,6 +70,7 @@ type
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
     property CreateActionFiltersMethods: boolean read GetCreateActionFiltersMethods;
+    property AddAnalyticsMiddleware: boolean read GetAddAnalyticsMiddleware;
 
   end;
 
@@ -100,6 +102,11 @@ end;
 function TfrmDMVCNewUnit.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
+end;
+
+function TfrmDMVCNewUnit.GetAddAnalyticsMiddleware: boolean;
+begin
+  Result := False;
 end;
 
 function TfrmDMVCNewUnit.GetControllerClassName: string;

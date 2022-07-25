@@ -284,13 +284,15 @@ resourcestring
   // 1 = webmodule classname
   // 2 = controller unit
   // 3 - controller class name
+  // 4 - middlewares
+  // 5 - jsonrpc registration code
   sWebModuleUnit =
     'unit %0:s;' + sLineBreak +
     '' + sLineBreak +
     'interface' + sLineBreak +
     sLineBreak +
     'uses ' + sLineBreak + 
-	'  System.SysUtils,' + sLineBreak +
+   	'  System.SysUtils,' + sLineBreak +
     '  System.Classes,' + sLineBreak +
     '  Web.HTTPApp,' + sLineBreak +
     '  MVCFramework;' + sLineBreak +
@@ -313,8 +315,9 @@ resourcestring
     '{$R *.dfm}' + sLineBreak +
     sLineBreak +
     'uses ' + sLineBreak +
-	'  %2:s, ' + sLineBreak +
-	'  System.IOUtils, ' + sLineBreak +
+  	'  %2:s, ' + sLineBreak +
+	  '  %6:s ' + sLineBreak +
+	  '  System.IOUtils, ' + sLineBreak +
     '  MVCFramework.Commons, ' + sLineBreak +
 	'  MVCFramework.Middleware.StaticFiles, ' + sLineBreak +
 	'  MVCFramework.Middleware.Compression;' + sLineBreak +
@@ -364,6 +367,8 @@ resourcestring
     '  //  );	' + sLineBreak + sLineBreak +
     '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
     '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
+    '  %4:s ' + sLineBreak +
+    '  %5:s ' + sLineBreak +
     'end;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleDestroy(Sender: TObject);' + sLineBreak +
@@ -381,6 +386,25 @@ resourcestring
     '  Height = 230' + sLineBreak +
     '  Width = 415' + sLineBreak +
     'end';
+
+
+  //0 - unit name
+  //1 - class name
+  sJSONRPCUnit =
+    'unit %0:s; ' + sLineBreak + sLineBreak +
+    'interface' + sLineBreak + sLineBreak +
+    'type ' + sLineBreak +
+    '  %1:s = class' + sLineBreak +
+    '  public' + sLineBreak +
+    '    function ReverseString(const Value: String): String;' + sLineBreak +
+    '  end;' + sLineBreak + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak +
+    'uses System.StrUtils;' + sLineBreak + sLineBreak +
+    'function %1:s.ReverseString(const Value: String): String;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  Result := System.StrUtils.ReverseString(Value);' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'end.' + sLineBreak;
 
 implementation
 

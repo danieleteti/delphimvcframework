@@ -36,6 +36,7 @@ interface
 
 uses
   ToolsApi,
+  System.IOUtils,
   DMVC.Expert.CodeGen.NewUnit;
 
 type
@@ -48,8 +49,19 @@ type
     function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
       : IOTAFile; override;
   public
-    constructor Create(const aCreateIndexMethod, aCreateCRUDMethods, aCreateActionFiltersMethods
-      : Boolean; const AControllerClassName: string;
+    constructor Create(
+      const aCreateIndexMethod, aCreateCRUDMethods, aCreateActionFiltersMethods: Boolean;
+      const AControllerClassName: string;
+      const APersonality: string = '');
+  end;
+
+  TNewJSONRPCUnitEx = class(TNewUnit)
+  protected
+    fJSONRPCClassName: String;
+    function NewImplSource(const ModuleIdent, FormIdent, AncestorIdent: string)
+      : IOTAFile; override;
+  public
+    constructor Create(const aJSONRPCClassName: String;
       const APersonality: string = '');
   end;
 
@@ -61,8 +73,10 @@ uses
   DMVC.Expert.CodeGen.Templates,
   DMVC.Expert.CodeGen.SourceFile;
 
-constructor TNewControllerUnitEx.Create(const aCreateIndexMethod, aCreateCRUDMethods, aCreateActionFiltersMethods
-  : Boolean; const AControllerClassName: string;
+constructor TNewControllerUnitEx.Create(
+  const aCreateIndexMethod, aCreateCRUDMethods,
+  aCreateActionFiltersMethods: Boolean;
+  const AControllerClassName: string;
   const APersonality: string = '');
 begin
   Assert(Length(AControllerClassName) > 0);
@@ -125,6 +139,36 @@ begin
     lUnitIdent, lFormName, lFileName);
   Result := TSourceFile.Create(sControllerUnit,
     [lUnitIdent, FControllerClassName, lIndexMethodIntf, lIndexMethodImpl, lActionFiltersMethodsIntf, lActionFiltersMethodsImpl, lCRUDMethodsIntf, lCRUDMethodsImpl]);
+end;
+
+{ TNewJSONRPCUnitEx }
+
+constructor TNewJSONRPCUnitEx.Create(const aJSONRPCClassName,
+  APersonality: string);
+begin
+  inherited Create;
+  fJSONRPCClassName := aJSONRPCClassName;
+  Personality := aPersonality;
+end;
+
+function TNewJSONRPCUnitEx.NewImplSource(const ModuleIdent, FormIdent,
+  AncestorIdent: string): IOTAFile;
+var
+  lUnitIdent: string;
+//  lFormName: string;
+  lFileName: string;
+  lDummy: String;
+begin
+  // http://stackoverflow.com/questions/4196412/how-do-you-retrieve-a-new-unit-name-from-delphis-open-tools-api
+  // So using method mentioned by Marco Cantu.
+  lFileName := ''; //fJSONRPCClassName + 'U';
+  (BorlandIDEServices as IOTAModuleServices).GetNewModuleAndClassName('',
+    lUnitIdent, lDummy, lFileName);
+  Result := TSourceFile.Create(sJSONRPCUnit,
+    [
+      lUnitIdent,
+      fJSONRPCClassName
+    ]);
 end;
 
 end.
