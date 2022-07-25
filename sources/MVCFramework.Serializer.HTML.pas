@@ -69,6 +69,15 @@ type
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
+    function SerializeRecord(
+      const ARecord: Pointer;
+      const ARecordTypeInfo: PTypeInfo;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string; overload;
+
+
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
@@ -372,6 +381,14 @@ function TMVCHTMLSerializer.SerializeObject(const AObject: IInterface;
   const ASerializationAction: TMVCSerializationAction): string;
 begin
   RaiseNotImplemented;
+end;
+
+function TMVCHTMLSerializer.SerializeRecord(const ARecord: Pointer;
+  const ARecordTypeInfo: PTypeInfo; const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction): string;
+begin
+  raise Exception.Create('Not implemented');
 end;
 
 end.

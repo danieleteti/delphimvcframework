@@ -33,9 +33,10 @@ uses
   BusinessObjectsU,
   FireDAC.Comp.Client,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC;
+  MVCFramework.Commons, MVCFramework, MVCFramework.JSONRPC, CommonTypesU;
 
 type
+
   TMyObject = class
   private
     function GetCustomersDataset: TFDMemTable;
@@ -68,6 +69,15 @@ type
     procedure RaiseCustomException;
     function RaiseGenericException(const ExceptionType: Integer): Integer;
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
+    //records support
+    function SavePersonRec(PersonRec: TTestRec): TTestRec;
+    function GetPeopleRecDynArray: TTestRecDynArray;
+    function GetPeopleRecStaticArray: TTestRecArray;
+    function GetPersonRec: TTestRec;
+    function GetComplex1: TNestedArraysRec;
+    function EchoComplexArrayOfRecords(PeopleList: TTestRecDynArray): TTestRecDynArray;
+    function EchoComplexArrayOfRecords2(VendorProxiesAndLinks: TNestedArraysRec): TNestedArraysRec;
+
     // invalid parameters modifiers
     procedure InvalidMethod1(var MyVarParam: Integer);
     procedure InvalidMethod2(out MyOutParam: Integer);
@@ -113,6 +123,19 @@ begin
 
 end;
 
+function TMyObject.EchoComplexArrayOfRecords(
+  PeopleList: TTestRecDynArray): TTestRecDynArray;
+begin
+  Result := PeopleList;
+end;
+
+function TMyObject.EchoComplexArrayOfRecords2(
+  VendorProxiesAndLinks: TNestedArraysRec): TNestedArraysRec;
+begin
+  Result := VendorProxiesAndLinks;
+  Result.TestRecProp.StringProp := VendorProxiesAndLinks.TestRecProp.StringProp + ' (changed from server)';
+end;
+
 procedure TMyObject.FillCustomersDataset(const DataSet: TDataSet);
 begin
   DataSet.AppendRecord([1, 'Ford']);
@@ -144,6 +167,19 @@ end;
 function TMyObject.FloatsTest(const aDouble: Double; const aExtended: Extended): Extended;
 begin
   Result := aDouble + aExtended;
+end;
+
+function TMyObject.GetComplex1: TNestedArraysRec;
+begin
+  SetLength(Result.ArrayProp1, 2);
+  SetLength(Result.ArrayProp2, 2);
+
+  Result.ArrayProp1[0] := TTestRec.Create(1234);
+  Result.ArrayProp1[1] := TTestRec.Create(2345);
+
+  Result.ArrayProp2[0] := TTestRec.Create(3456);
+  Result.ArrayProp2[1] := TTestRec.Create(4567);
+
 end;
 
 function TMyObject.GetCustomers(FilterString: string): TDataSet;
@@ -215,28 +251,23 @@ begin
   Result := lDate;
 end;
 
-// function TMyObject.GetPeopleDataset: TFDMemTable;
-// var
-// lMT: TFDMemTable;
-// begin
-// lMT := TFDMemTable.Create(nil);
-// try
-// lMT.FieldDefs.Clear;
-// lMT.FieldDefs.Add('FirstName', ftString, 20);
-// lMT.FieldDefs.Add('LastName', ftString, 20);
-// lMT.Active := True;
-// lMT.AppendRecord(['Daniele', 'Teti']);
-// lMT.AppendRecord(['Peter', 'Parker']);
-// lMT.AppendRecord(['Bruce', 'Banner']);
-// lMT.AppendRecord(['Scott', 'Summers']);
-// lMT.AppendRecord(['Sue', 'Storm']);
-// lMT.First;
-// Result := lMT;
-// except
-// lMT.Free;
-// raise;
-// end;
-// end;
+function TMyObject.GetPeopleRecDynArray: TTestRecDynArray;
+begin
+  SetLength(Result, 2);
+  Result[0] := TTestRec.Create(1);
+  Result[1] := TTestRec.Create(2);
+end;
+
+function TMyObject.GetPeopleRecStaticArray: TTestRecArray;
+begin
+  Result[0] := TTestRec.Create(7);
+  Result[1] := TTestRec.Create(8);
+end;
+
+function TMyObject.GetPersonRec: TTestRec;
+begin
+  Result := TTestRec.Create(99);
+end;
 
 function TMyObject.GetStringDictionary: TMVCStringDictionary;
 begin
@@ -331,6 +362,11 @@ begin
 
   // this maybe the id of the newly created person
   Result := Random(1000);
+end;
+
+function TMyObject.SavePersonRec(PersonRec: TTestRec): TTestRec;
+begin
+  Result := PersonRec;
 end;
 
 function TMyObject.Subtract(Value1, Value2: Integer): Integer;

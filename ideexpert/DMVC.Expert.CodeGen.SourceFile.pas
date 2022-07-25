@@ -55,6 +55,7 @@ implementation
 
 constructor TSourceFile.Create(const Source: string; const Args: array of const );
 begin
+  inherited Create;
   FSource := Format(Source, Args);
 end;
 

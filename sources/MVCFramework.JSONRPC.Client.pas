@@ -261,7 +261,8 @@ begin
   end;
 
   Result := nil;
-  lSS := TStringStream.Create(aJSONRPCObject.AsJSONString, TEncoding.UTF8);
+  var s := aJSONRPCObject.AsJSONString;
+  lSS := TStringStream.Create(s, TEncoding.UTF8);
   try
     lSS.Position := 0;
     if Assigned(fOnSendCommand) then

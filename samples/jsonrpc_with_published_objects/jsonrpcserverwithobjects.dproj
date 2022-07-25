@@ -70,6 +70,7 @@
         <DCC_UnitSearchPath>$(DMVC);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Framework>VCL;$(DCC_Framework)</DCC_Framework>
         <SanitizedProjectName>jsonrpcserverwithobjects</SanitizedProjectName>
+        <VerInfo_Locale>1040</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
         <DCC_UsePackage>DBXSqliteDriver;DBXInterBaseDriver;tethering;bindcompfmx;FmxTeeUI;fmx;FireDACDBXDriver;dbexpress;IndyCore;dsnap;DataSnapCommon;bindengine;DataSnapClient;IndyIPCommon;bindcompdbx;IndyIPServer;IndySystem;fmxFireDAC;ibmonitor;FMXTee;DbxCommonDriver;ibxpress;xmlrtl;DataSnapNativeClient;FireDACDSDriver;rtl;ibxbindings;DbxClientDriver;CustomIPTransport;bindcomp;IndyIPClient;dbxcds;dsnapxml;DataSnapProviderClient;dbrtl;IndyProtocols;$(DCC_UsePackage)</DCC_UsePackage>
@@ -133,7 +134,6 @@
         <DCCReference Include="MyObjectU.pas"/>
         <DCCReference Include="MainWebModuleU.pas">
             <Form>MyWebModule</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
         <DCCReference Include="..\..\sources\MVCFramework.JSONRPC.pas"/>
@@ -141,9 +141,9 @@
         <DCCReference Include="..\commons\RandomUtilsU.pas"/>
         <DCCReference Include="..\articles_crud_server\MainDM.pas">
             <Form>dmMain</Form>
-            <FormType>dfm</FormType>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
+        <DCCReference Include="CommonTypesU.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -164,6 +164,10 @@
                 <Source>
                     <Source Name="MainSource">jsonrpcserverwithobjects.dpr</Source>
                 </Source>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k280.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp280.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">

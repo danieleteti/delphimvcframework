@@ -86,6 +86,14 @@ type
       const ASerializationAction: TMVCSerializationAction = nil
       ): string; overload;
 
+    function SerializeRecord(
+      const ARecord: Pointer;
+      const ARecordTypeInfo: PTypeInfo;
+      const AType: TMVCSerializationType = stDefault;
+      const AIgnoredAttributes: TMVCIgnoredList = nil;
+      const ASerializationAction: TMVCSerializationAction = nil
+      ): string; overload;
+
     function SerializeCollection(
       const AList: TObject;
       const AType: TMVCSerializationType = stDefault;
