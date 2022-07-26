@@ -2328,7 +2328,9 @@ begin
   lTypeInfo := RTTIType.Handle;
   GetMem(Buffer, lTypeSize);
   FillChar(Buffer^, lTypeSize, 0);
+{$IF Defined(RIOORBETTER)}
   InvokeRecordInitializer(Buffer, lTypeInfo);
+{$ENDIF}
   lField := nil;
   AIgnoredAttributes := [];
   try
@@ -2389,7 +2391,9 @@ begin
   lTypeInfo := RTTIType.Handle;
   GetMem(Buffer, lTypeSize);
   FillChar(Buffer^, lTypeSize, 0);
+{$IF Defined(RIOORBETTER)}
   InvokeRecordInitializer(Buffer, lTypeInfo);
+{$ENDIF}
   lField := nil;
   AIgnoredAttributes := [];
   try
