@@ -2313,7 +2313,6 @@ procedure TMVCJsonDataObjectsSerializer.JSONObjectToRecord(
   const JSONObject: TJsonObject; RTTIType: TRttiRecordType; out Buffer: PByte);
 var
   lTypeSize: Integer;
-  lTypeInfo: PTypeInfo;
   AIgnoredAttributes: TMVCIgnoredList;
   lKeyName: string;
   lAttributeValue: TValue;
@@ -2325,11 +2324,10 @@ begin
     raise EMVCDeserializationException.Create('Insufficient RTTI to deserialize record');
   end;
   lTypeSize := RTTIType.TypeSize;
-  lTypeInfo := RTTIType.Handle;
   GetMem(Buffer, lTypeSize);
   FillChar(Buffer^, lTypeSize, 0);
 {$IF Defined(RIOORBETTER)}
-  InvokeRecordInitializer(Buffer, lTypeInfo);
+  InvokeRecordInitializer(Buffer, RTTIType.Handle);
 {$ENDIF}
   lField := nil;
   AIgnoredAttributes := [];
@@ -2380,7 +2378,6 @@ procedure TMVCJsonDataObjectsSerializer.JSONObjectToRecordStatic(
   const JSONObject: TJsonObject; RTTIType: TRttiRecordType; var Buffer: PByte);
 var
   lTypeSize: Integer;
-  lTypeInfo: PTypeInfo;
   AIgnoredAttributes: TMVCIgnoredList;
   lKeyName: string;
   lAttributeValue: TValue;
@@ -2388,11 +2385,10 @@ var
   lField: TRTTIField;
 begin
   lTypeSize := RTTIType.TypeSize;
-  lTypeInfo := RTTIType.Handle;
   GetMem(Buffer, lTypeSize);
   FillChar(Buffer^, lTypeSize, 0);
 {$IF Defined(RIOORBETTER)}
-  InvokeRecordInitializer(Buffer, lTypeInfo);
+  InvokeRecordInitializer(Buffer, RTTIType.Handle);
 {$ENDIF}
   lField := nil;
   AIgnoredAttributes := [];
