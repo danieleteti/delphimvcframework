@@ -740,6 +740,7 @@ var
   lBuf: PByte;
   lValue: TValue;
   lArr: TArray<TValue>;
+  I: Integer;
 begin
   case RTTIParameter.ParamType.TypeKind of
     tkString, tkUString {$IF CompilerVersion > 28}, tkAnsiString {$ENDIF}:
@@ -857,7 +858,7 @@ begin
         try
           SetLength(lArr, JSONDataValue.ArrayValue.Count);
           lValue := TValue.FromArray(RTTIParameter.ParamType.Handle, lArr);
-          for var I := Low(lArr) to High(lArr) do
+          for I := Low(lArr) to High(lArr) do
           begin
             lSer.JSONObjectToRecord(
               JSONDataValue.ArrayValue.Items[I].ObjectValue,
@@ -887,6 +888,7 @@ var
   lSer: TMVCJsonDataObjectsSerializer;
   lTValueArr: TArray<TValue>;
   lItemRTTIType: TRttiType;
+  I: Integer;
 begin
   ParamIsRecord := False;
   ParamRecordPointer := nil;
@@ -1020,7 +1022,7 @@ begin
           ParamIsRecord := False;
           lSer := TMVCJsonDataObjectsSerializer.Create(nil);
           try
-            for var I := 0 to Length(lTValueArr) - 1 do
+            for I := 0 to Length(lTValueArr) - 1 do
             begin
               lSer.JSONObjectToRecord(
                 JSONDataValue.ArrayValue.Items[i].ObjectValue,
