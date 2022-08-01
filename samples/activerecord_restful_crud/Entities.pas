@@ -5,6 +5,7 @@ interface
 uses
   MVCFramework.Serializer.Commons,
   MVCFramework.ActiveRecord,
+  MVCFramework.Nullables,
   System.Classes,
   MVCFramework, System.Generics.Collections;
 
@@ -22,25 +23,25 @@ type
     [MVCTableField('FIRST_NAME')]
     fFirstName: string;
     [MVCTableField('DOB')]
-    fDOB: TDate;
+    fDOB: NullableTDate;
     [MVCTableField('FULL_NAME')]
     fFullName: string;
     [MVCTableField('IS_MALE')]
-    fIsMale: Boolean;
+    fIsMale: NullableBoolean;
     [MVCTableField('NOTE')]
     fNote: string;
     [MVCTableField('PHOTO')]
     fPhoto: TStream;
 
     // transient fields
-    fAge: Integer;
+    fAge: NullableInt32;
 
     procedure SetLastName(const Value: string);
     procedure SetID(const Value: Int64);
     procedure SetFirstName(const Value: string);
-    procedure SetDOB(const Value: TDate);
+    procedure SetDOB(const Value: NullableTDate);
     function GetFullName: string;
-    procedure SetIsMale(const Value: Boolean);
+    procedure SetIsMale(const Value: NullableBoolean);
     procedure SetNote(const Value: string);
   protected
     procedure OnAfterLoad; override;
@@ -53,10 +54,10 @@ type
     property ID: Int64 read fID write SetID;
     property LastName: string read fLastName write SetLastName;
     property FirstName: string read fFirstName write SetFirstName;
-    property Age: Integer read fAge;
-    property DOB: TDate read fDOB write SetDOB;
+    property Age: NullableInt32 read fAge;
+    property DOB: NullableTDate read fDOB write SetDOB;
     property FullName: string read GetFullName;
-    property IsMale: Boolean read fIsMale write SetIsMale;
+    property IsMale: NullableBoolean read fIsMale write SetIsMale;
     property Note: string read fNote write SetNote;
     property Photo: TStream read fPhoto;
   end;
@@ -141,7 +142,14 @@ end;
 procedure TPerson.OnAfterLoad;
 begin
   inherited;
-  fAge := Yearsbetween(fDOB, now);
+  if fDOB.HasValue then
+  begin
+    fAge := Yearsbetween(fDOB, now);
+  end
+  else
+  begin
+    fAge.Clear;
+  end;
 end;
 
 procedure TPerson.OnBeforeInsert;
@@ -176,7 +184,7 @@ begin
   fNote := Value;
 end;
 
-procedure TPerson.SetDOB(const Value: TDate);
+procedure TPerson.SetDOB(const Value: NullableTDate);
 begin
   fDOB := Value;
 end;
@@ -186,7 +194,7 @@ begin
   fID := Value;
 end;
 
-procedure TPerson.SetIsMale(const Value: Boolean);
+procedure TPerson.SetIsMale(const Value: NullableBoolean);
 begin
   fIsMale := Value;
 end;

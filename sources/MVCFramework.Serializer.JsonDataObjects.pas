@@ -1624,7 +1624,9 @@ begin
     jdtObject:
       begin
         if (AValue.TypeInfo = System.TypeInfo(TValue)) then
+        begin
           AValue := TValue.FromVariant(AJsonObject[APropertyName].O['value'].VariantValue)
+        end
         else
         begin
           // dt: if a key is null, jsondataobjects assign it the type jdtObject
@@ -1656,6 +1658,19 @@ begin
                     raise EMVCDeserializationException.CreateFmt('Cannot deserialize object value for "%s"', [APropertyName]);
                   end;
                 end
+            end;
+          end
+          else if AValue.Kind = tkRecord then
+          begin
+            if String(AValue.TypeInfo.Name).StartsWith('Nullable') then
+            begin
+              //The json prop is "null", we have to check if the object prop type to do the right thing
+              //this is an hack, necessary for speed reason.
+              //Instead of check the type of each nullable type I "guess" that is the
+              //typename starts with "Nullable" it's a nullable defined in the unit MVCFramework.Nullables.pas.
+              //Dealing with raw memory address, the following line consider a pointer as a NullableInt32.
+              //The underline code works for all nullable types and save me to do type checking.
+              NullableInt32(AValue.GetReferenceToRawData^).SetNull;
             end;
           end;
         end;
