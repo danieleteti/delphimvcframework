@@ -326,12 +326,58 @@ type
     destructor Destroy; override;
   end;
 
+  // Records
+  TMyEnum = (EnumItem1, EnumItem2, EnumItem3);
+  TMySet = set of TMyEnum;
+
+  [MVCNameCase(ncCamelCase)]
+  TSimpleRecord = record
+    StringProperty: String;
+    IntegerProperty: Integer;
+    FloatProperty: Double;
+    CurrencyProperty: Currency;
+    BooleanProperty: Boolean;
+    DateProperty: TDate;
+    TimeProperty: TTime;
+    DateTimeProperty: TDateTime;
+    EnumProperty: TMyEnum;
+    SetProperty: TMySet;
+    class function Create: TSimpleRecord; overload; static;
+    class function Create(Value: Integer): TSimpleRecord; overload; static;
+    function ToString: String;
+    function Equals(SimpleRecord: TSimpleRecord): Boolean;
+  end;
+
+  TSimpleRecordDynArray = TArray<TSimpleRecord>;
+  TSimpleRecordStaticArray = array [0..2] of TSimpleRecord;
+
+  TComplexRecord = record
+    StringProperty: String;
+    IntegerProperty: Integer;
+    FloatProperty: Double;
+    CurrencyProperty: Currency;
+    DateProperty: TDate;
+    TimeProperty: TTime;
+    DateTimeProperty: TDateTime;
+    BooleanProperty: Boolean;
+    EnumProperty: TMyEnum;
+    SetProperty: TMySet;
+    SimpleRecord: TSimpleRecord;
+    SimpleRecordDynArray: TSimpleRecordDynArray;
+    SimpleRecordStaticArray: TSimpleRecordStaticArray;
+    class function Create: TComplexRecord; static;
+    function Equals(ComplexRecord: TComplexRecord): Boolean;
+  end;
+
+  TComplexRecordArray = TArray<TComplexRecord>;
+
+
 implementation
 
 uses
   System.SysUtils,
   System.Math,
-  RandomUtilsU, FireDAC.Comp.Client;
+  RandomUtilsU, FireDAC.Comp.Client, System.TypInfo;
 
 { TPerson }
 
@@ -720,6 +766,111 @@ begin
     fGUID := TGUID.NewGuid;
     fNullableGUID := TGUID.NewGuid;
   end;
+end;
+
+{ TSimpleRecord }
+
+class function TSimpleRecord.Create: TSimpleRecord;
+begin
+  Result.StringProperty := 'the string property';
+  Result.IntegerProperty:= 1234;
+  Result.FloatProperty := 1234.56789;
+  Result.CurrencyProperty := 1234.5678;
+  Result.DateProperty:= EncodeDate(2022,7,5);
+  Result.TimeProperty := EncodeTime(12,13,14,0);
+  Result.DateTimeProperty := Result.DateProperty + Result.TimeProperty;
+  Result.BooleanProperty := True;
+  Result.EnumProperty := EnumItem2;
+  Result.SetProperty := [EnumItem1, EnumItem3];
+end;
+
+class function TSimpleRecord.Create(Value: Integer): TSimpleRecord;
+begin
+  Result := TSimpleRecord.Create;
+  Result.StringProperty := Value.ToString;
+  Result.IntegerProperty := Value;
+  Result.CurrencyProperty := Value + Value div 1000;
+end;
+
+function TSimpleRecord.Equals(SimpleRecord: TSimpleRecord): Boolean;
+begin
+  Result := True;
+  Result := Result and (StringProperty = SimpleRecord.StringProperty);
+  Result := Result and (IntegerProperty = SimpleRecord.IntegerProperty);
+  Result := Result and (FloatProperty = SimpleRecord.FloatProperty);
+  Result := Result and (CurrencyProperty = SimpleRecord.CurrencyProperty);
+  Result := Result and (DateProperty = SimpleRecord.DateProperty);
+  Result := Result and (TimeProperty = SimpleRecord.TimeProperty);
+  Result := Result and (CompareValue(DateTimeProperty, SimpleRecord.DateTimeProperty, 0.0001) = 0);
+  Result := Result and (BooleanProperty = SimpleRecord.BooleanProperty);
+  Result := Result and (EnumProperty = SimpleRecord.EnumProperty);
+  Result := Result and (SetProperty * SimpleRecord.SetProperty = [EnumItem1, EnumItem3]);
+  Result := Result and (SetProperty - SimpleRecord.SetProperty = []);
+end;
+
+function TSimpleRecord.ToString: String;
+  function SetToString: String;
+  var
+    lEl: TMyEnum;
+  begin
+    for lEl in SetProperty do
+    begin
+      Result := Result + GetEnumName(typeinfo(TMyEnum), Ord(Self.EnumProperty)) + ',';
+    end;
+    Result := Result.Trim([',']);
+  end;
+begin
+  Result :=
+    'StringProperty   = ' + Self.StringProperty + sLineBreak +
+    'IntegerProperty  = ' + Self.IntegerProperty.ToString + sLineBreak +
+    'FloatProperty    = ' + Self.FloatProperty.ToString + sLineBreak +
+    'CurrencyProperty = ' + Self.CurrencyProperty.ToString + sLineBreak +
+    'DateProperty     = ' + DateToStr(Self.DateProperty) + sLineBreak +
+    'TimeProperty     = ' + TimeToStr(Self.TimeProperty) + sLineBreak +
+    'DateTimeProperty = ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Self.DateTimeProperty) + sLineBreak +
+    'BooleanProperty  = ' + BoolToStr(Self.BooleanProperty, True) + sLineBreak +
+    'EnumProperty     = ' + GetEnumName(typeinfo(TMyEnum), Ord(Self.EnumProperty)) + sLineBreak +
+    'SetProperty      = ' + SetToString + sLineBreak;
+end;
+
+{ TComplexRecord }
+
+class function TComplexRecord.Create: TComplexRecord;
+begin
+  Result.StringProperty := 'the string property';
+  Result.IntegerProperty:= 1234;
+  Result.FloatProperty := 1234.56789;
+  Result.CurrencyProperty := 1234.5678;
+  Result.DateProperty:= EncodeDate(2022,7,5);
+  Result.TimeProperty := EncodeTime(12,13,14,0);
+  Result.DateTimeProperty := Result.DateProperty + Result.TimeProperty;
+  Result.BooleanProperty := True;
+  Result.EnumProperty := EnumItem2;
+  Result.SetProperty := [EnumItem1, EnumItem3];
+  Result.SimpleRecord := TSimpleRecord.Create;
+  SetLength(Result.SimpleRecordDynArray,2);
+  Result.SimpleRecordDynArray[0] := TSimpleRecord.Create(1);
+  Result.SimpleRecordDynArray[1] := TSimpleRecord.Create(2);
+  Result.SimpleRecordStaticArray[0] := TSimpleRecord.Create(3);
+  Result.SimpleRecordStaticArray[1] := TSimpleRecord.Create(4);
+  Result.SimpleRecordStaticArray[2] := TSimpleRecord.Create(5);
+end;
+
+function TComplexRecord.Equals(ComplexRecord: TComplexRecord): Boolean;
+begin
+  Result := True;
+  Result := Result and (StringProperty = ComplexRecord.StringProperty);
+  Result := Result and (IntegerProperty = ComplexRecord.IntegerProperty);
+  Result := Result and (FloatProperty = ComplexRecord.FloatProperty);
+  Result := Result and (CurrencyProperty = ComplexRecord.CurrencyProperty);
+  Result := Result and (DateProperty = ComplexRecord.DateProperty);
+  Result := Result and (TimeProperty = ComplexRecord.TimeProperty);
+  Result := Result and (CompareValue(DateTimeProperty, ComplexRecord.DateTimeProperty, 0.0001)  = 0);
+  Result := Result and (BooleanProperty = ComplexRecord.BooleanProperty);
+  Result := Result and (EnumProperty = ComplexRecord.EnumProperty);
+  Result := Result and (SetProperty * ComplexRecord.SetProperty = [EnumItem1, EnumItem3]);
+  Result := Result and (SetProperty - ComplexRecord.SetProperty = []);
+
 end;
 
 initialization

@@ -32,7 +32,7 @@ uses
   MVCFramework.RESTClient,
   MVCFramework.JSONRPC.Client,
   System.DateUtils,
-  System.Hash;
+  System.Hash, System.Rtti;
 
 type
 
@@ -357,7 +357,19 @@ type
     procedure TestHooksWhenOnBeforeCallHookRaisesError;
     [Test]
     procedure TestHooksWhenOnBeforeRoutingHookRaisesError;
-
+    //record tests
+    [Test]
+    procedure TestRequest_NoParams_SingleRecordAsResult;
+    [Test]
+    procedure TestRequest_NoParams_SingleComplexRecordAsResult;
+    [Test]
+    procedure TestRequest_Echo_SingleRecordAsResult;
+    [Test]
+    procedure TestRequest_Echo_ComplexRecord;
+    [Test]
+    procedure TestRequest_Echo_ComplexRecords;
+    [Test]
+    procedure TestRequest_NoParams_DynamicArrayOfRecordAsResult;
   end;
 
   [TestFixture]
@@ -393,7 +405,7 @@ uses
   Vcl.Graphics
 {$ENDIF}
     , TestConstsU, MVCFramework.Tests.Serializer.Entities,
-  MVCFramework.Logger;
+  MVCFramework.Logger, System.IOUtils;
 
 function GetServer: string;
 begin
@@ -2951,6 +2963,66 @@ begin
   Assert.areEqual(12, TJDOJsonObject(lRPCResp.Result.AsObject).I['res']);
 end;
 
+procedure TJSONRPCServerTest.TestRequest_Echo_ComplexRecord;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lComplexRecIn, lComplexRecOut: TComplexRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoSingleComplexRecord';
+  lReq.RequestID := 1234;
+  lComplexRecIn := TComplexRecord.Create;
+
+  lReq.Params.Add(TValue.From<TComplexRecord>(lComplexRecIn), pdtRecordOrArrayOfRecord);
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsFalse(lRPCResp.IsError, lRPCResp.AsJSONString);
+  lRPCResp.ResultAsJSONObject.SaveToFile('EchoSingleComplexRecord_RESPONSE.json', False);
+  lComplexRecOut := TJSONUtils.JSONObjectToRecord<TComplexRecord>(lRPCResp);
+  lComplexRecIn.Equals(lComplexRecOut);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_Echo_ComplexRecords;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lComplexRecIn, lComplexRecOut: TComplexRecordArray;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoArrayOfRecords';
+  lReq.RequestID := 1234;
+  SetLength(lComplexRecIn, 2);
+  lComplexRecIn[0] := TComplexRecord.Create;
+  lComplexRecIn[1] := TComplexRecord.Create;
+  lComplexRecIn[0].StringProperty := 'firstone';
+  lComplexRecIn[1].StringProperty := 'secondone';
+
+  lReq.Params.Add(TValue.From<TComplexRecordArray>(lComplexRecIn), pdtRecordOrArrayOfRecord);
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  Assert.IsFalse(lRPCResp.IsError, lRPCResp.AsJSONString);
+  lRPCResp.ResultAsJSONArray.SaveToFile('TestRequest_Echo_ComplexRecords_RESPONSE.json', False);
+  lComplexRecOut := TJSONUtils.JSONArrayToArrayOfRecord<TComplexRecord>(lRPCResp);
+  lComplexRecIn[0].Equals(lComplexRecOut[0]);
+  lComplexRecIn[1].Equals(lComplexRecOut[1]);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_Echo_SingleRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lSimpleRecIn, lSimpleRec: TSimpleRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'EchoSingleRecord';
+  lReq.RequestID := 1234;
+
+  lSimpleRecIn := TSimpleRecord.Create;
+  lReq.Params.Add(TValue.From<TSimpleRecord>(lSimpleRecIn), pdtRecordOrArrayOfRecord);
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lSimpleRec := TJSONUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp);
+  Assert.IsTrue(lSimpleRecIn.Equals(lSimpleRec));
+end;
+
 procedure TJSONRPCServerTest.TestRequest_NamedParams_S_I_ret_S;
 var
   lReq: IJSONRPCRequest;
@@ -2967,6 +3039,91 @@ begin
 
   lRPCResp := FExecutor2.ExecuteRequest(lReq);
   Assert.areEqual('DanieleDanieleDanieleDaniele', lRPCResp.Result.AsString);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_NoParams_DynamicArrayOfRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lSimpleRecArray: TArray<TSimpleRecord>;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetArrayOfRecords';
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lSimpleRecArray := TJSONUtils.JSONArrayToArrayOfRecord<TSimpleRecord>(lRPCResp);
+  Assert.AreEqual(3, Length(lSimpleRecArray));
+  Assert.AreEqual(0, lSimpleRecArray[0].IntegerProperty);
+  Assert.AreEqual(1, lSimpleRecArray[1].IntegerProperty);
+  Assert.AreEqual(2, lSimpleRecArray[2].IntegerProperty);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_NoParams_SingleComplexRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lRec: TComplexRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetSingleComplexRecord';
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lRec := TJSONUtils.JsonObjectToRecord<TComplexRecord>(lRPCResp);
+
+  //1st level fields
+  Assert.AreEqual('the string property', lRec.StringProperty);
+  Assert.AreEqual(1234, lRec.IntegerProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5), lRec.DateProperty);
+  Assert.AreEqual(EncodeTime(12,13,14,0), lRec.TimeProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5) + EncodeTime(12,13,14,0), lRec.DateTimeProperty, 0.000001);
+  Assert.AreEqual(True, lRec.BooleanProperty);
+  Assert.AreEqual(EnumItem2, lRec.EnumProperty);
+  Assert.IsTrue([EnumItem1, EnumItem3] * lRec.SetProperty = [EnumItem1, EnumItem3]);
+  Assert.IsTrue(lRec.SetProperty - [EnumItem1, EnumItem3] = []);
+
+  //2nd level fields
+  Assert.AreEqual('the string property', lRec.SimpleRecord.StringProperty);
+  Assert.AreEqual(1234, lRec.SimpleRecord.IntegerProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5), lRec.SimpleRecord.DateProperty);
+  Assert.AreEqual(EncodeTime(12,13,14,0), lRec.SimpleRecord.TimeProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5) + EncodeTime(12,13,14,0), lRec.SimpleRecord.DateTimeProperty, 0.000001);
+  Assert.AreEqual(True, lRec.SimpleRecord.BooleanProperty);
+  Assert.AreEqual(EnumItem2, lRec.SimpleRecord.EnumProperty);
+  Assert.IsTrue([EnumItem1, EnumItem3] * lRec.SimpleRecord.SetProperty = [EnumItem1, EnumItem3]);
+  Assert.IsTrue(lRec.SimpleRecord.SetProperty - [EnumItem1, EnumItem3] = []);
+
+  //Dynamic Array Records
+  Assert.AreEqual(2, Length(lRec.SimpleRecordDynArray), 'Wrong size for dynamic array');
+  Assert.AreEqual('1', lRec.SimpleRecordDynArray[0].StringProperty);
+  Assert.AreEqual('2', lRec.SimpleRecordDynArray[1].StringProperty);
+
+  //Static Array Records
+  Assert.AreEqual(3, Length(lRec.SimpleRecordStaticArray), 'Wrong size for static array');
+  Assert.AreEqual('3', lRec.SimpleRecordStaticArray[0].StringProperty);
+  Assert.AreEqual('4', lRec.SimpleRecordStaticArray[1].StringProperty);
+  Assert.AreEqual('5', lRec.SimpleRecordStaticArray[2].StringProperty);
+end;
+
+procedure TJSONRPCServerTest.TestRequest_NoParams_SingleRecordAsResult;
+var
+  lReq: IJSONRPCRequest;
+  lRPCResp: IJSONRPCResponse;
+  lSimpleRec: TSimpleRecord;
+begin
+  lReq := TJSONRPCRequest.Create;
+  lReq.Method := 'GetSingleRecord';
+  lReq.RequestID := 1234;
+  lRPCResp := FExecutor2.ExecuteRequest(lReq);
+  lSimpleRec := TJSONUtils.JsonObjectToRecord<TSimpleRecord>(lRPCResp);
+  Assert.AreEqual('the string property', lSimpleRec.StringProperty);
+  Assert.AreEqual(1234, lSimpleRec.IntegerProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5), lSimpleRec.DateProperty);
+  Assert.AreEqual(EncodeTime(12,13,14,0), lSimpleRec.TimeProperty);
+  Assert.AreEqual(EncodeDate(2022,7,5) + EncodeTime(12,13,14,0), lSimpleRec.DateTimeProperty, 0.000001);
+  Assert.AreEqual(True, lSimpleRec.BooleanProperty);
+  Assert.AreEqual(EnumItem2, lSimpleRec.EnumProperty);
+  Assert.IsTrue([EnumItem1, EnumItem3] * lSimpleRec.SetProperty = [EnumItem1, EnumItem3]);
+  Assert.IsTrue(lSimpleRec.SetProperty - [EnumItem1, EnumItem3] = []);
 end;
 
 procedure TJSONRPCServerTest.TestRequest_S_I_ret_S;

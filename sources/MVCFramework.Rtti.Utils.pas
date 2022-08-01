@@ -89,6 +89,7 @@ type
     class function BuildClass(AQualifiedName: string; AParams: array of TValue): TObject;
     class function FindType(AQualifiedName: string): TRttiType;
     class function GetGUID<T>: TGUID;
+    class function GetArrayContainedRTTIType(const RTTIType: TRttiType): TRttiType;
   end;
 
 {$IF not defined(BERLINORBETTER)}
@@ -150,6 +151,21 @@ begin
     if Attr.ClassType.InheritsFrom(T) then
       Exit(T(Attr));
   end;
+end;
+
+class function TRttiUtils.GetArrayContainedRTTIType(
+  const RTTIType: TRttiType): TRttiType;
+var
+  lName: string;
+begin
+  lName := RTTIType.Name;
+  if not lName.StartsWith('TArray<')  then
+  begin
+    raise EMVCDeserializationException.CreateFmt('%s is not an array', [lName]);
+  end;
+  lName := lName.Remove(0, 7);
+  lName := lName.Remove(lName.Length - 1);
+  Result := GlContext.FindType(lName);
 end;
 
 class function TRttiUtils.GetAttribute<T>(const AObject: TRttiType): T;

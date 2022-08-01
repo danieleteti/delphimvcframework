@@ -723,6 +723,7 @@ type
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AStatusCode: Integer; const AObject: IInterface;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
+    procedure Render<T: record>(const AStatusCode: Integer; var ARecord: T); overload;
     // PODOs Collection render
     procedure Render<T: class>(const ACollection: TObjectList<T>;
       const ASerializationAction: TMVCSerializationAction<T> = nil); overload;
@@ -3830,6 +3831,14 @@ begin
   end
   else
     raise EMVCException.Create('Can not render an empty collection.');
+end;
+
+procedure TMVCRenderer.Render<T>(const AStatusCode: Integer; var ARecord: T);
+begin
+  SetStatusCode(AStatusCode);
+  Render(
+    Serializer(GetContentType)
+      .SerializeRecord(@ARecord, TypeInfo(T), TMVCSerializationType.stFields,nil,nil));
 end;
 
 procedure TMVCRenderer.Render<T>(const AStatusCode: Integer; const ACollection: TObjectList<T>;

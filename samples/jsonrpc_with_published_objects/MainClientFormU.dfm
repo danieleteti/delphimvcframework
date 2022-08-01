@@ -17,7 +17,7 @@ object MainForm: TMainForm
     Top = 0
     Width = 842
     Height = 604
-    ActivePage = TabSheet1
+    ActivePage = TabSheet6
     Align = alClient
     TabOrder = 0
     object TabSheet1: TTabSheet
@@ -473,7 +473,7 @@ object MainForm: TMainForm
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 828
+        Width = 808
         Height = 69
         Align = alTop
         Caption = 
@@ -488,7 +488,6 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         WordWrap = True
-        ExplicitWidth = 808
       end
       object btnGenericExcWithCustomHandling: TButton
         Left = 0
@@ -521,6 +520,84 @@ object MainForm: TMainForm
         TabOrder = 2
         WordWrap = True
         OnClick = btnGenericExcWithoutCustomHandlingClick
+      end
+    end
+    object TabSheet6: TTabSheet
+      Caption = 'Using record as parameters'
+      ImageIndex = 3
+      DesignSize = (
+        834
+        576)
+      object btnSingleRec: TButton
+        Left = 16
+        Top = 16
+        Width = 185
+        Height = 41
+        Caption = 'Returning Single Record'
+        TabOrder = 0
+        OnClick = btnSingleRecClick
+      end
+      object lbLogRec: TMemo
+        Left = 216
+        Top = 16
+        Width = 601
+        Height = 545
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Consolas'
+        Font.Style = []
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssBoth
+        TabOrder = 1
+        WordWrap = False
+      end
+      object btnGetArrayOfRecords: TButton
+        Left = 16
+        Top = 63
+        Width = 185
+        Height = 40
+        Caption = 'Returning Array of Records'
+        TabOrder = 2
+        OnClick = btnGetArrayOfRecordsClick
+      end
+      object btnGetDynArray: TButton
+        Left = 16
+        Top = 109
+        Width = 185
+        Height = 40
+        Caption = 'Returning DynArray of Records'
+        TabOrder = 3
+        OnClick = btnGetDynArrayClick
+      end
+      object btnPassAndGetRecord: TButton
+        Left = 16
+        Top = 155
+        Width = 185
+        Height = 40
+        Caption = 'Using record parameters'
+        TabOrder = 4
+        OnClick = btnPassAndGetRecordClick
+      end
+      object btnEchoComplexArray: TButton
+        Left = 16
+        Top = 201
+        Width = 185
+        Height = 40
+        Caption = 'Using Array as Parameter'
+        TabOrder = 5
+        OnClick = btnEchoComplexArrayClick
+      end
+      object btnComplex: TButton
+        Left = 16
+        Top = 247
+        Width = 185
+        Height = 40
+        Caption = 'Using parameter with multiple arrays'
+        TabOrder = 6
+        OnClick = btnComplexClick
       end
     end
   end

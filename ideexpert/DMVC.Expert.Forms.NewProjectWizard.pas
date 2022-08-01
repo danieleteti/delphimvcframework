@@ -50,31 +50,42 @@ uses
 
 type
   TfrmDMVCNewProject = class(TForm)
-    gbControllerUnitOptions: TGroupBox;
     btnOK: TButton;
     btnCancel: TButton;
-    chkCreateIndexMethod: TCheckBox;
-    chkCreateControllerUnit: TCheckBox;
     chkAddToProjectGroup: TCheckBox;
-    edtClassName: TEdit;
-    lblClassName: TLabel;
     edtWebModuleName: TEdit;
-    Label1: TLabel;
     lblWbModule: TLabel;
-    chkCreateActionFiltersMethods: TCheckBox;
     edtServerPort: TEdit;
     Label2: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
-    chkCreateCRUDMethods: TCheckBox;
     chkAnalyticsMiddleware: TCheckBox;
+    Panel1: TPanel;
+    chkJSONRPC: TCheckBox;
+    GroupBoxJSONRPC: TGroupBox;
+    Label3: TLabel;
+    EdtJSONRPCClassName: TEdit;
+    Panel2: TPanel;
+    gbControllerUnitOptions: TGroupBox;
+    lblClassName: TLabel;
+    Label1: TLabel;
+    chkCreateIndexMethod: TCheckBox;
+    edtClassName: TEdit;
+    chkCreateActionFiltersMethods: TCheckBox;
+    chkCreateCRUDMethods: TCheckBox;
+    chkCreateControllerUnit: TCheckBox;
     lblBook: TLabel;
+    Shape1: TShape;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
     procedure lblBookMouseLeave(Sender: TObject);
     procedure lblBookClick(Sender: TObject);
+    procedure chkJSONRPCClick(Sender: TObject);
+    procedure lblFrameworkVersionMouseEnter(Sender: TObject);
+    procedure lblFrameworkVersionMouseLeave(Sender: TObject);
+    procedure lblFrameworkVersionClick(Sender: TObject);
   private
     { Private declarations }
     function GetAddToProjectGroup: boolean;
@@ -87,11 +98,14 @@ type
     function GetCreateCRUDMethods: boolean;
     function GetAnalyticsSupport: boolean;
     function GetMiddlewares: TArray<String>;
+    function GetCreateJSONRPCInterface: boolean;
+    function GetJSONRPCClassName: String;
   public
     { Public declarations }
     // Read Only Properties to extract values without having to know control values.
     property ControllerClassName: string read GetControllerClassName;
     property CreateControllerUnit: boolean read GetCreateControllerUnit;
+    property JSONRPCClassName: String read GetJSONRPCClassName;
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
@@ -123,12 +137,19 @@ begin
   edtClassName.Enabled := chkCreateControllerUnit.Checked;
 end;
 
+procedure TfrmDMVCNewProject.chkJSONRPCClick(Sender: TObject);
+begin
+  GroupBoxJSONRPC.Enabled := chkJSONRPC.Checked;
+end;
+
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
 begin
   edtClassName.TextHint := sDefaultControllerName;
   edtWebModuleName.TextHint := sDefaultWebModuleName;
   edtServerPort.TextHint := sDefaultServerPort;
   lblFrameworkVersion.Caption := DMVCFRAMEWORK_VERSION;
+  chkJSONRPC.Checked := False;
+  chkJSONRPCClick(Self);
 end;
 
 function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
@@ -144,6 +165,27 @@ end;
 function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
+end;
+
+function TfrmDMVCNewProject.GetCreateJSONRPCInterface: boolean;
+begin
+  Result := chkJSONRPC.Checked;
+end;
+
+function TfrmDMVCNewProject.GetJSONRPCClassName: String;
+begin
+  if GetCreateJSONRPCInterface then
+  begin
+    Result := EdtJSONRPCClassName.Text;
+    if Result.IsEmpty then
+    begin
+      Result := EdtJSONRPCClassName.TextHint;
+    end;
+  end
+  else
+  begin
+    Result := '';
+  end;
 end;
 
 function TfrmDMVCNewProject.GetMiddlewares: TArray<String>;
@@ -204,6 +246,25 @@ procedure TfrmDMVCNewProject.lblBookMouseLeave(Sender: TObject);
 begin
   lblBook.Font.Color := Font.Color;
   lblBook.Font.Style := lblBook.Font.Style - [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblFrameworkVersionClick(Sender: TObject);
+begin
+  ShellExecute(0, PChar('open'),
+    PChar('https://github.com/danieleteti/delphimvcframework/releases/latest'),
+    nil, nil, SW_SHOW);
+end;
+
+procedure TfrmDMVCNewProject.lblFrameworkVersionMouseEnter(Sender: TObject);
+begin
+  lblFrameworkVersion.Font.Color := clHighlight;
+  lblFrameworkVersion.Font.Style := lblFrameworkVersion.Font.Style + [fsUnderline];
+end;
+
+procedure TfrmDMVCNewProject.lblFrameworkVersionMouseLeave(Sender: TObject);
+begin
+  lblFrameworkVersion.Font.Color := Font.Color;
+  lblFrameworkVersion.Font.Style := lblFrameworkVersion.Font.Style - [fsUnderline];
 end;
 
 function TfrmDMVCNewProject.GetCreateActionFiltersMethods: boolean;

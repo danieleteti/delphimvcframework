@@ -54,9 +54,6 @@ type
 
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: TArray<TCustomAttribute>);
-
-  public
-    { public declarations }
   end;
 
   TMVCStringDictionarySerializer = class(TInterfacedObject, IMVCTypeSerializer)
@@ -98,8 +95,6 @@ type
       const ASerializerObject: TObject; const AAttributes: TArray<TCustomAttribute>);
     procedure DeserializeRoot(const ASerializerObject: TObject; const AObject: TObject;
       const AAttributes: TArray<TCustomAttribute>);
-    // internal use
-    // class procedure Serialize(const ADict: TMVCStringDictionary; const AJSONObject: TJsonObject); inline;
   end;
 
   TMVCListOfStringSerializer = class(TInterfacedObject, IMVCTypeSerializer)

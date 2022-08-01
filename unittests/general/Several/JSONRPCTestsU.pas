@@ -48,6 +48,8 @@ type
     procedure TestNotificationWithNoParameters;
   end;
 
+
+
 implementation
 
 { TJSONRPCTest }

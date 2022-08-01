@@ -50,54 +50,53 @@ implementation
 uses
   DMVC.Expert.Forms.NewUnitWizard,
   DMVC.Expert.CodeGen.NewControllerUnit,
-  Vcl.Controls,
-  Vcl.Forms,
+  VCL.Controls,
+  VCL.Forms,
   WinApi.Windows,
   ExpertsRepository;
 
 resourcestring
- sNewDMVCUnitCaption = 'DelphiMVCFramework Controller';
- sNewDMVCProjectHint = 'Create New DelphiMVCFramework Controller Unit';
+  sNewDMVCUnitCaption = 'DelphiMVCFramework Controller';
+  sNewDMVCProjectHint = 'Create New DelphiMVCFramework Controller Unit';
 
-class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const aPersonality: string);
+class procedure TDMVCNewUnitWizard.RegisterDMVCNewUnitWizard(const APersonality: string);
 begin
-  RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(aPersonality,
-                        sNewDMVCProjectHint, sNewDMVCUnitCaption, 'DMVC.Wizard.NewUnitWizard',  // do not localize
-                        'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
+  RegisterPackageWizard(TExpertsRepositoryProjectWizardWithProc.Create(APersonality, sNewDMVCProjectHint,
+    sNewDMVCUnitCaption, 'DMVC.Wizard.NewUnitWizard', // do not localize
+    'DMVCFramework', 'DMVCFramework Team - https://github.com/danieleteti/delphimvcframework', // do not localize
     procedure
     var
-      WizardForm     : TfrmDMVCNewUnit;
-      ModuleServices : IOTAModuleServices;
-      Project        : IOTAProject;
-      ControllerUnit : IOTAModule;
+      WizardForm: TfrmDMVCNewUnit;
+      ModuleServices: IOTAModuleServices;
+      Project: IOTAProject;
+      ControllerUnit: IOTAModule;
     begin
       WizardForm := TfrmDMVCNewUnit.Create(Application);
       try
         if WizardForm.ShowModal = mrOk then
         begin
           ModuleServices := (BorlandIDEServices as IOTAModuleServices);
-          Project :=  GetActiveProject;
+          Project := GetActiveProject;
           ControllerUnit := ModuleServices.CreateModule(
-                           TNewControllerUnitEx.Create(WizardForm.CreateIndexMethod,
-                                                       WizardForm.CreateCRUDMethods,
-                                                       WizardForm.CreateActionFiltersMethods,
-                                                       WizardForm.ControllerClassName,
-                                                       aPersonality));
+            TNewControllerUnitEx.Create(
+              WizardForm.CreateIndexMethod,
+              WizardForm.CreateCRUDMethods,
+              WizardForm.CreateActionFiltersMethods,
+              WizardForm.ControllerClassName,
+              APersonality));
           if Project <> nil then
           begin
-            Project.AddFile(ControllerUnit.FileName,true);
+            Project.AddFile(ControllerUnit.FileName, true);
           end;
         end;
       finally
         WizardForm.Free;
       end;
     end,
-            function: Cardinal
-            begin
-              Result := LoadIcon(HInstance,'DMVCNewUnitIcon');
-            end,
-            TArray<string>.Create(cWin32Platform, cWin64Platform),
-            nil));
- end;
+    function: Cardinal
+    begin
+      Result := LoadIcon(HInstance, 'DMVCNewUnitIcon');
+    end, TArray<string>.Create(cWin32Platform, cWin64Platform), nil));
+end;
 
 end.
