@@ -45,7 +45,7 @@ type
     [Setup]
     procedure Setup; virtual;
     [TearDown]
-    procedure TearDown;
+    procedure TearDown; virtual;
 
   end;
 

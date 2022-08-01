@@ -1429,4 +1429,9 @@ begin
   Result := inherited + Format(' [ID:%5d][Company: %s]', [ID.ValueOrDefault, CompanyName.ValueOrDefault]);
 end;
 
+
+initialization
+
+ActiveRecordMappingRegistry.AddEntity('customers', TCustomer);
+
 end.

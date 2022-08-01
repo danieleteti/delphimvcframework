@@ -376,7 +376,7 @@ def parse_template(tmpl: List[str]):
         if row.upper().strip() in ["///INTERFACE.END", "///IMPLEMENTATION.END"]:
             if state == "parsing.interface":
                 main_tmpl.append("$INTERFACE$")
-            if state == "parsing.implementation":
+            if state == "parsing.implementation":                
                 main_tmpl.append("$IMPLEMENTATION$")
             state = "verbatim"
             continue
@@ -428,16 +428,35 @@ def generate_nullables(ctx):
 
     intf_out = ""
     impl_out = ""
+
+    enum_declaration = ["ntInvalidNullableType"]
+    enum_detect_line = []
     for delphi_type in delphi_types:
+        enum_declaration.append('ntNullable' + delphi_type)
+        enum_detect_line.append(f"  if aTypeInfo = TypeInfo(Nullable{delphi_type}) then \n    Exit(ntNullable{delphi_type}); ")
+
         intf_out += (
             f"//**************************\n// ** Nullable{delphi_type}\n//**************************\n\n"
             + str_intf_tmpl.replace("$TYPE$", delphi_type)
         )
         impl_out += str_impl_tmpl.replace("$TYPE$", delphi_type) + "\n"
 
-    str_main_tmpl = str_main_tmpl.replace("$INTERFACE$", intf_out).replace(
-        "$IMPLEMENTATION$", impl_out
-    )
+    enum_declaration = '  TNullableType = (\n     ' + '\n   , '.join(enum_declaration) + ');\n\n' 
+    enum_detect_function = []
+    enum_detect_function.append("function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;")
+    enum_detect_function.append("begin")
+    enum_detect_function.extend(enum_detect_line)        
+    enum_detect_function.append("  Result := ntInvalidNullableType;")
+    enum_detect_function.append("end;")
+
+    intf_out += enum_declaration + "\n"
+    intf_out += enum_detect_function[0] + "\n"
+    impl_out += "\n".join(enum_detect_function) + "\n"
+
+    str_main_tmpl = str_main_tmpl \
+        .replace("$INTERFACE$", intf_out) \
+        .replace("$IMPLEMENTATION$", impl_out) \
+        + "\n"
 
     with open(output_unitname, "w") as f:
         f.writelines(str_main_tmpl)

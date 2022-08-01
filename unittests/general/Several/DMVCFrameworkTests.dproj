@@ -204,13 +204,13 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecord.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.ActiveRecordController.pas"/>
         <DCCReference Include="ActiveRecordControllerTestU.pas"/>
-        <DCCReference Include="webmodules\WebModuleU.pas">
-            <Form>MyWebModule</Form>
+        <DCCReference Include="webmodules\ActiveRecordControllerWebModuleU.pas">
+            <Form>ActiveRecordControllerWebModule</Form>
             <DesignClass>TWebModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="webmodules\FDConnectionConfigU.pas"/>
-        <DCCReference Include="..\StandaloneServer\StandaloneServerTestU.pas"/>
-        <DCCReference Include="..\StandaloneServer\StandAloneServerWebModuleTest.pas">
+        <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>
+        <DCCReference Include="StandaloneServerTestU.pas"/>
+        <DCCReference Include="webmodules\StandAloneServerWebModuleTest.pas">
             <Form>TestWebModule2</Form>
             <FormType>dfm</FormType>
             <DesignClass>TWebModule</DesignClass>
@@ -231,6 +231,9 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.RQL.AST2PostgreSQL.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.RQL.AST2SQLite.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.RQL.Parser.pas"/>
+        <DCCReference Include="Entities.pas"/>
+        <DCCReference Include="EntitiesProcessors.pas"/>
+        <DCCReference Include="..\..\..\sources\MVCFramework.Nullables.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

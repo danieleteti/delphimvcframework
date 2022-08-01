@@ -22,11 +22,8 @@ type
     procedure HelloWorld(ctx: TWebContext);
   end;
 
-
   [TestFixture]
   TTestServerContainer = class(TObject)
-  private
-
   protected
     [SetUp]
     procedure SetUp;
@@ -66,45 +63,37 @@ procedure TTestServerContainer.TestListener;
 var
   lListener: IMVCListener;
 begin
-  LListener := TMVCListener.Create(TMVCListenerProperties.New
-    .SetName('Listener1')
-    .SetPort(5000)
-    .SetMaxConnections(512)
-    .SetWebModuleClass(TestWebModuleClass)
-    );
+  lListener := TMVCListener.Create(TMVCListenerProperties.New.SetName('Listener1').SetPort(5000).SetMaxConnections(512)
+    .SetWebModuleClass(TestWebModuleClass));
 
-  Assert.isTrue(Assigned(LListener));
+  Assert.IsTrue(Assigned(lListener));
 
-  LListener.Start;
-  Assert.isTrue(LListener.Active);
+  lListener.Start;
+  Assert.IsTrue(lListener.Active);
 
-  LListener.Stop;
-  Assert.isFalse(LListener.Active);
+  lListener.Stop;
+  Assert.IsFalse(lListener.Active);
 end;
 
 procedure TTestServerContainer.TestServerListenerAndClient;
 var
-  LListener: IMVCListener;
+  lListener: IMVCListener;
   LClient: IMVCRESTClient;
 begin
-  LListener := TMVCListener.Create(TMVCListenerProperties.New
-    .SetName('Listener1')
-    .SetPort(6000)
-    .SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass)
-    );
+  lListener := TMVCListener.Create(TMVCListenerProperties.New.SetName('Listener1').SetPort(6000).SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass));
 
-  Assert.isTrue(Assigned(LListener));
+  Assert.IsTrue(Assigned(lListener));
 
-  LListener.Start;
-  Assert.isTrue(LListener.Active);
+  lListener.Start;
+  Assert.IsTrue(lListener.Active);
 
   LClient := TMVCRESTClient.New.BaseURL('localhost', 6000);
   LClient.SetBasicAuthorization('dmvc', '123');
   Assert.AreEqual('Hello World called with GET', LClient.Get('/hello').Content);
 
-  LListener.Stop;
-  Assert.isFalse(LListener.Active);
+  lListener.Stop;
+  Assert.IsFalse(lListener.Active);
 end;
 
 procedure TTestServerContainer.TestListenerContext;
@@ -113,39 +102,29 @@ var
 begin
   LListenerCtx := TMVCListenersContext.Create;
 
-  LListenerCtx.Add(TMVCListenerProperties.New
-    .SetName('Listener2')
-    .SetPort(6000)
-    .SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass)
-    );
+  LListenerCtx.Add(TMVCListenerProperties.New.SetName('Listener2').SetPort(6000).SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass));
 
-  LListenerCtx.Add(TMVCListenerProperties.New
-    .SetName('Listener3')
-    .SetPort(7000)
-    .SetMaxConnections(1024)
-    .SetWebModuleClass(TestWebModuleClass2)
-    );
+  LListenerCtx.Add(TMVCListenerProperties.New.SetName('Listener3').SetPort(7000).SetMaxConnections(1024)
+    .SetWebModuleClass(TestWebModuleClass2));
 
-  Assert.isTrue(Assigned(LListenerCtx.FindByName('Listener2')));
-  Assert.isTrue(Assigned(LListenerCtx.FindByName('Listener3')));
+  Assert.IsTrue(Assigned(LListenerCtx.FindByName('Listener2')));
+  Assert.IsTrue(Assigned(LListenerCtx.FindByName('Listener3')));
 
   LListenerCtx.StartAll;
 
-  Assert.isTrue(LListenerCtx.Count = 2);
-  Assert.isTrue(LListenerCtx.FindByName('Listener2').Active);
-  Assert.isTrue(LListenerCtx.FindByName('Listener3').Active);
+  Assert.IsTrue(LListenerCtx.Count = 2);
+  Assert.IsTrue(LListenerCtx.FindByName('Listener2').Active);
+  Assert.IsTrue(LListenerCtx.FindByName('Listener3').Active);
 
   LListenerCtx.StopAll;
 
-  Assert.isFalse(LListenerCtx.FindByName('Listener2').Active);
-  Assert.isFalse(LListenerCtx.FindByName('Listener3').Active);
+  Assert.IsFalse(LListenerCtx.FindByName('Listener2').Active);
+  Assert.IsFalse(LListenerCtx.FindByName('Listener3').Active);
 
-  LListenerCtx
-    .Remove('Listener2')
-    .Remove('Listener3');
+  LListenerCtx.Remove('Listener2').Remove('Listener3');
 
-  Assert.isTrue(LListenerCtx.Count = 0);
+  Assert.IsTrue(LListenerCtx.Count = 0);
 end;
 
 { TTestController }
@@ -160,4 +139,3 @@ initialization
 TDUnitX.RegisterTestFixture(TTestServerContainer);
 
 end.
-

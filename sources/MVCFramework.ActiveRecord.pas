@@ -1696,6 +1696,8 @@ begin
 end;
 
 function TMVCActiveRecord.MapNullableTValueToParam(aValue: TValue; const aParam: TFDParam): Boolean;
+var
+  lNTType: TNullableType;
 begin
   Assert(aValue.Kind = tkRecord);
   Result := false;
@@ -2628,11 +2630,15 @@ begin
   if fPrimaryKey.GetValue(Self).Kind = tkRecord then
   begin
     lPKValue := fPrimaryKey.GetValue(Self);
-    if lPKValue.IsType<NullableInt32> and aValue.IsType<NullableInt32>() then
+    if lPKValue.IsType<NullableInt32> {and aValue.IsType<NullableInt32>()} then
     begin
-      if aValue.IsType<UInt32> then
+      if aValue.IsType<Int32> then
       begin
         lPKValue := TValue.From<NullableInt32>(IntToNullableInt(aValue.AsInteger));
+      end
+      else
+      begin
+        raise EMVCActiveRecord.Create('Invalid type for primary key');
       end;
     end
     else if lPKValue.IsType<NullableInt64> and aValue.IsType<NullableInt64>() then

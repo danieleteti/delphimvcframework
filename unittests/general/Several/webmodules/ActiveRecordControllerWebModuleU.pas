@@ -1,4 +1,4 @@
-unit WebModuleU;
+unit ActiveRecordControllerWebModuleU;
 
 interface
 
@@ -27,8 +27,12 @@ uses
   FireDAC.DApt,
   FireDAC.Comp.DataSet;
 
+
+const
+  AR_CONTROLLER_CON_DEF_NAME = 'AR_CONTROLLER_CON_DEF_NAME';
+
 type
-  TMyWebModule = class(TWebModule)
+  TActiveRecordControllerWebModule = class(TWebModule)
     procedure WebModuleCreate(Sender: TObject);
     procedure WebModuleDestroy(Sender: TObject);
   private
@@ -49,7 +53,7 @@ uses
   MVCFramework.Middleware.StaticFiles,
   FDConnectionConfigU;
 
-procedure TMyWebModule.WebModuleCreate(Sender: TObject);
+procedure TActiveRecordControllerWebModule.WebModuleCreate(Sender: TObject);
 begin
   FMVC := TMVCEngine.Create(Self,
     procedure(Config: TMVCConfig)
@@ -73,11 +77,11 @@ begin
   FMVC.AddController(TMVCActiveRecordController,
     function: TMVCController
     begin
-      Result := TMVCActiveRecordController.Create(CON_DEF_NAME);
+      Result := TMVCActiveRecordController.Create(AR_CONTROLLER_CON_DEF_NAME);
     end, '/api/entities');
 end;
 
-procedure TMyWebModule.WebModuleDestroy(Sender: TObject);
+procedure TActiveRecordControllerWebModule.WebModuleDestroy(Sender: TObject);
 begin
   FMVC.Free;
 end;

@@ -1,4 +1,4 @@
-object MyWebModule: TMyWebModule
+object ActiveRecordControllerWebModule: TActiveRecordControllerWebModule
   OnCreate = WebModuleCreate
   OnDestroy = WebModuleDestroy
   Actions = <>

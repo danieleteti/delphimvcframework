@@ -1989,12 +1989,15 @@ var
   LParams: TStringList;
   lDriver: IFDStanDefinition;
 begin
-  lDriver := FDManager.DriverDefs.Add;
-  lDriver.Name := 'FBEMBEDDED';
-  lDriver.AsString['BaseDriverID'] := 'FB';
-  lDriver.AsString['DriverID'] := 'FBEMBEDDED';
-  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
-  lDriver.Apply;
+  if not Assigned(FDManager.DriverDefs.FindDefinition('FBEMBEDDED')) then
+  begin
+    lDriver := FDManager.DriverDefs.Add;
+    lDriver.Name := 'FBEMBEDDED';
+    lDriver.AsString['BaseDriverID'] := 'FB';
+    lDriver.AsString['DriverID'] := 'FBEMBEDDED';
+    lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
+    lDriver.Apply;
+  end;
 
   LParams := TStringList.Create;
   try

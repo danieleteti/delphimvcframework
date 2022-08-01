@@ -8,7 +8,7 @@
 //
 // Delphi MVC Framework
 //
-// Copyright (c) 2010-2020 Daniele Teti and the DMVCFramework Team
+// Copyright (c) 2010-2022 Daniele Teti and the DMVCFramework Team
 //
 // https://github.com/danieleteti/delphimvcframework
 //
@@ -32,7 +32,7 @@ unit MVCFramework.Nullables;
 interface
 
 uses
-  System.SysUtils, System.Classes;
+  System.SysUtils, System.Classes, System.TypInfo;
 
 type
   EMVCNullable = class(Exception)
@@ -48,32 +48,41 @@ type
     fValue: String;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: String;
     procedure SetValue(const Value: String);
     class operator Implicit(const Value: String): NullableString;
     class operator Implicit(const Value: NullableString): String;
+    class operator Implicit(const Value: Pointer): NullableString;	
+    ///<summary>
+    ///Returns `True` if the NullableString contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableString contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: String;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableString): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableString): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: String read GetValue write SetValue;
   end;
 
@@ -86,32 +95,41 @@ type
     fValue: Currency;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Currency;
     procedure SetValue(const Value: Currency);
     class operator Implicit(const Value: Currency): NullableCurrency;
     class operator Implicit(const Value: NullableCurrency): Currency;
+    class operator Implicit(const Value: Pointer): NullableCurrency;	
+    ///<summary>
+    ///Returns `True` if the NullableCurrency contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableCurrency contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Currency;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableCurrency): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableCurrency): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Currency read GetValue write SetValue;
   end;
 
@@ -124,32 +142,41 @@ type
     fValue: Boolean;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Boolean;
     procedure SetValue(const Value: Boolean);
     class operator Implicit(const Value: Boolean): NullableBoolean;
     class operator Implicit(const Value: NullableBoolean): Boolean;
+    class operator Implicit(const Value: Pointer): NullableBoolean;	
+    ///<summary>
+    ///Returns `True` if the NullableBoolean contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableBoolean contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Boolean;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableBoolean): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableBoolean): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Boolean read GetValue write SetValue;
   end;
 
@@ -162,32 +189,41 @@ type
     fValue: TDate;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: TDate;
     procedure SetValue(const Value: TDate);
     class operator Implicit(const Value: TDate): NullableTDate;
     class operator Implicit(const Value: NullableTDate): TDate;
+    class operator Implicit(const Value: Pointer): NullableTDate;	
+    ///<summary>
+    ///Returns `True` if the NullableTDate contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableTDate contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: TDate;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableTDate): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableTDate): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: TDate read GetValue write SetValue;
   end;
 
@@ -200,32 +236,41 @@ type
     fValue: TTime;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: TTime;
     procedure SetValue(const Value: TTime);
     class operator Implicit(const Value: TTime): NullableTTime;
     class operator Implicit(const Value: NullableTTime): TTime;
+    class operator Implicit(const Value: Pointer): NullableTTime;	
+    ///<summary>
+    ///Returns `True` if the NullableTTime contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableTTime contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: TTime;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableTTime): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableTTime): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: TTime read GetValue write SetValue;
   end;
 
@@ -238,32 +283,41 @@ type
     fValue: TDateTime;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: TDateTime;
     procedure SetValue(const Value: TDateTime);
     class operator Implicit(const Value: TDateTime): NullableTDateTime;
     class operator Implicit(const Value: NullableTDateTime): TDateTime;
+    class operator Implicit(const Value: Pointer): NullableTDateTime;	
+    ///<summary>
+    ///Returns `True` if the NullableTDateTime contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableTDateTime contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: TDateTime;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableTDateTime): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableTDateTime): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: TDateTime read GetValue write SetValue;
   end;
 
@@ -276,32 +330,41 @@ type
     fValue: Single;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Single;
     procedure SetValue(const Value: Single);
     class operator Implicit(const Value: Single): NullableSingle;
     class operator Implicit(const Value: NullableSingle): Single;
+    class operator Implicit(const Value: Pointer): NullableSingle;	
+    ///<summary>
+    ///Returns `True` if the NullableSingle contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableSingle contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Single;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableSingle): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableSingle): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Single read GetValue write SetValue;
   end;
 
@@ -314,32 +377,41 @@ type
     fValue: Double;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Double;
     procedure SetValue(const Value: Double);
     class operator Implicit(const Value: Double): NullableDouble;
     class operator Implicit(const Value: NullableDouble): Double;
+    class operator Implicit(const Value: Pointer): NullableDouble;	
+    ///<summary>
+    ///Returns `True` if the NullableDouble contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableDouble contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Double;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableDouble): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableDouble): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Double read GetValue write SetValue;
   end;
 
@@ -352,32 +424,41 @@ type
     fValue: Extended;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Extended;
     procedure SetValue(const Value: Extended);
     class operator Implicit(const Value: Extended): NullableExtended;
     class operator Implicit(const Value: NullableExtended): Extended;
+    class operator Implicit(const Value: Pointer): NullableExtended;	
+    ///<summary>
+    ///Returns `True` if the NullableExtended contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableExtended contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Extended;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableExtended): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableExtended): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Extended read GetValue write SetValue;
   end;
 
@@ -390,32 +471,41 @@ type
     fValue: Int16;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Int16;
     procedure SetValue(const Value: Int16);
     class operator Implicit(const Value: Int16): NullableInt16;
     class operator Implicit(const Value: NullableInt16): Int16;
+    class operator Implicit(const Value: Pointer): NullableInt16;	
+    ///<summary>
+    ///Returns `True` if the NullableInt16 contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableInt16 contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Int16;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableInt16): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableInt16): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Int16 read GetValue write SetValue;
   end;
 
@@ -428,32 +518,41 @@ type
     fValue: UInt16;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: UInt16;
     procedure SetValue(const Value: UInt16);
     class operator Implicit(const Value: UInt16): NullableUInt16;
     class operator Implicit(const Value: NullableUInt16): UInt16;
+    class operator Implicit(const Value: Pointer): NullableUInt16;	
+    ///<summary>
+    ///Returns `True` if the NullableUInt16 contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableUInt16 contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: UInt16;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableUInt16): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableUInt16): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: UInt16 read GetValue write SetValue;
   end;
 
@@ -466,32 +565,41 @@ type
     fValue: Int32;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Int32;
     procedure SetValue(const Value: Int32);
     class operator Implicit(const Value: Int32): NullableInt32;
     class operator Implicit(const Value: NullableInt32): Int32;
+    class operator Implicit(const Value: Pointer): NullableInt32;	
+    ///<summary>
+    ///Returns `True` if the NullableInt32 contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableInt32 contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Int32;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableInt32): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableInt32): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Int32 read GetValue write SetValue;
   end;
 
@@ -504,32 +612,41 @@ type
     fValue: UInt32;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: UInt32;
     procedure SetValue(const Value: UInt32);
     class operator Implicit(const Value: UInt32): NullableUInt32;
     class operator Implicit(const Value: NullableUInt32): UInt32;
+    class operator Implicit(const Value: Pointer): NullableUInt32;	
+    ///<summary>
+    ///Returns `True` if the NullableUInt32 contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableUInt32 contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: UInt32;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableUInt32): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableUInt32): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: UInt32 read GetValue write SetValue;
   end;
 
@@ -542,32 +659,41 @@ type
     fValue: Int64;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: Int64;
     procedure SetValue(const Value: Int64);
     class operator Implicit(const Value: Int64): NullableInt64;
     class operator Implicit(const Value: NullableInt64): Int64;
+    class operator Implicit(const Value: Pointer): NullableInt64;	
+    ///<summary>
+    ///Returns `True` if the NullableInt64 contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableInt64 contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: Int64;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableInt64): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableInt64): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: Int64 read GetValue write SetValue;
   end;
 
@@ -580,32 +706,41 @@ type
     fValue: UInt64;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: UInt64;
     procedure SetValue(const Value: UInt64);
     class operator Implicit(const Value: UInt64): NullableUInt64;
     class operator Implicit(const Value: NullableUInt64): UInt64;
+    class operator Implicit(const Value: Pointer): NullableUInt64;	
+    ///<summary>
+    ///Returns `True` if the NullableUInt64 contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableUInt64 contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: UInt64;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableUInt64): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableUInt64): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: UInt64 read GetValue write SetValue;
   end;
 
@@ -618,35 +753,65 @@ type
     fValue: TGUID;
     fHasValue: String;
     function GetHasValue: Boolean;
+	function GetIsNull: Boolean;	
   public
     procedure CheckHasValue;
     function GetValue: TGUID;
     procedure SetValue(const Value: TGUID);
     class operator Implicit(const Value: TGUID): NullableTGUID;
     class operator Implicit(const Value: NullableTGUID): TGUID;
+    class operator Implicit(const Value: Pointer): NullableTGUID;	
+    ///<summary>
+    ///Returns `True` if the NullableTGUID contains a value
+    ///</summary>	
     property HasValue: Boolean read GetHasValue;
-	///<summary>
-	///Alias of `SetNull`
-	///</summary>
+    ///<summary>
+    ///Returns `True` if the NullableTGUID contains a null
+    ///</summary>	
+    property IsNull: Boolean read GetIsNull;	
+    ///<summary>
+    ///Alias of `SetNull`
+    ///</summary>
     procedure Clear;
-	///<summary>
-	///Set the value to `null`
-	///</summary>
+    ///<summary>
+    ///Set the value to `null`
+    ///</summary>
     procedure SetNull;
-	///<summary>
-	///Returns the value stored or the default value for the type is the value is not set
-	///</summary>	
+    ///<summary>
+    ///Returns the value stored or the default value for the type is the value is not set
+    ///</summary>	
     function ValueOrDefault: TGUID;
-	/// <summary>
-	/// Returns true is both item have the same value and that value is not null. 
-	/// </summary>
-	function Equals(const Value: NullableTGUID): Boolean;
-	///<summary>
-	///Returns the value stored or raises exception if no value is stored
-	///</summary>	
+    /// <summary>
+    /// Returns true is both item have the same value and that value is not null. 
+    /// </summary>
+    function Equals(const Value: NullableTGUID): Boolean;
+    ///<summary>
+    ///Returns the value stored or raises exception if no value is stored
+    ///</summary>	
     property Value: TGUID read GetValue write SetValue;
   end;
 
+  TNullableType = (
+     ntInvalidNullableType
+   , ntNullableString
+   , ntNullableCurrency
+   , ntNullableBoolean
+   , ntNullableTDate
+   , ntNullableTTime
+   , ntNullableTDateTime
+   , ntNullableSingle
+   , ntNullableDouble
+   , ntNullableExtended
+   , ntNullableInt16
+   , ntNullableUInt16
+   , ntNullableInt32
+   , ntNullableUInt32
+   , ntNullableInt64
+   , ntNullableUInt64
+   , ntNullableTGUID);
+
+
+function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
 
 implementation
 
@@ -676,6 +841,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableString.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableString.GetValue: String;
 begin
   CheckHasValue;
@@ -690,6 +860,18 @@ end;
 class operator NullableString.Implicit(const Value: String): NullableString;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableString.Implicit(const Value: Pointer): NullableString;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableString.SetNull;
@@ -743,6 +925,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableCurrency.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableCurrency.GetValue: Currency;
 begin
   CheckHasValue;
@@ -757,6 +944,18 @@ end;
 class operator NullableCurrency.Implicit(const Value: Currency): NullableCurrency;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableCurrency.Implicit(const Value: Pointer): NullableCurrency;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableCurrency.SetNull;
@@ -810,6 +1009,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableBoolean.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableBoolean.GetValue: Boolean;
 begin
   CheckHasValue;
@@ -824,6 +1028,18 @@ end;
 class operator NullableBoolean.Implicit(const Value: Boolean): NullableBoolean;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableBoolean.Implicit(const Value: Pointer): NullableBoolean;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableBoolean.SetNull;
@@ -877,6 +1093,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableTDate.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableTDate.GetValue: TDate;
 begin
   CheckHasValue;
@@ -891,6 +1112,18 @@ end;
 class operator NullableTDate.Implicit(const Value: TDate): NullableTDate;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableTDate.Implicit(const Value: Pointer): NullableTDate;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableTDate.SetNull;
@@ -944,6 +1177,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableTTime.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableTTime.GetValue: TTime;
 begin
   CheckHasValue;
@@ -958,6 +1196,18 @@ end;
 class operator NullableTTime.Implicit(const Value: TTime): NullableTTime;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableTTime.Implicit(const Value: Pointer): NullableTTime;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableTTime.SetNull;
@@ -1011,6 +1261,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableTDateTime.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableTDateTime.GetValue: TDateTime;
 begin
   CheckHasValue;
@@ -1025,6 +1280,18 @@ end;
 class operator NullableTDateTime.Implicit(const Value: TDateTime): NullableTDateTime;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableTDateTime.Implicit(const Value: Pointer): NullableTDateTime;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableTDateTime.SetNull;
@@ -1078,6 +1345,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableSingle.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableSingle.GetValue: Single;
 begin
   CheckHasValue;
@@ -1092,6 +1364,18 @@ end;
 class operator NullableSingle.Implicit(const Value: Single): NullableSingle;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableSingle.Implicit(const Value: Pointer): NullableSingle;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableSingle.SetNull;
@@ -1145,6 +1429,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableDouble.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableDouble.GetValue: Double;
 begin
   CheckHasValue;
@@ -1159,6 +1448,18 @@ end;
 class operator NullableDouble.Implicit(const Value: Double): NullableDouble;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableDouble.Implicit(const Value: Pointer): NullableDouble;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableDouble.SetNull;
@@ -1212,6 +1513,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableExtended.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableExtended.GetValue: Extended;
 begin
   CheckHasValue;
@@ -1226,6 +1532,18 @@ end;
 class operator NullableExtended.Implicit(const Value: Extended): NullableExtended;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableExtended.Implicit(const Value: Pointer): NullableExtended;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableExtended.SetNull;
@@ -1279,6 +1597,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableInt16.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableInt16.GetValue: Int16;
 begin
   CheckHasValue;
@@ -1293,6 +1616,18 @@ end;
 class operator NullableInt16.Implicit(const Value: Int16): NullableInt16;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableInt16.Implicit(const Value: Pointer): NullableInt16;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableInt16.SetNull;
@@ -1346,6 +1681,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableUInt16.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableUInt16.GetValue: UInt16;
 begin
   CheckHasValue;
@@ -1360,6 +1700,18 @@ end;
 class operator NullableUInt16.Implicit(const Value: UInt16): NullableUInt16;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableUInt16.Implicit(const Value: Pointer): NullableUInt16;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableUInt16.SetNull;
@@ -1413,6 +1765,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableInt32.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableInt32.GetValue: Int32;
 begin
   CheckHasValue;
@@ -1427,6 +1784,18 @@ end;
 class operator NullableInt32.Implicit(const Value: Int32): NullableInt32;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableInt32.Implicit(const Value: Pointer): NullableInt32;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableInt32.SetNull;
@@ -1480,6 +1849,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableUInt32.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableUInt32.GetValue: UInt32;
 begin
   CheckHasValue;
@@ -1494,6 +1868,18 @@ end;
 class operator NullableUInt32.Implicit(const Value: UInt32): NullableUInt32;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableUInt32.Implicit(const Value: Pointer): NullableUInt32;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableUInt32.SetNull;
@@ -1547,6 +1933,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableInt64.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableInt64.GetValue: Int64;
 begin
   CheckHasValue;
@@ -1561,6 +1952,18 @@ end;
 class operator NullableInt64.Implicit(const Value: Int64): NullableInt64;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableInt64.Implicit(const Value: Pointer): NullableInt64;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableInt64.SetNull;
@@ -1614,6 +2017,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableUInt64.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableUInt64.GetValue: UInt64;
 begin
   CheckHasValue;
@@ -1628,6 +2036,18 @@ end;
 class operator NullableUInt64.Implicit(const Value: UInt64): NullableUInt64;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableUInt64.Implicit(const Value: Pointer): NullableUInt64;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableUInt64.SetNull;
@@ -1681,6 +2101,11 @@ begin
   Result := fHasValue = '_';
 end;
 
+function NullableTGUID.GetIsNull: Boolean;
+begin
+  Result := not HasValue;
+end;
+
 function NullableTGUID.GetValue: TGUID;
 begin
   CheckHasValue;
@@ -1695,6 +2120,18 @@ end;
 class operator NullableTGUID.Implicit(const Value: TGUID): NullableTGUID;
 begin
   Result.Value := Value;
+end;
+
+class operator NullableTGUID.Implicit(const Value: Pointer): NullableTGUID;
+begin
+  if Value = nil then
+  begin
+    Result.SetNull;
+  end
+  else
+  begin
+    raise EInvalidPointer.Create('Pointer value can only be "nil"');
+  end;
 end;
 
 procedure NullableTGUID.SetNull;
@@ -1722,5 +2159,42 @@ begin
 end;
 
 
+function GetNullableType(const aTypeInfo: PTypeInfo): TNullableType;
+begin
+  if aTypeInfo = TypeInfo(NullableString) then 
+    Exit(ntNullableString); 
+  if aTypeInfo = TypeInfo(NullableCurrency) then 
+    Exit(ntNullableCurrency); 
+  if aTypeInfo = TypeInfo(NullableBoolean) then 
+    Exit(ntNullableBoolean); 
+  if aTypeInfo = TypeInfo(NullableTDate) then 
+    Exit(ntNullableTDate); 
+  if aTypeInfo = TypeInfo(NullableTTime) then 
+    Exit(ntNullableTTime); 
+  if aTypeInfo = TypeInfo(NullableTDateTime) then 
+    Exit(ntNullableTDateTime); 
+  if aTypeInfo = TypeInfo(NullableSingle) then 
+    Exit(ntNullableSingle); 
+  if aTypeInfo = TypeInfo(NullableDouble) then 
+    Exit(ntNullableDouble); 
+  if aTypeInfo = TypeInfo(NullableExtended) then 
+    Exit(ntNullableExtended); 
+  if aTypeInfo = TypeInfo(NullableInt16) then 
+    Exit(ntNullableInt16); 
+  if aTypeInfo = TypeInfo(NullableUInt16) then 
+    Exit(ntNullableUInt16); 
+  if aTypeInfo = TypeInfo(NullableInt32) then 
+    Exit(ntNullableInt32); 
+  if aTypeInfo = TypeInfo(NullableUInt32) then 
+    Exit(ntNullableUInt32); 
+  if aTypeInfo = TypeInfo(NullableInt64) then 
+    Exit(ntNullableInt64); 
+  if aTypeInfo = TypeInfo(NullableUInt64) then 
+    Exit(ntNullableUInt64); 
+  if aTypeInfo = TypeInfo(NullableTGUID) then 
+    Exit(ntNullableTGUID); 
+  Result := ntInvalidNullableType;
+end;
 
 end.
+
