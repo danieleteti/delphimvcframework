@@ -701,6 +701,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/560 (thanks to [David Moorhouse](https://github.com/fastbike))
 
+- Fix https://github.com/danieleteti/delphimvcframework/issues/335 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
 - Merged [PR#543](https://github.com/danieleteti/delphimvcframework/pull/543) (Now the `PathInfo` is trimmed so the router convert this "http://myserver.com/one " to this "http://myserver.com/one")
 
 - Fix for nil objects in lists during serialization
