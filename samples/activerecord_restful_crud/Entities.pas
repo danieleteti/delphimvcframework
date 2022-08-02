@@ -11,7 +11,7 @@ uses
 
 type
 
-  [MVCNameCase(ncLowerCase)]
+  [MVCNameCase(ncCamelCase)]
   [MVCTable('people')]
   [MVCEntityActions([eaCreate, eaRetrieve, eaUpdate, eaDelete])]
   TPerson = class(TMVCActiveRecord)
@@ -52,7 +52,9 @@ type
     constructor Create; override;
     destructor Destroy; override;
     property ID: Int64 read fID write SetID;
+    [MVCNameAs('person_surname')]
     property LastName: string read fLastName write SetLastName;
+    [MVCNameAs('person_name')]
     property FirstName: string read fFirstName write SetFirstName;
     property Age: NullableInt32 read fAge;
     property DOB: NullableTDate read fDOB write SetDOB;

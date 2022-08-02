@@ -1427,6 +1427,9 @@ function TMVCActiveRecord.GetMapping: TMVCFieldsMapping;
 var
   lPair: TPair<TRTTIField, TFieldInfo>;
   I: Integer;
+  lPropFromField: TRttiProperty;
+  lParentType: TRttiType;
+  lTmp: String;
 begin
   { TODO -oDanieleT -cGeneral : Let share the mapping for instances of the same type }
   { TODO -oDanieleT -cGeneral : Add NameAs in the TFieldInfo because the user needs to use the property name he see }
@@ -1434,9 +1437,19 @@ begin
   begin
     if not fPrimaryKeyFieldName.IsEmpty then
     begin
+      lParentType := fPrimaryKey.Parent;
       SetLength(fMapping, fMap.Count + 1);
       fMapping[0].InstanceFieldName := fPrimaryKey.Name.Substring(1).ToLower;
       fMapping[0].DatabaseFieldName := fPrimaryKeyFieldName;
+      lPropFromField := lParentType.GetProperty(fPrimaryKey.Name.Substring(1));
+      if Assigned(lPropFromField) then
+      begin
+        lTmp := TMVCSerializerHelper.GetKeyName(lPropFromField, lParentType);
+        if not SameText(lTmp, fMapping[0].InstanceFieldName) then
+        begin
+          fMapping[0].Alias := lTmp;
+        end;
+      end;
       I := 1;
     end
     else
@@ -1447,8 +1460,19 @@ begin
 
     for lPair in fMap do
     begin
+      lParentType := lPair.Key.Parent;
       fMapping[I].InstanceFieldName := lPair.Key.Name.Substring(1).ToLower;
       fMapping[I].DatabaseFieldName := lPair.Value.FieldName;
+
+      lPropFromField := lParentType.GetProperty(lPair.Key.Name.Substring(1));
+      if Assigned(lPropFromField) then
+      begin
+        lTmp := TMVCSerializerHelper.GetKeyName(lPropFromField, lParentType);
+        if not SameText(lTmp, fMapping[I].InstanceFieldName) then
+        begin
+          fMapping[I].Alias := lTmp;
+        end;
+      end;
       Inc(I);
     end;
   end;

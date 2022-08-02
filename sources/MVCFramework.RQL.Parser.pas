@@ -1203,6 +1203,15 @@ begin
     if lField.InstanceFieldName = lRQLProperty then
       Exit(GetFieldNameForSQL(lField.DatabaseFieldName));
   end;
+
+  //if no propert foundwith this name, let's look in the aliases
+  for lField in fMapping do
+  begin
+    if SameText(lField.Alias, lRQLProperty) then
+      Exit(GetFieldNameForSQL(lField.DatabaseFieldName));
+  end;
+
+
   { TODO -oDanieleT -cGeneral : Here we should consider also MVCNameAs attribute to find the name }
   if UsePropertyNameIfAttributeDoesntExists then
     Exit(GetFieldNameForSQL(RQLPropertyName))

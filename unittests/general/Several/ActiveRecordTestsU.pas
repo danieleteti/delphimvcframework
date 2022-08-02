@@ -74,6 +74,8 @@ type
     [Test]
     procedure TestRQL;
     [Test]
+    procedure TestRQLWithMVCNameAsAttribute;
+    [Test]
     procedure TestRQLWithBoolean;
     [Test]
     procedure TestRQLWithDateTime;
@@ -1670,6 +1672,29 @@ begin
   end;
   TMVCActiveRecord.DeleteRQL(TCustomerWithGUID, RQL1);
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithGUID>(RQL1));
+end;
+
+procedure TTestActiveRecordBase.TestRQLWithMVCNameAsAttribute;
+var
+  lCustomers: TObjectList<TCustomer>;
+const
+  //this RQL contains aliases defined using MVCNameAs attribute
+  RQL1 = 'and(or(eq(CityName, "Rome"),eq(City, "London")),ne(CustomerCode,"INVALID"))';
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+    for var lCustomer in lCustomers do
+    begin
+      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+    end;
+  finally
+    lCustomers.Free;
+  end;
+  TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
 end;
 
 procedure TTestActiveRecordBase.TestSelectWithExceptions;
