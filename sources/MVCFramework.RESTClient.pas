@@ -59,6 +59,9 @@ type
   IRESTResponse = MVCFramework.RESTClient.Indy.IRESTResponse deprecated
     'Moved to the MVCFramework.RESTClient.Indy unit. It is highly recommended to migrate to the TMVCRESTClient implementation.';
 
+  IMVCRESTClient = MVCFramework.RESTClient.Intf.IMVCRESTClient;
+  IMVCRESTResponse = MVCFramework.RESTClient.Intf.IMVCRESTResponse;
+
   TCookie = System.Net.HttpClient.TCookie;
   TCookies = System.Net.HttpClient.TCookies;
   TURLRequest = System.Net.URLClient.TURLRequest;
@@ -502,6 +505,7 @@ type
   /// </summary>
   TMVCRESTResponse = class(TInterfacedObject, IMVCRESTResponse)
   private
+    fRESTClient: IMVCRESTClient;
     fSuccess: Boolean;
     fStatusCode: Integer;
     fStatusText: string;
@@ -514,9 +518,9 @@ type
     fContent: string;
     fContentRawBytes: TBytes;
 
-    procedure FillResponse(aHTTPResponse: IHTTPResponse);
+    procedure FillResponse(const aHTTPResponse: IHTTPResponse);
   public
-    constructor Create(aHTTPResponse: IHTTPResponse);
+    constructor Create(const aRESTClient: IMVCRESTClient; const aHTTPResponse: IHTTPResponse);
     destructor Destroy; override;
 
     { IMVCRESTResponse }
@@ -537,6 +541,8 @@ type
     procedure SaveContentToFile(const aFileName: string);
     function ToJSONObject: TJDOJsonObject;
     function ToJSONArray: TJDOJsonArray;
+    procedure BodyFor(const aObject: TObject; const aRootNode: string = '');
+    procedure BodyForListOf(const aObjectList: TObject; const aObjectClass: TClass; const aRootNode: string = '');
   end;
 
 implementation
@@ -1446,7 +1452,7 @@ begin
 
   if not lHandled then
   begin
-    Result := TMVCRESTResponse.Create(lResponse);
+    Result := TMVCRESTResponse.Create(Self, lResponse);
     DoResponseCompleted(Result);
   end
   else
@@ -1861,6 +1867,16 @@ begin
   Result := StrTOJSONObject(fContent, True);
 end;
 
+procedure TMVCRESTResponse.BodyFor(const aObject: TObject; const aRootNode: string);
+begin
+  fRESTClient.Serializer.DeserializeObject(fContent, aObject, TMVCSerializationType.stDefault, [], aRootNode);
+end;
+
+procedure TMVCRESTResponse.BodyForListOf(const aObjectList: TObject; const aObjectClass: TClass; const aRootNode: string);
+begin
+  fRESTClient.Serializer.DeserializeCollection(fContent, aObjectList, aObjectClass, TMVCSerializationType.stDefault, [], aRootNode);
+end;
+
 function TMVCRESTResponse.Content: string;
 begin
   Result := fContent;
@@ -1898,11 +1914,12 @@ begin
   Result := fCookies;
 end;
 
-constructor TMVCRESTResponse.Create(aHTTPResponse: IHTTPResponse);
+constructor TMVCRESTResponse.Create(const aRESTClient: IMVCRESTClient; const aHTTPResponse: IHTTPResponse);
 begin
   fHeaders := TStringList.Create;
   SetLength(fContentRawBytes, 0);
   fCookies := TCookies.Create;
+  fRESTClient := aRESTClient;
 
   FillResponse(aHTTPResponse);
 end;
@@ -1915,7 +1932,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TMVCRESTResponse.FillResponse(aHTTPResponse: IHTTPResponse);
+procedure TMVCRESTResponse.FillResponse(const aHTTPResponse: IHTTPResponse);
 var
   lHeader: TNetHeader;
 begin
