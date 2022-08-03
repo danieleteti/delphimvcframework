@@ -73,28 +73,24 @@ type
 
   TPartitionFieldNames = class(TList<String>)
   end;
+
   TPartitionFieldValues = class(TList<String>)
   end;
+
   TPartitionFieldTypes = class(TList<TFieldType>)
   end;
 
-
   IMVCEntityProcessor = interface
     ['{E7CD11E6-9FF9-46D2-B7B0-DA5B38EAA14E}']
-    procedure GetEntities(const Context: TWebContext; const Renderer: TMVCRenderer;
-      const entityname: string;
+    procedure GetEntities(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
-    procedure GetEntity(const Context: TWebContext; const Renderer: TMVCRenderer;
-      const entityname: string;
+    procedure GetEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
       const id: Integer; var Handled: Boolean);
-    procedure CreateEntity(const Context: TWebContext; const Renderer: TMVCRenderer;
-      const entityname: string;
+    procedure CreateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
       var Handled: Boolean);
-    procedure UpdateEntity(const Context: TWebContext; const Renderer: TMVCRenderer;
-      const entityname: string;
+    procedure UpdateEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
       const id: Integer; var Handled: Boolean);
-    procedure DeleteEntity(const Context: TWebContext; const Renderer: TMVCRenderer;
-      const entityname: string;
+    procedure DeleteEntity(const Context: TWebContext; const Renderer: TMVCRenderer; const entityname: string;
       const id: Integer; var Handled: Boolean);
   end;
 
@@ -137,7 +133,6 @@ type
     PartitionClause: String;
     constructor Create(const PartitionClause: String);
   end;
-
 
   MVCTableFieldAttribute = class(MVCActiveRecordCustomAttribute)
   public
@@ -494,21 +489,18 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
   protected
-    procedure AddEntityProcessor(const aURLSegment: string;
-      const aEntityProcessor: IMVCEntityProcessor);
+    procedure AddEntityProcessor(const aURLSegment: string; const aEntityProcessor: IMVCEntityProcessor);
     procedure AddEntity(const aURLSegment: string; const aActiveRecordClass: TMVCActiveRecordClass);
     function FindEntityClassByURLSegment(const aURLSegment: string;
       out aMVCActiveRecordClass: TMVCActiveRecordClass): Boolean;
-    function FindProcessorByURLSegment(const aURLSegment: string;
-      out aMVCEntityProcessor: IMVCEntityProcessor)
+    function FindProcessorByURLSegment(const aURLSegment: string; out aMVCEntityProcessor: IMVCEntityProcessor)
       : Boolean;
     function GetEntities: TArray<String>;
   end;
 
   IMVCActiveRecordConnections = interface
     ['{7B87473C-1784-489F-A838-925E7DDD0DE2}']
-    procedure AddConnection(const aName: string; const aConnection: TFDConnection;
-      const Owns: Boolean = false);
+    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const Owns: Boolean = false);
     procedure AddDefaultConnection(const aConnection: TFDConnection; const Owns: Boolean = false); overload;
     procedure AddDefaultConnection(const aConnectionDefName: String); overload;
     procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
@@ -536,8 +528,7 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure AddConnection(const aName: string; const aConnection: TFDConnection;
-      const aOwns: Boolean = false);
+    procedure AddConnection(const aName: string; const aConnection: TFDConnection; const aOwns: Boolean = false);
     procedure AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean = false); overload;
     procedure AddDefaultConnection(const aConnectionDefName: String); overload;
     procedure RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
@@ -558,17 +549,18 @@ type
     fRQL2SQL: TRQL2SQL;
   protected
     fPartitionInfo: TPartitionInfo;
-    function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = False): String; //inline;
-    function MergeDefaultRQLFilter(const RQL: String): String; //inline;
+    function GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean = false)
+      : String; // inline;
+    function MergeDefaultRQLFilter(const RQL: String): String; // inline;
     function MergeSQLFilter(const SQL1, SQL2: String): String;
     function GetRQLParser: TRQL2SQL;
     function GetCompiler: TRQLCompiler;
     function GetCompilerClass: TRQLCompilerClass; virtual; abstract;
     function GetMapping: TMVCFieldsMapping;
-    function TableFieldsDelimited(const Map: TFieldsMap; const PKFieldName: string;
-      const Delimiter: string): string;
+    function TableFieldsDelimited(const Map: TFieldsMap; const PKFieldName: string; const Delimiter: string): string;
   public
-    constructor Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string; const PartitionInfo: TPartitionInfo); virtual;
+    constructor Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string;
+      const PartitionInfo: TPartitionInfo); virtual;
     destructor Destroy; override;
     // capabilities
     function HasSequences: Boolean; virtual;
@@ -580,27 +572,22 @@ type
     function CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
       const UseArtificialLimit: Boolean = True; const UseFilterOnly: Boolean = false;
       const MaxRecordCount: Int32 = TMVCConstants.MAX_RECORD_COUNT): string;
-    function CreateSelectSQL(const TableName: string; const Map: TFieldsMap;
-      const PKFieldName: string;
+    function CreateSelectSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
-    function CreateInsertSQL(const TableName: string; const Map: TFieldsMap;
-      const PKFieldName: string;
+    function CreateInsertSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual; abstract;
 
     // virtual methods with default implementation
-    function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap;
-      const PKFieldName: string;
+    function CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
-    function CreateDeleteSQL(const TableName: string; const Map: TFieldsMap;
-      const PKFieldName: string;
+    function CreateDeleteSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
     function CreateDeleteAllSQL(const TableName: string): string; virtual;
     function CreateSelectCount(const TableName: string): string; virtual;
-    function CreateUpdateSQL(const TableName: string; const Map: TFieldsMap;
-      const PKFieldName: string;
+    function CreateUpdateSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
       const PKOptions: TMVCActiveRecordFieldOptions): string; virtual;
-    function GetSequenceValueSQL(const PKFieldName: string; const SequenceName: string;
-      const Step: Integer = 1): string; virtual;
+    function GetSequenceValueSQL(const PKFieldName: string; const SequenceName: string; const Step: Integer = 1)
+      : string; virtual;
 
     // Overwritten by descendant if the SQL syntaxt requires more than the simple table name
     // or if the table name contains spaces.
@@ -609,7 +596,7 @@ type
     // or if the field name contains spaces.
     function GetFieldNameForSQL(const FieldName: string): string; virtual;
     function GetParamNameForSQL(const FieldName: string): string; virtual;
-    //helper methods
+    // helper methods
     class function RemoveInitialWhereKeyword(const SQLFilter: String): String;
   end;
 
@@ -629,14 +616,12 @@ type
     class function Instance: TMVCSQLGeneratorRegistry;
     class destructor Destroy;
     class constructor Create;
-    procedure RegisterSQLGenerator(const aBackend: string;
-      const aRQLBackendClass: TMVCSQLGeneratorClass);
+    procedure RegisterSQLGenerator(const aBackend: string; const aRQLBackendClass: TMVCSQLGeneratorClass);
     procedure UnRegisterSQLGenerator(const aBackend: string);
     function GetSQLGenerator(const aBackend: string): TMVCSQLGeneratorClass;
   end;
 
-  TMVCUnitOfWork<T: TMVCActiveRecord> = class(TInterfacedObject, IMVCUnitOfWork<T>,
-    IMVCMultiExecutor<T>)
+  TMVCUnitOfWork<T: TMVCActiveRecord> = class(TInterfacedObject, IMVCUnitOfWork<T>, IMVCMultiExecutor<T>)
   private
     fListToDelete: TObjectList<T>;
     fListToUpdate: TObjectList<T>;
@@ -657,12 +642,9 @@ type
     procedure DoItemApplyAction(const Obj: TMVCActiveRecord; const EntityAction: TMVCEntityAction;
       const ItemApplyAction: TMVCItemApplyAction<T>; var Handled: Boolean);
 
-    class function KeyExistsInt(const NewList: TObjectList<T>; const KeyValue: Integer;
-      out Index: Integer): Boolean;
-    class function KeyExistsInt64(const NewList: TObjectList<T>; const KeyValue: int64;
-      out Index: Integer): Boolean;
-    class function KeyExistsString(const NewList: TObjectList<T>; const KeyValue: String;
-      out Index: Integer): Boolean;
+    class function KeyExistsInt(const NewList: TObjectList<T>; const KeyValue: Integer; out Index: Integer): Boolean;
+    class function KeyExistsInt64(const NewList: TObjectList<T>; const KeyValue: int64; out Index: Integer): Boolean;
+    class function KeyExistsString(const NewList: TObjectList<T>; const KeyValue: String; out Index: Integer): Boolean;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -759,8 +741,7 @@ end;
 
 { TConnectionsRepository }
 
-procedure TMVCConnectionsRepository.AddConnection(const aName: string;
-  const aConnection: TFDConnection;
+procedure TMVCConnectionsRepository.AddConnection(const aName: string; const aConnection: TFDConnection;
   const aOwns: Boolean = false);
 var
   lName: string;
@@ -784,8 +765,7 @@ begin
     lConnHolder.OwnsConnection := aOwns;
     fConnectionsDict.Add(lConnKeyName, lConnHolder);
     // raise exception on duplicates
-    if (lName = 'default') and
-      (not fCurrentConnectionsByThread.ContainsKey(TThread.CurrentThread.ThreadID)) then
+    if (lName = 'default') and (not fCurrentConnectionsByThread.ContainsKey(TThread.CurrentThread.ThreadID)) then
     begin
       fCurrentConnectionsByThread.AddOrSetValue(TThread.CurrentThread.ThreadID, lName);
     end;
@@ -794,14 +774,12 @@ begin
   end;
 end;
 
-procedure TMVCConnectionsRepository.AddDefaultConnection(const aConnection: TFDConnection;
-  const aOwns: Boolean);
+procedure TMVCConnectionsRepository.AddDefaultConnection(const aConnection: TFDConnection; const aOwns: Boolean);
 begin
   AddConnection('default', aConnection, aOwns);
 end;
 
-procedure TMVCConnectionsRepository.AddDefaultConnection(
-  const aConnectionDefName: String);
+procedure TMVCConnectionsRepository.AddDefaultConnection(const aConnectionDefName: String);
 var
   lConn: TFDConnection;
 begin
@@ -853,8 +831,7 @@ begin
   end;
 end;
 
-function TMVCConnectionsRepository.GetCurrent(const RaiseExceptionIfNotAvailable: Boolean)
-  : TFDConnection;
+function TMVCConnectionsRepository.GetCurrent(const RaiseExceptionIfNotAvailable: Boolean): TFDConnection;
 var
   lName: string;
 begin
@@ -889,7 +866,8 @@ begin
   Result := Format('%10.10d::%s', [TThread.CurrentThread.ThreadID, aName]);
 end;
 
-procedure TMVCConnectionsRepository.RemoveConnection(const aName: string; const RaiseExceptionIfNotAvailable: Boolean = True);
+procedure TMVCConnectionsRepository.RemoveConnection(const aName: string;
+  const RaiseExceptionIfNotAvailable: Boolean = True);
 var
   lName: string;
   lKeyName: string;
@@ -1002,8 +980,7 @@ begin
   GetConnection;
 end;
 
-function TMVCActiveRecord.ExecNonQuery(const SQL: string;
-  RefreshAutoGenerated: Boolean = false): int64;
+function TMVCActiveRecord.ExecNonQuery(const SQL: string; RefreshAutoGenerated: Boolean = false): int64;
 var
   lQry: TFDQuery;
   lPar: TFDParam;
@@ -1013,7 +990,7 @@ var
   lHandled: Boolean;
   I: Integer;
 begin
-  {TODO -oDanieleT -cGeneral : Why not a TFDCommand?}
+  { TODO -oDanieleT -cGeneral : Why not a TFDCommand? }
   lQry := TFDQuery.Create(nil);
   try
     lQry.Connection := GetConnection;
@@ -1026,7 +1003,7 @@ begin
     MapObjectToParams(lQry.Params, lHandled);
     if not lHandled then
     begin
-      {partitioning}
+      { partitioning }
       for I := 0 to GetPartitionInfo.FieldNames.Count - 1 do
       begin
         lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(GetPartitionInfo.FieldNames[I]));
@@ -1036,11 +1013,11 @@ begin
             lValue := StrToInt(GetPartitionInfo.FieldValues[I])
           else
             lValue := GetPartitionInfo.FieldValues[I];
-          //lPar.DataTypeName := fPartitionInfo.FieldValues[I];
+          // lPar.DataTypeName := fPartitionInfo.FieldValues[I];
           MapTValueToParam(lValue, lPar);
         end
       end;
-      {end-partitioning}
+      { end-partitioning }
 
       for lPair in fMap do
       begin
@@ -1053,7 +1030,7 @@ begin
         end
       end;
 
-      // check if it's the primary key
+      // Check if it's the primary key
       lPar := lQry.FindParam(SQLGenerator.GetParamNameForSQL(fPrimaryKeyFieldName));
       if lPar <> nil then
       begin
@@ -1119,8 +1096,8 @@ begin
   end;
 end;
 
-class function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant; const Unidirectional: Boolean)
-  : TDataSet;
+class function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant;
+  const Unidirectional: Boolean): TDataSet;
 begin
   Result := ExecQuery(SQL, Values, nil, Unidirectional);
 end;
@@ -1133,8 +1110,7 @@ var
   lPrimaryFieldTypeAsStr: string;
 begin
   fPartitionInfoInternal := nil;
-  fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve,
-    TMVCEntityAction.eaUpdate,
+  fEntityAllowedActions := [TMVCEntityAction.eaCreate, TMVCEntityAction.eaRetrieve, TMVCEntityAction.eaUpdate,
     TMVCEntityAction.eaDelete];
   fTableName := '';
   fPartitionClause := '';
@@ -1172,7 +1148,7 @@ begin
   begin
     fPropsAttributes := lRTTIField.GetAttributes;
     if Length(fPropsAttributes) = 0 then
-      continue;
+      Continue;
     for lAttribute in fPropsAttributes do
     begin
       if lAttribute is MVCTableFieldAttribute then
@@ -1185,8 +1161,7 @@ begin
           begin
             fPrimaryKeyFieldType := ftLargeInt;
           end
-          else if lPrimaryFieldTypeAsStr.EndsWith('integer') or
-            lPrimaryFieldTypeAsStr.EndsWith('int32') then
+          else if lPrimaryFieldTypeAsStr.EndsWith('integer') or lPrimaryFieldTypeAsStr.EndsWith('int32') then
           begin
             fPrimaryKeyFieldType := ftInteger;
           end
@@ -1197,18 +1172,17 @@ begin
           else if lPrimaryFieldTypeAsStr.EndsWith('guid') then
           begin
             fPrimaryKeyFieldType := ftGuid;
-          end		  
+          end
           else
           begin
             raise EMVCActiveRecord.Create
-              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int64, (Nullable)String, GUID - found: '
-              +
+              ('Allowed primary key types are: (Nullable)Integer, (Nullable)Int64, (Nullable)String, GUID - found: ' +
               lPrimaryFieldTypeAsStr);
           end;
           fPrimaryKeyFieldName := MVCTableFieldAttribute(lAttribute).FieldName;
           fPrimaryKeyOptions := MVCTableFieldAttribute(lAttribute).FieldOptions;
           fPrimaryKeySequenceName := MVCTableFieldAttribute(lAttribute).SequenceName;
-          continue;
+          Continue;
         end;
 
         lFieldInfo := TFieldInfo.Create;
@@ -1267,13 +1241,13 @@ begin
       begin
         if fPrimaryKeySequenceName.IsEmpty then
         begin
-          raise EMVCActiveRecord.Create('SequenceName is empty for entity ' + ClassName + ' but ' +
-            GetBackEnd +
+          raise EMVCActiveRecord.Create('SequenceName is empty for entity ' + ClassName + ' but ' + GetBackEnd +
             ' requires it');
         end;
         if foReadOnly in fPrimaryKeyOptions then
         begin
-          raise EMVCActiveRecord.Create('Cannot define a read-only primary key when a sequence is used for the class ' + ClassName);
+          raise EMVCActiveRecord.Create('Cannot define a read-only primary key when a sequence is used for the class ' +
+            ClassName);
         end;
         FillPrimaryKey(fPrimaryKeySequenceName);
       end;
@@ -1295,8 +1269,7 @@ begin
   Result := GetScalar(lSQL, []);
 end;
 
-function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer)
-  : TMVCActiveRecordList;
+function TMVCActiveRecord.InternalSelectRQL(const RQL: string; const MaxRecordCount: Integer): TMVCActiveRecordList;
 var
   lSQL: string;
 begin
@@ -1323,8 +1296,7 @@ end;
 
 function TMVCActiveRecord.GenerateSelectSQL: string;
 begin
-  Result := SQLGenerator.CreateSelectSQL(fTableName, fMap, fPrimaryKeyFieldName,
-    fPrimaryKeyOptions);
+  Result := SQLGenerator.CreateSelectSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
 end;
 
 function TMVCActiveRecord.GetAttributes(const AttrName: string): TValue;
@@ -1347,8 +1319,8 @@ begin
   Result := fBackendDriver;
 end;
 
-class function TMVCActiveRecord.GetByPK(aActiveRecord: TMVCActiveRecord; const aValue: string; const aFieldType: TFieldType;
-  const RaiseExceptionIfNotFound: Boolean): TMVCActiveRecord;
+class function TMVCActiveRecord.GetByPK(aActiveRecord: TMVCActiveRecord; const aValue: string;
+  const aFieldType: TFieldType; const RaiseExceptionIfNotFound: Boolean): TMVCActiveRecord;
 var
   lFound: Boolean;
 begin
@@ -1399,25 +1371,23 @@ begin
   Result := GetByPK<T>(aValue.ToString, ftInteger, RaiseExceptionIfNotFound);
 end;
 
-class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: string;
-  const RaiseExceptionIfNotFound: Boolean): T;
+class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: string; const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetByPK<T>(aValue, ftString, RaiseExceptionIfNotFound);
 end;
 
-class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: TGuid;
-  const RaiseExceptionIfNotFound: Boolean): T;
+class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: TGuid; const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetByPK<T>(aValue.ToString, ftGuid, RaiseExceptionIfNotFound);
 end;
 
-class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: string; const aFieldType: TFieldType; const RaiseExceptionIfNotFound: Boolean): T;
+class function TMVCActiveRecordHelper.GetByPK<T>(const aValue: string; const aFieldType: TFieldType;
+  const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := T(GetByPK(T.Create, aValue, aFieldType, RaiseExceptionIfNotFound));
 end;
 
-class function TMVCActiveRecordHelper.GetFirstByWhere<T>(const SQLWhere: string;
-  const Params: array of Variant;
+class function TMVCActiveRecordHelper.GetFirstByWhere<T>(const SQLWhere: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType; const RaiseExceptionIfNotFound: Boolean): T;
 var
   lList: TObjectList<T>;
@@ -1436,15 +1406,13 @@ begin
   end;
 end;
 
-class function TMVCActiveRecordHelper.GetFirstByWhere<T>(const SQLWhere: string;
-  const Params: array of Variant;
+class function TMVCActiveRecordHelper.GetFirstByWhere<T>(const SQLWhere: string; const Params: array of Variant;
   const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetFirstByWhere<T>(SQLWhere, Params, [], RaiseExceptionIfNotFound);
 end;
 
-class function TMVCActiveRecordHelper.GetOneByWhere<T>(const SQLWhere: string;
-  const Params: array of Variant;
+class function TMVCActiveRecordHelper.GetOneByWhere<T>(const SQLWhere: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType; const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetFirstByWhere<T>(SQLWhere, Params, ParamTypes, false);
@@ -1458,7 +1426,10 @@ end;
 function TMVCActiveRecord.GetMapping: TMVCFieldsMapping;
 var
   lPair: TPair<TRTTIField, TFieldInfo>;
-  i: Integer;
+  I: Integer;
+  lPropFromField: TRttiProperty;
+  lParentType: TRttiType;
+  lTmp: String;
 begin
   { TODO -oDanieleT -cGeneral : Let share the mapping for instances of the same type }
   { TODO -oDanieleT -cGeneral : Add NameAs in the TFieldInfo because the user needs to use the property name he see }
@@ -1466,29 +1437,49 @@ begin
   begin
     if not fPrimaryKeyFieldName.IsEmpty then
     begin
+      lParentType := fPrimaryKey.Parent;
       SetLength(fMapping, fMap.Count + 1);
       fMapping[0].InstanceFieldName := fPrimaryKey.Name.Substring(1).ToLower;
       fMapping[0].DatabaseFieldName := fPrimaryKeyFieldName;
-      i := 1;
+      lPropFromField := lParentType.GetProperty(fPrimaryKey.Name.Substring(1));
+      if Assigned(lPropFromField) then
+      begin
+        lTmp := TMVCSerializerHelper.GetKeyName(lPropFromField, lParentType);
+        if not SameText(lTmp, fMapping[0].InstanceFieldName) then
+        begin
+          fMapping[0].Alias := lTmp;
+        end;
+      end;
+      I := 1;
     end
     else
     begin
       SetLength(fMapping, fMap.Count);
-      i := 0;
+      I := 0;
     end;
 
     for lPair in fMap do
     begin
-      fMapping[i].InstanceFieldName := lPair.Key.Name.Substring(1).ToLower;
-      fMapping[i].DatabaseFieldName := lPair.Value.FieldName;
-      Inc(i);
+      lParentType := lPair.Key.Parent;
+      fMapping[I].InstanceFieldName := lPair.Key.Name.Substring(1).ToLower;
+      fMapping[I].DatabaseFieldName := lPair.Value.FieldName;
+
+      lPropFromField := lParentType.GetProperty(lPair.Key.Name.Substring(1));
+      if Assigned(lPropFromField) then
+      begin
+        lTmp := TMVCSerializerHelper.GetKeyName(lPropFromField, lParentType);
+        if not SameText(lTmp, fMapping[I].InstanceFieldName) then
+        begin
+          fMapping[I].Alias := lTmp;
+        end;
+      end;
+      Inc(I);
     end;
   end;
   Result := fMapping;
 end;
 
-class function TMVCActiveRecordHelper.GetOneByWhere<T>(const SQLWhere: string;
-  const Params: array of Variant;
+class function TMVCActiveRecordHelper.GetOneByWhere<T>(const SQLWhere: string; const Params: array of Variant;
   const RaiseExceptionIfNotFound: Boolean): T;
 begin
   Result := GetFirstByWhere<T>(SQLWhere, Params, false);
@@ -1499,8 +1490,7 @@ begin
   end;
 end;
 
-class function TMVCActiveRecordHelper.SelectOneByRQL<T>(const RQL: string;
-  const RaiseExceptionIfNotFound: Boolean): T;
+class function TMVCActiveRecordHelper.SelectOneByRQL<T>(const RQL: string; const RaiseExceptionIfNotFound: Boolean): T;
 var
   lAR: TMVCActiveRecord;
   lSQL: string;
@@ -1574,14 +1564,12 @@ begin
   Result := foAutoGenerated in fPrimaryKeyOptions;
 end;
 
-class function TMVCActiveRecord.GetScalar(const SQL: string;
-  const Params: array of Variant): Variant;
+class function TMVCActiveRecord.GetScalar(const SQL: string; const Params: array of Variant): Variant;
 begin
   Result := CurrentConnection.ExecSQLScalar(SQL, Params);
 end;
 
-function TMVCActiveRecord.CheckAction(const aEntityAction: TMVCEntityAction;
-  const aRaiseException: Boolean): Boolean;
+function TMVCActiveRecord.CheckAction(const aEntityAction: TMVCEntityAction; const aRaiseException: Boolean): Boolean;
 begin
   Result := aEntityAction in fEntityAllowedActions;
   if (not Result) and aRaiseException then
@@ -1590,8 +1578,7 @@ begin
       [GetEnumName(TypeInfo(TMVCEntityAction), Ord(aEntityAction)), ClassName]);
 end;
 
-class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass;
-  const RQL: string): int64;
+class function TMVCActiveRecord.Count(const aClass: TMVCActiveRecordClass; const RQL: string): int64;
 var
   lAR: TMVCActiveRecord;
 begin
@@ -1637,7 +1624,7 @@ end;
 procedure TMVCActiveRecord.Delete(const RaiseExceptionIfNotFound: Boolean);
 var
   SQL: string;
-  lAffectedRows: Int64;
+  lAffectedRows: int64;
 begin
   CheckAction(TMVCEntityAction.eaDelete);
   OnValidation(TMVCEntityAction.eaDelete);
@@ -1660,17 +1647,14 @@ var
 begin
   lAR := aClass.Create;
   try
-    Result := lAR.ExecNonQuery(
-      lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableName) +
-      lAR.SQLGenerator.GetDefaultSQLFilter(True)
-    );
+    Result := lAR.ExecNonQuery(lAR.SQLGenerator.CreateDeleteAllSQL(lAR.fTableName) +
+      lAR.SQLGenerator.GetDefaultSQLFilter(True));
   finally
     lAR.Free;
   end;
 end;
 
-class function TMVCActiveRecord.DeleteRQL(const aClass: TMVCActiveRecordClass;
-  const RQL: string): int64;
+class function TMVCActiveRecord.DeleteRQL(const aClass: TMVCActiveRecordClass; const RQL: string): int64;
 var
   lAR: TMVCActiveRecord;
 begin
@@ -1683,8 +1667,7 @@ begin
   end;
 end;
 
-procedure TMVCActiveRecord.MapDatasetToObject(const DataSet: TDataSet;
-  const Options: TMVCActiveRecordLoadOptions;
+procedure TMVCActiveRecord.MapDatasetToObject(const DataSet: TDataSet; const Options: TMVCActiveRecordLoadOptions;
   var Handled: Boolean);
 begin
   // do nothing
@@ -1696,224 +1679,230 @@ begin
 end;
 
 function TMVCActiveRecord.MapNullableTValueToParam(aValue: TValue; const aParam: TFDParam): Boolean;
+var
+  lNullableType: TNullableType;
 begin
   Assert(aValue.Kind = tkRecord);
-  Result := false;
-  if aValue.IsType(TypeInfo(NullableString)) then
-  begin
-    if not aValue.AsType<NullableString>().HasValue then
-    begin
-      aParam.DataType := ftString;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableString>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableInt32)) then
-  begin
-    if not aValue.AsType<NullableInt32>().HasValue then
-    begin
-      aParam.DataType := ftInteger;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableInt32>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableTDate)) then
-  begin
-    if not aValue.AsType<NullableTDate>().HasValue then
-    begin
-      aParam.DataType := ftDate;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := TValue.From<TDate>(aValue.AsType<NullableTDate>().Value);
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableTTime)) then
-  begin
-    if not aValue.AsType<NullableTTime>().HasValue then
-    begin
-      aParam.DataType := ftTime;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := TValue.From<TTime>(aValue.AsType<NullableTTime>().Value);
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableTDateTime)) then
-  begin
-    if not aValue.AsType<NullableTDateTime>().HasValue then
-    begin
-      aParam.DataType := ftDateTime;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := TValue.From<TDateTime>(aValue.AsType<NullableTDateTime>().Value);
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableUInt32)) then
-  begin
-    if not aValue.AsType<NullableUInt32>().HasValue then
-    begin
-      aParam.DataType := ftInteger;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableUInt32>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableInt64)) then
-  begin
-    if not aValue.AsType<NullableInt64>().HasValue then
-    begin
-      aParam.DataType := ftLargeInt;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableInt64>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableInt16)) then
-  begin
-    if not aValue.AsType<NullableInt16>().HasValue then
-    begin
-      aParam.DataType := ftInteger;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableInt16>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableUInt64)) then
-  begin
-    if not aValue.AsType<NullableUInt64>().HasValue then
-    begin
-      aParam.DataType := ftLargeInt;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableUInt64>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableUInt16)) then
-  begin
-    if not aValue.AsType<NullableUInt16>().HasValue then
-    begin
-      aParam.DataType := ftInteger;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableUInt16>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableBoolean)) then
-  begin
-    if not aValue.AsType<NullableBoolean>().HasValue then
-    begin
-      aParam.DataType := ftBoolean;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := TValue.From<Boolean>(aValue.AsType<NullableBoolean>().Value);
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableSingle)) then
-  begin
-    if not aValue.AsType<NullableSingle>().HasValue then
-    begin
-      aParam.DataType := TFieldType.ftSingle;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableSingle>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableDouble)) then
-  begin
-    if not aValue.AsType<NullableDouble>().HasValue then
-    begin
-      aParam.DataType := TFieldType.ftFloat;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableDouble>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableCurrency)) then
-  begin
-    if not aValue.AsType<NullableCurrency>().HasValue then
-    begin
-      aParam.DataType := TFieldType.ftCurrency;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := aValue.AsType<NullableCurrency>().Value;
-      Result := True;
-    end;
-  end
-  else if aValue.IsType(TypeInfo(NullableTGUID)) then
-  begin
-    if not aValue.AsType<NullableTGUID>().HasValue then
-    begin
-      aParam.DataType := TFieldType.ftCurrency;
-      aParam.Clear;
-      Exit(True);
-    end
-    else
-    begin
-      aValue := TValue.From<TGUID>(aValue.AsType<NullableTGUID>().Value);
-      Result := True;
-    end;
-  end;
+  Result := True;
+  lNullableType := GetNullableType(aValue.TypeInfo);
+  case lNullableType of
+    ntInvalidNullableType:
+      begin
+        Exit(False);
+      end;
+    ntNullableString:
+      begin
+        if not aValue.AsType<NullableString>().HasValue then
+        begin
+          aParam.DataType := ftString;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableString>().Value;
+        end;
+      end;
+    ntNullableCurrency:
+      begin
+        if not aValue.AsType<NullableCurrency>().HasValue then
+        begin
+          aParam.DataType := TFieldType.ftCurrency;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableCurrency>().Value;
+        end;
+      end;
+    ntNullableBoolean:
+      begin
+        if not aValue.AsType<NullableBoolean>().HasValue then
+        begin
+          aParam.DataType := ftBoolean;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := TValue.From<Boolean>(aValue.AsType<NullableBoolean>().Value);
+        end;
+      end;
+    ntNullableTDate:
+      begin
+        if not aValue.AsType<NullableTDate>().HasValue then
+        begin
+          aParam.DataType := ftDate;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := TValue.From<TDate>(aValue.AsType<NullableTDate>().Value);
+        end;
+      end;
+    ntNullableTTime:
+      begin
+        if not aValue.AsType<NullableTTime>().HasValue then
+        begin
+          aParam.DataType := ftTime;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := TValue.From<TTime>(aValue.AsType<NullableTTime>().Value);
+        end;
+      end;
+    ntNullableTDateTime:
+      begin
+        if not aValue.AsType<NullableTDateTime>().HasValue then
+        begin
+          aParam.DataType := ftDateTime;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := TValue.From<TDateTime>(aValue.AsType<NullableTDateTime>().Value);
+        end;
+      end;
+    ntNullableSingle:
+      begin
+        if not aValue.AsType<NullableSingle>().HasValue then
+        begin
+          aParam.DataType := TFieldType.ftSingle;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableSingle>().Value;
+        end;
+      end;
+    ntNullableDouble:
+      begin
+        if not aValue.AsType<NullableDouble>().HasValue then
+        begin
+          aParam.DataType := TFieldType.ftFloat;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableDouble>().Value;
+        end;
+      end;
+    ntNullableExtended:
+      begin
+        if not aValue.AsType<NullableExtended>().HasValue then
+        begin
+          aParam.DataType := TFieldType.ftExtended;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableExtended>().Value;
+        end;
+      end;
+    ntNullableInt16:
+      begin
+        if not aValue.AsType<NullableInt16>().HasValue then
+        begin
+          aParam.DataType := ftInteger;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableInt16>().Value;
+        end;
+      end;
+    ntNullableUInt16:
+      begin
+        if not aValue.AsType<NullableUInt16>().HasValue then
+        begin
+          aParam.DataType := ftInteger;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableUInt16>().Value;
+        end;
+      end;
+    ntNullableInt32:
+      begin
+        if not aValue.AsType<NullableInt32>().HasValue then
+        begin
+          aParam.DataType := ftInteger;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableInt32>().Value;
+        end;
+      end;
+    ntNullableUInt32:
+      begin
+        if not aValue.AsType<NullableUInt32>().HasValue then
+        begin
+          aParam.DataType := ftInteger;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableUInt32>().Value;
+        end;
+      end;
+    ntNullableInt64:
+      begin
+        if not aValue.AsType<NullableInt64>().HasValue then
+        begin
+          aParam.DataType := ftLargeInt;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableInt64>().Value;
+        end;
+      end;
+    ntNullableUInt64:
+      begin
+        if not aValue.AsType<NullableUInt64>().HasValue then
+        begin
+          aParam.DataType := ftLargeInt;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := aValue.AsType<NullableUInt64>().Value;
+        end;
+      end;
+    ntNullableTGUID:
+      begin
+        if not aValue.AsType<NullableTGUID>().HasValue then
+        begin
+          aParam.DataType := TFieldType.ftCurrency;
+          aParam.Clear;
+          Exit(True);
+        end
+        else
+        begin
+          aValue := TValue.From<TGuid>(aValue.AsType<NullableTGUID>().Value);
+        end;
+      end;
+  end; // case
 
-  if Result then
-  begin
-    MapTValueToParam(aValue, aParam);
-  end;
+  // the nullable value contains a value, so let's call
+  // the "non nullable" version of this procedure
+  MapTValueToParam(aValue, aParam);
 end;
 
 procedure TMVCActiveRecord.MapTValueToParam(aValue: TValue; const aParam: TFDParam);
@@ -1972,8 +1961,7 @@ begin
             end;
         else
           begin
-            raise EMVCActiveRecord.CreateFmt('Invalid parameter type for (tkUString) [%s]',
-              [lName]);
+            raise EMVCActiveRecord.CreateFmt('Invalid parameter type for (tkUString) [%s]', [lName]);
           end;
         end;
       end;
@@ -2094,18 +2082,18 @@ begin
       end;
     tkRecord:
       begin
-        if aValue.IsType(TypeInfo(TGUID)) then
+        if aValue.TypeInfo = TypeInfo(TGuid) then
         begin
           if SQLGenerator.HasNativeUUID then
           begin
-            aParam.AsGuid := aValue.AsType<TGUID>
+            aParam.AsGuid := aValue.AsType<TGuid>
           end
           else
           begin
-            aParam.AsString := GUIDToString(aValue.AsType<TGUID>);
+            aParam.AsString := GUIDToString(aValue.AsType<TGuid>);
           end;
         end
-        else if aValue.IsType(TypeInfo(NullableTGUID)) then
+        else if aValue.TypeInfo = TypeInfo(NullableTGUID) then
         begin
           if aValue.AsType<NullableTGUID>.HasValue then
             aParam.AsGuid := aValue.AsType<NullableTGUID>.Value
@@ -2119,13 +2107,11 @@ begin
         end;
       end;
   else
-    raise Exception.CreateFmt('Unsupported TypeKind (%d) for param %s',
-      [Ord(aValue.TypeInfo.Kind), aParam.Name]);
+    raise Exception.CreateFmt('Unsupported TypeKind (%d) for param %s', [Ord(aValue.TypeInfo.Kind), aParam.Name]);
   end;
 end;
 
-procedure TMVCActiveRecord.LoadByDataset(const aDataSet: TDataSet;
-  const aOptions: TMVCActiveRecordLoadOptions);
+procedure TMVCActiveRecord.LoadByDataset(const aDataSet: TDataSet; const aOptions: TMVCActiveRecordLoadOptions);
 var
   lItem: TPair<TRTTIField, TFieldInfo>;
   lField: TField;
@@ -2142,13 +2128,13 @@ begin
     begin
       if not lItem.Value.Readable then
       begin
-        continue;
+        Continue;
       end;
       lField := aDataSet.FindField(lItem.Value.FieldName);
       if lField = nil then
       begin
         if TMVCActiveRecordLoadOption.loIgnoreNotExistentFields in aOptions then
-          continue
+          Continue
         else
           raise EMVCActiveRecord.CreateFmt
             ('Field [%s] not found in dataset. [HINT] If you dont need it, use loIgnoreNotExistentFields',
@@ -2170,8 +2156,7 @@ var
   lDataSet: TDataSet;
 begin
   CheckAction(TMVCEntityAction.eaRetrieve);
-  SQL := SQLGenerator.CreateSelectByPKSQL(fTableName, fMap, fPrimaryKeyFieldName,
-    fPrimaryKeyOptions);
+  SQL := SQLGenerator.CreateSelectByPKSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
   lDataSet := ExecQuery(SQL, [id], [aFieldType], GetConnection, True);
   try
     Result := not lDataSet.Eof;
@@ -2322,22 +2307,19 @@ begin
 end;
 
 class function TMVCActiveRecord.SelectDataSet(const SQL: string; const Params: array of Variant;
-  const Unidirectional: Boolean)
-  : TDataSet;
+  const Unidirectional: Boolean): TDataSet;
 begin
-  {TODO -odanielet -cGeneral : gestire unidirectional}
+  { TODO -odanielet -cGeneral : gestire unidirectional }
   Result := TMVCActiveRecord.ExecQuery(SQL, Params, Unidirectional);
 end;
 
-function TMVCActiveRecord.SelectRQL(const RQL: string; const MaxRecordCount: Integer)
-  : TMVCActiveRecordList;
+function TMVCActiveRecord.SelectRQL(const RQL: string; const MaxRecordCount: Integer): TMVCActiveRecordList;
 begin
   Result := InternalSelectRQL(RQL, MaxRecordCount);
 end;
 
 class function TMVCActiveRecordHelper.Select<T>(const SQL: string; const Params: array of Variant;
-  const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions)
-  : TObjectList<T>;
+  const ParamTypes: array of TFieldType; const Options: TMVCActiveRecordLoadOptions): TObjectList<T>;
 var
   lDataSet: TDataSet;
   lAR: TMVCActiveRecord;
@@ -2345,7 +2327,7 @@ var
 begin
   Result := TObjectList<T>.Create(True);
   try
-    lDataSet := ExecQuery(SQL, Params, ParamTypes, False);
+    lDataSet := ExecQuery(SQL, Params, ParamTypes, false);
     try
       while not lDataSet.Eof do
       begin
@@ -2390,8 +2372,7 @@ begin
     end;
     if lList.Count > 1 then
     begin
-      raise EMVCActiveRecordNotFound.CreateFmt('Got %d rows when exactly 1 was expected',
-        [lList.Count]);
+      raise EMVCActiveRecordNotFound.CreateFmt('Got %d rows when exactly 1 was expected', [lList.Count]);
     end;
     Result := lList.Extract(lList.First);
   finally
@@ -2399,16 +2380,14 @@ begin
   end;
 end;
 
-class function TMVCActiveRecordHelper.SelectRQL<T>(const RQL: string; const MaxRecordCount: Integer)
-  : TObjectList<T>;
+class function TMVCActiveRecordHelper.SelectRQL<T>(const RQL: string; const MaxRecordCount: Integer): TObjectList<T>;
 var
   lAR: TMVCActiveRecord;
   lSQL: string;
 begin
   lAR := T.Create;
   try
-    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping,
-      MaxRecordCount > -1, False, MaxRecordCount).Trim;
+    lSQL := lAR.SQLGenerator.CreateSQLWhereByRQL(RQL, lAR.GetMapping, MaxRecordCount > -1, false, MaxRecordCount).Trim;
     lSQL := TMVCSQLGenerator.RemoveInitialWhereKeyword(lSQL);
     Result := Where<T>(lSQL, []);
   finally
@@ -2416,8 +2395,7 @@ begin
   end;
 end;
 
-class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string;
-  const Params: array of Variant;
+class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string; const Params: array of Variant;
   const ParamTypes: array of TFieldType): TObjectList<T>;
 var
   lAR: TMVCActiveRecord;
@@ -2426,11 +2404,9 @@ begin
   lAR := T.Create;
   try
     lFilter := lAR.SQLGenerator.GetDefaultSQLFilter(True);
-    if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or
-      SQLWhere.Trim.StartsWith('/*sort*/') then
+    if SQLWhere.Trim.IsEmpty() or SQLWhere.Trim.StartsWith('/*limit*/') or SQLWhere.Trim.StartsWith('/*sort*/') then
     begin
-      Result := Select<T>(lAR.GenerateSelectSQL +
-        lFilter + SQLWhere, Params, ParamTypes)
+      Result := Select<T>(lAR.GenerateSelectSQL + lFilter + SQLWhere, Params, ParamTypes)
     end
     else
     begin
@@ -2628,11 +2604,15 @@ begin
   if fPrimaryKey.GetValue(Self).Kind = tkRecord then
   begin
     lPKValue := fPrimaryKey.GetValue(Self);
-    if lPKValue.IsType<NullableInt32> and aValue.IsType<NullableInt32>() then
+    if lPKValue.IsType<NullableInt32> { and aValue.IsType<NullableInt32>() } then
     begin
-      if aValue.IsType<UInt32> then
+      if aValue.IsType<Int32> then
       begin
         lPKValue := TValue.From<NullableInt32>(IntToNullableInt(aValue.AsInteger));
+      end
+      else
+      begin
+        raise EMVCActiveRecord.Create('Invalid type for primary key');
       end;
     end
     else if lPKValue.IsType<NullableInt64> and aValue.IsType<NullableInt64>() then
@@ -2714,8 +2694,8 @@ begin
   if not Assigned(fSQLGenerator) then
   begin
     GetConnection.Connected := True;
-    fSQLGenerator := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd)
-      .Create(GetMapping, fDefaultRQLFilter, GetPartitionInfo);
+    fSQLGenerator := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd).Create(GetMapping, fDefaultRQLFilter,
+      GetPartitionInfo);
   end;
   Result := fSQLGenerator;
 end;
@@ -2729,8 +2709,7 @@ begin
   lRes := TryGetPKValue(lValue, lIsNullableType);
   if not lIsNullableType then
   begin
-    raise EMVCActiveRecord.Create
-      ('Store can be used only with nullable PKs [HINT] Use NullableInt64 as PK');
+    raise EMVCActiveRecord.Create('Store can be used only with nullable PKs [HINT] Use NullableInt64 as PK');
   end;
   if lRes then
   begin
@@ -2805,7 +2784,7 @@ begin
     begin
       Result := Value.AsType<NullableTGUID>().HasValue;
       if Result then
-        Value := TValue.From<TGUID>(Value.AsType<NullableTGUID>().Value);
+        Value := TValue.From<TGuid>(Value.AsType<NullableTGUID>().Value);
     end
     else
       raise EMVCActiveRecord.Create
@@ -2821,7 +2800,7 @@ end;
 procedure TMVCActiveRecord.Update(const RaiseExceptionIfNotFound: Boolean = True);
 var
   SQL: string;
-  lAffectedRows: Int64;
+  lAffectedRows: int64;
 begin
   CheckAction(TMVCEntityAction.eaUpdate);
   OnValidation(TMVCEntityAction.eaUpdate);
@@ -2830,8 +2809,7 @@ begin
   if fMap.WritableFieldsCount = 0 then
   begin
     raise EMVCActiveRecord.CreateFmt
-      ('Cannot update an entity if all fields are transient. Class [%s] mapped on table [%s]',
-      [ClassName, fTableName]);
+      ('Cannot update an entity if all fields are transient. Class [%s] mapped on table [%s]', [ClassName, fTableName]);
   end;
   SQL := SQLGenerator.CreateUpdateSQL(fTableName, fMap, fPrimaryKeyFieldName, fPrimaryKeyOptions);
   lAffectedRows := ExecNonQuery(SQL, false);
@@ -2856,8 +2834,7 @@ begin
   end;
 end;
 
-class function TMVCActiveRecord.All(const aClass: TMVCActiveRecordClass)
-  : TObjectList<TMVCActiveRecord>;
+class function TMVCActiveRecord.All(const aClass: TMVCActiveRecordClass): TObjectList<TMVCActiveRecord>;
 var
   lAR: TMVCActiveRecord;
 begin
@@ -2900,16 +2877,14 @@ begin
   end;
 end;
 
-class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string;
-  const Params: array of Variant): TObjectList<T>;
+class function TMVCActiveRecordHelper.Where<T>(const SQLWhere: string; const Params: array of Variant): TObjectList<T>;
 begin
   Result := Where<T>(SQLWhere, Params, []);
 end;
 
-class function TMVCActiveRecordHelper.Merge<T>(CurrentList, NewList: TObjectList<T>)
-  : IMVCMultiExecutor<T>;
+class function TMVCActiveRecordHelper.Merge<T>(CurrentList, NewList: TObjectList<T>): IMVCMultiExecutor<T>;
 var
-  i: Integer;
+  I: Integer;
   lFoundAtIndex: Integer;
   lCurrPKValue: Integer;
   lPKValue: TValue;
@@ -2922,38 +2897,36 @@ begin
   if NewList.Count > 0 then
   begin
     lPKType := NewList[0].GetPrimaryKeyFieldType;
-    for i := 0 to NewList.Count - 1 do
+    for I := 0 to NewList.Count - 1 do
     begin
-      if NewList[i].PKIsNull then
+      if NewList[I].PKIsNull then
       begin
-        lUnitOfWork.RegisterInsert(NewList[i]);
-        continue;
+        lUnitOfWork.RegisterInsert(NewList[I]);
+        Continue;
       end;
 
       case lPKType of
         ftString:
           begin
-            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsString(CurrentList,
-              NewList[i].GetPK.AsString, lFoundAtIndex);
+            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsString(CurrentList, NewList[I].GetPK.AsString,
+              lFoundAtIndex);
           end;
         ftInteger:
           begin
-            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt(CurrentList,
-              NewList[i].GetPK.AsInteger, lFoundAtIndex);
+            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt(CurrentList, NewList[I].GetPK.AsInteger, lFoundAtIndex);
           end;
         ftLargeInt:
           begin
-            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt64(CurrentList,
-              NewList[i].GetPK.AsInt64, lFoundAtIndex);
+            lNeedsToBeUpdated := TMVCUnitOfWork<T>.KeyExistsInt64(CurrentList, NewList[I].GetPK.AsInt64, lFoundAtIndex);
           end;
       else
         raise EMVCActiveRecord.Create('Invalid primary key type');
       end;
 
       if lNeedsToBeUpdated then
-        lUnitOfWork.RegisterUpdate(NewList[i])
+        lUnitOfWork.RegisterUpdate(NewList[I])
       else
-        lUnitOfWork.RegisterInsert(NewList[i]);
+        lUnitOfWork.RegisterInsert(NewList[I]);
     end;
   end;
   Result := lUnitOfWork as IMVCMultiExecutor<T>;
@@ -2961,8 +2934,7 @@ end;
 
 { TMVCEntitiesRegistry }
 
-procedure TMVCEntitiesRegistry.AddEntity(const aURLSegment: string;
-  const aActiveRecordClass: TMVCActiveRecordClass);
+procedure TMVCEntitiesRegistry.AddEntity(const aURLSegment: string; const aActiveRecordClass: TMVCActiveRecordClass);
 begin
   fEntitiesDict.AddOrSetValue(aURLSegment.ToLower, aActiveRecordClass);
 end;
@@ -3089,7 +3061,8 @@ end;
 
 { TMVCSQLGenerator }
 
-constructor TMVCSQLGenerator.Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string; const PartitionInfo: TPartitionInfo);
+constructor TMVCSQLGenerator.Create(Mapping: TMVCFieldsMapping; const DefaultRQLFilter: string;
+  const PartitionInfo: TPartitionInfo);
 begin
   inherited Create;
   fMapping := Mapping;
@@ -3098,7 +3071,7 @@ begin
   GetCompiler;
   if not fDefaultRQLFilter.IsEmpty then
   begin
-    GetRQLParser.Execute(fDefaultRQLFilter,fDefaultSQLFilter, GetCompiler, False, True);
+    GetRQLParser.Execute(fDefaultRQLFilter, fDefaultSQLFilter, GetCompiler, false, True);
     fDefaultSQLFilter := TMVCSQLGenerator.RemoveInitialWhereKeyword(fDefaultSQLFilter);
   end;
 end;
@@ -3118,53 +3091,49 @@ begin
   Result := 'DELETE FROM ' + GetTableNameForSQL(TableName);
 end;
 
-function TMVCSQLGenerator.CreateDeleteSQL(const TableName: string;
-  const Map: TFieldsMap; const PKFieldName: string;
+function TMVCSQLGenerator.CreateDeleteSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := CreateDeleteAllSQL(TableName) + ' WHERE ' + GetFieldNameForSQL(PKFieldName) + '=:' +
     GetParamNameForSQL(PKFieldName);
 end;
 
-function TMVCSQLGenerator.CreateSelectByPKSQL(const TableName: string;
-  const Map: TFieldsMap; const PKFieldName: string;
+function TMVCSQLGenerator.CreateSelectByPKSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   if PKFieldName.IsEmpty then
   begin
-    raise EMVCActiveRecord.Create('No primary key provided. [HINT] Define a primary key field adding foPrimaryKey in field options.');
+    raise EMVCActiveRecord.Create
+      ('No primary key provided. [HINT] Define a primary key field adding foPrimaryKey in field options.');
   end;
 
-  Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' +
-    GetFieldNameForSQL(PKFieldName) + '= :' + GetParamNameForSQL(PKFieldName) +
-    GetDefaultSQLFilter(False, True);
+  Result := CreateSelectSQL(TableName, Map, PKFieldName, PKOptions) + ' WHERE ' + GetFieldNameForSQL(PKFieldName) +
+    '= :' + GetParamNameForSQL(PKFieldName) + GetDefaultSQLFilter(false, True);
 end;
 
 function TMVCSQLGenerator.CreateSelectCount(const TableName: string): string;
 begin
-  {do not add SQLFilter here!}
+  { do not add SQLFilter here! }
   Result := 'SELECT count(*) FROM ' + GetTableNameForSQL(TableName);
 end;
 
-function TMVCSQLGenerator.CreateSelectSQL(const TableName: string;
-  const Map: TFieldsMap; const PKFieldName: string;
+function TMVCSQLGenerator.CreateSelectSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 begin
   Result := 'SELECT ' + TableFieldsDelimited(Map, PKFieldName, ',') + ' FROM ' + GetTableNameForSQL(TableName);
 end;
 
-function TMVCSQLGenerator.CreateSQLWhereByRQL(const RQL: string;
-  const Mapping: TMVCFieldsMapping; const UseArtificialLimit,
-  UseFilterOnly: Boolean; const MaxRecordCount: Int32): string;
+function TMVCSQLGenerator.CreateSQLWhereByRQL(const RQL: string; const Mapping: TMVCFieldsMapping;
+  const UseArtificialLimit, UseFilterOnly: Boolean; const MaxRecordCount: Int32): string;
 begin
-  GetRQLParser.Execute(MergeDefaultRQLFilter(RQL), Result, GetCompiler, UseArtificialLimit, UseFilterOnly, MaxRecordCount);
+  GetRQLParser.Execute(MergeDefaultRQLFilter(RQL), Result, GetCompiler, UseArtificialLimit, UseFilterOnly,
+    MaxRecordCount);
 end;
 
-function TMVCSQLGenerator.CreateUpdateSQL(const TableName: string;
-  const Map: TFieldsMap; const PKFieldName: string;
+function TMVCSQLGenerator.CreateUpdateSQL(const TableName: string; const Map: TFieldsMap; const PKFieldName: string;
   const PKOptions: TMVCActiveRecordFieldOptions): string;
 var
-  lPair: TPair<TRttiField, TFieldInfo>;
+  lPair: TPair<TRTTIField, TFieldInfo>;
   I: Integer;
 begin
   Result := 'UPDATE ' + GetTableNameForSQL(TableName) + ' SET ';
@@ -3176,13 +3145,13 @@ begin
         GetParamNameForSQL(lPair.Value.FieldName) + ',';
     end;
   end;
-  {partition}
+  { partition }
   for I := 0 to fPartitionInfo.FieldNames.Count - 1 do
   begin
     Result := Result + GetFieldNameForSQL(fPartitionInfo.FieldNames[I]) + ' = :' +
       GetParamNameForSQL(fPartitionInfo.FieldNames[I]) + ',';
   end;
-  {end-partitioning}
+  { end-partitioning }
   Result[Length(Result)] := ' ';
   if not PKFieldName.IsEmpty then
   begin
@@ -3206,7 +3175,8 @@ begin
   Result := fCompiler;
 end;
 
-function TMVCSQLGenerator.GetDefaultSQLFilter(const IncludeWhereClause: Boolean; const IncludeAndClauseBeforeFilter: Boolean): String;
+function TMVCSQLGenerator.GetDefaultSQLFilter(const IncludeWhereClause: Boolean;
+  const IncludeAndClauseBeforeFilter: Boolean): String;
 begin
   Result := MergeSQLFilter(fPartitionInfo.SQLFilter, fDefaultSQLFilter);
   if not Result.IsEmpty then
@@ -3250,7 +3220,7 @@ end;
 
 function TMVCSQLGenerator.HasNativeUUID: Boolean;
 begin
-  Result := False;
+  Result := false;
 end;
 
 function TMVCSQLGenerator.HasReturning: Boolean;
@@ -3273,11 +3243,11 @@ begin
   lSemicolonPos := RQL.IndexOf(';');
   if lSemicolonPos > -1 then
   begin
-    lRQLFilterPart :=  RQL.Substring(0, lSemicolonPos);
+    lRQLFilterPart := RQL.Substring(0, lSemicolonPos);
     lRQLSortingAndLimitPart := RQL.Substring(lSemicolonPos + 1, 1000);
   end;
 
-  {this is not the best solution, but it works...}
+  { this is not the best solution, but it works... }
   if lRQLFilterPart.Contains('sort') or lRQLFilterPart.Contains('limit') then
   begin
     lRQLSortingAndLimitPart := lRQLFilterPart;
@@ -3311,53 +3281,52 @@ begin
     Result := Result + ';' + lRQLSortingAndLimitPart;
   end;
 
-
-//
-//    var Pieces := RQL.Split([';']);
-//    if Pieces[0].Trim.Length > 0 then
-//    begin
-//      Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-//    end
-//    else
-//    begin
-//      Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-//    end;
-//  end
-//
-//
-//
-//  if not fDefaultRQLFilter.IsEmpty then
-//  begin
-//    if RQL.Contains(';') then
-//    begin
-//      var Pieces := RQL.Split([';']);
-//      if Pieces[0].Trim.Length > 0 then
-//      begin
-//        Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-//      end
-//      else
-//      begin
-//        Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-//      end;
-//    end
-//    else
-//    begin
-//      if RQL.IsEmpty then
-//      begin
-//        Result := fDefaultRQLFilter
-//      end
-//      else
-//      begin
-//        Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
-//      end;
-//        //Result := 'and('+fDefaultRQLFilter + ',' + RQL + ')';
-//    end;
-//  end
-//  else
-//  begin
-//    Result := RQL;
-//  end;
-//  Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
+  //
+  // var Pieces := RQL.Split([';']);
+  // if Pieces[0].Trim.Length > 0 then
+  // begin
+  // Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+  // end
+  // else
+  // begin
+  // Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+  // end;
+  // end
+  //
+  //
+  //
+  // if not fDefaultRQLFilter.IsEmpty then
+  // begin
+  // if RQL.Contains(';') then
+  // begin
+  // var Pieces := RQL.Split([';']);
+  // if Pieces[0].Trim.Length > 0 then
+  // begin
+  // Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+  // end
+  // else
+  // begin
+  // Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
+  // end;
+  // end
+  // else
+  // begin
+  // if RQL.IsEmpty then
+  // begin
+  // Result := fDefaultRQLFilter
+  // end
+  // else
+  // begin
+  // Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
+  // end;
+  // //Result := 'and('+fDefaultRQLFilter + ',' + RQL + ')';
+  // end;
+  // end
+  // else
+  // begin
+  // Result := RQL;
+  // end;
+  // Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
 end;
 
 function TMVCSQLGenerator.MergeSQLFilter(const SQL1, SQL2: String): String;
@@ -3377,11 +3346,10 @@ begin
   Result := '((' + SQL1 + ') and (' + SQL2 + '))';
 end;
 
-class function TMVCSQLGenerator.RemoveInitialWhereKeyword(
-  const SQLFilter: String): String;
+class function TMVCSQLGenerator.RemoveInitialWhereKeyword(const SQLFilter: String): String;
 begin
   Result := SQLFilter.TrimLeft;
-  if Result.StartsWith('where', true) then
+  if Result.StartsWith('where', True) then
   begin
     Result := Result.Remove(0, 5);
   end;
@@ -3427,8 +3395,7 @@ begin
   inherited;
 end;
 
-constructor MVCTableFieldAttribute.Create(const aFieldName: string;
-  const aFieldOptions: TMVCActiveRecordFieldOptions;
+constructor MVCTableFieldAttribute.Create(const aFieldName: string; const aFieldOptions: TMVCActiveRecordFieldOptions;
   const aSequenceName: string; const aDataTypeName: string);
 begin
   inherited Create;
@@ -3446,12 +3413,8 @@ begin
   fHttpErrorCode := http_status.NotFound;
 end;
 
-class function TMVCActiveRecord.ExecQuery(
-  const SQL: string;
-  const Values: array of Variant;
-  const ValueTypes: array of TFieldType;
-  const Connection: TFDConnection;
-  const Unidirectional: Boolean): TDataSet;
+class function TMVCActiveRecord.ExecQuery(const SQL: string; const Values: array of Variant;
+  const ValueTypes: array of TFieldType; const Connection: TFDConnection; const Unidirectional: Boolean): TDataSet;
 var
   lQry: TFDQuery;
 begin
@@ -3557,34 +3520,34 @@ end;
 
 procedure TMVCUnitOfWork<T>.Apply(const ItemApplyAction: TMVCItemApplyAction<T>);
 var
-  i: Integer;
+  I: Integer;
   lHandled: Boolean;
 begin
-  for i := 0 to fListToInsert.Count - 1 do
+  for I := 0 to fListToInsert.Count - 1 do
   begin
     lHandled := false;
-    DoItemApplyAction(fListToInsert[i], eaCreate, ItemApplyAction, lHandled);
+    DoItemApplyAction(fListToInsert[I], eaCreate, ItemApplyAction, lHandled);
     if not lHandled then
     begin
-      fListToInsert[i].Insert;
+      fListToInsert[I].Insert;
     end;
   end;
-  for i := 0 to fListToUpdate.Count - 1 do
+  for I := 0 to fListToUpdate.Count - 1 do
   begin
     lHandled := false;
-    DoItemApplyAction(fListToUpdate[i], eaUpdate, ItemApplyAction, lHandled);
+    DoItemApplyAction(fListToUpdate[I], eaUpdate, ItemApplyAction, lHandled);
     if not lHandled then
     begin
-      fListToUpdate[i].Update(True);
+      fListToUpdate[I].Update(True);
     end;
   end;
-  for i := 0 to fListToDelete.Count - 1 do
+  for I := 0 to fListToDelete.Count - 1 do
   begin
     lHandled := false;
-    DoItemApplyAction(fListToDelete[i], eaDelete, ItemApplyAction, lHandled);
+    DoItemApplyAction(fListToDelete[I], eaDelete, ItemApplyAction, lHandled);
     if not lHandled then
     begin
-      fListToDelete[i].Delete(True);
+      fListToDelete[I].Delete(True);
     end;
   end;
 end;
@@ -3605,10 +3568,8 @@ begin
   inherited;
 end;
 
-procedure TMVCUnitOfWork<T>.DoItemApplyAction(const Obj: TMVCActiveRecord;
-  const EntityAction: TMVCEntityAction;
-  const ItemApplyAction: TMVCItemApplyAction<T>;
-  var Handled: Boolean);
+procedure TMVCUnitOfWork<T>.DoItemApplyAction(const Obj: TMVCActiveRecord; const EntityAction: TMVCEntityAction;
+  const ItemApplyAction: TMVCItemApplyAction<T>; var Handled: Boolean);
 begin
   if Assigned(ItemApplyAction) then
   begin
@@ -3616,49 +3577,49 @@ begin
   end;
 end;
 
-class function TMVCUnitOfWork<T>.KeyExistsInt(const NewList: TObjectList<T>;
-  const KeyValue: Integer; out Index: Integer): Boolean;
+class function TMVCUnitOfWork<T>.KeyExistsInt(const NewList: TObjectList<T>; const KeyValue: Integer;
+  out Index: Integer): Boolean;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := false;
-  for i := 0 to NewList.Count - 1 do
+  for I := 0 to NewList.Count - 1 do
   begin
-    if NewList[i].GetPK.AsInteger = KeyValue then
+    if NewList[I].GetPK.AsInteger = KeyValue then
     begin
-      Index := i;
+      Index := I;
       Exit(True);
     end;
   end;
 end;
 
-class function TMVCUnitOfWork<T>.KeyExistsInt64(const NewList: TObjectList<T>;
-  const KeyValue: int64; out Index: Integer): Boolean;
+class function TMVCUnitOfWork<T>.KeyExistsInt64(const NewList: TObjectList<T>; const KeyValue: int64;
+  out Index: Integer): Boolean;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := false;
-  for i := 0 to NewList.Count - 1 do
+  for I := 0 to NewList.Count - 1 do
   begin
-    if (not NewList[i].PKIsNull) and (NewList[i].GetPK.AsInt64 = KeyValue) then
+    if (not NewList[I].PKIsNull) and (NewList[I].GetPK.AsInt64 = KeyValue) then
     begin
-      Index := i;
+      Index := I;
       Exit(True);
     end;
   end;
 end;
 
-class function TMVCUnitOfWork<T>.KeyExistsString(const NewList: TObjectList<T>;
-  const KeyValue: String; out Index: Integer): Boolean;
+class function TMVCUnitOfWork<T>.KeyExistsString(const NewList: TObjectList<T>; const KeyValue: String;
+  out Index: Integer): Boolean;
 var
-  i: Integer;
+  I: Integer;
 begin
   Result := false;
-  for i := 0 to NewList.Count - 1 do
+  for I := 0 to NewList.Count - 1 do
   begin
-    if NewList[i].GetPK.AsString = KeyValue then
+    if NewList[I].GetPK.AsString = KeyValue then
     begin
-      Index := i;
+      Index := I;
       Exit(True);
     end;
   end;
@@ -3745,8 +3706,7 @@ begin
   PartitionInfoCache.Free;
 end;
 
-procedure TPartitionInfo.InitializeFilterStrings(
-  const RQLCompiler: TRQLCompiler);
+procedure TPartitionInfo.InitializeFilterStrings(const RQLCompiler: TRQLCompiler);
 var
   lFieldCount, I: Integer;
   lRQL2SQL: TRQL2SQL;
@@ -3759,18 +3719,18 @@ begin
     begin
       case FieldTypes[I] of
         ftString:
-        begin
-          fRQLFilter := fRQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i].QuotedString('"') + '),';
-        end;
+          begin
+            fRQLFilter := fRQLFilter + 'eq(' + FieldNames[I] + ',' + FieldValues[I].QuotedString('"') + '),';
+          end;
         ftInteger:
-        begin
-          fRQLFilter := fRQLFilter + 'eq(' + FieldNames[i] + ',' + FieldValues[i] + '),';
-        end;
-        else
-          raise ERQLException.CreateFmt('DataType for field [%s] not supported in partition clause', [fFieldNames[I]]);
+          begin
+            fRQLFilter := fRQLFilter + 'eq(' + FieldNames[I] + ',' + FieldValues[I] + '),';
+          end;
+      else
+        raise ERQLException.CreateFmt('DataType for field [%s] not supported in partition clause', [fFieldNames[I]]);
       end;
     end;
-    fRQLFilter := fRQLFilter.Remove(fRQLFilter.Length - 1,1);
+    fRQLFilter := fRQLFilter.Remove(fRQLFilter.Length - 1, 1);
     if lFieldCount > 1 then
     begin
       fRQLFilter := 'and(' + fRQLFilter + ')';
@@ -3778,22 +3738,22 @@ begin
   end;
   lRQL2SQL := TRQL2SQL.Create;
   try
-    lRQL2SQL.Execute(fRQLFilter, fSQLFilter, RQLCompiler, False, True)
+    lRQL2SQL.Execute(fRQLFilter, fSQLFilter, RQLCompiler, false, True)
   finally
     lRQL2SQL.Free;
   end;
   fSQLFilter := TMVCSQLGenerator.RemoveInitialWhereKeyword(fSQLFilter);
 end;
 
-class function TPartitionInfo.BuildPartitionClause(
-  const PartitionClause: String; const RQLCompilerClass: TRQLCompilerClass): TPartitionInfo;
+class function TPartitionInfo.BuildPartitionClause(const PartitionClause: String;
+  const RQLCompilerClass: TRQLCompilerClass): TPartitionInfo;
 var
   lPieces, lItems: TArray<String>;
   lPiece: String;
   lRQLCompiler: TRQLCompiler;
 begin
   {
-  Needs to parse [MVCPartition('rating=(integer)4;classname=(string)persona')]
+    Needs to parse [MVCPartition('rating=(integer)4;classname=(string)persona')]
   }
   if not PartitionInfoCache.TryGetValue(PartitionClause + '|' + RQLCompilerClass.ClassName, Result) then
   begin
@@ -3804,22 +3764,24 @@ begin
         lPieces := PartitionClause.Split([';']);
         for lPiece in lPieces do
         begin
-          lItems := lPiece.Split(['=','(',')'], TStringSplitOptions.ExcludeEmpty);
-          if Length(lItems)<>3 then
+          lItems := lPiece.Split(['=', '(', ')'], TStringSplitOptions.ExcludeEmpty);
+          if Length(lItems) <> 3 then
           begin
-            raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece + '. [HINT] Paritioning must be in the form: "[fieldname1=(integer|string)value1]"');
+            raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece +
+              '. [HINT] Paritioning must be in the form: "[fieldname1=(integer|string)value1]"');
           end;
 
           Result.FieldNames.Add(lItems[0]);
-          if lItems[1]='integer' then
+          if lItems[1] = 'integer' then
             Result.FieldTypes.Add(ftInteger)
-          else if lItems[1]='string' then
+          else if lItems[1] = 'string' then
           begin
             Result.FieldTypes.Add(ftString)
           end
           else
           begin
-            raise EMVCActiveRecord.Create('Unknown data type in partitioning: ' + lItems[1] + '. [HINT] data type can be "integer" or "string"');
+            raise EMVCActiveRecord.Create('Unknown data type in partitioning: ' + lItems[1] +
+              '. [HINT] data type can be "integer" or "string"');
           end;
           Result.FieldValues.Add(lItems[2]);
         end;

@@ -58,6 +58,7 @@ uses
   TestServerControllerExceptionU,
   SpeedMiddlewareU,
   MVCFramework.Middleware.Authentication,
+  MVCFramework.ActiveRecordController,
   System.Generics.Collections,
   MVCFramework.Commons,
   TestServerControllerPrivateU,
@@ -67,7 +68,8 @@ uses
   MVCFramework.View.Renderers.Mustache,
   {$ENDIF}
   MVCFramework.Middleware.Compression,
-  MVCFramework.Middleware.StaticFiles;
+  MVCFramework.Middleware.StaticFiles, FireDAC.Comp.Client,
+  MVCFramework.ActiveRecord, FDConnectionConfigU;
 
 procedure TMainWebModule.WebModuleCreate(Sender: TObject);
 begin
@@ -90,6 +92,11 @@ begin
     .AddController(TTestMultiPathController)
     .AddController(TTestJSONRPCController, '/jsonrpc')
     .AddController(TTestJSONRPCControllerWithGet, '/jsonrpcwithget')
+    .AddController(TMVCActiveRecordController,
+        function: TMVCController
+        begin
+          Result := TMVCActiveRecordController.Create(CON_DEF_NAME);
+        end, '/api/entities')
     .PublishObject(
     function: TObject
     begin

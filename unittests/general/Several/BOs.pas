@@ -124,8 +124,10 @@ type
     function Clone: TCustomer;
     function ToString: String; override;
     property ID: NullableInt32 read fID write fID;
+    [MVCNameAs('CustomerCode')]
     property Code: NullableString read fCode write fCode;
     property CompanyName: NullableString read fCompanyName write fCompanyName;
+    [MVCNameAs('CityName')]
     property City: string read fCity write fCity;
     property Rating: NullableInt32 read fRating write fRating;
     property CreationTime: NullableTTime read fCreationTime write fCreationTime;
@@ -1428,5 +1430,10 @@ function TCustomer.ToString: String;
 begin
   Result := inherited + Format(' [ID:%5d][Company: %s]', [ID.ValueOrDefault, CompanyName.ValueOrDefault]);
 end;
+
+
+initialization
+
+ActiveRecordMappingRegistry.AddEntity('customers', TCustomer);
 
 end.

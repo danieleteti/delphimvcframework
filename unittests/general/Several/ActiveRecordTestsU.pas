@@ -74,6 +74,8 @@ type
     [Test]
     procedure TestRQL;
     [Test]
+    procedure TestRQLWithMVCNameAsAttribute;
+    [Test]
     procedure TestRQLWithBoolean;
     [Test]
     procedure TestRQLWithDateTime;
@@ -1672,6 +1674,29 @@ begin
   Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomerWithGUID>(RQL1));
 end;
 
+procedure TTestActiveRecordBase.TestRQLWithMVCNameAsAttribute;
+var
+  lCustomers: TObjectList<TCustomer>;
+const
+  //this RQL contains aliases defined using MVCNameAs attribute
+  RQL1 = 'and(or(eq(CityName, "Rome"),eq(City, "London")),ne(CustomerCode,"INVALID"))';
+begin
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count(TCustomer));
+  LoadData;
+  lCustomers := TMVCActiveRecord.SelectRQL<TCustomer>(RQL1, MAXINT);
+  try
+    Assert.AreEqual(240, lCustomers.Count);
+    for var lCustomer in lCustomers do
+    begin
+      Assert.IsMatch('^(Rome|London)$', lCustomer.City);
+    end;
+  finally
+    lCustomers.Free;
+  end;
+  TMVCActiveRecord.DeleteRQL(TCustomer, RQL1);
+  Assert.AreEqual(Int64(0), TMVCActiveRecord.Count<TCustomer>(RQL1));
+end;
+
 procedure TTestActiveRecordBase.TestSelectWithExceptions;
 var
   lCustomer: TCustomer;
@@ -1989,12 +2014,15 @@ var
   LParams: TStringList;
   lDriver: IFDStanDefinition;
 begin
-  lDriver := FDManager.DriverDefs.Add;
-  lDriver.Name := 'FBEMBEDDED';
-  lDriver.AsString['BaseDriverID'] := 'FB';
-  lDriver.AsString['DriverID'] := 'FBEMBEDDED';
-  lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
-  lDriver.Apply;
+  if not Assigned(FDManager.DriverDefs.FindDefinition('FBEMBEDDED')) then
+  begin
+    lDriver := FDManager.DriverDefs.Add;
+    lDriver.Name := 'FBEMBEDDED';
+    lDriver.AsString['BaseDriverID'] := 'FB';
+    lDriver.AsString['DriverID'] := 'FBEMBEDDED';
+    lDriver.AsString['VendorLib'] := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'firebird\fbclient.dll');
+    lDriver.Apply;
+  end;
 
   LParams := TStringList.Create;
   try

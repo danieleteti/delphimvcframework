@@ -121,6 +121,9 @@
         <DCCReference Include="..\..\..\sources\MVCFramework.Serializer.HTML.pas"/>
         <DCCReference Include="..\..\common\MVCFramework.Tests.Serializer.Entities.pas"/>
         <DCCReference Include="..\..\..\sources\MVCFramework.Router.pas"/>
+        <DCCReference Include="..\..\common\FDConnectionConfigU.pas"/>
+        <DCCReference Include="..\Several\Entities.pas"/>
+        <DCCReference Include="..\Several\EntitiesProcessors.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

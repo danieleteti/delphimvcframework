@@ -54,7 +54,10 @@ type
   public
     constructor Create(const aConnectionFactory: TFunc<TFDConnection>;
       const aAuthorization: TMVCActiveRecordAuthFunc = nil;
-      const aURLSegment: String = ''); reintroduce;
+      const aURLSegment: String = ''); reintroduce; overload;
+    constructor Create(const aConnectionDefName: String;
+      const aAuthorization: TMVCActiveRecordAuthFunc = nil;
+      const aURLSegment: String = ''); reintroduce; overload;
     destructor Destroy; override;
 
     [MVCPath('/($entityname)')]
@@ -311,6 +314,15 @@ begin
     end;
   end;
   ActiveRecordConnectionsRegistry.AddConnection('default', lConn, True);
+  fAuthorization := aAuthorization;
+end;
+
+constructor TMVCActiveRecordController.Create(const aConnectionDefName: String;
+  const aAuthorization: TMVCActiveRecordAuthFunc; const aURLSegment: String);
+begin
+  inherited Create;
+  fURLSegment := aURLSegment;
+  ActiveRecordConnectionsRegistry.AddDefaultConnection(aConnectionDefName);
   fAuthorization := aAuthorization;
 end;
 

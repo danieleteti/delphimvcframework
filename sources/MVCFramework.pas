@@ -4203,6 +4203,9 @@ end;
 
 initialization
 
+// https://quality.embarcadero.com/browse/RSP-38281
+TRttiContext.KeepContext;
+
 gIsShuttingDown := 0;
 
 gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheItem>.Create;
@@ -4210,5 +4213,9 @@ gMVCGlobalActionParamsCache := TMVCStringObjectDictionary<TMVCActionParamCacheIt
 finalization
 
 FreeAndNil(gMVCGlobalActionParamsCache);
+
+
+// https://quality.embarcadero.com/browse/RSP-38281
+TRttiContext.DropContext;
 
 end.

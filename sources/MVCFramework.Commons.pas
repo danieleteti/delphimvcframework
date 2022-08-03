@@ -583,6 +583,7 @@ type
   TMVCFieldMap = record
     InstanceFieldName: string;
     DatabaseFieldName: string;
+    Alias: String; // allows to use "MVCNameAs" attribute in RQL queries
   end;
 
   TMVCCustomRouter = class abstract
