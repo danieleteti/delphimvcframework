@@ -161,8 +161,13 @@ begin
           end;
           if lAttr is MVCPathAttribute then
           begin
-            lControllerPath := MVCPathAttribute(lAttr).Path;
-            lPathAttributeFound := fPathFilter.IsEmpty or lControllerPath.StartsWith(fPathFilter);
+            if not lPathAttributeFound then
+            begin
+              {in case of more than one MVCPath attribute, only the firstone
+              is considered by swagger}
+              lControllerPath := MVCPathAttribute(lAttr).Path;
+              lPathAttributeFound := fPathFilter.IsEmpty or lControllerPath.StartsWith(fPathFilter);
+            end;
           end;
           if lAttr is MVCSWAGDefaultModel then
           begin

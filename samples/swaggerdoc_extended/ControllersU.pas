@@ -46,6 +46,7 @@ type
 
 
   [MVCPath('/tallpeople')]
+  [MVCPath('/tallpeoplexxx')]
   [MVCSWAGDefaultModel(TTallPersonModel, 'TallPerson', 'TallPeople')] {commenting this line you get an exception}
   [MVCSWAGDefaultSummaryTags('Tall People')] {commenting this line you get an exception}
   TTallPeopleController = class(TPeopleController)
