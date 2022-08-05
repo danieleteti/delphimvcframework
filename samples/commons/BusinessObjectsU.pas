@@ -824,7 +824,7 @@ begin
     'StringProperty   = ' + Self.StringProperty + sLineBreak +
     'IntegerProperty  = ' + Self.IntegerProperty.ToString + sLineBreak +
     'FloatProperty    = ' + Self.FloatProperty.ToString + sLineBreak +
-    'CurrencyProperty = ' + Self.CurrencyProperty.ToString + sLineBreak +
+    'CurrencyProperty = ' + CurrToStr(Self.CurrencyProperty) + sLineBreak +
     'DateProperty     = ' + DateToStr(Self.DateProperty) + sLineBreak +
     'TimeProperty     = ' + TimeToStr(Self.TimeProperty) + sLineBreak +
     'DateTimeProperty = ' + FormatDateTime('yyyy-mm-dd hh:nn:ss', Self.DateTimeProperty) + sLineBreak +

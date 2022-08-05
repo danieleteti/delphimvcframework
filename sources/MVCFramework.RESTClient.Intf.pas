@@ -485,6 +485,8 @@ type
     procedure SaveContentToFile(const aFileName: string);
     function ToJSONObject: TJDOJsonObject;
     function ToJSONArray: TJDOJsonArray;
+    procedure BodyFor(const aObject: TObject; const aRootNode: string = '');
+    procedure BodyForListOf(const aObjectList: TObject; const aObjectClass: TClass; const aRootNode: string = '');
   end;
 
 implementation

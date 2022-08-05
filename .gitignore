@@ -101,6 +101,7 @@ unittests/general/Several/Win32/GUI/sqlitetest.db
 *.txaPackage
 unittests/general/Several/bin/sqlitetest.db
 unittests/general/Several/bin/firebirdtest.fdb
+unittests/general/Several/bin/firebirdtest2.fdb
 samples/winecellarclient_mobile/Android64/
 samples/middleware_analytics/Win32/
 *.txt
@@ -118,3 +119,5 @@ samples/master_details/masterdetailssample.otares
 samples/master_details/masterdetailssample_Icon.ico
 samples/serversideviews_lua/bin/templates/__compiled/
 samples/serversideviews_lua/lua4delphi/unittests/Win32/
+/unittests/general/Several/bin/EchoSingleComplexRecord_RESPONSE.json
+/unittests/general/Several/bin/TestRequest_Echo_ComplexRecords_RESPONSE.json

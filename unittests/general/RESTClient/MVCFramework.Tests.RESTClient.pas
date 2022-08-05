@@ -230,7 +230,7 @@ begin
 
   LUser := TAppUser.Create;
   try
-    GetDefaultSerializer.DeserializeObject(FRESTClient.Get.Content, LUser);
+    FRESTClient.Get.BodyFor(LUser);
     Assert.IsTrue((LUser <> nil) and (LUser.Cod > 0));
   finally
     FreeAndNil(LUser);
@@ -248,23 +248,22 @@ end;
 procedure TTestRESTClient.TestGetUsers;
 var
   LUsers: TObjectList<TAppUser>;
-  lBody: string;
+  lResp: IMVCRESTResponse;
 begin
   FRESTClient.Resource('/users');
-//  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
-  lBody := FRESTClient.Get.Content;
+  lResp := FRESTClient.Get;
   // String
   Assert.AreEqual('[{"Cod":0,"Name":"Ezequiel 0","Pass":"0"},{"Cod":1,"Name":"Ezequiel 1","Pass":"1"},' +
     '{"Cod":2,"Name":"Ezequiel 2","Pass":"2"},{"Cod":3,"Name":"Ezequiel 3","Pass":"3"},{"Cod":4,"Name":"Ezequiel 4","Pass":"4"},' +
     '{"Cod":5,"Name":"Ezequiel 5","Pass":"5"},{"Cod":6,"Name":"Ezequiel 6","Pass":"6"},{"Cod":7,"Name":"Ezequiel 7","Pass":"7"},' +
     '{"Cod":8,"Name":"Ezequiel 8","Pass":"8"},{"Cod":9,"Name":"Ezequiel 9","Pass":"9"},{"Cod":10,"Name":"Ezequiel 10","Pass":"10"}]',
-    lBody);
+    LResp.Content);
 
   // Objects
   LUsers := TObjectList<TAppUser>.Create(True);
   try
-    GetDefaultSerializer.DeserializeCollection(lBody, lUsers, TAppUser); // BodyAsJSONArray.AsObjectList<TAppUser>;
+    lResp.BodyForListOf(LUsers, TAppUser);
     LUsers.OwnsObjects := True;
     Assert.IsTrue(LUsers.Count > 0);
   finally
@@ -284,7 +283,6 @@ end;
 procedure TTestRESTClient.TestHelloWorld;
 begin
   FRESTClient.Resource('/hello');
-//  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   // String
   Assert.AreEqual('Hello World called with GET', FRESTClient.Get.Content);
@@ -334,7 +332,6 @@ var
   LResp: IMVCRESTResponse;
 begin
   FRESTClient.Resource('/user/save');
-//  FRESTClient.SetBasicAuthorization('dmvc', '123');
 
   LUser := TAppUser.Create;
   LUser.Cod := 1;
@@ -359,7 +356,6 @@ var
   LUser: TAppUser;
 begin
   FRESTClient.Resource('/users/save');
-//  FRESTClient.SetBasicAuthorization('dmvc', '123');
   FRESTClient.Accept('application/json;charset=utf-8');
 
   LUsers := TObjectList<TAppUser>.Create(True);
