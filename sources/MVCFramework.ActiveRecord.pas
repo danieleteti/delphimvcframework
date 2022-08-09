@@ -3280,53 +3280,6 @@ begin
   begin
     Result := Result + ';' + lRQLSortingAndLimitPart;
   end;
-
-  //
-  // var Pieces := RQL.Split([';']);
-  // if Pieces[0].Trim.Length > 0 then
-  // begin
-  // Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-  // end
-  // else
-  // begin
-  // Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-  // end;
-  // end
-  //
-  //
-  //
-  // if not fDefaultRQLFilter.IsEmpty then
-  // begin
-  // if RQL.Contains(';') then
-  // begin
-  // var Pieces := RQL.Split([';']);
-  // if Pieces[0].Trim.Length > 0 then
-  // begin
-  // Result := 'and('+fDefaultRQLFilter + ',' + Pieces[0] + ');' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-  // end
-  // else
-  // begin
-  // Result := fDefaultRQLFilter + ';' + string.Join(';', Pieces, 1, Length(Pieces)-1);
-  // end;
-  // end
-  // else
-  // begin
-  // if RQL.IsEmpty then
-  // begin
-  // Result := fDefaultRQLFilter
-  // end
-  // else
-  // begin
-  // Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
-  // end;
-  // //Result := 'and('+fDefaultRQLFilter + ',' + RQL + ')';
-  // end;
-  // end
-  // else
-  // begin
-  // Result := RQL;
-  // end;
-  // Result := MergeRQL(Result, fPartitionInfo.RQLFilter);
 end;
 
 function TMVCSQLGenerator.MergeSQLFilter(const SQL1, SQL2: String): String;
@@ -3430,7 +3383,8 @@ begin
     begin
       lQry.Connection := Connection;
     end;
-    lQry.SQL.Text := SQL;
+//    lQry.SQL.Clear;
+//    lQry.SQL.Add(SQL);
     // lQry.Prepare;
     if Length(ValueTypes) = 0 then
     begin

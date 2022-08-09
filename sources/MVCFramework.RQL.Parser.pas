@@ -94,6 +94,7 @@ type
     function GetDatabaseFieldName(const RQLPropertyName: string; const UsePropertyNameIfAttributeDoesntExists: Boolean = False): string;
     function QuoteStringArray(const aStringArray: TArray<string>): TArray<string>;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; virtual; abstract;
+    procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); virtual;
   public
     constructor Create(const Mapping: TMVCFieldsMapping); virtual;
     procedure AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree; out aSQL: string); virtual;
@@ -104,6 +105,7 @@ type
     // or if the field name contains spaces.
     function GetFieldNameForSQL(const FieldName: string): string; virtual;
     function GetParamNameForSQL(const FieldName: string): string; virtual;
+    function GetPKFieldName: String;
   end;
 
   TRQLCompilerClass = class of TRQLCompiler;
@@ -366,6 +368,28 @@ begin
     lLimit.Start := 0;
     lLimit.Count := MaxRecordCount;
   end;
+
+
+//  if fAST.TreeContainsToken(tkLimit, lRQLItem) then
+//  begin
+//    if (TRQLLimit(lRQLItem).Count > 0) and (not fAST.TreeContainsToken(tkSort, lRQLItem)) then
+//    begin
+//      lSort := TRQLSort.Create;
+//      lSort.Add('+', '1');
+//      fAST.Insert(fAST.Count-1, lSort);
+//    end
+//    else
+//    begin
+//      fAST.Remove(lRQLItem);
+//      fAST.TreeContainsToken(tk)
+//      fAST.Add(lAlwaysFalse);
+//      lAlwaysFalse.OpLeft := '1';
+//      lAlwaysFalse.OpRight := '2';
+//      lAlwaysFalse.RightValueType := vtInteger;
+//      lAlwaysFalse.Token := tkEq;
+//    end;
+//  end;
+
 
 
   if UseFilterOnly then
@@ -1151,6 +1175,11 @@ end;
 
 { TRQLCompiler }
 
+procedure TRQLCompiler.AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree);
+begin
+  //do nothing
+end;
+
 procedure TRQLCompiler.AST2SQL(const aRQLAST: TRQLAbstractSyntaxTree;
   out aSQL: string);
 var
@@ -1165,6 +1194,7 @@ begin
     For MSSQL syntax you need to rearrange in: limit, filters, sort
   }
 
+  AdjustAST(aRQLAST);
   lBuff := TStringBuilder.Create;
   try
     for lItem in aRQLAST do
@@ -1235,6 +1265,11 @@ end;
 function TRQLCompiler.GetParamNameForSQL(const FieldName: string): string;
 begin
   Result := FieldName.Replace(' ', '_', [rfReplaceAll]);
+end;
+
+function TRQLCompiler.GetPKFieldName: String;
+begin
+  Result := fMapping[0].InstanceFieldName;
 end;
 
 function TRQLCompiler.GetTableNameForSQL(const TableName: string): string;

@@ -1008,6 +1008,7 @@ const
   cRQL2 = 'and(eq(City,"Rome"),or(contains(CompanyName,"GAS"),contains(CompanyName,"Motors")))';
 begin
   LoadCustomers;
+
   Log('** RQL Queries Test');
   Log('>> RQL Query (1) - ' + cRQL1);
   lList := TMVCActiveRecord.SelectRQL(TCustomer, cRQL1, 20);

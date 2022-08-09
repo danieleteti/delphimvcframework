@@ -39,6 +39,7 @@ type
     function RQLWhereToSQL(const aRQLWhere: TRQLWhere): string;
     function RQLLogicOperatorToSQL(const aRQLFIlter: TRQLLogicOperator): string;
   protected
+    procedure AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree); override;
     function RQLCustom2SQL(const aRQLCustom: TRQLCustom): string; override;
   end;
 
@@ -48,6 +49,34 @@ uses
   System.SysUtils;
 
 { TRQLMSSQLCompiler }
+
+procedure TRQLMSSQLCompiler.AdjustAST(const aRQLAST: TRQLAbstractSyntaxTree);
+var
+  lLimit, lTmp: TRQLCustom;
+  lSort: TRQLSort;
+begin
+  inherited;
+  if aRQLAST.TreeContainsToken(tkLimit, lLimit) then
+  begin
+    if TRQLLimit(lLimit).Count = 0 then
+    begin
+      raise ERQLException.Create('MSSQL Server do not support "FETCH NEXT 0"');
+    end;
+    if not aRQLAST.TreeContainsToken(tkSort, lTmp) then
+    begin
+      if aRQLAST.Last is TRQLLimit then
+      begin
+        lSort := TRQLSort.Create;
+        aRQLAST.Insert(aRQLAST.Count-1, lSort);
+        lSort.Add('+', GetPKFieldName);
+      end
+      else
+      begin
+        raise ERQLException.Create('Invalid position for RQLLimit');
+      end;
+    end;
+  end;
+end;
 
 function TRQLMSSQLCompiler.RQLCustom2SQL(
   const aRQLCustom: TRQLCustom): string;
