@@ -2367,7 +2367,7 @@ begin
   lTypeSize := RTTIType.TypeSize;
   GetMem(Buffer, lTypeSize);
   FillChar(Buffer^, lTypeSize, 0);
-{$IF Defined(RIOORBETTER)}
+{$IF Defined(SYDNEYORBETTER)}
   InvokeRecordInitializer(Buffer, RTTIType.Handle);
 {$ENDIF}
   lField := nil;
