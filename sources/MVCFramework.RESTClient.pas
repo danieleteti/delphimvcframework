@@ -114,6 +114,7 @@ type
     procedure SetContentType(const aContentType: string);
     procedure SetParameter(const aParamType: TMVCRESTParamType; const aName, aValue: string);
     procedure ClearParameters(const aParamType: TMVCRESTParamType);
+    function InsertHTTPSchema(const aURL: string): string;
     function GetFullURL: string;
     function HTTPMethodName(const aHTTPMethod: TMVCHTTPMethodType): string;
     /// <summary>
@@ -811,12 +812,7 @@ end;
 function TMVCRESTClient.BaseURL(const aBaseURL: string): IMVCRESTClient;
 begin
   Result := Self;
-
-  fBaseURL := aBaseURL;
-  if not (fBaseURL.IsEmpty or fBaseURL.Contains('://')) then
-    fBaseURL := 'http://' + fBaseURL;
-
-  fBaseURL := fBaseURL;
+  fBaseURL := InsertHTTPSchema(aBaseURL);
 end;
 
 function TMVCRESTClient.BaseURL(const aHost: string; const aPort: Integer): IMVCRESTClient;
@@ -1303,13 +1299,15 @@ begin
   if not lResource.IsEmpty then
   begin
     if not (Result.IsEmpty or Result.EndsWith('/')) and
-      not (lResource.StartsWith('/') or lResource.StartsWith('?') or lResource.StartsWith('#')) then
+      not CharInSet(lResource.Chars[0], ['/', '?', '#']) then
     begin
       Result := Result + '/';
     end;
 
     Result := Result + lResource;
   end;
+
+  Result := InsertHTTPSchema(Result);
 end;
 
 function TMVCRESTClient.Get(const aResource: string): IMVCRESTResponse;
@@ -1396,6 +1394,13 @@ begin
     httpTRACE:
       Result := 'TRACE';
   end;
+end;
+
+function TMVCRESTClient.InsertHTTPSchema(const aURL: string): string;
+begin
+  Result := aURL;
+  if not (Result.IsEmpty or Result.Contains('://')) then
+    Result := 'http://' + Result;
 end;
 
 function TMVCRESTClient.InternalExecuteRequest(const aMethod: TMVCHTTPMethodType): IMVCRESTResponse;
