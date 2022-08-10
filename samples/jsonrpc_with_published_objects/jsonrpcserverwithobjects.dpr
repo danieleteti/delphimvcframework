@@ -29,6 +29,7 @@ var
 begin
   Writeln('** DMVCFramework Server ** build ' + DMVCFRAMEWORK_VERSION);
   Writeln('JSON-RPC Server with Published Objects');
+  Writeln('Listening on port ', APort);
 
   LServer := TIdHTTPWebBrokerBridge.Create(nil);
   try

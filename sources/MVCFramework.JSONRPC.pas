@@ -34,14 +34,13 @@ interface
 uses
   System.Classes,
   Data.DB,
-  System.SysUtils,
   jsondataobjects,
   MVCFramework,
   MVCFramework.Commons,
   System.Rtti,
   System.Generics.Collections,
   MVCFramework.Serializer.Commons,
-  MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Serializer.JsonDataObjects, System.SysUtils;
 
 const
   JSONRPC_VERSION = '2.0';
@@ -878,6 +877,7 @@ begin
 end;
 
 procedure JSONDataValueToTValueParamEx(
+  const JSONSerializer: TMVCJsonDataObjectsSerializer;
   const JSONDataValue: TJsonDataValueHelper;
   const RTTIParameter: TRttiParameter;
   var ParamValue: TValue;
@@ -940,13 +940,34 @@ begin
           end;
         end
       end;
+    tkSet:
+      begin
+        if JSONDataValue.Typ <> jdtString then
+        begin
+          RaiseDeSerializationError('Cannot deserialize type ' + RTTIParameter.ParamType.Name);
+        end;
+        I := StringToSet(
+          RTTIParameter.ParamType.Handle,
+          StringReplace(JSONDataValue.Value, ' ', '', [rfReplaceAll]));
+        TValue.Make(I, RTTIParameter.ParamType.Handle, ParamValue);
+      end;
     tkEnumeration:
       begin
-        if JSONDataValue.Typ <> jdtBool then
+        if JSONDataValue.Typ = jdtBool then
         begin
-          raise EMVCJSONRPCInvalidRequest.Create(BuildDeclaration(RTTIParameter));
+          ParamValue := JSONDataValue.BoolValue;
+        end
+        else
+        begin
+          JSONSerializer.ParseStringAsTValueUsingMetadata(
+            JSONDataValue.Value,
+            RTTIParameter.ParamType.Handle,
+            'type ' + RTTIParameter.ParamType.Name,
+            RTTIParameter.ParamType.GetAttributes,
+            ParamValue
+            );
         end;
-        ParamValue := JSONDataValue.BoolValue;
+
       end;
     tkInteger:
       begin
@@ -1594,6 +1615,18 @@ begin
         lJSONResp := CreateError(lReqID, E.JSONRPCErrorCode, E.Message, E.JSONRPCErrorData);
         LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [E.ClassName, E.JSONRPCErrorCode, E.Message]));
       end;
+      on ExDeSer: EMVCDeserializationException do
+      begin
+        ResponseStatus(400);
+        lJSONResp := CreateError(lReqID, JSONRPC_ERR_INVALID_REQUEST, ExDeSer.Message, ExDeSer.DetailedMessage);
+        LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [ExDeSer.ClassName, JSONRPC_ERR_INVALID_REQUEST, ExDeSer.Message]));
+      end;
+      on ExSer: EMVCSerializationException do
+      begin
+        ResponseStatus(400);
+        lJSONResp := CreateError(lReqID, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message, ExSer.DetailedMessage);
+        LogE(Format('[JSON-RPC][CLS %s][ERR %d][MSG "%s"]', [ExSer.ClassName, JSONRPC_ERR_INTERNAL_ERROR, ExSer.Message]));
+      end;
       on Ex: Exception do // use another name for exception variable, otherwise E is nil!!
       begin
         //lJSONResp := CreateError(lReqID, 0, Ex.Message);
@@ -1608,7 +1641,7 @@ begin
           try
             if not lExceptionHandled then
             begin
-              lJSONResp := CreateError(lReqID, 0, Ex.Message);
+              lJSONResp := CreateError(lReqID, 0, Ex.Message, Ex.ClassName);
             end
             else
             begin
@@ -1750,6 +1783,7 @@ begin
     for I := 0 to lJSONParams.Count - 1 do
     begin
       JSONDataValueToTValueParamEx(
+        fSerializer,
         lJSONParams[I],
         lRTTIMethodParams[I],
         lParamsArray[I],
@@ -1765,6 +1799,7 @@ begin
     for I := 0 to lJSONNamedParams.Count - 1 do
     begin
       JSONDataValueToTValueParamEx(
+        fSerializer,
         GetJsonDataValueHelper(lJSONNamedParams, lRTTIMethodParams[I].Name.ToLower),
         lRTTIMethodParams[I],
         lParamsArray[I],

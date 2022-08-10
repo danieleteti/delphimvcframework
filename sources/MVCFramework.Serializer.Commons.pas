@@ -443,6 +443,7 @@ function ObjectDict(const OwnsValues: Boolean = True): IMVCObjectDictionary;
 function GetPaginationMeta(const CurrPageNumber: UInt32; const CurrPageSize: UInt32;
   const DefaultPageSize: UInt32; const URITemplate: string): TMVCStringDictionary;
 procedure RaiseSerializationError(const Msg: string);
+procedure RaiseDeSerializationError(const Msg: string);
 
 implementation
 

@@ -38,6 +38,9 @@ uses
 
 type
 
+  TEnumTest = (etValue1, etValue2, etValue3);
+  TSetOfEnumTest = set of TEnumTest;
+
   [MVCNameCase(ncLowerCase)]
   TPerson = class
   private

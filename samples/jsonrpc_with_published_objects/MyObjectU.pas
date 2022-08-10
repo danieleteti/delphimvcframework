@@ -69,6 +69,9 @@ type
     procedure RaiseCustomException;
     function RaiseGenericException(const ExceptionType: Integer): Integer;
     function SaveObjectWithJSON(const WithJSON: TJsonObject): TJsonObject;
+    //enums and sets support
+    function PassingEnums(Value1: TEnumTest; Value2: TEnumTest): TEnumTest;
+
     //records support
     function SavePersonRec(PersonRec: TTestRec): TTestRec;
     function GetPeopleRecDynArray: TTestRecDynArray;
@@ -121,6 +124,18 @@ end;
 procedure TMyObject.DoSomething;
 begin
 
+end;
+
+function TMyObject.PassingEnums(Value1, Value2: TEnumTest): TEnumTest;
+begin
+  if Value1 = Value2 then
+  begin
+    Result := TEnumTest.ptEnumValue4;
+  end
+  else
+  begin
+    Result := TEnumTest.ptEnumValue3;
+  end;
 end;
 
 function TMyObject.EchoComplexArrayOfRecords(

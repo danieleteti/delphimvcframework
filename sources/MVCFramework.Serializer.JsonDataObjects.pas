@@ -70,6 +70,12 @@ type
     function TryMapNullableFloat(var Value: TValue; const JSONDataObject: TJsonObject;
       const AttribName: string): Boolean;
   public
+    procedure ParseStringAsTValueUsingMetadata(
+      const AStringValue: String;
+      const DestinationTypeInfo: PTypeInfo;
+      const ExceptionHintString: String;
+      const AAttributes: TArray<TCustomAttribute>;
+      var AValue: TValue);
     function JSONObjectToRecord<T: record >(const JSONObject: TJsonObject): T; overload;
     function StrToRecord<T: record >(const AJSONString: String): T;
     procedure JSONObjectToNestedRecordField(const JSONObject: TJsonObject; RecordFieldRTTIType: TRttiField;
@@ -1424,84 +1430,90 @@ begin
 
     jdtString:
       begin
-        lValueTypeInfo := AValue.TypeInfo;
-        if (lValueTypeInfo = System.TypeInfo(TDate)) then
-          AValue := TValue.From<TDate>(ISODateToDate(AJSONObject[APropertyName].Value))
-
-        else if (lValueTypeInfo = System.TypeInfo(TDateTime)) then
-          AValue := TValue.From<TDateTime>(ISOTimeStampToDateTime(AJSONObject[APropertyName].Value))
-
-        else if (lValueTypeInfo = System.TypeInfo(TTime)) then
-          AValue := TValue.From<TTime>(ISOTimeToTime(AJSONObject[APropertyName].Value))
-        else if (AValue.Kind = tkRecord) and (lValueTypeInfo <> TypeInfo(TValue)) then { nullables }
-        begin
-          if lValueTypeInfo = TypeInfo(NullableString) then
-          begin
-            AValue := TValue.From<NullableString>(NullableString(AJSONObject[APropertyName].Value))
-          end
-          else if lValueTypeInfo = TypeInfo(NullableTDate) then
-          begin
-            AValue := TValue.From<NullableTDate>(NullableTDate(ISODateToDate(AJSONObject[APropertyName].Value)))
-          end
-          else if lValueTypeInfo = TypeInfo(NullableTDateTime) then
-          begin
-            AValue := TValue.From<NullableTDateTime>
-              (NullableTDateTime(ISOTimeStampToDateTime(AJSONObject[APropertyName].Value)))
-          end
-          else if lValueTypeInfo = TypeInfo(NullableTTime) then
-          begin
-            AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJSONObject[APropertyName].Value)))
-          end
-          else if lValueTypeInfo = TypeInfo(NullableTGUID) then
-          begin
-            AValue := TValue.From<NullableTGUID>(TMVCGuidHelper.StringToGUIDEx(AJSONObject[APropertyName].Value));
-          end
-          else
-            raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [APropertyName]);
-        end
-        else if (AValue.Kind = tkEnumeration) then
-        begin
-          LEnumSerType := estEnumName;
-          LEnumMappedValues := nil;
-          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr) then
-          begin
-            LEnumSerType := LEnumAsAttr.SerializationType;
-            LEnumMappedValues := LEnumAsAttr.MappedValues;
-          end;
-
-          if LEnumSerType = estEnumName then
-          begin
-            TValue.Make(GetEnumValue(AValue.TypeInfo, AJSONObject[APropertyName].Value), AValue.TypeInfo, AValue)
-          end
-          else
-          begin
-            LMappedValueIndex := LEnumMappedValues.IndexOf(AJSONObject[APropertyName].Value);
-            if LMappedValueIndex < 0 then
-              raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from mapped values',
-                [APropertyName]);
-
-            TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
-              AValue.TypeInfo, AValue)
-          end;
-        end
-        else if (AValue.Kind = tkInteger) and (TryStrToInt(AJSONObject[APropertyName].Value, lOutInteger)) then
-        begin
-          AValue := lOutInteger;
-        end
-        else if (AValue.Kind = tkInt64) and (TryStrToInt64(AJSONObject[APropertyName].Value, lOutInteger64)) then
-        begin
-          AValue := lOutInteger64;
-        end
-        else if lValueTypeInfo.Kind = tkSet then
-        begin
-          lInt := StringToSet(AValue.TypeInfo, StringReplace(AJSONObject[APropertyName].Value, ' ', '',
-            [rfReplaceAll]));
-          TValue.Make(lInt, AValue.TypeInfo, AValue);
-        end
-        else
-        begin
-          AValue := TValue.From<string>(AJSONObject[APropertyName].Value);
-        end;
+        ParseStringAsTValueUsingMetadata(
+          AJSONObject[APropertyName].Value,
+          AValue.TypeInfo,
+          'property ' + APropertyName,
+          ACustomAttributes,
+          AValue);
+//        lValueTypeInfo := AValue.TypeInfo;
+//        if (lValueTypeInfo = System.TypeInfo(TDate)) then
+//          AValue := TValue.From<TDate>(ISODateToDate(AJSONObject[APropertyName].Value))
+//
+//        else if (lValueTypeInfo = System.TypeInfo(TDateTime)) then
+//          AValue := TValue.From<TDateTime>(ISOTimeStampToDateTime(AJSONObject[APropertyName].Value))
+//
+//        else if (lValueTypeInfo = System.TypeInfo(TTime)) then
+//          AValue := TValue.From<TTime>(ISOTimeToTime(AJSONObject[APropertyName].Value))
+//        else if (AValue.Kind = tkRecord) and (lValueTypeInfo <> TypeInfo(TValue)) then { nullables }
+//        begin
+//          if lValueTypeInfo = TypeInfo(NullableString) then
+//          begin
+//            AValue := TValue.From<NullableString>(NullableString(AJSONObject[APropertyName].Value))
+//          end
+//          else if lValueTypeInfo = TypeInfo(NullableTDate) then
+//          begin
+//            AValue := TValue.From<NullableTDate>(NullableTDate(ISODateToDate(AJSONObject[APropertyName].Value)))
+//          end
+//          else if lValueTypeInfo = TypeInfo(NullableTDateTime) then
+//          begin
+//            AValue := TValue.From<NullableTDateTime>
+//              (NullableTDateTime(ISOTimeStampToDateTime(AJSONObject[APropertyName].Value)))
+//          end
+//          else if lValueTypeInfo = TypeInfo(NullableTTime) then
+//          begin
+//            AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJSONObject[APropertyName].Value)))
+//          end
+//          else if lValueTypeInfo = TypeInfo(NullableTGUID) then
+//          begin
+//            AValue := TValue.From<NullableTGUID>(TMVCGuidHelper.StringToGUIDEx(AJSONObject[APropertyName].Value));
+//          end
+//          else
+//            raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [APropertyName]);
+//        end
+//        else if (AValue.Kind = tkEnumeration) then
+//        begin
+//          LEnumSerType := estEnumName;
+//          LEnumMappedValues := nil;
+//          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr) then
+//          begin
+//            LEnumSerType := LEnumAsAttr.SerializationType;
+//            LEnumMappedValues := LEnumAsAttr.MappedValues;
+//          end;
+//
+//          if LEnumSerType = estEnumName then
+//          begin
+//            TValue.Make(GetEnumValue(AValue.TypeInfo, AJSONObject[APropertyName].Value), AValue.TypeInfo, AValue)
+//          end
+//          else
+//          begin
+//            LMappedValueIndex := LEnumMappedValues.IndexOf(AJSONObject[APropertyName].Value);
+//            if LMappedValueIndex < 0 then
+//              raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from mapped values',
+//                [APropertyName]);
+//
+//            TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
+//              AValue.TypeInfo, AValue)
+//          end;
+//        end
+//        else if (AValue.Kind = tkInteger) and (TryStrToInt(AJSONObject[APropertyName].Value, lOutInteger)) then
+//        begin
+//          AValue := lOutInteger;
+//        end
+//        else if (AValue.Kind = tkInt64) and (TryStrToInt64(AJSONObject[APropertyName].Value, lOutInteger64)) then
+//        begin
+//          AValue := lOutInteger64;
+//        end
+//        else if lValueTypeInfo.Kind = tkSet then
+//        begin
+//          lInt := StringToSet(AValue.TypeInfo, StringReplace(AJSONObject[APropertyName].Value, ' ', '',
+//            [rfReplaceAll]));
+//          TValue.Make(lInt, AValue.TypeInfo, AValue);
+//        end
+//        else
+//        begin
+//          AValue := TValue.From<string>(AJSONObject[APropertyName].Value);
+//        end;
       end;
 
     jdtInt:
@@ -2758,6 +2770,109 @@ end;
 class function TMVCJsonDataObjectsSerializer.ParseObject(const AString: string): TJDOJsonObject;
 begin
   Result := Parse<TJDOJsonObject>(AString);
+end;
+
+procedure TMVCJsonDataObjectsSerializer.ParseStringAsTValueUsingMetadata(
+  const AStringValue: String;
+  const DestinationTypeInfo: PTypeInfo;
+  const ExceptionHintString: String;
+  const AAttributes: TArray<TCustomAttribute>;
+  var AValue: TValue);
+var
+  lValueTypeInfo: PTypeInfo;
+  LEnumSerType: TMVCEnumSerializationType;
+  LEnumAsAttr: MVCEnumSerializationAttribute;
+  LEnumMappedValues: TList<string>;
+  LMappedValueIndex: Integer;
+  lOutInteger: Integer;
+  lOutInteger64: Int64;
+  lInt: Integer;
+begin
+  lValueTypeInfo := DestinationTypeInfo;
+  if (lValueTypeInfo = System.TypeInfo(TDate)) then
+    AValue := TValue.From<TDate>(ISODateToDate(AStringValue))
+
+  else if (lValueTypeInfo = System.TypeInfo(TDateTime)) then
+    AValue := TValue.From<TDateTime>(ISOTimeStampToDateTime(AStringValue))
+
+  else if (lValueTypeInfo = System.TypeInfo(TTime)) then
+    AValue := TValue.From<TTime>(ISOTimeToTime(AStringValue))
+  else if (lValueTypeInfo.Kind = tkRecord) and (lValueTypeInfo <> TypeInfo(TValue)) then { nullables }
+  begin
+    if lValueTypeInfo = TypeInfo(NullableString) then
+    begin
+      AValue := TValue.From<NullableString>(NullableString(AStringValue))
+    end
+    else if lValueTypeInfo = TypeInfo(NullableTDate) then
+    begin
+      AValue := TValue.From<NullableTDate>(NullableTDate(ISODateToDate(AStringValue)))
+    end
+    else if lValueTypeInfo = TypeInfo(NullableTDateTime) then
+    begin
+      AValue := TValue.From<NullableTDateTime>
+        (NullableTDateTime(ISOTimeStampToDateTime(AStringValue)))
+    end
+    else if lValueTypeInfo = TypeInfo(NullableTTime) then
+    begin
+      AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AStringValue)))
+    end
+    else if lValueTypeInfo = TypeInfo(NullableTGUID) then
+    begin
+      AValue := TValue.From<NullableTGUID>(TMVCGuidHelper.StringToGUIDEx(AStringValue));
+    end
+    else
+    begin
+      raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from string', [ExceptionHintString]);
+    end;
+  end
+  else if (lValueTypeInfo.Kind = tkEnumeration) then
+  begin
+    LEnumSerType := estEnumName;
+    LEnumMappedValues := nil;
+    if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(AAttributes, LEnumAsAttr) then
+    begin
+      LEnumSerType := LEnumAsAttr.SerializationType;
+      LEnumMappedValues := LEnumAsAttr.MappedValues;
+    end;
+
+    if LEnumSerType = estEnumName then
+    begin
+      lOutInteger := GetEnumValue(lValueTypeInfo, AStringValue);
+      if lOutInteger = -1 then
+      begin
+        raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from mapped values',
+          [ExceptionHintString]);
+      end;
+      TValue.Make(lOutInteger, lValueTypeInfo, AValue)
+    end
+    else
+    begin
+      LMappedValueIndex := LEnumMappedValues.IndexOf(AStringValue);
+      if LMappedValueIndex < 0 then
+        raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from mapped values',
+          [ExceptionHintString]);
+
+      TValue.Make(GetEnumValue(lValueTypeInfo, GetEnumName(lValueTypeInfo, LMappedValueIndex)),
+        lValueTypeInfo, AValue)
+    end;
+  end
+  else if (lValueTypeInfo.Kind = tkInteger) and (TryStrToInt(AStringValue, lOutInteger)) then
+  begin
+    AValue := lOutInteger;
+  end
+  else if (lValueTypeInfo.Kind = tkInt64) and (TryStrToInt64(AStringValue, lOutInteger64)) then
+  begin
+    AValue := lOutInteger64;
+  end
+  else if lValueTypeInfo.Kind = tkSet then
+  begin
+    lInt := StringToSet(lValueTypeInfo, StringReplace(AStringValue, ' ', '', [rfReplaceAll]));
+    TValue.Make(lInt, lValueTypeInfo, AValue);
+  end
+  else
+  begin
+    AValue := TValue.From<string>(AStringValue);
+  end;
 end;
 
 procedure TMVCJsonDataObjectsSerializer.RecordToJsonObject(const ARecord: Pointer; const ARecordTypeInfo: PTypeInfo;

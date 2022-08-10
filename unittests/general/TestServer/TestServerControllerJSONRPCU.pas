@@ -44,6 +44,14 @@ type
     [MVCInheritable]
     function AddTimeToDateTime(aDateTime: TDateTime; aTime: TTime): TDateTime;
 
+    //enums support
+    [MVCInheritable]
+    function ProcessEnums(Value1: TEnumTest; Value2: TEnumTest): TEnumTest;
+
+    //sets support
+    [MVCInheritable]
+    function ProcessSets(Value1: TSetOfEnumTest; Value2: TEnumTest): TSetOfEnumTest;
+
     //records support
     [MVCInheritable]
     function GetSingleRecord: TSimpleRecord;
@@ -220,6 +228,18 @@ procedure TTestJSONRPCClass.MyNotify;
 begin
   // this is a notify with no parameters and no result code
   Self.ClassName;
+end;
+
+function TTestJSONRPCClass.ProcessEnums(Value1, Value2: TEnumTest): TEnumTest;
+begin
+  Result := TEnumTest((Ord(Value1) + Ord(Value2)) mod 3);
+end;
+
+function TTestJSONRPCClass.ProcessSets(Value1: TSetOfEnumTest;
+  Value2: TEnumTest): TSetOfEnumTest;
+begin
+  Include(Value1, Value2);
+  Result := Value1;
 end;
 
 function TTestJSONRPCClass.Subtract(Value1, Value2: Int64): Integer;

@@ -29,17 +29,21 @@ interface
 uses
   MVCFramework.Serializer.Commons, JsonDataObjects, MVCFramework.DuckTyping;
 
+
 function NewJSONSerializer: IMVCJSONSerializer;
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
+
+
 
 implementation
 
 uses
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Commons,
-  System.SysUtils;
+  System.SysUtils,
+  System.TypInfo;
 
 function NewJSONSerializer: IMVCJSONSerializer;
 begin
