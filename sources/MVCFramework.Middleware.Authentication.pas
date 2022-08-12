@@ -58,7 +58,7 @@ type
 
     procedure OnAfterControllerAction(
       AContext: TWebContext;
-      const AActionName: string;
+      const AControllerQualifiedClassName: string; const AActionName: string;
       const AHandled: Boolean
       );
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
@@ -88,9 +88,9 @@ type
 
     procedure OnAfterControllerAction(
       AContext: TWebContext;
-      const AActionName: string;
-      const AHandled: Boolean
-      );
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
+
     procedure OnAfterRouting(
       AContext: TWebContext;
       const AHandled: Boolean
@@ -125,9 +125,10 @@ begin
 end;
 
 procedure TMVCBasicAuthenticationMiddleware.OnAfterControllerAction(
-  AContext: TWebContext;
-  const AActionName: string;
-  const AHandled: Boolean);
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean
+      );
 begin
   // Implement as needed
 end;
@@ -378,8 +379,9 @@ begin
 end;
 
 procedure TMVCCustomAuthenticationMiddleware.OnAfterControllerAction(
-  AContext: TWebContext; const AActionName: string;
-  const AHandled: Boolean);
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 begin
   // Implement as needed
 end;

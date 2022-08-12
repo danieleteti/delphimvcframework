@@ -39,7 +39,8 @@ type
       const AControllerQualifiedClassName: string; const AActionName: string;
       var AHandled: Boolean);
     procedure OnAfterControllerAction(AContext: TWebContext;
-      const AActionName: string; const AHandled: Boolean);
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
   end;
 
@@ -47,8 +48,9 @@ implementation
 
 { TMVCSecurityHeadersMiddleware }
 
-procedure TMVCSecurityHeadersMiddleware.OnAfterControllerAction(
-  AContext: TWebContext; const AActionName: string; const AHandled: Boolean);
+procedure TMVCSecurityHeadersMiddleware.OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 begin
   // do nothing
 end;

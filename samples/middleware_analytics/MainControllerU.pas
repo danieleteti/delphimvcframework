@@ -14,6 +14,10 @@ type
     [MVCHTTPMethod([httpGET])]
     procedure Index;
 
+    [MVCPath('/error')]
+    [MVCHTTPMethod([httpGET])]
+    procedure DoError;
+
     [MVCPath('/reversedstrings/($Value)')]
     [MVCHTTPMethod([httpGET])]
     procedure GetReversedString(const Value: String);
@@ -48,12 +52,12 @@ type
 implementation
 
 uses
-  System.SysUtils, MVCFramework.Logger, System.StrUtils;
+  System.SysUtils, MVCFramework.Logger, System.StrUtils, MVCFramework.Serializer.Commons;
 
 procedure TMainController.Index;
 begin
-  //use Context property to access to the HTTP request and response 
-  Render('Hello DelphiMVCFramework World');
+  //use Context property to access to the HTTP request and response
+  Render(StrDict(['hello'],['world']));
 end;
 
 procedure TMainController.GetReversedString(const Value: String);
@@ -103,5 +107,10 @@ begin
 end;
 
 
+
+procedure TMainController.DoError;
+begin
+  raise EMVCException.Create('This is an error');
+end;
 
 end.

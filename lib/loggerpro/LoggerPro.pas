@@ -12,6 +12,20 @@ uses
   System.Classes,
   ThreadSafeQueueU;
 
+const
+  { @abstract(Defines the default format string used by the @link(TLoggerProAppenderBase).)
+    The positional parameters are the followings:
+    @orderedList(
+    @itemSetNumber 0
+    @item TimeStamp
+    @item ThreadID
+    @item LogType
+    @item LogMessage
+    @item LogTag
+    )
+  }
+  DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
+
 var
   DefaultLoggerProMainQueueSize: Cardinal = 50000;
   DefaultLoggerProAppenderQueueSize: Cardinal = 50000;
@@ -107,7 +121,20 @@ type
   TAppenderQueue = class(TThreadSafeQueue<TLogItem>)
   end;
 
-  ILogWriter = interface
+  ICustomLogWriter = interface
+    ['{8BC2F462-E2A3-4117-BE1F-03EB31997BB4}']
+    function GetAppendersClassNames: TArray<string>;
+    function GetAppenders(const aIndex: Integer): ILogAppender;
+    property Appenders[const aIndex: Integer]: ILogAppender read GetAppenders;
+    procedure AddAppender(const aAppenders: ILogAppender);
+    procedure DelAppender(const aAppenders: ILogAppender);
+    function AppendersCount(): Integer;
+
+    // Base logging method
+    procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
+  end;
+
+  ILogWriter = interface(ICustomLogWriter)
     ['{A717A040-4493-458F-91B2-6F6E2AFB496F}']
     procedure Debug(const aMessage: string; const aTag: string); overload;
     procedure Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
@@ -128,13 +155,6 @@ type
     procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
     procedure LogFmt(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); deprecated;
-
-    function GetAppendersClassNames: TArray<string>;
-    function GetAppenders(const Index: Integer): ILogAppender;
-    property Appenders[const index: Integer]: ILogAppender read GetAppenders;
-    procedure AddAppender(const aAppenders: ILogAppender);
-    procedure DelAppender(const aAppenders: ILogAppender);
-    function AppendersCount(): Integer;
   end;
 
   TLogAppenderList = TList<ILogAppender>;
@@ -203,22 +223,32 @@ type
     function _Release: Integer; stdcall;
   end;
 
-  TLogWriter = class(TLoggerProInterfacedObject, ILogWriter)
-  private
+  TCustomLogWriter = class(TLoggerProInterfacedObject, ICustomLogWriter)
+  strict private
     FLoggerThread: TLoggerThread;
     FLogAppenders: TLogAppenderList;
     FFreeAllowed: Boolean;
     FLogLevel: TLogType;
-    procedure Initialize(aEventsHandler: TLoggerProEventsHandler);
     function GetAppendersClassNames: TArray<string>;
+  protected
+    procedure Initialize(const aEventsHandler: TLoggerProEventsHandler);
   public
-    function GetAppenders(const Index: Integer): ILogAppender;
+    constructor Create(const aLogLevel: TLogType = TLogType.Debug); overload;
+    constructor Create(const aLogAppenders: TLogAppenderList; const aLogLevel: TLogType = TLogType.Debug); overload;
+    destructor Destroy; override;
+
+    function GetAppenders(const aIndex: Integer): ILogAppender;
     procedure AddAppender(const aAppender: ILogAppender);
     procedure DelAppender(const aAppender: ILogAppender);
     function AppendersCount(): Integer;
-    constructor Create(aLogLevel: TLogType = TLogType.Debug); overload;
-    constructor Create(aLogAppenders: TLogAppenderList; aLogLevel: TLogType = TLogType.Debug); overload;
-    destructor Destroy; override;
+
+    procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
+  end;
+
+  TLogWriter = class(TCustomLogWriter, ILogWriter)
+  private
+  protected
+  public
     procedure Debug(const aMessage: string; const aTag: string); overload;
     procedure Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
     procedure DebugFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
@@ -235,19 +265,27 @@ type
     procedure Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string); overload;
     procedure ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
 
-    procedure Log(const aType: TLogType; const aMessage: string; const aTag: string); overload;
     procedure Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string); overload;
     procedure LogFmt(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string);
   end;
+
+  TOnAppenderLogRow = reference to procedure(const LogItem: TLogItem; out LogRow: string);
 
   TLoggerProAppenderBase = class abstract(TInterfacedObject, ILogAppender)
   private
     FLogLevel: TLogType;
     FEnabled: Boolean;
     FLastErrorTimeStamp: TDateTime;
+    FOnLogRow: TOnAppenderLogRow;
+    FLogFormat: string;
+    FFormatSettings: TFormatSettings;
+  protected
+    property LogFormat: string read FLogFormat;
+    property FormatSettings: TFormatSettings read FFormatSettings;
   public
-    constructor Create; virtual;
-    procedure Setup; virtual; abstract;
+    constructor Create(ALogFormat: string = DEFAULT_LOG_FORMAT); virtual;
+    procedure Setup; virtual;
+    function FormatLog(const ALogItem: TLogItem): string; virtual;
     procedure WriteLog(const aLogItem: TLogItem); virtual; abstract;
     procedure TearDown; virtual; abstract;
     procedure TryToRestart(var Restarted: Boolean); virtual;
@@ -256,6 +294,7 @@ type
     procedure SetLastErrorTimeStamp(const Value: TDateTime);
     function GetLastErrorTimeStamp: TDateTime;
     property LogLevel: TLogType read GetLogLevel write SetLogLevel;
+    property OnLogRow: TOnAppenderLogRow read FOnLogRow write FOnLogRow;
   end;
 
   { @abstract(Builds a new ILogWriter instance. Call this global function to start logging like a pro.)
@@ -353,78 +392,50 @@ begin
   TLogWriter(Result).Initialize(aEventsHandlers);
 end;
 
-{ TLogger.TLogWriter }
+{ TLogger.TCustomLogWriter }
 
-function TLogWriter.AppendersCount: Integer;
+function TCustomLogWriter.AppendersCount: Integer;
 begin
   Result := Self.FLogAppenders.Count;
 end;
 
-constructor TLogWriter.Create(aLogAppenders: TLogAppenderList; aLogLevel: TLogType);
+constructor TCustomLogWriter.Create(const aLogAppenders: TLogAppenderList; const aLogLevel: TLogType = TLogType.Debug);
 begin
   inherited Create;
+
   FFreeAllowed := False;
   FLogAppenders := aLogAppenders;
   FLogLevel := aLogLevel;
 end;
 
-constructor TLogWriter.Create(aLogLevel: TLogType);
+constructor TCustomLogWriter.Create(const aLogLevel: TLogType = TLogType.Debug);
 begin
   Create(TLogAppenderList.Create, aLogLevel);
 end;
 
-procedure TLogWriter.Debug(const aMessage, aTag: string);
-begin
-  Log(TLogType.Debug, aMessage, aTag);
-end;
-
-procedure TLogWriter.Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Log(TLogType.Debug, aMessage, aParams, aTag);
-end;
-
-procedure TLogWriter.DebugFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Debug(aMessage, aParams, aTag);
-end;
-
-destructor TLogWriter.Destroy;
+destructor TCustomLogWriter.Destroy;
 begin
   FLoggerThread.Terminate;
   FLoggerThread.WaitFor;
   FLoggerThread.Free;
   FLogAppenders.Free;
-  inherited;
+
+  inherited Destroy;
 end;
 
-procedure TLogWriter.Error(const aMessage, aTag: string);
+function TCustomLogWriter.GetAppenders(const aIndex: Integer): ILogAppender;
 begin
-  Log(TLogType.Error, aMessage, aTag);
+  Result := Self.FLogAppenders[aIndex];
 end;
 
-procedure TLogWriter.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Log(TLogType.Error, aMessage, aParams, aTag);
-end;
-
-procedure TLogWriter.ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Error(aMessage, aParams, aTag);
-end;
-
-function TLogWriter.GetAppenders(const Index: Integer): ILogAppender;
-begin
-  Result := Self.FLogAppenders[index];
-end;
-
-procedure TLogWriter.AddAppender(const aAppender: ILogAppender);
+procedure TCustomLogWriter.AddAppender(const aAppender: ILogAppender);
 begin
   Self.FLoggerThread.FAppenders.Add(aAppender);
   Self.FLogAppenders.Add(aAppender);
   Self.FLoggerThread.FAppendersDecorators.Add(TLoggerThread.TAppenderAdapter.Create(aAppender));
 end;
 
-procedure TLogWriter.DelAppender(const aAppender: ILogAppender);
+procedure TCustomLogWriter.DelAppender(const aAppender: ILogAppender);
 var
   i: Integer;
 begin
@@ -436,12 +447,12 @@ begin
   if i >= 0 then
     Self.FLogAppenders.Delete(i);
 
-  for I := 0 to Self.FLoggerThread.FAppendersDecorators.Count - 1 do
+  for i := 0 to Self.FLoggerThread.FAppendersDecorators.Count - 1 do
     if Self.FLoggerThread.FAppendersDecorators[i].FLogAppender = aAppender then
       Self.FLoggerThread.FAppendersDecorators.Delete(i);
 end;
 
-function TLogWriter.GetAppendersClassNames: TArray<string>;
+function TCustomLogWriter.GetAppendersClassNames: TArray<string>;
 var
   I: Cardinal;
 begin
@@ -457,22 +468,15 @@ begin
   end;
 end;
 
-procedure TLogWriter.Info(const aMessage, aTag: string);
+procedure TCustomLogWriter.Initialize(const aEventsHandler: TLoggerProEventsHandler);
 begin
-  Log(TLogType.Info, aMessage, aTag);
+  FLoggerThread := TLoggerThread.Create(FLogAppenders);
+
+  FLoggerThread.EventsHandlers := aEventsHandler;
+  FLoggerThread.Start;
 end;
 
-procedure TLogWriter.Info(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Log(TLogType.Info, aMessage, aParams, aTag);
-end;
-
-procedure TLogWriter.InfoFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
-begin
-  Info(aMessage, aParams, aTag);
-end;
-
-procedure TLogWriter.Log(const aType: TLogType; const aMessage, aTag: string);
+procedure TCustomLogWriter.Log(const aType: TLogType; const aMessage, aTag: string);
 var
   lLogItem: TLogItem;
 begin
@@ -492,6 +496,53 @@ begin
   end;
 end;
 
+{ TLogger.TLogWriter }
+
+procedure TLogWriter.Debug(const aMessage, aTag: string);
+begin
+  Log(TLogType.Debug, aMessage, aTag);
+end;
+
+procedure TLogWriter.Debug(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+begin
+  Log(TLogType.Debug, aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.DebugFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+begin
+  Debug(aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.Error(const aMessage, aTag: string);
+begin
+  Log(TLogType.Error, aMessage, aTag);
+end;
+
+procedure TLogWriter.Error(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+begin
+  Log(TLogType.Error, aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.ErrorFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+begin
+  Error(aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.Info(const aMessage, aTag: string);
+begin
+  Log(TLogType.Info, aMessage, aTag);
+end;
+
+procedure TLogWriter.Info(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+begin
+  Log(TLogType.Info, aMessage, aParams, aTag);
+end;
+
+procedure TLogWriter.InfoFmt(const aMessage: string; const aParams: array of TVarRec; const aTag: string);
+begin
+  Info(aMessage, aParams, aTag);
+end;
+
 procedure TLogWriter.Log(const aType: TLogType; const aMessage: string; const aParams: array of const; const aTag: string);
 begin
   Log(aType, Format(aMessage, aParams), aTag);
@@ -502,12 +553,6 @@ begin
   Log(aType, aMessage, aParams, aTag);
 end;
 
-procedure TLogWriter.Initialize(aEventsHandler: TLoggerProEventsHandler);
-begin
-  FLoggerThread := TLoggerThread.Create(FLogAppenders);
-  FLoggerThread.EventsHandlers := aEventsHandler;
-  FLoggerThread.Start;
-end;
 
 procedure TLogWriter.Warn(const aMessage, aTag: string);
 begin
@@ -720,11 +765,22 @@ end;
 
 { TLoggerProAppenderBase }
 
-constructor TLoggerProAppenderBase.Create;
+constructor TLoggerProAppenderBase.Create(ALogFormat: string);
 begin
-  inherited;
+  inherited Create;
   Self.FEnabled := true;
   Self.FLogLevel := TLogType.Debug;
+  Self.FLogFormat := ALogFormat;
+  Self.FOnLogRow := nil;
+end;
+
+function TLoggerProAppenderBase.FormatLog(const ALogItem: TLogItem): string;
+begin
+  if Assigned(FOnLogRow) then
+    FOnLogRow(ALogItem, Result)
+  else
+    Result := Format(FLogFormat, [DateTimeToStr(ALogItem.TimeStamp, FFormatSettings),
+      ALogItem.ThreadID, ALogItem.LogTypeAsString, ALogItem.LogMessage, ALogItem.LogTag]);
 end;
 
 function TLoggerProAppenderBase.GetLastErrorTimeStamp: TDateTime;
@@ -745,6 +801,11 @@ end;
 procedure TLoggerProAppenderBase.SetLogLevel(const Value: TLogType);
 begin
   FLogLevel := Value;
+end;
+
+procedure TLoggerProAppenderBase.Setup;
+begin
+  FFormatSettings := LoggerPro.GetDefaultFormatSettings;
 end;
 
 procedure TLoggerProAppenderBase.TryToRestart(var Restarted: Boolean);

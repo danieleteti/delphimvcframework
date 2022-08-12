@@ -46,6 +46,7 @@ resourcestring
     sLineBreak +
     'uses' + sLineBreak +
     '  System.SysUtils,' + sLineBreak +
+    '  MVCFramework,' + sLineBreak +
     '  MVCFramework.Logger,' + sLineBreak +
     '  MVCFramework.Commons,' + sLineBreak +
     '  MVCFramework.Signal,' + sLineBreak +
@@ -72,37 +73,11 @@ resourcestring
 //    '  LCmd: string;' + sLineBreak +
     'begin' + sLineBreak +
     '  Writeln(''** DMVCFramework Server ** build '' + DMVCFRAMEWORK_VERSION);' + sLineBreak +
-//    '  LCmd := ''start'';' + sLineBreak +
-//    '  if ParamCount >= 1 then' + sLineBreak +
-//    '    LCmd := ParamStr(1);' + sLineBreak + sLineBreak +
-//    '  LCustomHandler := function(const Value: String; const Server: TIdHTTPWebBrokerBridge; out Handled: Boolean): THandleCommandResult' + sLineBreak +
-//    '    begin' + sLineBreak +
-//    '      Handled := False;' + sLineBreak +
-//    '      Result := THandleCommandResult.Unknown;' + sLineBreak +
-//    sLineBreak +
-//    '      // Write here your custom command for the REPL using the following form...' + sLineBreak +
-//    '      // ***' + sLineBreak +
-//    '      // Handled := False;' + sLineBreak +
-//    '      // if (Value = ''apiversion'') then' + sLineBreak +
-//    '      // begin' + sLineBreak +
-//    '      // REPLEmit(''Print my API version number'');' + sLineBreak +
-//    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
-//    '      // Handled := True;' + sLineBreak +
-//    '      // end' + sLineBreak +
-//    '      // else if (Value = ''datetime'') then' + sLineBreak +
-//    '      // begin' + sLineBreak +
-//    '      // REPLEmit(DateTimeToStr(Now));' + sLineBreak +
-//    '      // Result := THandleCommandResult.Continue;' + sLineBreak +
-//    '      // Handled := True;' + sLineBreak +
-//    '      // end;' + sLineBreak +
-//    '    end;' + sLineBreak +
-//    sLineBreak +
     '  LServer := TIdHTTPWebBrokerBridge.Create(nil);' + sLineBreak +
     '  try' + sLineBreak +
     '    LServer.OnParseAuthentication := TMVCParseAuthentication.OnParseAuthentication;' + sLineBreak +
     '    LServer.DefaultPort := APort;' + sLineBreak +
-    '    LServer.KeepAlive := True;' + sLineBreak +
-    sLineBreak +
+    '    LServer.KeepAlive := True;' + sLineBreak + sLineBreak +
     '    { more info about MaxConnections' + sLineBreak +
     '      http://ww2.indyproject.org/docsite/html/frames.html?frmname=topic&frmfile=index.html }' + sLineBreak +
     '    LServer.MaxConnections := 0;' + sLineBreak +
@@ -113,34 +88,11 @@ resourcestring
     sLineBreak +
 //    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
+    '    WriteLn(''Listening on port '', APort);' + sLineBreak +
     '    WriteLn(''CTRL+C to shutdown the server'');' + sLineBreak +
     '    WaitForTerminationSignal; ' + sLineBreak +
-//    '    repeat' + sLineBreak +
-//    '      if LCmd.IsEmpty then' + sLineBreak +
-//    '      begin' + sLineBreak +
-//    '        Write(''-> '');' + sLineBreak +
-//    '        ReadLn(LCmd)' + sLineBreak +
-//    '      end;' + sLineBreak +
-//    '      try' + sLineBreak +
-//    '        case HandleCommand(LCmd.ToLower, LServer, LCustomHandler) of' + sLineBreak +
-//    '          THandleCommandResult.Continue:' + sLineBreak +
-//    '            begin' + sLineBreak +
-//    '              Continue;' + sLineBreak +
-//    '            end;' + sLineBreak +
-//    '          THandleCommandResult.Break:' + sLineBreak +
-//    '            begin' + sLineBreak +
-//    '              Break;' + sLineBreak +
-//    '            end;' + sLineBreak +
-//    '          THandleCommandResult.Unknown:' + sLineBreak +
-//    '            begin' + sLineBreak +
-//    '              REPLEmit(''Unknown command: '' + LCmd);' + sLineBreak +
-//    '            end;' + sLineBreak +
-//    '        end;' + sLineBreak +
-//    '      finally' + sLineBreak +
-//    '        LCmd := '''';' + sLineBreak +
-//    '      end;' + sLineBreak +
-//    '    until False;' + sLineBreak +
-//    '' + sLineBreak +
+    '    EnterInShutdownState; ' + sLineBreak +
+    '    LServer.Active := False; ' + sLineBreak +
     '  finally' + sLineBreak +
     '    LServer.Free;' + sLineBreak +
     '  end;' + sLineBreak +
@@ -323,6 +275,9 @@ resourcestring
 	  '  System.IOUtils, ' + sLineBreak +
     '  MVCFramework.Commons, ' + sLineBreak +
 	'  MVCFramework.Middleware.StaticFiles, ' + sLineBreak +
+	'  MVCFramework.Middleware.Analytics, ' + sLineBreak +
+  '  MVCFramework.Middleware.Trace, ' + sLineBreak +
+  '  MVCFramework.Middleware.CORS, ' + sLineBreak +
 	'  MVCFramework.Middleware.Compression;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
@@ -361,15 +316,6 @@ resourcestring
     '      Config[TMVCConfigKey.MaxRequestSize] := IntToStr(TMVCConstants.DEFAULT_MAX_REQUEST_SIZE);' + sLineBreak +	
     '    end);' + sLineBreak +
     '  FMVC.AddController(%3:s);' + sLineBreak + sLineBreak +    
-    '  // Enable the following middleware declaration if you want to' + sLineBreak +
-    '  // serve static files from this dmvcframework service.' + sLineBreak +	
-		'  // The folder mapped as documentroot must exists!' + sLineBreak +    
-    '  // FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create( ' + sLineBreak +
-    '  //    ''/static'', ' + sLineBreak +
-    '  //    TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')) ' + sLineBreak +
-    '  //  );	' + sLineBreak + sLineBreak +
-    '  // To enable compression (deflate, gzip) just add this middleware as the last one ' + sLineBreak +
-    '  FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);' + sLineBreak +
     '  %4:s ' + sLineBreak +
     '  %5:s ' + sLineBreak +
     'end;' + sLineBreak +

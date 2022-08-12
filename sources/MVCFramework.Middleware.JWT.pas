@@ -79,7 +79,9 @@ type
     procedure OnBeforeRouting(AContext: TWebContext; var AHandled: Boolean); virtual;
     procedure OnBeforeControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string;
       const AActionName: string; var AHandled: Boolean); virtual;
-    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string; const AHandled: Boolean); virtual;
+    procedure OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean); virtual;
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean); virtual;
   public
     /// <remarks>
@@ -126,9 +128,8 @@ type
 
     procedure OnAfterControllerAction(
       AContext: TWebContext;
-      const AActionName: string;
-      const AHandled: Boolean
-      );
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 
     procedure OnAfterRouting(
       AContext: TWebContext;
@@ -224,8 +225,9 @@ begin
   Result := lWillExpireIn <= JWTValue.LiveValidityWindowInSeconds;
 end;
 
-procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
-  const AHandled: Boolean);
+procedure TMVCJWTAuthenticationMiddleware.OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 begin
   // Implement as needed
 end;
@@ -496,8 +498,10 @@ begin
   Assert(not fBlackListRequestURLSegment.IsEmpty);
 end;
 
-procedure TMVCJWTBlackListMiddleware.OnAfterControllerAction(AContext: TWebContext;
-  const AActionName: string; const AHandled: Boolean);
+procedure TMVCJWTBlackListMiddleware.OnAfterControllerAction(
+      AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 begin
   // Implement as needed
 end;

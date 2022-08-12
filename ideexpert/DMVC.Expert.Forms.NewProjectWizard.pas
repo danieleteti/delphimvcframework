@@ -59,7 +59,6 @@ type
     Label2: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
-    chkAnalyticsMiddleware: TCheckBox;
     Panel1: TPanel;
     chkJSONRPC: TCheckBox;
     GroupBoxJSONRPC: TGroupBox;
@@ -76,6 +75,12 @@ type
     chkCreateControllerUnit: TCheckBox;
     lblBook: TLabel;
     Shape1: TShape;
+    GroupBox1: TGroupBox;
+    chkAnalyticsMiddleware: TCheckBox;
+    chkCompression: TCheckBox;
+    chkStaticFiles: TCheckBox;
+    chkTrace: TCheckBox;
+    chkCORS: TCheckBox;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -96,7 +101,6 @@ type
     function GetCreateActionFiltersMethods: boolean;
     function GetServerPort: Integer;
     function GetCreateCRUDMethods: boolean;
-    function GetAnalyticsSupport: boolean;
     function GetMiddlewares: TArray<String>;
     function GetCreateJSONRPCInterface: boolean;
     function GetJSONRPCClassName: String;
@@ -109,7 +113,6 @@ type
     property AddToProjectGroup: boolean read GetAddToProjectGroup;
     property CreateIndexMethod: boolean read GetCreateIndexMethod;
     property CreateCRUDMethods: boolean read GetCreateCRUDMethods;
-    property AnalyticsSupport: boolean read GetAnalyticsSupport;
     property Middlewares: TArray<String> read GetMiddlewares;
     property CreateActionFiltersMethods: boolean
       read GetCreateActionFiltersMethods;
@@ -124,7 +127,7 @@ implementation
 
 uses
   DMVC.Expert.CodeGen.Templates,
-  MVCFramework.Commons;
+  MVCFramework.Commons, System.StrUtils;
 
 {$R *.dfm}
 
@@ -157,11 +160,6 @@ begin
   Result := chkAddToProjectGroup.Checked;
 end;
 
-function TfrmDMVCNewProject.GetAnalyticsSupport: boolean;
-begin
-  Result := chkAnalyticsMiddleware.Checked;
-end;
-
 function TfrmDMVCNewProject.GetCreateIndexMethod: boolean;
 begin
   Result := chkCreateIndexMethod.Checked;
@@ -189,12 +187,21 @@ begin
 end;
 
 function TfrmDMVCNewProject.GetMiddlewares: TArray<String>;
+const
+  M_ANALYTICS = 'FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));';
+  M_STATICFILES = 'FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(''/static'', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')));';
+  M_TRACE = 'FMVC.AddMiddleware(TMVCTraceMiddleware.Create);';
+  M_COMPRESSION = 'FMVC.AddMiddleware({must be the latest middleware registered} TMVCCompressionMiddleware.Create);';
+  M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
 begin
   Result := [];
-  if AnalyticsSupport then
-  begin
-    Result := Result + ['TMVCAnalyticsMiddleware.Create(GetLoggerForAnalytics)'];
-  end;
+  Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
+  Result := Result + ['// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
+  Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
+  Result := Result + [ifthen(not chkTrace.Checked, '//') + M_TRACE];
+  Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
+  Result := Result + ['// Compression middleware must be the last in the chain'];
+  Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
 end;
 
 function TfrmDMVCNewProject.GetServerPort: Integer;

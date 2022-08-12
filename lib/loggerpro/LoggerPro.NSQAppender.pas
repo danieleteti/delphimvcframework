@@ -61,10 +61,7 @@ type
     FUserName, FMachineName: string;
     FEphemeral: Boolean;
     FLastSignature: string;
-    FLogFormat: string;
-    FFormatSettings: TFormatSettings;
   public
-    const DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-8s] %3:s [%4:s]';
     const DEFAULT_NSQ_URL = 'http://127.0.0.1:4151';
 
     function GetNSQUrl: string;
@@ -96,22 +93,19 @@ type
     procedure Setup; override;
     procedure WriteLog(const aLogItem: TLogItem); override;
     function CreateData(const SrcLogItem: TLogItem): TStream; virtual;
-    function FormatLog(const aLogItem: TLogItem): string; virtual;
   end;
 
 implementation
 
 uses  System.NetEncoding;
 
-constructor TLoggerProNSQAppenderBase.Create(aTopic: string=''; aEphemeral:
-    Boolean = False; aNSQUrl: string=DEFAULT_NSQ_URL; aLogFormat:
-    string=DEFAULT_LOG_FORMAT);
+constructor TLoggerProNSQAppenderBase.Create(aTopic: string; aEphemeral: Boolean;
+  aNSQUrl: string; aLogFormat: string);
 begin
-  inherited Create();
+  inherited Create(aLogFormat);
   FEphemeral := aEphemeral;
   FNSQUrl := 'http://127.0.0.1:4151';
   FUserName := aNSQUrl;
-  FLogFormat := aLogFormat;
   FTopic := aTopic;
 end;
 
@@ -135,13 +129,6 @@ begin
       raise;
     end;
   end;
-end;
-
-function TLoggerProNSQAppenderBase.FormatLog(
-  const aLogItem: TLogItem): string;
-begin
-  result := Format(FLogFormat, [datetimetostr(aLogItem.TimeStamp, FFormatSettings), aLogItem.ThreadID,
-      aLogItem.LogTypeAsString, aLogItem.LogMessage, aLogItem.LogTag])
 end;
 
 function TLoggerProNSQAppenderBase.GetNSQUrl: string;
@@ -182,7 +169,6 @@ end;
 
 procedure TLoggerProNSQAppenderBase.Setup;
 begin
-  FFormatSettings := LoggerPro.GetDefaultFormatSettings;
   inherited;
 end;
 

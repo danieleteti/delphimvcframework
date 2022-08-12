@@ -38,8 +38,9 @@ type
   private
     fMaxBodySize: Int64;
   protected
-    procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
-      const Handled: Boolean);
+    procedure OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
@@ -63,29 +64,30 @@ begin
   fMaxBodySize := MaxBodySizeInTrace;
 end;
 
-procedure TMVCTraceMiddleware.OnAfterControllerAction(Context: TWebContext;
-  const AActionNAme: string; const Handled: Boolean);
+procedure TMVCTraceMiddleware.OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
 var
   lContentStream: TStringStream;
 begin
   Log.Debug('[AFTER ACTION][RESPONSE][STATUS] ' +
-    Format('%d: %s', [Context.Response.StatusCode, Context.Response.ReasonString]),
+    Format('%d: %s', [AContext.Response.StatusCode, AContext.Response.ReasonString]),
     'trace');
   Log.Debug('[AFTER ACTION][RESPONSE][CUSTOM HEADERS] ' + string.Join(' | ',
-    Context.Response.CustomHeaders.ToStringArray), 'trace');
-  Log.Debug('[AFTER ACTION][RESPONSE][CONTENT-TYPE] ' + Context.Response.ContentType, 'trace');
+    AContext.Response.CustomHeaders.ToStringArray), 'trace');
+  Log.Debug('[AFTER ACTION][RESPONSE][CONTENT-TYPE] ' + AContext.Response.ContentType, 'trace');
 
   lContentStream := TStringStream.Create;
   try
-    if Assigned(Context.Response.RawWebResponse.ContentStream) then
+    if Assigned(AContext.Response.RawWebResponse.ContentStream) then
     begin
-      lContentStream.CopyFrom(Context.Response.RawWebResponse.ContentStream,
-        Min(Context.Response.RawWebResponse.ContentStream.Size, fMaxBodySize));
-      Context.Response.RawWebResponse.ContentStream.Position := 0;
+      lContentStream.CopyFrom(AContext.Response.RawWebResponse.ContentStream,
+        Min(AContext.Response.RawWebResponse.ContentStream.Size, fMaxBodySize));
+      AContext.Response.RawWebResponse.ContentStream.Position := 0;
     end
     else
     begin
-      lContentStream.WriteString(Context.Response.RawWebResponse.Content.Substring(0, fMaxBodySize));
+      lContentStream.WriteString(AContext.Response.RawWebResponse.Content.Substring(0, fMaxBodySize));
     end;
     Log.Debug('[AFTER ACTION][RESPONSE][BODY] ' + lContentStream.DataString, 'trace');
   finally

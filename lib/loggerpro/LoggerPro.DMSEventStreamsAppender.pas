@@ -46,9 +46,7 @@ type
     fOnNetSendError: TOnNetSendError;
     fExtendedInfo: TLoggerProExtendedInfo;
     fEventStreamsProxy: TEventStreamsRPCProxy;
-    fLogFormat: string;
     fDMSContainerAPIKey: String;
-    fFormatSettings: TFormatSettings;
     fExtendedInfoData: array [low(TLogExtendedInfo) .. high(TLogExtendedInfo)] of string;
     procedure SetOnCreateJSONData(const Value: TOnCreateJSONData);
     procedure SetOnNetSendError(const Value: TOnNetSendError);
@@ -59,7 +57,6 @@ type
     procedure LoadExtendedInfo;
     function GetExtendedInfo: TJSONObject;
   protected const
-    DEFAULT_LOG_FORMAT = '%0:s [TID %1:10u][%2:-8s] %3:s {EI%4:s}[%5:s]';
     DEFAULT_EXTENDED_INFO = [TLogExtendedInfo.EIUserName, TLogExtendedInfo.EIComputerName,
       TLogExtendedInfo.EIProcessName,
       TLogExtendedInfo.EIProcessID, TLogExtendedInfo.EIDeviceID];
@@ -70,8 +67,7 @@ type
       aDMSContainerAPIKey: String;
       aEventStreamsQueueNameBase: String = 'queues.logs.';
       aLogItemAggregationType: TDMSQueueAggregationType = dmsatByTag;
-      aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO;
-      aLogFormat: string = DEFAULT_LOG_FORMAT); reintroduce;
+      aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO); reintroduce;
     destructor Destroy; override;
     property OnCreateJSONData: TOnCreateJSONData read fOnCreateJSONData write SetOnCreateJSONData;
     property OnNetSendError: TOnNetSendError read fOnNetSendError write SetOnNetSendError;
@@ -130,8 +126,7 @@ constructor TLoggerProDMSContainerAppender.Create(
   aDMSContainerAPIKey: String;
   aEventStreamsQueueNameBase: String;
   aLogItemAggregationType: TDMSQueueAggregationType;
-  aLogExtendedInfo: TLoggerProExtendedInfo;
-  aLogFormat: string);
+  aLogExtendedInfo: TLoggerProExtendedInfo);
 begin
   inherited Create;
   fEventStreamsProxy := aEventStreamsProxy;
@@ -139,15 +134,12 @@ begin
   fLogItemAggregationType := aLogItemAggregationType;
   if not fQueueNameBase.EndsWith('.') then
     fQueueNameBase := fQueueNameBase + '.';
-  fLogFormat := aLogFormat;
   fExtendedInfo := aLogExtendedInfo;
   fDMSContainerAPIKey := aDMSContainerAPIKey;
   LoadExtendedInfo;
 end;
 
 function TLoggerProDMSContainerAppender.CreateData(const SrcLogItem: TLogItem): TJSONObject;
-var
-  lLog: TJSONObject;
 begin
   Result := nil;
   try
@@ -178,7 +170,7 @@ function TLoggerProDMSContainerAppender.GetDefaultLog(const aLogItem: TLogItem):
 begin
   Result := TJSONObject.Create;
   try
-    Result.S['timestamp'] := datetimetostr(aLogItem.TimeStamp, fFormatSettings);
+    Result.S['timestamp'] := datetimetostr(aLogItem.TimeStamp, FormatSettings);
     Result.L['tid'] := aLogItem.ThreadID;
     Result.S['type'] := aLogItem.LogTypeAsString;
     Result.S['text'] := aLogItem.LogMessage;
@@ -194,7 +186,7 @@ function TLoggerProDMSContainerAppender.GetExtendedInfo: TJSONObject;
 begin
   Result := TJSONObject.Create;
   try
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
     if TLogExtendedInfo.EIUserName in fExtendedInfo then
     begin
       Result.S['username'] := fExtendedInfoData[TLogExtendedInfo.EIUserName];
@@ -226,7 +218,7 @@ end;
 
 class function TLoggerProDMSContainerAppender.GetModuleBaseName: String;
 begin
-{$IF DEFINED(MSWINDOWS)}
+{$IF Defined(MSWINDOWS)}
   Result := TPath.ChangeExtension(TPath.GetFileName(GetModuleName(HInstance)), '');
 {$ENDIF}
 {$IF Defined(Android)}
@@ -240,7 +232,7 @@ end;
 
 procedure TLoggerProDMSContainerAppender.LoadExtendedInfo;
 begin
-{$IF DEFINED(MSWINDOWS)}
+{$IF Defined(MSWINDOWS)}
   if TLogExtendedInfo.EIProcessID in fExtendedInfo then
   begin
     fExtendedInfoData[TLogExtendedInfo.EIProcessID] := IntToStr(GetCurrentProcessId);
@@ -282,7 +274,6 @@ end;
 
 procedure TLoggerProDMSContainerAppender.Setup;
 begin
-  fFormatSettings := LoggerPro.GetDefaultFormatSettings;
   inherited;
 end;
 
@@ -295,7 +286,6 @@ procedure TLoggerProDMSContainerAppender.InternalWriteLog(const aLogItem: TLogIt
   const aJSONObject: TJSONObject);
 var
   lRetryCount: Integer;
-  lResp: IHTTPResponse;
   lJSONResp: TJSONObject;
 const
   MAX_RETRY_COUNT = 5;
@@ -331,9 +321,7 @@ end;
 
 procedure TLoggerProDMSContainerAppender.WriteLog(const aLogItem: TLogItem);
 var
-  lData: TJSONObject;
   lRetryCount: Integer;
-  lResp: IHTTPResponse;
   lJSONResp: TJSONObject;
   lQueueName: string;
 const

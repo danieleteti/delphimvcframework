@@ -887,7 +887,8 @@ type
     /// <param name="AContext">Webcontext which contains the complete request and response of the actual call.</param>
     /// <param name="AActionName">Method name of the matching controller method.</param>
     /// <param name="AHandled">If set to True the Request would finished. Response must be set by the implementor. Default value is False.</param>
-    procedure OnAfterControllerAction(AContext: TWebContext; const AActionName: string;
+    procedure OnAfterControllerAction(AContext: TWebContext;
+      const AControllerQualifiedClassName: string; const AActionName: string;
       const AHandled: Boolean);
 
     /// <summary>
@@ -957,7 +958,8 @@ type
       const AControllerQualifiedClassName: string; const AActionName: string;
       var AHandled: Boolean);
     procedure ExecuteAfterControllerActionMiddleware(const AContext: TWebContext;
-      const AActionName: string; const AHandled: Boolean);
+      const AControllerQualifiedClassName: string; const AActionName: string;
+      const AHandled: Boolean);
     procedure ExecuteAfterRoutingMiddleware(const AContext: TWebContext; const AHandled: Boolean);
     procedure DefineDefaultResponseHeaders(const AContext: TWebContext);
     procedure OnBeforeDispatch(ASender: TObject; ARequest: TWebRequest; AResponse: TWebResponse;
@@ -2495,7 +2497,9 @@ begin
                   end;
                   lSelectedController.MVCControllerBeforeDestroy;
                 end;
-                ExecuteAfterControllerActionMiddleware(lContext, lRouter.MethodToCall.name,
+                ExecuteAfterControllerActionMiddleware(lContext,
+                  lRouter.ControllerClazz.QualifiedClassName,
+                  lRouter.MethodToCall.name,
                   lHandled);
                 lContext.Response.ContentType := lSelectedController.ContentType;
                 fOnRouterLog(lRouter, rlsRouteFound, lContext);
@@ -2624,13 +2628,14 @@ begin
 end;
 
 procedure TMVCEngine.ExecuteAfterControllerActionMiddleware(const AContext: TWebContext;
-  const AActionName: string; const AHandled: Boolean);
+  const AControllerQualifiedClassName: string; const AActionName: string;
+  const AHandled: Boolean);
 var
   I: Integer;
 begin
   for I := 0 to FMiddlewares.Count - 1 do
   begin
-    FMiddlewares[I].OnAfterControllerAction(AContext, AActionName, AHandled);
+    FMiddlewares[I].OnAfterControllerAction(AContext, AControllerQualifiedClassName, AActionName, AHandled);
   end;
 end;
 

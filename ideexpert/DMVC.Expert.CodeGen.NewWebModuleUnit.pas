@@ -113,10 +113,10 @@ var
   lMiddlewaresCode: String;
   I: Integer;
 begin
-  lMiddlewaresCode := '';
+  lMiddlewaresCode := sLineBreak;
   for I := Low(FMiddlewares) to High(FMiddlewares) do
   begin
-    lMiddlewaresCode := lMiddlewaresCode + 'FMVC.AddMiddleware(' + FMiddlewares[I] + ');' + sLineBreak;
+    lMiddlewaresCode := lMiddlewaresCode + '  ' + FMiddlewares[I] + sLineBreak;
   end;
 
   lJSONRPCCode := '';

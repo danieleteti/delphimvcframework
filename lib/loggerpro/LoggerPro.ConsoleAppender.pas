@@ -31,8 +31,6 @@ type
     class var FConsoleAllocated: Int64; // used to ensure one and only one console is created
     class constructor Create; // allocate global vars
     class destructor Destroy;
-  private
-    fFormatSettings: TFormatSettings; // dealocate global vars
   protected
     procedure SetColor(const Color: Integer);
   public
@@ -58,7 +56,6 @@ const
 function AttachConsole; external kernel32 name 'AllocConsole';
 
 const
-  DEFAULT_LOG_FORMAT = '%0:s [TID %1:-8d][%2:-10s] %3:s [%4:s]';
   { FOREGROUND COLORS - CAN BE COMBINED }
   FOREGROUND_BLUE = 1; { text color blue. }
   FOREGROUND_GREEN = 2; { text color green }
@@ -77,7 +74,7 @@ end;
 
 procedure TLoggerProConsoleAppender.Setup;
 begin
-  fFormatSettings := LoggerPro.GetDefaultFormatSettings;
+  inherited;
   if TInterlocked.read(TLoggerProConsoleAppender.FConsoleAllocated) < 2 then
   begin
     TLoggerProConsoleAppender.FLock.Enter;
@@ -119,8 +116,9 @@ begin
     TLogType.Error:
       lColor := FOREGROUND_RED or FOREGROUND_INTENSITY;
   end;
-  lText := Format(DEFAULT_LOG_FORMAT, [datetimetostr(aLogItem.TimeStamp, fFormatSettings), aLogItem.ThreadID, aLogItem.LogTypeAsString, aLogItem.LogMessage,
-    aLogItem.LogTag]);
+
+  lText := FormatLog(aLogItem);
+
   TLoggerProConsoleAppender.FLock.Enter;
   try
     SetColor(lColor);

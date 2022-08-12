@@ -18,8 +18,6 @@ type
     To learn how to use this appender, check the sample @code(SimpleConsole_appender.dproj)
   }
   TLoggerProSimpleConsoleAppender = class(TLoggerProAppenderBase)
-  private
-    FFormatSettings: TFormatSettings;
   public
     procedure Setup; override;
     procedure TearDown; override;
@@ -31,7 +29,7 @@ implementation
 
 procedure TLoggerProSimpleConsoleAppender.Setup;
 begin
-  FFormatSettings := LoggerPro.GetDefaultFormatSettings;
+  inherited;
 end;
 
 procedure TLoggerProSimpleConsoleAppender.TearDown;
@@ -40,14 +38,8 @@ begin
 end;
 
 procedure TLoggerProSimpleConsoleAppender.WriteLog(const aLogItem: TLogItem);
-var
-  lText: string;
-  ds: string;
 begin
-  ds := DateTimeToStr(aLogItem.TimeStamp, FFormatSettings);
-  lText := Format('[%-8s] %s [%2:-10s] %s', [aLogItem.LogTag, ds, aLogItem.LogTypeAsString, aLogItem.LogMessage],
-                   FFormatSettings);
-  Writeln(lText);
+  Writeln(FormatLog(aLogItem));
 end;
 
 end.

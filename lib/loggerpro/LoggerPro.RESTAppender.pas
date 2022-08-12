@@ -1,4 +1,4 @@
-unit LoggerPro.RESTAppender;
+﻿unit LoggerPro.RESTAppender;
 
 interface
 
@@ -13,7 +13,7 @@ type
   {
     Log appender for a REST endpoint
     Author: Daniele Teti (https://github.com/danieleteti/)
-    Some ideas from NSQ appender from St�phane "Fulgan" GROBETY (https://github.com/Fulgan/)
+    Some ideas from NSQ appender from Stéphane "Fulgan" GROBETY (https://github.com/Fulgan/)
   }
 
   TOnCreateData = reference to procedure(const Sender: TObject; const LogItem: TLogItem; const ExtendedInfo: TLoggerProExtendedInfo;
@@ -28,17 +28,27 @@ type
     fExtendedInfo: TLoggerProExtendedInfo;
     fContentType: string;
     fRESTUrl: string;
-    fLogFormat: string;
-    fFormatSettings: TFormatSettings;
-    {$IFDEF MSWINDOWS}
+    {.$IFDEF MSWINDOWS}
     fExtendedInfoData: array [low(TLogExtendedInfo) .. high(TLogExtendedInfo)] of string;
-    {$ENDIF}
+    {.$ENDIF}
     procedure SetOnCreateData(const Value: TOnCreateData);
     procedure SetOnNetSendError(const Value: TOnNetSendError);
   strict protected
     procedure LoadExtendedInfo;
     function GetExtendedInfo: string;
   protected const
+    { @abstract(Defines the default format string used by the @link(TLoggerProRESTAppender).)
+      The positional parameters are the following:
+      @orderedList(
+      @item SetNumber 0
+      @item TimeStamp
+      @item ThreadID
+      @item LogType
+      @item LogMessage
+      @item Extended Information
+      @item LogTag
+      )
+    }
     DEFAULT_LOG_FORMAT = '%0:s [TID %1:10u][%2:-8s] %3:s {EI%4:s}[%5:s]';
     DEFAULT_EXTENDED_INFO = [TLogExtendedInfo.EIUserName, TLogExtendedInfo.EIComputerName, TLogExtendedInfo.EIProcessName,
       TLogExtendedInfo.EIProcessID, TLogExtendedInfo.EIDeviceID];
@@ -56,7 +66,7 @@ type
     procedure TearDown; override;
     procedure Setup; override;
     function CreateData(const SrcLogItem: TLogItem): TStream; virtual;
-    function FormatLog(const aLogItem: TLogItem): string; virtual;
+    function FormatLog(const aLogItem: TLogItem): string; override;
   end;
 
 implementation
@@ -108,17 +118,14 @@ end;
 constructor TLoggerProRESTAppender.Create(aRESTUrl: string = DEFAULT_REST_URL; aContentType: string = 'text/plain';
   aLogExtendedInfo: TLoggerProExtendedInfo = DEFAULT_EXTENDED_INFO; aLogFormat: string = DEFAULT_LOG_FORMAT);
 begin
-  inherited Create;
+  inherited Create(aLogFormat);
   fRESTUrl := aRESTUrl;
-  fLogFormat := aLogFormat;
   fExtendedInfo := aLogExtendedInfo;
   fContentType := aContentType;
   LoadExtendedInfo;
 end;
 
 function TLoggerProRESTAppender.CreateData(const SrcLogItem: TLogItem): TStream;
-var
-  lLog: string;
 begin
   Result := nil;
   try
@@ -128,7 +135,6 @@ begin
     end
     else
     begin
-      lLog := FormatLog(SrcLogItem);
       Result := TStringStream.Create(FormatLog(SrcLogItem), TEncoding.UTF8);
     end;
   except
@@ -142,7 +148,7 @@ end;
 
 function TLoggerProRESTAppender.FormatLog(const aLogItem: TLogItem): string;
 begin
-  Result := Format(fLogFormat, [datetimetostr(aLogItem.TimeStamp, fFormatSettings), aLogItem.ThreadID, aLogItem.LogTypeAsString,
+  Result := Format(LogFormat, [datetimetostr(aLogItem.TimeStamp, FormatSettings), aLogItem.ThreadID, aLogItem.LogTypeAsString,
     aLogItem.LogMessage, GetExtendedInfo, aLogItem.LogTag]);
 end;
 
@@ -231,7 +237,6 @@ end;
 
 procedure TLoggerProRESTAppender.Setup;
 begin
-  fFormatSettings := LoggerPro.GetDefaultFormatSettings;
   inherited;
 end;
 
