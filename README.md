@@ -528,7 +528,7 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the documetn web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
 
--  ✅ Improved! In case of multiple MVCPath, Swagger consider only the first one (Thanks to V. Ferri and our sponsors)
+- ✅ Improved! In case of multiple MVCPath, Swagger consider only the first one (Thanks to V. Ferri and our sponsors)
 
 - ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
 
@@ -539,6 +539,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 - ⚡ New! Serialization and Deserialization for Pascal `set` (Thanks to [rshuck](https://github.com/rshuck) for his suggestions)
 
 - ⚡ New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ✅ Dramatically improved all "JSON-To-DataSet" operations (1 order of magnitude c.a.). Thanks to [MPannier](https://github.com/MPannier) and [David Moorhouse](https://github.com/fastbike) for their detailed analysis - More info [here](https://github.com/danieleteti/delphimvcframework/issues/553).
 
 - ✅ Improved! After a big refactoring (*"I love to delete code" -- cit. Daniele Teti*), support a new SQLGenerator is just 2 (two) methods away! Just as example, this is the current version of `TMVCSQLGeneratorPostgreSQL`
 

@@ -38,7 +38,8 @@ uses
   MVCFramework.Serializer.Intf,
   MVCFramework.Serializer.Commons,
   JsonDataObjects,
-  MVCFramework.Commons, MVCFramework.Serializer.JsonDataObjects;
+  MVCFramework.Commons,
+  MVCFramework.Serializer.JsonDataObjects;
 
 type
 
