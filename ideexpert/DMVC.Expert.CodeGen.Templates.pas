@@ -274,6 +274,7 @@ resourcestring
 	  '  %6:s ' + sLineBreak +
 	  '  System.IOUtils, ' + sLineBreak +
     '  MVCFramework.Commons, ' + sLineBreak +
+  '  MVCFramework.Middleware.ActiveRecord, ' + sLineBreak +
 	'  MVCFramework.Middleware.StaticFiles, ' + sLineBreak +
 	'  MVCFramework.Middleware.Analytics, ' + sLineBreak +
   '  MVCFramework.Middleware.Trace, ' + sLineBreak +

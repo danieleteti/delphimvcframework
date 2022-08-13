@@ -46,7 +46,7 @@ uses
   VCL.Forms,
   VCL.Dialogs,
   VCL.StdCtrls,
-  VCL.Imaging.pngimage, VCL.ExtCtrls;
+  VCL.Imaging.pngimage, VCL.ExtCtrls, System.Actions, Vcl.ActnList, Vcl.AppEvnts;
 
 type
   TfrmDMVCNewProject = class(TForm)
@@ -59,11 +59,6 @@ type
     Label2: TLabel;
     Image1: TImage;
     lblFrameworkVersion: TLabel;
-    Panel1: TPanel;
-    chkJSONRPC: TCheckBox;
-    GroupBoxJSONRPC: TGroupBox;
-    Label3: TLabel;
-    EdtJSONRPCClassName: TEdit;
     Panel2: TPanel;
     gbControllerUnitOptions: TGroupBox;
     lblClassName: TLabel;
@@ -82,16 +77,28 @@ type
     chkCORS: TCheckBox;
     chkETAG: TCheckBox;
     lblBook: TLabel;
+    chkActiveRecord: TCheckBox;
+    EdtFDConnDefFileName: TEdit;
+    GroupBoxJSONRPC: TGroupBox;
+    Label3: TLabel;
+    EdtJSONRPCClassName: TEdit;
+    chkJSONRPC: TCheckBox;
+    Label4: TLabel;
+    Bevel1: TBevel;
+    Label5: TLabel;
+    EdtConnDefName: TEdit;
+    ApplicationEvents: TApplicationEvents;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
     procedure lblBookMouseEnter(Sender: TObject);
     procedure lblBookMouseLeave(Sender: TObject);
     procedure lblBookClick(Sender: TObject);
-    procedure chkJSONRPCClick(Sender: TObject);
     procedure lblFrameworkVersionMouseEnter(Sender: TObject);
     procedure lblFrameworkVersionMouseLeave(Sender: TObject);
     procedure lblFrameworkVersionClick(Sender: TObject);
+    procedure ApplicationEventsIdle(Sender: TObject; var Done: Boolean);
+    procedure btnOKClick(Sender: TObject);
   private
     { Private declarations }
     function GetAddToProjectGroup: boolean;
@@ -132,18 +139,28 @@ uses
 
 {$R *.dfm}
 
+procedure TfrmDMVCNewProject.ApplicationEventsIdle(Sender: TObject;
+  var Done: Boolean);
+begin
+  EdtFDConnDefFileName.Enabled := chkActiveRecord.Checked;
+  EdtConnDefName.Enabled := chkActiveRecord.Checked;
+  EdtJSONRPCClassName.Enabled := chkJSONRPC.Checked;
+end;
+
+procedure TfrmDMVCNewProject.btnOKClick(Sender: TObject);
+begin
+  if chkActiveRecord.Checked then
+  begin
+    ShowMessage('Remember to include required FireDAC units in your project');
+  end;
+end;
+
 procedure TfrmDMVCNewProject.chkCreateControllerUnitClick(Sender: TObject);
 begin
-  gbControllerUnitOptions.Enabled := chkCreateIndexMethod.Checked;
   chkCreateIndexMethod.Enabled := chkCreateControllerUnit.Checked;
   chkCreateActionFiltersMethods.Enabled := chkCreateControllerUnit.Checked;
   chkCreateCRUDMethods.Enabled := chkCreateControllerUnit.Checked;
   edtClassName.Enabled := chkCreateControllerUnit.Checked;
-end;
-
-procedure TfrmDMVCNewProject.chkJSONRPCClick(Sender: TObject);
-begin
-  GroupBoxJSONRPC.Enabled := chkJSONRPC.Checked;
 end;
 
 procedure TfrmDMVCNewProject.FormCreate(Sender: TObject);
@@ -151,9 +168,8 @@ begin
   edtClassName.TextHint := sDefaultControllerName;
   edtWebModuleName.TextHint := sDefaultWebModuleName;
   edtServerPort.TextHint := sDefaultServerPort;
-  lblFrameworkVersion.Caption := DMVCFRAMEWORK_VERSION;
+  lblFrameworkVersion.Caption := 'dmvcframework-' + DMVCFRAMEWORK_VERSION;
   chkJSONRPC.Checked := False;
-  chkJSONRPCClick(Self);
 end;
 
 function TfrmDMVCNewProject.GetAddToProjectGroup: boolean;
@@ -195,19 +211,35 @@ const
   M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
   M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
   M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
+  M_ACTIVERECORD = 'FMVC.AddMiddleware(TMVCActiveRecordMiddleware.Create(''%s'',''%s''));';
+
+  function GetText(const Edit: TCustomEdit): String;
+  begin
+    if Edit.Text = '' then
+    begin
+      Result := Edit.TextHint;
+    end
+    else
+    begin
+      Result := Edit.Text;
+    end;
+  end;
 begin
   Result := [];
-  Result := Result + ['// Analytics middleware generates a csv log, useful to do trafic analysis'];
+  Result := Result + ['', '// Analytics middleware generates a csv log, useful to do trafic analysis'];
   Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
-  Result := Result + ['// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
+  Result := Result + ['', '// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
   Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
-  Result := Result + ['// Trace middlewares produces a much detailed log for debug purposes'];
+  Result := Result + ['', '// Trace middlewares produces a much detailed log for debug purposes'];
   Result := Result + [ifthen(not chkTrace.Checked, '//') + M_TRACE];
-  Result := Result + ['// CORS middleware handles... well, CORS'];
+  Result := Result + ['', '// CORS middleware handles... well, CORS'];
   Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
-  Result := Result + ['// Compression middleware must be the last in the chain, just before the ETag, if present.'];
+  Result := Result + ['', '// Simplifies TMVCActiveRecord connection definition'];
+  Result := Result + [ifthen(not chkActiveRecord.Checked, '//') + Format(M_ACTIVERECORD,
+    [GetText(EdtConnDefName), GetText(EdtFDConnDefFileName)])];
+  Result := Result + ['', '// Compression middleware must be the last in the chain, just before the ETag, if present.'];
   Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
-  Result := Result + ['// ETag middleware must be the latest in the chain'];
+  Result := Result + ['', '// ETag middleware must be the latest in the chain'];
   Result := Result + [ifthen(not chkETAG.Checked, '//') + M_ETAG];
 end;
 
