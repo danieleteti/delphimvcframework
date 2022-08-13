@@ -73,7 +73,6 @@ type
     chkCreateActionFiltersMethods: TCheckBox;
     chkCreateCRUDMethods: TCheckBox;
     chkCreateControllerUnit: TCheckBox;
-    lblBook: TLabel;
     Shape1: TShape;
     GroupBox1: TGroupBox;
     chkAnalyticsMiddleware: TCheckBox;
@@ -81,6 +80,8 @@ type
     chkStaticFiles: TCheckBox;
     chkTrace: TCheckBox;
     chkCORS: TCheckBox;
+    chkETAG: TCheckBox;
+    lblBook: TLabel;
     procedure chkCreateControllerUnitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Image1Click(Sender: TObject);
@@ -191,17 +192,23 @@ const
   M_ANALYTICS = 'FMVC.AddMiddleware(TMVCAnalyticsMiddleware.Create(GetAnalyticsDefaultLogger));';
   M_STATICFILES = 'FMVC.AddMiddleware(TMVCStaticFilesMiddleware.Create(''/static'', TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'')));';
   M_TRACE = 'FMVC.AddMiddleware(TMVCTraceMiddleware.Create);';
-  M_COMPRESSION = 'FMVC.AddMiddleware({must be the latest middleware registered} TMVCCompressionMiddleware.Create);';
+  M_COMPRESSION = 'FMVC.AddMiddleware(TMVCCompressionMiddleware.Create);';
+  M_ETAG = 'FMVC.AddMiddleware(TMVCETagMiddleware.Create);';
   M_CORS = 'FMVC.AddMiddleware(TMVCCORSMiddleware.Create);';
 begin
   Result := [];
+  Result := Result + ['// Analytics middleware generates a csv log, useful to do trafic analysis'];
   Result := Result + [ifthen(not chkAnalyticsMiddleware.Checked, '//') + M_ANALYTICS];
   Result := Result + ['// The folder mapped as documentroot for TMVCStaticFilesMiddleware must exists!'];
   Result := Result + [ifthen(not chkStaticFiles.Checked, '//') + M_STATICFILES];
+  Result := Result + ['// Trace middlewares produces a much detailed log for debug purposes'];
   Result := Result + [ifthen(not chkTrace.Checked, '//') + M_TRACE];
+  Result := Result + ['// CORS middleware handles... well, CORS'];
   Result := Result + [ifthen(not chkCORS.Checked, '//') + M_CORS];
-  Result := Result + ['// Compression middleware must be the last in the chain'];
+  Result := Result + ['// Compression middleware must be the last in the chain, just before the ETag, if present.'];
   Result := Result + [ifthen(not chkCompression.Checked, '//') + M_COMPRESSION];
+  Result := Result + ['// ETag middleware must be the latest in the chain'];
+  Result := Result + [ifthen(not chkETAG.Checked, '//') + M_ETAG];
 end;
 
 function TfrmDMVCNewProject.GetServerPort: Integer;

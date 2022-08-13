@@ -394,16 +394,16 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblBook: TLabel
     AlignWithMargins = True
-    Left = 283
-    Top = 99
-    Width = 309
+    Left = 329
+    Top = 422
+    Width = 259
     Height = 16
     Cursor = crHandPoint
     Hint = 'Go to DMVCFramework - the official guide'
     Margins.Right = 10
     Alignment = taRightJustify
     Anchors = []
-    Caption = 'Go to "DelphiMVCFramework - the official guide"'
+    Caption = 'DelphiMVCFramework - the official guide'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -466,7 +466,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Left = 279
     Top = 274
     Width = 312
-    Height = 158
+    Height = 135
     BevelOuter = bvNone
     Caption = 'Panel1'
     Ctl3D = False
@@ -475,7 +475,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     TabOrder = 5
     DesignSize = (
       312
-      158)
+      135)
     object chkJSONRPC: TCheckBox
       Left = 24
       Top = 15
@@ -492,23 +492,23 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Left = 8
       Top = 38
       Width = 295
-      Height = 108
+      Height = 83
       Anchors = [akLeft, akTop, akRight]
       Caption = 'JSON-RPC 2.0 Options'
       TabOrder = 1
       DesignSize = (
         295
-        108)
+        83)
       object Label3: TLabel
         Left = 16
-        Top = 55
+        Top = 31
         Width = 104
         Height = 13
         Caption = 'End-Point Class Name'
       end
       object EdtJSONRPCClassName: TEdit
         Left = 16
-        Top = 74
+        Top = 50
         Width = 264
         Height = 19
         Anchors = [akLeft, akTop, akRight]
@@ -666,6 +666,15 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Anchors = [akTop]
       Caption = 'CORS'
       TabOrder = 4
+    end
+    object chkETAG: TCheckBox
+      Left = 158
+      Top = 76
+      Width = 135
+      Height = 17
+      Anchors = [akTop]
+      Caption = 'ETag'
+      TabOrder = 5
     end
   end
 end

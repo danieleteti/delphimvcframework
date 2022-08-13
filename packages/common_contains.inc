@@ -34,4 +34,7 @@
   Swag.Doc.SecurityDefinitionBasic in '..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionBasic.pas',
   Swag.Doc.SecurityDefinitionOAuth2 in '..\..\lib\swagdoc\Source\Swag.Doc.SecurityDefinitionOAuth2.pas',
   Swag.Doc.Tags in '..\..\lib\swagdoc\Source\Swag.Doc.Tags.pas',
+  MVCFramework.Middleware.Swagger in '..\..\sources\MVCFramework.Middleware.Swagger.pas',
+  MVCFramework.Middleware.Trace in '..\..\sources\MVCFramework.Middleware.Trace.pas',
+  MVCFramework.Middleware.ETag in '..\..\sources\MVCFramework.Middleware.ETag.pas',  
   

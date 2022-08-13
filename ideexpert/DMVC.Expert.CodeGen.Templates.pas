@@ -278,6 +278,7 @@ resourcestring
 	'  MVCFramework.Middleware.Analytics, ' + sLineBreak +
   '  MVCFramework.Middleware.Trace, ' + sLineBreak +
   '  MVCFramework.Middleware.CORS, ' + sLineBreak +
+  '  MVCFramework.Middleware.ETag, ' + sLineBreak +
 	'  MVCFramework.Middleware.Compression;' + sLineBreak +
     sLineBreak +
     'procedure %1:s.WebModuleCreate(Sender: TObject);' + sLineBreak +
@@ -285,9 +286,6 @@ resourcestring
     '  FMVC := TMVCEngine.Create(Self,' + sLineBreak +
     '    procedure(Config: TMVCConfig)' + sLineBreak +
     '    begin' + sLineBreak +
-//  '      //enable static files' + sLineBreak +
-// 	'      Config[TMVCConfigKey.DocumentRoot] := TPath.Combine(ExtractFilePath(GetModuleName(HInstance)), ''www'');'
-//    + sLineBreak +
     '      // session timeout (0 means session cookie)' + sLineBreak +
     '      Config[TMVCConfigKey.SessionTimeout] := ''0'';' + sLineBreak +
     '      //default content-type' + sLineBreak +
