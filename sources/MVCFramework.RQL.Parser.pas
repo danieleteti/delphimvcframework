@@ -1136,7 +1136,7 @@ function TRQLCompilerRegistry.GetCompiler(const aBackend: string): TRQLCompilerC
 begin
   if not fCompilers.TryGetValue(aBackend, Result) then
   begin
-    raise ERQLCompilerNotFound.Create('RQL Compiler not found');
+    raise ERQLCompilerNotFound.Create('RQL Compiler not found [HINT] Include unit "MVCFramework.RQL.AST2<yourdbengine>.pas"');
   end;
 end;
 

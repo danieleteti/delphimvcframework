@@ -2690,12 +2690,14 @@ begin
 end;
 
 function TMVCActiveRecord.SQLGenerator: TMVCSQLGenerator;
+var
+  lSQLGeneratorClass: TMVCSQLGeneratorClass;
 begin
   if not Assigned(fSQLGenerator) then
   begin
     GetConnection.Connected := True;
-    fSQLGenerator := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd).Create(GetMapping, fDefaultRQLFilter,
-      GetPartitionInfo);
+    lSQLGeneratorClass := TMVCSQLGeneratorRegistry.Instance.GetSQLGenerator(GetBackEnd);
+    fSQLGenerator := lSQLGeneratorClass.Create(GetMapping, fDefaultRQLFilter, GetPartitionInfo);
   end;
   Result := fSQLGenerator;
 end;
@@ -3722,7 +3724,7 @@ begin
           if Length(lItems) <> 3 then
           begin
             raise EMVCActiveRecord.Create('Invalid partitioning clause: ' + lPiece +
-              '. [HINT] Paritioning must be in the form: "[fieldname1=(integer|string)value1]"');
+              '. [HINT] Partioning must be in the form: "[fieldname1=(integer|string)value1]"');
           end;
 
           Result.FieldNames.Add(lItems[0]);

@@ -43,7 +43,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object Image1: TImage
     Left = 24
-    Top = -1
+    Top = 4
     Width = 352
     Height = 101
     Cursor = crHandPoint
@@ -377,10 +377,12 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = Image1Click
   end
   object lblFrameworkVersion: TLabel
-    Left = 24
-    Top = 97
-    Width = 106
+    Left = 287
+    Top = 100
+    Width = 301
     Height = 16
+    Alignment = taRightJustify
+    AutoSize = False
     Caption = 'X.X.X carbonara'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
