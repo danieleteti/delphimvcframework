@@ -12,7 +12,6 @@ object MainForm: TMainForm
   Font.Style = []
   OnClose = FormClose
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 21
   object Splitter1: TSplitter
     Left = 0
@@ -166,7 +165,6 @@ object MainForm: TMainForm
     Align = alClient
     Caption = 'Panel3'
     TabOrder = 2
-    ExplicitHeight = 474
     object Panel4: TPanel
       Left = 1
       Top = 1
@@ -226,7 +224,6 @@ object MainForm: TMainForm
         Caption = 'Generate Entities'
         TabOrder = 0
         OnClick = btnGenEntitiesClick
-        ExplicitTop = 5
       end
       object btnGetTables: TButton
         AlignWithMargins = True
@@ -238,7 +235,7 @@ object MainForm: TMainForm
         TabOrder = 1
         OnClick = btnGetTablesClick
       end
-      object chGenerateMapping: TCheckBox
+      object chkGenerateMapping: TCheckBox
         AlignWithMargins = True
         Left = 10
         Top = 173
@@ -253,9 +250,8 @@ object MainForm: TMainForm
         State = cbChecked
         TabOrder = 2
         WordWrap = True
-        ExplicitTop = 121
       end
-      object RadioGroup1: TRadioGroup
+      object rgNameCase: TRadioGroup
         Left = 7
         Top = 49
         Width = 393
@@ -294,8 +290,6 @@ object MainForm: TMainForm
       ActivePage = TabSheet1
       Align = alClient
       TabOrder = 1
-      ExplicitTop = 160
-      ExplicitHeight = 310
       object TabSheet1: TTabSheet
         Caption = 'Tables'
         object DBGrid1: TDBGrid
@@ -347,9 +341,6 @@ object MainForm: TMainForm
           Align = alTop
           BevelOuter = bvNone
           TabOrder = 1
-          ExplicitLeft = 408
-          ExplicitTop = 128
-          ExplicitWidth = 185
           object btnUZ: TButton
             AlignWithMargins = True
             Left = 598
@@ -360,7 +351,6 @@ object MainForm: TMainForm
             Caption = 'U..Z'
             TabOrder = 0
             OnClick = btnUZClick
-            ExplicitLeft = 3
           end
           object Button1: TButton
             AlignWithMargins = True
@@ -372,8 +362,6 @@ object MainForm: TMainForm
             Caption = 'L..Q'
             TabOrder = 1
             OnClick = Button1Click
-            ExplicitLeft = 11
-            ExplicitTop = 6
           end
           object Button2: TButton
             AlignWithMargins = True
@@ -385,8 +373,6 @@ object MainForm: TMainForm
             Caption = 'E..K'
             TabOrder = 2
             OnClick = Button2Click
-            ExplicitLeft = 11
-            ExplicitTop = 6
           end
           object Button3: TButton
             AlignWithMargins = True
@@ -398,8 +384,6 @@ object MainForm: TMainForm
             Caption = 'C..D'
             TabOrder = 3
             OnClick = Button3Click
-            ExplicitLeft = 11
-            ExplicitTop = 6
           end
           object Button4: TButton
             AlignWithMargins = True
@@ -411,7 +395,6 @@ object MainForm: TMainForm
             Caption = 'R..T'
             TabOrder = 4
             OnClick = btnSlice1Click
-            ExplicitLeft = 3
           end
           object Button5: TButton
             AlignWithMargins = True
@@ -423,8 +406,6 @@ object MainForm: TMainForm
             Caption = 'A..D'
             TabOrder = 5
             OnClick = Button5Click
-            ExplicitLeft = 11
-            ExplicitTop = 6
           end
         end
       end
@@ -451,7 +432,6 @@ object MainForm: TMainForm
           ScrollBars = ssBoth
           TabOrder = 0
           WordWrap = False
-          ExplicitHeight = 227
         end
         object Panel5: TPanel
           Left = 0
