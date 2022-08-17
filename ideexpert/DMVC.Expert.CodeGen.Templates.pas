@@ -89,7 +89,7 @@ resourcestring
 //    '    WriteLn(''Write "quit" or "exit" to shutdown the server'');' + sLineBreak +
     '    LServer.Active := True;' + sLineBreak +
     '    WriteLn(''Listening on port '', APort);' + sLineBreak +
-    '    WriteLn(''CTRL+C to shutdown the server'');' + sLineBreak +
+    '    Write(''CTRL+C to shutdown the server'');' + sLineBreak +
     '    WaitForTerminationSignal; ' + sLineBreak +
     '    EnterInShutdownState; ' + sLineBreak +
     '    LServer.Active := False; ' + sLineBreak +
@@ -126,7 +126,6 @@ resourcestring
     '  MVCFramework, MVCFramework.Commons, MVCFramework.Serializer.Commons;' + sLineBreak +
     sLineBreak +
     'type' + sLineBreak +
-    sLineBreak +
     '  [MVCPath(''/api'')]' + sLineBreak +
     '  %1:s = class(TMVCController) ' + sLineBreak +
     '  public' + sLineBreak +
@@ -195,7 +194,7 @@ resourcestring
     'begin' + sLineBreak +
     '  //todo: render the customer by id' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +
-    'procedure %0:s.CreateCustomer;' + sLineBreak + sLineBreak +
+    'procedure %0:s.CreateCustomer;' + sLineBreak + 
     'begin' + sLineBreak +
     '  //todo: create a new customer' + sLineBreak +
     'end;' + sLineBreak + sLineBreak +

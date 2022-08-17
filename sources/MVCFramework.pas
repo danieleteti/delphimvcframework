@@ -380,7 +380,6 @@ type
     constructor Create(const AWebRequest: TWebRequest;
       const ASerializers: TDictionary<string, IMVCSerializer>);
     destructor Destroy; override;
-
     function ClientIp: string;
     function ClientPrefer(const AMediaType: string): Boolean;
     function ClientPreferHTML: Boolean;
@@ -806,6 +805,11 @@ type
     function SessionAs<T: TWebSession>: T;
     procedure RaiseSessionExpired; virtual;
 
+    // Avoiding mid-air collisions - support
+    procedure SetETag(const Data: String);
+    procedure CheckIfMatch(const Data: String);
+    // END - Avoiding mid-air collisions - support
+
     // Properties
     property Context: TWebContext read GetContext write FContext;
     property Session: TWebSession read GetSession;
@@ -1108,12 +1112,14 @@ uses
   MVCFramework.JSONRPC,
   MVCFramework.Router,
   MVCFramework.Rtti.Utils,
-  MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract;
+  MVCFramework.Serializer.HTML, MVCFramework.Serializer.Abstract,
+  MVCFramework.Utils;
 
 var
   gIsShuttingDown: Int64 = 0;
   gMVCGlobalActionParamsCache: TMVCStringObjectDictionary<TMVCActionParamCacheItem> = nil;
   gHostingFramework: TMVCHostingFrameworkType = hftUnknown;
+
 
 function IsShuttingDown: Boolean;
 begin
@@ -3366,6 +3372,28 @@ end;
 
 { TMVCController }
 
+procedure TMVCController.CheckIfMatch(const Data: String);
+var
+  lReqETag: String;
+begin
+  if Data.IsEmpty then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.InternalServerError, 'Cannot calculate ETag using empty value');
+  end;
+
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#avoiding_mid-air_collisions
+  lReqETag := Context.Request.GetHeader('If-Match');
+  if lReqETag.IsEmpty then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.PreconditionFailed, 'If-Match header is empty');
+  end;
+
+  if lReqETag <> GetMD5HashFromString(Data) then
+  begin
+    raise EMVCException.Create(HTTP_STATUS.PreconditionFailed, 'mid-air collisions detected, cannot update or delete resource.');
+  end;
+end;
+
 constructor TMVCController.Create;
 begin
   inherited Create;
@@ -3691,6 +3719,11 @@ end;
 function TMVCRenderer.ToMVCList(const AObject: TObject; AOwnsObject: Boolean): IMVCList;
 begin
   Result := MVCFramework.DuckTyping.WrapAsList(AObject, AOwnsObject);
+end;
+
+procedure TMVCController.SetETag(const Data: String);
+begin
+  Context.Response.SetCustomHeader('ETag', GetMD5HashFromString(Data));
 end;
 
 procedure TMVCController.SetViewData(const aModelName: string; const Value: TObject);

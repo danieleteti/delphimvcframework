@@ -27,23 +27,66 @@ unit MVCFramework.Utils;
 interface
 
 uses
-  MVCFramework.Serializer.Commons, JsonDataObjects, MVCFramework.DuckTyping;
+  MVCFramework.Serializer.Commons, JsonDataObjects, MVCFramework.DuckTyping,
+  System.Classes;
 
 
 function NewJSONSerializer: IMVCJSONSerializer;
 function StrToJSONObject(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonObject;
 function StrToJSONArray(const aString: String; ARaiseExceptionOnError: Boolean = False): TJsonArray;
 function WrapAsList(const AObject: TObject; AOwnsObject: Boolean = False): IMVCList;
-
-
+function GetMD5HashFromStream(AStream: TStream): string;
+function GetMD5HashFromString(const AString: String): string;
 
 implementation
 
 uses
+{$IF defined(TOKYOORBETTER)}
+  System.Hash,
+{$ELSE}
+  IdHashMessageDigest,
+{$ENDIF}
   MVCFramework.Serializer.JsonDataObjects,
   MVCFramework.Commons,
   System.SysUtils,
   System.TypInfo;
+
+function GetMD5HashFromStream(AStream: TStream): string;
+{$IF not defined(TOKYOORBETTER)}
+var
+  lMD5Hash: TIdHashMessageDigest5;
+{$ENDIF}
+begin
+{$IF defined(TOKYOORBETTER)}
+  Result := THashMD5.GetHashString(AStream);
+{$ELSE}
+  lMD5Hash := TIdHashMessageDigest5.Create;
+  try
+    Result := lMD5Hash.HashStreamAsHex(AStream);
+  finally
+    lMD5Hash.Free;
+  end;
+{$ENDIF}
+end;
+
+function GetMD5HashFromString(const AString: String): string;
+{$IF not defined(TOKYOORBETTER)}
+var
+  lMD5Hash: TIdHashMessageDigest5;
+{$ENDIF}
+begin
+{$IF defined(TOKYOORBETTER)}
+  Result := THashMD5.GetHashString(AStream);
+{$ELSE}
+  lMD5Hash := TIdHashMessageDigest5.Create;
+  try
+    Result := lMD5Hash.HashStringAsHex(AString);
+  finally
+    lMD5Hash.Free;
+  end;
+{$ENDIF}
+end;
+
 
 function NewJSONSerializer: IMVCJSONSerializer;
 begin

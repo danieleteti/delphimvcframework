@@ -682,6 +682,11 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
       //If the cookie doesn't exist (or cannot be deserialized) an exception is raised.
     end;
     ```
+	
+- ✅ Improved! While not strictly required nor defined, DMVCFramework supports sending body data for all HTTP VERBS - see https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET	
+
+- ⚡ New! Automated support to avoid "mid-air collisions". New methods `SetETag` and `CheckIfMatch` allows a better security without adding complexity to the controller code - check `avoid_mid_air_collisions_sample.dproj` sample and see  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#avoiding_mid-air_collisions for more info about mid-air collisions.
+
 
 ### Bug Fixes in 3.2.2-nitrogen
 

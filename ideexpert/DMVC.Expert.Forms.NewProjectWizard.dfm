@@ -4,7 +4,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   BorderStyle = bsDialog
   Caption = 'DelphiMVCFramework :: New Project Wizard'
   ClientHeight = 518
-  ClientWidth = 676
+  ClientWidth = 700
   Color = clBtnFace
   Constraints.MinHeight = 145
   Constraints.MinWidth = 250
@@ -16,13 +16,13 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   Position = poMainFormCenter
   OnCreate = FormCreate
   DesignSize = (
-    676
+    700
     518)
   TextHeight = 13
   object Shape1: TShape
     Left = 0
     Top = 0
-    Width = 676
+    Width = 700
     Height = 121
     Align = alTop
     Pen.Color = clWhite
@@ -398,7 +398,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   end
   object lblBook: TLabel
     AlignWithMargins = True
-    Left = 8
+    Left = 13
     Top = 487
     Width = 259
     Height = 16
@@ -418,9 +418,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     OnClick = lblBookClick
     OnMouseEnter = lblBookMouseEnter
     OnMouseLeave = lblBookMouseLeave
+    ExplicitLeft = 8
   end
   object btnOK: TButton
-    Left = 508
+    Left = 532
     Top = 483
     Width = 77
     Height = 27
@@ -430,9 +431,10 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     ModalResult = 1
     TabOrder = 3
     OnClick = btnOKClick
+    ExplicitLeft = 508
   end
   object btnCancel: TButton
-    Left = 591
+    Left = 615
     Top = 483
     Width = 77
     Height = 27
@@ -441,6 +443,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     Caption = 'Cancel'
     ModalResult = 2
     TabOrder = 4
+    ExplicitLeft = 591
   end
   object chkAddToProjectGroup: TCheckBox
     Left = 24
@@ -565,12 +568,12 @@ object frmDMVCNewProject: TfrmDMVCNewProject
   object GroupBox1: TGroupBox
     Left = 287
     Top = 135
-    Width = 381
+    Width = 405
     Height = 214
     Caption = 'Middlewares'
     TabOrder = 6
     DesignSize = (
-      381
+      405
       214)
     object Label4: TLabel
       Left = 161
@@ -582,7 +585,7 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object Bevel1: TBevel
       Left = 11
       Top = 102
-      Width = 358
+      Width = 383
       Height = 3
       Shape = bsTopLine
     end
@@ -594,43 +597,47 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       Caption = 'ConnectionDef Name'
     end
     object chkAnalyticsMiddleware: TCheckBox
-      Left = 21
+      Left = 27
       Top = 50
       Width = 135
       Height = 17
       Anchors = [akTop]
       Caption = 'Analytics'
       TabOrder = 0
+      ExplicitLeft = 21
     end
     object chkCompression: TCheckBox
-      Left = 21
+      Left = 27
       Top = 24
       Width = 153
       Height = 17
       Anchors = [akTop]
       Caption = 'Compression'
       TabOrder = 1
+      ExplicitLeft = 21
     end
     object chkStaticFiles: TCheckBox
-      Left = 21
+      Left = 27
       Top = 76
       Width = 135
       Height = 17
       Anchors = [akTop]
       Caption = 'Static Files'
       TabOrder = 2
+      ExplicitLeft = 21
     end
     object chkTrace: TCheckBox
-      Left = 215
+      Left = 192
       Top = 50
-      Width = 135
+      Width = 150
       Height = 17
+      Hint = 'Debug purposes'
       Anchors = [akTop]
-      Caption = 'Tracing'
+      Caption = 'Tracing (debug purposes)'
       TabOrder = 3
     end
     object chkCORS: TCheckBox
-      Left = 215
+      Left = 192
       Top = 24
       Width = 135
       Height = 17
@@ -639,27 +646,29 @@ object frmDMVCNewProject: TfrmDMVCNewProject
       TabOrder = 4
     end
     object chkETAG: TCheckBox
-      Left = 215
+      Left = 192
       Top = 76
-      Width = 135
+      Width = 202
       Height = 17
       Anchors = [akTop]
-      Caption = 'ETag'
+      Caption = 'ETag (Cache of unchanged resources)'
       TabOrder = 5
+      ExplicitLeft = 175
     end
     object chkActiveRecord: TCheckBox
-      Left = 21
+      Left = 27
       Top = 111
       Width = 135
       Height = 17
       Anchors = [akTop]
       Caption = 'ActiveRecord'
       TabOrder = 6
+      ExplicitLeft = 21
     end
     object EdtFDConnDefFileName: TEdit
       Left = 161
       Top = 129
-      Width = 204
+      Width = 228
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 7
@@ -668,23 +677,25 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object EdtConnDefName: TEdit
       Left = 161
       Top = 175
-      Width = 204
+      Width = 228
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 8
       TextHint = 'MyConnDef'
+      ExplicitWidth = 204
     end
   end
   object GroupBoxJSONRPC: TGroupBox
     Left = 287
     Top = 360
-    Width = 381
+    Width = 405
     Height = 105
     Anchors = [akLeft, akTop, akRight]
     Caption = 'JSON-RPC 2.0'
     TabOrder = 7
+    ExplicitWidth = 381
     DesignSize = (
-      381
+      405
       105)
     object Label3: TLabel
       Left = 16
@@ -696,22 +707,24 @@ object frmDMVCNewProject: TfrmDMVCNewProject
     object EdtJSONRPCClassName: TEdit
       Left = 16
       Top = 72
-      Width = 350
+      Width = 374
       Height = 21
       Anchors = [akLeft, akTop, akRight]
       TabOrder = 0
       TextHint = 'TMyJSONRPCObject'
+      ExplicitWidth = 350
     end
     object chkJSONRPC: TCheckBox
       Left = 16
       Top = 22
-      Width = 343
+      Width = 367
       Height = 17
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Create JSONRPC 2.0 end-point'
       Checked = True
       State = cbChecked
       TabOrder = 1
+      ExplicitWidth = 343
     end
   end
   object ApplicationEvents: TApplicationEvents
