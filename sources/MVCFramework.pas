@@ -1462,23 +1462,20 @@ end;
 
 procedure TMVCWebRequest.DefineContentType;
 begin
-  if FWebRequest.MethodType in [mtPut, mtPost, mtPatch] then
-  begin
-    SplitContentMediaTypeAndCharset(FWebRequest.GetFieldByName('Content-Type'), FContentMediaType,
-      FCharset);
-    { if request doesn't contain content-type }
-    if FContentMediaType.IsEmpty then
-      FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
-    if FCharset.IsEmpty then
-      FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
-    FContentType := BuildContentType(FContentMediaType, FCharset);
-  end
-  else
-  begin
-    FContentMediaType := '';
-    FCharset := '';
-    FContentType := '';
-  end;
+{
+  While not strictly required nor defined, DMVCFramework supports
+  sending body data for all HTTP VERBS
+  https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
+}
+  SplitContentMediaTypeAndCharset(
+    FWebRequest.GetFieldByName('Content-Type'),
+    FContentMediaType,
+    FCharset);
+  if FContentMediaType.IsEmpty then
+    FContentMediaType := TMVCConstants.DEFAULT_CONTENT_TYPE;
+  if FCharset.IsEmpty then
+    FCharset := TMVCConstants.DEFAULT_CONTENT_CHARSET;
+  FContentType := BuildContentType(FContentMediaType, FCharset);
 end;
 
 destructor TMVCWebRequest.Destroy;

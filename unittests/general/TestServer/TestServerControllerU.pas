@@ -150,6 +150,10 @@ type
     [MVCProduces('application/json')]
     procedure TestCustomerEchoBodyFor;
 
+    [MVCPath('/echowithallverbs')]
+    [MVCHTTPMethod([httpGET, httpPOST, httpPUT, httpDELETE, httpPATCH, httpTRACE])]
+    [MVCProduces('application/json')]
+    procedure TestWithAllVerbs;
 
     [MVCPath('/speed')]
     [MVCHTTPMethod([httpGET])]
@@ -1079,6 +1083,15 @@ procedure TTestServerController.TestTypedActionTTime1(value: TTime);
 begin
   ContentType := TMVCMediaType.TEXT_PLAIN;
   Render(TimeToISOTime(value) + ' modified from server');
+end;
+
+procedure TTestServerController.TestWithAllVerbs;
+var
+  lPerson: TPerson;
+begin
+  lPerson := Context.Request.BodyAs<TPerson>();
+  // lCustomer.Logo.SaveToFile('pippo_server_before.bmp');
+  Render(lPerson, True);
 end;
 
 procedure TTestServerController.Tmpl_ListOfDataUsingDatasets;

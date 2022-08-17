@@ -90,6 +90,8 @@ type
     [Test]
     procedure TestCustomerEcho;
     [Test]
+    procedure TestEchoWithAllVerbs;
+    [Test]
     procedure TestCustomerEchoBodyFor;
     [Test]
     procedure TestPOSTWithoutContentType;
@@ -929,6 +931,39 @@ begin
     Assert.isTrue(lPass, 'No session cookie cleanup in the response');
   finally
     lJSON.Free;
+  end;
+end;
+
+procedure TServerTest.TestEchoWithAllVerbs;
+var
+  r: IMVCRESTResponse;
+  lPerson: TPerson;
+  lSer: IMVCSerializer;
+  lNewPerson: TPerson;
+  I: TMVCHTTPMethodType;
+begin
+  lNewPerson := TPerson.Create;
+  try
+    lPerson := TPerson.GetNew('Daniele','Teti', EncodeDate(1979,11,4), True);
+    try
+      lSer := GetDefaultSerializer;
+      for I := httpGET to httpTRACE do
+      begin
+        r := RESTClient
+          .Accept(TMVCMediaType.APPLICATION_JSON)
+          .AddBody(lPerson, False)
+          .Execute(httpGET, '/echowithallverbs');
+        Assert.AreEqual(HTTP_STATUS.OK, r.StatusCode);
+          r.BodyFor(lNewPerson);
+          Assert.IsTrue(lPerson.Equals(lNewPerson),
+            GetEnumName(TypeInfo(TMVCHTTPMethodType),
+              Ord(I)) + ' doesn''t return the same object data');
+      end;
+    finally
+      lPerson.Free;
+    end;
+  finally
+    lNewPerson.Free;
   end;
 end;
 
