@@ -240,13 +240,13 @@ type
 
 
     // Enums
-//    [MVCHTTPMethod([httpGET])]
-//    [MVCPath('/enums')]
-//    procedure GetClassWithEnums;
-//
-//    [MVCHTTPMethod([httpPOST])]
-//    [MVCPath('/enums')]
-//    procedure EchoClassWithEnums;
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/enums')]
+    procedure GetClassWithEnums;
+
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/enums')]
+    procedure EchoClassWithEnums;
   end;
 
 implementation
@@ -396,15 +396,15 @@ begin
   Render(Person, False);
 end;
 
-//procedure TRenderSampleController.EchoClassWithEnums;
-//var
-//  lObj: TClassWithEnums;
-//begin
-//  lObj := Context.Request.BodyAs<TClassWithEnums>;
-//  lObj.RGBSet := [ctBlue, ctGreen, ctRed];
-//  lObj.EnumWithName := ctBlue;
-//  Render(lObj, True);
-//end;
+procedure TRenderSampleController.EchoClassWithEnums;
+var
+  lObj: TClassWithEnums;
+begin
+  lObj := Context.Request.BodyAs<TClassWithEnums>;
+  lObj.RGBSet := [ctBlue, ctGreen, ctRed];
+  lObj.EnumWithName := ctBlue;
+  Render(lObj, True);
+end;
 
 procedure TRenderSampleController.GetBinaryData(const filename: string);
 var
@@ -436,18 +436,18 @@ begin
   Render(lClass);
 end;
 
-//procedure TRenderSampleController.GetClassWithEnums;
-//var
-//  lObj: TClassWithEnums;
-//begin
-//  lObj := TClassWithEnums.Create;
-//  lObj.RGBSet := [ctGreen, ctBlue];
-//  lObj.EnumSimple := ctGreen;
-//  lObj.EnumWithName := ctGreen;
-//  lObj.EnumWithOrdValue := ctGreen;
-//  lObj.EnumWithMappedValues := ctGreen;
-//  Render(lObj);
-//end;
+procedure TRenderSampleController.GetClassWithEnums;
+var
+  lObj: TClassWithEnums;
+begin
+  lObj := TClassWithEnums.Create;
+  lObj.RGBSet := [ctGreen, ctBlue];
+  lObj.EnumDefaultSerialization := ctGreen;
+  lObj.EnumWithName := ctGreen;
+  lObj.EnumWithOrdValue := ctGreen;
+  lObj.EnumWithMappedValues := ctGreen;
+  Render(lObj);
+end;
 
 procedure TRenderSampleController.GetCustomerByID_AsTObject(const ID: Integer);
 var

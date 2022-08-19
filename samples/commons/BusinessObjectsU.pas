@@ -41,6 +41,9 @@ type
   TEnumTest = (etValue1, etValue2, etValue3);
   TSetOfEnumTest = set of TEnumTest;
 
+  TEnumColorTest = (ctRed, ctGreen, ctBlue);
+  TSetOfColors = set of TEnumColorTest;
+
   [MVCNameCase(ncLowerCase)]
   TPerson = class
   private
@@ -82,6 +85,25 @@ type
     property ArrayOfInt: TArray<Integer> read fArrayOfInt write fArrayOfInt;
     property ArrayOfInt64: TArray<Int64> read fArrayOfInt64 write fArrayOfInt64;
     property ArrayOfDouble: TArray<Double> read fArrayOfDouble write fArrayOfDouble;
+  end;
+
+
+  TClassWithEnums = class
+  private
+    fRGBSet: TSetOfColors;
+    fEnumWithName: TEnumColorTest;
+    fEnumDefaultSerialization: TEnumColorTest;
+    fEnumWithOrdValue: TEnumColorTest;
+    fEnumWithMappedValues: TEnumColorTest;
+  public
+    property RGBSet: TSetOfColors read fRGBSet write fRGBSet;
+    property EnumDefaultSerialization: TEnumColorTest read fEnumDefaultSerialization write fEnumDefaultSerialization;
+    [MVCEnumSerialization(estEnumName)]
+    property EnumWithName: TEnumColorTest read fEnumWithNAme write fEnumWithName;
+    [MVCEnumSerialization(estEnumOrd)]
+    property EnumWithOrdValue: TEnumColorTest read fEnumWithOrdValue write fEnumWithOrdValue;
+    [MVCEnumSerialization(estEnumMappedValues, 'Red,Green,Blue')]
+    property EnumWithMappedValues: TEnumColorTest read fEnumWithMappedValues write fEnumWithMappedValues;
   end;
 
   [MVCNameCase(ncLowerCase)]
