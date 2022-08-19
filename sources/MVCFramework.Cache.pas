@@ -209,8 +209,6 @@ begin
 end;
 
 procedure TMVCCache.RemoveItem(const AName: string);
-var
-  lCacheItem: TMVCCacheItem;
 begin
   FMREW.DoWithWriteLock(
     procedure

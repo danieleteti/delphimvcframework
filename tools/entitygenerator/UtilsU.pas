@@ -2,6 +2,9 @@ unit UtilsU;
 
 interface
 
+const
+  DEFAULT_PROJECT_NAME = 'NewEntitiesGeneratorProject';
+
 
 function IsReservedKeyword(const Value: String): Boolean;
 
@@ -18,6 +21,8 @@ const PASCAL_KEYWORDS = ';and;array;as;as;asm;begin;break;case;class;class;const
   'library;mod;new;nil;not;object;of;on;on;operator;or;out;packed;procedure;program;' +
   'property;raise;record;reference;repeat;self;set;shl;shr;string;then;threadvar;to;' +
   'true;try;type;unit;until;uses;var;while;with;xor;';
+
+
 
 function IsReservedKeyword(const Value: String): Boolean;
 begin
