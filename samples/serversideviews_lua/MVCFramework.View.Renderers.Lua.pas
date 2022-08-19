@@ -65,223 +65,6 @@ uses
   System.JSON,
   JsonDataObjects, MVCFramework.Serializer.Commons, System.Rtti;
 
-//function __lua_form_parameter(L: Plua_State): Integer; cdecl;
-//var
-//  parname: string;
-//  res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//begin
-//  if lua_gettop(L) <> 2 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -1).AsString;
-//  lua_getfield(L, -2, '__self');
-//  p := lua_topointer(L, -1);
-//  WebContext := TWebContext(TObject(p));
-//  res := WebContext.Request.Params[parname];
-//  TLuaUtils.PushTValue(L, res);
-//  Result := 1;
-//end;
-//
-//function __lua_headers_get_all(L: Plua_State): Integer; cdecl;
-//var
-//  // parname: string;
-//  res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//begin
-//  if lua_gettop(L) <> 1 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number (0 expected)'));
-//    Exit;
-//  end;
-//  lua_getfield(L, -1, '__self');
-//  p := lua_topointer(L, -1);
-//  WebContext := TWebContext(TObject(p));
-//  res := WebContext.Request.RawWebRequest.Content;
-//  { TODO -oDaniele -cGeneral : Do not works }
-//  TLuaUtils.PushTValue(L, res);
-//  Result := 1;
-//end;
-//
-//function __lua_headers(L: Plua_State): Integer; cdecl;
-//var
-//  parname: string;
-//  res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//  // parvalue: string;
-//begin
-//  if (lua_gettop(L) <> 2) then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//
-//  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -1).AsString;
-//  lua_getfield(L, -2, '__self');
-//  p := lua_topointer(L, -1);
-//  WebContext := TWebContext(TObject(p));
-//  res := WebContext.Request.RawWebRequest.GetFieldByName(parname.ToUpper);
-//  TLuaUtils.PushTValue(L, res);
-//  Result := 1;
-//end;
-//
-//function __lua_set_http_code(L: Plua_State): Integer; cdecl;
-//var
-//  // parname: string;
-//  // res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//  // parvalue: string;
-//  errocode: Integer;
-//begin
-//  if lua_gettop(L) <> 2 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//
-//  // setting the http return code    request:http_code(404)
-//  errocode := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtInteger, L,
-//    -1).AsInteger;
-//  lua_getfield(L, -2, '__self');
-//  p := lua_topointer(L, -1);
-//
-//  WebContext := TWebContext(TObject(p));
-//  WebContext.Response.StatusCode := errocode;
-//  Result := 0;
-//end;
-//
-//function __lua_set_response_headers(L: Plua_State): Integer; cdecl;
-//var
-//  parname: string;
-//  // res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//  parvalue: string;
-//begin
-//  if lua_gettop(L) <> 3 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//
-//  // setting an header  request:headers(name, newvalue)
-//  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -2).AsString;
-//  parvalue := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -1).AsString;
-//  lua_getfield(L, -3, '__self');
-//  p := lua_topointer(L, -1);
-//
-//  WebContext := TWebContext(TObject(p));
-//  WebContext.Response.CustomHeaders.Values[parname] := parvalue;
-//  Result := 0;
-//end;
-//
-//function __lua_post_parameter(L: Plua_State): Integer; cdecl;
-//var
-//  parname: string;
-//  res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//begin
-//  if lua_gettop(L) <> 2 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -1).AsString;
-//  lua_getfield(L, -2, '__self');
-//  p := lua_topointer(L, -1);
-//  WebContext := TWebContext(TObject(p));
-//  res := WebContext.Request.ContentParam(parname);
-//  TLuaUtils.PushTValue(L, res);
-//  Result := 1;
-//end;
-//
-//function __lua_set_header_field(L: Plua_State): Integer; cdecl;
-//var
-//  parname: string;
-//  // res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//  parvalue: string;
-//begin
-//  if lua_gettop(L) <> 2 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -2).AsString;
-//  parvalue := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -1).AsString;
-//  lua_getfield(L, -3, '__self');
-//  p := lua_topointer(L, -1);
-//  WebContext := TWebContext(TObject(p));
-//  WebContext.Response.SetCustomHeader(parname, parvalue);
-//  Result := 0;
-//end;
-//
-//function __lua_get_parameter(L: Plua_State): Integer; cdecl;
-//var
-//  parname: string;
-//  res: string;
-//  // rq: TMVCWebRequest;
-//  p: Pointer;
-//  WebContext: TWebContext;
-//begin
-//  if lua_gettop(L) <> 2 then
-//  begin
-//    luaL_error(L, PAnsiChar('Wrong parameters number'));
-//    Exit;
-//  end;
-//  parname := TLuaValue.GetTValueFromLuaValueType(TLuaValueType.lvtString, L,
-//    -1).AsString;
-//  lua_getfield(L, -2, '__self');
-//  p := lua_topointer(L, -1);
-//  WebContext := TWebContext(TObject(p));
-//  res := WebContext.Request.QueryStringParam(parname);
-//  TLuaUtils.PushTValue(L, res);
-//  Result := 1;
-//end;
-
-// function __lua_stream_out(L: Plua_State): Integer; cdecl;
-// var
-// p: Pointer;
-// WebContext: TWebContext;
-// v: string;
-// begin
-// if lua_gettop(L) <> 2 then
-// begin
-// luaL_error(L, PAnsiChar('Wrong parameters number'));
-// Exit;
-// end;
-// v := lua_tostring(L, -1);
-// lua_getfield(L, -2, '__self');
-// p := lua_topointer(L, -1);
-//
-// WebContext := TWebContext(TObject(p));
-// raise Exception.Create('WIP');
-// // TStringBuilder(WebContext.ReservedData).Append(v);
-// Result := 0;
-// end;
-
 function __lua_stream_out(L: Plua_State): Integer; cdecl;
 var
   lPointerToStreamWriter: Pointer;
@@ -289,7 +72,7 @@ var
 begin
   if lua_gettop(L) <> 2 then
   begin
-    luaL_error(L, PAnsiChar('Wrong parameters number'));
+    luaL_error(L, PAnsiChar('Wrong parameters number, expected 2'));
     Exit;
   end;
   lData := lua_tostring(L, -1);
@@ -298,65 +81,24 @@ begin
   Result := 0;
 end;
 
-
-// var
-// s: string;
-// o: TObject;
-// C: TWebContext;
-// begin
-// if lua_gettop(L) <> 2 then
-// begin
-// luaL_error(L, PAnsiChar('Wrong parameters number'));
-// Exit;
-// end;
-//
-// if lua_isstring(L, - 1) = 1 then
-// begin
-// s := lua_tostring(L, - 1);
-// // lua_pop(L, 1);
-// end
-// else
-// begin
-// luaL_error(L, PAnsiChar('Type mismatch, expected String'));
-// Exit;
-// end;
-//
-// // if lua_islightuserdata(L, - 2) then
-// // begin
-// o := TObject(lua_topointer(L, - 2));
-// // lua_pop(L, 1);
-// // end
-// // else
-// // begin
-// // luaL_error(L, PAnsiChar('Type mismatch, expected LightUserData'));
-// // Exit;
-// // end;
-//
-// C := o as TWebContext;
-// TStringBuilder(C.ReservedData).Append(s);
-// Result := 0;
-// end;
-
 { TMVCEmbeddedLuaView }
 
 procedure TMVCLuaViewEngine.Execute(const ViewName: string;
   const OutputStream: TStream);
 var
   Lua: TLuaEngine;
-  k: string;
-  LuaFilter: TLuaEmbeddedTextFilter;
+  lDataSetName: string;
+  lLuaFilter: TLuaEmbeddedTextFilter;
   lViewFileName: String;
-  _FFileName, CompiledFileName: string;
-  v: string;
-  sr: TStreamReader;
+  lFileName, lCompiledFileName: string;
+  lLuaCompiledCode: string;
+  lStreamReader: TStreamReader;
   DecodeJSONStrings: string;
   lSer: TMVCJsonDataObjectsSerializer;
   lJSONStr: string;
-  lJSONObj: TJDOJsonObject;
-  lJSONArr: TJDOJsonArray;
-  ScriptOutputStringBuilder: TStreamWriter;
+  lScriptOutput: TStreamWriter;
 begin
-  ScriptOutputStringBuilder := TStreamWriter.Create(OutputStream, TEncoding.UTF8);
+  lScriptOutput := TStreamWriter.Create(OutputStream, TEncoding.UTF8);
   try
     Lua := TLuaEngine.Create;
     try
@@ -370,14 +112,14 @@ begin
         lViewFileName := lViewFileName + '.' + DEFAULT_VIEW_EXT;
 
       if DirectoryExists(Config.Value[TMVCConfigKey.ViewPath]) then
-        _FFileName := ExpandFileName
+        lFileName := ExpandFileName
           (IncludeTrailingPathDelimiter(Config.Value[TMVCConfigKey.ViewPath]) +
           lViewFileName)
       else
-        _FFileName := ExpandFileName
+        lFileName := ExpandFileName
           (IncludeTrailingPathDelimiter(GetApplicationFileNamePath +
           Config.Value[TMVCConfigKey.ViewPath]) + lViewFileName);
-      lViewFileName := _FFileName;
+      lViewFileName := lFileName;
 
       if not FileExists(lViewFileName) then
         raise EMVCViewError.CreateFmt('View [%s.%s] not found',
@@ -388,109 +130,83 @@ begin
         { continuare da questo problema }
         if Assigned(ViewModel) then
         begin
-          for k in ViewModel.Keys do
+          for lDataSetName in ViewModel.Keys do
           begin
-            if not(ViewModel[k] is TJDOJsonBaseObject) then
-            begin
-              lSer := TMVCJsonDataObjectsSerializer.Create(nil);
-              try
-                if TDuckTypedList.CanBeWrappedAsList(ViewModel[k]) then
-                begin
-                  //List
-                  lJSONArr := TJDOJsonArray.Create;
-                  try
-                    lSer.ListToJsonArray(TDuckTypedList.Wrap(ViewModel[k],
-                      False), lJSONArr,
-                      TMVCSerializationType.stDefault, [], nil);
-                    lJSONStr := lJSONArr.ToJSON(True);
-                  finally
-                    lJSONArr.Free;
-                  end;
-                end
-                else if ViewModel[k] is System.JSON.TJSONValue then
-                begin
-                  //System.JSON
-                  lJSONStr := System.JSON.TJSONValue(ViewModel[k]).ToJSON;
-                end
-                else
-                begin //PODO
-                  lJSONObj := TJDOJsonObject.Create;
-                  try
-                    lSer.ObjectToJSONObject(ViewModel[k], lJSONObj,
-                      TMVCSerializationType.stDefault, []);
-                    lJSONStr := lJSONObj.ToJSON(True);
-                  finally
-                    lJSONObj.Free;
-                  end;
-                end;
-              finally
-                lSer.Free;
+            lSer := TMVCJsonDataObjectsSerializer.Create(nil);
+            try
+              if TDuckTypedList.CanBeWrappedAsList(ViewModel[lDataSetName]) then
+              begin
+                lJSONStr := lSer.SerializeCollection(ViewModel[lDataSetName]);
+              end
+              else
+              begin //PODO
+                lJSONStr := lSer.SerializeObject(ViewModel[lDataSetName]);
               end;
-            end
-            else
-            begin
-              //JsonDataObjects
-              lJSONStr := TJDOJsonBaseObject(ViewModel[k]).ToJSON(True);
+            finally
+              lSer.Free;
             end;
-            Lua.DeclareGlobalString(k, lJSONStr);
+            Lua.DeclareGlobalString(lDataSetName, lJSONStr);
             DecodeJSONStrings := DecodeJSONStrings + sLineBreak + ' ' +
-              AnsiString(k) + ' = json.decode(' + AnsiString(k) + ')';
+              AnsiString(lDataSetName) + ' = json.decode(' + AnsiString(lDataSetName) + ')';
           end;
         end;
       end;
       if Assigned(ViewDataSets) then
       begin
-        for k in ViewDataSets.Keys do
+        for lDataSetName in ViewDataSets.Keys do
         begin
-          ExposeDataSet(Lua, ViewDataSets[k], ViewDataSets[k].Name);
+          ExposeDataSet(Lua, ViewDataSets[lDataSetName], ViewDataSets[lDataSetName].Name);
         end;
       end;
 
       Lua.DeclareGlobalString('__ROOT__', ExtractFilePath(ParamStr(0)));
       Lua.DeclareGlobalString('__log_file', LOG_FILE_NAME);
       Lua.DeclareGlobalLightUserData('__webcontext', WebContext);
-      Lua.DeclareGlobalLightUserData('__stringbuilder', ScriptOutputStringBuilder);
-      CompiledFileName := GetCompiledFileName(lViewFileName);
+      Lua.DeclareGlobalLightUserData('__stringbuilder', lScriptOutput);
+      lCompiledFileName := GetCompiledFileName(lViewFileName);
 
-      TMonitor.Enter(Self);
-      try
-        if true or (not IsCompiledVersionUpToDate(lViewFileName, CompiledFileName)) then
-        begin
-          LuaFilter := TLuaEmbeddedTextFilter.Create;
-          try
-            LuaFilter.OutputFunction := 'elua_out';
-            LuaFilter.TemplateCode := TFile.ReadAllText(lViewFileName,
-              TEncoding.ANSI);
-            LuaFilter.Execute;
-            TFile.WriteAllText(CompiledFileName,
-              LuaFilter.LuaCode,
-              TEncoding.ANSI);
-          finally
-            LuaFilter.Free;
+      if not IsCompiledVersionUpToDate(lViewFileName, lCompiledFileName) then
+      begin
+        TMonitor.Enter(Self);
+        try
+          if not IsCompiledVersionUpToDate(lViewFileName, lCompiledFileName) then
+          begin
+            lLuaFilter := TLuaEmbeddedTextFilter.Create;
+            try
+              lLuaFilter.OutputFunction := 'elua_out';
+              lLuaFilter.TemplateCode := TFile.ReadAllText(lViewFileName,
+                TEncoding.UTF8);
+              lLuaFilter.Execute;
+              TFile.WriteAllText(lCompiledFileName,
+                lLuaFilter.LuaCode,
+                TEncoding.ANSI);
+            finally
+              lLuaFilter.Free;
+            end;
           end;
+        finally
+          TMonitor.Exit(Self);
         end;
-      finally
-        TMonitor.Exit(Self);
       end;
 
       // read lua compiled code
-      sr := TStreamReader.Create(TFileStream.Create(CompiledFileName,
+      lStreamReader := TStreamReader.Create(TFileStream.Create(lCompiledFileName,
         fmOpenRead or fmShareDenyNone), TEncoding.UTF8);
       try
-        sr.OwnStream;
-        v := sr.ReadToEnd;
+        lStreamReader.OwnStream;
+        lLuaCompiledCode := lStreamReader.ReadToEnd;
       finally
-        sr.Free;
+        lStreamReader.Free;
       end;
       Lua.DeclareGlobalFunction('internal_elua_out', @__lua_stream_out);
-      Lua.LoadScript('require "Lua.boot" ' + sLineBreak + DecodeJSONStrings + sLineBreak + v);
+      Lua.LoadScript('require "Lua.boot" ' + sLineBreak + DecodeJSONStrings + sLineBreak + lLuaCompiledCode);
       // EXECUTE IT!!!
       Lua.Execute;
     finally
       Lua.Free;
     end;
   finally
-    FreeAndNil(ScriptOutputStringBuilder);
+    FreeAndNil(lScriptOutput);
   end;
 end;
 

@@ -36,6 +36,7 @@ type
   TPeople = class(TObjectList<TPerson>)
   end;
 
+  {$M+}
   TMyObj = class
   private
     FRawHTML: String;
@@ -43,6 +44,7 @@ type
   published
     property RawHTML: String read FRawHTML write SetRawHTML;
   end;
+  {$M-}
 
   TDevice = class
   private
