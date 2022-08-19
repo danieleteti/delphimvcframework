@@ -1,7 +1,7 @@
 {
     This file is part of Synopse framework.
 
-    Synopse framework. Copyright (C) 2021 Arnaud Bouchez
+    Synopse framework. Copyright (C) 2022 Arnaud Bouchez
       Synopse Informatique - https://synopse.info
 
   *** BEGIN LICENSE BLOCK *****
@@ -20,7 +20,7 @@
 
   The Initial Developer of the Original Code is Arnaud Bouchez.
 
-  Portions created by the Initial Developer are Copyright (C) 2021
+  Portions created by the Initial Developer are Copyright (C) 2022
   the Initial Developer. All Rights Reserved.
 
   Contributor(s):
@@ -229,12 +229,15 @@
     {$define ISFPC32}
     {$define ISFPC34}
     {$define FPC_PROVIDE_ATTR_TABLE} // introducing TTypeData.AttributeTable
+    {$define STRCNT32} // 32-bit TAnsiRec.RefCnt even on 64-bit CPU
     {$define HASTTHREADTERMINATESET} // introduced TThread.TerminateSet
   {$endif}
   {$if not defined(VER3_0) and not defined(VER3_2) and not defined(VER2)}
     {.$define FPC_PROVIDE_ATTR_TABLE} // to be defined since SVN 42356-42411
     // on compilation error in SynFPCTypInfo, undefine the above conditional
     // see https://lists.freepascal.org/pipermail/fpc-announce/2019-July/000612.html
+    {$define STRCNT32} // 32-bit TAnsiRec.RefCnt even on 64-bit CPU
+    // see https://gitlab.com/freepascal.org/fpc/source/-/issues/38018
   {$ifend}
 
   {$ifdef ANDROID}
@@ -340,6 +343,8 @@
     {$endif CPUAARCH64}
   {$else}
     {$define FPC_32}
+    {$define STRCNT32} // 32-bit TAnsiRec.RefCnt on 32-bit CPU
+    {$define DACNT32}  // 32-bit dynarray refcnt on 32-bit CPU
     {$ifdef CPUARM}
       {$define PUREPASCAL} // ARM32
       {$define CPUARM3264}
@@ -423,6 +428,8 @@
 
   {$define DELPHI_OR_FPC_OLDRTTI}
   {$define USE_VTYPE_STATIC} // "and VTYPE_STATIC" test before VarClear()
+  {$define STRCNT32} // always 32-bit TAnsiRec.RefCnt on Delphi
+  {$define DACNT32}  // always 32-bit dynarray refcnt on Delphi
   {$undef FPC_X64MM} // this is a FPC-specific memory manager
 
   {$A+} // force normal alignment

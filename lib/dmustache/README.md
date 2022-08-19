@@ -1,10 +1,10 @@
-`SynMustache` is a Delphi/FPC implementation of the [Mustache template language](http://mustache.github.com/).
+`SynMustache` is a Delphi/FPC implementation of the [Mustache template language](http://mustache.github.io/).
 
 
 Presentation
 ============
 
-  * SynMustache is the first Delphi implementation of Mustache, supporting Delphi 6 up to Delphi 10.3, and FPC/Lazarus;
+  * SynMustache is the first Delphi implementation of Mustache, supporting Delphi 6 up to latest Delphi, and FPC/Lazarus;
   * It has a separate parser and renderer (so you can compile your templates ahead of time);
   * The parser features a shared cache of compiled templates;
   * It [passes all official Mustache specification tests](https://github.com/mustache/spec) - including all weird whitespace process;
@@ -189,9 +189,9 @@ Some Links
 
 We wrote a series of blog articles, about Mustache in general, and `SynMustache` unit in particular:
 
-  * [Mustache Logic-less templates for Delphi - part 1: general presentation of Mustache](http://blog.synopse.info/post/2014/04/28/Mustache-Logic-less-templates-for-Delphi-part-1);
-  * [Mustache Logic-less templates for Delphi - part 2: the Mustache syntax](http://blog.synopse.info/post/2014/04/28/Mustache-Logic-less-templates-for-Delphi-part-2);
-  * [Mustache Logic-less templates for Delphi - part 3: SynMustache implementation](http://blog.synopse.info/post/2014/04/28/Mustache-Logic-less-templates-for-Delphi-part-3).
+  * [Mustache Logic-less templates for Delphi - part 1: general presentation of Mustache](https://blog.synopse.info/?post/2014/04/28/Mustache-Logic-less-templates-for-Delphi-part-1);
+  * [Mustache Logic-less templates for Delphi - part 2: the Mustache syntax](https://blog.synopse.info/?post/2014/04/28/Mustache-Logic-less-templates-for-Delphi-part-2);
+  * [Mustache Logic-less templates for Delphi - part 3: SynMustache implementation](https://blog.synopse.info/?post/2014/04/28/Mustache-Logic-less-templates-for-Delphi-part-3).
 
 You can use also [Synopse forums](http://synopse.info/forum/viewtopic.php?id=1720) to obtain direct support from the developpers, or send your feedback.
 
