@@ -51,7 +51,7 @@ uses
   FireDAC.Phys.SQLiteDef,
   FireDAC.Phys.SQLite, Vcl.DBGrids, FireDAC.Phys.SQLiteWrapper.Stat, Vcl.Buttons,
   JsonDataObjects, System.Actions, Vcl.ActnList, Vcl.Menus, Vcl.StdActns,
-  Vcl.ExtActns;
+  Vcl.ExtActns, System.ImageList, Vcl.ImgList;
 
 type
   TSelectionType = (stAll, stNone, stInverse);
@@ -123,10 +123,6 @@ type
     btnRefreshCatalog: TButton;
     TabNextTab1: TNextTab;
     TabPreviousTab1: TPreviousTab;
-    tsGeneratedCode: TTabSheet;
-    Panel5: TPanel;
-    btnSaveCode: TButton;
-    mmOutput: TMemo;
     actSaveGeneratedCode: TAction;
     actGenerateCode: TAction;
     actRefreshCatalog: TAction;
@@ -143,6 +139,14 @@ type
     FileSaveDialogProject: TFileSaveDialog;
     actNewProject: TAction;
     NewProject1: TMenuItem;
+    ImageListMainMenu: TImageList;
+    ImageListButtons: TImageList;
+    qryMeta: TFDMetaInfoQuery;
+    Panel5: TPanel;
+    Label6: TLabel;
+    EditOutputFileName: TEdit;
+    Button6: TButton;
+    btnSaveAs: TSpeedButton;
     procedure cboConnectionDefsChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -170,7 +174,7 @@ type
     procedure actSaveProjectExecute(Sender: TObject);
     procedure actSaveProjectAsExecute(Sender: TObject);
     procedure actNewProjectExecute(Sender: TObject);
-    procedure actSaveGeneratedCodeUpdate(Sender: TObject);
+    procedure actGenerateCodeUpdate(Sender: TObject);
   private
     fConfig: TJSONObject;
     fCatalog: string;
@@ -180,21 +184,25 @@ type
     FHistoryFileName: string;
     lTypesName: TArray<string>;
     fBookmark: TArray<Byte>;
+    procedure OpenMetaDS(const Catalog, Schema, TableName: String);
+    function GetCurrentColumnAttribute: TFDDataAttributes;
     procedure ResetUI;
     procedure LoadProjectFromFile;
     procedure SaveProject;
     function SelectTables(const FromLetter: AnsiChar; const ToLetter: AnsiChar): Integer;
     procedure EmitHeaderComments;
     function GetClassName(const aTableName: string): string;
-    function GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
-    procedure EmitUnit;
+    function GetOutputFileName(out OutputFileName: String): Boolean;
+//    function GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
+    function GetUniqueFieldNames(const MetaDS: TFDMetaInfoQuery; const FormatAsPascalCase: Boolean): TArray<String>;
+    procedure EmitUnit(const UnitName: String);
     procedure EmitUnitEnd;
-    procedure EmitProperty(const FieldName: String; const FieldDataType: TFieldType);
-    procedure EmitField(const DatabaseFieldName: String; const UniqueFieldName: String; const FieldDataType: TFieldType;
-      const IsPK: Boolean);
+    procedure EmitProperty(const FieldName: String; const ColumnAttribs: TFDDataAttributes; const FieldDataType: TFDDataType; const IsPK: Boolean);
+    procedure EmitField(const DatabaseFieldName: String; const UniqueFieldName: String;
+      const FieldDataType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const IsPK: Boolean);
     procedure EmitClass(const aTableName, aClassName, aNameCase: string);
     procedure EmitClassEnd;
-    function GetDelphiType(FT: TFieldType): string;
+    function GetDelphiType(const FireDACType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const ForceNullable: Boolean = False): string;
     function GetFieldName(const Value: string): string;
     procedure DoSelection(const SelectionType: TSelectionType);
     procedure SetProjectFileName(const Value: String);
@@ -210,6 +218,15 @@ var
 const
   LOG_TAG = 'generator';
   CONFIG_FILE = 'lastConfig.json';
+
+  META_F_TABLE_NAME = 'TABLE_NAME';
+  META_F_COLUMN_NAME = 'COLUMN_NAME';
+  META_F_COLUMN_DATATYPE = 'COLUMN_DATATYPE';
+  META_F_COLUMN_TYPENAME = 'COLUMN_TYPENAME';
+  META_F_COLUMN_ATTRIBUTES = 'COLUMN_ATTRIBUTES';
+  META_F_COLUMN_PRECISION = 'COLUMN_PRECISION';
+  META_F_COLUMN_SCALE = 'COLUMN_SCALE';
+  META_F_COLUMN_LENGTH = 'COLUMN_LENGTH';
 
 implementation
 
@@ -235,16 +252,25 @@ var
   lFieldNamesToInitialize: TArray<string>;
   lKeyFields: TStringList;
   lUniqueFieldNames: TArray<String>;
+  lFieldDataType: TFDDataType;
+  lFieldName: string;
+  lColAttrib: TFDDataAttributes;
+  lOutputFileName: string;
+  lUnitName: string;
 begin
+//https://docwiki.embarcadero.com/RADStudio/Sydney/en/Metadata_Structure_(FireDAC)
+//https://docwiki.embarcadero.com/Libraries/Sydney/en/FireDAC.Stan.Intf.TFDDataAttribute
+  if not GetOutputFileName(lOutputFileName) then Exit;
 //  SaveProject;
   Log.Info('Starting entities generation', LOG_TAG);
+  lUnitName := TPath.GetFileNameWithoutExtension(lOutputFileName);
   fIntfBuff.Clear;
   fImplBuff.Clear;
   fInitializationBuff.Clear;
   lKeyFields := TStringList.Create;
   try
     EmitHeaderComments;
-    EmitUnit;
+    EmitUnit(lUnitName);
     dsTablesMapping.First;
     while not dsTablesMapping.Eof do
     begin
@@ -260,35 +286,44 @@ begin
       lClassName := dsTablesMappingCLASS_NAME.AsString;
       EmitClass(lTableName, lClassName, rgNameCase.Items[rgNameCase.ItemIndex]);
       lKeyFields.Clear;
-      qry.Close;
-      qry.SQL.Text := 'select * from ' + lTableName + ' where 1=0';
-      qry.Open;
-      try
-        FDConnection.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
-      except
-      end;
+//      qry.Close;
+//      qry.SQL.Text := 'select * from ' + lTableName + ' where 1=0';
+//      qry.Open;
+//      try
+      FDConnection.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
+//      except
+//      end;
+
+
+      OpenMetaDS(fCatalog, fSchema, lTableName);
+
       lFieldNamesToInitialize := [];
       lTypesName := [];
       fIntfBuff.WriteString(INDENT + 'private' + sLineBreak);
-      lUniqueFieldNames := GetUniqueFieldNames(qry.Fields, rgFieldNameFormatting.ItemIndex = 1);
-      for F := 0 to qry.Fields.Count - 1 do
+      //lUniqueFieldNames := GetUniqueFieldNames(qry.Fields, rgFieldNameFormatting.ItemIndex = 1);
+      lUniqueFieldNames := GetUniqueFieldNames(qryMeta, rgFieldNameFormatting.ItemIndex = 1);
+
+      I := 0;
+      qryMeta.First;
+      while not qryMeta.Eof do
       begin
+        lColAttrib := GetCurrentColumnAttribute;
+        lFieldDataType := TFDDataType(qryMeta.FieldByName(META_F_COLUMN_DATATYPE).AsInteger);
+        lFieldName := qryMeta.FieldByName(META_F_COLUMN_NAME).AsString;
+        EmitField(
+          lFieldName,
+          lUniqueFieldNames[I],
+          lFieldDataType,
+          lColAttrib,
+          lKeyFields.IndexOf(qryMeta.FieldByName(META_F_COLUMN_NAME).AsString) > -1);
 
-        var
-        lReq := qry.Fields[F].Required;
-        if lReq then
+        if GetDelphiType(lFieldDataType, lColAttrib) = 'TStream' then
         begin
-          lReq := lReq;
-        end;
-        EmitField(qry.Fields[F].FieldName, lUniqueFieldNames[F], qry.Fields[F].DataType,
-          lKeyFields.IndexOf(qry.Fields[F].FieldName) > -1);
-
-        if GetDelphiType(qry.Fields[F].DataType) = 'TStream' then
-        begin
-          lFieldNamesToInitialize := lFieldNamesToInitialize + [GetFieldName(lUniqueFieldNames[F])];
+          lFieldNamesToInitialize := lFieldNamesToInitialize + [GetFieldName(lUniqueFieldNames[I])];
           lTypesName := lTypesName + ['TMemoryStream'];
         end;
-
+        Inc(I);
+        qryMeta.Next;
       end;
 
       fIntfBuff.WriteString(INDENT + 'public' + sLineBreak);
@@ -313,30 +348,48 @@ begin
       fImplBuff.WriteString('  inherited;' + sLineBreak);
       fImplBuff.WriteString('end;' + sLineBreak + sLineBreak);
 
-      for F := 0 to qry.Fields.Count - 1 do
+      qryMeta.First;
+      I := 0;
+      while not qryMeta.Eof do
       begin
-        EmitProperty(lUniqueFieldNames[F], qry.Fields[F].DataType);
+        lFieldDataType := TFDDataType(qryMeta.FieldByName(META_F_COLUMN_DATATYPE).AsInteger);
+        lColAttrib := GetCurrentColumnAttribute;
+        EmitProperty(
+          lUniqueFieldNames[I],
+          lColAttrib,
+          lFieldDataType,
+          lKeyFields.IndexOf(qryMeta.FieldByName(META_F_COLUMN_NAME).AsString) > -1);
+        Inc(I);
+        qryMeta.Next;
       end;
 
       EmitClassEnd;
       dsTablesMapping.Next;
     end;
     EmitUnitEnd;
-    mmOutput.Lines.Text := fIntfBuff.DataString + fImplBuff.DataString + fInitializationBuff.DataString;
+
+//    mmOutput.Lines.Text := fIntfBuff.DataString + fImplBuff.DataString + fInitializationBuff.DataString;
+
+    TFile.WriteAllText(lOutputFileName,
+      fIntfBuff.DataString + fImplBuff.DataString + fInitializationBuff.DataString);
 
   finally
     lKeyFields.Free;
   end;
   // mmOutput.Lines.SaveToFile(
   // mmConnectionParams.Lines.SaveToFile(FHistoryFileName);
-  ShowMessage('Generation Completed');
-  TabNextTab1.Execute;
+  //ShowMessage('Generation Completed');
+//  TabNextTab1.Execute;
+end;
+
+procedure TMainForm.actGenerateCodeUpdate(Sender: TObject);
+begin
+  actGenerateCode.Enabled := not String(EditOutputFileName.Text).IsEmpty;
 end;
 
 procedure TMainForm.actLoadProjectExecute(Sender: TObject);
 begin
   ProjectFileOpenDialog.DefaultExtension := 'entgen';
-
   if ProjectFileOpenDialog.Execute then
   begin
     ProjectFileName := ProjectFileOpenDialog.FileName;
@@ -357,6 +410,7 @@ begin
   try
     FDConnection.Open;
     lstCatalog.Items.Clear;
+    lstSchema.Items.Clear;
     FDConnection.GetCatalogNames('', lstCatalog.Items);
   except
     on E: Exception do
@@ -411,13 +465,9 @@ begin
   FileSaveDialog1.FileName := 'EntitiesU.pas';
   if FileSaveDialog1.Execute then
   begin
-    mmOutput.Lines.SaveToFile(FileSaveDialog1.FileName);
+    EditOutputFileName.Text := FileSaveDialog1.FileName;
+    fConfig.S[EditOutputFileName.Name] := EditOutputFileName.Text;
   end;
-end;
-
-procedure TMainForm.actSaveGeneratedCodeUpdate(Sender: TObject);
-begin
-  actSaveGeneratedCode.Enabled := mmOutput.Lines.Count > 0;
 end;
 
 procedure TMainForm.actSaveProjectAsExecute(Sender: TObject);
@@ -557,31 +607,46 @@ begin
 end;
 
 procedure TMainForm.EmitField(const DatabaseFieldName: String; const UniqueFieldName: String;
-  const FieldDataType: TFieldType; const IsPK: Boolean);
+  const FieldDataType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const IsPK: Boolean);
 var
-  lAttrib, lField: string;
+  lRTTIAttrib, lField: string;
+  lColType: string;
 begin
   if IsPK then
   begin
-    lAttrib := Format('[MVCTableField(''%s'', [foPrimaryKey, foAutoGenerated])]', [DatabaseFieldName]);
+    if caAutoInc in ColumnAttribs then
+      lRTTIAttrib := Format('[MVCTableField(''%s'', [foPrimaryKey, foAutoGenerated])]', [DatabaseFieldName])
+    else
+      lRTTIAttrib := Format('[MVCTableField(''%s'', [foPrimaryKey])]', [DatabaseFieldName])
   end
   else
   begin
-    lAttrib := Format('[MVCTableField(''%s'')]', [DatabaseFieldName]);
+    lColType := qryMeta.FieldByName(META_F_COLUMN_TYPENAME).AsString.ToLower;
+    if lColType.Contains('json') or lColType.Contains('xml') then
+      lRTTIAttrib := Format('[MVCTableField(''%s'', [], ''%s'')]', [DatabaseFieldName, lColType])
+    else
+      lRTTIAttrib := Format('[MVCTableField(''%s'')]', [DatabaseFieldName])
   end;
-  lField := GetFieldName(UniqueFieldName) + ': ' + GetDelphiType(FieldDataType) + ';' + sLineBreak;
 
-  if GetDelphiType(FieldDataType).ToUpper.Contains('UNSUPPORTED TYPE') then
+  if IsPK and (caAutoInc in ColumnAttribs) then
   begin
-    lAttrib := '//' + lAttrib;
+    lField := GetFieldName(UniqueFieldName) + ': ' + GetDelphiType(FieldDataType, ColumnAttribs, True) + ';' + sLineBreak;
+  end
+  else
+    lField := GetFieldName(UniqueFieldName) + ': ' + GetDelphiType(FieldDataType, ColumnAttribs) + ';' + sLineBreak;
+
+
+  if GetDelphiType(FieldDataType, ColumnAttribs).ToUpper.Contains('UNSUPPORTED TYPE') then
+  begin
+    lRTTIAttrib := '//' + lRTTIAttrib;
     lField := '//' + lField;
   end
   else
   begin
     lField := '  ' + lField;
-    lAttrib := '  ' + lAttrib;
+    lRTTIAttrib := '  ' + lRTTIAttrib;
   end;
-  fIntfBuff.WriteString(INDENT + lAttrib + sLineBreak + INDENT + lField);
+  fIntfBuff.WriteString(INDENT + lRTTIAttrib + sLineBreak + INDENT + lField);
 end;
 
 procedure TMainForm.EmitHeaderComments;
@@ -614,18 +679,26 @@ begin
   fIntfBuff.WriteString(sLineBreak);
 end;
 
-procedure TMainForm.EmitProperty(const FieldName: String; const FieldDataType: TFieldType);
+procedure TMainForm.EmitProperty(
+  const FieldName: String; const ColumnAttribs: TFDDataAttributes;
+  const FieldDataType: TFDDataType; const IsPK: Boolean);
 var
   lProp: string;
 begin
-  // if GetFieldName(F.FieldName).Substring(1).ToLower <> F.FieldName then
-  // begin
-  // lProp := Format('[MVCNameAs(''%s'')]', [F.FieldName]) + sLineBreak + INDENT + INDENT;
-  // end;
-  lProp := lProp + 'property ' + GetFieldName(FieldName).Substring(1) { remove f } + ': ' + GetDelphiType(FieldDataType)
-    + ' read ' + GetFieldName(FieldName) + ' write ' + GetFieldName(FieldName) + ';' + sLineBreak;
+  if IsPK then
+  begin
+    lProp := lProp + 'property ' + GetFieldName(FieldName).Substring(1) { remove f } + ': ' +
+      GetDelphiType(FieldDataType, ColumnAttribs, [caAllowNull,caAutoInc] * ColumnAttribs <> [])
+      + ' read ' + GetFieldName(FieldName) + ' write ' + GetFieldName(FieldName) + ';' + sLineBreak;
+  end
+  else
+  begin
+    lProp := lProp + 'property ' + GetFieldName(FieldName).Substring(1) { remove f } + ': ' +
+      GetDelphiType(FieldDataType, ColumnAttribs)
+      + ' read ' + GetFieldName(FieldName) + ' write ' + GetFieldName(FieldName) + ';' + sLineBreak;
+  end;
 
-  if GetDelphiType(FieldDataType).ToUpper.Contains('UNSUPPORTED TYPE') then
+  if GetDelphiType(FieldDataType, ColumnAttribs).ToUpper.Contains('UNSUPPORTED TYPE') then
   begin
     lProp := '  //' + lProp
   end
@@ -636,14 +709,15 @@ begin
   fIntfBuff.WriteString(INDENT + lProp)
 end;
 
-procedure TMainForm.EmitUnit;
+procedure TMainForm.EmitUnit(const UnitName: String);
 begin
-  fIntfBuff.WriteString('unit EntitiesU;' + sLineBreak);
+  fIntfBuff.WriteString('unit ' + UnitName + ';' + sLineBreak);
   fIntfBuff.WriteString('' + sLineBreak);
   fIntfBuff.WriteString('interface' + sLineBreak);
   fIntfBuff.WriteString('' + sLineBreak);
   fIntfBuff.WriteString('uses' + sLineBreak);
   fIntfBuff.WriteString('  MVCFramework.Serializer.Commons,' + sLineBreak);
+  fIntfBuff.WriteString('  MVCFramework.Nullables,' + sLineBreak);
   fIntfBuff.WriteString('  MVCFramework.ActiveRecord,' + sLineBreak);
   fIntfBuff.WriteString('  System.Classes;' + sLineBreak);
   fIntfBuff.WriteString('' + sLineBreak);
@@ -712,46 +786,81 @@ begin
   end;
 end;
 
-function TMainForm.GetDelphiType(FT: TFieldType): string;
+function TMainForm.GetCurrentColumnAttribute: TFDDataAttributes;
+var
+  i: Integer;
 begin
-  case FT of
-    ftString, ftMemo, ftFmtMemo, ftWideMemo:
+{
+TFDDataAttribute = (caSearchable, caAllowNull, caFixedLen,
+caBlobData, caReadOnly, caAutoInc, caROWID, caDefault,
+caRowVersion, caInternal, caCalculated, caVolatile, caUnnamed,
+caVirtual, caBase, caExpr);
+}
+  i := qryMeta.FieldByName('COLUMN_ATTRIBUTES').AsInteger;
+  Result := TFDDataAttributes(Pointer(@i)^);
+end;
+
+function TMainForm.GetDelphiType(const FireDACType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const ForceNullable: Boolean): string;
+begin
+  case FireDACType of
+    dtWideString, dtWideMemo, dtMemo:
       Result := 'String';
-    ftSmallint, ftInteger, ftWord, ftLongWord, ftShortint:
-      Result := 'Integer';
-    ftByte:
+    dtByte:
       Result := 'Byte';
-    ftLargeint:
+    dtInt16:
+      Result := 'Int16';
+    dtUInt16:
+      Result := 'UInt16';
+    dtInt32:
+      Result := 'Int32';
+    dtUInt32:
+      Result := 'UInt32';
+    dtInt64:
       Result := 'Int64';
-    ftBoolean:
+    dtUInt64:
+      Result := 'UInt64';
+    dtBoolean:
       Result := 'Boolean';
-    ftFloat, TFieldType.ftSingle, TFieldType.ftExtended:
+    dtDouble,  dtExtended:
       Result := 'Double';
-    ftCurrency, ftBCD, ftFMTBcd:
+    dtSingle:
+      Result := 'Single';
+    dtCurrency, dtBCD, dtFmtBCD:
       Result := 'Currency';
-    ftDate:
+    dtDate:
       Result := 'TDate';
-    ftTime:
+    dtTime:
       Result := 'TTime';
-    ftDateTime:
+    dtDateTime:
       Result := 'TDateTime';
-    ftTimeStamp:
-      Result := 'TDateTime {timestamp}';
-    ftAutoInc:
-      Result := 'Integer {autoincrement}';
-    ftBlob, { ftMemo, } ftGraphic, { ftFmtMemo, ftWideMemo, } ftStream:
+    dtTimeIntervalFull:
+      Result := 'TDateTime {dtTimeIntervalFull}';
+    dtDateTimeStamp:
+      Result := 'TDateTime {dtDateTimeStamp}';
+
+//    dtAutoInc:
+//      Result := 'Integer {autoincrement}';
+    dtBlob: //, { ftMemo, } dtGraphic, { ftFmtMemo, ftWideMemo, } dtStream:
       Result := 'TStream';
-    ftFixedChar:
-      Result := 'String {fixedchar}';
-    ftWideString:
-      Result := 'String';
-    ftGuid:
+//    dtFixedChar:
+//      Result := 'String {fixedchar}';
+//    ftWideString:
+//      Result := 'String';
+    dtXML:
+      Result := 'String {XML}';
+    dtGuid:
       Result := 'TGuid';
-    ftDBaseOle:
-      Result := 'String {ftDBaseOle}';
+//    dtDBaseOle:
+//      Result := 'String {ftDBaseOle}';
   else
-    Result := '<UNSUPPORTED TYPE: ' + GetEnumName(TypeInfo(TFieldType), Ord(FT)) + '>';
+    Result := '<UNSUPPORTED TYPE: ' + GetEnumName(TypeInfo(TFDDataType), Ord(FireDACType)) + '>';
   end;
+
+  if ForceNullable or ((Result <> 'TStream') and  (caAllowNull in ColumnAttribs)) then
+  begin
+    Result := 'Nullable' + Result;
+  end;
+
 end;
 
 function TMainForm.GetFieldName(const Value: string): string;
@@ -766,37 +875,112 @@ begin
   Result := 'f' + Value;
 end;
 
+function TMainForm.GetOutputFileName(out OutputFileName: String): Boolean;
+var
+  lFName: String;
+begin
+  Result := False;
+  lFName := EditOutputFileName.Text;
+  if lFName.IsEmpty then
+  begin
+    FileSaveDialog1.FileName := 'EntitiesU.pas';
+    if FileSaveDialog1.Execute then
+    begin
+      EditOutputFileName.Text := FileSaveDialog1.FileName;
+      EditOutputFileName.Update;
+      lFName := EditOutputFileName.Text;
+    end;
+  end;
+  OutputFileName := lFName;
+  Result := True;
+end;
+
 function TMainForm.GetProjectFileExists: Boolean;
 begin
   Result := TFile.Exists(ProjectFileName);
 end;
 
-function TMainForm.GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
+//function TMainForm.GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
+//var
+//  I: Integer;
+//  lList: TStringList;
+//  lF: string;
+//  lFTemp: string;
+//  lCount: Integer;
+//begin
+//  SetLength(Result, Fields.Count);
+//  lList := TStringList.Create;
+//  try
+//    lList.Sorted := True;
+//    for I := 0 to Fields.Count - 1 do
+//    begin
+//      lCount := 0;
+//      if FormatAsPascalCase then
+//      begin
+//        lF := CamelCase(Fields[I].FieldName, True);
+//      end
+//      else
+//      begin
+//        lF := Fields[I].FieldName;
+//      end;
+//      if lList.IndexOf(lF) > -1 then
+//      begin
+//        lF := Fields[I].FieldName;
+//      end;
+//      lFTemp := lF;
+//
+//      if IsReservedKeyword(lFTemp) then
+//      begin
+//        lFTemp := '_' + lFTemp;
+//      end;
+//
+//      while (lList.IndexOf(lFTemp) > -1) do
+//      begin
+//        Inc(lCount);
+//        lFTemp := lF + '__' + IntToStr(lCount);
+//      end;
+//      lF := lFTemp;
+//      lList.Add(lF);
+//      Result[I] := lF;
+//    end;
+//  finally
+//    lList.Free;
+//  end;
+//end;
+
+function TMainForm.GetUniqueFieldNames(const MetaDS: TFDMetaInfoQuery;
+  const FormatAsPascalCase: Boolean): TArray<String>;
 var
   I: Integer;
   lList: TStringList;
   lF: string;
   lFTemp: string;
   lCount: Integer;
+  lFieldName: String;
 begin
-  SetLength(Result, Fields.Count);
+//  MetaDS.FetchAll;
+  MetaDS.First;
+  SetLength(Result, MetaDS.RecordCount);
   lList := TStringList.Create;
   try
     lList.Sorted := True;
-    for I := 0 to Fields.Count - 1 do
+    I := 0;
+    while not MetaDS.Eof do
+    //for I := 0 to Fields.Count - 1 do
     begin
+      lFieldName := MetaDS.FieldByName(META_F_COLUMN_NAME).AsString;
       lCount := 0;
       if FormatAsPascalCase then
       begin
-        lF := CamelCase(Fields[I].FieldName, True);
+        lF := CamelCase(lFieldName, True);
       end
       else
       begin
-        lF := Fields[I].FieldName;
+        lF := lFieldName;
       end;
       if lList.IndexOf(lF) > -1 then
       begin
-        lF := Fields[I].FieldName;
+        lF := lFieldName;
       end;
       lFTemp := lF;
 
@@ -813,6 +997,8 @@ begin
       lF := lFTemp;
       lList.Add(lF);
       Result[I] := lF;
+      Inc(I);
+      MetaDS.Next;
     end;
   finally
     lList.Free;
@@ -875,6 +1061,8 @@ begin
     dsTablesMapping.Next;
   end;
   dsTablesMapping.First;
+
+  EditOutputFileName.Text := fConfig.S[EditOutputFileName.Name];
 end;
 
 procedure TMainForm.lstCatalogClick(Sender: TObject);
@@ -891,6 +1079,18 @@ begin
   lstCatalog.Clear;
 end;
 
+procedure TMainForm.OpenMetaDS(const Catalog, Schema, TableName: String);
+begin
+  qryMeta.Close;
+  qryMeta.MetaInfoKind := mkTableFields;
+  qryMeta.ObjectName := TableName;
+  qryMeta.SchemaName := Schema;
+  qryMeta.CatalogName := Catalog;
+  qryMeta.Open;
+  qryMeta.FetchAll;
+  qryMeta.First;
+end;
+
 procedure TMainForm.ResetUI;
 begin
   cboConnectionDefs.ItemIndex := -1;
@@ -901,7 +1101,6 @@ begin
   rgFieldNameFormatting.ItemIndex := 0;
   chkGenerateMapping.Checked := False;
   dsTablesMapping.EmptyDataSet;
-  mmOutput.Clear;
 end;
 
 procedure TMainForm.SaveProject;
@@ -923,6 +1122,7 @@ begin
   fConfig.I[rgNameCase.Name] := rgNameCase.ItemIndex;
   fConfig.I[rgFieldNameFormatting.Name] := rgFieldNameFormatting.ItemIndex;
   fConfig.B[chkGenerateMapping.Name] := chkGenerateMapping.Checked;
+  fConfig.S[EditOutputFileName.Name] := EditOutputFileName.Text;
 
   fConfig.Remove('tables');
   dsTablesMapping.First;
@@ -997,11 +1197,6 @@ begin
   begin
     actRefreshTableList.Execute;
   end;
-  if pcMain.ActivePage = tsGeneratedCode then
-  begin
-    actGenerateCode.Execute;
-  end;
-
 end;
 
 procedure TMainForm.TabNextTab1Update(Sender: TObject);
