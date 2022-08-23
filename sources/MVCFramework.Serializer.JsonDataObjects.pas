@@ -1441,14 +1441,7 @@ procedure TMVCJsonDataObjectsSerializer.JSONObjectPropertyToTValue(AJSONObject: 
 var
   ChildList: IMVCList;
   ChildListOfAtt: MVCListOfAttribute;
-  LEnumAsAttr: MVCEnumSerializationAttribute;
-  LEnumMappedValues: TList<string>;
-  LEnumSerType: TMVCEnumSerializationType;
   LClazz: TClass;
-  LMappedValueIndex: Integer;
-  lOutInteger: Integer;
-  lInt: Integer;
-  lOutInteger64: Int64;
   lValueTypeInfo: PTypeInfo;
 begin
   case AJSONObject[APropertyName].Typ of
@@ -1463,84 +1456,6 @@ begin
           'property ' + APropertyName,
           ACustomAttributes,
           AValue);
-//        lValueTypeInfo := AValue.TypeInfo;
-//        if (lValueTypeInfo = System.TypeInfo(TDate)) then
-//          AValue := TValue.From<TDate>(ISODateToDate(AJSONObject[APropertyName].Value))
-//
-//        else if (lValueTypeInfo = System.TypeInfo(TDateTime)) then
-//          AValue := TValue.From<TDateTime>(ISOTimeStampToDateTime(AJSONObject[APropertyName].Value))
-//
-//        else if (lValueTypeInfo = System.TypeInfo(TTime)) then
-//          AValue := TValue.From<TTime>(ISOTimeToTime(AJSONObject[APropertyName].Value))
-//        else if (AValue.Kind = tkRecord) and (lValueTypeInfo <> TypeInfo(TValue)) then { nullables }
-//        begin
-//          if lValueTypeInfo = TypeInfo(NullableString) then
-//          begin
-//            AValue := TValue.From<NullableString>(NullableString(AJSONObject[APropertyName].Value))
-//          end
-//          else if lValueTypeInfo = TypeInfo(NullableTDate) then
-//          begin
-//            AValue := TValue.From<NullableTDate>(NullableTDate(ISODateToDate(AJSONObject[APropertyName].Value)))
-//          end
-//          else if lValueTypeInfo = TypeInfo(NullableTDateTime) then
-//          begin
-//            AValue := TValue.From<NullableTDateTime>
-//              (NullableTDateTime(ISOTimeStampToDateTime(AJSONObject[APropertyName].Value)))
-//          end
-//          else if lValueTypeInfo = TypeInfo(NullableTTime) then
-//          begin
-//            AValue := TValue.From<NullableTTime>(NullableTTime(ISOTimeToTime(AJSONObject[APropertyName].Value)))
-//          end
-//          else if lValueTypeInfo = TypeInfo(NullableTGUID) then
-//          begin
-//            AValue := TValue.From<NullableTGUID>(TMVCGuidHelper.StringToGUIDEx(AJSONObject[APropertyName].Value));
-//          end
-//          else
-//            raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from string', [APropertyName]);
-//        end
-//        else if (AValue.Kind = tkEnumeration) then
-//        begin
-//          LEnumSerType := estEnumName;
-//          LEnumMappedValues := nil;
-//          if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(ACustomAttributes, LEnumAsAttr) then
-//          begin
-//            LEnumSerType := LEnumAsAttr.SerializationType;
-//            LEnumMappedValues := LEnumAsAttr.MappedValues;
-//          end;
-//
-//          if LEnumSerType = estEnumName then
-//          begin
-//            TValue.Make(GetEnumValue(AValue.TypeInfo, AJSONObject[APropertyName].Value), AValue.TypeInfo, AValue)
-//          end
-//          else
-//          begin
-//            LMappedValueIndex := LEnumMappedValues.IndexOf(AJSONObject[APropertyName].Value);
-//            if LMappedValueIndex < 0 then
-//              raise EMVCSerializationException.CreateFmt('Cannot deserialize property "%s" from mapped values',
-//                [APropertyName]);
-//
-//            TValue.Make(GetEnumValue(AValue.TypeInfo, GetEnumName(AValue.TypeInfo, LMappedValueIndex)),
-//              AValue.TypeInfo, AValue)
-//          end;
-//        end
-//        else if (AValue.Kind = tkInteger) and (TryStrToInt(AJSONObject[APropertyName].Value, lOutInteger)) then
-//        begin
-//          AValue := lOutInteger;
-//        end
-//        else if (AValue.Kind = tkInt64) and (TryStrToInt64(AJSONObject[APropertyName].Value, lOutInteger64)) then
-//        begin
-//          AValue := lOutInteger64;
-//        end
-//        else if lValueTypeInfo.Kind = tkSet then
-//        begin
-//          lInt := StringToSet(AValue.TypeInfo, StringReplace(AJSONObject[APropertyName].Value, ' ', '',
-//            [rfReplaceAll]));
-//          TValue.Make(lInt, AValue.TypeInfo, AValue);
-//        end
-//        else
-//        begin
-//          AValue := TValue.From<string>(AJSONObject[APropertyName].Value);
-//        end;
       end;
 
     jdtInt:
@@ -2933,10 +2848,10 @@ procedure TMVCJsonDataObjectsSerializer.ParseStringAsTValueUsingMetadata(
   var AValue: TValue);
 var
   lValueTypeInfo: PTypeInfo;
-  LEnumSerType: TMVCEnumSerializationType;
-  LEnumAsAttr: MVCEnumSerializationAttribute;
-  LEnumMappedValues: TList<string>;
-  LMappedValueIndex: Integer;
+  lEnumSerType: TMVCEnumSerializationType;
+  lEnumAsAttr: MVCEnumSerializationAttribute;
+  lEnumMappedValues: TList<string>;
+  lMappedValueIndex: Integer;
   lOutInteger: Integer;
   lOutInteger64: Int64;
   lInt: Integer;
@@ -2980,15 +2895,15 @@ begin
   end
   else if (lValueTypeInfo.Kind = tkEnumeration) then
   begin
-    LEnumSerType := estEnumName;
-    LEnumMappedValues := nil;
-    if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(AAttributes, LEnumAsAttr) then
+    lEnumSerType := estEnumName;
+    lEnumMappedValues := nil;
+    if TMVCSerializerHelper.AttributeExists<MVCEnumSerializationAttribute>(AAttributes, lEnumAsAttr) then
     begin
-      LEnumSerType := LEnumAsAttr.SerializationType;
-      LEnumMappedValues := LEnumAsAttr.MappedValues;
+      lEnumSerType := lEnumAsAttr.SerializationType;
+      lEnumMappedValues := lEnumAsAttr.MappedValues;
     end;
 
-    if LEnumSerType = estEnumName then
+    if lEnumSerType = estEnumName then
     begin
       lOutInteger := GetEnumValue(lValueTypeInfo, AStringValue);
       if lOutInteger = -1 then
@@ -3000,12 +2915,12 @@ begin
     end
     else
     begin
-      LMappedValueIndex := LEnumMappedValues.IndexOf(AStringValue);
-      if LMappedValueIndex < 0 then
+      lMappedValueIndex := lEnumMappedValues.IndexOf(AStringValue);
+      if lMappedValueIndex < 0 then
         raise EMVCSerializationException.CreateFmt('Cannot deserialize "%s" from mapped values',
           [ExceptionHintString]);
 
-      TValue.Make(GetEnumValue(lValueTypeInfo, GetEnumName(lValueTypeInfo, LMappedValueIndex)),
+      TValue.Make(GetEnumValue(lValueTypeInfo, GetEnumName(lValueTypeInfo, lMappedValueIndex)),
         lValueTypeInfo, AValue)
     end;
   end
