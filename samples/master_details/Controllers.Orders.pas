@@ -6,6 +6,7 @@ uses
   mvcframework,
   mvcframework.Commons,
   mvcframework.Serializer.Commons,
+  mvcframework.DataSet.Utils,
   System.Generics.Collections,
   Controllers.Base, BusinessObjects;
 
@@ -23,9 +24,9 @@ type
     [MVCDoc('Returns the list of Orders')]
     [MVCPath('/searches')]
     [MVCHTTPMethod([httpGET])]
-    procedure GetOrdersByDescription(const [MVCFromQueryString('q', '')] Search: String);
+    procedure GetOrdersByDescription(const [MVCFromQueryString('totalGrOrEq', '0')] Search: Single);
 
-    [MVCDoc('Returns the Order with the specified id')]
+    [MVCDoc('Returns the dataset metadata (Delphi Specific)')]
     [MVCPath('/meta')]
     [MVCHTTPMethod([httpGET])]
     procedure GetOrderMeta;
@@ -40,12 +41,18 @@ type
     [MVCHTTPMethod([httpDelete])]
     procedure DeleteOrderByID(id: Integer);
 
-    [MVCDoc('Updates the Order with the specified id and return "200: OK"')]
+    [MVCDoc('Updates the Order and return "200: OK" - overwrites childs by default')]
     [MVCPath('/($id)')]
     [MVCHTTPMethod([httpPUT])]
-    procedure UpdateOrderByID(const [MVCFromBody] Order: TOrder; const id: Integer);
+    procedure UpdateOrderByID(const id: Integer);
 
-    [MVCDoc('Creates a new Order and returns "201: Created"')]
+    [MVCDoc('Updates the Order and return "200: OK" - overwrites childs by default')]
+    [MVCPath('/($id)/details')]
+    [MVCHTTPMethod([httpPATCH])]
+    procedure MergeOrderDetailsByOrderID(const id: Integer; const [MVCFromBody] OrderDetails: TObjectList<TOrderDetail>);
+
+
+    [MVCDoc('Creates a new Order and returns "201: Created - creates childs"')]
     [MVCPath]
     [MVCHTTPMethod([httpPOST])]
     procedure CreateOrder(const [MVCFromBody] Order: TOrder);
@@ -63,7 +70,7 @@ implementation
 uses
   Commons,
   mvcframework.Serializer.Intf,
-  System.SysUtils, mvcframework.ActiveRecord;
+  System.SysUtils, mvcframework.ActiveRecord, Data.DB, System.TypInfo;
 
 procedure TOrdersController.CreateOrder(const [MVCFromBody] Order: TOrder);
 begin
@@ -110,51 +117,84 @@ procedure TOrdersController.GetOrders;
 begin
   try
     Render(ObjectDict().Add('data', TMVCActiveRecord.All<TOrder>));
-    // Render(ObjectDict().Add('data', GetOrdersService.GetByID(id)));
   except
     on E: EServiceException do
     begin
       raise EMVCException.Create(E.Message, '', 0, 404);
     end
   end;
-
 end;
 
-procedure TOrdersController.GetOrdersByDescription(const Search: String);
-  lDict: IMVCObjectDictionary;
+procedure TOrdersController.GetOrdersByDescription(const Search: Single);
+var
+  lFS: TFormatSettings;
+  lRQLCriteria: string;
 begin
-//  Render(
-//    ObjectDict()
-//      .Add('data', TMVCActiveRecord.SelectRQL<TOrder>(Format('contains(description,"%s")',[Search]),100))
-//      );
-  // try
-  // if Search = '' then
-  // begin
-  // lDict := ObjectDict().Add('data', GetOrdersService.GetAll);
-  // end
-  // else
-  // begin
-  // lDict := ObjectDict().Add('data', GetOrdersService.GetOrders(Search));
-  // end;
-  // Render(lDict);
-  // except
-  // on E: EServiceException do
-  // begin
-  // raise EMVCException.Create(E.Message, '', 0, 404);
-  // end
-  // else
-  // raise;
-  // end;
+  lFS.DecimalSeparator := '.';
+  lRQLCriteria := Format('ge(total,"%0.2f")', [Search], lFS);
+  Render(
+    ObjectDict()
+      .Add('data',
+        TMVCActiveRecord.SelectRQL<TOrder>(lRQLCriteria, 100))
+      .Add('criteria', StrDict(['rql'],[lRQLCriteria]))
+      );
 end;
 
-procedure TOrdersController.UpdateOrderByID(const Order: TOrder; const id: Integer);
+procedure TOrdersController.MergeOrderDetailsByOrderID(const id: Integer;
+  const OrderDetails: TObjectList<TOrderDetail>);
 var
   lCurrentOrder: TOrder;
 begin
-  Order.id := id;
-  lCurrentOrder := TMVCActiveRecord.GetByPK<TOrder>(id);
+  ResponseStream.AppendLine('---');
+  lCurrentOrder := TMVCActiveRecord.GetByPk<TOrder>(id);
   try
-    Order.Update();
+    TMVCActiveRecord
+      .Merge<TOrderDetail>(lCurrentOrder.OrderItems, OrderDetails).Apply(
+        procedure(
+          const OrderDetail: TOrderDetail;
+          const EntityAction: TMVCEntityAction;
+          var Handled: Boolean)
+          var
+            lObj: TOrderDetail;
+          begin
+            case EntityAction of
+              eaDelete:
+                begin
+                  lObj := lCurrentOrder.OrderItems.Extract(OrderDetail);
+                  try
+                    lObj.Delete;
+                  finally
+                    lObj.Free;
+                  end;
+                end;
+              eaCreate:
+                begin
+                  lCurrentOrder.OrderItems.Add(OrderDetail);
+                end;
+              eaUpdate:
+                begin
+                  lObj := lCurrentOrder.GetOrderDetailByID(OrderDetail.ID.Value);
+                  lObj.Assign(OrderDetail);
+                end;
+            end;
+            Handled := True;
+            ResponseStream.AppendLine(GetEnumName(TypeInfo(TMVCEntityAction), Ord(EntityAction)));
+          end);
+    lCurrentOrder.Update();
+  finally
+    lCurrentOrder.Free;
+  end;
+  RenderResponseStream;
+end;
+
+procedure TOrdersController.UpdateOrderByID(const id: Integer);
+var
+  lCurrentOrder: TOrder;
+begin
+  lCurrentOrder := TMVCActiveRecord.GetByPk<TOrder>(id);
+  try
+    Context.Request.BodyFor<TOrder>(lCurrentOrder);
+    lCurrentOrder.Update();
   finally
     lCurrentOrder.Free;
   end;
@@ -164,8 +204,7 @@ end;
 procedure TOrdersController.GetOrderByID(id: Integer);
 begin
   try
-    Render(TMVCActiveRecord.GetByPK<TOrder>(id));
-    // Render(ObjectDict().Add('data', GetOrdersService.GetByID(id)));
+    Render(ObjectDict().Add('data', TMVCActiveRecord.GetByPk<TOrder>(id)));
   except
     on E: EServiceException do
     begin
@@ -175,16 +214,14 @@ begin
 end;
 
 procedure TOrdersController.GetOrderMeta;
+var
+  lDS: TDataSet;
 begin
+  lDS := TMVCActiveRecord.SelectDataSet('select * from orders where 1=0', [], True);
   try
-    // Render(ObjectDict().Add('data', GetOrdersService.GetMeta));
-  except
-    on E: EServiceException do
-    begin
-      raise EMVCException.Create(E.Message, '', 0, 404);
-    end
-    else
-      raise;
+    Render(ObjectDict().Add('metadata', lDS.MetadataAsJSONObject()));
+  finally
+    lDS.Free;
   end;
 end;
 

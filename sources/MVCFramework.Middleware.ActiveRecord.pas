@@ -108,13 +108,16 @@ begin
     end;
     if TInterlocked.CompareExchange(gCONNECTION_DEF_FILE_LOADED, 1, 0) = 0 then
     begin
-      FDManager.ConnectionDefFileName := fConnectionDefFileName;
-      FDManager.ConnectionDefFileAutoLoad := False;
-      FDManager.LoadConnectionDefFile;
-      if not FDManager.IsConnectionDef(fConnectionDefName) then
+      if not fConnectionDefFileName.IsEmpty then
       begin
-        raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
-          [fConnectionDefName, FDManager.ActualConnectionDefFileName]);
+        FDManager.ConnectionDefFileAutoLoad := False;
+        FDManager.ConnectionDefFileName := fConnectionDefFileName;
+        FDManager.LoadConnectionDefFile;
+        if not FDManager.IsConnectionDef(fConnectionDefName) then
+        begin
+          raise EMVCConfigException.CreateFmt('ConnectionDefName "%s" not found in config file "%s"',
+            [fConnectionDefName, FDManager.ActualConnectionDefFileName]);
+        end;
       end;
     end;
     fConnectionLoaded := True;

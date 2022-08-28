@@ -51,7 +51,10 @@ uses
   FireDAC.Phys.SQLiteDef,
   FireDAC.Phys.SQLite, Vcl.DBGrids, FireDAC.Phys.SQLiteWrapper.Stat, Vcl.Buttons,
   JsonDataObjects, System.Actions, Vcl.ActnList, Vcl.Menus, Vcl.StdActns,
-  Vcl.ExtActns, System.ImageList, Vcl.ImgList;
+  Vcl.ExtActns, System.ImageList, Vcl.ImgList,
+  LoggerPro.FileAppender,
+  LoggerPro.VCLListBoxAppender,
+  LoggerPro;
 
 type
   TSelectionType = (stAll, stNone, stInverse);
@@ -83,7 +86,6 @@ type
     Panel6: TPanel;
     GroupBox1: TGroupBox;
     lstSchema: TListBox;
-    lstCatalog: TListBox;
     Panel3: TPanel;
     Panel4: TPanel;
     btnGenEntities: TButton;
@@ -94,12 +96,6 @@ type
     TabSheet1: TTabSheet;
     DBGrid1: TDBGrid;
     Panel7: TPanel;
-    btnUZ: TButton;
-    Button1: TButton;
-    Button2: TButton;
-    Button3: TButton;
-    Button4: TButton;
-    Button5: TButton;
     Panel8: TPanel;
     btnPrev: TButton;
     btnNext: TButton;
@@ -119,13 +115,10 @@ type
     Panel1: TPanel;
     Label1: TLabel;
     cboConnectionDefs: TComboBox;
-    Panel9: TPanel;
-    btnRefreshCatalog: TButton;
     TabNextTab1: TNextTab;
     TabPreviousTab1: TPreviousTab;
     actSaveGeneratedCode: TAction;
     actGenerateCode: TAction;
-    actRefreshCatalog: TAction;
     Panel10: TPanel;
     btnGetTables: TButton;
     SpeedButton1: TSpeedButton;
@@ -133,20 +126,27 @@ type
     SpeedButton3: TSpeedButton;
     actRefreshTableList: TAction;
     Label3: TLabel;
-    Panel11: TPanel;
-    Label4: TLabel;
-    Label5: TLabel;
     FileSaveDialogProject: TFileSaveDialog;
     actNewProject: TAction;
     NewProject1: TMenuItem;
     ImageListMainMenu: TImageList;
     ImageListButtons: TImageList;
     qryMeta: TFDMetaInfoQuery;
+    Entities1: TMenuItem;
+    RefreshCatalog1: TMenuItem;
+    RefreshTableList1: TMenuItem;
+    GenerateCode1: TMenuItem;
+    SaveGeneratedCode1: TMenuItem;
+    Panel12: TPanel;
+    lbLog: TListBox;
+    Splitter1: TSplitter;
+    EditTableNameFilter: TEdit;
+    Label4: TLabel;
     Panel5: TPanel;
     Label6: TLabel;
+    btnSaveAs: TSpeedButton;
     EditOutputFileName: TEdit;
     Button6: TButton;
-    btnSaveAs: TSpeedButton;
     procedure cboConnectionDefsChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -166,8 +166,6 @@ type
     procedure actLoadProjectExecute(Sender: TObject);
     procedure actSaveGeneratedCodeExecute(Sender: TObject);
     procedure actGenerateCodeExecute(Sender: TObject);
-    procedure lstCatalogClick(Sender: TObject);
-    procedure actRefreshCatalogExecute(Sender: TObject);
     procedure TabNextTab1AfterTabChange(Sender: TObject);
     procedure actRefreshTableListExecute(Sender: TObject);
     procedure TabNextTab1Update(Sender: TObject);
@@ -175,6 +173,8 @@ type
     procedure actSaveProjectAsExecute(Sender: TObject);
     procedure actNewProjectExecute(Sender: TObject);
     procedure actGenerateCodeUpdate(Sender: TObject);
+    procedure actRefreshTableListUpdate(Sender: TObject);
+    procedure EditTableNameFilterChange(Sender: TObject);
   private
     fConfig: TJSONObject;
     fCatalog: string;
@@ -184,6 +184,7 @@ type
     FHistoryFileName: string;
     lTypesName: TArray<string>;
     fBookmark: TArray<Byte>;
+    Log: ILogWriter;
     procedure OpenMetaDS(const Catalog, Schema, TableName: String);
     function GetCurrentColumnAttribute: TFDDataAttributes;
     procedure ResetUI;
@@ -257,6 +258,7 @@ var
   lColAttrib: TFDDataAttributes;
   lOutputFileName: string;
   lUnitName: string;
+  lGeneratedEntities: Integer;
 begin
 //https://docwiki.embarcadero.com/RADStudio/Sydney/en/Metadata_Structure_(FireDAC)
 //https://docwiki.embarcadero.com/Libraries/Sydney/en/FireDAC.Stan.Intf.TFDDataAttribute
@@ -272,6 +274,7 @@ begin
     EmitHeaderComments;
     EmitUnit(lUnitName);
     dsTablesMapping.First;
+    lGeneratedEntities := 0;
     while not dsTablesMapping.Eof do
     begin
       if not dsTablesMappingGENERATE.Value then
@@ -280,27 +283,22 @@ begin
         dsTablesMapping.Next;
         Continue;
       end;
+      Inc(lGeneratedEntities);
       lTableName := dsTablesMappingTABLE_NAME.AsString;
-      Log.Info('Generating entity %s for table %s', [dsTablesMappingCLASS_NAME.AsString,
-        dsTablesMappingTABLE_NAME.AsString], LOG_TAG);
+      Log.Info('Generating entity [%s] for table [%s]', [
+        dsTablesMappingCLASS_NAME.AsString,
+        dsTablesMappingTABLE_NAME.AsString
+      ], LOG_TAG);
       lClassName := dsTablesMappingCLASS_NAME.AsString;
       EmitClass(lTableName, lClassName, rgNameCase.Items[rgNameCase.ItemIndex]);
       lKeyFields.Clear;
-//      qry.Close;
-//      qry.SQL.Text := 'select * from ' + lTableName + ' where 1=0';
-//      qry.Open;
-//      try
       FDConnection.GetKeyFieldNames(fCatalog, fSchema, lTableName, '', lKeyFields);
-//      except
-//      end;
-
 
       OpenMetaDS(fCatalog, fSchema, lTableName);
 
       lFieldNamesToInitialize := [];
       lTypesName := [];
       fIntfBuff.WriteString(INDENT + 'private' + sLineBreak);
-      //lUniqueFieldNames := GetUniqueFieldNames(qry.Fields, rgFieldNameFormatting.ItemIndex = 1);
       lUniqueFieldNames := GetUniqueFieldNames(qryMeta, rgFieldNameFormatting.ItemIndex = 1);
 
       I := 0;
@@ -380,6 +378,7 @@ begin
   // mmConnectionParams.Lines.SaveToFile(FHistoryFileName);
   //ShowMessage('Generation Completed');
 //  TabNextTab1.Execute;
+  Log.Info('Generated %d entities', [lGeneratedEntities],  LOG_TAG);
 end;
 
 procedure TMainForm.actGenerateCodeUpdate(Sender: TObject);
@@ -403,61 +402,69 @@ begin
   LoadProjectFromFile;
 end;
 
-procedure TMainForm.actRefreshCatalogExecute(Sender: TObject);
-begin
-  FDConnection.Params.Clear;
-  FDConnection.Params.Text := mmConnectionParams.Text;
-  try
-    FDConnection.Open;
-    lstCatalog.Items.Clear;
-    lstSchema.Items.Clear;
-    FDConnection.GetCatalogNames('', lstCatalog.Items);
-  except
-    on E: Exception do
-    begin
-      Application.ShowException(E);
-    end;
-  end;
-end;
-
 procedure TMainForm.actRefreshTableListExecute(Sender: TObject);
 var
   lTables: TStringList;
+  lSelectedTables: TStringList;
   lTable: string;
   lClassName: string;
 begin
-  FDConnection.Connected := True;
-  lTables := TStringList.Create;
+  dsTablesMapping.DisableControls;
   try
-    fCatalog := '';
-    if lstCatalog.ItemIndex > -1 then
-    begin
-      fCatalog := lstCatalog.Items[lstCatalog.ItemIndex];
-    end;
-    fSchema := '';
-    if lstSchema.ItemIndex > -1 then
-    begin
-      fSchema := lstSchema.Items[lstSchema.ItemIndex];
-    end;
-    FDConnection.GetTableNames(fCatalog, fSchema, '', lTables);
+    lSelectedTables := TStringList.Create;
+    try
+      if dsTablesMapping.RecordCount > 0 then
+      begin
+        dsTablesMapping.First;
+        while not dsTablesMapping.Eof do
+        begin
+          if dsTablesMappingGENERATE.Value then
+          begin
+            lSelectedTables.Add(dsTablesMappingTABLE_NAME.Value);
+          end;
+          dsTablesMapping.Next;
+        end;
+        lSelectedTables.Sorted := True;
+      end;
 
+      FDConnection.Connected := True;
+      lTables := TStringList.Create;
+      try
+        fCatalog := FDConnection.Params.Database;
+        fSchema := '';
+        if lstSchema.ItemIndex > 0 then //at index 0 there is "<all>"
+        begin
+          fSchema := lstSchema.Items[lstSchema.ItemIndex];
+        end;
+        FDConnection.GetTableNames(fCatalog, fSchema, '', lTables);
 
-    // FDConnection1.GetTableNames('', 'public', '', lTables);
-    // FDConnection1.GetTableNames('', '', '', lTables);
-    // if lTables.Count = 0 then
-    // FDConnection1.GetTableNames('', 'dbo', '', lTables);
+        // FDConnection1.GetTableNames('', 'public', '', lTables);
+        // FDConnection1.GetTableNames('', '', '', lTables);
+        // if lTables.Count = 0 then
+        // FDConnection1.GetTableNames('', 'dbo', '', lTables);
 
-    dsTablesMapping.EmptyDataSet;
-    for lTable in lTables do
-    begin
-      lClassName := GetClassName(lTable);
-      dsTablesMapping.AppendRecord([True, lTable, lClassName]);
+        dsTablesMapping.EmptyDataSet;
+        for lTable in lTables do
+        begin
+          lClassName := GetClassName(lTable);
+          dsTablesMapping.AppendRecord([(lSelectedTables.IndexOf(lTable) > -1), lTable, lClassName]);
+        end;
+        dsTablesMapping.First;
+      finally
+        lTables.Free;
+      end;
+    finally
+      lSelectedTables.Free;
     end;
-    dsTablesMapping.First;
+    TabSheet1.Caption := 'Tables (' + dsTablesMapping.RecordCount.ToString + ')';
   finally
-    lTables.Free;
+    dsTablesMapping.EnableControls;
   end;
-  TabSheet1.Caption := 'Tables (' + dsTablesMapping.RecordCount.ToString + ')';
+end;
+
+procedure TMainForm.actRefreshTableListUpdate(Sender: TObject);
+begin
+  actRefreshTableList.Enabled := cboConnectionDefs.ItemIndex >= 0;
 end;
 
 procedure TMainForm.actSaveGeneratedCodeExecute(Sender: TObject);
@@ -519,13 +526,18 @@ end;
 
 procedure TMainForm.cboConnectionDefsChange(Sender: TObject);
 begin
+  Log.Info('Selecting ConnectionDef: ' + cboConnectionDefs.Text, LOG_TAG);
   FDConnection.Close;
   FDManager.GetConnectionDefParams(cboConnectionDefs.Text, mmConnectionParams.Lines);
-  lstCatalog.Items.Clear;
   lstSchema.Items.Clear;
   FDConnection.Params.Clear;
   FDConnection.Params.Text := mmConnectionParams.Text;
-  actRefreshCatalog.Execute;
+  FDConnection.Open;
+  lstSchema.Items.Clear;
+  FDConnection.GetSchemaNames(FDConnection.Params.Database, '', lstSchema.Items);
+  lstSchema.Items.Insert(0, '<all>');
+  lstSchema.ItemIndex := 0;
+
 end;
 
 procedure TMainForm.DBGrid1CellClick(Column: TColumn);
@@ -587,6 +599,20 @@ begin
   finally
     dsTablesMapping.EnableControls;
   end;
+end;
+
+procedure TMainForm.EditTableNameFilterChange(Sender: TObject);
+begin
+  if EditTableNameFilter.Text <> '' then
+  begin
+    dsTablesMapping.Filter := 'upper(TABLE_NAME) like ''' + String(EditTableNameFilter.Text).ToUpper + '%'' ';
+    dsTablesMapping.Filtered := True;
+  end
+  else
+  begin
+    dsTablesMapping.Filtered := False;
+  end;
+  TabSheet1.Caption := 'Tables (' + dsTablesMapping.RecordCount.ToString + ')';
 end;
 
 procedure TMainForm.EmitClass(const aTableName, aClassName, aNameCase: string);
@@ -742,7 +768,14 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  UILogFormat: String;
 begin
+  UILogFormat := '%0:s [%2:-10s] %3:s';
+  Log := BuildLogWriter([
+    TLoggerProFileAppender.Create,
+    TVCLListBoxAppender.Create(lbLog, 2000, UILogFormat)
+    ]);
   pcMain.ActivePageIndex := 0;
   fConfig := TJSONObject.Create;
   fIntfBuff := TStringStream.Create;
@@ -774,6 +807,7 @@ var
   lNextLetterChar: string;
 begin
   lTableName := aTableName.ToLower.DeQuotedString('"').Replace(' ', '_', [rfReplaceAll]);
+  lTableName := lTableName.ToLower.DeQuotedString('"').Replace('.', '__', [rfReplaceAll]);
   Result := 'T' + lTableName.Substring(0, 1).ToUpper + lTableName.Substring(1).ToLower;
 
   while Result.IndexOf('_') > -1 do
@@ -803,7 +837,9 @@ end;
 function TMainForm.GetDelphiType(const FireDACType: TFDDataType; const ColumnAttribs: TFDDataAttributes; const ForceNullable: Boolean): string;
 begin
   case FireDACType of
-    dtWideString, dtWideMemo, dtMemo:
+    dtWideString, dtWideMemo:
+      Result := 'String';
+    dtAnsiString, dtMemo:
       Result := 'String';
     dtByte:
       Result := 'Byte';
@@ -900,54 +936,6 @@ begin
   Result := TFile.Exists(ProjectFileName);
 end;
 
-//function TMainForm.GetUniqueFieldNames(const Fields: TFields; const FormatAsPascalCase: Boolean): TArray<String>;
-//var
-//  I: Integer;
-//  lList: TStringList;
-//  lF: string;
-//  lFTemp: string;
-//  lCount: Integer;
-//begin
-//  SetLength(Result, Fields.Count);
-//  lList := TStringList.Create;
-//  try
-//    lList.Sorted := True;
-//    for I := 0 to Fields.Count - 1 do
-//    begin
-//      lCount := 0;
-//      if FormatAsPascalCase then
-//      begin
-//        lF := CamelCase(Fields[I].FieldName, True);
-//      end
-//      else
-//      begin
-//        lF := Fields[I].FieldName;
-//      end;
-//      if lList.IndexOf(lF) > -1 then
-//      begin
-//        lF := Fields[I].FieldName;
-//      end;
-//      lFTemp := lF;
-//
-//      if IsReservedKeyword(lFTemp) then
-//      begin
-//        lFTemp := '_' + lFTemp;
-//      end;
-//
-//      while (lList.IndexOf(lFTemp) > -1) do
-//      begin
-//        Inc(lCount);
-//        lFTemp := lF + '__' + IntToStr(lCount);
-//      end;
-//      lF := lFTemp;
-//      lList.Add(lF);
-//      Result[I] := lF;
-//    end;
-//  finally
-//    lList.Free;
-//  end;
-//end;
-
 function TMainForm.GetUniqueFieldNames(const MetaDS: TFDMetaInfoQuery;
   const FormatAsPascalCase: Boolean): TArray<String>;
 var
@@ -958,7 +946,6 @@ var
   lCount: Integer;
   lFieldName: String;
 begin
-//  MetaDS.FetchAll;
   MetaDS.First;
   SetLength(Result, MetaDS.RecordCount);
   lList := TStringList.Create;
@@ -966,7 +953,6 @@ begin
     lList.Sorted := True;
     I := 0;
     while not MetaDS.Eof do
-    //for I := 0 to Fields.Count - 1 do
     begin
       lFieldName := MetaDS.FieldByName(META_F_COLUMN_NAME).AsString;
       lCount := 0;
@@ -1023,14 +1009,14 @@ begin
 
   cboConnectionDefs.ItemIndex := cboConnectionDefs.Items.IndexOf(fConfig.S[cboConnectionDefs.Name]);
   cboConnectionDefsChange(self);
-  actRefreshCatalog.Execute;
-  lstCatalog.Update;
-  if fConfig.IndexOf(lstCatalog.Name) > -1 then
-  begin
-    lstCatalog.ItemIndex := lstCatalog.Items.IndexOf(fConfig.S[lstCatalog.Name]);
-    lstCatalogClick(self);
-    lstSchema.ItemIndex := lstSchema.Items.IndexOf(fConfig.S[lstSchema.Name]);
-  end;
+
+//  if fConfig.IndexOf(lstCatalog.Name) > -1 then
+//  begin
+//    lstCatalog.ItemIndex := lstCatalog.Items.IndexOf(fConfig.S[lstCatalog.Name]);
+//    lstCatalogClick(self);
+//    lstSchema.ItemIndex := lstSchema.Items.IndexOf(fConfig.S[lstSchema.Name]);
+//  end;
+  lstSchema.ItemIndex := lstSchema.Items.IndexOf(fConfig.S[lstSchema.Name]);
   actRefreshTableList.Execute;
 
   rgNameCase.ItemIndex := fConfig.I[rgNameCase.Name];
@@ -1065,18 +1051,10 @@ begin
   EditOutputFileName.Text := fConfig.S[EditOutputFileName.Name];
 end;
 
-procedure TMainForm.lstCatalogClick(Sender: TObject);
-begin
-  lstSchema.Items.Clear;
-  FDConnection.GetSchemaNames(lstCatalog.Items[lstCatalog.ItemIndex], '', lstSchema.Items);
-
-end;
-
 procedure TMainForm.mmConnectionParamsChange(Sender: TObject);
 begin
   FDConnection.Close;
   lstSchema.Clear;
-  lstCatalog.Clear;
 end;
 
 procedure TMainForm.OpenMetaDS(const Catalog, Schema, TableName: String);
@@ -1095,7 +1073,6 @@ procedure TMainForm.ResetUI;
 begin
   cboConnectionDefs.ItemIndex := -1;
   mmConnectionParams.Clear;
-  lstCatalog.Clear;
   lstSchema.Clear;
   rgNameCase.ItemIndex := 0;
   rgFieldNameFormatting.ItemIndex := 0;
@@ -1109,11 +1086,6 @@ var
   lField: TField;
 begin
   fConfig.S[cboConnectionDefs.Name] := cboConnectionDefs.Items[cboConnectionDefs.ItemIndex];
-  if lstCatalog.ItemIndex > -1 then
-    fConfig.S[lstCatalog.Name] := lstCatalog.Items[lstCatalog.ItemIndex]
-  else
-    fConfig.Remove(lstCatalog.Name);
-
   if lstSchema.ItemIndex > -1 then
     fConfig.S[lstSchema.Name] := lstSchema.Items[lstSchema.ItemIndex]
   else
@@ -1173,7 +1145,7 @@ end;
 procedure TMainForm.SetProjectFileName(const Value: String);
 begin
   fProjectFileName := TPath.ChangeExtension(Value, '.entgen');
-  Caption := 'DMVCFramework Entities Generator :: ' + fProjectFileName;
+  Caption := Format('DMVCFramework Entities Generator :: [%0:s] - DMVCFramework-%1:s', [fProjectFileName, DMVCFRAMEWORK_VERSION]);
 end;
 
 procedure TMainForm.SpeedButton1Click(Sender: TObject);
@@ -1203,11 +1175,11 @@ procedure TMainForm.TabNextTab1Update(Sender: TObject);
 begin
   if pcMain.ActivePage = tsConnectionDefinition then
   begin
-    TabNextTab1.Enabled := (cboConnectionDefs.ItemIndex > -1) and  (
-      (lstCatalog.Items.Count = 0)
-      or
-      ((lstCatalog.ItemIndex > -1) and (lstSchema.ItemIndex > -1))
-      );
+    TabNextTab1.Enabled := (cboConnectionDefs.ItemIndex > -1);
+  end
+  else
+  begin
+    TabNextTab1.Enabled := False;
   end;
 end;
 

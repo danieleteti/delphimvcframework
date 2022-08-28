@@ -687,6 +687,8 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - ⚡ New! Automated support to avoid "mid-air collisions". New methods `SetETag` and `CheckIfMatch` allows a better security without adding complexity to the controller code - check `avoid_mid_air_collisions_sample.dproj` sample and see  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#avoiding_mid-air_collisions for more info about mid-air collisions.
 
+- ✅ Improved! Ignored fields handling now is much better in renders method and in `ObjDict` as well. See [issue 528](https://github.com/danieleteti/delphimvcframework/issues/528).
+
 
 ### Bug Fixes in 3.2.2-nitrogen
 

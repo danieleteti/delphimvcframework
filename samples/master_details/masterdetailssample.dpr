@@ -8,6 +8,8 @@ uses
   IdHTTPWebBrokerBridge,
   Web.WebReq,
   Web.WebBroker,
+  MVCFramework,
+  MVCFramework.Signal,
   WebModuleUnit1 in 'WebModuleUnit1.pas' {WebModule1: TWebModule},
   Controllers.Base in 'Controllers.Base.pas',
   Controllers.Orders in 'Controllers.Orders.pas',
@@ -30,8 +32,9 @@ begin
   try
     LServer.DefaultPort := APort;
     LServer.Active := True;
-    WriteLn('Press RETURN to stop the server');
-    ReadLn;
+    WriteLn('Press Ctrl+C to stop the server');
+    WaitForTerminationSignal;
+    EnterInShutdownState;
   finally
     LServer.Free;
   end;

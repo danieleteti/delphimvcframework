@@ -487,7 +487,7 @@ var
   lJSONValue: TJsonBaseObject;
 
 begin
-  lObjDict := AObject as TMVCObjectDictionary;
+  lObjDict := TMVCObjectDictionary(AObject);
   lOutObject := TJsonObject.Create;
   try
     for lName in lObjDict.Keys do
@@ -521,7 +521,11 @@ begin
 
       if TDuckTypedList.CanBeWrappedAsList(lObj.Data, lList) then
       begin
-        fCurrentSerializer.ListToJsonArray(lList, lOutObject.A[lName], TMVCSerializationType.stDefault, [],
+        fCurrentSerializer.ListToJsonArray(
+          lList,
+          lOutObject.A[lName],
+          TMVCSerializationType.stDefault,
+          lObj.IgnoredFields,
           lObj.SerializationAction)
       end
       else if lObj.Data is TDataSet then
@@ -537,7 +541,7 @@ begin
               fCurrentSerializer.InternalSerializeDataSetRecord(
                 TDataSet(lObj.Data),
                 lOutObject.O[lName],
-                [],
+                lObj.IgnoredFields,
                 lObj.DataSetFieldNameCase,
                 lObj.DataSetSerializationAction)
             end;
@@ -546,7 +550,7 @@ begin
               fCurrentSerializer.InternalSerializeDataSet(
                 TDataSet(lObj.Data),
                 lOutObject.A[lName],
-                [],
+                lObj.IgnoredFields,
                 lObj.DataSetFieldNameCase,
                 lObj.DataSetSerializationAction)
             end;
@@ -560,7 +564,7 @@ begin
         end;
 
         lJSONValue := fCurrentSerializer.ConvertObjectToJsonValue(lObj.Data, TMVCSerializationType.stDefault,
-          [], nil, lObj.SerializationAction, lJSONType);
+          lObj.IgnoredFields, nil, lObj.SerializationAction, lJSONType);
         case lJSONType of
           jdtArray:
             begin

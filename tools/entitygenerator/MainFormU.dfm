@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = '[DMVCFramework] MVCActiveRecord Entity Generator'
   ClientHeight = 688
-  ClientWidth = 1189
+  ClientWidth = 1173
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,24 +14,34 @@ object MainForm: TMainForm
   OnClose = FormClose
   OnCreate = FormCreate
   TextHeight = 21
+  object Splitter1: TSplitter
+    Left = 0
+    Top = 543
+    Width = 1173
+    Height = 3
+    Cursor = crVSplit
+    Align = alBottom
+    ExplicitTop = 0
+    ExplicitWidth = 557
+  end
   object pcMain: TPageControl
     Left = 0
     Top = 0
-    Width = 1189
-    Height = 644
+    Width = 1173
+    Height = 543
     ActivePage = tsTablesMapping
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 1199
-    ExplicitHeight = 638
+    ExplicitWidth = 1189
+    ExplicitHeight = 644
     object tsConnectionDefinition: TTabSheet
       Caption = 'Connection Definition'
       ImageIndex = 1
       object Panel2: TPanel
         Left = 0
         Top = 89
-        Width = 1181
-        Height = 519
+        Width = 1165
+        Height = 418
         Align = alClient
         Caption = 'Panel1'
         Font.Charset = DEFAULT_CHARSET
@@ -41,13 +51,13 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         TabOrder = 0
-        ExplicitWidth = 1191
-        ExplicitHeight = 513
+        ExplicitWidth = 1181
+        ExplicitHeight = 519
         object Label2: TLabel
           AlignWithMargins = True
           Left = 4
           Top = 4
-          Width = 1173
+          Width = 1157
           Height = 13
           Align = alTop
           Caption = 'FireDAC connection parameters'
@@ -57,8 +67,8 @@ object MainForm: TMainForm
           AlignWithMargins = True
           Left = 4
           Top = 23
-          Width = 775
-          Height = 446
+          Width = 759
+          Height = 391
           Align = alClient
           Font.Charset = ANSI_CHARSET
           Font.Color = clWindowText
@@ -70,121 +80,60 @@ object MainForm: TMainForm
           TabOrder = 0
           WordWrap = False
           OnChange = mmConnectionParamsChange
-          ExplicitWidth = 785
-          ExplicitHeight = 440
+          ExplicitTop = 73
+          ExplicitHeight = 306
         end
         object Panel6: TPanel
-          Left = 782
+          Left = 766
           Top = 20
           Width = 398
-          Height = 452
+          Height = 397
           Align = alRight
           BevelOuter = bvNone
           Caption = 'Panel6'
           ShowCaption = False
           TabOrder = 1
-          ExplicitLeft = 792
-          ExplicitHeight = 446
+          ExplicitLeft = 782
+          ExplicitHeight = 452
           object GroupBox1: TGroupBox
             AlignWithMargins = True
             Left = 3
             Top = 3
             Width = 392
-            Height = 446
+            Height = 391
             Align = alClient
-            Caption = 'Select a catalog and then the schema where your tables are'
+            Caption = 'Filter by Schema'
             Padding.Left = 5
             Padding.Top = 5
             Padding.Right = 5
             Padding.Bottom = 5
             TabOrder = 0
-            ExplicitHeight = 440
+            ExplicitHeight = 446
             object lstSchema: TListBox
               AlignWithMargins = True
-              Left = 191
-              Top = 50
-              Width = 191
-              Height = 386
+              Left = 10
+              Top = 23
+              Width = 372
+              Height = 358
               Align = alClient
               ItemHeight = 13
               TabOrder = 0
-              ExplicitHeight = 380
+              ExplicitLeft = 191
+              ExplicitTop = 50
+              ExplicitWidth = 191
+              ExplicitHeight = 386
             end
-            object lstCatalog: TListBox
-              AlignWithMargins = True
-              Left = 10
-              Top = 50
-              Width = 175
-              Height = 386
-              Align = alLeft
-              ItemHeight = 13
-              TabOrder = 1
-              OnClick = lstCatalogClick
-              ExplicitHeight = 380
-            end
-            object Panel11: TPanel
-              Left = 7
-              Top = 20
-              Width = 378
-              Height = 27
-              Align = alTop
-              BevelOuter = bvNone
-              Caption = 'Panel11'
-              ShowCaption = False
-              TabOrder = 2
-              object Label4: TLabel
-                Left = 3
-                Top = 11
-                Width = 42
-                Height = 13
-                Caption = 'Catalogs'
-              end
-              object Label5: TLabel
-                Left = 184
-                Top = 11
-                Width = 42
-                Height = 13
-                Caption = 'Schemas'
-              end
-            end
-          end
-        end
-        object Panel9: TPanel
-          Left = 1
-          Top = 472
-          Width = 1179
-          Height = 46
-          Align = alBottom
-          BevelOuter = bvNone
-          Caption = 'Panel9'
-          ShowCaption = False
-          TabOrder = 2
-          ExplicitTop = 466
-          ExplicitWidth = 1189
-          object btnRefreshCatalog: TButton
-            AlignWithMargins = True
-            Left = 1043
-            Top = 3
-            Width = 130
-            Height = 40
-            Margins.Right = 6
-            Action = actRefreshCatalog
-            Align = alRight
-            ImageIndex = 0
-            Images = ImageListButtons
-            TabOrder = 0
-            ExplicitLeft = 1053
           end
         end
       end
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 1181
+        Width = 1165
         Height = 89
         Align = alTop
         TabOrder = 1
-        ExplicitWidth = 1191
+        ExplicitWidth = 1181
         object Label1: TLabel
           AlignWithMargins = True
           Left = 19
@@ -200,7 +149,7 @@ object MainForm: TMainForm
         end
         object Label3: TLabel
           AlignWithMargins = True
-          Left = 589
+          Left = 573
           Top = 11
           Width = 581
           Height = 67
@@ -216,7 +165,7 @@ object MainForm: TMainForm
             'generated from that set of tables.'
           Layout = tlCenter
           WordWrap = True
-          ExplicitLeft = 599
+          ExplicitLeft = 589
           ExplicitHeight = 63
         end
         object cboConnectionDefs: TComboBox
@@ -237,42 +186,44 @@ object MainForm: TMainForm
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 1181
-        Height = 608
+        Width = 1165
+        Height = 507
         Align = alClient
         Caption = 'Panel3'
         ShowCaption = False
         TabOrder = 0
+        ExplicitWidth = 1181
+        ExplicitHeight = 608
         object Panel4: TPanel
           Left = 1
           Top = 1
-          Width = 1179
-          Height = 208
+          Width = 1163
+          Height = 151
           Align = alTop
           BevelOuter = bvNone
           Caption = 'Panel4'
           ShowCaption = False
           TabOrder = 0
-          ExplicitWidth = 1189
           DesignSize = (
-            1179
-            208)
+            1163
+            151)
           object btnGenEntities: TButton
             AlignWithMargins = True
-            Left = 1232
-            Top = 57
+            Left = 1216
+            Top = 0
             Width = 161
             Height = 35
             Anchors = [akRight, akBottom]
             Caption = 'Generate Entities'
             TabOrder = 0
-            ExplicitLeft = 1242
+            ExplicitLeft = 1232
+            ExplicitTop = 57
           end
           object chkGenerateMapping: TCheckBox
             AlignWithMargins = True
             Left = 10
-            Top = 173
-            Width = 1166
+            Top = 116
+            Width = 1150
             Height = 32
             Margins.Left = 10
             Align = alBottom
@@ -283,11 +234,12 @@ object MainForm: TMainForm
             State = cbChecked
             TabOrder = 1
             WordWrap = True
-            ExplicitWidth = 1176
+            ExplicitLeft = 9
+            ExplicitTop = 119
           end
           object rgNameCase: TRadioGroup
             Left = 7
-            Top = 49
+            Top = 9
             Width = 393
             Height = 104
             Caption = 'Class MVCNameCase'
@@ -304,7 +256,7 @@ object MainForm: TMainForm
           end
           object rgFieldNameFormatting: TRadioGroup
             Left = 406
-            Top = 49
+            Top = 9
             Width = 389
             Height = 104
             Caption = 'Field Names Formatting'
@@ -318,24 +270,23 @@ object MainForm: TMainForm
         object PageControl1: TPageControl
           AlignWithMargins = True
           Left = 4
-          Top = 311
-          Width = 1173
-          Height = 293
+          Top = 206
+          Width = 1157
+          Height = 297
           ActivePage = TabSheet1
           Align = alClient
           TabOrder = 1
-          ExplicitTop = 260
-          ExplicitWidth = 1183
-          ExplicitHeight = 338
+          ExplicitTop = 311
+          ExplicitWidth = 1173
+          ExplicitHeight = 293
           object TabSheet1: TTabSheet
             Caption = 'Tables'
             object DBGrid1: TDBGrid
               Left = 0
-              Top = 41
-              Width = 1165
-              Height = 216
+              Top = 0
+              Width = 1149
+              Height = 220
               Align = alClient
-              BorderStyle = bsNone
               DataSource = dsrcTablesMapping
               DefaultDrawing = False
               TabOrder = 0
@@ -361,6 +312,7 @@ object MainForm: TMainForm
                 item
                   Expanded = False
                   FieldName = 'TABLE_NAME'
+                  ReadOnly = True
                   Width = 478
                   Visible = True
                 end
@@ -372,87 +324,37 @@ object MainForm: TMainForm
             end
             object Panel7: TPanel
               Left = 0
-              Top = 0
-              Width = 1165
+              Top = 220
+              Width = 1149
               Height = 41
-              Align = alTop
+              Align = alBottom
               BevelOuter = bvNone
               TabOrder = 1
-              ExplicitWidth = 1175
-              object btnUZ: TButton
-                AlignWithMargins = True
-                Left = 598
-                Top = 3
-                Width = 113
-                Height = 35
-                Align = alLeft
-                Caption = 'U..Z'
-                TabOrder = 0
-                OnClick = btnUZClick
-              end
-              object Button1: TButton
-                AlignWithMargins = True
-                Left = 360
-                Top = 3
-                Width = 113
-                Height = 35
-                Align = alLeft
-                Caption = 'L..Q'
-                TabOrder = 1
-                OnClick = Button1Click
-              end
-              object Button2: TButton
-                AlignWithMargins = True
-                Left = 241
-                Top = 3
-                Width = 113
-                Height = 35
-                Align = alLeft
-                Caption = 'E..K'
-                TabOrder = 2
-                OnClick = Button2Click
-              end
-              object Button3: TButton
-                AlignWithMargins = True
-                Left = 122
-                Top = 3
-                Width = 113
-                Height = 35
-                Align = alLeft
-                Caption = 'C..D'
-                TabOrder = 3
-                OnClick = Button3Click
-              end
-              object Button4: TButton
-                AlignWithMargins = True
-                Left = 479
-                Top = 3
-                Width = 113
-                Height = 35
-                Align = alLeft
-                Caption = 'R..T'
-                TabOrder = 4
-                OnClick = btnSlice1Click
-              end
-              object Button5: TButton
-                AlignWithMargins = True
+              ExplicitLeft = -3
+              ExplicitTop = 132
+              object Label4: TLabel
                 Left = 3
-                Top = 3
-                Width = 113
-                Height = 35
-                Align = alLeft
-                Caption = 'A..D'
-                TabOrder = 5
-                OnClick = Button5Click
+                Top = 9
+                Width = 140
+                Height = 21
+                Caption = 'Filter for table name'
+              end
+              object EditTableNameFilter: TEdit
+                Left = 149
+                Top = 6
+                Width = 276
+                Height = 29
+                TabOrder = 0
+                OnChange = EditTableNameFilterChange
               end
             end
           end
         end
         object Panel10: TPanel
           Left = 1
-          Top = 209
-          Width = 1179
-          Height = 99
+          Top = 152
+          Width = 1163
+          Height = 51
           Align = alTop
           Caption = 'Panel10'
           ShowCaption = False
@@ -472,8 +374,8 @@ object MainForm: TMainForm
           end
           object SpeedButton2: TSpeedButton
             AlignWithMargins = True
-            Left = 7
-            Top = 54
+            Left = 352
+            Top = 8
             Width = 163
             Height = 36
             Margins.Left = 5
@@ -485,8 +387,8 @@ object MainForm: TMainForm
           end
           object SpeedButton3: TSpeedButton
             AlignWithMargins = True
-            Left = 180
-            Top = 54
+            Left = 525
+            Top = 8
             Width = 162
             Height = 36
             Margins.Left = 5
@@ -506,53 +408,9 @@ object MainForm: TMainForm
             Margins.Top = 5
             Margins.Right = 5
             Margins.Bottom = 5
-            Caption = 'Refresh Table List'
+            Action = actRefreshTableList
             Constraints.MinWidth = 160
             TabOrder = 0
-          end
-          object Panel5: TPanel
-            AlignWithMargins = True
-            Left = 486
-            Top = 4
-            Width = 689
-            Height = 91
-            Align = alRight
-            BevelKind = bkTile
-            BevelOuter = bvNone
-            Caption = 'Panel5'
-            ShowCaption = False
-            TabOrder = 1
-            ExplicitTop = 3
-            object Label6: TLabel
-              Left = 12
-              Top = 12
-              Width = 126
-              Height = 21
-              Caption = 'Output File Name:'
-            end
-            object btnSaveAs: TSpeedButton
-              Left = 479
-              Top = 37
-              Width = 55
-              Height = 37
-              Action = actSaveGeneratedCode
-            end
-            object EditOutputFileName: TEdit
-              Left = 12
-              Top = 39
-              Width = 461
-              Height = 29
-              TabOrder = 0
-            end
-            object Button6: TButton
-              AlignWithMargins = True
-              Left = 539
-              Top = 37
-              Width = 136
-              Height = 37
-              Action = actGenerateCode
-              TabOrder = 1
-            end
           end
         end
       end
@@ -560,38 +418,110 @@ object MainForm: TMainForm
   end
   object Panel8: TPanel
     Left = 0
-    Top = 644
-    Width = 1189
-    Height = 44
+    Top = 633
+    Width = 1173
+    Height = 55
     Margins.Right = 6
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 1
-    ExplicitWidth = 1199
     object btnPrev: TButton
       AlignWithMargins = True
-      Left = 972
+      Left = 956
       Top = 3
       Width = 104
-      Height = 38
+      Height = 49
       Action = TabPreviousTab1
       Align = alRight
       TabOrder = 0
-      ExplicitLeft = 696
-      ExplicitTop = 6
-      ExplicitHeight = 44
+      ExplicitLeft = 972
+      ExplicitHeight = 38
     end
     object btnNext: TButton
       AlignWithMargins = True
-      Left = 1082
+      Left = 1066
       Top = 3
       Width = 104
-      Height = 38
+      Height = 49
       Action = TabNextTab1
       Align = alRight
       TabOrder = 1
-      ExplicitLeft = 1092
-      ExplicitHeight = 44
+      ExplicitLeft = 1082
+      ExplicitHeight = 38
+    end
+    object Panel5: TPanel
+      AlignWithMargins = True
+      Left = 3
+      Top = 3
+      Width = 894
+      Height = 49
+      Align = alLeft
+      BevelKind = bkTile
+      BevelOuter = bvNone
+      Caption = 'Panel5'
+      ShowCaption = False
+      TabOrder = 2
+      ExplicitHeight = 71
+      object Label6: TLabel
+        Left = 7
+        Top = 11
+        Width = 126
+        Height = 21
+        Caption = 'Output File Name:'
+      end
+      object btnSaveAs: TSpeedButton
+        Left = 654
+        Top = 4
+        Width = 55
+        Height = 37
+        Action = actSaveGeneratedCode
+      end
+      object EditOutputFileName: TEdit
+        Left = 139
+        Top = 8
+        Width = 509
+        Height = 29
+        TabOrder = 0
+      end
+      object Button6: TButton
+        AlignWithMargins = True
+        Left = 715
+        Top = 4
+        Width = 159
+        Height = 37
+        Action = actGenerateCode
+        Images = ImageListButtons
+        TabOrder = 1
+      end
+    end
+  end
+  object Panel12: TPanel
+    Left = 0
+    Top = 546
+    Width = 1173
+    Height = 87
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = 'Panel12'
+    TabOrder = 2
+    ExplicitTop = 601
+    object lbLog: TListBox
+      Left = 0
+      Top = 0
+      Width = 1173
+      Height = 87
+      Align = alClient
+      BevelInner = bvNone
+      BevelOuter = bvNone
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ItemHeight = 19
+      ParentFont = False
+      ScrollWidth = 5000
+      TabOrder = 0
     end
   end
   object FDConnection: TFDConnection
@@ -697,7 +627,7 @@ object MainForm: TMainForm
     UpdateOptions.AutoCommitUpdates = True
     StoreDefs = True
     Left = 72
-    Top = 488
+    Top = 432
     object dsTablesMappingGENERATE: TBooleanField
       DisplayLabel = 'Generate?'
       FieldName = 'GENERATE'
@@ -717,8 +647,8 @@ object MainForm: TMainForm
   end
   object dsrcTablesMapping: TDataSource
     DataSet = dsTablesMapping
-    Left = 192
-    Top = 488
+    Left = 184
+    Top = 424
   end
   object ProjectFileOpenDialog: TFileOpenDialog
     FavoriteLinks = <>
@@ -755,6 +685,23 @@ object MainForm: TMainForm
       end
       object Exit1: TMenuItem
         Action = FileExit1
+      end
+    end
+    object Entities1: TMenuItem
+      Caption = '&Entities'
+      object RefreshCatalog1: TMenuItem
+        Caption = 'Retrieve metadata'
+        ImageIndex = 6
+        ShortCut = 8308
+      end
+      object RefreshTableList1: TMenuItem
+        Action = actRefreshTableList
+      end
+      object GenerateCode1: TMenuItem
+        Action = actGenerateCode
+      end
+      object SaveGeneratedCode1: TMenuItem
+        Action = actSaveGeneratedCode
       end
     end
   end
@@ -804,25 +751,23 @@ object MainForm: TMainForm
       Hint = 'Previous|Go back to the previous tab'
     end
     object actSaveGeneratedCode: TAction
-      Caption = 'Save Generated Code'
       ImageIndex = 4
+      ShortCut = 16467
       OnExecute = actSaveGeneratedCodeExecute
     end
     object actGenerateCode: TAction
       Caption = 'Generate Code'
       ImageIndex = 5
+      ShortCut = 120
       OnExecute = actGenerateCodeExecute
       OnUpdate = actGenerateCodeUpdate
-    end
-    object actRefreshCatalog: TAction
-      Caption = 'Refresh Catalog'
-      ImageIndex = 6
-      OnExecute = actRefreshCatalogExecute
     end
     object actRefreshTableList: TAction
       Caption = 'Refresh Table List'
       ImageIndex = 6
+      ShortCut = 116
       OnExecute = actRefreshTableListExecute
+      OnUpdate = actRefreshTableListUpdate
     end
   end
   object FileSaveDialogProject: TFileSaveDialog
@@ -1014,37 +959,63 @@ object MainForm: TMainForm
   end
   object ImageListButtons: TImageList
     ColorDepth = cdDefault
+    Height = 24
+    Width = 24
     Left = 840
     Top = 72
     Bitmap = {
-      494C010101000800040010001000FFFFFFFF0510FFFFFFFFFFFFFFFF424D7600
-      0000000000007600000028000000400000001000000001000400000000000002
+      494C010101000800040018001800FFFFFFFF0500FFFFFFFFFFFFFFFF424D7600
+      0000000000007600000028000000600000001800000001000400000000008004
       0000000000000000000000000000000000000000000000008000008000000080
       800080000000800080008080000080808000C0C0C0000000FF0000FF000000FF
-      FF00FF000000FF00FF00FFFF0000FFFFFF000000830000680000000000000000
-      00000000000000000000000000000000000000F307F00F706F00000000000000
-      0000000000000000000000000000000000000F16F000000F34F0000000000000
-      0000000000000000000000000000000000000360000000000360000000000000
-      00000000000000000000000000000000000084F0000000000F18000000000000
-      0000000000000000000000000000000000003600000000000036000000000000
-      0000000000000000000000000000000000001800000000000084000000000000
-      0000000000000000000000000000000000005F000000000000F5000000000000
-      0000000000000000000000000000000000005F000000000000F5000000000000
-      0000000000000000000000000000000000001800000000000084000000000000
-      0000000000000000000000000000000000003600000000000036000000000000
-      00000000000000000000000000000000000084F0000000000F18000000000000
-      0000000000000000000000000000000000000360F5F000000360000000000000
-      0000000000000000000000000000000000000F1685F0000F34F0000000000000
-      00000000000000000000000000000000000000F304F00F706F00000000000000
-      0000000000000000000000000000000000000F1004F00F780000000000000000
+      FF00FF000000FF00FF00FFFF0000FFFFFF000000000009000090000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000999990099999000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000099000900900099000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000900099990009000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000009000000000090000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000009000900000000009000900000000000000000000000000000000000000
+      0000000000000000000000000000000000000999999000000000099999900000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000090000000000000000000090000000000000000000000000000000000000
+      0000000000000000000000000000000000000900000009999990000000900000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000990000009900009900000099000000000000000000000000000000000000
+      0000000000000000000000000000000000000999000090000009000099900000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000900009000000900009000000000000000000000000000000000000000
+      0000000000000000000000000000000000000009000090000009000090000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000099900009000000900009990000000000000000000000000000000000000
+      0000000000000000000000000000000000009900000099000099000000990000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000090000000999999000000090000000000000000000000000000000000000
+      0000000000000000000000000000000000000900000000000000000000900000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000099999900000000009999990000000000000000000000000000000000000
+      0000000000000000000000000000000000000090009000000000090009000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000900000000009000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000009000999900090000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000009900090090009900000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000009999900999990000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000900009000000000000000000000000000000000000000000000
       000000000000000000000000000000000000424D3E000000000000003E000000
-      2800000040000000100000000100010000000000800000000000000000000000
-      000000000000000000000000FFFFFF00F00F000000000000C183000000000000
-      87E10000000000009FF90000000000001FF80000000000003FFC000000000000
-      3FFC0000000000003FFC0000000000003FFC0000000000003FFC000000000000
-      3FFC0000000000001FF800000000000091F900000000000081E1000000000000
-      C183000000000000818F00000000000000000000000000000000000000000000
-      000000000000}
+      2800000060000000180000000100010000000000200100000000000000000000
+      000000000000000000000000FFFFFF00FFBDFF000000000000000000FC183F00
+      0000000000000000F9DB9F000000000000000000FDC3BF000000000000000000
+      FDFFBF000000000000000000DDFFBB00000000000000000081FF810000000000
+      00000000BFFFFD000000000000000000BF81FD0000000000000000003F3CFC00
+      00000000000000008F7EF1000000000000000000EF7EF7000000000000000000
+      EF7EF70000000000000000008F7EF10000000000000000003F3CFC0000000000
+      00000000BF81FD000000000000000000BFFFFD00000000000000000081FF8100
+      0000000000000000DDFFBB000000000000000000FDFFBF000000000000000000
+      FDC3BF000000000000000000F9DB9F000000000000000000FC183F0000000000
+      00000000FFBDFF000000000000000000}
   end
   object qryMeta: TFDMetaInfoQuery
     Connection = FDConnection

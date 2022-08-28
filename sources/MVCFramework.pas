@@ -708,14 +708,18 @@ type
     procedure Render(const AContent: string); overload;
     // PODO renders
     procedure Render(const AStatusCode: Integer; const AObject: TObject;
-      const ASerializationAction: TMVCSerializationAction = nil); overload;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AObject: TObject;
-      const ASerializationAction: TMVCSerializationAction = nil); overload;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean;
-      const ASerializationAction: TMVCSerializationAction = nil); overload;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AObject: TObject; const AOwns: Boolean;
       const AType: TMVCSerializationType;
-      const ASerializationAction: TMVCSerializationAction = nil); overload;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil); overload;
     procedure Render(const AStatusCode: Integer; AObject: TObject; const AOwns: Boolean;
       const ASerializationAction: TMVCSerializationAction = nil); overload;
     procedure Render(const AObject: IInterface;
@@ -3547,10 +3551,13 @@ begin
   GetContext.Response.RawWebResponse.SendRedirect(AUrl);
 end;
 
-procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean;
-const ASerializationAction: TMVCSerializationAction = nil);
+procedure TMVCRenderer.Render(
+  const AObject: TObject;
+  const AOwns: Boolean;
+  const ASerializationAction: TMVCSerializationAction = nil;
+  const AIgnoredFields: TMVCIgnoredList = nil);
 begin
-  Render(AObject, AOwns, stDefault, ASerializationAction);
+  Render(AObject, AOwns, stDefault, ASerializationAction, AIgnoredFields);
 end;
 
 procedure TMVCRenderer.Render(const AContent: string);
@@ -3736,11 +3743,15 @@ begin
   GetViewDataSets.Add(aDataSetName, Value);
 end;
 
-procedure TMVCRenderer.Render(const AObject: TObject; const AOwns: Boolean;
-const AType: TMVCSerializationType; const ASerializationAction: TMVCSerializationAction = nil);
+procedure TMVCRenderer.Render(
+  const AObject: TObject;
+  const AOwns: Boolean;
+  const AType: TMVCSerializationType;
+  const ASerializationAction: TMVCSerializationAction = nil;
+  const AIgnoredFields: TMVCIgnoredList = nil);
 begin
   try
-    Render(Serializer(GetContentType).SerializeObject(AObject, AType, [], ASerializationAction));
+    Render(Serializer(GetContentType).SerializeObject(AObject, AType, AIgnoredFields, ASerializationAction));
   finally
     if AOwns then
       AObject.Free;
@@ -3832,11 +3843,14 @@ begin
   Render(AObject, AOwns, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const AStatusCode: Integer; const AObject: TObject;
-const ASerializationAction: TMVCSerializationAction);
+procedure TMVCRenderer.Render(
+  const AStatusCode: Integer;
+  const AObject: TObject;
+  const ASerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList);
 begin
   ResponseStatus(AStatusCode);
-  Render(AObject, True, ASerializationAction);
+  Render(AObject, True, stDefault, ASerializationAction, AIgnoredFields);
 end;
 
 procedure TMVCRenderer.Render<T>(const ACollection: TObjectList<T>; const AOwns: Boolean;
@@ -4089,16 +4103,20 @@ begin
   Render(ADataSet, True, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;
-const ASerializationAction: TMVCDatasetSerializationAction);
+procedure TMVCRenderer.Render(
+  const ADataSet: TDataSet;
+  const AOwns: Boolean;
+  const ASerializationAction: TMVCDatasetSerializationAction);
 begin
   Render(ADataSet, AOwns, dstAllRecords, ASerializationAction);
 end;
 
-procedure TMVCRenderer.Render(const AObject: TObject;
-const ASerializationAction: TMVCSerializationAction = nil);
+procedure TMVCRenderer.Render(
+      const AObject: TObject;
+      const ASerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil);
 begin
-  Render(AObject, True, ASerializationAction);
+  Render(AObject, True, stDefault, ASerializationAction, AIgnoredFields);
 end;
 
 procedure TMVCRenderer.Render(const ADataSet: TDataSet; const AOwns: Boolean;

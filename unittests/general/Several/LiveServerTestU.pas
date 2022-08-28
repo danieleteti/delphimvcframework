@@ -120,6 +120,10 @@ type
     [Test]
     procedure TestRenderWrappedList;
     [Test]
+    procedure TestObjectDictIgnoredFields;
+    [Test]
+    procedure TestObjectDictIgnoredFieldsWithDataSets;
+    [Test]
     procedure TestRenderActionInCollections;
     [Test]
     procedure TestRenderWrappedListWithCompression;
@@ -1610,17 +1614,89 @@ begin
   end;
 end;
 
-// procedure TServerTest.TestPATCHWithParamsAndJSONBody;
-// var
-// r: IMVCRESTResponse;
-// json: TJSONObject;
-// begin
-// json := TJSONObject.Create;
-// json.AddPair('client', 'clientdata');
-// r := RESTClient.doPATCH('/echo', ['1', '2', '3'], json);
-// Assert.AreEqual('clientdata', r.BodyAsJsonObject.Get('client').JsonValue.Value);
-// Assert.AreEqual('from server', r.BodyAsJsonObject.Get('echo').JsonValue.Value);
-// end;
+procedure TServerTest.TestObjectDictIgnoredFields;
+var
+  lRes: IMVCRESTResponse;
+  lJObj: TJsonObject;
+begin
+  lRes := RESTClient
+    .AddQueryStringParam('ignoredfieldscsv','Married')
+    .Get('/ignoredfieldstest');
+
+  lJObj := lRes.ToJSONObject;
+  try
+    Assert.IsFalse(lJObj.O['data'].Contains('married'), 'married exists when should not');
+    Assert.IsTrue(lJObj.O['data'].Contains('dob'), 'dob doesn''t exist when should');
+  finally
+    lJObj.Free;
+  end;
+
+  lRes := RESTClient
+    .AddQueryStringParam('ignoredfieldscsv','DOB')
+    .Get('/ignoredfieldstest');
+
+  lJObj := lRes.ToJSONObject;
+  try
+    Assert.IsTrue(lJObj.O['data'].Contains('married'), 'married doesn''t exist when should');
+    Assert.IsFalse(lJObj.O['data'].Contains('dob'), 'dob exists when should not');
+  finally
+    lJObj.Free;
+  end;
+
+  lRes := RESTClient
+    .AddQueryStringParam('ignoredfieldscsv','DOB,Married')
+    .Get('/ignoredfieldstest');
+
+  lJObj := lRes.ToJSONObject;
+  try
+    Assert.IsFalse(lJObj.O['data'].Contains('married'), 'married exists when should not');
+    Assert.IsFalse(lJObj.O['data'].Contains('dob'), 'dob exists when should not');
+  finally
+    lJObj.Free;
+  end;
+end;
+
+procedure TServerTest.TestObjectDictIgnoredFieldsWithDataSets;
+var
+  lRes: IMVCRESTResponse;
+  lJObj: TJsonObject;
+begin
+  lRes := RESTClient
+    .AddQueryStringParam('ignoredfieldscsv','COUNTRY')
+    .Get('/ignoredfieldstestdataset');
+
+  lJObj := lRes.ToJSONObject;
+  try
+    Assert.IsFalse(lJObj.A['ncCamelCase_List'].Items[0].ObjectValue.Contains('country'),'1');
+    Assert.IsTrue(lJObj.A['ncCamelCase_List'].Items[0].ObjectValue.Contains('phoneNo'),'2');
+  finally
+    lJObj.Free;
+  end;
+
+  lRes := RESTClient
+    .AddQueryStringParam('ignoredfieldscsv','PHONE_NO')
+    .Get('/ignoredfieldstestdataset');
+
+  lJObj := lRes.ToJSONObject;
+  try
+    Assert.IsTrue(lJObj.A['ncCamelCase_List'].Items[0].ObjectValue.Contains('country'),'3');
+    Assert.IsFalse(lJObj.A['ncCamelCase_List'].Items[0].ObjectValue.Contains('phoneNo'),'4');
+  finally
+    lJObj.Free;
+  end;
+
+  lRes := RESTClient
+    .AddQueryStringParam('ignoredfieldscsv','COUNTRY,PHONE_NO')
+    .Get('/ignoredfieldstestdataset');
+
+  lJObj := lRes.ToJSONObject;
+  try
+    Assert.IsFalse(lJObj.A['ncCamelCase_List'].Items[0].ObjectValue.Contains('country'),'5');
+    Assert.IsFalse(lJObj.A['ncCamelCase_List'].Items[0].ObjectValue.Contains('phoneNo'),'6');
+  finally
+    lJObj.Free;
+  end;
+end;
 
 procedure TServerTest.TestPostAListOfObjects;
 var

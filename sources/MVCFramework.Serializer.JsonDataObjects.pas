@@ -116,7 +116,7 @@ type
       const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks;
       const Serializer: IMVCTypeSerializer);
     function ConvertObjectToJsonValue(const AObject: TObject; const AType: TMVCSerializationType;
-      const AIgnoredAttributes: TMVCIgnoredList;
+      const AIgnoredFields: TMVCIgnoredList;
       const ADataSetSerializationCallback: TMVCDataSetFieldSerializationAction;
       const ASerializationAction: TMVCSerializationAction; out AJsonDataType: TJsonDataType): TJsonBaseObject;
     function ConvertRecordToJsonValue(const ARecord: Pointer; const ARecordTypeInfo: PTypeInfo;
@@ -653,7 +653,7 @@ begin
 end;
 
 function TMVCJsonDataObjectsSerializer.ConvertObjectToJsonValue(const AObject: TObject;
-  const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
+  const AType: TMVCSerializationType; const AIgnoredFields: TMVCIgnoredList;
   const ADataSetSerializationCallback: TMVCDataSetFieldSerializationAction;
   const ASerializationAction: TMVCSerializationAction; out AJsonDataType: TJsonDataType): TJsonBaseObject;
 var
@@ -703,7 +703,7 @@ begin
             lObj := lValue.AsObject; // ChildList.GetItem(I);
             if Assigned(lObj) then
             begin
-              lJSONValue := ConvertObjectToJsonValue(lObj, GetSerializationType(lObj, AType), AIgnoredAttributes, nil,
+              lJSONValue := ConvertObjectToJsonValue(lObj, GetSerializationType(lObj, AType), AIgnoredFields, nil,
                 ASerializationAction, lJsonDataType);
               case lJsonDataType of
                 jdtObject:
@@ -737,7 +737,7 @@ begin
         AJsonDataType := jdtObject;
         lLinks := TMVCLinks.Create;
         InternalObjectToJsonObject(AObject, TJsonObject(Result), GetSerializationType(AObject, AType),
-          AIgnoredAttributes, ASerializationAction, lLinks, nil);
+          AIgnoredFields, ASerializationAction, lLinks, nil);
       end;
     end;
   except
@@ -2682,9 +2682,14 @@ begin
   InternalObjectToJsonObject(AObject, AJSONObject, AType, AIgnoredAttributes, nil, nil, nil);
 end;
 
-procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(const AObject: TObject;
-  const AJSONObject: TJDOJsonObject; const AType: TMVCSerializationType; const AIgnoredAttributes: TMVCIgnoredList;
-  const ASerializationAction: TMVCSerializationAction; const Links: IMVCLinks; const Serializer: IMVCTypeSerializer);
+procedure TMVCJsonDataObjectsSerializer.InternalObjectToJsonObject(
+  const AObject: TObject;
+  const AJSONObject: TJDOJsonObject;
+  const AType: TMVCSerializationType;
+  const AIgnoredAttributes: TMVCIgnoredList;
+  const ASerializationAction: TMVCSerializationAction;
+  const Links: IMVCLinks;
+  const Serializer: IMVCTypeSerializer);
 var
   ObjType: TRttiType;
   Prop: TRttiProperty;

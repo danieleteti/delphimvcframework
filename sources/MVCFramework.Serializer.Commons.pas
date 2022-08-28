@@ -313,11 +313,13 @@ type
   IMVCObjectDictionary = interface
     ['{B54F02EE-4B3B-4E55-9E6B-FB6CFE746028}']
     function Add(const Name: string; const Value: TObject;
-      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
+      const SerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
       const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
-      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -340,19 +342,23 @@ type
       fDataSetSerializationAction: TMVCDataSetSerializationAction;
       fDataSetFieldNameCase: TMVCNameCase;
       fDataSetSerializationType: TMVCDatasetSerializationType;
+      fIgnoredFields: TMVCIgnoredList;
     public
       constructor Create(const Owns: Boolean; const Data: TObject;
-        const SerializationAction: TMVCSerializationAction); overload;
+        const SerializationAction: TMVCSerializationAction;
+        const AIgnoredFields: TMVCIgnoredList = nil); overload;
       constructor Create(const Owns: Boolean; const Data: TDataset;
         const SerializationAction: TMVCDataSetSerializationAction;
         const DataSetSerializationType: TMVCDatasetSerializationType;
-        const NameCase: TMVCNameCase); overload;
+        const NameCase: TMVCNameCase;
+        const AIgnoredFields: TMVCIgnoredList = nil); overload;
       destructor Destroy; override;
       property Data: TObject read fData;
       property SerializationAction: TMVCSerializationAction read fSerializationAction;
       property DataSetSerializationAction: TMVCDataSetSerializationAction
         read fDataSetSerializationAction;
       property DataSetFieldNameCase: TMVCNameCase read fDataSetFieldNameCase;
+      property IgnoredFields: TMVCIgnoredList read fIgnoredFields;
       property DataSetSerializationType: TMVCDatasetSerializationType
         read fDataSetSerializationType;
     end;
@@ -369,11 +375,13 @@ type
     destructor Destroy; override;
     procedure Clear;
     function Add(const Name: string; const Value: TObject;
-      const SerializationAction: TMVCSerializationAction = nil): IMVCObjectDictionary; overload;
+      const SerializationAction: TMVCSerializationAction = nil;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function Add(const Name: string; const Value: TDataset;
       const SerializationAction: TMVCDataSetSerializationAction = nil;
       const DataSetSerializationType: TMVCDatasetSerializationType = dstAllRecords;
-      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase): IMVCObjectDictionary; overload;
+      const NameCase: TMVCNameCase = TMVCNameCase.ncLowerCase;
+      const AIgnoredFields: TMVCIgnoredList = nil): IMVCObjectDictionary; overload;
     function TryGetValue(const Name: string; out Value: TObject): Boolean; overload;
     function Count: Integer;
     function ContainsKey(const Key: string): Boolean;
@@ -1731,20 +1739,33 @@ end;
 { TMVCObjectDictionary }
 
 function TMVCObjectDictionary.Add(const Name: string; const Value: TObject;
-const SerializationAction: TMVCSerializationAction): IMVCObjectDictionary;
+  const SerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList): IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value,
-    SerializationAction));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(
+    fOwnsValueItemData,
+    Value,
+    SerializationAction,
+    AIgnoredFields
+    ));
   Result := Self;
 end;
 
-function TMVCObjectDictionary.Add(const Name: string; const Value: TDataset;
-const SerializationAction: TMVCDataSetSerializationAction;
-const DataSetSerializationType: TMVCDatasetSerializationType; const NameCase: TMVCNameCase)
-  : IMVCObjectDictionary;
+function TMVCObjectDictionary.Add(
+  const Name: string;
+  const Value: TDataset;
+  const SerializationAction: TMVCDataSetSerializationAction;
+  const DataSetSerializationType: TMVCDatasetSerializationType;
+  const NameCase: TMVCNameCase;
+  const AIgnoredFields: TMVCIgnoredList): IMVCObjectDictionary;
 begin
-  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(fOwnsValueItemData, Value,
-    SerializationAction, DataSetSerializationType, NameCase));
+  fDict.Add(name, TMVCObjectDictionaryValueItem.Create(
+    fOwnsValueItemData,
+    Value,
+    SerializationAction,
+    DataSetSerializationType,
+    NameCase,
+    AIgnoredFields));
   Result := Self;
 end;
 
@@ -1804,21 +1825,29 @@ end;
 
 { TMVCObjectDictionary.TMVCObjectDictionaryValueItem }
 
-constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(const Owns: Boolean;
-const Data: TObject; const SerializationAction: TMVCSerializationAction);
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
+  const Owns: Boolean;
+  const Data: TObject;
+  const SerializationAction: TMVCSerializationAction;
+  const AIgnoredFields: TMVCIgnoredList = nil);
 begin
   inherited Create;
   fOwns := Owns;
   fData := Data;
   fSerializationAction := SerializationAction;
   fDataSetFieldNameCase := ncAsIs; { not used }
+  fIgnoredFields := AIgnoredFields;
 end;
 
-constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(const Owns: Boolean;
-const Data: TDataset; const SerializationAction: TMVCDataSetSerializationAction;
-const DataSetSerializationType: TMVCDatasetSerializationType; const NameCase: TMVCNameCase);
+constructor TMVCObjectDictionary.TMVCObjectDictionaryValueItem.Create(
+  const Owns: Boolean;
+  const Data: TDataset;
+  const SerializationAction: TMVCDataSetSerializationAction;
+  const DataSetSerializationType: TMVCDatasetSerializationType;
+  const NameCase: TMVCNameCase;
+  const AIgnoredFields: TMVCIgnoredList = nil);
 begin
-  Create(Owns, Data, nil);
+  Create(Owns, Data, nil, AIgnoredFields);
   fDataSetFieldNameCase := NameCase;
   fDataSetSerializationType := DataSetSerializationType;
   fDataSetSerializationAction := SerializationAction;
