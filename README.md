@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
 ![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.2.1--carbon-blue)
-![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.2.2--nitrogen-red)  
+![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.2.2--nitrogen--beta-red)  
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
