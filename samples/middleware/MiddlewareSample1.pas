@@ -8,22 +8,20 @@ uses
 type
   TMVCSalutationMiddleware = class(TInterfacedObject, IMVCMiddleware)
   protected
-    procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
-      const Handled: Boolean);
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
-    procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+    procedure OnAfterRouting(Context: TWebContext; const AHandled: Boolean);
+    procedure OnAfterControllerAction(Context: TWebContext; const AControllerQualifiedClassName: string; const AActionName: string; const AHandled: Boolean);
   end;
 
   TMVCRedirectAndroidDeviceOnPlayStore = class(TInterfacedObject, IMVCMiddleware)
   protected
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
-    procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
-      const Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+    procedure OnAfterControllerAction(AContext: TWebContext; const AControllerQualifiedClassName: string; const AActionName: string; const AHandled: Boolean);
   end;
 
 implementation
@@ -33,15 +31,17 @@ uses
 
 { TMVCSalutationMiddleware }
 
-procedure TMVCSalutationMiddleware.OnAfterControllerAction(Context: TWebContext;
-  const AActionNAme: string; const Handled: Boolean);
+procedure TMVCSalutationMiddleware.OnAfterControllerAction(
+  Context: TWebContext; const AControllerQualifiedClassName: string;
+  const AActionName: string; const AHandled: Boolean);
 begin
   Context.Response.CustomHeaders.Values['X-PROUD-HEADER'] :=
     'Proudly served by DelphiMVCFramework (https://github.com/danieleteti/delphimvcframework)';
 end;
 
-procedure TMVCRedirectAndroidDeviceOnPlayStore.OnAfterControllerAction(Context: TWebContext;
-  const AActionNAme: string; const Handled: Boolean);
+procedure TMVCRedirectAndroidDeviceOnPlayStore.OnAfterControllerAction(
+  AContext: TWebContext; const AControllerQualifiedClassName: string;
+  const AActionName: string; const AHandled: Boolean);
 begin
   // do nothing
 end;
@@ -70,7 +70,7 @@ begin
   end;
 end;
 
-procedure TMVCSalutationMiddleware.OnAfterRouting(AContext: TWebContext; const AHandled: Boolean);
+procedure TMVCSalutationMiddleware.OnAfterRouting(Context: TWebContext; const AHandled: Boolean);
 begin
   // do nothing
 end;

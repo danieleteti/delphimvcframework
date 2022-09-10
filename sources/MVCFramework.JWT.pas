@@ -583,11 +583,10 @@ var
   lAlgName: string;
 begin
   Result := False;
-  Error := '';
+  Error := 'Invalid Token';
   lPieces := Token.Split(['.']);
   if Length(lPieces) <> 3 then
   begin
-    Error := 'Invalid Token';
     Exit(False);
   end;
 
@@ -595,7 +594,6 @@ begin
   try
     if not Assigned(Header) then
     begin
-      Error := 'Invalid Token';
       Exit(False);
     end;
 
@@ -603,13 +601,11 @@ begin
     try
       if not Assigned(Payload) then
       begin
-        Error := 'Invalid Token';
         Exit(False);
       end;
 
       if not Header.Contains('alg') then
       begin
-        Error := 'Invalid Token';
         Exit(False);
       end;
 
@@ -647,7 +643,7 @@ begin
           end;
         end;
       end;
-
+      Error := '';
     finally
       if not Result then
         FreeAndNil(Payload);

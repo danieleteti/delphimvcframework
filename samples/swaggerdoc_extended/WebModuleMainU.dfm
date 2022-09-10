@@ -4,5 +4,4 @@ object WebModule1: TWebModule1
   Actions = <>
   Height = 230
   Width = 415
-  PixelsPerInch = 96
 end

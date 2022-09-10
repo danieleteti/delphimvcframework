@@ -9,6 +9,9 @@
         <Projects Include="CustomRoleAuthClient.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -35,14 +38,23 @@
     <Target Name="CustomRoleAuthClient:Make">
         <MSBuild Projects="CustomRoleAuthClient.dproj" Targets="Make"/>
     </Target>
+    <Target Name="JWTRoleAuthServer">
+        <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer:Clean">
+        <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="JWTRoleAuthServer:Make">
+        <MSBuild Projects="..\jsonwebtoken_roleauth\JWTRoleAuthServer.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="CustomRoleAuthServer;CustomRoleAuthClient"/>
+        <CallTarget Targets="CustomRoleAuthServer;CustomRoleAuthClient;JWTRoleAuthServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="CustomRoleAuthServer:Clean;CustomRoleAuthClient:Clean"/>
+        <CallTarget Targets="CustomRoleAuthServer:Clean;CustomRoleAuthClient:Clean;JWTRoleAuthServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="CustomRoleAuthServer:Make;CustomRoleAuthClient:Make"/>
+        <CallTarget Targets="CustomRoleAuthServer:Make;CustomRoleAuthClient:Make;JWTRoleAuthServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

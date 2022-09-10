@@ -39,12 +39,11 @@ type
     fRedirectToURL: string;
     fRequestedPathInfos: TArray<String>;
   protected
-    procedure OnAfterControllerAction(Context: TWebContext; const AActionNAme: string;
-      const Handled: Boolean);
     procedure OnBeforeRouting(Context: TWebContext; var Handled: Boolean);
     procedure OnBeforeControllerAction(Context: TWebContext;
       const AControllerQualifiedClassName: string; const AActionNAme: string; var Handled: Boolean);
     procedure OnAfterRouting(Context: TWebContext; const AHandled: Boolean);
+    procedure OnAfterControllerAction(Context: TWebContext; const AControllerQualifiedClassName: string; const AActionName: string; const AHandled: Boolean);
   public
     constructor Create(
       const RequestedPathInfos: TArray<String>;
@@ -66,8 +65,9 @@ begin
   fRedirectToURL := RedirectToURL;
 end;
 
-procedure TMVCRedirectMiddleware.OnAfterControllerAction(Context: TWebContext;
-  const AActionNAme: string; const Handled: Boolean);
+procedure TMVCRedirectMiddleware.OnAfterControllerAction(
+  Context: TWebContext; const AControllerQualifiedClassName: string;
+  const AActionName: string; const AHandled: Boolean);
 begin
 end;
 

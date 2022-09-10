@@ -84,20 +84,10 @@ type
       const AHandled: Boolean); virtual;
     procedure OnAfterRouting(AContext: TWebContext; const AHandled: Boolean); virtual;
   public
-    /// <remarks>
-    /// WARNING! The AAuthorizationHeaderName, AUserNameHeaderName, and APasswordHeaderName parameters do not follow
-    /// the IETF national convention - RFC 6750;
-    /// Please use the other constructor!
-    /// </remarks>
-    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; AConfigClaims: TJWTClaimsSetup;
-      ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300;
-      AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
-      AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
-      APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER); overload; virtual;
-      deprecated 'Issue #244: IETF (RFC-6750) - This constructor will be removed soon, please use the new one';
-    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler; ASecret: string = 'D3lph1MVCFram3w0rk';
-      ALoginURLSegment: string = '/login'; AConfigClaims: TJWTClaimsSetup = nil;
+    constructor Create(AAuthenticationHandler: IMVCAuthenticationHandler;
+      AConfigClaims: TJWTClaimsSetup;
+      ASecret: string = 'D3lph1MVCFram3w0rk';
+      ALoginURLSegment: string = '/login';
       AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300); overload; virtual;
     property AuthorizationHeaderName: string read FAuthorizationHeaderName;
     property UserNameHeaderName: string read FUserNameHeaderName;
@@ -153,27 +143,11 @@ uses
 
 { TMVCJWTAuthenticationMiddleware }
 
-constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  AConfigClaims: TJWTClaimsSetup; ASecret: string = 'D3lph1MVCFram3w0rk'; ALoginURLSegment: string = '/login';
-  AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300;
-  AAuthorizationHeaderName: string = TMVCJWTDefaults.AUTHORIZATION_HEADER;
-  AUserNameHeaderName: string = TMVCJWTDefaults.USERNAME_HEADER;
-  APasswordHeaderName: string = TMVCJWTDefaults.PASSWORD_HEADER);
-begin
-  inherited Create;
-  FAuthenticationHandler := AAuthenticationHandler;
-  FSetupJWTClaims := AConfigClaims;
-  FClaimsToChecks := AClaimsToCheck;
-  FSecret := ASecret;
-  FLoginURLSegment := ALoginURLSegment;
-  FLeewaySeconds := ALeewaySeconds;
-  FAuthorizationHeaderName := AAuthorizationHeaderName;
-  FUserNameHeaderName := AUserNameHeaderName;
-  FPasswordHeaderName := APasswordHeaderName;
-end;
-
-constructor TMVCJWTAuthenticationMiddleware.Create(AAuthenticationHandler: IMVCAuthenticationHandler;
-  ASecret, ALoginURLSegment: string; AConfigClaims: TJWTClaimsSetup; AClaimsToCheck: TJWTCheckableClaims;
+constructor TMVCJWTAuthenticationMiddleware.Create(
+  AAuthenticationHandler: IMVCAuthenticationHandler;
+  AConfigClaims: TJWTClaimsSetup;
+  ASecret, ALoginURLSegment: string;
+  AClaimsToCheck: TJWTCheckableClaims;
   ALeewaySeconds: Cardinal);
 begin
   inherited Create;

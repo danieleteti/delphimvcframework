@@ -78,9 +78,9 @@ begin
 
   FEngine.AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
     TAuthHandler.Create,
+    LClaimsSetup,
     'D3lph1MVCFram3w0rk',
     '/api/login',
-    LClaimsSetup,
     [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt]
     ));
   FEngine.AddMiddleware(TMVCStaticFilesMiddleware.Create(

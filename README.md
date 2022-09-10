@@ -751,6 +751,14 @@ The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edg
 
 - Samples are syntax compatible with Delphi 10.1 Berlin or better (Thanks to Mark Lobanov)
 
+- Fix https://github.com/danieleteti/delphimvcframework/issues/573 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/574 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
+
+### Breaking Changes in 3.2.2-nitrogen
+
+- Removed deprecated constructor for `TMVCJWTAuthenticationMiddleware` - was deprecated since 2019. Just use the other one as suggested.
+- Changed signature of method `IMVCMiddleware.OnAfterControllerAction`
 
 ## Older Releases
 
