@@ -35,7 +35,8 @@ uses
   MVCFramework,
   MVCFramework.Commons,
   MVCFramework.JWT,
-  JsonDataObjects;
+  JsonDataObjects,
+  MVCFramework.HMAC;
 
 type
   TMVCJWTDefaults = class sealed
@@ -71,6 +72,7 @@ type
     FAuthorizationHeaderName: string;
     FUserNameHeaderName: string;
     FPasswordHeaderName: string;
+    FHMACAlgorithm: String;
   protected
     function NeedsToBeExtended(const JWTValue: TJWT): Boolean;
     procedure ExtendExpirationTime(const JWTValue: TJWT);
@@ -88,7 +90,9 @@ type
       AConfigClaims: TJWTClaimsSetup;
       ASecret: string = 'D3lph1MVCFram3w0rk';
       ALoginURLSegment: string = '/login';
-      AClaimsToCheck: TJWTCheckableClaims = []; ALeewaySeconds: Cardinal = 300); overload; virtual;
+      AClaimsToCheck: TJWTCheckableClaims = [];
+      ALeewaySeconds: Cardinal = 300;
+      AHMACAlgorithm: String = HMAC_HS512); overload; virtual;
     property AuthorizationHeaderName: string read FAuthorizationHeaderName;
     property UserNameHeaderName: string read FUserNameHeaderName;
     property PasswordHeaderName: string read FPasswordHeaderName;
@@ -148,7 +152,9 @@ constructor TMVCJWTAuthenticationMiddleware.Create(
   AConfigClaims: TJWTClaimsSetup;
   ASecret, ALoginURLSegment: string;
   AClaimsToCheck: TJWTCheckableClaims;
-  ALeewaySeconds: Cardinal);
+  ALeewaySeconds: Cardinal;
+  AHMACAlgorithm: String
+  );
 begin
   inherited Create;
   FAuthenticationHandler := AAuthenticationHandler;
@@ -160,6 +166,7 @@ begin
   FAuthorizationHeaderName := TMVCJWTDefaults.AUTHORIZATION_HEADER;
   FUserNameHeaderName := TMVCJWTDefaults.USERNAME_HEADER;
   FPasswordHeaderName := TMVCJWTDefaults.PASSWORD_HEADER;
+  FHMACAlgorithm := AHMACAlgorithm;
 end;
 
 procedure TMVCJWTAuthenticationMiddleware.ExtendExpirationTime(const JWTValue: TJWT);

@@ -34,6 +34,7 @@ uses
   AuthenticationU,
   MVCFramework.Middleware.JWT,
   MVCFramework.JWT,
+  MVCFramework.HMAC,
   MVCFramework.Middleware.StaticFiles,
   System.DateUtils;
 
@@ -64,14 +65,15 @@ begin
     .AddController(TApp1MainController)
     .AddController(TAdminController)
     .AddMiddleware(TMVCJWTAuthenticationMiddleware.Create(
-      TAuthenticationSample.Create, lClaimsSetup, 'mys3cr37', '/login',
-      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt], 0
+      TAuthenticationSample.Create,
+      lClaimsSetup,
+      'mys3cr37',
+      '/login',
+      [TJWTCheckableClaim.ExpirationTime, TJWTCheckableClaim.NotBefore, TJWTCheckableClaim.IssuedAt],
+      0,
+      HMAC_HS512
     // just for test, Leeway seconds is zero.
     ));
-//    .AddMiddleware(TMVCStaticFilesMiddleware.Create(
-//    '/static', { StaticFilesPath }
-//    '..\..\www' { DocumentRoot }
-//    ));
 end;
 
 end.
