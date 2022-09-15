@@ -22,7 +22,6 @@
   - [Next Release: 3.2.2-nitrogen ("repo" version)](#next-release-322-nitrogen-repo-version)
     - [What's new in 3.2.2-nitrogen (currently in beta)](#whats-new-in-322-nitrogen-currently-in-beta)
     - [Bug Fixes in 3.2.2-nitrogen](#bug-fixes-in-322-nitrogen)
-    - [Breaking Changes in 3.2.2-nitrogen](#breaking-changes-in-322-nitrogen)
   - [Older Releases](#older-releases)
     - [What's New in 3.2.0-boron](#whats-new-in-320-boron)
       - [Breaking Changes in 3.2.0-boron](#breaking-changes-in-320-boron)
@@ -54,7 +53,7 @@
 
 DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
-DMVCFramework works with Delphi 11.x Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
+DMVCFramework works with Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
 ## Support DMVCFramework
 
@@ -207,6 +206,10 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 > "Thank you for the great framework! We are very happy with this!" -- Andreas
 
 > "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
+
+## Next Release: 3.2.3-radium-beta ("repo" version)
+
+The current beta release is named 3.2.3-radium-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
 
 ## What's new in DelphiMVCFramework-3.2.2-nitrogen
 
@@ -438,7 +441,7 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 - ✅ Improved! Ignored fields handling now is much better in renders method and in `ObjDict` as well. See [issue 528](https://github.com/danieleteti/delphimvcframework/issues/528).
 
 
-### Bug Fixes
+### Bug Fixes in 3.2.2-nitrogen
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/484 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
 
@@ -502,22 +505,18 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 - Fix https://github.com/danieleteti/delphimvcframework/issues/574 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
 
-### Breaking Changes
+### Breaking Changes in 3.2.2-nitrogen
 
 - Removed deprecated constructor for `TMVCJWTAuthenticationMiddleware` - was deprecated since 2019. Just use the other one as suggested.
 - Changed signature of method `IMVCMiddleware.OnAfterControllerAction`
-
-
-
-## Next Release: 3.2.3-radium-beta ("repo" version)
-
-The current beta release is named 3.2.3-radium-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
 
 ## What's New in DelphiMVCFramework 3.2.1-carbon
 
 > This version is the version referenced by the [DelphiMVCFramework - The Official Guide](http://www.danieleteti.it/books/) book (available in english, portuguese and spanish). 
 
 This version introduced new features in many different areas (swagger, server side view, MVCActiveRecord, renders etc.) however there is no a single-big-feature. This version contains also a good number of bugfixes. It's not a critical updated, but this is the *best version ever* (at least, so far...) and is the suggested version for starting new projects. Enjoy!
+
+### Improvements
 
 - [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
 
@@ -761,7 +760,9 @@ This version introduced new features in many different areas (swagger, server si
 
   Check [all the issues closed in this release](https://github.com/danieleteti/delphimvcframework/issues?q=+is%3Aissue+milestone%3A3.2.1-carbon).
 
-## What's New in 3.2.0-boron
+## Older Releases
+
+### What's New in 3.2.0-boron
 
 - New! Support for Delphi 10.4 Sydney!
 
@@ -1366,9 +1367,7 @@ end;
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
-
-
-## What's New in 3.1.0-lithium
+### What's New in 3.1.0-lithium
 
 - `TMVCActiveRecord` framework
 - `TMVCActiveRecordController`  with automatic RESTful interface generation and permissions handling
@@ -1385,23 +1384,21 @@ end;
 - `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even data modules) through a JSON-RPC 2.0 interface!
 - *Breaking Change!* The JSON RPC Client layer is now interface based.
 
-
-
-## What's New in 3.0.0-hydrogen
+### What's New in 3.0.0-hydrogen
 
   - First release of the 3.0.0 version
 
-## What's New in 2.1.3-lithium
+### What's New in 2.1.3-lithium
 
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions
 
-## What's New in 2.1.2-helium
+### What's New in 2.1.2-helium
 
   - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
   - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
 
-## What's New in 2.1.1-hydrogen
+### What's New in 2.1.1-hydrogen
 
   - Updated the IDE Expert to show the current version of the framework
   - FIX to the mapper about the datasets null values (needs to be checked in old Delphi versions)
@@ -1431,9 +1428,9 @@ DMVCFramework allows to create powerful RESTful servers without effort. You can 
 
 - Unzip it the release zip in a folder named `C:\dmvc` (or where you prefer).
 
-- Launch RAD Studio and open `C:\dmvc\packages\d112\dmvcframework_group.groupproj`
+- Launch RAD Studio and open `C:\dmvc\packages\d104\dmvcframework_group.groupproj`
 
-  > WARNING! In the last path shown "d112" is for Delphi 10.2 Alexandria. Use the correct package for your Delphi version.
+  > WARNING! In the last path shown "d104" is for Delphi 10.4 Sydney. Use the correct package for your Delphi version.
 
 - Install the package and close all
 
