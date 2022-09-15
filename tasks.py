@@ -155,6 +155,15 @@ def copy_sources():
             copy2(
                 rf"packages\{folder}\{file}", g_output_folder + rf"\packages\{folder}"
             )
+    copy2(
+        rf"packages\common_contains.inc", g_output_folder + rf"\packages"
+    )
+    copy2(
+        rf"packages\common_defines.inc", g_output_folder + rf"\packages"
+    )
+    copy2(
+        rf"packages\common_defines_design.inc", g_output_folder + rf"\packages"
+    )
 
 
 def copy_libs(ctx):

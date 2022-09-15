@@ -1,7 +1,7 @@
 # DelphiMVCFramework ![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg) ![GitHub All Releases](https://img.shields.io/github/downloads/danieleteti/delphimvcframework/total?label=Downloads)
 
-![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.2.1--carbon-blue)
-![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.2.2--nitrogen--beta-red)  
+![](https://img.shields.io/badge/Current%20Version-dmvcframework--3.2.2--nitrogen-blue)
+![](https://img.shields.io/badge/Beta%20Version-dmvcframework--3.2.3--radium--beta-red)  
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -53,7 +53,7 @@
 
 DMVCFramework is a very popular Delphi framework which provides an easy to use, scalable, flexible [RESTful](https://en.wikipedia.org/wiki/Representational_state_transfer), [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) and [ActiveRecord](https://www.martinfowler.com/eaaCatalog/activeRecord.html) framework for Delphi developers. DMVCFramework is the **most popular** Delphi project on GitHub and compiles for Windows (32 and 64bit) and Linux (64bit). DMVCFramework services can be compiled as console application,  Windows Service, Linux daemon, Apache module (Windows and Linux) and IIS ISAPI (Windows).
 
-DMVCFramework works with Delphi 11 Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
+DMVCFramework works with Delphi 11.x Alexandria, Delphi 10.4 Sydney, Delphi 10.3 Rio, Delphi 10.2 Tokyo, Delphi 10.1 Berlin,  Delphi 10 Seattle.
 
 ## Support DMVCFramework
 
@@ -128,7 +128,7 @@ Are you using DMVCFramework? Do you want to say "Thanks"? <a href="https://www.p
 
 > If you are not involved in development or testing, do not clone the repo! Use the Github release!
 
-The last stable version is **dmvcframework-3.2.1-carbon** available [here 📥](https://github.com/danieleteti/delphimvcframework/releases/latest). Just download latest release as a zip file and you are ok. The samples are availables as separate zip file downloadable from the same page where you download the release.
+The last stable version is **dmvcframework-3.2.2-nitrogen** available [here 📥](https://github.com/danieleteti/delphimvcframework/releases/latest). Just download latest release as a zip file and you are ok. The samples are availables as separate zip file downloadable from the same page where you download the release.
 
 ## Book: "DelphiMVCFramework - the official guide"
 
@@ -207,13 +207,316 @@ Congratulations to Daniele Teti and all the staff for the excellent work!" -- Ma
 
 > "Our wishes are coming true" -- one Delphi programmer after a small dmvcframework demo for an IT department of a very important national research institute
 
+## What's new in DelphiMVCFramework-3.2.2-nitrogen
+
+- ⚡New! Support for Delphi 11.x Alexandria
+
+- ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
+
+- ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON-RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
+
+- ⚡New! eLua server side view support added! The View engine requires Lua's dlls so it is not included in the main package but in a sampl project. Check `serversideviews_lua` sample. 
+
+- ✅ Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
+
+- ✅ Improved internal architecture of custom type serializers in case of dynamic linked packages.
+
+- ✅ Improved Swagger/OpenAPI support for System Controllers and improved support for param models.
+
+- ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
+
+- ⚡New `TMVCRedirectMiddleware` to handle HTTP redirections in a very simple and flexible way.
+
+- ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
+
+- ⚡New `OnContextCreate` and `OnContextDetroyed` events for `TMVCEngine`. 
+
+- ⚡New! Added parameter `RootNode` in `BodyFor`<T> and `BodyForListOf<T>` methods, just like the `BodyAs*` methods.
+
+- ⚡New! Added `NullableTGUID` in `MVCFramework.Nullables.pas`.
+
+- ⚡New `property CustomIntfObject: IInterface` in `TWebContext`. This property can be used to inject custom services factory. 
+
+    ```delphi
+    procedure TMyWebModule.WebModuleCreate(Sender: TObject);
+    begin
+      FMVC := TMVCEngine.Create(Self,
+        procedure(Config: TMVCConfig)
+        begin
+          //configuration code
+        end);
+      FMVC.AddController(TMyController);
+      FMVC.OnWebContextCreate(
+        procedure(const CTX: TWebContext)
+        begin
+          CTX.CustomIntfObject := TServicesFactory.Create; //implements an interface
+        end);
+      FMVC.OnWebContextDestroy(
+        procedure(const CTX: TWebContext)
+        begin
+          //do nothing here
+        end);
+    end;
+    ```
+
+- ✅ Added parameter to set local timeStamp as UTC.
+
+- ✅ Improved OpenAPI (Swagger) support.
+
+- ✅ Improved Support for OpenAPI (Swagger) API Versioning (check `swagger_api_versioning_primer` sample)
+
+- ✅ Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
+
+- ✅ Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
+
+- ✅ Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
+
+- ✅ Improved Nullable Types. Now it's possible to assign `nil` to a nullable type and to check its state using the new property `IsNull` which is the negation of the already available property `HasValue`.
+
+- ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the documetn web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
+
+- ✅ Improved! In case of multiple MVCPath, Swagger consider only the first one (Thanks to V. Ferri and our sponsors)
+
+- ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
+
+- ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
+
+- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ⚡ New! Serialization and Deserialization for Pascal `set` (Thanks to [rshuck](https://github.com/rshuck) for his suggestions)
+
+- ⚡ New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
+
+- ✅ Dramatically improved all "JSON-To-DataSet" operations (1 order of magnitude c.a.). Thanks to [MPannier](https://github.com/MPannier) and [David Moorhouse](https://github.com/fastbike) for their detailed analysis - More info [here](https://github.com/danieleteti/delphimvcframework/issues/553).
+
+- ✅ Improved! After a big refactoring (*"I love to delete code" -- cit. Daniele Teti*), support a new SQLGenerator is just 2 (two) methods away! Just as example, this is the current version of `TMVCSQLGeneratorPostgreSQL`
+
+    ```delphi
+    type
+      TMVCSQLGeneratorPostgreSQL = class(TMVCSQLGenerator)
+      protected
+        function GetCompilerClass: TRQLCompilerClass; override;
+      public
+        function CreateInsertSQL(
+          const TableName: string;
+          const Map: TFieldsMap;
+          const PKFieldName: string;
+          const PKOptions: TMVCActiveRecordFieldOptions): string; override;
+        function GetSequenceValueSQL(const PKFieldName: string;
+          const SequenceName: string;
+          const Step: Integer = 1): string; override;
+      end;
+    ```
+
+    
+
+- ⚡ New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
+
+- ⚡ New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.
+
+- ✅ Improved! `Context.Data` property is now created on-demand using a lazy loading approach (expect an overall speed improvement).
+
+- ✅ Added `LogException` function in `MVCFramework.Logger.pas` to easily log exception in standard way.
+
+- ✅ Improved `MVCAREntitiesGenerator` project - now it can better handle border cases, field names which collide with Delphi keywords and a big number of tables.
+
+- ✅ Improved error handling for JSON-RPC APIs (Thanks to [David Moorhouse](https://github.com/fastbike)). More info [here](https://github.com/danieleteti/delphimvcframework/issues/538).
+
+- ✅ Improved parameter handling for enum and set in JSON-RPC APIs.
+
+- ⚡ New! Added `ActiveRecordConnectionRegistry.AddDefaultConnection(const aConnetionDefName: String)`. The connection definition **must** be known by FireDAC. This method simplifies the most common scenario shown below.
+
+    ```delphi
+    ActiveRecordConnectionRegistry.AddDefaultConnection('MyConDefName');
+    try
+      //Use active record classes
+    finally
+      ActiveRecordConnectionRegistry.RemoveDefaultConnection;
+    end;
+    ```
+
+- ⚡ New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
+
+- ⚡ New! Added support for primary GUID (UUID) primary keys, attributes and serialization (More info at [issue 552](https://github.com/danieleteti/delphimvcframework/issues/552)). Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto) for its important collaboration.
+
+- ⚡ New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
+
+    > This middleware provides 2 events named: `OnAcceptToken` (invoked when a request contains a token - need to returns true/false if the token is still accepted by the server or not) and  `OnNewJWTToBlackList` (invoked when a client ask to blacklist its current token). There is a new sample available which shows the funtionalities: `samples\middleware_jwtblacklist`.
+
+- ⚡New! `MVCFromBody` attribute, useful to automatically inject the request body as actual object in the action paramaters. For instance in the following action the body request is automatically deserialized as an object of class TPerson.
+
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpPOST])]
+    [MVCPath('/people')]
+    procedure CreatePerson(const [MVCFromBody] Person: TPerson);
+    
+    //implementation
+    procedure TRenderSampleController.CreatePerson(const Person: TPerson);
+    begin
+      //here you can directly use Person without call Context.Request.BodyAs<TPerson>
+      //the Person object lifecycle is automatically handled by dmvcframework, so don't destroy      
+      //If the request body doesn't exist (or cannot be deserialized) an exception is raised.      
+    end;
+    ```
+    MVCFromBody can be used also with "Collection Like" data structures.
+    //interface
+    ```delphi
+    [MVCDoc('Creates new articles from a list and returns "201: Created"')]
+    [MVCPath('/bulk')]
+    [MVCHTTPMethod([httpPOST])]
+    procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
+    
+    //implementation
+    procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
+    var
+      lArticle: TArticle;
+    begin
+      for lArticle in ArticleList do
+      begin
+        GetArticlesService.Add(lArticle);
+      end;
+      Render(201, 'Articles Created');
+    end;    
+    ```
+
+- ⚡New! `MVCFromQueryString` attribute, useful to automatically inject a query string paramater an action paramater. For instance in the following action the query string params `fromDate` is automatically deserialized as a `TDate` value and injected in the action.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/invoices')]
+    procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate);
+    
+    //implementation
+    procedure TRenderSampleController.GetInvoices(const FromDate: TDate);
+    begin
+      //here FromDate is a valid TDate value deserialized from the querystring paramater
+      //named fromDate. 
+      //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
+    end;
+    ```
+
+- ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/invoices')]
+    procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate; const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String);
+    
+    //implementation
+    procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String);
+    begin
+      //here XMyCoolHeader is a string read from the "X-MY-COOL-HEADER' request header.
+      //If the header doesn't exist (or cannot be deserialized) an exception is raised.
+    end;
+    ```
+
+- ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
+    ```delphi
+    //interface
+    [MVCHTTPMethod([httpGET])]
+    [MVCPath('/invoices')]
+    procedure GetInvoices(
+      const [MVCFromQueryString('fromDate')] FromDate: TDate; 
+      const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String;
+      const [MVCFromCookie('MyCoolCookie')] MyCoolCookie: TDate;
+      );
+    
+    //implementation
+    procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String; const MyCoolCookie: TDate);
+    begin
+      //here MyCoolCookie is a TDate read from "MyCoolCookie' cookie available in the request.
+      //If the cookie doesn't exist (or cannot be deserialized) an exception is raised.
+    end;
+    ```
+	
+- ✅ Improved! While not strictly required nor defined, DMVCFramework supports sending body data for all HTTP VERBS - see https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET	
+
+- ⚡ New! Automated support to avoid "mid-air collisions". New methods `SetETag` and `CheckIfMatch` allows a better security without adding complexity to the controller code - check `avoid_mid_air_collisions_sample.dproj` sample and see  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#avoiding_mid-air_collisions for more info about mid-air collisions.
+
+- ✅ Improved! Ignored fields handling now is much better in renders method and in `ObjDict` as well. See [issue 528](https://github.com/danieleteti/delphimvcframework/issues/528).
+
+
+### Bug Fixes
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/484 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/472 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/470  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/453  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/455  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/461
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/451
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/539
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/560 (thanks to [David Moorhouse](https://github.com/fastbike))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/335 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/564
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/570 (Thanks [Marcos Nielsen](https://github.com/marcosnielsen)) 
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/565
+
+- Merged [PR#543](https://github.com/danieleteti/delphimvcframework/pull/543) (Now the `PathInfo` is trimmed so the router convert this "http://myserver.com/one " to this "http://myserver.com/one")
+
+- Fix for nil objects in lists during serialization
+
+- Fix a very subtle bug in `MaxRecordCount` parameter for RQL based methods in `TMVCActiveRecord`
+
+- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. 
+
+  > WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/489
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/544 (Thanks to [David Moorhouse](https://github.com/fastbike))
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/542 (Thanks to [Lamberto Lodi](https://github.com/llodi-csw) for the hints)
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/485
+
+- Fixed *fileupload* sample
+
+- Fixed an `IFDEF` compatibility problem on mobile platforms (Thanks to Marco Cotroneo)
+
+- Samples are syntax compatible with Delphi 10.1 Berlin or better (Thanks to Mark Lobanov)
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/573 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
+
+- Fix https://github.com/danieleteti/delphimvcframework/issues/574 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
+
+### Breaking Changes
+
+- Removed deprecated constructor for `TMVCJWTAuthenticationMiddleware` - was deprecated since 2019. Just use the other one as suggested.
+- Changed signature of method `IMVCMiddleware.OnAfterControllerAction`
+
+
+
+## Next Release: 3.2.3-radium-beta ("repo" version)
+
+The current beta release is named 3.2.3-radium-beta. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
+
 ## What's New in DelphiMVCFramework 3.2.1-carbon
 
 > This version is the version referenced by the [DelphiMVCFramework - The Official Guide](http://www.danieleteti.it/books/) book (available in english, portuguese and spanish). 
 
 This version introduced new features in many different areas (swagger, server side view, MVCActiveRecord, renders etc.) however there is no a single-big-feature. This version contains also a good number of bugfixes. It's not a critical updated, but this is the *best version ever* (at least, so far...) and is the suggested version for starting new projects. Enjoy!
-
-### Improvements
 
 - [docExpansion parameter for Swagger](https://github.com/danieleteti/delphimvcframework/issues/408)
 
@@ -457,312 +760,7 @@ This version introduced new features in many different areas (swagger, server si
 
   Check [all the issues closed in this release](https://github.com/danieleteti/delphimvcframework/issues?q=+is%3Aissue+milestone%3A3.2.1-carbon).
 
-## Next Release: 3.2.2-nitrogen ("repo" version)
-
-The current beta release is named 3.2.2-nitrogen. If you want to stay on the-edge or just help the testers, clone the repo and start using it. Be warned: it may contains unstable code.
-
-### What's new in 3.2.2-nitrogen (currently in beta)
-
-- ⚡New! Support for Delphi 11.1 Alexandria
-
-- ⚡New `TMVCRESTClient` implementation based on *Net components, the previous one was based on INDY Components (thanks to [João Antônio Duarte](https://github.com/joaoduarte19)).
-
-- ⚡New! `MVCJSONRPCAllowGET` attribute allows a remote JSON-RPC published object, or a specific method, to be called using GET HTTP Verb as well as POST HTTP Verb. POST is always available, GET is available only if explicitly allowed. `IMVCJSONRPCExecutor` allows to specify which HTTP Verb to use when call the server JSON-RPC methods. The default verb can be injected in the constructor and each `ExecuteRequest`/`ExecuteNotification` allows to override od adhere to the instance default.
-
-- ⚡New! eLua server side view support added! The View engine requires Lua's dlls so it is not included in the main package but in a sampl project. Check `serversideviews_lua` sample. 
-
-- ✅ Improved! Under some heavy load circumnstances the logger queue can get full. Now `TThreadSafeQueue` class uses a cubic function instead of a linear one to wait in case of very high concurrency. This allows a better resiliency in case of high load.
-
-- ✅ Improved internal architecture of custom type serializers in case of dynamic linked packages.
-
-- ✅ Improved Swagger/OpenAPI support for System Controllers and improved support for param models.
-
-- ⚡New `TMVCLRUCache` implementation. Very efficient implementation of LRU cache borrowed directly from [DMSContainer](http://dmscontainer.bittimeprofessionals.com/)
-
-- ⚡New `TMVCRedirectMiddleware` to handle HTTP redirections in a very simple and flexible way.
-
-- ⚡New! `TMVCActiveRecord` supports XML field type in PostgreSQL (in addition to JSON and JSONB).
-
-- ⚡New `OnContextCreate` and `OnContextDetroyed` events for `TMVCEngine`. 
-
-- ⚡New! Added parameter `RootNode` in `BodyFor`<T> and `BodyForListOf<T>` methods, just like the `BodyAs*` methods.
-
-- ⚡New! Added `NullableTGUID` in `MVCFramework.Nullables.pas`.
-
-- ⚡New `property CustomIntfObject: IInterface` in `TWebContext`. This property can be used to inject custom services factory. 
-
-    ```delphi
-    procedure TMyWebModule.WebModuleCreate(Sender: TObject);
-    begin
-      FMVC := TMVCEngine.Create(Self,
-        procedure(Config: TMVCConfig)
-        begin
-          //configuration code
-        end);
-      FMVC.AddController(TMyController);
-      FMVC.OnWebContextCreate(
-        procedure(const CTX: TWebContext)
-        begin
-          CTX.CustomIntfObject := TServicesFactory.Create; //implements an interface
-        end);
-      FMVC.OnWebContextDestroy(
-        procedure(const CTX: TWebContext)
-        begin
-          //do nothing here
-        end);
-    end;
-    ```
-
-- ✅ Added parameter to set local timeStamp as UTC.
-
-- ✅ Improved OpenAPI (Swagger) support.
-
-- ✅ Improved Support for OpenAPI (Swagger) API Versioning (check `swagger_api_versioning_primer` sample)
-
-- ✅ Improved! The unit tests fully test PostgreSQL, FirebirdSQL and SQLite while testing MVCActiveRecord framework. The other engines are tested using `activerecord_showcase` sample project.
-
-- ✅ Improved! MVCActiveRecord doeas a better job to handle TDate/TTime/TDateTime types for SQLite (it is automatic because SQLite doesn't support date/time types).
-
-- ✅ Improved! PostgreSQL, FirebirdSQL, Interbase and SQLite now support tablename and fields with spaces.
-
-- ✅ Improved Nullable Types. Now it's possible to assign `nil` to a nullable type and to check its state using the new property `IsNull` which is the negation of the already available property `HasValue`.
-
-- ✅ Improved! Now `TMVCStaticFileMiddleware` is able to manage high-level criteria to show/hide/mask specific files in the documetn web root. Check [Issue 548](https://github.com/danieleteti/delphimvcframework/issues/548) and the updated sample `samples\middleware_staticfiles\` for more info.
-
-- ✅ Improved! In case of multiple MVCPath, Swagger consider only the first one (Thanks to V. Ferri and our sponsors)
-
-- ⚡New! Mechanism to customize the JWT claims setup using the client request as suggested in [issue495](https://github.com/danieleteti/delphimvcframework/issues/495)
-
-- ⚡New! Added `TMVCActiveRecord.Merge<T>(CurrentListOfT, ChangesOfT)` to allow merge between two lists of `TMVCActiveRecord` descendants using `UnitOfWork` design pattern. Check the button "Merge" in demo "activerecord_showcase".
-
-- ⚡ New! Added default filtering for `TMVCActiveRecord descendants` (more info ASAP)
-
-- ⚡ New! Serialization and Deserialization for Pascal `set` (Thanks to [rshuck](https://github.com/rshuck) for his suggestions)
-
-- ⚡ New! Added partitioning for `TMVCActiveRecord descendants` (more info ASAP)
-
-- ✅ Dramatically improved all "JSON-To-DataSet" operations (1 order of magnitude c.a.). Thanks to [MPannier](https://github.com/MPannier) and [David Moorhouse](https://github.com/fastbike) for their detailed analysis - More info [here](https://github.com/danieleteti/delphimvcframework/issues/553).
-
-- ✅ Improved! After a big refactoring (*"I love to delete code" -- cit. Daniele Teti*), support a new SQLGenerator is just 2 (two) methods away! Just as example, this is the current version of `TMVCSQLGeneratorPostgreSQL`
-
-    ```delphi
-    type
-      TMVCSQLGeneratorPostgreSQL = class(TMVCSQLGenerator)
-      protected
-        function GetCompilerClass: TRQLCompilerClass; override;
-      public
-        function CreateInsertSQL(
-          const TableName: string;
-          const Map: TFieldsMap;
-          const PKFieldName: string;
-          const PKOptions: TMVCActiveRecordFieldOptions): string; override;
-        function GetSequenceValueSQL(const PKFieldName: string;
-          const SequenceName: string;
-          const Step: Integer = 1): string; override;
-      end;
-    ```
-
-    
-
-- ⚡ New! Added new default parameter to `TMVCActiveRecord.RemoveDefaultConnection` and `TMVCActiveRecord.RemoveConnection` to avoid exceptions in case of not initialized connection.
-
-- ⚡ New! Added the new `MVCOwned` attribute which allows to auto-create nested objects in the deserialization phase. This will not change the current behavior, you ned to explocitly define a property (or a field) as `MVCOwned` to allows the serialization to create or destroy object for you.
-
-- ✅ Improved! `Context.Data` property is now created on-demand using a lazy loading approach (expect an overall speed improvement).
-
-- ✅ Added `LogException` function in `MVCFramework.Logger.pas` to easily log exception in standard way.
-
-- ✅ Improved `MVCAREntitiesGenerator` project - now it can better handle border cases, field names which collide with Delphi keywords and a big number of tables.
-
-- ✅ Improved error handling for JSON-RPC APIs (Thanks to [David Moorhouse](https://github.com/fastbike)). More info [here](https://github.com/danieleteti/delphimvcframework/issues/538).
-
-- ✅ Improved parameter handling for enum and set in JSON-RPC APIs.
-
-- ⚡ New! Added `ActiveRecordConnectionRegistry.AddDefaultConnection(const aConnetionDefName: String)`. The connection definition **must** be known by FireDAC. This method simplifies the most common scenario shown below.
-
-    ```delphi
-    ActiveRecordConnectionRegistry.AddDefaultConnection('MyConDefName');
-    try
-      //Use active record classes
-    finally
-      ActiveRecordConnectionRegistry.RemoveDefaultConnection;
-    end;
-    ```
-
-- ⚡ New! Added `ToJSONObject` and `ToJSONArray` to the `IMVCRESTResponse`. These methods automatically parse the response body and return a `TJSONObject` or a `TJSONArray` respectively. These methods work as a factory -  the client code need to handle returned istances. Is the body is not compatible with the request (a.k.a. is not a JSONObject in case of `ToJSONObject`, or is not a JSONArray in case of `ToJSONArray`) an exception is raised.
-
-- ⚡ New! Added support for primary GUID (UUID) primary keys, attributes and serialization (More info at [issue 552](https://github.com/danieleteti/delphimvcframework/issues/552)). Thanks to [Marcelo Jaloto](https://github.com/marcelojaloto) for its important collaboration.
-
-- ⚡ New! Added `TMVCJWTBlackListMiddleware` to allow black-listing and (a sort of) logout for a JWT based authentication. This middleware **must** be registered **after** the `TMVCJWTAuthenticationMiddleware`. 
-
-    > This middleware provides 2 events named: `OnAcceptToken` (invoked when a request contains a token - need to returns true/false if the token is still accepted by the server or not) and  `OnNewJWTToBlackList` (invoked when a client ask to blacklist its current token). There is a new sample available which shows the funtionalities: `samples\middleware_jwtblacklist`.
-
-- ⚡New! `MVCFromBody` attribute, useful to automatically inject the request body as actual object in the action paramaters. For instance in the following action the body request is automatically deserialized as an object of class TPerson.
-
-    ```delphi
-    //interface
-    [MVCHTTPMethod([httpPOST])]
-    [MVCPath('/people')]
-    procedure CreatePerson(const [MVCFromBody] Person: TPerson);
-    
-    //implementation
-    procedure TRenderSampleController.CreatePerson(const Person: TPerson);
-    begin
-      //here you can directly use Person without call Context.Request.BodyAs<TPerson>
-      //the Person object lifecycle is automatically handled by dmvcframework, so don't destroy      
-      //If the request body doesn't exist (or cannot be deserialized) an exception is raised.      
-    end;
-    ```
-    MVCFromBody can be used also with "Collection Like" data structures.
-    //interface
-    ```delphi
-    [MVCDoc('Creates new articles from a list and returns "201: Created"')]
-    [MVCPath('/bulk')]
-    [MVCHTTPMethod([httpPOST])]
-    procedure CreateArticles(const [MVCFromBody] ArticleList: TObjectList<TArticle>);
-    
-    //implementation
-    procedure TArticlesController.CreateArticles(const ArticleList: TObjectList<TArticle>);
-    var
-      lArticle: TArticle;
-    begin
-      for lArticle in ArticleList do
-      begin
-        GetArticlesService.Add(lArticle);
-      end;
-      Render(201, 'Articles Created');
-    end;    
-    ```
-
-- ⚡New! `MVCFromQueryString` attribute, useful to automatically inject a query string paramater an action paramater. For instance in the following action the query string params `fromDate` is automatically deserialized as a `TDate` value and injected in the action.
-    ```delphi
-    //interface
-    [MVCHTTPMethod([httpGET])]
-    [MVCPath('/invoices')]
-    procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate);
-    
-    //implementation
-    procedure TRenderSampleController.GetInvoices(const FromDate: TDate);
-    begin
-      //here FromDate is a valid TDate value deserialized from the querystring paramater
-      //named fromDate. 
-      //If the query string parameter doesn't exist (or cannot be deserialized) an exception is raised.
-    end;
-    ```
-
-- ⚡New! `MVCFromHeader` attribute, useful to automatically inject a header value as an action parameter. For instance in the following action the header params `XMyCoolHeader` is automatically deserialized as `String` value and injected in the action.
-    ```delphi
-    //interface
-    [MVCHTTPMethod([httpGET])]
-    [MVCPath('/invoices')]
-    procedure GetInvoices(const [MVCFromQueryString('fromDate')] FromDate: TDate; const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String);
-    
-    //implementation
-    procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String);
-    begin
-      //here XMyCoolHeader is a string read from the "X-MY-COOL-HEADER' request header.
-      //If the header doesn't exist (or cannot be deserialized) an exception is raised.
-    end;
-    ```
-
-- ⚡New! `MVCFromCookie` attribute, useful to automatically inject a cookie value as an action parameter. For instance in the following action the cookie  `MyCoolCookie` is automatically deserialized as `TDate` value and injected in the action.
-    ```delphi
-    //interface
-    [MVCHTTPMethod([httpGET])]
-    [MVCPath('/invoices')]
-    procedure GetInvoices(
-      const [MVCFromQueryString('fromDate')] FromDate: TDate; 
-      const [MVCFromHeader('X-MY-COOL-HEADER')] XMyCoolHeader: String;
-      const [MVCFromCookie('MyCoolCookie')] MyCoolCookie: TDate;
-      );
-    
-    //implementation
-    procedure TRenderSampleController.GetInvoices(const FromDate: TDate; const XMyCoolHeader: String; const MyCoolCookie: TDate);
-    begin
-      //here MyCoolCookie is a TDate read from "MyCoolCookie' cookie available in the request.
-      //If the cookie doesn't exist (or cannot be deserialized) an exception is raised.
-    end;
-    ```
-	
-- ✅ Improved! While not strictly required nor defined, DMVCFramework supports sending body data for all HTTP VERBS - see https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET	
-
-- ⚡ New! Automated support to avoid "mid-air collisions". New methods `SetETag` and `CheckIfMatch` allows a better security without adding complexity to the controller code - check `avoid_mid_air_collisions_sample.dproj` sample and see  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#avoiding_mid-air_collisions for more info about mid-air collisions.
-
-- ✅ Improved! Ignored fields handling now is much better in renders method and in `ObjDict` as well. See [issue 528](https://github.com/danieleteti/delphimvcframework/issues/528).
-
-
-### Bug Fixes in 3.2.2-nitrogen
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/484 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/472 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/470  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/453  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/455  (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/461
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/489 (thanks to [drcrck](https://github.com/drcrck) for his initial analisys)
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/493 (thanks to [DelphiMan68](https://github.com/DelphiMan68) for his initial analisys)
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/451
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/539
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/560 (thanks to [David Moorhouse](https://github.com/fastbike))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/335 (thanks to [João Antônio Duarte](https://github.com/joaoduarte19))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/564
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/570 (Thanks [Marcos Nielsen](https://github.com/marcosnielsen)) 
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/565
-
-- Merged [PR#543](https://github.com/danieleteti/delphimvcframework/pull/543) (Now the `PathInfo` is trimmed so the router convert this "http://myserver.com/one " to this "http://myserver.com/one")
-
-- Fix for nil objects in lists during serialization
-
-- Fix a very subtle bug in `MaxRecordCount` parameter for RQL based methods in `TMVCActiveRecord`
-
-- Uniformed behavior in `Update` and `Delete` method in `TMVCActiveRecord`. Now these methods raise an exception if the record doesn't exists anymore in the table (update or delete statements return `AffectedRows` = 0). The behavior can be altered using the new parameter in the call, which by default is `true`. 
-
-  > WARNING! This change could raise some incompatibilities with the previous version, however this is the correct behavior. Consider the previous one a "incorrect behavior to fix".
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/489
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/518 (Thanks to [Microcom-Bjarne](https://github.com/Microcom-Bjarne))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/526 (Thanks to [David Moorhouse](https://github.com/fastbike))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/544 (Thanks to [David Moorhouse](https://github.com/fastbike))
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/542 (Thanks to [Lamberto Lodi](https://github.com/llodi-csw) for the hints)
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/485
-
-- Fixed *fileupload* sample
-
-- Fixed an `IFDEF` compatibility problem on mobile platforms (Thanks to Marco Cotroneo)
-
-- Samples are syntax compatible with Delphi 10.1 Berlin or better (Thanks to Mark Lobanov)
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/573 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
-
-- Fix https://github.com/danieleteti/delphimvcframework/issues/574 (Thanks to [DeddyH](https://github.com/DeddyH) the hints)
-
-### Breaking Changes in 3.2.2-nitrogen
-
-- Removed deprecated constructor for `TMVCJWTAuthenticationMiddleware` - was deprecated since 2019. Just use the other one as suggested.
-- Changed signature of method `IMVCMiddleware.OnAfterControllerAction`
-
-## Older Releases
-
-### What's New in 3.2.0-boron
+## What's New in 3.2.0-boron
 
 - New! Support for Delphi 10.4 Sydney!
 
@@ -1367,7 +1365,9 @@ end;
 - Fixed! [issue388](https://github.com/danieleteti/delphimvcframework/issues/388)
 - Fixed! Has been patched a serious security bug affecting deployment configurations which uses internal WebServer to serve static files (do not affect all Apache, IIS or proxied deployments).  Thanks to **Stephan Munz** to have discovered it. *Update to dmvcframework-3.2-RC5+ is required for all such kind of deployments.*
 
-### What's New in 3.1.0-lithium
+
+
+## What's New in 3.1.0-lithium
 
 - `TMVCActiveRecord` framework
 - `TMVCActiveRecordController`  with automatic RESTful interface generation and permissions handling
@@ -1384,21 +1384,23 @@ end;
 - `TMVCJSONRPCPublisher` allows to easily expose plain Delphi objects (and even data modules) through a JSON-RPC 2.0 interface!
 - *Breaking Change!* The JSON RPC Client layer is now interface based.
 
-### What's New in 3.0.0-hydrogen
+
+
+## What's New in 3.0.0-hydrogen
 
   - First release of the 3.0.0 version
 
-### What's New in 2.1.3-lithium
+## What's New in 2.1.3-lithium
 
   - FIX https://github.com/danieleteti/delphimvcframework/issues/64
   - Added unit tests to avoid regressions
 
-### What's New in 2.1.2-helium
+## What's New in 2.1.2-helium
 
   - FIX for Delphi versions who don't have ```TJSONBool``` (Delphi XE8 or older)
   - Added new conditional define in dmvcframework.inc: JSONBOOL (defined for Delphi Seattle+)
 
-### What's New in 2.1.1-hydrogen
+## What's New in 2.1.1-hydrogen
 
   - Updated the IDE Expert to show the current version of the framework
   - FIX to the mapper about the datasets null values (needs to be checked in old Delphi versions)
@@ -1428,9 +1430,9 @@ DMVCFramework allows to create powerful RESTful servers without effort. You can 
 
 - Unzip it the release zip in a folder named `C:\dmvc` (or where you prefer).
 
-- Launch RAD Studio and open `C:\dmvc\packages\d104\dmvcframework_group.groupproj`
+- Launch RAD Studio and open `C:\dmvc\packages\d112\dmvcframework_group.groupproj`
 
-  > WARNING! In the last path shown "d104" is for Delphi 10.4 Sydney. Use the correct package for your Delphi version.
+  > WARNING! In the last path shown "d112" is for Delphi 10.2 Alexandria. Use the correct package for your Delphi version.
 
 - Install the package and close all
 
